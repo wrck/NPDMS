@@ -3,7 +3,7 @@
 > 文档状态：评审基线<br>
 > 基线日期：2026-07-28<br>
 > 适用版本：V1、V2；V3演进范围<br>
-> 资料范围：当前工作区 `/需求` 的15份原始资料及已形成的148条标准化需求<br>
+> 资料范围：当前工作区`/需求`的15份原始资料、148条标准化需求及2份补充技术规范<br>
 > 记忆使用：未使用项目记忆
 
 ## 1. 文档目的
@@ -40,9 +40,9 @@
 
 | 编号 | 主题 | 约束 |
 | --- | --- | --- |
-| DEC-001 | 规格体系 | 采用“总体规格总册 + 8个领域分册 + 5个公共附录”。 |
+| DEC-001 | 规格体系 | 采用“总体规格总册 + 8个领域分册 + 7个公共附录”。 |
 | DEC-002 | 版本范围 | V1、V2逐项详细规格；V3仅定义能力边界、数据前提和演进方向。 |
-| DEC-003 | 基础平台 | ruoyi-vue-pro master-jdk25，JDK 25 + Spring Boot 4.x。 |
+| DEC-003 | 基础平台 | 以`yudao-boot-mini`的`master-jdk25`为最简集成基线；当前核验版本为JDK 25、Spring Boot 4.1.0、revision `2026.06-jdk25-SNAPSHOT`。 |
 | DEC-004 | 部署形态 | 首期模块化单体，由yudao-server统一部署；保留未来微服务拆分边界。 |
 | DEC-005 | 管理端 | Vue3 + Element Plus，响应式布局优先。 |
 | DEC-006 | 租户策略 | 首期单租户运行，数据模型和接口上下文保留多租户扩展能力。 |
@@ -52,6 +52,18 @@
 | DEC-010 | 项目层级 | 项目支持非固定层级树，项目组合与项目父子层级分离。 |
 | DEC-011 | 任务层级 | 任务使用非固定层级WBS，不设置固定业务深度。 |
 | DEC-012 | 容量基线 | 10万级项目、500万级任务、500人级同时在线。 |
+| DEC-013 | 模块边界与命名 | Yudao只承载平台能力；PMS业务模块统一使用`pms-module-*`命名，通过`-api`契约或领域事件协作。 |
+| DEC-014 | API设计 | Yudao平台接口定义完全以上游平台为准；新增`pms-module-*`业务模块统一执行PMS业务、内部、集成和事件API规范，接口必须版本化并具备稳定契约编号。 |
+| DEC-015 | 双上游集成策略 | 以`yudao-boot-mini`保持最简根工程；mini缺失但PMS需要的Yudao模块从`YunaiV/ruoyi-vue-pro`同名版本分支获取。共享文件以mini为基线，扩展模块及其配套资产以完整仓库为来源，PMS模块在根级增量加入。 |
+
+### 5.1 上游基线来源
+
+- 最简基础仓库：[`yudao-boot-mini`](https://gitee.com/yudaocode/yudao-boot-mini)，分支`master-jdk25`，本次核验提交`e6d814cb59cfc204f02aa2516799073382aba801`，对应标签`v2026.06(jdk25)`。
+- 扩展模块仓库：[`YunaiV/ruoyi-vue-pro`](https://github.com/YunaiV/ruoyi-vue-pro)，分支`master-jdk25`，本次核验提交`a6558325b0f09017f531f1e5891613ef9b468132`。
+- 版本兼容基准：两个仓库根POM当前均为revision `2026.06-jdk25-SNAPSHOT`、JDK 25、Spring Boot 4.1.0。
+- 核验依据：[`mini根POM`](https://gitee.com/yudaocode/yudao-boot-mini/blob/master-jdk25/pom.xml)、[`完整仓库根POM`](https://github.com/YunaiV/ruoyi-vue-pro/blob/master-jdk25/pom.xml)、[`完整仓库BPM模块`](https://github.com/YunaiV/ruoyi-vue-pro/tree/master-jdk25/yudao-module-bpm)。
+
+实际开始代码集成时必须同时记录两个上游提交，不得只记录“最新master-jdk25”。后续升级通过独立变更评审执行；禁止用完整仓库整体覆盖mini中的同名基础模块。
 
 <!-- LANDSCAPE -->
 
@@ -91,21 +103,25 @@
 
 | 领域代码 | 领域分册 | 实现模块 | 需求数 | 版本分布 |
 | --- | --- | --- | --- | --- |
-| PLT | 平台基础与权限 | yudao-module-system / infra / bpm | 11 | V1 11 / V2 0 / V3 0 |
-| PROJ | 项目承接、组合与组织 | yudao-module-pms | 22 | V1 14 / V2 8 / V3 0 |
-| ENG | 计划、方案与现场实施 | yudao-module-engineering | 29 | V1 13 / V2 16 / V3 0 |
-| CUT | 联调、割接与稳定观察 | yudao-module-cutover | 15 | V1 12 / V2 3 / V3 0 |
-| ACC | 验收、移交与项目闭环 | yudao-module-pms | 10 | V1 6 / V2 4 / V3 0 |
-| SRV | 巡检、维保与持续服务 | yudao-module-service | 24 | V1 11 / V2 13 / V3 0 |
-| RES | 设备、备件、公告与外协 | yudao-module-asset / yudao-module-outsourcing | 29 | V1 3 / V2 25 / V3 1 |
-| ANA | 数据分析与系统集成 | yudao-module-pms-analytics / yudao-module-pms-integration | 8 | V1 0 / V2 2 / V3 6 |
+| PLT | 平台基础与权限 | yudao-dependencies / yudao-framework / yudao-module-system / yudao-module-infra / yudao-server；yudao-module-bpm为PMS扩展 | 11 | V1 11 / V2 0 / V3 0 |
+| PROJ | 项目承接、组合与组织 | pms-module-project | 22 | V1 14 / V2 8 / V3 0 |
+| ENG | 计划、方案与现场实施 | pms-module-engineering | 29 | V1 13 / V2 16 / V3 0 |
+| CUT | 联调、割接与稳定观察 | pms-module-cutover | 15 | V1 12 / V2 3 / V3 0 |
+| ACC | 验收、移交与项目闭环 | pms-module-project | 10 | V1 6 / V2 4 / V3 0 |
+| SRV | 巡检、维保与持续服务 | pms-module-service | 24 | V1 11 / V2 13 / V3 0 |
+| RES | 设备、备件、公告与外协 | pms-module-asset / pms-module-outsourcing | 29 | V1 3 / V2 25 / V3 1 |
+| ANA | 数据分析与系统集成 | pms-module-analytics / pms-module-integration | 8 | V1 0 / V2 2 / V3 6 |
 
 ### 8.1 模块边界
 
-- `yudao-module-system`、`infra`、`bpm`提供通用能力，不承载PMS业务规则。
+- `yudao-framework`提供公共框架和技术Starter，`yudao-module-system`、`yudao-module-infra`提供mini默认平台能力；`yudao-module-bpm`从完整仓库同版本分支获取并作为PMS工作流扩展，以上模块均不得承载PMS业务规则。
+- `yudao-boot-mini`根工程结构作为物理集成基线，不额外创建`yudao-platform/`或`pms-platform/`父目录。
+- mini默认包含dependencies、framework、system、infra和server；BPM不是mini默认目录，必须从`YunaiV/ruoyi-vue-pro`的`master-jdk25`获取，并同步装配根POM、`yudao-server`、数据库脚本和管理端增量。
+- PMS业务模块统一采用`pms-module-{domain}`命名，并通过`-api`子模块暴露稳定契约。
 - 业务模块拥有自己的表前缀、权限标识、错误码段、应用服务和接口路径。
-- 模块间通过应用服务、内部API或领域事件协作，禁止跨模块直接访问业务表。
+- 模块间通过Internal API或领域事件协作，禁止直接依赖其他模块`-biz`、Service、Mapper或业务表。
 - 首期由`yudao-server`统一部署，拆分服务后保持接口契约和数据所有权不变。
+- 完整规则见`appendices/module-boundary-and-naming.md`。
 
 ## 9. 项目组合、项目层级与任务WBS
 
@@ -191,10 +207,10 @@
 
 ## 14. 技术栈
 
-- 后端：JDK 25、Spring Boot 4.x、Yudao `master-jdk25`、MyBatis Plus、Spring Security、Flowable。
-- 前端：Vue3、TypeScript、Element Plus，响应式Web。
+- 后端：以`yudao-boot-mini master-jdk25`为骨架，mini外模块从`YunaiV/ruoyi-vue-pro master-jdk25`按需获取；revision `2026.06-jdk25-SNAPSHOT`、JDK 25、Spring Boot 4.1.0、`yudao-framework`、MyBatis Plus、Spring Security、Flowable/BPM。
+- 前端：官方`yudao-ui-admin-vue3`、Vue3、TypeScript、Element Plus，响应式Web；前后端同库或独立仓库方式【待确认】。
 - 数据：关系型数据库【待确认具体产品】、Redis；文件服务复用Yudao Infra并支持对象存储。
-- API：RESTful JSON；模块内部和外部契约均需版本化。
+- API：Yudao平台接口保持上游定义；新增PMS模块采用RESTful JSON，业务、内部、集成和事件契约分别治理并统一版本化，详见`appendices/api-design-specification.md`。
 - 部署：首期模块化单体，预留模块级独立部署能力。
 
 ## 15. 开发命令
@@ -215,21 +231,28 @@
 ## 16. 目标项目结构
 
 ```text
-yudao-module-pms/
-  yudao-module-pms-api/
-  yudao-module-pms-biz/
-yudao-module-engineering/
-yudao-module-cutover/
-yudao-module-service/
-yudao-module-asset/
-yudao-module-outsourcing/
-yudao-module-pms-analytics/
-yudao-module-pms-integration/
-yudao-server/
-yudao-ui-admin-vue3/
+project-delivery-platform/
+├── yudao-dependencies/
+├── yudao-framework/
+├── yudao-module-system/
+├── yudao-module-infra/
+├── yudao-module-bpm/                 # 从完整仓库同版本分支获取
+├── pms-module-project/
+│   ├── pms-module-project-api/
+│   └── pms-module-project-biz/
+├── pms-module-engineering/
+├── pms-module-cutover/
+├── pms-module-service/
+├── pms-module-asset/
+├── pms-module-outsourcing/
+├── pms-module-analytics/
+├── pms-module-integration/
+├── yudao-server/
+└── yudao-ui/
+    └── yudao-ui-admin-vue3/          # mini基础集成及完整仓库扩展模块增量
 ```
 
-每个业务模块内部建议按`controller / service / dal / convert / framework`组织，并在领域较大时进一步按业务子域分包。
+完整管理端以官方`yudao-ui-admin-vue3`为基础；采用前后端同库还是独立前端仓库【待确认】。每个业务模块内部建议按`controller / service / dal / convert / framework`组织，并在领域较大时进一步按业务子域分包。
 
 ## 17. 代码与接口风格
 
@@ -246,8 +269,9 @@ public Long createProject(ProjectCreateReqVO request) {
 
 - Controller只处理协议、参数校验和权限；业务规则位于应用服务或领域策略。
 - DTO/VO、DO、枚举、权限标识和错误码遵循Yudao现有命名方式。
-- 跨模块通过API模块或事件交互，不直接引用对方DAL和数据库表。
+- 跨模块只能依赖目标`pms-module-*-api`或版本化事件，不直接引用对方`-biz`、DAL和数据库表。
 - 所有写接口必须明确幂等、并发控制、权限和审计策略。
+- Yudao平台接口沿用上游路径、请求响应和错误语义；新增PMS业务接口使用`/api/v1/pms/...`及`{DOMAIN}-{RESOURCE}-{TYPE}-{SEQ}`契约编号。
 
 ## 18. 测试策略
 

@@ -1,7 +1,8 @@
 # ENG领域需求规格：计划、方案与现场实施
 
 > 文档状态：评审基线<br>
-> 实现模块：yudao-module-engineering<br>
+> 实现模块：pms-module-engineering<br>
+> 技术约束：`appendices/module-boundary-and-naming.md`、`appendices/api-design-specification.md`<br>
 > 详细需求：29项；V3演进：0项
 
 ## 1. 领域目标与边界

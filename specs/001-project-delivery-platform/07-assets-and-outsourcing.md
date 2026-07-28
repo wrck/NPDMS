@@ -1,7 +1,8 @@
 # RES领域需求规格：设备、备件、公告与外协
 
 > 文档状态：评审基线<br>
-> 实现模块：yudao-module-asset / yudao-module-outsourcing<br>
+> 实现模块：pms-module-asset / pms-module-outsourcing<br>
+> 技术约束：`appendices/module-boundary-and-naming.md`、`appendices/api-design-specification.md`<br>
 > 详细需求：28项；V3演进：1项
 
 ## 1. 领域目标与边界

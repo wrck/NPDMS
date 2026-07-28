@@ -154,9 +154,18 @@
 | REQ-147 | FR-ANA-007 | V3 | P3 | 范围定义 | 08-analytics-and-integration.md | 已映射 |
 | REQ-148 | FR-ANA-008 | V3 | P3 | 范围定义 | 08-analytics-and-integration.md | 已映射 |
 
+## 技术规范追溯
+
+| 决策 | 规范文件 | 影响范围 | 验收门禁 |
+| --- | --- | --- | --- |
+| DEC-013 | module-boundary-and-naming.md | 模块命名、领域边界、数据所有权、模块依赖 | 不得新建承载PMS业务的`yudao-module-*`；不得跨模块依赖`-biz`或直接访问业务表 |
+| DEC-014 | api-design-specification.md | 平台与业务接口边界、URI、契约编号、请求响应、幂等、并发、事件和版本 | Yudao平台接口必须保持上游定义；新增PMS接口必须执行本规范，每个写接口具备权限、幂等、事务、并发和审计规格，破坏性变更必须升级版本 |
+| DEC-015 | 00-master-spec.md、module-boundary-and-naming.md | 双上游仓库、版本、物理目录和增量模块装配 | 必须从可追溯的`yudao-boot-mini master-jdk25`提交建立基础工程；mini外模块必须从可追溯的`YunaiV/ruoyi-vue-pro master-jdk25`提交获取，不得整体覆盖mini共享文件，也不得把BPM误认作默认启用模块 |
+
 ## 追溯门禁
 
 - V1、V2不得存在“未映射”需求。
 - V3必须具有范围定义，但不要求当前开发测试用例。
 - 一个来源需求可以拆分为多个功能规格；每个功能规格必须指回至少一个来源或已确认决策。
+- 技术设计和代码评审必须同时满足DEC-013、DEC-014与DEC-015，不能只验证业务FR。
 - 测试阶段在本矩阵追加测试用例编号、执行结果和缺陷编号。

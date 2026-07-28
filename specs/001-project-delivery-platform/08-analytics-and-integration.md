@@ -1,7 +1,8 @@
 # ANA领域需求规格：数据分析与系统集成
 
 > 文档状态：评审基线<br>
-> 实现模块：yudao-module-pms-analytics / yudao-module-pms-integration<br>
+> 实现模块：pms-module-analytics / pms-module-integration<br>
+> 技术约束：`appendices/module-boundary-and-naming.md`、`appendices/api-design-specification.md`<br>
 > 详细需求：2项；V3演进：6项
 
 ## 1. 领域目标与边界

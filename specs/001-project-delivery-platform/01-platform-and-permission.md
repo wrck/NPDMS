@@ -1,7 +1,9 @@
 # PLT领域需求规格：平台基础与权限
 
 > 文档状态：评审基线<br>
-> 实现模块：yudao-module-system / infra / bpm<br>
+> 基础仓库：yudao-boot-mini master-jdk25<br>
+> 实现模块：yudao-dependencies / yudao-framework / yudao-module-system / yudao-module-infra / yudao-server来自mini基线；yudao-module-bpm从`YunaiV/ruoyi-vue-pro master-jdk25`获取并作为PMS工作流扩展<br>
+> 技术约束：`appendices/module-boundary-and-naming.md`、`appendices/api-design-specification.md`<br>
 > 详细需求：11项；V3演进：0项
 
 ## 1. 领域目标与边界
