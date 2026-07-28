@@ -331,6 +331,14 @@ GET /api/v1/pms/projects/{projectId}/descendants?cursor=...
 
 ## 15. Internal API
 
+Internal API 不要求所有模块默认拆分 api。
+
+原则：
+
+- 被其他模块稳定依赖时建立；
+- 无跨模块调用时无需建立；
+- 禁止创建空 API 模块。
+
 正确依赖：
 
 ```text
