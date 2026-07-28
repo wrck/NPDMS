@@ -1,0 +1,24 @@
+# Codex local analysis and extraction intermediates
+._codex_work/
+
+# Generated review/export artifacts; Markdown under specs/ is authoritative
+交付成果/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Common build and dependency outputs
+node_modules/
+dist/
+target/
+coverage/
+*.log

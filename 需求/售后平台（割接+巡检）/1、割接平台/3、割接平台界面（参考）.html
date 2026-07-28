@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>迪普科技 · 网络设备割接流程平台</title>
+<style>
+/* ====== Reset & Base ====== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#F5F7FA;color:#333;min-height:100vh;display:flex}
+a{color:#4A90E2;text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ====== Sidebar ====== */
+.sidebar{width:220px;background:linear-gradient(180deg,#1a2332 0%,#263248 100%);color:#c0ccda;display:flex;flex-direction:column;flex-shrink:0;min-height:100vh}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo h2{font-size:16px;color:#fff;font-weight:600}
+.sidebar-logo small{font-size:11px;color:#7a8ba6;display:block;margin-top:4px}
+.sidebar-nav{flex:1;padding:12px 0}
+.sidebar-nav .nav-item{display:flex;align-items:center;padding:10px 20px;cursor:pointer;font-size:13px;transition:all .2s;border-left:3px solid transparent;color:#a0b0c0}
+.sidebar-nav .nav-item:hover{background:rgba(255,255,255,.05);color:#e0e6ed}
+.sidebar-nav .nav-item.active{background:rgba(74,144,226,.15);border-left-color:#4A90E2;color:#fff;font-weight:600}
+.sidebar-nav .nav-dot{width:6px;height:6px;border-radius:50%;margin-right:10px;flex-shrink:0}
+.sidebar-nav .nav-dot.green{background:#52C41A}
+.sidebar-nav .nav-dot.blue{background:#1677FF}
+.sidebar-nav .nav-dot.red{background:#FF4D4F}
+.sidebar-footer{padding:16px 20px;font-size:11px;color:#5a6e85;border-top:1px solid rgba(255,255,255,.06)}
+
+/* ====== Main ====== */
+.main{flex:1;display:flex;flex-direction:column;overflow-y:auto}
+.topbar{height:52px;background:#fff;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #e8ecf1;flex-shrink:0}
+.topbar .breadcrumb{font-size:13px;color:#888}
+.topbar .breadcrumb span{color:#4A90E2}
+.content{padding:20px 24px;flex:1}
+
+/* ====== Progress Bar ====== */
+.progress-bar{display:flex;align-items:center;background:#fff;border-radius:8px;padding:16px 24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.progress-step{display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+.progress-step .circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all .3s}
+.progress-step .circle.done{background:#52C41A;color:#fff}
+.progress-step .circle.current{background:#1677FF;color:#fff;box-shadow:0 0 0 4px rgba(22,119,255,.2);animation:pulse 1.5s ease-in-out infinite}
+.progress-step .circle.pending{background:#fff;color:#FF4D4F;border:2px solid #FF4D4F}
+.progress-divider{flex:1;height:2px;margin:0 8px;border-radius:1px;transition:all .3s}
+.progress-divider.done{background:#52C41A}
+.progress-divider.pending{background:#e8ecf1}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(22,119,255,.2)}50%{box-shadow:0 0 0 8px rgba(22,119,255,.1)}}
+
+/* ====== Card ====== */
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:16px}
+.card-header{padding:14px 20px;border-bottom:1px solid #f0f2f5;display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:15px;font-weight:600;color:#1a2332}
+.card-body{padding:20px}
+.card-body.no-padding{padding:0}
+
+/* ====== Table ====== */
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px 14px;font-size:13px;border-bottom:1px solid #f0f2f5}
+th{background:#fafbfc;color:#666;font-weight:600;font-size:12px;white-space:nowrap}
+tr:hover td{background:#f8faff}
+td .tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:500}
+.tag-green{background:#e6f7e9;color:#389e0d}
+.tag-blue{background:#e6f4ff;color:#1677ff}
+.tag-orange{background:#fff7e6;color:#d48806}
+.tag-red{background:#fff1f0;color:#cf1322}
+.tag-gray{background:#f5f5f5;color:#8c8c8c}
+
+/* ====== Form Elements ====== */
+.form-row{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:4px;min-width:180px;flex:1}
+.form-group label{font-size:12px;color:#888;font-weight:500}
+.form-group .value{font-size:13px;color:#333;padding:6px 0;min-height:30px;font-family:Consolas,monospace}
+.form-group select,.form-group input,.form-group textarea{padding:6px 10px;border:1px solid #d9d9d9;border-radius:4px;font-size:13px;font-family:inherit;transition:border-color .2s}
+.form-group select:focus,.form-group input:focus,.form-group textarea:focus{outline:none;border-color:#4A90E2;box-shadow:0 0 0 2px rgba(74,144,226,.1)}
+.form-group textarea{min-height:60px;resize:vertical}
+.form-group input[type=file]{border:none;padding:0}
+
+/* ====== Buttons ====== */
+.btn{padding:6px 16px;border-radius:4px;border:none;font-size:13px;cursor:pointer;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-primary{background:#4A90E2;color:#fff}
+.btn-primary:hover{background:#3a7bc8}
+.btn-success{background:#52C41A;color:#fff}
+.btn-success:hover{background:#45a716}
+.btn-danger{background:#FF4D4F;color:#fff}
+.btn-danger:hover{background:#d9363e}
+.btn-default{background:#fff;color:#333;border:1px solid #d9d9d9}
+.btn-default:hover{border-color:#4A90E2;color:#4A90E2}
+.btn-sm{padding:3px 10px;font-size:12px}
+.btn-lg{padding:8px 24px;font-size:14px}
+.btn-link{background:transparent;color:#4A90E2;border:none;cursor:pointer;font-size:13px;padding:0}
+.btn-link:hover{text-decoration:underline}
+.btn-group{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.btn-group-left{justify-content:flex-start}
+
+/* ====== Section Title ====== */
+.section-title{font-size:14px;font-weight:600;color:#1a2332;margin:16px 0 10px;padding-bottom:8px;border-bottom:2px solid #4A90E2;display:inline-block}
+
+/* ====== Radio Group ====== */
+.radio-group{display:flex;gap:16px;align-items:center}
+.radio-group label{display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer}
+.radio-group input[type=radio]{accent-color:#4A90E2}
+
+/* ====== Modal ====== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:8px;width:90%;max-width:800px;max-height:85vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.modal-header{padding:16px 20px;border-bottom:1px solid #f0f2f5;display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:15px}
+.modal-body{padding:20px}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#999}
+.modal-close:hover{color:#333}
+
+/* ====== Page panels ====== */
+.page-panel{display:none}
+.page-panel.active{display:block}
+
+/* ====== Homepage stats ====== */
+.stat-cards{display:flex;gap:16px;margin-bottom:16px}
+.stat-card{flex:1;background:#fff;border-radius:8px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04);display:flex;flex-direction:column;gap:4px}
+.stat-card .num{font-size:28px;font-weight:700}
+.stat-card .label{font-size:12px;color:#888}
+
+/* ====== Inline Alert ====== */
+.alert{padding:10px 14px;border-radius:4px;font-size:12px;margin-bottom:12px}
+.alert-info{background:#e6f4ff;color:#1677ff;border:1px solid #b3d9ff}
+
+/* ====== File Upload Placeholder ====== */
+.file-upload{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px dashed #d9d9d9;border-radius:4px;cursor:pointer;font-size:12px;color:#888;transition:all .2s}
+.file-upload:hover{border-color:#4A90E2;color:#4A90E2}
+.file-upload .icon{font-size:20px}
+
+/* ====== Hidden ====== */
+.hidden{display:none !important}
+
+/* ====== Review Item ====== */
+.review-item{padding:12px 0;border-bottom:1px solid #f0f2f5}
+.review-item:last-child{border-bottom:none}
+.review-item .question{font-size:13px;font-weight:600;margin-bottom:8px}
+.review-item .reason-box{margin-top:8px;display:none}
+.review-item .reason-box.show{display:block}
+
+/* ====== Risk Survey Table in Step 2 ====== */
+.risk-row{display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f5f5f5;gap:16px}
+.risk-row .risk-name{width:240px;font-size:13px;font-weight:500;flex-shrink:0;padding-top:4px}
+.risk-row .risk-input{flex:1;display:flex;align-items:center;gap:8px}
+.risk-row .risk-note{font-size:11px;color:#999;margin-top:4px}
+
+/* Print-friendly */
+@media print{
+  .sidebar{display:none}
+  .topbar{display:none}
+  .btn-group{display:none}
+  .content{padding:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h2>DPtech 割接平台</h2>
+    <small>v1.0 · 原型演示</small>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-page="home">
+      <span class="nav-dot blue"></span> 🏠 首页 Dashboard
+    </div>
+    <div class="nav-item" data-page="step1">
+      <span class="nav-dot green"></span> 1. 生成采集清单
+    </div>
+    <div class="nav-item" data-page="step2">
+      <span class="nav-dot green"></span> 2. 采集信息分析与结果
+    </div>
+    <div class="nav-item" data-page="step3">
+      <span class="nav-dot green"></span> 3. 割接申请
+    </div>
+    <div class="nav-item" data-page="step4">
+      <span class="nav-dot green"></span> 4. 割接审批
+    </div>
+    <div class="nav-item" data-page="step5">
+      <span class="nav-dot green"></span> 5. 割接跟踪及闭环
+    </div>
+    <div style="margin:12px 20px;border-top:1px solid rgba(255,255,255,.08)"></div>
+    <div class="nav-item" data-page="admin-risk">
+      <span class="nav-dot gray"></span> ⚙ 风险考察项配置
+    </div>
+    <div class="nav-item" data-page="admin-biz">
+      <span class="nav-dot gray"></span> ⚙ 业务调研项配置
+    </div>
+  </nav>
+  <div class="sidebar-footer">© 2025 迪普科技</div>
+</aside>
+
+<!-- ====== MAIN CONTENT ====== -->
+<main class="main" id="main-content">
+  <div class="topbar">
+    <div class="breadcrumb">位置：<span id="breadcrumb-text">首页</span></div>
+  </div>
+  <div class="content">
+
+<!-- ================================================ -->
+<!-- HOME PAGE -->
+<!-- ================================================ -->
+<div class="page-panel active" id="page-home">
+  <div class="stat-cards">
+    <div class="stat-card"><div class="num" style="color:#1677FF">8</div><div class="label">待办割接任务</div></div>
+    <div class="stat-card"><div class="num" style="color:#52C41A">23</div><div class="label">已完成割接</div></div>
+    <div class="stat-card"><div class="num" style="color:#FF4D4F">3</div><div class="label">审批中</div></div>
+    <div class="stat-card"><div class="num" style="color:#FAAD14">2</div><div class="label">驳回待修改</div></div>
+  </div>
+
+  <!-- 割接任务待办 -->
+  <div class="card">
+    <div class="card-header"><h3>📋 割接任务待办</h3></div>
+    <div class="card-body no-padding" style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>项目名称</th><th>项目负责人</th><th>割接来源</th><th>办事处</th><th>任务生成时间</th><th>操作</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>浙江移动城域网防火墙升级</td><td>张伟</td><td><span class="tag tag-blue">ITR</span></td><td>杭州办</td><td>2025-07-10 09:15</td><td><button class="btn btn-primary btn-sm" onclick="navigateToStep(1,'handle')">办理</button></td></tr>
+          <tr><td>上海电信核心交换机替换</td><td>李明</td><td><span class="tag tag-orange">PMS</span></td><td>上海办</td><td>2025-07-09 14:30</td><td><button class="btn btn-primary btn-sm" onclick="navigateToStep(1,'handle')">办理</button></td></tr>
+          <tr><td>广东联通负载均衡灾备演练</td><td>王芳</td><td><span class="tag tag-blue">ITR</span></td><td>广州办</td><td>2025-07-08 16:00</td><td><button class="btn btn-primary btn-sm" onclick="navigateToStep(1,'handle')">办理</button></td></tr>
+          <tr><td>北京金融安审FW版本升级</td><td>赵强</td><td><span class="tag tag-orange">PMS</span></td><td>北京办</td><td>2025-07-07 11:20</td><td><button class="btn btn-primary btn-sm" onclick="navigateToStep(1,'handle')">办理</button></td></tr>
+          <tr><td>江苏政府外网结构调整</td><td>陈敏</td><td><span class="tag tag-blue">ITR</span></td><td>南京办</td><td>2025-07-06 08:45</td><td><button class="btn btn-primary btn-sm" onclick="navigateToStep(1,'handle')">办理</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 自建割接任务 -->
+  <div class="card">
+    <div class="card-header"><h3>📝 自建割接任务</h3><button class="btn btn-primary" onclick="navigateToStep(1,'new')">＋ 新增割接任务</button></div>
+    <div class="card-body no-padding" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>项目名称</th><th>创建人</th><th>创建时间</th><th>当前步骤</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>深圳某行核心设备替换测试</td><td>陈涛</td><td>2025-07-10 10:00</td><td><span class="tag tag-green">采集分析</span></td><td><button class="btn btn-default btn-sm" onclick="navigateToStep(2)">继续</button></td></tr>
+          <tr><td>杭州某校网络改造</td><td>陈涛</td><td>2025-07-05 09:30</td><td><span class="tag tag-blue">已审批通过</span></td><td><button class="btn btn-default btn-sm" onclick="navigateToStep(5)">跟踪</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- STEP 1: 创建 — 办理 / 新增 -->
+<!-- ================================================ -->
+<div class="page-panel" id="page-step1">
+  <!-- Progress Bar: 5步流程，Step 1 "生成采集清单" current -->
+  <div class="progress-bar" id="progress-step1">
+    <div class="progress-step"><span class="circle current">1</span><span style="color:#1677FF;font-weight:600">生成采集清单</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">2</span><span style="color:#FF4D4F">采集信息分析与结果</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">3</span><span style="color:#FF4D4F">割接申请</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">4</span><span style="color:#FF4D4F">割接审批</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">5</span><span style="color:#FF4D4F">割接跟踪及闭环</span></div>
+  </div>
+  <div class="alert alert-info">💡 当前步骤及之前状态为 <b style="color:#52C41A">绿色</b>，之后为 <b style="color:#FF4D4F">红色</b>。割接类型与高可靠性组网模式选择后将联动展示风险考察项和业务调研项。</div>
+
+  <!-- 方式切换 -->
+  <div style="margin-bottom:14px">
+    <button class="btn btn-primary" id="tab-handle" onclick="switchCreateTab('handle')">📋 办理（ITR/PMS 带入）</button>
+    <button class="btn btn-default" id="tab-new" onclick="switchCreateTab('new')" style="margin-left:8px">✏️ 新增（手动创建）</button>
+  </div>
+
+  <!-- 项目信息 -->
+  <div class="card">
+    <div class="card-header"><h3>📌 项目信息</h3><span style="font-size:11px;color:#999" id="project-info-source">来源：ITR/PMS 系统带入</span></div>
+    <div class="card-body" id="project-info-body">
+      <!-- JS 根据模式动态填充 -->
+    </div>
+  </div>
+
+  <!-- 割接采集信息 -->
+  <div class="card">
+    <div class="card-header"><h3>🔍 割接采集信息</h3></div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label>割接类型 <span style="color:#FF4D4F">*</span></label>
+          <select id="cutover-type" onchange="filterRiskItems()">
+            <option value="">-- 请选择 --</option>
+            <option value="replace-new-device">设备替换（原厂新旧整机）</option>
+            <option value="replace-board">设备替换（原厂新旧板卡）</option>
+            <option value="replace-competitor" selected>设备替换（替换友商设备）</option>
+            <option value="new-deploy">设备入网（新开局）</option>
+            <option value="version-upgrade">版本升级</option>
+            <option value="dr-drill">灾备演练</option>
+            <option value="config-change">配置变更</option>
+            <option value="network-restructure">网络结构调整</option>
+            <option value="patch">版本补丁</option>
+            <option value="signature-upgrade">特征库升级</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2">
+          <label>高可靠性组网模式 <span style="color:#FF4D4F">*</span></label>
+          <select id="ha-mode" onchange="filterRiskItems()">
+            <option value="">-- 请选择 --</option>
+            <option value="vsm">VSM</option>
+            <option value="normal-dual" selected>普通双机</option>
+            <option value="silent-dual">静默双机</option>
+            <option value="drp-dual">DRP双机</option>
+            <option value="none">不涉及</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 风险考察项表 -->
+      <span class="section-title">⚠️ 风险考察项</span>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>风险项</th><th>说明</th><th>数据关联条件</th></tr></thead>
+          <tbody id="risk-items-tbody">
+            <!-- JS动态填充 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 业务调研项表 -->
+      <span class="section-title">📝 业务调研项</span>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>调研项</th><th>说明</th><th>数据关联条件</th></tr></thead>
+          <tbody id="biz-items-tbody">
+            <!-- JS动态填充 -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-default">📥 下载清单</button>
+        <button class="btn btn-default">💾 保存</button>
+        <button class="btn btn-primary" onclick="navigateToStep(2)">下一步 → 采集信息分析与结果</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- STEP 2: 采集信息分析与结果 -->
+<!-- ================================================ -->
+<div class="page-panel" id="page-step2">
+  <div class="progress-bar" id="progress-step2">
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">生成采集清单</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle current">2</span><span style="color:#1677FF;font-weight:600">采集信息分析与结果</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">3</span><span style="color:#FF4D4F">割接申请</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">4</span><span style="color:#FF4D4F">割接审批</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">5</span><span style="color:#FF4D4F">割接跟踪及闭环</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>📊 采集信息分析与结果</h3><span style="font-size:11px;color:#999">以下内容由上一页面带入</span></div>
+    <div class="card-body">
+      <!-- 风险考察项结果填写 -->
+      <span class="section-title">⚠️ 风险考察项</span>
+      <div id="step2-risk-items"></div>
+
+      <!-- 业务调研项结果填写 -->
+      <span class="section-title">📝 业务调研项</span>
+      <div id="step2-biz-items"></div>
+
+      <div class="btn-group">
+        <button class="btn btn-default" onclick="navigateToStep(1)">← 返回</button>
+        <button class="btn btn-default">💾 保存</button>
+        <button class="btn btn-primary" onclick="navigateToStep(3)">下一步 → 割接申请</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- STEP 3: 割接申请 -->
+<!-- ================================================ -->
+<div class="page-panel" id="page-step3">
+  <div class="progress-bar" id="progress-step3">
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">生成采集清单</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">采集信息分析与结果</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle current">3</span><span style="color:#1677FF;font-weight:600">割接申请</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">4</span><span style="color:#FF4D4F">割接审批</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">5</span><span style="color:#FF4D4F">割接跟踪及闭环</span></div>
+  </div>
+
+  <!-- 割接等级评估 -->
+  <div class="card">
+    <div class="card-header"><h3>📊 割接等级评估</h3></div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group"><label>业务重要等级</label><div class="radio-group"><label><input type="radio" name="bizlevel" checked> 低</label><label><input type="radio" name="bizlevel"> 中</label><label><input type="radio" name="bizlevel"> 高</label></div></div>
+        <div class="form-group"><label>操作复杂度等级</label><div class="radio-group"><label><input type="radio" name="complexity"> 低</label><label><input type="radio" name="complexity" checked> 中</label><label><input type="radio" name="complexity"> 高</label></div></div>
+        <div class="form-group"><label>风险等级</label><div class="radio-group"><label><input type="radio" name="risklevel"> 低</label><label><input type="radio" name="risklevel"> 中</label><label><input type="radio" name="risklevel" checked> 高</label></div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>备件是否申请</label><div class="radio-group"><label><input type="radio" name="spare"> 是</label><label><input type="radio" name="spare" checked> 否</label><label><input type="radio" name="spare"> 不涉及</label></div></div>
+        <div class="form-group"><label>客户服务及隐患等级</label><div class="radio-group"><label><input type="radio" name="custlevel"> 低</label><label><input type="radio" name="custlevel" checked> 中</label><label><input type="radio" name="custlevel"> 高</label></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 割接方案 -->
+  <div class="card">
+    <div class="card-header"><h3>📄 割接方案</h3></div>
+    <div class="card-body">
+      <div class="form-group" style="margin-bottom:16px">
+        <label>是否已有割接方案</label>
+        <div class="radio-group">
+          <label><input type="radio" name="hasPlan" value="yes" onchange="togglePlanForm()"> 是，上传已有方案</label>
+          <label><input type="radio" name="hasPlan" value="no" checked onchange="togglePlanForm()"> 否，填写方案模板</label>
+        </div>
+      </div>
+
+      <!-- 上传方案区域 -->
+      <div id="plan-upload-area" class="hidden">
+        <div class="file-upload"><span class="icon">📁</span> 点击或拖拽上传割接方案文件</div>
+      </div>
+
+      <!-- 方案模板表单 -->
+      <div id="plan-form-area">
+        <!-- 项目割接说明 -->
+        <span class="section-title">项目割接说明</span>
+        <textarea style="width:100%;min-height:80px" placeholder="按照实际情况填写...">随着电信业务增长，原3G/4G防火墙已不能满足业务需求，本次项目新增的迪普防火墙为4G业务专用设备，增加带宽及处理性能。</textarea>
+
+        <!-- 项目割接影响 -->
+        <span class="section-title">项目割接影响</span>
+        <textarea style="width:100%;min-height:60px" placeholder="描述割接后业务差异及业务大概影响时间...">割接期间业务中断约30分钟，割接后带宽从10G提升至40G，新增DPI检测能力。</textarea>
+
+        <!-- 项目割接计划 -->
+        <span class="section-title">项目割接计划</span>
+        <table>
+          <thead><tr><th>日期</th><th>工作内容</th></tr></thead>
+          <tbody>
+            <tr><td>2025-07-15</td><td contenteditable="true">完成设备上架及连线</td></tr>
+            <tr><td>2025-07-16</td><td contenteditable="true">完成配置导入及验证</td></tr>
+            <tr><td>2025-07-17 00:00-06:00</td><td contenteditable="true">执行割接操作</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 割接前后拓扑 -->
+        <span class="section-title">网络拓扑</span>
+        <div class="form-row">
+          <div class="form-group"><label>割接前网络拓扑</label><div class="file-upload"><span class="icon">📁</span> 上传拓扑图</div></div>
+          <div class="form-group"><label>割接后网络拓扑</label><div class="file-upload"><span class="icon">📁</span> 上传拓扑图</div></div>
+        </div>
+
+        <!-- 割接设备清单 -->
+        <span class="section-title">割接设备清单</span>
+        <table>
+          <thead><tr><th>涉及产品型号</th><th>在网软件版本</th><th>升级版本信息</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>DPX8000-A12</td><td contenteditable="true">DPX8000-R5.0.1</td><td contenteditable="true">DPX8000-R5.2.0</td><td contenteditable="true">—</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 设备组网配置 -->
+        <span class="section-title">设备组网配置</span>
+        <div class="file-upload"><span class="icon">📁</span> 上传组网配置文件</div>
+
+        <!-- 割接保障人员安排 -->
+        <span class="section-title">割接保障人员安排</span>
+        <table>
+          <thead><tr><th>角色</th><th>姓名</th><th>任务描述</th><th>联系电话</th><th>到位时间</th></tr></thead>
+          <tbody>
+            <tr><td>客户</td><td contenteditable="true">周经理</td><td contenteditable="true">业务确认</td><td contenteditable="true">138xxxx</td><td contenteditable="true">00:00</td></tr>
+            <tr><td>迪普一线工程师</td><td contenteditable="true">张伟</td><td contenteditable="true">现场操作</td><td contenteditable="true">139xxxx</td><td contenteditable="true">23:00</td></tr>
+            <tr><td>迪普二线工程师</td><td contenteditable="true">李明</td><td contenteditable="true">远程支持</td><td contenteditable="true">137xxxx</td><td contenteditable="true">23:30</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 割接操作步骤说明 -->
+        <span class="section-title">割接操作步骤说明</span>
+        <table>
+          <thead><tr><th>序号</th><th>割接步骤</th><th>操作内容</th><th>业务影响时间</th><th>实施人员</th><th>操作时间</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td contenteditable="true">配置备份</td><td contenteditable="true">备份现网设备配置</td><td contenteditable="true">无</td><td contenteditable="true">张伟</td><td contenteditable="true">23:00</td></tr>
+            <tr><td>2</td><td contenteditable="true">链路切换</td><td contenteditable="true">将业务流量切换至新设备</td><td contenteditable="true">~30分钟</td><td contenteditable="true">张伟</td><td contenteditable="true">00:00</td></tr>
+            <tr><td>3</td><td contenteditable="true">业务验证</td><td contenteditable="true">验证关键业务连通性</td><td contenteditable="true">无</td><td contenteditable="true">张伟/周经理</td><td contenteditable="true">00:30</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 割接前后业务测试 -->
+        <div class="form-row">
+          <div class="form-group" style="flex:1"><span class="section-title">割接前业务测试</span>
+            <table><thead><tr><th>序号</th><th>操作项目</th><th>测试结果</th><th>责任人</th></tr></thead>
+            <tbody><tr><td>1</td><td contenteditable="true">ping网关</td><td contenteditable="true"></td><td contenteditable="true"></td></tr></tbody></table>
+          </div>
+          <div class="form-group" style="flex:1"><span class="section-title">割接后业务测试</span>
+            <table><thead><tr><th>序号</th><th>操作项目</th><th>测试结果</th><th>责任人</th></tr></thead>
+            <tbody><tr><td>1</td><td contenteditable="true">ping网关</td><td contenteditable="true"></td><td contenteditable="true"></td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- 预估风险及应对措施 -->
+        <span class="section-title">预估风险及应对措施</span>
+        <table>
+          <thead><tr><th>风险</th><th>应对措施</th></tr></thead>
+          <tbody>
+            <tr><td contenteditable="true">链路切换后业务不通</td><td contenteditable="true">立即回退至原设备，排查配置差异</td></tr>
+            <tr><td contenteditable="true">新设备硬件故障</td><td contenteditable="true">已申请备件板卡，现场替换</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 回退方案 -->
+        <span class="section-title">回退方案说明</span>
+        <textarea style="width:100%;min-height:60px" placeholder="回退方案说明...">如割接后30分钟内业务无法恢复，立即将链路切回原设备，恢复割接前状态。</textarea>
+        <span class="section-title">回退步骤</span>
+        <table>
+          <thead><tr><th>回退步骤</th><th>操作内容</th><th>实施人员</th><th>操作时间</th></tr></thead>
+          <tbody>
+            <tr><td contenteditable="true">1. 链路切回原设备</td><td contenteditable="true">将光纤/网线恢复至原设备端口</td><td contenteditable="true">张伟</td><td contenteditable="true">5分钟</td></tr>
+            <tr><td contenteditable="true">2. 业务验证</td><td contenteditable="true">验证原设备业务正常</td><td contenteditable="true">张伟</td><td contenteditable="true">10分钟</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 割接后保障 -->
+        <span class="section-title">割接后保障</span>
+        <table>
+          <thead><tr><th>责任人</th><th>时间</th></tr></thead>
+          <tbody><tr><td contenteditable="true">张伟</td><td contenteditable="true">割接后24小时现场值守</td></tr></tbody>
+        </table>
+
+        <!-- 培训 -->
+        <span class="section-title">培训目的</span>
+        <textarea style="width:100%">通过系统化现场培训，使客户运维人员熟练掌握设备日常操作、状态巡检、基础配置、常见故障排查与应急处理，具备独立运维能力，保障系统长期稳定运行。</textarea>
+        <span class="section-title">培训内容</span>
+        <textarea style="width:100%;min-height:120px">(1)项目整体架构讲解:项目建设目标、网络拓扑、设备部署、业务链路说明。
+(2)设备基础操作:Console/Web/SSH登录方式。
+(3)日常运维与巡检：日常巡检标准流程。
+(4)业务配置实操：接口、VLAN、路由、安全策略基础配置。
+(5)常见故障处理：设备无法登录、端口不UP、业务不通等。
+(6)安全规范与账号管理。</textarea>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-default" onclick="navigateToStep(2)">← 返回</button>
+        <button class="btn btn-success">💾 保存&生成方案</button>
+        <button class="btn btn-default">📥 下载方案</button>
+        <button class="btn btn-primary" onclick="navigateToStep(4)">下一步 → 割接审批</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- STEP 4: 割接审批 -->
+<!-- ================================================ -->
+<div class="page-panel" id="page-step4">
+  <div class="progress-bar" id="progress-step4">
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">生成采集清单</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">采集信息分析与结果</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">割接申请</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle current">4</span><span style="color:#1677FF;font-weight:600">割接审批</span></div><div class="progress-divider pending"></div>
+    <div class="progress-step"><span class="circle pending">5</span><span style="color:#FF4D4F">割接跟踪及闭环</span></div>
+  </div>
+
+  <!-- 项目信息（只读引用） -->
+  <div class="card">
+    <div class="card-header"><h3>📌 项目信息</h3><span style="font-size:11px;color:#999">引用自「创建」页面</span></div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group"><label>项目名称</label><span class="value">浙江移动城域网防火墙升级</span></div>
+        <div class="form-group"><label>序列号</label><span class="value">DPX8000-A12-SN0123456</span></div>
+        <div class="form-group"><label>产品型号</label><span class="value">DPX8000-A12</span></div>
+        <div class="form-group"><label>办事处</label><span class="value">杭州办</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 采集信息分析（只读引用） -->
+  <div class="card">
+    <div class="card-header"><h3>📊 采集信息分析</h3><span style="font-size:11px;color:#999">引用自「采集信息分析与结果」页面</span></div>
+    <div class="card-body">
+      <span class="section-title">风险考察项</span>
+      <table>
+        <thead><tr><th>风险项</th><th>结果</th></tr></thead>
+        <tbody>
+          <tr><td>近24小时系统日志告警</td><td><span class="tag tag-green">是（无告警）</span></td></tr>
+          <tr><td>配置文件是否已备份</td><td><span class="tag tag-green">是</span></td></tr>
+          <tr><td>技术公告风险是否查询</td><td><span class="tag tag-green">是</span></td></tr>
+          <tr><td>友商配置全量翻译检查</td><td><span class="tag tag-green">是</span></td></tr>
+          <tr><td>STP生成树开启情况确认</td><td><span class="tag tag-green">是</span></td></tr>
+        </tbody>
+      </table>
+
+      <span class="section-title">业务调研项</span>
+      <table>
+        <thead><tr><th>调研项</th><th>结果</th></tr></thead>
+        <tbody>
+          <tr><td>项目背景</td><td>已完成</td></tr>
+          <tr><td>现网拓扑图</td><td>已上传</td></tr>
+          <tr><td>设备接口互联规划</td><td>已完成</td></tr>
+          <tr><td>设备IP地址与vlan规划</td><td>已完成</td></tr>
+          <tr><td>机房是否具备充电条件</td><td><span class="tag tag-green">是</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 割接等级（只读） -->
+  <div class="card">
+    <div class="card-header"><h3>📊 割接等级</h3><span style="font-size:11px;color:#999">引用自「割接申请」页面</span></div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group"><label>业务重要等级</label><span class="value">中</span></div>
+        <div class="form-group"><label>操作复杂度等级</label><span class="value">中</span></div>
+        <div class="form-group"><label>风险等级</label><span class="value">高</span></div>
+        <div class="form-group"><label>备件是否申请</label><span class="value">否</span></div>
+        <div class="form-group"><label>客户服务及隐患等级</label><span class="value">中</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 割接方案（可在线浏览&下载） -->
+  <div class="card">
+    <div class="card-header"><h3>📄 割接方案</h3><button class="btn btn-default btn-sm">📥 下载方案</button></div>
+    <div class="card-body">
+      <div class="alert alert-info">✅ 方案已生成，可在下方在线浏览或点击右上角下载。方案包含：割接说明、影响评估、设备清单、操作步骤、回退方案、培训内容等。</div>
+      <button class="btn btn-link" onclick="openPlanModal()">📖 在线浏览完整割接方案 →</button>
+    </div>
+  </div>
+
+  <!-- 评审结果 -->
+  <div class="card">
+    <div class="card-header"><h3>✅ 评审结果</h3></div>
+    <div class="card-body">
+      <div class="review-item">
+        <div class="question">1. 割接前准备工作是否合理？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="review1" value="yes" checked onchange="toggleReason(this,'reason1')"> 是</label>
+          <label><input type="radio" name="review1" value="no" onchange="toggleReason(this,'reason1')"> 否</label>
+        </div>
+        <div class="reason-box" id="reason1"><label>不合理原因：</label><textarea style="width:100%;min-height:40px" placeholder="请说明不合理原因..."></textarea></div>
+      </div>
+      <div class="review-item">
+        <div class="question">2. 业务测试内容是否合理？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="review2" value="yes" checked onchange="toggleReason(this,'reason2')"> 是</label>
+          <label><input type="radio" name="review2" value="no" onchange="toggleReason(this,'reason2')"> 否</label>
+        </div>
+        <div class="reason-box" id="reason2"><label>不合理原因：</label><textarea style="width:100%;min-height:40px" placeholder="请说明不合理原因..."></textarea></div>
+      </div>
+      <div class="review-item">
+        <div class="question">3. 割接执行步骤是否合理？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="review3" value="yes" checked onchange="toggleReason(this,'reason3')"> 是</label>
+          <label><input type="radio" name="review3" value="no" onchange="toggleReason(this,'reason3')"> 否</label>
+        </div>
+        <div class="reason-box" id="reason3"><label>不合理原因：</label><textarea style="width:100%;min-height:40px" placeholder="请说明不合理原因..."></textarea></div>
+      </div>
+      <div class="review-item">
+        <div class="question">4. 割接回退步骤是否合理？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="review4" value="yes" checked onchange="toggleReason(this,'reason4')"> 是</label>
+          <label><input type="radio" name="review4" value="no" onchange="toggleReason(this,'reason4')"> 否</label>
+        </div>
+        <div class="reason-box" id="reason4"><label>不合理原因：</label><textarea style="width:100%;min-height:40px" placeholder="请说明不合理原因..."></textarea></div>
+      </div>
+      <div class="review-item">
+        <div class="question">5. 其他方面是否合理？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="review5" value="yes" checked onchange="toggleReason(this,'reason5')"> 是</label>
+          <label><input type="radio" name="review5" value="no" onchange="toggleReason(this,'reason5')"> 否</label>
+        </div>
+        <div class="reason-box" id="reason5"><label>不合理原因：</label><textarea style="width:100%;min-height:40px" placeholder="请说明不合理原因..."></textarea></div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-danger btn-lg" onclick="navigateToStep(3)">❌ 驳回（返回割接申请修改）</button>
+        <button class="btn btn-success btn-lg" onclick="navigateToStep(5)">✅ 通过（进入割接跟踪与闭环）</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- STEP 5: 割接跟踪与闭环 -->
+<!-- ================================================ -->
+<div class="page-panel" id="page-step5">
+  <div class="progress-bar" id="progress-step5">
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">生成采集清单</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">采集信息分析与结果</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">割接申请</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle done">✓</span><span style="color:#52C41A">割接审批</span></div><div class="progress-divider done"></div>
+    <div class="progress-step"><span class="circle current">5</span><span style="color:#1677FF;font-weight:600">割接跟踪及闭环</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>🔍 割接结果 & 闭环</h3></div>
+    <div class="card-body">
+      <!-- 割接前检查 -->
+      <div class="review-item">
+        <div class="question">1. 割接前检查是否正常？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="track1" value="yes" checked onchange="toggleReason(this,'track-reason1')"> 是</label>
+          <label><input type="radio" name="track1" value="no" onchange="toggleReason(this,'track-reason1')"> 否</label>
+        </div>
+        <div class="reason-box" id="track-reason1"><label>详细说明：</label><textarea style="width:100%;min-height:40px"></textarea></div>
+      </div>
+
+      <!-- 割接执行 -->
+      <div class="review-item">
+        <div class="question">2. 割接执行是否正常？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="track2" value="yes" checked onchange="toggleReason(this,'track-reason2')"> 是</label>
+          <label><input type="radio" name="track2" value="no" onchange="toggleReason(this,'track-reason2')"> 否</label>
+        </div>
+        <div class="reason-box" id="track-reason2"><label>详细说明：</label><textarea style="width:100%;min-height:40px"></textarea></div>
+      </div>
+
+      <!-- 割接测试 -->
+      <div class="review-item">
+        <div class="question">3. 割接测试是否正常？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="track3" value="yes" checked onchange="toggleReason(this,'track-reason3')"> 是</label>
+          <label><input type="radio" name="track3" value="no" onchange="toggleReason(this,'track-reason3')"> 否</label>
+        </div>
+        <div class="reason-box" id="track-reason3"><label>详细说明：</label><textarea style="width:100%;min-height:40px"></textarea></div>
+      </div>
+
+      <!-- 回退操作 -->
+      <div class="review-item">
+        <div class="question">4. 割接是否存在回退操作？</div>
+        <div class="radio-group">
+          <label><input type="radio" name="track4" value="yes" onchange="toggleReason(this,'track-reason4')"> 是，有回退</label>
+          <label><input type="radio" name="track4" value="no" checked onchange="toggleReason(this,'track-reason4')"> 否，无回退</label>
+        </div>
+        <div class="reason-box" id="track-reason4"><label>回退结果及原因：</label><textarea style="width:100%;min-height:40px"></textarea></div>
+      </div>
+
+      <!-- 采集清单上传 -->
+      <span class="section-title">5. 割接后信息采集清单</span>
+      <div class="file-upload"><span class="icon">📁</span> 上传割接后信息采集清单文件</div>
+
+      <!-- 承诺书 -->
+      <span class="section-title">6. 割接实施承诺书</span>
+      <div class="file-upload"><span class="icon">📁</span> 上传割接实施承诺书</div>
+
+      <!-- 遗留项 -->
+      <span class="section-title">7. 割接遗留项</span>
+      <textarea style="width:100%;min-height:60px" placeholder="手动输入割接遗留项...">无遗留项，所有业务验证通过。</textarea>
+
+      <!-- 割接结果 -->
+      <span class="section-title">8. 割接结果</span>
+      <div class="radio-group" style="margin-bottom:16px">
+        <label><input type="radio" name="finalResult" value="success" checked> ✅ 成功（结果反馈至ITR/PMS）</label>
+        <label><input type="radio" name="finalResult" value="fail"> ❌ 失败（结果反馈至ITR/PMS）</label>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary btn-lg" onclick="alert('✅ 割接流程已闭环！\n\n割接结果已反馈至ITR/PMS系统。\n流程状态：已完成')">📤 提交（结束流程）</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- ADMIN - 风险考察项配置 -->
+<!-- ================================================ -->
+<div class="page-panel" id="page-admin-risk">
+  <div class="card">
+    <div class="card-header"><h3>⚙ 风险考察项配置表</h3><button class="btn btn-primary btn-sm">＋ 新增风险项</button></div>
+    <div class="card-body no-padding" style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>字段（风险项）</th><th>业务含义</th><th>界面格式</th><th>内容</th><th>数据关联关系</th><th>操作</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>双机必要配置是否一致</td><td>双机组网设备需进行配置一致性检查</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>组网模式：普通双机、静默双机、DRP双机</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>包过滤/NAT/QOS编译数是否一致</td><td>避免未完全编译导致业务不通</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：版本升级 | 产品：FW、DPX</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>包过滤编译数是否超限</td><td>超限无法编译，评估编译时间</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：版本升级 | 产品：FW、DPX</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>会话同步是否开启</td><td>避免主备切换业务中断</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>组网模式：普通双机、静默双机、DRP双机</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>框式双主控版本是否一致</td><td>版本不一致切备主控业务可能全断</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：板卡替换、版本升级 | 产品：DPX</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>升级包/补丁包MD5值</td><td>升级文件完整性校验</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：版本升级、补丁、特征库升级</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>重大项目割接是否申请备件</td><td>备件保障</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>重大割接项目</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>近24h系统日志告警</td><td>提前发现设备隐患</td><td>文件选择框</td><td>是/否 + 上传日志</td><td>所有情况必选</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>近24h诊断日志告警</td><td>提前发现设备隐患</td><td>文件选择框</td><td>是/否 + 上传日志</td><td>所有情况必选</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>运行版本是否已备份</td><td>备份措施</td><td>文件选择框</td><td>是/否 + 上传备份</td><td>所有情况必选</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>热补丁是否已备份</td><td>备份措施</td><td>文件选择框</td><td>是/否 + 上传备份</td><td>所有情况必选</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>license授权文件是否已备份</td><td>备份措施</td><td>文件选择框</td><td>是/否 + 上传备份</td><td>所有情况必选</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>配置文件是否已备份</td><td>备份措施</td><td>文件选择框</td><td>是/否 + 上传备份</td><td>所有情况必选</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>双机是否按规范部署</td><td>预防双机可靠性隐患</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>组网模式：VSM、普通双机、静默双机、DRP双机</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>技术公告风险是否查询并预防</td><td>预防已知软件问题风险隐患</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>所有情况必选</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>设备动态表项数据采集</td><td>割接前后对比，以防定位故障</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：整机替换、友商替换、升级、灾备、配置变更</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+          <tr>
+            <td>友商配置全量翻译检查</td><td>确保全量翻译</td><td>文件选择框</td><td>上传配置翻译文件</td><td>割接类型：替换友商设备</td>
+            <td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- ADMIN - 业务调研项配置 -->
+<!-- ================================================ -->
+<div class="page-panel" id="page-admin-biz">
+  <div class="card">
+    <div class="card-header"><h3>⚙ 业务调研项配置表</h3><button class="btn btn-primary btn-sm">＋ 新增调研项</button></div>
+    <div class="card-body no-padding" style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>字段（调研项）</th><th>业务含义</th><th>界面格式</th><th>内容</th><th>数据关联关系</th><th>操作</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>项目背景</td><td>项目背景</td><td>输入框</td><td>PMS导入</td><td>—</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>现网拓扑图</td><td>现网拓扑图</td><td>文件选择框</td><td>上传</td><td>—</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>建设后拓扑图</td><td>规划建设后拓扑图</td><td>单选框：是/否</td><td>是/否</td><td>—</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>设备部署位置规划</td><td>登记设备部署物理位置</td><td>表格</td><td>设备类型/SN/名称/位置</td><td>—</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>设备接口互联规划</td><td>设备接口互联规划</td><td>表格</td><td>本端设备/接口/对端接口等</td><td>—</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>设备IP地址与vlan规划</td><td>IP地址与vlan规划</td><td>表格</td><td>设备/接口/IP/掩码/VRRP等</td><td>—</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>软件版本</td><td>软件版本</td><td>表格</td><td>设备类型/SN/版本/备注</td><td>—</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>MTU和超大帧调整确认</td><td>避免超大包无法接收</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：整机替换、友商替换、新开局</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>百G口FEC开启情况确认</td><td>避免FEC不一致导致接口无法up</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：整机替换、友商替换、新开局</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>长连接业务确认</td><td>长连接切换后需手动拉起</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：整机替换、友商替换、版本升级</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>流量二次过设备确认</td><td>FW依赖快转表，非透明模式无法处理</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：整机替换、友商替换、新开局</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>STP生成树开启情况确认</td><td>友商默认开启，防止环路</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：整机替换、友商替换</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>F5原进原处确认</td><td>确保和现网一致</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：替换友商设备</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>Radware HTTP连接复用确认</td><td>确保和现网一致</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>割接类型：替换友商设备</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>机房充电条件确认</td><td>确保电脑电量支撑割接</td><td>单选框：是/否</td><td>是/否 + 备注</td><td>所有情况必选</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>设备并发连接数</td><td>割接前采集，割接后对比</td><td>输入框</td><td>数值</td><td>所有情况必选</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>设备新建连接数</td><td>割接前采集，割接后对比</td><td>输入框</td><td>数值</td><td>所有情况必选</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>设备CPU使用率</td><td>割接前采集，割接后对比</td><td>输入框</td><td>百分比</td><td>所有情况必选</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>设备内存使用率</td><td>割接前采集，割接后对比</td><td>输入框</td><td>百分比</td><td>所有情况必选</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>业务连通性测试例核验</td><td>确保覆盖客户重要业务</td><td>文件选择框</td><td>上传测试例</td><td>所有情况必选</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+          <tr><td>友商配置全量翻译检查</td><td>确保全量翻译</td><td>文件选择框</td><td>上传翻译文件</td><td>割接类型：替换友商设备</td><td><button class="btn btn-default btn-sm">编辑</button> <button class="btn btn-danger btn-sm">删除</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================ -->
+<!-- MODAL: 割接方案在线浏览 -->
+<!-- ================================================ -->
+<div class="modal-overlay" id="plan-modal">
+  <div class="modal">
+    <div class="modal-header"><h3>📄 割接方案 - 在线浏览</h3><button class="modal-close" onclick="closePlanModal()">✕</button></div>
+    <div class="modal-body">
+      <h4 style="color:#4A90E2">一、项目割接说明</h4>
+      <p style="margin:8px 0">随着电信业务增长，原3G/4G防火墙已不能满足业务需求，本次项目新增的迪普防火墙为4G业务专用设备，增加带宽及处理性能。</p>
+      <h4 style="color:#4A90E2;margin-top:16px">二、项目割接影响</h4>
+      <p style="margin:8px 0">割接期间业务中断约30分钟，割接后带宽从10G提升至40G，新增DPI检测能力。</p>
+      <h4 style="color:#4A90E2;margin-top:16px">三、割接设备清单</h4>
+      <table><thead><tr><th>产品型号</th><th>在网版本</th><th>升级版本</th></tr></thead><tbody><tr><td>DPX8000-A12</td><td>R5.0.1</td><td>R5.2.0</td></tr></tbody></table>
+      <h4 style="color:#4A90E2;margin-top:16px">四、回退方案</h4>
+      <p style="margin:8px 0">如割接后30分钟内业务无法恢复，立即将链路切回原设备，恢复割接前状态。</p>
+      <p style="margin-top:20px;color:#999;font-size:11px">💡 提示：完整方案请下载查看，此模态框为预览。</p>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /.content -->
+</main>
+
+<!-- ====== SCRIPT ====== -->
+<script>
+// ===== Risk Items Data (simplified from 1.1 sheet) =====
+const riskItemsData = [
+  { name:'双机必要配置是否一致', desc:'双机组网设备需进行配置一致性检查', format:'单选框：是/否', condHA:['普通双机','静默双机','DRP双机'], condType:[], condProduct:[] },
+  { name:'包过滤/NAT/QOS编译数割接前后是否一致', desc:'避免未完全编译导致部分业务不通', format:'单选框：是/否', condHA:[], condType:['版本升级'], condProduct:['FW','DPX'] },
+  { name:'包过滤编译数是否超限并评估编译时间', desc:'大多数版本默认50W，超过无法编译', format:'单选框：是/否', condHA:[], condType:['版本升级'], condProduct:['FW','DPX'] },
+  { name:'会话同步是否开启', desc:'避免主备切换时业务中断', format:'单选框：是/否', condHA:['普通双机','静默双机','DRP双机'], condType:[], condProduct:[] },
+  { name:'框式双主控软件版本等是否一致', desc:'版本不一致切备主控业务可能全断', format:'单选框：是/否', condHA:[], condType:['设备替换（原厂新旧板卡）','版本升级'], condProduct:['DPX'] },
+  { name:'升级包/补丁包MD5值是否正确', desc:'升级文件完整性校验', format:'单选框：是/否', condHA:[], condType:['版本升级','版本补丁','特征库升级'], condProduct:[] },
+  { name:'重大项目割接是否申请备件', desc:'备件保障', format:'单选框：是/否', condHA:[], condType:[], condProduct:[], condSpecial:'重大割接项目' },
+  { name:'近24小时内系统日志是否存在告警', desc:'提前发现设备可能存在的隐患', format:'文件选择框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'近24小时内诊断日志是否存在告警', desc:'提前发现设备可能存在的隐患', format:'文件选择框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'运行版本是否已备份', desc:'备份措施', format:'文件选择框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'热补丁是否已备份', desc:'备份措施', format:'文件选择框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'license授权文件是否已备份', desc:'备份措施', format:'文件选择框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'配置文件是否已备份', desc:'备份措施', format:'文件选择框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'双机是否按规范部署', desc:'预防双机可靠性隐患', format:'单选框：是/否', condHA:['VSM','普通双机','静默双机','DRP双机'], condType:[], condProduct:[] },
+  { name:'技术公告风险是否查询并预防', desc:'预防已知软件问题风险隐患', format:'单选框：是/否', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'设备动态表项数据采集', desc:'对比割接前后数据，以防定位故障', format:'单选框：是/否', condHA:[], condType:['设备替换（原厂新旧整机）','设备替换（替换友商设备）','版本升级','灾备演练','配置变更'], condProduct:[] },
+  { name:'友商配置全量翻译检查', desc:'确保全量翻译', format:'文件选择框', condHA:[], condType:['设备替换（替换友商设备）'], condProduct:[] },
+];
+
+// ===== Business Survey Items Data (from 1.2 sheet) =====
+const bizItemsData = [
+  { name:'项目背景', desc:'项目背景', format:'输入框', condHA:[], condType:[], condProduct:[] },
+  { name:'现网拓扑图', desc:'现网拓扑图', format:'文件选择框', condHA:[], condType:[], condProduct:[] },
+  { name:'建设后拓扑图', desc:'规划建设后拓扑图', format:'单选框：是/否', condHA:[], condType:[], condProduct:[] },
+  { name:'设备部署位置规划', desc:'登记设备部署物理位置', format:'表格', condHA:[], condType:[], condProduct:[] },
+  { name:'设备接口互联规划', desc:'设备接口互联规划', format:'表格', condHA:[], condType:[], condProduct:[] },
+  { name:'设备IP地址与vlan规划', desc:'设备IP地址与vlan规划', format:'表格', condHA:[], condType:[], condProduct:[] },
+  { name:'软件版本', desc:'软件版本', format:'表格', condHA:[], condType:[], condProduct:[] },
+  { name:'MTU和超大帧开启确认', desc:'避免超大包到设备无法接收', format:'单选框：是/否', condHA:[], condType:['设备替换（原厂新旧整机）','设备替换（替换友商设备）','设备入网（新开局）'], condProduct:[] },
+  { name:'百G口FEC开启情况确认', desc:'避免FEC不一致导致接口无法up', format:'单选框：是/否', condHA:[], condType:['设备替换（原厂新旧整机）','设备替换（替换友商设备）','设备入网（新开局）'], condProduct:[] },
+  { name:'长连接业务确认', desc:'长连接切换后需人工手动重新拉起', format:'单选框：是/否', condHA:[], condType:['设备替换（原厂新旧整机）','设备替换（替换友商设备）','版本升级'], condProduct:[] },
+  { name:'流量二次过设备确认', desc:'FW非透明模式无法处理二次过设备流量', format:'单选框：是/否', condHA:[], condType:['设备替换（原厂新旧整机）','设备替换（替换友商设备）','设备入网（新开局）'], condProduct:[] },
+  { name:'STP生成树开启情况确认', desc:'我司默认关闭，友商默认开启可能致环路', format:'单选框：是/否', condHA:[], condType:['设备替换（原厂新旧整机）','设备替换（替换友商设备）'], condProduct:[] },
+  { name:'F5原进原处开启情况确认', desc:'确保和现网实际情况保持一致', format:'单选框：是/否', condHA:[], condType:['设备替换（替换友商设备）'], condProduct:[] },
+  { name:'Radware HTTP连接复用确认', desc:'确保和现网实际情况保持一致', format:'单选框：是/否', condHA:[], condType:['设备替换（替换友商设备）'], condProduct:[] },
+  { name:'机房是否具备充电条件', desc:'确保电脑电量支撑割接完成', format:'单选框：是/否', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'设备并发连接数', desc:'割接前采集，割接后对比', format:'输入框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'设备新建连接数', desc:'割接前采集，割接后对比', format:'输入框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'设备CPU使用率', desc:'割接前采集，割接后对比', format:'输入框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'设备内存使用率', desc:'割接前采集，割接后对比', format:'输入框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'业务连通性测试例核验', desc:'确保覆盖客户重要业务', format:'文件选择框', condHA:[], condType:[], condProduct:[], always:true },
+  { name:'友商配置全量翻译检查', desc:'确保全量翻译', format:'文件选择框', condHA:[], condType:['设备替换（替换友商设备）'], condProduct:[] },
+];
+
+// ===== Type mapping (select value → display name) =====
+const typeMap = {
+  'replace-new-device':'设备替换（原厂新旧整机）',
+  'replace-board':'设备替换（原厂新旧板卡）',
+  'replace-competitor':'设备替换（替换友商设备）',
+  'new-deploy':'设备入网（新开局）',
+  'version-upgrade':'版本升级',
+  'dr-drill':'灾备演练',
+  'config-change':'配置变更',
+  'network-restructure':'网络结构调整',
+  'patch':'版本补丁',
+  'signature-upgrade':'特征库升级',
+};
+
+// ===== Match item to conditions =====
+function matchesConditions(item, typeName, haName) {
+  if (item.always) return true;
+  let match = true;
+  if (item.condType && item.condType.length > 0) {
+    if (!item.condType.includes(typeName)) match = false;
+  }
+  if (item.condHA && item.condHA.length > 0) {
+    if (!item.condHA.includes(haName)) match = false;
+  }
+  // condProduct and condSpecial omitted for demo simplicity
+  return match;
+}
+
+// ===== Filter and render risk/biz items in Step 1 =====
+function filterRiskItems() {
+  const typeVal = document.getElementById('cutover-type').value;
+  const haVal = document.getElementById('ha-mode').value;
+  const typeDisplay = typeMap[typeVal] || '';
+  const haDisplay = haVal === 'normal-dual' ? '普通双机' : haVal === 'silent-dual' ? '静默双机' : haVal === 'drp-dual' ? 'DRP双机' : haVal === 'vsm' ? 'VSM' : '不涉及';
+
+  // Render risk items table
+  const riskTbody = document.getElementById('risk-items-tbody');
+  riskTbody.innerHTML = '';
+  const matchedRisk = riskItemsData.filter(item => matchesConditions(item, typeDisplay, haDisplay));
+  matchedRisk.forEach(item => {
+    riskTbody.innerHTML += `<tr>
+      <td style="font-weight:500">${item.name}</td>
+      <td>${item.desc}</td>
+      <td style="font-size:12px;color:#888">${item.condHA.length ? '组网模式：'+item.condHA.join('、') : ''}${item.condType.length ? (item.condHA.length?' | ':'')+'割接类型：'+item.condType.join('、') : ''}${item.condSpecial ? (item.condHA.length||item.condType.length?' | ':'')+item.condSpecial : ''}${item.always ? '所有情况必选' : ''}</td>
+    </tr>`;
+  });
+  if (matchedRisk.length === 0) {
+    riskTbody.innerHTML = '<tr><td colspan="3" style="color:#999;text-align:center">请选择割接类型和高可靠性组网模式</td></tr>';
+  }
+
+  // Render biz items table
+  const bizTbody = document.getElementById('biz-items-tbody');
+  bizTbody.innerHTML = '';
+  const matchedBiz = bizItemsData.filter(item => matchesConditions(item, typeDisplay, haDisplay));
+  matchedBiz.forEach(item => {
+    bizTbody.innerHTML += `<tr>
+      <td style="font-weight:500">${item.name}</td>
+      <td>${item.desc}</td>
+      <td style="font-size:12px;color:#888">${item.condHA.length ? '组网模式：'+item.condHA.join('、') : ''}${item.condType.length ? (item.condHA.length?' | ':'')+'割接类型：'+item.condType.join('、') : ''}${item.condSpecial ? (item.condHA.length||item.condType.length?' | ':'')+item.condSpecial : ''}${item.always ? '所有情况必选' : ''}</td>
+    </tr>`;
+  });
+  if (matchedBiz.length === 0) {
+    bizTbody.innerHTML = '<tr><td colspan="3" style="color:#999;text-align:center">请选择割接类型和高可靠性组网模式</td></tr>';
+  }
+
+  // Also update step 2
+  renderStep2Items();
+}
+
+// ===== Render Step 2 items (filled from step 1 selections) =====
+function renderStep2Items() {
+  const typeVal = document.getElementById('cutover-type').value;
+  const haVal = document.getElementById('ha-mode').value;
+  const typeDisplay = typeMap[typeVal] || '';
+  const haDisplay = haVal === 'normal-dual' ? '普通双机' : haVal === 'silent-dual' ? '静默双机' : haVal === 'drp-dual' ? 'DRP双机' : haVal === 'vsm' ? 'VSM' : '不涉及';
+
+  const matchedRisk = riskItemsData.filter(item => matchesConditions(item, typeDisplay, haDisplay));
+  const matchedBiz = bizItemsData.filter(item => matchesConditions(item, typeDisplay, haDisplay));
+
+  const riskContainer = document.getElementById('step2-risk-items');
+  let riskHTML = '';
+  matchedRisk.forEach((item, i) => {
+    const hasFile = item.format.includes('文件');
+    riskHTML += `<div class="risk-row">
+      <div class="risk-name">${item.name}<br><small style="color:#888">${item.desc}</small></div>
+      <div class="risk-input">
+        ${hasFile
+          ? '<div class="file-upload" style="flex:1"><span class="icon">📁</span> 上传文件</div>'
+          : '<div class="radio-group"><label><input type="radio" name="risk2_'+i+'" checked> 是</label><label><input type="radio" name="risk2_'+i+'"> 否</label><input type="text" placeholder="特殊情况备注" style="width:200px;margin-left:12px"></div>'
+        }
+      </div>
+    </div>`;
+  });
+  riskContainer.innerHTML = riskHTML || '<p style="color:#999">请先在「创建」页面选择割接类型和组网模式</p>';
+
+  const bizContainer = document.getElementById('step2-biz-items');
+  let bizHTML = '';
+  matchedBiz.forEach((item, i) => {
+    const hasFile = item.format.includes('文件');
+    const isTable = item.format.includes('表格');
+    bizHTML += `<div class="risk-row">
+      <div class="risk-name">${item.name}<br><small style="color:#888">${item.desc}</small></div>
+      <div class="risk-input">
+        ${hasFile
+          ? '<div class="file-upload" style="flex:1"><span class="icon">📁</span> 上传文件</div>'
+          : isTable
+            ? '<div class="file-upload" style="flex:1"><span class="icon">📋</span> 填入表格数据（点击展开）</div>'
+            : '<div class="radio-group"><label><input type="radio" name="biz2_'+i+'" checked> 是</label><label><input type="radio" name="biz2_'+i+'"> 否</label><input type="text" placeholder="备注" style="width:200px;margin-left:12px"></div>'
+        }
+      </div>
+    </div>`;
+  });
+  bizContainer.innerHTML = bizHTML || '<p style="color:#999">请先在「创建」页面选择割接类型和组网模式</p>';
+}
+
+// ===== Navigation =====
+const pageMap = {
+  'home': { title: '首页 Dashboard', panel: 'page-home' },
+  'step1': { title: '1. 生成采集清单', panel: 'page-step1' },
+  'step2': { title: '2. 采集信息分析与结果', panel: 'page-step2' },
+  'step3': { title: '3. 割接申请', panel: 'page-step3' },
+  'step4': { title: '4. 割接审批', panel: 'page-step4' },
+  'step5': { title: '5. 割接跟踪及闭环', panel: 'page-step5' },
+  'admin-risk': { title: '后台配置 · 风险考察项', panel: 'page-admin-risk' },
+  'admin-biz': { title: '后台配置 · 业务调研项', panel: 'page-admin-biz' },
+};
+
+function navigateTo(pageKey) {
+  // Hide all panels, deactivate all nav
+  document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  // Show target
+  const target = pageMap[pageKey];
+  if (target) {
+    document.getElementById(target.panel).classList.add('active');
+    document.getElementById('breadcrumb-text').textContent = target.title;
+    // Activate nav
+    const navItem = document.querySelector(`.nav-item[data-page="${pageKey}"]`);
+    if (navItem) navItem.classList.add('active');
+  }
+
+  // Init step1 project info when navigating to it directly
+  if (pageKey === 'step1') {
+    var m = sessionStorage.getItem('createMode') || 'handle';
+    switchCreateTab(m);
+  }
+}
+
+function navigateToStep(step, mode) {
+  navigateTo('step' + step);
+  if (step === 1) {
+    var m = mode || 'handle';
+    switchCreateTab(m);
+  }
+}
+
+// Sidebar nav click
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', function() {
+    var pageKey = this.getAttribute('data-page');
+    if (pageKey) navigateTo(pageKey);
+  });
+});
+
+// ===== Create tab switcher (updates both tab buttons + project info) =====
+function switchCreateTab(mode) {
+  sessionStorage.setItem('createMode', mode);
+  document.getElementById('tab-handle').className = mode === 'handle' ? 'btn btn-primary' : 'btn btn-default';
+  document.getElementById('tab-new').className = mode === 'new' ? 'btn btn-primary' : 'btn btn-default';
+  renderProjectInfo(mode);
+}
+
+// ===== Render project info based on mode =====
+function renderProjectInfo(mode) {
+  var body = document.getElementById('project-info-body');
+  var source = document.getElementById('project-info-source');
+  if (mode === 'new') {
+    source.textContent = '来源：手动输入序列号后 PMS 带入';
+    body.innerHTML = `
+      <div class="form-row">
+        <div class="form-group"><label>项目名称</label><input value="" placeholder="输入序列号后自动带入" readonly></div>
+        <div class="form-group"><label>序列号 <span style="color:#FF4D4F">*</span></label><input id="sn-input" value="" placeholder="请输入序列号" onchange="onSnChange(this.value)"></div>
+        <div class="form-group"><label>产品编码</label><input value="" placeholder="自动带入" readonly></div>
+        <div class="form-group"><label>产品型号</label><input value="" placeholder="自动带入" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>项目经理</label><input value="" placeholder="自动带入" readonly></div>
+        <div class="form-group"><label>服务经理</label><input value="" placeholder="自动带入" readonly></div>
+        <div class="form-group"><label>所属行业</label><input value="" placeholder="自动带入" readonly></div>
+        <div class="form-group"><label>办事处</label><input value="" placeholder="自动带入" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>项目级别</label><input value="" placeholder="自动带入" readonly></div>
+        <div class="form-group"><label>用户服务等级</label><input value="" placeholder="手动输入"></div>
+        <div class="form-group"><label>销售</label><input value="" placeholder="自动带入" readonly></div>
+        <div class="form-group"></div>
+      </div>`;
+  } else {
+    source.textContent = '来源：ITR/PMS 系统带入';
+    body.innerHTML = `
+      <div class="form-row">
+        <div class="form-group"><label>项目名称</label><span class="value">浙江移动城域网防火墙升级</span></div>
+        <div class="form-group"><label>序列号</label><span class="value">DPX8000-A12-SN0123456</span></div>
+        <div class="form-group"><label>产品编码</label><span class="value">DPX8000-A12</span></div>
+        <div class="form-group"><label>产品型号</label><span class="value">DPX8000-A12</span></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>项目经理</label><span class="value">张伟</span></div>
+        <div class="form-group"><label>服务经理</label><span class="value">刘洋</span></div>
+        <div class="form-group"><label>所属行业</label><span class="value">运营商</span></div>
+        <div class="form-group"><label>办事处</label><span class="value">杭州办</span></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>项目级别</label><span class="value">A级</span></div>
+        <div class="form-group"><label>用户服务等级</label><span class="value">7×24×4</span></div>
+        <div class="form-group"><label>销售</label><span class="value">王志强</span></div>
+        <div class="form-group"></div>
+      </div>`;
+  }
+}
+
+// ===== Simulate PMS lookup on serial number input =====
+function onSnChange(sn) {
+  if (sn.length >= 6) {
+    // Simulate PMS data lookup
+    var inputs = document.querySelectorAll('#project-info-body input');
+    inputs[0].value = '模拟项目-' + sn.substring(0,4);  // 项目名称
+    inputs[2].value = 'DPX8000-A12';                     // 产品编码
+    inputs[3].value = 'DPX8000-A12';                     // 产品型号
+    inputs[4].value = '张伟';                            // 项目经理
+    inputs[5].value = '刘洋';                            // 服务经理
+    inputs[6].value = '运营商';                           // 所属行业
+    inputs[7].value = '杭州办';                           // 办事处
+    inputs[8].value = 'A级';                             // 项目级别
+    inputs[10].value = '王志强';                          // 销售
+  }
+}
+
+// ===== Plan form toggle (Step 3) =====
+function togglePlanForm() {
+  const hasPlan = document.querySelector('input[name="hasPlan"]:checked').value;
+  document.getElementById('plan-upload-area').classList.toggle('hidden', hasPlan !== 'yes');
+  document.getElementById('plan-form-area').classList.toggle('hidden', hasPlan !== 'no');
+}
+
+// ===== Review reason toggle (Step 4 & 5) =====
+function toggleReason(radio, reasonId) {
+  const reasonBox = document.getElementById(reasonId);
+  if (reasonBox) {
+    reasonBox.classList.toggle('show', radio.value === 'no');
+  }
+}
+
+// ===== Plan Modal =====
+function openPlanModal() {
+  document.getElementById('plan-modal').classList.add('show');
+}
+function closePlanModal() {
+  document.getElementById('plan-modal').classList.remove('show');
+}
+document.getElementById('plan-modal').addEventListener('click', function(e) {
+  if (e.target === this) closePlanModal();
+});
+
+// ===== Init =====
+filterRiskItems();
+renderStep2Items();
+</script>
+</body>
+</html>
