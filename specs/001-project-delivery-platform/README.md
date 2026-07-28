@@ -22,8 +22,9 @@
 ## 基线说明
 
 - 本目录是已确认的SPECIFY阶段基线。
-- 当前进入PLAN阶段，计划文件为`tasks/plan.md`。
-- PLAN评审通过前，不进入TASKS或IMPLEMENT阶段。
+- PLAN已经确认，计划文件为`tasks/plan.md`。
+- TASKS已经确认，任务清单为`tasks/todo.md`。
+- IMPLEMENT尚未开始；进入实现后必须按任务依赖、测试和检查点执行。
 - 规格变更必须同步更新追溯矩阵。
 
 ## 开发资料使用约定
