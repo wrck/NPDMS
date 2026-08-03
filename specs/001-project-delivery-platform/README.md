@@ -18,6 +18,10 @@
 - `appendices/acceptance-traceability.md`
 - `appendices/module-boundary-and-naming.md`
 - `appendices/api-design-specification.md`
+- `appendices/project-order-model-options-review.md`
+- `appendices/project-order-target-schema-evidence.md`
+- `appendices/project-order-physical-schema.mysql.sql`
+- `appendices/project-order-migration-mapping.md`
 
 ## 基线说明
 
@@ -40,4 +44,9 @@
 - `appendices/module-boundary-and-naming.md`是模块命名、领域边界、数据所有权和模块依赖的规范来源。
 - `appendices/api-design-specification.md`是URI、契约编号、请求响应、幂等、事件和版本治理的规范来源。
 - `appendices/api-inventory.md`保存接口域、追溯ID和契约编号前缀，不重复定义公共API规则。
+- `appendices/project-order-model-options-review.md`用于快速回顾项目、合同、执行单和实施订单模型的方案取舍。
+- `appendices/project-order-target-schema-evidence.md`记录旧库实证、迁移风险和项目—订单行—SN目标表结构建议；其中标为待确认的事项不得直接固化为业务规则。
+- `appendices/project-order-physical-schema.mysql.sql`是MySQL 8.x物理DDL评审草案，不是已经批准执行的版本化迁移。
+- `appendices/project-order-migration-mapping.md`定义旧表到目标表的逐表映射、问题分类、对账门禁、切换和回退。
+- `docs/decisions/0001-project-order-line-scope-model.md`记录以ERP订单行实施范围作为项目交付主链的提议决策。
 - 当领域分卷与公共技术规范表述不一致时，先按公共技术规范修订领域分卷，不得由实现自行选择口径。
