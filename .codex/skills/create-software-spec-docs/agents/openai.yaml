@@ -1,0 +1,4 @@
+interface:
+  display_name: "创建软件规格文档"
+  short_description: "按标准模板生成并校验 SRS、SDS、TAS 与 Word 文档"
+  default_prompt: "Use $create-software-spec-docs to generate template-compliant SRS, SDS, and TAS documents from my software requirements."
