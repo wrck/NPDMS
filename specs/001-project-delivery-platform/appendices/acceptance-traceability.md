@@ -4,28 +4,28 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | FR-PLT-001 | V1 | P0 | AC-PLT-011,AC-PLT-012,AC-PLT-013 | 01-platform-and-permission.md | 已映射 |
 | REQ-002 | FR-PLT-002 | V1 | P0 | AC-PLT-021,AC-PLT-022,AC-PLT-023 | 01-platform-and-permission.md | 已映射 |
-| REQ-003 | FR-PLT-003 | V1 | P0 | AC-PLT-031,AC-PLT-032,AC-PLT-033 | 01-platform-and-permission.md | 已映射 |
+| REQ-003 | FR-PLT-003 | V1 | P0 | AC-PLT-031,AC-PLT-032,AC-PLT-033,AC-PLT-034 | 01-platform-and-permission.md | 已映射 |
 | REQ-004 | FR-PLT-004 | V1 | P0 | AC-PLT-041,AC-PLT-042,AC-PLT-043 | 01-platform-and-permission.md | 已映射 |
-| REQ-005 | FR-PLT-005 | V1 | P0 | AC-PLT-051,AC-PLT-052,AC-PLT-053 | 01-platform-and-permission.md | 已映射 |
+| REQ-005 | FR-PLT-005 | V1 | P0 | AC-PLT-051,AC-PLT-052,AC-PLT-053,AC-PLT-054 | 01-platform-and-permission.md | 已映射 |
 | REQ-006 | FR-PLT-006 | V1 | P0 | AC-PLT-061,AC-PLT-062,AC-PLT-063 | 01-platform-and-permission.md | 已映射 |
 | REQ-007 | FR-PLT-007 | V1 | P0 | AC-PLT-071,AC-PLT-072,AC-PLT-073 | 01-platform-and-permission.md | 已映射 |
 | REQ-008 | FR-PLT-008 | V1 | P0 | AC-PLT-081,AC-PLT-082,AC-PLT-083 | 01-platform-and-permission.md | 已映射 |
-| REQ-009 | FR-PLT-009 | V1 | P0 | AC-PLT-091,AC-PLT-092,AC-PLT-093 | 01-platform-and-permission.md | 已映射 |
+| REQ-009 | FR-PLT-009 | V1 | P0 | AC-PLT-091,AC-PLT-092,AC-PLT-093,AC-PLT-094,AC-PLT-095,AC-PLT-096 | 01-platform-and-permission.md | 已映射 |
 | REQ-010 | FR-PLT-010 | V1 | P1 | AC-PLT-101,AC-PLT-102,AC-PLT-103 | 01-platform-and-permission.md | 已映射 |
 | REQ-011 | FR-PROJ-005 | V1 | P0 | AC-PROJ-051,AC-PROJ-052,AC-PROJ-053 | 02-project-initiation.md | 已映射 |
 | REQ-012 | FR-PROJ-006 | V2 | P1 | AC-PROJ-061,AC-PROJ-062,AC-PROJ-063 | 02-project-initiation.md | 已映射 |
 | REQ-013 | FR-PROJ-007 | V1 | P0 | AC-PROJ-071,AC-PROJ-072,AC-PROJ-073 | 02-project-initiation.md | 已映射 |
-| REQ-014 | FR-PROJ-008 | V1 | P0 | AC-PROJ-081,AC-PROJ-082,AC-PROJ-083 | 02-project-initiation.md | 已映射 |
-| REQ-015 | FR-PROJ-002 | V1 | P0 | AC-PROJ-021,AC-PROJ-022,AC-PROJ-023 | 02-project-initiation.md | 已映射 |
-| REQ-015 | FR-PROJ-003 | V1 | P0 | AC-PROJ-031,AC-PROJ-032,AC-PROJ-033 | 02-project-initiation.md | 已映射 |
-| REQ-015 | FR-PROJ-009 | V1 | P0 | AC-PROJ-091,AC-PROJ-092,AC-PROJ-093 | 02-project-initiation.md | 已映射 |
+| REQ-014 | FR-PROJ-008 | V1 | P0 | AC-PROJ-081,AC-PROJ-082,AC-PROJ-083,AC-PROJ-084,AC-PROJ-085 | 02-project-initiation.md | 已映射 |
+| REQ-015 | FR-PROJ-002 | V1 | P0 | AC-PROJ-021,AC-PROJ-022,AC-PROJ-023,AC-PROJ-024,AC-PROJ-025 | 02-project-initiation.md | 已映射 |
+| REQ-015 | FR-PROJ-003 | V1 | P0 | AC-PROJ-031,AC-PROJ-032,AC-PROJ-033,AC-PROJ-034,AC-PROJ-035,AC-PROJ-036 | 02-project-initiation.md | 已映射 |
+| REQ-015 | FR-PROJ-009 | V1 | P0 | AC-PROJ-091,AC-PROJ-092,AC-PROJ-093,AC-PROJ-094,AC-PROJ-095 | 02-project-initiation.md | 已映射 |
 | REQ-016 | FR-PROJ-010 | V1 | P0 | AC-PROJ-101,AC-PROJ-102,AC-PROJ-103 | 02-project-initiation.md | 已映射 |
-| REQ-017 | FR-RES-001 | V1 | P0 | AC-RES-011,AC-RES-012,AC-RES-013 | 07-assets-and-outsourcing.md | 已映射 |
+| REQ-017 | FR-RES-001 | V1 | P0 | AC-RES-011,AC-RES-012,AC-RES-013,AC-RES-014,AC-RES-015 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-018 | FR-RES-002 | V1 | P0 | AC-RES-021,AC-RES-022,AC-RES-023 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-019 | FR-RES-003 | V1 | P0 | AC-RES-031,AC-RES-032,AC-RES-033 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-020 | FR-RES-004 | V2 | P1 | AC-RES-041,AC-RES-042,AC-RES-043 | 07-assets-and-outsourcing.md | 已映射 |
-| REQ-021 | FR-PROJ-011 | V1 | P0 | AC-PROJ-111,AC-PROJ-112,AC-PROJ-113 | 02-project-initiation.md | 已映射 |
-| REQ-022 | FR-PLT-011 | V1 | P0 | AC-PLT-111,AC-PLT-112,AC-PLT-113 | 01-platform-and-permission.md | 已映射 |
+| REQ-021 | FR-PROJ-011 | V1 | P0 | AC-PROJ-111,AC-PROJ-112,AC-PROJ-113,AC-PROJ-114,AC-PROJ-115 | 02-project-initiation.md | 已映射 |
+| REQ-022 | FR-PLT-011 | V1 | P0 | AC-PLT-111,AC-PLT-112,AC-PLT-113,AC-PLT-114 | 01-platform-and-permission.md | 已映射 |
 | REQ-023 | FR-PROJ-012 | V1 | P0 | AC-PROJ-121,AC-PROJ-122,AC-PROJ-123 | 02-project-initiation.md | 已映射 |
 | REQ-024 | FR-PROJ-013 | V1 | P0 | AC-PROJ-131,AC-PROJ-132,AC-PROJ-133 | 02-project-initiation.md | 已映射 |
 | REQ-025 | FR-PROJ-014 | V2 | P1 | AC-PROJ-141,AC-PROJ-142,AC-PROJ-143 | 02-project-initiation.md | 已映射 |
@@ -124,11 +124,11 @@
 | REQ-118 | FR-RES-014 | V2 | P2 | AC-RES-141,AC-RES-142,AC-RES-143 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-119 | FR-RES-015 | V2 | P2 | AC-RES-151,AC-RES-152,AC-RES-153 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-120 | FR-RES-016 | V2 | P2 | AC-RES-161,AC-RES-162,AC-RES-163 | 07-assets-and-outsourcing.md | 已映射 |
-| REQ-121 | FR-RES-017 | V2 | P2 | AC-RES-171,AC-RES-172,AC-RES-173 | 07-assets-and-outsourcing.md | 已映射 |
+| REQ-121 | FR-RES-017 | V2 | P2 | AC-RES-171,AC-RES-172,AC-RES-173,AC-RES-174,AC-RES-175 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-122 | FR-RES-018 | V2 | P2 | AC-RES-181,AC-RES-182,AC-RES-183 | 07-assets-and-outsourcing.md | 已映射 |
-| REQ-123 | FR-RES-019 | V2 | P2 | AC-RES-191,AC-RES-192,AC-RES-193 | 07-assets-and-outsourcing.md | 已映射 |
+| REQ-123 | FR-RES-019 | V2 | P2 | AC-RES-191,AC-RES-192,AC-RES-193,AC-RES-194,AC-RES-195 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-124 | FR-RES-020 | V3 | P3 | 范围定义 | 07-assets-and-outsourcing.md | 已映射 |
-| REQ-125 | FR-RES-021 | V2 | P1 | AC-RES-211,AC-RES-212,AC-RES-213 | 07-assets-and-outsourcing.md | 已映射 |
+| REQ-125 | FR-RES-021 | V2 | P1 | AC-RES-211,AC-RES-212,AC-RES-213,AC-RES-214,AC-RES-215 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-126 | FR-RES-022 | V2 | P2 | AC-RES-221,AC-RES-222,AC-RES-223 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-127 | FR-RES-023 | V2 | P2 | AC-RES-231,AC-RES-232,AC-RES-233 | 07-assets-and-outsourcing.md | 已映射 |
 | REQ-128 | FR-RES-024 | V2 | P2 | AC-RES-241,AC-RES-242,AC-RES-243 | 07-assets-and-outsourcing.md | 已映射 |
@@ -144,8 +144,8 @@
 | REQ-138 | FR-SRV-022 | V2 | P2 | AC-SRV-221,AC-SRV-222,AC-SRV-223 | 06-inspection-and-maintenance.md | 已映射 |
 | REQ-139 | FR-SRV-023 | V2 | P2 | AC-SRV-231,AC-SRV-232,AC-SRV-233 | 06-inspection-and-maintenance.md | 已映射 |
 | REQ-140 | FR-SRV-024 | V2 | P2 | AC-SRV-241,AC-SRV-242,AC-SRV-243 | 06-inspection-and-maintenance.md | 已映射 |
-| REQ-141 | FR-PROJ-001 | V2 | P1 | AC-PROJ-011,AC-PROJ-012,AC-PROJ-013 | 02-project-initiation.md | 已映射 |
-| REQ-141 | FR-ANA-001 | V2 | P1 | AC-ANA-011,AC-ANA-012,AC-ANA-013 | 08-analytics-and-integration.md | 已映射 |
+| REQ-141 | FR-PROJ-001 | V2 | P1 | AC-PROJ-011,AC-PROJ-012,AC-PROJ-013,AC-PROJ-014 | 02-project-initiation.md | 已映射 |
+| REQ-141 | FR-ANA-001 | V2 | P1 | AC-ANA-011,AC-ANA-012,AC-ANA-013,AC-ANA-014,AC-ANA-015 | 08-analytics-and-integration.md | 已映射 |
 | REQ-142 | FR-ANA-002 | V2 | P2 | AC-ANA-021,AC-ANA-022,AC-ANA-023 | 08-analytics-and-integration.md | 已映射 |
 | REQ-143 | FR-ANA-003 | V3 | P3 | 范围定义 | 08-analytics-and-integration.md | 已映射 |
 | REQ-144 | FR-ANA-004 | V3 | P3 | 范围定义 | 08-analytics-and-integration.md | 已映射 |
@@ -158,8 +158,8 @@
 
 | 决策 | 规范文件 | 影响范围 | 验收门禁 |
 | --- | --- | --- | --- |
-| DEC-013 | module-boundary-and-naming.md | 模块命名、领域边界、数据所有权、模块依赖 | 不得新建承载PMS业务的`yudao-module-*`；不得跨模块依赖`-biz`或直接访问业务表 |
-| DEC-014 | api-design-specification.md | 平台与业务接口边界、URI、契约编号、请求响应、幂等、并发、事件和版本 | Yudao平台接口必须保持上游定义；新增PMS接口必须执行本规范，每个写接口具备权限、幂等、事务、并发和审计规格，破坏性变更必须升级版本 |
+| DEC-013 | module-boundary-and-naming.md | 模块命名、领域边界、数据所有权、模块依赖 | 不得新建承载项目交付业务的`yudao-module-*`；不得跨模块依赖`-biz`或直接访问业务表 |
+| DEC-014 | api-design-specification.md | 平台与业务接口边界、URI、契约编号、请求响应、幂等、并发、事件和版本 | 基础平台接口必须保持上游定义；新增项目交付接口必须执行本规范，每个写接口具备权限、幂等、事务、并发和审计规格，破坏性变更必须升级版本 |
 | DEC-015 | 00-master-spec.md、module-boundary-and-naming.md | 双上游仓库、版本、物理目录和增量模块装配 | 必须从可追溯的`yudao-boot-mini master-jdk25`提交建立基础工程；mini外模块必须从可追溯的`YunaiV/ruoyi-vue-pro master-jdk25`提交获取，不得整体覆盖mini共享文件，也不得把BPM误认作默认启用模块 |
 
 ## 追溯门禁

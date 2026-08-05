@@ -22,6 +22,7 @@
 - `appendices/project-order-target-schema-evidence.md`
 - `appendices/project-order-physical-schema.mysql.sql`
 - `appendices/project-order-migration-mapping.md`
+- `appendices/table-structure-business-rule-traceability.md`
 
 ## 基线说明
 
@@ -48,5 +49,6 @@
 - `appendices/project-order-target-schema-evidence.md`记录旧库实证、迁移风险和项目—订单行—SN目标表结构建议；其中标为待确认的事项不得直接固化为业务规则。
 - `appendices/project-order-physical-schema.mysql.sql`是MySQL 8.x物理DDL评审草案，不是已经批准执行的版本化迁移。
 - `appendices/project-order-migration-mapping.md`定义旧表到目标表的逐表映射、问题分类、对账门禁、切换和回退。
+- `appendices/table-structure-business-rule-traceability.md`把27张目标表中的对象、关系和约束证据追溯到FR、BR、DR与AC；其中【建议】和【待确认】内容不得当作已批准业务制度。
 - `docs/decisions/0001-project-order-line-scope-model.md`记录以ERP订单行实施范围作为项目交付主链的提议决策。
 - 当领域分卷与公共技术规范表述不一致时，先按公共技术规范修订领域分卷，不得由实现自行选择口径。
