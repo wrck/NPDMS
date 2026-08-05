@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 
@@ -10,10 +10,12 @@ FR_HEADING_RE = re.compile(r"^## (FR-[A-Z]+-\d{3})\s+(.+?)\s*$", re.MULTILINE)
 EVOLUTION_HEADING_RE = re.compile(r"^### (FR-[A-Z]+-\d{3})\s+(.+?)\s*$", re.MULTILINE)
 SECTION_RE = re.compile(r"^### (.+?)\s*$", re.MULTILINE)
 METADATA_RE = re.compile(r"^\*\*(.+?)：\*\*\s*(.*?)(?:<br>)?\s*$", re.MULTILINE)
+EVOLUTION_FIELD_RE = re.compile(r"^-\s+\*\*(.+?)：\*\*\s*(.+?)\s*$", re.MULTILINE)
 IDENTIFIER_RE = re.compile(r"(?:REQ|DEC)-\d{3}")
 AC_IDENTIFIER_RE = re.compile(r"AC-[A-Z]+-\d{3}")
 UNKNOWN = "【待确认】legacy 未提供"
 BUSINESS_TERM_REPLACEMENTS = {"平台基础": "基础平台"}
+BUSINESS_EXPRESSION_REPLACEMENTS = {"不得通过前端绕过": "任何业务操作入口均不得绕过"}
 EXTERNAL_SYSTEMS = ("CRM", "ERP", "ITR")
 
 
@@ -35,8 +37,11 @@ class EvolutionItem:
     fr_id: str
     title: str
     source_ids: tuple[str, ...]
+    metadata: dict[str, str]
     body: str
     source_path: Path
+    version: str = "V3"
+    priority: str = "P3"
 
 
 @dataclass(frozen=True)
@@ -259,7 +264,8 @@ def parse_evolution_items(path: Path) -> list[EvolutionItem]:
     next_heading = re.compile(r"^#{1,3}\s+", re.MULTILINE)
     for heading, body in _slice_blocks(text, EVOLUTION_HEADING_RE, next_heading):
         sources = tuple(dict.fromkeys(IDENTIFIER_RE.findall(body)))
-        items.append(EvolutionItem(heading.group(1), heading.group(2).strip(), sources, body, path))
+        metadata = {key.strip(): value.strip() for key, value in EVOLUTION_FIELD_RE.findall(body)}
+        items.append(EvolutionItem(heading.group(1), heading.group(2).strip(), sources, metadata, body, path))
     return items
 
 
@@ -288,6 +294,8 @@ def _metadata(requirement: LegacyRequirement, *names: str, fallback: str = UNKNO
 def _normalize_business_terms(text: str) -> str:
     for legacy_term, preferred_term in BUSINESS_TERM_REPLACEMENTS.items():
         text = text.replace(legacy_term, preferred_term)
+    for implementation_term, business_term in BUSINESS_EXPRESSION_REPLACEMENTS.items():
+        text = text.replace(implementation_term, business_term)
     return text
 
 
@@ -361,14 +369,25 @@ def _render_evolution_scope(profile: DomainProfile, evolution_items: list[Evolut
     rows = [
         "以下演进方向不纳入当前开发验收：",
         "",
-        "| 演进项 | 方向 | 来源 | 当前边界 |",
-        "| --- | --- | --- | --- |",
+        "| legacy FR | 标题 | 来源 | 版本 | 优先级 | 演进目标 | 数据前提 | 控制边界 | 人工责任 | 当前边界 |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for fr_id in profile.evolution_ids:
         item = selected.get(fr_id)
         title = _normalize_business_terms(item.title) if item else f"{UNKNOWN}演进方向"
-        sources = ",".join(item.source_ids) if item and item.source_ids else f"{UNKNOWN}来源"
-        rows.append(f"| {fr_id} | {_table_cell(title)} | {sources} | 不纳入当前开发验收 |")
+        metadata = item.metadata if item else {}
+        sources = metadata.get("来源") or (",".join(item.source_ids) if item and item.source_ids else f"{UNKNOWN}来源")
+        target = metadata.get("演进目标", f"{UNKNOWN}演进目标")
+        data_prerequisite = metadata.get("数据前提", f"{UNKNOWN}数据前提")
+        control_boundary = metadata.get("控制边界", f"{UNKNOWN}控制边界")
+        human_responsibility = metadata.get("人工责任", f"{UNKNOWN}人工责任")
+        source_commitment = metadata.get("当前承诺", f"{UNKNOWN}当前承诺")
+        current_boundary = f"{source_commitment} 明确：不纳入当前开发验收"
+        rows.append(
+            f"| {fr_id} | {_table_cell(title)} | {_table_cell(sources)} | {item.version if item else 'V3'} | "
+            f"{item.priority if item else 'P3'} | {_table_cell(target)} | {_table_cell(data_prerequisite)} | "
+            f"{_table_cell(control_boundary)} | {_table_cell(human_responsibility)} | {_table_cell(current_boundary)} |"
+        )
     return "\n".join(rows)
 
 
@@ -404,6 +423,14 @@ def _render_external_interactions(profile: DomainProfile, requirements: list[Leg
             f"见 {requirement.fr_id} 输入和数据要求 | 【待确认】legacy 未统一定义方向／频率 | "
             f"执行 {requirement.fr_id} 分支与异常要求并保留失败证据 |"
         )
+    if profile.code == "PROJ":
+        rows.append(
+            f"| IR-PROJ-{len(interaction_requirements) + 1:03d} | CRM／ERP | "
+            "承接 FR-PROJ-008、FR-PROJ-011 的项目、合同、订单及订单行业务交互；通用传输机制追溯 FR-PLT-009 | "
+            "项目承接证据、项目主档、合同、订单和订单行实施范围 | "
+            "【待确认】legacy 未统一定义方向／频率 | "
+            "按 FR-PROJ-008、FR-PROJ-011 保留原始证据、待处理状态和失败原因 |"
+        )
     if not interaction_requirements:
         rows.append("| 不适用 | 本领域正式 FR 未定义业务特定外部系统交互 | 不适用 | 不适用 | 不适用 | 不适用 |")
     return "\n".join(rows)
@@ -438,6 +465,57 @@ def _render_traceability(requirements: list[LegacyRequirement]) -> str:
             "【待确认】待后续 SDS 建立 | 【待确认】待后续 TAS 建立 | 已迁移 |"
         )
     return "\n".join(rows)
+
+
+def _apply_platform_integration_owner_boundary(requirement: LegacyRequirement) -> LegacyRequirement:
+    if requirement.fr_id != "FR-PLT-009":
+        return requirement
+    metadata = dict(requirement.metadata)
+    metadata["业务场景"] = "与外部系统交换数据，并支持平台内部领域事件联动"
+    sections = dict(requirement.sections)
+    dependency = next(
+        (line for line in sections["前置条件"].splitlines() if "依赖条件" in line),
+        f"- 依赖条件：{UNKNOWN}依赖条件。",
+    )
+    sections["前置条件"] = "\n".join(
+        (
+            "- 用户已登录且具有“集成中心”相应功能权限和集成数据权限。",
+            dependency,
+            "- 必要字典数据和集成配置处于有效状态。",
+        )
+    )
+    sections["主流程"] = (
+        sections["主流程"]
+        .replace("选择对应项目或集成中心", "选择对应集成任务或集成中心")
+        .replace("项目数据范围", "集成数据权限范围")
+        .replace("关联对象和权限校验", "目标对象 Owner 和权限校验")
+        .replace("按字段所有权写入对应业务域", "经目标对象 Owner 校验后提交至对应业务域")
+    )
+    sections["业务规则"] = (
+        sections["业务规则"]
+        .replace("合同/订单编号后缀", "业务编号后缀")
+        .replace(
+            "不得使用集成关系直接覆盖平台内已确认的项目范围、设备归属或审批结果",
+            "不得使用集成关系绕过目标对象 Owner 校验或覆盖其已确认业务数据和审批结果",
+        )
+    )
+    sections["数据要求"] = "\n".join(
+        line
+        for line in sections["数据要求"].splitlines()
+        if not line.startswith("- 项目关联：") and not line.startswith("- 文件元数据：")
+    )
+    sections["权限、通知与审计"] = (
+        sections["权限、通知与审计"]
+        .replace(
+            "数据权限按组织、区域、项目层级、项目成员和任务归属共同计算",
+            "涉及目标业务对象的访问和变更必须由对象 Owner 领域校验",
+        )
+    )
+    sections["验收标准"] = sections["验收标准"].replace(
+        "来源记录无法唯一关联项目、合同或订单行",
+        "来源记录无法唯一关联目标业务对象",
+    )
+    return replace(requirement, metadata=metadata, sections=sections)
 
 
 def _extract_data_items(data_text: str) -> list[tuple[str, str]]:
@@ -481,17 +559,26 @@ def _render_basic_information(profile: DomainProfile, requirement: LegacyRequire
         ("需求状态", f"{UNKNOWN}需求状态"),
         ("参与角色", _metadata(requirement, "参与角色")),
         ("业务场景", _metadata(requirement, "业务场景")),
-        ("依赖需求", _dependency_ids(_section(requirement, "前置条件", ""))),
+        ("依赖需求", _dependency_value(_section(requirement, "前置条件", ""))),
         ("来源标识", source_marker),
     )
     return "\n".join(["| 字段 | 内容 |", "| --- | --- |", *(f"| {key} | {value} |" for key, value in rows)])
 
 
-def _dependency_ids(preconditions: str) -> str:
+def _dependency_value(preconditions: str) -> str:
     for line in preconditions.splitlines():
         if "依赖条件" in line:
-            identifiers = IDENTIFIER_RE.findall(line)
-            return ",".join(identifiers) if identifiers else "无"
+            value = re.split(r"依赖条件\s*[：:]", line, maxsplit=1)
+            if len(value) == 1:
+                return f"{UNKNOWN}依赖条件原文格式"
+            dependency = _normalize_business_terms(value[1].strip().rstrip("。"))
+            if re.fullmatch(r"无|不适用|无需", dependency):
+                return "无"
+            identifiers = IDENTIFIER_RE.findall(dependency)
+            non_identifiers = IDENTIFIER_RE.sub("", dependency)
+            if identifiers and not re.sub(r"[,，、;；\s]", "", non_identifiers):
+                return ",".join(identifiers)
+            return dependency or f"{UNKNOWN}依赖条件"
     return f"{UNKNOWN}依赖需求"
 
 
@@ -501,12 +588,13 @@ def _render_preconditions(requirement: LegacyRequirement) -> str:
     dependencies = [line for line in lines if "依赖条件" in line]
     remaining = [line for line in lines if line != permission and line not in dependencies]
     data = "；".join(remaining) if remaining else f"{UNKNOWN}数据和状态条件。"
+    dependency = _dependency_value(_section(requirement, "前置条件", ""))
     return "\n".join(
         (
             f"- 触发条件：{_metadata(requirement, '业务场景', fallback=f'{UNKNOWN}触发条件。')}",
             f"- 用户和权限条件：{permission}",
             f"- 数据和状态条件：{data}",
-            f"- 外部依赖条件：{UNKNOWN}外部依赖；legacy 前置条件未单独区分外部依赖。",
+            f"- 外部依赖条件：{dependency}",
         )
     )
 
@@ -571,6 +659,8 @@ def _render_data(requirement: LegacyRequirement) -> str:
 
 
 def _render_requirement(profile: DomainProfile, requirement: LegacyRequirement) -> str:
+    if profile.code == "PLT":
+        requirement = _apply_platform_integration_owner_boundary(requirement)
     permissions = _section(requirement, "权限、通知与审计", f"- {UNKNOWN}权限、通知与业务留痕要求。")
     return f"""### {requirement.fr_id} {_normalize_business_terms(requirement.title)}
 
@@ -656,18 +746,18 @@ def render_srs(
 | 文档名称 | {profile.name}软件需求规格说明书 |
 | 文档编号 | SRS-PDP-{profile.code} |
 | 文档版本 | V0.1 |
-| 文档状态 | 已确认迁移基线 |
+| 文档状态 | 评审中 |
 | 适用版本／里程碑 | 当前建设版本 |
 | 权威需求源 | 当前 legacy 分卷及来源追溯附录 |
 | 需求基线 | d8f7002df7dee3f41773e00da935fa8d040e27f0 |
 | 编制人／日期 | Codex／2026-08-05 |
-| 批准人／日期 | 待业务基线审批 |
+| 批准人／日期 | 【待确认】 |
 
 ### 修订记录
 
 | 版本 | 日期 | 变更范围 | 变更原因 | 编制人 | 批准人 |
 | --- | --- | --- | --- | --- | --- |
-| V0.1 | 2026-08-05 | 初始版本 | 领域化 SRS 直接迁移 | Codex | 待业务基线审批 |
+| V0.1 | 2026-08-05 | 初始版本 | 领域化 SRS 直接迁移 | Codex | 【待确认】 |
 
 ## 1. 文档说明
 
@@ -699,18 +789,18 @@ def render_srs(
 
 ### 2.1 业务背景
 
-{narrative.business_context}
+【建议】{narrative.business_context}
 
 ### 2.2 核心问题
 
-- 现有需求按交付阶段分散，{profile.name}责任需要集中为可独立评审的权威定义。
-- 本领域需要在自身对象和规则边界内完成{profile.responsibility}，并通过公共机制与其他领域协作。
+- 【建议】现有需求按交付阶段分散，{profile.name}责任需要集中为可独立评审的权威定义。
+- 【建议】本领域需要在自身对象和规则边界内完成{profile.responsibility}，并通过公共机制与其他领域协作。
 
 ### 2.3 建设目标
 
 | 目标编号 | 目标描述 | 衡量指标 | 目标值／完成标准 | 责任方 |
 | --- | --- | --- | --- | --- |
-| OBJ-{profile.code}-001 | {narrative.business_goal} | 正式 FR 验收覆盖率 | 本领域全部正式 FR 均有可验证 AC | {profile.name}责任人 |
+| OBJ-{profile.code}-001 | 【建议】{narrative.business_goal} | 【建议】正式 FR 验收覆盖率 | 【建议】本领域全部正式 FR 均有可验证 AC | 【待确认】{profile.name}责任人 |
 
 ### 2.4 成功标准
 

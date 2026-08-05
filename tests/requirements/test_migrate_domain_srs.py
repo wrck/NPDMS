@@ -243,9 +243,15 @@ def test_evolution_items_appear_once_in_non_current_scope_table():
     formal, evolution = load_legacy_requirements(root)
     rendered = "\n".join(render_srs(profile, formal, evolution) for profile in DOMAIN_PROFILES)
 
-    for identifier in ("FR-RES-020", *[f"FR-ANA-{number:03d}" for number in range(3, 9)]):
-        assert rendered.count(identifier) == 1
-        assert re.search(rf"^\| {identifier} \| .+ \| .+ \| 不纳入当前开发验收 \|$", rendered, re.MULTILINE)
+    for item in evolution:
+        assert rendered.count(item.fr_id) == 1
+        assert not re.search(rf"^### {item.fr_id}\s+", rendered, re.MULTILINE)
+        row = next(line for line in rendered.splitlines() if line.startswith(f"| {item.fr_id} |"))
+        assert f"| {item.title} |" in row
+        assert f"| {item.metadata['来源']} | V3 | P3 |" in row
+        for field in ("演进目标", "数据前提", "控制边界", "人工责任", "当前承诺"):
+            assert item.metadata[field] in row
+        assert "不纳入当前开发验收" in row
 
 
 def test_real_basic_information_preserves_legacy_metadata_and_dependencies():
@@ -276,5 +282,94 @@ def test_real_basic_information_preserves_legacy_metadata_and_dependencies():
             "",
         )
         dependency_ids = re.findall(r"(?:REQ|DEC)-\d{3}", dependency_line)
-        expected_dependencies = ",".join(dependency_ids) if dependency_ids else "无"
+        dependency_text = dependency_line.split("：", 1)[1].strip().rstrip("。")
+        non_identifiers = re.sub(r"(?:REQ|DEC)-\d{3}", "", dependency_text)
+        expected_dependencies = (
+            ",".join(dependency_ids)
+            if dependency_ids and not re.sub(r"[,，、;；\s]", "", non_identifiers)
+            else dependency_text
+        )
         assert f"| 依赖需求 | {expected_dependencies} |" in block
+
+
+def test_named_none_and_missing_dependencies_keep_distinct_meanings(tmp_path: Path):
+    cases = (
+        ("- 依赖条件：REQ-001。", "REQ-001"),
+        ("- 依赖条件：企业身份源。", "企业身份源"),
+        ("- 依赖条件：无。", "无"),
+        ("", "【待确认】legacy 未提供依赖需求"),
+    )
+    for index, (dependency_line, expected) in enumerate(cases):
+        source = tmp_path / f"legacy-{index}.md"
+        replacement = dependency_line + ("\n" if dependency_line else "")
+        source.write_text(
+            LEGACY_SAMPLE.replace("- 依赖条件：REQ-001。\n", replacement),
+            encoding="utf-8",
+        )
+        rendered = render_srs(
+            DomainProfile("TST", "示例领域", "示例责任", "TST-example-srs.md", ("FR-TST-001",)),
+            parse_legacy_fr(source),
+        )
+        assert f"| 依赖需求 | {expected} |" in rendered
+        assert f"- 外部依赖条件：{expected}" in rendered
+
+
+def test_real_named_dependencies_are_preserved_verbatim():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    profile = next(profile for profile in DOMAIN_PROFILES if profile.code == "PLT")
+    rendered = render_srs(profile, formal, evolution)
+
+    for fr_id, dependency in (
+        ("FR-PLT-001", "企业身份源"),
+        ("FR-PLT-009", "主数据编码及外部系统接口"),
+        ("FR-PLT-010", "基础设施容量"),
+    ):
+        start = rendered.index(f"### {fr_id} ")
+        end = rendered.find("\n### FR-", start + 5)
+        block = rendered[start : end if end != -1 else len(rendered)]
+        assert f"| 依赖需求 | {dependency} |" in block
+        assert f"- 外部依赖条件：{dependency}" in block
+
+
+def test_domain_narratives_are_explicit_suggestions_and_documents_are_under_review():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    for profile in DOMAIN_PROFILES:
+        rendered = render_srs(profile, formal, evolution)
+        assert "| 文档状态 | 评审中 |" in rendered
+        assert "| 批准人／日期 | 【待确认】 |" in rendered
+        assert "已确认迁移基线" not in rendered
+        assert re.search(r"^### 2\.1 业务背景\n\n【建议】", rendered, re.MULTILINE)
+        core_problem = rendered.split("### 2.2 核心问题", 1)[1].split("### 2.3 建设目标", 1)[0]
+        assert all(line.startswith("- 【建议】") for line in core_problem.splitlines() if line.startswith("- "))
+        objective_row = next(line for line in rendered.splitlines() if line.startswith(f"| OBJ-{profile.code}-001 |"))
+        assert "| 【建议】" in objective_row
+
+
+def test_gate_rules_are_channel_neutral_for_all_formal_requirements():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    rendered = "\n".join(render_srs(profile, formal, evolution) for profile in DOMAIN_PROFILES)
+
+    assert "不得通过前端绕过" not in rendered
+    assert rendered.count("任何业务操作入口均不得绕过") == 145
+
+
+def test_platform_integration_keeps_generic_mechanism_and_project_owner_keeps_objects():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    rendered = {profile.code: render_srs(profile, formal, evolution) for profile in DOMAIN_PROFILES}
+    plt_start = rendered["PLT"].index("### FR-PLT-009 ")
+    plt_end = rendered["PLT"].index("### FR-PLT-010 ", plt_start)
+    plt_integration = rendered["PLT"][plt_start:plt_end]
+
+    for term in ("项目范围", "合同", "订单行", "设备归属"):
+        assert term not in plt_integration
+    assert "目标对象 Owner" in plt_integration
+    assert "同步批次" in plt_integration
+    assert "幂等" in plt_integration
+    assert "失败记录" in plt_integration
+    assert "项目、合同、订单及订单行业务交互" in rendered["PROJ"]
+    assert "FR-PROJ-008、FR-PROJ-011" in rendered["PROJ"]
+    assert "通用传输机制追溯 FR-PLT-009" in rendered["PROJ"]
