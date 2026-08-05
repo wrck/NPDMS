@@ -203,3 +203,78 @@ def test_all_rendered_domains_preserve_source_markers_and_add_no_unmarked_defaul
     assert not re.search(r"NFR-(?:PERF|AVL|SEC)-[A-Z]+", rendered)
     assert "| 内部 |" not in rendered
     assert rendered.count("| 需求状态 | 【待确认】legacy 未提供需求状态 |") == 145
+
+
+def test_domain_static_sections_are_source_driven_and_trace_every_formal_fr():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    rendered = {profile.code: render_srs(profile, formal, evolution) for profile in DOMAIN_PROFILES}
+
+    trace_rows = re.findall(
+        r"^\| (?:REQ|DEC)-\d{3}(?:,(?:REQ|DEC)-\d{3})* \| (FR-[A-Z]+-\d{3}) \| AC-[A-Z]+-\d{3}",
+        "\n".join(rendered.values()),
+        re.MULTILINE,
+    )
+    assert len(trace_rows) == 145
+    assert set(trace_rows) == {requirement.fr_id for requirement in formal}
+    assert "| 项目经理 | 执行 FR-PROJ-" in rendered["PROJ"]
+    assert "| 【建议】项目主档 |" in rendered["PROJ"]
+    assert "| 【建议】承接 |" in rendered["PROJ"]
+    assert "| MET-ANA-001 | 项目组合经营看板 |" in rendered["ANA"]
+
+
+def test_business_specific_external_interactions_stay_with_owner_domains():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    rendered = {profile.code: render_srs(profile, formal, evolution) for profile in DOMAIN_PROFILES}
+
+    assert not re.search(r"\b(?:CRM|ERP|ITR)\b", rendered["PLT"])
+    assert "FR-PLT-009 仅提供通用集成、事件、幂等和补偿机制" in rendered["PLT"]
+    assert "| IR-PROJ-" in rendered["PROJ"] and "CRM" in rendered["PROJ"] and "ERP" in rendered["PROJ"]
+    assert "| IR-ENG-" in rendered["ENG"] and "CRM" in rendered["ENG"]
+    assert "| IR-CUT-" in rendered["CUT"] and "ITR" in rendered["CUT"]
+    assert "| IR-SVC-" in rendered["SVC"] and "ITR" in rendered["SVC"]
+    assert "| IR-SPT-" in rendered["SPT"] and "ITR" in rendered["SPT"]
+    assert "| IR-TEC-" in rendered["TEC"] and "ITR" in rendered["TEC"]
+
+
+def test_evolution_items_appear_once_in_non_current_scope_table():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    rendered = "\n".join(render_srs(profile, formal, evolution) for profile in DOMAIN_PROFILES)
+
+    for identifier in ("FR-RES-020", *[f"FR-ANA-{number:03d}" for number in range(3, 9)]):
+        assert rendered.count(identifier) == 1
+        assert re.search(rf"^\| {identifier} \| .+ \| .+ \| 不纳入当前开发验收 \|$", rendered, re.MULTILINE)
+
+
+def test_real_basic_information_preserves_legacy_metadata_and_dependencies():
+    root = Path("specs/001-project-delivery-platform")
+    formal, evolution = load_legacy_requirements(root)
+    owner = {fr_id: profile for profile in DOMAIN_PROFILES for fr_id in profile.fr_ids}
+    rendered = {profile.code: render_srs(profile, formal, evolution) for profile in DOMAIN_PROFILES}
+
+    for requirement in formal:
+        document = rendered[owner[requirement.fr_id].code]
+        start = document.index(f"### {requirement.fr_id} ")
+        next_requirement = re.search(r"^### FR-[A-Z]+-\d{3}\s+", document[start + 4 :], re.MULTILINE)
+        end = start + 4 + next_requirement.start() if next_requirement else document.index("\n## 8.", start)
+        block = document[start:end]
+        for legacy_name, target_name in (
+            ("来源需求", "来源需求"),
+            ("所属版本", "适用版本"),
+            ("优先级／复杂度", "优先级／复杂度"),
+            ("参与角色", "参与角色"),
+            ("业务场景", "业务场景"),
+        ):
+            expected_value = requirement.metadata[legacy_name].replace("平台基础", "基础平台")
+            if owner[requirement.fr_id].code == "PLT":
+                expected_value = expected_value.replace("与CRM、ITR、ERP等外部系统交换数据", "与外部系统交换数据")
+            assert f"| {target_name} | {expected_value} |" in block
+        dependency_line = next(
+            (line for line in requirement.sections["前置条件"].splitlines() if "依赖条件" in line),
+            "",
+        )
+        dependency_ids = re.findall(r"(?:REQ|DEC)-\d{3}", dependency_line)
+        expected_dependencies = ",".join(dependency_ids) if dependency_ids else "无"
+        assert f"| 依赖需求 | {expected_dependencies} |" in block

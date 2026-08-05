@@ -148,7 +148,7 @@ specs/001-project-delivery-platform/
 - [ ] 将 `FR-RES-020`、`FR-ANA-003～008` 写入对应文档的非本期范围和演进方向，明确“不纳入当前开发验收”。
 - [ ] 对 PLT 文档只保留公共机制；业务特定 CRM/ERP/ITR 交互放在对象 Owner 领域的外部交互要求中。
 - [ ] 逐份运行 `.codex/skills/create-software-spec-docs/scripts/validate_documents.py --kind srs --input <文件>`，13 份全部退出 0。
-- [ ] 运行迁移与校验单元测试，预期全部 PASS；运行 `python scripts/requirements/validate_domain_srs.py --root specs/001-project-delivery-platform --allow-missing-system`，预期只报告系统层和公共映射尚未生成。
+- [ ] 运行迁移与校验单元测试，预期全部 PASS；运行 `python scripts/requirements/validate_domain_srs.py --root specs/001-project-delivery-platform`，预期领域树全局校验通过；系统层和公共映射由后续任务独立校验。
 - [ ] 读取 `$git-commit` skill，仅提交 13 份领域 SRS 及必要脚本/测试修订，提交信息 `docs(spec): 生成领域责任 SRS`。
 
 ---
