@@ -40,7 +40,7 @@
 
 | 编号 | 主题 | 约束 |
 | --- | --- | --- |
-| DEC-001 | 规格体系 | 采用“总体规格总册 + 8个领域分册 + 7个公共附录”。 |
+| DEC-001 | 规格体系 | 采用“总体规格总册 + 8个领域分册 + 公共附录”。 |
 | DEC-002 | 版本范围 | V1、V2逐项详细规格；V3仅定义能力边界、数据前提和演进方向。 |
 | DEC-003 | 基础平台 | 以`yudao-boot-mini`的`master-jdk25`为最简集成基线；当前核验版本为JDK 25、Spring Boot 4.1.0、revision `2026.06-jdk25-SNAPSHOT`。 |
 | DEC-004 | 部署形态 | 首期模块化单体，由yudao-server统一部署；保留未来微服务拆分边界。 |
@@ -56,6 +56,9 @@
 | DEC-014 | API设计 | Yudao平台接口定义完全以上游平台为准；新增`pms-module-*`业务模块统一执行PMS业务、内部、集成和事件API规范，接口必须版本化并具备稳定契约编号。 |
 | DEC-015 | 双上游集成策略 | 以`yudao-boot-mini`保持最简根工程；mini缺失但PMS需要的Yudao模块从`YunaiV/ruoyi-vue-pro`同名版本分支获取。共享文件以mini为基线，扩展模块及其配套资产以完整仓库为来源，PMS模块在根级增量加入。 |
 | DEC-016 | 数据库与旧库边界 | 新平台使用独立MySQL 8.x数据库；旧`dppms`只读访问且不得跨库SQL；业务数据一次性迁移，后续辅助关联数据只读同步。 |
+| DEC-017 | 身份与项目授权 | 公司即组织、部门主数据共享；员工目录与系统账号分离；外部账号按项目转派获得期限受控的菜单、操作、数据和字段权限，`fnd_user_power`只作为外部人员可服务范围。 |
+| DEC-018 | 附加SN关系 | `fb_shipment_barcode_relation`按合同保存主SN—附加SN权威历史；设备主档只缓存该SN最新发货合同对应的`secondary_sn/secondary_item`，不重复保存合同、关系和生效时间。 |
+| DEC-019 | 历史字段完整迁移 | 核心迁移同时保存完整来源载荷和正式业务列/关系；查询、关联、统计、同步和来源审计字段不得只存JSON，旧主键不得复用为目标主键，未映射字段阻断切换。 |
 
 ### 5.1 上游基线来源
 
@@ -176,6 +179,16 @@
 | 客户联系人 | 确认需求、测试、培训、评价和验收 | 业务影响、服务质量、交付资料 | 链接/门户的有限填写和查看权限 |
 | 审批人/管理层 | 重大项目、割接、转包和例外审批 | 风险、成本、时效、合规 | 待审批对象及管理报表 |
 | 系统/流程管理员 | 组织、角色、字典、模板、规则、集成和审计 | 稳定性、安全、配置一致性 | 平台配置和受控运维权限 |
+
+身份、组织、旧权限迁移、外部人员项目转派以及菜单和字段级授权的完整规则见[`platform-identity-access-migration.md`](appendices/platform-identity-access-migration.md)；架构决策见[`ADR-0002`](../../docs/decisions/0002-platform-identity-and-project-scoped-access.md)。
+
+数据元、当前旧库表、正式设计和`implement/cp-foundation`业务对象的三方映射及迁移缺口见[`legacy-data-element-business-object-mapping.md`](appendices/legacy-data-element-business-object-mapping.md)；后续默认读取[`evidence/data-elements`](evidence/data-elements/README.md)中的结构化基线，只有证据不足或源文件哈希变化时才回溯Excel。
+
+18张核心旧表、326个历史字段的逐字段迁移去向和当前填充率见[`core-field-migration-completeness.md`](appendices/core-field-migration-completeness.md)及[`evidence/migration`](evidence/migration/README.md)；该覆盖结论不能替代其他旧业务域的字段审查。
+
+全部3,931条物理字段证据、3,908个唯一旧表字段、197条语义来源行和82条活动结构业务数据元的完整处置见[`complete-field-migration-matrix.md`](appendices/complete-field-migration-matrix.md)；去冗余后的领域权威表、缓存和高频查询路径见[`business-domain-table-design.md`](appendices/business-domain-table-design.md)。
+
+合同维度附加SN权威关系、设备主档当前缓存、确定性选取和一致性规则见[`ADR-0003`](../../docs/decisions/0003-contract-scoped-secondary-sn-cache.md)。
 
 ## 12. 公共业务规则
 

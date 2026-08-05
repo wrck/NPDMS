@@ -22,6 +22,13 @@
 - `appendices/project-order-target-schema-evidence.md`
 - `appendices/project-order-physical-schema.mysql.sql`
 - `appendices/project-order-migration-mapping.md`
+- `appendices/core-field-migration-completeness.md`
+- `appendices/complete-field-migration-matrix.md`
+- `appendices/business-domain-table-design.md`
+- `appendices/platform-identity-access-migration.md`
+- `appendices/legacy-data-element-business-object-mapping.md`
+- `evidence/data-elements/README.md`
+- `evidence/migration/README.md`
 
 ## 基线说明
 
@@ -48,5 +55,12 @@
 - `appendices/project-order-target-schema-evidence.md`记录旧库实证、迁移风险和项目—订单行—SN目标表结构建议；其中标为待确认的事项不得直接固化为业务规则。
 - `appendices/project-order-physical-schema.mysql.sql`是MySQL 8.x物理DDL评审草案，不是已经批准执行的版本化迁移。
 - `appendices/project-order-migration-mapping.md`定义旧表到目标表的逐表映射、问题分类、对账门禁、切换和回退。
+- `appendices/core-field-migration-completeness.md`定义核心旧表的字段级无损迁移规则；机器可读矩阵位于`evidence/migration/`。
+- `appendices/complete-field-migration-matrix.md`定义全部3,931条物理字段证据、197条语义来源行和82条活动业务数据元的处置口径与自动门禁。
+- `appendices/business-domain-table-design.md`是去冗余后的正式领域表设计，明确权威事实、可重建缓存、查询路径和迁移边界。
+- `appendices/platform-identity-access-migration.md`定义公司组织、部门、账号、旧权限、外部人员和项目转派授权规则。
+- `appendices/legacy-data-element-business-object-mapping.md`对照数据元、当前旧库、正式设计和当前实现业务对象，标出已实现、仅设计、缺口和冲突重构项。
+- `evidence/data-elements/`是`需求/数据元.xlsx`的机器可读基线；AI和开发任务默认先读取结构化JSON/JSONL证据。
 - `docs/decisions/0001-project-order-line-scope-model.md`记录以ERP订单行实施范围作为项目交付主链的提议决策。
+- `docs/decisions/0003-contract-scoped-secondary-sn-cache.md`记录合同维度附加SN权威关系与设备主档当前缓存的取舍和一致性规则。
 - 当领域分卷与公共技术规范表述不一致时，先按公共技术规范修订领域分卷，不得由实现自行选择口径。

@@ -14,11 +14,11 @@
 6. SN主档、发货事件和SN项目归属必须分表。当前数据可以迁移SN到项目的归属，但不能把SN批量强行补到ERP订单行。
 7. 项目树使用规格已确定的`parent_id + root_id + path + depth + sort`；项目组合另建组合成员表，不复用旧`pm_project_group`。
 8. 查询项目及其实施订单只需走有索引的`项目范围 → 订单行 → 订单`，不需要复制旧系统的多表宽连接。项目列表先分页，再查询关系和汇总。
-9. 对无法唯一映射、缺少分配数量和重复的历史记录，保留原始快照并进入迁移问题表；不得通过截取`-L`、`-his`或按最新一条记录猜测。
+9. 对无法唯一映射、缺少分配数量和重复的历史记录，逐源行保留完整原值并进入迁移问题表；不得通过截取`-L`、`-his`或按最新一条记录猜测。
 
 因此，前一文档中的“方案四：ERP订单行实施范围模型”可以确定为目标核心模型，但必须增加两个迁移状态：
 
-- `PENDING_MAPPING`：历史项目产品记录暂时不能唯一命中ERP订单行。
+- `PENDING_MAPPING`：历史项目产品记录暂时不能唯一命中ERP订单行；只保留在迁移问题中，不写无有效订单行的正式实施范围。
 - `PENDING_QUANTITY`：项目与订单行归属已知，但跨项目分配数量尚不能从旧数据恢复。
 
 ## 2. 证据范围与约束
@@ -180,7 +180,8 @@ SQL还证明：
 - `fb_contract → fb_shipment → fb_shipment_barcode`是“发货合同归属 → 装箱单 → 设备物流记录”链，不是合同主档链。
 - 现有SQL以`rma_no`非空识别RMA状态；`isRMA`在当前数据中没有有效值。
 - `pm_project_shipment`保存`projectId + barcode`以及`chProjectId`、`transferProjectId`、`transferFlag`。
-- `fb_shipment_barcode_relation`通过`sn1 → sn2`保存母子公司或替换设备关联。
+- `fb_shipment_barcode.barcode/item`保存主SN及其单一物料；特殊情况的`barcode2/item2`是另一台附加设备。
+- `fb_shipment_barcode_relation`通过`sn1/item1 → sn2/item2 + contract`保存合同维度的正式映射；同一主SN在不同合同下允许绑定不同附加SN。
 - 订单行的已发货数量在现有SQL中按`orderQuantity - openQuantity`计算。
 
 直接结论：
@@ -239,7 +240,7 @@ erDiagram
 
 | 关键列 | 约束/用途 |
 | --- | --- |
-| `project_code` | 目标业务编码；迁移重复解决后`UNIQUE(tenant_id, project_code)` |
+| `project_code` | 目标业务编码；迁移重复解决后与`project_type`组成租户内唯一键 |
 | `project_name` | 项目名称 |
 | `parent_id` | 直接父项目，可空 |
 | `root_id` | 根项目 |
@@ -248,17 +249,22 @@ erDiagram
 | `tree_sort` | 同级排序 |
 | `customer_id`、`manager_id`、`org_id` | 客户、负责人和组织 |
 | `project_type`、`lifecycle_template_id` | 项目分类与生命周期模板 |
+| `industry_code`、`customer_project_name` | 项目自身行业和客户侧项目名称 |
+| `business_type/project_category/implementation_mode/major_project_level` | 项目业务属性 |
+| `project_start_time/project_refresh_time/project_close_time` | 旧项目生命周期时间，不与目标审计时间混用 |
 | `source_type` | `LEGACY/CRM/MANUAL`等来源 |
 
 关键索引：
 
-- `UNIQUE(tenant_id, project_code)`
+- `UNIQUE(tenant_id, project_type, project_code)`
 - `(tenant_id, parent_id, tree_sort, id)`
 - `(tenant_id, root_id, tree_path)`
 - `(tenant_id, manager_id, status)`
 - `(tenant_id, org_id, status)`
 
-不把旧`projectType='10'`视图复制成新表；所有正式地区、局点和批次都使用同一项目表。
+办事处、市场、体系和拓展组织统一进入`pms_project_org_rel`；客户名称、最终用户、代理商和服务商进入客户主档或项目参与方。旧主键、旧审计和完整来源行统一进入迁移来源记录，不复制到项目主档。
+
+不把旧`projectType='10'`视图复制成新表；所有正式地区、局点和批次都使用同一项目表。旧库有1,550条项目名称为空，数据库允许以待补状态迁入，但新建项目仍由应用规则保证名称必填。
 
 ### 5.2 `pms_project_relation`
 
@@ -269,6 +275,12 @@ erDiagram
 唯一键：`(tenant_id, source_project_id, target_project_id, relation_type)`。
 
 项目组合另使用`pms_portfolio`和`pms_portfolio_project_rel`，不得写入本表或项目父子字段。
+
+#### 5.2.1 `pms_project_party`
+
+按`FINAL_CUSTOMER/AGENT/CONTRACT_CUSTOMER/SERVICE_PROVIDER`等角色保存项目参与方。旧来源名称先保存快照，只有项目和参与方可以唯一解析时才生成正式关系；名称相同不是主档归并证据。
+
+关键列：`project_id`、`party_role`、`party_code`、`party_name`、联系人、来源表/来源键和有效期。
 
 ### 5.3 `pms_contract`
 
@@ -292,7 +304,7 @@ erDiagram
 
 #### 5.3.1 `pms_contract_receivable`
 
-逐行保存`sms_ofst_contract_head_sap`的合同回款信息，包括合同金额、交付金额、已收、应收、逾期、币种、客户、组织、有效期和来源载荷。
+逐行保存`sms_ofst_contract_head_sap`的合同回款信息，包括合同金额、交付金额、已收、应收、逾期、币种、客户、市场/办事处/系统/拓展/行业编码、销售账号、有效期、来源审计和来源载荷。
 
 关键点：
 
@@ -307,10 +319,9 @@ erDiagram
 
 #### 5.3.3 `pms_shipment_package`
 
-逐行承接`fb_shipment`，通过`shipment_contract_ref_id`关联发货合同归属，并可选关联正式`contract_id`。关键索引覆盖：
+逐行承接`fb_shipment`，只通过`shipment_contract_ref_id`关联发货合同归属，避免同时保存两个可能不一致的合同外键。关键索引覆盖：
 
 - `(tenant_id, source_system, package_no)`唯一；
-- `(tenant_id, contract_id, shipment_time)`；
 - `(tenant_id, shipment_contract_ref_id, shipment_time)`。
 
 这样查询合同发货历史只增加一次受索引保护的装箱单关联，不需要扫描4,194,864条设备事件。
@@ -336,9 +347,9 @@ erDiagram
 | `order_no` | ERP订单号 |
 | `sales_type` | 销售类型 |
 | `order_create_time`、`customer_required_time` | 时间 |
-| `customer_code`、`customer_name` | ERP来源的订单客户信息 |
-| `project_name`、`order_comment` | ERP来源的项目名称和订单说明 |
-| `source_sync_time`、`source_payload` | 同步时间和必要扩展字段 |
+| `customer_id`、`customer_code` | 可解析的客户主档及ERP稳定客户编码 |
+| `order_comment` | ERP订单说明 |
+| `source_sync_time` | 最近同步时间；完整来源行统一进迁移来源记录 |
 
 目标唯一键：
 
@@ -350,7 +361,7 @@ erDiagram
 
 合同与订单N:N关系。
 
-关键列：`order_id`、`contract_id`、`relation_role`、`source_record_key`。
+关键列：`order_id`、`contract_id`、`relation_role`、`relation_source`。
 
 关键索引：
 
@@ -365,12 +376,13 @@ erDiagram
 | --- | --- |
 | `order_id` | 指向订单头 |
 | `line_no` | ERP行号 |
-| `item_code`、`item_desc`、`bundle_code` | 产品信息 |
+| `line_type` | 保留ERP源行类型，也是订单定位证据之一 |
+| `product_id`、`item_code`、`item_desc`、`bundle_code` | 归一产品及ERP物料信息 |
 | `order_qty`、`open_qty` | ERP同步数量 |
 | `delivered_qty` | ERP已发货数量快照，当前口径为`order_qty - open_qty` |
 | `profit_center`、`warranty_month` | 行属性 |
 | `real_execution_no` | 仅保留ERP源值，不作为外键 |
-| `source_sync_time`、`source_payload` | 同步信息 |
+| `source_sync_time` | 同步信息；完整来源行统一进迁移来源记录 |
 
 关键索引：
 
@@ -387,35 +399,36 @@ erDiagram
 | 关键列 | 约束/用途 |
 | --- | --- |
 | `project_id` | 正式项目节点 |
-| `order_line_id` | 已解析时指向ERP订单行；迁移待解析时可空 |
+| `order_line_id` | 必填，指向已唯一解析的ERP订单行 |
 | `allocated_qty` | 分配给该项目的数量；待确认时可空 |
-| `scope_status` | `PENDING_MAPPING/PENDING_QUANTITY/ACTIVE/CANCELLED` |
+| `scope_status` | `PENDING_QUANTITY/ACTIVE/CANCELLED`；未映射记录只进入迁移问题 |
 | `allocation_source` | `LEGACY/MANUAL/CRM_EVIDENCE/SPLIT` |
-| `legacy_order_no/legacy_line_no/legacy_item_code` | 待解析记录的原始键 |
-| `source_record_key` | 旧`pm_project_product_line.id`等不可变来源键 |
 | `effective_from/effective_to` | 范围生效区间 |
 | `change_reason` | 拆分、合并、改单等原因 |
 
 约束建议：
 
-- `ACTIVE`时`order_line_id`和`allocated_qty`必须非空。
+- `order_line_id`始终必填，`ACTIVE`时`allocated_qty`必须非空。
 - `allocated_qty`跨项目之和不得超过可分配订单数量；在事务中锁定订单行范围后校验。
-- `UNIQUE(tenant_id, allocation_source, source_record_key)`保证迁移幂等。
+- 迁移幂等由`pms_external_key_map`保证，不在业务范围表重复来源主键。
 - 清洗重复后，对有效关系保证一个项目与同一订单行只有一条当前记录。
 
 关键索引：
 
 - `(tenant_id, project_id, scope_status, order_line_id)`
 - `(tenant_id, order_line_id, scope_status, project_id)`
-- `(tenant_id, legacy_order_no, legacy_line_no)`
 
-历史8,232个跨项目且无分配数量的订单行迁移为`PENDING_QUANTITY`，不计入数量完成率，也不得用整行订单量重复填充。
+历史8,232个跨项目且无分配数量的订单行在订单行可唯一解析时迁移为`PENDING_QUANTITY`，不计入数量完成率，也不得用整行订单量重复填充；原合同、物料和各数量字段完整保存在逐源行迁移记录。
 
 ### 5.9 `pms_device_sn`
 
 SN主档只保存设备身份，不保存每次发货事件。
 
-关键列：`sn`、`item_code`、`secondary_sn`、`asset_status`、`source_system`。
+关键列：`sn`、`item_code`、`company_barcode`、`secondary_sn`、`secondary_item`、`asset_status`、`source_system`、`source_sync_time`。
+
+`item_code`是该SN的单一物料编码。`barcode2/item2`必须形成第二条设备主档，再通过设备关系连接。主设备的`secondary_sn/secondary_item`缓存该SN最新发货合同匹配的一条关系，用于高频查询；它们不是合同关系的权威历史。
+
+缓存选择顺序：先按设备发货事件和装箱单确定最新发货合同，再在该合同的有效关系中按`COALESCE(effective_time, update_time, create_time)`和`id`倒序取第一条。`pms_device_sn`不重复保存合同ID、关系ID和生效时间；合同特定查询不得使用缓存代替关系表。
 
 目标可建立`UNIQUE(tenant_id, sn)`，但必须在204,072组旧重复SN归并到发货事件之后启用。无法证明为同一设备的冲突进入迁移问题表。
 
@@ -426,14 +439,14 @@ SN主档只保存设备身份，不保存每次发货事件。
 关键列：
 
 - `device_id`
-- `shipment_package_id`和未解析时保留的`legacy_package_key`
-- `order_line_id`，当前迁移允许为空
+- `shipment_package_id`和未解析时临时保留的`legacy_package_key`
+- 唯一解析后的`order_line_id`；原订单号和行号保存在逐源行迁移记录
 - `event_type`，源条码行统一可记为`SHIPMENT_RECORD`
 - `business_action_code`，未确认字典前为`UNCLASSIFIED`
-- `rma_no`和生成列`rma_marked`
+- `rma_no/rma_related_sn`和生成列`rma_marked`
+- `warranty_start_date/warranty_month`
 - `shipment_time`
-- `profit_center`
-- `source_system`、`source_record_key`
+- `source_system`、`source_record_key`和来源同步时间
 - `mapping_status`
 
 关键索引：
@@ -444,13 +457,13 @@ SN主档只保存设备身份，不保存每次发货事件。
 - `(tenant_id, order_line_id, shipment_time)`
 - `(tenant_id, rma_marked, business_action_code, rma_no)`
 
-当前SN没有订单号、行号证据，`order_line_id`应为空并标记`PENDING_MAPPING`，不影响SN和项目归属迁移。合同、收件人和快递信息通过装箱单关联，避免在135万条事件中重复保存并可能写错。同一`device_id`允许存在多条不同来源事件。
+当前4,194,864条条码记录中3,331,845条具有订单号和行号证据，但只有1,022,486条可直接匹配当前ERP订单行。所有原键在逐源行迁移记录保存；未命中事件的`order_line_id`为空并标记`PENDING_MAPPING`，不影响SN和项目归属迁移。合同、收件人和快递信息通过装箱单关联。同一`device_id`允许存在多条不同来源事件。
 
 ### 5.11 `pms_project_device_assignment`
 
 保存SN当前归属及项目间转移历史。
 
-关键列：`project_id`、`device_id`、`project_order_line_scope_id`可空、`assignment_type`、`effective_from`、`effective_to`、`transfer_batch_id`、`source_record_key`。
+关键列：`project_id`、`device_id`、`project_order_line_scope_id`可空、安装地址、`assignment_type`、`effective_from`、`effective_to`、`transfer_batch_id`和来源幂等键。产品、物流和合同从各自权威表连接查询；旧`ch*/transfer*`转移字段保存在迁移来源记录。
 
 关键索引：
 
@@ -458,15 +471,20 @@ SN主档只保存设备身份，不保存每次发货事件。
 - `(tenant_id, device_id, effective_to)`
 - `UNIQUE(tenant_id, source_system, source_record_key)`
 
-需要保留全部转移历史，并保证一个设备同一时间最多只有一个“当前实施归属”。旧库998个跨项目SN和26条显式转移记录需联合判定，不能只按最后一条覆盖。
+需要保留全部转移历史，并保证一个设备同一时间最多只有一个“当前实施归属”。当前旧库有5,634个跨项目SN和30条填充了显式转移链的记录，需联合判定，不能只按最后一条覆盖。
 
 ### 5.12 `pms_device_relation`
 
-保存`sn1 → sn2`、RMA替换和母子公司设备映射。
+保存`sn1/item1 → sn2/item2 + contract`的合同维度主SN—附加SN映射，以及有明确证据的RMA替换等设备关系。
 
-关键列：`source_device_id`、`target_device_id`、`relation_type`、`contract_id`、`effective_time`、`source_record_key`。
+关键列：`source_device_id`、`target_device_id`、`relation_type`、`contract_id`、`effective_time`、`source_system`和`source_record_key`。源/目标物料从设备主档读取，旧合同号和来源审计保存在迁移来源记录。
 
-不要把`barcode2`或`rmaBarcode`覆盖到同一设备主档字段而丢失关系历史。
+关键索引：
+
+- `(tenant_id, source_device_id, contract_id, relation_type, status, effective_time, id)`，用于按主SN和最新发货合同选关系。
+- `(tenant_id, contract_id, relation_type, status, source_device_id)`，用于合同状态或日期变化后的批量重算。
+
+关系表始终保留全部合同历史。主附加SN使用`EXTRA_SN`关系，RMA替换使用独立关系类型；设备主档只缓存该SN最新发货合同匹配的一条`EXTRA_SN`关系。
 
 ## 6. CRM辅助关系和改单血缘
 
@@ -477,7 +495,7 @@ SN主档只保存设备身份，不保存每次发货事件。
 - `pm_project_property_from_sms`
 - `pm_project_property_af_from_sms`的补充字段
 
-关键列：`execution_no`、`crm_project_code`、`crm_project_name`、`primary_project_id`可空、`source_sync_time`、`source_payload`。
+关键列除`execution_no`、CRM项目和`primary_project_id`外，还包括销售、市场/系统/拓展/行业/办事处、服务类型、渠道、工程费原值及数值、公司、客户项目、最终用户、代理商、接收/借货信息、项目金额和联系人。完整来源行统一保存在`pms_migration_source_record.source_payload`。
 
 唯一键建议：`UNIQUE(tenant_id, source_system, execution_no)`；旧重复执行单需先核验合并。
 
@@ -485,17 +503,17 @@ SN主档只保存设备身份，不保存每次发货事件。
 
 承接已获得的常规或安服产品配置。
 
-关键列：`execution_id`、`config_source`、`source_config_key`、`item_code`、`quantity`、`amount`、`is_af_evidence`、`source_payload`。
+关键列：`execution_id`、`config_source`、`source_config_key`、CRM项目/公司、产品层级、`item_code/item_model/item_name`、数量/借货数量、单价/折扣/采购价、行类型、备注和`is_af_evidence`。完整来源行统一保存在迁移来源记录。
 
 只有存在安服配置时可得到“包含安服”的正向结论；缺配置时状态为`UNKNOWN`。
 
-### 6.3 `pms_order_execution_rel`
+### 6.3 `pms_order_execution_rel`与`pms_order_line_execution_rel`
 
-用于表达订单或订单行与多个执行单的辅助关系。
+分别表达订单头和订单行与多个执行单的辅助关系。
 
-关键列：`order_id`可空、`order_line_id`可空、`execution_id`、`relation_level`、`is_primary`、`relation_source`、`mapping_status`。
+订单级关系保存`order_id/execution_id/is_primary/relation_source/mapping_status`；订单行级关系保存`order_line_id/execution_id/relation_source/mapping_status`。
 
-约束：订单和订单行至少一个有值；该表缺失不得阻止订单行实施。
+两个关系表的目标外键都必填并分别唯一，避免双可空外键和粒度矛盾；关系缺失不得阻止订单行实施。
 
 ### 6.4 特殊合并下单
 
@@ -520,7 +538,11 @@ SN主档只保存设备身份，不保存每次发货事件。
 
 保存源系统、对象类型、批次号、开始/结束时间、读取数量、写入数量、失败数量、游标、状态和错误摘要。
 
-### 7.2 `pms_external_key_map`
+### 7.2 `pms_migration_source_record`
+
+按迁移批次逐源行保存`source_system + source_table + source_pk + source_payload + source_checksum`。它解决多条来源记录归并到一个目标记录时单个业务表JSON会被覆盖的问题，也是字段完整性和行级对账的权威证据。
+
+### 7.3 `pms_external_key_map`
 
 保存`source_system + source_table + source_pk → target_table + target_id`。
 
@@ -528,9 +550,10 @@ SN主档只保存设备身份，不保存每次发货事件。
 
 - 保留旧主键可追溯性。
 - 多条旧重复记录可以映射到同一清洗后主档。
+- 一条旧记录可以映射到主档、关系和参与方等多个目标记录。
 - 同步时不靠业务名称或字符串后缀反查。
 
-### 7.3 `pms_migration_issue`
+### 7.4 `pms_migration_issue`
 
 至少保存：
 
@@ -549,9 +572,9 @@ SN主档只保存设备身份，不保存每次发货事件。
 
 `DUPLICATE_PROJECT_CODE`、`ORPHAN_PROJECT`、`CONTRACT_COMPANY_UNKNOWN`、`CONTRACT_RECEIVABLE_DUPLICATE`、`SHIPMENT_CONTRACT_UNRESOLVED`、`SHIPMENT_PACKAGE_NOT_FOUND`、`RMA_ACTION_UNCLASSIFIED`、`MISSING_ORDER_LINE_KEY`、`ORDER_LINE_NOT_FOUND`、`ORDER_LINE_AMBIGUOUS`、`DUPLICATE_SCOPE`、`ALLOCATION_QUANTITY_UNKNOWN`、`SN_ORDER_LINE_UNKNOWN`、`SN_MULTI_PROJECT_CONFLICT`。
 
-### 7.4 原始快照
+### 7.5 外部抽取文件与逐源行原值
 
-一次性迁移必须保留不可变原始快照或等价的逐行源载荷及校验和。该快照仅属于迁移过程，不进入正式业务表命名。这样“完整迁移”包含两层含义：
+一次性迁移必须保留不可变外部抽取文件，并把等价的逐行源载荷及校验和写入`pms_migration_source_record`。外部文件和逐源行表都只属于迁移过程，不成为业务权威表。这样“完整迁移”包含两层含义：
 
 1. 所有可确认记录进入正式业务表。
 2. 所有无法确认记录仍被保存、可查询、可修复，不因无法建强外键而丢失。

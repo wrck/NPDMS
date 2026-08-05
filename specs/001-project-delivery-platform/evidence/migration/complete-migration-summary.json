@@ -1,0 +1,25 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-08-05T02:22:07.487Z",
+  "ddlSha256": "EAF117F1C1A0AB09CD4A3FE7838C1EF37617F677C0DC9C260C5D59E8A80749E5",
+  "ddlTableCount": 52,
+  "ddlColumnCount": 965,
+  "commentedColumnCount": 965,
+  "invalidCommentCount": 0,
+  "semanticSourceRowCount": 197,
+  "semanticCanonicalCount": 108,
+  "physicalEvidenceRowCount": 3931,
+  "physicalCanonicalFieldCount": 3908,
+  "schemaBusinessElementCount": 82,
+  "coreMappedFieldCount": 326,
+  "physicalDispositionCounts": {
+    "PAYLOAD": 73,
+    "STRUCTURED": 251,
+    "LINEAGE": 23,
+    "RELATION": 34,
+    "SOURCE_ONLY": 2859,
+    "PLATFORM_REPLACED": 691
+  },
+  "invalidTargetCount": 0,
+  "invalidTargets": []
+}

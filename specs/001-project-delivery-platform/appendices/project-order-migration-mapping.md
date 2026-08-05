@@ -10,6 +10,7 @@
 
 - [模型方案回顾](project-order-model-options-review.md)
 - [目标表结构及旧库证据](project-order-target-schema-evidence.md)
+- [核心历史字段迁移完整性审查](core-field-migration-completeness.md)
 - [MySQL 8.x物理DDL草案](project-order-physical-schema.mysql.sql)
 - [ADR-0001：以ERP订单行实施范围作为项目交付主链](../../../docs/decisions/0001-project-order-line-scope-model.md)
 
@@ -24,6 +25,9 @@
 7. ERP已发货数量与SN设备事实分别对账，不要求两者数量相等。
 8. `-L`、`-C`、`-his`只作为旧值保存，不通过字符串截取自动建立正式关系。
 9. 正式切换前旧平台继续作为业务权威源；切换失败时不修改旧库，直接撤销新平台入口并重做目标批次。
+10. 核心迁移采用“逐源行完整载荷 + 规范化业务列/关系”双层保存；查询、关联和统计所需的稳定业务事实必须结构化，旧审计快照不得为此复制到每张业务表。
+11. 旧主键和旧审计字段不得覆盖目标主键及目标审计字段；统一写入`pms_migration_source_record`和`pms_external_key_map`，只有持续只读同步确需幂等时业务镜像才保留来源键和同步时间。
+12. 18张核心旧表的326个字段必须全部命中[`core-field-mapping.jsonl`](../evidence/migration/core-field-mapping.jsonl)；任何未映射字段阻断迁移。
 
 ## 3. 迁移数据流
 
@@ -40,7 +44,7 @@
         |
         | 目标业务API或受控迁移服务
         v
-业务主表 + external_key_map + migration_issue
+业务主表 + migration_source_record + external_key_map + migration_issue
         |
         | 全量对账、查询性能验证、业务抽样
         v
@@ -129,6 +133,8 @@ M02到M04可以反复重做，但每次必须使用新的`batch_no`。不得覆�
 4. `(projectType, projectCode)`唯一且字段无冲突的记录自动迁移。
 5. 重复编码进入`DUPLICATE_PROJECT_CODE`问题；7组有效记录相互重复必须人工决定保留、合并或重新编码。
 6. 所有旧`projectId`均写入`pms_external_key_map`，包括多条旧记录映射到同一清洗后项目的情况。
+7. 办事处、客户、市场/系统/拓展/行业、实施方式、重大项目级别、旧生命周期时间、自定义信息和来源审计按字段矩阵写入正式列，不得只保留项目编码、名称和状态。
+8. 旧库1,550条项目名称为空，允许以待补状态迁入；禁止用项目编码复制成名称来伪造完整数据。
 
 ### 6.2 合同主档
 
@@ -194,7 +200,7 @@ tenant_id + source + compCode + orderType + orderNumber
 
 转换规则：
 
-1. 52,914条旧订单头先按业务键分组。
+1. 当前91,572条旧订单头先按确定性业务键分组，形成91,239个业务键组；333条重复/冲突候选必须逐组处理。
 2. 同一业务键的不同`contractNo`写入`pms_order_contract_rel`。
 3. 同一业务键的不同`orderExecNumber`写入`pms_order_execution_rel`。
 4. 非键字段完全一致时可以自动归并为一个订单头。
@@ -232,26 +238,28 @@ tenant_id + source + compCode + orderType + orderNumber
 1. 当前共有380,605条ERP订单行；最终迁移前必须在同一一致性快照内复核组合业务键，只有唯一记录才可批量形成正式订单行。
 2. 订单行必须先通过订单业务键定位`order_id`。
 3. 退货行允许负数量，不做无条件非负约束。
-4. `realOrderExecNumber`为空不生成错误；有值时尝试写`pms_order_execution_rel`。
+4. `realOrderExecNumber`为空不生成错误；有值时尝试写订单行粒度的`pms_order_line_execution_rel`。
 5. `delivered_qty`只与旧ERP行数量对账，不与SN数量对账。
 
 ### 6.7 项目订单行实施范围
 
 来源：`pm_project_product_line`。
 
+旧`contractNo/itemName/projectQuantity/orderQuantity/deliverQuantity/openQuantity`完整保存在逐源行迁移记录中，不再复制为实施范围表的`legacy_*`列。`allocated_qty`是通过规则生成的实施分配量，不能覆盖或替代原始数量证据。
+
 匹配优先级：
 
 1. `orderNumber + lineNum + itemCode`唯一命中当前ERP订单行。
 2. 不允许仅按合同号、产品或数量自动匹配。
-3. 命中0条、命中多条或缺关键字段时保留旧键并进入待解析状态。
+3. 命中0条、命中多条或缺关键字段时由迁移原值层保留旧键，并生成迁移问题；没有`order_line_id`的记录不得写入正式实施范围表。
 
 状态规则：
 
 | 条件 | `scope_status` | `order_line_id` | `allocated_qty` |
 | --- | --- | --- | --- |
-| 缺订单号/行号 | `PENDING_MAPPING` | 空 | 空 |
-| 找不到订单行 | `PENDING_MAPPING` | 空 | 空 |
-| 命中多个订单行 | `PENDING_MAPPING` | 空 | 空 |
+| 缺订单号/行号 | 不写正式范围，生成`PENDING_MAPPING`迁移问题 | 空 | 空 |
+| 找不到订单行 | 不写正式范围，生成`PENDING_MAPPING`迁移问题 | 空 | 空 |
+| 命中多个订单行 | 不写正式范围，生成`PENDING_MAPPING`迁移问题 | 空 | 空 |
 | 唯一命中且只关联一个项目、无重复冲突 | `ACTIVE` | 有值 | 使用旧`orderQuantity` |
 | 唯一命中且关联多个项目、旧`projectQuantity`完整且合计校验通过 | `ACTIVE` | 有值 | 使用`projectQuantity` |
 | 唯一命中且关联多个项目、分配数量缺失 | `PENDING_QUANTITY` | 有值 | 空 |
@@ -323,11 +331,12 @@ tenant_id + source + compCode + orderType + orderNumber
 2. 156,368条`fb_shipment`全部迁移为装箱单。156,367条连接发货合同归属；1条未命中记录保留原`con_id`并生成`SHIPMENT_CONTRACT_REF_NOT_FOUND`。
 3. 3,406,054个不同SN形成候选设备主档。
 4. 4,194,864条条码源行全部保留为生命周期事件，不因SN重复而丢弃；同一SN允许多装箱单、多次发放和退回事件。
-5. 4,194,847条事件关联装箱单；15条空`pack_id`和17条未命中装箱单保留`legacy_package_key`并生成问题。
-6. `rma_no`逐字保存；`isRMA`不迁移为判定字段，因为当前所有行均为空。非空`rma_no`只生成`rma_marked=1`，正式`business_action_code`在字典确认前为`UNCLASSIFIED`。
-7. 同一SN出现不同物料且无法由RMA/母子公司关系解释时生成`SN_ITEM_CONFLICT`。
-8. 当前3,331,845条条码记录具有`orderNumber/lineNum`，但仅1,022,486条可直接匹配当前ERP订单行；命中记录写入`order_line_id`，其余2,309,359条保持为空并写`mapping_status='PENDING_MAPPING'`，不得仅因源字段非空判定映射成功。
-9. `barcode2`不覆盖主SN，转换为设备关系候选。
+5. 4,194,847条事件关联装箱单；15条空`pack_id`和17条未命中装箱单由迁移来源记录保留原`pack_id`并生成问题，事件只保留确有后续解析用途的`legacy_package_key`。
+6. `rma_no`逐字保存；`isRMA`不迁移为判定字段，因为当前所有行均为空，但原字段和值仍保存在`pms_migration_source_record.source_payload`。非空`rma_no`只生成`rma_marked=1`，正式`business_action_code`在字典确认前为`UNCLASSIFIED`。
+7. `barcode/item`映射主设备SN及其单一物料；不得把`item2`并入主设备`item_code`。
+8. 当前3,331,845条条码记录具有`orderNumber/lineNum`，但仅1,022,486条可直接匹配当前ERP订单行；原订单号和行号统一保存在迁移来源记录中，唯一命中才写事件`order_line_id`，其余2,309,359条保持为空并写`mapping_status='PENDING_MAPPING'`，不得仅因源字段非空判定映射成功。
+9. 非空`barcode2/item2`形成独立设备SN候选，主附加SN关系以`fb_shipment_barcode_relation.sn1/item1/sn2/item2/contract`为正式来源，迁移到`pms_device_relation`；同一主SN允许按不同合同保存不同关系。
+10. 发货事件、装箱单合同归属和关系明细全量写入后，先确定每个SN的最新发货合同，再按该合同的最新有效关系批量回填主设备`secondary_sn/secondary_item`；不保存`secondary_contract_id/secondary_relation_id/secondary_effective_time`。
 
 ### 6.12 SN项目归属与转移
 
@@ -344,20 +353,24 @@ tenant_id + source + compCode + orderType + orderNumber
 5. `transferFlag=1/0`结合`chProjectId`、`transferProjectId`形成转出/转入历史。
 6. 5,634个跨项目SN只有在时间和转移链完整时才能确定唯一当前归属；否则生成`SN_MULTI_PROJECT_CONFLICT`。
 7. 仅当设备事件已验证命中ERP订单行且该订单行能唯一命中项目范围时填写`project_order_line_scope_id`；其余保持为空。
+8. 产品、收件人、物流、装箱时间、合同号、安装地址以及`ch*/transfer*`原转移字段全部写入正式列；解析出的目标关系不能覆盖这些来源证据。
 
 ### 6.13 设备替换及母子关系
 
 | 旧来源 | 目标 |
 | --- | --- |
-| `fb_shipment_barcode_relation` | `pms_device_relation` |
-| `barcode2/rmaBarcode` | `pms_device_relation`候选 |
+| `fb_shipment_barcode_relation.sn1/item1/sn2/item2` | `pms_device_relation`，关系类型`EXTRA_SN` |
+| `barcode2/item2` | 第二条`pms_device_sn`的辅助来源，关系以关系表为准 |
+| `rmaBarcode` | `pms_device_relation`的RMA替换候选 |
 
 转换规则：
 
-1. `sn1`和`sn2`分别解析为设备主档。
-2. 关系类型依据明确源字段区分母子公司映射、RMA替换或其他关系。
+1. `sn1/item1`和`sn2/item2`分别解析为两条设备主档，物料编码分别保存在各自设备上。
+2. `fb_shipment_barcode_relation`形成`EXTRA_SN`关系；`rmaBarcode`只有在替换证据完整时形成RMA替换关系。
 3. 关系任一端缺失时生成问题，不创建悬空关系。
 4. 不允许自环；关系链循环进入问题单。
+5. 合同特定关系查询始终读取`pms_device_relation`；主档只返回该SN最新发货合同匹配出的`secondary_sn/secondary_item`。
+6. 单笔变更同事务刷新主档缓存；批量迁移按窗口排序回填并执行缓存差异对账。
 
 ### 6.14 订单变更血缘
 
@@ -375,7 +388,7 @@ tenant_id + source + compCode + orderType + orderNumber
 - 仅因项目编码以`-his`结尾。
 - 仅因客户、合同、产品和数量相似。
 
-## 7. 外部键与幂等
+## 7. 逐源行证据、外部键与幂等
 
 每个迁移写入操作携带：
 
@@ -390,11 +403,15 @@ source_checksum
 
 处理规则：
 
-1. 相同来源键、相同校验和重复提交：返回已有目标映射。
-2. 相同来源键、不同校验和：生成`SOURCE_ROW_CHANGED`，不得静默覆盖。
-3. 多条来源记录归并为一个目标主档：每条来源记录分别写外部键映射。
-4. 业务关系无法建立：写迁移问题，并保留原始业务键和候选目标。
-5. 问题解决后由补偿批次创建或更新业务关系，不修改旧批次证据。
+1. 每个读取行先写`pms_migration_source_record`，保存完整字段原值、来源主键、业务键和校验和，再进行业务转换。
+2. 相同批次、相同来源键、相同校验和重复提交：返回已有逐源行证据和目标映射。
+3. 相同批次、相同来源键、不同校验和：生成`SOURCE_ROW_CHANGED`，不得静默覆盖。
+4. 多条来源记录归并为一个目标主档：每条来源记录各自保留，分别写外部键映射；不得把多个来源载荷覆盖进业务表的单个JSON。
+5. 一个来源行生成多个目标记录：分别写多条目标映射，并更新`mapped_target_count`。
+6. 业务关系无法建立：写迁移问题，并保留原始业务键和候选目标。
+7. 问题解决后由补偿批次创建或更新业务关系，不修改旧批次证据。
+
+没有物理主键的旧表使用`完整行规范化SHA-256 + 同哈希行在抽取文件中的序号`生成批次内`source_pk`。序号必须来自不可变抽取文件，不能依赖无`ORDER BY`的数据库返回顺序；这类合成键只用于一次性迁移证据，不作为后续同步游标。
 
 ## 8. 对账门禁
 
@@ -404,10 +421,15 @@ source_checksum
 
 ```text
 source_read_count
-= mapped_source_count
-+ open_issue_source_count
+= migration_source_record_count
+
+migration_source_record_count
+= fully_mapped_source_count
++ issue_only_source_count
 + explicitly_excluded_count
 ```
+
+已生成目标但同时存在非阻断告警的来源行只计入`fully_mapped_source_count`，问题数量另行统计，避免重复计数。
 
 `explicitly_excluded_count`只能用于视图、已证明的技术临时表或经审批排除的无效行，并必须有规则编号。
 
@@ -509,24 +531,17 @@ source_read_count
 
 ## 12. DDL验证记录
 
-2026-07-29使用现有Docker容器`npms-mysql-1`中的MySQL 8.4.10执行了隔离验证：
+2026-08-05使用现有Docker容器中的MySQL 8.4.10重新执行了隔离验证；验证库完成后已删除：
 
 | 验证项 | 结果 |
 | --- | ---: |
-| 创建基础表 | 27张 |
-| 外键约束 | 39个 |
-| CHECK约束 | 42个 |
-| `current_order_line_id`存储生成列 | 1个，创建成功 |
-| 同合同号、不同公司 | 插入成功 |
-| 同公司、同合同号重复 | 被唯一索引拒绝 |
-| 一个订单关联两个合同 | 插入成功 |
-| `ACTIVE`和`PENDING_MAPPING`项目订单行范围 | 插入成功 |
-| 合同回款记录、发货合同归属和2个装箱单 | 插入成功 |
-| 同一SN两条生命周期事件，其中一条`rma_no`有值 | 插入成功，`rma_marked`计算为1 |
-| SN事件的`order_line_id=NULL` | 插入成功 |
-| SN到项目归属 | 插入成功 |
-| `ACTIVE`范围缺少分配数量 | 被CHECK约束拒绝 |
-| 同一项目、同一订单行重复当前范围 | 被唯一索引拒绝 |
+| 创建基础表 | 52张 |
+| 带中文描述的字段 | 965个，`INFORMATION_SCHEMA`核验均非空 |
+| 租户复合外键约束 | 76个 |
+| CHECK约束 | 80个 |
+| 逐源行迁移证据表 | 1张，支持完整JSON、校验和和一源多目标计数 |
+
+旧版插入冒烟脚本引用了已删除的冗余`legacy_*`和业务表`source_payload`列，不再作为当前验证证据。正式迁移实现前必须按现有52表重新编写普通项目、多合同、多执行单合并、订单行拆分、RMA和SN转移的场景测试。
 
 验证使用随机命名的临时schema，完成后已删除。容器中的现有业务schema和旧`dppms`均未参与验证。
 
