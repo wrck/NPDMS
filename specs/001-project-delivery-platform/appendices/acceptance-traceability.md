@@ -1,6 +1,6 @@
 # 附录E：验收与需求追溯矩阵
 
-| 来源需求 | 功能规格 | 版本 | 优先级 | 验收编号 | 分册 | 状态 |
+| 来源需求/决策 | 功能规格 | 版本 | 优先级 | 验收编号 | 分册 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
 | REQ-001 | FR-PLT-001 | V1 | P0 | AC-PLT-011,AC-PLT-012,AC-PLT-013 | 01-platform-and-permission.md | 已映射 |
 | REQ-002 | FR-PLT-002 | V1 | P0 | AC-PLT-021,AC-PLT-022,AC-PLT-023 | 01-platform-and-permission.md | 已映射 |
@@ -18,6 +18,7 @@
 | REQ-014 | FR-PROJ-008 | V1 | P0 | AC-PROJ-081,AC-PROJ-082,AC-PROJ-083,AC-PROJ-084,AC-PROJ-085 | 02-project-initiation.md | 已映射 |
 | REQ-015 | FR-PROJ-002 | V1 | P0 | AC-PROJ-021,AC-PROJ-022,AC-PROJ-023,AC-PROJ-024,AC-PROJ-025 | 02-project-initiation.md | 已映射 |
 | REQ-015 | FR-PROJ-003 | V1 | P0 | AC-PROJ-031,AC-PROJ-032,AC-PROJ-033,AC-PROJ-034,AC-PROJ-035,AC-PROJ-036 | 02-project-initiation.md | 已映射 |
+| DEC-011 | FR-PROJ-004 | V1 | P0 | AC-PROJ-041,AC-PROJ-042,AC-PROJ-043 | 02-project-initiation.md | 决策映射 |
 | REQ-015 | FR-PROJ-009 | V1 | P0 | AC-PROJ-091,AC-PROJ-092,AC-PROJ-093,AC-PROJ-094,AC-PROJ-095 | 02-project-initiation.md | 已映射 |
 | REQ-016 | FR-PROJ-010 | V1 | P0 | AC-PROJ-101,AC-PROJ-102,AC-PROJ-103 | 02-project-initiation.md | 已映射 |
 | REQ-017 | FR-RES-001 | V1 | P0 | AC-RES-011,AC-RES-012,AC-RES-013,AC-RES-014,AC-RES-015 | 07-assets-and-outsourcing.md | 已映射 |

@@ -30,20 +30,20 @@
 | DR-COM-013 | 服务商/转包/付款 | 外部交付和费用结算对象 | 准入 → 申请 → 审批 → 履约 → 回访 → 付款 | id、tenant_id、status、version、creator、create_time、updater、update_time |
 | DR-COM-014 | 技术公告 | 产品风险及治理要求 | 编写 → 会签 → 发布 → 命中 → 治理 → 统计 | id、tenant_id、status、version、creator、create_time、updater、update_time |
 | DR-COM-015 | 项目组合 | 按战略、客户、区域或专项规则汇集项目的治理与分析视角，不改变项目层级 | 创建 → 配置成员 → 发布 → 重算/快照 → 失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-016 | 非层级项目关系 | 扩容、续采、改造等不构成父子包含关系的项目关联 | 建立 → 生效 → 变更 → 失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-017 | 合同及回款事实 | 以所属公司和合同编号识别的合同主档，以及与主档分离的回款来源事实 | 同步/创建 → 解析归属 → 生效 → 回款跟踪 → 到期/终止 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-018 | 销售/退货订单 | 按来源、所属公司、订单类型和订单编号识别的交易单据 | 同步 → 校验 → 生效 → 变更/取消/替换 → 完结 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-019 | 订单行 | 订单下的产品或服务明细，是项目实施范围的最小交易粒度 | 同步 → 校验 → 分配 → 发货/退货 → 完结 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-020 | 项目订单行实施范围 | 某项目对某订单行的已确认实施数量及其映射、生效和变更证据 | 待映射/待数量 → 有效 → 调整 → 失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-021 | 装箱/发货包 | 承载合同归属、收件、快递、发货时间和维保区间的物流凭证 | 接收来源 → 解析合同 → 发货 → 签收/异常 → 归档 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-022 | 设备物流事件 | 某设备一次发货、退货、再发、返还或RMA相关业务事实 | 接收来源 → 分类/映射 → 生效 → 更正/冲销 → 归档 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-023 | 项目设备归属 | 设备与项目在一段有效期间内的实施归属及转移历史 | 待确认 → 生效 → 转移/交接 → 结束 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-024 | 设备关系 | 母子序列号、RMA替换等具有方向和生效证据的设备间关系 | 建立 → 校验 → 生效 → 变更/结束 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-025 | CRM执行证据 | CRM执行单、产品配置、订单辅助关联及特殊合并下单证据 | 同步 → 校验/合并 → 关联 → 更新/失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-026 | 同步批次 | 一次外部数据读取、校验、写入、失败和游标推进的处理单元 | 创建 → 运行 → 成功/部分成功/失败 → 对账/重试 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-027 | 外部对象映射 | 不可变来源业务键与平台目标业务对象之间的可追溯映射 | 识别 → 建立 → 校验 → 更新/失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-028 | 数据问题记录 | 无法唯一映射、来源冲突或证据缺失记录的处理闭环 | 发现 → 待处理 → 处理中 → 已解决/不处理 | id、tenant_id、status、version、creator、create_time、updater、update_time |
-| DR-COM-029 | 项目交付汇总 | 可按项目重建的订单、数量、设备和待处理指标读模型，不是权威明细 | 计算 → 发布 → 对账 → 重算/过期 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-016 | 非层级项目关系 | 扩容、续采、改造等不构成父子包含关系的项目关联 | 【建议】建立 → 生效 → 变更 → 失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-017 | 合同及回款事实 | 以所属公司和合同编号识别的合同主档，以及与主档分离的回款来源事实 | 【建议】同步/创建 → 归属解析 → 生效 → 回款跟踪 → 到期/终止；公司解析优先级【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-018 | 销售/退货订单 | 按来源、所属公司、订单类型和订单编号识别的交易单据 | 【建议】同步 → 校验 → 生效 → 变更/取消/替换 → 完结；变更关系类型【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-019 | 订单行 | 订单下的产品或服务明细，是项目实施范围的最小交易粒度 | 【建议】同步 → 校验 → 分配 → 发货/退货 → 完结；退货数量规则【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-020 | 项目订单行实施范围 | 某项目对某订单行的已确认实施数量及其映射、生效和变更证据 | 【建议】待映射/待数量 → 有效 → 调整 → 失效；数量公式【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-021 | 装箱/发货包 | 承载合同归属、收件、快递、发货时间和维保区间的物流凭证 | 【建议】接收来源 → 解析合同 → 发货 → 签收/异常 → 归档；签收与归档门禁【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-022 | 设备物流事件 | 某设备一次发货、退货、再发、返还或RMA相关业务事实 | 【建议】接收来源 → 分类/映射 → 生效 → 更正/冲销 → 归档；正式动作、冲销及终态【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-023 | 项目设备归属 | 设备与项目在一段有效期间内的实施归属及转移历史 | 【建议】待确认 → 生效 → 转移/交接 → 结束；同一时点唯一归属【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-024 | 设备关系 | 母子序列号、RMA替换等具有方向和生效证据的设备间关系 | 【建议】建立 → 校验 → 生效 → 变更/结束；正式关系类型【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-025 | CRM执行证据 | CRM执行单、产品配置、订单辅助关联及特殊合并下单证据 | 【建议】同步 → 校验/合并 → 关联 → 更新/失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-026 | 同步批次 | 一次外部数据读取、校验、写入、失败和游标推进的处理单元 | 【建议】创建 → 运行 → 成功/部分成功/失败 → 对账/重试；计数分类【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-027 | 外部对象映射 | 不可变来源业务键与平台目标业务对象之间的可追溯映射 | 【建议】识别 → 建立 → 校验 → 更新/失效 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-028 | 数据问题记录 | 无法唯一映射、来源冲突或证据缺失记录的处理闭环 | 【建议】发现 → 待处理 → 处理中 → 已解决/不处理；正式处置状态【待确认】 | id、tenant_id、status、version、creator、create_time、updater、update_time |
+| DR-COM-029 | 项目交付汇总 | 可按项目重建的订单、数量、设备和待处理指标读模型，不是权威明细 | 【建议】计算 → 发布 → 对账 → 重算/过期 | id、tenant_id、status、version、creator、create_time、updater、update_time |
 
 <!-- PORTRAIT -->
 
