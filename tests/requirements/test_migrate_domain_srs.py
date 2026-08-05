@@ -1,3 +1,5 @@
+import re
+from collections import Counter
 from pathlib import Path
 
 from scripts.requirements.migrate_domain_srs import (
@@ -100,10 +102,57 @@ def test_parse_and_render_legacy_fr_as_strict_twelve_section_unit(tmp_path: Path
     assert positions == sorted(positions)
     assert "| 用例编号 | UC-TST-001 |" in rendered
     assert "| 来源需求 | REQ-001,REQ-002 |" in rendered
-    assert "| 示例名称 | legacy 数据要求 | 是 | 必填且唯一。 | 由现有规格迁移 |" in rendered
+    assert "| 示例名称 | 【待确认】legacy 未提供输入来源 | 是 | 必填且唯一。 | 由 legacy 数据要求迁移 |" in rendered
+    assert "| 来源标识 | 已确认 |" in rendered
+    assert "| 需求状态 | 【待确认】legacy 未提供需求状态 |" in rendered
+    assert "无独立状态流转。\n\n| 当前状态 |" in rendered
+    assert "| 不适用 | legacy 状态说明为非结构化文本 |" in rendered
+    assert "| 见现有规格 | 执行本功能 |" not in rendered
     assert "BR-TST-001" in rendered
     assert "DR-TST-001" in rendered
     assert "AC-TST-001" in rendered
+    assert "NFR-PERF-TST" not in rendered
+
+
+def test_renderer_preserves_suggestion_and_marks_unknown_data_attributes(tmp_path: Path):
+    source = tmp_path / "legacy.md"
+    source.write_text(
+        LEGACY_SAMPLE.replace("**来源标识：** 已确认", "**来源标识：** 【建议】")
+        .replace(
+            "- 示例名称：必填且唯一。",
+            "- 示例名称：用于平台基础展示。\n- 联系方式：选填，属于敏感数据。",
+        ),
+        encoding="utf-8",
+    )
+    requirement = parse_legacy_fr(source)[0]
+
+    rendered = render_srs(
+        DomainProfile("TST", "示例领域", "示例责任", "TST-example-srs.md", ("FR-TST-001",)),
+        [requirement],
+    )
+
+    assert "| 来源标识 | 【建议】 |" in rendered
+    assert "| 需求状态 | 【待确认】legacy 未提供需求状态 |" in rendered
+    assert "| 示例名称 | 【待确认】legacy 未提供输入来源 | 【待确认】 | 用于基础平台展示。 |" in rendered
+    assert "| 示例名称 | 【待确认】legacy 未提供业务含义 | 【待确认】 | 【待确认】legacy 未提供数据来源 | 用于基础平台展示。 | 【待确认】 |" in rendered
+    assert "| 联系方式 | 【待确认】legacy 未提供输入来源 | 否 | 选填，属于敏感数据。 |" in rendered
+    assert "| 联系方式 | 【待确认】legacy 未提供业务含义 | 否 | 【待确认】legacy 未提供数据来源 | 选填，属于敏感数据。 | 敏感 |" in rendered
+    assert "平台基础" not in rendered
+    assert "基础平台" in rendered
+    assert "| NFR-PERF-" not in rendered
+    assert "【建议】本节不新增通用异常行为" in rendered
+
+
+def test_missing_source_marker_is_not_upgraded_to_confirmed(tmp_path: Path):
+    source = tmp_path / "legacy.md"
+    source.write_text(LEGACY_SAMPLE.replace("**来源标识：** 已确认\n", ""), encoding="utf-8")
+
+    rendered = render_srs(
+        DomainProfile("TST", "示例领域", "示例责任", "TST-example-srs.md", ("FR-TST-001",)),
+        parse_legacy_fr(source),
+    )
+
+    assert "| 来源标识 | 【待确认】legacy 未提供来源标识 |" in rendered
 
 
 def test_domain_profiles_are_complete_and_partition_formal_requirements():
@@ -140,3 +189,17 @@ def test_current_legacy_baseline_matches_confirmed_counts_and_profiles():
     assert {source for source in sources if source.startswith("REQ-")} == {
         f"REQ-{number:03d}" for number in range(1, 149)
     }
+
+
+def test_all_rendered_domains_preserve_source_markers_and_add_no_unmarked_defaults():
+    root = Path("specs/001-project-delivery-platform")
+    formal, _ = load_legacy_requirements(root)
+    rendered = "\n".join(render_srs(profile, formal) for profile in DOMAIN_PROFILES)
+    source_markers = Counter(requirement.metadata.get("来源标识", "【MISSING】") for requirement in formal)
+    rendered_markers = Counter(re.findall(r"^\| 来源标识 \| (.+?) \|$", rendered, re.MULTILINE))
+
+    assert rendered_markers == source_markers
+    assert "平台基础" not in rendered
+    assert not re.search(r"NFR-(?:PERF|AVL|SEC)-[A-Z]+", rendered)
+    assert "| 内部 |" not in rendered
+    assert rendered.count("| 需求状态 | 【待确认】legacy 未提供需求状态 |") == 145

@@ -11,6 +11,8 @@ EVOLUTION_HEADING_RE = re.compile(r"^### (FR-[A-Z]+-\d{3})\s+(.+?)\s*$", re.MULT
 SECTION_RE = re.compile(r"^### (.+?)\s*$", re.MULTILINE)
 METADATA_RE = re.compile(r"^\*\*(.+?)：\*\*\s*(.*?)(?:<br>)?\s*$", re.MULTILINE)
 IDENTIFIER_RE = re.compile(r"(?:REQ|DEC)-\d{3}")
+UNKNOWN = "【待确认】legacy 未提供"
+BUSINESS_TERM_REPLACEMENTS = {"平台基础": "基础平台"}
 
 
 @dataclass(frozen=True)
@@ -43,6 +45,27 @@ class DomainProfile:
     filename: str
     fr_ids: tuple[str, ...]
     evolution_ids: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class MigrationRecord:
+    fr_id: str
+    source: str
+    owner: str
+    disposition: str
+    numbering: str
+    evidence: str
+
+
+@dataclass(frozen=True)
+class EvolutionMigrationRecord:
+    fr_id: str
+    source: str
+    owner: str
+    disposition: str
+    numbering: str
+    boundary: str
+    evidence: str
 
 
 def _fr_range(prefix: str, start: int, end: int) -> tuple[str, ...]:
@@ -132,15 +155,21 @@ def load_legacy_requirements(root: Path) -> tuple[list[LegacyRequirement], list[
 
 
 def _section(requirement: LegacyRequirement, name: str, fallback: str = "不适用。") -> str:
-    return requirement.sections.get(name, fallback).strip()
+    return _normalize_business_terms(requirement.sections.get(name, fallback).strip())
 
 
-def _metadata(requirement: LegacyRequirement, *names: str, fallback: str = "无") -> str:
+def _metadata(requirement: LegacyRequirement, *names: str, fallback: str = UNKNOWN) -> str:
     for name in names:
         value = requirement.metadata.get(name)
         if value:
-            return value
-    return fallback
+            return _normalize_business_terms(value)
+    return _normalize_business_terms(fallback)
+
+
+def _normalize_business_terms(text: str) -> str:
+    for legacy_term, preferred_term in BUSINESS_TERM_REPLACEMENTS.items():
+        text = text.replace(legacy_term, preferred_term)
+    return text
 
 
 def _extract_data_items(data_text: str) -> list[tuple[str, str]]:
@@ -157,16 +186,31 @@ def _extract_numbered_rules(text: str, prefix: str) -> list[tuple[str, str]]:
     return [(identifier, content.strip()) for identifier, content in pattern.findall(text)]
 
 
+def _infer_required(rule: str) -> str:
+    if re.search(r"非必填|选填|可选|可为空|允许为空", rule):
+        return "否"
+    if re.search(r"必填|不得为空|不能为空", rule):
+        return "是"
+    return "【待确认】"
+
+
+def _infer_sensitivity(rule: str) -> str:
+    if "敏感" in rule:
+        return "敏感"
+    if "公开" in rule:
+        return "公开"
+    return "【待确认】"
+
+
 def _render_basic_information(profile: DomainProfile, requirement: LegacyRequirement) -> str:
-    source_marker = _metadata(requirement, "来源标识", fallback="已确认")
-    status = "待评审" if "待确认" in source_marker else "已确认"
+    source_marker = _metadata(requirement, "来源标识", fallback=f"{UNKNOWN}来源标识")
     rows = (
         ("用例编号", _metadata(requirement, "用例编号")),
         ("来源需求", _metadata(requirement, "来源需求")),
         ("所属模块", profile.name),
         ("适用版本", _metadata(requirement, "所属版本", "适用版本")),
         ("优先级／复杂度", _metadata(requirement, "优先级／复杂度")),
-        ("需求状态", status),
+        ("需求状态", f"{UNKNOWN}需求状态"),
         ("参与角色", _metadata(requirement, "参与角色")),
         ("业务场景", _metadata(requirement, "业务场景")),
         ("依赖需求", _dependency_ids(_section(requirement, "前置条件", ""))),
@@ -180,44 +224,47 @@ def _dependency_ids(preconditions: str) -> str:
         if "依赖条件" in line:
             identifiers = IDENTIFIER_RE.findall(line)
             return ",".join(identifiers) if identifiers else "无"
-    return "无"
+    return f"{UNKNOWN}依赖需求"
 
 
 def _render_preconditions(requirement: LegacyRequirement) -> str:
     lines = [line[2:].strip() for line in _section(requirement, "前置条件", "").splitlines() if line.startswith("- ")]
-    permission = next((line for line in lines if "权限" in line or "登录" in line), "按 legacy 规格校验参与角色与业务权限。")
-    dependency = next((line for line in lines if "依赖条件" in line), "无。")
-    data = next((line for line in lines if line not in (permission, dependency)), "按 legacy 规格校验业务对象数据和状态。")
+    permission = next((line for line in lines if "权限" in line or "登录" in line), f"{UNKNOWN}用户和权限条件。")
+    dependencies = [line for line in lines if "依赖条件" in line]
+    remaining = [line for line in lines if line != permission and line not in dependencies]
+    data = "；".join(remaining) if remaining else f"{UNKNOWN}数据和状态条件。"
     return "\n".join(
         (
-            f"- 触发条件：{_metadata(requirement, '业务场景', fallback='参与角色发起该业务动作。')}",
+            f"- 触发条件：{_metadata(requirement, '业务场景', fallback=f'{UNKNOWN}触发条件。')}",
             f"- 用户和权限条件：{permission}",
             f"- 数据和状态条件：{data}",
-            f"- 外部依赖条件：{dependency}",
+            f"- 外部依赖条件：{UNKNOWN}外部依赖；legacy 前置条件未单独区分外部依赖。",
         )
     )
 
 
 def _render_input(requirement: LegacyRequirement) -> str:
     items = _extract_data_items(_section(requirement, "数据要求", ""))
-    if not items:
-        items = [("业务操作信息", "按 legacy 前置条件和数据要求提供")]
     rows = ["| 输入项 | 来源 | 必填 | 校验规则 | 备注 |", "| --- | --- | --- | --- | --- |"]
     for name, rule in items:
-        required = "是" if "必填" in rule else "否"
-        rows.append(f"| {name} | legacy 数据要求 | {required} | {rule} | 由现有规格迁移 |")
+        required = _infer_required(rule)
+        rows.append(f"| {name} | {UNKNOWN}输入来源 | {required} | {rule} | 由 legacy 数据要求迁移 |")
+    if not items:
+        rows.append(f"| 不适用 | legacy 未提供可结构化输入项 | 不适用 | {UNKNOWN}输入规则 | 未从模板反推输入 |")
     return "\n".join(rows)
 
 
 def _render_state(requirement: LegacyRequirement) -> str:
-    state = _section(requirement, "状态流转", "不适用：该功能未独立定义状态，沿用所属业务对象状态。")
+    state = _section(requirement, "状态流转", f"{UNKNOWN}状态流转；legacy 未提供状态说明。")
     if state.lstrip().startswith("|"):
         return state
     return "\n".join(
         (
+            state,
+            "",
             "| 当前状态 | 业务动作 | 目标状态 | 执行角色 | 前置条件 | 失败处理 |",
             "| --- | --- | --- | --- | --- | --- |",
-            f"| 见现有规格 | 执行本功能 | 见现有规格 | {_metadata(requirement, '参与角色')} | 见触发条件与前置条件 | {state.replace('|', '／')} |",
+            "| 不适用 | legacy 状态说明为非结构化文本 | 不适用 | 不适用 | 不适用 | 未转换为状态迁移行 |",
         )
     )
 
@@ -225,7 +272,10 @@ def _render_state(requirement: LegacyRequirement) -> str:
 def _render_rules(requirement: LegacyRequirement) -> str:
     rules = _extract_numbered_rules(_section(requirement, "业务规则", ""), "BR")
     rows = ["| 规则编号 | 规则内容 | 适用条件 | 例外条件 |", "| --- | --- | --- | --- |"]
-    rows.extend(f"| {identifier} | {content.replace('|', '／')} | 见规则内容 | 无 |" for identifier, content in rules)
+    rows.extend(
+        f"| {identifier} | {content.replace('|', '／')} | {UNKNOWN}适用条件 | {UNKNOWN}例外条件 |"
+        for identifier, content in rules
+    )
     if not rules:
         rows.append("| 不适用 | legacy 规格未定义独立业务规则 | 不适用 | 无 |")
     return "\n".join(rows)
@@ -236,18 +286,25 @@ def _render_data(requirement: LegacyRequirement) -> str:
     items = _extract_data_items(data_text)
     rows = ["| 数据项 | 业务含义 | 必填 | 来源 | 校验／唯一性规则 | 敏感级别 |", "| --- | --- | --- | --- | --- | --- |"]
     for name, rule in items:
-        required = "是" if "必填" in rule else "否"
-        rows.append(f"| {name} | legacy 业务数据 | {required} | legacy 规格 | {rule.replace('|', '／')} | 内部 |")
+        required = _infer_required(rule)
+        sensitivity = _infer_sensitivity(rule)
+        rows.append(
+            f"| {name} | {UNKNOWN}业务含义 | {required} | {UNKNOWN}数据来源 | "
+            f"{rule.replace('|', '／')} | {sensitivity} |"
+        )
     for identifier, content in _extract_numbered_rules(data_text, "DR"):
-        rows.append(f"| {identifier} | 数据规则 | 是 | legacy 规格 | {content.replace('|', '／')} | 内部 |")
+        rows.append(
+            f"| {identifier} | 数据规则 | 【待确认】 | {UNKNOWN}数据来源 | "
+            f"{content.replace('|', '／')} | {_infer_sensitivity(content)} |"
+        )
     if len(rows) == 2:
-        rows.append("| 业务操作信息 | 支撑本功能办理的业务信息 | 是 | legacy 规格 | 按现有规格校验 | 内部 |")
+        rows.append(f"| 不适用 | legacy 未提供可结构化数据项 | 不适用 | {UNKNOWN}数据来源 | {UNKNOWN}数据规则 | 【待确认】 |")
     return "\n".join(rows)
 
 
 def _render_requirement(profile: DomainProfile, requirement: LegacyRequirement) -> str:
-    permissions = _section(requirement, "权限、通知与审计", "- 功能权限：按参与角色控制。")
-    return f"""### {requirement.fr_id} {requirement.title}
+    permissions = _section(requirement, "权限、通知与审计", f"- {UNKNOWN}权限、通知与业务留痕要求。")
+    return f"""### {requirement.fr_id} {_normalize_business_terms(requirement.title)}
 
 #### 基本信息
 
@@ -287,7 +344,7 @@ def _render_requirement(profile: DomainProfile, requirement: LegacyRequirement) 
 
 #### 权限、通知与业务留痕
 
-{permissions.replace("审计", "业务留痕")}
+{permissions}
 
 #### 输出与后置条件
 
@@ -304,12 +361,12 @@ def render_srs(profile: DomainProfile, requirements: list[LegacyRequirement]) ->
     selected = {requirement.fr_id: requirement for requirement in requirements}
     ordered = [selected[fr_id] for fr_id in profile.fr_ids if fr_id in selected]
     function_rows = "\n".join(
-        f"| {item.fr_id} | {item.title} | {profile.name} | {_metadata(item, '来源需求')} | {_metadata(item, '所属版本')} | {_metadata(item, '优先级／复杂度').split('／')[0]} |"
+        f"| {item.fr_id} | {_normalize_business_terms(item.title)} | {profile.name} | {_metadata(item, '来源需求')} | {_metadata(item, '所属版本')} | {_metadata(item, '优先级／复杂度').split('／')[0]} |"
         for item in ordered
     ) or "| 不适用 | 当前未迁移正式功能 | 不适用 | 不适用 | 不适用 | 不适用 |"
     detail = "\n\n".join(_render_requirement(profile, item).strip() for item in ordered)
     evolution = "；".join(profile.evolution_ids) if profile.evolution_ids else "无"
-    return f"""# {profile.name}软件需求规格说明书
+    document = f"""# {profile.name}软件需求规格说明书
 
 ## 文档控制
 
@@ -410,13 +467,13 @@ def render_srs(profile: DomainProfile, requirements: list[LegacyRequirement]) ->
 
 | 角色／群体 | 职责 | 使用场景 | 关注重点 | 权限范围 |
 | --- | --- | --- | --- | --- |
-| 领域责任人 | 对业务结果负责 | 领域业务办理 | 规则与结果正确 | 按现有需求授权 |
+| 【建议】领域责任人 | 【建议】对领域业务结果负责 | 【建议】领域业务办理 | 【建议】规则与结果正确 | 【待确认】legacy 未提供角色权限范围 |
 
 ### 4.2 核心用户场景
 
 | 场景编号 | 场景名称 | 参与角色 | 触发条件 | 期望结果 |
 | --- | --- | --- | --- | --- |
-| SCN-{profile.code}-001 | {profile.name}业务办理 | 见各 FR | 业务条件满足 | 产生可验证业务结果 |
+| SCN-{profile.code}-001 | 【建议】{profile.name}业务办理 | 见各 FR | 【待确认】由各 FR 触发条件汇总 | 【建议】产生各 FR 已定义的可观察结果 |
 
 ## 5. 业务模型与流程（按需）
 
@@ -424,28 +481,24 @@ def render_srs(profile: DomainProfile, requirements: list[LegacyRequirement]) ->
 
 | 对象 | 业务含义 | 唯一标识 | 关键关系 | 生命周期 | 数据责任方 |
 | --- | --- | --- | --- | --- | --- |
-| {profile.name}业务对象 | 承载本领域业务责任 | 业务标识 | 见各 FR | 见各 FR | {profile.name} |
+| 【建议】{profile.name}业务对象集合 | 【建议】汇总各 FR 已定义的业务对象 | 【待确认】legacy 未提供统一标识 | 见各 FR | 见各 FR | {profile.name} |
 
 ### 5.2 业务生命周期
 
 | 阶段 | 阶段目标 | 主要活动 | 输入 | 输出 | 完成标准 |
 | --- | --- | --- | --- | --- | --- |
-| 办理 | 完成本领域业务 | 见各 FR | 业务上下文 | 业务结果 | 满足对应 AC |
+| 【建议】办理 | 【建议】完成本领域 FR | 见各 FR | 【待确认】由各 FR 输入汇总 | 各 FR 已定义输出 | 满足对应 AC |
 
 ### 5.3 主流程
 
-1. 参与角色按业务场景发起动作。
-2. 系统校验权限、数据和状态条件。
-3. 系统执行本领域权威规则并产生结果。
-4. 系统记录业务留痕并返回可观察结果。
+1. 【建议】本节只作为领域级阅读导航；实际主流程以各 FR 原文为准。
+2. 【建议】按各 FR 已定义的参与角色、前置条件和主流程组织领域办理顺序。
+3. 【建议】不得用本节替代或扩展任何 FR 的确定性行为。
 
 ### 5.4 分支与异常流程
 
-- 权限不足：拒绝操作并记录业务留痕。
-- 状态不允许：保持原状态并返回门禁原因。
-- 数据缺失或冲突：拒绝静默覆盖并提示处理。
-- 外部依赖失败：保留可重试或人工处理结果。
-- 撤回、取消或回退：按对应 FR 的确定规则执行。
+- 【建议】本节不新增通用异常行为；权限、状态、数据、外部依赖、撤回、取消或回退均以各 FR 原文为准。
+- 【待确认】legacy 未提供可覆盖本领域全部 FR 的统一异常和补偿规则。
 
 ## 6. 产品功能架构
 
@@ -485,23 +538,21 @@ def render_srs(profile: DomainProfile, requirements: list[LegacyRequirement]) ->
 
 ### 8.4 文件、搜索、消息或智能能力要求
 
-仅保留各正式 FR 已确认的相关能力；演进项不纳入当前开发验收。
+仅保留各正式 FR 原文中的相关能力；演进项不纳入当前开发验收。
 
 ## 9. 权限、安全与隐私要求
 
-- 身份认证要求：使用基础平台身份能力。
-- 功能与数据权限要求：按各 FR 参与角色和数据范围执行。
-- 敏感数据保护要求：按现有规格执行分级、脱敏和留痕。
-- 隐私与合规要求：不适用时不新增业务承诺。
-- 外部用户及临时授权要求：按已确认 FR 执行。
+- 身份认证要求：本迁移模型不新增领域级要求，仅保留各 FR 原文。
+- 功能与数据权限要求：本迁移模型不新增领域级要求，仅保留各 FR 原文。
+- 敏感数据保护要求：【待确认】legacy 未提供本领域统一敏感级别和保护规则。
+- 隐私与合规要求：本迁移模型不新增无来源承诺。
+- 外部用户及临时授权要求：【待确认】以各 FR 原文及后续权威来源为准。
 
 ## 10. 非功能需求
 
 | 编号 | 质量属性 | 应用场景 | 量化指标 | 约束条件 | 验证方式 |
 | --- | --- | --- | --- | --- | --- |
-| NFR-PERF-{profile.code} | 性能 | 本领域功能 | 沿用系统级指标 | 不降低系统基线 | 性能测试／监控数据 |
-| NFR-AVL-{profile.code} | 可用性 | 本领域功能 | 沿用系统级指标 | 不降低系统基线 | 故障演练／运行统计 |
-| NFR-SEC-{profile.code} | 安全性 | 本领域功能 | 沿用系统级指标 | 不降低系统基线 | 安全测试／检查 |
+| 不适用 | 本次机械迁移不新增领域级非功能需求 | 不适用 | 【待确认】待权威来源定义量化指标 | 不适用 | 不适用 |
 
 ## 11. 风险、限制与待确认事项
 
@@ -509,13 +560,13 @@ def render_srs(profile: DomainProfile, requirements: list[LegacyRequirement]) ->
 
 | 风险编号 | 风险描述 | 类型 | 影响 | 应对措施 | 责任人 |
 | --- | --- | --- | --- | --- | --- |
-| RISK-{profile.code}-001 | 来源语义在机械迁移中发生漂移 | 业务 | 验收偏差 | 保留编号、原文和迁移证据 | 需求负责人 |
+| RISK-{profile.code}-001 | 来源语义在机械迁移中发生漂移 | 业务 | 验收偏差 | 保留编号、原文和迁移证据 | 【待确认】责任人待指定 |
 
 ### 11.2 待确认事项
 
 | 编号 | 问题 | 影响范围 | 需要确认人 | 计划日期 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| 不适用 | 本任务不新增待确认业务规则 | 不适用 | 不适用 | 不适用 | 不适用 |
+| TBD-{profile.code}-MIG-001 | 汇总并确认本领域 legacy 未提供的模板字段 | 业务含义、输入／数据来源、必填、敏感级别等 | 【待确认】责任人待指定 | 【待确认】计划日期待确定 | 待确认 |
 
 ## 12. 需求追溯与基线检查
 
@@ -532,8 +583,8 @@ def render_srs(profile: DomainProfile, requirements: list[LegacyRequirement]) ->
 - [x] 功能需求描述系统行为，没有混入具体实现方案。
 - [x] 主流程、关键分支、异常和权限边界完整。
 - [x] 每项已承诺需求均具有可验证的验收标准。
-- [x] 非功能需求具有量化指标和验证方式。
-- [x] 所有【待确认】事项均有责任人和处理期限。
+- [ ] 非功能需求具有量化指标和验证方式（本次迁移未从 legacy 推导领域级 NFR）。
+- [ ] 所有【待确认】事项均有责任人和处理期限（责任人和日期仍待确认）。
 - [x] 需求、设计和测试之间的追溯关系可以建立。
 
 ## 附录：推荐编号
@@ -552,23 +603,60 @@ def render_srs(profile: DomainProfile, requirements: list[LegacyRequirement]) ->
 | 决策 | DEC-001 |
 | 风险／待确认 | RISK-001／TBD-001 |
 """
+    return _normalize_business_terms(document)
 
 
-def render_migration_matrix(root: Path) -> str:
+def build_migration_records(
+    root: Path,
+) -> tuple[list[MigrationRecord], list[EvolutionMigrationRecord]]:
     formal, evolution = load_legacy_requirements(root)
     owners = {fr_id: profile for profile in DOMAIN_PROFILES for fr_id in profile.fr_ids + profile.evolution_ids}
-    formal_rows = []
+    formal_records: list[MigrationRecord] = []
     for requirement in formal:
         source = ",".join(requirement.source_ids) or _metadata(requirement, "来源需求")
         profile = owners[requirement.fr_id]
         evidence = f"{requirement.source_path.name}#{requirement.fr_id}；acceptance-traceability.md"
-        formal_rows.append(f"| {requirement.fr_id} | {source} | {profile.code}（{profile.name}） | MOVE | 保留 | {evidence} |")
-    evolution_rows = []
+        formal_records.append(
+            MigrationRecord(
+                requirement.fr_id,
+                source,
+                f"{profile.code}（{profile.name}）",
+                "MOVE",
+                "保留",
+                evidence,
+            )
+        )
+    evolution_records: list[EvolutionMigrationRecord] = []
     for item in evolution:
         profile = owners[item.fr_id]
         source = ",".join(item.source_ids) or "无"
         evidence = f"{item.source_path.name}#{item.fr_id}"
-        evolution_rows.append(f"| {item.fr_id} | {source} | {profile.code}（{profile.name}） | DEFER | 保留 | 不纳入当前开发验收 | {evidence} |")
+        evolution_records.append(
+            EvolutionMigrationRecord(
+                item.fr_id,
+                source,
+                f"{profile.code}（{profile.name}）",
+                "DEFER",
+                "保留",
+                "不纳入当前开发验收",
+                evidence,
+            )
+        )
+    return formal_records, evolution_records
+
+
+def render_migration_matrix(root: Path) -> str:
+    formal_records, evolution_records = build_migration_records(root)
+    formal_rows = [
+        f"| {record.fr_id} | {record.source} | {record.owner} | {record.disposition} | "
+        f"{record.numbering} | {record.evidence} |"
+        for record in formal_records
+    ]
+    evolution_rows = [
+        f"| {record.fr_id} | {record.source} | {record.owner} | {record.disposition} | "
+        f"{record.numbering} | {record.boundary} | {record.evidence} |"
+        for record in evolution_records
+    ]
     return """# 需求逐项迁移矩阵
 
 > 基线：148 条 `REQ-*`、145 项正式 FR、7 项演进项。正式 FR 仅调整权威 Owner，处置统一为 `MOVE`，语义及 FR/BR/DR/AC 编号保持不变。
