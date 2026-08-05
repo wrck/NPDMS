@@ -170,6 +170,10 @@ def test_domain_profiles_are_complete_and_partition_formal_requirements():
         "FR-ANA-008",
         "FR-RES-020",
     ]
+    owner = {fr_id: profile.code for profile in DOMAIN_PROFILES for fr_id in profile.fr_ids}
+    assert owner["FR-ENG-021"] == "IMP"
+    assert owner["FR-ENG-003"] == "AST"
+    assert owner["FR-ENG-002"] == "RES"
 
 
 def test_current_legacy_baseline_matches_confirmed_counts_and_profiles():
@@ -231,11 +235,11 @@ def test_business_specific_external_interactions_stay_with_owner_domains():
     assert not re.search(r"\b(?:CRM|ERP|ITR)\b", rendered["PLT"])
     assert "FR-PLT-009 仅提供通用集成、事件、幂等和补偿机制" in rendered["PLT"]
     assert "| IR-PROJ-" in rendered["PROJ"] and "CRM" in rendered["PROJ"] and "ERP" in rendered["PROJ"]
-    assert "| IR-ENG-" in rendered["ENG"] and "CRM" in rendered["ENG"]
+    assert "| IR-SOL-" in rendered["SOL"] and "CRM" in rendered["SOL"]
     assert "| IR-CUT-" in rendered["CUT"] and "ITR" in rendered["CUT"]
-    assert "| IR-SVC-" in rendered["SVC"] and "ITR" in rendered["SVC"]
-    assert "| IR-SPT-" in rendered["SPT"] and "ITR" in rendered["SPT"]
-    assert "| IR-TEC-" in rendered["TEC"] and "ITR" in rendered["TEC"]
+    assert "| IR-SRV-" in rendered["SRV"] and "ITR" in rendered["SRV"]
+    assert "| IR-AST-" in rendered["AST"] and "ITR" in rendered["AST"]
+    assert "| IR-KNO-" in rendered["KNO"] and "ITR" in rendered["KNO"]
 
 
 def test_evolution_items_appear_once_in_non_current_scope_table():
@@ -371,5 +375,5 @@ def test_platform_integration_keeps_generic_mechanism_and_project_owner_keeps_ob
     assert "幂等" in plt_integration
     assert "失败记录" in plt_integration
     assert "项目、合同、订单及订单行业务交互" in rendered["PROJ"]
-    assert "FR-PROJ-008、FR-PROJ-011" in rendered["PROJ"]
     assert "通用传输机制追溯 FR-PLT-009" in rendered["PROJ"]
+    assert "FR-PROJ-011" in rendered["COM"]

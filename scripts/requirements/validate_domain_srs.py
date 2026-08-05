@@ -36,7 +36,9 @@ def _domain_paths(root: Path) -> tuple[list[Path], list[str], bool]:
         if not path.exists():
             errors.append(f"MISSING_TARGET: domains/{profile.filename}")
     domain_dir = root / "domains"
-    actual_paths = set(domain_dir.rglob("*.md")) if domain_dir.exists() else set()
+    # 领域目录允许同时保存治理原则等非 SRS 资料；只有 *-srs.md 参与
+    # 权威需求定义的唯一性检查。
+    actual_paths = set(domain_dir.rglob("*-srs.md")) if domain_dir.exists() else set()
     for path in sorted(actual_paths - expected_paths):
         errors.append(f"EXTRA_TARGET: {path.relative_to(root).as_posix()}")
     expected_complete = all(path.exists() for path in expected_paths)

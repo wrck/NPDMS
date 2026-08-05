@@ -3,14 +3,21 @@
 ## 规格文件
 
 - `00-master-spec.md`
-- `01-platform-and-permission.md`
-- `02-project-initiation.md`
-- `03-planning-and-execution.md`
-- `04-cutover-and-stabilization.md`
-- `05-acceptance-and-closure.md`
-- `06-inspection-and-maintenance.md`
-- `07-assets-and-outsourcing.md`
-- `08-analytics-and-integration.md`
+- `domains/PLT-public-platform-capabilities-srs.md`
+- `domains/CUS-customer-and-service-relationship-srs.md`
+- `domains/PROJ-project-governance-srs.md`
+- `domains/COM-contract-and-order-fulfillment-srs.md`
+- `domains/SOL-delivery-preparation-and-solution-srs.md`
+- `domains/IMP-field-implementation-srs.md`
+- `domains/CUT-change-cutover-and-stability-srs.md`
+- `domains/ACC-acceptance-and-project-closure-srs.md`
+- `domains/AST-asset-management-srs.md`
+- `domains/RES-resource-and-outsourcing-srs.md`
+- `domains/SRV-service-operations-srs.md`
+- `domains/KNO-technical-knowledge-governance-srs.md`
+- `domains/ANA-business-analytics-srs.md`
+- `domains/项目实施交付管理平台规格体系调整原则（13领域版）.md`
+- `appendices/requirement-migration.md`
 - `appendices/data-dictionary.md`
 - `appendices/state-machines.md`
 - `appendices/permission-matrix.md`
@@ -27,6 +34,10 @@
 ## 基线说明
 
 - 本目录是已确认的SPECIFY阶段基线。
+- `00-master-spec.md`负责系统场景和跨领域编排，13份领域SRS负责唯一Owner业务定义。
+- 145项正式FR全部按唯一Owner迁移；FR、BR、DR、AC保留历史编号，编号前缀不代表当前Owner。
+- `FR-ENG-021 到货签收管理`归属`IMP 现场实施`；`AST 资产管理`消费实施结果并维护资产档案，不重复定义签收流程。
+- 原`01-`至`08-`分卷保留为迁移来源和证据，不再作为新增需求的领域归属依据。
 - PLAN已经确认，计划文件为`tasks/plan.md`。
 - TASKS已经确认，任务清单为`tasks/todo.md`。
 - IMPLEMENT尚未开始；进入实现后必须按任务依赖、测试和检查点执行。
@@ -36,7 +47,7 @@
 
 - 本目录中的Markdown规格是需求与开发的唯一事实来源（SSOT）。
 - 设计、开发、测试和验收均应引用稳定的FR、BR、DR、API、NFR、AC编号。
-- 任何需求变更先修改对应Markdown领域卷及`appendices/acceptance-traceability.md`，再重新生成评审导出件。
+- 任何需求变更先修改唯一Owner的Markdown领域卷、`appendices/requirement-migration.md`及`appendices/acceptance-traceability.md`，再重新生成评审导出件。
 - Word文档仅用于集中评审、打印和签批，不作为代码实现或测试用例编写的优先输入。
 
 ## 技术规范适用关系

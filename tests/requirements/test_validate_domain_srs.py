@@ -53,7 +53,7 @@ def test_validator_rejects_per_fr_source_owner_and_evidence_tampering(tmp_path: 
     matrix = _write_valid_matrix(root)
     mutations = (
         ("| FR-PLT-001 | REQ-001 |", "| FR-PLT-001 | REQ-002 |"),
-        ("| PLT（公共平台能力） | MOVE |", "| PROJ（项目治理） | MOVE |"),
+        ("| PLT（平台公共能力） | MOVE |", "| PROJ（项目治理） | MOVE |"),
         (
             "01-platform-and-permission.md#FR-PLT-001；acceptance-traceability.md",
             "wrong-evidence.md#FR-PLT-001",
