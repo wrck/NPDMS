@@ -52,9 +52,9 @@
 | DEC-010 | 项目层级 | 项目支持非固定层级树，项目组合与项目父子层级分离。 |
 | DEC-011 | 任务层级 | 任务使用非固定层级WBS，不设置固定业务深度。 |
 | DEC-012 | 容量基线 | 10万级项目、500万级任务、500人级同时在线。 |
-| DEC-013 | 模块边界与命名 | Yudao只承载平台能力；PMS业务模块统一使用`pms-module-*`命名，通过`-api`契约或领域事件协作。 |
-| DEC-014 | API设计 | Yudao平台接口定义完全以上游平台为准；新增`pms-module-*`业务模块统一执行PMS业务、内部、集成和事件API规范，接口必须版本化并具备稳定契约编号。 |
-| DEC-015 | 双上游集成策略 | 以`yudao-boot-mini`保持最简根工程；mini缺失但PMS需要的Yudao模块从`YunaiV/ruoyi-vue-pro`同名版本分支获取。共享文件以mini为基线，扩展模块及其配套资产以完整仓库为来源，PMS模块在根级增量加入。 |
+| DEC-013 | 模块边界与命名 | 基础平台只承载平台能力；项目交付业务模块统一使用`pms-module-*`命名，通过`-api`契约或领域事件协作。 |
+| DEC-014 | API设计 | 基础平台接口定义完全以上游平台为准；新增`pms-module-*`业务模块统一执行项目交付业务、内部、集成和事件API规范，接口必须版本化并具备稳定契约编号。 |
+| DEC-015 | 双上游集成策略 | 以`yudao-boot-mini`保持最简根工程；mini缺失但项目交付需要的基础平台模块从`YunaiV/ruoyi-vue-pro`同名版本分支获取。共享文件以mini为基线，扩展模块及其配套资产以完整仓库为来源，项目交付业务模块在根级增量加入。 |
 | DEC-016 | 数据库与旧库边界 | 新平台使用独立MySQL 8.x数据库；旧`dppms`只读访问且不得跨库SQL；业务数据一次性迁移，后续辅助关联数据只读同步。 |
 
 ### 5.1 上游基线来源
@@ -104,7 +104,7 @@
 
 | 领域代码 | 领域分册 | 实现模块 | 需求数 | 版本分布 |
 | --- | --- | --- | --- | --- |
-| PLT | 平台基础与权限 | yudao-dependencies / yudao-framework / yudao-module-system / yudao-module-infra / yudao-server；yudao-module-bpm为PMS扩展 | 11 | V1 11 / V2 0 / V3 0 |
+| PLT | 平台基础与权限 | yudao-dependencies / yudao-framework / yudao-module-system / yudao-module-infra / yudao-server；yudao-module-bpm为基础平台工作流扩展 | 11 | V1 11 / V2 0 / V3 0 |
 | PROJ | 项目承接、组合与组织 | pms-module-project | 22 | V1 14 / V2 8 / V3 0 |
 | ENG | 计划、方案与现场实施 | pms-module-engineering | 29 | V1 13 / V2 16 / V3 0 |
 | CUT | 联调、割接与稳定观察 | pms-module-cutover | 15 | V1 12 / V2 3 / V3 0 |
@@ -115,7 +115,7 @@
 
 ### 8.1 模块边界
 
-- `yudao-framework`提供公共框架和技术Starter，`yudao-module-system`、`yudao-module-infra`提供mini默认平台能力；`yudao-module-bpm`从完整仓库同版本分支获取并作为PMS工作流扩展，以上模块均不得承载PMS业务规则。
+- `yudao-framework`提供公共框架和技术Starter，`yudao-module-system`、`yudao-module-infra`提供mini默认平台能力；`yudao-module-bpm`从完整仓库同版本分支获取并作为基础平台工作流扩展，以上模块均不得承载项目交付业务规则。
 - `yudao-boot-mini`根工程结构作为物理集成基线，不额外创建`yudao-platform/`或`pms-platform/`父目录。
 - mini默认包含dependencies、framework、system、infra和server；BPM不是mini默认目录，必须从`YunaiV/ruoyi-vue-pro`的`master-jdk25`获取，并同步装配根POM、`yudao-server`、数据库脚本和管理端增量。
 - PMS业务模块统一采用`pms-module-{domain}`命名，并通过`-api`子模块暴露稳定契约。
@@ -186,6 +186,11 @@
 - 文件下载、批量导出、权限变更和敏感数据访问必须记录审计。
 - 通知和待办由业务事件触发，需具备模板、接收人规则、去重、重试和已读状态。
 - 导入和接口请求必须使用业务唯一键或幂等键，重复请求不得生成重复业务对象。
+- 【建议】跨系统业务对象的唯一身份可由多个业务属性共同确定，不得默认把合同号、订单号或名称等单一字段作为全局唯一键。
+- 【建议】发生拆分、合并、转移、替换或归属变化的关系，应保存来源、生效区间和变更原因，不通过覆盖当前值丢失历史。
+- 无法唯一映射、数量未知或来源冲突的数据必须保留原始证据并进入明确的待处理状态；未经确认不得猜测、丢弃或计入完成结果。
+- 订单数量、ERP已发货数量、项目已确认分配数量和设备SN数量属于不同业务口径，必须分别定义、展示和追溯。
+- 【建议】看板汇总和查询快照是可重建的分析结果，不作为项目、订单行、设备或业务事件的权威数据源。
 
 ## 13. 非功能需求
 
@@ -211,7 +216,7 @@
 - 后端：以`yudao-boot-mini master-jdk25`为骨架，mini外模块从`YunaiV/ruoyi-vue-pro master-jdk25`按需获取；revision `2026.06-jdk25-SNAPSHOT`、JDK 25、Spring Boot 4.1.0、`yudao-framework`、MyBatis Plus、Spring Security、Flowable/BPM。
 - 前端：官方`yudao-ui-admin-vue3`、Vue3、TypeScript、Element Plus，响应式Web；前后端同库或独立仓库方式【待确认】。
 - 数据：关系型数据库【待确认具体产品】、Redis；文件服务复用Yudao Infra并支持对象存储。
-- API：Yudao平台接口保持上游定义；新增PMS模块采用RESTful JSON，业务、内部、集成和事件契约分别治理并统一版本化，详见`appendices/api-design-specification.md`。
+- API：基础平台接口保持上游定义；新增项目交付业务模块采用RESTful JSON，业务、内部、集成和事件契约分别治理并统一版本化，详见`appendices/api-design-specification.md`。
 - 部署：首期模块化单体，预留模块级独立部署能力。
 
 ## 15. 开发命令
@@ -272,7 +277,7 @@ public Long createProject(ProjectCreateReqVO request) {
 - DTO/VO、DO、枚举、权限标识和错误码遵循Yudao现有命名方式。
 - 跨模块只能依赖目标`pms-module-*-api`或版本化事件，不直接引用对方`-biz`、DAL和数据库表。
 - 所有写接口必须明确幂等、并发控制、权限和审计策略。
-- Yudao平台接口沿用上游路径、请求响应和错误语义；新增PMS业务接口使用`/api/v1/pms/...`及`{DOMAIN}-{RESOURCE}-{TYPE}-{SEQ}`契约编号。
+- 基础平台接口沿用上游路径、请求响应和错误语义；新增项目交付业务接口使用`/api/v1/pms/...`及`{DOMAIN}-{RESOURCE}-{TYPE}-{SEQ}`契约编号。
 
 ## 18. 测试策略
 
@@ -314,7 +319,7 @@ public Long createProject(ProjectCreateReqVO request) {
 | 哪些项目类型必须执行割接，哪些仅做业务联调？ | 项目模板和阶段门禁 | 工程管理部/技术支持中心 |
 | D级简易割接具体允许跳过哪些采集、方案和审批节点？ | 割接流程与合规 | 技术支持中心/风险负责人 |
 | 巡检存在未完成待办时，默认禁止闭环还是转后续任务后允许闭环？ | 巡检闭环与风险 | 售后服务负责人 |
-| CRM、SMS、ITR、MES、供应链等外部系统分别是哪类数据的权威源？PMS内部各领域的数据所有权如何落表？ | 主数据与集成 | IT架构/各系统Owner |
+| CRM、SMS、ITR、MES、供应链等外部系统分别是哪类数据的权威源？平台内部各领域的数据所有权如何落表？ | 主数据与集成 | IT架构/各系统Owner |
 | 直签、非直签、工程类、普通类、售前测试的判定规则能否固化？ | 项目分类和模板 | 工程管理部/财务/销售运营 |
 | 重大项目识别规则与人工覆盖权限如何定义？ | 项目分级和总部复审 | 工程管理部 |
 | 项目允许带遗留问题闭环吗？允许时需要哪一级审批？ | 验收、闭环、维保移交 | 工程管理部/质量负责人 |
