@@ -88,23 +88,6 @@ def _fr_range(prefix: str, start: int, end: int) -> tuple[str, ...]:
     return tuple(f"FR-{prefix}-{number:03d}" for number in range(start, end + 1))
 
 
-DOMAIN_PROFILES: tuple[DomainProfile, ...] = (
-    DomainProfile("PLT", "公共平台能力", "身份、权限、流程、文件、通知、审计、字典和通用集成治理", "PLT-public-platform-capabilities-srs.md", _fr_range("PLT", 1, 11)),
-    DomainProfile("PROJ", "项目治理", "客户项目上下文、项目组合、项目树、任务 WBS、团队、阶段计划、风险和项目关闭控制", "PROJ-project-governance-srs.md", _fr_range("PROJ", 1, 26)),
-    DomainProfile("ENG", "工程交付", "工勘、需求分析、实施准备、方案、到货、安装、配置、联调、质量与现场问题", "ENG-engineering-delivery-srs.md", _fr_range("ENG", 1, 29)),
-    DomainProfile("CUT", "割接管理", "割接准备、评估、方案、审批、执行、回退、观察和闭环", "CUT-cutover-management-srs.md", _fr_range("CUT", 1, 15)),
-    DomainProfile("ACC", "验收与闭环", "培训、满意度、初终验、交付件、闭环审批和转维护", "ACC-acceptance-and-closure-srs.md", _fr_range("ACC", 1, 10)),
-    DomainProfile("INS", "巡检服务", "巡检创建、规则、在线或离线执行、报告、整改和巡检闭环", "INS-inspection-service-srs.md", _fr_range("SRV", 1, 12)),
-    DomainProfile("SVC", "服务工单与维保", "工单、时效、问题关联、维保、续保、回访和主动服务", "SVC-service-and-maintenance-srs.md", _fr_range("SRV", 13, 24)),
-    DomainProfile("AST", "设备资产", "设备和序列号、版本、配置日志、安装位置和设备档案", "AST-device-asset-srs.md", _fr_range("RES", 1, 4)),
-    DomainProfile("TIM", "工时管理", "考勤、工作记录、工时申报和审批", "TIM-worktime-management-srs.md", _fr_range("RES", 5, 7)),
-    DomainProfile("OUT", "服务商与外包", "服务商、转包、合同订单回写、付款、余额和回访门禁", "OUT-outsourcing-management-srs.md", _fr_range("RES", 8, 14)),
-    DomainProfile("SPT", "备件与 RMA", "RMA、备件库、好坏件、借用补库、转移交接和替换维保", "SPT-spare-parts-and-rma-srs.md", _fr_range("RES", 15, 19) + ("FR-RES-021",), ("FR-RES-020",)),
-    DomainProfile("TEC", "技术公告", "公告编制、影响版本、会签、检索、命中、工单关联和统计", "TEC-technical-bulletin-srs.md", _fr_range("RES", 22, 29)),
-    DomainProfile("ANA", "经营分析", "项目组合经营、工时人效和跨领域只读分析", "ANA-business-analytics-srs.md", _fr_range("ANA", 1, 2), _fr_range("ANA", 3, 8)),
-)
-
-
 DOMAIN_NARRATIVES: dict[str, DomainNarrative] = {
     "PLT": DomainNarrative(
         "各业务领域共同依赖身份、权限、流程、文件、通知、审计、字典和集成治理能力，需要以一致机制支撑领域办理。",
@@ -216,19 +199,19 @@ def _domain_narrative(profile: DomainProfile) -> DomainNarrative:
 # 13 领域版权威映射。FR 保留原编号；领域代码表达业务 Owner，不要求与
 # legacy FR 编号中的历史前缀相同。
 DOMAIN_PROFILES = (
-    DomainProfile("PLT", "平台公共能力", "身份、权限、流程、文件、通知、审计、字典和通用集成治理", "PLT-public-platform-capabilities-srs.md", _fr_range("PLT", 1, 11)),
-    DomainProfile("CUS", "客户与服务关系", "客户交付上下文、联系人、服务等级、培训评价、满意度与回访", "CUS-customer-and-service-relationship-srs.md", ("FR-PROJ-005", "FR-PROJ-006", "FR-PROJ-007", "FR-ACC-001", "FR-ACC-002", "FR-ACC-003", "FR-ACC-007")),
-    DomainProfile("PROJ", "项目治理", "项目主档、项目组合、非固定层级项目树与任务 WBS、团队、计划、风险和关闭控制", "PROJ-project-governance-srs.md", _fr_range("PROJ", 1, 4) + _fr_range("PROJ", 8, 10) + _fr_range("PROJ", 12, 26)),
-    DomainProfile("COM", "合同订单履约", "合同、订单、交付范围及履约回写", "COM-contract-and-order-fulfillment-srs.md", ("FR-PROJ-011", "FR-RES-011")),
-    DomainProfile("SOL", "交付准备与方案", "工勘、需求分析、交底、准备数据、实施方案、资源就绪和方案基线", "SOL-delivery-preparation-and-solution-srs.md", ("FR-ENG-001",) + _fr_range("ENG", 4, 8) + _fr_range("ENG", 11, 18) + ("FR-ENG-020",)),
-    DomainProfile("IMP", "现场实施", "现场实施变更、到货签收、安装、配置、联调、现场问题、质量与安全", "IMP-field-implementation-srs.md", ("FR-ENG-019",) + _fr_range("ENG", 21, 29)),
-    DomainProfile("CUT", "变更切换与稳定治理", "割接准备、评估、方案、审批、执行、回退、观察和闭环", "CUT-change-cutover-and-stability-srs.md", _fr_range("CUT", 1, 15)),
-    DomainProfile("ACC", "验收与项目闭环", "初验、终验、交付件、关闭审批、遗留问题和转维护", "ACC-acceptance-and-project-closure-srs.md", _fr_range("ACC", 4, 6) + _fr_range("ACC", 8, 10)),
-    DomainProfile("AST", "资产管理", "设备身份与档案、授权借用、物料更换、RMA、备件流转及替换维保", "AST-asset-management-srs.md", ("FR-ENG-003", "FR-ENG-010") + _fr_range("RES", 1, 4) + _fr_range("RES", 15, 19) + ("FR-RES-021",), ("FR-RES-020",)),
-    DomainProfile("RES", "资源与外包", "人员工时、服务商、外包申请审批、付款条件和结算约束", "RES-resource-and-outsourcing-srs.md", ("FR-ENG-002",) + _fr_range("RES", 5, 10) + _fr_range("RES", 12, 14)),
-    DomainProfile("SRV", "服务运营", "巡检、服务工单、维保续保、回访和主动服务", "SRV-service-operations-srs.md", _fr_range("SRV", 1, 24)),
-    DomainProfile("KNO", "技术知识治理", "技术公告、影响版本、会签、检索命中、工单关联和知识治理统计", "KNO-technical-knowledge-governance-srs.md", ("FR-ENG-009",) + _fr_range("RES", 22, 29)),
-    DomainProfile("ANA", "经营分析", "项目组合经营、工时人效和跨领域只读分析", "ANA-business-analytics-srs.md", _fr_range("ANA", 1, 2), _fr_range("ANA", 3, 8)),
+    DomainProfile("PLT", "平台公共能力", "身份、权限、流程、文件、通知、审计、字典和通用集成治理", "PLT-平台公共能力需求规格.md", _fr_range("PLT", 1, 11)),
+    DomainProfile("CUS", "客户与服务关系", "客户交付上下文、联系人、服务等级、培训评价、满意度与回访", "CUS-客户与服务关系需求规格.md", ("FR-PROJ-005", "FR-PROJ-006", "FR-PROJ-007", "FR-ACC-001", "FR-ACC-002", "FR-ACC-003", "FR-ACC-007")),
+    DomainProfile("PROJ", "项目治理", "项目主档、项目组合、非固定层级项目树与任务 WBS、团队、计划、风险和关闭控制", "PROJ-项目治理需求规格.md", _fr_range("PROJ", 1, 4) + _fr_range("PROJ", 8, 10) + _fr_range("PROJ", 12, 26)),
+    DomainProfile("COM", "合同订单履约", "合同、订单、交付范围及履约回写", "COM-合同订单履约需求规格.md", ("FR-PROJ-011", "FR-RES-011")),
+    DomainProfile("SOL", "交付准备与方案", "工勘、需求分析、交底、准备数据、实施方案、资源就绪和方案基线", "SOL-交付准备与方案需求规格.md", ("FR-ENG-001",) + _fr_range("ENG", 4, 8) + _fr_range("ENG", 11, 18) + ("FR-ENG-020",)),
+    DomainProfile("IMP", "现场实施", "现场实施变更、到货签收、安装、配置、联调、现场问题、质量与安全", "IMP-现场实施需求规格.md", ("FR-ENG-019",) + _fr_range("ENG", 21, 29)),
+    DomainProfile("CUT", "变更切换与稳定治理", "割接准备、评估、方案、审批、执行、回退、观察和闭环", "CUT-变更切换与稳定治理需求规格.md", _fr_range("CUT", 1, 15)),
+    DomainProfile("ACC", "验收与项目闭环", "初验、终验、交付件、关闭审批、遗留问题和转维护", "ACC-验收与项目闭环需求规格.md", _fr_range("ACC", 4, 6) + _fr_range("ACC", 8, 10)),
+    DomainProfile("AST", "资产管理", "设备身份与档案、授权借用、物料更换、RMA、备件流转及替换维保", "AST-资产管理需求规格.md", ("FR-ENG-003", "FR-ENG-010") + _fr_range("RES", 1, 4) + _fr_range("RES", 15, 19) + ("FR-RES-021",), ("FR-RES-020",)),
+    DomainProfile("RES", "资源与外包", "人员工时、服务商、外包申请审批、付款条件和结算约束", "RES-资源与外包需求规格.md", ("FR-ENG-002",) + _fr_range("RES", 5, 10) + _fr_range("RES", 12, 14)),
+    DomainProfile("SRV", "服务运营", "巡检、服务工单、维保续保、回访和主动服务", "SRV-服务运营需求规格.md", _fr_range("SRV", 1, 24)),
+    DomainProfile("KNO", "技术知识治理", "技术公告、影响版本、会签、检索命中、工单关联和知识治理统计", "KNO-技术知识治理需求规格.md", ("FR-ENG-009",) + _fr_range("RES", 22, 29)),
+    DomainProfile("ANA", "经营分析", "项目组合经营、工时人效和跨领域只读分析", "ANA-经营分析需求规格.md", _fr_range("ANA", 1, 2), _fr_range("ANA", 3, 8)),
 )
 
 
@@ -802,256 +785,101 @@ def _render_requirement(profile: DomainProfile, requirement: LegacyRequirement) 
 """
 
 
+ORIGINAL_SECTION_ORDER = (
+    "业务目标",
+    "前置条件",
+    "主流程",
+    "分支与异常",
+    "状态流转",
+    "业务规则",
+    "数据要求",
+    "权限、通知与审计",
+    "输出与后置条件",
+    "验收标准",
+)
+
+ORIGINAL_METADATA_ORDER = (
+    "用例编号",
+    "来源需求",
+    "所属版本",
+    "优先级／复杂度",
+    "参与角色",
+    "业务场景",
+    "来源标识",
+)
+
+
+def _render_original_requirement(requirement: LegacyRequirement) -> str:
+    metadata = "<br>\n".join(
+        f"**{name}：** {_metadata(requirement, name, fallback=f'{UNKNOWN}{name}')}"
+        for name in ORIGINAL_METADATA_ORDER
+    )
+    sections = "\n\n".join(
+        f"### {name}\n\n{_section(requirement, name, fallback=f'{UNKNOWN}{name}。')}"
+        for name in ORIGINAL_SECTION_ORDER
+    )
+    return _normalize_business_terms(
+        f"## {requirement.fr_id} {requirement.title}\n\n{metadata}\n\n{sections}"
+    )
+
+
+def _render_original_evolution(item: EvolutionItem) -> str:
+    return _normalize_business_terms(f"### {item.fr_id} {item.title}\n\n{item.body.strip()}")
+
+
 def render_srs(
     profile: DomainProfile,
     requirements: list[LegacyRequirement],
     evolution_items: list[EvolutionItem] | None = None,
 ) -> str:
-    """Render a complete fixed-chapter SRS with strict twelve-subsection FR units."""
+    """Render one domain document using the original five-part volume format."""
     selected = {requirement.fr_id: requirement for requirement in requirements}
     ordered = [selected[fr_id] for fr_id in profile.fr_ids if fr_id in selected]
-    narrative = _domain_narrative(profile)
+    selected_evolution = {
+        item.fr_id: item for item in (evolution_items or []) if item.fr_id in profile.evolution_ids
+    }
+    ordered_evolution = [selected_evolution[fr_id] for fr_id in profile.evolution_ids if fr_id in selected_evolution]
     function_rows = "\n".join(
-        f"| {item.fr_id} | {_normalize_business_terms(item.title)} | {profile.name} | {_metadata(item, '来源需求')} | {_metadata(item, '所属版本')} | {_metadata(item, '优先级／复杂度').split('／')[0]} |"
+        f"| {item.fr_id} | {_metadata(item, '来源需求')} | {_normalize_business_terms(item.title)} | "
+        f"{_metadata(item, '所属版本')} | {_metadata(item, '优先级／复杂度').split('／')[0]} |"
         for item in ordered
-    ) or "| 不适用 | 当前未迁移正式功能 | 不适用 | 不适用 | 不适用 | 不适用 |"
-    detail = "\n\n".join(_render_requirement(profile, item).strip() for item in ordered)
-    stakeholders = _render_stakeholders(ordered)
-    scenarios = _render_scenarios(profile, ordered)
-    core_objects = _render_core_objects(profile)
-    lifecycle = _render_lifecycle(profile)
-    evolution_scope = _render_evolution_scope(profile, evolution_items or [])
-    external_interactions = _render_external_interactions(profile, ordered)
-    metrics = _render_metrics(profile, ordered)
-    traceability = _render_traceability(ordered)
-    document = f"""# {profile.name}软件需求规格说明书
+    )
+    detail = "\n\n".join(_render_original_requirement(item) for item in ordered)
+    evolution_section = ""
+    if ordered_evolution:
+        evolution_detail = "\n\n".join(_render_original_evolution(item) for item in ordered_evolution)
+        evolution_section = f"\n\n# 4. V3演进范围\n\n{evolution_detail}"
 
-## 文档控制
+    document = f"""# {profile.code}领域需求规格：{profile.name}
 
-| 字段 | 内容 |
-| --- | --- |
-| 项目／产品名称 | 项目实施交付管理平台 |
-| 文档名称 | {profile.name}软件需求规格说明书 |
-| 文档编号 | SRS-PDP-{profile.code} |
-| 文档版本 | V0.1 |
-| 文档状态 | 评审中 |
-| 适用版本／里程碑 | 当前建设版本 |
-| 权威需求源 | 当前 legacy 分卷及来源追溯附录 |
-| 需求基线 | d8f7002df7dee3f41773e00da935fa8d040e27f0 |
-| 编制人／日期 | Codex／2026-08-05 |
-| 批准人／日期 | 【待确认】 |
+> 文档状态：评审基线<br>
+> 实现边界：{profile.code}（{profile.name}）领域；物理模块见技术约束<br>
+> 技术约束：`appendices/module-boundary-and-naming.md`、`appendices/api-design-specification.md`<br>
+> 详细需求：{len(ordered)}项；V3演进：{len(ordered_evolution)}项
 
-### 修订记录
+## 1. 领域目标与边界
 
-| 版本 | 日期 | 变更范围 | 变更原因 | 编制人 | 批准人 |
-| --- | --- | --- | --- | --- | --- |
-| V0.1 | 2026-08-05 | 初始版本 | 领域化 SRS 直接迁移 | Codex | 【待确认】 |
+{profile.responsibility}。
 
-## 1. 文档说明
+本分册只完整定义本领域拥有的业务规则、数据和验收标准；其他领域通过依赖、输入、输出或事件引用，不复制 Owner 定义。
 
-### 1.1 文档目的
+## 2. 需求清单
 
-定义{profile.name}的业务范围、行为、规则、数据和验收标准。
-
-### 1.2 目标读者
-
-- 业务负责人：{profile.name}责任人
-- 产品及需求人员：项目需求团队
-- 研发和架构人员：项目研发团队
-- 测试和验收人员：项目测试与验收团队
-- 其他利益相关方：相关协作领域责任人
-
-### 1.3 术语与缩写
-
-| 术语／缩写 | 定义 | 备注 |
-| --- | --- | --- |
-| {profile.code} | {profile.name} | 领域代码 |
-
-### 1.4 参考资料
-
-| 资料名称 | 版本／日期 | 来源 | 用途 |
-| --- | --- | --- | --- |
-| 现有需求分卷 | 基线 d8f7002 | 当前规格目录 | 需求直接迁移 |
-
-## 2. 背景与建设目标
-
-### 2.1 业务背景
-
-【建议】{narrative.business_context}
-
-### 2.2 核心问题
-
-- 【建议】现有需求按交付阶段分散，{profile.name}责任需要集中为可独立评审的权威定义。
-- 【建议】本领域需要在自身对象和规则边界内完成{profile.responsibility}，并通过公共机制与其他领域协作。
-
-### 2.3 建设目标
-
-| 目标编号 | 目标描述 | 衡量指标 | 目标值／完成标准 | 责任方 |
+| 功能编号 | 来源 | 名称 | 版本 | 优先级 |
 | --- | --- | --- | --- | --- |
-| OBJ-{profile.code}-001 | 【建议】{narrative.business_goal} | 【建议】正式 FR 验收覆盖率 | 【建议】本领域全部正式 FR 均有可验证 AC | 【待确认】{profile.name}责任人 |
-
-### 2.4 成功标准
-
-- 本领域全部已承诺功能均具有唯一权威定义和可观察验收标准。
-- 每项正式 FR 的来源、验收标准和后续设计／测试映射均可逐项追溯。
-
-## 3. 范围与边界
-
-### 3.1 本期建设范围
-
-- {profile.responsibility}。
-
-### 3.2 非本期范围
-
-{evolution_scope}
-
-### 3.3 系统边界
-
-本领域只拥有其责任内对象、规则和状态；跨领域能力通过业务协作引用。
-
-### 3.4 版本与里程碑范围
-
-| 版本／里程碑 | 业务目标 | 纳入范围 | 不纳入范围 | 发布完成标准 |
-| --- | --- | --- | --- | --- |
-| 当前建设版本 | 完成正式需求 | 本领域 profile 中正式 FR | 3.2 节登记的演进方向 | 正式 FR 验收可追溯 |
-
-### 3.5 假设与约束
-
-| 编号 | 类型 | 内容 | 影响范围 | 状态 |
-| --- | --- | --- | --- | --- |
-| CON-{profile.code}-001 | 业务 | 保留 legacy FR、BR、DR、AC 编号 | 本领域 | 已确认 |
-
-## 4. 用户、角色与场景
-
-### 4.1 利益相关方
-
-{stakeholders}
-
-### 4.2 核心用户场景
-
-{scenarios}
-
-## 5. 业务模型与流程（按需）
-
-### 5.1 核心业务对象
-
-{core_objects}
-
-### 5.2 业务生命周期
-
-{lifecycle}
-
-### 5.3 主流程
-
-1. 【建议】本节只作为领域级阅读导航；实际主流程以各 FR 原文为准。
-2. 【建议】按各 FR 已定义的参与角色、前置条件和主流程组织领域办理顺序。
-3. 【建议】不得用本节替代或扩展任何 FR 的确定性行为。
-
-### 5.4 分支与异常流程
-
-- 【建议】本节不新增通用异常行为；权限、状态、数据、外部依赖、撤回、取消或回退均以各 FR 原文为准。
-- 【待确认】legacy 未提供可覆盖本领域全部 FR 的统一异常和补偿规则。
-
-## 6. 产品功能架构
-
-### 6.1 功能结构
-
-| 业务域 | 功能模块 | 主要能力 | 适用角色 | 版本／里程碑 |
-| --- | --- | --- | --- | --- |
-| {profile.name} | {profile.name} | {profile.responsibility} | 见各 FR | 当前建设版本 |
-
-### 6.2 功能清单
-
-| 功能编号 | 功能名称 | 所属模块 | 来源需求 | 版本 | 优先级 |
-| --- | --- | --- | --- | --- | --- |
 {function_rows}
 
-## 7. 功能需求详细规格
+## 3. 详细功能规格
 
-{detail}
+{detail}{evolution_section}
 
-## 8. 专项需求（按需）
+# 5. 领域验收门禁
 
-### 8.1 数据业务要求
-
-本领域业务数据的含义、来源、质量和归属以各 FR 数据要求为准。
-
-### 8.2 外部系统交互要求
-
-{external_interactions}
-
-### 8.3 报表与指标要求
-
-{metrics}
-
-### 8.4 文件、搜索、消息或智能能力要求
-
-仅保留各正式 FR 原文中的相关能力；演进项不纳入当前开发验收。
-
-## 9. 权限、安全与隐私要求
-
-- 身份认证要求：本迁移模型不新增领域级要求，仅保留各 FR 原文。
-- 功能与数据权限要求：本迁移模型不新增领域级要求，仅保留各 FR 原文。
-- 敏感数据保护要求：【待确认】legacy 未提供本领域统一敏感级别和保护规则。
-- 隐私与合规要求：本迁移模型不新增无来源承诺。
-- 外部用户及临时授权要求：【待确认】以各 FR 原文及后续权威来源为准。
-
-## 10. 非功能需求
-
-| 编号 | 质量属性 | 应用场景 | 量化指标 | 约束条件 | 验证方式 |
-| --- | --- | --- | --- | --- | --- |
-| 不适用 | 本次机械迁移不新增领域级非功能需求 | 不适用 | 【待确认】待权威来源定义量化指标 | 不适用 | 不适用 |
-
-## 11. 风险、限制与待确认事项
-
-### 11.1 风险
-
-| 风险编号 | 风险描述 | 类型 | 影响 | 应对措施 | 责任人 |
-| --- | --- | --- | --- | --- | --- |
-| RISK-{profile.code}-001 | 来源语义在机械迁移中发生漂移 | 业务 | 验收偏差 | 保留编号、原文和迁移证据 | 【待确认】责任人待指定 |
-| RISK-{profile.code}-002 | 【建议】{narrative.risk} | 业务 | 【建议】影响本领域责任闭环 | 【建议】按相关 FR 的规则、状态和 AC 执行门禁并留痕 | 【待确认】责任人待指定 |
-
-### 11.2 待确认事项
-
-| 编号 | 问题 | 影响范围 | 需要确认人 | 计划日期 | 状态 |
-| --- | --- | --- | --- | --- | --- |
-| TBD-{profile.code}-MIG-001 | 汇总并确认本领域 legacy 未提供的模板字段 | 业务含义、输入／数据来源、必填、敏感级别等 | 【待确认】责任人待指定 | 【待确认】计划日期待确定 | 待确认 |
-
-## 12. 需求追溯与基线检查
-
-### 12.1 追溯矩阵
-
-{traceability}
-
-### 12.2 需求基线检查表
-
-- [x] 建设范围和非建设范围清晰。
-- [x] 所有已承诺功能均有唯一编号、版本和优先级。
-- [x] 功能需求描述系统行为，没有混入具体实现方案。
-- [x] 主流程、关键分支、异常和权限边界完整。
-- [x] 每项已承诺需求均具有可验证的验收标准。
-- [ ] 非功能需求具有量化指标和验证方式（本次迁移未从 legacy 推导领域级 NFR）。
-- [ ] 所有【待确认】事项均有责任人和处理期限（责任人和日期仍待确认）。
-- [x] 需求、设计和测试之间的追溯关系可以建立。
-
-## 附录：推荐编号
-
-| 对象 | 编号格式 |
-| --- | --- |
-| 业务目标 | OBJ-001 |
-| 业务需求 | BRQ-001 |
-| 用户需求 | UR-001 |
-| 功能需求 | FR-领域-001 |
-| 业务规则 | BR-领域-001 |
-| 数据需求 | DR-领域-001 |
-| 接口需求 | IR-领域-001 |
-| 非功能需求 | NFR-类型-001 |
-| 验收标准 | AC-领域-001 |
-| 决策 | DEC-001 |
-| 风险／待确认 | RISK-001／TBD-001 |
+- 本领域 V1、V2 功能均已映射至来源需求和验收编号。
+- 所有状态变化、权限拒绝、并发冲突和重复提交均具有测试证据。
+- 跨领域写入只通过应用服务、API 或事件完成，不直接访问其他领域业务表。
+- 所有【待确认】项在对应功能进入开发前形成书面决策。
 """
-    if profile.code == "PLT":
-        document = document.replace("与CRM、ITR、ERP等外部系统交换数据", "与外部系统交换数据")
     return _normalize_business_terms(document)
 
 

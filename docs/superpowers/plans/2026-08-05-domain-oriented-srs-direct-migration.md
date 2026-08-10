@@ -61,8 +61,8 @@ specs/001-project-delivery-platform/
 │  ├── domain-map.md
 │  └── scenario-orchestration.md
 ├── domains/
-│  ├── PLT-public-platform-capabilities-srs.md
-│  ├── PROJ-project-governance-srs.md
+│  ├── PLT-平台公共能力需求规格.md
+│  ├── PROJ-项目治理需求规格.md
 │  ├── ENG-engineering-delivery-srs.md
 │  ├── CUT-cutover-management-srs.md
 │  ├── ACC-acceptance-and-closure-srs.md
@@ -73,7 +73,7 @@ specs/001-project-delivery-platform/
 │  ├── OUT-outsourcing-management-srs.md
 │  ├── SPT-spare-parts-and-rma-srs.md
 │  ├── TEC-technical-bulletin-srs.md
-│  └── ANA-business-analytics-srs.md
+│  └── ANA-经营分析需求规格.md
 ├── appendices/
 │  ├── source-ledger.md
 │  ├── requirement-migration.md
@@ -121,8 +121,8 @@ specs/001-project-delivery-platform/
 ### Task 2: 生成 13 份严格模板领域 SRS
 
 **Files:**
-- Create: `specs/001-project-delivery-platform/domains/PLT-public-platform-capabilities-srs.md`
-- Create: `specs/001-project-delivery-platform/domains/PROJ-project-governance-srs.md`
+- Create: `specs/001-project-delivery-platform/domains/PLT-平台公共能力需求规格.md`
+- Create: `specs/001-project-delivery-platform/domains/PROJ-项目治理需求规格.md`
 - Create: `specs/001-project-delivery-platform/domains/ENG-engineering-delivery-srs.md`
 - Create: `specs/001-project-delivery-platform/domains/CUT-cutover-management-srs.md`
 - Create: `specs/001-project-delivery-platform/domains/ACC-acceptance-and-closure-srs.md`
@@ -133,7 +133,7 @@ specs/001-project-delivery-platform/
 - Create: `specs/001-project-delivery-platform/domains/OUT-outsourcing-management-srs.md`
 - Create: `specs/001-project-delivery-platform/domains/SPT-spare-parts-and-rma-srs.md`
 - Create: `specs/001-project-delivery-platform/domains/TEC-technical-bulletin-srs.md`
-- Create: `specs/001-project-delivery-platform/domains/ANA-business-analytics-srs.md`
+- Create: `specs/001-project-delivery-platform/domains/ANA-经营分析需求规格.md`
 - Modify: `scripts/requirements/migrate_domain_srs.py`
 - Modify: `tests/requirements/test_migrate_domain_srs.py`
 

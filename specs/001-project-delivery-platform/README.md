@@ -3,19 +3,19 @@
 ## 规格文件
 
 - `00-master-spec.md`
-- `domains/PLT-public-platform-capabilities-srs.md`
-- `domains/CUS-customer-and-service-relationship-srs.md`
-- `domains/PROJ-project-governance-srs.md`
-- `domains/COM-contract-and-order-fulfillment-srs.md`
-- `domains/SOL-delivery-preparation-and-solution-srs.md`
-- `domains/IMP-field-implementation-srs.md`
-- `domains/CUT-change-cutover-and-stability-srs.md`
-- `domains/ACC-acceptance-and-project-closure-srs.md`
-- `domains/AST-asset-management-srs.md`
-- `domains/RES-resource-and-outsourcing-srs.md`
-- `domains/SRV-service-operations-srs.md`
-- `domains/KNO-technical-knowledge-governance-srs.md`
-- `domains/ANA-business-analytics-srs.md`
+- `domains/PLT-平台公共能力需求规格.md`
+- `domains/CUS-客户与服务关系需求规格.md`
+- `domains/PROJ-项目治理需求规格.md`
+- `domains/COM-合同订单履约需求规格.md`
+- `domains/SOL-交付准备与方案需求规格.md`
+- `domains/IMP-现场实施需求规格.md`
+- `domains/CUT-变更切换与稳定治理需求规格.md`
+- `domains/ACC-验收与项目闭环需求规格.md`
+- `domains/AST-资产管理需求规格.md`
+- `domains/RES-资源与外包需求规格.md`
+- `domains/SRV-服务运营需求规格.md`
+- `domains/KNO-技术知识治理需求规格.md`
+- `domains/ANA-经营分析需求规格.md`
 - `domains/项目实施交付管理平台规格体系调整原则（13领域版）.md`
 - `appendices/requirement-migration.md`
 - `appendices/data-dictionary.md`
@@ -35,6 +35,7 @@
 
 - 本目录是已确认的SPECIFY阶段基线。
 - `00-master-spec.md`负责系统场景和跨领域编排，13份领域SRS负责唯一Owner业务定义。
+- 13份领域文档沿用原需求分卷格式：领域目标与边界、需求清单、详细功能规格、可选V3演进范围、领域验收门禁；不套用通用SRS十二章结构。
 - 145项正式FR全部按唯一Owner迁移；FR、BR、DR、AC保留历史编号，编号前缀不代表当前Owner。
 - `FR-ENG-021 到货签收管理`归属`IMP 现场实施`；`AST 资产管理`消费实施结果并维护资产档案，不重复定义签收流程。
 - 原`01-`至`08-`分卷保留为迁移来源和证据，不再作为新增需求的领域归属依据。

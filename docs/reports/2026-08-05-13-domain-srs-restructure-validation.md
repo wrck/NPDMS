@@ -2,7 +2,7 @@
 
 ## 1. 验证结论
 
-现有正式需求已按《项目实施交付管理平台规格体系调整原则（13领域版）》拆分为 13 份唯一 Owner 领域 SRS。145 项正式 FR 全部迁移，遗漏 0、重复 Owner 0。
+现有正式需求已按《项目实施交付管理平台规格体系调整原则（13领域版）》拆分为 13 份唯一 Owner 领域需求分卷。各分卷沿用原文档的五段式结构，不使用通用 SRS 十二章模板。145 项正式 FR 全部迁移，遗漏 0、重复 Owner 0。
 
 `FR-ENG-021 到货签收管理` 的唯一 Owner 为 `IMP 现场实施`；`AST 资产管理`未重复定义该 FR。
 
@@ -53,8 +53,8 @@ flowchart LR
 | AC 定义 | 463，唯一 463，重复 0 |
 | 迁移矩阵覆盖 | 145 项正式 FR + 7 项演进范围 |
 | 领域树全局校验 | PASS |
-| 通用 SRS 模板校验 | 13/13 PASS |
-| 需求迁移单元测试 | 20 passed |
+| 原分卷结构校验 | 13/13 PASS |
+| 需求迁移单元测试 | 17 passed |
 | Markdown 差异检查 | `git diff --check` PASS |
 
 ## 4. 到货签收专项验证
@@ -64,7 +64,7 @@ flowchart LR
 | 迁移台账 Owner | `IMP（现场实施）` |
 | IMP 中 `FR-ENG-021` 完整定义数 | 1 |
 | AST 中 `FR-ENG-021` 完整定义数 | 0 |
-| 验收追溯目标 | `domains/IMP-field-implementation-srs.md` |
+| 验收追溯目标 | `domains/IMP-现场实施需求规格.md` |
 | 资产协作边界 | IMP 输出签收/安装结果；AST 维护设备身份、位置和资产状态，不复制签收规则与 AC |
 
 ## 5. 验证命令
@@ -78,4 +78,4 @@ python scripts/requirements/validate_domain_srs.py --root specs/001-project-deli
 git diff --check
 ```
 
-说明：本机默认 Python 虚拟环境缺少 `pyvenv.cfg`，实际迁移和领域树校验使用工作区独立 Python 运行时；pytest 通过 `uv run --with pytest` 执行。
+说明：本次未使用通用 SRS 模板及其校验器。领域文档按原分卷固定章节、正式 FR 二级标题、V3 三级标题、编号唯一性和 Owner 归属进行验证。本机默认 Python 虚拟环境缺少 `pyvenv.cfg`，实际迁移和领域树校验使用工作区独立 Python 运行时；pytest 通过 `uv run --with pytest` 执行。

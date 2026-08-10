@@ -18,7 +18,7 @@ except ModuleNotFoundError:  # direct script execution
 ID_PATTERN = re.compile(r"\b(?:FR|BR|DR|AC)-[A-Z]+-\d{3}\b")
 REQ_PATTERN = re.compile(r"\bREQ-\d{3}\b")
 DEFINITION_PATTERNS = {
-    "FR": re.compile(r"^### (FR-[A-Z]+-\d{3})\s+", re.MULTILINE),
+    "FR": re.compile(r"^## (FR-[A-Z]+-\d{3})\s+", re.MULTILINE),
     "BR": re.compile(r"(?:^\|\s*|^[-*]\s+\*\*)(BR-[A-Z]+-\d{3})(?:\s*\||：)", re.MULTILINE),
     "DR": re.compile(r"(?:^\|\s*|^[-*]\s+\*\*)(DR-[A-Z]+-\d{3})(?:\s*\||：)", re.MULTILINE),
     "AC": re.compile(r"^[-*]\s+\*\*(AC-[A-Z]+-\d{3})：", re.MULTILINE),
@@ -26,6 +26,17 @@ DEFINITION_PATTERNS = {
 PLACEHOLDERS = ("〈填写〉", "FR-XXX-", "BR-XXX-", "AC-XXX-", "草稿／评审中／已基线")
 RESTRICTED_TERMS = ("Yudao", "RuoYi", "若依", "master-jdk25")
 NONSTANDARD_BUSINESS_TERMS = ("平台基础",)
+ORIGINAL_REQUIRED_SECTIONS = (
+    "## 1. 领域目标与边界",
+    "## 2. 需求清单",
+    "## 3. 详细功能规格",
+    "# 5. 领域验收门禁",
+)
+FORBIDDEN_GENERIC_SECTIONS = (
+    "## 文档控制",
+    "## 12. 需求追溯与基线检查",
+    "#### 基本信息",
+)
 
 
 def _domain_paths(root: Path) -> tuple[list[Path], list[str], bool]:
@@ -36,9 +47,13 @@ def _domain_paths(root: Path) -> tuple[list[Path], list[str], bool]:
         if not path.exists():
             errors.append(f"MISSING_TARGET: domains/{profile.filename}")
     domain_dir = root / "domains"
-    # 领域目录允许同时保存治理原则等非 SRS 资料；只有 *-srs.md 参与
-    # 权威需求定义的唯一性检查。
-    actual_paths = set(domain_dir.rglob("*-srs.md")) if domain_dir.exists() else set()
+    # 领域目录允许同时保存治理原则等非规格资料；以领域编码开头的 Markdown
+    # 都视为候选权威入口，以便识别并拒绝遗留英文文件名。
+    actual_paths = (
+        {path for path in domain_dir.rglob("*.md") if re.match(r"^[A-Z]{3,4}-", path.name)}
+        if domain_dir.exists()
+        else set()
+    )
     for path in sorted(actual_paths - expected_paths):
         errors.append(f"EXTRA_TARGET: {path.relative_to(root).as_posix()}")
     expected_complete = all(path.exists() for path in expected_paths)
@@ -174,6 +189,31 @@ def _validate_authoritative_documents(paths: list[Path], expected_complete: bool
     return errors
 
 
+def _validate_original_volume_structure(paths: list[Path]) -> list[str]:
+    errors: list[str] = []
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        for heading in ORIGINAL_REQUIRED_SECTIONS:
+            if heading not in text:
+                errors.append(f"MISSING_ORIGINAL_SECTION {heading}: {path.as_posix()}")
+        for heading in FORBIDDEN_GENERIC_SECTIONS:
+            if heading in text:
+                errors.append(f"FORBIDDEN_GENERIC_SECTION {heading}: {path.as_posix()}")
+    return errors
+
+
+def _validate_receipt_owner(paths: list[Path], expected_complete: bool) -> list[str]:
+    definition = re.compile(r"^## FR-ENG-021\s+", re.MULTILINE)
+    locations = [path.name for path in paths if definition.search(path.read_text(encoding="utf-8"))]
+    expected = "IMP-现场实施需求规格.md"
+    if locations and locations != [expected]:
+        return [f"RECEIPT_OWNER FR-ENG-021: expected={expected} actual={','.join(sorted(locations))}"]
+    if expected_complete and locations != [expected]:
+        actual = ",".join(sorted(locations)) or "none"
+        return [f"RECEIPT_OWNER FR-ENG-021: expected={expected} actual={actual}"]
+    return []
+
+
 def _without_technical_selection(text: str) -> str:
     headings = list(re.finditer(r"^##\s+(.+?)\s*$", text, re.MULTILINE))
     retained = [text[: headings[0].start()] if headings else text]
@@ -194,7 +234,13 @@ def validate_tree(
     matrix_errors = _validate_matrix(root, resolved_legacy_root)
     if not paths and allow_missing_targets:
         return missing + matrix_errors
-    errors = missing + matrix_errors + _validate_authoritative_documents(paths, expected_complete)
+    errors = (
+        missing
+        + matrix_errors
+        + _validate_original_volume_structure(paths)
+        + _validate_authoritative_documents(paths, expected_complete)
+        + _validate_receipt_owner(paths, expected_complete)
+    )
     return errors
 
 
