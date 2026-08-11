@@ -25,7 +25,13 @@
 | EQP | AST |
 | RPT | ANA |
 | CUT | CUT |
-| INT、NFR、AUT、CHG | PLT |
+| INT-05、INT-09、INT-10、INT-11、INT-12、NFR、AUT、CHG | PLT |
+| INT-01 | PROJ |
+| INT-02、INT-06 | AST |
+| INT-03 | CUS |
+| INT-04 | KNO |
+| INT-07 | RES |
+| INT-08 | SRV（V3） |
 
 COM、KNO本轮没有直接对应的PRD正式需求，不新增业务能力；保留领域边界、依赖入口和“无直接PRD需求”的说明。
 
