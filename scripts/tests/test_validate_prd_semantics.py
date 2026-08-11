@@ -177,6 +177,28 @@ class ValidatePrdSemanticsTest(unittest.TestCase):
 
         self.assertEqual([], validate_text(text, {"PM-01"}))
 
+    def test_observable_configuration_results_and_tree_failures_pass(self) -> None:
+        acceptance = (
+            "- **WHEN** 管理员创建项目模板\n"
+            "- **THEN** 系统提供模板表单并加载阶段、任务和交付件清单\n"
+            "- **WHEN** 项目没有匹配的生效模板\n"
+            "- **THEN** 项目保持创建草稿状态，不实例化阶段任务并记录冲突项"
+        )
+        exception = (
+            "父项目不存在、跨租户或形成循环时，拆分申请保持草稿状态；"
+            "项目经理修正父项目后可重新提交，平台记录校验原因、申请人和发生时间。"
+        )
+        text = requirement(
+            "PM-01",
+            rule=SPECIFIC_RULE,
+            acceptance=acceptance,
+            permission=SPECIFIC_PERMISSION,
+            exception=exception,
+            data=SPECIFIC_DATA,
+        )
+
+        self.assertEqual([], validate_text(text))
+
 
 if __name__ == "__main__":
     unittest.main()
