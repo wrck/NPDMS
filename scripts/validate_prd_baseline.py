@@ -14,8 +14,8 @@ from pathlib import Path
 REQ_ID = r"(?:PM|PRE|PLN|SCH|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|NFR)-\d{2}"
 FORMAL_REQUIRED_MARKERS = {
     "用户角色": r"\|\s*用户角色\s*\|",
-    "目标版本": r"\|\s*目标版本\s*\|\s*V[12](?:\s|；|;|\|)",
-    "业务场景/描述": r"\*\*(?:业务场景|功能描述|需求描述)[：:]\*\*",
+    "目标版本": r"\|\s*目标版本\s*\|\s*V[12][^|]*\|",
+    "业务场景/描述": r"\*\*(?:业务场景(?:与需求描述)?|功能描述|需求描述)[：:]\*\*",
     "核心业务规则": r"\*\*核心业务规则[：:]\*\*",
     "用户故事": r"\*\*用户故事[：:]\*\*",
     "业务验收标准": r"\*\*(?:业务)?验收标准[：:]\*\*",
@@ -105,6 +105,7 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
 
     missing_by_field: dict[str, list[str]] = {name: [] for name in FORMAL_REQUIRED_MARKERS}
     bad_acceptance: list[str] = []
+    mismatched_acceptance: list[str] = []
     banned_formal: list[str] = []
     forbidden_terms = re.compile(r"日报|周报|续保空间|续保率|过保空间|维保机会|平台通用割接时效")
     for req_id, block in formal:
@@ -113,12 +114,24 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
                 missing_by_field[name].append(req_id)
         if not (re.search(r"(?m)^- \*\*WHEN\*\*", block) and re.search(r"(?m)^- \*\*THEN\*\*", block)):
             bad_acceptance.append(req_id)
+        if "**业务验收标准：**" in block:
+            description_marker = "**业务场景与需求描述：**"
+            if description_marker not in block:
+                mismatched_acceptance.append(req_id)
+            else:
+                description = block.split(description_marker, 1)[1].lstrip().split("\n\n", 1)[0]
+                description = re.sub(r"\s+", " ", description).strip()
+                acceptance = block.split("**业务验收标准：**", 1)[1]
+                then = re.search(r"(?m)^- \*\*THEN\*\* (.*?)$", acceptance)
+                if not then or description not in re.sub(r"\s+", " ", then.group(1)):
+                    mismatched_acceptance.append(req_id)
         if forbidden_terms.search(block) or req_id in {"WO-07", "WO-11"}:
             banned_formal.append(req_id)
 
     for name, missing in missing_by_field.items():
         add(checks, f"V1/V2字段-{name}", not missing, f"缺少{len(missing)}项：{','.join(missing[:20]) or '无'}")
     add(checks, "V1/V2验收可观察", not bad_acceptance, f"缺少WHEN/THEN={','.join(bad_acceptance[:20]) or '无'}")
+    add(checks, "V1/V2验收归属正确", not mismatched_acceptance, f"错配={','.join(mismatched_acceptance[:20]) or '无'}")
     add(checks, "排除能力未进入正式需求", not banned_formal, f"冲突={','.join(sorted(set(banned_formal))) or '无'}")
 
     v3 = section(prd, "V3演进范围")
