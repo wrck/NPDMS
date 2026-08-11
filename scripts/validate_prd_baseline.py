@@ -38,10 +38,11 @@ def read_text(path: Path) -> str:
 
 
 def section(text: str, heading: str) -> str:
-    match = re.search(rf"(?m)^##\s+{re.escape(heading)}\s*$", text)
+    match = re.search(rf"(?m)^(#{{2,6}})\s+{re.escape(heading)}\s*$", text)
     if not match:
         return ""
-    next_heading = re.search(r"(?m)^##\s+", text[match.end() :])
+    level = len(match.group(1))
+    next_heading = re.search(rf"(?m)^#{{2,{level}}}\s+", text[match.end() :])
     end = match.end() + next_heading.start() if next_heading else len(text)
     return text[match.start() : end]
 
@@ -136,7 +137,7 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
 
     v3 = section(prd, "V3演进范围")
     add(checks, "V3演进章节", bool(v3), "要求存在二级章节‘V3演进范围’")
-    detailed_v3 = bool(re.search(r"\*\*(?:业务)?验收标准[：:]\*\*|(?m)^- \*\*WHEN\*\*", v3)) if v3 else False
+    detailed_v3 = bool(re.search(r"\*\*(?:业务)?验收标准[：:]\*\*|^- \*\*WHEN\*\*", v3, re.M)) if v3 else False
     add(checks, "V3无当前验收承诺", bool(v3) and not detailed_v3, "V3只保留目标、范围、前置条件和演进方向")
 
     excluded = section(prd, "OUT_OF_SCOPE范围排除清单")
@@ -145,7 +146,8 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     add(checks, "排除清单完整", bool(excluded) and not missing_excluded, f"缺少={','.join(missing_excluded) or '无'}")
 
     appendix_a = section(prd, "附录A 需求索引与验收覆盖")
-    formal_index_ids = re.findall(rf"(?m)^\|\s*({REQ_ID})\s*\|", appendix_a)
+    formal_index = section(appendix_a, "A.1 V1/V2正式需求索引") if appendix_a else ""
+    formal_index_ids = re.findall(rf"(?m)^\|\s*({REQ_ID})\s*\|", formal_index)
     add(checks, "正式索引存在", bool(formal_index_ids), f"索引{len(formal_index_ids)}项")
     add(checks, "正式索引与正文一致", set(formal_index_ids) == {req_id for req_id, _ in formal}, f"索引{len(set(formal_index_ids))}项/正文{len(formal)}项")
     add(checks, "INT-12进入正式索引", "INT-12" in formal_index_ids, "INT-12必须为V1公共能力")
