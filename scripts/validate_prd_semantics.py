@@ -105,15 +105,21 @@ def requirement_blocks(text: str) -> list[RequirementBlock]:
     )
     blocks: list[RequirementBlock] = []
     for index, marker in enumerate(markers):
-        start = text.rfind("\n#### ", 0, marker.start())
-        start = 0 if start < 0 else start + 1
+        req_id = marker.group(1)
+        requirement_headings = list(
+            re.finditer(
+                rf"(?m)^#{{1,6}}\s+.*(?<![A-Z0-9-]){re.escape(req_id)}(?![A-Z0-9-]).*$",
+                text[: marker.start()],
+            )
+        )
+        start = requirement_headings[-1].start() if requirement_headings else 0
         next_marker = markers[index + 1].start() if index + 1 < len(markers) else len(text)
         major_heading = re.search(r"(?m)^#{1,3}\s+", text[marker.end() : next_marker])
         end = marker.end() + major_heading.start() if major_heading else next_marker
         block = text[start:end]
         version = re.search(r"(?m)^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", block)
         if version and version.group(1) in {"V1", "V2"}:
-            blocks.append(RequirementBlock(marker.group(1), block))
+            blocks.append(RequirementBlock(req_id, block))
     return blocks
 
 

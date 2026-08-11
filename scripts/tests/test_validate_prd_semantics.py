@@ -38,9 +38,10 @@ def requirement(
     exception: str,
     data: str,
     role: str = "项目经理",
+    heading_level: int = 4,
 ) -> str:
     return f"""
-#### {req_id} 测试需求
+{'#' * heading_level} {req_id} 测试需求
 
 | 字段 | 内容 |
 |---|---|
@@ -104,6 +105,26 @@ SPECIFIC_DATA = "拆分申请编号、父项目ID、子项目ID、子项目权�
 
 
 class ValidatePrdSemanticsTest(unittest.TestCase):
+    def test_level_three_requirement_does_not_reuse_previous_level_four_block(self) -> None:
+        text = requirement(
+            "PM-01",
+            rule=GENERIC_RULE,
+            acceptance=GENERIC_ACCEPTANCE,
+            permission=GENERIC_PERMISSION,
+            exception=GENERIC_EXCEPTION,
+            data="相关信息、业务所需字段、以实际为准",
+        ) + requirement(
+            "CUT-01",
+            rule=SPECIFIC_RULE,
+            acceptance=SPECIFIC_ACCEPTANCE,
+            permission=SPECIFIC_PERMISSION,
+            exception=SPECIFIC_EXCEPTION,
+            data=SPECIFIC_DATA,
+            heading_level=3,
+        )
+
+        self.assertEqual([], validate_text(text, {"CUT-01"}))
+
     def test_known_templates_fail(self) -> None:
         text = requirement(
             "PM-01",
