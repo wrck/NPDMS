@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "NPDMS-SDS-P1-20260812-01",
+  "recordedAt": "2026-08-13T00:25:49+08:00",
+  "status": "VERIFIED_WITH_KNOWN_TYPE_DEBT",
+  "implementation": {
+    "repository": "E:\\AICoding\\Projects\\NPDMS",
+    "branch": "master",
+    "baseCommit": "3c54ee1bb3c1d2fa4bad958ea6691956a7ac2464",
+    "rootBaselineCommit": "1a93fad14aa0cadcf9300535aa7b9b6617b9c3aa",
+    "rootBaselineIsAncestor": true,
+    "remoteConfigured": false
+  },
+  "upstream": {
+    "mini": {
+      "repository": "https://gitee.com/yudaocode/yudao-boot-mini",
+      "branch": "master-jdk25",
+      "commit": "e6d814cb59cfc204f02aa2516799073382aba801"
+    },
+    "full": {
+      "repository": "https://github.com/YunaiV/ruoyi-vue-pro",
+      "branch": "master-jdk25",
+      "commit": "a6558325b0f09017f531f1e5891613ef9b468132"
+    },
+    "frontend": {
+      "repository": "https://gitee.com/yudaocode/yudao-ui-admin-vue3",
+      "branch": "master",
+      "commit": "2d028c8f7a14dd2e532ac1a76d1fdf58840dc621"
+    }
+  },
+  "databaseTarget": {
+    "environment": "NPDMS-DEV-LOCAL",
+    "composeProject": "npdms",
+    "engineImage": "mysql:8.4",
+    "database": "npdms",
+    "mysqlHostPort": 13306,
+    "redisImage": "redis:7.4-alpine",
+    "redisHostPort": 16379
+  },
+  "runtimeBoundary": {
+    "backend": {
+      "location": "host",
+      "runtime": "JDK 25.0.1",
+      "buildTool": "Maven 3.8.6",
+      "port": 58080
+    },
+    "frontend": {
+      "location": "host",
+      "runtime": "Node.js 24.11.1",
+      "packageManager": "pnpm 9.15.5 via Corepack",
+      "sharedStore": "E:\\.pnpm-store\\v3",
+      "port": 18081
+    },
+    "infrastructure": {
+      "location": "docker",
+      "services": ["mysql", "redis", "flyway"]
+    }
+  },
+  "verification": [
+    {
+      "id": "Q2-GIT-ANCESTRY",
+      "command": "git merge-base --is-ancestor 1a93fad14aa0cadcf9300535aa7b9b6617b9c3aa 3c54ee1bb3c1d2fa4bad958ea6691956a7ac2464",
+      "result": "PASS"
+    },
+    {
+      "id": "Q2-COMPOSE-CONFIG",
+      "command": "docker compose config --quiet",
+      "result": "PASS"
+    },
+    {
+      "id": "Q2-INFRASTRUCTURE",
+      "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/infrastructure/verify-docker-baseline.ps1",
+      "result": "PASS"
+    },
+    {
+      "id": "Q2-BACKEND",
+      "command": "mvn clean verify -B",
+      "environment": "JAVA_HOME=C:\\Program Files\\Java\\jdk-25.0.1+8",
+      "result": "PASS",
+      "tests": "30/30"
+    },
+    {
+      "id": "Q2-FRONTEND-INSTALL",
+      "workingDirectory": "yudao-ui/yudao-ui-admin-vue3",
+      "command": "corepack pnpm install --frozen-lockfile --prefer-offline",
+      "result": "PASS"
+    },
+    {
+      "id": "Q2-FRONTEND-BUILD",
+      "workingDirectory": "yudao-ui/yudao-ui-admin-vue3",
+      "command": "corepack pnpm build:prod",
+      "result": "PASS"
+    },
+    {
+      "id": "Q2-FRONTEND-TYPECHECK",
+      "workingDirectory": "yudao-ui/yudao-ui-admin-vue3",
+      "command": "corepack pnpm ts:check",
+      "result": "FAIL_KNOWN_BASELINE_DEBT",
+      "phase1Blocking": false,
+      "enforcement": "MUST_PASS_BEFORE_FRONTEND_FEATURE_IMPLEMENTATION"
+    }
+  ],
+  "evidence": {
+    "upstreamSource": "docs/upstream-sources.md",
+    "localRuntime": "docs/development.md",
+    "composeDefinition": "compose.yaml",
+    "frontendPackage": "yudao-ui/yudao-ui-admin-vue3/package.json",
+    "frontendLockfile": "yudao-ui/yudao-ui-admin-vue3/pnpm-lock.yaml",
+    "note": "This manifest is versioned by its containing Git commit; the specification gate records that evidence commit separately."
+  }
+}

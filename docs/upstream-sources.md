@@ -22,11 +22,11 @@ GitHub 镜像在决策日的`master`提交不同，本项目以 mini README 明�
 | 编号 | 已接受方案 | 理由与约束 |
 | --- | --- | --- |
 | PD-001 上游导入 | 当前仓库作为主仓，按锁定提交导入源码快照，不合并上游 Git 历史 | 便于审查、离线构建和精确追溯；每次导入按文件范围登记来源 |
-| PD-002 前端仓库 | 响应式 Vue 3 管理端与后端同仓，目标目录为 `yudao-ui/yudao-ui-admin-vue3`；来源为本文件锁定的 Gitee 提交 | 支持一个版本完成前后端和 Docker 验收；移动端、桌面客户端不进入 V1/V2 |
+| PD-002 前端仓库 | 响应式 Vue 3 管理端与后端同仓，目标目录为 `yudao-ui/yudao-ui-admin-vue3`；来源为本文件锁定的 Gitee 提交 | 前后端在宿主机构建和运行，与 Docker 基础设施联合验收；移动端、桌面客户端不进入 V1/V2 |
 | PD-003 关系型数据库 | MySQL 8.4 LTS | mini 默认配置、SQL 和 Docker 编排以 MySQL 8 为主；LTS 版本降低基础平台漂移风险 |
 | PD-004 数据库迁移 | 使用 Docker 中的 Flyway Open Source CLI 执行版本化 SQL；应用不新增 Flyway 运行时依赖 | 迁移在应用启动前独立执行，`flyway_schema_history`提供顺序、校验和与重复执行证据 |
-| PD-005 浏览器自动化 | 使用 Playwright，并在与项目依赖版本一致的官方容器中执行 | 覆盖登录、点击、填写、保存、刷新、返回及状态流转；浏览器镜像与依赖必须精确同版 |
-| PD-006 本地基础设施 | Docker Compose 是唯一权威的本地运行与验收入口 | 数据库、Redis、迁移、后端、前端和 E2E 均在容器中运行；文件服务先复用 Yudao infra 的本地存储并挂载持久卷 |
+| PD-005 浏览器自动化 | 使用 Playwright，在宿主机对宿主机前后端执行真实浏览器验收 | 覆盖登录、点击、填写、保存、刷新、返回及状态流转；浏览器与项目 Playwright 依赖保持兼容 |
+| PD-006 本地基础设施 | Docker Compose 是 MySQL、Redis 和 Flyway 的唯一权威本地运行入口 | 后端与前端在宿主机运行，Docker 仅承载基础设施；文件服务先复用基础平台本地存储 |
 
 参考依据：
 
@@ -44,24 +44,24 @@ GitHub 镜像在决策日的`master`提交不同，本项目以 mini README 明�
 4. PMS 自研代码不得混入上游机械快照提交。
 5. 上游平台 API 不重命名、不改路径、不包一层自定义“管理端业务 API”；PMS 新接口按本项目 API 规范实现。
 
-## 4. Docker-first 运行边界
+## 4. 宿主机应用与 Docker 基础设施边界
 
 目标拓扑：
 
 ```text
 browser/e2e
      |
-admin (nginx + responsive web)
+admin (host Node.js + responsive web, 18081)
      |
-server (JDK 25)
-     |------ redis
+server (host JDK 25, 58080)
+     |------ redis (Docker)
      |------ file volume
      |
-migrate (Flyway CLI) ---> mysql 8.4 LTS
+migrate (Docker Flyway CLI) ---> mysql 8.4 LTS (Docker)
 ```
 
-- `migrate`成功后才能启动 `server`，数据库健康后才能执行迁移。
-- Maven 与前端构建使用具名缓存卷，减少重复下载时间。
+- 数据库健康后才能执行 `migrate`，`migrate`成功后才能启动宿主机 `server`。
+- Maven 使用宿主机本地仓库；前端通过 Corepack 锁定 pnpm `9.15.5`，并复用全局 store，`node_modules` 仅保留项目级链接与必要元数据。
 - Compose 中的镜像必须使用明确版本线，不使用 `latest`；本地优先复用已有
   镜像，仅在缺失或明确不兼容时拉取，实际补丁版本与 digest 作为验证证据。
 - `.env.example`只提供开发默认值和变量说明，真实凭据由部署环境注入。
@@ -82,7 +82,7 @@ migrate (Flyway CLI) ---> mysql 8.4 LTS
 | `T-CP-002` | mini `e6d814c...` | `pom.xml`、`LICENSE`、`lombok.config`、`yudao-dependencies/`、`yudao-framework/` | 已导入；393个文件通过SHA-256逐文件一致性校验 |
 | `T-CP-003` | mini `e6d814c...` | `yudao-module-system/`、`yudao-module-infra/`、`yudao-server/` | 已导入；795个文件通过SHA-256逐文件一致性校验 |
 | `T-CP-004` | full `a655832...` | `yudao-module-bpm/`、BPM测试starter、`sql/mysql/ruoyi-vue-pro.sql`中的官方 BPM 菜单与字典、根 POM 和`yudao-server`最小装配 | 已导入；BPM模块及测试starter共262个文件逐文件保持上游一致；生产 DDL 缺口转入 T-CP-006 |
-| `T-CP-005` | frontend `2d028c8...` | 完整 Vue 3 管理端 | 待导入 |
+| `T-CP-005` | frontend `2d028c8...` | 完整 Vue 3 管理端 | 已导入；在实施基线 `1a93fad...` 中纳入，并在 `3c54ee1...` 锁定宿主机 pnpm 构建入口 |
 
 ## 7. 已验证的上游构建特性
 
@@ -124,20 +124,13 @@ docker run --rm \
 保留；本项目新增和修改的文档已单独通过`git diff --check`，后续自研代码
 不得新增此类诊断。
 
-## 8. 本地上游源码缓存
+## 8. 上游来源的可复现性
 
-三个仓库已浅克隆到 Git 忽略目录`._codex_work/upstream/`。浅克隆只省略
-无关历史，目标提交的工作树文件完整保留。
-
-| 本地目录 | 跟踪文件数 | 工作树状态 | 对象校验 |
-| --- | ---: | --- | --- |
-| `._codex_work/upstream/yudao-boot-mini` | 1,343 | clean；无删除文件 | `git fsck --full`通过 |
-| `._codex_work/upstream/ruoyi-vue-pro` | 6,862 | clean；无删除文件 | `git fsck --full`通过 |
-| `._codex_work/upstream/yudao-ui-admin-vue3` | 2,398 | clean；无删除文件 | `git fsck --full`通过 |
-
-Windows 检出后端仓库时需要在各上游克隆内设置仓库级
-`core.longpaths=true`。该设置仅写入忽略目录中的上游克隆，不修改用户全局
-Git 配置。
+`._codex_work/upstream/` 下的三个浅克隆是导入期的临时缓存，已完成逐文件
+校验，但不属于当前实施仓库基线，当前工作树中不存在这三个目录。
+可复现性以本文件第 1 节的三个锁定提交、第 6/9 节的导入清单和 Git 中
+已提交的目标文件为准。需重新核验上游时，按锁定提交重建临时克隆，
+在克隆内设置仓库级 `core.longpaths=true`，不修改用户全局 Git 配置。
 
 ## 9. T-CP-004 BPM 导入清单
 
@@ -197,14 +190,14 @@ mvn -pl yudao-module-bpm -am test
 SHA-256 一致性校验，官方 SQL 文件的源端与目标端 SHA-256 均为
 `1E78255B50C4AFE687FC60BDE7414E2AEFE4376E017801A93D909862E1C6F222`。
 
-## 10. T-CP-006 Docker-first 运行基线
+## 10. T-CP-006 宿主机应用与 Docker 基础设施基线
 
-### 10.1 运行镜像与迁移来源
+### 10.1 运行时与迁移来源
 
 | 用途 | 锁定版本或来源 | 说明 |
 | --- | --- | --- |
-| 后端构建/运行 | `maven:3.9.11-eclipse-temurin-25` | 同一镜像完成 Maven 构建并以 JDK 25 运行 |
-| 前端构建/运行 | `node:20.19.6-bookworm`、pnpm `9.15.5` | 构建和 Vite preview 均在容器中执行 |
+| 后端构建/运行 | 宿主机 JDK `25.0.1`、Maven `3.8.6` | Maven 构建与 JDK 25 运行均在宿主机执行 |
+| 前端构建/运行 | 宿主机 Node.js `24.11.1`、Corepack 锁定 pnpm `9.15.5` | 构建和 Vite 开发服务均在宿主机执行；引擎下限为 Node.js `20.19.0` |
 | 数据库 | `mysql:8.4` | 优先复用本机已有镜像；实际运行 8.4.10 |
 | 缓存 | `redis:7.4-alpine` | 优先复用本机已有镜像；实际运行 7.4.9 |
 | 数据库迁移 | `flyway/flyway:11.10.5-alpine` | 独立 CLI 服务；应用不引入 Flyway runtime |
@@ -225,25 +218,23 @@ Flyway 首次迁移、`info`、`validate` 以及重复 `migrate` 均已在 MySQL
 - Redis 7.4.9：
   `redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99`
 
-### 10.2 Docker profile 兼容补丁
+### 10.2 宿主机应用兼容补丁
 
 锁定上游 system 模块中的微信公众号配置类在运行时引用 Apache
 HttpClient 4 API，而上游 starter 将客户端依赖声明为 `provided`。实际
-Docker 启动因此首先出现
+宿主机启动的历史验证中曾出现
 `NoClassDefFoundError: org/apache/http/conn/HttpClientConnectionManager`。
 本项目在 `yudao-module-system/pom.xml` 中显式增加运行时依赖
 `org.apache.httpcomponents:httpclient:4.5.14`，不修改上游接口和业务逻辑。
 
-Docker profile 使用非敏感的禁用占位值满足上游微信组件装配，不保存可用
+宿主机运行配置使用非敏感的禁用占位值满足上游微信组件装配，不保存可用
 应用凭据。数据库、Redis 和 MyBatis 加密器密钥均只从运行环境注入；
 `.env.example` 的敏感字段保持为空。
 
-Docker 管理端构建使用空的 `VITE_BASE_URL` 和相对
-`VITE_API_URL=/admin-api`。Vite preview 运行容器将该同源路径原样代理到
-Compose 内部 `server:48080`，避免把浏览器宿主机地址或
-`NPDMS_SERVER_PORT` 固化进构建产物。
+宿主机管理端使用相对 `VITE_API_URL=/admin-api`，Vite 开发服务通过
+`VITE_PROXY_TARGET=http://localhost:58080` 代理后端，前端端口固定为 `18081`。
 
-V1 项目兼容配置将默认 `yudao.tenant.enable` 与 Docker 前端
+V1 项目兼容配置将默认 `yudao.tenant.enable` 与宿主机前端
 `VITE_APP_TENANT_ENABLE` 同时设为 `false`。这符合官方“两端开关必须一致”
 的约束，并保留租户模块以便后续同步启用。未导入的 AI 提供商及交易订单
 向微信小程序同步使用已有 `enable` 开关关闭；其余边界不清的集成不修改。
@@ -255,7 +246,7 @@ V1 项目兼容配置将默认 `yudao.tenant.enable` 与 Docker 前端
 不能替代 BPM 业务表迁移。在取得已授权且与锁定代码匹配的官方 BPM SQL
 前，不将 BPM 流程定义、表单和用户组等业务操作计入 Docker 基线通过范围。
 
-因此当前状态必须拆分表述：Docker 基础设施运行基线已经建立；T-CP-006
+因此当前状态必须拆分表述：宿主机应用与 Docker 基础设施运行基线已经建立；T-CP-006
 整体及 BPM 空库业务闭环尚未完成，依赖它的 T-CP-010 仍受阻。只有取得
 已授权的官方八张 `bpm_*` 表 DDL 并完成流程创建、查询验收后，才能更新
 任务勾选。

@@ -16,8 +16,9 @@
 
 ## 运行与验证
 
-- Docker Compose 是开发、构建、迁移、启动和验收的权威运行入口。
-- 不要求宿主机预装 JDK、Maven、Node.js、数据库或 Redis。
+- Docker Compose 是 MySQL、Redis 和 Flyway 本地基础设施的权威运行入口，不承载前端和后端应用。
+- 后端在宿主机使用 JDK 25/Maven 构建和运行；前端在宿主机使用 Node.js/Corepack/pnpm 构建和运行。
+- 宿主机应用与 Docker 基础设施的启动、端口和验证方式以 `docs/development.md` 和 `compose.yaml` 为准。
 - 配置模板不得包含真实凭据；本地默认值只能用于隔离开发环境。
 - 每项自研任务遵循失败测试、最小实现、重构与完整验证顺序。
 - 编译、静态页面或 API 单测不能替代业务验收；UI 闭环必须由真实浏览器完成。
