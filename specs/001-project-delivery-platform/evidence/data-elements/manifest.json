@@ -1,0 +1,90 @@
+{
+  "formatVersion": 1,
+  "source": {
+    "path": "D:/开发资料/PMS资料/项目交付平台/需求/数据元.xlsx",
+    "sha256": "4250DD8D53C5C312B8C5141A0F626EF80079224D6E2D477978DB697DD85A0116",
+    "sizeBytes": 1085299,
+    "modifiedAtUtc": "2026-06-25T07:12:00.626Z"
+  },
+  "extraction": {
+    "extractedAtUtc": "2026-08-04T08:02:03.428Z",
+    "materializedAtUtc": "2026-08-04T08:12:03.780Z",
+    "method": "@oai/artifact-tool direct XLSX cell/formula import; no screenshot or OCR",
+    "coverage": "Every cell and formula in each imported used range, including values in hidden columns"
+  },
+  "sheets": {
+    "数据元": {
+      "range": "A1:J151",
+      "rowCount": 151,
+      "columnCount": 10
+    },
+    "项目": {
+      "range": "A1:I140",
+      "rowCount": 140,
+      "columnCount": 9
+    },
+    "项目管理": {
+      "range": "A1:S1375",
+      "rowCount": 1375,
+      "columnCount": 19
+    },
+    "系统支撑": {
+      "range": "A1:R2276",
+      "rowCount": 2276,
+      "columnCount": 18
+    },
+    "备件": {
+      "range": "A1:R890",
+      "rowCount": 890,
+      "columnCount": 18
+    },
+    "ITR": {
+      "range": "A1:M205",
+      "rowCount": 205,
+      "columnCount": 13
+    },
+    "ITR-bak": {
+      "range": "A1:P87",
+      "rowCount": 87,
+      "columnCount": 16
+    },
+    "项目管理备份": {
+      "range": "A1:S2906",
+      "rowCount": 2906,
+      "columnCount": 19
+    },
+    "系统支持备份": {
+      "range": "A1:O2843",
+      "rowCount": 2843,
+      "columnCount": 15
+    },
+    "发货与引擎备份": {
+      "range": "A1:O1850",
+      "rowCount": 1850,
+      "columnCount": 15
+    }
+  },
+  "files": {
+    "semantic-elements.jsonl": {
+      "records": 197,
+      "purpose": "Normalized business data elements from 数据元 and 项目"
+    },
+    "schema-records.jsonl": {
+      "records": 4013,
+      "purpose": "Normalized table fields and business-element rows from active schema sheets"
+    },
+    "itr-elements.jsonl": {
+      "records": 277,
+      "purpose": "Normalized ITR and ITR-bak business fields"
+    },
+    "source-rows.jsonl": {
+      "records": 11613,
+      "purpose": "Loss-minimized row-level evidence with original sheet and row coordinates"
+    }
+  },
+  "redaction": {
+    "policy": "Legacy passwords, password hashes, keys and tokens are replaced with explicit REDACTED placeholders before Git commit.",
+    "redactedValueCount": 1
+  },
+  "usageRule": "Read the normalized JSONL files first. Consult source-rows.jsonl when normalized records are insufficient. Reopen the XLSX only when its hash changes or structured evidence cannot resolve a conflict."
+}

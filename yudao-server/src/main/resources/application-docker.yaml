@@ -1,0 +1,89 @@
+server:
+  port: 48080
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration
+      - org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration
+      - org.springframework.ai.vectorstore.redis.autoconfigure.RedisVectorStoreAutoConfiguration
+      - org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration
+      - org.dromara.trans.config.TransServiceConfig
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAgentAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeImageAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeVideoAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioSpeechAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioTranscriptionAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeRerankAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeEmbeddingAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeMultimodalEmbeddingAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAsyncToolCallingManagerAutoConfiguration
+  datasource:
+    druid:
+      web-stat-filter:
+        enabled: false
+      stat-view-servlet:
+        enabled: false
+    dynamic:
+      primary: master
+      strict: true
+      datasource:
+        master:
+          name: ${NPDMS_DB_NAME}
+          url: jdbc:mysql://${NPDMS_DB_HOST}:${NPDMS_DB_PORT}/${NPDMS_DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&nullCatalogMeansCurrent=true
+          username: ${NPDMS_DB_USER}
+          password: ${NPDMS_DB_PASSWORD}
+  data:
+    redis:
+      host: ${NPDMS_REDIS_HOST}
+      port: ${NPDMS_REDIS_PORT}
+      database: 0
+      password: ${NPDMS_REDIS_PASSWORD}
+
+mybatis-plus:
+  encryptor:
+    password: ${NPDMS_MYBATIS_ENCRYPTOR_PASSWORD}
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  file:
+    name: /var/log/pms/yudao-server.log
+
+# 平台基线不启用微信集成，但 System 模块会注入对应客户端 Bean。
+# 使用明确的非凭据哨兵值完成本地装配；接入真实渠道时必须由部署环境覆盖。
+wx:
+  mp:
+    app-id: disabled
+    secret: disabled
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wx-disabled
+  miniapp:
+    appid: disabled
+    secret: disabled
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wa-disabled
+
+yudao:
+  captcha:
+    enable: false
+  security:
+    mock-enable: false
+  web:
+    admin-ui:
+      url: http://localhost:8080
+  access-log:
+    enable: false
+  demo: false

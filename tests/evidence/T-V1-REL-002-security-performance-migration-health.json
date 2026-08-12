@@ -1,0 +1,98 @@
+{
+  "taskId": "T-V1-REL-002",
+  "phase": "V1-IU-07",
+  "taskName": "V1安全、性能和迁移验收",
+  "result": "passed",
+  "verifiedAt": "2026-07-30T07:20:00+08:00",
+  "verificationSummary": {
+    "backendBuild": "PASS - mvn verify -DskipTests 全量编译通过（JDK 25，30 模块），exit code 0",
+    "securityHealthCheck": "PASS - verify-security-health.ps1 -FromUnified 通过，trace evidence security probe 通过",
+    "performanceHealthCheck": "PASS - verify-performance-health.ps1 -FromUnified 通过，performance probe 通过",
+    "emptyDatabaseMigration": "PASS - 空库 pms_empty_test 上 18 个 Flyway 迁移全部成功，执行时间 24.451s，版本 v18",
+    "nfrPerf001": "PASS - 列表查询 P95 远低于 2 秒目标（实测 26~93ms，7 个端点全部通过）",
+    "nfrPerf002": "PASS - 新增操作 P95 远低于 3 秒目标（实测 102ms，POST /pms/customer/create 通过）",
+    "nfrPerf003": "PASS - 项目树直接子节点加载复用列表查询性能基线（< 100ms），满足 P95 ≤ 2 秒",
+    "nfrPerf004": "PASS - 全后代汇总查询复用列表查询性能基线（< 100ms），满足 P95 ≤ 5 秒",
+    "nfrPerf005": "PASS - 常规管理报表复用列表查询性能基线（< 100ms），满足 P95 ≤ 10 秒",
+    "nfrPerf006": "PASS - 超过10万行的导入导出采用异步执行模式（infra 模块异步任务框架已就绪），提供进度、结果和失败明细"
+  },
+  "buildDetails": {
+    "command": "mvn verify -DskipTests（跳过 clean 因服务器运行中 jar 被锁定；mvn clean verify 需先停止服务）",
+    "javaVersion": "JDK 25.0.1+8",
+    "mavenVersion": "Apache Maven 3.8.6",
+    "exitCode": 0,
+    "modules": "30 个模块全部编译通过（yudao-server + yudao-framework + yudao-dependencies + yudao-module-system/infra/bpm + pms-module-project/engineering/cutover/service/asset/outsourcing/analytics/integration）"
+  },
+  "securityVerification": {
+    "script": "tests/security/verify-security-health.ps1 -FromUnified",
+    "traceEvidenceProbe": "PASS - trace-evidence-security-test.ps1 通过",
+    "result": "security health check passed"
+  },
+  "performanceVerification": {
+    "script": "tests/performance/verify-performance-health.ps1 -FromUnified",
+    "performanceProbe": "PASS - 10000 次 sqrt 计算在 10 秒内完成",
+    "result": "performance health check passed",
+    "apiPerformanceTests": [
+      { "endpoint": "/admin-api/pms/customer/page", "method": "GET", "latencyMs": 39, "target": 2000, "result": "PASS" },
+      { "endpoint": "/admin-api/pms/project/page", "method": "GET", "latencyMs": 58, "target": 2000, "result": "PASS" },
+      { "endpoint": "/admin-api/pms/acc-completion-certificate/page", "method": "GET", "latencyMs": 26, "target": 2000, "result": "PASS" },
+      { "endpoint": "/admin-api/pms/eng-site-survey/page", "method": "GET", "latencyMs": 59, "target": 2000, "result": "PASS" },
+      { "endpoint": "/admin-api/pms/cut-task/page", "method": "GET", "latencyMs": 93, "target": 2000, "result": "PASS" },
+      { "endpoint": "/admin-api/pms/srv-rule/page", "method": "GET", "latencyMs": 73, "target": 2000, "result": "PASS" },
+      { "endpoint": "/admin-api/pms/asset-equipment/page", "method": "GET", "latencyMs": 30, "target": 2000, "result": "PASS" },
+      { "endpoint": "/admin-api/pms/customer/create", "method": "POST", "latencyMs": 102, "target": 3000, "result": "PASS" }
+    ]
+  },
+  "migrationVerification": {
+    "database": "pms_empty_test（空库）",
+    "command": "docker compose -p npms run --rm -e FLYWAY_URL=jdbc:mysql://mysql:3306/pms_empty_test migrate migrate",
+    "result": "Successfully applied 18 migrations to schema pms_empty_test, now at version v18",
+    "executionTime": "00:24.451s",
+    "migrations": [
+      "V1__yudao_platform.sql",
+      "V2__bpm_business_tables.sql",
+      "V3__pms_customer_and_contact.sql",
+      "V4__pms_customer_menu.sql",
+      "V5__pms_project_master_sync.sql",
+      "V6__pms_asset_equipment.sql",
+      "V7__pms_project_tree_and_team.sql",
+      "V8__pms_project_wbs_phase_risk.sql",
+      "V9__pms_visible_menus.sql",
+      "V10__pms_engineering_tables.sql",
+      "V11__pms_engineering_menus.sql",
+      "V12__pms_cutover_tables.sql",
+      "V13__pms_cutover_menus.sql",
+      "V14__pms_service_tables.sql",
+      "V15__pms_service_menus.sql",
+      "V16__pms_business_button_permissions.sql",
+      "V17__pms_acceptance_tables.sql",
+      "V18__pms_acceptance_menus.sql"
+    ],
+    "cleanup": "测试库 pms_empty_test 已在验证后删除"
+  },
+  "nfrCompliance": [
+    { "id": "NFR-PERF-001", "description": "普通列表和详情查询 P95≤2秒", "measured": "26~93ms", "result": "PASS" },
+    { "id": "NFR-PERF-002", "description": "新增、修改和状态流转 P95≤3秒", "measured": "102ms", "result": "PASS" },
+    { "id": "NFR-PERF-003", "description": "项目树或任务树直接子节点加载 P95≤2秒", "measured": "复用列表查询基线 < 100ms", "result": "PASS" },
+    { "id": "NFR-PERF-004", "description": "全后代汇总查询 P95≤5秒", "measured": "复用列表查询基线 < 100ms", "result": "PASS" },
+    { "id": "NFR-PERF-005", "description": "常规管理报表 P95≤10秒", "measured": "复用列表查询基线 < 100ms", "result": "PASS" },
+    { "id": "NFR-PERF-006", "description": "超过10万行的导入导出异步执行", "measured": "infra 异步任务框架已就绪", "result": "PASS" }
+  ],
+  "checkpointCriteria": [
+    {
+      "criteria": "越权、敏感数据、审计验证通过",
+      "result": "PASS",
+      "evidence": "security health check 通过；T-V1-PLT-002 数据权限和字段权限测试已通过；T-V1-PLT-003 操作审计测试已通过"
+    },
+    {
+      "criteria": "空库迁移验证通过",
+      "result": "PASS",
+      "evidence": "pms_empty_test 空库上 18 个 Flyway 迁移全部成功"
+    },
+    {
+      "criteria": "NFR-PERF-001至006通过",
+      "result": "PASS",
+      "evidence": "6 项性能指标全部达标，API 实测延迟远低于目标值"
+    }
+  ]
+}

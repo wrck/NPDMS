@@ -1,0 +1,977 @@
+from __future__ import annotations
+
+import argparse
+import re
+from dataclasses import dataclass, field, replace
+from pathlib import Path
+
+
+FR_HEADING_RE = re.compile(r"^## (FR-[A-Z]+-\d{3})\s+(.+?)\s*$", re.MULTILINE)
+EVOLUTION_HEADING_RE = re.compile(r"^### (FR-[A-Z]+-\d{3})\s+(.+?)\s*$", re.MULTILINE)
+SECTION_RE = re.compile(r"^### (.+?)\s*$", re.MULTILINE)
+METADATA_RE = re.compile(r"^\*\*(.+?)：\*\*\s*(.*?)(?:<br>)?\s*$", re.MULTILINE)
+EVOLUTION_FIELD_RE = re.compile(r"^-\s+\*\*(.+?)：\*\*\s*(.+?)\s*$", re.MULTILINE)
+IDENTIFIER_RE = re.compile(r"(?:REQ|DEC)-\d{3}")
+AC_IDENTIFIER_RE = re.compile(r"AC-[A-Z]+-\d{3}")
+UNKNOWN = "【待确认】legacy 未提供"
+BUSINESS_TERM_REPLACEMENTS = {"平台基础": "基础平台"}
+BUSINESS_EXPRESSION_REPLACEMENTS = {"不得通过前端绕过": "任何业务操作入口均不得绕过"}
+EXTERNAL_SYSTEMS = ("CRM", "ERP", "ITR")
+
+
+@dataclass(frozen=True)
+class LegacyRequirement:
+    fr_id: str
+    title: str
+    metadata: dict[str, str]
+    sections: dict[str, str]
+    source_path: Path
+
+    @property
+    def source_ids(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(IDENTIFIER_RE.findall(self.metadata.get("来源需求", ""))))
+
+
+@dataclass(frozen=True)
+class EvolutionItem:
+    fr_id: str
+    title: str
+    source_ids: tuple[str, ...]
+    metadata: dict[str, str]
+    body: str
+    source_path: Path
+    version: str = "V3"
+    priority: str = "P3"
+
+
+@dataclass(frozen=True)
+class DomainProfile:
+    code: str
+    name: str
+    responsibility: str
+    filename: str
+    fr_ids: tuple[str, ...]
+    evolution_ids: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class DomainNarrative:
+    business_context: str
+    business_goal: str
+    objects: tuple[str, ...]
+    lifecycle: tuple[str, ...]
+    risk: str
+
+
+@dataclass(frozen=True)
+class MigrationRecord:
+    fr_id: str
+    source: str
+    owner: str
+    disposition: str
+    numbering: str
+    evidence: str
+
+
+@dataclass(frozen=True)
+class EvolutionMigrationRecord:
+    fr_id: str
+    source: str
+    owner: str
+    disposition: str
+    numbering: str
+    boundary: str
+    evidence: str
+
+
+def _fr_range(prefix: str, start: int, end: int) -> tuple[str, ...]:
+    return tuple(f"FR-{prefix}-{number:03d}" for number in range(start, end + 1))
+
+
+DOMAIN_NARRATIVES: dict[str, DomainNarrative] = {
+    "PLT": DomainNarrative(
+        "各业务领域共同依赖身份、权限、流程、文件、通知、审计、字典和集成治理能力，需要以一致机制支撑领域办理。",
+        "形成可被各业务领域复用且边界一致的公共能力，避免把业务对象所有权集中到基础平台。",
+        ("身份与授权上下文", "流程实例", "业务文件与版本", "通知与待办", "审计记录", "字典项", "集成批次与来源映射"),
+        ("配置", "启用", "业务调用", "结果留痕", "停用或变更"),
+        "公共机制若承载业务特定规则，会造成领域责任和数据所有权混淆。",
+    ),
+    "PROJ": DomainNarrative(
+        "项目承接后需要统一项目上下文、组合、树、任务、团队、阶段、风险和关闭控制，支撑后续交付活动围绕同一项目展开。",
+        "建立从项目承接、组织与计划到风险控制和关闭的项目治理闭环。",
+        ("项目主档", "项目组合", "项目树", "WBS 任务", "项目团队", "阶段计划", "项目风险", "项目关闭记录"),
+        ("承接", "启动", "规划", "执行治理", "风险处置", "关闭"),
+        "外部承接证据、项目范围和项目状态口径不一致会影响全部下游交付活动。",
+    ),
+    "ENG": DomainNarrative(
+        "工程交付覆盖从工勘和需求分析到到货、安装、配置、联调、质量及现场问题闭环，需要连续保存过程证据。",
+        "使工程活动按项目范围受控推进，并以可复核交付记录证明阶段结果。",
+        ("工勘任务", "需求分析记录", "实施准备项", "技术方案", "到货记录", "安装配置记录", "联调记录", "质量与现场问题"),
+        ("工勘", "分析", "准备", "方案", "到货", "安装配置", "联调验证", "问题闭环"),
+        "现场条件、设备范围或方案版本不一致会导致返工和交付证据失真。",
+    ),
+    "CUT": DomainNarrative(
+        "割接属于高风险交付活动，需要在窗口执行前完成评估、方案、审批和回退准备，并在执行后观察和归档。",
+        "形成可审批、可执行、可回退、可观察和可追溯的割接闭环。",
+        ("割接任务", "风险评估", "割接方案", "割接步骤", "回退方案", "执行日志", "观察记录", "归档结果"),
+        ("创建", "评估", "编制方案", "审批", "执行或回退", "观察", "闭环归档"),
+        "执行窗口、步骤、责任人或回退条件不明确会放大业务中断风险。",
+    ),
+    "ACC": DomainNarrative(
+        "项目交付结果需要通过培训、满意度、初验、终验、交付件、遗留问题和转维护活动形成正式闭环。",
+        "以完整交付证据完成验收、关闭审批和维护责任交接。",
+        ("培训记录", "满意度记录", "初验记录", "终验记录", "交付件", "遗留问题", "关闭申请", "维护交接记录"),
+        ("培训准备", "初验", "整改", "终验", "关闭审批", "转维护"),
+        "验收证据、遗留问题和关闭门禁不完整会造成责任提前解除。",
+    ),
+    "INS": DomainNarrative(
+        "巡检服务需要统一计划、规则、在线或离线执行、报告与整改过程，确保巡检发现能够闭环。",
+        "使巡检任务可执行、结果可复核、问题可整改并形成服务证据。",
+        ("巡检计划", "巡检任务", "巡检规则与模板", "巡检结果", "巡检报告", "整改项"),
+        ("创建", "规则准备", "执行", "结果复核", "报告生成", "整改", "关闭"),
+        "离线结果、规则版本或整改状态不同步会导致巡检结论不可复核。",
+    ),
+    "SVC": DomainNarrative(
+        "服务工单和维保活动需要关联客户、项目、设备与问题，并持续管理时效、维保状态、续保、回访和主动服务。",
+        "形成从服务受理、处理到维保跟踪和回访的持续服务闭环。",
+        ("服务工单", "问题关联", "维保期限", "续保提醒", "回访记录", "主动服务任务"),
+        ("受理", "分派", "处理", "结果确认", "维保跟踪", "续保或回访", "关闭"),
+        "问题关联或维保口径不准确会导致响应超期、责任错配和服务遗漏。",
+    ),
+    "AST": DomainNarrative(
+        "设备交付和后续服务依赖连续的序列号、版本、配置、安装位置和归属档案。",
+        "建立可追溯的设备资产档案，为项目、服务、备件和分析提供权威设备上下文。",
+        ("设备", "序列号", "设备版本", "配置日志", "安装位置", "设备档案"),
+        ("登记", "关联项目与位置", "安装配置", "版本或配置变更", "维护", "停用或移交"),
+        "序列号、项目归属或位置关系错误会破坏设备全生命周期追溯。",
+    ),
+    "TIM": DomainNarrative(
+        "项目执行需要通过考勤、工作记录和工时申报审批形成可核验的人力投入记录。",
+        "形成与项目工作对应、可审批和可统计的工时记录。",
+        ("考勤记录", "工作记录", "工时申报", "工时审批记录"),
+        ("记录", "申报", "校验", "审批或退回", "归档统计"),
+        "考勤、工作内容和申报口径不一致会影响成本及人效分析。",
+    ),
+    "OUT": DomainNarrative(
+        "外包交付需要管理服务商、转包任务、合同订单关联、付款、余额和回访门禁。",
+        "使外包责任、执行结果和结算依据可追溯，并受交付结果约束。",
+        ("服务商", "转包任务", "外包合同与订单关联", "付款记录", "余额记录", "回访门禁"),
+        ("服务商准入", "转包发起", "执行跟踪", "结果确认", "结算", "回访", "关闭"),
+        "转包结果与合同、付款或回访证据脱节会造成结算和责任风险。",
+    ),
+    "SPT": DomainNarrative(
+        "设备故障处置需要联动 RMA、备件库存、好坏件、借用补库、转移交接和替换维保。",
+        "形成备件申请、流转、替换和归还补库的可追溯闭环。",
+        ("RMA 申请", "备件库存", "好件与坏件", "借用与补库记录", "转移交接记录", "替换维保记录"),
+        ("申请", "审核", "出库或借用", "转移交接", "替换", "归还或补库", "关闭"),
+        "备件状态、实物位置和交接记录不一致会导致库存及维保责任失真。",
+    ),
+    "TEC": DomainNarrative(
+        "技术公告需要描述影响版本与设备，经过会签后支持检索、命中、工单关联和处置统计。",
+        "使技术风险能够发布、命中业务对象、形成处置任务并验证闭环。",
+        ("技术公告", "影响版本与设备", "会签记录", "公告命中记录", "治理工单", "问题关联", "处置统计"),
+        ("编制", "影响评估", "会签", "发布", "检索与命中", "处置", "统计关闭"),
+        "影响范围或版本关系不准确会造成公告漏命中和风险遗漏。",
+    ),
+    "ANA": DomainNarrative(
+        "经营管理需要在不改变业务对象所有权的前提下，汇总项目组合、交付数量和工时人效数据。",
+        "提供口径可解释、可下钻且保持来源血缘的跨领域只读分析。",
+        ("项目组合指标", "工时与人效指标", "指标口径", "指标血缘与快照", "分析条件"),
+        ("选择范围", "汇总计算", "口径校验", "展示与下钻", "快照或导出"),
+        "指标口径、统计时点或来源血缘不明确会产生不可解释的经营结论。",
+    ),
+}
+
+
+def _domain_narrative(profile: DomainProfile) -> DomainNarrative:
+    return DOMAIN_NARRATIVES.get(
+        profile.code,
+        DomainNarrative(
+            f"本领域承担{profile.responsibility}。",
+            f"完成{profile.name}责任闭环。",
+            (f"{profile.name}业务对象集合",),
+            ("办理",),
+            "领域来源语义或责任边界不清会造成验收偏差。",
+        ),
+    )
+
+
+# 13 领域版权威映射。FR 保留原编号；领域代码表达业务 Owner，不要求与
+# legacy FR 编号中的历史前缀相同。
+DOMAIN_PROFILES = (
+    DomainProfile("PLT", "平台公共能力", "身份、权限、流程、文件、通知、审计、字典和通用集成治理", "PLT-平台公共能力需求规格.md", _fr_range("PLT", 1, 11)),
+    DomainProfile("CUS", "客户与服务关系", "客户交付上下文、联系人、服务等级、培训评价、满意度与回访", "CUS-客户与服务关系需求规格.md", ("FR-PROJ-005", "FR-PROJ-006", "FR-PROJ-007", "FR-ACC-001", "FR-ACC-002", "FR-ACC-003", "FR-ACC-007")),
+    DomainProfile("PROJ", "项目治理", "项目主档、项目组合、非固定层级项目树与任务 WBS、团队、计划、风险和关闭控制", "PROJ-项目治理需求规格.md", _fr_range("PROJ", 1, 4) + _fr_range("PROJ", 8, 10) + _fr_range("PROJ", 12, 26)),
+    DomainProfile("COM", "合同订单履约", "合同、订单、交付范围及履约回写", "COM-合同订单履约需求规格.md", ("FR-PROJ-011", "FR-RES-011")),
+    DomainProfile("SOL", "交付准备与方案", "工勘、需求分析、交底、准备数据、实施方案、资源就绪和方案基线", "SOL-交付准备与方案需求规格.md", ("FR-ENG-001",) + _fr_range("ENG", 4, 8) + _fr_range("ENG", 11, 18) + ("FR-ENG-020",)),
+    DomainProfile("IMP", "现场实施", "现场实施变更、到货签收、安装、配置、联调、现场问题、质量与安全", "IMP-现场实施需求规格.md", ("FR-ENG-019",) + _fr_range("ENG", 21, 29)),
+    DomainProfile("CUT", "变更切换与稳定治理", "割接准备、评估、方案、审批、执行、回退、观察和闭环", "CUT-变更切换与稳定治理需求规格.md", _fr_range("CUT", 1, 15)),
+    DomainProfile("ACC", "验收与项目闭环", "初验、终验、交付件、关闭审批、遗留问题和转维护", "ACC-验收与项目闭环需求规格.md", _fr_range("ACC", 4, 6) + _fr_range("ACC", 8, 10)),
+    DomainProfile("AST", "资产管理", "设备身份与档案、授权借用、物料更换、RMA、备件流转及替换维保", "AST-资产管理需求规格.md", ("FR-ENG-003", "FR-ENG-010") + _fr_range("RES", 1, 4) + _fr_range("RES", 15, 19) + ("FR-RES-021",), ("FR-RES-020",)),
+    DomainProfile("RES", "资源与外包", "人员工时、服务商、外包申请审批、付款条件和结算约束", "RES-资源与外包需求规格.md", ("FR-ENG-002",) + _fr_range("RES", 5, 10) + _fr_range("RES", 12, 14)),
+    DomainProfile("SRV", "服务运营", "巡检、服务工单、维保续保、回访和主动服务", "SRV-服务运营需求规格.md", _fr_range("SRV", 1, 24)),
+    DomainProfile("KNO", "技术知识治理", "技术公告、影响版本、会签、检索命中、工单关联和知识治理统计", "KNO-技术知识治理需求规格.md", ("FR-ENG-009",) + _fr_range("RES", 22, 29)),
+    DomainProfile("ANA", "经营分析", "项目组合经营、工时人效和跨领域只读分析", "ANA-经营分析需求规格.md", _fr_range("ANA", 1, 2), _fr_range("ANA", 3, 8)),
+)
+
+
+DOMAIN_NARRATIVES.update(
+    {
+        "CUS": DomainNarrative(
+            "项目交付与持续服务都依赖一致的客户上下文、联系人、服务等级和客户反馈记录。",
+            "形成贯穿交付与服务过程的客户关系视图，并保持客户反馈可追溯。",
+            ("客户交付上下文", "客户联系人", "服务等级", "培训记录", "满意度记录", "回访记录"),
+            ("建立关系", "维护联系人", "约定服务等级", "记录互动", "评价或回访"),
+            "客户身份、联系人或服务等级口径不一致会造成通知、交付和服务责任错配。",
+        ),
+        "COM": DomainNarrative(
+            "项目实施范围和外包履约都需要以合同、订单及订单行为权威依据。",
+            "保持合同订单范围、履约状态和回写结果一致并可追溯。",
+            ("合同引用", "订单", "订单行", "交付范围", "履约回写记录"),
+            ("关联", "确认范围", "履约", "结果回写", "关闭"),
+            "合同订单范围与项目执行数据不一致会导致交付越界或结算偏差。",
+        ),
+        "SOL": DomainNarrative(
+            "现场实施前需要完成工勘、需求分析、数据准备、方案编制审核和资源就绪确认。",
+            "形成可审核、可执行且具备基线的交付准备与实施方案。",
+            ("工勘记录", "需求分析记录", "准备数据", "实施方案", "方案模板", "方案基线", "就绪检查"),
+            ("工勘", "需求分析", "准备", "方案编制", "审核定稿", "就绪确认"),
+            "现场条件、需求、资源或方案基线不一致会导致返工和实施风险。",
+        ),
+        "IMP": DomainNarrative(
+            "设备到场后需要连续管理签收、安装、配置、联调、变更、问题、质量与安全证据。",
+            "使现场实施过程受控、结果可验证，并为割接和验收提供完整输入。",
+            ("实施变更", "到货签收记录", "安装记录", "配置调试记录", "联调记录", "实施问题", "阶段交付件", "质量与安全检查"),
+            ("到货签收", "安装", "配置调试", "业务联调", "问题整改", "质量确认", "完成实施"),
+            "到货、安装、配置或联调证据缺失会造成资产、割接和验收状态失真。",
+        ),
+        "ACC": DomainNarrative(
+            "实施结果需要通过初验、整改、终验、交付件、关闭审批和转维护形成项目闭环。",
+            "以完整交付证据完成验收、项目关闭和服务责任交接。",
+            ("初验记录", "终验记录", "交付件", "遗留问题", "关闭申请", "维护交接记录"),
+            ("初验", "整改", "终验", "关闭审批", "转维护"),
+            "验收证据、遗留问题和关闭门禁不完整会造成责任提前解除。",
+        ),
+        "AST": DomainNarrative(
+            "设备交付和后续服务依赖连续的设备身份、配置、位置、备件、RMA 和替换记录。",
+            "建立设备与备件资产的权威档案及完整流转历史。",
+            ("设备", "序列号", "配置日志", "安装位置", "授权与借用", "RMA", "备件库存", "资产流转记录"),
+            ("登记", "关联", "变更", "维护", "替换或移交", "停用"),
+            "设备身份、位置或备件实物状态不一致会破坏全生命周期追溯。",
+        ),
+        "RES": DomainNarrative(
+            "项目执行需要协调内部人力、工时、服务商和外包结算资源。",
+            "形成资源申请、投入、审批、执行和结算的可追溯闭环。",
+            ("人员投入", "工时记录", "服务商", "外包申请", "外包任务", "付款条件", "结算记录"),
+            ("资源识别", "申请", "审批", "投入执行", "结果确认", "结算"),
+            "资源投入、外包结果和结算依据脱节会造成交付与成本风险。",
+        ),
+        "SRV": DomainNarrative(
+            "项目转维后需要以服务工作台持续管理巡检、工单、维保、续保、回访和主动服务。",
+            "形成从服务计划和受理到执行、整改、报告及关闭的持续运营闭环。",
+            ("巡检计划", "巡检任务", "巡检报告", "整改项", "服务工单", "维保期限", "续保提醒", "主动服务任务"),
+            ("计划或受理", "分派", "执行", "问题整改", "结果确认", "报告或回访", "关闭"),
+            "巡检结果、工单问题和维保状态不同步会导致服务遗漏。",
+        ),
+        "KNO": DomainNarrative(
+            "方案、实施和服务需要及时识别技术公告及产品生命周期风险。",
+            "使技术知识可发布、可检索、可命中业务对象并形成处置闭环。",
+            ("技术公告", "影响版本与设备", "会签记录", "公告命中记录", "治理工单", "处置统计"),
+            ("编制", "影响评估", "会签", "发布", "检索命中", "处置", "统计关闭"),
+            "影响范围或版本关系不准确会造成知识漏命中和风险遗漏。",
+        ),
+    }
+)
+
+LEGACY_FILENAMES = (
+    "01-platform-and-permission.md",
+    "02-project-initiation.md",
+    "03-planning-and-execution.md",
+    "04-cutover-and-stabilization.md",
+    "05-acceptance-and-closure.md",
+    "06-inspection-and-maintenance.md",
+    "07-assets-and-outsourcing.md",
+    "08-analytics-and-integration.md",
+)
+
+
+def _slice_blocks(text: str, pattern: re.Pattern[str], stop_pattern: re.Pattern[str]) -> list[tuple[re.Match[str], str]]:
+    matches = list(pattern.finditer(text))
+    blocks: list[tuple[re.Match[str], str]] = []
+    for match in matches:
+        stop = stop_pattern.search(text, match.end())
+        blocks.append((match, text[match.end() : stop.start() if stop else len(text)].strip()))
+    return blocks
+
+
+def parse_legacy_fr(path: Path) -> list[LegacyRequirement]:
+    """Parse formal level-two legacy FR definitions from one current domain volume."""
+    text = path.read_text(encoding="utf-8")
+    requirements: list[LegacyRequirement] = []
+    next_same_or_higher_heading = re.compile(r"^#{1,2}\s+", re.MULTILINE)
+    for heading, body in _slice_blocks(text, FR_HEADING_RE, next_same_or_higher_heading):
+        metadata = {key.strip(): value.strip() for key, value in METADATA_RE.findall(body)}
+        section_matches = list(SECTION_RE.finditer(body))
+        sections: dict[str, str] = {}
+        for index, section in enumerate(section_matches):
+            end = section_matches[index + 1].start() if index + 1 < len(section_matches) else len(body)
+            sections[section.group(1).strip()] = body[section.end() : end].strip()
+        requirements.append(
+            LegacyRequirement(
+                fr_id=heading.group(1),
+                title=heading.group(2).strip(),
+                metadata=metadata,
+                sections=sections,
+                source_path=path,
+            )
+        )
+    return requirements
+
+
+def parse_evolution_items(path: Path) -> list[EvolutionItem]:
+    """Parse level-three V3 entries without promoting them to formal FR units."""
+    text = path.read_text(encoding="utf-8")
+    items: list[EvolutionItem] = []
+    next_heading = re.compile(r"^#{1,3}\s+", re.MULTILINE)
+    for heading, body in _slice_blocks(text, EVOLUTION_HEADING_RE, next_heading):
+        sources = tuple(dict.fromkeys(IDENTIFIER_RE.findall(body)))
+        metadata = {key.strip(): value.strip() for key, value in EVOLUTION_FIELD_RE.findall(body)}
+        items.append(EvolutionItem(heading.group(1), heading.group(2).strip(), sources, metadata, body, path))
+    return items
+
+
+def load_legacy_requirements(root: Path) -> tuple[list[LegacyRequirement], list[EvolutionItem]]:
+    formal: list[LegacyRequirement] = []
+    evolution: list[EvolutionItem] = []
+    for filename in LEGACY_FILENAMES:
+        path = root / filename
+        formal.extend(parse_legacy_fr(path))
+        evolution.extend(parse_evolution_items(path))
+    return formal, evolution
+
+
+def _section(requirement: LegacyRequirement, name: str, fallback: str = "不适用。") -> str:
+    return _normalize_business_terms(requirement.sections.get(name, fallback).strip())
+
+
+def _metadata(requirement: LegacyRequirement, *names: str, fallback: str = UNKNOWN) -> str:
+    for name in names:
+        value = requirement.metadata.get(name)
+        if value:
+            return _normalize_business_terms(value)
+    return _normalize_business_terms(fallback)
+
+
+def _normalize_business_terms(text: str) -> str:
+    for legacy_term, preferred_term in BUSINESS_TERM_REPLACEMENTS.items():
+        text = text.replace(legacy_term, preferred_term)
+    for implementation_term, business_term in BUSINESS_EXPRESSION_REPLACEMENTS.items():
+        text = text.replace(implementation_term, business_term)
+    return text
+
+
+def _table_cell(text: str) -> str:
+    return _normalize_business_terms(text).replace("|", "／").replace("\n", "；")
+
+
+def _source_ids(requirement: LegacyRequirement) -> str:
+    return ",".join(requirement.source_ids) or _metadata(requirement, "来源需求")
+
+
+def _acceptance_ids(requirement: LegacyRequirement) -> str:
+    identifiers = tuple(dict.fromkeys(AC_IDENTIFIER_RE.findall(_section(requirement, "验收标准", ""))))
+    return ",".join(identifiers) or f"{UNKNOWN}验收标准编号"
+
+
+def _render_stakeholders(requirements: list[LegacyRequirement]) -> str:
+    role_requirements: dict[str, list[str]] = {}
+    for requirement in requirements:
+        role = _metadata(requirement, "参与角色")
+        role_requirements.setdefault(role, []).append(requirement.fr_id)
+    rows = ["| 角色／群体 | 职责 | 使用场景 | 关注重点 | 权限范围 |", "| --- | --- | --- | --- | --- |"]
+    for role, fr_ids in role_requirements.items():
+        references = "、".join(fr_ids)
+        rows.append(
+            f"| {_table_cell(role)} | 执行 {references} 已定义的业务动作 | {references} | "
+            f"对应业务规则和验收结果 | 见对应 FR 权限要求；统一权限范围【待确认】 |"
+        )
+    return "\n".join(rows)
+
+
+def _render_scenarios(profile: DomainProfile, requirements: list[LegacyRequirement]) -> str:
+    rows = ["| 场景编号 | 场景名称 | 参与角色 | 触发条件 | 期望结果 |", "| --- | --- | --- | --- | --- |"]
+    for index, requirement in enumerate(requirements, start=1):
+        rows.append(
+            f"| SCN-{profile.code}-{index:03d} | {_table_cell(requirement.title)} | "
+            f"{_table_cell(_metadata(requirement, '参与角色'))} | "
+            f"{_table_cell(_metadata(requirement, '业务场景'))} | 满足 {_acceptance_ids(requirement)} |"
+        )
+    return "\n".join(rows)
+
+
+def _render_core_objects(profile: DomainProfile) -> str:
+    narrative = _domain_narrative(profile)
+    lifecycle = "→".join(narrative.lifecycle)
+    rows = ["| 对象 | 业务含义 | 唯一标识 | 关键关系 | 生命周期 | 数据责任方 |", "| --- | --- | --- | --- | --- | --- |"]
+    for item in narrative.objects:
+        rows.append(
+            f"| 【建议】{item} | 【建议】由本领域 FR 的标题、业务目标和数据要求归纳 | "
+            f"【待确认】legacy 未提供统一标识 | 见各 FR | 【建议】{lifecycle} | {profile.name} |"
+        )
+    return "\n".join(rows)
+
+
+def _render_lifecycle(profile: DomainProfile) -> str:
+    stages = _domain_narrative(profile).lifecycle
+    rows = ["| 阶段 | 阶段目标 | 主要活动 | 输入 | 输出 | 完成标准 |", "| --- | --- | --- | --- | --- | --- |"]
+    for index, stage in enumerate(stages):
+        prior = "本领域 FR 定义的业务输入" if index == 0 else f"上一阶段“{stages[index - 1]}”的结果"
+        rows.append(
+            f"| 【建议】{stage} | 【建议】推进{profile.name}业务闭环 | 见本阶段相关 FR | "
+            f"【建议】{prior} | 【建议】本阶段业务结果与留痕 | 满足相关 FR 的 AC |"
+        )
+    return "\n".join(rows)
+
+
+def _render_evolution_scope(profile: DomainProfile, evolution_items: list[EvolutionItem]) -> str:
+    if not profile.evolution_ids:
+        return "- 无已登记演进项。"
+    selected = {item.fr_id: item for item in evolution_items}
+    rows = [
+        "以下演进方向不纳入当前开发验收：",
+        "",
+        "| legacy FR | 标题 | 来源 | 版本 | 优先级 | 演进目标 | 数据前提 | 控制边界 | 人工责任 | 当前边界 |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for fr_id in profile.evolution_ids:
+        item = selected.get(fr_id)
+        title = _normalize_business_terms(item.title) if item else f"{UNKNOWN}演进方向"
+        metadata = item.metadata if item else {}
+        sources = metadata.get("来源") or (",".join(item.source_ids) if item and item.source_ids else f"{UNKNOWN}来源")
+        target = metadata.get("演进目标", f"{UNKNOWN}演进目标")
+        data_prerequisite = metadata.get("数据前提", f"{UNKNOWN}数据前提")
+        control_boundary = metadata.get("控制边界", f"{UNKNOWN}控制边界")
+        human_responsibility = metadata.get("人工责任", f"{UNKNOWN}人工责任")
+        source_commitment = metadata.get("当前承诺", f"{UNKNOWN}当前承诺")
+        current_boundary = f"{source_commitment} 明确：不纳入当前开发验收"
+        rows.append(
+            f"| {fr_id} | {_table_cell(title)} | {_table_cell(sources)} | {item.version if item else 'V3'} | "
+            f"{item.priority if item else 'P3'} | {_table_cell(target)} | {_table_cell(data_prerequisite)} | "
+            f"{_table_cell(control_boundary)} | {_table_cell(human_responsibility)} | {_table_cell(current_boundary)} |"
+        )
+    return "\n".join(rows)
+
+
+def _interaction_systems(requirement: LegacyRequirement) -> tuple[str, ...]:
+    interaction_text = "\n".join(
+        (
+            requirement.metadata.get("业务场景", ""),
+            requirement.sections.get("业务目标", ""),
+            requirement.sections.get("主流程", ""),
+            requirement.sections.get("输出与后置条件", ""),
+        )
+    ).upper()
+    return tuple(system for system in EXTERNAL_SYSTEMS if system in interaction_text)
+
+
+def _render_external_interactions(profile: DomainProfile, requirements: list[LegacyRequirement]) -> str:
+    rows = [
+        "| 交互编号 | 外部系统 | 业务目的 | 数据范围 | 方向／频率 | 失败时业务要求 |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    if profile.code == "PLT":
+        rows.append(
+            "| 不适用 | 业务特定外部系统由对象 Owner 领域定义 | "
+            "FR-PLT-009 仅提供通用集成、事件、幂等和补偿机制 | 通用批次、来源映射和处理证据 | "
+            "由对象 Owner 领域定义 | 按 FR-PLT-009 保留失败明细并支持补偿 |"
+        )
+        return "\n".join(rows)
+    interaction_requirements = [requirement for requirement in requirements if _interaction_systems(requirement)]
+    for index, requirement in enumerate(interaction_requirements, start=1):
+        systems = "／".join(_interaction_systems(requirement))
+        rows.append(
+            f"| IR-{profile.code}-{index:03d} | {systems} | 承接 {requirement.fr_id}“{_table_cell(requirement.title)}”的业务交互 | "
+            f"见 {requirement.fr_id} 输入和数据要求 | 【待确认】legacy 未统一定义方向／频率 | "
+            f"执行 {requirement.fr_id} 分支与异常要求并保留失败证据 |"
+        )
+    if profile.code == "PROJ":
+        rows.append(
+            f"| IR-PROJ-{len(interaction_requirements) + 1:03d} | CRM／ERP | "
+            "承接 FR-PROJ-008、FR-PROJ-011 的项目、合同、订单及订单行业务交互；通用传输机制追溯 FR-PLT-009 | "
+            "项目承接证据、项目主档、合同、订单和订单行实施范围 | "
+            "【待确认】legacy 未统一定义方向／频率 | "
+            "按 FR-PROJ-008、FR-PROJ-011 保留原始证据、待处理状态和失败原因 |"
+        )
+    if not interaction_requirements:
+        rows.append("| 不适用 | 本领域正式 FR 未定义业务特定外部系统交互 | 不适用 | 不适用 | 不适用 | 不适用 |")
+    return "\n".join(rows)
+
+
+def _render_metrics(profile: DomainProfile, requirements: list[LegacyRequirement]) -> str:
+    metric_requirements = [
+        requirement
+        for requirement in requirements
+        if re.search(r"统计|看板|报表|指标|分析", requirement.title)
+    ]
+    rows = [
+        "| 指标编号 | 指标名称 | 业务口径 | 数据范围 | 更新频率 | 展示／导出要求 |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for index, requirement in enumerate(metric_requirements, start=1):
+        rows.append(
+            f"| MET-{profile.code}-{index:03d} | {_table_cell(requirement.title)} | "
+            f"见 {requirement.fr_id} 业务规则和验收标准 | 见 {requirement.fr_id} 数据要求 | "
+            f"【待确认】legacy 未统一定义更新频率 | 见 {requirement.fr_id} 输出要求 |"
+        )
+    if not metric_requirements:
+        rows.append("| 不适用 | 本领域正式 FR 未定义独立报表或指标 | 不适用 | 不适用 | 不适用 | 不适用 |")
+    return "\n".join(rows)
+
+
+def _render_traceability(requirements: list[LegacyRequirement]) -> str:
+    rows = ["| 目标／来源 | 需求编号 | 验收标准 | 设计编号 | 测试用例 | 状态 |", "| --- | --- | --- | --- | --- | --- |"]
+    for requirement in requirements:
+        rows.append(
+            f"| {_source_ids(requirement)} | {requirement.fr_id} | {_acceptance_ids(requirement)} | "
+            "【待确认】待后续 SDS 建立 | 【待确认】待后续 TAS 建立 | 已迁移 |"
+        )
+    return "\n".join(rows)
+
+
+def _apply_platform_integration_owner_boundary(requirement: LegacyRequirement) -> LegacyRequirement:
+    if requirement.fr_id != "FR-PLT-009":
+        return requirement
+    metadata = dict(requirement.metadata)
+    metadata["业务场景"] = "与外部系统交换数据，并支持平台内部领域事件联动"
+    sections = dict(requirement.sections)
+    dependency = next(
+        (line for line in sections["前置条件"].splitlines() if "依赖条件" in line),
+        f"- 依赖条件：{UNKNOWN}依赖条件。",
+    )
+    sections["前置条件"] = "\n".join(
+        (
+            "- 用户已登录且具有“集成中心”相应功能权限和集成数据权限。",
+            dependency,
+            "- 必要字典数据和集成配置处于有效状态。",
+        )
+    )
+    sections["主流程"] = (
+        sections["主流程"]
+        .replace("选择对应项目或集成中心", "选择对应集成任务或集成中心")
+        .replace("项目数据范围", "集成数据权限范围")
+        .replace("关联对象和权限校验", "目标对象 Owner 和权限校验")
+        .replace("按字段所有权写入对应业务域", "经目标对象 Owner 校验后提交至对应业务域")
+    )
+    sections["业务规则"] = (
+        sections["业务规则"]
+        .replace("合同/订单编号后缀", "业务编号后缀")
+        .replace(
+            "不得使用集成关系直接覆盖平台内已确认的项目范围、设备归属或审批结果",
+            "不得使用集成关系绕过目标对象 Owner 校验或覆盖其已确认业务数据和审批结果",
+        )
+    )
+    sections["数据要求"] = "\n".join(
+        line
+        for line in sections["数据要求"].splitlines()
+        if not line.startswith("- 项目关联：") and not line.startswith("- 文件元数据：")
+    )
+    sections["权限、通知与审计"] = (
+        sections["权限、通知与审计"]
+        .replace(
+            "数据权限按组织、区域、项目层级、项目成员和任务归属共同计算",
+            "涉及目标业务对象的访问和变更必须由对象 Owner 领域校验",
+        )
+    )
+    sections["验收标准"] = sections["验收标准"].replace(
+        "来源记录无法唯一关联项目、合同或订单行",
+        "来源记录无法唯一关联目标业务对象",
+    )
+    return replace(requirement, metadata=metadata, sections=sections)
+
+
+def _extract_data_items(data_text: str) -> list[tuple[str, str]]:
+    items: list[tuple[str, str]] = []
+    for line in data_text.splitlines():
+        match = re.match(r"^-\s+(?!\*\*(?:DR|BR|AC)-)(?:\*\*)?([^：*]+?)(?:\*\*)?：\s*(.+)$", line.strip())
+        if match:
+            items.append((match.group(1).strip(), match.group(2).strip()))
+    return items
+
+
+def _extract_numbered_rules(text: str, prefix: str) -> list[tuple[str, str]]:
+    pattern = re.compile(rf"^[-*]\s+\*\*({prefix}-[A-Z]+-\d{{3}})：\*\*\s*(.+)$", re.MULTILINE)
+    return [(identifier, content.strip()) for identifier, content in pattern.findall(text)]
+
+
+def _infer_required(rule: str) -> str:
+    if re.search(r"非必填|选填|可选|可为空|允许为空", rule):
+        return "否"
+    if re.search(r"必填|不得为空|不能为空", rule):
+        return "是"
+    return "【待确认】"
+
+
+def _infer_sensitivity(rule: str) -> str:
+    if "敏感" in rule:
+        return "敏感"
+    if "公开" in rule:
+        return "公开"
+    return "【待确认】"
+
+
+def _render_basic_information(profile: DomainProfile, requirement: LegacyRequirement) -> str:
+    source_marker = _metadata(requirement, "来源标识", fallback=f"{UNKNOWN}来源标识")
+    rows = (
+        ("用例编号", _metadata(requirement, "用例编号")),
+        ("来源需求", _metadata(requirement, "来源需求")),
+        ("所属模块", profile.name),
+        ("适用版本", _metadata(requirement, "所属版本", "适用版本")),
+        ("优先级／复杂度", _metadata(requirement, "优先级／复杂度")),
+        ("需求状态", f"{UNKNOWN}需求状态"),
+        ("参与角色", _metadata(requirement, "参与角色")),
+        ("业务场景", _metadata(requirement, "业务场景")),
+        ("依赖需求", _dependency_value(_section(requirement, "前置条件", ""))),
+        ("来源标识", source_marker),
+    )
+    return "\n".join(["| 字段 | 内容 |", "| --- | --- |", *(f"| {key} | {value} |" for key, value in rows)])
+
+
+def _dependency_value(preconditions: str) -> str:
+    for line in preconditions.splitlines():
+        if "依赖条件" in line:
+            value = re.split(r"依赖条件\s*[：:]", line, maxsplit=1)
+            if len(value) == 1:
+                return f"{UNKNOWN}依赖条件原文格式"
+            dependency = _normalize_business_terms(value[1].strip().rstrip("。"))
+            if re.fullmatch(r"无|不适用|无需", dependency):
+                return "无"
+            identifiers = IDENTIFIER_RE.findall(dependency)
+            non_identifiers = IDENTIFIER_RE.sub("", dependency)
+            if identifiers and not re.sub(r"[,，、;；\s]", "", non_identifiers):
+                return ",".join(identifiers)
+            return dependency or f"{UNKNOWN}依赖条件"
+    return f"{UNKNOWN}依赖需求"
+
+
+def _render_preconditions(requirement: LegacyRequirement) -> str:
+    lines = [line[2:].strip() for line in _section(requirement, "前置条件", "").splitlines() if line.startswith("- ")]
+    permission = next((line for line in lines if "权限" in line or "登录" in line), f"{UNKNOWN}用户和权限条件。")
+    dependencies = [line for line in lines if "依赖条件" in line]
+    remaining = [line for line in lines if line != permission and line not in dependencies]
+    data = "；".join(remaining) if remaining else f"{UNKNOWN}数据和状态条件。"
+    dependency = _dependency_value(_section(requirement, "前置条件", ""))
+    return "\n".join(
+        (
+            f"- 触发条件：{_metadata(requirement, '业务场景', fallback=f'{UNKNOWN}触发条件。')}",
+            f"- 用户和权限条件：{permission}",
+            f"- 数据和状态条件：{data}",
+            f"- 外部依赖条件：{dependency}",
+        )
+    )
+
+
+def _render_input(requirement: LegacyRequirement) -> str:
+    items = _extract_data_items(_section(requirement, "数据要求", ""))
+    rows = ["| 输入项 | 来源 | 必填 | 校验规则 | 备注 |", "| --- | --- | --- | --- | --- |"]
+    for name, rule in items:
+        required = _infer_required(rule)
+        rows.append(f"| {name} | {UNKNOWN}输入来源 | {required} | {rule} | 由 legacy 数据要求迁移 |")
+    if not items:
+        rows.append(f"| 不适用 | legacy 未提供可结构化输入项 | 不适用 | {UNKNOWN}输入规则 | 未从模板反推输入 |")
+    return "\n".join(rows)
+
+
+def _render_state(requirement: LegacyRequirement) -> str:
+    state = _section(requirement, "状态流转", f"{UNKNOWN}状态流转；legacy 未提供状态说明。")
+    if state.lstrip().startswith("|"):
+        return state
+    return "\n".join(
+        (
+            state,
+            "",
+            "| 当前状态 | 业务动作 | 目标状态 | 执行角色 | 前置条件 | 失败处理 |",
+            "| --- | --- | --- | --- | --- | --- |",
+            "| 不适用 | legacy 状态说明为非结构化文本 | 不适用 | 不适用 | 不适用 | 未转换为状态迁移行 |",
+        )
+    )
+
+
+def _render_rules(requirement: LegacyRequirement) -> str:
+    rules = _extract_numbered_rules(_section(requirement, "业务规则", ""), "BR")
+    rows = ["| 规则编号 | 规则内容 | 适用条件 | 例外条件 |", "| --- | --- | --- | --- |"]
+    rows.extend(
+        f"| {identifier} | {content.replace('|', '／')} | {UNKNOWN}适用条件 | {UNKNOWN}例外条件 |"
+        for identifier, content in rules
+    )
+    if not rules:
+        rows.append("| 不适用 | legacy 规格未定义独立业务规则 | 不适用 | 无 |")
+    return "\n".join(rows)
+
+
+def _render_data(requirement: LegacyRequirement) -> str:
+    data_text = _section(requirement, "数据要求", "")
+    items = _extract_data_items(data_text)
+    rows = ["| 数据项 | 业务含义 | 必填 | 来源 | 校验／唯一性规则 | 敏感级别 |", "| --- | --- | --- | --- | --- | --- |"]
+    for name, rule in items:
+        required = _infer_required(rule)
+        sensitivity = _infer_sensitivity(rule)
+        rows.append(
+            f"| {name} | {UNKNOWN}业务含义 | {required} | {UNKNOWN}数据来源 | "
+            f"{rule.replace('|', '／')} | {sensitivity} |"
+        )
+    for identifier, content in _extract_numbered_rules(data_text, "DR"):
+        rows.append(
+            f"| {identifier} | 数据规则 | 【待确认】 | {UNKNOWN}数据来源 | "
+            f"{content.replace('|', '／')} | {_infer_sensitivity(content)} |"
+        )
+    if len(rows) == 2:
+        rows.append(f"| 不适用 | legacy 未提供可结构化数据项 | 不适用 | {UNKNOWN}数据来源 | {UNKNOWN}数据规则 | 【待确认】 |")
+    return "\n".join(rows)
+
+
+def _render_requirement(profile: DomainProfile, requirement: LegacyRequirement) -> str:
+    if profile.code == "PLT":
+        requirement = _apply_platform_integration_owner_boundary(requirement)
+    permissions = _section(requirement, "权限、通知与审计", f"- {UNKNOWN}权限、通知与业务留痕要求。")
+    return f"""### {requirement.fr_id} {_normalize_business_terms(requirement.title)}
+
+#### 基本信息
+
+{_render_basic_information(profile, requirement)}
+
+#### 业务目标
+
+{_section(requirement, "业务目标")}
+
+#### 触发条件与前置条件
+
+{_render_preconditions(requirement)}
+
+#### 输入
+
+{_render_input(requirement)}
+
+#### 主流程
+
+{_section(requirement, "主流程")}
+
+#### 分支与异常
+
+{_section(requirement, "分支与异常")}
+
+#### 状态流转（按需）
+
+{_render_state(requirement)}
+
+#### 业务规则
+
+{_render_rules(requirement)}
+
+#### 数据要求
+
+{_render_data(requirement)}
+
+#### 权限、通知与业务留痕
+
+{permissions}
+
+#### 输出与后置条件
+
+{_section(requirement, "输出与后置条件")}
+
+#### 验收标准
+
+{_section(requirement, "验收标准")}
+"""
+
+
+ORIGINAL_SECTION_ORDER = (
+    "业务目标",
+    "前置条件",
+    "主流程",
+    "分支与异常",
+    "状态流转",
+    "业务规则",
+    "数据要求",
+    "权限、通知与审计",
+    "输出与后置条件",
+    "验收标准",
+)
+
+ORIGINAL_METADATA_ORDER = (
+    "用例编号",
+    "来源需求",
+    "所属版本",
+    "优先级／复杂度",
+    "参与角色",
+    "业务场景",
+    "来源标识",
+)
+
+
+def _render_original_requirement(requirement: LegacyRequirement) -> str:
+    metadata = "<br>\n".join(
+        f"**{name}：** {_metadata(requirement, name, fallback=f'{UNKNOWN}{name}')}"
+        for name in ORIGINAL_METADATA_ORDER
+    )
+    sections = "\n\n".join(
+        f"### {name}\n\n{_section(requirement, name, fallback=f'{UNKNOWN}{name}。')}"
+        for name in ORIGINAL_SECTION_ORDER
+    )
+    return _normalize_business_terms(
+        f"## {requirement.fr_id} {requirement.title}\n\n{metadata}\n\n{sections}"
+    )
+
+
+def _render_original_evolution(item: EvolutionItem) -> str:
+    return _normalize_business_terms(f"### {item.fr_id} {item.title}\n\n{item.body.strip()}")
+
+
+def render_srs(
+    profile: DomainProfile,
+    requirements: list[LegacyRequirement],
+    evolution_items: list[EvolutionItem] | None = None,
+) -> str:
+    """Render one domain document using the original five-part volume format."""
+    selected = {requirement.fr_id: requirement for requirement in requirements}
+    ordered = [selected[fr_id] for fr_id in profile.fr_ids if fr_id in selected]
+    selected_evolution = {
+        item.fr_id: item for item in (evolution_items or []) if item.fr_id in profile.evolution_ids
+    }
+    ordered_evolution = [selected_evolution[fr_id] for fr_id in profile.evolution_ids if fr_id in selected_evolution]
+    function_rows = "\n".join(
+        f"| {item.fr_id} | {_metadata(item, '来源需求')} | {_normalize_business_terms(item.title)} | "
+        f"{_metadata(item, '所属版本')} | {_metadata(item, '优先级／复杂度').split('／')[0]} |"
+        for item in ordered
+    )
+    detail = "\n\n".join(_render_original_requirement(item) for item in ordered)
+    evolution_section = ""
+    if ordered_evolution:
+        evolution_detail = "\n\n".join(_render_original_evolution(item) for item in ordered_evolution)
+        evolution_section = f"\n\n# 4. V3演进范围\n\n{evolution_detail}"
+
+    document = f"""# {profile.code}领域需求规格：{profile.name}
+
+> 文档状态：评审基线<br>
+> 实现边界：{profile.code}（{profile.name}）领域；物理模块见技术约束<br>
+> 技术约束：`appendices/module-boundary-and-naming.md`、`appendices/api-design-specification.md`<br>
+> 详细需求：{len(ordered)}项；V3演进：{len(ordered_evolution)}项
+
+## 1. 领域目标与边界
+
+{profile.responsibility}。
+
+本分册只完整定义本领域拥有的业务规则、数据和验收标准；其他领域通过依赖、输入、输出或事件引用，不复制 Owner 定义。
+
+## 2. 需求清单
+
+| 功能编号 | 来源 | 名称 | 版本 | 优先级 |
+| --- | --- | --- | --- | --- |
+{function_rows}
+
+## 3. 详细功能规格
+
+{detail}{evolution_section}
+
+# 5. 领域验收门禁
+
+- 本领域 V1、V2 功能均已映射至来源需求和验收编号。
+- 所有状态变化、权限拒绝、并发冲突和重复提交均具有测试证据。
+- 跨领域写入只通过应用服务、API 或事件完成，不直接访问其他领域业务表。
+- 所有【待确认】项在对应功能进入开发前形成书面决策。
+"""
+    return _normalize_business_terms(document)
+
+
+def build_migration_records(
+    root: Path,
+) -> tuple[list[MigrationRecord], list[EvolutionMigrationRecord]]:
+    formal, evolution = load_legacy_requirements(root)
+    owners = {fr_id: profile for profile in DOMAIN_PROFILES for fr_id in profile.fr_ids + profile.evolution_ids}
+    formal_records: list[MigrationRecord] = []
+    for requirement in formal:
+        source = ",".join(requirement.source_ids) or _metadata(requirement, "来源需求")
+        profile = owners[requirement.fr_id]
+        evidence = f"{requirement.source_path.name}#{requirement.fr_id}；acceptance-traceability.md"
+        formal_records.append(
+            MigrationRecord(
+                requirement.fr_id,
+                source,
+                f"{profile.code}（{profile.name}）",
+                "MOVE",
+                "保留",
+                evidence,
+            )
+        )
+    evolution_records: list[EvolutionMigrationRecord] = []
+    for item in evolution:
+        profile = owners[item.fr_id]
+        source = ",".join(item.source_ids) or "无"
+        evidence = f"{item.source_path.name}#{item.fr_id}"
+        evolution_records.append(
+            EvolutionMigrationRecord(
+                item.fr_id,
+                source,
+                f"{profile.code}（{profile.name}）",
+                "DEFER",
+                "保留",
+                "不纳入当前开发验收",
+                evidence,
+            )
+        )
+    return formal_records, evolution_records
+
+
+def render_migration_matrix(root: Path) -> str:
+    formal_records, evolution_records = build_migration_records(root)
+    formal_rows = [
+        f"| {record.fr_id} | {record.source} | {record.owner} | {record.disposition} | "
+        f"{record.numbering} | {record.evidence} |"
+        for record in formal_records
+    ]
+    evolution_rows = [
+        f"| {record.fr_id} | {record.source} | {record.owner} | {record.disposition} | "
+        f"{record.numbering} | {record.boundary} | {record.evidence} |"
+        for record in evolution_records
+    ]
+    return """# 需求逐项迁移矩阵
+
+> 基线：148 条 `REQ-*`、145 项正式 FR、7 项演进项。正式 FR 仅调整权威 Owner，处置统一为 `MOVE`，语义及 FR/BR/DR/AC 编号保持不变。
+
+## 1. 正式 FR 迁移
+
+| legacy FR | 来源 REQ／决策 | 目标领域 | 处置 | 编号动作 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+""" + "\n".join(formal_rows) + """
+
+## 2. 演进项
+
+| legacy FR | 来源 REQ | 目标领域 | 处置 | 编号动作 | 当前边界 | 证据 |
+| --- | --- | --- | --- | --- | --- | --- |
+""" + "\n".join(evolution_rows) + "\n"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="迁移 legacy 分卷为领域 SRS，或生成逐项迁移矩阵")
+    parser.add_argument("--root", type=Path, default=Path("specs/001-project-delivery-platform"))
+    parser.add_argument("--write-matrix", action="store_true")
+    parser.add_argument("--write-domains", action="store_true")
+    args = parser.parse_args()
+    formal, evolution = load_legacy_requirements(args.root)
+    if args.write_matrix:
+        target = args.root / "appendices" / "requirement-migration.md"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(render_migration_matrix(args.root), encoding="utf-8")
+        print(f"WROTE {target}: formal={len(formal)}, evolution=7")
+    if args.write_domains:
+        target_dir = args.root / "domains"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for profile in DOMAIN_PROFILES:
+            target = target_dir / profile.filename
+            target.write_text(render_srs(profile, formal, evolution), encoding="utf-8")
+            print(f"WROTE {target}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

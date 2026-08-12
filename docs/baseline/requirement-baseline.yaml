@@ -1,0 +1,36 @@
+baseline:
+  product: project-delivery-platform
+  version: V1.6
+  status: formal-baseline
+  frozen_at: 2026-08-12
+  source: 需求/PRD-项目实施交付管理平台.md
+  snapshot: docs/baseline/prd-v1.6.md
+  sha256: CEE9DF66B3D1B04B1ABCB737AE4CEB3FA06DC77706957A653D6DA02F1B4AE811
+
+scope:
+  formal_requirements: 115
+  v1: 57
+  v2: 58
+  v3_evolution_trace: 22
+  out_of_scope_trace: 9
+  v3_implementation: false
+  out_of_scope_implementation: false
+
+ownership:
+  domain_count: 13
+  owner_rule: prd-derived-working-mapping; formal-approval-pending
+  domain_source: docs/design/phase-1-domain-ownership.md
+  historical_reference: specs/001-project-delivery-platform/domains/ (reference-only)
+  authority: 需求/PRD-项目实施交付管理平台.md
+
+validation:
+  semantic: "py -3.13 -B scripts/validate_prd_semantics.py --prd 需求/PRD-项目实施交付管理平台.md"
+  domain_generation: "py -3.13 -B scripts/validate_prd_domain_generation.py --prd 需求/PRD-项目实施交付管理平台.md --domains specs/001-project-delivery-platform/domains"
+  unit: "py -3.13 -B scripts/tests/test_validate_prd_semantics.py"
+  format: "git diff --check"
+  migration_release: AI-MIG-000-required-before-production-migration
+
+change_policy:
+  require_change_request: true
+  requirement: CHG-01
+  regenerate_snapshot_after_change: true

@@ -1,0 +1,30 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-08-05T03:45:54.110Z",
+  "ddlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
+  "ddlTableCount": 52,
+  "ddlColumnCount": 1076,
+  "commentedColumnCount": 1076,
+  "invalidCommentCount": 0,
+  "semanticSourceRowCount": 197,
+  "semanticCanonicalCount": 108,
+  "physicalEvidenceRowCount": 3931,
+  "physicalCanonicalFieldCount": 3908,
+  "schemaBusinessElementCount": 82,
+  "coreMappedFieldCount": 326,
+  "physicalDispositionCounts": {
+    "LINEAGE": 25,
+    "STRUCTURED": 284,
+    "PAYLOAD": 42,
+    "RELATION": 30,
+    "SOURCE_ONLY": 2859,
+    "PLATFORM_REPLACED": 691
+  },
+  "invalidTargetCount": 0,
+  "forbiddenTargetNameCount": 0,
+  "forbiddenSnapshotNameCount": 0,
+  "verboseRuleCommentCount": 0,
+  "commonCommentMismatchCount": 0,
+  "companyDepartmentPairMissingCount": 0,
+  "invalidTargets": []
+}

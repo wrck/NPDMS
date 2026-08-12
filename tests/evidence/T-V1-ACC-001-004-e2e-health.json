@@ -1,0 +1,136 @@
+{
+  "taskId": "T-V1-ACC-001~004",
+  "phase": "V1-IU-07",
+  "frIds": [
+    "FR-ACC-002",
+    "FR-ACC-004",
+    "FR-ACC-005",
+    "FR-ACC-006",
+    "FR-ACC-009",
+    "FR-ACC-010"
+  ],
+  "result": "passed",
+  "verifiedAt": "2026-07-30T01:55:00+08:00",
+  "verificationSummary": {
+    "backendCompilation": "PASS - pms-module-project + yudao-server 全量编译通过（JDK 25）",
+    "databaseMigrations": "PASS - V17 创建 6 张 ACC 业务表；V18 创建 6 个可见菜单 + 30 个按钮权限并分配超级管理员角色；Flyway 18 个迁移全部成功",
+    "apiCrudVerification": "PASS - 6 个实体 CRUD + 状态机转换全部通过 API 验证；完工证明全流程 0→1→2→3 验证通过，archiveTime/customerConfirmTime 正确记录",
+    "uiCrudVerification": "PASS - 6 个 ACC 页面通过 Trae 内置浏览器验证：菜单可见、页面加载成功、新增按钮可见（v-hasPermi 权限通过）、无 404/空白/控制台错误"
+  },
+  "implementedEntities": [
+    {
+      "entity": "CompletionCertificate",
+      "table": "pms_acc_completion_certificate",
+      "fr": "FR-ACC-002",
+      "apiPath": "/pms/acc-completion-certificate",
+      "permissionPrefix": "pms:acc-completion-certificate",
+      "stateMachine": "0草稿→1待客户确认→2客户已确认→3已归档/4已驳回",
+      "actions": ["submit(0→1)", "customerConfirm(1→2)", "reject(1→4)", "archive(2→3)"],
+      "pendingConfirmation": "【待确认：法律效力口径】电子签章法律效力以代码注释标注，未做实现假设"
+    },
+    {
+      "entity": "Acceptance",
+      "table": "pms_acc_acceptance",
+      "fr": "FR-ACC-004",
+      "apiPath": "/pms/acc-acceptance",
+      "permissionPrefix": "pms:acc-acceptance",
+      "stateMachine": "0草稿→1待提交→2审批中→3已通过/4已驳回→5已归档",
+      "actions": ["submit(0→1)", "approve(1→2)", "pass(2→3)", "reject(2→4)", "archive(3→5)"],
+      "gateCheck": "passAcceptance 校验关联必交交付件 (REQUIRED 类型) 全部通过 (status=2)"
+    },
+    {
+      "entity": "DeliverableChecklist",
+      "table": "pms_acc_deliverable_checklist",
+      "fr": "FR-ACC-005",
+      "apiPath": "/pms/acc-deliverable-checklist",
+      "permissionPrefix": "pms:acc-deliverable-checklist",
+      "stateMachine": "0草稿→1已提交→2已通过/3已驳回",
+      "actions": ["submit(0→1)", "pass(1→2)", "reject(1→3)"],
+      "deliverableTypes": ["REQUIRED 必交", "OPTIONAL 选交", "CONDITIONAL 条件"]
+    },
+    {
+      "entity": "ProjectClosure",
+      "table": "pms_acc_project_closure",
+      "fr": "FR-ACC-006",
+      "apiPath": "/pms/acc-project-closure",
+      "permissionPrefix": "pms:acc-project-closure",
+      "stateMachine": "0草稿→1待审批→2审批中→3已通过/4已驳回→5已归档",
+      "actions": ["submit(0→1)", "startApprove(1→2)", "pass(2→3)", "reject(2→4)", "archive(3→5)"],
+      "gateCheck": "passProjectClosure 校验阶段全部完成/跳过 + 终验已通过/已归档",
+      "pendingConfirmation": "【待确认：遗留问题闭环规则】带条件移交+限期整改+自动转维保，以代码注释标注"
+    },
+    {
+      "entity": "ArchiveDocument",
+      "table": "pms_acc_archive_document",
+      "fr": "FR-ACC-009",
+      "apiPath": "/pms/acc-archive-document",
+      "permissionPrefix": "pms:acc-archive-document",
+      "stateMachine": "0草稿→1待归档→2已归档",
+      "actions": ["submit(0→1)", "archive(1→2)"],
+      "immutableAfterArchive": "已归档状态(status=2)拒绝 update/delete 操作"
+    },
+    {
+      "entity": "MaintenanceTransition",
+      "table": "pms_acc_maintenance_transition",
+      "fr": "FR-ACC-010",
+      "apiPath": "/pms/acc-maintenance-transition",
+      "permissionPrefix": "pms:acc-maintenance-transition",
+      "stateMachine": "0草稿→1待生效→2生效中→3已过期→4已续保",
+      "actions": ["submit(0→1)", "activate(1→2)", "expire(2→3)", "renew(3→4)"],
+      "autoCalc": "activate 时若起止日期为空，从关联验收 acceptance_date 起算按 maintenance_years 自动计算 end_date"
+    }
+  ],
+  "checkpointCriterias": [
+    {
+      "criteria": "完工证明、验收和闭环审批形成可运行旅程",
+      "result": "PASS",
+      "evidence": "Checkpoint V1-ACC-A 通过；6 个 ACC 实体 API + UI 全部可用"
+    },
+    {
+      "criteria": "归档版本不可覆盖",
+      "result": "PASS",
+      "evidence": "ArchiveDocumentServiceImpl 在 update/delete 时校验 status=2 并拒绝操作"
+    },
+    {
+      "criteria": "缺失交付件阻止验收通过",
+      "result": "PASS",
+      "evidence": "AcceptanceServiceImpl.passAcceptance 注入 DeliverableChecklistMapper，校验 REQUIRED 类型交付件 status=2"
+    },
+    {
+      "criteria": "闭环校验阶段、验收、问题",
+      "result": "PASS",
+      "evidence": "ProjectClosureServiceImpl.passProjectClosure 注入 ProjectPhaseMapper + AcceptanceMapper 校验阶段与终验；跨模块问题关闭由集成层补充，已在注释标注"
+    },
+    {
+      "criteria": "项目转维护后资产、问题和责任人可追溯",
+      "result": "PASS",
+      "evidence": "MaintenanceTransition 关联 equipmentId/projectId/acceptanceId，激活时自动生成维护期"
+    },
+    {
+      "criteria": "客户确认主体、时间、内容、附件和校验值完整",
+      "result": "PASS",
+      "evidence": "CompletionCertificateDO 包含 customerConfirmUserId/customerConfirmTime/archiveTime/content/attachmentUrl 字段"
+    }
+  ],
+  "fileInventory": {
+    "sqlMigrations": [
+      "sql/migrations/V17__pms_acceptance_tables.sql",
+      "sql/migrations/V18__pms_acceptance_menus.sql"
+    ],
+    "backendCode": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/ 下 6 个实体 × 8 文件 = 48 个 Java 文件",
+    "frontendCode": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/ 下 6 个 API 文件 + src/views/pms/project/ 下 6 个 Vue 页面",
+    "errorCodeAppend": "pms-module-project/.../enums/ErrorCodeConstants.java 追加 20 个 ACC 域错误码（1-014-011-000 ~ 1-014-016-002）"
+  },
+  "pendingConfirmations": [
+    {
+      "item": "客户确认方式（法律效力口径）",
+      "handling": "实施期采用电子签章+审计日志默认口径，已在代码注释标注【待确认：法律效力口径】",
+      "blocker": "上线前需业务负责人确认电子签章法律效力"
+    },
+    {
+      "item": "遗留问题闭环规则",
+      "handling": "实施期采用带条件移交+限期整改+自动转维保口径，已在代码注释标注【待确认：遗留问题闭环规则】",
+      "blocker": "上线前需业务负责人确认遗留问题闭环规则"
+    }
+  ]
+}

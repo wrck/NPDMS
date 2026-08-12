@@ -1,0 +1,15 @@
+.git
+.gitignore
+._codex_work
+.superpowers
+.env
+.env.*
+**/.env
+**/.env.*
+**/.vscode
+**/node_modules
+**/dist
+**/dist-prod
+**/target
+coverage
+交付成果

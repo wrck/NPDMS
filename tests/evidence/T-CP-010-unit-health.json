@@ -1,0 +1,18 @@
+{
+    "taskId": "T-CP-010",
+    "frIds": [
+        "FR-PLT-010"
+    ],
+    "acceptanceIds": [
+        "T-CP-010-AC-001"
+    ],
+    "testType": "unit",
+    "command": "mvn clean verify -B (JAVA_HOME=jdk-25.0.1+8)",
+    "result": "passed",
+    "executedAt": "2026-07-29T05:17:52Z",
+    "evidence": [
+        "pom.xml",
+        "docs/development.md",
+        "tasks/todo.md"
+    ]
+}

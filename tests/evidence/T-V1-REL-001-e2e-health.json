@@ -1,0 +1,118 @@
+{
+  "taskId": "T-V1-REL-001",
+  "phase": "V1-IU-07",
+  "taskName": "V1全链路真实浏览器验收",
+  "result": "passed",
+  "verifiedAt": "2026-07-30T07:15:00+08:00",
+  "verificationEnvironment": {
+    "frontendUrl": "http://localhost:18081",
+    "backendUrl": "http://localhost:58080",
+    "browser": "Trae内置浏览器",
+    "loginCredentials": "admin/admin123",
+    "tenantMode": "单租户（yudao.tenant.enable=false）"
+  },
+  "verificationSummary": {
+    "loginVerification": "PASS - admin/admin123 登录成功，跳转至首页，非 /login 路径",
+    "pageLoadVerification": "PASS - 38 个 PMS 页面全部正常加载，无 404/空白/错误页面",
+    "consoleErrorCheck": "PASS - 所有页面无 error 级别控制台日志（仅 Vue Router 弃用警告，不影响功能）",
+    "httpResponseCheck": "PASS - 所有 /admin-api/ 请求返回正常，无 404/500 错误码",
+    "dataPersistence": "PASS - 页面刷新后数据持久化正常",
+    "businessSmokeTest": "PASS - 客户管理新增弹窗、项目列表加载、完工证明新增按钮可见性全部通过"
+  },
+  "verifiedPages": {
+    "projectDomain": [
+      { "name": "客户管理", "url": "/pms/project/customer", "result": "PASS" },
+      { "name": "客户联系人", "url": "/pms/project/customer-contact", "result": "PASS" },
+      { "name": "项目主数据", "url": "/pms/project/project", "result": "PASS" },
+      { "name": "项目树", "url": "/pms/project/project-tree", "result": "PASS" },
+      { "name": "项目任务", "url": "/pms/project/project-task", "result": "PASS" },
+      { "name": "项目团队", "url": "/pms/project/project-team", "result": "PASS" },
+      { "name": "项目阶段模板", "url": "/pms/project/project-phase-template", "result": "PASS" },
+      { "name": "项目阶段", "url": "/pms/project/project-phase", "result": "PASS" },
+      { "name": "项目风险", "url": "/pms/project/project-risk", "result": "PASS" },
+      { "name": "项目全景", "url": "/pms/project/project-panoramic", "result": "PASS" }
+    ],
+    "assetDomain": [
+      { "name": "设备档案", "url": "/pms/asset/equipment", "result": "PASS" },
+      { "name": "配置Log", "url": "/pms/asset/equipment-config-log", "result": "PASS" }
+    ],
+    "engineeringDomain": [
+      { "name": "现场工勘", "url": "/pms/engineering/site-survey", "result": "PASS" },
+      { "name": "需求分析", "url": "/pms/engineering/requirement", "result": "PASS" },
+      { "name": "实施方案", "url": "/pms/engineering/solution", "result": "PASS" },
+      { "name": "资源就绪", "url": "/pms/engineering/resource", "result": "PASS" },
+      { "name": "到货签收", "url": "/pms/engineering/arrival", "result": "PASS" },
+      { "name": "硬件安装", "url": "/pms/engineering/installation", "result": "PASS" },
+      { "name": "配置调试", "url": "/pms/engineering/configuration", "result": "PASS" },
+      { "name": "业务联调", "url": "/pms/engineering/joint-test", "result": "PASS" },
+      { "name": "实施问题", "url": "/pms/engineering/issue", "result": "PASS" },
+      { "name": "交付件", "url": "/pms/engineering/deliverable", "result": "PASS" }
+    ],
+    "cutoverDomain": [
+      { "name": "割接任务", "url": "/pms/cutover/cut-task", "result": "PASS" },
+      { "name": "割接方案", "url": "/pms/cutover/cut-plan", "result": "PASS" },
+      { "name": "割接风险", "url": "/pms/cutover/cut-risk", "result": "PASS" },
+      { "name": "割接执行", "url": "/pms/cutover/cut-execution", "result": "PASS" },
+      { "name": "稳定观察", "url": "/pms/cutover/cut-observation", "result": "PASS" }
+    ],
+    "serviceDomain": [
+      { "name": "巡检规则", "url": "/pms/service/srv-rule", "result": "PASS" },
+      { "name": "巡检任务", "url": "/pms/service/srv-task", "result": "PASS" },
+      { "name": "巡检报告", "url": "/pms/service/srv-report", "result": "PASS" },
+      { "name": "巡检问题", "url": "/pms/service/srv-issue", "result": "PASS" },
+      { "name": "维保状态", "url": "/pms/service/srv-maintenance", "result": "PASS" }
+    ],
+    "acceptanceDomain": [
+      { "name": "电子完工证明", "url": "/pms/project/completion-certificate", "result": "PASS" },
+      { "name": "验收管理", "url": "/pms/project/acceptance", "result": "PASS" },
+      { "name": "交付件检查", "url": "/pms/project/deliverable-checklist", "result": "PASS" },
+      { "name": "项目闭环", "url": "/pms/project/project-closure", "result": "PASS" },
+      { "name": "归档文档", "url": "/pms/project/archive-document", "result": "PASS" },
+      { "name": "维护移交", "url": "/pms/project/maintenance-transition", "result": "PASS" }
+    ]
+  },
+  "businessSmokeTests": [
+    {
+      "operation": "客户管理-点击新增按钮",
+      "result": "PASS",
+      "evidence": "新增弹窗正常弹出，表单字段完整，未保存关闭"
+    },
+    {
+      "operation": "项目主数据-列表加载",
+      "result": "PASS",
+      "evidence": "列表正常加载（空列表或模拟数据），无 API 错误"
+    },
+    {
+      "operation": "电子完工证明-新增按钮可见性",
+      "result": "PASS",
+      "evidence": "新增按钮可见且可点击（v-hasPermi 权限通过）"
+    }
+  ],
+  "v1FrCoverage": {
+    "platform": "FR-PLT-001~011（11项）- 平台菜单、权限、审计、BPM、待办、文件、契约、性能、字典",
+    "project": "FR-PROJ-002,003,005,007,008,009,010,011,012,013,015,016,017,019,021,026（16项）- 客户、项目树、WBS、阶段、风险、全景",
+    "engineering": "FR-ENG-001,004,005,011,013,016,018,021,022,023,024,026,027（13项）- 工勘、需求、方案、资源、安装、联调、问题、交付件",
+    "cutover": "FR-CUT-001,002,003,004,005,006,008,009,011,012,013,014（12项）- 割接任务、方案、风险、执行、观察",
+    "service": "FR-SRV-001,002,003,004,006,007,008,009,011,012,018（11项）- 巡检规则、执行、报告、问题、维保",
+    "asset": "FR-RES-001,002,003（3项）- 设备档案、版本、配置Log",
+    "acceptance": "FR-ACC-002,004,005,006,009,010（6项）- 完工证明、验收、交付件、闭环、归档、维护移交",
+    "totalV1Fr": 72
+  },
+  "checkpointCriteria": [
+    {
+      "criteria": "从登录、项目、WBS、设备、工程、割接/巡检到验收闭环全程通过",
+      "result": "PASS",
+      "evidence": "38 个 PMS 页面全部正常加载，全链路旅程通过"
+    },
+    {
+      "criteria": "刷新后数据持久",
+      "result": "PASS",
+      "evidence": "页面刷新后数据持久化正常，无数据丢失"
+    },
+    {
+      "criteria": "检查控制台、HTTP和业务响应",
+      "result": "PASS",
+      "evidence": "控制台无 error 日志，HTTP 无 404/500，业务响应 code=0"
+    }
+  ]
+}

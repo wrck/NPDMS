@@ -1,0 +1,18 @@
+﻿{
+    "taskId":  "T-CP-009",
+    "frIds":  [
+                  "FR-PLT-010"
+              ],
+    "acceptanceIds":  [
+                          "T-CP-009-AC-001"
+                      ],
+    "testType":  "contract",
+    "command":  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/e2e/verify-test-foundation.ps1 -Type contract",
+    "result":  "passed",
+    "executedAt":  "2026-07-29T05:11:46.3835660Z",
+    "evidence":  [
+                     "pom.xml",
+                     "tests/maven-fixture/pom.xml",
+                     "tests/e2e/verify-test-foundation.ps1"
+                 ]
+}

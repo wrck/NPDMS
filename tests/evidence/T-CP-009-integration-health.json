@@ -1,0 +1,18 @@
+﻿{
+    "taskId":  "T-CP-009",
+    "frIds":  [
+                  "FR-PLT-010"
+              ],
+    "acceptanceIds":  [
+                          "T-CP-009-AC-001"
+                      ],
+    "testType":  "integration",
+    "command":  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/e2e/verify-test-foundation.ps1 -Type integration",
+    "result":  "passed",
+    "executedAt":  "2026-07-29T05:11:40.4816848Z",
+    "evidence":  [
+                     "pom.xml",
+                     "tests/maven-fixture/pom.xml",
+                     "tests/e2e/verify-test-foundation.ps1"
+                 ]
+}

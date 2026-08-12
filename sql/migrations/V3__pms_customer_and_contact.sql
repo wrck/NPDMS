@@ -1,0 +1,45 @@
+CREATE TABLE `pms_customer` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '客户编号',
+  `code` varchar(64) NOT NULL COMMENT '全局唯一且不可变的客户编码',
+  `name` varchar(128) NOT NULL COMMENT '客户名称',
+  `short_name` varchar(64) DEFAULT NULL COMMENT '客户简称',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0启用，1停用',
+  `address` varchar(255) DEFAULT NULL COMMENT '地址',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `version` int NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
+  `creator` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updater` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
+  `tenant_id` bigint NOT NULL DEFAULT 0 COMMENT '租户编号',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_pms_customer_code` (`code`),
+  KEY `idx_pms_customer_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='PMS客户';
+
+CREATE TABLE `pms_customer_contact` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '联系人编号',
+  `customer_id` bigint NOT NULL COMMENT '客户编号',
+  `name` varchar(64) NOT NULL COMMENT '姓名',
+  `department` varchar(64) DEFAULT NULL COMMENT '部门',
+  `title` varchar(64) DEFAULT NULL COMMENT '职务',
+  `mobile` varchar(32) DEFAULT NULL COMMENT '手机',
+  `phone` varchar(32) DEFAULT NULL COMMENT '电话',
+  `email` varchar(128) DEFAULT NULL COMMENT '邮箱',
+  `primary_flag` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否主联系人',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0启用，1停用',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `version` int NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
+  `creator` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updater` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
+  `tenant_id` bigint NOT NULL DEFAULT 0 COMMENT '租户编号',
+  `active_primary_customer_id` bigint GENERATED ALWAYS AS
+    (CASE WHEN (`deleted` = b'0' AND `status` = 0 AND `primary_flag` = b'1') THEN `customer_id` ELSE NULL END) STORED,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_pms_contact_active_primary` (`active_primary_customer_id`),
+  KEY `idx_pms_contact_customer` (`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='PMS客户联系人';

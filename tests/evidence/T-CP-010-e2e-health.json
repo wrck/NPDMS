@@ -1,0 +1,18 @@
+{
+    "taskId": "T-CP-010",
+    "frIds": [
+        "FR-PLT-010"
+    ],
+    "acceptanceIds": [
+        "T-CP-010-AC-001"
+    ],
+    "testType": "e2e",
+    "command": "docker compose -p npms up -d; browser login smoke test at http://localhost:8080 with admin/admin123",
+    "result": "passed",
+    "executedAt": "2026-07-29T05:26:20Z",
+    "evidence": [
+        "compose.yaml",
+        "docs/development.md",
+        "tests/evidence/T-CP-010-unit-health.json"
+    ]
+}

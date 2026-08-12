@@ -1,0 +1,881 @@
+<template>
+  <div class="project-list-page">
+    <!-- ============ 顶部状态卡 ============ -->
+    <div class="status-cards">
+      <div
+        v-for="card in statusCards"
+        :key="card.key"
+        class="status-card"
+        :class="[
+          `status-card--${card.tone}`,
+          { 'status-card--active': activeStatus === card.value }
+        ]"
+        @click="toggleStatusFilter(card.value)"
+      >
+        <div class="status-card-icon">
+          <Icon :icon="card.icon" />
+        </div>
+        <div class="status-card-body">
+          <div class="status-card-num">{{ card.count }}</div>
+          <div class="status-card-label">{{ card.label }}</div>
+        </div>
+        <div class="status-card-strip"></div>
+      </div>
+    </div>
+
+    <!-- ============ 中间筛选条件 + 操作按钮 ============ -->
+    <ContentWrap class="filter-wrap">
+      <el-form ref="queryFormRef" :model="query" inline class="filter-form">
+        <el-form-item label="项目编码" prop="code">
+          <el-input
+            v-model="query.code"
+            placeholder="请输入项目编码"
+            clearable
+            class="!w-200px"
+            @keyup.enter="handleSearch"
+          />
+        </el-form-item>
+        <el-form-item label="项目名称" prop="name">
+          <el-input
+            v-model="query.name"
+            placeholder="请输入项目名称"
+            clearable
+            class="!w-220px"
+            @keyup.enter="handleSearch"
+          />
+        </el-form-item>
+        <el-form-item label="项目状态" prop="status">
+          <el-select v-model="query.status" placeholder="全部" clearable class="!w-140px">
+            <el-option
+              v-for="dict in getIntDictOptions(DICT_TYPE.PMS_PROJECT_STATUS)"
+              :key="dict.value"
+              :label="dict.label"
+              :value="dict.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="项目分类" prop="category">
+          <el-select v-model="query.category" placeholder="全部" clearable class="!w-140px">
+            <el-option
+              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
+              :key="dict.value"
+              :label="dict.label"
+              :value="dict.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="重大项目" prop="majorProjectFlag">
+          <el-select v-model="query.majorProjectFlag" placeholder="全部" clearable class="!w-120px">
+            <el-option :value="true" label="是" />
+            <el-option :value="false" label="否" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="项目经理" prop="managerUserId">
+          <PmsEntitySelect
+            v-model="query.managerUserId"
+            :api="UserApi.getUserPage"
+            label-field="nickname"
+            value-field="id"
+            query-field="nickname"
+            placeholder="请选择用户"
+            class="!w-180px"
+          />
+        </el-form-item>
+        <el-form-item class="filter-actions">
+          <el-button type="primary" @click="handleSearch">
+            <Icon icon="ep:search" />查询
+          </el-button>
+          <el-button @click="handleReset">
+            <Icon icon="ep:refresh-left" />重置
+          </el-button>
+          <el-button
+            type="primary"
+            plain
+            @click="openClassify()"
+            v-hasPermi="['pms:project:update']"
+            :disabled="!selectedProject"
+          >
+            <Icon icon="ep:collection" />项目分类
+          </el-button>
+          <el-button
+            type="success"
+            plain
+            @click="openAssign()"
+            v-hasPermi="['pms:project:assign']"
+            :disabled="!selectedProject"
+          >
+            <Icon icon="ep:user" />指派项目经理
+          </el-button>
+          <el-button
+            type="warning"
+            plain
+            @click="openCreateFromTemplate()"
+            v-hasPermi="['pms:project:create']"
+          >
+            <Icon icon="ep:document-copy" />从模板创建
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </ContentWrap>
+
+    <!-- ============ 下面表格 ============ -->
+    <ContentWrap class="table-wrap">
+      <div class="table-toolbar">
+        <span class="table-title">
+          <Icon icon="ep:folder-opened" /> 项目列表
+          <span class="table-count">共 {{ listTotal }} 条</span>
+        </span>
+        <el-button text bg @click="loadList">
+          <Icon icon="ep:refresh" />刷新
+        </el-button>
+      </div>
+      <el-table
+        v-loading="listLoading"
+        :data="projectList"
+        empty-text="暂无项目数据"
+        @row-click="handleRowClick"
+        highlight-current-row
+        :row-class-name="rowClassName"
+      >
+        <el-table-column prop="code" label="项目编码" width="150" fixed="left">
+          <template #default="{ row }">
+            <span class="project-code">{{ row.code || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="项目名称" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="project-name" @click.stop="goDetail(row)">{{ row.name }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="category" label="分类" width="90">
+          <template #default="{ row }">
+            <dict-tag :type="DICT_TYPE.PMS_PROJECT_CATEGORY" :value="row.category" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="majorProjectFlag" label="重大项目" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.majorProjectFlag" type="warning" size="small" effect="dark">
+              <Icon icon="ep:star-filled" /> 重大
+            </el-tag>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="customerName" label="客户名称" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="projectType" label="项目类型" width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            <dict-tag :type="DICT_TYPE.PMS_PROJECT_TYPE" :value="row.projectType" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="managerUserId" label="项目经理" width="100">
+          <template #default="{ row }">
+            <UserTag :user-id="row.managerUserId" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="110" align="center">
+          <template #default="{ row }">
+            <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="row.status" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="160">
+          <template #default="{ row }">{{ formatDate(row.createTime) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click.stop="goDetail(row)">
+              <Icon icon="ep:view" />详情
+            </el-button>
+            <el-button
+              link
+              type="primary"
+              @click.stop="openClassify(row)"
+              v-hasPermi="['pms:project:update']"
+            >分类</el-button>
+            <el-button
+              link
+              type="success"
+              @click.stop="openAssign(row)"
+              v-hasPermi="['pms:project:assign']"
+            >指派</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <Pagination
+        :total="listTotal"
+        v-model:page="listQuery.pageNo"
+        v-model:limit="listQuery.pageSize"
+        @pagination="loadList"
+      />
+    </ContentWrap>
+
+    <!-- ============ 项目分类 Dialog ============ -->
+    <Dialog v-model="classifyVisible" title="项目分类" width="520px">
+      <el-form ref="classifyFormRef" :model="classifyForm" :rules="classifyRules" label-width="120px">
+        <el-form-item label="项目" prop="projectId">
+          <PmsEntitySelect
+            v-model="classifyForm.projectId"
+            :api="ProjectApi.getProjectPage"
+            label-field="name"
+            value-field="id"
+            query-field="name"
+            placeholder="请选择项目"
+            :disabled="true"
+          />
+        </el-form-item>
+        <el-form-item label="项目分类" prop="category">
+          <el-select v-model="classifyForm.category" placeholder="请选择分类">
+            <el-option
+              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
+              :key="dict.value"
+              :label="dict.label"
+              :value="dict.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="重大项目">
+          <el-switch v-model="classifyForm.majorProjectFlag" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="classifyVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="saveClassify">保存</el-button>
+      </template>
+    </Dialog>
+
+    <!-- ============ 指派项目经理 Dialog ============ -->
+    <Dialog v-model="assignVisible" title="指派项目经理" width="520px">
+      <el-form ref="assignFormRef" :model="assignForm" :rules="assignRules" label-width="120px">
+        <el-form-item label="项目" prop="projectId">
+          <PmsEntitySelect
+            v-model="assignForm.projectId"
+            :api="ProjectApi.getProjectPage"
+            label-field="name"
+            value-field="id"
+            query-field="name"
+            placeholder="请选择项目"
+            :disabled="true"
+          />
+        </el-form-item>
+        <el-form-item label="项目经理" prop="managerUserId">
+          <PmsEntitySelect
+            v-model="assignForm.managerUserId"
+            :api="UserApi.getUserPage"
+            label-field="nickname"
+            value-field="id"
+            query-field="nickname"
+            placeholder="请选择用户"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="assignVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="saveAssign">保存</el-button>
+      </template>
+    </Dialog>
+
+    <!-- ============ 从模板创建项目 Dialog ============ -->
+    <Dialog v-model="tplCreateVisible" title="从模板创建项目" width="720px">
+      <el-form ref="tplFormRef" :model="tplForm" :rules="tplRules" label-width="120px">
+        <el-row :gutter="16">
+          <el-col :span="24">
+            <el-form-item label="项目模板" prop="templateId">
+              <el-select v-model="tplForm.templateId" placeholder="请选择项目模板" class="!w-full" @change="onTemplateChange">
+                <el-option
+                  v-for="t in enabledTemplates"
+                  :key="t.id"
+                  :label="`${t.code} - ${t.name}`"
+                  :value="t.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目编码" prop="code">
+              <el-input v-model="tplForm.code" placeholder="如 PMS202608001" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目名称" prop="name">
+              <el-input v-model="tplForm.name" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="客户" prop="customerId">
+              <PmsEntitySelect
+                v-model="tplForm.customerId"
+                :api="CustomerApi.getCustomerPage"
+                label-field="name"
+                value-field="id"
+                query-field="name"
+                placeholder="请选择客户"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="合同编码" prop="contractCode">
+              <el-input v-model="tplForm.contractCode" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目经理" prop="managerUserId">
+              <PmsEntitySelect
+                v-model="tplForm.managerUserId"
+                :api="UserApi.getUserPage"
+                label-field="nickname"
+                value-field="id"
+                query-field="nickname"
+                placeholder="请选择项目经理"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="来源系统" prop="sourceSystem">
+              <el-input v-model="tplForm.sourceSystem" placeholder="如 MANUAL" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="来源业务键" prop="sourceBusinessKey">
+              <el-input v-model="tplForm.sourceBusinessKey" placeholder="如 MANUAL-PMS202608001" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click="tplCreateVisible = false">取消</el-button>
+        <el-button type="primary" :loading="tplSaving" @click="saveCreateFromTemplate">创建</el-button>
+      </template>
+    </Dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useMessage } from '@/hooks/web/useMessage'
+import * as ProjectApi from '@/api/pms/project/project'
+import type { ProjectClassifyReqVO, ProjectAssignManagerReqVO } from '@/api/pms/project/project'
+import * as TemplateApi from '@/api/pms/project/project-template'
+import type { ProjectCreateFromTemplateVO } from '@/api/pms/project/project-template'
+import * as CustomerApi from '@/api/pms/project/customer'
+import { formatDate } from '@/utils/formatTime'
+import * as UserApi from '@/api/system/user'
+import UserTag from '@/components/UserTag/index.vue'
+import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
+
+defineOptions({ name: 'PmsProject' })
+
+const message = useMessage()
+const router = useRouter()
+const listLoading = ref(false)
+const saving = ref(false)
+
+// ============ 状态卡数据 ============
+const statusStats = reactive({
+  total: 0,
+  pending: 0, // 0 立项待指派
+  inProgress: 0, // 1 进行中
+  completed: 0, // 2 已完成
+  closed: 0 // 3 已关闭
+})
+
+const activeStatus = ref<number | undefined>(undefined)
+
+const statusCards = computed(() => [
+  {
+    key: 'total',
+    label: '项目总数',
+    value: undefined,
+    count: statusStats.total,
+    tone: 'blue',
+    icon: 'ep:folder-opened'
+  },
+  {
+    key: 'pending',
+    label: '立项待指派',
+    value: 0,
+    count: statusStats.pending,
+    tone: 'gray',
+    icon: 'ep:clock'
+  },
+  {
+    key: 'inProgress',
+    label: '进行中',
+    value: 1,
+    count: statusStats.inProgress,
+    tone: 'green',
+    icon: 'ep:loading'
+  },
+  {
+    key: 'completed',
+    label: '已完成',
+    value: 2,
+    count: statusStats.completed,
+    tone: 'blue',
+    icon: 'ep:circle-check-filled'
+  },
+  {
+    key: 'closed',
+    label: '已关闭',
+    value: 3,
+    count: statusStats.closed,
+    tone: 'gray',
+    icon: 'ep:lock'
+  }
+])
+
+// ============ 筛选条件 ============
+const query = reactive({
+  code: '',
+  name: '',
+  status: undefined as number | undefined,
+  category: '' as string,
+  majorProjectFlag: undefined as boolean | undefined,
+  managerUserId: undefined as number | undefined
+})
+
+// ============ 列表数据 ============
+const projectList = ref<any[]>([])
+const listTotal = ref(0)
+const listQuery = reactive({ pageNo: 1, pageSize: 10 })
+const selectedProject = ref<any>(null)
+
+// ============ Dialog ============
+const classifyVisible = ref(false)
+const classifyFormRef = ref()
+const classifyForm = reactive<ProjectClassifyReqVO>({
+  projectId: 0,
+  category: '',
+  majorProjectFlag: false
+})
+const classifyRules = {
+  projectId: [{ required: true, message: '请输入项目编号' }]
+}
+
+const assignVisible = ref(false)
+const assignFormRef = ref()
+const assignForm = reactive<ProjectAssignManagerReqVO>({
+  projectId: 0,
+  managerUserId: 0
+})
+const assignRules = {
+  projectId: [{ required: true, message: '请输入项目编号' }],
+  managerUserId: [{ required: true, message: '请输入项目经理用户编号' }]
+}
+
+// ============ 数据加载 ============
+const loadStats = async () => {
+  try {
+    // 拉取全量项目用于状态统计（Yudao 默认 pageSize 上限 100）
+    const data = await ProjectApi.getProjectPage({ pageNo: 1, pageSize: 100 })
+    const all = data?.list || []
+    statusStats.total = all.length
+    statusStats.pending = all.filter((p: any) => Number(p.status) === 0).length
+    statusStats.inProgress = all.filter((p: any) => Number(p.status) === 1).length
+    statusStats.completed = all.filter((p: any) => Number(p.status) === 2).length
+    statusStats.closed = all.filter((p: any) => Number(p.status) === 3).length
+  } catch (e) {
+    // 统计失败不阻断列表
+    console.warn('[PmsProject] loadStats failed:', e)
+  }
+}
+
+const loadList = async () => {
+  listLoading.value = true
+  try {
+    const params: any = {
+      pageNo: listQuery.pageNo,
+      pageSize: listQuery.pageSize
+    }
+    if (query.code) params.code = query.code
+    if (query.name) params.name = query.name
+    if (query.status !== undefined && query.status !== null) params.status = query.status
+    if (query.category) params.category = query.category
+    if (query.majorProjectFlag !== undefined && query.majorProjectFlag !== null)
+      params.majorProjectFlag = query.majorProjectFlag
+    if (query.managerUserId) params.managerUserId = query.managerUserId
+    const data = await ProjectApi.getProjectPage(params)
+    projectList.value = data.list
+    listTotal.value = data.total
+  } finally {
+    listLoading.value = false
+  }
+}
+
+const handleSearch = () => {
+  listQuery.pageNo = 1
+  loadList()
+}
+
+const handleReset = () => {
+  query.code = ''
+  query.name = ''
+  query.status = undefined
+  query.category = ''
+  query.majorProjectFlag = undefined
+  query.managerUserId = undefined
+  activeStatus.value = undefined
+  listQuery.pageNo = 1
+  loadList()
+}
+
+const toggleStatusFilter = (value?: number) => {
+  if (value === undefined) {
+    // 总数卡：清除状态筛选
+    activeStatus.value = undefined
+    query.status = undefined
+  } else {
+    // 切换该状态筛选
+    if (activeStatus.value === value) {
+      activeStatus.value = undefined
+      query.status = undefined
+    } else {
+      activeStatus.value = value
+      query.status = value
+    }
+  }
+  listQuery.pageNo = 1
+  loadList()
+}
+
+const handleRowClick = (row: any) => {
+  selectedProject.value = row
+}
+
+const rowClassName = ({ row }: { row: any }) => {
+  return row.majorProjectFlag ? 'row-major' : ''
+}
+
+const goDetail = (row: any) => {
+  router.push({ path: '/pms/project-detail', query: { projectId: row.id } })
+}
+
+// ============ Dialog 操作 ============
+const openClassify = (row?: any) => {
+  const p = row || selectedProject.value
+  if (!p) {
+    message.warning('请先选择项目')
+    return
+  }
+  Object.assign(classifyForm, {
+    projectId: p.id,
+    category: p.category || '',
+    majorProjectFlag: p.majorProjectFlag || false
+  })
+  classifyVisible.value = true
+}
+
+const saveClassify = async () => {
+  await classifyFormRef.value.validate()
+  saving.value = true
+  try {
+    await ProjectApi.classifyProject(classifyForm)
+    message.success('分类更新成功')
+    classifyVisible.value = false
+    await loadList()
+    await loadStats()
+  } finally {
+    saving.value = false
+  }
+}
+
+const openAssign = (row?: any) => {
+  const p = row || selectedProject.value
+  if (!p) {
+    message.warning('请先选择项目')
+    return
+  }
+  Object.assign(assignForm, {
+    projectId: p.id,
+    managerUserId: p.managerUserId || 0
+  })
+  assignVisible.value = true
+}
+
+const saveAssign = async () => {
+  await assignFormRef.value.validate()
+  saving.value = true
+  try {
+    await ProjectApi.assignProjectManager(assignForm)
+    message.success('指派成功')
+    assignVisible.value = false
+    await loadList()
+    await loadStats()
+  } finally {
+    saving.value = false
+  }
+}
+
+// ============ 从模板创建 ============
+const tplCreateVisible = ref(false)
+const tplSaving = ref(false)
+const tplFormRef = ref()
+const enabledTemplates = ref<any[]>([])
+const tplForm = reactive<ProjectCreateFromTemplateVO>({
+  templateId: 0,
+  code: '',
+  name: '',
+  customerId: 0,
+  contractCode: '',
+  sourceSystem: 'MANUAL',
+  sourceBusinessKey: '',
+  managerUserId: undefined
+})
+const tplRules = {
+  templateId: [{ required: true, message: '请选择项目模板' }],
+  code: [{ required: true, message: '请输入项目编码' }],
+  name: [{ required: true, message: '请输入项目名称' }],
+  customerId: [{ required: true, message: '请选择客户' }],
+  sourceSystem: [{ required: true, message: '请输入来源系统' }],
+  sourceBusinessKey: [{ required: true, message: '请输入来源业务键' }]
+}
+
+const openCreateFromTemplate = async () => {
+  Object.assign(tplForm, {
+    templateId: 0,
+    code: '',
+    name: '',
+    customerId: 0,
+    contractCode: '',
+    sourceSystem: 'MANUAL',
+    sourceBusinessKey: '',
+    managerUserId: undefined
+  })
+  enabledTemplates.value = await TemplateApi.getEnabledProjectTemplateList()
+  tplCreateVisible.value = true
+}
+
+const onTemplateChange = (templateId: number) => {
+  const tpl = enabledTemplates.value.find((t) => t.id === templateId)
+  if (tpl && !tplForm.code) {
+    tplForm.sourceBusinessKey = `MANUAL-${tpl.code}-${Date.now()}`
+  }
+}
+
+const saveCreateFromTemplate = async () => {
+  await tplFormRef.value.validate()
+  tplSaving.value = true
+  try {
+    await TemplateApi.createProjectFromTemplate(tplForm)
+    message.success('项目创建成功')
+    tplCreateVisible.value = false
+    await loadList()
+    await loadStats()
+  } finally {
+    tplSaving.value = false
+  }
+}
+
+onMounted(() => {
+  loadStats()
+  loadList()
+})
+</script>
+
+<style lang="scss" scoped>
+$primary: #1e3a5f;
+$border: #e5e7eb;
+
+.project-list-page {
+  --pl-primary: #{$primary};
+  --pl-border: #{$border};
+}
+
+/* ============ 状态卡 ============ */
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.status-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid var(--pl-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  }
+  &--active {
+    border-color: var(--pl-primary);
+    box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.12);
+  }
+
+  .status-card-icon {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #fff;
+  }
+  &--blue .status-card-icon { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+  &--green .status-card-icon { background: linear-gradient(135deg, #10b981, #34d399); }
+  &--gray .status-card-icon { background: linear-gradient(135deg, #64748b, #94a3b8); }
+  &--blue.status-card--active .status-card-icon { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+  &--green.status-card--active .status-card-icon { background: linear-gradient(135deg, #059669, #10b981); }
+  &--gray.status-card--active .status-card-icon { background: linear-gradient(135deg, #475569, #64748b); }
+
+  .status-card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .status-card-num {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2937;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    line-height: 1.1;
+  }
+  .status-card-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .status-card-strip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+  &--blue .status-card-strip { background: #3b82f6; }
+  &--green .status-card-strip { background: #10b981; }
+  &--gray .status-card-strip { background: #94a3b8; }
+}
+
+/* ============ 筛选区 ============ */
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  :deep(.el-form-item) {
+    margin-bottom: 12px;
+  }
+}
+.filter-actions {
+  :deep(.el-form-item__content) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* ============ 表格区 ============ */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.table-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+.table-count {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.project-code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: #6b7280;
+}
+.project-name {
+  color: var(--pl-primary);
+  cursor: pointer;
+  font-weight: 500;
+  &:hover {
+    text-decoration: underline;
+    color: #2563eb;
+  }
+}
+.category-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  &--MAIN {
+    background: rgba(30, 58, 95, 0.08);
+    color: #1e3a5f;
+  }
+  &--SUB {
+    background: rgba(100, 116, 139, 0.1);
+    color: #64748b;
+  }
+}
+.manager-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(96, 165, 250, 0.1);
+  border-radius: 10px;
+  font-size: 12px;
+  color: #2563eb;
+  font-family: 'JetBrains Mono', monospace;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  &--gray {
+    background: rgba(148, 163, 184, 0.15);
+    color: #64748b;
+  }
+  &--green {
+    background: rgba(52, 211, 153, 0.15);
+    color: #059669;
+  }
+  &--blue {
+    background: rgba(96, 165, 250, 0.15);
+    color: #2563eb;
+  }
+}
+
+:deep(.row-major) {
+  background: rgba(251, 191, 36, 0.04) !important;
+  td {
+    background: transparent !important;
+  }
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1200px) {
+  .status-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  .status-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>

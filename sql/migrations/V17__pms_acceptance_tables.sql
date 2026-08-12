@@ -1,0 +1,181 @@
+-- ====================================================================
+-- T-V1-ACC-001 / T-V1-ACC-002 / T-V1-ACC-003 / T-V1-ACC-004
+-- 验收与闭环域：电子完工证明、初验/终验、交付件检查、项目闭环、归档文档、转维保
+-- 注：超过 varchar(500) 的长文本字段统一使用 TEXT，避免 MySQL 行大小 65535 限制。
+-- ====================================================================
+
+-- 1. 电子完工证明（FR-ACC-002）
+CREATE TABLE pms_acc_completion_certificate (
+  id bigint NOT NULL AUTO_INCREMENT,
+  project_id bigint NOT NULL COMMENT '所属项目编号',
+  code varchar(64) NOT NULL COMMENT '完工证明编码，项目内唯一',
+  name varchar(128) NOT NULL COMMENT '完工证明名称',
+  certificate_no varchar(64) DEFAULT NULL COMMENT '证明编号（业务编号）',
+  customer_id bigint DEFAULT NULL COMMENT '客户编号',
+  completion_date date DEFAULT NULL COMMENT '完工日期',
+  customer_confirm_user_id bigint DEFAULT NULL COMMENT '客户确认人',
+  customer_confirm_time datetime DEFAULT NULL COMMENT '客户确认时间',
+  archive_time datetime DEFAULT NULL COMMENT '归档时间',
+  reject_reason varchar(500) DEFAULT NULL COMMENT '驳回原因',
+  content text DEFAULT NULL COMMENT '完工证明内容',
+  attachment_url varchar(500) DEFAULT NULL COMMENT '附件地址',
+  status tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1待客户确认 2客户已确认 3已归档 4已驳回',
+  remark varchar(500) DEFAULT NULL,
+  version int NOT NULL DEFAULT 0,
+  creator varchar(64) DEFAULT '',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updater varchar(64) DEFAULT '',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted bit(1) NOT NULL DEFAULT b'0',
+  tenant_id bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_pms_acc_completion_certificate_code (project_id, code),
+  KEY idx_pms_acc_completion_certificate_project (project_id),
+  KEY idx_pms_acc_completion_certificate_status (project_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='电子完工证明';
+
+-- 2. 初验/终验（FR-ACC-004）
+CREATE TABLE pms_acc_acceptance (
+  id bigint NOT NULL AUTO_INCREMENT,
+  project_id bigint NOT NULL COMMENT '所属项目编号',
+  code varchar(64) NOT NULL COMMENT '验收编码，项目内唯一',
+  name varchar(128) NOT NULL COMMENT '验收名称',
+  acceptance_type varchar(32) NOT NULL DEFAULT 'PRELIMINARY' COMMENT '验收类型 PRELIMINARY 初验 / FINAL 终验',
+  acceptance_date date DEFAULT NULL COMMENT '验收日期',
+  plan_id bigint DEFAULT NULL COMMENT '关联交付计划编号',
+  applicant_user_id bigint DEFAULT NULL COMMENT '申请人',
+  apply_time datetime DEFAULT NULL COMMENT '申请时间',
+  approver_user_id bigint DEFAULT NULL COMMENT '审批人',
+  approve_time datetime DEFAULT NULL COMMENT '审批时间',
+  approve_opinion text DEFAULT NULL COMMENT '审批意见',
+  archive_time datetime DEFAULT NULL COMMENT '归档时间',
+  status tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1待提交 2审批中 3已通过 4已驳回 5已归档',
+  remark varchar(500) DEFAULT NULL,
+  version int NOT NULL DEFAULT 0,
+  creator varchar(64) DEFAULT '',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updater varchar(64) DEFAULT '',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted bit(1) NOT NULL DEFAULT b'0',
+  tenant_id bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_pms_acc_acceptance_code (project_id, code),
+  KEY idx_pms_acc_acceptance_project (project_id),
+  KEY idx_pms_acc_acceptance_status (project_id, status),
+  KEY idx_pms_acc_acceptance_type (project_id, acceptance_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='初验/终验';
+
+-- 3. 交付件完整性检查（FR-ACC-005）
+CREATE TABLE pms_acc_deliverable_checklist (
+  id bigint NOT NULL AUTO_INCREMENT,
+  project_id bigint NOT NULL COMMENT '所属项目编号',
+  code varchar(64) NOT NULL COMMENT '交付件编码，项目内唯一',
+  name varchar(128) NOT NULL COMMENT '交付件名称',
+  acceptance_id bigint DEFAULT NULL COMMENT '关联验收编号',
+  deliverable_type varchar(32) NOT NULL DEFAULT 'REQUIRED' COMMENT '交付件类型 REQUIRED 必交 / OPTIONAL 选交 / CONDITIONAL 条件',
+  deliverable_url varchar(500) DEFAULT NULL COMMENT '交付件附件地址',
+  check_user_id bigint DEFAULT NULL COMMENT '检查人',
+  check_time datetime DEFAULT NULL COMMENT '检查时间',
+  check_result text DEFAULT NULL COMMENT '检查结果',
+  status tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1已提交 2已通过 3已驳回',
+  remark varchar(500) DEFAULT NULL,
+  version int NOT NULL DEFAULT 0,
+  creator varchar(64) DEFAULT '',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updater varchar(64) DEFAULT '',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted bit(1) NOT NULL DEFAULT b'0',
+  tenant_id bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_pms_acc_deliverable_checklist_code (project_id, code),
+  KEY idx_pms_acc_deliverable_checklist_project (project_id),
+  KEY idx_pms_acc_deliverable_checklist_acceptance (acceptance_id),
+  KEY idx_pms_acc_deliverable_checklist_status (project_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='交付件完整性检查';
+
+-- 4. 项目闭环审批（FR-ACC-006）
+CREATE TABLE pms_acc_project_closure (
+  id bigint NOT NULL AUTO_INCREMENT,
+  project_id bigint NOT NULL COMMENT '所属项目编号',
+  code varchar(64) NOT NULL COMMENT '闭环编码，项目内唯一',
+  name varchar(128) NOT NULL COMMENT '闭环名称',
+  closure_type varchar(32) NOT NULL DEFAULT 'NORMAL' COMMENT '闭环类型 NORMAL 正常闭环 / CONDITIONAL 带条件移交',
+  applicant_user_id bigint DEFAULT NULL COMMENT '申请人',
+  apply_time datetime DEFAULT NULL COMMENT '申请时间',
+  approver_user_id bigint DEFAULT NULL COMMENT '审批人',
+  approve_time datetime DEFAULT NULL COMMENT '审批时间',
+  approve_opinion text DEFAULT NULL COMMENT '审批意见',
+  legacy_issue_summary text DEFAULT NULL COMMENT '遗留问题摘要',
+  archive_time datetime DEFAULT NULL COMMENT '归档时间',
+  status tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1待审批 2审批中 3已通过 4已驳回 5已归档',
+  remark varchar(500) DEFAULT NULL,
+  version int NOT NULL DEFAULT 0,
+  creator varchar(64) DEFAULT '',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updater varchar(64) DEFAULT '',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted bit(1) NOT NULL DEFAULT b'0',
+  tenant_id bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_pms_acc_project_closure_code (project_id, code),
+  KEY idx_pms_acc_project_closure_project (project_id),
+  KEY idx_pms_acc_project_closure_status (project_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目闭环审批';
+
+-- 5. 交付资料归档（FR-ACC-009）
+CREATE TABLE pms_acc_archive_document (
+  id bigint NOT NULL AUTO_INCREMENT,
+  project_id bigint NOT NULL COMMENT '所属项目编号',
+  code varchar(64) NOT NULL COMMENT '归档文档编码，项目内唯一',
+  name varchar(128) NOT NULL COMMENT '归档文档名称',
+  document_type varchar(32) NOT NULL DEFAULT 'ACCEPTANCE' COMMENT '文档类型 ACCEPTANCE 验收 / BUSINESS 业务 / TECHNICAL 技术 / FINANCE 财务 / OTHER 其他',
+  document_url varchar(500) DEFAULT NULL COMMENT '文档附件地址',
+  version_no varchar(32) DEFAULT NULL COMMENT '文档版本号',
+  archive_user_id bigint DEFAULT NULL COMMENT '归档人',
+  archive_time datetime DEFAULT NULL COMMENT '归档时间',
+  status tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1待归档 2已归档',
+  remark varchar(500) DEFAULT NULL,
+  version int NOT NULL DEFAULT 0,
+  creator varchar(64) DEFAULT '',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updater varchar(64) DEFAULT '',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted bit(1) NOT NULL DEFAULT b'0',
+  tenant_id bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_pms_acc_archive_document_code (project_id, code),
+  KEY idx_pms_acc_archive_document_project (project_id),
+  KEY idx_pms_acc_archive_document_status (project_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='交付资料归档';
+
+-- 6. 转维保（FR-ACC-010）
+CREATE TABLE pms_acc_maintenance_transition (
+  id bigint NOT NULL AUTO_INCREMENT,
+  project_id bigint NOT NULL COMMENT '所属项目编号',
+  code varchar(64) NOT NULL COMMENT '转维保编码，项目内唯一',
+  name varchar(128) NOT NULL COMMENT '转维保名称',
+  equipment_id bigint DEFAULT NULL COMMENT '设备编号',
+  acceptance_id bigint DEFAULT NULL COMMENT '关联验收编号',
+  maintenance_years int DEFAULT NULL COMMENT '维保年限（年）',
+  start_date date DEFAULT NULL COMMENT '维保开始日期',
+  end_date date DEFAULT NULL COMMENT '维保结束日期',
+  activate_user_id bigint DEFAULT NULL COMMENT '生效操作人',
+  activate_time datetime DEFAULT NULL COMMENT '生效时间',
+  expire_time datetime DEFAULT NULL COMMENT '过期时间',
+  renew_years int DEFAULT NULL COMMENT '续保年限（年）',
+  renew_end_date date DEFAULT NULL COMMENT '续保结束日期',
+  status tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1待生效 2生效中 3已过期 4已续保',
+  remark varchar(500) DEFAULT NULL,
+  version int NOT NULL DEFAULT 0,
+  creator varchar(64) DEFAULT '',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updater varchar(64) DEFAULT '',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted bit(1) NOT NULL DEFAULT b'0',
+  tenant_id bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_pms_acc_maintenance_transition_code (project_id, code),
+  KEY idx_pms_acc_maintenance_transition_project (project_id),
+  KEY idx_pms_acc_maintenance_transition_equipment (equipment_id),
+  KEY idx_pms_acc_maintenance_transition_status (project_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='转维保';

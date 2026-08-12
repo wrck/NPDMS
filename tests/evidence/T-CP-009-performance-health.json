@@ -1,0 +1,17 @@
+﻿{
+    "taskId":  "T-CP-009",
+    "frIds":  [
+                  "FR-PLT-010"
+              ],
+    "acceptanceIds":  [
+                          "T-CP-009-AC-001"
+                      ],
+    "testType":  "performance",
+    "command":  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/e2e/verify-test-foundation.ps1 -Type performance",
+    "result":  "passed",
+    "executedAt":  "2026-07-29T06:34:20.3429998Z",
+    "evidence":  [
+                     "tests/e2e/verify-test-foundation.ps1",
+                     "tests/performance/verify-performance-health.ps1"
+                 ]
+}

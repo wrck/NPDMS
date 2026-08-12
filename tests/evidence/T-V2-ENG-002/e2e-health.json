@@ -1,0 +1,122 @@
+{
+  "taskId": "T-V2-ENG-002",
+  "taskName": "工程交底和准备动态表单",
+  "frCoverage": ["FR-ENG-006", "FR-ENG-007"],
+  "executedAt": "2026-07-30",
+  "verdict": "PASS",
+  "evidence": {
+    "backend": {
+      "healthCheck": {
+        "url": "http://localhost:58080/actuator/health",
+        "status": "UP",
+        "fixedPort": 58080
+      },
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "url": "/admin-api/pms/eng-briefing/page?pageNo=1&pageSize=10",
+          "httpStatus": 200,
+          "responseCode": 0,
+          "sampleData": "BR-2026-030 紧急漏洞修复交底书"
+        },
+        {
+          "method": "GET",
+          "url": "/admin-api/pms/eng-form-template/page?pageNo=1&pageSize=10",
+          "httpStatus": 200,
+          "responseCode": 0,
+          "sampleData": "FT-2026-005 通用产品类型采集模板"
+        },
+        {
+          "method": "GET",
+          "url": "/admin-api/pms/eng-form-instance/page?pageNo=1&pageSize=10",
+          "httpStatus": 200,
+          "responseCode": 0,
+          "sampleData": "FI-2026-030 1010通用采集"
+        }
+      ],
+      "stateMachines": {
+        "briefing": "0草稿→1已生成→2已审核→3已发布→4已作废",
+        "formTemplate": "0草稿→1已发布→2已停用",
+        "formInstance": "0待填→1已填→2已提交→3已审核→4已驳回"
+      }
+    },
+    "frontend": {
+      "fixedPort": 18081,
+      "pages": [
+        {
+          "route": "/pms/eng-briefing",
+          "listLoad": "PASS",
+          "createDialogComponents": {
+            "PmsEntitySelect_project": "PASS",
+            "Editor_content": "PASS",
+            "UploadFile_attachment": "PASS",
+            "el-date-picker": "PASS"
+          },
+          "detailDialogReferenceDisplay": {
+            "ProjectTag_projectName": "PASS",
+            "UserTag_creatorNickname": "PASS",
+            "UserTag_approverNickname": "PASS"
+          },
+          "consoleErrors": []
+        },
+        {
+          "route": "/pms/eng-form-template",
+          "listLoad": "PASS",
+          "createDialogComponents": {
+            "Editor_or_designer_content": "PASS",
+            "el-select_status": "PASS"
+          },
+          "consoleErrors": []
+        },
+        {
+          "route": "/pms/eng-form-instance",
+          "listLoad": "PASS",
+          "createDialogComponents": {
+            "PmsEntitySelect_project": "PASS",
+            "PmsEntitySelect_template": "PASS"
+          },
+          "detailDialogReferenceDisplay": {
+            "ProjectTag_projectName": "PASS",
+            "templateName": "PASS",
+            "UserTag_fillerNickname": "PASS"
+          },
+          "consoleErrors": []
+        }
+      ]
+    },
+    "database": {
+      "tableCounts": {
+        "pms_eng_briefing": 30,
+        "pms_eng_form_template": 5,
+        "pms_eng_form_instance": 30
+      },
+      "flywayMigrations": [
+        {
+          "version": "27",
+          "description": "pms engineering briefing and form",
+          "success": true,
+          "installedOn": "2026-07-30 12:43:21"
+        },
+        {
+          "version": "28",
+          "description": "pms engineering briefing and form test data",
+          "success": true,
+          "installedOn": "2026-07-30 12:43:21"
+        }
+      ]
+    },
+    "yudaoComponentReuse": {
+      "PmsEntitySelect": "用于项目/模板下拉搜索",
+      "Editor": "用于富文本（交底内容/模板内容）",
+      "UploadFile": "用于附件上传",
+      "el-date-picker": "用于编制时间/审核时间等日期字段",
+      "ProjectTag/UserTag": "用于表格与明细对话框中引用类型显示实体名称"
+    },
+    "screenshots": {
+      "status": "FAILED",
+      "reason": "Trae 内置浏览器自动化环境限制：browser_take_screenshot 返回 'browser tab is not visible on screen'，无法写入磁盘",
+      "mitigation": "通过 browser_snapshot DOM 结构快照间接验证 UI 渲染；API 200 响应 + 数据库 30+30+5 条数据 + 控制台无 error/warning 共同构成验收证据"
+    }
+  },
+  "conclusion": "T-V2-ENG-002 验收通过。三个页面列表加载正常；新建对话框包含 PmsEntitySelect/Editor/UploadFile/el-date-picker 等组件；明细对话框中项目/模板/用户字段均显示实体名称而非 ID；状态机三套（briefing/formTemplate/formInstance）按设计实现；Flyway V27/V28 迁移成功；API 三个端点全部 200 OK；控制台无 error/warning。仅截图受工具限制失败，已用 snapshot 替代验证。"
+}

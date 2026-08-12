@@ -1,0 +1,114 @@
+{
+  "taskId": "T-V2-ENG-001",
+  "phase": "V2",
+  "taskName": "外包/领料/外采/换货协同",
+  "result": "passed",
+  "verifiedAt": "2026-07-30T11:15:00+08:00",
+  "verificationEnvironment": {
+    "frontendUrl": "http://localhost:18081",
+    "backendUrl": "http://localhost:58080",
+    "dockerService": "npms (compose.yaml build模式)",
+    "browser": "Trae内置浏览器",
+    "loginCredentials": "admin/admin123",
+    "tenantMode": "单租户（yudao.tenant.enable=false）"
+  },
+  "verificationSummary": {
+    "pageLoadVerification": "PASS - 四个工程协同页面全部正常加载，无 404/空白/错误页面",
+    "consoleErrorCheck": "PASS - 所有页面无 error 级别控制台日志",
+    "httpResponseCheck": "PASS - 所有 /admin-api/pms/eng-* 请求返回 code=0，无 404/500",
+    "referenceTypeDisplay": "PASS - 项目列显示项目名称（ProjectTag），申请人列显示用户昵称（UserTag），设备列显示设备名称（EquipmentTag）",
+    "componentVerification": "PASS - 新建弹窗包含 PmsEntitySelect 选择组件、el-date-picker 日期组件、Editor 富文本、UploadFile 上传组件",
+    "dataIntegrity": "PASS - 每个实体30条测试数据，覆盖10个项目，各状态均有着覆盖"
+  },
+  "verifiedPages": [
+    {
+      "name": "外包申请",
+      "url": "/pms/eng-outsource",
+      "apiPath": "/admin-api/pms/eng-outsource/page",
+      "result": "PASS",
+      "totalRecords": 30,
+      "details": {
+        "listLoad": "PASS - 列表正常加载，显示单号/项目/名称/类型/工作量/费用/状态等列",
+        "referenceDisplay": "PASS - 项目列显示项目名称（如'安全设备日常运维'），申请人列显示用户昵称",
+        "createDialog": "PASS - 新建弹窗包含 PmsEntitySelect（项目/申请人）、el-date-picker（计划开始/结束日期）、Editor（工作内容富文本）、UploadFile（附件）",
+        "detailDialog": "PASS - 明细弹窗显示完整信息，项目/申请人显示实体名称",
+        "statusFlow": "PASS - 状态流转按钮（提交/审批/撤回/终止/删除）按状态条件显示"
+      }
+    },
+    {
+      "name": "OA领料",
+      "url": "/pms/eng-material-req",
+      "apiPath": "/admin-api/pms/eng-material-req/page",
+      "result": "PASS",
+      "totalRecords": 30,
+      "details": {
+        "listLoad": "PASS - 列表正常加载，显示单号/项目/名称/类型/物料/数量/库存状态等列",
+        "referenceDisplay": "PASS - 项目列显示项目名称，申请人列显示用户昵称",
+        "createDialog": "PASS - 新建弹窗包含 PmsEntitySelect（项目/设备/申请人）、el-date-picker（需求日期/申请时间）、UploadFile（附件）",
+        "detailDialog": "PASS - 明细弹窗显示完整信息，项目/申请人显示实体名称",
+        "equipmentReference": "PASS - 关联设备字段使用 EquipmentTag 显示设备名称"
+      }
+    },
+    {
+      "name": "外采申请",
+      "url": "/pms/eng-ext-proc",
+      "apiPath": "/admin-api/pms/eng-ext-proc/page",
+      "result": "PASS",
+      "totalRecords": 30,
+      "details": {
+        "listLoad": "PASS - 列表正常加载，显示单号/项目/名称/类型/物料/数量/预估费用等列",
+        "referenceDisplay": "PASS - 项目列显示项目名称，申请人列显示用户昵称",
+        "createDialog": "PASS - 新建弹窗包含 PmsEntitySelect（项目/申请人）、el-date-picker（需求日期/询价截止日期）、Editor（规格说明）、UploadFile（附件）",
+        "detailDialog": "PASS - 明细弹窗 API 正常返回完整数据"
+      }
+    },
+    {
+      "name": "换货协同",
+      "url": "/pms/eng-material-exch",
+      "apiPath": "/admin-api/pms/eng-material-exch/page",
+      "result": "PASS",
+      "totalRecords": 30,
+      "details": {
+        "listLoad": "PASS - 列表正常加载，显示单号/项目/名称/换货类型/原物料/新物料等列",
+        "referenceDisplay": "PASS - 项目列显示项目名称，申请人列显示用户昵称",
+        "createDialog": "PASS - 新建弹窗包含 PmsEntitySelect（项目/设备/申请人）、el-date-picker（申请时间）、Editor（原因说明）、UploadFile（附件）",
+        "detailDialog": "PASS - 明细弹窗 API 正常返回完整数据",
+        "crmPush": "PASS - CRM推送状态字段存在，推送按钮按权限显示"
+      }
+    }
+  ],
+  "apiVerification": {
+    "eng-outsource": {"code": 0, "total": 30, "sampleCode": "OS-2026-030", "sampleProjectId": 1010, "sampleApplicantUserId": 2},
+    "eng-material-req": {"code": 0, "total": 30, "sampleCode": "MR-2026-030", "sampleProjectId": 1010, "sampleApplicantUserId": 2},
+    "eng-ext-proc": {"code": 0, "total": 30, "sampleCode": "EP-2026-030", "sampleProjectId": 1010, "sampleApplicantUserId": 2},
+    "eng-material-exch": {"code": 0, "total": 30, "sampleCode": "ME-2026-030", "sampleProjectId": 1010, "sampleApplicantUserId": 2}
+  },
+  "componentReuse": {
+    "PmsEntitySelect": "用于项目/用户/设备等实体选择，支持远程搜索",
+    "ProjectTag": "显示项目名称（带缓存），用于列表和明细",
+    "UserTag": "显示用户昵称（带缓存），用于列表和明细",
+    "EquipmentTag": "显示设备名称（带缓存），用于列表和明细",
+    "Editor": "yudao 富文本编辑器，用于工作内容/规格说明等字段",
+    "UploadFile": "yudao 文件上传组件，用于附件字段",
+    "el-date-picker": "日期/日期时间选择器，用于计划日期/申请时间等字段",
+    "el-select": "下拉选择，用于类型/状态/币种等枚举字段"
+  },
+  "testDataCoverage": {
+    "projectCount": 10,
+    "recordsPerEntity": 30,
+    "statusCoverage": "覆盖0草稿/1已提交/2审批中/3已通过/4已驳回/5已撤回/6已终止全部状态",
+    "triggerSourceCoverage": "覆盖手动触发/库存不足/工期变更/质量问题等多种触发来源",
+    "crmPushStatusCoverage": "换货协同覆盖未推送/推送中/推送成功/推送失败等CRM推送状态"
+  },
+  "knownIssues": [
+    {
+      "issue": "OA领料新建按钮被悬浮提示遮挡",
+      "impact": "低 - 功能正常，仅UI遮挡",
+      "workaround": "滚动页面或等待悬浮提示消失后点击"
+    },
+    {
+      "issue": "浏览器截图工具偶发超时",
+      "impact": "低 - 不影响功能验证，API和页面加载均正常"
+    }
+  ]
+}

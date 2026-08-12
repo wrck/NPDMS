@@ -1,0 +1,4 @@
+﻿
+ERROR 1054 (42S22) at line 3: Unknown column 'cp.project_id' in 'where clause'
+
+

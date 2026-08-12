@@ -1,0 +1,9 @@
+DESCRIBE pms_project_member;
+DESCRIBE pms_customer_service_level;
+DESCRIBE pms_project_portfolio;
+DESCRIBE pms_eng_form_template;
+DESCRIBE pms_project_phase;
+DESCRIBE pms_project_task;
+DESCRIBE pms_project_team_member;
+DESCRIBE pms_project_risk;
+DESCRIBE pms_equipment;

@@ -1,0 +1,69 @@
+name: npdms
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${NPDMS_DB_NAME:-npdms}
+      MYSQL_USER: ${NPDMS_DB_USER:?NPDMS_DB_USER is required}
+      MYSQL_PASSWORD: ${NPDMS_DB_PASSWORD:?NPDMS_DB_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${NPDMS_MYSQL_ROOT_PASSWORD:?NPDMS_MYSQL_ROOT_PASSWORD is required}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "${NPDMS_MYSQL_PORT:-13306}:3306"
+    volumes:
+      - npdms-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${NPDMS_REDIS_PASSWORD:?NPDMS_REDIS_PASSWORD is required}
+      TZ: Asia/Shanghai
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    ports:
+      - "${NPDMS_REDIS_PORT:-16379}:6379"
+    volumes:
+      - npdms-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  migrate:
+    image: flyway/flyway:11.10.5-alpine
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:mysql://mysql:3306/${NPDMS_DB_NAME:-npdms}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8mb4
+      FLYWAY_USER: ${NPDMS_DB_USER:?NPDMS_DB_USER is required}
+      FLYWAY_PASSWORD: ${NPDMS_DB_PASSWORD:?NPDMS_DB_PASSWORD is required}
+      FLYWAY_CONNECT_RETRIES: "60"
+      FLYWAY_CLEAN_DISABLED: "true"
+      FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    command: ["migrate"]
+    volumes:
+      - ./sql/migrations:/flyway/sql:ro
+
+# 注意：前端（yudao-ui-admin-vue3）与后端（yudao-server）服务禁止运行在 Docker 中，
+# 必须在宿主机上分别通过 pnpm dev 与 java -jar 启动。Docker 仅承载 MySQL、Redis
+# 与 Flyway 迁移等基础设施。固化端口：后端 58080、前端 18081。
+
+volumes:
+  npdms-mysql-data:
+  npdms-redis-data:

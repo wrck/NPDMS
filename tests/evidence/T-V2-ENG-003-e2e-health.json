@@ -1,0 +1,148 @@
+{
+  "taskId": "T-V2-ENG-003",
+  "phase": "V2",
+  "taskName": "单机风险/公告预检查/授权与借货准备",
+  "result": "passed",
+  "verifiedAt": "2026-07-30T23:50:00+08:00",
+  "verificationEnvironment": {
+    "frontendUrl": "http://localhost:18081",
+    "backendUrl": "http://localhost:58080",
+    "dockerService": "npms (仅 MySQL 13306/Redis 16379/Flyway，前后端宿主机运行)",
+    "browser": "Trae 内置浏览器",
+    "loginCredentials": "admin/admin123",
+    "tenantMode": "单租户（yudao.tenant.enable=false）"
+  },
+  "verificationSummary": {
+    "implementationVerification": "PASS - 后端 DO/Mapper/Service/Controller/VO 全栈实现，4个实体（risk/announcement/announcement_check/authorization）",
+    "databaseMigration": "PASS - V30 建表+菜单权限，V31 测试数据覆盖10个项目每实体≥3条各状态",
+    "frontendImplementation": "PASS - 4个前端页面，复用 PmsEntitySelect/UploadFile/Editor/ProjectTag/UserTag/AnnouncementTag 组件",
+    "stateMachineVerification": "PASS - risk(0→4)/announcement(0→2)/announcement_check(0→3)/authorization(0→6) 状态机实现完整",
+    "errorCodeCoverage": "PASS - ErrorCodeConstants 扩展 risk/announcement/announcement_check/authorization 4组错误码",
+    "e2eBrowserVerification": "PASS - Trae 内置浏览器验证4个页面加载正常，无控制台错误，引用类型显示正确"
+  },
+  "implementedFeatures": [
+    {
+      "frId": "FR-ENG-008",
+      "name": "单机风险识别与反馈",
+      "entities": ["pms_eng_risk"],
+      "statusFlow": "0草稿→1已识别→2已确认→3已同步CRM→4已关闭",
+      "actions": ["create", "update", "delete", "confirm", "syncCrm", "close"],
+      "apiBase": "/admin-api/pms/eng-risk",
+      "frontendRoute": "/pms/eng-risk"
+    },
+    {
+      "frId": "FR-ENG-009",
+      "name": "技术公告与停产停维预检查",
+      "entities": ["pms_eng_announcement", "pms_eng_announcement_check"],
+      "statusFlow": "announcement: 0草稿→1已发布→2已停用; check: 0待检查→1已检查→2已处置/3已忽略",
+      "actions": ["create", "update", "delete", "publish", "disable", "performCheck", "handle"],
+      "apiBase": "/admin-api/pms/eng-announcement, /admin-api/pms/eng-announcement-check",
+      "frontendRoute": "/pms/eng-announcement, /pms/eng-announcement-check"
+    },
+    {
+      "frId": "FR-ENG-010",
+      "name": "授权与借货准备",
+      "entities": ["pms_eng_authorization"],
+      "statusFlow": "0草稿→1已提交→2审批中→3已通过/4已驳回/5已撤回/6已终止",
+      "actions": ["create", "update", "delete", "submit", "approve", "recall", "terminate"],
+      "apiBase": "/admin-api/pms/eng-authorization",
+      "frontendRoute": "/pms/eng-authorization"
+    }
+  ],
+  "testDataCoverage": {
+    "migrationFiles": ["V30__pms_eng_risk_announcement_authorization.sql", "V31__pms_eng_risk_announcement_authorization_test_data.sql"],
+    "projectCount": 10,
+    "riskRecords": 30,
+    "announcementRecords": 12,
+    "announcementCheckRecords": 30,
+    "authorizationRecords": 30,
+    "statusCoverage": "所有实体的所有状态均有覆盖",
+    "typeCoverage": "risk: SINGLE_DEVICE/SCENARIO; announcement: TECH_NOTICE/EOS/EOM; authorization: FORMAL/TEMPORARY/LOAN"
+  },
+  "componentReuse": {
+    "PmsEntitySelect": "用于项目/用户等实体选择，支持远程搜索",
+    "ProjectTag": "显示项目名称（带缓存）",
+    "UserTag": "显示用户昵称（带缓存）",
+    "AnnouncementTag": "新增组件，显示公告标题（带缓存）",
+    "Editor": "yudao 富文本编辑器，用于风险场景/公告内容等字段",
+    "UploadFile": "yudao 文件上传组件，用于附件字段",
+    "el-date-picker": "日期选择器",
+    "el-select": "下拉选择，用于类型/等级/状态等枚举字段"
+  },
+  "e2eVerificationDetails": {
+    "loginVerification": "PASS - admin/admin123 登录成功，首页标题为'项目实施交付管理平台 - 首页'",
+    "riskPage": {
+      "route": "/pms/eng-risk",
+      "status": "PASS",
+      "pageTitle": "单机风险",
+      "dataLoaded": "是 - total=30, list count=10 (分页)",
+      "referenceTypeDisplay": "PASS - 项目名称列显示项目名称而非ID，处理人列显示用户名称而非ID",
+      "consoleErrors": "无",
+      "interactionTest": "PASS - 新增/查看/明细按钮可点击"
+    },
+    "announcementPage": {
+      "route": "/pms/eng-announcement",
+      "status": "PASS",
+      "pageTitle": "技术公告",
+      "dataLoaded": "是 - total=12, list count=10 (分页)",
+      "referenceTypeDisplay": "PASS - 创建人列显示用户名称而非ID",
+      "consoleErrors": "无",
+      "interactionTest": "PASS - 新增/查看/明细按钮可点击"
+    },
+    "announcementCheckPage": {
+      "route": "/pms/eng-announcement-check",
+      "status": "PASS",
+      "pageTitle": "公告预检查",
+      "dataLoaded": "是 - total=30, list count=10 (分页)",
+      "referenceTypeDisplay": "PASS - 项目名称列显示项目名称，公告编号列显示公告标题而非ID",
+      "consoleErrors": "无",
+      "interactionTest": "PASS - 新增/查看/明细按钮可点击"
+    },
+    "authorizationPage": {
+      "route": "/pms/eng-authorization",
+      "status": "PASS",
+      "pageTitle": "授权管理",
+      "dataLoaded": "是 - total=30, list count=10 (分页)",
+      "referenceTypeDisplay": "PASS - 项目名称列显示项目名称，提交人列显示用户名称而非ID",
+      "consoleErrors": "无",
+      "interactionTest": "PASS - 点击'新建授权'按钮响应正常"
+    },
+    "overallConsoleErrors": "无 - 所有目标页面调用 browser_console_messages 返回空，未发现 JavaScript 或 API 错误级别日志",
+    "apiVerification": {
+      "engRiskPage": "total=30",
+      "engAnnouncementPage": "total=12",
+      "engAnnouncementCheckPage": "total=30",
+      "engAuthorizationPage": "total=30"
+    },
+    "backendMenuApi": "PASS - /admin-api/system/auth/get-permission-info 返回菜单包含 19221/19228/19234/19239 四个目标菜单"
+  },
+  "codeArtifacts": {
+    "backend": [
+      "pms-module-engineering/.../controller/admin/risk/",
+      "pms-module-engineering/.../controller/admin/announcement/",
+      "pms-module-engineering/.../controller/admin/announcementcheck/",
+      "pms-module-engineering/.../controller/admin/authorization/",
+      "pms-module-engineering/.../dal/dataobject/{risk,announcement,announcementcheck,authorization}/",
+      "pms-module-engineering/.../dal/mysql/{risk,announcement,announcementcheck,authorization}/",
+      "pms-module-engineering/.../service/{risk,announcement,announcementcheck,authorization}/",
+      "pms-module-engineering/.../enums/ErrorCodeConstants.java"
+    ],
+    "frontend": [
+      "yudao-ui/.../api/pms/engineering/{risk,announcement,announcement-check,authorization}/",
+      "yudao-ui/.../views/pms/engineering/{risk,announcement,announcement-check,authorization}/",
+      "yudao-ui/.../components/AnnouncementTag/"
+    ],
+    "database": [
+      "sql/migrations/V30__pms_eng_risk_announcement_authorization.sql",
+      "sql/migrations/V31__pms_eng_risk_announcement_authorization_test_data.sql"
+    ]
+  },
+  "knownIssues": [
+    {
+      "issue": "左侧菜单'项目交付'在首页点击时被主内容区域遮挡",
+      "impact": "低 - 通过URL直接访问目标路由可正常加载页面，不影响业务功能验证",
+      "workaround": "通过URL直接访问或通过路由跳转进入目标页面",
+      "priority": "低 - 后续UI优化任务处理"
+    }
+  ]
+}

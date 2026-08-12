@@ -1,0 +1,13 @@
+-- =============================================================================
+-- V48: 修复 pms_project_team_member.user_id 不允许 NULL 导致从模板创建项目失败
+-- 背景：V7 建表时将 user_id 定义为 NOT NULL，但「从模板创建项目」时团队角色
+--      记录是「待分配人员」的占位行，user_id 必须为 NULL。
+--      ProjectTemplateServiceImpl#createProjectFromTemplate 调用
+--      member.setUserId(null)，MyBatis-Plus 默认 NOT_NULL 插入策略不会把 user_id
+--      写入 INSERT 列，数据库因 NOT NULL 且无默认值抛出
+--      "Field 'user_id' doesn't have a default value"，接口返回 500。
+-- 修复：将 user_id 放开为允许 NULL，与业务语义对齐。
+--      唯一键 (project_id, user_id, role_code) 在 MySQL InnoDB 中允许多个 NULL
+--      共存（NULL != NULL），不影响唯一约束。
+-- =============================================================================
+ALTER TABLE `pms_project_team_member` MODIFY COLUMN `user_id` bigint NULL;
