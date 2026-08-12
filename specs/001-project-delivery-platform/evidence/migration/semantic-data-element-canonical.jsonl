@@ -3,15 +3,15 @@
 {"section":"联系人","name":"电话","target":"pms_customer_contact.phone","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A15"]}
 {"section":"联系人","name":"邮箱","target":"pms_customer_contact.email","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A16"]}
 {"section":"联系人","name":"联系地址","target":"pms_customer_contact.contact_address","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A17"]}
-{"section":"联系人","name":"部门","target":"pms_customer_contact.department_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A18"]}
+{"section":"联系人","name":"部门","target":"pms_customer_contact.customer_department_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A18"]}
 {"section":"联系人","name":"职位","target":"pms_customer_contact.position_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A19"]}
 {"section":"项目","name":"客户编码","target":"pms_project.customer_id","transform":"resolve pms_customer","disposition":"STRUCTURED","sourceRefs":["数据元!A26","项目!A3"]}
 {"section":"项目","name":"项目编码","target":"pms_project.project_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A27","项目!A4"]}
 {"section":"项目","name":"项目名称","target":"pms_project.project_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A28","项目!A5"]}
 {"section":"项目","name":"客户项目名称","target":"pms_project.customer_project_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A29","项目!A6"]}
-{"section":"项目","name":"归属办事处","target":"pms_project_org_rel.org_code","transform":"org_role=OFFICE","disposition":"STRUCTURED","sourceRefs":["数据元!A30","项目!A10"]}
+{"section":"项目","name":"归属办事处","target":"pms_project_company_department_rel.department_code","transform":"relation_role=OFFICE","disposition":"STRUCTURED","sourceRefs":["数据元!A30","项目!A10"]}
 {"section":"项目","name":"合同号","target":"pms_contract.contract_no","transform":"resolve contract relation","disposition":"STRUCTURED","sourceRefs":["数据元!A31","项目!A11"]}
-{"section":"项目","name":"归属母/子公司","target":"pms_project_org_rel.org_code","transform":"org_role=OWNER_COMPANY","disposition":"STRUCTURED","sourceRefs":["数据元!A32","项目!A12"]}
+{"section":"项目","name":"归属母/子公司","target":"pms_project_company_department_rel.company_code","transform":"relation_role=OWNER_COMPANY","disposition":"STRUCTURED","sourceRefs":["数据元!A32","项目!A12"]}
 {"section":"项目","name":"实施方式","target":"pms_project.implementation_mode","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A33","项目!A13"]}
 {"section":"项目","name":"重大项目级别","target":"pms_project.major_project_level","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A34","项目!A14"]}
 {"section":"项目","name":"项目服务级别","target":"pms_project.service_level_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A35","项目!A15"]}

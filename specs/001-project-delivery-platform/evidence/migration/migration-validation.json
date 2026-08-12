@@ -1,5 +1,10 @@
 {
   "passed": true,
   "badComments": [],
-  "invalidTargets": []
+  "invalidTargets": [],
+  "forbiddenTargetNames": [],
+  "forbiddenSnapshotNames": [],
+  "verboseRuleComments": [],
+  "commonCommentMismatches": [],
+  "companyDepartmentPairMissing": []
 }

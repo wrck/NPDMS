@@ -42,7 +42,7 @@
 - 旧库：当前`localhost:3306/dppms`，只读提取到290个表结构和42个视图。
 - 数据元当前结构页：归一后262个候选表、3,908个不同物理字段；253个候选表可在当前旧库命中，表命中率96.56%；可比较的3,773个字段全部命中当前旧库同名字段。
 - 当前实现：`pms-module-project`有13个PMS DO，`pms-module-integration`有1个PMS DO；`asset/cutover/engineering/outsourcing/service`各只有模块骨架，没有DO。
-- 正式设计证据：`project-order-physical-schema.mysql.sql`包含52张评审草案表和965个带中文描述的字段；18张核心旧表326个字段有数据库画像，全部活动结构另有3,931条物理字段证据处置，但仍不是生产迁移。
+- 正式设计证据：`project-order-physical-schema.mysql.sql`包含52张评审草案表和1076个带中文描述的字段；18张核心旧表326个字段有数据库画像，全部活动结构另有3,931条物理字段证据处置，但仍不是生产迁移。
 
 ### 2.3 冲突时的证据优先级
 
@@ -69,15 +69,15 @@
 
 | 业务对象 | 数据元/规格依据 | 旧库主要证据 | 当前实现 | 目标设计 | 状态与结论 |
 | --- | --- | --- | --- | --- | --- |
-| 公司/组织 | 公司是组织；租户与所属公司分离 | `ehr_company`、`t_company`、`fnd_company` | `system_tenant`存在，无公司组织主档 | 需`system_organization`或等价平台扩展 | G：不能用租户代替所属公司 |
+| 公司 | 公司是业务主体；租户与所属公司分离 | `ehr_company`、`t_company`、`fnd_company` | `system_tenant`存在，无公司主档 | 需`system_company`及用户—公司—部门业务上下文 | G：不能用租户代替所属公司，也不能从共享部门反推公司 |
 | 部门 | 部门编码全平台共享 | `ehr_department`、`fnd_department` | `system_dept`存在但没有`code` | 扩展`system_dept.code` | C：内部ID关联，编码用于集成和对账 |
 | 系统账号 | 系统用户与EHR员工分离；工号必须入用户表 | `t_user/t_user_info`、`fnd_user_info`、`ehr_employee` | `system_users`存在，无`employee_no/account_type` | 平台身份迁移文档已定义扩展 | C：迁移前必须补字段和身份归并规则 |
-| 员工集成目录 | 只读查找组织人员、按工号建账号 | `ehr_employee/ehr_job/ehr_department` | 无 | 只读集成表/缓存和外部键映射 | G/R：不得成为权限主体 |
+| 员工集成目录 | 只读查找公司或部门人员、按工号建账号 | `ehr_employee/ehr_job/ehr_department` | 无 | 只读集成表/缓存和外部键映射 | G/R：不得成为权限主体 |
 | 菜单/角色/权限 | 菜单、操作、数据和字段权限分层 | `t_*`、`fnd_menus/fnd_user_menus/fnd_user_power` | 平台角色菜单已存在 | 需项目授权配置、字段规则、服务范围 | G：`fnd_role_menus`停用并忽略 |
 | 外部人员项目授权 | 外部账号按有效转派查看有限项目 | 未匹配EHR的旧账号、`fnd_user_power` | `pms_project_member`、`pms_project_access_scope`过于简化 | `pms_project_assignment`、服务范围、访问配置 | G/C：成员关系不能替代转派事实和期限 |
 | 客户 | 客户编码、名称、地址、行业、服务等级 | 数据元中的`pm_account`名称已漂移；项目和CRM表保留客户字段 | `pms_customer` | 扩展行业、服务等级和来源映射 | I/G：基础主档可用，属性不完整 |
 | 客户联系人 | 单位、部门、职位、姓名、电话、邮箱、地址 | 数据元中的`pm_account_contact`名称已漂移；旧项目/CRM联系人字段 | `pms_customer_contact` | 增加联系地址或确认复用客户地址 | I/G：主要字段已覆盖，联系地址缺口 |
-| 项目主档 | 项目编码、名称、客户项目名称、组织、办事处、行业、实施方式、级别、状态 | `pm_project`；`pm_project_header`只是`projectType='10'`视图 | `pms_project` | 29表草案中的树形`pms_project` | C：必须合并现有实现与正式草案，不能建第二张同名表 |
+| 项目主档 | 项目编码、名称、客户项目名称、公司—部门组合、办事处、行业、实施方式、级别、状态 | `pm_project`；`pm_project_header`只是`projectType='10'`视图 | `pms_project` | 树形`pms_project`及`pms_project_company_department_rel` | C：公司与部门主数据分离，但业务组合必须同行保存 |
 | 正式子项目树 | 子项目有独立负责人、计划、状态和验收 | 旧库没有可直接等同的新项目树 | 仅`root_project_id` | `parent_id/root_id/tree_path/tree_depth/tree_sort` | C/D：旧项目先迁根节点，新子项目按业务创建 |
 | 非树项目关系 | 扩容、续采、改造、改单血缘 | 旧项目编码/历史关系只能作辅助 | 无 | `pms_project_relation` | D：不得塞进父子树 |
 | 项目组合 | 查询、治理、统计组合，不改变项目父子 | `pm_project_group*`是旧合同关系技术桥 | 无 | `pms_portfolio/pms_portfolio_project_rel` | D/R：旧项目组不直接迁为项目组合 |
@@ -123,7 +123,7 @@
 | 项目编码/名称 | `pm_project.projectCode/projectName` | `pms_project.code/name` | 可迁移；旧`projectId`必须进入外部键映射 |
 | 客户项目名称 | `pm_project.customerProjectName`、CRM执行单 | 无 | 增加可空项目属性，并记录来源优先级 |
 | 归属办事处 | 项目/CRM`officeCode` | `office_id` | 需代码映射到目标ID，保留原办事处编码用于对账 |
-| 归属母/子公司 | 项目`compId`、订单`compCode`、CRM`corporationCode` | 无稳定组织关系 | 关联公司组织ID；不同来源冲突进入迁移问题 |
+| 归属母/子公司 | 项目`compId`、订单`compCode`、CRM`corporationCode` | 无稳定公司映射 | 关联公司ID；不同来源冲突进入迁移问题 |
 | 实施方式/行业 | 旧项目及CRM | `implementation_mode/industry` | 可承接，但需字典归一 |
 | 重大项目级别/项目服务级别 | 旧项目/CRM和数据元 | 无 | 增加受控编码；不从项目类型自动推断 |
 | 合同号 | 项目合同技术桥、ERP订单 | `pms_project.contract_code` | 必须迁至`pms_project_contract_rel`，原字段只在过渡期只读兼容 |
@@ -143,7 +143,7 @@
 
 | 源字段/关系 | 目标 | 强制规则 |
 | --- | --- | --- |
-| `sms_ofst_contract_head_sap`每条源行 | `pms_contract_receivable` | 完整保留回款金额、客户、组织、有效期和来源载荷 |
+| `sms_ofst_contract_head_sap`每条源行 | `pms_contract_receivable` | 完整保留回款金额、客户、公司、部门、有效期和来源载荷 |
 | 回款合同号+ERP唯一`compCode` | `pms_contract` | 正式键为`tenant_id + company_code + contract_no` |
 | `fb_contract` | `pms_shipment_contract_ref` | 仅发货归属，不创建合同主档 |
 | `pm_project_group_relationship → pm_project_group → pm_project_contract` | `pms_project_contract_rel` | 用旧项目ID外部键定位；按项目、合同、角色去重 |
@@ -222,8 +222,8 @@
 ### P0：不处理就无法安全迁移
 
 1. 将29表项目—合同—订单—设备草案转为前向版本化迁移和DO，不允许直接执行评审草案覆盖现表。
-2. 合并两版`pms_project`：保留当前主键和已用字段，前向补齐树、组织、负责人和关系；迁出`contract_code`后再收缩兼容字段。
-3. 补齐公司组织、用户工号/账号类型、部门编码及外部键映射，否则合同所属公司、项目责任人和权限都无法稳定关联。
+2. 合并两版`pms_project`：保留当前主键和已用字段，前向补齐树、公司、部门、负责人和关系；迁出`contract_code`后再收缩兼容字段。
+3. 补齐公司、用户工号/账号类型、部门编码及外部键映射，否则合同所属公司、项目责任人和权限都无法稳定关联。
 4. 建`pms_external_key_map`、`pms_migration_issue`和统一批次模型，确保每条旧记录只能“成功映射或有明确问题”，不能静默丢弃。
 5. 对订单头333条、订单行1,083条重复/冲突候选及40条空订单号逐组分类；正式迁移不得简单取最大ID。
 6. 实现项目订单行范围及数量门禁，否则特殊合并、订单行拆子项目和局点实施无法表达。
@@ -234,7 +234,7 @@
 1. `pms_project_party`已进入物理草案；下一步需补合同客户、代理商、最终用户、服务提供商的角色字典、归并规则和DO。
 2. `pms_project_assignment`、项目访问配置、菜单/操作/字段规则和外部人员期限门禁。
 3. 项目交付件模板、实例、状态和通用文档版本的关系。
-4. 客户行业/服务等级、项目客户名称/级别/组织等数据元字段和字典映射。
+4. 客户行业/服务等级、项目客户名称、级别、公司和部门等数据元字段和字典映射。
 5. 设备版本、配置、安装位置、拓扑、技术公告命中和ITR问题关系。
 6. 为跨项目订单行数量分配定义并发控制：锁定订单行或分配余额、版本校验和失败重试，避免并发超配。
 7. 定义辅助只读同步的稳定源键、源记录消失、更正、撤销、迟到数据和重跑语义。
@@ -249,7 +249,7 @@
 ## 8. 迁移与同步顺序
 
 ```text
-平台身份/组织编码
+平台身份/公司与部门编码
   → 客户与联系人
   → 项目主档、树、参与方、成员和转派
   → 合同回款与合同主档

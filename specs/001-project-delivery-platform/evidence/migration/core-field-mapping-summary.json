@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-08-05T02:22:06.105Z",
+  "generatedAt": "2026-08-05T03:45:52.579Z",
   "sourceDatabase": "dppms",
   "sourceSchemaExtractedAt": "2026-08-04T16:04:14.8101672+08:00",
   "populationProfileStartedAt": "2026-08-05T00:58:22.284079600+08:00",
   "populationProfileFinishedAt": "2026-08-05T00:58:55.586141+08:00",
   "targetDdl": "appendices/project-order-physical-schema.mysql.sql",
-  "targetDdlSha256": "EAF117F1C1A0AB09CD4A3FE7838C1EF37617F677C0DC9C260C5D59E8A80749E5",
+  "targetDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
   "sourceTableCount": 18,
   "sourceColumnCount": 326,
   "mappedColumnCount": 326,
@@ -19,10 +19,10 @@
       "sourceColumnCount": 37,
       "mappedColumnCount": 37,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 24,
+      "STRUCTURED": 28,
       "RELATION": 0,
-      "LINEAGE": 0,
-      "PAYLOAD": 13,
+      "LINEAGE": 1,
+      "PAYLOAD": 8,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -31,10 +31,10 @@
       "sourceColumnCount": 7,
       "mappedColumnCount": 7,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 0,
+      "STRUCTURED": 4,
       "RELATION": 2,
       "LINEAGE": 1,
-      "PAYLOAD": 4,
+      "PAYLOAD": 0,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -55,10 +55,10 @@
       "sourceColumnCount": 9,
       "mappedColumnCount": 9,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 0,
+      "STRUCTURED": 4,
       "RELATION": 3,
       "LINEAGE": 1,
-      "PAYLOAD": 5,
+      "PAYLOAD": 1,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -127,10 +127,10 @@
       "sourceColumnCount": 16,
       "mappedColumnCount": 16,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 10,
+      "STRUCTURED": 12,
       "RELATION": 2,
       "LINEAGE": 1,
-      "PAYLOAD": 3,
+      "PAYLOAD": 1,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -139,8 +139,8 @@
       "sourceColumnCount": 16,
       "mappedColumnCount": 16,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 11,
-      "RELATION": 3,
+      "STRUCTURED": 14,
+      "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 1,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
@@ -151,10 +151,10 @@
       "sourceColumnCount": 11,
       "mappedColumnCount": 11,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 1,
+      "STRUCTURED": 5,
       "RELATION": 1,
-      "LINEAGE": 0,
-      "PAYLOAD": 9,
+      "LINEAGE": 1,
+      "PAYLOAD": 4,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -163,10 +163,10 @@
       "sourceColumnCount": 39,
       "mappedColumnCount": 39,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 35,
+      "STRUCTURED": 38,
       "RELATION": 0,
       "LINEAGE": 1,
-      "PAYLOAD": 3,
+      "PAYLOAD": 0,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -199,10 +199,10 @@
       "sourceColumnCount": 19,
       "mappedColumnCount": 19,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 10,
+      "STRUCTURED": 11,
       "RELATION": 1,
       "LINEAGE": 1,
-      "PAYLOAD": 7,
+      "PAYLOAD": 6,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -212,9 +212,9 @@
       "mappedColumnCount": 8,
       "unmappedColumnCount": 0,
       "STRUCTURED": 2,
-      "RELATION": 2,
+      "RELATION": 3,
       "LINEAGE": 1,
-      "PAYLOAD": 3,
+      "PAYLOAD": 2,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     },
     {
@@ -223,10 +223,10 @@
       "sourceColumnCount": 21,
       "mappedColumnCount": 21,
       "unmappedColumnCount": 0,
-      "STRUCTURED": 1,
-      "RELATION": 2,
+      "STRUCTURED": 9,
+      "RELATION": 0,
       "LINEAGE": 1,
-      "PAYLOAD": 17,
+      "PAYLOAD": 11,
       "rawPreservedBy": "pms_migration_source_record.source_payload"
     }
   ]

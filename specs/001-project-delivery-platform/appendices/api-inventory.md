@@ -6,7 +6,7 @@
 
 - `API-*`是现有需求规格追溯ID，保持稳定。
 - `PMS-*`是正式接口契约编号前缀，详细设计时补充TYPE和SEQ。
-- Yudao平台接口完全遵循上游定义，不在本清单中重命名或重复登记。
+- Yudao上游接口作为内部集成基线，不在本清单中重复登记；PMS目标契约必须通过适配层把公司和部门字段统一为`company_*`和`department_*`，不得暴露`org_*`或`organization*`。
 - 新增PMS Business API使用`/api/v1/pms/...`。
 - 外部系统只能调用明确列入Integration API设计的接口，不默认开放全部Business API。
 - Internal API只通过目标模块`-api`暴露，不映射为跨模块数据库访问。

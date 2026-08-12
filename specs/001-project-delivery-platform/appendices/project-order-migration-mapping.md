@@ -120,7 +120,7 @@ M02到M04可以反复重做，但每次必须使用新的`batch_no`。不得覆�
 
 | 旧来源 | 目标 | 规则 |
 | --- | --- | --- |
-| `pm_project` | `pms_project` | 按`projectId`读取；保留项目编码、名称、类型、负责人、组织和状态 |
+| `pm_project` | `pms_project` | 按`projectId`读取；保留项目编码、名称、类型、负责人、公司、部门和状态 |
 | `pm_project_header` | 不直接迁移 | 它只是`projectType='10'`的视图 |
 | `pm_project_group` | 不迁移为项目组合 | 仅作为解析项目合同关系的技术桥 |
 | `pm_project_group_relationship` | `pms_external_key_map`或`pms_migration_issue` | 解析到旧项目，不创建项目父子关系 |
@@ -536,12 +536,12 @@ migration_source_record_count
 | 验证项 | 结果 |
 | --- | ---: |
 | 创建基础表 | 52张 |
-| 带中文描述的字段 | 965个，`INFORMATION_SCHEMA`核验均非空 |
-| 租户复合外键约束 | 76个 |
-| CHECK约束 | 80个 |
+| 带中文描述的字段 | 1076个，`INFORMATION_SCHEMA`核验均非空 |
+| 租户复合外键约束 | 79个 |
+| CHECK约束 | 81个 |
 | 逐源行迁移证据表 | 1张，支持完整JSON、校验和和一源多目标计数 |
 
-旧版插入冒烟脚本引用了已删除的冗余`legacy_*`和业务表`source_payload`列，不再作为当前验证证据。正式迁移实现前必须按现有52表重新编写普通项目、多合同、多执行单合并、订单行拆分、RMA和SN转移的场景测试。
+隔离DDL冒烟脚本已按当前52表字段重建，验证普通项目、多合同、项目订单行范围、发货、RMA标记、SN项目归属及关键唯一性/数量约束。正式迁移实现前仍需增加多执行单合并、跨子项目数量拆分、退货改单和SN转移的批次级场景测试。
 
 验证使用随机命名的临时schema，完成后已删除。容器中的现有业务schema和旧`dppms`均未参与验证。
 

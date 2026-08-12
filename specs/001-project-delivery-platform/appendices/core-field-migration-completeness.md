@@ -7,8 +7,8 @@
 - 覆盖18张核心旧表、326个物理字段；
 - 326个字段均有明确目标去向，未映射字段为0；
 - 每条来源记录要求写入`pms_migration_source_record`保存完整`source_payload`，同时把查询、关联、统计、同步和审计字段结构化；
-- 去冗余后的物理草案为52张表、965个带中文注释的字段，覆盖客户、项目、合同、订单行实施范围、CRM辅助关系、SN物流、交付件、配置、版本、公告和故障；
-- DDL已在隔离MySQL 8.4.10实例验证，结果为52张表、76个租户复合外键、80个CHECK约束。
+- 去冗余后的物理草案为52张表、1076个带中文注释的字段，覆盖客户、项目、合同、订单行实施范围、CRM辅助关系、SN物流、交付件、配置、版本、公告和故障；
+- DDL已在隔离MySQL 8.4.10实例验证，结果为52张表、79个租户复合外键、81个CHECK约束。
 
 逐字段机器可读证据见[`../evidence/migration/core-field-mapping.jsonl`](../evidence/migration/core-field-mapping.jsonl)，汇总见[`../evidence/migration/core-field-mapping-summary.json`](../evidence/migration/core-field-mapping-summary.json)。
 
@@ -57,12 +57,12 @@
 
 | 来源字段组 | 当前填充情况 | 设计决定 |
 | --- | ---: | --- |
-| `pm_project`办事处、客户、市场/系统/拓展/行业 | 95.4%–98.0% | 进入`pms_project`正式列，并保留组织ID解析结果 |
+| `pm_project`办事处、客户、市场/系统/拓展/行业 | 95.4%–98.0% | 客户和行业进入`pms_project`；公司—部门角色进入`pms_project_company_department_rel` |
 | `pm_project.column012`实施方式 | 68,657/83,550，82.2% | `implementation_mode`结构化 |
 | `pm_project.majorProjectLevel` | 75,694/83,550，90.6% | `major_project_level`结构化 |
 | `pm_project`开始、刷新、关闭时间 | 25.2%、28.6%、78.0% | 独立保存，不能被目标审计时间覆盖 |
-| 普通CRM执行单组织和项目字段 | 基本100% | 进入`pms_crm_execution_order`正式列 |
-| 普通CRM最终客户/代理商 | 100%/95.6% | 执行单保留快照；项目解析成功后生成参与方关系 |
+| 普通CRM执行单公司、部门和项目字段 | 基本100% | 进入`pms_crm_execution_order`正式列 |
+| 普通CRM最终客户/代理商 | 100%/95.6% | 执行单保留来源值；项目解析成功后生成参与方关系 |
 | 安服CRM扩展接收/借货字段 | 0.7%–6.1% | 虽稀疏但有真实数据，保留正式列和来源载荷 |
 | 安服产品配置核心产品和金额字段 | 基本100% | 进入`pms_crm_execution_config`，作为安服正向证据 |
 | `pm_project_product_line`订单/发货/未发数量 | 100% | 原数量全部独立保存；分配数量按校验规则生成 |
@@ -82,7 +82,7 @@
 
 ### 5.2 CRM执行单和产品配置
 
-`pms_crm_execution_order`作为只读辅助镜像承接当前查询和关联需要的销售、组织、服务类型、渠道、工程费、公司、客户项目、最终用户、代理商、接收信息、借货原因、金额和联系人字段。`engineeFee`在普通来源是文本，因此同时保存`engineering_fee_raw`；只有可安全解析时才写数值列。完整旧行只保存在`pms_migration_source_record`，不得再次复制到执行单业务行。
+`pms_crm_execution_order`作为只读辅助镜像承接当前查询和关联需要的销售、公司、部门、服务类型、渠道、工程费、客户项目、最终用户、代理商、接收信息、借货原因、金额和联系人字段。`engineeFee`在普通来源是文本，因此同时保存`engineering_fee_raw`；只有可安全解析时才写数值列。完整旧行只保存在`pms_migration_source_record`，不得再次复制到执行单业务行。
 
 `pms_crm_execution_config`承接产品层级、物料、型号、数量、借货数量、价格、折扣、采购价、行类型和备注。是否安服仍只允许由安服产品配置形成正向证据，不能由执行单类型反推。
 

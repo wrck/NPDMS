@@ -247,7 +247,8 @@ erDiagram
 | `tree_path` | 祖先路径，支持前缀查询 |
 | `tree_depth` | 深度，不代表固定业务层级 |
 | `tree_sort` | 同级排序 |
-| `customer_id`、`manager_id`、`org_id` | 客户、负责人和组织 |
+| `customer_id/customer_code/customer_name`、`manager_id/manager_employee_no/manager_name` | 客户与负责人ID及业务发生时显示值 |
+| `company_id/code/name`、`department_id/code/name` | 项目主责公司—部门组合及业务发生时显示值 |
 | `project_type`、`lifecycle_template_id` | 项目分类与生命周期模板 |
 | `industry_code`、`customer_project_name` | 项目自身行业和客户侧项目名称 |
 | `business_type/project_category/implementation_mode/major_project_level` | 项目业务属性 |
@@ -260,9 +261,10 @@ erDiagram
 - `(tenant_id, parent_id, tree_sort, id)`
 - `(tenant_id, root_id, tree_path)`
 - `(tenant_id, manager_id, status)`
-- `(tenant_id, org_id, status)`
+- `(tenant_id, company_id, department_id, status)`
+- `(tenant_id, company_code, department_code, status)`
 
-办事处、市场、体系和拓展组织统一进入`pms_project_org_rel`；客户名称、最终用户、代理商和服务商进入客户主档或项目参与方。旧主键、旧审计和完整来源行统一进入迁移来源记录，不复制到项目主档。
+项目主责公司—部门组合直接保存在项目主档；办事处、市场、系统和拓展等多角色组合进入`pms_project_company_department_rel`，同一关系行同时保存公司与部门，不能拆开后猜配对。客户编码和名称按项目建立或迁移时固化；最终用户、代理商和服务商进入项目参与方。旧主键、旧审计和完整来源行统一进入迁移来源记录。
 
 不把旧`projectType='10'`视图复制成新表；所有正式地区、局点和批次都使用同一项目表。旧库有1,550条项目名称为空，数据库允许以待补状态迁入，但新建项目仍由应用规则保证名称必填。
 
@@ -424,7 +426,7 @@ erDiagram
 
 SN主档只保存设备身份，不保存每次发货事件。
 
-关键列：`sn`、`item_code`、`company_barcode`、`secondary_sn`、`secondary_item`、`asset_status`、`source_system`、`source_sync_time`。
+关键列：`sn`、`item_code`、`internal_serial_no`、`secondary_sn`、`secondary_item`、`asset_status`、`source_system`、`source_sync_time`。
 
 `item_code`是该SN的单一物料编码。`barcode2/item2`必须形成第二条设备主档，再通过设备关系连接。主设备的`secondary_sn/secondary_item`缓存该SN最新发货合同匹配的一条关系，用于高频查询；它们不是合同关系的权威历史。
 

@@ -53,10 +53,10 @@
 | DEC-011 | 任务层级 | 任务使用非固定层级WBS，不设置固定业务深度。 |
 | DEC-012 | 容量基线 | 10万级项目、500万级任务、500人级同时在线。 |
 | DEC-013 | 模块边界与命名 | Yudao只承载平台能力；PMS业务模块统一使用`pms-module-*`命名，通过`-api`契约或领域事件协作。 |
-| DEC-014 | API设计 | Yudao平台接口定义完全以上游平台为准；新增`pms-module-*`业务模块统一执行PMS业务、内部、集成和事件API规范，接口必须版本化并具备稳定契约编号。 |
+| DEC-014 | API设计 | Yudao上游接口作为内部集成基线；PMS目标契约通过适配层把公司和部门统一为`company_*`与`department_*`，不得暴露`org_*`或`organization*`；新增`pms-module-*`业务模块统一执行PMS业务、内部、集成和事件API规范。 |
 | DEC-015 | 双上游集成策略 | 以`yudao-boot-mini`保持最简根工程；mini缺失但PMS需要的Yudao模块从`YunaiV/ruoyi-vue-pro`同名版本分支获取。共享文件以mini为基线，扩展模块及其配套资产以完整仓库为来源，PMS模块在根级增量加入。 |
 | DEC-016 | 数据库与旧库边界 | 新平台使用独立MySQL 8.x数据库；旧`dppms`只读访问且不得跨库SQL；业务数据一次性迁移，后续辅助关联数据只读同步。 |
-| DEC-017 | 身份与项目授权 | 公司即组织、部门主数据共享；员工目录与系统账号分离；外部账号按项目转派获得期限受控的菜单、操作、数据和字段权限，`fnd_user_power`只作为外部人员可服务范围。 |
+| DEC-017 | 身份与项目授权 | 公司是统一业务主体，租户与公司分离；部门主数据共享，公司—部门配对在具体业务关系中保存；员工目录与系统账号分离；外部账号按项目转派获得期限受控的菜单、操作、数据和字段权限。 |
 | DEC-018 | 附加SN关系 | `fb_shipment_barcode_relation`按合同保存主SN—附加SN权威历史；设备主档只缓存该SN最新发货合同对应的`secondary_sn/secondary_item`，不重复保存合同、关系和生效时间。 |
 | DEC-019 | 历史字段完整迁移 | 核心迁移同时保存完整来源载荷和正式业务列/关系；查询、关联、统计、同步和来源审计字段不得只存JSON，旧主键不得复用为目标主键，未映射字段阻断切换。 |
 
@@ -75,7 +75,7 @@
 
 | 编号 | 阶段 | 目标 | 主要活动 | 输入 | 输出 | 完成标准 |
 | --- | --- | --- | --- | --- | --- | --- |
-| L1 | 任务承接与项目组织 | 形成可治理的交付对象和责任体系 | 项目同步/创建、分类分级、拆分合并、人员指派、启动 | 订单、合同、销售/服务任务、客户设备数据 | 项目主数据、项目类型、团队、初始范围 | 项目唯一、责任明确、模板确定、必要数据完整 |
+| L1 | 任务承接与项目团队 | 形成可治理的交付对象和责任体系 | 项目同步/创建、分类分级、拆分合并、人员指派、启动 | 订单、合同、销售/服务任务、客户设备数据 | 项目主数据、项目类型、团队、初始范围 | 项目唯一、责任明确、模板确定、必要数据完整 |
 | L2 | 交付准备与需求基线 | 确认现场条件、客户需求和交付边界 | 工勘、客户联系人、需求分析、风险识别、物料及授权准备 | 项目主数据、设备清单、客户需求 | 工勘结果、需求基线、风险台账、资源缺口 | 关键需求确认，阻断性现场/物料问题已有处置 |
 | L3 | 计划、方案与资源就绪 | 形成可审批、可执行的计划和技术方案 | 工期倒排、实施方案、脚本、资源/备件、方案分级审核 | 需求基线、工勘、合同工期、模板 | 计划基线、审核通过方案、资源清单 | 方案审批通过，人员物料工具窗口就绪 |
 | L4 | 到货、安装与配置实施 | 完成设备实体部署和基础技术配置 | 到货签收、上架加电、配置调试、质量与安全检查、问题整改 | 设备与物料、实施方案、现场条件 | 安装记录、配置Log、自检结果、实施问题 | 设备部署完成，基础配置达标，阻断问题关闭 |
@@ -108,7 +108,7 @@
 | 领域代码 | 领域分册 | 实现模块 | 需求数 | 版本分布 |
 | --- | --- | --- | --- | --- |
 | PLT | 平台基础与权限 | yudao-dependencies / yudao-framework / yudao-module-system / yudao-module-infra / yudao-server；yudao-module-bpm为PMS扩展 | 11 | V1 11 / V2 0 / V3 0 |
-| PROJ | 项目承接、组合与组织 | pms-module-project | 22 | V1 14 / V2 8 / V3 0 |
+| PROJ | 项目承接、组合与团队 | pms-module-project | 22 | V1 14 / V2 8 / V3 0 |
 | ENG | 计划、方案与现场实施 | pms-module-engineering | 29 | V1 13 / V2 16 / V3 0 |
 | CUT | 联调、割接与稳定观察 | pms-module-cutover | 15 | V1 12 / V2 3 / V3 0 |
 | ACC | 验收、移交与项目闭环 | pms-module-project | 10 | V1 6 / V2 4 / V3 0 |
@@ -178,15 +178,17 @@
 | 外协/驻场/服务商 | 在授权范围内执行现场或维护工作 | 任务、材料、工时和付款条件 | 仅授权项目/设备/功能，期限受控 |
 | 客户联系人 | 确认需求、测试、培训、评价和验收 | 业务影响、服务质量、交付资料 | 链接/门户的有限填写和查看权限 |
 | 审批人/管理层 | 重大项目、割接、转包和例外审批 | 风险、成本、时效、合规 | 待审批对象及管理报表 |
-| 系统/流程管理员 | 组织、角色、字典、模板、规则、集成和审计 | 稳定性、安全、配置一致性 | 平台配置和受控运维权限 |
+| 系统/流程管理员 | 公司、部门、角色、字典、模板、规则、集成和审计 | 稳定性、安全、配置一致性 | 平台配置和受控运维权限 |
 
-身份、组织、旧权限迁移、外部人员项目转派以及菜单和字段级授权的完整规则见[`platform-identity-access-migration.md`](appendices/platform-identity-access-migration.md)；架构决策见[`ADR-0002`](../../docs/decisions/0002-platform-identity-and-project-scoped-access.md)。
+身份、公司、部门、旧权限迁移、外部人员项目转派以及菜单和字段级授权的完整规则见[`platform-identity-access-migration.md`](appendices/platform-identity-access-migration.md)；架构决策见[`ADR-0002`](../../docs/decisions/0002-platform-identity-and-project-scoped-access.md)。
 
 数据元、当前旧库表、正式设计和`implement/cp-foundation`业务对象的三方映射及迁移缺口见[`legacy-data-element-business-object-mapping.md`](appendices/legacy-data-element-business-object-mapping.md)；后续默认读取[`evidence/data-elements`](evidence/data-elements/README.md)中的结构化基线，只有证据不足或源文件哈希变化时才回溯Excel。
 
 18张核心旧表、326个历史字段的逐字段迁移去向和当前填充率见[`core-field-migration-completeness.md`](appendices/core-field-migration-completeness.md)及[`evidence/migration`](evidence/migration/README.md)；该覆盖结论不能替代其他旧业务域的字段审查。
 
 全部3,931条物理字段证据、3,908个唯一旧表字段、197条语义来源行和82条活动结构业务数据元的完整处置见[`complete-field-migration-matrix.md`](appendices/complete-field-migration-matrix.md)；去冗余后的领域权威表、缓存和高频查询路径见[`business-domain-table-design.md`](appendices/business-domain-table-design.md)。
+
+任何AI或开发人员实施数据迁移、项目—合同—订单行主链、特殊合并、改单、设备SN和外部人员授权前，必须先读取[`data-migration-and-core-business-ai-handoff.md`](appendices/data-migration-and-core-business-ai-handoff.md)。该文档负责工作包、执行契约、阻断决策和交付证据；当前DDL与既有矩阵存在哈希漂移，未重建校验制品前不得宣称迁移基线通过。
 
 合同维度附加SN权威关系、设备主档当前缓存、确定性选取和一致性规则见[`ADR-0003`](../../docs/decisions/0003-contract-scoped-secondary-sn-cache.md)。
 
