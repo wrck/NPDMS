@@ -1,5 +1,12 @@
 # SDS Phase 1：权限设计
 
+> 文档状态：`BASELINE`
+> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
+> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
+
+
 ## 1. 授权表达式
 
 所有服务端操作按 `Subject + Role + Resource + Action + Scope + Condition` 判定；前端隐藏不构成安全控制。拒绝结果必须可审计且不泄露敏感字段。
@@ -18,11 +25,11 @@
 
 | 资源 | 创建/上传 | 编辑/提交 | 复核/审批 | 数据范围条件 |
 |---|---|---|---|---|
-| ArrivalAcceptance | 项目经理、工程师 | 被分配项目/现场批次 | 服务经理或配置复核人 | 项目树后代、订单交付范围、设备当前归属 |
-| InstallationRecord | 项目经理、工程师 | 被分配项目/设备 | 服务经理 | 项目树后代、设备当前归属 |
-| ConfigurationCollectionResult | 业务授权人员发起任务 | 结果解释人 | 业务Owner确认 | 项目、设备、命令模板和凭证五元组 |
-| JointDebuggingResult | 项目经理、工程师 | 被分配项目/设备 | 项目经理或服务经理 | 项目树后代、订单交付范围、设备当前归属 |
-| ImplementationRisk | 工程师、项目经理 | 风险责任人 | 服务经理；高风险按门禁路由 | 项目树后代、关联设备/作业 |
+| ArrivalAcceptance | 项目经理创建批次；获授权现场工程师上传证据、录入参与批次 | 工程师编辑本人未最终提交的记录；项目经理提交差异处理和补签记录 | 项目经理最终确认；豁免审批人仅审批授权项目的具体设备/数量 | 项目树后代、订单交付范围、设备当前归属 |
+| InstallationRecord | 被分配到项目和设备的工程师 | 工程师编辑本人未提交记录；项目经理退回补充 | 项目经理确认记录及发起设备豁免 | 项目树后代、设备当前归属 |
+| ConfigurationCollectionResult | 获得项目、设备和命令模板权限的工程师发起任务或上传 Log | 工程师处理本人授权设备的任务结果；项目经理查看覆盖和里程碑 | 无独立人工审批节点；系统按全部目标设备的有效配置 Log 覆盖自动计算里程碑 | 项目、设备、命令模板和凭证五元组 |
+| JointDebuggingResult | 获分配工程师发起采集或上传联调 Log | 工程师处理授权设备结果；项目经理查看设备范围、结果和里程碑 | 无独立人工审批节点；系统按全部目标设备的有效联调记录自动计算里程碑 | 项目树后代、订单交付范围、设备当前归属 |
+| ImplementationRisk | 项目经理登记并提交 CRM 协同 | 项目经理核对 CRM 回传证据，选择关闭、继续跟进或取消 | 项目经理确认风险解除；不新增 PRD 未定义的自动阻断或服务经理审批 | 项目树后代、关联设备/作业 |
 | ImplementationQualityCheck | 检查人员 | 整改责任人 | 质量复核人 | 项目阶段、现场批次 |
 | ImplementationSafetyCheck | 安全检查人员 | 整改责任人 | 安全复核人；豁免审批人 | 项目阶段、现场批次；高风险关联作业 |
 | DeviceCredential | 创建人或授权管理员 | 被授权用户 | 授权审批人（如配置） | 凭证五元组：用户、设备、协议、命令模板、有效期 |

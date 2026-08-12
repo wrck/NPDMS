@@ -1,5 +1,12 @@
 # SDS Phase 1：领域模型
 
+> 文档状态：`BASELINE`
+> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
+> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
+
+
 ## 1. 建模原则
 
 领域边界从 PRD 的业务责任、数据 Owner、生命周期和权限范围推导；旧 `specs` 仅作为交叉检查材料。项目、割接、巡检属于同一平台，但不是同一个聚合，不能通过跨域 Repository 直接修改。一个需求领域可以包含多个 bounded context；领域编码仍是需求 Owner 和规格分册边界。`Implementation Execution`（实施执行域）是现场实施 bounded context，不是单一聚合根；其内部聚合按现场事实、采集结果、质量检查、安全检查和交付证据分别维护。

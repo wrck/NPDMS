@@ -2,12 +2,13 @@
 
 > 评审方式：独立只读评审<br>
 > 评审依据：PRD V1.6、基线快照、正式工程链、Phase 1 SDS 工作稿及追溯矩阵<br>
-> 评审结论：`NO-GO`，不得进入 Phase 2<br>
+> 当前评审结论：`GO`，`READY_FOR_PHASE_2`（2026-08-13 定点复审）<br>
+> 历史评审结论：下文保留各轮 `NO-GO` 及其整改证据，不作为当前放行状态<br>
 > 评审范围：正确性、架构边界、可追溯性、权限安全、阶段门禁
 
 ## 1. 总体结论
 
-Phase 1 已具备需求数量覆盖和初步领域/聚合设计，但尚未达到可进入数据、API、集成详细设计的退出标准。当前问题不是 PRD 需求缺失，而是 Phase 1 的工程映射仍存在精度不足和真实前置条件未闭环。
+Phase 1 的需求覆盖、领域/聚合责任、状态与流程边界、授权落点、跨 Context 契约方向及 Q2 实现证据链已通过最终定点复审。历史发现和中间 `NO-GO` 结论保留于下文，用于说明修复路径。
 
 ## 2. Critical：阻塞项
 
@@ -67,3 +68,35 @@ Phase 1 已具备需求数量覆盖和初步领域/聚合设计，但尚未达�
 ## 7. 当前复审判定
 
 `NO-GO`。C-02、C-03 和 R-01～R-04 已有处置证据；但 C-01 仍因 `BLOCKED-SDS-02` 的实现工作包登记未完成而部分阻塞。当前仍不得生成 Phase 2 数据库、API、事件和集成详细契约，也不得开始正式代码实现。
+
+## 8. 2026-08-13 最终独立复审发现
+
+### 8.1 复审结论
+
+`NO-GO`。未发现 Critical，但下列 Required 项在定点复审通过前仍阻止 Phase 2。
+
+| 编号 | 发现 | 处置状态 | 修复证据 |
+|---|---|---|---|
+| R-N01 | 实施执行授权矩阵发明/错配审批角色 | `FIXED_PENDING_REREVIEW` | `docs/design/07-authorization-design.md` 已将到货、安装确认回归项目经理，删除采集结果的未定义人工审批节点 |
+| R-N02 | `CollectionTaskRequested` 生产者/消费者方向写反 | `FIXED_PENDING_REREVIEW` | `docs/design/02d-cross-context-contracts.md` 已改为业务 Context 发起、Device Access & Collection 消费，另建 `CollectionTaskAccepted` 表达接受回执 |
+| R-N03 | Q2 运行边界、导入状态、缓存事实与 `releaseId` 证据链冲突 | `FIXED_PENDING_REREVIEW` | 实施仓库 `856d052`；`docs/engineering/gates/phase-1/q2-evidence-manifest.json`；业务 `baseCommit=3c54ee1...` |
+| R-N04 | 正式 SDS 头部元数据、矩阵 SDS 链接和 Owner 状态未同步 | `FIXED_PENDING_REREVIEW` | `docs/design/01～07`及`02a～02e`已增加 PRD/Requirement/状态/Owner；生成器输出稳定 SDS 链接；`requirement-baseline.yaml` 改为 `OWNER_SIGNED` |
+
+### 8.2 历史项状态
+
+`C-01=PARTIALLY_RESOLVED`（Q2 修复待定点复审）；`C-02=RESOLVED`；`C-03=RESOLVED`；`R-01=RESOLVED`；`R-02=RESOLVED`；`R-03=RESOLVED`；`R-04=PARTIALLY_RESOLVED`（角色错配已修复，待定点复审）。
+
+### 8.3 非 Phase 1 阻塞的质量债务
+
+`corepack pnpm ts:check` 当前失败，生产构建通过不能覆盖该事实。它不属于 Phase 1 Gate，但必须作为任何前端 Feature 实现前的质量门禁，不得关闭检查或放宽 TypeScript 规则。
+
+## 9. 2026-08-13 最终定点复审
+
+| 项目 | 最终状态 | 复审证据 |
+|---|---|---|
+| R-N01 | `RESOLVED` | 到货、安装、配置采集和联调权限与 PRD 一致，未保留配置采集人工审批发明 |
+| R-N02 | `RESOLVED` | `CollectionTaskRequested` 仅作为业务 Context 到 Device Access & Collection 的请求；`CollectionTaskAccepted` 已统一为采集 Context 出向事件 |
+| R-N03 | `RESOLVED` | 实施仓库 `856d052`、`q2-evidence-manifest.json`、`baseCommit=3c54ee1...` 与宿主机应用/Docker 基础设施边界一致 |
+| R-N04 | `RESOLVED` | 12 份正式 SDS 元数据完整；115 行矩阵均含可解析 SDS 链接；Owner 状态为 `OWNER_SIGNED` |
+
+最终结论：`GO`。Q1、Q2、Q3 均为 `PASS`；C-01～C-03、R-01～R-04、R-N01～R-N04 全部关闭；Phase 1 为 `APPROVED / READY_FOR_PHASE_2`。`ts:check` 继续作为前端 Feature 实现前的强制前置门禁，不影响 Phase 1 放行。

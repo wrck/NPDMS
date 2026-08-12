@@ -1,5 +1,12 @@
 # SDS Phase 1：系统架构
 
+> 文档状态：`BASELINE`
+> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
+> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
+
+
 ## 1. 架构结论
 
 【建议】采用“模块化单体 + 领域模块 + 内部事件 + 外部适配器”的起步架构，基础平台提供认证、组织、字典、文件、待办、审计和工作流能力；业务域在同一系统内保持清晰边界。Q3 已确认 V1 优先将现有采集平台作为子应用集成；后续可在不改变 Owner、授权和明文边界的前提下演进为内部模块，不重复建设设备连接与原始采集引擎。

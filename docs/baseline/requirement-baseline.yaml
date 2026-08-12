@@ -18,7 +18,8 @@ scope:
 
 ownership:
   domain_count: 13
-  owner_rule: prd-derived-working-mapping; formal-approval-pending
+  owner_rule: prd-derived-owner-signed-mapping
+  owner_status: OWNER_SIGNED
   domain_source: docs/design/phase-1-domain-ownership.md
   historical_reference: specs/001-project-delivery-platform/domains/ (reference-only)
   authority: 需求/PRD-项目实施交付管理平台.md

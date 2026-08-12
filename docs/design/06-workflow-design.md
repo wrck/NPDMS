@@ -1,5 +1,12 @@
 # SDS Phase 1：工作流设计
 
+> 文档状态：`BASELINE`
+> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
+> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
+
+
 ## 1. 工作流与状态机边界
 
 审批流只负责节点、审批人、意见、路由和通知；业务状态由领域命令在审批结果确认后变更。通知失败不等同于审批失败，节点结果必须持久化。

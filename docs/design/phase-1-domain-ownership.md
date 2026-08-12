@@ -1,6 +1,9 @@
 # SDS Phase 1：领域 Owner 重确认记录
 
 > 状态：`OWNER_SIGNED`
+> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
+> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求
+> 文档 Owner：需求方；本文件仅登记业务事实 Owner 映射，不替代实施责任人名册
 > 依据：PRD V1.6 第四至第十三章、附录 A.1、核心业务对象和数据关联规则
 > 旧 `specs` 用途：仅用于核对历史需求编号和遗漏，不作为本记录的业务语义来源
 

@@ -1,5 +1,12 @@
 # SDS Phase 1：模块设计
 
+> 文档状态：`BASELINE`
+> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
+> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
+
+
 | 模块 | 职责 | 主要聚合 | 入向依赖 | 出向事件/服务 | 禁止依赖 |
 |---|---|---|---|---|---|
 | 项目治理 | 创建、指派、模板、项目树、任务和项目状态 | Project、ProjectTask、ProjectTemplate | CRM/ERP、组织主数据 | ProjectCreated、ProjectStageChanged | 直接改设备/合同库 |
@@ -15,7 +22,7 @@
 | 合同履约 | 合同、订单行、交付范围、履约对账 | Contract、OrderLine、DeliveryScope | ERP、Project | ScopeAllocated、FulfillmentReconciled | 直接写 ERP |
 | 资源外包 | 服务商、转包、付款门禁 | Supplier、SubcontractRequest、PaymentGate | OA、Project、Questionnaire | SubcontractApproved | 直接放行付款 |
 | 经营分析 | 指标、组合和经营视图 | PortfolioView、MetricSnapshot | 各域只读事件 | ReportGenerated | 任何交易写操作 |
-| 设备连接与采集 | 凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord | 外部采集平台、IMP、CUT、Inspection | CollectionTaskRequested、CollectionResultAvailable | 不重复建设连接和原始采集引擎 |
+| 设备连接与采集 | 凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord | 外部采集平台、IMP、CUT、Inspection | CollectionTaskAccepted、CollectionResultAvailable | 不重复建设连接和原始采集引擎 |
 | 基础平台能力 | 待办、文件、授权、变更、字典和审计通用能力 | Todo、FileArtifact、Grant、ChangeRequest | 所有模块 | TodoCreated、AuditRecorded | 不拥有业务域状态 |
 | 集成适配 | 外部同步、回调、失败补偿和对账 | ExternalMapping、CallbackRecord | 外部系统 | Domain command/event | 直接写业务表 |
 

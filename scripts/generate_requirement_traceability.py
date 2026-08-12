@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the V1.6 requirement-to-engineering traceability index and Phase 1 working mappings."""
+"""Generate the V1.6 requirement-to-engineering traceability index and Phase 1 SDS mappings."""
 
 from __future__ import annotations
 
@@ -198,6 +198,21 @@ def phase1_design(identifier: str, domain: str) -> tuple[str, ...]:
     return EXACT_PHASE1_DESIGN.get(identifier) or PHASE1_DESIGN[domain]
 
 
+def sds_reference(identifier: str) -> str:
+    """Return stable Phase 1 SDS links applicable to one requirement row."""
+    references = [
+        "[01追溯](../design/01-requirement-traceability.md#2-phase-1-追溯链)",
+        "[02领域](../design/02-domain-model.md)",
+        "[04模块](../design/04-module-design.md)",
+        "[05状态](../design/05-state-machine.md#2-核心状态机)",
+        "[06流程](../design/06-workflow-design.md#2-核心审批流)",
+        "[07权限](../design/07-authorization-design.md#2-权限层次)",
+    ]
+    if identifier.startswith(("EXE-", "IMP-", "CUT-", "INS-", "INT-")):
+        references.insert(2, "[02d契约](../design/02d-cross-context-contracts.md)")
+    return " / ".join(references)
+
+
 def render(prd: Path, domain_root: Path) -> str:
     requirements = extract_requirements(read(prd))
     owners = domain_owners(requirements)
@@ -213,7 +228,7 @@ def render(prd: Path, domain_root: Path) -> str:
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：SDS Phase 1工作稿已生成，待领域Owner和架构评审",
+        "- 当前状态：SDS Phase 1已通过独立复审并转为BASELINE；领域Owner已签署",
         "",
         "## 字段状态约定",
         "",
@@ -235,7 +250,7 @@ def render(prd: Path, domain_root: Path) -> str:
         values = [
             item["id"], item["name"], f"{domain}（{owner}）", module, aggregate, lifecycle,
             permission, api, data, test_category, item["stage"], item["version"], item["priority"],
-            item["source"], "Phase1-WORKING", "NOT_STARTED", "PRD/Phase1工作稿", "NOT_STARTED", "BASELINE",
+            item["source"], sds_reference(item["id"]), "NOT_STARTED", "PRD/SDS-P1-BASELINE", "NOT_STARTED", "BASELINE",
         ]
         lines.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
     return "\n".join(lines) + "\n"
