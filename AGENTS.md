@@ -1,3 +1,107 @@
+# AGENTS.md
+
+## 1. Highest-priority source of truth
+
+For business semantics, the approved PRD baseline is the highest-priority source of truth.
+
+Priority:
+
+PRD > Engineering Constitution > SDS > Feature Spec > Implementation Plan > Task > Code
+
+Lower-level artifacts may refine higher-level artifacts but must not silently change business meaning.
+
+## 2. Required reading before work
+
+Before modifying design or code, read:
+
+1. `docs/baseline/prd-v1.6.md`
+2. `docs/engineering/00-engineering-chain.md`
+3. the relevant SDS section under `docs/design/`
+4. the relevant feature spec under `specs/`
+5. the current task definition
+
+## 3. Hard rules
+
+- Do not modify PRD business semantics without an approved change request.
+- Do not implement V3 or OUT_OF_SCOPE items as part of V1/V2.
+- Do not invent business roles, approval nodes, state transitions, thresholds, gates, or data ownership.
+- Do not bypass state machines by directly writing lifecycle status fields.
+- Do not bypass server-side authorization.
+- Do not expose or persist plaintext device passwords, private keys, tokens, or secrets.
+- Do not directly access another bounded context's repository from a foreign module.
+- Do not overwrite immutable history, snapshots, approved versions, audit records, or source evidence.
+- Do not treat notification delivery as business success.
+- Do not treat external HTTP success as business completion unless the contract explicitly defines it so.
+- Do not weaken validation or authorization to make tests pass.
+
+## 4. Missing or conflicting requirements
+
+If a business rule is missing, ambiguous, or conflicting:
+
+1. Do not guess.
+2. Mark the item `BLOCKED_BY_SPEC`.
+3. Record it in `docs/decisions/open-questions.md`.
+4. Continue only on independent work that is not blocked.
+
+## 5. Traceability
+
+Every feature, API, database change, event, workflow, and test must reference one or more PRD requirement IDs.
+
+Maintain:
+
+`docs/traceability/requirement-matrix.md`
+
+Required chain:
+
+Requirement -> SDS -> Feature -> Code -> Test
+
+## 6. External integrations
+
+Every external integration must define:
+
+- system owner
+- direction
+- authoritative fields
+- request/response mapping
+- source key
+- idempotency key
+- timeout
+- retry
+- compensation
+- reconciliation
+- degradation
+- audit
+
+## 7. Task execution protocol
+
+For every task:
+
+READ -> PLAN -> IMPLEMENT -> TEST -> SELF-REVIEW -> REPORT
+
+Before implementation, report:
+
+- files to modify
+- requirement IDs
+- domain impact
+- API impact
+- database impact
+- authorization impact
+- state-machine/workflow impact
+- tests
+- risks
+
+After implementation, report:
+
+- implemented scope
+- changed files
+- requirement coverage
+- tests added
+- test results
+- known limitations
+- follow-up tasks
+
+
+
 # 项目执行效率规则
 
 本文件适用于当前仓库及其全部子目录。

@@ -236,8 +236,8 @@ def render_domain(domain: str, requirements: dict[str, Requirement], formal_rows
         detail.append("本轮PRD未定义本领域直接负责的V1/V2正式需求，不新增业务能力；本领域仅承接其他领域通过依赖、输入、输出或事件引用的协作边界。")
     return f"""# {domain}领域需求：{name}
 
-> 文档状态：PRD重建候选稿<br>
-> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.5，已确认补充回写）<br>
+> 文档状态：正式基线（来源PRD V1.6）<br>
+> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.6，正式基线）<br>
 > 领域编码：`{domain}`<br>
 > 业务Owner：{name}<br>
 > 详细需求：{len(selected)}项
