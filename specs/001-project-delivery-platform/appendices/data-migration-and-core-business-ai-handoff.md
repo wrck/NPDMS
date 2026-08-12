@@ -104,6 +104,8 @@ Get-Content 'specs/001-project-delivery-platform/evidence/migration/target-field
 
 ### 2.4 DDL漂移裁决
 
+本次`AI-MIG-000`事实核对记录在[`evidence/migration/ddl-drift-review.md`](../evidence/migration/ddl-drift-review.md)；该报告当前为`DEFER`，不代表已批准当前DDL。
+
 当前DDL不是天然权威，旧矩阵也不是天然权威。`AI-MIG-000`必须先生成`ddl-drift-review.json`，逐项列出表、列、索引、外键、CHECK和注释的旧证据值、当前DDL值、来源提交及差异。每项只能由数据架构和业务负责人选择：
 
 - `ACCEPT_CURRENT`：确认当前DDL变化正确；
