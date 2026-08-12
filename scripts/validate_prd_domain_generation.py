@@ -21,7 +21,7 @@ DOMAIN_FILES = {
     "ANA": "ANA-经营分析需求规格.md",
 }
 DETAIL_RE = re.compile(r"^## ([A-Z]+-\d+) .+$", re.MULTILINE)
-FORMAL_ROW_RE = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z]+)?-\d+)\s*\|", re.MULTILINE)
+FORMAL_ROW_RE = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.MULTILINE)
 
 
 def _table_ids(prd: str, start_marker: str, end_marker: str) -> set[str]:
@@ -31,7 +31,7 @@ def _table_ids(prd: str, start_marker: str, end_marker: str) -> set[str]:
     return {
         match.group(1)
         for line in lines[start:end]
-        if (match := re.match(r"^\|\s*([A-Z]+(?:-[A-Z]+)?-\d+)\s*\|", line))
+        if (match := re.match(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", line))
     }
 
 
@@ -50,8 +50,15 @@ def main() -> int:
     out_scope = _table_ids(prd, "### A.4 OUT_OF_SCOPE索引", "##")
 
     errors: list[str] = []
-    if len(formal) != 100:
-        errors.append(f"PRD formal count={len(formal)}, expected=100")
+    expected_new_formal = {
+        "PLT-01", "PLT-02", "PROJ-12", "ANA-01", "COM-01", "COM-02",
+        "SOL-01", "IMP-01", "IMP-02", "RES-01", "ACC-05", "ACC-06",
+        "SRV-01", "AST-01", "AST-02",
+    }
+    if len(formal) != 115:
+        errors.append(f"PRD formal count={len(formal)}, expected=115")
+    if not expected_new_formal.issubset(formal):
+        errors.append(f"missing confirmed formal requirements: {sorted(expected_new_formal - formal)}")
     generated_domain_codes = {path.name.split("-", 1)[0] for path in args.domains.glob("*") if path.name.endswith("需求规格.md")}
     if set(DOMAIN_FILES) != generated_domain_codes:
         errors.append("domain file set is not exactly the 13-domain set")
@@ -93,6 +100,32 @@ def main() -> int:
     if duplicates:
         errors.append(f"duplicate formal details: {duplicates}")
 
+    substantive_requirements = {
+        "PLT-01": ("幂等", "状态机", "待办"),
+        "PLT-02": ("文件版本", "审批引用", "逻辑删除"),
+        "PROJ-12": ("主组合", "循环关系", "统计规则"),
+        "ANA-01": ("统计时点", "下钻", "数据完整性"),
+        "COM-01": ("订单行", "已分配数量", "来源编号"),
+        "COM-02": ("回写", "对账", "CRM"),
+        "SOL-01": ("模板版本", "条件字段", "提交"),
+        "IMP-01": ("不合格", "整改", "阶段门禁"),
+        "IMP-02": ("高风险", "阻断", "安全员"),
+        "RES-01": ("资质", "有效期", "新分派"),
+        "ACC-05": ("转持续服务", "遗留问题", "关闭证据"),
+        "ACC-06": ("关闭门禁", "交接单", "待关闭"),
+        "SRV-01": ("停产", "停止服务", "权威来源"),
+        "AST-01": ("RMA", "替换关系", "不删除"),
+        "AST-02": ("维保客观状态", "计算时点", "不依赖独立维保"),
+    }
+    combined_domains = "\n".join(texts.values())
+    for identifier, phrases in substantive_requirements.items():
+        start = combined_domains.find(f"## {identifier} ")
+        end = combined_domains.find("\n## ", start + 1) if start >= 0 else -1
+        block = combined_domains[start : end if end >= 0 else len(combined_domains)]
+        missing_phrases = [phrase for phrase in phrases if phrase not in block]
+        if missing_phrases:
+            errors.append(f"{identifier} missing substantive phrases: {missing_phrases}")
+
     expected_owner = {
         "PROJ": {"INT-01"},
         "AST": {"INT-02", "INT-06"},
@@ -108,12 +141,19 @@ def main() -> int:
     v3_seen: set[str] = set()
     out_seen: set[str] = set()
     for text in texts.values():
-        v3_seen.update(match.group(1) for match in re.finditer(r"^\|\s*([A-Z]+-\d+)(?:（跨需求方向）)?\s*\|", text, re.MULTILINE))
+        v3_seen.update(match.group(1) for match in re.finditer(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)(?:（跨需求方向）)?\s*\|", text, re.MULTILINE))
         out_seen.update(FORMAL_ROW_RE.findall(text[text.find("## 5. OUT_OF_SCOPE追溯") :]))
     if not v3.issubset(v3_seen):
         errors.append(f"missing V3 trace: {sorted(v3 - v3_seen)}")
     if not out_scope.issubset(out_seen):
         errors.append(f"missing OUT_OF_SCOPE trace: {sorted(out_scope - out_seen)}")
+    expected_v3 = {f"KNO-V3-{i:02d}" for i in range(1, 9)} | {f"ANA-V3-{i:02d}" for i in range(1, 6)} | {"SRV-V3-01"}
+    if not expected_v3.issubset(v3):
+        errors.append(f"missing confirmed V3 rows: {sorted(expected_v3 - v3)}")
+    if "FR-SRV-014" not in out_scope:
+        errors.append("FR-SRV-014 must remain OUT_OF_SCOPE")
+    if any(identifier in formal for identifier in ("FR-SRV-014", "FR-SRV-019", "FR-SRV-020", "FR-SRV-021", "FR-SRV-022", "FR-SRV-023")):
+        errors.append("excluded service requirements leaked into formal index")
     for code, marker in (("ACC", "CLO-05（跨需求方向）"), ("RES", "SUB-03（跨需求方向）")):
         if marker not in texts.get(code, ""):
             errors.append(f"missing cross-demand V3 direction in {code}: {marker}")

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-FORMAL_ROW_RE = re.compile(r"^\|\s*([A-Z]+-\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|")
+FORMAL_ROW_RE = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|")
 STANDARD_HEADING_RE = re.compile(r"^(#{3,4})\s+\d+\.\d+(?:\.\d+)?\s+([A-Z]+-\d+)\s+(.+?)\s*$")
 PAREN_HEADING_RE = re.compile(r"^(#{3})\s+\d+\.\d+\s+(.+?)[（(]([A-Z]+-\d+)[）)]\s*$")
 ANY_HEADING_RE = re.compile(r"^(#{3,4})\s+")
@@ -56,15 +56,25 @@ DOMAIN_BOUNDARIES = {
 }
 
 PREFIX_OWNER = {
+    "PLT": "PLT",
     "PM": "PROJ",
+    "PROJ": "PROJ",
+    "ANA": "ANA",
+    "COM": "COM",
     "PRE": "SOL",
     "PLN": "SOL",
     "SCH": "SOL",
+    "SOL": "SOL",
     "EXE": "IMP",
+    "IMP": "IMP",
     "ACC": "ACC",
     "CLO": "ACC",
     "WO": "SRV",
     "SUB": "RES",
+    "RES": "RES",
+    "SRV": "SRV",
+    "AST": "AST",
+    "KNO": "KNO",
     "CUS": "CUS",
     "EQP": "AST",
     "RPT": "ANA",
@@ -93,6 +103,7 @@ INTEGRATION_OWNER = {
 
 OUT_SCOPE = {
     "WO-07": ("SRV", "平台通用割接时效管控", "仅保留CUT-05专项提前时间规则"),
+    "FR-SRV-014": ("SRV", "平台通用工单时效/SLA", "不建设通用工单超期升级和服务级别计时；WO-01打卡补单规则不扩展为通用SLA"),
     "WO-11": ("SRV", "维保机会点工单", "维保经营能力不建设"),
     "FR-PROJ-023": ("PROJ", "项目日报与周报", "结构化项目数据及看板聚合继续保留"),
     "FR-SRV-019": ("SRV", "独立维保档案经营能力", "设备档案维保基本信息保留"),
@@ -226,7 +237,7 @@ def render_domain(domain: str, requirements: dict[str, Requirement], formal_rows
     return f"""# {domain}领域需求：{name}
 
 > 文档状态：PRD重建候选稿<br>
-> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.4，基线整改中）<br>
+> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.5，已确认补充回写）<br>
 > 领域编码：`{domain}`<br>
 > 业务Owner：{name}<br>
 > 详细需求：{len(selected)}项
@@ -276,8 +287,8 @@ def main() -> int:
     v3_rows = _find_v3_rows(lines)
     cross_rows = _find_cross_v3_rows(lines)
     requirements = _extract_requirements(text, set(formal_rows))
-    if len(requirements) != 100:
-        raise RuntimeError(f"expected 100 formal requirements, got {len(requirements)}")
+    if len(requirements) != 115:
+        raise RuntimeError(f"expected 115 formal requirements, got {len(requirements)}")
     args.output.mkdir(parents=True, exist_ok=True)
     for domain in DOMAIN_ORDER:
         target = args.output / f"{domain}-{DOMAIN_NAMES[domain]}需求规格.md"
