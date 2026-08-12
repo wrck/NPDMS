@@ -109,15 +109,15 @@ PHASE1_DESIGN = {
     "PROJ": ("项目治理", "Project / ProjectTask / ProjectTemplate", "Project或Task状态机；模板加载工作流", "ProjectTreeScope", "ProjectApplicationService", "Project、ProjectTask、ProjectTemplate", "业务规则+权限+树查询"),
     "SOL": ("交付准备与方案", "Preparation / ConstructionPlan / Solution", "Plan或Solution状态机；计划/方案审批流", "ProjectStageScope", "PreparationApplicationService", "Preparation、Plan、Solution、File", "业务规则+审批+文件"),
     "IMP": ("实施执行", "ArrivalAcceptance / InstallationRecord / ConfigurationCollectionResult / JointDebuggingResult / ImplementationRisk / ImplementationQualityCheck / ImplementationSafetyCheck / DeliveryEvidence", "实施执行聚合状态机；质量/安全整改复核工作流；阶段门禁工作流", "ImplementationProjectBatchScope", "ImplementationExecutionApplicationService", "ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、ImplementationSafetyCheck、DeliveryEvidence", "业务规则+证据+权限+整改"),
-    "ACC": ("验收与项目闭环", "Acceptance / Artifact / Closure", "Artifact与Closure状态机；验收/闭环审批流", "ProjectStageScope", "AcceptanceApplicationService", "Acceptance、DeliveryArtifact、Closure、ServiceHandover", "业务规则+审批+门禁"),
+    "ACC": ("验收与项目闭环", "Acceptance / Artifact / ProjectClosure", "Artifact与ProjectClosure状态机；验收/闭环审批流", "ProjectStageScope", "AcceptanceApplicationService", "Acceptance、DeliveryArtifact、ProjectClosure、ServiceHandover", "业务规则+审批+门禁"),
     "CUT": ("变更切换与稳定治理", "CutoverTask / CutoverPlan / CutoverExecution", "Cutover状态机；分级审批流", "CutoverTaskScope", "CutoverApplicationService", "CutoverTask、CutoverPlan、CutoverExecution", "业务规则+审批+幂等"),
-    "SRV": ("服务运营", "WorkOrder / InspectionTask / ServiceIssue", "WorkOrder或Inspection状态机；问题闭环工作流", "AssignedProjectDeviceScope", "ServiceApplicationService", "WorkOrder、InspectionTask、ServiceIssue、ServiceStatus", "业务规则+权限+异常"),
-    "CUS": ("客户与服务关系", "Customer / Contact / AssetRelation", "Customer同步状态机；主数据同步流", "OrganizationCustomerScope", "CustomerApplicationService", "Customer、Contact、AssetRelation", "数据同步+权限"),
-    "AST": ("资产管理", "Device / DeviceArchive / RMAReplacement", "Device服务状态机；设备同步流", "ProjectDeviceScope", "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement", "数据一致性+归属+安全"),
+    "SRV": ("Work Order & Time / Inspection / Service Operations", "WorkOrder / TimeClaim / InspectionTask / ServiceIssue / ServiceStatus", "工单与工时、Inspection、Service Operations分别维护状态机和闭环流", "AssignedProjectDeviceScope", "ServiceApplicationService", "WorkOrder、TimeClaim、ResponsibilityInterval、InspectionTask、InspectionRule、ServiceIssue、ServiceStatus", "业务规则+权限+异常"),
+    "CUS": ("Customer & Relationship", "Customer / Contact / AssetRelation", "Customer同步状态机；主数据同步流", "OrganizationCustomerScope", "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot", "数据同步+权限"),
+    "AST": ("Asset Management", "Device / DeviceArchive / RMAReplacement", "Device服务状态机；设备同步流", "ProjectDeviceScope", "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot", "数据一致性+归属+安全"),
     "COM": ("合同订单履约", "Contract / OrderLine / DeliveryScope", "Scope状态机；履约回写工作流", "ContractProjectScope", "ContractApplicationService", "Contract、OrderLine、DeliveryScope、FulfillmentRecord", "数量约束+对账+幂等"),
     "RES": ("资源与外包", "Supplier / SubcontractRequest / PaymentGate", "Subcontract与PaymentGate状态机；转包审批流", "OrganizationSupplierScope", "SubcontractApplicationService", "Supplier、SubcontractRequest、PaymentGate", "审批+门禁+财务集成"),
     "ANA": ("经营分析", "MetricSnapshot / PortfolioView", "指标快照生成流（只读）", "OrganizationReportScope", "AnalyticsQueryService", "MetricSnapshot、PortfolioView", "口径+数据范围+性能"),
-    "PLT": ("平台公共能力", "Todo / FileArtifact / AuthorizationGrant / ChangeRequest", "公共对象状态机；授权/变更审批流", "TenantOrganizationProjectScope", "PlatformApplicationService", "Todo、FileArtifact、AuthorizationGrant、ChangeRequest、AuditRecord", "安全+权限+审计"),
+    "PLT": ("基础平台能力 / Device Access & Collection", "Todo / FileArtifact / AuthorizationGrant / ChangeRequest / DeviceCredential / CredentialGrant / CollectionTask", "公共能力状态机、授权审批流和采集任务授权/回调流", "TenantOrganizationProjectScope / BusinessObjectDeviceCredentialScope", "PlatformApplicationService / CollectionOrchestrationService", "Todo、FileArtifact、AuthorizationGrant、ChangeRequest、AuditRecord、DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord", "安全+权限+审计+幂等"),
     "KNO": ("技术知识治理", "TechnicalNoticeReference", "来源同步状态机；版本映射流", "ProductDeviceProjectScope", "KnowledgeApplicationService", "TechnicalNoticeReference、SourceMapping", "来源一致性+版本追溯"),
 }
 
@@ -133,8 +133,52 @@ EXACT_PHASE1_DESIGN = {
     "INT-01": PHASE1_DESIGN["PROJ"], "INT-02": PHASE1_DESIGN["AST"], "INT-03": PHASE1_DESIGN["CUS"],
     "INT-04": PHASE1_DESIGN["KNO"], "INT-05": PHASE1_DESIGN["PLT"], "INT-06": PHASE1_DESIGN["AST"],
     "INT-07": PHASE1_DESIGN["RES"], "INT-09": PHASE1_DESIGN["PLT"], "INT-10": PHASE1_DESIGN["PLT"],
-    "INT-12": ("平台公共能力", "CollectionTask / CredentialGrant", "CollectionTask状态机；任务授权流", "BusinessObjectDeviceCredentialScope", "CollectionOrchestrationService", "CollectionTask、CredentialGrant、CallbackRecord", "安全+权限+幂等"),
+    "INT-12": ("Device Access & Collection", "DeviceCredential / CredentialGrant / CollectionTask / CallbackRecord", "凭证授权与采集任务状态机；任务下发和回调消费流", "BusinessObjectDeviceCredentialScope", "CollectionOrchestrationService", "DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord", "安全+权限+幂等"),
 }
+
+# Context-level refinements keep the 13-domain Owner unchanged while making
+# the internal bounded-context mapping explicit in the working matrix.
+for _identifier in ("WO-01", "WO-02", "WO-03", "WO-04", "WO-05", "WO-06"):
+    EXACT_PHASE1_DESIGN[_identifier] = (
+        "Work Order & Time", "WorkOrder / TimeClaim / ResponsibilityInterval",
+        "WorkOrder状态机；责任区间与工时审批流", "AssignedProjectDeviceScope",
+        "WorkOrderApplicationService", "WorkOrder、TimeClaim、ResponsibilityInterval、WorkOrderEvidence",
+        "业务规则+权限+工时证据",
+    )
+for _identifier in ("INS-01", "INS-02", "INS-03", "INS-04", "INS-05", "INS-06", "INS-07", "INS-08", "INS-09"):
+    EXACT_PHASE1_DESIGN[_identifier] = (
+        "Inspection", "InspectionTask / InspectionRule / ServiceIssue",
+        "Inspection状态机；巡检执行与问题闭环工作流", "AssignedProjectDeviceScope",
+        "InspectionApplicationService", "InspectionTask、InspectionRule、InspectionReport、ServiceIssue",
+        "业务规则+权限+采集结果",
+    )
+EXACT_PHASE1_DESIGN["SRV-01"] = (
+    "Service Operations", "ServiceStatus / ServiceHandover",
+    "ServiceStatus状态机；服务状态同步与提示流", "ProjectDeviceScope",
+    "ServiceOperationsApplicationService", "ServiceStatus、ServiceHandover、DeviceServiceSnapshot",
+    "来源同步+权限+提示",
+)
+for _identifier in ("CUS-01", "CUS-02", "CUS-03", "CUS-04", "INT-03"):
+    EXACT_PHASE1_DESIGN[_identifier] = (
+        "Customer & Relationship", "Customer / Contact / AssetRelation / CustomerSyncSnapshot",
+        "Customer同步状态机；主数据同步流", "OrganizationCustomerScope",
+        "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot",
+        "数据同步+权限+来源版本",
+    )
+for _identifier in ("EQP-01", "EQP-02", "EQP-03", "EQP-04", "EQP-05", "EQP-07", "AST-01", "AST-02", "INT-02", "INT-06"):
+    EXACT_PHASE1_DESIGN[_identifier] = (
+        "Asset Management", "Device / DeviceArchive / RMAReplacement / AssetSyncSnapshot",
+        "Device状态机；资产主数据同步流", "ProjectDeviceScope",
+        "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot",
+        "数据一致性+归属+来源版本",
+    )
+for _identifier in ("COM-01", "COM-02"):
+    EXACT_PHASE1_DESIGN[_identifier] = (
+        "Contract & Fulfillment", "Contract / SalesOrder / OrderLine / DeliveryScope / FulfillmentSnapshot",
+        "Contract/Order同步状态机；范围分配与履约对账流", "ContractProjectScope",
+        "ContractApplicationService", "Contract、SalesOrder、OrderLine、DeliveryScope、FulfillmentSnapshot、ReconciliationRecord",
+        "数量约束+同步版本+对账幂等",
+    )
 
 
 def domain_owners(requirements: list[dict[str, str]]) -> dict[str, tuple[str, str]]:

@@ -184,11 +184,11 @@ Subject + Role + Resource + Action + Scope + Condition
 
 ## 五、Phase 1 Review
 
-完成后不要进入 Phase 2，除非`phase-1-review.md`明确标记`APPROVED`且无`BLOCKED_BY_SPEC`或`BLOCKED_BY_EVIDENCE`。
+完成后不要进入 Phase 2，除非`docs/engineering/gates/phase-1/gate-status.md`明确标记`APPROVED`且无`BLOCKED_BY_SPEC`或`BLOCKED_BY_EVIDENCE`。
 
 创建：
 
-`docs/design/phase-1-review.md`
+`docs/engineering/gates/phase-1/gate-status.md`
 
 检查：
 

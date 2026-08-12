@@ -22,15 +22,15 @@
 | PROJ 项目治理 | 项目创建、主子项目、模板、任务、指派、项目状态 | PM-01～PM-11、PROJ-12 | Project、ProjectTemplate、ProjectTask | 待确认 |
 | SOL 交付准备与方案 | 工勘、需求分析、计划、实施方案 | PRE-01～PRE-05、PLN-01～PLN-04、SCH-01～SCH-05 | Preparation、ConstructionPlan、ImplementationPlan | 待确认 |
 | IMP 实施执行 | 到货、安装、配置Log、联调、风险、质量安全检查、实施阶段交付件上传 | EXE-01～EXE-06、IMP-01～IMP-02 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、ImplementationSafetyCheck、DeliveryEvidence | 待确认 |
-| ACC 验收与闭环 | 培训、满意度、验收、交付件齐套校验、审核、统一归档、闭环、持续服务交接 | ACC-01～ACC-06、CLO-01～CLO-06 | Acceptance、DeliveryArtifact、Closure、ServiceHandover | 待确认 |
+| ACC 验收与闭环 | 培训、满意度、验收、交付件齐套校验、审核、统一归档、项目闭环、持续服务交接 | ACC-01～ACC-06、CLO-01～CLO-06 | Acceptance、DeliveryArtifact、ProjectClosure、ServiceHandover | 待确认 |
 | CUT 割接与稳定治理 | 割接任务、分级、采集清单、方案、审批、执行和配置 | CUT-01～CUT-10 | CutoverTask、CutoverAssessment、CutoverPlan、CutoverExecution | 待确认 |
-| SRV 服务运营 | 巡检、问题闭环、设备服务状态、RMA/维保衔接 | INS-01～INS-09、SRV-01 | InspectionTask、InspectionRule、ServiceIssue、ServiceStatus | 待确认 |
-| CUS 客户与服务关系 | 客户、联系人、资产视图、服务等级 | CUS-01～CUS-04 | Customer、Contact、CustomerAssetView、ServiceLevel | 待确认 |
-| AST 资产管理 | 设备序列号、设备档案、配置Log、维保客观状态 | EQP-01～EQP-07、AST-01～AST-02 | Device、DeviceArchive、MaintenanceFact、RMAReplacement | 待确认 |
-| COM 合同订单履约 | 合同/订单关联、交付范围、履约回写与对账 | COM-01～COM-02 | Contract、OrderLine、DeliveryScope、FulfillmentReconciliation | 待确认 |
+| SRV 服务运营 | 工单、工时、巡检、问题闭环和设备服务状态；内部 Context 拆为 Work Order & Time、Inspection、Service Operations | WO-01～WO-06、INS-01～INS-09、SRV-01 | WorkOrder、TimeClaim、InspectionTask、ServiceIssue、ServiceStatus | 待确认 |
+| CUS 客户与服务关系 | 客户、联系人、客户关系和 CRM 同步副本 | CUS-01～CUS-04 | Customer、Contact、AssetRelation、CustomerSyncSnapshot | 待确认 |
+| AST 资产管理 | 设备序列号、设备档案、配置Log、维保客观状态和来源同步副本 | EQP-01～EQP-07、AST-01～AST-02 | Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot | 待确认 |
+| COM 合同订单履约 | 合同/订单本地同步副本、交付范围、履约回写与对账 | COM-01～COM-02 | Contract、SalesOrder、OrderLine、DeliveryScope、FulfillmentSnapshot、ReconciliationRecord | 待确认 |
 | RES 资源与外包 | 服务商、转包申请与付款回访门禁 | RES-01、SUB-01～SUB-05 | Supplier、SubcontractRequest、PaymentGate | 待确认 |
 | ANA 经营分析 | 项目组合和工时/状态/人效统计 | ANA-01、RPT-01～RPT-04 | PortfolioView、MetricSnapshot | 待确认 |
-| PLT 平台公共能力 | 待办、文件身份版本、变更、授权、NFR公共约束 | PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03 | Todo、FileArtifact、AuthorizationGrant、ChangeRequest | 待确认 |
+| PLT 平台公共能力 | 待办、文件身份版本、变更、授权、NFR公共约束及 Device Access & Collection 采集编排 | PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-12 | Todo、FileArtifact、AuthorizationGrant、ChangeRequest、DeviceCredential、CredentialGrant、CollectionTask | 待确认 |
 | KNO 技术知识治理 | 当前仅承接已确认的技术公告同步边界 | INT-04 | TechnicalNoticeReference | 待确认 |
 
 上表是基于 PRD V1.6 的 Phase 1 工作映射。发生跨域需求时，选择一个数据 Owner 作为唯一归属，其余领域以引用关系记录；旧规格不覆盖该映射。

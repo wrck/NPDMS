@@ -13,7 +13,7 @@ Phase 1 已具备需求数量覆盖和初步领域/聚合设计，但尚未达�
 
 | 编号 | 问题 | 证据 | 影响 | 处理要求 |
 |---|---|---|---|---|
-| C-01 | 三个 Phase 1 硬门禁均未关闭 | `docs/design/phase-1-review.md:6,29-31,41` | Owner、实现边界和集成边界都不可复核 | 关闭 Owner 签署、实现工作包登记、采集平台集成形态确认后再复审 |
+| C-01 | 三个 Phase 1 硬门禁均未关闭 | `docs/engineering/gates/phase-1/gate-status.md:6,29-31,41` | Owner、实现边界和集成边界都不可复核 | 关闭 Owner 签署、实现工作包登记、采集平台集成形态确认后再复审 |
 | C-02 | 工程链与根 AGENTS.md 的基线路径冲突 | `AGENTS.md:17` 仍读取不存在的 `docs/baseline/prd-v1.4.md`；正式工程链指向 V1.6 | 第三方无法按唯一规则复现基线读取和审查 | 统一根规则为 `docs/baseline/prd-v1.6.md`，或明确 AGENTS.md 已废止并保留唯一入口 |
 | C-03 | INT-12 集成形态仍未决 | `docs/design/03-system-architecture.md:3-5,9-17,34-36` | 鉴权、任务下发、回调、网络边界和执行身份无法形成 Phase 2 契约 | 架构负责人确认子应用/模块形态及接口契约 Owner |
 
@@ -31,7 +31,7 @@ Phase 1 已具备需求数量覆盖和初步领域/聚合设计，但尚未达�
 | 编号 | 建议 |
 |---|---|
 | O-01 | 追溯矩阵“来源追溯”列目前多数为空，应补充稳定 PRD 章节锚点或需求正文定位 |
-| O-02 | `phase-1-review.md` 的聚合边界检查应显式登记 R-01/R-02，不应只写 PASS-WITH-FOLLOWUP |
+| O-02 | `gate-status.md` 的聚合边界检查应显式登记 R-01/R-02，不应只写 PASS-WITH-FOLLOWUP |
 | O-03 | Phase 1 领域 Owner 签署后需重新生成矩阵，并将 `Phase1-WORKING` 转为正式 SDS 版本引用 |
 
 ## 5. 正向确认
@@ -48,4 +48,4 @@ Phase 1 已具备需求数量覆盖和初步领域/聚合设计，但尚未达�
 - 不得生成 Phase 2 数据库、API、事件和集成详细契约；
 - 不得把旧 `specs` 直接当作设计基线；
 - 不得开始正式代码实现；
-- 继续保留 `docs/design/phase-1-review.md` 的 `NOT_READY_FOR_PHASE_2` 状态。
+- 继续保留 `docs/engineering/gates/phase-1/gate-status.md` 的 `NOT_READY_FOR_PHASE_2` 状态。

@@ -16,9 +16,10 @@ Before modifying design or code, read:
 
 1. `docs/baseline/prd-v1.6.md`
 2. `docs/engineering/00-engineering-chain.md`
-3. the relevant SDS section under `docs/design/`
-4. the relevant feature spec under `specs/`
-5. the current task definition
+3. `docs/README.md`（文档分类、状态和归档规则）
+4. the relevant SDS section under `docs/design/`
+5. the relevant feature spec under `specs/`
+6. the current task definition
 
 ## 3. Hard rules
 
@@ -33,6 +34,8 @@ Before modifying design or code, read:
 - Do not treat notification delivery as business success.
 - Do not treat external HTTP success as business completion unless the contract explicitly defines it so.
 - Do not weaken validation or authorization to make tests pass.
+- Do not place review drafts, gate evidence, planning notes, external inputs, generated reports, or temporary copies in a formal directory; classify them according to `docs/README.md` first.
+- Do not create parallel `*-draft.md`, `*-review.md`, `*-final2.md` copies of a current formal document; revise the registered document or archive the superseded version.
 
 ## 4. Missing or conflicting requirements
 
@@ -121,4 +124,3 @@ After implementation, report:
 - 明确区分命令失败与正常无匹配，例如 `rg` 返回码1通常表示未找到匹配，不应直接当作执行异常。
 - PowerShell命令失败后先记录并归纳根因，再更换为已验证写法或更合适的工具；不得重复执行同类易错命令。
 - 集中完成一轮“定点检索、修改、必要校验”，避免对同一文件进行多轮等价扫描。
-

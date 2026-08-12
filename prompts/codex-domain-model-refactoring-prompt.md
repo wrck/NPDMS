@@ -11,7 +11,7 @@
 1. `AGENTS.md`
 2. PRD baseline
 3. `docs/design/02-domain-model.md`
-4. `docs/design/02-domain-model-full-review.md`
+4. `docs/engineering/gates/phase-1/archive/02-domain-model-full-review.md`
 
 ## 必须完成
 
@@ -95,7 +95,7 @@
 `docs/design/02c-data-ownership-matrix.md`
 `docs/design/02d-cross-context-contracts.md`
 `docs/design/02e-version-scope-matrix.md`
-`docs/design/phase-1-domain-review-2.md`
+`docs/engineering/gates/phase-1/context-refinement-review.md`
 
 ## Gate
 

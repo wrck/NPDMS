@@ -4,7 +4,7 @@
 > 适用基线：`需求/PRD-项目实施交付管理平台.md` V1.6<br>
 > 基线快照：`docs/baseline/prd-v1.6.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
-> 唯一正式工程链文件：本文件；`docs/engineering/archive/` 仅保留历史/评审稿，不作为执行依据。
+> 唯一正式工程链文件：本文件；`docs/engineering/archive/` 仅保留历史工程链稿，不作为执行依据；过程门禁证据统一位于 `docs/engineering/gates/`。
 
 ## 1. 目标
 
@@ -19,6 +19,17 @@
 3. `docs/design/`：本阶段生成并通过评审的 SDS。
 4. `docs/decisions/*.md`：已批准决策与待确认问题。
 5. `specs/001-project-delivery-platform/domains/*.md`：历史领域规格，仅作参考；与 V1.6 PRD 冲突时不得直接采用。
+
+过程审查和门禁证据不再与正式 SDS 混放：
+
+- `docs/engineering/gates/`：各阶段的门禁、独立评审、评审输入和历史归档。
+- `docs/engineering/gates/phase-1/gate-status.md`：Phase 1 当前门禁汇总及放行状态。
+- `docs/engineering/gates/phase-1/input/`：外部/上游评审输入，保持原始内容。
+- `docs/engineering/gates/phase-1/archive/`：已替代的历史评审材料，只用于追溯。
+
+门禁证据不具有独立的业务或设计权威性；评审结论必须经确认后回写正式 SDS、决策记录及当前阶段 `gate-status.md`，才能改变工程状态。
+
+所有文档目录均遵循 [`docs/README.md`](../README.md) 的分类、状态、晋级和归档规则。新增工程资产前必须先完成文档分类；正式目录中不得出现未登记的评审稿、计划稿、输入稿或临时副本。
 
 旧 `specs` 的领域 Owner 映射也只是迁移参考，须在 SDS Phase 1 重新确认，不得把旧规格直接当作当前设计输入。
 

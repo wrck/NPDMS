@@ -2,7 +2,7 @@
 
 > 评审状态：`COMPLETED`<br>
 > 适用范围：活动 Phase 1 SDS、追溯矩阵和生成脚本<br>
-> 历史证据：不改写 `phase-1-independent-review.md`、`phase-1-review.md`、`02-domain-model-full-review.md`
+> 历史证据：不改写 `independent-review.md`、`gate-status.md`、`archive/02-domain-model-full-review.md`
 
 ## Naming Gate
 

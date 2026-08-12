@@ -10,6 +10,7 @@
 2. 外部系统集成需求归属于实际消费/拥有业务事实的领域；集成适配器只负责协议和同步证据。
 3. 公共身份、授权、文件、待办、通知、变更和非功能约束归 PLT；设备业务事实归 AST，技术公告业务事实归 KNO。
 4. 一个正式需求只保留一个 Owner；跨域协作在依赖、事件和引用关系中表达。
+5. 一个领域可以包含多个 Bounded Context；Context 拆分用于澄清职责，不改变正式需求 Owner、领域编码或规格分册。
 
 ## 2. PRD-derived Owner 映射
 
@@ -20,13 +21,13 @@
 | IMP | EXE-01～EXE-06、IMP-01～IMP-02 | 到货签收、安装、配置采集、联调、现场检查，以及实施阶段产生的交付件/实施证据上传 |
 | ACC | ACC-01～ACC-06、CLO-01～CLO-06 | 验收、交付件齐套校验、审核、统一归档、回访、闭环和持续服务交接 |
 | CUT | CUT-01～CUT-10 | 割接任务及其评估、审批、执行和稳定治理 |
-| SRV | INS-01～INS-09、SRV-01 | 巡检任务、规则、报告、问题及设备服务状态 |
-| CUS | CUS-01～CUS-04、INT-03 | 客户、联系人和客户资产视图；CRM客户字段由外部Owner提供 |
-| AST | EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06 | 设备身份、档案、版本、RMA、维保基本信息和设备相关外部同步 |
+| SRV | WO-01～WO-06、INS-01～INS-09、SRV-01 | 工单、工时、巡检任务、规则、报告、问题及设备服务状态；内部 Context 分为 Work Order & Time、Inspection、Service Operations |
+| CUS | CUS-01～CUS-04、INT-03 | 客户、联系人和客户关系；CRM客户字段由外部Owner提供，平台保存必要同步副本 |
+| AST | EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06 | 设备身份、档案、版本、RMA、维保基本信息和设备相关外部同步；平台保存必要同步副本 |
 | COM | COM-01～COM-02 | 合同、订单行、交付范围和履约对账事实 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | 服务商、转包和付款门禁；财务系统拥有账务事实 |
 | ANA | RPT-01、RPT-02、RPT-04、ANA-01 | 只读指标、组合视图和经营分析 |
-| PLT | PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10、INT-12 | 平台公共能力、身份、通知、凭证授权和采集任务编排 |
+| PLT | PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10、INT-12 | 平台公共能力、身份、通知、凭证授权和采集任务编排；INT-12 的实现 Context 为 Device Access & Collection |
 | KNO | INT-04 | 技术公告引用、版本影响和知识事实同步 |
 
 ## 3. 结果
@@ -35,6 +36,8 @@
 - Owner 数量：13 个。
 - 领域之间不存在同一正式需求的双 Owner。
 - `INT-12` 的 Owner 是 PLT 公共采集编排；设备连接和原始采集执行仍由现有采集平台负责。
+- `Device Access & Collection` 是正式 Bounded Context，可纳入现有采集功能模块或子应用；该 Context 不拥有 IMP/CUT/INS 业务结论、设备主档或外部采集引擎内部数据。
+- SRV 内部 Context 映射为：WO-01～WO-06 → `Work Order & Time`；INS-01～INS-09 → `Inspection`；SRV-01 → `Service Operations`。
 - IMP 上传实施过程中产生的来源证据或阶段交付件；ACC 不重复上传，而是对项目交付件进行汇总、齐套校验、审核和归档。
 - `COM-01/02` 和 `INT-04` 明确属于正式需求，不再沿用旧规格中的“无直接正式需求”描述。
 

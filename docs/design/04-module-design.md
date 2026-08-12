@@ -5,14 +5,18 @@
 | 项目治理 | 创建、指派、模板、项目树、任务和项目状态 | Project、ProjectTask、ProjectTemplate | CRM/ERP、组织主数据 | ProjectCreated、ProjectStageChanged | 直接改设备/合同库 |
 | 交付准备与方案 | 工勘、需求分析、计划、方案审核 | Preparation、Plan、Solution | Project、字典、文件 | PlanApproved、SolutionApproved | 直接改项目状态 |
 | 实施执行 | 到货签收、安装、配置Log、联调、风险、质量安全、实施阶段交付件/证据上传 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、ImplementationSafetyCheck、DeliveryEvidence | Project、Device、CollectionTask、File | DeliveryEvidenceUploaded、ImplementationQualityChecked、ImplementationSafetyChecked | 直接执行设备命令、直接改变验收归档状态 |
-| 验收与闭环 | 培训、满意度、验收、交付件齐套校验、审核、统一归档、闭环交接 | Acceptance、Closure、Artifact | Project、DeliveryEvidence、File、Questionnaire | ArtifactAccepted、ProjectClosed、ServiceHandoverCreated | 直接改财务事实、直接修改现场实施原始证据 |
+| 验收与闭环 | 培训、满意度、验收、交付件齐套校验、审核、统一归档、闭环交接 | Acceptance、ProjectClosure、Artifact | Project、DeliveryEvidence、File、Questionnaire | ArtifactAccepted、ProjectClosureCompleted、ServiceHandoverCreated | 直接改财务事实、直接修改现场实施原始证据 |
 | 割接 | 任务、评估、采集清单、方案、审批、执行 | CutoverTask、CutoverPlan | Project、Device、CollectionTask | CutoverApproved、CutoverCompleted | 直接访问采集引擎 |
-| 巡检与服务 | 巡检任务、规则、报告、问题和服务状态 | InspectionTask、InspectionRule、ServiceIssue | Device、CollectionTask、UMC | InspectionCompleted、IssueCreated | 读取凭证明文 |
-| 客户资产 | 客户、联系人、设备档案和资产关系 | Customer、Device、AssetRelation | CRM、MES、项目事件 | CustomerUpdated、DeviceAssigned | 直接改变项目流程 |
+| 工单与工时 | WO-01～WO-06工单、责任区间和工时 | WorkOrder、TimeClaim、ResponsibilityInterval | Project、Device、Cutover | WorkOrderUpdated、TimeClaimApproved | 直接改变项目主状态 |
+| 巡检 | INS-01～INS-09巡检任务、规则、报告和问题 | InspectionTask、InspectionRule、ServiceIssue | Device、Device Access & Collection、UMC | InspectionCompleted、IssueCreated | 读取凭证明文 |
+| 服务运营 | SRV-01设备服务状态和持续服务跟踪 | ServiceStatus、ServiceHandover | Device、Customer、ProjectClosure | ServiceStatusChanged、ServiceHandoverCreated | 直接改变设备主档核心身份 |
+| 客户与关系 | 客户、联系人、客户关系和同步副本 | Customer、Contact、AssetRelation | CRM、Project、Asset Management | CustomerUpdated、CustomerSyncCompleted | 直接改变项目流程 |
+| 资产管理 | 设备档案、归属、维保基本信息和同步副本 | Device、DeviceArchive、RMAReplacement | MES、ITR、备件、Project | DeviceAssigned、AssetSyncCompleted | 直接改变项目状态 |
 | 合同履约 | 合同、订单行、交付范围、履约对账 | Contract、OrderLine、DeliveryScope | ERP、Project | ScopeAllocated、FulfillmentReconciled | 直接写 ERP |
 | 资源外包 | 服务商、转包、付款门禁 | Supplier、SubcontractRequest、PaymentGate | OA、Project、Questionnaire | SubcontractApproved | 直接放行付款 |
 | 经营分析 | 指标、组合和经营视图 | PortfolioView、MetricSnapshot | 各域只读事件 | ReportGenerated | 任何交易写操作 |
-| 平台公共能力 | 待办、文件、授权、变更、字典和审计 | Todo、FileArtifact、Grant、ChangeRequest | 所有模块 | TodoCreated、AuditRecorded | 拥有业务域状态 |
+| 设备连接与采集 | 凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord | 外部采集平台、IMP、CUT、Inspection | CollectionTaskRequested、CollectionResultAvailable | 不重复建设连接和原始采集引擎 |
+| 基础平台能力 | 待办、文件、授权、变更、字典和审计通用能力 | Todo、FileArtifact、Grant、ChangeRequest | 所有模块 | TodoCreated、AuditRecorded | 不拥有业务域状态 |
 | 集成适配 | 外部同步、回调、失败补偿和对账 | ExternalMapping、CallbackRecord | 外部系统 | Domain command/event | 直接写业务表 |
 
 ## 服务边界

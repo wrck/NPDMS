@@ -46,4 +46,4 @@
 
 ## 4. 阶段结论
 
-可以进入 SDS Phase 1，但必须以 `PHASE-1-READY-WITH-CONTROLS` 状态推进。Phase 1 的退出条件是：115 项正式需求全部有唯一领域归属，核心聚合/状态机/流程/权限边界完成，且 `phase-1-review.md` 明确 `APPROVED`；否则保持 `NOT_READY`，不得进入 Phase 2。
+可以进入 SDS Phase 1，但必须以 `PHASE-1-READY-WITH-CONTROLS` 状态推进。Phase 1 的退出条件是：115 项正式需求全部有唯一领域归属，核心聚合/状态机/流程/权限边界完成，且 `docs/engineering/gates/phase-1/gate-status.md` 明确 `APPROVED`；否则保持 `NOT_READY`，不得进入 Phase 2。

@@ -48,8 +48,8 @@
 6. `docs/design/07-authorization-design.md`
 7. `docs/traceability/requirement-matrix.md`
 8. `scripts/generate_requirement_traceability.py`
-9. `docs/design/phase-1-review.md`
-10. `docs/design/phase-1-independent-review.md`
+9. `docs/engineering/gates/phase-1/gate-status.md`
+10. `docs/engineering/gates/phase-1/independent-review.md`
 11. 当前 Phase 1 工程链、Context Map、Owner Matrix、版本范围矩阵
 
 如果 `AGENTS.md` 仍指向旧 PRD 路径，先按当前正式工程链修正唯一 baseline 路径。
@@ -289,7 +289,7 @@ rg -n --hidden \
 先生成：
 
 ```text
-docs/design/phase-1-field-naming-inventory.md
+docs/engineering/gates/phase-1/naming-inventory.md
 ```
 
 每一个命中项必须分类。
@@ -327,7 +327,7 @@ UNKNOWN
 以下类型文件属于评审证据：
 
 ```text
-phase-1-independent-review.md
+docs/engineering/gates/phase-1/independent-review.md
 已签署 review
 已批准 baseline review
 历史审计报告
@@ -899,7 +899,7 @@ field-execution
 新增：
 
 ```text
-docs/design/phase-1-naming-review.md
+docs/engineering/gates/phase-1/naming-review.md
 ```
 
 必须包含：
@@ -974,7 +974,7 @@ APPROVED
 
 ```text
 docs/decisions/ADR-xxx-implementation-execution-naming.md
-docs/design/phase-1-field-naming-inventory.md
+docs/engineering/gates/phase-1/naming-inventory.md
 docs/design/02-domain-model.md
 docs/design/02a-context-map.md
 docs/design/02b-aggregate-boundary-decisions.md
@@ -984,7 +984,7 @@ docs/design/02e-version-scope-matrix.md
 docs/design/05-state-machine.md
 docs/design/06-workflow-design.md
 docs/design/07-authorization-design.md
-docs/design/phase-1-naming-review.md
+docs/engineering/gates/phase-1/naming-review.md
 docs/traceability/requirement-matrix.md
 scripts/generate_requirement_traceability.py
 ```
@@ -1002,8 +1002,8 @@ scripts/generate_requirement_traceability.py
 以下文件如果已经作为评审证据：
 
 ```text
-phase-1-independent-review.md
-旧 phase-1-review.md
+docs/engineering/gates/phase-1/independent-review.md
+旧 docs/engineering/gates/phase-1/gate-status.md
 签署后的 review
 baseline snapshot
 ```
@@ -1022,8 +1022,8 @@ Implementation Execution
 新的：
 
 ```text
-phase-1-review-2.md
-independent-review-2.md
+docs/engineering/gates/phase-1/naming-review.md
+docs/engineering/gates/phase-1/independent-review.md
 ```
 
 只能使用新术语。

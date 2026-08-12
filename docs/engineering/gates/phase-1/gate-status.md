@@ -4,7 +4,7 @@
 > 依据：PRD V1.6、基线快照、正式工程链 V1.6
 > 结论：`NOT_READY_FOR_PHASE_2`
 > Phase 1硬门禁：领域Owner签署、实现工作包登记、采集平台集成形态确认，三项缺一不可。
-> 独立第三方评审：`NO-GO`；详见 `docs/design/phase-1-independent-review.md`。
+> 独立第三方评审：`NO-GO`；详见 `docs/engineering/gates/phase-1/independent-review.md`。
 
 ## 1. 审查清单
 
@@ -23,7 +23,7 @@
 | BLOCKED_BY_SPEC | PRESENT | 领域 Owner 尚待负责人签署；实现环境也尚未登记 |
 | 是否足以进入 Data/API/Integration 设计 | NO | 需要先确认领域 Owner、实现仓库和基础平台锁定提交 |
 
-独立评审补充：Implementation Execution bounded context 可保留，但追溯矩阵对 EXE/IMP 需求的聚合映射过宽；ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、ImplementationSafetyCheck 的状态机及 IMP-01/02 整改复核工作流仍需补齐。权限设计也需从抽象 Scope 细化到项目树、设备归属、订单范围、现场批次和凭证五元组。
+独立评审补充：Implementation Execution bounded context 可保留。命名后的 Context 整改已完成：新增 Device Access & Collection 作为正式采集 Context，并允许现有采集模块/子应用作为实现载体；SRV 内部拆为 Work Order & Time、Inspection、Service Operations；CUS/AST分别拆为 Customer & Relationship、Asset Management；COM保留必要主数据本地同步副本；Closure统一为 ProjectClosure。详见 `docs/engineering/gates/phase-1/context-refinement-review.md`。三个 Phase 1 硬门禁仍未关闭。
 
 ## 2. 阻塞项
 

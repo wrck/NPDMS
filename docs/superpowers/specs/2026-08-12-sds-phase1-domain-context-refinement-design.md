@@ -178,7 +178,7 @@ Context Map只允许使用 Context 或外部系统作为节点，不再把 `Coll
 - `docs/design/07-authorization-design.md`
 - `docs/design/01-requirement-traceability.md`
 - `docs/design/phase-1-domain-ownership.md`
-- `docs/design/phase-1-review.md`
+- `docs/engineering/gates/phase-1/gate-status.md`
 - `docs/traceability/requirement-matrix.md`
 - `scripts/generate_requirement_traceability.py`
 

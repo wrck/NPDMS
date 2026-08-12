@@ -21,8 +21,9 @@
 | ImplementationRisk | 已标记、评估中、处置中、已关闭 | 风险等级、责任人和处置证据完整；高风险不得绕过门禁 | ImplementationRiskRaised、ImplementationRiskClosed |
 | ImplementationQualityCheck | 草稿、待复核、整改中、复核通过、复核不通过、阻断 | 不合格必须整改后再复核；豁免需有权角色、依据、范围、有效期和审计 | ImplementationQualityChecked、ImplementationQualityBlocked |
 | ImplementationSafetyCheck | 草稿、待复核、整改中、复核通过、复核不通过、安全阻断 | 高风险安全项阻断关联作业；解除阻断必须复核并留痕 | ImplementationSafetyChecked、ImplementationSafetyBlocked |
-| Acceptance/Closure | 草稿、待审核、回访中、材料审核、已闭环、驳回整改 | 交付件齐套、回访/材料审核全部通过；驳回回到整改，不允许异常放行 | ClosureSubmitted、ProjectClosed |
+| ProjectClosure | 草稿、待审核、回访中、材料审核、已闭环、驳回整改 | 交付件齐套、回访/材料审核全部通过；驳回回到整改，不允许异常放行；完成后发布闭环事件请求 Project 关闭 | ClosureSubmitted、ProjectClosureCompleted |
 | DeviceCredential | 创建、启用、授权、撤销、轮换、停用 | 仅授权范围内任务可引用；撤销影响后续任务，不改历史快照 | CredentialGranted、CredentialRevoked |
+| CollectionTask | 创建、授权校验、已下发、执行中、回调中、已消费、完成、失败 | 任务级授权、外部状态原值、签名校验和回调幂等；失败只允许受控重试 | CollectionTaskDispatched、CollectionResultAvailable |
 
 ## 3. 版本化
 
