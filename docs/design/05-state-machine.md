@@ -10,7 +10,8 @@
 |---|---|---|---|
 | Project | 待开始(S0)、工前准备(S1)、施工计划(S2)、实施方案(S3)、实施部署(S4)、验收交维(S5)、闭环(S6)、维护 | 只有当前阶段门禁满足且操作者有权时前进；回退需理由和权限；关闭后 V1/V2 只读 | ProjectStageChanged、ProjectClosed |
 | ProjectTask | 待分配、待开始、进行中、待验收、完成、关闭 | 父任务/阶段约束、交付件和验收条件；不限制层级深度但禁止环 | TaskAssigned、TaskCompleted |
-| CollectionTask | 创建、授权校验、已下发、执行中、回调中、已消费、完成、失败 | 幂等键、短期授权、回调签名/来源校验；失败重试创建新受控任务 | CollectionDispatched、CollectionCompleted |
+| Device | 无独立业务状态机（主数据事实）；设备状态、在网状态及停产停维状态使用来源事实和基础平台可配置字典 | 设备档案同步或受控平台扩展字段更新必须保留来源版本；项目归属变更不得隐式改写设备来源状态 | DeviceStatusSynchronized、DeviceOwnershipChanged |
+| CollectionTask | 创建、授权校验、已下发、执行中、回调中、已消费、完成、失败 | 幂等键、短期授权、回调签名/来源校验；失败只允许创建新的受控重试任务 | CollectionTaskDispatched、CollectionResultAvailable、CollectionCompleted |
 | CutoverTask | 新建、评估、采集、方案、审批、执行、闭环、归档 | A/B/C/D等级决定审批链；方案、采集和审批门禁齐全后执行 | CutoverApproved、CutoverCompleted |
 | InspectionTask | 新建、准备、执行、报告、待办、闭环 | 在线/离线互斥；规则版本冻结；问题待办必须关闭或按规则转服务 | InspectionCompleted、InspectionClosed |
 | DeliveryEvidence | 草稿、已上传、待审核、已通过、已驳回、已归档 | IMP 可在实施阶段上传并替换草稿；ACC 审核/归档；已归档版本不可被 IMP 覆盖 | DeliveryEvidenceUploaded、ArtifactAccepted |
@@ -23,7 +24,6 @@
 | ImplementationSafetyCheck | 草稿、待复核、整改中、复核通过、复核不通过、安全阻断 | 高风险安全项阻断关联作业；解除阻断必须复核并留痕 | ImplementationSafetyChecked、ImplementationSafetyBlocked |
 | ProjectClosure | 草稿、待审核、回访中、材料审核、已闭环、驳回整改 | 交付件齐套、回访/材料审核全部通过；驳回回到整改，不允许异常放行；完成后发布闭环事件请求 Project 关闭 | ClosureSubmitted、ProjectClosureCompleted |
 | DeviceCredential | 创建、启用、授权、撤销、轮换、停用 | 仅授权范围内任务可引用；撤销影响后续任务，不改历史快照 | CredentialGranted、CredentialRevoked |
-| CollectionTask | 创建、授权校验、已下发、执行中、回调中、已消费、完成、失败 | 任务级授权、外部状态原值、签名校验和回调幂等；失败只允许受控重试 | CollectionTaskDispatched、CollectionResultAvailable |
 
 ## 3. 版本化
 

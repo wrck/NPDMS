@@ -11,7 +11,7 @@
 | SRV 内部 Context 拆分 | PASS | WO-01～WO-06→Work Order & Time；INS-01～INS-09→Inspection；SRV-01→Service Operations；需求 Owner 仍为 SRV |
 | CUS/AST Context 拆分 | PASS | Customer & Relationship 与 Asset Management 分离；必要主数据本地同步，外部系统保留权威 Owner |
 | COM 主数据边界 | PASS | 合同、订单和订单行同步到本地；平台维护范围分配、履约事实和对账，ERP保留权威来源 |
-| Platform Governance | PASS | 改为基础平台能力集合，不再作为万能业务 Context |
+| 基础平台能力 | PASS | 作为横向能力集合，不再作为万能业务 Context |
 | `ProjectClosure` | PASS | 替代 `Closure`，由 Acceptance & Closure 持有；Project 主状态仍由 Project Delivery 修改 |
 | `DeliveryEvidence` | PASS | 保留独立聚合，IMP 上传、ACC 审核归档职责不变 |
 | EXE/IMP 精确映射 | PASS | 既有逐需求聚合映射未回退 |
@@ -36,16 +36,14 @@ DIFF_CHECK=PASS
 
 ## 4. 未关闭门禁
 
-本轮只完成 Context 与设计边界整改，不关闭以下 Phase 1 硬门禁：
+本轮已根据需求方确认关闭 Owner 映射和 V1 子应用集成两个门禁；实现工作包登记仍未关闭：
 
-- `BLOCKED-SDS-01`：领域 Owner 正式签署
 - `BLOCKED-SDS-02`：实现工作包、仓库、基础平台提交和数据库目标登记
-- `BLOCKED-SDS-03`：采集平台集成部署形态、网络边界、执行身份和契约 Owner 确认
 
 因此：
 
 ```text
-PHASE_1_GATE = NOT_READY_FOR_PHASE_2
+PHASE_1_GATE = NOT_READY_FOR_PHASE_2 (BLOCKED-SDS-02)
 ```
 
 不得据此进入 Phase 2 Data/API/Integration 详细设计或正式编码。

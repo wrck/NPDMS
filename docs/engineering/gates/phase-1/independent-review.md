@@ -34,6 +34,20 @@ Phase 1 已具备需求数量覆盖和初步领域/聚合设计，但尚未达�
 | O-02 | `gate-status.md` 的聚合边界检查应显式登记 R-01/R-02，不应只写 PASS-WITH-FOLLOWUP |
 | O-03 | Phase 1 领域 Owner 签署后需重新生成矩阵，并将 `Phase1-WORKING` 转为正式 SDS 版本引用 |
 
+## 4.1 当前处置状态（2026-08-12复核）
+
+以下内容保留原始评审发现，同时记录本轮确认后的处置状态：
+
+| 原编号 | 当前状态 | 处置证据 |
+|---|---|---|
+| C-01 | PARTIALLY_RESOLVED | Q1、Q3 已确认；Q2 实现工作包登记仍为 `BLOCKED-SDS-02`，见 `gate-status.md` |
+| C-02 | RESOLVED | `AGENTS.md` 已统一读取 `docs/baseline/prd-v1.6.md`；修正提交 `14a92fd` |
+| C-03 | RESOLVED_BY_REQUESTER | Q3 已确认 V1 优先采用现有采集平台子应用，具体端点和部署清单留到 Phase 2 |
+| R-01 | VERIFIED | EXE-01～EXE-06、IMP-01/02 已逐项映射到明确聚合，见 `docs/traceability/requirement-matrix.md:48-53,130-131` |
+| R-02 | VERIFIED_WITH_REPAIR | Implementation Execution 事实聚合已有状态机；本轮补充 Device 事实边界并合并 CollectionTask 重复定义 |
+| R-03 | VERIFIED | 实施质量/安全检查已具备提交、复核、整改、豁免/阻断流程，见 `docs/design/06-workflow-design.md:17-18` |
+| R-04 | VERIFIED | 已形成实施执行操作矩阵及凭证五元组约束，见 `docs/design/07-authorization-design.md:17-34` |
+
 ## 5. 正向确认
 
 - PRD 正式需求覆盖为 115/115，V1 57 项、V2 58 项。
@@ -41,11 +55,15 @@ Phase 1 已具备需求数量覆盖和初步领域/聚合设计，但尚未达�
 - `Field Execution` 作为 bounded context 本身不算过大；拆分为 ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、FieldQualityCheck、DeliveryEvidence 的方向合理。
 - IMP 上传、ACC 审核/齐套校验/归档的职责划分符合当前 PRD 语义。
 
-## 6. 最终判定
+## 6. 原始评审判定
 
-`NO-GO`。在 C-01～C-03 和 R-01～R-04 关闭并完成独立复审前：
+`NO-GO`。原始评审要求在 C-01～C-03 和 R-01～R-04 关闭并完成独立复审前：
 
 - 不得生成 Phase 2 数据库、API、事件和集成详细契约；
 - 不得把旧 `specs` 直接当作设计基线；
 - 不得开始正式代码实现；
 - 继续保留 `docs/engineering/gates/phase-1/gate-status.md` 的 `NOT_READY_FOR_PHASE_2` 状态。
+
+## 7. 当前复审判定
+
+`NO-GO`。C-02、C-03 和 R-01～R-04 已有处置证据；但 C-01 仍因 `BLOCKED-SDS-02` 的实现工作包登记未完成而部分阻塞。当前仍不得生成 Phase 2 数据库、API、事件和集成详细契约，也不得开始正式代码实现。

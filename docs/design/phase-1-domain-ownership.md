@@ -1,6 +1,6 @@
 # SDS Phase 1：领域 Owner 重确认记录
 
-> 状态：`WORKING-BASELINE`
+> 状态：`OWNER_SIGNED`
 > 依据：PRD V1.6 第四至第十三章、附录 A.1、核心业务对象和数据关联规则
 > 旧 `specs` 用途：仅用于核对历史需求编号和遗漏，不作为本记录的业务语义来源
 
@@ -36,11 +36,17 @@
 - Owner 数量：13 个。
 - 领域之间不存在同一正式需求的双 Owner。
 - `INT-12` 的 Owner 是 PLT 公共采集编排；设备连接和原始采集执行仍由现有采集平台负责。
-- `Device Access & Collection` 是正式 Bounded Context，可纳入现有采集功能模块或子应用；该 Context 不拥有 IMP/CUT/INS 业务结论、设备主档或外部采集引擎内部数据。
+- `Device Access & Collection` 是正式 Bounded Context；V1 由现有采集平台子应用承载执行能力，后续可演进为内部模块。该 Context 不拥有 IMP/CUT/INS 业务结论、设备主档或外部采集引擎内部数据。
 - SRV 内部 Context 映射为：WO-01～WO-06 → `Work Order & Time`；INS-01～INS-09 → `Inspection`；SRV-01 → `Service Operations`。
 - IMP 上传实施过程中产生的来源证据或阶段交付件；ACC 不重复上传，而是对项目交付件进行汇总、齐套校验、审核和归档。
 - `COM-01/02` 和 `INT-04` 明确属于正式需求，不再沿用旧规格中的“无直接正式需求”描述。
 
 ## 4. 后续确认
 
-本记录可作为 Phase 1 设计输入，但在领域负责人正式签署前标记为 `WORKING-BASELINE`。签署后需重新生成追溯矩阵并解除 `BLOCKED-SDS-01`。
+本记录已由需求方在本轮确认，作为 Phase 1 Owner 映射签署依据；确认来源不替代后续实现工作包中的责任人名册登记。
+
+| 确认项 | 结果 | 证据 |
+|---|---|---|
+| 13 个领域 Owner 映射 | `OWNER_SIGNED` | 本轮用户 Q1 确认；当前文件第 2 节 |
+| 需求唯一 Owner | `PASS` | 115 项正式需求唯一归属，追溯矩阵校验通过 |
+| Context 拆分不改变领域编码 | `PASS` | 本文件第 1 节第 5 条及 Context 整改复审 |

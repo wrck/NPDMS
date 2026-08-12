@@ -6,7 +6,7 @@
 
 ## 2. Bounded Context
 
-| Context | Owner数据 | 允许引用 | 禁止直接修改 |
+| Context / 能力层 | Owner数据 | 允许引用 | 禁止直接修改 |
 |---|---|---|---|
 | Project Delivery | 项目、模板、阶段、任务 | 客户、合同、设备、交付件 | 客户主数据、设备主档 |
 | Preparation & Solution | 工勘、需求分析、计划、方案 | 项目、模板、人员 | 项目主状态 |
@@ -21,9 +21,9 @@
 | Contract & Fulfillment | 合同、订单行、交付范围、对账 | 项目、设备、财务回写 | 财务系统账务 |
 | Supplier & Subcontract | 服务商、转包、付款门禁 | 项目、合同、问卷 | 财务付款结果 |
 | Analytics | 指标快照、组合视图 | 各域只读事实 | 任何业务交易 |
-| Platform Governance | 待办、文件、授权、变更、字典、审计 | 各域标识和事件 | 业务域聚合内部状态 |
+| 基础平台能力（非业务 Context） | 待办、文件、授权、变更、字典、审计 | 各域标识和事件 | 业务域聚合内部状态 |
 | Device Access & Collection | 设备凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | 项目、设备、业务对象、命令模板 | IMP/CUT/INS业务结论、设备主档、外部采集引擎 |
-| Integration | 外部来源映射、回调、同步记录 | 各域命令/查询接口 | 外部系统数据库 |
+| 集成适配层（非业务 Context） | 外部来源映射、回调、同步记录 | 各域命令/查询接口 | 外部系统数据库 |
 
 ## 3. 聚合与不变量
 
@@ -55,7 +55,7 @@
 
 ## 4. Context Map
 
-`CRM/ERP → Integration → Project Delivery → Preparation/Solution → Implementation Execution → Acceptance/Closure`
+`CRM/ERP → 集成适配层 → Project Delivery → Preparation/Solution → Implementation Execution → Acceptance/Closure`
 
 `Project Delivery ↔ Implementation Execution → DeliveryEvidence → Acceptance & Closure`
 
@@ -65,7 +65,7 @@
 
 `Work Order & Time → Project Delivery` 发布工单与工时快照；`Service Operations` 消费项目闭环和设备服务事实。
 
-`Platform Governance` 作为基础平台能力集合，通过命令、查询、事件和统一权限服务横向支撑各 Context，不作为万能业务 Context，也不拥有业务域交易数据。
+`基础平台能力`通过命令、查询、事件和统一权限服务横向支撑各 Context，不作为万能业务 Context，也不拥有业务域交易数据；`集成适配层`只负责协议、映射、幂等、重试和对账。
 
 ## 5. 跨域契约
 
