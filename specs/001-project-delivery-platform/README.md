@@ -30,13 +30,21 @@
 - `appendices/project-order-physical-schema.mysql.sql`
 - `appendices/project-order-migration-mapping.md`
 - `appendices/table-structure-business-rule-traceability.md`
+- `appendices/core-field-migration-completeness.md`
+- `appendices/complete-field-migration-matrix.md`
+- `appendices/business-domain-table-design.md`
+- `appendices/platform-identity-access-migration.md`
+- `appendices/legacy-data-element-business-object-mapping.md`
+- `appendices/data-migration-and-core-business-ai-handoff.md`
+- `evidence/data-elements/README.md`
+- `evidence/migration/README.md`
 
 ## 基线说明
 
 - 本目录是已确认的SPECIFY阶段基线。
 - `00-master-spec.md`负责系统场景和跨领域编排，13份领域SRS负责唯一Owner业务定义。
 - 13份领域文档沿用原需求分卷格式：领域目标与边界、需求清单、详细功能规格、可选V3演进范围、领域验收门禁；不套用通用SRS十二章结构。
-- 145项正式FR全部按唯一Owner迁移；FR、BR、DR、AC保留历史编号，编号前缀不代表当前Owner。
+- 当前115项V1/V2正式需求全部按唯一Owner进入13份领域规格；V3和OUT_OF_SCOPE单独追溯，FR、BR、DR、AC保留历史编号，编号前缀不代表当前Owner。
 - `FR-ENG-021 到货签收管理`归属`IMP 现场实施`；`AST 资产管理`消费实施结果并维护资产档案，不重复定义签收流程。
 - 原`01-`至`08-`分卷保留为迁移来源和证据，不再作为新增需求的领域归属依据。
 - PLAN已经确认，计划文件为`tasks/plan.md`。
@@ -62,5 +70,12 @@
 - `appendices/project-order-physical-schema.mysql.sql`是MySQL 8.x物理DDL评审草案，不是已经批准执行的版本化迁移。
 - `appendices/project-order-migration-mapping.md`定义旧表到目标表的逐表映射、问题分类、对账门禁、切换和回退。
 - `appendices/table-structure-business-rule-traceability.md`把27张目标表中的对象、关系和约束证据追溯到FR、BR、DR与AC；其中【建议】和【待确认】内容不得当作已批准业务制度。
+- `appendices/core-field-migration-completeness.md`和`appendices/complete-field-migration-matrix.md`定义核心字段及全量字段的无损迁移、处置口径和机器门禁。
+- `appendices/business-domain-table-design.md`定义权威业务事实、可重建缓存、查询路径和迁移边界，不改变13领域需求Owner结构。
+- `appendices/platform-identity-access-migration.md`定义公司、部门、账号、旧权限、外部人员和项目转派授权规则。
+- `appendices/legacy-data-element-business-object-mapping.md`对照旧数据元、旧库、正式设计和当前实现业务对象。
+- `appendices/data-migration-and-core-business-ai-handoff.md`是数据迁移与核心业务实施入口；机器可读证据位于`evidence/data-elements/`和`evidence/migration/`。
 - `docs/decisions/0001-project-order-line-scope-model.md`记录以ERP订单行实施范围作为项目交付主链的提议决策。
+- `docs/decisions/0002-platform-identity-and-project-scoped-access.md`记录人员目录、系统账号、服务范围和项目转派授权的分层决策。
+- `docs/decisions/0003-contract-scoped-secondary-sn-cache.md`记录合同维度附加SN权威关系与设备主档当前缓存的取舍。
 - 当领域分卷与公共技术规范表述不一致时，先按公共技术规范修订领域分卷，不得由实现自行选择口径。

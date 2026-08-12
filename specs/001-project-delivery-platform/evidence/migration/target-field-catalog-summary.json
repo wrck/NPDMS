@@ -1,0 +1,26 @@
+{
+  "ddlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
+  "tableCount": 52,
+  "columnCount": 1076,
+  "commentedColumnCount": 1076,
+  "invalidCommentCount": 0,
+  "domains": {
+    "客户与联系人": 32,
+    "公共支撑": 16,
+    "项目管理": 152,
+    "文档与交付件": 59,
+    "项目组合": 28,
+    "合同与回款": 140,
+    "设备与售后": 312,
+    "ERP订单": 138,
+    "CRM执行单辅助": 130,
+    "迁移与同步": 69
+  },
+  "fieldClasses": {
+    "TECHNICAL": 390,
+    "BUSINESS": 467,
+    "RELATION": 119,
+    "CACHE": 7,
+    "LINEAGE": 93
+  }
+}
