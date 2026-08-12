@@ -35,4 +35,4 @@
 
 ## 5. 运行与部署假设
 
-Q2 实现工作包建议：当前仓库继续作为规格仓库；实现使用独立实现仓库/工作树，基础平台锁定 yudao master-jdk25 的实际提交 SHA，数据库使用独立 PMS 新库，构建入口沿用后端 Maven、前端 pnpm 和仓库测试脚本。`implementationRepo`、`baseCommit`、`platformCommit`、`databaseTarget`、`buildEntry` 和 `releaseId` 的实际值仍待登记；登记完成前，本仓库不写正式实现或迁移代码。
+Q2 实现工作包已登记独立实现仓库 `E:\AICoding\Projects\NPDMS`、锁定基线提交 `3c54ee1bb3c1d2fa4bad958ea6691956a7ac2464`、基础平台锁定来源、NPDMS 独立开发数据库目标和统一证据批次号 `NPDMS-SDS-P1-20260812-01`；构建入口沿用后端 Maven、宿主机前端 pnpm 和仓库测试脚本。前端冻结安装与生产构建已通过，Q2 实现工作包门禁已解除；具体登记值与核验证据以 `docs/engineering/gates/phase-1/gate-status.md` 为准。本规格仓库不承载正式实现或迁移代码。
