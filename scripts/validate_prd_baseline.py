@@ -64,6 +64,32 @@ def requirement_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def cutover_flow_contract(text: str) -> dict[str, bool]:
+    """Validate the confirmed CUT P1-P6 business-flow boundary."""
+    cutover = section(text, "第十章 割接管理模块功能需求")
+    formal_ids = {
+        req_id
+        for req_id, block in requirement_blocks(text)
+        if re.search(r"(?m)^\|\s*目标版本\s*\|\s*V[12](?:[^|]*)\|\s*$", block)
+    }
+    return {
+        "CUT-01核心任务保留": "CUT-01" in formal_ids and "P1首页任务接入" in cutover and "P6割接跟踪与闭环" in cutover,
+        "CUT-11退出当前范围": "CUT-11" not in formal_ids and "割接保障任务（CUT-11）" not in cutover,
+        "问卷人工判级": "一线工程师提交问卷和人工等级" in cutover and "用服经理在P5审批中复核" in cutover,
+        "P3配置缺口不阻断": "允许一线补充自定义项并标记配置缺口" in cutover and "不直接阻断割接主流程" in cutover,
+        "完整方案轻量校验": "文件有效性、安全性、方案归属和人工确认" in cutover and "不强制解析或补齐在线模板字段" in cutover,
+        "P5否项驳回": "任一项为“否”必须填写不合理原因并驳回" in cutover,
+        "专项提前时间自然日": "按自然日计算" in cutover and "不新增平台通用时效" in cutover,
+        "保障人员受控修改": "审批通过后仍允许修改保障人员安排" in cutover and "角色或任务职责变化必须创建新方案版本" in cutover,
+        "P6提交即归档": "提交即形成归档闭环事实并结束本次割接流程" in cutover,
+        "无步骤观察扩张": not re.search(
+            r"(?<!不)建立逐步骤执行状态机|进入稳定观察|满足稳定观察要求|稳定观察(?:通过|未通过)",
+            cutover,
+        ),
+        "无遗留项归档阻断": "全部遗留项闭环后方可归档" not in cutover and "遗留项进入待办跟踪" not in cutover,
+    }
+
+
 def add(checks: list[Check], name: str, passed: bool, detail: str) -> None:
     checks.append(Check(name, passed, detail))
 
@@ -165,6 +191,9 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     )
     add(checks, "INT-12进入正式索引", "INT-12" in formal_index_ids, "INT-12必须为V1公共能力")
     add(checks, "排除编号未进正式索引", not ({"WO-07", "WO-11"} & set(formal_index_ids)), "WO-07/WO-11仅用于排除追溯")
+
+    for name, passed in cutover_flow_contract(prd).items():
+        add(checks, f"CUT流程-{name}", passed, "割接流程必须符合0807流程设计及已确认业务决策")
 
     appendix_b = section(prd, "附录B 集成系统与平台组件清单")
     external = section(appendix_b, "B.1 外部系统") if appendix_b else ""

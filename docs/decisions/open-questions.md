@@ -142,5 +142,6 @@
 - Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策已同步核心DDL、领域实体迁移策略、字段目录和P3-E09派生证据，仍等待全量Reviewer签署。
 - Confirmed P3-E09 requirement-owner model decisions: ADR-0023；Q01～Q08已确认，覆盖15组永久业务身份、外部不透明键/摘要精确比较、当前关系、状态守卫、RMA投影、Q07的222项技术约束及Q08的108项候选索引。交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”；订单—执行单允许多个默认主执行单关系。Q08只确认候选基线，Feature查询计划与P3-E06压测仍为下游验收。P3-E09现仅等待全量Reviewer签署和`approvedDdlSha256`，不得提前放行历史迁移或切换。
 - V1.7 DDL delta: ADR-0025；当前候选为 61 表、11 表 V1.7 差量。需求方 2026-08-13 确认 `pm_project_maintenance` 全表不迁移，只保留顶层表级排除审计；当前不预建历史工单/工时对象或空壳表。目录快照对象/表亦按需求方决策删除，INT-05/INT-09 复用基础平台主数据、`plt_sync_batch`和`plt_external_key_mapping`。当前哈希与规模以重建证据为准；P3-E09仍为`BLOCKED_BY_REVIEW`，等待全量 Reviewer 签署与`approvedDdlSha256`，不授权生产迁移、切换或旧`dppms`写入。
+- Cutover flow correction: ADR-0026；`CUT-01 / CutoverTask`是P1～P6唯一割接核心任务，`CUT-11`退出当前需求和CUT领域，`WO-06`后置为工单领域V3候选。原CUT-11三表及迁移映射必须从P3-E09候选删除后重新生成证据；该项为已确认变更，不再作为开放问题。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13
