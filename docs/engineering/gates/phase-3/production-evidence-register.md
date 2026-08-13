@@ -94,7 +94,7 @@ Gate scope：`PHASE_3_BASELINE / DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION
 
 Required fields：数据元Excel hash、源结构抽取hash/水位、当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、`approvedDdlSha256`、目标字段目录/映射/校验hash、生成器版本、release manifest、Owner签署和验证结果。
 
-人工确认入口：`specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md`，包含全部表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号。
+需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，按Q07～Q14及V1.7九组覆盖全部692项`DEFER`并绑定当前DDL哈希。Reviewer逐项复核入口：`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`，包含全部表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号。
 
 Acceptance：逐项登记的表、列、约束和表选项全部有决策与复核证据；DDL、目录、映射、校验和manifest引用同一批准hash；全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。
 

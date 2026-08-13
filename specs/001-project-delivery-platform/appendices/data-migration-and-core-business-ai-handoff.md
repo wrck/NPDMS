@@ -77,7 +77,7 @@
 | 语义证据 | 197行 / 108个唯一数据元 |
 | 迁移校验 | 现有`migration-validation.json.passed=true`已过期，不代表当前工作树通过 |
 
-`【P0阻断】`当前DDL、目标字段目录、完整矩阵、摘要和校验结果已使用同一当前哈希，但Q07技术约束和Q08候选索引因哈希、数量和分类变化处于`RECONFIRMATION_REQUIRED`，V1.7物理候选仍为`PROPOSED_FOR_REVIEW`，整体模型未取得全量Reviewer签署和非空`approvedDdlSha256`。任何后续AI必须继续完成`AI-MIG-000`独立复核；在此之前不得把历史“52表DDL已验证”或MySQL执行PASS升级为当前60表核心子集放行证据，也不得把该子集冒充平台全量模型或开始生产迁移。Q08性能结论仍须由Feature查询计划和P3-E06压测形成。
+`【P0阻断】`当前DDL、目标字段目录、完整矩阵、摘要和校验结果已使用同一当前哈希，但逐项寄存器仍有692项`DEFER`。Q07技术约束和Q08候选索引因哈希、数量和分类变化处于`RECONFIRMATION_REQUIRED`，V1.7物理候选仍为`PROPOSED_FOR_REVIEW`；三组去重后只覆盖584项，剩余108项已分类为Q09～Q14，完整确认入口为`p3-e09-confirmation-packet.md`。整体模型尚未取得全量Reviewer签署和非空`approvedDdlSha256`。任何后续AI必须继续完成`AI-MIG-000`独立复核；在此之前不得把历史“52表DDL已验证”或MySQL执行PASS升级为当前60表核心子集放行证据，也不得把该子集冒充平台全量模型或开始生产迁移。Q08性能结论仍须由Feature查询计划和P3-E06压测形成。
 
 当前唯一可启动的迁移工作包是`AI-MIG-000`。首先在仓库根目录复核漂移：
 

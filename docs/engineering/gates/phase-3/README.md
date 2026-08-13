@@ -13,12 +13,14 @@ Phase 3审查安全、审计可观测、部署、性能和测试设计是否足�
 - [`evidence-submission-template.json`](evidence-submission-template.json)：仅作通用JSON结构示例；实际提交优先复制逐项模板，并用`scripts/validate_phase3_evidence_submission.py`校验。
 - [`phase3-evidence-register.json`](phase3-evidence-register.json)：可机器校验的当前状态、Owner、事实和证据引用。
 - [`self-review.md`](self-review.md)：当前自审结论和阻塞影响。
+- [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：需求方九组决策入口，覆盖当前全部692项`DEFER`；不得只确认Q07/Q08/V1.7三组后宣称完成。
 
 后续自审和独立复审分别登记为`self-review.md`和`independent-review.md`。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
 
 ## 必跑校验
 
 ```powershell
+py -3 -B scripts/generate_p3e09_confirmation_packet.py --check
 py -3 -B scripts/generate_phase3_evidence_packets.py --check
 py -3 -B scripts/validate_ddl_item_decision_register.py
 py -3 -B scripts/validate_phase3_evidence_register.py
