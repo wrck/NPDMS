@@ -1,7 +1,7 @@
 # P3-E09 数据模型逐项裁决清单
 
 > 状态：`REVIEW_REQUIRED`
-> 决策登记SHA-256：`4948A4625F8A57144B0F1496557B4B72F24F31770318CE3C5C9F204FE1AA6AC6`
+> 决策登记SHA-256：`114E1C50990DEECCB86D289116D22AFD0AF2EA13B5F0A9659EF50ABF7E68E64E`
 > 约束清单SHA-256：`9DDFCC42C9529245377DD98425FB047035815BBB8A8457A49063C10FDBE2CC2C`
 > 本清单只展开现有机器证据，不自动批准数据模型。
 
@@ -12,9 +12,9 @@
 |表|50|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|
 |字段|1,065|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|
 |表选项|50|旧基线未保存|需确认字符比较与存储规则|
-|主键|50|旧基线未保存|结构性规则，可分类确认|
-|外键|48|旧基线未保存|影响迁移顺序和异常隔离|
-|普通索引|108|旧基线未保存|影响查询性能和写入成本|
+|主键|50|旧基线未保存|Q07已按技术不变量确认，Reviewer待签署|
+|外键|48|旧基线未保存|Q07已确认同域外键；违规历史数据隔离|
+|普通索引|108|旧基线未保存|Q08已接受为候选基线，Feature/P3-E06验证|
 |唯一键|101|旧基线未保存|影响重复业务数据，必须业务审查|
 |CHECK|78|旧基线未保存|影响异常历史数据，必须业务审查|
 
@@ -60,13 +60,13 @@
 |精确键与默认排序规则冲突|50张表默认`utf8mb4_0900_ai_ci`；26个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|
 |可空列参与唯一键|7个唯一键包含可空列；4个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|
 |状态码写入数据库表达式|3个原固定状态CHECK已移除；4个当前唯一生成列已改为稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|
-|普通索引没有查询证据|108个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前只确认候选，Feature/P3-E06用真实查询和压测定稿|
+|普通索引没有查询证据|108个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|Q08已接受为候选基线；Feature/P3-E06用真实查询和压测定稿|
 
-### 1.5 可按数据架构不变量批量确认的内容
+### 1.5 Q07已按数据架构不变量批量确认的内容
 
 |内容|数量|批量确认的前提|仍未包含的业务判断|
 |---|---:|---|---|
-|单列技术主键|50|所有表以不可变`id`标识记录|不决定业务编码是否可重复|
+|主键结构|50|49张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|
 |租户复合引用键|50|仅支撑同租户复合外键/行引用|不替代业务唯一键|
 |同领域物理外键|48|48个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|
 |软删除检查|45|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|
@@ -295,9 +295,9 @@
 |层次|内容|批准主体|批准结果|
 |---|---|---|---|
 |L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|
-|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|数据架构Owner|按规则批量签署|
+|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|需求方已接受推荐，Reviewer待签署|Q07登记为当前SDS技术约束|
 |L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|逐组批准；有空洞的先修模|
-|L4 性能候选|108个普通索引|Feature Owner+性能Owner|绑定查询后由P3-E06压测定稿|
+|L4 性能候选|108个普通索引|需求方接受候选；Feature Owner+性能Owner验证|Q08进入候选基线，绑定查询后由P3-E06压测定稿|
 |L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|
 
 ## 2. 表与字段完整清单
@@ -416,222 +416,222 @@
 
 |编号|表|当前定义|业务影响/建议|
 |---|---|---|---|
-|PK-001|`acc_deliverable_template`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-002|`acc_project_deliverable`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-003|`ana_project_delivery_summary`|`PRIMARY KEY (tenant_id, project_id)`|结构性规则；建议接受|
-|PK-004|`ast_device_configuration`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-005|`ast_device_configuration_feature`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-006|`ast_device_configuration_service`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-007|`ast_device_project_assignment`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-008|`ast_device_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-009|`ast_device_shipment_event`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-010|`ast_device_sn`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-011|`ast_device_version`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-012|`ast_network_topology`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-013|`ast_network_topology_device_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-014|`ast_product`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-015|`ast_product_release`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-016|`com_contract`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-017|`com_contract_receivable`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-018|`com_crm_execution_config`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-019|`com_crm_execution_order`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-020|`com_delivery_scope`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-021|`com_delivery_scope_detail`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-022|`com_execution_order_merge_batch`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-023|`com_execution_order_merge_member`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-024|`com_order_change_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-025|`com_order_contract_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-026|`com_order_execution_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-027|`com_order_line_execution_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-028|`com_project_contract_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-029|`com_sales_order`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-030|`com_sales_order_line`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-031|`com_shipment_contract_reference`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-032|`com_shipment_package`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-033|`cus_customer`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-034|`cus_customer_contact`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-035|`cus_market_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-036|`plt_business_document`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-037|`plt_document_version`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-038|`plt_external_key_mapping`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-039|`plt_migration_issue`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-040|`plt_migration_source_record`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-041|`plt_sync_batch`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-042|`proj_project`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-043|`proj_project_company_department_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-044|`proj_project_member_assignment`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-045|`proj_project_party`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-046|`proj_project_portfolio`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-047|`proj_project_portfolio_member`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-048|`proj_project_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-049|`srv_service_incident`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-050|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-001|`acc_deliverable_template`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-002|`acc_project_deliverable`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-003|`ana_project_delivery_summary`|`PRIMARY KEY (tenant_id, project_id)`|Q07已确认；Reviewer待签署|
+|PK-004|`ast_device_configuration`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-005|`ast_device_configuration_feature`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-006|`ast_device_configuration_service`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-007|`ast_device_project_assignment`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-008|`ast_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-009|`ast_device_shipment_event`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-010|`ast_device_sn`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-011|`ast_device_version`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-012|`ast_network_topology`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-013|`ast_network_topology_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-014|`ast_product`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-015|`ast_product_release`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-016|`com_contract`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-017|`com_contract_receivable`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-018|`com_crm_execution_config`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-019|`com_crm_execution_order`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-020|`com_delivery_scope`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-021|`com_delivery_scope_detail`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-022|`com_execution_order_merge_batch`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-023|`com_execution_order_merge_member`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-024|`com_order_change_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-025|`com_order_contract_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-026|`com_order_execution_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-027|`com_order_line_execution_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-028|`com_project_contract_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-029|`com_sales_order`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-030|`com_sales_order_line`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-031|`com_shipment_contract_reference`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-032|`com_shipment_package`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-033|`cus_customer`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-034|`cus_customer_contact`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-035|`cus_market_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-036|`plt_business_document`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-037|`plt_document_version`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-038|`plt_external_key_mapping`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-039|`plt_migration_issue`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-040|`plt_migration_source_record`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-041|`plt_sync_batch`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-042|`proj_project`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-043|`proj_project_company_department_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-044|`proj_project_member_assignment`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-045|`proj_project_party`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-046|`proj_project_portfolio`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-047|`proj_project_portfolio_member`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-048|`proj_project_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-049|`srv_service_incident`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-050|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 
 ## 5. 外键完整清单
 
 |编号|表|当前定义|业务影响/建议|
 |---|---|---|---|
-|FK-001|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-002|`ast_device_configuration`|`CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-003|`ast_device_configuration_feature`|`CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-004|`ast_device_configuration_service`|`CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-005|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-006|`ast_device_relation`|`CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-007|`ast_device_relation`|`CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-008|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-009|`ast_device_version`|`CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-010|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-011|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-012|`ast_product_release`|`CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-013|`com_contract_receivable`|`CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-014|`com_crm_execution_config`|`CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-015|`com_delivery_scope`|`CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-016|`com_delivery_scope_detail`|`CONSTRAINT fk_delivery_scope_detail_scope FOREIGN KEY (tenant_id, delivery_scope_id) REFERENCES com_delivery_scope (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-017|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-018|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-019|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-020|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-021|`com_order_change_relation`|`CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-022|`com_order_change_relation`|`CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-023|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-024|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-025|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-026|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-027|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-028|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-029|`com_project_contract_relation`|`CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-030|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-031|`com_shipment_contract_reference`|`CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-032|`com_shipment_package`|`CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-033|`cus_customer_contact`|`CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-034|`plt_business_document`|`CONSTRAINT fk_business_document_current_version FOREIGN KEY (tenant_id, id, current_version_id) REFERENCES plt_document_version (tenant_id, document_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-035|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-036|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-037|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-038|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-039|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-040|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-041|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-042|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-043|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-044|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-045|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-046|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-047|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-048|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-001|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-002|`ast_device_configuration`|`CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-003|`ast_device_configuration_feature`|`CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-004|`ast_device_configuration_service`|`CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-005|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-006|`ast_device_relation`|`CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-007|`ast_device_relation`|`CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-008|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-009|`ast_device_version`|`CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-010|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-011|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-012|`ast_product_release`|`CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-013|`com_contract_receivable`|`CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-014|`com_crm_execution_config`|`CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-015|`com_delivery_scope`|`CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-016|`com_delivery_scope_detail`|`CONSTRAINT fk_delivery_scope_detail_scope FOREIGN KEY (tenant_id, delivery_scope_id) REFERENCES com_delivery_scope (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-017|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-018|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-019|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-020|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-021|`com_order_change_relation`|`CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-022|`com_order_change_relation`|`CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-023|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-024|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-025|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-026|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-027|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-028|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-029|`com_project_contract_relation`|`CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-030|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-031|`com_shipment_contract_reference`|`CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-032|`com_shipment_package`|`CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-033|`cus_customer_contact`|`CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-034|`plt_business_document`|`CONSTRAINT fk_business_document_current_version FOREIGN KEY (tenant_id, id, current_version_id) REFERENCES plt_document_version (tenant_id, document_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-035|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-036|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-037|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-038|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-039|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-040|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-041|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-042|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-043|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-044|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-045|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-046|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-047|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-048|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
 
 ## 6. 普通索引完整清单
 
 |编号|表|当前定义|业务影响/建议|
 |---|---|---|---|
-|IX-001|`acc_project_deliverable`|`KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date)`|查询设计规则；建议接受，后续以压测验证|
-|IX-002|`acc_project_deliverable`|`KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-003|`ana_project_delivery_summary`|`KEY idx_project_summary_company_department ( tenant_id, company_code, department_code, project_status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-004|`ana_project_delivery_summary`|`KEY idx_project_summary_customer ( tenant_id, customer_code, project_status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-005|`ana_project_delivery_summary`|`KEY idx_project_summary_manager ( tenant_id, manager_employee_no, project_status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-006|`ana_project_delivery_summary`|`KEY idx_project_summary_project_status ( tenant_id, project_status, project_type, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-007|`ana_project_delivery_summary`|`KEY idx_project_summary_status ( tenant_id, pending_mapping_count, pending_qty_count )`|查询设计规则；建议接受，后续以压测验证|
-|IX-008|`ana_project_delivery_summary`|`KEY idx_project_summary_time (tenant_id, statistic_time)`|查询设计规则；建议接受，后续以压测验证|
-|IX-009|`ast_device_configuration`|`KEY idx_device_configuration (tenant_id, device_id, status, effective_from)`|查询设计规则；建议接受，后续以压测验证|
-|IX-010|`ast_device_configuration`|`KEY idx_project_configuration (tenant_id, project_id, configuration_stage)`|查询设计规则；建议接受，后续以压测验证|
-|IX-011|`ast_device_project_assignment`|`KEY idx_device_assignment_company_department ( tenant_id, project_company_code, project_department_code, effective_to, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-012|`ast_device_project_assignment`|`KEY idx_device_assignment_customer ( tenant_id, project_customer_code, effective_to, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-013|`ast_device_project_assignment`|`KEY idx_device_assignment_device ( tenant_id, device_id, effective_to, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-014|`ast_device_project_assignment`|`KEY idx_device_assignment_order ( tenant_id, order_no, line_no, effective_to, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-015|`ast_device_project_assignment`|`KEY idx_device_assignment_project ( tenant_id, project_id, effective_to, device_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-016|`ast_device_project_assignment`|`KEY idx_device_assignment_project_code ( tenant_id, project_code, effective_to, device_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-017|`ast_device_project_assignment`|`KEY idx_device_assignment_sn ( tenant_id, device_sn, effective_to, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-018|`ast_device_relation`|`KEY idx_device_relation_contract_refresh ( tenant_id, contract_id, relation_type, status, source_device_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-019|`ast_device_relation`|`KEY idx_device_relation_latest ( tenant_id, source_device_id, contract_id, relation_type, status, effective_time, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-020|`ast_device_relation`|`KEY idx_device_relation_source_device ( tenant_id, source_device_id, relation_type )`|查询设计规则；建议接受，后续以压测验证|
-|IX-021|`ast_device_relation`|`KEY idx_device_relation_target_device ( tenant_id, target_device_id, relation_type )`|查询设计规则；建议接受，后续以压测验证|
-|IX-022|`ast_device_shipment_event`|`KEY idx_shipment_device (tenant_id, device_id, shipment_time)`|查询设计规则；建议接受，后续以压测验证|
-|IX-023|`ast_device_shipment_event`|`KEY idx_shipment_order_line (tenant_id, order_line_id, shipment_time)`|查询设计规则；建议接受，后续以压测验证|
-|IX-024|`ast_device_shipment_event`|`KEY idx_shipment_package (tenant_id, shipment_package_id, device_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-025|`ast_device_shipment_event`|`KEY idx_shipment_rma ( tenant_id, rma_marked, business_action_code, rma_no )`|查询设计规则；建议接受，后续以压测验证|
-|IX-026|`ast_device_sn`|`KEY idx_device_internal_serial_no (tenant_id, internal_serial_no)`|查询设计规则；建议接受，后续以压测验证|
-|IX-027|`ast_device_sn`|`KEY idx_device_item (tenant_id, item_code, asset_status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-028|`ast_device_sn`|`KEY idx_device_secondary_sn (tenant_id, secondary_sn)`|查询设计规则；建议接受，后续以压测验证|
-|IX-029|`ast_device_version`|`KEY idx_device_version_current ( tenant_id, device_id, component_type, status, effective_from )`|查询设计规则；建议接受，后续以压测验证|
-|IX-030|`ast_device_version`|`KEY idx_project_device_version (tenant_id, project_id, version_stage)`|查询设计规则；建议接受，后续以压测验证|
-|IX-031|`ast_network_topology`|`KEY idx_network_topology_project (tenant_id, project_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-032|`ast_network_topology_device_relation`|`KEY idx_topology_device_reverse (tenant_id, device_id, topology_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-033|`ast_product`|`KEY idx_product_line (tenant_id, product_line_code, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-034|`com_contract`|`KEY idx_contract_company (tenant_id, company_id, status, contract_no)`|查询设计规则；建议接受，后续以压测验证|
-|IX-035|`com_contract`|`KEY idx_contract_customer (tenant_id, customer_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-036|`com_contract`|`KEY idx_contract_no (tenant_id, contract_no, company_code)`|查询设计规则；建议接受，后续以压测验证|
-|IX-037|`com_contract_receivable`|`KEY idx_contract_receivable_business ( tenant_id, contract_no, company_code, mapping_status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-038|`com_contract_receivable`|`KEY idx_contract_receivable_company ( tenant_id, company_id, mapping_status, contract_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-039|`com_contract_receivable`|`KEY idx_contract_receivable_contract ( tenant_id, contract_id, source_sync_time )`|查询设计规则；建议接受，后续以压测验证|
-|IX-040|`com_crm_execution_config`|`KEY idx_crm_execution_config_company ( tenant_id, company_code, status, execution_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-041|`com_crm_execution_config`|`KEY idx_crm_execution_config_execution ( tenant_id, execution_id, item_code )`|查询设计规则；建议接受，后续以压测验证|
-|IX-042|`com_crm_execution_order`|`KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-043|`com_crm_execution_order`|`KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-044|`com_crm_execution_order`|`KEY idx_crm_execution_crm_project ( tenant_id, crm_project_code, execution_no )`|查询设计规则；建议接受，后续以压测验证|
-|IX-045|`com_crm_execution_order`|`KEY idx_crm_execution_project ( tenant_id, primary_project_id, status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-046|`com_delivery_scope`|`KEY idx_scope_item (tenant_id, item_code, scope_status, project_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-047|`com_delivery_scope`|`KEY idx_scope_order_business ( tenant_id, order_source_system, order_company_code, order_type, order_no, line_no )`|查询设计规则；建议接受，后续以压测验证|
-|IX-048|`com_delivery_scope`|`KEY idx_scope_order_line ( tenant_id, order_line_id, scope_status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-049|`com_delivery_scope`|`KEY idx_scope_project ( tenant_id, project_id, scope_status, order_line_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-050|`com_delivery_scope`|`KEY idx_scope_project_company ( tenant_id, project_company_code, scope_status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-051|`com_delivery_scope`|`KEY idx_scope_project_customer ( tenant_id, project_customer_code, scope_status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-052|`com_delivery_scope`|`KEY idx_scope_project_department ( tenant_id, project_department_code, scope_status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-053|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_location ( tenant_id, implementation_location, delivery_scope_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-054|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_product ( tenant_id, product_code, device_type_code, delivery_scope_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-055|`com_execution_order_merge_batch`|`KEY idx_execution_merge_primary ( tenant_id, primary_execution_id, status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-056|`com_execution_order_merge_member`|`KEY idx_execution_merge_member_execution ( tenant_id, execution_id, merge_batch_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-057|`com_order_change_relation`|`KEY idx_order_change_target ( tenant_id, target_order_id, relation_type )`|查询设计规则；建议接受，后续以压测验证|
-|IX-058|`com_order_contract_relation`|`KEY idx_order_contract_reverse (tenant_id, contract_id, order_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-059|`com_order_execution_relation`|`KEY idx_order_execution_execution ( tenant_id, execution_id, order_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-060|`com_order_line_execution_relation`|`KEY idx_order_line_execution_reverse (tenant_id, execution_id, order_line_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-061|`com_project_contract_relation`|`KEY idx_project_contract_reverse (tenant_id, contract_id, project_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-062|`com_sales_order`|`KEY idx_sales_order_company (tenant_id, company_id, status, order_no)`|查询设计规则；建议接受，后续以压测验证|
-|IX-063|`com_sales_order`|`KEY idx_sales_order_customer (tenant_id, customer_code, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-064|`com_sales_order`|`KEY idx_sales_order_no (tenant_id, order_no)`|查询设计规则；建议接受，后续以压测验证|
-|IX-065|`com_sales_order`|`KEY idx_sales_order_time (tenant_id, order_create_time, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-066|`com_sales_order_line`|`KEY idx_sales_order_line_business ( tenant_id, source_system, company_code, order_type, order_no, line_no )`|查询设计规则；建议接受，后续以压测验证|
-|IX-067|`com_sales_order_line`|`KEY idx_sales_order_line_customer (tenant_id, customer_code, status, id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-068|`com_sales_order_line`|`KEY idx_sales_order_line_item (tenant_id, item_code)`|查询设计规则；建议接受，后续以压测验证|
-|IX-069|`com_sales_order_line`|`KEY idx_sales_order_line_profit (tenant_id, profit_center, order_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-070|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_company ( tenant_id, company_id, mapping_status, contract_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-071|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_contract ( tenant_id, contract_id, mapping_status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-072|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_no ( tenant_id, contract_no, company_code, mapping_status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-073|`com_shipment_package`|`KEY idx_shipment_package_contract_ref ( tenant_id, shipment_contract_ref_id, shipment_time )`|查询设计规则；建议接受，后续以压测验证|
-|IX-074|`cus_customer`|`KEY idx_customer_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code )`|查询设计规则；建议接受，后续以压测验证|
-|IX-075|`cus_customer`|`KEY idx_customer_name (tenant_id, customer_name)`|查询设计规则；建议接受，后续以压测验证|
-|IX-076|`cus_customer_contact`|`KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)`|查询设计规则；建议接受，后续以压测验证|
-|IX-077|`cus_market_relation`|`KEY idx_market_relation_name ( tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64) )`|查询设计规则；建议接受，后续以压测验证|
-|IX-078|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-079|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-080|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|查询设计规则；建议接受，后续以压测验证|
-|IX-081|`plt_external_key_mapping`|`KEY idx_external_key_target ( tenant_id, target_table, target_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-082|`plt_migration_issue`|`KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )`|查询设计规则；建议接受，后续以压测验证|
-|IX-083|`plt_migration_source_record`|`KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )`|查询设计规则；建议接受，后续以压测验证|
-|IX-084|`plt_migration_source_record`|`KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-085|`plt_sync_batch`|`KEY idx_sync_batch_object ( tenant_id, source_system, object_type, started_time )`|查询设计规则；建议接受，后续以压测验证|
-|IX-086|`proj_project`|`KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-087|`proj_project`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-088|`proj_project`|`KEY idx_project_customer_code (tenant_id, customer_code, status, id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-089|`proj_project`|`KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-090|`proj_project`|`KEY idx_project_manager (tenant_id, manager_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-091|`proj_project`|`KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-092|`proj_project`|`KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-093|`proj_project`|`KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-094|`proj_project`|`KEY idx_project_path (tenant_id, root_id, tree_path(191))`|查询设计规则；建议接受，后续以压测验证|
-|IX-095|`proj_project_company_department_relation`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-096|`proj_project_company_department_relation`|`KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-097|`proj_project_company_department_relation`|`KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-098|`proj_project_member_assignment`|`KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-099|`proj_project_member_assignment`|`KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-100|`proj_project_member_assignment`|`KEY idx_project_member_user (tenant_id, user_id, status, project_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-101|`proj_project_party`|`KEY idx_project_party_code ( tenant_id, party_role, party_code, status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-102|`proj_project_party`|`KEY idx_project_party_project ( tenant_id, project_id, party_role, status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-103|`proj_project_portfolio`|`KEY idx_portfolio_owner (tenant_id, owner_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-104|`proj_project_portfolio_member`|`KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-105|`proj_project_relation`|`KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )`|查询设计规则；建议接受，后续以压测验证|
-|IX-106|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-107|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|查询设计规则；建议接受，后续以压测验证|
-|IX-108|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-001|`acc_project_deliverable`|`KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-002|`acc_project_deliverable`|`KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-003|`ana_project_delivery_summary`|`KEY idx_project_summary_company_department ( tenant_id, company_code, department_code, project_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-004|`ana_project_delivery_summary`|`KEY idx_project_summary_customer ( tenant_id, customer_code, project_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-005|`ana_project_delivery_summary`|`KEY idx_project_summary_manager ( tenant_id, manager_employee_no, project_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-006|`ana_project_delivery_summary`|`KEY idx_project_summary_project_status ( tenant_id, project_status, project_type, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-007|`ana_project_delivery_summary`|`KEY idx_project_summary_status ( tenant_id, pending_mapping_count, pending_qty_count )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-008|`ana_project_delivery_summary`|`KEY idx_project_summary_time (tenant_id, statistic_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-009|`ast_device_configuration`|`KEY idx_device_configuration (tenant_id, device_id, status, effective_from)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-010|`ast_device_configuration`|`KEY idx_project_configuration (tenant_id, project_id, configuration_stage)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-011|`ast_device_project_assignment`|`KEY idx_device_assignment_company_department ( tenant_id, project_company_code, project_department_code, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-012|`ast_device_project_assignment`|`KEY idx_device_assignment_customer ( tenant_id, project_customer_code, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-013|`ast_device_project_assignment`|`KEY idx_device_assignment_device ( tenant_id, device_id, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-014|`ast_device_project_assignment`|`KEY idx_device_assignment_order ( tenant_id, order_no, line_no, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-015|`ast_device_project_assignment`|`KEY idx_device_assignment_project ( tenant_id, project_id, effective_to, device_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-016|`ast_device_project_assignment`|`KEY idx_device_assignment_project_code ( tenant_id, project_code, effective_to, device_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-017|`ast_device_project_assignment`|`KEY idx_device_assignment_sn ( tenant_id, device_sn, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-018|`ast_device_relation`|`KEY idx_device_relation_contract_refresh ( tenant_id, contract_id, relation_type, status, source_device_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-019|`ast_device_relation`|`KEY idx_device_relation_latest ( tenant_id, source_device_id, contract_id, relation_type, status, effective_time, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-020|`ast_device_relation`|`KEY idx_device_relation_source_device ( tenant_id, source_device_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-021|`ast_device_relation`|`KEY idx_device_relation_target_device ( tenant_id, target_device_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-022|`ast_device_shipment_event`|`KEY idx_shipment_device (tenant_id, device_id, shipment_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-023|`ast_device_shipment_event`|`KEY idx_shipment_order_line (tenant_id, order_line_id, shipment_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-024|`ast_device_shipment_event`|`KEY idx_shipment_package (tenant_id, shipment_package_id, device_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-025|`ast_device_shipment_event`|`KEY idx_shipment_rma ( tenant_id, rma_marked, business_action_code, rma_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-026|`ast_device_sn`|`KEY idx_device_internal_serial_no (tenant_id, internal_serial_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-027|`ast_device_sn`|`KEY idx_device_item (tenant_id, item_code, asset_status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-028|`ast_device_sn`|`KEY idx_device_secondary_sn (tenant_id, secondary_sn)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-029|`ast_device_version`|`KEY idx_device_version_current ( tenant_id, device_id, component_type, status, effective_from )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-030|`ast_device_version`|`KEY idx_project_device_version (tenant_id, project_id, version_stage)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-031|`ast_network_topology`|`KEY idx_network_topology_project (tenant_id, project_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-032|`ast_network_topology_device_relation`|`KEY idx_topology_device_reverse (tenant_id, device_id, topology_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-033|`ast_product`|`KEY idx_product_line (tenant_id, product_line_code, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-034|`com_contract`|`KEY idx_contract_company (tenant_id, company_id, status, contract_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-035|`com_contract`|`KEY idx_contract_customer (tenant_id, customer_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-036|`com_contract`|`KEY idx_contract_no (tenant_id, contract_no, company_code)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-037|`com_contract_receivable`|`KEY idx_contract_receivable_business ( tenant_id, contract_no, company_code, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-038|`com_contract_receivable`|`KEY idx_contract_receivable_company ( tenant_id, company_id, mapping_status, contract_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-039|`com_contract_receivable`|`KEY idx_contract_receivable_contract ( tenant_id, contract_id, source_sync_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-040|`com_crm_execution_config`|`KEY idx_crm_execution_config_company ( tenant_id, company_code, status, execution_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-041|`com_crm_execution_config`|`KEY idx_crm_execution_config_execution ( tenant_id, execution_id, item_code )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-042|`com_crm_execution_order`|`KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-043|`com_crm_execution_order`|`KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-044|`com_crm_execution_order`|`KEY idx_crm_execution_crm_project ( tenant_id, crm_project_code, execution_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-045|`com_crm_execution_order`|`KEY idx_crm_execution_project ( tenant_id, primary_project_id, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-046|`com_delivery_scope`|`KEY idx_scope_item (tenant_id, item_code, scope_status, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-047|`com_delivery_scope`|`KEY idx_scope_order_business ( tenant_id, order_source_system, order_company_code, order_type, order_no, line_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-048|`com_delivery_scope`|`KEY idx_scope_order_line ( tenant_id, order_line_id, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-049|`com_delivery_scope`|`KEY idx_scope_project ( tenant_id, project_id, scope_status, order_line_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-050|`com_delivery_scope`|`KEY idx_scope_project_company ( tenant_id, project_company_code, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-051|`com_delivery_scope`|`KEY idx_scope_project_customer ( tenant_id, project_customer_code, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-052|`com_delivery_scope`|`KEY idx_scope_project_department ( tenant_id, project_department_code, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-053|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_location ( tenant_id, implementation_location, delivery_scope_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-054|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_product ( tenant_id, product_code, device_type_code, delivery_scope_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-055|`com_execution_order_merge_batch`|`KEY idx_execution_merge_primary ( tenant_id, primary_execution_id, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-056|`com_execution_order_merge_member`|`KEY idx_execution_merge_member_execution ( tenant_id, execution_id, merge_batch_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-057|`com_order_change_relation`|`KEY idx_order_change_target ( tenant_id, target_order_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-058|`com_order_contract_relation`|`KEY idx_order_contract_reverse (tenant_id, contract_id, order_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-059|`com_order_execution_relation`|`KEY idx_order_execution_execution ( tenant_id, execution_id, order_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-060|`com_order_line_execution_relation`|`KEY idx_order_line_execution_reverse (tenant_id, execution_id, order_line_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-061|`com_project_contract_relation`|`KEY idx_project_contract_reverse (tenant_id, contract_id, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-062|`com_sales_order`|`KEY idx_sales_order_company (tenant_id, company_id, status, order_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-063|`com_sales_order`|`KEY idx_sales_order_customer (tenant_id, customer_code, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-064|`com_sales_order`|`KEY idx_sales_order_no (tenant_id, order_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-065|`com_sales_order`|`KEY idx_sales_order_time (tenant_id, order_create_time, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-066|`com_sales_order_line`|`KEY idx_sales_order_line_business ( tenant_id, source_system, company_code, order_type, order_no, line_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-067|`com_sales_order_line`|`KEY idx_sales_order_line_customer (tenant_id, customer_code, status, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-068|`com_sales_order_line`|`KEY idx_sales_order_line_item (tenant_id, item_code)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-069|`com_sales_order_line`|`KEY idx_sales_order_line_profit (tenant_id, profit_center, order_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-070|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_company ( tenant_id, company_id, mapping_status, contract_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-071|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_contract ( tenant_id, contract_id, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-072|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_no ( tenant_id, contract_no, company_code, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-073|`com_shipment_package`|`KEY idx_shipment_package_contract_ref ( tenant_id, shipment_contract_ref_id, shipment_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-074|`cus_customer`|`KEY idx_customer_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-075|`cus_customer`|`KEY idx_customer_name (tenant_id, customer_name)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-076|`cus_customer_contact`|`KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-077|`cus_market_relation`|`KEY idx_market_relation_name ( tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64) )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-078|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-079|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-080|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-081|`plt_external_key_mapping`|`KEY idx_external_key_target ( tenant_id, target_table, target_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-082|`plt_migration_issue`|`KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-083|`plt_migration_source_record`|`KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-084|`plt_migration_source_record`|`KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-085|`plt_sync_batch`|`KEY idx_sync_batch_object ( tenant_id, source_system, object_type, started_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-086|`proj_project`|`KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-087|`proj_project`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-088|`proj_project`|`KEY idx_project_customer_code (tenant_id, customer_code, status, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-089|`proj_project`|`KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-090|`proj_project`|`KEY idx_project_manager (tenant_id, manager_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-091|`proj_project`|`KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-092|`proj_project`|`KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-093|`proj_project`|`KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-094|`proj_project`|`KEY idx_project_path (tenant_id, root_id, tree_path(191))`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-095|`proj_project_company_department_relation`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-096|`proj_project_company_department_relation`|`KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-097|`proj_project_company_department_relation`|`KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-098|`proj_project_member_assignment`|`KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-099|`proj_project_member_assignment`|`KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-100|`proj_project_member_assignment`|`KEY idx_project_member_user (tenant_id, user_id, status, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-101|`proj_project_party`|`KEY idx_project_party_code ( tenant_id, party_role, party_code, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-102|`proj_project_party`|`KEY idx_project_party_project ( tenant_id, project_id, party_role, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-103|`proj_project_portfolio`|`KEY idx_portfolio_owner (tenant_id, owner_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-104|`proj_project_portfolio_member`|`KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-105|`proj_project_relation`|`KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-106|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-107|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-108|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 
 ## 7. 唯一键完整清单
 
@@ -826,5 +826,5 @@
 
 - `ACCEPT_CURRENT`表示接受当前DDL作为目标数据模型，不代表历史数据天然满足约束。
 - 历史数据违反已批准约束时进入迁移问题池并保留来源证据，不得静默删除、改写或临时放宽模型掩盖问题。
-- 唯一键和CHECK规则将在业务确认后回写逐项决策登记；纯性能索引仍需在P3-E06压测中验证。
+- Q07技术约束和Q08候选索引已回写逐项决策登记；Q08仍需Feature查询计划和P3-E06压测，不等于性能已验收。
 - 本清单不授权连接或修改旧库，不授权执行生产迁移。

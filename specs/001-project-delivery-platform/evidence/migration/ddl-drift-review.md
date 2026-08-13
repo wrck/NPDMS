@@ -1,6 +1,6 @@
 # DDL漂移审查报告
 
-> 状态：`DEFER`（命名、项目编码、市场行业四维分类与核心迁移边界已确认，整体数据模型尚未批准）
+> 状态：`REVIEW_PENDING`（Q01～Q08需求方决策已确认，整体数据模型尚未取得Reviewer批准）
 > 门禁：`P3-E09 / AI-MIG-000`
 > 机器事实：[`ddl-drift-review.json`](ddl-drift-review.json)
 
@@ -22,7 +22,7 @@
 - ADR-0020确认同一CRM项目的多合同/多订单不派生项目编码，项目编码租户内唯一，编码命名空间与当前层级分离；新增`code_root_id`、`project_sequence`、`code_rule_version`及4项配套约束。
 - ADR-0021确认CRM四维组合目录归CUS，目标表为`cus_market_relation`；客户与项目直接保存四组编码/名称，不保存`relation_id`，也不将分类映射到组织关系。
 - ADR-0022确认当前DDL为核心迁移子集，移除4张V3技术公告治理表和跨领域物理外键；外部键映射新增`target_role/target_sequence`，当前唯一性、归一化、永久业务键及历史异常隔离规则已固化。
-- 上述裁决及ADR-0023-Q03共136项在`ddl-item-decision-register.json`登记为`AMEND_CURRENT`，`decisionOwner=REQUIREMENT_OWNER`并引用对应ADR。
+- ADR-0019～ADR-0023-Q08共457项在`ddl-item-decision-register.json`登记为`AMEND_CURRENT`；其中Q07覆盖222项技术约束，Q08覆盖108项候选索引，重叠项保留全部证据引用。
 - Reviewer尚未签署，因此这些项目不计入最终批准数，也不生成`approvedDdlSha256`。
 
 ## 3. 仍未关闭的模型项
@@ -31,7 +31,7 @@
 |---|---:|---|---|
 |当前表|50|核心迁移子集边界及Q03交付范围明细已决定，Reviewer待签署|不能以需求方确认替代数据架构复核，也不能冒充平台全量模型|
 |当前列|1,065|命名、项目编码、四维分类、外部键映射及Q03业务事实相关项已决定，其余保持`DEFER`|字段类型、默认值和未裁决业务规则仍需逐项批准|
-|当前约束|385|跨领域外键已移除；项目编码、四维分类、映射及Q03约束已决定，其余为`UNVERIFIED_BASELINE_MISSING`|历史字段目录未保存主键、同域外键、唯一键、索引和CHECK完整定义|
+|当前约束|385|Q07技术完整性约束和Q08候选索引已确认；业务约束沿用Q01～Q06/Q03及既有ADR|Q08仍须Feature查询计划和P3-E06压测；Reviewer尚未完成全量签署|
 |当前表选项|50|`UNVERIFIED_BASELINE_MISSING`|历史证据未保存字符集、排序规则和存储选项|
 |比较并集登记|1,626项|保留54个表事实、1,133个列事实及移除状态|用于审查历史到当前的新增、修改和移除，不等于当前DDL规模|
 
@@ -41,7 +41,7 @@
 - `target-field-catalog.jsonl`、核心字段映射及完整物理字段矩阵已经更新目标引用；旧库`sourceTable/sourceColumn/sourceDefinition/sourceRefs/evidenceRefs`保持原值。
 - 历史`migration-validation.json.passed=true`不具有当前生产迁移放行效力。
 - 旧库继续只读，禁止旧库DDL/DML和跨库SQL。
-- P3-E09保持`OPEN / BLOCKED_BY_MODEL_DECISION`，继续阻断SDS数据模型最终基线、历史迁移实施和数据切换。
+- P3-E09保持`OPEN / BLOCKED_BY_REVIEW`，继续阻断SDS数据模型最终基线、历史迁移实施和数据切换；Q08性能验证另由Feature/P3-E06下游门禁控制。
 
 ## 5. 放行条件
 

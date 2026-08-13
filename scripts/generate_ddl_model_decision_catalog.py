@@ -218,13 +218,13 @@ def render_decision_analysis(
         f"|精确键与默认排序规则冲突|{sum(len(tables) for tables in domain_tables.values())}张表默认`utf8mb4_0900_ai_ci`；{len(exact_match_fields)}个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|",
         "|可空列参与唯一键|7个唯一键包含可空列；4个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|",
         "|状态码写入数据库表达式|3个原固定状态CHECK已移除；4个当前唯一生成列已改为稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|",
-        f"|普通索引没有查询证据|{len(constraints['INDEX'])}个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前只确认候选，Feature/P3-E06用真实查询和压测定稿|",
+        f"|普通索引没有查询证据|{len(constraints['INDEX'])}个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|Q08已接受为候选基线；Feature/P3-E06用真实查询和压测定稿|",
         "",
-        "### 1.5 可按数据架构不变量批量确认的内容",
+        "### 1.5 Q07已按数据架构不变量批量确认的内容",
         "",
         "|内容|数量|批量确认的前提|仍未包含的业务判断|",
         "|---|---:|---|---|",
-        f"|单列技术主键|{len(constraints['PRIMARY_KEY'])}|所有表以不可变`id`标识记录|不决定业务编码是否可重复|",
+        f"|主键结构|{len(constraints['PRIMARY_KEY'])}|49张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|",
         f"|租户复合引用键|{len(unique_groups['TENANT_REFERENCE'])}|仅支撑同租户复合外键/行引用|不替代业务唯一键|",
         f"|同领域物理外键|{len(constraints['FOREIGN_KEY'])}|{len(constraints['FOREIGN_KEY'])}个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|",
         f"|软删除检查|{len(check_groups['SOFT_DELETE'])}|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|",
@@ -331,9 +331,9 @@ def render_decision_analysis(
         "|层次|内容|批准主体|批准结果|",
         "|---|---|---|---|",
         "|L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|",
-        "|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|数据架构Owner|按规则批量签署|",
+        "|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|需求方已接受推荐，Reviewer待签署|Q07登记为当前SDS技术约束|",
         "|L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|逐组批准；有空洞的先修模|",
-        f"|L4 性能候选|{len(constraints['INDEX'])}个普通索引|Feature Owner+性能Owner|绑定查询后由P3-E06压测定稿|",
+        f"|L4 性能候选|{len(constraints['INDEX'])}个普通索引|需求方接受候选；Feature Owner+性能Owner验证|Q08进入候选基线，绑定查询后由P3-E06压测定稿|",
         "|L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|",
     ])
     return lines
@@ -413,9 +413,9 @@ def render(root: Path) -> str:
         f"|表|{len(table_items)}|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|",
         f"|字段|{sum(len(items) for items in table_columns.values()):,}|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|",
         f"|表选项|{len(table_options)}|旧基线未保存|需确认字符比较与存储规则|",
-        f"|主键|{len(constraints['PRIMARY_KEY'])}|旧基线未保存|结构性规则，可分类确认|",
-        f"|外键|{len(constraints['FOREIGN_KEY'])}|旧基线未保存|影响迁移顺序和异常隔离|",
-        f"|普通索引|{len(constraints['INDEX'])}|旧基线未保存|影响查询性能和写入成本|",
+        f"|主键|{len(constraints['PRIMARY_KEY'])}|旧基线未保存|Q07已按技术不变量确认，Reviewer待签署|",
+        f"|外键|{len(constraints['FOREIGN_KEY'])}|旧基线未保存|Q07已确认同域外键；违规历史数据隔离|",
+        f"|普通索引|{len(constraints['INDEX'])}|旧基线未保存|Q08已接受为候选基线，Feature/P3-E06验证|",
         f"|唯一键|{len(constraints['UNIQUE_KEY'])}|旧基线未保存|影响重复业务数据，必须业务审查|",
         f"|CHECK|{len(constraints['CHECK'])}|旧基线未保存|影响异常历史数据，必须业务审查|",
     ]
@@ -447,9 +447,9 @@ def render(root: Path) -> str:
         lines.append(f"|O-{index:03d}|`{table}`|`{escape(table_options[table])}`|待确认字符比较规则后分类接受|")
 
     sections = [
-        ("PRIMARY_KEY", "4. 主键完整清单", "PK", "结构性规则；建议接受"),
-        ("FOREIGN_KEY", "5. 外键完整清单", "FK", "影响迁移顺序；建议接受并隔离违规历史数据"),
-        ("INDEX", "6. 普通索引完整清单", "IX", "查询设计规则；建议接受，后续以压测验证"),
+        ("PRIMARY_KEY", "4. 主键完整清单", "PK", "Q07已确认；Reviewer待签署"),
+        ("FOREIGN_KEY", "5. 外键完整清单", "FK", "Q07已确认同域约束；违规历史数据隔离"),
+        ("INDEX", "6. 普通索引完整清单", "IX", "Q08候选基线；Feature查询计划与P3-E06压测验证"),
         ("UNIQUE_KEY", "7. 唯一键完整清单", "UK", "影响重复数据；需逐组业务确认"),
         ("CHECK", "8. CHECK规则完整清单", "CK", "影响异常历史数据；需逐组业务确认"),
     ]
@@ -464,7 +464,7 @@ def render(root: Path) -> str:
         "",
         "- `ACCEPT_CURRENT`表示接受当前DDL作为目标数据模型，不代表历史数据天然满足约束。",
         "- 历史数据违反已批准约束时进入迁移问题池并保留来源证据，不得静默删除、改写或临时放宽模型掩盖问题。",
-        "- 唯一键和CHECK规则将在业务确认后回写逐项决策登记；纯性能索引仍需在P3-E06压测中验证。",
+        "- Q07技术约束和Q08候选索引已回写逐项决策登记；Q08仍需Feature查询计划和P3-E06压测，不等于性能已验收。",
         "- 本清单不授权连接或修改旧库，不授权执行生产迁移。",
         "",
     ])

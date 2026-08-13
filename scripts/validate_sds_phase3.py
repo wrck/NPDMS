@@ -125,6 +125,7 @@ def validate(root: Path) -> list[str]:
         require_tokens(errors, "Phase 3 gate", gate, (
             "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE", "P3-E01", "P3-E02", "P3-E03",
             "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "DOWNSTREAM-GATED",
+            "BLOCKED_BY_REVIEW",
         ))
     register_validator_path = Path(__file__).with_name("validate_phase3_evidence_register.py")
     register_path = root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json"

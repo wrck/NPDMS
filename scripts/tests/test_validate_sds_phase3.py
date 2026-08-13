@@ -58,7 +58,7 @@ class Phase3ValidatorTest(unittest.TestCase):
             "> Phase 3验证注记状态：`IN_REVIEW`\n\n" + "\n".join(blocks), encoding="utf-8"
         )
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md").write_text(
-            "IN_REVIEW NOT_READY_FOR_SDS_BASELINE DOWNSTREAM-GATED BLOCKED_BY_MODEL_DECISION "
+            "IN_REVIEW NOT_READY_FOR_SDS_BASELINE DOWNSTREAM-GATED BLOCKED_BY_REVIEW "
             "P3-E01 P3-E02 P3-E03 P3-E04 P3-E05 P3-E06 P3-E08 P3-E09 AI-MIG-000",
             encoding="utf-8",
         )
@@ -76,8 +76,25 @@ class Phase3ValidatorTest(unittest.TestCase):
                 facts = {"result": "FAIL", "exitCode": 1}
                 refs = ["failure.md"]
             if identifier == "P3-E09":
-                facts = {"currentDdlSha256": "CURRENT", "legacyCatalogDdlSha256": "OLD", "driftDecision": "DEFER"}
-                refs = ["drift.md"]
+                facts = {
+                    "currentDdlSha256": "CURRENT",
+                    "legacyCatalogDdlSha256": "OLD",
+                    "driftDecision": "DEFER",
+                    "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+                    "q07Decision": {
+                        "status": "ACCEPTED", "technicalConstraintCount": 222,
+                        "primaryKeyCount": 50, "tenantReferenceKeyCount": 50,
+                        "primaryKeyShape": {"singleId": 49, "compositeProjection": 1},
+                        "sameDomainForeignKeyCount": 48, "stableTechnicalCheckCount": 74,
+                    },
+                    "q08Decision": {
+                        "status": "CANDIDATE_BASELINE_ACCEPTED", "candidateIndexCount": 108,
+                        "featureQueryPlanValidationRequired": True,
+                        "p3e06PerformanceValidationRequired": True,
+                        "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
+                    },
+                }
+                refs = ["drift.md", "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"]
             decision_owner = None
             if identifier in direction_decisions:
                 facts.update({"directionDecision": direction_decisions[identifier], "directionStatus": "ACCEPTED", "chosenDirection": "test direction"})

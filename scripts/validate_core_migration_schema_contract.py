@@ -52,6 +52,31 @@ Q03_CURRENT_MARKERS = {
         "current_order_line_id", "uk_scope_current", {"tenant_id", "project_id", "current_order_line_id"}
     ),
 }
+EXPECTED_Q07_POLICY = {
+    "decision": "ACCEPT_CURRENT_FOR_SDS",
+    "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
+}
+EXPECTED_Q08_POLICY = {
+    "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
+    "featureQueryPlanValidationRequired": True,
+    "p3e06PerformanceValidationRequired": True,
+    "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
+}
+TEMPORAL_CHECKS = {
+    "chk_device_configuration_dates", "chk_device_assignment_dates", "chk_device_version_dates",
+    "chk_network_topology_dates", "chk_contract_dates", "chk_contract_receivable_dates",
+    "chk_scope_dates", "chk_project_contract_dates", "chk_shipment_package_warranty_dates",
+    "chk_sync_batch_time", "chk_project_company_department_dates", "chk_project_member_dates",
+    "chk_project_party_dates", "chk_service_incident_times",
+}
+NO_SELF_CHECKS = {
+    "chk_device_relation_self", "chk_device_secondary_self", "chk_order_change_self",
+    "chk_project_relation_self",
+}
+NONNEGATIVE_CHECKS = {
+    "chk_external_key_target_sequence", "chk_migration_source_target_count",
+    "chk_sync_batch_count", "chk_project_depth",
+}
 
 
 def parse_tables(ddl: str) -> dict[str, str]:
@@ -70,6 +95,56 @@ def unique_keys(body: str) -> list[tuple[str, str]]:
         (match.group(1), " ".join(match.group(2).split()))
         for match in re.finditer(r"UNIQUE\s+KEY\s+(\w+)\s*\((.*?)\)", body, re.IGNORECASE | re.DOTALL)
     ]
+
+
+def q07_q08_actual_counts(tables: dict[str, str], ddl: str) -> tuple[dict[str, object], int]:
+    primary_count = 0
+    single_id_primary_count = 0
+    tenant_reference_count = 0
+    foreign_key_count = 0
+    ordinary_index_count = 0
+    check_groups = {
+        "softDelete": 0,
+        "temporalOrder": 0,
+        "booleanFlag": 0,
+        "noSelf": 0,
+        "nonnegativeCount": 0,
+    }
+    for body in tables.values():
+        primary_matches = re.findall(r"(?m)^\s*PRIMARY\s+KEY\s*\((.*?)\)", body, re.IGNORECASE)
+        primary_count += len(primary_matches)
+        single_id_primary_count += sum(1 for columns in primary_matches if columns.strip().lower() == "id")
+        for name, _columns in unique_keys(body):
+            if name.endswith("tenant_row") or name == "uk_document_version_owner":
+                tenant_reference_count += 1
+        ordinary_index_count += len(re.findall(r"(?m)^\s*KEY\s+\w+\s*\(", body, re.IGNORECASE))
+        for match in re.finditer(
+            r"(?m)^\s*CONSTRAINT\s+(\w+)\s+CHECK\s*\((.*?)\)(?:\s*,?\s*$)",
+            body,
+            re.IGNORECASE | re.DOTALL,
+        ):
+            name, expression = match.group(1), match.group(2)
+            if name.endswith("_deleted"):
+                check_groups["softDelete"] += 1
+            elif name in TEMPORAL_CHECKS:
+                check_groups["temporalOrder"] += 1
+            elif name in NO_SELF_CHECKS:
+                check_groups["noSelf"] += 1
+            elif name in NONNEGATIVE_CHECKS:
+                check_groups["nonnegativeCount"] += 1
+            elif re.search(r"\bIN\s*\(\s*0\s*,\s*1\s*\)", expression, re.IGNORECASE):
+                check_groups["booleanFlag"] += 1
+    foreign_key_count = len(re.findall(r"\bFOREIGN\s+KEY\s*\(", ddl, re.IGNORECASE))
+    return {
+        "primaryKeyCount": primary_count,
+        "primaryKeyShape": {
+            "singleId": single_id_primary_count,
+            "compositeProjection": primary_count - single_id_primary_count,
+        },
+        "tenantReferenceKeyCount": tenant_reference_count,
+        "sameDomainForeignKeyCount": foreign_key_count,
+        "stableTechnicalCheckGroups": check_groups,
+    }, ordinary_index_count
 
 
 def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
@@ -92,6 +167,22 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
         errors.append("ADR-0022 accepted DDL item set mismatch")
     if contract.get("q03CurrentBusinessFacts") != EXPECTED_Q03_FACTS:
         errors.append("ADR-0023 Q03 current business fact set mismatch")
+    ddl_sha = hashlib.sha256(ddl.encode("utf-8")).hexdigest().upper()
+    q07 = contract.get("q07TechnicalConstraintPolicy", {})
+    q08 = contract.get("q08OrdinaryIndexPolicy", {})
+    if not isinstance(q07, dict) or q07.get("ddlSha256") != ddl_sha or any(
+        q07.get(key) != value for key, value in EXPECTED_Q07_POLICY.items()
+    ):
+        errors.append("ADR-0023 Q07 technical constraint policy mismatch")
+    if not isinstance(q08, dict) or q08.get("ddlSha256") != ddl_sha or any(
+        q08.get(key) != value for key, value in EXPECTED_Q08_POLICY.items()
+    ):
+        errors.append("ADR-0023 Q08 ordinary index policy mismatch")
+    actual_q07, actual_q08_count = q07_q08_actual_counts(tables, ddl)
+    if isinstance(q07, dict) and any(q07.get(key) != value for key, value in actual_q07.items()):
+        errors.append("ADR-0023 Q07 accepted constraint counts differ from current DDL")
+    if isinstance(q08, dict) and q08.get("candidateIndexCount") != actual_q08_count:
+        errors.append("ADR-0023 Q08 candidate index count differs from current DDL")
 
     present_v3 = sorted(V3_DESIGN_ONLY_TABLES & tables.keys())
     if present_v3:
@@ -107,6 +198,14 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
             target = match.group(2)
             if owner != target.split("_", 1)[0]:
                 errors.append(f"cross-domain foreign key {match.group(1)}: {table} -> {target}")
+    for match in re.finditer(
+        r"ALTER\s+TABLE\s+(\w+)\s+ADD\s+CONSTRAINT\s+(\w+)\s+FOREIGN\s+KEY\s*\(.*?\)\s+REFERENCES\s+(\w+)",
+        ddl,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        source, constraint, target = match.group(1), match.group(2), match.group(3)
+        if source.split("_", 1)[0] != target.split("_", 1)[0]:
+            errors.append(f"cross-domain foreign key {constraint}: {source} -> {target}")
 
     mapping = contract.get("externalKeyMapping", {})
     mapping_body = tables.get(str(mapping.get("table", "")), "") if isinstance(mapping, dict) else ""

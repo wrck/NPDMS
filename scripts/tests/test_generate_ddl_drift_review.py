@@ -246,8 +246,72 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertEqual("ADR-0023-Q03", result["q03Decision"]["decisionRef"])
         self.assertEqual(
             ["P3-E09-Q07", "P3-E09-Q08"],
-            result["q03Decision"]["deferredPhysicalDecisionRefs"],
+            result["q03Decision"]["relatedDecisionRefs"],
         )
+
+    def test_q07_q08_decisions_separate_constraints_from_candidate_indexes(self) -> None:
+        current_hash = "CURRENT"
+        values = {
+            "CONSTRAINT:a:PRIMARY": "PRIMARY KEY (id)",
+            "CONSTRAINT:a:uk_a_tenant_row": "UNIQUE KEY uk_a_tenant_row (tenant_id, id)",
+            "CONSTRAINT:a:fk_a_parent": "CONSTRAINT fk_a_parent FOREIGN KEY (parent_id) REFERENCES a (id)",
+            "CONSTRAINT:a:chk_a_deleted": "CONSTRAINT chk_a_deleted CHECK (deleted IN (0, 1))",
+            "CONSTRAINT:a:chk_contract_dates": "CONSTRAINT chk_contract_dates CHECK (end_at IS NULL OR end_at >= start_at)",
+            "CONSTRAINT:a:chk_a_flag": "CONSTRAINT chk_a_flag CHECK (flag IN (0, 1))",
+            "CONSTRAINT:a:chk_project_relation_self": "CONSTRAINT chk_project_relation_self CHECK (parent_id <> child_id)",
+            "CONSTRAINT:a:chk_project_depth": "CONSTRAINT chk_project_depth CHECK (depth >= 0)",
+            "CONSTRAINT:a:idx_a_query": "KEY idx_a_query (tenant_id, status, id)",
+            "CONSTRAINT:a:uk_a_business": "UNIQUE KEY uk_a_business (tenant_id, code)",
+            "CONSTRAINT:a:chk_a_business": "CONSTRAINT chk_a_business CHECK (code IS NOT NULL)",
+        }
+        items = [
+            {
+                "itemId": item_id,
+                "itemType": "CONSTRAINT",
+                "name": item_id.rsplit(":", 1)[1],
+                "currentValue": value,
+                "decision": "DEFER",
+                "decisionOwner": None,
+                "reviewOwner": None,
+                "evidenceRefs": [],
+            }
+            for item_id, value in values.items()
+        ]
+        register = {
+            "currentDdlSha256": current_hash,
+            "items": items,
+            "summary": {"approvedCount": 0},
+        }
+        contract = {
+            "q07TechnicalConstraintPolicy": {
+                "ddlSha256": current_hash,
+                "decision": "ACCEPT_CURRENT_FOR_SDS",
+                "primaryKeyCount": 1,
+                "tenantReferenceKeyCount": 1,
+                "sameDomainForeignKeyCount": 1,
+                "stableTechnicalCheckGroups": {
+                    "softDelete": 1,
+                    "temporalOrder": 1,
+                    "booleanFlag": 1,
+                    "noSelf": 1,
+                    "nonnegativeCount": 1,
+                },
+            },
+            "q08OrdinaryIndexPolicy": {
+                "ddlSha256": current_hash,
+                "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
+                "candidateIndexCount": 1,
+                "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
+            },
+        }
+
+        result = MODULE.apply_accepted_q07_q08_decisions(register, contract)
+
+        decided = {item["itemId"] for item in result["items"] if item["decision"] == "AMEND_CURRENT"}
+        self.assertEqual(set(values) - {"CONSTRAINT:a:uk_a_business", "CONSTRAINT:a:chk_a_business"}, decided)
+        self.assertEqual(8, result["q07Decision"]["decidedItemCount"])
+        self.assertEqual(1, result["q08Decision"]["decidedItemCount"])
+        self.assertEqual("REQUIRED_AT_FEATURE_AND_P3_E06", result["q08Decision"]["performanceValidationStatus"])
 
 
 if __name__ == "__main__":

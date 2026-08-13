@@ -53,6 +53,33 @@
     "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
     "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED"
   },
+  "q07TechnicalConstraintPolicy": {
+    "ddlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
+    "decision": "ACCEPT_CURRENT_FOR_SDS",
+    "primaryKeyCount": 50,
+    "primaryKeyShape": {
+      "singleId": 49,
+      "compositeProjection": 1
+    },
+    "tenantReferenceKeyCount": 50,
+    "sameDomainForeignKeyCount": 48,
+    "stableTechnicalCheckGroups": {
+      "softDelete": 45,
+      "temporalOrder": 14,
+      "booleanFlag": 7,
+      "noSelf": 4,
+      "nonnegativeCount": 4
+    },
+    "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE"
+  },
+  "q08OrdinaryIndexPolicy": {
+    "ddlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
+    "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
+    "candidateIndexCount": 108,
+    "featureQueryPlanValidationRequired": true,
+    "p3e06PerformanceValidationRequired": true,
+    "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
+  },
   "historicalAnomalyPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
   "migrationIssueTable": "plt_migration_issue",
   "sourceEvidenceTable": "plt_migration_source_record"

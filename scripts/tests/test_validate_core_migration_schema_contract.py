@@ -23,6 +23,7 @@ APPLY_SPEC.loader.exec_module(APPLIER)
 
 class CoreMigrationSchemaContractTest(unittest.TestCase):
     def valid_contract(self) -> dict[str, object]:
+        ddl_sha = hashlib.sha256(self.valid_ddl().encode("utf-8")).hexdigest().upper()
         return {
             "schemaVersion": 1,
             "decisionRef": "ADR-0022",
@@ -56,6 +57,30 @@ class CoreMigrationSchemaContractTest(unittest.TestCase):
                 "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
                 "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
                 "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED",
+            },
+            "q07TechnicalConstraintPolicy": {
+                "ddlSha256": ddl_sha,
+                "decision": "ACCEPT_CURRENT_FOR_SDS",
+                "primaryKeyCount": 8,
+                "primaryKeyShape": {"singleId": 8, "compositeProjection": 0},
+                "tenantReferenceKeyCount": 0,
+                "sameDomainForeignKeyCount": 0,
+                "stableTechnicalCheckGroups": {
+                    "softDelete": 0,
+                    "temporalOrder": 0,
+                    "booleanFlag": 0,
+                    "noSelf": 0,
+                    "nonnegativeCount": 1,
+                },
+                "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
+            },
+            "q08OrdinaryIndexPolicy": {
+                "ddlSha256": ddl_sha,
+                "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
+                "candidateIndexCount": 0,
+                "featureQueryPlanValidationRequired": True,
+                "p3e06PerformanceValidationRequired": True,
+                "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
             },
             "historicalAnomalyPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
         }

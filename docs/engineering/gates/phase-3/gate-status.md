@@ -2,7 +2,7 @@
 
 > 审查状态：`IN_REVIEW`
 > 依据：PRD V1.6、SDS Phase 1/2 `BASELINE`、实现仓库`856d052`
-> 结论：`NOT_READY_FOR_SDS_BASELINE`（仅P3-E09数据模型裁决前置阻断）
+> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09模型决策已完成，仅全量Reviewer批准前置阻断）
 
 ## 1. 输出状态
 
@@ -22,7 +22,7 @@
 |---|---|
 | NFR有技术实现与验证方案 | PASS-DESIGN；运行证据按专项验收/发布门禁关闭 |
 | 发布、迁移、回退设计可执行 | PASS-DESIGN；目标环境实例在部署/发布前登记 |
-| 数据模型DDL/映射基线一致 | BLOCKED_BY_MODEL_DECISION（ADR-0019命名、ADR-0020项目编码、ADR-0021市场行业四维分类、ADR-0022核心迁移边界、ADR-0023 Q01～Q06已应用；当前50表、1,065列、385项DDL约束/索引和全部迁移目标引用使用同一DDL哈希，隔离MySQL 8.4.10执行PASS；Q03已形成交付范围主记录/明细模型并取消订单级唯一主执行单约束；P3-E09 / AI-MIG-000仍需Q07同域技术约束、Q08普通索引及全量Reviewer签署） |
+| 数据模型DDL/映射基线一致 | BLOCKED_BY_REVIEW（ADR-0019～ADR-0023-Q08已应用；Q07确认222项技术约束，Q08确认108项候选索引并保留Feature/P3-E06性能验证；当前50表、1,065列、385项DDL约束/索引和全部迁移目标引用使用同一DDL哈希，隔离MySQL 8.4.10执行PASS；P3-E09 / AI-MIG-000仍需全量Reviewer签署及`approvedDdlSha256`） |
 | 安全与审计不存在明显设计缺口 | PASS-DESIGN；KMS/Telemetry实例在对应生产门禁关闭 |
 | 测试覆盖正常/异常/权限拒绝/幂等/并发 | PASS-DESIGN；运行证据未生成 |
 | 性能环境和数据集可复现 | DOWNSTREAM-BLOCKED（P3-E06阻断性能验收/生产发布） |
@@ -49,7 +49,7 @@ Phase 3逻辑设计和证据契约已达到基线复审条件，可以进行独�
 | P3-E06 | 不阻断 | DOWNSTREAM-GATED | 性能验收、生产发布 |
 | P3-E07 | 不阻断 | DOWNSTREAM-GATED | 对应Feature联调、发布 |
 | P3-E08 | 不阻断 | DOWNSTREAM-GATED | 前端Feature验收、发布 |
-| P3-E09 | 阻断 | BLOCKED_BY_MODEL_DECISION | SDS数据模型基线、历史数据迁移实施、数据切换 |
+| P3-E09 | 阻断 | BLOCKED_BY_REVIEW | SDS数据模型基线、历史数据迁移实施、数据切换 |
 
 实现质量缺口：P3-E08（前端`ts:check`失败）不用于否定Phase 3逻辑设计，但阻塞任何前端Feature进入实现验收或正式发布。
 

@@ -27,8 +27,15 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
                 facts = {"result": "FAIL", "exitCode": 1}
                 refs = ["failure.md"]
             if identifier == "P3-E09":
-                facts = {"currentDdlSha256": "CURRENT", "legacyCatalogDdlSha256": "OLD", "driftDecision": "DEFER"}
-                refs = ["drift.md"]
+                facts = {
+                    "currentDdlSha256": "CURRENT",
+                    "legacyCatalogDdlSha256": "OLD",
+                    "driftDecision": "DEFER",
+                    "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+                    "q07Decision": VALIDATOR.Q07_DECISION,
+                    "q08Decision": VALIDATOR.Q08_DECISION,
+                }
+                refs = ["drift.md", VALIDATOR.MODEL_DECISION_REF]
             expected_direction = VALIDATOR.DIRECTION_DECISIONS.get(identifier)
             decision_owner = None
             if expected_direction:

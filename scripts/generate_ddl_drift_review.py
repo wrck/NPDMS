@@ -564,7 +564,130 @@ def apply_accepted_q03_decisions(register: dict[str, object], contract: dict[str
     register["q03Decision"] = {
         "decisionRef": "ADR-0023-Q03",
         "decidedItemCount": len(decided),
-        "deferredPhysicalDecisionRefs": ["P3-E09-Q07", "P3-E09-Q08"],
+        "relatedDecisionRefs": ["P3-E09-Q07", "P3-E09-Q08"],
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
+Q07_TEMPORAL_CHECKS = {
+    "chk_device_configuration_dates", "chk_device_assignment_dates", "chk_device_version_dates",
+    "chk_network_topology_dates", "chk_contract_dates", "chk_contract_receivable_dates",
+    "chk_scope_dates", "chk_project_contract_dates", "chk_shipment_package_warranty_dates",
+    "chk_sync_batch_time", "chk_project_company_department_dates", "chk_project_member_dates",
+    "chk_project_party_dates", "chk_service_incident_times",
+}
+Q07_NO_SELF_CHECKS = {
+    "chk_device_relation_self", "chk_device_secondary_self", "chk_order_change_self",
+    "chk_project_relation_self",
+}
+Q07_NONNEGATIVE_CHECKS = {
+    "chk_external_key_target_sequence", "chk_migration_source_target_count",
+    "chk_sync_batch_count", "chk_project_depth",
+}
+
+
+def q07_q08_item_ids(register: dict[str, object]) -> tuple[set[str], set[str], dict[str, int]]:
+    q07_ids: set[str] = set()
+    q08_ids: set[str] = set()
+    counts = {
+        "primaryKeyCount": 0,
+        "tenantReferenceKeyCount": 0,
+        "sameDomainForeignKeyCount": 0,
+        "softDelete": 0,
+        "temporalOrder": 0,
+        "booleanFlag": 0,
+        "noSelf": 0,
+        "nonnegativeCount": 0,
+        "candidateIndexCount": 0,
+    }
+    for item in register["items"]:
+        if item["itemType"] != "CONSTRAINT" or not isinstance(item.get("currentValue"), str):
+            continue
+        item_id = item["itemId"]
+        name = item["name"]
+        value = item["currentValue"].strip()
+        upper = value.upper()
+        if upper.startswith("PRIMARY KEY"):
+            q07_ids.add(item_id)
+            counts["primaryKeyCount"] += 1
+        elif upper.startswith("UNIQUE KEY") and (name.endswith("tenant_row") or name == "uk_document_version_owner"):
+            q07_ids.add(item_id)
+            counts["tenantReferenceKeyCount"] += 1
+        elif " FOREIGN KEY " in f" {upper} ":
+            q07_ids.add(item_id)
+            counts["sameDomainForeignKeyCount"] += 1
+        elif upper.startswith("KEY "):
+            q08_ids.add(item_id)
+            counts["candidateIndexCount"] += 1
+        elif " CHECK " in f" {upper} ":
+            if name.endswith("_deleted"):
+                q07_ids.add(item_id)
+                counts["softDelete"] += 1
+            elif name in Q07_TEMPORAL_CHECKS:
+                q07_ids.add(item_id)
+                counts["temporalOrder"] += 1
+            elif name in Q07_NO_SELF_CHECKS:
+                q07_ids.add(item_id)
+                counts["noSelf"] += 1
+            elif name in Q07_NONNEGATIVE_CHECKS:
+                q07_ids.add(item_id)
+                counts["nonnegativeCount"] += 1
+            elif re.search(r"\bIN\s*\(\s*0\s*,\s*1\s*\)", value, re.IGNORECASE):
+                q07_ids.add(item_id)
+                counts["booleanFlag"] += 1
+    return q07_ids, q08_ids, counts
+
+
+def apply_accepted_q07_q08_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
+    """Record accepted Q07 constraints and Q08 candidate indexes without reviewer approval."""
+    q07 = contract.get("q07TechnicalConstraintPolicy", {})
+    q08 = contract.get("q08OrdinaryIndexPolicy", {})
+    if not isinstance(q07, dict) or not isinstance(q08, dict):
+        raise ValueError("ADR-0023 Q07/Q08 policies are missing")
+    if q07.get("ddlSha256") != register.get("currentDdlSha256") or q08.get("ddlSha256") != register.get("currentDdlSha256"):
+        raise ValueError("ADR-0023 Q07/Q08 policies are not bound to the current DDL")
+    q07_ids, q08_ids, counts = q07_q08_item_ids(register)
+    expected_q07 = {
+        "primaryKeyCount": q07.get("primaryKeyCount"),
+        "tenantReferenceKeyCount": q07.get("tenantReferenceKeyCount"),
+        "sameDomainForeignKeyCount": q07.get("sameDomainForeignKeyCount"),
+        **q07.get("stableTechnicalCheckGroups", {}),
+    }
+    actual_q07 = {key: counts[key] for key in expected_q07}
+    if actual_q07 != expected_q07:
+        raise ValueError(f"ADR-0023 Q07 item counts differ from current DDL: {actual_q07}")
+    if counts["candidateIndexCount"] != q08.get("candidateIndexCount"):
+        raise ValueError("ADR-0023 Q08 index count differs from current DDL")
+
+    q07_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+    q08_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+    for item in register["items"]:
+        decision_ref = q07_ref if item["itemId"] in q07_ids else q08_ref if item["itemId"] in q08_ids else None
+        if decision_ref is None:
+            continue
+        item["decision"] = "AMEND_CURRENT"
+        item["decisionOwner"] = "REQUIREMENT_OWNER"
+        item["reviewOwner"] = None
+        if decision_ref not in item["evidenceRefs"]:
+            item["evidenceRefs"].append(decision_ref)
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["q07Decision"] = {
+        "decisionRef": "ADR-0023-Q07",
+        "decision": q07.get("decision"),
+        "decidedItemCount": len(q07_ids),
+        "requirementOwnerStatus": "ACCEPTED",
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    register["q08Decision"] = {
+        "decisionRef": "ADR-0023-Q08",
+        "decision": q08.get("decision"),
+        "decidedItemCount": len(q08_ids),
+        "requirementOwnerStatus": "ACCEPTED",
+        "performanceValidationStatus": "REQUIRED_AT_FEATURE_AND_P3_E06",
+        "adjustmentPolicy": q08.get("adjustmentPolicy"),
         "reviewStatus": "REVIEW_PENDING",
     }
     return register
@@ -684,6 +807,9 @@ def main() -> int:
         decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
     )
     decision_register = apply_accepted_q03_decisions(
+        decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
+    )
+    decision_register = apply_accepted_q07_q08_decisions(
         decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
     )
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")

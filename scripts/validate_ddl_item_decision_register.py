@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import importlib.util
 import json
@@ -90,6 +91,29 @@ def validate(root: Path) -> list[str]:
             errors.append(f"{identifier} invalid decision: {decision}")
         if decision != "DEFER" and (not nonempty(actual.get("decisionOwner")) or not nonempty(actual.get("evidenceRefs"))):
             errors.append(f"{identifier} non-DEFER decision requires decisionOwner and evidenceRefs")
+
+    core_contract = json.loads((root / "docs/traceability/core-migration-schema-contract.json").read_text(encoding="utf-8"))
+    q07_q08_expected = generator.apply_accepted_q07_q08_decisions(copy.deepcopy(expected), core_contract)
+    for decision_key in ("q07Decision", "q08Decision"):
+        if register.get(decision_key) != q07_q08_expected.get(decision_key):
+            errors.append(f"DDL decision register {decision_key} metadata mismatch")
+    q07_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+    q08_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+    for decision_ref in (q07_ref, q08_ref):
+        expected_ids = {
+            item["itemId"] for item in q07_q08_expected["items"]
+            if decision_ref in item.get("evidenceRefs", [])
+        }
+        actual_ids = {
+            item["itemId"] for item in items
+            if decision_ref in item.get("evidenceRefs", [])
+        }
+        if actual_ids != expected_ids:
+            errors.append(f"DDL decision register {decision_ref} item coverage mismatch")
+        for identifier in sorted(actual_ids):
+            item = actual_by_id[identifier]
+            if item.get("decision") != "AMEND_CURRENT" or item.get("decisionOwner") != "REQUIREMENT_OWNER" or nonempty(item.get("reviewOwner")):
+                errors.append(f"{identifier} Q07/Q08 decision state mismatch")
 
     counts: dict[str, int] = {}
     statuses: dict[str, int] = {}

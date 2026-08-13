@@ -30,6 +30,9 @@ DATABASE_NAMING_REF = "docs/decisions/0019-domain-coded-database-naming.md"
 PROJECT_CODE_REF = "docs/decisions/0020-project-code-identity-and-namespace.md"
 MARKET_RELATION_REF = "docs/decisions/0021-customer-market-relation-classification.md"
 CORE_MIGRATION_SCHEMA_REF = "docs/decisions/0022-core-migration-schema-and-key-policy.md"
+MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+CORE_SCHEMA_CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
+DDL_DECISION_REGISTER = Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json")
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 DDL_EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
 BACKUP_RETENTION_POLICY = {
@@ -141,12 +144,31 @@ def build_packets() -> dict[str, dict[str, object]]:
         if identifier == "P3-E09":
             ddl_sha256 = hashlib.sha256(DDL_PATH.read_bytes()).hexdigest().upper()
             execution = json.loads(DDL_EXECUTION_EVIDENCE.read_text(encoding="utf-8"))
+            contract = json.loads(CORE_SCHEMA_CONTRACT.read_text(encoding="utf-8"))
+            register = json.loads(DDL_DECISION_REGISTER.read_text(encoding="utf-8"))
             if execution.get("status") != "PASS" or execution.get("ddlSha256") != ddl_sha256:
                 raise ValueError("P3-E09 isolated MySQL execution evidence is absent or stale")
             facts.update(
                 {
                     "currentDdlSha256": ddl_sha256,
                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+                    "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+                    "q07Decision": {
+                        "status": "ACCEPTED",
+                        "technicalConstraintCount": register["q07Decision"]["decidedItemCount"],
+                        "primaryKeyCount": contract["q07TechnicalConstraintPolicy"]["primaryKeyCount"],
+                        "primaryKeyShape": contract["q07TechnicalConstraintPolicy"]["primaryKeyShape"],
+                        "tenantReferenceKeyCount": contract["q07TechnicalConstraintPolicy"]["tenantReferenceKeyCount"],
+                        "sameDomainForeignKeyCount": contract["q07TechnicalConstraintPolicy"]["sameDomainForeignKeyCount"],
+                        "stableTechnicalCheckCount": sum(contract["q07TechnicalConstraintPolicy"]["stableTechnicalCheckGroups"].values()),
+                    },
+                    "q08Decision": {
+                        "status": "CANDIDATE_BASELINE_ACCEPTED",
+                        "candidateIndexCount": contract["q08OrdinaryIndexPolicy"]["candidateIndexCount"],
+                        "featureQueryPlanValidationRequired": contract["q08OrdinaryIndexPolicy"]["featureQueryPlanValidationRequired"],
+                        "p3e06PerformanceValidationRequired": contract["q08OrdinaryIndexPolicy"]["p3e06PerformanceValidationRequired"],
+                        "adjustmentPolicy": contract["q08OrdinaryIndexPolicy"]["adjustmentPolicy"],
+                    },
                     "isolatedMysqlExecution": {
                         "status": execution["status"],
                         "mysqlVersion": execution["mysqlVersion"],
@@ -183,6 +205,7 @@ def build_packets() -> dict[str, dict[str, object]]:
                 PROJECT_CODE_REF,
                 MARKET_RELATION_REF,
                 CORE_MIGRATION_SCHEMA_REF,
+                MODEL_DECISION_REF,
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

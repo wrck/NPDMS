@@ -48,6 +48,23 @@ RECOVERY_EXERCISE_REF = "docs/decisions/0015-recovery-exercise-frequency.md"
 EXPORT_EXPIRATION_REF = "docs/decisions/0016-export-file-expiration.md"
 RECOVERY_SWITCH_AUTH_REF = "docs/decisions/0017-disaster-recovery-switch-authorization.md"
 DEPLOYMENT_TIME_SELECTION_REF = "docs/decisions/0018-deployment-time-environment-and-kms-selection.md"
+MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+Q07_DECISION = {
+    "status": "ACCEPTED",
+    "technicalConstraintCount": 222,
+    "primaryKeyCount": 50,
+    "primaryKeyShape": {"singleId": 49, "compositeProjection": 1},
+    "tenantReferenceKeyCount": 50,
+    "sameDomainForeignKeyCount": 48,
+    "stableTechnicalCheckCount": 74,
+}
+Q08_DECISION = {
+    "status": "CANDIDATE_BASELINE_ACCEPTED",
+    "candidateIndexCount": 108,
+    "featureQueryPlanValidationRequired": True,
+    "p3e06PerformanceValidationRequired": True,
+    "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
+}
 NETWORK_SECURITY_RETENTION = {
     "policyCode": "NETWORK_SECURITY_LOG_P1Y",
     "totalRetention": "P1Y",
@@ -238,6 +255,14 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
     facts = e09.get("confirmedFacts", {})
     if facts.get("currentDdlSha256") == facts.get("legacyCatalogDdlSha256") or facts.get("driftDecision") != "DEFER":
         errors.append("P3-E09 must retain the current DDL drift and DEFER decision until AI-MIG-000 is approved")
+    if facts.get("modelDecisionStatus") != "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING":
+        errors.append("P3-E09 Q01-Q08 model decisions must remain requirement-owner accepted and review pending")
+    if facts.get("q07Decision") != Q07_DECISION:
+        errors.append("P3-E09 Q07 accepted technical constraint decision mismatch")
+    if facts.get("q08Decision") != Q08_DECISION:
+        errors.append("P3-E09 Q08 candidate index decision mismatch")
+    if MODEL_DECISION_REF not in e09.get("evidenceRefs", []):
+        errors.append("P3-E09 Q07/Q08 decision reference missing")
 
     ready = all(by_id.get(identifier, {}).get("status") == "VERIFIED" for identifier in BASELINE_REQUIRED)
     expected_overall = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"

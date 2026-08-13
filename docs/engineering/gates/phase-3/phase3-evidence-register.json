@@ -298,6 +298,7 @@
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "DEFER",
                 "decisionRegisterItemCount": 1626,
+                "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
                     "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
@@ -305,6 +306,25 @@
                     "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
                     "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
                     "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED"
+                },
+                "q07Decision": {
+                    "status": "ACCEPTED",
+                    "technicalConstraintCount": 222,
+                    "primaryKeyCount": 50,
+                    "primaryKeyShape": {
+                        "singleId": 49,
+                        "compositeProjection": 1
+                    },
+                    "tenantReferenceKeyCount": 50,
+                    "sameDomainForeignKeyCount": 48,
+                    "stableTechnicalCheckCount": 74
+                },
+                "q08Decision": {
+                    "status": "CANDIDATE_BASELINE_ACCEPTED",
+                    "candidateIndexCount": 108,
+                    "featureQueryPlanValidationRequired": true,
+                    "p3e06PerformanceValidationRequired": true,
+                    "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
                 },
                 "isolatedMysqlExecution": {
                     "status": "PASS",
@@ -320,6 +340,7 @@
                 "docs/decisions/0020-project-code-identity-and-namespace.md",
                 "docs/decisions/0021-customer-market-relation-classification.md",
                 "docs/decisions/0022-core-migration-schema-and-key-policy.md",
+                "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
