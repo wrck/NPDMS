@@ -114,7 +114,7 @@ PHASE1_DESIGN = {
     "SRV": ("Work Order & Time / Inspection / Service Operations", "WorkOrder / TimeClaim / InspectionTask / ServiceIssue / ServiceStatus", "工单与工时、Inspection、Service Operations分别维护状态机和闭环流", "AssignedProjectDeviceScope", "ServiceApplicationService", "WorkOrder、TimeClaim、ResponsibilityInterval、InspectionTask、InspectionRule、ServiceIssue、ServiceStatus", "业务规则+权限+异常"),
     "CUS": ("Customer & Relationship", "Customer / Contact / AssetRelation", "Customer同步状态机；主数据同步流", "OrganizationCustomerScope", "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot", "数据同步+权限"),
     "AST": ("Asset Management", "Device / DeviceArchive / RMAReplacement", "Device服务状态机；设备同步流", "ProjectDeviceScope", "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot", "数据一致性+归属+安全"),
-    "COM": ("合同订单履约", "Contract / OrderLine / DeliveryScope", "Scope状态机；履约回写工作流", "ContractProjectScope", "ContractApplicationService", "Contract、OrderLine、DeliveryScope、FulfillmentRecord", "数量约束+对账+幂等"),
+    "COM": ("合同订单履约", "Contract / OrderLine / DeliveryScope / DeliveryScopeDetail", "Scope状态机；履约回写工作流", "ContractProjectScope", "ContractApplicationService", "Contract、OrderLine、DeliveryScope、DeliveryScopeDetail、FulfillmentRecord", "数量约束+对账+幂等"),
     "RES": ("资源与外包", "Supplier / SubcontractRequest / PaymentGate", "Subcontract与PaymentGate状态机；转包审批流", "OrganizationSupplierScope", "SubcontractApplicationService", "Supplier、SubcontractRequest、PaymentGate", "审批+门禁+财务集成"),
     "ANA": ("经营分析", "MetricSnapshot / PortfolioView", "指标快照生成流（只读）", "OrganizationReportScope", "AnalyticsQueryService", "MetricSnapshot、PortfolioView", "口径+数据范围+性能"),
     "PLT": ("基础平台能力 / Device Access & Collection", "Todo / FileArtifact / AuthorizationGrant / ChangeRequest / DeviceCredential / CredentialGrant / CollectionTask", "公共能力状态机、授权审批流和采集任务授权/回调流", "TenantOrganizationProjectScope / BusinessObjectDeviceCredentialScope", "PlatformApplicationService / CollectionOrchestrationService", "Todo、FileArtifact、AuthorizationGrant、ChangeRequest、AuditRecord、DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord", "安全+权限+审计+幂等"),
@@ -174,9 +174,9 @@ for _identifier in ("EQP-01", "EQP-02", "EQP-03", "EQP-04", "EQP-05", "EQP-07", 
     )
 for _identifier in ("COM-01", "COM-02"):
     EXACT_PHASE1_DESIGN[_identifier] = (
-        "Contract & Fulfillment", "Contract / SalesOrder / OrderLine / DeliveryScope / FulfillmentSnapshot",
+        "Contract & Fulfillment", "Contract / SalesOrder / OrderLine / DeliveryScope / DeliveryScopeDetail / FulfillmentSnapshot",
         "Contract/Order同步状态机；范围分配与履约对账流", "ContractProjectScope",
-        "ContractApplicationService", "Contract、SalesOrder、OrderLine、DeliveryScope、FulfillmentSnapshot、ReconciliationRecord",
+        "ContractApplicationService", "Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、FulfillmentSnapshot、ReconciliationRecord",
         "数量约束+同步版本+对账幂等",
     )
 

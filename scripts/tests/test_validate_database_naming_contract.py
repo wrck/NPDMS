@@ -38,6 +38,7 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
             "allowedTableAbbreviations": {"configuration": "config", "serial_number": "sn"},
             "forbiddenTableTokens": ["rel", "ref", "map"],
             "tableExtensions": [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}],
+            "modelExtensions": [{"target": "com_delivery_scope_detail", "owner": "COM", "decisionRef": "ADR-0023", "requirementRefs": ["COM-01", "PM-02"]}],
             "implementationScope": {"coverage": "CORE_MIGRATION_SUBSET", "decisionRef": "ADR-0022", "excludedTargets": []},
             "tables": tables,
             "fields": fields,
@@ -70,7 +71,7 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
         contract = self.valid_contract()
         ddl = "\n".join(
             f"CREATE TABLE {item['target']} (id BIGINT) ENGINE = InnoDB;"
-            for item in contract["tables"] + contract["tableExtensions"]
+            for item in contract["tables"] + contract["tableExtensions"] + contract["modelExtensions"]
         )
         first = contract["fields"][0]
         ddl = ddl.replace(
@@ -85,7 +86,7 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
         contract["implementationScope"]["excludedTargets"] = [excluded]
         ddl = "\n".join(
             f"CREATE TABLE {item['target']} (id BIGINT) ENGINE = InnoDB;"
-            for item in contract["tables"][:-1] + contract["tableExtensions"]
+            for item in contract["tables"][:-1] + contract["tableExtensions"] + contract["modelExtensions"]
         )
         self.assertNotIn("DDL table set differs", "\n".join(VALIDATOR.validate_ddl(contract, ddl)))
 

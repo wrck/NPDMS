@@ -693,6 +693,15 @@
         "com_delivery_scope"
       ]
     },
+    "DeliveryScopeDetail": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope_detail"
+      ]
+    },
     "FulfillmentSnapshot": {
       "owner": "COM",
       "requirementIds": [
@@ -2454,6 +2463,28 @@
           "mappingStatus": "READY_FOR_FIELD_MAPPING",
           "gate": "AI-MIG-000",
           "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_product_line"
+        }
+      ]
+    },
+    {
+      "object": "DeliveryScopeDetail",
+      "owner": "COM",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope_detail"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DeliveryScopeDetail",
+          "disposition": "NEW_ONLY",
+          "transform": "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=DeliveryScopeDetail"
         }
       ]
     },

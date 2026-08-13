@@ -35,7 +35,7 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前核心迁移 DDL SHA-256 为`8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，按ADR-0020补充项目编码命名空间，按ADR-0021补充CUS市场行业四维分类，并按ADR-0022收敛为迁移核心子集、移除V3治理表和跨领域物理外键；其他同域约束、表选项和最终Reviewer签署仍为`DEFER`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前核心迁移 DDL SHA-256 为`F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，按ADR-0020补充项目编码命名空间，按ADR-0021补充CUS市场行业四维分类，按ADR-0022收敛为迁移核心子集、移除V3治理表和跨领域物理外键，并按ADR-0023-Q03落地当前唯一关系、交付范围主从结构和订单—执行单多主关系；其他同域约束、表选项和最终Reviewer签署仍为`DEFER`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`OPEN`。
 
@@ -43,11 +43,11 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
-ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。当前核心迁移DDL为49表、1,048列、381项DDL约束/索引和49项表选项，其中MySQL登记275项主键/唯一键/外键/CHECK；4张KNO治理表退出V1/V2核心DDL，跨领域引用不再建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
+ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0023-Q03确认后，当前核心迁移DDL为50表、1,065列、385项DDL约束/索引和50项表选项，其中MySQL登记277项主键/唯一键/同域外键/CHECK；4张KNO治理表退出V1/V2核心DDL，跨领域引用不再建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,602项：53个表事实、1,115个列事实、381个当前约束/索引和53个表选项事实。ADR-0019～ADR-0022已确认的111项登记为`AMEND_CURRENT`，其余保持`DEFER`；实际当前DDL规模以49表、1,048列、381项DDL约束/索引和49项表选项为准。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,626项：54个表事实、1,133个列事实、385个当前约束/索引和54个表选项事实。ADR-0019～ADR-0023-Q03已确认的136项登记为`AMEND_CURRENT`，其余保持`DEFER`；实际当前DDL规模以50表、1,065列、385项DDL约束/索引和50项表选项为准。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
 
-- 本分册中的模型和约束是 SDS 目标契约；当前49表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
+- 本分册中的模型和约束是 SDS 目标契约；当前50表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；
 - 历史`migration-validation.json.passed=true`已过期，不得作为当前发布证据；
 - 未关闭漂移前，可以实现不依赖争议 DDL 的领域代码和校验框架，但不得执行生产迁移或宣称数据切换 READY。
@@ -284,7 +284,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | Context | 目标表组 | 关键约束 |
 |---|---|---|
 | Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot` | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
-| Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围分配至少含订单行、项目、`allocated_qty`、`scope_status_code`及来源证据 |
+| Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围主记录至少含订单行、项目、`allocated_qty`、`scope_status`及来源证据，范围明细保存地点、产品/设备类型、数量和可选批次 |
 | Resource | `res_supplier`、`res_qualification`、`res_subcontract_request`、`res_payment_gate` | 资质版本追加；财务结果只保存引用和回写状态 |
 | Knowledge | `TechnicalNoticeReference`逻辑对象；物理表由INT-04 Feature前向迁移确定 | V2公告按ITR来源键+版本唯一，只保存同步副本和业务引用；4张V3治理表不进入核心迁移DDL |
 
@@ -296,7 +296,8 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 
 ```text
 proj_project
-  -> com_delivery_scope(project_id, order_line_id, allocated_qty, scope_status_code)
+  -> com_delivery_scope(project_id, order_line_id, allocated_qty, scope_status)
+       -> com_delivery_scope_detail(location, product/device type, allocated_qty, delivery_batch_no)
   -> com_order_line
   -> com_sales_order
   -> order-contract relation
@@ -307,10 +308,11 @@ proj_project
 
 1. 项目与合同、合同与订单均按多对多关系建模；合同号不能脱离所属公司作为全局唯一键。
 2. 订单行实施范围是项目交付最小权威分配粒度。同一订单行拆给多个项目时，必须校验有效分配量合计；缺分配量使用待补数量状态，不进入完成率、交付量和验收。
-3. CRM执行单、特殊合并批次和订单变更只保存辅助血缘；`-L/-C/-his`后缀不能单独建立正式关系。
-4. `fb_contract`映射发货合同归属，不生成合同主档；回款来源、ERP合同关系和发货归属分别保留。
-5. SN 主档、发货事件、合同维度设备关系、RMA替换和项目归属分别落表；每条发货/生命周期源记录保留，不能因SN重复删除。
-6. 设备当前归属由不重叠的历史区间计算；旧`pm_project_shipment`只有项目、SN、时间和转移证据可完整解析时才形成正式当前归属，否则生成迁移问题。
+3. 同一实际承接项目节点与同一订单行同一时点只有一条当前`com_delivery_scope`主记录；主记录可有多条`com_delivery_scope_detail`，明细数量合计必须等于主记录分配数量。独立交付边界应拆为子项目，不通过重复当前主记录表达。
+4. CRM执行单、特殊合并批次和订单变更只保存辅助血缘；普通订单—执行单关系默认就是主执行单关系，但不要求唯一。特殊合并下单的实际订单可关联多个执行单号，批次上的来源主执行单不构成订单级唯一约束；`-L/-C/-his`后缀不能单独建立正式关系。
+5. `fb_contract`映射发货合同归属，不生成合同主档；回款来源、ERP合同关系和发货归属分别保留。
+6. SN 主档、发货事件、合同维度设备关系、RMA替换和项目归属分别落表；每条发货/生命周期源记录保留，不能因SN重复删除。
+7. 设备当前归属由不重叠的历史区间计算；旧`pm_project_shipment`只有项目、SN、时间和转移证据可完整解析时才形成正式当前归属，否则生成迁移问题。
 
 ## 9. Device Access & Collection 关键表
 

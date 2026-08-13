@@ -1272,7 +1272,7 @@
 
 - 需求名称：ITR技术公告同步
 - 数据对象：TechnicalNoticeReference
-- 数据表：FEATURE_FORWARD_MIGRATION(INT-04)；当前仅保留`TechnicalNoticeReference`逻辑契约，物理表由INT-04 Feature前向迁移确定
+- 数据表：FEATURE_FORWARD_MIGRATION(INT-04)：逻辑对象`TechnicalNoticeReference`；物理表由INT-04 Feature前向迁移确定
 - API：/technical-notices、/technical-notices/{id}/references
 - 事件：TechnicalNoticeSynchronized
 - 外部集成：ITR
@@ -1467,13 +1467,13 @@
 ### COM-01
 
 - 需求名称：合同订单关联与范围分配
-- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope
-- 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope
+- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail
+- 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail
 - API：/contracts、/sales-orders、/order-lines、/delivery-scopes
 - 事件：DeliveryScopeAssigned/Released
 - 外部集成：ERP、CRM
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：ERP订单行同步、范围分配/释放和超分配门禁
+- 工作流/状态：ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁
 - 授权与数据范围：ContractProjectScope；ERP核心字段只读
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录

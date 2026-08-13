@@ -413,7 +413,7 @@ erDiagram
 - `order_line_id`始终必填，`ACTIVE`时`allocated_qty`必须非空。
 - `allocated_qty`跨项目之和不得超过可分配订单数量；在事务中锁定订单行范围后校验。
 - 迁移幂等由`pms_external_key_map`保证，不在业务范围表重复来源主键。
-- 清洗重复后，对有效关系保证一个项目与同一订单行只有一条当前记录。
+- 清洗重复后，对实际承接项目节点与同一订单行保证一条当前交付范围主记录；地点、产品/设备类型、数量和批次拆分到该主记录的多条明细，不能通过重复当前主记录表达。
 
 关键索引：
 
@@ -513,9 +513,9 @@ SN主档只保存设备身份，不保存每次发货事件。
 
 分别表达订单头和订单行与多个执行单的辅助关系。
 
-订单级关系保存`order_id/execution_id/is_primary/relation_source/mapping_status`；订单行级关系保存`order_line_id/execution_id/relation_source/mapping_status`。
+订单级关系保存`order_id/execution_id/is_primary/relation_source/mapping_status`；`is_primary`默认表示普通执行单关系即主执行单，但同一订单允许存在多个主执行单关系。订单行级关系保存`order_line_id/execution_id/relation_source/mapping_status`。
 
-两个关系表的目标外键都必填并分别唯一，避免双可空外键和粒度矛盾；关系缺失不得阻止订单行实施。
+两个关系表的目标外键都必填，并分别按“订单+执行单”“订单行+执行单”关系对唯一，避免双可空外键和粒度矛盾；不得增加“一个订单只有一个主执行单”的唯一约束。关系缺失不得阻止订单行实施。
 
 ### 6.4 特殊合并下单
 
@@ -524,7 +524,7 @@ SN主档只保存设备身份，不保存每次发货事件。
 - `pms_execution_merge_batch`
 - `pms_execution_merge_member`
 
-批次表保存`soleAgentLendId`、主执行单、合同和来源；成员表每行保存一个执行单、利润中心、原`orderCodes`令牌和排序。目标结构不限制成员数量为2。
+批次表保存`soleAgentLendId`、来源标记的主执行单、合同和来源；成员表每行保存一个执行单、利润中心、原`orderCodes`令牌和排序。实际订单可属于多个执行单号，来源主执行单只用于还原批次语义，不构成订单级唯一关系；目标结构不限制成员数量为2。
 
 ### 6.5 `pms_order_change_rel`
 

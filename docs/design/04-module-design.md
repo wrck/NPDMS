@@ -19,7 +19,7 @@
 | 服务运营 | SRV-01设备服务状态和持续服务跟踪 | ServiceStatus、ServiceHandover | Device、Customer、ProjectClosure | ServiceStatusChanged、ServiceHandoverCreated | 直接改变设备主档核心身份 |
 | 客户与关系 | 客户、联系人、客户关系和同步副本 | Customer、Contact、AssetRelation | CRM、Project、Asset Management | CustomerUpdated、CustomerSyncCompleted | 直接改变项目流程 |
 | 资产管理 | 设备档案、归属、维保基本信息和同步副本 | Device、DeviceArchive、RMAReplacement | MES、ITR、备件、Project | DeviceAssigned、AssetSyncCompleted | 直接改变项目状态 |
-| 合同履约 | 合同、订单行、交付范围、履约对账 | Contract、OrderLine、DeliveryScope | ERP、Project | ScopeAllocated、FulfillmentReconciled | 直接写 ERP |
+| 合同履约 | 合同、订单行、交付范围主记录及明细、履约对账 | Contract、OrderLine、DeliveryScope、DeliveryScopeDetail | ERP、Project | ScopeAllocated、FulfillmentReconciled | 直接写 ERP |
 | 资源外包 | 服务商、转包、付款门禁 | Supplier、SubcontractRequest、PaymentGate | OA、Project、Questionnaire | SubcontractApproved | 直接放行付款 |
 | 经营分析 | 指标、组合和经营视图 | PortfolioView、MetricSnapshot | 各域只读事件 | ReportGenerated | 任何交易写操作 |
 | 设备连接与采集 | 凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord | 外部采集平台、IMP、CUT、Inspection | CollectionTaskAccepted、CollectionResultAvailable | 不重复建设连接和原始采集引擎 |

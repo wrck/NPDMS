@@ -46,6 +46,13 @@
     "ddlUniqueKeys": ["uk_project_code", "uk_contract_business", "uk_sales_order_business", "uk_device_sn"]
   },
   "currentRecordUniqueness": "GENERATED_CURRENT_MARKER",
+  "q03CurrentBusinessFacts": {
+    "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
+    "customerPrimaryContact": "ONE_CURRENT_PRIMARY_CONTACT_PER_CUSTOMER",
+    "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
+    "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
+    "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED"
+  },
   "historicalAnomalyPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
   "migrationIssueTable": "plt_migration_issue",
   "sourceEvidenceTable": "plt_migration_source_record"

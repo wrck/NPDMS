@@ -50,6 +50,13 @@ class CoreMigrationSchemaContractTest(unittest.TestCase):
                 "ddlUniqueKeys": ["uk_project_code", "uk_contract_business", "uk_sales_order_business", "uk_device_sn"],
             },
             "currentRecordUniqueness": "GENERATED_CURRENT_MARKER",
+            "q03CurrentBusinessFacts": {
+                "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
+                "customerPrimaryContact": "ONE_CURRENT_PRIMARY_CONTACT_PER_CUSTOMER",
+                "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
+                "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
+                "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED",
+            },
             "historicalAnomalyPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
         }
 
@@ -73,7 +80,63 @@ CREATE TABLE ast_device_project_assignment (
     CASE WHEN deleted = 0 AND effective_to IS NULL THEN device_id ELSE NULL END
   ) STORED,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_current_device (tenant_id, current_device_id)
+  UNIQUE KEY uk_device_current_assignment (tenant_id, current_device_id)
+) ENGINE = InnoDB;
+CREATE TABLE cus_customer_contact (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  customer_id BIGINT NOT NULL,
+  is_primary TINYINT NOT NULL DEFAULT 0,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  primary_customer_id BIGINT GENERATED ALWAYS AS (
+    CASE WHEN deleted = 0 AND is_primary = 1 THEN customer_id ELSE NULL END
+  ) STORED,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_customer_primary_contact (tenant_id, primary_customer_id)
+) ENGINE = InnoDB;
+CREATE TABLE proj_project_company_department_relation (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  project_id BIGINT NOT NULL,
+  relation_role VARCHAR(32) NOT NULL,
+  is_primary TINYINT NOT NULL DEFAULT 0,
+  effective_to DATETIME(3) NULL,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  primary_project_id BIGINT GENERATED ALWAYS AS (
+    CASE WHEN deleted = 0 AND effective_to IS NULL AND is_primary = 1 THEN project_id ELSE NULL END
+  ) STORED,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_project_primary_company_department (tenant_id, primary_project_id, relation_role)
+) ENGINE = InnoDB;
+CREATE TABLE com_delivery_scope (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  project_id BIGINT NOT NULL,
+  order_line_id BIGINT NOT NULL,
+  effective_to DATETIME(3) NULL,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  current_order_line_id BIGINT GENERATED ALWAYS AS (
+    CASE WHEN deleted = 0 AND effective_to IS NULL THEN order_line_id ELSE NULL END
+  ) STORED,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_scope_current (tenant_id, project_id, current_order_line_id)
+) ENGINE = InnoDB;
+CREATE TABLE com_delivery_scope_detail (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  delivery_scope_id BIGINT NOT NULL,
+  detail_sequence INT UNSIGNED NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_delivery_scope_detail_sequence (tenant_id, delivery_scope_id, detail_sequence)
+) ENGINE = InnoDB;
+CREATE TABLE com_order_execution_relation (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  order_id BIGINT NOT NULL,
+  execution_id BIGINT NOT NULL,
+  is_primary TINYINT NOT NULL DEFAULT 1,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id)
 ) ENGINE = InnoDB;
 CREATE TABLE plt_external_key_mapping (
   id BIGINT NOT NULL,
@@ -107,8 +170,8 @@ CREATE TABLE plt_external_key_mapping (
 
     def test_rejects_cross_domain_foreign_key(self) -> None:
         ddl = self.valid_ddl().replace(
-            "PRIMARY KEY (id),\n  UNIQUE KEY uk_current_device",
-            "PRIMARY KEY (id),\n  CONSTRAINT fk_assignment_project FOREIGN KEY (tenant_id, device_id) REFERENCES proj_project (tenant_id, id),\n  UNIQUE KEY uk_current_device",
+            "PRIMARY KEY (id),\n  UNIQUE KEY uk_device_current_assignment",
+            "PRIMARY KEY (id),\n  CONSTRAINT fk_assignment_project FOREIGN KEY (tenant_id, device_id) REFERENCES proj_project (tenant_id, id),\n  UNIQUE KEY uk_device_current_assignment",
         )
         self.assertTrue(any("cross-domain foreign key" in error for error in MODULE.validate_contract(self.valid_contract(), ddl)))
 
@@ -121,8 +184,8 @@ CREATE TABLE plt_external_key_mapping (
             "UNIQUE KEY uk_project_code (tenant_id, project_code)",
             "UNIQUE KEY uk_project_code (tenant_id, project_code, deleted)",
         ).replace(
-            "UNIQUE KEY uk_current_device (tenant_id, current_device_id)",
-            "UNIQUE KEY uk_current_device (tenant_id, device_id, effective_to)",
+            "UNIQUE KEY uk_device_current_assignment (tenant_id, current_device_id)",
+            "UNIQUE KEY uk_device_current_assignment (tenant_id, device_id, effective_to)",
         )
         errors = MODULE.validate_contract(self.valid_contract(), ddl)
         self.assertTrue(any("deleted" in error for error in errors))
@@ -135,6 +198,31 @@ CREATE TABLE plt_external_key_mapping (
         )
         errors = MODULE.validate_contract(self.valid_contract(), ddl)
         self.assertTrue(any("trailing comma" in error for error in errors))
+
+    def test_rejects_status_coupled_current_markers(self) -> None:
+        ddl = self.valid_ddl().replace(
+            "CASE WHEN deleted = 0 AND effective_to IS NULL THEN device_id ELSE NULL END",
+            "CASE WHEN deleted = 0 AND assignment_status = 'ACTIVE' AND effective_to IS NULL THEN device_id ELSE NULL END",
+        )
+        errors = MODULE.validate_contract(self.valid_contract(), ddl)
+        self.assertTrue(any("extendable status" in error for error in errors))
+
+    def test_rejects_unique_primary_order_execution(self) -> None:
+        ddl = self.valid_ddl().replace(
+            "UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id)",
+            "UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id),\n"
+            "  UNIQUE KEY uk_order_primary_execution (tenant_id, order_id)",
+        )
+        errors = MODULE.validate_contract(self.valid_contract(), ddl)
+        self.assertTrue(any("multiple primary executions" in error for error in errors))
+
+    def test_requires_delivery_scope_detail_table(self) -> None:
+        ddl = self.valid_ddl().replace(
+            "CREATE TABLE com_delivery_scope_detail (",
+            "CREATE TABLE com_delivery_scope_detail_missing (",
+        )
+        errors = MODULE.validate_contract(self.valid_contract(), ddl)
+        self.assertTrue(any("delivery scope detail" in error for error in errors))
 
     def test_execution_evidence_must_match_current_ddl_hash_and_mysql_version(self) -> None:
         ddl = self.valid_ddl().encode("utf-8")

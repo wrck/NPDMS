@@ -185,6 +185,70 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertEqual(set(contract["acceptedDdlItems"]), decided)
         self.assertEqual(26, result["coreMigrationSchemaDecision"]["removedCrossDomainForeignKeyCount"])
 
+    def test_q03_decision_marks_business_facts_but_not_q07_q08_items(self) -> None:
+        decided_ids = {
+            "COLUMN:ast_device_project_assignment:current_device_id",
+            "CONSTRAINT:ast_device_project_assignment:uk_device_current_assignment",
+            "COLUMN:cus_customer_contact:primary_customer_id",
+            "CONSTRAINT:cus_customer_contact:uk_customer_primary_contact",
+            "COLUMN:proj_project_company_department_relation:primary_project_id",
+            "CONSTRAINT:proj_project_company_department_relation:uk_project_primary_company_department",
+            "COLUMN:com_delivery_scope:current_order_line_id",
+            "CONSTRAINT:com_delivery_scope:uk_scope_current",
+            "TABLE:com_delivery_scope_detail",
+            "COLUMN:com_delivery_scope_detail:delivery_scope_id",
+            "COLUMN:com_delivery_scope_detail:detail_sequence",
+            "COLUMN:com_delivery_scope_detail:product_code",
+            "COLUMN:com_delivery_scope_detail:product_name",
+            "COLUMN:com_delivery_scope_detail:device_type_code",
+            "COLUMN:com_delivery_scope_detail:device_type_name",
+            "COLUMN:com_delivery_scope_detail:allocated_qty",
+            "COLUMN:com_delivery_scope_detail:implementation_location",
+            "COLUMN:com_delivery_scope_detail:delivery_batch_no",
+            "COLUMN:com_delivery_scope_detail:source_record_key",
+            "COLUMN:com_delivery_scope_detail:remark",
+            "CONSTRAINT:com_delivery_scope_detail:uk_delivery_scope_detail_sequence",
+            "CONSTRAINT:com_delivery_scope_detail:fk_delivery_scope_detail_scope",
+            "CONSTRAINT:com_delivery_scope_detail:chk_delivery_scope_detail_subject",
+            "COLUMN:com_order_execution_relation:is_primary",
+            "COLUMN:com_order_execution_relation:primary_order_id",
+        }
+        deferred_ids = {
+            "CONSTRAINT:com_delivery_scope_detail:PRIMARY",
+            "CONSTRAINT:com_delivery_scope_detail:uk_delivery_scope_detail_tenant_row",
+            "CONSTRAINT:com_delivery_scope_detail:idx_delivery_scope_detail_product",
+        }
+        items = [
+            {
+                "itemId": item_id,
+                "decision": "DEFER",
+                "decisionOwner": None,
+                "reviewOwner": None,
+                "evidenceRefs": [],
+            }
+            for item_id in sorted(decided_ids | deferred_ids)
+        ]
+        register = {"items": items, "summary": {"approvedCount": 0}}
+        contract = {
+            "q03CurrentBusinessFacts": {
+                "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
+                "customerPrimaryContact": "ONE_CURRENT_PRIMARY_CONTACT_PER_CUSTOMER",
+                "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
+                "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
+                "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED",
+            }
+        }
+
+        result = MODULE.apply_accepted_q03_decisions(register, contract)
+
+        actual = {item["itemId"] for item in result["items"] if item["decision"] == "AMEND_CURRENT"}
+        self.assertEqual(decided_ids, actual)
+        self.assertEqual("ADR-0023-Q03", result["q03Decision"]["decisionRef"])
+        self.assertEqual(
+            ["P3-E09-Q07", "P3-E09-Q08"],
+            result["q03Decision"]["deferredPhysicalDecisionRefs"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

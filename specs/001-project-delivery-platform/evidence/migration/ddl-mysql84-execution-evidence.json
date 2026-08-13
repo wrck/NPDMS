@@ -2,21 +2,21 @@
   "schemaVersion": 1,
   "status": "PASS",
   "purpose": "P3_E09_ISOLATED_MYSQL_DDL_EXECUTION",
-  "capturedAt": "2026-08-13T08:02:34.888154+00:00",
+  "capturedAt": "2026-08-13T09:43:52.806575+00:00",
   "ddlPath": "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql",
-  "ddlSha256": "8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930",
+  "ddlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
   "containerImage": "mysql:8.4",
   "containerImageId": "sha256:c592c15aaf4a1961e15d82eb31ea5987dda862d1c4b1e93424438c0e91dc1f8d",
   "temporarySchema": "npdms_p3e09_check",
-  "expectedTableCount": 49,
+  "expectedTableCount": 50,
   "mysqlVersion": "8.4.10",
-  "tableCount": 49,
-  "columnCount": 1048,
+  "tableCount": 50,
+  "columnCount": 1065,
   "constraintCountByType": {
-    "CHECK": 79,
-    "FOREIGN KEY": 47,
-    "PRIMARY KEY": 49,
-    "UNIQUE": 100
+    "CHECK": 78,
+    "FOREIGN KEY": 48,
+    "PRIMARY KEY": 50,
+    "UNIQUE": 101
   },
-  "constraintCount": 275
+  "constraintCount": 277
 }

@@ -99,7 +99,7 @@ CREATE TABLE cus_customer_contact (
     update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
     primary_customer_id BIGINT GENERATED ALWAYS AS (
-        CASE WHEN deleted = 0 AND status = 'ENABLED' AND is_primary = 1
+        CASE WHEN deleted = 0 AND is_primary = 1
              THEN customer_id ELSE NULL END
     ) STORED COMMENT '关联主客户记录的全局唯一ID',
     PRIMARY KEY (id),
@@ -320,7 +320,7 @@ CREATE TABLE proj_project_company_department_relation (
     update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
     primary_project_id BIGINT GENERATED ALWAYS AS (
-        CASE WHEN deleted = 0 AND status = 'ACTIVE' AND effective_to IS NULL AND is_primary = 1
+        CASE WHEN deleted = 0 AND effective_to IS NULL AND is_primary = 1
              THEN project_id ELSE NULL END
     ) STORED COMMENT '关联主项目记录的全局唯一ID',
     PRIMARY KEY (id),
@@ -950,9 +950,7 @@ CREATE TABLE com_delivery_scope (
     current_order_line_id BIGINT GENERATED ALWAYS AS (
         CASE
             WHEN deleted = 0
-             AND status = 'ENABLED'
              AND effective_to IS NULL
-             AND scope_status IN ('ACTIVE', 'PENDING_QUANTITY')
             THEN order_line_id
             ELSE NULL
         END
@@ -983,16 +981,49 @@ CREATE TABLE com_delivery_scope (
     KEY idx_scope_item (tenant_id, item_code, scope_status, project_id),
     CONSTRAINT fk_scope_order_line
         FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id),
-    CONSTRAINT chk_scope_active
-        CHECK (
-            scope_status <> 'ACTIVE'
-            OR allocated_qty IS NOT NULL
-        ),
     CONSTRAINT chk_scope_dates
         CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_scope_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目对ERP订单行的权威实施范围';
+
+CREATE TABLE com_delivery_scope_detail (
+    id BIGINT NOT NULL COMMENT '主键ID',
+    tenant_id BIGINT NOT NULL COMMENT '租户ID',
+    delivery_scope_id BIGINT NOT NULL COMMENT '关联交付范围主记录的全局唯一ID',
+    detail_sequence INT UNSIGNED NOT NULL COMMENT '交付范围主记录内稳定且不可复用的明细序号',
+    product_code VARCHAR(64) NULL COMMENT '交付范围明细的产品编码',
+    product_name VARCHAR(255) NULL COMMENT '交付范围明细的产品名称快照',
+    device_type_code VARCHAR(64) NULL COMMENT '交付范围明细的设备类型编码',
+    device_type_name VARCHAR(255) NULL COMMENT '交付范围明细的设备类型名称快照',
+    allocated_qty DECIMAL(18, 4) NOT NULL COMMENT '该地点及产品或设备类型明细的分配数量',
+    implementation_location VARCHAR(500) NOT NULL COMMENT '交付范围明细对应的实施地点',
+    delivery_batch_no VARCHAR(64) NULL COMMENT '需要分批交付时使用的业务批次编号',
+    source_record_key VARCHAR(128) COLLATE utf8mb4_0900_bin NULL COMMENT '明细来源记录稳定键；无独立来源时为空',
+    remark VARCHAR(500) NULL COMMENT '交付范围明细备注',
+    creator VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建人',
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updater VARCHAR(64) NOT NULL DEFAULT '' COMMENT '更新人',
+    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_delivery_scope_detail_tenant_row (tenant_id, id),
+    UNIQUE KEY uk_delivery_scope_detail_sequence (
+        tenant_id, delivery_scope_id, detail_sequence
+    ),
+    KEY idx_delivery_scope_detail_product (
+        tenant_id, product_code, device_type_code, delivery_scope_id
+    ),
+    KEY idx_delivery_scope_detail_location (
+        tenant_id, implementation_location, delivery_scope_id
+    ),
+    CONSTRAINT fk_delivery_scope_detail_scope
+        FOREIGN KEY (tenant_id, delivery_scope_id) REFERENCES com_delivery_scope (tenant_id, id),
+    CONSTRAINT chk_delivery_scope_detail_subject
+        CHECK (product_code IS NOT NULL OR device_type_code IS NOT NULL),
+    CONSTRAINT chk_delivery_scope_detail_deleted CHECK (deleted IN (0, 1))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '交付范围按地点、产品或设备类型及批次拆分的明细';
 
 CREATE TABLE ast_device_sn (
     id BIGINT NOT NULL COMMENT '主键ID',
@@ -1117,7 +1148,7 @@ CREATE TABLE ast_device_project_assignment (
     update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
     current_device_id BIGINT GENERATED ALWAYS AS (
-        CASE WHEN deleted = 0 AND assignment_status = 'ACTIVE' AND effective_to IS NULL
+        CASE WHEN deleted = 0 AND effective_to IS NULL
              THEN device_id ELSE NULL END
     ) STORED COMMENT '关联当前设备记录的全局唯一ID',
     PRIMARY KEY (id),
@@ -1523,8 +1554,6 @@ CREATE TABLE com_crm_execution_order (
     KEY idx_crm_execution_company_office_code (
         tenant_id, company_code, office_department_code, status, id
     ),
-    CONSTRAINT chk_crm_execution_af
-        CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN')),
     CONSTRAINT chk_crm_execution_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'CRM执行单辅助主档，安服仅保存正向证据';
@@ -1587,7 +1616,7 @@ CREATE TABLE com_order_execution_relation (
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     order_id BIGINT NOT NULL COMMENT '关联订单记录的全局唯一ID',
     execution_id BIGINT NOT NULL COMMENT '关联执行单记录的全局唯一ID',
-    is_primary TINYINT NOT NULL DEFAULT 0 COMMENT '同一业务范围内是否为主记录：0否，1是',
+    is_primary TINYINT NOT NULL DEFAULT 1 COMMENT '来源是否标记为主执行单：默认执行单关系即主执行单，允许同一订单存在多个主执行单关系',
     relation_source VARCHAR(32) NOT NULL COMMENT '订单执行单关系的关系来源',
     mapping_status VARCHAR(32) NOT NULL COMMENT '跨系统关联解析状态，如待映射、已映射或存在冲突',
     source_record_key VARCHAR(128) NULL COMMENT '来源记录稳定唯一键，用于幂等写入和回溯',
@@ -1598,14 +1627,9 @@ CREATE TABLE com_order_execution_relation (
     updater VARCHAR(64) NOT NULL DEFAULT '' COMMENT '更新人',
     update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
-    primary_order_id BIGINT GENERATED ALWAYS AS (
-        CASE WHEN deleted = 0 AND status = 'ACTIVE' AND is_primary = 1
-             THEN order_id ELSE NULL END
-    ) STORED COMMENT '关联主订单记录的全局唯一ID',
     PRIMARY KEY (id),
     UNIQUE KEY uk_order_execution_rel_tenant_row (tenant_id, id),
     UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id),
-    UNIQUE KEY uk_order_primary_execution (tenant_id, primary_order_id),
     KEY idx_order_execution_execution (
         tenant_id, execution_id, order_id
     ),
@@ -1882,12 +1906,7 @@ CREATE TABLE plt_migration_issue (
         tenant_id, issue_type, resolution_status, create_time
     ),
     CONSTRAINT fk_migration_issue_batch
-        FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id),
-    CONSTRAINT chk_migration_issue_resolution
-        CHECK (
-            resolution_status <> 'RESOLVED'
-            OR (resolver IS NOT NULL AND resolved_time IS NOT NULL)
-        )
+        FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '迁移缺失、重复、多义映射和人工解决记录';
 

@@ -31,6 +31,27 @@ EXPECTED_ACCEPTED_DDL_ITEMS = {
     "CONSTRAINT:plt_external_key_mapping:uk_external_key_source_target",
     "CONSTRAINT:plt_external_key_mapping:chk_external_key_target_sequence",
 }
+EXPECTED_Q03_FACTS = {
+    "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
+    "customerPrimaryContact": "ONE_CURRENT_PRIMARY_CONTACT_PER_CUSTOMER",
+    "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
+    "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
+    "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED",
+}
+Q03_CURRENT_MARKERS = {
+    "ast_device_project_assignment": (
+        "current_device_id", "uk_device_current_assignment", {"tenant_id", "current_device_id"}
+    ),
+    "cus_customer_contact": (
+        "primary_customer_id", "uk_customer_primary_contact", {"tenant_id", "primary_customer_id"}
+    ),
+    "proj_project_company_department_relation": (
+        "primary_project_id", "uk_project_primary_company_department", {"tenant_id", "primary_project_id", "relation_role"}
+    ),
+    "com_delivery_scope": (
+        "current_order_line_id", "uk_scope_current", {"tenant_id", "project_id", "current_order_line_id"}
+    ),
+}
 
 
 def parse_tables(ddl: str) -> dict[str, str]:
@@ -69,6 +90,8 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
         errors.append("V3 design-only table set mismatch")
     if set(contract.get("acceptedDdlItems", [])) != EXPECTED_ACCEPTED_DDL_ITEMS:
         errors.append("ADR-0022 accepted DDL item set mismatch")
+    if contract.get("q03CurrentBusinessFacts") != EXPECTED_Q03_FACTS:
+        errors.append("ADR-0023 Q03 current business fact set mismatch")
 
     present_v3 = sorted(V3_DESIGN_ONLY_TABLES & tables.keys())
     if present_v3:
@@ -119,6 +142,45 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
 
     if contract.get("currentRecordUniqueness") != "GENERATED_CURRENT_MARKER":
         errors.append("current record uniqueness policy mismatch")
+    for table, (marker, unique_name, expected_columns) in Q03_CURRENT_MARKERS.items():
+        body = tables.get(table, "")
+        if not body:
+            errors.append(f"Q03 current relation table missing: {table}")
+            continue
+        generated = re.search(
+            rf"\b{re.escape(marker)}\b[^\n]*GENERATED\s+ALWAYS\s+AS\s*\((.*?)\)\s*STORED",
+            body,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not generated:
+            errors.append(f"Q03 generated current marker missing: {table}.{marker}")
+        elif re.search(r"\b(?:status|scope_status|assignment_status)\b", generated.group(1), re.IGNORECASE):
+            errors.append(f"Q03 current marker must not depend on extendable status: {table}.{marker}")
+        unique_columns = dict(unique_keys(body)).get(unique_name)
+        if unique_columns is None:
+            errors.append(f"Q03 current unique key missing: {table}.{unique_name}")
+        else:
+            actual_columns = {value.strip().lower() for value in unique_columns.split(",")}
+            if actual_columns != expected_columns:
+                errors.append(f"Q03 current unique key grain mismatch: {table}.{unique_name}")
+
+    if "com_delivery_scope_detail" not in tables:
+        errors.append("Q03 delivery scope detail table missing")
+
+    order_execution = tables.get("com_order_execution_relation", "")
+    if not order_execution:
+        errors.append("Q03 order execution relation table missing")
+    else:
+        if re.search(r"(?m)^\s*primary_order_id\s+", order_execution, re.IGNORECASE):
+            errors.append("Q03 multiple primary executions must not use a unique primary marker")
+        if not re.search(r"is_primary\s+TINYINT\s+NOT\s+NULL\s+DEFAULT\s+1", order_execution, re.IGNORECASE):
+            errors.append("Q03 order execution relation must default the execution relation as primary")
+        order_unique = dict(unique_keys(order_execution))
+        if set(value.strip().lower() for value in order_unique.get("uk_order_execution", "").split(",")) != {"tenant_id", "order_id", "execution_id"}:
+            errors.append("Q03 order execution relation grain mismatch")
+        for name, columns in order_unique.items():
+            if name == "uk_order_primary_execution" or "is_primary" in columns.lower() or "primary_order_id" in columns.lower():
+                errors.append("Q03 multiple primary executions must not be constrained as unique")
     if contract.get("historicalAnomalyPolicy") != "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE":
         errors.append("historical anomaly policy mismatch")
     return errors

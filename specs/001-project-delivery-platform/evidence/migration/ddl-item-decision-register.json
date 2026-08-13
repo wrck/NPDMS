@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930",
+  "currentDdlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,23 +11,23 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1602,
+    "itemCount": 1626,
     "byType": {
-      "TABLE": 53,
-      "COLUMN": 1115,
-      "CONSTRAINT": 381,
-      "TABLE_OPTION": 53
+      "TABLE": 54,
+      "COLUMN": 1133,
+      "CONSTRAINT": 385,
+      "TABLE_OPTION": 54
     },
     "byComparisonStatus": {
-      "MATCH": 1049,
-      "UNVERIFIED_BASELINE_MISSING": 440,
-      "ADDED": 40,
-      "MODIFIED": 2,
-      "REMOVED": 71
+      "MATCH": 1048,
+      "UNVERIFIED_BASELINE_MISSING": 444,
+      "ADDED": 59,
+      "MODIFIED": 3,
+      "REMOVED": 72
     },
     "approvedCount": 0
   },
-  "itemsSha256": "DB4CC56D7DC94A89FE7192130943A655D808155C416582B09776724A22FAC855",
+  "itemsSha256": "9EF28E921DE03F444A01FDF0321852FC7D830A2DBB6107DB0C7183429B33696A",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -3327,12 +3327,14 @@
         "defaultValue": null,
         "generated": true,
         "description": "关联当前设备记录的全局唯一ID",
-        "generatedExpression": "CASE WHEN deleted = 0 AND assignment_status = 'ACTIVE' AND effective_to IS NULL THEN device_id ELSE NULL END"
+        "generatedExpression": "CASE WHEN deleted = 0 AND effective_to IS NULL THEN device_id ELSE NULL END"
       },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "COLUMN:ast_device_project_assignment:deleted",
@@ -4198,10 +4200,12 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "UNIQUE KEY uk_device_current_assignment (tenant_id, current_device_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "CONSTRAINT:ast_device_project_assignment:uk_project_device_assignment_tenant_row",
@@ -13527,19 +13531,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:com_crm_execution_order:chk_crm_execution_af",
-      "itemType": "CONSTRAINT",
-      "table": "com_crm_execution_order",
-      "name": "chk_crm_execution_af",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_crm_execution_af CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN'))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:com_crm_execution_order:chk_crm_execution_deleted",
       "itemType": "CONSTRAINT",
       "table": "com_crm_execution_order",
@@ -13800,12 +13791,14 @@
         "defaultValue": null,
         "generated": true,
         "description": "关联当前订单行记录的全局唯一ID",
-        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ENABLED' AND effective_to IS NULL AND scope_status IN ('ACTIVE', 'PENDING_QUANTITY') THEN order_line_id ELSE NULL END"
+        "generatedExpression": "CASE WHEN deleted = 0 AND effective_to IS NULL THEN order_line_id ELSE NULL END"
       },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "COLUMN:com_delivery_scope:deleted",
@@ -14571,19 +14564,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:com_delivery_scope:chk_scope_active",
-      "itemType": "CONSTRAINT",
-      "table": "com_delivery_scope",
-      "name": "chk_scope_active",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_scope_active CHECK ( scope_status <> 'ACTIVE' OR allocated_qty IS NOT NULL )",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:com_delivery_scope:chk_scope_dates",
       "itemType": "CONSTRAINT",
       "table": "com_delivery_scope",
@@ -14734,10 +14714,12 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "UNIQUE KEY uk_scope_current ( tenant_id, project_id, current_order_line_id )",
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "TABLE_OPTION:com_delivery_scope",
@@ -14746,6 +14728,506 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目对ERP订单行的权威实施范围'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:com_delivery_scope_detail",
+      "itemType": "TABLE",
+      "table": "com_delivery_scope_detail",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:allocated_qty",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "allocated_qty",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DECIMAL(18, 4)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "该地点及产品或设备类型明细的分配数量"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:create_time",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": "创建时间"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:creator",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": "''",
+        "generated": false,
+        "description": "创建人"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:deleted",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "deleted",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "删除标志：0否，1是"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:delivery_batch_no",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "delivery_batch_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "需要分批交付时使用的业务批次编号"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:delivery_scope_id",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "delivery_scope_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "关联交付范围主记录的全局唯一ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:detail_sequence",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "detail_sequence",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "交付范围主记录内稳定且不可复用的明细序号"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:device_type_code",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "device_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "交付范围明细的设备类型编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:device_type_name",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "device_type_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "交付范围明细的设备类型名称快照"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:id",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:implementation_location",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "implementation_location",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(500)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "交付范围明细对应的实施地点"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:product_code",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "product_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "交付范围明细的产品编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:product_name",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "product_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "交付范围明细的产品名称快照"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:remark",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "remark",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(500)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "交付范围明细备注"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:source_record_key",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "source_record_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "明细来源记录稳定键；无独立来源时为空"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:tenant_id",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:update_time",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": "更新时间"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:com_delivery_scope_detail:updater",
+      "itemType": "COLUMN",
+      "table": "com_delivery_scope_detail",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": "''",
+        "generated": false,
+        "description": "更新人"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:chk_delivery_scope_detail_deleted",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "chk_delivery_scope_detail_deleted",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_delivery_scope_detail_deleted CHECK (deleted IN (0, 1))",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:chk_delivery_scope_detail_subject",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "chk_delivery_scope_detail_subject",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_delivery_scope_detail_subject CHECK (product_code IS NOT NULL OR device_type_code IS NOT NULL)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:fk_delivery_scope_detail_scope",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "fk_delivery_scope_detail_scope",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT fk_delivery_scope_detail_scope FOREIGN KEY (tenant_id, delivery_scope_id) REFERENCES com_delivery_scope (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:idx_delivery_scope_detail_location",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "idx_delivery_scope_detail_location",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_delivery_scope_detail_location ( tenant_id, implementation_location, delivery_scope_id )",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:idx_delivery_scope_detail_product",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "idx_delivery_scope_detail_product",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_delivery_scope_detail_product ( tenant_id, product_code, device_type_code, delivery_scope_id )",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:uk_delivery_scope_detail_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "uk_delivery_scope_detail_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_delivery_scope_detail_sequence ( tenant_id, delivery_scope_id, detail_sequence )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:com_delivery_scope_detail:uk_delivery_scope_detail_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "com_delivery_scope_detail",
+      "name": "uk_delivery_scope_detail_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_delivery_scope_detail_tenant_row (tenant_id, id)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE_OPTION:com_delivery_scope_detail",
+      "itemType": "TABLE_OPTION",
+      "table": "com_delivery_scope_detail",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '交付范围按地点、产品或设备类型及批次拆分的明细'",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -16889,7 +17371,7 @@
       "itemType": "COLUMN",
       "table": "com_order_execution_relation",
       "name": "is_primary",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "MODIFIED",
       "baselineValue": {
         "dataType": "TINYINT",
         "nullable": false,
@@ -16900,14 +17382,16 @@
       "currentValue": {
         "dataType": "TINYINT",
         "nullable": false,
-        "defaultValue": "0",
+        "defaultValue": "1",
         "generated": false,
-        "description": "同一业务范围内是否为主记录：0否，1是"
+        "description": "来源是否标记为主执行单：默认执行单关系即主执行单，允许同一订单存在多个主执行单关系"
       },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "COLUMN:com_order_execution_relation:mapping_status",
@@ -16964,7 +17448,7 @@
       "itemType": "COLUMN",
       "table": "com_order_execution_relation",
       "name": "primary_order_id",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -16972,18 +17456,13 @@
         "generated": true,
         "description": "关联主订单记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": true,
-        "description": "关联主订单记录的全局唯一ID",
-        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ACTIVE' AND is_primary = 1 THEN order_id ELSE NULL END"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "currentValue": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "COLUMN:com_order_execution_relation:relation_source",
@@ -17259,19 +17738,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "UNIQUE KEY uk_order_execution_rel_tenant_row (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:com_order_execution_relation:uk_order_primary_execution",
-      "itemType": "CONSTRAINT",
-      "table": "com_order_execution_relation",
-      "name": "uk_order_primary_execution",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_order_primary_execution (tenant_id, primary_order_id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -22419,12 +22885,14 @@
         "defaultValue": null,
         "generated": true,
         "description": "关联主客户记录的全局唯一ID",
-        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ENABLED' AND is_primary = 1 THEN customer_id ELSE NULL END"
+        "generatedExpression": "CASE WHEN deleted = 0 AND is_primary = 1 THEN customer_id ELSE NULL END"
       },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "COLUMN:cus_customer_contact:status",
@@ -22637,10 +23105,12 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "UNIQUE KEY uk_customer_primary_contact (tenant_id, primary_customer_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "TABLE_OPTION:cus_customer_contact",
@@ -26498,19 +26968,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:plt_migration_issue:chk_migration_issue_resolution",
-      "itemType": "CONSTRAINT",
-      "table": "plt_migration_issue",
-      "name": "chk_migration_issue_resolution",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_migration_issue_resolution CHECK ( resolution_status <> 'RESOLVED' OR (resolver IS NOT NULL AND resolved_time IS NOT NULL) )",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:plt_migration_issue:fk_migration_issue_batch",
       "itemType": "CONSTRAINT",
       "table": "plt_migration_issue",
@@ -29610,12 +30067,14 @@
         "defaultValue": null,
         "generated": true,
         "description": "关联主项目记录的全局唯一ID",
-        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ACTIVE' AND effective_to IS NULL AND is_primary = 1 THEN project_id ELSE NULL END"
+        "generatedExpression": "CASE WHEN deleted = 0 AND effective_to IS NULL AND is_primary = 1 THEN project_id ELSE NULL END"
       },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "COLUMN:proj_project_company_department_relation:project_id",
@@ -29943,10 +30402,12 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )",
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+      ]
     },
     {
       "itemId": "TABLE_OPTION:proj_project_company_department_relation",
@@ -33748,6 +34209,15 @@
     "decidedItemCount": 4,
     "removedV3TableCount": 4,
     "removedCrossDomainForeignKeyCount": 26,
+    "reviewStatus": "REVIEW_PENDING"
+  },
+  "q03Decision": {
+    "decisionRef": "ADR-0023-Q03",
+    "decidedItemCount": 25,
+    "deferredPhysicalDecisionRefs": [
+      "P3-E09-Q07",
+      "P3-E09-Q08"
+    ],
     "reviewStatus": "REVIEW_PENDING"
   }
 }

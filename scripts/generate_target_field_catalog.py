@@ -48,6 +48,7 @@ def sha256(data: bytes) -> str:
 
 def contract_maps(contract: dict[str, object]) -> tuple[dict[str, str], dict[tuple[str, str], tuple[str, str]]]:
     tables = {item["source"]: item["target"] for item in contract["tables"] + contract.get("tableExtensions", [])}
+    tables.update({item["target"]: item["target"] for item in contract.get("modelExtensions", [])})
     fields = {
         (item["sourceTable"], item["sourceColumn"]): (item["targetTable"], item["targetColumn"])
         for item in contract["fields"]
@@ -246,9 +247,36 @@ def expected_outputs(root: Path) -> dict[Path, str]:
                 "fieldClass": field_class,
                 "dataElementRefs": ["系统支撑!A1279:A1287"] if table_name == "cus_market_relation" and column_name in business_fields else [],
             })
+    extension_domains = {"COM": "合同订单履约"}
+    for extension in contract.get("modelExtensions", []):
+        table_name = extension["target"]
+        table = ddl_tables[table_name]
+        domain = extension_domains[extension["owner"]]
+        for column_name in table.columns:
+            field_class = "BUSINESS"
+            if column_name in {"id", "tenant_id"}:
+                field_class = "IDENTITY"
+            elif column_name in {"status", "version", "deleted"}:
+                field_class = "CONTROL"
+            elif column_name in {"creator", "create_time", "updater", "update_time"}:
+                field_class = "AUDIT"
+            elif column_name.startswith("source_"):
+                field_class = "LINEAGE"
+            elif column_name.endswith("_id"):
+                field_class = "RELATION"
+            new_field_metadata[(table_name, column_name)] = {
+                "table": table_name,
+                "name": column_name,
+                "domain": domain,
+                "fieldClass": field_class,
+                "dataElementRefs": [],
+            }
     prior = [json.loads(line) for line in (root / CATALOG).read_text(encoding="utf-8").splitlines() if line]
     # Idempotent generation can use either the old or already-renamed catalog.
-    naming_tables = contract["tables"] + contract.get("tableExtensions", [])
+    naming_tables = contract["tables"] + contract.get("tableExtensions", []) + [
+        {"source": item["target"], "target": item["target"]}
+        for item in contract.get("modelExtensions", [])
+    ]
     if prior and prior[0]["tableName"] not in {item["source"] for item in naming_tables}:
         reverse_tables = {item["target"]: item["source"] for item in naming_tables}
         reverse_fields = {(item["targetTable"], item["targetColumn"]): (item["sourceTable"], item["sourceColumn"]) for item in contract["fields"]}

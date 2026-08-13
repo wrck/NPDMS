@@ -689,6 +689,15 @@
         "com_delivery_scope"
       ]
     },
+    "DeliveryScopeDetail": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope_detail"
+      ]
+    },
     "FulfillmentSnapshot": {
       "owner": "COM",
       "requirementIds": [

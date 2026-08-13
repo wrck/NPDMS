@@ -14,6 +14,12 @@ ADR = Path("docs/decisions/0019-domain-coded-database-naming.md")
 DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 EXPECTED_DOMAINS = {"ACC", "ANA", "AST", "COM", "CUS", "CUT", "IMP", "KNO", "PLT", "PROJ", "RES", "SOL", "SRV"}
 FORBIDDEN_TABLE_TOKENS = {"rel", "ref", "map"}
+EXPECTED_MODEL_EXTENSIONS = [{
+    "target": "com_delivery_scope_detail",
+    "owner": "COM",
+    "decisionRef": "ADR-0023",
+    "requirementRefs": ["COM-01", "PM-02"],
+}]
 
 
 def load_contract(path: Path) -> dict[str, object]:
@@ -42,6 +48,7 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
 
     tables = payload.get("tables", [])
     extensions = payload.get("tableExtensions", [])
+    model_extensions = payload.get("modelExtensions", [])
     implementation_scope = payload.get("implementationScope", {})
     fields = payload.get("fields", [])
     if not isinstance(tables, list) or not isinstance(fields, list):
@@ -50,18 +57,20 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
         errors.append(f"database naming contract must contain 52 ADR-0019 tables, found {len(tables)}")
     if extensions != [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}]:
         errors.append("database naming contract ADR-0021 extension mismatch")
+    if model_extensions != EXPECTED_MODEL_EXTENSIONS:
+        errors.append("database naming contract ADR-0023 model extension mismatch")
     if not isinstance(implementation_scope, dict) or implementation_scope.get("coverage") != "CORE_MIGRATION_SUBSET" or implementation_scope.get("decisionRef") != "ADR-0022":
         errors.append("database naming contract implementation scope mismatch")
     if len(fields) != 6:
         errors.append(f"database naming contract must contain 6 field decisions, found {len(fields)}")
-    all_tables = tables + extensions
-    sources = [item.get("source") for item in all_tables]
+    all_tables = tables + extensions + model_extensions
+    sources = [item.get("source") for item in all_tables if item.get("source")]
     targets = [item.get("target") for item in all_tables]
     if len(sources) != len(set(sources)):
         errors.append("duplicate source table")
     if len(targets) != len(set(targets)):
         errors.append("duplicate target table")
-    table_by_source = {item.get("source"): item for item in all_tables}
+    table_by_source = {item.get("source"): item for item in all_tables if item.get("source")}
     target_set = set(targets)
     excluded_targets = set(implementation_scope.get("excludedTargets", [])) if isinstance(implementation_scope, dict) else set()
     if not excluded_targets <= target_set:
@@ -108,7 +117,10 @@ def validate_ddl(payload: dict[str, object], ddl: str) -> list[str]:
         for match in re.finditer(r"CREATE\s+TABLE\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*ENGINE\s*=", ddl, re.I | re.S)
     }
     excluded = set(payload.get("implementationScope", {}).get("excludedTargets", []))
-    expected = {item["target"] for item in payload["tables"] + payload.get("tableExtensions", [])} - excluded
+    expected = {
+        item["target"]
+        for item in payload["tables"] + payload.get("tableExtensions", []) + payload.get("modelExtensions", [])
+    } - excluded
     if set(blocks) != expected:
         errors.append(f"DDL table set differs from naming contract; missing={sorted(expected-set(blocks))}, extra={sorted(set(blocks)-expected)}")
     for item in payload["fields"]:

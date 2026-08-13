@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930",
-  "tableCount": 49,
-  "constraintCount": 381,
-  "inventorySha256": "697EE9F3349C00F4B201900F9E2D3CA3A5D64ADDB16B421178D0DE45442D382F",
+  "currentDdlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
+  "tableCount": 50,
+  "constraintCount": 385,
+  "inventorySha256": "F2784EEC8F842B3BCCC6FC1634D1417553279A83913BC6F834096AD68395D76A",
   "records": [
     {
       "table": "acc_deliverable_template",
@@ -270,7 +270,6 @@
     {
       "table": "com_crm_execution_order",
       "constraints": [
-        "CONSTRAINT chk_crm_execution_af CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN'))",
         "CONSTRAINT chk_crm_execution_deleted CHECK (deleted IN (0, 1))",
         "KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )",
         "KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )",
@@ -286,7 +285,6 @@
     {
       "table": "com_delivery_scope",
       "constraints": [
-        "CONSTRAINT chk_scope_active CHECK ( scope_status <> 'ACTIVE' OR allocated_qty IS NOT NULL )",
         "CONSTRAINT chk_scope_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_scope_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
@@ -302,6 +300,21 @@
         "UNIQUE KEY uk_scope_current ( tenant_id, project_id, current_order_line_id )"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目对ERP订单行的权威实施范围'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "constraints": [
+        "CONSTRAINT chk_delivery_scope_detail_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_delivery_scope_detail_subject CHECK (product_code IS NOT NULL OR device_type_code IS NOT NULL)",
+        "CONSTRAINT fk_delivery_scope_detail_scope FOREIGN KEY (tenant_id, delivery_scope_id) REFERENCES com_delivery_scope (tenant_id, id)",
+        "KEY idx_delivery_scope_detail_location ( tenant_id, implementation_location, delivery_scope_id )",
+        "KEY idx_delivery_scope_detail_product ( tenant_id, product_code, device_type_code, delivery_scope_id )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_delivery_scope_detail_sequence ( tenant_id, delivery_scope_id, detail_sequence )",
+        "UNIQUE KEY uk_delivery_scope_detail_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '交付范围按地点、产品或设备类型及批次拆分的明细'",
       "decision": "DEFER"
     },
     {
@@ -372,8 +385,7 @@
         "KEY idx_order_execution_execution ( tenant_id, execution_id, order_id )",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id)",
-        "UNIQUE KEY uk_order_execution_rel_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_order_primary_execution (tenant_id, primary_order_id)"
+        "UNIQUE KEY uk_order_execution_rel_tenant_row (tenant_id, id)"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ERP订单与CRM执行单辅助关系'",
       "decision": "DEFER"
@@ -551,7 +563,6 @@
     {
       "table": "plt_migration_issue",
       "constraints": [
-        "CONSTRAINT chk_migration_issue_resolution CHECK ( resolution_status <> 'RESOLVED' OR (resolver IS NOT NULL AND resolved_time IS NOT NULL) )",
         "CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)",
         "KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )",
         "PRIMARY KEY (id)",

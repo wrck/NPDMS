@@ -509,6 +509,67 @@ def apply_accepted_core_schema_decisions(register: dict[str, object], contract: 
     return register
 
 
+def apply_accepted_q03_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
+    """Record ADR-0023 business-fact decisions without deciding Q07/Q08 physical details."""
+    expected_facts = {
+        "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
+        "customerPrimaryContact": "ONE_CURRENT_PRIMARY_CONTACT_PER_CUSTOMER",
+        "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
+        "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
+        "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED",
+    }
+    if contract.get("q03CurrentBusinessFacts") != expected_facts:
+        raise ValueError("ADR-0023 Q03 business facts do not match the accepted decision set")
+
+    decided = {
+        "COLUMN:ast_device_project_assignment:current_device_id",
+        "CONSTRAINT:ast_device_project_assignment:uk_device_current_assignment",
+        "COLUMN:cus_customer_contact:primary_customer_id",
+        "CONSTRAINT:cus_customer_contact:uk_customer_primary_contact",
+        "COLUMN:proj_project_company_department_relation:primary_project_id",
+        "CONSTRAINT:proj_project_company_department_relation:uk_project_primary_company_department",
+        "COLUMN:com_delivery_scope:current_order_line_id",
+        "CONSTRAINT:com_delivery_scope:uk_scope_current",
+        "TABLE:com_delivery_scope_detail",
+        "COLUMN:com_delivery_scope_detail:delivery_scope_id",
+        "COLUMN:com_delivery_scope_detail:detail_sequence",
+        "COLUMN:com_delivery_scope_detail:product_code",
+        "COLUMN:com_delivery_scope_detail:product_name",
+        "COLUMN:com_delivery_scope_detail:device_type_code",
+        "COLUMN:com_delivery_scope_detail:device_type_name",
+        "COLUMN:com_delivery_scope_detail:allocated_qty",
+        "COLUMN:com_delivery_scope_detail:implementation_location",
+        "COLUMN:com_delivery_scope_detail:delivery_batch_no",
+        "COLUMN:com_delivery_scope_detail:source_record_key",
+        "COLUMN:com_delivery_scope_detail:remark",
+        "CONSTRAINT:com_delivery_scope_detail:uk_delivery_scope_detail_sequence",
+        "CONSTRAINT:com_delivery_scope_detail:fk_delivery_scope_detail_scope",
+        "CONSTRAINT:com_delivery_scope_detail:chk_delivery_scope_detail_subject",
+        "COLUMN:com_order_execution_relation:is_primary",
+        "COLUMN:com_order_execution_relation:primary_order_id",
+    }
+    actual = {item["itemId"] for item in register["items"]}
+    missing = sorted(decided - actual)
+    if missing:
+        raise ValueError(f"ADR-0023 references missing DDL items: {missing}")
+    for item in register["items"]:
+        if item["itemId"] in decided:
+            item["decision"] = "AMEND_CURRENT"
+            item["decisionOwner"] = "REQUIREMENT_OWNER"
+            item["reviewOwner"] = None
+            item["evidenceRefs"] = ["docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"]
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["q03Decision"] = {
+        "decisionRef": "ADR-0023-Q03",
+        "decidedItemCount": len(decided),
+        "deferredPhysicalDecisionRefs": ["P3-E09-Q07", "P3-E09-Q08"],
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
 def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path, naming_contract: Path | None = None) -> dict[str, object]:
     relative_path = ddl.relative_to(repo).as_posix()
     current_data = ddl.read_bytes()
@@ -620,6 +681,9 @@ def main() -> int:
         decision_register, json.loads(market_relation_contract.read_text(encoding="utf-8"))
     )
     decision_register = apply_accepted_core_schema_decisions(
+        decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
+    )
+    decision_register = apply_accepted_q03_decisions(
         decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
     )
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")

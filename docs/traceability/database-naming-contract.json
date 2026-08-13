@@ -34,6 +34,17 @@
       "decisionRef": "ADR-0021"
     }
   ],
+  "modelExtensions": [
+    {
+      "target": "com_delivery_scope_detail",
+      "owner": "COM",
+      "decisionRef": "ADR-0023",
+      "requirementRefs": [
+        "COM-01",
+        "PM-02"
+      ]
+    }
+  ],
   "implementationScope": {
     "coverage": "CORE_MIGRATION_SUBSET",
     "decisionRef": "ADR-0022",

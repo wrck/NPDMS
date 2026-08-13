@@ -140,6 +140,6 @@
 - Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策已同步DDL、字段目录和P3-E09逐项寄存器，仍等待全量Reviewer签署。
 - Confirmed customer market classification decision: ADR-0021；市场部、系统部、拓展部、子行业四维分类归CUS，CRM组合目录落`cus_market_relation`；客户和项目直接保存四组编码/名称，禁止保存`relation_id`，也不推断为组织关系。该决策已同步DDL、字段映射和P3-E09逐项寄存器，仍等待全量Reviewer签署。
 - Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策已同步核心DDL、领域实体迁移策略、字段目录和P3-E09派生证据，仍等待全量Reviewer签署。
-- Confirmed partial P3-E09 model decisions: ADR-0023；Q01、Q02、Q04、Q05、Q06已确认，覆盖15组永久业务身份、外部不透明键/摘要精确比较、项目公司部门与成员当前关系NULL唯一性、状态守卫去固定状态码及RMA投影边界。Q03、Q07、Q08继续`DEFER`，不得推定5项当前唯一业务口径、技术约束批量签署或106个普通索引已获批准。
+- Confirmed partial P3-E09 model decisions: ADR-0023；Q01～Q06已确认，覆盖15组永久业务身份、外部不透明键/摘要精确比较、项目公司部门与成员当前关系NULL唯一性、5项Q03当前业务事实、状态守卫去固定状态码及RMA投影边界。Q03确认四项当前唯一关系；交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”；订单—执行单允许多个默认主执行单关系，特殊合并订单可属于多个执行单号。Q07、Q08继续`DEFER`，不得推定技术约束批量签署或普通索引已获最终批准。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13

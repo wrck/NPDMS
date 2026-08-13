@@ -19,7 +19,6 @@ OUTPUT = Path("specs/001-project-delivery-platform/evidence/migration/ddl-model-
 CURRENT_SINGLETON_KEYS = {
     "uk_device_current_assignment",
     "uk_scope_current",
-    "uk_order_primary_execution",
     "uk_customer_primary_contact",
     "uk_project_primary_company_department",
 }
@@ -29,6 +28,7 @@ VERSION_SEQUENCE_KEYS = {
     "uk_project_code_sequence",
 }
 RELATION_GRAIN_KEYS = {
+    "uk_delivery_scope_detail_sequence",
     "uk_device_configuration_feature",
     "uk_device_configuration_service",
     "uk_topology_device",
@@ -84,7 +84,6 @@ NO_SELF_CHECKS = {
 }
 STATUS_COUPLED_CHECKS = {
     "chk_crm_execution_af",
-    "chk_scope_active",
     "chk_migration_issue_resolution",
 }
 NONNEGATIVE_CHECKS = {
@@ -94,6 +93,7 @@ NONNEGATIVE_CHECKS = {
     "chk_project_depth",
 }
 CROSS_FIELD_CHECKS = {
+    "chk_delivery_scope_detail_subject",
     "chk_device_secondary_cache",
     "chk_project_code_namespace",
     "chk_project_company_department_pair",
@@ -179,7 +179,7 @@ def render_decision_analysis(
 ) -> list[str]:
     lines = [
         "",
-        "### 1.1 1602项证据的真实含义",
+        f"### 1.1 {sum(len(items) for items in changes.values())}项证据的真实含义",
         "",
         "|比较结果|数量|实际含义|能否据此直接批准|",
         "|---|---:|---|---|",
@@ -209,15 +209,16 @@ def render_decision_analysis(
         "|项目编码命名空间|`proj_project`新增`code_root_id`、`code_rule_version`、`project_sequence`|ADR-0020|同一CRM项目不因多合同/订单改号，子项目使用永久流水号|",
         "|一源多目标映射|`plt_external_key_mapping`新增`target_role`、`target_sequence`|ADR-0022|目标角色和顺序已确认且重跑不可重排|",
         "|V3技术公告治理排除|移除4张KNO表及67个字段|ADR-0022|不进入核心迁移DDL；INT-04只读引用逻辑对象仍保留|",
+        "|Q03当前关系与交付范围粒度|4项当前唯一生成列去除扩展状态依赖；新增`com_delivery_scope_detail`；删除订单级唯一主执行单约束|ADR-0023|同一项目节点—订单行一条当前范围主记录并允许多条明细；订单可关联多个默认主执行单|",
         "",
         "### 1.4 不能用“整组接受”带过的实质风险",
         "",
         "|风险|当前证据|业务影响|批准前应作出的选择|",
         "|---|---|---|---|",
-        "|精确键与默认排序规则冲突|49张表默认`utf8mb4_0900_ai_ci`；25个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|",
-        "|可空列参与唯一键|8个唯一键包含可空列；5个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|",
-        "|状态码写入数据库表达式|3个CHECK和5个当前唯一生成列引用固定状态码|扩展状态可能绕过规则、绕过当前唯一性或被数据库拒绝|由稳定标准状态投影驱动生成列，业务守卫由受控状态机执行|",
-        "|普通索引没有查询证据|106个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前只确认候选，Feature/P3-E06用真实查询和压测定稿|",
+        f"|精确键与默认排序规则冲突|{sum(len(tables) for tables in domain_tables.values())}张表默认`utf8mb4_0900_ai_ci`；{len(exact_match_fields)}个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|",
+        "|可空列参与唯一键|7个唯一键包含可空列；4个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|",
+        "|状态码写入数据库表达式|3个原固定状态CHECK已移除；4个当前唯一生成列已改为稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|",
+        f"|普通索引没有查询证据|{len(constraints['INDEX'])}个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前只确认候选，Feature/P3-E06用真实查询和压测定稿|",
         "",
         "### 1.5 可按数据架构不变量批量确认的内容",
         "",
@@ -225,14 +226,14 @@ def render_decision_analysis(
         "|---|---:|---|---|",
         f"|单列技术主键|{len(constraints['PRIMARY_KEY'])}|所有表以不可变`id`标识记录|不决定业务编码是否可重复|",
         f"|租户复合引用键|{len(unique_groups['TENANT_REFERENCE'])}|仅支撑同租户复合外键/行引用|不替代业务唯一键|",
-        f"|同领域物理外键|{len(constraints['FOREIGN_KEY'])}|47个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|",
+        f"|同领域物理外键|{len(constraints['FOREIGN_KEY'])}|{len(constraints['FOREIGN_KEY'])}个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|",
         f"|软删除检查|{len(check_groups['SOFT_DELETE'])}|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|",
         f"|时间顺序检查|{len(check_groups['TEMPORAL_ORDER'])}|只拒绝结束早于开始，不补造旧数据时间|不决定业务有效期|",
         f"|稳定布尔标志|{len(check_groups['BOOLEAN_FLAG'])}|字段确为稳定0/1标志|业务状态不能压缩成布尔值|",
         f"|禁止直接自关联|{len(check_groups['NO_SELF'])}|拒绝对象直接关联自身|项目/任务完整防环仍由应用校验|",
         f"|非负数与计数一致性|{len(check_groups['NONNEGATIVE_COUNT'])}|仅约束物理不变量|不替代数量可分配性检查|",
         "",
-        "### 1.6 100个唯一键按业务语义分组",
+        f"### 1.6 {sum(len(rows) for rows in unique_groups.values())}个唯一键按业务语义分组",
     ])
     unique_titles = {
         "BUSINESS_IDENTITY": ("业务身份键", "决定业务编码、SN或单号能否重复；建议永久不复用"),
@@ -267,20 +268,19 @@ def render_decision_analysis(
 
     lines.extend([
         "",
-        "### 1.7 8个可空唯一键逐项判断",
+        "### 1.7 7个可空唯一键逐项判断",
         "",
         "|唯一键|可空列|NULL是否有意|判断|",
         "|---|---|---|---|",
         "|`uk_device_current_assignment`|`current_device_id`|是：仅当前归属生成设备ID|约束同一设备同一时点仅归属一个最具体项目；建议保留|",
         "|`uk_scope_current`|`current_order_line_id`|是：仅当前范围生成订单行ID|约束同一项目—订单行只有一条当前范围；建议保留|",
-        "|`uk_order_primary_execution`|`primary_order_id`|是：仅主关系生成订单ID|约束订单只有一个主执行单；建议保留|",
         "|`uk_customer_primary_contact`|`primary_customer_id`|是：仅主联系人生成客户ID|约束客户只有一个主联系人；建议保留|",
         "|`uk_project_primary_company_department`|`primary_project_id`|是：仅主关系生成项目ID|按关系角色约束一个主公司部门关系；建议保留|",
         "|`uk_contract_master_source`|`master_source_record_key`|是：未取得主来源键时允许NULL|非NULL来源键必须唯一；建议保留并改为精确比较|",
         "|`uk_project_company_department_role`|`department_code`、`effective_from`|尚无证据表明有意|NULL会允许相同项目/公司/角色重复，存在约束空洞|",
         "|`uk_project_member_role`|`effective_from`|尚无证据表明有意|NULL会允许相同成员/角色重复，存在约束空洞|",
         "",
-        "### 1.8 79个CHECK按业务语义分组",
+        f"### 1.8 {sum(len(rows) for rows in check_groups.values())}个CHECK按业务语义分组",
         "",
         "|分组|数量|代表规则|建议|",
         "|---|---:|---|---|",
@@ -289,18 +289,12 @@ def render_decision_analysis(
         f"|稳定布尔标志|{len(check_groups['BOOLEAN_FLAG'])}|主标记、必需标记等|仅稳定二值字段可接受|",
         f"|禁止直接自关联|{len(check_groups['NO_SELF'])}|设备/订单/项目不能直接关联自身|接受；多节点防环由应用校验|",
         f"|非负数与计数|{len(check_groups['NONNEGATIVE_COUNT'])}|序号、目标数、树深、成功失败计数|技术规则批量确认|",
-        f"|跨字段不变量|{len(check_groups['CROSS_FIELD'])}|附加SN、项目编码命名空间、部门配对|按ADR和业务规则逐项确认|",
-        f"|状态耦合|{len(check_groups['STATUS_COUPLED'])}|固定状态码触发允许值或必填规则|需调整后才能批准|",
+        f"|跨字段不变量|{len(check_groups['CROSS_FIELD'])}|附加SN、项目编码命名空间、部门配对、交付范围明细主体|按ADR和业务规则逐项确认|",
+        f"|状态耦合|{len(check_groups['STATUS_COUPLED'])}|当前DDL不再用固定状态码触发允许值或必填规则|已按ADR-0023调整|",
         "",
-        "状态耦合CHECK逐项如下：",
+        "状态耦合CHECK当前为0项；AF证据、DeliveryScope生效数量和MigrationIssue关闭完整性改由受控业务动作校验并留痕。",
         "",
-        "|表/约束|当前规则|问题|推荐调整|",
-        "|---|---|---|---|",
-        "|`com_crm_execution_order.chk_crm_execution_af`|只允许`CONFIRMED/UNKNOWN`|把可扩展标记固化在DDL|删除值域CHECK，由基础平台字典和同步映射校验|",
-        "|`com_delivery_scope.chk_scope_active`|`ACTIVE`时必须有分配数量|扩展状态映射为标准生效状态时可能绕过|状态机进入标准“生效”状态时校验并留痕|",
-        "|`plt_migration_issue.chk_migration_issue_resolution`|`RESOLVED`时必须有处理人和时间|扩展关闭状态可能绕过|受控关闭动作强制写处理人和时间|",
-        "",
-        "5个状态耦合生成列逐项如下。生成列用于实现“只约束当前记录”的NULL唯一键模式，该模式本身正确，但不能直接依赖可扩展业务状态码：",
+        f"{len([name for _, name, _ in generated_columns if name != 'rma_marked'])}个当前唯一生成列逐项如下。Q03已确认其业务事实，表达式只依赖稳定有效期、删除标记或主标记，不依赖可扩展业务状态码：",
         "",
         "|表/生成列|当前表达式|被保护的不变量|推荐调整|",
         "|---|---|---|---|",
@@ -311,16 +305,15 @@ def render_decision_analysis(
         protected = {
             "current_device_id": "同一设备同一时点只有一个直接项目归属",
             "current_order_line_id": "同一项目—订单行只有一个当前交付范围",
-            "primary_order_id": "一个订单只有一个主执行单关系",
             "primary_customer_id": "一个客户只有一个当前主联系人",
             "primary_project_id": "项目同一角色只有一个主公司部门关系",
         }.get(name, "当前唯一业务事实")
-        lines.append(f"|`{table}.{name}`|`{escape(expression)}`|{protected}|改为依赖不可扩展的标准状态投影/当前标记，而非扩展状态编码|")
+        lines.append(f"|`{table}.{name}`|`{escape(expression)}`|{protected}|已改为只依赖稳定有效期、删除标记或主标记|")
     lines.extend([
         "",
         "另有1个非状态生成列也需明确边界：`ast_device_shipment_event.rma_marked`当前按RMA编号是否为空生成，并把字符串`null`视为空。该列只能作为迁移兼容和查询索引投影，不能替代已确认的`business_action_code`、方向和正负数量业务事实；字符串哨兵清洗必须在迁移规则中留痕。",
         "",
-        "### 1.9 25个精确匹配字段与排序规则",
+        f"### 1.9 {len(exact_match_fields)}个精确匹配字段与排序规则",
         "",
         "这些字段当前继承表级`utf8mb4_0900_ai_ci`。推荐来源键使用`utf8mb4_0900_bin`；契约明确为ASCII摘要的字段使用`ascii_bin`；不得改变原值大小写。",
         "",
@@ -340,7 +333,7 @@ def render_decision_analysis(
         "|L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|",
         "|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|数据架构Owner|按规则批量签署|",
         "|L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|逐组批准；有空洞的先修模|",
-        "|L4 性能候选|106个普通索引|Feature Owner+性能Owner|绑定查询后由P3-E06压测定稿|",
+        f"|L4 性能候选|{len(constraints['INDEX'])}个普通索引|Feature Owner+性能Owner|绑定查询后由P3-E06压测定稿|",
         "|L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|",
     ])
     return lines
