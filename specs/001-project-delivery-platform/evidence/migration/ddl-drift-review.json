@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T08:01:25.649064+00:00",
+  "generatedAt": "2026-08-13T08:43:14.766558+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -19,7 +19,7 @@
     "baselineColumnCount": 1076,
     "currentColumnCount": 1048,
     "tableDiff": 5,
-    "columnDiff": 21,
+    "columnDiff": 27,
     "constraintDiff": 0,
     "tableOptionDiff": 0,
     "allDifferencesDecision": "DEFER",
@@ -54,6 +54,90 @@
     }
   ],
   "columnDiff": [
+    {
+      "table": "ast_device_project_assignment",
+      "column": "current_device_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前设备记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前设备记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND assignment_status = 'ACTIVE' AND effective_to IS NULL THEN device_id ELSE NULL END"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_shipment_event",
+      "column": "rma_marked",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "由RMA编号计算的标志：0非RMA类事件，1为RMA或借转类事件"
+      },
+      "after": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "由RMA编号计算的标志：0非RMA类事件，1为RMA或借转类事件",
+        "generatedExpression": "CASE WHEN rma_no IS NULL OR TRIM(rma_no) = '' OR LOWER(TRIM(rma_no)) = 'null' THEN 0 ELSE 1 END"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "current_order_line_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前订单行记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前订单行记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ENABLED' AND effective_to IS NULL AND scope_status IN ('ACTIVE', 'PENDING_QUANTITY') THEN order_line_id ELSE NULL END"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_order_execution_relation",
+      "column": "primary_order_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主订单记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主订单记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ACTIVE' AND is_primary = 1 THEN order_id ELSE NULL END"
+      },
+      "decision": "DEFER"
+    },
     {
       "table": "cus_customer",
       "column": "expend_code",
@@ -169,6 +253,27 @@
         "defaultValue": null,
         "generated": false,
         "description": "客户市场行业划分的系统部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer_contact",
+      "column": "primary_customer_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主客户记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主客户记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ENABLED' AND is_primary = 1 THEN customer_id ELSE NULL END"
       },
       "decision": "DEFER"
     },
@@ -357,6 +462,27 @@
         "defaultValue": null,
         "generated": false,
         "description": "项目市场行业划分的系统部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_company_department_relation",
+      "column": "primary_project_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主项目记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主项目记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ACTIVE' AND effective_to IS NULL AND is_primary = 1 THEN project_id ELSE NULL END"
       },
       "decision": "DEFER"
     }

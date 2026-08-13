@@ -25,6 +25,18 @@ class DdlDriftReviewTest(unittest.TestCase):
         table = MODULE.parse_ddl(ddl)["sample"]
         self.assertEqual({"id", "active_id"}, set(table.columns))
         self.assertEqual(2, len(table.constraints))
+        self.assertEqual(
+            "CASE WHEN id > 0 THEN id ELSE NULL END",
+            table.columns["active_id"]["generatedExpression"],
+        )
+
+    def test_missing_historical_generated_expression_is_not_reported_as_match(self) -> None:
+        before = {
+            "dataType": "BIGINT", "nullable": True, "defaultValue": None,
+            "generated": True, "generatedExpression": None, "description": "active",
+        }
+        after = dict(before, generatedExpression="CASE WHEN status = 'ACTIVE' THEN id ELSE NULL END")
+        self.assertEqual("UNVERIFIED_BASELINE_MISSING", MODULE.column_comparison_status(before, after))
 
     def test_compare_reports_column_constraint_and_options(self) -> None:
         old = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB COMMENT='old';")

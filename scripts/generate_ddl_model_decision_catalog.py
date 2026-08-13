@@ -174,6 +174,7 @@ def render_decision_analysis(
     constraints: dict[str, list[tuple[str, str]]],
     unique_groups: dict[str, list[tuple[str, str, str]]],
     check_groups: dict[str, list[tuple[str, str, str]]],
+    generated_columns: list[tuple[str, str, str]],
     exact_match_fields: list[tuple[str, str, str, bool]],
 ) -> list[str]:
     lines = [
@@ -188,7 +189,7 @@ def render_decision_analysis(
         f"|`REMOVED`|{len(changes['REMOVED']):,}|历史目标DDL中存在、当前模型已移除|必须确认是范围排除而非数据遗漏|",
         f"|`UNVERIFIED_BASELINE_MISSING`|{len(changes['UNVERIFIED_BASELINE_MISSING']):,}|历史目录未保存约束和表选项|必须按约束语义分类评审，不能自动接受|",
         "",
-        "因此，1055项MATCH只保留逐项追溯；真正需要裁决的是新增/修改/移除的模型变化，以及434项没有历史结构基线的约束和表选项。",
+        f"因此，{len(changes['MATCH'])}项MATCH只保留逐项追溯；真正需要裁决的是新增/修改/移除的模型变化，以及{len(changes['UNVERIFIED_BASELINE_MISSING'])}项缺少历史结构证据的约束、表选项或生成表达式。",
         "",
         "### 1.2 当前核心迁移子集按领域分布",
         "",
@@ -215,7 +216,7 @@ def render_decision_analysis(
         "|---|---|---|---|",
         "|精确键与默认排序规则冲突|49张表默认`utf8mb4_0900_ai_ci`；25个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|",
         "|可空列参与唯一键|8个唯一键包含可空列；5个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|",
-        "|状态码写入CHECK|3个CHECK引用固定状态码|扩展状态可能绕过规则或被数据库拒绝|改由标准状态映射后的受控状态机/应用守卫执行|",
+        "|状态码写入数据库表达式|3个CHECK和5个当前唯一生成列引用固定状态码|扩展状态可能绕过规则、绕过当前唯一性或被数据库拒绝|由稳定标准状态投影驱动生成列，业务守卫由受控状态机执行|",
         "|普通索引没有查询证据|106个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前只确认候选，Feature/P3-E06用真实查询和压测定稿|",
         "",
         "### 1.5 可按数据架构不变量批量确认的内容",
@@ -299,6 +300,26 @@ def render_decision_analysis(
         "|`com_delivery_scope.chk_scope_active`|`ACTIVE`时必须有分配数量|扩展状态映射为标准生效状态时可能绕过|状态机进入标准“生效”状态时校验并留痕|",
         "|`plt_migration_issue.chk_migration_issue_resolution`|`RESOLVED`时必须有处理人和时间|扩展关闭状态可能绕过|受控关闭动作强制写处理人和时间|",
         "",
+        "5个状态耦合生成列逐项如下。生成列用于实现“只约束当前记录”的NULL唯一键模式，该模式本身正确，但不能直接依赖可扩展业务状态码：",
+        "",
+        "|表/生成列|当前表达式|被保护的不变量|推荐调整|",
+        "|---|---|---|---|",
+    ])
+    for table, name, expression in sorted(generated_columns):
+        if name == "rma_marked":
+            continue
+        protected = {
+            "current_device_id": "同一设备同一时点只有一个直接项目归属",
+            "current_order_line_id": "同一项目—订单行只有一个当前交付范围",
+            "primary_order_id": "一个订单只有一个主执行单关系",
+            "primary_customer_id": "一个客户只有一个当前主联系人",
+            "primary_project_id": "项目同一角色只有一个主公司部门关系",
+        }.get(name, "当前唯一业务事实")
+        lines.append(f"|`{table}.{name}`|`{escape(expression)}`|{protected}|改为依赖不可扩展的标准状态投影/当前标记，而非扩展状态编码|")
+    lines.extend([
+        "",
+        "另有1个非状态生成列也需明确边界：`ast_device_shipment_event.rma_marked`当前按RMA编号是否为空生成，并把字符串`null`视为空。该列只能作为迁移兼容和查询索引投影，不能替代已确认的`business_action_code`、方向和正负数量业务事实；字符串哨兵清洗必须在迁移规则中留痕。",
+        "",
         "### 1.9 25个精确匹配字段与排序规则",
         "",
         "这些字段当前继承表级`utf8mb4_0900_ai_ci`。推荐来源键使用`utf8mb4_0900_bin`；契约明确为ASCII摘要的字段使用`ascii_bin`；不得改变原值大小写。",
@@ -368,6 +389,7 @@ def render(root: Path) -> str:
         names = ", ".join(name for _, name, _ in check_groups["UNCLASSIFIED"])
         raise ValueError(f"unclassified CHECK constraints: {names}")
 
+    generated_columns: list[tuple[str, str, str]] = []
     exact_match_fields: list[tuple[str, str, str, bool]] = []
     for table, items in table_columns.items():
         for item in items:
@@ -375,6 +397,9 @@ def render(root: Path) -> str:
             if not isinstance(current, dict):
                 continue
             name = str(item.get("name", ""))
+            expression = current.get("generatedExpression")
+            if current.get("generated") and isinstance(expression, str):
+                generated_columns.append((table, name, expression))
             if name in EXACT_MATCH_FIELD_NAMES or name.endswith("_checksum"):
                 exact_match_fields.append((table, name, str(current["dataType"]), bool(current["nullable"])))
 
@@ -407,6 +432,7 @@ def render(root: Path) -> str:
         constraints,
         unique_groups,
         check_groups,
+        generated_columns,
         exact_match_fields,
     ))
     lines.extend([

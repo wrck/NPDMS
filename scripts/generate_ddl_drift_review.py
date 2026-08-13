@@ -39,6 +39,30 @@ def normalize(fragment: str) -> str:
     return re.sub(r"\s+", " ", fragment.strip()).replace("`", "")
 
 
+def generated_expression(definition: str) -> str | None:
+    marker = re.search(r"\bGENERATED\s+ALWAYS\s+AS\s*\(", definition, re.I)
+    if not marker:
+        return None
+    start = marker.end()
+    depth = 1
+    quote: str | None = None
+    for index in range(start, len(definition)):
+        char = definition[index]
+        if quote:
+            if char == quote:
+                quote = None
+            continue
+        if char in ("'", '"'):
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return normalize(definition[start:index])
+    raise ValueError(f"unterminated generated column expression: {definition}")
+
+
 def column_signature(definition: str) -> dict[str, object]:
     value = normalize(definition)
     type_match = re.match(r"^([A-Z]+(?:\([^)]*\))?(?:\s+UNSIGNED)?)(?=\s|$)", value, re.I)
@@ -46,13 +70,17 @@ def column_signature(definition: str) -> dict[str, object]:
         raise ValueError(f"cannot parse column type: {value}")
     default_match = re.search(r"\bDEFAULT\s+((?:'[^']*')|(?:CURRENT_TIMESTAMP(?:\(\d+\))?)|(?:NULL)|(?:-?\d+(?:\.\d+)?))", value, re.I)
     comment_match = re.search(r"\bCOMMENT\s+'((?:''|[^'])*)'", value, re.I)
-    return {
+    signature: dict[str, object] = {
         "dataType": type_match.group(1).upper(),
         "nullable": " NOT NULL" not in f" {value.upper()}",
         "defaultValue": default_match.group(1) if default_match else None,
         "generated": "GENERATED ALWAYS AS" in value.upper(),
         "description": comment_match.group(1).replace("''", "'") if comment_match else None,
     }
+    expression = generated_expression(value)
+    if expression is not None:
+        signature["generatedExpression"] = expression
+    return signature
 
 
 def split_items(body: str) -> list[str]:
@@ -146,13 +174,16 @@ def load_catalog(path: Path) -> dict[str, Table]:
         for line in source:
             item = json.loads(line)
             table = tables.setdefault(item["tableName"], {})
-            table[item["columnName"]] = {
+            signature = {
                 "dataType": item["dataType"].upper(),
                 "nullable": item["nullable"],
                 "defaultValue": item.get("defaultValue"),
                 "generated": item.get("generated", False),
                 "description": item.get("description"),
             }
+            if item.get("generatedExpression") is not None:
+                signature["generatedExpression"] = item["generatedExpression"]
+            table[item["columnName"]] = signature
     return {name: Table(columns, set(), "UNAVAILABLE_IN_TARGET_FIELD_CATALOG") for name, columns in tables.items()}
 
 
@@ -163,13 +194,16 @@ def load_catalog_bytes(data: bytes) -> dict[str, Table]:
             continue
         item = json.loads(line)
         table = tables.setdefault(item["tableName"], {})
-        table[item["columnName"]] = {
+        signature = {
             "dataType": item["dataType"].upper(),
             "nullable": item["nullable"],
             "defaultValue": item.get("defaultValue"),
             "generated": item.get("generated", False),
             "description": item.get("description"),
         }
+        if item.get("generatedExpression") is not None:
+            signature["generatedExpression"] = item["generatedExpression"]
+        table[item["columnName"]] = signature
     return {name: Table(columns, set(), "UNAVAILABLE_IN_TARGET_FIELD_CATALOG") for name, columns in tables.items()}
 
 
@@ -276,6 +310,23 @@ def current_constraint_inventory(ddl_sha256: str, tables: dict[str, Table]) -> d
     }
 
 
+def column_comparison_status(before: dict[str, object] | None, after: dict[str, object] | None) -> str:
+    if before is None:
+        return "ADDED"
+    if after is None:
+        return "REMOVED"
+    before_without_expression = {key: value for key, value in before.items() if key != "generatedExpression"}
+    after_without_expression = {key: value for key, value in after.items() if key != "generatedExpression"}
+    if (
+        before_without_expression == after_without_expression
+        and before.get("generated") is True
+        and before.get("generatedExpression") is None
+        and after.get("generatedExpression") is not None
+    ):
+        return "UNVERIFIED_BASELINE_MISSING"
+    return "MATCH" if before == after else "MODIFIED"
+
+
 def ddl_item_decision_register(
     baseline_sha256: str,
     current_sha256: str,
@@ -302,7 +353,7 @@ def ddl_item_decision_register(
         for column_name in sorted(set(before_columns) | set(after_columns)):
             before = before_columns.get(column_name)
             after = after_columns.get(column_name)
-            status = "MATCH" if before == after else "ADDED" if before is None else "REMOVED" if after is None else "MODIFIED"
+            status = column_comparison_status(before, after)
             items.append({
                 "itemId": f"COLUMN:{table_name}:{column_name}", "itemType": "COLUMN",
                 "table": table_name, "name": column_name, "comparisonStatus": status,

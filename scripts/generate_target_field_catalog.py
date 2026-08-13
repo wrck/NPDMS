@@ -167,7 +167,7 @@ def build_catalog(
                 metadata = new_field_metadata.get((table_name, column_name))
             if metadata is None:
                 raise ValueError(f"target catalog metadata missing for {source_key[0]}.{source_key[1]}")
-            rows.append({
+            row = {
                 "tableName": table_name,
                 "ordinal": ordinal,
                 "columnName": column_name,
@@ -179,7 +179,10 @@ def build_catalog(
                 "domain": metadata["domain"],
                 "fieldClass": metadata["fieldClass"],
                 "dataElementRefs": metadata.get("dataElementRefs", []),
-            })
+            }
+            if signature.get("generatedExpression") is not None:
+                row["generatedExpression"] = signature["generatedExpression"]
+            rows.append(row)
     return rows
 
 

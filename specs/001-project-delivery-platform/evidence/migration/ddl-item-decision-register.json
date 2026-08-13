@@ -19,15 +19,15 @@
       "TABLE_OPTION": 53
     },
     "byComparisonStatus": {
-      "MATCH": 1055,
-      "UNVERIFIED_BASELINE_MISSING": 434,
+      "MATCH": 1049,
+      "UNVERIFIED_BASELINE_MISSING": 440,
       "ADDED": 40,
       "MODIFIED": 2,
       "REMOVED": 71
     },
     "approvedCount": 0
   },
-  "itemsSha256": "DD806FBE10EE89ACFF6B717E2658A01C800807954240C7F908D3630E11B1DF4C",
+  "itemsSha256": "DB4CC56D7DC94A89FE7192130943A655D808155C416582B09776724A22FAC855",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -3313,7 +3313,7 @@
       "itemType": "COLUMN",
       "table": "ast_device_project_assignment",
       "name": "current_device_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -3326,7 +3326,8 @@
         "nullable": true,
         "defaultValue": null,
         "generated": true,
-        "description": "关联当前设备记录的全局唯一ID"
+        "description": "关联当前设备记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND assignment_status = 'ACTIVE' AND effective_to IS NULL THEN device_id ELSE NULL END"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -5065,7 +5066,7 @@
       "itemType": "COLUMN",
       "table": "ast_device_shipment_event",
       "name": "rma_marked",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": {
         "dataType": "TINYINT",
         "nullable": true,
@@ -5078,7 +5079,8 @@
         "nullable": true,
         "defaultValue": null,
         "generated": true,
-        "description": "由RMA编号计算的标志：0非RMA类事件，1为RMA或借转类事件"
+        "description": "由RMA编号计算的标志：0非RMA类事件，1为RMA或借转类事件",
+        "generatedExpression": "CASE WHEN rma_no IS NULL OR TRIM(rma_no) = '' OR LOWER(TRIM(rma_no)) = 'null' THEN 0 ELSE 1 END"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -13784,7 +13786,7 @@
       "itemType": "COLUMN",
       "table": "com_delivery_scope",
       "name": "current_order_line_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -13797,7 +13799,8 @@
         "nullable": true,
         "defaultValue": null,
         "generated": true,
-        "description": "关联当前订单行记录的全局唯一ID"
+        "description": "关联当前订单行记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ENABLED' AND effective_to IS NULL AND scope_status IN ('ACTIVE', 'PENDING_QUANTITY') THEN order_line_id ELSE NULL END"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -16961,7 +16964,7 @@
       "itemType": "COLUMN",
       "table": "com_order_execution_relation",
       "name": "primary_order_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -16974,7 +16977,8 @@
         "nullable": true,
         "defaultValue": null,
         "generated": true,
-        "description": "关联主订单记录的全局唯一ID"
+        "description": "关联主订单记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ACTIVE' AND is_primary = 1 THEN order_id ELSE NULL END"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -22401,7 +22405,7 @@
       "itemType": "COLUMN",
       "table": "cus_customer_contact",
       "name": "primary_customer_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -22414,7 +22418,8 @@
         "nullable": true,
         "defaultValue": null,
         "generated": true,
-        "description": "关联主客户记录的全局唯一ID"
+        "description": "关联主客户记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ENABLED' AND is_primary = 1 THEN customer_id ELSE NULL END"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -29591,7 +29596,7 @@
       "itemType": "COLUMN",
       "table": "proj_project_company_department_relation",
       "name": "primary_project_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -29604,7 +29609,8 @@
         "nullable": true,
         "defaultValue": null,
         "generated": true,
-        "description": "关联主项目记录的全局唯一ID"
+        "description": "关联主项目记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND status = 'ACTIVE' AND effective_to IS NULL AND is_primary = 1 THEN project_id ELSE NULL END"
       },
       "decision": "DEFER",
       "decisionOwner": null,
