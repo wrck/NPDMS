@@ -1,34 +1,34 @@
 # SDS Phase 2 工程化自审
 
 > 日期：2026-08-13
-> 状态：`APPROVED_BY_INDEPENDENT_REVIEW`
-> 结论边界：本文件记录自审；最终批准证据见 `independent-review.md`
+> 状态：`V1.7_DELTA_SELF_REVIEWED`
+> 结论边界：V1.6独立评审证据保留在`independent-review.md`；本文件同步记录需求方批准的ADR-0024与V1.7差量自审，不伪造独立复审结论
 
 ## 1. 审查范围
 
 - 正式分册：`docs/design/08`、`09`、`10`、`11`、`12`、`13`、`15`、`16`。
 - 过程证据：实现事实盘点、Phase 2 gate status、执行计划。
-- 追溯资产：115项 `requirement-matrix.md` 与生成器。
-- 上游：PRD V1.6、SDS Phase 1 `BASELINE`。
+- 追溯资产：104项 `requirement-matrix.md` 与生成器。
+- 上游：PRD V1.7、SDS Phase 1 `BASELINE`。
 
 ## 2. 已执行校验
 
 | 校验 | 结果 |
 |---|---|
 | PRD语义校验 | PASS，0 semantic issues |
-| 13领域生成校验 | PASS，formal=115、V3=22、OUT_OF_SCOPE=9 |
-| 脚本单测 | PASS，9/9（含Phase 2校验器正反用例） |
+| 13领域生成校验 | PASS，formal=104、V3=29、OUT_OF_SCOPE=9 |
+| 脚本单测 | PASS，113/113（含Phase 2、PRD混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
 | 业务命名门禁 | PASS |
-| Phase 2专用校验 | PASS，8份正式分册元数据、115项显式契约及链接/锚点有效 |
-| 追溯矩阵 | PASS，115个唯一Requirement，115行均链接逐项 `phase2-contract-map.md` |
+| Phase 2专用校验 | PASS，8份正式分册元数据、104项显式契约及链接/锚点有效 |
+| 追溯矩阵 | PASS，104个唯一Requirement，104行均链接逐项 `phase2-contract-map.md` |
 | `git diff --check` | PASS |
 
 可重复执行命令：
 
 ```powershell
 py -3.13 -B scripts\validate_sds_phase2.py
-py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.6.md
-py -3.13 -B scripts\validate_prd_domain_generation.py --prd docs\baseline\prd-v1.6.md --domains specs\001-project-delivery-platform\domains
+py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
+py -3.13 -B scripts\validate_prd_domain_generation.py --prd docs\baseline\prd-v1.7.md --domains specs\001-project-delivery-platform\domains
 py -3.13 -B -m unittest discover -s scripts\tests -p "test_*.py"
 py -3.13 -B scripts\check_business_naming.py
 git diff --check
@@ -46,7 +46,7 @@ git diff --check
 | S2-R06 | 显式保存凭证后本次任务仍被描述为临时模式 | 违反INT-12验收并导致授权快照缺失 | 改为凭证、默认创建人授权和任务原子创建；任务记录新凭证及授权快照，失败不降级 |
 | S2-R07 | CRM/ERP合同订单Owner混写 | 外部字段相互覆盖 | 按已确认Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付范围与履约事实 |
 | S2-R08 | PM-05/PM-06只有领域级通用落位 | 转销和多期关系无法实现 | 新增专属聚合、表、API、事件、并发、异常和权限契约 |
-| S2-R09 | 115项仅校验文档链接，无法证明契约覆盖 | 机械追溯掩盖需求空洞 | 新增逐项显式契约映射和符号级校验，含缺块/不存在表的负向测试 |
+| S2-R09 | 正式需求仅校验文档链接，无法证明契约覆盖 | 机械追溯掩盖需求空洞 | 新增104项逐项显式契约映射和符号级校验，含缺块/不存在表的负向测试 |
 | S2-R10 | 外部集成缺请求/响应字段和业务确认 | 无法判定接口成功与业务成功 | 12 §4.1逐系统登记字段、来源/幂等键、业务确认与失败处理 |
 | S2-R11 | Collection完成可由模糊契约终态触发 | 业务结果未消费即误报完成 | 业务入口必须匹配消费确认；仅PRD独立中心允许成功终态回调完成，失败/取消分离 |
 
@@ -68,4 +68,4 @@ git diff --check
 
 ## 5. 自审结论
 
-首轮独立复审给出六项 Required 和 `NO-GO`；修复后定点独立复审确认六项全部关闭并给出 `GO`。Phase 2 Gate现为 `APPROVED / READY_FOR_PHASE_3`。外部接口配置档案、存储保留数值和容量参数分别属于 Feature 联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。
+V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。V1.7按需求方批准的ADR-0024完成104项差量重建、88对象/100来源迁移契约与机器自审；不把本次自审写成新的独立评审。Phase 2 Gate现为`APPROVED / READY_FOR_PHASE_3`。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。

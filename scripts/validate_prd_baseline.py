@@ -13,7 +13,7 @@ from pathlib import Path
 from validate_prd_semantics import validate_text as validate_semantics
 
 
-REQ_ID = r"(?:PM|PRE|PLN|SCH|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|NFR)-\d{2}"
+REQ_ID = r"[A-Z]+-\d{2}"
 FORMAL_REQUIRED_MARKERS = {
     "用户角色": r"\|\s*用户角色\s*\|",
     "目标版本": r"\|\s*目标版本\s*\|\s*V[12][^|]*\|",
@@ -52,12 +52,14 @@ def section(text: str, heading: str) -> str:
 def requirement_blocks(text: str) -> list[tuple[str, str]]:
     matches = list(re.finditer(rf"(?m)^\|\s*需求编号\s*\|\s*({REQ_ID})\s*\|\s*$", text))
     blocks: list[tuple[str, str]] = []
-    for index, match in enumerate(matches):
-        start = text.rfind("\n#### ", 0, match.start())
+    for match in matches:
+        heading_candidates = [text.rfind(f"\n{'#' * level} ", 0, match.start()) for level in (3, 4)]
+        start = max(heading_candidates)
         start = 0 if start < 0 else start + 1
-        next_start = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        major = re.search(r"(?m)^#{1,3}\s+", text[match.end() : next_start])
-        end = match.end() + major.start() if major else next_start
+        heading = re.match(r"(#{3,4})\s+", text[start:])
+        level = len(heading.group(1)) if heading else 4
+        next_heading = re.search(rf"(?m)^#{{1,{level}}}\s+", text[match.end() :])
+        end = match.end() + next_heading.start() if next_heading else len(text)
         blocks.append((match.group(1), text[start:end]))
     return blocks
 
@@ -110,13 +112,18 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     bad_acceptance: list[str] = []
     banned_formal: list[str] = []
     forbidden_terms = re.compile(r"日报|周报|续保空间|续保率|过保空间|维保机会|平台通用割接时效")
+    exclusion_terms = re.compile(r"不依赖|不提供|不得|排除|不建设|不包含|不产生|不作为|已移出|不恢复")
     for req_id, block in formal:
         for name, pattern in FORMAL_REQUIRED_MARKERS.items():
             if not re.search(pattern, block):
                 missing_by_field[name].append(req_id)
         if not (re.search(r"(?m)^- \*\*WHEN\*\*", block) and re.search(r"(?m)^- \*\*THEN\*\*", block)):
             bad_acceptance.append(req_id)
-        if forbidden_terms.search(block) or req_id in {"WO-07", "WO-11"}:
+        active_forbidden = any(
+            forbidden_terms.search(line) and not exclusion_terms.search(line)
+            for line in block.splitlines()
+        )
+        if active_forbidden or req_id in {"WO-07", "WO-11"}:
             banned_formal.append(req_id)
 
     for name, missing in missing_by_field.items():
@@ -140,6 +147,22 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     formal_index_ids = re.findall(rf"(?m)^\|\s*({REQ_ID})\s*\|", formal_index)
     add(checks, "正式索引存在", bool(formal_index_ids), f"索引{len(formal_index_ids)}项")
     add(checks, "正式索引与正文一致", set(formal_index_ids) == {req_id for req_id, _ in formal}, f"索引{len(set(formal_index_ids))}项/正文{len(formal)}项")
+    formal_versions = {
+        candidate: sum(
+            bool(re.search(rf"(?m)^\|\s*目标版本\s*\|\s*{candidate}(?:[^|]*)\|\s*$", block))
+            for _, block in formal
+        )
+        for candidate in ("V1", "V2")
+    }
+    footer = prd.rsplit("**文档结束**", 1)[-1] if "**文档结束**" in prd else ""
+    add(checks, "文末基线版本一致", f"PRD {version}正式基线" in footer, f"文末应声明PRD {version}正式基线")
+    add(checks, "文末正式需求数一致", f"{len(formal)}项V1/V2正式需求" in footer, f"正文={len(formal)}项")
+    add(
+        checks,
+        "文末主版本统计一致",
+        all(f"{candidate} {count}项" in footer for candidate, count in formal_versions.items()),
+        "、".join(f"{candidate}={count}" for candidate, count in formal_versions.items()),
+    )
     add(checks, "INT-12进入正式索引", "INT-12" in formal_index_ids, "INT-12必须为V1公共能力")
     add(checks, "排除编号未进正式索引", not ({"WO-07", "WO-11"} & set(formal_index_ids)), "WO-07/WO-11仅用于排除追溯")
 

@@ -1,8 +1,8 @@
-# SDS Phase 2：异常与幂等设计
+﻿# SDS Phase 2：异常与幂等设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
-> Requirement ID：全部 115 项 V1/V2 正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：全部 104 项 V1/V2 正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
 > Owner：SDS Phase 2 应用与可靠性架构
 > 前置设计：`09-database-design.md`～`15-cache-and-concurrency.md`
 

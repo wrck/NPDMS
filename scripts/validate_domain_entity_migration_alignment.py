@@ -16,11 +16,13 @@ ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "LEGACY_TABLE"
 ALLOWED_DISPOSITIONS = {"STRUCTURED", "RELATION", "SNAPSHOT", "EXTERNAL_SYNC", "CURRENT_FORWARD", "REBUILD", "COMPATIBILITY_ONLY", "NEW_ONLY", "PENDING_SOURCE_CONFIRMATION", "EXCLUDED"}
 EXTERNAL_MARKERS = {
     "CRM": ("CRM",), "ITR": ("ITR",), "MES": ("MES",),
+    "HR": ("HR",),
     "DingTalk": ("钉钉", "DingTalk"),
     "ExistingCollectionPlatform": ("现有采集平台", "ExistingCollectionPlatform"),
 }
 MULTI_OWNER_OBJECT_OWNER = {
-    "FileArtifact": "PLT", "CollectionTask": "PLT", "WorkOrder": "SRV",
+    "FileArtifact": "PLT", "CollectionTask": "PLT",
+    "DeviceComponentRelation": "AST", "SatisfactionCollection": "ACC",
     "MetricSnapshot": "ANA", "InspectionReport": "SRV", "Contract": "COM",
     "SalesOrder": "COM", "AuthorizationGrant": "PLT", "MaintenanceFact": "AST",
     "ServiceStatus": "SRV",
@@ -33,6 +35,8 @@ MODEL_ENTITY_CONTRACTS = {
     "NoticeBusinessReference": ("KNO", {"INT-04"}),
     "DispatchAttempt": ("PLT", {"INT-12"}),
     "CallbackRecord": ("PLT", {"INT-12"}),
+    "HistoricalWorkOrderRecord": ("SRV", {"SRV-01"}),
+    "HistoricalTimeRecord": ("SRV", {"SRV-01"}),
 }
 
 
@@ -277,8 +281,8 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
                 missing_objects = set(source_parts) - all_objects
                 if missing_objects:
                     errors.append(f"{object_name} derived source objects do not exist: {sorted(missing_objects)}")
-                if disposition not in {"REBUILD", "NEW_ONLY"}:
-                    errors.append(f"{object_name} derived source must be REBUILD or NEW_ONLY")
+                if disposition not in {"REBUILD", "RELATION", "NEW_ONLY"}:
+                    errors.append(f"{object_name} derived source must be REBUILD, RELATION or NEW_ONLY")
             elif source_type == "NONE_NEW":
                 if source_object != object_name or disposition != "NEW_ONLY":
                     errors.append(f"{object_name} NONE_NEW must be an object-local NEW_ONLY source")

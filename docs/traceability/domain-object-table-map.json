@@ -250,7 +250,8 @@
       ],
       "targetTables": [
         "imp_configuration_collection_result",
-        "imp_configuration_collection_parse_attempt"
+        "imp_configuration_collection_parse_attempt",
+        "imp_configuration_component_candidate"
       ]
     },
     "JointDebuggingResult": {
@@ -321,13 +322,28 @@
       "owner": "ACC",
       "requirementIds": [
         "ACC-01",
-        "ACC-02",
         "ACC-03"
       ],
       "targetTables": [
         "acc_acceptance",
         "acc_acceptance_item",
         "acc_confirmation"
+      ]
+    },
+    "SatisfactionCollection": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "acc_satisfaction_collection_task",
+        "acc_satisfaction_questionnaire",
+        "acc_satisfaction_response",
+        "acc_satisfaction_result"
       ]
     },
     "DeliveryArtifact": {
@@ -347,11 +363,7 @@
         "ACC-05",
         "ACC-06",
         "CLO-01",
-        "CLO-02",
-        "CLO-03",
-        "CLO-04",
-        "CLO-05",
-        "CLO-06"
+        "CLO-02"
       ],
       "targetTables": [
         "acc_project_closure",
@@ -362,11 +374,7 @@
       "owner": "ACC",
       "requirementIds": [
         "CLO-01",
-        "CLO-02",
-        "CLO-03",
-        "CLO-04",
-        "CLO-05",
-        "CLO-06"
+        "CLO-02"
       ],
       "targetTables": [
         "acc_closure_gate_snapshot"
@@ -433,6 +441,25 @@
         "cut_observation"
       ]
     },
+    "CutoverSupportTask": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-11"
+      ],
+      "targetTables": [
+        "cut_cutover_support_task",
+        "cut_cutover_support_history"
+      ]
+    },
+    "ResponsibilityInterval": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-11"
+      ],
+      "targetTables": [
+        "cut_cutover_support_responsibility_interval"
+      ]
+    },
     "InspectionTask": {
       "owner": "SRV",
       "requirementIds": [
@@ -478,29 +505,22 @@
         "srv_service_issue_remediation"
       ]
     },
-    "WorkOrder": {
+    "HistoricalWorkOrderRecord": {
       "owner": "SRV",
       "requirementIds": [
-        "INT-05",
-        "WO-01",
-        "WO-02",
-        "WO-03",
-        "WO-05",
-        "WO-06"
+        "SRV-01"
       ],
       "targetTables": [
-        "srv_work_order",
-        "srv_work_order_handling_record"
+        "srv_historical_work_order"
       ]
     },
-    "TimeClaim": {
+    "HistoricalTimeRecord": {
       "owner": "SRV",
       "requirementIds": [
-        "WO-04"
+        "SRV-01"
       ],
       "targetTables": [
-        "srv_time_claim",
-        "srv_time_adjustment"
+        "srv_historical_time_record"
       ]
     },
     "ServiceStatus": {
@@ -579,6 +599,20 @@
         "ast_device",
         "ast_device_version",
         "ast_device_config_log"
+      ]
+    },
+    "DeviceComponentRelation": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07",
+        "EXE-03"
+      ],
+      "targetTables": [
+        "ast_device_component_relation"
       ]
     },
     "DeviceCurrentAssignment": {
@@ -762,9 +796,7 @@
       "requirementIds": [
         "ANA-01",
         "NFR-01",
-        "RPT-01",
-        "RPT-02",
-        "RPT-04"
+        "RPT-02"
       ],
       "targetTables": [
         "ana_metric_snapshot"
@@ -789,6 +821,15 @@
       ],
       "targetTables": [
         "plt_todo"
+      ]
+    },
+    "DirectorySyncSnapshot": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-05"
+      ],
+      "targetTables": [
+        "plt_directory_sync_snapshot"
       ]
     },
     "AuthorizationGrant": {

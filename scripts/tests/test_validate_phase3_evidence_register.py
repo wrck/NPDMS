@@ -68,7 +68,7 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
                 refs.append(VALIDATOR.EXPORT_POLICY_REF)
                 refs.append(VALIDATOR.EXPORT_EXPIRATION_REF)
             items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": sorted(VALIDATOR.EXPECTED_BLOCKS[identifier])})
-        self.payload = {"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.6", "decisionBaseline": VALIDATOR.DECISION_REF, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": items}
+        self.payload = {"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.7", "decisionBaseline": VALIDATOR.DECISION_REF, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": items}
         self.write()
 
     def tearDown(self) -> None:

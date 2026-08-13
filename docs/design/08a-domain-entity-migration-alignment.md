@@ -1,12 +1,12 @@
-# SDS Phase 2补充分册：领域实体迁移对齐
+﻿# SDS Phase 2补充分册：领域实体迁移对齐
 
 > 文档状态：`BASELINE ADDENDUM`
-> 适用基线：PRD V1.6、SDS Phase 1/2 BASELINE
-> Requirement ID：附录A.1全部115项V1/V2正式需求
+> 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE
+> Requirement ID：附录A.1全部104项V1/V2正式需求
 > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
 > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。
 
-本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：覆盖Phase 2显式契约75个对象及08数据模型另行定义的7个内部/建议实体，共82个领域实体，并将当前实现、旧数据元、外部系统、重建来源和排除字段拆成92条互斥来源记录。每条记录独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供82个对象到09目标表的精确机器映射。
+本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖88个领域实体，并将当前实现、旧数据元、外部系统、派生来源、历史只读资料和排除字段拆成100条互斥来源记录。每条记录独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供88个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障、设备框板关系、HR目录同步快照，以及原通用工单/工时的只读历史迁移对象。
 
 ## 1. 证据和使用规则
 
@@ -88,12 +88,13 @@
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
 | `Acceptance` | 当前`acc_acceptance` | CURRENT_FORWARD+STRUCTURED | 按验收范围、版本、结论和确认迁移；原实施证据仅引用 |
+| `SatisfactionCollection` | `pm_cl_quesnaire_template_*`、`pm_cl_quesnaire_result_*`、`pm_cl_callback*`、`pm_subcontract_project_callback` | STRUCTURED+RELATION+PENDING_SOURCE_CONFIRMATION | 模板、题目、选项、答卷和评分按原版本迁移；业务对象关系只有证据完整时建立；不从回访/审批状态反推客户答案或通过结果 |
 | `DeliveryArtifact` | 当前交付清单/归档/完工证明、旧基础交付模板和转包交付件 | CURRENT_FORWARD+RELATION | 文件身份、清单项、审核与归档分离；不能只迁URL而丢业务类型/版本 |
 | `ProjectClosure` | 当前`acc_project_closure` | CURRENT_FORWARD | 迁已有申请/结论/时间；无法重建原门禁输入时标记历史快照不完整 |
 | `ClosureGateSnapshot` | 当前闭环/交付清单/问题事实 | REBUILD+SNAPSHOT | 当前状态按新事实重建；历史只冻结可证明输入，不补造通过项 |
 | `ServiceHandover` | 当前`pms_acc_maintenance_transition`中的可证明交接事实 | CURRENT_FORWARD+COMPATIBILITY_ONLY | 只迁遗留问题/持续服务交接；续保年限、续保动作和续保状态不进入新写模型 |
 
-## 7. Cutover、Inspection、Work Order & Service
+## 7. Cutover、Inspection & Service
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
@@ -101,13 +102,15 @@
 | `CutoverAssessment` | 当前`pms_cut_risk`及评估信息 | CURRENT_FORWARD | 风险项和评估结论版本化；技术公告只引用 |
 | `CutoverPlan` | 当前`pms_cut_plan` | CURRENT_FORWARD | 迁计划revision/步骤/审批引用；执行冻结已批准版本 |
 | `CutoverExecution` | 当前`pms_cut_execution/observation` | CURRENT_FORWARD | 逐步骤保存动作类型、方向、有符号值、结果和证据；不引入通用割接时效 |
+| `CutoverSupportTask` | `pm_project_maintenance`中可证明为原WO-06割接保障的记录及其处理历史 | STRUCTURED+PENDING_SOURCE_CONFIRMATION+NEW_ONLY | 仅在业务类型、关联割接任务、责任人和时间窗可证明时迁入CUT-11；否则只读归档，不把普通维护/巡检记录改造成割接保障任务 |
+| `ResponsibilityInterval` | 原割接保障任务派发/接管/转交操作历史 | REBUILD+PENDING_SOURCE_CONFIRMATION | 只从完整的操作者、前后责任人和时间证据构造不重叠区间；挂起不得推断为责任区间结束 |
 | `InspectionTask` | 当前`pms_srv_task/execution/offline_file`、旧`pm_project_maintenance`巡检候选 | CURRENT_FORWARD+PENDING_SOURCE_CONFIRMATION | 当前巡检结构前向迁移；旧维护记录须先分类为巡检才可导入 |
 | `InspectionRule` | 当前`pms_srv_rule` | CURRENT_FORWARD | 发布revision迁移；任务冻结所用版本 |
 | `InspectionReport` | 当前`pms_srv_report`及外部采集报告 | CURRENT_FORWARD+EXTERNAL_SYNC | 发布版本只追加；原始结果保存受控引用 |
 | `ServiceIssue` | 当前`pms_srv_issue`、ITR问题候选 | CURRENT_FORWARD+EXTERNAL_SYNC | 按来源类型区分巡检问题与ITR问题；问题Owner不因项目引用改变 |
-| `WorkOrder` | 钉钉/ITR等外部工单及旧项目问题候选 | EXTERNAL_SYNC | 以外部稳定键和版本同步；不迁/新增工单时效考核字段 |
-| `TimeClaim` | 外部打卡/工时记录，现有来源语义待逐接口确认 | EXTERNAL_SYNC+PENDING_SOURCE_CONFIRMATION | 保存原值、方向和有符号调整；没有稳定来源键不生成正式申报 |
 | `ServiceStatus` | `fb_service`、`view_warranty*`、`warranty_info/change_logs`及当前维保表的客观字段 | STRUCTURED+EXTERNAL_SYNC | 只计算客观在保/在维/停产停维提示；续保动作、空间和报表全部排除 |
+
+原通用工单和工时不再形成当前可流转聚合。`HistoricalWorkOrderRecord`与`HistoricalTimeRecord`从`pm_project_maintenance`逐源行迁移为只读对象：保存来源业务键、原类型/分类/状态、责任人、处理/在途时长、交付件和问卷引用及不可变原始载荷；只有源证据明确时才写方向/正负调整。两者不提供创建、提交、审批、转交或状态迁移接口。
 
 ## 8. Customer、Asset、Commerce、Resource
 
@@ -118,6 +121,7 @@
 | `CustomerRelationshipSnapshot` | 迁移后的客户/联系人/项目关系 | REBUILD+SNAPSHOT | 按业务发生时生成，不把当前主档反写历史 |
 | `Device` | `fb_shipment_barcode`主SN/物料、MES/ITR、当前`ast_device` | STRUCTURED+EXTERNAL_SYNC+CURRENT_FORWARD | SN主档去重但源行不删除；权威字段保留来源版本 |
 | `DeviceArchive` | 当前设备版本/配置Log、旧软件版本/安装地址/配置数据元 | CURRENT_FORWARD+STRUCTURED | 版本、配置、位置按历史/来源分表；JSON不替代高频查询字段 |
+| `DeviceComponentRelation` | 配置Log解析结果、既有设备关系数据元及人工核对证据 | STRUCTURED+RELATION+PENDING_SOURCE_CONFIRMATION | 保存机框SN、槽位、板卡SN/型号、来源和生效区间；只有可证明关系进入当前/历史关系，多义记录进入待匹配且保留原始Log |
 | `DeviceCurrentAssignment` | `pm_project_shipment`及当前设备项目关系 | RELATION+CURRENT_FORWARD | 仅完整事件链形成当前唯一归属；多义/区间冲突进入问题 |
 | `AssetSyncSnapshot` | MES/ITR同步批次和字段差异 | EXTERNAL_SYNC+SNAPSHOT | 保存水位、来源版本、校验摘要，不覆盖平台归属事实 |
 | `MaintenanceFact` | 条码维保字段、`fb_service/view_warranty*`及当前维保客观字段 | STRUCTURED+EXTERNAL_SYNC | 迁起止日期、等级、来源和规则版本；人工续保覆盖只留兼容证据 |
@@ -151,7 +155,7 @@
 
 ### 9.1 08数据模型内部/建议实体补充
 
-这些实体未在115项Phase 2映射中独立列名，但已在08数据模型中承担正式明细、历史、投影、关系或支撑职责，因此同样纳入迁移覆盖。建议实体仅登记新建边界，不因此升级为PRD承诺。
+这些实体未在104项Phase 2映射中独立列名，但已在08数据模型中承担正式明细、历史、投影、关系或支撑职责，因此同样纳入迁移覆盖。建议实体仅登记新建边界，不因此升级为PRD承诺。
 
 | 数据对象 | 来源摘要 | 迁移边界 |
 |---|---|---|

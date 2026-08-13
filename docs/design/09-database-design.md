@@ -1,8 +1,8 @@
-# SDS Phase 2：数据库设计
+﻿# SDS Phase 2：数据库设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
-> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
 > 目标数据库：`npdms` / MySQL 8.4
@@ -24,7 +24,7 @@
 
 | 层级 | 证据 | 设计约束 |
 |---|---|---|
-| 业务语义 | PRD V1.6、08数据模型、批准 ADR/决策 | 决定 Owner、聚合、不变量和排除范围 |
+| 业务语义 | PRD V1.7、08数据模型、批准 ADR/决策 | 决定 Owner、聚合、不变量和排除范围 |
 | 数据元 | `evidence/data-elements/manifest.json`、`semantic-elements.jsonl`、`schema-records.jsonl` | 决定已存在字段语义、来源坐标和旧结构候选；Excel 哈希变化时必须全量重建 |
 | 迁移规则 | `evidence/migration/*mapping*.jsonl`、`appendices/project-order-migration-mapping.md`、`legacy-data-element-business-object-mapping.md` | 决定旧字段的`STRUCTURED/RELATION/LINEAGE/PAYLOAD`处置、来源血缘、异常分类和对账 |
 | 物理实现 | 当前实现仓库未占用 Flyway 版本、批准目标 DDL | 决定最终表/列/索引/约束；不得编辑已执行迁移 |
@@ -200,6 +200,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | `ast_device_current_assignment` | `device_id, project_id, assignment_type_code, assigned_at, assignment_version` | `uk(tenant_id, device_id)`，保证一个设备只有一个当前项目 |
 | `ast_device_assignment_history` | `device_id, project_id, effective_from, effective_to, change_reason_code, change_batch_id` | `idx(tenant_id, device_id, effective_from)`；区间不得重叠 |
 | `ast_device_project_ancestor` | `device_id, assigned_project_id, ancestor_project_id, distance, tree_version, assignment_version` | `uk(tenant_id, device_id, ancestor_project_id)`；可重建投影 |
+| `ast_device_component_relation` | `chassis_device_id, slot_code, card_device_id, card_model_code, source_code, effective_from, effective_to, parse_revision_id` | 当前关系使用生成标记保证`tenant+chassis+slot`唯一；换板关闭旧区间并新增，解析/人工绑定均保留证据 |
 
 归属变更事务按设备 ID 加锁：读取当前行和版本，关闭对应历史区间，插入新历史，更新当前行，然后通过 Outbox 请求重建祖先投影。项目树移动触发受影响子树内设备投影按批次重算。统计读取返回 `treeVersion/assignmentVersion` 水位，避免把投影延迟误报为真实归属变化。
 
@@ -230,6 +231,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | ArrivalAcceptance | `imp_arrival_acceptance` | `imp_arrival_line`、`imp_arrival_difference` | 批次内来源行唯一；数量非负；差异通过独立记录表达 |
 | InstallationRecord | `imp_installation_record` | `imp_installation_item`、`imp_installation_evidence` | 设备/安装批次索引；历史记录不覆盖 |
 | ConfigurationCollectionResult | `imp_configuration_collection_result` | `imp_configuration_collection_parse_attempt` | `uk(tenant_id, collection_task_id, result_type_code)`；解析尝试追加 |
+| ConfigurationCollectionResult解析候选 | `imp_configuration_collection_result` | `imp_configuration_component_candidate` | 保存机框SN、槽位、板卡SN/型号、解析版本和匹配状态；不能覆盖原始Log或直接改写已生效设备关系 |
 | JointDebuggingResult | `imp_joint_debugging_result` | `imp_joint_debugging_item` | 业务任务 + 结果版本唯一 |
 | ImplementationRisk | `imp_risk` | `imp_risk_treatment` | 状态迁移另记历史；不与 CUT risk 共表 |
 | ImplementationQualityCheck | `imp_quality_check` | `imp_quality_item`、`imp_quality_remediation`、`imp_quality_review` | 整改与复核追加；当前状态由聚合根维护 |
@@ -243,22 +245,24 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | 聚合 | 主表 | 支撑表 | 关键约束 |
 |---|---|---|---|
 | Acceptance | `acc_acceptance` | `acc_acceptance_item`、`acc_confirmation` | 验收 revision/客户确认追加；原始实施证据只引用 |
+| SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
 | DeliveryArtifact | `acc_delivery_artifact` | `acc_artifact_review`、`acc_archive_record` | 文件 revision + 清单项唯一；归档记录不可覆盖 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
 | ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | 不含续保年限、续保结束日期和续保状态 |
 
 历史 `pms_acc_maintenance_transition` 不改表。前向迁移只把可以证明的交接字段映射到新表，并保存 `legacy_record_id`；续保字段不进入新模型。
 
-## 7. Cutover、Inspection、Work Order 与服务状态
+## 7. Cutover、Inspection 与服务状态
 
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
-| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_execution`、`cut_execution_step`、`cut_observation` | 任务内计划 revision 唯一；执行步骤保存 action_type、direction、signed_value；按 project/device/status 查询 |
-| Work Order & Time | `srv_work_order`、`srv_work_order_handling_record`、`srv_time_claim`、`srv_time_adjustment` | 不增加时效考核字段；工时原值、调整方向、正负值和调整原因均保留 |
+| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_execution`、`cut_execution_step`、`cut_observation`、`cut_cutover_support_task`、`cut_cutover_support_responsibility_interval`、`cut_cutover_support_history` | 任务内计划 revision 唯一；执行步骤保存 action_type、direction、signed_value；保障任务冻结状态机版本，责任区间不重叠且历史只追加 |
 | Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
 现有 `pms_srv_maintenance` 冻结为兼容来源，不新增菜单/API 写入；可证明的客观字段迁移到 `ast_maintenance_fact`。
+
+现有通用工单与工时表不得继续作为当前写模型。可证明为原WO-06的记录迁入CUT-11；其余历史事实写入`HistoricalWorkOrderRecord`/`HistoricalTimeRecord`对应的只读归档表（候选名`srv_historical_work_order`、`srv_historical_time_record`），并同时保留`plt_migration_source_record`原始载荷。归档表不暴露业务写API；最终物理DDL及哈希仍由P3-E09批准，不因本分册提前放行。
 
 ## 8. Customer、Commerce、Resource 与 Knowledge
 
@@ -272,6 +276,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | `ast_asset_sync_item` | 单对象来源键、摘要、处理结果和错误码 | `uk(tenant_id, batch_id, source_key)` |
 | `plt_integration_reconciliation` | 对账范围、差异、处理和最终结果 | 同一来源水位/范围幂等 |
 | `plt_migration_source_record` | 一次性迁移的逐源行原值、来源键、抽取批次和校验和 | `uk(tenant_id, source_system, source_table, source_record_key, extract_batch_id)`；`source_payload`不可变 |
+| `plt_directory_sync_snapshot` | HR必要人员、组织、岗位、在离职状态的本地同步副本和同步版本 | `uk(tenant_id, source_system, source_key)`；来源字段只读，停用不删除历史责任引用 |
 | `plt_external_key_mapping` | 旧主键/外部键到目标 Context、对象和 ID 的映射 | 一个来源键只能有一个当前有效目标；归并时保留全部来源键 |
 | `plt_migration_issue` | 重复、多义、空键、关系孤儿、状态/字典未知和数量缺失 | 问题关闭必须引用处理人、规则版本和目标结果；未关闭问题不得静默计入有效业务 |
 | `plt_migration_batch` | 抽取清单、输入哈希、规则/DDL版本、计数和状态 | 批次结果不可覆盖；重跑生成新批次并引用前批次 |

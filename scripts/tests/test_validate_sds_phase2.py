@@ -23,7 +23,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
         metadata = (
             "# Test\n\n"
             "> 文档状态：`BASELINE`  \n"
-            "> 适用基线：PRD V1.6  \n"
+            "> 适用基线：PRD V1.7  \n"
             "> Requirement ID：REQ-001  \n"
             "> Owner：Test  \n\n"
             "## Scope\n\n"
@@ -44,7 +44,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
         )
         rows = []
         contract_blocks = []
-        for number in range(1, 116):
+        for number in range(1, MODULE.EXPECTED_REQUIREMENT_COUNT + 1):
             identifier = f"REQ-{number:03d}"
             rows.append(
                 f"| {identifier} | {required} / "
@@ -81,12 +81,12 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             root = Path(temporary)
             matrix_path = self.build_fixture(root)
             matrix = matrix_path.read_text(encoding="utf-8")
-            matrix = matrix.replace("REQ-115", "REQ-114")
+            matrix = matrix.replace("REQ-104", "REQ-103")
             matrix = matrix.replace("../design/10-api-design.md", "../design/missing-api.md", 1)
             matrix_path.write_text(matrix, encoding="utf-8")
 
             errors = MODULE.validate(root)
-            self.assertTrue(any("expected 115 unique rows" in error for error in errors))
+            self.assertTrue(any("expected 104 unique rows" in error for error in errors))
             self.assertTrue(any("trace link target missing" in error for error in errors))
             self.assertTrue(any("REQ-001 missing required Phase 2 trace link" in error for error in errors))
 
@@ -96,7 +96,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             self.build_fixture(root)
             contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
             content = contract_path.read_text(encoding="utf-8")
-            content = content.replace("### REQ-115", "### REQ-999", 1)
+            content = content.replace("### REQ-104", "### REQ-999", 1)
             content = content.replace("- 数据表：proj_test", "- 数据表：proj_missing", 1)
             contract_path.write_text(content, encoding="utf-8")
 

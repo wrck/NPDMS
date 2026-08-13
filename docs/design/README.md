@@ -1,4 +1,4 @@
-# SDS 工作目录
+﻿# SDS 工作目录
 
 > 目录治理总则：见 [`docs/README.md`](../README.md)。本文件只补充 SDS 专属规则；任何评审稿、门禁证据、计划稿和临时分析必须按总则归档，禁止混入本目录。
 
@@ -63,4 +63,4 @@ Codex 按顺序维护：
 - 不确定的业务问题进入 `docs/decisions/open-questions.md`。
 - 每一阶段先 Review，再继续下一阶段。
 - SDS 通过后才进入 Feature Spec 和编码。
-- `specs/001-project-delivery-platform/domains/` 为历史参考资料；本目录的 SDS 必须直接以 PRD V1.6 和基线快照为准，并记录与旧规格的差异。
+- `specs/001-project-delivery-platform/domains/` 为历史参考资料；本目录的 SDS 必须直接以 PRD V1.7 和基线快照为准，并记录与旧规格的差异。

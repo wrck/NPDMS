@@ -16,6 +16,7 @@ DESIGN_FILES = (
     "19-performance-design.md",
     "20-test-design.md",
 )
+EXPECTED_REQUIREMENT_COUNT = 104
 REQUIREMENT_HEADING = re.compile(r"^###\s+([A-Z]+-\d+)\s*$", re.M)
 PHASE3_TEST = re.compile(r"^- Phase 3测试类别：(.+?)\s*$", re.M)
 PHASE3_EVIDENCE = re.compile(r"^- Phase 3证据类型：(.+?)\s*$", re.M)
@@ -46,7 +47,7 @@ def validate(root: Path) -> list[str]:
             continue
         text = path.read_text(encoding="utf-8")
         documents[name] = text
-        for marker in ("文档状态：`IN_REVIEW`", "适用基线：PRD V1.6", "Requirement ID：", "Owner："):
+        for marker in ("文档状态：`IN_REVIEW`", "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
             if marker not in text:
                 errors.append(f"{name} missing metadata: {marker}")
 
@@ -91,8 +92,8 @@ def validate(root: Path) -> list[str]:
         if "Phase 3验证注记状态：`IN_REVIEW`" not in contract_text:
             errors.append("contract map missing Phase 3 IN_REVIEW marker")
         blocks = parse_contract_blocks(contract_text)
-        if len(blocks) != 115:
-            errors.append(f"expected 115 Phase 3 verification mappings, got {len(blocks)}")
+        if len(blocks) != EXPECTED_REQUIREMENT_COUNT:
+            errors.append(f"expected {EXPECTED_REQUIREMENT_COUNT} Phase 3 verification mappings, got {len(blocks)}")
         for identifier, block in blocks.items():
             tests = PHASE3_TEST.findall(block)
             evidence = PHASE3_EVIDENCE.findall(block)
@@ -150,7 +151,7 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] SDS Phase 3 documents, NFR controls and 115 verification mappings")
+    print(f"[PASS] SDS Phase 3 documents, NFR controls and {EXPECTED_REQUIREMENT_COUNT} verification mappings")
     return 0
 
 

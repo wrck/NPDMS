@@ -14,7 +14,7 @@ Lower-level artifacts may refine higher-level artifacts but must not silently ch
 
 Before modifying design or code, read:
 
-1. `docs/baseline/prd-v1.6.md`
+1. `docs/baseline/prd-v1.7.md`
 2. `docs/engineering/00-engineering-chain.md`
 3. `docs/README.md`（文档分类、状态和归档规则）
 4. the relevant SDS section under `docs/design/`

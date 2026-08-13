@@ -1,8 +1,8 @@
-# SDS Phase 2：事件设计
+﻿# SDS Phase 2：事件设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
-> Requirement ID：本分册覆盖全部 115 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：本分册覆盖全部 104 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
 > Owner：SDS Phase 2 事件与集成架构
 > 前置设计：`02d-cross-context-contracts.md`、`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
 
@@ -101,22 +101,27 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 
 ## 6. IMP、ACC 与 CUT 事件
 
-适用 Requirement：EXE-01～EXE-06、IMP-01～IMP-02、ACC-01～ACC-06、CLO-01～CLO-06、CUT-01～CUT-10。
+适用 Requirement：EXE-01～EXE-06、IMP-01～IMP-02、ACC-01～ACC-06、CLO-01～CLO-02、CUT-01～CUT-11。
 
 | 事件 | Producer | Consumer | Payload 核心 | 注意 |
 |---|---|---|---|---|
 | `ArrivalAccepted` | IMP | COM/ACC/ANA | arrivalId、projectId、accepted quantities、version | 差异未处理时不得表达齐套完成 |
 | `InstallationConfirmed` | IMP | ACC/AST/ANA | installationId、deviceId、location snapshot ref | 不修改设备外部身份 |
 | `ConfigurationParsed` | IMP | CUT/ACC/ANA | resultId、collectionTaskId、parserVersion、resultRef | 解析成功不等于业务联调完成 |
+| `DeviceComponentRelationChanged` | AST | IMP/CUT/Asset Query | chassisDeviceId、slotCode、cardDeviceId、effective interval、sourceRef、version | 仅在解析候选或人工绑定经校验后发布；原始Log和旧关系不覆盖 |
 | `JointDebuggingCompleted` | IMP | CUT/ACC | resultId、issueRefs、decision | 未完成问题需显式列出 |
 | `ImplementationRiskRaised/Closed` | IMP | Project/CUT Read Model | riskId、level、deviceId、evidenceRef | CUT 只消费引用，不共享风险状态表 |
 | `QualitySafetyGateChanged` | IMP | Project/ACC/CUT | project/batch、gateCode、decision、snapshotId | 阻断/解除均带规则和复核版本 |
 | `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、hash、source snapshot | ACC 审核引用，不覆盖 IMP revision |
 | `ImplementationReadinessSnapshotPublished` | IMP | CUT | snapshotId、version、decision、unmetCodes | CUT 执行冻结所校验快照 |
 | `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | artifactId、fileVersion、review/archive record | 归档不改变 FileArtifact 内容历史 |
+| `SatisfactionTaskCreated` | ACC | Todo/Project | taskId、projectId、businessRef、questionnaireRevision、assignee | 创建待办，不表示客户已提交或满意度通过 |
+| `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |
 | `CutoverApproved` | CUT | Todo/DAC | taskId、planRevision、approval snapshot | 不自动下发采集任务 |
 | `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、executionRevision、resultRef | 失败任务不发布完成事件 |
+| `CutoverSupportTaskChanged` | CUT | Project/Todo/ANA | supportTaskId、cutoverTaskId、statusMachineVersion、responsibilityIntervalId | 派发、处理、接管、转交、挂起和恢复发布当前版本；责任历史只追加 |
+| `CutoverSupportClosed` | CUT | Project/Todo/ANA | supportTaskId、cutoverTaskId、statusMachineVersion、responsibilityIntervalId、resultRef | 证据门禁通过并关闭；保障任务关闭不等于CUT-06执行成功 |
 
 ## 7. Collection 事件链
 
@@ -152,20 +157,18 @@ Device Access & Collection
 
 临时登录用户名可按最小必要原则保存在采集任务事实中；临时密码永不进入事件。凭证模式只传 credentialId/version 与授权快照引用，不传可逆密文。`BUSINESS_CONSUMPTION` 与 `CALLBACK_TERMINAL` 在任务创建时冻结：前者只用于 IMP/CUT/Inspection，后者只用于 PRD 定义的独立中心，不允许用模糊“契约终态”跳过业务消费确认。
 
-## 8. Inspection、Work Order 与 Service 事件
+## 8. Inspection 与 Service 事件
 
-适用 Requirement：INS-01～INS-09、WO-01～WO-06、SRV-01、INT-05。
+适用 Requirement：INS-01～INS-09、SRV-01、INT-05。
 
 | 事件 | Producer | Consumer | 语义 |
 |---|---|---|---|
 | `InspectionDispatched` | Inspection | Todo/ANA | 巡检业务任务已进入执行安排；在线采集另行发送 `CollectionTaskRequested`，DAC 不消费本事件 |
 | `InspectionCompleted` | Inspection | ACC/ANA | 规则快照范围内巡检结果已完成 |
 | `InspectionIssueRaised/Closed` | Inspection | Todo/Service Operations | 问题产生/闭环事实，不等于工单完成 |
-| `WorkOrderSynchronized` | Work Order | Project/ANA | 钉钉或平台记录按来源幂等形成工单 |
-| `TimeClaimApproved` | Work Order | Project/ANA | 工时审批完成，包含原值和调整事实引用 |
 | `ServiceStatusChanged` | Service Operations | Asset/Project/ANA | 客观服务状态或提示改变，不含续保动作 |
 
-通知失败通过 `NotificationDeliveryFailed` 反映，但不回滚业务事件，不改变工单/巡检/割接的完成时间。
+通知失败通过 `NotificationDeliveryFailed` 反映，但不回滚业务事件，不改变满意度任务、巡检、割接或闭环的业务状态。
 
 ## 9. 主数据、商务、资源与知识事件
 

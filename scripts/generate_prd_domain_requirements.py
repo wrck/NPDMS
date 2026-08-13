@@ -47,12 +47,12 @@ DOMAIN_BOUNDARIES = {
     "SOL": "工前准备、工勘、需求分析、施工计划、实施方案和方案基线。",
     "IMP": "现场到货签收、安装、配置、联调、实施风险及现场实施证据。",
     "CUT": "割接任务、分级、采集清单、方案、审批、执行、回退、观察和闭环。",
-    "ACC": "培训、满意度、验收报告、交付件、项目闭环、回访问卷和关闭门禁。",
+    "ACC": "培训、满意度收集、验收报告、交付件、项目闭环和关闭门禁。",
     "AST": "设备身份、设备档案、配置日志、设备来源同步和资产关联；维保信息仅为设备基本信息。",
     "RES": "服务商、转包、付款、外包审批以及资源与工时协作。",
-    "SRV": "服务工单、割接保障工单、巡检任务、巡检报告和服务运营闭环。",
+    "SRV": "巡检任务、巡检报告和服务运营闭环；不拥有通用工单或割接保障任务。",
     "KNO": "技术公告、版本影响、知识命中与处置；本轮PRD无直接正式需求。",
-    "ANA": "工时、人效、项目状态和经营指标的只读统计分析。",
+    "ANA": "项目状态和经批准经营指标的只读统计分析；工时和人效指标仅保留为P3候选。",
 }
 
 PREFIX_OWNER = {
@@ -103,7 +103,7 @@ INTEGRATION_OWNER = {
 
 OUT_SCOPE = {
     "WO-07": ("SRV", "平台通用割接时效管控", "仅保留CUT-05专项提前时间规则"),
-    "FR-SRV-014": ("SRV", "平台通用工单时效/SLA", "不建设通用工单超期升级和服务级别计时；WO-01打卡补单规则不扩展为通用SLA"),
+    "FR-SRV-014": ("SRV", "平台通用工单时效/SLA", "不建设通用工单超期升级和服务级别计时"),
     "WO-11": ("SRV", "维保机会点工单", "维保经营能力不建设"),
     "FR-PROJ-023": ("PROJ", "项目日报与周报", "结构化项目数据及看板聚合继续保留"),
     "FR-SRV-019": ("SRV", "独立维保档案经营能力", "设备档案维保基本信息保留"),
@@ -236,8 +236,8 @@ def render_domain(domain: str, requirements: dict[str, Requirement], formal_rows
         detail.append("本轮PRD未定义本领域直接负责的V1/V2正式需求，不新增业务能力；本领域仅承接其他领域通过依赖、输入、输出或事件引用的协作边界。")
     return f"""# {domain}领域需求：{name}
 
-> 文档状态：正式基线（来源PRD V1.6）<br>
-> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.6，正式基线）<br>
+> 文档状态：正式基线（来源PRD V1.7）<br>
+> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.7，正式基线）<br>
 > 领域编码：`{domain}`<br>
 > 业务Owner：{name}<br>
 > 详细需求：{len(selected)}项
@@ -287,8 +287,8 @@ def main() -> int:
     v3_rows = _find_v3_rows(lines)
     cross_rows = _find_cross_v3_rows(lines)
     requirements = _extract_requirements(text, set(formal_rows))
-    if len(requirements) != 115:
-        raise RuntimeError(f"expected 115 formal requirements, got {len(requirements)}")
+    if len(requirements) != 104:
+        raise RuntimeError(f"expected 104 formal requirements, got {len(requirements)}")
     args.output.mkdir(parents=True, exist_ok=True)
     for domain in DOMAIN_ORDER:
         target = args.output / f"{domain}-{DOMAIN_NAMES[domain]}需求规格.md"

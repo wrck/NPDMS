@@ -1,8 +1,8 @@
-# SDS Phase 1：领域模型
+﻿# SDS Phase 1：领域模型
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
-> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
@@ -18,9 +18,8 @@
 | Project Delivery | 项目、模板、阶段、任务 | 客户、合同、设备、交付件 | 客户主数据、设备主档 |
 | Preparation & Solution | 工勘、需求分析、计划、方案 | 项目、模板、人员 | 项目主状态 |
 | Implementation Execution | 到货、安装、采集结果、质量检查、安全检查、实施阶段交付件/证据上传 | 项目、设备、采集任务、文件服务 | 设备主档核心身份、验收归档状态 |
-| Acceptance & Closure | 培训、验收、交付件齐套校验、审核、统一归档、问卷、闭环交接 | 项目、实施证据、方案、问题、文件 | 外部合同/财务事实、现场实施原始证据 |
-| Cutover | 割接任务、评估、方案、执行结果 | 项目、设备、采集任务、风险/调研字典 | 采集执行引擎、设备凭证明文 |
-| Work Order & Time | WO-01～WO-06 工单、责任区间、打卡和工时 | 项目、设备、割接任务 | 项目主状态、设备主档 |
+| Acceptance & Closure | 培训、验收、满意度收集、交付件齐套校验、审核、统一归档和闭环交接 | 项目、实施证据、方案、问题、文件 | 外部合同/财务事实、现场实施原始证据 |
+| Cutover | 割接任务、评估、方案、执行结果、割接保障任务及责任区间 | 项目、设备、采集任务、风险/调研字典 | 采集执行引擎、设备凭证明文、通用工单 |
 | Inspection | INS-01～INS-09 巡检任务、规则、报告和问题闭环 | 项目、设备、采集结果 | 设备凭证授权、外部UMC原始数据 |
 | Service Operations | SRV-01 设备服务状态和持续服务跟踪 | 设备、客户、服务交接事实 | 设备主档核心身份、外部服务原始数据 |
 | Customer & Relationship | 客户同步副本、临时客户、联系人和客户关系 | 合同、项目、设备 | CRM权威字段、项目交付状态 |
@@ -36,14 +35,16 @@
 
 | 聚合根 | 关键不变量 |
 |---|---|
-| Project | 项目编码唯一；父子关系无环；项目层级不设固定深度；父项目只汇总直接子项目快照；闭环需满足全部后代闭环门禁 |
+| Project | 项目编码唯一；CRM来源默认沿用CRM项目编码；合同、订单、执行单通过关系关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用；父子关系无环且层级不设固定深度；闭环需满足全部后代闭环门禁 |
 | ProjectTask | 任务父子关系无环；任务层级可配置；状态变化必须经过受控 transition；查询按项目树索引和权限范围过滤 |
-| Device | 序列号/设备身份唯一；同一时点同一设备只能有一个当前项目归属；历史归属通过关系版本保留 |
+| Device | 序列号/设备身份唯一；同一时点同一设备只能有一个当前项目归属；机框、槽位、板卡当前关系唯一且按生效区间保留换板历史；历史归属通过关系版本保留 |
 | DeviceCredential | 默认仅创建人可用；授权绑定用户、设备、协议、命令模板和有效期；任何业务不得读取明文 |
 | CollectionTask | 幂等键唯一；临时密码不落库；外部状态原值保留；回调重复不得重复消费 |
 | CutoverTask | 等级确认后才能进入对应审批；执行前必须满足方案、采集和审批门禁；失败保留原任务证据 |
+| CutoverSupportTask | 必须关联割接任务、项目、设备和保障时间窗；派发、接管、转交、挂起、恢复和关闭均经受控状态机；责任区间和历史不可覆盖；关闭不替代割接执行结论 |
 | InspectionTask | 在线/离线模式互斥；规则版本冻结到任务；报告生成和问题闭环可追溯 |
-| ProjectClosure | 交付件、回访、材料审核等门禁全部满足后才能闭环；闭环后 V1/V2 只读，完成后通过事件请求 Project 关闭 |
+| SatisfactionCollection | 任务冻结问卷模板、题目、分值和阈值版本；客户有效答卷、签字和达标结果不可覆盖；未达标必须整改后创建新任务和新问卷版本 |
+| ProjectClosure | 交付件、有效满意度结果（模板要求时）、材料审核等门禁全部满足后才能闭环；闭环后 V1/V2 只读，完成后通过事件请求 Project 关闭 |
 
 ## 3.1 Implementation Execution 内部聚合拆分
 
@@ -70,7 +71,7 @@
 
 `Project/Device → Inspection → Device Access & Collection / UMC / Customer & Relationship`
 
-`Work Order & Time → Project Delivery` 发布工单与工时快照；`Service Operations` 消费项目闭环和设备服务事实。
+`Cutover → Project Delivery` 发布割接保障任务进度和结果引用；`Service Operations` 消费项目闭环和设备服务事实。历史工单与工时仅作为不可删除的只读迁移资料，不形成当前可流转Context或聚合。
 
 `基础平台能力`通过命令、查询、事件和统一权限服务横向支撑各 Context，不作为万能业务 Context，也不拥有业务域交易数据；`集成适配层`只负责协议、映射、幂等、重试和对账。
 

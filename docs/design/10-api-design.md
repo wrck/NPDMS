@@ -1,8 +1,8 @@
-# SDS Phase 2：API 设计
+﻿# SDS Phase 2：API 设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
-> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
 > Owner：SDS Phase 2 应用与接口架构
 > 前置设计：`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`
 
@@ -128,7 +128,7 @@
 |---|---|---|
 | ArrivalAcceptance | `/arrival-acceptances` | `confirm`、`raise-difference`、`resolve-difference`；最终确认按 PRD 由项目经理执行 |
 | InstallationRecord | `/installation-records` | `submit`、`confirm`、`return`；确认/退回按 PRD 由项目经理执行 |
-| ConfigurationCollectionResult | `/configuration-results` | `consume-callback` 为内部命令；用户可查看和按已定义场景确认解析结果，不新增“业务 Owner 审批” |
+| ConfigurationCollectionResult | `/configuration-results`、`/devices/{id}/component-relations` | `consume-callback` 为内部命令；解析候选可待匹配/人工绑定；绑定通过AST命令结束旧关系并新增时态关系，不修改原始Log |
 | JointDebuggingResult | `/debugging-results` | 关联 CollectionTask；记录联调结论和问题引用 |
 | ImplementationRisk | `/implementation-risks` | `raise`、`treat`、`close`；不调用 CUT 风险状态接口 |
 | ImplementationQualityCheck | `/quality-checks` | `submit`、`review`、`complete-remediation`、`re-review` |
@@ -140,7 +140,7 @@
 
 ## 8. ACC：验收与项目闭环 API
 
-适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-06。
+适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。
 
 | 路径 | 命令 | 约束 |
 |---|---|---|
@@ -149,13 +149,15 @@
 | `/closure-gates/{projectId}` | `GET` | 返回所有后代项目的门禁快照和水位 |
 | `/project-closures` | `create`、`submit`、`review`、`complete` | complete 发布事件请求 Project 关闭，不直写 Project 表 |
 | `/service-handovers` | create、`submit`、`accept` | 只做持续服务交接，不提供 renew/续保接口 |
-| `/surveys` | create、submit、review、export | V1/V2 按具体 Requirement；导出遵守项目数据范围 |
+| `/satisfaction-tasks` | create、assign、send、recollect、list/detail | 创建时冻结问卷模板/阈值；未达标只能整改后新建任务和问卷版本 |
+| `/satisfaction-questionnaires/{token}/responses` | submit | 一次性实例、必答/签字校验和幂等提交；客户答案不可由内部用户修改 |
+| `/satisfaction-results` | GET、export | 只读判定；导出按数据/字段/文件权限裁剪并生成导出审计 |
 
 历史 `/pms/acc-maintenance-transition/*` 的 create/renew/activate 等入口必须在兼容切换后冻结，不映射为新 ServiceHandover 命令。
 
 ## 9. CUT：割接 API
 
-适用 Requirement：CUT-01～CUT-10。
+适用 Requirement：CUT-01～CUT-11。
 
 | 路径 | 命令/查询 | 关键约束 |
 |---|---|---|
@@ -166,20 +168,21 @@
 | `/cutover-tasks/{id}/actions/start` | POST | 校验批准方案、授权、采集和 IMP readiness 快照 |
 | `/cutover-executions/{id}/steps/{stepId}/actions/{start|complete|fail}` | POST | 保存动作类型、方向和有符号值；失败保留证据 |
 | `/cutover-tasks/{id}/observations` | POST/GET | 稳定观察事实；不引入平台通用割接时效管控 |
+| `/cutover-support-tasks` | create/list/detail | 必须关联CUT任务、项目、设备和保障时间窗；同一职责和时间窗幂等 |
+| `/cutover-support-tasks/{id}/actions/{assign|start|takeover|transfer|suspend|resume|close}` | POST | 服务端按冻结状态机版本校验；接管/转交更新责任区间；关闭校验证据且不替代CUT执行结论 |
 
-## 10. SRV：工单、巡检与服务状态 API
+## 10. SRV：巡检、服务状态与历史资料 API
 
-适用 Requirement：WO-01～WO-06、INS-01～INS-09、SRV-01。
+适用 Requirement：INS-01～INS-09、SRV-01；历史资料读取边界依据ADR-0024，不构成当前工单/工时能力。
 
 | Context | API | 约束 |
 |---|---|---|
-| Work Order & Time | `/work-orders`、`/{id}/actions/{submit|approve|reject|merge}` | 来源幂等；排除工单时效考核；通知失败不改变工单业务状态 |
-| Work Order & Time | `/time-claims`、`/{id}/actions/{submit|approve|adjust}` | 调整保存方向、正负值和原值，不覆盖原申报 |
 | Inspection | `/inspection-rules`、`/{id}/revisions` | 发布 revision 只读；任务冻结规则版本 |
 | Inspection | `/inspection-tasks`、`/{id}/actions/{precheck|dispatch|complete|archive}` | 在线通过 DAC；离线文件走受控上传；模式互斥 |
 | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
 | Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
+| Historical Service Records | `/historical-work-orders`、`/historical-time-records` | 仅授权查询/导出；无create/update/action接口；保留来源键、原状态、责任、附件、审批和操作证据，导出留痕 |
 
 ## 11. CUS、AST、COM、RES 与 KNO API
 
@@ -279,6 +282,7 @@
 适用 Requirement：INT-01～INT-07、INT-09～INT-10、INT-12，以及对应领域 Requirement。
 
 - 外部同步使用 `/internal/integrations/{system}/{object}:sync` 或受控消息 Consumer；普通用户不可调用。
+- HR目录同步统一通过内部契约 `/integration/hr/directory` 接收必要人员、组织、岗位和任职状态的增量/全量批次；按来源键、来源版本与批次幂等，不返回为业务授权成功。
 - 人工补录/平台记录是独立降级命令，必须保存来源和原因，不伪造外部 sourceKey。
 - 重试沿用原同步批次/幂等范围；补偿和对账 API 只对集成运维角色开放。
 - CRM 是统一系统名称；文档和 API 不再使用 SMS 表示另一套客户系统。

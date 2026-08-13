@@ -19,6 +19,7 @@ PHASE2_DOCS = (
     "15-cache-and-concurrency.md",
     "16-exception-and-idempotency.md",
 )
+EXPECTED_REQUIREMENT_COUNT = 104
 REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.M)
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
@@ -78,7 +79,7 @@ def validate(root: Path) -> list[str]:
             errors.append(f"missing Phase 2 document: {path.relative_to(root)}")
             continue
         text = read(path)
-        for marker in ("文档状态：`BASELINE`", "适用基线：PRD V1.6", "Requirement ID：", "Owner："):
+        for marker in ("文档状态：`BASELINE`", "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
             if marker not in text:
                 errors.append(f"{path.relative_to(root)} missing metadata: {marker}")
 
@@ -87,9 +88,12 @@ def validate(root: Path) -> list[str]:
 
     matrix = read(matrix_path)
     identifiers = REQUIREMENT_ROW.findall(matrix)
-    if len(identifiers) != 115 or len(set(identifiers)) != 115:
-        errors.append(f"requirement matrix expected 115 unique rows, got rows={len(identifiers)} unique={len(set(identifiers))}")
-    if matrix.count("SDS-P2-BASELINE") != 115:
+    if len(identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(identifiers)) != EXPECTED_REQUIREMENT_COUNT:
+        errors.append(
+            f"requirement matrix expected {EXPECTED_REQUIREMENT_COUNT} unique rows, "
+            f"got rows={len(identifiers)} unique={len(set(identifiers))}"
+        )
+    if matrix.count("SDS-P2-BASELINE") != EXPECTED_REQUIREMENT_COUNT:
         errors.append("every requirement row must carry SDS-P2-BASELINE evidence")
 
     if not contract_path.is_file():
@@ -208,7 +212,7 @@ def main() -> int:
             print(f"[FAIL] {error}")
         print(f"SUMMARY: {len(errors)} Phase 2 validation issues")
         return 1
-    print("[PASS] SDS Phase 2 documents and 115 requirement trace links")
+    print(f"[PASS] SDS Phase 2 documents and {EXPECTED_REQUIREMENT_COUNT} requirement trace links")
     return 0
 
 

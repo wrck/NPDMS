@@ -1,16 +1,16 @@
 # SDS Phase 1 Review
 
 > 审查状态：`APPROVED`
-> 依据：PRD V1.6、基线快照、正式工程链 V1.6
+> 依据：PRD V1.7、基线快照、正式工程链 V1.7
 > 结论：`READY_FOR_PHASE_2`
 > Phase 1硬门禁：领域Owner签署、实现工作包登记、采集平台集成形态确认均已通过。
-> 独立第三方评审：`GO`；详见 `docs/engineering/gates/phase-1/independent-review.md`。
+> 独立第三方评审：V1.6结论为`GO`，详见`docs/engineering/gates/phase-1/independent-review.md`；V1.7为需求方批准的ADR-0024差量并已通过机器校验与自审，本文件不将其表述为新增独立评审结论。
 
 ## 1. 审查清单
 
 | 检查项 | 结果 | 说明 |
 |---|---|---|
-| 115 项正式需求进入追溯 | PASS | 追溯矩阵 115/115，V1 57、V2 58；已补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别工作映射 |
+| 104 项正式需求进入追溯 | PASS | 追溯矩阵 104/104，V1 55、V2 49；已按 ADR-0024 完成业务反馈差量重构，并补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别映射 |
 | V1/V2/V3/OUT_OF_SCOPE 边界 | PASS | V3 和排除项未进入当前实现设计 |
 | Bounded Context | PASS | 已按 PRD-derived Owner 工作映射拆分，并由需求方确认；细化 Context 与平台能力边界已回写 |
 | 聚合边界 | PASS-WITH-FOLLOWUP | 项目、设备、采集、割接、巡检已分离；需在 Phase 2 落实表级边界 |

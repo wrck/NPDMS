@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the explicit 115-requirement Phase 2 implementation-contract map."""
+"""Generate the explicit 104-requirement Phase 2 implementation-contract map."""
 
 from __future__ import annotations
 
@@ -56,30 +56,29 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
 
     (("EXE-01",), contract("ArrivalAcceptance", "imp_arrival_acceptance、imp_arrival_line、imp_arrival_difference", "/arrival-acceptances", events="ArrivalAccepted", files="FileArtifact", workflow="草稿、差异处理、项目经理最终确认", authorization="ImplementationProjectBatchScope；项目经理确认")),
     (("EXE-02",), contract("InstallationRecord", "imp_installation_record、imp_installation_item、imp_installation_evidence", "/installation-records", events="InstallationConfirmed", files="FileArtifact", workflow="提交、项目经理确认/退回和整改", authorization="ImplementationProjectDeviceScope；设备归属与项目权限")),
-    (("EXE-03",), contract("ConfigurationCollectionResult、CollectionTask", "imp_configuration_collection_result、imp_configuration_collection_parse_attempt、plt_collection_task", "/configuration-results、/collection-tasks", events="ConfigurationParsed、CollectionResultConsumed", integration="现有采集平台子应用", files="FileArtifact", workflow="采集回调、解析、业务消费确认", authorization="ImplementationProjectDeviceCollectionScope、BusinessObjectDeviceCredentialScope")),
+    (("EXE-03",), contract("ConfigurationCollectionResult、DeviceComponentRelation、CollectionTask", "imp_configuration_collection_result、imp_configuration_collection_parse_attempt、imp_configuration_component_candidate、ast_device_component_relation、plt_collection_task", "/configuration-results、/devices/{id}/component-relations、/collection-tasks", events="ConfigurationParsed、DeviceComponentRelationChanged、CollectionResultConsumed", integration="现有采集平台子应用", files="FileArtifact", workflow="采集回调、框板解析、待匹配/人工绑定和业务消费确认", authorization="ImplementationProjectDeviceCollectionScope、BusinessObjectDeviceCredentialScope；设备关系维护权限")),
     (("EXE-04",), contract("JointDebuggingResult、CollectionTask", "imp_joint_debugging_result、imp_joint_debugging_item、plt_collection_task", "/debugging-results、/collection-tasks", events="JointDebuggingCompleted、CollectionResultConsumed", integration="现有采集平台子应用", files="FileArtifact", workflow="采集回调、联调结论和问题引用", authorization="ImplementationProjectDeviceCollectionScope、BusinessObjectDeviceCredentialScope")),
     (("EXE-05",), contract("ImplementationRisk", "imp_risk、imp_risk_treatment", "/implementation-risks", events="ImplementationRiskRaised/Closed", files="FileArtifact", workflow="风险提出、处置和关闭", authorization="ImplementationProjectDeviceScope；风险范围")),
     (("EXE-06",), contract("ImplementationReadinessSnapshot", "proj_project_stage_snapshot", "/implementation-readiness/{projectId}", events="ImplementationReadinessSnapshotPublished", workflow="就绪门禁汇总、快照发布与CUT消费", authorization="ImplementationProjectCutoverScope")),
     (("IMP-01",), contract("ImplementationQualityCheck", "imp_quality_check、imp_quality_item、imp_quality_remediation、imp_quality_review", "/quality-checks", events="QualitySafetyGateChanged", files="FileArtifact", workflow="提交→复核→整改→再复核", authorization="ImplementationProjectBatchScope；复核权限")),
     (("IMP-02",), contract("ImplementationSafetyCheck", "imp_safety_check、imp_safety_item、imp_safety_remediation、imp_safety_exemption", "/safety-checks", events="QualitySafetyGateChanged", files="FileArtifact", workflow="提交→复核→阻断→整改/豁免→再复核", authorization="ImplementationProjectBatchScope；安全复核/豁免权限")),
 
-    (("ACC-01", "ACC-02", "ACC-03"), contract("Acceptance", "acc_acceptance、acc_acceptance_item、acc_confirmation", "/acceptances、/surveys", files="FileArtifact", workflow="培训/调查/报告提交、确认和问题留痕", authorization="ProjectStageScope、FileBusinessScope")),
+    (("ACC-01", "ACC-03"), contract("Acceptance", "acc_acceptance、acc_acceptance_item、acc_confirmation", "/acceptances", files="FileArtifact", workflow="培训/报告提交、确认和问题留痕", authorization="ProjectStageScope、FileBusinessScope")),
+    (("ACC-02",), contract("SatisfactionCollection", "acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result", "/satisfaction-tasks、/satisfaction-questionnaires/{token}/responses、/satisfaction-results", events="SatisfactionTaskCreated、SatisfactionResultRecorded", files="FileArtifact", workflow="冻结模板→指派→客户提交→判定→整改后新版本重收→归档", authorization="ProjectStageScope；客户一次性实例范围；答案/签字不可改写")),
     (("ACC-04",), contract("DeliveryArtifact", "acc_delivery_artifact、acc_artifact_review、acc_archive_record", "/delivery-artifacts", events="ArtifactAccepted/Archived", files="FileArtifact", workflow="齐套检查、审核和归档分离", authorization="ProjectStageScope、FileBusinessScope；ACC归档")),
-    (("CLO-01", "CLO-02", "CLO-03", "CLO-04", "CLO-05", "CLO-06"), contract("ProjectClosure、ClosureGateSnapshot", "acc_project_closure、acc_closure_gate_snapshot、acc_closure_review", "/closure-gates/{projectId}、/project-closures、/surveys", events="ProjectClosureCompleted", files="FileArtifact", workflow="门禁校验、分支回访、审批、整改和闭环", authorization="ProjectStageScope；全部后代项目门禁与审批范围")),
+    (("CLO-01", "CLO-02"), contract("ProjectClosure、ClosureGateSnapshot、SatisfactionCollection", "acc_project_closure、acc_closure_gate_snapshot、acc_closure_review、acc_satisfaction_result", "/closure-gates/{projectId}、/project-closures", events="ProjectClosureCompleted", files="FileArtifact", workflow="门禁校验、冻结流程审批、整改和闭环；不创建回访节点", authorization="ProjectStageScope；全部后代项目门禁与审批范围")),
     (("ACC-05", "ACC-06"), contract("ServiceHandover、ProjectClosure", "acc_service_handover、acc_handover_item、acc_handover_result", "/service-handovers", events="ProjectClosureCompleted", files="FileArtifact", workflow="遗留问题及持续服务交接、接收确认", authorization="ProjectStageScope；交接双方项目/服务范围")),
 
-    (("WO-01", "WO-02", "WO-03", "WO-05", "WO-06"), contract("WorkOrder", "srv_work_order、srv_work_order_handling_record", "/work-orders", events="WorkOrderSynchronized", integration="钉钉", files="FileArtifact", workflow="来源同步、关联设备/项目、处理与合并", authorization="AssignedProjectDeviceScope；责任区间")),
-    (("WO-04",), contract("TimeClaim", "srv_time_claim、srv_time_adjustment", "/time-claims", events="TimeClaimApproved", integration="钉钉", files="FileArtifact", workflow="申报、审批和保留原值的调整", authorization="AssignedProjectDeviceScope；申报人与审批人")),
     (("SUB-01", "SUB-02", "SUB-05"), contract("SubcontractRequest", "res_subcontract_request", "/subcontract-requests", events="SubcontractApproved", integration="OA", files="FileArtifact", workflow="平台内转包审批、价格审批与版本冻结", authorization="OrganizationSupplierScope；项目/供应商范围")),
-    (("SUB-03", "SUB-04"), contract("PaymentGate", "res_payment_gate", "/payment-gates", events="PaymentGateChanged", integration="财务系统", files="FileArtifact", workflow="付款前置回访、批准版本和财务确认", authorization="OrganizationSupplierScope；付款门禁权限")),
+    (("SUB-03", "SUB-04"), contract("PaymentGate、SatisfactionCollection", "res_payment_gate、acc_satisfaction_result", "/payment-gates", events="PaymentGateChanged", integration="财务系统", files="FileArtifact", workflow="付款前置满意度事实、批准版本和财务确认", authorization="OrganizationSupplierScope；付款门禁权限；满意度只读引用")),
 
     (("CUS-01", "CUS-02", "CUS-03", "CUS-04"), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation", "/customers、/customer-contacts、/customer-relationships", events="CustomerMerged、MasterDataSynchronized", integration="CRM", workflow="客户同步、临时客户受控合并和联系人关系", authorization="OrganizationCustomerScope；CRM字段只读")),
-    (("EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"), contract("Device、DeviceArchive、DeviceCurrentAssignment", "ast_device、ast_device_current_assignment、ast_device_assignment_history", "/devices、/devices/{id}/archive、/devices/{id}/assignment-history", events="DeviceAssigned", files="FileArtifact", workflow="设备档案、配置Log引用、扫码和唯一归属", authorization="ProjectDeviceScope；当前归属与祖先范围")),
+    (("EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"), contract("Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment", "ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history", "/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history", events="DeviceAssigned、DeviceComponentRelationChanged", files="FileArtifact", workflow="设备档案、配置Log引用、框板关系、扫码和唯一归属", authorization="ProjectDeviceScope；当前归属、框板关系维护与祖先范围")),
     (("EQP-04",), contract("AssetSyncSnapshot、Device", "ast_asset_sync_batch、ast_asset_sync_item、ast_device", "/devices", events="MasterDataSynchronized", integration="MES", workflow="MES来源版本幂等同步与冲突隔离", authorization="ProjectDeviceScope；MES字段只读")),
     (("AST-01",), contract("RMAReplacement、MaintenanceFact", "ast_rma_replacement、ast_maintenance_fact", "/rma-replacements、/devices/{deviceId}/service-status", events="DeviceStatusSynchronized", integration="备件系统", files="FileArtifact", workflow="RMA替换、设备归属校验和维保事实衔接", authorization="ProjectDeviceScope；设备与来源范围")),
     (("AST-02", "SRV-01"), contract("MaintenanceFact、ServiceStatus", "ast_maintenance_fact、srv_service_status", "/devices/{deviceId}/service-status", events="ServiceStatusChanged", integration="CRM", workflow="客观维保/停产停维状态计算与提示", authorization="ProjectDeviceScope；客观事实只读")),
 
-    (("RPT-01", "RPT-02", "RPT-04"), contract("MetricSnapshot", "ana_metric_snapshot", "/analytics/metrics", events="MetricSnapshotPublished", workflow="指标口径计算、快照发布和水位展示", authorization="OrganizationReportScope；字段级脱敏")),
+    (("RPT-02",), contract("MetricSnapshot", "ana_metric_snapshot", "/analytics/metrics", events="MetricSnapshotPublished", workflow="项目状态指标口径计算、快照发布和水位展示", authorization="OrganizationReportScope；字段级脱敏")),
     (("PROJ-12",), contract("ProjectPortfolio", "proj_project_portfolio、proj_project_portfolio_member、proj_project_portfolio_revision", "/project-portfolios", events="ProjectPortfolioPublished", workflow="组合成员、发布快照和下钻", authorization="ProjectTreeScope；组合汇总不扩权")),
     (("ANA-01",), contract("PortfolioView、MetricSnapshot", "ana_portfolio_projection、ana_metric_snapshot", "/analytics/portfolios/{id}、/analytics/metrics", events="MetricSnapshotPublished", workflow="组合指标快照生成与只读展示", authorization="OrganizationReportScope；下钻回项目权限")),
 
@@ -87,6 +86,7 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("CUT-03", "CUT-04", "CUT-05", "CUT-07"), contract("CutoverPlan", "cut_plan_revision、cut_step", "/cutover-tasks/{id}/plan-revisions", events="CutoverApproved", files="FileArtifact", workflow="动态清单、方案编审、分级审批和版本冻结", authorization="CutoverTaskScope；分级审批权限")),
     (("CUT-06",), contract("CutoverExecution、CollectionTask", "cut_execution、cut_execution_step、cut_observation、plt_collection_task", "/cutover-tasks/{id}/actions/start、/cutover-executions/{id}/steps/{stepId}/actions/{start|complete|fail}", events="CollectionResultConsumed、CutoverCompleted", integration="现有采集平台子应用、ITR", files="FileArtifact", workflow="门禁、步骤执行、回退、观察和业务消费", authorization="CutoverTaskScope、BusinessObjectDeviceCredentialScope")),
     (("CUT-08",), contract("CutoverTask", "cut_task、ast_asset_sync_item", "/cutover-tasks", integration="备件系统", workflow="备件申请映射、回调、门禁和对账", authorization="CutoverTaskScope；外部备件范围")),
+    (("CUT-11",), contract("CutoverSupportTask、ResponsibilityInterval", "cut_cutover_support_task、cut_cutover_support_responsibility_interval、cut_cutover_support_history", "/cutover-support-tasks、/{id}/actions/{assign|start|takeover|transfer|suspend|resume|close}", events="CutoverSupportTaskChanged、CutoverSupportClosed", files="FileArtifact", workflow="状态机版本冻结；派发、处理、接管、转交、挂起、恢复和证据门禁关闭", authorization="CutoverTaskScope；当前责任区间；管理员不得绕过核心门禁")),
 
     (("INS-01", "INS-02", "INS-04", "INS-07"), contract("InspectionTask、CollectionTask", "srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task", "/inspection-tasks、/collection-tasks", events="InspectionDispatched、InspectionCompleted、CollectionResultConsumed", integration="现有采集平台子应用", files="FileArtifact", workflow="方式选择、预检/执行、业务消费和归档门禁", authorization="AssignedProjectDeviceScope、BusinessObjectDeviceCredentialScope")),
     (("INS-03", "INS-09"), contract("InspectionRule", "srv_inspection_rule、srv_inspection_rule_revision", "/inspection-rules、/{id}/revisions", workflow="规则配置、发布版本和任务冻结", authorization="AssignedProjectDeviceScope；规则维护/使用分离")),
@@ -97,7 +97,7 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("INT-02",), contract("AssetSyncSnapshot", "ast_asset_sync_batch、ast_asset_sync_item、ast_device", "/devices", events="MasterDataSynchronized", integration="ITR", workflow="版本同步、来源冲突隔离和对账", authorization="集成账号限ITR字段；ProjectDeviceScope查询")),
     (("INT-03",), contract("Customer、CustomerRelationshipSnapshot", "cus_customer、ast_asset_sync_batch、ast_asset_sync_item", "/customers", events="MasterDataSynchronized、CustomerMerged", integration="CRM", workflow="客户同步、临时客户合并与字典映射", authorization="OrganizationCustomerScope；CRM字段只读")),
     (("INT-04",), contract("TechnicalNoticeReference", "FEATURE_FORWARD_MIGRATION(INT-04)：逻辑对象`TechnicalNoticeReference`；物理表由INT-04 Feature前向迁移确定", "/technical-notices、/technical-notices/{id}/references", events="TechnicalNoticeSynchronized", integration="ITR", workflow="公告镜像、版本同步和业务引用", authorization="ProductDeviceProjectScope；V2只读")),
-    (("INT-05",), contract("WorkOrder、Todo", "srv_work_order、plt_todo、ast_asset_sync_item", "/work-orders、/todos", events="WorkOrderSynchronized、TodoRequested、TodoCompleted", integration="钉钉、HR、OA", workflow="打卡/组织同步、待办链接和审批回调", authorization="AssignedProjectDeviceScope；目录身份不直接等于项目角色")),
+    (("INT-05",), contract("Todo、DirectorySyncSnapshot", "plt_todo、plt_directory_sync_snapshot", "/todos、/integration/hr/directory", events="MasterDataSynchronized、TodoRequested、TodoCompleted", integration="钉钉、HR、OA", workflow="必要人员组织同步、待办链接和通知回执；不接入打卡/工时", authorization="TenantOrganizationProjectScope；目录身份不直接等于项目角色")),
     (("INT-06",), contract("RMAReplacement、AuthorizationGrant、InspectionReport", "ast_rma_replacement、plt_authorization_grant、srv_inspection_report_revision", "/rma-replacements、/authorization-grants、/inspection-reports/{id}/versions", events="MasterDataSynchronized", integration="备件系统、授权系统、UMC", files="FileArtifact", workflow="外部申请/结果映射、回调和对账", authorization="业务对象范围；完整授权码不可见")),
     (("INT-07",), contract("PaymentGate", "res_payment_gate、plt_integration_reconciliation", "/payment-gates", events="PaymentGateChanged", integration="财务系统", files="FileArtifact", workflow="批准费用出向、结果查询和人工对账", authorization="OrganizationSupplierScope；财务结果复核")),
     (("INT-09",), contract("AuthorizationGrant", "plt_authorization_grant、ast_asset_sync_item", "/authorization-grants", integration="LDAP/AD", workflow="认证断言校验、目录映射和平台会话", authorization="平台RBAC/DataScope；目录组不直授项目角色")),
@@ -190,8 +190,8 @@ def render(prd: Path) -> str:
         "# SDS Phase 2 显式需求契约映射",
         "",
         "> 文档状态：`BASELINE`",
-        "> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）",
-        "> Requirement ID：附录 A.1 全部 115 项 V1/V2 正式需求",
+        "> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）",
+        "> Requirement ID：附录 A.1 全部 104 项 V1/V2 正式需求",
         "> Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准",
         "> Phase 3验证注记状态：`IN_REVIEW`（不改变已批准的Phase 2契约基线）",
         "",
@@ -223,7 +223,7 @@ def render(prd: Path) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prd", type=Path, default=Path("docs/baseline/prd-v1.6.md"))
+    parser.add_argument("--prd", type=Path, default=Path("docs/baseline/prd-v1.7.md"))
     parser.add_argument("--output", type=Path, default=Path("docs/traceability/phase2-contract-map.md"))
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()

@@ -1,8 +1,8 @@
-# SDS Phase 2：数据模型
+﻿# SDS Phase 2：数据模型
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
-> Requirement ID：PRD V1.6 附录 A.1 的全部 115 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
 > 实现证据：`docs/engineering/gates/phase-2/implementation-fact-inventory.md`
@@ -91,7 +91,7 @@
 
 | 聚合/实体 | 类型 | Owner 事实 | 关键关系与不变量 |
 |---|---|---|---|
-| Project | 聚合根 | 项目身份、分类、负责人、生命周期、来源映射 | `parentProjectId` 可空；父子无环；不限制深度；来源项目键幂等 |
+| Project | 聚合根 | 项目身份、四维业务分类、行业四级快照、负责人、生命周期、来源映射 | `parentProjectId` 可空；父子无环；不限制深度；CRM项目编码默认复用；合同/订单/执行单独立关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用 |
 | ProjectHierarchy | 聚合内关系 | 当前父子关系、根节点、层级类型 | 层级类型来自字典；结构变更必须经过 MoveProject 并校验无环 |
 | ProjectAncestorProjection | 可重建投影 | 祖先/后代查询路径 | 【建议】保存 ancestor、descendant、distance；不是项目真值 |
 | ProjectTemplate | 聚合根 | 项目模板、阶段模板、任务模板和适用条件 | 已发布模板不可覆盖；项目实例冻结所用模板版本 |
@@ -140,7 +140,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 |---|---|---|---|
 | ArrivalAcceptance | ArrivalLine、ArrivalDifference、SignerSnapshot | 到货批次、实收数量、差异、签收结果和证据 | Project、Device、OrderLine、FileReference |
 | InstallationRecord | InstallationItem、LocationSnapshot、InstallationEvidence | 一次安装记录、位置、结果、照片和确认 | Project、Device、ArrivalAcceptance |
-| ConfigurationCollectionResult | ParseAttempt、ResultReference、ParserVersion | 配置 Log 回调、解析状态、解析版本和业务确认 | CollectionTask、Device、FileReference |
+| ConfigurationCollectionResult | ParseAttempt、ResultReference、ParserVersion、ComponentParseCandidate | 配置 Log 回调、原始整机证据、框/槽/板卡解析候选、解析版本和业务确认 | CollectionTask、Device、DeviceComponentRelation、FileReference |
 | JointDebuggingResult | DebuggingItem、IssueReference、ResultReference | 联调输入、结论、问题引用和确认 | CollectionTask、Device、ProjectTask |
 | ImplementationRisk | RiskTag、RiskTreatment | 单机/现场风险、等级、处置和关闭证据 | Project、Device；不复用 CUT 风险状态 |
 | ImplementationQualityCheck | QualityItem、Remediation、ReviewRecord | 阶段质量检查、整改和复核结论 | Project、现场批次、FileReference |
@@ -151,26 +151,28 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 - 到货差异、安装历史、采集解析失败、质量整改和安全阻断分别属于独立聚合，不合并为一个“现场执行单”。
 - ConfigurationCollectionResult 与 JointDebuggingResult 消费 DAC 结果，但不持有连接参数和凭证明文。
+- ConfigurationCollectionResult完整保留原始整机Log；框/槽/板卡解析候选由AST确认后形成DeviceComponentRelation。自动匹配与人工绑定均保留来源、解析版本和证据引用。
 - 安全高风险阻断关联作业；只有 PRD 已定义的整改复核或豁免结果才能解除，不新增抽象审批角色。
 - IMP 上传交付件，ACC 负责齐套审核和归档；文件二进制只有一个 FileArtifact 身份。
 
 ## 7. Acceptance & Closure 数据模型
 
-适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-06。
+适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。
 
 | 聚合/实体 | Owner 事实 | 不变量 |
 |---|---|---|
 | Acceptance | 验收范围、验收项、结论、客户确认和问题引用 | 验收结论不覆盖现场原始证据 |
+| SatisfactionCollection | 满意度任务、冻结问卷、客户答卷、签字、评分判定和整改重收版本 | 答案、签字、评分及历史版本不可覆盖；未达标新建任务和问卷版本 |
 | DeliveryArtifact | 应交清单、实际证据引用、齐套结果、审核和归档状态 | 审核与归档追加记录；不得修改 IMP 原文件历史 |
 | ProjectClosure | 闭环申请、门禁快照、审核结论和完成事件 | 全部后代项目按既定门禁满足后才能完成闭环 |
-| ClosureGateSnapshot | 闭环时交付件、问题、回访和材料状态快照 | 不可变；重新提交生成新快照 |
+| ClosureGateSnapshot | 闭环时交付件、问题、有效满意度结果和材料状态快照 | 不可变；重新提交生成新快照；不保存回访审批节点 |
 | ServiceHandover | 遗留问题、设备、客户、责任方和持续服务交接结果 | 不包含续保年限、续保动作或续保报表 |
 
 历史 `pms_acc_maintenance_transition` 不能作为目标聚合继续扩展；其可用交接事实通过前向迁移映射到 ServiceHandover，续保字段只保留兼容读取，不进入新写接口。
 
-## 8. Cutover、Work Order、Inspection 与 Service Operations
+## 8. Cutover、Inspection 与 Service Operations
 
-适用 Requirement：CUT-01～CUT-10、WO-01～WO-06、INS-01～INS-09、SRV-01。
+适用 Requirement：CUT-01～CUT-11、INS-01～INS-09、SRV-01。
 
 | Context | 聚合根 | Owner 事实 | 关键边界 |
 |---|---|---|---|
@@ -178,8 +180,8 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverAssessment | 风险项、影响面、回退条件和评估结论 | 技术公告是外部知识引用，不由 CUT 修改 |
 | Cutover | CutoverPlan | 步骤、命令引用、验证点、回退步骤和批准版本 | 执行冻结批准 revision；不保存设备密码 |
 | Cutover | CutoverExecution | 每步开始/结束、动作类型、方向、正负值、结果和证据 | 保存业务动作类型、方向和有符号值；失败保留原始证据 |
-| Work Order & Time | WorkOrder | 工单、责任区间、关联项目/设备和处理记录 | 排除工单时效考核；通知送达不等于工单完成 |
-| Work Order & Time | TimeClaim | 打卡、工时申报、核验和调整历史 | 绝对时长与调整方向/正负值分开保存，禁止覆盖原申报 |
+| Cutover | CutoverSupportTask | 割接保障任务、状态机版本、当前责任人/处理人、保障时间窗和关闭证据 | 关闭不替代CUT-06执行结论；V1/V2关闭后只读 |
+| Cutover | ResponsibilityInterval | 派发、接管或转交形成的责任区间和交接原因 | 接管/转交结束旧区间并新增；挂起不结束区间；历史不可覆盖 |
 | Inspection | InspectionTask | 任务、模式、设备范围、规则快照和状态 | 在线/离线互斥；在线通过 DAC 下发 |
 | Inspection | InspectionRule | 可执行规则、参数和版本 | 任务冻结规则版本；规则发布后不可覆盖 |
 | Inspection | InspectionReport | 结果摘要、异常、来源和报告版本 | 外部原始数据保存引用；报告可重建但已发布版本不可覆盖 |
@@ -210,6 +212,7 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 |---|---|---|
 | Device | 聚合根 / External Master Copy | MES/ITR 权威身份字段保留来源；平台拥有项目归属、档案补充和业务关联 |
 | DeviceArchive | 聚合内实体 | 安装位置、客户关系、配置 Log 引用、项目关联等平台档案信息 |
+| DeviceComponentRelation | 时态关系 | 机框序列号、槽位、板卡序列号/型号、关系来源、生效区间和解析证据；同一机框槽位同一时点最多一个当前板卡，换板结束旧关系并新增 |
 | DeviceCurrentAssignment | 当前唯一关系 | 同一 tenant/device 只有一个有效当前项目；指向实际归属项目，不复制到祖先项目 |
 | DeviceAssignmentHistory | 时态历史 | 每次划转关闭旧区间并新增区间；有效区间不得重叠 |
 | DeviceAncestorProjection | 可重建投影 | 【建议】将当前归属映射到项目祖先，用于任意上级项目统计；不代表多重归属 |
@@ -218,6 +221,8 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 | AssetSyncSnapshot | 不可变同步快照 | 保存来源版本、水位、校验摘要和字段差异 |
 
 设备归属变更与项目树移动可能并发，二者必须使用独立版本控制并在投影层按批次重算；业务查询必须能识别投影水位。
+
+历史工单、工时、附件、审批和操作证据不进入当前可流转聚合。它们按`HistoricalWorkOrderRecord`、`HistoricalTimeRecord`只读迁移资料保存结构化查询字段、来源业务键、原状态、原责任人、附件/审批/审计引用及不可变原始载荷；物理落表由P3-E09评审确定。
 
 ### 9.3 Contract & Fulfillment
 
@@ -266,6 +271,7 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 | 聚合/实体 | Owner 事实 | 规则 |
 |---|---|---|
 | Todo | 待办身份、业务引用和同步状态 | 待办完成不等于业务完成；业务状态由 Owner Context 确认 |
+| DirectorySyncSnapshot | HR必要人员与组织主数据的本地同步快照 | 保存稳定来源键、来源版本、同步水位和必要字段；外部Owner不被平台覆盖，不在查询时逐次穿透HR接口 |
 | AuthorizationGrant | 通用业务授权范围、有效期和撤销 | 不替代 DeviceCredential 的专用授权边界 |
 | ChangeRequest | 变更申请、差异、审批引用和执行结果 | 版本变更作为低优先级独立能力，能后置的后置 |
 | FileArtifact | 文件身份、内容版本、哈希和存储引用 | 详见 13；正文不复制进多个领域表 |

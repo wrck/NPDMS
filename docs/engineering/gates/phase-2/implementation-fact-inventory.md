@@ -1,7 +1,7 @@
 # Phase 2 实现事实盘点
 
 > 文档类型：Phase 2 门禁输入证据
-> 盘点基线：PRD V1.6、SDS Phase 1 `BASELINE`
+> 盘点基线：PRD V1.7、SDS Phase 1 `BASELINE`
 > 实现仓库：`E:\AICoding\Projects\NPDMS`
 > 实现提交：`856d05264ab4a4fb69b94896c172e4a1c29aae02`
 > 状态：`COMPLETED`

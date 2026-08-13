@@ -1,8 +1,9 @@
 # SDS Phase 2 Review
 
 > 审查状态：`APPROVED`
-> 依据：PRD V1.6、SDS Phase 1 `BASELINE`、实施仓库证据提交 `856d052`
+> 依据：PRD V1.7、SDS Phase 1 `BASELINE`、实施仓库证据提交 `856d052`
 > 结论：`READY_FOR_PHASE_3`
+> 评审边界：V1.6独立评审结论保留；V1.7为需求方批准的ADR-0024差量并已通过104项契约、88实体/100来源迁移契约及自审校验，不伪造新增独立评审结论。
 
 ## 1. 输出状态
 
@@ -10,9 +11,9 @@
 |---|---|---|
 | P2-01 实现事实盘点 | PASS | 69 个业务表、59 个 Controller、65 个 DO 已按一致性分类 |
 | 08 Data Model | BASELINE | Owner、聚合、引用、版本、快照、历史及六项复审修复已通过独立复审 |
-| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 75个Phase 2对象及7个08内部/建议实体共82项均有来源级迁移契约；字段级实现与`AI-MIG-000`仍由后续迁移Gate阻断 |
+| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 79个Phase 2对象及9个08内部/迁移实体共88项均有来源级迁移契约；字段级实现与`AI-MIG-000`仍由后续迁移Gate阻断 |
 | 09 Database Design | BASELINE | 表级约束、PM-05/06专表、临时用户名、消费确认和前向迁移已通过独立复审 |
-| 10 API Design | BASELINE | 115项显式契约、PM-05/06和DAC命令已通过独立复审 |
+| 10 API Design | BASELINE | 104项显式契约、PM-05/06和DAC命令保留原独立复审结论；ADR-0024差量已通过机器校验与自审 |
 | 11 Event Design | BASELINE | producer、consumer、version、顺序、Inbox/Outbox及业务消费完成边界已通过独立复审 |
 | 12 Integration Design | BASELINE | 字段Owner及全部外部系统操作级请求/响应映射已通过独立复审；环境参数待Feature联调登记 |
 | 13 File Design | BASELINE | 文件身份、引用、版本、哈希、权限、归档已通过独立复审 |
@@ -25,7 +26,7 @@
 |---|---|---|
 | 数据 Owner 明确 | PASS | 每个业务事实只有一个 Owner，跨域仅引用/快照 |
 | 版本、快照、历史、审计可实现 | PASS | 数据模型和数据库设计同时落位 |
-| API 可追溯 | PASS | 115项均有显式数据对象、表、API、事件/集成/文件、工作流和授权契约；校验器检查符号真实存在 |
+| API 可追溯 | PASS | 104项均有显式数据对象、表、API、事件/集成/文件、工作流和授权契约；校验器检查符号真实存在 |
 | 状态通过 command/transition 改变 | PASS | 无通用状态字段直改 API/仓储绕过 |
 | 事件契约完整 | PASS | producer/consumer/version/idempotency/order 齐全 |
 | 外部集成可恢复 | PASS-WITH-FOLLOWUP | 全部外部系统已登记操作级字段映射、业务确认和失败语义；具体 endpoint、认证和数值型 timeout/retry 在Feature联调前登记 |
@@ -47,7 +48,7 @@
 | R-P2-01 | `saveAsCredential` 后本次任务仍错误保留为临时模式 | CLOSED | 08 §11、09 §9.3、10 §13.2、16 §9：同命令创建凭证/默认授权/任务并切换凭证模式，失败则不创建任务 |
 | R-P2-02 | CRM/ERP合同订单字段Owner冲突 | CLOSED | 08 §9.3、09 §8.2、10 §11、12 §4～5：按Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付事实 |
 | R-P2-03 | PM-05/PM-06仅机械追溯，无专属实施契约 | CLOSED | 08 §4、09 §4.4、10 §5.1～5.2、11 §5、15 §5.4、16 §7 |
-| R-P2-04 | 校验器只查链接存在，不查契约覆盖 | CLOSED | `phase2-contract-map.md` 115项显式映射；校验器检查ID集合、必填字段、真实表/API/事件/集成/文件符号和专项令牌 |
+| R-P2-04 | 校验器只查链接存在，不查契约覆盖 | CLOSED | `phase2-contract-map.md` 104项显式映射；校验器检查ID集合、必填字段、真实表/API/事件/集成/文件符号和专项令牌 |
 | R-P2-05 | 外部集成缺少请求/响应字段映射 | CLOSED | 12 §4.1覆盖CRM、ERP、ITR、MES、钉钉、HR、OA、LDAP/AD、备件、授权、UMC、财务、通知和采集子应用 |
 | R-P2-06 | `CollectionCompleted` 可被模糊“契约终态”提前触发 | CLOSED | 08/09/10/11/16显式区分BUSINESS_CONSUMPTION和PRD独立中心CALLBACK_TERMINAL；失败/取消不发布完成 |
 

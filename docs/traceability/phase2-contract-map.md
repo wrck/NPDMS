@@ -1,8 +1,8 @@
 # SDS Phase 2 显式需求契约映射
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.6（`docs/baseline/prd-v1.6.md`）
-> Requirement ID：附录 A.1 全部 115 项 V1/V2 正式需求
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：附录 A.1 全部 104 项 V1/V2 正式需求
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
 > Phase 3验证注记状态：`IN_REVIEW`（不改变已批准的Phase 2契约基线）
 
@@ -94,7 +94,7 @@
 
 ### PM-07
 
-- 需求名称：项目级别自动识别
+- 需求名称：项目业务属性识别与分类
 - 数据对象：Project
 - 数据表：proj_project
 - API：/projects/{id}/actions/classify
@@ -389,14 +389,14 @@
 ### EXE-03
 
 - 需求名称：配置Log采集解析
-- 数据对象：ConfigurationCollectionResult、CollectionTask
-- 数据表：imp_configuration_collection_result、imp_configuration_collection_parse_attempt、plt_collection_task
-- API：/configuration-results、/collection-tasks
-- 事件：ConfigurationParsed、CollectionResultConsumed
+- 数据对象：ConfigurationCollectionResult、DeviceComponentRelation、CollectionTask
+- 数据表：imp_configuration_collection_result、imp_configuration_collection_parse_attempt、imp_configuration_component_candidate、ast_device_component_relation、plt_collection_task
+- API：/configuration-results、/devices/{id}/component-relations、/collection-tasks
+- 事件：ConfigurationParsed、DeviceComponentRelationChanged、CollectionResultConsumed
 - 外部集成：现有采集平台子应用
 - 文件契约：FileArtifact
-- 工作流/状态：采集回调、解析、业务消费确认
-- 授权与数据范围：ImplementationProjectDeviceCollectionScope、BusinessObjectDeviceCredentialScope
+- 工作流/状态：采集回调、框板解析、待匹配/人工绑定和业务消费确认
+- 授权与数据范围：ImplementationProjectDeviceCollectionScope、BusinessObjectDeviceCredentialScope；设备关系维护权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
@@ -447,11 +447,11 @@
 - 需求名称：现场培训电子化
 - 数据对象：Acceptance
 - 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
-- API：/acceptances、/surveys
+- API：/acceptances
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：培训/调查/报告提交、确认和问题留痕
+- 工作流/状态：培训/报告提交、确认和问题留痕
 - 授权与数据范围：ProjectStageScope、FileBusinessScope
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
@@ -459,27 +459,27 @@
 ### ACC-02
 
 - 需求名称：满意度调查电子化
-- 数据对象：Acceptance
-- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
-- API：/acceptances、/surveys
-- 事件：N/A（同步命令或查询，无跨 Context 业务事件）
+- 数据对象：SatisfactionCollection
+- 数据表：acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result
+- API：/satisfaction-tasks、/satisfaction-questionnaires/{token}/responses、/satisfaction-results
+- 事件：SatisfactionTaskCreated、SatisfactionResultRecorded
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：培训/调查/报告提交、确认和问题留痕
-- 授权与数据范围：ProjectStageScope、FileBusinessScope
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
+- 工作流/状态：冻结模板→指派→客户提交→判定→整改后新版本重收→归档
+- 授权与数据范围：ProjectStageScope；客户一次性实例范围；答案/签字不可改写
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-03
 
 - 需求名称：验收报告管理
 - 数据对象：Acceptance
 - 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
-- API：/acceptances、/surveys
+- API：/acceptances
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：培训/调查/报告提交、确认和问题留痕
+- 工作流/状态：培训/报告提交、确认和问题留痕
 - 授权与数据范围：ProjectStageScope、FileBusinessScope
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
@@ -501,13 +501,13 @@
 ### CLO-01
 
 - 需求名称：闭环条件校验
-- 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
-- API：/closure-gates/{projectId}、/project-closures、/surveys
+- 数据对象：ProjectClosure、ClosureGateSnapshot、SatisfactionCollection
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review、acc_satisfaction_result
+- API：/closure-gates/{projectId}、/project-closures
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：门禁校验、分支回访、审批、整改和闭环
+- 工作流/状态：门禁校验、冻结流程审批、整改和闭环；不创建回访节点
 - 授权与数据范围：ProjectStageScope；全部后代项目门禁与审批范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
@@ -515,156 +515,30 @@
 ### CLO-02
 
 - 需求名称：闭环审批流程
-- 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
-- API：/closure-gates/{projectId}、/project-closures、/surveys
+- 数据对象：ProjectClosure、ClosureGateSnapshot、SatisfactionCollection
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review、acc_satisfaction_result
+- API：/closure-gates/{projectId}、/project-closures
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：门禁校验、分支回访、审批、整改和闭环
+- 工作流/状态：门禁校验、冻结流程审批、整改和闭环；不创建回访节点
 - 授权与数据范围：ProjectStageScope；全部后代项目门禁与审批范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
-### CLO-03
+### CUT-11
 
-- 需求名称：直签回访特殊流程
-- 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
-- API：/closure-gates/{projectId}、/project-closures、/surveys
-- 事件：ProjectClosureCompleted
+- 需求名称：割接保障任务
+- 数据对象：CutoverSupportTask、ResponsibilityInterval
+- 数据表：cut_cutover_support_task、cut_cutover_support_responsibility_interval、cut_cutover_support_history
+- API：/cutover-support-tasks、/{id}/actions/{assign|start|takeover|transfer|suspend|resume|close}
+- 事件：CutoverSupportTaskChanged、CutoverSupportClosed
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：门禁校验、分支回访、审批、整改和闭环
-- 授权与数据范围：ProjectStageScope；全部后代项目门禁与审批范围
+- 工作流/状态：状态机版本冻结；派发、处理、接管、转交、挂起、恢复和证据门禁关闭
+- 授权与数据范围：CutoverTaskScope；当前责任区间；管理员不得绕过核心门禁
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### CLO-04
-
-- 需求名称：多类型回访问卷
-- 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
-- API：/closure-gates/{projectId}、/project-closures、/surveys
-- 事件：ProjectClosureCompleted
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：门禁校验、分支回访、审批、整改和闭环
-- 授权与数据范围：ProjectStageScope；全部后代项目门禁与审批范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### CLO-05
-
-- 需求名称：问卷自动驳回通过
-- 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
-- API：/closure-gates/{projectId}、/project-closures、/surveys
-- 事件：ProjectClosureCompleted
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：门禁校验、分支回访、审批、整改和闭环
-- 授权与数据范围：ProjectStageScope；全部后代项目门禁与审批范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### CLO-06
-
-- 需求名称：问卷导出分析
-- 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
-- API：/closure-gates/{projectId}、/project-closures、/surveys
-- 事件：ProjectClosureCompleted
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：门禁校验、分支回访、审批、整改和闭环
-- 授权与数据范围：ProjectStageScope；全部后代项目门禁与审批范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### WO-01
-
-- 需求名称：打卡工单同步
-- 数据对象：WorkOrder
-- 数据表：srv_work_order、srv_work_order_handling_record
-- API：/work-orders
-- 事件：WorkOrderSynchronized
-- 外部集成：钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：来源同步、关联设备/项目、处理与合并
-- 授权与数据范围：AssignedProjectDeviceScope；责任区间
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### WO-02
-
-- 需求名称：工单类型管理
-- 数据对象：WorkOrder
-- 数据表：srv_work_order、srv_work_order_handling_record
-- API：/work-orders
-- 事件：WorkOrderSynchronized
-- 外部集成：钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：来源同步、关联设备/项目、处理与合并
-- 授权与数据范围：AssignedProjectDeviceScope；责任区间
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### WO-03
-
-- 需求名称：APP扫码关联设备
-- 数据对象：WorkOrder
-- 数据表：srv_work_order、srv_work_order_handling_record
-- API：/work-orders
-- 事件：WorkOrderSynchronized
-- 外部集成：钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：来源同步、关联设备/项目、处理与合并
-- 授权与数据范围：AssignedProjectDeviceScope；责任区间
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### WO-04
-
-- 需求名称：工时审批
-- 数据对象：TimeClaim
-- 数据表：srv_time_claim、srv_time_adjustment
-- API：/time-claims
-- 事件：TimeClaimApproved
-- 外部集成：钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：申报、审批和保留原值的调整
-- 授权与数据范围：AssignedProjectDeviceScope；申报人与审批人
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### WO-05
-
-- 需求名称：工单数据同步项目
-- 数据对象：WorkOrder
-- 数据表：srv_work_order、srv_work_order_handling_record
-- API：/work-orders
-- 事件：WorkOrderSynchronized
-- 外部集成：钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：来源同步、关联设备/项目、处理与合并
-- 授权与数据范围：AssignedProjectDeviceScope；责任区间
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### WO-06
-
-- 需求名称：割接保障工单
-- 数据对象：WorkOrder
-- 数据表：srv_work_order、srv_work_order_handling_record
-- API：/work-orders
-- 事件：WorkOrderSynchronized
-- 外部集成：钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：来源同步、关联设备/项目、处理与合并
-- 授权与数据范围：AssignedProjectDeviceScope；责任区间
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### SUB-01
 
@@ -696,29 +570,29 @@
 
 ### SUB-03
 
-- 需求名称：转包付款回访门禁
-- 数据对象：PaymentGate
-- 数据表：res_payment_gate
+- 需求名称：转包付款满意度门禁
+- 数据对象：PaymentGate、SatisfactionCollection
+- 数据表：res_payment_gate、acc_satisfaction_result
 - API：/payment-gates
 - 事件：PaymentGateChanged
 - 外部集成：财务系统
 - 文件契约：FileArtifact
-- 工作流/状态：付款前置回访、批准版本和财务确认
-- 授权与数据范围：OrganizationSupplierScope；付款门禁权限
+- 工作流/状态：付款前置满意度事实、批准版本和财务确认
+- 授权与数据范围：OrganizationSupplierScope；付款门禁权限；满意度只读引用
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### SUB-04
 
 - 需求名称：付款信息管理
-- 数据对象：PaymentGate
-- 数据表：res_payment_gate
+- 数据对象：PaymentGate、SatisfactionCollection
+- 数据表：res_payment_gate、acc_satisfaction_result
 - API：/payment-gates
 - 事件：PaymentGateChanged
 - 外部集成：财务系统
 - 文件契约：FileArtifact
-- 工作流/状态：付款前置回访、批准版本和财务确认
-- 授权与数据范围：OrganizationSupplierScope；付款门禁权限
+- 工作流/状态：付款前置满意度事实、批准版本和财务确认
+- 授权与数据范围：OrganizationSupplierScope；付款门禁权限；满意度只读引用
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
@@ -795,42 +669,42 @@
 ### EQP-01
 
 - 需求名称：设备序列号档案
-- 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
-- API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
-- 事件：DeviceAssigned
+- 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
+- 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
+- API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
+- 事件：DeviceAssigned、DeviceComponentRelationChanged
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：设备档案、配置Log引用、扫码和唯一归属
-- 授权与数据范围：ProjectDeviceScope；当前归属与祖先范围
+- 工作流/状态：设备档案、配置Log引用、框板关系、扫码和唯一归属
+- 授权与数据范围：ProjectDeviceScope；当前归属、框板关系维护与祖先范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### EQP-02
 
 - 需求名称：配置Log管理
-- 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
-- API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
-- 事件：DeviceAssigned
+- 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
+- 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
+- API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
+- 事件：DeviceAssigned、DeviceComponentRelationChanged
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：设备档案、配置Log引用、扫码和唯一归属
-- 授权与数据范围：ProjectDeviceScope；当前归属与祖先范围
+- 工作流/状态：设备档案、配置Log引用、框板关系、扫码和唯一归属
+- 授权与数据范围：ProjectDeviceScope；当前归属、框板关系维护与祖先范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### EQP-03
 
 - 需求名称：设备档案库
-- 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
-- API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
-- 事件：DeviceAssigned
+- 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
+- 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
+- API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
+- 事件：DeviceAssigned、DeviceComponentRelationChanged
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：设备档案、配置Log引用、扫码和唯一归属
-- 授权与数据范围：ProjectDeviceScope；当前归属与祖先范围
+- 工作流/状态：设备档案、配置Log引用、框板关系、扫码和唯一归属
+- 授权与数据范围：ProjectDeviceScope；当前归属、框板关系维护与祖先范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
@@ -851,44 +725,30 @@
 ### EQP-05
 
 - 需求名称：一码通扫码
-- 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
-- API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
-- 事件：DeviceAssigned
+- 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
+- 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
+- API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
+- 事件：DeviceAssigned、DeviceComponentRelationChanged
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：设备档案、配置Log引用、扫码和唯一归属
-- 授权与数据范围：ProjectDeviceScope；当前归属与祖先范围
+- 工作流/状态：设备档案、配置Log引用、框板关系、扫码和唯一归属
+- 授权与数据范围：ProjectDeviceScope；当前归属、框板关系维护与祖先范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### EQP-07
 
 - 需求名称：项目问题单页面
-- 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
-- API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
-- 事件：DeviceAssigned
+- 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
+- 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
+- API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
+- 事件：DeviceAssigned、DeviceComponentRelationChanged
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：设备档案、配置Log引用、扫码和唯一归属
-- 授权与数据范围：ProjectDeviceScope；当前归属与祖先范围
+- 工作流/状态：设备档案、配置Log引用、框板关系、扫码和唯一归属
+- 授权与数据范围：ProjectDeviceScope；当前归属、框板关系维护与祖先范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
-### RPT-01
-
-- 需求名称：工时多维统计
-- 数据对象：MetricSnapshot
-- 数据表：ana_metric_snapshot
-- API：/analytics/metrics
-- 事件：MetricSnapshotPublished
-- 外部集成：N/A（平台内部契约）
-- 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：指标口径计算、快照发布和水位展示
-- 授权与数据范围：OrganizationReportScope；字段级脱敏
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
 
 ### RPT-02
 
@@ -899,21 +759,7 @@
 - 事件：MetricSnapshotPublished
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：指标口径计算、快照发布和水位展示
-- 授权与数据范围：OrganizationReportScope；字段级脱敏
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
-
-### RPT-04
-
-- 需求名称：人效分析
-- 数据对象：MetricSnapshot
-- 数据表：ana_metric_snapshot
-- API：/analytics/metrics
-- 事件：MetricSnapshotPublished
-- 外部集成：N/A（平台内部契约）
-- 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：指标口径计算、快照发布和水位展示
+- 工作流/状态：项目状态指标口径计算、快照发布和水位展示
 - 授权与数据范围：OrganizationReportScope；字段级脱敏
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
@@ -1215,14 +1061,14 @@
 ### INT-05
 
 - 需求名称：钉钉/HR/OA集成
-- 数据对象：WorkOrder、Todo
-- 数据表：srv_work_order、plt_todo、ast_asset_sync_item
-- API：/work-orders、/todos
-- 事件：WorkOrderSynchronized、TodoRequested、TodoCompleted
+- 数据对象：Todo、DirectorySyncSnapshot
+- 数据表：plt_todo、plt_directory_sync_snapshot
+- API：/todos、/integration/hr/directory
+- 事件：MasterDataSynchronized、TodoRequested、TodoCompleted
 - 外部集成：钉钉、HR、OA
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：打卡/组织同步、待办链接和审批回调
-- 授权与数据范围：AssignedProjectDeviceScope；目录身份不直接等于项目角色
+- 工作流/状态：必要人员组织同步、待办链接和通知回执；不接入打卡/工时
+- 授权与数据范围：TenantOrganizationProjectScope；目录身份不直接等于项目角色
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 

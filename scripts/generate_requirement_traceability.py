@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the V1.6 requirement-to-engineering traceability index and SDS mappings."""
+"""Generate the V1.7 requirement-to-engineering traceability index and SDS mappings."""
 
 from __future__ import annotations
 
@@ -73,8 +73,8 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
                 "source": value.get("来源追溯", ""),
             }
         )
-    if len(requirements) != 115:
-        raise SystemExit(f"Appendix A.1 formal requirement count is {len(requirements)}, expected 115")
+    if len(requirements) != 104:
+        raise SystemExit(f"Appendix A.1 formal requirement count is {len(requirements)}, expected 104")
     return requirements
 
 
@@ -109,9 +109,9 @@ PHASE1_DESIGN = {
     "PROJ": ("项目治理", "Project / ProjectTask / ProjectTemplate", "Project或Task状态机；模板加载工作流", "ProjectTreeScope", "ProjectApplicationService", "Project、ProjectTask、ProjectTemplate", "业务规则+权限+树查询"),
     "SOL": ("交付准备与方案", "Preparation / ConstructionPlan / Solution", "Plan或Solution状态机；计划/方案审批流", "ProjectStageScope", "PreparationApplicationService", "Preparation、Plan、Solution、File", "业务规则+审批+文件"),
     "IMP": ("实施执行", "ArrivalAcceptance / InstallationRecord / ConfigurationCollectionResult / JointDebuggingResult / ImplementationRisk / ImplementationQualityCheck / ImplementationSafetyCheck / DeliveryEvidence", "实施执行聚合状态机；质量/安全整改复核工作流；阶段门禁工作流", "ImplementationProjectBatchScope", "ImplementationExecutionApplicationService", "ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、ImplementationSafetyCheck、DeliveryEvidence", "业务规则+证据+权限+整改"),
-    "ACC": ("验收与项目闭环", "Acceptance / Artifact / ProjectClosure", "Artifact与ProjectClosure状态机；验收/闭环审批流", "ProjectStageScope", "AcceptanceApplicationService", "Acceptance、DeliveryArtifact、ProjectClosure、ServiceHandover", "业务规则+审批+门禁"),
-    "CUT": ("变更切换与稳定治理", "CutoverTask / CutoverPlan / CutoverExecution", "Cutover状态机；分级审批流", "CutoverTaskScope", "CutoverApplicationService", "CutoverTask、CutoverPlan、CutoverExecution", "业务规则+审批+幂等"),
-    "SRV": ("Work Order & Time / Inspection / Service Operations", "WorkOrder / TimeClaim / InspectionTask / ServiceIssue / ServiceStatus", "工单与工时、Inspection、Service Operations分别维护状态机和闭环流", "AssignedProjectDeviceScope", "ServiceApplicationService", "WorkOrder、TimeClaim、ResponsibilityInterval、InspectionTask、InspectionRule、ServiceIssue、ServiceStatus", "业务规则+权限+异常"),
+    "ACC": ("验收与项目闭环", "Acceptance / SatisfactionCollection / Artifact / ProjectClosure", "满意度、Artifact与ProjectClosure状态机；验收/闭环审批流", "ProjectStageScope", "AcceptanceApplicationService", "Acceptance、SatisfactionCollection、DeliveryArtifact、ProjectClosure、ServiceHandover", "业务规则+审批+门禁"),
+    "CUT": ("变更切换与稳定治理", "CutoverTask / CutoverPlan / CutoverExecution / CutoverSupportTask", "Cutover与割接保障任务状态机；分级审批流", "CutoverTaskScope", "CutoverApplicationService", "CutoverTask、CutoverPlan、CutoverExecution、CutoverSupportTask", "业务规则+审批+幂等"),
+    "SRV": ("Inspection / Service Operations", "InspectionTask / ServiceIssue / ServiceStatus", "Inspection与Service Operations分别维护状态机和闭环流", "AssignedProjectDeviceScope", "ServiceApplicationService", "InspectionTask、InspectionRule、ServiceIssue、ServiceStatus", "业务规则+权限+异常"),
     "CUS": ("Customer & Relationship", "Customer / Contact / AssetRelation", "Customer同步状态机；主数据同步流", "OrganizationCustomerScope", "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot", "数据同步+权限"),
     "AST": ("Asset Management", "Device / DeviceArchive / RMAReplacement", "Device服务状态机；设备同步流", "ProjectDeviceScope", "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot", "数据一致性+归属+安全"),
     "COM": ("合同订单履约", "Contract / OrderLine / DeliveryScope / DeliveryScopeDetail", "Scope状态机；履约回写工作流", "ContractProjectScope", "ContractApplicationService", "Contract、OrderLine、DeliveryScope、DeliveryScopeDetail、FulfillmentRecord", "数量约束+对账+幂等"),
@@ -138,13 +138,12 @@ EXACT_PHASE1_DESIGN = {
 
 # Context-level refinements keep the 13-domain Owner unchanged while making
 # the internal bounded-context mapping explicit in the working matrix.
-for _identifier in ("WO-01", "WO-02", "WO-03", "WO-04", "WO-05", "WO-06"):
-    EXACT_PHASE1_DESIGN[_identifier] = (
-        "Work Order & Time", "WorkOrder / TimeClaim / ResponsibilityInterval",
-        "WorkOrder状态机；责任区间与工时审批流", "AssignedProjectDeviceScope",
-        "WorkOrderApplicationService", "WorkOrder、TimeClaim、ResponsibilityInterval、WorkOrderEvidence",
-        "业务规则+权限+工时证据",
-    )
+EXACT_PHASE1_DESIGN["CUT-11"] = (
+    "变更切换与稳定治理", "CutoverSupportTask / ResponsibilityInterval",
+    "CutoverSupportTask状态机；派发、接管、转交、挂起、恢复与关闭流程", "CutoverTaskScope",
+    "CutoverSupportApplicationService", "CutoverSupportTask、ResponsibilityInterval、CutoverSupportEvidence",
+    "业务规则+权限+责任区间+证据",
+)
 for _identifier in ("INS-01", "INS-02", "INS-03", "INS-04", "INS-05", "INS-06", "INS-07", "INS-08", "INS-09"):
     EXACT_PHASE1_DESIGN[_identifier] = (
         "Inspection", "InspectionTask / InspectionRule / ServiceIssue",
@@ -216,8 +215,8 @@ def sds_reference(identifier: str) -> str:
         "SOL": ("5-preparation--solution-数据模型", "45-preparation--solution", "6-sol交付准备与方案-api"),
         "IMP": ("6-implementation-execution-数据模型", "6-implementation-execution-与-acceptance-表设计", "7-imp现场实施-api"),
         "ACC": ("7-acceptance--closure-数据模型", "6-implementation-execution-与-acceptance-表设计", "8-acc验收与项目闭环-api"),
-        "CUT": ("8-cutoverwork-orderinspection-与-service-operations", "7-cutoverinspectionwork-order-与服务状态", "9-cut割接-api"),
-        "SRV": ("8-cutoverwork-orderinspection-与-service-operations", "7-cutoverinspectionwork-order-与服务状态", "10-srv工单巡检与服务状态-api"),
+        "CUT": ("8-cutoverinspection-与-service-operations", "7-cutoverinspection-与服务状态", "9-cut割接-api"),
+        "SRV": ("8-cutoverinspection-与-service-operations", "7-cutoverinspection-与服务状态", "10-srv巡检服务状态与历史资料-api"),
         "CUS": ("9-customerassetcommerce-与-resource", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),
         "AST": ("9-customerassetcommerce-与-resource", "5-asset-设备归属与维保基本事实", "11-cusastcomres-与-kno-api"),
         "COM": ("9-customerassetcommerce-与-resource", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),
@@ -258,7 +257,7 @@ def sds_reference(identifier: str) -> str:
     if identifier in {"EXE-03", "EXE-04", "CUT-06", "INS-02", "INS-04", "INT-12", "NFR-02"}:
         event_anchors.append("7-collection-事件链")
     if identifier.startswith(("WO-", "INS-", "SRV-")) or identifier == "INT-05":
-        event_anchors.append("8-inspectionwork-order-与-service-事件")
+        event_anchors.append("8-inspection-与-service-事件")
     if domain in {"CUS", "COM", "RES", "KNO"} or identifier in {"INT-01", "INT-02", "INT-03", "INT-04", "INT-06", "INT-07", "INT-10", "NFR-03"}:
         event_anchors.append("9-主数据商务资源与知识事件")
     if domain == "AST" and identifier not in {"INT-02", "INT-06"}:
@@ -269,7 +268,7 @@ def sds_reference(identifier: str) -> str:
         event_anchors.append("10-文件与待办事件")
     for event_anchor in dict.fromkeys(event_anchors):
         references.append(f"[11事件](../design/11-event-design.md#{event_anchor})")
-    integration_requirements = {"COM-01", "COM-02", "EQP-04", "CUT-08", "INS-05", "AUT-01", "AUT-02", "WO-01"}
+    integration_requirements = {"COM-01", "COM-02", "EQP-04", "CUT-08", "INS-05", "AUT-01", "AUT-02"}
     integration_requirements.add("PRE-03")
     if identifier.startswith("INT-") or identifier in integration_requirements:
         references.append("[12集成](../design/12-integration-design.md)")
@@ -293,10 +292,11 @@ def render(prd: Path, domain_root: Path) -> str:
         raise SystemExit(f"missing domain owner: {', '.join(missing)}")
     counts = Counter(item["version"] for item in requirements)
     lines = [
-        "# V1.6需求追溯矩阵",
+        "# V1.7需求追溯矩阵",
         "",
-        "> 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.6业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。",
-        "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.6；领域决策：`docs/design/phase-1-domain-ownership.md`。",
+        "> 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.7业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。",
+        "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.7；领域决策：`docs/design/phase-1-domain-ownership.md`。",
+        "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
@@ -306,7 +306,7 @@ def render(prd: Path, domain_root: Path) -> str:
         "",
         "| 状态 | 含义 |",
         "|---|---|",
-        "| `BASELINE` | 已纳入PRD V1.6正式基线 |",
+        "| `BASELINE` | 已纳入PRD V1.7正式基线 |",
         "| `NOT_STARTED` | 下游工程资产尚未生成，不代表需求缺失 |",
         "| `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |",
         "| `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |",

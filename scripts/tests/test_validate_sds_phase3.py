@@ -23,7 +23,7 @@ class Phase3ValidatorTest(unittest.TestCase):
         (self.root / "docs" / "engineering" / "gates" / "phase-3").mkdir(parents=True)
 
         common = (
-            "> 文档状态：`IN_REVIEW`\n> 适用基线：PRD V1.6\n"
+            "> 文档状态：`IN_REVIEW`\n> 适用基线：PRD V1.7\n"
             "> Requirement ID：测试\n> Owner：测试Owner\n"
         )
         contents = {
@@ -47,7 +47,8 @@ class Phase3ValidatorTest(unittest.TestCase):
             "NFR-03": "99% 60秒",
             "PLT-02": "50MB 恶意内容 权限",
         }
-        identifiers = list(exact) + [f"REQ-{index:03d}" for index in range(1, 108)]
+        synthetic_count = VALIDATOR.EXPECTED_REQUIREMENT_COUNT - len(exact)
+        identifiers = list(exact) + [f"REQ-{index:03d}" for index in range(1, synthetic_count + 1)]
         for identifier in identifiers:
             detail = exact.get(identifier, "业务规则")
             blocks.append(
@@ -162,7 +163,7 @@ class Phase3ValidatorTest(unittest.TestCase):
             }
             evidence_items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": evidence_blocks[identifier]})
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json").write_text(
-            json.dumps({"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.6", "decisionBaseline": decision_ref, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": evidence_items}),
+            json.dumps({"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.7", "decisionBaseline": decision_ref, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": evidence_items}),
             encoding="utf-8",
         )
 
@@ -179,8 +180,8 @@ class Phase3ValidatorTest(unittest.TestCase):
 
     def test_missing_requirement_mapping_fails(self) -> None:
         path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
-        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-107", "### REQ-106"), encoding="utf-8")
-        self.assertTrue(any("expected 115" in item for item in VALIDATOR.validate(self.root)))
+        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-096", "### REQ-095"), encoding="utf-8")
+        self.assertTrue(any("expected 104" in item for item in VALIDATOR.validate(self.root)))
 
     def test_missing_rollback_and_secret_scan_fail(self) -> None:
         deploy = self.root / "docs" / "design" / "18-deployment-design.md"

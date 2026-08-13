@@ -10,8 +10,8 @@
 ## 1. 审查范围
 
 - 正式分册：`14-security-design.md`、`17-audit-and-observability.md`、`18-deployment-design.md`、`19-performance-design.md`、`20-test-design.md`。
-- 上游：PRD V1.6、SDS Phase 1/2 BASELINE、实现仓库`E:\AICoding\Projects\NPDMS`提交`856d052`。
-- 追溯：115项`phase2-contract-map.md`的Phase 3测试类别与证据类型。
+- 上游：PRD V1.7、SDS Phase 1/2 BASELINE、实现仓库`E:\AICoding\Projects\NPDMS`提交`856d052`。
+- 追溯：104项`phase2-contract-map.md`的Phase 3测试类别与证据类型。
 - 运行事实：JDK/Node/pnpm、MySQL/Redis/Flyway、宿主机应用边界、构建/类型检查和生产证据缺口。
 - 数据设计补充：结构化数据元、核心历史字段映射、项目—合同—订单行—设备迁移结论、ADR-0019～ADR-0022及DDL漂移门禁。
 
@@ -20,12 +20,12 @@
 | 校验 | 结果 |
 |---|---|
 | PRD语义 | PASS，0 semantic issues |
-| 13领域 | PASS，formal=115、V3=22、OUT_OF_SCOPE=9 |
-| Phase 2 | PASS，115项契约与追溯 |
-| 领域实体迁移对齐 | PASS，82个显式数据对象、92项逐来源策略；INT-04逻辑对象以Feature前向迁移策略保留，未虚构当前物理表 |
-| Phase 3 | PASS，5份分册、NFR精确阈值、115项测试/证据映射 |
+| 13领域 | PASS，formal=104、V3=29、OUT_OF_SCOPE=9 |
+| Phase 2 | PASS，104项契约与追溯 |
+| 领域实体迁移对齐 | PASS，88个显式数据对象、100项逐来源策略；INT-04逻辑对象以Feature前向迁移策略保留，未虚构当前物理表 |
+| Phase 3 | PASS，5份分册、NFR精确阈值、104项测试/证据映射 |
 | Phase 3证据登记 | PASS；P3-E01～E09状态、Owner、事实、证据引用和最晚安全门禁可机器校验，`READY_FOR_SDS_BASELINE`不等于生产就绪 |
-| 脚本单测 | PASS，104/104；含Phase 2/3、领域实体迁移及Feature前向迁移边界、领域编码数据库命名、项目编码身份与永久命名空间、CUS市场行业四维分类且禁止`relation_id`、核心迁移DDL边界、MySQL 8.4隔离执行证据、目标字段目录、P3-E09具体裁决清单、逐Owner证据包、DDL逐项裁决、恢复目标、分层备份、温备/冷备及演练授权、永久业务审计、统一导出审计与24小时文件生命周期、Telemetry分层期限与采样、门禁作用域防漂移和本地开发证据误升级拦截正反用例 |
+| 脚本单测 | PASS，113/113；含Phase 2/3、PRD混合标题层级解析、领域实体迁移及Feature前向迁移边界、领域编码数据库命名、项目编码身份与永久命名空间、CUS市场行业四维分类且禁止`relation_id`、核心迁移DDL边界、MySQL 8.4隔离执行证据、目标字段目录、P3-E09具体裁决清单、逐Owner证据包、DDL逐项裁决、恢复目标、分层备份、温备/冷备及演练授权、永久业务审计、统一导出审计与24小时文件生命周期、Telemetry分层期限与采样、门禁作用域防漂移和本地开发证据误升级拦截正反用例 |
 | 业务命名 | PASS |
 | `git diff --check` | PASS |
 | 实现仓库前端`ts:check` | FAIL，exit code 1，登记P3-E08 |
@@ -33,8 +33,8 @@
 可复现命令：
 
 ```powershell
-py -3 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.6.md
-py -3 -B scripts\validate_prd_domain_generation.py --prd docs\baseline\prd-v1.6.md --domains specs\001-project-delivery-platform\domains
+py -3 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
+py -3 -B scripts\validate_prd_domain_generation.py --prd docs\baseline\prd-v1.7.md --domains specs\001-project-delivery-platform\domains
 py -3 -B scripts\validate_sds_phase2.py
 py -3 -B scripts\validate_domain_entity_migration_alignment.py
 py -3 -B scripts\validate_phase3_evidence_register.py
@@ -52,8 +52,8 @@ git diff --check
 | 审计与可观测 | PASS-DESIGN | 业务审计、运行日志、指标、Trace和安全事件分离；关联ID、RED/USE、领域水位、告警/runbook及NFR-03指标明确；未猜测PRD外阈值 |
 | 发布/迁移/回退 | PASS-DESIGN | JDK25、pnpm9.15.5、宿主机应用边界、制品/hash/releaseId、Expand→Backfill→Verify→Switch→Contract、应用回退与数据库前滚修复明确 |
 | 性能 | PASS-DESIGN | 50用户/30分钟/≥10000请求/P95≤2秒/错误率≤0.5%、20万项目/200万任务、1万/5万树、2000直接子节点、深度30、50MB、99%/60秒均转为可执行口径 |
-| 测试 | PASS-DESIGN | 正常、异常、权限拒绝、幂等、并发、集成、事件、文件、安全、三浏览器四视口和发布恢复矩阵完整；115/115均有测试类别和证据类型 |
-| 数据/迁移 | PASS-DESIGN-WITH-GATE | 08/09已吸收结构化数据元和历史迁移结论；ADR-0023-Q03确认后，当前核心迁移DDL为50表、1,065列、385项DDL约束/索引和50项表选项，已在隔离MySQL 8.4.10完整执行；跨领域仅保留逻辑引用，4张V3公告治理表已排除，INT-04最小同步副本由Feature前向迁移设计；`AI-MIG-000`批准哈希形成前不得用于历史迁移或切换 |
+| 测试 | PASS-DESIGN | 正常、异常、权限拒绝、幂等、并发、集成、事件、文件、安全、三浏览器四视口和发布恢复矩阵完整；104/104均有测试类别和证据类型 |
+| 数据/迁移 | PASS-DESIGN-WITH-GATE | 08/09已吸收结构化数据元和历史迁移结论；既有50表、1,065列、385项DDL约束/索引和50项表选项已在隔离MySQL 8.4.10完整执行，但只是V1.6核心迁移子集；V1.7新增满意度、割接保障、设备框板关系、HR目录快照和历史只读对象须由P3-E09形成差量DDL并重新批准哈希；`AI-MIG-000`关闭前不得用于历史迁移或切换 |
 
 ## 4. 当前阻塞与影响
 

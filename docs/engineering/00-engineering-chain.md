@@ -1,8 +1,8 @@
-# 项目实施交付管理平台工程化实施链 V1.6
+# 项目实施交付管理平台工程化实施链 V1.7
 
 > 文档状态：正式工程链<br>
-> 适用基线：`需求/PRD-项目实施交付管理平台.md` V1.6<br>
-> 基线快照：`docs/baseline/prd-v1.6.md`<br>
+> 适用基线：`需求/PRD-项目实施交付管理平台.md` V1.7<br>
+> 基线快照：`docs/baseline/prd-v1.7.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
 > 唯一正式工程链文件：本文件；`docs/engineering/archive/` 仅保留历史工程链稿，不作为执行依据；过程门禁证据统一位于 `docs/engineering/gates/`。
 
@@ -10,15 +10,15 @@
 
 将 PRD 转换为可设计、可实现、可测试、可审计、可发布的工程资产，并让 Codex 在明确 Gate 下推进，而不是直接从整份 PRD 批量生成代码。
 
-本版本以 PRD V1.6 的 115 项 V1/V2 正式需求为工程输入；V3 与 OUT_OF_SCOPE 仅保留演进/排除追溯，不得进入当前实现范围。需求基线、领域归属和下游资产状态以基线快照及追溯矩阵为准。
+本版本以 PRD V1.7 的 104 项 V1/V2 正式需求为工程输入；V3 与 OUT_OF_SCOPE 仅保留演进/排除追溯，不得进入当前实现范围。需求基线、领域归属和下游资产状态以基线快照及追溯矩阵为准。
 
 ### 1.1 当前资料优先级
 
 1. `需求/PRD-项目实施交付管理平台.md`：唯一业务语义基线。
-2. `docs/baseline/prd-v1.6.md` 与 `docs/baseline/requirement-baseline.yaml`：冻结快照和范围元数据。
+2. `docs/baseline/prd-v1.7.md` 与 `docs/baseline/requirement-baseline.yaml`：冻结快照和范围元数据。
 3. `docs/design/`：本阶段生成并通过评审的 SDS。
 4. `docs/decisions/*.md`：已批准决策与待确认问题。
-5. `specs/001-project-delivery-platform/domains/*.md`：历史领域规格，仅作参考；与 V1.6 PRD 冲突时不得直接采用。
+5. `specs/001-project-delivery-platform/domains/*.md`：PRD派生的13领域需求规格；与 V1.7 PRD 冲突时以PRD为准并重新生成，不允许直接改写派生文件。
 
 过程审查和门禁证据不再与正式 SDS 混放：
 

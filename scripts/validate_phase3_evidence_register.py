@@ -139,7 +139,7 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
 
     if payload.get("schemaVersion") != 1:
         errors.append("unsupported evidence register schemaVersion")
-    if payload.get("phase") != "SDS_PHASE_3" or payload.get("baseline") != "PRD_V1.6":
+    if payload.get("phase") != "SDS_PHASE_3" or payload.get("baseline") != "PRD_V1.7":
         errors.append("evidence register phase/baseline mismatch")
 
     items = payload.get("items")
