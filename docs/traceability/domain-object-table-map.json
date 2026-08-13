@@ -430,34 +430,22 @@
         "cut_step"
       ]
     },
-    "CutoverExecution": {
+    "CutoverSupportArrangement": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-04"
+      ],
+      "targetTables": [
+        "cut_cutover_support_arrangement"
+      ]
+    },
+    "CutoverClosure": {
       "owner": "CUT",
       "requirementIds": [
         "CUT-06"
       ],
       "targetTables": [
-        "cut_execution",
-        "cut_execution_step",
-        "cut_observation"
-      ]
-    },
-    "CutoverSupportTask": {
-      "owner": "CUT",
-      "requirementIds": [
-        "CUT-11"
-      ],
-      "targetTables": [
-        "cut_cutover_support_task",
-        "cut_cutover_support_history"
-      ]
-    },
-    "ResponsibilityInterval": {
-      "owner": "CUT",
-      "requirementIds": [
-        "CUT-11"
-      ],
-      "targetTables": [
-        "cut_cutover_support_responsibility_interval"
+        "cut_cutover_closure"
       ]
     },
     "InspectionTask": {

@@ -86,13 +86,14 @@
     "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED"
   },
   "v17Delta": {
-    "decisionRef": "ADR-0025",
+    "decisionRef": "ADR-0027",
     "status": "BLOCKED_BY_REVIEW",
     "requirementRefs": [
       "ACC-02",
       "CLO-01",
       "CLO-02",
-      "CUT-11",
+      "CUT-04",
+      "CUT-06",
       "EQP-01",
       "EQP-02",
       "EQP-03",
@@ -114,12 +115,11 @@
         "acc_satisfaction_response",
         "acc_satisfaction_result"
       ],
-      "CutoverSupportTask": [
-        "cut_cutover_support_history",
-        "cut_cutover_support_task"
+      "CutoverSupportArrangement": [
+        "cut_cutover_support_arrangement"
       ],
-      "ResponsibilityInterval": [
-        "cut_cutover_support_responsibility_interval"
+      "CutoverClosure": [
+        "cut_cutover_closure"
       ],
       "DeviceComponentRelation": [
         "ast_device_component_relation"
@@ -130,8 +130,7 @@
       "acc_satisfaction_questionnaire",
       "acc_satisfaction_response",
       "acc_satisfaction_result",
-      "cut_cutover_support_history",
-      "cut_cutover_support_responsibility_interval"
+      "cut_cutover_closure"
     ],
     "tableContracts": {
       "imp_configuration_collection_result": {
@@ -551,151 +550,147 @@
         },
         "generatedExpressions": {}
       },
-      "cut_cutover_support_task": {
+      "cut_cutover_support_arrangement": {
         "requiredColumns": {
-          "source_system": {
-            "typePattern": "VARCHAR\\(32\\)",
-            "nullable": true
-          },
-          "source_business_key": {
-            "typePattern": "VARCHAR\\(128\\)",
-            "nullable": true
-          },
           "cutover_task_id": {
             "typePattern": "BIGINT",
             "nullable": false
           },
-          "project_id": {
+          "plan_revision_id": {
             "typePattern": "BIGINT",
             "nullable": false
           },
-          "device_scope_snapshot": {
+          "arrangement_no": {
+            "typePattern": "INT\\s+UNSIGNED",
+            "nullable": false
+          },
+          "person_type_code": {
+            "typePattern": "VARCHAR\\(32\\)",
+            "nullable": false
+          },
+          "person_name": {
+            "typePattern": "VARCHAR\\(128\\)",
+            "nullable": false
+          },
+          "internal_user_id": {
+            "typePattern": "BIGINT",
+            "nullable": true
+          },
+          "contact_info": {
+            "typePattern": "VARCHAR\\(512\\)",
+            "nullable": false
+          },
+          "arrival_time": {
+            "typePattern": "DATETIME\\(3\\)",
+            "nullable": true
+          },
+          "role_code": {
+            "typePattern": "VARCHAR\\(64\\)",
+            "nullable": false
+          },
+          "task_duty": {
+            "typePattern": "VARCHAR\\(1000\\)",
+            "nullable": false
+          }
+        },
+        "forbiddenColumns": [
+          "password",
+          "private_key",
+          "secret",
+          "token",
+          "current_handler_user_id",
+          "current_responsibility_interval_id",
+          "current_responsible_user_id",
+          "effective_from",
+          "effective_to",
+          "status_code",
+          "support_task_id"
+        ],
+        "uniqueKeys": {
+          "uk_cutover_support_arrangement_no": [
+            "tenant_id",
+            "plan_revision_id",
+            "arrangement_no"
+          ]
+        },
+        "generatedExpressions": {}
+      },
+      "cut_cutover_closure": {
+        "requiredColumns": {
+          "cutover_task_id": {
+            "typePattern": "BIGINT",
+            "nullable": false
+          },
+          "plan_revision_id": {
+            "typePattern": "BIGINT",
+            "nullable": false
+          },
+          "precheck_normal": {
+            "typePattern": "TINYINT",
+            "nullable": true
+          },
+          "execution_normal": {
+            "typePattern": "TINYINT",
+            "nullable": true
+          },
+          "test_normal": {
+            "typePattern": "TINYINT",
+            "nullable": true
+          },
+          "rollback_occurred": {
+            "typePattern": "TINYINT",
+            "nullable": true
+          },
+          "rollback_description": {
+            "typePattern": "VARCHAR\\(1000\\)",
+            "nullable": true
+          },
+          "legacy_item_text": {
+            "typePattern": "TEXT",
+            "nullable": true
+          },
+          "collection_result_refs": {
             "typePattern": "JSON",
-            "nullable": false
+            "nullable": true
           },
-          "current_handler_user_id": {
-            "typePattern": "BIGINT",
-            "nullable": false
+          "attachment_refs": {
+            "typePattern": "JSON",
+            "nullable": true
           },
-          "current_responsibility_interval_id": {
-            "typePattern": "BIGINT",
-            "nullable": false
+          "result_code": {
+            "typePattern": "VARCHAR\\(32\\)",
+            "nullable": true
           },
-          "current_responsible_user_id": {
+          "submitted_by": {
             "typePattern": "BIGINT",
-            "nullable": false
+            "nullable": true
+          },
+          "submitted_time": {
+            "typePattern": "DATETIME\\(3\\)",
+            "nullable": true
+          },
+          "archive_time": {
+            "typePattern": "DATETIME\\(3\\)",
+            "nullable": true
           }
         },
         "forbiddenColumns": [
-          "password",
-          "private_key",
-          "secret",
-          "token"
-        ],
-        "uniqueKeys": {
-          "uk_cutover_support_task_no": [
-            "tenant_id",
-            "task_no"
-          ],
-          "uk_cutover_support_scope_window": [
-            "tenant_id",
-            "cutover_task_id",
-            "support_scope_hash",
-            "window_start",
-            "window_end"
-          ]
-        },
-        "generatedExpressions": {}
-      },
-      "cut_cutover_support_history": {
-        "requiredColumns": {
-          "support_task_id": {
-            "typePattern": "BIGINT",
-            "nullable": false
-          },
-          "history_no": {
-            "typePattern": "INT\\s+UNSIGNED",
-            "nullable": false
-          },
-          "action_code": {
-            "typePattern": "VARCHAR\\(32\\)",
-            "nullable": false
-          },
-          "status_after_code": {
-            "typePattern": "VARCHAR\\(32\\)",
-            "nullable": false
-          }
-        },
-        "forbiddenColumns": [
-          "deleted",
           "password",
           "private_key",
           "secret",
           "token",
-          "update_time",
-          "updater",
-          "version"
+          "current_responsibility_interval_id",
+          "execution_step_id",
+          "observation_id",
+          "support_task_id"
         ],
         "uniqueKeys": {
-          "uk_cutover_support_history_sequence": [
+          "uk_cutover_closure_task": [
             "tenant_id",
-            "support_task_id",
-            "history_no"
+            "cutover_task_id"
           ]
         },
         "generatedExpressions": {}
-      },
-      "cut_cutover_support_responsibility_interval": {
-        "requiredColumns": {
-          "support_task_id": {
-            "typePattern": "BIGINT",
-            "nullable": false
-          },
-          "interval_no": {
-            "typePattern": "INT\\s+UNSIGNED",
-            "nullable": false
-          },
-          "responsible_user_id": {
-            "typePattern": "BIGINT",
-            "nullable": false
-          },
-          "effective_from": {
-            "typePattern": "DATETIME\\(3\\)",
-            "nullable": false
-          },
-          "effective_to": {
-            "typePattern": "DATETIME\\(3\\)",
-            "nullable": true
-          },
-          "current_support_task_id": {
-            "typePattern": "BIGINT",
-            "nullable": true
-          }
-        },
-        "forbiddenColumns": [
-          "deleted",
-          "password",
-          "private_key",
-          "secret",
-          "token",
-          "update_time",
-          "updater",
-          "version"
-        ],
-        "uniqueKeys": {
-          "uk_cutover_responsibility_interval_sequence": [
-            "tenant_id",
-            "support_task_id",
-            "interval_no"
-          ],
-          "uk_cutover_responsibility_current": [
-            "tenant_id",
-            "current_support_task_id"
-          ]
-        },
-        "generatedExpressions": {
-          "current_support_task_id": "CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END"
-        }
       },
       "ast_device_component_relation": {
         "requiredColumns": {
@@ -736,28 +731,28 @@
     }
   },
   "q07TechnicalConstraintPolicy": {
-    "ddlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
+    "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "decision": "ACCEPT_CURRENT_FOR_SDS",
-    "primaryKeyCount": 61,
+    "primaryKeyCount": 60,
     "primaryKeyShape": {
-      "singleId": 60,
+      "singleId": 59,
       "compositeProjection": 1
     },
-    "tenantReferenceKeyCount": 61,
+    "tenantReferenceKeyCount": 60,
     "sameDomainForeignKeyCount": 48,
     "stableTechnicalCheckGroups": {
       "softDelete": 45,
-      "temporalOrder": 18,
-      "booleanFlag": 8,
+      "temporalOrder": 16,
+      "booleanFlag": 12,
       "noSelf": 4,
-      "nonnegativeCount": 13
+      "nonnegativeCount": 12
     },
     "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE"
   },
   "q08OrdinaryIndexPolicy": {
-    "ddlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
+    "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
-    "candidateIndexCount": 124,
+    "candidateIndexCount": 122,
     "featureQueryPlanValidationRequired": true,
     "p3e06PerformanceValidationRequired": true,
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
@@ -766,84 +761,393 @@
   "migrationIssueTable": "plt_migration_issue",
   "sourceEvidenceTable": "plt_migration_source_record",
   "currentTableScope": {
-    "cus_customer": {"requirementRefs": ["CUS-03", "INT-03"]},
-    "cus_market_relation": {"requirementRefs": ["CUS-03", "INT-03"]},
-    "cus_customer_contact": {"requirementRefs": ["CUS-04"]},
-    "ast_product": {"requirementRefs": ["EQP-01", "EQP-03"]},
-    "proj_project": {"requirementRefs": ["INT-01", "PM-01", "PM-07", "PM-10"]},
-    "proj_project_relation": {"requirementRefs": ["PM-02", "PM-04"]},
-    "proj_project_party": {"requirementRefs": ["PM-01"]},
-    "proj_project_company_department_relation": {"requirementRefs": ["PM-01", "PM-08"]},
-    "proj_project_member_assignment": {"requirementRefs": ["PM-01", "PM-08", "PM-09"]},
-    "plt_business_document": {"requirementRefs": ["PLT-02"]},
-    "plt_document_version": {"requirementRefs": ["PLT-02"]},
-    "acc_deliverable_template": {"requirementRefs": ["ACC-04"]},
-    "acc_project_deliverable": {"requirementRefs": ["ACC-04"]},
-    "proj_project_portfolio": {"requirementRefs": ["PROJ-12"]},
-    "proj_project_portfolio_member": {"requirementRefs": ["PROJ-12"]},
-    "com_contract": {"requirementRefs": ["COM-01", "INT-01"]},
-    "com_contract_receivable": {"requirementRefs": ["COM-01", "COM-02"]},
-    "com_shipment_contract_reference": {"requirementRefs": ["COM-01", "COM-02"]},
-    "com_shipment_package": {"requirementRefs": ["COM-01", "COM-02"]},
-    "com_project_contract_relation": {"requirementRefs": ["COM-01"]},
-    "com_sales_order": {"requirementRefs": ["COM-01", "INT-01"]},
-    "com_order_contract_relation": {"requirementRefs": ["COM-01"]},
-    "com_sales_order_line": {"requirementRefs": ["COM-01"]},
-    "com_delivery_scope": {"requirementRefs": ["COM-01"]},
-    "com_delivery_scope_detail": {"requirementRefs": ["COM-01"]},
-    "ast_device_sn": {"requirementRefs": ["EQP-01", "EQP-04"]},
-    "ast_device_shipment_event": {"requirementRefs": ["EQP-01", "EQP-03"]},
-    "ast_device_project_assignment": {"requirementRefs": ["EQP-01", "EQP-03"]},
-    "ast_device_relation": {"requirementRefs": ["EQP-01", "EQP-03"]},
-    "ast_device_configuration": {"requirementRefs": ["EQP-01", "EQP-02", "EXE-03"]},
-    "ast_device_configuration_feature": {"requirementRefs": ["EQP-01", "EQP-02", "EXE-03"]},
-    "ast_device_configuration_service": {"requirementRefs": ["EQP-01", "EQP-02", "EXE-03"]},
-    "ast_network_topology": {"requirementRefs": ["EQP-01", "EQP-03"]},
-    "ast_network_topology_device_relation": {"requirementRefs": ["EQP-01", "EQP-03"]},
-    "ast_device_version": {"requirementRefs": ["EQP-01", "EQP-03", "INT-02"]},
-    "ast_product_release": {"requirementRefs": ["EQP-01", "EQP-03", "INT-02"]},
-    "srv_service_incident": {"requirementRefs": ["EQP-07", "INT-02"]},
-    "srv_service_incident_device_relation": {"requirementRefs": ["EQP-07", "INT-02"]},
-    "com_crm_execution_order": {"requirementRefs": ["INT-01"]},
-    "com_crm_execution_config": {"requirementRefs": ["INT-01"]},
-    "com_order_execution_relation": {"requirementRefs": ["COM-01", "INT-01"]},
-    "com_order_line_execution_relation": {"requirementRefs": ["COM-01", "INT-01"]},
-    "com_execution_order_merge_batch": {"requirementRefs": ["COM-01", "INT-01"]},
-    "com_execution_order_merge_member": {"requirementRefs": ["COM-01", "INT-01"]},
-    "com_order_change_relation": {"requirementRefs": ["COM-01", "INT-01"]},
-    "plt_sync_batch": {"requirementRefs": ["INT-01", "INT-02", "INT-03", "INT-05", "INT-09"]},
-    "plt_migration_source_record": {"technicalRuleRefs": ["ADR-0022#migration-lineage-and-issue"]},
-    "plt_external_key_mapping": {"technicalRuleRefs": ["ADR-0022#external-key-mapping"]},
-    "plt_migration_issue": {"technicalRuleRefs": ["ADR-0022#migration-lineage-and-issue"]},
-    "ana_project_delivery_summary": {"requirementRefs": ["ANA-01", "RPT-02"]},
-    "imp_configuration_collection_result": {"requirementRefs": ["EXE-03"]},
-    "imp_configuration_collection_parse_attempt": {"requirementRefs": ["EXE-03"]},
-    "imp_configuration_component_candidate": {"requirementRefs": ["EXE-03"]},
-    "acc_satisfaction_collection_task": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
-    "acc_satisfaction_questionnaire": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
-    "acc_satisfaction_response": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
-    "acc_satisfaction_result": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
-    "cut_cutover_support_task": {"requirementRefs": ["CUT-11"]},
-    "cut_cutover_support_history": {"requirementRefs": ["CUT-11"]},
-    "cut_cutover_support_responsibility_interval": {"requirementRefs": ["CUT-11"]},
-    "ast_device_component_relation": {"requirementRefs": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03"]}
+    "cus_customer": {
+      "requirementRefs": [
+        "CUS-03",
+        "INT-03"
+      ]
+    },
+    "cus_market_relation": {
+      "requirementRefs": [
+        "CUS-03",
+        "INT-03"
+      ]
+    },
+    "cus_customer_contact": {
+      "requirementRefs": [
+        "CUS-04"
+      ]
+    },
+    "ast_product": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03"
+      ]
+    },
+    "proj_project": {
+      "requirementRefs": [
+        "INT-01",
+        "PM-01",
+        "PM-07",
+        "PM-10"
+      ]
+    },
+    "proj_project_relation": {
+      "requirementRefs": [
+        "PM-02",
+        "PM-04"
+      ]
+    },
+    "proj_project_party": {
+      "requirementRefs": [
+        "PM-01"
+      ]
+    },
+    "proj_project_company_department_relation": {
+      "requirementRefs": [
+        "PM-01",
+        "PM-08"
+      ]
+    },
+    "proj_project_member_assignment": {
+      "requirementRefs": [
+        "PM-01",
+        "PM-08",
+        "PM-09"
+      ]
+    },
+    "plt_business_document": {
+      "requirementRefs": [
+        "PLT-02"
+      ]
+    },
+    "plt_document_version": {
+      "requirementRefs": [
+        "PLT-02"
+      ]
+    },
+    "acc_deliverable_template": {
+      "requirementRefs": [
+        "ACC-04"
+      ]
+    },
+    "acc_project_deliverable": {
+      "requirementRefs": [
+        "ACC-04"
+      ]
+    },
+    "proj_project_portfolio": {
+      "requirementRefs": [
+        "PROJ-12"
+      ]
+    },
+    "proj_project_portfolio_member": {
+      "requirementRefs": [
+        "PROJ-12"
+      ]
+    },
+    "com_contract": {
+      "requirementRefs": [
+        "COM-01",
+        "INT-01"
+      ]
+    },
+    "com_contract_receivable": {
+      "requirementRefs": [
+        "COM-01",
+        "COM-02"
+      ]
+    },
+    "com_shipment_contract_reference": {
+      "requirementRefs": [
+        "COM-01",
+        "COM-02"
+      ]
+    },
+    "com_shipment_package": {
+      "requirementRefs": [
+        "COM-01",
+        "COM-02"
+      ]
+    },
+    "com_project_contract_relation": {
+      "requirementRefs": [
+        "COM-01"
+      ]
+    },
+    "com_sales_order": {
+      "requirementRefs": [
+        "COM-01",
+        "INT-01"
+      ]
+    },
+    "com_order_contract_relation": {
+      "requirementRefs": [
+        "COM-01"
+      ]
+    },
+    "com_sales_order_line": {
+      "requirementRefs": [
+        "COM-01"
+      ]
+    },
+    "com_delivery_scope": {
+      "requirementRefs": [
+        "COM-01"
+      ]
+    },
+    "com_delivery_scope_detail": {
+      "requirementRefs": [
+        "COM-01"
+      ]
+    },
+    "ast_device_sn": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-04"
+      ]
+    },
+    "ast_device_shipment_event": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03"
+      ]
+    },
+    "ast_device_project_assignment": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03"
+      ]
+    },
+    "ast_device_relation": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03"
+      ]
+    },
+    "ast_device_configuration": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-02",
+        "EXE-03"
+      ]
+    },
+    "ast_device_configuration_feature": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-02",
+        "EXE-03"
+      ]
+    },
+    "ast_device_configuration_service": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-02",
+        "EXE-03"
+      ]
+    },
+    "ast_network_topology": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03"
+      ]
+    },
+    "ast_network_topology_device_relation": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03"
+      ]
+    },
+    "ast_device_version": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03",
+        "INT-02"
+      ]
+    },
+    "ast_product_release": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-03",
+        "INT-02"
+      ]
+    },
+    "srv_service_incident": {
+      "requirementRefs": [
+        "EQP-07",
+        "INT-02"
+      ]
+    },
+    "srv_service_incident_device_relation": {
+      "requirementRefs": [
+        "EQP-07",
+        "INT-02"
+      ]
+    },
+    "com_crm_execution_order": {
+      "requirementRefs": [
+        "INT-01"
+      ]
+    },
+    "com_crm_execution_config": {
+      "requirementRefs": [
+        "INT-01"
+      ]
+    },
+    "com_order_execution_relation": {
+      "requirementRefs": [
+        "COM-01",
+        "INT-01"
+      ]
+    },
+    "com_order_line_execution_relation": {
+      "requirementRefs": [
+        "COM-01",
+        "INT-01"
+      ]
+    },
+    "com_execution_order_merge_batch": {
+      "requirementRefs": [
+        "COM-01",
+        "INT-01"
+      ]
+    },
+    "com_execution_order_merge_member": {
+      "requirementRefs": [
+        "COM-01",
+        "INT-01"
+      ]
+    },
+    "com_order_change_relation": {
+      "requirementRefs": [
+        "COM-01",
+        "INT-01"
+      ]
+    },
+    "plt_sync_batch": {
+      "requirementRefs": [
+        "INT-01",
+        "INT-02",
+        "INT-03",
+        "INT-05",
+        "INT-09"
+      ]
+    },
+    "plt_migration_source_record": {
+      "technicalRuleRefs": [
+        "ADR-0022#migration-lineage-and-issue"
+      ]
+    },
+    "plt_external_key_mapping": {
+      "technicalRuleRefs": [
+        "ADR-0022#external-key-mapping"
+      ]
+    },
+    "plt_migration_issue": {
+      "technicalRuleRefs": [
+        "ADR-0022#migration-lineage-and-issue"
+      ]
+    },
+    "ana_project_delivery_summary": {
+      "requirementRefs": [
+        "ANA-01",
+        "RPT-02"
+      ]
+    },
+    "imp_configuration_collection_result": {
+      "requirementRefs": [
+        "EXE-03"
+      ]
+    },
+    "imp_configuration_collection_parse_attempt": {
+      "requirementRefs": [
+        "EXE-03"
+      ]
+    },
+    "imp_configuration_component_candidate": {
+      "requirementRefs": [
+        "EXE-03"
+      ]
+    },
+    "acc_satisfaction_collection_task": {
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    "acc_satisfaction_questionnaire": {
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    "acc_satisfaction_response": {
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    "acc_satisfaction_result": {
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    "ast_device_component_relation": {
+      "requirementRefs": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07",
+        "EXE-03"
+      ]
+    },
+    "cut_cutover_support_arrangement": {
+      "requirementRefs": [
+        "CUT-04"
+      ]
+    },
+    "cut_cutover_closure": {
+      "requirementRefs": [
+        "CUT-06"
+      ]
+    }
   },
   "forbiddenV1V2Tables": [
+    "cut_cutover_support_history",
+    "cut_cutover_support_responsibility_interval",
+    "cut_cutover_support_task",
+    "cut_execution",
+    "cut_execution_step",
+    "cut_observation",
     "kno_device_technical_advisory_match",
     "kno_technical_advisory",
     "kno_technical_advisory_product_relation",
     "kno_technical_advisory_read_record",
+    "plt_directory_sync_snapshot",
+    "proj_daily_report",
+    "proj_weekly_report",
+    "srv_historical_time_record",
+    "srv_historical_work_order",
+    "srv_renewal",
+    "srv_renewal_operation",
     "srv_time_adjustment",
     "srv_time_claim",
     "srv_work_order",
     "srv_work_order_handling_record",
-    "srv_work_order_sla",
-    "srv_historical_work_order",
-    "srv_historical_time_record",
-    "plt_directory_sync_snapshot",
-    "srv_renewal",
-    "srv_renewal_operation",
-    "proj_daily_report",
-    "proj_weekly_report"
+    "srv_work_order_sla"
   ]
 }

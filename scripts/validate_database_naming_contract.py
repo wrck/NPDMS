@@ -23,9 +23,8 @@ EXPECTED_MODEL_EXTENSIONS = [
     {"target": "acc_satisfaction_questionnaire", "owner": "ACC", "decisionRef": "ADR-0025", "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
     {"target": "acc_satisfaction_response", "owner": "ACC", "decisionRef": "ADR-0025", "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
     {"target": "acc_satisfaction_result", "owner": "ACC", "decisionRef": "ADR-0025", "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
-    {"target": "cut_cutover_support_task", "owner": "CUT", "decisionRef": "ADR-0025", "requirementRefs": ["CUT-11"]},
-    {"target": "cut_cutover_support_history", "owner": "CUT", "decisionRef": "ADR-0025", "requirementRefs": ["CUT-11"]},
-    {"target": "cut_cutover_support_responsibility_interval", "owner": "CUT", "decisionRef": "ADR-0025", "requirementRefs": ["CUT-11"]},
+    {"target": "cut_cutover_support_arrangement", "owner": "CUT", "decisionRef": "ADR-0027", "requirementRefs": ["CUT-04"]},
+    {"target": "cut_cutover_closure", "owner": "CUT", "decisionRef": "ADR-0027", "requirementRefs": ["CUT-06"]},
     {"target": "ast_device_component_relation", "owner": "AST", "decisionRef": "ADR-0025", "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
 ]
 
@@ -66,7 +65,7 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
     if extensions != [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}]:
         errors.append("database naming contract ADR-0021 extension mismatch")
     if model_extensions != EXPECTED_MODEL_EXTENSIONS:
-        errors.append("database naming contract ADR-0023/ADR-0025 model extension mismatch")
+        errors.append("database naming contract ADR-0023/ADR-0025/ADR-0027 model extension mismatch")
     if not isinstance(implementation_scope, dict) or implementation_scope.get("coverage") != "CORE_MIGRATION_SUBSET" or implementation_scope.get("decisionRef") != "ADR-0022":
         errors.append("database naming contract implementation scope mismatch")
     if len(fields) != 6:

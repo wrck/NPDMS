@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
+  "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,23 +11,23 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1900,
+    "itemCount": 1883,
     "byType": {
-      "TABLE": 65,
-      "COLUMN": 1318,
-      "CONSTRAINT": 452,
-      "TABLE_OPTION": 65
+      "TABLE": 64,
+      "COLUMN": 1308,
+      "CONSTRAINT": 447,
+      "TABLE_OPTION": 64
     },
     "byComparisonStatus": {
       "MATCH": 1048,
-      "UNVERIFIED_BASELINE_MISSING": 522,
-      "ADDED": 255,
+      "UNVERIFIED_BASELINE_MISSING": 516,
+      "ADDED": 244,
       "MODIFIED": 3,
       "REMOVED": 72
     },
     "approvedCount": 0
   },
-  "itemsSha256": "0D94C6748AE7CF2B832BF9ED284A14663BC9DDE42B0A33BB1F59BEB06DADAF86",
+  "itemsSha256": "61275A35D6A70FE5D37C619EFECA7450DB190D303E4B511EBE44A8D2566E0DE3",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -26463,9 +26463,9 @@
       ]
     },
     {
-      "itemId": "TABLE:cut_cutover_support_history",
+      "itemId": "TABLE:cut_cutover_closure",
       "itemType": "TABLE",
-      "table": "cut_cutover_support_history",
+      "table": "cut_cutover_closure",
       "comparisonStatus": "ADDED",
       "baselineValue": false,
       "currentValue": true,
@@ -26475,15 +26475,15 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_history:action_code",
+      "itemId": "COLUMN:cut_cutover_closure:archive_time",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "action_code",
+      "table": "cut_cutover_closure",
+      "name": "archive_time",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": false,
+        "dataType": "DATETIME(3)",
+        "nullable": true,
         "defaultValue": null,
         "generated": false,
         "description": null
@@ -26494,9 +26494,47 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_history:create_time",
+      "itemId": "COLUMN:cut_cutover_closure:attachment_refs",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
+      "table": "cut_cutover_closure",
+      "name": "attachment_refs",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_closure:collection_result_refs",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_closure",
+      "name": "collection_result_refs",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "INT-12回调或人工上传结果引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_closure:create_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_closure",
       "name": "create_time",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
@@ -26513,315 +26551,9 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_history:evidence_ref",
+      "itemId": "COLUMN:cut_cutover_closure:creator",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "evidence_ref",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "VARCHAR(512)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:history_no",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "history_no",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "INT UNSIGNED",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:occurred_time",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "occurred_time",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:operator_user_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "operator_user_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "操作人逻辑引用"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:reason",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "reason",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "VARCHAR(1000)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:status_after_code",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "status_after_code",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:status_before_code",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "status_before_code",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:support_task_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "support_task_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "割接保障任务逻辑引用"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_history:tenant_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_history",
-      "name": "tenant_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_history:PRIMARY",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_history",
-      "name": "PRIMARY",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "PRIMARY KEY (id)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_history:chk_cutover_support_history_sequence",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_history",
-      "name": "chk_cutover_support_history_sequence",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_cutover_support_history_sequence CHECK (history_no > 0)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_history:idx_cutover_support_history_time",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_history",
-      "name": "idx_cutover_support_history_time",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "KEY idx_cutover_support_history_time (tenant_id, support_task_id, occurred_time)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_history:uk_cutover_support_history_sequence",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_history",
-      "name": "uk_cutover_support_history_sequence",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_support_history_sequence (tenant_id, support_task_id, history_no)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_history:uk_cutover_support_history_tenant_row",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_history",
-      "name": "uk_cutover_support_history_tenant_row",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_support_history_tenant_row (tenant_id, id)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-      ]
-    },
-    {
-      "itemId": "TABLE_OPTION:cut_cutover_support_history",
-      "itemType": "TABLE_OPTION",
-      "table": "cut_cutover_support_history",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '割接保障状态与动作的不可覆盖历史'",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "TABLE:cut_cutover_support_responsibility_interval",
-      "itemType": "TABLE",
-      "table": "cut_cutover_support_responsibility_interval",
-      "comparisonStatus": "ADDED",
-      "baselineValue": false,
-      "currentValue": true,
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:create_time",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "create_time",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:creator",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
+      "table": "cut_cutover_closure",
       "name": "creator",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
@@ -26838,420 +26570,9 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:current_support_task_id",
+      "itemId": "COLUMN:cut_cutover_closure:cutover_task_id",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "current_support_task_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": true,
-        "description": "仅当前区间生成任务标识",
-        "generatedExpression": "CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:effective_from",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "effective_from",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:effective_to",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "effective_to",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:evidence_ref",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "evidence_ref",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "VARCHAR(512)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:handover_reason",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "handover_reason",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "VARCHAR(1000)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:interval_no",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "interval_no",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "INT UNSIGNED",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:responsible_user_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "responsible_user_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "责任人逻辑引用"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:support_task_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "support_task_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "割接保障任务逻辑引用"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:tenant_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "tenant_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:PRIMARY",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "PRIMARY",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "PRIMARY KEY (id)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:chk_cutover_responsibility_dates",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "chk_cutover_responsibility_dates",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_cutover_responsibility_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:chk_cutover_responsibility_interval_sequence",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "chk_cutover_responsibility_interval_sequence",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_cutover_responsibility_interval_sequence CHECK (interval_no > 0)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:idx_cutover_responsibility_current",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "idx_cutover_responsibility_current",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "KEY idx_cutover_responsibility_current (tenant_id, support_task_id, effective_to, effective_from)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:uk_cutover_responsibility_current",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "uk_cutover_responsibility_current",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:uk_cutover_responsibility_interval_sequence",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "uk_cutover_responsibility_interval_sequence",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:uk_cutover_support_responsibility_interval_tenant_row",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_responsibility_interval",
-      "name": "uk_cutover_support_responsibility_interval_tenant_row",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-      ]
-    },
-    {
-      "itemId": "TABLE_OPTION:cut_cutover_support_responsibility_interval",
-      "itemType": "TABLE_OPTION",
-      "table": "cut_cutover_support_responsibility_interval",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '割接保障责任转交的不可覆盖生效区间'",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "TABLE:cut_cutover_support_task",
-      "itemType": "TABLE",
-      "table": "cut_cutover_support_task",
-      "comparisonStatus": "ADDED",
-      "baselineValue": false,
-      "currentValue": true,
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:create_time",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "create_time",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:creator",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "creator",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:current_handler_user_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "current_handler_user_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "当前处理人逻辑引用"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:current_responsibility_interval_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "current_responsibility_interval_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "当前责任区间逻辑引用"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:current_responsible_user_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "current_responsible_user_id",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "当前责任人逻辑引用"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:cutover_task_id",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_closure",
       "name": "cutover_task_id",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
@@ -27260,7 +26581,7 @@
         "nullable": false,
         "defaultValue": null,
         "generated": false,
-        "description": "割接任务逻辑引用"
+        "description": "CUT-01割接任务逻辑引用"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -27268,18 +26589,18 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:device_scope_snapshot",
+      "itemId": "COLUMN:cut_cutover_closure:detail_description",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "device_scope_snapshot",
+      "table": "cut_cutover_closure",
+      "name": "detail_description",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
-        "dataType": "JSON",
-        "nullable": false,
+        "dataType": "TEXT",
+        "nullable": true,
         "defaultValue": null,
         "generated": false,
-        "description": "割接保障设备范围快照"
+        "description": null
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -27287,9 +26608,28 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:id",
+      "itemId": "COLUMN:cut_cutover_closure:execution_normal",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_closure",
+      "name": "execution_normal",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_closure:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_closure",
       "name": "id",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
@@ -27306,10 +26646,29 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:project_id",
+      "itemId": "COLUMN:cut_cutover_closure:legacy_item_text",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "project_id",
+      "table": "cut_cutover_closure",
+      "name": "legacy_item_text",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TEXT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "遗留项闭环快照文本，不形成独立生命周期"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_closure:plan_revision_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_closure",
+      "name": "plan_revision_id",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
@@ -27317,7 +26676,7 @@
         "nullable": false,
         "defaultValue": null,
         "generated": false,
-        "description": "项目逻辑引用"
+        "description": "P6引用的已批准CUT-04方案版本"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -27325,18 +26684,18 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:source_business_key",
+      "itemId": "COLUMN:cut_cutover_closure:precheck_normal",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "source_business_key",
+      "table": "cut_cutover_closure",
+      "name": "precheck_normal",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
-        "dataType": "VARCHAR(128)",
+        "dataType": "TINYINT",
         "nullable": true,
         "defaultValue": null,
         "generated": false,
-        "description": "历史CUT-11候选来源业务键"
+        "description": null
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -27344,10 +26703,10 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:source_system",
+      "itemId": "COLUMN:cut_cutover_closure:result_code",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "source_system",
+      "table": "cut_cutover_closure",
+      "name": "result_code",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
@@ -27355,7 +26714,7 @@
         "nullable": true,
         "defaultValue": null,
         "generated": false,
-        "description": "历史CUT-11候选来源系统"
+        "description": "成功或失败；提交前可空"
       },
       "decision": "DEFER",
       "decisionOwner": null,
@@ -27363,15 +26722,15 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:state_machine_version",
+      "itemId": "COLUMN:cut_cutover_closure:rollback_description",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "state_machine_version",
+      "table": "cut_cutover_closure",
+      "name": "rollback_description",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
+        "dataType": "VARCHAR(1000)",
+        "nullable": true,
         "defaultValue": null,
         "generated": false,
         "description": null
@@ -27382,15 +26741,15 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:status_code",
+      "itemId": "COLUMN:cut_cutover_closure:rollback_occurred",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "status_code",
+      "table": "cut_cutover_closure",
+      "name": "rollback_occurred",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": false,
+        "dataType": "TINYINT",
+        "nullable": true,
         "defaultValue": null,
         "generated": false,
         "description": null
@@ -27401,15 +26760,15 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:support_scope_hash",
+      "itemId": "COLUMN:cut_cutover_closure:submitted_by",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "support_scope_hash",
+      "table": "cut_cutover_closure",
+      "name": "submitted_by",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
-        "dataType": "CHAR(64)",
-        "nullable": false,
+        "dataType": "BIGINT",
+        "nullable": true,
         "defaultValue": null,
         "generated": false,
         "description": null
@@ -27420,15 +26779,15 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:task_no",
+      "itemId": "COLUMN:cut_cutover_closure:submitted_time",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "task_no",
+      "table": "cut_cutover_closure",
+      "name": "submitted_time",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
       "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
+        "dataType": "DATETIME(3)",
+        "nullable": true,
         "defaultValue": null,
         "generated": false,
         "description": null
@@ -27439,9 +26798,9 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:tenant_id",
+      "itemId": "COLUMN:cut_cutover_closure:tenant_id",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_closure",
       "name": "tenant_id",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
@@ -27458,9 +26817,449 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:update_time",
+      "itemId": "COLUMN:cut_cutover_closure:test_normal",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_closure",
+      "name": "test_normal",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:chk_cutover_closure_execution",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "chk_cutover_closure_execution",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_closure_execution CHECK (execution_normal IS NULL OR execution_normal IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:chk_cutover_closure_precheck",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "chk_cutover_closure_precheck",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_closure_precheck CHECK (precheck_normal IS NULL OR precheck_normal IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:chk_cutover_closure_rollback",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "chk_cutover_closure_rollback",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_closure_rollback CHECK (rollback_occurred IS NULL OR rollback_occurred IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:chk_cutover_closure_submit",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "chk_cutover_closure_submit",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_closure_submit CHECK ( submitted_time IS NULL OR (submitted_by IS NOT NULL AND archive_time IS NOT NULL AND result_code IS NOT NULL) )",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:chk_cutover_closure_test",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "chk_cutover_closure_test",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_closure_test CHECK (test_normal IS NULL OR test_normal IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:idx_cutover_closure_result",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "idx_cutover_closure_result",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_closure_result (tenant_id, result_code, archive_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:uk_cutover_closure_task",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "uk_cutover_closure_task",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_closure_task (tenant_id, cutover_task_id)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_closure:uk_cutover_closure_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_closure",
+      "name": "uk_cutover_closure_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_closure_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cut_cutover_closure",
+      "itemType": "TABLE_OPTION",
+      "table": "cut_cutover_closure",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-06 P6轻量闭环与归档事实，不保存逐步骤执行或稳定观察'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:cut_cutover_support_arrangement",
+      "itemType": "TABLE",
+      "table": "cut_cutover_support_arrangement",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:arrangement_no",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "arrangement_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "方案版本内保障人员顺序"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:arrival_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "arrival_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:contact_info",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "contact_info",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:create_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:creator",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:cutover_task_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "cutover_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "CUT-01割接任务逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:internal_user_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "internal_user_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "内部人员逻辑引用，外部联系人为空"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:person_name",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "person_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:person_type_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "person_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "内部人员或外部联系人"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:plan_revision_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "plan_revision_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "CUT-04方案版本逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:role_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "role_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:task_duty",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "task_duty",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(1000)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_arrangement:update_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_arrangement",
       "name": "update_time",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
@@ -27477,9 +27276,9 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:updater",
+      "itemId": "COLUMN:cut_cutover_support_arrangement:updater",
       "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_support_arrangement",
       "name": "updater",
       "comparisonStatus": "ADDED",
       "baselineValue": null,
@@ -27496,66 +27295,9 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "COLUMN:cut_cutover_support_task:version",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "version",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "INT UNSIGNED",
-        "nullable": false,
-        "defaultValue": "0",
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:window_end",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "window_end",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "COLUMN:cut_cutover_support_task:window_start",
-      "itemType": "COLUMN",
-      "table": "cut_cutover_support_task",
-      "name": "window_start",
-      "comparisonStatus": "ADDED",
-      "baselineValue": null,
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": null
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_task:PRIMARY",
+      "itemId": "CONSTRAINT:cut_cutover_support_arrangement:PRIMARY",
       "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_support_arrangement",
       "name": "PRIMARY",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
@@ -27568,13 +27310,13 @@
       ]
     },
     {
-      "itemId": "CONSTRAINT:cut_cutover_support_task:chk_cutover_support_window",
+      "itemId": "CONSTRAINT:cut_cutover_support_arrangement:chk_cutover_support_arrangement_no",
       "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_task",
-      "name": "chk_cutover_support_window",
+      "table": "cut_cutover_support_arrangement",
+      "name": "chk_cutover_support_arrangement_no",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_cutover_support_window CHECK (window_end >= window_start)",
+      "currentValue": "CONSTRAINT chk_cutover_support_arrangement_no CHECK (arrangement_no > 0)",
       "decision": "AMEND_CURRENT",
       "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
@@ -27583,13 +27325,13 @@
       ]
     },
     {
-      "itemId": "CONSTRAINT:cut_cutover_support_task:idx_cutover_support_task_owner",
+      "itemId": "CONSTRAINT:cut_cutover_support_arrangement:idx_cutover_support_arrangement_task",
       "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_task",
-      "name": "idx_cutover_support_task_owner",
+      "table": "cut_cutover_support_arrangement",
+      "name": "idx_cutover_support_arrangement_task",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "KEY idx_cutover_support_task_owner (tenant_id, current_responsible_user_id, status_code)",
+      "currentValue": "KEY idx_cutover_support_arrangement_task (tenant_id, cutover_task_id, plan_revision_id)",
       "decision": "AMEND_CURRENT",
       "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
@@ -27598,54 +27340,26 @@
       ]
     },
     {
-      "itemId": "CONSTRAINT:cut_cutover_support_task:idx_cutover_support_task_window",
+      "itemId": "CONSTRAINT:cut_cutover_support_arrangement:uk_cutover_support_arrangement_no",
       "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_task",
-      "name": "idx_cutover_support_task_window",
+      "table": "cut_cutover_support_arrangement",
+      "name": "uk_cutover_support_arrangement_no",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "KEY idx_cutover_support_task_window (tenant_id, window_start, window_end)",
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
-      "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
-      ]
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_task:uk_cutover_support_scope_window",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_task",
-      "name": "uk_cutover_support_scope_window",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end)",
+      "currentValue": "UNIQUE KEY uk_cutover_support_arrangement_no (tenant_id, plan_revision_id, arrangement_no)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:cut_cutover_support_task:uk_cutover_support_task_no",
+      "itemId": "CONSTRAINT:cut_cutover_support_arrangement:uk_cutover_support_arrangement_tenant_row",
       "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_task",
-      "name": "uk_cutover_support_task_no",
+      "table": "cut_cutover_support_arrangement",
+      "name": "uk_cutover_support_arrangement_tenant_row",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:cut_cutover_support_task:uk_cutover_support_task_tenant_row",
-      "itemType": "CONSTRAINT",
-      "table": "cut_cutover_support_task",
-      "name": "uk_cutover_support_task_tenant_row",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id)",
+      "currentValue": "UNIQUE KEY uk_cutover_support_arrangement_tenant_row (tenant_id, id)",
       "decision": "AMEND_CURRENT",
       "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
@@ -27654,12 +27368,12 @@
       ]
     },
     {
-      "itemId": "TABLE_OPTION:cut_cutover_support_task",
+      "itemId": "TABLE_OPTION:cut_cutover_support_arrangement",
       "itemType": "TABLE_OPTION",
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_support_arrangement",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT领域割接保障任务，不复用通用工单聚合'",
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-04方案从属保障人员安排，不具有工单状态或责任区间'",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -39631,14 +39345,14 @@
   "q07Decision": {
     "decisionRef": "ADR-0023-Q07",
     "decision": "ACCEPT_CURRENT_FOR_SDS",
-    "decidedItemCount": 258,
+    "decidedItemCount": 257,
     "requirementOwnerStatus": "ACCEPTED",
     "reviewStatus": "REVIEW_PENDING"
   },
   "q08Decision": {
     "decisionRef": "ADR-0023-Q08",
     "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
-    "decidedItemCount": 124,
+    "decidedItemCount": 122,
     "requirementOwnerStatus": "ACCEPTED",
     "performanceValidationStatus": "REQUIRED_AT_FEATURE_AND_P3_E06",
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",

@@ -337,9 +337,8 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         "acc_satisfaction_questionnaire": ["PRD:ACC-02", "PRD:SUB-03", "SDS:08-data-model#SatisfactionCollection", "ADR-0025"],
         "acc_satisfaction_response": ["PRD:ACC-02", "SDS:08-data-model#SatisfactionCollection", "ADR-0025"],
         "acc_satisfaction_result": ["PRD:ACC-02", "PRD:SUB-03", "PRD:CLO-01", "SDS:08-data-model#SatisfactionCollection", "ADR-0025"],
-        "cut_cutover_support_task": ["PRD:CUT-11", "ADR-0024#work-order-to-cutover", "SDS:09-database-design#CutoverSupportTask", "ADR-0025"],
-        "cut_cutover_support_history": ["PRD:CUT-11", "ADR-0024#work-order-to-cutover", "SDS:09-database-design#CutoverSupportTask", "ADR-0025"],
-        "cut_cutover_support_responsibility_interval": ["PRD:CUT-11", "ADR-0024#work-order-to-cutover", "SDS:09-database-design#ResponsibilityInterval", "ADR-0025"],
+        "cut_cutover_support_arrangement": ["PRD:CUT-04", "ADR-0026#support-arrangement", "SDS:09-database-design#CutoverSupportArrangement", "ADR-0027"],
+        "cut_cutover_closure": ["PRD:CUT-06", "ADR-0026#p6-closure", "SDS:09-database-design#CutoverClosure", "ADR-0027"],
         "ast_device_component_relation": ["PRD:EXE-03", "PRD:EQP-01", "SDS:08-data-model#DeviceComponentRelation", "ADR-0025"],
     }
     # Derive data-element evidence exclusively from maintained source-to-target
@@ -369,10 +368,9 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         ("acc_satisfaction_response", "signature_ref"),
         ("acc_satisfaction_result", "signature_valid"),
         ("acc_satisfaction_result", "required_items_valid"),
-        ("cut_cutover_support_task", "window_end"),
-        ("cut_cutover_support_task", "current_responsible_user_id"),
-        ("cut_cutover_support_task", "current_handler_user_id"),
-        ("cut_cutover_support_task", "current_responsibility_interval_id"),
+        ("cut_cutover_support_arrangement", "person_type_code"),
+        ("cut_cutover_support_arrangement", "role_code"),
+        ("cut_cutover_closure", "result_code"),
     }
     for extension in contract.get("modelExtensions", []):
         table_name = extension["target"]

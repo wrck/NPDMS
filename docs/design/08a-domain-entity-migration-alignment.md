@@ -101,6 +101,7 @@
 | `CutoverTask` | 当前`cut_task` | CURRENT_FORWARD | 迁任务身份、等级、项目/设备和当前状态映射 |
 | `CutoverAssessment` | 当前`pms_cut_risk`及评估信息 | CURRENT_FORWARD | 风险项和评估结论版本化；技术公告只引用 |
 | `CutoverPlan` | 当前`pms_cut_plan` | CURRENT_FORWARD | 迁计划revision/步骤/审批引用；执行冻结已批准版本 |
+| `CutoverSupportArrangement` | 当前`pms_cut_plan`中可证明的保障人员字段；缺少逐字段证据时不迁 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 作为`CutoverPlan`从属明细；不得推导派单、状态、当前责任人或责任区间 |
 | `CutoverClosure` | 当前`pms_cut_execution`中可证明的P6结果字段 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁割接前/执行/测试结果、回退说明、附件、遗留项文本和最终结果；`pms_cut_execution_step`、`pms_cut_observation`不进入当前目标，不能把步骤状态或观察状态改名迁入 |
 | `InspectionTask` | 当前`pms_srv_task/execution/offline_file` | CURRENT_FORWARD | 当前巡检结构前向迁移；不从已排除维护表导入任何记录 |
 | `InspectionRule` | 当前`pms_srv_rule` | CURRENT_FORWARD | 发布revision迁移；任务冻结所用版本 |

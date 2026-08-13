@@ -461,34 +461,22 @@
         "cut_step"
       ]
     },
-    "CutoverExecution": {
+    "CutoverSupportArrangement": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-04"
+      ],
+      "targetTables": [
+        "cut_cutover_support_arrangement"
+      ]
+    },
+    "CutoverClosure": {
       "owner": "CUT",
       "requirementIds": [
         "CUT-06"
       ],
       "targetTables": [
-        "cut_execution",
-        "cut_execution_step",
-        "cut_observation"
-      ]
-    },
-    "CutoverSupportTask": {
-      "owner": "CUT",
-      "requirementIds": [
-        "CUT-11"
-      ],
-      "targetTables": [
-        "cut_cutover_support_task",
-        "cut_cutover_support_history"
-      ]
-    },
-    "ResponsibilityInterval": {
-      "owner": "CUT",
-      "requirementIds": [
-        "CUT-11"
-      ],
-      "targetTables": [
-        "cut_cutover_support_responsibility_interval"
+        "cut_cutover_closure"
       ]
     },
     "InspectionTask": {
@@ -2056,7 +2044,7 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_cut_plan",
           "disposition": "CURRENT_FORWARD",
-          "transform": "convert plans and steps into immutable plan revisions",
+          "transform": "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
           "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
@@ -2064,71 +2052,46 @@
       ]
     },
     {
-      "object": "CutoverExecution",
+      "object": "CutoverSupportArrangement",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-04"
+      ],
+      "targetTables": [
+        "cut_cutover_support_arrangement"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_cut_plan",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
+        }
+      ]
+    },
+    {
+      "object": "CutoverClosure",
       "owner": "CUT",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUT-06"
       ],
       "targetTables": [
-        "cut_execution",
-        "cut_execution_step",
-        "cut_observation"
+        "cut_cutover_closure"
       ],
       "sources": [
         {
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_cut_execution",
           "disposition": "CURRENT_FORWARD",
-          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
-          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "transform": "map only provable P6 result, rollback description, attachment, legacy-item text and final result fields; exclude step and observation lifecycle fields",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
           "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
-        }
-      ]
-    },
-    {
-      "object": "CutoverSupportTask",
-      "owner": "CUT",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "CUT-11"
-      ],
-      "targetTables": [
-        "cut_cutover_support_task",
-        "cut_cutover_support_history"
-      ],
-      "sources": [
-        {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "CutoverSupportTask",
-          "disposition": "NEW_ONLY",
-          "transform": "create new current CUT-11 tasks only from new-platform commands; excluded legacy tables are not classified into this object",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=CutoverSupportTask"
-        }
-      ]
-    },
-    {
-      "object": "ResponsibilityInterval",
-      "owner": "CUT",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "CUT-11"
-      ],
-      "targetTables": [
-        "cut_cutover_support_responsibility_interval"
-      ],
-      "sources": [
-        {
-          "sourceType": "DERIVED_TARGET",
-          "sourceObject": "CutoverSupportTask",
-          "disposition": "REBUILD",
-          "transform": "build responsibility intervals only from complete assignment, takeover and transfer evidence; suspension does not end an interval",
-          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
-          "gate": "AI-MIG-000",
-          "evidenceRef": "phase2-contract://objects=CutoverSupportTask"
         }
       ]
     },

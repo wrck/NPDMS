@@ -35,7 +35,7 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025重建；Q08登记124项候选索引并保留Feature/P3-E06性能验证。最终Reviewer签署仍为`REVIEW_PENDING`，V1.7差量保持`BLOCKED_BY_REVIEW`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建；Q08登记122项候选索引并保留Feature/P3-E06性能验证。最终Reviewer签署仍为`REVIEW_PENDING`，V1.7差量保持`BLOCKED_BY_REVIEW`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`BLOCKED_BY_REVIEW`。
 
@@ -43,11 +43,11 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
-ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0025按PRD V1.7补齐11张当前范围差量表后，当前核心迁移DDL为61表、1,250列、452项DDL约束/索引和61项表选项，其中隔离MySQL登记328项主键/唯一键/同域外键/CHECK；机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
+ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0025与ADR-0027按PRD V1.7补齐10张当前范围差量表后，当前核心迁移DDL为60表、1,240列、447项DDL约束/索引和60项表选项，其中隔离MySQL登记325项主键/唯一键/同域外键/CHECK；机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,900项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。当前`approvedCount=0`，具体项仍保持`DEFER`等待全量Reviewer裁决；实际当前DDL规模以61表、1,250列、452项DDL约束/索引和61项表选项为准。Q08的124项只是候选索引，后续调整必须使用前向迁移。
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。当前`approvedCount=0`，具体项仍保持`DEFER`等待全量Reviewer裁决；实际当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。Q08的122项只是候选索引，后续调整必须使用前向迁移。
 
-- 本分册中的模型和约束是 SDS 目标契约；当前61表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
+- 本分册中的模型和约束是 SDS 目标契约；当前60表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；
 - 历史`migration-validation.json.passed=true`已过期，不得作为当前发布证据；
 - 未关闭漂移前，可以实现不依赖争议 DDL 的领域代码和校验框架，但不得执行生产迁移或宣称数据切换 READY。
@@ -97,7 +97,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 3. 列表索引最后包含稳定排序键 `id`，避免同时间值翻页重复或遗漏。
 4. 不为低选择性 `deleted` 单独建索引；与租户、状态、业务范围组合。
 5. 所有索引必须对应明确查询、唯一性或门禁，不以“可能有用”为由全字段建索引。
-6. ADR-0023-Q08的规则继续有效；ADR-0025差量重建后当前124项普通索引为候选基线。Feature必须保存关键查询执行计划，P3-E06按近生产数据规模验收，索引调整只允许新增前向迁移。
+6. ADR-0023-Q08的规则继续有效；ADR-0027差量重建后当前122项普通索引为候选基线。Feature必须保存关键查询执行计划，P3-E06按近生产数据规模验收，索引调整只允许新增前向迁移。
 
 ## 4. Project Delivery 表设计
 

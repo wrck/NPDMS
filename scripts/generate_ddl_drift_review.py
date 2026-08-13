@@ -591,6 +591,7 @@ Q07_NONNEGATIVE_CHECKS = {
     "chk_satisfaction_task_revision", "chk_satisfaction_questionnaire_revision",
     "chk_satisfaction_response_sequence", "chk_satisfaction_result_sequence",
     "chk_cutover_support_history_sequence", "chk_cutover_responsibility_interval_sequence",
+    "chk_cutover_support_arrangement_no",
 }
 
 

@@ -48,67 +48,117 @@
       "target": "imp_configuration_collection_result",
       "owner": "IMP",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
     },
     {
       "target": "imp_configuration_collection_parse_attempt",
       "owner": "IMP",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
     },
     {
       "target": "imp_configuration_component_candidate",
       "owner": "IMP",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
     },
     {
       "target": "acc_satisfaction_collection_task",
       "owner": "ACC",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
     },
     {
       "target": "acc_satisfaction_questionnaire",
       "owner": "ACC",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
     },
     {
       "target": "acc_satisfaction_response",
       "owner": "ACC",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
     },
     {
       "target": "acc_satisfaction_result",
       "owner": "ACC",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
     },
     {
-      "target": "cut_cutover_support_task",
+      "target": "cut_cutover_support_arrangement",
       "owner": "CUT",
-      "decisionRef": "ADR-0025",
-      "requirementRefs": ["CUT-11"]
+      "decisionRef": "ADR-0027",
+      "requirementRefs": [
+        "CUT-04"
+      ]
     },
     {
-      "target": "cut_cutover_support_history",
+      "target": "cut_cutover_closure",
       "owner": "CUT",
-      "decisionRef": "ADR-0025",
-      "requirementRefs": ["CUT-11"]
-    },
-    {
-      "target": "cut_cutover_support_responsibility_interval",
-      "owner": "CUT",
-      "decisionRef": "ADR-0025",
-      "requirementRefs": ["CUT-11"]
+      "decisionRef": "ADR-0027",
+      "requirementRefs": [
+        "CUT-06"
+      ]
     },
     {
       "target": "ast_device_component_relation",
       "owner": "AST",
       "decisionRef": "ADR-0025",
-      "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
     }
   ],
   "implementationScope": {

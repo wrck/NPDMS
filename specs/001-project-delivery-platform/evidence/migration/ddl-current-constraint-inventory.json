@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
-  "tableCount": 61,
-  "constraintCount": 452,
-  "inventorySha256": "5F2132829C82F8C6DE59399DBD24400BA3D0555D56538446A2413D99A9C5F7FD",
+  "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+  "tableCount": 60,
+  "constraintCount": 447,
+  "inventorySha256": "3E5C1D29B8F1937E144AAC8D42F9587CAD0F674D6AD82C516AE208CF364648D0",
   "records": [
     {
       "table": "acc_deliverable_template",
@@ -585,43 +585,31 @@
       "decision": "DEFER"
     },
     {
-      "table": "cut_cutover_support_history",
+      "table": "cut_cutover_closure",
       "constraints": [
-        "CONSTRAINT chk_cutover_support_history_sequence CHECK (history_no > 0)",
-        "KEY idx_cutover_support_history_time (tenant_id, support_task_id, occurred_time)",
+        "CONSTRAINT chk_cutover_closure_execution CHECK (execution_normal IS NULL OR execution_normal IN (0, 1))",
+        "CONSTRAINT chk_cutover_closure_precheck CHECK (precheck_normal IS NULL OR precheck_normal IN (0, 1))",
+        "CONSTRAINT chk_cutover_closure_rollback CHECK (rollback_occurred IS NULL OR rollback_occurred IN (0, 1))",
+        "CONSTRAINT chk_cutover_closure_submit CHECK ( submitted_time IS NULL OR (submitted_by IS NOT NULL AND archive_time IS NOT NULL AND result_code IS NOT NULL) )",
+        "CONSTRAINT chk_cutover_closure_test CHECK (test_normal IS NULL OR test_normal IN (0, 1))",
+        "KEY idx_cutover_closure_result (tenant_id, result_code, archive_time)",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_cutover_support_history_sequence (tenant_id, support_task_id, history_no)",
-        "UNIQUE KEY uk_cutover_support_history_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_cutover_closure_task (tenant_id, cutover_task_id)",
+        "UNIQUE KEY uk_cutover_closure_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '割接保障状态与动作的不可覆盖历史'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-06 P6轻量闭环与归档事实，不保存逐步骤执行或稳定观察'",
       "decision": "DEFER"
     },
     {
-      "table": "cut_cutover_support_responsibility_interval",
+      "table": "cut_cutover_support_arrangement",
       "constraints": [
-        "CONSTRAINT chk_cutover_responsibility_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_cutover_responsibility_interval_sequence CHECK (interval_no > 0)",
-        "KEY idx_cutover_responsibility_current (tenant_id, support_task_id, effective_to, effective_from)",
+        "CONSTRAINT chk_cutover_support_arrangement_no CHECK (arrangement_no > 0)",
+        "KEY idx_cutover_support_arrangement_task (tenant_id, cutover_task_id, plan_revision_id)",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)",
-        "UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no)",
-        "UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_cutover_support_arrangement_no (tenant_id, plan_revision_id, arrangement_no)",
+        "UNIQUE KEY uk_cutover_support_arrangement_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '割接保障责任转交的不可覆盖生效区间'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "cut_cutover_support_task",
-      "constraints": [
-        "CONSTRAINT chk_cutover_support_window CHECK (window_end >= window_start)",
-        "KEY idx_cutover_support_task_owner (tenant_id, current_responsible_user_id, status_code)",
-        "KEY idx_cutover_support_task_window (tenant_id, window_start, window_end)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end)",
-        "UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no)",
-        "UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT领域割接保障任务，不复用通用工单聚合'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-04方案从属保障人员安排，不具有工单状态或责任区间'",
       "decision": "DEFER"
     },
     {

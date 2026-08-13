@@ -179,6 +179,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverTask | P1～P6统一任务身份、来源上下文、人工等级和阶段状态 | 不派生CUT保障工单；状态仅由P1～P6业务结果推进 |
 | Cutover | CutoverAssessment | 问卷版本、项目输入上下文、人工选择、人工等级和P5复核引用 | 自动建议等级仅V3；P2不增加审批节点 |
 | Cutover | CutoverPlan | 调研项、风险项、操作/验证/回退清单、附件、保障人员安排和批准版本 | 清单是方案内容而非执行状态；职责变化新建revision，联系人类变化留前后审计 |
+| Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |
 | Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |
 | Inspection | InspectionTask | 任务、模式、设备范围、规则快照和状态 | 在线/离线互斥；在线通过 DAC 下发 |
 | Inspection | InspectionRule | 可执行规则、参数和版本 | 任务冻结规则版本；规则发布后不可覆盖 |

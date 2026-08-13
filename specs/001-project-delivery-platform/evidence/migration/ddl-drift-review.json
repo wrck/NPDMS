@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T14:52:32.692135+00:00",
+  "generatedAt": "2026-08-13T20:07:20.579130+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -10,15 +10,15 @@
     "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
     "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
     "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-    "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
+    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "baselineNameNormalization": "ADR-0019"
   },
   "summary": {
     "baselineTableCount": 52,
-    "currentTableCount": 61,
+    "currentTableCount": 60,
     "baselineColumnCount": 1076,
-    "currentColumnCount": 1250,
-    "tableDiff": 17,
+    "currentColumnCount": 1240,
+    "tableDiff": 16,
     "columnDiff": 28,
     "constraintDiff": 0,
     "tableOptionDiff": 0,
@@ -63,17 +63,12 @@
       "decision": "DEFER"
     },
     {
-      "table": "cut_cutover_support_history",
+      "table": "cut_cutover_closure",
       "change": "ADDED",
       "decision": "DEFER"
     },
     {
-      "table": "cut_cutover_support_responsibility_interval",
-      "change": "ADDED",
-      "decision": "DEFER"
-    },
-    {
-      "table": "cut_cutover_support_task",
+      "table": "cut_cutover_support_arrangement",
       "change": "ADDED",
       "decision": "DEFER"
     },

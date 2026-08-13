@@ -14,7 +14,7 @@
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "\u590d\u7528\u4f01\u4e1a\u73b0\u6709\u7f51\u5173/LB\u3001\u8bc1\u4e66\u548c\u7f51\u7edc\u533a",
+                "chosenDirection": "复用企业现有网关/LB、证书和网络区",
                 "evidenceStage": "DEPLOYMENT_TIME",
                 "localRepositoryAssessment": "NO_PRODUCTION_EVIDENCE"
             },
@@ -37,7 +37,7 @@
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "\u4f7f\u7528\u4f01\u4e1a\u6258\u7ba1MySQL/Redis HA\u670d\u52a1",
+                "chosenDirection": "使用企业托管MySQL/Redis HA服务",
                 "localRepositoryAssessment": "DEVELOPMENT_SINGLE_NODE_ONLY"
             },
             "evidenceRefs": [
@@ -58,7 +58,7 @@
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "\u4e1a\u52a1Owner\u5148\u6279\u51c6RPO/RTO\uff0c\u518d\u7531DBA/\u8fd0\u7ef4\u8bbe\u8ba1\u5e76\u6f14\u7ec3",
+                "chosenDirection": "业务Owner先批准RPO/RTO，再由DBA/运维设计并演练",
                 "approvedRpo": "PT1H",
                 "approvedRto": "PT4H",
                 "businessObjectiveStatus": "ACCEPTED",
@@ -107,7 +107,7 @@
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "\u4f7f\u7528\u4f01\u4e1aKMS/Secrets Manager",
+                "chosenDirection": "使用企业KMS/Secrets Manager",
                 "evidenceStage": "DEPLOYMENT_TIME",
                 "localRepositoryAssessment": "NO_ENTERPRISE_KMS_EVIDENCE"
             },
@@ -130,7 +130,7 @@
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "OpenTelemetry\u7edf\u4e00\u91c7\u96c6\u5e76\u63a5\u5165\u4f01\u4e1a\u73b0\u6709\u540e\u7aef",
+                "chosenDirection": "OpenTelemetry统一采集并接入企业现有后端",
                 "permanentAuditPolicy": "PERMANENT_NON_DELETABLE",
                 "networkSecurityLogRetention": {
                     "policyCode": "NETWORK_SECURITY_LOG_P1Y",
@@ -225,7 +225,7 @@
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "\u5efa\u8bbe\u72ec\u7acb\u8fd1\u751f\u4ea7\u6027\u80fd\u73af\u5883",
+                "chosenDirection": "建设独立近生产性能环境",
                 "localRepositoryAssessment": "LOCAL_HEALTH_SCRIPTS_ONLY"
             },
             "evidenceRefs": [
@@ -245,7 +245,7 @@
             "confirmedFacts": {
                 "directionDecision": "B",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "\u5efa\u7acb\u5e73\u53f0\u7ea7\u63a5\u53e3\u914d\u7f6e\u6ce8\u518c\u8868\uff0cFeature\u5f15\u7528\u4e0d\u53ef\u53d8\u7248\u672c"
+                "chosenDirection": "建立平台级接口配置注册表，Feature引用不可变版本"
             },
             "evidenceRefs": [
                 "docs/decisions/0004-phase3-production-assurance-directions.md"
@@ -293,11 +293,11 @@
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
-                "chosenDirection": "\u9010\u8868\u3001\u5217\u3001\u7d22\u5f15\u548c\u7ea6\u675f\u751f\u6210\u5dee\u5f02\u5e76\u9010\u9879\u88c1\u51b3",
-                "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
+                "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
+                "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "DEFER",
-                "decisionRegisterItemCount": 1900,
+                "decisionRegisterItemCount": 1883,
                 "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
@@ -309,19 +309,19 @@
                 },
                 "q07Decision": {
                     "status": "ACCEPTED",
-                    "technicalConstraintCount": 258,
-                    "primaryKeyCount": 61,
+                    "technicalConstraintCount": 257,
+                    "primaryKeyCount": 60,
                     "primaryKeyShape": {
-                        "singleId": 60,
+                        "singleId": 59,
                         "compositeProjection": 1
                     },
-                    "tenantReferenceKeyCount": 61,
+                    "tenantReferenceKeyCount": 60,
                     "sameDomainForeignKeyCount": 48,
-                    "stableTechnicalCheckCount": 88
+                    "stableTechnicalCheckCount": 89
                 },
                 "q08Decision": {
                     "status": "CANDIDATE_BASELINE_ACCEPTED",
-                    "candidateIndexCount": 124,
+                    "candidateIndexCount": 122,
                     "featureQueryPlanValidationRequired": true,
                     "p3e06PerformanceValidationRequired": true,
                     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
@@ -329,9 +329,9 @@
                 "isolatedMysqlExecution": {
                     "status": "PASS",
                     "mysqlVersion": "8.4.10",
-                    "tableCount": 61,
-                    "columnCount": 1250,
-                    "constraintCount": 328
+                    "tableCount": 60,
+                    "columnCount": 1240,
+                    "constraintCount": 325
                 }
             },
             "evidenceRefs": [
@@ -347,7 +347,9 @@
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
-                "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json"
+                "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json",
+                "docs/decisions/0026-cutover-flow-business-baseline-correction.md",
+                "docs/decisions/0027-cutover-physical-model-correction.md"
             ],
             "blocks": [
                 "PHASE_3_BASELINE",

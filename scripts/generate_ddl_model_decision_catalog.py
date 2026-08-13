@@ -107,6 +107,7 @@ NO_SELF_CHECKS = {
 STATUS_COUPLED_CHECKS = {
     "chk_crm_execution_af",
     "chk_migration_issue_resolution",
+    "chk_cutover_closure_submit",
 }
 NONNEGATIVE_CHECKS = {
     "chk_external_key_target_sequence",
@@ -122,6 +123,7 @@ NONNEGATIVE_CHECKS = {
     "chk_satisfaction_result_sequence",
     "chk_cutover_support_history_sequence",
     "chk_cutover_responsibility_interval_sequence",
+    "chk_cutover_support_arrangement_no",
 }
 CROSS_FIELD_CHECKS = {
     "chk_delivery_scope_detail_subject",

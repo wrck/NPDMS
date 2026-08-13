@@ -26,7 +26,7 @@ class CoreMigrationSchemaContractTest(unittest.TestCase):
         contract = self.valid_contract()
         contract["forbiddenV1V2Tables"] = sorted(MODULE.EXPECTED_FORBIDDEN_V1V2_TABLES)
         contract["v17Delta"] = {
-            "decisionRef": "ADR-0025",
+            "decisionRef": "ADR-0027",
             "status": "BLOCKED_BY_REVIEW",
             "requirementRefs": sorted(MODULE.EXPECTED_V17_REQUIREMENTS),
             "objectTargetTables": {
@@ -38,8 +38,7 @@ class CoreMigrationSchemaContractTest(unittest.TestCase):
                 "acc_satisfaction_questionnaire",
                 "acc_satisfaction_response",
                 "acc_satisfaction_result",
-                "cut_cutover_support_history",
-                "cut_cutover_support_responsibility_interval",
+                "cut_cutover_closure",
             ],
             "tableContracts": MODULE.v17_table_contract_payload(),
         }
@@ -191,56 +190,41 @@ CREATE TABLE acc_satisfaction_result (
   UNIQUE KEY uk_satisfaction_result_sequence (tenant_id, questionnaire_id, result_no),
   UNIQUE KEY uk_satisfaction_result_response (tenant_id, response_id)
 ) ENGINE = InnoDB;
-CREATE TABLE cut_cutover_support_task (
+CREATE TABLE cut_cutover_support_arrangement (
   id BIGINT NOT NULL,
   tenant_id BIGINT NOT NULL,
-  source_system VARCHAR(32) NULL,
-  source_business_key VARCHAR(128) NULL,
-  task_no VARCHAR(64) NOT NULL,
   cutover_task_id BIGINT NOT NULL,
-  project_id BIGINT NOT NULL,
-  device_scope_snapshot JSON NOT NULL,
-  support_scope_hash CHAR(64) NOT NULL,
-  window_start DATETIME(3) NOT NULL,
-  window_end DATETIME(3) NOT NULL,
-  state_machine_version VARCHAR(64) NOT NULL,
-  status_code VARCHAR(32) NOT NULL,
-  current_responsible_user_id BIGINT NOT NULL,
-  current_handler_user_id BIGINT NOT NULL,
-  current_responsibility_interval_id BIGINT NOT NULL,
+  plan_revision_id BIGINT NOT NULL,
+  arrangement_no INT UNSIGNED NOT NULL,
+  person_type_code VARCHAR(32) NOT NULL,
+  person_name VARCHAR(128) NOT NULL,
+  internal_user_id BIGINT NULL,
+  contact_info VARCHAR(512) NOT NULL,
+  arrival_time DATETIME(3) NULL,
+  role_code VARCHAR(64) NOT NULL,
+  task_duty VARCHAR(1000) NOT NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no),
-  UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end)
+  UNIQUE KEY uk_cutover_support_arrangement_no (tenant_id, plan_revision_id, arrangement_no)
 ) ENGINE = InnoDB;
-CREATE TABLE cut_cutover_support_history (
+CREATE TABLE cut_cutover_closure (
   id BIGINT NOT NULL,
   tenant_id BIGINT NOT NULL,
-  support_task_id BIGINT NOT NULL,
-  history_no INT UNSIGNED NOT NULL,
-  action_code VARCHAR(32) NOT NULL,
-  status_before_code VARCHAR(32) NULL,
-  status_after_code VARCHAR(32) NOT NULL,
-  operator_user_id BIGINT NOT NULL,
-  evidence_ref VARCHAR(256) NULL,
-  occurred_time DATETIME(3) NOT NULL,
+  cutover_task_id BIGINT NOT NULL,
+  plan_revision_id BIGINT NOT NULL,
+  precheck_normal TINYINT NULL,
+  execution_normal TINYINT NULL,
+  test_normal TINYINT NULL,
+  rollback_occurred TINYINT NULL,
+  rollback_description VARCHAR(1000) NULL,
+  legacy_item_text TEXT NULL,
+  collection_result_refs JSON NULL,
+  attachment_refs JSON NULL,
+  result_code VARCHAR(32) NULL,
+  submitted_by BIGINT NULL,
+  submitted_time DATETIME(3) NULL,
+  archive_time DATETIME(3) NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_cutover_support_history_sequence (tenant_id, support_task_id, history_no)
-) ENGINE = InnoDB;
-CREATE TABLE cut_cutover_support_responsibility_interval (
-  id BIGINT NOT NULL,
-  tenant_id BIGINT NOT NULL,
-  support_task_id BIGINT NOT NULL,
-  interval_no INT UNSIGNED NOT NULL,
-  responsible_user_id BIGINT NOT NULL,
-  effective_from DATETIME(3) NOT NULL,
-  effective_to DATETIME(3) NULL,
-  current_support_task_id BIGINT GENERATED ALWAYS AS (
-    CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END
-  ) STORED,
-  handover_reason VARCHAR(512) NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no),
-  UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)
+  UNIQUE KEY uk_cutover_closure_task (tenant_id, cutover_task_id)
 ) ENGINE = InnoDB;
 CREATE TABLE ast_device_component_relation (
   id BIGINT NOT NULL,
@@ -612,25 +596,25 @@ CREATE TABLE srv_work_order_sla (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = 
         self.assertTrue(any("srv_work_order" in error for error in errors))
         self.assertTrue(any("srv_work_order_sla" in error for error in errors))
 
-    def test_v17_delta_rejects_concurrent_current_responsibility_escape(self) -> None:
+    def test_v17_delta_rejects_work_order_semantics_in_support_arrangement(self) -> None:
         ddl = self.valid_v17_delta_ddl().replace(
-            "UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)",
-            "KEY idx_cutover_responsibility_current_escape (tenant_id, current_support_task_id)",
+            "  task_duty VARCHAR(1000) NOT NULL,",
+            "  task_duty VARCHAR(1000) NOT NULL,\n  status_code VARCHAR(32) NOT NULL,",
         )
         errors = MODULE.validate_v17_delta(
             self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
         )
-        self.assertTrue(any("uk_cutover_responsibility_current" in error for error in errors))
+        self.assertTrue(any("cut_cutover_support_arrangement.status_code" in error for error in errors))
 
-    def test_v17_delta_rejects_status_dependent_current_responsibility_marker(self) -> None:
+    def test_v17_delta_rejects_step_or_observation_reference_in_closure(self) -> None:
         ddl = self.valid_v17_delta_ddl().replace(
-            "CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END",
-            "CASE WHEN effective_to IS NULL AND status_code = 'ACTIVE' THEN support_task_id ELSE NULL END",
+            "  archive_time DATETIME(3) NULL,",
+            "  archive_time DATETIME(3) NULL,\n  observation_id BIGINT NULL,",
         )
         errors = MODULE.validate_v17_delta(
             self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
         )
-        self.assertTrue(any("current_support_task_id" in error for error in errors))
+        self.assertTrue(any("cut_cutover_closure.observation_id" in error for error in errors))
 
     def test_v17_delta_rejects_v3_table_and_cross_context_foreign_key(self) -> None:
         ddl = self.valid_v17_delta_ddl() + """
@@ -653,6 +637,9 @@ CREATE TABLE kno_technical_advisory (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGIN
             "srv_historical_work_order", "srv_historical_time_record",
             "plt_directory_sync_snapshot", "srv_work_order", "srv_work_order_sla",
             "srv_renewal", "proj_daily_report", "proj_weekly_report",
+            "cut_cutover_support_task", "cut_cutover_support_history",
+            "cut_cutover_support_responsibility_interval", "cut_execution",
+            "cut_execution_step", "cut_observation",
         ):
             with self.subTest(table=forbidden):
                 ddl = self.valid_v17_delta_ddl() + (
@@ -690,8 +677,8 @@ ALTER TABLE ast_device_component_relation
         replacements = {
             "uk_satisfaction_response_sequence": "uk_missing_response_sequence",
             "uk_satisfaction_result_sequence": "uk_missing_result_sequence",
-            "uk_cutover_support_history_sequence": "uk_missing_support_history_sequence",
-            "uk_cutover_responsibility_interval_sequence": "uk_missing_responsibility_interval_sequence",
+            "uk_cutover_support_arrangement_no": "uk_missing_support_arrangement_no",
+            "uk_cutover_closure_task": "uk_missing_cutover_closure_task",
             "uk_device_component_current_slot": "uk_missing_component_current_slot",
         }
         for expected_name, replacement in replacements.items():

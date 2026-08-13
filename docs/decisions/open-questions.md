@@ -143,5 +143,6 @@
 - Confirmed P3-E09 requirement-owner model decisions: ADR-0023；Q01～Q08已确认，覆盖15组永久业务身份、外部不透明键/摘要精确比较、当前关系、状态守卫、RMA投影、Q07的222项技术约束及Q08的108项候选索引。交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”；订单—执行单允许多个默认主执行单关系。Q08只确认候选基线，Feature查询计划与P3-E06压测仍为下游验收。P3-E09现仅等待全量Reviewer签署和`approvedDdlSha256`，不得提前放行历史迁移或切换。
 - V1.7 DDL delta: ADR-0025；当前候选为 61 表、11 表 V1.7 差量。需求方 2026-08-13 确认 `pm_project_maintenance` 全表不迁移，只保留顶层表级排除审计；当前不预建历史工单/工时对象或空壳表。目录快照对象/表亦按需求方决策删除，INT-05/INT-09 复用基础平台主数据、`plt_sync_batch`和`plt_external_key_mapping`。当前哈希与规模以重建证据为准；P3-E09仍为`BLOCKED_BY_REVIEW`，等待全量 Reviewer 签署与`approvedDdlSha256`，不授权生产迁移、切换或旧`dppms`写入。
 - Cutover flow correction: ADR-0026；`CUT-01 / CutoverTask`是P1～P6唯一割接核心任务，`CUT-11`退出当前需求和CUT领域，`WO-06`后置为工单领域V3候选。原CUT-11三表及迁移映射必须从P3-E09候选删除后重新生成证据；该项为已确认变更，不再作为开放问题。
+- Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排落`CutoverPlan`从属明细，P6落不可覆盖的轻量闭环快照。当前候选为60表、10表V1.7差量，哈希与隔离MySQL 8.4证据已重建；P3-E09仍等待Reviewer签署和`approvedDdlSha256`。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13

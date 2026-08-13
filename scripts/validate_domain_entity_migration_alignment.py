@@ -36,6 +36,7 @@ MODEL_ENTITY_CONTRACTS = {
     "NoticeBusinessReference": ("KNO", {"INT-04"}),
     "DispatchAttempt": ("PLT", {"INT-12"}),
     "CallbackRecord": ("PLT", {"INT-12"}),
+    "CutoverSupportArrangement": ("CUT", {"CUT-04"}),
 }
 MODEL_GOVERNANCE_CONTRACTS = {}
 

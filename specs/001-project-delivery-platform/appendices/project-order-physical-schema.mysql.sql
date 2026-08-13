@@ -2160,83 +2160,65 @@ CREATE TABLE acc_satisfaction_result (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '不可覆盖的满意度评分、阈值与达标判定事实';
 
-CREATE TABLE cut_cutover_support_task (
+CREATE TABLE cut_cutover_support_arrangement (
     id BIGINT NOT NULL,
     tenant_id BIGINT NOT NULL,
-    source_system VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL COMMENT '历史CUT-11候选来源系统',
-    source_business_key VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL COMMENT '历史CUT-11候选来源业务键',
-    task_no VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
-    cutover_task_id BIGINT NOT NULL COMMENT '割接任务逻辑引用',
-    project_id BIGINT NOT NULL COMMENT '项目逻辑引用',
-    device_scope_snapshot JSON NOT NULL COMMENT '割接保障设备范围快照',
-    support_scope_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    window_start DATETIME(3) NOT NULL,
-    window_end DATETIME(3) NOT NULL,
-    state_machine_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
-    status_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
-    current_responsible_user_id BIGINT NOT NULL COMMENT '当前责任人逻辑引用',
-    current_handler_user_id BIGINT NOT NULL COMMENT '当前处理人逻辑引用',
-    current_responsibility_interval_id BIGINT NOT NULL COMMENT '当前责任区间逻辑引用',
-    version INT UNSIGNED NOT NULL DEFAULT 0,
+    cutover_task_id BIGINT NOT NULL COMMENT 'CUT-01割接任务逻辑引用',
+    plan_revision_id BIGINT NOT NULL COMMENT 'CUT-04方案版本逻辑引用',
+    arrangement_no INT UNSIGNED NOT NULL COMMENT '方案版本内保障人员顺序',
+    person_type_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL COMMENT '内部人员或外部联系人',
+    person_name VARCHAR(128) NOT NULL,
+    internal_user_id BIGINT NULL COMMENT '内部人员逻辑引用，外部联系人为空',
+    contact_info VARCHAR(512) NOT NULL,
+    arrival_time DATETIME(3) NULL,
+    role_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    task_duty VARCHAR(1000) NOT NULL,
     creator BIGINT NULL,
     create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updater BIGINT NULL,
     update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no),
-    UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end),
-    UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id),
-    KEY idx_cutover_support_task_owner (tenant_id, current_responsible_user_id, status_code),
-    KEY idx_cutover_support_task_window (tenant_id, window_start, window_end),
-    CONSTRAINT chk_cutover_support_window CHECK (window_end >= window_start)
+    UNIQUE KEY uk_cutover_support_arrangement_no (tenant_id, plan_revision_id, arrangement_no),
+    UNIQUE KEY uk_cutover_support_arrangement_tenant_row (tenant_id, id),
+    KEY idx_cutover_support_arrangement_task (tenant_id, cutover_task_id, plan_revision_id),
+    CONSTRAINT chk_cutover_support_arrangement_no CHECK (arrangement_no > 0)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = 'CUT领域割接保障任务，不复用通用工单聚合';
+  COMMENT = 'CUT-04方案从属保障人员安排，不具有工单状态或责任区间';
 
-CREATE TABLE cut_cutover_support_history (
+CREATE TABLE cut_cutover_closure (
     id BIGINT NOT NULL,
     tenant_id BIGINT NOT NULL,
-    support_task_id BIGINT NOT NULL COMMENT '割接保障任务逻辑引用',
-    history_no INT UNSIGNED NOT NULL,
-    action_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
-    status_before_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
-    status_after_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
-    operator_user_id BIGINT NOT NULL COMMENT '操作人逻辑引用',
-    reason VARCHAR(1000) NULL,
-    evidence_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
-    occurred_time DATETIME(3) NOT NULL,
-    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_cutover_support_history_sequence (tenant_id, support_task_id, history_no),
-    UNIQUE KEY uk_cutover_support_history_tenant_row (tenant_id, id),
-    KEY idx_cutover_support_history_time (tenant_id, support_task_id, occurred_time),
-    CONSTRAINT chk_cutover_support_history_sequence CHECK (history_no > 0)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = '割接保障状态与动作的不可覆盖历史';
-
-CREATE TABLE cut_cutover_support_responsibility_interval (
-    id BIGINT NOT NULL,
-    tenant_id BIGINT NOT NULL,
-    support_task_id BIGINT NOT NULL COMMENT '割接保障任务逻辑引用',
-    interval_no INT UNSIGNED NOT NULL,
-    responsible_user_id BIGINT NOT NULL COMMENT '责任人逻辑引用',
-    effective_from DATETIME(3) NOT NULL,
-    effective_to DATETIME(3) NULL,
-    current_support_task_id BIGINT GENERATED ALWAYS AS (
-        CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END
-    ) STORED COMMENT '仅当前区间生成任务标识',
-    handover_reason VARCHAR(1000) NULL,
-    evidence_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    cutover_task_id BIGINT NOT NULL COMMENT 'CUT-01割接任务逻辑引用',
+    plan_revision_id BIGINT NOT NULL COMMENT 'P6引用的已批准CUT-04方案版本',
+    precheck_normal TINYINT NULL,
+    execution_normal TINYINT NULL,
+    test_normal TINYINT NULL,
+    rollback_occurred TINYINT NULL,
+    rollback_description VARCHAR(1000) NULL,
+    detail_description TEXT NULL,
+    legacy_item_text TEXT NULL COMMENT '遗留项闭环快照文本，不形成独立生命周期',
+    collection_result_refs JSON NULL COMMENT 'INT-12回调或人工上传结果引用',
+    attachment_refs JSON NULL,
+    result_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL COMMENT '成功或失败；提交前可空',
+    submitted_by BIGINT NULL,
+    submitted_time DATETIME(3) NULL,
+    archive_time DATETIME(3) NULL,
     creator BIGINT NULL,
     create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
-    UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no),
-    UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id),
-    UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id),
-    KEY idx_cutover_responsibility_current (tenant_id, support_task_id, effective_to, effective_from),
-    CONSTRAINT chk_cutover_responsibility_interval_sequence CHECK (interval_no > 0),
-    CONSTRAINT chk_cutover_responsibility_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)
+    UNIQUE KEY uk_cutover_closure_task (tenant_id, cutover_task_id),
+    UNIQUE KEY uk_cutover_closure_tenant_row (tenant_id, id),
+    KEY idx_cutover_closure_result (tenant_id, result_code, archive_time),
+    CONSTRAINT chk_cutover_closure_precheck CHECK (precheck_normal IS NULL OR precheck_normal IN (0, 1)),
+    CONSTRAINT chk_cutover_closure_execution CHECK (execution_normal IS NULL OR execution_normal IN (0, 1)),
+    CONSTRAINT chk_cutover_closure_test CHECK (test_normal IS NULL OR test_normal IN (0, 1)),
+    CONSTRAINT chk_cutover_closure_rollback CHECK (rollback_occurred IS NULL OR rollback_occurred IN (0, 1)),
+    CONSTRAINT chk_cutover_closure_submit CHECK (
+        submitted_time IS NULL
+        OR (submitted_by IS NOT NULL AND archive_time IS NOT NULL AND result_code IS NOT NULL)
+    )
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = '割接保障责任转交的不可覆盖生效区间';
+  COMMENT = 'CUT-06 P6轻量闭环与归档事实，不保存逐步骤执行或稳定观察';
 
 CREATE TABLE ast_device_component_relation (
     id BIGINT NOT NULL,

@@ -36,8 +36,8 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
     "ServiceHandover": ("acc_service_handover", "acc_handover_item", "acc_handover_result"),
     "CutoverTask": ("cut_task",), "CutoverAssessment": ("cut_assessment",),
-    "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverExecution": ("cut_execution", "cut_execution_step", "cut_observation"),
-    "CutoverSupportTask": ("cut_cutover_support_task", "cut_cutover_support_history"), "ResponsibilityInterval": ("cut_cutover_support_responsibility_interval",),
+    "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverSupportArrangement": ("cut_cutover_support_arrangement",),
+    "CutoverClosure": ("cut_cutover_closure",),
     "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
     "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
     "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
@@ -72,6 +72,8 @@ MODEL_ENTITY_CONTRACTS = {
     "NoticeBusinessReference": {"owner": "KNO", "requirementIds": ["INT-04"]},
     "DispatchAttempt": {"owner": "PLT", "requirementIds": ["INT-12"]},
     "CallbackRecord": {"owner": "PLT", "requirementIds": ["INT-12"]},
+    "CutoverSupportArrangement": {"owner": "CUT", "requirementIds": ["CUT-04"]},
+    "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
 }
 
 EXCLUDED_SOURCES = [{
@@ -165,15 +167,9 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("CURRENT_TABLE", "pms_acc_maintenance_transition", "CURRENT_FORWARD", "map only provable leftover/service handover fields to ServiceHandover", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY"),
         source("CURRENT_FIELD_PATTERN", "pms_acc_maintenance_transition.renew*", "EXCLUDED", "retain as compatibility evidence; never expose in new handover writes", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
     ],
-    "CutoverPlan": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "convert plans and steps into immutable plan revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "CutoverSupportTask": [
-        source(
-            "NONE_NEW", "CutoverSupportTask", "NEW_ONLY",
-            "create new current CUT-11 tasks only from new-platform commands; excluded legacy tables are not classified into this object",
-            "NEW_ONLY", "FEATURE_RELEASE",
-        ),
-    ],
-    "ResponsibilityInterval": [source("DERIVED_TARGET", "CutoverSupportTask", "REBUILD", "build responsibility intervals only from complete assignment, takeover and transfer evidence; suspension does not end an interval", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000")],
+    "CutoverPlan": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
+    "CutoverSupportArrangement": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
+    "CutoverClosure": [source("CURRENT_TABLE", "pms_cut_execution", "CURRENT_FORWARD", "map only provable P6 result, rollback description, attachment, legacy-item text and final result fields; exclude step and observation lifecycle fields", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InspectionTask": [source("CURRENT_TABLE", "pms_srv_task|pms_srv_execution|pms_srv_offline_file", "CURRENT_FORWARD", "map only records classified as inspection and freeze rule snapshot", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InspectionRule": [source("CURRENT_TABLE", "pms_srv_rule", "CURRENT_FORWARD", "convert published rules into immutable revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InspectionReport": [source("CURRENT_TABLE", "pms_srv_report", "CURRENT_FORWARD", "map immutable report revisions and external result references", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],

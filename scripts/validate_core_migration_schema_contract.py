@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate ADR-0022/ADR-0025 core migration schema and key policies."""
+"""Validate ADR-0022/ADR-0027 core migration schema and key policies."""
 
 from __future__ import annotations
 
@@ -26,12 +26,12 @@ EXPECTED_V17_OBJECT_TABLES = {
         "acc_satisfaction_response",
         "acc_satisfaction_result",
     },
-    "CutoverSupportTask": {"cut_cutover_support_task", "cut_cutover_support_history"},
-    "ResponsibilityInterval": {"cut_cutover_support_responsibility_interval"},
+    "CutoverSupportArrangement": {"cut_cutover_support_arrangement"},
+    "CutoverClosure": {"cut_cutover_closure"},
     "DeviceComponentRelation": {"ast_device_component_relation"},
 }
 EXPECTED_V17_REQUIREMENTS = {
-    "ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04", "CUT-11",
+    "ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04", "CUT-04", "CUT-06",
     "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03",
 }
 EXPECTED_V17_UNIQUE_KEYS = {
@@ -62,16 +62,11 @@ EXPECTED_V17_UNIQUE_KEYS = {
         "uk_satisfaction_result_sequence": ("tenant_id", "questionnaire_id", "result_no"),
         "uk_satisfaction_result_response": ("tenant_id", "response_id"),
     },
-    "cut_cutover_support_task": {
-        "uk_cutover_support_task_no": ("tenant_id", "task_no"),
-        "uk_cutover_support_scope_window": ("tenant_id", "cutover_task_id", "support_scope_hash", "window_start", "window_end"),
+    "cut_cutover_support_arrangement": {
+        "uk_cutover_support_arrangement_no": ("tenant_id", "plan_revision_id", "arrangement_no"),
     },
-    "cut_cutover_support_history": {
-        "uk_cutover_support_history_sequence": ("tenant_id", "support_task_id", "history_no"),
-    },
-    "cut_cutover_support_responsibility_interval": {
-        "uk_cutover_responsibility_interval_sequence": ("tenant_id", "support_task_id", "interval_no"),
-        "uk_cutover_responsibility_current": ("tenant_id", "current_support_task_id"),
+    "cut_cutover_closure": {
+        "uk_cutover_closure_task": ("tenant_id", "cutover_task_id"),
     },
     "ast_device_component_relation": {
         "uk_device_component_current_slot": ("tenant_id", "chassis_device_id", "current_slot_code"),
@@ -90,6 +85,9 @@ EXPECTED_FORBIDDEN_V1V2_TABLES = V3_DESIGN_ONLY_TABLES | {
     "srv_renewal", "srv_renewal_operation",
     "proj_daily_report", "proj_weekly_report",
     "plt_directory_sync_snapshot",
+    "cut_cutover_support_task", "cut_cutover_support_history",
+    "cut_cutover_support_responsibility_interval", "cut_execution",
+    "cut_execution_step", "cut_observation",
 }
 
 # Every current table must have an explicit V1/V2 business scope or an accepted
@@ -153,9 +151,8 @@ EXPECTED_CURRENT_TABLE_SCOPE = {
     "acc_satisfaction_questionnaire": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
     "acc_satisfaction_response": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
     "acc_satisfaction_result": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
-    "cut_cutover_support_task": {"requirementRefs": ["CUT-11"]},
-    "cut_cutover_support_history": {"requirementRefs": ["CUT-11"]},
-    "cut_cutover_support_responsibility_interval": {"requirementRefs": ["CUT-11"]},
+    "cut_cutover_support_arrangement": {"requirementRefs": ["CUT-04"]},
+    "cut_cutover_closure": {"requirementRefs": ["CUT-06"]},
     "ast_device_component_relation": {"requirementRefs": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03"]},
 }
 
@@ -211,20 +208,21 @@ EXPECTED_V17_REQUIRED_COLUMNS = {
         "archive_artifact_id": (r"BIGINT", True), "archive_payload_sha256": (r"CHAR\(64\)", True),
         "archive_time": (r"DATETIME\(3\)", True),
     },
-    "cut_cutover_support_task": {
-        "source_system": (r"VARCHAR\(32\)", True), "source_business_key": (r"VARCHAR\(128\)", True),
-        "cutover_task_id": (r"BIGINT", False), "project_id": (r"BIGINT", False),
-        "device_scope_snapshot": (r"JSON", False), "current_handler_user_id": (r"BIGINT", False),
-        "current_responsibility_interval_id": (r"BIGINT", False), "current_responsible_user_id": (r"BIGINT", False),
+    "cut_cutover_support_arrangement": {
+        "cutover_task_id": (r"BIGINT", False), "plan_revision_id": (r"BIGINT", False),
+        "arrangement_no": (r"INT\s+UNSIGNED", False), "person_type_code": (r"VARCHAR\(32\)", False),
+        "person_name": (r"VARCHAR\(128\)", False), "internal_user_id": (r"BIGINT", True),
+        "contact_info": (r"VARCHAR\(512\)", False), "arrival_time": (r"DATETIME\(3\)", True),
+        "role_code": (r"VARCHAR\(64\)", False), "task_duty": (r"VARCHAR\(1000\)", False),
     },
-    "cut_cutover_support_history": {
-        "support_task_id": (r"BIGINT", False), "history_no": (r"INT\s+UNSIGNED", False),
-        "action_code": (r"VARCHAR\(32\)", False), "status_after_code": (r"VARCHAR\(32\)", False),
-    },
-    "cut_cutover_support_responsibility_interval": {
-        "support_task_id": (r"BIGINT", False), "interval_no": (r"INT\s+UNSIGNED", False),
-        "responsible_user_id": (r"BIGINT", False), "effective_from": (r"DATETIME\(3\)", False),
-        "effective_to": (r"DATETIME\(3\)", True), "current_support_task_id": (r"BIGINT", True),
+    "cut_cutover_closure": {
+        "cutover_task_id": (r"BIGINT", False), "plan_revision_id": (r"BIGINT", False),
+        "precheck_normal": (r"TINYINT", True), "execution_normal": (r"TINYINT", True),
+        "test_normal": (r"TINYINT", True), "rollback_occurred": (r"TINYINT", True),
+        "rollback_description": (r"VARCHAR\(1000\)", True), "legacy_item_text": (r"TEXT", True),
+        "collection_result_refs": (r"JSON", True), "attachment_refs": (r"JSON", True),
+        "result_code": (r"VARCHAR\(32\)", True), "submitted_by": (r"BIGINT", True),
+        "submitted_time": (r"DATETIME\(3\)", True), "archive_time": (r"DATETIME\(3\)", True),
     },
     "ast_device_component_relation": {
         "chassis_device_id": (r"BIGINT", False), "slot_code": (r"VARCHAR\(64\)", False),
@@ -241,9 +239,15 @@ EXPECTED_V17_FORBIDDEN_COLUMNS = {
     ))
     for table in EXPECTED_V17_REQUIRED_COLUMNS
 }
+EXPECTED_V17_FORBIDDEN_COLUMNS["cut_cutover_support_arrangement"] += [
+    "current_handler_user_id", "current_responsibility_interval_id",
+    "current_responsible_user_id", "effective_from", "effective_to", "status_code", "support_task_id",
+]
+EXPECTED_V17_FORBIDDEN_COLUMNS["cut_cutover_closure"] += [
+    "current_responsibility_interval_id", "execution_step_id", "observation_id", "support_task_id",
+]
 EXPECTED_V17_GENERATED_EXPRESSIONS = {
     "acc_satisfaction_collection_task.payment_stage_key": "COALESCE(payment_stage_code, '')",
-    "cut_cutover_support_responsibility_interval.current_support_task_id": "CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END",
     "ast_device_component_relation.current_slot_code": "CASE WHEN effective_to IS NULL THEN slot_code ELSE NULL END",
 }
 EXPECTED_NORMALIZATION = {
@@ -310,6 +314,7 @@ NONNEGATIVE_CHECKS = {
     "chk_satisfaction_task_revision", "chk_satisfaction_questionnaire_revision",
     "chk_satisfaction_response_sequence", "chk_satisfaction_result_sequence",
     "chk_cutover_support_history_sequence", "chk_cutover_responsibility_interval_sequence",
+    "chk_cutover_support_arrangement_no",
 }
 
 
@@ -449,8 +454,8 @@ def validate_v17_delta(
     delta = contract.get("v17Delta", {})
     if not isinstance(delta, dict):
         return ["V1.7 delta contract must be an object"]
-    if delta.get("decisionRef") != "ADR-0025" or delta.get("status") != "BLOCKED_BY_REVIEW":
-        errors.append("V1.7 delta metadata must reference ADR-0025 and remain BLOCKED_BY_REVIEW")
+    if delta.get("decisionRef") != "ADR-0027" or delta.get("status") != "BLOCKED_BY_REVIEW":
+        errors.append("V1.7 delta metadata must reference ADR-0027 and remain BLOCKED_BY_REVIEW")
     if set(delta.get("requirementRefs", [])) != EXPECTED_V17_REQUIREMENTS:
         errors.append("V1.7 delta requirement reference set mismatch")
     if delta.get("tableContracts") != v17_table_contract_payload():
@@ -481,7 +486,7 @@ def validate_v17_delta(
         table for values in declared.values() if isinstance(values, list) for table in values
     }
     if declared_tables != expected_tables:
-        errors.append("V1.7 delta must declare exactly the 11 in-scope target tables")
+        errors.append("V1.7 delta must declare exactly the 10 in-scope target tables")
     for table in sorted(expected_tables):
         if table not in tables:
             errors.append(f"V1.7 target table missing: {table}")
@@ -548,7 +553,7 @@ def validate_v17_delta(
 
     expected_append_only = {
         "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result",
-        "cut_cutover_support_history", "cut_cutover_support_responsibility_interval",
+        "cut_cutover_closure",
     }
     if set(delta.get("appendOnlyTables", [])) != expected_append_only:
         errors.append("V1.7 append-only table set mismatch")
@@ -765,7 +770,7 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] ADR-0022/ADR-0025 core migration schema contract")
+    print("[PASS] ADR-0022/ADR-0027 core migration schema contract")
     return 0
 
 
