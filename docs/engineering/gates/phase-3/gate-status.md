@@ -2,7 +2,7 @@
 
 > 审查状态：`IN_REVIEW`
 > 依据：PRD V1.7、SDS Phase 1/2 `BASELINE`、实现仓库`856d052`
-> 结论：`NOT_READY_FOR_SDS_BASELINE`（V1.7新增目标对象尚未纳入获批DDL哈希，P3-E09仍需完成目标DDL差量、全量Reviewer批准和`approvedDdlSha256`）
+> 结论：`NOT_READY_FOR_SDS_BASELINE`（V1.7目标对象已纳入当前候选DDL及同哈希证据，但P3-E09仍缺全量Reviewer批准和`approvedDdlSha256`）
 
 ## 1. 输出状态
 
@@ -14,7 +14,7 @@
 | 17 Audit & Observability | READY_FOR_REVIEW | 审计、留存、采样、导出及Telemetry验收契约已形成；具体后端在部署时登记 |
 | 18 Deployment Design | READY_FOR_REVIEW | 制品、配置、前向迁移、发布、恢复和应用回退已定义；实际环境与演练下沉到对应门禁 |
 | 19 Performance Design | READY_FOR_REVIEW | NFR量化负载、数据集、测量和判定已定义；环境和实测下沉到性能验收 |
-| 20 Test Design | IN_REVIEW | 正常/异常/权限拒绝/幂等/并发及浏览器/发布验收已定义；104项映射已生成；P3-E08实测182项类型错误，分域证据已登记 |
+| 20 Test Design | IN_REVIEW | 正常/异常/权限拒绝/幂等/并发及浏览器/发布验收已定义；103项映射已生成；P3-E08实测182项类型错误，分域证据已登记 |
 
 ## 2. 硬门禁
 
@@ -22,7 +22,7 @@
 |---|---|
 | NFR有技术实现与验证方案 | PASS-DESIGN；运行证据按专项验收/发布门禁关闭 |
 | 发布、迁移、回退设计可执行 | PASS-DESIGN；目标环境实例在部署/发布前登记 |
-| 数据模型DDL/映射基线一致 | BLOCKED_BY_REVIEW（ADR-0019～ADR-0023-Q08已应用；既有50表、1,065列、385项DDL约束/索引已在隔离MySQL 8.4.10执行PASS，但它只是V1.6核心迁移子集；V1.7新增满意度、割接保障、设备框板关系、HR目录快照和历史只读迁移对象尚未进入获批DDL哈希，P3-E09 / AI-MIG-000须完成差量DDL、全量Reviewer签署及`approvedDdlSha256`） |
+| 数据模型DDL/映射基线一致 | BLOCKED_BY_REVIEW（ADR-0019～ADR-0023、ADR-0025和ADR-0027已应用；当前候选为60表、1,240列、447项DDL约束/索引，哈希`5EB9742F…4249`，已在隔离MySQL 8.4.10执行PASS。84个对象、95项来源策略及10表V1.7差量已同步；P3-E09 / AI-MIG-000仍须全量Reviewer签署并形成`approvedDdlSha256`） |
 | 安全与审计不存在明显设计缺口 | PASS-DESIGN；KMS/Telemetry实例在对应生产门禁关闭 |
 | 测试覆盖正常/异常/权限拒绝/幂等/并发 | PASS-DESIGN；运行证据未生成 |
 | 性能环境和数据集可复现 | DOWNSTREAM-BLOCKED（P3-E06阻断性能验收/生产发布） |
@@ -53,4 +53,4 @@ Phase 3逻辑设计和证据契约已达到基线复审条件，可以进行独�
 
 实现质量缺口：P3-E08（前端`ts:check`失败）不用于否定Phase 3逻辑设计，但阻塞任何前端Feature进入实现验收或正式发布。
 
-数据迁移缺口：P3-E09（`AI-MIG-000`）阻塞历史数据迁移与切换；旧`passed=true`不作为当前证据。
+数据模型与迁移缺口：P3-E09（`AI-MIG-000`）阻塞SDS数据模型基线、历史数据迁移与切换；旧`passed=true`不作为当前证据。
