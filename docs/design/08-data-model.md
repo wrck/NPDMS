@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
 > 实现证据：`docs/engineering/gates/phase-2/implementation-fact-inventory.md`
@@ -172,16 +172,14 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 ## 8. Cutover、Inspection 与 Service Operations
 
-适用 Requirement：CUT-01～CUT-11、INS-01～INS-09、SRV-01。
+适用 Requirement：CUT-01～CUT-10、INS-01～INS-09、SRV-01。
 
 | Context | 聚合根 | Owner 事实 | 关键边界 |
 |---|---|---|---|
-| Cutover | CutoverTask | 任务身份、等级、责任人和总体状态 | 评估、方案、执行、观察均绑定同一任务但保存独立 revision/记录 |
-| Cutover | CutoverAssessment | 风险项、影响面、回退条件和评估结论 | 技术公告是外部知识引用，不由 CUT 修改 |
-| Cutover | CutoverPlan | 步骤、命令引用、验证点、回退步骤和批准版本 | 执行冻结批准 revision；不保存设备密码 |
-| Cutover | CutoverExecution | 每步开始/结束、动作类型、方向、正负值、结果和证据 | 保存业务动作类型、方向和有符号值；失败保留原始证据 |
-| Cutover | CutoverSupportTask | 割接保障任务、状态机版本、当前责任人/处理人、保障时间窗和关闭证据 | 关闭不替代CUT-06执行结论；V1/V2关闭后只读 |
-| Cutover | ResponsibilityInterval | 派发、接管或转交形成的责任区间和交接原因 | 接管/转交结束旧区间并新增；挂起不结束区间；历史不可覆盖 |
+| Cutover | CutoverTask | P1～P6统一任务身份、来源上下文、人工等级和阶段状态 | 不派生CUT保障工单；状态仅由P1～P6业务结果推进 |
+| Cutover | CutoverAssessment | 问卷版本、项目输入上下文、人工选择、人工等级和P5复核引用 | 自动建议等级仅V3；P2不增加审批节点 |
+| Cutover | CutoverPlan | 调研项、风险项、操作/验证/回退清单、附件、保障人员安排和批准版本 | 清单是方案内容而非执行状态；职责变化新建revision，联系人类变化留前后审计 |
+| Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |
 | Inspection | InspectionTask | 任务、模式、设备范围、规则快照和状态 | 在线/离线互斥；在线通过 DAC 下发 |
 | Inspection | InspectionRule | 可执行规则、参数和版本 | 任务冻结规则版本；规则发布后不可覆盖 |
 | Inspection | InspectionReport | 结果摘要、异常、来源和报告版本 | 外部原始数据保存引用；报告可重建但已发布版本不可覆盖 |

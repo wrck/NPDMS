@@ -19,7 +19,7 @@ PHASE2_DOCS = (
     "15-cache-and-concurrency.md",
     "16-exception-and-idempotency.md",
 )
-EXPECTED_REQUIREMENT_COUNT = 104
+EXPECTED_REQUIREMENT_COUNT = 103
 REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.M)
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)

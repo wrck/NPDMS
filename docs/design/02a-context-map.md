@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
@@ -24,7 +24,7 @@
 | Implementation Execution | Cutover | Open Host Service | 提供割接上线门禁快照，不修改割接内部状态 |
 | Cutover | Device Access & Collection | Customer/Supplier | 复用统一采集任务与回调契约 |
 | Inspection | Device Access & Collection | Customer/Supplier | 复用统一采集任务与回调契约 |
-| Cutover | Project Delivery | Published Language | 发布割接保障任务进度、责任区间和关闭结果引用；不替代割接执行结论 |
+| Cutover | Project Delivery | Published Language | 发布CUT-06成功闭环与归档结果引用；失败/回退事实可查询但不得表达S4完成 |
 | Customer & Relationship | Project Delivery / Asset Management | Published Language | 提供客户关系和资产关系查询 |
 | Asset Management | Service Operations | Published Language | 提供设备服务状态和设备档案查询 |
 

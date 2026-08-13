@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
 > 目标数据库：`npdms` / MySQL 8.4
@@ -256,17 +256,19 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
-| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_execution`、`cut_execution_step`、`cut_observation`、`cut_cutover_support_task`、`cut_cutover_support_responsibility_interval`、`cut_cutover_support_history` | 任务内计划 revision 唯一；执行步骤保存 action_type、direction、signed_value；保障任务冻结状态机版本，责任区间不重叠且历史只追加 |
+| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure` | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
 | Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
 现有 `pms_srv_maintenance` 冻结为兼容来源，不新增菜单/API 写入；可证明的客观字段迁移到 `ast_maintenance_fact`。
 
-现有通用工单与工时表不得继续作为当前写模型。需求方于 2026-08-13 确认 `pm_project_maintenance` 全表不迁移：不得依据字段相似性将其行分类为 CUT-11、历史工单、历史工时或其他对象，不生成字段级绑定、状态映射或目标写入。机器证据仅保留该表的 `EXCLUDED/NO_MIGRATION` 排除审计；行数与提取批次 SHA-256 在未有可核验提取证据时保持待采集，不得伪造。
+现有通用工单与工时表不得继续作为当前写模型。需求方于 2026-08-13 确认 `pm_project_maintenance` 全表不迁移：不得依据字段相似性将其行分类为CUT闭环、未来WO-06工单、历史工单、历史工时或其他对象，不生成字段级绑定、状态映射或目标写入。机器证据仅保留该表的 `EXCLUDED/NO_MIGRATION` 排除审计；行数与提取批次 SHA-256 在未有可核验提取证据时保持待采集，不得伪造。
 
-CUT-11 当前只从新平台受控命令创建。PRD 第 8.2 节“历史业务事实不可删除”仅作为治理规则；当前没有已识别并获得需求方确认的历史工单/工时来源，因此不建立对应对象或空壳表。未来须先确认真实来源和迁移决策，再以独立变更建模、评审和执行。
+CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对象、表、外键、索引或迁移映射。WO-06只保留为工单领域V3候选；未来须先重新确认Owner、创建入口、角色、状态、责任、证据、关闭和历史来源，再以独立变更建模、评审和执行。
 
-CUT-11责任区间的物理唯一性只保证每个任务最多一条`effective_to IS NULL`区间。应用服务另必须在同一事务内锁定当前区间和版本，校验新`[effective_from,effective_to)`与所有历史区间不重叠，先结束旧区间再追加新区间。两个并发接管/转交命令只能一个成功；失败命令必须以并发冲突返回，不得覆盖或补写第二条当前区间。状态值使用可扩展字典与状态机版本，DDL不使用固定状态`CHECK`。
+`cut_cutover_support_arrangement`只是`cut_plan_revision`从属明细，不得拥有派单/接管/转单/挂起状态。联系人、联系方式、到位时间变化在原批准方案下更新并写业务审计；角色或任务职责变化不得直接覆盖，必须创建新方案revision并按原人工等级重新进入P5。
+
+`cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
 
 ## 8. Customer、Commerce、Resource 与 Knowledge
 

@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：本分册覆盖全部 104 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
+> Requirement ID：本分册覆盖全部 103 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
 > Owner：SDS Phase 2 事件与集成架构
 > 前置设计：`02d-cross-context-contracts.md`、`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
 
@@ -101,7 +101,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 
 ## 6. IMP、ACC 与 CUT 事件
 
-适用 Requirement：EXE-01～EXE-06、IMP-01～IMP-02、ACC-01～ACC-06、CLO-01～CLO-02、CUT-01～CUT-11。
+适用 Requirement：EXE-01～EXE-06、IMP-01～IMP-02、ACC-01～ACC-06、CLO-01～CLO-02、CUT-01～CUT-10。
 
 | 事件 | Producer | Consumer | Payload 核心 | 注意 |
 |---|---|---|---|---|
@@ -119,9 +119,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |
 | `CutoverApproved` | CUT | Todo/DAC | taskId、planRevision、approval snapshot | 不自动下发采集任务 |
-| `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、executionRevision、resultRef | 失败任务不发布完成事件 |
-| `CutoverSupportTaskChanged` | CUT | Project/Todo/ANA | supportTaskId、cutoverTaskId、statusMachineVersion、responsibilityIntervalId | 派发、处理、接管、转交、挂起和恢复发布当前版本；责任历史只追加 |
-| `CutoverSupportClosed` | CUT | Project/Todo/ANA | supportTaskId、cutoverTaskId、statusMachineVersion、responsibilityIntervalId、resultRef | 证据门禁通过并关闭；保障任务关闭不等于CUT-06执行成功 |
+| `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、closureRevision、resultRef、archivedAt | 仅P6提交归档且最终成功时发布；失败、回退未成功或仅采集完成不得发布 |
 
 ## 7. Collection 事件链
 

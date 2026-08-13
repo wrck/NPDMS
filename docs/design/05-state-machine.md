@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
@@ -19,8 +19,7 @@
 | ProjectTask | 待分配、待开始、进行中、待验收、完成、关闭 | 父任务/阶段约束、交付件和验收条件；不限制层级深度但禁止环 | TaskAssigned、TaskCompleted |
 | Device | 无独立业务状态机（主数据事实）；设备状态、在网状态及停产停维状态使用来源事实和基础平台可配置字典 | 设备档案同步或受控平台扩展字段更新必须保留来源版本；项目归属变更不得隐式改写设备来源状态 | DeviceStatusSynchronized、DeviceOwnershipChanged |
 | CollectionTask | 创建、授权校验、已下发、执行中、回调中、已消费、完成、失败 | 幂等键、短期授权、回调签名/来源校验；失败只允许创建新的受控重试任务 | CollectionTaskDispatched、CollectionResultAvailable、CollectionCompleted |
-| CutoverTask | 新建、评估、采集、方案、审批、执行、闭环、归档 | A/B/C/D等级决定审批链；方案、采集和审批门禁齐全后执行 | CutoverApproved、CutoverCompleted |
-| CutoverSupportTask | 待派单、已派单、处理中、已接管、已转单、已挂起、已关闭 | 状态机版本在创建时冻结；接管/转交必须结束原责任区间并创建新区间；挂起保留责任区间；关闭需结果、证据和待办齐全且V1/V2关闭后只读 | CutoverSupportAssigned、CutoverSupportTransferred、CutoverSupportSuspended、CutoverSupportClosed |
+| CutoverTask | 待办理、等级确认中、调研中、方案编制中、审批中、驳回待修改、闭环中、已归档 | CUT-01贯穿P1～P6；D级确认后跳过P3；P5任一否项驳回P4；P6提交形成归档闭环，最终成功才发布完成事件 | CutoverApproved、CutoverCompleted |
 | InspectionTask | 新建、准备、执行、报告、待办、闭环 | 在线/离线互斥；规则版本冻结；问题待办必须关闭或按规则转服务 | InspectionCompleted、InspectionClosed |
 | DeliveryEvidence | 草稿、已上传、待审核、已通过、已驳回、已归档 | IMP 可在实施阶段上传并替换草稿；ACC 审核/归档；已归档版本不可被 IMP 覆盖 | DeliveryEvidenceUploaded、ArtifactAccepted |
 | ArrivalAcceptance | 草稿、部分签收、已签收、差异待处理、已确认 | 到货数量/序列号和证据校验；差异未确认不得作为齐套依据 | ArrivalAccepted、ArrivalDifferenceRaised |

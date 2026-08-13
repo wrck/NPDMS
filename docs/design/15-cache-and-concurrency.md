@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：全部 104 项 V1/V2 正式需求中的查询性能和并发一致性；重点覆盖 PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01～02、PLT、INT-12、NFR-01～02
+> Requirement ID：全部 103 项 V1/V2 正式需求中的查询性能和并发一致性；重点覆盖 PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01～02、PLT、INT-12、NFR-01～02
 > Owner：SDS Phase 2 技术架构；业务真值仍归各 Context
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`11-event-design.md`
 

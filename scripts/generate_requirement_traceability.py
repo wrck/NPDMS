@@ -73,8 +73,8 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
                 "source": value.get("来源追溯", ""),
             }
         )
-    if len(requirements) != 104:
-        raise SystemExit(f"Appendix A.1 formal requirement count is {len(requirements)}, expected 104")
+    if len(requirements) != 103:
+        raise SystemExit(f"Appendix A.1 formal requirement count is {len(requirements)}, expected 103")
     return requirements
 
 
@@ -110,7 +110,7 @@ PHASE1_DESIGN = {
     "SOL": ("交付准备与方案", "Preparation / ConstructionPlan / Solution", "Plan或Solution状态机；计划/方案审批流", "ProjectStageScope", "PreparationApplicationService", "Preparation、Plan、Solution、File", "业务规则+审批+文件"),
     "IMP": ("实施执行", "ArrivalAcceptance / InstallationRecord / ConfigurationCollectionResult / JointDebuggingResult / ImplementationRisk / ImplementationQualityCheck / ImplementationSafetyCheck / DeliveryEvidence", "实施执行聚合状态机；质量/安全整改复核工作流；阶段门禁工作流", "ImplementationProjectBatchScope", "ImplementationExecutionApplicationService", "ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、ImplementationSafetyCheck、DeliveryEvidence", "业务规则+证据+权限+整改"),
     "ACC": ("验收与项目闭环", "Acceptance / SatisfactionCollection / Artifact / ProjectClosure", "满意度、Artifact与ProjectClosure状态机；验收/闭环审批流", "ProjectStageScope", "AcceptanceApplicationService", "Acceptance、SatisfactionCollection、DeliveryArtifact、ProjectClosure、ServiceHandover", "业务规则+审批+门禁"),
-    "CUT": ("变更切换与稳定治理", "CutoverTask / CutoverPlan / CutoverExecution / CutoverSupportTask", "Cutover与割接保障任务状态机；分级审批流", "CutoverTaskScope", "CutoverApplicationService", "CutoverTask、CutoverPlan、CutoverExecution、CutoverSupportTask", "业务规则+审批+幂等"),
+    "CUT": ("变更切换与稳定治理", "CutoverTask / CutoverAssessment / CutoverPlan / CutoverClosure", "CutoverTask阶段状态机；P5分级审批与P6闭环归档流", "CutoverTaskScope", "CutoverApplicationService", "CutoverTask、CutoverAssessment、CutoverPlan、CutoverClosure", "业务规则+审批+闭环+幂等"),
     "SRV": ("Inspection / Service Operations", "InspectionTask / ServiceIssue / ServiceStatus", "Inspection与Service Operations分别维护状态机和闭环流", "AssignedProjectDeviceScope", "ServiceApplicationService", "InspectionTask、InspectionRule、ServiceIssue、ServiceStatus", "业务规则+权限+异常"),
     "CUS": ("Customer & Relationship", "Customer / Contact / AssetRelation", "Customer同步状态机；主数据同步流", "OrganizationCustomerScope", "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot", "数据同步+权限"),
     "AST": ("Asset Management", "Device / DeviceArchive / RMAReplacement", "Device服务状态机；设备同步流", "ProjectDeviceScope", "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot", "数据一致性+归属+安全"),
@@ -138,12 +138,6 @@ EXACT_PHASE1_DESIGN = {
 
 # Context-level refinements keep the 13-domain Owner unchanged while making
 # the internal bounded-context mapping explicit in the working matrix.
-EXACT_PHASE1_DESIGN["CUT-11"] = (
-    "变更切换与稳定治理", "CutoverSupportTask / ResponsibilityInterval",
-    "CutoverSupportTask状态机；派发、接管、转交、挂起、恢复与关闭流程", "CutoverTaskScope",
-    "CutoverSupportApplicationService", "CutoverSupportTask、ResponsibilityInterval、CutoverSupportEvidence",
-    "业务规则+权限+责任区间+证据",
-)
 for _identifier in ("INS-01", "INS-02", "INS-03", "INS-04", "INS-05", "INS-06", "INS-07", "INS-08", "INS-09"):
     EXACT_PHASE1_DESIGN[_identifier] = (
         "Inspection", "InspectionTask / InspectionRule / ServiceIssue",

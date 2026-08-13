@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：附录 A.1 全部 104 项 V1/V2 正式需求
+> Requirement ID：附录 A.1 全部 103 项 V1/V2 正式需求
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
 > Phase 3验证注记状态：`IN_REVIEW`（不改变已批准的Phase 2契约基线）
 
@@ -526,20 +526,6 @@
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
-### CUT-11
-
-- 需求名称：割接保障任务
-- 数据对象：CutoverSupportTask、ResponsibilityInterval
-- 数据表：cut_cutover_support_task、cut_cutover_support_responsibility_interval、cut_cutover_support_history
-- API：/cutover-support-tasks、/{id}/actions/{assign|start|takeover|transfer|suspend|resume|close}
-- 事件：CutoverSupportTaskChanged、CutoverSupportClosed
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：状态机版本冻结；派发、处理、接管、转交、挂起、恢复和证据门禁关闭
-- 授权与数据范围：CutoverTaskScope；当前责任区间；管理员不得绕过核心门禁
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
 ### SUB-01
 
 - 需求名称：转包申请管理
@@ -837,13 +823,13 @@
 ### CUT-06
 
 - 需求名称：割接执行闭环
-- 数据对象：CutoverExecution、CollectionTask
-- 数据表：cut_execution、cut_execution_step、cut_observation、plt_collection_task
-- API：/cutover-tasks/{id}/actions/start、/cutover-executions/{id}/steps/{stepId}/actions/{start|complete|fail}
+- 数据对象：CutoverClosure、CollectionTask
+- 数据表：cut_cutover_closure、plt_collection_task
+- API：/cutover-tasks/{id}/closure
 - 事件：CollectionResultConsumed、CutoverCompleted
 - 外部集成：现有采集平台子应用、ITR
 - 文件契约：FileArtifact
-- 工作流/状态：门禁、步骤执行、回退、观察和业务消费
+- 工作流/状态：P6闭环填写、INT-12证据引用、提交归档和结果回流；不建立逐步骤执行或稳定观察
 - 授权与数据范围：CutoverTaskScope、BusinessObjectDeviceCredentialScope
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录

@@ -55,8 +55,8 @@ def main() -> int:
         "SOL-01", "IMP-01", "IMP-02", "RES-01", "ACC-05", "ACC-06",
         "SRV-01", "AST-01", "AST-02",
     }
-    if len(formal) != 104:
-        errors.append(f"PRD formal count={len(formal)}, expected=104")
+    if len(formal) != 103:
+        errors.append(f"PRD formal count={len(formal)}, expected=103")
     if not expected_new_formal.issubset(formal):
         errors.append(f"missing confirmed formal requirements: {sorted(expected_new_formal - formal)}")
     generated_domain_codes = {path.name.split("-", 1)[0] for path in args.domains.glob("*") if path.name.endswith("需求规格.md")}
@@ -157,7 +157,11 @@ def main() -> int:
     for code, marker in (("ACC", "CLO-05→ACC-02（跨需求方向）"), ("RES", "SUB-03（跨需求方向）")):
         if marker not in texts.get(code, ""):
             errors.append(f"missing cross-demand V3 direction in {code}: {marker}")
-    for required in ("初始化可扩展状态定义+受控状态机", "项目经理完成整改后生成新任务和新问卷版本重新收集", "V1/V2关闭后只读"):
+    for required in (
+        "初始化可扩展状态定义+受控状态机",
+        "项目经理完成整改后生成新任务和新问卷版本重新收集",
+        "不建立派单、接管、转单、挂起、责任区间等通用工单状态",
+    ):
         if not any(required in text for text in texts.values()):
             errors.append(f"missing confirmed rule: {required}")
 

@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
@@ -36,7 +36,7 @@
 | CollectionTask | 已获业务授权的发起人 | 任务执行身份 | Device Access & Collection 服务端校验 | 项目、设备、协议、命令模板、凭证/临时登录方式、有效期 |
 | ProjectClosure | 项目经理 | 整改责任人 | 服务经理、材料审核人 | 项目树后代、项目阶段、交付范围；闭环后只读 |
 | SatisfactionCollection | 项目经理创建/指派；客户访问限定问卷 | 被指派项目成员发送/协助；客户提交本人答案 | 无独立审批；系统按冻结规则判定 | 项目、来源业务对象、问卷实例；答案、签字和历史版本不可人工改写 |
-| CutoverSupportTask | 服务经理创建/派发 | 当前责任工程师处理、申请转交/挂起/关闭 | 服务经理可强制接管；管理员仅管理受控状态机版本 | 项目、CUT任务、设备、保障时间窗、当前责任区间 |
+| CutoverTask | 一线工程师办理来源任务或自建；集成账号仅按来源契约创建 | 一线工程师提交P2问卷/等级、填写P3/P4和P6；仅可操作授权项目与设备 | 用服经理在P5复核等级并审批；A/B按冻结路由增加二线/研发 | 项目树、设备当前归属、CUT任务、方案版本、审批节点；项目只读角色不可编辑 |
 
 服务器端必须在每次操作重新计算上述范围，不能仅信任前端传入的项目、设备或批次标识。
 

@@ -2,7 +2,7 @@
 
 > 文档状态：`IN_REVIEW`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：NFR-01～03，以及全部104项需求的业务审计、异常、集成、事件、性能和发布证据
+> Requirement ID：NFR-01～03，以及全部103项需求的业务审计、异常、集成、事件、性能和发布证据
 > Owner：SDS Phase 3可观测性架构；业务审计事实仍归各Owner Context
 > 前置设计：11、12、15、16、14分册
 

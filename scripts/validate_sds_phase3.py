@@ -16,7 +16,7 @@ DESIGN_FILES = (
     "19-performance-design.md",
     "20-test-design.md",
 )
-EXPECTED_REQUIREMENT_COUNT = 104
+EXPECTED_REQUIREMENT_COUNT = 103
 REQUIREMENT_HEADING = re.compile(r"^###\s+([A-Z]+-\d+)\s*$", re.M)
 PHASE3_TEST = re.compile(r"^- Phase 3测试类别：(.+?)\s*$", re.M)
 PHASE3_EVIDENCE = re.compile(r"^- Phase 3证据类型：(.+?)\s*$", re.M)

@@ -287,8 +287,8 @@ def main() -> int:
     v3_rows = _find_v3_rows(lines)
     cross_rows = _find_cross_v3_rows(lines)
     requirements = _extract_requirements(text, set(formal_rows))
-    if len(requirements) != 104:
-        raise RuntimeError(f"expected 104 formal requirements, got {len(requirements)}")
+    if len(requirements) != 103:
+        raise RuntimeError(f"expected 103 formal requirements, got {len(requirements)}")
     args.output.mkdir(parents=True, exist_ok=True)
     for domain in DOMAIN_ORDER:
         target = args.output / f"{domain}-{DOMAIN_NAMES[domain]}需求规格.md"

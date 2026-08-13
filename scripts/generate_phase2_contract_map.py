@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the explicit 104-requirement Phase 2 implementation-contract map."""
+"""Generate the explicit 103-requirement Phase 2 implementation-contract map."""
 
 from __future__ import annotations
 
@@ -84,9 +84,8 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
 
     (("CUT-01", "CUT-02", "CUT-09", "CUT-10"), contract("CutoverTask、CutoverAssessment", "cut_task、cut_assessment", "/cutover-tasks、/cutover-tasks/{id}/assessment", events="CutoverApproved", files="FileArtifact", workflow="任务创建、分级评估、风险/调研矩阵", authorization="CutoverTaskScope；项目/设备范围")),
     (("CUT-03", "CUT-04", "CUT-05", "CUT-07"), contract("CutoverPlan", "cut_plan_revision、cut_step", "/cutover-tasks/{id}/plan-revisions", events="CutoverApproved", files="FileArtifact", workflow="动态清单、方案编审、分级审批和版本冻结", authorization="CutoverTaskScope；分级审批权限")),
-    (("CUT-06",), contract("CutoverExecution、CollectionTask", "cut_execution、cut_execution_step、cut_observation、plt_collection_task", "/cutover-tasks/{id}/actions/start、/cutover-executions/{id}/steps/{stepId}/actions/{start|complete|fail}", events="CollectionResultConsumed、CutoverCompleted", integration="现有采集平台子应用、ITR", files="FileArtifact", workflow="门禁、步骤执行、回退、观察和业务消费", authorization="CutoverTaskScope、BusinessObjectDeviceCredentialScope")),
+    (("CUT-06",), contract("CutoverClosure、CollectionTask", "cut_cutover_closure、plt_collection_task", "/cutover-tasks/{id}/closure", events="CollectionResultConsumed、CutoverCompleted", integration="现有采集平台子应用、ITR", files="FileArtifact", workflow="P6闭环填写、INT-12证据引用、提交归档和结果回流；不建立逐步骤执行或稳定观察", authorization="CutoverTaskScope、BusinessObjectDeviceCredentialScope")),
     (("CUT-08",), contract("CutoverTask", "cut_task、ast_asset_sync_item", "/cutover-tasks", integration="备件系统", workflow="备件申请映射、回调、门禁和对账", authorization="CutoverTaskScope；外部备件范围")),
-    (("CUT-11",), contract("CutoverSupportTask、ResponsibilityInterval", "cut_cutover_support_task、cut_cutover_support_responsibility_interval、cut_cutover_support_history", "/cutover-support-tasks、/{id}/actions/{assign|start|takeover|transfer|suspend|resume|close}", events="CutoverSupportTaskChanged、CutoverSupportClosed", files="FileArtifact", workflow="状态机版本冻结；派发、处理、接管、转交、挂起、恢复和证据门禁关闭", authorization="CutoverTaskScope；当前责任区间；管理员不得绕过核心门禁")),
 
     (("INS-01", "INS-02", "INS-04", "INS-07"), contract("InspectionTask、CollectionTask", "srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task", "/inspection-tasks、/collection-tasks", events="InspectionDispatched、InspectionCompleted、CollectionResultConsumed", integration="现有采集平台子应用", files="FileArtifact", workflow="方式选择、预检/执行、业务消费和归档门禁", authorization="AssignedProjectDeviceScope、BusinessObjectDeviceCredentialScope")),
     (("INS-03", "INS-09"), contract("InspectionRule", "srv_inspection_rule、srv_inspection_rule_revision", "/inspection-rules、/{id}/revisions", workflow="规则配置、发布版本和任务冻结", authorization="AssignedProjectDeviceScope；规则维护/使用分离")),
@@ -191,7 +190,7 @@ def render(prd: Path) -> str:
         "",
         "> 文档状态：`BASELINE`",
         "> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）",
-        "> Requirement ID：附录 A.1 全部 104 项 V1/V2 正式需求",
+        "> Requirement ID：附录 A.1 全部 103 项 V1/V2 正式需求",
         "> Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准",
         "> Phase 3验证注记状态：`IN_REVIEW`（不改变已批准的Phase 2契约基线）",
         "",

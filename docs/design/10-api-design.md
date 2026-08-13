@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
 > Owner：SDS Phase 2 应用与接口架构
 > 前置设计：`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`
 
@@ -157,19 +157,17 @@
 
 ## 9. CUT：割接 API
 
-适用 Requirement：CUT-01～CUT-11。
+适用 Requirement：CUT-01～CUT-10。
 
 | 路径 | 命令/查询 | 关键约束 |
 |---|---|---|
 | `/cutover-tasks` | create、list、detail | 来源键幂等；项目/设备归属校验 |
-| `/cutover-tasks/{id}/assessment` | save draft、submit、confirm | 风险字典可扩展；评估结论受状态机控制 |
-| `/cutover-tasks/{id}/plan-revisions` | create、submit、approve、reject | 执行冻结已批准 revision |
+| `/cutover-tasks/{id}/assessment` | save draft、submit | 一线提交问卷与人工等级；用服经理在P5复核，不新增P2审批 |
+| `/cutover-tasks/{id}/plan-revisions` | create、submit、approve、reject | 文件/安全/归属/人工确认校验；不强制解析全部模板字段 |
+| `/cutover-tasks/{id}/support-arrangements` | update contacts / revise duties | 联系人、联系方式、到位时间变化留痕不重审；角色/职责变化必须生成新方案revision并重走P5 |
 | `/cutover-tasks/{id}/actions/request-collection` | POST | 创建 DAC 任务；不读取凭证明文 |
-| `/cutover-tasks/{id}/actions/start` | POST | 校验批准方案、授权、采集和 IMP readiness 快照 |
-| `/cutover-executions/{id}/steps/{stepId}/actions/{start|complete|fail}` | POST | 保存动作类型、方向和有符号值；失败保留证据 |
-| `/cutover-tasks/{id}/observations` | POST/GET | 稳定观察事实；不引入平台通用割接时效管控 |
-| `/cutover-support-tasks` | create/list/detail | 必须关联CUT任务、项目、设备和保障时间窗；同一职责和时间窗幂等 |
-| `/cutover-support-tasks/{id}/actions/{assign|start|takeover|transfer|suspend|resume|close}` | POST | 服务端按冻结状态机版本校验；接管/转交更新责任区间；关闭校验证据且不替代CUT执行结论 |
+| `/cutover-tasks/{id}/approval-actions/{approve|reject}` | POST | 按人工等级和冻结路由校验节点；任一评审项为否必须驳回并填写原因 |
+| `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
 
 ## 10. SRV：巡检、服务状态与历史资料 API
 

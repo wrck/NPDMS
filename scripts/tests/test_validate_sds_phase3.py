@@ -180,8 +180,8 @@ class Phase3ValidatorTest(unittest.TestCase):
 
     def test_missing_requirement_mapping_fails(self) -> None:
         path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
-        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-096", "### REQ-095"), encoding="utf-8")
-        self.assertTrue(any("expected 104" in item for item in VALIDATOR.validate(self.root)))
+        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-095", "### REQ-094"), encoding="utf-8")
+        self.assertTrue(any("expected 103" in item for item in VALIDATOR.validate(self.root)))
 
     def test_missing_rollback_and_secret_scan_fail(self) -> None:
         deploy = self.root / "docs" / "design" / "18-deployment-design.md"

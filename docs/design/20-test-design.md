@@ -2,7 +2,7 @@
 
 > 文档状态：`IN_REVIEW`
 > 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE及Phase 3分册
-> Requirement ID：附录A.1全部104项V1/V2正式需求；重点NFR-01～03
+> Requirement ID：附录A.1全部103项V1/V2正式需求；重点NFR-01～03
 > Owner：SDS Phase 3质量架构；具体Feature测试由Requirement Owner负责
 > 前置设计：01～19正式分册
 
@@ -177,11 +177,11 @@ docker compose run --rm migrate validate
 
 任何失败必须登记原命令、环境、exit code和日志引用；生产build通过不能覆盖`ts:check`/lint失败。当前实现仓库的真实结果在每个release重新执行，不沿用旧报告中的PASS标记。
 
-## 13. 104项覆盖方式
+## 13. 103项覆盖方式
 
 `docs/traceability/phase2-contract-map.md`已为每项登记Phase 3测试类别和证据类型，并以`Phase 3验证注记状态：IN_REVIEW`与已批准的Phase 2契约字段隔离；相同聚合可以复用测试fixture，但每个Requirement必须能定位到专属业务用例/参数和验收断言，不能用一个“领域测试”占位。
 
-自动校验至少检查：104项ID集合一致；每项有正常/异常或适用性说明、权限/数据范围、幂等/并发适用性、测试层次和证据类型；NFR-01～03链接到本分册具体章节。
+自动校验至少检查：103项ID集合一致；每项有正常/异常或适用性说明、权限/数据范围、幂等/并发适用性、测试层次和证据类型；NFR-01～03链接到本分册具体章节。
 
 ## 14. 缺陷、豁免与退出
 
@@ -196,7 +196,7 @@ docker compose run --rm migrate validate
 | 正常/异常/权限/幂等/并发测试设计 | PASS |
 | 数据库、事件、集成、文件、安全和浏览器设计 | PASS |
 | NFR-01～03量化验收设计 | PASS |
-| 104项逐项运行验证映射 | PASS-DESIGN；104/104均有测试类别和证据类型 |
+| 103项逐项运行验证映射 | PASS-DESIGN；103/103均有测试类别和证据类型 |
 | 前端类型检查 | FAIL（P3-E08）；2026-08-13真实执行`corepack pnpm ts:check`退出码1，生产构建通过不能覆盖 |
 | 生产/性能环境、恢复、迁移和真实接口证据 | BLOCKED_BY_EVIDENCE（P3-E01～E07、P3-E09/AI-MIG-000） |
 

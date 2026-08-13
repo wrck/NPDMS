@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE ADDENDUM`
 > 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE
-> Requirement ID：附录A.1全部104项V1/V2正式需求
+> Requirement ID：附录A.1全部103项V1/V2正式需求
 > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
 > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。
 
@@ -101,9 +101,7 @@
 | `CutoverTask` | 当前`cut_task` | CURRENT_FORWARD | 迁任务身份、等级、项目/设备和当前状态映射 |
 | `CutoverAssessment` | 当前`pms_cut_risk`及评估信息 | CURRENT_FORWARD | 风险项和评估结论版本化；技术公告只引用 |
 | `CutoverPlan` | 当前`pms_cut_plan` | CURRENT_FORWARD | 迁计划revision/步骤/审批引用；执行冻结已批准版本 |
-| `CutoverExecution` | 当前`pms_cut_execution/observation` | CURRENT_FORWARD | 逐步骤保存动作类型、方向、有符号值、结果和证据；不引入通用割接时效 |
-| `CutoverSupportTask` | 无已确认历史来源 | NEW_ONLY | 只由当前平台受控命令创建；不将已排除维护表或字段相似记录推断为 CUT-11 |
-| `ResponsibilityInterval` | 原割接保障任务派发/接管/转交操作历史 | REBUILD+PENDING_SOURCE_CONFIRMATION | 只从完整的操作者、前后责任人和时间证据构造不重叠区间；挂起不得推断为责任区间结束 |
+| `CutoverClosure` | 当前`pms_cut_execution`中可证明的P6结果字段 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁割接前/执行/测试结果、回退说明、附件、遗留项文本和最终结果；`pms_cut_execution_step`、`pms_cut_observation`不进入当前目标，不能把步骤状态或观察状态改名迁入 |
 | `InspectionTask` | 当前`pms_srv_task/execution/offline_file` | CURRENT_FORWARD | 当前巡检结构前向迁移；不从已排除维护表导入任何记录 |
 | `InspectionRule` | 当前`pms_srv_rule` | CURRENT_FORWARD | 发布revision迁移；任务冻结所用版本 |
 | `InspectionReport` | 当前`pms_srv_report`及外部采集报告 | CURRENT_FORWARD+EXTERNAL_SYNC | 发布版本只追加；原始结果保存受控引用 |
@@ -155,7 +153,7 @@
 
 ### 9.1 08数据模型内部/建议实体补充
 
-这些实体未在104项Phase 2映射中独立列名，但已在08数据模型中承担正式明细、历史、投影、关系或支撑职责，因此同样纳入迁移覆盖。建议实体仅登记新建边界，不因此升级为PRD承诺。
+这些实体未在103项Phase 2映射中独立列名，但已在08数据模型中承担正式明细、历史、投影、关系或支撑职责，因此同样纳入迁移覆盖。建议实体仅登记新建边界，不因此升级为PRD承诺。CUT领域的保障人员安排是`CutoverPlan`从属数据，不是独立任务聚合；WO-06后置到工单领域且不进入当前迁移覆盖。
 
 | 数据对象 | 来源摘要 | 迁移边界 |
 |---|---|---|

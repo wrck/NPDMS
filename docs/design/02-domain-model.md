@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 104 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
@@ -19,7 +19,7 @@
 | Preparation & Solution | 工勘、需求分析、计划、方案 | 项目、模板、人员 | 项目主状态 |
 | Implementation Execution | 到货、安装、采集结果、质量检查、安全检查、实施阶段交付件/证据上传 | 项目、设备、采集任务、文件服务 | 设备主档核心身份、验收归档状态 |
 | Acceptance & Closure | 培训、验收、满意度收集、交付件齐套校验、审核、统一归档和闭环交接 | 项目、实施证据、方案、问题、文件 | 外部合同/财务事实、现场实施原始证据 |
-| Cutover | 割接任务、评估、方案、执行结果、割接保障任务及责任区间 | 项目、设备、采集任务、风险/调研字典 | 采集执行引擎、设备凭证明文、通用工单 |
+| Cutover | CUT-01核心任务、问卷评估、调研清单、方案、分级审批和P6闭环结果 | 项目、设备、采集任务、风险/调研字典 | 采集执行引擎、设备凭证明文、通用工单及WO-06保障工单 |
 | Inspection | INS-01～INS-09 巡检任务、规则、报告和问题闭环 | 项目、设备、采集结果 | 设备凭证授权、外部UMC原始数据 |
 | Service Operations | SRV-01 设备服务状态和持续服务跟踪 | 设备、客户、服务交接事实 | 设备主档核心身份、外部服务原始数据 |
 | Customer & Relationship | 客户同步副本、临时客户、联系人和客户关系 | 合同、项目、设备 | CRM权威字段、项目交付状态 |
@@ -40,8 +40,8 @@
 | Device | 序列号/设备身份唯一；同一时点同一设备只能有一个当前项目归属；机框、槽位、板卡当前关系唯一且按生效区间保留换板历史；历史归属通过关系版本保留 |
 | DeviceCredential | 默认仅创建人可用；授权绑定用户、设备、协议、命令模板和有效期；任何业务不得读取明文 |
 | CollectionTask | 幂等键唯一；临时密码不落库；外部状态原值保留；回调重复不得重复消费 |
-| CutoverTask | 等级确认后才能进入对应审批；执行前必须满足方案、采集和审批门禁；失败保留原任务证据 |
-| CutoverSupportTask | 必须关联割接任务、项目、设备和保障时间窗；派发、接管、转交、挂起、恢复和关闭均经受控状态机；责任区间和历史不可覆盖；关闭不替代割接执行结论 |
+| CutoverTask | P1～P6共享同一任务身份；一线提交问卷与人工等级，用服经理在P5复核；P5任一评审项为否必须驳回；P6提交后归档且历史不可覆盖 |
+| CutoverClosure | 保存P6四类结果、回退说明、附件、遗留项文本及INT-12证据引用；不建立逐步骤执行、稳定观察或遗留项独立生命周期 |
 | InspectionTask | 在线/离线模式互斥；规则版本冻结到任务；报告生成和问题闭环可追溯 |
 | SatisfactionCollection | 任务冻结问卷模板、题目、分值和阈值版本；客户有效答卷、签字和达标结果不可覆盖；未达标必须整改后创建新任务和新问卷版本 |
 | ProjectClosure | 交付件、有效满意度结果（模板要求时）、材料审核等门禁全部满足后才能闭环；闭环后 V1/V2 只读，完成后通过事件请求 Project 关闭 |
@@ -71,7 +71,7 @@
 
 `Project/Device → Inspection → Device Access & Collection / UMC / Customer & Relationship`
 
-`Cutover → Project Delivery` 发布割接保障任务进度和结果引用；`Service Operations` 消费项目闭环和设备服务事实。历史工单与工时仅作为不可删除的只读迁移资料，不形成当前可流转Context或聚合。
+`Cutover → Project Delivery` 只发布CUT-06成功闭环结果引用；`Service Operations` 消费项目闭环和设备服务事实。WO-06后置为工单领域V3候选，不形成当前可流转Context、聚合或CUT事件。
 
 `基础平台能力`通过命令、查询、事件和统一权限服务横向支撑各 Context，不作为万能业务 Context，也不拥有业务域交易数据；`集成适配层`只负责协议、映射、幂等、重试和对账。
 
