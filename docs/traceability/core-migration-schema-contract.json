@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "decisionRef": "ADR-0022",
+  "status": "ACCEPTED",
+  "requirementRefs": ["INT-04", "KNO-V3-01", "KNO-V3-02", "KNO-V3-03", "KNO-V3-04", "KNO-V3-05", "KNO-V3-06", "KNO-V3-07", "KNO-V3-08"],
+  "coverage": "CORE_MIGRATION_SUBSET",
+  "crossDomainReferencePolicy": "LOGICAL_REFERENCE",
+  "sameDomainAggregateForeignKeyAllowed": true,
+  "v3DesignOnlyTables": [
+    "kno_device_technical_advisory_match",
+    "kno_technical_advisory",
+    "kno_technical_advisory_product_relation",
+    "kno_technical_advisory_read_record"
+  ],
+  "v2TechnicalNoticePolicy": {
+    "logicalObject": "TechnicalNoticeReference",
+    "physicalDesignTiming": "INT_04_FEATURE_FORWARD_MIGRATION",
+    "allowed": ["ITR_SYNC_COPY", "SOURCE_VERSION", "PUBLISH_STATUS", "BUSINESS_REFERENCE"],
+    "forbidden": ["LOCAL_AUTHORING", "PRODUCT_LINE_APPROVAL", "IMPACT_GOVERNANCE", "GOVERNANCE_TASK", "DISPOSAL_STATISTICS"]
+  },
+  "externalKeyMapping": {
+    "table": "plt_external_key_mapping",
+    "targetRoleColumn": "target_role",
+    "targetSequenceColumn": "target_sequence",
+    "defaultTargetRole": "PRIMARY",
+    "minimumTargetSequence": 0,
+    "stableAcrossRerun": true
+  },
+  "normalization": {
+    "businessCode": "TRIM_UPPERCASE",
+    "opaqueExternalKey": "BINARY_EXACT",
+    "hash": "BINARY_EXACT",
+    "displayName": "UNICODE_CASE_INSENSITIVE",
+    "sourcePayloadMutationAllowed": false
+  },
+  "permanentKeys": {
+    "reuseAllowed": false,
+    "objects": ["PROJECT", "CONTRACT", "SALES_ORDER", "DEVICE_SN", "SOURCE_KEY"],
+    "uniqueKeyIncludesDeleted": false,
+    "ddlUniqueKeys": ["uk_project_code", "uk_contract_business", "uk_sales_order_business", "uk_device_sn"]
+  },
+  "currentRecordUniqueness": "GENERATED_CURRENT_MARKER",
+  "historicalAnomalyPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
+  "migrationIssueTable": "plt_migration_issue",
+  "sourceEvidenceTable": "plt_migration_source_record"
+}

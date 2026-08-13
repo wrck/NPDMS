@@ -33,27 +33,27 @@
 - Consumes: ADR-0019～ADR-0021、PRD INT-04与KNO-V3-01～08、当前数据库命名契约和评审DDL。
 - Produces: `validate_contract(contract, ddl) -> list[str]`，供本地和门禁校验复用。
 
-- [ ] **Step 1: 编写失败测试**
+- [x] **Step 1: 编写失败测试**
 
   测试必须拒绝：核心DDL包含4张V3治理表；跨领域`FOREIGN KEY`；`plt_external_key_mapping`缺少`target_role/target_sequence`；业务唯一键包含`deleted`；时态当前唯一性直接依赖可空`effective_to`；契约把当前表清单声明为平台全量模型。
 
-- [ ] **Step 2: 运行定点测试确认失败**
+- [x] **Step 2: 运行定点测试确认失败**
 
   Run: `python -B -m unittest scripts.tests.test_validate_core_migration_schema_contract`
 
   Expected: FAIL，因为校验器和机器契约尚不存在。
 
-- [ ] **Step 3: 实现最小契约与校验器**
+- [x] **Step 3: 实现最小契约与校验器**
 
   契约固定：`coverage=CORE_MIGRATION_SUBSET`；4张KNO治理表为`V3_DESIGN_ONLY`；跨领域引用策略为`LOGICAL_REFERENCE`；外部键映射角色默认`PRIMARY`、顺序从0开始；编码规范区分业务编码、外部不透明键和名称；永久业务键唯一约束不得包含`deleted`；历史异常策略为`MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE`。
 
-- [ ] **Step 4: 运行定点测试确认通过**
+- [x] **Step 4: 运行定点测试确认通过**
 
   Run: `python -B -m unittest scripts.tests.test_validate_core_migration_schema_contract`
 
   Expected: PASS。
 
-- [ ] **Step 5: 提交Task 1**
+- [x] **Step 5: 提交Task 1**
 
   Commit: `docs(data-model): 固化核心迁移模型边界`
 
