@@ -22,7 +22,7 @@
 - ADR-0020确认同一CRM项目的多合同/多订单不派生项目编码，项目编码租户内唯一，编码命名空间与当前层级分离；新增`code_root_id`、`project_sequence`、`code_rule_version`及4项配套约束。
 - ADR-0021确认CRM四维组合目录归CUS，目标表为`cus_market_relation`；客户与项目直接保存四组编码/名称，不保存`relation_id`，也不将分类映射到组织关系。
 - ADR-0022确认当前DDL为核心迁移子集，移除4张V3技术公告治理表和跨领域物理外键；外部键映射新增`target_role/target_sequence`，当前唯一性、归一化、永久业务键及历史异常隔离规则已固化。
-- ADR-0019～ADR-0023-Q08共457项在`ddl-item-decision-register.json`登记为`AMEND_CURRENT`；其中Q07覆盖222项技术约束，Q08覆盖108项候选索引，重叠项保留全部证据引用。
+- `ddl-item-decision-register.json`已对1,883项完成机器化决策登记：994项未变化字段为`ACCEPT_CURRENT`，889项有需求或ADR依据的变化为`AMEND_CURRENT`，无`DEFER`项；其中Q07覆盖257项技术约束，Q08覆盖122项候选索引，重叠项保留全部证据引用。全部`reviewOwner`仍为空且`approvedCount=0`，本登记不替代独立Reviewer批准。
 - Reviewer尚未签署，因此这些项目不计入最终批准数，也不生成`approvedDdlSha256`。
 
 ## 3. 仍未关闭的模型项

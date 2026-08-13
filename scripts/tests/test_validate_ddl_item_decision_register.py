@@ -27,6 +27,22 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
         item["decision"] = "ACCEPT_CURRENT"
         self.assertNotEqual(before, VALIDATOR.canonical_sha([item]))
 
+    def test_generated_decision_rejects_reverting_confirmed_item_to_defer(self) -> None:
+        expected = {"COLUMN:a:id": {"decision": "AMEND_CURRENT", "decisionOwner": "REQUIREMENT_OWNER", "reviewOwner": None, "evidenceRefs": ["ADR"]}}
+        actual = {"COLUMN:a:id": {**expected["COLUMN:a:id"], "decision": "DEFER"}}
+        self.assertIn(
+            "COLUMN:a:id generated decision mismatch: decision",
+            VALIDATOR.generated_decision_errors(actual, expected),
+        )
+
+    def test_generated_decision_rejects_missing_v17_evidence(self) -> None:
+        expected = {"TABLE:cut_cutover_closure": {"decision": "AMEND_CURRENT", "decisionOwner": "REQUIREMENT_OWNER", "reviewOwner": None, "evidenceRefs": ["ADR-0027"]}}
+        actual = {"TABLE:cut_cutover_closure": {**expected["TABLE:cut_cutover_closure"], "evidenceRefs": []}}
+        self.assertIn(
+            "TABLE:cut_cutover_closure generated decision mismatch: evidenceRefs",
+            VALIDATOR.generated_decision_errors(actual, expected),
+        )
+
     def test_catalog_baseline_is_loaded_from_historical_hash(self) -> None:
         generator = Mock()
         historical_tables = {"pms_project": object()}

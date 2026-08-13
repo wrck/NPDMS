@@ -486,6 +486,18 @@ def apply_accepted_market_relation_decisions(register: dict[str, object], contra
 def apply_accepted_core_schema_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
     """Record ADR-0022 current DDL items and explicit removals without reviewer approval."""
     decided = set(contract["acceptedDdlItems"])
+    removed_v3_tables = set(contract["v3DesignOnlyTables"])
+    for item in register["items"]:
+        if item.get("table") not in removed_v3_tables:
+            continue
+        current_present = (
+            item.get("currentValue") is True
+            if item.get("itemType") == "TABLE"
+            else item.get("currentValue") is not None
+        )
+        if current_present:
+            raise ValueError(f"ADR-0022 V3-only table remains in current DDL: {item['table']}")
+        decided.add(item["itemId"])
     actual = {item["itemId"] for item in register["items"]}
     missing = sorted(decided - actual)
     if missing:
@@ -504,6 +516,123 @@ def apply_accepted_core_schema_decisions(register: dict[str, object], contract: 
         "decidedItemCount": len(decided),
         "removedV3TableCount": len(contract["v3DesignOnlyTables"]),
         "removedCrossDomainForeignKeyCount": 26,
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
+def apply_unchanged_baseline_column_decisions(register: dict[str, object]) -> dict[str, object]:
+    """Accept unchanged baseline columns as facts; reviewer approval remains separate."""
+    decision_ref = "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json#comparison=MATCH"
+    decided_count = 0
+    for item in register["items"]:
+        if item.get("itemType") != "COLUMN" or item.get("comparisonStatus") != "MATCH":
+            continue
+        item["decision"] = "ACCEPT_CURRENT"
+        item["decisionOwner"] = "DATA_ARCHITECTURE_OWNER"
+        item["reviewOwner"] = None
+        if decision_ref not in item["evidenceRefs"]:
+            item["evidenceRefs"].append(decision_ref)
+        decided_count += 1
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["unchangedBaselineColumnDecision"] = {
+        "decision": "ACCEPT_CURRENT",
+        "decidedItemCount": decided_count,
+        "basis": "BASELINE_AND_CURRENT_COLUMN_FACTS_EQUAL",
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
+def apply_accepted_v17_delta_decisions(
+    register: dict[str, object], contract: dict[str, object]
+) -> dict[str, object]:
+    """Bind every current V1.7 delta item to ADR-0025/0027 without reviewer approval."""
+    delta = contract.get("v17Delta", {})
+    if delta.get("status") != "BLOCKED_BY_REVIEW":
+        raise ValueError("V1.7 delta must remain BLOCKED_BY_REVIEW before independent approval")
+    object_tables = delta.get("objectTargetTables", {})
+    target_tables = {
+        table for tables in object_tables.values() for table in tables
+    }
+    cutover_tables = {
+        table
+        for object_name, tables in object_tables.items()
+        if object_name in {"CutoverSupportArrangement", "CutoverClosure"}
+        for table in tables
+    }
+    actual_tables = {
+        item["table"]
+        for item in register["items"]
+        if item.get("itemType") == "TABLE" and item.get("currentValue") is True
+    }
+    missing = sorted(target_tables - actual_tables)
+    if missing:
+        raise ValueError(f"V1.7 accepted delta tables are absent from current DDL: {missing}")
+    decided_count = 0
+    for item in register["items"]:
+        if item.get("table") not in target_tables:
+            continue
+        item["decision"] = "AMEND_CURRENT"
+        item["decisionOwner"] = "REQUIREMENT_OWNER"
+        item["reviewOwner"] = None
+        decision_ref = (
+            "docs/decisions/0027-cutover-physical-model-correction.md"
+            if item["table"] in cutover_tables
+            else "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md"
+        )
+        if decision_ref not in item["evidenceRefs"]:
+            item["evidenceRefs"].append(decision_ref)
+        decided_count += 1
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["v17DeltaDecision"] = {
+        "decisionRefs": ["ADR-0025", "ADR-0027"],
+        "decidedItemCount": decided_count,
+        "targetTableCount": len(target_tables),
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
+def apply_accepted_adr0023_business_constraint_decisions(
+    register: dict[str, object], v17_target_tables: set[str]
+) -> dict[str, object]:
+    """Bind accepted Q01-Q06 physical rules, including the RMA compatibility projection."""
+    decision_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+    decided_count = 0
+    for item in register["items"]:
+        if item.get("table") in v17_target_tables or item.get("decision") != "DEFER":
+            continue
+        current_value = item.get("currentValue")
+        is_business_constraint = (
+            item.get("itemType") == "CONSTRAINT"
+            and isinstance(current_value, str)
+            and (current_value.upper().startswith("UNIQUE KEY") or " CHECK " in f" {current_value.upper()} ")
+        )
+        is_current_table_option = (
+            item.get("itemType") == "TABLE_OPTION" and current_value is not None
+        )
+        is_rma_compatibility_projection = (
+            item.get("itemId") == "COLUMN:ast_device_shipment_event:rma_marked"
+        )
+        if not (is_business_constraint or is_current_table_option or is_rma_compatibility_projection):
+            continue
+        item["decision"] = "AMEND_CURRENT"
+        item["decisionOwner"] = "REQUIREMENT_OWNER"
+        item["reviewOwner"] = None
+        if decision_ref not in item["evidenceRefs"]:
+            item["evidenceRefs"].append(decision_ref)
+        decided_count += 1
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["adr0023PhysicalDecision"] = {
+        "decisionRef": "ADR-0023-Q01-Q06",
+        "decidedItemCount": decided_count,
         "reviewStatus": "REVIEW_PENDING",
     }
     return register
@@ -542,6 +671,13 @@ def apply_accepted_q03_decisions(register: dict[str, object], contract: dict[str
         "COLUMN:com_delivery_scope_detail:delivery_batch_no",
         "COLUMN:com_delivery_scope_detail:source_record_key",
         "COLUMN:com_delivery_scope_detail:remark",
+        "COLUMN:com_delivery_scope_detail:id",
+        "COLUMN:com_delivery_scope_detail:tenant_id",
+        "COLUMN:com_delivery_scope_detail:creator",
+        "COLUMN:com_delivery_scope_detail:create_time",
+        "COLUMN:com_delivery_scope_detail:updater",
+        "COLUMN:com_delivery_scope_detail:update_time",
+        "COLUMN:com_delivery_scope_detail:deleted",
         "CONSTRAINT:com_delivery_scope_detail:uk_delivery_scope_detail_sequence",
         "CONSTRAINT:com_delivery_scope_detail:fk_delivery_scope_detail_scope",
         "CONSTRAINT:com_delivery_scope_detail:chk_delivery_scope_detail_subject",
@@ -802,24 +938,30 @@ def main() -> int:
         constraints_comparable=report["summary"]["constraintsComparable"],
         options_comparable=report["summary"]["tableOptionsComparable"],
     )
-    decision_register = apply_accepted_naming_decisions(
-        decision_register, json.loads(naming_contract.read_text(encoding="utf-8"))
-    )
+    decision_register = apply_unchanged_baseline_column_decisions(decision_register)
+    naming_data = json.loads(naming_contract.read_text(encoding="utf-8"))
+    project_code_data = json.loads(project_code_contract.read_text(encoding="utf-8"))
+    market_relation_data = json.loads(market_relation_contract.read_text(encoding="utf-8"))
+    core_contract_data = json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
+    decision_register = apply_accepted_naming_decisions(decision_register, naming_data)
     decision_register = apply_accepted_project_code_decisions(
-        decision_register, json.loads(project_code_contract.read_text(encoding="utf-8"))
+        decision_register, project_code_data
     )
     decision_register = apply_accepted_market_relation_decisions(
-        decision_register, json.loads(market_relation_contract.read_text(encoding="utf-8"))
+        decision_register, market_relation_data
     )
-    decision_register = apply_accepted_core_schema_decisions(
-        decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
+    decision_register = apply_accepted_core_schema_decisions(decision_register, core_contract_data)
+    decision_register = apply_accepted_q03_decisions(decision_register, core_contract_data)
+    decision_register = apply_accepted_q07_q08_decisions(decision_register, core_contract_data)
+    v17_target_tables = {
+        table
+        for tables in core_contract_data.get("v17Delta", {}).get("objectTargetTables", {}).values()
+        for table in tables
+    }
+    decision_register = apply_accepted_adr0023_business_constraint_decisions(
+        decision_register, v17_target_tables
     )
-    decision_register = apply_accepted_q03_decisions(
-        decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
-    )
-    decision_register = apply_accepted_q07_q08_decisions(
-        decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
-    )
+    decision_register = apply_accepted_v17_delta_decisions(decision_register, core_contract_data)
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))
     print(f"WROTE {output.relative_to(repo).as_posix()}")

@@ -24,6 +24,19 @@ def canonical_sha(items: list[dict[str, object]]) -> str:
     return hashlib.sha256(data).hexdigest().upper()
 
 
+def generated_decision_errors(
+    actual_by_id: dict[str, dict[str, object]],
+    expected_by_id: dict[str, dict[str, object]],
+) -> list[str]:
+    errors: list[str] = []
+    for identifier in sorted(set(actual_by_id) & set(expected_by_id)):
+        actual, generated = actual_by_id[identifier], expected_by_id[identifier]
+        for field in ("decision", "decisionOwner", "reviewOwner", "evidenceRefs"):
+            if actual.get(field) != generated.get(field):
+                errors.append(f"{identifier} generated decision mismatch: {field}")
+    return errors
+
+
 def load_generator(script_dir: Path):
     path = script_dir / "generate_ddl_drift_review.py"
     spec = importlib.util.spec_from_file_location("ddl_drift_generator_for_validation", path)
@@ -92,28 +105,42 @@ def validate(root: Path) -> list[str]:
         if decision != "DEFER" and (not nonempty(actual.get("decisionOwner")) or not nonempty(actual.get("evidenceRefs"))):
             errors.append(f"{identifier} non-DEFER decision requires decisionOwner and evidenceRefs")
 
+    naming_contract = json.loads((root / "docs/traceability/database-naming-contract.json").read_text(encoding="utf-8"))
+    project_code_contract = json.loads((root / "docs/traceability/project-code-contract.json").read_text(encoding="utf-8"))
+    market_relation_contract = json.loads((root / "docs/traceability/market-relation-contract.json").read_text(encoding="utf-8"))
     core_contract = json.loads((root / "docs/traceability/core-migration-schema-contract.json").read_text(encoding="utf-8"))
-    q07_q08_expected = generator.apply_accepted_q07_q08_decisions(copy.deepcopy(expected), core_contract)
-    for decision_key in ("q07Decision", "q08Decision"):
-        if register.get(decision_key) != q07_q08_expected.get(decision_key):
+    decided_expected = generator.apply_unchanged_baseline_column_decisions(copy.deepcopy(expected))
+    decided_expected = generator.apply_accepted_naming_decisions(decided_expected, naming_contract)
+    decided_expected = generator.apply_accepted_project_code_decisions(decided_expected, project_code_contract)
+    decided_expected = generator.apply_accepted_market_relation_decisions(decided_expected, market_relation_contract)
+    decided_expected = generator.apply_accepted_core_schema_decisions(decided_expected, core_contract)
+    decided_expected = generator.apply_accepted_q03_decisions(decided_expected, core_contract)
+    decided_expected = generator.apply_accepted_q07_q08_decisions(decided_expected, core_contract)
+    v17_target_tables = {
+        table
+        for tables in core_contract.get("v17Delta", {}).get("objectTargetTables", {}).values()
+        for table in tables
+    }
+    decided_expected = generator.apply_accepted_adr0023_business_constraint_decisions(
+        decided_expected, v17_target_tables
+    )
+    decided_expected = generator.apply_accepted_v17_delta_decisions(decided_expected, core_contract)
+    expected_decided_by_id = {item["itemId"]: item for item in decided_expected["items"]}
+    errors.extend(generated_decision_errors(actual_by_id, expected_decided_by_id))
+    for decision_key in (
+        "namingDecision",
+        "unchangedBaselineColumnDecision",
+        "projectCodeDecision",
+        "marketRelationDecision",
+        "coreMigrationSchemaDecision",
+        "q03Decision",
+        "q07Decision",
+        "q08Decision",
+        "adr0023PhysicalDecision",
+        "v17DeltaDecision",
+    ):
+        if register.get(decision_key) != decided_expected.get(decision_key):
             errors.append(f"DDL decision register {decision_key} metadata mismatch")
-    q07_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
-    q08_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
-    for decision_ref in (q07_ref, q08_ref):
-        expected_ids = {
-            item["itemId"] for item in q07_q08_expected["items"]
-            if decision_ref in item.get("evidenceRefs", [])
-        }
-        actual_ids = {
-            item["itemId"] for item in items
-            if decision_ref in item.get("evidenceRefs", [])
-        }
-        if actual_ids != expected_ids:
-            errors.append(f"DDL decision register {decision_ref} item coverage mismatch")
-        for identifier in sorted(actual_ids):
-            item = actual_by_id[identifier]
-            if item.get("decision") != "AMEND_CURRENT" or item.get("decisionOwner") != "REQUIREMENT_OWNER" or nonempty(item.get("reviewOwner")):
-                errors.append(f"{identifier} Q07/Q08 decision state mismatch")
 
     counts: dict[str, int] = {}
     statuses: dict[str, int] = {}

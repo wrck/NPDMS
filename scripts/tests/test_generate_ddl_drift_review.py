@@ -185,6 +185,96 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertEqual(set(contract["acceptedDdlItems"]), decided)
         self.assertEqual(26, result["coreMigrationSchemaDecision"]["removedCrossDomainForeignKeyCount"])
 
+    def test_core_schema_decision_covers_all_items_of_explicitly_removed_v3_tables(self) -> None:
+        baseline = MODULE.parse_ddl(
+            b"CREATE TABLE kno_technical_advisory (id BIGINT NOT NULL, advisory_code VARCHAR(64)) ENGINE = InnoDB;"
+        )
+        register = MODULE.ddl_item_decision_register(
+            "OLD", "NEW", baseline, {}, constraints_comparable=False, options_comparable=False,
+        )
+        result = MODULE.apply_accepted_core_schema_decisions(register, {
+            "acceptedDdlItems": [],
+            "v3DesignOnlyTables": ["kno_technical_advisory"],
+        })
+        decided = [item for item in result["items"] if item["decision"] == "AMEND_CURRENT"]
+        self.assertEqual(len(register["items"]), len(decided))
+        self.assertTrue(all(item["decisionOwner"] == "REQUIREMENT_OWNER" for item in decided))
+        self.assertTrue(all("0022-core-migration" in item["evidenceRefs"][0] for item in decided))
+
+    def test_unchanged_baseline_columns_are_accepted_without_reviewer_signature(self) -> None:
+        register = {
+            "items": [
+                {"itemId": "COLUMN:a:stable", "itemType": "COLUMN", "comparisonStatus": "MATCH", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+                {"itemId": "COLUMN:a:added", "itemType": "COLUMN", "comparisonStatus": "ADDED", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+            ],
+            "summary": {"approvedCount": 0},
+        }
+        result = MODULE.apply_unchanged_baseline_column_decisions(register)
+        self.assertEqual("ACCEPT_CURRENT", result["items"][0]["decision"])
+        self.assertEqual("DATA_ARCHITECTURE_OWNER", result["items"][0]["decisionOwner"])
+        self.assertIsNone(result["items"][0]["reviewOwner"])
+        self.assertEqual("DEFER", result["items"][1]["decision"])
+        self.assertEqual(1, result["unchangedBaselineColumnDecision"]["decidedItemCount"])
+
+    def test_v17_delta_decision_covers_every_item_and_preserves_review_gate(self) -> None:
+        current = MODULE.parse_ddl(b"""
+CREATE TABLE cut_cutover_closure (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  cutover_task_id BIGINT NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_cutover_closure_task (tenant_id, cutover_task_id)
+) ENGINE = InnoDB;
+CREATE TABLE imp_configuration_collection_result (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE = InnoDB;
+""")
+        register = MODULE.ddl_item_decision_register(
+            "OLD", "NEW", {}, current, constraints_comparable=False, options_comparable=False,
+        )
+        contract = {
+            "v17Delta": {
+                "status": "BLOCKED_BY_REVIEW",
+                "objectTargetTables": {
+                    "CutoverClosure": ["cut_cutover_closure"],
+                    "ConfigurationCollectionResult": ["imp_configuration_collection_result"],
+                },
+            }
+        }
+        result = MODULE.apply_accepted_v17_delta_decisions(register, contract)
+        self.assertTrue(all(item["decision"] == "AMEND_CURRENT" for item in result["items"]))
+        cutover = [item for item in result["items"] if item["table"] == "cut_cutover_closure"]
+        implementation = [item for item in result["items"] if item["table"] == "imp_configuration_collection_result"]
+        self.assertTrue(all(any("0027-cutover" in ref for ref in item["evidenceRefs"]) for item in cutover))
+        self.assertTrue(all(any("0025-v1.7" in ref for ref in item["evidenceRefs"]) for item in implementation))
+        self.assertTrue(all(item["reviewOwner"] is None for item in result["items"]))
+        self.assertEqual("REVIEW_PENDING", result["v17DeltaDecision"]["reviewStatus"])
+
+    def test_accepted_business_constraints_only_fills_remaining_current_constraints(self) -> None:
+        register = {
+            "items": [
+                {"itemId": "CONSTRAINT:proj_project_member_assignment:uk_project_member_role", "itemType": "CONSTRAINT", "table": "proj_project_member_assignment", "currentValue": "UNIQUE KEY", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+                {"itemId": "CONSTRAINT:proj_project_member_assignment:PRIMARY", "itemType": "CONSTRAINT", "table": "proj_project_member_assignment", "currentValue": "PRIMARY KEY", "decision": "AMEND_CURRENT", "decisionOwner": "REQUIREMENT_OWNER", "reviewOwner": None, "evidenceRefs": ["q07"]},
+                {"itemId": "COLUMN:proj_project_member_assignment:member_role", "itemType": "COLUMN", "table": "proj_project_member_assignment", "currentValue": {}, "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+                {"itemId": "COLUMN:ast_device_shipment_event:rma_marked", "itemType": "COLUMN", "table": "ast_device_shipment_event", "currentValue": {}, "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+                {"itemId": "CONSTRAINT:cut_cutover_closure:uk_cutover_closure_task", "itemType": "CONSTRAINT", "table": "cut_cutover_closure", "currentValue": "UNIQUE KEY", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+                {"itemId": "TABLE_OPTION:proj_project_member_assignment", "itemType": "TABLE_OPTION", "table": "proj_project_member_assignment", "currentValue": "ENGINE = InnoDB", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+            ],
+            "summary": {"approvedCount": 0},
+        }
+        result = MODULE.apply_accepted_adr0023_business_constraint_decisions(
+            register, {"cut_cutover_closure"}
+        )
+        business = result["items"][0]
+        self.assertEqual("AMEND_CURRENT", business["decision"])
+        self.assertIn("0023-p3-e09", business["evidenceRefs"][0])
+        self.assertEqual("DEFER", result["items"][2]["decision"])
+        self.assertEqual("AMEND_CURRENT", result["items"][3]["decision"])
+        self.assertEqual("DEFER", result["items"][4]["decision"])
+        self.assertEqual("AMEND_CURRENT", result["items"][5]["decision"])
+
     def test_q03_decision_marks_business_facts_but_not_q07_q08_items(self) -> None:
         decided_ids = {
             "COLUMN:ast_device_project_assignment:current_device_id",
@@ -207,6 +297,13 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
             "COLUMN:com_delivery_scope_detail:delivery_batch_no",
             "COLUMN:com_delivery_scope_detail:source_record_key",
             "COLUMN:com_delivery_scope_detail:remark",
+            "COLUMN:com_delivery_scope_detail:id",
+            "COLUMN:com_delivery_scope_detail:tenant_id",
+            "COLUMN:com_delivery_scope_detail:creator",
+            "COLUMN:com_delivery_scope_detail:create_time",
+            "COLUMN:com_delivery_scope_detail:updater",
+            "COLUMN:com_delivery_scope_detail:update_time",
+            "COLUMN:com_delivery_scope_detail:deleted",
             "CONSTRAINT:com_delivery_scope_detail:uk_delivery_scope_detail_sequence",
             "CONSTRAINT:com_delivery_scope_detail:fk_delivery_scope_detail_scope",
             "CONSTRAINT:com_delivery_scope_detail:chk_delivery_scope_detail_subject",
