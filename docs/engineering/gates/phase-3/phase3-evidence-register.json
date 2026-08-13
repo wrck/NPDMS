@@ -1,19 +1,319 @@
 {
-  "schemaVersion": 1,
-  "phase": "SDS_PHASE_3",
-  "baseline": "PRD_V1.6",
-  "overallStatus": "NOT_READY_FOR_SDS_BASELINE",
-  "updatedAt": "2026-08-13",
-  "decisionBaseline": "docs/decisions/0004-phase3-production-assurance-directions.md",
-  "items": [
-    {"id":"P3-E01","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"A","directionStatus":"ACCEPTED","chosenDirection":"复用企业现有网关/LB、证书和网络区","localRepositoryAssessment":"NO_PRODUCTION_EVIDENCE"},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md","docs/engineering/gates/phase-3/runtime-fact-inventory.md"],"blocks":["PHASE_3_BASELINE","SECURITY_TRUST_BOUNDARY","PRODUCTION_DEPLOYMENT"]},
-    {"id":"P3-E02","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"A","directionStatus":"ACCEPTED","chosenDirection":"使用企业托管MySQL/Redis HA服务","localRepositoryAssessment":"DEVELOPMENT_SINGLE_NODE_ONLY"},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md","docs/engineering/gates/phase-3/runtime-fact-inventory.md"],"blocks":["PHASE_3_BASELINE","PRODUCTION_DEPLOYMENT","PERFORMANCE_ACCEPTANCE"]},
-    {"id":"P3-E03","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"A","directionStatus":"ACCEPTED","chosenDirection":"业务Owner先批准RPO/RTO，再由DBA/运维设计并演练","localRepositoryAssessment":"NO_RECOVERY_EXERCISE_EVIDENCE"},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md","docs/engineering/gates/phase-3/runtime-fact-inventory.md"],"blocks":["PHASE_3_BASELINE","RECOVERY_ACCEPTANCE"]},
-    {"id":"P3-E04","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"A","directionStatus":"ACCEPTED","chosenDirection":"使用企业KMS/Secrets Manager","localRepositoryAssessment":"NO_ENTERPRISE_KMS_EVIDENCE"},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md","docs/engineering/gates/phase-3/runtime-fact-inventory.md"],"blocks":["PHASE_3_BASELINE","NFR_02","DEVICE_CREDENTIAL_RELEASE"]},
-    {"id":"P3-E05","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"A","directionStatus":"ACCEPTED","chosenDirection":"OpenTelemetry统一采集并接入企业现有后端","localRepositoryAssessment":"CAPABILITY_ONLY_NO_PRODUCTION_BACKEND_EVIDENCE"},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md","docs/engineering/gates/phase-3/runtime-fact-inventory.md"],"blocks":["PHASE_3_BASELINE","OBSERVABILITY_ACCEPTANCE","HIGH_RISK_AUDIT"]},
-    {"id":"P3-E06","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"A","directionStatus":"ACCEPTED","chosenDirection":"建设独立近生产性能环境","localRepositoryAssessment":"LOCAL_HEALTH_SCRIPTS_ONLY"},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md","docs/engineering/gates/phase-3/runtime-fact-inventory.md"],"blocks":["PHASE_3_BASELINE","NFR_01","PERFORMANCE_ACCEPTANCE"]},
-    {"id":"P3-E07","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"B","directionStatus":"ACCEPTED","chosenDirection":"建立平台级接口配置注册表，Feature引用不可变版本"},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md"],"blocks":["FEATURE_INTEGRATION","FEATURE_RELEASE"]},
-    {"id":"P3-E08","status":"OPEN","decisionOwner":"FRONTEND_OWNER","reviewOwner":null,"confirmedFacts":{"command":"corepack pnpm ts:check","result":"FAIL","exitCode":1,"errorCount":182,"scopeCounts":{"PMS_ENGINEERING":85,"PMS_PROJECT":80,"PMS_SERVICE":9,"PMS_CUTOVER":3,"PMS_SHARED":1,"UPSTREAM_OR_NON_PMS":4},"verifiedAt":"2026-08-13","implementationCommit":"856d05264ab4a4fb69b94896c172e4a1c29aae02"},"evidenceRefs":["docs/engineering/gates/phase-3/frontend-ts-check-evidence.json","docs/engineering/gates/phase-3/frontend-ts-check-evidence.md"],"blocks":["FRONTEND_FEATURE_ACCEPTANCE","FRONTEND_RELEASE"]},
-    {"id":"P3-E09","status":"OPEN","decisionOwner":"REQUIREMENT_OWNER","reviewOwner":null,"confirmedFacts":{"directionDecision":"A","directionStatus":"ACCEPTED","chosenDirection":"逐表、列、索引和约束生成差异并逐项裁决","currentDdlSha256":"3CDDE2E206EE4AE401ECC398EA01A6F44FFAD37AC2644478DCD42202330D58BC","legacyCatalogDdlSha256":"2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33","driftDecision":"DEFER","decisionRegisterItemCount":1602},"evidenceRefs":["docs/decisions/0004-phase3-production-assurance-directions.md","specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md","specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json","specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json","specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"],"blocks":["PHASE_3_BASELINE","HISTORICAL_DATA_MIGRATION","DATA_CUTOVER"]}
-  ]
+    "schemaVersion": 1,
+    "phase": "SDS_PHASE_3",
+    "baseline": "PRD_V1.6",
+    "overallStatus": "NOT_READY_FOR_SDS_BASELINE",
+    "updatedAt": "2026-08-13",
+    "decisionBaseline": "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "items": [
+        {
+            "id": "P3-E01",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "A",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "\u590d\u7528\u4f01\u4e1a\u73b0\u6709\u7f51\u5173/LB\u3001\u8bc1\u4e66\u548c\u7f51\u7edc\u533a",
+                "evidenceStage": "DEPLOYMENT_TIME",
+                "localRepositoryAssessment": "NO_PRODUCTION_EVIDENCE"
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md",
+                "docs/decisions/0018-deployment-time-environment-and-kms-selection.md",
+                "docs/engineering/gates/phase-3/runtime-fact-inventory.md"
+            ],
+            "blocks": [
+                "SECURITY_TRUST_BOUNDARY",
+                "PRODUCTION_DEPLOYMENT",
+                "PRODUCTION_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E02",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "A",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "\u4f7f\u7528\u4f01\u4e1a\u6258\u7ba1MySQL/Redis HA\u670d\u52a1",
+                "localRepositoryAssessment": "DEVELOPMENT_SINGLE_NODE_ONLY"
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md",
+                "docs/engineering/gates/phase-3/runtime-fact-inventory.md"
+            ],
+            "blocks": [
+                "PRODUCTION_DEPLOYMENT",
+                "PERFORMANCE_ACCEPTANCE",
+                "PRODUCTION_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E03",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "A",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "\u4e1a\u52a1Owner\u5148\u6279\u51c6RPO/RTO\uff0c\u518d\u7531DBA/\u8fd0\u7ef4\u8bbe\u8ba1\u5e76\u6f14\u7ec3",
+                "approvedRpo": "PT1H",
+                "approvedRto": "PT4H",
+                "businessObjectiveStatus": "ACCEPTED",
+                "backupRetention": {
+                    "dailyRetention": "P35D",
+                    "monthlyRetention": "P13M",
+                    "yearlyRetention": "P7Y",
+                    "continuousLogMaxGap": "PT1H"
+                },
+                "recoveryTopology": {
+                    "primary": "METRO_WARM_STANDBY",
+                    "fallback": "OFFLINE_COLD_BACKUP_FALLBACK",
+                    "approvedRto": "PT4H"
+                },
+                "recoveryExercisePolicy": {
+                    "isolatedRestoreFrequency": "P3M",
+                    "fullWarmStandbySwitchFrequency": "P1Y"
+                },
+                "switchAuthorization": {
+                    "initiator": "OPERATIONS_OWNER",
+                    "requiredConfirmer": "BUSINESS_OWNER",
+                    "securityIncidentAdditionalConfirmer": "SECURITY_OWNER",
+                    "auditPolicy": "PERMANENT_NON_DELETABLE"
+                },
+                "localRepositoryAssessment": "NO_RECOVERY_EXERCISE_EVIDENCE"
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md",
+                "docs/decisions/0005-production-recovery-objectives.md",
+                "docs/decisions/0012-production-backup-retention.md",
+                "docs/decisions/0013-warm-standby-and-offline-cold-backup.md",
+                "docs/decisions/0015-recovery-exercise-frequency.md",
+                "docs/decisions/0017-disaster-recovery-switch-authorization.md",
+                "docs/engineering/gates/phase-3/runtime-fact-inventory.md"
+            ],
+            "blocks": [
+                "RECOVERY_ACCEPTANCE",
+                "PRODUCTION_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E04",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "A",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "\u4f7f\u7528\u4f01\u4e1aKMS/Secrets Manager",
+                "evidenceStage": "DEPLOYMENT_TIME",
+                "localRepositoryAssessment": "NO_ENTERPRISE_KMS_EVIDENCE"
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md",
+                "docs/decisions/0018-deployment-time-environment-and-kms-selection.md",
+                "docs/engineering/gates/phase-3/runtime-fact-inventory.md"
+            ],
+            "blocks": [
+                "NFR_02",
+                "DEVICE_CREDENTIAL_RELEASE",
+                "PRODUCTION_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E05",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "A",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "OpenTelemetry\u7edf\u4e00\u91c7\u96c6\u5e76\u63a5\u5165\u4f01\u4e1a\u73b0\u6709\u540e\u7aef",
+                "permanentAuditPolicy": "PERMANENT_NON_DELETABLE",
+                "networkSecurityLogRetention": {
+                    "policyCode": "NETWORK_SECURITY_LOG_P1Y",
+                    "totalRetention": "P1Y",
+                    "onlineRetention": "P180D",
+                    "immutableColdRetention": "P185D"
+                },
+                "traceRetention": {
+                    "standard": {
+                        "policyCode": "TRACE_STANDARD_P90D",
+                        "totalRetention": "P90D",
+                        "onlineRetention": "P30D",
+                        "coldRetention": "P60D"
+                    },
+                    "errorHighRisk": {
+                        "policyCode": "TRACE_ERROR_HIGH_RISK_P180D",
+                        "totalRetention": "P180D",
+                        "onlineRetention": "P30D",
+                        "coldRetention": "P150D"
+                    }
+                },
+                "metricRetention": {
+                    "rawHighResolution": {
+                        "policyCode": "METRIC_RAW_P90D",
+                        "retention": "P90D"
+                    },
+                    "fiveMinuteHourlyAggregate": {
+                        "policyCode": "METRIC_AGGREGATE_P13M",
+                        "retention": "P13M"
+                    }
+                },
+                "debugLogRetention": {
+                    "policyCode": "DEBUG_LOG_DEFAULT_P7D",
+                    "defaultRetention": "P7D",
+                    "exceptionPolicyCode": "DEBUG_LOG_EXCEPTION_MAX_P30D",
+                    "maximumExceptionRetention": "P30D",
+                    "exceptionRequiredFields": [
+                        "reason",
+                        "owner",
+                        "expiresAt"
+                    ]
+                },
+                "traceSamplingPolicy": {
+                    "standardSuccessSampleRate": 0.1,
+                    "forcedSampleRate": 1.0,
+                    "forcedCategories": [
+                        "ERROR",
+                        "HIGH_RISK_SECURITY_OPERATION",
+                        "AUDIT_WRITE_FAILURE",
+                        "RELEASE_MIGRATION"
+                    ],
+                    "unsampledStillProducesMetrics": true,
+                    "unsampledStillProducesPermanentAudit": true
+                },
+                "exportAuthorizationPolicy": {
+                    "approvalRequired": false,
+                    "requiredControls": [
+                        "EXPORT_FUNCTION_PERMISSION",
+                        "DATA_SCOPE",
+                        "FIELD_PERMISSION",
+                        "REAL_TIME_DOWNLOAD_RECHECK"
+                    ],
+                    "exportAuditPolicy": "PERMANENT_NON_DELETABLE",
+                    "exportFileTtl": "PT24H",
+                    "exportRecordRetention": "PERMANENT_NON_DELETABLE"
+                },
+                "localRepositoryAssessment": "CAPABILITY_ONLY_NO_PRODUCTION_BACKEND_EVIDENCE"
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md",
+                "docs/decisions/0006-permanent-business-audit-retention.md",
+                "docs/decisions/0007-network-security-log-retention.md",
+                "docs/decisions/0008-trace-retention.md",
+                "docs/decisions/0009-metric-retention.md",
+                "docs/decisions/0010-debug-log-retention.md",
+                "docs/decisions/0011-production-trace-sampling.md",
+                "docs/decisions/0014-permission-driven-business-data-export.md",
+                "docs/decisions/0016-export-file-expiration.md",
+                "docs/engineering/gates/phase-3/runtime-fact-inventory.md"
+            ],
+            "blocks": [
+                "OBSERVABILITY_ACCEPTANCE",
+                "HIGH_RISK_AUDIT",
+                "PRODUCTION_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E06",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "A",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "\u5efa\u8bbe\u72ec\u7acb\u8fd1\u751f\u4ea7\u6027\u80fd\u73af\u5883",
+                "localRepositoryAssessment": "LOCAL_HEALTH_SCRIPTS_ONLY"
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md",
+                "docs/engineering/gates/phase-3/runtime-fact-inventory.md"
+            ],
+            "blocks": [
+                "PERFORMANCE_ACCEPTANCE",
+                "PRODUCTION_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E07",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "B",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "\u5efa\u7acb\u5e73\u53f0\u7ea7\u63a5\u53e3\u914d\u7f6e\u6ce8\u518c\u8868\uff0cFeature\u5f15\u7528\u4e0d\u53ef\u53d8\u7248\u672c"
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md"
+            ],
+            "blocks": [
+                "FEATURE_INTEGRATION",
+                "FEATURE_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E08",
+            "status": "OPEN",
+            "decisionOwner": "FRONTEND_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "command": "corepack pnpm ts:check",
+                "result": "FAIL",
+                "exitCode": 1,
+                "errorCount": 182,
+                "scopeCounts": {
+                    "PMS_ENGINEERING": 85,
+                    "PMS_PROJECT": 80,
+                    "PMS_SERVICE": 9,
+                    "PMS_CUTOVER": 3,
+                    "PMS_SHARED": 1,
+                    "UPSTREAM_OR_NON_PMS": 4
+                },
+                "verifiedAt": "2026-08-13",
+                "implementationCommit": "856d05264ab4a4fb69b94896c172e4a1c29aae02"
+            },
+            "evidenceRefs": [
+                "docs/engineering/gates/phase-3/frontend-ts-check-evidence.json",
+                "docs/engineering/gates/phase-3/frontend-ts-check-evidence.md"
+            ],
+            "blocks": [
+                "FRONTEND_FEATURE_ACCEPTANCE",
+                "FRONTEND_RELEASE"
+            ]
+        },
+        {
+            "id": "P3-E09",
+            "status": "OPEN",
+            "decisionOwner": "REQUIREMENT_OWNER",
+            "reviewOwner": null,
+            "confirmedFacts": {
+                "directionDecision": "A",
+                "directionStatus": "ACCEPTED",
+                "chosenDirection": "\u9010\u8868\u3001\u5217\u3001\u7d22\u5f15\u548c\u7ea6\u675f\u751f\u6210\u5dee\u5f02\u5e76\u9010\u9879\u88c1\u51b3",
+                "currentDdlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
+                "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
+                "driftDecision": "DEFER",
+                "decisionRegisterItemCount": 1602
+            },
+            "evidenceRefs": [
+                "docs/decisions/0004-phase3-production-assurance-directions.md",
+                "docs/decisions/0019-domain-coded-database-naming.md",
+                "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md",
+                "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
+                "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
+                "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+                "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md"
+            ],
+            "blocks": [
+                "PHASE_3_BASELINE",
+                "DATA_MODEL_BASELINE",
+                "HISTORICAL_DATA_MIGRATION",
+                "DATA_CUTOVER"
+            ]
+        }
+    ]
 }

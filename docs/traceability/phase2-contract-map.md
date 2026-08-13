@@ -12,7 +12,7 @@
 
 - 需求名称：项目创建与指派
 - 数据对象：Project、ProjectMemberAssignment
-- 数据表：pms_project、pms_project_member_assignment
+- 数据表：proj_project、proj_project_member_assignment
 - API：/projects、/projects/{id}/actions/assign-manager
 - 事件：ProjectCreated
 - 外部集成：CRM、ERP
@@ -26,7 +26,7 @@
 
 - 需求名称：主子项目管理与进度汇总
 - 数据对象：ProjectHierarchy、ProjectAncestorProjection
-- 数据表：pms_project、pms_project_tree_path、pms_project_tree_change
+- 数据表：proj_project、proj_project_tree_path、proj_project_tree_change
 - API：/projects/{id}/tree、/projects/{id}/actions/move
 - 事件：ProjectTreeChanged
 - 外部集成：N/A（平台内部契约）
@@ -40,7 +40,7 @@
 
 - 需求名称：项目模板与阶段门禁
 - 数据对象：ProjectTemplate、ProjectStageSnapshot
-- 数据表：pms_project_template_revision、pms_project_stage_snapshot
+- 数据表：proj_project_template_revision、proj_project_stage_snapshot
 - API：/project-templates
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -54,7 +54,7 @@
 
 - 需求名称：多级项目权限与拆分
 - 数据对象：ProjectHierarchy、ProjectAncestorProjection
-- 数据表：pms_project、pms_project_tree_path、pms_project_tree_change
+- 数据表：proj_project、proj_project_tree_path、proj_project_tree_change
 - API：/projects/{id}/tree、/projects/{id}/actions/move
 - 事件：ProjectTreeChanged
 - 外部集成：N/A（平台内部契约）
@@ -68,7 +68,7 @@
 
 - 需求名称：借货项目转销管理
 - 数据对象：BorrowedProjectConversion、ConversionItem、ConversionDeviceDisposition
-- 数据表：pms_project_conversion、pms_project_conversion_item、pms_project_conversion_device
+- 数据表：proj_project_conversion、proj_project_conversion_item、proj_project_conversion_device
 - API：/project-conversions、/project-conversions/{id}/actions/retry-failed
 - 事件：ProjectConversionCompleted、ProjectConversionPartiallyFailed
 - 外部集成：CRM、ERP
@@ -82,7 +82,7 @@
 
 - 需求名称：多期项目合并管理
 - 数据对象：MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference
-- 数据表：pms_project_phase_group、pms_project_phase_member、pms_project_cross_phase_reference
+- 数据表：proj_multi_phase_project_group、proj_multi_phase_project_member、proj_project_cross_phase_reference
 - API：/project-phase-groups、/project-phase-groups/{id}/actions/add-phase、/project-phase-groups/{id}/actions/derive-content
 - 事件：ProjectPhaseGroupChanged
 - 外部集成：N/A（平台内部契约）
@@ -96,7 +96,7 @@
 
 - 需求名称：项目级别自动识别
 - 数据对象：Project
-- 数据表：pms_project
+- 数据表：proj_project
 - API：/projects/{id}/actions/classify
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -110,7 +110,7 @@
 
 - 需求名称：服务经理自动指派
 - 数据对象：ProjectMemberAssignment
-- 数据表：pms_project_member_assignment
+- 数据表：proj_project_member_assignment
 - API：/projects/{id}/actions/assign-manager
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -124,7 +124,7 @@
 
 - 需求名称：人员批量变更
 - 数据对象：ProjectMemberAssignment
-- 数据表：pms_project_member_assignment
+- 数据表：proj_project_member_assignment
 - API：/projects/{id}/members:batch-change
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -138,7 +138,7 @@
 
 - 需求名称：项目回退与关闭
 - 数据对象：Project、ProjectStageSnapshot
-- 数据表：pms_project、pms_project_stage_snapshot
+- 数据表：proj_project、proj_project_stage_snapshot
 - API：/projects/{id}/actions/rollback、/projects/{id}/actions/close
 - 事件：ProjectStageChanged、ProjectClosed
 - 外部集成：N/A（平台内部契约）
@@ -152,7 +152,7 @@
 
 - 需求名称：项目任务管理
 - 数据对象：ProjectTask、TaskAncestorProjection、TaskDependency
-- 数据表：pms_project_task、pms_task_tree_path、pms_task_dependency
+- 数据表：proj_project_task、proj_task_tree_path、proj_task_dependency
 - API：/projects/{id}/tasks、/project-tasks/{id}/actions/move
 - 事件：TaskAssigned、TaskCompleted
 - 外部集成：N/A（平台内部契约）
@@ -166,7 +166,7 @@
 
 - 需求名称：工期管理与变更审批
 - 数据对象：ConstructionPlan
-- 数据表：pms_sol_construction_plan、pms_sol_plan_revision、pms_sol_plan_change
+- 数据表：sol_construction_plan、sol_construction_plan_revision、sol_construction_plan_change
 - API：/construction-plans、/{id}/actions/{submit|approve|reject}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -180,7 +180,7 @@
 
 - 需求名称：工勘分工信息采集
 - 数据对象：Preparation、DynamicFormInstance
-- 数据表：pms_sol_preparation、pms_sol_form_instance
+- 数据表：sol_preparation、sol_dynamic_form_instance
 - API：/preparations、/{id}/actions/{submit|confirm|return}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -194,7 +194,7 @@
 
 - 需求名称：物料换货流程
 - 数据对象：Preparation
-- 数据表：pms_sol_preparation、pms_int_sync_item
+- 数据表：sol_preparation、ast_asset_sync_item
 - API：/preparations
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：ERP
@@ -208,7 +208,7 @@
 
 - 需求名称：需求分析在线填写
 - 数据对象：Preparation、DynamicFormInstance
-- 数据表：pms_sol_preparation、pms_sol_form_instance
+- 数据表：sol_preparation、sol_dynamic_form_instance
 - API：/preparations、/{id}/actions/{submit|confirm|return}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -222,7 +222,7 @@
 
 - 需求名称：工程交底书自动生成
 - 数据对象：Preparation、FileArtifact
-- 数据表：pms_sol_preparation、pms_plt_file_artifact、pms_plt_file_version
+- 数据表：sol_preparation、plt_file_artifact、plt_file_version
 - API：/preparations、/files:init-upload
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -236,7 +236,7 @@
 
 - 需求名称：施工计划自动推算
 - 数据对象：ConstructionPlan
-- 数据表：pms_sol_construction_plan、pms_sol_plan_revision
+- 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/schedules、/{id}/actions/{calculate|apply}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -250,7 +250,7 @@
 
 - 需求名称：工期紧张预警
 - 数据对象：ConstructionPlan
-- 数据表：pms_sol_construction_plan、pms_sol_plan_revision
+- 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/schedules、/{id}/actions/{calculate|apply}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -264,7 +264,7 @@
 
 - 需求名称：超期标红与统计
 - 数据对象：ConstructionPlan
-- 数据表：pms_sol_construction_plan、pms_sol_plan_revision
+- 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/schedules、/{id}/actions/{calculate|apply}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -278,7 +278,7 @@
 
 - 需求名称：施工计划审批
 - 数据对象：ConstructionPlan
-- 数据表：pms_sol_construction_plan、pms_sol_plan_revision
+- 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/construction-plans、/{id}/actions/{submit|approve|reject}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -292,7 +292,7 @@
 
 - 需求名称：实施方案在线编审
 - 数据对象：Solution
-- 数据表：pms_sol_solution、pms_sol_solution_revision、pms_sol_solution_review
+- 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -306,7 +306,7 @@
 
 - 需求名称：客户方案导入识别
 - 数据对象：Solution
-- 数据表：pms_sol_solution、pms_sol_solution_revision、pms_sol_solution_review
+- 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -320,7 +320,7 @@
 
 - 需求名称：配置脚本上传解析
 - 数据对象：Solution、FileArtifact
-- 数据表：pms_sol_solution_revision、pms_plt_file_artifact、pms_plt_file_version
+- 数据表：sol_solution_revision、plt_file_artifact、plt_file_version
 - API：/solutions、/files:init-upload
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -334,7 +334,7 @@
 
 - 需求名称：标准化模板管理
 - 数据对象：Solution
-- 数据表：pms_sol_solution、pms_sol_solution_revision、pms_sol_solution_review
+- 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -348,7 +348,7 @@
 
 - 需求名称：方案审核与重大复审
 - 数据对象：Solution
-- 数据表：pms_sol_solution、pms_sol_solution_revision、pms_sol_solution_review
+- 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -362,7 +362,7 @@
 
 - 需求名称：到货签收
 - 数据对象：ArrivalAcceptance
-- 数据表：pms_imp_arrival_acceptance、pms_imp_arrival_line、pms_imp_arrival_difference
+- 数据表：imp_arrival_acceptance、imp_arrival_line、imp_arrival_difference
 - API：/arrival-acceptances
 - 事件：ArrivalAccepted
 - 外部集成：N/A（平台内部契约）
@@ -376,7 +376,7 @@
 
 - 需求名称：硬件安装记录
 - 数据对象：InstallationRecord
-- 数据表：pms_imp_installation_record、pms_imp_installation_item、pms_imp_installation_evidence
+- 数据表：imp_installation_record、imp_installation_item、imp_installation_evidence
 - API：/installation-records
 - 事件：InstallationConfirmed
 - 外部集成：N/A（平台内部契约）
@@ -390,7 +390,7 @@
 
 - 需求名称：配置Log采集解析
 - 数据对象：ConfigurationCollectionResult、CollectionTask
-- 数据表：pms_imp_configuration_result、pms_imp_parse_attempt、pms_dac_collection_task
+- 数据表：imp_configuration_collection_result、imp_configuration_collection_parse_attempt、plt_collection_task
 - API：/configuration-results、/collection-tasks
 - 事件：ConfigurationParsed、CollectionResultConsumed
 - 外部集成：现有采集平台子应用
@@ -404,7 +404,7 @@
 
 - 需求名称：业务联调配置收集
 - 数据对象：JointDebuggingResult、CollectionTask
-- 数据表：pms_imp_debugging_result、pms_imp_debugging_item、pms_dac_collection_task
+- 数据表：imp_joint_debugging_result、imp_joint_debugging_item、plt_collection_task
 - API：/debugging-results、/collection-tasks
 - 事件：JointDebuggingCompleted、CollectionResultConsumed
 - 外部集成：现有采集平台子应用
@@ -418,7 +418,7 @@
 
 - 需求名称：单机风险标记
 - 数据对象：ImplementationRisk
-- 数据表：pms_imp_risk、pms_imp_risk_treatment
+- 数据表：imp_risk、imp_risk_treatment
 - API：/implementation-risks
 - 事件：ImplementationRiskRaised/Closed
 - 外部集成：N/A（平台内部契约）
@@ -432,7 +432,7 @@
 
 - 需求名称：割接上线门禁
 - 数据对象：ImplementationReadinessSnapshot
-- 数据表：pms_project_stage_snapshot
+- 数据表：proj_project_stage_snapshot
 - API：/implementation-readiness/{projectId}
 - 事件：ImplementationReadinessSnapshotPublished
 - 外部集成：N/A（平台内部契约）
@@ -446,7 +446,7 @@
 
 - 需求名称：现场培训电子化
 - 数据对象：Acceptance
-- 数据表：pms_acc_acceptance、pms_acc_acceptance_item、pms_acc_confirmation
+- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
 - API：/acceptances、/surveys
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -460,7 +460,7 @@
 
 - 需求名称：满意度调查电子化
 - 数据对象：Acceptance
-- 数据表：pms_acc_acceptance、pms_acc_acceptance_item、pms_acc_confirmation
+- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
 - API：/acceptances、/surveys
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -474,7 +474,7 @@
 
 - 需求名称：验收报告管理
 - 数据对象：Acceptance
-- 数据表：pms_acc_acceptance、pms_acc_acceptance_item、pms_acc_confirmation
+- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
 - API：/acceptances、/surveys
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -488,7 +488,7 @@
 
 - 需求名称：交付件归档管理
 - 数据对象：DeliveryArtifact
-- 数据表：pms_acc_delivery_artifact、pms_acc_artifact_review、pms_acc_archive_record
+- 数据表：acc_delivery_artifact、acc_artifact_review、acc_archive_record
 - API：/delivery-artifacts
 - 事件：ArtifactAccepted/Archived
 - 外部集成：N/A（平台内部契约）
@@ -502,7 +502,7 @@
 
 - 需求名称：闭环条件校验
 - 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：pms_acc_project_closure、pms_acc_closure_gate_snapshot、pms_acc_closure_review
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
 - API：/closure-gates/{projectId}、/project-closures、/surveys
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -516,7 +516,7 @@
 
 - 需求名称：闭环审批流程
 - 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：pms_acc_project_closure、pms_acc_closure_gate_snapshot、pms_acc_closure_review
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
 - API：/closure-gates/{projectId}、/project-closures、/surveys
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -530,7 +530,7 @@
 
 - 需求名称：直签回访特殊流程
 - 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：pms_acc_project_closure、pms_acc_closure_gate_snapshot、pms_acc_closure_review
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
 - API：/closure-gates/{projectId}、/project-closures、/surveys
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -544,7 +544,7 @@
 
 - 需求名称：多类型回访问卷
 - 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：pms_acc_project_closure、pms_acc_closure_gate_snapshot、pms_acc_closure_review
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
 - API：/closure-gates/{projectId}、/project-closures、/surveys
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -558,7 +558,7 @@
 
 - 需求名称：问卷自动驳回通过
 - 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：pms_acc_project_closure、pms_acc_closure_gate_snapshot、pms_acc_closure_review
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
 - API：/closure-gates/{projectId}、/project-closures、/surveys
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -572,7 +572,7 @@
 
 - 需求名称：问卷导出分析
 - 数据对象：ProjectClosure、ClosureGateSnapshot
-- 数据表：pms_acc_project_closure、pms_acc_closure_gate_snapshot、pms_acc_closure_review
+- 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review
 - API：/closure-gates/{projectId}、/project-closures、/surveys
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -586,7 +586,7 @@
 
 - 需求名称：打卡工单同步
 - 数据对象：WorkOrder
-- 数据表：pms_wo_work_order、pms_wo_handling_record
+- 数据表：srv_work_order、srv_work_order_handling_record
 - API：/work-orders
 - 事件：WorkOrderSynchronized
 - 外部集成：钉钉
@@ -600,7 +600,7 @@
 
 - 需求名称：工单类型管理
 - 数据对象：WorkOrder
-- 数据表：pms_wo_work_order、pms_wo_handling_record
+- 数据表：srv_work_order、srv_work_order_handling_record
 - API：/work-orders
 - 事件：WorkOrderSynchronized
 - 外部集成：钉钉
@@ -614,7 +614,7 @@
 
 - 需求名称：APP扫码关联设备
 - 数据对象：WorkOrder
-- 数据表：pms_wo_work_order、pms_wo_handling_record
+- 数据表：srv_work_order、srv_work_order_handling_record
 - API：/work-orders
 - 事件：WorkOrderSynchronized
 - 外部集成：钉钉
@@ -628,7 +628,7 @@
 
 - 需求名称：工时审批
 - 数据对象：TimeClaim
-- 数据表：pms_wo_time_claim、pms_wo_time_adjustment
+- 数据表：srv_time_claim、srv_time_adjustment
 - API：/time-claims
 - 事件：TimeClaimApproved
 - 外部集成：钉钉
@@ -642,7 +642,7 @@
 
 - 需求名称：工单数据同步项目
 - 数据对象：WorkOrder
-- 数据表：pms_wo_work_order、pms_wo_handling_record
+- 数据表：srv_work_order、srv_work_order_handling_record
 - API：/work-orders
 - 事件：WorkOrderSynchronized
 - 外部集成：钉钉
@@ -656,7 +656,7 @@
 
 - 需求名称：割接保障工单
 - 数据对象：WorkOrder
-- 数据表：pms_wo_work_order、pms_wo_handling_record
+- 数据表：srv_work_order、srv_work_order_handling_record
 - API：/work-orders
 - 事件：WorkOrderSynchronized
 - 外部集成：钉钉
@@ -670,7 +670,7 @@
 
 - 需求名称：转包申请管理
 - 数据对象：SubcontractRequest
-- 数据表：pms_res_subcontract_request
+- 数据表：res_subcontract_request
 - API：/subcontract-requests
 - 事件：SubcontractApproved
 - 外部集成：OA
@@ -684,7 +684,7 @@
 
 - 需求名称：转包流程配置
 - 数据对象：SubcontractRequest
-- 数据表：pms_res_subcontract_request
+- 数据表：res_subcontract_request
 - API：/subcontract-requests
 - 事件：SubcontractApproved
 - 外部集成：OA
@@ -698,7 +698,7 @@
 
 - 需求名称：转包付款回访门禁
 - 数据对象：PaymentGate
-- 数据表：pms_res_payment_gate
+- 数据表：res_payment_gate
 - API：/payment-gates
 - 事件：PaymentGateChanged
 - 外部集成：财务系统
@@ -712,7 +712,7 @@
 
 - 需求名称：付款信息管理
 - 数据对象：PaymentGate
-- 数据表：pms_res_payment_gate
+- 数据表：res_payment_gate
 - API：/payment-gates
 - 事件：PaymentGateChanged
 - 外部集成：财务系统
@@ -726,7 +726,7 @@
 
 - 需求名称：转包价格审批
 - 数据对象：SubcontractRequest
-- 数据表：pms_res_subcontract_request
+- 数据表：res_subcontract_request
 - API：/subcontract-requests
 - 事件：SubcontractApproved
 - 外部集成：OA
@@ -740,7 +740,7 @@
 
 - 需求名称：用户资产库
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：pms_cus_customer、pms_cus_contact、pms_cus_project_contact_relation
+- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation
 - API：/customers、/customer-contacts、/customer-relationships
 - 事件：CustomerMerged、MasterDataSynchronized
 - 外部集成：CRM
@@ -754,7 +754,7 @@
 
 - 需求名称：服务等级管理
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：pms_cus_customer、pms_cus_contact、pms_cus_project_contact_relation
+- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation
 - API：/customers、/customer-contacts、/customer-relationships
 - 事件：CustomerMerged、MasterDataSynchronized
 - 外部集成：CRM
@@ -768,7 +768,7 @@
 
 - 需求名称：客户信息管理CURD
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：pms_cus_customer、pms_cus_contact、pms_cus_project_contact_relation
+- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation
 - API：/customers、/customer-contacts、/customer-relationships
 - 事件：CustomerMerged、MasterDataSynchronized
 - 外部集成：CRM
@@ -782,7 +782,7 @@
 
 - 需求名称：项目联系人管理
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：pms_cus_customer、pms_cus_contact、pms_cus_project_contact_relation
+- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation
 - API：/customers、/customer-contacts、/customer-relationships
 - 事件：CustomerMerged、MasterDataSynchronized
 - 外部集成：CRM
@@ -796,7 +796,7 @@
 
 - 需求名称：设备序列号档案
 - 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：pms_equipment、pms_ast_device_current_assignment、pms_ast_device_assignment_history
+- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
 - 事件：DeviceAssigned
 - 外部集成：N/A（平台内部契约）
@@ -810,7 +810,7 @@
 
 - 需求名称：配置Log管理
 - 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：pms_equipment、pms_ast_device_current_assignment、pms_ast_device_assignment_history
+- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
 - 事件：DeviceAssigned
 - 外部集成：N/A（平台内部契约）
@@ -824,7 +824,7 @@
 
 - 需求名称：设备档案库
 - 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：pms_equipment、pms_ast_device_current_assignment、pms_ast_device_assignment_history
+- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
 - 事件：DeviceAssigned
 - 外部集成：N/A（平台内部契约）
@@ -838,7 +838,7 @@
 
 - 需求名称：设备信息MES同步
 - 数据对象：AssetSyncSnapshot、Device
-- 数据表：pms_int_sync_batch、pms_int_sync_item、pms_equipment
+- 数据表：ast_asset_sync_batch、ast_asset_sync_item、ast_device
 - API：/devices
 - 事件：MasterDataSynchronized
 - 外部集成：MES
@@ -852,7 +852,7 @@
 
 - 需求名称：一码通扫码
 - 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：pms_equipment、pms_ast_device_current_assignment、pms_ast_device_assignment_history
+- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
 - 事件：DeviceAssigned
 - 外部集成：N/A（平台内部契约）
@@ -866,7 +866,7 @@
 
 - 需求名称：项目问题单页面
 - 数据对象：Device、DeviceArchive、DeviceCurrentAssignment
-- 数据表：pms_equipment、pms_ast_device_current_assignment、pms_ast_device_assignment_history
+- 数据表：ast_device、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/assignment-history
 - 事件：DeviceAssigned
 - 外部集成：N/A（平台内部契约）
@@ -880,7 +880,7 @@
 
 - 需求名称：工时多维统计
 - 数据对象：MetricSnapshot
-- 数据表：pms_ana_metric_snapshot
+- 数据表：ana_metric_snapshot
 - API：/analytics/metrics
 - 事件：MetricSnapshotPublished
 - 外部集成：N/A（平台内部契约）
@@ -894,7 +894,7 @@
 
 - 需求名称：项目状态统计
 - 数据对象：MetricSnapshot
-- 数据表：pms_ana_metric_snapshot
+- 数据表：ana_metric_snapshot
 - API：/analytics/metrics
 - 事件：MetricSnapshotPublished
 - 外部集成：N/A（平台内部契约）
@@ -908,7 +908,7 @@
 
 - 需求名称：人效分析
 - 数据对象：MetricSnapshot
-- 数据表：pms_ana_metric_snapshot
+- 数据表：ana_metric_snapshot
 - API：/analytics/metrics
 - 事件：MetricSnapshotPublished
 - 外部集成：N/A（平台内部契约）
@@ -922,7 +922,7 @@
 
 - 需求名称：割接任务管理
 - 数据对象：CutoverTask、CutoverAssessment
-- 数据表：pms_cut_task、pms_cut_assessment
+- 数据表：cut_task、cut_assessment
 - API：/cutover-tasks、/cutover-tasks/{id}/assessment
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -936,7 +936,7 @@
 
 - 需求名称：割接分级评估
 - 数据对象：CutoverTask、CutoverAssessment
-- 数据表：pms_cut_task、pms_cut_assessment
+- 数据表：cut_task、cut_assessment
 - API：/cutover-tasks、/cutover-tasks/{id}/assessment
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -950,7 +950,7 @@
 
 - 需求名称：割接采集清单动态多维绑定生成
 - 数据对象：CutoverPlan
-- 数据表：pms_cut_plan_revision、pms_cut_step
+- 数据表：cut_plan_revision、cut_step
 - API：/cutover-tasks/{id}/plan-revisions
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -964,7 +964,7 @@
 
 - 需求名称：割接方案编审
 - 数据对象：CutoverPlan
-- 数据表：pms_cut_plan_revision、pms_cut_step
+- 数据表：cut_plan_revision、cut_step
 - API：/cutover-tasks/{id}/plan-revisions
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -978,7 +978,7 @@
 
 - 需求名称：割接分级审批
 - 数据对象：CutoverPlan
-- 数据表：pms_cut_plan_revision、pms_cut_step
+- 数据表：cut_plan_revision、cut_step
 - API：/cutover-tasks/{id}/plan-revisions
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -992,7 +992,7 @@
 
 - 需求名称：割接执行闭环
 - 数据对象：CutoverExecution、CollectionTask
-- 数据表：pms_cut_execution、pms_cut_execution_step、pms_cut_observation、pms_dac_collection_task
+- 数据表：cut_execution、cut_execution_step、cut_observation、plt_collection_task
 - API：/cutover-tasks/{id}/actions/start、/cutover-executions/{id}/steps/{stepId}/actions/{start|complete|fail}
 - 事件：CollectionResultConsumed、CutoverCompleted
 - 外部集成：现有采集平台子应用、ITR
@@ -1006,7 +1006,7 @@
 
 - 需求名称：割接后台配置
 - 数据对象：CutoverPlan
-- 数据表：pms_cut_plan_revision、pms_cut_step
+- 数据表：cut_plan_revision、cut_step
 - API：/cutover-tasks/{id}/plan-revisions
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -1020,7 +1020,7 @@
 
 - 需求名称：割接备件集成
 - 数据对象：CutoverTask
-- 数据表：pms_cut_task、pms_int_sync_item
+- 数据表：cut_task、ast_asset_sync_item
 - API：/cutover-tasks
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：备件系统
@@ -1034,7 +1034,7 @@
 
 - 需求名称：割接风险项关联矩阵
 - 数据对象：CutoverTask、CutoverAssessment
-- 数据表：pms_cut_task、pms_cut_assessment
+- 数据表：cut_task、cut_assessment
 - API：/cutover-tasks、/cutover-tasks/{id}/assessment
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -1048,7 +1048,7 @@
 
 - 需求名称：割接调研项关联矩阵
 - 数据对象：CutoverTask、CutoverAssessment
-- 数据表：pms_cut_task、pms_cut_assessment
+- 数据表：cut_task、cut_assessment
 - API：/cutover-tasks、/cutover-tasks/{id}/assessment
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
@@ -1062,7 +1062,7 @@
 
 - 需求名称：巡检任务管理
 - 数据对象：InspectionTask、CollectionTask
-- 数据表：pms_ins_task、pms_ins_task_rule_snapshot、pms_dac_collection_task
+- 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
 - 事件：InspectionDispatched、InspectionCompleted、CollectionResultConsumed
 - 外部集成：现有采集平台子应用
@@ -1076,7 +1076,7 @@
 
 - 需求名称：双巡检方式选择与执行
 - 数据对象：InspectionTask、CollectionTask
-- 数据表：pms_ins_task、pms_ins_task_rule_snapshot、pms_dac_collection_task
+- 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
 - 事件：InspectionDispatched、InspectionCompleted、CollectionResultConsumed
 - 外部集成：现有采集平台子应用
@@ -1090,7 +1090,7 @@
 
 - 需求名称：巡检规则管理
 - 数据对象：InspectionRule
-- 数据表：pms_ins_rule、pms_ins_rule_revision
+- 数据表：srv_inspection_rule、srv_inspection_rule_revision
 - API：/inspection-rules、/{id}/revisions
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -1104,7 +1104,7 @@
 
 - 需求名称：巡检连通性预检
 - 数据对象：InspectionTask、CollectionTask
-- 数据表：pms_ins_task、pms_ins_task_rule_snapshot、pms_dac_collection_task
+- 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
 - 事件：InspectionDispatched、InspectionCompleted、CollectionResultConsumed
 - 外部集成：现有采集平台子应用
@@ -1118,7 +1118,7 @@
 
 - 需求名称：巡检报告生成
 - 数据对象：InspectionReport
-- 数据表：pms_ins_report_revision
+- 数据表：srv_inspection_report_revision
 - API：/inspection-reports/{id}/versions
 - 事件：InspectionCompleted
 - 外部集成：UMC
@@ -1132,7 +1132,7 @@
 
 - 需求名称：巡检问题标注
 - 数据对象：ServiceIssue
-- 数据表：pms_ins_service_issue、pms_ins_remediation
+- 数据表：srv_service_issue、srv_service_issue_remediation
 - API：/service-issues
 - 事件：InspectionIssueRaised/Closed
 - 外部集成：N/A（平台内部契约）
@@ -1146,7 +1146,7 @@
 
 - 需求名称：巡检闭环归档
 - 数据对象：InspectionTask、CollectionTask
-- 数据表：pms_ins_task、pms_ins_task_rule_snapshot、pms_dac_collection_task
+- 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
 - 事件：InspectionDispatched、InspectionCompleted、CollectionResultConsumed
 - 外部集成：现有采集平台子应用
@@ -1160,7 +1160,7 @@
 
 - 需求名称：误报反馈机制
 - 数据对象：ServiceIssue
-- 数据表：pms_ins_service_issue、pms_ins_remediation
+- 数据表：srv_service_issue、srv_service_issue_remediation
 - API：/service-issues
 - 事件：InspectionIssueRaised/Closed
 - 外部集成：N/A（平台内部契约）
@@ -1174,7 +1174,7 @@
 
 - 需求名称：巡检规则配置字段
 - 数据对象：InspectionRule
-- 数据表：pms_ins_rule、pms_ins_rule_revision
+- 数据表：srv_inspection_rule、srv_inspection_rule_revision
 - API：/inspection-rules、/{id}/revisions
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -1188,7 +1188,7 @@
 
 - 需求名称：CRM/ERP项目同步
 - 数据对象：Project、Contract、SalesOrder
-- 数据表：pms_int_sync_batch、pms_int_sync_item、pms_com_contract、pms_com_sales_order
+- 数据表：ast_asset_sync_batch、ast_asset_sync_item、com_contract、com_sales_order
 - API：/projects、/contracts、/sales-orders
 - 事件：MasterDataSynchronized
 - 外部集成：CRM、ERP
@@ -1202,7 +1202,7 @@
 
 - 需求名称：ITR版本同步
 - 数据对象：AssetSyncSnapshot
-- 数据表：pms_int_sync_batch、pms_int_sync_item、pms_equipment
+- 数据表：ast_asset_sync_batch、ast_asset_sync_item、ast_device
 - API：/devices
 - 事件：MasterDataSynchronized
 - 外部集成：ITR
@@ -1216,7 +1216,7 @@
 
 - 需求名称：钉钉/HR/OA集成
 - 数据对象：WorkOrder、Todo
-- 数据表：pms_wo_work_order、pms_plt_todo、pms_int_sync_item
+- 数据表：srv_work_order、plt_todo、ast_asset_sync_item
 - API：/work-orders、/todos
 - 事件：WorkOrderSynchronized、TodoRequested、TodoCompleted
 - 外部集成：钉钉、HR、OA
@@ -1230,7 +1230,7 @@
 
 - 需求名称：LDAP/AD集成
 - 数据对象：AuthorizationGrant
-- 数据表：pms_plt_authorization_grant、pms_int_sync_item
+- 数据表：plt_authorization_grant、ast_asset_sync_item
 - API：/authorization-grants
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：LDAP/AD
@@ -1244,7 +1244,7 @@
 
 - 需求名称：设备连接与采集平台集成
 - 数据对象：DeviceCredential、CredentialGrant、CollectionTask、CollectionResultReference
-- 数据表：pms_dac_device_credential、pms_dac_credential_grant、pms_dac_collection_task、pms_dac_result_consumption
+- 数据表：plt_device_credential、plt_credential_grant、plt_collection_task、plt_collection_result_consumption
 - API：/device-credentials、/collection-tasks、/internal/collection-tasks/{id}/actions/confirm-consumption
 - 事件：CollectionTaskRequested、CollectionResultAvailable、CollectionResultConsumed、CollectionCompleted
 - 外部集成：现有采集平台子应用
@@ -1258,7 +1258,7 @@
 
 - 需求名称：CRM客户同步
 - 数据对象：Customer、CustomerRelationshipSnapshot
-- 数据表：pms_cus_customer、pms_int_sync_batch、pms_int_sync_item
+- 数据表：cus_customer、ast_asset_sync_batch、ast_asset_sync_item
 - API：/customers
 - 事件：MasterDataSynchronized、CustomerMerged
 - 外部集成：CRM
@@ -1272,7 +1272,7 @@
 
 - 需求名称：ITR技术公告同步
 - 数据对象：TechnicalNoticeReference
-- 数据表：pms_kno_technical_notice、pms_kno_notice_business_reference
+- 数据表：kno_technical_notice、kno_notice_business_reference
 - API：/technical-notices、/technical-notices/{id}/references
 - 事件：TechnicalNoticeSynchronized
 - 外部集成：ITR
@@ -1286,7 +1286,7 @@
 
 - 需求名称：备件/授权/UMC集成
 - 数据对象：RMAReplacement、AuthorizationGrant、InspectionReport
-- 数据表：pms_ast_rma_replacement、pms_plt_authorization_grant、pms_ins_report_revision
+- 数据表：ast_rma_replacement、plt_authorization_grant、srv_inspection_report_revision
 - API：/rma-replacements、/authorization-grants、/inspection-reports/{id}/versions
 - 事件：MasterDataSynchronized
 - 外部集成：备件系统、授权系统、UMC
@@ -1300,7 +1300,7 @@
 
 - 需求名称：财务集成
 - 数据对象：PaymentGate
-- 数据表：pms_res_payment_gate、pms_int_reconciliation
+- 数据表：res_payment_gate、plt_integration_reconciliation
 - API：/payment-gates
 - 事件：PaymentGateChanged
 - 外部集成：财务系统
@@ -1314,7 +1314,7 @@
 
 - 需求名称：短信/邮件平台集成
 - 数据对象：Todo
-- 数据表：pms_plt_todo、pms_int_sync_item
+- 数据表：plt_todo、ast_asset_sync_item
 - API：/todos
 - 事件：NotificationRequested、NotificationDelivered/Failed
 - 外部集成：短信/邮件、钉钉
@@ -1328,7 +1328,7 @@
 
 - 需求名称：平台性能、安全与兼容基线
 - 数据对象：AuditRecord、MetricSnapshot
-- 数据表：pms_plt_operation_audit、pms_ana_metric_snapshot
+- 数据表：plt_operation_audit、ana_metric_snapshot
 - API：/analytics/metrics
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -1342,7 +1342,7 @@
 
 - 需求名称：设备凭证及巡检非功能需求
 - 数据对象：DeviceCredential、CredentialGrant、CollectionTask、CollectionResultReference
-- 数据表：pms_dac_device_credential、pms_dac_credential_grant、pms_dac_collection_task、pms_dac_result_consumption
+- 数据表：plt_device_credential、plt_credential_grant、plt_collection_task、plt_collection_result_consumption
 - API：/device-credentials、/collection-tasks、/internal/collection-tasks/{id}/actions/confirm-consumption
 - 事件：CollectionTaskRequested、CollectionResultAvailable、CollectionResultConsumed、CollectionCompleted
 - 外部集成：现有采集平台子应用
@@ -1356,7 +1356,7 @@
 
 - 需求名称：割接/巡检推送节点
 - 数据对象：Todo
-- 数据表：pms_plt_todo、pms_int_sync_item
+- 数据表：plt_todo、ast_asset_sync_item
 - API：/todos
 - 事件：NotificationRequested、NotificationDelivered/Failed
 - 外部集成：短信/邮件、钉钉
@@ -1370,7 +1370,7 @@
 
 - 需求名称：授权申请管理
 - 数据对象：AuthorizationGrant
-- 数据表：pms_plt_authorization_grant
+- 数据表：plt_authorization_grant
 - API：/authorization-grants
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：OA、授权系统
@@ -1384,7 +1384,7 @@
 
 - 需求名称：授权信息查询
 - 数据对象：AuthorizationGrant
-- 数据表：pms_plt_authorization_grant
+- 数据表：plt_authorization_grant
 - API：/authorization-grants
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：OA、授权系统
@@ -1398,7 +1398,7 @@
 
 - 需求名称：项目变更申请电子流
 - 数据对象：ChangeRequest
-- 数据表：pms_plt_change_request
+- 数据表：plt_change_request
 - API：/change-requests
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -1412,7 +1412,7 @@
 
 - 需求名称：统一待办接入与状态一致性
 - 数据对象：Todo
-- 数据表：pms_plt_todo
+- 数据表：plt_todo
 - API：/todos、/{id}/actions/complete
 - 事件：TodoRequested、TodoCompleted
 - 外部集成：N/A（平台内部契约）
@@ -1426,7 +1426,7 @@
 
 - 需求名称：统一文件身份与版本管理
 - 数据对象：FileArtifact
-- 数据表：pms_plt_file_artifact、pms_plt_file_version、pms_plt_file_reference
+- 数据表：plt_file_artifact、plt_file_version、plt_file_reference
 - API：/files:init-upload、/files/{id}:complete-upload、/file-references
 - 事件：FileVersionCommitted、FileReferenceAttached/Detached、FileArchived
 - 外部集成：N/A（平台内部契约）
@@ -1440,7 +1440,7 @@
 
 - 需求名称：项目组合管理
 - 数据对象：ProjectPortfolio
-- 数据表：pms_project_portfolio、pms_project_portfolio_member、pms_project_portfolio_revision
+- 数据表：proj_project_portfolio、proj_project_portfolio_member、proj_project_portfolio_revision
 - API：/project-portfolios
 - 事件：ProjectPortfolioPublished
 - 外部集成：N/A（平台内部契约）
@@ -1454,7 +1454,7 @@
 
 - 需求名称：项目组合经营看板
 - 数据对象：PortfolioView、MetricSnapshot
-- 数据表：pms_ana_portfolio_projection、pms_ana_metric_snapshot
+- 数据表：ana_portfolio_projection、ana_metric_snapshot
 - API：/analytics/portfolios/{id}、/analytics/metrics
 - 事件：MetricSnapshotPublished
 - 外部集成：N/A（平台内部契约）
@@ -1468,7 +1468,7 @@
 
 - 需求名称：合同订单关联与范围分配
 - 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope
-- 数据表：pms_com_contract、pms_com_sales_order、pms_com_order_line、pms_com_delivery_scope
+- 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope
 - API：/contracts、/sales-orders、/order-lines、/delivery-scopes
 - 事件：DeliveryScopeAssigned/Released
 - 外部集成：ERP、CRM
@@ -1482,7 +1482,7 @@
 
 - 需求名称：合同订单履约回写与对账
 - 数据对象：FulfillmentSnapshot、ReconciliationRecord
-- 数据表：pms_com_fulfillment_snapshot、pms_com_reconciliation_record
+- 数据表：com_fulfillment_snapshot、com_reconciliation_record
 - API：/fulfillment-reconciliations
 - 事件：FulfillmentSnapshotPublished
 - 外部集成：CRM
@@ -1496,7 +1496,7 @@
 
 - 需求名称：准备数据动态表单
 - 数据对象：DynamicFormSchema、DynamicFormInstance
-- 数据表：pms_sol_form_schema、pms_sol_form_schema_revision、pms_sol_form_instance
+- 数据表：sol_dynamic_form_schema、sol_dynamic_form_schema_revision、sol_dynamic_form_instance
 - API：/form-schemas、/form-instances
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -1510,7 +1510,7 @@
 
 - 需求名称：阶段质量检查表
 - 数据对象：ImplementationQualityCheck
-- 数据表：pms_imp_quality_check、pms_imp_quality_item、pms_imp_quality_remediation、pms_imp_quality_review
+- 数据表：imp_quality_check、imp_quality_item、imp_quality_remediation、imp_quality_review
 - API：/quality-checks
 - 事件：QualitySafetyGateChanged
 - 外部集成：N/A（平台内部契约）
@@ -1524,7 +1524,7 @@
 
 - 需求名称：现场工作安全检查
 - 数据对象：ImplementationSafetyCheck
-- 数据表：pms_imp_safety_check、pms_imp_safety_item、pms_imp_safety_remediation、pms_imp_safety_exemption
+- 数据表：imp_safety_check、imp_safety_item、imp_safety_remediation、imp_safety_exemption
 - API：/safety-checks
 - 事件：QualitySafetyGateChanged
 - 外部集成：N/A（平台内部契约）
@@ -1538,7 +1538,7 @@
 
 - 需求名称：服务商档案与资质权限
 - 数据对象：Supplier
-- 数据表：pms_res_supplier、pms_res_qualification
+- 数据表：res_supplier、res_qualification
 - API：/suppliers
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：OA
@@ -1552,7 +1552,7 @@
 
 - 需求名称：遗留问题转持续服务跟踪
 - 数据对象：ServiceHandover、ProjectClosure
-- 数据表：pms_acc_service_handover、pms_acc_handover_item、pms_acc_handover_result
+- 数据表：acc_service_handover、acc_handover_item、acc_handover_result
 - API：/service-handovers
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -1566,7 +1566,7 @@
 
 - 需求名称：项目闭环与持续服务交接
 - 数据对象：ServiceHandover、ProjectClosure
-- 数据表：pms_acc_service_handover、pms_acc_handover_item、pms_acc_handover_result
+- 数据表：acc_service_handover、acc_handover_item、acc_handover_result
 - API：/service-handovers
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
@@ -1580,7 +1580,7 @@
 
 - 需求名称：设备服务状态与停产停维提示
 - 数据对象：MaintenanceFact、ServiceStatus
-- 数据表：pms_ast_maintenance_fact、pms_srv_service_status
+- 数据表：ast_maintenance_fact、srv_service_status
 - API：/devices/{deviceId}/service-status
 - 事件：ServiceStatusChanged
 - 外部集成：CRM
@@ -1594,7 +1594,7 @@
 
 - 需求名称：RMA替换与维保信息衔接
 - 数据对象：RMAReplacement、MaintenanceFact
-- 数据表：pms_ast_rma_replacement、pms_ast_maintenance_fact
+- 数据表：ast_rma_replacement、ast_maintenance_fact
 - API：/rma-replacements、/devices/{deviceId}/service-status
 - 事件：DeviceStatusSynchronized
 - 外部集成：备件系统
@@ -1608,7 +1608,7 @@
 
 - 需求名称：设备维保客观状态计算
 - 数据对象：MaintenanceFact、ServiceStatus
-- 数据表：pms_ast_maintenance_fact、pms_srv_service_status
+- 数据表：ast_maintenance_fact、srv_service_status
 - API：/devices/{deviceId}/service-status
 - 事件：ServiceStatusChanged
 - 外部集成：CRM

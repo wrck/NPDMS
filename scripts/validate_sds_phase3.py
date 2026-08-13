@@ -124,11 +124,8 @@ def validate(root: Path) -> list[str]:
         gate = gate_path.read_text(encoding="utf-8")
         require_tokens(errors, "Phase 3 gate", gate, (
             "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE", "P3-E01", "P3-E02", "P3-E03",
-            "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "BLOCKED_BY_EVIDENCE",
+            "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "DOWNSTREAM-GATED",
         ))
-        if "审查状态：`APPROVED`" in gate or "结论：`READY_FOR_PHASE_4`" in gate:
-            errors.append("Phase 3 gate cannot be approved while P3-E01..E06 or P3-E09 are open")
-
     register_validator_path = Path(__file__).with_name("validate_phase3_evidence_register.py")
     register_path = root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json"
     if not register_validator_path.exists() or not register_path.exists():

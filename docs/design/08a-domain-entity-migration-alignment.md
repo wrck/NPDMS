@@ -43,11 +43,11 @@
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
-| `Project` | 旧`pm_project`；当前`pms_project` | STRUCTURED+CURRENT_FORWARD | 迁编码、名称、客户、行业、实施方式、级别、生命周期时间和来源；空名称进入待补问题 |
+| `Project` | 旧`pm_project`；当前`proj_project` | STRUCTURED+CURRENT_FORWARD | 迁编码、名称、客户、行业、实施方式、级别、生命周期时间和来源；空名称进入待补问题 |
 | `ProjectHierarchy` | 当前`pms_project.parent_id/root_id/path/depth`；旧库无等价正式树 | CURRENT_FORWARD | 旧项目默认根节点；旧项目组、名称、地区、编码不推断父子 |
 | `ProjectAncestorProjection` | 当前路径字段/目标闭包投影 | REBUILD | 按迁移后邻接真值重建并记录treeVersion，不迁旧path为独立真值 |
 | `ProjectTemplate` | 当前`pms_project_template`；旧`fnd_basic_prjstate`仅状态配置 | CURRENT_FORWARD+PENDING_SOURCE_CONFIRMATION | 当前模板前向对齐；旧状态配置不得冒充项目模板 |
-| `ProjectTask` | 旧`pm_project_task`；当前`pms_project_task` | STRUCTURED+CURRENT_FORWARD | 迁任务、计划、责任和历史状态映射；父子与依赖分离 |
+| `ProjectTask` | 旧`pm_project_task`；当前`proj_project_task` | STRUCTURED+CURRENT_FORWARD | 迁任务、计划、责任和历史状态映射；父子与依赖分离 |
 | `TaskAncestorProjection` | 当前任务path；目标闭包投影 | REBUILD | 按任务邻接关系重建，不固定深度 |
 | `TaskDependency` | 当前`pms_project_task_dependency`；旧结构证据不足 | CURRENT_FORWARD | 迁当前有效依赖；旧任务先不从前后日期推断依赖 |
 | `ProjectMemberAssignment` | 旧`pm_project_member`；当前项目团队/成员表 | STRUCTURED+RELATION+CURRENT_FORWARD | 解析用户、角色、有效期；旧审计与当前成员分离，同用户多角色不丢失 |
@@ -87,9 +87,9 @@
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
-| `Acceptance` | 当前`pms_acc_acceptance` | CURRENT_FORWARD+STRUCTURED | 按验收范围、版本、结论和确认迁移；原实施证据仅引用 |
+| `Acceptance` | 当前`acc_acceptance` | CURRENT_FORWARD+STRUCTURED | 按验收范围、版本、结论和确认迁移；原实施证据仅引用 |
 | `DeliveryArtifact` | 当前交付清单/归档/完工证明、旧基础交付模板和转包交付件 | CURRENT_FORWARD+RELATION | 文件身份、清单项、审核与归档分离；不能只迁URL而丢业务类型/版本 |
-| `ProjectClosure` | 当前`pms_acc_project_closure` | CURRENT_FORWARD | 迁已有申请/结论/时间；无法重建原门禁输入时标记历史快照不完整 |
+| `ProjectClosure` | 当前`acc_project_closure` | CURRENT_FORWARD | 迁已有申请/结论/时间；无法重建原门禁输入时标记历史快照不完整 |
 | `ClosureGateSnapshot` | 当前闭环/交付清单/问题事实 | REBUILD+SNAPSHOT | 当前状态按新事实重建；历史只冻结可证明输入，不补造通过项 |
 | `ServiceHandover` | 当前`pms_acc_maintenance_transition`中的可证明交接事实 | CURRENT_FORWARD+COMPATIBILITY_ONLY | 只迁遗留问题/持续服务交接；续保年限、续保动作和续保状态不进入新写模型 |
 
@@ -97,7 +97,7 @@
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
-| `CutoverTask` | 当前`pms_cut_task` | CURRENT_FORWARD | 迁任务身份、等级、项目/设备和当前状态映射 |
+| `CutoverTask` | 当前`cut_task` | CURRENT_FORWARD | 迁任务身份、等级、项目/设备和当前状态映射 |
 | `CutoverAssessment` | 当前`pms_cut_risk`及评估信息 | CURRENT_FORWARD | 风险项和评估结论版本化；技术公告只引用 |
 | `CutoverPlan` | 当前`pms_cut_plan` | CURRENT_FORWARD | 迁计划revision/步骤/审批引用；执行冻结已批准版本 |
 | `CutoverExecution` | 当前`pms_cut_execution/observation` | CURRENT_FORWARD | 逐步骤保存动作类型、方向、有符号值、结果和证据；不引入通用割接时效 |
@@ -116,7 +116,7 @@
 | `Customer` | 数据元`pm_account`候选、项目/CRM冗余、当前`pms_customer` | EXTERNAL_SYNC+CURRENT_FORWARD | CRM权威字段按sourceKey同步；临时客户显式来源，禁止只按名称合并 |
 | `CustomerContact` | 数据元`pm_account_contact`、项目/CRM联系人、当前联系人表 | EXTERNAL_SYNC+CURRENT_FORWARD | 迁姓名/部门/职位/电话/邮箱/地址及来源键；主联系人是时态关系 |
 | `CustomerRelationshipSnapshot` | 迁移后的客户/联系人/项目关系 | REBUILD+SNAPSHOT | 按业务发生时生成，不把当前主档反写历史 |
-| `Device` | `fb_shipment_barcode`主SN/物料、MES/ITR、当前`pms_equipment` | STRUCTURED+EXTERNAL_SYNC+CURRENT_FORWARD | SN主档去重但源行不删除；权威字段保留来源版本 |
+| `Device` | `fb_shipment_barcode`主SN/物料、MES/ITR、当前`ast_device` | STRUCTURED+EXTERNAL_SYNC+CURRENT_FORWARD | SN主档去重但源行不删除；权威字段保留来源版本 |
 | `DeviceArchive` | 当前设备版本/配置Log、旧软件版本/安装地址/配置数据元 | CURRENT_FORWARD+STRUCTURED | 版本、配置、位置按历史/来源分表；JSON不替代高频查询字段 |
 | `DeviceCurrentAssignment` | `pm_project_shipment`及当前设备项目关系 | RELATION+CURRENT_FORWARD | 仅完整事件链形成当前唯一归属；多义/区间冲突进入问题 |
 | `AssetSyncSnapshot` | MES/ITR同步批次和字段差异 | EXTERNAL_SYNC+SNAPSHOT | 保存水位、来源版本、校验摘要，不覆盖平台归属事实 |

@@ -20,6 +20,13 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         packets = GENERATOR.build_packets()
         self.assertEqual({"P3-E01", "P3-E02", "P3-E03", "P3-E04", "P3-E05", "P3-E06", "P3-E07", "P3-E09"}, set(packets))
         self.assertEqual("B", packets["P3-E07"]["confirmedFacts"]["directionDecision"])
+        self.assertEqual(GENERATOR.PERMANENT_AUDIT_POLICY, packets["P3-E05"]["confirmedFacts"]["retentionPolicy"])
+        self.assertEqual(GENERATOR.TRACE_SAMPLING_POLICY, packets["P3-E05"]["confirmedFacts"]["samplingPolicy"])
+        self.assertEqual(GENERATOR.BACKUP_RETENTION_POLICY, packets["P3-E03"]["confirmedFacts"]["retention"])
+        self.assertEqual(GENERATOR.RECOVERY_TOPOLOGY, packets["P3-E03"]["confirmedFacts"]["recoveryTopology"])
+        self.assertEqual(GENERATOR.EXPORT_AUTHORIZATION_POLICY, packets["P3-E05"]["confirmedFacts"]["exportAuthorizationPolicy"])
+        self.assertIn(GENERATOR.PERMANENT_AUDIT_REF, packets["P3-E05"]["evidenceRefs"])
+        self.assertIn(GENERATOR.TRACE_SAMPLING_REF, packets["P3-E05"]["evidenceRefs"])
         for identifier, packet in packets.items():
             self.assertEqual("DRAFT", packet["status"])
             self.assertEqual("ACCEPTED", packet["confirmedFacts"]["directionStatus"])

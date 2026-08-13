@@ -147,6 +147,53 @@ def load_catalog(path: Path) -> dict[str, Table]:
     return {name: Table(columns, set(), "UNAVAILABLE_IN_TARGET_FIELD_CATALOG") for name, columns in tables.items()}
 
 
+def load_catalog_bytes(data: bytes) -> dict[str, Table]:
+    tables: dict[str, dict[str, dict[str, object]]] = {}
+    for line in data.decode("utf-8-sig").splitlines():
+        if not line.strip():
+            continue
+        item = json.loads(line)
+        table = tables.setdefault(item["tableName"], {})
+        table[item["columnName"]] = {
+            "dataType": item["dataType"].upper(),
+            "nullable": item["nullable"],
+            "defaultValue": item.get("defaultValue"),
+            "generated": item.get("generated", False),
+            "description": item.get("description"),
+        }
+    return {name: Table(columns, set(), "UNAVAILABLE_IN_TARGET_FIELD_CATALOG") for name, columns in tables.items()}
+
+
+def locate_catalog_baseline(repo: Path, catalog: Path, expected_ddl_hash: str) -> tuple[str, dict[str, Table]]:
+    relative_catalog = catalog.relative_to(repo).as_posix()
+    relative_summary = catalog.with_name("target-field-catalog-summary.json").relative_to(repo).as_posix()
+    commits = subprocess.run(
+        ["git", "log", "--all", "--format=%H", "--", relative_summary],
+        cwd=repo, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE,
+    ).stdout.splitlines()
+    for commit in commits:
+        try:
+            summary = json.loads(git_blob(repo, commit, relative_summary))
+        except (subprocess.CalledProcessError, json.JSONDecodeError):
+            continue
+        if summary.get("ddlSha256", "").upper() == expected_ddl_hash.upper():
+            return commit, load_catalog_bytes(git_blob(repo, commit, relative_catalog))
+    raise ValueError(f"cannot locate historical target field catalog for DDL hash {expected_ddl_hash}")
+
+
+def normalize_baseline_names(tables: dict[str, Table], contract: dict[str, object]) -> dict[str, Table]:
+    table_map = {item["source"]: item["target"] for item in contract["tables"]}
+    field_map: dict[str, dict[str, str]] = {}
+    for item in contract["fields"]:
+        field_map.setdefault(item["sourceTable"], {})[item["sourceColumn"]] = item["targetColumn"]
+    result: dict[str, Table] = {}
+    for source_table, table in tables.items():
+        target_table = table_map.get(source_table, source_table)
+        columns = {field_map.get(source_table, {}).get(column, column): value for column, value in table.columns.items()}
+        result[target_table] = Table(columns, table.constraints, table.options)
+    return result
+
+
 def named_constraints(constraints: set[str]) -> dict[str, str]:
     result: dict[str, str] = {}
     for value in constraints:
@@ -300,7 +347,29 @@ def ddl_item_decision_register(
     }
 
 
-def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path) -> dict[str, object]:
+def apply_accepted_naming_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
+    """Record requirement-owner naming decisions without fabricating reviewer approval."""
+    table_ids = {f"TABLE:{item['target']}" for item in contract["tables"]}
+    column_ids = {f"COLUMN:{item['targetTable']}:{item['targetColumn']}" for item in contract["fields"]}
+    decided = table_ids | column_ids
+    for item in register["items"]:
+        if item["itemId"] in decided:
+            item["decision"] = "AMEND_CURRENT"
+            item["decisionOwner"] = "REQUIREMENT_OWNER"
+            item["reviewOwner"] = None
+            item["evidenceRefs"] = ["docs/decisions/0019-domain-coded-database-naming.md"]
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["namingDecision"] = {
+        "decisionRef": "ADR-0019",
+        "decidedItemCount": len(decided),
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
+def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path, naming_contract: Path | None = None) -> dict[str, object]:
     relative_path = ddl.relative_to(repo).as_posix()
     current_data = ddl.read_bytes()
     located = locate_baseline(repo, relative_path, baseline_hash)
@@ -313,7 +382,10 @@ def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path) -> di
         options_comparable = True
     else:
         baseline_commit = None
-        old_tables = load_catalog(catalog)
+        baseline_catalog_commit, old_tables = locate_catalog_baseline(repo, catalog, baseline_hash)
+        if naming_contract is not None:
+            contract = json.loads(naming_contract.read_text(encoding="utf-8"))
+            old_tables = normalize_baseline_names(old_tables, contract)
         baseline_source = "TARGET_FIELD_CATALOG"
         constraints_comparable = False
         options_comparable = False
@@ -328,9 +400,11 @@ def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path) -> di
             "ddlPath": relative_path,
             "baselineSource": baseline_source,
             "baselineCommit": baseline_commit,
+            "baselineCatalogCommit": baseline_catalog_commit if baseline_source == "TARGET_FIELD_CATALOG" else None,
             "baselineDdlSha256": baseline_hash.upper(),
             "baselineCatalogPath": catalog.relative_to(repo).as_posix() if baseline_source == "TARGET_FIELD_CATALOG" else None,
             "currentDdlSha256": sha256(current_data),
+            "baselineNameNormalization": "ADR-0019" if naming_contract is not None else None,
         },
         "summary": {
             "baselineTableCount": len(old_tables),
@@ -362,6 +436,7 @@ def main() -> int:
     parser.add_argument("--ddl", type=Path, default=Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql"))
     parser.add_argument("--baseline-sha256", default="2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33")
     parser.add_argument("--catalog", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl"))
+    parser.add_argument("--naming-contract", type=Path, default=Path("docs/traceability/database-naming-contract.json"))
     parser.add_argument("--output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json"))
     parser.add_argument("--constraint-inventory-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json"))
     parser.add_argument("--decision-register-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"))
@@ -372,7 +447,8 @@ def main() -> int:
     constraint_output = args.constraint_inventory_output if args.constraint_inventory_output.is_absolute() else repo / args.constraint_inventory_output
     decision_output = args.decision_register_output if args.decision_register_output.is_absolute() else repo / args.decision_register_output
     catalog = args.catalog if args.catalog.is_absolute() else repo / args.catalog
-    report = build_report(repo, ddl, args.baseline_sha256, catalog)
+    naming_contract = args.naming_contract if args.naming_contract.is_absolute() else repo / args.naming_contract
+    report = build_report(repo, ddl, args.baseline_sha256, catalog, naming_contract)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     inventory = current_constraint_inventory(report["inputs"]["currentDdlSha256"], parse_ddl(ddl.read_bytes()))
     constraint_output.write_text(json.dumps(inventory, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -380,12 +456,16 @@ def main() -> int:
     if report["inputs"]["baselineSource"] == "GIT_DDL":
         baseline_tables = parse_ddl(git_blob(repo, report["inputs"]["baselineCommit"], report["inputs"]["ddlPath"]))
     else:
-        baseline_tables = load_catalog(catalog)
+        _commit, baseline_tables = locate_catalog_baseline(repo, catalog, report["inputs"]["baselineDdlSha256"])
+        baseline_tables = normalize_baseline_names(baseline_tables, json.loads(naming_contract.read_text(encoding="utf-8")))
     decision_register = ddl_item_decision_register(
         report["inputs"]["baselineDdlSha256"], report["inputs"]["currentDdlSha256"],
         baseline_tables, current_tables,
         constraints_comparable=report["summary"]["constraintsComparable"],
         options_comparable=report["summary"]["tableOptionsComparable"],
+    )
+    decision_register = apply_accepted_naming_decisions(
+        decision_register, json.loads(naming_contract.read_text(encoding="utf-8"))
     )
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))

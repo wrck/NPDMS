@@ -116,15 +116,18 @@ Gate：
 - 发布、迁移、回退可执行
 - 安全与审计不存在明显缺口
 - 测试覆盖正常/异常/权限拒绝/幂等/并发
-- P3-E01～E06、P3-E09均由生产Owner提交证据并经独立复核达到`VERIFIED`
-- `phase3-evidence-register.json.overallStatus = READY_FOR_SDS_BASELINE`
+- P3-E01～E09均已定义证据契约、Owner、验收标准和最晚安全门禁，不把部署实例或运行结果前置为SDS阻断
+- `phase3-evidence-register.json.overallStatus = READY_FOR_SDS_BASELINE`表示证据契约不再阻断逻辑设计，不表示可生产发布
 
 约束：
 
 - ADR确认的架构方向不等于生产事实通过；不得据此将`OPEN`直接改为`VERIFIED`。
-- P3-E07按Feature阻塞真实联调和上线，P3-E08在任何前端Feature验收或发布前必须关闭。
+- 阻断必须落在最晚且仍能避免风险的阶段：设计缺口阻断SDS，契约缺口阻断Feature Ready，环境实例缺口阻断部署，运行验证缺口阻断验收/发布，迁移证据缺口只阻断历史迁移与切换。
+- 门禁位置同时考虑返工收益：会改变领域边界、数据模型、API、权限、状态机、基础技术契约，且提前确认能显著减少返工的事项，应前置到SDS或Feature Ready；只填写既定契约下的厂商实例、环境参数、容量、Owner和运行报告，不得无收益地前置。
+- 判断顺序：先判断“不确定项是否会改变设计”，再判断“提前确认是否显著降低返工”，最后选择“仍可避免不可逆风险的最晚阶段”。不得仅因未来发布必需就默认阻断当前阶段。
+- P3-E01～E06属于部署、专项验收或生产发布门禁；P3-E07按Feature阻塞真实联调和上线；P3-E08阻塞前端Feature验收或发布。P3-E09中的表、字段和约束漂移会改变数据模型，前置阻断SDS数据模型基线；通过后仍继续约束历史迁移实施与切换。
 - Owner提交必须从`docs/engineering/gates/phase-3/evidence-packet-templates/`复制到版本化`submissions/`，通过机器校验并保留独立复核记录。
-- 未满足上述Gate时，SDS Phase 3保持`IN_REVIEW`，不得生成SDS总册或进入Feature Spec。
+- 证据契约、逻辑控制或验收规则缺失时，SDS Phase 3保持`IN_REVIEW`。仅实际设施名称、环境参数或运行报告尚未产生时，不阻断SDS总册及无关Feature Spec，但对应下游门禁保持`OPEN`。
 
 ## 4. SDS 完成后的研发循环
 

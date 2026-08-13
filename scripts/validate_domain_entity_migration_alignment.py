@@ -189,6 +189,10 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
         if not target_tables or len(target_tables) != len(set(target_tables)):
             errors.append(f"{object_name} targetTables must be non-empty and unique")
         for table in target_tables:
+            if table.startswith("pms_"):
+                errors.append(f"{object_name} target table retains legacy system prefix: {table}")
+            if owner and not table.startswith(owner.lower() + "_"):
+                errors.append(f"{object_name} target table owner prefix mismatch: {table} owner={owner}")
             if f"`{table}`" not in database_design:
                 errors.append(f"{object_name} target table not declared by 09 database design: {table}")
         sources = record.get("sources", [])
@@ -258,8 +262,8 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
         errors.append("DDL drift review current hash does not match the current DDL")
     p3e09 = next((item for item in gate.get("items", []) if item.get("id") == "P3-E09"), None)
     drift_unapproved = ddl_review["decisionPolicy"].get("current") == "DEFER" or not ddl_review["decisionPolicy"].get("approvedDdlSha256")
-    if drift_unapproved and (not p3e09 or p3e09.get("status") != "OPEN" or gate.get("overallStatus") == "READY_FOR_SDS_BASELINE"):
-        errors.append("unapproved DDL drift must keep P3-E09 OPEN and Phase 3 not ready")
+    if drift_unapproved and (not p3e09 or p3e09.get("status") != "OPEN"):
+        errors.append("unapproved DDL drift must keep P3-E09 OPEN and historical migration/data cutover blocked")
     if p3e09 and p3e09.get("confirmedFacts", {}).get("currentDdlSha256") not in {None, actual_ddl_sha}:
         errors.append("P3-E09 current DDL hash conflicts with the drift review")
     return errors

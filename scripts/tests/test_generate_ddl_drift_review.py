@@ -61,6 +61,27 @@ class DdlDriftReviewTest(unittest.TestCase):
         self.assertEqual("UNVERIFIED_BASELINE_MISSING", constraint["comparisonStatus"])
         self.assertIsNone(register["approval"]["approvedDdlSha256"])
 
+    def test_accepted_naming_decisions_do_not_fabricate_review_approval(self) -> None:
+        baseline = MODULE.parse_ddl(b"CREATE TABLE old_table (old_name BIGINT NOT NULL) ENGINE = InnoDB;")
+        current = MODULE.parse_ddl(b"CREATE TABLE new_table (new_name BIGINT NOT NULL) ENGINE = InnoDB;")
+        register = MODULE.ddl_item_decision_register(
+            "BASELINE", "CURRENT", MODULE.normalize_baseline_names(baseline, {
+                "tables": [{"source": "old_table", "target": "new_table"}],
+                "fields": [{"sourceTable": "old_table", "sourceColumn": "old_name", "targetTable": "new_table", "targetColumn": "new_name"}],
+            }), current, constraints_comparable=False, options_comparable=False,
+        )
+        decided = MODULE.apply_accepted_naming_decisions(register, {
+            "tables": [{"source": "old_table", "target": "new_table"}],
+            "fields": [{"sourceTable": "old_table", "sourceColumn": "old_name", "targetTable": "new_table", "targetColumn": "new_name"}],
+        })
+        table = next(item for item in decided["items"] if item["itemType"] == "TABLE")
+        column = next(item for item in decided["items"] if item["itemType"] == "COLUMN")
+        self.assertEqual("AMEND_CURRENT", table["decision"])
+        self.assertEqual("AMEND_CURRENT", column["decision"])
+        self.assertIsNone(table["reviewOwner"])
+        self.assertEqual(0, decided["summary"]["approvedCount"])
+        self.assertIsNone(decided["approval"]["approvedDdlSha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

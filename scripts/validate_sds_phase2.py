@@ -124,7 +124,7 @@ def validate(root: Path) -> list[str]:
         if any(marker in contract.get("工作流/状态", "") for marker in ("通用流程", "按需处理", "同领域")):
             errors.append(f"{identifier} has generic workflow placeholder")
 
-        for table in re.findall(r"\bpms_[a-z0-9_]+\b", contract.get("数据表", "")):
+        for table in re.findall(r"\b(?:proj|sol|imp|acc|cut|srv|cus|ast|com|res|ana|plt|kno)_[a-z0-9_]+\b", contract.get("数据表", "")):
             if table not in database_design:
                 errors.append(f"{identifier} references undefined table contract: {table}")
         for api in re.findall(r"/[A-Za-z0-9_{}:|./-]+", contract.get("API", "")):
@@ -145,9 +145,9 @@ def validate(root: Path) -> list[str]:
                 errors.append(f"{identifier} references undefined data object: {data_object.strip()}")
 
     for identifier, required_tokens in {
-        "PM-05": ("BorrowedProjectConversion", "pms_project_conversion_item", "/project-conversions/{id}/actions/retry-failed"),
-        "PM-06": ("MultiPhaseProjectGroup", "pms_project_phase_member", "/project-phase-groups/{id}/actions/derive-content"),
-        "INT-12": ("CollectionTask", "pms_dac_result_consumption", "/internal/collection-tasks/{id}/actions/confirm-consumption"),
+        "PM-05": ("BorrowedProjectConversion", "proj_project_conversion_item", "/project-conversions/{id}/actions/retry-failed"),
+        "PM-06": ("MultiPhaseProjectGroup", "proj_multi_phase_project_member", "/project-phase-groups/{id}/actions/derive-content"),
+        "INT-12": ("CollectionTask", "plt_collection_result_consumption", "/internal/collection-tasks/{id}/actions/confirm-consumption"),
     }.items():
         if identifier not in contracts:
             continue

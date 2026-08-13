@@ -10,7 +10,7 @@
 
 SET NAMES utf8mb4;
 
-CREATE TABLE pms_customer (
+CREATE TABLE cus_customer (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     customer_code VARCHAR(64) NOT NULL COMMENT '客户主档的客户编码',
@@ -33,7 +33,7 @@ CREATE TABLE pms_customer (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '客户主档';
 
-CREATE TABLE pms_customer_contact (
+CREATE TABLE cus_customer_contact (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     customer_id BIGINT NOT NULL COMMENT '关联客户记录的全局唯一ID',
@@ -60,13 +60,13 @@ CREATE TABLE pms_customer_contact (
     KEY idx_customer_contact (tenant_id, customer_id, status, is_primary),
     UNIQUE KEY uk_customer_primary_contact (tenant_id, primary_customer_id),
     CONSTRAINT fk_customer_contact_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id),
+        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_customer_contact_primary CHECK (is_primary IN (0, 1)),
     CONSTRAINT chk_customer_contact_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '客户联系人';
 
-CREATE TABLE pms_product (
+CREATE TABLE ast_product (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     product_code VARCHAR(64) NOT NULL COMMENT '产品主档的产品编码',
@@ -92,7 +92,7 @@ CREATE TABLE pms_product (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '产品主档，安服属性由产品配置判定';
 
-CREATE TABLE pms_project (
+CREATE TABLE proj_project (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_code VARCHAR(64) NOT NULL COMMENT '项目主档的项目编码',
@@ -153,14 +153,14 @@ CREATE TABLE pms_project (
     KEY idx_project_department_company (
         tenant_id, department_code, company_code, status, id
     ),
-    CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES pms_project (tenant_id, id),
-    CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id),
+    CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id),
+    CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_project_depth CHECK (tree_depth >= 0),
     CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目主档及非固定层级项目树';
 
-CREATE TABLE pms_project_relation (
+CREATE TABLE proj_project_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     source_project_id BIGINT NOT NULL COMMENT '关联来源项目记录的全局唯一ID',
@@ -184,16 +184,16 @@ CREATE TABLE pms_project_relation (
         tenant_id, target_project_id, relation_type
     ),
     CONSTRAINT fk_project_rel_source
-        FOREIGN KEY (tenant_id, source_project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_rel_target
-        FOREIGN KEY (tenant_id, target_project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_project_relation_self
         CHECK (source_project_id <> target_project_id),
     CONSTRAINT chk_project_relation_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '扩容、续采、改造等非树项目关系';
 
-CREATE TABLE pms_project_party (
+CREATE TABLE proj_project_party (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -201,7 +201,7 @@ CREATE TABLE pms_project_party (
     party_code VARCHAR(128) NULL COMMENT '项目参与方的参与方编码',
     party_name VARCHAR(1024) NULL COMMENT '项目参与方的参与方名称',
     contact_name VARCHAR(255) NULL COMMENT '项目参与方的联系人名称',
-    contact_phone VARCHAR(128) NULL COMMENT '项目参与方的联系人电话',
+    phone VARCHAR(128) NULL COMMENT '项目参与方的联系人电话',
     source_system VARCHAR(32) NOT NULL COMMENT '来源系统编码，用于同步幂等和数据血缘追踪',
     source_table VARCHAR(64) NOT NULL COMMENT '来源系统物理表名，仅用于迁移或同步血缘',
     source_record_key VARCHAR(128) NOT NULL COMMENT '来源记录稳定唯一键，用于幂等写入和回溯',
@@ -226,14 +226,14 @@ CREATE TABLE pms_project_party (
         tenant_id, party_role, party_code, status
     ),
     CONSTRAINT fk_project_party_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_project_party_dates
         CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_project_party_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目参与方，按合同客户、最终用户、代理商、服务商等角色保存';
 
-CREATE TABLE pms_project_company_department_rel (
+CREATE TABLE proj_project_company_department_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -276,7 +276,7 @@ CREATE TABLE pms_project_company_department_rel (
         tenant_id, primary_project_id, relation_role
     ),
     CONSTRAINT fk_project_company_department_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_project_company_department_primary CHECK (is_primary IN (0, 1)),
     CONSTRAINT chk_project_company_department_pair
         CHECK (department_id IS NULL OR department_code IS NOT NULL),
@@ -286,7 +286,7 @@ CREATE TABLE pms_project_company_department_rel (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目业务角色下的公司与部门组合关系，保留配对但不建立全局主数据从属关系';
 
-CREATE TABLE pms_project_member (
+CREATE TABLE proj_project_member_assignment (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -320,14 +320,14 @@ CREATE TABLE pms_project_member (
         tenant_id, company_code, department_code, status, project_id
     ),
     CONSTRAINT fk_project_member_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_project_member_dates
         CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_project_member_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目成员、角色及有效期';
 
-CREATE TABLE pms_business_document (
+CREATE TABLE plt_business_document (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     document_code VARCHAR(64) NOT NULL COMMENT '业务文档的文档编码',
@@ -348,7 +348,7 @@ CREATE TABLE pms_business_document (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '业务文档元数据';
 
-CREATE TABLE pms_document_version (
+CREATE TABLE plt_document_version (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     document_id BIGINT NOT NULL COMMENT '关联文档记录的全局唯一ID',
@@ -370,17 +370,17 @@ CREATE TABLE pms_document_version (
     UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id),
     KEY idx_document_file (tenant_id, file_id),
     CONSTRAINT fk_document_version_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id),
+        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_document_version_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '业务文档不可变版本';
 
-ALTER TABLE pms_business_document
+ALTER TABLE plt_business_document
     ADD CONSTRAINT fk_business_document_current_version
     FOREIGN KEY (tenant_id, id, current_version_id)
-    REFERENCES pms_document_version (tenant_id, document_id, id);
+    REFERENCES plt_document_version (tenant_id, document_id, id);
 
-CREATE TABLE pms_deliverable_template (
+CREATE TABLE acc_deliverable_template (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     template_code VARCHAR(64) NOT NULL COMMENT '交付件模板的模板编码',
@@ -399,13 +399,13 @@ CREATE TABLE pms_deliverable_template (
     UNIQUE KEY uk_deliverable_template_tenant_row (tenant_id, id),
     UNIQUE KEY uk_deliverable_template (tenant_id, template_code),
     CONSTRAINT fk_deliverable_template_document
-        FOREIGN KEY (tenant_id, template_document_id) REFERENCES pms_business_document (tenant_id, id),
+        FOREIGN KEY (tenant_id, template_document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_deliverable_template_required CHECK (required_flag IN (0, 1)),
     CONSTRAINT chk_deliverable_template_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '交付件类型和模板配置';
 
-CREATE TABLE pms_project_deliverable (
+CREATE TABLE acc_project_deliverable (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -413,7 +413,7 @@ CREATE TABLE pms_project_deliverable (
     deliverable_type VARCHAR(64) NOT NULL COMMENT '交付件类型编码，取值由对应业务字典约束',
     document_id BIGINT NULL COMMENT '关联文档记录的全局唯一ID',
     planned_due_date DATE NULL COMMENT '计划到期日期，空值表示来源未提供或事件未发生',
-    submitted_time DATETIME(3) NULL COMMENT '提交时间，采用系统统一时区，空值表示来源未提供或事件未发生',
+    submit_time DATETIME(3) NULL COMMENT '提交时间，采用系统统一时区，空值表示来源未提供或事件未发生',
     accepted_time DATETIME(3) NULL COMMENT '验收时间，采用系统统一时区，空值表示来源未提供或事件未发生',
     owner_id BIGINT NULL COMMENT '关联责任人记录的全局唯一ID',
     status VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '状态',
@@ -428,16 +428,16 @@ CREATE TABLE pms_project_deliverable (
     KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status),
     KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date),
     CONSTRAINT fk_project_deliverable_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_deliverable_template
-        FOREIGN KEY (tenant_id, template_id) REFERENCES pms_deliverable_template (tenant_id, id),
+        FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id),
     CONSTRAINT fk_project_deliverable_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id),
+        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_project_deliverable_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目交付件实例及完成状态';
 
-CREATE TABLE pms_portfolio (
+CREATE TABLE proj_project_portfolio (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     portfolio_code VARCHAR(64) NOT NULL COMMENT '项目组合的项目组合编码',
@@ -462,7 +462,7 @@ CREATE TABLE pms_portfolio (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目组合，不改变项目父子层级';
 
-CREATE TABLE pms_portfolio_project_rel (
+CREATE TABLE proj_project_portfolio_member (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     portfolio_id BIGINT NOT NULL COMMENT '关联项目组合记录的全局唯一ID',
@@ -482,14 +482,14 @@ CREATE TABLE pms_portfolio_project_rel (
     ),
     KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id),
     CONSTRAINT fk_portfolio_project_portfolio
-        FOREIGN KEY (tenant_id, portfolio_id) REFERENCES pms_portfolio (tenant_id, id),
+        FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id),
     CONSTRAINT fk_portfolio_project_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_portfolio_project_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目组合成员';
 
-CREATE TABLE pms_contract (
+CREATE TABLE com_contract (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     company_id BIGINT NULL COMMENT '合同签约公司对应的平台公司主档ID',
@@ -526,14 +526,14 @@ CREATE TABLE pms_contract (
     KEY idx_contract_company (tenant_id, company_id, status, contract_no),
     KEY idx_contract_customer (tenant_id, customer_id, status),
     CONSTRAINT fk_contract_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id),
+        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_contract_dates
         CHECK (expiry_date IS NULL OR effective_date IS NULL OR expiry_date >= effective_date),
     CONSTRAINT chk_contract_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '合同主档，以所属公司和合同号为业务唯一键';
 
-CREATE TABLE pms_contract_receivable (
+CREATE TABLE com_contract_receivable (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     contract_id BIGINT NULL COMMENT '关联合同记录的全局唯一ID',
@@ -606,7 +606,7 @@ CREATE TABLE pms_contract_receivable (
         tenant_id, company_id, mapping_status, contract_id
     ),
     CONSTRAINT fk_contract_receivable_contract
-        FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id),
+        FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_contract_receivable_dates
         CHECK (
             source_effective_to IS NULL
@@ -617,7 +617,7 @@ CREATE TABLE pms_contract_receivable (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'SAP合同回款来源记录，保留公司待解析和一号多行证据';
 
-CREATE TABLE pms_shipment_contract_ref (
+CREATE TABLE com_shipment_contract_reference (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     contract_id BIGINT NULL COMMENT '关联合同记录的全局唯一ID',
@@ -664,12 +664,12 @@ CREATE TABLE pms_shipment_contract_ref (
         tenant_id, company_id, mapping_status, contract_id
     ),
     CONSTRAINT fk_shipment_contract_ref_contract
-        FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id),
+        FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_shipment_contract_ref_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '发货记录的合同归属，不作为合同主档';
 
-CREATE TABLE pms_shipment_package (
+CREATE TABLE com_shipment_package (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     shipment_contract_ref_id BIGINT NULL COMMENT '关联发货合同归属记录的全局唯一ID',
@@ -701,7 +701,7 @@ CREATE TABLE pms_shipment_package (
         tenant_id, shipment_contract_ref_id, shipment_time
     ),
     CONSTRAINT fk_shipment_package_contract_ref
-        FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES pms_shipment_contract_ref (tenant_id, id),
+        FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id),
     CONSTRAINT chk_shipment_package_warranty_dates
         CHECK (
             warranty_end_time IS NULL
@@ -712,7 +712,7 @@ CREATE TABLE pms_shipment_package (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '发货装箱单主档';
 
-CREATE TABLE pms_project_contract_rel (
+CREATE TABLE com_project_contract_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -737,16 +737,16 @@ CREATE TABLE pms_project_contract_rel (
     ),
     KEY idx_project_contract_reverse (tenant_id, contract_id, project_id),
     CONSTRAINT fk_project_contract_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_contract_contract
-        FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id),
+        FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_project_contract_dates
         CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_project_contract_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目与合同直接N:N关系';
 
-CREATE TABLE pms_sales_order (
+CREATE TABLE com_sales_order (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     source_system VARCHAR(32) NOT NULL COMMENT '来源系统编码，用于同步幂等和数据血缘追踪',
@@ -781,12 +781,12 @@ CREATE TABLE pms_sales_order (
     KEY idx_sales_order_customer (tenant_id, customer_code, status),
     KEY idx_sales_order_time (tenant_id, order_create_time, status),
     CONSTRAINT fk_sales_order_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id),
+        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_sales_order_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'ERP销售订单主档';
 
-CREATE TABLE pms_order_contract_rel (
+CREATE TABLE com_order_contract_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     order_id BIGINT NOT NULL COMMENT '关联订单记录的全局唯一ID',
@@ -803,14 +803,14 @@ CREATE TABLE pms_order_contract_rel (
     UNIQUE KEY uk_order_contract (tenant_id, order_id, contract_id),
     KEY idx_order_contract_reverse (tenant_id, contract_id, order_id),
     CONSTRAINT fk_order_contract_order
-        FOREIGN KEY (tenant_id, order_id) REFERENCES pms_sales_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id),
     CONSTRAINT fk_order_contract_contract
-        FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id),
+        FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_order_contract_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '合同与ERP订单N:N关系';
 
-CREATE TABLE pms_sales_order_line (
+CREATE TABLE com_sales_order_line (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     order_id BIGINT NOT NULL COMMENT '关联订单记录的全局唯一ID',
@@ -853,16 +853,16 @@ CREATE TABLE pms_sales_order_line (
     KEY idx_sales_order_line_item (tenant_id, item_code),
     KEY idx_sales_order_line_profit (tenant_id, profit_center, order_id),
     CONSTRAINT fk_sales_order_line_order
-        FOREIGN KEY (tenant_id, order_id) REFERENCES pms_sales_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id),
     CONSTRAINT fk_sales_order_line_product
-        FOREIGN KEY (tenant_id, product_id) REFERENCES pms_product (tenant_id, id),
+        FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id),
     CONSTRAINT fk_sales_order_line_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id),
+        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_sales_order_line_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'ERP销售订单行及数量快照';
 
-CREATE TABLE pms_project_order_line_scope (
+CREATE TABLE com_delivery_scope (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -933,9 +933,9 @@ CREATE TABLE pms_project_order_line_scope (
     ),
     KEY idx_scope_item (tenant_id, item_code, scope_status, project_id),
     CONSTRAINT fk_scope_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_scope_order_line
-        FOREIGN KEY (tenant_id, order_line_id) REFERENCES pms_sales_order_line (tenant_id, id),
+        FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id),
     CONSTRAINT chk_scope_active
         CHECK (
             scope_status <> 'ACTIVE'
@@ -947,7 +947,7 @@ CREATE TABLE pms_project_order_line_scope (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目对ERP订单行的权威实施范围';
 
-CREATE TABLE pms_device_sn (
+CREATE TABLE ast_device_sn (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     sn VARCHAR(100) NOT NULL COMMENT '设备SN主档的序列号',
@@ -985,7 +985,7 @@ CREATE TABLE pms_device_sn (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备SN主档，不承载重复发货事件';
 
-CREATE TABLE pms_device_shipment_event (
+CREATE TABLE ast_device_shipment_event (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     device_id BIGINT NOT NULL COMMENT '关联设备记录的全局唯一ID',
@@ -1031,16 +1031,16 @@ CREATE TABLE pms_device_shipment_event (
         tenant_id, rma_marked, business_action_code, rma_no
     ),
     CONSTRAINT fk_shipment_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_shipment_package
-        FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES pms_shipment_package (tenant_id, id),
+        FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES com_shipment_package (tenant_id, id),
     CONSTRAINT fk_shipment_order_line
-        FOREIGN KEY (tenant_id, order_line_id) REFERENCES pms_sales_order_line (tenant_id, id),
+        FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id),
     CONSTRAINT chk_shipment_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备发货、退回、返还和再次发放的物流生命周期事件';
 
-CREATE TABLE pms_project_device_assignment (
+CREATE TABLE ast_device_project_assignment (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -1105,18 +1105,18 @@ CREATE TABLE pms_project_device_assignment (
     ),
     UNIQUE KEY uk_device_current_assignment (tenant_id, current_device_id),
     CONSTRAINT fk_device_assignment_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_device_assignment_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_device_assignment_scope
-        FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES pms_project_order_line_scope (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES com_delivery_scope (tenant_id, id),
     CONSTRAINT chk_device_assignment_dates
         CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_device_assignment_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备SN到项目的归属及转移历史';
 
-CREATE TABLE pms_device_relation (
+CREATE TABLE ast_device_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     source_device_id BIGINT NOT NULL COMMENT '关联来源设备记录的全局唯一ID',
@@ -1152,18 +1152,18 @@ CREATE TABLE pms_device_relation (
         tenant_id, contract_id, relation_type, status, source_device_id
     ),
     CONSTRAINT fk_device_relation_source
-        FOREIGN KEY (tenant_id, source_device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_device_relation_target
-        FOREIGN KEY (tenant_id, target_device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_device_relation_contract
-        FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id),
+        FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_device_relation_self
         CHECK (source_device_id <> target_device_id),
     CONSTRAINT chk_device_relation_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '合同维度主附加SN、RMA替换等设备关系';
 
-CREATE TABLE pms_device_configuration (
+CREATE TABLE ast_device_configuration (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     device_id BIGINT NOT NULL COMMENT '关联设备记录的全局唯一ID',
@@ -1186,16 +1186,16 @@ CREATE TABLE pms_device_configuration (
     KEY idx_device_configuration (tenant_id, device_id, status, effective_from),
     KEY idx_project_configuration (tenant_id, project_id, configuration_stage),
     CONSTRAINT fk_device_configuration_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_device_configuration_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_device_configuration_dates
         CHECK (effective_to IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_device_configuration_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备分阶段配置主记录';
 
-CREATE TABLE pms_device_configuration_feature (
+CREATE TABLE ast_device_configuration_feature (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     configuration_id BIGINT NOT NULL COMMENT '关联配置记录的全局唯一ID',
@@ -1213,12 +1213,12 @@ CREATE TABLE pms_device_configuration_feature (
         tenant_id, configuration_id, feature_code
     ),
     CONSTRAINT fk_configuration_feature_configuration
-        FOREIGN KEY (tenant_id, configuration_id) REFERENCES pms_device_configuration (tenant_id, id),
+        FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id),
     CONSTRAINT chk_configuration_feature_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备配置启用特性明细';
 
-CREATE TABLE pms_device_configuration_service (
+CREATE TABLE ast_device_configuration_service (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     configuration_id BIGINT NOT NULL COMMENT '关联配置记录的全局唯一ID',
@@ -1236,12 +1236,12 @@ CREATE TABLE pms_device_configuration_service (
         tenant_id, configuration_id, service_code
     ),
     CONSTRAINT fk_configuration_service_configuration
-        FOREIGN KEY (tenant_id, configuration_id) REFERENCES pms_device_configuration (tenant_id, id),
+        FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id),
     CONSTRAINT chk_configuration_service_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备配置运行服务明细';
 
-CREATE TABLE pms_network_topology (
+CREATE TABLE ast_network_topology (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
@@ -1260,16 +1260,16 @@ CREATE TABLE pms_network_topology (
     UNIQUE KEY uk_network_topology_tenant_row (tenant_id, id),
     KEY idx_network_topology_project (tenant_id, project_id, status),
     CONSTRAINT fk_network_topology_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_network_topology_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id),
+        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_network_topology_dates
         CHECK (effective_to IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_network_topology_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目网络拓扑版本';
 
-CREATE TABLE pms_topology_device_rel (
+CREATE TABLE ast_network_topology_device_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     topology_id BIGINT NOT NULL COMMENT '关联拓扑记录的全局唯一ID',
@@ -1286,14 +1286,14 @@ CREATE TABLE pms_topology_device_rel (
     UNIQUE KEY uk_topology_device (tenant_id, topology_id, device_id),
     KEY idx_topology_device_reverse (tenant_id, device_id, topology_id),
     CONSTRAINT fk_topology_device_topology
-        FOREIGN KEY (tenant_id, topology_id) REFERENCES pms_network_topology (tenant_id, id),
+        FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id),
     CONSTRAINT fk_topology_device_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT chk_topology_device_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '拓扑节点与设备关系';
 
-CREATE TABLE pms_device_version (
+CREATE TABLE ast_device_version (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     device_id BIGINT NOT NULL COMMENT '关联设备记录的全局唯一ID',
@@ -1320,16 +1320,16 @@ CREATE TABLE pms_device_version (
     ),
     KEY idx_project_device_version (tenant_id, project_id, version_stage),
     CONSTRAINT fk_device_version_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_device_version_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_device_version_dates
         CHECK (effective_to IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_device_version_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备组件版本及阶段历史';
 
-CREATE TABLE pms_product_release (
+CREATE TABLE ast_product_release (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     product_id BIGINT NOT NULL COMMENT '关联产品记录的全局唯一ID',
@@ -1351,14 +1351,14 @@ CREATE TABLE pms_product_release (
         tenant_id, product_id, release_version, release_type
     ),
     CONSTRAINT fk_product_release_product
-        FOREIGN KEY (tenant_id, product_id) REFERENCES pms_product (tenant_id, id),
+        FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id),
     CONSTRAINT fk_product_release_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id),
+        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_product_release_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '产品版本发布与支持周期';
 
-CREATE TABLE pms_technical_advisory (
+CREATE TABLE kno_technical_advisory (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     advisory_no VARCHAR(64) NOT NULL COMMENT '技术公告的技术公告编号',
@@ -1393,14 +1393,14 @@ CREATE TABLE pms_technical_advisory (
     UNIQUE KEY uk_technical_advisory_no (tenant_id, advisory_no),
     KEY idx_technical_advisory_status (tenant_id, status, publish_time),
     CONSTRAINT fk_technical_advisory_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id),
+        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_technical_advisory_dates
         CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_technical_advisory_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '技术公告主档';
 
-CREATE TABLE pms_technical_advisory_read (
+CREATE TABLE kno_technical_advisory_read_record (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     advisory_id BIGINT NOT NULL COMMENT '关联技术公告记录的全局唯一ID',
@@ -1418,12 +1418,12 @@ CREATE TABLE pms_technical_advisory_read (
     UNIQUE KEY uk_advisory_reader (tenant_id, advisory_id, reader_id),
     KEY idx_advisory_reader_reverse (tenant_id, reader_id, read_status, advisory_id),
     CONSTRAINT fk_advisory_read_advisory
-        FOREIGN KEY (tenant_id, advisory_id) REFERENCES pms_technical_advisory (tenant_id, id),
+        FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id),
     CONSTRAINT chk_advisory_read_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '技术公告阅读及确认记录';
 
-CREATE TABLE pms_technical_advisory_product (
+CREATE TABLE kno_technical_advisory_product_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     advisory_id BIGINT NOT NULL COMMENT '关联技术公告记录的全局唯一ID',
@@ -1439,14 +1439,14 @@ CREATE TABLE pms_technical_advisory_product (
     UNIQUE KEY uk_advisory_product (tenant_id, advisory_id, product_id),
     KEY idx_advisory_product_reverse (tenant_id, product_id, advisory_id),
     CONSTRAINT fk_advisory_product_advisory
-        FOREIGN KEY (tenant_id, advisory_id) REFERENCES pms_technical_advisory (tenant_id, id),
+        FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id),
     CONSTRAINT fk_advisory_product_product
-        FOREIGN KEY (tenant_id, product_id) REFERENCES pms_product (tenant_id, id),
+        FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id),
     CONSTRAINT chk_advisory_product_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '技术公告适用产品和版本范围';
 
-CREATE TABLE pms_device_advisory_match (
+CREATE TABLE kno_device_technical_advisory_match (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     advisory_id BIGINT NOT NULL COMMENT '关联技术公告记录的全局唯一ID',
@@ -1468,16 +1468,16 @@ CREATE TABLE pms_device_advisory_match (
     UNIQUE KEY uk_device_advisory (tenant_id, advisory_id, device_id),
     KEY idx_device_advisory_reverse (tenant_id, device_id, match_status),
     CONSTRAINT fk_device_advisory_advisory
-        FOREIGN KEY (tenant_id, advisory_id) REFERENCES pms_technical_advisory (tenant_id, id),
+        FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id),
     CONSTRAINT fk_device_advisory_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_device_advisory_version
-        FOREIGN KEY (tenant_id, matched_version_id) REFERENCES pms_device_version (tenant_id, id),
+        FOREIGN KEY (tenant_id, matched_version_id) REFERENCES ast_device_version (tenant_id, id),
     CONSTRAINT chk_device_advisory_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备与技术公告的匹配及处置结果';
 
-CREATE TABLE pms_service_incident (
+CREATE TABLE srv_service_incident (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     incident_no VARCHAR(64) NOT NULL COMMENT '故障事件的故障事件编号',
@@ -1491,7 +1491,7 @@ CREATE TABLE pms_service_incident (
     closed_time DATETIME(3) NULL COMMENT '关闭时间，采用系统统一时区，空值表示来源未提供或事件未发生',
     symptom TEXT NULL COMMENT '故障事件的问题现象',
     root_cause TEXT NULL COMMENT '故障事件的根原因',
-    resolution TEXT NULL COMMENT '故障事件的解析',
+    solution TEXT NULL COMMENT '故障事件的解析',
     report_document_id BIGINT NULL COMMENT '关联报告文档记录的全局唯一ID',
     owner_id BIGINT NULL COMMENT '关联责任人记录的全局唯一ID',
     status VARCHAR(32) NOT NULL COMMENT '状态',
@@ -1507,9 +1507,9 @@ CREATE TABLE pms_service_incident (
     KEY idx_incident_project (tenant_id, project_id, status, occurred_time),
     KEY idx_incident_owner (tenant_id, owner_id, status),
     CONSTRAINT fk_service_incident_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_service_incident_document
-        FOREIGN KEY (tenant_id, report_document_id) REFERENCES pms_business_document (tenant_id, id),
+        FOREIGN KEY (tenant_id, report_document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_service_incident_times CHECK (
         restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time
     ),
@@ -1517,7 +1517,7 @@ CREATE TABLE pms_service_incident (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '故障及服务事件主档';
 
-CREATE TABLE pms_incident_device_rel (
+CREATE TABLE srv_service_incident_device_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     incident_id BIGINT NOT NULL COMMENT '关联故障事件记录的全局唯一ID',
@@ -1533,14 +1533,14 @@ CREATE TABLE pms_incident_device_rel (
     UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id),
     KEY idx_incident_device_reverse (tenant_id, device_id, incident_id),
     CONSTRAINT fk_incident_device_incident
-        FOREIGN KEY (tenant_id, incident_id) REFERENCES pms_service_incident (tenant_id, id),
+        FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id),
     CONSTRAINT fk_incident_device_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id),
+        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '故障与受影响设备多对多关系';
 
-CREATE TABLE pms_crm_execution_order (
+CREATE TABLE com_crm_execution_order (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     source_system VARCHAR(32) NOT NULL DEFAULT 'CRM' COMMENT '来源系统编码，用于同步幂等和数据血缘追踪',
@@ -1622,14 +1622,14 @@ CREATE TABLE pms_crm_execution_order (
         tenant_id, company_code, office_department_code, status, id
     ),
     CONSTRAINT fk_crm_execution_project
-        FOREIGN KEY (tenant_id, primary_project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, primary_project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_crm_execution_af
         CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN')),
     CONSTRAINT chk_crm_execution_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'CRM执行单辅助主档，安服仅保存正向证据';
 
-CREATE TABLE pms_crm_execution_config (
+CREATE TABLE com_crm_execution_config (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     execution_id BIGINT NOT NULL COMMENT '关联执行单记录的全局唯一ID',
@@ -1647,8 +1647,8 @@ CREATE TABLE pms_crm_execution_config (
     item_code VARCHAR(255) NULL COMMENT 'CRM执行单配置的物料编码',
     item_model VARCHAR(255) NULL COMMENT 'CRM执行单配置的物料型号',
     item_name VARCHAR(512) NULL COMMENT 'CRM执行单配置的物料名称',
-    quantity DECIMAL(18, 4) NULL COMMENT 'CRM执行单配置的数量',
-    borrow_quantity DECIMAL(18, 4) NULL COMMENT '借用数量，单位沿用对应物料或产品计量单位',
+    qty DECIMAL(18, 4) NULL COMMENT 'CRM执行单配置的数量',
+    borrow_qty DECIMAL(18, 4) NULL COMMENT '借用数量，单位沿用对应物料或产品计量单位',
     unit_price DECIMAL(20, 6) NULL COMMENT 'CRM执行单配置的单价价格',
     purchase_discount DECIMAL(20, 6) NULL COMMENT 'CRM执行单配置的采购折扣',
     purchase_price DECIMAL(29, 2) NULL COMMENT 'CRM执行单配置的采购价格',
@@ -1676,13 +1676,13 @@ CREATE TABLE pms_crm_execution_config (
         tenant_id, execution_id, item_code
     ),
     CONSTRAINT fk_crm_execution_config_execution
-        FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id),
     CONSTRAINT chk_crm_execution_config_af CHECK (is_af_evidence IN (0, 1)),
     CONSTRAINT chk_crm_execution_config_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'CRM已获得的执行单产品配置，仅作辅助证据';
 
-CREATE TABLE pms_order_execution_rel (
+CREATE TABLE com_order_execution_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     order_id BIGINT NOT NULL COMMENT '关联订单记录的全局唯一ID',
@@ -1710,15 +1710,15 @@ CREATE TABLE pms_order_execution_rel (
         tenant_id, execution_id, order_id
     ),
     CONSTRAINT fk_order_execution_order
-        FOREIGN KEY (tenant_id, order_id) REFERENCES pms_sales_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id),
     CONSTRAINT fk_order_execution_execution
-        FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id),
     CONSTRAINT chk_order_execution_primary CHECK (is_primary IN (0, 1)),
     CONSTRAINT chk_order_execution_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'ERP订单与CRM执行单辅助关系';
 
-CREATE TABLE pms_order_line_execution_rel (
+CREATE TABLE com_order_line_execution_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     order_line_id BIGINT NOT NULL COMMENT '关联订单行记录的全局唯一ID',
@@ -1738,14 +1738,14 @@ CREATE TABLE pms_order_line_execution_rel (
     UNIQUE KEY uk_order_line_execution (tenant_id, order_line_id, execution_id),
     KEY idx_order_line_execution_reverse (tenant_id, execution_id, order_line_id),
     CONSTRAINT fk_order_line_execution_line
-        FOREIGN KEY (tenant_id, order_line_id) REFERENCES pms_sales_order_line (tenant_id, id),
+        FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id),
     CONSTRAINT fk_order_line_execution_execution
-        FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id),
     CONSTRAINT chk_order_line_execution_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'ERP订单行与CRM执行单辅助关系';
 
-CREATE TABLE pms_execution_merge_batch (
+CREATE TABLE com_execution_order_merge_batch (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     source_system VARCHAR(32) NOT NULL COMMENT '来源系统编码，用于同步幂等和数据血缘追踪',
@@ -1772,14 +1772,14 @@ CREATE TABLE pms_execution_merge_batch (
         tenant_id, primary_execution_id, status
     ),
     CONSTRAINT fk_execution_merge_primary
-        FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES pms_crm_execution_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id),
     CONSTRAINT fk_execution_merge_contract
-        FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id),
+        FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_execution_merge_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '特殊业务合并下单批次';
 
-CREATE TABLE pms_execution_merge_member (
+CREATE TABLE com_execution_order_merge_member (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     merge_batch_id BIGINT NOT NULL COMMENT '关联合并批次记录的全局唯一ID',
@@ -1805,15 +1805,15 @@ CREATE TABLE pms_execution_merge_member (
         tenant_id, execution_id, merge_batch_id
     ),
     CONSTRAINT fk_execution_merge_member_batch
-        FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES pms_execution_merge_batch (tenant_id, id),
+        FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id),
     CONSTRAINT fk_execution_merge_member_execution
-        FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id),
     CONSTRAINT chk_execution_merge_member_primary CHECK (is_primary IN (0, 1)),
     CONSTRAINT chk_execution_merge_member_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '特殊合并下单执行单成员，不限制成员数量';
 
-CREATE TABLE pms_order_change_rel (
+CREATE TABLE com_order_change_relation (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     source_order_id BIGINT NOT NULL COMMENT '关联来源订单记录的全局唯一ID',
@@ -1839,16 +1839,16 @@ CREATE TABLE pms_order_change_rel (
         tenant_id, target_order_id, relation_type
     ),
     CONSTRAINT fk_order_change_source
-        FOREIGN KEY (tenant_id, source_order_id) REFERENCES pms_sales_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id),
     CONSTRAINT fk_order_change_target
-        FOREIGN KEY (tenant_id, target_order_id) REFERENCES pms_sales_order (tenant_id, id),
+        FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id),
     CONSTRAINT chk_order_change_self
         CHECK (source_order_id <> target_order_id),
     CONSTRAINT chk_order_change_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '改单、拆分、替代和退货订单血缘';
 
-CREATE TABLE pms_sync_batch (
+CREATE TABLE plt_sync_batch (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     batch_no VARCHAR(64) NOT NULL COMMENT '同步批次的批次编号',
@@ -1882,7 +1882,7 @@ CREATE TABLE pms_sync_batch (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '一次性迁移及只读同步批次';
 
-CREATE TABLE pms_migration_source_record (
+CREATE TABLE plt_migration_source_record (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     batch_id BIGINT NOT NULL COMMENT '关联批次记录的全局唯一ID',
@@ -1911,13 +1911,13 @@ CREATE TABLE pms_migration_source_record (
         tenant_id, source_system, source_table, source_business_key(191)
     ),
     CONSTRAINT fk_migration_source_batch
-        FOREIGN KEY (tenant_id, batch_id) REFERENCES pms_sync_batch (tenant_id, id),
+        FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id),
     CONSTRAINT chk_migration_source_target_count
         CHECK (mapped_target_count >= 0)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '迁移批次逐源行的完整原值证据，不因目标归并或去重而覆盖';
 
-CREATE TABLE pms_external_key_map (
+CREATE TABLE plt_external_key_mapping (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     batch_id BIGINT NULL COMMENT '关联批次记录的全局唯一ID',
@@ -1947,11 +1947,11 @@ CREATE TABLE pms_external_key_map (
     ),
     KEY idx_external_key_batch (tenant_id, batch_id, mapping_status),
     CONSTRAINT fk_external_key_batch
-        FOREIGN KEY (tenant_id, batch_id) REFERENCES pms_sync_batch (tenant_id, id)
+        FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '旧主键到新主键的可追溯映射';
 
-CREATE TABLE pms_migration_issue (
+CREATE TABLE plt_migration_issue (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     batch_id BIGINT NOT NULL COMMENT '关联批次记录的全局唯一ID',
@@ -1979,7 +1979,7 @@ CREATE TABLE pms_migration_issue (
         tenant_id, issue_type, resolution_status, create_time
     ),
     CONSTRAINT fk_migration_issue_batch
-        FOREIGN KEY (tenant_id, batch_id) REFERENCES pms_sync_batch (tenant_id, id),
+        FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id),
     CONSTRAINT chk_migration_issue_resolution
         CHECK (
             resolution_status <> 'RESOLVED'
@@ -1988,7 +1988,7 @@ CREATE TABLE pms_migration_issue (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '迁移缺失、重复、多义映射和人工解决记录';
 
-CREATE TABLE pms_project_delivery_summary (
+CREATE TABLE ana_project_delivery_summary (
     project_id BIGINT NOT NULL COMMENT '关联项目记录的全局唯一ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_code VARCHAR(64) NOT NULL COMMENT '项目编码',
@@ -2016,14 +2016,14 @@ CREATE TABLE pms_project_delivery_summary (
     erp_delivered_qty DECIMAL(20, 4) NOT NULL DEFAULT 0 COMMENT 'ERP已发货数量，单位沿用对应物料或产品计量单位',
     device_count BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '设备数量，非负整数',
     pending_mapping_count BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '待处理映射数量，非负整数',
-    pending_quantity_count BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '待处理数量数量，非负整数',
+    pending_qty_count BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '待处理数量数量，非负整数',
     statistic_time DATETIME(3) NOT NULL COMMENT '该项目汇总读模型最后完成重算的时间',
     source_batch_no VARCHAR(64) NULL COMMENT '项目交付汇总的来源批次编号',
     version INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (tenant_id, project_id),
     KEY idx_project_summary_status (
-        tenant_id, pending_mapping_count, pending_quantity_count
+        tenant_id, pending_mapping_count, pending_qty_count
     ),
     KEY idx_project_summary_project_status (
         tenant_id, project_status, project_type, project_id
@@ -2039,8 +2039,8 @@ CREATE TABLE pms_project_delivery_summary (
     ),
     KEY idx_project_summary_time (tenant_id, statistic_time),
     CONSTRAINT fk_project_summary_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id),
+        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_summary_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id)
+        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '可重建的项目合同、订单、发货和SN汇总读模型';

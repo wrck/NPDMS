@@ -28,10 +28,12 @@
     "evidenceOwnerRoles": [
       "SECURITY_OWNER",
       "OPERATIONS_OWNER"
-    ]
+    ],
+    "evidenceStage": "DEPLOYMENT_TIME"
   },
   "evidenceRefs": [
-    "docs/decisions/0004-phase3-production-assurance-directions.md"
+    "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "docs/decisions/0018-deployment-time-environment-and-kms-selection.md"
   ],
   "verificationResult": null,
   "unresolvedItems": [

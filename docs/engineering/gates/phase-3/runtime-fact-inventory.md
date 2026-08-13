@@ -93,4 +93,4 @@ corepack pnpm dev
 | P3-E08 | 当前前端`ts:check`真实失败 | 任何前端Feature实现、浏览器验收和正式发布 | 前端Owner按错误清单修复契约/类型；保持现有严格度，重跑`ts:check`、lint、build及受影响页面真实浏览器回归 |
 | P3-E09 | 已确认只读生成逐项差异并裁决；目标DDL哈希仍与旧迁移证据不一致，`ddl-drift-review`为`DEFER` | 任何历史数据迁移、数据库切换和迁移发布声明 | 数据架构+业务Owner完成`AI-MIG-000`逐项裁决，生成`approvedDdlSha256`并重建字段目录、映射、校验和release manifest |
 
-P3-E01～E06不影响继续编写正式设计，但未形成可执行证据前，Phase 3不得批准为完整SDS基线。P3-E07按具体Feature逐项阻塞联调/上线；P3-E08不否定Phase 3设计完整性，但阻塞任何前端Feature进入实现验收或正式发布；P3-E09在`AI-MIG-000`关闭前阻塞全部历史数据迁移与切换。
+P3-E01～E06是部署、专项验收或生产发布证据，不阻断逻辑SDS基线；缺失时仍严格阻断其登记的下游门禁。P3-E07按具体Feature阻塞联调/上线；P3-E08阻塞前端Feature验收或发布；P3-E09在`AI-MIG-000`关闭前只阻塞历史数据迁移实施与切换，不影响无迁移Feature。

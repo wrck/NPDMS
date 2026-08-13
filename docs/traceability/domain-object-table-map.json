@@ -11,7 +11,7 @@
         "PM-10"
       ],
       "targetTables": [
-        "pms_project"
+        "proj_project"
       ]
     },
     "ProjectHierarchy": {
@@ -21,7 +21,7 @@
         "PM-04"
       ],
       "targetTables": [
-        "pms_project"
+        "proj_project"
       ]
     },
     "ProjectAncestorProjection": {
@@ -31,7 +31,7 @@
         "PM-04"
       ],
       "targetTables": [
-        "pms_project_tree_path"
+        "proj_project_tree_path"
       ]
     },
     "ProjectTemplate": {
@@ -40,7 +40,7 @@
         "PM-03"
       ],
       "targetTables": [
-        "pms_project_template_revision"
+        "proj_project_template_revision"
       ]
     },
     "ProjectTask": {
@@ -49,7 +49,7 @@
         "PM-11"
       ],
       "targetTables": [
-        "pms_project_task"
+        "proj_project_task"
       ]
     },
     "TaskAncestorProjection": {
@@ -58,7 +58,7 @@
         "PM-11"
       ],
       "targetTables": [
-        "pms_task_tree_path"
+        "proj_task_tree_path"
       ]
     },
     "TaskDependency": {
@@ -67,7 +67,7 @@
         "PM-11"
       ],
       "targetTables": [
-        "pms_task_dependency"
+        "proj_task_dependency"
       ]
     },
     "ProjectMemberAssignment": {
@@ -78,7 +78,7 @@
         "PM-09"
       ],
       "targetTables": [
-        "pms_project_member_assignment"
+        "proj_project_member_assignment"
       ]
     },
     "ProjectPortfolio": {
@@ -87,9 +87,9 @@
         "PROJ-12"
       ],
       "targetTables": [
-        "pms_project_portfolio",
-        "pms_project_portfolio_member",
-        "pms_project_portfolio_revision"
+        "proj_project_portfolio",
+        "proj_project_portfolio_member",
+        "proj_project_portfolio_revision"
       ]
     },
     "ProjectStageSnapshot": {
@@ -99,7 +99,7 @@
         "PM-10"
       ],
       "targetTables": [
-        "pms_project_stage_snapshot"
+        "proj_project_stage_snapshot"
       ]
     },
     "BorrowedProjectConversion": {
@@ -108,7 +108,7 @@
         "PM-05"
       ],
       "targetTables": [
-        "pms_project_conversion"
+        "proj_project_conversion"
       ]
     },
     "ConversionItem": {
@@ -117,7 +117,7 @@
         "PM-05"
       ],
       "targetTables": [
-        "pms_project_conversion_item"
+        "proj_project_conversion_item"
       ]
     },
     "ConversionDeviceDisposition": {
@@ -126,7 +126,7 @@
         "PM-05"
       ],
       "targetTables": [
-        "pms_project_conversion_device"
+        "proj_project_conversion_device"
       ]
     },
     "MultiPhaseProjectGroup": {
@@ -135,7 +135,7 @@
         "PM-06"
       ],
       "targetTables": [
-        "pms_project_phase_group"
+        "proj_multi_phase_project_group"
       ]
     },
     "MultiPhaseProjectMember": {
@@ -144,7 +144,7 @@
         "PM-06"
       ],
       "targetTables": [
-        "pms_project_phase_member"
+        "proj_multi_phase_project_member"
       ]
     },
     "CrossPhaseContentReference": {
@@ -153,7 +153,7 @@
         "PM-06"
       ],
       "targetTables": [
-        "pms_project_cross_phase_reference"
+        "proj_project_cross_phase_reference"
       ]
     },
     "Preparation": {
@@ -165,8 +165,8 @@
         "PRE-05"
       ],
       "targetTables": [
-        "pms_sol_preparation",
-        "pms_sol_preparation_item"
+        "sol_preparation",
+        "sol_preparation_item"
       ]
     },
     "ConstructionPlan": {
@@ -179,10 +179,10 @@
         "PRE-01"
       ],
       "targetTables": [
-        "pms_sol_construction_plan",
-        "pms_sol_plan_revision",
-        "pms_sol_plan_item",
-        "pms_sol_plan_change"
+        "sol_construction_plan",
+        "sol_construction_plan_revision",
+        "sol_construction_plan_item",
+        "sol_construction_plan_change"
       ]
     },
     "Solution": {
@@ -195,9 +195,9 @@
         "SCH-05"
       ],
       "targetTables": [
-        "pms_sol_solution",
-        "pms_sol_solution_revision",
-        "pms_sol_solution_review"
+        "sol_solution",
+        "sol_solution_revision",
+        "sol_solution_review"
       ]
     },
     "DynamicFormSchema": {
@@ -206,8 +206,8 @@
         "SOL-01"
       ],
       "targetTables": [
-        "pms_sol_form_schema",
-        "pms_sol_form_schema_revision"
+        "sol_dynamic_form_schema",
+        "sol_dynamic_form_schema_revision"
       ]
     },
     "DynamicFormInstance": {
@@ -218,7 +218,7 @@
         "SOL-01"
       ],
       "targetTables": [
-        "pms_sol_form_instance"
+        "sol_dynamic_form_instance"
       ]
     },
     "ArrivalAcceptance": {
@@ -227,9 +227,9 @@
         "EXE-01"
       ],
       "targetTables": [
-        "pms_imp_arrival_acceptance",
-        "pms_imp_arrival_line",
-        "pms_imp_arrival_difference"
+        "imp_arrival_acceptance",
+        "imp_arrival_line",
+        "imp_arrival_difference"
       ]
     },
     "InstallationRecord": {
@@ -238,9 +238,9 @@
         "EXE-02"
       ],
       "targetTables": [
-        "pms_imp_installation_record",
-        "pms_imp_installation_item",
-        "pms_imp_installation_evidence"
+        "imp_installation_record",
+        "imp_installation_item",
+        "imp_installation_evidence"
       ]
     },
     "ConfigurationCollectionResult": {
@@ -249,8 +249,8 @@
         "EXE-03"
       ],
       "targetTables": [
-        "pms_imp_configuration_result",
-        "pms_imp_parse_attempt"
+        "imp_configuration_collection_result",
+        "imp_configuration_collection_parse_attempt"
       ]
     },
     "JointDebuggingResult": {
@@ -259,8 +259,8 @@
         "EXE-04"
       ],
       "targetTables": [
-        "pms_imp_debugging_result",
-        "pms_imp_debugging_item"
+        "imp_joint_debugging_result",
+        "imp_joint_debugging_item"
       ]
     },
     "ImplementationRisk": {
@@ -269,8 +269,8 @@
         "EXE-05"
       ],
       "targetTables": [
-        "pms_imp_risk",
-        "pms_imp_risk_treatment"
+        "imp_risk",
+        "imp_risk_treatment"
       ]
     },
     "ImplementationQualityCheck": {
@@ -279,10 +279,10 @@
         "IMP-01"
       ],
       "targetTables": [
-        "pms_imp_quality_check",
-        "pms_imp_quality_item",
-        "pms_imp_quality_remediation",
-        "pms_imp_quality_review"
+        "imp_quality_check",
+        "imp_quality_item",
+        "imp_quality_remediation",
+        "imp_quality_review"
       ]
     },
     "ImplementationSafetyCheck": {
@@ -291,10 +291,10 @@
         "IMP-02"
       ],
       "targetTables": [
-        "pms_imp_safety_check",
-        "pms_imp_safety_item",
-        "pms_imp_safety_remediation",
-        "pms_imp_safety_exemption"
+        "imp_safety_check",
+        "imp_safety_item",
+        "imp_safety_remediation",
+        "imp_safety_exemption"
       ]
     },
     "DeliveryEvidence": {
@@ -304,8 +304,8 @@
         "IMP-02"
       ],
       "targetTables": [
-        "pms_imp_delivery_evidence",
-        "pms_imp_delivery_evidence_revision"
+        "imp_delivery_evidence",
+        "imp_delivery_evidence_revision"
       ]
     },
     "ImplementationReadinessSnapshot": {
@@ -314,7 +314,7 @@
         "EXE-06"
       ],
       "targetTables": [
-        "pms_project_stage_snapshot"
+        "imp_implementation_readiness_snapshot"
       ]
     },
     "Acceptance": {
@@ -325,9 +325,9 @@
         "ACC-03"
       ],
       "targetTables": [
-        "pms_acc_acceptance",
-        "pms_acc_acceptance_item",
-        "pms_acc_confirmation"
+        "acc_acceptance",
+        "acc_acceptance_item",
+        "acc_confirmation"
       ]
     },
     "DeliveryArtifact": {
@@ -336,9 +336,9 @@
         "ACC-04"
       ],
       "targetTables": [
-        "pms_acc_delivery_artifact",
-        "pms_acc_artifact_review",
-        "pms_acc_archive_record"
+        "acc_delivery_artifact",
+        "acc_artifact_review",
+        "acc_archive_record"
       ]
     },
     "ProjectClosure": {
@@ -354,8 +354,8 @@
         "CLO-06"
       ],
       "targetTables": [
-        "pms_acc_project_closure",
-        "pms_acc_closure_review"
+        "acc_project_closure",
+        "acc_closure_review"
       ]
     },
     "ClosureGateSnapshot": {
@@ -369,7 +369,7 @@
         "CLO-06"
       ],
       "targetTables": [
-        "pms_acc_closure_gate_snapshot"
+        "acc_closure_gate_snapshot"
       ]
     },
     "ServiceHandover": {
@@ -379,9 +379,9 @@
         "ACC-06"
       ],
       "targetTables": [
-        "pms_acc_service_handover",
-        "pms_acc_handover_item",
-        "pms_acc_handover_result"
+        "acc_service_handover",
+        "acc_handover_item",
+        "acc_handover_result"
       ]
     },
     "CutoverTask": {
@@ -394,7 +394,7 @@
         "CUT-10"
       ],
       "targetTables": [
-        "pms_cut_task"
+        "cut_task"
       ]
     },
     "CutoverAssessment": {
@@ -406,7 +406,7 @@
         "CUT-10"
       ],
       "targetTables": [
-        "pms_cut_assessment"
+        "cut_assessment"
       ]
     },
     "CutoverPlan": {
@@ -418,8 +418,8 @@
         "CUT-07"
       ],
       "targetTables": [
-        "pms_cut_plan_revision",
-        "pms_cut_step"
+        "cut_plan_revision",
+        "cut_step"
       ]
     },
     "CutoverExecution": {
@@ -428,9 +428,9 @@
         "CUT-06"
       ],
       "targetTables": [
-        "pms_cut_execution",
-        "pms_cut_execution_step",
-        "pms_cut_observation"
+        "cut_execution",
+        "cut_execution_step",
+        "cut_observation"
       ]
     },
     "InspectionTask": {
@@ -442,8 +442,8 @@
         "INS-07"
       ],
       "targetTables": [
-        "pms_ins_task",
-        "pms_ins_task_rule_snapshot"
+        "srv_inspection_task",
+        "srv_inspection_task_rule_snapshot"
       ]
     },
     "InspectionRule": {
@@ -453,8 +453,8 @@
         "INS-09"
       ],
       "targetTables": [
-        "pms_ins_rule",
-        "pms_ins_rule_revision"
+        "srv_inspection_rule",
+        "srv_inspection_rule_revision"
       ]
     },
     "InspectionReport": {
@@ -464,7 +464,7 @@
         "INT-06"
       ],
       "targetTables": [
-        "pms_ins_report_revision"
+        "srv_inspection_report_revision"
       ]
     },
     "ServiceIssue": {
@@ -474,8 +474,8 @@
         "INS-08"
       ],
       "targetTables": [
-        "pms_ins_service_issue",
-        "pms_ins_remediation"
+        "srv_service_issue",
+        "srv_service_issue_remediation"
       ]
     },
     "WorkOrder": {
@@ -489,8 +489,8 @@
         "WO-06"
       ],
       "targetTables": [
-        "pms_wo_work_order",
-        "pms_wo_handling_record"
+        "srv_work_order",
+        "srv_work_order_handling_record"
       ]
     },
     "TimeClaim": {
@@ -499,8 +499,8 @@
         "WO-04"
       ],
       "targetTables": [
-        "pms_wo_time_claim",
-        "pms_wo_time_adjustment"
+        "srv_time_claim",
+        "srv_time_adjustment"
       ]
     },
     "ServiceStatus": {
@@ -510,7 +510,7 @@
         "SRV-01"
       ],
       "targetTables": [
-        "pms_srv_service_status"
+        "srv_service_status"
       ]
     },
     "Customer": {
@@ -523,7 +523,7 @@
         "INT-03"
       ],
       "targetTables": [
-        "pms_cus_customer"
+        "cus_customer"
       ]
     },
     "CustomerContact": {
@@ -535,8 +535,8 @@
         "CUS-04"
       ],
       "targetTables": [
-        "pms_cus_contact",
-        "pms_cus_project_contact_relation"
+        "cus_customer_contact",
+        "cus_project_customer_contact_relation"
       ]
     },
     "CustomerRelationshipSnapshot": {
@@ -549,7 +549,7 @@
         "INT-03"
       ],
       "targetTables": [
-        "pms_cus_relationship_snapshot"
+        "cus_customer_relationship_snapshot"
       ]
     },
     "Device": {
@@ -563,7 +563,7 @@
         "EQP-07"
       ],
       "targetTables": [
-        "pms_equipment"
+        "ast_device"
       ]
     },
     "DeviceArchive": {
@@ -576,9 +576,9 @@
         "EQP-07"
       ],
       "targetTables": [
-        "pms_equipment",
-        "pms_equipment_version",
-        "pms_equipment_config_log"
+        "ast_device",
+        "ast_device_version",
+        "ast_device_config_log"
       ]
     },
     "DeviceCurrentAssignment": {
@@ -591,8 +591,8 @@
         "EQP-07"
       ],
       "targetTables": [
-        "pms_ast_device_current_assignment",
-        "pms_ast_device_assignment_history"
+        "ast_device_current_assignment",
+        "ast_device_assignment_history"
       ]
     },
     "DeviceAssignmentHistory": {
@@ -605,7 +605,7 @@
         "EQP-07"
       ],
       "targetTables": [
-        "pms_ast_device_assignment_history"
+        "ast_device_assignment_history"
       ]
     },
     "DeviceAncestorProjection": {
@@ -615,7 +615,7 @@
         "EQP-03"
       ],
       "targetTables": [
-        "pms_ast_device_project_ancestor"
+        "ast_device_project_ancestor"
       ]
     },
     "AssetSyncSnapshot": {
@@ -625,9 +625,9 @@
         "INT-02"
       ],
       "targetTables": [
-        "pms_int_sync_batch",
-        "pms_int_sync_item",
-        "pms_equipment"
+        "ast_asset_sync_batch",
+        "ast_asset_sync_item",
+        "ast_device"
       ]
     },
     "MaintenanceFact": {
@@ -638,7 +638,7 @@
         "SRV-01"
       ],
       "targetTables": [
-        "pms_ast_maintenance_fact"
+        "ast_maintenance_fact"
       ]
     },
     "RMAReplacement": {
@@ -648,7 +648,7 @@
         "INT-06"
       ],
       "targetTables": [
-        "pms_ast_rma_replacement"
+        "ast_rma_replacement"
       ]
     },
     "Contract": {
@@ -658,7 +658,7 @@
         "INT-01"
       ],
       "targetTables": [
-        "pms_com_contract"
+        "com_contract"
       ]
     },
     "SalesOrder": {
@@ -668,7 +668,7 @@
         "INT-01"
       ],
       "targetTables": [
-        "pms_com_sales_order"
+        "com_sales_order"
       ]
     },
     "OrderLine": {
@@ -677,7 +677,7 @@
         "COM-01"
       ],
       "targetTables": [
-        "pms_com_order_line"
+        "com_order_line"
       ]
     },
     "DeliveryScope": {
@@ -686,7 +686,7 @@
         "COM-01"
       ],
       "targetTables": [
-        "pms_com_delivery_scope"
+        "com_delivery_scope"
       ]
     },
     "FulfillmentSnapshot": {
@@ -695,7 +695,7 @@
         "COM-02"
       ],
       "targetTables": [
-        "pms_com_fulfillment_snapshot"
+        "com_fulfillment_snapshot"
       ]
     },
     "ReconciliationRecord": {
@@ -704,7 +704,7 @@
         "COM-02"
       ],
       "targetTables": [
-        "pms_com_reconciliation_record"
+        "com_reconciliation_record"
       ]
     },
     "Supplier": {
@@ -713,8 +713,8 @@
         "RES-01"
       ],
       "targetTables": [
-        "pms_res_supplier",
-        "pms_res_qualification"
+        "res_supplier",
+        "res_qualification"
       ]
     },
     "SubcontractRequest": {
@@ -725,7 +725,7 @@
         "SUB-05"
       ],
       "targetTables": [
-        "pms_res_subcontract_request"
+        "res_subcontract_request"
       ]
     },
     "PaymentGate": {
@@ -736,7 +736,7 @@
         "SUB-04"
       ],
       "targetTables": [
-        "pms_res_payment_gate"
+        "res_payment_gate"
       ]
     },
     "MetricDefinition": {
@@ -745,7 +745,7 @@
         "ANA-01"
       ],
       "targetTables": [
-        "pms_ana_metric_definition"
+        "ana_metric_definition"
       ]
     },
     "MetricSnapshot": {
@@ -758,7 +758,7 @@
         "RPT-04"
       ],
       "targetTables": [
-        "pms_ana_metric_snapshot"
+        "ana_metric_snapshot"
       ]
     },
     "PortfolioView": {
@@ -767,7 +767,7 @@
         "ANA-01"
       ],
       "targetTables": [
-        "pms_ana_portfolio_projection"
+        "ana_portfolio_projection"
       ]
     },
     "Todo": {
@@ -779,7 +779,7 @@
         "PLT-01"
       ],
       "targetTables": [
-        "pms_plt_todo"
+        "plt_todo"
       ]
     },
     "AuthorizationGrant": {
@@ -791,7 +791,7 @@
         "INT-09"
       ],
       "targetTables": [
-        "pms_plt_authorization_grant"
+        "plt_authorization_grant"
       ]
     },
     "ChangeRequest": {
@@ -800,7 +800,7 @@
         "CHG-01"
       ],
       "targetTables": [
-        "pms_plt_change_request"
+        "plt_change_request"
       ]
     },
     "FileArtifact": {
@@ -811,9 +811,9 @@
         "SCH-03"
       ],
       "targetTables": [
-        "pms_plt_file_artifact",
-        "pms_plt_file_version",
-        "pms_plt_file_reference"
+        "plt_file_artifact",
+        "plt_file_version",
+        "plt_file_reference"
       ]
     },
     "AuditRecord": {
@@ -822,7 +822,7 @@
         "NFR-01"
       ],
       "targetTables": [
-        "pms_plt_operation_audit"
+        "plt_operation_audit"
       ]
     },
     "DeviceCredential": {
@@ -832,7 +832,7 @@
         "NFR-02"
       ],
       "targetTables": [
-        "pms_dac_device_credential"
+        "plt_device_credential"
       ]
     },
     "CredentialGrant": {
@@ -842,7 +842,7 @@
         "NFR-02"
       ],
       "targetTables": [
-        "pms_dac_credential_grant"
+        "plt_credential_grant"
       ]
     },
     "CollectionTask": {
@@ -859,7 +859,7 @@
         "NFR-02"
       ],
       "targetTables": [
-        "pms_dac_collection_task"
+        "plt_collection_task"
       ]
     },
     "DispatchAttempt": {
@@ -868,7 +868,7 @@
         "INT-12"
       ],
       "targetTables": [
-        "pms_dac_dispatch_attempt"
+        "plt_dispatch_attempt"
       ]
     },
     "CallbackRecord": {
@@ -877,7 +877,7 @@
         "INT-12"
       ],
       "targetTables": [
-        "pms_dac_callback_record"
+        "plt_callback_record"
       ]
     },
     "CollectionResultReference": {
@@ -887,7 +887,7 @@
         "NFR-02"
       ],
       "targetTables": [
-        "pms_dac_collection_result_ref"
+        "plt_collection_result_reference"
       ]
     },
     "TechnicalNoticeReference": {
@@ -896,8 +896,8 @@
         "INT-04"
       ],
       "targetTables": [
-        "pms_kno_technical_notice",
-        "pms_kno_notice_business_reference"
+        "kno_technical_notice",
+        "kno_notice_business_reference"
       ]
     },
     "NoticeBusinessReference": {
@@ -906,7 +906,7 @@
         "INT-04"
       ],
       "targetTables": [
-        "pms_kno_notice_business_reference"
+        "kno_notice_business_reference"
       ]
     }
   }

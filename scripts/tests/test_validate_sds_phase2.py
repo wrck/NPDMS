@@ -27,7 +27,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             "> Requirement ID：REQ-001  \n"
             "> Owner：Test  \n\n"
             "## Scope\n\n"
-            "Thing pms_test /test\n"
+            "Thing proj_test /test\n"
         )
         for name in MODULE.PHASE2_DOCS:
             (design / name).write_text(metadata, encoding="utf-8")
@@ -54,7 +54,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                 f"### {identifier}\n\n"
                 "- 需求名称：Test\n"
                 "- 数据对象：Thing\n"
-                "- 数据表：pms_test\n"
+                "- 数据表：proj_test\n"
                 "- API：/test\n"
                 "- 事件：N/A（同步命令或查询）\n"
                 "- 外部集成：N/A（平台内部契约）\n"
@@ -97,12 +97,12 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
             content = contract_path.read_text(encoding="utf-8")
             content = content.replace("### REQ-115", "### REQ-999", 1)
-            content = content.replace("- 数据表：pms_test", "- 数据表：pms_missing", 1)
+            content = content.replace("- 数据表：proj_test", "- 数据表：proj_missing", 1)
             contract_path.write_text(content, encoding="utf-8")
 
             errors = MODULE.validate(root)
             self.assertTrue(any("contract IDs must exactly match" in error for error in errors))
-            self.assertTrue(any("undefined table contract: pms_missing" in error for error in errors))
+            self.assertTrue(any("undefined table contract: proj_missing" in error for error in errors))
 
 
 if __name__ == "__main__":

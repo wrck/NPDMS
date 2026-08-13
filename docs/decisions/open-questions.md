@@ -33,11 +33,11 @@
 - Requirement IDs: NFR-01、NFR-02、NFR-03
 - Area: 生产拓扑与网络信任边界（P3-E01）
 - Question: 生产入口、域名/TLS终止、网络区、前后端节点、对象存储、DAC执行区和外部系统流向由哪些平台和Owner承接？
-- Why it blocks design/implementation: 不能验证14信任边界和18生产部署/切换步骤。
+- Why it blocks design/implementation: 不阻断当前逻辑设计；未实例化时不能验证目标环境的14信任边界和18生产部署/切换步骤，因此阻断该环境部署发布。
 - Options: A. 由企业现有网关/LB、证书和网络区承接并提交现状拓扑；B. 为NPDMS新建独立入口和网络区并提交新拓扑。
 - Recommended technical default: A；优先复用企业已运维平台，NPDMS只登记允许流量和责任边界。
 - Business decision required: 是，需技术架构/运维确认平台和Owner。
-- Resolution: A；复用企业现有网关/LB、证书和网络区。实际平台、拓扑、流量和Owner仍由P3-E01证据包确认。
+- Resolution: A；复用企业现有网关/LB、证书和网络区。依据ADR-0018，实际平台、拓扑、流量和Owner在部署阶段由P3-E01确认，不作为当前SDS基线阻断项。
 - Decision owner: 需求方（方向）；技术架构、运维（生产证据）
 - Decision date: 2026-08-13
 
@@ -65,7 +65,7 @@
 - Options: A. 业务Owner先批准RPO/RTO，再由DBA/运维设计并演练；B. 直接采用现有平台默认目标并由业务Owner签署适用性。
 - Recommended technical default: A；业务目标先行，避免基础设施默认值与交付业务风险不匹配。
 - Business decision required: 是。
-- Resolution: A；业务Owner先批准RPO/RTO，再由DBA/运维设计并完成隔离恢复演练。
+- Resolution: A；业务Owner已批准RPO不超过1小时、RTO不超过4小时（ADR-0005），并批准日备35天、月备13个月、年备7年及连续日志策略（ADR-0012）；采用同城温备作为主要恢复路径、离线冷备兜底（ADR-0013）。DBA/运维据此设计并完成隔离恢复演练。
 - Decision owner: 需求方（方向）；业务Owner、DBA、运维（目标与证据）
 - Decision date: 2026-08-13
 
@@ -75,11 +75,11 @@
 - Requirement IDs: NFR-02、INT-12
 - Area: 凭证密钥托管（P3-E04）
 - Question: DeviceCredential使用哪个企业KMS/Secrets Manager或等价密钥托管，轮换、吊销和应急Owner是谁？
-- Why it blocks design/implementation: 凭证加密和轮换无法形成可运行证据，设备连接功能不得上线。
+- Why it blocks design/implementation: 不阻断当前密钥抽象和安全逻辑设计；具体设施未实例化时设备凭证能力不得部署上线。
 - Options: A. 企业KMS/Secrets Manager；B. 应用信封加密且主密钥由独立受控设施托管。
 - Recommended technical default: A；只有企业当前无可用KMS时才采用B，并必须实现密钥与数据库分离、版本化和轮换演练。
 - Business decision required: 是，需安全/运维确认设施和Owner。
-- Resolution: A；使用企业KMS/Secrets Manager。具体设施、访问、轮换、吊销和应急证据仍由P3-E04确认。
+- Resolution: A；使用企业KMS/Secrets Manager。依据ADR-0018，具体设施、访问、轮换、吊销和应急证据在部署阶段由P3-E04确认，不作为当前SDS基线阻断项。
 - Decision owner: 需求方（方向）；安全、运维（生产证据）
 - Decision date: 2026-08-13
 
@@ -93,7 +93,7 @@
 - Options: A. OpenTelemetry统一采集后接入企业现有后端；B. 各信号使用现有独立Agent/平台并通过correlationId关联。
 - Recommended technical default: A；若现网平台限制采用B，但必须证明跨信号追溯和权限分离。
 - Business decision required: 是。
-- Resolution: A；OpenTelemetry统一采集并接入企业现有后端。具体后端、访问、留存、采样和告警证据仍由P3-E05确认。
+- Resolution: A；OpenTelemetry统一采集并接入企业现有后端。留存已按ADR-0006～0010分层批准：业务事实/审批历史/明确留痕操作永久不可删除，网络与安全运行日志1年，普通Trace 90天、错误/高风险Trace 180天，原始指标90天、5分钟/小时聚合13个月，调试日志默认7天且专项最长30天。生产Trace采样按ADR-0011批准：普通成功请求10%，错误/高风险/审计失败/发布迁移100%。具体后端、访问角色和告警生产证据仍由P3-E05确认。
 - Decision owner: 需求方（方向）；运维、安全、合规Owner（生产证据）
 - Decision date: 2026-08-13
 
@@ -136,5 +136,6 @@
 - Recommended technical default: A；当前领域模型已经演进，整体恢复可能丢失已确认能力，但未经逐项批准也不能接受当前DDL。
 - Business decision required: 是，需批准每项漂移结论；执行程序只读生成差异，不授权生产迁移。
 - Resolution: A；继续只读生成逐表/列/索引/约束差异，由数据架构和业务Owner逐项裁决，不整体恢复旧DDL。
+- Confirmed naming decision: ADR-0019；业务表删除`pms_`，统一采用`<13领域编码>_<完整领域对象名称>`；表名默认使用完整英文词，仅允许`config`、`sn`两个已登记标准缩写；字段允许使用ADR登记且含义明确的受控缩写，并在无歧义时保持简短。已形成52张表目标命名清单，但尚未重建DDL及全部派生证据，因此本问题仍为`DECIDED_EVIDENCE_PENDING`。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13

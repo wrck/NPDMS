@@ -38,7 +38,29 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
             if identifier in VALIDATOR.LOCAL_REPOSITORY_ASSESSMENTS:
                 facts["localRepositoryAssessment"] = VALIDATOR.LOCAL_REPOSITORY_ASSESSMENTS[identifier]
                 refs.append("docs/engineering/gates/phase-3/runtime-fact-inventory.md")
-            items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": ["GATE"]})
+            if identifier in {"P3-E01", "P3-E04"}:
+                facts["evidenceStage"] = "DEPLOYMENT_TIME"
+                refs.append(VALIDATOR.DEPLOYMENT_TIME_SELECTION_REF)
+            if identifier == "P3-E03":
+                facts.update({"approvedRpo": "PT1H", "approvedRto": "PT4H", "businessObjectiveStatus": "ACCEPTED", "backupRetention": VALIDATOR.BACKUP_RETENTION_POLICY, "recoveryTopology": VALIDATOR.RECOVERY_TOPOLOGY, "recoveryExercisePolicy": VALIDATOR.RECOVERY_EXERCISE_POLICY, "switchAuthorization": VALIDATOR.RECOVERY_SWITCH_AUTHORIZATION})
+                refs.extend([VALIDATOR.RECOVERY_OBJECTIVE_REF, VALIDATOR.BACKUP_RETENTION_REF, VALIDATOR.RECOVERY_TOPOLOGY_REF, VALIDATOR.RECOVERY_EXERCISE_REF, VALIDATOR.RECOVERY_SWITCH_AUTH_REF])
+            if identifier == "P3-E05":
+                facts["permanentAuditPolicy"] = VALIDATOR.PERMANENT_AUDIT_POLICY
+                facts["networkSecurityLogRetention"] = VALIDATOR.NETWORK_SECURITY_RETENTION
+                facts["traceRetention"] = VALIDATOR.TRACE_RETENTION
+                facts["metricRetention"] = VALIDATOR.METRIC_RETENTION
+                facts["debugLogRetention"] = VALIDATOR.DEBUG_LOG_RETENTION
+                facts["traceSamplingPolicy"] = VALIDATOR.TRACE_SAMPLING_POLICY
+                facts["exportAuthorizationPolicy"] = VALIDATOR.EXPORT_AUTHORIZATION_POLICY
+                refs.append(VALIDATOR.PERMANENT_AUDIT_REF)
+                refs.append(VALIDATOR.NETWORK_SECURITY_RETENTION_REF)
+                refs.append(VALIDATOR.TRACE_RETENTION_REF)
+                refs.append(VALIDATOR.METRIC_RETENTION_REF)
+                refs.append(VALIDATOR.DEBUG_LOG_RETENTION_REF)
+                refs.append(VALIDATOR.TRACE_SAMPLING_REF)
+                refs.append(VALIDATOR.EXPORT_POLICY_REF)
+                refs.append(VALIDATOR.EXPORT_EXPIRATION_REF)
+            items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": sorted(VALIDATOR.EXPECTED_BLOCKS[identifier])})
         self.payload = {"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.6", "decisionBaseline": VALIDATOR.DECISION_REF, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": items}
         self.write()
 
@@ -51,9 +73,14 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
     def test_open_register_is_structurally_valid(self) -> None:
         self.assertEqual([], VALIDATOR.validate(self.path))
 
-    def test_open_register_fails_release_readiness(self) -> None:
+    def test_only_model_affecting_e09_blocks_sds_readiness(self) -> None:
         errors = VALIDATOR.validate(self.path, require_ready=True)
-        self.assertTrue(any("not ready" in error for error in errors))
+        self.assertTrue(any("P3-E09" in error for error in errors))
+
+    def test_gate_scope_drift_is_detected(self) -> None:
+        self.payload["items"][0]["blocks"].append("PHASE_3_BASELINE")
+        self.write()
+        self.assertTrue(any("gate scope mismatch" in error for error in VALIDATOR.validate(self.path)))
 
     def test_verified_requires_owner_and_evidence(self) -> None:
         self.payload["items"][0]["status"] = "VERIFIED"
@@ -74,6 +101,81 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         self.payload["items"][1]["confirmedFacts"]["localRepositoryAssessment"] = "PRODUCTION_HA_VERIFIED"
         self.write()
         self.assertTrue(any("local repository evidence assessment" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_recovery_objective_drift_is_detected(self) -> None:
+        self.payload["items"][2]["confirmedFacts"]["approvedRto"] = "PT8H"
+        self.write()
+        self.assertTrue(any("recovery objectives" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_backup_retention_drift_is_detected(self) -> None:
+        self.payload["items"][2]["confirmedFacts"]["backupRetention"] = {**VALIDATOR.BACKUP_RETENTION_POLICY, "yearlyRetention": "P1Y"}
+        self.write()
+        self.assertTrue(any("backup retention" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_recovery_topology_drift_is_detected(self) -> None:
+        self.payload["items"][2]["confirmedFacts"]["recoveryTopology"] = {**VALIDATOR.RECOVERY_TOPOLOGY, "primary": "COLD_ONLY"}
+        self.write()
+        self.assertTrue(any("recovery topology" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_recovery_exercise_frequency_drift_is_detected(self) -> None:
+        self.payload["items"][2]["confirmedFacts"]["recoveryExercisePolicy"] = {**VALIDATOR.RECOVERY_EXERCISE_POLICY, "isolatedRestoreFrequency": "P6M"}
+        self.write()
+        self.assertTrue(any("recovery exercise frequency" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_recovery_switch_authorization_drift_is_detected(self) -> None:
+        self.payload["items"][2]["confirmedFacts"]["switchAuthorization"] = {**VALIDATOR.RECOVERY_SWITCH_AUTHORIZATION, "requiredConfirmer": None}
+        self.write()
+        self.assertTrue(any("switch authorization" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_permanent_audit_policy_drift_is_detected(self) -> None:
+        self.payload["items"][4]["confirmedFacts"]["permanentAuditPolicy"] = "P3Y"
+        self.write()
+        self.assertTrue(any("permanent audit policy" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_network_security_log_retention_drift_is_detected(self) -> None:
+        self.payload["items"][4]["confirmedFacts"]["networkSecurityLogRetention"] = {
+            **VALIDATOR.NETWORK_SECURITY_RETENTION,
+            "onlineRetention": "P90D",
+        }
+        self.write()
+        self.assertTrue(any("network/security log retention" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_trace_retention_drift_is_detected(self) -> None:
+        self.payload["items"][4]["confirmedFacts"]["traceRetention"] = {
+            **VALIDATOR.TRACE_RETENTION,
+            "standard": {**VALIDATOR.TRACE_RETENTION["standard"], "totalRetention": "P30D"},
+        }
+        self.write()
+        self.assertTrue(any("trace retention" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_metric_retention_drift_is_detected(self) -> None:
+        self.payload["items"][4]["confirmedFacts"]["metricRetention"] = {
+            **VALIDATOR.METRIC_RETENTION,
+            "rawHighResolution": {**VALIDATOR.METRIC_RETENTION["rawHighResolution"], "retention": "P30D"},
+        }
+        self.write()
+        self.assertTrue(any("metric retention" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_debug_log_retention_drift_is_detected(self) -> None:
+        self.payload["items"][4]["confirmedFacts"]["debugLogRetention"] = {
+            **VALIDATOR.DEBUG_LOG_RETENTION,
+            "maximumExceptionRetention": "P90D",
+        }
+        self.write()
+        self.assertTrue(any("debug log retention" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_trace_sampling_drift_is_detected(self) -> None:
+        self.payload["items"][4]["confirmedFacts"]["traceSamplingPolicy"] = {
+            **VALIDATOR.TRACE_SAMPLING_POLICY,
+            "forcedSampleRate": 0.5,
+        }
+        self.write()
+        self.assertTrue(any("trace sampling" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_export_authorization_drift_is_detected(self) -> None:
+        self.payload["items"][4]["confirmedFacts"]["exportAuthorizationPolicy"] = {**VALIDATOR.EXPORT_AUTHORIZATION_POLICY, "approvalRequired": True}
+        self.write()
+        self.assertTrue(any("export authorization" in error for error in VALIDATOR.validate(self.path)))
 
 
 if __name__ == "__main__":

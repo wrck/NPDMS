@@ -12,49 +12,49 @@ from pathlib import Path
 
 
 TARGETS: dict[str, tuple[str, ...]] = {
-    "Project": ("pms_project",), "ProjectHierarchy": ("pms_project",), "ProjectAncestorProjection": ("pms_project_tree_path",),
-    "ProjectTemplate": ("pms_project_template_revision",), "ProjectTask": ("pms_project_task",), "TaskAncestorProjection": ("pms_task_tree_path",),
-    "TaskDependency": ("pms_task_dependency",), "ProjectMemberAssignment": ("pms_project_member_assignment",),
-    "ProjectPortfolio": ("pms_project_portfolio", "pms_project_portfolio_member", "pms_project_portfolio_revision"),
-    "ProjectStageSnapshot": ("pms_project_stage_snapshot",), "BorrowedProjectConversion": ("pms_project_conversion",),
-    "ConversionItem": ("pms_project_conversion_item",), "ConversionDeviceDisposition": ("pms_project_conversion_device",),
-    "MultiPhaseProjectGroup": ("pms_project_phase_group",), "MultiPhaseProjectMember": ("pms_project_phase_member",),
-    "CrossPhaseContentReference": ("pms_project_cross_phase_reference",), "Preparation": ("pms_sol_preparation", "pms_sol_preparation_item"),
-    "ConstructionPlan": ("pms_sol_construction_plan", "pms_sol_plan_revision", "pms_sol_plan_item", "pms_sol_plan_change"),
-    "Solution": ("pms_sol_solution", "pms_sol_solution_revision", "pms_sol_solution_review"),
-    "DynamicFormSchema": ("pms_sol_form_schema", "pms_sol_form_schema_revision"), "DynamicFormInstance": ("pms_sol_form_instance",),
-    "ArrivalAcceptance": ("pms_imp_arrival_acceptance", "pms_imp_arrival_line", "pms_imp_arrival_difference"),
-    "InstallationRecord": ("pms_imp_installation_record", "pms_imp_installation_item", "pms_imp_installation_evidence"),
-    "ConfigurationCollectionResult": ("pms_imp_configuration_result", "pms_imp_parse_attempt"),
-    "JointDebuggingResult": ("pms_imp_debugging_result", "pms_imp_debugging_item"), "ImplementationRisk": ("pms_imp_risk", "pms_imp_risk_treatment"),
-    "ImplementationQualityCheck": ("pms_imp_quality_check", "pms_imp_quality_item", "pms_imp_quality_remediation", "pms_imp_quality_review"),
-    "ImplementationSafetyCheck": ("pms_imp_safety_check", "pms_imp_safety_item", "pms_imp_safety_remediation", "pms_imp_safety_exemption"),
-    "DeliveryEvidence": ("pms_imp_delivery_evidence", "pms_imp_delivery_evidence_revision"),
-    "ImplementationReadinessSnapshot": ("pms_project_stage_snapshot",), "Acceptance": ("pms_acc_acceptance", "pms_acc_acceptance_item", "pms_acc_confirmation"),
-    "DeliveryArtifact": ("pms_acc_delivery_artifact", "pms_acc_artifact_review", "pms_acc_archive_record"),
-    "ProjectClosure": ("pms_acc_project_closure", "pms_acc_closure_review"), "ClosureGateSnapshot": ("pms_acc_closure_gate_snapshot",),
-    "ServiceHandover": ("pms_acc_service_handover", "pms_acc_handover_item", "pms_acc_handover_result"),
-    "CutoverTask": ("pms_cut_task",), "CutoverAssessment": ("pms_cut_assessment",),
-    "CutoverPlan": ("pms_cut_plan_revision", "pms_cut_step"), "CutoverExecution": ("pms_cut_execution", "pms_cut_execution_step", "pms_cut_observation"),
-    "InspectionTask": ("pms_ins_task", "pms_ins_task_rule_snapshot"), "InspectionRule": ("pms_ins_rule", "pms_ins_rule_revision"),
-    "InspectionReport": ("pms_ins_report_revision",), "ServiceIssue": ("pms_ins_service_issue", "pms_ins_remediation"),
-    "WorkOrder": ("pms_wo_work_order", "pms_wo_handling_record"), "TimeClaim": ("pms_wo_time_claim", "pms_wo_time_adjustment"),
-    "ServiceStatus": ("pms_srv_service_status",), "Customer": ("pms_cus_customer",), "CustomerContact": ("pms_cus_contact", "pms_cus_project_contact_relation"),
-    "CustomerRelationshipSnapshot": ("pms_cus_relationship_snapshot",), "Device": ("pms_equipment",), "DeviceArchive": ("pms_equipment", "pms_equipment_version", "pms_equipment_config_log"),
-    "DeviceCurrentAssignment": ("pms_ast_device_current_assignment", "pms_ast_device_assignment_history"),
-    "DeviceAssignmentHistory": ("pms_ast_device_assignment_history",), "DeviceAncestorProjection": ("pms_ast_device_project_ancestor",),
-    "AssetSyncSnapshot": ("pms_int_sync_batch", "pms_int_sync_item", "pms_equipment"), "MaintenanceFact": ("pms_ast_maintenance_fact",),
-    "RMAReplacement": ("pms_ast_rma_replacement",), "Contract": ("pms_com_contract",), "SalesOrder": ("pms_com_sales_order",),
-    "OrderLine": ("pms_com_order_line",), "DeliveryScope": ("pms_com_delivery_scope",), "FulfillmentSnapshot": ("pms_com_fulfillment_snapshot",),
-    "ReconciliationRecord": ("pms_com_reconciliation_record",), "Supplier": ("pms_res_supplier", "pms_res_qualification"),
-    "SubcontractRequest": ("pms_res_subcontract_request",), "PaymentGate": ("pms_res_payment_gate",), "MetricDefinition": ("pms_ana_metric_definition",), "MetricSnapshot": ("pms_ana_metric_snapshot",),
-    "PortfolioView": ("pms_ana_portfolio_projection",), "Todo": ("pms_plt_todo",), "AuthorizationGrant": ("pms_plt_authorization_grant",),
-    "ChangeRequest": ("pms_plt_change_request",), "FileArtifact": ("pms_plt_file_artifact", "pms_plt_file_version", "pms_plt_file_reference"),
-    "AuditRecord": ("pms_plt_operation_audit",), "DeviceCredential": ("pms_dac_device_credential",),
-    "CredentialGrant": ("pms_dac_credential_grant",), "CollectionTask": ("pms_dac_collection_task",),
-    "DispatchAttempt": ("pms_dac_dispatch_attempt",), "CallbackRecord": ("pms_dac_callback_record",),
-    "CollectionResultReference": ("pms_dac_collection_result_ref",), "TechnicalNoticeReference": ("pms_kno_technical_notice", "pms_kno_notice_business_reference"),
-    "NoticeBusinessReference": ("pms_kno_notice_business_reference",),
+    "Project": ("proj_project",), "ProjectHierarchy": ("proj_project",), "ProjectAncestorProjection": ("proj_project_tree_path",),
+    "ProjectTemplate": ("proj_project_template_revision",), "ProjectTask": ("proj_project_task",), "TaskAncestorProjection": ("proj_task_tree_path",),
+    "TaskDependency": ("proj_task_dependency",), "ProjectMemberAssignment": ("proj_project_member_assignment",),
+    "ProjectPortfolio": ("proj_project_portfolio", "proj_project_portfolio_member", "proj_project_portfolio_revision"),
+    "ProjectStageSnapshot": ("proj_project_stage_snapshot",), "BorrowedProjectConversion": ("proj_project_conversion",),
+    "ConversionItem": ("proj_project_conversion_item",), "ConversionDeviceDisposition": ("proj_project_conversion_device",),
+    "MultiPhaseProjectGroup": ("proj_multi_phase_project_group",), "MultiPhaseProjectMember": ("proj_multi_phase_project_member",),
+    "CrossPhaseContentReference": ("proj_project_cross_phase_reference",), "Preparation": ("sol_preparation", "sol_preparation_item"),
+    "ConstructionPlan": ("sol_construction_plan", "sol_construction_plan_revision", "sol_construction_plan_item", "sol_construction_plan_change"),
+    "Solution": ("sol_solution", "sol_solution_revision", "sol_solution_review"),
+    "DynamicFormSchema": ("sol_dynamic_form_schema", "sol_dynamic_form_schema_revision"), "DynamicFormInstance": ("sol_dynamic_form_instance",),
+    "ArrivalAcceptance": ("imp_arrival_acceptance", "imp_arrival_line", "imp_arrival_difference"),
+    "InstallationRecord": ("imp_installation_record", "imp_installation_item", "imp_installation_evidence"),
+    "ConfigurationCollectionResult": ("imp_configuration_collection_result", "imp_configuration_collection_parse_attempt"),
+    "JointDebuggingResult": ("imp_joint_debugging_result", "imp_joint_debugging_item"), "ImplementationRisk": ("imp_risk", "imp_risk_treatment"),
+    "ImplementationQualityCheck": ("imp_quality_check", "imp_quality_item", "imp_quality_remediation", "imp_quality_review"),
+    "ImplementationSafetyCheck": ("imp_safety_check", "imp_safety_item", "imp_safety_remediation", "imp_safety_exemption"),
+    "DeliveryEvidence": ("imp_delivery_evidence", "imp_delivery_evidence_revision"),
+    "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_item", "acc_confirmation"),
+    "DeliveryArtifact": ("acc_delivery_artifact", "acc_artifact_review", "acc_archive_record"),
+    "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
+    "ServiceHandover": ("acc_service_handover", "acc_handover_item", "acc_handover_result"),
+    "CutoverTask": ("cut_task",), "CutoverAssessment": ("cut_assessment",),
+    "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverExecution": ("cut_execution", "cut_execution_step", "cut_observation"),
+    "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
+    "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
+    "WorkOrder": ("srv_work_order", "srv_work_order_handling_record"), "TimeClaim": ("srv_time_claim", "srv_time_adjustment"),
+    "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
+    "CustomerRelationshipSnapshot": ("cus_customer_relationship_snapshot",), "Device": ("ast_device",), "DeviceArchive": ("ast_device", "ast_device_version", "ast_device_config_log"),
+    "DeviceCurrentAssignment": ("ast_device_current_assignment", "ast_device_assignment_history"),
+    "DeviceAssignmentHistory": ("ast_device_assignment_history",), "DeviceAncestorProjection": ("ast_device_project_ancestor",),
+    "AssetSyncSnapshot": ("ast_asset_sync_batch", "ast_asset_sync_item", "ast_device"), "MaintenanceFact": ("ast_maintenance_fact",),
+    "RMAReplacement": ("ast_rma_replacement",), "Contract": ("com_contract",), "SalesOrder": ("com_sales_order",),
+    "OrderLine": ("com_order_line",), "DeliveryScope": ("com_delivery_scope",), "FulfillmentSnapshot": ("com_fulfillment_snapshot",),
+    "ReconciliationRecord": ("com_reconciliation_record",), "Supplier": ("res_supplier", "res_qualification"),
+    "SubcontractRequest": ("res_subcontract_request",), "PaymentGate": ("res_payment_gate",), "MetricDefinition": ("ana_metric_definition",), "MetricSnapshot": ("ana_metric_snapshot",),
+    "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "AuthorizationGrant": ("plt_authorization_grant",),
+    "ChangeRequest": ("plt_change_request",), "FileArtifact": ("plt_file_artifact", "plt_file_version", "plt_file_reference"),
+    "AuditRecord": ("plt_operation_audit",), "DeviceCredential": ("plt_device_credential",),
+    "CredentialGrant": ("plt_credential_grant",), "CollectionTask": ("plt_collection_task",),
+    "DispatchAttempt": ("plt_dispatch_attempt",), "CallbackRecord": ("plt_callback_record",),
+    "CollectionResultReference": ("plt_collection_result_reference",), "TechnicalNoticeReference": ("kno_technical_notice", "kno_notice_business_reference"),
+    "NoticeBusinessReference": ("kno_notice_business_reference",),
 }
 
 MODEL_ENTITY_CONTRACTS = {
@@ -304,7 +304,13 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             raise ValueError(f"{object_name} explicit Owner {owner} is not backed by any declaring requirement")
         raw_sources = OVERRIDES.get(object_name)
         if raw_sources is None:
-            current_target = next((table for table in target_tables if table in current_catalog), None)
+            current_candidates: list[tuple[str, str]] = []
+            for table in target_tables:
+                current_candidates.append((table, table))
+                current_candidates.append(("pms_" + table, table))
+                if table.startswith("proj_"):
+                    current_candidates.append(("pms_" + table[len("proj_"):], table))
+            current_target = next((current for current, _target in current_candidates if current in current_catalog), None)
             if current_target:
                 raw_sources = [source("CURRENT_TABLE", current_target, "CURRENT_FORWARD", "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY")]
             else:
@@ -339,9 +345,9 @@ def render_markdown(payload: dict[str, object]) -> str:
     lines = [
         "# 领域实体迁移显式契约",
         "",
-        "> 状态：`BASELINE ADDENDUM`  ",
-        "> 基线：PRD V1.6 / SDS Phase 2 BASELINE  ",
-        f"> 实现证据提交：`{payload['implementationCommit']}`  ",
+        "> 状态：`BASELINE ADDENDUM`",
+        "> 基线：PRD V1.6 / SDS Phase 2 BASELINE",
+        f"> 实现证据提交：`{payload['implementationCommit']}`",
         "> 生成源：`scripts/generate_domain_entity_migration_contract.py`；JSON为机器真值",
         "",
         "每一行只表示一个目标对象的一种来源处置；互斥来源不得合并为对象级策略。Owner由Requirement→Phase 1 Owner映射校验，目标表必须属于Phase 2显式契约。",
@@ -366,10 +372,25 @@ def main() -> int:
     parser.add_argument("--json-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.json"))
     parser.add_argument("--md-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.md"))
     parser.add_argument("--object-table-map", type=Path, default=Path("docs/traceability/domain-object-table-map.json"))
+    parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     payload = build(args)
-    args.json_output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
-    args.md_output.write_text(render_markdown(payload), encoding="utf-8", newline="\n")
+    json_content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    md_content = render_markdown(payload)
+    if args.check:
+        drift = []
+        if not args.json_output.exists() or args.json_output.read_text(encoding="utf-8") != json_content:
+            drift.append(str(args.json_output))
+        if not args.md_output.exists() or args.md_output.read_text(encoding="utf-8") != md_content:
+            drift.append(str(args.md_output))
+        if drift:
+            for path in drift:
+                print(f"[FAIL] domain entity migration contract drift: {path}")
+            return 1
+        print(f"[PASS] migration contract from maintained object-table map; objects={len(payload['records'])} sources={sum(len(record['sources']) for record in payload['records'])}")
+        return 0
+    args.json_output.write_text(json_content, encoding="utf-8", newline="\n")
+    args.md_output.write_text(md_content, encoding="utf-8", newline="\n")
     print(f"WROTE migration contract from maintained object-table map; objects={len(payload['records'])} sources={sum(len(record['sources']) for record in payload['records'])}")
     return 0
 

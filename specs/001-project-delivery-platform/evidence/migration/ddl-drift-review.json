@@ -1,15 +1,17 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T01:04:19.864649+00:00",
+  "generatedAt": "2026-08-13T05:01:20.214480+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
     "ddlPath": "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql",
     "baselineSource": "TARGET_FIELD_CATALOG",
     "baselineCommit": null,
+    "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
     "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
     "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-    "currentDdlSha256": "3CDDE2E206EE4AE401ECC398EA01A6F44FFAD37AC2644478DCD42202330D58BC"
+    "currentDdlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
+    "baselineNameNormalization": "ADR-0019"
   },
   "summary": {
     "baselineTableCount": 52,

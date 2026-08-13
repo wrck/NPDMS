@@ -1,108 +1,108 @@
-{"section":"联系人","name":"客户编码","target":"pms_customer.customer_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A13"]}
-{"section":"联系人","name":"姓名","target":"pms_customer_contact.contact_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A14"]}
-{"section":"联系人","name":"电话","target":"pms_customer_contact.phone","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A15"]}
-{"section":"联系人","name":"邮箱","target":"pms_customer_contact.email","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A16"]}
-{"section":"联系人","name":"联系地址","target":"pms_customer_contact.contact_address","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A17"]}
-{"section":"联系人","name":"部门","target":"pms_customer_contact.customer_department_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A18"]}
-{"section":"联系人","name":"职位","target":"pms_customer_contact.position_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A19"]}
-{"section":"项目","name":"客户编码","target":"pms_project.customer_id","transform":"resolve pms_customer","disposition":"STRUCTURED","sourceRefs":["数据元!A26","项目!A3"]}
-{"section":"项目","name":"项目编码","target":"pms_project.project_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A27","项目!A4"]}
-{"section":"项目","name":"项目名称","target":"pms_project.project_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A28","项目!A5"]}
-{"section":"项目","name":"客户项目名称","target":"pms_project.customer_project_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A29","项目!A6"]}
-{"section":"项目","name":"归属办事处","target":"pms_project_company_department_rel.department_code","transform":"relation_role=OFFICE","disposition":"STRUCTURED","sourceRefs":["数据元!A30","项目!A10"]}
-{"section":"项目","name":"合同号","target":"pms_contract.contract_no","transform":"resolve contract relation","disposition":"STRUCTURED","sourceRefs":["数据元!A31","项目!A11"]}
-{"section":"项目","name":"归属母/子公司","target":"pms_project_company_department_rel.company_code","transform":"relation_role=OWNER_COMPANY","disposition":"STRUCTURED","sourceRefs":["数据元!A32","项目!A12"]}
-{"section":"项目","name":"实施方式","target":"pms_project.implementation_mode","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A33","项目!A13"]}
-{"section":"项目","name":"重大项目级别","target":"pms_project.major_project_level","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A34","项目!A14"]}
-{"section":"项目","name":"项目服务级别","target":"pms_project.service_level_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A35","项目!A15"]}
-{"section":"项目","name":"订单创建时间","target":"pms_sales_order.order_create_time","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A36","项目!A16"]}
-{"section":"项目","name":"项目状态","target":"pms_project.status","transform":"state mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A37","项目!A17"]}
-{"section":"项目","name":"服务提供商","target":"pms_project_party.party_code","transform":"party_role=SERVICE_PROVIDER","disposition":"STRUCTURED","sourceRefs":["数据元!A38","项目!A18"]}
-{"section":"项目","name":"行业","target":"pms_project.industry_code","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A39","项目!A19"]}
-{"section":"项目","name":"项目跟踪干系人","target":"pms_project_member.user_id","transform":"one row per user and role","disposition":"STRUCTURED","sourceRefs":["数据元!A40","项目!A20"]}
-{"section":"项目","name":"项目交付件","target":"pms_project_deliverable.id","transform":"one row per deliverable","disposition":"STRUCTURED","sourceRefs":["数据元!A41","项目!A21"]}
-{"section":"项目","name":"设备型号&数量","target":"pms_project_order_line_scope.order_line_id","transform":"resolve order line","disposition":"STRUCTURED","sourceRefs":["数据元!A42","项目!A22"]}
-{"section":"项目","name":"设备清单","target":"pms_project_device_assignment.device_id","transform":"resolve SN","disposition":"STRUCTURED","sourceRefs":["数据元!A43","项目!A23"]}
-{"section":"项目干系人","name":"项目编码","target":"pms_project_member.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A49","项目!A29"]}
-{"section":"项目干系人","name":"成员角色","target":"pms_project_member.member_role","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A50","项目!A30"]}
-{"section":"项目干系人","name":"销售代表","target":"pms_project_member.user_id","transform":"member_role=SALES_REP","disposition":"STRUCTURED","sourceRefs":["数据元!A51","项目!A31"]}
-{"section":"项目干系人","name":"服务经理","target":"pms_project_member.user_id","transform":"member_role=SERVICE_MANAGER","disposition":"STRUCTURED","sourceRefs":["数据元!A52","项目!A32"]}
-{"section":"项目干系人","name":"项目经理","target":"pms_project_member.user_id","transform":"member_role=PROJECT_MANAGER","disposition":"STRUCTURED","sourceRefs":["数据元!A53","项目!A33"]}
-{"section":"项目干系人","name":"其他团队成员","target":"pms_project_member.user_id","transform":"one row per member","disposition":"STRUCTURED","sourceRefs":["数据元!A54","项目!A34"]}
-{"section":"交付件","name":"项目编码","target":"pms_project_deliverable.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A60","项目!A44"]}
-{"section":"交付件","name":"到货签收单","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=到货签收单","disposition":"STRUCTURED","sourceRefs":["数据元!A61","项目!A45"]}
-{"section":"交付件","name":"分工界面","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=分工界面","disposition":"STRUCTURED","sourceRefs":["数据元!A62","项目!A46"]}
-{"section":"交付件","name":"施工计划","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=施工计划","disposition":"STRUCTURED","sourceRefs":["数据元!A63"]}
-{"section":"交付件","name":"会议纪要","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=会议纪要","disposition":"STRUCTURED","sourceRefs":["数据元!A64","项目!A48"]}
-{"section":"交付件","name":"工勘表","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=工勘表","disposition":"STRUCTURED","sourceRefs":["数据元!A65","项目!A49"]}
-{"section":"交付件","name":"网络拓扑","target":"pms_network_topology.document_id","transform":"deliverable_type=NETWORK_TOPOLOGY","disposition":"STRUCTURED","sourceRefs":["数据元!A66","项目!A50"]}
-{"section":"交付件","name":"自检表","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=自检表","disposition":"STRUCTURED","sourceRefs":["数据元!A67","项目!A51"]}
-{"section":"交付件","name":"验收报告","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=验收报告","disposition":"STRUCTURED","sourceRefs":["数据元!A68","项目!A52"]}
-{"section":"交付件","name":"完工证明","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=完工证明","disposition":"STRUCTURED","sourceRefs":["数据元!A69","项目!A53"]}
-{"section":"交付件","name":"满意度调查表","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=满意度调查表","disposition":"STRUCTURED","sourceRefs":["数据元!A70","项目!A54"]}
-{"section":"设备型号&数量","name":"项目编码","target":"pms_project_order_line_scope.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A76","项目!A60"]}
-{"section":"设备型号&数量","name":"产品编码","target":"pms_sales_order_line.item_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A77","项目!A61"]}
-{"section":"设备型号&数量","name":"产品型号","target":"pms_product.product_model","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A78","项目!A62"]}
-{"section":"设备型号&数量","name":"产品描述","target":"pms_sales_order_line.item_desc","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A79","项目!A63"]}
-{"section":"设备型号&数量","name":"订单数量","target":"pms_sales_order_line.order_qty","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A80","项目!A64"]}
-{"section":"设备型号&数量","name":"发货数量","target":"pms_sales_order_line.delivered_qty","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A81","项目!A65"]}
-{"section":"设备型号&数量","name":"未发货数量","target":"pms_sales_order_line.open_qty","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A82","项目!A66"]}
-{"section":"设备清单","name":"项目编码","target":"pms_project_device_assignment.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A88","项目!A72"]}
-{"section":"设备清单","name":"序列号","target":"pms_device_sn.sn","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A89","项目!A73"]}
-{"section":"设备清单","name":"产品编码","target":"pms_device_sn.item_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A90","项目!A74"]}
-{"section":"设备清单","name":"产品名称","target":"pms_product.product_name","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A91","项目!A75"]}
-{"section":"设备清单","name":"安装地址","target":"pms_project_device_assignment.install_address","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A92","项目!A76"]}
-{"section":"设备清单","name":"硬件定制化","target":"pms_device_sn.hardware_customized","transform":"boolean mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A93","项目!A77"]}
-{"section":"设备清单","name":"版本信息","target":"pms_device_version.id","transform":"split by component and stage","disposition":"STRUCTURED","sourceRefs":["数据元!A94","项目!A78"]}
-{"section":"设备清单","name":"在保状态","target":"pms_device_sn.warranty_status","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A95","项目!A79"]}
-{"section":"设备清单","name":"软件在维状态","target":"pms_device_sn.software_maintenance_status","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A96","项目!A80"]}
-{"section":"设备清单","name":"配置信息","target":"pms_device_configuration.id","transform":"one row per configuration version","disposition":"STRUCTURED","sourceRefs":["数据元!A97","项目!A81"]}
-{"section":"设备清单","name":"部署模式","target":"pms_device_configuration.deployment_mode","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A98","项目!A82"]}
-{"section":"设备清单","name":"启用功能","target":"pms_device_configuration_feature.feature_code","transform":"split to rows","disposition":"STRUCTURED","sourceRefs":["数据元!A99","项目!A84"]}
-{"section":"设备清单","name":"运行业务","target":"pms_device_configuration_service.service_code","transform":"split to rows","disposition":"STRUCTURED","sourceRefs":["数据元!A100","项目!A83"]}
-{"section":"设备清单","name":"网络拓扑","target":"pms_topology_device_rel.topology_id","transform":"resolve topology","disposition":"STRUCTURED","sourceRefs":["数据元!A101","项目!A85"]}
-{"section":"设备清单","name":"故障处理记录","target":"pms_incident_device_rel.incident_id","transform":"resolve incident","disposition":"STRUCTURED","sourceRefs":["数据元!A102","项目!A86"]}
-{"section":"版本信息","name":"序列号","target":"pms_device_version.device_id","transform":"resolve SN","disposition":"STRUCTURED","sourceRefs":["数据元!A108","项目!A93"]}
-{"section":"版本信息","name":"产品名称","target":"pms_product.product_name","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A109","项目!A94"]}
-{"section":"版本信息","name":"出厂软件版本","target":"pms_device_version.version_value","transform":"component and stage derived from 出厂软件版本","disposition":"STRUCTURED","sourceRefs":["数据元!A110","项目!A95"]}
-{"section":"版本信息","name":"出厂conboot版本","target":"pms_device_version.version_value","transform":"component and stage derived from 出厂conboot版本","disposition":"STRUCTURED","sourceRefs":["数据元!A111","项目!A96"]}
-{"section":"版本信息","name":"出厂CPLD版本","target":"pms_device_version.version_value","transform":"component and stage derived from 出厂CPLD版本","disposition":"STRUCTURED","sourceRefs":["数据元!A112","项目!A97"]}
-{"section":"版本信息","name":"官网版本","target":"pms_product_release.release_version","transform":"release_type=OFFICIAL","disposition":"STRUCTURED","sourceRefs":["数据元!A113","项目!A98"]}
-{"section":"版本信息","name":"在网软件版本","target":"pms_device_version.version_value","transform":"component and stage derived from 在网软件版本","disposition":"STRUCTURED","sourceRefs":["数据元!A114","项目!A99"]}
-{"section":"版本信息","name":"在网conboot版本","target":"pms_device_version.version_value","transform":"component and stage derived from 在网conboot版本","disposition":"STRUCTURED","sourceRefs":["数据元!A115","项目!A101"]}
-{"section":"版本信息","name":"在网CPLD版本","target":"pms_device_version.version_value","transform":"component and stage derived from 在网CPLD版本","disposition":"STRUCTURED","sourceRefs":["数据元!A116","项目!A102"]}
-{"section":"版本信息","name":"软件版本定制化","target":"pms_device_version.customized_flag","transform":"boolean mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A117","项目!A100"]}
-{"section":"版本信息","name":"命中技术公告","target":"pms_device_advisory_match.advisory_id","transform":"resolve advisory","disposition":"STRUCTURED","sourceRefs":["数据元!A118","项目!A103"]}
-{"section":"技术公告","name":"产品名称","target":"pms_technical_advisory_product.product_id","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A123","项目!A108"]}
-{"section":"技术公告","name":"在网软件版本","target":"pms_technical_advisory_product.affected_version_expression","transform":"version expression","disposition":"STRUCTURED","sourceRefs":["数据元!A124","项目!A109"]}
-{"section":"技术公告","name":"公告编号","target":"pms_technical_advisory.advisory_no","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A125","项目!A110"]}
-{"section":"技术公告","name":"主题","target":"pms_technical_advisory.advisory_title","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A126","项目!A111"]}
-{"section":"技术公告","name":"严重级别","target":"pms_technical_advisory.severity","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A127","项目!A112"]}
-{"section":"技术公告","name":"问题现象","target":"pms_technical_advisory.symptom","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A128","项目!A114"]}
-{"section":"技术公告","name":"触发条件","target":"pms_technical_advisory.trigger_condition","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A129","项目!A115"]}
-{"section":"技术公告","name":"判断方法","target":"pms_technical_advisory.judgment_method","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A130","项目!A116"]}
-{"section":"技术公告","name":"根本原因","target":"pms_technical_advisory.root_cause","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A131","项目!A117"]}
-{"section":"技术公告","name":"影响和风险","target":"pms_technical_advisory.impact_risk","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A132","项目!A118"]}
-{"section":"技术公告","name":"规避方案","target":"pms_technical_advisory.workaround","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A133","项目!A119"]}
-{"section":"技术公告","name":"解决方案","target":"pms_technical_advisory.solution","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A134","项目!A120"]}
-{"section":"故障处理记录","name":"序列号","target":"pms_incident_device_rel.device_id","transform":"resolve SN","disposition":"STRUCTURED","sourceRefs":["数据元!A141","项目!A127"]}
-{"section":"故障处理记录","name":"问题单号","target":"pms_service_incident.incident_no","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A142","项目!A128"]}
-{"section":"故障处理记录","name":"工单状态","target":"pms_service_incident.status","transform":"state mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A143","项目!A129"]}
-{"section":"故障处理记录","name":"问题单主题","target":"pms_service_incident.incident_title","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A144","项目!A130"]}
-{"section":"故障处理记录","name":"描述","target":"pms_service_incident.symptom","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A145","项目!A131"]}
-{"section":"故障处理记录","name":"问题类型","target":"pms_service_incident.incident_type","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A146","项目!A132"]}
-{"section":"故障处理记录","name":"问题级别","target":"pms_service_incident.severity","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A147","项目!A133"]}
-{"section":"故障处理记录","name":"受理时间","target":"pms_service_incident.reported_time","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A148","项目!A134"]}
-{"section":"故障处理记录","name":"问题根因","target":"pms_service_incident.root_cause","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A149","项目!A135"]}
-{"section":"故障处理记录","name":"解决方案","target":"pms_service_incident.resolution","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A150","项目!A136"]}
-{"section":"故障处理记录","name":"故障报告","target":"pms_service_incident.report_document_id","transform":"resolve document","disposition":"STRUCTURED","sourceRefs":["数据元!A151"]}
-{"section":"项目","name":"合同客户","target":"pms_project_party.party_code","transform":"party_role=CONTRACT_CUSTOMER","disposition":"STRUCTURED","sourceRefs":["项目!A7"]}
-{"section":"项目","name":"中标代理商","target":"pms_project_party.party_code","transform":"party_role=WINNING_AGENT","disposition":"STRUCTURED","sourceRefs":["项目!A8"]}
-{"section":"项目","name":"最终用户","target":"pms_project_party.party_code","transform":"party_role=FINAL_CUSTOMER","disposition":"STRUCTURED","sourceRefs":["项目!A9"]}
-{"section":"项目干系人","name":"电话","target":"pms_customer_contact.phone","transform":"contact lookup only","disposition":"STRUCTURED","sourceRefs":["项目!A35"]}
-{"section":"项目干系人","name":"邮箱","target":"pms_customer_contact.email","transform":"contact lookup only","disposition":"STRUCTURED","sourceRefs":["项目!A36"]}
-{"section":"项目干系人","name":"角色开始时间","target":"pms_project_member.effective_from","transform":"direct","disposition":"STRUCTURED","sourceRefs":["项目!A37"]}
-{"section":"项目干系人","name":"角色结束时间","target":"pms_project_member.effective_to","transform":"direct","disposition":"STRUCTURED","sourceRefs":["项目!A38"]}
-{"section":"交付件","name":"施工计划表","target":"pms_project_deliverable.deliverable_type","transform":"one row with deliverable_type=施工计划表","disposition":"STRUCTURED","sourceRefs":["项目!A47"]}
-{"section":"设备清单","name":"命中技术公告","target":"pms_device_advisory_match.advisory_id","transform":"resolve advisory","disposition":"STRUCTURED","sourceRefs":["项目!A87"]}
-{"section":"技术公告","name":"公告内容","target":"pms_technical_advisory.advisory_content","transform":"direct","disposition":"STRUCTURED","sourceRefs":["项目!A113"]}
+{"section":"联系人","name":"客户编码","target":"cus_customer.customer_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A13"]}
+{"section":"联系人","name":"姓名","target":"cus_customer_contact.contact_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A14"]}
+{"section":"联系人","name":"电话","target":"cus_customer_contact.phone","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A15"]}
+{"section":"联系人","name":"邮箱","target":"cus_customer_contact.email","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A16"]}
+{"section":"联系人","name":"联系地址","target":"cus_customer_contact.contact_address","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A17"]}
+{"section":"联系人","name":"部门","target":"cus_customer_contact.customer_department_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A18"]}
+{"section":"联系人","name":"职位","target":"cus_customer_contact.position_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A19"]}
+{"section":"项目","name":"客户编码","target":"proj_project.customer_id","transform":"resolve pms_customer","disposition":"STRUCTURED","sourceRefs":["数据元!A26","项目!A3"]}
+{"section":"项目","name":"项目编码","target":"proj_project.project_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A27","项目!A4"]}
+{"section":"项目","name":"项目名称","target":"proj_project.project_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A28","项目!A5"]}
+{"section":"项目","name":"客户项目名称","target":"proj_project.customer_project_name","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A29","项目!A6"]}
+{"section":"项目","name":"归属办事处","target":"proj_project_company_department_relation.department_code","transform":"relation_role=OFFICE","disposition":"STRUCTURED","sourceRefs":["数据元!A30","项目!A10"]}
+{"section":"项目","name":"合同号","target":"com_contract.contract_no","transform":"resolve contract relation","disposition":"STRUCTURED","sourceRefs":["数据元!A31","项目!A11"]}
+{"section":"项目","name":"归属母/子公司","target":"proj_project_company_department_relation.company_code","transform":"relation_role=OWNER_COMPANY","disposition":"STRUCTURED","sourceRefs":["数据元!A32","项目!A12"]}
+{"section":"项目","name":"实施方式","target":"proj_project.implementation_mode","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A33","项目!A13"]}
+{"section":"项目","name":"重大项目级别","target":"proj_project.major_project_level","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A34","项目!A14"]}
+{"section":"项目","name":"项目服务级别","target":"proj_project.service_level_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A35","项目!A15"]}
+{"section":"项目","name":"订单创建时间","target":"com_sales_order.order_create_time","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A36","项目!A16"]}
+{"section":"项目","name":"项目状态","target":"proj_project.status","transform":"state mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A37","项目!A17"]}
+{"section":"项目","name":"服务提供商","target":"proj_project_party.party_code","transform":"party_role=SERVICE_PROVIDER","disposition":"STRUCTURED","sourceRefs":["数据元!A38","项目!A18"]}
+{"section":"项目","name":"行业","target":"proj_project.industry_code","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A39","项目!A19"]}
+{"section":"项目","name":"项目跟踪干系人","target":"proj_project_member_assignment.user_id","transform":"one row per user and role","disposition":"STRUCTURED","sourceRefs":["数据元!A40","项目!A20"]}
+{"section":"项目","name":"项目交付件","target":"acc_project_deliverable.id","transform":"one row per deliverable","disposition":"STRUCTURED","sourceRefs":["数据元!A41","项目!A21"]}
+{"section":"项目","name":"设备型号&数量","target":"com_delivery_scope.order_line_id","transform":"resolve order line","disposition":"STRUCTURED","sourceRefs":["数据元!A42","项目!A22"]}
+{"section":"项目","name":"设备清单","target":"ast_device_project_assignment.device_id","transform":"resolve SN","disposition":"STRUCTURED","sourceRefs":["数据元!A43","项目!A23"]}
+{"section":"项目干系人","name":"项目编码","target":"proj_project_member_assignment.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A49","项目!A29"]}
+{"section":"项目干系人","name":"成员角色","target":"proj_project_member_assignment.member_role","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A50","项目!A30"]}
+{"section":"项目干系人","name":"销售代表","target":"proj_project_member_assignment.user_id","transform":"member_role=SALES_REP","disposition":"STRUCTURED","sourceRefs":["数据元!A51","项目!A31"]}
+{"section":"项目干系人","name":"服务经理","target":"proj_project_member_assignment.user_id","transform":"member_role=SERVICE_MANAGER","disposition":"STRUCTURED","sourceRefs":["数据元!A52","项目!A32"]}
+{"section":"项目干系人","name":"项目经理","target":"proj_project_member_assignment.user_id","transform":"member_role=PROJECT_MANAGER","disposition":"STRUCTURED","sourceRefs":["数据元!A53","项目!A33"]}
+{"section":"项目干系人","name":"其他团队成员","target":"proj_project_member_assignment.user_id","transform":"one row per member","disposition":"STRUCTURED","sourceRefs":["数据元!A54","项目!A34"]}
+{"section":"交付件","name":"项目编码","target":"acc_project_deliverable.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A60","项目!A44"]}
+{"section":"交付件","name":"到货签收单","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=到货签收单","disposition":"STRUCTURED","sourceRefs":["数据元!A61","项目!A45"]}
+{"section":"交付件","name":"分工界面","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=分工界面","disposition":"STRUCTURED","sourceRefs":["数据元!A62","项目!A46"]}
+{"section":"交付件","name":"施工计划","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=施工计划","disposition":"STRUCTURED","sourceRefs":["数据元!A63"]}
+{"section":"交付件","name":"会议纪要","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=会议纪要","disposition":"STRUCTURED","sourceRefs":["数据元!A64","项目!A48"]}
+{"section":"交付件","name":"工勘表","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=工勘表","disposition":"STRUCTURED","sourceRefs":["数据元!A65","项目!A49"]}
+{"section":"交付件","name":"网络拓扑","target":"ast_network_topology.document_id","transform":"deliverable_type=NETWORK_TOPOLOGY","disposition":"STRUCTURED","sourceRefs":["数据元!A66","项目!A50"]}
+{"section":"交付件","name":"自检表","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=自检表","disposition":"STRUCTURED","sourceRefs":["数据元!A67","项目!A51"]}
+{"section":"交付件","name":"验收报告","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=验收报告","disposition":"STRUCTURED","sourceRefs":["数据元!A68","项目!A52"]}
+{"section":"交付件","name":"完工证明","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=完工证明","disposition":"STRUCTURED","sourceRefs":["数据元!A69","项目!A53"]}
+{"section":"交付件","name":"满意度调查表","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=满意度调查表","disposition":"STRUCTURED","sourceRefs":["数据元!A70","项目!A54"]}
+{"section":"设备型号&数量","name":"项目编码","target":"com_delivery_scope.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A76","项目!A60"]}
+{"section":"设备型号&数量","name":"产品编码","target":"com_sales_order_line.item_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A77","项目!A61"]}
+{"section":"设备型号&数量","name":"产品型号","target":"ast_product.product_model","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A78","项目!A62"]}
+{"section":"设备型号&数量","name":"产品描述","target":"com_sales_order_line.item_desc","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A79","项目!A63"]}
+{"section":"设备型号&数量","name":"订单数量","target":"com_sales_order_line.order_qty","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A80","项目!A64"]}
+{"section":"设备型号&数量","name":"发货数量","target":"com_sales_order_line.delivered_qty","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A81","项目!A65"]}
+{"section":"设备型号&数量","name":"未发货数量","target":"com_sales_order_line.open_qty","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A82","项目!A66"]}
+{"section":"设备清单","name":"项目编码","target":"ast_device_project_assignment.project_id","transform":"resolve project","disposition":"STRUCTURED","sourceRefs":["数据元!A88","项目!A72"]}
+{"section":"设备清单","name":"序列号","target":"ast_device_sn.sn","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A89","项目!A73"]}
+{"section":"设备清单","name":"产品编码","target":"ast_device_sn.item_code","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A90","项目!A74"]}
+{"section":"设备清单","name":"产品名称","target":"ast_product.product_name","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A91","项目!A75"]}
+{"section":"设备清单","name":"安装地址","target":"ast_device_project_assignment.install_address","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A92","项目!A76"]}
+{"section":"设备清单","name":"硬件定制化","target":"ast_device_sn.hardware_customized","transform":"boolean mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A93","项目!A77"]}
+{"section":"设备清单","name":"版本信息","target":"ast_device_version.id","transform":"split by component and stage","disposition":"STRUCTURED","sourceRefs":["数据元!A94","项目!A78"]}
+{"section":"设备清单","name":"在保状态","target":"ast_device_sn.warranty_status","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A95","项目!A79"]}
+{"section":"设备清单","name":"软件在维状态","target":"ast_device_sn.software_maintenance_status","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A96","项目!A80"]}
+{"section":"设备清单","name":"配置信息","target":"ast_device_configuration.id","transform":"one row per configuration version","disposition":"STRUCTURED","sourceRefs":["数据元!A97","项目!A81"]}
+{"section":"设备清单","name":"部署模式","target":"ast_device_configuration.deployment_mode","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A98","项目!A82"]}
+{"section":"设备清单","name":"启用功能","target":"ast_device_configuration_feature.feature_code","transform":"split to rows","disposition":"STRUCTURED","sourceRefs":["数据元!A99","项目!A84"]}
+{"section":"设备清单","name":"运行业务","target":"ast_device_configuration_service.service_code","transform":"split to rows","disposition":"STRUCTURED","sourceRefs":["数据元!A100","项目!A83"]}
+{"section":"设备清单","name":"网络拓扑","target":"ast_network_topology_device_relation.topology_id","transform":"resolve topology","disposition":"STRUCTURED","sourceRefs":["数据元!A101","项目!A85"]}
+{"section":"设备清单","name":"故障处理记录","target":"srv_service_incident_device_relation.incident_id","transform":"resolve incident","disposition":"STRUCTURED","sourceRefs":["数据元!A102","项目!A86"]}
+{"section":"版本信息","name":"序列号","target":"ast_device_version.device_id","transform":"resolve SN","disposition":"STRUCTURED","sourceRefs":["数据元!A108","项目!A93"]}
+{"section":"版本信息","name":"产品名称","target":"ast_product.product_name","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A109","项目!A94"]}
+{"section":"版本信息","name":"出厂软件版本","target":"ast_device_version.version_value","transform":"component and stage derived from 出厂软件版本","disposition":"STRUCTURED","sourceRefs":["数据元!A110","项目!A95"]}
+{"section":"版本信息","name":"出厂conboot版本","target":"ast_device_version.version_value","transform":"component and stage derived from 出厂conboot版本","disposition":"STRUCTURED","sourceRefs":["数据元!A111","项目!A96"]}
+{"section":"版本信息","name":"出厂CPLD版本","target":"ast_device_version.version_value","transform":"component and stage derived from 出厂CPLD版本","disposition":"STRUCTURED","sourceRefs":["数据元!A112","项目!A97"]}
+{"section":"版本信息","name":"官网版本","target":"ast_product_release.release_version","transform":"release_type=OFFICIAL","disposition":"STRUCTURED","sourceRefs":["数据元!A113","项目!A98"]}
+{"section":"版本信息","name":"在网软件版本","target":"ast_device_version.version_value","transform":"component and stage derived from 在网软件版本","disposition":"STRUCTURED","sourceRefs":["数据元!A114","项目!A99"]}
+{"section":"版本信息","name":"在网conboot版本","target":"ast_device_version.version_value","transform":"component and stage derived from 在网conboot版本","disposition":"STRUCTURED","sourceRefs":["数据元!A115","项目!A101"]}
+{"section":"版本信息","name":"在网CPLD版本","target":"ast_device_version.version_value","transform":"component and stage derived from 在网CPLD版本","disposition":"STRUCTURED","sourceRefs":["数据元!A116","项目!A102"]}
+{"section":"版本信息","name":"软件版本定制化","target":"ast_device_version.customized_flag","transform":"boolean mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A117","项目!A100"]}
+{"section":"版本信息","name":"命中技术公告","target":"kno_device_technical_advisory_match.advisory_id","transform":"resolve advisory","disposition":"STRUCTURED","sourceRefs":["数据元!A118","项目!A103"]}
+{"section":"技术公告","name":"产品名称","target":"kno_technical_advisory_product_relation.product_id","transform":"resolve product","disposition":"STRUCTURED","sourceRefs":["数据元!A123","项目!A108"]}
+{"section":"技术公告","name":"在网软件版本","target":"kno_technical_advisory_product_relation.affected_version_expression","transform":"version expression","disposition":"STRUCTURED","sourceRefs":["数据元!A124","项目!A109"]}
+{"section":"技术公告","name":"公告编号","target":"kno_technical_advisory.advisory_no","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A125","项目!A110"]}
+{"section":"技术公告","name":"主题","target":"kno_technical_advisory.advisory_title","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A126","项目!A111"]}
+{"section":"技术公告","name":"严重级别","target":"kno_technical_advisory.severity","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A127","项目!A112"]}
+{"section":"技术公告","name":"问题现象","target":"kno_technical_advisory.symptom","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A128","项目!A114"]}
+{"section":"技术公告","name":"触发条件","target":"kno_technical_advisory.trigger_condition","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A129","项目!A115"]}
+{"section":"技术公告","name":"判断方法","target":"kno_technical_advisory.judgment_method","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A130","项目!A116"]}
+{"section":"技术公告","name":"根本原因","target":"kno_technical_advisory.root_cause","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A131","项目!A117"]}
+{"section":"技术公告","name":"影响和风险","target":"kno_technical_advisory.impact_risk","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A132","项目!A118"]}
+{"section":"技术公告","name":"规避方案","target":"kno_technical_advisory.workaround","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A133","项目!A119"]}
+{"section":"技术公告","name":"解决方案","target":"kno_technical_advisory.solution","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A134","项目!A120"]}
+{"section":"故障处理记录","name":"序列号","target":"srv_service_incident_device_relation.device_id","transform":"resolve SN","disposition":"STRUCTURED","sourceRefs":["数据元!A141","项目!A127"]}
+{"section":"故障处理记录","name":"问题单号","target":"srv_service_incident.incident_no","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A142","项目!A128"]}
+{"section":"故障处理记录","name":"工单状态","target":"srv_service_incident.status","transform":"state mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A143","项目!A129"]}
+{"section":"故障处理记录","name":"问题单主题","target":"srv_service_incident.incident_title","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A144","项目!A130"]}
+{"section":"故障处理记录","name":"描述","target":"srv_service_incident.symptom","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A145","项目!A131"]}
+{"section":"故障处理记录","name":"问题类型","target":"srv_service_incident.incident_type","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A146","项目!A132"]}
+{"section":"故障处理记录","name":"问题级别","target":"srv_service_incident.severity","transform":"dictionary mapping","disposition":"STRUCTURED","sourceRefs":["数据元!A147","项目!A133"]}
+{"section":"故障处理记录","name":"受理时间","target":"srv_service_incident.reported_time","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A148","项目!A134"]}
+{"section":"故障处理记录","name":"问题根因","target":"srv_service_incident.root_cause","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A149","项目!A135"]}
+{"section":"故障处理记录","name":"解决方案","target":"srv_service_incident.solution","transform":"direct","disposition":"STRUCTURED","sourceRefs":["数据元!A150","项目!A136"]}
+{"section":"故障处理记录","name":"故障报告","target":"srv_service_incident.report_document_id","transform":"resolve document","disposition":"STRUCTURED","sourceRefs":["数据元!A151"]}
+{"section":"项目","name":"合同客户","target":"proj_project_party.party_code","transform":"party_role=CONTRACT_CUSTOMER","disposition":"STRUCTURED","sourceRefs":["项目!A7"]}
+{"section":"项目","name":"中标代理商","target":"proj_project_party.party_code","transform":"party_role=WINNING_AGENT","disposition":"STRUCTURED","sourceRefs":["项目!A8"]}
+{"section":"项目","name":"最终用户","target":"proj_project_party.party_code","transform":"party_role=FINAL_CUSTOMER","disposition":"STRUCTURED","sourceRefs":["项目!A9"]}
+{"section":"项目干系人","name":"电话","target":"cus_customer_contact.phone","transform":"contact lookup only","disposition":"STRUCTURED","sourceRefs":["项目!A35"]}
+{"section":"项目干系人","name":"邮箱","target":"cus_customer_contact.email","transform":"contact lookup only","disposition":"STRUCTURED","sourceRefs":["项目!A36"]}
+{"section":"项目干系人","name":"角色开始时间","target":"proj_project_member_assignment.effective_from","transform":"direct","disposition":"STRUCTURED","sourceRefs":["项目!A37"]}
+{"section":"项目干系人","name":"角色结束时间","target":"proj_project_member_assignment.effective_to","transform":"direct","disposition":"STRUCTURED","sourceRefs":["项目!A38"]}
+{"section":"交付件","name":"施工计划表","target":"acc_project_deliverable.deliverable_type","transform":"one row with deliverable_type=施工计划表","disposition":"STRUCTURED","sourceRefs":["项目!A47"]}
+{"section":"设备清单","name":"命中技术公告","target":"kno_device_technical_advisory_match.advisory_id","transform":"resolve advisory","disposition":"STRUCTURED","sourceRefs":["项目!A87"]}
+{"section":"技术公告","name":"公告内容","target":"kno_technical_advisory.advisory_content","transform":"direct","disposition":"STRUCTURED","sourceRefs":["项目!A113"]}

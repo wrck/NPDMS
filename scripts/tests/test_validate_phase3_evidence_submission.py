@@ -49,6 +49,45 @@ class Phase3EvidenceSubmissionTest(unittest.TestCase):
         self.write()
         self.assertTrue(any("ADR-0004 direction" in item for item in VALIDATOR.validate(self.path)))
 
+    def test_submitted_e03_rejects_recovery_objective_drift(self) -> None:
+        self.payload.update({"id": "P3-E03", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "REQUIREMENT_OWNER", "evidenceRefs": ["controlled-report"]})
+        self.payload["confirmedFacts"] = {key: "evidence-value" for key in VALIDATOR.REQUIRED_FACTS["P3-E03"]}
+        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED", "approvedRpo": "PT1H", "approvedRto": "PT8H"})
+        self.write()
+        self.assertTrue(any("ADR-0005" in item for item in VALIDATOR.validate(self.path)))
+
+    def test_submitted_e03_rejects_backup_or_topology_drift(self) -> None:
+        self.payload.update({"id": "P3-E03", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "REQUIREMENT_OWNER", "evidenceRefs": ["controlled-report"]})
+        self.payload["confirmedFacts"] = {key: "evidence-value" for key in VALIDATOR.REQUIRED_FACTS["P3-E03"]}
+        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED", **VALIDATOR.RECOVERY_OBJECTIVES, "retention": {**VALIDATOR.BACKUP_RETENTION_POLICY, "dailyRetention": "P7D"}, "recoveryTopology": VALIDATOR.RECOVERY_TOPOLOGY})
+        self.write()
+        self.assertTrue(any("ADR-0012" in item for item in VALIDATOR.validate(self.path)))
+
+    def test_submitted_e05_rejects_permanent_audit_policy_drift(self) -> None:
+        self.payload.update({"id": "P3-E05", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "REQUIREMENT_OWNER", "evidenceRefs": ["controlled-report"]})
+        self.payload["confirmedFacts"] = {key: "evidence-value" for key in VALIDATOR.REQUIRED_FACTS["P3-E05"]}
+        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED", "retentionPolicy": {"policyCode": "P3Y"}})
+        self.write()
+        self.assertTrue(any("ADR-0006" in item for item in VALIDATOR.validate(self.path)))
+
+    def test_submitted_e05_rejects_trace_sampling_drift(self) -> None:
+        self.payload.update({"id": "P3-E05", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "REQUIREMENT_OWNER", "evidenceRefs": ["controlled-report"]})
+        self.payload["confirmedFacts"] = {key: "evidence-value" for key in VALIDATOR.REQUIRED_FACTS["P3-E05"]}
+        self.payload["confirmedFacts"].update({
+            "directionDecision": "A", "directionStatus": "ACCEPTED",
+            "retentionPolicy": VALIDATOR.PERMANENT_AUDIT_POLICY,
+            "samplingPolicy": {**VALIDATOR.TRACE_SAMPLING_POLICY, "standardSuccessSampleRate": 0.01},
+        })
+        self.write()
+        self.assertTrue(any("ADR-0011" in item for item in VALIDATOR.validate(self.path)))
+
+    def test_submitted_e05_rejects_export_authorization_drift(self) -> None:
+        self.payload.update({"id": "P3-E05", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "REQUIREMENT_OWNER", "evidenceRefs": ["controlled-report"]})
+        self.payload["confirmedFacts"] = {key: "evidence-value" for key in VALIDATOR.REQUIRED_FACTS["P3-E05"]}
+        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED", "retentionPolicy": VALIDATOR.PERMANENT_AUDIT_POLICY, "samplingPolicy": VALIDATOR.TRACE_SAMPLING_POLICY, "exportAuthorizationPolicy": {**VALIDATOR.EXPORT_AUTHORIZATION_POLICY, "approvalRequired": True}})
+        self.write()
+        self.assertTrue(any("ADR-0014" in item for item in VALIDATOR.validate(self.path)))
+
     def test_verified_e08_rejects_failed_type_check(self) -> None:
         self.payload.update({"status": "VERIFIED", "decisionOwner": "FE", "reviewOwner": "QA", "verificationResult": "PASS", "evidenceRefs": ["report"]})
         self.payload["confirmedFacts"] = {key: "x" for key in VALIDATOR.REQUIRED_FACTS["P3-E08"]}

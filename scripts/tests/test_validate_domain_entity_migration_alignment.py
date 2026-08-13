@@ -44,7 +44,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         )
         (self.root / "docs/design/02-domain-model.md").write_text("Project ArrivalAcceptance\n", encoding="utf-8")
         (self.root / "docs/design/08-data-model.md").write_text("Project ArrivalAcceptance\n", encoding="utf-8")
-        (self.root / "docs/design/09-database-design.md").write_text("`pms_project` `pms_imp_arrival_acceptance`\n", encoding="utf-8")
+        (self.root / "docs/design/09-database-design.md").write_text("`proj_project` `imp_arrival_acceptance`\n", encoding="utf-8")
         (self.root / "docs/design/12-integration-design.md").write_text("CRM 现有采集平台 钉钉 ITR MES\n", encoding="utf-8")
         (self.root / "docs/design/08a-domain-entity-migration-alignment.md").write_text("AI-MIG-000\n", encoding="utf-8")
         (self.root / "docs/traceability/domain-entity-migration-contract.md").write_text("generated\n", encoding="utf-8")
@@ -53,7 +53,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             json.dumps(schema) + "\n", encoding="utf-8"
         )
         ddl = self.root / "specs/001-project-delivery-platform/appendices/test.sql"
-        ddl.write_text("CREATE TABLE pms_project (id bigint);\n", encoding="utf-8")
+        ddl.write_text("CREATE TABLE proj_project (id bigint);\n", encoding="utf-8")
         ddl_sha = hashlib.sha256(ddl.read_bytes()).hexdigest().upper()
         self.ddl_review = {
             "inputs": {"ddlPath": "specs/001-project-delivery-platform/appendices/test.sql", "currentDdlSha256": ddl_sha},
@@ -66,11 +66,11 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             "implementationRepo": str(self.impl), "implementationCommit": "TEST_COMMIT", "implementationTreeState": "CLEAN",
             "records": [
                 {
-                    "object": "Project", "owner": "PROJ", "requirementIds": ["PM-01"], "targetTables": ["pms_project"],
+                    "object": "Project", "owner": "PROJ", "requirementIds": ["PM-01"], "targetTables": ["proj_project"],
                     "sources": [{"sourceType": "LEGACY_TABLE", "sourceObject": "pm_project", "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project", "disposition": "STRUCTURED", "transform": "map", "mappingStatus": "READY", "gate": "AI-MIG-000"}],
                 },
                 {
-                    "object": "ArrivalAcceptance", "owner": "IMP", "requirementIds": ["EXE-01"], "targetTables": ["pms_imp_arrival_acceptance"],
+                    "object": "ArrivalAcceptance", "owner": "IMP", "requirementIds": ["EXE-01"], "targetTables": ["imp_arrival_acceptance"],
                     "sources": [{"sourceType": "CURRENT_TABLE", "sourceObject": "pms_eng_arrival", "evidenceRef": "implementation://TEST_COMMIT/sql/migrations/V1__test.sql#table=pms_eng_arrival", "disposition": "CURRENT_FORWARD", "transform": "map", "mappingStatus": "READY", "gate": "NEXT_FLYWAY"}],
                 },
             ],
@@ -109,12 +109,12 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self.assertEqual("PLT", VALIDATOR.expected_object_owner("FileArtifact", {"PLT", "SOL"}))
 
     def test_undeclared_target_table_fails(self) -> None:
-        self.contract["records"][0]["targetTables"] = ["pms_unknown"]
+        self.contract["records"][0]["targetTables"] = ["proj_unknown"]
         self._save_contract()
         self.assertTrue(any("target table not declared" in error for error in self._validate()))
 
     def test_existing_table_owned_by_another_object_fails(self) -> None:
-        self.contract["records"][0]["targetTables"] = ["pms_imp_arrival_acceptance"]
+        self.contract["records"][0]["targetTables"] = ["imp_arrival_acceptance"]
         self._save_contract()
         self.assertTrue(any("do not exactly match" in error for error in self._validate()))
 
@@ -122,6 +122,16 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self.contract["records"][1]["sources"][0]["sourceObject"] = "pms_missing"
         self._save_contract()
         self.assertTrue(any("current source table not found" in error for error in self._validate()))
+
+    def test_legacy_system_prefix_target_fails(self) -> None:
+        self.contract["records"][0]["targetTables"] = ["pms_project"]
+        self._save_contract()
+        self.assertTrue(any("legacy system prefix" in error for error in self._validate()))
+
+    def test_wrong_domain_prefix_target_fails(self) -> None:
+        self.contract["records"][0]["targetTables"] = ["ast_project"]
+        self._save_contract()
+        self.assertTrue(any("owner prefix mismatch" in error for error in self._validate()))
 
     def test_missing_legacy_source_fails(self) -> None:
         self.contract["records"][0]["sources"][0]["sourceObject"] = "pm_missing"

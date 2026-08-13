@@ -58,7 +58,7 @@ class Phase3ValidatorTest(unittest.TestCase):
             "> Phase 3验证注记状态：`IN_REVIEW`\n\n" + "\n".join(blocks), encoding="utf-8"
         )
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md").write_text(
-            "IN_REVIEW NOT_READY_FOR_SDS_BASELINE BLOCKED_BY_EVIDENCE "
+            "IN_REVIEW NOT_READY_FOR_SDS_BASELINE DOWNSTREAM-GATED BLOCKED_BY_MODEL_DECISION "
             "P3-E01 P3-E02 P3-E03 P3-E04 P3-E05 P3-E06 P3-E08 P3-E09 AI-MIG-000",
             encoding="utf-8",
         )
@@ -91,7 +91,59 @@ class Phase3ValidatorTest(unittest.TestCase):
             if identifier in local_assessments:
                 facts["localRepositoryAssessment"] = local_assessments[identifier]
                 refs.append("docs/engineering/gates/phase-3/runtime-fact-inventory.md")
-            evidence_items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": ["GATE"]})
+            if identifier in {"P3-E01", "P3-E04"}:
+                facts["evidenceStage"] = "DEPLOYMENT_TIME"
+                refs.append("docs/decisions/0018-deployment-time-environment-and-kms-selection.md")
+            if identifier == "P3-E03":
+                facts.update({"approvedRpo": "PT1H", "approvedRto": "PT4H", "businessObjectiveStatus": "ACCEPTED", "backupRetention": {"dailyRetention": "P35D", "monthlyRetention": "P13M", "yearlyRetention": "P7Y", "continuousLogMaxGap": "PT1H"}, "recoveryTopology": {"primary": "METRO_WARM_STANDBY", "fallback": "OFFLINE_COLD_BACKUP_FALLBACK", "approvedRto": "PT4H"}, "recoveryExercisePolicy": {"isolatedRestoreFrequency": "P3M", "fullWarmStandbySwitchFrequency": "P1Y"}, "switchAuthorization": {"initiator": "OPERATIONS_OWNER", "requiredConfirmer": "BUSINESS_OWNER", "securityIncidentAdditionalConfirmer": "SECURITY_OWNER", "auditPolicy": "PERMANENT_NON_DELETABLE"}})
+                refs.extend(["docs/decisions/0005-production-recovery-objectives.md", "docs/decisions/0012-production-backup-retention.md", "docs/decisions/0013-warm-standby-and-offline-cold-backup.md", "docs/decisions/0015-recovery-exercise-frequency.md", "docs/decisions/0017-disaster-recovery-switch-authorization.md"])
+            if identifier == "P3-E05":
+                facts["permanentAuditPolicy"] = "PERMANENT_NON_DELETABLE"
+                facts["networkSecurityLogRetention"] = {
+                    "policyCode": "NETWORK_SECURITY_LOG_P1Y",
+                    "totalRetention": "P1Y",
+                    "onlineRetention": "P180D",
+                    "immutableColdRetention": "P185D",
+                }
+                facts["traceRetention"] = {
+                    "standard": {"policyCode": "TRACE_STANDARD_P90D", "totalRetention": "P90D", "onlineRetention": "P30D", "coldRetention": "P60D"},
+                    "errorHighRisk": {"policyCode": "TRACE_ERROR_HIGH_RISK_P180D", "totalRetention": "P180D", "onlineRetention": "P30D", "coldRetention": "P150D"},
+                }
+                facts["metricRetention"] = {
+                    "rawHighResolution": {"policyCode": "METRIC_RAW_P90D", "retention": "P90D"},
+                    "fiveMinuteHourlyAggregate": {"policyCode": "METRIC_AGGREGATE_P13M", "retention": "P13M"},
+                }
+                facts["debugLogRetention"] = {
+                    "policyCode": "DEBUG_LOG_DEFAULT_P7D", "defaultRetention": "P7D",
+                    "exceptionPolicyCode": "DEBUG_LOG_EXCEPTION_MAX_P30D", "maximumExceptionRetention": "P30D",
+                    "exceptionRequiredFields": ["reason", "owner", "expiresAt"],
+                }
+                facts["traceSamplingPolicy"] = {
+                    "standardSuccessSampleRate": 0.10, "forcedSampleRate": 1.0,
+                    "forcedCategories": ["ERROR", "HIGH_RISK_SECURITY_OPERATION", "AUDIT_WRITE_FAILURE", "RELEASE_MIGRATION"],
+                    "unsampledStillProducesMetrics": True, "unsampledStillProducesPermanentAudit": True,
+                }
+                facts["exportAuthorizationPolicy"] = {"approvalRequired": False, "requiredControls": ["EXPORT_FUNCTION_PERMISSION", "DATA_SCOPE", "FIELD_PERMISSION", "REAL_TIME_DOWNLOAD_RECHECK"], "exportAuditPolicy": "PERMANENT_NON_DELETABLE", "exportFileTtl": "PT24H", "exportRecordRetention": "PERMANENT_NON_DELETABLE"}
+                refs.append("docs/decisions/0006-permanent-business-audit-retention.md")
+                refs.append("docs/decisions/0007-network-security-log-retention.md")
+                refs.append("docs/decisions/0008-trace-retention.md")
+                refs.append("docs/decisions/0009-metric-retention.md")
+                refs.append("docs/decisions/0010-debug-log-retention.md")
+                refs.append("docs/decisions/0011-production-trace-sampling.md")
+                refs.append("docs/decisions/0014-permission-driven-business-data-export.md")
+                refs.append("docs/decisions/0016-export-file-expiration.md")
+            evidence_blocks = {
+                "P3-E01": ["SECURITY_TRUST_BOUNDARY", "PRODUCTION_DEPLOYMENT", "PRODUCTION_RELEASE"],
+                "P3-E02": ["PRODUCTION_DEPLOYMENT", "PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"],
+                "P3-E03": ["RECOVERY_ACCEPTANCE", "PRODUCTION_RELEASE"],
+                "P3-E04": ["NFR_02", "DEVICE_CREDENTIAL_RELEASE", "PRODUCTION_RELEASE"],
+                "P3-E05": ["OBSERVABILITY_ACCEPTANCE", "HIGH_RISK_AUDIT", "PRODUCTION_RELEASE"],
+                "P3-E06": ["PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"],
+                "P3-E07": ["FEATURE_INTEGRATION", "FEATURE_RELEASE"],
+                "P3-E08": ["FRONTEND_FEATURE_ACCEPTANCE", "FRONTEND_RELEASE"],
+                "P3-E09": ["PHASE_3_BASELINE", "DATA_MODEL_BASELINE", "HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
+            }
+            evidence_items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": evidence_blocks[identifier]})
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json").write_text(
             json.dumps({"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.6", "decisionBaseline": decision_ref, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": evidence_items}),
             encoding="utf-8",

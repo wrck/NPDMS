@@ -2,119 +2,17 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "3CDDE2E206EE4AE401ECC398EA01A6F44FFAD37AC2644478DCD42202330D58BC",
+  "currentDdlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
   "tableCount": 52,
   "constraintCount": 422,
-  "inventorySha256": "B650300FE460B79FCB495694377D308098BE02474A725B157DEF4F1EB993FBA4",
+  "inventorySha256": "6AF075F327C00F671AB7C62D0006C688B35CBAD4495514973F530829BCEC68C5",
   "records": [
     {
-      "table": "pms_business_document",
-      "constraints": [
-        "CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_business_document_code (tenant_id, document_code)",
-        "UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_contract",
-      "constraints": [
-        "CONSTRAINT chk_contract_dates CHECK (expiry_date IS NULL OR effective_date IS NULL OR expiry_date >= effective_date)",
-        "CONSTRAINT chk_contract_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_contract_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id)",
-        "KEY idx_contract_company (tenant_id, company_id, status, contract_no)",
-        "KEY idx_contract_customer (tenant_id, customer_id, status)",
-        "KEY idx_contract_no (tenant_id, contract_no, company_code)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_contract_business ( tenant_id, company_code, contract_no )",
-        "UNIQUE KEY uk_contract_master_source ( tenant_id, master_source_system, master_source_record_key )",
-        "UNIQUE KEY uk_contract_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '合同主档，以所属公司和合同号为业务唯一键'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_contract_receivable",
-      "constraints": [
-        "CONSTRAINT chk_contract_receivable_dates CHECK ( source_effective_to IS NULL OR source_effective_from IS NULL OR source_effective_to >= source_effective_from )",
-        "CONSTRAINT chk_contract_receivable_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id)",
-        "KEY idx_contract_receivable_business ( tenant_id, contract_no, company_code, mapping_status )",
-        "KEY idx_contract_receivable_company ( tenant_id, company_id, mapping_status, contract_id )",
-        "KEY idx_contract_receivable_contract ( tenant_id, contract_id, source_sync_time )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_contract_receivable_source ( tenant_id, source_system, source_record_key )",
-        "UNIQUE KEY uk_contract_receivable_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'SAP合同回款来源记录，保留公司待解析和一号多行证据'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_crm_execution_config",
-      "constraints": [
-        "CONSTRAINT chk_crm_execution_config_af CHECK (is_af_evidence IN (0, 1))",
-        "CONSTRAINT chk_crm_execution_config_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id)",
-        "KEY idx_crm_execution_config_company ( tenant_id, company_code, status, execution_id )",
-        "KEY idx_crm_execution_config_execution ( tenant_id, execution_id, item_code )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_crm_execution_config ( tenant_id, config_source, source_config_key )",
-        "UNIQUE KEY uk_crm_execution_config_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CRM已获得的执行单产品配置，仅作辅助证据'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_crm_execution_order",
-      "constraints": [
-        "CONSTRAINT chk_crm_execution_af CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN'))",
-        "CONSTRAINT chk_crm_execution_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_crm_execution_project FOREIGN KEY (tenant_id, primary_project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )",
-        "KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )",
-        "KEY idx_crm_execution_crm_project ( tenant_id, crm_project_code, execution_no )",
-        "KEY idx_crm_execution_project ( tenant_id, primary_project_id, status )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_crm_execution ( tenant_id, source_system, execution_no )",
-        "UNIQUE KEY uk_crm_execution_order_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CRM执行单辅助主档，安服仅保存正向证据'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_customer",
-      "constraints": [
-        "CONSTRAINT chk_customer_deleted CHECK (deleted IN (0, 1))",
-        "KEY idx_customer_name (tenant_id, customer_name)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_customer_code (tenant_id, customer_code)",
-        "UNIQUE KEY uk_customer_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户主档'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_customer_contact",
-      "constraints": [
-        "CONSTRAINT chk_customer_contact_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_customer_contact_primary CHECK (is_primary IN (0, 1))",
-        "CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id)",
-        "KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_customer_contact_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_customer_primary_contact (tenant_id, primary_customer_id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户联系人'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_deliverable_template",
+      "table": "acc_deliverable_template",
       "constraints": [
         "CONSTRAINT chk_deliverable_template_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT chk_deliverable_template_required CHECK (required_flag IN (0, 1))",
-        "CONSTRAINT fk_deliverable_template_document FOREIGN KEY (tenant_id, template_document_id) REFERENCES pms_business_document (tenant_id, id)",
+        "CONSTRAINT fk_deliverable_template_document FOREIGN KEY (tenant_id, template_document_id) REFERENCES plt_business_document (tenant_id, id)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_deliverable_template (tenant_id, template_code)",
         "UNIQUE KEY uk_deliverable_template_tenant_row (tenant_id, id)"
@@ -123,413 +21,12 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_device_advisory_match",
-      "constraints": [
-        "CONSTRAINT chk_device_advisory_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_device_advisory_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES pms_technical_advisory (tenant_id, id)",
-        "CONSTRAINT fk_device_advisory_device FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_advisory_version FOREIGN KEY (tenant_id, matched_version_id) REFERENCES pms_device_version (tenant_id, id)",
-        "KEY idx_device_advisory_reverse (tenant_id, device_id, match_status)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_advisory (tenant_id, advisory_id, device_id)",
-        "UNIQUE KEY uk_device_advisory_match_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备与技术公告的匹配及处置结果'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_device_configuration",
-      "constraints": [
-        "CONSTRAINT chk_device_configuration_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_device_configuration_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_configuration_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_device_configuration (tenant_id, device_id, status, effective_from)",
-        "KEY idx_project_configuration (tenant_id, project_id, configuration_stage)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_configuration_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备分阶段配置主记录'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_device_configuration_feature",
-      "constraints": [
-        "CONSTRAINT chk_configuration_feature_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES pms_device_configuration (tenant_id, id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_configuration_feature ( tenant_id, configuration_id, feature_code )",
-        "UNIQUE KEY uk_device_configuration_feature_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备配置启用特性明细'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_device_configuration_service",
-      "constraints": [
-        "CONSTRAINT chk_configuration_service_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES pms_device_configuration (tenant_id, id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_configuration_service ( tenant_id, configuration_id, service_code )",
-        "UNIQUE KEY uk_device_configuration_service_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备配置运行服务明细'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_device_relation",
-      "constraints": [
-        "CONSTRAINT chk_device_relation_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_device_relation_self CHECK (source_device_id <> target_device_id)",
-        "CONSTRAINT fk_device_relation_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id)",
-        "CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "KEY idx_device_relation_contract_refresh ( tenant_id, contract_id, relation_type, status, source_device_id )",
-        "KEY idx_device_relation_latest ( tenant_id, source_device_id, contract_id, relation_type, status, effective_time, id )",
-        "KEY idx_device_relation_source_device ( tenant_id, source_device_id, relation_type )",
-        "KEY idx_device_relation_target_device ( tenant_id, target_device_id, relation_type )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_relation_source ( tenant_id, source_system, source_record_key )",
-        "UNIQUE KEY uk_device_relation_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '合同维度主附加SN、RMA替换等设备关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_device_shipment_event",
-      "constraints": [
-        "CONSTRAINT chk_shipment_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_shipment_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES pms_sales_order_line (tenant_id, id)",
-        "CONSTRAINT fk_shipment_package FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES pms_shipment_package (tenant_id, id)",
-        "KEY idx_shipment_device (tenant_id, device_id, shipment_time)",
-        "KEY idx_shipment_order_line (tenant_id, order_line_id, shipment_time)",
-        "KEY idx_shipment_package (tenant_id, shipment_package_id, device_id)",
-        "KEY idx_shipment_rma ( tenant_id, rma_marked, business_action_code, rma_no )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_shipment_event_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_shipment_event_source ( tenant_id, source_system, source_record_key )"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备发货、退回、返还和再次发放的物流生命周期事件'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_device_sn",
-      "constraints": [
-        "CONSTRAINT chk_device_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_device_secondary_cache CHECK ( secondary_sn IS NOT NULL OR secondary_item IS NULL )",
-        "CONSTRAINT chk_device_secondary_self CHECK ( secondary_sn IS NULL OR secondary_sn <> sn )",
-        "KEY idx_device_internal_serial_no (tenant_id, internal_serial_no)",
-        "KEY idx_device_item (tenant_id, item_code, asset_status)",
-        "KEY idx_device_secondary_sn (tenant_id, secondary_sn)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_sn (tenant_id, sn)",
-        "UNIQUE KEY uk_device_sn_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备SN主档，不承载重复发货事件'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_device_version",
-      "constraints": [
-        "CONSTRAINT chk_device_version_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_device_version_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_version_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_device_version_current ( tenant_id, device_id, component_type, status, effective_from )",
-        "KEY idx_project_device_version (tenant_id, project_id, version_stage)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_version_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备组件版本及阶段历史'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_document_version",
-      "constraints": [
-        "CONSTRAINT chk_document_version_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id)",
-        "KEY idx_document_file (tenant_id, file_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_document_version (tenant_id, document_id, version_no)",
-        "UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)",
-        "UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档不可变版本'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_execution_merge_batch",
-      "constraints": [
-        "CONSTRAINT chk_execution_merge_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id)",
-        "CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES pms_crm_execution_order (tenant_id, id)",
-        "KEY idx_execution_merge_primary ( tenant_id, primary_execution_id, status )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_execution_merge_batch ( tenant_id, source_system, source_merge_key )",
-        "UNIQUE KEY uk_execution_merge_batch_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '特殊业务合并下单批次'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_execution_merge_member",
-      "constraints": [
-        "CONSTRAINT chk_execution_merge_member_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_execution_merge_member_primary CHECK (is_primary IN (0, 1))",
-        "CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES pms_execution_merge_batch (tenant_id, id)",
-        "CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id)",
-        "KEY idx_execution_merge_member_execution ( tenant_id, execution_id, merge_batch_id )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_execution_merge_member_source ( tenant_id, merge_batch_id, source_record_key )",
-        "UNIQUE KEY uk_execution_merge_member_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '特殊合并下单执行单成员，不限制成员数量'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_external_key_map",
-      "constraints": [
-        "CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES pms_sync_batch (tenant_id, id)",
-        "KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)",
-        "KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )",
-        "KEY idx_external_key_target ( tenant_id, target_table, target_id )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_table, target_id )"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧主键到新主键的可追溯映射'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_incident_device_rel",
-      "constraints": [
-        "CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_incident_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES pms_service_incident (tenant_id, id)",
-        "KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)",
-        "UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障与受影响设备多对多关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_migration_issue",
-      "constraints": [
-        "CONSTRAINT chk_migration_issue_resolution CHECK ( resolution_status <> 'RESOLVED' OR (resolver IS NOT NULL AND resolved_time IS NOT NULL) )",
-        "CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES pms_sync_batch (tenant_id, id)",
-        "KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )",
-        "UNIQUE KEY uk_migration_issue_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移缺失、重复、多义映射和人工解决记录'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_migration_source_record",
-      "constraints": [
-        "CONSTRAINT chk_migration_source_target_count CHECK (mapped_target_count >= 0)",
-        "CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES pms_sync_batch (tenant_id, id)",
-        "KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )",
-        "KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )",
-        "UNIQUE KEY uk_migration_source_record_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移批次逐源行的完整原值证据，不因目标归并或去重而覆盖'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_network_topology",
-      "constraints": [
-        "CONSTRAINT chk_network_topology_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_network_topology_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_network_topology_document FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id)",
-        "CONSTRAINT fk_network_topology_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_network_topology_project (tenant_id, project_id, status)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_network_topology_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目网络拓扑版本'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_order_change_rel",
-      "constraints": [
-        "CONSTRAINT chk_order_change_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_order_change_self CHECK (source_order_id <> target_order_id)",
-        "CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES pms_sales_order (tenant_id, id)",
-        "CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES pms_sales_order (tenant_id, id)",
-        "KEY idx_order_change_target ( tenant_id, target_order_id, relation_type )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_order_change ( tenant_id, source_order_id, target_order_id, relation_type )",
-        "UNIQUE KEY uk_order_change_rel_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '改单、拆分、替代和退货订单血缘'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_order_contract_rel",
-      "constraints": [
-        "CONSTRAINT chk_order_contract_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id)",
-        "CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES pms_sales_order (tenant_id, id)",
-        "KEY idx_order_contract_reverse (tenant_id, contract_id, order_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_order_contract (tenant_id, order_id, contract_id)",
-        "UNIQUE KEY uk_order_contract_rel_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '合同与ERP订单N:N关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_order_execution_rel",
-      "constraints": [
-        "CONSTRAINT chk_order_execution_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_order_execution_primary CHECK (is_primary IN (0, 1))",
-        "CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id)",
-        "CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES pms_sales_order (tenant_id, id)",
-        "KEY idx_order_execution_execution ( tenant_id, execution_id, order_id )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id)",
-        "UNIQUE KEY uk_order_execution_rel_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_order_primary_execution (tenant_id, primary_order_id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ERP订单与CRM执行单辅助关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_order_line_execution_rel",
-      "constraints": [
-        "CONSTRAINT chk_order_line_execution_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES pms_crm_execution_order (tenant_id, id)",
-        "CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES pms_sales_order_line (tenant_id, id)",
-        "KEY idx_order_line_execution_reverse (tenant_id, execution_id, order_line_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_order_line_execution (tenant_id, order_line_id, execution_id)",
-        "UNIQUE KEY uk_order_line_execution_rel_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ERP订单行与CRM执行单辅助关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_portfolio",
-      "constraints": [
-        "CONSTRAINT chk_portfolio_deleted CHECK (deleted IN (0, 1))",
-        "KEY idx_portfolio_owner (tenant_id, owner_id, status)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)",
-        "UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合，不改变项目父子层级'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_portfolio_project_rel",
-      "constraints": [
-        "CONSTRAINT chk_portfolio_project_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES pms_portfolio (tenant_id, id)",
-        "CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_portfolio_project ( tenant_id, portfolio_id, project_id, member_source )",
-        "UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合成员'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_product",
-      "constraints": [
-        "CONSTRAINT chk_product_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_product_service CHECK (service_product_flag IN (0, 1))",
-        "KEY idx_product_line (tenant_id, product_line_code, status)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_product_code (tenant_id, product_code)",
-        "UNIQUE KEY uk_product_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '产品主档，安服属性由产品配置判定'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_product_release",
-      "constraints": [
-        "CONSTRAINT chk_product_release_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_product_release_document FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id)",
-        "CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES pms_product (tenant_id, id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_product_release ( tenant_id, product_id, release_version, release_type )",
-        "UNIQUE KEY uk_product_release_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '产品版本发布与支持周期'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_project",
-      "constraints": [
-        "CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_project_depth CHECK (tree_depth >= 0)",
-        "CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id)",
-        "CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )",
-        "KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )",
-        "KEY idx_project_customer_code (tenant_id, customer_code, status, id)",
-        "KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )",
-        "KEY idx_project_manager (tenant_id, manager_id, status)",
-        "KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)",
-        "KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)",
-        "KEY idx_project_path (tenant_id, root_id, tree_path(191))",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_project_code (tenant_id, project_type, project_code)",
-        "UNIQUE KEY uk_project_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目主档及非固定层级项目树'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_project_company_department_rel",
-      "constraints": [
-        "CONSTRAINT chk_project_company_department_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_project_company_department_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_project_company_department_pair CHECK (department_id IS NULL OR department_code IS NOT NULL)",
-        "CONSTRAINT chk_project_company_department_primary CHECK (is_primary IN (0, 1))",
-        "CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )",
-        "KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )",
-        "KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_project_company_department_rel_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_project_company_department_role ( tenant_id, project_id, company_code, department_code, relation_role, effective_from )",
-        "UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目业务角色下的公司与部门组合关系，保留配对但不建立全局主数据从属关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_project_contract_rel",
-      "constraints": [
-        "CONSTRAINT chk_project_contract_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_project_contract_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id)",
-        "CONSTRAINT fk_project_contract_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_project_contract_reverse (tenant_id, contract_id, project_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_project_contract ( tenant_id, project_id, contract_id, relation_role )",
-        "UNIQUE KEY uk_project_contract_rel_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目与合同直接N:N关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_project_deliverable",
+      "table": "acc_project_deliverable",
       "constraints": [
         "CONSTRAINT chk_project_deliverable_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_project_deliverable_document FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id)",
-        "CONSTRAINT fk_project_deliverable_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES pms_deliverable_template (tenant_id, id)",
+        "CONSTRAINT fk_project_deliverable_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
+        "CONSTRAINT fk_project_deliverable_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)",
         "KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date)",
         "KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status)",
         "PRIMARY KEY (id)",
@@ -539,15 +36,15 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_project_delivery_summary",
+      "table": "ana_project_delivery_summary",
       "constraints": [
-        "CONSTRAINT fk_project_summary_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id)",
-        "CONSTRAINT fk_project_summary_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
+        "CONSTRAINT fk_project_summary_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
+        "CONSTRAINT fk_project_summary_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_project_summary_company_department ( tenant_id, company_code, department_code, project_status, project_id )",
         "KEY idx_project_summary_customer ( tenant_id, customer_code, project_status, project_id )",
         "KEY idx_project_summary_manager ( tenant_id, manager_employee_no, project_status, project_id )",
         "KEY idx_project_summary_project_status ( tenant_id, project_status, project_type, project_id )",
-        "KEY idx_project_summary_status ( tenant_id, pending_mapping_count, pending_quantity_count )",
+        "KEY idx_project_summary_status ( tenant_id, pending_mapping_count, pending_qty_count )",
         "KEY idx_project_summary_time (tenant_id, statistic_time)",
         "PRIMARY KEY (tenant_id, project_id)"
       ],
@@ -555,13 +52,52 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_project_device_assignment",
+      "table": "ast_device_configuration",
+      "constraints": [
+        "CONSTRAINT chk_device_configuration_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_device_configuration_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_device_configuration_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_device_configuration (tenant_id, device_id, status, effective_from)",
+        "KEY idx_project_configuration (tenant_id, project_id, configuration_stage)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_device_configuration_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备分阶段配置主记录'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_configuration_feature",
+      "constraints": [
+        "CONSTRAINT chk_configuration_feature_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_device_configuration_feature ( tenant_id, configuration_id, feature_code )",
+        "UNIQUE KEY uk_device_configuration_feature_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备配置启用特性明细'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_configuration_service",
+      "constraints": [
+        "CONSTRAINT chk_configuration_service_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_device_configuration_service ( tenant_id, configuration_id, service_code )",
+        "UNIQUE KEY uk_device_configuration_service_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备配置运行服务明细'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_project_assignment",
       "constraints": [
         "CONSTRAINT chk_device_assignment_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_device_assignment_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_assignment_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "CONSTRAINT fk_device_assignment_scope FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES pms_project_order_line_scope (tenant_id, id)",
+        "CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_device_assignment_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "CONSTRAINT fk_device_assignment_scope FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES com_delivery_scope (tenant_id, id)",
         "KEY idx_device_assignment_company_department ( tenant_id, project_company_code, project_department_code, effective_to, project_id )",
         "KEY idx_device_assignment_customer ( tenant_id, project_customer_code, effective_to, project_id )",
         "KEY idx_device_assignment_device ( tenant_id, device_id, effective_to, project_id )",
@@ -578,29 +114,200 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_project_member",
+      "table": "ast_device_relation",
       "constraints": [
-        "CONSTRAINT chk_project_member_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_project_member_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )",
-        "KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)",
-        "KEY idx_project_member_user (tenant_id, user_id, status, project_id)",
+        "CONSTRAINT chk_device_relation_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_device_relation_self CHECK (source_device_id <> target_device_id)",
+        "CONSTRAINT fk_device_relation_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
+        "CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "KEY idx_device_relation_contract_refresh ( tenant_id, contract_id, relation_type, status, source_device_id )",
+        "KEY idx_device_relation_latest ( tenant_id, source_device_id, contract_id, relation_type, status, effective_time, id )",
+        "KEY idx_device_relation_source_device ( tenant_id, source_device_id, relation_type )",
+        "KEY idx_device_relation_target_device ( tenant_id, target_device_id, relation_type )",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_project_member_role ( tenant_id, project_id, user_id, member_role, effective_from )",
-        "UNIQUE KEY uk_project_member_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_device_relation_source ( tenant_id, source_system, source_record_key )",
+        "UNIQUE KEY uk_device_relation_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目成员、角色及有效期'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '合同维度主附加SN、RMA替换等设备关系'",
       "decision": "DEFER"
     },
     {
-      "table": "pms_project_order_line_scope",
+      "table": "ast_device_shipment_event",
+      "constraints": [
+        "CONSTRAINT chk_shipment_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_shipment_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
+        "CONSTRAINT fk_shipment_package FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES com_shipment_package (tenant_id, id)",
+        "KEY idx_shipment_device (tenant_id, device_id, shipment_time)",
+        "KEY idx_shipment_order_line (tenant_id, order_line_id, shipment_time)",
+        "KEY idx_shipment_package (tenant_id, shipment_package_id, device_id)",
+        "KEY idx_shipment_rma ( tenant_id, rma_marked, business_action_code, rma_no )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_device_shipment_event_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_shipment_event_source ( tenant_id, source_system, source_record_key )"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备发货、退回、返还和再次发放的物流生命周期事件'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_sn",
+      "constraints": [
+        "CONSTRAINT chk_device_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_device_secondary_cache CHECK ( secondary_sn IS NOT NULL OR secondary_item IS NULL )",
+        "CONSTRAINT chk_device_secondary_self CHECK ( secondary_sn IS NULL OR secondary_sn <> sn )",
+        "KEY idx_device_internal_serial_no (tenant_id, internal_serial_no)",
+        "KEY idx_device_item (tenant_id, item_code, asset_status)",
+        "KEY idx_device_secondary_sn (tenant_id, secondary_sn)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_device_sn (tenant_id, sn)",
+        "UNIQUE KEY uk_device_sn_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备SN主档，不承载重复发货事件'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_version",
+      "constraints": [
+        "CONSTRAINT chk_device_version_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_device_version_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_device_version_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_device_version_current ( tenant_id, device_id, component_type, status, effective_from )",
+        "KEY idx_project_device_version (tenant_id, project_id, version_stage)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_device_version_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备组件版本及阶段历史'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_network_topology",
+      "constraints": [
+        "CONSTRAINT chk_network_topology_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_network_topology_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_network_topology_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
+        "CONSTRAINT fk_network_topology_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_network_topology_project (tenant_id, project_id, status)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_network_topology_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目网络拓扑版本'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_network_topology_device_relation",
+      "constraints": [
+        "CONSTRAINT chk_topology_device_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id)",
+        "KEY idx_topology_device_reverse (tenant_id, device_id, topology_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_topology_device (tenant_id, topology_id, device_id)",
+        "UNIQUE KEY uk_topology_device_rel_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '拓扑节点与设备关系'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_product",
+      "constraints": [
+        "CONSTRAINT chk_product_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_product_service CHECK (service_product_flag IN (0, 1))",
+        "KEY idx_product_line (tenant_id, product_line_code, status)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_product_code (tenant_id, product_code)",
+        "UNIQUE KEY uk_product_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '产品主档，安服属性由产品配置判定'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_product_release",
+      "constraints": [
+        "CONSTRAINT chk_product_release_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_product_release_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
+        "CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_product_release ( tenant_id, product_id, release_version, release_type )",
+        "UNIQUE KEY uk_product_release_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '产品版本发布与支持周期'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_contract",
+      "constraints": [
+        "CONSTRAINT chk_contract_dates CHECK (expiry_date IS NULL OR effective_date IS NULL OR expiry_date >= effective_date)",
+        "CONSTRAINT chk_contract_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_contract_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
+        "KEY idx_contract_company (tenant_id, company_id, status, contract_no)",
+        "KEY idx_contract_customer (tenant_id, customer_id, status)",
+        "KEY idx_contract_no (tenant_id, contract_no, company_code)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_contract_business ( tenant_id, company_code, contract_no )",
+        "UNIQUE KEY uk_contract_master_source ( tenant_id, master_source_system, master_source_record_key )",
+        "UNIQUE KEY uk_contract_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '合同主档，以所属公司和合同号为业务唯一键'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_contract_receivable",
+      "constraints": [
+        "CONSTRAINT chk_contract_receivable_dates CHECK ( source_effective_to IS NULL OR source_effective_from IS NULL OR source_effective_to >= source_effective_from )",
+        "CONSTRAINT chk_contract_receivable_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
+        "KEY idx_contract_receivable_business ( tenant_id, contract_no, company_code, mapping_status )",
+        "KEY idx_contract_receivable_company ( tenant_id, company_id, mapping_status, contract_id )",
+        "KEY idx_contract_receivable_contract ( tenant_id, contract_id, source_sync_time )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_contract_receivable_source ( tenant_id, source_system, source_record_key )",
+        "UNIQUE KEY uk_contract_receivable_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'SAP合同回款来源记录，保留公司待解析和一号多行证据'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_crm_execution_config",
+      "constraints": [
+        "CONSTRAINT chk_crm_execution_config_af CHECK (is_af_evidence IN (0, 1))",
+        "CONSTRAINT chk_crm_execution_config_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)",
+        "KEY idx_crm_execution_config_company ( tenant_id, company_code, status, execution_id )",
+        "KEY idx_crm_execution_config_execution ( tenant_id, execution_id, item_code )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_crm_execution_config ( tenant_id, config_source, source_config_key )",
+        "UNIQUE KEY uk_crm_execution_config_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CRM已获得的执行单产品配置，仅作辅助证据'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "constraints": [
+        "CONSTRAINT chk_crm_execution_af CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN'))",
+        "CONSTRAINT chk_crm_execution_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_crm_execution_project FOREIGN KEY (tenant_id, primary_project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )",
+        "KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )",
+        "KEY idx_crm_execution_crm_project ( tenant_id, crm_project_code, execution_no )",
+        "KEY idx_crm_execution_project ( tenant_id, primary_project_id, status )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_crm_execution ( tenant_id, source_system, execution_no )",
+        "UNIQUE KEY uk_crm_execution_order_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CRM执行单辅助主档，安服仅保存正向证据'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_delivery_scope",
       "constraints": [
         "CONSTRAINT chk_scope_active CHECK ( scope_status <> 'ACTIVE' OR allocated_qty IS NOT NULL )",
         "CONSTRAINT chk_scope_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_scope_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES pms_sales_order_line (tenant_id, id)",
-        "CONSTRAINT fk_scope_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
+        "CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
+        "CONSTRAINT fk_scope_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_scope_item (tenant_id, item_code, scope_status, project_id)",
         "KEY idx_scope_order_business ( tenant_id, order_source_system, order_company_code, order_type, order_no, line_no )",
         "KEY idx_scope_order_line ( tenant_id, order_line_id, scope_status, project_id )",
@@ -616,40 +323,113 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_project_party",
+      "table": "com_execution_order_merge_batch",
       "constraints": [
-        "CONSTRAINT chk_project_party_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_project_party_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_project_party_code ( tenant_id, party_role, party_code, status )",
-        "KEY idx_project_party_project ( tenant_id, project_id, party_role, status )",
+        "CONSTRAINT chk_execution_merge_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
+        "CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id)",
+        "KEY idx_execution_merge_primary ( tenant_id, primary_execution_id, status )",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )",
-        "UNIQUE KEY uk_project_party_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_execution_merge_batch ( tenant_id, source_system, source_merge_key )",
+        "UNIQUE KEY uk_execution_merge_batch_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目参与方，按合同客户、最终用户、代理商、服务商等角色保存'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '特殊业务合并下单批次'",
       "decision": "DEFER"
     },
     {
-      "table": "pms_project_relation",
+      "table": "com_execution_order_merge_member",
       "constraints": [
-        "CONSTRAINT chk_project_relation_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_project_relation_self CHECK (source_project_id <> target_project_id)",
-        "CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES pms_project (tenant_id, id)",
-        "CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )",
+        "CONSTRAINT chk_execution_merge_member_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_execution_merge_member_primary CHECK (is_primary IN (0, 1))",
+        "CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id)",
+        "CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)",
+        "KEY idx_execution_merge_member_execution ( tenant_id, execution_id, merge_batch_id )",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )",
-        "UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_execution_merge_member_source ( tenant_id, merge_batch_id, source_record_key )",
+        "UNIQUE KEY uk_execution_merge_member_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '扩容、续采、改造等非树项目关系'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '特殊合并下单执行单成员，不限制成员数量'",
       "decision": "DEFER"
     },
     {
-      "table": "pms_sales_order",
+      "table": "com_order_change_relation",
+      "constraints": [
+        "CONSTRAINT chk_order_change_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_order_change_self CHECK (source_order_id <> target_order_id)",
+        "CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id)",
+        "CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id)",
+        "KEY idx_order_change_target ( tenant_id, target_order_id, relation_type )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_order_change ( tenant_id, source_order_id, target_order_id, relation_type )",
+        "UNIQUE KEY uk_order_change_rel_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '改单、拆分、替代和退货订单血缘'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_order_contract_relation",
+      "constraints": [
+        "CONSTRAINT chk_order_contract_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
+        "CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)",
+        "KEY idx_order_contract_reverse (tenant_id, contract_id, order_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_order_contract (tenant_id, order_id, contract_id)",
+        "UNIQUE KEY uk_order_contract_rel_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '合同与ERP订单N:N关系'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_order_execution_relation",
+      "constraints": [
+        "CONSTRAINT chk_order_execution_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_order_execution_primary CHECK (is_primary IN (0, 1))",
+        "CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)",
+        "CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)",
+        "KEY idx_order_execution_execution ( tenant_id, execution_id, order_id )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id)",
+        "UNIQUE KEY uk_order_execution_rel_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_order_primary_execution (tenant_id, primary_order_id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ERP订单与CRM执行单辅助关系'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_order_line_execution_relation",
+      "constraints": [
+        "CONSTRAINT chk_order_line_execution_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)",
+        "CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
+        "KEY idx_order_line_execution_reverse (tenant_id, execution_id, order_line_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_order_line_execution (tenant_id, order_line_id, execution_id)",
+        "UNIQUE KEY uk_order_line_execution_rel_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ERP订单行与CRM执行单辅助关系'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_project_contract_relation",
+      "constraints": [
+        "CONSTRAINT chk_project_contract_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_project_contract_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
+        "CONSTRAINT fk_project_contract_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_project_contract_reverse (tenant_id, contract_id, project_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_project_contract ( tenant_id, project_id, contract_id, relation_role )",
+        "UNIQUE KEY uk_project_contract_rel_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目与合同直接N:N关系'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_sales_order",
       "constraints": [
         "CONSTRAINT chk_sales_order_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_sales_order_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id)",
+        "CONSTRAINT fk_sales_order_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
         "KEY idx_sales_order_company (tenant_id, company_id, status, order_no)",
         "KEY idx_sales_order_customer (tenant_id, customer_code, status)",
         "KEY idx_sales_order_no (tenant_id, order_no)",
@@ -662,12 +442,12 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_sales_order_line",
+      "table": "com_sales_order_line",
       "constraints": [
         "CONSTRAINT chk_sales_order_line_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_sales_order_line_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES pms_customer (tenant_id, id)",
-        "CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES pms_sales_order (tenant_id, id)",
-        "CONSTRAINT fk_sales_order_line_product FOREIGN KEY (tenant_id, product_id) REFERENCES pms_product (tenant_id, id)",
+        "CONSTRAINT fk_sales_order_line_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
+        "CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)",
+        "CONSTRAINT fk_sales_order_line_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
         "KEY idx_sales_order_line_business ( tenant_id, source_system, company_code, order_type, order_no, line_no )",
         "KEY idx_sales_order_line_customer (tenant_id, customer_code, status, id)",
         "KEY idx_sales_order_line_item (tenant_id, item_code)",
@@ -680,26 +460,10 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_service_incident",
-      "constraints": [
-        "CONSTRAINT chk_service_incident_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT chk_service_incident_times CHECK ( restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time )",
-        "CONSTRAINT fk_service_incident_document FOREIGN KEY (tenant_id, report_document_id) REFERENCES pms_business_document (tenant_id, id)",
-        "CONSTRAINT fk_service_incident_project FOREIGN KEY (tenant_id, project_id) REFERENCES pms_project (tenant_id, id)",
-        "KEY idx_incident_owner (tenant_id, owner_id, status)",
-        "KEY idx_incident_project (tenant_id, project_id, status, occurred_time)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)",
-        "UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障及服务事件主档'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "pms_shipment_contract_ref",
+      "table": "com_shipment_contract_reference",
       "constraints": [
         "CONSTRAINT chk_shipment_contract_ref_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES pms_contract (tenant_id, id)",
+        "CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
         "KEY idx_shipment_contract_ref_company ( tenant_id, company_id, mapping_status, contract_id )",
         "KEY idx_shipment_contract_ref_contract ( tenant_id, contract_id, mapping_status )",
         "KEY idx_shipment_contract_ref_no ( tenant_id, contract_no, company_code, mapping_status )",
@@ -711,11 +475,11 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_shipment_package",
+      "table": "com_shipment_package",
       "constraints": [
         "CONSTRAINT chk_shipment_package_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT chk_shipment_package_warranty_dates CHECK ( warranty_end_time IS NULL OR warranty_start_time IS NULL OR warranty_end_time >= warranty_start_time )",
-        "CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES pms_shipment_contract_ref (tenant_id, id)",
+        "CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)",
         "KEY idx_shipment_package_contract_ref ( tenant_id, shipment_contract_ref_id, shipment_time )",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_shipment_package_no ( tenant_id, source_system, package_no )",
@@ -726,7 +490,155 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_sync_batch",
+      "table": "cus_customer",
+      "constraints": [
+        "CONSTRAINT chk_customer_deleted CHECK (deleted IN (0, 1))",
+        "KEY idx_customer_name (tenant_id, customer_name)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_customer_code (tenant_id, customer_code)",
+        "UNIQUE KEY uk_customer_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户主档'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer_contact",
+      "constraints": [
+        "CONSTRAINT chk_customer_contact_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_customer_contact_primary CHECK (is_primary IN (0, 1))",
+        "CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
+        "KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_customer_contact_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_customer_primary_contact (tenant_id, primary_customer_id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户联系人'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_device_technical_advisory_match",
+      "constraints": [
+        "CONSTRAINT chk_device_advisory_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_device_advisory_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
+        "CONSTRAINT fk_device_advisory_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_device_advisory_version FOREIGN KEY (tenant_id, matched_version_id) REFERENCES ast_device_version (tenant_id, id)",
+        "KEY idx_device_advisory_reverse (tenant_id, device_id, match_status)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_device_advisory (tenant_id, advisory_id, device_id)",
+        "UNIQUE KEY uk_device_advisory_match_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备与技术公告的匹配及处置结果'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_technical_advisory",
+      "constraints": [
+        "CONSTRAINT chk_technical_advisory_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_technical_advisory_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_technical_advisory_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
+        "KEY idx_technical_advisory_status (tenant_id, status, publish_time)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_technical_advisory_no (tenant_id, advisory_no)",
+        "UNIQUE KEY uk_technical_advisory_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告主档'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_technical_advisory_product_relation",
+      "constraints": [
+        "CONSTRAINT chk_advisory_product_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_advisory_product_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
+        "CONSTRAINT fk_advisory_product_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
+        "KEY idx_advisory_product_reverse (tenant_id, product_id, advisory_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_advisory_product (tenant_id, advisory_id, product_id)",
+        "UNIQUE KEY uk_technical_advisory_product_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告适用产品和版本范围'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_technical_advisory_read_record",
+      "constraints": [
+        "CONSTRAINT chk_advisory_read_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_advisory_read_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
+        "KEY idx_advisory_reader_reverse (tenant_id, reader_id, read_status, advisory_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_advisory_reader (tenant_id, advisory_id, reader_id)",
+        "UNIQUE KEY uk_technical_advisory_read_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告阅读及确认记录'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_business_document",
+      "constraints": [
+        "CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_business_document_code (tenant_id, document_code)",
+        "UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_document_version",
+      "constraints": [
+        "CONSTRAINT chk_document_version_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
+        "KEY idx_document_file (tenant_id, file_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_document_version (tenant_id, document_id, version_no)",
+        "UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)",
+        "UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档不可变版本'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_external_key_mapping",
+      "constraints": [
+        "CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)",
+        "KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)",
+        "KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )",
+        "KEY idx_external_key_target ( tenant_id, target_table, target_id )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_table, target_id )"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧主键到新主键的可追溯映射'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_migration_issue",
+      "constraints": [
+        "CONSTRAINT chk_migration_issue_resolution CHECK ( resolution_status <> 'RESOLVED' OR (resolver IS NOT NULL AND resolved_time IS NOT NULL) )",
+        "CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)",
+        "KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )",
+        "UNIQUE KEY uk_migration_issue_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移缺失、重复、多义映射和人工解决记录'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_migration_source_record",
+      "constraints": [
+        "CONSTRAINT chk_migration_source_target_count CHECK (mapped_target_count >= 0)",
+        "CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)",
+        "KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )",
+        "KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )",
+        "UNIQUE KEY uk_migration_source_record_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移批次逐源行的完整原值证据，不因目标归并或去重而覆盖'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_sync_batch",
       "constraints": [
         "CONSTRAINT chk_sync_batch_count CHECK (success_count + failure_count <= read_count)",
         "CONSTRAINT chk_sync_batch_time CHECK (finished_time IS NULL OR finished_time >= started_time)",
@@ -739,58 +651,146 @@
       "decision": "DEFER"
     },
     {
-      "table": "pms_technical_advisory",
+      "table": "proj_project",
       "constraints": [
-        "CONSTRAINT chk_technical_advisory_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_technical_advisory_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_technical_advisory_document FOREIGN KEY (tenant_id, document_id) REFERENCES pms_business_document (tenant_id, id)",
-        "KEY idx_technical_advisory_status (tenant_id, status, publish_time)",
+        "CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_project_depth CHECK (tree_depth >= 0)",
+        "CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
+        "CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )",
+        "KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )",
+        "KEY idx_project_customer_code (tenant_id, customer_code, status, id)",
+        "KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )",
+        "KEY idx_project_manager (tenant_id, manager_id, status)",
+        "KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)",
+        "KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)",
+        "KEY idx_project_path (tenant_id, root_id, tree_path(191))",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_technical_advisory_no (tenant_id, advisory_no)",
-        "UNIQUE KEY uk_technical_advisory_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_project_code (tenant_id, project_type, project_code)",
+        "UNIQUE KEY uk_project_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告主档'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目主档及非固定层级项目树'",
       "decision": "DEFER"
     },
     {
-      "table": "pms_technical_advisory_product",
+      "table": "proj_project_company_department_relation",
       "constraints": [
-        "CONSTRAINT chk_advisory_product_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_advisory_product_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES pms_technical_advisory (tenant_id, id)",
-        "CONSTRAINT fk_advisory_product_product FOREIGN KEY (tenant_id, product_id) REFERENCES pms_product (tenant_id, id)",
-        "KEY idx_advisory_product_reverse (tenant_id, product_id, advisory_id)",
+        "CONSTRAINT chk_project_company_department_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_project_company_department_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_project_company_department_pair CHECK (department_id IS NULL OR department_code IS NOT NULL)",
+        "CONSTRAINT chk_project_company_department_primary CHECK (is_primary IN (0, 1))",
+        "CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )",
+        "KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )",
+        "KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_advisory_product (tenant_id, advisory_id, product_id)",
-        "UNIQUE KEY uk_technical_advisory_product_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_project_company_department_rel_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_project_company_department_role ( tenant_id, project_id, company_code, department_code, relation_role, effective_from )",
+        "UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告适用产品和版本范围'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目业务角色下的公司与部门组合关系，保留配对但不建立全局主数据从属关系'",
       "decision": "DEFER"
     },
     {
-      "table": "pms_technical_advisory_read",
+      "table": "proj_project_member_assignment",
       "constraints": [
-        "CONSTRAINT chk_advisory_read_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_advisory_read_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES pms_technical_advisory (tenant_id, id)",
-        "KEY idx_advisory_reader_reverse (tenant_id, reader_id, read_status, advisory_id)",
+        "CONSTRAINT chk_project_member_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_project_member_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )",
+        "KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)",
+        "KEY idx_project_member_user (tenant_id, user_id, status, project_id)",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_advisory_reader (tenant_id, advisory_id, reader_id)",
-        "UNIQUE KEY uk_technical_advisory_read_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_project_member_role ( tenant_id, project_id, user_id, member_role, effective_from )",
+        "UNIQUE KEY uk_project_member_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告阅读及确认记录'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目成员、角色及有效期'",
       "decision": "DEFER"
     },
     {
-      "table": "pms_topology_device_rel",
+      "table": "proj_project_party",
       "constraints": [
-        "CONSTRAINT chk_topology_device_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES pms_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES pms_network_topology (tenant_id, id)",
-        "KEY idx_topology_device_reverse (tenant_id, device_id, topology_id)",
+        "CONSTRAINT chk_project_party_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
+        "CONSTRAINT chk_project_party_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_project_party_code ( tenant_id, party_role, party_code, status )",
+        "KEY idx_project_party_project ( tenant_id, project_id, party_role, status )",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_topology_device (tenant_id, topology_id, device_id)",
-        "UNIQUE KEY uk_topology_device_rel_tenant_row (tenant_id, id)"
+        "UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )",
+        "UNIQUE KEY uk_project_party_tenant_row (tenant_id, id)"
       ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '拓扑节点与设备关系'",
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目参与方，按合同客户、最终用户、代理商、服务商等角色保存'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_portfolio",
+      "constraints": [
+        "CONSTRAINT chk_portfolio_deleted CHECK (deleted IN (0, 1))",
+        "KEY idx_portfolio_owner (tenant_id, owner_id, status)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)",
+        "UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合，不改变项目父子层级'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_portfolio_member",
+      "constraints": [
+        "CONSTRAINT chk_portfolio_project_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)",
+        "CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_portfolio_project ( tenant_id, portfolio_id, project_id, member_source )",
+        "UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合成员'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_relation",
+      "constraints": [
+        "CONSTRAINT chk_project_relation_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_project_relation_self CHECK (source_project_id <> target_project_id)",
+        "CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)",
+        "CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )",
+        "UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '扩容、续采、改造等非树项目关系'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "srv_service_incident",
+      "constraints": [
+        "CONSTRAINT chk_service_incident_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT chk_service_incident_times CHECK ( restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time )",
+        "CONSTRAINT fk_service_incident_document FOREIGN KEY (tenant_id, report_document_id) REFERENCES plt_business_document (tenant_id, id)",
+        "CONSTRAINT fk_service_incident_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
+        "KEY idx_incident_owner (tenant_id, owner_id, status)",
+        "KEY idx_incident_project (tenant_id, project_id, status, occurred_time)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)",
+        "UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障及服务事件主档'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "srv_service_incident_device_relation",
+      "constraints": [
+        "CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_incident_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
+        "CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)",
+        "KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)",
+        "UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障与受影响设备多对多关系'",
       "decision": "DEFER"
     }
   ],

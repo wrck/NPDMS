@@ -20,9 +20,68 @@
     "logBackend": null,
     "metricBackend": null,
     "redactionPolicy": null,
-    "retentionPolicy": null,
+    "retentionPolicy": {
+      "policyCode": "PERMANENT_NON_DELETABLE",
+      "permanentCategories": [
+        "BUSINESS_FACT",
+        "APPROVAL_HISTORY",
+        "EXPLICITLY_REQUIRED_OPERATION_AUDIT"
+      ],
+      "deletionAllowed": false,
+      "coldStorageAllowed": true,
+      "finiteCategories": {
+        "NETWORK_SECURITY_OPERATION_LOG": {
+          "policyCode": "NETWORK_SECURITY_LOG_P1Y",
+          "totalRetention": "P1Y",
+          "onlineRetention": "P180D",
+          "immutableColdRetention": "P185D"
+        },
+        "STANDARD_TRACE": {
+          "policyCode": "TRACE_STANDARD_P90D",
+          "totalRetention": "P90D",
+          "onlineRetention": "P30D",
+          "coldRetention": "P60D"
+        },
+        "ERROR_HIGH_RISK_TRACE": {
+          "policyCode": "TRACE_ERROR_HIGH_RISK_P180D",
+          "totalRetention": "P180D",
+          "onlineRetention": "P30D",
+          "coldRetention": "P150D"
+        },
+        "RAW_HIGH_RESOLUTION_METRIC": {
+          "policyCode": "METRIC_RAW_P90D",
+          "retention": "P90D"
+        },
+        "FIVE_MINUTE_HOURLY_METRIC_AGGREGATE": {
+          "policyCode": "METRIC_AGGREGATE_P13M",
+          "retention": "P13M"
+        },
+        "DEBUG_LOG": {
+          "policyCode": "DEBUG_LOG_DEFAULT_P7D",
+          "defaultRetention": "P7D",
+          "exceptionPolicyCode": "DEBUG_LOG_EXCEPTION_MAX_P30D",
+          "maximumExceptionRetention": "P30D",
+          "exceptionRequiredFields": [
+            "reason",
+            "owner",
+            "expiresAt"
+          ]
+        }
+      }
+    },
     "runbookRefs": null,
-    "samplingPolicy": null,
+    "samplingPolicy": {
+      "standardSuccessSampleRate": 0.1,
+      "forcedSampleRate": 1.0,
+      "forcedCategories": [
+        "ERROR",
+        "HIGH_RISK_SECURITY_OPERATION",
+        "AUDIT_WRITE_FAILURE",
+        "RELEASE_MIGRATION"
+      ],
+      "unsampledStillProducesMetrics": true,
+      "unsampledStillProducesPermanentAudit": true
+    },
     "securityEventBackend": null,
     "telemetryOwner": null,
     "testTriggerEvidenceId": null,
@@ -35,10 +94,30 @@
       "OBSERVABILITY_OWNER",
       "SECURITY_OWNER",
       "COMPLIANCE_OWNER"
-    ]
+    ],
+    "exportAuthorizationPolicy": {
+      "approvalRequired": false,
+      "requiredControls": [
+        "EXPORT_FUNCTION_PERMISSION",
+        "DATA_SCOPE",
+        "FIELD_PERMISSION",
+        "REAL_TIME_DOWNLOAD_RECHECK"
+      ],
+      "exportAuditPolicy": "PERMANENT_NON_DELETABLE",
+      "exportFileTtl": "PT24H",
+      "exportRecordRetention": "PERMANENT_NON_DELETABLE"
+    }
   },
   "evidenceRefs": [
-    "docs/decisions/0004-phase3-production-assurance-directions.md"
+    "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "docs/decisions/0006-permanent-business-audit-retention.md",
+    "docs/decisions/0007-network-security-log-retention.md",
+    "docs/decisions/0008-trace-retention.md",
+    "docs/decisions/0009-metric-retention.md",
+    "docs/decisions/0010-debug-log-retention.md",
+    "docs/decisions/0011-production-trace-sampling.md",
+    "docs/decisions/0014-permission-driven-business-data-export.md",
+    "docs/decisions/0016-export-file-expiration.md"
   ],
   "verificationResult": null,
   "unresolvedItems": [

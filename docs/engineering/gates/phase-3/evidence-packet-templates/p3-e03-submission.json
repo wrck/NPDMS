@@ -14,8 +14,8 @@
   "confirmedFacts": {
     "actualRpo": null,
     "actualRto": null,
-    "approvedRpo": null,
-    "approvedRto": null,
+    "approvedRpo": "PT1H",
+    "approvedRto": "PT4H",
     "backupFrequency": null,
     "backupMedia": null,
     "businessProbeResult": null,
@@ -23,7 +23,12 @@
     "exerciseEvidenceId": null,
     "exerciseOwner": null,
     "restoreOrder": null,
-    "retention": null,
+    "retention": {
+      "dailyRetention": "P35D",
+      "monthlyRetention": "P13M",
+      "yearlyRetention": "P7Y",
+      "continuousLogMaxGap": "PT1H"
+    },
     "directionDecision": "A",
     "directionStatus": "ACCEPTED",
     "chosenDirection": "业务Owner先批准RPO/RTO，再由DBA/运维设计并演练",
@@ -31,10 +36,30 @@
       "BUSINESS_OWNER",
       "DBA_OWNER",
       "OPERATIONS_OWNER"
-    ]
+    ],
+    "recoveryTopology": {
+      "primary": "METRO_WARM_STANDBY",
+      "fallback": "OFFLINE_COLD_BACKUP_FALLBACK",
+      "approvedRto": "PT4H"
+    },
+    "exercisePolicy": {
+      "isolatedRestoreFrequency": "P3M",
+      "fullWarmStandbySwitchFrequency": "P1Y"
+    },
+    "switchAuthorization": {
+      "initiator": "OPERATIONS_OWNER",
+      "requiredConfirmer": "BUSINESS_OWNER",
+      "securityIncidentAdditionalConfirmer": "SECURITY_OWNER",
+      "auditPolicy": "PERMANENT_NON_DELETABLE"
+    }
   },
   "evidenceRefs": [
-    "docs/decisions/0004-phase3-production-assurance-directions.md"
+    "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "docs/decisions/0005-production-recovery-objectives.md",
+    "docs/decisions/0012-production-backup-retention.md",
+    "docs/decisions/0013-warm-standby-and-offline-cold-backup.md",
+    "docs/decisions/0015-recovery-exercise-frequency.md",
+    "docs/decisions/0017-disaster-recovery-switch-authorization.md"
   ],
   "verificationResult": null,
   "unresolvedItems": [
