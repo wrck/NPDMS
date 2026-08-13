@@ -33,6 +33,16 @@ def load_generator(script_dir: Path):
     return module
 
 
+def resolve_baseline(generator, root: Path, report: dict[str, object]):
+    inputs = report["inputs"]
+    if inputs["baselineSource"] == "GIT_DDL":
+        return generator.parse_ddl(generator.git_blob(root, inputs["baselineCommit"], inputs["ddlPath"]))
+    catalog = root / inputs["baselineCatalogPath"]
+    _commit, tables = generator.locate_catalog_baseline(root, catalog, inputs["baselineDdlSha256"])
+    naming_contract = json.loads((root / "docs/traceability/database-naming-contract.json").read_text(encoding="utf-8"))
+    return generator.normalize_baseline_names(tables, naming_contract)
+
+
 def validate(root: Path) -> list[str]:
     errors: list[str] = []
     migration = root / "specs" / "001-project-delivery-platform" / "evidence" / "migration"
@@ -59,10 +69,7 @@ def validate(root: Path) -> list[str]:
     generator = load_generator(root / "scripts")
     ddl_path = root / report["inputs"]["ddlPath"]
     current_tables = generator.parse_ddl(ddl_path.read_bytes())
-    if report["inputs"]["baselineSource"] == "GIT_DDL":
-        baseline_tables = generator.parse_ddl(generator.git_blob(root, report["inputs"]["baselineCommit"], report["inputs"]["ddlPath"]))
-    else:
-        baseline_tables = generator.load_catalog(root / report["inputs"]["baselineCatalogPath"])
+    baseline_tables = resolve_baseline(generator, root, report)
     expected = generator.ddl_item_decision_register(
         register["baselineDdlSha256"], register["currentDdlSha256"], baseline_tables, current_tables,
         constraints_comparable=report["summary"]["constraintsComparable"],

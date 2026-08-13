@@ -7,7 +7,7 @@
 - 覆盖18张核心旧表、326个物理字段；
 - 326个字段均有明确目标去向，未映射字段为0；
 - 每条来源记录要求写入`pms_migration_source_record`保存完整`source_payload`，同时把查询、关联、统计、同步和审计字段结构化；
-- 去冗余后的物理草案为52张表、1076个带中文注释的字段，覆盖客户、项目、合同、订单行实施范围、CRM辅助关系、SN物流、交付件、配置、版本、公告和故障；
+- 去冗余后的物理草案为52张表、1079个带中文注释的字段，覆盖客户、项目、合同、订单行实施范围、CRM辅助关系、SN物流、交付件、配置、版本、公告和故障；
 - DDL已在隔离MySQL 8.4.10实例验证，结果为52张表、79个租户复合外键、81个CHECK约束。
 
 逐字段机器可读证据见[`../evidence/migration/core-field-mapping.jsonl`](../evidence/migration/core-field-mapping.jsonl)，汇总见[`../evidence/migration/core-field-mapping-summary.json`](../evidence/migration/core-field-mapping-summary.json)。

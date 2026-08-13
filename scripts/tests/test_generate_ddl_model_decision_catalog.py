@@ -19,11 +19,11 @@ class DdlModelDecisionCatalogTest(unittest.TestCase):
         self.assertEqual(52, rendered.count("|T-"))
         self.assertEqual(52, rendered.count("|O-"))
         self.assertEqual(52, rendered.count("|PK-"))
-        self.assertEqual(78, rendered.count("|FK-"))
+        self.assertEqual(79, rendered.count("|FK-"))
         self.assertEqual(107, rendered.count("|IX-"))
-        self.assertEqual(104, rendered.count("|UK-"))
-        self.assertEqual(81, rendered.count("|CK-"))
-        self.assertIn("1,076", rendered)
+        self.assertEqual(105, rendered.count("|UK-"))
+        self.assertEqual(82, rendered.count("|CK-"))
+        self.assertIn("1,079", rendered)
 
 
 if __name__ == "__main__":

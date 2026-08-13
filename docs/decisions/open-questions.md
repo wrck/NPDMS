@@ -137,5 +137,6 @@
 - Business decision required: 是，需批准每项漂移结论；执行程序只读生成差异，不授权生产迁移。
 - Resolution: A；继续只读生成逐表/列/索引/约束差异，由数据架构和业务Owner逐项裁决，不整体恢复旧DDL。
 - Confirmed naming decision: ADR-0019；业务表删除`pms_`，统一采用`<13领域编码>_<完整领域对象名称>`；表名默认使用完整英文词，仅允许`config`、`sn`两个已登记标准缩写；字段允许使用ADR登记且含义明确的受控缩写，并在无歧义时保持简短。已形成52张表目标命名清单，但尚未重建DDL及全部派生证据，因此本问题仍为`DECIDED_EVIDENCE_PENDING`。
+- Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策需同步DDL和P3-E09逐项寄存器后形成完整证据。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13

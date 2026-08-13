@@ -27,6 +27,7 @@ EXPORT_EXPIRATION_REF = "docs/decisions/0016-export-file-expiration.md"
 RECOVERY_SWITCH_AUTH_REF = "docs/decisions/0017-disaster-recovery-switch-authorization.md"
 DEPLOYMENT_TIME_SELECTION_REF = "docs/decisions/0018-deployment-time-environment-and-kms-selection.md"
 DATABASE_NAMING_REF = "docs/decisions/0019-domain-coded-database-naming.md"
+PROJECT_CODE_REF = "docs/decisions/0020-project-code-identity-and-namespace.md"
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 BACKUP_RETENTION_POLICY = {
     "dailyRetention": "P35D",
@@ -166,6 +167,7 @@ def build_packets() -> dict[str, dict[str, object]]:
         if identifier == "P3-E09":
             evidence_refs.extend([
                 DATABASE_NAMING_REF,
+                PROJECT_CODE_REF,
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

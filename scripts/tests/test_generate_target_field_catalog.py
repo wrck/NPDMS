@@ -40,6 +40,24 @@ class GenerateTargetFieldCatalogTest(unittest.TestCase):
         self.assertEqual("com_crm_execution_order", updated["targetBindings"][0]["tableName"])
         self.assertEqual("submit_time", updated["targetBindings"][0]["columnName"])
 
+    def test_new_adr_field_uses_explicit_metadata_without_legacy_source(self) -> None:
+        ddl = type("Table", (), {
+            "columns": {
+                "code_root_id": {
+                    "dataType": "BIGINT", "nullable": False, "defaultValue": None,
+                    "generated": False, "description": "namespace root",
+                }
+            }
+        })()
+        rows = MODULE.build_catalog(
+            {"com_crm_execution_order": ddl}, [], self.contract,
+            {("com_crm_execution_order", "code_root_id"): {
+                "domain": "项目管理", "fieldClass": "RELATION", "dataElementRefs": [],
+            }},
+        )
+        self.assertEqual("code_root_id", rows[0]["columnName"])
+        self.assertEqual("RELATION", rows[0]["fieldClass"])
+
 
 if __name__ == "__main__":
     unittest.main()

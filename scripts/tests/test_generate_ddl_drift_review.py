@@ -82,6 +82,39 @@ class DdlDriftReviewTest(unittest.TestCase):
         self.assertEqual(0, decided["summary"]["approvedCount"])
         self.assertIsNone(decided["approval"]["approvedDdlSha256"])
 
+    def test_accepted_project_code_decisions_are_exact_and_unapproved(self) -> None:
+        baseline = MODULE.parse_ddl(b"CREATE TABLE proj_project (id BIGINT NOT NULL) ENGINE = InnoDB;")
+        current = MODULE.parse_ddl(
+            b"CREATE TABLE proj_project (id BIGINT NOT NULL, code_root_id BIGINT NOT NULL) ENGINE = InnoDB;"
+        )
+        register = MODULE.ddl_item_decision_register(
+            "BASELINE", "CURRENT", baseline, current,
+            constraints_comparable=False, options_comparable=False,
+        )
+        decided = MODULE.apply_accepted_project_code_decisions(register, {
+            "acceptedDdlItems": ["COLUMN:proj_project:code_root_id"],
+        })
+        item = next(
+            item for item in decided["items"]
+            if item["itemId"] == "COLUMN:proj_project:code_root_id"
+        )
+        self.assertEqual("AMEND_CURRENT", item["decision"])
+        self.assertEqual("REQUIREMENT_OWNER", item["decisionOwner"])
+        self.assertIsNone(item["reviewOwner"])
+        self.assertEqual(0, decided["summary"]["approvedCount"])
+
+    def test_project_code_decision_rejects_missing_ddl_item(self) -> None:
+        register = MODULE.ddl_item_decision_register(
+            "BASELINE", "CURRENT",
+            MODULE.parse_ddl(b"CREATE TABLE proj_project (id BIGINT NOT NULL) ENGINE = InnoDB;"),
+            MODULE.parse_ddl(b"CREATE TABLE proj_project (id BIGINT NOT NULL) ENGINE = InnoDB;"),
+            constraints_comparable=False, options_comparable=False,
+        )
+        with self.assertRaisesRegex(ValueError, "missing DDL items"):
+            MODULE.apply_accepted_project_code_decisions(register, {
+                "acceptedDdlItems": ["COLUMN:proj_project:code_root_id"],
+            })
+
 
 if __name__ == "__main__":
     unittest.main()

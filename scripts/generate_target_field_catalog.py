@@ -15,6 +15,7 @@ from pathlib import Path
 
 DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 CONTRACT = Path("docs/traceability/database-naming-contract.json")
+PROJECT_CODE_CONTRACT = Path("docs/traceability/project-code-contract.json")
 MIGRATION = Path("specs/001-project-delivery-platform/evidence/migration")
 CATALOG = MIGRATION / "target-field-catalog.jsonl"
 CATALOG_SUMMARY = MIGRATION / "target-field-catalog-summary.json"
@@ -100,7 +101,12 @@ def remap_catalog_item(item: dict[str, object], contract: dict[str, object]) -> 
     return result
 
 
-def build_catalog(ddl_tables: dict[str, object], prior: list[dict[str, object]], contract: dict[str, object]) -> list[dict[str, object]]:
+def build_catalog(
+    ddl_tables: dict[str, object],
+    prior: list[dict[str, object]],
+    contract: dict[str, object],
+    new_field_metadata: dict[tuple[str, str], dict[str, object]] | None = None,
+) -> list[dict[str, object]]:
     tables, fields = contract_maps(contract)
     reverse_tables = {target: source for source, target in tables.items()}
     reverse_fields = {target: source for source, target in fields.items()}
@@ -113,6 +119,8 @@ def build_catalog(ddl_tables: dict[str, object], prior: list[dict[str, object]],
         for ordinal, (column_name, signature) in enumerate(table.columns.items(), 1):
             source_key = reverse_fields.get((table_name, column_name), (source_table, column_name))
             metadata = prior_by_key.get(source_key)
+            if metadata is None and new_field_metadata is not None:
+                metadata = new_field_metadata.get((table_name, column_name))
             if metadata is None:
                 raise ValueError(f"target catalog metadata missing for {source_key[0]}.{source_key[1]}")
             rows.append({
@@ -142,6 +150,11 @@ def json_content(value: object) -> str:
 def expected_outputs(root: Path) -> dict[Path, str]:
     ddl_path = root / DDL
     contract = json.loads((root / CONTRACT).read_text(encoding="utf-8"))
+    project_code_contract = json.loads((root / PROJECT_CODE_CONTRACT).read_text(encoding="utf-8"))
+    new_field_metadata = {
+        (item["table"], item["name"]): item
+        for item in project_code_contract["columns"]
+    }
     parser = load_parser(root)
     ddl_tables = parser.parse_ddl(ddl_path.read_bytes())
     ddl_hash = sha256(ddl_path.read_bytes())
@@ -158,7 +171,7 @@ def expected_outputs(root: Path) -> dict[Path, str]:
             value["tableName"], value["columnName"] = source_table, source_column
             restored.append(value)
         prior = restored
-    catalog = build_catalog(ddl_tables, prior, contract)
+    catalog = build_catalog(ddl_tables, prior, contract, new_field_metadata)
     outputs: dict[Path, str] = {root / CATALOG: jsonl_content(catalog)}
     domains = Counter(item["domain"] for item in catalog)
     classes = Counter(item["fieldClass"] for item in catalog)

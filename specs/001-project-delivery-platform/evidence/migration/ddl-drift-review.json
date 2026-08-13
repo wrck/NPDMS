@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T05:01:20.214480+00:00",
+  "generatedAt": "2026-08-13T05:55:12.317631+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -10,16 +10,16 @@
     "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
     "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
     "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-    "currentDdlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
+    "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
     "baselineNameNormalization": "ADR-0019"
   },
   "summary": {
     "baselineTableCount": 52,
     "currentTableCount": 52,
     "baselineColumnCount": 1076,
-    "currentColumnCount": 1076,
+    "currentColumnCount": 1079,
     "tableDiff": 0,
-    "columnDiff": 0,
+    "columnDiff": 3,
     "constraintDiff": 0,
     "tableOptionDiff": 0,
     "allDifferencesDecision": "DEFER",
@@ -27,7 +27,50 @@
     "tableOptionsComparable": false
   },
   "tableDiff": [],
-  "columnDiff": [],
+  "columnDiff": [
+    {
+      "table": "proj_project",
+      "column": "code_root_id",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "创建时冻结的项目编码命名空间根项目ID，项目移动时不变"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "code_rule_version",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目编码生成规则版本，创建后冻结"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_sequence",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "编码命名空间内永久流水号，0表示自身建立独立命名空间"
+      },
+      "decision": "DEFER"
+    }
+  ],
   "constraintDiff": [],
   "tableOptionDiff": [],
   "decisionPolicy": {

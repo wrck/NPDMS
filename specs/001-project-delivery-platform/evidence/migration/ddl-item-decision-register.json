@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
+  "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,20 +11,21 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1602,
+    "itemCount": 1608,
     "byType": {
       "TABLE": 52,
-      "COLUMN": 1076,
-      "CONSTRAINT": 422,
+      "COLUMN": 1079,
+      "CONSTRAINT": 425,
       "TABLE_OPTION": 52
     },
     "byComparisonStatus": {
       "MATCH": 1128,
-      "UNVERIFIED_BASELINE_MISSING": 474
+      "UNVERIFIED_BASELINE_MISSING": 477,
+      "ADDED": 3
     },
     "approvedCount": 0
   },
-  "itemsSha256": "91469FC33BF5BA5FC38FA0A6A56182F2856539EB52BD0259BC8DF1229F6D9DFA",
+  "itemsSha256": "1FDE04A252066323055EDBFE85E5C49E897D1136D9C17FA84AFE2A721DDF5C55",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -28013,6 +28014,48 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "COLUMN:proj_project:code_root_id",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "code_root_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "创建时冻结的项目编码命名空间根项目ID，项目移动时不变"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0020-project-code-identity-and-namespace.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project:code_rule_version",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "code_rule_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目编码生成规则版本，创建后冻结"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0020-project-code-identity-and-namespace.md"
+      ]
+    },
+    {
       "itemId": "COLUMN:proj_project:company_code",
       "itemType": "COLUMN",
       "table": "proj_project",
@@ -28713,6 +28756,27 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "COLUMN:proj_project:project_sequence",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "project_sequence",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "编码命名空间内永久流水号，0表示自身建立独立命名空间"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0020-project-code-identity-and-namespace.md"
+      ]
+    },
+    {
       "itemId": "COLUMN:proj_project:project_start_time",
       "itemType": "COLUMN",
       "table": "proj_project",
@@ -29076,6 +29140,21 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "CONSTRAINT:proj_project:chk_project_code_namespace",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project",
+      "name": "chk_project_code_namespace",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_project_code_namespace CHECK ( (project_sequence = 0 AND code_root_id = id) OR project_sequence > 0 )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0020-project-code-identity-and-namespace.md"
+      ]
+    },
+    {
       "itemId": "CONSTRAINT:proj_project:chk_project_deleted",
       "itemType": "CONSTRAINT",
       "table": "proj_project",
@@ -29100,6 +29179,21 @@
       "decisionOwner": null,
       "reviewOwner": null,
       "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project:fk_project_code_root",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project",
+      "name": "fk_project_code_root",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0020-project-code-identity-and-namespace.md"
+      ]
     },
     {
       "itemId": "CONSTRAINT:proj_project:fk_project_customer",
@@ -29238,11 +29332,28 @@
       "name": "uk_project_code",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_project_code (tenant_id, project_type, project_code)",
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "currentValue": "UNIQUE KEY uk_project_code (tenant_id, project_code)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0020-project-code-identity-and-namespace.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project:uk_project_code_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project",
+      "name": "uk_project_code_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0020-project-code-identity-and-namespace.md"
+      ]
     },
     {
       "itemId": "CONSTRAINT:proj_project:uk_project_tenant_row",
@@ -33786,6 +33897,11 @@
   "namingDecision": {
     "decisionRef": "ADR-0019",
     "decidedItemCount": 58,
+    "reviewStatus": "REVIEW_PENDING"
+  },
+  "projectCodeDecision": {
+    "decisionRef": "ADR-0020",
+    "decidedItemCount": 7,
     "reviewStatus": "REVIEW_PENDING"
   }
 }

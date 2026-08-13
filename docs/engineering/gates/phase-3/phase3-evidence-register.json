@@ -294,14 +294,15 @@
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
                 "chosenDirection": "\u9010\u8868\u3001\u5217\u3001\u7d22\u5f15\u548c\u7ea6\u675f\u751f\u6210\u5dee\u5f02\u5e76\u9010\u9879\u88c1\u51b3",
-                "currentDdlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
+                "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "DEFER",
-                "decisionRegisterItemCount": 1602
+                "decisionRegisterItemCount": 1608
             },
             "evidenceRefs": [
                 "docs/decisions/0004-phase3-production-assurance-directions.md",
                 "docs/decisions/0019-domain-coded-database-naming.md",
+                "docs/decisions/0020-project-code-identity-and-namespace.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",

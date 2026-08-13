@@ -369,6 +369,30 @@ def apply_accepted_naming_decisions(register: dict[str, object], contract: dict[
     return register
 
 
+def apply_accepted_project_code_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
+    """Record ADR-0020 requirement-owner decisions without reviewer approval."""
+    decided = set(contract["acceptedDdlItems"])
+    actual = {item["itemId"] for item in register["items"]}
+    missing = sorted(decided - actual)
+    if missing:
+        raise ValueError(f"ADR-0020 references missing DDL items: {missing}")
+    for item in register["items"]:
+        if item["itemId"] in decided:
+            item["decision"] = "AMEND_CURRENT"
+            item["decisionOwner"] = "REQUIREMENT_OWNER"
+            item["reviewOwner"] = None
+            item["evidenceRefs"] = ["docs/decisions/0020-project-code-identity-and-namespace.md"]
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["projectCodeDecision"] = {
+        "decisionRef": "ADR-0020",
+        "decidedItemCount": len(decided),
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
 def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path, naming_contract: Path | None = None) -> dict[str, object]:
     relative_path = ddl.relative_to(repo).as_posix()
     current_data = ddl.read_bytes()
@@ -437,6 +461,7 @@ def main() -> int:
     parser.add_argument("--baseline-sha256", default="2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33")
     parser.add_argument("--catalog", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl"))
     parser.add_argument("--naming-contract", type=Path, default=Path("docs/traceability/database-naming-contract.json"))
+    parser.add_argument("--project-code-contract", type=Path, default=Path("docs/traceability/project-code-contract.json"))
     parser.add_argument("--output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json"))
     parser.add_argument("--constraint-inventory-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json"))
     parser.add_argument("--decision-register-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"))
@@ -448,6 +473,7 @@ def main() -> int:
     decision_output = args.decision_register_output if args.decision_register_output.is_absolute() else repo / args.decision_register_output
     catalog = args.catalog if args.catalog.is_absolute() else repo / args.catalog
     naming_contract = args.naming_contract if args.naming_contract.is_absolute() else repo / args.naming_contract
+    project_code_contract = args.project_code_contract if args.project_code_contract.is_absolute() else repo / args.project_code_contract
     report = build_report(repo, ddl, args.baseline_sha256, catalog, naming_contract)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     inventory = current_constraint_inventory(report["inputs"]["currentDdlSha256"], parse_ddl(ddl.read_bytes()))
@@ -466,6 +492,9 @@ def main() -> int:
     )
     decision_register = apply_accepted_naming_decisions(
         decision_register, json.loads(naming_contract.read_text(encoding="utf-8"))
+    )
+    decision_register = apply_accepted_project_code_decisions(
+        decision_register, json.loads(project_code_contract.read_text(encoding="utf-8"))
     )
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))

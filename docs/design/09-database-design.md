@@ -35,13 +35,13 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前目标 DDL SHA-256 为`9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建并绑定同一哈希，但约束、表选项和最终Reviewer签署仍为`DEFER`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前目标 DDL SHA-256 为`528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，并按ADR-0020补充项目编码命名空间字段与约束；其他约束、表选项和最终Reviewer签署仍为`DEFER`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`OPEN`。
 
 ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前缀`pms_`，并采用`<domain_code>_<full_domain_object_name>`；表名必须保留全部领域对象语义组件，默认使用完整英文词，仅允许ADR登记的`config`、`sn`两个表名标准缩写。字段可以在不产生业务歧义的前提下使用ADR登记的受控缩写、统一同义词并保持简洁。ADR-0019列出了当前52张物理表的逐表目标名称和首批同义字段裁决。该命名决策属于P3-E09模型输入，不等于批准旧DDL：本分册后续仍出现的`pms_*`仅表示尚待AI-MIG-000统一重建的当前证据名称，不再是目标命名。
 
-当前逐项登记见`ddl-item-decision-register.json`，覆盖52表、1,076列、422个当前约束和52个表选项，共1,602项；全部默认`DEFER`。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
+当前逐项登记见`ddl-item-decision-register.json`，覆盖52表、1,079列、425个当前约束和52个表选项，共1,608项；ADR-0019和ADR-0020已确认的65项登记为`AMEND_CURRENT`，其余保持`DEFER`。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
 
 - 本分册中的模型和约束是 SDS 目标契约；物理表目标名以ADR-0019为准，不代表旧52表草案可直接执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；
@@ -102,6 +102,8 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 现有 `proj_project` 的 `parent_id/root_id/path/depth` 可继续承载当前邻接关系和兼容查询，但 `path/depth/root_id` 是派生字段，不得成为独立可写真值。
 
+项目编码按ADR-0020与层级解耦：`project_code`租户内唯一且默认不可变；`code_root_id`和`project_sequence`冻结创建时的编码命名空间，项目移动时不得修改。CRM项目关联多个合同、执行单或订单时仍保持一个项目编码，商业关系通过Commerce关系对象及`DeliveryScope`表达。只有形成独立交付边界时才创建子项目，并由基础平台按`tenant_id + code_root_id`原子分配不可复用流水号。
+
 【建议】新增 `proj_project_tree_path`：
 
 | 字段 | 约束/索引 | 说明 |
@@ -125,7 +127,7 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 | 语义数据元 | 目标落位 | 物理约束/迁移规则 |
 |---|---|---|
-| 项目编码/名称/客户项目名称 | `proj_project.project_code/project_name/customer_project_name` | 项目编码按来源类型形成业务键；历史空名称进入待补问题，不以编码伪造名称 |
+| 项目编码/名称/客户项目名称 | `proj_project.project_code/project_name/customer_project_name` | CRM创建默认沿用CRM项目编码；多合同/订单不改码；子项目使用命名空间永久流水号；历史空名称进入待补问题，不以编码伪造名称 |
 | 客户 | `proj_project.customer_id` | 通过客户外部键解析；只按名称多匹配时生成迁移问题 |
 | 行业/实施方式/重大项目级别 | 独立`industry_code/implementation_mode_code/major_project_level_code` | 版本化字典映射；未知值进入待映射，不写默认值 |
 | 办事处、公司、部门 | 项目组织关系表，字段统一`company_*`、`department_*` | 公司—部门作为同一关系行共同解析和对账；禁止继续生成`org_*`目标字段 |

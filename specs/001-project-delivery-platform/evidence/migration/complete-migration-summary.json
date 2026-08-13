@@ -1,10 +1,10 @@
 {
   "formatVersion": 1,
   "generatedAt": "2026-08-05T03:45:54.110Z",
-  "ddlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
+  "ddlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
   "ddlTableCount": 52,
-  "ddlColumnCount": 1076,
-  "commentedColumnCount": 1076,
+  "ddlColumnCount": 1079,
+  "commentedColumnCount": 1079,
   "invalidCommentCount": 0,
   "semanticSourceRowCount": 197,
   "semanticCanonicalCount": 108,

@@ -3,7 +3,7 @@
 -- Status: REVIEW DRAFT, not a Flyway/Liquibase production migration.
 -- Safety: additive CREATE TABLE statements only; no DROP/TRUNCATE/legacy database writes.
 -- Verified: executed successfully in an isolated MySQL 8.4.10 Docker schema
---           on 2026-08-05; 52 tables, 1076 commented columns,
+--           on 2026-08-05; 52 tables, 1079 commented columns,
 --           79 tenant-safe foreign keys and 81 CHECK constraints.
 -- Quantity: DECIMAL(18,4) is a lossless superset of the legacy INT fields.
 --           The final scale remains subject to material unit confirmation.
@@ -96,6 +96,9 @@ CREATE TABLE proj_project (
     id BIGINT NOT NULL COMMENT '主键ID',
     tenant_id BIGINT NOT NULL COMMENT '租户ID',
     project_code VARCHAR(64) NOT NULL COMMENT '项目主档的项目编码',
+    code_root_id BIGINT NOT NULL COMMENT '创建时冻结的项目编码命名空间根项目ID，项目移动时不变',
+    project_sequence INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '编码命名空间内永久流水号，0表示自身建立独立命名空间',
+    code_rule_version VARCHAR(32) NOT NULL COMMENT '项目编码生成规则版本，创建后冻结',
     project_name VARCHAR(255) NULL COMMENT '项目主档的项目名称',
     parent_id BIGINT NULL COMMENT '关联父记录的全局唯一ID',
     root_id BIGINT NOT NULL COMMENT '项目树根节点项目ID，用于整棵项目树快速过滤，可由父子关系重建',
@@ -138,7 +141,8 @@ CREATE TABLE proj_project (
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
     PRIMARY KEY (id),
     UNIQUE KEY uk_project_tenant_row (tenant_id, id),
-    UNIQUE KEY uk_project_code (tenant_id, project_type, project_code),
+    UNIQUE KEY uk_project_code (tenant_id, project_code),
+    UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence),
     KEY idx_project_parent (tenant_id, parent_id, tree_sort, id),
     KEY idx_project_path (tenant_id, root_id, tree_path(191)),
     KEY idx_project_manager (tenant_id, manager_id, status),
@@ -154,7 +158,12 @@ CREATE TABLE proj_project (
         tenant_id, department_code, company_code, status, id
     ),
     CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id),
+    CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
+    CONSTRAINT chk_project_code_namespace CHECK (
+        (project_sequence = 0 AND code_root_id = id)
+        OR project_sequence > 0
+    ),
     CONSTRAINT chk_project_depth CHECK (tree_depth >= 0),
     CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci

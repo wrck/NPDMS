@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "9CAE49A641022EB20B42CBC2D1059C7732125528EC4613667E2514E4D14D1411",
+  "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
   "tableCount": 52,
-  "constraintCount": 422,
-  "inventorySha256": "6AF075F327C00F671AB7C62D0006C688B35CBAD4495514973F530829BCEC68C5",
+  "constraintCount": 425,
+  "inventorySha256": "206E58F7DAD0993ECABA1C7AA80652AE5DD5350ABBF43C20C204F864674FBCC2",
   "records": [
     {
       "table": "acc_deliverable_template",
@@ -653,8 +653,10 @@
     {
       "table": "proj_project",
       "constraints": [
+        "CONSTRAINT chk_project_code_namespace CHECK ( (project_sequence = 0 AND code_root_id = id) OR project_sequence > 0 )",
         "CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT chk_project_depth CHECK (tree_depth >= 0)",
+        "CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)",
         "CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
         "CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )",
@@ -666,7 +668,8 @@
         "KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)",
         "KEY idx_project_path (tenant_id, root_id, tree_path(191))",
         "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_project_code (tenant_id, project_type, project_code)",
+        "UNIQUE KEY uk_project_code (tenant_id, project_code)",
+        "UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence)",
         "UNIQUE KEY uk_project_tenant_row (tenant_id, id)"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目主档及非固定层级项目树'",
