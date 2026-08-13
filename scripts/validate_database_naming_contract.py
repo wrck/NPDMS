@@ -14,12 +14,22 @@ ADR = Path("docs/decisions/0019-domain-coded-database-naming.md")
 DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 EXPECTED_DOMAINS = {"ACC", "ANA", "AST", "COM", "CUS", "CUT", "IMP", "KNO", "PLT", "PROJ", "RES", "SOL", "SRV"}
 FORBIDDEN_TABLE_TOKENS = {"rel", "ref", "map"}
-EXPECTED_MODEL_EXTENSIONS = [{
-    "target": "com_delivery_scope_detail",
-    "owner": "COM",
-    "decisionRef": "ADR-0023",
-    "requirementRefs": ["COM-01", "PM-02"],
-}]
+EXPECTED_MODEL_EXTENSIONS = [
+    {"target": "com_delivery_scope_detail", "owner": "COM", "decisionRef": "ADR-0023", "requirementRefs": ["COM-01", "PM-02"]},
+    {"target": "imp_configuration_collection_parse_attempt", "owner": "IMP", "decisionRef": "ADR-0025", "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
+    {"target": "imp_configuration_component_candidate", "owner": "IMP", "decisionRef": "ADR-0025", "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
+    {"target": "acc_satisfaction_collection_task", "owner": "ACC", "decisionRef": "ADR-0025", "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    {"target": "acc_satisfaction_questionnaire", "owner": "ACC", "decisionRef": "ADR-0025", "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    {"target": "acc_satisfaction_response", "owner": "ACC", "decisionRef": "ADR-0025", "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    {"target": "acc_satisfaction_result", "owner": "ACC", "decisionRef": "ADR-0025", "requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    {"target": "cut_cutover_support_task", "owner": "CUT", "decisionRef": "ADR-0025", "requirementRefs": ["CUT-11"]},
+    {"target": "cut_cutover_support_history", "owner": "CUT", "decisionRef": "ADR-0025", "requirementRefs": ["CUT-11"]},
+    {"target": "cut_cutover_support_responsibility_interval", "owner": "CUT", "decisionRef": "ADR-0025", "requirementRefs": ["CUT-11"]},
+    {"target": "srv_historical_work_order", "owner": "SRV", "decisionRef": "ADR-0025", "requirementRefs": ["SRV-01"]},
+    {"target": "srv_historical_time_record", "owner": "SRV", "decisionRef": "ADR-0025", "requirementRefs": ["SRV-01"]},
+    {"target": "ast_device_component_relation", "owner": "AST", "decisionRef": "ADR-0025", "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
+    {"target": "plt_directory_sync_snapshot", "owner": "PLT", "decisionRef": "ADR-0025", "requirementRefs": ["INT-05"]},
+]
 
 
 def load_contract(path: Path) -> dict[str, object]:
@@ -58,7 +68,7 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
     if extensions != [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}]:
         errors.append("database naming contract ADR-0021 extension mismatch")
     if model_extensions != EXPECTED_MODEL_EXTENSIONS:
-        errors.append("database naming contract ADR-0023 model extension mismatch")
+        errors.append("database naming contract ADR-0023/ADR-0025 model extension mismatch")
     if not isinstance(implementation_scope, dict) or implementation_scope.get("coverage") != "CORE_MIGRATION_SUBSET" or implementation_scope.get("decisionRef") != "ADR-0022":
         errors.append("database naming contract implementation scope mismatch")
     if len(fields) != 6:

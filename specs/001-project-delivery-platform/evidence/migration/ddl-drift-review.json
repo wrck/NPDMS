@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T10:04:19.039485+00:00",
+  "generatedAt": "2026-08-13T12:39:25.521393+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -10,15 +10,15 @@
     "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
     "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
     "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-    "currentDdlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
+    "currentDdlSha256": "03D0819B92964948044F186829D1F2E6A77C25A7B66126B12A5141D97535B125",
     "baselineNameNormalization": "ADR-0019"
   },
   "summary": {
     "baselineTableCount": 52,
-    "currentTableCount": 50,
+    "currentTableCount": 63,
     "baselineColumnCount": 1076,
-    "currentColumnCount": 1065,
-    "tableDiff": 6,
+    "currentColumnCount": 1242,
+    "tableDiff": 19,
     "columnDiff": 28,
     "constraintDiff": 0,
     "tableOptionDiff": 0,
@@ -28,12 +28,62 @@
   },
   "tableDiff": [
     {
+      "table": "acc_satisfaction_collection_task",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "acc_satisfaction_questionnaire",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "acc_satisfaction_response",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "acc_satisfaction_result",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_component_relation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
       "table": "com_delivery_scope_detail",
       "change": "ADDED",
       "decision": "DEFER"
     },
     {
       "table": "cus_market_relation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_support_history",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_support_responsibility_interval",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_support_task",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "imp_configuration_collection_parse_attempt",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "imp_configuration_component_candidate",
       "change": "ADDED",
       "decision": "DEFER"
     },
@@ -55,6 +105,21 @@
     {
       "table": "kno_technical_advisory_read_record",
       "change": "REMOVED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_directory_sync_snapshot",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "srv_historical_time_record",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "srv_historical_work_order",
+      "change": "ADDED",
       "decision": "DEFER"
     }
   ],

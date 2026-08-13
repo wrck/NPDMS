@@ -576,6 +576,9 @@ Q07_TEMPORAL_CHECKS = {
     "chk_scope_dates", "chk_project_contract_dates", "chk_shipment_package_warranty_dates",
     "chk_sync_batch_time", "chk_project_company_department_dates", "chk_project_member_dates",
     "chk_project_party_dates", "chk_service_incident_times",
+    "chk_configuration_parse_attempt_time", "chk_cutover_support_window",
+    "chk_cutover_responsibility_dates", "chk_historical_work_order_dates",
+    "chk_historical_time_dates", "chk_device_component_dates", "chk_directory_sync_times",
 }
 Q07_NO_SELF_CHECKS = {
     "chk_device_relation_self", "chk_device_secondary_self", "chk_order_change_self",
@@ -584,6 +587,10 @@ Q07_NO_SELF_CHECKS = {
 Q07_NONNEGATIVE_CHECKS = {
     "chk_external_key_target_sequence", "chk_migration_source_target_count",
     "chk_sync_batch_count", "chk_project_depth",
+    "chk_configuration_parse_attempt_no", "chk_configuration_component_candidate_no",
+    "chk_satisfaction_task_revision", "chk_satisfaction_questionnaire_revision",
+    "chk_satisfaction_response_sequence", "chk_satisfaction_result_sequence",
+    "chk_cutover_support_history_sequence", "chk_cutover_responsibility_interval_sequence",
 }
 
 

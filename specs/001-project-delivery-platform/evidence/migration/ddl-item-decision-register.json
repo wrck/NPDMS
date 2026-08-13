@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
+  "currentDdlSha256": "03D0819B92964948044F186829D1F2E6A77C25A7B66126B12A5141D97535B125",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,23 +11,23 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1626,
+    "itemCount": 1905,
     "byType": {
-      "TABLE": 54,
-      "COLUMN": 1133,
-      "CONSTRAINT": 385,
-      "TABLE_OPTION": 54
+      "TABLE": 67,
+      "COLUMN": 1310,
+      "CONSTRAINT": 461,
+      "TABLE_OPTION": 67
     },
     "byComparisonStatus": {
       "MATCH": 1048,
-      "UNVERIFIED_BASELINE_MISSING": 444,
-      "ADDED": 59,
+      "UNVERIFIED_BASELINE_MISSING": 533,
+      "ADDED": 249,
       "MODIFIED": 3,
       "REMOVED": 72
     },
     "approvedCount": 0
   },
-  "itemsSha256": "18D590DB55FEF4EF2F55C9DE15B695215FE54A8E75B70C360FF2A650C83F559D",
+  "itemsSha256": "212EAD8F72977A17C3C34256AD909FD9FD499147EA0F580267D64402DC123E51",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -1022,6 +1022,1362 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "TABLE:acc_satisfaction_collection_task",
+      "itemType": "TABLE",
+      "table": "acc_satisfaction_collection_task",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:create_time",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:creator",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:current_responsible_user_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "current_responsible_user_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "当前责任人逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:frozen_threshold",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "frozen_threshold",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DECIMAL(10, 4)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:source_context",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "source_context",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:source_object_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "source_object_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "来源对象逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:source_object_type",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "source_object_type",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:state_machine_version",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "state_machine_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:status_code",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:task_revision_no",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "task_revision_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "整改重收任务序号"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:template_version",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "template_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:tenant_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:update_time",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:updater",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_collection_task:version",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_collection_task",
+      "name": "version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_collection_task:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_collection_task",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_collection_task:chk_satisfaction_task_revision",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_collection_task",
+      "name": "chk_satisfaction_task_revision",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_satisfaction_task_revision CHECK (task_revision_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_collection_task:idx_satisfaction_task_owner",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_collection_task",
+      "name": "idx_satisfaction_task_owner",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_satisfaction_task_owner (tenant_id, current_responsible_user_id, status_code)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_collection_task:idx_satisfaction_task_source",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_collection_task",
+      "name": "idx_satisfaction_task_source",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_satisfaction_task_source (tenant_id, source_context, source_object_type, source_object_id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_collection_task:uk_satisfaction_collection_task_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_collection_task",
+      "name": "uk_satisfaction_collection_task_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_collection_task_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_collection_task:uk_satisfaction_task_revision",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_collection_task",
+      "name": "uk_satisfaction_task_revision",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_task_revision (tenant_id, source_context, source_object_type, source_object_id, task_revision_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE_OPTION:acc_satisfaction_collection_task",
+      "itemType": "TABLE_OPTION",
+      "table": "acc_satisfaction_collection_task",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目成员承办的满意度收集领域任务'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:acc_satisfaction_questionnaire",
+      "itemType": "TABLE",
+      "table": "acc_satisfaction_questionnaire",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:create_time",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:creator",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:frozen_question_json",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "frozen_question_json",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "冻结题目、必答项与分值规则"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:frozen_threshold",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "frozen_threshold",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DECIMAL(10, 4)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:questionnaire_revision_no",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "questionnaire_revision_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:task_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "满意度任务逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:template_version",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "template_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_questionnaire:tenant_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_questionnaire:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_questionnaire:chk_satisfaction_questionnaire_revision",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "chk_satisfaction_questionnaire_revision",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_satisfaction_questionnaire_revision CHECK (questionnaire_revision_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_questionnaire:idx_satisfaction_questionnaire_task",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "idx_satisfaction_questionnaire_task",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_satisfaction_questionnaire_task (tenant_id, task_id, create_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_questionnaire:uk_satisfaction_questionnaire_revision",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "uk_satisfaction_questionnaire_revision",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_questionnaire_revision (tenant_id, task_id, questionnaire_revision_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_questionnaire:uk_satisfaction_questionnaire_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_questionnaire",
+      "name": "uk_satisfaction_questionnaire_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_questionnaire_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:acc_satisfaction_questionnaire",
+      "itemType": "TABLE_OPTION",
+      "table": "acc_satisfaction_questionnaire",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '不可覆盖的满意度问卷冻结实例'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:acc_satisfaction_response",
+      "itemType": "TABLE",
+      "table": "acc_satisfaction_response",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:answer_json",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "answer_json",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:attachment_refs_json",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "attachment_refs_json",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:create_time",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:creator",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:questionnaire_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "questionnaire_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "问卷实例逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:request_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "request_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "提交幂等键"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:response_no",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "response_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:signature_ref",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "signature_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:submit_time",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "submit_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_response:tenant_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_response",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_response:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_response",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_response:chk_satisfaction_response_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_response",
+      "name": "chk_satisfaction_response_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_satisfaction_response_sequence CHECK (response_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_response:idx_satisfaction_response_questionnaire",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_response",
+      "name": "idx_satisfaction_response_questionnaire",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_satisfaction_response_questionnaire (tenant_id, questionnaire_id, submit_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_response:uk_satisfaction_response_request",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_response",
+      "name": "uk_satisfaction_response_request",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_response_request (tenant_id, questionnaire_id, request_id)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_response:uk_satisfaction_response_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_response",
+      "name": "uk_satisfaction_response_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_response_sequence (tenant_id, questionnaire_id, response_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_response:uk_satisfaction_response_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_response",
+      "name": "uk_satisfaction_response_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_response_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:acc_satisfaction_response",
+      "itemType": "TABLE_OPTION",
+      "table": "acc_satisfaction_response",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '不可覆盖的客户满意度答卷、签字和附件事实'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:acc_satisfaction_result",
+      "itemType": "TABLE",
+      "table": "acc_satisfaction_result",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:create_time",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:creator",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:decision_rule_version",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "decision_rule_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:decision_time",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "decision_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:frozen_threshold",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "frozen_threshold",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DECIMAL(10, 4)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:passed",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "passed",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:questionnaire_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "questionnaire_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "问卷实例逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:response_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "response_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "答卷逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:result_no",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "result_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:score",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "score",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DECIMAL(10, 4)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:acc_satisfaction_result:tenant_id",
+      "itemType": "COLUMN",
+      "table": "acc_satisfaction_result",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_result:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_result",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_result:chk_satisfaction_result_passed",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_result",
+      "name": "chk_satisfaction_result_passed",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_satisfaction_result_passed CHECK (passed IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_result:chk_satisfaction_result_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_result",
+      "name": "chk_satisfaction_result_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_satisfaction_result_sequence CHECK (result_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_result:idx_satisfaction_result_gate",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_result",
+      "name": "idx_satisfaction_result_gate",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_satisfaction_result_gate (tenant_id, passed, decision_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_result:uk_satisfaction_result_response",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_result",
+      "name": "uk_satisfaction_result_response",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_result_response (tenant_id, response_id)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_result:uk_satisfaction_result_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_result",
+      "name": "uk_satisfaction_result_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_result_sequence (tenant_id, questionnaire_id, result_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:acc_satisfaction_result:uk_satisfaction_result_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "acc_satisfaction_result",
+      "name": "uk_satisfaction_result_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_satisfaction_result_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:acc_satisfaction_result",
+      "itemType": "TABLE_OPTION",
+      "table": "acc_satisfaction_result",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '不可覆盖的满意度评分、阈值与达标判定事实'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
       "itemId": "TABLE:ana_project_delivery_summary",
       "itemType": "TABLE",
       "table": "ana_project_delivery_summary",
@@ -1949,6 +3305,404 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '可重建的项目合同、订单、发货和SN汇总读模型'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:ast_device_component_relation",
+      "itemType": "TABLE",
+      "table": "ast_device_component_relation",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:card_device_id",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "card_device_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "板卡设备逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:card_model_code",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "card_model_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:card_sn",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "card_sn",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:chassis_device_id",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "chassis_device_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "机框设备逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:chassis_sn",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "chassis_sn",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:create_time",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:creator",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:current_slot_code",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "current_slot_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": null,
+        "generatedExpression": "CASE WHEN effective_to IS NULL THEN slot_code ELSE NULL END"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:effective_from",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "effective_from",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:effective_to",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "effective_to",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:evidence_ref",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "evidence_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:id",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:relation_source_code",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "relation_source_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:slot_code",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "slot_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:ast_device_component_relation:tenant_id",
+      "itemType": "COLUMN",
+      "table": "ast_device_component_relation",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:ast_device_component_relation:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "ast_device_component_relation",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:ast_device_component_relation:chk_device_component_dates",
+      "itemType": "CONSTRAINT",
+      "table": "ast_device_component_relation",
+      "name": "chk_device_component_dates",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_device_component_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:ast_device_component_relation:idx_device_component_card",
+      "itemType": "CONSTRAINT",
+      "table": "ast_device_component_relation",
+      "name": "idx_device_component_card",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_device_component_card (tenant_id, card_sn, effective_to)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:ast_device_component_relation:idx_device_component_chassis",
+      "itemType": "CONSTRAINT",
+      "table": "ast_device_component_relation",
+      "name": "idx_device_component_chassis",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_device_component_chassis (tenant_id, chassis_sn, effective_from)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:ast_device_component_relation:uk_device_component_current_slot",
+      "itemType": "CONSTRAINT",
+      "table": "ast_device_component_relation",
+      "name": "uk_device_component_current_slot",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_device_component_current_slot (tenant_id, chassis_device_id, current_slot_code)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:ast_device_component_relation:uk_device_component_relation_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "ast_device_component_relation",
+      "name": "uk_device_component_relation_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_device_component_relation_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:ast_device_component_relation",
+      "itemType": "TABLE_OPTION",
+      "table": "ast_device_component_relation",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '机框、槽位与板卡的当前及历史关系'",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24119,6 +25873,1780 @@
       ]
     },
     {
+      "itemId": "TABLE:cut_cutover_support_history",
+      "itemType": "TABLE",
+      "table": "cut_cutover_support_history",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:action_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "action_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:create_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:evidence_ref",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "evidence_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:history_no",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "history_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:occurred_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "occurred_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:operator_user_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "operator_user_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "操作人逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:reason",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "reason",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(1000)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:status_after_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "status_after_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:status_before_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "status_before_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:support_task_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "support_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "割接保障任务逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_history:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_history",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_history:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_history",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_history:chk_cutover_support_history_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_history",
+      "name": "chk_cutover_support_history_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_support_history_sequence CHECK (history_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_history:idx_cutover_support_history_time",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_history",
+      "name": "idx_cutover_support_history_time",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_support_history_time (tenant_id, support_task_id, occurred_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_history:uk_cutover_support_history_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_history",
+      "name": "uk_cutover_support_history_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_support_history_sequence (tenant_id, support_task_id, history_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_history:uk_cutover_support_history_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_history",
+      "name": "uk_cutover_support_history_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_support_history_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cut_cutover_support_history",
+      "itemType": "TABLE_OPTION",
+      "table": "cut_cutover_support_history",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '割接保障状态与动作的不可覆盖历史'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:cut_cutover_support_responsibility_interval",
+      "itemType": "TABLE",
+      "table": "cut_cutover_support_responsibility_interval",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:create_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:creator",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:effective_from",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "effective_from",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:effective_to",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "effective_to",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:evidence_ref",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "evidence_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:handover_reason",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "handover_reason",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(1000)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:interval_no",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "interval_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:responsible_user_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "responsible_user_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "责任人逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:support_task_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "support_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "割接保障任务逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_responsibility_interval:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:chk_cutover_responsibility_dates",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "chk_cutover_responsibility_dates",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_responsibility_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:chk_cutover_responsibility_interval_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "chk_cutover_responsibility_interval_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_responsibility_interval_sequence CHECK (interval_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:idx_cutover_responsibility_current",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "idx_cutover_responsibility_current",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_responsibility_current (tenant_id, support_task_id, effective_to, effective_from)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:uk_cutover_responsibility_interval_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "uk_cutover_responsibility_interval_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_responsibility_interval:uk_cutover_support_responsibility_interval_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_responsibility_interval",
+      "name": "uk_cutover_support_responsibility_interval_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cut_cutover_support_responsibility_interval",
+      "itemType": "TABLE_OPTION",
+      "table": "cut_cutover_support_responsibility_interval",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '割接保障责任转交的不可覆盖生效区间'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:cut_cutover_support_task",
+      "itemType": "TABLE",
+      "table": "cut_cutover_support_task",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:create_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:creator",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:current_responsible_user_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "current_responsible_user_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "当前责任人逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:cutover_task_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "cutover_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "割接任务逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:state_machine_version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "state_machine_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:status_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:support_scope_hash",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "support_scope_hash",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "CHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:task_no",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "task_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:update_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:updater",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:window_end",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "window_end",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_support_task:window_start",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_support_task",
+      "name": "window_start",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_task:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_task",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_task:chk_cutover_support_window",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_task",
+      "name": "chk_cutover_support_window",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_support_window CHECK (window_end >= window_start)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_task:idx_cutover_support_task_owner",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_task",
+      "name": "idx_cutover_support_task_owner",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_support_task_owner (tenant_id, current_responsible_user_id, status_code)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_task:idx_cutover_support_task_window",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_task",
+      "name": "idx_cutover_support_task_window",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_support_task_window (tenant_id, window_start, window_end)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_task:uk_cutover_support_scope_window",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_task",
+      "name": "uk_cutover_support_scope_window",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_task:uk_cutover_support_task_no",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_task",
+      "name": "uk_cutover_support_task_no",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_support_task:uk_cutover_support_task_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_support_task",
+      "name": "uk_cutover_support_task_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cut_cutover_support_task",
+      "itemType": "TABLE_OPTION",
+      "table": "cut_cutover_support_task",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT领域割接保障任务，不复用通用工单聚合'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:imp_configuration_collection_parse_attempt",
+      "itemType": "TABLE",
+      "table": "imp_configuration_collection_parse_attempt",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:attempt_no",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "attempt_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:collection_result_id",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "collection_result_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "配置采集结果逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:completed_time",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "completed_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:create_time",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:creator",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:error_summary",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "error_summary",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(1000)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:evidence_ref",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "evidence_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "原始配置Log证据引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:id",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:parse_status_code",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "parse_status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:parser_version",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "parser_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:started_time",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "started_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_collection_parse_attempt:tenant_id",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_collection_parse_attempt:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_collection_parse_attempt:chk_configuration_parse_attempt_no",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "chk_configuration_parse_attempt_no",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_configuration_parse_attempt_no CHECK (attempt_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_collection_parse_attempt:chk_configuration_parse_attempt_time",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "chk_configuration_parse_attempt_time",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_configuration_parse_attempt_time CHECK (completed_time IS NULL OR completed_time >= started_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_collection_parse_attempt:idx_configuration_parse_attempt_result",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "idx_configuration_parse_attempt_result",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_configuration_parse_attempt_result (tenant_id, collection_result_id, started_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_collection_parse_attempt:uk_configuration_parse_attempt",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "uk_configuration_parse_attempt",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_configuration_parse_attempt (tenant_id, collection_result_id, attempt_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_collection_parse_attempt:uk_configuration_parse_attempt_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_collection_parse_attempt",
+      "name": "uk_configuration_parse_attempt_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_configuration_parse_attempt_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:imp_configuration_collection_parse_attempt",
+      "itemType": "TABLE_OPTION",
+      "table": "imp_configuration_collection_parse_attempt",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '配置采集结果解析尝试，不覆盖原始配置Log'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:imp_configuration_component_candidate",
+      "itemType": "TABLE",
+      "table": "imp_configuration_component_candidate",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:candidate_no",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "candidate_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:card_model_code",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "card_model_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:card_sn",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "card_sn",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:chassis_sn",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "chassis_sn",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:create_time",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:creator",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:evidence_ref",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "evidence_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:id",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:match_status_code",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "match_status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:matched_device_id",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "matched_device_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "已匹配设备逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:parse_attempt_id",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "parse_attempt_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "解析尝试逻辑引用"
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:parser_version",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "parser_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:slot_code",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "slot_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:imp_configuration_component_candidate:tenant_id",
+      "itemType": "COLUMN",
+      "table": "imp_configuration_component_candidate",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_component_candidate:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_component_candidate",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_component_candidate:chk_configuration_component_candidate_no",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_component_candidate",
+      "name": "chk_configuration_component_candidate_no",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_configuration_component_candidate_no CHECK (candidate_no > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_component_candidate:idx_configuration_component_candidate_match",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_component_candidate",
+      "name": "idx_configuration_component_candidate_match",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_configuration_component_candidate_match (tenant_id, match_status_code, create_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_component_candidate:idx_configuration_component_candidate_sn",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_component_candidate",
+      "name": "idx_configuration_component_candidate_sn",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_configuration_component_candidate_sn (tenant_id, chassis_sn, slot_code, card_sn)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_component_candidate:uk_configuration_component_candidate",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_component_candidate",
+      "name": "uk_configuration_component_candidate",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_configuration_component_candidate (tenant_id, parse_attempt_id, candidate_no)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:imp_configuration_component_candidate:uk_configuration_component_candidate_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "imp_configuration_component_candidate",
+      "name": "uk_configuration_component_candidate_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_configuration_component_candidate_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:imp_configuration_component_candidate",
+      "itemType": "TABLE_OPTION",
+      "table": "imp_configuration_component_candidate",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '配置Log解析形成的板卡候选及待匹配证据'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
       "itemId": "TABLE:kno_device_technical_advisory_match",
       "itemType": "TABLE",
       "table": "kno_device_technical_advisory_match",
@@ -25906,6 +29434,498 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:plt_directory_sync_snapshot",
+      "itemType": "TABLE",
+      "table": "plt_directory_sync_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:create_time",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:creator",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:employment_status_code",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "employment_status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:id",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:organization_code",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "organization_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:person_name",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "person_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:person_no",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "person_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:position_code",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "position_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:source_key",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "source_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:source_payload",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "source_payload",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:source_payload_sha256",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "source_payload_sha256",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "CHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:source_system",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "source_system",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:source_updated_time",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "source_updated_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:source_version",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "source_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:sync_batch_no",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "sync_batch_no",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:sync_watermark",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "sync_watermark",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:synced_time",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "synced_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:tenant_id",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:update_time",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:plt_directory_sync_snapshot:updater",
+      "itemType": "COLUMN",
+      "table": "plt_directory_sync_snapshot",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:plt_directory_sync_snapshot:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "plt_directory_sync_snapshot",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:plt_directory_sync_snapshot:chk_directory_sync_times",
+      "itemType": "CONSTRAINT",
+      "table": "plt_directory_sync_snapshot",
+      "name": "chk_directory_sync_times",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_directory_sync_times CHECK (synced_time >= source_updated_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:plt_directory_sync_snapshot:idx_directory_sync_snapshot_batch",
+      "itemType": "CONSTRAINT",
+      "table": "plt_directory_sync_snapshot",
+      "name": "idx_directory_sync_snapshot_batch",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_directory_sync_snapshot_batch (tenant_id, sync_batch_no, synced_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:plt_directory_sync_snapshot:idx_directory_sync_snapshot_org",
+      "itemType": "CONSTRAINT",
+      "table": "plt_directory_sync_snapshot",
+      "name": "idx_directory_sync_snapshot_org",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_directory_sync_snapshot_org (tenant_id, organization_code, employment_status_code)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:plt_directory_sync_snapshot:uk_directory_sync_snapshot_source",
+      "itemType": "CONSTRAINT",
+      "table": "plt_directory_sync_snapshot",
+      "name": "uk_directory_sync_snapshot_source",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_directory_sync_snapshot_source (tenant_id, source_system, source_key)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:plt_directory_sync_snapshot:uk_directory_sync_snapshot_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "plt_directory_sync_snapshot",
+      "name": "uk_directory_sync_snapshot_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_directory_sync_snapshot_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:plt_directory_sync_snapshot",
+      "itemType": "TABLE_OPTION",
+      "table": "plt_directory_sync_snapshot",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'HR通讯录权威来源键、版本和水位快照'",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -33764,6 +37784,770 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "TABLE:srv_historical_time_record",
+      "itemType": "TABLE",
+      "table": "srv_historical_time_record",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:direction_code",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "direction_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:duration_hours",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "duration_hours",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DECIMAL(20, 6)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:id",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:imported_time",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "imported_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:record_end_time",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "record_end_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:record_start_time",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "record_start_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:signed_adjustment_hours",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "signed_adjustment_hours",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DECIMAL(20, 6)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:source_business_key",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "source_business_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:source_payload",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "source_payload",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:source_payload_sha256",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "source_payload_sha256",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "CHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:source_responsible_user_key",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "source_responsible_user_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:source_status_code",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "source_status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:source_system",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "source_system",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:source_type_code",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "source_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_time_record:tenant_id",
+      "itemType": "COLUMN",
+      "table": "srv_historical_time_record",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_time_record:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_time_record",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_time_record:chk_historical_time_dates",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_time_record",
+      "name": "chk_historical_time_dates",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_historical_time_dates CHECK (record_end_time IS NULL OR record_start_time IS NULL OR record_end_time >= record_start_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_time_record:idx_historical_time_record_time",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_time_record",
+      "name": "idx_historical_time_record_time",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_historical_time_record_time (tenant_id, record_start_time, source_business_key)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_time_record:uk_historical_time_record_source",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_time_record",
+      "name": "uk_historical_time_record_source",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_historical_time_record_source (tenant_id, source_system, source_business_key)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_time_record:uk_historical_time_record_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_time_record",
+      "name": "uk_historical_time_record_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_historical_time_record_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:srv_historical_time_record",
+      "itemType": "TABLE_OPTION",
+      "table": "srv_historical_time_record",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧工时不可删除、不可续流的只读历史事实'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:srv_historical_work_order",
+      "itemType": "TABLE",
+      "table": "srv_historical_work_order",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:approval_history_json",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "approval_history_json",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:attachment_refs_json",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "attachment_refs_json",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:audit_evidence_json",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "audit_evidence_json",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:id",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:imported_time",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "imported_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_business_key",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_business_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_completed_time",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_completed_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_created_time",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_created_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_payload",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_payload",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_payload_sha256",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_payload_sha256",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "CHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_responsible_user_key",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_responsible_user_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_status_code",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_system",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_system",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:source_type_code",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "source_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:srv_historical_work_order:tenant_id",
+      "itemType": "COLUMN",
+      "table": "srv_historical_work_order",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_work_order:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_work_order",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_work_order:chk_historical_work_order_dates",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_work_order",
+      "name": "chk_historical_work_order_dates",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_historical_work_order_dates CHECK (source_completed_time IS NULL OR source_created_time IS NULL OR source_completed_time >= source_created_time)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_work_order:idx_historical_work_order_time",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_work_order",
+      "name": "idx_historical_work_order_time",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_historical_work_order_time (tenant_id, source_created_time, source_business_key)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_work_order:uk_historical_work_order_source",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_work_order",
+      "name": "uk_historical_work_order_source",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_historical_work_order_source (tenant_id, source_system, source_business_key)",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:srv_historical_work_order:uk_historical_work_order_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "srv_historical_work_order",
+      "name": "uk_historical_work_order_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_historical_work_order_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:srv_historical_work_order",
+      "itemType": "TABLE_OPTION",
+      "table": "srv_historical_work_order",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧工单不可删除、不可续流的只读历史事实'",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
       "itemId": "TABLE:srv_service_incident",
       "itemType": "TABLE",
       "table": "srv_service_incident",
@@ -34874,14 +39658,14 @@
   "q07Decision": {
     "decisionRef": "ADR-0023-Q07",
     "decision": "ACCEPT_CURRENT_FOR_SDS",
-    "decidedItemCount": 222,
+    "decidedItemCount": 264,
     "requirementOwnerStatus": "ACCEPTED",
     "reviewStatus": "REVIEW_PENDING"
   },
   "q08Decision": {
     "decisionRef": "ADR-0023-Q08",
     "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
-    "decidedItemCount": 108,
+    "decidedItemCount": 126,
     "requirementOwnerStatus": "ACCEPTED",
     "performanceValidationStatus": "REQUIRED_AT_FEATURE_AND_P3_E06",
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",

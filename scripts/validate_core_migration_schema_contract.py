@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate ADR-0022's core migration schema and key policies."""
+"""Validate ADR-0022/ADR-0025 core migration schema and key policies."""
 
 from __future__ import annotations
 
@@ -13,6 +13,44 @@ from pathlib import Path
 CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
 DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
+OBJECT_TABLE_MAP = Path("docs/traceability/domain-object-table-map.json")
+EXPECTED_V17_OBJECT_TABLES = {
+    "ConfigurationCollectionResult": {
+        "imp_configuration_collection_parse_attempt",
+        "imp_configuration_component_candidate",
+    },
+    "SatisfactionCollection": {
+        "acc_satisfaction_collection_task",
+        "acc_satisfaction_questionnaire",
+        "acc_satisfaction_response",
+        "acc_satisfaction_result",
+    },
+    "CutoverSupportTask": {"cut_cutover_support_task", "cut_cutover_support_history"},
+    "ResponsibilityInterval": {"cut_cutover_support_responsibility_interval"},
+    "HistoricalWorkOrderRecord": {"srv_historical_work_order"},
+    "HistoricalTimeRecord": {"srv_historical_time_record"},
+    "DeviceComponentRelation": {"ast_device_component_relation"},
+    "DirectorySyncSnapshot": {"plt_directory_sync_snapshot"},
+}
+EXPECTED_V17_REQUIREMENTS = {
+    "ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04", "CUT-11", "SRV-01",
+    "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03", "INT-05",
+}
+EXPECTED_V17_CONSTRAINTS = {
+    "imp_configuration_collection_parse_attempt": {"uk_configuration_parse_attempt"},
+    "imp_configuration_component_candidate": {"uk_configuration_component_candidate"},
+    "acc_satisfaction_collection_task": {"uk_satisfaction_task_revision"},
+    "acc_satisfaction_questionnaire": {"uk_satisfaction_questionnaire_revision"},
+    "acc_satisfaction_response": {"uk_satisfaction_response_sequence", "uk_satisfaction_response_request"},
+    "acc_satisfaction_result": {"uk_satisfaction_result_sequence", "uk_satisfaction_result_response"},
+    "cut_cutover_support_task": {"uk_cutover_support_task_no", "uk_cutover_support_scope_window"},
+    "cut_cutover_support_history": {"uk_cutover_support_history_sequence"},
+    "cut_cutover_support_responsibility_interval": {"uk_cutover_responsibility_interval_sequence"},
+    "srv_historical_work_order": {"uk_historical_work_order_source"},
+    "srv_historical_time_record": {"uk_historical_time_record_source"},
+    "ast_device_component_relation": {"uk_device_component_current_slot"},
+    "plt_directory_sync_snapshot": {"uk_directory_sync_snapshot_source"},
+}
 V3_DESIGN_ONLY_TABLES = {
     "kno_device_technical_advisory_match",
     "kno_technical_advisory",
@@ -68,6 +106,9 @@ TEMPORAL_CHECKS = {
     "chk_scope_dates", "chk_project_contract_dates", "chk_shipment_package_warranty_dates",
     "chk_sync_batch_time", "chk_project_company_department_dates", "chk_project_member_dates",
     "chk_project_party_dates", "chk_service_incident_times",
+    "chk_configuration_parse_attempt_time", "chk_cutover_support_window",
+    "chk_cutover_responsibility_dates", "chk_historical_work_order_dates",
+    "chk_historical_time_dates", "chk_device_component_dates", "chk_directory_sync_times",
 }
 NO_SELF_CHECKS = {
     "chk_device_relation_self", "chk_device_secondary_self", "chk_order_change_self",
@@ -76,6 +117,10 @@ NO_SELF_CHECKS = {
 NONNEGATIVE_CHECKS = {
     "chk_external_key_target_sequence", "chk_migration_source_target_count",
     "chk_sync_batch_count", "chk_project_depth",
+    "chk_configuration_parse_attempt_no", "chk_configuration_component_candidate_no",
+    "chk_satisfaction_task_revision", "chk_satisfaction_questionnaire_revision",
+    "chk_satisfaction_response_sequence", "chk_satisfaction_result_sequence",
+    "chk_cutover_support_history_sequence", "chk_cutover_responsibility_interval_sequence",
 }
 
 
@@ -145,6 +190,110 @@ def q07_q08_actual_counts(tables: dict[str, str], ddl: str) -> tuple[dict[str, o
         "sameDomainForeignKeyCount": foreign_key_count,
         "stableTechnicalCheckGroups": check_groups,
     }, ordinary_index_count
+
+
+def validate_v17_delta(
+    contract: dict[str, object], object_table_map: dict[str, object], ddl: str
+) -> list[str]:
+    """Validate the closed V1.7 table delta without claiming P3-E09 approval."""
+    errors: list[str] = []
+    tables = parse_tables(ddl)
+    expected_tables = set().union(*EXPECTED_V17_OBJECT_TABLES.values())
+    delta = contract.get("v17Delta", {})
+    if not isinstance(delta, dict):
+        return ["V1.7 delta contract must be an object"]
+    if delta.get("decisionRef") != "ADR-0025" or delta.get("status") != "BLOCKED_BY_REVIEW":
+        errors.append("V1.7 delta metadata must reference ADR-0025 and remain BLOCKED_BY_REVIEW")
+    if set(delta.get("requirementRefs", [])) != EXPECTED_V17_REQUIREMENTS:
+        errors.append("V1.7 delta requirement reference set mismatch")
+    declared = delta.get("objectTargetTables", {})
+    if not isinstance(declared, dict):
+        errors.append("V1.7 objectTargetTables must be an object")
+        declared = {}
+    objects = object_table_map.get("objects", {})
+    if not isinstance(objects, dict):
+        objects = {}
+    for object_name, expected in EXPECTED_V17_OBJECT_TABLES.items():
+        if set(declared.get(object_name, [])) != expected:
+            errors.append(f"V1.7 contract table mapping mismatch: {object_name}")
+        mapped = objects.get(object_name, {})
+        mapped_tables = mapped.get("targetTables", []) if isinstance(mapped, dict) else []
+        actual_delta = set(mapped_tables) & expected_tables
+        if actual_delta != expected:
+            errors.append(f"V1.7 object table map mismatch: {object_name}")
+    declared_tables = {
+        table for values in declared.values() if isinstance(values, list) for table in values
+    }
+    if declared_tables != expected_tables:
+        errors.append("V1.7 delta must declare exactly the 13 approved target tables")
+    for table in sorted(expected_tables):
+        if table not in tables:
+            errors.append(f"V1.7 target table missing: {table}")
+            continue
+        key_names = set(dict(unique_keys(tables[table])))
+        for constraint in sorted(EXPECTED_V17_CONSTRAINTS[table] - key_names):
+            errors.append(f"V1.7 required unique constraint missing: {table}.{constraint}")
+
+    present_v3 = sorted(V3_DESIGN_ONLY_TABLES & tables.keys())
+    if present_v3:
+        errors.append(f"V3 design-only tables must not appear in V1.7 delta DDL: {present_v3}")
+    for table, body in tables.items():
+        owner = table.split("_", 1)[0]
+        for match in re.finditer(
+            r"CONSTRAINT\s+(\w+)\s+FOREIGN\s+KEY\s*\(.*?\)\s+REFERENCES\s+(\w+)",
+            body,
+            re.IGNORECASE | re.DOTALL,
+        ):
+            target = match.group(2)
+            if owner != target.split("_", 1)[0]:
+                errors.append(f"cross-domain foreign key {match.group(1)}: {table} -> {target}")
+    for match in re.finditer(
+        r"ALTER\s+TABLE\s+(\w+)\s+ADD\s+CONSTRAINT\s+(\w+)\s+FOREIGN\s+KEY\s*\(.*?\)\s+REFERENCES\s+(\w+)",
+        ddl,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        source, constraint, target = match.group(1), match.group(2), match.group(3)
+        if source.split("_", 1)[0] != target.split("_", 1)[0]:
+            errors.append(f"cross-domain foreign key {constraint}: {source} -> {target}")
+
+    historical = set(delta.get("historicalReadOnlyTables", []))
+    expected_historical = {"srv_historical_work_order", "srv_historical_time_record"}
+    if historical != expected_historical:
+        errors.append("V1.7 historical read-only table set mismatch")
+    mutable_columns = {"status_code", "deleted", "version", "updater", "update_time"}
+    for table in expected_historical:
+        body = tables.get(table, "")
+        for column in mutable_columns:
+            if re.search(rf"(?m)^\s*{column}\s+", body, re.IGNORECASE):
+                errors.append(f"V1.7 historical table contains mutable column: {table}.{column}")
+
+    expected_append_only = {
+        "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result",
+        "cut_cutover_support_history", "cut_cutover_support_responsibility_interval",
+    }
+    if set(delta.get("appendOnlyTables", [])) != expected_append_only:
+        errors.append("V1.7 append-only table set mismatch")
+    for table in expected_append_only:
+        body = tables.get(table, "")
+        for column in {"deleted", "version", "updater", "update_time"}:
+            if re.search(rf"(?m)^\s*{column}\s+", body, re.IGNORECASE):
+                errors.append(f"V1.7 append-only table contains mutable column: {table}.{column}")
+
+    relation = tables.get("ast_device_component_relation", "")
+    generated = re.search(
+        r"\bcurrent_slot_code\b.*?GENERATED\s+ALWAYS\s+AS\s*\((.*?)\)\s*STORED",
+        relation,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not generated:
+        errors.append("V1.7 device component generated current marker missing")
+    elif re.search(r"\b(?:status|deleted)\b", generated.group(1), re.IGNORECASE):
+        errors.append("V1.7 device component current marker must depend on effective_to only")
+    relation_unique = dict(unique_keys(relation)).get("uk_device_component_current_slot", "")
+    relation_columns = {value.strip().lower() for value in relation_unique.split(",") if value.strip()}
+    if relation_columns != {"tenant_id", "chassis_device_id", "current_slot_code"}:
+        errors.append("V1.7 device component current unique key grain mismatch")
+    return errors
 
 
 def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
@@ -304,13 +453,17 @@ def main() -> int:
     parser.add_argument("--contract", type=Path, default=CONTRACT)
     parser.add_argument("--ddl", type=Path, default=DDL)
     parser.add_argument("--execution-evidence", type=Path, default=EXECUTION_EVIDENCE)
+    parser.add_argument("--object-table-map", type=Path, default=OBJECT_TABLE_MAP)
     args = parser.parse_args()
     ddl_bytes = args.ddl.read_bytes()
     ddl_text = ddl_bytes.decode("utf-8")
-    errors = validate_contract(
-        json.loads(args.contract.read_text(encoding="utf-8")),
+    contract = json.loads(args.contract.read_text(encoding="utf-8"))
+    errors = validate_contract(contract, ddl_text)
+    errors.extend(validate_v17_delta(
+        contract,
+        json.loads(args.object_table_map.read_text(encoding="utf-8")),
         ddl_text,
-    )
+    ))
     errors.extend(validate_execution_evidence(
         json.loads(args.execution_evidence.read_text(encoding="utf-8")),
         ddl_bytes,
@@ -320,7 +473,7 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] ADR-0022 core migration schema contract")
+    print("[PASS] ADR-0022/ADR-0025 core migration schema contract")
     return 0
 
 

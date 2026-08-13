@@ -38,7 +38,7 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
             "allowedTableAbbreviations": {"configuration": "config", "serial_number": "sn"},
             "forbiddenTableTokens": ["rel", "ref", "map"],
             "tableExtensions": [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}],
-            "modelExtensions": [{"target": "com_delivery_scope_detail", "owner": "COM", "decisionRef": "ADR-0023", "requirementRefs": ["COM-01", "PM-02"]}],
+            "modelExtensions": copy.deepcopy(VALIDATOR.EXPECTED_MODEL_EXTENSIONS),
             "implementationScope": {"coverage": "CORE_MIGRATION_SUBSET", "decisionRef": "ADR-0022", "excludedTargets": []},
             "tables": tables,
             "fields": fields,

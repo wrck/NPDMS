@@ -13,7 +13,7 @@
   "capturedAt": null,
   "confirmedFacts": {
     "approvedDdlSha256": null,
-    "currentDdlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
+    "currentDdlSha256": "03D0819B92964948044F186829D1F2E6A77C25A7B66126B12A5141D97535B125",
     "dataElementExcelSha256": null,
     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
     "generatorVersion": null,
@@ -35,21 +35,22 @@
       "MIGRATION_OWNER"
     ],
     "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+    "v17DeltaStatus": "BLOCKED_BY_REVIEW",
     "q07Decision": {
       "status": "ACCEPTED",
-      "technicalConstraintCount": 222,
-      "primaryKeyCount": 50,
+      "technicalConstraintCount": 264,
+      "primaryKeyCount": 63,
       "primaryKeyShape": {
-        "singleId": 49,
+        "singleId": 62,
         "compositeProjection": 1
       },
-      "tenantReferenceKeyCount": 50,
+      "tenantReferenceKeyCount": 63,
       "sameDomainForeignKeyCount": 48,
-      "stableTechnicalCheckCount": 74
+      "stableTechnicalCheckCount": 90
     },
     "q08Decision": {
       "status": "CANDIDATE_BASELINE_ACCEPTED",
-      "candidateIndexCount": 108,
+      "candidateIndexCount": 126,
       "featureQueryPlanValidationRequired": true,
       "p3e06PerformanceValidationRequired": true,
       "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
@@ -57,9 +58,9 @@
     "isolatedMysqlExecution": {
       "status": "PASS",
       "mysqlVersion": "8.4.10",
-      "tableCount": 50,
-      "columnCount": 1065,
-      "constraintCount": 277
+      "tableCount": 63,
+      "columnCount": 1242,
+      "constraintCount": 335
     }
   },
   "evidenceRefs": [
@@ -69,6 +70,7 @@
     "docs/decisions/0021-customer-market-relation-classification.md",
     "docs/decisions/0022-core-migration-schema-and-key-policy.md",
     "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md",
+    "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md",
     "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
     "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
     "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

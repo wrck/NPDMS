@@ -31,6 +31,7 @@ PROJECT_CODE_REF = "docs/decisions/0020-project-code-identity-and-namespace.md"
 MARKET_RELATION_REF = "docs/decisions/0021-customer-market-relation-classification.md"
 CORE_MIGRATION_SCHEMA_REF = "docs/decisions/0022-core-migration-schema-and-key-policy.md"
 MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+V17_DDL_DELTA_REF = "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md"
 CORE_SCHEMA_CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
 DDL_DECISION_REGISTER = Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json")
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
@@ -153,6 +154,7 @@ def build_packets() -> dict[str, dict[str, object]]:
                     "currentDdlSha256": ddl_sha256,
                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
                     "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+                    "v17DeltaStatus": contract["v17Delta"]["status"],
                     "q07Decision": {
                         "status": "ACCEPTED",
                         "technicalConstraintCount": register["q07Decision"]["decidedItemCount"],
@@ -206,6 +208,7 @@ def build_packets() -> dict[str, dict[str, object]]:
                 MARKET_RELATION_REF,
                 CORE_MIGRATION_SCHEMA_REF,
                 MODEL_DECISION_REF,
+                V17_DDL_DELTA_REF,
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

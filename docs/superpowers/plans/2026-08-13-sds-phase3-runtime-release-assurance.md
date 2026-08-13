@@ -14,10 +14,11 @@
 - Task 8 Step 1：自审已完成，结论`NO-GO / IN_REVIEW`；P3-E01～E06、P3-E09是批准阻塞，P3-E07按Feature阻塞，P3-E08阻塞前端实现/发布。
 - Task 8 Step 2～4：待外部证据关闭后执行独立评审；禁止提前生成SDS总册或把分册转`BASELINE`。
 - 用户新增的数据迁移要求已形成`08a-domain-entity-migration-alignment.md`，覆盖全部显式领域数据对象；字段级迁移仍受`AI-MIG-000`约束。
+- PRD V1.7的P3-E09候选DDL已按ADR-0025补齐13张差量表，并在隔离MySQL 8.4.10以同一DDL哈希执行通过；证据包已重建。该项仍为`BLOCKED_BY_REVIEW`，不得把可执行性当作Reviewer批准或生产迁移授权。
 
 ## Global Constraints
 
-- 业务语义优先级：PRD V1.6 > 工程链 > SDS > Feature > Plan > Task > Code。
+- 业务语义优先级：PRD V1.7 > 工程链 > SDS > Feature > Plan > Task > Code。
 - NFR-01：50并发登录用户持续30分钟、累计不少于10000次有效请求、服务端错误率≤0.5%、核心页面与交互P95≤2秒。
 - NFR-01：项目量取 `max(迁移量×2, 20万)`、任务量取 `max(迁移量×2, 200万)`；覆盖单项目树1万、单任务树5万、直接子节点2000、测试深度30，深度不是业务上限。
 - NFR-01：50MB文件完整上传和哈希一致；超过50MB明确拒绝且不产生有效附件。

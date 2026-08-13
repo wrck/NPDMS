@@ -1962,3 +1962,310 @@ CREATE TABLE ana_project_delivery_summary (
     KEY idx_project_summary_time (tenant_id, statistic_time)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '可重建的项目合同、订单、发货和SN汇总读模型';
+
+CREATE TABLE imp_configuration_collection_parse_attempt (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    collection_result_id BIGINT NOT NULL COMMENT '配置采集结果逻辑引用',
+    attempt_no INT UNSIGNED NOT NULL,
+    parser_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    parse_status_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    error_summary VARCHAR(1000) NULL,
+    started_time DATETIME(3) NOT NULL,
+    completed_time DATETIME(3) NULL,
+    evidence_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL COMMENT '原始配置Log证据引用',
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_configuration_parse_attempt (tenant_id, collection_result_id, attempt_no),
+    UNIQUE KEY uk_configuration_parse_attempt_tenant_row (tenant_id, id),
+    KEY idx_configuration_parse_attempt_result (tenant_id, collection_result_id, started_time),
+    CONSTRAINT chk_configuration_parse_attempt_no CHECK (attempt_no > 0),
+    CONSTRAINT chk_configuration_parse_attempt_time CHECK (completed_time IS NULL OR completed_time >= started_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '配置采集结果解析尝试，不覆盖原始配置Log';
+
+CREATE TABLE imp_configuration_component_candidate (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    parse_attempt_id BIGINT NOT NULL COMMENT '解析尝试逻辑引用',
+    candidate_no INT UNSIGNED NOT NULL,
+    chassis_sn VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    slot_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    card_sn VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    card_model_code VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    parser_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    match_status_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    matched_device_id BIGINT NULL COMMENT '已匹配设备逻辑引用',
+    evidence_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_configuration_component_candidate (tenant_id, parse_attempt_id, candidate_no),
+    UNIQUE KEY uk_configuration_component_candidate_tenant_row (tenant_id, id),
+    KEY idx_configuration_component_candidate_match (tenant_id, match_status_code, create_time),
+    KEY idx_configuration_component_candidate_sn (tenant_id, chassis_sn, slot_code, card_sn),
+    CONSTRAINT chk_configuration_component_candidate_no CHECK (candidate_no > 0)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '配置Log解析形成的板卡候选及待匹配证据';
+
+CREATE TABLE acc_satisfaction_collection_task (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    source_context VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_object_type VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_object_id BIGINT NOT NULL COMMENT '来源对象逻辑引用',
+    task_revision_no INT UNSIGNED NOT NULL COMMENT '整改重收任务序号',
+    template_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    frozen_threshold DECIMAL(10, 4) NOT NULL,
+    state_machine_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    status_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    current_responsible_user_id BIGINT NOT NULL COMMENT '当前责任人逻辑引用',
+    version INT UNSIGNED NOT NULL DEFAULT 0,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updater BIGINT NULL,
+    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_satisfaction_task_revision (tenant_id, source_context, source_object_type, source_object_id, task_revision_no),
+    UNIQUE KEY uk_satisfaction_collection_task_tenant_row (tenant_id, id),
+    KEY idx_satisfaction_task_owner (tenant_id, current_responsible_user_id, status_code),
+    KEY idx_satisfaction_task_source (tenant_id, source_context, source_object_type, source_object_id),
+    CONSTRAINT chk_satisfaction_task_revision CHECK (task_revision_no > 0)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '项目成员承办的满意度收集领域任务';
+
+CREATE TABLE acc_satisfaction_questionnaire (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    task_id BIGINT NOT NULL COMMENT '满意度任务逻辑引用',
+    questionnaire_revision_no INT UNSIGNED NOT NULL,
+    frozen_question_json JSON NOT NULL COMMENT '冻结题目、必答项与分值规则',
+    frozen_threshold DECIMAL(10, 4) NOT NULL,
+    template_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_satisfaction_questionnaire_revision (tenant_id, task_id, questionnaire_revision_no),
+    UNIQUE KEY uk_satisfaction_questionnaire_tenant_row (tenant_id, id),
+    KEY idx_satisfaction_questionnaire_task (tenant_id, task_id, create_time),
+    CONSTRAINT chk_satisfaction_questionnaire_revision CHECK (questionnaire_revision_no > 0)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '不可覆盖的满意度问卷冻结实例';
+
+CREATE TABLE acc_satisfaction_response (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    questionnaire_id BIGINT NOT NULL COMMENT '问卷实例逻辑引用',
+    response_no INT UNSIGNED NOT NULL,
+    request_id VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL COMMENT '提交幂等键',
+    answer_json JSON NOT NULL,
+    signature_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    attachment_refs_json JSON NULL,
+    submit_time DATETIME(3) NOT NULL,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_satisfaction_response_sequence (tenant_id, questionnaire_id, response_no),
+    UNIQUE KEY uk_satisfaction_response_request (tenant_id, questionnaire_id, request_id),
+    UNIQUE KEY uk_satisfaction_response_tenant_row (tenant_id, id),
+    KEY idx_satisfaction_response_questionnaire (tenant_id, questionnaire_id, submit_time),
+    CONSTRAINT chk_satisfaction_response_sequence CHECK (response_no > 0)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '不可覆盖的客户满意度答卷、签字和附件事实';
+
+CREATE TABLE acc_satisfaction_result (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    questionnaire_id BIGINT NOT NULL COMMENT '问卷实例逻辑引用',
+    response_id BIGINT NOT NULL COMMENT '答卷逻辑引用',
+    result_no INT UNSIGNED NOT NULL,
+    score DECIMAL(10, 4) NOT NULL,
+    frozen_threshold DECIMAL(10, 4) NOT NULL,
+    passed TINYINT NOT NULL,
+    decision_rule_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    decision_time DATETIME(3) NOT NULL,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_satisfaction_result_sequence (tenant_id, questionnaire_id, result_no),
+    UNIQUE KEY uk_satisfaction_result_response (tenant_id, response_id),
+    UNIQUE KEY uk_satisfaction_result_tenant_row (tenant_id, id),
+    KEY idx_satisfaction_result_gate (tenant_id, passed, decision_time),
+    CONSTRAINT chk_satisfaction_result_sequence CHECK (result_no > 0),
+    CONSTRAINT chk_satisfaction_result_passed CHECK (passed IN (0, 1))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '不可覆盖的满意度评分、阈值与达标判定事实';
+
+CREATE TABLE cut_cutover_support_task (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    task_no VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    cutover_task_id BIGINT NOT NULL COMMENT '割接任务逻辑引用',
+    support_scope_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    window_start DATETIME(3) NOT NULL,
+    window_end DATETIME(3) NOT NULL,
+    state_machine_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    status_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    current_responsible_user_id BIGINT NOT NULL COMMENT '当前责任人逻辑引用',
+    version INT UNSIGNED NOT NULL DEFAULT 0,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updater BIGINT NULL,
+    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no),
+    UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end),
+    UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id),
+    KEY idx_cutover_support_task_owner (tenant_id, current_responsible_user_id, status_code),
+    KEY idx_cutover_support_task_window (tenant_id, window_start, window_end),
+    CONSTRAINT chk_cutover_support_window CHECK (window_end >= window_start)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = 'CUT领域割接保障任务，不复用通用工单聚合';
+
+CREATE TABLE cut_cutover_support_history (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    support_task_id BIGINT NOT NULL COMMENT '割接保障任务逻辑引用',
+    history_no INT UNSIGNED NOT NULL,
+    action_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    status_before_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    status_after_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    operator_user_id BIGINT NOT NULL COMMENT '操作人逻辑引用',
+    reason VARCHAR(1000) NULL,
+    evidence_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    occurred_time DATETIME(3) NOT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_cutover_support_history_sequence (tenant_id, support_task_id, history_no),
+    UNIQUE KEY uk_cutover_support_history_tenant_row (tenant_id, id),
+    KEY idx_cutover_support_history_time (tenant_id, support_task_id, occurred_time),
+    CONSTRAINT chk_cutover_support_history_sequence CHECK (history_no > 0)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '割接保障状态与动作的不可覆盖历史';
+
+CREATE TABLE cut_cutover_support_responsibility_interval (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    support_task_id BIGINT NOT NULL COMMENT '割接保障任务逻辑引用',
+    interval_no INT UNSIGNED NOT NULL,
+    responsible_user_id BIGINT NOT NULL COMMENT '责任人逻辑引用',
+    effective_from DATETIME(3) NOT NULL,
+    effective_to DATETIME(3) NULL,
+    handover_reason VARCHAR(1000) NULL,
+    evidence_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no),
+    UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id),
+    KEY idx_cutover_responsibility_current (tenant_id, support_task_id, effective_to, effective_from),
+    CONSTRAINT chk_cutover_responsibility_interval_sequence CHECK (interval_no > 0),
+    CONSTRAINT chk_cutover_responsibility_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '割接保障责任转交的不可覆盖生效区间';
+
+CREATE TABLE srv_historical_work_order (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    source_system VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_business_key VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_type_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    source_status_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    source_responsible_user_key VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    source_created_time DATETIME(3) NULL,
+    source_completed_time DATETIME(3) NULL,
+    attachment_refs_json JSON NULL,
+    approval_history_json JSON NULL,
+    audit_evidence_json JSON NULL,
+    source_payload JSON NOT NULL,
+    source_payload_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    imported_time DATETIME(3) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_historical_work_order_source (tenant_id, source_system, source_business_key),
+    UNIQUE KEY uk_historical_work_order_tenant_row (tenant_id, id),
+    KEY idx_historical_work_order_time (tenant_id, source_created_time, source_business_key),
+    CONSTRAINT chk_historical_work_order_dates CHECK (source_completed_time IS NULL OR source_created_time IS NULL OR source_completed_time >= source_created_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '旧工单不可删除、不可续流的只读历史事实';
+
+CREATE TABLE srv_historical_time_record (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    source_system VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_business_key VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_type_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    source_status_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    source_responsible_user_key VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    record_start_time DATETIME(3) NULL,
+    record_end_time DATETIME(3) NULL,
+    duration_hours DECIMAL(20, 6) NULL,
+    direction_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    signed_adjustment_hours DECIMAL(20, 6) NULL,
+    source_payload JSON NOT NULL,
+    source_payload_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    imported_time DATETIME(3) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_historical_time_record_source (tenant_id, source_system, source_business_key),
+    UNIQUE KEY uk_historical_time_record_tenant_row (tenant_id, id),
+    KEY idx_historical_time_record_time (tenant_id, record_start_time, source_business_key),
+    CONSTRAINT chk_historical_time_dates CHECK (record_end_time IS NULL OR record_start_time IS NULL OR record_end_time >= record_start_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '旧工时不可删除、不可续流的只读历史事实';
+
+CREATE TABLE ast_device_component_relation (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    chassis_device_id BIGINT NOT NULL COMMENT '机框设备逻辑引用',
+    chassis_sn VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    slot_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    card_device_id BIGINT NULL COMMENT '板卡设备逻辑引用',
+    card_sn VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    card_model_code VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    relation_source_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    evidence_ref VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    effective_from DATETIME(3) NOT NULL,
+    effective_to DATETIME(3) NULL,
+    current_slot_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin GENERATED ALWAYS AS (
+        CASE WHEN effective_to IS NULL THEN slot_code ELSE NULL END
+    ) STORED,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_device_component_current_slot (tenant_id, chassis_device_id, current_slot_code),
+    UNIQUE KEY uk_device_component_relation_tenant_row (tenant_id, id),
+    KEY idx_device_component_card (tenant_id, card_sn, effective_to),
+    KEY idx_device_component_chassis (tenant_id, chassis_sn, effective_from),
+    CONSTRAINT chk_device_component_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '机框、槽位与板卡的当前及历史关系';
+
+CREATE TABLE plt_directory_sync_snapshot (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    source_system VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_key VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_version VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    person_no VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    person_name VARCHAR(128) NOT NULL,
+    organization_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    position_code VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,
+    employment_status_code VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    sync_batch_no VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    sync_watermark VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,
+    source_updated_time DATETIME(3) NOT NULL,
+    synced_time DATETIME(3) NOT NULL,
+    source_payload JSON NOT NULL,
+    source_payload_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    creator BIGINT NULL,
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updater BIGINT NULL,
+    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_directory_sync_snapshot_source (tenant_id, source_system, source_key),
+    UNIQUE KEY uk_directory_sync_snapshot_tenant_row (tenant_id, id),
+    KEY idx_directory_sync_snapshot_batch (tenant_id, sync_batch_no, synced_time),
+    KEY idx_directory_sync_snapshot_org (tenant_id, organization_code, employment_status_code),
+    CONSTRAINT chk_directory_sync_times CHECK (synced_time >= source_updated_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = 'HR通讯录权威来源键、版本和水位快照';

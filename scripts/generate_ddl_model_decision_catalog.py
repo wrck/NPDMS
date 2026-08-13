@@ -21,11 +21,19 @@ CURRENT_SINGLETON_KEYS = {
     "uk_scope_current",
     "uk_customer_primary_contact",
     "uk_project_primary_company_department",
+    "uk_device_component_current_slot",
 }
 VERSION_SEQUENCE_KEYS = {
     "uk_product_release",
     "uk_document_version",
     "uk_project_code_sequence",
+    "uk_configuration_parse_attempt",
+    "uk_satisfaction_task_revision",
+    "uk_satisfaction_questionnaire_revision",
+    "uk_satisfaction_response_sequence",
+    "uk_satisfaction_result_sequence",
+    "uk_cutover_support_history_sequence",
+    "uk_cutover_responsibility_interval_sequence",
 }
 RELATION_GRAIN_KEYS = {
     "uk_delivery_scope_detail_sequence",
@@ -42,6 +50,10 @@ RELATION_GRAIN_KEYS = {
     "uk_portfolio_project",
     "uk_project_relation",
     "uk_incident_device",
+    "uk_configuration_component_candidate",
+    "uk_satisfaction_response_request",
+    "uk_satisfaction_result_response",
+    "uk_cutover_support_scope_window",
 }
 SOURCE_IDEMPOTENCY_KEYS = {
     "uk_device_assignment_source",
@@ -59,6 +71,9 @@ SOURCE_IDEMPOTENCY_KEYS = {
     "uk_migration_issue_source",
     "uk_migration_source_record",
     "uk_project_party_source",
+    "uk_historical_work_order_source",
+    "uk_historical_time_record_source",
+    "uk_directory_sync_snapshot_source",
 }
 TEMPORAL_CHECKS = {
     "chk_device_configuration_dates",
@@ -75,6 +90,13 @@ TEMPORAL_CHECKS = {
     "chk_project_member_dates",
     "chk_project_party_dates",
     "chk_service_incident_times",
+    "chk_configuration_parse_attempt_time",
+    "chk_cutover_support_window",
+    "chk_cutover_responsibility_dates",
+    "chk_historical_work_order_dates",
+    "chk_historical_time_dates",
+    "chk_device_component_dates",
+    "chk_directory_sync_times",
 }
 NO_SELF_CHECKS = {
     "chk_device_relation_self",
@@ -91,6 +113,14 @@ NONNEGATIVE_CHECKS = {
     "chk_migration_source_target_count",
     "chk_sync_batch_count",
     "chk_project_depth",
+    "chk_configuration_parse_attempt_no",
+    "chk_configuration_component_candidate_no",
+    "chk_satisfaction_task_revision",
+    "chk_satisfaction_questionnaire_revision",
+    "chk_satisfaction_response_sequence",
+    "chk_satisfaction_result_sequence",
+    "chk_cutover_support_history_sequence",
+    "chk_cutover_responsibility_interval_sequence",
 }
 CROSS_FIELD_CHECKS = {
     "chk_delivery_scope_detail_subject",
@@ -216,15 +246,15 @@ def render_decision_analysis(
         "|风险|当前证据|业务影响|批准前应作出的选择|",
         "|---|---|---|---|",
         f"|精确键与默认排序规则冲突|{sum(len(tables) for tables in domain_tables.values())}张表默认`utf8mb4_0900_ai_ci`；{len(exact_match_fields)}个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|",
-        "|可空列参与唯一键|7个唯一键包含可空列；4个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|",
-        "|状态码写入数据库表达式|3个原固定状态CHECK已移除；4个当前唯一生成列已改为稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|",
+        "|可空列参与唯一键|8个唯一键包含可空列；5个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|",
+        "|状态码写入数据库表达式|3个原固定状态CHECK已移除；5个当前唯一生成列使用稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|",
         f"|普通索引没有查询证据|{len(constraints['INDEX'])}个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|Q08已接受为候选基线；Feature/P3-E06用真实查询和压测定稿|",
         "",
         "### 1.5 Q07已按数据架构不变量批量确认的内容",
         "",
         "|内容|数量|批量确认的前提|仍未包含的业务判断|",
         "|---|---:|---|---|",
-        f"|主键结构|{len(constraints['PRIMARY_KEY'])}|49张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|",
+        f"|主键结构|{len(constraints['PRIMARY_KEY'])}|{len(constraints['PRIMARY_KEY']) - 1}张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|",
         f"|租户复合引用键|{len(unique_groups['TENANT_REFERENCE'])}|仅支撑同租户复合外键/行引用|不替代业务唯一键|",
         f"|同领域物理外键|{len(constraints['FOREIGN_KEY'])}|{len(constraints['FOREIGN_KEY'])}个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|",
         f"|软删除检查|{len(check_groups['SOFT_DELETE'])}|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|",
@@ -268,7 +298,7 @@ def render_decision_analysis(
 
     lines.extend([
         "",
-        "### 1.7 7个可空唯一键逐项判断",
+        "### 1.7 8个可空唯一键逐项判断",
         "",
         "|唯一键|可空列|NULL是否有意|判断|",
         "|---|---|---|---|",
@@ -276,6 +306,7 @@ def render_decision_analysis(
         "|`uk_scope_current`|`current_order_line_id`|是：仅当前范围生成订单行ID|约束同一项目—订单行只有一条当前范围；建议保留|",
         "|`uk_customer_primary_contact`|`primary_customer_id`|是：仅主联系人生成客户ID|约束客户只有一个主联系人；建议保留|",
         "|`uk_project_primary_company_department`|`primary_project_id`|是：仅主关系生成项目ID|按关系角色约束一个主公司部门关系；建议保留|",
+        "|`uk_device_component_current_slot`|`current_slot_code`|是：仅当前组件关系生成槽位编码|约束同一机框槽位同一时点最多一个当前板卡；建议保留|",
         "|`uk_contract_master_source`|`master_source_record_key`|是：未取得主来源键时允许NULL|非NULL来源键必须唯一；建议保留并改为精确比较|",
         "|`uk_project_company_department_role`|`department_code`、`effective_from`|尚无证据表明有意|NULL会允许相同项目/公司/角色重复，存在约束空洞|",
         "|`uk_project_member_role`|`effective_from`|尚无证据表明有意|NULL会允许相同成员/角色重复，存在约束空洞|",
@@ -307,6 +338,7 @@ def render_decision_analysis(
             "current_order_line_id": "同一项目—订单行只有一个当前交付范围",
             "primary_customer_id": "一个客户只有一个当前主联系人",
             "primary_project_id": "项目同一角色只有一个主公司部门关系",
+            "current_slot_code": "同一机框槽位同一时点最多一个当前板卡",
         }.get(name, "当前唯一业务事实")
         lines.append(f"|`{table}.{name}`|`{escape(expression)}`|{protected}|已改为只依赖稳定有效期、删除标记或主标记|")
     lines.extend([

@@ -247,7 +247,15 @@ def expected_outputs(root: Path) -> dict[Path, str]:
                 "fieldClass": field_class,
                 "dataElementRefs": ["系统支撑!A1279:A1287"] if table_name == "cus_market_relation" and column_name in business_fields else [],
             })
-    extension_domains = {"COM": "合同订单履约"}
+    extension_domains = {
+        "COM": "合同订单履约",
+        "IMP": "方案与实施",
+        "ACC": "验收与闭环",
+        "CUT": "割接管理",
+        "SRV": "服务支持",
+        "AST": "资产与设备",
+        "PLT": "基础平台",
+    }
     for extension in contract.get("modelExtensions", []):
         table_name = extension["target"]
         table = ddl_tables[table_name]
