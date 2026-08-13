@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "decisionBaseline": "docs/decisions/0004-phase3-production-assurance-directions.md",
+  "status": "OWNER_INPUT_PENDING",
+  "packets": [
+    {
+      "id": "P3-E01",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e01-submission.json",
+      "evidenceOwnerRoles": [
+        "TECHNICAL_ARCHITECTURE_OWNER",
+        "OPERATIONS_OWNER"
+      ]
+    },
+    {
+      "id": "P3-E02",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e02-submission.json",
+      "evidenceOwnerRoles": [
+        "DBA_OWNER",
+        "OPERATIONS_OWNER"
+      ]
+    },
+    {
+      "id": "P3-E03",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e03-submission.json",
+      "evidenceOwnerRoles": [
+        "BUSINESS_OWNER",
+        "DBA_OWNER",
+        "OPERATIONS_OWNER"
+      ]
+    },
+    {
+      "id": "P3-E04",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e04-submission.json",
+      "evidenceOwnerRoles": [
+        "SECURITY_OWNER",
+        "OPERATIONS_OWNER"
+      ]
+    },
+    {
+      "id": "P3-E05",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e05-submission.json",
+      "evidenceOwnerRoles": [
+        "OBSERVABILITY_OWNER",
+        "SECURITY_OWNER",
+        "COMPLIANCE_OWNER"
+      ]
+    },
+    {
+      "id": "P3-E06",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e06-submission.json",
+      "evidenceOwnerRoles": [
+        "TEST_OWNER",
+        "OPERATIONS_OWNER",
+        "DATA_OWNER"
+      ]
+    },
+    {
+      "id": "P3-E07",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e07-submission.json",
+      "evidenceOwnerRoles": [
+        "INTEGRATION_ARCHITECTURE_OWNER",
+        "EXTERNAL_SYSTEM_OWNER"
+      ]
+    },
+    {
+      "id": "P3-E09",
+      "path": "docs/engineering/gates/phase-3/evidence-packet-templates/p3-e09-submission.json",
+      "evidenceOwnerRoles": [
+        "DATA_ARCHITECTURE_OWNER",
+        "BUSINESS_OWNER",
+        "MIGRATION_OWNER"
+      ]
+    }
+  ]
+}

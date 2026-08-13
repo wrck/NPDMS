@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E03",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "BUSINESS_OWNER",
+    "DBA_OWNER",
+    "OPERATIONS_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "actualRpo": null,
+    "actualRto": null,
+    "approvedRpo": null,
+    "approvedRto": null,
+    "backupFrequency": null,
+    "backupMedia": null,
+    "businessProbeResult": null,
+    "encryption": null,
+    "exerciseEvidenceId": null,
+    "exerciseOwner": null,
+    "restoreOrder": null,
+    "retention": null,
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "业务Owner先批准RPO/RTO，再由DBA/运维设计并演练",
+    "evidenceOwnerRoles": [
+      "BUSINESS_OWNER",
+      "DBA_OWNER",
+      "OPERATIONS_OWNER"
+    ]
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

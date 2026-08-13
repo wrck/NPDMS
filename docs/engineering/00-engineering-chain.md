@@ -80,6 +80,7 @@ Gate：
 输出：
 
 - data model
+- domain entity migration alignment（08a，作为data model稳定补充分册）
 - database design
 - API design
 - event design
@@ -106,6 +107,8 @@ Gate：
 - deployment design
 - performance design
 - test design
+- production evidence register与逐Owner证据包
+- Phase 3 gate status、自审和独立复审
 
 Gate：
 
@@ -113,6 +116,15 @@ Gate：
 - 发布、迁移、回退可执行
 - 安全与审计不存在明显缺口
 - 测试覆盖正常/异常/权限拒绝/幂等/并发
+- P3-E01～E06、P3-E09均由生产Owner提交证据并经独立复核达到`VERIFIED`
+- `phase3-evidence-register.json.overallStatus = READY_FOR_SDS_BASELINE`
+
+约束：
+
+- ADR确认的架构方向不等于生产事实通过；不得据此将`OPEN`直接改为`VERIFIED`。
+- P3-E07按Feature阻塞真实联调和上线，P3-E08在任何前端Feature验收或发布前必须关闭。
+- Owner提交必须从`docs/engineering/gates/phase-3/evidence-packet-templates/`复制到版本化`submissions/`，通过机器校验并保留独立复核记录。
+- 未满足上述Gate时，SDS Phase 3保持`IN_REVIEW`，不得生成SDS总册或进入Feature Spec。
 
 ## 4. SDS 完成后的研发循环
 

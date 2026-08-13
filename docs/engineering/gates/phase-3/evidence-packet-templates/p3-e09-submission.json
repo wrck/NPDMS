@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E09",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "DATA_ARCHITECTURE_OWNER",
+    "BUSINESS_OWNER",
+    "MIGRATION_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "approvedDdlSha256": null,
+    "currentDdlSha256": "3CDDE2E206EE4AE401ECC398EA01A6F44FFAD37AC2644478DCD42202330D58BC",
+    "dataElementExcelSha256": null,
+    "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+    "generatorVersion": null,
+    "manifestDdlSha256": null,
+    "mappingDdlSha256": null,
+    "migrationOwner": null,
+    "releaseManifestId": null,
+    "sourceSchemaSha256": null,
+    "sourceWatermark": null,
+    "targetCatalogDdlSha256": null,
+    "validationDdlSha256": null,
+    "verificationResult": null,
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
+    "evidenceOwnerRoles": [
+      "DATA_ARCHITECTURE_OWNER",
+      "BUSINESS_OWNER",
+      "MIGRATION_OWNER"
+    ]
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

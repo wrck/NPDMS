@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E05",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "OBSERVABILITY_OWNER",
+    "SECURITY_OWNER",
+    "COMPLIANCE_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "accessRoles": null,
+    "alertBackend": null,
+    "alertRefs": null,
+    "collectionProtocol": null,
+    "dashboardRefs": null,
+    "logBackend": null,
+    "metricBackend": null,
+    "redactionPolicy": null,
+    "retentionPolicy": null,
+    "runbookRefs": null,
+    "samplingPolicy": null,
+    "securityEventBackend": null,
+    "telemetryOwner": null,
+    "testTriggerEvidenceId": null,
+    "timeSync": null,
+    "traceBackend": null,
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "OpenTelemetry统一采集并接入企业现有后端",
+    "evidenceOwnerRoles": [
+      "OBSERVABILITY_OWNER",
+      "SECURITY_OWNER",
+      "COMPLIANCE_OWNER"
+    ]
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

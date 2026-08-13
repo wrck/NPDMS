@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E01",
+  "status": "DRAFT",
+  "decisionOwner": null,
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {},
+  "evidenceRefs": [],
+  "verificationResult": null,
+  "unresolvedItems": [],
+  "revalidationTriggers": []
+}

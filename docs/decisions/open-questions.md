@@ -24,3 +24,117 @@
 - Resolution:
 - Decision owner:
 - Decision date:
+
+## Phase 3生产与发布门禁
+
+### Q-P3-001
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: NFR-01、NFR-02、NFR-03
+- Area: 生产拓扑与网络信任边界（P3-E01）
+- Question: 生产入口、域名/TLS终止、网络区、前后端节点、对象存储、DAC执行区和外部系统流向由哪些平台和Owner承接？
+- Why it blocks design/implementation: 不能验证14信任边界和18生产部署/切换步骤。
+- Options: A. 由企业现有网关/LB、证书和网络区承接并提交现状拓扑；B. 为NPDMS新建独立入口和网络区并提交新拓扑。
+- Recommended technical default: A；优先复用企业已运维平台，NPDMS只登记允许流量和责任边界。
+- Business decision required: 是，需技术架构/运维确认平台和Owner。
+- Resolution: A；复用企业现有网关/LB、证书和网络区。实际平台、拓扑、流量和Owner仍由P3-E01证据包确认。
+- Decision owner: 需求方（方向）；技术架构、运维（生产证据）
+- Decision date: 2026-08-13
+
+### Q-P3-002
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: NFR-01、NFR-03
+- Area: MySQL/Redis生产形态（P3-E02）
+- Question: 生产MySQL 8.4与Redis 7.4采用托管服务还是自建HA，节点规格、容量和故障切换证据是什么？
+- Why it blocks design/implementation: 不能证明容量、数据一致性、缓存降级和发布恢复可执行。
+- Options: A. 使用企业托管HA服务；B. 自建HA集群并由DBA/运维维护。
+- Recommended technical default: A；如企业无可用托管服务再选B，且必须补齐故障切换与容量验证。
+- Business decision required: 是，需DBA/运维确认服务形态和容量。
+- Resolution: A；使用企业托管MySQL/Redis HA服务。实际产品、规格、容量和切换证据仍由P3-E02确认。
+- Decision owner: 需求方（方向）；DBA、运维（生产证据）
+- Decision date: 2026-08-13
+
+### Q-P3-003
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: NFR-01、NFR-02、NFR-03
+- Area: 备份恢复目标（P3-E03）
+- Question: 平台生产RPO/RTO、备份频率/保留、文件和密钥引用恢复顺序及演练Owner是什么？
+- Why it blocks design/implementation: 无法验证发布失败或灾难后的业务恢复，不可批准Phase 3。
+- Options: A. 业务Owner先批准RPO/RTO，再由DBA/运维设计并演练；B. 直接采用现有平台默认目标并由业务Owner签署适用性。
+- Recommended technical default: A；业务目标先行，避免基础设施默认值与交付业务风险不匹配。
+- Business decision required: 是。
+- Resolution: A；业务Owner先批准RPO/RTO，再由DBA/运维设计并完成隔离恢复演练。
+- Decision owner: 需求方（方向）；业务Owner、DBA、运维（目标与证据）
+- Decision date: 2026-08-13
+
+### Q-P3-004
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: NFR-02、INT-12
+- Area: 凭证密钥托管（P3-E04）
+- Question: DeviceCredential使用哪个企业KMS/Secrets Manager或等价密钥托管，轮换、吊销和应急Owner是谁？
+- Why it blocks design/implementation: 凭证加密和轮换无法形成可运行证据，设备连接功能不得上线。
+- Options: A. 企业KMS/Secrets Manager；B. 应用信封加密且主密钥由独立受控设施托管。
+- Recommended technical default: A；只有企业当前无可用KMS时才采用B，并必须实现密钥与数据库分离、版本化和轮换演练。
+- Business decision required: 是，需安全/运维确认设施和Owner。
+- Resolution: A；使用企业KMS/Secrets Manager。具体设施、访问、轮换、吊销和应急证据仍由P3-E04确认。
+- Decision owner: 需求方（方向）；安全、运维（生产证据）
+- Decision date: 2026-08-13
+
+### Q-P3-005
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: NFR-01、NFR-02、NFR-03
+- Area: Telemetry与安全事件（P3-E05）
+- Question: 日志、指标、Trace、告警和安全事件分别进入哪个企业平台，访问角色、留存和采样如何批准？
+- Why it blocks design/implementation: 17分册无法落地，高风险审计fail-closed和NFR证据无法验证。
+- Options: A. OpenTelemetry统一采集后接入企业现有后端；B. 各信号使用现有独立Agent/平台并通过correlationId关联。
+- Recommended technical default: A；若现网平台限制采用B，但必须证明跨信号追溯和权限分离。
+- Business decision required: 是。
+- Resolution: A；OpenTelemetry统一采集并接入企业现有后端。具体后端、访问、留存、采样和告警证据仍由P3-E05确认。
+- Decision owner: 需求方（方向）；运维、安全、合规Owner（生产证据）
+- Decision date: 2026-08-13
+
+### Q-P3-006
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: NFR-01、NFR-03
+- Area: 近生产性能环境（P3-E06）
+- Question: 是否提供独立近生产性能环境，其规格、数据集、网络、测试账号和外部依赖如何与生产对齐？
+- Why it blocks design/implementation: PRD的50并发、规模树、50MB、99%和60秒指标无法形成可信验收。
+- Options: A. 建独立近生产环境；B. 使用缩小环境但提供经验证的缩放模型。
+- Recommended technical default: A；B只作为资源确实受限时的过渡，且不能替代关键瓶颈的生产同级验证。
+- Business decision required: 是，需测试/运维/数据Owner确认资源。
+- Resolution: A；建设独立近生产性能环境。实际规格、数据集、网络和账号证据仍由P3-E06确认。
+- Decision owner: 需求方（方向）；测试、运维、数据Owner（环境与证据）
+- Decision date: 2026-08-13
+
+### Q-P3-007
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: INT-01～INT-12适用项
+- Area: 外部接口运行参数（P3-E07）
+- Question: 是否按Feature建立接口配置档案，并由每个外部系统技术Owner逐操作确认endpoint引用、认证、白名单、timeout/retry和沙箱契约？
+- Why it blocks design/implementation: 没有真实参数不能联调和上线，通用默认值可能造成重复副作用或误判成功。
+- Options: A. 每个Feature进入开发前逐接口登记；B. 建平台级统一登记后由Feature引用具体版本。
+- Recommended technical default: B；统一注册表治理，Feature引用不可变版本并在上线前验证实际操作。
+- Business decision required: 是，需集成架构和外部Owner确认治理方式。
+- Resolution: B；建立平台级统一接口配置注册表，Feature引用不可变版本并在上线前验证实际操作。
+- Decision owner: 需求方（方向）；集成架构、各外部系统Owner（配置与证据）
+- Decision date: 2026-08-13
+
+### Q-P3-008
+
+- Status: DECIDED_EVIDENCE_PENDING
+- Requirement IDs: 全部需要历史数据迁移的V1/V2 Requirement
+- Area: DDL漂移与迁移基线（P3-E09 / AI-MIG-000）
+- Question: 当前DDL相对旧批准证据的差异采用`ACCEPT_CURRENT`、`RESTORE_APPROVED_BASELINE`、`AMEND_CURRENT`还是逐项`DEFER`？
+- Why it blocks design/implementation: 当前DDL hash与目标字段目录/校验hash不一致，无法安全生成迁移程序或执行切换。
+- Options: A. 先生成逐表/列/索引/约束差异，由数据架构和业务Owner逐项裁决；B. 整体恢复旧DDL后重新评审新增实体。
+- Recommended technical default: A；当前领域模型已经演进，整体恢复可能丢失已确认能力，但未经逐项批准也不能接受当前DDL。
+- Business decision required: 是，需批准每项漂移结论；执行程序只读生成差异，不授权生产迁移。
+- Resolution: A；继续只读生成逐表/列/索引/约束差异，由数据架构和业务Owner逐项裁决，不整体恢复旧DDL。
+- Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
+- Decision date: 2026-08-13

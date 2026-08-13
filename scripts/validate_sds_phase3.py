@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Validate Phase 3 runtime, release and verification assurance artifacts."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import re
+from pathlib import Path
+
+
+DESIGN_FILES = (
+    "14-security-design.md",
+    "17-audit-and-observability.md",
+    "18-deployment-design.md",
+    "19-performance-design.md",
+    "20-test-design.md",
+)
+REQUIREMENT_HEADING = re.compile(r"^###\s+([A-Z]+-\d+)\s*$", re.M)
+PHASE3_TEST = re.compile(r"^- Phase 3测试类别：(.+?)\s*$", re.M)
+PHASE3_EVIDENCE = re.compile(r"^- Phase 3证据类型：(.+?)\s*$", re.M)
+
+
+def require_tokens(errors: list[str], label: str, text: str, tokens: tuple[str, ...]) -> None:
+    for token in tokens:
+        if token not in text:
+            errors.append(f"{label} missing required token: {token}")
+
+
+def parse_contract_blocks(text: str) -> dict[str, str]:
+    matches = list(REQUIREMENT_HEADING.finditer(text))
+    return {
+        match.group(1): text[match.start(): matches[index + 1].start() if index + 1 < len(matches) else len(text)]
+        for index, match in enumerate(matches)
+    }
+
+
+def validate(root: Path) -> list[str]:
+    errors: list[str] = []
+    design_dir = root / "docs" / "design"
+    documents: dict[str, str] = {}
+    for name in DESIGN_FILES:
+        path = design_dir / name
+        if not path.exists():
+            errors.append(f"missing Phase 3 design document: {path.as_posix()}")
+            continue
+        text = path.read_text(encoding="utf-8")
+        documents[name] = text
+        for marker in ("文档状态：`IN_REVIEW`", "适用基线：PRD V1.6", "Requirement ID：", "Owner："):
+            if marker not in text:
+                errors.append(f"{name} missing metadata: {marker}")
+
+    security = documents.get("14-security-design.md", "")
+    require_tokens(errors, "security design", security, (
+        "AES-256", "密钥材料与业务数据分离", "五元组", "临时输入", "不落库",
+        "秘密扫描", "fail closed", "50MB", "SSRF", "服务端",
+    ))
+
+    observability = documents.get("17-audit-and-observability.md", "")
+    require_tokens(errors, "observability design", observability, (
+        "operationId", "correlationId", "traceId", "Outbox", "P95", "≤0.5%",
+        "≥99%", "≤60秒", "runbook", "高风险",
+    ))
+
+    deployment = documents.get("18-deployment-design.md", "")
+    require_tokens(errors, "deployment design", deployment, (
+        "JDK 25", "pnpm 9.15.5", "Expand -> Backfill -> Verify -> Switch -> Contract",
+        "--frozen-lockfile", "前向迁移", "上一JAR", "制品hash", "releaseId",
+        "不得修改已执行迁移", "恢复", "AI-MIG-000", "approvedDdlSha256",
+    ))
+
+    performance = documents.get("19-performance-design.md", "")
+    require_tokens(errors, "performance design", performance, (
+        "P95≤2秒", "≤0.5%", "50个并发登录用户", "持续30分钟", "≥10000",
+        "50MB", "20万", "200万", "1万", "5万", "2000", "深度30",
+        "≤30秒", "≥99%", "≤60秒", "dataSetVersion",
+    ))
+
+    test_design = documents.get("20-test-design.md", "")
+    require_tokens(errors, "test design", test_design, (
+        "正常", "异常", "权限拒绝", "幂等", "并发", "Chrome", "Edge", "Firefox",
+        "1920×1080", "1440×900", "1366×768", "1024×768", "Playwright trace",
+        "秘密扫描0命中", "≥10000", "≤0.5%", "P95≤2秒", "≥99%", "≤60秒",
+    ))
+
+    contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+    if not contract_path.exists():
+        errors.append("missing explicit Phase 2/3 contract map")
+    else:
+        contract_text = contract_path.read_text(encoding="utf-8")
+        if "Phase 3验证注记状态：`IN_REVIEW`" not in contract_text:
+            errors.append("contract map missing Phase 3 IN_REVIEW marker")
+        blocks = parse_contract_blocks(contract_text)
+        if len(blocks) != 115:
+            errors.append(f"expected 115 Phase 3 verification mappings, got {len(blocks)}")
+        for identifier, block in blocks.items():
+            tests = PHASE3_TEST.findall(block)
+            evidence = PHASE3_EVIDENCE.findall(block)
+            if len(tests) != 1 or not tests[0].strip():
+                errors.append(f"{identifier} missing unique Phase 3 test categories")
+            if len(evidence) != 1 or not evidence[0].strip():
+                errors.append(f"{identifier} missing unique Phase 3 evidence types")
+            if "领域测试" in block or "后续补充" in block:
+                errors.append(f"{identifier} uses generic Phase 3 placeholder")
+
+        exact = {
+            "PM-05": ("部分失败", "逐项重试"),
+            "PM-06": ("无环", "唯一期次"),
+            "PM-11": ("5万节点", "2000直接子节点", "深度30"),
+            "INT-12": ("五元组", "临时明文不落库", "原子切换", "秘密扫描零命中"),
+            "NFR-01": ("50并发用户30分钟", "10000请求", "P95", "Playwright trace"),
+            "NFR-02": ("AES-256", "密钥轮换", "秘密扫描"),
+            "NFR-03": ("99%", "60秒"),
+            "PLT-02": ("50MB", "恶意内容", "权限"),
+        }
+        for identifier, tokens in exact.items():
+            block = blocks.get(identifier, "")
+            require_tokens(errors, f"{identifier} Phase 3 mapping", block, tokens)
+
+    gate_path = root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
+    if not gate_path.exists():
+        errors.append("missing Phase 3 gate status")
+    else:
+        gate = gate_path.read_text(encoding="utf-8")
+        require_tokens(errors, "Phase 3 gate", gate, (
+            "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE", "P3-E01", "P3-E02", "P3-E03",
+            "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "BLOCKED_BY_EVIDENCE",
+        ))
+        if "审查状态：`APPROVED`" in gate or "结论：`READY_FOR_PHASE_4`" in gate:
+            errors.append("Phase 3 gate cannot be approved while P3-E01..E06 or P3-E09 are open")
+
+    register_validator_path = Path(__file__).with_name("validate_phase3_evidence_register.py")
+    register_path = root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json"
+    if not register_validator_path.exists() or not register_path.exists():
+        errors.append("missing Phase 3 evidence register or validator")
+    else:
+        spec = importlib.util.spec_from_file_location("phase3_evidence_validator", register_validator_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        errors.extend(f"evidence register: {error}" for error in module.validate(register_path))
+
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    args = parser.parse_args()
+    errors = validate(args.root.resolve())
+    if errors:
+        for error in errors:
+            print(f"[FAIL] {error}")
+        return 1
+    print("[PASS] SDS Phase 3 documents, NFR controls and 115 verification mappings")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

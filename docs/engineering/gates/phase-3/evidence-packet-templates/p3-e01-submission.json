@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E01",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "TECHNICAL_ARCHITECTURE_OWNER",
+    "OPERATIONS_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "allowedFlows": null,
+    "applicationNodes": null,
+    "certificateOwner": null,
+    "dacExecutionZone": null,
+    "dataNodes": null,
+    "domainRef": null,
+    "entryGateway": null,
+    "environmentId": null,
+    "networkZones": null,
+    "objectStorage": null,
+    "operationsOwner": null,
+    "tlsTermination": null,
+    "topologyVersion": null,
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "复用企业现有网关/LB、证书和网络区",
+    "evidenceOwnerRoles": [
+      "TECHNICAL_ARCHITECTURE_OWNER",
+      "OPERATIONS_OWNER"
+    ]
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

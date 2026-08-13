@@ -44,6 +44,10 @@ Codex 按顺序维护：
 - `02d-cross-context-contracts.md`
 - `02e-version-scope-matrix.md`
 
+当前已启用的 Phase 2 补充分册：
+
+- `08a-domain-entity-migration-alignment.md`：覆盖全部显式领域数据对象的旧数据元/旧库/当前实现来源、迁移策略、排除项与迁移Gate。
+
 ## SDS 文件准入规则
 
 - 一个主题只允许一个当前正式分册；不同方案、评审意见和中间版本不在本目录复制。

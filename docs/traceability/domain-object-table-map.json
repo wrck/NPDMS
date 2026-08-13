@@ -1,0 +1,913 @@
+{
+  "schemaVersion": 1,
+  "status": "BASELINE_ADDENDUM",
+  "objects": {
+    "Project": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "INT-01",
+        "PM-01",
+        "PM-07",
+        "PM-10"
+      ],
+      "targetTables": [
+        "pms_project"
+      ]
+    },
+    "ProjectHierarchy": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "pms_project"
+      ]
+    },
+    "ProjectAncestorProjection": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "pms_project_tree_path"
+      ]
+    },
+    "ProjectTemplate": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "pms_project_template_revision"
+      ]
+    },
+    "ProjectTask": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "pms_project_task"
+      ]
+    },
+    "TaskAncestorProjection": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "pms_task_tree_path"
+      ]
+    },
+    "TaskDependency": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "pms_task_dependency"
+      ]
+    },
+    "ProjectMemberAssignment": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-01",
+        "PM-08",
+        "PM-09"
+      ],
+      "targetTables": [
+        "pms_project_member_assignment"
+      ]
+    },
+    "ProjectPortfolio": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PROJ-12"
+      ],
+      "targetTables": [
+        "pms_project_portfolio",
+        "pms_project_portfolio_member",
+        "pms_project_portfolio_revision"
+      ]
+    },
+    "ProjectStageSnapshot": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03",
+        "PM-10"
+      ],
+      "targetTables": [
+        "pms_project_stage_snapshot"
+      ]
+    },
+    "BorrowedProjectConversion": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "pms_project_conversion"
+      ]
+    },
+    "ConversionItem": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "pms_project_conversion_item"
+      ]
+    },
+    "ConversionDeviceDisposition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "pms_project_conversion_device"
+      ]
+    },
+    "MultiPhaseProjectGroup": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "pms_project_phase_group"
+      ]
+    },
+    "MultiPhaseProjectMember": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "pms_project_phase_member"
+      ]
+    },
+    "CrossPhaseContentReference": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "pms_project_cross_phase_reference"
+      ]
+    },
+    "Preparation": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PRE-02",
+        "PRE-03",
+        "PRE-04",
+        "PRE-05"
+      ],
+      "targetTables": [
+        "pms_sol_preparation",
+        "pms_sol_preparation_item"
+      ]
+    },
+    "ConstructionPlan": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PLN-01",
+        "PLN-02",
+        "PLN-03",
+        "PLN-04",
+        "PRE-01"
+      ],
+      "targetTables": [
+        "pms_sol_construction_plan",
+        "pms_sol_plan_revision",
+        "pms_sol_plan_item",
+        "pms_sol_plan_change"
+      ]
+    },
+    "Solution": {
+      "owner": "SOL",
+      "requirementIds": [
+        "SCH-01",
+        "SCH-02",
+        "SCH-03",
+        "SCH-04",
+        "SCH-05"
+      ],
+      "targetTables": [
+        "pms_sol_solution",
+        "pms_sol_solution_revision",
+        "pms_sol_solution_review"
+      ]
+    },
+    "DynamicFormSchema": {
+      "owner": "SOL",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "pms_sol_form_schema",
+        "pms_sol_form_schema_revision"
+      ]
+    },
+    "DynamicFormInstance": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PRE-02",
+        "PRE-04",
+        "SOL-01"
+      ],
+      "targetTables": [
+        "pms_sol_form_instance"
+      ]
+    },
+    "ArrivalAcceptance": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-01"
+      ],
+      "targetTables": [
+        "pms_imp_arrival_acceptance",
+        "pms_imp_arrival_line",
+        "pms_imp_arrival_difference"
+      ]
+    },
+    "InstallationRecord": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-02"
+      ],
+      "targetTables": [
+        "pms_imp_installation_record",
+        "pms_imp_installation_item",
+        "pms_imp_installation_evidence"
+      ]
+    },
+    "ConfigurationCollectionResult": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-03"
+      ],
+      "targetTables": [
+        "pms_imp_configuration_result",
+        "pms_imp_parse_attempt"
+      ]
+    },
+    "JointDebuggingResult": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-04"
+      ],
+      "targetTables": [
+        "pms_imp_debugging_result",
+        "pms_imp_debugging_item"
+      ]
+    },
+    "ImplementationRisk": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-05"
+      ],
+      "targetTables": [
+        "pms_imp_risk",
+        "pms_imp_risk_treatment"
+      ]
+    },
+    "ImplementationQualityCheck": {
+      "owner": "IMP",
+      "requirementIds": [
+        "IMP-01"
+      ],
+      "targetTables": [
+        "pms_imp_quality_check",
+        "pms_imp_quality_item",
+        "pms_imp_quality_remediation",
+        "pms_imp_quality_review"
+      ]
+    },
+    "ImplementationSafetyCheck": {
+      "owner": "IMP",
+      "requirementIds": [
+        "IMP-02"
+      ],
+      "targetTables": [
+        "pms_imp_safety_check",
+        "pms_imp_safety_item",
+        "pms_imp_safety_remediation",
+        "pms_imp_safety_exemption"
+      ]
+    },
+    "DeliveryEvidence": {
+      "owner": "IMP",
+      "requirementIds": [
+        "IMP-01",
+        "IMP-02"
+      ],
+      "targetTables": [
+        "pms_imp_delivery_evidence",
+        "pms_imp_delivery_evidence_revision"
+      ]
+    },
+    "ImplementationReadinessSnapshot": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-06"
+      ],
+      "targetTables": [
+        "pms_project_stage_snapshot"
+      ]
+    },
+    "Acceptance": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-01",
+        "ACC-02",
+        "ACC-03"
+      ],
+      "targetTables": [
+        "pms_acc_acceptance",
+        "pms_acc_acceptance_item",
+        "pms_acc_confirmation"
+      ]
+    },
+    "DeliveryArtifact": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-04"
+      ],
+      "targetTables": [
+        "pms_acc_delivery_artifact",
+        "pms_acc_artifact_review",
+        "pms_acc_archive_record"
+      ]
+    },
+    "ProjectClosure": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-05",
+        "ACC-06",
+        "CLO-01",
+        "CLO-02",
+        "CLO-03",
+        "CLO-04",
+        "CLO-05",
+        "CLO-06"
+      ],
+      "targetTables": [
+        "pms_acc_project_closure",
+        "pms_acc_closure_review"
+      ]
+    },
+    "ClosureGateSnapshot": {
+      "owner": "ACC",
+      "requirementIds": [
+        "CLO-01",
+        "CLO-02",
+        "CLO-03",
+        "CLO-04",
+        "CLO-05",
+        "CLO-06"
+      ],
+      "targetTables": [
+        "pms_acc_closure_gate_snapshot"
+      ]
+    },
+    "ServiceHandover": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-05",
+        "ACC-06"
+      ],
+      "targetTables": [
+        "pms_acc_service_handover",
+        "pms_acc_handover_item",
+        "pms_acc_handover_result"
+      ]
+    },
+    "CutoverTask": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-08",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "pms_cut_task"
+      ]
+    },
+    "CutoverAssessment": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "pms_cut_assessment"
+      ]
+    },
+    "CutoverPlan": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-03",
+        "CUT-04",
+        "CUT-05",
+        "CUT-07"
+      ],
+      "targetTables": [
+        "pms_cut_plan_revision",
+        "pms_cut_step"
+      ]
+    },
+    "CutoverExecution": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-06"
+      ],
+      "targetTables": [
+        "pms_cut_execution",
+        "pms_cut_execution_step",
+        "pms_cut_observation"
+      ]
+    },
+    "InspectionTask": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07"
+      ],
+      "targetTables": [
+        "pms_ins_task",
+        "pms_ins_task_rule_snapshot"
+      ]
+    },
+    "InspectionRule": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-03",
+        "INS-09"
+      ],
+      "targetTables": [
+        "pms_ins_rule",
+        "pms_ins_rule_revision"
+      ]
+    },
+    "InspectionReport": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-05",
+        "INT-06"
+      ],
+      "targetTables": [
+        "pms_ins_report_revision"
+      ]
+    },
+    "ServiceIssue": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-06",
+        "INS-08"
+      ],
+      "targetTables": [
+        "pms_ins_service_issue",
+        "pms_ins_remediation"
+      ]
+    },
+    "WorkOrder": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INT-05",
+        "WO-01",
+        "WO-02",
+        "WO-03",
+        "WO-05",
+        "WO-06"
+      ],
+      "targetTables": [
+        "pms_wo_work_order",
+        "pms_wo_handling_record"
+      ]
+    },
+    "TimeClaim": {
+      "owner": "SRV",
+      "requirementIds": [
+        "WO-04"
+      ],
+      "targetTables": [
+        "pms_wo_time_claim",
+        "pms_wo_time_adjustment"
+      ]
+    },
+    "ServiceStatus": {
+      "owner": "SRV",
+      "requirementIds": [
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "pms_srv_service_status"
+      ]
+    },
+    "Customer": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-02",
+        "CUS-03",
+        "CUS-04",
+        "INT-03"
+      ],
+      "targetTables": [
+        "pms_cus_customer"
+      ]
+    },
+    "CustomerContact": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-02",
+        "CUS-03",
+        "CUS-04"
+      ],
+      "targetTables": [
+        "pms_cus_contact",
+        "pms_cus_project_contact_relation"
+      ]
+    },
+    "CustomerRelationshipSnapshot": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-02",
+        "CUS-03",
+        "CUS-04",
+        "INT-03"
+      ],
+      "targetTables": [
+        "pms_cus_relationship_snapshot"
+      ]
+    },
+    "Device": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-04",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "pms_equipment"
+      ]
+    },
+    "DeviceArchive": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "pms_equipment",
+        "pms_equipment_version",
+        "pms_equipment_config_log"
+      ]
+    },
+    "DeviceCurrentAssignment": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "pms_ast_device_current_assignment",
+        "pms_ast_device_assignment_history"
+      ]
+    },
+    "DeviceAssignmentHistory": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "pms_ast_device_assignment_history"
+      ]
+    },
+    "DeviceAncestorProjection": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-03"
+      ],
+      "targetTables": [
+        "pms_ast_device_project_ancestor"
+      ]
+    },
+    "AssetSyncSnapshot": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-04",
+        "INT-02"
+      ],
+      "targetTables": [
+        "pms_int_sync_batch",
+        "pms_int_sync_item",
+        "pms_equipment"
+      ]
+    },
+    "MaintenanceFact": {
+      "owner": "AST",
+      "requirementIds": [
+        "AST-01",
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "pms_ast_maintenance_fact"
+      ]
+    },
+    "RMAReplacement": {
+      "owner": "AST",
+      "requirementIds": [
+        "AST-01",
+        "INT-06"
+      ],
+      "targetTables": [
+        "pms_ast_rma_replacement"
+      ]
+    },
+    "Contract": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "pms_com_contract"
+      ]
+    },
+    "SalesOrder": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "pms_com_sales_order"
+      ]
+    },
+    "OrderLine": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "pms_com_order_line"
+      ]
+    },
+    "DeliveryScope": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "pms_com_delivery_scope"
+      ]
+    },
+    "FulfillmentSnapshot": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-02"
+      ],
+      "targetTables": [
+        "pms_com_fulfillment_snapshot"
+      ]
+    },
+    "ReconciliationRecord": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-02"
+      ],
+      "targetTables": [
+        "pms_com_reconciliation_record"
+      ]
+    },
+    "Supplier": {
+      "owner": "RES",
+      "requirementIds": [
+        "RES-01"
+      ],
+      "targetTables": [
+        "pms_res_supplier",
+        "pms_res_qualification"
+      ]
+    },
+    "SubcontractRequest": {
+      "owner": "RES",
+      "requirementIds": [
+        "SUB-01",
+        "SUB-02",
+        "SUB-05"
+      ],
+      "targetTables": [
+        "pms_res_subcontract_request"
+      ]
+    },
+    "PaymentGate": {
+      "owner": "RES",
+      "requirementIds": [
+        "INT-07",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "pms_res_payment_gate"
+      ]
+    },
+    "MetricDefinition": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "pms_ana_metric_definition"
+      ]
+    },
+    "MetricSnapshot": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01",
+        "NFR-01",
+        "RPT-01",
+        "RPT-02",
+        "RPT-04"
+      ],
+      "targetTables": [
+        "pms_ana_metric_snapshot"
+      ]
+    },
+    "PortfolioView": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "pms_ana_portfolio_projection"
+      ]
+    },
+    "Todo": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-05",
+        "INT-10",
+        "NFR-03",
+        "PLT-01"
+      ],
+      "targetTables": [
+        "pms_plt_todo"
+      ]
+    },
+    "AuthorizationGrant": {
+      "owner": "PLT",
+      "requirementIds": [
+        "AUT-01",
+        "AUT-02",
+        "INT-06",
+        "INT-09"
+      ],
+      "targetTables": [
+        "pms_plt_authorization_grant"
+      ]
+    },
+    "ChangeRequest": {
+      "owner": "PLT",
+      "requirementIds": [
+        "CHG-01"
+      ],
+      "targetTables": [
+        "pms_plt_change_request"
+      ]
+    },
+    "FileArtifact": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PLT-02",
+        "PRE-05",
+        "SCH-03"
+      ],
+      "targetTables": [
+        "pms_plt_file_artifact",
+        "pms_plt_file_version",
+        "pms_plt_file_reference"
+      ]
+    },
+    "AuditRecord": {
+      "owner": "PLT",
+      "requirementIds": [
+        "NFR-01"
+      ],
+      "targetTables": [
+        "pms_plt_operation_audit"
+      ]
+    },
+    "DeviceCredential": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "pms_dac_device_credential"
+      ]
+    },
+    "CredentialGrant": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "pms_dac_credential_grant"
+      ]
+    },
+    "CollectionTask": {
+      "owner": "PLT",
+      "requirementIds": [
+        "CUT-06",
+        "EXE-03",
+        "EXE-04",
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07",
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "pms_dac_collection_task"
+      ]
+    },
+    "DispatchAttempt": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "pms_dac_dispatch_attempt"
+      ]
+    },
+    "CallbackRecord": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "pms_dac_callback_record"
+      ]
+    },
+    "CollectionResultReference": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "pms_dac_collection_result_ref"
+      ]
+    },
+    "TechnicalNoticeReference": {
+      "owner": "KNO",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [
+        "pms_kno_technical_notice",
+        "pms_kno_notice_business_reference"
+      ]
+    },
+    "NoticeBusinessReference": {
+      "owner": "KNO",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [
+        "pms_kno_notice_business_reference"
+      ]
+    }
+  }
+}

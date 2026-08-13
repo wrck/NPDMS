@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E02",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "DBA_OWNER",
+    "OPERATIONS_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "capacityEvidenceId": null,
+    "connectionLimits": null,
+    "failoverEvidenceId": null,
+    "haMode": null,
+    "monitoringOwner": null,
+    "mysqlVersion": null,
+    "nodeSpecs": null,
+    "redisEvictionPolicy": null,
+    "redisPersistence": null,
+    "redisVersion": null,
+    "serviceMode": null,
+    "storageCapacity": null,
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "使用企业托管MySQL/Redis HA服务",
+    "evidenceOwnerRoles": [
+      "DBA_OWNER",
+      "OPERATIONS_OWNER"
+    ]
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

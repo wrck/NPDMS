@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the V1.6 requirement-to-engineering traceability index and Phase 1 SDS mappings."""
+"""Generate the V1.6 requirement-to-engineering traceability index and SDS mappings."""
 
 from __future__ import annotations
 
@@ -199,7 +199,7 @@ def phase1_design(identifier: str, domain: str) -> tuple[str, ...]:
 
 
 def sds_reference(identifier: str) -> str:
-    """Return stable Phase 1 SDS links applicable to one requirement row."""
+    """Return stable, requirement-specific Phase 1 and Phase 2 SDS links."""
     references = [
         "[01追溯](../design/01-requirement-traceability.md#2-phase-1-追溯链)",
         "[02领域](../design/02-domain-model.md)",
@@ -210,6 +210,78 @@ def sds_reference(identifier: str) -> str:
     ]
     if identifier.startswith(("EXE-", "IMP-", "CUT-", "INS-", "INT-")):
         references.insert(2, "[02d契约](../design/02d-cross-context-contracts.md)")
+    domain = PREFIX_OWNER.get(identifier) or PREFIX_OWNER.get(identifier.split("-")[0])
+    phase2_sections = {
+        "PROJ": ("4-project-delivery-数据模型", "4-project-delivery-表设计", "5-proj项目治理-api"),
+        "SOL": ("5-preparation--solution-数据模型", "45-preparation--solution", "6-sol交付准备与方案-api"),
+        "IMP": ("6-implementation-execution-数据模型", "6-implementation-execution-与-acceptance-表设计", "7-imp现场实施-api"),
+        "ACC": ("7-acceptance--closure-数据模型", "6-implementation-execution-与-acceptance-表设计", "8-acc验收与项目闭环-api"),
+        "CUT": ("8-cutoverwork-orderinspection-与-service-operations", "7-cutoverinspectionwork-order-与服务状态", "9-cut割接-api"),
+        "SRV": ("8-cutoverwork-orderinspection-与-service-operations", "7-cutoverinspectionwork-order-与服务状态", "10-srv工单巡检与服务状态-api"),
+        "CUS": ("9-customerassetcommerce-与-resource", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),
+        "AST": ("9-customerassetcommerce-与-resource", "5-asset-设备归属与维保基本事实", "11-cusastcomres-与-kno-api"),
+        "COM": ("9-customerassetcommerce-与-resource", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),
+        "RES": ("9-customerassetcommerce-与-resource", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),
+        "ANA": ("10-analytics基础平台与-knowledge-reference", "10-文件事件幂等和状态历史支撑表", "12-ana-与公共能力-api"),
+        "PLT": ("10-analytics基础平台与-knowledge-reference", "10-文件事件幂等和状态历史支撑表", "12-ana-与公共能力-api"),
+        "KNO": ("10-analytics基础平台与-knowledge-reference", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),
+    }
+    data_anchor, db_anchor, api_anchor = phase2_sections[domain]
+    if identifier == "INT-12":
+        data_anchor, db_anchor, api_anchor = (
+            "11-device-access--collection-数据模型",
+            "9-device-access--collection-关键表",
+            "13-device-access--collection-api",
+        )
+    elif identifier == "PM-05":
+        data_anchor, db_anchor, api_anchor = (
+            "4-project-delivery-数据模型",
+            "44-pm-05-转销与-pm-06-多期关系",
+            "51-pm-05-借货项目转销契约",
+        )
+    elif identifier == "PM-06":
+        data_anchor, db_anchor, api_anchor = (
+            "4-project-delivery-数据模型",
+            "44-pm-05-转销与-pm-06-多期关系",
+            "52-pm-06-多期项目契约",
+        )
+    references.extend([
+        f"[08数据](../design/08-data-model.md#{data_anchor})",
+        f"[09数据库](../design/09-database-design.md#{db_anchor})",
+        f"[10接口](../design/10-api-design.md#{api_anchor})",
+    ])
+    event_anchors: list[str] = []
+    if identifier in {"PM-01", "PM-02", "PM-03", "PM-04", "PM-09", "PM-10", "PM-11", "PROJ-12"}:
+        event_anchors.append("5-projectasset-与-analytics-事件")
+    if identifier.startswith(("EXE-", "IMP-", "ACC-", "CLO-", "CUT-")):
+        event_anchors.append("6-impacc-与-cut-事件")
+    if identifier in {"EXE-03", "EXE-04", "CUT-06", "INS-02", "INS-04", "INT-12", "NFR-02"}:
+        event_anchors.append("7-collection-事件链")
+    if identifier.startswith(("WO-", "INS-", "SRV-")) or identifier == "INT-05":
+        event_anchors.append("8-inspectionwork-order-与-service-事件")
+    if domain in {"CUS", "COM", "RES", "KNO"} or identifier in {"INT-01", "INT-02", "INT-03", "INT-04", "INT-06", "INT-07", "INT-10", "NFR-03"}:
+        event_anchors.append("9-主数据商务资源与知识事件")
+    if domain == "AST" and identifier not in {"INT-02", "INT-06"}:
+        event_anchors.append("5-projectasset-与-analytics-事件")
+    if domain == "ANA":
+        event_anchors.append("5-projectasset-与-analytics-事件")
+    if identifier in {"PLT-01", "PLT-02"}:
+        event_anchors.append("10-文件与待办事件")
+    for event_anchor in dict.fromkeys(event_anchors):
+        references.append(f"[11事件](../design/11-event-design.md#{event_anchor})")
+    integration_requirements = {"COM-01", "COM-02", "EQP-04", "CUT-08", "INS-05", "AUT-01", "AUT-02", "WO-01"}
+    integration_requirements.add("PRE-03")
+    if identifier.startswith("INT-") or identifier in integration_requirements:
+        references.append("[12集成](../design/12-integration-design.md)")
+    file_prefixes = ("PRE-", "PLN-", "SCH-", "SOL-", "EXE-", "IMP-", "ACC-", "CLO-", "CUT-", "WO-", "INS-", "RES-", "SUB-")
+    file_requirements = {"PLT-02", "INT-06", "INT-07", "INT-12"}
+    if identifier.startswith(file_prefixes) or identifier in file_requirements:
+        references.append("[13文件](../design/13-file-design.md)")
+    references.extend([
+        "[15并发](../design/15-cache-and-concurrency.md)",
+        "[16异常](../design/16-exception-and-idempotency.md)",
+        f"[P2契约](phase2-contract-map.md#{identifier.lower()})",
+    ])
     return " / ".join(references)
 
 
@@ -228,7 +300,7 @@ def render(prd: Path, domain_root: Path) -> str:
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：SDS Phase 1已通过独立复审并转为BASELINE；领域Owner已签署",
+        "- 当前状态：SDS Phase 1与Phase 2均已通过独立复审并转为BASELINE；SDS Phase 3处于IN_REVIEW，尚未达到BASELINE",
         "",
         "## 字段状态约定",
         "",
@@ -250,7 +322,7 @@ def render(prd: Path, domain_root: Path) -> str:
         values = [
             item["id"], item["name"], f"{domain}（{owner}）", module, aggregate, lifecycle,
             permission, api, data, test_category, item["stage"], item["version"], item["priority"],
-            item["source"], sds_reference(item["id"]), "NOT_STARTED", "PRD/SDS-P1-BASELINE", "NOT_STARTED", "BASELINE",
+            item["source"], sds_reference(item["id"]), "NOT_STARTED", "PRD/SDS-P1-BASELINE/SDS-P2-BASELINE", "NOT_STARTED", "BASELINE",
         ]
         lines.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
     return "\n".join(lines) + "\n"

@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+import importlib.util
+import sys
+import unittest
+from pathlib import Path
+
+
+MODULE_PATH = Path(__file__).parents[1] / "generate_ddl_drift_review.py"
+SPEC = importlib.util.spec_from_file_location("generate_ddl_drift_review", MODULE_PATH)
+MODULE = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+sys.modules[SPEC.name] = MODULE
+SPEC.loader.exec_module(MODULE)
+
+
+class DdlDriftReviewTest(unittest.TestCase):
+    def test_parser_handles_generated_column_and_constraints(self) -> None:
+        ddl = b"""CREATE TABLE sample (
+          id BIGINT NOT NULL COMMENT 'id',
+          active_id BIGINT GENERATED ALWAYS AS (CASE WHEN id > 0 THEN id ELSE NULL END) STORED COMMENT 'active',
+          PRIMARY KEY (id),
+          CONSTRAINT chk_sample CHECK (id >= 0)
+        ) ENGINE = InnoDB COMMENT = 'sample';"""
+        table = MODULE.parse_ddl(ddl)["sample"]
+        self.assertEqual({"id", "active_id"}, set(table.columns))
+        self.assertEqual(2, len(table.constraints))
+
+    def test_compare_reports_column_constraint_and_options(self) -> None:
+        old = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB COMMENT='old';")
+        new = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NULL, name VARCHAR(20), PRIMARY KEY (id), KEY idx_name (name)) ENGINE = InnoDB COMMENT='new';")
+        result = MODULE.compare(old, new)
+        self.assertEqual(2, len(result["columnDiff"]))
+        self.assertEqual(1, len(result["constraintDiff"]))
+        self.assertEqual(1, len(result["tableOptionDiff"]))
+
+    def test_all_differences_remain_defer(self) -> None:
+        old = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL) ENGINE = InnoDB;")
+        new = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL, code VARCHAR(10)) ENGINE = InnoDB;")
+        result = MODULE.compare(old, new)
+        self.assertTrue(all(item["decision"] == "DEFER" for values in result.values() for item in values))
+
+    def test_current_constraint_inventory_is_hash_bound_and_unapproved(self) -> None:
+        tables = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;")
+        inventory = MODULE.current_constraint_inventory("DDL_HASH", tables)
+        self.assertEqual("DDL_HASH", inventory["currentDdlSha256"])
+        self.assertEqual(1, inventory["constraintCount"])
+        self.assertEqual("DEFER", inventory["records"][0]["decision"])
+        self.assertIsNone(inventory["approval"]["approvedDdlSha256"])
+
+    def test_item_decision_register_is_complete_and_unapproved(self) -> None:
+        baseline = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL) ENGINE = InnoDB;")
+        current = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;")
+        register = MODULE.ddl_item_decision_register(
+            "BASELINE", "CURRENT", baseline, current,
+            constraints_comparable=False, options_comparable=False,
+        )
+        self.assertEqual({"TABLE": 1, "COLUMN": 1, "CONSTRAINT": 1, "TABLE_OPTION": 1}, register["summary"]["byType"])
+        self.assertTrue(all(item["decision"] == "DEFER" for item in register["items"]))
+        constraint = next(item for item in register["items"] if item["itemType"] == "CONSTRAINT")
+        self.assertEqual("UNVERIFIED_BASELINE_MISSING", constraint["comparisonStatus"])
+        self.assertIsNone(register["approval"]["approvedDdlSha256"])
+
+
+if __name__ == "__main__":
+    unittest.main()

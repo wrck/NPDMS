@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""Validate AI-MIG-000 item-by-item DDL decisions against current read-only facts."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+
+ALLOWED_DECISIONS = {"ACCEPT_CURRENT", "RESTORE_APPROVED_BASELINE", "AMEND_CURRENT", "DEFER"}
+
+
+def nonempty(value: object) -> bool:
+    return value is not None and value != "" and value != [] and value != {}
+
+
+def canonical_sha(items: list[dict[str, object]]) -> str:
+    data = json.dumps(items, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(data).hexdigest().upper()
+
+
+def load_generator(script_dir: Path):
+    path = script_dir / "generate_ddl_drift_review.py"
+    spec = importlib.util.spec_from_file_location("ddl_drift_generator_for_validation", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def validate(root: Path) -> list[str]:
+    errors: list[str] = []
+    migration = root / "specs" / "001-project-delivery-platform" / "evidence" / "migration"
+    register_path = migration / "ddl-item-decision-register.json"
+    report_path = migration / "ddl-drift-review.json"
+    try:
+        register = json.loads(register_path.read_text(encoding="utf-8"))
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"cannot read DDL decision evidence: {exc}"]
+    if register.get("schemaVersion") != 1 or register.get("purpose") != "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER":
+        errors.append("DDL item decision register schema/purpose mismatch")
+    if register.get("baselineDdlSha256") != report.get("inputs", {}).get("baselineDdlSha256") or register.get("currentDdlSha256") != report.get("inputs", {}).get("currentDdlSha256"):
+        errors.append("DDL item decision register hash binding mismatch")
+    items = register.get("items")
+    if not isinstance(items, list):
+        return errors + ["DDL item decision register items must be a list"]
+    identifiers = [item.get("itemId") for item in items if isinstance(item, dict)]
+    if len(identifiers) != len(set(identifiers)):
+        errors.append("duplicate DDL decision itemId")
+    if register.get("itemsSha256") != canonical_sha(items):
+        errors.append("DDL decision itemsSha256 mismatch")
+
+    generator = load_generator(root / "scripts")
+    ddl_path = root / report["inputs"]["ddlPath"]
+    current_tables = generator.parse_ddl(ddl_path.read_bytes())
+    if report["inputs"]["baselineSource"] == "GIT_DDL":
+        baseline_tables = generator.parse_ddl(generator.git_blob(root, report["inputs"]["baselineCommit"], report["inputs"]["ddlPath"]))
+    else:
+        baseline_tables = generator.load_catalog(root / report["inputs"]["baselineCatalogPath"])
+    expected = generator.ddl_item_decision_register(
+        register["baselineDdlSha256"], register["currentDdlSha256"], baseline_tables, current_tables,
+        constraints_comparable=report["summary"]["constraintsComparable"],
+        options_comparable=report["summary"]["tableOptionsComparable"],
+    )
+    expected_by_id = {item["itemId"]: item for item in expected["items"]}
+    actual_by_id = {item.get("itemId"): item for item in items if isinstance(item, dict)}
+    if set(actual_by_id) != set(expected_by_id):
+        errors.append("DDL decision item coverage differs from generated facts")
+    immutable_fields = ("itemType", "table", "name", "comparisonStatus", "baselineValue", "currentValue")
+    for identifier in sorted(set(actual_by_id) & set(expected_by_id)):
+        actual, generated = actual_by_id[identifier], expected_by_id[identifier]
+        for field in immutable_fields:
+            if actual.get(field) != generated.get(field):
+                errors.append(f"{identifier} immutable fact mismatch: {field}")
+        decision = actual.get("decision")
+        if decision not in ALLOWED_DECISIONS:
+            errors.append(f"{identifier} invalid decision: {decision}")
+        if decision != "DEFER" and (not nonempty(actual.get("decisionOwner")) or not nonempty(actual.get("evidenceRefs"))):
+            errors.append(f"{identifier} non-DEFER decision requires decisionOwner and evidenceRefs")
+
+    counts: dict[str, int] = {}
+    statuses: dict[str, int] = {}
+    approved_count = 0
+    for item in items:
+        counts[item["itemType"]] = counts.get(item["itemType"], 0) + 1
+        statuses[item["comparisonStatus"]] = statuses.get(item["comparisonStatus"], 0) + 1
+        if item.get("decision") != "DEFER" and nonempty(item.get("reviewOwner")):
+            approved_count += 1
+    expected_summary = {"itemCount": len(items), "byType": counts, "byComparisonStatus": statuses, "approvedCount": approved_count}
+    if register.get("summary") != expected_summary:
+        errors.append("DDL item decision summary mismatch")
+    approval = register.get("approval", {})
+    if nonempty(approval.get("approvedDdlSha256")):
+        if approved_count != len(items) or not nonempty(approval.get("decisionOwner")) or not nonempty(approval.get("reviewOwner")) or not nonempty(approval.get("evidenceRefs")):
+            errors.append("approvedDdlSha256 requires all items reviewed and final approval evidence")
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    args = parser.parse_args()
+    errors = validate(args.root.resolve())
+    if errors:
+        for error in errors:
+            print(f"[FAIL] {error}")
+        return 1
+    print("[PASS] AI-MIG-000 DDL item decision register")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
