@@ -18,6 +18,281 @@
 |唯一键|100|旧基线未保存|影响重复业务数据，必须业务审查|
 |CHECK|79|旧基线未保存|影响异常历史数据，必须业务审查|
 
+### 1.1 1602项证据的真实含义
+
+|比较结果|数量|实际含义|能否据此直接批准|
+|---|---:|---|---|
+|`MATCH`|1,055|历史目标DDL与当前DDL中的表/字段定义一致；不是旧库数据质量证明|无需重复讨论未改变的字段语义，但不能据此宣称迁移通过|
+|`ADDED`|40|当前模型相对历史目标DDL新增|必须有需求或ADR依据|
+|`MODIFIED`|2|字段定义或说明发生变化|必须说明是否改变业务含义|
+|`REMOVED`|71|历史目标DDL中存在、当前模型已移除|必须确认是范围排除而非数据遗漏|
+|`UNVERIFIED_BASELINE_MISSING`|434|历史目录未保存约束和表选项|必须按约束语义分类评审，不能自动接受|
+
+因此，1055项MATCH只保留逐项追溯；真正需要裁决的是新增/修改/移除的模型变化，以及434项没有历史结构基线的约束和表选项。
+
+### 1.2 当前核心迁移子集按领域分布
+
+|领域|表数|表清单|
+|---|---:|---|
+|ACC|2|`acc_deliverable_template`、`acc_project_deliverable`|
+|ANA|1|`ana_project_delivery_summary`|
+|AST|12|`ast_device_configuration`、`ast_device_configuration_feature`、`ast_device_configuration_service`、`ast_device_project_assignment`、`ast_device_relation`、`ast_device_shipment_event`、`ast_device_sn`、`ast_device_version`、`ast_network_topology`、`ast_network_topology_device_relation`、`ast_product`、`ast_product_release`|
+|COM|16|`com_contract`、`com_contract_receivable`、`com_crm_execution_config`、`com_crm_execution_order`、`com_delivery_scope`、`com_execution_order_merge_batch`、`com_execution_order_merge_member`、`com_order_change_relation`、`com_order_contract_relation`、`com_order_execution_relation`、`com_order_line_execution_relation`、`com_project_contract_relation`、`com_sales_order`、`com_sales_order_line`、`com_shipment_contract_reference`、`com_shipment_package`|
+|CUS|3|`cus_customer`、`cus_customer_contact`、`cus_market_relation`|
+|PLT|6|`plt_business_document`、`plt_document_version`、`plt_external_key_mapping`、`plt_migration_issue`、`plt_migration_source_record`、`plt_sync_batch`|
+|PROJ|7|`proj_project`、`proj_project_company_department_relation`、`proj_project_member_assignment`、`proj_project_party`、`proj_project_portfolio`、`proj_project_portfolio_member`、`proj_project_relation`|
+|SRV|2|`srv_service_incident`、`srv_service_incident_device_relation`|
+
+### 1.3 已有ADR明确的模型变化
+
+|变化组|具体内容|依据|当前判断|
+|---|---|---|---|
+|客户与项目市场行业四维|新增`cus_market_relation`及20个字段；客户新增7个字段并修订`industry_code`语义；项目新增7个字段并修订`industry_code`语义|ADR-0021；CRM表`pm_project_market_relations_from_sms`|业务含义已确认；仍需保证来源键精确匹配|
+|项目编码命名空间|`proj_project`新增`code_root_id`、`code_rule_version`、`project_sequence`|ADR-0020|同一CRM项目不因多合同/订单改号，子项目使用永久流水号|
+|一源多目标映射|`plt_external_key_mapping`新增`target_role`、`target_sequence`|ADR-0022|目标角色和顺序已确认且重跑不可重排|
+|V3技术公告治理排除|移除4张KNO表及67个字段|ADR-0022|不进入核心迁移DDL；INT-04只读引用逻辑对象仍保留|
+
+### 1.4 不能用“整组接受”带过的实质风险
+
+|风险|当前证据|业务影响|批准前应作出的选择|
+|---|---|---|---|
+|精确键与默认排序规则冲突|49张表默认`utf8mb4_0900_ai_ci`；25个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|
+|可空列参与唯一键|8个唯一键包含可空列；5个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|
+|状态码写入CHECK|3个CHECK引用固定状态码|扩展状态可能绕过规则或被数据库拒绝|改由标准状态映射后的受控状态机/应用守卫执行|
+|普通索引没有查询证据|106个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前只确认候选，Feature/P3-E06用真实查询和压测定稿|
+
+### 1.5 可按数据架构不变量批量确认的内容
+
+|内容|数量|批量确认的前提|仍未包含的业务判断|
+|---|---:|---|---|
+|单列技术主键|49|所有表以不可变`id`标识记录|不决定业务编码是否可重复|
+|租户复合引用键|49|仅支撑同租户复合外键/行引用|不替代业务唯一键|
+|同领域物理外键|47|47个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|
+|软删除检查|44|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|
+|时间顺序检查|14|只拒绝结束早于开始，不补造旧数据时间|不决定业务有效期|
+|稳定布尔标志|7|字段确为稳定0/1标志|业务状态不能压缩成布尔值|
+|禁止直接自关联|4|拒绝对象直接关联自身|项目/任务完整防环仍由应用校验|
+|非负数与计数一致性|4|仅约束物理不变量|不替代数量可分配性检查|
+
+### 1.6 100个唯一键按业务语义分组
+
+#### 业务身份键（15项）
+
+决定业务编码、SN或单号能否重复；建议永久不复用。
+
+|表|唯一键|当前字段组合|判断重点|
+|---|---|---|---|
+|`acc_deliverable_template`|`uk_deliverable_template`|`UNIQUE KEY uk_deliverable_template (tenant_id, template_code)`|确认租户内业务身份永久唯一|
+|`ast_device_sn`|`uk_device_sn`|`UNIQUE KEY uk_device_sn (tenant_id, sn)`|确认租户内业务身份永久唯一|
+|`ast_product`|`uk_product_code`|`UNIQUE KEY uk_product_code (tenant_id, product_code)`|确认租户内业务身份永久唯一|
+|`com_contract`|`uk_contract_business`|`UNIQUE KEY uk_contract_business ( tenant_id, company_code, contract_no )`|确认租户内业务身份永久唯一|
+|`com_crm_execution_order`|`uk_crm_execution`|`UNIQUE KEY uk_crm_execution ( tenant_id, source_system, execution_no )`|确认租户内业务身份永久唯一|
+|`com_sales_order`|`uk_sales_order_business`|`UNIQUE KEY uk_sales_order_business ( tenant_id, source_system, company_code, order_type, order_no )`|确认租户内业务身份永久唯一|
+|`com_sales_order_line`|`uk_sales_order_line`|`UNIQUE KEY uk_sales_order_line (tenant_id, order_id, line_no)`|确认租户内业务身份永久唯一|
+|`com_shipment_package`|`uk_shipment_package_no`|`UNIQUE KEY uk_shipment_package_no ( tenant_id, source_system, package_no )`|确认租户内业务身份永久唯一|
+|`cus_customer`|`uk_customer_code`|`UNIQUE KEY uk_customer_code (tenant_id, customer_code)`|确认租户内业务身份永久唯一|
+|`cus_market_relation`|`uk_market_relation_business`|`UNIQUE KEY uk_market_relation_business ( tenant_id, market_code, system_code, expend_code, industry_code )`|确认租户内业务身份永久唯一|
+|`plt_business_document`|`uk_business_document_code`|`UNIQUE KEY uk_business_document_code (tenant_id, document_code)`|确认租户内业务身份永久唯一|
+|`plt_sync_batch`|`uk_sync_batch_no`|`UNIQUE KEY uk_sync_batch_no (tenant_id, batch_no)`|确认租户内业务身份永久唯一|
+|`proj_project`|`uk_project_code`|`UNIQUE KEY uk_project_code (tenant_id, project_code)`|确认租户内业务身份永久唯一|
+|`proj_project_portfolio`|`uk_portfolio_code`|`UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)`|确认租户内业务身份永久唯一|
+|`srv_service_incident`|`uk_service_incident_no`|`UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)`|确认租户内业务身份永久唯一|
+
+#### 来源幂等键（15项）
+
+决定外部记录重放时更新同一事实还是产生重复记录。
+
+|表|唯一键|当前字段组合|判断重点|
+|---|---|---|---|
+|`ast_device_project_assignment`|`uk_device_assignment_source`|`UNIQUE KEY uk_device_assignment_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`ast_device_relation`|`uk_device_relation_source`|`UNIQUE KEY uk_device_relation_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`ast_device_shipment_event`|`uk_shipment_event_source`|`UNIQUE KEY uk_shipment_event_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`com_contract`|`uk_contract_master_source`|`UNIQUE KEY uk_contract_master_source ( tenant_id, master_source_system, master_source_record_key )`|确认来源键精确匹配且重放幂等|
+|`com_contract_receivable`|`uk_contract_receivable_source`|`UNIQUE KEY uk_contract_receivable_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`com_crm_execution_config`|`uk_crm_execution_config`|`UNIQUE KEY uk_crm_execution_config ( tenant_id, config_source, source_config_key )`|确认来源键精确匹配且重放幂等|
+|`com_execution_order_merge_batch`|`uk_execution_merge_batch`|`UNIQUE KEY uk_execution_merge_batch ( tenant_id, source_system, source_merge_key )`|确认来源键精确匹配且重放幂等|
+|`com_execution_order_merge_member`|`uk_execution_merge_member_source`|`UNIQUE KEY uk_execution_merge_member_source ( tenant_id, merge_batch_id, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`com_shipment_contract_reference`|`uk_shipment_contract_ref_source`|`UNIQUE KEY uk_shipment_contract_ref_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`com_shipment_package`|`uk_shipment_package_source`|`UNIQUE KEY uk_shipment_package_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`cus_market_relation`|`uk_market_relation_source`|`UNIQUE KEY uk_market_relation_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
+|`plt_external_key_mapping`|`uk_external_key_source_target`|`UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_role, target_sequence, target_table, target_id )`|确认来源键精确匹配且重放幂等|
+|`plt_migration_issue`|`uk_migration_issue_source`|`UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )`|确认来源键精确匹配且重放幂等|
+|`plt_migration_source_record`|`uk_migration_source_record`|`UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )`|确认来源键精确匹配且重放幂等|
+|`proj_project_party`|`uk_project_party_source`|`UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )`|确认来源键精确匹配且重放幂等|
+
+#### 当前唯一记录（5项）
+
+利用生成列仅限制当前有效记录。
+
+|表|唯一键|当前字段组合|判断重点|
+|---|---|---|---|
+|`ast_device_project_assignment`|`uk_device_current_assignment`|`UNIQUE KEY uk_device_current_assignment (tenant_id, current_device_id)`|确认同一时点只能存在一条当前记录|
+|`com_delivery_scope`|`uk_scope_current`|`UNIQUE KEY uk_scope_current ( tenant_id, project_id, current_order_line_id )`|确认同一时点只能存在一条当前记录|
+|`com_order_execution_relation`|`uk_order_primary_execution`|`UNIQUE KEY uk_order_primary_execution (tenant_id, primary_order_id)`|确认同一时点只能存在一条当前记录|
+|`cus_customer_contact`|`uk_customer_primary_contact`|`UNIQUE KEY uk_customer_primary_contact (tenant_id, primary_customer_id)`|确认同一时点只能存在一条当前记录|
+|`proj_project_company_department_relation`|`uk_project_primary_company_department`|`UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )`|确认同一时点只能存在一条当前记录|
+
+#### 版本与永久序号（3项）
+
+保证版本号或编码流水号不可重复、不可复用。
+
+|表|唯一键|当前字段组合|判断重点|
+|---|---|---|---|
+|`ast_product_release`|`uk_product_release`|`UNIQUE KEY uk_product_release ( tenant_id, product_id, release_version, release_type )`|确认版本/序号只增不复用|
+|`plt_document_version`|`uk_document_version`|`UNIQUE KEY uk_document_version (tenant_id, document_id, version_no)`|确认版本/序号只增不复用|
+|`proj_project`|`uk_project_code_sequence`|`UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence)`|确认版本/序号只增不复用|
+
+#### 关系事实粒度（13项）
+
+决定哪些字段组合代表同一条关系事实。
+
+|表|唯一键|当前字段组合|判断重点|
+|---|---|---|---|
+|`ast_device_configuration_feature`|`uk_device_configuration_feature`|`UNIQUE KEY uk_device_configuration_feature ( tenant_id, configuration_id, feature_code )`|确认字段完整表达关系粒度，重点检查NULL|
+|`ast_device_configuration_service`|`uk_device_configuration_service`|`UNIQUE KEY uk_device_configuration_service ( tenant_id, configuration_id, service_code )`|确认字段完整表达关系粒度，重点检查NULL|
+|`ast_network_topology_device_relation`|`uk_topology_device`|`UNIQUE KEY uk_topology_device (tenant_id, topology_id, device_id)`|确认字段完整表达关系粒度，重点检查NULL|
+|`com_order_change_relation`|`uk_order_change`|`UNIQUE KEY uk_order_change ( tenant_id, source_order_id, target_order_id, relation_type )`|确认字段完整表达关系粒度，重点检查NULL|
+|`com_order_contract_relation`|`uk_order_contract`|`UNIQUE KEY uk_order_contract (tenant_id, order_id, contract_id)`|确认字段完整表达关系粒度，重点检查NULL|
+|`com_order_execution_relation`|`uk_order_execution`|`UNIQUE KEY uk_order_execution (tenant_id, order_id, execution_id)`|确认字段完整表达关系粒度，重点检查NULL|
+|`com_order_line_execution_relation`|`uk_order_line_execution`|`UNIQUE KEY uk_order_line_execution (tenant_id, order_line_id, execution_id)`|确认字段完整表达关系粒度，重点检查NULL|
+|`com_project_contract_relation`|`uk_project_contract`|`UNIQUE KEY uk_project_contract ( tenant_id, project_id, contract_id, relation_role )`|确认字段完整表达关系粒度，重点检查NULL|
+|`proj_project_company_department_relation`|`uk_project_company_department_role`|`UNIQUE KEY uk_project_company_department_role ( tenant_id, project_id, company_code, department_code, relation_role, effective_from )`|确认字段完整表达关系粒度，重点检查NULL|
+|`proj_project_member_assignment`|`uk_project_member_role`|`UNIQUE KEY uk_project_member_role ( tenant_id, project_id, user_id, member_role, effective_from )`|确认字段完整表达关系粒度，重点检查NULL|
+|`proj_project_portfolio_member`|`uk_portfolio_project`|`UNIQUE KEY uk_portfolio_project ( tenant_id, portfolio_id, project_id, member_source )`|确认字段完整表达关系粒度，重点检查NULL|
+|`proj_project_relation`|`uk_project_relation`|`UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )`|确认字段完整表达关系粒度，重点检查NULL|
+|`srv_service_incident_device_relation`|`uk_incident_device`|`UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)`|确认字段完整表达关系粒度，重点检查NULL|
+
+#### 租户行引用键（49项）
+
+支撑同租户复合引用，属于技术完整性。
+
+|表|唯一键|当前字段组合|判断重点|
+|---|---|---|---|
+|`acc_deliverable_template`|`uk_deliverable_template_tenant_row`|`UNIQUE KEY uk_deliverable_template_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`acc_project_deliverable`|`uk_project_deliverable_tenant_row`|`UNIQUE KEY uk_project_deliverable_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_configuration`|`uk_device_configuration_tenant_row`|`UNIQUE KEY uk_device_configuration_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_configuration_feature`|`uk_device_configuration_feature_tenant_row`|`UNIQUE KEY uk_device_configuration_feature_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_configuration_service`|`uk_device_configuration_service_tenant_row`|`UNIQUE KEY uk_device_configuration_service_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_project_assignment`|`uk_project_device_assignment_tenant_row`|`UNIQUE KEY uk_project_device_assignment_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_relation`|`uk_device_relation_tenant_row`|`UNIQUE KEY uk_device_relation_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_shipment_event`|`uk_device_shipment_event_tenant_row`|`UNIQUE KEY uk_device_shipment_event_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_sn`|`uk_device_sn_tenant_row`|`UNIQUE KEY uk_device_sn_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_device_version`|`uk_device_version_tenant_row`|`UNIQUE KEY uk_device_version_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_network_topology`|`uk_network_topology_tenant_row`|`UNIQUE KEY uk_network_topology_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_network_topology_device_relation`|`uk_topology_device_rel_tenant_row`|`UNIQUE KEY uk_topology_device_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_product`|`uk_product_tenant_row`|`UNIQUE KEY uk_product_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`ast_product_release`|`uk_product_release_tenant_row`|`UNIQUE KEY uk_product_release_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_contract`|`uk_contract_tenant_row`|`UNIQUE KEY uk_contract_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_contract_receivable`|`uk_contract_receivable_tenant_row`|`UNIQUE KEY uk_contract_receivable_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_crm_execution_config`|`uk_crm_execution_config_tenant_row`|`UNIQUE KEY uk_crm_execution_config_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_crm_execution_order`|`uk_crm_execution_order_tenant_row`|`UNIQUE KEY uk_crm_execution_order_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_delivery_scope`|`uk_project_order_line_scope_tenant_row`|`UNIQUE KEY uk_project_order_line_scope_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_execution_order_merge_batch`|`uk_execution_merge_batch_tenant_row`|`UNIQUE KEY uk_execution_merge_batch_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_execution_order_merge_member`|`uk_execution_merge_member_tenant_row`|`UNIQUE KEY uk_execution_merge_member_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_order_change_relation`|`uk_order_change_rel_tenant_row`|`UNIQUE KEY uk_order_change_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_order_contract_relation`|`uk_order_contract_rel_tenant_row`|`UNIQUE KEY uk_order_contract_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_order_execution_relation`|`uk_order_execution_rel_tenant_row`|`UNIQUE KEY uk_order_execution_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_order_line_execution_relation`|`uk_order_line_execution_rel_tenant_row`|`UNIQUE KEY uk_order_line_execution_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_project_contract_relation`|`uk_project_contract_rel_tenant_row`|`UNIQUE KEY uk_project_contract_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_sales_order`|`uk_sales_order_tenant_row`|`UNIQUE KEY uk_sales_order_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_sales_order_line`|`uk_sales_order_line_tenant_row`|`UNIQUE KEY uk_sales_order_line_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_shipment_contract_reference`|`uk_shipment_contract_ref_tenant_row`|`UNIQUE KEY uk_shipment_contract_ref_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`com_shipment_package`|`uk_shipment_package_tenant_row`|`UNIQUE KEY uk_shipment_package_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`cus_customer`|`uk_customer_tenant_row`|`UNIQUE KEY uk_customer_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`cus_customer_contact`|`uk_customer_contact_tenant_row`|`UNIQUE KEY uk_customer_contact_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`cus_market_relation`|`uk_market_relation_tenant_row`|`UNIQUE KEY uk_market_relation_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`plt_business_document`|`uk_business_document_tenant_row`|`UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`plt_document_version`|`uk_document_version_owner`|`UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)`|技术引用键，可按架构规则确认|
+|`plt_document_version`|`uk_document_version_tenant_row`|`UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`plt_external_key_mapping`|`uk_external_key_map_tenant_row`|`UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`plt_migration_issue`|`uk_migration_issue_tenant_row`|`UNIQUE KEY uk_migration_issue_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`plt_migration_source_record`|`uk_migration_source_record_tenant_row`|`UNIQUE KEY uk_migration_source_record_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`plt_sync_batch`|`uk_sync_batch_tenant_row`|`UNIQUE KEY uk_sync_batch_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`proj_project`|`uk_project_tenant_row`|`UNIQUE KEY uk_project_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`proj_project_company_department_relation`|`uk_project_company_department_rel_tenant_row`|`UNIQUE KEY uk_project_company_department_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`proj_project_member_assignment`|`uk_project_member_tenant_row`|`UNIQUE KEY uk_project_member_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`proj_project_party`|`uk_project_party_tenant_row`|`UNIQUE KEY uk_project_party_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`proj_project_portfolio`|`uk_portfolio_tenant_row`|`UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`proj_project_portfolio_member`|`uk_portfolio_project_rel_tenant_row`|`UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`proj_project_relation`|`uk_project_relation_tenant_row`|`UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`srv_service_incident`|`uk_service_incident_tenant_row`|`UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`srv_service_incident_device_relation`|`uk_incident_device_rel_tenant_row`|`UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+
+### 1.7 8个可空唯一键逐项判断
+
+|唯一键|可空列|NULL是否有意|判断|
+|---|---|---|---|
+|`uk_device_current_assignment`|`current_device_id`|是：仅当前归属生成设备ID|约束同一设备同一时点仅归属一个最具体项目；建议保留|
+|`uk_scope_current`|`current_order_line_id`|是：仅当前范围生成订单行ID|约束同一项目—订单行只有一条当前范围；建议保留|
+|`uk_order_primary_execution`|`primary_order_id`|是：仅主关系生成订单ID|约束订单只有一个主执行单；建议保留|
+|`uk_customer_primary_contact`|`primary_customer_id`|是：仅主联系人生成客户ID|约束客户只有一个主联系人；建议保留|
+|`uk_project_primary_company_department`|`primary_project_id`|是：仅主关系生成项目ID|按关系角色约束一个主公司部门关系；建议保留|
+|`uk_contract_master_source`|`master_source_record_key`|是：未取得主来源键时允许NULL|非NULL来源键必须唯一；建议保留并改为精确比较|
+|`uk_project_company_department_role`|`department_code`、`effective_from`|尚无证据表明有意|NULL会允许相同项目/公司/角色重复，存在约束空洞|
+|`uk_project_member_role`|`effective_from`|尚无证据表明有意|NULL会允许相同成员/角色重复，存在约束空洞|
+
+### 1.8 79个CHECK按业务语义分组
+
+|分组|数量|代表规则|建议|
+|---|---:|---|---|
+|软删除|44|`deleted IN (0,1)`|技术规则批量确认|
+|时间顺序|14|结束不得早于开始|接受；旧数据缺失保持NULL|
+|稳定布尔标志|7|主标记、必需标记等|仅稳定二值字段可接受|
+|禁止直接自关联|4|设备/订单/项目不能直接关联自身|接受；多节点防环由应用校验|
+|非负数与计数|4|序号、目标数、树深、成功失败计数|技术规则批量确认|
+|跨字段不变量|3|附加SN、项目编码命名空间、部门配对|按ADR和业务规则逐项确认|
+|状态耦合|3|固定状态码触发允许值或必填规则|需调整后才能批准|
+
+状态耦合CHECK逐项如下：
+
+|表/约束|当前规则|问题|推荐调整|
+|---|---|---|---|
+|`com_crm_execution_order.chk_crm_execution_af`|只允许`CONFIRMED/UNKNOWN`|把可扩展标记固化在DDL|删除值域CHECK，由基础平台字典和同步映射校验|
+|`com_delivery_scope.chk_scope_active`|`ACTIVE`时必须有分配数量|扩展状态映射为标准生效状态时可能绕过|状态机进入标准“生效”状态时校验并留痕|
+|`plt_migration_issue.chk_migration_issue_resolution`|`RESOLVED`时必须有处理人和时间|扩展关闭状态可能绕过|受控关闭动作强制写处理人和时间|
+
+### 1.9 25个精确匹配字段与排序规则
+
+这些字段当前继承表级`utf8mb4_0900_ai_ci`。推荐来源键使用`utf8mb4_0900_bin`；契约明确为ASCII摘要的字段使用`ascii_bin`；不得改变原值大小写。
+
+|表|字段|类型|可空|推荐比较语义|
+|---|---|---|---:|---|
+|`ast_device_project_assignment`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`ast_device_relation`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`ast_device_shipment_event`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`com_contract`|`master_source_record_key`|`VARCHAR(128)`|是|`utf8mb4_0900_bin`|
+|`com_contract_receivable`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`com_crm_execution_config`|`source_config_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`com_crm_execution_order`|`source_object_id`|`VARCHAR(64)`|是|`utf8mb4_0900_bin`|
+|`com_execution_order_merge_batch`|`source_merge_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`com_execution_order_merge_member`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`com_order_execution_relation`|`source_record_key`|`VARCHAR(128)`|是|`utf8mb4_0900_bin`|
+|`com_order_line_execution_relation`|`source_record_key`|`VARCHAR(128)`|是|`utf8mb4_0900_bin`|
+|`com_project_contract_relation`|`source_record_key`|`VARCHAR(128)`|是|`utf8mb4_0900_bin`|
+|`com_shipment_contract_reference`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`com_shipment_package`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`cus_market_relation`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`plt_document_version`|`file_checksum`|`VARCHAR(128)`|是|`ascii_bin`（限定ASCII摘要时），否则`utf8mb4_0900_bin`|
+|`plt_external_key_mapping`|`source_business_key`|`VARCHAR(512)`|是|`utf8mb4_0900_bin`|
+|`plt_external_key_mapping`|`source_checksum`|`VARCHAR(128)`|是|`ascii_bin`（限定ASCII摘要时），否则`utf8mb4_0900_bin`|
+|`plt_external_key_mapping`|`source_pk`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`plt_migration_issue`|`source_pk`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`plt_migration_source_record`|`source_business_key`|`VARCHAR(512)`|是|`utf8mb4_0900_bin`|
+|`plt_migration_source_record`|`source_checksum`|`VARCHAR(128)`|否|`ascii_bin`（限定ASCII摘要时），否则`utf8mb4_0900_bin`|
+|`plt_migration_source_record`|`source_pk`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`plt_sync_batch`|`source_extract_checksum`|`VARCHAR(128)`|是|`ascii_bin`（限定ASCII摘要时），否则`utf8mb4_0900_bin`|
+|`proj_project_party`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+
+### 1.10 建议审批层次
+
+|层次|内容|批准主体|批准结果|
+|---|---|---|---|
+|L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|
+|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|数据架构Owner|按规则批量签署|
+|L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|逐组批准；有空洞的先修模|
+|L4 性能候选|106个普通索引|Feature Owner+性能Owner|绑定查询后由P3-E06压测定稿|
+|L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|
+
 ## 2. 表与字段完整清单
 
 以下仅列当前核心迁移DDL中的表与字段；相对旧目录的`MATCH/ADDED/MODIFIED`状态以逐项决策登记为准。

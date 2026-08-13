@@ -24,6 +24,20 @@ class DdlModelDecisionCatalogTest(unittest.TestCase):
         self.assertEqual(100, rendered.count("|UK-"))
         self.assertEqual(79, rendered.count("|CK-"))
         self.assertIn("1,048", rendered)
+        self.assertIn("1055项MATCH只保留逐项追溯", rendered)
+        self.assertIn("#### 业务身份键（15项）", rendered)
+        self.assertIn("#### 来源幂等键（15项）", rendered)
+        self.assertIn("#### 当前唯一记录（5项）", rendered)
+        self.assertIn("#### 版本与永久序号（3项）", rendered)
+        self.assertIn("#### 关系事实粒度（13项）", rendered)
+        self.assertIn("#### 租户行引用键（49项）", rendered)
+        self.assertIn("### 1.7 8个可空唯一键逐项判断", rendered)
+        self.assertIn("### 1.9 25个精确匹配字段与排序规则", rendered)
+        self.assertIn("com_delivery_scope.chk_scope_active", rendered)
+
+    def test_all_checks_are_semantically_classified(self) -> None:
+        rendered = GENERATOR.render(ROOT)
+        self.assertNotIn("UNCLASSIFIED", rendered)
 
 
 if __name__ == "__main__":
