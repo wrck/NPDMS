@@ -23,6 +23,12 @@ EXPECTED_NORMALIZATION = {
     "hash": "BINARY_EXACT",
     "displayName": "UNICODE_CASE_INSENSITIVE",
 }
+EXPECTED_ACCEPTED_DDL_ITEMS = {
+    "COLUMN:plt_external_key_mapping:target_role",
+    "COLUMN:plt_external_key_mapping:target_sequence",
+    "CONSTRAINT:plt_external_key_mapping:uk_external_key_source_target",
+    "CONSTRAINT:plt_external_key_mapping:chk_external_key_target_sequence",
+}
 
 
 def parse_tables(ddl: str) -> dict[str, str]:
@@ -55,6 +61,8 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
         errors.append("cross-domain reference policy must be LOGICAL_REFERENCE")
     if set(contract.get("v3DesignOnlyTables", [])) != V3_DESIGN_ONLY_TABLES:
         errors.append("V3 design-only table set mismatch")
+    if set(contract.get("acceptedDdlItems", [])) != EXPECTED_ACCEPTED_DDL_ITEMS:
+        errors.append("ADR-0022 accepted DDL item set mismatch")
 
     present_v3 = sorted(V3_DESIGN_ONLY_TABLES & tables.keys())
     if present_v3:

@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
+  "currentDdlSha256": "AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,22 +11,23 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1652,
+    "itemCount": 1601,
     "byType": {
       "TABLE": 53,
-      "COLUMN": 1113,
-      "CONSTRAINT": 433,
+      "COLUMN": 1115,
+      "CONSTRAINT": 380,
       "TABLE_OPTION": 53
     },
     "byComparisonStatus": {
-      "MATCH": 1126,
-      "UNVERIFIED_BASELINE_MISSING": 486,
-      "ADDED": 38,
-      "MODIFIED": 2
+      "MATCH": 1055,
+      "UNVERIFIED_BASELINE_MISSING": 433,
+      "ADDED": 40,
+      "MODIFIED": 2,
+      "REMOVED": 71
     },
     "approvedCount": 0
   },
-  "itemsSha256": "22C0C78790D177232B46882ABA70663C03EB3BB2B69DB45122BE99B47C066C11",
+  "itemsSha256": "9AD7D62597D0EEE261BC158A568070364D0E5998129F6C0E80CC19FB2737D713",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -426,19 +427,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT chk_deliverable_template_required CHECK (required_flag IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:acc_deliverable_template:fk_deliverable_template_document",
-      "itemType": "CONSTRAINT",
-      "table": "acc_deliverable_template",
-      "name": "fk_deliverable_template_document",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_deliverable_template_document FOREIGN KEY (tenant_id, template_document_id) REFERENCES plt_business_document (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -944,32 +932,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT chk_project_deliverable_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:acc_project_deliverable:fk_project_deliverable_document",
-      "itemType": "CONSTRAINT",
-      "table": "acc_project_deliverable",
-      "name": "fk_project_deliverable_document",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_project_deliverable_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:acc_project_deliverable:fk_project_deliverable_project",
-      "itemType": "CONSTRAINT",
-      "table": "acc_project_deliverable",
-      "name": "fk_project_deliverable_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_project_deliverable_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -1869,32 +1831,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:ana_project_delivery_summary:fk_project_summary_customer",
-      "itemType": "CONSTRAINT",
-      "table": "ana_project_delivery_summary",
-      "name": "fk_project_summary_customer",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_project_summary_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ana_project_delivery_summary:fk_project_summary_project",
-      "itemType": "CONSTRAINT",
-      "table": "ana_project_delivery_summary",
-      "name": "fk_project_summary_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_project_summary_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:ana_project_delivery_summary:idx_project_summary_company_department",
       "itemType": "CONSTRAINT",
       "table": "ana_project_delivery_summary",
@@ -2470,19 +2406,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ast_device_configuration:fk_device_configuration_project",
-      "itemType": "CONSTRAINT",
-      "table": "ast_device_configuration",
-      "name": "fk_device_configuration_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_configuration_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -4163,32 +4086,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:ast_device_project_assignment:fk_device_assignment_project",
-      "itemType": "CONSTRAINT",
-      "table": "ast_device_project_assignment",
-      "name": "fk_device_assignment_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_assignment_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ast_device_project_assignment:fk_device_assignment_scope",
-      "itemType": "CONSTRAINT",
-      "table": "ast_device_project_assignment",
-      "name": "fk_device_assignment_scope",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_assignment_scope FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES com_delivery_scope (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:ast_device_project_assignment:idx_device_assignment_company_department",
       "itemType": "CONSTRAINT",
       "table": "ast_device_project_assignment",
@@ -4778,19 +4675,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT chk_device_relation_self CHECK (source_device_id <> target_device_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ast_device_relation:fk_device_relation_contract",
-      "itemType": "CONSTRAINT",
-      "table": "ast_device_relation",
-      "name": "fk_device_relation_contract",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_relation_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -5585,32 +5469,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ast_device_shipment_event:fk_shipment_order_line",
-      "itemType": "CONSTRAINT",
-      "table": "ast_device_shipment_event",
-      "name": "fk_shipment_order_line",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_shipment_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ast_device_shipment_event:fk_shipment_package",
-      "itemType": "CONSTRAINT",
-      "table": "ast_device_shipment_event",
-      "name": "fk_shipment_package",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_shipment_package FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES com_shipment_package (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -6916,19 +6774,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:ast_device_version:fk_device_version_project",
-      "itemType": "CONSTRAINT",
-      "table": "ast_device_version",
-      "name": "fk_device_version_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_version_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:ast_device_version:idx_device_version_current",
       "itemType": "CONSTRAINT",
       "table": "ast_device_version",
@@ -7377,32 +7222,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT chk_network_topology_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ast_network_topology:fk_network_topology_document",
-      "itemType": "CONSTRAINT",
-      "table": "ast_network_topology",
-      "name": "fk_network_topology_document",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_network_topology_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:ast_network_topology:fk_network_topology_project",
-      "itemType": "CONSTRAINT",
-      "table": "ast_network_topology",
-      "name": "fk_network_topology_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_network_topology_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -8758,19 +8577,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:ast_product_release:fk_product_release_document",
-      "itemType": "CONSTRAINT",
-      "table": "ast_product_release",
-      "name": "fk_product_release_document",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_product_release_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:ast_product_release:fk_product_release_product",
       "itemType": "CONSTRAINT",
       "table": "ast_product_release",
@@ -9469,19 +9275,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT chk_contract_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:com_contract:fk_contract_customer",
-      "itemType": "CONSTRAINT",
-      "table": "com_contract",
-      "name": "fk_contract_customer",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_contract_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -13758,19 +13551,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:com_crm_execution_order:fk_crm_execution_project",
-      "itemType": "CONSTRAINT",
-      "table": "com_crm_execution_order",
-      "name": "fk_crm_execution_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_crm_execution_project FOREIGN KEY (tenant_id, primary_project_id) REFERENCES proj_project (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:com_crm_execution_order:idx_crm_execution_company_office",
       "itemType": "CONSTRAINT",
       "table": "com_crm_execution_order",
@@ -14834,19 +14614,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:com_delivery_scope:fk_scope_project",
-      "itemType": "CONSTRAINT",
-      "table": "com_delivery_scope",
-      "name": "fk_scope_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_scope_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -18477,19 +18244,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:com_project_contract_relation:fk_project_contract_project",
-      "itemType": "CONSTRAINT",
-      "table": "com_project_contract_relation",
-      "name": "fk_project_contract_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_project_contract_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:com_project_contract_relation:idx_project_contract_reverse",
       "itemType": "CONSTRAINT",
       "table": "com_project_contract_relation",
@@ -19175,19 +18929,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT chk_sales_order_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:com_sales_order:fk_sales_order_customer",
-      "itemType": "CONSTRAINT",
-      "table": "com_sales_order",
-      "name": "fk_sales_order_customer",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_sales_order_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -20124,19 +19865,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:com_sales_order_line:fk_sales_order_line_customer",
-      "itemType": "CONSTRAINT",
-      "table": "com_sales_order_line",
-      "name": "fk_sales_order_line_customer",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_sales_order_line_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:com_sales_order_line:fk_sales_order_line_order",
       "itemType": "CONSTRAINT",
       "table": "com_sales_order_line",
@@ -20144,19 +19872,6 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:com_sales_order_line:fk_sales_order_line_product",
-      "itemType": "CONSTRAINT",
-      "table": "com_sales_order_line",
-      "name": "fk_sales_order_line_product",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_sales_order_line_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23476,22 +23191,20 @@
       "itemId": "TABLE:kno_device_technical_advisory_match",
       "itemType": "TABLE",
       "table": "kno_device_technical_advisory_match",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": true,
-      "currentValue": true,
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
+      "currentValue": false,
+      "decision": "DEFER",
+      "decisionOwner": null,
       "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0019-domain-coded-database-naming.md"
-      ]
+      "evidenceRefs": []
     },
     {
       "itemId": "COLUMN:kno_device_technical_advisory_match:advisory_id",
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "advisory_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -23499,13 +23212,7 @@
         "generated": false,
         "description": "关联技术公告记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联技术公告记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23516,7 +23223,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "create_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -23524,13 +23231,7 @@
         "generated": false,
         "description": "创建时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "创建时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23541,7 +23242,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "creator",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -23549,13 +23250,7 @@
         "generated": false,
         "description": "创建人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "创建人"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23566,7 +23261,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "deleted",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TINYINT",
         "nullable": false,
@@ -23574,13 +23269,7 @@
         "generated": false,
         "description": "删除标志：0否，1是"
       },
-      "currentValue": {
-        "dataType": "TINYINT",
-        "nullable": false,
-        "defaultValue": "0",
-        "generated": false,
-        "description": "删除标志：0否，1是"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23591,7 +23280,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "device_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -23599,13 +23288,7 @@
         "generated": false,
         "description": "关联设备记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联设备记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23616,7 +23299,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "handled_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": true,
@@ -23624,13 +23307,7 @@
         "generated": false,
         "description": "处置时间，采用系统统一时区，空值表示来源未提供或事件未发生"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "处置时间，采用系统统一时区，空值表示来源未提供或事件未发生"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23641,7 +23318,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "handler_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -23649,13 +23326,7 @@
         "generated": false,
         "description": "关联处理人记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联处理人记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23666,7 +23337,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "handling_note",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(1000)",
         "nullable": true,
@@ -23674,13 +23345,7 @@
         "generated": false,
         "description": "设备公告命中的处置说明"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(1000)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "设备公告命中的处置说明"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23691,7 +23356,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -23699,13 +23364,7 @@
         "generated": false,
         "description": "主键ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "主键ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23716,7 +23375,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "match_status",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(32)",
         "nullable": false,
@@ -23724,13 +23383,7 @@
         "generated": false,
         "description": "匹配状态，取值由对应业务状态字典约束"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "匹配状态，取值由对应业务状态字典约束"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23741,7 +23394,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "matched_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -23749,13 +23402,7 @@
         "generated": false,
         "description": "匹配时间，采用系统统一时区，空值表示来源未提供或事件未发生"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "匹配时间，采用系统统一时区，空值表示来源未提供或事件未发生"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23766,7 +23413,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "matched_version_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -23774,13 +23421,7 @@
         "generated": false,
         "description": "关联匹配版本记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联匹配版本记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23791,7 +23432,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "tenant_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -23799,13 +23440,7 @@
         "generated": false,
         "description": "租户ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "租户ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23816,7 +23451,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "update_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -23824,13 +23459,7 @@
         "generated": false,
         "description": "更新时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "更新时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23841,7 +23470,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "updater",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -23849,13 +23478,7 @@
         "generated": false,
         "description": "更新人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "更新人"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23866,7 +23489,7 @@
       "itemType": "COLUMN",
       "table": "kno_device_technical_advisory_match",
       "name": "version",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "INT UNSIGNED",
         "nullable": false,
@@ -23874,117 +23497,7 @@
         "generated": false,
         "description": "乐观锁版本"
       },
-      "currentValue": {
-        "dataType": "INT UNSIGNED",
-        "nullable": false,
-        "defaultValue": "0",
-        "generated": false,
-        "description": "乐观锁版本"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:PRIMARY",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "PRIMARY",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "PRIMARY KEY (id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:chk_device_advisory_deleted",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "chk_device_advisory_deleted",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_device_advisory_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:fk_device_advisory_advisory",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "fk_device_advisory_advisory",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_advisory_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:fk_device_advisory_device",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "fk_device_advisory_device",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_advisory_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:fk_device_advisory_version",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "fk_device_advisory_version",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_device_advisory_version FOREIGN KEY (tenant_id, matched_version_id) REFERENCES ast_device_version (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:idx_device_advisory_reverse",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "idx_device_advisory_reverse",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "KEY idx_device_advisory_reverse (tenant_id, device_id, match_status)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:uk_device_advisory",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "uk_device_advisory",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_device_advisory (tenant_id, advisory_id, device_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_device_technical_advisory_match:uk_device_advisory_match_tenant_row",
-      "itemType": "CONSTRAINT",
-      "table": "kno_device_technical_advisory_match",
-      "name": "uk_device_advisory_match_tenant_row",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_device_advisory_match_tenant_row (tenant_id, id)",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -23996,7 +23509,7 @@
       "table": "kno_device_technical_advisory_match",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备与技术公告的匹配及处置结果'",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24006,22 +23519,20 @@
       "itemId": "TABLE:kno_technical_advisory",
       "itemType": "TABLE",
       "table": "kno_technical_advisory",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": true,
-      "currentValue": true,
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
+      "currentValue": false,
+      "decision": "DEFER",
+      "decisionOwner": null,
       "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0019-domain-coded-database-naming.md"
-      ]
+      "evidenceRefs": []
     },
     {
       "itemId": "COLUMN:kno_technical_advisory:advisory_content",
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "advisory_content",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "MEDIUMTEXT",
         "nullable": true,
@@ -24029,13 +23540,7 @@
         "generated": false,
         "description": "技术公告的技术公告内容"
       },
-      "currentValue": {
-        "dataType": "MEDIUMTEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的技术公告内容"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24046,7 +23551,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "advisory_no",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -24054,13 +23559,7 @@
         "generated": false,
         "description": "技术公告的技术公告编号"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的技术公告编号"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24071,7 +23570,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "advisory_title",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(500)",
         "nullable": false,
@@ -24079,13 +23578,7 @@
         "generated": false,
         "description": "技术公告的技术公告标题"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(500)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的技术公告标题"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24096,7 +23589,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "advisory_type",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(32)",
         "nullable": false,
@@ -24104,13 +23597,7 @@
         "generated": false,
         "description": "技术公告类型编码，取值由对应业务字典约束"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告类型编码，取值由对应业务字典约束"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24121,7 +23608,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "approval_note",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(1000)",
         "nullable": true,
@@ -24129,13 +23616,7 @@
         "generated": false,
         "description": "技术公告的审批说明"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(1000)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的审批说明"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24146,7 +23627,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "create_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -24154,13 +23635,7 @@
         "generated": false,
         "description": "创建时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "创建时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24171,7 +23646,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "creator",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -24179,13 +23654,7 @@
         "generated": false,
         "description": "创建人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "创建人"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24196,7 +23665,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "deleted",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TINYINT",
         "nullable": false,
@@ -24204,13 +23673,7 @@
         "generated": false,
         "description": "删除标志：0否，1是"
       },
-      "currentValue": {
-        "dataType": "TINYINT",
-        "nullable": false,
-        "defaultValue": "0",
-        "generated": false,
-        "description": "删除标志：0否，1是"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24221,7 +23684,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "document_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -24229,13 +23692,7 @@
         "generated": false,
         "description": "关联文档记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联文档记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24246,7 +23703,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "effective_from",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": true,
@@ -24254,13 +23711,7 @@
         "generated": false,
         "description": "业务关系或事实开始生效的时间，空值表示来源未提供"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "业务关系或事实开始生效的时间，空值表示来源未提供"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24271,7 +23722,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "effective_to",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": true,
@@ -24279,13 +23730,7 @@
         "generated": false,
         "description": "业务关系或事实失效的时间，空值表示当前仍有效"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "业务关系或事实失效的时间，空值表示当前仍有效"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24296,7 +23741,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -24304,13 +23749,7 @@
         "generated": false,
         "description": "主键ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "主键ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24321,7 +23760,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "impact_risk",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TEXT",
         "nullable": true,
@@ -24329,13 +23768,7 @@
         "generated": false,
         "description": "技术公告的影响风险"
       },
-      "currentValue": {
-        "dataType": "TEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的影响风险"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24346,7 +23779,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "judgment_method",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TEXT",
         "nullable": true,
@@ -24354,13 +23787,7 @@
         "generated": false,
         "description": "技术公告的判断方法"
       },
-      "currentValue": {
-        "dataType": "TEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的判断方法"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24371,7 +23798,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "owner_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": true,
@@ -24379,13 +23806,7 @@
         "generated": false,
         "description": "关联责任人记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联责任人记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24396,7 +23817,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "planned_due_date",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATE",
         "nullable": true,
@@ -24404,13 +23825,7 @@
         "generated": false,
         "description": "计划到期日期，空值表示来源未提供或事件未发生"
       },
-      "currentValue": {
-        "dataType": "DATE",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "计划到期日期，空值表示来源未提供或事件未发生"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24421,7 +23836,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "publish_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": true,
@@ -24429,13 +23844,7 @@
         "generated": false,
         "description": "发布时间，采用系统统一时区，空值表示来源未提供或事件未发生"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "发布时间，采用系统统一时区，空值表示来源未提供或事件未发生"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24446,7 +23855,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "root_cause",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TEXT",
         "nullable": true,
@@ -24454,13 +23863,7 @@
         "generated": false,
         "description": "技术公告的根原因"
       },
-      "currentValue": {
-        "dataType": "TEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的根原因"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24471,7 +23874,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "severity",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(32)",
         "nullable": true,
@@ -24479,13 +23882,7 @@
         "generated": false,
         "description": "技术公告的严重级别"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的严重级别"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24496,7 +23893,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "solution",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TEXT",
         "nullable": true,
@@ -24504,13 +23901,7 @@
         "generated": false,
         "description": "技术公告的解决方案"
       },
-      "currentValue": {
-        "dataType": "TEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的解决方案"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24521,7 +23912,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "status",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(32)",
         "nullable": false,
@@ -24529,13 +23920,7 @@
         "generated": false,
         "description": "状态"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": false,
-        "defaultValue": "'ACTIVE'",
-        "generated": false,
-        "description": "状态"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24546,7 +23931,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "symptom",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TEXT",
         "nullable": true,
@@ -24554,13 +23939,7 @@
         "generated": false,
         "description": "技术公告的问题现象"
       },
-      "currentValue": {
-        "dataType": "TEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的问题现象"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24571,7 +23950,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "tenant_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -24579,13 +23958,7 @@
         "generated": false,
         "description": "租户ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "租户ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24596,7 +23969,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "trigger_condition",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TEXT",
         "nullable": true,
@@ -24604,13 +23977,7 @@
         "generated": false,
         "description": "技术公告的触发条件"
       },
-      "currentValue": {
-        "dataType": "TEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的触发条件"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24621,7 +23988,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "update_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -24629,13 +23996,7 @@
         "generated": false,
         "description": "更新时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "更新时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24646,7 +24007,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "updater",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -24654,13 +24015,7 @@
         "generated": false,
         "description": "更新人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "更新人"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24671,7 +24026,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "version",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "INT UNSIGNED",
         "nullable": false,
@@ -24679,13 +24034,7 @@
         "generated": false,
         "description": "乐观锁版本"
       },
-      "currentValue": {
-        "dataType": "INT UNSIGNED",
-        "nullable": false,
-        "defaultValue": "0",
-        "generated": false,
-        "description": "乐观锁版本"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24696,7 +24045,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "visibility_scope",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(32)",
         "nullable": true,
@@ -24704,13 +24053,7 @@
         "generated": false,
         "description": "技术公告的可见范围实施范围"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的可见范围实施范围"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24721,7 +24064,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory",
       "name": "workaround",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TEXT",
         "nullable": true,
@@ -24729,104 +24072,7 @@
         "generated": false,
         "description": "技术公告的规避方案"
       },
-      "currentValue": {
-        "dataType": "TEXT",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "技术公告的规避方案"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory:PRIMARY",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory",
-      "name": "PRIMARY",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "PRIMARY KEY (id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory:chk_technical_advisory_dates",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory",
-      "name": "chk_technical_advisory_dates",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_technical_advisory_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory:chk_technical_advisory_deleted",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory",
-      "name": "chk_technical_advisory_deleted",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_technical_advisory_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory:fk_technical_advisory_document",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory",
-      "name": "fk_technical_advisory_document",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_technical_advisory_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory:idx_technical_advisory_status",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory",
-      "name": "idx_technical_advisory_status",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "KEY idx_technical_advisory_status (tenant_id, status, publish_time)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory:uk_technical_advisory_no",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory",
-      "name": "uk_technical_advisory_no",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_technical_advisory_no (tenant_id, advisory_no)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory:uk_technical_advisory_tenant_row",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory",
-      "name": "uk_technical_advisory_tenant_row",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_technical_advisory_tenant_row (tenant_id, id)",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24838,7 +24084,7 @@
       "table": "kno_technical_advisory",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告主档'",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24848,22 +24094,20 @@
       "itemId": "TABLE:kno_technical_advisory_product_relation",
       "itemType": "TABLE",
       "table": "kno_technical_advisory_product_relation",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": true,
-      "currentValue": true,
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
+      "currentValue": false,
+      "decision": "DEFER",
+      "decisionOwner": null,
       "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0019-domain-coded-database-naming.md"
-      ]
+      "evidenceRefs": []
     },
     {
       "itemId": "COLUMN:kno_technical_advisory_product_relation:advisory_id",
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "advisory_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -24871,13 +24115,7 @@
         "generated": false,
         "description": "关联技术公告记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联技术公告记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24888,7 +24126,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "affected_version_expression",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(1000)",
         "nullable": true,
@@ -24896,13 +24134,7 @@
         "generated": false,
         "description": "公告适用产品的受影响版本表达式"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(1000)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "公告适用产品的受影响版本表达式"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24913,7 +24145,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "create_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -24921,13 +24153,7 @@
         "generated": false,
         "description": "创建时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "创建时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24938,7 +24164,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "creator",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -24946,13 +24172,7 @@
         "generated": false,
         "description": "创建人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "创建人"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24963,7 +24183,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "deleted",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TINYINT",
         "nullable": false,
@@ -24971,13 +24191,7 @@
         "generated": false,
         "description": "删除标志：0否，1是"
       },
-      "currentValue": {
-        "dataType": "TINYINT",
-        "nullable": false,
-        "defaultValue": "0",
-        "generated": false,
-        "description": "删除标志：0否，1是"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -24988,7 +24202,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -24996,13 +24210,7 @@
         "generated": false,
         "description": "主键ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "主键ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25013,7 +24221,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "product_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -25021,13 +24229,7 @@
         "generated": false,
         "description": "关联产品记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联产品记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25038,7 +24240,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "tenant_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -25046,13 +24248,7 @@
         "generated": false,
         "description": "租户ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "租户ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25063,7 +24259,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "update_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -25071,13 +24267,7 @@
         "generated": false,
         "description": "更新时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "更新时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25088,7 +24278,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_product_relation",
       "name": "updater",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -25096,104 +24286,7 @@
         "generated": false,
         "description": "更新人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "更新人"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_product_relation:PRIMARY",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_product_relation",
-      "name": "PRIMARY",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "PRIMARY KEY (id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_product_relation:chk_advisory_product_deleted",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_product_relation",
-      "name": "chk_advisory_product_deleted",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_advisory_product_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_product_relation:fk_advisory_product_advisory",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_product_relation",
-      "name": "fk_advisory_product_advisory",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_advisory_product_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_product_relation:fk_advisory_product_product",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_product_relation",
-      "name": "fk_advisory_product_product",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_advisory_product_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_product_relation:idx_advisory_product_reverse",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_product_relation",
-      "name": "idx_advisory_product_reverse",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "KEY idx_advisory_product_reverse (tenant_id, product_id, advisory_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_product_relation:uk_advisory_product",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_product_relation",
-      "name": "uk_advisory_product",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_advisory_product (tenant_id, advisory_id, product_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_product_relation:uk_technical_advisory_product_tenant_row",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_product_relation",
-      "name": "uk_technical_advisory_product_tenant_row",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_technical_advisory_product_tenant_row (tenant_id, id)",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25205,7 +24298,7 @@
       "table": "kno_technical_advisory_product_relation",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告适用产品和版本范围'",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25215,22 +24308,20 @@
       "itemId": "TABLE:kno_technical_advisory_read_record",
       "itemType": "TABLE",
       "table": "kno_technical_advisory_read_record",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": true,
-      "currentValue": true,
-      "decision": "AMEND_CURRENT",
-      "decisionOwner": "REQUIREMENT_OWNER",
+      "currentValue": false,
+      "decision": "DEFER",
+      "decisionOwner": null,
       "reviewOwner": null,
-      "evidenceRefs": [
-        "docs/decisions/0019-domain-coded-database-naming.md"
-      ]
+      "evidenceRefs": []
     },
     {
       "itemId": "COLUMN:kno_technical_advisory_read_record:advisory_id",
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "advisory_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -25238,13 +24329,7 @@
         "generated": false,
         "description": "关联技术公告记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联技术公告记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25255,7 +24340,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "confirmed_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": true,
@@ -25263,13 +24348,7 @@
         "generated": false,
         "description": "确认时间，采用系统统一时区，空值表示来源未提供或事件未发生"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "确认时间，采用系统统一时区，空值表示来源未提供或事件未发生"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25280,7 +24359,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "create_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -25288,13 +24367,7 @@
         "generated": false,
         "description": "创建时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "创建时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25305,7 +24378,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "creator",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -25313,13 +24386,7 @@
         "generated": false,
         "description": "创建人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "创建人"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25330,7 +24397,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "deleted",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "TINYINT",
         "nullable": false,
@@ -25338,13 +24405,7 @@
         "generated": false,
         "description": "删除标志：0否，1是"
       },
-      "currentValue": {
-        "dataType": "TINYINT",
-        "nullable": false,
-        "defaultValue": "0",
-        "generated": false,
-        "description": "删除标志：0否，1是"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25355,7 +24416,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "first_read_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": true,
@@ -25363,13 +24424,7 @@
         "generated": false,
         "description": "首次读取时间，采用系统统一时区，空值表示来源未提供或事件未发生"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": true,
-        "defaultValue": null,
-        "generated": false,
-        "description": "首次读取时间，采用系统统一时区，空值表示来源未提供或事件未发生"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25380,7 +24435,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -25388,13 +24443,7 @@
         "generated": false,
         "description": "主键ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "主键ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25405,7 +24454,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "read_status",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(32)",
         "nullable": false,
@@ -25413,13 +24462,7 @@
         "generated": false,
         "description": "读取状态，取值由对应业务状态字典约束"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(32)",
-        "nullable": false,
-        "defaultValue": "'READ'",
-        "generated": false,
-        "description": "读取状态，取值由对应业务状态字典约束"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25430,7 +24473,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "reader_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -25438,13 +24481,7 @@
         "generated": false,
         "description": "关联阅读用户记录的全局唯一ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "关联阅读用户记录的全局唯一ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25455,7 +24492,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "tenant_id",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "BIGINT",
         "nullable": false,
@@ -25463,13 +24500,7 @@
         "generated": false,
         "description": "租户ID"
       },
-      "currentValue": {
-        "dataType": "BIGINT",
-        "nullable": false,
-        "defaultValue": null,
-        "generated": false,
-        "description": "租户ID"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25480,7 +24511,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "update_time",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "DATETIME(3)",
         "nullable": false,
@@ -25488,13 +24519,7 @@
         "generated": false,
         "description": "更新时间"
       },
-      "currentValue": {
-        "dataType": "DATETIME(3)",
-        "nullable": false,
-        "defaultValue": "CURRENT_TIMESTAMP(3)",
-        "generated": false,
-        "description": "更新时间"
-      },
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25505,7 +24530,7 @@
       "itemType": "COLUMN",
       "table": "kno_technical_advisory_read_record",
       "name": "updater",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "REMOVED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": false,
@@ -25513,91 +24538,7 @@
         "generated": false,
         "description": "更新人"
       },
-      "currentValue": {
-        "dataType": "VARCHAR(64)",
-        "nullable": false,
-        "defaultValue": "''",
-        "generated": false,
-        "description": "更新人"
-      },
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_read_record:PRIMARY",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_read_record",
-      "name": "PRIMARY",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "PRIMARY KEY (id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_read_record:chk_advisory_read_deleted",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_read_record",
-      "name": "chk_advisory_read_deleted",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT chk_advisory_read_deleted CHECK (deleted IN (0, 1))",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_read_record:fk_advisory_read_advisory",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_read_record",
-      "name": "fk_advisory_read_advisory",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_advisory_read_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_read_record:idx_advisory_reader_reverse",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_read_record",
-      "name": "idx_advisory_reader_reverse",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "KEY idx_advisory_reader_reverse (tenant_id, reader_id, read_status, advisory_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_read_record:uk_advisory_reader",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_read_record",
-      "name": "uk_advisory_reader",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_advisory_reader (tenant_id, advisory_id, reader_id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:kno_technical_advisory_read_record:uk_technical_advisory_read_tenant_row",
-      "itemType": "CONSTRAINT",
-      "table": "kno_technical_advisory_read_record",
-      "name": "uk_technical_advisory_read_tenant_row",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_technical_advisory_read_tenant_row (tenant_id, id)",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -25609,7 +24550,7 @@
       "table": "kno_technical_advisory_read_record",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告阅读及确认记录'",
+      "currentValue": null,
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,
@@ -26800,6 +25741,48 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "COLUMN:plt_external_key_mapping:target_role",
+      "itemType": "COLUMN",
+      "table": "plt_external_key_mapping",
+      "name": "target_role",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": "'PRIMARY'",
+        "generated": false,
+        "description": "同一来源映射目标的业务角色，默认PRIMARY"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0022-core-migration-schema-and-key-policy.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:plt_external_key_mapping:target_sequence",
+      "itemType": "COLUMN",
+      "table": "plt_external_key_mapping",
+      "name": "target_sequence",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "同一来源和角色下稳定且不可重排的目标顺序，从0开始"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0022-core-migration-schema-and-key-policy.md"
+      ]
+    },
+    {
       "itemId": "COLUMN:plt_external_key_mapping:target_table",
       "itemType": "COLUMN",
       "table": "plt_external_key_mapping",
@@ -26913,6 +25896,21 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "CONSTRAINT:plt_external_key_mapping:chk_external_key_target_sequence",
+      "itemType": "CONSTRAINT",
+      "table": "plt_external_key_mapping",
+      "name": "chk_external_key_target_sequence",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_external_key_target_sequence CHECK (target_sequence >= 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0022-core-migration-schema-and-key-policy.md"
+      ]
+    },
+    {
       "itemId": "CONSTRAINT:plt_external_key_mapping:fk_external_key_batch",
       "itemType": "CONSTRAINT",
       "table": "plt_external_key_mapping",
@@ -26984,11 +25982,13 @@
       "name": "uk_external_key_source_target",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_table, target_id )",
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "currentValue": "UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_role, target_sequence, target_table, target_id )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0022-core-migration-schema-and-key-policy.md"
+      ]
     },
     {
       "itemId": "TABLE_OPTION:plt_external_key_mapping",
@@ -30046,19 +29046,6 @@
       "evidenceRefs": [
         "docs/decisions/0020-project-code-identity-and-namespace.md"
       ]
-    },
-    {
-      "itemId": "CONSTRAINT:proj_project:fk_project_customer",
-      "itemType": "CONSTRAINT",
-      "table": "proj_project",
-      "name": "fk_project_customer",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
     },
     {
       "itemId": "CONSTRAINT:proj_project:fk_project_parent",
@@ -34298,32 +33285,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:srv_service_incident:fk_service_incident_document",
-      "itemType": "CONSTRAINT",
-      "table": "srv_service_incident",
-      "name": "fk_service_incident_document",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_service_incident_document FOREIGN KEY (tenant_id, report_document_id) REFERENCES plt_business_document (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
-      "itemId": "CONSTRAINT:srv_service_incident:fk_service_incident_project",
-      "itemType": "CONSTRAINT",
-      "table": "srv_service_incident",
-      "name": "fk_service_incident_project",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_service_incident_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:srv_service_incident:idx_incident_owner",
       "itemType": "CONSTRAINT",
       "table": "srv_service_incident",
@@ -34678,19 +33639,6 @@
       "evidenceRefs": []
     },
     {
-      "itemId": "CONSTRAINT:srv_service_incident_device_relation:fk_incident_device_device",
-      "itemType": "CONSTRAINT",
-      "table": "srv_service_incident_device_relation",
-      "name": "fk_incident_device_device",
-      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
-      "baselineValue": null,
-      "currentValue": "CONSTRAINT fk_incident_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-      "decision": "DEFER",
-      "decisionOwner": null,
-      "reviewOwner": null,
-      "evidenceRefs": []
-    },
-    {
       "itemId": "CONSTRAINT:srv_service_incident_device_relation:fk_incident_device_incident",
       "itemType": "CONSTRAINT",
       "table": "srv_service_incident_device_relation",
@@ -34763,7 +33711,7 @@
   },
   "namingDecision": {
     "decisionRef": "ADR-0019",
-    "decidedItemCount": 58,
+    "decidedItemCount": 54,
     "reviewStatus": "REVIEW_PENDING"
   },
   "projectCodeDecision": {
@@ -34774,6 +33722,13 @@
   "marketRelationDecision": {
     "decisionRef": "ADR-0021",
     "decidedItemCount": 46,
+    "reviewStatus": "REVIEW_PENDING"
+  },
+  "coreMigrationSchemaDecision": {
+    "decisionRef": "ADR-0022",
+    "decidedItemCount": 4,
+    "removedV3TableCount": 4,
+    "removedCrossDomainForeignKeyCount": 26,
     "reviewStatus": "REVIEW_PENDING"
   }
 }

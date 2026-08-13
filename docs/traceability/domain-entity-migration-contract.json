@@ -899,19 +899,18 @@
       "requirementIds": [
         "INT-04"
       ],
-      "targetTables": [
-        "kno_technical_notice",
-        "kno_notice_business_reference"
-      ]
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
     },
     "NoticeBusinessReference": {
       "owner": "KNO",
       "requirementIds": [
         "INT-04"
       ],
-      "targetTables": [
-        "kno_notice_business_reference"
-      ]
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
     }
   },
   "records": [
@@ -2931,10 +2930,7 @@
       "requirementIds": [
         "INT-04"
       ],
-      "targetTables": [
-        "kno_technical_notice",
-        "kno_notice_business_reference"
-      ],
+      "targetTables": [],
       "sources": [
         {
           "sourceType": "EXTERNAL_SYSTEM",
@@ -2954,7 +2950,9 @@
           "gate": "SCOPE_EXCLUSION",
           "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
         }
-      ]
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
     },
     {
       "object": "NoticeBusinessReference",
@@ -2963,9 +2961,7 @@
       "requirementIds": [
         "INT-04"
       ],
-      "targetTables": [
-        "kno_notice_business_reference"
-      ],
+      "targetTables": [],
       "sources": [
         {
           "sourceType": "CURRENT_TABLE",
@@ -2976,7 +2972,9 @@
           "gate": "SCOPE_EXCLUSION",
           "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
         }
-      ]
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
     }
   ]
 }

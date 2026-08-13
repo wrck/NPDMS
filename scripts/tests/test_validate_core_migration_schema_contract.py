@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,12 @@ SPEC = importlib.util.spec_from_file_location("validate_core_migration_schema_co
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
+sys.path.insert(0, str(ROOT / "scripts"))
+APPLY_PATH = ROOT / "scripts" / "apply_core_migration_schema_contract.py"
+APPLY_SPEC = importlib.util.spec_from_file_location("apply_core_migration_schema_contract", APPLY_PATH)
+APPLIER = importlib.util.module_from_spec(APPLY_SPEC)
+assert APPLY_SPEC.loader is not None
+APPLY_SPEC.loader.exec_module(APPLIER)
 
 
 class CoreMigrationSchemaContractTest(unittest.TestCase):
@@ -28,6 +35,7 @@ class CoreMigrationSchemaContractTest(unittest.TestCase):
                 "defaultTargetRole": "PRIMARY",
                 "minimumTargetSequence": 0,
             },
+            "acceptedDdlItems": sorted(MODULE.EXPECTED_ACCEPTED_DDL_ITEMS),
             "normalization": {
                 "businessCode": "TRIM_UPPERCASE",
                 "opaqueExternalKey": "BINARY_EXACT",
@@ -118,6 +126,18 @@ CREATE TABLE plt_external_key_mapping (
         errors = MODULE.validate_contract(self.valid_contract(), ddl)
         self.assertTrue(any("deleted" in error for error in errors))
         self.assertTrue(any("effective_to" in error for error in errors))
+
+    def test_transform_removes_v3_tables_and_cross_domain_fk(self) -> None:
+        ddl = self.valid_ddl() + """
+CREATE TABLE kno_technical_advisory (id BIGINT) ENGINE = InnoDB;
+CREATE TABLE kno_technical_advisory_read_record (id BIGINT) ENGINE = InnoDB;
+CREATE TABLE kno_technical_advisory_product_relation (id BIGINT) ENGINE = InnoDB;
+CREATE TABLE kno_device_technical_advisory_match (id BIGINT) ENGINE = InnoDB;
+"""
+        transformed, summary = APPLIER.transform_ddl(ddl)
+        self.assertEqual(4, summary["removedTables"])
+        self.assertEqual(0, summary["removedCrossDomainForeignKeys"])
+        self.assertNotIn("CREATE TABLE kno_", transformed)
 
 
 if __name__ == "__main__":

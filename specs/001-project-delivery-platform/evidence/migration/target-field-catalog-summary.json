@@ -1,8 +1,8 @@
 {
-  "ddlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
-  "tableCount": 53,
-  "columnCount": 1113,
-  "commentedColumnCount": 1113,
+  "ddlSha256": "AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9",
+  "tableCount": 49,
+  "columnCount": 1048,
+  "commentedColumnCount": 1048,
   "invalidCommentCount": 0,
   "domains": {
     "客户与联系人": 32,
@@ -12,19 +12,20 @@
     "文档与交付件": 59,
     "项目组合": 28,
     "合同与回款": 140,
-    "设备与售后": 312,
+    "设备与售后": 245,
     "ERP订单": 138,
     "CRM执行单辅助": 130,
-    "迁移与同步": 69
+    "迁移与同步": 69,
+    "基础平台": 2
   },
   "fieldClasses": {
-    "TECHNICAL": 390,
-    "BUSINESS": 491,
+    "TECHNICAL": 360,
+    "BUSINESS": 464,
     "IDENTITY": 2,
     "LINEAGE": 96,
     "CONTROL": 3,
     "AUDIT": 4,
-    "RELATION": 120,
+    "RELATION": 112,
     "CACHE": 7
   }
 }

@@ -42,6 +42,7 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
 
     tables = payload.get("tables", [])
     extensions = payload.get("tableExtensions", [])
+    implementation_scope = payload.get("implementationScope", {})
     fields = payload.get("fields", [])
     if not isinstance(tables, list) or not isinstance(fields, list):
         return errors + ["tables and fields must be lists"]
@@ -49,6 +50,8 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
         errors.append(f"database naming contract must contain 52 ADR-0019 tables, found {len(tables)}")
     if extensions != [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}]:
         errors.append("database naming contract ADR-0021 extension mismatch")
+    if not isinstance(implementation_scope, dict) or implementation_scope.get("coverage") != "CORE_MIGRATION_SUBSET" or implementation_scope.get("decisionRef") != "ADR-0022":
+        errors.append("database naming contract implementation scope mismatch")
     if len(fields) != 6:
         errors.append(f"database naming contract must contain 6 field decisions, found {len(fields)}")
     all_tables = tables + extensions
@@ -60,6 +63,9 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
         errors.append("duplicate target table")
     table_by_source = {item.get("source"): item for item in all_tables}
     target_set = set(targets)
+    excluded_targets = set(implementation_scope.get("excludedTargets", [])) if isinstance(implementation_scope, dict) else set()
+    if not excluded_targets <= target_set:
+        errors.append(f"implementation scope excludes unknown target tables: {sorted(excluded_targets-target_set)}")
     for item in all_tables:
         source, target, owner = item.get("source"), item.get("target"), item.get("owner")
         if owner not in EXPECTED_DOMAINS:
@@ -101,7 +107,8 @@ def validate_ddl(payload: dict[str, object], ddl: str) -> list[str]:
         match.group(1): match.group(2)
         for match in re.finditer(r"CREATE\s+TABLE\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*ENGINE\s*=", ddl, re.I | re.S)
     }
-    expected = {item["target"] for item in payload["tables"] + payload.get("tableExtensions", [])}
+    excluded = set(payload.get("implementationScope", {}).get("excludedTargets", []))
+    expected = {item["target"] for item in payload["tables"] + payload.get("tableExtensions", [])} - excluded
     if set(blocks) != expected:
         errors.append(f"DDL table set differs from naming contract; missing={sorted(expected-set(blocks))}, extra={sorted(set(blocks)-expected)}")
     for item in payload["fields"]:

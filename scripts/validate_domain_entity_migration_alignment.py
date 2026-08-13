@@ -102,6 +102,39 @@ def expected_object_owner(object_name: str, requirement_owner_set: set[str]) -> 
     return next(iter(requirement_owner_set)) if len(requirement_owner_set) == 1 else None
 
 
+def validate_target_table_policy(
+    object_name: str,
+    owner: str | None,
+    requirement_ids: set[str],
+    target_tables: list[str],
+    map_entry: dict,
+    database_design: str,
+) -> list[str]:
+    errors: list[str] = []
+    policy = map_entry.get("targetTablePolicy", "CURRENT_PHYSICAL_TARGET")
+    if policy == "CURRENT_PHYSICAL_TARGET":
+        if not target_tables or len(target_tables) != len(set(target_tables)):
+            errors.append(f"{object_name} targetTables must be non-empty and unique")
+    elif policy == "FEATURE_FORWARD_MIGRATION":
+        feature_requirement = map_entry.get("featureRequirementId")
+        if target_tables:
+            errors.append(f"{object_name} feature-forward targetTables must remain empty until its Feature migration is approved")
+        if not feature_requirement or feature_requirement not in requirement_ids:
+            errors.append(f"{object_name} featureRequirementId must reference one of its Requirement IDs")
+        elif f"物理表由{feature_requirement} Feature前向迁移确定" not in database_design:
+            errors.append(f"{object_name} feature-forward policy is not declared by 09 database design")
+    else:
+        errors.append(f"{object_name} has unsupported targetTablePolicy: {policy}")
+    for table in target_tables:
+        if table.startswith("pms_"):
+            errors.append(f"{object_name} target table retains legacy system prefix: {table}")
+        if owner and not table.startswith(owner.lower() + "_"):
+            errors.append(f"{object_name} target table owner prefix mismatch: {table} owner={owner}")
+        if f"`{table}`" not in database_design:
+            errors.append(f"{object_name} target table not declared by 09 database design: {table}")
+    return errors
+
+
 def validate(root: Path, implementation_override: Path | None = None) -> list[str]:
     errors: list[str] = []
     traceability = root / "docs" / "traceability"
@@ -186,15 +219,11 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
             errors.append(f"{object_name} object-table map Owner/Requirement mismatch")
         if target_tables != map_entry.get("targetTables"):
             errors.append(f"{object_name} target tables do not exactly match the machine object-table map")
-        if not target_tables or len(target_tables) != len(set(target_tables)):
-            errors.append(f"{object_name} targetTables must be non-empty and unique")
-        for table in target_tables:
-            if table.startswith("pms_"):
-                errors.append(f"{object_name} target table retains legacy system prefix: {table}")
-            if owner and not table.startswith(owner.lower() + "_"):
-                errors.append(f"{object_name} target table owner prefix mismatch: {table} owner={owner}")
-            if f"`{table}`" not in database_design:
-                errors.append(f"{object_name} target table not declared by 09 database design: {table}")
+        if record.get("targetTablePolicy", "CURRENT_PHYSICAL_TARGET") != map_entry.get("targetTablePolicy", "CURRENT_PHYSICAL_TARGET"):
+            errors.append(f"{object_name} target table policy does not match the machine object-table map")
+        if record.get("featureRequirementId") != map_entry.get("featureRequirementId"):
+            errors.append(f"{object_name} feature Requirement does not match the machine object-table map")
+        errors.extend(validate_target_table_policy(object_name, owner, actual_requirements, target_tables, map_entry, database_design))
         sources = record.get("sources", [])
         if not sources:
             errors.append(f"{object_name} has no source-specific disposition")

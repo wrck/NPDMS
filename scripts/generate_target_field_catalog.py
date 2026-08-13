@@ -17,6 +17,7 @@ DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physica
 CONTRACT = Path("docs/traceability/database-naming-contract.json")
 PROJECT_CODE_CONTRACT = Path("docs/traceability/project-code-contract.json")
 MARKET_RELATION_CONTRACT = Path("docs/traceability/market-relation-contract.json")
+CORE_MIGRATION_SCHEMA_CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
 MIGRATION = Path("specs/001-project-delivery-platform/evidence/migration")
 CATALOG = MIGRATION / "target-field-catalog.jsonl"
 CATALOG_SUMMARY = MIGRATION / "target-field-catalog-summary.json"
@@ -102,6 +103,32 @@ def rewrite_target_references(
                 updated["tableName"] = tables[source_table]
             bindings.append(updated)
         result["targetBindings"] = bindings
+    excluded = set(contract.get("implementationScope", {}).get("excludedTargets", []))
+    excluded_reference = False
+    if "targets" in result and isinstance(result["targets"], list):
+        retained_targets = []
+        for value in result["targets"]:
+            table = value.split(".", 1)[0] if isinstance(value, str) else None
+            if table in excluded:
+                excluded_reference = True
+            else:
+                retained_targets.append(value)
+        result["targets"] = retained_targets
+    if "targetBindings" in result and isinstance(result["targetBindings"], list):
+        retained_bindings = []
+        for binding in result["targetBindings"]:
+            if binding.get("tableName") in excluded:
+                excluded_reference = True
+            else:
+                retained_bindings.append(binding)
+        result["targetBindings"] = retained_bindings
+    if excluded_reference and not result.get("targets") and not result.get("targetBindings"):
+        result["decisionStatus"] = "V3_TARGET_EXCLUDED"
+        result["disposition"] = "SOURCE_ONLY"
+        result["targets"] = ["plt_migration_source_record.source_payload"]
+        result["targetBindings"] = [{"tableName": "plt_migration_source_record", "columnName": "source_payload", "jsonPath": None}]
+        result["rawPreservedBy"] = "plt_migration_source_record.source_payload"
+        result["decisionBasis"] = "ADR-0022 excludes V3 governance tables from the V1/V2 core migration DDL; preserve source evidence for the later feature migration"
     if ddl_sha256 is not None and "targetDdlSha256" in result:
         result["targetDdlSha256"] = ddl_sha256
     return result
@@ -169,6 +196,7 @@ def expected_outputs(root: Path) -> dict[Path, str]:
     contract = json.loads((root / CONTRACT).read_text(encoding="utf-8"))
     project_code_contract = json.loads((root / PROJECT_CODE_CONTRACT).read_text(encoding="utf-8"))
     market_relation_contract = json.loads((root / MARKET_RELATION_CONTRACT).read_text(encoding="utf-8"))
+    core_migration_schema_contract = json.loads((root / CORE_MIGRATION_SCHEMA_CONTRACT).read_text(encoding="utf-8"))
     source_mapping_overrides = {
         (item["sourceTable"], item["sourceColumn"]): item
         for item in market_relation_contract["sourceMappingOverrides"]
@@ -177,6 +205,18 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         (item["table"], item["name"]): item
         for item in project_code_contract["columns"]
     }
+    new_field_metadata.update({
+        ("plt_external_key_mapping", "target_role"): {
+            "table": "plt_external_key_mapping", "name": "target_role", "domain": "基础平台",
+            "fieldClass": "RELATION", "dataElementRefs": [],
+        },
+        ("plt_external_key_mapping", "target_sequence"): {
+            "table": "plt_external_key_mapping", "name": "target_sequence", "domain": "基础平台",
+            "fieldClass": "RELATION", "dataElementRefs": [],
+        },
+    })
+    if set(contract.get("implementationScope", {}).get("excludedTargets", [])) != set(core_migration_schema_contract["v3DesignOnlyTables"]):
+        raise ValueError("database naming scope and ADR-0022 V3 exclusions differ")
     parser = load_parser(root)
     ddl_tables = parser.parse_ddl(ddl_path.read_bytes())
     ddl_hash = sha256(ddl_path.read_bytes())

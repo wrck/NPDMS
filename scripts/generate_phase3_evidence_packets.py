@@ -29,6 +29,7 @@ DEPLOYMENT_TIME_SELECTION_REF = "docs/decisions/0018-deployment-time-environment
 DATABASE_NAMING_REF = "docs/decisions/0019-domain-coded-database-naming.md"
 PROJECT_CODE_REF = "docs/decisions/0020-project-code-identity-and-namespace.md"
 MARKET_RELATION_REF = "docs/decisions/0021-customer-market-relation-classification.md"
+CORE_MIGRATION_SCHEMA_REF = "docs/decisions/0022-core-migration-schema-and-key-policy.md"
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 BACKUP_RETENTION_POLICY = {
     "dailyRetention": "P35D",
@@ -170,6 +171,7 @@ def build_packets() -> dict[str, dict[str, object]]:
                 DATABASE_NAMING_REF,
                 PROJECT_CODE_REF,
                 MARKET_RELATION_REF,
+                CORE_MIGRATION_SCHEMA_REF,
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

@@ -136,6 +136,32 @@ class DdlDriftReviewTest(unittest.TestCase):
         self.assertIn("CONSTRAINT:cus_customer:idx_customer_market_relation", accepted)
         self.assertEqual("ADR-0021", decided["marketRelationDecision"]["decisionRef"])
 
+    def test_core_schema_decision_marks_exact_current_items(self) -> None:
+        current = MODULE.parse_ddl(b"""CREATE TABLE plt_external_key_mapping (
+          id BIGINT NOT NULL,
+          target_role VARCHAR(32) NOT NULL DEFAULT 'PRIMARY',
+          target_sequence INT UNSIGNED NOT NULL DEFAULT 0,
+          UNIQUE KEY uk_external_key_source_target (target_role, target_sequence, id),
+          CONSTRAINT chk_external_key_target_sequence CHECK (target_sequence >= 0)
+        ) ENGINE = InnoDB;""")
+        register = MODULE.ddl_item_decision_register(
+            "OLD", "NEW", {}, current,
+            constraints_comparable=False, options_comparable=False,
+        )
+        contract = {
+            "acceptedDdlItems": [
+                "COLUMN:plt_external_key_mapping:target_role",
+                "COLUMN:plt_external_key_mapping:target_sequence",
+                "CONSTRAINT:plt_external_key_mapping:uk_external_key_source_target",
+                "CONSTRAINT:plt_external_key_mapping:chk_external_key_target_sequence",
+            ],
+            "v3DesignOnlyTables": ["a", "b", "c", "d"],
+        }
+        result = MODULE.apply_accepted_core_schema_decisions(register, contract)
+        decided = {item["itemId"] for item in result["items"] if item["decision"] == "AMEND_CURRENT"}
+        self.assertEqual(set(contract["acceptedDdlItems"]), decided)
+        self.assertEqual(26, result["coreMigrationSchemaDecision"]["removedCrossDomainForeignKeyCount"])
+
 
 if __name__ == "__main__":
     unittest.main()

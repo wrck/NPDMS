@@ -76,15 +76,15 @@
 - Consumes: `core-migration-schema-contract.json`和Task 1校验器。
 - Produces: 不含V3治理表和跨领域物理外键、支持一源多目标角色/顺序的核心迁移DDL，以及同哈希的字段目录、映射、漂移、约束和逐项裁决证据。
 
-- [ ] **Step 1: 修改DDL并保留逻辑引用字段**
+- [x] **Step 1: 修改DDL并保留逻辑引用字段**
 
   删除4个`kno_*technical_advisory*`建表块和全部跨领域外键约束；不删除其逻辑ID列、索引或应用层引用语义。给`plt_external_key_mapping`增加`target_role varchar(32) not null default 'PRIMARY'`、`target_sequence int unsigned not null default 0`，将唯一键扩展为来源、目标角色、目标顺序及目标对象，并增加非负CHECK。
 
-- [ ] **Step 2: 同步机器生成器和正式SDS**
+- [x] **Step 2: 同步机器生成器和正式SDS**
 
   数据库命名契约保留ADR-0019的历史52表裁决，同时增加`implementationScope`，使4张KNO表不再被要求出现在核心DDL。SDS明确V2逻辑契约不等于在本迁移子集中提前落V3治理表。
 
-- [ ] **Step 3: 重建目标字段和P3-E09证据**
+- [x] **Step 3: 重建目标字段和P3-E09证据**
 
   Run: `python -B scripts/generate_target_field_catalog.py`
 
@@ -96,7 +96,7 @@
 
   Expected: 全部派生文件使用同一新DDL哈希；移除表的历史来源仍保留为来源证据或明确的V3/后续Feature落位，不静默丢失。
 
-- [ ] **Step 4: 执行全量校验**
+- [x] **Step 4: 执行全量校验**
 
   Run: `python -B scripts/validate_core_migration_schema_contract.py`
 
@@ -112,8 +112,8 @@
 
   Run: `git diff --check`
 
-  Expected: 全部PASS；P3-E09仍保持`OPEN`，只等待尚未签署的剩余模型项与Reviewer证据。
+  Expected: 全部PASS；P3-E09仍保持`OPEN`，只等待1,601项逐项Reviewer签署和`approvedDdlSha256`。
 
-- [ ] **Step 5: 提交Task 2**
+- [x] **Step 5: 提交Task 2**
 
   Commit: `docs(data-model): 收敛核心迁移DDL边界`

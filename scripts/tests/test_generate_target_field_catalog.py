@@ -58,6 +58,23 @@ class GenerateTargetFieldCatalogTest(unittest.TestCase):
         self.assertEqual("code_root_id", rows[0]["columnName"])
         self.assertEqual("RELATION", rows[0]["fieldClass"])
 
+    def test_v3_target_is_preserved_as_source_evidence(self) -> None:
+        contract = {
+            "tables": [{"source": "pms_technical_advisory", "target": "kno_technical_advisory", "owner": "KNO"}],
+            "fields": [],
+            "implementationScope": {"excludedTargets": ["kno_technical_advisory"]},
+        }
+        row = {
+            "sourceTable": "legacy_notice",
+            "sourceColumn": "title",
+            "targets": ["pms_technical_advisory.advisory_title"],
+            "targetBindings": [{"tableName": "pms_technical_advisory", "columnName": "advisory_title", "jsonPath": None}],
+        }
+        updated = MODULE.rewrite_target_references(row, contract)
+        self.assertEqual("SOURCE_ONLY", updated["disposition"])
+        self.assertEqual(["plt_migration_source_record.source_payload"], updated["targets"])
+        self.assertEqual("V3_TARGET_EXCLUDED", updated["decisionStatus"])
+
 
 if __name__ == "__main__":
     unittest.main()

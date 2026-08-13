@@ -136,9 +136,9 @@
 - Recommended technical default: A；当前领域模型已经演进，整体恢复可能丢失已确认能力，但未经逐项批准也不能接受当前DDL。
 - Business decision required: 是，需批准每项漂移结论；执行程序只读生成差异，不授权生产迁移。
 - Resolution: A；继续只读生成逐表/列/索引/约束差异，由数据架构和业务Owner逐项裁决，不整体恢复旧DDL。
-- Confirmed naming decision: ADR-0019；业务表删除`pms_`，统一采用`<13领域编码>_<完整领域对象名称>`；表名默认使用完整英文词，仅允许`config`、`sn`两个已登记标准缩写；字段允许使用ADR登记且含义明确的受控缩写，并在无歧义时保持简短。已形成52张表目标命名清单，但尚未重建DDL及全部派生证据，因此本问题仍为`DECIDED_EVIDENCE_PENDING`。
-- Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策需同步DDL和P3-E09逐项寄存器后形成完整证据。
+- Confirmed naming decision: ADR-0019；业务表删除`pms_`，统一采用`<13领域编码>_<完整领域对象名称>`；表名默认使用完整英文词，仅允许`config`、`sn`两个已登记标准缩写；字段允许使用ADR登记且含义明确的受控缩写，并在无歧义时保持简短。52张表历史命名裁决已同步到当前核心迁移DDL和派生证据；P3-E09仍等待逐项Reviewer签署。
+- Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策已同步DDL、字段目录和P3-E09逐项寄存器，仍等待全量Reviewer签署。
 - Confirmed customer market classification decision: ADR-0021；市场部、系统部、拓展部、子行业四维分类归CUS，CRM组合目录落`cus_market_relation`；客户和项目直接保存四组编码/名称，禁止保存`relation_id`，也不推断为组织关系。该决策已同步DDL、字段映射和P3-E09逐项寄存器，仍等待全量Reviewer签署。
-- Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策需同步DDL与P3-E09派生证据后形成完整证据。
+- Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策已同步核心DDL、领域实体迁移策略、字段目录和P3-E09派生证据，仍等待全量Reviewer签署。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13

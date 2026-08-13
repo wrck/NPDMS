@@ -113,6 +113,20 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self._save_contract()
         self.assertTrue(any("target table not declared" in error for error in self._validate()))
 
+    def test_feature_forward_migration_allows_logical_object_without_current_table(self) -> None:
+        errors = VALIDATOR.validate_target_table_policy(
+            "TechnicalNoticeReference",
+            "KNO",
+            {"INT-04"},
+            [],
+            {
+                "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+                "featureRequirementId": "INT-04",
+            },
+            "| Knowledge | `TechnicalNoticeReference`逻辑对象；物理表由INT-04 Feature前向迁移确定 |",
+        )
+        self.assertEqual([], errors)
+
     def test_existing_table_owned_by_another_object_fails(self) -> None:
         self.contract["records"][0]["targetTables"] = ["imp_arrival_acceptance"]
         self._save_contract()

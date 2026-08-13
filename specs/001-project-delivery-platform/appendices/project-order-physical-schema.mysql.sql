@@ -4,7 +4,7 @@
 -- Safety: additive CREATE TABLE statements only; no DROP/TRUNCATE/legacy database writes.
 -- Historical verification: the predecessor 52-table snapshot was executed in an
 --           isolated MySQL 8.4.10 Docker schema on 2026-08-05.
--- Current gate: this 53-table draft requires a new isolated execution after
+-- Current gate: this core-migration-subset draft requires a new isolated execution after
 --           AI-MIG-000 approval; historical verification cannot release it.
 -- Quantity: DECIMAL(18,4) is a lossless superset of the legacy INT fields.
 --           The final scale remains subject to material unit confirmation.
@@ -216,7 +216,6 @@ CREATE TABLE proj_project (
     ),
     CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id),
-    CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_project_code_namespace CHECK (
         (project_sequence = 0 AND code_root_id = id)
         OR project_sequence > 0
@@ -464,8 +463,6 @@ CREATE TABLE acc_deliverable_template (
     PRIMARY KEY (id),
     UNIQUE KEY uk_deliverable_template_tenant_row (tenant_id, id),
     UNIQUE KEY uk_deliverable_template (tenant_id, template_code),
-    CONSTRAINT fk_deliverable_template_document
-        FOREIGN KEY (tenant_id, template_document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_deliverable_template_required CHECK (required_flag IN (0, 1)),
     CONSTRAINT chk_deliverable_template_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
@@ -493,12 +490,8 @@ CREATE TABLE acc_project_deliverable (
     UNIQUE KEY uk_project_deliverable_tenant_row (tenant_id, id),
     KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status),
     KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date),
-    CONSTRAINT fk_project_deliverable_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_deliverable_template
         FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id),
-    CONSTRAINT fk_project_deliverable_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_project_deliverable_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '项目交付件实例及完成状态';
@@ -591,8 +584,6 @@ CREATE TABLE com_contract (
     KEY idx_contract_no (tenant_id, contract_no, company_code),
     KEY idx_contract_company (tenant_id, company_id, status, contract_no),
     KEY idx_contract_customer (tenant_id, customer_id, status),
-    CONSTRAINT fk_contract_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_contract_dates
         CHECK (expiry_date IS NULL OR effective_date IS NULL OR expiry_date >= effective_date),
     CONSTRAINT chk_contract_deleted CHECK (deleted IN (0, 1))
@@ -802,8 +793,6 @@ CREATE TABLE com_project_contract_relation (
         tenant_id, project_id, contract_id, relation_role
     ),
     KEY idx_project_contract_reverse (tenant_id, contract_id, project_id),
-    CONSTRAINT fk_project_contract_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_project_contract_contract
         FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_project_contract_dates
@@ -846,8 +835,6 @@ CREATE TABLE com_sales_order (
     KEY idx_sales_order_company (tenant_id, company_id, status, order_no),
     KEY idx_sales_order_customer (tenant_id, customer_code, status),
     KEY idx_sales_order_time (tenant_id, order_create_time, status),
-    CONSTRAINT fk_sales_order_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_sales_order_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'ERP销售订单主档';
@@ -920,10 +907,6 @@ CREATE TABLE com_sales_order_line (
     KEY idx_sales_order_line_profit (tenant_id, profit_center, order_id),
     CONSTRAINT fk_sales_order_line_order
         FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id),
-    CONSTRAINT fk_sales_order_line_product
-        FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id),
-    CONSTRAINT fk_sales_order_line_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id),
     CONSTRAINT chk_sales_order_line_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = 'ERP销售订单行及数量快照';
@@ -998,8 +981,6 @@ CREATE TABLE com_delivery_scope (
         tenant_id, order_source_system, order_company_code, order_type, order_no, line_no
     ),
     KEY idx_scope_item (tenant_id, item_code, scope_status, project_id),
-    CONSTRAINT fk_scope_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_scope_order_line
         FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id),
     CONSTRAINT chk_scope_active
@@ -1098,10 +1079,6 @@ CREATE TABLE ast_device_shipment_event (
     ),
     CONSTRAINT fk_shipment_device
         FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
-    CONSTRAINT fk_shipment_package
-        FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES com_shipment_package (tenant_id, id),
-    CONSTRAINT fk_shipment_order_line
-        FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id),
     CONSTRAINT chk_shipment_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '设备发货、退回、返还和再次发放的物流生命周期事件';
@@ -1170,12 +1147,8 @@ CREATE TABLE ast_device_project_assignment (
         tenant_id, order_no, line_no, effective_to, project_id
     ),
     UNIQUE KEY uk_device_current_assignment (tenant_id, current_device_id),
-    CONSTRAINT fk_device_assignment_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT fk_device_assignment_device
         FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
-    CONSTRAINT fk_device_assignment_scope
-        FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES com_delivery_scope (tenant_id, id),
     CONSTRAINT chk_device_assignment_dates
         CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_device_assignment_deleted CHECK (deleted IN (0, 1))
@@ -1221,8 +1194,6 @@ CREATE TABLE ast_device_relation (
         FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT fk_device_relation_target
         FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id),
-    CONSTRAINT fk_device_relation_contract
-        FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id),
     CONSTRAINT chk_device_relation_self
         CHECK (source_device_id <> target_device_id),
     CONSTRAINT chk_device_relation_deleted CHECK (deleted IN (0, 1))
@@ -1253,8 +1224,6 @@ CREATE TABLE ast_device_configuration (
     KEY idx_project_configuration (tenant_id, project_id, configuration_stage),
     CONSTRAINT fk_device_configuration_device
         FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
-    CONSTRAINT fk_device_configuration_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_device_configuration_dates
         CHECK (effective_to IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_device_configuration_deleted CHECK (deleted IN (0, 1))
@@ -1325,10 +1294,6 @@ CREATE TABLE ast_network_topology (
     PRIMARY KEY (id),
     UNIQUE KEY uk_network_topology_tenant_row (tenant_id, id),
     KEY idx_network_topology_project (tenant_id, project_id, status),
-    CONSTRAINT fk_network_topology_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
-    CONSTRAINT fk_network_topology_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_network_topology_dates
         CHECK (effective_to IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_network_topology_deleted CHECK (deleted IN (0, 1))
@@ -1387,8 +1352,6 @@ CREATE TABLE ast_device_version (
     KEY idx_project_device_version (tenant_id, project_id, version_stage),
     CONSTRAINT fk_device_version_device
         FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
-    CONSTRAINT fk_device_version_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_device_version_dates
         CHECK (effective_to IS NULL OR effective_to >= effective_from),
     CONSTRAINT chk_device_version_deleted CHECK (deleted IN (0, 1))
@@ -1418,130 +1381,9 @@ CREATE TABLE ast_product_release (
     ),
     CONSTRAINT fk_product_release_product
         FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id),
-    CONSTRAINT fk_product_release_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_product_release_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '产品版本发布与支持周期';
-
-CREATE TABLE kno_technical_advisory (
-    id BIGINT NOT NULL COMMENT '主键ID',
-    tenant_id BIGINT NOT NULL COMMENT '租户ID',
-    advisory_no VARCHAR(64) NOT NULL COMMENT '技术公告的技术公告编号',
-    advisory_title VARCHAR(500) NOT NULL COMMENT '技术公告的技术公告标题',
-    advisory_type VARCHAR(32) NOT NULL COMMENT '技术公告类型编码，取值由对应业务字典约束',
-    severity VARCHAR(32) NULL COMMENT '技术公告的严重级别',
-    visibility_scope VARCHAR(32) NULL COMMENT '技术公告的可见范围实施范围',
-    owner_id BIGINT NULL COMMENT '关联责任人记录的全局唯一ID',
-    symptom TEXT NULL COMMENT '技术公告的问题现象',
-    trigger_condition TEXT NULL COMMENT '技术公告的触发条件',
-    judgment_method TEXT NULL COMMENT '技术公告的判断方法',
-    root_cause TEXT NULL COMMENT '技术公告的根原因',
-    impact_risk TEXT NULL COMMENT '技术公告的影响风险',
-    workaround TEXT NULL COMMENT '技术公告的规避方案',
-    solution TEXT NULL COMMENT '技术公告的解决方案',
-    advisory_content MEDIUMTEXT NULL COMMENT '技术公告的技术公告内容',
-    planned_due_date DATE NULL COMMENT '计划到期日期，空值表示来源未提供或事件未发生',
-    approval_note VARCHAR(1000) NULL COMMENT '技术公告的审批说明',
-    publish_time DATETIME(3) NULL COMMENT '发布时间，采用系统统一时区，空值表示来源未提供或事件未发生',
-    effective_from DATETIME(3) NULL COMMENT '业务关系或事实开始生效的时间，空值表示来源未提供',
-    effective_to DATETIME(3) NULL COMMENT '业务关系或事实失效的时间，空值表示当前仍有效',
-    document_id BIGINT NULL COMMENT '关联文档记录的全局唯一ID',
-    status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE' COMMENT '状态',
-    version INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
-    creator VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建人',
-    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    updater VARCHAR(64) NOT NULL DEFAULT '' COMMENT '更新人',
-    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_technical_advisory_tenant_row (tenant_id, id),
-    UNIQUE KEY uk_technical_advisory_no (tenant_id, advisory_no),
-    KEY idx_technical_advisory_status (tenant_id, status, publish_time),
-    CONSTRAINT fk_technical_advisory_document
-        FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id),
-    CONSTRAINT chk_technical_advisory_dates
-        CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from),
-    CONSTRAINT chk_technical_advisory_deleted CHECK (deleted IN (0, 1))
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = '技术公告主档';
-
-CREATE TABLE kno_technical_advisory_read_record (
-    id BIGINT NOT NULL COMMENT '主键ID',
-    tenant_id BIGINT NOT NULL COMMENT '租户ID',
-    advisory_id BIGINT NOT NULL COMMENT '关联技术公告记录的全局唯一ID',
-    reader_id BIGINT NOT NULL COMMENT '关联阅读用户记录的全局唯一ID',
-    first_read_time DATETIME(3) NULL COMMENT '首次读取时间，采用系统统一时区，空值表示来源未提供或事件未发生',
-    confirmed_time DATETIME(3) NULL COMMENT '确认时间，采用系统统一时区，空值表示来源未提供或事件未发生',
-    read_status VARCHAR(32) NOT NULL DEFAULT 'READ' COMMENT '读取状态，取值由对应业务状态字典约束',
-    creator VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建人',
-    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    updater VARCHAR(64) NOT NULL DEFAULT '' COMMENT '更新人',
-    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_technical_advisory_read_tenant_row (tenant_id, id),
-    UNIQUE KEY uk_advisory_reader (tenant_id, advisory_id, reader_id),
-    KEY idx_advisory_reader_reverse (tenant_id, reader_id, read_status, advisory_id),
-    CONSTRAINT fk_advisory_read_advisory
-        FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id),
-    CONSTRAINT chk_advisory_read_deleted CHECK (deleted IN (0, 1))
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = '技术公告阅读及确认记录';
-
-CREATE TABLE kno_technical_advisory_product_relation (
-    id BIGINT NOT NULL COMMENT '主键ID',
-    tenant_id BIGINT NOT NULL COMMENT '租户ID',
-    advisory_id BIGINT NOT NULL COMMENT '关联技术公告记录的全局唯一ID',
-    product_id BIGINT NOT NULL COMMENT '关联产品记录的全局唯一ID',
-    affected_version_expression VARCHAR(1000) NULL COMMENT '公告适用产品的受影响版本表达式',
-    creator VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建人',
-    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    updater VARCHAR(64) NOT NULL DEFAULT '' COMMENT '更新人',
-    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_technical_advisory_product_tenant_row (tenant_id, id),
-    UNIQUE KEY uk_advisory_product (tenant_id, advisory_id, product_id),
-    KEY idx_advisory_product_reverse (tenant_id, product_id, advisory_id),
-    CONSTRAINT fk_advisory_product_advisory
-        FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id),
-    CONSTRAINT fk_advisory_product_product
-        FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id),
-    CONSTRAINT chk_advisory_product_deleted CHECK (deleted IN (0, 1))
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = '技术公告适用产品和版本范围';
-
-CREATE TABLE kno_device_technical_advisory_match (
-    id BIGINT NOT NULL COMMENT '主键ID',
-    tenant_id BIGINT NOT NULL COMMENT '租户ID',
-    advisory_id BIGINT NOT NULL COMMENT '关联技术公告记录的全局唯一ID',
-    device_id BIGINT NOT NULL COMMENT '关联设备记录的全局唯一ID',
-    match_status VARCHAR(32) NOT NULL COMMENT '匹配状态，取值由对应业务状态字典约束',
-    matched_version_id BIGINT NULL COMMENT '关联匹配版本记录的全局唯一ID',
-    matched_time DATETIME(3) NOT NULL COMMENT '匹配时间，采用系统统一时区，空值表示来源未提供或事件未发生',
-    handled_time DATETIME(3) NULL COMMENT '处置时间，采用系统统一时区，空值表示来源未提供或事件未发生',
-    handler_id BIGINT NULL COMMENT '关联处理人记录的全局唯一ID',
-    handling_note VARCHAR(1000) NULL COMMENT '设备公告命中的处置说明',
-    version INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
-    creator VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建人',
-    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    updater VARCHAR(64) NOT NULL DEFAULT '' COMMENT '更新人',
-    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_device_advisory_match_tenant_row (tenant_id, id),
-    UNIQUE KEY uk_device_advisory (tenant_id, advisory_id, device_id),
-    KEY idx_device_advisory_reverse (tenant_id, device_id, match_status),
-    CONSTRAINT fk_device_advisory_advisory
-        FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id),
-    CONSTRAINT fk_device_advisory_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
-    CONSTRAINT fk_device_advisory_version
-        FOREIGN KEY (tenant_id, matched_version_id) REFERENCES ast_device_version (tenant_id, id),
-    CONSTRAINT chk_device_advisory_deleted CHECK (deleted IN (0, 1))
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = '设备与技术公告的匹配及处置结果';
 
 CREATE TABLE srv_service_incident (
     id BIGINT NOT NULL COMMENT '主键ID',
@@ -1572,10 +1414,6 @@ CREATE TABLE srv_service_incident (
     UNIQUE KEY uk_service_incident_no (tenant_id, incident_no),
     KEY idx_incident_project (tenant_id, project_id, status, occurred_time),
     KEY idx_incident_owner (tenant_id, owner_id, status),
-    CONSTRAINT fk_service_incident_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
-    CONSTRAINT fk_service_incident_document
-        FOREIGN KEY (tenant_id, report_document_id) REFERENCES plt_business_document (tenant_id, id),
     CONSTRAINT chk_service_incident_times CHECK (
         restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time
     ),
@@ -1600,8 +1438,6 @@ CREATE TABLE srv_service_incident_device_relation (
     KEY idx_incident_device_reverse (tenant_id, device_id, incident_id),
     CONSTRAINT fk_incident_device_incident
         FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id),
-    CONSTRAINT fk_incident_device_device
-        FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id),
     CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '故障与受影响设备多对多关系';
@@ -1687,8 +1523,6 @@ CREATE TABLE com_crm_execution_order (
     KEY idx_crm_execution_company_office_code (
         tenant_id, company_code, office_department_code, status, id
     ),
-    CONSTRAINT fk_crm_execution_project
-        FOREIGN KEY (tenant_id, primary_project_id) REFERENCES proj_project (tenant_id, id),
     CONSTRAINT chk_crm_execution_af
         CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN')),
     CONSTRAINT chk_crm_execution_deleted CHECK (deleted IN (0, 1))
@@ -1991,6 +1825,8 @@ CREATE TABLE plt_external_key_mapping (
     source_table VARCHAR(64) NOT NULL COMMENT '来源系统物理表名，仅用于迁移或同步血缘',
     source_pk VARCHAR(128) NOT NULL COMMENT '外部键映射的来源主键',
     source_business_key VARCHAR(512) NULL COMMENT '外部键映射的来源业务键',
+    target_role VARCHAR(32) NOT NULL DEFAULT 'PRIMARY' COMMENT '同一来源映射目标的业务角色，默认PRIMARY',
+    target_sequence INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '同一来源和角色下稳定且不可重排的目标顺序，从0开始',
     target_table VARCHAR(64) NOT NULL COMMENT '外部键映射的目标表',
     target_id BIGINT NOT NULL COMMENT '关联目标记录的全局唯一ID',
     mapping_status VARCHAR(32) NOT NULL COMMENT '跨系统关联解析状态，如待映射、已映射或存在冲突',
@@ -2003,7 +1839,7 @@ CREATE TABLE plt_external_key_mapping (
     UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id),
     UNIQUE KEY uk_external_key_source_target (
         tenant_id, source_system, source_table, source_pk,
-        target_table, target_id
+        target_role, target_sequence, target_table, target_id
     ),
     KEY idx_external_key_source (
         tenant_id, source_system, source_table, source_pk
@@ -2013,7 +1849,8 @@ CREATE TABLE plt_external_key_mapping (
     ),
     KEY idx_external_key_batch (tenant_id, batch_id, mapping_status),
     CONSTRAINT fk_external_key_batch
-        FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)
+        FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id),
+    CONSTRAINT chk_external_key_target_sequence CHECK (target_sequence >= 0)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '旧主键到新主键的可追溯映射';
 
@@ -2104,9 +1941,5 @@ CREATE TABLE ana_project_delivery_summary (
         tenant_id, manager_employee_no, project_status, project_id
     ),
     KEY idx_project_summary_time (tenant_id, statistic_time),
-    CONSTRAINT fk_project_summary_project
-        FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id),
-    CONSTRAINT fk_project_summary_customer
-        FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '可重建的项目合同、订单、发货和SN汇总读模型';

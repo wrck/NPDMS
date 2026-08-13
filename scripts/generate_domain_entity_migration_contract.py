@@ -53,8 +53,13 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "AuditRecord": ("plt_operation_audit",), "DeviceCredential": ("plt_device_credential",),
     "CredentialGrant": ("plt_credential_grant",), "CollectionTask": ("plt_collection_task",),
     "DispatchAttempt": ("plt_dispatch_attempt",), "CallbackRecord": ("plt_callback_record",),
-    "CollectionResultReference": ("plt_collection_result_reference",), "TechnicalNoticeReference": ("kno_technical_notice", "kno_notice_business_reference"),
-    "NoticeBusinessReference": ("kno_notice_business_reference",),
+    "CollectionResultReference": ("plt_collection_result_reference",), "TechnicalNoticeReference": (),
+    "NoticeBusinessReference": (),
+}
+
+TARGET_POLICIES = {
+    "TechnicalNoticeReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
+    "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
 }
 
 MODEL_ENTITY_CONTRACTS = {
@@ -274,6 +279,13 @@ def build(args: argparse.Namespace) -> dict[str, object]:
     for object_name, target_tables in TARGETS.items():
         if maintained_map[object_name].get("targetTables") != list(target_tables):
             raise ValueError(f"{object_name} generator target tables differ from the maintained 09 object-table map")
+        expected_policy = TARGET_POLICIES.get(object_name, {"targetTablePolicy": "CURRENT_PHYSICAL_TARGET"})
+        actual_policy = {
+            key: maintained_map[object_name].get(key, "CURRENT_PHYSICAL_TARGET" if key == "targetTablePolicy" else None)
+            for key in expected_policy
+        }
+        if actual_policy != expected_policy:
+            raise ValueError(f"{object_name} generator target policy differs from the maintained 09 object-table map")
     requirement_owners = parse_requirement_owners(args.requirement_matrix)
     database_design = args.database_design.read_text(encoding="utf-8")
     current_catalog = table_catalog(args.implementation / "sql" / "migrations")
@@ -288,9 +300,14 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         model_contract = MODEL_ENTITY_CONTRACTS.get(object_name)
         if contract is None:
             contract = {"requirements": set(model_contract["requirementIds"]), "tables": set()}
+        target_policy = TARGET_POLICIES.get(object_name, {"targetTablePolicy": "CURRENT_PHYSICAL_TARGET"})
         undeclared_targets = {table for table in target_tables if f"`{table}`" not in database_design}
         if undeclared_targets:
             raise ValueError(f"{object_name} target tables are not declared by 09 database design: {sorted(undeclared_targets)}")
+        if target_policy["targetTablePolicy"] == "FEATURE_FORWARD_MIGRATION":
+            requirement_id = target_policy["featureRequirementId"]
+            if f"物理表由{requirement_id} Feature前向迁移确定" not in database_design:
+                raise ValueError(f"{object_name} Feature-forward policy is not declared by 09 database design")
         missing_owner_requirements = contract["requirements"] - set(requirement_owners)
         if missing_owner_requirements:
             raise ValueError(f"{object_name} requirements missing Owner: {sorted(missing_owner_requirements)}")
@@ -315,16 +332,25 @@ def build(args: argparse.Namespace) -> dict[str, object]:
                 raw_sources = [source("CURRENT_TABLE", current_target, "CURRENT_FORWARD", "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY")]
             else:
                 raw_sources = [source("NONE_NEW", object_name, "NEW_ONLY", "create only from new-platform business commands; no proven historical source", "NEW_ONLY", "FEATURE_RELEASE")]
-        records.append({
+        record = {
             "object": object_name,
             "owner": owner,
             "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
             "requirementIds": sorted(contract["requirements"]),
             "targetTables": list(target_tables),
             "sources": expand_sources(raw_sources, current_catalog, legacy_catalog, commit),
-        })
+        }
+        if target_policy["targetTablePolicy"] != "CURRENT_PHYSICAL_TARGET":
+            record.update(target_policy)
+        records.append(record)
     object_table_map = {
-        record["object"]: {"owner": record["owner"], "requirementIds": record["requirementIds"], "targetTables": record["targetTables"]}
+        record["object"]: {
+            "owner": record["owner"],
+            "requirementIds": record["requirementIds"],
+            "targetTables": record["targetTables"],
+            **({"targetTablePolicy": record["targetTablePolicy"]} if record.get("targetTablePolicy") else {}),
+            **({"featureRequirementId": record["featureRequirementId"]} if record.get("featureRequirementId") else {}),
+        }
         for record in records
     }
     if object_table_map != maintained_map:
@@ -350,14 +376,15 @@ def render_markdown(payload: dict[str, object]) -> str:
         f"> 实现证据提交：`{payload['implementationCommit']}`",
         "> 生成源：`scripts/generate_domain_entity_migration_contract.py`；JSON为机器真值",
         "",
-        "每一行只表示一个目标对象的一种来源处置；互斥来源不得合并为对象级策略。Owner由Requirement→Phase 1 Owner映射校验，目标表必须属于Phase 2显式契约。",
+        "每一行只表示一个目标对象的一种来源处置；互斥来源不得合并为对象级策略。Owner由Requirement→Phase 1 Owner映射校验；当前目标表必须属于09物理设计，Feature前向迁移对象则保持空目标表直至该Feature批准物理模型。",
         "",
         "|目标对象|Owner|Requirement ID|目标表|来源类型|来源对象|证据定位|处置|转换|映射状态|Gate|",
         "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for record in payload["records"]:
         for item in record["sources"]:
-            values = [record["object"], record["owner"], "、".join(record["requirementIds"]), "、".join(record["targetTables"]), item["sourceType"], item["sourceObject"], item["evidenceRef"], item["disposition"], item["transform"], item["mappingStatus"], item["gate"]]
+            target_display = "、".join(record["targetTables"]) or f"{record['targetTablePolicy']}({record.get('featureRequirementId', '-')})"
+            values = [record["object"], record["owner"], "、".join(record["requirementIds"]), target_display, item["sourceType"], item["sourceObject"], item["evidenceRef"], item["disposition"], item["transform"], item["mappingStatus"], item["gate"]]
             lines.append("|" + "|".join(str(value).replace("|", "<br>") for value in values) + "|")
     return "\n".join(lines) + "\n"
 

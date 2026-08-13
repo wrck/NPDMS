@@ -294,16 +294,17 @@
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
                 "chosenDirection": "\u9010\u8868\u3001\u5217\u3001\u7d22\u5f15\u548c\u7ea6\u675f\u751f\u6210\u5dee\u5f02\u5e76\u9010\u9879\u88c1\u51b3",
-                "currentDdlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
+                "currentDdlSha256": "AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "DEFER",
-                "decisionRegisterItemCount": 1652
+                "decisionRegisterItemCount": 1601
             },
             "evidenceRefs": [
                 "docs/decisions/0004-phase3-production-assurance-directions.md",
                 "docs/decisions/0019-domain-coded-database-naming.md",
                 "docs/decisions/0020-project-code-identity-and-namespace.md",
                 "docs/decisions/0021-customer-market-relation-classification.md",
+                "docs/decisions/0022-core-migration-schema-and-key-policy.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",

@@ -38,6 +38,7 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
             "allowedTableAbbreviations": {"configuration": "config", "serial_number": "sn"},
             "forbiddenTableTokens": ["rel", "ref", "map"],
             "tableExtensions": [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}],
+            "implementationScope": {"coverage": "CORE_MIGRATION_SUBSET", "decisionRef": "ADR-0022", "excludedTargets": []},
             "tables": tables,
             "fields": fields,
         }
@@ -77,6 +78,16 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
             f"CREATE TABLE {first['targetTable']} ({first['sourceColumn']} BIGINT)",
         )
         self.assertIn("field naming decision not applied", "\n".join(VALIDATOR.validate_ddl(contract, ddl)))
+
+    def test_ddl_may_exclude_registered_v3_design_table(self) -> None:
+        contract = self.valid_contract()
+        excluded = contract["tables"][-1]["target"]
+        contract["implementationScope"]["excludedTargets"] = [excluded]
+        ddl = "\n".join(
+            f"CREATE TABLE {item['target']} (id BIGINT) ENGINE = InnoDB;"
+            for item in contract["tables"][:-1] + contract["tableExtensions"]
+        )
+        self.assertNotIn("DDL table set differs", "\n".join(VALIDATOR.validate_ddl(contract, ddl)))
 
 
 if __name__ == "__main__":

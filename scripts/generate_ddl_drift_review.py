@@ -349,7 +349,8 @@ def ddl_item_decision_register(
 
 def apply_accepted_naming_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
     """Record requirement-owner naming decisions without fabricating reviewer approval."""
-    table_ids = {f"TABLE:{item['target']}" for item in contract["tables"]}
+    excluded = set(contract.get("implementationScope", {}).get("excludedTargets", []))
+    table_ids = {f"TABLE:{item['target']}" for item in contract["tables"] if item["target"] not in excluded}
     column_ids = {f"COLUMN:{item['targetTable']}:{item['targetColumn']}" for item in contract["fields"]}
     decided = table_ids | column_ids
     for item in register["items"]:
@@ -417,6 +418,32 @@ def apply_accepted_market_relation_decisions(register: dict[str, object], contra
     register["marketRelationDecision"] = {
         "decisionRef": "ADR-0021",
         "decidedItemCount": len(decided),
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
+def apply_accepted_core_schema_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
+    """Record ADR-0022 current DDL items and explicit removals without reviewer approval."""
+    decided = set(contract["acceptedDdlItems"])
+    actual = {item["itemId"] for item in register["items"]}
+    missing = sorted(decided - actual)
+    if missing:
+        raise ValueError(f"ADR-0022 references missing DDL items: {missing}")
+    for item in register["items"]:
+        if item["itemId"] in decided:
+            item["decision"] = "AMEND_CURRENT"
+            item["decisionOwner"] = "REQUIREMENT_OWNER"
+            item["reviewOwner"] = None
+            item["evidenceRefs"] = ["docs/decisions/0022-core-migration-schema-and-key-policy.md"]
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["coreMigrationSchemaDecision"] = {
+        "decisionRef": "ADR-0022",
+        "decidedItemCount": len(decided),
+        "removedV3TableCount": len(contract["v3DesignOnlyTables"]),
+        "removedCrossDomainForeignKeyCount": 26,
         "reviewStatus": "REVIEW_PENDING",
     }
     return register
@@ -492,6 +519,7 @@ def main() -> int:
     parser.add_argument("--naming-contract", type=Path, default=Path("docs/traceability/database-naming-contract.json"))
     parser.add_argument("--project-code-contract", type=Path, default=Path("docs/traceability/project-code-contract.json"))
     parser.add_argument("--market-relation-contract", type=Path, default=Path("docs/traceability/market-relation-contract.json"))
+    parser.add_argument("--core-migration-schema-contract", type=Path, default=Path("docs/traceability/core-migration-schema-contract.json"))
     parser.add_argument("--output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json"))
     parser.add_argument("--constraint-inventory-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json"))
     parser.add_argument("--decision-register-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"))
@@ -505,6 +533,7 @@ def main() -> int:
     naming_contract = args.naming_contract if args.naming_contract.is_absolute() else repo / args.naming_contract
     project_code_contract = args.project_code_contract if args.project_code_contract.is_absolute() else repo / args.project_code_contract
     market_relation_contract = args.market_relation_contract if args.market_relation_contract.is_absolute() else repo / args.market_relation_contract
+    core_migration_schema_contract = args.core_migration_schema_contract if args.core_migration_schema_contract.is_absolute() else repo / args.core_migration_schema_contract
     report = build_report(repo, ddl, args.baseline_sha256, catalog, naming_contract)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     inventory = current_constraint_inventory(report["inputs"]["currentDdlSha256"], parse_ddl(ddl.read_bytes()))
@@ -529,6 +558,9 @@ def main() -> int:
     )
     decision_register = apply_accepted_market_relation_decisions(
         decision_register, json.loads(market_relation_contract.read_text(encoding="utf-8"))
+    )
+    decision_register = apply_accepted_core_schema_decisions(
+        decision_register, json.loads(core_migration_schema_contract.read_text(encoding="utf-8"))
     )
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))

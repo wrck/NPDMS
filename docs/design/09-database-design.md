@@ -35,7 +35,7 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前目标 DDL SHA-256 为`D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，按ADR-0020补充项目编码命名空间，并按ADR-0021补充CUS市场行业四维分类目录及客户/项目快照字段；其他约束、表选项和最终Reviewer签署仍为`DEFER`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前核心迁移 DDL SHA-256 为`AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，按ADR-0020补充项目编码命名空间，按ADR-0021补充CUS市场行业四维分类，并按ADR-0022收敛为迁移核心子集、移除V3治理表和跨领域物理外键；其他同域约束、表选项和最终Reviewer签署仍为`DEFER`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`OPEN`。
 
@@ -43,9 +43,11 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
-当前逐项登记见`ddl-item-decision-register.json`，覆盖53表、1,113列、433个当前约束和53个表选项，共1,652项；ADR-0019、ADR-0020和ADR-0021已确认的111项登记为`AMEND_CURRENT`，其余保持`DEFER`。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
+ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。当前核心迁移DDL为49表、1,048列、380项约束和49项表选项；4张KNO治理表退出V1/V2核心DDL，跨领域引用不再建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-- 本分册中的模型和约束是 SDS 目标契约；物理表目标名以ADR-0019及其登记扩展为准，不代表当前53表草案可直接执行；
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,601项：53个表事实、1,115个列事实、380个当前约束和53个表选项事实。ADR-0019～ADR-0022已确认的111项登记为`AMEND_CURRENT`，其余保持`DEFER`；实际当前DDL规模以49表、1,048列、380项约束和49项表选项为准。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
+
+- 本分册中的模型和约束是 SDS 目标契约；当前49表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；
 - 历史`migration-validation.json.passed=true`已过期，不得作为当前发布证据；
 - 未关闭漂移前，可以实现不依赖争议 DDL 的领域代码和校验框架，但不得执行生产迁移或宣称数据切换 READY。
@@ -83,7 +85,7 @@ ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表�
 
 ### 3.1 命名
 
-- 表：`pms_<context>_<business_object>`，例如 `plt_collection_task`。
+- 表：`<domain_code>_<full_domain_object_name>`，例如`plt_collection_task`；不得增加业务系统名称`pms`前缀。
 - 主键：`pk_<table_short>`；唯一键：`uk_<table_short>_<business_semantics>`；普通索引：`idx_<table_short>_<query_semantics>`。
 - 外部来源字段统一为 `source_system/source_key/source_version/source_updated_at/synced_at`。
 - 生命周期字段统一为 `status_code`；历史旧表的 `status` 不原地改义，新增映射列或兼容适配层。
@@ -284,9 +286,9 @@ ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表�
 | Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot` | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
 | Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围分配至少含订单行、项目、`allocated_qty`、`scope_status_code`及来源证据 |
 | Resource | `res_supplier`、`res_qualification`、`res_subcontract_request`、`res_payment_gate` | 资质版本追加；财务结果只保存引用和回写状态 |
-| Knowledge | `kno_technical_notice`、`kno_notice_business_reference` | V2 公告按 ITR 来源键+版本唯一；不提供本地发布/停用写接口 |
+| Knowledge | `TechnicalNoticeReference`逻辑对象；物理表由INT-04 Feature前向迁移确定 | V2公告按ITR来源键+版本唯一，只保存同步副本和业务引用；4张V3治理表不进入核心迁移DDL |
 
-`pms_eng_announcement` 和 `pms_eng_announcement_check` 作为历史兼容数据保留。V1/V2 新菜单和 API 只读取 `kno_technical_notice` 或兼容视图中的 ITR 同步记录；本地创建记录不得混入外部主数据结果。
+`pms_eng_announcement`和`pms_eng_announcement_check`只作为历史来源证据保留。V1/V2新菜单和API只读取INT-04 Feature批准的ITR同步副本；本地创建记录不得混入外部主数据结果，也不得提前创建V3治理表。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
 

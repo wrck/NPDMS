@@ -26,6 +26,12 @@
     "minimumTargetSequence": 0,
     "stableAcrossRerun": true
   },
+  "acceptedDdlItems": [
+    "COLUMN:plt_external_key_mapping:target_role",
+    "COLUMN:plt_external_key_mapping:target_sequence",
+    "CONSTRAINT:plt_external_key_mapping:uk_external_key_source_target",
+    "CONSTRAINT:plt_external_key_mapping:chk_external_key_target_sequence"
+  ],
   "normalization": {
     "businessCode": "TRIM_UPPERCASE",
     "opaqueExternalKey": "BINARY_EXACT",

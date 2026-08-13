@@ -43,6 +43,8 @@ def render(root: Path) -> str:
     table_columns: dict[str, list[dict[str, object]]] = defaultdict(list)
     table_items: dict[str, dict[str, object]] = {}
     for item in register["items"]:
+        if item.get("comparisonStatus") == "REMOVED":
+            continue
         if item["itemType"] == "TABLE":
             table_items[item["table"]] = item
         elif item["itemType"] == "COLUMN":
@@ -70,8 +72,8 @@ def render(root: Path) -> str:
         "",
         "|分组|数量|当前事实|建议裁决方式|",
         "|---|---:|---|---|",
-        f"|表|{len(table_items)}|与旧字段目录一致|可批量确认`ACCEPT_CURRENT`|",
-        f"|字段|{sum(len(items) for items in table_columns.values()):,}|名称、类型、空值、默认值、生成属性和说明一致|可批量确认`ACCEPT_CURRENT`|",
+        f"|表|{len(table_items)}|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|",
+        f"|字段|{sum(len(items) for items in table_columns.values()):,}|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|",
         f"|表选项|{len(table_options)}|旧基线未保存|需确认字符比较与存储规则|",
         f"|主键|{len(constraints['PRIMARY_KEY'])}|旧基线未保存|结构性规则，可分类确认|",
         f"|外键|{len(constraints['FOREIGN_KEY'])}|旧基线未保存|影响迁移顺序和异常隔离|",
@@ -81,7 +83,7 @@ def render(root: Path) -> str:
         "",
         "## 2. 表与字段完整清单",
         "",
-        "以下每行均为`MATCH`；字段列表是本次拟批量接受的具体范围。",
+        "以下仅列当前核心迁移DDL中的表与字段；相对旧目录的`MATCH/ADDED/MODIFIED`状态以逐项决策登记为准。",
         "",
         "|编号|表|字段数|字段清单|",
         "|---|---|---:|---|",

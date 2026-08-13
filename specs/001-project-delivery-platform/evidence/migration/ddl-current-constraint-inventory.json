@@ -2,17 +2,16 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
-  "tableCount": 53,
-  "constraintCount": 433,
-  "inventorySha256": "FFBAF6FFE540A3518472C8AF231772C9D80EE7A9512B8DD4D9DFB24C3295066B",
+  "currentDdlSha256": "AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9",
+  "tableCount": 49,
+  "constraintCount": 380,
+  "inventorySha256": "42A9FC3F0F4F395BD971BE46E4D9925DD991A9CD26FE88B69D6AAB199D0C8CAE",
   "records": [
     {
       "table": "acc_deliverable_template",
       "constraints": [
         "CONSTRAINT chk_deliverable_template_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT chk_deliverable_template_required CHECK (required_flag IN (0, 1))",
-        "CONSTRAINT fk_deliverable_template_document FOREIGN KEY (tenant_id, template_document_id) REFERENCES plt_business_document (tenant_id, id)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_deliverable_template (tenant_id, template_code)",
         "UNIQUE KEY uk_deliverable_template_tenant_row (tenant_id, id)"
@@ -24,8 +23,6 @@
       "table": "acc_project_deliverable",
       "constraints": [
         "CONSTRAINT chk_project_deliverable_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_project_deliverable_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
-        "CONSTRAINT fk_project_deliverable_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)",
         "KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date)",
         "KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status)",
@@ -38,8 +35,6 @@
     {
       "table": "ana_project_delivery_summary",
       "constraints": [
-        "CONSTRAINT fk_project_summary_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
-        "CONSTRAINT fk_project_summary_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_project_summary_company_department ( tenant_id, company_code, department_code, project_status, project_id )",
         "KEY idx_project_summary_customer ( tenant_id, customer_code, project_status, project_id )",
         "KEY idx_project_summary_manager ( tenant_id, manager_employee_no, project_status, project_id )",
@@ -57,7 +52,6 @@
         "CONSTRAINT chk_device_configuration_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_device_configuration_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_configuration_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_device_configuration (tenant_id, device_id, status, effective_from)",
         "KEY idx_project_configuration (tenant_id, project_id, configuration_stage)",
         "PRIMARY KEY (id)",
@@ -96,8 +90,6 @@
         "CONSTRAINT chk_device_assignment_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_device_assignment_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_assignment_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
-        "CONSTRAINT fk_device_assignment_scope FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES com_delivery_scope (tenant_id, id)",
         "KEY idx_device_assignment_company_department ( tenant_id, project_company_code, project_department_code, effective_to, project_id )",
         "KEY idx_device_assignment_customer ( tenant_id, project_customer_code, effective_to, project_id )",
         "KEY idx_device_assignment_device ( tenant_id, device_id, effective_to, project_id )",
@@ -118,7 +110,6 @@
       "constraints": [
         "CONSTRAINT chk_device_relation_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT chk_device_relation_self CHECK (source_device_id <> target_device_id)",
-        "CONSTRAINT fk_device_relation_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
         "CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)",
         "CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)",
         "KEY idx_device_relation_contract_refresh ( tenant_id, contract_id, relation_type, status, source_device_id )",
@@ -137,8 +128,6 @@
       "constraints": [
         "CONSTRAINT chk_shipment_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_shipment_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
-        "CONSTRAINT fk_shipment_package FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES com_shipment_package (tenant_id, id)",
         "KEY idx_shipment_device (tenant_id, device_id, shipment_time)",
         "KEY idx_shipment_order_line (tenant_id, order_line_id, shipment_time)",
         "KEY idx_shipment_package (tenant_id, shipment_package_id, device_id)",
@@ -172,7 +161,6 @@
         "CONSTRAINT chk_device_version_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_device_version_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_version_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_device_version_current ( tenant_id, device_id, component_type, status, effective_from )",
         "KEY idx_project_device_version (tenant_id, project_id, version_stage)",
         "PRIMARY KEY (id)",
@@ -186,8 +174,6 @@
       "constraints": [
         "CONSTRAINT chk_network_topology_dates CHECK (effective_to IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_network_topology_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_network_topology_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
-        "CONSTRAINT fk_network_topology_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_network_topology_project (tenant_id, project_id, status)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_network_topology_tenant_row (tenant_id, id)"
@@ -226,7 +212,6 @@
       "table": "ast_product_release",
       "constraints": [
         "CONSTRAINT chk_product_release_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_product_release_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
         "CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_product_release ( tenant_id, product_id, release_version, release_type )",
@@ -240,7 +225,6 @@
       "constraints": [
         "CONSTRAINT chk_contract_dates CHECK (expiry_date IS NULL OR effective_date IS NULL OR expiry_date >= effective_date)",
         "CONSTRAINT chk_contract_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_contract_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
         "KEY idx_contract_company (tenant_id, company_id, status, contract_no)",
         "KEY idx_contract_customer (tenant_id, customer_id, status)",
         "KEY idx_contract_no (tenant_id, contract_no, company_code)",
@@ -288,7 +272,6 @@
       "constraints": [
         "CONSTRAINT chk_crm_execution_af CHECK (af_evidence_status IN ('CONFIRMED', 'UNKNOWN'))",
         "CONSTRAINT chk_crm_execution_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_crm_execution_project FOREIGN KEY (tenant_id, primary_project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )",
         "KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )",
         "KEY idx_crm_execution_crm_project ( tenant_id, crm_project_code, execution_no )",
@@ -307,7 +290,6 @@
         "CONSTRAINT chk_scope_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_scope_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)",
-        "CONSTRAINT fk_scope_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_scope_item (tenant_id, item_code, scope_status, project_id)",
         "KEY idx_scope_order_business ( tenant_id, order_source_system, order_company_code, order_type, order_no, line_no )",
         "KEY idx_scope_order_line ( tenant_id, order_line_id, scope_status, project_id )",
@@ -416,7 +398,6 @@
         "CONSTRAINT chk_project_contract_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
         "CONSTRAINT chk_project_contract_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)",
-        "CONSTRAINT fk_project_contract_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_project_contract_reverse (tenant_id, contract_id, project_id)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_project_contract ( tenant_id, project_id, contract_id, relation_role )",
@@ -429,7 +410,6 @@
       "table": "com_sales_order",
       "constraints": [
         "CONSTRAINT chk_sales_order_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_sales_order_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
         "KEY idx_sales_order_company (tenant_id, company_id, status, order_no)",
         "KEY idx_sales_order_customer (tenant_id, customer_code, status)",
         "KEY idx_sales_order_no (tenant_id, order_no)",
@@ -445,9 +425,7 @@
       "table": "com_sales_order_line",
       "constraints": [
         "CONSTRAINT chk_sales_order_line_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_sales_order_line_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
         "CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)",
-        "CONSTRAINT fk_sales_order_line_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
         "KEY idx_sales_order_line_business ( tenant_id, source_system, company_code, order_type, order_no, line_no )",
         "KEY idx_sales_order_line_customer (tenant_id, customer_code, status, id)",
         "KEY idx_sales_order_line_item (tenant_id, item_code)",
@@ -530,62 +508,6 @@
       "decision": "DEFER"
     },
     {
-      "table": "kno_device_technical_advisory_match",
-      "constraints": [
-        "CONSTRAINT chk_device_advisory_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_device_advisory_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
-        "CONSTRAINT fk_device_advisory_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
-        "CONSTRAINT fk_device_advisory_version FOREIGN KEY (tenant_id, matched_version_id) REFERENCES ast_device_version (tenant_id, id)",
-        "KEY idx_device_advisory_reverse (tenant_id, device_id, match_status)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_device_advisory (tenant_id, advisory_id, device_id)",
-        "UNIQUE KEY uk_device_advisory_match_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备与技术公告的匹配及处置结果'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "kno_technical_advisory",
-      "constraints": [
-        "CONSTRAINT chk_technical_advisory_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)",
-        "CONSTRAINT chk_technical_advisory_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_technical_advisory_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)",
-        "KEY idx_technical_advisory_status (tenant_id, status, publish_time)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_technical_advisory_no (tenant_id, advisory_no)",
-        "UNIQUE KEY uk_technical_advisory_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告主档'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "kno_technical_advisory_product_relation",
-      "constraints": [
-        "CONSTRAINT chk_advisory_product_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_advisory_product_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
-        "CONSTRAINT fk_advisory_product_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)",
-        "KEY idx_advisory_product_reverse (tenant_id, product_id, advisory_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_advisory_product (tenant_id, advisory_id, product_id)",
-        "UNIQUE KEY uk_technical_advisory_product_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告适用产品和版本范围'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "kno_technical_advisory_read_record",
-      "constraints": [
-        "CONSTRAINT chk_advisory_read_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_advisory_read_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)",
-        "KEY idx_advisory_reader_reverse (tenant_id, reader_id, read_status, advisory_id)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_advisory_reader (tenant_id, advisory_id, reader_id)",
-        "UNIQUE KEY uk_technical_advisory_read_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告阅读及确认记录'",
-      "decision": "DEFER"
-    },
-    {
       "table": "plt_business_document",
       "constraints": [
         "CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))",
@@ -613,13 +535,14 @@
     {
       "table": "plt_external_key_mapping",
       "constraints": [
+        "CONSTRAINT chk_external_key_target_sequence CHECK (target_sequence >= 0)",
         "CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)",
         "KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)",
         "KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )",
         "KEY idx_external_key_target ( tenant_id, target_table, target_id )",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_table, target_id )"
+        "UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_role, target_sequence, target_table, target_id )"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧主键到新主键的可追溯映射'",
       "decision": "DEFER"
@@ -671,7 +594,6 @@
         "CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT chk_project_depth CHECK (tree_depth >= 0)",
         "CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)",
-        "CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)",
         "CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )",
         "KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )",
@@ -786,8 +708,6 @@
       "constraints": [
         "CONSTRAINT chk_service_incident_deleted CHECK (deleted IN (0, 1))",
         "CONSTRAINT chk_service_incident_times CHECK ( restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time )",
-        "CONSTRAINT fk_service_incident_document FOREIGN KEY (tenant_id, report_document_id) REFERENCES plt_business_document (tenant_id, id)",
-        "CONSTRAINT fk_service_incident_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)",
         "KEY idx_incident_owner (tenant_id, owner_id, status)",
         "KEY idx_incident_project (tenant_id, project_id, status, occurred_time)",
         "PRIMARY KEY (id)",
@@ -801,7 +721,6 @@
       "table": "srv_service_incident_device_relation",
       "constraints": [
         "CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))",
-        "CONSTRAINT fk_incident_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)",
         "CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)",
         "KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)",
         "PRIMARY KEY (id)",

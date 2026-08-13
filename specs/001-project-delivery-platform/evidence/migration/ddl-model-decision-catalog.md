@@ -1,26 +1,26 @@
 # P3-E09 数据模型逐项裁决清单
 
 > 状态：`REVIEW_REQUIRED`
-> 决策登记SHA-256：`99D48BE0AAAAD46F8E563E237D1639069C3346FD02316C33D05165E5D2220533`
-> 约束清单SHA-256：`AA6050890C939F2F41DA02502BC79747E061EB4EA232071EE258D3720B04BC04`
+> 决策登记SHA-256：`D7007FB37CCB555328A307303BA5BD89C3E3D244044C8FD53288D401E53F72A7`
+> 约束清单SHA-256：`E0EB66A66D5E5641AC72D9E6CC68E0FB5DA1FD0A1F005147C085F695887E99E6`
 > 本清单只展开现有机器证据，不自动批准数据模型。
 
 ## 1. 核对结论与裁决分组
 
 |分组|数量|当前事实|建议裁决方式|
 |---|---:|---|---|
-|表|53|与旧字段目录一致|可批量确认`ACCEPT_CURRENT`|
-|字段|1,113|名称、类型、空值、默认值、生成属性和说明一致|可批量确认`ACCEPT_CURRENT`|
-|表选项|53|旧基线未保存|需确认字符比较与存储规则|
-|主键|53|旧基线未保存|结构性规则，可分类确认|
-|外键|79|旧基线未保存|影响迁移顺序和异常隔离|
-|普通索引|110|旧基线未保存|影响查询性能和写入成本|
-|唯一键|108|旧基线未保存|影响重复业务数据，必须业务审查|
-|CHECK|83|旧基线未保存|影响异常历史数据，必须业务审查|
+|表|49|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|
+|字段|1,048|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|
+|表选项|49|旧基线未保存|需确认字符比较与存储规则|
+|主键|49|旧基线未保存|结构性规则，可分类确认|
+|外键|46|旧基线未保存|影响迁移顺序和异常隔离|
+|普通索引|106|旧基线未保存|影响查询性能和写入成本|
+|唯一键|100|旧基线未保存|影响重复业务数据，必须业务审查|
+|CHECK|79|旧基线未保存|影响异常历史数据，必须业务审查|
 
 ## 2. 表与字段完整清单
 
-以下每行均为`MATCH`；字段列表是本次拟批量接受的具体范围。
+以下仅列当前核心迁移DDL中的表与字段；相对旧目录的`MATCH/ADDED/MODIFIED`状态以逐项决策登记为准。
 
 |编号|表|字段数|字段清单|
 |---|---|---:|---|
@@ -58,25 +58,21 @@
 |T-032|`cus_customer`|21|`create_time`、`creator`、`customer_address`、`customer_code`、`customer_name`、`deleted`、`expend_code`、`expend_name`、`id`、`industry_code`、`industry_name`、`market_code`、`market_name`、`service_level_code`、`status`、`system_code`、`system_name`、`tenant_id`、`update_time`、`updater`、`version`|
 |T-033|`cus_customer_contact`|18|`contact_address`、`contact_name`、`create_time`、`creator`、`customer_department_name`、`customer_id`、`deleted`、`email`、`id`、`is_primary`、`phone`、`position_name`、`primary_customer_id`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
 |T-034|`cus_market_relation`|20|`create_time`、`creator`、`deleted`、`expend_code`、`expend_name`、`id`、`industry_code`、`industry_name`、`market_code`、`market_name`、`source_record_key`、`source_sync_time`、`source_system`、`status`、`system_code`、`system_name`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-035|`kno_device_technical_advisory_match`|16|`advisory_id`、`create_time`、`creator`、`deleted`、`device_id`、`handled_time`、`handler_id`、`handling_note`、`id`、`match_status`、`matched_time`、`matched_version_id`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-036|`kno_technical_advisory`|29|`advisory_content`、`advisory_no`、`advisory_title`、`advisory_type`、`approval_note`、`create_time`、`creator`、`deleted`、`document_id`、`effective_from`、`effective_to`、`id`、`impact_risk`、`judgment_method`、`owner_id`、`planned_due_date`、`publish_time`、`root_cause`、`severity`、`solution`、`status`、`symptom`、`tenant_id`、`trigger_condition`、`update_time`、`updater`、`version`、`visibility_scope`、`workaround`|
-|T-037|`kno_technical_advisory_product_relation`|10|`advisory_id`、`affected_version_expression`、`create_time`、`creator`、`deleted`、`id`、`product_id`、`tenant_id`、`update_time`、`updater`|
-|T-038|`kno_technical_advisory_read_record`|12|`advisory_id`、`confirmed_time`、`create_time`、`creator`、`deleted`、`first_read_time`、`id`、`read_status`、`reader_id`、`tenant_id`、`update_time`、`updater`|
-|T-039|`plt_business_document`|13|`create_time`、`creator`、`current_version_id`、`deleted`、`document_code`、`document_name`、`document_type`、`id`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-040|`plt_document_version`|15|`create_time`、`creator`、`deleted`、`document_id`、`file_checksum`、`file_id`、`file_name`、`id`、`status`、`tenant_id`、`update_time`、`updater`、`uploaded_by`、`uploaded_time`、`version_no`|
-|T-041|`plt_external_key_mapping`|15|`batch_id`、`create_time`、`creator`、`id`、`mapping_status`、`source_business_key`、`source_checksum`、`source_pk`、`source_system`、`source_table`、`target_id`、`target_table`、`tenant_id`、`update_time`、`updater`|
-|T-042|`plt_migration_issue`|18|`batch_id`、`candidate_target_ids`、`create_time`、`creator`、`id`、`issue_type`、`raw_business_key`、`raw_payload`、`resolution_action`、`resolution_status`、`resolved_time`、`resolver`、`source_pk`、`source_system`、`source_table`、`tenant_id`、`update_time`、`updater`|
-|T-043|`plt_migration_source_record`|16|`batch_id`、`create_time`、`creator`、`extracted_time`、`id`、`mapped_target_count`、`mapping_status`、`source_business_key`、`source_checksum`、`source_payload`、`source_pk`、`source_system`、`source_table`、`tenant_id`、`update_time`、`updater`|
-|T-044|`plt_sync_batch`|20|`batch_no`、`create_time`、`creator`、`error_summary`、`failure_count`、`finished_time`、`id`、`object_type`、`read_count`、`source_cursor`、`source_extract_checksum`、`source_extract_location`、`source_system`、`started_time`、`status`、`success_count`、`sync_mode`、`tenant_id`、`update_time`、`updater`|
-|T-045|`proj_project`|53|`business_type`、`code_root_id`、`code_rule_version`、`company_code`、`company_id`、`company_name`、`create_time`、`creator`、`customer_code`、`customer_id`、`customer_name`、`customer_project_name`、`deleted`、`department_code`、`department_id`、`department_name`、`expend_code`、`expend_name`、`id`、`implementation_mode`、`industry_code`、`industry_name`、`lifecycle_template_id`、`major_project_level`、`manager_employee_no`、`manager_id`、`manager_name`、`market_code`、`market_name`、`not_track_reason`、`parent_id`、`project_category`、`project_close_time`、`project_code`、`project_name`、`project_refresh_time`、`project_sequence`、`project_start_time`、`project_type`、`root_id`、`sales_type`、`service_level_code`、`source_type`、`status`、`system_code`、`system_name`、`tenant_id`、`tree_depth`、`tree_path`、`tree_sort`、`update_time`、`updater`、`version`|
-|T-046|`proj_project_company_department_relation`|21|`company_code`、`company_id`、`company_name`、`create_time`、`creator`、`deleted`、`department_code`、`department_id`、`department_name`、`effective_from`、`effective_to`、`id`、`is_primary`、`primary_project_id`、`project_id`、`relation_role`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-047|`proj_project_member_assignment`|22|`company_code`、`company_id`、`company_name`、`create_time`、`creator`、`deleted`、`department_code`、`department_name`、`effective_from`、`effective_to`、`employee_no`、`id`、`member_name`、`member_role`、`project_id`、`responsibility`、`status`、`tenant_id`、`update_time`、`updater`、`user_id`、`version`|
-|T-048|`proj_project_party`|20|`contact_name`、`create_time`、`creator`、`deleted`、`effective_from`、`effective_to`、`id`、`party_code`、`party_name`、`party_role`、`phone`、`project_id`、`source_record_key`、`source_system`、`source_table`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-049|`proj_project_portfolio`|16|`create_time`、`creator`、`deleted`、`id`、`member_rule`、`member_rule_type`、`owner_id`、`portfolio_code`、`portfolio_name`、`status`、`tenant_id`、`update_time`、`updater`、`valid_from`、`valid_to`、`version`|
-|T-050|`proj_project_portfolio_member`|12|`create_time`、`creator`、`deleted`、`effective_from`、`effective_to`、`id`、`member_source`、`portfolio_id`、`project_id`、`tenant_id`、`update_time`、`updater`|
-|T-051|`proj_project_relation`|14|`create_time`、`creator`、`deleted`、`effective_time`、`id`、`reason`、`relation_type`、`source_project_id`、`status`、`target_project_id`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-052|`srv_service_incident`|23|`closed_time`、`create_time`、`creator`、`deleted`、`id`、`incident_no`、`incident_title`、`incident_type`、`occurred_time`、`owner_id`、`project_id`、`report_document_id`、`reported_time`、`restored_time`、`root_cause`、`severity`、`solution`、`status`、`symptom`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-053|`srv_service_incident_device_relation`|10|`create_time`、`creator`、`deleted`、`device_id`、`id`、`impact_description`、`incident_id`、`tenant_id`、`update_time`、`updater`|
+|T-035|`plt_business_document`|13|`create_time`、`creator`、`current_version_id`、`deleted`、`document_code`、`document_name`、`document_type`、`id`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
+|T-036|`plt_document_version`|15|`create_time`、`creator`、`deleted`、`document_id`、`file_checksum`、`file_id`、`file_name`、`id`、`status`、`tenant_id`、`update_time`、`updater`、`uploaded_by`、`uploaded_time`、`version_no`|
+|T-037|`plt_external_key_mapping`|17|`batch_id`、`create_time`、`creator`、`id`、`mapping_status`、`source_business_key`、`source_checksum`、`source_pk`、`source_system`、`source_table`、`target_id`、`target_role`、`target_sequence`、`target_table`、`tenant_id`、`update_time`、`updater`|
+|T-038|`plt_migration_issue`|18|`batch_id`、`candidate_target_ids`、`create_time`、`creator`、`id`、`issue_type`、`raw_business_key`、`raw_payload`、`resolution_action`、`resolution_status`、`resolved_time`、`resolver`、`source_pk`、`source_system`、`source_table`、`tenant_id`、`update_time`、`updater`|
+|T-039|`plt_migration_source_record`|16|`batch_id`、`create_time`、`creator`、`extracted_time`、`id`、`mapped_target_count`、`mapping_status`、`source_business_key`、`source_checksum`、`source_payload`、`source_pk`、`source_system`、`source_table`、`tenant_id`、`update_time`、`updater`|
+|T-040|`plt_sync_batch`|20|`batch_no`、`create_time`、`creator`、`error_summary`、`failure_count`、`finished_time`、`id`、`object_type`、`read_count`、`source_cursor`、`source_extract_checksum`、`source_extract_location`、`source_system`、`started_time`、`status`、`success_count`、`sync_mode`、`tenant_id`、`update_time`、`updater`|
+|T-041|`proj_project`|53|`business_type`、`code_root_id`、`code_rule_version`、`company_code`、`company_id`、`company_name`、`create_time`、`creator`、`customer_code`、`customer_id`、`customer_name`、`customer_project_name`、`deleted`、`department_code`、`department_id`、`department_name`、`expend_code`、`expend_name`、`id`、`implementation_mode`、`industry_code`、`industry_name`、`lifecycle_template_id`、`major_project_level`、`manager_employee_no`、`manager_id`、`manager_name`、`market_code`、`market_name`、`not_track_reason`、`parent_id`、`project_category`、`project_close_time`、`project_code`、`project_name`、`project_refresh_time`、`project_sequence`、`project_start_time`、`project_type`、`root_id`、`sales_type`、`service_level_code`、`source_type`、`status`、`system_code`、`system_name`、`tenant_id`、`tree_depth`、`tree_path`、`tree_sort`、`update_time`、`updater`、`version`|
+|T-042|`proj_project_company_department_relation`|21|`company_code`、`company_id`、`company_name`、`create_time`、`creator`、`deleted`、`department_code`、`department_id`、`department_name`、`effective_from`、`effective_to`、`id`、`is_primary`、`primary_project_id`、`project_id`、`relation_role`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
+|T-043|`proj_project_member_assignment`|22|`company_code`、`company_id`、`company_name`、`create_time`、`creator`、`deleted`、`department_code`、`department_name`、`effective_from`、`effective_to`、`employee_no`、`id`、`member_name`、`member_role`、`project_id`、`responsibility`、`status`、`tenant_id`、`update_time`、`updater`、`user_id`、`version`|
+|T-044|`proj_project_party`|20|`contact_name`、`create_time`、`creator`、`deleted`、`effective_from`、`effective_to`、`id`、`party_code`、`party_name`、`party_role`、`phone`、`project_id`、`source_record_key`、`source_system`、`source_table`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
+|T-045|`proj_project_portfolio`|16|`create_time`、`creator`、`deleted`、`id`、`member_rule`、`member_rule_type`、`owner_id`、`portfolio_code`、`portfolio_name`、`status`、`tenant_id`、`update_time`、`updater`、`valid_from`、`valid_to`、`version`|
+|T-046|`proj_project_portfolio_member`|12|`create_time`、`creator`、`deleted`、`effective_from`、`effective_to`、`id`、`member_source`、`portfolio_id`、`project_id`、`tenant_id`、`update_time`、`updater`|
+|T-047|`proj_project_relation`|14|`create_time`、`creator`、`deleted`、`effective_time`、`id`、`reason`、`relation_type`、`source_project_id`、`status`、`target_project_id`、`tenant_id`、`update_time`、`updater`、`version`|
+|T-048|`srv_service_incident`|23|`closed_time`、`create_time`、`creator`、`deleted`、`id`、`incident_no`、`incident_title`、`incident_type`、`occurred_time`、`owner_id`、`project_id`、`report_document_id`、`reported_time`、`restored_time`、`root_cause`、`severity`、`solution`、`status`、`symptom`、`tenant_id`、`update_time`、`updater`、`version`|
+|T-049|`srv_service_incident_device_relation`|10|`create_time`、`creator`、`deleted`、`device_id`、`id`、`impact_description`、`incident_id`、`tenant_id`、`update_time`、`updater`|
 
 ## 3. 表选项完整清单
 
@@ -116,25 +112,21 @@
 |O-032|`cus_customer`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户主档'`|待确认字符比较规则后分类接受|
 |O-033|`cus_customer_contact`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户联系人'`|待确认字符比较规则后分类接受|
 |O-034|`cus_market_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CRM同步的客户市场行业划分组合目录'`|待确认字符比较规则后分类接受|
-|O-035|`kno_device_technical_advisory_match`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '设备与技术公告的匹配及处置结果'`|待确认字符比较规则后分类接受|
-|O-036|`kno_technical_advisory`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告主档'`|待确认字符比较规则后分类接受|
-|O-037|`kno_technical_advisory_product_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告适用产品和版本范围'`|待确认字符比较规则后分类接受|
-|O-038|`kno_technical_advisory_read_record`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '技术公告阅读及确认记录'`|待确认字符比较规则后分类接受|
-|O-039|`plt_business_document`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'`|待确认字符比较规则后分类接受|
-|O-040|`plt_document_version`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档不可变版本'`|待确认字符比较规则后分类接受|
-|O-041|`plt_external_key_mapping`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧主键到新主键的可追溯映射'`|待确认字符比较规则后分类接受|
-|O-042|`plt_migration_issue`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移缺失、重复、多义映射和人工解决记录'`|待确认字符比较规则后分类接受|
-|O-043|`plt_migration_source_record`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移批次逐源行的完整原值证据，不因目标归并或去重而覆盖'`|待确认字符比较规则后分类接受|
-|O-044|`plt_sync_batch`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '一次性迁移及只读同步批次'`|待确认字符比较规则后分类接受|
-|O-045|`proj_project`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目主档及非固定层级项目树'`|待确认字符比较规则后分类接受|
-|O-046|`proj_project_company_department_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目业务角色下的公司与部门组合关系，保留配对但不建立全局主数据从属关系'`|待确认字符比较规则后分类接受|
-|O-047|`proj_project_member_assignment`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目成员、角色及有效期'`|待确认字符比较规则后分类接受|
-|O-048|`proj_project_party`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目参与方，按合同客户、最终用户、代理商、服务商等角色保存'`|待确认字符比较规则后分类接受|
-|O-049|`proj_project_portfolio`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合，不改变项目父子层级'`|待确认字符比较规则后分类接受|
-|O-050|`proj_project_portfolio_member`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合成员'`|待确认字符比较规则后分类接受|
-|O-051|`proj_project_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '扩容、续采、改造等非树项目关系'`|待确认字符比较规则后分类接受|
-|O-052|`srv_service_incident`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障及服务事件主档'`|待确认字符比较规则后分类接受|
-|O-053|`srv_service_incident_device_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障与受影响设备多对多关系'`|待确认字符比较规则后分类接受|
+|O-035|`plt_business_document`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'`|待确认字符比较规则后分类接受|
+|O-036|`plt_document_version`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档不可变版本'`|待确认字符比较规则后分类接受|
+|O-037|`plt_external_key_mapping`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧主键到新主键的可追溯映射'`|待确认字符比较规则后分类接受|
+|O-038|`plt_migration_issue`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移缺失、重复、多义映射和人工解决记录'`|待确认字符比较规则后分类接受|
+|O-039|`plt_migration_source_record`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移批次逐源行的完整原值证据，不因目标归并或去重而覆盖'`|待确认字符比较规则后分类接受|
+|O-040|`plt_sync_batch`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '一次性迁移及只读同步批次'`|待确认字符比较规则后分类接受|
+|O-041|`proj_project`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目主档及非固定层级项目树'`|待确认字符比较规则后分类接受|
+|O-042|`proj_project_company_department_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目业务角色下的公司与部门组合关系，保留配对但不建立全局主数据从属关系'`|待确认字符比较规则后分类接受|
+|O-043|`proj_project_member_assignment`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目成员、角色及有效期'`|待确认字符比较规则后分类接受|
+|O-044|`proj_project_party`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目参与方，按合同客户、最终用户、代理商、服务商等角色保存'`|待确认字符比较规则后分类接受|
+|O-045|`proj_project_portfolio`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合，不改变项目父子层级'`|待确认字符比较规则后分类接受|
+|O-046|`proj_project_portfolio_member`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合成员'`|待确认字符比较规则后分类接受|
+|O-047|`proj_project_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '扩容、续采、改造等非树项目关系'`|待确认字符比较规则后分类接受|
+|O-048|`srv_service_incident`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障及服务事件主档'`|待确认字符比较规则后分类接受|
+|O-049|`srv_service_incident_device_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障与受影响设备多对多关系'`|待确认字符比较规则后分类接受|
 
 ## 4. 主键完整清单
 
@@ -174,109 +166,72 @@
 |PK-032|`cus_customer`|`PRIMARY KEY (id)`|结构性规则；建议接受|
 |PK-033|`cus_customer_contact`|`PRIMARY KEY (id)`|结构性规则；建议接受|
 |PK-034|`cus_market_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-035|`kno_device_technical_advisory_match`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-036|`kno_technical_advisory`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-037|`kno_technical_advisory_product_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-038|`kno_technical_advisory_read_record`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-039|`plt_business_document`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-040|`plt_document_version`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-041|`plt_external_key_mapping`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-042|`plt_migration_issue`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-043|`plt_migration_source_record`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-044|`plt_sync_batch`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-045|`proj_project`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-046|`proj_project_company_department_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-047|`proj_project_member_assignment`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-048|`proj_project_party`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-049|`proj_project_portfolio`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-050|`proj_project_portfolio_member`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-051|`proj_project_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-052|`srv_service_incident`|`PRIMARY KEY (id)`|结构性规则；建议接受|
-|PK-053|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-035|`plt_business_document`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-036|`plt_document_version`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-037|`plt_external_key_mapping`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-038|`plt_migration_issue`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-039|`plt_migration_source_record`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-040|`plt_sync_batch`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-041|`proj_project`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-042|`proj_project_company_department_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-043|`proj_project_member_assignment`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-044|`proj_project_party`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-045|`proj_project_portfolio`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-046|`proj_project_portfolio_member`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-047|`proj_project_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-048|`srv_service_incident`|`PRIMARY KEY (id)`|结构性规则；建议接受|
+|PK-049|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|结构性规则；建议接受|
 
 ## 5. 外键完整清单
 
 |编号|表|当前定义|业务影响/建议|
 |---|---|---|---|
-|FK-001|`acc_deliverable_template`|`CONSTRAINT fk_deliverable_template_document FOREIGN KEY (tenant_id, template_document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-002|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-003|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-004|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-005|`ana_project_delivery_summary`|`CONSTRAINT fk_project_summary_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-006|`ana_project_delivery_summary`|`CONSTRAINT fk_project_summary_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-007|`ast_device_configuration`|`CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-008|`ast_device_configuration`|`CONSTRAINT fk_device_configuration_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-009|`ast_device_configuration_feature`|`CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-010|`ast_device_configuration_service`|`CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-011|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-012|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-013|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_scope FOREIGN KEY (tenant_id, project_order_line_scope_id) REFERENCES com_delivery_scope (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-014|`ast_device_relation`|`CONSTRAINT fk_device_relation_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-015|`ast_device_relation`|`CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-016|`ast_device_relation`|`CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-017|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-018|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-019|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_package FOREIGN KEY (tenant_id, shipment_package_id) REFERENCES com_shipment_package (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-020|`ast_device_version`|`CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-021|`ast_device_version`|`CONSTRAINT fk_device_version_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-022|`ast_network_topology`|`CONSTRAINT fk_network_topology_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-023|`ast_network_topology`|`CONSTRAINT fk_network_topology_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-024|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-025|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-026|`ast_product_release`|`CONSTRAINT fk_product_release_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-027|`ast_product_release`|`CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-028|`com_contract`|`CONSTRAINT fk_contract_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-029|`com_contract_receivable`|`CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-030|`com_crm_execution_config`|`CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-031|`com_crm_execution_order`|`CONSTRAINT fk_crm_execution_project FOREIGN KEY (tenant_id, primary_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-032|`com_delivery_scope`|`CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-033|`com_delivery_scope`|`CONSTRAINT fk_scope_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-034|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-035|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-036|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-037|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-038|`com_order_change_relation`|`CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-039|`com_order_change_relation`|`CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-040|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-041|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-042|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-043|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-044|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-045|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-046|`com_project_contract_relation`|`CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-047|`com_project_contract_relation`|`CONSTRAINT fk_project_contract_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-048|`com_sales_order`|`CONSTRAINT fk_sales_order_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-049|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-050|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-051|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-052|`com_shipment_contract_reference`|`CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-053|`com_shipment_package`|`CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-054|`cus_customer_contact`|`CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-055|`kno_device_technical_advisory_match`|`CONSTRAINT fk_device_advisory_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-056|`kno_device_technical_advisory_match`|`CONSTRAINT fk_device_advisory_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-057|`kno_device_technical_advisory_match`|`CONSTRAINT fk_device_advisory_version FOREIGN KEY (tenant_id, matched_version_id) REFERENCES ast_device_version (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-058|`kno_technical_advisory`|`CONSTRAINT fk_technical_advisory_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-059|`kno_technical_advisory_product_relation`|`CONSTRAINT fk_advisory_product_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-060|`kno_technical_advisory_product_relation`|`CONSTRAINT fk_advisory_product_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-061|`kno_technical_advisory_read_record`|`CONSTRAINT fk_advisory_read_advisory FOREIGN KEY (tenant_id, advisory_id) REFERENCES kno_technical_advisory (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-062|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-063|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-064|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-065|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-066|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-067|`proj_project`|`CONSTRAINT fk_project_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-068|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-069|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-070|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-071|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-072|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-073|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-074|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-075|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-076|`srv_service_incident`|`CONSTRAINT fk_service_incident_document FOREIGN KEY (tenant_id, report_document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-077|`srv_service_incident`|`CONSTRAINT fk_service_incident_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-078|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-079|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-001|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-002|`ast_device_configuration`|`CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-003|`ast_device_configuration_feature`|`CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-004|`ast_device_configuration_service`|`CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-005|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-006|`ast_device_relation`|`CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-007|`ast_device_relation`|`CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-008|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-009|`ast_device_version`|`CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-010|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-011|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-012|`ast_product_release`|`CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-013|`com_contract_receivable`|`CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-014|`com_crm_execution_config`|`CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-015|`com_delivery_scope`|`CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-016|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-017|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-018|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-019|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-020|`com_order_change_relation`|`CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-021|`com_order_change_relation`|`CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-022|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-023|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-024|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-025|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-026|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-027|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-028|`com_project_contract_relation`|`CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-029|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-030|`com_shipment_contract_reference`|`CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-031|`com_shipment_package`|`CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-032|`cus_customer_contact`|`CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-033|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-034|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-035|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-036|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-037|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-038|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-039|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-040|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-041|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-042|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-043|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-044|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-045|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-046|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
 
 ## 6. 普通索引完整清单
 
@@ -357,41 +312,37 @@
 |IX-073|`cus_customer`|`KEY idx_customer_name (tenant_id, customer_name)`|查询设计规则；建议接受，后续以压测验证|
 |IX-074|`cus_customer_contact`|`KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)`|查询设计规则；建议接受，后续以压测验证|
 |IX-075|`cus_market_relation`|`KEY idx_market_relation_name ( tenant_id, market_name, system_name, expend_name, industry_name )`|查询设计规则；建议接受，后续以压测验证|
-|IX-076|`kno_device_technical_advisory_match`|`KEY idx_device_advisory_reverse (tenant_id, device_id, match_status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-077|`kno_technical_advisory`|`KEY idx_technical_advisory_status (tenant_id, status, publish_time)`|查询设计规则；建议接受，后续以压测验证|
-|IX-078|`kno_technical_advisory_product_relation`|`KEY idx_advisory_product_reverse (tenant_id, product_id, advisory_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-079|`kno_technical_advisory_read_record`|`KEY idx_advisory_reader_reverse (tenant_id, reader_id, read_status, advisory_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-080|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-081|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-082|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|查询设计规则；建议接受，后续以压测验证|
-|IX-083|`plt_external_key_mapping`|`KEY idx_external_key_target ( tenant_id, target_table, target_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-084|`plt_migration_issue`|`KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )`|查询设计规则；建议接受，后续以压测验证|
-|IX-085|`plt_migration_source_record`|`KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )`|查询设计规则；建议接受，后续以压测验证|
-|IX-086|`plt_migration_source_record`|`KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-087|`plt_sync_batch`|`KEY idx_sync_batch_object ( tenant_id, source_system, object_type, started_time )`|查询设计规则；建议接受，后续以压测验证|
-|IX-088|`proj_project`|`KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-089|`proj_project`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-090|`proj_project`|`KEY idx_project_customer_code (tenant_id, customer_code, status, id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-091|`proj_project`|`KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-092|`proj_project`|`KEY idx_project_manager (tenant_id, manager_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-093|`proj_project`|`KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-094|`proj_project`|`KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-095|`proj_project`|`KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-096|`proj_project`|`KEY idx_project_path (tenant_id, root_id, tree_path(191))`|查询设计规则；建议接受，后续以压测验证|
-|IX-097|`proj_project_company_department_relation`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-098|`proj_project_company_department_relation`|`KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-099|`proj_project_company_department_relation`|`KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-100|`proj_project_member_assignment`|`KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
-|IX-101|`proj_project_member_assignment`|`KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-102|`proj_project_member_assignment`|`KEY idx_project_member_user (tenant_id, user_id, status, project_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-103|`proj_project_party`|`KEY idx_project_party_code ( tenant_id, party_role, party_code, status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-104|`proj_project_party`|`KEY idx_project_party_project ( tenant_id, project_id, party_role, status )`|查询设计规则；建议接受，后续以压测验证|
-|IX-105|`proj_project_portfolio`|`KEY idx_portfolio_owner (tenant_id, owner_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-106|`proj_project_portfolio_member`|`KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)`|查询设计规则；建议接受，后续以压测验证|
-|IX-107|`proj_project_relation`|`KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )`|查询设计规则；建议接受，后续以压测验证|
-|IX-108|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|查询设计规则；建议接受，后续以压测验证|
-|IX-109|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|查询设计规则；建议接受，后续以压测验证|
-|IX-110|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-076|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-077|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|查询设计规则；建议接受，后续以压测验证|
+|IX-078|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|查询设计规则；建议接受，后续以压测验证|
+|IX-079|`plt_external_key_mapping`|`KEY idx_external_key_target ( tenant_id, target_table, target_id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-080|`plt_migration_issue`|`KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )`|查询设计规则；建议接受，后续以压测验证|
+|IX-081|`plt_migration_source_record`|`KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )`|查询设计规则；建议接受，后续以压测验证|
+|IX-082|`plt_migration_source_record`|`KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )`|查询设计规则；建议接受，后续以压测验证|
+|IX-083|`plt_sync_batch`|`KEY idx_sync_batch_object ( tenant_id, source_system, object_type, started_time )`|查询设计规则；建议接受，后续以压测验证|
+|IX-084|`proj_project`|`KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-085|`proj_project`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-086|`proj_project`|`KEY idx_project_customer_code (tenant_id, customer_code, status, id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-087|`proj_project`|`KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-088|`proj_project`|`KEY idx_project_manager (tenant_id, manager_id, status)`|查询设计规则；建议接受，后续以压测验证|
+|IX-089|`proj_project`|`KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-090|`proj_project`|`KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-091|`proj_project`|`KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-092|`proj_project`|`KEY idx_project_path (tenant_id, root_id, tree_path(191))`|查询设计规则；建议接受，后续以压测验证|
+|IX-093|`proj_project_company_department_relation`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-094|`proj_project_company_department_relation`|`KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-095|`proj_project_company_department_relation`|`KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-096|`proj_project_member_assignment`|`KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )`|查询设计规则；建议接受，后续以压测验证|
+|IX-097|`proj_project_member_assignment`|`KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-098|`proj_project_member_assignment`|`KEY idx_project_member_user (tenant_id, user_id, status, project_id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-099|`proj_project_party`|`KEY idx_project_party_code ( tenant_id, party_role, party_code, status )`|查询设计规则；建议接受，后续以压测验证|
+|IX-100|`proj_project_party`|`KEY idx_project_party_project ( tenant_id, project_id, party_role, status )`|查询设计规则；建议接受，后续以压测验证|
+|IX-101|`proj_project_portfolio`|`KEY idx_portfolio_owner (tenant_id, owner_id, status)`|查询设计规则；建议接受，后续以压测验证|
+|IX-102|`proj_project_portfolio_member`|`KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)`|查询设计规则；建议接受，后续以压测验证|
+|IX-103|`proj_project_relation`|`KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )`|查询设计规则；建议接受，后续以压测验证|
+|IX-104|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|查询设计规则；建议接受，后续以压测验证|
+|IX-105|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|查询设计规则；建议接受，后续以压测验证|
+|IX-106|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|查询设计规则；建议接受，后续以压测验证|
 
 ## 7. 唯一键完整清单
 
@@ -464,47 +415,39 @@
 |UK-065|`cus_market_relation`|`UNIQUE KEY uk_market_relation_business ( tenant_id, market_code, system_code, expend_code, industry_code )`|影响重复数据；需逐组业务确认|
 |UK-066|`cus_market_relation`|`UNIQUE KEY uk_market_relation_source ( tenant_id, source_system, source_record_key )`|影响重复数据；需逐组业务确认|
 |UK-067|`cus_market_relation`|`UNIQUE KEY uk_market_relation_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-068|`kno_device_technical_advisory_match`|`UNIQUE KEY uk_device_advisory (tenant_id, advisory_id, device_id)`|影响重复数据；需逐组业务确认|
-|UK-069|`kno_device_technical_advisory_match`|`UNIQUE KEY uk_device_advisory_match_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-070|`kno_technical_advisory`|`UNIQUE KEY uk_technical_advisory_no (tenant_id, advisory_no)`|影响重复数据；需逐组业务确认|
-|UK-071|`kno_technical_advisory`|`UNIQUE KEY uk_technical_advisory_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-072|`kno_technical_advisory_product_relation`|`UNIQUE KEY uk_advisory_product (tenant_id, advisory_id, product_id)`|影响重复数据；需逐组业务确认|
-|UK-073|`kno_technical_advisory_product_relation`|`UNIQUE KEY uk_technical_advisory_product_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-074|`kno_technical_advisory_read_record`|`UNIQUE KEY uk_advisory_reader (tenant_id, advisory_id, reader_id)`|影响重复数据；需逐组业务确认|
-|UK-075|`kno_technical_advisory_read_record`|`UNIQUE KEY uk_technical_advisory_read_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-076|`plt_business_document`|`UNIQUE KEY uk_business_document_code (tenant_id, document_code)`|影响重复数据；需逐组业务确认|
-|UK-077|`plt_business_document`|`UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-078|`plt_document_version`|`UNIQUE KEY uk_document_version (tenant_id, document_id, version_no)`|影响重复数据；需逐组业务确认|
-|UK-079|`plt_document_version`|`UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)`|影响重复数据；需逐组业务确认|
-|UK-080|`plt_document_version`|`UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-081|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-082|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_table, target_id )`|影响重复数据；需逐组业务确认|
-|UK-083|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )`|影响重复数据；需逐组业务确认|
-|UK-084|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-085|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )`|影响重复数据；需逐组业务确认|
-|UK-086|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-087|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_no (tenant_id, batch_no)`|影响重复数据；需逐组业务确认|
-|UK-088|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-089|`proj_project`|`UNIQUE KEY uk_project_code (tenant_id, project_code)`|影响重复数据；需逐组业务确认|
-|UK-090|`proj_project`|`UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence)`|影响重复数据；需逐组业务确认|
-|UK-091|`proj_project`|`UNIQUE KEY uk_project_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-092|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-093|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_role ( tenant_id, project_id, company_code, department_code, relation_role, effective_from )`|影响重复数据；需逐组业务确认|
-|UK-094|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )`|影响重复数据；需逐组业务确认|
-|UK-095|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_role ( tenant_id, project_id, user_id, member_role, effective_from )`|影响重复数据；需逐组业务确认|
-|UK-096|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-097|`proj_project_party`|`UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )`|影响重复数据；需逐组业务确认|
-|UK-098|`proj_project_party`|`UNIQUE KEY uk_project_party_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-099|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)`|影响重复数据；需逐组业务确认|
-|UK-100|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-101|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project ( tenant_id, portfolio_id, project_id, member_source )`|影响重复数据；需逐组业务确认|
-|UK-102|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-103|`proj_project_relation`|`UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )`|影响重复数据；需逐组业务确认|
-|UK-104|`proj_project_relation`|`UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-105|`srv_service_incident`|`UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)`|影响重复数据；需逐组业务确认|
-|UK-106|`srv_service_incident`|`UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-107|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)`|影响重复数据；需逐组业务确认|
-|UK-108|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-068|`plt_business_document`|`UNIQUE KEY uk_business_document_code (tenant_id, document_code)`|影响重复数据；需逐组业务确认|
+|UK-069|`plt_business_document`|`UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-070|`plt_document_version`|`UNIQUE KEY uk_document_version (tenant_id, document_id, version_no)`|影响重复数据；需逐组业务确认|
+|UK-071|`plt_document_version`|`UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)`|影响重复数据；需逐组业务确认|
+|UK-072|`plt_document_version`|`UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-073|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-074|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_role, target_sequence, target_table, target_id )`|影响重复数据；需逐组业务确认|
+|UK-075|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )`|影响重复数据；需逐组业务确认|
+|UK-076|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-077|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )`|影响重复数据；需逐组业务确认|
+|UK-078|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-079|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_no (tenant_id, batch_no)`|影响重复数据；需逐组业务确认|
+|UK-080|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-081|`proj_project`|`UNIQUE KEY uk_project_code (tenant_id, project_code)`|影响重复数据；需逐组业务确认|
+|UK-082|`proj_project`|`UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence)`|影响重复数据；需逐组业务确认|
+|UK-083|`proj_project`|`UNIQUE KEY uk_project_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-084|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-085|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_role ( tenant_id, project_id, company_code, department_code, relation_role, effective_from )`|影响重复数据；需逐组业务确认|
+|UK-086|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )`|影响重复数据；需逐组业务确认|
+|UK-087|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_role ( tenant_id, project_id, user_id, member_role, effective_from )`|影响重复数据；需逐组业务确认|
+|UK-088|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-089|`proj_project_party`|`UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )`|影响重复数据；需逐组业务确认|
+|UK-090|`proj_project_party`|`UNIQUE KEY uk_project_party_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-091|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)`|影响重复数据；需逐组业务确认|
+|UK-092|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-093|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project ( tenant_id, portfolio_id, project_id, member_source )`|影响重复数据；需逐组业务确认|
+|UK-094|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-095|`proj_project_relation`|`UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )`|影响重复数据；需逐组业务确认|
+|UK-096|`proj_project_relation`|`UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-097|`srv_service_incident`|`UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)`|影响重复数据；需逐组业务确认|
+|UK-098|`srv_service_incident`|`UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-099|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)`|影响重复数据；需逐组业务确认|
+|UK-100|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
 
 ## 8. CHECK规则完整清单
 
@@ -564,35 +507,31 @@
 |CK-052|`cus_customer_contact`|`CONSTRAINT chk_customer_contact_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 |CK-053|`cus_customer_contact`|`CONSTRAINT chk_customer_contact_primary CHECK (is_primary IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 |CK-054|`cus_market_relation`|`CONSTRAINT chk_market_relation_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-055|`kno_device_technical_advisory_match`|`CONSTRAINT chk_device_advisory_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-056|`kno_technical_advisory`|`CONSTRAINT chk_technical_advisory_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)`|影响异常历史数据；需逐组业务确认|
-|CK-057|`kno_technical_advisory`|`CONSTRAINT chk_technical_advisory_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-058|`kno_technical_advisory_product_relation`|`CONSTRAINT chk_advisory_product_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-059|`kno_technical_advisory_read_record`|`CONSTRAINT chk_advisory_read_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-060|`plt_business_document`|`CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-061|`plt_document_version`|`CONSTRAINT chk_document_version_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-062|`plt_migration_issue`|`CONSTRAINT chk_migration_issue_resolution CHECK ( resolution_status <> 'RESOLVED' OR (resolver IS NOT NULL AND resolved_time IS NOT NULL) )`|影响异常历史数据；需逐组业务确认|
-|CK-063|`plt_migration_source_record`|`CONSTRAINT chk_migration_source_target_count CHECK (mapped_target_count >= 0)`|影响异常历史数据；需逐组业务确认|
-|CK-064|`plt_sync_batch`|`CONSTRAINT chk_sync_batch_count CHECK (success_count + failure_count <= read_count)`|影响异常历史数据；需逐组业务确认|
-|CK-065|`plt_sync_batch`|`CONSTRAINT chk_sync_batch_time CHECK (finished_time IS NULL OR finished_time >= started_time)`|影响异常历史数据；需逐组业务确认|
-|CK-066|`proj_project`|`CONSTRAINT chk_project_code_namespace CHECK ( (project_sequence = 0 AND code_root_id = id) OR project_sequence > 0 )`|影响异常历史数据；需逐组业务确认|
-|CK-067|`proj_project`|`CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-068|`proj_project`|`CONSTRAINT chk_project_depth CHECK (tree_depth >= 0)`|影响异常历史数据；需逐组业务确认|
-|CK-069|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)`|影响异常历史数据；需逐组业务确认|
-|CK-070|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-071|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_pair CHECK (department_id IS NULL OR department_code IS NOT NULL)`|影响异常历史数据；需逐组业务确认|
-|CK-072|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_primary CHECK (is_primary IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-073|`proj_project_member_assignment`|`CONSTRAINT chk_project_member_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)`|影响异常历史数据；需逐组业务确认|
-|CK-074|`proj_project_member_assignment`|`CONSTRAINT chk_project_member_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-075|`proj_project_party`|`CONSTRAINT chk_project_party_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)`|影响异常历史数据；需逐组业务确认|
-|CK-076|`proj_project_party`|`CONSTRAINT chk_project_party_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-077|`proj_project_portfolio`|`CONSTRAINT chk_portfolio_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-078|`proj_project_portfolio_member`|`CONSTRAINT chk_portfolio_project_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-079|`proj_project_relation`|`CONSTRAINT chk_project_relation_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-080|`proj_project_relation`|`CONSTRAINT chk_project_relation_self CHECK (source_project_id <> target_project_id)`|影响异常历史数据；需逐组业务确认|
-|CK-081|`srv_service_incident`|`CONSTRAINT chk_service_incident_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-082|`srv_service_incident`|`CONSTRAINT chk_service_incident_times CHECK ( restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time )`|影响异常历史数据；需逐组业务确认|
-|CK-083|`srv_service_incident_device_relation`|`CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-055|`plt_business_document`|`CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-056|`plt_document_version`|`CONSTRAINT chk_document_version_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-057|`plt_external_key_mapping`|`CONSTRAINT chk_external_key_target_sequence CHECK (target_sequence >= 0)`|影响异常历史数据；需逐组业务确认|
+|CK-058|`plt_migration_issue`|`CONSTRAINT chk_migration_issue_resolution CHECK ( resolution_status <> 'RESOLVED' OR (resolver IS NOT NULL AND resolved_time IS NOT NULL) )`|影响异常历史数据；需逐组业务确认|
+|CK-059|`plt_migration_source_record`|`CONSTRAINT chk_migration_source_target_count CHECK (mapped_target_count >= 0)`|影响异常历史数据；需逐组业务确认|
+|CK-060|`plt_sync_batch`|`CONSTRAINT chk_sync_batch_count CHECK (success_count + failure_count <= read_count)`|影响异常历史数据；需逐组业务确认|
+|CK-061|`plt_sync_batch`|`CONSTRAINT chk_sync_batch_time CHECK (finished_time IS NULL OR finished_time >= started_time)`|影响异常历史数据；需逐组业务确认|
+|CK-062|`proj_project`|`CONSTRAINT chk_project_code_namespace CHECK ( (project_sequence = 0 AND code_root_id = id) OR project_sequence > 0 )`|影响异常历史数据；需逐组业务确认|
+|CK-063|`proj_project`|`CONSTRAINT chk_project_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-064|`proj_project`|`CONSTRAINT chk_project_depth CHECK (tree_depth >= 0)`|影响异常历史数据；需逐组业务确认|
+|CK-065|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)`|影响异常历史数据；需逐组业务确认|
+|CK-066|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-067|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_pair CHECK (department_id IS NULL OR department_code IS NOT NULL)`|影响异常历史数据；需逐组业务确认|
+|CK-068|`proj_project_company_department_relation`|`CONSTRAINT chk_project_company_department_primary CHECK (is_primary IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-069|`proj_project_member_assignment`|`CONSTRAINT chk_project_member_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)`|影响异常历史数据；需逐组业务确认|
+|CK-070|`proj_project_member_assignment`|`CONSTRAINT chk_project_member_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-071|`proj_project_party`|`CONSTRAINT chk_project_party_dates CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)`|影响异常历史数据；需逐组业务确认|
+|CK-072|`proj_project_party`|`CONSTRAINT chk_project_party_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-073|`proj_project_portfolio`|`CONSTRAINT chk_portfolio_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-074|`proj_project_portfolio_member`|`CONSTRAINT chk_portfolio_project_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-075|`proj_project_relation`|`CONSTRAINT chk_project_relation_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-076|`proj_project_relation`|`CONSTRAINT chk_project_relation_self CHECK (source_project_id <> target_project_id)`|影响异常历史数据；需逐组业务确认|
+|CK-077|`srv_service_incident`|`CONSTRAINT chk_service_incident_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-078|`srv_service_incident`|`CONSTRAINT chk_service_incident_times CHECK ( restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time )`|影响异常历史数据；需逐组业务确认|
+|CK-079|`srv_service_incident_device_relation`|`CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 
 ## 9. 裁决边界
 

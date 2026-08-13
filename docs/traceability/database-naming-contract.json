@@ -34,6 +34,16 @@
       "decisionRef": "ADR-0021"
     }
   ],
+  "implementationScope": {
+    "coverage": "CORE_MIGRATION_SUBSET",
+    "decisionRef": "ADR-0022",
+    "excludedTargets": [
+      "kno_device_technical_advisory_match",
+      "kno_technical_advisory",
+      "kno_technical_advisory_product_relation",
+      "kno_technical_advisory_read_record"
+    ]
+  },
   "tables": [
     {
       "source": "pms_customer",

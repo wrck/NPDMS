@@ -895,19 +895,18 @@
       "requirementIds": [
         "INT-04"
       ],
-      "targetTables": [
-        "kno_technical_notice",
-        "kno_notice_business_reference"
-      ]
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
     },
     "NoticeBusinessReference": {
       "owner": "KNO",
       "requirementIds": [
         "INT-04"
       ],
-      "targetTables": [
-        "kno_notice_business_reference"
-      ]
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
     }
   }
 }

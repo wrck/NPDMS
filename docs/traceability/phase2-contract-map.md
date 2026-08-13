@@ -1272,7 +1272,7 @@
 
 - 需求名称：ITR技术公告同步
 - 数据对象：TechnicalNoticeReference
-- 数据表：kno_technical_notice、kno_notice_business_reference
+- 数据表：FEATURE_FORWARD_MIGRATION(INT-04)；当前仅保留`TechnicalNoticeReference`逻辑契约，物理表由INT-04 Feature前向迁移确定
 - API：/technical-notices、/technical-notices/{id}/references
 - 事件：TechnicalNoticeSynchronized
 - 外部集成：ITR

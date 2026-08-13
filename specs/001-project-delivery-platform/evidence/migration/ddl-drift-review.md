@@ -1,6 +1,6 @@
 # DDL漂移审查报告
 
-> 状态：`DEFER`（命名、项目编码与市场行业四维分类项已确认，整体数据模型尚未批准）
+> 状态：`DEFER`（命名、项目编码、市场行业四维分类与核心迁移边界已确认，整体数据模型尚未批准）
 > 门禁：`P3-E09 / AI-MIG-000`
 > 机器事实：[`ddl-drift-review.json`](ddl-drift-review.json)
 
@@ -8,11 +8,11 @@
 
 |输入|当前事实|
 |---|---|
-|当前目标DDL|`project-order-physical-schema.mysql.sql`，SHA-256 `D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5`|
+|当前目标DDL|`project-order-physical-schema.mysql.sql`，SHA-256 `AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9`|
 |历史字段目录基线|DDL SHA-256 `2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`|
 |命名归一化|仅按ADR-0019将历史表名和6个同义字段映射到新名称后比较，不改变历史类型、空值、默认值、生成属性或说明|
-|当前字段目录|53表、1,113列，与当前DDL绑定同一SHA-256|
-|当前约束清单|433项约束、53项表选项，绑定当前DDL SHA-256|
+|当前字段目录|49表、1,048列，与当前DDL绑定同一SHA-256；范围为核心迁移子集|
+|当前约束清单|380项约束、49项表选项，含46个同域外键、79个CHECK|
 
 ## 2. 已确认裁决
 
@@ -21,21 +21,23 @@
 - NAM-001～NAM-006同义字段按ADR-0019统一。
 - ADR-0020确认同一CRM项目的多合同/多订单不派生项目编码，项目编码租户内唯一，编码命名空间与当前层级分离；新增`code_root_id`、`project_sequence`、`code_rule_version`及4项配套约束。
 - ADR-0021确认CRM四维组合目录归CUS，目标表为`cus_market_relation`；客户与项目直接保存四组编码/名称，不保存`relation_id`，也不将分类映射到组织关系。
-- 上述111项在`ddl-item-decision-register.json`登记为`AMEND_CURRENT`，`decisionOwner=REQUIREMENT_OWNER`并分别引用ADR-0019、ADR-0020或ADR-0021。
+- ADR-0022确认当前DDL为核心迁移子集，移除4张V3技术公告治理表和跨领域物理外键；外部键映射新增`target_role/target_sequence`，当前唯一性、归一化、永久业务键及历史异常隔离规则已固化。
+- 上述111项在`ddl-item-decision-register.json`登记为`AMEND_CURRENT`，`decisionOwner=REQUIREMENT_OWNER`并分别引用ADR-0019～ADR-0022。
 - Reviewer尚未签署，因此这些项目不计入最终批准数，也不生成`approvedDdlSha256`。
 
 ## 3. 仍未关闭的模型项
 
 |对象|数量|状态|原因|
 |---|---:|---|---|
-|表|53|命名与`cus_market_relation`扩展已决定，Reviewer待签署|不能以需求方确认替代数据架构复核|
-|列|1,113|命名、项目编码和四维分类相关项已决定，其余保持`DEFER`|字段类型、默认值和业务规则仍需逐项批准|
-|约束|433|项目编码及四维分类相关项已决定，其余为`UNVERIFIED_BASELINE_MISSING`|历史字段目录未保存主键、外键、唯一键、索引和CHECK完整定义|
-|表选项|53|`UNVERIFIED_BASELINE_MISSING`|历史证据未保存字符集、排序规则和存储选项|
+|当前表|49|核心迁移子集边界已决定，Reviewer待签署|不能以需求方确认替代数据架构复核，也不能冒充平台全量模型|
+|当前列|1,048|命名、项目编码、四维分类和外部键映射相关项已决定，其余保持`DEFER`|字段类型、默认值和业务规则仍需逐项批准|
+|当前约束|380|跨领域外键已移除；项目编码、四维分类及映射约束已决定，其余为`UNVERIFIED_BASELINE_MISSING`|历史字段目录未保存主键、同域外键、唯一键、索引和CHECK完整定义|
+|当前表选项|49|`UNVERIFIED_BASELINE_MISSING`|历史证据未保存字符集、排序规则和存储选项|
+|比较并集登记|1,601项|保留53个表事实、1,115个列事实及移除状态|用于审查历史到当前的新增、修改和移除，不等于当前DDL规模|
 
 ## 4. 证据边界
 
-- `ddl-drift-review.json`证明当前DDL与历史字段事实的逐项差异；ADR-0020和ADR-0021覆盖的新增/修改项已在逐项寄存器登记，但该报告不能证明其余约束和表选项与历史批准版本一致。
+- `ddl-drift-review.json`证明当前DDL与历史字段事实的逐项差异；ADR-0020～ADR-0022覆盖的新增、修改和移除项已登记，但该报告不能证明其余约束和表选项与历史批准版本一致。
 - `target-field-catalog.jsonl`、核心字段映射及完整物理字段矩阵已经更新目标引用；旧库`sourceTable/sourceColumn/sourceDefinition/sourceRefs/evidenceRefs`保持原值。
 - 历史`migration-validation.json.passed=true`不具有当前生产迁移放行效力。
 - 旧库继续只读，禁止旧库DDL/DML和跨库SQL。
