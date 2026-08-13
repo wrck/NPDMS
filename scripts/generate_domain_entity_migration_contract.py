@@ -40,7 +40,6 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CutoverSupportTask": ("cut_cutover_support_task", "cut_cutover_support_history"), "ResponsibilityInterval": ("cut_cutover_support_responsibility_interval",),
     "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
     "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
-    "HistoricalWorkOrderRecord": ("srv_historical_work_order",), "HistoricalTimeRecord": ("srv_historical_time_record",),
     "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
     "CustomerRelationshipSnapshot": ("cus_customer_relationship_snapshot",), "Device": ("ast_device",), "DeviceArchive": ("ast_device", "ast_device_version", "ast_device_config_log"),
     "DeviceComponentRelation": ("ast_device_component_relation",),
@@ -51,7 +50,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "OrderLine": ("com_order_line",), "DeliveryScope": ("com_delivery_scope",), "DeliveryScopeDetail": ("com_delivery_scope_detail",), "FulfillmentSnapshot": ("com_fulfillment_snapshot",),
     "ReconciliationRecord": ("com_reconciliation_record",), "Supplier": ("res_supplier", "res_qualification"),
     "SubcontractRequest": ("res_subcontract_request",), "PaymentGate": ("res_payment_gate",), "MetricDefinition": ("ana_metric_definition",), "MetricSnapshot": ("ana_metric_snapshot",),
-    "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "DirectorySyncSnapshot": ("plt_directory_sync_snapshot",), "AuthorizationGrant": ("plt_authorization_grant",),
+    "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "AuthorizationGrant": ("plt_authorization_grant",),
     "ChangeRequest": ("plt_change_request",), "FileArtifact": ("plt_file_artifact", "plt_file_version", "plt_file_reference"),
     "AuditRecord": ("plt_operation_audit",), "DeviceCredential": ("plt_device_credential",),
     "CredentialGrant": ("plt_credential_grant",), "CollectionTask": ("plt_collection_task",),
@@ -73,17 +72,44 @@ MODEL_ENTITY_CONTRACTS = {
     "NoticeBusinessReference": {"owner": "KNO", "requirementIds": ["INT-04"]},
     "DispatchAttempt": {"owner": "PLT", "requirementIds": ["INT-12"]},
     "CallbackRecord": {"owner": "PLT", "requirementIds": ["INT-12"]},
-    "HistoricalWorkOrderRecord": {"owner": "SRV", "requirementIds": ["SRV-01"]},
-    "HistoricalTimeRecord": {"owner": "SRV", "requirementIds": ["SRV-01"]},
 }
 
+EXCLUDED_SOURCES = [{
+    "sourceType": "LEGACY_TABLE",
+    "sourceObject": "pm_project_maintenance",
+    "disposition": "EXCLUDED",
+    "mappingStatus": "NO_MIGRATION",
+    "gate": "USER_CONFIRMED_EXCLUSION",
+    "transform": "NO_MIGRATION: requirement owner confirmed on 2026-08-13 that the complete table is excluded; retain table-level extraction audit metadata only",
+    "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_maintenance",
+    "exclusionAudit": {
+        "decisionDate": "2026-08-13",
+        "decisionSource": "REQUIREMENT_OWNER_CONFIRMATION",
+        "sourceTable": "pm_project_maintenance",
+        "rowCount": None,
+        "extractionBatchSha256": None,
+        "auditStatus": "PENDING_EXTRACTION_AUDIT",
+    },
+}]
 
-def source(source_type: str, source_object: str, disposition: str, transform: str, mapping_status: str, gate: str) -> dict[str, str]:
-    return {"sourceType": source_type, "sourceObject": source_object, "disposition": disposition, "transform": transform, "mappingStatus": mapping_status, "gate": gate}
+
+def source(source_type: str, source_object: str, disposition: str, transform: str, mapping_status: str, gate: str, **details: object) -> dict[str, object]:
+    return {"sourceType": source_type, "sourceObject": source_object, "disposition": disposition, "transform": transform, "mappingStatus": mapping_status, "gate": gate, **details}
+
+
+def binding(source_field: str, target_field: str, transform: str, evidence_ref: str) -> dict[str, str]:
+    return {"sourceField": source_field, "targetField": target_field, "transform": transform, "evidenceRef": evidence_ref}
 
 
 OVERRIDES: dict[str, list[dict[str, str]]] = {
-    "Project": [source("LEGACY_TABLE", "pm_project", "STRUCTURED", "map stable project fields; empty names become migration issues; legacy ID becomes external key", "READY_FOR_FIELD_MAPPING", "AI-MIG-000")],
+    "Project": [source("LEGACY_TABLE", "pm_project", "STRUCTURED", "map stable project fields; empty names become migration issues; legacy ID becomes external key", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
+        targetFieldBindings=[
+            binding("pm_project.projectCode", "proj_project.project_code", "direct after normalization and permanent-key conflict check", "data-elements://schema-records.jsonl#项目管理!A20"),
+            binding("pm_project.projectName", "proj_project.project_name", "direct; empty value becomes migration issue", "data-elements://schema-records.jsonl#项目管理!A21"),
+            binding("pm_project.projectType", "proj_project.project_type", "direct with source value preserved", "data-elements://schema-records.jsonl#项目管理!A19"),
+        ],
+        statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "sourceFields": ["pm_project.projectState", "pm_project.disabled"], "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+        terminalDisposition="CREATE_PROJECT_ONLY_AFTER_PERMANENT_KEY_AND_REQUIRED_NAME_VALIDATE;PRESERVE_RAW_AND_EXTERNAL_KEY_MAPPING")],
     "ProjectHierarchy": [source("LEGACY_TABLE", "pm_project_group*", "EXCLUDED", "technical project-contract bridge only; migrate legacy projects as roots", "CONFIRMED_EXCLUDED", "AI-MIG-000")],
     "ProjectAncestorProjection": [source("DERIVED_TARGET", "ProjectHierarchy", "REBUILD", "rebuild complete ancestor projection after adjacency import", "REBUILD_AFTER_OWNERS", "PROJECT_TREE_VERIFY")],
     "ProjectTask": [source("LEGACY_TABLE", "pm_project_task", "STRUCTURED", "map task facts; hierarchy and dependency remain separate", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
@@ -109,8 +135,30 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "DeliveryEvidence": [source("CURRENT_TABLE", "pms_eng_deliverable", "CURRENT_FORWARD", "map implementation-stage evidence identity, immutable revisions, file references and upload results", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "DeliveryArtifact": [source("CURRENT_TABLE", "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate", "CURRENT_FORWARD", "separate artifact identity, checklist, review and archive records", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "SatisfactionCollection": [
-        source("LEGACY_TABLE", "pm_cl_quesnaire_template_header|pm_cl_quesnaire_template_line|pm_cl_quesnaire_template_options|pm_cl_quesnaire_result_header|pm_cl_quesnaire_result_line", "STRUCTURED", "map template, question, option, response and score versions; retain original identifiers and never overwrite submitted answers", "PENDING_FIELD_MAPPING", "AI-MIG-000"),
-        source("LEGACY_TABLE", "pm_cl_callback|pm_cl_callback_quesnaire|pm_subcontract_project_callback", "RELATION", "link only provable project/subcontract business objects, responsible users and questionnaire results; never infer customer answers from callback or approval status", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000"),
+        source("LEGACY_TABLE", "pm_cl_quesnaire_template_header|pm_cl_quesnaire_template_line|pm_cl_quesnaire_template_options|pm_cl_quesnaire_result_header|pm_cl_quesnaire_result_line", "STRUCTURED", "map template, question, option, response and score versions; retain original identifiers and never overwrite submitted answers", "PENDING_FIELD_MAPPING", "AI-MIG-000",
+            targetFieldBindings=[
+                binding("pm_cl_quesnaire_template_header.id", "acc_satisfaction_questionnaire.template_id", "TARGET_KEY_LOOKUP resolves legacy template identity; never reuse the raw ID", "data-elements://schema-records.jsonl#项目管理!A595"),
+                binding("pm_cl_quesnaire_template_header.questionnairePassScore", "acc_satisfaction_questionnaire.frozen_threshold", "decimal conversion; invalid values become migration issues", "data-elements://schema-records.jsonl#项目管理!A599"),
+                binding("pm_cl_quesnaire_template_line.questionContent|questionType|questionScore", "acc_satisfaction_questionnaire.frozen_question_json", "assemble ordered immutable question snapshot; no legacy required flag exists, so required semantics remain unresolved", "data-elements://schema-records.jsonl#项目管理!A611:A625"),
+                binding("pm_cl_quesnaire_template_options.questionOptionNum|questionOptionsContent|questionOptionScore", "acc_satisfaction_questionnaire.frozen_question_json", "nest options under resolved question identity", "data-elements://schema-records.jsonl#项目管理!A628:A640"),
+                binding("pm_cl_quesnaire_result_line.questionAnswer|questionScore", "acc_satisfaction_response.answer_json", "assemble immutable answers by resolved template line", "data-elements://schema-records.jsonl#项目管理!A580:A592"),
+                binding("pm_cl_quesnaire_result_header.quesMarkScore", "acc_satisfaction_result.score", "decimal conversion with source value preserved", "data-elements://schema-records.jsonl#项目管理!A568:A577"),
+                binding("pm_cl_quesnaire_result_header.quesMarkResult", "acc_satisfaction_result.passed", "map only through approved AI-MIG-000 status/value mapping", "data-elements://schema-records.jsonl#项目管理!A576"),
+            ],
+            statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "sourceFields": ["pm_cl_quesnaire_template_header.questionnaireStatus", "pm_cl_quesnaire_result_header.status", "pm_cl_quesnaire_result_header.quesMarkResult"], "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+            terminalDisposition="CREATE_IMMUTABLE_QUESTIONNAIRE_RESPONSE_RESULT_WHEN_IDENTITY_AND_VALIDITY_RESOLVE;OTHERWISE_PRESERVE_RAW_AND_BLOCK_GATE"),
+        source("LEGACY_TABLE", "pm_cl_callback|pm_cl_callback_quesnaire|pm_subcontract_project_callback", "RELATION", "link only provable project/subcontract business objects, responsible users and questionnaire results; never infer customer answers from callback or approval status", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000",
+            targetFieldBindings=[
+                binding("pm_cl_callback.projectId", "acc_satisfaction_collection_task.project_id", "EXTERNAL_KEY_MAPPING lookup resolves the stable target project key", "data-elements://schema-records.jsonl#项目管理!A519"),
+                binding("pm_cl_callback.id", "acc_satisfaction_collection_task.source_object_id", "EXTERNAL_KEY_MAPPING preserves callback source identity; do not infer approval", "data-elements://schema-records.jsonl#项目管理!A518"),
+                binding("pm_cl_callback_quesnaire.quesnaireId", "acc_satisfaction_questionnaire.source_questionnaire_key", "store the source questionnaire key; target id remains NEW_GENERATED", "data-elements://schema-records.jsonl#项目管理!A536"),
+                binding("pm_cl_callback_quesnaire.quesnaireVersion", "acc_satisfaction_questionnaire.source_questionnaire_version", "store the source questionnaire version independently from its key", "data-elements://schema-records.jsonl#项目管理!A537"),
+                binding("pm_subcontract_project_callback.subcontractId", "acc_satisfaction_collection_task.source_object_id", "TARGET_KEY_LOOKUP resolves the subcontract request and its version before binding", "data-elements://schema-records.jsonl#项目管理!A850"),
+                binding("pm_subcontract_project_callback.quesnaireId", "acc_satisfaction_questionnaire.source_questionnaire_key", "store the source questionnaire key; target id remains NEW_GENERATED", "data-elements://schema-records.jsonl#项目管理!A853"),
+                binding("pm_subcontract_project_callback.quesnaireVersion", "acc_satisfaction_questionnaire.source_questionnaire_version", "store the source questionnaire version independently from its key", "data-elements://schema-records.jsonl#项目管理!A854"),
+            ],
+            statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "sourceFields": ["pm_cl_callback.applyState", "pm_cl_callback_quesnaire.state", "pm_subcontract_project_callback.state"], "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+            terminalDisposition="LINK_ONLY_PROVABLE_PROJECT_OR_SUBCONTRACT_VERSION_AND_QUESTIONNAIRE;NEVER_DERIVE_CUSTOMER_ANSWER_SIGNATURE_OR_PASS_FROM_CALLBACK_STATUS"),
     ],
     "ClosureGateSnapshot": [source("DERIVED_TARGET", "Acceptance|DeliveryArtifact|ServiceIssue", "REBUILD", "rebuild current gate; historical snapshot contains only provable inputs", "REBUILD_AFTER_OWNERS", "CLOSURE_REBUILD")],
     "ServiceHandover": [
@@ -119,16 +167,17 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     ],
     "CutoverPlan": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "convert plans and steps into immutable plan revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "CutoverSupportTask": [
-        source("LEGACY_TABLE", "pm_project_maintenance", "PENDING_SOURCE_CONFIRMATION", "migrate only rows whose business type, cutover reference, responsibility and time window prove the former WO-06 semantics; all other rows remain read-only history", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000"),
-        source("NONE_NEW", "CutoverSupportTask", "NEW_ONLY", "create new current CUT-11 tasks only from new-platform commands", "NEW_ONLY", "FEATURE_RELEASE"),
+        source(
+            "NONE_NEW", "CutoverSupportTask", "NEW_ONLY",
+            "create new current CUT-11 tasks only from new-platform commands; excluded legacy tables are not classified into this object",
+            "NEW_ONLY", "FEATURE_RELEASE",
+        ),
     ],
     "ResponsibilityInterval": [source("DERIVED_TARGET", "CutoverSupportTask", "REBUILD", "build responsibility intervals only from complete assignment, takeover and transfer evidence; suspension does not end an interval", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000")],
     "InspectionTask": [source("CURRENT_TABLE", "pms_srv_task|pms_srv_execution|pms_srv_offline_file", "CURRENT_FORWARD", "map only records classified as inspection and freeze rule snapshot", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InspectionRule": [source("CURRENT_TABLE", "pms_srv_rule", "CURRENT_FORWARD", "convert published rules into immutable revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InspectionReport": [source("CURRENT_TABLE", "pms_srv_report", "CURRENT_FORWARD", "map immutable report revisions and external result references", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ServiceIssue": [source("CURRENT_TABLE", "pms_srv_issue", "CURRENT_FORWARD", "map inspection issues only; ITR issues remain external Owner copies", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "HistoricalWorkOrderRecord": [source("LEGACY_TABLE", "pm_project_maintenance", "STRUCTURED", "preserve each source row key, original type/category/status, assignee, deliverable references, questionnaire reference and immutable payload as read-only history; do not classify every row as a current work order", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
-    "HistoricalTimeRecord": [source("LEGACY_TABLE", "pm_project_maintenance", "STRUCTURED", "preserve process/transit hours and source context as historical values; direction or signed adjustment may be set only when explicit source evidence exists", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "ServiceStatus": [
         source("LEGACY_TABLE", "fb_service|view_warranty*|warranty_info|warranty_change_logs", "STRUCTURED", "map objective service dates/levels/source facts only", "PENDING_FIELD_MAPPING", "AI-MIG-000"),
         source("LEGACY_FIELD_PATTERN", "view_warranty*.renew*", "EXCLUDED", "retain compatibility evidence; exclude renewal actions/spaces/reports", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
@@ -137,18 +186,61 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "CustomerContact": [source("CURRENT_TABLE", "pms_customer_contact", "CURRENT_FORWARD", "align contact fields and temporal project relation", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "synchronize CRM-owned contact fields", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "CustomerRelationshipSnapshot": [source("DERIVED_TARGET", "Customer|CustomerContact|Project", "REBUILD", "freeze minimum relationship data at business event time", "REBUILD_AFTER_OWNERS", "RELATIONSHIP_REBUILD")],
     "Device": [source("LEGACY_TABLE", "fb_shipment_barcode", "STRUCTURED", "deduplicate SN master while preserving every shipment lifecycle source row", "READY_FOR_FIELD_MAPPING", "AI-MIG-000"), source("EXTERNAL_SYSTEM", "MES|ITR", "EXTERNAL_SYNC", "synchronize authoritative identity fields by source key/version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
-    "DeviceArchive": [source("CURRENT_TABLE", "pms_equipment_version|pms_equipment_config_log", "CURRENT_FORWARD", "map version/config history with effective time and source", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY"), source("LEGACY_TABLE", "pm_project_soft_version*", "STRUCTURED", "map provable software version history; conflicts become migration issues", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
-    "DeviceComponentRelation": [source("DERIVED_TARGET", "ConfigurationCollectionResult|DeviceArchive", "RELATION", "create effective chassis-slot-card intervals only from parsed or manually verified evidence; ambiguous candidates remain pending", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000")],
+    "DeviceArchive": [source("CURRENT_TABLE", "pms_equipment_version|pms_equipment_config_log", "CURRENT_FORWARD", "map version/config history with effective time and source", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY"), source("LEGACY_TABLE", "pm_project_soft_version*", "STRUCTURED", "map provable software version history; conflicts become migration issues", "PENDING_FIELD_MAPPING", "AI-MIG-000",
+        targetFieldBindings=[
+            binding("pm_project_soft_version*.projectId", "ast_device_version.project_id", "EXTERNAL_KEY_MAPPING lookup resolves the target project key", "data-elements://schema-records.jsonl#项目管理!A378"),
+            binding("pm_project_soft_version*.barCode", "ast_device_version.device_id", "TARGET_KEY_LOOKUP resolves the device by exact SN; never copy the source ID", "data-elements://schema-records.jsonl#项目管理!A382"),
+            binding("pm_project_soft_version*.conp|cpld|boot", "ast_device_version.version_value", "expand each populated component into its own version row", "data-elements://schema-records.jsonl#项目管理!A383:A392"),
+        ],
+        statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+        terminalDisposition="CREATE_VERSION_ROWS_ONLY_FOR_RESOLVED_PROJECT_DEVICE_COMPONENT;CONFLICTS_REMAIN_MIGRATION_ISSUES")],
+    "DeviceComponentRelation": [source("DERIVED_TARGET", "ConfigurationCollectionResult|DeviceArchive", "RELATION", "create effective chassis-slot-card intervals only from parsed or manually verified evidence; ambiguous candidates remain pending", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000",
+        targetFieldBindings=[
+            binding("ConfigurationCollectionResult.chassis_sn", "ast_device_component_relation.chassis_sn", "direct from verified parse candidate", "design://08-data-model.md#ConfigurationCollectionResult"),
+            binding("ConfigurationCollectionResult.slot_code", "ast_device_component_relation.slot_code", "direct from verified parse candidate", "design://08-data-model.md#ConfigurationCollectionResult"),
+            binding("ConfigurationCollectionResult.card_sn|card_model_code", "ast_device_component_relation.card_sn", "bind only verified card identity; preserve model in relation", "design://08-data-model.md#ConfigurationCollectionResult"),
+            binding("ConfigurationCollectionResult.evidence_ref", "ast_device_component_relation.evidence_ref", "preserve immutable raw-log and parse evidence reference", "design://08-data-model.md#ConfigurationCollectionResult"),
+        ],
+        statusMapping={"policy": "MATCH_STATUS_TO_RELATION_CREATION", "unknown": "KEEP_CANDIDATE_PENDING"},
+        terminalDisposition="CREATE_EFFECTIVE_INTERVAL_ONLY_AFTER_VERIFIED_IDENTITY;AMBIGUOUS_CANDIDATE_REMAINS_PENDING")],
     "DeviceCurrentAssignment": [source("LEGACY_TABLE", "pm_project_shipment", "RELATION", "create assignment only when project/SN/time/transfer evidence resolves; otherwise issue", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "DeviceAssignmentHistory": [source("LEGACY_TABLE", "pm_project_shipment", "RELATION", "build non-overlapping assignment intervals only from resolvable device/project/time evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "DeviceAncestorProjection": [source("DERIVED_TARGET", "DeviceCurrentAssignment|ProjectHierarchy", "REBUILD", "rebuild ancestor statistics projection at tree and assignment watermarks", "REBUILD_AFTER_OWNERS", "DEVICE_ANCESTOR_REBUILD")],
     "AssetSyncSnapshot": [source("EXTERNAL_SYSTEM", "MES|ITR", "EXTERNAL_SYNC", "record source watermarks, versions and field differences", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "MaintenanceFact": [source("LEGACY_TABLE", "fb_shipment_barcode|fb_service|view_warranty*", "STRUCTURED", "map objective warranty/service facts with source and rule version", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "RMAReplacement": [source("LEGACY_TABLE", "rma_app_info|rma_applicant|fb_shipment_barcode", "RELATION", "separate RMA replacement from secondary-SN relations; unknown behavior codes remain issues", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000")],
-    "Contract": [source("LEGACY_TABLE", "sms_ofst_contract_head_sap|pm_order_data_from_erp", "STRUCTURED", "resolve contract by tenant/company/contract number; fb_contract never creates master", "READY_FOR_FIELD_MAPPING", "AI-MIG-000")],
-    "SalesOrder": [source("LEGACY_TABLE", "pm_order_data_from_erp", "STRUCTURED", "merge deterministic business key; conflicting groups become issues, never choose max ID", "READY_FOR_FIELD_MAPPING", "AI-MIG-000")],
+    "Contract": [source("LEGACY_TABLE", "sms_ofst_contract_head_sap|pm_order_data_from_erp", "STRUCTURED", "resolve contract by tenant/company/contract number; fb_contract never creates master", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
+        targetFieldBindings=[
+            binding("sms_ofst_contract_head_sap.contract_num", "com_contract.contract_no", "direct after company ownership resolution", "data-elements://schema-records.jsonl#系统支撑!A1446"),
+            binding("sms_ofst_contract_head_sap.dataSource", "com_contract.master_source_system", "direct authority marker", "data-elements://schema-records.jsonl#系统支撑!A1483"),
+            binding("sms_ofst_contract_head_sap.client_supplier_code", "com_contract.customer_code", "copy the customer code independently from the name snapshot", "data-elements://schema-records.jsonl#系统支撑!A1450"),
+            binding("sms_ofst_contract_head_sap.client_supplier_name", "com_contract.customer_name", "copy the customer name snapshot independently from its code", "data-elements://schema-records.jsonl#系统支撑!A1451"),
+            binding("pm_order_data_from_erp.contractNo", "com_contract.contract_no", "relation evidence only; cannot create master without company evidence", "data-elements://schema-records.jsonl#系统支撑!A706"),
+            binding("pm_order_data_from_erp.customerCode", "com_contract.customer_code", "reconciliation code evidence; conflicting customer blocks merge", "data-elements://schema-records.jsonl#系统支撑!A710"),
+            binding("pm_order_data_from_erp.customerName", "com_contract.customer_name", "reconciliation name snapshot; never treat it as a customer code", "data-elements://schema-records.jsonl#系统支撑!A711"),
+        ],
+        statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+        terminalDisposition="CREATE_MASTER_ONLY_FROM_AUTHORITATIVE_COMPANY_AND_CONTRACT_NUMBER;ORDER_SOURCE_IS_RECONCILIATION_ONLY")],
+    "SalesOrder": [source("LEGACY_TABLE", "pm_order_data_from_erp", "STRUCTURED", "merge deterministic business key; conflicting groups become issues, never choose max ID", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
+        targetFieldBindings=[
+            binding("pm_order_data_from_erp.orderNumber", "com_sales_order.order_no", "direct within source/company/order-type business key", "data-elements://schema-records.jsonl#系统支撑!A705"),
+            binding("pm_order_data_from_erp.orderCreateTime", "com_sales_order.order_create_time", "direct", "data-elements://schema-records.jsonl#系统支撑!A708"),
+            binding("pm_order_data_from_erp.customerCode", "com_sales_order.customer_code", "copy the source customer code without choosing an ambiguous master", "data-elements://schema-records.jsonl#系统支撑!A710"),
+            binding("pm_order_data_from_erp.customerName", "com_sales_order.customer_name", "copy the source customer name snapshot independently from its code", "data-elements://schema-records.jsonl#系统支撑!A711"),
+        ],
+        statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+        terminalDisposition="MERGE_ONLY_DETERMINISTIC_BUSINESS_KEY_GROUPS;CONFLICTING_GROUPS_REMAIN_MIGRATION_ISSUES")],
     "OrderLine": [source("LEGACY_TABLE", "pm_order_line_from_erp", "STRUCTURED", "map stable order-line key and signed quantities; empty/ambiguous keys become issues", "READY_FOR_FIELD_MAPPING", "AI-MIG-000")],
-    "DeliveryScope": [source("LEGACY_TABLE", "pm_project_product_line", "RELATION", "map project/order-line/allocation; missing allocation remains pending and excluded from metrics", "READY_FOR_FIELD_MAPPING", "AI-MIG-000")],
+    "DeliveryScope": [source("LEGACY_TABLE", "pm_project_product_line", "RELATION", "map project/order-line/allocation; missing allocation remains pending and excluded from metrics", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
+        targetFieldBindings=[
+            binding("pm_project_product_line.projectId", "com_delivery_scope.project_id", "EXTERNAL_KEY_MAPPING lookup resolves the target project key", "data-elements://schema-records.jsonl#项目管理!A166"),
+            binding("pm_project_product_line.itemCode", "com_delivery_scope.item_code", "copy the product code independently from its name", "data-elements://schema-records.jsonl#项目管理!A168"),
+            binding("pm_project_product_line.itemName", "com_delivery_scope.item_desc", "copy the product name as the item description snapshot; never treat it as an item code", "data-elements://schema-records.jsonl#项目管理!A169"),
+            binding("pm_project_product_line.projectQuantity", "com_delivery_scope.allocated_qty", "verified project implementation quantity", "data-elements://schema-records.jsonl#项目管理!A170"),
+            binding("pm_project_product_line.orderNumber|lineNum", "com_delivery_scope.order_line_id", "TARGET_KEY_LOOKUP resolves the order line using the full approved business key", "data-elements://schema-records.jsonl#项目管理!A174:A175"),
+        ],
+        statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
+        terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS")],
     "DeliveryScopeDetail": [source("NONE_NEW", "DeliveryScopeDetail", "NEW_ONLY", "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header", "NEW_ONLY", "FEATURE_RELEASE")],
     "FulfillmentSnapshot": [source("DERIVED_TARGET", "DeliveryScope|ArrivalAcceptance|InstallationRecord|Acceptance", "REBUILD", "rebuild versioned fulfillment view after Owner import", "REBUILD_AFTER_OWNERS", "FULFILLMENT_REBUILD")],
     "ReconciliationRecord": [source("DERIVED_TARGET", "Contract|SalesOrder|OrderLine|DeliveryScope", "NEW_ONLY", "create reconciliation runs from migrated facts and external receipts", "NEW_ONLY", "POST_IMPORT_RECONCILIATION")],
@@ -162,7 +254,6 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     ],
     "PortfolioView": [source("DERIVED_TARGET", "ProjectPortfolio|MetricSnapshot", "REBUILD", "rebuild authorized read projection", "REBUILD_AFTER_OWNERS", "PORTFOLIO_REBUILD")],
     "Todo": [source("LEGACY_TABLE", "dp_act_unify_task|act_ru_task|act_hi_taskinst", "PENDING_SOURCE_CONFIRMATION", "import only active tasks that resolve to an Owner business node; completion is not business completion", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000")],
-    "DirectorySyncSnapshot": [source("EXTERNAL_SYSTEM", "HR", "EXTERNAL_SYNC", "synchronize only necessary person, organization, position and employment-status fields by stable source key and version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "AuthorizationGrant": [source("CURRENT_TABLE", "pms_eng_authorization", "PENDING_SOURCE_CONFIRMATION", "map only provable resource/action/scope/effective interval; never import full authorization code", "PENDING_SOURCE_CONFIRMATION", "NEXT_FLYWAY")],
     "ChangeRequest": [source("CURRENT_TABLE", "pms_plan_change_request", "CURRENT_FORWARD", "map only requests with resolvable target object/version/approval; do not generalize unrelated changes", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "FileArtifact": [source("CURRENT_TABLE", "pms_acc_archive_document|pms_acc_deliverable_checklist|pms_eng_deliverable", "CURRENT_FORWARD", "deduplicate file identity; map content hash/version/business references separately", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
@@ -224,8 +315,43 @@ def matches_any(value: str, catalog: set[str]) -> bool:
     return any(fnmatch.fnmatch(item, value) for item in catalog)
 
 
-def expand_sources(raw_sources: list[dict[str, str]], current_catalog: dict[str, str], legacy_catalog: set[str], commit: str) -> list[dict[str, str]]:
-    result: list[dict[str, str]] = []
+def binding_statistics(records: list[dict[str, object]], v17_target_tables: set[str]) -> dict[str, int]:
+    all_bindings = 0
+    v17_bindings = 0
+    v17_legacy_bindings = 0
+    legacy_source_tables: set[str] = set()
+    legacy_source_fields: list[str] = []
+    for record in records:
+        for source_entry in record["sources"]:
+            bindings = source_entry.get("targetFieldBindings", [])
+            all_bindings += len(bindings)
+            for binding_entry in bindings:
+                if binding_entry["targetField"].split(".", 1)[0] not in v17_target_tables:
+                    continue
+                v17_bindings += 1
+                if source_entry["sourceType"] not in {"LEGACY_TABLE", "LEGACY_FIELD_PATTERN"}:
+                    continue
+                v17_legacy_bindings += 1
+                inherited_table = ""
+                for token in binding_entry["sourceField"].split("|"):
+                    if "." in token:
+                        inherited_table, field = token.rsplit(".", 1)
+                    else:
+                        field = token
+                    legacy_source_tables.add(inherited_table)
+                    legacy_source_fields.append(f"{inherited_table}.{field}")
+    return {
+        "allBindingCount": all_bindings,
+        "v17BindingCount": v17_bindings,
+        "v17LegacyBindingCount": v17_legacy_bindings,
+        "v17LegacySourceTableCount": len(legacy_source_tables),
+        "v17LegacySourceFieldCount": len(legacy_source_fields),
+        "v17LegacyUniqueSourceFieldCount": len(set(legacy_source_fields)),
+    }
+
+
+def expand_sources(raw_sources: list[dict[str, object]], current_catalog: dict[str, str], legacy_catalog: set[str], commit: str, target_tables: tuple[str, ...]) -> list[dict[str, object]]:
+    result: list[dict[str, object]] = []
     for item in raw_sources:
         entry = dict(item)
         source_type = entry["sourceType"]
@@ -292,6 +418,12 @@ def build(args: argparse.Namespace) -> dict[str, object]:
     if set(TARGETS) != expected_objects:
         raise ValueError(f"target object coverage mismatch; missing={sorted(expected_objects-set(TARGETS))}, extra={sorted(set(TARGETS)-expected_objects)}")
     maintained_map = json.loads(args.object_table_map.read_text(encoding="utf-8")).get("objects", {})
+    core_schema_contract = json.loads(args.core_schema_contract.read_text(encoding="utf-8"))
+    v17_target_tables = {
+        table
+        for tables in core_schema_contract["v17Delta"]["objectTargetTables"].values()
+        for table in tables
+    }
     if set(maintained_map) != expected_objects:
         raise ValueError("maintained object-table map coverage differs from the complete domain entity set")
     for object_name, target_tables in TARGETS.items():
@@ -335,7 +467,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             if len(requirement_owner_set) != 1:
                 raise ValueError(f"{object_name} has conflicting Owners without an explicit Context Owner: {sorted(requirement_owner_set)}")
             owner = next(iter(requirement_owner_set))
-        elif owner not in requirement_owner_set:
+        elif requirement_owner_set and owner not in requirement_owner_set:
             raise ValueError(f"{object_name} explicit Owner {owner} is not backed by any declaring requirement")
         raw_sources = OVERRIDES.get(object_name)
         if raw_sources is None:
@@ -356,8 +488,12 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
             "requirementIds": sorted(contract["requirements"]),
             "targetTables": list(target_tables),
-            "sources": expand_sources(raw_sources, current_catalog, legacy_catalog, commit),
+            "sources": expand_sources(raw_sources, current_catalog, legacy_catalog, commit, target_tables),
         }
+        if model_contract:
+            for key in ("governanceRefs", "decisionRefs"):
+                if model_contract.get(key):
+                    record[key] = model_contract[key]
         if target_policy["targetTablePolicy"] != "CURRENT_PHYSICAL_TARGET":
             record.update(target_policy)
         records.append(record)
@@ -366,6 +502,8 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             "owner": record["owner"],
             "requirementIds": record["requirementIds"],
             "targetTables": record["targetTables"],
+            **({"governanceRefs": record["governanceRefs"]} if record.get("governanceRefs") else {}),
+            **({"decisionRefs": record["decisionRefs"]} if record.get("decisionRefs") else {}),
             **({"targetTablePolicy": record["targetTablePolicy"]} if record.get("targetTablePolicy") else {}),
             **({"featureRequirementId": record["featureRequirementId"]} if record.get("featureRequirementId") else {}),
         }
@@ -380,6 +518,8 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         "implementationRepo": str(args.implementation.resolve()),
         "implementationCommit": commit,
         "implementationTreeState": "CLEAN",
+        "bindingStatistics": binding_statistics(records, v17_target_tables),
+        "excludedSources": EXCLUDED_SOURCES,
         "objectTableMap": object_table_map,
         "records": records,
     }
@@ -417,6 +557,7 @@ def main() -> int:
     parser.add_argument("--json-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.json"))
     parser.add_argument("--md-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.md"))
     parser.add_argument("--object-table-map", type=Path, default=Path("docs/traceability/domain-object-table-map.json"))
+    parser.add_argument("--core-schema-contract", type=Path, default=Path("docs/traceability/core-migration-schema-contract.json"))
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     payload = build(args)

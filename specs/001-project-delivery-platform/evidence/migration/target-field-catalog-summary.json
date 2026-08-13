@@ -1,12 +1,12 @@
 {
-  "ddlSha256": "03D0819B92964948044F186829D1F2E6A77C25A7B66126B12A5141D97535B125",
-  "tableCount": 63,
-  "columnCount": 1242,
-  "commentedColumnCount": 1086,
-  "invalidCommentCount": 156,
+  "ddlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
+  "tableCount": 61,
+  "columnCount": 1250,
+  "commentedColumnCount": 1131,
+  "invalidCommentCount": 119,
   "domains": {
-    "客户与联系人": 32,
-    "客户管理": 27,
+    "客户与联系人": 31,
+    "客户管理": 28,
     "公共支撑": 16,
     "项目管理": 162,
     "文档与交付件": 59,
@@ -17,21 +17,26 @@
     "合同订单履约": 18,
     "CRM执行单辅助": 130,
     "迁移与同步": 69,
-    "基础平台": 22,
-    "方案与实施": 26,
-    "验收与闭环": 48,
-    "割接管理": 38,
-    "服务支持": 30,
+    "基础平台": 2,
+    "方案与实施": 46,
+    "验收与闭环": 79,
+    "割接管理": 45,
     "资产与设备": 15
   },
   "fieldClasses": {
     "TECHNICAL": 360,
-    "BUSINESS": 553,
-    "IDENTITY": 30,
-    "LINEAGE": 122,
+    "BUSINESS": 568,
+    "IDENTITY": 26,
+    "LINEAGE": 106,
     "CONTROL": 6,
-    "AUDIT": 35,
-    "RELATION": 129,
+    "AUDIT": 33,
+    "RELATION": 144,
     "CACHE": 7
+  },
+  "v17FieldBasisCoverage": {
+    "tableCount": 11,
+    "fieldCount": 185,
+    "missingBasisCount": 0,
+    "dataElementReferencedFieldCount": 10
   }
 }

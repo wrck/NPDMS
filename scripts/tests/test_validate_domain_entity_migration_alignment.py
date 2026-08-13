@@ -48,26 +48,52 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         (self.root / "docs/design/12-integration-design.md").write_text("CRM 现有采集平台 钉钉 ITR MES\n", encoding="utf-8")
         (self.root / "docs/design/08a-domain-entity-migration-alignment.md").write_text("AI-MIG-000\n", encoding="utf-8")
         (self.root / "docs/traceability/domain-entity-migration-contract.md").write_text("generated\n", encoding="utf-8")
-        schema = {"tableName": "pm_project", "fieldName": "id"}
+        schema_records = [
+            {"sheet": "项目管理", "row": 1, "cell": "A1", "tableName": "pm_project", "fieldName": "id"},
+            {"sheet": "项目管理", "row": 2, "cell": "A2", "tableName": "pm_project", "fieldName": "customerName"},
+            {"sheet": "项目管理", "row": 3, "cell": "A3", "tableName": "pm_project", "fieldName": "processHour"},
+        ]
         (self.root / "specs/001-project-delivery-platform/evidence/data-elements/schema-records.jsonl").write_text(
-            json.dumps(schema) + "\n", encoding="utf-8"
+            "\n".join(json.dumps(record, ensure_ascii=False) for record in schema_records) + "\n", encoding="utf-8"
         )
         ddl = self.root / "specs/001-project-delivery-platform/appendices/test.sql"
-        ddl.write_text("CREATE TABLE proj_project (id bigint);\n", encoding="utf-8")
+        ddl.write_text(
+            "CREATE TABLE proj_project (\n"
+            "  id bigint,\n  source_project_id varchar(128),\n  customer_code varchar(64),\n"
+            "  customer_name varchar(255),\n  duration_hours decimal(20,6),\n"
+            "  direction_code varchar(32),\n  signed_adjustment_hours decimal(20,6)\n"
+            ") ENGINE=InnoDB;\n",
+            encoding="utf-8",
+        )
         ddl_sha = hashlib.sha256(ddl.read_bytes()).hexdigest().upper()
         self.ddl_review = {
             "inputs": {"ddlPath": "specs/001-project-delivery-platform/appendices/test.sql", "currentDdlSha256": ddl_sha},
             "decisionPolicy": {"current": "DEFER", "approvedDdlSha256": None},
         }
         self._write_json("specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json", self.ddl_review)
+        self._write_json(
+            "docs/traceability/core-migration-schema-contract.json",
+            {"v17Delta": {"objectTargetTables": {"Project": ["proj_project"]}}},
+        )
         self.gate = {"overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": [{"id": "P3-E09", "status": "OPEN"}]}
         self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
         self.contract = {
             "implementationRepo": str(self.impl), "implementationCommit": "TEST_COMMIT", "implementationTreeState": "CLEAN",
+            "excludedSources": [{
+                "sourceType": "LEGACY_TABLE", "sourceObject": "pm_project_maintenance",
+                "disposition": "EXCLUDED", "mappingStatus": "NO_MIGRATION",
+                "transform": "NO_MIGRATION: requirement owner confirmation on 2026-08-13",
+                "gate": "USER_CONFIRMED_EXCLUSION", "targetFieldBindings": [],
+                "exclusionAudit": {
+                    "decisionDate": "2026-08-13", "decisionSource": "REQUIREMENT_OWNER_CONFIRMATION",
+                    "sourceTable": "pm_project_maintenance", "rowCount": None,
+                    "extractionBatchSha256": None, "auditStatus": "PENDING_EXTRACTION_AUDIT",
+                },
+            }],
             "records": [
                 {
                     "object": "Project", "owner": "PROJ", "requirementIds": ["PM-01"], "targetTables": ["proj_project"],
-                    "sources": [{"sourceType": "LEGACY_TABLE", "sourceObject": "pm_project", "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project", "disposition": "STRUCTURED", "transform": "map", "mappingStatus": "READY", "gate": "AI-MIG-000"}],
+                    "sources": [{"sourceType": "LEGACY_TABLE", "sourceObject": "pm_project", "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project", "disposition": "STRUCTURED", "transform": "map", "mappingStatus": "READY", "gate": "AI-MIG-000", "targetFieldBindings": [{"sourceField": "pm_project.id", "targetField": "proj_project.source_project_id", "transform": "EXTERNAL_KEY_MAPPING source-key preservation; target id is NEW_GENERATED", "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A1"}], "statusMapping": {"policy": "NO_SOURCE_STATUS"}, "terminalDisposition": "MIGRATE_STRUCTURED_AND_PRESERVE_RAW"}],
                 },
                 {
                     "object": "ArrivalAcceptance", "owner": "IMP", "requirementIds": ["EXE-01"], "targetTables": ["imp_arrival_acceptance"],
@@ -88,6 +114,31 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         (self.root / relative).write_text(json.dumps(value), encoding="utf-8")
 
     def _save_contract(self) -> None:
+        legacy_bindings = [
+            binding
+            for record in self.contract["records"]
+            for source in record["sources"]
+            if source["sourceType"] in {"LEGACY_TABLE", "LEGACY_FIELD_PATTERN"}
+            for binding in source.get("targetFieldBindings", [])
+            if binding["targetField"].split(".", 1)[0] == "proj_project"
+        ]
+        source_fields = [
+            f"{table}.{field}"
+            for binding in legacy_bindings
+            for table, field in VALIDATOR.expanded_source_fields(binding["sourceField"])
+        ]
+        self.contract["bindingStatistics"] = {
+            "allBindingCount": sum(
+                len(source.get("targetFieldBindings", []))
+                for record in self.contract["records"]
+                for source in record["sources"]
+            ),
+            "v17BindingCount": len(legacy_bindings),
+            "v17LegacyBindingCount": len(legacy_bindings),
+            "v17LegacySourceTableCount": len({field.split(".", 1)[0] for field in source_fields}),
+            "v17LegacySourceFieldCount": len(source_fields),
+            "v17LegacyUniqueSourceFieldCount": len(set(source_fields)),
+        }
         self._write_json("docs/traceability/domain-entity-migration-contract.json", self.contract)
         self._write_json("docs/traceability/domain-object-table-map.json", {"schemaVersion": 1, "objects": self.contract["objectTableMap"]})
 
@@ -156,6 +207,75 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self.contract["records"][0]["sources"][0]["disposition"] = "STRUCTURED+EXCLUDED"
         self._save_contract()
         self.assertTrue(any("combined disposition" in error for error in self._validate()))
+
+    def test_structured_source_without_target_field_bindings_fails(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["targetFieldBindings"] = []
+        self._save_contract()
+        self.assertTrue(any("zero target field bindings" in error for error in self._validate()))
+
+    def test_source_business_key_cannot_bind_generated_target_id(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["targetFieldBindings"][0]["targetField"] = "proj_project.id"
+        self._save_contract()
+        self.assertTrue(any("generated target id" in error for error in self._validate()))
+
+    def test_binding_evidence_coordinate_must_match_source_field(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["targetFieldBindings"][0]["evidenceRef"] = "data-elements://schema-records.jsonl#项目管理!A2"
+        self._save_contract()
+        self.assertTrue(any("evidence does not contain source field" in error for error in self._validate()))
+
+    def test_binding_source_table_must_belong_to_source_object(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["targetFieldBindings"][0]["sourceField"] = "unrelated.id"
+        self._save_contract()
+        self.assertTrue(any("outside declared sourceObject" in error for error in self._validate()))
+
+    def test_name_field_cannot_bind_code_column(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["targetFieldBindings"][0] = {
+            "sourceField": "pm_project.customerName",
+            "targetField": "proj_project.customer_code",
+            "transform": "direct",
+            "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A2",
+        }
+        self._save_contract()
+        self.assertTrue(any("name field cannot bind code column" in error for error in self._validate()))
+
+    def test_duration_field_cannot_bind_signed_adjustment(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["targetFieldBindings"][0] = {
+            "sourceField": "pm_project.processHour",
+            "targetField": "proj_project.signed_adjustment_hours",
+            "transform": "direct",
+            "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A3",
+        }
+        self._save_contract()
+        self.assertTrue(any("duration field cannot bind adjustment/direction" in error for error in self._validate()))
+
+    def test_target_reference_id_requires_explicit_resolution_strategy(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["targetFieldBindings"][0]["transform"] = "direct"
+        self._save_contract()
+        self.assertTrue(any("requires explicit target-key resolution" in error for error in self._validate()))
+
+    def test_pm_project_maintenance_can_only_be_excluded(self) -> None:
+        source = self.contract["records"][0]["sources"][0]
+        source["sourceObject"] = "pm_project_maintenance"
+        self._save_contract()
+        self.assertTrue(any("must not attach pm_project_maintenance" in error for error in self._validate()))
+
+    def test_excluded_source_must_have_zero_target_bindings(self) -> None:
+        self.contract["excludedSources"][0]["targetFieldBindings"] = [{"targetField": "proj_project.customer_name"}]
+        self._save_contract()
+        self.assertTrue(any("top-level exclusion audit is incomplete" in error for error in self._validate()))
+
+    def test_binding_statistics_cannot_be_hard_coded(self) -> None:
+        self._save_contract()
+        self.contract["bindingStatistics"]["v17BindingCount"] = 30
+        self._write_json("docs/traceability/domain-entity-migration-contract.json", self.contract)
+        self.assertTrue(any("binding statistics must be derived" in error for error in self._validate()))
 
     def test_unapproved_ddl_cannot_close_gate(self) -> None:
         self.gate["overallStatus"] = "READY_FOR_SDS_BASELINE"

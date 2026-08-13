@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T12:39:25.521393+00:00",
+  "generatedAt": "2026-08-13T14:52:32.692135+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -10,15 +10,15 @@
     "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
     "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
     "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-    "currentDdlSha256": "03D0819B92964948044F186829D1F2E6A77C25A7B66126B12A5141D97535B125",
+    "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
     "baselineNameNormalization": "ADR-0019"
   },
   "summary": {
     "baselineTableCount": 52,
-    "currentTableCount": 63,
+    "currentTableCount": 61,
     "baselineColumnCount": 1076,
-    "currentColumnCount": 1242,
-    "tableDiff": 19,
+    "currentColumnCount": 1250,
+    "tableDiff": 17,
     "columnDiff": 28,
     "constraintDiff": 0,
     "tableOptionDiff": 0,
@@ -83,6 +83,11 @@
       "decision": "DEFER"
     },
     {
+      "table": "imp_configuration_collection_result",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
       "table": "imp_configuration_component_candidate",
       "change": "ADDED",
       "decision": "DEFER"
@@ -105,21 +110,6 @@
     {
       "table": "kno_technical_advisory_read_record",
       "change": "REMOVED",
-      "decision": "DEFER"
-    },
-    {
-      "table": "plt_directory_sync_snapshot",
-      "change": "ADDED",
-      "decision": "DEFER"
-    },
-    {
-      "table": "srv_historical_time_record",
-      "change": "ADDED",
-      "decision": "DEFER"
-    },
-    {
-      "table": "srv_historical_work_order",
-      "change": "ADDED",
       "decision": "DEFER"
     }
   ],

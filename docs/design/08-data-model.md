@@ -222,7 +222,7 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 
 设备归属变更与项目树移动可能并发，二者必须使用独立版本控制并在投影层按批次重算；业务查询必须能识别投影水位。
 
-历史工单、工时、附件、审批和操作证据不进入当前可流转聚合。它们按`HistoricalWorkOrderRecord`、`HistoricalTimeRecord`只读迁移资料保存结构化查询字段、来源业务键、原状态、原责任人、附件/审批/审计引用及不可变原始载荷；物理落表由P3-E09评审确定。
+历史业务事实不可删除是 PRD 第 8.2 节的治理规则，但不构成当前预建历史工单/工时对象或空壳表的依据。当前未识别并确认真实来源；将来只有在来源识别且需求方确认迁移后，才通过独立变更重新建模。
 
 ### 9.3 Contract & Fulfillment
 
@@ -271,11 +271,12 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 | 聚合/实体 | Owner 事实 | 规则 |
 |---|---|---|
 | Todo | 待办身份、业务引用和同步状态 | 待办完成不等于业务完成；业务状态由 Owner Context 确认 |
-| DirectorySyncSnapshot | HR必要人员与组织主数据的本地同步快照 | 保存稳定来源键、来源版本、同步水位和必要字段；外部Owner不被平台覆盖，不在查询时逐次穿透HR接口 |
 | AuthorizationGrant | 通用业务授权范围、有效期和撤销 | 不替代 DeviceCredential 的专用授权边界 |
 | ChangeRequest | 变更申请、差异、审批引用和执行结果 | 版本变更作为低优先级独立能力，能后置的后置 |
 | FileArtifact | 文件身份、内容版本、哈希和存储引用 | 详见 13；正文不复制进多个领域表 |
 | AuditRecord | 主体、动作、对象、结果和关联 ID | Word 文件本身无需内容审计；业务动作和文件版本操作仍留痕 |
+
+INT-05/INT-09 的人员、部门、岗位使用基础平台现有主数据；同步批次/水位和稳定来源键分别由已有 `plt_sync_batch`、`plt_external_key_mapping` 承载。不建立独立目录快照对象或替代表；基础平台主数据的前向实现仍由相应 Feature 管理。
 
 ### 10.3 Knowledge Reference
 

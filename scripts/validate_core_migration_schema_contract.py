@@ -16,6 +16,7 @@ EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migratio
 OBJECT_TABLE_MAP = Path("docs/traceability/domain-object-table-map.json")
 EXPECTED_V17_OBJECT_TABLES = {
     "ConfigurationCollectionResult": {
+        "imp_configuration_collection_result",
         "imp_configuration_collection_parse_attempt",
         "imp_configuration_component_candidate",
     },
@@ -27,35 +28,223 @@ EXPECTED_V17_OBJECT_TABLES = {
     },
     "CutoverSupportTask": {"cut_cutover_support_task", "cut_cutover_support_history"},
     "ResponsibilityInterval": {"cut_cutover_support_responsibility_interval"},
-    "HistoricalWorkOrderRecord": {"srv_historical_work_order"},
-    "HistoricalTimeRecord": {"srv_historical_time_record"},
     "DeviceComponentRelation": {"ast_device_component_relation"},
-    "DirectorySyncSnapshot": {"plt_directory_sync_snapshot"},
 }
 EXPECTED_V17_REQUIREMENTS = {
-    "ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04", "CUT-11", "SRV-01",
-    "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03", "INT-05",
+    "ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04", "CUT-11",
+    "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03",
 }
-EXPECTED_V17_CONSTRAINTS = {
-    "imp_configuration_collection_parse_attempt": {"uk_configuration_parse_attempt"},
-    "imp_configuration_component_candidate": {"uk_configuration_component_candidate"},
-    "acc_satisfaction_collection_task": {"uk_satisfaction_task_revision"},
-    "acc_satisfaction_questionnaire": {"uk_satisfaction_questionnaire_revision"},
-    "acc_satisfaction_response": {"uk_satisfaction_response_sequence", "uk_satisfaction_response_request"},
-    "acc_satisfaction_result": {"uk_satisfaction_result_sequence", "uk_satisfaction_result_response"},
-    "cut_cutover_support_task": {"uk_cutover_support_task_no", "uk_cutover_support_scope_window"},
-    "cut_cutover_support_history": {"uk_cutover_support_history_sequence"},
-    "cut_cutover_support_responsibility_interval": {"uk_cutover_responsibility_interval_sequence"},
-    "srv_historical_work_order": {"uk_historical_work_order_source"},
-    "srv_historical_time_record": {"uk_historical_time_record_source"},
-    "ast_device_component_relation": {"uk_device_component_current_slot"},
-    "plt_directory_sync_snapshot": {"uk_directory_sync_snapshot_source"},
+EXPECTED_V17_UNIQUE_KEYS = {
+    "imp_configuration_collection_result": {
+        "uk_configuration_collection_result": ("tenant_id", "collection_task_id", "result_type_code", "result_version_no"),
+    },
+    "imp_configuration_collection_parse_attempt": {
+        "uk_configuration_parse_attempt": ("tenant_id", "collection_result_id", "attempt_no"),
+    },
+    "imp_configuration_component_candidate": {
+        "uk_configuration_component_candidate": ("tenant_id", "parse_attempt_id", "candidate_no"),
+    },
+    "acc_satisfaction_collection_task": {
+        "uk_satisfaction_task_revision": (
+            "tenant_id", "project_id", "source_context", "source_object_type", "source_object_id",
+            "source_object_version", "business_purpose_code", "applicable_timing_code",
+            "payment_stage_key", "task_revision_no",
+        ),
+    },
+    "acc_satisfaction_questionnaire": {
+        "uk_satisfaction_questionnaire_revision": ("tenant_id", "task_id", "questionnaire_revision_no"),
+    },
+    "acc_satisfaction_response": {
+        "uk_satisfaction_response_sequence": ("tenant_id", "questionnaire_id", "response_no"),
+        "uk_satisfaction_response_request": ("tenant_id", "questionnaire_id", "request_id"),
+    },
+    "acc_satisfaction_result": {
+        "uk_satisfaction_result_sequence": ("tenant_id", "questionnaire_id", "result_no"),
+        "uk_satisfaction_result_response": ("tenant_id", "response_id"),
+    },
+    "cut_cutover_support_task": {
+        "uk_cutover_support_task_no": ("tenant_id", "task_no"),
+        "uk_cutover_support_scope_window": ("tenant_id", "cutover_task_id", "support_scope_hash", "window_start", "window_end"),
+    },
+    "cut_cutover_support_history": {
+        "uk_cutover_support_history_sequence": ("tenant_id", "support_task_id", "history_no"),
+    },
+    "cut_cutover_support_responsibility_interval": {
+        "uk_cutover_responsibility_interval_sequence": ("tenant_id", "support_task_id", "interval_no"),
+        "uk_cutover_responsibility_current": ("tenant_id", "current_support_task_id"),
+    },
+    "ast_device_component_relation": {
+        "uk_device_component_current_slot": ("tenant_id", "chassis_device_id", "current_slot_code"),
+    },
 }
 V3_DESIGN_ONLY_TABLES = {
     "kno_device_technical_advisory_match",
     "kno_technical_advisory",
     "kno_technical_advisory_product_relation",
     "kno_technical_advisory_read_record",
+}
+EXPECTED_FORBIDDEN_V1V2_TABLES = V3_DESIGN_ONLY_TABLES | {
+    "srv_work_order", "srv_work_order_handling_record", "srv_work_order_sla",
+    "srv_time_claim", "srv_time_adjustment",
+    "srv_historical_work_order", "srv_historical_time_record",
+    "srv_renewal", "srv_renewal_operation",
+    "proj_daily_report", "proj_weekly_report",
+    "plt_directory_sync_snapshot",
+}
+
+# Every current table must have an explicit V1/V2 business scope or an accepted
+# common migration rule.  The values below are deliberately table-grained so a
+# broad domain prefix cannot hide a deferred or excluded table.
+EXPECTED_CURRENT_TABLE_SCOPE = {
+    "cus_customer": {"requirementRefs": ["CUS-03", "INT-03"]},
+    "cus_market_relation": {"requirementRefs": ["CUS-03", "INT-03"]},
+    "cus_customer_contact": {"requirementRefs": ["CUS-04"]},
+    "ast_product": {"requirementRefs": ["EQP-01", "EQP-03"]},
+    "proj_project": {"requirementRefs": ["INT-01", "PM-01", "PM-07", "PM-10"]},
+    "proj_project_relation": {"requirementRefs": ["PM-02", "PM-04"]},
+    "proj_project_party": {"requirementRefs": ["PM-01"]},
+    "proj_project_company_department_relation": {"requirementRefs": ["PM-01", "PM-08"]},
+    "proj_project_member_assignment": {"requirementRefs": ["PM-01", "PM-08", "PM-09"]},
+    "plt_business_document": {"requirementRefs": ["PLT-02"]},
+    "plt_document_version": {"requirementRefs": ["PLT-02"]},
+    "acc_deliverable_template": {"requirementRefs": ["ACC-04"]},
+    "acc_project_deliverable": {"requirementRefs": ["ACC-04"]},
+    "proj_project_portfolio": {"requirementRefs": ["PROJ-12"]},
+    "proj_project_portfolio_member": {"requirementRefs": ["PROJ-12"]},
+    "com_contract": {"requirementRefs": ["COM-01", "INT-01"]},
+    "com_contract_receivable": {"requirementRefs": ["COM-01", "COM-02"]},
+    "com_shipment_contract_reference": {"requirementRefs": ["COM-01", "COM-02"]},
+    "com_shipment_package": {"requirementRefs": ["COM-01", "COM-02"]},
+    "com_project_contract_relation": {"requirementRefs": ["COM-01"]},
+    "com_sales_order": {"requirementRefs": ["COM-01", "INT-01"]},
+    "com_order_contract_relation": {"requirementRefs": ["COM-01"]},
+    "com_sales_order_line": {"requirementRefs": ["COM-01"]},
+    "com_delivery_scope": {"requirementRefs": ["COM-01"]},
+    "com_delivery_scope_detail": {"requirementRefs": ["COM-01"]},
+    "ast_device_sn": {"requirementRefs": ["EQP-01", "EQP-04"]},
+    "ast_device_shipment_event": {"requirementRefs": ["EQP-01", "EQP-03"]},
+    "ast_device_project_assignment": {"requirementRefs": ["EQP-01", "EQP-03"]},
+    "ast_device_relation": {"requirementRefs": ["EQP-01", "EQP-03"]},
+    "ast_device_configuration": {"requirementRefs": ["EQP-01", "EQP-02", "EXE-03"]},
+    "ast_device_configuration_feature": {"requirementRefs": ["EQP-01", "EQP-02", "EXE-03"]},
+    "ast_device_configuration_service": {"requirementRefs": ["EQP-01", "EQP-02", "EXE-03"]},
+    "ast_network_topology": {"requirementRefs": ["EQP-01", "EQP-03"]},
+    "ast_network_topology_device_relation": {"requirementRefs": ["EQP-01", "EQP-03"]},
+    "ast_device_version": {"requirementRefs": ["EQP-01", "EQP-03", "INT-02"]},
+    "ast_product_release": {"requirementRefs": ["EQP-01", "EQP-03", "INT-02"]},
+    "srv_service_incident": {"requirementRefs": ["EQP-07", "INT-02"]},
+    "srv_service_incident_device_relation": {"requirementRefs": ["EQP-07", "INT-02"]},
+    "com_crm_execution_order": {"requirementRefs": ["INT-01"]},
+    "com_crm_execution_config": {"requirementRefs": ["INT-01"]},
+    "com_order_execution_relation": {"requirementRefs": ["COM-01", "INT-01"]},
+    "com_order_line_execution_relation": {"requirementRefs": ["COM-01", "INT-01"]},
+    "com_execution_order_merge_batch": {"requirementRefs": ["COM-01", "INT-01"]},
+    "com_execution_order_merge_member": {"requirementRefs": ["COM-01", "INT-01"]},
+    "com_order_change_relation": {"requirementRefs": ["COM-01", "INT-01"]},
+    "plt_sync_batch": {"requirementRefs": ["INT-01", "INT-02", "INT-03", "INT-05", "INT-09"]},
+    "plt_migration_source_record": {"technicalRuleRefs": ["ADR-0022#migration-lineage-and-issue"]},
+    "plt_external_key_mapping": {"technicalRuleRefs": ["ADR-0022#external-key-mapping"]},
+    "plt_migration_issue": {"technicalRuleRefs": ["ADR-0022#migration-lineage-and-issue"]},
+    "ana_project_delivery_summary": {"requirementRefs": ["ANA-01", "RPT-02"]},
+    "imp_configuration_collection_result": {"requirementRefs": ["EXE-03"]},
+    "imp_configuration_collection_parse_attempt": {"requirementRefs": ["EXE-03"]},
+    "imp_configuration_component_candidate": {"requirementRefs": ["EXE-03"]},
+    "acc_satisfaction_collection_task": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    "acc_satisfaction_questionnaire": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    "acc_satisfaction_response": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    "acc_satisfaction_result": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
+    "cut_cutover_support_task": {"requirementRefs": ["CUT-11"]},
+    "cut_cutover_support_history": {"requirementRefs": ["CUT-11"]},
+    "cut_cutover_support_responsibility_interval": {"requirementRefs": ["CUT-11"]},
+    "ast_device_component_relation": {"requirementRefs": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03"]},
+}
+
+# Required business/lineage columns are deliberately machine-readable.  Types are
+# regexes over the MySQL declaration and nullable is the required NULL contract.
+EXPECTED_V17_REQUIRED_COLUMNS = {
+    "imp_configuration_collection_result": {
+        "collection_task_id": (r"BIGINT", False), "project_id": (r"BIGINT", False),
+        "device_id": (r"BIGINT", False), "project_snapshot": (r"JSON", False),
+        "device_snapshot": (r"JSON", False), "result_type_code": (r"VARCHAR\(32\)", False),
+        "result_version_no": (r"INT\s+UNSIGNED", False), "source_code": (r"VARCHAR\(32\)", False),
+        "script_version": (r"VARCHAR\(64\)", True), "parser_version": (r"VARCHAR\(64\)", False),
+        "raw_log_file_id": (r"BIGINT", False), "raw_log_sha256": (r"CHAR\(64\)", False),
+    },
+    "imp_configuration_collection_parse_attempt": {
+        "collection_result_id": (r"BIGINT", False), "attempt_no": (r"INT\s+UNSIGNED", False),
+        "parser_version": (r"VARCHAR\(64\)", False), "parse_status_code": (r"VARCHAR\(32\)", False),
+        "evidence_ref": (r"VARCHAR\(512\)", False),
+    },
+    "imp_configuration_component_candidate": {
+        "parse_attempt_id": (r"BIGINT", False), "candidate_no": (r"INT\s+UNSIGNED", False),
+        "parse_revision_no": (r"INT\s+UNSIGNED", False), "chassis_sn": (r"VARCHAR\(128\)", False),
+        "slot_code": (r"VARCHAR\(64\)", False), "parser_version": (r"VARCHAR\(64\)", False),
+        "card_configuration_ref": (r"VARCHAR\(512\)", False), "evidence_ref": (r"VARCHAR\(512\)", False),
+    },
+    "acc_satisfaction_collection_task": {
+        "project_id": (r"BIGINT", False), "business_purpose_code": (r"VARCHAR\(64\)", False),
+        "applicable_timing_code": (r"VARCHAR\(64\)", False), "source_object_version": (r"VARCHAR\(64\)", False),
+        "payment_stage_code": (r"VARCHAR\(64\)", True), "delivery_scope_snapshot": (r"JSON", True),
+        "delivery_scope_sha256": (r"CHAR\(64\)", True), "prior_task_id": (r"BIGINT", True),
+        "remediation_ref": (r"VARCHAR\(512\)", True), "template_id": (r"BIGINT", False),
+        "payment_stage_key": (r"VARCHAR\(64\)", True),
+    },
+    "acc_satisfaction_questionnaire": {
+        "task_id": (r"BIGINT", False), "questionnaire_revision_no": (r"INT\s+UNSIGNED", False),
+        "source_questionnaire_key": (r"VARCHAR\(128\)", True), "source_questionnaire_version": (r"VARCHAR\(64\)", True),
+        "prior_questionnaire_id": (r"BIGINT", True), "remediation_ref": (r"VARCHAR\(512\)", True),
+        "template_id": (r"BIGINT", False), "template_version": (r"VARCHAR\(64\)", False),
+        "rule_version": (r"VARCHAR\(64\)", False), "required_question_count": (r"INT\s+UNSIGNED", False),
+        "frozen_question_json": (r"JSON", False),
+    },
+    "acc_satisfaction_response": {
+        "questionnaire_id": (r"BIGINT", False), "answer_json": (r"JSON", False),
+        "response_valid": (r"TINYINT", False), "signature_valid": (r"TINYINT", False),
+        "required_validation_summary": (r"JSON", False), "item_validation_summary": (r"JSON", False),
+        "signature_ref": (r"VARCHAR\(512\)", False),
+    },
+    "acc_satisfaction_result": {
+        "questionnaire_id": (r"BIGINT", False), "response_id": (r"BIGINT", False),
+        "response_valid": (r"TINYINT", False), "signature_valid": (r"TINYINT", False),
+        "required_items_valid": (r"TINYINT", False), "validation_summary": (r"JSON", False),
+        "blocking_reason": (r"VARCHAR\(1000\)", True), "archive_status_code": (r"VARCHAR\(32\)", False),
+        "archive_artifact_id": (r"BIGINT", True), "archive_payload_sha256": (r"CHAR\(64\)", True),
+        "archive_time": (r"DATETIME\(3\)", True),
+    },
+    "cut_cutover_support_task": {
+        "source_system": (r"VARCHAR\(32\)", True), "source_business_key": (r"VARCHAR\(128\)", True),
+        "cutover_task_id": (r"BIGINT", False), "project_id": (r"BIGINT", False),
+        "device_scope_snapshot": (r"JSON", False), "current_handler_user_id": (r"BIGINT", False),
+        "current_responsibility_interval_id": (r"BIGINT", False), "current_responsible_user_id": (r"BIGINT", False),
+    },
+    "cut_cutover_support_history": {
+        "support_task_id": (r"BIGINT", False), "history_no": (r"INT\s+UNSIGNED", False),
+        "action_code": (r"VARCHAR\(32\)", False), "status_after_code": (r"VARCHAR\(32\)", False),
+    },
+    "cut_cutover_support_responsibility_interval": {
+        "support_task_id": (r"BIGINT", False), "interval_no": (r"INT\s+UNSIGNED", False),
+        "responsible_user_id": (r"BIGINT", False), "effective_from": (r"DATETIME\(3\)", False),
+        "effective_to": (r"DATETIME\(3\)", True), "current_support_task_id": (r"BIGINT", True),
+    },
+    "ast_device_component_relation": {
+        "chassis_device_id": (r"BIGINT", False), "slot_code": (r"VARCHAR\(64\)", False),
+        "effective_to": (r"DATETIME\(3\)", True), "current_slot_code": (r"VARCHAR\(64\)", True),
+    },
+}
+EXPECTED_V17_FORBIDDEN_COLUMNS = {
+    table: sorted({"password", "private_key", "secret", "token"} | (
+        {"deleted", "version", "updater", "update_time"}
+        if table in {
+            "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result",
+            "cut_cutover_support_history", "cut_cutover_support_responsibility_interval",
+        } else set()
+    ))
+    for table in EXPECTED_V17_REQUIRED_COLUMNS
+}
+EXPECTED_V17_GENERATED_EXPRESSIONS = {
+    "acc_satisfaction_collection_task.payment_stage_key": "COALESCE(payment_stage_code, '')",
+    "cut_cutover_support_responsibility_interval.current_support_task_id": "CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END",
+    "ast_device_component_relation.current_slot_code": "CASE WHEN effective_to IS NULL THEN slot_code ELSE NULL END",
 }
 EXPECTED_NORMALIZATION = {
     "businessCode": "TRIM_UPPERCASE",
@@ -107,8 +296,7 @@ TEMPORAL_CHECKS = {
     "chk_sync_batch_time", "chk_project_company_department_dates", "chk_project_member_dates",
     "chk_project_party_dates", "chk_service_incident_times",
     "chk_configuration_parse_attempt_time", "chk_cutover_support_window",
-    "chk_cutover_responsibility_dates", "chk_historical_work_order_dates",
-    "chk_historical_time_dates", "chk_device_component_dates", "chk_directory_sync_times",
+    "chk_cutover_responsibility_dates", "chk_device_component_dates",
 }
 NO_SELF_CHECKS = {
     "chk_device_relation_self", "chk_device_secondary_self", "chk_order_change_self",
@@ -117,6 +305,7 @@ NO_SELF_CHECKS = {
 NONNEGATIVE_CHECKS = {
     "chk_external_key_target_sequence", "chk_migration_source_target_count",
     "chk_sync_batch_count", "chk_project_depth",
+    "chk_configuration_collection_result_version",
     "chk_configuration_parse_attempt_no", "chk_configuration_component_candidate_no",
     "chk_satisfaction_task_revision", "chk_satisfaction_questionnaire_revision",
     "chk_satisfaction_response_sequence", "chk_satisfaction_result_sequence",
@@ -140,6 +329,64 @@ def unique_keys(body: str) -> list[tuple[str, str]]:
         (match.group(1), " ".join(match.group(2).split()))
         for match in re.finditer(r"UNIQUE\s+KEY\s+(\w+)\s*\((.*?)\)", body, re.IGNORECASE | re.DOTALL)
     ]
+
+
+def normalized_columns(columns: str) -> tuple[str, ...]:
+    return tuple(item.strip().strip("`").lower() for item in columns.split(",") if item.strip())
+
+
+def column_declarations(body: str) -> dict[str, str]:
+    """Return top-level column declarations, including multiline generated expressions."""
+    declarations: dict[str, str] = {}
+    current_name: str | None = None
+    current_lines: list[str] = []
+    nonempty = [line for line in body.splitlines() if line.strip()]
+    top_indent = min(len(line) - len(line.lstrip()) for line in nonempty) if nonempty else 0
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        is_top_level = len(line) - len(line.lstrip()) == top_indent
+        is_constraint = re.match(
+            r"(?:PRIMARY|UNIQUE|KEY|CONSTRAINT|FOREIGN|CHECK)\b", stripped, re.IGNORECASE
+        )
+        column = None if is_constraint or not is_top_level else re.match(r"`?(\w+)`?\s+", stripped)
+        if column:
+            if current_name is not None:
+                declarations[current_name] = " ".join(current_lines).rstrip(",")
+            current_name = column.group(1).lower()
+            current_lines = [stripped]
+        elif current_name is not None:
+            current_lines.append(stripped)
+    if current_name is not None:
+        declarations[current_name] = " ".join(current_lines).rstrip(",")
+    return declarations
+
+
+def normalize_sql_expression(value: str) -> str:
+    return " ".join(value.replace("`", "").split()).strip().upper()
+
+
+def v17_table_contract_payload() -> dict[str, object]:
+    return {
+        table: {
+            "requiredColumns": {
+                name: {"typePattern": type_pattern, "nullable": nullable}
+                for name, (type_pattern, nullable) in columns.items()
+            },
+            "forbiddenColumns": EXPECTED_V17_FORBIDDEN_COLUMNS[table],
+            "uniqueKeys": {
+                name: list(columns)
+                for name, columns in EXPECTED_V17_UNIQUE_KEYS[table].items()
+            },
+            "generatedExpressions": {
+                key.split(".", 1)[1]: expression
+                for key, expression in EXPECTED_V17_GENERATED_EXPRESSIONS.items()
+                if key.startswith(table + ".")
+            },
+        }
+        for table, columns in EXPECTED_V17_REQUIRED_COLUMNS.items()
+    }
 
 
 def q07_q08_actual_counts(tables: dict[str, str], ddl: str) -> tuple[dict[str, object], int]:
@@ -206,6 +453,8 @@ def validate_v17_delta(
         errors.append("V1.7 delta metadata must reference ADR-0025 and remain BLOCKED_BY_REVIEW")
     if set(delta.get("requirementRefs", [])) != EXPECTED_V17_REQUIREMENTS:
         errors.append("V1.7 delta requirement reference set mismatch")
+    if delta.get("tableContracts") != v17_table_contract_payload():
+        errors.append("V1.7 per-table column and constraint contract mismatch")
     declared = delta.get("objectTargetTables", {})
     if not isinstance(declared, dict):
         errors.append("V1.7 objectTargetTables must be an object")
@@ -218,25 +467,63 @@ def validate_v17_delta(
             errors.append(f"V1.7 contract table mapping mismatch: {object_name}")
         mapped = objects.get(object_name, {})
         mapped_tables = mapped.get("targetTables", []) if isinstance(mapped, dict) else []
-        actual_delta = set(mapped_tables) & expected_tables
-        if actual_delta != expected:
+        if set(mapped_tables) != expected:
             errors.append(f"V1.7 object table map mismatch: {object_name}")
+    forbidden_mapped = sorted({
+        table
+        for mapped in objects.values() if isinstance(mapped, dict)
+        for table in mapped.get("targetTables", []) if isinstance(table, str)
+        if table in EXPECTED_FORBIDDEN_V1V2_TABLES
+    })
+    if forbidden_mapped:
+        errors.append(f"forbidden current tables must not appear in object table map: {forbidden_mapped}")
     declared_tables = {
         table for values in declared.values() if isinstance(values, list) for table in values
     }
     if declared_tables != expected_tables:
-        errors.append("V1.7 delta must declare exactly the 13 approved target tables")
+        errors.append("V1.7 delta must declare exactly the 11 in-scope target tables")
     for table in sorted(expected_tables):
         if table not in tables:
             errors.append(f"V1.7 target table missing: {table}")
             continue
-        key_names = set(dict(unique_keys(tables[table])))
-        for constraint in sorted(EXPECTED_V17_CONSTRAINTS[table] - key_names):
-            errors.append(f"V1.7 required unique constraint missing: {table}.{constraint}")
+        body = tables[table]
+        declarations = column_declarations(body)
+        for column, (type_pattern, nullable) in EXPECTED_V17_REQUIRED_COLUMNS[table].items():
+            declaration = declarations.get(column)
+            if declaration is None:
+                errors.append(f"V1.7 required column missing: {table}.{column}")
+                continue
+            if not re.search(type_pattern, declaration, re.IGNORECASE):
+                errors.append(f"V1.7 required column type mismatch: {table}.{column}")
+            actual_nullable = not bool(re.search(r"\bNOT\s+NULL\b", declaration, re.IGNORECASE))
+            if actual_nullable != nullable:
+                errors.append(f"V1.7 required column nullability mismatch: {table}.{column}")
+        for column in EXPECTED_V17_FORBIDDEN_COLUMNS[table]:
+            if column in declarations:
+                errors.append(f"V1.7 forbidden column present: {table}.{column}")
+        actual_keys = {name: normalized_columns(columns) for name, columns in unique_keys(body)}
+        for constraint, expected_columns in EXPECTED_V17_UNIQUE_KEYS[table].items():
+            if actual_keys.get(constraint) != expected_columns:
+                errors.append(f"V1.7 unique constraint shape mismatch: {table}.{constraint}")
+        for key, expected_expression in EXPECTED_V17_GENERATED_EXPRESSIONS.items():
+            expected_table, column = key.split(".", 1)
+            if expected_table != table:
+                continue
+            declaration = declarations.get(column, "")
+            generated = re.search(
+                r"GENERATED\s+ALWAYS\s+AS\s*\((.*?)\)\s*STORED",
+                declaration,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if not generated or normalize_sql_expression(generated.group(1)) != normalize_sql_expression(expected_expression):
+                errors.append(f"V1.7 generated expression mismatch: {table}.{column}")
 
-    present_v3 = sorted(V3_DESIGN_ONLY_TABLES & tables.keys())
-    if present_v3:
-        errors.append(f"V3 design-only tables must not appear in V1.7 delta DDL: {present_v3}")
+    forbidden_tables = set(contract.get("forbiddenV1V2Tables", []))
+    if forbidden_tables != EXPECTED_FORBIDDEN_V1V2_TABLES:
+        errors.append("V1/V2 forbidden table machine list mismatch")
+    present_forbidden = sorted(forbidden_tables & tables.keys())
+    if present_forbidden:
+        errors.append(f"V3/OUT_OF_SCOPE tables must not appear in V1.7 delta DDL: {present_forbidden}")
     for table, body in tables.items():
         owner = table.split("_", 1)[0]
         for match in re.finditer(
@@ -256,16 +543,8 @@ def validate_v17_delta(
         if source.split("_", 1)[0] != target.split("_", 1)[0]:
             errors.append(f"cross-domain foreign key {constraint}: {source} -> {target}")
 
-    historical = set(delta.get("historicalReadOnlyTables", []))
-    expected_historical = {"srv_historical_work_order", "srv_historical_time_record"}
-    if historical != expected_historical:
-        errors.append("V1.7 historical read-only table set mismatch")
-    mutable_columns = {"status_code", "deleted", "version", "updater", "update_time"}
-    for table in expected_historical:
-        body = tables.get(table, "")
-        for column in mutable_columns:
-            if re.search(rf"(?m)^\s*{column}\s+", body, re.IGNORECASE):
-                errors.append(f"V1.7 historical table contains mutable column: {table}.{column}")
+    if delta.get("historicalReadOnlyTables") != []:
+        errors.append("V1.7 historical read-only table set must be empty until a real source and model are approved")
 
     expected_append_only = {
         "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result",
@@ -312,6 +591,19 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
         errors.append("cross-domain reference policy must be LOGICAL_REFERENCE")
     if set(contract.get("v3DesignOnlyTables", [])) != V3_DESIGN_ONLY_TABLES:
         errors.append("V3 design-only table set mismatch")
+    if set(contract.get("forbiddenV1V2Tables", [])) != EXPECTED_FORBIDDEN_V1V2_TABLES:
+        errors.append("V1/V2 forbidden table machine list mismatch")
+    current_scope = contract.get("currentTableScope", {})
+    if isinstance(current_scope, dict):
+        if set(current_scope) != set(tables):
+            errors.append("current DDL table scope must cover the exact table set")
+        for table, scope in current_scope.items():
+            if scope != EXPECTED_CURRENT_TABLE_SCOPE.get(table):
+                errors.append(f"current DDL table scope mapping mismatch: {table}")
+            if not isinstance(scope, dict) or not (
+                scope.get("requirementRefs") or scope.get("technicalRuleRefs")
+            ):
+                errors.append(f"current DDL table has no V1/V2 scope evidence: {table}")
     if set(contract.get("acceptedDdlItems", [])) != EXPECTED_ACCEPTED_DDL_ITEMS:
         errors.append("ADR-0022 accepted DDL item set mismatch")
     if contract.get("q03CurrentBusinessFacts") != EXPECTED_Q03_FACTS:

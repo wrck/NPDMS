@@ -13,7 +13,7 @@
   "capturedAt": null,
   "confirmedFacts": {
     "approvedDdlSha256": null,
-    "currentDdlSha256": "03D0819B92964948044F186829D1F2E6A77C25A7B66126B12A5141D97535B125",
+    "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
     "dataElementExcelSha256": null,
     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
     "generatorVersion": null,
@@ -38,19 +38,19 @@
     "v17DeltaStatus": "BLOCKED_BY_REVIEW",
     "q07Decision": {
       "status": "ACCEPTED",
-      "technicalConstraintCount": 264,
-      "primaryKeyCount": 63,
+      "technicalConstraintCount": 258,
+      "primaryKeyCount": 61,
       "primaryKeyShape": {
-        "singleId": 62,
+        "singleId": 60,
         "compositeProjection": 1
       },
-      "tenantReferenceKeyCount": 63,
+      "tenantReferenceKeyCount": 61,
       "sameDomainForeignKeyCount": 48,
-      "stableTechnicalCheckCount": 90
+      "stableTechnicalCheckCount": 88
     },
     "q08Decision": {
       "status": "CANDIDATE_BASELINE_ACCEPTED",
-      "candidateIndexCount": 126,
+      "candidateIndexCount": 124,
       "featureQueryPlanValidationRequired": true,
       "p3e06PerformanceValidationRequired": true,
       "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
@@ -58,9 +58,9 @@
     "isolatedMysqlExecution": {
       "status": "PASS",
       "mysqlVersion": "8.4.10",
-      "tableCount": 63,
-      "columnCount": 1242,
-      "constraintCount": 335
+      "tableCount": 61,
+      "columnCount": 1250,
+      "constraintCount": 328
     }
   },
   "evidenceRefs": [

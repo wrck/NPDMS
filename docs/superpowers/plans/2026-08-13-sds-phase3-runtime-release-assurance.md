@@ -14,7 +14,7 @@
 - Task 8 Step 1：自审已完成，结论`NO-GO / IN_REVIEW`；P3-E01～E06、P3-E09是批准阻塞，P3-E07按Feature阻塞，P3-E08阻塞前端实现/发布。
 - Task 8 Step 2～4：待外部证据关闭后执行独立评审；禁止提前生成SDS总册或把分册转`BASELINE`。
 - 用户新增的数据迁移要求已形成`08a-domain-entity-migration-alignment.md`，覆盖全部显式领域数据对象；字段级迁移仍受`AI-MIG-000`约束。
-- PRD V1.7的P3-E09候选DDL已按ADR-0025补齐13张差量表，并在隔离MySQL 8.4.10以同一DDL哈希执行通过；证据包已重建。该项仍为`BLOCKED_BY_REVIEW`，不得把可执行性当作Reviewer批准或生产迁移授权。
+- PRD V1.7的P3-E09候选DDL已按ADR-0025保留11张当前范围差量表，当前为61表，并在隔离MySQL 8.4.10以同一DDL哈希执行通过；证据包已重建。该项仍为`BLOCKED_BY_REVIEW`，不得把可执行性当作Reviewer批准或生产迁移授权。
 
 ## Global Constraints
 

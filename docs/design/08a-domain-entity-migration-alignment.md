@@ -102,15 +102,15 @@
 | `CutoverAssessment` | 当前`pms_cut_risk`及评估信息 | CURRENT_FORWARD | 风险项和评估结论版本化；技术公告只引用 |
 | `CutoverPlan` | 当前`pms_cut_plan` | CURRENT_FORWARD | 迁计划revision/步骤/审批引用；执行冻结已批准版本 |
 | `CutoverExecution` | 当前`pms_cut_execution/observation` | CURRENT_FORWARD | 逐步骤保存动作类型、方向、有符号值、结果和证据；不引入通用割接时效 |
-| `CutoverSupportTask` | `pm_project_maintenance`中可证明为原WO-06割接保障的记录及其处理历史 | STRUCTURED+PENDING_SOURCE_CONFIRMATION+NEW_ONLY | 仅在业务类型、关联割接任务、责任人和时间窗可证明时迁入CUT-11；否则只读归档，不把普通维护/巡检记录改造成割接保障任务 |
+| `CutoverSupportTask` | 无已确认历史来源 | NEW_ONLY | 只由当前平台受控命令创建；不将已排除维护表或字段相似记录推断为 CUT-11 |
 | `ResponsibilityInterval` | 原割接保障任务派发/接管/转交操作历史 | REBUILD+PENDING_SOURCE_CONFIRMATION | 只从完整的操作者、前后责任人和时间证据构造不重叠区间；挂起不得推断为责任区间结束 |
-| `InspectionTask` | 当前`pms_srv_task/execution/offline_file`、旧`pm_project_maintenance`巡检候选 | CURRENT_FORWARD+PENDING_SOURCE_CONFIRMATION | 当前巡检结构前向迁移；旧维护记录须先分类为巡检才可导入 |
+| `InspectionTask` | 当前`pms_srv_task/execution/offline_file` | CURRENT_FORWARD | 当前巡检结构前向迁移；不从已排除维护表导入任何记录 |
 | `InspectionRule` | 当前`pms_srv_rule` | CURRENT_FORWARD | 发布revision迁移；任务冻结所用版本 |
 | `InspectionReport` | 当前`pms_srv_report`及外部采集报告 | CURRENT_FORWARD+EXTERNAL_SYNC | 发布版本只追加；原始结果保存受控引用 |
 | `ServiceIssue` | 当前`pms_srv_issue`、ITR问题候选 | CURRENT_FORWARD+EXTERNAL_SYNC | 按来源类型区分巡检问题与ITR问题；问题Owner不因项目引用改变 |
 | `ServiceStatus` | `fb_service`、`view_warranty*`、`warranty_info/change_logs`及当前维保表的客观字段 | STRUCTURED+EXTERNAL_SYNC | 只计算客观在保/在维/停产停维提示；续保动作、空间和报表全部排除 |
 
-原通用工单和工时不再形成当前可流转聚合。`HistoricalWorkOrderRecord`与`HistoricalTimeRecord`从`pm_project_maintenance`逐源行迁移为只读对象：保存来源业务键、原类型/分类/状态、责任人、处理/在途时长、交付件和问卷引用及不可变原始载荷；只有源证据明确时才写方向/正负调整。两者不提供创建、提交、审批、转交或状态迁移接口。
+`pm_project_maintenance` 全表按需求方 2026-08-13 确认执行 `EXCLUDED/NO_MIGRATION`，仅保留表级排除审计，不挂到任何业务对象，不生成字段绑定。PRD 第 8.2 节只保留历史事实不可删除的治理规则；在真实来源被识别且需求方确认迁移之前，不建立历史工单/工时迁移对象或空壳表。
 
 ## 8. Customer、Asset、Commerce、Resource
 

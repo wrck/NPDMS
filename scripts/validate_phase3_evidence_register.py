@@ -51,16 +51,16 @@ DEPLOYMENT_TIME_SELECTION_REF = "docs/decisions/0018-deployment-time-environment
 MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
 Q07_DECISION = {
     "status": "ACCEPTED",
-    "technicalConstraintCount": 222,
-    "primaryKeyCount": 50,
-    "primaryKeyShape": {"singleId": 49, "compositeProjection": 1},
-    "tenantReferenceKeyCount": 50,
+    "technicalConstraintCount": 258,
+    "primaryKeyCount": 61,
+    "primaryKeyShape": {"singleId": 60, "compositeProjection": 1},
+    "tenantReferenceKeyCount": 61,
     "sameDomainForeignKeyCount": 48,
-    "stableTechnicalCheckCount": 74,
+    "stableTechnicalCheckCount": 88,
 }
 Q08_DECISION = {
     "status": "CANDIDATE_BASELINE_ACCEPTED",
-    "candidateIndexCount": 108,
+    "candidateIndexCount": 124,
     "featureQueryPlanValidationRequired": True,
     "p3e06PerformanceValidationRequired": True,
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",

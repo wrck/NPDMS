@@ -57,6 +57,23 @@ class GenerateTargetFieldCatalogTest(unittest.TestCase):
         )
         self.assertEqual("code_root_id", rows[0]["columnName"])
         self.assertEqual("RELATION", rows[0]["fieldClass"])
+        self.assertNotIn("dataElementRefs", rows[0])
+        self.assertNotIn("basisRefs", rows[0])
+
+    def test_binding_range_resolves_only_exact_source_field_coordinates(self) -> None:
+        binding = {
+            "sourceField": "pm_source.customerCode|customerName",
+            "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A10:A12",
+        }
+        records = [
+            {"sheet": "项目管理", "row": 10, "cell": "A10", "tableName": "pm_source", "fieldName": "customerCode"},
+            {"sheet": "项目管理", "row": 11, "cell": "A11", "tableName": "pm_source", "fieldName": "unrelated"},
+            {"sheet": "项目管理", "row": 12, "cell": "A12", "tableName": "pm_source", "fieldName": "customerName"},
+        ]
+        self.assertEqual(
+            ["项目管理!A10", "项目管理!A12"],
+            MODULE.exact_binding_coordinates(binding, records),
+        )
 
     def test_v3_target_is_preserved_as_source_evidence(self) -> None:
         contract = {
@@ -74,6 +91,20 @@ class GenerateTargetFieldCatalogTest(unittest.TestCase):
         self.assertEqual("SOURCE_ONLY", updated["disposition"])
         self.assertEqual(["plt_migration_source_record.source_payload"], updated["targets"])
         self.assertEqual("V3_TARGET_EXCLUDED", updated["decisionStatus"])
+
+    def test_user_excluded_maintenance_table_has_no_target_write(self) -> None:
+        row = {
+            "sourceTable": "pm_project_maintenance", "sourceColumn": "id",
+            "targets": ["com_crm_execution_order.id"],
+            "targetBindings": [{"tableName": "com_crm_execution_order", "columnName": "id"}],
+            "rawPreservedBy": "plt_migration_source_record.source_payload",
+        }
+        updated = MODULE.rewrite_target_references(row, self.contract)
+        self.assertEqual("USER_CONFIRMED_EXCLUDED", updated["decisionStatus"])
+        self.assertEqual("EXCLUDED", updated["disposition"])
+        self.assertEqual([], updated["targets"])
+        self.assertEqual([], updated["targetBindings"])
+        self.assertNotIn("rawPreservedBy", updated)
 
 
 if __name__ == "__main__":

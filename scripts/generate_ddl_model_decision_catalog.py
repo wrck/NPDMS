@@ -113,6 +113,7 @@ NONNEGATIVE_CHECKS = {
     "chk_migration_source_target_count",
     "chk_sync_batch_count",
     "chk_project_depth",
+    "chk_configuration_collection_result_version",
     "chk_configuration_parse_attempt_no",
     "chk_configuration_component_candidate_no",
     "chk_satisfaction_task_revision",

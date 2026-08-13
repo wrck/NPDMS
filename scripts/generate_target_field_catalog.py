@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import argparse
 import copy
+import fnmatch
 import hashlib
 import importlib.util
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -18,6 +20,8 @@ CONTRACT = Path("docs/traceability/database-naming-contract.json")
 PROJECT_CODE_CONTRACT = Path("docs/traceability/project-code-contract.json")
 MARKET_RELATION_CONTRACT = Path("docs/traceability/market-relation-contract.json")
 CORE_MIGRATION_SCHEMA_CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
+DOMAIN_MIGRATION_CONTRACT = Path("docs/traceability/domain-entity-migration-contract.json")
+SCHEMA_RECORDS = Path("specs/001-project-delivery-platform/evidence/data-elements/schema-records.jsonl")
 MIGRATION = Path("specs/001-project-delivery-platform/evidence/migration")
 CATALOG = MIGRATION / "target-field-catalog.jsonl"
 CATALOG_SUMMARY = MIGRATION / "target-field-catalog-summary.json"
@@ -30,6 +34,7 @@ JSONL_TARGET_FILES = [
     "semantic-data-element-mapping.jsonl",
 ]
 JSON_SUMMARY_FILES = ["core-field-mapping-summary.json", "complete-migration-summary.json", "migration-validation.json"]
+USER_CONFIRMED_EXCLUDED_SOURCE_TABLES = {"pm_project_maintenance"}
 
 
 def load_parser(root: Path):
@@ -130,6 +135,15 @@ def rewrite_target_references(
         result["targetBindings"] = [{"tableName": "plt_migration_source_record", "columnName": "source_payload", "jsonPath": None}]
         result["rawPreservedBy"] = "plt_migration_source_record.source_payload"
         result["decisionBasis"] = "ADR-0022 excludes V3 governance tables from the V1/V2 core migration DDL; preserve source evidence for the later feature migration"
+    if result.get("sourceTable") in USER_CONFIRMED_EXCLUDED_SOURCE_TABLES or result.get("tableName") in USER_CONFIRMED_EXCLUDED_SOURCE_TABLES:
+        result["decisionStatus"] = "USER_CONFIRMED_EXCLUDED"
+        result["disposition"] = "EXCLUDED"
+        result["targets"] = []
+        result["targetBindings"] = []
+        result.pop("target", None)
+        result.pop("rawPreservedBy", None)
+        result["transform"] = "NO_MIGRATION; retain source extraction audit metadata only"
+        result["decisionBasis"] = "requirement owner confirmation on 2026-08-13: exclude the complete pm_project_maintenance table"
     if ddl_sha256 is not None and "targetDdlSha256" in result:
         result["targetDdlSha256"] = ddl_sha256
     return result
@@ -164,8 +178,10 @@ def build_catalog(
         for ordinal, (column_name, signature) in enumerate(table.columns.items(), 1):
             source_key = reverse_fields.get((table_name, column_name), (source_table, column_name))
             metadata = prior_by_key.get(source_key)
-            if metadata is None and new_field_metadata is not None:
-                metadata = new_field_metadata.get((table_name, column_name))
+            if new_field_metadata is not None:
+                current_metadata = new_field_metadata.get((table_name, column_name))
+                if current_metadata is not None:
+                    metadata = {**(metadata or {}), **current_metadata}
             if metadata is None:
                 raise ValueError(f"target catalog metadata missing for {source_key[0]}.{source_key[1]}")
             row = {
@@ -179,8 +195,13 @@ def build_catalog(
                 "description": signature["description"],
                 "domain": metadata["domain"],
                 "fieldClass": metadata["fieldClass"],
-                "dataElementRefs": metadata.get("dataElementRefs", []),
             }
+            if metadata.get("dataElementRefs"):
+                row["dataElementRefs"] = metadata["dataElementRefs"]
+            if metadata.get("basisRefs"):
+                row["basisRefs"] = metadata["basisRefs"]
+            if metadata.get("migrationMappingStatus"):
+                row["migrationMappingStatus"] = metadata["migrationMappingStatus"]
             if signature.get("generatedExpression") is not None:
                 row["generatedExpression"] = signature["generatedExpression"]
             rows.append(row)
@@ -195,12 +216,64 @@ def json_content(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2) + "\n"
 
 
+def expanded_source_fields(source_field: str) -> list[tuple[str, str]]:
+    result: list[tuple[str, str]] = []
+    inherited_table = ""
+    for token in source_field.split("|"):
+        if "." in token:
+            inherited_table, field = token.rsplit(".", 1)
+        else:
+            field = token
+        if inherited_table and field:
+            result.append((inherited_table, field))
+    return result
+
+
+def exact_binding_coordinates(binding: dict[str, str], schema_records: list[dict[str, object]]) -> list[str]:
+    prefix = "data-elements://schema-records.jsonl#"
+    evidence_ref = binding.get("evidenceRef", "")
+    if not evidence_ref.startswith(prefix):
+        return []
+    fragment = evidence_ref[len(prefix):]
+    coordinate = re.fullmatch(r"(.+)!([A-Z]+)(\d+)(?::[A-Z]+(\d+))?", fragment)
+    if coordinate:
+        sheet = coordinate.group(1)
+        start = int(coordinate.group(3))
+        end = int(coordinate.group(4) or coordinate.group(3))
+        candidates = [
+            record for record in schema_records
+            if record.get("sheet") == sheet and start <= int(record.get("row", -1)) <= end
+        ]
+    else:
+        query = dict(part.split("=", 1) for part in fragment.split("&") if "=" in part)
+        candidates = [
+            record for record in schema_records
+            if fnmatch.fnmatch(str(record.get("tableName", "")), query.get("table", ""))
+            and fnmatch.fnmatch(str(record.get("fieldName", "")), query.get("field", "*"))
+        ]
+    refs: list[str] = []
+    for table_pattern, field_pattern in expanded_source_fields(binding.get("sourceField", "")):
+        matches = [
+            record for record in candidates
+            if fnmatch.fnmatch(str(record.get("tableName", "")), table_pattern)
+            and fnmatch.fnmatch(str(record.get("fieldName", "")), field_pattern)
+        ]
+        if not matches:
+            raise ValueError(f"binding evidence does not resolve exact source field: {table_pattern}.{field_pattern}")
+        refs.extend(f"{record['sheet']}!{record['cell']}" for record in matches)
+    return sorted(set(refs))
+
+
 def expected_outputs(root: Path) -> dict[Path, str]:
     ddl_path = root / DDL
     contract = json.loads((root / CONTRACT).read_text(encoding="utf-8"))
     project_code_contract = json.loads((root / PROJECT_CODE_CONTRACT).read_text(encoding="utf-8"))
     market_relation_contract = json.loads((root / MARKET_RELATION_CONTRACT).read_text(encoding="utf-8"))
     core_migration_schema_contract = json.loads((root / CORE_MIGRATION_SCHEMA_CONTRACT).read_text(encoding="utf-8"))
+    domain_migration_contract = json.loads((root / DOMAIN_MIGRATION_CONTRACT).read_text(encoding="utf-8"))
+    schema_records = [
+        json.loads(line) for line in (root / SCHEMA_RECORDS).read_text(encoding="utf-8").splitlines() if line
+    ]
     source_mapping_overrides = {
         (item["sourceTable"], item["sourceColumn"]): item
         for item in market_relation_contract["sourceMappingOverrides"]
@@ -256,6 +329,51 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         "AST": "资产与设备",
         "PLT": "基础平台",
     }
+    v17_table_basis = {
+        "imp_configuration_collection_result": ["PRD:EXE-03", "SDS:08-data-model#ConfigurationCollectionResult", "SDS:09-database-design#ConfigurationCollectionResult", "ADR-0025"],
+        "imp_configuration_collection_parse_attempt": ["PRD:EXE-03", "SDS:08-data-model#ConfigurationCollectionResult", "ADR-0025"],
+        "imp_configuration_component_candidate": ["PRD:EXE-03", "SDS:08-data-model#ConfigurationCollectionResult", "ADR-0025"],
+        "acc_satisfaction_collection_task": ["PRD:ACC-02", "PRD:SUB-03", "PRD:CLO-01", "SDS:08-data-model#SatisfactionCollection", "ADR-0025"],
+        "acc_satisfaction_questionnaire": ["PRD:ACC-02", "PRD:SUB-03", "SDS:08-data-model#SatisfactionCollection", "ADR-0025"],
+        "acc_satisfaction_response": ["PRD:ACC-02", "SDS:08-data-model#SatisfactionCollection", "ADR-0025"],
+        "acc_satisfaction_result": ["PRD:ACC-02", "PRD:SUB-03", "PRD:CLO-01", "SDS:08-data-model#SatisfactionCollection", "ADR-0025"],
+        "cut_cutover_support_task": ["PRD:CUT-11", "ADR-0024#work-order-to-cutover", "SDS:09-database-design#CutoverSupportTask", "ADR-0025"],
+        "cut_cutover_support_history": ["PRD:CUT-11", "ADR-0024#work-order-to-cutover", "SDS:09-database-design#CutoverSupportTask", "ADR-0025"],
+        "cut_cutover_support_responsibility_interval": ["PRD:CUT-11", "ADR-0024#work-order-to-cutover", "SDS:09-database-design#ResponsibilityInterval", "ADR-0025"],
+        "ast_device_component_relation": ["PRD:EXE-03", "PRD:EQP-01", "SDS:08-data-model#DeviceComponentRelation", "ADR-0025"],
+    }
+    # Derive data-element evidence exclusively from maintained source-to-target
+    # bindings. Ranges in the contract are resolved back to the exact source
+    # field coordinates, so design-only columns never inherit table-wide refs.
+    legacy_data_element_basis: dict[tuple[str, str], set[str]] = {}
+    for record in domain_migration_contract.get("records", []):
+        for source_entry in record.get("sources", []):
+            if source_entry.get("sourceType") not in {"LEGACY_TABLE", "LEGACY_FIELD_PATTERN"}:
+                continue
+            for binding_entry in source_entry.get("targetFieldBindings", []):
+                target_field = binding_entry.get("targetField", "")
+                if "." not in target_field:
+                    continue
+                table_name, column_name = target_field.split(".", 1)
+                if table_name not in v17_table_basis:
+                    continue
+                legacy_data_element_basis.setdefault((table_name, column_name), set()).update(
+                    exact_binding_coordinates(binding_entry, schema_records)
+                )
+    pending_migration_fields = {
+        ("acc_satisfaction_questionnaire", "required_question_count"),
+        ("acc_satisfaction_response", "response_valid"),
+        ("acc_satisfaction_response", "signature_valid"),
+        ("acc_satisfaction_response", "required_validation_summary"),
+        ("acc_satisfaction_response", "item_validation_summary"),
+        ("acc_satisfaction_response", "signature_ref"),
+        ("acc_satisfaction_result", "signature_valid"),
+        ("acc_satisfaction_result", "required_items_valid"),
+        ("cut_cutover_support_task", "window_end"),
+        ("cut_cutover_support_task", "current_responsible_user_id"),
+        ("cut_cutover_support_task", "current_handler_user_id"),
+        ("cut_cutover_support_task", "current_responsibility_interval_id"),
+    }
     for extension in contract.get("modelExtensions", []):
         table_name = extension["target"]
         table = ddl_tables[table_name]
@@ -277,8 +395,18 @@ def expected_outputs(root: Path) -> dict[Path, str]:
                 "name": column_name,
                 "domain": domain,
                 "fieldClass": field_class,
-                "dataElementRefs": [],
+                "dataElementRefs": sorted(legacy_data_element_basis.get((table_name, column_name), set())),
+                "basisRefs": v17_table_basis.get(table_name, [f"ADR:{extension['decisionRef']}"]),
             }
+            if (table_name, column_name) in pending_migration_fields:
+                new_field_metadata[(table_name, column_name)]["migrationMappingStatus"] = "PENDING_FIELD_MAPPING"
+    for table_name in v17_table_basis:
+        missing = [
+            column for column in ddl_tables[table_name].columns
+            if not new_field_metadata[(table_name, column)].get("basisRefs")
+        ]
+        if missing:
+            raise ValueError(f"V1.7 field basis missing: {table_name}.{missing}")
     prior = [json.loads(line) for line in (root / CATALOG).read_text(encoding="utf-8").splitlines() if line]
     # Idempotent generation can use either the old or already-renamed catalog.
     naming_tables = contract["tables"] + contract.get("tableExtensions", []) + [
@@ -291,7 +419,14 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         restored = []
         for item in prior:
             current_table, current_column = item["tableName"], item["columnName"]
-            source_table, source_column = reverse_fields.get((current_table, current_column), (reverse_tables[current_table], current_column))
+            if current_table not in reverse_tables:
+                # A prior generated catalog can contain a table that a later
+                # scope decision removed. It must not be resurrected as input.
+                continue
+            source_table, source_column = reverse_fields.get(
+                (current_table, current_column),
+                (reverse_tables[current_table], current_column),
+            )
             value = copy.deepcopy(item)
             value["tableName"], value["columnName"] = source_table, source_column
             restored.append(value)
@@ -308,11 +443,19 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         "invalidCommentCount": sum(item["description"] is None for item in catalog),
         "domains": dict(domains),
         "fieldClasses": dict(classes),
+        "v17FieldBasisCoverage": {
+            "tableCount": len(v17_table_basis),
+            "fieldCount": sum(1 for item in catalog if item["tableName"] in v17_table_basis),
+            "missingBasisCount": sum(1 for item in catalog if item["tableName"] in v17_table_basis and not item.get("basisRefs")),
+            "dataElementReferencedFieldCount": sum(1 for item in catalog if item["tableName"] in v17_table_basis and item.get("dataElementRefs")),
+        },
     }
     outputs[root / CATALOG_SUMMARY] = json_content(summary)
+    generated_jsonl_rows: dict[str, list[dict[str, object]]] = {}
     for name in JSONL_TARGET_FILES:
         path = root / MIGRATION / name
         rows = [rewrite_target_references(json.loads(line), contract, ddl_hash, source_mapping_overrides) for line in path.read_text(encoding="utf-8").splitlines() if line]
+        generated_jsonl_rows[name] = rows
         outputs[path] = jsonl_content(rows)
     for name in JSON_SUMMARY_FILES:
         path = root / MIGRATION / name
@@ -327,6 +470,10 @@ def expected_outputs(root: Path) -> dict[Path, str]:
             payload["ddlColumnCount"] = len(catalog)
             payload["commentedColumnCount"] = summary["commentedColumnCount"]
             payload["invalidCommentCount"] = summary["invalidCommentCount"]
+            payload["physicalDispositionCounts"] = dict(sorted(Counter(
+                row.get("disposition", "UNCLASSIFIED")
+                for row in generated_jsonl_rows["legacy-physical-field-mapping.jsonl"]
+            ).items()))
         if name == "core-field-mapping-summary.json" and isinstance(payload.get("tables"), list):
             for item in payload["tables"]:
                 if isinstance(item.get("rawPreservedBy"), str):

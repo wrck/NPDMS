@@ -1061,13 +1061,13 @@
 ### INT-05
 
 - 需求名称：钉钉/HR/OA集成
-- 数据对象：Todo、DirectorySyncSnapshot
-- 数据表：plt_todo、plt_directory_sync_snapshot
+- 数据对象：Todo
+- 数据表：plt_todo、plt_sync_batch、plt_external_key_mapping
 - API：/todos、/integration/hr/directory
 - 事件：MasterDataSynchronized、TodoRequested、TodoCompleted
 - 外部集成：钉钉、HR、OA
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：必要人员组织同步、待办链接和通知回执；不接入打卡/工时
+- 工作流/状态：必要人员组织同步复用基础平台主数据、已有同步批次和来源键映射；待办链接和通知回执不接入打卡/工时
 - 授权与数据范围：TenantOrganizationProjectScope；目录身份不直接等于项目角色
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录

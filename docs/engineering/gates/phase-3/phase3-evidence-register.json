@@ -294,10 +294,10 @@
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
                 "chosenDirection": "\u9010\u8868\u3001\u5217\u3001\u7d22\u5f15\u548c\u7ea6\u675f\u751f\u6210\u5dee\u5f02\u5e76\u9010\u9879\u88c1\u51b3",
-                "currentDdlSha256": "F788F56B7C1818383817D7B70279323D49D46D8DA279AEE54135E43A31C31DAA",
+                "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "DEFER",
-                "decisionRegisterItemCount": 1626,
+                "decisionRegisterItemCount": 1900,
                 "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
@@ -309,19 +309,19 @@
                 },
                 "q07Decision": {
                     "status": "ACCEPTED",
-                    "technicalConstraintCount": 222,
-                    "primaryKeyCount": 50,
+                    "technicalConstraintCount": 258,
+                    "primaryKeyCount": 61,
                     "primaryKeyShape": {
-                        "singleId": 49,
+                        "singleId": 60,
                         "compositeProjection": 1
                     },
-                    "tenantReferenceKeyCount": 50,
+                    "tenantReferenceKeyCount": 61,
                     "sameDomainForeignKeyCount": 48,
-                    "stableTechnicalCheckCount": 74
+                    "stableTechnicalCheckCount": 88
                 },
                 "q08Decision": {
                     "status": "CANDIDATE_BASELINE_ACCEPTED",
-                    "candidateIndexCount": 108,
+                    "candidateIndexCount": 124,
                     "featureQueryPlanValidationRequired": true,
                     "p3e06PerformanceValidationRequired": true,
                     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
@@ -329,9 +329,9 @@
                 "isolatedMysqlExecution": {
                     "status": "PASS",
                     "mysqlVersion": "8.4.10",
-                    "tableCount": 50,
-                    "columnCount": 1065,
-                    "constraintCount": 277
+                    "tableCount": 61,
+                    "columnCount": 1250,
+                    "constraintCount": 328
                 }
             },
             "evidenceRefs": [
@@ -341,6 +341,7 @@
                 "docs/decisions/0021-customer-market-relation-classification.md",
                 "docs/decisions/0022-core-migration-schema-and-key-policy.md",
                 "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md",
+                "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",

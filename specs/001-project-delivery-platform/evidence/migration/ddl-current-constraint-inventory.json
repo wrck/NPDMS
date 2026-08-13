@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "03D0819B92964948044F186829D1F2E6A77C25A7B66126B12A5141D97535B125",
-  "tableCount": 63,
-  "constraintCount": 461,
-  "inventorySha256": "8AA9EB2E5E42C08C429C210C47AFF84458630B72CF70E0F0F0A030936C72E43B",
+  "currentDdlSha256": "4305DA939E094423CE91323AE0C24919D2A31F2DD660A316788684D8A58461B1",
+  "tableCount": 61,
+  "constraintCount": 452,
+  "inventorySha256": "5F2132829C82F8C6DE59399DBD24400BA3D0555D56538446A2413D99A9C5F7FD",
   "records": [
     {
       "table": "acc_deliverable_template",
@@ -40,7 +40,7 @@
         "KEY idx_satisfaction_task_source (tenant_id, source_context, source_object_type, source_object_id)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_satisfaction_collection_task_tenant_row (tenant_id, id)",
-        "UNIQUE KEY uk_satisfaction_task_revision (tenant_id, source_context, source_object_type, source_object_id, task_revision_no)"
+        "UNIQUE KEY uk_satisfaction_task_revision (tenant_id, project_id, source_context, source_object_type, source_object_id, source_object_version, business_purpose_code, applicable_timing_code, payment_stage_key, task_revision_no)"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目成员承办的满意度收集领域任务'",
       "decision": "DEFER"
@@ -603,6 +603,7 @@
         "CONSTRAINT chk_cutover_responsibility_interval_sequence CHECK (interval_no > 0)",
         "KEY idx_cutover_responsibility_current (tenant_id, support_task_id, effective_to, effective_from)",
         "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)",
         "UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no)",
         "UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id)"
       ],
@@ -637,6 +638,19 @@
       "decision": "DEFER"
     },
     {
+      "table": "imp_configuration_collection_result",
+      "constraints": [
+        "CONSTRAINT chk_configuration_collection_result_version CHECK (result_version_no > 0)",
+        "KEY idx_configuration_collection_result_device (tenant_id, project_id, device_id, operated_time)",
+        "KEY idx_configuration_collection_result_hash (tenant_id, raw_log_sha256)",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_configuration_collection_result (tenant_id, collection_task_id, result_type_code, result_version_no)",
+        "UNIQUE KEY uk_configuration_collection_result_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '不可覆盖的配置采集结果、整机Log及项目设备快照'",
+      "decision": "DEFER"
+    },
+    {
       "table": "imp_configuration_component_candidate",
       "constraints": [
         "CONSTRAINT chk_configuration_component_candidate_no CHECK (candidate_no > 0)",
@@ -659,19 +673,6 @@
         "UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "plt_directory_sync_snapshot",
-      "constraints": [
-        "CONSTRAINT chk_directory_sync_times CHECK (synced_time >= source_updated_time)",
-        "KEY idx_directory_sync_snapshot_batch (tenant_id, sync_batch_no, synced_time)",
-        "KEY idx_directory_sync_snapshot_org (tenant_id, organization_code, employment_status_code)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_directory_sync_snapshot_source (tenant_id, source_system, source_key)",
-        "UNIQUE KEY uk_directory_sync_snapshot_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'HR通讯录权威来源键、版本和水位快照'",
       "decision": "DEFER"
     },
     {
@@ -856,30 +857,6 @@
         "UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '扩容、续采、改造等非树项目关系'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "srv_historical_time_record",
-      "constraints": [
-        "CONSTRAINT chk_historical_time_dates CHECK (record_end_time IS NULL OR record_start_time IS NULL OR record_end_time >= record_start_time)",
-        "KEY idx_historical_time_record_time (tenant_id, record_start_time, source_business_key)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_historical_time_record_source (tenant_id, source_system, source_business_key)",
-        "UNIQUE KEY uk_historical_time_record_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧工时不可删除、不可续流的只读历史事实'",
-      "decision": "DEFER"
-    },
-    {
-      "table": "srv_historical_work_order",
-      "constraints": [
-        "CONSTRAINT chk_historical_work_order_dates CHECK (source_completed_time IS NULL OR source_created_time IS NULL OR source_completed_time >= source_created_time)",
-        "KEY idx_historical_work_order_time (tenant_id, source_created_time, source_business_key)",
-        "PRIMARY KEY (id)",
-        "UNIQUE KEY uk_historical_work_order_source (tenant_id, source_system, source_business_key)",
-        "UNIQUE KEY uk_historical_work_order_tenant_row (tenant_id, id)"
-      ],
-      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧工单不可删除、不可续流的只读历史事实'",
       "decision": "DEFER"
     },
     {

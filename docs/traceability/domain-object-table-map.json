@@ -505,24 +505,6 @@
         "srv_service_issue_remediation"
       ]
     },
-    "HistoricalWorkOrderRecord": {
-      "owner": "SRV",
-      "requirementIds": [
-        "SRV-01"
-      ],
-      "targetTables": [
-        "srv_historical_work_order"
-      ]
-    },
-    "HistoricalTimeRecord": {
-      "owner": "SRV",
-      "requirementIds": [
-        "SRV-01"
-      ],
-      "targetTables": [
-        "srv_historical_time_record"
-      ]
-    },
     "ServiceStatus": {
       "owner": "SRV",
       "requirementIds": [
@@ -821,15 +803,6 @@
       ],
       "targetTables": [
         "plt_todo"
-      ]
-    },
-    "DirectorySyncSnapshot": {
-      "owner": "PLT",
-      "requirementIds": [
-        "INT-05"
-      ],
-      "targetTables": [
-        "plt_directory_sync_snapshot"
       ]
     },
     "AuthorizationGrant": {

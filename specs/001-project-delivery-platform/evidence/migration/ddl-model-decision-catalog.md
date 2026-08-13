@@ -1,34 +1,34 @@
 # P3-E09 数据模型逐项裁决清单
 
 > 状态：`REVIEW_REQUIRED`
-> 决策登记SHA-256：`1137EDE5B4F9E2F717894BD38E8CEA85986919C1A4A40A443F415929BAFD1AEC`
-> 约束清单SHA-256：`AC204D5504AA535124D374E88672A1ED560623F16BBFB43D5EE28F5A182BC00B`
+> 决策登记SHA-256：`8DE7BB01C5A97FB4216036EFF495565FDE693CDA0CC33C9A1B33838093F05F12`
+> 约束清单SHA-256：`B47ECE2D2A4436DE0629262A7EEDCD98DD8D380163218A7D2B68BC624D9C000C`
 > 本清单只展开现有机器证据，不自动批准数据模型。
 
 ## 1. 核对结论与裁决分组
 
 |分组|数量|当前事实|建议裁决方式|
 |---|---:|---|---|
-|表|63|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|
-|字段|1,242|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|
-|表选项|63|旧基线未保存|需确认字符比较与存储规则|
-|主键|63|旧基线未保存|Q07已按技术不变量确认，Reviewer待签署|
+|表|61|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|
+|字段|1,250|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|
+|表选项|61|旧基线未保存|需确认字符比较与存储规则|
+|主键|61|旧基线未保存|Q07已按技术不变量确认，Reviewer待签署|
 |外键|48|旧基线未保存|Q07已确认同域外键；违规历史数据隔离|
-|普通索引|126|旧基线未保存|Q08已接受为候选基线，Feature/P3-E06验证|
-|唯一键|130|旧基线未保存|影响重复业务数据，必须业务审查|
-|CHECK|94|旧基线未保存|影响异常历史数据，必须业务审查|
+|普通索引|124|旧基线未保存|Q08已接受为候选基线，Feature/P3-E06验证|
+|唯一键|127|旧基线未保存|影响重复业务数据，必须业务审查|
+|CHECK|92|旧基线未保存|影响异常历史数据，必须业务审查|
 
-### 1.1 1905项证据的真实含义
+### 1.1 1900项证据的真实含义
 
 |比较结果|数量|实际含义|能否据此直接批准|
 |---|---:|---|---|
 |`MATCH`|1,048|历史目标DDL与当前DDL中的表/字段定义一致；不是旧库数据质量证明|无需重复讨论未改变的字段语义，但不能据此宣称迁移通过|
-|`ADDED`|249|当前模型相对历史目标DDL新增|必须有需求或ADR依据|
+|`ADDED`|255|当前模型相对历史目标DDL新增|必须有需求或ADR依据|
 |`MODIFIED`|3|字段定义或说明发生变化|必须说明是否改变业务含义|
 |`REMOVED`|72|历史目标DDL中存在、当前模型已移除|必须确认是范围排除而非数据遗漏|
-|`UNVERIFIED_BASELINE_MISSING`|533|历史目录未保存约束和表选项|必须按约束语义分类评审，不能自动接受|
+|`UNVERIFIED_BASELINE_MISSING`|522|历史目录未保存约束和表选项|必须按约束语义分类评审，不能自动接受|
 
-因此，1048项MATCH只保留逐项追溯；真正需要裁决的是新增/修改/移除的模型变化，以及533项缺少历史结构证据的约束、表选项或生成表达式。
+因此，1048项MATCH只保留逐项追溯；真正需要裁决的是新增/修改/移除的模型变化，以及522项缺少历史结构证据的约束、表选项或生成表达式。
 
 ### 1.2 当前核心迁移子集按领域分布
 
@@ -40,10 +40,10 @@
 |COM|17|`com_contract`、`com_contract_receivable`、`com_crm_execution_config`、`com_crm_execution_order`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_execution_order_merge_batch`、`com_execution_order_merge_member`、`com_order_change_relation`、`com_order_contract_relation`、`com_order_execution_relation`、`com_order_line_execution_relation`、`com_project_contract_relation`、`com_sales_order`、`com_sales_order_line`、`com_shipment_contract_reference`、`com_shipment_package`|
 |CUS|3|`cus_customer`、`cus_customer_contact`、`cus_market_relation`|
 |CUT|3|`cut_cutover_support_history`、`cut_cutover_support_responsibility_interval`、`cut_cutover_support_task`|
-|IMP|2|`imp_configuration_collection_parse_attempt`、`imp_configuration_component_candidate`|
-|PLT|7|`plt_business_document`、`plt_directory_sync_snapshot`、`plt_document_version`、`plt_external_key_mapping`、`plt_migration_issue`、`plt_migration_source_record`、`plt_sync_batch`|
+|IMP|3|`imp_configuration_collection_parse_attempt`、`imp_configuration_collection_result`、`imp_configuration_component_candidate`|
+|PLT|6|`plt_business_document`、`plt_document_version`、`plt_external_key_mapping`、`plt_migration_issue`、`plt_migration_source_record`、`plt_sync_batch`|
 |PROJ|7|`proj_project`、`proj_project_company_department_relation`、`proj_project_member_assignment`、`proj_project_party`、`proj_project_portfolio`、`proj_project_portfolio_member`、`proj_project_relation`|
-|SRV|4|`srv_historical_time_record`、`srv_historical_work_order`、`srv_service_incident`、`srv_service_incident_device_relation`|
+|SRV|2|`srv_service_incident`、`srv_service_incident_device_relation`|
 
 ### 1.3 已有ADR明确的模型变化
 
@@ -59,27 +59,27 @@
 
 |风险|当前证据|业务影响|批准前应作出的选择|
 |---|---|---|---|
-|精确键与默认排序规则冲突|63张表默认`utf8mb4_0900_ai_ci`；29个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|
+|精确键与默认排序规则冲突|61张表默认`utf8mb4_0900_ai_ci`；28个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|
 |可空列参与唯一键|8个唯一键包含可空列；5个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|
 |状态码写入数据库表达式|3个原固定状态CHECK已移除；5个当前唯一生成列使用稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|
-|普通索引没有查询证据|126个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|Q08已接受为候选基线；Feature/P3-E06用真实查询和压测定稿|
+|普通索引没有查询证据|124个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|Q08已接受为候选基线；Feature/P3-E06用真实查询和压测定稿|
 
 ### 1.5 Q07已按数据架构不变量批量确认的内容
 
 |内容|数量|批量确认的前提|仍未包含的业务判断|
 |---|---:|---|---|
-|主键结构|63|62张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|
-|租户复合引用键|63|仅支撑同租户复合外键/行引用|不替代业务唯一键|
+|主键结构|61|60张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|
+|租户复合引用键|61|仅支撑同租户复合外键/行引用|不替代业务唯一键|
 |同领域物理外键|48|48个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|
 |软删除检查|45|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|
-|时间顺序检查|21|只拒绝结束早于开始，不补造旧数据时间|不决定业务有效期|
+|时间顺序检查|18|只拒绝结束早于开始，不补造旧数据时间|不决定业务有效期|
 |稳定布尔标志|8|字段确为稳定0/1标志|业务状态不能压缩成布尔值|
 |禁止直接自关联|4|拒绝对象直接关联自身|项目/任务完整防环仍由应用校验|
-|非负数与计数一致性|12|仅约束物理不变量|不替代数量可分配性检查|
+|非负数与计数一致性|13|仅约束物理不变量|不替代数量可分配性检查|
 
-### 1.6 130个唯一键按业务语义分组
+### 1.6 127个唯一键按业务语义分组
 
-#### 业务身份键（16项）
+#### 业务身份键（18项）
 
 决定业务编码、SN或单号能否重复；建议永久不复用。
 
@@ -95,14 +95,16 @@
 |`com_shipment_package`|`uk_shipment_package_no`|`UNIQUE KEY uk_shipment_package_no ( tenant_id, source_system, package_no )`|确认租户内业务身份永久唯一|
 |`cus_customer`|`uk_customer_code`|`UNIQUE KEY uk_customer_code (tenant_id, customer_code)`|确认租户内业务身份永久唯一|
 |`cus_market_relation`|`uk_market_relation_business`|`UNIQUE KEY uk_market_relation_business ( tenant_id, market_code, system_code, expend_code, industry_code )`|确认租户内业务身份永久唯一|
+|`cut_cutover_support_responsibility_interval`|`uk_cutover_responsibility_current`|`UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)`|确认租户内业务身份永久唯一|
 |`cut_cutover_support_task`|`uk_cutover_support_task_no`|`UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no)`|确认租户内业务身份永久唯一|
+|`imp_configuration_collection_result`|`uk_configuration_collection_result`|`UNIQUE KEY uk_configuration_collection_result (tenant_id, collection_task_id, result_type_code, result_version_no)`|确认租户内业务身份永久唯一|
 |`plt_business_document`|`uk_business_document_code`|`UNIQUE KEY uk_business_document_code (tenant_id, document_code)`|确认租户内业务身份永久唯一|
 |`plt_sync_batch`|`uk_sync_batch_no`|`UNIQUE KEY uk_sync_batch_no (tenant_id, batch_no)`|确认租户内业务身份永久唯一|
 |`proj_project`|`uk_project_code`|`UNIQUE KEY uk_project_code (tenant_id, project_code)`|确认租户内业务身份永久唯一|
 |`proj_project_portfolio`|`uk_portfolio_code`|`UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)`|确认租户内业务身份永久唯一|
 |`srv_service_incident`|`uk_service_incident_no`|`UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)`|确认租户内业务身份永久唯一|
 
-#### 来源幂等键（18项）
+#### 来源幂等键（15项）
 
 决定外部记录重放时更新同一事实还是产生重复记录。
 
@@ -119,13 +121,10 @@
 |`com_shipment_contract_reference`|`uk_shipment_contract_ref_source`|`UNIQUE KEY uk_shipment_contract_ref_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
 |`com_shipment_package`|`uk_shipment_package_source`|`UNIQUE KEY uk_shipment_package_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
 |`cus_market_relation`|`uk_market_relation_source`|`UNIQUE KEY uk_market_relation_source ( tenant_id, source_system, source_record_key )`|确认来源键精确匹配且重放幂等|
-|`plt_directory_sync_snapshot`|`uk_directory_sync_snapshot_source`|`UNIQUE KEY uk_directory_sync_snapshot_source (tenant_id, source_system, source_key)`|确认来源键精确匹配且重放幂等|
 |`plt_external_key_mapping`|`uk_external_key_source_target`|`UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_role, target_sequence, target_table, target_id )`|确认来源键精确匹配且重放幂等|
 |`plt_migration_issue`|`uk_migration_issue_source`|`UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )`|确认来源键精确匹配且重放幂等|
 |`plt_migration_source_record`|`uk_migration_source_record`|`UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )`|确认来源键精确匹配且重放幂等|
 |`proj_project_party`|`uk_project_party_source`|`UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )`|确认来源键精确匹配且重放幂等|
-|`srv_historical_time_record`|`uk_historical_time_record_source`|`UNIQUE KEY uk_historical_time_record_source (tenant_id, source_system, source_business_key)`|确认来源键精确匹配且重放幂等|
-|`srv_historical_work_order`|`uk_historical_work_order_source`|`UNIQUE KEY uk_historical_work_order_source (tenant_id, source_system, source_business_key)`|确认来源键精确匹配且重放幂等|
 
 #### 当前唯一记录（5项）
 
@@ -145,7 +144,7 @@
 
 |表|唯一键|当前字段组合|判断重点|
 |---|---|---|---|
-|`acc_satisfaction_collection_task`|`uk_satisfaction_task_revision`|`UNIQUE KEY uk_satisfaction_task_revision (tenant_id, source_context, source_object_type, source_object_id, task_revision_no)`|确认版本/序号只增不复用|
+|`acc_satisfaction_collection_task`|`uk_satisfaction_task_revision`|`UNIQUE KEY uk_satisfaction_task_revision (tenant_id, project_id, source_context, source_object_type, source_object_id, source_object_version, business_purpose_code, applicable_timing_code, payment_stage_key, task_revision_no)`|确认版本/序号只增不复用|
 |`acc_satisfaction_questionnaire`|`uk_satisfaction_questionnaire_revision`|`UNIQUE KEY uk_satisfaction_questionnaire_revision (tenant_id, task_id, questionnaire_revision_no)`|确认版本/序号只增不复用|
 |`acc_satisfaction_response`|`uk_satisfaction_response_sequence`|`UNIQUE KEY uk_satisfaction_response_sequence (tenant_id, questionnaire_id, response_no)`|确认版本/序号只增不复用|
 |`acc_satisfaction_result`|`uk_satisfaction_result_sequence`|`UNIQUE KEY uk_satisfaction_result_sequence (tenant_id, questionnaire_id, result_no)`|确认版本/序号只增不复用|
@@ -181,7 +180,7 @@
 |`proj_project_relation`|`uk_project_relation`|`UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )`|确认字段完整表达关系粒度，重点检查NULL|
 |`srv_service_incident_device_relation`|`uk_incident_device`|`UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)`|确认字段完整表达关系粒度，重点检查NULL|
 
-#### 租户行引用键（63项）
+#### 租户行引用键（61项）
 
 支撑同租户复合引用，属于技术完整性。
 
@@ -230,9 +229,9 @@
 |`cut_cutover_support_responsibility_interval`|`uk_cutover_support_responsibility_interval_tenant_row`|`UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`cut_cutover_support_task`|`uk_cutover_support_task_tenant_row`|`UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`imp_configuration_collection_parse_attempt`|`uk_configuration_parse_attempt_tenant_row`|`UNIQUE KEY uk_configuration_parse_attempt_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
+|`imp_configuration_collection_result`|`uk_configuration_collection_result_tenant_row`|`UNIQUE KEY uk_configuration_collection_result_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`imp_configuration_component_candidate`|`uk_configuration_component_candidate_tenant_row`|`UNIQUE KEY uk_configuration_component_candidate_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`plt_business_document`|`uk_business_document_tenant_row`|`UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
-|`plt_directory_sync_snapshot`|`uk_directory_sync_snapshot_tenant_row`|`UNIQUE KEY uk_directory_sync_snapshot_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`plt_document_version`|`uk_document_version_owner`|`UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)`|技术引用键，可按架构规则确认|
 |`plt_document_version`|`uk_document_version_tenant_row`|`UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`plt_external_key_mapping`|`uk_external_key_map_tenant_row`|`UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
@@ -246,8 +245,6 @@
 |`proj_project_portfolio`|`uk_portfolio_tenant_row`|`UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`proj_project_portfolio_member`|`uk_portfolio_project_rel_tenant_row`|`UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`proj_project_relation`|`uk_project_relation_tenant_row`|`UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
-|`srv_historical_time_record`|`uk_historical_time_record_tenant_row`|`UNIQUE KEY uk_historical_time_record_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
-|`srv_historical_work_order`|`uk_historical_work_order_tenant_row`|`UNIQUE KEY uk_historical_work_order_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`srv_service_incident`|`uk_service_incident_tenant_row`|`UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 |`srv_service_incident_device_relation`|`uk_incident_device_rel_tenant_row`|`UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)`|技术引用键，可按架构规则确认|
 
@@ -264,33 +261,35 @@
 |`uk_project_company_department_role`|`department_code`、`effective_from`|尚无证据表明有意|NULL会允许相同项目/公司/角色重复，存在约束空洞|
 |`uk_project_member_role`|`effective_from`|尚无证据表明有意|NULL会允许相同成员/角色重复，存在约束空洞|
 
-### 1.8 94个CHECK按业务语义分组
+### 1.8 92个CHECK按业务语义分组
 
 |分组|数量|代表规则|建议|
 |---|---:|---|---|
 |软删除|45|`deleted IN (0,1)`|技术规则批量确认|
-|时间顺序|21|结束不得早于开始|接受；旧数据缺失保持NULL|
+|时间顺序|18|结束不得早于开始|接受；旧数据缺失保持NULL|
 |稳定布尔标志|8|主标记、必需标记等|仅稳定二值字段可接受|
 |禁止直接自关联|4|设备/订单/项目不能直接关联自身|接受；多节点防环由应用校验|
-|非负数与计数|12|序号、目标数、树深、成功失败计数|技术规则批量确认|
+|非负数与计数|13|序号、目标数、树深、成功失败计数|技术规则批量确认|
 |跨字段不变量|4|附加SN、项目编码命名空间、部门配对、交付范围明细主体|按ADR和业务规则逐项确认|
 |状态耦合|0|当前DDL不再用固定状态码触发允许值或必填规则|已按ADR-0023调整|
 
 状态耦合CHECK当前为0项；AF证据、DeliveryScope生效数量和MigrationIssue关闭完整性改由受控业务动作校验并留痕。
 
-5个当前唯一生成列逐项如下。Q03已确认其业务事实，表达式只依赖稳定有效期、删除标记或主标记，不依赖可扩展业务状态码：
+7个当前唯一生成列逐项如下。Q03已确认其业务事实，表达式只依赖稳定有效期、删除标记或主标记，不依赖可扩展业务状态码：
 
 |表/生成列|当前表达式|被保护的不变量|推荐调整|
 |---|---|---|---|
+|`acc_satisfaction_collection_task.payment_stage_key`|`COALESCE(payment_stage_code, '')`|当前唯一业务事实|已改为只依赖稳定有效期、删除标记或主标记|
 |`ast_device_component_relation.current_slot_code`|`CASE WHEN effective_to IS NULL THEN slot_code ELSE NULL END`|同一机框槽位同一时点最多一个当前板卡|已改为只依赖稳定有效期、删除标记或主标记|
 |`ast_device_project_assignment.current_device_id`|`CASE WHEN deleted = 0 AND effective_to IS NULL THEN device_id ELSE NULL END`|同一设备同一时点只有一个直接项目归属|已改为只依赖稳定有效期、删除标记或主标记|
 |`com_delivery_scope.current_order_line_id`|`CASE WHEN deleted = 0 AND effective_to IS NULL THEN order_line_id ELSE NULL END`|同一项目—订单行只有一个当前交付范围|已改为只依赖稳定有效期、删除标记或主标记|
 |`cus_customer_contact.primary_customer_id`|`CASE WHEN deleted = 0 AND is_primary = 1 THEN customer_id ELSE NULL END`|一个客户只有一个当前主联系人|已改为只依赖稳定有效期、删除标记或主标记|
+|`cut_cutover_support_responsibility_interval.current_support_task_id`|`CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END`|当前唯一业务事实|已改为只依赖稳定有效期、删除标记或主标记|
 |`proj_project_company_department_relation.primary_project_id`|`CASE WHEN deleted = 0 AND effective_to IS NULL AND is_primary = 1 THEN project_id ELSE NULL END`|项目同一角色只有一个主公司部门关系|已改为只依赖稳定有效期、删除标记或主标记|
 
 另有1个非状态生成列也需明确边界：`ast_device_shipment_event.rma_marked`当前按RMA编号是否为空生成，并把字符串`null`视为空。该列只能作为迁移兼容和查询索引投影，不能替代已确认的`business_action_code`、方向和正负数量业务事实；字符串哨兵清洗必须在迁移规则中留痕。
 
-### 1.9 29个精确匹配字段与排序规则
+### 1.9 28个精确匹配字段与排序规则
 
 这些字段当前继承表级`utf8mb4_0900_ai_ci`。推荐来源键使用`utf8mb4_0900_bin`；契约明确为ASCII摘要的字段使用`ascii_bin`；不得改变原值大小写。
 
@@ -313,6 +312,7 @@
 |`com_shipment_contract_reference`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
 |`com_shipment_package`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
 |`cus_market_relation`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
+|`cut_cutover_support_task`|`source_business_key`|`VARCHAR(128)`|是|`utf8mb4_0900_bin`|
 |`plt_document_version`|`file_checksum`|`VARCHAR(128)`|是|`ascii_bin`（限定ASCII摘要时），否则`utf8mb4_0900_bin`|
 |`plt_external_key_mapping`|`source_business_key`|`VARCHAR(512)`|是|`utf8mb4_0900_bin`|
 |`plt_external_key_mapping`|`source_checksum`|`VARCHAR(128)`|是|`ascii_bin`（限定ASCII摘要时），否则`utf8mb4_0900_bin`|
@@ -323,8 +323,6 @@
 |`plt_migration_source_record`|`source_pk`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
 |`plt_sync_batch`|`source_extract_checksum`|`VARCHAR(128)`|是|`ascii_bin`（限定ASCII摘要时），否则`utf8mb4_0900_bin`|
 |`proj_project_party`|`source_record_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
-|`srv_historical_time_record`|`source_business_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
-|`srv_historical_work_order`|`source_business_key`|`VARCHAR(128)`|否|`utf8mb4_0900_bin`|
 
 ### 1.10 建议审批层次
 
@@ -333,7 +331,7 @@
 |L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|
 |L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|需求方已接受推荐，Reviewer待签署|Q07登记为当前SDS技术约束|
 |L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|逐组批准；有空洞的先修模|
-|L4 性能候选|126个普通索引|需求方接受候选；Feature Owner+性能Owner验证|Q08进入候选基线，绑定查询后由P3-E06压测定稿|
+|L4 性能候选|124个普通索引|需求方接受候选；Feature Owner+性能Owner验证|Q08进入候选基线，绑定查询后由P3-E06压测定稿|
 |L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|
 
 ## 2. 表与字段完整清单
@@ -344,10 +342,10 @@
 |---|---|---:|---|
 |T-001|`acc_deliverable_template`|14|`applicable_stage`、`create_time`、`creator`、`deleted`、`deliverable_type`、`id`、`required_flag`、`status`、`template_code`、`template_document_id`、`tenant_id`、`update_time`、`updater`、`version`|
 |T-002|`acc_project_deliverable`|17|`accepted_time`、`create_time`、`creator`、`deleted`、`deliverable_type`、`document_id`、`id`、`owner_id`、`planned_due_date`、`project_id`、`status`、`submit_time`、`template_id`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-003|`acc_satisfaction_collection_task`|16|`create_time`、`creator`、`current_responsible_user_id`、`frozen_threshold`、`id`、`source_context`、`source_object_id`、`source_object_type`、`state_machine_version`、`status_code`、`task_revision_no`、`template_version`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-004|`acc_satisfaction_questionnaire`|9|`create_time`、`creator`、`frozen_question_json`、`frozen_threshold`、`id`、`questionnaire_revision_no`、`task_id`、`template_version`、`tenant_id`|
-|T-005|`acc_satisfaction_response`|11|`answer_json`、`attachment_refs_json`、`create_time`、`creator`、`id`、`questionnaire_id`、`request_id`、`response_no`、`signature_ref`、`submit_time`、`tenant_id`|
-|T-006|`acc_satisfaction_result`|12|`create_time`、`creator`、`decision_rule_version`、`decision_time`、`frozen_threshold`、`id`、`passed`、`questionnaire_id`、`response_id`、`result_no`、`score`、`tenant_id`|
+|T-003|`acc_satisfaction_collection_task`|27|`applicable_timing_code`、`business_purpose_code`、`create_time`、`creator`、`current_responsible_user_id`、`delivery_scope_sha256`、`delivery_scope_snapshot`、`frozen_threshold`、`id`、`payment_stage_code`、`payment_stage_key`、`prior_task_id`、`project_id`、`remediation_ref`、`source_context`、`source_object_id`、`source_object_type`、`source_object_version`、`state_machine_version`、`status_code`、`task_revision_no`、`template_id`、`template_version`、`tenant_id`、`update_time`、`updater`、`version`|
+|T-004|`acc_satisfaction_questionnaire`|16|`create_time`、`creator`、`frozen_question_json`、`frozen_threshold`、`id`、`prior_questionnaire_id`、`questionnaire_revision_no`、`remediation_ref`、`required_question_count`、`rule_version`、`source_questionnaire_key`、`source_questionnaire_version`、`task_id`、`template_id`、`template_version`、`tenant_id`|
+|T-005|`acc_satisfaction_response`|15|`answer_json`、`attachment_refs_json`、`create_time`、`creator`、`id`、`item_validation_summary`、`questionnaire_id`、`request_id`、`required_validation_summary`、`response_no`、`response_valid`、`signature_ref`、`signature_valid`、`submit_time`、`tenant_id`|
+|T-006|`acc_satisfaction_result`|21|`archive_artifact_id`、`archive_payload_sha256`、`archive_status_code`、`archive_time`、`blocking_reason`、`create_time`、`creator`、`decision_rule_version`、`decision_time`、`frozen_threshold`、`id`、`passed`、`questionnaire_id`、`required_items_valid`、`response_id`、`response_valid`、`result_no`、`score`、`signature_valid`、`tenant_id`、`validation_summary`|
 |T-007|`ana_project_delivery_summary`|32|`active_scope_qty`、`company_code`、`company_id`、`company_name`、`contract_count`、`customer_code`、`customer_id`、`customer_name`、`department_code`、`department_id`、`department_name`、`device_count`、`erp_delivered_qty`、`manager_employee_no`、`manager_id`、`manager_name`、`order_count`、`order_line_count`、`parent_id`、`pending_mapping_count`、`pending_qty_count`、`project_code`、`project_id`、`project_name`、`project_status`、`project_type`、`root_id`、`source_batch_no`、`statistic_time`、`tenant_id`、`update_time`、`version`|
 |T-008|`ast_device_component_relation`|15|`card_device_id`、`card_model_code`、`card_sn`、`chassis_device_id`、`chassis_sn`、`create_time`、`creator`、`current_slot_code`、`effective_from`、`effective_to`、`evidence_ref`、`id`、`relation_source_code`、`slot_code`、`tenant_id`|
 |T-009|`ast_device_configuration`|17|`configuration_stage`、`create_time`、`creator`、`deleted`、`deployment_mode`、`device_id`、`effective_from`、`effective_to`、`id`、`install_location`、`management_address`、`project_id`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
@@ -383,12 +381,12 @@
 |T-039|`cus_customer_contact`|18|`contact_address`、`contact_name`、`create_time`、`creator`、`customer_department_name`、`customer_id`、`deleted`、`email`、`id`、`is_primary`、`phone`、`position_name`、`primary_customer_id`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
 |T-040|`cus_market_relation`|20|`create_time`、`creator`、`deleted`、`expend_code`、`expend_name`、`id`、`industry_code`、`industry_name`、`market_code`、`market_name`、`source_record_key`、`source_sync_time`、`source_system`、`status`、`system_code`、`system_name`、`tenant_id`、`update_time`、`updater`、`version`|
 |T-041|`cut_cutover_support_history`|12|`action_code`、`create_time`、`evidence_ref`、`history_no`、`id`、`occurred_time`、`operator_user_id`、`reason`、`status_after_code`、`status_before_code`、`support_task_id`、`tenant_id`|
-|T-042|`cut_cutover_support_responsibility_interval`|11|`create_time`、`creator`、`effective_from`、`effective_to`、`evidence_ref`、`handover_reason`、`id`、`interval_no`、`responsible_user_id`、`support_task_id`、`tenant_id`|
-|T-043|`cut_cutover_support_task`|15|`create_time`、`creator`、`current_responsible_user_id`、`cutover_task_id`、`id`、`state_machine_version`、`status_code`、`support_scope_hash`、`task_no`、`tenant_id`、`update_time`、`updater`、`version`、`window_end`、`window_start`|
+|T-042|`cut_cutover_support_responsibility_interval`|12|`create_time`、`creator`、`current_support_task_id`、`effective_from`、`effective_to`、`evidence_ref`、`handover_reason`、`id`、`interval_no`、`responsible_user_id`、`support_task_id`、`tenant_id`|
+|T-043|`cut_cutover_support_task`|21|`create_time`、`creator`、`current_handler_user_id`、`current_responsibility_interval_id`、`current_responsible_user_id`、`cutover_task_id`、`device_scope_snapshot`、`id`、`project_id`、`source_business_key`、`source_system`、`state_machine_version`、`status_code`、`support_scope_hash`、`task_no`、`tenant_id`、`update_time`、`updater`、`version`、`window_end`、`window_start`|
 |T-044|`imp_configuration_collection_parse_attempt`|12|`attempt_no`、`collection_result_id`、`completed_time`、`create_time`、`creator`、`error_summary`、`evidence_ref`、`id`、`parse_status_code`、`parser_version`、`started_time`、`tenant_id`|
-|T-045|`imp_configuration_component_candidate`|14|`candidate_no`、`card_model_code`、`card_sn`、`chassis_sn`、`create_time`、`creator`、`evidence_ref`、`id`、`match_status_code`、`matched_device_id`、`parse_attempt_id`、`parser_version`、`slot_code`、`tenant_id`|
-|T-046|`plt_business_document`|13|`create_time`、`creator`、`current_version_id`、`deleted`、`document_code`、`document_name`、`document_type`、`id`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-047|`plt_directory_sync_snapshot`|20|`create_time`、`creator`、`employment_status_code`、`id`、`organization_code`、`person_name`、`person_no`、`position_code`、`source_key`、`source_payload`、`source_payload_sha256`、`source_system`、`source_updated_time`、`source_version`、`sync_batch_no`、`sync_watermark`、`synced_time`、`tenant_id`、`update_time`、`updater`|
+|T-045|`imp_configuration_collection_result`|18|`collection_task_id`、`create_time`、`creator`、`device_id`、`device_snapshot`、`id`、`operated_time`、`operator_user_id`、`parser_version`、`project_id`、`project_snapshot`、`raw_log_file_id`、`raw_log_sha256`、`result_type_code`、`result_version_no`、`script_version`、`source_code`、`tenant_id`|
+|T-046|`imp_configuration_component_candidate`|16|`candidate_no`、`card_configuration_ref`、`card_model_code`、`card_sn`、`chassis_sn`、`create_time`、`creator`、`evidence_ref`、`id`、`match_status_code`、`matched_device_id`、`parse_attempt_id`、`parse_revision_no`、`parser_version`、`slot_code`、`tenant_id`|
+|T-047|`plt_business_document`|13|`create_time`、`creator`、`current_version_id`、`deleted`、`document_code`、`document_name`、`document_type`、`id`、`status`、`tenant_id`、`update_time`、`updater`、`version`|
 |T-048|`plt_document_version`|15|`create_time`、`creator`、`deleted`、`document_id`、`file_checksum`、`file_id`、`file_name`、`id`、`status`、`tenant_id`、`update_time`、`updater`、`uploaded_by`、`uploaded_time`、`version_no`|
 |T-049|`plt_external_key_mapping`|17|`batch_id`、`create_time`、`creator`、`id`、`mapping_status`、`source_business_key`、`source_checksum`、`source_pk`、`source_system`、`source_table`、`target_id`、`target_role`、`target_sequence`、`target_table`、`tenant_id`、`update_time`、`updater`|
 |T-050|`plt_migration_issue`|18|`batch_id`、`candidate_target_ids`、`create_time`、`creator`、`id`、`issue_type`、`raw_business_key`、`raw_payload`、`resolution_action`、`resolution_status`、`resolved_time`、`resolver`、`source_pk`、`source_system`、`source_table`、`tenant_id`、`update_time`、`updater`|
@@ -401,10 +399,8 @@
 |T-057|`proj_project_portfolio`|16|`create_time`、`creator`、`deleted`、`id`、`member_rule`、`member_rule_type`、`owner_id`、`portfolio_code`、`portfolio_name`、`status`、`tenant_id`、`update_time`、`updater`、`valid_from`、`valid_to`、`version`|
 |T-058|`proj_project_portfolio_member`|12|`create_time`、`creator`、`deleted`、`effective_from`、`effective_to`、`id`、`member_source`、`portfolio_id`、`project_id`、`tenant_id`、`update_time`、`updater`|
 |T-059|`proj_project_relation`|14|`create_time`、`creator`、`deleted`、`effective_time`、`id`、`reason`、`relation_type`、`source_project_id`、`status`、`target_project_id`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-060|`srv_historical_time_record`|15|`direction_code`、`duration_hours`、`id`、`imported_time`、`record_end_time`、`record_start_time`、`signed_adjustment_hours`、`source_business_key`、`source_payload`、`source_payload_sha256`、`source_responsible_user_key`、`source_status_code`、`source_system`、`source_type_code`、`tenant_id`|
-|T-061|`srv_historical_work_order`|15|`approval_history_json`、`attachment_refs_json`、`audit_evidence_json`、`id`、`imported_time`、`source_business_key`、`source_completed_time`、`source_created_time`、`source_payload`、`source_payload_sha256`、`source_responsible_user_key`、`source_status_code`、`source_system`、`source_type_code`、`tenant_id`|
-|T-062|`srv_service_incident`|23|`closed_time`、`create_time`、`creator`、`deleted`、`id`、`incident_no`、`incident_title`、`incident_type`、`occurred_time`、`owner_id`、`project_id`、`report_document_id`、`reported_time`、`restored_time`、`root_cause`、`severity`、`solution`、`status`、`symptom`、`tenant_id`、`update_time`、`updater`、`version`|
-|T-063|`srv_service_incident_device_relation`|10|`create_time`、`creator`、`deleted`、`device_id`、`id`、`impact_description`、`incident_id`、`tenant_id`、`update_time`、`updater`|
+|T-060|`srv_service_incident`|23|`closed_time`、`create_time`、`creator`、`deleted`、`id`、`incident_no`、`incident_title`、`incident_type`、`occurred_time`、`owner_id`、`project_id`、`report_document_id`、`reported_time`、`restored_time`、`root_cause`、`severity`、`solution`、`status`、`symptom`、`tenant_id`、`update_time`、`updater`、`version`|
+|T-061|`srv_service_incident_device_relation`|10|`create_time`、`creator`、`deleted`、`device_id`、`id`、`impact_description`、`incident_id`、`tenant_id`、`update_time`、`updater`|
 
 ## 3. 表选项完整清单
 
@@ -454,9 +450,9 @@
 |O-042|`cut_cutover_support_responsibility_interval`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '割接保障责任转交的不可覆盖生效区间'`|待确认字符比较规则后分类接受|
 |O-043|`cut_cutover_support_task`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT领域割接保障任务，不复用通用工单聚合'`|待确认字符比较规则后分类接受|
 |O-044|`imp_configuration_collection_parse_attempt`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '配置采集结果解析尝试，不覆盖原始配置Log'`|待确认字符比较规则后分类接受|
-|O-045|`imp_configuration_component_candidate`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '配置Log解析形成的板卡候选及待匹配证据'`|待确认字符比较规则后分类接受|
-|O-046|`plt_business_document`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'`|待确认字符比较规则后分类接受|
-|O-047|`plt_directory_sync_snapshot`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'HR通讯录权威来源键、版本和水位快照'`|待确认字符比较规则后分类接受|
+|O-045|`imp_configuration_collection_result`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '不可覆盖的配置采集结果、整机Log及项目设备快照'`|待确认字符比较规则后分类接受|
+|O-046|`imp_configuration_component_candidate`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '配置Log解析形成的板卡候选及待匹配证据'`|待确认字符比较规则后分类接受|
+|O-047|`plt_business_document`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档元数据'`|待确认字符比较规则后分类接受|
 |O-048|`plt_document_version`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '业务文档不可变版本'`|待确认字符比较规则后分类接受|
 |O-049|`plt_external_key_mapping`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧主键到新主键的可追溯映射'`|待确认字符比较规则后分类接受|
 |O-050|`plt_migration_issue`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '迁移缺失、重复、多义映射和人工解决记录'`|待确认字符比较规则后分类接受|
@@ -469,10 +465,8 @@
 |O-057|`proj_project_portfolio`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合，不改变项目父子层级'`|待确认字符比较规则后分类接受|
 |O-058|`proj_project_portfolio_member`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目组合成员'`|待确认字符比较规则后分类接受|
 |O-059|`proj_project_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '扩容、续采、改造等非树项目关系'`|待确认字符比较规则后分类接受|
-|O-060|`srv_historical_time_record`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧工时不可删除、不可续流的只读历史事实'`|待确认字符比较规则后分类接受|
-|O-061|`srv_historical_work_order`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '旧工单不可删除、不可续流的只读历史事实'`|待确认字符比较规则后分类接受|
-|O-062|`srv_service_incident`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障及服务事件主档'`|待确认字符比较规则后分类接受|
-|O-063|`srv_service_incident_device_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障与受影响设备多对多关系'`|待确认字符比较规则后分类接受|
+|O-060|`srv_service_incident`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障及服务事件主档'`|待确认字符比较规则后分类接受|
+|O-061|`srv_service_incident_device_relation`|`ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障与受影响设备多对多关系'`|待确认字符比较规则后分类接受|
 
 ## 4. 主键完整清单
 
@@ -522,9 +516,9 @@
 |PK-042|`cut_cutover_support_responsibility_interval`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 |PK-043|`cut_cutover_support_task`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 |PK-044|`imp_configuration_collection_parse_attempt`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-045|`imp_configuration_component_candidate`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-046|`plt_business_document`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-047|`plt_directory_sync_snapshot`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-045|`imp_configuration_collection_result`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-046|`imp_configuration_component_candidate`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-047|`plt_business_document`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 |PK-048|`plt_document_version`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 |PK-049|`plt_external_key_mapping`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 |PK-050|`plt_migration_issue`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
@@ -537,10 +531,8 @@
 |PK-057|`proj_project_portfolio`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 |PK-058|`proj_project_portfolio_member`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 |PK-059|`proj_project_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-060|`srv_historical_time_record`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-061|`srv_historical_work_order`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-062|`srv_service_incident`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-063|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-060|`srv_service_incident`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-061|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
 
 ## 5. 外键完整清单
 
@@ -688,10 +680,10 @@
 |IX-087|`cut_cutover_support_task`|`KEY idx_cutover_support_task_owner (tenant_id, current_responsible_user_id, status_code)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 |IX-088|`cut_cutover_support_task`|`KEY idx_cutover_support_task_window (tenant_id, window_start, window_end)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 |IX-089|`imp_configuration_collection_parse_attempt`|`KEY idx_configuration_parse_attempt_result (tenant_id, collection_result_id, started_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-090|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_match (tenant_id, match_status_code, create_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-091|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_sn (tenant_id, chassis_sn, slot_code, card_sn)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-092|`plt_directory_sync_snapshot`|`KEY idx_directory_sync_snapshot_batch (tenant_id, sync_batch_no, synced_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-093|`plt_directory_sync_snapshot`|`KEY idx_directory_sync_snapshot_org (tenant_id, organization_code, employment_status_code)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-090|`imp_configuration_collection_result`|`KEY idx_configuration_collection_result_device (tenant_id, project_id, device_id, operated_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-091|`imp_configuration_collection_result`|`KEY idx_configuration_collection_result_hash (tenant_id, raw_log_sha256)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-092|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_match (tenant_id, match_status_code, create_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-093|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_sn (tenant_id, chassis_sn, slot_code, card_sn)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 |IX-094|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 |IX-095|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 |IX-096|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
@@ -720,11 +712,9 @@
 |IX-119|`proj_project_portfolio`|`KEY idx_portfolio_owner (tenant_id, owner_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 |IX-120|`proj_project_portfolio_member`|`KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 |IX-121|`proj_project_relation`|`KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-122|`srv_historical_time_record`|`KEY idx_historical_time_record_time (tenant_id, record_start_time, source_business_key)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-123|`srv_historical_work_order`|`KEY idx_historical_work_order_time (tenant_id, source_created_time, source_business_key)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-124|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-125|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-126|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-122|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-123|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-124|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
 
 ## 7. 唯一键完整清单
 
@@ -734,7 +724,7 @@
 |UK-002|`acc_deliverable_template`|`UNIQUE KEY uk_deliverable_template_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
 |UK-003|`acc_project_deliverable`|`UNIQUE KEY uk_project_deliverable_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
 |UK-004|`acc_satisfaction_collection_task`|`UNIQUE KEY uk_satisfaction_collection_task_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-005|`acc_satisfaction_collection_task`|`UNIQUE KEY uk_satisfaction_task_revision (tenant_id, source_context, source_object_type, source_object_id, task_revision_no)`|影响重复数据；需逐组业务确认|
+|UK-005|`acc_satisfaction_collection_task`|`UNIQUE KEY uk_satisfaction_task_revision (tenant_id, project_id, source_context, source_object_type, source_object_id, source_object_version, business_purpose_code, applicable_timing_code, payment_stage_key, task_revision_no)`|影响重复数据；需逐组业务确认|
 |UK-006|`acc_satisfaction_questionnaire`|`UNIQUE KEY uk_satisfaction_questionnaire_revision (tenant_id, task_id, questionnaire_revision_no)`|影响重复数据；需逐组业务确认|
 |UK-007|`acc_satisfaction_questionnaire`|`UNIQUE KEY uk_satisfaction_questionnaire_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
 |UK-008|`acc_satisfaction_response`|`UNIQUE KEY uk_satisfaction_response_request (tenant_id, questionnaire_id, request_id)`|影响重复数据；需逐组业务确认|
@@ -812,54 +802,51 @@
 |UK-080|`cus_market_relation`|`UNIQUE KEY uk_market_relation_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
 |UK-081|`cut_cutover_support_history`|`UNIQUE KEY uk_cutover_support_history_sequence (tenant_id, support_task_id, history_no)`|影响重复数据；需逐组业务确认|
 |UK-082|`cut_cutover_support_history`|`UNIQUE KEY uk_cutover_support_history_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-083|`cut_cutover_support_responsibility_interval`|`UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no)`|影响重复数据；需逐组业务确认|
-|UK-084|`cut_cutover_support_responsibility_interval`|`UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-085|`cut_cutover_support_task`|`UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end)`|影响重复数据；需逐组业务确认|
-|UK-086|`cut_cutover_support_task`|`UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no)`|影响重复数据；需逐组业务确认|
-|UK-087|`cut_cutover_support_task`|`UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-088|`imp_configuration_collection_parse_attempt`|`UNIQUE KEY uk_configuration_parse_attempt (tenant_id, collection_result_id, attempt_no)`|影响重复数据；需逐组业务确认|
-|UK-089|`imp_configuration_collection_parse_attempt`|`UNIQUE KEY uk_configuration_parse_attempt_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-090|`imp_configuration_component_candidate`|`UNIQUE KEY uk_configuration_component_candidate (tenant_id, parse_attempt_id, candidate_no)`|影响重复数据；需逐组业务确认|
-|UK-091|`imp_configuration_component_candidate`|`UNIQUE KEY uk_configuration_component_candidate_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-092|`plt_business_document`|`UNIQUE KEY uk_business_document_code (tenant_id, document_code)`|影响重复数据；需逐组业务确认|
-|UK-093|`plt_business_document`|`UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-094|`plt_directory_sync_snapshot`|`UNIQUE KEY uk_directory_sync_snapshot_source (tenant_id, source_system, source_key)`|影响重复数据；需逐组业务确认|
-|UK-095|`plt_directory_sync_snapshot`|`UNIQUE KEY uk_directory_sync_snapshot_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-096|`plt_document_version`|`UNIQUE KEY uk_document_version (tenant_id, document_id, version_no)`|影响重复数据；需逐组业务确认|
-|UK-097|`plt_document_version`|`UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)`|影响重复数据；需逐组业务确认|
-|UK-098|`plt_document_version`|`UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-099|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-100|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_role, target_sequence, target_table, target_id )`|影响重复数据；需逐组业务确认|
-|UK-101|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )`|影响重复数据；需逐组业务确认|
-|UK-102|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-103|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )`|影响重复数据；需逐组业务确认|
-|UK-104|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-105|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_no (tenant_id, batch_no)`|影响重复数据；需逐组业务确认|
-|UK-106|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-107|`proj_project`|`UNIQUE KEY uk_project_code (tenant_id, project_code)`|影响重复数据；需逐组业务确认|
-|UK-108|`proj_project`|`UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence)`|影响重复数据；需逐组业务确认|
-|UK-109|`proj_project`|`UNIQUE KEY uk_project_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-110|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-111|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_role ( tenant_id, project_id, company_code, department_code, relation_role, effective_from )`|影响重复数据；需逐组业务确认|
-|UK-112|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )`|影响重复数据；需逐组业务确认|
-|UK-113|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_role ( tenant_id, project_id, user_id, member_role, effective_from )`|影响重复数据；需逐组业务确认|
-|UK-114|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-115|`proj_project_party`|`UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )`|影响重复数据；需逐组业务确认|
-|UK-116|`proj_project_party`|`UNIQUE KEY uk_project_party_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-117|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)`|影响重复数据；需逐组业务确认|
-|UK-118|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-119|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project ( tenant_id, portfolio_id, project_id, member_source )`|影响重复数据；需逐组业务确认|
-|UK-120|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-121|`proj_project_relation`|`UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )`|影响重复数据；需逐组业务确认|
-|UK-122|`proj_project_relation`|`UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-123|`srv_historical_time_record`|`UNIQUE KEY uk_historical_time_record_source (tenant_id, source_system, source_business_key)`|影响重复数据；需逐组业务确认|
-|UK-124|`srv_historical_time_record`|`UNIQUE KEY uk_historical_time_record_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-125|`srv_historical_work_order`|`UNIQUE KEY uk_historical_work_order_source (tenant_id, source_system, source_business_key)`|影响重复数据；需逐组业务确认|
-|UK-126|`srv_historical_work_order`|`UNIQUE KEY uk_historical_work_order_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-127|`srv_service_incident`|`UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)`|影响重复数据；需逐组业务确认|
-|UK-128|`srv_service_incident`|`UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
-|UK-129|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)`|影响重复数据；需逐组业务确认|
-|UK-130|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-083|`cut_cutover_support_responsibility_interval`|`UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)`|影响重复数据；需逐组业务确认|
+|UK-084|`cut_cutover_support_responsibility_interval`|`UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no)`|影响重复数据；需逐组业务确认|
+|UK-085|`cut_cutover_support_responsibility_interval`|`UNIQUE KEY uk_cutover_support_responsibility_interval_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-086|`cut_cutover_support_task`|`UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end)`|影响重复数据；需逐组业务确认|
+|UK-087|`cut_cutover_support_task`|`UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no)`|影响重复数据；需逐组业务确认|
+|UK-088|`cut_cutover_support_task`|`UNIQUE KEY uk_cutover_support_task_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-089|`imp_configuration_collection_parse_attempt`|`UNIQUE KEY uk_configuration_parse_attempt (tenant_id, collection_result_id, attempt_no)`|影响重复数据；需逐组业务确认|
+|UK-090|`imp_configuration_collection_parse_attempt`|`UNIQUE KEY uk_configuration_parse_attempt_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-091|`imp_configuration_collection_result`|`UNIQUE KEY uk_configuration_collection_result (tenant_id, collection_task_id, result_type_code, result_version_no)`|影响重复数据；需逐组业务确认|
+|UK-092|`imp_configuration_collection_result`|`UNIQUE KEY uk_configuration_collection_result_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-093|`imp_configuration_component_candidate`|`UNIQUE KEY uk_configuration_component_candidate (tenant_id, parse_attempt_id, candidate_no)`|影响重复数据；需逐组业务确认|
+|UK-094|`imp_configuration_component_candidate`|`UNIQUE KEY uk_configuration_component_candidate_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-095|`plt_business_document`|`UNIQUE KEY uk_business_document_code (tenant_id, document_code)`|影响重复数据；需逐组业务确认|
+|UK-096|`plt_business_document`|`UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-097|`plt_document_version`|`UNIQUE KEY uk_document_version (tenant_id, document_id, version_no)`|影响重复数据；需逐组业务确认|
+|UK-098|`plt_document_version`|`UNIQUE KEY uk_document_version_owner (tenant_id, document_id, id)`|影响重复数据；需逐组业务确认|
+|UK-099|`plt_document_version`|`UNIQUE KEY uk_document_version_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-100|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_map_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-101|`plt_external_key_mapping`|`UNIQUE KEY uk_external_key_source_target ( tenant_id, source_system, source_table, source_pk, target_role, target_sequence, target_table, target_id )`|影响重复数据；需逐组业务确认|
+|UK-102|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_source ( tenant_id, batch_id, source_table, source_pk, issue_type )`|影响重复数据；需逐组业务确认|
+|UK-103|`plt_migration_issue`|`UNIQUE KEY uk_migration_issue_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-104|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record ( tenant_id, batch_id, source_system, source_table, source_pk )`|影响重复数据；需逐组业务确认|
+|UK-105|`plt_migration_source_record`|`UNIQUE KEY uk_migration_source_record_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-106|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_no (tenant_id, batch_no)`|影响重复数据；需逐组业务确认|
+|UK-107|`plt_sync_batch`|`UNIQUE KEY uk_sync_batch_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-108|`proj_project`|`UNIQUE KEY uk_project_code (tenant_id, project_code)`|影响重复数据；需逐组业务确认|
+|UK-109|`proj_project`|`UNIQUE KEY uk_project_code_sequence (tenant_id, code_root_id, project_sequence)`|影响重复数据；需逐组业务确认|
+|UK-110|`proj_project`|`UNIQUE KEY uk_project_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-111|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-112|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_company_department_role ( tenant_id, project_id, company_code, department_code, relation_role, effective_from )`|影响重复数据；需逐组业务确认|
+|UK-113|`proj_project_company_department_relation`|`UNIQUE KEY uk_project_primary_company_department ( tenant_id, primary_project_id, relation_role )`|影响重复数据；需逐组业务确认|
+|UK-114|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_role ( tenant_id, project_id, user_id, member_role, effective_from )`|影响重复数据；需逐组业务确认|
+|UK-115|`proj_project_member_assignment`|`UNIQUE KEY uk_project_member_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-116|`proj_project_party`|`UNIQUE KEY uk_project_party_source ( tenant_id, source_system, source_table, source_record_key, party_role )`|影响重复数据；需逐组业务确认|
+|UK-117|`proj_project_party`|`UNIQUE KEY uk_project_party_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-118|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_code (tenant_id, portfolio_code)`|影响重复数据；需逐组业务确认|
+|UK-119|`proj_project_portfolio`|`UNIQUE KEY uk_portfolio_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-120|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project ( tenant_id, portfolio_id, project_id, member_source )`|影响重复数据；需逐组业务确认|
+|UK-121|`proj_project_portfolio_member`|`UNIQUE KEY uk_portfolio_project_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-122|`proj_project_relation`|`UNIQUE KEY uk_project_relation ( tenant_id, source_project_id, target_project_id, relation_type )`|影响重复数据；需逐组业务确认|
+|UK-123|`proj_project_relation`|`UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-124|`srv_service_incident`|`UNIQUE KEY uk_service_incident_no (tenant_id, incident_no)`|影响重复数据；需逐组业务确认|
+|UK-125|`srv_service_incident`|`UNIQUE KEY uk_service_incident_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
+|UK-126|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device (tenant_id, incident_id, device_id)`|影响重复数据；需逐组业务确认|
+|UK-127|`srv_service_incident_device_relation`|`UNIQUE KEY uk_incident_device_rel_tenant_row (tenant_id, id)`|影响重复数据；需逐组业务确认|
 
 ## 8. CHECK规则完整清单
 
@@ -931,9 +918,9 @@
 |CK-064|`cut_cutover_support_task`|`CONSTRAINT chk_cutover_support_window CHECK (window_end >= window_start)`|影响异常历史数据；需逐组业务确认|
 |CK-065|`imp_configuration_collection_parse_attempt`|`CONSTRAINT chk_configuration_parse_attempt_no CHECK (attempt_no > 0)`|影响异常历史数据；需逐组业务确认|
 |CK-066|`imp_configuration_collection_parse_attempt`|`CONSTRAINT chk_configuration_parse_attempt_time CHECK (completed_time IS NULL OR completed_time >= started_time)`|影响异常历史数据；需逐组业务确认|
-|CK-067|`imp_configuration_component_candidate`|`CONSTRAINT chk_configuration_component_candidate_no CHECK (candidate_no > 0)`|影响异常历史数据；需逐组业务确认|
-|CK-068|`plt_business_document`|`CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-069|`plt_directory_sync_snapshot`|`CONSTRAINT chk_directory_sync_times CHECK (synced_time >= source_updated_time)`|影响异常历史数据；需逐组业务确认|
+|CK-067|`imp_configuration_collection_result`|`CONSTRAINT chk_configuration_collection_result_version CHECK (result_version_no > 0)`|影响异常历史数据；需逐组业务确认|
+|CK-068|`imp_configuration_component_candidate`|`CONSTRAINT chk_configuration_component_candidate_no CHECK (candidate_no > 0)`|影响异常历史数据；需逐组业务确认|
+|CK-069|`plt_business_document`|`CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 |CK-070|`plt_document_version`|`CONSTRAINT chk_document_version_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 |CK-071|`plt_external_key_mapping`|`CONSTRAINT chk_external_key_target_sequence CHECK (target_sequence >= 0)`|影响异常历史数据；需逐组业务确认|
 |CK-072|`plt_migration_source_record`|`CONSTRAINT chk_migration_source_target_count CHECK (mapped_target_count >= 0)`|影响异常历史数据；需逐组业务确认|
@@ -954,11 +941,9 @@
 |CK-087|`proj_project_portfolio_member`|`CONSTRAINT chk_portfolio_project_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 |CK-088|`proj_project_relation`|`CONSTRAINT chk_project_relation_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 |CK-089|`proj_project_relation`|`CONSTRAINT chk_project_relation_self CHECK (source_project_id <> target_project_id)`|影响异常历史数据；需逐组业务确认|
-|CK-090|`srv_historical_time_record`|`CONSTRAINT chk_historical_time_dates CHECK (record_end_time IS NULL OR record_start_time IS NULL OR record_end_time >= record_start_time)`|影响异常历史数据；需逐组业务确认|
-|CK-091|`srv_historical_work_order`|`CONSTRAINT chk_historical_work_order_dates CHECK (source_completed_time IS NULL OR source_created_time IS NULL OR source_completed_time >= source_created_time)`|影响异常历史数据；需逐组业务确认|
-|CK-092|`srv_service_incident`|`CONSTRAINT chk_service_incident_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
-|CK-093|`srv_service_incident`|`CONSTRAINT chk_service_incident_times CHECK ( restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time )`|影响异常历史数据；需逐组业务确认|
-|CK-094|`srv_service_incident_device_relation`|`CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-090|`srv_service_incident`|`CONSTRAINT chk_service_incident_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
+|CK-091|`srv_service_incident`|`CONSTRAINT chk_service_incident_times CHECK ( restored_time IS NULL OR occurred_time IS NULL OR restored_time >= occurred_time )`|影响异常历史数据；需逐组业务确认|
+|CK-092|`srv_service_incident_device_relation`|`CONSTRAINT chk_incident_device_deleted CHECK (deleted IN (0, 1))`|影响异常历史数据；需逐组业务确认|
 
 ## 9. 裁决边界
 

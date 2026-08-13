@@ -83,13 +83,13 @@ class Phase3ValidatorTest(unittest.TestCase):
                     "driftDecision": "DEFER",
                     "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
                     "q07Decision": {
-                        "status": "ACCEPTED", "technicalConstraintCount": 222,
-                        "primaryKeyCount": 50, "tenantReferenceKeyCount": 50,
-                        "primaryKeyShape": {"singleId": 49, "compositeProjection": 1},
-                        "sameDomainForeignKeyCount": 48, "stableTechnicalCheckCount": 74,
+                        "status": "ACCEPTED", "technicalConstraintCount": 258,
+                        "primaryKeyCount": 61, "tenantReferenceKeyCount": 61,
+                        "primaryKeyShape": {"singleId": 60, "compositeProjection": 1},
+                        "sameDomainForeignKeyCount": 48, "stableTechnicalCheckCount": 88,
                     },
                     "q08Decision": {
-                        "status": "CANDIDATE_BASELINE_ACCEPTED", "candidateIndexCount": 108,
+                        "status": "CANDIDATE_BASELINE_ACCEPTED", "candidateIndexCount": 124,
                         "featureQueryPlanValidationRequired": True,
                         "p3e06PerformanceValidationRequired": True,
                         "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",

@@ -24,41 +24,16 @@ APPLY_SPEC.loader.exec_module(APPLIER)
 class CoreMigrationSchemaContractTest(unittest.TestCase):
     def valid_v17_delta_contract(self) -> dict[str, object]:
         contract = self.valid_contract()
+        contract["forbiddenV1V2Tables"] = sorted(MODULE.EXPECTED_FORBIDDEN_V1V2_TABLES)
         contract["v17Delta"] = {
             "decisionRef": "ADR-0025",
             "status": "BLOCKED_BY_REVIEW",
-            "requirementRefs": [
-                "ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04", "CUT-11",
-                "SRV-01", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07",
-                "EXE-03", "INT-05",
-            ],
+            "requirementRefs": sorted(MODULE.EXPECTED_V17_REQUIREMENTS),
             "objectTargetTables": {
-                "ConfigurationCollectionResult": [
-                    "imp_configuration_collection_parse_attempt",
-                    "imp_configuration_component_candidate",
-                ],
-                "SatisfactionCollection": [
-                    "acc_satisfaction_collection_task",
-                    "acc_satisfaction_questionnaire",
-                    "acc_satisfaction_response",
-                    "acc_satisfaction_result",
-                ],
-                "CutoverSupportTask": [
-                    "cut_cutover_support_task",
-                    "cut_cutover_support_history",
-                ],
-                "ResponsibilityInterval": [
-                    "cut_cutover_support_responsibility_interval",
-                ],
-                "HistoricalWorkOrderRecord": ["srv_historical_work_order"],
-                "HistoricalTimeRecord": ["srv_historical_time_record"],
-                "DeviceComponentRelation": ["ast_device_component_relation"],
-                "DirectorySyncSnapshot": ["plt_directory_sync_snapshot"],
+                name: sorted(tables)
+                for name, tables in MODULE.EXPECTED_V17_OBJECT_TABLES.items()
             },
-            "historicalReadOnlyTables": [
-                "srv_historical_work_order",
-                "srv_historical_time_record",
-            ],
+            "historicalReadOnlyTables": [],
             "appendOnlyTables": [
                 "acc_satisfaction_questionnaire",
                 "acc_satisfaction_response",
@@ -66,6 +41,7 @@ class CoreMigrationSchemaContractTest(unittest.TestCase):
                 "cut_cutover_support_history",
                 "cut_cutover_support_responsibility_interval",
             ],
+            "tableContracts": MODULE.v17_table_contract_payload(),
         }
         return contract
 
@@ -84,11 +60,32 @@ class CoreMigrationSchemaContractTest(unittest.TestCase):
 
     def valid_v17_delta_ddl(self) -> str:
         return self.valid_ddl() + """
+CREATE TABLE imp_configuration_collection_result (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  collection_task_id BIGINT NOT NULL,
+  project_id BIGINT NOT NULL,
+  device_id BIGINT NOT NULL,
+  project_snapshot JSON NOT NULL,
+  device_snapshot JSON NOT NULL,
+  result_type_code VARCHAR(32) NOT NULL,
+  result_version_no INT UNSIGNED NOT NULL,
+  source_code VARCHAR(32) NOT NULL,
+  script_version VARCHAR(64) NULL,
+  parser_version VARCHAR(64) NOT NULL,
+  raw_log_file_id BIGINT NOT NULL,
+  raw_log_sha256 CHAR(64) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_configuration_collection_result (tenant_id, collection_task_id, result_type_code, result_version_no)
+) ENGINE = InnoDB;
 CREATE TABLE imp_configuration_collection_parse_attempt (
   id BIGINT NOT NULL,
   tenant_id BIGINT NOT NULL,
   collection_result_id BIGINT NOT NULL,
   attempt_no INT UNSIGNED NOT NULL,
+  parser_version VARCHAR(64) NOT NULL,
+  parse_status_code VARCHAR(32) NOT NULL,
+  evidence_ref VARCHAR(512) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_configuration_parse_attempt (tenant_id, collection_result_id, attempt_no)
 ) ENGINE = InnoDB;
@@ -97,36 +94,57 @@ CREATE TABLE imp_configuration_component_candidate (
   tenant_id BIGINT NOT NULL,
   parse_attempt_id BIGINT NOT NULL,
   candidate_no INT UNSIGNED NOT NULL,
+  parse_revision_no INT UNSIGNED NOT NULL,
   chassis_sn VARCHAR(128) NOT NULL,
   slot_code VARCHAR(64) NOT NULL,
   card_sn VARCHAR(128) NULL,
   card_model_code VARCHAR(128) NULL,
   parser_version VARCHAR(64) NOT NULL,
+  card_configuration_ref VARCHAR(512) NOT NULL,
   match_status_code VARCHAR(32) NOT NULL,
-  evidence_ref VARCHAR(256) NOT NULL,
+  evidence_ref VARCHAR(512) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_configuration_component_candidate (tenant_id, parse_attempt_id, candidate_no)
 ) ENGINE = InnoDB;
 CREATE TABLE acc_satisfaction_collection_task (
   id BIGINT NOT NULL,
   tenant_id BIGINT NOT NULL,
+  project_id BIGINT NOT NULL,
+  business_purpose_code VARCHAR(64) NOT NULL,
+  applicable_timing_code VARCHAR(64) NOT NULL,
   source_context VARCHAR(32) NOT NULL,
   source_object_type VARCHAR(64) NOT NULL,
   source_object_id BIGINT NOT NULL,
+  source_object_version VARCHAR(64) NOT NULL,
+  payment_stage_code VARCHAR(64) NULL,
+  payment_stage_key VARCHAR(64) GENERATED ALWAYS AS (COALESCE(payment_stage_code, '')) STORED,
+  delivery_scope_snapshot JSON NULL,
+  delivery_scope_sha256 CHAR(64) NULL,
   task_revision_no INT UNSIGNED NOT NULL,
+  prior_task_id BIGINT NULL,
+  remediation_ref VARCHAR(512) NULL,
+  template_id BIGINT NOT NULL,
   template_version VARCHAR(64) NOT NULL,
   frozen_threshold DECIMAL(10,4) NOT NULL,
   state_machine_version VARCHAR(64) NOT NULL,
   status_code VARCHAR(32) NOT NULL,
   current_responsible_user_id BIGINT NOT NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_satisfaction_task_revision (tenant_id, source_context, source_object_type, source_object_id, task_revision_no)
+  UNIQUE KEY uk_satisfaction_task_revision (tenant_id, project_id, source_context, source_object_type, source_object_id, source_object_version, business_purpose_code, applicable_timing_code, payment_stage_key, task_revision_no)
 ) ENGINE = InnoDB;
 CREATE TABLE acc_satisfaction_questionnaire (
   id BIGINT NOT NULL,
   tenant_id BIGINT NOT NULL,
   task_id BIGINT NOT NULL,
+  source_questionnaire_key VARCHAR(128) NULL,
+  source_questionnaire_version VARCHAR(64) NULL,
   questionnaire_revision_no INT UNSIGNED NOT NULL,
+  prior_questionnaire_id BIGINT NULL,
+  remediation_ref VARCHAR(512) NULL,
+  template_id BIGINT NOT NULL,
+  template_version VARCHAR(64) NOT NULL,
+  rule_version VARCHAR(64) NOT NULL,
+  required_question_count INT UNSIGNED NOT NULL,
   frozen_question_json JSON NOT NULL,
   frozen_threshold DECIMAL(10,4) NOT NULL,
   create_time DATETIME(3) NOT NULL,
@@ -140,7 +158,11 @@ CREATE TABLE acc_satisfaction_response (
   response_no INT UNSIGNED NOT NULL,
   request_id VARCHAR(128) NOT NULL,
   answer_json JSON NOT NULL,
-  signature_ref VARCHAR(256) NOT NULL,
+  response_valid TINYINT NOT NULL,
+  signature_valid TINYINT NOT NULL,
+  required_validation_summary JSON NOT NULL,
+  item_validation_summary JSON NOT NULL,
+  signature_ref VARCHAR(512) NOT NULL,
   submit_time DATETIME(3) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_satisfaction_response_sequence (tenant_id, questionnaire_id, response_no),
@@ -152,9 +174,18 @@ CREATE TABLE acc_satisfaction_result (
   questionnaire_id BIGINT NOT NULL,
   response_id BIGINT NOT NULL,
   result_no INT UNSIGNED NOT NULL,
+  response_valid TINYINT NOT NULL,
+  signature_valid TINYINT NOT NULL,
+  required_items_valid TINYINT NOT NULL,
+  validation_summary JSON NOT NULL,
   score DECIMAL(10,4) NOT NULL,
   frozen_threshold DECIMAL(10,4) NOT NULL,
   passed TINYINT NOT NULL,
+  blocking_reason VARCHAR(1000) NULL,
+  archive_status_code VARCHAR(32) NOT NULL,
+  archive_artifact_id BIGINT NULL,
+  archive_payload_sha256 CHAR(64) NULL,
+  archive_time DATETIME(3) NULL,
   decision_time DATETIME(3) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_satisfaction_result_sequence (tenant_id, questionnaire_id, result_no),
@@ -163,14 +194,20 @@ CREATE TABLE acc_satisfaction_result (
 CREATE TABLE cut_cutover_support_task (
   id BIGINT NOT NULL,
   tenant_id BIGINT NOT NULL,
+  source_system VARCHAR(32) NULL,
+  source_business_key VARCHAR(128) NULL,
   task_no VARCHAR(64) NOT NULL,
   cutover_task_id BIGINT NOT NULL,
+  project_id BIGINT NOT NULL,
+  device_scope_snapshot JSON NOT NULL,
   support_scope_hash CHAR(64) NOT NULL,
   window_start DATETIME(3) NOT NULL,
   window_end DATETIME(3) NOT NULL,
   state_machine_version VARCHAR(64) NOT NULL,
   status_code VARCHAR(32) NOT NULL,
   current_responsible_user_id BIGINT NOT NULL,
+  current_handler_user_id BIGINT NOT NULL,
+  current_responsibility_interval_id BIGINT NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_cutover_support_task_no (tenant_id, task_no),
   UNIQUE KEY uk_cutover_support_scope_window (tenant_id, cutover_task_id, support_scope_hash, window_start, window_end)
@@ -197,40 +234,13 @@ CREATE TABLE cut_cutover_support_responsibility_interval (
   responsible_user_id BIGINT NOT NULL,
   effective_from DATETIME(3) NOT NULL,
   effective_to DATETIME(3) NULL,
+  current_support_task_id BIGINT GENERATED ALWAYS AS (
+    CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END
+  ) STORED,
   handover_reason VARCHAR(512) NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no)
-) ENGINE = InnoDB;
-CREATE TABLE srv_historical_work_order (
-  id BIGINT NOT NULL,
-  tenant_id BIGINT NOT NULL,
-  source_system VARCHAR(32) NOT NULL,
-  source_business_key VARCHAR(128) NOT NULL,
-  source_type_code VARCHAR(64) NULL,
-  source_status_code VARCHAR(64) NULL,
-  source_responsible_user_key VARCHAR(128) NULL,
-  source_payload JSON NOT NULL,
-  source_payload_sha256 CHAR(64) NOT NULL,
-  imported_time DATETIME(3) NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_historical_work_order_source (tenant_id, source_system, source_business_key)
-) ENGINE = InnoDB;
-CREATE TABLE srv_historical_time_record (
-  id BIGINT NOT NULL,
-  tenant_id BIGINT NOT NULL,
-  source_system VARCHAR(32) NOT NULL,
-  source_business_key VARCHAR(128) NOT NULL,
-  source_type_code VARCHAR(64) NULL,
-  source_status_code VARCHAR(64) NULL,
-  source_responsible_user_key VARCHAR(128) NULL,
-  duration_hours DECIMAL(20,6) NULL,
-  direction_code VARCHAR(32) NULL,
-  signed_adjustment_hours DECIMAL(20,6) NULL,
-  source_payload JSON NOT NULL,
-  source_payload_sha256 CHAR(64) NOT NULL,
-  imported_time DATETIME(3) NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_historical_time_record_source (tenant_id, source_system, source_business_key)
+  UNIQUE KEY uk_cutover_responsibility_interval_sequence (tenant_id, support_task_id, interval_no),
+  UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)
 ) ENGINE = InnoDB;
 CREATE TABLE ast_device_component_relation (
   id BIGINT NOT NULL,
@@ -251,24 +261,6 @@ CREATE TABLE ast_device_component_relation (
   PRIMARY KEY (id),
   UNIQUE KEY uk_device_component_current_slot (tenant_id, chassis_device_id, current_slot_code)
 ) ENGINE = InnoDB;
-CREATE TABLE plt_directory_sync_snapshot (
-  id BIGINT NOT NULL,
-  tenant_id BIGINT NOT NULL,
-  source_system VARCHAR(32) NOT NULL,
-  source_key VARCHAR(128) NOT NULL,
-  source_version VARCHAR(64) NOT NULL,
-  person_no VARCHAR(64) NOT NULL,
-  person_name VARCHAR(128) NOT NULL,
-  organization_code VARCHAR(64) NOT NULL,
-  position_code VARCHAR(64) NULL,
-  employment_status_code VARCHAR(32) NOT NULL,
-  sync_batch_no VARCHAR(64) NOT NULL,
-  sync_watermark VARCHAR(128) NOT NULL,
-  source_updated_time DATETIME(3) NOT NULL,
-  synced_time DATETIME(3) NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_directory_sync_snapshot_source (tenant_id, source_system, source_key)
-) ENGINE = InnoDB;
 """
 
     def valid_contract(self) -> dict[str, object]:
@@ -279,6 +271,11 @@ CREATE TABLE plt_directory_sync_snapshot (
             "coverage": "CORE_MIGRATION_SUBSET",
             "crossDomainReferencePolicy": "LOGICAL_REFERENCE",
             "v3DesignOnlyTables": sorted(MODULE.V3_DESIGN_ONLY_TABLES),
+            "forbiddenV1V2Tables": sorted(MODULE.EXPECTED_FORBIDDEN_V1V2_TABLES),
+            "currentTableScope": {
+                table: MODULE.EXPECTED_CURRENT_TABLE_SCOPE[table]
+                for table in MODULE.parse_tables(self.valid_ddl())
+            },
             "externalKeyMapping": {
                 "table": "plt_external_key_mapping",
                 "targetRoleColumn": "target_role",
@@ -442,6 +439,22 @@ CREATE TABLE plt_external_key_mapping (
         self.assertTrue(any("CORE_MIGRATION_SUBSET" in error for error in errors))
         self.assertTrue(any("V3 design-only" in error for error in errors))
 
+    def test_rejects_missing_or_unproven_current_table_scope(self) -> None:
+        contract = self.valid_contract()
+        scope = contract["currentTableScope"]
+        assert isinstance(scope, dict)
+        scope.pop("proj_project")
+        errors = MODULE.validate_contract(contract, self.valid_ddl())
+        self.assertTrue(any("exact table set" in error for error in errors))
+
+        contract = self.valid_contract()
+        scope = contract["currentTableScope"]
+        assert isinstance(scope, dict)
+        scope["proj_project"] = {"requirementRefs": []}
+        errors = MODULE.validate_contract(contract, self.valid_ddl())
+        self.assertTrue(any("scope mapping mismatch: proj_project" in error for error in errors))
+        self.assertTrue(any("no V1/V2 scope evidence: proj_project" in error for error in errors))
+
     def test_rejects_cross_domain_foreign_key(self) -> None:
         ddl = self.valid_ddl().replace(
             "PRIMARY KEY (id),\n  UNIQUE KEY uk_device_current_assignment",
@@ -545,25 +558,89 @@ CREATE TABLE kno_device_technical_advisory_match (id BIGINT) ENGINE = InnoDB;
                 )
                 self.assertTrue(any(table in error for error in errors))
 
-    def test_v17_delta_rejects_mapping_replaced_by_existing_table(self) -> None:
+    def test_v17_delta_rejects_forbidden_object_mapping(self) -> None:
         object_map = self.valid_v17_object_table_map()
         objects = object_map["objects"]
         assert isinstance(objects, dict)
-        objects["HistoricalTimeRecord"] = {"targetTables": ["proj_project"]}
+        objects["HistoricalTimeRecord"] = {"targetTables": ["srv_historical_time_record"]}
         errors = MODULE.validate_v17_delta(
             self.valid_v17_delta_contract(), object_map, self.valid_v17_delta_ddl()
         )
-        self.assertTrue(any("HistoricalTimeRecord" in error for error in errors))
+        self.assertTrue(any("srv_historical_time_record" in error and "object table map" in error for error in errors))
+
+    def test_v17_delta_rejects_extra_existing_table_in_object_mapping(self) -> None:
+        object_map = self.valid_v17_object_table_map()
+        objects = object_map["objects"]
+        assert isinstance(objects, dict)
+        mapped = objects["DeviceComponentRelation"]
+        assert isinstance(mapped, dict)
+        mapped["targetTables"].append("proj_project")
+        errors = MODULE.validate_v17_delta(
+            self.valid_v17_delta_contract(), object_map, self.valid_v17_delta_ddl()
+        )
+        self.assertTrue(any("DeviceComponentRelation" in error for error in errors))
+
+    def test_v17_delta_rejects_wrong_unique_key_column_order(self) -> None:
+        ddl = self.valid_v17_delta_ddl().replace(
+            "UNIQUE KEY uk_configuration_parse_attempt (tenant_id, collection_result_id, attempt_no)",
+            "UNIQUE KEY uk_configuration_parse_attempt (tenant_id, attempt_no, collection_result_id)",
+        )
+        errors = MODULE.validate_v17_delta(
+            self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
+        )
+        self.assertTrue(any("uk_configuration_parse_attempt" in error for error in errors))
+
+    def test_v17_delta_rejects_missing_required_column_even_if_key_name_remains(self) -> None:
+        ddl = self.valid_v17_delta_ddl().replace(
+            "  parser_version VARCHAR(64) NOT NULL,\n",
+            "",
+            1,
+        )
+        errors = MODULE.validate_v17_delta(
+            self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
+        )
+        self.assertTrue(any("parser_version" in error for error in errors))
+
+    def test_v17_delta_rejects_forbidden_v3_and_out_of_scope_work_order_tables(self) -> None:
+        ddl = self.valid_v17_delta_ddl() + """
+CREATE TABLE srv_work_order (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;
+CREATE TABLE srv_work_order_sla (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;
+"""
+        errors = MODULE.validate_v17_delta(
+            self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
+        )
+        self.assertTrue(any("srv_work_order" in error for error in errors))
+        self.assertTrue(any("srv_work_order_sla" in error for error in errors))
+
+    def test_v17_delta_rejects_concurrent_current_responsibility_escape(self) -> None:
+        ddl = self.valid_v17_delta_ddl().replace(
+            "UNIQUE KEY uk_cutover_responsibility_current (tenant_id, current_support_task_id)",
+            "KEY idx_cutover_responsibility_current_escape (tenant_id, current_support_task_id)",
+        )
+        errors = MODULE.validate_v17_delta(
+            self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
+        )
+        self.assertTrue(any("uk_cutover_responsibility_current" in error for error in errors))
+
+    def test_v17_delta_rejects_status_dependent_current_responsibility_marker(self) -> None:
+        ddl = self.valid_v17_delta_ddl().replace(
+            "CASE WHEN effective_to IS NULL THEN support_task_id ELSE NULL END",
+            "CASE WHEN effective_to IS NULL AND status_code = 'ACTIVE' THEN support_task_id ELSE NULL END",
+        )
+        errors = MODULE.validate_v17_delta(
+            self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
+        )
+        self.assertTrue(any("current_support_task_id" in error for error in errors))
 
     def test_v17_delta_rejects_v3_table_and_cross_context_foreign_key(self) -> None:
         ddl = self.valid_v17_delta_ddl() + """
 CREATE TABLE kno_technical_advisory (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;
 """
         ddl = ddl.replace(
-            "PRIMARY KEY (id),\n  UNIQUE KEY uk_directory_sync_snapshot_source",
+            "PRIMARY KEY (id),\n  UNIQUE KEY uk_device_component_current_slot",
             "PRIMARY KEY (id),\n"
-            "  CONSTRAINT fk_directory_project FOREIGN KEY (tenant_id, id) REFERENCES proj_project (tenant_id, id),\n"
-            "  UNIQUE KEY uk_directory_sync_snapshot_source",
+            "  CONSTRAINT fk_component_project FOREIGN KEY (tenant_id, id) REFERENCES proj_project (tenant_id, id),\n"
+            "  UNIQUE KEY uk_device_component_current_slot",
         )
         errors = MODULE.validate_v17_delta(
             self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
@@ -571,20 +648,20 @@ CREATE TABLE kno_technical_advisory (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGIN
         self.assertTrue(any("V3" in error for error in errors))
         self.assertTrue(any("cross-domain foreign key" in error for error in errors))
 
-    def test_v17_delta_rejects_mutable_historical_read_model(self) -> None:
-        ddl = self.valid_v17_delta_ddl().replace(
-            "  imported_time DATETIME(3) NOT NULL,\n  PRIMARY KEY (id),\n"
-            "  UNIQUE KEY uk_historical_work_order_source",
-            "  imported_time DATETIME(3) NOT NULL,\n"
-            "  status_code VARCHAR(32) NOT NULL,\n"
-            "  deleted TINYINT NOT NULL DEFAULT 0,\n"
-            "  PRIMARY KEY (id),\n"
-            "  UNIQUE KEY uk_historical_work_order_source",
-        )
-        errors = MODULE.validate_v17_delta(
-            self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
-        )
-        self.assertTrue(any("srv_historical_work_order" in error and "mutable" in error for error in errors))
+    def test_v17_delta_rejects_deferred_and_excluded_current_tables(self) -> None:
+        for forbidden in (
+            "srv_historical_work_order", "srv_historical_time_record",
+            "plt_directory_sync_snapshot", "srv_work_order", "srv_work_order_sla",
+            "srv_renewal", "proj_daily_report", "proj_weekly_report",
+        ):
+            with self.subTest(table=forbidden):
+                ddl = self.valid_v17_delta_ddl() + (
+                    f"\nCREATE TABLE {forbidden} (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;\n"
+                )
+                errors = MODULE.validate_v17_delta(
+                    self.valid_v17_delta_contract(), self.valid_v17_object_table_map(), ddl
+                )
+                self.assertTrue(any(forbidden in error and "must not appear" in error for error in errors))
 
     def test_v17_delta_rejects_mutable_append_only_table(self) -> None:
         ddl = self.valid_v17_delta_ddl().replace(
@@ -600,8 +677,8 @@ CREATE TABLE kno_technical_advisory (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGIN
 
     def test_v17_delta_rejects_alter_table_cross_context_foreign_key(self) -> None:
         ddl = self.valid_v17_delta_ddl() + """
-ALTER TABLE plt_directory_sync_snapshot
-  ADD CONSTRAINT fk_directory_project FOREIGN KEY (tenant_id, id)
+ALTER TABLE ast_device_component_relation
+  ADD CONSTRAINT fk_component_project FOREIGN KEY (tenant_id, id)
   REFERENCES proj_project (tenant_id, id);
 """
         errors = MODULE.validate_v17_delta(
