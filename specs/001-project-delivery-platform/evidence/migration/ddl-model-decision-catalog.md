@@ -1,8 +1,8 @@
 # P3-E09 数据模型逐项裁决清单
 
 > 状态：`REVIEW_REQUIRED`
-> 决策登记SHA-256：`D7007FB37CCB555328A307303BA5BD89C3E3D244044C8FD53288D401E53F72A7`
-> 约束清单SHA-256：`E0EB66A66D5E5641AC72D9E6CC68E0FB5DA1FD0A1F005147C085F695887E99E6`
+> 决策登记SHA-256：`7BF82B85E785845A1872138DD9F6500C7133786970D20A6E69C94998B683EAB3`
+> 约束清单SHA-256：`8A4CF3290CBD530AD7D02F44AEC1BD802997DED65545FCADA3F13A1E0D73CFCF`
 > 本清单只展开现有机器证据，不自动批准数据模型。
 
 ## 1. 核对结论与裁决分组
@@ -13,7 +13,7 @@
 |字段|1,048|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|
 |表选项|49|旧基线未保存|需确认字符比较与存储规则|
 |主键|49|旧基线未保存|结构性规则，可分类确认|
-|外键|46|旧基线未保存|影响迁移顺序和异常隔离|
+|外键|47|旧基线未保存|影响迁移顺序和异常隔离|
 |普通索引|106|旧基线未保存|影响查询性能和写入成本|
 |唯一键|100|旧基线未保存|影响重复业务数据，必须业务审查|
 |CHECK|79|旧基线未保存|影响异常历史数据，必须业务审查|
@@ -218,20 +218,21 @@
 |FK-030|`com_shipment_contract_reference`|`CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
 |FK-031|`com_shipment_package`|`CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
 |FK-032|`cus_customer_contact`|`CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-033|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-034|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-035|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-036|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-037|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-038|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-039|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-040|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-041|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-042|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-043|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-044|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-045|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
-|FK-046|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-033|`plt_business_document`|`CONSTRAINT fk_business_document_current_version FOREIGN KEY (tenant_id, id, current_version_id) REFERENCES plt_document_version (tenant_id, document_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-034|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-035|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-036|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-037|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-038|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-039|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-040|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-041|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-042|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-043|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-044|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-045|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-046|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
+|FK-047|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|影响迁移顺序；建议接受并隔离违规历史数据|
 
 ## 6. 普通索引完整清单
 
@@ -311,7 +312,7 @@
 |IX-072|`cus_customer`|`KEY idx_customer_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code )`|查询设计规则；建议接受，后续以压测验证|
 |IX-073|`cus_customer`|`KEY idx_customer_name (tenant_id, customer_name)`|查询设计规则；建议接受，后续以压测验证|
 |IX-074|`cus_customer_contact`|`KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)`|查询设计规则；建议接受，后续以压测验证|
-|IX-075|`cus_market_relation`|`KEY idx_market_relation_name ( tenant_id, market_name, system_name, expend_name, industry_name )`|查询设计规则；建议接受，后续以压测验证|
+|IX-075|`cus_market_relation`|`KEY idx_market_relation_name ( tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64) )`|查询设计规则；建议接受，后续以压测验证|
 |IX-076|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|查询设计规则；建议接受，后续以压测验证|
 |IX-077|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|查询设计规则；建议接受，后续以压测验证|
 |IX-078|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|查询设计规则；建议接受，后续以压测验证|

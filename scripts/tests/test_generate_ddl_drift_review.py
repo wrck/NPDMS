@@ -48,6 +48,17 @@ class DdlDriftReviewTest(unittest.TestCase):
         self.assertEqual("DEFER", inventory["records"][0]["decision"])
         self.assertIsNone(inventory["approval"]["approvedDdlSha256"])
 
+    def test_parse_ddl_includes_alter_table_foreign_key(self) -> None:
+        tables = MODULE.parse_ddl(b"""
+CREATE TABLE parent (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;
+CREATE TABLE child (id BIGINT NOT NULL, parent_id BIGINT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;
+ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFERENCES parent (id);
+""")
+        self.assertIn(
+            "CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFERENCES parent (id)",
+            tables["child"].constraints,
+        )
+
     def test_item_decision_register_is_complete_and_unapproved(self) -> None:
         baseline = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL) ENGINE = InnoDB;")
         current = MODULE.parse_ddl(b"CREATE TABLE t (id BIGINT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB;")

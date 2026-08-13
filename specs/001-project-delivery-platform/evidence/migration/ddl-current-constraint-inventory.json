@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9",
+  "currentDdlSha256": "8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930",
   "tableCount": 49,
-  "constraintCount": 380,
-  "inventorySha256": "42A9FC3F0F4F395BD971BE46E4D9925DD991A9CD26FE88B69D6AAB199D0C8CAE",
+  "constraintCount": 381,
+  "inventorySha256": "697EE9F3349C00F4B201900F9E2D3CA3A5D64ADDB16B421178D0DE45442D382F",
   "records": [
     {
       "table": "acc_deliverable_template",
@@ -498,7 +498,7 @@
       "table": "cus_market_relation",
       "constraints": [
         "CONSTRAINT chk_market_relation_deleted CHECK (deleted IN (0, 1))",
-        "KEY idx_market_relation_name ( tenant_id, market_name, system_name, expend_name, industry_name )",
+        "KEY idx_market_relation_name ( tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64) )",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_market_relation_business ( tenant_id, market_code, system_code, expend_code, industry_code )",
         "UNIQUE KEY uk_market_relation_source ( tenant_id, source_system, source_record_key )",
@@ -511,6 +511,7 @@
       "table": "plt_business_document",
       "constraints": [
         "CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))",
+        "CONSTRAINT fk_business_document_current_version FOREIGN KEY (tenant_id, id, current_version_id) REFERENCES plt_document_version (tenant_id, document_id, id)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_business_document_code (tenant_id, document_code)",
         "UNIQUE KEY uk_business_document_tenant_row (tenant_id, id)"

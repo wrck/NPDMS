@@ -31,6 +31,7 @@ PROJECT_CODE_REF = "docs/decisions/0020-project-code-identity-and-namespace.md"
 MARKET_RELATION_REF = "docs/decisions/0021-customer-market-relation-classification.md"
 CORE_MIGRATION_SCHEMA_REF = "docs/decisions/0022-core-migration-schema-and-key-policy.md"
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
+DDL_EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
 BACKUP_RETENTION_POLICY = {
     "dailyRetention": "P35D",
     "monthlyRetention": "P13M",
@@ -139,10 +140,20 @@ def build_packets() -> dict[str, dict[str, object]]:
         )
         if identifier == "P3-E09":
             ddl_sha256 = hashlib.sha256(DDL_PATH.read_bytes()).hexdigest().upper()
+            execution = json.loads(DDL_EXECUTION_EVIDENCE.read_text(encoding="utf-8"))
+            if execution.get("status") != "PASS" or execution.get("ddlSha256") != ddl_sha256:
+                raise ValueError("P3-E09 isolated MySQL execution evidence is absent or stale")
             facts.update(
                 {
                     "currentDdlSha256": ddl_sha256,
                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+                    "isolatedMysqlExecution": {
+                        "status": execution["status"],
+                        "mysqlVersion": execution["mysqlVersion"],
+                        "tableCount": execution["tableCount"],
+                        "columnCount": execution["columnCount"],
+                        "constraintCount": execution["constraintCount"],
+                    },
                 }
             )
         if identifier in {"P3-E01", "P3-E04"}:
@@ -176,6 +187,7 @@ def build_packets() -> dict[str, dict[str, object]]:
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
+                "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json",
             ])
         if identifier in {"P3-E01", "P3-E04"}:
             evidence_refs.append(DEPLOYMENT_TIME_SELECTION_REF)

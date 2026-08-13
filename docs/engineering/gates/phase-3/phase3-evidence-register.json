@@ -294,10 +294,17 @@
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
                 "chosenDirection": "\u9010\u8868\u3001\u5217\u3001\u7d22\u5f15\u548c\u7ea6\u675f\u751f\u6210\u5dee\u5f02\u5e76\u9010\u9879\u88c1\u51b3",
-                "currentDdlSha256": "AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9",
+                "currentDdlSha256": "8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "DEFER",
-                "decisionRegisterItemCount": 1601
+                "decisionRegisterItemCount": 1602,
+                "isolatedMysqlExecution": {
+                    "status": "PASS",
+                    "mysqlVersion": "8.4.10",
+                    "tableCount": 49,
+                    "columnCount": 1048,
+                    "constraintCount": 275
+                }
             },
             "evidenceRefs": [
                 "docs/decisions/0004-phase3-production-assurance-directions.md",
@@ -309,7 +316,8 @@
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
-                "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md"
+                "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
+                "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json"
             ],
             "blocks": [
                 "PHASE_3_BASELINE",

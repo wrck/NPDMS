@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 
 CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
 DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
+EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
 V3_DESIGN_ONLY_TABLES = {
     "kno_device_technical_advisory_match",
     "kno_technical_advisory",
@@ -52,6 +54,10 @@ def unique_keys(body: str) -> list[tuple[str, str]]:
 def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
     errors: list[str] = []
     tables = parse_tables(ddl)
+
+    for match in re.finditer(r",\s*\)\s*ENGINE\s*=", ddl, re.IGNORECASE | re.DOTALL):
+        line = ddl.count("\n", 0, match.start()) + 1
+        errors.append(f"DDL trailing comma before table close at line {line}")
 
     if contract.get("schemaVersion") != 1 or contract.get("decisionRef") != "ADR-0022":
         errors.append("core migration contract metadata mismatch")
@@ -118,15 +124,37 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
     return errors
 
 
+def validate_execution_evidence(evidence: dict[str, object], ddl_bytes: bytes, table_count: int) -> list[str]:
+    errors: list[str] = []
+    ddl_sha = hashlib.sha256(ddl_bytes).hexdigest().upper()
+    if evidence.get("status") != "PASS" or evidence.get("purpose") != "P3_E09_ISOLATED_MYSQL_DDL_EXECUTION":
+        errors.append("isolated MySQL DDL execution evidence is not PASS")
+    if evidence.get("ddlSha256") != ddl_sha:
+        errors.append("isolated MySQL DDL execution evidence hash is stale")
+    if evidence.get("tableCount") != table_count or evidence.get("expectedTableCount") != table_count:
+        errors.append("isolated MySQL DDL execution table count mismatch")
+    if not str(evidence.get("mysqlVersion", "")).startswith("8.4."):
+        errors.append("isolated DDL execution must use MySQL 8.4.x")
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--contract", type=Path, default=CONTRACT)
     parser.add_argument("--ddl", type=Path, default=DDL)
+    parser.add_argument("--execution-evidence", type=Path, default=EXECUTION_EVIDENCE)
     args = parser.parse_args()
+    ddl_bytes = args.ddl.read_bytes()
+    ddl_text = ddl_bytes.decode("utf-8")
     errors = validate_contract(
         json.loads(args.contract.read_text(encoding="utf-8")),
-        args.ddl.read_text(encoding="utf-8"),
+        ddl_text,
     )
+    errors.extend(validate_execution_evidence(
+        json.loads(args.execution_evidence.read_text(encoding="utf-8")),
+        ddl_bytes,
+        len(parse_tables(ddl_text)),
+    ))
     if errors:
         for error in errors:
             print(f"[FAIL] {error}")

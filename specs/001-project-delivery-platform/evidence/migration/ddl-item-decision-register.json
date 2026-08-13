@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9",
+  "currentDdlSha256": "8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,23 +11,23 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1601,
+    "itemCount": 1602,
     "byType": {
       "TABLE": 53,
       "COLUMN": 1115,
-      "CONSTRAINT": 380,
+      "CONSTRAINT": 381,
       "TABLE_OPTION": 53
     },
     "byComparisonStatus": {
       "MATCH": 1055,
-      "UNVERIFIED_BASELINE_MISSING": 433,
+      "UNVERIFIED_BASELINE_MISSING": 434,
       "ADDED": 40,
       "MODIFIED": 2,
       "REMOVED": 71
     },
     "approvedCount": 0
   },
-  "itemsSha256": "9AD7D62597D0EEE261BC158A568070364D0E5998129F6C0E80CC19FB2737D713",
+  "itemsSha256": "DD806FBE10EE89ACFF6B717E2658A01C800807954240C7F908D3630E11B1DF4C",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -23120,7 +23120,7 @@
       "name": "idx_market_relation_name",
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
-      "currentValue": "KEY idx_market_relation_name ( tenant_id, market_name, system_name, expend_name, industry_name )",
+      "currentValue": "KEY idx_market_relation_name ( tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64) )",
       "decision": "AMEND_CURRENT",
       "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
@@ -24916,6 +24916,19 @@
       "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
       "baselineValue": null,
       "currentValue": "CONSTRAINT chk_business_document_deleted CHECK (deleted IN (0, 1))",
+      "decision": "DEFER",
+      "decisionOwner": null,
+      "reviewOwner": null,
+      "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:plt_business_document:fk_business_document_current_version",
+      "itemType": "CONSTRAINT",
+      "table": "plt_business_document",
+      "name": "fk_business_document_current_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT fk_business_document_current_version FOREIGN KEY (tenant_id, id, current_version_id) REFERENCES plt_document_version (tenant_id, document_id, id)",
       "decision": "DEFER",
       "decisionOwner": null,
       "reviewOwner": null,

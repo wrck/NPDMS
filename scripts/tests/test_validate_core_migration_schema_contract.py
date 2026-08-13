@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 import unittest
@@ -126,6 +127,28 @@ CREATE TABLE plt_external_key_mapping (
         errors = MODULE.validate_contract(self.valid_contract(), ddl)
         self.assertTrue(any("deleted" in error for error in errors))
         self.assertTrue(any("effective_to" in error for error in errors))
+
+    def test_rejects_trailing_comma_before_table_close(self) -> None:
+        ddl = self.valid_ddl().replace(
+            "UNIQUE KEY uk_project_code (tenant_id, project_code)\n) ENGINE",
+            "UNIQUE KEY uk_project_code (tenant_id, project_code),\n) ENGINE",
+        )
+        errors = MODULE.validate_contract(self.valid_contract(), ddl)
+        self.assertTrue(any("trailing comma" in error for error in errors))
+
+    def test_execution_evidence_must_match_current_ddl_hash_and_mysql_version(self) -> None:
+        ddl = self.valid_ddl().encode("utf-8")
+        evidence = {
+            "status": "PASS",
+            "purpose": "P3_E09_ISOLATED_MYSQL_DDL_EXECUTION",
+            "ddlSha256": hashlib.sha256(ddl).hexdigest().upper(),
+            "expectedTableCount": 3,
+            "tableCount": 3,
+            "mysqlVersion": "8.4.10",
+        }
+        self.assertEqual([], MODULE.validate_execution_evidence(evidence, ddl, 3))
+        evidence["ddlSha256"] = "STALE"
+        self.assertTrue(any("stale" in error for error in MODULE.validate_execution_evidence(evidence, ddl, 3)))
 
     def test_transform_removes_v3_tables_and_cross_domain_fk(self) -> None:
         ddl = self.valid_ddl() + """

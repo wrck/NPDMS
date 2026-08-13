@@ -74,7 +74,7 @@ CREATE TABLE cus_market_relation (
         tenant_id, market_code, system_code, expend_code, industry_code
     ),
     KEY idx_market_relation_name (
-        tenant_id, market_name, system_name, expend_name, industry_name
+        tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64)
     ),
     CONSTRAINT chk_market_relation_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
@@ -1940,6 +1940,6 @@ CREATE TABLE ana_project_delivery_summary (
     KEY idx_project_summary_manager (
         tenant_id, manager_employee_no, project_status, project_id
     ),
-    KEY idx_project_summary_time (tenant_id, statistic_time),
+    KEY idx_project_summary_time (tenant_id, statistic_time)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '可重建的项目合同、订单、发货和SN汇总读模型';

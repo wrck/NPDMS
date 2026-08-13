@@ -30,6 +30,8 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         self.assertIn(GENERATOR.PROJECT_CODE_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertIn(GENERATOR.MARKET_RELATION_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertIn(GENERATOR.CORE_MIGRATION_SCHEMA_REF, packets["P3-E09"]["evidenceRefs"])
+        self.assertEqual("PASS", packets["P3-E09"]["confirmedFacts"]["isolatedMysqlExecution"]["status"])
+        self.assertIn("ddl-mysql84-execution-evidence.json", packets["P3-E09"]["evidenceRefs"][-1])
         for identifier, packet in packets.items():
             self.assertEqual("DRAFT", packet["status"])
             self.assertEqual("ACCEPTED", packet["confirmedFacts"]["directionStatus"])

@@ -17,6 +17,10 @@ CREATE_TABLE = re.compile(
     r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-zA-Z0-9_]+)`?\s*\((.*?)\)\s*(ENGINE\s*=.*?);",
     re.I | re.S,
 )
+ALTER_TABLE_ADD = re.compile(
+    r"ALTER\s+TABLE\s+`?([a-zA-Z0-9_]+)`?\s+ADD\s+((?:CONSTRAINT|UNIQUE\s+KEY|KEY|CHECK|FOREIGN\s+KEY).*?);",
+    re.I | re.S,
+)
 CONSTRAINT_PREFIXES = ("PRIMARY KEY", "UNIQUE KEY", "KEY ", "CONSTRAINT ", "CHECK ", "FOREIGN KEY")
 
 
@@ -100,6 +104,11 @@ def parse_ddl(data: bytes) -> dict[str, Table]:
             column_name, definition = column_match.groups()
             columns[column_name] = column_signature(definition)
         tables[table_name] = Table(columns, constraints, normalize(options))
+    for match in ALTER_TABLE_ADD.finditer(text):
+        table_name, definition = match.groups()
+        if table_name not in tables:
+            raise ValueError(f"ALTER TABLE references unknown table: {table_name}")
+        tables[table_name].constraints.add(normalize(definition))
     if not tables:
         raise ValueError("no CREATE TABLE statements found")
     return tables

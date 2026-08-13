@@ -35,7 +35,7 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前核心迁移 DDL SHA-256 为`AA0344713CBDE21B22C91ED9A1B77631905055C650294A69CC81D302890079A9`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，按ADR-0020补充项目编码命名空间，按ADR-0021补充CUS市场行业四维分类，并按ADR-0022收敛为迁移核心子集、移除V3治理表和跨领域物理外键；其他同域约束、表选项和最终Reviewer签署仍为`DEFER`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前核心迁移 DDL SHA-256 为`8F3CF5C7E76B0044190882A840FC5FADFA9F9B667DA9109FE7106D8A5D250930`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，按ADR-0020补充项目编码命名空间，按ADR-0021补充CUS市场行业四维分类，并按ADR-0022收敛为迁移核心子集、移除V3治理表和跨领域物理外键；其他同域约束、表选项和最终Reviewer签署仍为`DEFER`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`OPEN`。
 
@@ -43,9 +43,9 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
-ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。当前核心迁移DDL为49表、1,048列、380项约束和49项表选项；4张KNO治理表退出V1/V2核心DDL，跨领域引用不再建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
+ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。当前核心迁移DDL为49表、1,048列、381项DDL约束/索引和49项表选项，其中MySQL登记275项主键/唯一键/外键/CHECK；4张KNO治理表退出V1/V2核心DDL，跨领域引用不再建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,601项：53个表事实、1,115个列事实、380个当前约束和53个表选项事实。ADR-0019～ADR-0022已确认的111项登记为`AMEND_CURRENT`，其余保持`DEFER`；实际当前DDL规模以49表、1,048列、380项约束和49项表选项为准。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,602项：53个表事实、1,115个列事实、381个当前约束/索引和53个表选项事实。ADR-0019～ADR-0022已确认的111项登记为`AMEND_CURRENT`，其余保持`DEFER`；实际当前DDL规模以49表、1,048列、381项DDL约束/索引和49项表选项为准。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
 
 - 本分册中的模型和约束是 SDS 目标契约；当前49表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；
