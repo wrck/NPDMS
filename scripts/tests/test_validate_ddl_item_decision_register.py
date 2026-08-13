@@ -43,6 +43,41 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
             VALIDATOR.generated_decision_errors(actual, expected),
         )
 
+    def test_generated_decision_allows_independent_review_overlay(self) -> None:
+        expected = {"COLUMN:a:id": {"decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": None, "evidenceRefs": ["fact"]}}
+        actual = {"COLUMN:a:id": {"decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": "REVIEWER", "evidenceRefs": ["fact", "review"]}}
+        self.assertEqual([], VALIDATOR.generated_decision_errors(actual, expected))
+
+    def test_missing_evidence_file_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            errors = VALIDATOR.evidence_reference_errors(
+                Path(directory),
+                [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "evidenceRefs": ["missing.md#decision"]}],
+            )
+        self.assertEqual(1, len(errors))
+        self.assertIn("does not exist", errors[0])
+
+    def test_final_approval_binds_current_ddl_items_and_existing_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            register = {
+                "currentDdlSha256": "CURRENT",
+                "itemsSha256": "ITEMS",
+                "items": [{"itemId": "COLUMN:a:id"}],
+                "approval": {
+                    "approvedDdlSha256": "WRONG",
+                    "itemsSha256": "WRONG_ITEMS",
+                    "decisionOwner": "DATA",
+                    "reviewOwner": "REVIEW",
+                    "signedAt": "2026-08-14T00:00:00+08:00",
+                    "evidenceRefs": ["missing-review.md"],
+                },
+            }
+            errors = VALIDATOR.final_approval_errors(root, register, 1)
+        self.assertTrue(any("equal currentDdlSha256" in error for error in errors))
+        self.assertTrue(any("current itemsSha256" in error for error in errors))
+        self.assertTrue(any("does not exist" in error for error in errors))
+
     def test_catalog_baseline_is_loaded_from_historical_hash(self) -> None:
         generator = Mock()
         historical_tables = {"pms_project": object()}

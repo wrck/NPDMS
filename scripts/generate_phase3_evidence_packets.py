@@ -149,15 +149,30 @@ def build_packets() -> dict[str, dict[str, object]]:
             register = json.loads(DDL_DECISION_REGISTER.read_text(encoding="utf-8"))
             if execution.get("status") != "PASS" or execution.get("ddlSha256") != ddl_sha256:
                 raise ValueError("P3-E09 isolated MySQL execution evidence is absent or stale")
+            deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
+            approved_hash = register.get("approval", {}).get("approvedDdlSha256")
+            if approved_hash:
+                model_status = "APPROVED"
+            elif deferred_count == 0:
+                model_status = "DECISIONS_ACCEPTED_REVIEW_PENDING"
+            else:
+                model_status = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED"
             facts.update(
                 {
                     "currentDdlSha256": ddl_sha256,
                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
-                    "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+                    "modelDecisionStatus": model_status,
+                    "deferredItemCount": deferred_count,
+                    "approvedDdlSha256": approved_hash,
                     "v17DeltaStatus": contract["v17Delta"]["status"],
                     "q07Decision": {
-                        "status": "ACCEPTED",
-                        "technicalConstraintCount": register["q07Decision"]["decidedItemCount"],
+                        "status": contract["q07TechnicalConstraintPolicy"]["status"],
+                        "technicalConstraintCount": (
+                            contract["q07TechnicalConstraintPolicy"]["primaryKeyCount"]
+                            + contract["q07TechnicalConstraintPolicy"]["tenantReferenceKeyCount"]
+                            + contract["q07TechnicalConstraintPolicy"]["sameDomainForeignKeyCount"]
+                            + sum(contract["q07TechnicalConstraintPolicy"]["stableTechnicalCheckGroups"].values())
+                        ),
                         "primaryKeyCount": contract["q07TechnicalConstraintPolicy"]["primaryKeyCount"],
                         "primaryKeyShape": contract["q07TechnicalConstraintPolicy"]["primaryKeyShape"],
                         "tenantReferenceKeyCount": contract["q07TechnicalConstraintPolicy"]["tenantReferenceKeyCount"],
@@ -165,7 +180,7 @@ def build_packets() -> dict[str, dict[str, object]]:
                         "stableTechnicalCheckCount": sum(contract["q07TechnicalConstraintPolicy"]["stableTechnicalCheckGroups"].values()),
                     },
                     "q08Decision": {
-                        "status": "CANDIDATE_BASELINE_ACCEPTED",
+                        "status": contract["q08OrdinaryIndexPolicy"]["status"],
                         "candidateIndexCount": contract["q08OrdinaryIndexPolicy"]["candidateIndexCount"],
                         "featureQueryPlanValidationRequired": contract["q08OrdinaryIndexPolicy"]["featureQueryPlanValidationRequired"],
                         "p3e06PerformanceValidationRequired": contract["q08OrdinaryIndexPolicy"]["p3e06PerformanceValidationRequired"],

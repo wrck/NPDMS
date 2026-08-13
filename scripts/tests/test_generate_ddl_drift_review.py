@@ -156,7 +156,7 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertIn("TABLE:cus_market_relation", accepted)
         self.assertIn("COLUMN:cus_customer:market_code", accepted)
         self.assertIn("COLUMN:proj_project:market_code", accepted)
-        self.assertIn("CONSTRAINT:cus_customer:idx_customer_market_relation", accepted)
+        self.assertNotIn("CONSTRAINT:cus_customer:idx_customer_market_relation", accepted)
         self.assertEqual("ADR-0021", decided["marketRelationDecision"]["decisionRef"])
 
     def test_core_schema_decision_marks_exact_current_items(self) -> None:
@@ -216,6 +216,26 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertEqual("DEFER", result["items"][1]["decision"])
         self.assertEqual(1, result["unchangedBaselineColumnDecision"]["decidedItemCount"])
 
+    def test_review_overlay_preserves_signature_but_not_conflicting_decision(self) -> None:
+        register = {
+            "currentDdlSha256": "HASH",
+            "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": None, "evidenceRefs": ["fact"]}],
+            "summary": {"approvedCount": 0},
+            "approval": {"approvedDdlSha256": None},
+        }
+        previous = {
+            "currentDdlSha256": "HASH",
+            "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": "REVIEWER", "evidenceRefs": ["fact", "review"]}],
+            "approval": {"approvedDdlSha256": None, "reviewOwner": "REVIEWER"},
+        }
+        result = MODULE.apply_review_overlay(register, previous)
+        self.assertEqual("REVIEWER", result["items"][0]["reviewOwner"])
+        self.assertIn("review", result["items"][0]["evidenceRefs"])
+        self.assertEqual(1, result["summary"]["approvedCount"])
+        conflicting = {**previous, "items": [{**previous["items"][0], "decision": "DEFER"}]}
+        with self.assertRaisesRegex(ValueError, "conflicts"):
+            MODULE.apply_review_overlay(register, conflicting)
+
     def test_v17_delta_decision_covers_every_item_and_preserves_review_gate(self) -> None:
         current = MODULE.parse_ddl(b"""
 CREATE TABLE cut_cutover_closure (
@@ -236,10 +256,20 @@ CREATE TABLE imp_configuration_collection_result (
         )
         contract = {
             "v17Delta": {
-                "status": "BLOCKED_BY_REVIEW",
+                "status": "ACCEPTED",
+                "ddlSha256": "NEW",
                 "objectTargetTables": {
                     "CutoverClosure": ["cut_cutover_closure"],
                     "ConfigurationCollectionResult": ["imp_configuration_collection_result"],
+                },
+                "acceptedDdlItems": [item["itemId"] for item in register["items"]],
+                "itemEvidenceRefs": {
+                    item["itemId"]: (
+                        "docs/decisions/0027-cutover-physical-model-correction.md"
+                        if item["table"] == "cut_cutover_closure"
+                        else "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md"
+                    )
+                    for item in register["items"]
                 },
             }
         }
@@ -251,29 +281,6 @@ CREATE TABLE imp_configuration_collection_result (
         self.assertTrue(all(any("0025-v1.7" in ref for ref in item["evidenceRefs"]) for item in implementation))
         self.assertTrue(all(item["reviewOwner"] is None for item in result["items"]))
         self.assertEqual("REVIEW_PENDING", result["v17DeltaDecision"]["reviewStatus"])
-
-    def test_accepted_business_constraints_only_fills_remaining_current_constraints(self) -> None:
-        register = {
-            "items": [
-                {"itemId": "CONSTRAINT:proj_project_member_assignment:uk_project_member_role", "itemType": "CONSTRAINT", "table": "proj_project_member_assignment", "currentValue": "UNIQUE KEY", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
-                {"itemId": "CONSTRAINT:proj_project_member_assignment:PRIMARY", "itemType": "CONSTRAINT", "table": "proj_project_member_assignment", "currentValue": "PRIMARY KEY", "decision": "AMEND_CURRENT", "decisionOwner": "REQUIREMENT_OWNER", "reviewOwner": None, "evidenceRefs": ["q07"]},
-                {"itemId": "COLUMN:proj_project_member_assignment:member_role", "itemType": "COLUMN", "table": "proj_project_member_assignment", "currentValue": {}, "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
-                {"itemId": "COLUMN:ast_device_shipment_event:rma_marked", "itemType": "COLUMN", "table": "ast_device_shipment_event", "currentValue": {}, "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
-                {"itemId": "CONSTRAINT:cut_cutover_closure:uk_cutover_closure_task", "itemType": "CONSTRAINT", "table": "cut_cutover_closure", "currentValue": "UNIQUE KEY", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
-                {"itemId": "TABLE_OPTION:proj_project_member_assignment", "itemType": "TABLE_OPTION", "table": "proj_project_member_assignment", "currentValue": "ENGINE = InnoDB", "decision": "DEFER", "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
-            ],
-            "summary": {"approvedCount": 0},
-        }
-        result = MODULE.apply_accepted_adr0023_business_constraint_decisions(
-            register, {"cut_cutover_closure"}
-        )
-        business = result["items"][0]
-        self.assertEqual("AMEND_CURRENT", business["decision"])
-        self.assertIn("0023-p3-e09", business["evidenceRefs"][0])
-        self.assertEqual("DEFER", result["items"][2]["decision"])
-        self.assertEqual("AMEND_CURRENT", result["items"][3]["decision"])
-        self.assertEqual("DEFER", result["items"][4]["decision"])
-        self.assertEqual("AMEND_CURRENT", result["items"][5]["decision"])
 
     def test_q03_decision_marks_business_facts_but_not_q07_q08_items(self) -> None:
         decided_ids = {
@@ -381,8 +388,10 @@ CREATE TABLE imp_configuration_collection_result (
         }
         contract = {
             "q07TechnicalConstraintPolicy": {
+                "status": "ACCEPTED",
                 "ddlSha256": current_hash,
                 "decision": "ACCEPT_CURRENT_FOR_SDS",
+                "decisionEvidenceRef": "docs/decisions/current-q07-review.md",
                 "primaryKeyCount": 1,
                 "tenantReferenceKeyCount": 1,
                 "sameDomainForeignKeyCount": 1,
@@ -395,8 +404,10 @@ CREATE TABLE imp_configuration_collection_result (
                 },
             },
             "q08OrdinaryIndexPolicy": {
+                "status": "ACCEPTED",
                 "ddlSha256": current_hash,
                 "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
+                "decisionEvidenceRef": "docs/decisions/current-q08-review.md",
                 "candidateIndexCount": 1,
                 "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
             },
@@ -409,6 +420,12 @@ CREATE TABLE imp_configuration_collection_result (
         self.assertEqual(8, result["q07Decision"]["decidedItemCount"])
         self.assertEqual(1, result["q08Decision"]["decidedItemCount"])
         self.assertEqual("REQUIRED_AT_FEATURE_AND_P3_E06", result["q08Decision"]["performanceValidationStatus"])
+        self.assertTrue(all(
+            any("current-q07-review" in ref for ref in item["evidenceRefs"])
+            for item in result["items"] if item["itemId"] in decided - {"CONSTRAINT:a:idx_a_query"}
+        ))
+        index_item = next(item for item in result["items"] if item["itemId"] == "CONSTRAINT:a:idx_a_query")
+        self.assertIn("docs/decisions/current-q08-review.md", index_item["evidenceRefs"])
 
 
 if __name__ == "__main__":

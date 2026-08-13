@@ -140,9 +140,9 @@
 - Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策已同步DDL、字段目录和P3-E09逐项寄存器，仍等待全量Reviewer签署。
 - Confirmed customer market classification decision: ADR-0021；市场部、系统部、拓展部、子行业四维分类归CUS，CRM组合目录落`cus_market_relation`；客户和项目直接保存四组编码/名称，禁止保存`relation_id`，也不推断为组织关系。该决策已同步DDL、字段映射和P3-E09逐项寄存器，仍等待全量Reviewer签署。
 - Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策已同步核心DDL、领域实体迁移策略、字段目录和P3-E09派生证据，仍等待全量Reviewer签署。
-- Confirmed P3-E09 requirement-owner model decisions: ADR-0023；Q01～Q08已确认，覆盖15组永久业务身份、外部不透明键/摘要精确比较、当前关系、状态守卫、RMA投影、Q07的257项技术约束及Q08的122项候选索引。交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”；订单—执行单允许多个默认主执行单关系。Q08只确认候选基线，Feature查询计划与P3-E06压测仍为下游验收。逐项寄存器已按当前DDL重建为1,883项，全部已有基线继承或需求/ADR决策依据，但`reviewOwner`与`approvedDdlSha256`仍为空；不得提前放行历史迁移或切换。
+- P3-E09 requirement-owner model decisions: ADR-0023中的Q01～Q06业务语义仍有效；交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”，订单—执行单允许多个默认主执行单关系。因当前DDL哈希、数量和分类已变化，ADR-0023规定原Q07/Q08自动失效：当前257项技术约束和122项候选索引状态均为`RECONFIRMATION_REQUIRED`。逐项寄存器为1,883项：994项基线继承、197项有明确逐项依据、692项`DEFER`；不得提前放行历史迁移或切换。
 - V1.7 DDL delta: ADR-0025，并由ADR-0027完成割接物理模型纠偏；当前候选为60表、10表V1.7差量。需求方 2026-08-13 确认`pm_project_maintenance`全表不迁移，只保留顶层表级排除审计；当前不预建历史工单/工时对象或空壳表。目录快照对象/表亦按需求方决策删除，INT-05/INT-09复用基础平台主数据、`plt_sync_batch`和`plt_external_key_mapping`。当前哈希与规模以重建证据为准；P3-E09仍为`BLOCKED_BY_REVIEW`，等待全量Reviewer签署与`approvedDdlSha256`，不授权生产迁移、切换或旧`dppms`写入。
 - Cutover flow correction: ADR-0026；`CUT-01 / CutoverTask`是P1～P6唯一割接核心任务，`CUT-11`退出当前需求和CUT领域，`WO-06`后置为工单领域V3候选。原CUT-11三表及迁移映射必须从P3-E09候选删除后重新生成证据；该项为已确认变更，不再作为开放问题。
-- Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排落`CutoverPlan`从属明细，P6落不可覆盖的轻量闭环快照。当前候选为60表、10表V1.7差量，哈希与隔离MySQL 8.4证据已重建；P3-E09仍等待Reviewer签署和`approvedDdlSha256`。
+- Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排与P6轻量闭环仍是`PROPOSED_FOR_REVIEW`物理候选。当前候选为60表、10表V1.7差量，哈希与隔离MySQL 8.4证据已重建；10表逐项物理细节仍保持`DEFER`，不得把提案状态解释为需求Owner已批准。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13

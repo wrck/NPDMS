@@ -1,7 +1,7 @@
 # P3-E09 数据模型逐项裁决清单
 
 > 状态：`REVIEW_REQUIRED`
-> 决策登记SHA-256：`696104C503AD49D4FC3C72E6CC9602DC30011EF30C0E7CEC0BBE3552951172D1`
+> 决策登记SHA-256：`2D859D216A67645B9188087C0A96751F6A8133202E377EE07AC7341CA56065E5`
 > 约束清单SHA-256：`1BEE20D78CC51DAFBF9BDFB778103A91FBBD329B74CB21D0317F4FB602D295BC`
 > 本清单只展开现有机器证据，不自动批准数据模型。
 
@@ -12,9 +12,9 @@
 |表|60|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|
 |字段|1,240|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|
 |表选项|60|旧基线未保存|需确认字符比较与存储规则|
-|主键|60|旧基线未保存|Q07已按技术不变量确认，Reviewer待签署|
-|外键|48|旧基线未保存|Q07已确认同域外键；违规历史数据隔离|
-|普通索引|122|旧基线未保存|Q08已接受为候选基线，Feature/P3-E06验证|
+|主键|60|旧基线未保存|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|外键|48|旧基线未保存|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|普通索引|122|旧基线未保存|RECONFIRMATION_REQUIRED：当前哈希Q08待确认，后续仍需Feature/P3-E06验证|
 |唯一键|123|旧基线未保存|影响重复业务数据，必须业务审查|
 |CHECK|94|旧基线未保存|影响异常历史数据，必须业务审查|
 
@@ -62,14 +62,14 @@
 |精确键与默认排序规则冲突|60张表默认`utf8mb4_0900_ai_ci`；27个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|
 |可空列参与唯一键|8个唯一键包含可空列；5个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|
 |状态码写入数据库表达式|3个原固定状态CHECK已移除；5个当前唯一生成列使用稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|
-|普通索引没有查询证据|122个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|Q08已接受为候选基线；Feature/P3-E06用真实查询和压测定稿|
+|普通索引没有查询证据|122个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前哈希Q08须重新确认；Feature/P3-E06用真实查询和压测定稿|
 
-### 1.5 Q07已按数据架构不变量批量确认的内容
+### 1.5 当前哈希下待重新确认的Q07技术约束
 
 |内容|数量|批量确认的前提|仍未包含的业务判断|
 |---|---:|---|---|
 |主键结构|60|59张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|
-|租户复合引用键|60|仅支撑同租户复合外键/行引用|不替代业务唯一键|
+|租户复合引用键|60|仅支撑同租户复合外键/行引用|当前哈希下仍须重新确认，不替代业务唯一键|
 |同领域物理外键|48|48个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|
 |软删除检查|45|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|
 |时间顺序检查|16|只拒绝结束早于开始，不补造旧数据时间|不决定业务有效期|
@@ -323,9 +323,9 @@
 |层次|内容|批准主体|批准结果|
 |---|---|---|---|
 |L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|
-|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|需求方已接受推荐，Reviewer待签署|Q07登记为当前SDS技术约束|
+|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|RECONFIRMATION_REQUIRED|旧哈希Q07已失效，当前哈希须重新确认|
 |L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|逐组批准；有空洞的先修模|
-|L4 性能候选|122个普通索引|需求方接受候选；Feature Owner+性能Owner验证|Q08进入候选基线，绑定查询后由P3-E06压测定稿|
+|L4 性能候选|122个普通索引|RECONFIRMATION_REQUIRED；Feature Owner+性能Owner后续验证|当前哈希Q08尚未进入候选基线，确认后仍须由P3-E06压测定稿|
 |L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|
 
 ## 2. 表与字段完整清单
@@ -464,246 +464,246 @@
 
 |编号|表|当前定义|业务影响/建议|
 |---|---|---|---|
-|PK-001|`acc_deliverable_template`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-002|`acc_project_deliverable`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-003|`acc_satisfaction_collection_task`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-004|`acc_satisfaction_questionnaire`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-005|`acc_satisfaction_response`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-006|`acc_satisfaction_result`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-007|`ana_project_delivery_summary`|`PRIMARY KEY (tenant_id, project_id)`|Q07已确认；Reviewer待签署|
-|PK-008|`ast_device_component_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-009|`ast_device_configuration`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-010|`ast_device_configuration_feature`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-011|`ast_device_configuration_service`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-012|`ast_device_project_assignment`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-013|`ast_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-014|`ast_device_shipment_event`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-015|`ast_device_sn`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-016|`ast_device_version`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-017|`ast_network_topology`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-018|`ast_network_topology_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-019|`ast_product`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-020|`ast_product_release`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-021|`com_contract`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-022|`com_contract_receivable`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-023|`com_crm_execution_config`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-024|`com_crm_execution_order`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-025|`com_delivery_scope`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-026|`com_delivery_scope_detail`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-027|`com_execution_order_merge_batch`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-028|`com_execution_order_merge_member`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-029|`com_order_change_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-030|`com_order_contract_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-031|`com_order_execution_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-032|`com_order_line_execution_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-033|`com_project_contract_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-034|`com_sales_order`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-035|`com_sales_order_line`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-036|`com_shipment_contract_reference`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-037|`com_shipment_package`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-038|`cus_customer`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-039|`cus_customer_contact`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-040|`cus_market_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-041|`cut_cutover_closure`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-042|`cut_cutover_support_arrangement`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-043|`imp_configuration_collection_parse_attempt`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-044|`imp_configuration_collection_result`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-045|`imp_configuration_component_candidate`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-046|`plt_business_document`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-047|`plt_document_version`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-048|`plt_external_key_mapping`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-049|`plt_migration_issue`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-050|`plt_migration_source_record`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-051|`plt_sync_batch`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-052|`proj_project`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-053|`proj_project_company_department_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-054|`proj_project_member_assignment`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-055|`proj_project_party`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-056|`proj_project_portfolio`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-057|`proj_project_portfolio_member`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-058|`proj_project_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-059|`srv_service_incident`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
-|PK-060|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|Q07已确认；Reviewer待签署|
+|PK-001|`acc_deliverable_template`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-002|`acc_project_deliverable`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-003|`acc_satisfaction_collection_task`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-004|`acc_satisfaction_questionnaire`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-005|`acc_satisfaction_response`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-006|`acc_satisfaction_result`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-007|`ana_project_delivery_summary`|`PRIMARY KEY (tenant_id, project_id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-008|`ast_device_component_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-009|`ast_device_configuration`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-010|`ast_device_configuration_feature`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-011|`ast_device_configuration_service`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-012|`ast_device_project_assignment`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-013|`ast_device_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-014|`ast_device_shipment_event`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-015|`ast_device_sn`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-016|`ast_device_version`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-017|`ast_network_topology`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-018|`ast_network_topology_device_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-019|`ast_product`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-020|`ast_product_release`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-021|`com_contract`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-022|`com_contract_receivable`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-023|`com_crm_execution_config`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-024|`com_crm_execution_order`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-025|`com_delivery_scope`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-026|`com_delivery_scope_detail`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-027|`com_execution_order_merge_batch`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-028|`com_execution_order_merge_member`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-029|`com_order_change_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-030|`com_order_contract_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-031|`com_order_execution_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-032|`com_order_line_execution_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-033|`com_project_contract_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-034|`com_sales_order`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-035|`com_sales_order_line`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-036|`com_shipment_contract_reference`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-037|`com_shipment_package`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-038|`cus_customer`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-039|`cus_customer_contact`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-040|`cus_market_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-041|`cut_cutover_closure`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-042|`cut_cutover_support_arrangement`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-043|`imp_configuration_collection_parse_attempt`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-044|`imp_configuration_collection_result`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-045|`imp_configuration_component_candidate`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-046|`plt_business_document`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-047|`plt_document_version`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-048|`plt_external_key_mapping`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-049|`plt_migration_issue`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-050|`plt_migration_source_record`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-051|`plt_sync_batch`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-052|`proj_project`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-053|`proj_project_company_department_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-054|`proj_project_member_assignment`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-055|`proj_project_party`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-056|`proj_project_portfolio`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-057|`proj_project_portfolio_member`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-058|`proj_project_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-059|`srv_service_incident`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|PK-060|`srv_service_incident_device_relation`|`PRIMARY KEY (id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
 
 ## 5. 外键完整清单
 
 |编号|表|当前定义|业务影响/建议|
 |---|---|---|---|
-|FK-001|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-002|`ast_device_configuration`|`CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-003|`ast_device_configuration_feature`|`CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-004|`ast_device_configuration_service`|`CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-005|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-006|`ast_device_relation`|`CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-007|`ast_device_relation`|`CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-008|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-009|`ast_device_version`|`CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-010|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-011|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-012|`ast_product_release`|`CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-013|`com_contract_receivable`|`CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-014|`com_crm_execution_config`|`CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-015|`com_delivery_scope`|`CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-016|`com_delivery_scope_detail`|`CONSTRAINT fk_delivery_scope_detail_scope FOREIGN KEY (tenant_id, delivery_scope_id) REFERENCES com_delivery_scope (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-017|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-018|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-019|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-020|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-021|`com_order_change_relation`|`CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-022|`com_order_change_relation`|`CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-023|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-024|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-025|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-026|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-027|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-028|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-029|`com_project_contract_relation`|`CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-030|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-031|`com_shipment_contract_reference`|`CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-032|`com_shipment_package`|`CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-033|`cus_customer_contact`|`CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-034|`plt_business_document`|`CONSTRAINT fk_business_document_current_version FOREIGN KEY (tenant_id, id, current_version_id) REFERENCES plt_document_version (tenant_id, document_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-035|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-036|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-037|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-038|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-039|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-040|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-041|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-042|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-043|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-044|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-045|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-046|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-047|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
-|FK-048|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|Q07已确认同域约束；违规历史数据隔离|
+|FK-001|`acc_project_deliverable`|`CONSTRAINT fk_project_deliverable_template FOREIGN KEY (tenant_id, template_id) REFERENCES acc_deliverable_template (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-002|`ast_device_configuration`|`CONSTRAINT fk_device_configuration_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-003|`ast_device_configuration_feature`|`CONSTRAINT fk_configuration_feature_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-004|`ast_device_configuration_service`|`CONSTRAINT fk_configuration_service_configuration FOREIGN KEY (tenant_id, configuration_id) REFERENCES ast_device_configuration (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-005|`ast_device_project_assignment`|`CONSTRAINT fk_device_assignment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-006|`ast_device_relation`|`CONSTRAINT fk_device_relation_source FOREIGN KEY (tenant_id, source_device_id) REFERENCES ast_device_sn (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-007|`ast_device_relation`|`CONSTRAINT fk_device_relation_target FOREIGN KEY (tenant_id, target_device_id) REFERENCES ast_device_sn (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-008|`ast_device_shipment_event`|`CONSTRAINT fk_shipment_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-009|`ast_device_version`|`CONSTRAINT fk_device_version_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-010|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_device FOREIGN KEY (tenant_id, device_id) REFERENCES ast_device_sn (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-011|`ast_network_topology_device_relation`|`CONSTRAINT fk_topology_device_topology FOREIGN KEY (tenant_id, topology_id) REFERENCES ast_network_topology (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-012|`ast_product_release`|`CONSTRAINT fk_product_release_product FOREIGN KEY (tenant_id, product_id) REFERENCES ast_product (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-013|`com_contract_receivable`|`CONSTRAINT fk_contract_receivable_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-014|`com_crm_execution_config`|`CONSTRAINT fk_crm_execution_config_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-015|`com_delivery_scope`|`CONSTRAINT fk_scope_order_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-016|`com_delivery_scope_detail`|`CONSTRAINT fk_delivery_scope_detail_scope FOREIGN KEY (tenant_id, delivery_scope_id) REFERENCES com_delivery_scope (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-017|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-018|`com_execution_order_merge_batch`|`CONSTRAINT fk_execution_merge_primary FOREIGN KEY (tenant_id, primary_execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-019|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_batch FOREIGN KEY (tenant_id, merge_batch_id) REFERENCES com_execution_order_merge_batch (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-020|`com_execution_order_merge_member`|`CONSTRAINT fk_execution_merge_member_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-021|`com_order_change_relation`|`CONSTRAINT fk_order_change_source FOREIGN KEY (tenant_id, source_order_id) REFERENCES com_sales_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-022|`com_order_change_relation`|`CONSTRAINT fk_order_change_target FOREIGN KEY (tenant_id, target_order_id) REFERENCES com_sales_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-023|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-024|`com_order_contract_relation`|`CONSTRAINT fk_order_contract_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-025|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-026|`com_order_execution_relation`|`CONSTRAINT fk_order_execution_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-027|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_execution FOREIGN KEY (tenant_id, execution_id) REFERENCES com_crm_execution_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-028|`com_order_line_execution_relation`|`CONSTRAINT fk_order_line_execution_line FOREIGN KEY (tenant_id, order_line_id) REFERENCES com_sales_order_line (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-029|`com_project_contract_relation`|`CONSTRAINT fk_project_contract_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-030|`com_sales_order_line`|`CONSTRAINT fk_sales_order_line_order FOREIGN KEY (tenant_id, order_id) REFERENCES com_sales_order (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-031|`com_shipment_contract_reference`|`CONSTRAINT fk_shipment_contract_ref_contract FOREIGN KEY (tenant_id, contract_id) REFERENCES com_contract (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-032|`com_shipment_package`|`CONSTRAINT fk_shipment_package_contract_ref FOREIGN KEY (tenant_id, shipment_contract_ref_id) REFERENCES com_shipment_contract_reference (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-033|`cus_customer_contact`|`CONSTRAINT fk_customer_contact_customer FOREIGN KEY (tenant_id, customer_id) REFERENCES cus_customer (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-034|`plt_business_document`|`CONSTRAINT fk_business_document_current_version FOREIGN KEY (tenant_id, id, current_version_id) REFERENCES plt_document_version (tenant_id, document_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-035|`plt_document_version`|`CONSTRAINT fk_document_version_document FOREIGN KEY (tenant_id, document_id) REFERENCES plt_business_document (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-036|`plt_external_key_mapping`|`CONSTRAINT fk_external_key_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-037|`plt_migration_issue`|`CONSTRAINT fk_migration_issue_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-038|`plt_migration_source_record`|`CONSTRAINT fk_migration_source_batch FOREIGN KEY (tenant_id, batch_id) REFERENCES plt_sync_batch (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-039|`proj_project`|`CONSTRAINT fk_project_code_root FOREIGN KEY (tenant_id, code_root_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-040|`proj_project`|`CONSTRAINT fk_project_parent FOREIGN KEY (tenant_id, parent_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-041|`proj_project_company_department_relation`|`CONSTRAINT fk_project_company_department_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-042|`proj_project_member_assignment`|`CONSTRAINT fk_project_member_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-043|`proj_project_party`|`CONSTRAINT fk_project_party_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-044|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_portfolio FOREIGN KEY (tenant_id, portfolio_id) REFERENCES proj_project_portfolio (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-045|`proj_project_portfolio_member`|`CONSTRAINT fk_portfolio_project_project FOREIGN KEY (tenant_id, project_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-046|`proj_project_relation`|`CONSTRAINT fk_project_rel_source FOREIGN KEY (tenant_id, source_project_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-047|`proj_project_relation`|`CONSTRAINT fk_project_rel_target FOREIGN KEY (tenant_id, target_project_id) REFERENCES proj_project (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
+|FK-048|`srv_service_incident_device_relation`|`CONSTRAINT fk_incident_device_incident FOREIGN KEY (tenant_id, incident_id) REFERENCES srv_service_incident (tenant_id, id)`|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|
 
 ## 6. 普通索引完整清单
 
 |编号|表|当前定义|业务影响/建议|
 |---|---|---|---|
-|IX-001|`acc_project_deliverable`|`KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-002|`acc_project_deliverable`|`KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-003|`acc_satisfaction_collection_task`|`KEY idx_satisfaction_task_owner (tenant_id, current_responsible_user_id, status_code)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-004|`acc_satisfaction_collection_task`|`KEY idx_satisfaction_task_source (tenant_id, source_context, source_object_type, source_object_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-005|`acc_satisfaction_questionnaire`|`KEY idx_satisfaction_questionnaire_task (tenant_id, task_id, create_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-006|`acc_satisfaction_response`|`KEY idx_satisfaction_response_questionnaire (tenant_id, questionnaire_id, submit_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-007|`acc_satisfaction_result`|`KEY idx_satisfaction_result_gate (tenant_id, passed, decision_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-008|`ana_project_delivery_summary`|`KEY idx_project_summary_company_department ( tenant_id, company_code, department_code, project_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-009|`ana_project_delivery_summary`|`KEY idx_project_summary_customer ( tenant_id, customer_code, project_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-010|`ana_project_delivery_summary`|`KEY idx_project_summary_manager ( tenant_id, manager_employee_no, project_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-011|`ana_project_delivery_summary`|`KEY idx_project_summary_project_status ( tenant_id, project_status, project_type, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-012|`ana_project_delivery_summary`|`KEY idx_project_summary_status ( tenant_id, pending_mapping_count, pending_qty_count )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-013|`ana_project_delivery_summary`|`KEY idx_project_summary_time (tenant_id, statistic_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-014|`ast_device_component_relation`|`KEY idx_device_component_card (tenant_id, card_sn, effective_to)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-015|`ast_device_component_relation`|`KEY idx_device_component_chassis (tenant_id, chassis_sn, effective_from)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-016|`ast_device_configuration`|`KEY idx_device_configuration (tenant_id, device_id, status, effective_from)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-017|`ast_device_configuration`|`KEY idx_project_configuration (tenant_id, project_id, configuration_stage)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-018|`ast_device_project_assignment`|`KEY idx_device_assignment_company_department ( tenant_id, project_company_code, project_department_code, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-019|`ast_device_project_assignment`|`KEY idx_device_assignment_customer ( tenant_id, project_customer_code, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-020|`ast_device_project_assignment`|`KEY idx_device_assignment_device ( tenant_id, device_id, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-021|`ast_device_project_assignment`|`KEY idx_device_assignment_order ( tenant_id, order_no, line_no, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-022|`ast_device_project_assignment`|`KEY idx_device_assignment_project ( tenant_id, project_id, effective_to, device_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-023|`ast_device_project_assignment`|`KEY idx_device_assignment_project_code ( tenant_id, project_code, effective_to, device_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-024|`ast_device_project_assignment`|`KEY idx_device_assignment_sn ( tenant_id, device_sn, effective_to, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-025|`ast_device_relation`|`KEY idx_device_relation_contract_refresh ( tenant_id, contract_id, relation_type, status, source_device_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-026|`ast_device_relation`|`KEY idx_device_relation_latest ( tenant_id, source_device_id, contract_id, relation_type, status, effective_time, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-027|`ast_device_relation`|`KEY idx_device_relation_source_device ( tenant_id, source_device_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-028|`ast_device_relation`|`KEY idx_device_relation_target_device ( tenant_id, target_device_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-029|`ast_device_shipment_event`|`KEY idx_shipment_device (tenant_id, device_id, shipment_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-030|`ast_device_shipment_event`|`KEY idx_shipment_order_line (tenant_id, order_line_id, shipment_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-031|`ast_device_shipment_event`|`KEY idx_shipment_package (tenant_id, shipment_package_id, device_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-032|`ast_device_shipment_event`|`KEY idx_shipment_rma ( tenant_id, rma_marked, business_action_code, rma_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-033|`ast_device_sn`|`KEY idx_device_internal_serial_no (tenant_id, internal_serial_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-034|`ast_device_sn`|`KEY idx_device_item (tenant_id, item_code, asset_status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-035|`ast_device_sn`|`KEY idx_device_secondary_sn (tenant_id, secondary_sn)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-036|`ast_device_version`|`KEY idx_device_version_current ( tenant_id, device_id, component_type, status, effective_from )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-037|`ast_device_version`|`KEY idx_project_device_version (tenant_id, project_id, version_stage)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-038|`ast_network_topology`|`KEY idx_network_topology_project (tenant_id, project_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-039|`ast_network_topology_device_relation`|`KEY idx_topology_device_reverse (tenant_id, device_id, topology_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-040|`ast_product`|`KEY idx_product_line (tenant_id, product_line_code, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-041|`com_contract`|`KEY idx_contract_company (tenant_id, company_id, status, contract_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-042|`com_contract`|`KEY idx_contract_customer (tenant_id, customer_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-043|`com_contract`|`KEY idx_contract_no (tenant_id, contract_no, company_code)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-044|`com_contract_receivable`|`KEY idx_contract_receivable_business ( tenant_id, contract_no, company_code, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-045|`com_contract_receivable`|`KEY idx_contract_receivable_company ( tenant_id, company_id, mapping_status, contract_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-046|`com_contract_receivable`|`KEY idx_contract_receivable_contract ( tenant_id, contract_id, source_sync_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-047|`com_crm_execution_config`|`KEY idx_crm_execution_config_company ( tenant_id, company_code, status, execution_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-048|`com_crm_execution_config`|`KEY idx_crm_execution_config_execution ( tenant_id, execution_id, item_code )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-049|`com_crm_execution_order`|`KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-050|`com_crm_execution_order`|`KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-051|`com_crm_execution_order`|`KEY idx_crm_execution_crm_project ( tenant_id, crm_project_code, execution_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-052|`com_crm_execution_order`|`KEY idx_crm_execution_project ( tenant_id, primary_project_id, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-053|`com_delivery_scope`|`KEY idx_scope_item (tenant_id, item_code, scope_status, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-054|`com_delivery_scope`|`KEY idx_scope_order_business ( tenant_id, order_source_system, order_company_code, order_type, order_no, line_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-055|`com_delivery_scope`|`KEY idx_scope_order_line ( tenant_id, order_line_id, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-056|`com_delivery_scope`|`KEY idx_scope_project ( tenant_id, project_id, scope_status, order_line_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-057|`com_delivery_scope`|`KEY idx_scope_project_company ( tenant_id, project_company_code, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-058|`com_delivery_scope`|`KEY idx_scope_project_customer ( tenant_id, project_customer_code, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-059|`com_delivery_scope`|`KEY idx_scope_project_department ( tenant_id, project_department_code, scope_status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-060|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_location ( tenant_id, implementation_location, delivery_scope_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-061|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_product ( tenant_id, product_code, device_type_code, delivery_scope_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-062|`com_execution_order_merge_batch`|`KEY idx_execution_merge_primary ( tenant_id, primary_execution_id, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-063|`com_execution_order_merge_member`|`KEY idx_execution_merge_member_execution ( tenant_id, execution_id, merge_batch_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-064|`com_order_change_relation`|`KEY idx_order_change_target ( tenant_id, target_order_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-065|`com_order_contract_relation`|`KEY idx_order_contract_reverse (tenant_id, contract_id, order_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-066|`com_order_execution_relation`|`KEY idx_order_execution_execution ( tenant_id, execution_id, order_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-067|`com_order_line_execution_relation`|`KEY idx_order_line_execution_reverse (tenant_id, execution_id, order_line_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-068|`com_project_contract_relation`|`KEY idx_project_contract_reverse (tenant_id, contract_id, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-069|`com_sales_order`|`KEY idx_sales_order_company (tenant_id, company_id, status, order_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-070|`com_sales_order`|`KEY idx_sales_order_customer (tenant_id, customer_code, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-071|`com_sales_order`|`KEY idx_sales_order_no (tenant_id, order_no)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-072|`com_sales_order`|`KEY idx_sales_order_time (tenant_id, order_create_time, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-073|`com_sales_order_line`|`KEY idx_sales_order_line_business ( tenant_id, source_system, company_code, order_type, order_no, line_no )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-074|`com_sales_order_line`|`KEY idx_sales_order_line_customer (tenant_id, customer_code, status, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-075|`com_sales_order_line`|`KEY idx_sales_order_line_item (tenant_id, item_code)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-076|`com_sales_order_line`|`KEY idx_sales_order_line_profit (tenant_id, profit_center, order_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-077|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_company ( tenant_id, company_id, mapping_status, contract_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-078|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_contract ( tenant_id, contract_id, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-079|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_no ( tenant_id, contract_no, company_code, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-080|`com_shipment_package`|`KEY idx_shipment_package_contract_ref ( tenant_id, shipment_contract_ref_id, shipment_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-081|`cus_customer`|`KEY idx_customer_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-082|`cus_customer`|`KEY idx_customer_name (tenant_id, customer_name)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-083|`cus_customer_contact`|`KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-084|`cus_market_relation`|`KEY idx_market_relation_name ( tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64) )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-085|`cut_cutover_closure`|`KEY idx_cutover_closure_result (tenant_id, result_code, archive_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-086|`cut_cutover_support_arrangement`|`KEY idx_cutover_support_arrangement_task (tenant_id, cutover_task_id, plan_revision_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-087|`imp_configuration_collection_parse_attempt`|`KEY idx_configuration_parse_attempt_result (tenant_id, collection_result_id, started_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-088|`imp_configuration_collection_result`|`KEY idx_configuration_collection_result_device (tenant_id, project_id, device_id, operated_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-089|`imp_configuration_collection_result`|`KEY idx_configuration_collection_result_hash (tenant_id, raw_log_sha256)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-090|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_match (tenant_id, match_status_code, create_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-091|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_sn (tenant_id, chassis_sn, slot_code, card_sn)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-092|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-093|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-094|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-095|`plt_external_key_mapping`|`KEY idx_external_key_target ( tenant_id, target_table, target_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-096|`plt_migration_issue`|`KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-097|`plt_migration_source_record`|`KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-098|`plt_migration_source_record`|`KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-099|`plt_sync_batch`|`KEY idx_sync_batch_object ( tenant_id, source_system, object_type, started_time )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-100|`proj_project`|`KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-101|`proj_project`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-102|`proj_project`|`KEY idx_project_customer_code (tenant_id, customer_code, status, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-103|`proj_project`|`KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-104|`proj_project`|`KEY idx_project_manager (tenant_id, manager_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-105|`proj_project`|`KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-106|`proj_project`|`KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-107|`proj_project`|`KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-108|`proj_project`|`KEY idx_project_path (tenant_id, root_id, tree_path(191))`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-109|`proj_project_company_department_relation`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-110|`proj_project_company_department_relation`|`KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-111|`proj_project_company_department_relation`|`KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-112|`proj_project_member_assignment`|`KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-113|`proj_project_member_assignment`|`KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-114|`proj_project_member_assignment`|`KEY idx_project_member_user (tenant_id, user_id, status, project_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-115|`proj_project_party`|`KEY idx_project_party_code ( tenant_id, party_role, party_code, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-116|`proj_project_party`|`KEY idx_project_party_project ( tenant_id, project_id, party_role, status )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-117|`proj_project_portfolio`|`KEY idx_portfolio_owner (tenant_id, owner_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-118|`proj_project_portfolio_member`|`KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-119|`proj_project_relation`|`KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-120|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-121|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
-|IX-122|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|Q08候选基线；Feature查询计划与P3-E06压测验证|
+|IX-001|`acc_project_deliverable`|`KEY idx_deliverable_owner (tenant_id, owner_id, status, planned_due_date)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-002|`acc_project_deliverable`|`KEY idx_project_deliverable (tenant_id, project_id, deliverable_type, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-003|`acc_satisfaction_collection_task`|`KEY idx_satisfaction_task_owner (tenant_id, current_responsible_user_id, status_code)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-004|`acc_satisfaction_collection_task`|`KEY idx_satisfaction_task_source (tenant_id, source_context, source_object_type, source_object_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-005|`acc_satisfaction_questionnaire`|`KEY idx_satisfaction_questionnaire_task (tenant_id, task_id, create_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-006|`acc_satisfaction_response`|`KEY idx_satisfaction_response_questionnaire (tenant_id, questionnaire_id, submit_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-007|`acc_satisfaction_result`|`KEY idx_satisfaction_result_gate (tenant_id, passed, decision_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-008|`ana_project_delivery_summary`|`KEY idx_project_summary_company_department ( tenant_id, company_code, department_code, project_status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-009|`ana_project_delivery_summary`|`KEY idx_project_summary_customer ( tenant_id, customer_code, project_status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-010|`ana_project_delivery_summary`|`KEY idx_project_summary_manager ( tenant_id, manager_employee_no, project_status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-011|`ana_project_delivery_summary`|`KEY idx_project_summary_project_status ( tenant_id, project_status, project_type, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-012|`ana_project_delivery_summary`|`KEY idx_project_summary_status ( tenant_id, pending_mapping_count, pending_qty_count )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-013|`ana_project_delivery_summary`|`KEY idx_project_summary_time (tenant_id, statistic_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-014|`ast_device_component_relation`|`KEY idx_device_component_card (tenant_id, card_sn, effective_to)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-015|`ast_device_component_relation`|`KEY idx_device_component_chassis (tenant_id, chassis_sn, effective_from)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-016|`ast_device_configuration`|`KEY idx_device_configuration (tenant_id, device_id, status, effective_from)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-017|`ast_device_configuration`|`KEY idx_project_configuration (tenant_id, project_id, configuration_stage)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-018|`ast_device_project_assignment`|`KEY idx_device_assignment_company_department ( tenant_id, project_company_code, project_department_code, effective_to, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-019|`ast_device_project_assignment`|`KEY idx_device_assignment_customer ( tenant_id, project_customer_code, effective_to, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-020|`ast_device_project_assignment`|`KEY idx_device_assignment_device ( tenant_id, device_id, effective_to, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-021|`ast_device_project_assignment`|`KEY idx_device_assignment_order ( tenant_id, order_no, line_no, effective_to, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-022|`ast_device_project_assignment`|`KEY idx_device_assignment_project ( tenant_id, project_id, effective_to, device_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-023|`ast_device_project_assignment`|`KEY idx_device_assignment_project_code ( tenant_id, project_code, effective_to, device_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-024|`ast_device_project_assignment`|`KEY idx_device_assignment_sn ( tenant_id, device_sn, effective_to, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-025|`ast_device_relation`|`KEY idx_device_relation_contract_refresh ( tenant_id, contract_id, relation_type, status, source_device_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-026|`ast_device_relation`|`KEY idx_device_relation_latest ( tenant_id, source_device_id, contract_id, relation_type, status, effective_time, id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-027|`ast_device_relation`|`KEY idx_device_relation_source_device ( tenant_id, source_device_id, relation_type )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-028|`ast_device_relation`|`KEY idx_device_relation_target_device ( tenant_id, target_device_id, relation_type )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-029|`ast_device_shipment_event`|`KEY idx_shipment_device (tenant_id, device_id, shipment_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-030|`ast_device_shipment_event`|`KEY idx_shipment_order_line (tenant_id, order_line_id, shipment_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-031|`ast_device_shipment_event`|`KEY idx_shipment_package (tenant_id, shipment_package_id, device_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-032|`ast_device_shipment_event`|`KEY idx_shipment_rma ( tenant_id, rma_marked, business_action_code, rma_no )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-033|`ast_device_sn`|`KEY idx_device_internal_serial_no (tenant_id, internal_serial_no)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-034|`ast_device_sn`|`KEY idx_device_item (tenant_id, item_code, asset_status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-035|`ast_device_sn`|`KEY idx_device_secondary_sn (tenant_id, secondary_sn)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-036|`ast_device_version`|`KEY idx_device_version_current ( tenant_id, device_id, component_type, status, effective_from )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-037|`ast_device_version`|`KEY idx_project_device_version (tenant_id, project_id, version_stage)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-038|`ast_network_topology`|`KEY idx_network_topology_project (tenant_id, project_id, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-039|`ast_network_topology_device_relation`|`KEY idx_topology_device_reverse (tenant_id, device_id, topology_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-040|`ast_product`|`KEY idx_product_line (tenant_id, product_line_code, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-041|`com_contract`|`KEY idx_contract_company (tenant_id, company_id, status, contract_no)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-042|`com_contract`|`KEY idx_contract_customer (tenant_id, customer_id, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-043|`com_contract`|`KEY idx_contract_no (tenant_id, contract_no, company_code)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-044|`com_contract_receivable`|`KEY idx_contract_receivable_business ( tenant_id, contract_no, company_code, mapping_status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-045|`com_contract_receivable`|`KEY idx_contract_receivable_company ( tenant_id, company_id, mapping_status, contract_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-046|`com_contract_receivable`|`KEY idx_contract_receivable_contract ( tenant_id, contract_id, source_sync_time )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-047|`com_crm_execution_config`|`KEY idx_crm_execution_config_company ( tenant_id, company_code, status, execution_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-048|`com_crm_execution_config`|`KEY idx_crm_execution_config_execution ( tenant_id, execution_id, item_code )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-049|`com_crm_execution_order`|`KEY idx_crm_execution_company_office ( tenant_id, company_id, office_department_id, status, id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-050|`com_crm_execution_order`|`KEY idx_crm_execution_company_office_code ( tenant_id, company_code, office_department_code, status, id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-051|`com_crm_execution_order`|`KEY idx_crm_execution_crm_project ( tenant_id, crm_project_code, execution_no )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-052|`com_crm_execution_order`|`KEY idx_crm_execution_project ( tenant_id, primary_project_id, status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-053|`com_delivery_scope`|`KEY idx_scope_item (tenant_id, item_code, scope_status, project_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-054|`com_delivery_scope`|`KEY idx_scope_order_business ( tenant_id, order_source_system, order_company_code, order_type, order_no, line_no )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-055|`com_delivery_scope`|`KEY idx_scope_order_line ( tenant_id, order_line_id, scope_status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-056|`com_delivery_scope`|`KEY idx_scope_project ( tenant_id, project_id, scope_status, order_line_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-057|`com_delivery_scope`|`KEY idx_scope_project_company ( tenant_id, project_company_code, scope_status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-058|`com_delivery_scope`|`KEY idx_scope_project_customer ( tenant_id, project_customer_code, scope_status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-059|`com_delivery_scope`|`KEY idx_scope_project_department ( tenant_id, project_department_code, scope_status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-060|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_location ( tenant_id, implementation_location, delivery_scope_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-061|`com_delivery_scope_detail`|`KEY idx_delivery_scope_detail_product ( tenant_id, product_code, device_type_code, delivery_scope_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-062|`com_execution_order_merge_batch`|`KEY idx_execution_merge_primary ( tenant_id, primary_execution_id, status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-063|`com_execution_order_merge_member`|`KEY idx_execution_merge_member_execution ( tenant_id, execution_id, merge_batch_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-064|`com_order_change_relation`|`KEY idx_order_change_target ( tenant_id, target_order_id, relation_type )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-065|`com_order_contract_relation`|`KEY idx_order_contract_reverse (tenant_id, contract_id, order_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-066|`com_order_execution_relation`|`KEY idx_order_execution_execution ( tenant_id, execution_id, order_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-067|`com_order_line_execution_relation`|`KEY idx_order_line_execution_reverse (tenant_id, execution_id, order_line_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-068|`com_project_contract_relation`|`KEY idx_project_contract_reverse (tenant_id, contract_id, project_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-069|`com_sales_order`|`KEY idx_sales_order_company (tenant_id, company_id, status, order_no)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-070|`com_sales_order`|`KEY idx_sales_order_customer (tenant_id, customer_code, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-071|`com_sales_order`|`KEY idx_sales_order_no (tenant_id, order_no)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-072|`com_sales_order`|`KEY idx_sales_order_time (tenant_id, order_create_time, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-073|`com_sales_order_line`|`KEY idx_sales_order_line_business ( tenant_id, source_system, company_code, order_type, order_no, line_no )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-074|`com_sales_order_line`|`KEY idx_sales_order_line_customer (tenant_id, customer_code, status, id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-075|`com_sales_order_line`|`KEY idx_sales_order_line_item (tenant_id, item_code)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-076|`com_sales_order_line`|`KEY idx_sales_order_line_profit (tenant_id, profit_center, order_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-077|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_company ( tenant_id, company_id, mapping_status, contract_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-078|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_contract ( tenant_id, contract_id, mapping_status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-079|`com_shipment_contract_reference`|`KEY idx_shipment_contract_ref_no ( tenant_id, contract_no, company_code, mapping_status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-080|`com_shipment_package`|`KEY idx_shipment_package_contract_ref ( tenant_id, shipment_contract_ref_id, shipment_time )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-081|`cus_customer`|`KEY idx_customer_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-082|`cus_customer`|`KEY idx_customer_name (tenant_id, customer_name)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-083|`cus_customer_contact`|`KEY idx_customer_contact (tenant_id, customer_id, status, is_primary)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-084|`cus_market_relation`|`KEY idx_market_relation_name ( tenant_id, market_name(64), system_name(64), expend_name(64), industry_name(64) )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-085|`cut_cutover_closure`|`KEY idx_cutover_closure_result (tenant_id, result_code, archive_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-086|`cut_cutover_support_arrangement`|`KEY idx_cutover_support_arrangement_task (tenant_id, cutover_task_id, plan_revision_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-087|`imp_configuration_collection_parse_attempt`|`KEY idx_configuration_parse_attempt_result (tenant_id, collection_result_id, started_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-088|`imp_configuration_collection_result`|`KEY idx_configuration_collection_result_device (tenant_id, project_id, device_id, operated_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-089|`imp_configuration_collection_result`|`KEY idx_configuration_collection_result_hash (tenant_id, raw_log_sha256)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-090|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_match (tenant_id, match_status_code, create_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-091|`imp_configuration_component_candidate`|`KEY idx_configuration_component_candidate_sn (tenant_id, chassis_sn, slot_code, card_sn)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-092|`plt_document_version`|`KEY idx_document_file (tenant_id, file_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-093|`plt_external_key_mapping`|`KEY idx_external_key_batch (tenant_id, batch_id, mapping_status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-094|`plt_external_key_mapping`|`KEY idx_external_key_source ( tenant_id, source_system, source_table, source_pk )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-095|`plt_external_key_mapping`|`KEY idx_external_key_target ( tenant_id, target_table, target_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-096|`plt_migration_issue`|`KEY idx_migration_issue_status ( tenant_id, issue_type, resolution_status, create_time )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-097|`plt_migration_source_record`|`KEY idx_migration_source_business ( tenant_id, source_system, source_table, source_business_key(191) )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-098|`plt_migration_source_record`|`KEY idx_migration_source_mapping ( tenant_id, batch_id, source_table, mapping_status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-099|`plt_sync_batch`|`KEY idx_sync_batch_object ( tenant_id, source_system, object_type, started_time )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-100|`proj_project`|`KEY idx_project_company_department ( tenant_id, company_code, department_code, status, id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-101|`proj_project`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-102|`proj_project`|`KEY idx_project_customer_code (tenant_id, customer_code, status, id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-103|`proj_project`|`KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-104|`proj_project`|`KEY idx_project_manager (tenant_id, manager_id, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-105|`proj_project`|`KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-106|`proj_project`|`KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-107|`proj_project`|`KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-108|`proj_project`|`KEY idx_project_path (tenant_id, root_id, tree_path(191))`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-109|`proj_project_company_department_relation`|`KEY idx_project_company_department_id ( tenant_id, company_id, department_id, status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-110|`proj_project_company_department_relation`|`KEY idx_project_company_reverse ( tenant_id, company_code, relation_role, status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-111|`proj_project_company_department_relation`|`KEY idx_project_department_reverse ( tenant_id, department_code, company_code, relation_role, status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-112|`proj_project_member_assignment`|`KEY idx_project_member_company_department ( tenant_id, company_code, department_code, status, project_id )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-113|`proj_project_member_assignment`|`KEY idx_project_member_employee (tenant_id, employee_no, status, project_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-114|`proj_project_member_assignment`|`KEY idx_project_member_user (tenant_id, user_id, status, project_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-115|`proj_project_party`|`KEY idx_project_party_code ( tenant_id, party_role, party_code, status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-116|`proj_project_party`|`KEY idx_project_party_project ( tenant_id, project_id, party_role, status )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-117|`proj_project_portfolio`|`KEY idx_portfolio_owner (tenant_id, owner_id, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-118|`proj_project_portfolio_member`|`KEY idx_portfolio_project_reverse (tenant_id, project_id, portfolio_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-119|`proj_project_relation`|`KEY idx_project_relation_target ( tenant_id, target_project_id, relation_type )`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-120|`srv_service_incident`|`KEY idx_incident_owner (tenant_id, owner_id, status)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-121|`srv_service_incident`|`KEY idx_incident_project (tenant_id, project_id, status, occurred_time)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
+|IX-122|`srv_service_incident_device_relation`|`KEY idx_incident_device_reverse (tenant_id, device_id, incident_id)`|RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证|
 
 ## 7. 唯一键完整清单
 
@@ -936,5 +936,5 @@
 
 - `ACCEPT_CURRENT`表示接受当前DDL作为目标数据模型，不代表历史数据天然满足约束。
 - 历史数据违反已批准约束时进入迁移问题池并保留来源证据，不得静默删除、改写或临时放宽模型掩盖问题。
-- Q07技术约束和Q08候选索引已回写逐项决策登记；Q08仍需Feature查询计划和P3-E06压测，不等于性能已验收。
+- 旧哈希下Q07/Q08决策已失效；当前哈希状态为RECONFIRMATION_REQUIRED，不得据此生成批准哈希。
 - 本清单不授权连接或修改旧库，不授权执行生产迁移。

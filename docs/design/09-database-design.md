@@ -35,7 +35,7 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建；Q08登记122项候选索引并保留Feature/P3-E06性能验证。最终Reviewer签署仍为`REVIEW_PENDING`，V1.7差量保持`BLOCKED_BY_REVIEW`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建为候选；Q08登记的122项索引因哈希变化处于`RECONFIRMATION_REQUIRED`，确认后仍须Feature/P3-E06性能验证。最终Reviewer签署仍为`REVIEW_PENDING`，V1.7差量保持`BLOCKED_BY_REVIEW`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`BLOCKED_BY_REVIEW`。
 
@@ -45,7 +45,7 @@ ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表�
 
 ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0025与ADR-0027按PRD V1.7补齐10张当前范围差量表后，当前核心迁移DDL为60表、1,240列、447项DDL约束/索引和60项表选项，其中隔离MySQL登记325项主键/唯一键/同域外键/CHECK；机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，889项已有需求或ADR依据的模型变化登记为`AMEND_CURRENT`；当前无`DEFER`项，但全部`reviewOwner`仍为空且`approvedCount=0`，因此不构成Reviewer批准。实际当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。Q08的122项只是候选索引，后续调整必须使用前向迁移。
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，197项有明确逐项依据的模型变化登记为`AMEND_CURRENT`，其余692项保持`DEFER`；全部`reviewOwner`仍为空且`approvedCount=0`。实际当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。Q07的257项技术约束、Q08的122项候选索引及10表V1.7物理细节须在当前哈希下重新确认。
 
 - 本分册中的模型和约束是 SDS 目标契约；当前60表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；
@@ -97,7 +97,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 3. 列表索引最后包含稳定排序键 `id`，避免同时间值翻页重复或遗漏。
 4. 不为低选择性 `deleted` 单独建索引；与租户、状态、业务范围组合。
 5. 所有索引必须对应明确查询、唯一性或门禁，不以“可能有用”为由全字段建索引。
-6. ADR-0023-Q08的规则继续有效；ADR-0027差量重建后当前122项普通索引为候选基线。Feature必须保存关键查询执行计划，P3-E06按近生产数据规模验收，索引调整只允许新增前向迁移。
+6. ADR-0023-Q08的“性能须下游验收、索引调整只允许前向迁移”原则继续有效；当前122项具体索引尚未重新确认为候选基线。确认后Feature仍必须保存关键查询执行计划，P3-E06按近生产数据规模验收。
 
 ## 4. Project Delivery 表设计
 

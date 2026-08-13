@@ -31,9 +31,11 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
                     "currentDdlSha256": "CURRENT",
                     "legacyCatalogDdlSha256": "OLD",
                     "driftDecision": "DEFER",
-                    "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
-                    "q07Decision": VALIDATOR.Q07_DECISION,
-                    "q08Decision": VALIDATOR.Q08_DECISION,
+                    "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+                    "deferredItemCount": 1,
+                    "approvedDdlSha256": None,
+                    "q07Decision": {"status": "RECONFIRMATION_REQUIRED", **VALIDATOR.Q07_DECISION},
+                    "q08Decision": {"status": "RECONFIRMATION_REQUIRED", **VALIDATOR.Q08_DECISION},
                 }
                 refs = ["drift.md", VALIDATOR.MODEL_DECISION_REF]
             expected_direction = VALIDATOR.DIRECTION_DECISIONS.get(identifier)
@@ -78,6 +80,35 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         self.path.write_text(json.dumps(self.payload), encoding="utf-8")
 
     def test_open_register_is_structurally_valid(self) -> None:
+        self.assertEqual([], VALIDATOR.validate(self.path))
+
+    def test_decisions_accepted_review_pending_transition_is_valid(self) -> None:
+        payload = json.loads(self.path.read_text(encoding="utf-8"))
+        item = next(row for row in payload["items"] if row["id"] == "P3-E09")
+        facts = item["confirmedFacts"]
+        facts["deferredItemCount"] = 0
+        facts["modelDecisionStatus"] = "DECISIONS_ACCEPTED_REVIEW_PENDING"
+        facts["driftDecision"] = "REVIEW_PENDING"
+        facts["q07Decision"]["status"] = "ACCEPTED"
+        facts["q08Decision"]["status"] = "ACCEPTED"
+        self.path.write_text(json.dumps(payload), encoding="utf-8")
+        self.assertEqual([], VALIDATOR.validate(self.path))
+
+    def test_approved_transition_requires_verified_current_hash(self) -> None:
+        payload = json.loads(self.path.read_text(encoding="utf-8"))
+        item = next(row for row in payload["items"] if row["id"] == "P3-E09")
+        item["status"] = "VERIFIED"
+        item["decisionOwner"] = "REQUIREMENT_OWNER"
+        item["reviewOwner"] = "INDEPENDENT_REVIEWER"
+        facts = item["confirmedFacts"]
+        facts["deferredItemCount"] = 0
+        facts["modelDecisionStatus"] = "APPROVED"
+        facts["driftDecision"] = "ACCEPT_CURRENT"
+        facts["approvedDdlSha256"] = facts["currentDdlSha256"]
+        facts["q07Decision"]["status"] = "ACCEPTED"
+        facts["q08Decision"]["status"] = "ACCEPTED"
+        payload["overallStatus"] = "READY_FOR_SDS_BASELINE"
+        self.path.write_text(json.dumps(payload), encoding="utf-8")
         self.assertEqual([], VALIDATOR.validate(self.path))
 
     def test_only_model_affecting_e09_blocks_sds_readiness(self) -> None:

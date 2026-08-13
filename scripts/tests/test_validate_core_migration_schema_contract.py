@@ -289,8 +289,9 @@ CREATE TABLE ast_device_component_relation (
                 "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED",
             },
             "q07TechnicalConstraintPolicy": {
+                "status": "RECONFIRMATION_REQUIRED",
                 "ddlSha256": ddl_sha,
-                "decision": "ACCEPT_CURRENT_FOR_SDS",
+                "proposedDecision": "ACCEPT_CURRENT_FOR_SDS",
                 "primaryKeyCount": 8,
                 "primaryKeyShape": {"singleId": 8, "compositeProjection": 0},
                 "tenantReferenceKeyCount": 0,
@@ -305,8 +306,9 @@ CREATE TABLE ast_device_component_relation (
                 "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
             },
             "q08OrdinaryIndexPolicy": {
+                "status": "RECONFIRMATION_REQUIRED",
                 "ddlSha256": ddl_sha,
-                "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
+                "proposedDecision": "ACCEPT_AS_CANDIDATE_BASELINE",
                 "candidateIndexCount": 0,
                 "featureQueryPlanValidationRequired": True,
                 "p3e06PerformanceValidationRequired": True,
@@ -414,6 +416,37 @@ CREATE TABLE plt_external_key_mapping (
 
     def test_accepts_confirmed_contract_and_safe_ddl(self) -> None:
         self.assertEqual([], MODULE.validate_contract(self.valid_contract(), self.valid_ddl()))
+
+    def test_accepts_current_hash_reconfirmed_q07_q08(self) -> None:
+        contract = self.valid_contract()
+        ddl = self.valid_ddl()
+        for policy_name, decision in (
+            ("q07TechnicalConstraintPolicy", "ACCEPT_CURRENT_FOR_SDS"),
+            ("q08OrdinaryIndexPolicy", "ACCEPT_AS_CANDIDATE_BASELINE"),
+        ):
+            policy = contract[policy_name]
+            policy["status"] = "ACCEPTED"
+            policy["decision"] = decision
+            policy["decisionEvidenceRef"] = "docs/decisions/current-hash-review.md"
+            policy.pop("proposedDecision", None)
+        self.assertEqual([], MODULE.validate_contract(contract, ddl))
+
+    def test_accepted_q07_q08_requires_existing_decision_evidence(self) -> None:
+        contract = self.valid_contract()
+        for policy_name in ("q07TechnicalConstraintPolicy", "q08OrdinaryIndexPolicy"):
+            contract[policy_name]["status"] = "ACCEPTED"
+            contract[policy_name]["decisionEvidenceRef"] = "missing.md"
+        self.assertEqual(2, len(MODULE.accepted_decision_reference_errors(ROOT, contract)))
+
+    def test_accepts_current_hash_v17_explicit_item_decision(self) -> None:
+        contract = self.valid_v17_delta_contract()
+        ddl = self.valid_v17_delta_ddl()
+        delta = contract["v17Delta"]
+        delta["status"] = "ACCEPTED"
+        delta["ddlSha256"] = hashlib.sha256(ddl.encode("utf-8")).hexdigest().upper()
+        delta["acceptedDdlItems"] = ["TABLE:cut_cutover_closure"]
+        delta["itemEvidenceRefs"] = {"TABLE:cut_cutover_closure": "docs/decisions/current-hash-review.md"}
+        self.assertEqual([], MODULE.validate_v17_delta(contract, self.valid_v17_object_table_map(), ddl))
 
     def test_rejects_full_platform_claim_and_v3_table(self) -> None:
         contract = self.valid_contract()

@@ -284,11 +284,9 @@ Q03_CURRENT_MARKERS = {
     ),
 }
 EXPECTED_Q07_POLICY = {
-    "decision": "ACCEPT_CURRENT_FOR_SDS",
     "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
 }
 EXPECTED_Q08_POLICY = {
-    "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
     "featureQueryPlanValidationRequired": True,
     "p3e06PerformanceValidationRequired": True,
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
@@ -454,8 +452,17 @@ def validate_v17_delta(
     delta = contract.get("v17Delta", {})
     if not isinstance(delta, dict):
         return ["V1.7 delta contract must be an object"]
-    if delta.get("decisionRef") != "ADR-0027" or delta.get("status") != "BLOCKED_BY_REVIEW":
-        errors.append("V1.7 delta metadata must reference ADR-0027 and remain BLOCKED_BY_REVIEW")
+    delta_status = delta.get("status")
+    if delta.get("decisionRef") != "ADR-0027" or delta_status not in {"BLOCKED_BY_REVIEW", "ACCEPTED"}:
+        errors.append("V1.7 delta metadata/status is invalid")
+    if delta_status == "ACCEPTED":
+        ddl_sha = hashlib.sha256(ddl.encode("utf-8")).hexdigest().upper()
+        accepted_items = delta.get("acceptedDdlItems", [])
+        item_refs = delta.get("itemEvidenceRefs", {})
+        if delta.get("ddlSha256") != ddl_sha or not isinstance(accepted_items, list) or not accepted_items:
+            errors.append("accepted V1.7 delta must bind current DDL and explicit itemIds")
+        if not isinstance(item_refs, dict) or set(item_refs) != set(accepted_items) or any(not value for value in item_refs.values()):
+            errors.append("accepted V1.7 delta must provide evidence for every accepted itemId")
     if set(delta.get("requirementRefs", [])) != EXPECTED_V17_REQUIREMENTS:
         errors.append("V1.7 delta requirement reference set mismatch")
     if delta.get("tableContracts") != v17_table_contract_payload():
@@ -624,6 +631,17 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
         q08.get(key) != value for key, value in EXPECTED_Q08_POLICY.items()
     ):
         errors.append("ADR-0023 Q08 ordinary index policy mismatch")
+    for name, policy, proposed in (
+        ("Q07", q07, "ACCEPT_CURRENT_FOR_SDS"),
+        ("Q08", q08, "ACCEPT_AS_CANDIDATE_BASELINE"),
+    ):
+        status = policy.get("status") if isinstance(policy, dict) else None
+        if status not in {"RECONFIRMATION_REQUIRED", "ACCEPTED"}:
+            errors.append(f"ADR-0023 {name} status is invalid")
+        elif status == "RECONFIRMATION_REQUIRED" and policy.get("proposedDecision") != proposed:
+            errors.append(f"ADR-0023 {name} proposed decision mismatch")
+        elif status == "ACCEPTED" and (policy.get("decision") != proposed or not policy.get("decisionEvidenceRef")):
+            errors.append(f"ADR-0023 {name} accepted decision lacks current-hash evidence")
     actual_q07, actual_q08_count = q07_q08_actual_counts(tables, ddl)
     if isinstance(q07, dict) and any(q07.get(key) != value for key, value in actual_q07.items()):
         errors.append("ADR-0023 Q07 accepted constraint counts differ from current DDL")
@@ -731,6 +749,18 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
     return errors
 
 
+def accepted_decision_reference_errors(root: Path, contract: dict[str, object]) -> list[str]:
+    errors: list[str] = []
+    for policy_name in ("q07TechnicalConstraintPolicy", "q08OrdinaryIndexPolicy"):
+        policy = contract.get(policy_name, {})
+        if not isinstance(policy, dict) or policy.get("status") != "ACCEPTED":
+            continue
+        reference = policy.get("decisionEvidenceRef")
+        if not isinstance(reference, str) or not (root / reference.split("#", 1)[0]).is_file():
+            errors.append(f"{policy_name} accepted decision evidence does not exist")
+    return errors
+
+
 def validate_execution_evidence(evidence: dict[str, object], ddl_bytes: bytes, table_count: int) -> list[str]:
     errors: list[str] = []
     ddl_sha = hashlib.sha256(ddl_bytes).hexdigest().upper()
@@ -756,6 +786,7 @@ def main() -> int:
     ddl_text = ddl_bytes.decode("utf-8")
     contract = json.loads(args.contract.read_text(encoding="utf-8"))
     errors = validate_contract(contract, ddl_text)
+    errors.extend(accepted_decision_reference_errors(Path.cwd(), contract))
     errors.extend(validate_v17_delta(
         contract,
         json.loads(args.object_table_map.read_text(encoding="utf-8")),

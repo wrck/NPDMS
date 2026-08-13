@@ -731,8 +731,9 @@
     }
   },
   "q07TechnicalConstraintPolicy": {
+    "status": "RECONFIRMATION_REQUIRED",
     "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-    "decision": "ACCEPT_CURRENT_FOR_SDS",
+    "proposedDecision": "ACCEPT_CURRENT_FOR_SDS",
     "primaryKeyCount": 60,
     "primaryKeyShape": {
       "singleId": 59,
@@ -750,8 +751,9 @@
     "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE"
   },
   "q08OrdinaryIndexPolicy": {
+    "status": "RECONFIRMATION_REQUIRED",
     "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-    "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
+    "proposedDecision": "ACCEPT_AS_CANDIDATE_BASELINE",
     "candidateIndexCount": 122,
     "featureQueryPlanValidationRequired": true,
     "p3e06PerformanceValidationRequired": true,

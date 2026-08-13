@@ -34,10 +34,11 @@
       "BUSINESS_OWNER",
       "MIGRATION_OWNER"
     ],
-    "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+    "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+    "deferredItemCount": 692,
     "v17DeltaStatus": "BLOCKED_BY_REVIEW",
     "q07Decision": {
-      "status": "ACCEPTED",
+      "status": "RECONFIRMATION_REQUIRED",
       "technicalConstraintCount": 257,
       "primaryKeyCount": 60,
       "primaryKeyShape": {
@@ -49,7 +50,7 @@
       "stableTechnicalCheckCount": 89
     },
     "q08Decision": {
-      "status": "CANDIDATE_BASELINE_ACCEPTED",
+      "status": "RECONFIRMATION_REQUIRED",
       "candidateIndexCount": 122,
       "featureQueryPlanValidationRequired": true,
       "p3e06PerformanceValidationRequired": true,

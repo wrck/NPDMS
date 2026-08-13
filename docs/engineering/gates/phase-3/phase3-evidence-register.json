@@ -298,7 +298,9 @@
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "DEFER",
                 "decisionRegisterItemCount": 1883,
-                "modelDecisionStatus": "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING",
+                "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+                "deferredItemCount": 692,
+                "approvedDdlSha256": null,
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
                     "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
@@ -308,7 +310,7 @@
                     "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED"
                 },
                 "q07Decision": {
-                    "status": "ACCEPTED",
+                    "status": "RECONFIRMATION_REQUIRED",
                     "technicalConstraintCount": 257,
                     "primaryKeyCount": 60,
                     "primaryKeyShape": {
@@ -320,7 +322,7 @@
                     "stableTechnicalCheckCount": 89
                 },
                 "q08Decision": {
-                    "status": "CANDIDATE_BASELINE_ACCEPTED",
+                    "status": "RECONFIRMATION_REQUIRED",
                     "candidateIndexCount": 122,
                     "featureQueryPlanValidationRequired": true,
                     "p3e06PerformanceValidationRequired": true,

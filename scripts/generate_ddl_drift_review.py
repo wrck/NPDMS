@@ -460,11 +460,9 @@ def apply_accepted_market_relation_decisions(register: dict[str, object], contra
     business_fields = set(contract["businessFields"])
     decided: set[str] = set()
     for item in register["items"]:
-        if item["table"] == target_table:
+        if item["itemId"] == f"TABLE:{target_table}":
             decided.add(item["itemId"])
-        elif item["itemType"] == "COLUMN" and item["table"] in {"proj_project", "cus_customer"} and item["name"] in business_fields:
-            decided.add(item["itemId"])
-        elif item["itemType"] == "CONSTRAINT" and item["name"] in {"idx_project_market_relation", "idx_customer_market_relation"}:
+        elif item["itemType"] == "COLUMN" and item["table"] in {target_table, "proj_project", "cus_customer"} and item["name"] in business_fields:
             decided.add(item["itemId"])
     for item in register["items"]:
         if item["itemId"] in decided:
@@ -546,43 +544,59 @@ def apply_unchanged_baseline_column_decisions(register: dict[str, object]) -> di
     return register
 
 
+def apply_review_overlay(register: dict[str, object], previous: dict[str, object] | None) -> dict[str, object]:
+    """Preserve independently supplied review signatures without changing generated decisions."""
+    if not previous or previous.get("currentDdlSha256") != register.get("currentDdlSha256"):
+        return register
+    previous_by_id = {item.get("itemId"): item for item in previous.get("items", []) if isinstance(item, dict)}
+    reviewed_count = 0
+    for item in register["items"]:
+        old = previous_by_id.get(item["itemId"])
+        if not old or not old.get("reviewOwner"):
+            continue
+        if old.get("decision") != item.get("decision") or old.get("decisionOwner") != item.get("decisionOwner"):
+            raise ValueError(f"review overlay conflicts with generated decision: {item['itemId']}")
+        item["reviewOwner"] = old["reviewOwner"]
+        for evidence_ref in old.get("evidenceRefs", []):
+            if evidence_ref not in item["evidenceRefs"]:
+                item["evidenceRefs"].append(evidence_ref)
+        reviewed_count += 1
+    if isinstance(previous.get("approval"), dict):
+        register["approval"] = previous["approval"]
+    register["summary"]["approvedCount"] = reviewed_count
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    return register
+
+
 def apply_accepted_v17_delta_decisions(
     register: dict[str, object], contract: dict[str, object]
 ) -> dict[str, object]:
     """Bind every current V1.7 delta item to ADR-0025/0027 without reviewer approval."""
     delta = contract.get("v17Delta", {})
-    if delta.get("status") != "BLOCKED_BY_REVIEW":
-        raise ValueError("V1.7 delta must remain BLOCKED_BY_REVIEW before independent approval")
-    object_tables = delta.get("objectTargetTables", {})
+    if delta.get("status") != "ACCEPTED" or delta.get("ddlSha256") != register.get("currentDdlSha256"):
+        raise ValueError("V1.7 delta requires an ACCEPTED decision bound to the current DDL")
+    decided = set(delta.get("acceptedDdlItems", []))
+    actual = {item["itemId"] for item in register["items"]}
+    missing = sorted(decided - actual)
+    if missing:
+        raise ValueError(f"V1.7 accepted delta references missing DDL items: {missing}")
     target_tables = {
-        table for tables in object_tables.values() for table in tables
-    }
-    cutover_tables = {
         table
-        for object_name, tables in object_tables.items()
-        if object_name in {"CutoverSupportArrangement", "CutoverClosure"}
+        for tables in delta.get("objectTargetTables", {}).values()
         for table in tables
     }
-    actual_tables = {
-        item["table"]
-        for item in register["items"]
-        if item.get("itemType") == "TABLE" and item.get("currentValue") is True
-    }
-    missing = sorted(target_tables - actual_tables)
-    if missing:
-        raise ValueError(f"V1.7 accepted delta tables are absent from current DDL: {missing}")
+    expected_delta_items = {item["itemId"] for item in register["items"] if item.get("table") in target_tables}
+    if decided != expected_delta_items:
+        raise ValueError("V1.7 ACCEPTED decision must cover every current item of the declared target tables")
     decided_count = 0
     for item in register["items"]:
-        if item.get("table") not in target_tables:
+        if item["itemId"] not in decided:
             continue
         item["decision"] = "AMEND_CURRENT"
         item["decisionOwner"] = "REQUIREMENT_OWNER"
         item["reviewOwner"] = None
-        decision_ref = (
-            "docs/decisions/0027-cutover-physical-model-correction.md"
-            if item["table"] in cutover_tables
-            else "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md"
-        )
+        decision_ref = delta["itemEvidenceRefs"][item["itemId"]]
         if decision_ref not in item["evidenceRefs"]:
             item["evidenceRefs"].append(decision_ref)
         decided_count += 1
@@ -592,47 +606,7 @@ def apply_accepted_v17_delta_decisions(
     register["v17DeltaDecision"] = {
         "decisionRefs": ["ADR-0025", "ADR-0027"],
         "decidedItemCount": decided_count,
-        "targetTableCount": len(target_tables),
-        "reviewStatus": "REVIEW_PENDING",
-    }
-    return register
-
-
-def apply_accepted_adr0023_business_constraint_decisions(
-    register: dict[str, object], v17_target_tables: set[str]
-) -> dict[str, object]:
-    """Bind accepted Q01-Q06 physical rules, including the RMA compatibility projection."""
-    decision_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
-    decided_count = 0
-    for item in register["items"]:
-        if item.get("table") in v17_target_tables or item.get("decision") != "DEFER":
-            continue
-        current_value = item.get("currentValue")
-        is_business_constraint = (
-            item.get("itemType") == "CONSTRAINT"
-            and isinstance(current_value, str)
-            and (current_value.upper().startswith("UNIQUE KEY") or " CHECK " in f" {current_value.upper()} ")
-        )
-        is_current_table_option = (
-            item.get("itemType") == "TABLE_OPTION" and current_value is not None
-        )
-        is_rma_compatibility_projection = (
-            item.get("itemId") == "COLUMN:ast_device_shipment_event:rma_marked"
-        )
-        if not (is_business_constraint or is_current_table_option or is_rma_compatibility_projection):
-            continue
-        item["decision"] = "AMEND_CURRENT"
-        item["decisionOwner"] = "REQUIREMENT_OWNER"
-        item["reviewOwner"] = None
-        if decision_ref not in item["evidenceRefs"]:
-            item["evidenceRefs"].append(decision_ref)
-        decided_count += 1
-    register["summary"]["approvedCount"] = 0
-    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    register["itemsSha256"] = sha256(canonical)
-    register["adr0023PhysicalDecision"] = {
-        "decisionRef": "ADR-0023-Q01-Q06",
-        "decidedItemCount": decided_count,
+        "acceptedItemCount": len(decided),
         "reviewStatus": "REVIEW_PENDING",
     }
     return register
@@ -789,6 +763,8 @@ def apply_accepted_q07_q08_decisions(register: dict[str, object], contract: dict
     q08 = contract.get("q08OrdinaryIndexPolicy", {})
     if not isinstance(q07, dict) or not isinstance(q08, dict):
         raise ValueError("ADR-0023 Q07/Q08 policies are missing")
+    if q07.get("status") != "ACCEPTED" or q08.get("status") != "ACCEPTED":
+        raise ValueError("ADR-0023 Q07/Q08 decisions require current-hash reconfirmation")
     if q07.get("ddlSha256") != register.get("currentDdlSha256") or q08.get("ddlSha256") != register.get("currentDdlSha256"):
         raise ValueError("ADR-0023 Q07/Q08 policies are not bound to the current DDL")
     q07_ids, q08_ids, counts = q07_q08_item_ids(register)
@@ -806,6 +782,8 @@ def apply_accepted_q07_q08_decisions(register: dict[str, object], contract: dict
 
     q07_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
     q08_ref = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
+    q07_current_ref = q07["decisionEvidenceRef"]
+    q08_current_ref = q08["decisionEvidenceRef"]
     for item in register["items"]:
         decision_ref = q07_ref if item["itemId"] in q07_ids else q08_ref if item["itemId"] in q08_ids else None
         if decision_ref is None:
@@ -813,8 +791,12 @@ def apply_accepted_q07_q08_decisions(register: dict[str, object], contract: dict
         item["decision"] = "AMEND_CURRENT"
         item["decisionOwner"] = "REQUIREMENT_OWNER"
         item["reviewOwner"] = None
-        if decision_ref not in item["evidenceRefs"]:
-            item["evidenceRefs"].append(decision_ref)
+        for evidence_ref in (
+            decision_ref,
+            q07_current_ref if item["itemId"] in q07_ids else q08_current_ref,
+        ):
+            if evidence_ref not in item["evidenceRefs"]:
+                item["evidenceRefs"].append(evidence_ref)
     register["summary"]["approvedCount"] = 0
     canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     register["itemsSha256"] = sha256(canonical)
@@ -952,16 +934,16 @@ def main() -> int:
     )
     decision_register = apply_accepted_core_schema_decisions(decision_register, core_contract_data)
     decision_register = apply_accepted_q03_decisions(decision_register, core_contract_data)
-    decision_register = apply_accepted_q07_q08_decisions(decision_register, core_contract_data)
-    v17_target_tables = {
-        table
-        for tables in core_contract_data.get("v17Delta", {}).get("objectTargetTables", {}).values()
-        for table in tables
-    }
-    decision_register = apply_accepted_adr0023_business_constraint_decisions(
-        decision_register, v17_target_tables
-    )
-    decision_register = apply_accepted_v17_delta_decisions(decision_register, core_contract_data)
+    q07_status = core_contract_data.get("q07TechnicalConstraintPolicy", {}).get("status")
+    q08_status = core_contract_data.get("q08OrdinaryIndexPolicy", {}).get("status")
+    if q07_status == "ACCEPTED" and q08_status == "ACCEPTED":
+        decision_register = apply_accepted_q07_q08_decisions(decision_register, core_contract_data)
+    if core_contract_data.get("v17Delta", {}).get("status") == "ACCEPTED":
+        decision_register = apply_accepted_v17_delta_decisions(decision_register, core_contract_data)
+    previous_register = None
+    if decision_output.exists():
+        previous_register = json.loads(decision_output.read_text(encoding="utf-8"))
+    decision_register = apply_review_overlay(decision_register, previous_register)
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))
     print(f"WROTE {output.relative_to(repo).as_posix()}")

@@ -31,9 +31,47 @@ def generated_decision_errors(
     errors: list[str] = []
     for identifier in sorted(set(actual_by_id) & set(expected_by_id)):
         actual, generated = actual_by_id[identifier], expected_by_id[identifier]
-        for field in ("decision", "decisionOwner", "reviewOwner", "evidenceRefs"):
+        for field in ("decision", "decisionOwner"):
             if actual.get(field) != generated.get(field):
                 errors.append(f"{identifier} generated decision mismatch: {field}")
+        expected_refs = set(generated.get("evidenceRefs", []))
+        actual_refs = set(actual.get("evidenceRefs", []))
+        if not expected_refs.issubset(actual_refs):
+            errors.append(f"{identifier} generated decision mismatch: evidenceRefs")
+    return errors
+
+
+def evidence_reference_errors(root: Path, items: list[dict[str, object]]) -> list[str]:
+    errors: list[str] = []
+    for item in items:
+        if item.get("decision") == "DEFER":
+            continue
+        for reference in item.get("evidenceRefs", []):
+            if not isinstance(reference, str) or not reference:
+                errors.append(f"{item.get('itemId')} invalid evidence reference")
+                continue
+            target = reference.split("#", 1)[0]
+            if not (root / target).is_file():
+                errors.append(f"{item.get('itemId')} evidence reference does not exist: {target}")
+    return errors
+
+
+def final_approval_errors(root: Path, register: dict[str, object], approved_count: int) -> list[str]:
+    approval = register.get("approval", {})
+    if not isinstance(approval, dict) or not nonempty(approval.get("approvedDdlSha256")):
+        return []
+    errors: list[str] = []
+    if approval.get("approvedDdlSha256") != register.get("currentDdlSha256"):
+        errors.append("approvedDdlSha256 must equal currentDdlSha256")
+    if approval.get("itemsSha256") != register.get("itemsSha256"):
+        errors.append("approval must bind the current itemsSha256")
+    approval_refs = approval.get("evidenceRefs", [])
+    errors.extend(evidence_reference_errors(
+        root, [{"itemId": "APPROVAL", "decision": "ACCEPT_CURRENT", "evidenceRefs": approval_refs}]
+    ))
+    items = register.get("items", [])
+    if approved_count != len(items) or not nonempty(approval.get("decisionOwner")) or not nonempty(approval.get("reviewOwner")) or not nonempty(approval_refs) or not nonempty(approval.get("signedAt")):
+        errors.append("approvedDdlSha256 requires all items reviewed and final approval evidence")
     return errors
 
 
@@ -115,18 +153,15 @@ def validate(root: Path) -> list[str]:
     decided_expected = generator.apply_accepted_market_relation_decisions(decided_expected, market_relation_contract)
     decided_expected = generator.apply_accepted_core_schema_decisions(decided_expected, core_contract)
     decided_expected = generator.apply_accepted_q03_decisions(decided_expected, core_contract)
-    decided_expected = generator.apply_accepted_q07_q08_decisions(decided_expected, core_contract)
-    v17_target_tables = {
-        table
-        for tables in core_contract.get("v17Delta", {}).get("objectTargetTables", {}).values()
-        for table in tables
-    }
-    decided_expected = generator.apply_accepted_adr0023_business_constraint_decisions(
-        decided_expected, v17_target_tables
-    )
-    decided_expected = generator.apply_accepted_v17_delta_decisions(decided_expected, core_contract)
+    q07_status = core_contract.get("q07TechnicalConstraintPolicy", {}).get("status")
+    q08_status = core_contract.get("q08OrdinaryIndexPolicy", {}).get("status")
+    if q07_status == "ACCEPTED" and q08_status == "ACCEPTED":
+        decided_expected = generator.apply_accepted_q07_q08_decisions(decided_expected, core_contract)
+    if core_contract.get("v17Delta", {}).get("status") == "ACCEPTED":
+        decided_expected = generator.apply_accepted_v17_delta_decisions(decided_expected, core_contract)
     expected_decided_by_id = {item["itemId"]: item for item in decided_expected["items"]}
     errors.extend(generated_decision_errors(actual_by_id, expected_decided_by_id))
+    errors.extend(evidence_reference_errors(root, items))
     for decision_key in (
         "namingDecision",
         "unchangedBaselineColumnDecision",
@@ -134,11 +169,15 @@ def validate(root: Path) -> list[str]:
         "marketRelationDecision",
         "coreMigrationSchemaDecision",
         "q03Decision",
-        "q07Decision",
-        "q08Decision",
-        "adr0023PhysicalDecision",
-        "v17DeltaDecision",
     ):
+        if register.get(decision_key) != decided_expected.get(decision_key):
+            errors.append(f"DDL decision register {decision_key} metadata mismatch")
+    conditional_metadata = []
+    if q07_status == "ACCEPTED" and q08_status == "ACCEPTED":
+        conditional_metadata.extend(["q07Decision", "q08Decision"])
+    if core_contract.get("v17Delta", {}).get("status") == "ACCEPTED":
+        conditional_metadata.append("v17DeltaDecision")
+    for decision_key in conditional_metadata:
         if register.get(decision_key) != decided_expected.get(decision_key):
             errors.append(f"DDL decision register {decision_key} metadata mismatch")
 
@@ -153,10 +192,7 @@ def validate(root: Path) -> list[str]:
     expected_summary = {"itemCount": len(items), "byType": counts, "byComparisonStatus": statuses, "approvedCount": approved_count}
     if register.get("summary") != expected_summary:
         errors.append("DDL item decision summary mismatch")
-    approval = register.get("approval", {})
-    if nonempty(approval.get("approvedDdlSha256")):
-        if approved_count != len(items) or not nonempty(approval.get("decisionOwner")) or not nonempty(approval.get("reviewOwner")) or not nonempty(approval.get("evidenceRefs")):
-            errors.append("approvedDdlSha256 requires all items reviewed and final approval evidence")
+    errors.extend(final_approval_errors(root, register, approved_count))
     return errors
 
 

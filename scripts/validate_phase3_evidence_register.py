@@ -50,7 +50,6 @@ RECOVERY_SWITCH_AUTH_REF = "docs/decisions/0017-disaster-recovery-switch-authori
 DEPLOYMENT_TIME_SELECTION_REF = "docs/decisions/0018-deployment-time-environment-and-kms-selection.md"
 MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
 Q07_DECISION = {
-    "status": "ACCEPTED",
     "technicalConstraintCount": 257,
     "primaryKeyCount": 60,
     "primaryKeyShape": {"singleId": 59, "compositeProjection": 1},
@@ -59,7 +58,6 @@ Q07_DECISION = {
     "stableTechnicalCheckCount": 89,
 }
 Q08_DECISION = {
-    "status": "CANDIDATE_BASELINE_ACCEPTED",
     "candidateIndexCount": 122,
     "featureQueryPlanValidationRequired": True,
     "p3e06PerformanceValidationRequired": True,
@@ -253,14 +251,26 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
             errors.append(f"{identifier} deployment-time decision reference missing")
     e09 = by_id.get("P3-E09", {})
     facts = e09.get("confirmedFacts", {})
-    if facts.get("currentDdlSha256") == facts.get("legacyCatalogDdlSha256") or facts.get("driftDecision") != "DEFER":
-        errors.append("P3-E09 must retain the current DDL drift and DEFER decision until AI-MIG-000 is approved")
-    if facts.get("modelDecisionStatus") != "REQUIREMENT_OWNER_ACCEPTED_REVIEW_PENDING":
-        errors.append("P3-E09 Q01-Q08 model decisions must remain requirement-owner accepted and review pending")
-    if facts.get("q07Decision") != Q07_DECISION:
-        errors.append("P3-E09 Q07 accepted technical constraint decision mismatch")
-    if facts.get("q08Decision") != Q08_DECISION:
-        errors.append("P3-E09 Q08 candidate index decision mismatch")
+    if facts.get("currentDdlSha256") == facts.get("legacyCatalogDdlSha256"):
+        errors.append("P3-E09 current and legacy DDL hashes must differ")
+    q07_fact = facts.get("q07Decision", {})
+    q08_fact = facts.get("q08Decision", {})
+    if {key: value for key, value in q07_fact.items() if key != "status"} != Q07_DECISION or q07_fact.get("status") not in {"RECONFIRMATION_REQUIRED", "ACCEPTED"}:
+        errors.append("P3-E09 Q07 decision fact mismatch")
+    if {key: value for key, value in q08_fact.items() if key != "status"} != Q08_DECISION or q08_fact.get("status") not in {"RECONFIRMATION_REQUIRED", "ACCEPTED"}:
+        errors.append("P3-E09 Q08 decision fact mismatch")
+    deferred_count = facts.get("deferredItemCount")
+    approved_hash = facts.get("approvedDdlSha256")
+    if approved_hash:
+        expected_model_status, expected_drift = "APPROVED", "ACCEPT_CURRENT"
+        if approved_hash != facts.get("currentDdlSha256") or e09.get("status") != "VERIFIED":
+            errors.append("P3-E09 approved state must bind current DDL and VERIFIED gate status")
+    elif deferred_count == 0:
+        expected_model_status, expected_drift = "DECISIONS_ACCEPTED_REVIEW_PENDING", "REVIEW_PENDING"
+    else:
+        expected_model_status, expected_drift = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED", "DEFER"
+    if facts.get("modelDecisionStatus") != expected_model_status or facts.get("driftDecision") != expected_drift:
+        errors.append("P3-E09 model/drift state transition mismatch")
     if MODEL_DECISION_REF not in e09.get("evidenceRefs", []):
         errors.append("P3-E09 Q07/Q08 decision reference missing")
 
