@@ -2,9 +2,10 @@
 -- Target: MySQL 8.x / InnoDB / utf8mb4
 -- Status: REVIEW DRAFT, not a Flyway/Liquibase production migration.
 -- Safety: additive CREATE TABLE statements only; no DROP/TRUNCATE/legacy database writes.
--- Verified: executed successfully in an isolated MySQL 8.4.10 Docker schema
---           on 2026-08-05; 52 tables, 1079 commented columns,
---           79 tenant-safe foreign keys and 81 CHECK constraints.
+-- Historical verification: the predecessor 52-table snapshot was executed in an
+--           isolated MySQL 8.4.10 Docker schema on 2026-08-05.
+-- Current gate: this 53-table draft requires a new isolated execution after
+--           AI-MIG-000 approval; historical verification cannot release it.
 -- Quantity: DECIMAL(18,4) is a lossless superset of the legacy INT fields.
 --           The final scale remains subject to material unit confirmation.
 
@@ -16,7 +17,14 @@ CREATE TABLE cus_customer (
     customer_code VARCHAR(64) NOT NULL COMMENT '客户主档的客户编码',
     customer_name VARCHAR(255) NOT NULL COMMENT '客户主档的客户名称',
     customer_address VARCHAR(1000) NULL COMMENT '客户主档的客户地址',
-    industry_code VARCHAR(64) NULL COMMENT '客户主档的行业编码',
+    market_code VARCHAR(64) NULL COMMENT '客户市场行业划分的市场部编码',
+    market_name VARCHAR(255) NULL COMMENT '客户市场行业划分的市场部名称',
+    system_code VARCHAR(64) NULL COMMENT '客户市场行业划分的系统部编码',
+    system_name VARCHAR(255) NULL COMMENT '客户市场行业划分的系统部名称',
+    expend_code VARCHAR(64) NULL COMMENT '客户市场行业划分的拓展部编码',
+    expend_name VARCHAR(255) NULL COMMENT '客户市场行业划分的拓展部名称',
+    industry_code VARCHAR(64) NULL COMMENT '客户市场行业划分的行业编码',
+    industry_name VARCHAR(255) NULL COMMENT '客户市场行业划分的行业名称',
     service_level_code VARCHAR(64) NULL COMMENT '客户默认服务等级编码，项目可按业务规则覆盖',
     status VARCHAR(32) NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     version INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
@@ -29,9 +37,48 @@ CREATE TABLE cus_customer (
     UNIQUE KEY uk_customer_tenant_row (tenant_id, id),
     UNIQUE KEY uk_customer_code (tenant_id, customer_code),
     KEY idx_customer_name (tenant_id, customer_name),
+    KEY idx_customer_market_relation (
+        tenant_id, market_code, system_code, expend_code, industry_code
+    ),
     CONSTRAINT chk_customer_deleted CHECK (deleted IN (0, 1))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
   COMMENT = '客户主档';
+
+CREATE TABLE cus_market_relation (
+    id BIGINT NOT NULL COMMENT '主键ID',
+    tenant_id BIGINT NOT NULL COMMENT '租户ID',
+    market_code VARCHAR(64) NOT NULL COMMENT '市场部编码',
+    market_name VARCHAR(255) NULL COMMENT '市场部名称',
+    system_code VARCHAR(64) NOT NULL COMMENT '系统部编码',
+    system_name VARCHAR(255) NULL COMMENT '系统部名称',
+    expend_code VARCHAR(64) NOT NULL COMMENT '拓展部编码，沿用CRM来源字段语义',
+    expend_name VARCHAR(255) NULL COMMENT '拓展部名称，沿用CRM来源字段语义',
+    industry_code VARCHAR(64) NOT NULL COMMENT '行业编码',
+    industry_name VARCHAR(255) NULL COMMENT '行业名称',
+    source_system VARCHAR(32) NOT NULL DEFAULT 'CRM' COMMENT '权威来源系统编码',
+    source_record_key VARCHAR(128) NOT NULL COMMENT 'CRM市场行业组合的稳定来源键',
+    source_sync_time DATETIME(3) NULL COMMENT '来源记录最近一次成功同步时间',
+    status VARCHAR(32) NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
+    version INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
+    creator VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建人',
+    create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updater VARCHAR(64) NOT NULL DEFAULT '' COMMENT '更新人',
+    update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '删除标志：0否，1是',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_market_relation_tenant_row (tenant_id, id),
+    UNIQUE KEY uk_market_relation_source (
+        tenant_id, source_system, source_record_key
+    ),
+    UNIQUE KEY uk_market_relation_business (
+        tenant_id, market_code, system_code, expend_code, industry_code
+    ),
+    KEY idx_market_relation_name (
+        tenant_id, market_name, system_name, expend_name, industry_name
+    ),
+    CONSTRAINT chk_market_relation_deleted CHECK (deleted IN (0, 1))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = 'CRM同步的客户市场行业划分组合目录';
 
 CREATE TABLE cus_customer_contact (
     id BIGINT NOT NULL COMMENT '主键ID',
@@ -118,7 +165,14 @@ CREATE TABLE proj_project (
     department_code VARCHAR(64) NULL COMMENT '部门编码',
     department_name VARCHAR(255) NULL COMMENT '部门名称',
     project_type VARCHAR(32) NOT NULL DEFAULT 'STANDARD' COMMENT '项目类型编码，取值由对应业务字典约束',
-    industry_code VARCHAR(64) NULL COMMENT '项目主档的行业编码',
+    market_code VARCHAR(64) NULL COMMENT '项目市场行业划分的市场部编码',
+    market_name VARCHAR(255) NULL COMMENT '项目市场行业划分的市场部名称',
+    system_code VARCHAR(64) NULL COMMENT '项目市场行业划分的系统部编码',
+    system_name VARCHAR(255) NULL COMMENT '项目市场行业划分的系统部名称',
+    expend_code VARCHAR(64) NULL COMMENT '项目市场行业划分的拓展部编码',
+    expend_name VARCHAR(255) NULL COMMENT '项目市场行业划分的拓展部名称',
+    industry_code VARCHAR(64) NULL COMMENT '项目市场行业划分的行业编码',
+    industry_name VARCHAR(255) NULL COMMENT '项目市场行业划分的行业名称',
     customer_project_name VARCHAR(255) NULL COMMENT '项目主档的客户项目名称',
     sales_type VARCHAR(32) NULL COMMENT '销售类型编码，取值由对应业务字典约束',
     business_type VARCHAR(32) NULL COMMENT '业务类型编码，取值由对应业务字典约束',
@@ -148,6 +202,9 @@ CREATE TABLE proj_project (
     KEY idx_project_manager (tenant_id, manager_id, status),
     KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id),
     KEY idx_project_customer_code (tenant_id, customer_code, status, id),
+    KEY idx_project_market_relation (
+        tenant_id, market_code, system_code, expend_code, industry_code, status, id
+    ),
     KEY idx_project_company_department_id (
         tenant_id, company_id, department_id, status, id
     ),

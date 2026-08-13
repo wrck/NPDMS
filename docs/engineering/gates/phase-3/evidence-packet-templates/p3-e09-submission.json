@@ -13,7 +13,7 @@
   "capturedAt": null,
   "confirmedFacts": {
     "approvedDdlSha256": null,
-    "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
+    "currentDdlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
     "dataElementExcelSha256": null,
     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
     "generatorVersion": null,
@@ -39,6 +39,7 @@
     "docs/decisions/0004-phase3-production-assurance-directions.md",
     "docs/decisions/0019-domain-coded-database-naming.md",
     "docs/decisions/0020-project-code-identity-and-namespace.md",
+    "docs/decisions/0021-customer-market-relation-classification.md",
     "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
     "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
     "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

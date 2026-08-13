@@ -16,6 +16,7 @@ from pathlib import Path
 DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 CONTRACT = Path("docs/traceability/database-naming-contract.json")
 PROJECT_CODE_CONTRACT = Path("docs/traceability/project-code-contract.json")
+MARKET_RELATION_CONTRACT = Path("docs/traceability/market-relation-contract.json")
 MIGRATION = Path("specs/001-project-delivery-platform/evidence/migration")
 CATALOG = MIGRATION / "target-field-catalog.jsonl"
 CATALOG_SUMMARY = MIGRATION / "target-field-catalog-summary.json"
@@ -45,7 +46,7 @@ def sha256(data: bytes) -> str:
 
 
 def contract_maps(contract: dict[str, object]) -> tuple[dict[str, str], dict[tuple[str, str], tuple[str, str]]]:
-    tables = {item["source"]: item["target"] for item in contract["tables"]}
+    tables = {item["source"]: item["target"] for item in contract["tables"] + contract.get("tableExtensions", [])}
     fields = {
         (item["sourceTable"], item["sourceColumn"]): (item["targetTable"], item["targetColumn"])
         for item in contract["fields"]
@@ -64,8 +65,24 @@ def rewrite_reference(value: str, tables: dict[str, str], fields: dict[tuple[str
     return tables.get(value, value)
 
 
-def rewrite_target_references(row: dict[str, object], contract: dict[str, object], ddl_sha256: str | None = None) -> dict[str, object]:
+def rewrite_target_references(
+    row: dict[str, object],
+    contract: dict[str, object],
+    ddl_sha256: str | None = None,
+    source_mapping_overrides: dict[tuple[str, str], dict[str, str]] | None = None,
+) -> dict[str, object]:
     result = copy.deepcopy(row)
+    override = None
+    if source_mapping_overrides is not None:
+        override = source_mapping_overrides.get((result.get("sourceTable"), result.get("sourceColumn")))
+    if override is not None:
+        target_table, target_column = override["target"].split(".", 1)
+        result["decisionStatus"] = "EVIDENCE_MAPPED"
+        result["disposition"] = "STRUCTURED"
+        result["targets"] = [override["target"]]
+        result["targetBindings"] = [{"tableName": target_table, "columnName": target_column, "jsonPath": None}]
+        result["transform"] = override["transform"]
+        result["decisionBasis"] = "ADR-0021 and source data-element evidence"
     tables, fields = contract_maps(contract)
     if "target" in result and isinstance(result["target"], str):
         result["target"] = rewrite_reference(result["target"], tables, fields)
@@ -151,6 +168,11 @@ def expected_outputs(root: Path) -> dict[Path, str]:
     ddl_path = root / DDL
     contract = json.loads((root / CONTRACT).read_text(encoding="utf-8"))
     project_code_contract = json.loads((root / PROJECT_CODE_CONTRACT).read_text(encoding="utf-8"))
+    market_relation_contract = json.loads((root / MARKET_RELATION_CONTRACT).read_text(encoding="utf-8"))
+    source_mapping_overrides = {
+        (item["sourceTable"], item["sourceColumn"]): item
+        for item in market_relation_contract["sourceMappingOverrides"]
+    }
     new_field_metadata = {
         (item["table"], item["name"]): item
         for item in project_code_contract["columns"]
@@ -158,10 +180,34 @@ def expected_outputs(root: Path) -> dict[Path, str]:
     parser = load_parser(root)
     ddl_tables = parser.parse_ddl(ddl_path.read_bytes())
     ddl_hash = sha256(ddl_path.read_bytes())
+    business_fields = set(market_relation_contract["businessFields"])
+    for table_name, domain in (("cus_market_relation", "客户管理"), ("cus_customer", "客户管理"), ("proj_project", "项目管理")):
+        table = ddl_tables[table_name]
+        selected = set(table.columns) if table_name == "cus_market_relation" else business_fields
+        for column_name in selected:
+            if column_name not in table.columns:
+                continue
+            field_class = "BUSINESS"
+            if column_name in {"id", "tenant_id"}:
+                field_class = "IDENTITY"
+            elif column_name in {"status", "version", "deleted"}:
+                field_class = "CONTROL"
+            elif column_name in {"creator", "create_time", "updater", "update_time"}:
+                field_class = "AUDIT"
+            elif column_name.startswith("source_"):
+                field_class = "LINEAGE"
+            new_field_metadata.setdefault((table_name, column_name), {
+                "table": table_name,
+                "name": column_name,
+                "domain": domain,
+                "fieldClass": field_class,
+                "dataElementRefs": ["系统支撑!A1279:A1287"] if table_name == "cus_market_relation" and column_name in business_fields else [],
+            })
     prior = [json.loads(line) for line in (root / CATALOG).read_text(encoding="utf-8").splitlines() if line]
     # Idempotent generation can use either the old or already-renamed catalog.
-    if prior and prior[0]["tableName"] not in {item["source"] for item in contract["tables"]}:
-        reverse_tables = {item["target"]: item["source"] for item in contract["tables"]}
+    naming_tables = contract["tables"] + contract.get("tableExtensions", [])
+    if prior and prior[0]["tableName"] not in {item["source"] for item in naming_tables}:
+        reverse_tables = {item["target"]: item["source"] for item in naming_tables}
         reverse_fields = {(item["targetTable"], item["targetColumn"]): (item["sourceTable"], item["sourceColumn"]) for item in contract["fields"]}
         restored = []
         for item in prior:
@@ -187,7 +233,7 @@ def expected_outputs(root: Path) -> dict[Path, str]:
     outputs[root / CATALOG_SUMMARY] = json_content(summary)
     for name in JSONL_TARGET_FILES:
         path = root / MIGRATION / name
-        rows = [rewrite_target_references(json.loads(line), contract, ddl_hash) for line in path.read_text(encoding="utf-8").splitlines() if line]
+        rows = [rewrite_target_references(json.loads(line), contract, ddl_hash, source_mapping_overrides) for line in path.read_text(encoding="utf-8").splitlines() if line]
         outputs[path] = jsonl_content(rows)
     for name in JSON_SUMMARY_FILES:
         path = root / MIGRATION / name

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T05:55:12.317631+00:00",
+  "generatedAt": "2026-08-13T07:13:42.647851+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -10,24 +10,148 @@
     "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
     "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
     "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-    "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
+    "currentDdlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
     "baselineNameNormalization": "ADR-0019"
   },
   "summary": {
     "baselineTableCount": 52,
-    "currentTableCount": 52,
+    "currentTableCount": 53,
     "baselineColumnCount": 1076,
-    "currentColumnCount": 1079,
-    "tableDiff": 0,
-    "columnDiff": 3,
+    "currentColumnCount": 1113,
+    "tableDiff": 1,
+    "columnDiff": 19,
     "constraintDiff": 0,
     "tableOptionDiff": 0,
     "allDifferencesDecision": "DEFER",
     "constraintsComparable": false,
     "tableOptionsComparable": false
   },
-  "tableDiff": [],
+  "tableDiff": [
+    {
+      "table": "cus_market_relation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    }
+  ],
   "columnDiff": [
+    {
+      "table": "cus_customer",
+      "column": "expend_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的拓展部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "expend_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的拓展部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "industry_code",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户主档的行业编码"
+      },
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的行业编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "industry_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的行业名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "market_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的市场部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "market_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的市场部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "system_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的系统部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "system_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的系统部名称"
+      },
+      "decision": "DEFER"
+    },
     {
       "table": "proj_project",
       "column": "code_root_id",
@@ -58,6 +182,96 @@
     },
     {
       "table": "proj_project",
+      "column": "expend_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的拓展部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "expend_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的拓展部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "industry_code",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目主档的行业编码"
+      },
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的行业编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "industry_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的行业名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "market_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的市场部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "market_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的市场部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
       "column": "project_sequence",
       "change": "ADDED",
       "before": null,
@@ -67,6 +281,34 @@
         "defaultValue": "0",
         "generated": false,
         "description": "编码命名空间内永久流水号，0表示自身建立独立命名空间"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "system_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的系统部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "system_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的系统部名称"
       },
       "decision": "DEFER"
     }

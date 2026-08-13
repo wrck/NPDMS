@@ -42,7 +42,7 @@
 - 旧库：当前`localhost:3306/dppms`，只读提取到290个表结构和42个视图。
 - 数据元当前结构页：归一后262个候选表、3,908个不同物理字段；253个候选表可在当前旧库命中，表命中率96.56%；可比较的3,773个字段全部命中当前旧库同名字段。
 - 当前实现：`pms-module-project`有13个PMS DO，`pms-module-integration`有1个PMS DO；`asset/cutover/engineering/outsourcing/service`各只有模块骨架，没有DO。
-- 正式设计证据：`project-order-physical-schema.mysql.sql`包含52张评审草案表和1079个带中文描述的字段；18张核心旧表326个字段有数据库画像，全部活动结构另有3,931条物理字段证据处置，但仍不是生产迁移。
+- 正式设计证据：`project-order-physical-schema.mysql.sql`当前包含53张评审草案表和1,113个带中文描述的字段；其中ADR-0021新增`cus_market_relation`并明确客户/项目不保存`relation_id`。18张核心旧表326个字段有数据库画像，全部活动结构另有3,931条物理字段证据处置，但仍不是生产迁移。
 
 ### 2.3 冲突时的证据优先级
 

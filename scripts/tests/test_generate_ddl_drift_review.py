@@ -115,6 +115,27 @@ class DdlDriftReviewTest(unittest.TestCase):
                 "acceptedDdlItems": ["COLUMN:proj_project:code_root_id"],
             })
 
+    def test_market_relation_decision_covers_directory_and_object_snapshots(self) -> None:
+        current = MODULE.parse_ddl(b"""
+        CREATE TABLE cus_market_relation (id BIGINT NOT NULL, market_code VARCHAR(64), PRIMARY KEY (id)) ENGINE = InnoDB;
+        CREATE TABLE cus_customer (id BIGINT NOT NULL, market_code VARCHAR(64), KEY idx_customer_market_relation (market_code)) ENGINE = InnoDB;
+        CREATE TABLE proj_project (id BIGINT NOT NULL, market_code VARCHAR(64), KEY idx_project_market_relation (market_code)) ENGINE = InnoDB;
+        """)
+        register = MODULE.ddl_item_decision_register(
+            "BASELINE", "CURRENT", {}, current,
+            constraints_comparable=False, options_comparable=False,
+        )
+        decided = MODULE.apply_accepted_market_relation_decisions(register, {
+            "targetTable": "cus_market_relation",
+            "businessFields": ["market_code"],
+        })
+        accepted = {item["itemId"] for item in decided["items"] if item["decision"] == "AMEND_CURRENT"}
+        self.assertIn("TABLE:cus_market_relation", accepted)
+        self.assertIn("COLUMN:cus_customer:market_code", accepted)
+        self.assertIn("COLUMN:proj_project:market_code", accepted)
+        self.assertIn("CONSTRAINT:cus_customer:idx_customer_market_relation", accepted)
+        self.assertEqual("ADR-0021", decided["marketRelationDecision"]["decisionRef"])
+
 
 if __name__ == "__main__":
     unittest.main()

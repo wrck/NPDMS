@@ -41,22 +41,26 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
         errors.append("forbidden table token set mismatch")
 
     tables = payload.get("tables", [])
+    extensions = payload.get("tableExtensions", [])
     fields = payload.get("fields", [])
     if not isinstance(tables, list) or not isinstance(fields, list):
         return errors + ["tables and fields must be lists"]
     if len(tables) != 52:
-        errors.append(f"database naming contract must contain 52 tables, found {len(tables)}")
+        errors.append(f"database naming contract must contain 52 ADR-0019 tables, found {len(tables)}")
+    if extensions != [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}]:
+        errors.append("database naming contract ADR-0021 extension mismatch")
     if len(fields) != 6:
         errors.append(f"database naming contract must contain 6 field decisions, found {len(fields)}")
-    sources = [item.get("source") for item in tables]
-    targets = [item.get("target") for item in tables]
+    all_tables = tables + extensions
+    sources = [item.get("source") for item in all_tables]
+    targets = [item.get("target") for item in all_tables]
     if len(sources) != len(set(sources)):
         errors.append("duplicate source table")
     if len(targets) != len(set(targets)):
         errors.append("duplicate target table")
-    table_by_source = {item.get("source"): item for item in tables}
+    table_by_source = {item.get("source"): item for item in all_tables}
     target_set = set(targets)
-    for item in tables:
+    for item in all_tables:
         source, target, owner = item.get("source"), item.get("target"), item.get("owner")
         if owner not in EXPECTED_DOMAINS:
             errors.append(f"invalid table owner: {source} -> {owner}")
@@ -97,7 +101,7 @@ def validate_ddl(payload: dict[str, object], ddl: str) -> list[str]:
         match.group(1): match.group(2)
         for match in re.finditer(r"CREATE\s+TABLE\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*ENGINE\s*=", ddl, re.I | re.S)
     }
-    expected = {item["target"] for item in payload["tables"]}
+    expected = {item["target"] for item in payload["tables"] + payload.get("tableExtensions", [])}
     if set(blocks) != expected:
         errors.append(f"DDL table set differs from naming contract; missing={sorted(expected-set(blocks))}, extra={sorted(set(blocks)-expected)}")
     for item in payload["fields"]:

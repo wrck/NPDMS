@@ -22,7 +22,7 @@
 |---|---|
 | NFR有技术实现与验证方案 | PASS-DESIGN；运行证据按专项验收/发布门禁关闭 |
 | 发布、迁移、回退设计可执行 | PASS-DESIGN；目标环境实例在部署/发布前登记 |
-| 数据模型DDL/映射基线一致 | BLOCKED_BY_MODEL_DECISION（ADR-0019的52表和6项字段命名、ADR-0020的3个项目编码字段和4个约束已应用，DDL/字段目录/迁移目标引用已统一；P3-E09 / AI-MIG-000仍需其余约束、表选项及全量Reviewer签署） |
+| 数据模型DDL/映射基线一致 | BLOCKED_BY_MODEL_DECISION（ADR-0019命名、ADR-0020项目编码、ADR-0021市场行业四维分类已应用；当前53表、1,113列、433项约束和全部迁移目标引用使用同一DDL哈希，且三张相关表均禁止`relation_id`；P3-E09 / AI-MIG-000仍需其余约束、表选项及全量Reviewer签署） |
 | 安全与审计不存在明显设计缺口 | PASS-DESIGN；KMS/Telemetry实例在对应生产门禁关闭 |
 | 测试覆盖正常/异常/权限拒绝/幂等/并发 | PASS-DESIGN；运行证据未生成 |
 | 性能环境和数据集可复现 | DOWNSTREAM-BLOCKED（P3-E06阻断性能验收/生产发布） |

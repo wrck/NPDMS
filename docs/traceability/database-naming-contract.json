@@ -26,6 +26,14 @@
     "ref",
     "map"
   ],
+  "tableExtensions": [
+    {
+      "source": "pm_project_market_relations_from_sms",
+      "target": "cus_market_relation",
+      "owner": "CUS",
+      "decisionRef": "ADR-0021"
+    }
+  ],
   "tables": [
     {
       "source": "pms_customer",

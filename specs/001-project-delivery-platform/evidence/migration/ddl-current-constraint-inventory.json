@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
-  "tableCount": 52,
-  "constraintCount": 425,
-  "inventorySha256": "206E58F7DAD0993ECABA1C7AA80652AE5DD5350ABBF43C20C204F864674FBCC2",
+  "currentDdlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
+  "tableCount": 53,
+  "constraintCount": 433,
+  "inventorySha256": "FFBAF6FFE540A3518472C8AF231772C9D80EE7A9512B8DD4D9DFB24C3295066B",
   "records": [
     {
       "table": "acc_deliverable_template",
@@ -493,6 +493,7 @@
       "table": "cus_customer",
       "constraints": [
         "CONSTRAINT chk_customer_deleted CHECK (deleted IN (0, 1))",
+        "KEY idx_customer_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code )",
         "KEY idx_customer_name (tenant_id, customer_name)",
         "PRIMARY KEY (id)",
         "UNIQUE KEY uk_customer_code (tenant_id, customer_code)",
@@ -513,6 +514,19 @@
         "UNIQUE KEY uk_customer_primary_contact (tenant_id, primary_customer_id)"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户联系人'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_market_relation",
+      "constraints": [
+        "CONSTRAINT chk_market_relation_deleted CHECK (deleted IN (0, 1))",
+        "KEY idx_market_relation_name ( tenant_id, market_name, system_name, expend_name, industry_name )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_market_relation_business ( tenant_id, market_code, system_code, expend_code, industry_code )",
+        "UNIQUE KEY uk_market_relation_source ( tenant_id, source_system, source_record_key )",
+        "UNIQUE KEY uk_market_relation_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CRM同步的客户市场行业划分组合目录'",
       "decision": "DEFER"
     },
     {
@@ -665,6 +679,7 @@
         "KEY idx_project_department_company ( tenant_id, department_code, company_code, status, id )",
         "KEY idx_project_manager (tenant_id, manager_id, status)",
         "KEY idx_project_manager_employee (tenant_id, manager_employee_no, status, id)",
+        "KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )",
         "KEY idx_project_parent (tenant_id, parent_id, tree_sort, id)",
         "KEY idx_project_path (tenant_id, root_id, tree_path(191))",
         "PRIMARY KEY (id)",

@@ -393,6 +393,35 @@ def apply_accepted_project_code_decisions(register: dict[str, object], contract:
     return register
 
 
+def apply_accepted_market_relation_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
+    """Record ADR-0021 market-relation model decisions without reviewer approval."""
+    target_table = contract["targetTable"]
+    business_fields = set(contract["businessFields"])
+    decided: set[str] = set()
+    for item in register["items"]:
+        if item["table"] == target_table:
+            decided.add(item["itemId"])
+        elif item["itemType"] == "COLUMN" and item["table"] in {"proj_project", "cus_customer"} and item["name"] in business_fields:
+            decided.add(item["itemId"])
+        elif item["itemType"] == "CONSTRAINT" and item["name"] in {"idx_project_market_relation", "idx_customer_market_relation"}:
+            decided.add(item["itemId"])
+    for item in register["items"]:
+        if item["itemId"] in decided:
+            item["decision"] = "AMEND_CURRENT"
+            item["decisionOwner"] = "REQUIREMENT_OWNER"
+            item["reviewOwner"] = None
+            item["evidenceRefs"] = ["docs/decisions/0021-customer-market-relation-classification.md"]
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["marketRelationDecision"] = {
+        "decisionRef": "ADR-0021",
+        "decidedItemCount": len(decided),
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
 def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path, naming_contract: Path | None = None) -> dict[str, object]:
     relative_path = ddl.relative_to(repo).as_posix()
     current_data = ddl.read_bytes()
@@ -462,6 +491,7 @@ def main() -> int:
     parser.add_argument("--catalog", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl"))
     parser.add_argument("--naming-contract", type=Path, default=Path("docs/traceability/database-naming-contract.json"))
     parser.add_argument("--project-code-contract", type=Path, default=Path("docs/traceability/project-code-contract.json"))
+    parser.add_argument("--market-relation-contract", type=Path, default=Path("docs/traceability/market-relation-contract.json"))
     parser.add_argument("--output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json"))
     parser.add_argument("--constraint-inventory-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json"))
     parser.add_argument("--decision-register-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"))
@@ -474,6 +504,7 @@ def main() -> int:
     catalog = args.catalog if args.catalog.is_absolute() else repo / args.catalog
     naming_contract = args.naming_contract if args.naming_contract.is_absolute() else repo / args.naming_contract
     project_code_contract = args.project_code_contract if args.project_code_contract.is_absolute() else repo / args.project_code_contract
+    market_relation_contract = args.market_relation_contract if args.market_relation_contract.is_absolute() else repo / args.market_relation_contract
     report = build_report(repo, ddl, args.baseline_sha256, catalog, naming_contract)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     inventory = current_constraint_inventory(report["inputs"]["currentDdlSha256"], parse_ddl(ddl.read_bytes()))
@@ -495,6 +526,9 @@ def main() -> int:
     )
     decision_register = apply_accepted_project_code_decisions(
         decision_register, json.loads(project_code_contract.read_text(encoding="utf-8"))
+    )
+    decision_register = apply_accepted_market_relation_decisions(
+        decision_register, json.loads(market_relation_contract.read_text(encoding="utf-8"))
     )
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))

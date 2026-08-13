@@ -10,6 +10,8 @@
 - 去冗余后的物理草案为52张表、1079个带中文注释的字段，覆盖客户、项目、合同、订单行实施范围、CRM辅助关系、SN物流、交付件、配置、版本、公告和故障；
 - DDL已在隔离MySQL 8.4.10实例验证，结果为52张表、79个租户复合外键、81个CHECK约束。
 
+> 以上DDL验证是2026-08-05历史快照。当前ADR-0019～ADR-0021草案已演进为53表、1,113列、79个外键、83个CHECK，并使用哈希`D87DD2...2B01D5`重建字段与迁移映射证据；当前53表尚未形成新的隔离MySQL执行证据及`approvedDdlSha256`，不得沿用历史验证结论放行。
+
 逐字段机器可读证据见[`../evidence/migration/core-field-mapping.jsonl`](../evidence/migration/core-field-mapping.jsonl)，汇总见[`../evidence/migration/core-field-mapping-summary.json`](../evidence/migration/core-field-mapping-summary.json)。
 
 ## 2. 审查边界

@@ -10,7 +10,7 @@
 
 ## 1. 物理设计原则
 
-1. 业务表继续使用 `pms_` 前缀，数据库和运行配置统一使用 `npdms`；不因产品命名调整批量重命名历史表。
+1. 目标业务表使用ADR-0019确认的`<domain_code>_<full_domain_object_name>`命名，数据库和运行配置统一使用`npdms`；旧库表名仅作为只读来源证据保留，不直接沿用为目标表名。
 2. 任何已执行 Flyway 迁移均不可修改。所有纠正、补列、回填、索引和兼容视图使用下一个未占用版本的前向迁移。
 3. 聚合根表保存当前事实；不可变 revision、状态历史、审批快照、同步批次、事件和审计使用追加表。
 4. 跨 Context 只保存逻辑 ID，不建立跨 Context 级联更新/删除；同聚合内部可以使用外键或应用级强校验。
@@ -35,15 +35,17 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前目标 DDL SHA-256 为`528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，并按ADR-0020补充项目编码命名空间字段与约束；其他约束、表选项和最终Reviewer签署仍为`DEFER`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.md`已证明当前目标 DDL SHA-256 为`D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019重建，按ADR-0020补充项目编码命名空间，并按ADR-0021补充CUS市场行业四维分类目录及客户/项目快照字段；其他约束、表选项和最终Reviewer签署仍为`DEFER`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`OPEN`。
 
 ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前缀`pms_`，并采用`<domain_code>_<full_domain_object_name>`；表名必须保留全部领域对象语义组件，默认使用完整英文词，仅允许ADR登记的`config`、`sn`两个表名标准缩写。字段可以在不产生业务歧义的前提下使用ADR登记的受控缩写、统一同义词并保持简洁。ADR-0019列出了当前52张物理表的逐表目标名称和首批同义字段裁决。该命名决策属于P3-E09模型输入，不等于批准旧DDL：本分册后续仍出现的`pms_*`仅表示尚待AI-MIG-000统一重建的当前证据名称，不再是目标命名。
 
-当前逐项登记见`ddl-item-decision-register.json`，覆盖52表、1,079列、425个当前约束和52个表选项，共1,608项；ADR-0019和ADR-0020已确认的65项登记为`AMEND_CURRENT`，其余保持`DEFER`。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
+ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
-- 本分册中的模型和约束是 SDS 目标契约；物理表目标名以ADR-0019为准，不代表旧52表草案可直接执行；
+当前逐项登记见`ddl-item-decision-register.json`，覆盖53表、1,113列、433个当前约束和53个表选项，共1,652项；ADR-0019、ADR-0020和ADR-0021已确认的111项登记为`AMEND_CURRENT`，其余保持`DEFER`。旧约束/表选项证据缺失项必须补证或由Owner明确裁决，不能因当前DDL存在该结构就自动接受。
+
+- 本分册中的模型和约束是 SDS 目标契约；物理表目标名以ADR-0019及其登记扩展为准，不代表当前53表草案可直接执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；
 - 历史`migration-validation.json.passed=true`已过期，不得作为当前发布证据；
 - 未关闭漂移前，可以实现不依赖争议 DDL 的领域代码和校验框架，但不得执行生产迁移或宣称数据切换 READY。
@@ -129,7 +131,8 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 |---|---|---|
 | 项目编码/名称/客户项目名称 | `proj_project.project_code/project_name/customer_project_name` | CRM创建默认沿用CRM项目编码；多合同/订单不改码；子项目使用命名空间永久流水号；历史空名称进入待补问题，不以编码伪造名称 |
 | 客户 | `proj_project.customer_id` | 通过客户外部键解析；只按名称多匹配时生成迁移问题 |
-| 行业/实施方式/重大项目级别 | 独立`industry_code/implementation_mode_code/major_project_level_code` | 版本化字典映射；未知值进入待映射，不写默认值 |
+| 市场行业四维分类 | `market_code/market_name/system_code/system_name/expend_code/expend_name/industry_code/industry_name` | CRM权威同步；项目直接保存八个快照字段，不保存`relation_id`，历史未知值进入迁移问题 |
+| 实施方式/重大项目级别 | `implementation_mode_code/major_project_level_code` | 版本化字典映射；未知值进入待映射，不写默认值 |
 | 办事处、公司、部门 | 项目组织关系表，字段统一`company_*`、`department_*` | 公司—部门作为同一关系行共同解析和对账；禁止继续生成`org_*`目标字段 |
 | 旧状态/生命周期时间 | 稳定`status_code`及独立发生时间字段 | 使用版本化映射；未知状态只读隔离，旧时间不覆盖`create_time/update_time` |
 
@@ -278,7 +281,7 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 | Context | 目标表组 | 关键约束 |
 |---|---|---|
-| Customer | `cus_customer`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot` | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code` |
+| Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot` | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
 | Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围分配至少含订单行、项目、`allocated_qty`、`scope_status_code`及来源证据 |
 | Resource | `res_supplier`、`res_qualification`、`res_subcontract_request`、`res_payment_gate` | 资质版本追加；财务结果只保存引用和回写状态 |
 | Knowledge | `kno_technical_notice`、`kno_notice_business_reference` | V2 公告按 ITR 来源键+版本唯一；不提供本地发布/停用写接口 |

@@ -37,6 +37,7 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
             "domainCodes": sorted(VALIDATOR.EXPECTED_DOMAINS),
             "allowedTableAbbreviations": {"configuration": "config", "serial_number": "sn"},
             "forbiddenTableTokens": ["rel", "ref", "map"],
+            "tableExtensions": [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}],
             "tables": tables,
             "fields": fields,
         }
@@ -68,7 +69,7 @@ class DatabaseNamingContractValidatorTest(unittest.TestCase):
         contract = self.valid_contract()
         ddl = "\n".join(
             f"CREATE TABLE {item['target']} (id BIGINT) ENGINE = InnoDB;"
-            for item in contract["tables"]
+            for item in contract["tables"] + contract["tableExtensions"]
         )
         first = contract["fields"][0]
         ddl = ddl.replace(

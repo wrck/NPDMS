@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "528E6F0C18B2757C6D6D21A225F498FEB634E0C93174FEFAB78253AC1F35DAA3",
+  "currentDdlSha256": "D87DD29F3420C1FD2CBB2650ABCFA0C3247747A4E6633857D2ACC2E5322B01D5",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,21 +11,22 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1608,
+    "itemCount": 1652,
     "byType": {
-      "TABLE": 52,
-      "COLUMN": 1079,
-      "CONSTRAINT": 425,
-      "TABLE_OPTION": 52
+      "TABLE": 53,
+      "COLUMN": 1113,
+      "CONSTRAINT": 433,
+      "TABLE_OPTION": 53
     },
     "byComparisonStatus": {
-      "MATCH": 1128,
-      "UNVERIFIED_BASELINE_MISSING": 477,
-      "ADDED": 3
+      "MATCH": 1126,
+      "UNVERIFIED_BASELINE_MISSING": 486,
+      "ADDED": 38,
+      "MODIFIED": 2
     },
     "approvedCount": 0
   },
-  "itemsSha256": "1FDE04A252066323055EDBFE85E5C49E897D1136D9C17FA84AFE2A721DDF5C55",
+  "itemsSha256": "22C0C78790D177232B46882ABA70663C03EB3BB2B69DB45122BE99B47C066C11",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -21926,6 +21927,48 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "COLUMN:cus_customer:expend_code",
+      "itemType": "COLUMN",
+      "table": "cus_customer",
+      "name": "expend_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的拓展部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_customer:expend_name",
+      "itemType": "COLUMN",
+      "table": "cus_customer",
+      "name": "expend_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的拓展部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
       "itemId": "COLUMN:cus_customer:id",
       "itemType": "COLUMN",
       "table": "cus_customer",
@@ -21955,7 +21998,7 @@
       "itemType": "COLUMN",
       "table": "cus_customer",
       "name": "industry_code",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "MODIFIED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": true,
@@ -21968,12 +22011,77 @@
         "nullable": true,
         "defaultValue": null,
         "generated": false,
-        "description": "客户主档的行业编码"
+        "description": "客户市场行业划分的行业编码"
       },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_customer:industry_name",
+      "itemType": "COLUMN",
+      "table": "cus_customer",
+      "name": "industry_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的行业名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_customer:market_code",
+      "itemType": "COLUMN",
+      "table": "cus_customer",
+      "name": "market_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的市场部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_customer:market_name",
+      "itemType": "COLUMN",
+      "table": "cus_customer",
+      "name": "market_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的市场部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
     },
     {
       "itemId": "COLUMN:cus_customer:service_level_code",
@@ -22024,6 +22132,48 @@
       "decisionOwner": null,
       "reviewOwner": null,
       "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:cus_customer:system_code",
+      "itemType": "COLUMN",
+      "table": "cus_customer",
+      "name": "system_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的系统部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_customer:system_name",
+      "itemType": "COLUMN",
+      "table": "cus_customer",
+      "name": "system_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的系统部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
     },
     {
       "itemId": "COLUMN:cus_customer:tenant_id",
@@ -22150,6 +22300,21 @@
       "decisionOwner": null,
       "reviewOwner": null,
       "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:cus_customer:idx_customer_market_relation",
+      "itemType": "CONSTRAINT",
+      "table": "cus_customer",
+      "name": "idx_customer_market_relation",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_customer_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
     },
     {
       "itemId": "CONSTRAINT:cus_customer:idx_customer_name",
@@ -22768,6 +22933,544 @@
       "decisionOwner": null,
       "reviewOwner": null,
       "evidenceRefs": []
+    },
+    {
+      "itemId": "TABLE:cus_market_relation",
+      "itemType": "TABLE",
+      "table": "cus_market_relation",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:create_time",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": "创建时间"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:creator",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": "''",
+        "generated": false,
+        "description": "创建人"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:deleted",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "deleted",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "删除标志：0否，1是"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:expend_code",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "expend_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "拓展部编码，沿用CRM来源字段语义"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:expend_name",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "expend_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "拓展部名称，沿用CRM来源字段语义"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:id",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:industry_code",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "industry_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "行业编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:industry_name",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "industry_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "行业名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:market_code",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "market_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "市场部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:market_name",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "market_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "市场部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:source_record_key",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "source_record_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "CRM市场行业组合的稳定来源键"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:source_sync_time",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "source_sync_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "来源记录最近一次成功同步时间"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:source_system",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "source_system",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": "'CRM'",
+        "generated": false,
+        "description": "权威来源系统编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:status",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "status",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": "'ENABLED'",
+        "generated": false,
+        "description": "状态"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:system_code",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "system_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "系统部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:system_name",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "system_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "系统部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:update_time",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": "更新时间"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:updater",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": false,
+        "defaultValue": "''",
+        "generated": false,
+        "description": "更新人"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cus_market_relation:version",
+      "itemType": "COLUMN",
+      "table": "cus_market_relation",
+      "name": "version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "乐观锁版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cus_market_relation:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cus_market_relation",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cus_market_relation:chk_market_relation_deleted",
+      "itemType": "CONSTRAINT",
+      "table": "cus_market_relation",
+      "name": "chk_market_relation_deleted",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_market_relation_deleted CHECK (deleted IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cus_market_relation:idx_market_relation_name",
+      "itemType": "CONSTRAINT",
+      "table": "cus_market_relation",
+      "name": "idx_market_relation_name",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_market_relation_name ( tenant_id, market_name, system_name, expend_name, industry_name )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cus_market_relation:uk_market_relation_business",
+      "itemType": "CONSTRAINT",
+      "table": "cus_market_relation",
+      "name": "uk_market_relation_business",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_market_relation_business ( tenant_id, market_code, system_code, expend_code, industry_code )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cus_market_relation:uk_market_relation_source",
+      "itemType": "CONSTRAINT",
+      "table": "cus_market_relation",
+      "name": "uk_market_relation_source",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_market_relation_source ( tenant_id, source_system, source_record_key )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cus_market_relation:uk_market_relation_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cus_market_relation",
+      "name": "uk_market_relation_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_market_relation_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cus_market_relation",
+      "itemType": "TABLE_OPTION",
+      "table": "cus_market_relation",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CRM同步的客户市场行业划分组合目录'",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
     },
     {
       "itemId": "TABLE:kno_device_technical_advisory_match",
@@ -28381,6 +29084,48 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "COLUMN:proj_project:expend_code",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "expend_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的拓展部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project:expend_name",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "expend_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的拓展部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
       "itemId": "COLUMN:proj_project:id",
       "itemType": "COLUMN",
       "table": "proj_project",
@@ -28435,7 +29180,7 @@
       "itemType": "COLUMN",
       "table": "proj_project",
       "name": "industry_code",
-      "comparisonStatus": "MATCH",
+      "comparisonStatus": "MODIFIED",
       "baselineValue": {
         "dataType": "VARCHAR(64)",
         "nullable": true,
@@ -28448,12 +29193,35 @@
         "nullable": true,
         "defaultValue": null,
         "generated": false,
-        "description": "项目主档的行业编码"
+        "description": "项目市场行业划分的行业编码"
       },
-      "decision": "DEFER",
-      "decisionOwner": null,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
       "reviewOwner": null,
-      "evidenceRefs": []
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project:industry_name",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "industry_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的行业名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
     },
     {
       "itemId": "COLUMN:proj_project:lifecycle_template_id",
@@ -28579,6 +29347,48 @@
       "decisionOwner": null,
       "reviewOwner": null,
       "evidenceRefs": []
+    },
+    {
+      "itemId": "COLUMN:proj_project:market_code",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "market_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的市场部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project:market_name",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "market_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的市场部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
     },
     {
       "itemId": "COLUMN:proj_project:not_track_reason",
@@ -28952,6 +29762,48 @@
       "evidenceRefs": []
     },
     {
+      "itemId": "COLUMN:proj_project:system_code",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "system_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的系统部编码"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project:system_name",
+      "itemType": "COLUMN",
+      "table": "proj_project",
+      "name": "system_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的系统部名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
+    },
+    {
       "itemId": "COLUMN:proj_project:tenant_id",
       "itemType": "COLUMN",
       "table": "proj_project",
@@ -29298,6 +30150,21 @@
       "decisionOwner": null,
       "reviewOwner": null,
       "evidenceRefs": []
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project:idx_project_market_relation",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project",
+      "name": "idx_project_market_relation",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_project_market_relation ( tenant_id, market_code, system_code, expend_code, industry_code, status, id )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0021-customer-market-relation-classification.md"
+      ]
     },
     {
       "itemId": "CONSTRAINT:proj_project:idx_project_parent",
@@ -33902,6 +34769,11 @@
   "projectCodeDecision": {
     "decisionRef": "ADR-0020",
     "decidedItemCount": 7,
+    "reviewStatus": "REVIEW_PENDING"
+  },
+  "marketRelationDecision": {
+    "decisionRef": "ADR-0021",
+    "decidedItemCount": 46,
     "reviewStatus": "REVIEW_PENDING"
   }
 }
