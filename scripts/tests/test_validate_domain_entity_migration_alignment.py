@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +15,7 @@ SPEC = importlib.util.spec_from_file_location("validate_domain_entity_migration_
 VALIDATOR = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(VALIDATOR)
+POLICY = sys.modules[VALIDATOR.validate_model_baseline.__module__]
 
 
 class DomainEntityMigrationAlignmentTest(unittest.TestCase):
@@ -152,11 +154,13 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
     def _validate(self) -> list[str]:
         commit_result = type("Completed", (), {"stdout": "TEST_COMMIT\n"})()
         clean_result = type("Completed", (), {"stdout": ""})()
-        with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]):
+        with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]), \
+             patch.object(POLICY, "candidate_commit_errors", return_value=[]):
             return VALIDATOR.validate(self.root, self.impl)
 
     def _enable_model_ready_with_null_migration_approval(self) -> None:
         ddl_sha = self.ddl_review["inputs"]["currentDdlSha256"]
+        candidate_commit = "a" * 40
         register = {
             "currentDdlSha256": ddl_sha,
             "itemsSha256": "ITEMS",
@@ -165,7 +169,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self._write_json("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json", register)
         review_ref = "docs/engineering/gates/phase-3/independent-review.md"
         (self.root / review_ref).write_text(
-            f"> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `TEST_COMMIT`\n"
+            f"> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `{candidate_commit}`\n"
             f"> ddlSha256: `{ddl_sha}`\n> itemsSha256: `ITEMS`\n> itemCount: `1`\n"
             "> deferCount: `0`\n> testResult: `PASS`\n",
             encoding="utf-8",
@@ -184,7 +188,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             "isolatedMysqlExecution": {"status": "PASS"},
             "independentReviewResult": "GO",
             "independentReviewRef": review_ref,
-            "candidateCommit": "TEST_COMMIT",
+            "candidateCommit": candidate_commit,
             "approvedDdlSha256": None,
         }
         item = self.gate["items"][0]

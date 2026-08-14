@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 
 MODULE_PATH = Path(__file__).parents[1] / "validate_ddl_item_decision_register.py"
@@ -13,6 +14,7 @@ SPEC = importlib.util.spec_from_file_location("validate_ddl_item_decision_regist
 VALIDATOR = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(VALIDATOR)
+POLICY = sys.modules[VALIDATOR.validate_model_baseline.__module__]
 
 
 class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
@@ -64,7 +66,7 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
             review_path = root / review_ref
             review_path.parent.mkdir(parents=True)
             review_path.write_text(
-                "> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `TEST_COMMIT`\n"
+                "> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`\n"
                 "> ddlSha256: `CURRENT`\n> itemsSha256: `ITEMS`\n> itemCount: `1`\n"
                 "> deferCount: `0`\n> testResult: `PASS`\n",
                 encoding="utf-8",
@@ -86,14 +88,15 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
                 "mysql84DdlSha256": "CURRENT",
                 "independentReviewResult": "GO",
                 "independentReviewRef": review_ref,
-                "candidateCommit": "TEST_COMMIT",
+                "candidateCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "decisionOwner": "requirement-owner",
                 "reviewOwner": "independent-reviewer",
                 "evidenceRefs": [review_ref],
                 "approvedDdlSha256": None,
                 "isolatedMysqlExecution": {"status": "PASS"},
             }
-            self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence, root=root))
+            with patch.object(POLICY, "candidate_commit_errors", return_value=[]):
+                self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence, root=root))
 
     def test_catalog_baseline_is_loaded_from_historical_hash(self) -> None:
         generator = Mock()

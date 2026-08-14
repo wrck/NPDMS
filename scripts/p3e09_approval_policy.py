@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 
 
 DDL_ARTIFACT_HASH_FIELDS = {
@@ -27,6 +28,9 @@ FORMAL_REVIEW_FIELD = re.compile(
     r"(?mi)^\s*>?\s*(status|conclusion|candidateCommit|ddlSha256|itemsSha256|itemCount|deferCount|testResult)\s*[：:]\s*`?([^`\r\n<]+?)`?\s*(?:<br>)?\s*$"
 )
 FORMAL_REVIEW_CONTRADICTION = re.compile(r"(?mi)\bIN_REVIEW\b|\bPENDING(?:_[A-Z_]+)?\b|不是\s*`?GO`?|不得[^\n]*GO")
+FULL_GIT_COMMIT = re.compile(r"^[0-9a-fA-F]{40}$")
+CANDIDATE_DDL_PATH = "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql"
+CANDIDATE_REGISTER_PATH = "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -46,9 +50,21 @@ def _has_explicit_independent_go(review_text: str) -> bool:
     return bool(FORMAL_GO_CONCLUSION.search(review_text)) or formal_review_fields(review_text).get("conclusion") == "GO"
 
 
+def formal_review_field_values(review_text: str) -> dict[str, list[str]]:
+    """Read every occurrence so duplicate fixed fields cannot be overwritten."""
+    values = {field: [] for field in FORMAL_REVIEW_FIELDS}
+    for name, value in FORMAL_REVIEW_FIELD.findall(review_text):
+        values[name].append(value.strip())
+    return values
+
+
 def formal_review_fields(review_text: str) -> dict[str, str]:
     """Read the fixed, machine-checkable fields from a formal review record."""
-    return {name: value.strip() for name, value in FORMAL_REVIEW_FIELD.findall(review_text)}
+    return {
+        field: values[0]
+        for field, values in formal_review_field_values(review_text).items()
+        if len(values) == 1
+    }
 
 
 def formal_review_errors(
@@ -57,10 +73,13 @@ def formal_review_errors(
     register: dict[str, object],
 ) -> list[str]:
     """Ensure an APPROVED/GO review binds exactly to current model facts."""
+    field_values = formal_review_field_values(review_text)
     fields = formal_review_fields(review_text)
     errors: list[str] = []
     for field in FORMAL_REVIEW_FIELDS:
-        if not fields.get(field):
+        if len(field_values[field]) != 1:
+            errors.append(f"P3-E09 independent review fixed field must appear exactly once: {field}")
+        elif not fields.get(field):
             errors.append(f"P3-E09 independent review missing fixed field: {field}")
     expected = {
         "status": "APPROVED",
@@ -70,7 +89,7 @@ def formal_review_errors(
         "itemsSha256": str(register.get("itemsSha256", "")),
         "itemCount": str(len(register.get("items", []))),
         "deferCount": "0",
-        "testResult": str(evidence.get("isolatedMysqlExecution", {}).get("status", "")),
+        "testResult": "PASS",
     }
     for field, value in expected.items():
         if not value:
@@ -79,8 +98,69 @@ def formal_review_errors(
             errors.append(f"P3-E09 independent review {field} mismatch")
     if fields.get("conclusion") != evidence.get("independentReviewResult"):
         errors.append("P3-E09 independent review conclusion must match independentReviewResult")
+    if fields.get("testResult") != "PASS":
+        errors.append("P3-E09 independent review testResult must be PASS")
     if FORMAL_REVIEW_CONTRADICTION.search(review_text):
         errors.append("P3-E09 independent review contains pending or non-GO contradiction")
+    return errors
+
+
+def candidate_commit_errors(
+    root: Path,
+    candidate_commit: object,
+    current_ddl_sha256: object,
+    items_sha256: object,
+) -> list[str]:
+    """Bind a GO review to reachable Git objects and the candidate model artifacts."""
+    if not isinstance(candidate_commit, str) or not FULL_GIT_COMMIT.fullmatch(candidate_commit):
+        return ["P3-E09 candidateCommit must be a full 40-character hexadecimal commit"]
+    command_prefix = ["git", "-C", str(root)]
+    try:
+        commit = subprocess.run(
+            [*command_prefix, "cat-file", "-e", f"{candidate_commit}^{{commit}}"],
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        return [f"P3-E09 candidateCommit Git verification failed: {exc}"]
+    if commit.returncode != 0:
+        return ["P3-E09 candidateCommit does not resolve to a Git commit object"]
+    ancestor = subprocess.run(
+        [*command_prefix, "merge-base", "--is-ancestor", candidate_commit, "HEAD"],
+        capture_output=True,
+        check=False,
+    )
+    if ancestor.returncode != 0:
+        return ["P3-E09 candidateCommit is not reachable from current HEAD"]
+
+    def git_blob(revision: str, path: str) -> bytes | None:
+        result = subprocess.run(
+            [*command_prefix, "show", f"{revision}:{path}"],
+            capture_output=True,
+            check=False,
+        )
+        return result.stdout if result.returncode == 0 else None
+
+    ddl_blob = git_blob(candidate_commit, CANDIDATE_DDL_PATH)
+    if ddl_blob is None:
+        return ["P3-E09 candidateCommit does not contain the formal current DDL artifact"]
+    errors: list[str] = []
+    head_ddl_blob = git_blob("HEAD", CANDIDATE_DDL_PATH)
+    if head_ddl_blob is None:
+        return ["P3-E09 current HEAD does not contain the formal current DDL artifact"]
+    if ddl_blob != head_ddl_blob:
+        errors.append("P3-E09 candidateCommit current DDL artifact differs from current HEAD")
+    register_blob = git_blob(candidate_commit, CANDIDATE_REGISTER_PATH)
+    if register_blob is None:
+        return [*errors, "P3-E09 candidateCommit does not contain the DDL decision register"]
+    try:
+        candidate_register = json.loads(register_blob)
+    except json.JSONDecodeError:
+        return [*errors, "P3-E09 candidateCommit DDL decision register is invalid JSON"]
+    if candidate_register.get("currentDdlSha256") != current_ddl_sha256:
+        errors.append("P3-E09 candidateCommit decision register DDL hash mismatch")
+    if candidate_register.get("itemsSha256") != items_sha256:
+        errors.append("P3-E09 candidateCommit decision register item hash mismatch")
     return errors
 
 
@@ -123,6 +203,9 @@ def validate_model_baseline(
         errors.append("P3-E09 model baseline requires DEFER=0")
     if evidence.get("mysql84DdlSha256") != current_ddl:
         errors.append("P3-E09 MySQL 8.4 evidence must bind the current DDL hash")
+    isolated_mysql = evidence.get("isolatedMysqlExecution")
+    if not isinstance(isolated_mysql, dict) or isolated_mysql.get("status") != "PASS":
+        errors.append("P3-E09 isolatedMysqlExecution.status must be PASS")
     if evidence.get("independentReviewResult") != "GO":
         errors.append("P3-E09 model baseline requires independentReviewResult=GO")
     decision_owner = evidence.get("decisionOwner")
@@ -143,6 +226,12 @@ def validate_model_baseline(
         errors.append("P3-E09 independent review reference requires a repository root")
     else:
         root_path = root.resolve()
+        errors.extend(candidate_commit_errors(
+            root_path,
+            evidence.get("candidateCommit"),
+            current_ddl,
+            items_sha,
+        ))
         review_path = (root_path / review_ref.split("#", 1)[0]).resolve()
         try:
             review_path.relative_to(root_path)

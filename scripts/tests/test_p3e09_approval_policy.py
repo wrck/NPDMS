@@ -4,6 +4,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).parents[1] / "p3e09_approval_policy.py"
@@ -14,11 +15,13 @@ SPEC.loader.exec_module(POLICY)
 
 
 class P3E09ApprovalPolicyTest(unittest.TestCase):
+    CANDIDATE_COMMIT = "a" * 40
+
     def write_review(self, **overrides: str) -> None:
         fields = {
             "status": "APPROVED",
             "conclusion": "GO",
-            "candidateCommit": "TEST_COMMIT",
+            "candidateCommit": self.CANDIDATE_COMMIT,
             "ddlSha256": "DDL",
             "itemsSha256": "ITEMS",
             "itemCount": "2",
@@ -56,7 +59,7 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "mysql84DdlSha256": "DDL",
             "independentReviewResult": "GO",
             "independentReviewRef": self.review_ref,
-            "candidateCommit": "TEST_COMMIT",
+            "candidateCommit": self.CANDIDATE_COMMIT,
             "approvedDdlSha256": None,
             "decisionOwner": "requirement-owner",
             "reviewOwner": "independent-reviewer",
@@ -64,8 +67,11 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "isolatedMysqlExecution": {"status": "PASS"},
         }
         self.write_review()
+        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
+        self.candidate_check.start()
 
     def tearDown(self) -> None:
+        self.candidate_check.stop()
         self.temp.cleanup()
 
     def test_complete_model_evidence_allows_sds_without_migration_approval(self) -> None:
@@ -139,7 +145,7 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
 
     def test_model_baseline_rejects_stale_candidate_or_model_facts(self) -> None:
         for field, value in {
-            "candidateCommit": "OLD_COMMIT",
+            "candidateCommit": "b" * 40,
             "ddlSha256": "OLD_DDL",
             "itemsSha256": "OLD_ITEMS",
             "itemCount": "1882",
@@ -156,6 +162,79 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         with (self.root / self.review_ref).open("a", encoding="utf-8") as review:
             review.write("本记录不是GO，仍待复审。\n")
         self.assertTrue(any("contradiction" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+
+    def test_model_baseline_rejects_duplicate_fixed_field_even_when_one_value_matches(self) -> None:
+        self.write_review()
+        with (self.root / self.review_ref).open("a", encoding="utf-8") as review:
+            review.write("> candidateCommit: `" + "b" * 40 + "`\n")
+        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+        self.assertTrue(any("must appear exactly once: candidateCommit" in error for error in errors))
+
+    def test_model_baseline_rejects_non_pass_review_test_result(self) -> None:
+        self.write_review(testResult="FAIL")
+        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+        self.assertTrue(any("testResult must be PASS" in error for error in errors))
+
+    def test_model_baseline_rejects_non_pass_isolated_mysql_result(self) -> None:
+        self.evidence["isolatedMysqlExecution"] = {"status": "FAIL"}
+        self.write_review(testResult="FAIL")
+        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+        self.assertTrue(any("isolatedMysqlExecution.status must be PASS" in error for error in errors))
+        self.assertTrue(any("testResult must be PASS" in error for error in errors))
+
+    def test_candidate_commit_rejects_nonexistent_commit(self) -> None:
+        self.candidate_check.stop()
+        result = type("Completed", (), {"returncode": 1, "stdout": b""})()
+        with patch.object(POLICY.subprocess, "run", return_value=result):
+            errors = POLICY.candidate_commit_errors(
+                self.root, self.CANDIDATE_COMMIT, "DDL", "ITEMS",
+            )
+        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
+        self.candidate_check.start()
+        self.assertTrue(any("does not resolve" in error for error in errors))
+
+    def test_candidate_commit_requires_full_hex_sha(self) -> None:
+        self.candidate_check.stop()
+        errors = POLICY.candidate_commit_errors(self.root, "cfd60d6", "DDL", "ITEMS")
+        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
+        self.candidate_check.start()
+        self.assertTrue(any("full 40-character" in error for error in errors))
+
+    def test_candidate_commit_rejects_non_ancestor_commit(self) -> None:
+        self.candidate_check.stop()
+        results = iter((
+            type("Completed", (), {"returncode": 0, "stdout": b""})(),
+            type("Completed", (), {"returncode": 1, "stdout": b""})(),
+        ))
+        with patch.object(POLICY.subprocess, "run", side_effect=lambda *_args, **_kwargs: next(results)):
+            errors = POLICY.candidate_commit_errors(
+                self.root, self.CANDIDATE_COMMIT, "DDL", "ITEMS",
+            )
+        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
+        self.candidate_check.start()
+        self.assertTrue(any("not reachable" in error for error in errors))
+
+    def test_candidate_commit_rejects_mismatched_model_artifacts(self) -> None:
+        self.candidate_check.stop()
+        candidate_register = b'{"currentDdlSha256":"DDL","itemsSha256":"OTHER"}'
+        results = iter((
+            type("Completed", (), {"returncode": 0, "stdout": b""})(),
+            type("Completed", (), {"returncode": 0, "stdout": b""})(),
+            type("Completed", (), {"returncode": 0, "stdout": b"OTHER_DDL"})(),
+            type("Completed", (), {"returncode": 0, "stdout": b"CURRENT_DDL"})(),
+            type("Completed", (), {"returncode": 0, "stdout": candidate_register})(),
+        ))
+        with patch.object(POLICY.subprocess, "run", side_effect=lambda *_args, **_kwargs: next(results)):
+            errors = POLICY.candidate_commit_errors(
+                self.root,
+                self.CANDIDATE_COMMIT,
+                POLICY.sha256_bytes(b"DDL"),
+                "ITEMS",
+            )
+        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
+        self.candidate_check.start()
+        self.assertTrue(any("current DDL artifact differs" in error for error in errors))
+        self.assertTrue(any("decision register item hash mismatch" in error for error in errors))
 
 
 if __name__ == "__main__":
