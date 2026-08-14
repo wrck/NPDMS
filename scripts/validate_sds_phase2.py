@@ -32,6 +32,11 @@ CONTRACT_FIELDS = (
 )
 FULL_REQUIREMENT_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
 ACTIVE_REQUIREMENT_LINE = re.compile(r"^(?:>\s*)?(?:适用\s+)?Requirement(?: ID)?：(.+?)\s*$", re.M)
+PRD_REQUIREMENT_ROW = re.compile(r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$", re.M)
+NON_ACTIVE_CONTRACT_MARKERS = (
+    "历史排除", "不属于", "不进入当前", "不接入", "不纳入", "不得进入",
+    "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "A+B", "V3候选", "V3演进", "仅保留", "未来",
+)
 
 
 def read(path: Path) -> str:
@@ -96,11 +101,29 @@ def requirement_ids(fragment: str) -> set[str]:
     return result
 
 
+def is_active_contract_context(fragment: str) -> bool:
+    return not any(marker in fragment for marker in NON_ACTIVE_CONTRACT_MARKERS)
+
+
+def prd_formal_requirement_ids(text: str) -> list[str]:
+    """Read formal V1/V2 IDs directly from PRD requirement blocks."""
+    matches = list(PRD_REQUIREMENT_ROW.finditer(text))
+    result: list[str] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        block = text[match.end():end]
+        version = re.search(r"^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", block, re.M)
+        if version and version.group(1) in {"V1", "V2"}:
+            result.append(match.group(1))
+    return result
+
+
 def active_requirement_ids(text: str) -> set[str]:
     """Extract IDs from formal scope declarations and Requirement table columns."""
     result: set[str] = set()
     for declaration in ACTIVE_REQUIREMENT_LINE.findall(text):
-        result.update(requirement_ids(declaration))
+        if is_active_contract_context(declaration):
+            result.update(requirement_ids(declaration))
 
     requirement_column: int | None = None
     for line in text.splitlines():
@@ -113,6 +136,8 @@ def active_requirement_ids(text: str) -> set[str]:
             continue
         if requirement_column is None or requirement_column >= len(cells):
             continue
+        if not is_active_contract_context(line):
+            continue
         if set(cells[requirement_column]) <= {"-", ":"}:
             continue
         result.update(requirement_ids(cells[requirement_column]))
@@ -122,6 +147,7 @@ def active_requirement_ids(text: str) -> set[str]:
 def validate(root: Path) -> list[str]:
     errors: list[str] = []
     design = root / "docs" / "design"
+    prd_path = root / "docs" / "baseline" / "prd-v1.7.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
 
@@ -136,6 +162,17 @@ def validate(root: Path) -> list[str]:
             if marker not in text:
                 errors.append(f"{path.relative_to(root)} missing metadata: {marker}")
 
+    if not prd_path.is_file():
+        errors.append("missing PRD V1.7 baseline")
+        prd_identifiers: list[str] = []
+    else:
+        prd_identifiers = prd_formal_requirement_ids(read(prd_path))
+        if len(prd_identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(prd_identifiers)) != EXPECTED_REQUIREMENT_COUNT:
+            errors.append(
+                f"PRD baseline expected {EXPECTED_REQUIREMENT_COUNT} unique formal V1/V2 IDs, "
+                f"got rows={len(prd_identifiers)} unique={len(set(prd_identifiers))}"
+            )
+
     if not matrix_path.is_file():
         return errors + ["missing requirement matrix"]
 
@@ -148,6 +185,12 @@ def validate(root: Path) -> list[str]:
         )
     if matrix.count("SDS-P2-BASELINE") != EXPECTED_REQUIREMENT_COUNT:
         errors.append("every requirement row must carry SDS-P2-BASELINE evidence")
+    if set(prd_identifiers) != set(identifiers):
+        errors.append(
+            "PRD formal Requirement IDs must exactly match requirement matrix; "
+            f"missing={sorted(set(prd_identifiers) - set(identifiers))} "
+            f"extra={sorted(set(identifiers) - set(prd_identifiers))}"
+        )
 
     if not contract_path.is_file():
         errors.append("missing explicit Phase 2 contract map")
@@ -161,6 +204,12 @@ def validate(root: Path) -> list[str]:
                 f"missing={sorted(set(identifiers) - set(contracts))} "
                 f"extra={sorted(set(contracts) - set(identifiers))}"
             )
+        if set(contracts) != set(prd_identifiers):
+            errors.append(
+                "PRD formal Requirement IDs must exactly match explicit Phase 2 contract IDs; "
+                f"missing={sorted(set(prd_identifiers) - set(contracts))} "
+                f"extra={sorted(set(contracts) - set(prd_identifiers))}"
+            )
 
     combined_design = "\n".join(read(design / name) for name in PHASE2_DOCS if (design / name).is_file())
     database_design = read(design / "09-database-design.md") if (design / "09-database-design.md").is_file() else ""
@@ -169,7 +218,7 @@ def validate(root: Path) -> list[str]:
     integration_design = read(design / "12-integration-design.md") if (design / "12-integration-design.md").is_file() else ""
     file_design = read(design / "13-file-design.md") if (design / "13-file-design.md").is_file() else ""
 
-    formal_id_set = set(identifiers)
+    formal_id_set = set(prd_identifiers)
     for name in PHASE2_DOCS:
         path = design / name
         if not path.is_file():
@@ -178,14 +227,14 @@ def validate(root: Path) -> list[str]:
             errors.append(f"{name} active scope contains non-formal Requirement: {identifier}")
 
     for line in event_design.splitlines():
-        if line.startswith("|") and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
+        if line.startswith("|") and is_active_contract_context(line) and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
             errors.append("ProjectConversionCompleted must not declare WO as a V1/V2 consumer")
     for name in ("12-integration-design.md", "16-exception-and-idempotency.md"):
         path = design / name
         if not path.is_file():
             continue
         for line in read(path).splitlines():
-            if line.startswith("|") and ("打卡原始事实" in line or "钉钉打卡" in line):
+            if line.startswith("|") and is_active_contract_context(line) and ("打卡原始事实" in line or "钉钉打卡" in line):
                 errors.append(f"{name} contains active DingTalk clock-in fact contract")
 
     for identifier, contract in contracts.items():

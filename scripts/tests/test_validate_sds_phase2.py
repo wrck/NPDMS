@@ -28,8 +28,10 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
     def build_fixture(self, root: Path) -> Path:
         design = root / "docs" / "design"
+        baseline = root / "docs" / "baseline"
         traceability = root / "docs" / "traceability"
         design.mkdir(parents=True)
+        baseline.mkdir(parents=True)
         traceability.mkdir(parents=True)
         metadata = (
             "# Test\n\n"
@@ -58,6 +60,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
         )
         rows = []
         contract_blocks = []
+        prd_blocks = []
         for number in range(1, MODULE.EXPECTED_REQUIREMENT_COUNT + 1):
             identifier = f"REQ-{number:03d}"
             rows.append(
@@ -76,6 +79,14 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                 "- 工作流/状态：测试状态守卫\n"
                 "- 授权与数据范围：测试数据范围\n"
             )
+            prd_blocks.append(
+                f"### {identifier} Test\n\n"
+                f"| 需求编号 | {identifier} |\n"
+                "| 目标版本 | V1 |\n"
+            )
+        (baseline / "prd-v1.7.md").write_text(
+            "# PRD V1.7\n\n" + "\n".join(prd_blocks), encoding="utf-8"
+        )
         matrix = "# Matrix\n\n" + "\n".join(rows) + "\n"
         matrix_path = traceability / "requirement-matrix.md"
         matrix_path.write_text(matrix, encoding="utf-8")
@@ -118,6 +129,26 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             self.assertTrue(any("contract IDs must exactly match" in error for error in errors))
             self.assertTrue(any("undefined table contract: proj_missing" in error for error in errors))
 
+    def test_matrix_and_contract_cannot_replace_formal_id_with_v3_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            matrix_path = self.build_fixture(root)
+            contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+            matrix_path.write_text(
+                matrix_path.read_text(encoding="utf-8")
+                .replace("REQ-103", "EQP-06")
+                .replace("req-103", "eqp-06"),
+                encoding="utf-8",
+            )
+            contract_path.write_text(
+                contract_path.read_text(encoding="utf-8").replace("REQ-103", "EQP-06"),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("PRD formal Requirement IDs" in error for error in errors), errors)
+
     def test_out_of_scope_requirement_in_active_scope_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -151,6 +182,21 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate(root)
             self.assertTrue(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
 
+    def test_historical_work_order_consumer_exclusion_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "11-event-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| 历史排除 | `ProjectConversionCompleted` | WO | 不属于当前V1/V2消费者 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertFalse(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
+
     def test_dingtalk_clock_in_fact_contract_fails(self) -> None:
         injections = {
             "12-integration-design.md": "| 钉钉 | V1 | 双向 | 打卡原始事实、消息交付 | WO/PLT | 打卡记录ID+打卡人 | 平台记录 |",
@@ -168,6 +214,26 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                     )
                     errors = MODULE.validate(root)
                     self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
+
+    def test_historical_and_pending_dingtalk_clock_in_evidence_is_allowed(self) -> None:
+        rows = (
+            "| 历史排除 | 钉钉打卡 | 不属于当前V1/V2契约 |",
+            "| A+B摘要 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 不进入当前契约 |",
+        )
+        for row in rows:
+            with tempfile.TemporaryDirectory() as temporary:
+                with self.subTest(row=row):
+                    root = Path(temporary)
+                    self.build_fixture(root)
+                    target = root / "docs" / "design" / "12-integration-design.md"
+                    target.write_text(
+                        target.read_text(encoding="utf-8") + f"\n{row}\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate(root)
+
+                    self.assertFalse(any("DingTalk clock-in" in error for error in errors), errors)
 
 
 if __name__ == "__main__":
