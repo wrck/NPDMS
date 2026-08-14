@@ -12,7 +12,8 @@
 - 业务基线：`docs/baseline/prd-v1.7.md`，对应 PRD V1.7。
 - 追溯主表：`docs/traceability/requirement-matrix.md`，覆盖 103 项 V1/V2 正式需求。
 - `specs/001-project-delivery-platform/domains/` 为当前PRD派生的13领域规格，不得脱离PRD手工改变业务语义。
-- V3 29 项与 OUT_OF_SCOPE 9 项仅保留边界追溯，不进入当前实现设计。
+- 范围统计：V1 55 项、V2 48 项、V1/V2 103 项；V3 30 项、OUT_OF_SCOPE 9 项。
+- V3 与 OUT_OF_SCOPE 仅保留边界追溯，不进入当前实现设计。
 
 ## 2. Phase 1 追溯链
 

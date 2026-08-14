@@ -63,7 +63,16 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             content = metadata
             if name == "08a-domain-entity-migration-alignment.md":
                 content = content.replace("文档状态：`BASELINE`", "文档状态：`BASELINE ADDENDUM`")
+            if name == "13-file-design.md":
+                content += "\n| 门禁项 | 结论 | 落位 |\n|---|---|---|\n| 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 | Phase 3登记 |\n"
+            if name == "15-cache-and-concurrency.md":
+                content += "\n| 门禁项 | 结论 | 落位 |\n|---|---|---|\n| 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 | Phase 3登记 |\n"
             (design / name).write_text(content, encoding="utf-8")
+        (design / "01-requirement-traceability.md").write_text(
+            "# Traceability\n\n"
+            "- 范围统计：V1 55 项、V2 48 项、V1/V2 103 项；V3 30 项、OUT_OF_SCOPE 9 项。\n",
+            encoding="utf-8",
+        )
 
         required = " / ".join(
             f"[doc](../design/{name})"
@@ -99,10 +108,19 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             prd_blocks.append(
                 f"### {identifier} Test\n\n"
                 f"| 需求编号 | {identifier} |\n"
-                "| 目标版本 | V1 |\n"
+                f"| 目标版本 | {'V1' if number <= 55 else 'V2'} |\n"
             )
         (baseline / "prd-v1.7.md").write_text(
-            "# PRD V1.7\n\n" + "\n".join(prd_blocks), encoding="utf-8"
+            "# PRD V1.7\n\n"
+            + "\n".join(prd_blocks)
+            + "\n### A.3 V3演进索引\n\n"
+            + "#### A.3.1 已编号演进项\n\n"
+            + "\n".join(f"| EV-V3-{number:02d} | Future | P3 | Deferred |" for number in range(1, 31))
+            + "\n\n#### A.3.2 跨需求演进方向\n\n"
+            + "### A.4 OUT_OF_SCOPE索引\n\n"
+            + "\n".join(f"| OOS-{number:03d} | Excluded | Reason |" for number in range(1, 10))
+            + "\n\n## 附录B\n",
+            encoding="utf-8",
         )
         matrix = "# Matrix\n\n" + "\n".join(rows) + "\n"
         matrix_path = traceability / "requirement-matrix.md"
@@ -277,13 +295,12 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
 
-    def test_historical_and_pending_dingtalk_clock_in_evidence_is_allowed(self) -> None:
+    def test_explicit_historical_dingtalk_clock_in_exclusion_is_allowed(self) -> None:
         fragments = (
             "| 历史排除 | 钉钉打卡 | 不属于当前V1/V2契约 |",
-            "| A+B摘要 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 不进入当前契约 |",
-            "| 类型 | 事实 | status | 说明 |\n"
+            "| 类型 | 事实 | 处置 | 说明 |\n"
             "|---|---|---|---|\n"
-            "| 来源候选 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 待核验，不进入当前契约 |",
+            "| 历史来源 | 钉钉打卡候选 | 不进入当前 | 仅保留来源证据 |",
         )
         for fragment in fragments:
             with tempfile.TemporaryDirectory() as temporary:
@@ -299,6 +316,125 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                     errors = MODULE.validate(root)
 
                     self.assertFalse(any("DingTalk clock-in" in error for error in errors), errors)
+
+    def test_pending_integration_config_does_not_exclude_dingtalk_clock_in(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "12-integration-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| 事实 | status | 说明 |\n"
+                + "|---|---|---|\n"
+                + "| 钉钉打卡原始事实 | PENDING_INTEGRATION_CONFIG | 待配置 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
+
+    def test_pending_field_mapping_does_not_exclude_work_order_model(self) -> None:
+        for status in ("PENDING", "PENDING_FIELD_MAPPING"):
+            with tempfile.TemporaryDirectory() as temporary:
+                with self.subTest(status=status):
+                    root = Path(temporary)
+                    self.build_fixture(root)
+                    target = root / "docs" / "design" / "09-database-design.md"
+                    target.write_text(
+                        target.read_text(encoding="utf-8")
+                        + "\n| 数据对象 | 数据表 | status |\n"
+                        + "|---|---|---|\n"
+                        + f"| WorkOrder | srv_work_order | {status} |\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate(root)
+
+                    self.assertTrue(any("srv_work_order" in error for error in errors), errors)
+
+    def test_pending_review_does_not_exclude_work_order_event_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "11-event-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| 事件 | Consumer | status |\n"
+                + "|---|---|---|\n"
+                + "| ProjectConversionCompleted | WO | PENDING_REVIEW |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
+
+    def test_scope_statistics_are_validated_from_prd_indexes(self) -> None:
+        mutations = {
+            "V1": ("| 目标版本 | V1 |", "| 目标版本 | V2 |"),
+            "V3": ("| EV-V3-30 | Future | P3 | Deferred |", ""),
+            "OUT_OF_SCOPE": ("| OOS-009 | Excluded | Reason |", ""),
+        }
+        for label, (old, new) in mutations.items():
+            with tempfile.TemporaryDirectory() as temporary:
+                with self.subTest(label=label):
+                    root = Path(temporary)
+                    self.build_fixture(root)
+                    prd = root / "docs" / "baseline" / "prd-v1.7.md"
+                    prd.write_text(prd.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
+
+                    errors = MODULE.validate(root)
+
+                    self.assertTrue(any("scope statistics" in error for error in errors), errors)
+
+    def test_phase1_traceability_scope_statistics_are_machine_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "01-requirement-traceability.md"
+            target.write_text(
+                target.read_text(encoding="utf-8").replace("V3 30 项", "V3 29 项"),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("scope statistics" in error for error in errors), errors)
+
+    def test_baseline_phase2_design_must_not_retain_in_review_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "13-file-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8") + "\n| 保留期限和灾备数值 | IN_REVIEW | Phase 3登记 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("unresolved IN_REVIEW" in error for error in errors), errors)
+
+    def test_phase3_deferred_markers_are_required_for_runtime_values(self) -> None:
+        mutations = {
+            "13-file-design.md": "| 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 |",
+            "15-cache-and-concurrency.md": "| 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 |",
+        }
+        for name, marker in mutations.items():
+            with tempfile.TemporaryDirectory() as temporary:
+                with self.subTest(name=name):
+                    root = Path(temporary)
+                    self.build_fixture(root)
+                    target = root / "docs" / "design" / name
+                    target.write_text(
+                        target.read_text(encoding="utf-8").replace(marker, ""),
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate(root)
+
+                    self.assertTrue(any("missing Phase 3 deferral marker" in error for error in errors), errors)
 
     def test_historical_work_order_and_time_user_apis_fail(self) -> None:
         for api in ("/historical-work-orders", "/historical-time-records"):

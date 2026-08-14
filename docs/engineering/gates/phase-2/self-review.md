@@ -17,7 +17,7 @@
 |---|---|
 | PRD语义校验 | PASS，0 semantic issues |
 | 13领域生成校验 | PASS，formal=103、V3=30、OUT_OF_SCOPE=9 |
-| 脚本单测 | PASS，223/223（含Phase 2、PRD独立白名单、附录C核心对象一致性、结构化历史排除、核心迁移契约全部7张WorkOrder/工时禁表、历史API/对象/表/中英文文件Context回流负测、免责声明绕过负测、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
+| 脚本单测 | PASS，230/230（含Phase 2、PRD独立白名单、附录C核心对象一致性、结构化历史排除、普通`PENDING`及`PENDING_*`不得排除当前契约、五项范围统计、BASELINE分册状态、核心迁移契约全部7张WorkOrder/工时禁表、历史API/对象/表/中英文文件Context回流负测、免责声明绕过负测、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
 | 业务命名门禁 | PASS |
 | Phase 2专用校验 | PASS，含08a的9份正式分册元数据、103项显式契约及链接/锚点有效 |
 | 追溯矩阵 | PASS，103个唯一Requirement，103行均链接逐项 `phase2-contract-map.md` |
@@ -52,6 +52,9 @@ git diff --check
 | S2-R12 | “历史事实不可删除”被误解为V1/V2历史工单/工时查询、导出和附件入口 | 恢复已后置的WO/工时能力并无端预建对象、表和权限 | Q-P2-001采用方案B：仅`AI-MIG-000`在批准真实批次内保存不可变来源载荷或受限归档证据；删除当前API和WO文件Context，并增加负向校验 |
 | S2-R13 | PRD正文3.3已删除工单核心对象并纳入满意度任务与问卷，但附录C仍列工单/WO-01～06 | 正式基线内部冲突可使下游重新恢复已后置能力 | 两份PRD附录C第4项改为满意度任务与问卷并回指ACC-02；3.4明确历史事实仅由`AI-MIG-000`保存证据；新增附录C负向门禁并同步SHA登记 |
 | S2-R14 | Phase 2校验器只拦两个历史对象和两张历史表 | 可用中文Context、非历史前缀或其他工时表绕过回流门禁 | 从核心迁移Schema契约读取`forbiddenV1V2Tables`，结构化拦截全部7张WorkOrder/工时禁表及对象别名，同时允许EXCLUDED/COMPATIBILITY_ONLY/历史排除证据与未来独立变更说明 |
+| S2-R15 | `PENDING`和任意`PENDING_*`曾被当作非当前契约处置 | 当前打卡、WorkOrder或WO消费者可借待定状态绕过V1/V2范围门禁 | 仅允许`EXCLUDED`、`COMPATIBILITY_ONLY`或结构化“历史排除/不进入当前”处置跳过；增加打卡、WorkOrder和WO消费者负测 |
+| S2-R16 | Phase 1追溯分册仍写V3 29项，且Phase 2未复核完整范围统计 | PRD范围变化可在设计文档中静默漂移 | 修正为V1 55、V2 48、当前103、V3 30、OUT_OF_SCOPE 9，并由校验器从PRD附录A.1/A.3.1/A.4重算后核对01分册 |
+| S2-R17 | 文件保留/灾备和缓存容量/TTL使用`IN_REVIEW`表示后续运行参数 | BASELINE设计分册与当前Gate未决状态混淆 | 改为`DEFERRED_TO_PHASE_3`；校验器禁止九份Phase 2 BASELINE分册残留`IN_REVIEW`并要求两项明确后置标记，不扫描Gate和历史评审文件 |
 
 ## 4. 关键语义核对
 
@@ -72,4 +75,4 @@ git diff --check
 
 ## 5. 自审结论
 
-V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。当前按PRD V1.7重新校准为103项正式需求、84对象/95来源绑定/1排除源，并清除V3 Requirement、WO消费者、钉钉打卡事实及历史工单/工时用户入口的当前范围漂移；不把本次自审写成新的独立评审。Q-P2-001已按方案B收口，不再作为规格阻塞。Phase 2 Gate仍保持`IN_REVIEW / NOT_READY_FOR_PHASE_3`，直至Task 4 fresh-context独立复审给出结论。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。
+V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。当前按PRD V1.7重新校准为103项正式需求、84对象/95来源绑定/1排除源，并清除V3 Requirement、WO消费者、钉钉打卡事实及历史工单/工时用户入口的当前范围漂移；本轮总审发现的`PENDING`范围绕过、V3统计漂移和后置状态混淆均已完成修复，但本文件不冒充新的独立复审。Q-P2-001已按方案B收口，不再作为规格阻塞。Phase 2 Gate仍保持`IN_REVIEW / NOT_READY_FOR_PHASE_3`，直至Task 4 fresh-context独立复审给出结论。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。

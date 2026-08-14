@@ -22,6 +22,11 @@ PHASE2_DOCS = (
     "16-exception-and-idempotency.md",
 )
 EXPECTED_REQUIREMENT_COUNT = 103
+EXPECTED_SCOPE_COUNTS = {"V1": 55, "V2": 48, "V1/V2": 103, "V3": 30, "OUT_OF_SCOPE": 9}
+SCOPE_STATISTICS_MARKER = (
+    "范围统计：V1 55 项、V2 48 项、V1/V2 103 项；"
+    "V3 30 项、OUT_OF_SCOPE 9 项。"
+)
 REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.M)
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
@@ -34,13 +39,17 @@ CONTRACT_FIELDS = (
 FULL_REQUIREMENT_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
 ACTIVE_REQUIREMENT_LINE = re.compile(r"^(?:>\s*)?(?:适用\s+)?Requirement(?: ID)?：(.+?)\s*$", re.M)
 PRD_REQUIREMENT_ROW = re.compile(r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$", re.M)
-NON_ACTIVE_ROW_LABELS = {"历史排除", "A+B摘要"}
+NON_ACTIVE_ROW_LABELS = {"历史排除"}
 NON_ACTIVE_FIELD_NAMES = {
     "disposition", "status", "处置", "迁移处置", "范围状态", "契约状态", "证据状态",
 }
 NON_ACTIVE_FIELD_VALUES = {
-    "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "PENDING_SOURCE_CONFIRMATION",
+    "EXCLUDED", "COMPATIBILITY_ONLY",
     "历史排除", "不属于当前", "不进入当前",
+}
+DEFERRED_PHASE3_MARKERS = {
+    "13-file-design.md": "| 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 |",
+    "15-cache-and-concurrency.md": "| 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 |",
 }
 FORBIDDEN_HISTORICAL_USER_APIS = (
     "/historical-work-orders",
@@ -128,7 +137,7 @@ def is_non_active_contract_row(cells: list[str], headers: list[str] | None = Non
         if header.strip().lower() not in NON_ACTIVE_FIELD_NAMES:
             continue
         normalized_value = value.strip().strip("`")
-        if normalized_value in NON_ACTIVE_FIELD_VALUES or normalized_value.startswith("PENDING_"):
+        if normalized_value in NON_ACTIVE_FIELD_VALUES:
             return True
     return False
 
@@ -181,16 +190,44 @@ def forbidden_model_tokens(tables: set[str]) -> set[str]:
     return tokens
 
 
-def prd_formal_requirement_ids(text: str) -> list[str]:
-    """Read formal V1/V2 IDs directly from PRD requirement blocks."""
+def prd_formal_requirement_records(text: str) -> list[tuple[str, str]]:
+    """Read formal V1/V2 IDs and their primary versions from PRD blocks."""
     matches = list(PRD_REQUIREMENT_ROW.finditer(text))
-    result: list[str] = []
+    result: list[tuple[str, str]] = []
     for index, match in enumerate(matches):
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         block = text[match.end():end]
         version = re.search(r"^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", block, re.M)
         if version and version.group(1) in {"V1", "V2"}:
-            result.append(match.group(1))
+            result.append((match.group(1), version.group(1)))
+    return result
+
+
+def prd_formal_requirement_ids(text: str) -> list[str]:
+    return [identifier for identifier, _ in prd_formal_requirement_records(text)]
+
+
+def appendix_fragment(text: str, start: str, end: str | None) -> str:
+    start_match = re.search(start, text, re.M)
+    if not start_match:
+        return ""
+    if end is None:
+        return text[start_match.end():]
+    end_match = re.search(end, text[start_match.end():], re.M)
+    if not end_match:
+        return ""
+    return text[start_match.end():start_match.end() + end_match.start()]
+
+
+def scope_index_ids(fragment: str) -> set[str]:
+    result: set[str] = set()
+    for line in fragment.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = markdown_cells(line)
+        if not cells or is_separator_row(cells):
+            continue
+        result.update(requirement_ids(cells[0]))
     return result
 
 
@@ -239,17 +276,53 @@ def validate(root: Path) -> list[str]:
         for marker in (status_marker, "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
             if marker not in text:
                 errors.append(f"{path.relative_to(root)} missing metadata: {marker}")
+        if "IN_REVIEW" in text:
+            errors.append(f"{path.relative_to(root)} has unresolved IN_REVIEW marker in BASELINE Phase 2 design")
+        deferred_marker = DEFERRED_PHASE3_MARKERS.get(name)
+        if deferred_marker and deferred_marker not in text:
+            errors.append(f"{path.relative_to(root)} missing Phase 3 deferral marker: {deferred_marker}")
 
     if not prd_path.is_file():
         errors.append("missing PRD V1.7 baseline")
         prd_identifiers: list[str] = []
     else:
-        prd_identifiers = prd_formal_requirement_ids(read(prd_path))
+        prd_text = read(prd_path)
+        prd_records = prd_formal_requirement_records(prd_text)
+        prd_identifiers = [identifier for identifier, _ in prd_records]
         if len(prd_identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(prd_identifiers)) != EXPECTED_REQUIREMENT_COUNT:
             errors.append(
                 f"PRD baseline expected {EXPECTED_REQUIREMENT_COUNT} unique formal V1/V2 IDs, "
                 f"got rows={len(prd_identifiers)} unique={len(set(prd_identifiers))}"
             )
+        actual_scope_counts = {
+            "V1": sum(version == "V1" for _, version in prd_records),
+            "V2": sum(version == "V2" for _, version in prd_records),
+            "V1/V2": len(prd_records),
+            "V3": len(scope_index_ids(appendix_fragment(
+                prd_text,
+                r"^####\s+A\.3\.1\b.*$",
+                r"^####\s+A\.3\.2\b.*$",
+            ))),
+            "OUT_OF_SCOPE": len(scope_index_ids(appendix_fragment(
+                prd_text,
+                r"^###\s+A\.4\b.*$",
+                r"^##\s+附录B\b.*$",
+            ))),
+        }
+        if actual_scope_counts != EXPECTED_SCOPE_COUNTS:
+            errors.append(
+                "PRD scope statistics mismatch: "
+                f"expected={EXPECTED_SCOPE_COUNTS} actual={actual_scope_counts}"
+            )
+
+    phase1_traceability_path = design / "01-requirement-traceability.md"
+    if not phase1_traceability_path.is_file():
+        errors.append("missing Phase 1 requirement traceability for scope statistics")
+    elif SCOPE_STATISTICS_MARKER not in read(phase1_traceability_path):
+        errors.append(
+            "Phase 1 scope statistics mismatch: expected marker "
+            f"{SCOPE_STATISTICS_MARKER}"
+        )
 
     if not matrix_path.is_file():
         return errors + ["missing requirement matrix"]
