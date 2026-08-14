@@ -215,6 +215,8 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
             json.dumps(self.manifest, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
+        self._git("add", "docs/specification-baseline")
+        self._git("commit", "-q", "-m", "snapshot contract")
         return manifest_path
 
     def test_check_mode_never_writes(self) -> None:
@@ -266,17 +268,17 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
             self._git("add", entry.path)
         self._git("commit", "-q", "-m", "managed snapshot")
 
-        original_atomic_write = specification_baseline._atomic_write
+        original_publish = specification_baseline._publish_staged_file
         write_count = 0
 
-        def fail_second_write(path: Path, content: bytes) -> None:
+        def fail_second_write(path: Path, staged: Path, expected: object) -> None:
             nonlocal write_count
             write_count += 1
             if write_count == 2:
                 raise OSError("second write failed")
-            original_atomic_write(path, content)
+            original_publish(path, staged, expected)
 
-        with patch("specification_baseline._atomic_write", side_effect=fail_second_write):
+        with patch("specification_baseline._publish_staged_file", side_effect=fail_second_write):
             with self.assertRaisesRegex(OSError, "second write failed"):
                 apply_snapshot(self.repo, self.manifest, self.blobs)
 
@@ -306,6 +308,73 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
 
         self.assertEqual(b"local edit after preflight\n", target.read_bytes())
         self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+
+    def test_apply_refuses_drift_immediately_before_replacement(self) -> None:
+        target = self.repo / self.entries[0].path
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b"committed\n")
+        self._git("add", self.entries[0].path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        original_replace = specification_baseline.os.replace
+        injected = False
+
+        def mutate_before_replacement(source: object, destination: object) -> None:
+            nonlocal injected
+            if not injected and Path(source) == target:
+                injected = True
+                target.write_bytes(b"local edit before replacement\n")
+            original_replace(source, destination)
+
+        with patch("specification_baseline.os.replace", side_effect=mutate_before_replacement):
+            with self.assertRaises(BaselineError):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertTrue(injected)
+        self.assertEqual(b"local edit before replacement\n", target.read_bytes())
+        self.assertFalse((self.repo / self.entries[1].path).exists())
+        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+
+    def test_apply_restores_backup_write_after_initial_backup_check(self) -> None:
+        target = self.repo / self.entries[0].path
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b"committed\n")
+        self._git("add", self.entries[0].path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        original_link = specification_baseline.os.link
+        injected = False
+
+        def mutate_backup_before_publish(source: object, destination: object) -> None:
+            nonlocal injected
+            if not injected and Path(destination) == target:
+                injected = True
+                backups = list(target.parent.glob(f".{target.name}.*.backup"))
+                self.assertEqual(1, len(backups))
+                backups[0].write_bytes(b"external write through old handle\n")
+            original_link(source, destination)
+
+        with patch("specification_baseline.os.link", side_effect=mutate_backup_before_publish):
+            with self.assertRaises(BaselineError):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertTrue(injected)
+        self.assertEqual(b"external write through old handle\n", target.read_bytes())
+        self.assertFalse((self.repo / self.entries[1].path).exists())
+        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+
+    def test_apply_refuses_dirty_manifest(self) -> None:
+        manifest_path = self.repo / "docs/specification-baseline/manifest.json"
+        manifest_path.parent.mkdir(parents=True)
+        manifest_path.write_bytes(b"committed manifest\n")
+        self._git("add", "docs/specification-baseline/manifest.json")
+        self._git("commit", "-q", "-m", "managed manifest")
+        manifest_path.write_bytes(b"local manifest edit\n")
+
+        with self.assertRaises(BaselineError):
+            apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertEqual(b"local manifest edit\n", manifest_path.read_bytes())
+        self.assertFalse((self.repo / self.entries[0].path).exists())
+        self.assertFalse((self.repo / self.entries[1].path).exists())
 
     def test_second_apply_is_idempotent(self) -> None:
         apply_snapshot(self.repo, self.manifest, self.blobs)

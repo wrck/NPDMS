@@ -272,7 +272,7 @@ def plan_snapshot(
     return tuple(changes)
 
 
-def _atomic_write(path: Path, content: bytes) -> None:
+def _stage_file(path: Path, content: bytes) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
@@ -280,13 +280,13 @@ def _atomic_write(path: Path, content: bytes) -> None:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temp_name, path)
     except BaseException:
         try:
             os.unlink(temp_name)
         except FileNotFoundError:
             pass
         raise
+    return Path(temp_name)
 
 
 def _target_state(path: Path) -> _TargetState:
@@ -303,14 +303,78 @@ def _ensure_target_states(expected_states: Mapping[Path, _TargetState]) -> None:
             raise BaselineError(f"managed destination changed after preflight: {path}")
 
 
-def _restore_target_state(path: Path, original: _TargetState, applied: bytes) -> None:
-    if _target_state(path) != _TargetState("FILE", applied):
+def _new_backup_path(path: Path) -> Path:
+    descriptor, backup_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".backup", dir=path.parent)
+    os.close(descriptor)
+    return Path(backup_name)
+
+
+def _restore_moved_target(path: Path, backup: Path) -> None:
+    try:
+        os.link(backup, path)
+    except FileExistsError:
+        pass
+    finally:
+        try:
+            backup.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _publish_staged_file(path: Path, staged: Path, expected: _TargetState) -> None:
+    if expected.kind == "MISSING":
+        try:
+            os.link(staged, path)
+        except FileExistsError as exc:
+            raise BaselineError(f"managed destination changed during apply: {path}") from exc
+    elif expected.kind == "FILE":
+        backup = _new_backup_path(path)
+        applied = _TargetState("FILE", staged.read_bytes())
+        try:
+            os.replace(path, backup)
+        except FileNotFoundError as exc:
+            backup.unlink(missing_ok=True)
+            raise BaselineError(f"managed destination changed during apply: {path}") from exc
+        if _target_state(backup) != expected:
+            _restore_moved_target(path, backup)
+            raise BaselineError(f"managed destination changed during apply: {path}")
+        try:
+            os.link(staged, path)
+        except FileExistsError as exc:
+            backup.unlink(missing_ok=True)
+            raise BaselineError(f"managed destination changed during apply: {path}") from exc
+        if _target_state(backup) != expected:
+            _publish_staged_file(path, backup, applied)
+            raise BaselineError(f"managed destination changed during apply: {path}")
+        backup.unlink(missing_ok=True)
+    else:
+        raise BaselineError(f"cannot replace non-file managed destination: {path}")
+    staged.unlink(missing_ok=True)
+
+
+def _remove_file_if_unchanged(path: Path, expected: _TargetState) -> None:
+    backup = _new_backup_path(path)
+    try:
+        os.replace(path, backup)
+    except FileNotFoundError as exc:
+        backup.unlink(missing_ok=True)
+        raise BaselineError(f"managed destination changed during apply: {path}") from exc
+    if _target_state(backup) != expected:
+        _restore_moved_target(path, backup)
         raise BaselineError(f"managed destination changed during apply: {path}")
+    backup.unlink(missing_ok=True)
+
+
+def _restore_target_state(path: Path, original: _TargetState, applied: bytes) -> None:
     if original.kind == "FILE":
         assert original.content is not None
-        _atomic_write(path, original.content)
+        staged = _stage_file(path, original.content)
+        try:
+            _publish_staged_file(path, staged, _TargetState("FILE", applied))
+        finally:
+            staged.unlink(missing_ok=True)
     elif original.kind == "MISSING":
-        path.unlink()
+        _remove_file_if_unchanged(path, _TargetState("FILE", applied))
     else:
         raise BaselineError(f"cannot restore non-file managed destination: {path}")
 
@@ -329,25 +393,37 @@ def apply_snapshot(
     initial_states[manifest_path] = _target_state(manifest_path)
     changes = plan_snapshot(destination_repo, manifest, blobs)
     conflicts = [change.path for change in changes if change.action == "CONFLICT"]
+    manifest_relative_path = "docs/specification-baseline/manifest.json"
+    manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    if (
+        manifest_path.exists()
+        and _path_is_dirty(destination_repo, manifest_relative_path)
+        and _target_state(manifest_path) != _TargetState("FILE", manifest_bytes)
+    ):
+        conflicts.append(manifest_relative_path)
     if conflicts:
         raise BaselineError(f"managed destination has local changes: {', '.join(conflicts)}")
 
-    manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     writes = [
         (destination_repo / change.path, blobs[change.path])
         for change in changes
         if change.action != "KEEP"
     ]
     writes.append((manifest_path, manifest_bytes))
-    expected_states = dict(initial_states)
+    staged_writes: list[tuple[Path, bytes, Path]] = []
     written: list[tuple[Path, bytes]] = []
     try:
         for path, content in writes:
-            _ensure_target_states(expected_states)
-            _atomic_write(path, content)
+            staged_writes.append((path, content, _stage_file(path, content)))
+        _ensure_target_states(initial_states)
+        for path, content, staged in staged_writes:
+            _publish_staged_file(path, staged, initial_states[path])
             written.append((path, content))
-            expected_states[path] = _TargetState("FILE", content)
-        _ensure_target_states(expected_states)
+        expected_final_states = dict(initial_states)
+        expected_final_states.update(
+            (path, _TargetState("FILE", content)) for path, content in written
+        )
+        _ensure_target_states(expected_final_states)
     except BaseException as exc:
         rollback_errors: list[BaseException] = []
         for path, content in reversed(written):
@@ -359,6 +435,9 @@ def apply_snapshot(
             detail = "; ".join(str(error) for error in rollback_errors)
             raise BaselineError(f"snapshot apply failed and rollback failed: {detail}") from exc
         raise
+    finally:
+        for _, _, staged in staged_writes:
+            staged.unlink(missing_ok=True)
 
 
 def validate_snapshot(destination_repo: Path, manifest_path: Path) -> list[str]:
