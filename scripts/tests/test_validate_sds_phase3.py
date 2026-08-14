@@ -21,6 +21,10 @@ class Phase3ValidatorTest(unittest.TestCase):
         (self.root / "docs" / "design").mkdir(parents=True)
         (self.root / "docs" / "traceability").mkdir(parents=True)
         (self.root / "docs" / "engineering" / "gates" / "phase-3").mkdir(parents=True)
+        for relative_path in VALIDATOR.P3E09_STATE_ASSETS:
+            path = self.root / relative_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("正式独立复审已GO、模型基线已发布；AI-MIG-000、迁移和切换仍阻断。", encoding="utf-8")
 
         common = (
             "> 文档状态：`IN_REVIEW`\n> 适用基线：PRD V1.7\n"
@@ -202,6 +206,11 @@ class Phase3ValidatorTest(unittest.TestCase):
             encoding="utf-8",
         )
         self.assertTrue(any("premature P3-E09 baseline claim" in item for item in VALIDATOR.validate(self.root)))
+
+    def test_pending_state_requires_fresh_review_notice(self) -> None:
+        gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
+        gate.write_text(gate.read_text(encoding="utf-8").replace("MODEL_BASELINE_READY", "MODEL_BASELINE_REVIEW_PENDING"), encoding="utf-8")
+        self.assertTrue(any("pending state" in item for item in VALIDATOR.validate(self.root)))
 
 
 if __name__ == "__main__":

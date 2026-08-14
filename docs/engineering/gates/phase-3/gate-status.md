@@ -2,14 +2,14 @@
 
 > 审查状态：`IN_REVIEW`
 > 依据：PRD V1.7、SDS Phase 1/2 `BASELINE`、实现仓库`856d052`
-> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09已为`MODEL_BASELINE_READY`并放行数据模型输入；Phase 3其余`IN_REVIEW`/下游门禁未整体完成，历史迁移和数据切换继续阻断）
+> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09当前新候选为`MODEL_BASELINE_REVIEW_PENDING`，尚未放行`DATA_MODEL_BASELINE`；上一轮GO不覆盖本轮变更，历史迁移和数据切换继续阻断）
 
 ## 1. 输出状态
 
 | 输出 | 状态 | 放行条件 |
 |---|---|---|
 | P3-01运行事实盘点 | PASS | 已区分设计契约与部署/运行证据；P3-E01～E06保留下游门禁，不前置阻断SDS |
-| 08a领域实体迁移对齐 | PASS-DESIGN-WITH-GATE | 全部显式数据对象已有迁移策略；P3-E09已放行SDS/Feature数据模型输入；AI-MIG-000真实批次与字段级迁移执行仍待关闭 |
+| 08a领域实体迁移对齐 | PASS-DESIGN-WITH-GATE | 全部显式数据对象已有迁移策略；P3-E09当前新候选待fresh review，尚未放行SDS/Feature输入；AI-MIG-000真实批次与字段级迁移执行仍待关闭 |
 | 14 Security Design | READY_FOR_REVIEW | 逻辑控制与验证方案已形成；生产实例在部署/发布门禁登记 |
 | 17 Audit & Observability | READY_FOR_REVIEW | 审计、留存、采样、导出及Telemetry验收契约已形成；具体后端在部署时登记 |
 | 18 Deployment Design | READY_FOR_REVIEW | 制品、配置、前向迁移、发布、恢复和应用回退已定义；实际环境与演练下沉到对应门禁 |
@@ -22,7 +22,7 @@
 |---|---|
 | NFR有技术实现与验证方案 | PASS-DESIGN；运行证据按专项验收/发布门禁关闭 |
 | 发布、迁移、回退设计可执行 | PASS-DESIGN；目标环境实例在部署/发布前登记 |
-| 数据模型DDL/映射一致 | MODEL_BASELINE_READY（60表、1,240列、447项DDL约束/索引，哈希`5EB9742F…4249`，隔离MySQL 8.4.10执行PASS。84个对象、95项来源策略及10表V1.7差量已同步；1,883项为994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`，fresh independent review已在正式记录给出`GO`。`approvedDdlSha256`显式为空，仅由未来历史迁移门禁管理） |
+| 数据模型DDL/映射候选一致 | MODEL_BASELINE_REVIEW_PENDING（60表、1,240列、447项DDL约束/索引，哈希`5EB9742F…4249`，隔离MySQL 8.4.10执行PASS。84个对象、95项来源策略及10表V1.7差量已同步；1,883项为994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`。当前新候选待fresh review，上一轮GO不覆盖本轮变更；`approvedDdlSha256`显式为空，仅由未来历史迁移门禁管理） |
 | 安全与审计不存在明显设计缺口 | PASS-DESIGN；KMS/Telemetry实例在对应生产门禁关闭 |
 | 测试覆盖正常/异常/权限拒绝/幂等/并发 | PASS-DESIGN；运行证据未生成 |
 | 性能环境和数据集可复现 | DOWNSTREAM-BLOCKED（P3-E06阻断性能验收/生产发布） |
@@ -49,8 +49,8 @@ Phase 3逻辑设计和证据契约已达到基线复审条件，可以进行独�
 | P3-E06 | 不阻断 | DOWNSTREAM-GATED | 性能验收、生产发布 |
 | P3-E07 | 不阻断 | DOWNSTREAM-GATED | 对应Feature联调、发布 |
 | P3-E08 | 不阻断 | DOWNSTREAM-GATED | 前端Feature验收、发布 |
-| P3-E09 | 放行DATA_MODEL_BASELINE | MODEL_BASELINE_READY | 历史数据迁移实施、数据切换 |
+| P3-E09 | 当前阻断DATA_MODEL_BASELINE | MODEL_BASELINE_REVIEW_PENDING | 历史数据迁移实施、数据切换 |
 
 实现质量缺口：P3-E08（前端`ts:check`失败）不用于否定Phase 3逻辑设计，但阻塞任何前端Feature进入实现验收或正式发布。
 
-数据模型与迁移边界：P3-E09已在fresh reviewer精确`GO`与完整模型校验后发布`MODEL_BASELINE_READY`，可作为SDS/Feature数据模型输入；`AI-MIG-000`、历史数据迁移和数据切换仍为`OPEN`，未经真实批次验证不得执行。旧`passed=true`不作为当前证据。
+数据模型与迁移边界：P3-E09当前新候选待fresh review；上一轮GO不覆盖本轮复审校验变更，持续阻断`DATA_MODEL_BASELINE`与SDS/Feature输入；`AI-MIG-000`、历史数据迁移和数据切换仍为`OPEN`，未经真实批次验证不得执行。旧`passed=true`不作为当前证据。

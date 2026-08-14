@@ -17,7 +17,7 @@ SYNC_FACTS = {
     "v17DeltaStatus", "requirementOwnerConfirmation", "q07Decision", "q08Decision",
     "isolatedMysqlExecution", "targetCatalogDdlSha256", "mappingDdlSha256",
     "validationDdlSha256", "manifestDdlSha256", "itemsSha256", "itemIdsSha256",
-    "mysql84DdlSha256", "independentReviewResult", "independentReviewRef", "candidateCommit",
+    "mysql84DdlSha256", "independentReviewResult", "independentReviewRef", "candidateCommit", "reviewDate", "reviewRange",
 }
 
 
@@ -67,7 +67,7 @@ def main() -> int:
         if path.read_text(encoding="utf-8") != expected_text:
             print("[FAIL] Phase 3 P3-E09 requirement confirmation drift")
             return 1
-        print("[PASS] Phase 3 P3-E09 model baseline is ready; migration remains blocked")
+        print("[PASS] Phase 3 P3-E09 model baseline state synchronized; migration remains blocked")
         return 0
     path.write_text(expected_text, encoding="utf-8", newline="\n")
     print(f"[WRITE] {REGISTER.as_posix()}")

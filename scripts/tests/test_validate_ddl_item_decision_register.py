@@ -65,16 +65,19 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
             review_ref = "docs/engineering/gates/phase-3/independent-review.md"
             review_path = root / review_ref
             review_path.parent.mkdir(parents=True)
+            items = [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"}]
+            items_sha = VALIDATOR.canonical_sha(items)
             review_path.write_text(
                 "> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`\n"
-                "> ddlSha256: `CURRENT`\n> itemsSha256: `ITEMS`\n> itemCount: `1`\n"
-                "> deferCount: `0`\n> testResult: `PASS`\n",
+                f"> ddlSha256: `CURRENT`\n> itemsSha256: `{items_sha}`\n> itemCount: `1`\n"
+                "> deferCount: `0`\n> testResult: `PASS`\n> reviewDate: `2026-08-14`\n"
+                "> reviewRange: `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`\n",
                 encoding="utf-8",
             )
             register = {
                 "currentDdlSha256": "CURRENT",
-                "itemsSha256": "ITEMS",
-                "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"}],
+                "itemsSha256": items_sha,
+                "items": items,
             }
             evidence = {
                 "currentDdlSha256": "CURRENT",
@@ -82,20 +85,23 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
                 "mappingDdlSha256": "CURRENT",
                 "validationDdlSha256": "CURRENT",
                 "manifestDdlSha256": "CURRENT",
-                "itemsSha256": "ITEMS",
+                "itemsSha256": items_sha,
                 "itemIdsSha256": VALIDATOR.item_ids_sha256(register["items"]),
                 "deferredItemCount": 0,
                 "mysql84DdlSha256": "CURRENT",
                 "independentReviewResult": "GO",
                 "independentReviewRef": review_ref,
                 "candidateCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "reviewDate": "2026-08-14",
+                "reviewRange": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "decisionOwner": "requirement-owner",
                 "reviewOwner": "independent-reviewer",
                 "evidenceRefs": [review_ref],
                 "approvedDdlSha256": None,
                 "isolatedMysqlExecution": {"status": "PASS"},
             }
-            with patch.object(POLICY, "candidate_commit_errors", return_value=[]):
+            with patch.object(POLICY, "candidate_commit_errors", return_value=[]), \
+                 patch.object(POLICY, "review_range_errors", return_value=[]):
                 self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence, root=root))
 
     def test_catalog_baseline_is_loaded_from_historical_hash(self) -> None:

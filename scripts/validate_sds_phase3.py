@@ -17,6 +17,12 @@ DESIGN_FILES = (
     "20-test-design.md",
 )
 EXPECTED_REQUIREMENT_COUNT = 103
+P3E09_STATE_ASSETS = (
+    "docs/decisions/0022-core-migration-schema-and-key-policy.md",
+    "specs/001-project-delivery-platform/appendices/project-order-migration-mapping.md",
+    "specs/001-project-delivery-platform/appendices/data-migration-and-core-business-ai-handoff.md",
+    "specs/001-project-delivery-platform/appendices/core-field-migration-completeness.md",
+)
 REQUIREMENT_HEADING = re.compile(r"^###\s+([A-Z]+-\d+)\s*$", re.M)
 PHASE3_TEST = re.compile(r"^- Phase 3测试类别：(.+?)\s*$", re.M)
 PHASE3_EVIDENCE = re.compile(r"^- Phase 3证据类型：(.+?)\s*$", re.M)
@@ -123,10 +129,11 @@ def validate(root: Path) -> list[str]:
         errors.append("missing Phase 3 gate status")
     else:
         gate = gate_path.read_text(encoding="utf-8")
+        required_model_status = "MODEL_BASELINE_REVIEW_PENDING" if "MODEL_BASELINE_REVIEW_PENDING" in gate else "MODEL_BASELINE_READY"
         require_tokens(errors, "Phase 3 gate", gate, (
             "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE", "P3-E01", "P3-E02", "P3-E03",
             "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "DOWNSTREAM-GATED",
-            "MODEL_BASELINE_READY",
+            required_model_status,
         ))
         if "MODEL_BASELINE_REVIEW_PENDING" in gate:
             for baseline_claim in (
@@ -136,6 +143,23 @@ def validate(root: Path) -> list[str]:
             ):
                 if baseline_claim in gate:
                     errors.append(f"Phase 3 gate contains premature P3-E09 baseline claim: {baseline_claim}")
+        pending = required_model_status == "MODEL_BASELINE_REVIEW_PENDING"
+        for relative_path in P3E09_STATE_ASSETS:
+            asset_path = root / relative_path
+            if not asset_path.exists():
+                errors.append(f"missing P3-E09 state asset: {relative_path}")
+                continue
+            asset = asset_path.read_text(encoding="utf-8")
+            if pending:
+                if "当前新候选待fresh review" not in asset:
+                    errors.append(f"P3-E09 pending state missing fresh-review notice: {relative_path}")
+                if "模型基线已发布" in asset:
+                    errors.append(f"P3-E09 pending state contains published baseline claim: {relative_path}")
+            else:
+                if "正式独立复审已GO、模型基线已发布" not in asset:
+                    errors.append(f"P3-E09 ready state missing formal GO publication: {relative_path}")
+                if "当前新候选待fresh review" in asset:
+                    errors.append(f"P3-E09 ready state retains pending review notice: {relative_path}")
     register_validator_path = Path(__file__).with_name("validate_phase3_evidence_register.py")
     register_path = root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json"
     if not register_validator_path.exists() or not register_path.exists():

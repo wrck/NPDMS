@@ -287,9 +287,9 @@
         },
         {
             "id": "P3-E09",
-            "status": "VERIFIED",
+            "status": "OPEN",
             "decisionOwner": "REQUIREMENT_OWNER",
-            "reviewOwner": "INDEPENDENT_REVIEWER",
+            "reviewOwner": null,
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
@@ -298,7 +298,7 @@
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "ACCEPT_CURRENT",
                 "decisionRegisterItemCount": 1883,
-                "modelDecisionStatus": "MODEL_BASELINE_READY",
+                "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
                 "deferredItemCount": 0,
                 "approvedDdlSha256": null,
                 "q03DecisionStatus": "ACCEPTED",
@@ -340,19 +340,21 @@
                     "decisionRef": "ADR-0028",
                     "groupCount": 9,
                     "confirmedUniqueItemCount": 695,
-                    "reviewStatus": "INDEPENDENT_REVIEWED_GO"
+                    "reviewStatus": "REVIEW_PENDING"
                 },
                 "v17DeltaStatus": "ACCEPTED",
                 "mappingDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "candidateCommit": "c1b87b19a9b4e9e1e16034f3bdc1de92b701074b",
+                "candidateCommit": null,
                 "itemIdsSha256": "3C40BB7B02F4DC3B588BF09D32564A6C175098518FC30173D27F15F6810A78F1",
                 "manifestDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "independentReviewRef": "docs/engineering/gates/phase-3/independent-review.md",
+                "independentReviewRef": null,
                 "targetCatalogDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
                 "mysql84DdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
                 "validationDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "independentReviewResult": "GO",
-                "itemsSha256": "36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D"
+                "independentReviewResult": null,
+                "itemsSha256": "36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D",
+                "reviewDate": null,
+                "reviewRange": null
             },
             "evidenceRefs": [
                 "docs/decisions/0004-phase3-production-assurance-directions.md",

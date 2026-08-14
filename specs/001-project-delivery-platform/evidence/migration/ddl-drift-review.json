@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T06:35:01.822891+00:00",
+  "generatedAt": "2026-08-14T06:58:20.009580+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {

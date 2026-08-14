@@ -96,7 +96,7 @@ Required fields：当前DDL hash、`ddl-item-decision-register.json`逐项漂移
 
 需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，按Q07～Q14及V1.7九组覆盖全部692项`DEFER`并绑定当前DDL哈希。`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`保留全部表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号；1,883项逐项决策已完成。独立复审只在`independent-review.md`复核候选制品的整体一致性，不逐项签署。
 
-Acceptance（已满足的数据模型输入条件）：逐项登记的表、列、约束和表选项均有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；fresh independent review 已在正式记录写入`GO`；正式制品形成Git基线提交。全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。P3-E09已为`MODEL_BASELINE_READY`并可作为SDS/Feature模型输入；`AI-MIG-000`、历史数据迁移和数据切换保持`OPEN`，未经真实批次验证不得执行。
+Acceptance（当前候选已满足的事实条件）：逐项登记的表、列、约束和表选项均有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；正式制品形成Git基线提交。全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。当前新候选待fresh review，上一轮GO不覆盖本轮复审校验变更；P3-E09为`MODEL_BASELINE_REVIEW_PENDING`且不得作为SDS/Feature模型输入。`AI-MIG-000`、历史数据迁移和数据切换保持`OPEN`，未经真实批次验证不得执行。
 
 ## 3. 状态定义
 

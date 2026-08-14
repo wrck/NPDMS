@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,6 +17,8 @@ SPEC.loader.exec_module(POLICY)
 
 class P3E09ApprovalPolicyTest(unittest.TestCase):
     CANDIDATE_COMMIT = "a" * 40
+    REVIEW_DATE = "2026-08-14"
+    REVIEW_RANGE = "b" * 40 + ".." + CANDIDATE_COMMIT
 
     def write_review(self, **overrides: str) -> None:
         fields = {
@@ -23,10 +26,12 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "conclusion": "GO",
             "candidateCommit": self.CANDIDATE_COMMIT,
             "ddlSha256": "DDL",
-            "itemsSha256": "ITEMS",
+            "itemsSha256": self.register["itemsSha256"],
             "itemCount": "2",
             "deferCount": "0",
             "testResult": "PASS",
+            "reviewDate": self.REVIEW_DATE,
+            "reviewRange": self.REVIEW_RANGE,
             **overrides,
         }
         content = "\n".join(f"> {name}: `{value}`" for name, value in fields.items()) + "\n"
@@ -41,19 +46,19 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         review_path.write_text("", encoding="utf-8")
         self.register = {
             "currentDdlSha256": "DDL",
-            "itemsSha256": "ITEMS",
             "items": [
                 {"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"},
                 {"itemId": "TABLE:a", "decision": "AMEND_CURRENT"},
             ],
         }
+        self.register["itemsSha256"] = POLICY.canonical_items_sha256(self.register["items"])
         self.evidence = {
             "currentDdlSha256": "DDL",
             "targetCatalogDdlSha256": "DDL",
             "mappingDdlSha256": "DDL",
             "validationDdlSha256": "DDL",
             "manifestDdlSha256": "DDL",
-            "itemsSha256": "ITEMS",
+            "itemsSha256": self.register["itemsSha256"],
             "itemIdsSha256": POLICY.item_ids_sha256(self.register["items"]),
             "deferredItemCount": 0,
             "mysql84DdlSha256": "DDL",
@@ -65,13 +70,18 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "reviewOwner": "independent-reviewer",
             "evidenceRefs": [self.review_ref],
             "isolatedMysqlExecution": {"status": "PASS"},
+            "reviewDate": self.REVIEW_DATE,
+            "reviewRange": self.REVIEW_RANGE,
         }
         self.write_review()
         self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
         self.candidate_check.start()
+        self.range_check = patch.object(POLICY, "review_range_errors", return_value=[])
+        self.range_check.start()
 
     def tearDown(self) -> None:
         self.candidate_check.stop()
+        self.range_check.stop()
         self.temp.cleanup()
 
     def test_complete_model_evidence_allows_sds_without_migration_approval(self) -> None:
@@ -151,6 +161,8 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "itemCount": "1882",
             "deferCount": "1",
             "testResult": "FAIL",
+            "reviewDate": "2026-08-15",
+            "reviewRange": "c" * 40 + ".." + self.CANDIDATE_COMMIT,
         }.items():
             with self.subTest(field=field):
                 self.write_review(**{field: value})
@@ -174,6 +186,16 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.write_review(testResult="FAIL")
         errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
         self.assertTrue(any("testResult must be PASS" in error for error in errors))
+
+    def test_model_baseline_rejects_invalid_review_date(self) -> None:
+        self.write_review(reviewDate="2026/08/14")
+        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+        self.assertTrue(any("reviewDate must be ISO" in error for error in errors))
+
+    def test_model_baseline_rejects_mismatched_review_range(self) -> None:
+        self.write_review(reviewRange="c" * 40 + ".." + self.CANDIDATE_COMMIT)
+        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+        self.assertTrue(any("independent review reviewRange mismatch" in error for error in errors))
 
     def test_model_baseline_rejects_non_pass_isolated_mysql_result(self) -> None:
         self.evidence["isolatedMysqlExecution"] = {"status": "FAIL"}
@@ -216,7 +238,10 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
 
     def test_candidate_commit_rejects_mismatched_model_artifacts(self) -> None:
         self.candidate_check.stop()
-        candidate_register = b'{"currentDdlSha256":"DDL","itemsSha256":"OTHER"}'
+        candidate_items = [{"itemId": "COLUMN:a:id", "decision": "DEFER"}]
+        candidate_register = json.dumps({
+            "currentDdlSha256": "DDL", "itemsSha256": "ITEMS", "items": candidate_items,
+        }).encode("utf-8")
         results = iter((
             type("Completed", (), {"returncode": 0, "stdout": b""})(),
             type("Completed", (), {"returncode": 0, "stdout": b""})(),
@@ -234,7 +259,26 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
         self.candidate_check.start()
         self.assertTrue(any("current DDL artifact differs" in error for error in errors))
-        self.assertTrue(any("decision register item hash mismatch" in error for error in errors))
+        self.assertTrue(any("does not match canonical items" in error for error in errors))
+
+    def test_candidate_commit_rejects_changed_items_with_stale_declared_hash(self) -> None:
+        self.candidate_check.stop()
+        candidate_items = [{"itemId": "COLUMN:a:id", "decision": "DEFER"}]
+        candidate_register = json.dumps({
+            "currentDdlSha256": "DDL", "itemsSha256": "ITEMS", "items": candidate_items,
+        }).encode("utf-8")
+        results = iter((
+            type("Completed", (), {"returncode": 0, "stdout": b""})(),
+            type("Completed", (), {"returncode": 0, "stdout": b""})(),
+            type("Completed", (), {"returncode": 0, "stdout": b"DDL"})(),
+            type("Completed", (), {"returncode": 0, "stdout": b"DDL"})(),
+            type("Completed", (), {"returncode": 0, "stdout": candidate_register})(),
+        ))
+        with patch.object(POLICY.subprocess, "run", side_effect=lambda *_args, **_kwargs: next(results)):
+            errors = POLICY.candidate_commit_errors(self.root, self.CANDIDATE_COMMIT, "DDL", "ITEMS")
+        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
+        self.candidate_check.start()
+        self.assertTrue(any("does not match canonical items" in error for error in errors))
 
 
 if __name__ == "__main__":

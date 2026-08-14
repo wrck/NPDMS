@@ -22,13 +22,15 @@ FORMAL_GO_CONCLUSION = re.compile(r"(?mi)^\s*(?:独立复审\s*)?结论\s*[：:]
 FORMAL_NO_GO_TOKEN = re.compile(r"(?i)(?<![A-Z])NO[-_ ]?GO(?![A-Z])")
 FORMAL_REVIEW_FIELDS = (
     "status", "conclusion", "candidateCommit", "ddlSha256", "itemsSha256",
-    "itemCount", "deferCount", "testResult",
+    "itemCount", "deferCount", "testResult", "reviewDate", "reviewRange",
 )
 FORMAL_REVIEW_FIELD = re.compile(
-    r"(?mi)^\s*>?\s*(status|conclusion|candidateCommit|ddlSha256|itemsSha256|itemCount|deferCount|testResult)\s*[：:]\s*`?([^`\r\n<]+?)`?\s*(?:<br>)?\s*$"
+    r"(?mi)^\s*>?\s*(status|conclusion|candidateCommit|ddlSha256|itemsSha256|itemCount|deferCount|testResult|reviewDate|reviewRange)\s*[：:]\s*`?([^`\r\n<]+?)`?\s*(?:<br>)?\s*$"
 )
 FORMAL_REVIEW_CONTRADICTION = re.compile(r"(?mi)\bIN_REVIEW\b|\bPENDING(?:_[A-Z_]+)?\b|不是\s*`?GO`?|不得[^\n]*GO")
 FULL_GIT_COMMIT = re.compile(r"^[0-9a-fA-F]{40}$")
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+REVIEW_RANGE = re.compile(r"^([0-9a-fA-F]{40})\.\.([0-9a-fA-F]{40})$")
 CANDIDATE_DDL_PATH = "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql"
 CANDIDATE_REGISTER_PATH = "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
 
@@ -40,6 +42,11 @@ def sha256_bytes(data: bytes) -> str:
 def item_ids_sha256(items: list[dict[str, object]]) -> str:
     identifiers = sorted(str(item.get("itemId")) for item in items)
     canonical = json.dumps(identifiers, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return sha256_bytes(canonical)
+
+
+def canonical_items_sha256(items: list[dict[str, object]]) -> str:
+    canonical = json.dumps(items, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return sha256_bytes(canonical)
 
 
@@ -90,6 +97,8 @@ def formal_review_errors(
         "itemCount": str(len(register.get("items", []))),
         "deferCount": "0",
         "testResult": "PASS",
+        "reviewDate": str(evidence.get("reviewDate", "")),
+        "reviewRange": str(evidence.get("reviewRange", "")),
     }
     for field, value in expected.items():
         if not value:
@@ -100,6 +109,8 @@ def formal_review_errors(
         errors.append("P3-E09 independent review conclusion must match independentReviewResult")
     if fields.get("testResult") != "PASS":
         errors.append("P3-E09 independent review testResult must be PASS")
+    if not ISO_DATE.fullmatch(fields.get("reviewDate", "")):
+        errors.append("P3-E09 independent review reviewDate must be ISO YYYY-MM-DD")
     if FORMAL_REVIEW_CONTRADICTION.search(review_text):
         errors.append("P3-E09 independent review contains pending or non-GO contradiction")
     return errors
@@ -159,9 +170,38 @@ def candidate_commit_errors(
         return [*errors, "P3-E09 candidateCommit DDL decision register is invalid JSON"]
     if candidate_register.get("currentDdlSha256") != current_ddl_sha256:
         errors.append("P3-E09 candidateCommit decision register DDL hash mismatch")
-    if candidate_register.get("itemsSha256") != items_sha256:
+    candidate_items = candidate_register.get("items")
+    if not isinstance(candidate_items, list) or not all(isinstance(item, dict) for item in candidate_items):
+        return [*errors, "P3-E09 candidateCommit decision register items are invalid"]
+    candidate_calculated_sha = canonical_items_sha256(candidate_items)
+    candidate_declared_sha = candidate_register.get("itemsSha256")
+    if candidate_declared_sha != candidate_calculated_sha:
+        errors.append("P3-E09 candidateCommit decision register itemsSha256 does not match canonical items")
+    if candidate_declared_sha != items_sha256:
         errors.append("P3-E09 candidateCommit decision register item hash mismatch")
+    if candidate_calculated_sha != items_sha256:
+        errors.append("P3-E09 candidateCommit canonical decision items hash mismatch")
     return errors
+
+
+def review_range_errors(root: Path, review_range: object, candidate_commit: object) -> list[str]:
+    if not isinstance(review_range, str) or not (match := REVIEW_RANGE.fullmatch(review_range)):
+        return ["P3-E09 reviewRange must be two full 40-character commits joined by .."]
+    base_commit, range_candidate = match.groups()
+    if range_candidate.lower() != str(candidate_commit).lower():
+        return ["P3-E09 reviewRange must end at candidateCommit"]
+    command_prefix = ["git", "-C", str(root)]
+    for label, commit in (("base", base_commit), ("candidate", range_candidate)):
+        result = subprocess.run([*command_prefix, "cat-file", "-e", f"{commit}^{{commit}}"], capture_output=True, check=False)
+        if result.returncode != 0:
+            return [f"P3-E09 reviewRange {label} does not resolve to a Git commit object"]
+    base_ancestor = subprocess.run([*command_prefix, "merge-base", "--is-ancestor", base_commit, range_candidate], capture_output=True, check=False)
+    if base_ancestor.returncode != 0:
+        return ["P3-E09 reviewRange base is not reachable from candidateCommit"]
+    candidate_ancestor = subprocess.run([*command_prefix, "merge-base", "--is-ancestor", range_candidate, "HEAD"], capture_output=True, check=False)
+    if candidate_ancestor.returncode != 0:
+        return ["P3-E09 reviewRange candidateCommit is not reachable from current HEAD"]
+    return []
 
 
 def model_baseline_review_status(
@@ -182,6 +222,8 @@ def model_baseline_review_status(
         "candidateCommit": fields.get("candidateCommit"),
         "independentReviewResult": "GO",
         "isolatedMysqlExecution": {"status": isolated_mysql_status},
+        "reviewDate": fields.get("reviewDate"),
+        "reviewRange": fields.get("reviewRange"),
     }
     errors = formal_review_errors(review_text, evidence, register)
     if not _has_explicit_independent_go(review_text):
@@ -192,6 +234,7 @@ def model_baseline_review_status(
         register.get("currentDdlSha256"),
         register.get("itemsSha256"),
     ))
+    errors.extend(review_range_errors(root, fields.get("reviewRange"), fields.get("candidateCommit")))
     if errors:
         raise ValueError("P3-E09 formal independent review GO is invalid: " + "; ".join(errors))
     return "MODEL_BASELINE_READY", fields
@@ -228,6 +271,8 @@ def validate_model_baseline(
             errors.append(f"P3-E09 {field} must bind the current DDL hash")
     if evidence.get("itemsSha256") != items_sha:
         errors.append("P3-E09 item hash mismatch")
+    if isinstance(items, list) and items_sha != canonical_items_sha256(items):
+        errors.append("P3-E09 decision register itemsSha256 must match canonical items")
     if evidence.get("itemIdsSha256") != item_ids_sha256(items):
         errors.append("P3-E09 item ID hash mismatch")
 
@@ -264,6 +309,11 @@ def validate_model_baseline(
             evidence.get("candidateCommit"),
             current_ddl,
             items_sha,
+        ))
+        errors.extend(review_range_errors(
+            root_path,
+            evidence.get("reviewRange"),
+            evidence.get("candidateCommit"),
         ))
         review_path = (root_path / review_ref.split("#", 1)[0]).resolve()
         try:

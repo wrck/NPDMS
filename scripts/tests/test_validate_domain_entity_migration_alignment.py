@@ -155,23 +155,27 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         commit_result = type("Completed", (), {"stdout": "TEST_COMMIT\n"})()
         clean_result = type("Completed", (), {"stdout": ""})()
         with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]), \
-             patch.object(POLICY, "candidate_commit_errors", return_value=[]):
+             patch.object(POLICY, "candidate_commit_errors", return_value=[]), \
+             patch.object(POLICY, "review_range_errors", return_value=[]):
             return VALIDATOR.validate(self.root, self.impl)
 
     def _enable_model_ready_with_null_migration_approval(self) -> None:
         ddl_sha = self.ddl_review["inputs"]["currentDdlSha256"]
         candidate_commit = "a" * 40
+        items = [{"itemId": "COLUMN:proj_project:id", "decision": "ACCEPT_CURRENT"}]
+        items_sha = POLICY.canonical_items_sha256(items)
         register = {
             "currentDdlSha256": ddl_sha,
-            "itemsSha256": "ITEMS",
-            "items": [{"itemId": "COLUMN:proj_project:id", "decision": "ACCEPT_CURRENT"}],
+            "itemsSha256": items_sha,
+            "items": items,
         }
         self._write_json("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json", register)
         review_ref = "docs/engineering/gates/phase-3/independent-review.md"
         (self.root / review_ref).write_text(
             f"> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `{candidate_commit}`\n"
-            f"> ddlSha256: `{ddl_sha}`\n> itemsSha256: `ITEMS`\n> itemCount: `1`\n"
-            "> deferCount: `0`\n> testResult: `PASS`\n",
+            f"> ddlSha256: `{ddl_sha}`\n> itemsSha256: `{items_sha}`\n> itemCount: `1`\n"
+            "> deferCount: `0`\n> testResult: `PASS`\n> reviewDate: `2026-08-14`\n"
+            f"> reviewRange: `{'b' * 40}..{candidate_commit}`\n",
             encoding="utf-8",
         )
         facts = {
@@ -181,7 +185,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             "mappingDdlSha256": ddl_sha,
             "validationDdlSha256": ddl_sha,
             "manifestDdlSha256": ddl_sha,
-            "itemsSha256": "ITEMS",
+            "itemsSha256": items_sha,
             "itemIdsSha256": VALIDATOR.item_ids_sha256(register["items"]),
             "deferredItemCount": 0,
             "mysql84DdlSha256": ddl_sha,
@@ -189,6 +193,8 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             "independentReviewResult": "GO",
             "independentReviewRef": review_ref,
             "candidateCommit": candidate_commit,
+            "reviewDate": "2026-08-14",
+            "reviewRange": f"{'b' * 40}..{candidate_commit}",
             "approvedDdlSha256": None,
         }
         item = self.gate["items"][0]

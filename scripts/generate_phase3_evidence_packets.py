@@ -191,6 +191,8 @@ def build_packets() -> dict[str, dict[str, object]]:
                     "independentReviewResult": "GO" if model_status == "MODEL_BASELINE_READY" else None,
                     "independentReviewRef": P3E09_INDEPENDENT_REVIEW_REF if model_status == "MODEL_BASELINE_READY" else None,
                     "candidateCommit": review_fields.get("candidateCommit") if model_status == "MODEL_BASELINE_READY" else None,
+                    "reviewDate": review_fields.get("reviewDate") if model_status == "MODEL_BASELINE_READY" else None,
+                    "reviewRange": review_fields.get("reviewRange") if model_status == "MODEL_BASELINE_READY" else None,
                     "v17DeltaStatus": contract["v17Delta"]["status"],
                     "requirementOwnerConfirmation": {
                         "status": contract["p3e09RequirementOwnerConfirmation"]["status"],
