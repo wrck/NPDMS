@@ -4,7 +4,7 @@
   "baseline": "PRD_V1.7",
   "implementationRepo": "E:\\AICoding\\Projects\\NPDMS",
   "implementationCommit": "856d05264ab4a4fb69b94896c172e4a1c29aae02",
-  "implementationTreeState": "CLEAN",
+  "implementationEvidenceMode": "PINNED_GIT_COMMIT",
   "bindingStatistics": {
     "allBindingCount": 40,
     "v17BindingCount": 18,

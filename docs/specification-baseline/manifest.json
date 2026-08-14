@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "b7c9d2a8de04391637aef942bc200ff43aec2122"
+    "commit": "8c047604bc54d0111c12da67b971e9149bf0c0ee"
   },
   "files": [
     {
@@ -13,12 +13,12 @@
     {
       "path": "docs/baseline/prd-v1.7.md",
       "category": "BASELINE",
-      "sha256": "400ebcd6a33f1066eaf732e4c018af8050b7a2a34a1462cca0090b83eff7e249"
+      "sha256": "b326cd56544bd4462b32c897843fdd4437f98f5f2fb021ef6e0c1e9a02b9ea11"
     },
     {
       "path": "docs/baseline/requirement-baseline.yaml",
       "category": "BASELINE",
-      "sha256": "d3bae351d9f806630aa4662846132e4ff31193f8af1a714f5df71c0c8021127e"
+      "sha256": "3abb27ff25e0f72a9beea63b797865e261bf16b6a04e5c5085a3109f0cf11c08"
     },
     {
       "path": "docs/decisions/0001-project-order-line-scope-model.md",
@@ -168,12 +168,12 @@
     {
       "path": "docs/decisions/open-questions.md",
       "category": "DECISION",
-      "sha256": "17e764953f5412d3d82038871b0a1ce8b505fa1ddaf7f1fbf7a4067735162904"
+      "sha256": "7f9e4d3140dc77b34bf96dc89d3e13f043502a60235bae7556b6613be097b6f5"
     },
     {
       "path": "docs/design/01-requirement-traceability.md",
       "category": "SDS",
-      "sha256": "e8e8bc86146a6de3369e05e490fcada7efed4f6bdf784ebbab6c5fd43ed63094"
+      "sha256": "8db1cf998a7dc0507148c8f460306a5ce9c068a4bcc9d6eef468df4e8f8bf7ab"
     },
     {
       "path": "docs/design/02-domain-model.md",
@@ -233,37 +233,37 @@
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "b2cda8ba0fd5d1b66b3ca58a873365ab5f6a16fc888b3382a7734f03e7a61f54"
+      "sha256": "75d7f0b6e0fd534d5a1a17537fbee28fc1042d5eb037c5efb491f826f5554b85"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
       "category": "SDS",
-      "sha256": "f15724c1cb3d3d61806765994d50c0bd406fc26148790fdbcba638bf0eaf8b62"
+      "sha256": "600246ef3f0711ba46db32fab41de05389aae274cef8f820c382abaa739bbfe3"
     },
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "e368099d2f37cf7cbb509e0ff45a5afe5a6d9dabd100c8d9ba118b4031b329ef"
+      "sha256": "1545012a723bf865b8391d368355cc081121711ba11ff01285b3d0a0ecc77325"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "d55b994b42c717d7fafd17fcc0ef774be418f7050b62cb7ef993ee32562b9f82"
+      "sha256": "ba7fd53617a5caf0b86e3678e20908ffd7ae7e24c6a2cc4aadcc5927e482c2fd"
     },
     {
       "path": "docs/design/11-event-design.md",
       "category": "SDS",
-      "sha256": "c4a65fc023a2d2d0861e6dd16ff059456c59a83d3d0e70140060758ecb6d6fb3"
+      "sha256": "89e6730d5c73482d0597e0fd66818420e42a996f8d2dae32e7cf3619b770183b"
     },
     {
       "path": "docs/design/12-integration-design.md",
       "category": "SDS",
-      "sha256": "5960cc139ccea0e6e574ee18bbfb42f374742a0fa82ba95796bd23cf7902208f"
+      "sha256": "165b0927f807a0ff7a2259ea8e1ece3438624855368f94e0c680bdea24604597"
     },
     {
       "path": "docs/design/13-file-design.md",
       "category": "SDS",
-      "sha256": "2edd3a57d675c758d26944dcaa561d4c7fa2a3986a3c2ed7b896abfe94f14066"
+      "sha256": "7547fac2ef55e8c96e7b08d9f47cd05b3ebfeb23989802762bf1a9c68d9c3d15"
     },
     {
       "path": "docs/design/14-security-design.md",
@@ -273,12 +273,12 @@
     {
       "path": "docs/design/15-cache-and-concurrency.md",
       "category": "SDS",
-      "sha256": "f6f5c00da169b6cdd63299dab20be9eacb76f37210f9a6a23709a1a9803ce376"
+      "sha256": "7ef0710ec7051b85be1cc3ce6cff058cfd49330528ec24c4c321d0ac71866865"
     },
     {
       "path": "docs/design/16-exception-and-idempotency.md",
       "category": "SDS",
-      "sha256": "711a9188216ba30976b95ce2d6291f21c8bd2f855916b7de10ba0c1f5e9baf12"
+      "sha256": "c155fc28caebcce16b5a66e638420ca91c6fb464ed1d5bced442b6ca6bfb2930"
     },
     {
       "path": "docs/design/17-audit-and-observability.md",
@@ -323,12 +323,32 @@
     {
       "path": "docs/engineering/gates/phase-1/gate-status.md",
       "category": "ENGINEERING",
-      "sha256": "6e606ce27dd335154fff7abb14cfbbb377f687e4e6caf3b8fe8f8e259f813bec"
+      "sha256": "6bc89ef3be3ef8276657a24189a23719b64d932e6ce764734973b52c22a4ed46"
+    },
+    {
+      "path": "docs/engineering/gates/phase-2/README.md",
+      "category": "ENGINEERING",
+      "sha256": "fb19bf32c781450a45e6a058085364b452cba2bad008e31c14886647205e4cb1"
+    },
+    {
+      "path": "docs/engineering/gates/phase-2/gate-status.md",
+      "category": "ENGINEERING",
+      "sha256": "b9b036d55c148419a4b644106d84af7588743a8287308957a3e16398f8ea2005"
+    },
+    {
+      "path": "docs/engineering/gates/phase-3/README.md",
+      "category": "ENGINEERING",
+      "sha256": "87931da95d77a8086f6d70adb5b9bbb2837a647fb6b4018fa74b75da2fceb751"
+    },
+    {
+      "path": "docs/engineering/gates/phase-3/gate-status.md",
+      "category": "ENGINEERING",
+      "sha256": "e60c2d9be29cc7ebd10520dccd6220804d6cb7a325520417b6bdf5e626e29dbf"
     },
     {
       "path": "docs/traceability/business-feedback-change-map.md",
       "category": "TRACEABILITY",
-      "sha256": "95cbddee6f7682c8894740096fa774674d71ae3e66c664e027449c210cdb934d"
+      "sha256": "a62eae13a1d12969d465b26fdecba6f08d11270ab09ab7d415d839bb074cc890"
     },
     {
       "path": "docs/traceability/core-migration-schema-contract.json",
@@ -343,7 +363,7 @@
     {
       "path": "docs/traceability/domain-entity-migration-contract.json",
       "category": "TRACEABILITY",
-      "sha256": "0e3e353fa9be9d983f71b53250de48c87fb2e6c070eab73f4a7f08def1775c1e"
+      "sha256": "b65caab8b76931d1ffc81007dd49b533dc4d2fa2c9acb8efb0c869c0ac01d3fe"
     },
     {
       "path": "docs/traceability/domain-entity-migration-contract.md",
@@ -373,7 +393,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "4849dede996273c55bb39b235e92ffeb1e93b725da6847c986cf5356134a2da4"
+      "sha256": "b9f750aa79b09ba68941421bad8c0a02f95e5b28e10fca14c33b4f5c3d1d279c"
     },
     {
       "path": "specs/001-project-delivery-platform/00-master-spec.md",

@@ -29,13 +29,27 @@ from specification_baseline import (
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_111_files(self) -> None:
+    def test_allowlist_contains_exactly_115_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(111, len(entries))
-        self.assertEqual(111, len({entry.path for entry in entries}))
+        self.assertEqual(115, len(entries))
+        self.assertEqual(115, len({entry.path for entry in entries}))
+
+    def test_accepts_only_current_phase_gate_entry_paths(self) -> None:
+        current_gate_paths = (
+            "docs/engineering/gates/phase-1/README.md",
+            "docs/engineering/gates/phase-1/gate-status.md",
+            "docs/engineering/gates/phase-2/README.md",
+            "docs/engineering/gates/phase-2/gate-status.md",
+            "docs/engineering/gates/phase-3/README.md",
+            "docs/engineering/gates/phase-3/gate-status.md",
+        )
+
+        for path in current_gate_paths:
+            with self.subTest(path=path):
+                validate_relative_path(path, "ENGINEERING")
 
     def test_current_phase_1_gate_is_approved_and_ready_for_phase_2(self) -> None:
         repository = Path(__file__).resolve().parents[2]
@@ -73,7 +87,11 @@ class SpecificationBaselinePathTest(unittest.TestCase):
 
     def test_rejects_forbidden_process_material(self) -> None:
         invalid_paths = (
-            "docs/engineering/gates/phase-3/gate-status.md",
+            "docs/engineering/gates/phase-2/independent-review.md",
+            "docs/engineering/gates/phase-2/self-review.md",
+            "docs/engineering/gates/phase-3/evidence-packet-templates/README.md",
+            "docs/engineering/gates/phase-3/independent-review.md",
+            "docs/engineering/gates/phase-3/self-review.md",
             "docs/superpowers/plans/internal.md",
             "docs/design/archive/old.md",
             "docs/design/input/external.md",

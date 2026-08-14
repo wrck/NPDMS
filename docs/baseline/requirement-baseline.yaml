@@ -5,7 +5,7 @@ baseline:
   frozen_at: 2026-08-14
   source: 需求/PRD-项目实施交付管理平台.md
   snapshot: docs/baseline/prd-v1.7.md
-  sha256: 400EBCD6A33F1066EAF732E4C018AF8050B7A2A34A1462CCA0090B83EFF7E249
+  sha256: B326CD56544BD4462B32C897843FDD4437F98F5F2FB021EF6E0C1E9A02B9EA11
 
 scope:
   formal_requirements: 103

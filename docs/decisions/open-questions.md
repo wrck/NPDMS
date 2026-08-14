@@ -25,6 +25,22 @@
 - Decision owner:
 - Decision date:
 
+## Phase 2历史资料承载决策
+
+### Q-P2-001
+
+- Status: RESOLVED
+- Requirement IDs: PRD 3.4、8.2；WO-01～WO-06、WO-08～WO-10（V3演进）；AI-MIG-000
+- Area: 历史工单、工时、附件、审批和操作证据的当前承载边界
+- Question: V1/V2是否提供历史工单/工时的用户只读查询、导出和附件访问，还是仅由迁移门禁保存不可变归档/来源证据？
+- Why it blocks design/implementation: 只有选择用户访问能力时才需要新增正式Requirement、Owner、领域对象、目标表、API、权限和迁移映射；在未批准这些内容前不得以“历史不可删除”反向创建当前产品能力。
+- Options: A. 建设V1/V2只读查询/导出；B. 仅由`AI-MIG-000`在批准真实批次内保存不可变来源载荷或受限迁移归档证据，无用户入口。
+- Recommended technical default: B；符合已确认的后置/排除优先原则，也避免为尚未识别的真实来源预建空壳对象和访问契约。
+- Business decision required: 当前V1/V2不需要新增确认；A属于范围扩展，只有独立PRD/Feature变更获批后才能启动。
+- Resolution: 采用B。V1/V2不提供历史工单/工时的菜单、查询、导出、附件访问、领域对象、目标表或迁移映射；`pm_project_maintenance`继续`EXCLUDED/NO_MIGRATION`。真实来源未来只有进入已批准`AI-MIG-000`批次时才保存不可变来源载荷或受限归档证据。若需用户访问，必须独立批准Owner、模型、API、项目/租户数据范围、附件权限、导出审计和来源映射。
+- Decision owner: 需求方（当前范围）；真实迁移批次由业务Owner、数据Owner和迁移负责人共同确认
+- Decision date: 2026-08-15
+
 ## Phase 3生产与发布门禁
 
 ### Q-P3-001

@@ -169,9 +169,9 @@
 | `/cutover-tasks/{id}/approval-actions/{approve|reject}` | POST | 按人工等级和冻结路由校验节点；任一评审项为否必须驳回并填写原因 |
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
 
-## 10. SRV：巡检、服务状态与历史资料 API
+## 10. SRV：巡检与服务状态 API
 
-适用 Requirement：INS-01～INS-09、SRV-01；历史资料读取边界依据ADR-0024，不构成当前工单/工时能力。
+适用 Requirement：INS-01～INS-09、SRV-01。
 
 | Context | API | 约束 |
 |---|---|---|
@@ -180,14 +180,15 @@
 | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
 | Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
-| Historical Service Records | `/historical-work-orders`、`/historical-time-records` | 仅授权查询/导出；无create/update/action接口；保留来源键、原状态、责任、附件、审批和操作证据，导出留痕 |
+
+历史工单、工时及其附件在V1/V2不提供用户查询、导出或文件访问API。`AI-MIG-000`在已批准真实批次内保存的不可变来源载荷或受限迁移归档仅用于迁移对账、问题调查和来源审计，不是SRV业务API；未来用户访问能力必须通过独立PRD/Feature变更重新批准。
 
 ## 11. CUS、AST、COM、RES 与 KNO API
 
 | Owner | Requirement | API | 关键边界 |
 |---|---|---|---|
 | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM 权威字段只读；临时客户显式标记来源 |
-| AST | EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/rma-replacements` | 设备归属用 `actions/assign-project`；同一时点唯一；维保为客观基本信息 |
+| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/rma-replacements` | 设备归属用 `actions/assign-project`；同一时点唯一；维保为客观基本信息 |
 | COM | COM-01～COM-02 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes`、`/fulfillment-reconciliations` | ERP合同/订单核心字段只读；CRM经营状态/履约回执独立展示；范围分配/释放为受控命令 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
@@ -198,7 +199,7 @@
 
 | Owner | Requirement | API | 规则 |
 |---|---|---|---|
-| ANA | RPT-01、RPT-02、RPT-04、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
+| ANA | RPT-02、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
 | PLT | PLT-01 | `/todos`、`/{id}/actions/complete` | 待办完成回调业务 Owner；不能自行宣告业务成功 |
 | PLT | PLT-02 | `/files:init-upload`、`/files/{id}:complete-upload`、`/files/{id}/versions`、`/file-references` | 文件 API 详见 13；下载实时校验业务权限 |
 | PLT | AUT-01～AUT-02 | `/authorization-grants` | 通用授权，不代替 DAC 凭证授权 |
@@ -311,6 +312,6 @@
 | 服务端授权不可绕过 | PASS | 第 4 节；租户/项目/设备/文件/凭证范围 |
 | 幂等和并发输入明确 | PASS | Idempotency-Key、If-Match、错误响应 |
 | 敏感信息不回显 | PASS | 第 13 节 write-only 临时秘密和掩码响应 |
-| 已排除能力无新接口 | PASS | 无续保、周报日报、工单时效和本地公告治理入口 |
+| 已排除/后置能力无新接口 | PASS | 无续保、周报日报、工单时效、历史工单/工时用户访问和本地公告治理入口 |
 
 本分册可进入事件、集成、文件和异常幂等交叉评审；接口正式发布前仍需生成 OpenAPI、契约测试和兼容清单。

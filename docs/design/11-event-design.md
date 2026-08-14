@@ -78,7 +78,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 
 ## 5. Project、Asset 与 Analytics 事件
 
-适用 Requirement：PM-01～PM-11、PROJ-12、EQP-01～EQP-07、AST-01～AST-02、RPT-01/02/04、ANA-01、INT-01/02/06。
+适用 Requirement：PM-01～PM-11、PROJ-12、EQP-01～EQP-05、EQP-07、AST-01～AST-02、RPT-02、ANA-01、INT-01/02/06。
 
 | 事件 | Producer | Consumer | 幂等/顺序 | 语义 |
 |---|---|---|---|---|
@@ -87,7 +87,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移 |
 | `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion | 项目关闭事实成立 |
 | `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion | 任务指派/完成事实 |
-| `ProjectConversionCompleted` | Project Delivery | IMP/CUT/WO/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
+| `ProjectConversionCompleted` | Project Delivery | IMP/CUT/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
 | `ProjectConversionPartiallyFailed` | Project Delivery | Todo/运维 | conversionId + aggregateVersion + failedItemRefs | 仅表示原批次仍待处理；成功项不回滚、不重复生成 |
 | `ProjectPhaseGroupChanged` | Project Delivery | Project Query/ANA | groupId + groupVersion + changedProjectIds | PM-06 多期关系有效版本变化；不改变成员项目自身状态 |
 | `ProjectPortfolioPublished` | Project Delivery | ANA/Portfolio Query | portfolioId + revision + memberSnapshotRef | PROJ-12组合版本已发布；不改变成员项目树、状态或权限 |

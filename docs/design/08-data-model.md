@@ -205,7 +205,7 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 
 ### 9.2 Asset Management
 
-适用 Requirement：EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06。
+适用 Requirement：EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06。
 
 | 聚合/实体 | 类型 | 规则 |
 |---|---|---|
@@ -253,7 +253,7 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 
 ### 10.1 Analytics
 
-适用 Requirement：RPT-01、RPT-02、RPT-04、ANA-01。
+适用 Requirement：RPT-02、ANA-01。
 
 | 对象 | 类型 | 规则 |
 |---|---|---|

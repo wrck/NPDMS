@@ -4,7 +4,7 @@
 > 批准依据：`docs/decisions/0024-business-feedback-change-baseline.md`<br>
 > 源基线：PRD V1.6，115项V1/V2正式需求<br>
 > 目标基线：PRD V1.7，103项V1/V2正式需求（V1 55、V2 48）
-> 目标PRD与快照SHA-256：`400EBCD6A33F1066EAF732E4C018AF8050B7A2A34A1462CCA0090B83EFF7E249`
+> 目标PRD与快照SHA-256：`B326CD56544BD4462B32C897843FDD4437F98F5F2FB021EF6E0C1E9A02B9EA11`
 
 本表只记录业务反馈导致的编号、Owner或版本边界变化。未列需求保持V1.6编号、Owner、优先级和版本语义；2026-08-14割接流程纠偏以ADR-0026为准，覆盖ADR-0024中WO-06迁移为CUT-11的旧结论。
 

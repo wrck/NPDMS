@@ -10,7 +10,7 @@
 
 | 检查项 | 结果 | 说明 |
 |---|---|---|
-| 104 项正式需求进入追溯 | PASS | 追溯矩阵 104/104，V1 55、V2 49；已按 ADR-0024 完成业务反馈差量重构，并补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别映射 |
+| 103 项正式需求进入追溯 | PASS | 追溯矩阵 103/103，V1 55、V2 48；已按 ADR-0024 完成业务反馈差量重构，并补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别映射 |
 | V1/V2/V3/OUT_OF_SCOPE 边界 | PASS | V3 和排除项未进入当前实现设计 |
 | Bounded Context | PASS | 已按 PRD-derived Owner 工作映射拆分，并由需求方确认；细化 Context 与平台能力边界已回写 |
 | 聚合边界 | PASS-WITH-FOLLOWUP | 项目、设备、采集、割接、巡检已分离；需在 Phase 2 落实表级边界 |
@@ -24,7 +24,7 @@
 | BLOCKED_BY_EVIDENCE | ABSENT | 实施仓库 `856d052` 已固化当前运行边界与 `q2-evidence-manifest.json`，定点复审通过 |
 | 是否足以进入 Data/API/Integration 设计 | YES | R-N01～R-N04 全部关闭，独立定点复审给出 GO |
 
-独立评审补充：Implementation Execution bounded context 可保留。命名后的 Context 整改已完成：新增 Device Access & Collection 作为正式采集 Context，并允许现有采集模块/子应用作为实现载体；SRV 内部拆为 Work Order & Time、Inspection、Service Operations；CUS/AST分别拆为 Customer & Relationship、Asset Management；COM保留必要主数据本地同步副本；Closure统一为 ProjectClosure。详见 `docs/engineering/gates/phase-1/context-refinement-review.md`。
+独立评审补充：Implementation Execution bounded context 可保留。命名后的 Context 整改已完成：新增 Device Access & Collection 作为正式采集 Context，并允许现有采集模块/子应用作为实现载体；SRV 当前范围拆为 Inspection、Service Operations，Work Order & Time 已退出 V1/V2；CUS/AST分别拆为 Customer & Relationship、Asset Management；COM保留必要主数据本地同步副本；Closure统一为 ProjectClosure。详见 `docs/engineering/gates/phase-1/context-refinement-review.md`。
 
 本轮确认记录：Q1 已确认当前 13 个领域 Owner 映射；Q3 已确认 V1 优先采用现有采集平台子应用集成。Q2 已登记实现仓库、锁定基线提交、基础平台来源和 NPDMS 开发数据库目标；需求方已确认统一证据批次号 `NPDMS-SDS-P1-20260812-01`，前端冻结安装与生产构建已在宿主机通过，构建配置已提交。
 

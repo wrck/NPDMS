@@ -36,6 +36,10 @@ CURRENT_GATE_PATHS = frozenset(
     {
         "docs/engineering/gates/phase-1/README.md",
         "docs/engineering/gates/phase-1/gate-status.md",
+        "docs/engineering/gates/phase-2/README.md",
+        "docs/engineering/gates/phase-2/gate-status.md",
+        "docs/engineering/gates/phase-3/README.md",
+        "docs/engineering/gates/phase-3/gate-status.md",
     }
 )
 MODEL_EVIDENCE_PATHS = frozenset(
