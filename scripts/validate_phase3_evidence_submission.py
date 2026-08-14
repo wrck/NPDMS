@@ -25,7 +25,8 @@ REQUIRED_FACTS = {
 }
 REQUIRED_P3_E09_FACTS = {
     "itemsSha256", "itemIdsSha256", "deferredItemCount", "mysql84DdlSha256",
-    "independentReviewResult", "independentReviewRef", *DDL_ARTIFACT_HASH_FIELDS,
+    "independentReviewResult", "independentReviewRef", "approvedDdlSha256",
+    *DDL_ARTIFACT_HASH_FIELDS,
 }
 REQUIRED_FACTS["P3-E09"] = REQUIRED_P3_E09_FACTS
 VALID_STATUS = {"DRAFT", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED"}

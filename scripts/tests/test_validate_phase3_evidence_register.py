@@ -109,6 +109,12 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         self.write()
         self.assertTrue(any("coverage mismatch" in error for error in VALIDATOR.validate(self.path)))
 
+    def test_e09_requires_explicit_empty_migration_approval_hash_fact(self) -> None:
+        e09 = next(item for item in self.payload["items"] if item["id"] == "P3-E09")
+        e09["confirmedFacts"].pop("approvedDdlSha256")
+        self.write()
+        self.assertTrue(any("must be explicitly present" in error for error in VALIDATOR.validate(self.path)))
+
     def test_wrong_direction_decision_is_detected(self) -> None:
         self.payload["items"][0]["confirmedFacts"]["directionDecision"] = "B"
         self.write()

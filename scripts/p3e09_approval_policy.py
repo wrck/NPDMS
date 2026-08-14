@@ -17,7 +17,6 @@ DDL_ARTIFACT_HASH_FIELDS = {
     "manifestDdlSha256",
 }
 FORMAL_REVIEW_PREFIXES = ("docs/engineering/gates/", "docs/decisions/")
-INDEPENDENT_REVIEW_MARKER = re.compile(r"(?m)^\s*独立复审(?:\s*结论)?(?:\s*[：:].*)?\s*$")
 FORMAL_GO_CONCLUSION = re.compile(r"(?mi)^\s*(?:独立复审\s*)?结论\s*[：:]\s*GO\s*$")
 FORMAL_NO_GO_TOKEN = re.compile(r"(?i)(?<![A-Z])NO[-_ ]?GO(?![A-Z])")
 
@@ -32,15 +31,19 @@ def item_ids_sha256(items: list[dict[str, object]]) -> str:
     return sha256_bytes(canonical)
 
 
-def has_formal_independent_review_go_conclusion(review_text: str) -> bool:
+def _has_explicit_independent_go(review_text: str) -> bool:
     """Accept only an explicit GO conclusion, never a NO-GO substring."""
     if FORMAL_NO_GO_TOKEN.search(review_text):
         return False
-    conclusion = FORMAL_GO_CONCLUSION.search(review_text)
-    return bool(
-        conclusion
-        and ("独立复审" in conclusion.group(0) or INDEPENDENT_REVIEW_MARKER.search(review_text))
-    )
+    return bool(FORMAL_GO_CONCLUSION.search(review_text))
+
+
+def _is_within(path: Path, directory: Path) -> bool:
+    try:
+        path.relative_to(directory)
+    except ValueError:
+        return False
+    return True
 
 
 def validate_model_baseline(
@@ -93,18 +96,26 @@ def validate_model_baseline(
     elif root is None:
         errors.append("P3-E09 independent review reference requires a repository root")
     else:
-        review_path = (root / review_ref.split("#", 1)[0]).resolve()
+        root_path = root.resolve()
+        review_path = (root_path / review_ref.split("#", 1)[0]).resolve()
         try:
-            review_path.relative_to(root.resolve())
+            review_path.relative_to(root_path)
         except ValueError:
             errors.append("P3-E09 independent review reference escapes the repository")
         else:
-            if not review_path.is_file():
+            if not any(
+                _is_within(review_path, (root_path / prefix).resolve())
+                for prefix in FORMAL_REVIEW_PREFIXES
+            ):
+                errors.append("P3-E09 independent review reference must resolve inside a formal gate or ADR")
+            elif not review_path.is_file():
                 errors.append("P3-E09 independent review reference does not exist")
             else:
                 review_text = review_path.read_text(encoding="utf-8")
-                if not has_formal_independent_review_go_conclusion(review_text):
+                if not _has_explicit_independent_go(review_text):
                     errors.append("P3-E09 independent review reference must record an independent GO conclusion")
-    if evidence.get("approvedDdlSha256") not in (None, ""):
+    if "approvedDdlSha256" not in evidence:
+        errors.append("P3-E09 approvedDdlSha256 must be explicitly present and empty for the SDS model baseline")
+    elif evidence["approvedDdlSha256"] not in (None, ""):
         errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
     return errors

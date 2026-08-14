@@ -70,6 +70,10 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.evidence["approvedDdlSha256"] = "DDL"
         self.assertTrue(any("must remain empty" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
 
+    def test_model_baseline_rejects_missing_migration_approval_hash_fact(self) -> None:
+        self.evidence.pop("approvedDdlSha256")
+        self.assertTrue(any("must be explicitly present" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+
     def test_model_baseline_rejects_self_review(self) -> None:
         self.evidence["reviewOwner"] = self.evidence["decisionOwner"]
         self.assertTrue(any("must differ" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
@@ -86,8 +90,19 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.evidence["independentReviewRef"] = "docs/reference/review.md"
         self.assertTrue(any("formal gate or ADR" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
 
+    def test_model_baseline_rejects_review_reference_resolving_outside_formal_directory(self) -> None:
+        escaped_ref = "docs/decisions/../../AGENTS.md"
+        (self.root / "AGENTS.md").write_text("独立复审结论：GO\n", encoding="utf-8")
+        self.evidence["independentReviewRef"] = escaped_ref
+        self.evidence["evidenceRefs"] = [escaped_ref]
+        self.assertTrue(any("must resolve inside a formal gate or ADR" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+
     def test_model_baseline_accepts_explicit_formal_go_conclusion(self) -> None:
         (self.root / self.review_ref).write_text("独立复审结论：GO\n", encoding="utf-8")
+        self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
+
+    def test_model_baseline_accepts_explicit_go_conclusion(self) -> None:
+        (self.root / self.review_ref).write_text("结论：GO\n", encoding="utf-8")
         self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
 
     def test_model_baseline_rejects_formal_no_go_conclusion(self) -> None:

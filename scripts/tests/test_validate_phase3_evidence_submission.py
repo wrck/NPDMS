@@ -102,6 +102,13 @@ class Phase3EvidenceSubmissionTest(unittest.TestCase):
         self.write()
         self.assertTrue(any("must remain empty" in item for item in VALIDATOR.validate(self.path)))
 
+    def test_e09_requires_explicit_empty_migration_approval_hash_fact(self) -> None:
+        self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
+        self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
+        self.payload["confirmedFacts"].pop("approvedDdlSha256", None)
+        self.write()
+        self.assertTrue(any("missing confirmed facts" in item for item in VALIDATOR.validate(self.path)))
+
     def test_secret_value_field_is_rejected(self) -> None:
         self.payload["confirmedFacts"] = {"password": "unsafe"}
         self.write()
