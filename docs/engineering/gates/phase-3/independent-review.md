@@ -2,14 +2,14 @@
 
 > status: `IN_REVIEW`<br>
 > conclusion: `PENDING_FRESH_REVIEW`<br>
-> candidateCommit: `c1b87b19a9b4e9e1e16034f3bdc1de92b701074b`<br>
+> candidateCommit: `37218eec2fcf82224a90e0b59f9e187bed71849d`<br>
 > ddlSha256: `5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
 > itemsSha256: `36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D`<br>
 > itemCount: `1883`<br>
 > deferCount: `0`<br>
 > testResult: `PASS`<br>
 > reviewDate: `2026-08-14`<br>
-> reviewRange: `a37c70aa0251419cd69f8a6969cbabb23d7ed834..bbc546bc8654458fceab9849626422d1e77e1b6c`
+> reviewRange: `a37c70aa0251419cd69f8a6969cbabb23d7ed834..37218eec2fcf82224a90e0b59f9e187bed71849d`
 
 ## 当前候选状态
 
