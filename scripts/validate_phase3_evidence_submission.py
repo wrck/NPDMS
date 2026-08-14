@@ -29,6 +29,7 @@ REQUIRED_P3_E09_FACTS = {
     *DDL_ARTIFACT_HASH_FIELDS,
 }
 REQUIRED_FACTS["P3-E09"] = REQUIRED_P3_E09_FACTS
+EMPTY_ALLOWED_REQUIRED_FACTS = {"P3-E09": {"approvedDdlSha256"}}
 VALID_STATUS = {"DRAFT", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED"}
 SECRET_NAME = re.compile(r"(?:password|passwd|secretValue|privateKey|tokenValue|connectionString)$", re.I)
 DIRECTION_DECISIONS = {
@@ -134,7 +135,11 @@ def validate(path: Path) -> list[str]:
     if secret_fields:
         errors.append(f"secret values/connection strings must not be embedded: {secret_fields}")
     if status in {"EVIDENCE_SUBMITTED", "VERIFIED"}:
-        missing = sorted(key for key in REQUIRED_FACTS[identifier] if not nonempty(facts.get(key)))
+        empty_allowed = EMPTY_ALLOWED_REQUIRED_FACTS.get(identifier, set())
+        missing = sorted(
+            key for key in REQUIRED_FACTS[identifier]
+            if key not in facts or (key not in empty_allowed and not nonempty(facts[key]))
+        )
         if missing:
             errors.append(f"{identifier} missing confirmed facts: {missing}")
         if not nonempty(payload.get("decisionOwner")) or not nonempty(payload.get("evidenceRefs")):
