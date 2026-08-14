@@ -33,10 +33,14 @@ CONTRACT_FIELDS = (
 FULL_REQUIREMENT_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
 ACTIVE_REQUIREMENT_LINE = re.compile(r"^(?:>\s*)?(?:适用\s+)?Requirement(?: ID)?：(.+?)\s*$", re.M)
 PRD_REQUIREMENT_ROW = re.compile(r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$", re.M)
-NON_ACTIVE_CONTRACT_MARKERS = (
-    "历史排除", "不属于", "不进入当前", "不接入", "不纳入", "不得进入",
-    "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "A+B", "V3候选", "V3演进", "仅保留", "未来",
-)
+NON_ACTIVE_ROW_LABELS = {"历史排除", "A+B摘要"}
+NON_ACTIVE_FIELD_NAMES = {
+    "disposition", "status", "处置", "迁移处置", "范围状态", "契约状态", "证据状态",
+}
+NON_ACTIVE_FIELD_VALUES = {
+    "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "PENDING_SOURCE_CONFIRMATION",
+    "历史排除", "不属于当前", "不进入当前",
+}
 
 
 def read(path: Path) -> str:
@@ -101,8 +105,45 @@ def requirement_ids(fragment: str) -> set[str]:
     return result
 
 
-def is_active_contract_context(fragment: str) -> bool:
-    return not any(marker in fragment for marker in NON_ACTIVE_CONTRACT_MARKERS)
+def markdown_cells(line: str) -> list[str]:
+    return [cell.strip().strip("`") for cell in line.strip().strip("|").split("|")]
+
+
+def is_separator_row(cells: list[str]) -> bool:
+    return bool(cells) and all(set(cell) <= {"-", ":"} for cell in cells)
+
+
+def is_non_active_contract_row(cells: list[str], headers: list[str] | None = None) -> bool:
+    """Recognize exclusions only from explicit table structure, never free text."""
+    if cells and cells[0] in NON_ACTIVE_ROW_LABELS:
+        return True
+    if not headers:
+        return False
+    for header, value in zip(headers, cells):
+        if header.strip().lower() not in NON_ACTIVE_FIELD_NAMES:
+            continue
+        normalized_value = value.strip().strip("`")
+        if normalized_value in NON_ACTIVE_FIELD_VALUES or normalized_value.startswith("PENDING_"):
+            return True
+    return False
+
+
+def contract_table_rows(text: str):
+    """Yield Markdown table rows with headers when an explicit separator establishes them."""
+    headers: list[str] | None = None
+    header_candidate: list[str] | None = None
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            headers = None
+            header_candidate = None
+            continue
+        cells = markdown_cells(line)
+        if is_separator_row(cells):
+            headers = header_candidate
+            continue
+        yield headers, cells, line
+        if headers is None:
+            header_candidate = cells
 
 
 def prd_formal_requirement_ids(text: str) -> list[str]:
@@ -122,23 +163,25 @@ def active_requirement_ids(text: str) -> set[str]:
     """Extract IDs from formal scope declarations and Requirement table columns."""
     result: set[str] = set()
     for declaration in ACTIVE_REQUIREMENT_LINE.findall(text):
-        if is_active_contract_context(declaration):
-            result.update(requirement_ids(declaration))
+        result.update(requirement_ids(declaration))
 
+    headers: list[str] | None = None
     requirement_column: int | None = None
     for line in text.splitlines():
         if not line.startswith("|"):
+            headers = None
             requirement_column = None
             continue
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        cells = markdown_cells(line)
         if "Requirement" in cells:
+            headers = cells
             requirement_column = cells.index("Requirement")
             continue
         if requirement_column is None or requirement_column >= len(cells):
             continue
-        if not is_active_contract_context(line):
+        if is_non_active_contract_row(cells, headers):
             continue
-        if set(cells[requirement_column]) <= {"-", ":"}:
+        if is_separator_row(cells):
             continue
         result.update(requirement_ids(cells[requirement_column]))
     return result
@@ -226,15 +269,15 @@ def validate(root: Path) -> list[str]:
         for identifier in sorted(active_requirement_ids(read(path)) - formal_id_set):
             errors.append(f"{name} active scope contains non-formal Requirement: {identifier}")
 
-    for line in event_design.splitlines():
-        if line.startswith("|") and is_active_contract_context(line) and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
+    for headers, cells, line in contract_table_rows(event_design):
+        if not is_non_active_contract_row(cells, headers) and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
             errors.append("ProjectConversionCompleted must not declare WO as a V1/V2 consumer")
     for name in ("12-integration-design.md", "16-exception-and-idempotency.md"):
         path = design / name
         if not path.is_file():
             continue
-        for line in read(path).splitlines():
-            if line.startswith("|") and is_active_contract_context(line) and ("打卡原始事实" in line or "钉钉打卡" in line):
+        for headers, cells, line in contract_table_rows(read(path)):
+            if not is_non_active_contract_row(cells, headers) and ("打卡原始事实" in line or "钉钉打卡" in line):
                 errors.append(f"{name} contains active DingTalk clock-in fact contract")
 
     for identifier, contract in contracts.items():

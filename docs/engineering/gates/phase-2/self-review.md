@@ -17,7 +17,7 @@
 |---|---|
 | PRD语义校验 | PASS，0 semantic issues |
 | 13领域生成校验 | PASS，formal=103、V3=30、OUT_OF_SCOPE=9 |
-| 脚本单测 | PASS，201/201（含Phase 2、PRD独立白名单、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
+| 脚本单测 | PASS，204/204（含Phase 2、PRD独立白名单、结构化历史例外与免责声明绕过负测、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
 | 业务命名门禁 | PASS |
 | Phase 2专用校验 | PASS，含08a的9份正式分册元数据、103项显式契约及链接/锚点有效 |
 | 追溯矩阵 | PASS，103个唯一Requirement，103行均链接逐项 `phase2-contract-map.md` |

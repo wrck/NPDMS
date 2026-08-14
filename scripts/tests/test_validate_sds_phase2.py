@@ -168,6 +168,21 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                     )
             target.write_text(original, encoding="utf-8")
 
+    def test_active_requirement_disclaimer_cannot_hide_non_formal_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "08-data-model.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n适用 Requirement：EQP-06（当前启用，不属于历史排除）。\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("EQP-06" in error and "active scope" in error for error in errors), errors)
+
     def test_project_conversion_work_order_consumer_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -180,6 +195,21 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             )
 
             errors = MODULE.validate(root)
+            self.assertTrue(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
+
+    def test_active_work_order_consumer_disclaimer_cannot_bypass_forbidden_check(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "11-event-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| `ProjectConversionCompleted` | Project Delivery | IMP/CUT/WO/AST | 未来另行优化 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
             self.assertTrue(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
 
     def test_historical_work_order_consumer_exclusion_is_allowed(self) -> None:
@@ -215,19 +245,37 @@ class ValidateSdsPhase2Test(unittest.TestCase):
                     errors = MODULE.validate(root)
                     self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
 
+    def test_active_dingtalk_disclaimer_cannot_bypass_forbidden_check(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "12-integration-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| 钉钉打卡 | V1 | 双向 | 打卡原始事实 | 当前启用，不属于历史排除 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
+
     def test_historical_and_pending_dingtalk_clock_in_evidence_is_allowed(self) -> None:
-        rows = (
+        fragments = (
             "| 历史排除 | 钉钉打卡 | 不属于当前V1/V2契约 |",
             "| A+B摘要 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 不进入当前契约 |",
+            "| 类型 | 事实 | status | 说明 |\n"
+            "|---|---|---|---|\n"
+            "| 来源候选 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 待核验，不进入当前契约 |",
         )
-        for row in rows:
+        for fragment in fragments:
             with tempfile.TemporaryDirectory() as temporary:
-                with self.subTest(row=row):
+                with self.subTest(fragment=fragment):
                     root = Path(temporary)
                     self.build_fixture(root)
                     target = root / "docs" / "design" / "12-integration-design.md"
                     target.write_text(
-                        target.read_text(encoding="utf-8") + f"\n{row}\n",
+                        target.read_text(encoding="utf-8") + f"\n{fragment}\n",
                         encoding="utf-8",
                     )
 
