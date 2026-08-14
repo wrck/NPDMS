@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "status": "BASELINE_SYNCED_IMPLEMENTATION_RECONCILIATION_REQUIRED",
+  "items": [
+    {
+      "objectKey": "AnalyticsUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["RPT-02"],
+      "codePaths": ["pms-module-analytics/"],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "AssetUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["EQP-01", "EQP-02", "EQP-03", "EQP-04", "EQP-05", "EQP-07"],
+      "codePaths": [
+        "pms-module-asset/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/asset/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/"
+      ],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "CutExecution",
+      "classification": "EXCLUDED_CURRENT",
+      "requirementRefs": ["CUT-01", "CUT-06"],
+      "codePaths": [
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/execution/",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/execution/",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/execution/",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/domain/CutExecutionStatusRules.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/execution/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/cut-execution/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-execution/"
+      ],
+      "requiredAction": "REMOVE_CURRENT_WRITE_MODEL_AND_SALVAGE_ONLY_PROVEN_P6_FACTS"
+    },
+    {
+      "objectKey": "CutObservation",
+      "classification": "EXCLUDED_CURRENT",
+      "requirementRefs": ["CUT-01", "CUT-06"],
+      "codePaths": [
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/observation/",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/dataobject/observation/",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/dal/mysql/observation/",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/domain/CutObservationStatusRules.java",
+        "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/observation/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/cut-observation/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-observation/"
+      ],
+      "requiredAction": "REMOVE_STABLE_OBSERVATION_STATE_MACHINE"
+    },
+    {
+      "objectKey": "CutoverUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["CUT-01", "CUT-02", "CUT-03", "CUT-04", "CUT-05", "CUT-06", "CUT-07", "CUT-08", "CUT-09", "CUT-10"],
+      "codePaths": [
+        "pms-module-cutover/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/"
+      ],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "EngineeringUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["EXE-01", "EXE-02", "EXE-03", "EXE-04", "EXE-05", "EXE-06", "PRE-01", "PRE-02", "PRE-03", "PRE-04", "PRE-05", "SUB-01"],
+      "codePaths": [
+        "pms-module-engineering/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/"
+      ],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "IntegrationUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["INT-01", "INT-02", "INT-03", "INT-04", "INT-05", "INT-06", "INT-07", "INT-09", "INT-10", "INT-12"],
+      "codePaths": ["pms-module-integration/"],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "LegacyPmsMigrations",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["NFR-01"],
+      "codePaths": ["sql/migrations/"],
+      "requiredAction": "DECOMPOSE_BY_CURRENT_DOMAIN_MODEL_BEFORE_FORWARD_MIGRATION"
+    },
+    {
+      "objectKey": "MaintenanceTransition",
+      "classification": "SEMANTIC_REWORK",
+      "requirementRefs": ["ACC-06"],
+      "codePaths": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/maintenancetransition/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/maintenancetransition/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/maintenancetransition/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/maintenancetransition/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/maintenance-transition/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/maintenance-transition/"
+      ],
+      "requiredAction": "REBUILD_AS_SERVICE_HANDOVER_AND_ISOLATE_RENEWAL_FIELDS"
+    },
+    {
+      "objectKey": "MesProductionWorkOrder",
+      "classification": "PLATFORM_UPSTREAM_UNCHANGED",
+      "requirementRefs": [],
+      "codePaths": [
+        "yudao-ui/yudao-ui-admin-vue3/src/api/mes/pro/workorder/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/mes/pro/workorder/"
+      ],
+      "requiredAction": "KEEP_PLATFORM_CAPABILITY"
+    },
+    {
+      "objectKey": "OutsourcingUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["SUB-01", "SUB-02", "SUB-03", "SUB-04", "SUB-05"],
+      "codePaths": ["pms-module-outsourcing/"],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "ProjectUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "ACC-05", "ACC-06", "CHG-01", "CLO-01", "CLO-02", "CUS-01", "CUS-02", "CUS-03", "CUS-04", "PLN-01", "PLN-02", "PLN-03", "PLN-04", "PM-01", "PM-02", "PM-03", "PM-04", "PM-05", "PM-06", "PM-07", "PM-08", "PM-09", "PM-10", "PM-11", "SCH-01", "SCH-02", "SCH-03", "SCH-04", "SCH-05"],
+      "codePaths": [
+        "pms-module-project/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/"
+      ],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "ServiceUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["EQP-07", "INS-01", "INS-02", "INS-03", "INS-04", "INS-05", "INS-06", "INS-07", "INS-08", "INS-09"],
+      "codePaths": [
+        "pms-module-service/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/"
+      ],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "SrvMaintenance",
+      "classification": "SEMANTIC_REWORK",
+      "requirementRefs": ["EQP-02"],
+      "codePaths": [
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvmaintenance/",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/dataobject/srvmaintenance/",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/mysql/srvmaintenance/",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/srvmaintenance/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/srv-maintenance/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/srv-maintenance/"
+      ],
+      "requiredAction": "MOVE_OBJECTIVE_MAINTENANCE_FACTS_TO_ASSET_DOMAIN"
+    },
+    {
+      "objectKey": "SrvReport",
+      "classification": "VALID_V2_POSTPONED",
+      "requirementRefs": ["INS-05"],
+      "codePaths": [
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvreport/",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/dataobject/srvreport/",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/mysql/srvreport/",
+        "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/srvreport/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/srv-report/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/srv-report/"
+      ],
+      "requiredAction": "KEEP_CODE_BUT_EXCLUDE_FROM_SEPTEMBER_FEATURE_AND_UAT"
+    }
+  ]
+}
