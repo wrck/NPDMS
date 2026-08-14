@@ -1,6 +1,9 @@
 # Codex local analysis and extraction intermediates
 ._codex_work/
 
+# Local agent runtime, review packets, tokens, logs, and process state
+.superpowers/
+
 # Generated review/export artifacts; Markdown under specs/ is authoritative
 交付成果/
 
