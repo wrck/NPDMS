@@ -819,6 +819,69 @@ def apply_accepted_q07_q08_decisions(register: dict[str, object], contract: dict
     return register
 
 
+def confirmation_ids_sha256(item_ids: list[str]) -> str:
+    canonical = json.dumps(sorted(item_ids), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return sha256(canonical)
+
+
+def apply_accepted_p3e09_confirmation_decisions(
+    register: dict[str, object], contract: dict[str, object], packet: dict[str, object]
+) -> dict[str, object]:
+    """Apply only the explicit item IDs in the current-hash nine-group confirmation packet."""
+    confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
+    if not isinstance(confirmation, dict) or confirmation.get("status") != "ACCEPTED":
+        raise ValueError("P3-E09 nine-group Requirement Owner confirmation is not accepted")
+    if confirmation.get("ddlSha256") != register.get("currentDdlSha256") or packet.get("currentDdlSha256") != register.get("currentDdlSha256"):
+        raise ValueError("P3-E09 confirmation is not bound to the current DDL")
+    expected_codes = {"Q07", "Q08", "V1.7", "Q09", "Q10", "Q11", "Q12", "Q13", "Q14"}
+    packet_groups = {group.get("code"): group for group in packet.get("groups", []) if isinstance(group, dict)}
+    contract_groups = confirmation.get("groups", {})
+    if set(packet_groups) != expected_codes or set(contract_groups) != expected_codes:
+        raise ValueError("P3-E09 confirmation requires the exact nine decision groups")
+    decided: set[str] = set()
+    for code in sorted(expected_codes):
+        group = packet_groups[code]
+        item_ids = [item.get("itemId") for item in group.get("items", []) if isinstance(item, dict)]
+        expected = contract_groups[code]
+        if expected.get("decision") != "A" or expected.get("itemCount") != len(item_ids):
+            raise ValueError(f"P3-E09 confirmation group {code} metadata mismatch")
+        if expected.get("itemIdsSha256") != confirmation_ids_sha256(item_ids):
+            raise ValueError(f"P3-E09 confirmation group {code} item hash mismatch")
+        decided.update(item_ids)
+    actual = {item["itemId"] for item in register["items"]}
+    missing = sorted(decided - actual)
+    if missing:
+        raise ValueError(f"P3-E09 confirmation references missing DDL items: {missing}")
+    unconfirmed_defer = sorted(
+        item["itemId"] for item in register["items"]
+        if item.get("decision") == "DEFER" and item["itemId"] not in decided
+    )
+    if unconfirmed_defer:
+        raise ValueError(f"P3-E09 confirmation does not cover current deferred items: {unconfirmed_defer}")
+    evidence_ref = confirmation["decisionEvidenceRef"]
+    for item in register["items"]:
+        if item["itemId"] not in decided:
+            continue
+        item["decision"] = "AMEND_CURRENT"
+        item["decisionOwner"] = "REQUIREMENT_OWNER"
+        item["reviewOwner"] = None
+        if evidence_ref not in item["evidenceRefs"]:
+            item["evidenceRefs"].append(evidence_ref)
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["p3e09RequirementOwnerDecision"] = {
+        "decisionRef": confirmation["decisionRef"],
+        "decision": confirmation["decision"],
+        "decidedUniqueItemCount": len(decided),
+        "coveredDeferredItemCount": confirmation["coveredDeferredItemCount"],
+        "groupCount": len(expected_codes),
+        "requirementOwnerStatus": "ACCEPTED",
+        "reviewStatus": "REVIEW_PENDING",
+    }
+    return register
+
+
 def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path, naming_contract: Path | None = None) -> dict[str, object]:
     relative_path = ddl.relative_to(repo).as_posix()
     current_data = ddl.read_bytes()
@@ -890,6 +953,7 @@ def main() -> int:
     parser.add_argument("--project-code-contract", type=Path, default=Path("docs/traceability/project-code-contract.json"))
     parser.add_argument("--market-relation-contract", type=Path, default=Path("docs/traceability/market-relation-contract.json"))
     parser.add_argument("--core-migration-schema-contract", type=Path, default=Path("docs/traceability/core-migration-schema-contract.json"))
+    parser.add_argument("--p3e09-confirmation-packet", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json"))
     parser.add_argument("--output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json"))
     parser.add_argument("--constraint-inventory-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json"))
     parser.add_argument("--decision-register-output", type=Path, default=Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"))
@@ -904,6 +968,7 @@ def main() -> int:
     project_code_contract = args.project_code_contract if args.project_code_contract.is_absolute() else repo / args.project_code_contract
     market_relation_contract = args.market_relation_contract if args.market_relation_contract.is_absolute() else repo / args.market_relation_contract
     core_migration_schema_contract = args.core_migration_schema_contract if args.core_migration_schema_contract.is_absolute() else repo / args.core_migration_schema_contract
+    confirmation_packet_path = args.p3e09_confirmation_packet if args.p3e09_confirmation_packet.is_absolute() else repo / args.p3e09_confirmation_packet
     report = build_report(repo, ddl, args.baseline_sha256, catalog, naming_contract)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     inventory = current_constraint_inventory(report["inputs"]["currentDdlSha256"], parse_ddl(ddl.read_bytes()))
@@ -940,6 +1005,13 @@ def main() -> int:
         decision_register = apply_accepted_q07_q08_decisions(decision_register, core_contract_data)
     if core_contract_data.get("v17Delta", {}).get("status") == "ACCEPTED":
         decision_register = apply_accepted_v17_delta_decisions(decision_register, core_contract_data)
+    confirmation = core_contract_data.get("p3e09RequirementOwnerConfirmation", {})
+    if isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED":
+        decision_register = apply_accepted_p3e09_confirmation_decisions(
+            decision_register,
+            core_contract_data,
+            json.loads(confirmation_packet_path.read_text(encoding="utf-8")),
+        )
     previous_register = None
     if decision_output.exists():
         previous_register = json.loads(decision_output.read_text(encoding="utf-8"))

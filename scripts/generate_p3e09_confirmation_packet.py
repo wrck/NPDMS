@@ -48,6 +48,15 @@ def build(root: Path) -> dict[str, object]:
     items = register["items"]
     by_id = {item["itemId"]: item for item in items}
     deferred = {item["itemId"] for item in items if item["decision"] == "DEFER"}
+    confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
+    confirmed = isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED"
+    if confirmed:
+        decision_ref = confirmation["decisionEvidenceRef"]
+        confirmation_scope = {
+            item["itemId"] for item in items if decision_ref in item.get("evidenceRefs", [])
+        }
+    else:
+        confirmation_scope = deferred
     q07_ids, q08_ids, _counts = drift_generator.q07_q08_item_ids(register)
     v17_tables = {
         table
@@ -55,7 +64,7 @@ def build(root: Path) -> dict[str, object]:
         for table in tables
     }
     v17_ids = {item["itemId"] for item in items if item["table"] in v17_tables}
-    remaining = deferred - q07_ids - q08_ids - v17_ids
+    remaining = confirmation_scope - q07_ids - q08_ids - v17_ids
 
     residual_groups: dict[str, set[str]] = {
         "Q09": set(), "Q10": set(), "Q11": set(), "Q12": set(), "Q13": set(), "Q14": set(),
@@ -92,20 +101,34 @@ def build(root: Path) -> dict[str, object]:
         ("Q14", "市场目录审计字段与RMA投影", residual_groups["Q14"], "A", "保留基础平台审计/租户/来源字段；rma_marked仅作兼容查询投影，不推导业务动作或数量方向。"),
     ]
     coverage = set().union(*(set(ids) for _code, _name, ids, _recommendation, _reason in groups))
-    missing = sorted(deferred - coverage)
+    missing = sorted(confirmation_scope - coverage)
     if missing:
-        raise ValueError(f"confirmation packet does not cover all DEFER items: {missing}")
+        raise ValueError(f"confirmation packet does not cover all decision items: {missing}")
 
+    if confirmed:
+        if len(coverage) != confirmation.get("confirmedUniqueItemCount"):
+            raise ValueError("confirmed P3-E09 item count drift")
+        for code, _name, ids, _recommendation, _reason in groups:
+            canonical = json.dumps(sorted(ids), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+            if confirmation["groups"][code]["itemIdsSha256"] != hashlib.sha256(canonical).hexdigest().upper():
+                raise ValueError(f"confirmed P3-E09 group drift: {code}")
     return {
         "schemaVersion": 1,
-        "status": "USER_CONFIRMATION_REQUIRED",
+        "status": "REQUIREMENT_OWNER_ACCEPTED" if confirmed else "USER_CONFIRMATION_REQUIRED",
         "purpose": "P3_E09_CURRENT_HASH_COMPLETE_CONFIRMATION_PACKET",
         "currentDdlSha256": register["currentDdlSha256"],
         "decisionRegisterItemsSha256": register["itemsSha256"],
         "decisionRegisterFileSha256": hashlib.sha256(register_path.read_bytes()).hexdigest().upper(),
-        "deferredItemCount": len(deferred),
-        "coveredDeferredItemCount": len(coverage & deferred),
-        "reconfirmedExistingDecisionItemCount": len(coverage - deferred),
+        "deferredItemCount": confirmation["deferredItemCountAtConfirmation"] if confirmed else len(deferred),
+        "coveredDeferredItemCount": confirmation["coveredDeferredItemCount"] if confirmed else len(coverage & deferred),
+        "reconfirmedExistingDecisionItemCount": confirmation["reconfirmedExistingDecisionItemCount"] if confirmed else len(coverage - deferred),
+        "confirmation": {
+            "decisionRef": confirmation.get("decisionRef"),
+            "confirmedAt": confirmation.get("confirmedAt"),
+            "decision": confirmation.get("decision"),
+            "reviewStatus": confirmation.get("reviewStatus"),
+            "approvedDdlSha256": confirmation.get("approvedDdlSha256"),
+        } if confirmed else None,
         "groups": [
             {
                 "code": code,
@@ -128,9 +151,13 @@ def render_markdown(packet: dict[str, object]) -> str:
     lines = [
         "# P3-E09 当前哈希完整确认清单",
         "",
-        "> 状态：`USER_CONFIRMATION_REQUIRED`",
+        f"> 状态：`{packet['status']}`",
         f"> 当前 DDL SHA-256：`{packet['currentDdlSha256']}`",
-        f"> 待确认项：{packet['deferredItemCount']}；本清单覆盖：{packet['coveredDeferredItemCount']}。",
+        (
+            f"> 确认时待决策项：{packet['deferredItemCount']}；本清单覆盖：{packet['coveredDeferredItemCount']}。"
+            if packet["status"] == "REQUIREMENT_OWNER_ACCEPTED"
+            else f"> 待确认项：{packet['deferredItemCount']}；本清单覆盖：{packet['coveredDeferredItemCount']}。"
+        ),
         "",
         "## 决策摘要",
         "",
@@ -145,7 +172,9 @@ def render_markdown(packet: dict[str, object]) -> str:
         "",
         "推荐组合：`Q07 A、Q08 A、V1.7 A、Q09 A、Q10 A、Q11 A、Q12 A、Q13 A、Q14 A`。",
         "",
-        "该组合只形成当前哈希下的需求方决策，不代表Reviewer签署或生成`approvedDdlSha256`。",
+        "该组合已形成当前哈希下的需求方决策，不代表Reviewer签署或生成`approvedDdlSha256`。"
+        if packet["status"] == "REQUIREMENT_OWNER_ACCEPTED"
+        else "该组合只形成当前哈希下的需求方决策，不代表Reviewer签署或生成`approvedDdlSha256`。",
     ])
     for group in packet["groups"]:
         lines.extend([

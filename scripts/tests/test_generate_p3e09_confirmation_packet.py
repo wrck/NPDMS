@@ -37,6 +37,10 @@ class P3E09ConfirmationPacketTest(unittest.TestCase):
             "Q12": 16, "Q13": 2, "Q14": 13,
         }, counts)
         self.assertTrue(all(group["recommendedDecision"] == "A" for group in packet["groups"]))
+        self.assertEqual("REQUIREMENT_OWNER_ACCEPTED", packet["status"])
+        self.assertEqual("ADR-0028", packet["confirmation"]["decisionRef"])
+        self.assertEqual("REVIEW_PENDING", packet["confirmation"]["reviewStatus"])
+        self.assertIsNone(packet["confirmation"]["approvedDdlSha256"])
 
 
 if __name__ == "__main__":

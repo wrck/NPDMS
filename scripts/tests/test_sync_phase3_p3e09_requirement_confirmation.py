@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+MODULE_PATH = ROOT / "scripts" / "sync_phase3_p3e09_requirement_confirmation.py"
+SPEC = importlib.util.spec_from_file_location("sync_phase3_p3e09_requirement_confirmation", MODULE_PATH)
+MODULE = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+sys.modules[SPEC.name] = MODULE
+SPEC.loader.exec_module(MODULE)
+
+
+class Phase3P3E09RequirementConfirmationSyncTest(unittest.TestCase):
+    def test_sync_preserves_review_gate_and_removes_defer(self) -> None:
+        payload = json.loads((ROOT / MODULE.REGISTER).read_text(encoding="utf-8"))
+        generated = MODULE.load_generator(ROOT).build_packets()["P3-E09"]
+        result = MODULE.sync(payload, generated)
+        item = next(row for row in result["items"] if row["id"] == "P3-E09")
+        facts = item["confirmedFacts"]
+        self.assertEqual(0, facts["deferredItemCount"])
+        self.assertEqual("DECISIONS_ACCEPTED_REVIEW_PENDING", facts["modelDecisionStatus"])
+        self.assertEqual("REVIEW_PENDING", facts["driftDecision"])
+        self.assertEqual("OPEN", item["status"])
+        self.assertIsNone(item["reviewOwner"])
+        self.assertIsNone(facts["approvedDdlSha256"])
+        self.assertEqual("NOT_READY_FOR_SDS_BASELINE", result["overallStatus"])
+
+
+if __name__ == "__main__":
+    unittest.main()

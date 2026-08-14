@@ -209,7 +209,10 @@ def render_decision_analysis(
     check_groups: dict[str, list[tuple[str, str, str]]],
     generated_columns: list[tuple[str, str, str]],
     exact_match_fields: list[tuple[str, str, str, bool]],
+    requirement_owner_accepted: bool,
 ) -> list[str]:
+    q07_status = "需求方已按ADR-0028接受；待Reviewer签署" if requirement_owner_accepted else "当前哈希下仍须重新确认"
+    q08_status = "需求方已接受为候选基线；待Reviewer签署及后续性能验证" if requirement_owner_accepted else "当前哈希Q08须重新确认"
     lines = [
         "",
         f"### 1.1 {sum(len(items) for items in changes.values())}项证据的真实含义",
@@ -251,14 +254,14 @@ def render_decision_analysis(
         f"|精确键与默认排序规则冲突|{sum(len(tables) for tables in domain_tables.values())}张表默认`utf8mb4_0900_ai_ci`；{len(exact_match_fields)}个来源键/哈希字段要求原值精确匹配|大小写或重音不同的来源键可能被视为相同|来源键改用二进制排序规则，名称继续使用中文友好排序规则|",
         "|可空列参与唯一键|8个唯一键包含可空列；5个是有意的当前记录标记，1个是可选来源键，2个关系粒度键存在空洞|可能允许重复历史关系或重复成员任职|逐项区分有意NULL语义与意外空洞|",
         "|状态码写入数据库表达式|3个原固定状态CHECK已移除；5个当前唯一生成列使用稳定事实表达式|状态扩展不再需要修改DDL；已确认当前唯一事实不会被状态扩展绕过|保持业务守卫由受控状态动作执行并留痕|",
-        f"|普通索引没有查询证据|{len(constraints['INDEX'])}个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|当前哈希Q08须重新确认；Feature/P3-E06用真实查询和压测定稿|",
+        f"|普通索引没有查询证据|{len(constraints['INDEX'])}个候选索引未绑定查询计划、基数和写入成本|过量索引增加同步写入成本，缺失索引影响树查询和对账|{q08_status}；Feature/P3-E06用真实查询和压测定稿|",
         "",
-        "### 1.5 当前哈希下待重新确认的Q07技术约束",
+        "### 1.5 当前哈希下已由需求方接受的Q07技术约束" if requirement_owner_accepted else "### 1.5 当前哈希下待重新确认的Q07技术约束",
         "",
         "|内容|数量|批量确认的前提|仍未包含的业务判断|",
         "|---|---:|---|---|",
         f"|主键结构|{len(constraints['PRIMARY_KEY'])}|{len(constraints['PRIMARY_KEY']) - 1}张实体/关系表使用单列`id`；分析投影使用`(tenant_id, project_id)`复合主键|不决定业务编码是否可重复|",
-        f"|租户复合引用键|{len(unique_groups['TENANT_REFERENCE'])}|仅支撑同租户复合外键/行引用|当前哈希下仍须重新确认，不替代业务唯一键|",
+        f"|租户复合引用键|{len(unique_groups['TENANT_REFERENCE'])}|仅支撑同租户复合外键/行引用|{q07_status}，不替代业务唯一键|",
         f"|同领域物理外键|{len(constraints['FOREIGN_KEY'])}|{len(constraints['FOREIGN_KEY'])}个外键的父子表均在同一领域；违规旧数据进入迁移问题池|不授权跨Context直接访问Repository|",
         f"|软删除检查|{len(check_groups['SOFT_DELETE'])}|`deleted`稳定为0/1技术字段|删除不得释放永久业务键|",
         f"|时间顺序检查|{len(check_groups['TEMPORAL_ORDER'])}|只拒绝结束早于开始，不补造旧数据时间|不决定业务有效期|",
@@ -366,9 +369,9 @@ def render_decision_analysis(
         "|层次|内容|批准主体|批准结果|",
         "|---|---|---|---|",
         "|L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|",
-        "|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|RECONFIRMATION_REQUIRED|旧哈希Q07已失效，当前哈希须重新确认|",
-        "|L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|逐组批准；有空洞的先修模|",
-        f"|L4 性能候选|{len(constraints['INDEX'])}个普通索引|RECONFIRMATION_REQUIRED；Feature Owner+性能Owner后续验证|当前哈希Q08尚未进入候选基线，确认后仍须由P3-E06压测定稿|",
+        f"|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|{'REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING' if requirement_owner_accepted else 'RECONFIRMATION_REQUIRED'}|{q07_status}|",
+        f"|L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|{'九组已接受，待Reviewer逐项签署' if requirement_owner_accepted else '逐组批准；有空洞的先修模'}|",
+        f"|L4 性能候选|{len(constraints['INDEX'])}个普通索引|{'REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING' if requirement_owner_accepted else 'RECONFIRMATION_REQUIRED'}；Feature Owner+性能Owner后续验证|{q08_status}；仍须由P3-E06压测定稿|",
         "|L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|",
     ])
     return lines
@@ -379,6 +382,13 @@ def render(root: Path) -> str:
     inventory_path = root / INVENTORY
     register = json.loads(register_path.read_text(encoding="utf-8"))
     inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+    deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
+    requirement_owner_accepted = (
+        deferred_count == 0
+        and register.get("p3e09RequirementOwnerDecision", {}).get("requirementOwnerStatus") == "ACCEPTED"
+    )
+    review_label = "REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING" if requirement_owner_accepted else "REVIEW_REQUIRED"
+    decision_label = "需求方已决策，待Reviewer签署" if requirement_owner_accepted else "需确认"
 
     table_columns: dict[str, list[dict[str, object]]] = defaultdict(list)
     table_items: dict[str, dict[str, object]] = {}
@@ -436,7 +446,7 @@ def render(root: Path) -> str:
     lines = [
         "# P3-E09 数据模型逐项裁决清单",
         "",
-        "> 状态：`REVIEW_REQUIRED`",
+        f"> 状态：`{review_label}`",
         f"> 决策登记SHA-256：`{register_sha}`",
         f"> 约束清单SHA-256：`{inventory_sha}`",
         "> 本清单只展开现有机器证据，不自动批准数据模型。",
@@ -447,12 +457,12 @@ def render(root: Path) -> str:
         "|---|---:|---|---|",
         f"|表|{len(table_items)}|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|",
         f"|字段|{sum(len(items) for items in table_columns.values()):,}|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|",
-        f"|表选项|{len(table_options)}|旧基线未保存|需确认字符比较与存储规则|",
-        f"|主键|{len(constraints['PRIMARY_KEY'])}|旧基线未保存|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|",
-        f"|外键|{len(constraints['FOREIGN_KEY'])}|旧基线未保存|RECONFIRMATION_REQUIRED：当前哈希Q07待确认|",
-        f"|普通索引|{len(constraints['INDEX'])}|旧基线未保存|RECONFIRMATION_REQUIRED：当前哈希Q08待确认，后续仍需Feature/P3-E06验证|",
-        f"|唯一键|{len(constraints['UNIQUE_KEY'])}|旧基线未保存|影响重复业务数据，必须业务审查|",
-        f"|CHECK|{len(constraints['CHECK'])}|旧基线未保存|影响异常历史数据，必须业务审查|",
+        f"|表选项|{len(table_options)}|旧基线未保存|{decision_label}|",
+        f"|主键|{len(constraints['PRIMARY_KEY'])}|旧基线未保存|{decision_label}；Q07|",
+        f"|外键|{len(constraints['FOREIGN_KEY'])}|旧基线未保存|{decision_label}；Q07|",
+        f"|普通索引|{len(constraints['INDEX'])}|旧基线未保存|{decision_label}；Q08候选，后续仍需Feature/P3-E06验证|",
+        f"|唯一键|{len(constraints['UNIQUE_KEY'])}|旧基线未保存|{decision_label}|",
+        f"|CHECK|{len(constraints['CHECK'])}|旧基线未保存|{decision_label}|",
     ]
     lines.extend(render_decision_analysis(
         changes,
@@ -462,6 +472,7 @@ def render(root: Path) -> str:
         check_groups,
         generated_columns,
         exact_match_fields,
+        requirement_owner_accepted,
     ))
     lines.extend([
         "",
@@ -479,14 +490,14 @@ def render(root: Path) -> str:
 
     lines.extend(["", "## 3. 表选项完整清单", "", "|编号|表|当前表选项|建议|", "|---|---|---|---|"])
     for index, table in enumerate(sorted(table_options), 1):
-        lines.append(f"|O-{index:03d}|`{table}`|`{escape(table_options[table])}`|待确认字符比较规则后分类接受|")
+        lines.append(f"|O-{index:03d}|`{table}`|`{escape(table_options[table])}`|{decision_label}|")
 
     sections = [
-        ("PRIMARY_KEY", "4. 主键完整清单", "PK", "RECONFIRMATION_REQUIRED：当前哈希Q07待确认"),
-        ("FOREIGN_KEY", "5. 外键完整清单", "FK", "RECONFIRMATION_REQUIRED：当前哈希Q07待确认"),
-        ("INDEX", "6. 普通索引完整清单", "IX", "RECONFIRMATION_REQUIRED：当前哈希Q08待确认；后续仍需性能验证"),
-        ("UNIQUE_KEY", "7. 唯一键完整清单", "UK", "影响重复数据；需逐组业务确认"),
-        ("CHECK", "8. CHECK规则完整清单", "CK", "影响异常历史数据；需逐组业务确认"),
+        ("PRIMARY_KEY", "4. 主键完整清单", "PK", f"{decision_label}；Q07"),
+        ("FOREIGN_KEY", "5. 外键完整清单", "FK", f"{decision_label}；Q07"),
+        ("INDEX", "6. 普通索引完整清单", "IX", f"{decision_label}；Q08候选，后续仍需性能验证"),
+        ("UNIQUE_KEY", "7. 唯一键完整清单", "UK", f"影响重复数据；{decision_label}"),
+        ("CHECK", "8. CHECK规则完整清单", "CK", f"影响异常历史数据；{decision_label}"),
     ]
     for kind, title, prefix, recommendation in sections:
         lines.extend(["", f"## {title}", "", "|编号|表|当前定义|业务影响/建议|", "|---|---|---|---|"])
@@ -499,7 +510,7 @@ def render(root: Path) -> str:
         "",
         "- `ACCEPT_CURRENT`表示接受当前DDL作为目标数据模型，不代表历史数据天然满足约束。",
         "- 历史数据违反已批准约束时进入迁移问题池并保留来源证据，不得静默删除、改写或临时放宽模型掩盖问题。",
-        "- 旧哈希下Q07/Q08决策已失效；当前哈希状态为RECONFIRMATION_REQUIRED，不得据此生成批准哈希。",
+        "- 当前哈希九组决策已由需求方按ADR-0028接受；仍须Reviewer逐项签署，未签署前不得生成批准哈希。" if requirement_owner_accepted else "- 旧哈希下Q07/Q08决策已失效；当前哈希状态为RECONFIRMATION_REQUIRED，不得据此生成批准哈希。",
         "- 本清单不授权连接或修改旧库，不授权执行生产迁移。",
         "",
     ])

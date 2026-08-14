@@ -35,7 +35,7 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建为候选；Q08登记的122项索引因哈希变化处于`RECONFIRMATION_REQUIRED`，确认后仍须Feature/P3-E06性能验证。最终Reviewer签署仍为`REVIEW_PENDING`，V1.7差量保持`BLOCKED_BY_REVIEW`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建为候选；ADR-0028已按当前哈希接受Q07～Q14及V1.7九组完整清单，Q08的122项只作为候选索引，仍须Feature/P3-E06性能验证。最终Reviewer签署仍为`REVIEW_PENDING`。该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。该方向不替代`approvedDdlSha256`、Owner签署和机器证据，P3-E09继续保持`BLOCKED_BY_REVIEW`。
 
@@ -45,7 +45,7 @@ ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表�
 
 ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0025与ADR-0027按PRD V1.7补齐10张当前范围差量表后，当前核心迁移DDL为60表、1,240列、447项DDL约束/索引和60项表选项，其中隔离MySQL登记325项主键/唯一键/同域外键/CHECK；机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，197项有明确逐项依据的模型变化登记为`AMEND_CURRENT`，其余692项保持`DEFER`；全部`reviewOwner`仍为空且`approvedCount=0`。实际当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。当前哈希下的需求方确认不得只覆盖Q07、Q08和10表V1.7物理细节：三组去重后仅覆盖584项`DEFER`，其余108项已按Q09表选项、Q10来源幂等唯一键、Q11关系粒度唯一键、Q12业务身份/版本序号唯一键、Q13跨字段CHECK和Q14市场目录审计字段/RMA投影分类；完整逐项入口为`p3-e09-confirmation-packet.md`。
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，889项按既有ADR及ADR-0028九组当前哈希清单登记为`AMEND_CURRENT`，`DEFER=0`；全部`reviewOwner`仍为空且`approvedCount=0`。实际当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。需求方决策缺口已经关闭，但Reviewer签署和`approvedDdlSha256`仍未完成；完整逐项入口为`p3-e09-confirmation-packet.md`和`ddl-item-decision-register.json`。
 
 - 本分册中的模型和约束是 SDS 目标契约；当前60表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
 - 实际 DDL 前必须完成`AI-MIG-000`，逐表/列/索引/外键/CHECK/注释裁决并生成`approvedDdlSha256`；

@@ -37,6 +37,9 @@ class DdlModelDecisionCatalogTest(unittest.TestCase):
         self.assertIn("ast_device_project_assignment.current_device_id", rendered)
         self.assertIn("ast_device_shipment_event.rma_marked", rendered)
         self.assertIn("ast_device_component_relation.current_slot_code", rendered)
+        self.assertIn("REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING", rendered)
+        self.assertNotIn("当前哈希Q07待确认", rendered)
+        self.assertNotIn("当前哈希Q08待确认", rendered)
 
     def test_all_checks_are_semantically_classified(self) -> None:
         rendered = GENERATOR.render(ROOT)

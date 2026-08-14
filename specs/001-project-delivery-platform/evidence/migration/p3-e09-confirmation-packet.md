@@ -1,8 +1,8 @@
 # P3-E09 当前哈希完整确认清单
 
-> 状态：`USER_CONFIRMATION_REQUIRED`
+> 状态：`REQUIREMENT_OWNER_ACCEPTED`
 > 当前 DDL SHA-256：`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`
-> 待确认项：692；本清单覆盖：692。
+> 确认时待决策项：692；本清单覆盖：692。
 
 ## 决策摘要
 
@@ -20,7 +20,7 @@
 
 推荐组合：`Q07 A、Q08 A、V1.7 A、Q09 A、Q10 A、Q11 A、Q12 A、Q13 A、Q14 A`。
 
-该组合只形成当前哈希下的需求方决策，不代表Reviewer签署或生成`approvedDdlSha256`。
+该组合已形成当前哈希下的需求方决策，不代表Reviewer签署或生成`approvedDdlSha256`。
 
 ## Q07 当前哈希技术约束（257项）
 

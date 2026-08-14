@@ -296,10 +296,10 @@
                 "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
                 "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-                "driftDecision": "DEFER",
+                "driftDecision": "REVIEW_PENDING",
                 "decisionRegisterItemCount": 1883,
-                "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
-                "deferredItemCount": 692,
+                "modelDecisionStatus": "DECISIONS_ACCEPTED_REVIEW_PENDING",
+                "deferredItemCount": 0,
                 "approvedDdlSha256": null,
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
@@ -310,7 +310,7 @@
                     "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED"
                 },
                 "q07Decision": {
-                    "status": "RECONFIRMATION_REQUIRED",
+                    "status": "ACCEPTED",
                     "technicalConstraintCount": 257,
                     "primaryKeyCount": 60,
                     "primaryKeyShape": {
@@ -322,7 +322,7 @@
                     "stableTechnicalCheckCount": 89
                 },
                 "q08Decision": {
-                    "status": "RECONFIRMATION_REQUIRED",
+                    "status": "ACCEPTED",
                     "candidateIndexCount": 122,
                     "featureQueryPlanValidationRequired": true,
                     "p3e06PerformanceValidationRequired": true,
@@ -334,7 +334,15 @@
                     "tableCount": 60,
                     "columnCount": 1240,
                     "constraintCount": 325
-                }
+                },
+                "requirementOwnerConfirmation": {
+                    "status": "ACCEPTED",
+                    "decisionRef": "ADR-0028",
+                    "groupCount": 9,
+                    "confirmedUniqueItemCount": 695,
+                    "reviewStatus": "REVIEW_PENDING"
+                },
+                "v17DeltaStatus": "ACCEPTED"
             },
             "evidenceRefs": [
                 "docs/decisions/0004-phase3-production-assurance-directions.md",
@@ -351,7 +359,9 @@
                 "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json",
                 "docs/decisions/0026-cutover-flow-business-baseline-correction.md",
-                "docs/decisions/0027-cutover-physical-model-correction.md"
+                "docs/decisions/0027-cutover-physical-model-correction.md",
+                "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md",
+                "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json"
             ],
             "blocks": [
                 "PHASE_3_BASELINE",

@@ -427,6 +427,66 @@ CREATE TABLE imp_configuration_collection_result (
         index_item = next(item for item in result["items"] if item["itemId"] == "CONSTRAINT:a:idx_a_query")
         self.assertIn("docs/decisions/current-q08-review.md", index_item["evidenceRefs"])
 
+    def test_nine_group_confirmation_uses_explicit_item_ids_only(self) -> None:
+        ddl_hash = "A" * 64
+        item_ids = ["TABLE:a", "COLUMN:a:code"]
+        register = {
+            "currentDdlSha256": ddl_hash,
+            "items": [
+                {
+                    "itemId": identifier,
+                    "decision": "DEFER",
+                    "decisionOwner": None,
+                    "reviewOwner": None,
+                    "evidenceRefs": [],
+                }
+                for identifier in item_ids
+            ],
+            "summary": {"approvedCount": 0},
+        }
+        codes = ["Q07", "Q08", "V1.7", "Q09", "Q10", "Q11", "Q12", "Q13", "Q14"]
+        packet_groups = []
+        contract_groups = {}
+        for index, code in enumerate(codes):
+            ids = [item_ids[index]] if index < len(item_ids) else []
+            packet_groups.append({
+                "code": code,
+                "recommendedDecision": "A",
+                "itemCount": len(ids),
+                "items": [{"itemId": identifier} for identifier in ids],
+            })
+            contract_groups[code] = {
+                "decision": "A",
+                "itemCount": len(ids),
+                "itemIdsSha256": MODULE.confirmation_ids_sha256(ids),
+            }
+        packet = {"currentDdlSha256": ddl_hash, "groups": packet_groups}
+        contract = {
+            "p3e09RequirementOwnerConfirmation": {
+                "status": "ACCEPTED",
+                "ddlSha256": ddl_hash,
+                "decisionRef": "ADR-0028",
+                "decision": "ALL_RECOMMENDED_A",
+                "decisionEvidenceRef": "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md",
+                "coveredDeferredItemCount": 2,
+                "groups": contract_groups,
+            }
+        }
+        result = MODULE.apply_accepted_p3e09_confirmation_decisions(register, contract, packet)
+        self.assertTrue(all(item["decision"] == "AMEND_CURRENT" for item in result["items"]))
+        self.assertTrue(all(item["reviewOwner"] is None for item in result["items"]))
+        self.assertEqual(2, result["p3e09RequirementOwnerDecision"]["decidedUniqueItemCount"])
+
+        register["items"].append({
+            "itemId": "TABLE:future",
+            "decision": "DEFER",
+            "decisionOwner": None,
+            "reviewOwner": None,
+            "evidenceRefs": [],
+        })
+        with self.assertRaisesRegex(ValueError, "does not cover current deferred"):
+            MODULE.apply_accepted_p3e09_confirmation_decisions(register, contract, packet)
+
 
 if __name__ == "__main__":
     unittest.main()

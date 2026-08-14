@@ -1,13 +1,20 @@
 {
   "schemaVersion": 1,
-  "status": "USER_CONFIRMATION_REQUIRED",
+  "status": "REQUIREMENT_OWNER_ACCEPTED",
   "purpose": "P3_E09_CURRENT_HASH_COMPLETE_CONFIRMATION_PACKET",
   "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-  "decisionRegisterItemsSha256": "D383F3F194DB7094BE229B03EB3E5199EC9FD813BDEC6483FB5B853F42760D20",
-  "decisionRegisterFileSha256": "2D859D216A67645B9188087C0A96751F6A8133202E377EE07AC7341CA56065E5",
+  "decisionRegisterItemsSha256": "36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D",
+  "decisionRegisterFileSha256": "B9486E697E78781120CB80A5321045B45FD4F4004514BC2335D7E3663472088E",
   "deferredItemCount": 692,
   "coveredDeferredItemCount": 692,
   "reconfirmedExistingDecisionItemCount": 3,
+  "confirmation": {
+    "decisionRef": "ADR-0028",
+    "confirmedAt": "2026-08-14",
+    "decision": "ALL_RECOMMENDED_A",
+    "reviewStatus": "REVIEW_PENDING",
+    "approvedDdlSha256": null
+  },
   "groups": [
     {
       "code": "Q07",

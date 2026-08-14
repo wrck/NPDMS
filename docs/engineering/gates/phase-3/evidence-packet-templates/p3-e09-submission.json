@@ -34,11 +34,18 @@
       "BUSINESS_OWNER",
       "MIGRATION_OWNER"
     ],
-    "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
-    "deferredItemCount": 692,
-    "v17DeltaStatus": "BLOCKED_BY_REVIEW",
+    "modelDecisionStatus": "DECISIONS_ACCEPTED_REVIEW_PENDING",
+    "deferredItemCount": 0,
+    "v17DeltaStatus": "ACCEPTED",
+    "requirementOwnerConfirmation": {
+      "status": "ACCEPTED",
+      "decisionRef": "ADR-0028",
+      "groupCount": 9,
+      "confirmedUniqueItemCount": 695,
+      "reviewStatus": "REVIEW_PENDING"
+    },
     "q07Decision": {
-      "status": "RECONFIRMATION_REQUIRED",
+      "status": "ACCEPTED",
       "technicalConstraintCount": 257,
       "primaryKeyCount": 60,
       "primaryKeyShape": {
@@ -50,7 +57,7 @@
       "stableTechnicalCheckCount": 89
     },
     "q08Decision": {
-      "status": "RECONFIRMATION_REQUIRED",
+      "status": "ACCEPTED",
       "candidateIndexCount": 122,
       "featureQueryPlanValidationRequired": true,
       "p3e06PerformanceValidationRequired": true,
@@ -72,6 +79,8 @@
     "docs/decisions/0022-core-migration-schema-and-key-policy.md",
     "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md",
     "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md",
+    "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md",
+    "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json",
     "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
     "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
     "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

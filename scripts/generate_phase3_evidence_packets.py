@@ -32,6 +32,8 @@ MARKET_RELATION_REF = "docs/decisions/0021-customer-market-relation-classificati
 CORE_MIGRATION_SCHEMA_REF = "docs/decisions/0022-core-migration-schema-and-key-policy.md"
 MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
 V17_DDL_DELTA_REF = "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md"
+CURRENT_HASH_REQUIREMENT_CONFIRMATION_REF = "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md"
+P3E09_CONFIRMATION_PACKET_REF = "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json"
 CORE_SCHEMA_CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
 DDL_DECISION_REGISTER = Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json")
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
@@ -165,6 +167,13 @@ def build_packets() -> dict[str, dict[str, object]]:
                     "deferredItemCount": deferred_count,
                     "approvedDdlSha256": approved_hash,
                     "v17DeltaStatus": contract["v17Delta"]["status"],
+                    "requirementOwnerConfirmation": {
+                        "status": contract["p3e09RequirementOwnerConfirmation"]["status"],
+                        "decisionRef": contract["p3e09RequirementOwnerConfirmation"]["decisionRef"],
+                        "groupCount": len(contract["p3e09RequirementOwnerConfirmation"]["groups"]),
+                        "confirmedUniqueItemCount": contract["p3e09RequirementOwnerConfirmation"]["confirmedUniqueItemCount"],
+                        "reviewStatus": contract["p3e09RequirementOwnerConfirmation"]["reviewStatus"],
+                    },
                     "q07Decision": {
                         "status": contract["q07TechnicalConstraintPolicy"]["status"],
                         "technicalConstraintCount": (
@@ -224,6 +233,8 @@ def build_packets() -> dict[str, dict[str, object]]:
                 CORE_MIGRATION_SCHEMA_REF,
                 MODEL_DECISION_REF,
                 V17_DDL_DELTA_REF,
+                CURRENT_HASH_REQUIREMENT_CONFIRMATION_REF,
+                P3E09_CONFIRMATION_PACKET_REF,
                 "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",

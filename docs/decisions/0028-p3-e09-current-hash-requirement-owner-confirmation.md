@@ -1,0 +1,26 @@
+# ADR-0028：P3-E09当前哈希需求方确认
+
+> 状态：`ACCEPTED / REVIEW_PENDING`<br>
+> 决策日期：2026-08-14<br>
+> 当前DDL SHA-256：`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
+> 决策入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`
+
+## 1. 决策
+
+需求方明确回复“全部接受推荐”，因此按确认包接受以下组合：
+
+`Q07 A、Q08 A、V1.7 A、Q09 A、Q10 A、Q11 A、Q12 A、Q13 A、Q14 A`。
+
+九组决策覆盖确认时全部692项`DEFER`，组间去重后另包含3项因当前哈希变化需要重新确认的既有决策，共695个唯一Item ID。逐项定义、分组和当前值以同哈希确认包为准，不允许按SQL类型把未来新增项自动纳入本决策。
+
+## 2. 边界
+
+- Q07接受当前257项技术约束；历史违规数据进入迁移问题池并保留来源证据。
+- Q08接受当前122项为候选索引基线，不代表性能验收；Feature查询计划和P3-E06近生产压测仍可通过前向迁移调整。
+- V1.7接受确认包中十张候选表的257项当前物理定义，不扩大到已排除、V3或后置对象。
+- Q09～Q14分别接受当前表选项、来源幂等键、关系粒度键、业务身份/版本键、跨字段CHECK以及市场目录审计字段/RMA查询投影。
+- 本决策不新增PRD外业务规则，不改变当前DDL内容，只解除Requirement Owner决策缺口。
+
+## 3. 未完成事项
+
+本ADR不是Reviewer签署，也不生成`approvedDdlSha256`。逐项寄存器必须保持`reviewOwner=null`和`approvedCount=0`，直至数据架构、业务Owner、迁移Owner及独立Reviewer完成复核。只有最终批准同时绑定当前DDL SHA-256、当前items SHA-256和真实评审证据后，P3-E09才可关闭。

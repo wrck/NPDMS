@@ -2,7 +2,7 @@
 
 ## 状态
 
-PARTIALLY_EFFECTIVE：Q01～Q06继续有效；Q07/Q08因当前DDL哈希、数量和分类变化，按本ADR第8节自动失效并进入`RECONFIRMATION_REQUIRED`。全量Reviewer签署待完成。
+PARTIALLY_EFFECTIVE：Q01～Q06继续有效；本ADR旧哈希下的Q07/Q08已按第8节自动失效，当前哈希九组完整清单已由ADR-0028重新确认。全量Reviewer签署待完成。
 
 ## 日期
 
@@ -179,5 +179,5 @@ Q07不包含业务身份、来源幂等、当前唯一、关系粒度及跨字�
 - 交付范围以项目节点—订单行为当前唯一主记录，并通过明细表达地点、产品/设备类型、数量和批次；范围分配不会因扁平唯一键丢失明细。
 - ERP订单可以关联多个默认主CRM执行单；特殊合并批次保留全部执行单号及来源主执行单语义。
 - 状态扩展不再要求修改固定状态值CHECK；核心业务守卫由受控状态动作执行并留痕。
-- 旧哈希下Q07技术不变量和Q08候选索引结论已因当前哈希变化失效；当前状态为`RECONFIRMATION_REQUIRED`。
+- 旧哈希下Q07技术不变量和Q08候选索引结论已因当前哈希变化失效；当前哈希下的Q07/Q08及Q09～Q14、V1.7已由ADR-0028接受，状态为`REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING`。
 - P3-E09仍为`OPEN/BLOCKED_BY_REVIEW`，直至全量Reviewer签署并形成`approvedDdlSha256`；历史迁移实施和切换继续受阻。

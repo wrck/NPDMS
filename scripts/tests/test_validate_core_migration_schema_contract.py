@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -437,6 +438,21 @@ CREATE TABLE plt_external_key_mapping (
             contract[policy_name]["status"] = "ACCEPTED"
             contract[policy_name]["decisionEvidenceRef"] = "missing.md"
         self.assertEqual(2, len(MODULE.accepted_decision_reference_errors(ROOT, contract)))
+
+    def test_current_contract_has_exact_nine_group_requirement_confirmation(self) -> None:
+        contract = json.loads((ROOT / MODULE.CONTRACT).read_text(encoding="utf-8"))
+        packet = json.loads((ROOT / MODULE.P3E09_CONFIRMATION_PACKET).read_text(encoding="utf-8"))
+        self.assertEqual([], MODULE.validate_p3e09_requirement_confirmation(contract, packet))
+
+        broken_packet = json.loads(json.dumps(packet))
+        broken_packet["groups"] = broken_packet["groups"][:-1]
+        errors = MODULE.validate_p3e09_requirement_confirmation(contract, broken_packet)
+        self.assertTrue(any("exact nine" in error for error in errors))
+
+        broken_contract = json.loads(json.dumps(contract))
+        broken_contract["p3e09RequirementOwnerConfirmation"]["groups"]["Q14"]["itemIdsSha256"] = "0" * 64
+        errors = MODULE.validate_p3e09_requirement_confirmation(broken_contract, packet)
+        self.assertTrue(any("Q14 item hash" in error for error in errors))
 
     def test_accepts_current_hash_v17_explicit_item_decision(self) -> None:
         contract = self.valid_v17_delta_contract()

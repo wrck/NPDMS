@@ -18,7 +18,7 @@
 | `target-field-catalog-summary.json` | 目标字段按领域和字段类别的汇总 |
 | `migration-validation.json` | 中文注释、公共字段注释、目标命名、公司—部门配对及映射目标存在性的自动校验结果 |
 | `ddl-item-decision-register.json` | 当前DDL与历史目录并集的逐项决策、复核证据和批准状态 |
-| `p3-e09-confirmation-packet.md` / `.json` | 绑定当前DDL及寄存器哈希的需求方九组完整确认清单；覆盖全部692项`DEFER` |
+| `p3-e09-confirmation-packet.md` / `.json` | 绑定当前DDL及寄存器哈希的需求方九组完整确认清单；ADR-0028已接受确认时全部692项`DEFER`，当前仍待Reviewer签署 |
 
 ## 完整性定义
 

@@ -14,6 +14,8 @@ CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
 DDL = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
 OBJECT_TABLE_MAP = Path("docs/traceability/domain-object-table-map.json")
+P3E09_CONFIRMATION_PACKET = Path("specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json")
+EXPECTED_P3E09_CONFIRMATION_GROUPS = {"Q07", "Q08", "V1.7", "Q09", "Q10", "Q11", "Q12", "Q13", "Q14"}
 EXPECTED_V17_OBJECT_TABLES = {
     "ConfigurationCollectionResult": {
         "imp_configuration_collection_result",
@@ -761,6 +763,61 @@ def accepted_decision_reference_errors(root: Path, contract: dict[str, object]) 
     return errors
 
 
+def confirmation_ids_sha256(item_ids: list[str]) -> str:
+    canonical = json.dumps(sorted(item_ids), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest().upper()
+
+
+def validate_p3e09_requirement_confirmation(
+    contract: dict[str, object], packet: dict[str, object]
+) -> list[str]:
+    errors: list[str] = []
+    confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
+    accepted_policies = all(
+        contract.get(name, {}).get("status") == "ACCEPTED"
+        for name in ("q07TechnicalConstraintPolicy", "q08OrdinaryIndexPolicy", "v17Delta")
+    )
+    if not accepted_policies:
+        return errors
+    if not isinstance(confirmation, dict) or confirmation.get("status") != "ACCEPTED":
+        return ["accepted P3-E09 policies require the nine-group Requirement Owner confirmation"]
+    if confirmation.get("decision") != "ALL_RECOMMENDED_A" or confirmation.get("reviewStatus") != "REVIEW_PENDING":
+        errors.append("P3-E09 Requirement Owner confirmation state mismatch")
+    if confirmation.get("approvedDdlSha256") is not None:
+        errors.append("Requirement Owner confirmation must not fabricate approvedDdlSha256")
+    ddl_sha = contract["q07TechnicalConstraintPolicy"].get("ddlSha256")
+    if confirmation.get("ddlSha256") != ddl_sha or packet.get("currentDdlSha256") != ddl_sha:
+        errors.append("P3-E09 confirmation DDL hash mismatch")
+    if confirmation.get("packetRef") != P3E09_CONFIRMATION_PACKET.as_posix():
+        errors.append("P3-E09 confirmation packet reference mismatch")
+    if packet.get("deferredItemCount") != 692 or packet.get("coveredDeferredItemCount") != 692:
+        errors.append("P3-E09 confirmation packet must cover all 692 deferred items")
+    packet_groups = {
+        group.get("code"): group for group in packet.get("groups", []) if isinstance(group, dict)
+    }
+    contract_groups = confirmation.get("groups", {})
+    if set(packet_groups) != EXPECTED_P3E09_CONFIRMATION_GROUPS or set(contract_groups) != EXPECTED_P3E09_CONFIRMATION_GROUPS:
+        errors.append("P3-E09 confirmation must contain the exact nine decision groups")
+        return errors
+    union_ids: set[str] = set()
+    for code in sorted(EXPECTED_P3E09_CONFIRMATION_GROUPS):
+        group = packet_groups[code]
+        item_ids = [item.get("itemId") for item in group.get("items", []) if isinstance(item, dict)]
+        union_ids.update(item_ids)
+        contract_group = contract_groups[code]
+        if group.get("recommendedDecision") != "A" or contract_group.get("decision") != "A":
+            errors.append(f"P3-E09 group {code} decision mismatch")
+        if len(item_ids) != group.get("itemCount") or contract_group.get("itemCount") != len(item_ids):
+            errors.append(f"P3-E09 group {code} item count mismatch")
+        if contract_group.get("itemIdsSha256") != confirmation_ids_sha256(item_ids):
+            errors.append(f"P3-E09 group {code} item hash mismatch")
+    if confirmation.get("confirmedUniqueItemCount") != len(union_ids) or len(union_ids) != 695:
+        errors.append("P3-E09 confirmed unique item coverage mismatch")
+    if confirmation.get("confirmedItemIdsSha256") != confirmation_ids_sha256(list(union_ids)):
+        errors.append("P3-E09 confirmed item union hash mismatch")
+    return errors
+
+
 def validate_execution_evidence(evidence: dict[str, object], ddl_bytes: bytes, table_count: int) -> list[str]:
     errors: list[str] = []
     ddl_sha = hashlib.sha256(ddl_bytes).hexdigest().upper()
@@ -787,6 +844,8 @@ def main() -> int:
     contract = json.loads(args.contract.read_text(encoding="utf-8"))
     errors = validate_contract(contract, ddl_text)
     errors.extend(accepted_decision_reference_errors(Path.cwd(), contract))
+    confirmation_packet = json.loads((Path.cwd() / P3E09_CONFIRMATION_PACKET).read_text(encoding="utf-8"))
+    errors.extend(validate_p3e09_requirement_confirmation(contract, confirmation_packet))
     errors.extend(validate_v17_delta(
         contract,
         json.loads(args.object_table_map.read_text(encoding="utf-8")),

@@ -1,6 +1,6 @@
 # DDL 漂移审查报告
 
-> 状态：`REVIEW_PENDING / BLOCKED_BY_REVIEW`
+> 状态：`REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING`
 >
 > 门禁：`P3-E09 / AI-MIG-000`
 >
@@ -24,8 +24,8 @@
 |决策|数量|依据与边界|
 |---|---:|---|
 |`ACCEPT_CURRENT`|994|历史目标字段与当前字段定义完全一致，按基线继承；Reviewer 尚未签署|
-|`AMEND_CURRENT`|197|仅限 ADR 明确列出的命名、项目编码、市场行业字段、核心迁移项、Q03 精确清单及明确移除的 V3 表|
-|`DEFER`|692|当前哈希下尚未重新确认的物理细节|
+|`AMEND_CURRENT`|889|197项既有ADR决策，加上ADR-0028九组完整清单覆盖的692项当前哈希决策；Reviewer尚未签署|
+|`DEFER`|0|需求方决策缺口已关闭；不代表Reviewer或迁移批准完成|
 
 全部逐项 `reviewOwner` 为空，`approvedCount=0`，`approvedDdlSha256` 为空。
 
@@ -33,15 +33,14 @@
 
 |分组|数量|状态|关闭方式|
 |---|---:|---|---|
-|Q07 技术约束|257|`RECONFIRMATION_REQUIRED`|需求方确认当前哈希下继续采用现有技术约束；随后 Reviewer 逐项签署|
-|Q08 候选索引|122|`RECONFIRMATION_REQUIRED`|需求方确认仅作为候选基线；真实性能仍由 Feature 查询计划和 P3-E06 验收|
-|V1.7 物理候选|10 表|`PROPOSED_FOR_REVIEW`|形成与当前哈希绑定的显式 itemId 清单，不得按整表自动接受|
-|表选项|60|`DEFER`|按精确值确认字符集、排序规则、存储引擎和注释；不得按 SQL 类型批量接受|
-|其余字段/业务约束|按逐项登记|`DEFER`|由明确业务规则或当前哈希决策清单逐项覆盖|
+|Q07 技术约束|257|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028已绑定当前哈希接受；等待Reviewer逐项签署|
+|Q08 候选索引|122|`REQUIREMENT_OWNER_ACCEPTED_AS_CANDIDATE`|ADR-0028已接受为候选基线；真实性能仍由Feature查询计划和P3-E06验收|
+|V1.7 物理候选|10表、257项|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028使用显式itemId完整集合接受；等待Reviewer逐项签署|
+|Q09～Q14|108项|`REQUIREMENT_OWNER_ACCEPTED`|表选项、幂等/关系/身份版本键、跨字段CHECK和字段投影均按精确itemId接受|
 
-ADR-0023 明确规定：DDL 哈希、数量或分类变化时，原 Q07/Q08 决策自动失效并重新评审。因此旧哈希下的确认不能直接套用于当前候选 DDL。
+ADR-0023明确规定的哈希变化重确认已由ADR-0028完成；本次确认只适用于`5EB9742F…4249`，DDL哈希、数量、分类或itemId集合变化时必须重新确认。
 
-ADR-0025、ADR-0027 当前状态为 `PROPOSED_FOR_REVIEW`，只能证明候选来源，不能证明十张表的所有物理项已经由需求 Owner 批准。
+ADR-0025、ADR-0027仍保存候选形成与纠偏过程；十张表的当前物理项由ADR-0028和确认包形成Requirement Owner接受证据。该证据不替代Reviewer签署。
 
 ## 4. 证据与安全边界
 
@@ -53,7 +52,7 @@ ADR-0025、ADR-0027 当前状态为 `PROPOSED_FOR_REVIEW`，只能证明候选�
 
 ## 5. 放行条件
 
-1. 692 项 `DEFER` 全部由当前哈希绑定的显式决策清单覆盖，不允许按 SQL 类型或整表推定。
-2. 数据架构、业务 Owner、迁移 Owner 完成逐项复核；签署证据与候选事实分离保存。
-3. 形成非空 `approvedDdlSha256`，并确保 DDL、字段目录、迁移映射、校验与发布清单使用同一哈希。
-4. 机器校验和独立复审均通过后，才可关闭 P3-E09。
+1. 【已完成】692项原`DEFER`已由当前哈希绑定的九组显式决策清单覆盖，生成器禁止按SQL类型或整表推定未来新增项。
+2. 【待完成】数据架构、业务Owner、迁移Owner完成逐项复核；签署证据与候选事实分离保存。
+3. 【待完成】形成非空`approvedDdlSha256`，并确保DDL、字段目录、迁移映射、校验与发布清单使用同一哈希。
+4. 【待完成】机器校验和独立复审均通过后，才可关闭P3-E09。

@@ -159,6 +159,12 @@ def validate(root: Path) -> list[str]:
         decided_expected = generator.apply_accepted_q07_q08_decisions(decided_expected, core_contract)
     if core_contract.get("v17Delta", {}).get("status") == "ACCEPTED":
         decided_expected = generator.apply_accepted_v17_delta_decisions(decided_expected, core_contract)
+    confirmation = core_contract.get("p3e09RequirementOwnerConfirmation", {})
+    if isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED":
+        packet = json.loads((root / confirmation["packetRef"]).read_text(encoding="utf-8"))
+        decided_expected = generator.apply_accepted_p3e09_confirmation_decisions(
+            decided_expected, core_contract, packet
+        )
     expected_decided_by_id = {item["itemId"]: item for item in decided_expected["items"]}
     errors.extend(generated_decision_errors(actual_by_id, expected_decided_by_id))
     errors.extend(evidence_reference_errors(root, items))
@@ -177,6 +183,8 @@ def validate(root: Path) -> list[str]:
         conditional_metadata.extend(["q07Decision", "q08Decision"])
     if core_contract.get("v17Delta", {}).get("status") == "ACCEPTED":
         conditional_metadata.append("v17DeltaDecision")
+    if isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED":
+        conditional_metadata.append("p3e09RequirementOwnerDecision")
     for decision_key in conditional_metadata:
         if register.get(decision_key) != decided_expected.get(decision_key):
             errors.append(f"DDL decision register {decision_key} metadata mismatch")
