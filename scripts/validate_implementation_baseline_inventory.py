@@ -32,6 +32,47 @@ BLOCKING_CLASSIFICATIONS = frozenset(
 REQ_PATTERN = re.compile(
     r"^(?:PM|PRE|PLN|SCH|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|NFR)-\d{2}$"
 )
+RUNTIME_SOURCE_ROOTS = (
+    "pms-module-cutover/src/main",
+    "yudao-ui/yudao-ui-admin-vue3/src",
+)
+RUNTIME_SOURCE_SUFFIXES = frozenset(
+    {
+        ".java",
+        ".kt",
+        ".xml",
+        ".yml",
+        ".yaml",
+        ".properties",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".vue",
+        ".json",
+    }
+)
+RETIRED_CUTOVER_PATTERNS = (
+    ("execution-or-observation type", re.compile(r"\bCut(?:Execution|Observation)\w*\b")),
+    (
+        "execution-or-observation route",
+        re.compile(r"\bcut-(?:execution|observation)\b", re.IGNORECASE),
+    ),
+    (
+        "execution-or-observation permission",
+        re.compile(r"\bpms:cut-(?:execution|observation):[A-Za-z0-9:_*-]+", re.IGNORECASE),
+    ),
+    ("cut-task named bypass action", re.compile(r"\b(?:rollbackCutTask|terminateCutTask)\b")),
+)
+CUT_TASK_CONTEXT_PATTERN = re.compile(
+    r"\bCutTask\w*\b|\bcut-task\b|\bpms:cut-task\b", re.IGNORECASE
+)
+CUT_TASK_BYPASS_PATTERN = re.compile(
+    r"/(?:start-execution|complete-execution|start-observation|complete-observation|rollback|terminate)\b"
+    r"|\b(?:startExecution|completeExecution|startObservation|completeObservation)\b"
+    r"|\b(?:rollback|terminate)\s*\(",
+    re.IGNORECASE,
+)
 
 
 def load_inventory(path: Path) -> dict:
@@ -82,8 +123,32 @@ def _requirement_ids(repository: Path) -> set[str]:
     return set(re.findall(REQ_PATTERN.pattern[1:-1], matrix))
 
 
-def validate_inventory(repository: Path, inventory: dict) -> list[str]:
+def find_retired_cutover_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired cutover surfaces in current runtime source, independent of inventory paths."""
     errors: list[str] = []
+    for raw_root in RUNTIME_SOURCE_ROOTS:
+        source_root = repository / raw_root
+        if not source_root.is_dir():
+            continue
+        for path in sorted(
+            candidate for candidate in source_root.rglob("*") if candidate.is_file()
+        ):
+            if path.suffix.lower() not in RUNTIME_SOURCE_SUFFIXES:
+                continue
+            content = path.read_text(encoding="utf-8", errors="ignore")
+            relative_path = path.relative_to(repository).as_posix()
+            for label, pattern in RETIRED_CUTOVER_PATTERNS:
+                if pattern.search(content):
+                    errors.append(f"retired cutover {label}: {relative_path}")
+            if CUT_TASK_CONTEXT_PATTERN.search(content) and CUT_TASK_BYPASS_PATTERN.search(
+                content
+            ):
+                errors.append(f"retired cutover cut-task bypass route or method: {relative_path}")
+    return errors
+
+
+def validate_inventory(repository: Path, inventory: dict) -> list[str]:
+    errors = find_retired_cutover_runtime_surfaces(repository)
     if set(inventory) != {"schemaVersion", "status", "items"}:
         errors.append("inventory must contain only schemaVersion, status, and items")
         return errors
