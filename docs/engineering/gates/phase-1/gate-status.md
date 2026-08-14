@@ -1,7 +1,7 @@
 # SDS Phase 1 Review
 
 > 审查状态：`APPROVED`
-> 依据：PRD V1.7、基线快照、正式工程链 V1.7
+> 依据：PRD V1.7、基线快照、正式工程链 V1.8
 > 结论：`READY_FOR_PHASE_2`
 > Phase 1硬门禁：领域Owner签署、实现工作包登记、采集平台集成形态确认均已通过。
 > 独立第三方评审：V1.6结论为`GO`，详见`docs/engineering/gates/phase-1/independent-review.md`；V1.7为需求方批准的ADR-0024差量并已通过机器校验与自审，本文件不将其表述为新增独立评审结论。
