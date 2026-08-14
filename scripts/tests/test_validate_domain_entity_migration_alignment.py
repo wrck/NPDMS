@@ -230,6 +230,29 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self.assertIn("pms_eng_arrival", catalog)
         self.assertNotIn("pms_wrong_worktree_table", catalog)
 
+    def test_generator_resolves_head_to_canonical_commit(self) -> None:
+        self.assertEqual(self.pinned_commit, GENERATOR.resolve_git_commit(self.impl, "HEAD"))
+
+    def test_validator_rejects_noncanonical_commit_references(self) -> None:
+        subprocess.run(["git", "branch", "evidence-ref", self.pinned_commit], cwd=self.impl, check=True)
+        for invalid_ref in ("HEAD", "evidence-ref", self.pinned_commit[:8]):
+            with self.subTest(ref=invalid_ref):
+                self.contract["implementationCommit"] = invalid_ref
+                self._save_contract()
+                self.assertTrue(any("canonical 40-character lowercase SHA" in error for error in self._validate()))
+
+    def test_moving_ref_does_not_change_generated_contract_binding(self) -> None:
+        subprocess.run(["git", "branch", "evidence-ref", self.pinned_commit], cwd=self.impl, check=True)
+        resolved_commit = GENERATOR.resolve_git_commit(self.impl, "evidence-ref")
+        self.assertEqual(self.pinned_commit, resolved_commit)
+        (self.impl / "README.md").write_text("advance ref\n", encoding="utf-8")
+        subprocess.run(["git", "add", "README.md"], cwd=self.impl, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "advance ref target"], cwd=self.impl, check=True)
+        subprocess.run(["git", "branch", "-f", "evidence-ref", "HEAD"], cwd=self.impl, check=True)
+        self.assertNotEqual(resolved_commit, GENERATOR.resolve_git_commit(self.impl, "evidence-ref"))
+        self.assertEqual(resolved_commit, self.contract["implementationCommit"])
+        self.assertEqual([], self._validate())
+
     def test_incompatible_pinned_commit_fails(self) -> None:
         (self.impl / "sql/migrations/V1__test.sql").write_text(
             "CREATE TABLE pms_incompatible (id bigint);\n", encoding="utf-8"

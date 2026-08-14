@@ -286,11 +286,36 @@ OWNER_OVERRIDES = {
     "ServiceStatus": "SRV",
 }
 
+CANONICAL_GIT_SHA = re.compile(r"[0-9a-f]{40}")
+
+
+def is_canonical_git_sha(value: object) -> bool:
+    return isinstance(value, str) and CANONICAL_GIT_SHA.fullmatch(value) is not None
+
+
+def resolve_git_commit(repository: Path, ref: str) -> str:
+    """Resolve a caller-friendly ref once, before it can enter persisted evidence."""
+    if not repository.is_dir():
+        raise ValueError(f"implementation repository unavailable: {repository}")
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "--verify", f"{ref}^{{commit}}"], cwd=repository,
+            check=True, text=True, encoding="utf-8",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        ).stdout.strip().lower()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValueError(f"frozen implementation commit does not exist: {ref}") from exc
+    if not is_canonical_git_sha(commit):
+        raise ValueError(f"resolved implementation commit is not a canonical 40-character lowercase SHA: {commit}")
+    return commit
+
 
 def git_sql_blobs(repository: Path, commit: str, migration_root: str = "sql/migrations") -> dict[str, str]:
     """Read migration SQL from an immutable Git commit, never from HEAD/worktree."""
     if not repository.is_dir():
         raise ValueError(f"implementation repository unavailable: {repository}")
+    if not is_canonical_git_sha(commit):
+        raise ValueError("implementationCommit must be a canonical 40-character lowercase SHA")
     try:
         subprocess.run(
             ["git", "cat-file", "-e", f"{commit}^{{commit}}"], cwd=repository,
@@ -462,11 +487,12 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             raise ValueError(f"{object_name} generator target policy differs from the maintained 09 object-table map")
     requirement_owners = parse_requirement_owners(args.requirement_matrix)
     database_design = args.database_design.read_text(encoding="utf-8")
-    commit = args.implementation_commit
-    if not commit and args.json_output.exists():
-        commit = json.loads(args.json_output.read_text(encoding="utf-8")).get("implementationCommit")
-    if not commit:
+    commit_ref = args.implementation_commit
+    if not commit_ref and args.json_output.exists():
+        commit_ref = json.loads(args.json_output.read_text(encoding="utf-8")).get("implementationCommit")
+    if not commit_ref:
         raise ValueError("frozen implementation commit is required; pass --implementation-commit or retain it in the existing contract")
+    commit = resolve_git_commit(args.implementation, commit_ref)
     current_catalog = git_table_catalog(args.implementation, commit)
     legacy_catalog = legacy_tables(args.legacy_schema)
     records = []

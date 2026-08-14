@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
-from generate_domain_entity_migration_contract import git_sql_blobs
+from generate_domain_entity_migration_contract import git_sql_blobs, is_canonical_git_sha
 
 
 ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "LEGACY_TABLE", "LEGACY_FIELD_PATTERN", "EXTERNAL_SYSTEM", "DERIVED_TARGET", "NONE_NEW", "PENDING_SOURCE_IDENTIFICATION"}
@@ -284,7 +284,10 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
     physical_target_tables = set(physical_target_columns)
     implementation = implementation_override or Path(payload.get("implementationRepo", ""))
     frozen_commit = payload.get("implementationCommit", "")
-    if not implementation.is_dir():
+    if not is_canonical_git_sha(frozen_commit):
+        errors.append("implementationCommit must be a canonical 40-character lowercase SHA")
+        current_tables, current_definitions = {}, {}
+    elif not implementation.is_dir():
         errors.append(f"implementation repository unavailable: {implementation}")
         current_tables, current_definitions = {}, {}
     else:
