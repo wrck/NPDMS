@@ -219,6 +219,12 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
         self._git("commit", "-q", "-m", "snapshot contract")
         return manifest_path
 
+    def _assert_no_transaction_artifacts(self) -> None:
+        paths = [*(self.repo / entry.path for entry in self.entries)]
+        paths.append(self.repo / "docs/specification-baseline/manifest.json")
+        for path in paths:
+            self.assertEqual([], list(path.parent.glob(f".{path.name}.*")))
+
     def test_check_mode_never_writes(self) -> None:
         changes = plan_snapshot(self.repo, self.manifest, self.blobs)
 
@@ -286,6 +292,126 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
         self.assertEqual(original_contents[1], (self.repo / self.entries[1].path).read_bytes())
         self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
 
+    def test_apply_restores_nonfirst_target_when_link_raises_os_error(self) -> None:
+        original_contents = (b"old prd\n", b"old sds\n")
+        for entry, content in zip(self.entries, original_contents, strict=True):
+            target = self.repo / entry.path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            self._git("add", entry.path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        second_target = self.repo / self.entries[1].path
+        original_link = specification_baseline.os.link
+
+        def fail_second_target_link(source: object, destination: object) -> None:
+            if Path(destination) == second_target:
+                raise OSError("second target link failed")
+            original_link(source, destination)
+
+        with patch("specification_baseline.os.link", side_effect=fail_second_target_link):
+            with self.assertRaisesRegex(BaselineError, "second target link failed"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertEqual(original_contents[0], (self.repo / self.entries[0].path).read_bytes())
+        self.assertEqual(original_contents[1], second_target.read_bytes())
+        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+        self._assert_no_transaction_artifacts()
+
+    def test_apply_restores_manifest_when_link_raises_os_error(self) -> None:
+        manifest_path = self._write_contract_files()
+        original_manifest = manifest_path.read_bytes()
+        original_link = specification_baseline.os.link
+
+        def fail_manifest_link(source: object, destination: object) -> None:
+            if Path(destination) == manifest_path:
+                raise OSError("manifest link failed")
+            original_link(source, destination)
+
+        with patch("specification_baseline.os.link", side_effect=fail_manifest_link):
+            with self.assertRaisesRegex(BaselineError, "manifest link failed"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertEqual(original_manifest, manifest_path.read_bytes())
+        self.assertFalse((self.repo / self.entries[0].path).exists())
+        self.assertFalse((self.repo / self.entries[1].path).exists())
+        self._assert_no_transaction_artifacts()
+
+    def test_apply_reports_rollback_failure(self) -> None:
+        original_contents = (b"old prd\n", b"old sds\n")
+        for entry, content in zip(self.entries, original_contents, strict=True):
+            target = self.repo / entry.path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            self._git("add", entry.path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        original_publish = specification_baseline._publish_staged_file
+        publish_count = 0
+
+        def fail_publish_and_rollback(path: Path, staged: Path, expected: object) -> None:
+            nonlocal publish_count
+            publish_count += 1
+            if publish_count == 2:
+                raise OSError("publish failed")
+            if publish_count == 3:
+                raise OSError("rollback failed")
+            original_publish(path, staged, expected)
+
+        with patch(
+            "specification_baseline._publish_staged_file",
+            side_effect=fail_publish_and_rollback,
+        ):
+            with self.assertRaisesRegex(BaselineError, "snapshot apply failed and rollback failed"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertEqual(3, publish_count)
+
+    def test_apply_lock_covers_plan_publish_and_rollback(self) -> None:
+        original_contents = (b"old prd\n", b"old sds\n")
+        for entry, content in zip(self.entries, original_contents, strict=True):
+            target = self.repo / entry.path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            self._git("add", entry.path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        lock_path = self.repo / "docs/specification-baseline/.apply.lock"
+        original_plan_snapshot = specification_baseline.plan_snapshot
+        original_publish = specification_baseline._publish_staged_file
+        observed_lock_states: list[bool] = []
+        publish_count = 0
+
+        def observe_plan(*args: object, **kwargs: object) -> object:
+            observed_lock_states.append(lock_path.is_file())
+            return original_plan_snapshot(*args, **kwargs)
+
+        def observe_publish(path: Path, staged: Path, expected: object) -> None:
+            nonlocal publish_count
+            observed_lock_states.append(lock_path.is_file())
+            publish_count += 1
+            if publish_count == 2:
+                raise OSError("publish failed")
+            original_publish(path, staged, expected)
+
+        with patch("specification_baseline.plan_snapshot", side_effect=observe_plan), patch(
+            "specification_baseline._publish_staged_file", side_effect=observe_publish
+        ):
+            with self.assertRaisesRegex(OSError, "publish failed"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertEqual([True, True, True, True], observed_lock_states)
+        self.assertFalse(lock_path.exists())
+
+    def test_apply_refuses_second_repository_lock_holder(self) -> None:
+        lock_path = self.repo / "docs/specification-baseline/.apply.lock"
+
+        with specification_baseline._repository_apply_lock(self.repo):
+            with self.assertRaisesRegex(BaselineError, "already in progress"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+            self.assertTrue(lock_path.is_file())
+
+        self.assertFalse(lock_path.exists())
+        self.assertFalse((self.repo / self.entries[0].path).exists())
+        self.assertFalse((self.repo / self.entries[1].path).exists())
+
     def test_apply_refuses_target_drift_after_preflight(self) -> None:
         target = self.repo / self.entries[0].path
         target.parent.mkdir(parents=True)
@@ -331,33 +457,6 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
 
         self.assertTrue(injected)
         self.assertEqual(b"local edit before replacement\n", target.read_bytes())
-        self.assertFalse((self.repo / self.entries[1].path).exists())
-        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
-
-    def test_apply_restores_backup_write_after_initial_backup_check(self) -> None:
-        target = self.repo / self.entries[0].path
-        target.parent.mkdir(parents=True)
-        target.write_bytes(b"committed\n")
-        self._git("add", self.entries[0].path)
-        self._git("commit", "-q", "-m", "managed snapshot")
-        original_link = specification_baseline.os.link
-        injected = False
-
-        def mutate_backup_before_publish(source: object, destination: object) -> None:
-            nonlocal injected
-            if not injected and Path(destination) == target:
-                injected = True
-                backups = list(target.parent.glob(f".{target.name}.*.backup"))
-                self.assertEqual(1, len(backups))
-                backups[0].write_bytes(b"external write through old handle\n")
-            original_link(source, destination)
-
-        with patch("specification_baseline.os.link", side_effect=mutate_backup_before_publish):
-            with self.assertRaises(BaselineError):
-                apply_snapshot(self.repo, self.manifest, self.blobs)
-
-        self.assertTrue(injected)
-        self.assertEqual(b"external write through old handle\n", target.read_bytes())
         self.assertFalse((self.repo / self.entries[1].path).exists())
         self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
 

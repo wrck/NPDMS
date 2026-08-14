@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Mapping, Sequence
@@ -313,20 +314,21 @@ def _restore_moved_target(path: Path, backup: Path) -> None:
     try:
         os.link(backup, path)
     except FileExistsError:
-        pass
-    finally:
-        try:
-            backup.unlink()
-        except FileNotFoundError:
-            pass
+        backup.unlink(missing_ok=True)
+    except OSError:
+        if path.exists():
+            raise
+        os.replace(backup, path)
+    else:
+        backup.unlink(missing_ok=True)
 
 
 def _publish_staged_file(path: Path, staged: Path, expected: _TargetState) -> None:
     if expected.kind == "MISSING":
         try:
             os.link(staged, path)
-        except FileExistsError as exc:
-            raise BaselineError(f"managed destination changed during apply: {path}") from exc
+        except OSError as exc:
+            raise BaselineError(f"failed to publish snapshot target {path}: {exc}") from exc
     elif expected.kind == "FILE":
         backup = _new_backup_path(path)
         applied = _TargetState("FILE", staged.read_bytes())
@@ -340,9 +342,9 @@ def _publish_staged_file(path: Path, staged: Path, expected: _TargetState) -> No
             raise BaselineError(f"managed destination changed during apply: {path}")
         try:
             os.link(staged, path)
-        except FileExistsError as exc:
-            backup.unlink(missing_ok=True)
-            raise BaselineError(f"managed destination changed during apply: {path}") from exc
+        except OSError as exc:
+            _restore_moved_target(path, backup)
+            raise BaselineError(f"failed to publish snapshot target {path}: {exc}") from exc
         if _target_state(backup) != expected:
             _publish_staged_file(path, backup, applied)
             raise BaselineError(f"managed destination changed during apply: {path}")
@@ -379,7 +381,34 @@ def _restore_target_state(path: Path, original: _TargetState, applied: bytes) ->
         raise BaselineError(f"cannot restore non-file managed destination: {path}")
 
 
+@contextmanager
+def _repository_apply_lock(destination_repo: Path):
+    """Serialize cooperative snapshot applies for the entire local transaction."""
+    lock_path = destination_repo / "docs" / "specification-baseline" / ".apply.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        descriptor = os.open(lock_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as exc:
+        raise BaselineError(f"snapshot apply already in progress: {lock_path}") from exc
+    try:
+        with os.fdopen(descriptor, "w", encoding="ascii") as handle:
+            handle.write(f"pid={os.getpid()}\n")
+        yield
+    finally:
+        lock_path.unlink(missing_ok=True)
+
+
 def apply_snapshot(
+    destination_repo: Path,
+    manifest: Mapping[str, object],
+    blobs: Mapping[str, bytes],
+) -> None:
+    """Apply under a cooperative repository lock; non-cooperating writers are out of scope."""
+    with _repository_apply_lock(destination_repo):
+        _apply_snapshot(destination_repo, manifest, blobs)
+
+
+def _apply_snapshot(
     destination_repo: Path,
     manifest: Mapping[str, object],
     blobs: Mapping[str, bytes],
