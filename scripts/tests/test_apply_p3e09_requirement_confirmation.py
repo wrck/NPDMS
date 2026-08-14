@@ -29,6 +29,8 @@ class P3E09RequirementConfirmationTest(unittest.TestCase):
         self.assertEqual("ACCEPTED", confirmation["status"])
         self.assertEqual(MODULE.EXPECTED_GROUPS, set(confirmation["groups"]))
         self.assertEqual(695, confirmation["confirmedUniqueItemCount"])
+        self.assertEqual(MODULE.PRE_CONFIRMATION_ITEMS_SHA256, confirmation["preConfirmationItemsSha256"])
+        self.assertEqual(MODULE.PRE_CONFIRMATION_PACKET_SHA256, confirmation["preConfirmationPacketFileSha256"])
         self.assertEqual("REVIEW_PENDING", confirmation["reviewStatus"])
         self.assertIsNone(confirmation["approvedDdlSha256"])
         self.assertEqual("ACCEPTED", result["q07TechnicalConstraintPolicy"]["status"])

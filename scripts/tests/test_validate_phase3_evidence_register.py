@@ -94,7 +94,7 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         self.path.write_text(json.dumps(payload), encoding="utf-8")
         self.assertEqual([], VALIDATOR.validate(self.path))
 
-    def test_approved_transition_requires_verified_current_hash(self) -> None:
+    def test_approved_transition_rejects_unregistered_reviewer_string(self) -> None:
         payload = json.loads(self.path.read_text(encoding="utf-8"))
         item = next(row for row in payload["items"] if row["id"] == "P3-E09")
         item["status"] = "VERIFIED"
@@ -109,7 +109,7 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         facts["q08Decision"]["status"] = "ACCEPTED"
         payload["overallStatus"] = "READY_FOR_SDS_BASELINE"
         self.path.write_text(json.dumps(payload), encoding="utf-8")
-        self.assertEqual([], VALIDATOR.validate(self.path))
+        self.assertTrue(any("approval register" in error for error in VALIDATOR.validate(self.path)))
 
     def test_only_model_affecting_e09_blocks_sds_readiness(self) -> None:
         errors = VALIDATOR.validate(self.path, require_ready=True)

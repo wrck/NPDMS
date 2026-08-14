@@ -6,7 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from p3e09_approval_policy import APPROVAL_SUBMISSION_PREFIX, validate_approval_submission
 
 
 REQUIRED_FACTS = {
@@ -96,13 +100,21 @@ def nonempty(value: object) -> bool:
     return value is not None and value != "" and value != [] and value != {}
 
 
+def repository_root(path: Path) -> Path | None:
+    for candidate in (path.resolve().parent, *path.resolve().parents):
+        if (candidate / "docs/traceability/core-migration-schema-contract.json").is_file():
+            return candidate
+    return None
+
+
 def validate(path: Path) -> list[str]:
     errors: list[str] = []
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return [f"cannot read evidence submission: {exc}"]
-    if payload.get("schemaVersion") != 1:
+    expected_schema = 2 if payload.get("id") == "P3-E09" else 1
+    if payload.get("schemaVersion") != expected_schema:
         errors.append("unsupported evidence submission schemaVersion")
     identifier = payload.get("id")
     if identifier not in REQUIRED_FACTS:
@@ -151,6 +163,22 @@ def validate(path: Path) -> list[str]:
             hash_fields = ("currentDdlSha256", "targetCatalogDdlSha256", "mappingDdlSha256", "validationDdlSha256", "manifestDdlSha256")
             if not approved or any(facts.get(field) != approved for field in hash_fields):
                 errors.append("P3-E09 VERIFIED requires all DDL-bound artifacts to reference approvedDdlSha256")
+            root = repository_root(path)
+            if root is None:
+                errors.append("P3-E09 VERIFIED submission must be stored in the project repository")
+            else:
+                try:
+                    submission_ref = path.resolve().relative_to(root.resolve()).as_posix()
+                except ValueError:
+                    submission_ref = ""
+                register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
+                try:
+                    register = json.loads(register_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    errors.append(f"cannot read P3-E09 DDL register: {exc}")
+                else:
+                    approval_errors, _ = validate_approval_submission(root, submission_ref, register)
+                    errors.extend(approval_errors)
     return errors
 
 

@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 
 
@@ -769,7 +770,7 @@ def confirmation_ids_sha256(item_ids: list[str]) -> str:
 
 
 def validate_p3e09_requirement_confirmation(
-    contract: dict[str, object], packet: dict[str, object]
+    contract: dict[str, object], packet: dict[str, object], root: Path = Path.cwd()
 ) -> list[str]:
     errors: list[str] = []
     confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
@@ -790,6 +791,35 @@ def validate_p3e09_requirement_confirmation(
         errors.append("P3-E09 confirmation DDL hash mismatch")
     if confirmation.get("packetRef") != P3E09_CONFIRMATION_PACKET.as_posix():
         errors.append("P3-E09 confirmation packet reference mismatch")
+    expected_source_commit = "b490ed4e9bbd87f25b372fcf3ca6c91b30ee66fa"
+    if confirmation.get("preConfirmationSourceCommit") != expected_source_commit:
+        errors.append("P3-E09 pre-confirmation source commit mismatch")
+    else:
+        pre_paths = {
+            "preConfirmationRegisterFileSha256": Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"),
+            "preConfirmationPacketFileSha256": P3E09_CONFIRMATION_PACKET,
+        }
+        for field, source_path in pre_paths.items():
+            try:
+                content = subprocess.check_output(
+                    ["git", "show", f"{expected_source_commit}:{source_path.as_posix()}"], cwd=root
+                )
+            except subprocess.CalledProcessError:
+                errors.append(f"P3-E09 cannot read frozen pre-confirmation artifact: {source_path}")
+                continue
+            if hashlib.sha256(content).hexdigest().upper() != confirmation.get(field):
+                errors.append(f"P3-E09 frozen pre-confirmation hash mismatch: {field}")
+            if field == "preConfirmationRegisterFileSha256":
+                frozen_register = json.loads(content)
+                if frozen_register.get("itemsSha256") != confirmation.get("preConfirmationItemsSha256"):
+                    errors.append("P3-E09 frozen pre-confirmation items hash mismatch")
+    packet_confirmation = packet.get("confirmation", {})
+    for field in (
+        "preConfirmationSourceCommit", "preConfirmationItemsSha256",
+        "preConfirmationRegisterFileSha256", "preConfirmationPacketFileSha256",
+    ):
+        if packet_confirmation.get(field) != confirmation.get(field):
+            errors.append(f"P3-E09 packet pre-confirmation anchor mismatch: {field}")
     if packet.get("deferredItemCount") != 692 or packet.get("coveredDeferredItemCount") != 692:
         errors.append("P3-E09 confirmation packet must cover all 692 deferred items")
     packet_groups = {
@@ -845,7 +875,7 @@ def main() -> int:
     errors = validate_contract(contract, ddl_text)
     errors.extend(accepted_decision_reference_errors(Path.cwd(), contract))
     confirmation_packet = json.loads((Path.cwd() / P3E09_CONFIRMATION_PACKET).read_text(encoding="utf-8"))
-    errors.extend(validate_p3e09_requirement_confirmation(contract, confirmation_packet))
+    errors.extend(validate_p3e09_requirement_confirmation(contract, confirmation_packet, Path.cwd()))
     errors.extend(validate_v17_delta(
         contract,
         json.loads(args.object_table_map.read_text(encoding="utf-8")),

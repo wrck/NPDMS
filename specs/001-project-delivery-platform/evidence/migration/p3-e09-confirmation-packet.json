@@ -13,7 +13,11 @@
     "confirmedAt": "2026-08-14",
     "decision": "ALL_RECOMMENDED_A",
     "reviewStatus": "REVIEW_PENDING",
-    "approvedDdlSha256": null
+    "approvedDdlSha256": null,
+    "preConfirmationSourceCommit": "b490ed4e9bbd87f25b372fcf3ca6c91b30ee66fa",
+    "preConfirmationItemsSha256": "D383F3F194DB7094BE229B03EB3E5199EC9FD813BDEC6483FB5B853F42760D20",
+    "preConfirmationRegisterFileSha256": "2D859D216A67645B9188087C0A96751F6A8133202E377EE07AC7341CA56065E5",
+    "preConfirmationPacketFileSha256": "43C433AFBE7E9F7BEB614B1071E8BD87DA2E516CE70C0B6A063696DC301C5342"
   },
   "groups": [
     {

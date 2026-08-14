@@ -41,6 +41,7 @@ class P3E09ConfirmationPacketTest(unittest.TestCase):
         self.assertEqual("ADR-0028", packet["confirmation"]["decisionRef"])
         self.assertEqual("REVIEW_PENDING", packet["confirmation"]["reviewStatus"])
         self.assertIsNone(packet["confirmation"]["approvedDdlSha256"])
+        self.assertEqual("D383F3F194DB7094BE229B03EB3E5199EC9FD813BDEC6483FB5B853F42760D20", packet["confirmation"]["preConfirmationItemsSha256"])
 
 
 if __name__ == "__main__":

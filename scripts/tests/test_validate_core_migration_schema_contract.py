@@ -454,6 +454,11 @@ CREATE TABLE plt_external_key_mapping (
         errors = MODULE.validate_p3e09_requirement_confirmation(broken_contract, packet)
         self.assertTrue(any("Q14 item hash" in error for error in errors))
 
+        broken_contract = json.loads(json.dumps(contract))
+        broken_contract["p3e09RequirementOwnerConfirmation"]["preConfirmationPacketFileSha256"] = "0" * 64
+        errors = MODULE.validate_p3e09_requirement_confirmation(broken_contract, packet, ROOT)
+        self.assertTrue(any("pre-confirmation hash mismatch" in error for error in errors))
+
     def test_accepts_current_hash_v17_explicit_item_decision(self) -> None:
         contract = self.valid_v17_delta_contract()
         ddl = self.valid_v17_delta_ddl()

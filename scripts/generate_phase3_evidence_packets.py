@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 from validate_phase3_evidence_submission import REQUIRED_FACTS
+from p3e09_approval_policy import item_ids_sha256
 
 
 DECISION_REF = "docs/decisions/0004-phase3-production-assurance-directions.md"
@@ -243,8 +244,8 @@ def build_packets() -> dict[str, dict[str, object]]:
             ])
         if identifier in {"P3-E01", "P3-E04"}:
             evidence_refs.append(DEPLOYMENT_TIME_SELECTION_REF)
-        packets[identifier] = {
-            "schemaVersion": 1,
+        packet = {
+            "schemaVersion": 2 if identifier == "P3-E09" else 1,
             "id": identifier,
             "status": "DRAFT",
             "decisionOwner": "REQUIREMENT_OWNER",
@@ -258,6 +259,30 @@ def build_packets() -> dict[str, dict[str, object]]:
             "unresolvedItems": ["由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"],
             "revalidationTriggers": [],
         }
+        if identifier == "P3-E09":
+            packet["approvalBinding"] = {
+                "currentDdlSha256": register["currentDdlSha256"],
+                "itemsSha256": None,
+                "itemCount": len(register["items"]),
+                "itemIdsSha256": item_ids_sha256(register["items"]),
+            }
+            packet["signoffs"] = {
+                role: {
+                    "status": "PENDING",
+                    "signerId": None,
+                    "signedAt": None,
+                    "attestationMethod": None,
+                    "evidenceRef": None,
+                    "evidenceSha256": None,
+                }
+                for role in (
+                    "DATA_ARCHITECTURE_OWNER",
+                    "BUSINESS_OWNER",
+                    "MIGRATION_OWNER",
+                    "INDEPENDENT_REVIEWER",
+                )
+            }
+        packets[identifier] = packet
     return packets
 
 

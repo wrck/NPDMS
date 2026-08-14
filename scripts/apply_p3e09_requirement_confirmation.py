@@ -13,6 +13,10 @@ CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
 PACKET = Path("specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json")
 DECISION_REF = "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md"
 EXPECTED_GROUPS = {"Q07", "Q08", "V1.7", "Q09", "Q10", "Q11", "Q12", "Q13", "Q14"}
+PRE_CONFIRMATION_SOURCE_COMMIT = "b490ed4e9bbd87f25b372fcf3ca6c91b30ee66fa"
+PRE_CONFIRMATION_ITEMS_SHA256 = "D383F3F194DB7094BE229B03EB3E5199EC9FD813BDEC6483FB5B853F42760D20"
+PRE_CONFIRMATION_REGISTER_SHA256 = "2D859D216A67645B9188087C0A96751F6A8133202E377EE07AC7341CA56065E5"
+PRE_CONFIRMATION_PACKET_SHA256 = "43C433AFBE7E9F7BEB614B1071E8BD87DA2E516CE70C0B6A063696DC301C5342"
 
 
 def ids_sha256(item_ids: list[str]) -> str:
@@ -68,6 +72,10 @@ def apply_confirmation(contract: dict[str, object], packet: dict[str, object]) -
         "ddlSha256": ddl_sha,
         "packetRef": PACKET.as_posix(),
         "decisionEvidenceRef": DECISION_REF,
+        "preConfirmationSourceCommit": PRE_CONFIRMATION_SOURCE_COMMIT,
+        "preConfirmationItemsSha256": PRE_CONFIRMATION_ITEMS_SHA256,
+        "preConfirmationRegisterFileSha256": PRE_CONFIRMATION_REGISTER_SHA256,
+        "preConfirmationPacketFileSha256": PRE_CONFIRMATION_PACKET_SHA256,
         "deferredItemCountAtConfirmation": packet["deferredItemCount"],
         "coveredDeferredItemCount": packet["coveredDeferredItemCount"],
         "reconfirmedExistingDecisionItemCount": packet["reconfirmedExistingDecisionItemCount"],

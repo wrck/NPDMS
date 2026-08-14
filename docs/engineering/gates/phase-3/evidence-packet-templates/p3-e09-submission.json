@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "P3-E09",
   "status": "DRAFT",
   "decisionOwner": "REQUIREMENT_OWNER",
@@ -91,5 +91,45 @@
   "unresolvedItems": [
     "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
   ],
-  "revalidationTriggers": []
+  "revalidationTriggers": [],
+  "approvalBinding": {
+    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+    "itemsSha256": null,
+    "itemCount": 1883,
+    "itemIdsSha256": "3C40BB7B02F4DC3B588BF09D32564A6C175098518FC30173D27F15F6810A78F1"
+  },
+  "signoffs": {
+    "DATA_ARCHITECTURE_OWNER": {
+      "status": "PENDING",
+      "signerId": null,
+      "signedAt": null,
+      "attestationMethod": null,
+      "evidenceRef": null,
+      "evidenceSha256": null
+    },
+    "BUSINESS_OWNER": {
+      "status": "PENDING",
+      "signerId": null,
+      "signedAt": null,
+      "attestationMethod": null,
+      "evidenceRef": null,
+      "evidenceSha256": null
+    },
+    "MIGRATION_OWNER": {
+      "status": "PENDING",
+      "signerId": null,
+      "signedAt": null,
+      "attestationMethod": null,
+      "evidenceRef": null,
+      "evidenceSha256": null
+    },
+    "INDEPENDENT_REVIEWER": {
+      "status": "PENDING",
+      "signerId": null,
+      "signedAt": null,
+      "attestationMethod": null,
+      "evidenceRef": null,
+      "evidenceSha256": null
+    }
+  }
 }

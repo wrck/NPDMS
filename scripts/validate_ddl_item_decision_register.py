@@ -11,6 +11,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from p3e09_approval_policy import validate_register_approval
+
 
 ALLOWED_DECISIONS = {"ACCEPT_CURRENT", "RESTORE_APPROVED_BASELINE", "AMEND_CURRENT", "DEFER"}
 
@@ -69,9 +72,7 @@ def final_approval_errors(root: Path, register: dict[str, object], approved_coun
     errors.extend(evidence_reference_errors(
         root, [{"itemId": "APPROVAL", "decision": "ACCEPT_CURRENT", "evidenceRefs": approval_refs}]
     ))
-    items = register.get("items", [])
-    if approved_count != len(items) or not nonempty(approval.get("decisionOwner")) or not nonempty(approval.get("reviewOwner")) or not nonempty(approval_refs) or not nonempty(approval.get("signedAt")):
-        errors.append("approvedDdlSha256 requires all items reviewed and final approval evidence")
+    errors.extend(validate_register_approval(root, register, approved_count))
     return errors
 
 

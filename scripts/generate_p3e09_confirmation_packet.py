@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -37,6 +38,12 @@ def item_payload(item: dict[str, object]) -> dict[str, object]:
     }
 
 
+def git_blob(root: Path, commit: str, path: Path) -> bytes:
+    return subprocess.check_output(
+        ["git", "show", f"{commit}:{path.as_posix()}"], cwd=root
+    )
+
+
 def build(root: Path) -> dict[str, object]:
     register_path = root / REGISTER
     contract_path = root / CONTRACT
@@ -51,11 +58,24 @@ def build(root: Path) -> dict[str, object]:
     confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
     confirmed = isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED"
     if confirmed:
-        decision_ref = confirmation["decisionEvidenceRef"]
-        confirmation_scope = {
-            item["itemId"] for item in items if decision_ref in item.get("evidenceRefs", [])
+        source_commit = confirmation["preConfirmationSourceCommit"]
+        frozen_register_bytes = git_blob(root, source_commit, REGISTER)
+        frozen_packet_bytes = git_blob(root, source_commit, JSON_OUTPUT)
+        if hashlib.sha256(frozen_register_bytes).hexdigest().upper() != confirmation["preConfirmationRegisterFileSha256"]:
+            raise ValueError("pre-confirmation DDL register file hash drift")
+        if hashlib.sha256(frozen_packet_bytes).hexdigest().upper() != confirmation["preConfirmationPacketFileSha256"]:
+            raise ValueError("pre-confirmation packet file hash drift")
+        frozen_register = json.loads(frozen_register_bytes)
+        frozen_packet = json.loads(frozen_packet_bytes)
+        if frozen_register.get("itemsSha256") != confirmation["preConfirmationItemsSha256"]:
+            raise ValueError("pre-confirmation decision items hash drift")
+        frozen_groups = {
+            group["code"]: {item["itemId"] for item in group["items"]}
+            for group in frozen_packet["groups"]
         }
+        confirmation_scope = set().union(*frozen_groups.values())
     else:
+        frozen_groups = None
         confirmation_scope = deferred
     q07_ids, q08_ids, _counts = drift_generator.q07_q08_item_ids(register)
     v17_tables = {
@@ -106,6 +126,9 @@ def build(root: Path) -> dict[str, object]:
         raise ValueError(f"confirmation packet does not cover all decision items: {missing}")
 
     if confirmed:
+        current_groups = {code: set(ids) for code, _name, ids, _recommendation, _reason in groups}
+        if current_groups != frozen_groups:
+            raise ValueError("current confirmation groups differ from the frozen pre-confirmation packet")
         if len(coverage) != confirmation.get("confirmedUniqueItemCount"):
             raise ValueError("confirmed P3-E09 item count drift")
         for code, _name, ids, _recommendation, _reason in groups:
@@ -128,6 +151,10 @@ def build(root: Path) -> dict[str, object]:
             "decision": confirmation.get("decision"),
             "reviewStatus": confirmation.get("reviewStatus"),
             "approvedDdlSha256": confirmation.get("approvedDdlSha256"),
+            "preConfirmationSourceCommit": confirmation.get("preConfirmationSourceCommit"),
+            "preConfirmationItemsSha256": confirmation.get("preConfirmationItemsSha256"),
+            "preConfirmationRegisterFileSha256": confirmation.get("preConfirmationRegisterFileSha256"),
+            "preConfirmationPacketFileSha256": confirmation.get("preConfirmationPacketFileSha256"),
         } if confirmed else None,
         "groups": [
             {

@@ -92,7 +92,7 @@ Acceptance：`ts:check` exit code 0；不得关闭检查、扩大`any`或放宽�
 
 Gate scope：`PHASE_3_BASELINE / DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION / DATA_CUTOVER`。表、字段和约束裁决影响数据模型，必须前置；迁移执行与切换证据继续在下游关闭。
 
-Required fields：数据元Excel hash、源结构抽取hash/水位、当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、`approvedDdlSha256`、目标字段目录/映射/校验hash、生成器版本、release manifest、Owner签署和验证结果。
+Required fields：数据元Excel hash、源结构抽取hash/水位、当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、`approvedDdlSha256`、目标字段目录/映射/校验hash、生成器版本、release manifest和验证结果。批准提交必须采用P3-E09 schemaVersion 2模板，精确绑定当前DDL hash、最终Items hash、Item数量及Item ID集合hash；数据架构Owner、业务Owner、迁移Owner和独立Reviewer须使用不同身份分别签署，并提供位于版本化`submissions/P3-E09/attestations/`目录下的独立证据及SHA-256。需求方ADR或确认包不能替代上述签署证据。
 
 需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，按Q07～Q14及V1.7九组覆盖全部692项`DEFER`并绑定当前DDL哈希。Reviewer逐项复核入口：`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`，包含全部表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号。
 
