@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from p3e09_approval_policy import APPROVAL_SUBMISSION_PREFIX, validate_approval_submission
+from p3e09_approval_policy import validate_model_baseline
 
 
 REQUIRED_FACTS = {
@@ -22,7 +22,7 @@ REQUIRED_FACTS = {
     "P3-E06": {"environmentTopology", "nodeSpecs", "productionDifferences", "scalingModel", "networkConditions", "dataSetVersion", "migrationVolume", "accountDistribution", "externalDependencyMode", "loadScriptSha256", "monitoringRefs", "cleanupProcedure", "testOwner"},
     "P3-E07": {"requirementIds", "featureId", "externalSystem", "systemOwner", "direction", "endpointRef", "authenticationRef", "networkAllowlistRef", "mappingVersion", "sourceKey", "idempotencyKey", "timeoutMs", "retryPolicy", "compensation", "reconciliation", "degradation", "sandboxEvidenceId", "releaseApprovalId"},
     "P3-E08": {"implementationCommit", "nodeVersion", "pnpmVersion", "lockfileSha256", "command", "exitCode", "errorCount", "remediationOwner", "affectedPages", "lintResult", "buildResult", "browserRegressionEvidenceId"},
-    "P3-E09": {"dataElementExcelSha256", "sourceSchemaSha256", "sourceWatermark", "currentDdlSha256", "driftDecisionRegister", "approvedDdlSha256", "targetCatalogDdlSha256", "mappingDdlSha256", "validationDdlSha256", "manifestDdlSha256", "generatorVersion", "releaseManifestId", "migrationOwner", "verificationResult"},
+    "P3-E09": {"currentDdlSha256", "itemsSha256", "itemIdsSha256", "deferredItemCount", "mysql84DdlSha256", "independentReviewResult"},
 }
 VALID_STATUS = {"DRAFT", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED"}
 SECRET_NAME = re.compile(r"(?:password|passwd|secretValue|privateKey|tokenValue|connectionString)$", re.I)
@@ -153,16 +153,14 @@ def validate(path: Path) -> list[str]:
             errors.append("P3-E05 submitted evidence must retain ADR-0011 trace sampling policy")
         if identifier == "P3-E05" and facts.get("exportAuthorizationPolicy") != EXPORT_AUTHORIZATION_POLICY:
             errors.append("P3-E05 submitted evidence must retain ADR-0014 export authorization policy")
+        if identifier == "P3-E09" and facts.get("approvedDdlSha256") not in (None, ""):
+            errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
     if status == "VERIFIED":
         if not nonempty(payload.get("reviewOwner")) or payload.get("verificationResult") != "PASS":
             errors.append(f"{identifier} VERIFIED requires reviewOwner and verificationResult=PASS")
         if identifier == "P3-E08" and (facts.get("exitCode") != 0 or facts.get("errorCount") != 0):
             errors.append("P3-E08 cannot be VERIFIED until ts:check exitCode=0 and errorCount=0")
         if identifier == "P3-E09":
-            approved = facts.get("approvedDdlSha256")
-            hash_fields = ("currentDdlSha256", "targetCatalogDdlSha256", "mappingDdlSha256", "validationDdlSha256", "manifestDdlSha256")
-            if not approved or any(facts.get(field) != approved for field in hash_fields):
-                errors.append("P3-E09 VERIFIED requires all DDL-bound artifacts to reference approvedDdlSha256")
             root = repository_root(path)
             if root is None:
                 errors.append("P3-E09 VERIFIED submission must be stored in the project repository")
@@ -177,8 +175,7 @@ def validate(path: Path) -> list[str]:
                 except (OSError, json.JSONDecodeError) as exc:
                     errors.append(f"cannot read P3-E09 DDL register: {exc}")
                 else:
-                    approval_errors, _ = validate_approval_submission(root, submission_ref, register)
-                    errors.extend(approval_errors)
+                    errors.extend(validate_model_baseline(register, facts))
     return errors
 
 

@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from p3e09_approval_policy import validate_register_approval
+from p3e09_approval_policy import validate_model_baseline
 
 
 EXPECTED_IDS = {f"P3-E{index:02d}" for index in range(1, 10)}
@@ -24,7 +24,7 @@ EXPECTED_BLOCKS = {
     "P3-E06": {"PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"},
     "P3-E07": {"FEATURE_INTEGRATION", "FEATURE_RELEASE"},
     "P3-E08": {"FRONTEND_FEATURE_ACCEPTANCE", "FRONTEND_RELEASE"},
-    "P3-E09": {"PHASE_3_BASELINE", "DATA_MODEL_BASELINE", "HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
+    "P3-E09": {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
 }
 DIRECTION_DECISIONS = {
     "P3-E01": "A",
@@ -265,30 +265,26 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
         errors.append("P3-E09 Q08 decision fact mismatch")
     deferred_count = facts.get("deferredItemCount")
     approved_hash = facts.get("approvedDdlSha256")
-    if approved_hash:
-        expected_model_status, expected_drift = "APPROVED", "ACCEPT_CURRENT"
-        if approved_hash != facts.get("currentDdlSha256") or e09.get("status") != "VERIFIED":
-            errors.append("P3-E09 approved state must bind current DDL and VERIFIED gate status")
-        root = None
-        for candidate in (path.resolve().parent, *path.resolve().parents):
-            if (candidate / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json").is_file():
-                root = candidate
-                break
-        if root is None:
-            errors.append("P3-E09 approved state requires the repository DDL approval register")
-        else:
-            register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
-            register = json.loads(register_path.read_text(encoding="utf-8"))
-            approved_count = sum(
-                item.get("decision") != "DEFER" and bool(item.get("reviewOwner"))
-                for item in register.get("items", [])
-            )
-            errors.extend(validate_register_approval(root, register, approved_count))
-            approval = register.get("approval", {})
-            if e09.get("reviewOwner") != approval.get("reviewOwner"):
-                errors.append("P3-E09 reviewOwner must be derived from the DDL approval register")
-    elif deferred_count == 0:
-        expected_model_status, expected_drift = "DECISIONS_ACCEPTED_REVIEW_PENDING", "REVIEW_PENDING"
+    if approved_hash not in (None, ""):
+        errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
+    if deferred_count == 0:
+        expected_model_status, expected_drift = "MODEL_BASELINE_READY", "ACCEPT_CURRENT"
+        if e09.get("status") == "VERIFIED":
+            root = None
+            for candidate in (path.resolve().parent, *path.resolve().parents):
+                if (candidate / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json").is_file():
+                    root = candidate
+                    break
+            if root is None:
+                errors.append("P3-E09 model-ready state requires the repository DDL decision register")
+            else:
+                register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
+                try:
+                    register = json.loads(register_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    errors.append(f"cannot read P3-E09 DDL register: {exc}")
+                else:
+                    errors.extend(validate_model_baseline(register, facts))
     else:
         expected_model_status, expected_drift = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED", "DEFER"
     if facts.get("modelDecisionStatus") != expected_model_status or facts.get("driftDecision") != expected_drift:

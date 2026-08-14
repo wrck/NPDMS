@@ -95,12 +95,12 @@ class Phase3EvidenceSubmissionTest(unittest.TestCase):
         self.write()
         self.assertTrue(any("exitCode=0" in item for item in VALIDATOR.validate(self.path)))
 
-    def test_verified_e09_requires_same_approved_hash(self) -> None:
-        self.payload.update({"id": "P3-E09", "status": "VERIFIED", "decisionOwner": "DATA", "reviewOwner": "REVIEW", "verificationResult": "PASS", "evidenceRefs": ["report"]})
+    def test_e09_rejects_migration_approval_hash(self) -> None:
+        self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
         self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
-        self.payload["confirmedFacts"]["mappingDdlSha256"] = "B"
+        self.payload["confirmedFacts"]["approvedDdlSha256"] = "A"
         self.write()
-        self.assertTrue(any("approvedDdlSha256" in item for item in VALIDATOR.validate(self.path)))
+        self.assertTrue(any("must remain empty" in item for item in VALIDATOR.validate(self.path)))
 
     def test_secret_value_field_is_rejected(self) -> None:
         self.payload["confirmedFacts"] = {"password": "unsafe"}

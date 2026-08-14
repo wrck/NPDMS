@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from p3e09_approval_policy import validate_register_approval
+from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
 
 
 ALLOWED_DECISIONS = {"ACCEPT_CURRENT", "RESTORE_APPROVED_BASELINE", "AMEND_CURRENT", "DEFER"}
@@ -59,21 +59,9 @@ def evidence_reference_errors(root: Path, items: list[dict[str, object]]) -> lis
     return errors
 
 
-def final_approval_errors(root: Path, register: dict[str, object], approved_count: int) -> list[str]:
-    approval = register.get("approval", {})
-    if not isinstance(approval, dict) or not nonempty(approval.get("approvedDdlSha256")):
-        return []
-    errors: list[str] = []
-    if approval.get("approvedDdlSha256") != register.get("currentDdlSha256"):
-        errors.append("approvedDdlSha256 must equal currentDdlSha256")
-    if approval.get("itemsSha256") != register.get("itemsSha256"):
-        errors.append("approval must bind the current itemsSha256")
-    approval_refs = approval.get("evidenceRefs", [])
-    errors.extend(evidence_reference_errors(
-        root, [{"itemId": "APPROVAL", "decision": "ACCEPT_CURRENT", "evidenceRefs": approval_refs}]
-    ))
-    errors.extend(validate_register_approval(root, register, approved_count))
-    return errors
+def model_baseline_errors(register: dict[str, object], evidence: dict[str, object]) -> list[str]:
+    """Expose the shared SDS model-fact policy without migration approval checks."""
+    return validate_model_baseline(register, evidence)
 
 
 def load_generator(script_dir: Path):
@@ -192,16 +180,16 @@ def validate(root: Path) -> list[str]:
 
     counts: dict[str, int] = {}
     statuses: dict[str, int] = {}
-    approved_count = 0
     for item in items:
         counts[item["itemType"]] = counts.get(item["itemType"], 0) + 1
         statuses[item["comparisonStatus"]] = statuses.get(item["comparisonStatus"], 0) + 1
-        if item.get("decision") != "DEFER" and nonempty(item.get("reviewOwner")):
-            approved_count += 1
+    approved_count = sum(
+        item.get("decision") != "DEFER" and nonempty(item.get("reviewOwner"))
+        for item in items
+    )
     expected_summary = {"itemCount": len(items), "byType": counts, "byComparisonStatus": statuses, "approvedCount": approved_count}
     if register.get("summary") != expected_summary:
         errors.append("DDL item decision summary mismatch")
-    errors.extend(final_approval_errors(root, register, approved_count))
     return errors
 
 

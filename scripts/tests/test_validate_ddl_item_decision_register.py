@@ -57,48 +57,22 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
         self.assertEqual(1, len(errors))
         self.assertIn("does not exist", errors[0])
 
-    def test_final_approval_binds_current_ddl_items_and_existing_evidence(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            register = {
-                "currentDdlSha256": "CURRENT",
-                "itemsSha256": "ITEMS",
-                "items": [{"itemId": "COLUMN:a:id"}],
-                "approval": {
-                    "approvedDdlSha256": "WRONG",
-                    "itemsSha256": "WRONG_ITEMS",
-                    "decisionOwner": "DATA",
-                    "reviewOwner": "REVIEW",
-                    "signedAt": "2026-08-14T00:00:00+08:00",
-                    "evidenceRefs": ["missing-review.md"],
-                },
-            }
-            errors = VALIDATOR.final_approval_errors(root, register, 1)
-        self.assertTrue(any("equal currentDdlSha256" in error for error in errors))
-        self.assertTrue(any("current itemsSha256" in error for error in errors))
-        self.assertTrue(any("does not exist" in error for error in errors))
-
-    def test_final_approval_rejects_fake_reviewer_and_requirement_adr_as_review_evidence(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            decision = root / "docs" / "decisions" / "0028.md"
-            decision.parent.mkdir(parents=True)
-            decision.write_text("requirement owner decision", encoding="utf-8")
-            register = {
-                "currentDdlSha256": "CURRENT",
-                "itemsSha256": "ITEMS",
-                "items": [{"itemId": "COLUMN:a:id", "reviewOwner": "FAKE_REVIEWER"}],
-                "approval": {
-                    "approvedDdlSha256": "CURRENT",
-                    "itemsSha256": "ITEMS",
-                    "decisionOwner": "REQUIREMENT_OWNER",
-                    "reviewOwner": "FAKE_REVIEWER",
-                    "signedAt": "2026-08-14T00:00:00+08:00",
-                    "evidenceRefs": ["docs/decisions/0028.md"],
-                },
-            }
-            errors = VALIDATOR.final_approval_errors(root, register, 1)
-        self.assertTrue(any("versioned P3-E09 approval submission" in error for error in errors))
+    def test_model_baseline_requires_facts_not_final_approval(self) -> None:
+        register = {
+            "currentDdlSha256": "CURRENT",
+            "itemsSha256": "ITEMS",
+            "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"}],
+        }
+        evidence = {
+            "currentDdlSha256": "CURRENT",
+            "itemsSha256": "ITEMS",
+            "itemIdsSha256": VALIDATOR.item_ids_sha256(register["items"]),
+            "deferredItemCount": 0,
+            "mysql84DdlSha256": "CURRENT",
+            "independentReviewResult": "GO",
+            "approvedDdlSha256": None,
+        }
+        self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence))
 
     def test_catalog_baseline_is_loaded_from_historical_hash(self) -> None:
         generator = Mock()

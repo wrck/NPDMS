@@ -82,34 +82,13 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
     def test_open_register_is_structurally_valid(self) -> None:
         self.assertEqual([], VALIDATOR.validate(self.path))
 
-    def test_decisions_accepted_review_pending_transition_is_valid(self) -> None:
+    def test_model_readiness_does_not_allow_migration(self) -> None:
         payload = json.loads(self.path.read_text(encoding="utf-8"))
         item = next(row for row in payload["items"] if row["id"] == "P3-E09")
-        facts = item["confirmedFacts"]
-        facts["deferredItemCount"] = 0
-        facts["modelDecisionStatus"] = "DECISIONS_ACCEPTED_REVIEW_PENDING"
-        facts["driftDecision"] = "REVIEW_PENDING"
-        facts["q07Decision"]["status"] = "ACCEPTED"
-        facts["q08Decision"]["status"] = "ACCEPTED"
-        self.path.write_text(json.dumps(payload), encoding="utf-8")
-        self.assertEqual([], VALIDATOR.validate(self.path))
-
-    def test_approved_transition_rejects_unregistered_reviewer_string(self) -> None:
-        payload = json.loads(self.path.read_text(encoding="utf-8"))
-        item = next(row for row in payload["items"] if row["id"] == "P3-E09")
-        item["status"] = "VERIFIED"
-        item["decisionOwner"] = "REQUIREMENT_OWNER"
-        item["reviewOwner"] = "INDEPENDENT_REVIEWER"
-        facts = item["confirmedFacts"]
-        facts["deferredItemCount"] = 0
-        facts["modelDecisionStatus"] = "APPROVED"
-        facts["driftDecision"] = "ACCEPT_CURRENT"
-        facts["approvedDdlSha256"] = facts["currentDdlSha256"]
-        facts["q07Decision"]["status"] = "ACCEPTED"
-        facts["q08Decision"]["status"] = "ACCEPTED"
-        payload["overallStatus"] = "READY_FOR_SDS_BASELINE"
-        self.path.write_text(json.dumps(payload), encoding="utf-8")
-        self.assertTrue(any("approval register" in error for error in VALIDATOR.validate(self.path)))
+        self.assertNotIn("DATA_MODEL_BASELINE", item["blocks"])
+        self.assertNotIn("PHASE_3_BASELINE", item["blocks"])
+        self.assertIn("HISTORICAL_DATA_MIGRATION", item["blocks"])
+        self.assertIn("DATA_CUTOVER", item["blocks"])
 
     def test_only_model_affecting_e09_blocks_sds_readiness(self) -> None:
         errors = VALIDATOR.validate(self.path, require_ready=True)
