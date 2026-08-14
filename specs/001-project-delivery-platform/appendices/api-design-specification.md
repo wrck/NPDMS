@@ -35,9 +35,9 @@ decision: DEC-014
 
 ### 3.1 平台与业务分离
 
-Yudao基础能力以`yudao-boot-mini master-jdk25`为集成起点：通过`yudao-framework`提供Web、安全、数据访问、缓存、消息、日志和校验等公共技术框架，通过system、infra提供用户、角色、权限、组织、数据权限、文件和审计能力；BPM从`YunaiV/ruoyi-vue-pro master-jdk25`按DEC-015引入。
+Yudao基础能力以`yudao-boot-mini master-jdk25`为集成起点：通过`yudao-framework`提供Web、安全、数据访问、缓存、消息、日志和校验等公共技术框架，通过system、infra提供用户、角色、权限、公司、部门、数据权限、文件和审计能力；BPM从`YunaiV/ruoyi-vue-pro master-jdk25`按DEC-015引入。
 
-Yudao平台接口的路径、鉴权、请求对象、响应结构、错误码和版本策略完全以上游平台实现与文档为准。本规范不得重命名、重新版本化或包装Yudao平台接口。新增`pms-module-*`模块必须执行本规范，不得将项目、任务、设备等PMS业务对象包装成平台通用对象。
+Yudao上游接口的路径、鉴权、响应结构、错误码和版本策略作为内部集成基线，不直接暴露为PMS目标契约。公司和部门字段必须经过平台适配层统一为`company_*`和`department_*`；不得向PMS业务接口、OpenAPI Schema、查询参数或导出字段暴露`org_*`或`organization*`。除该语义适配外，不重新版本化或无意义包装Yudao平台接口。新增`pms-module-*`模块必须执行本规范，不得将项目、任务、设备等PMS业务对象包装成平台通用对象。
 
 ### 3.2 面向业务能力
 

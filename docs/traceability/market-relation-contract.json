@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "status": "ACCEPTED",
+  "decisionRef": "ADR-0021",
+  "requirementIds": ["CUS-03", "PM-01", "INT-01", "INT-03"],
+  "owner": "CUS",
+  "sourceTable": "pm_project_market_relations_from_sms",
+  "targetTable": "cus_market_relation",
+  "objectStorage": {
+    "project": {"table": "proj_project", "relationIdStored": false},
+    "customer": {"table": "cus_customer", "relationIdStored": false}
+  },
+  "businessFields": [
+    "market_code", "market_name", "system_code", "system_name",
+    "expend_code", "expend_name", "industry_code", "industry_name"
+  ],
+  "sourceMappingOverrides": [
+    {"sourceTable": "pm_project", "sourceColumn": "column004", "target": "proj_project.market_name", "transform": "copy CRM market name; leave unresolved code empty"},
+    {"sourceTable": "pm_project", "sourceColumn": "column005", "target": "proj_project.system_name", "transform": "copy CRM system name; leave unresolved code empty"},
+    {"sourceTable": "pm_project", "sourceColumn": "column006", "target": "proj_project.expend_name", "transform": "copy CRM expend name; leave unresolved code empty"},
+    {"sourceTable": "pm_project", "sourceColumn": "column007", "target": "proj_project.industry_code", "transform": "copy CRM industry code"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "marketCode", "target": "cus_market_relation.market_code", "transform": "direct"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "marketName", "target": "cus_market_relation.market_name", "transform": "direct"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "systemCode", "target": "cus_market_relation.system_code", "transform": "direct"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "systemName", "target": "cus_market_relation.system_name", "transform": "direct"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "expendCode", "target": "cus_market_relation.expend_code", "transform": "direct"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "expendName", "target": "cus_market_relation.expend_name", "transform": "direct"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "industryCode", "target": "cus_market_relation.industry_code", "transform": "direct"},
+    {"sourceTable": "pm_project_market_relations_from_sms", "sourceColumn": "industryName", "target": "cus_market_relation.industry_name", "transform": "direct"}
+  ]
+}

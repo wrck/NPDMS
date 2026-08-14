@@ -41,7 +41,7 @@ Yudao Platform是技术底座，PMS Platform是业务产品边界。PMS业务对
 | --- | --- |
 | `yudao-dependencies` | Maven BOM与依赖版本集中管理 |
 | `yudao-framework` | 公共框架、通用组件及Spring Boot Starter，包括Web、安全、数据访问、缓存、消息、日志和校验等技术支撑 |
-| `yudao-module-system` | 用户、角色、菜单、权限、组织及数据权限基础能力 |
+| `yudao-module-system` | 用户、公司、部门、角色、菜单、权限及数据权限基础能力 |
 | `yudao-module-infra` | 文件、配置、日志、任务、消息及基础设施能力 |
 | `yudao-module-bpm` | 流程定义、实例、任务和审批基础能力；从完整仓库同版本分支获取，属于PMS必须追加的扩展，不是mini仓库默认模块 |
 | `yudao-server` | 模块化单体启动及装配入口 |
@@ -94,7 +94,7 @@ Yudao平台模块禁止拥有以下PMS业务对象及其业务规则：
 
 | 领域代码 | Maven模块 | 数据所有权与核心职责 |
 | --- | --- | --- |
-| `PMS-PROJ` | `pms-module-project` | 项目承接、项目组织、项目组合、项目层级、任务WBS、里程碑、风险、问题、验收与闭环 |
+| `PMS-PROJ` | `pms-module-project` | 项目承接、项目团队、项目组合、项目层级、任务WBS、里程碑、风险、问题、验收与闭环 |
 | `PMS-ENG` | `pms-module-engineering` | 工勘、实施方案、到货、安装、配置和业务联调 |
 | `PMS-CUT` | `pms-module-cutover` | 割接准备、风险评估、方案审批、执行、回退和稳定观察 |
 | `PMS-SRV` | `pms-module-service` | 巡检、服务工单、维保和续保 |

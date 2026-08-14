@@ -1,0 +1,486 @@
+{
+  "schemaVersion": 1,
+  "status": "ACCEPTED",
+  "decisionRef": "ADR-0019",
+  "domainCodes": [
+    "ACC",
+    "ANA",
+    "AST",
+    "COM",
+    "CUS",
+    "CUT",
+    "IMP",
+    "KNO",
+    "PLT",
+    "PROJ",
+    "RES",
+    "SOL",
+    "SRV"
+  ],
+  "allowedTableAbbreviations": {
+    "configuration": "config",
+    "serial_number": "sn"
+  },
+  "forbiddenTableTokens": [
+    "rel",
+    "ref",
+    "map"
+  ],
+  "tableExtensions": [
+    {
+      "source": "pm_project_market_relations_from_sms",
+      "target": "cus_market_relation",
+      "owner": "CUS",
+      "decisionRef": "ADR-0021"
+    }
+  ],
+  "modelExtensions": [
+    {
+      "target": "com_delivery_scope_detail",
+      "owner": "COM",
+      "decisionRef": "ADR-0023",
+      "requirementRefs": [
+        "COM-01",
+        "PM-02"
+      ]
+    },
+    {
+      "target": "imp_configuration_collection_result",
+      "owner": "IMP",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
+    },
+    {
+      "target": "imp_configuration_collection_parse_attempt",
+      "owner": "IMP",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
+    },
+    {
+      "target": "imp_configuration_component_candidate",
+      "owner": "IMP",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
+    },
+    {
+      "target": "acc_satisfaction_collection_task",
+      "owner": "ACC",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    {
+      "target": "acc_satisfaction_questionnaire",
+      "owner": "ACC",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    {
+      "target": "acc_satisfaction_response",
+      "owner": "ACC",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    {
+      "target": "acc_satisfaction_result",
+      "owner": "ACC",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ]
+    },
+    {
+      "target": "cut_cutover_support_arrangement",
+      "owner": "CUT",
+      "decisionRef": "ADR-0027",
+      "requirementRefs": [
+        "CUT-04"
+      ]
+    },
+    {
+      "target": "cut_cutover_closure",
+      "owner": "CUT",
+      "decisionRef": "ADR-0027",
+      "requirementRefs": [
+        "CUT-06"
+      ]
+    },
+    {
+      "target": "ast_device_component_relation",
+      "owner": "AST",
+      "decisionRef": "ADR-0025",
+      "requirementRefs": [
+        "EXE-03",
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ]
+    }
+  ],
+  "implementationScope": {
+    "coverage": "CORE_MIGRATION_SUBSET",
+    "decisionRef": "ADR-0022",
+    "excludedTargets": [
+      "kno_device_technical_advisory_match",
+      "kno_technical_advisory",
+      "kno_technical_advisory_product_relation",
+      "kno_technical_advisory_read_record"
+    ]
+  },
+  "tables": [
+    {
+      "source": "pms_customer",
+      "target": "cus_customer",
+      "owner": "CUS"
+    },
+    {
+      "source": "pms_customer_contact",
+      "target": "cus_customer_contact",
+      "owner": "CUS"
+    },
+    {
+      "source": "pms_product",
+      "target": "ast_product",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_project",
+      "target": "proj_project",
+      "owner": "PROJ"
+    },
+    {
+      "source": "pms_project_relation",
+      "target": "proj_project_relation",
+      "owner": "PROJ"
+    },
+    {
+      "source": "pms_project_party",
+      "target": "proj_project_party",
+      "owner": "PROJ"
+    },
+    {
+      "source": "pms_project_company_department_rel",
+      "target": "proj_project_company_department_relation",
+      "owner": "PROJ"
+    },
+    {
+      "source": "pms_project_member",
+      "target": "proj_project_member_assignment",
+      "owner": "PROJ"
+    },
+    {
+      "source": "pms_business_document",
+      "target": "plt_business_document",
+      "owner": "PLT"
+    },
+    {
+      "source": "pms_document_version",
+      "target": "plt_document_version",
+      "owner": "PLT"
+    },
+    {
+      "source": "pms_deliverable_template",
+      "target": "acc_deliverable_template",
+      "owner": "ACC"
+    },
+    {
+      "source": "pms_project_deliverable",
+      "target": "acc_project_deliverable",
+      "owner": "ACC"
+    },
+    {
+      "source": "pms_portfolio",
+      "target": "proj_project_portfolio",
+      "owner": "PROJ"
+    },
+    {
+      "source": "pms_portfolio_project_rel",
+      "target": "proj_project_portfolio_member",
+      "owner": "PROJ"
+    },
+    {
+      "source": "pms_contract",
+      "target": "com_contract",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_contract_receivable",
+      "target": "com_contract_receivable",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_shipment_contract_ref",
+      "target": "com_shipment_contract_reference",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_shipment_package",
+      "target": "com_shipment_package",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_project_contract_rel",
+      "target": "com_project_contract_relation",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_sales_order",
+      "target": "com_sales_order",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_order_contract_rel",
+      "target": "com_order_contract_relation",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_sales_order_line",
+      "target": "com_sales_order_line",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_project_order_line_scope",
+      "target": "com_delivery_scope",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_device_sn",
+      "target": "ast_device_sn",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_device_shipment_event",
+      "target": "ast_device_shipment_event",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_project_device_assignment",
+      "target": "ast_device_project_assignment",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_device_relation",
+      "target": "ast_device_relation",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_device_configuration",
+      "target": "ast_device_configuration",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_device_configuration_feature",
+      "target": "ast_device_configuration_feature",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_device_configuration_service",
+      "target": "ast_device_configuration_service",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_network_topology",
+      "target": "ast_network_topology",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_topology_device_rel",
+      "target": "ast_network_topology_device_relation",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_device_version",
+      "target": "ast_device_version",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_product_release",
+      "target": "ast_product_release",
+      "owner": "AST"
+    },
+    {
+      "source": "pms_technical_advisory",
+      "target": "kno_technical_advisory",
+      "owner": "KNO"
+    },
+    {
+      "source": "pms_technical_advisory_read",
+      "target": "kno_technical_advisory_read_record",
+      "owner": "KNO"
+    },
+    {
+      "source": "pms_technical_advisory_product",
+      "target": "kno_technical_advisory_product_relation",
+      "owner": "KNO"
+    },
+    {
+      "source": "pms_device_advisory_match",
+      "target": "kno_device_technical_advisory_match",
+      "owner": "KNO"
+    },
+    {
+      "source": "pms_service_incident",
+      "target": "srv_service_incident",
+      "owner": "SRV"
+    },
+    {
+      "source": "pms_incident_device_rel",
+      "target": "srv_service_incident_device_relation",
+      "owner": "SRV"
+    },
+    {
+      "source": "pms_crm_execution_order",
+      "target": "com_crm_execution_order",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_crm_execution_config",
+      "target": "com_crm_execution_config",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_order_execution_rel",
+      "target": "com_order_execution_relation",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_order_line_execution_rel",
+      "target": "com_order_line_execution_relation",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_execution_merge_batch",
+      "target": "com_execution_order_merge_batch",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_execution_merge_member",
+      "target": "com_execution_order_merge_member",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_order_change_rel",
+      "target": "com_order_change_relation",
+      "owner": "COM"
+    },
+    {
+      "source": "pms_sync_batch",
+      "target": "plt_sync_batch",
+      "owner": "PLT"
+    },
+    {
+      "source": "pms_migration_source_record",
+      "target": "plt_migration_source_record",
+      "owner": "PLT"
+    },
+    {
+      "source": "pms_external_key_map",
+      "target": "plt_external_key_mapping",
+      "owner": "PLT"
+    },
+    {
+      "source": "pms_migration_issue",
+      "target": "plt_migration_issue",
+      "owner": "PLT"
+    },
+    {
+      "source": "pms_project_delivery_summary",
+      "target": "ana_project_delivery_summary",
+      "owner": "ANA"
+    }
+  ],
+  "fields": [
+    {
+      "id": "NAM-001",
+      "sourceTable": "pms_project_deliverable",
+      "sourceColumn": "submitted_time",
+      "targetTable": "acc_project_deliverable",
+      "targetColumn": "submit_time",
+      "evidence": "相同提交时间语义；旧库submitTime"
+    },
+    {
+      "id": "NAM-002",
+      "sourceTable": "pms_crm_execution_config",
+      "sourceColumn": "quantity",
+      "targetTable": "com_crm_execution_config",
+      "targetColumn": "qty",
+      "evidence": "业务数量统一qty"
+    },
+    {
+      "id": "NAM-003",
+      "sourceTable": "pms_crm_execution_config",
+      "sourceColumn": "borrow_quantity",
+      "targetTable": "com_crm_execution_config",
+      "targetColumn": "borrow_qty",
+      "evidence": "业务数量统一qty"
+    },
+    {
+      "id": "NAM-004",
+      "sourceTable": "pms_project_delivery_summary",
+      "sourceColumn": "pending_quantity_count",
+      "targetTable": "ana_project_delivery_summary",
+      "targetColumn": "pending_qty_count",
+      "evidence": "数量类型记录条数"
+    },
+    {
+      "id": "NAM-005",
+      "sourceTable": "pms_service_incident",
+      "sourceColumn": "resolution",
+      "targetTable": "srv_service_incident",
+      "targetColumn": "solution",
+      "evidence": "数据元与旧库均为解决方案"
+    },
+    {
+      "id": "NAM-006",
+      "sourceTable": "pms_project_party",
+      "sourceColumn": "contact_phone",
+      "targetTable": "proj_project_party",
+      "targetColumn": "phone",
+      "evidence": "表内单一电话角色；联系人数据元phone"
+    }
+  ]
+}

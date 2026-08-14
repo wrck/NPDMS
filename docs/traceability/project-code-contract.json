@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "status": "ACCEPTED",
+  "decisionRef": "ADR-0020",
+  "requirementIds": ["PM-01", "PM-02", "INT-01", "COM-01"],
+  "rules": {
+    "crmProjectCodeIsDefault": true,
+    "multipleContractsOrOrdersCreateNewCode": false,
+    "splitRequiresIndependentDeliveryBoundary": true,
+    "projectCodeMutableAfterCreation": false,
+    "hierarchyEncodedInProjectCode": false,
+    "childCodeFormat": "<code-root-project-code>-SP<permanent-sequence>",
+    "sequenceScope": ["tenant_id", "code_root_id"],
+    "sequenceReusable": false
+  },
+  "columns": [
+    {
+      "table": "proj_project",
+      "name": "code_root_id",
+      "purpose": "immutable project-code namespace root",
+      "domain": "项目管理",
+      "fieldClass": "RELATION",
+      "dataElementRefs": []
+    },
+    {
+      "table": "proj_project",
+      "name": "project_sequence",
+      "purpose": "permanent sequence within the project-code namespace",
+      "domain": "项目管理",
+      "fieldClass": "BUSINESS",
+      "dataElementRefs": []
+    },
+    {
+      "table": "proj_project",
+      "name": "code_rule_version",
+      "purpose": "frozen code-generation rule version",
+      "domain": "项目管理",
+      "fieldClass": "BUSINESS",
+      "dataElementRefs": []
+    }
+  ],
+  "acceptedDdlItems": [
+    "COLUMN:proj_project:code_root_id",
+    "COLUMN:proj_project:project_sequence",
+    "COLUMN:proj_project:code_rule_version",
+    "CONSTRAINT:proj_project:uk_project_code",
+    "CONSTRAINT:proj_project:uk_project_code_sequence",
+    "CONSTRAINT:proj_project:fk_project_code_root",
+    "CONSTRAINT:proj_project:chk_project_code_namespace"
+  ]
+}
