@@ -109,7 +109,7 @@ Expand -> Backfill -> Verify -> Switch -> Contract
 
 - 不得修改已执行迁移或任何已执行Flyway文件；纠正使用下一版本迁移。
 - 迁移脚本不跨数据库直接读取历史库；数据迁移通过受控导出/校验/导入或应用迁移作业。
-- 历史数据迁移必须先由`AI-MIG-000`完成真实批次的范围、水位、程序、校验、演练、对账和回退验证；P3-E09模型基线中的`approvedDdlSha256`显式为空且不构成执行许可；旧`migration-validation.json.passed=true`因DDL哈希漂移不具备当前放行效力。
+- 历史数据迁移必须先由`AI-MIG-000`完成真实批次的范围、水位、程序、校验、演练、对账和回退验证；P3-E09不定义迁移批准哈希且不构成执行许可；旧`migration-validation.json.passed=true`因DDL哈希漂移不具备当前放行效力。
 - 迁移前保存schema/version/checksum、数据量、长事务/锁风险和备份证据；迁移后运行`info/validate`及业务校验。
 - 应用回退不执行破坏性数据库down migration；在兼容窗口内切回旧制品，数据库错误使用新前向迁移纠正。
 

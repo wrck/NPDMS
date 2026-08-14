@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T06:58:20.009580+00:00",
+  "generatedAt": "2026-08-14T07:23:31.182442+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -565,7 +565,6 @@
       "DEFER"
     ],
     "current": "DEFER",
-    "approvedDdlSha256": null,
     "approvalEvidence": []
   },
   "limitations": [

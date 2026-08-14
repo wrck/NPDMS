@@ -32,7 +32,7 @@ class P3E09RequirementConfirmationTest(unittest.TestCase):
         self.assertEqual(MODULE.PRE_CONFIRMATION_ITEMS_SHA256, confirmation["preConfirmationItemsSha256"])
         self.assertEqual(MODULE.PRE_CONFIRMATION_PACKET_SHA256, confirmation["preConfirmationPacketFileSha256"])
         self.assertEqual("REVIEW_PENDING", confirmation["reviewStatus"])
-        self.assertIsNone(confirmation["approvedDdlSha256"])
+        self.assertNotIn("approvedDdlSha256", confirmation)
         self.assertEqual("ACCEPTED", result["q07TechnicalConstraintPolicy"]["status"])
         self.assertEqual("ACCEPTED", result["q08OrdinaryIndexPolicy"]["status"])
         self.assertEqual("ACCEPTED", result["v17Delta"]["status"])

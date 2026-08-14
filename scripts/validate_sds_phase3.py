@@ -73,7 +73,7 @@ def validate(root: Path) -> list[str]:
     require_tokens(errors, "deployment design", deployment, (
         "JDK 25", "pnpm 9.15.5", "Expand -> Backfill -> Verify -> Switch -> Contract",
         "--frozen-lockfile", "前向迁移", "上一JAR", "制品hash", "releaseId",
-        "不得修改已执行迁移", "恢复", "AI-MIG-000", "approvedDdlSha256",
+        "不得修改已执行迁移", "恢复", "AI-MIG-000", "不定义迁移批准哈希",
     ))
 
     performance = documents.get("19-performance-design.md", "")

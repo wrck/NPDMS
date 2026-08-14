@@ -300,7 +300,6 @@
                 "decisionRegisterItemCount": 1883,
                 "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
                 "deferredItemCount": 0,
-                "approvedDdlSha256": null,
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
                     "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",

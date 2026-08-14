@@ -25,11 +25,10 @@ REQUIRED_FACTS = {
 }
 REQUIRED_P3_E09_FACTS = {
     "itemsSha256", "itemIdsSha256", "deferredItemCount", "mysql84DdlSha256",
-    "independentReviewResult", "independentReviewRef", "reviewDate", "reviewRange", "approvedDdlSha256",
+    "independentReviewResult", "independentReviewRef", "reviewDate", "reviewRange",
     *DDL_ARTIFACT_HASH_FIELDS,
 }
 REQUIRED_FACTS["P3-E09"] = REQUIRED_P3_E09_FACTS
-EMPTY_ALLOWED_REQUIRED_FACTS = {"P3-E09": {"approvedDdlSha256"}}
 VALID_STATUS = {"DRAFT", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED"}
 SECRET_NAME = re.compile(r"(?:password|passwd|secretValue|privateKey|tokenValue|connectionString)$", re.I)
 DIRECTION_DECISIONS = {
@@ -135,10 +134,9 @@ def validate(path: Path) -> list[str]:
     if secret_fields:
         errors.append(f"secret values/connection strings must not be embedded: {secret_fields}")
     if status in {"EVIDENCE_SUBMITTED", "VERIFIED"}:
-        empty_allowed = EMPTY_ALLOWED_REQUIRED_FACTS.get(identifier, set())
         missing = sorted(
             key for key in REQUIRED_FACTS[identifier]
-            if key not in facts or (key not in empty_allowed and not nonempty(facts[key]))
+            if key not in facts or not nonempty(facts[key])
         )
         if missing:
             errors.append(f"{identifier} missing confirmed facts: {missing}")
@@ -163,8 +161,8 @@ def validate(path: Path) -> list[str]:
             errors.append("P3-E05 submitted evidence must retain ADR-0011 trace sampling policy")
         if identifier == "P3-E05" and facts.get("exportAuthorizationPolicy") != EXPORT_AUTHORIZATION_POLICY:
             errors.append("P3-E05 submitted evidence must retain ADR-0014 export authorization policy")
-        if identifier == "P3-E09" and facts.get("approvedDdlSha256") not in (None, ""):
-            errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
+        if identifier == "P3-E09" and "approvedDdlSha256" in facts:
+            errors.append("legacy migration approval field is not allowed in P3-E09 model baseline")
     if status == "VERIFIED":
         if not nonempty(payload.get("reviewOwner")) or payload.get("verificationResult") != "PASS":
             errors.append(f"{identifier} VERIFIED requires reviewOwner and verificationResult=PASS")

@@ -36,7 +36,7 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         self.assertEqual("MODEL_BASELINE_REVIEW_PENDING", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
         self.assertIsNone(packets["P3-E09"]["confirmedFacts"]["independentReviewResult"])
         self.assertIsNone(packets["P3-E09"]["reviewOwner"])
-        self.assertIsNone(packets["P3-E09"]["confirmedFacts"]["approvedDdlSha256"])
+        self.assertNotIn("approvedDdlSha256", packets["P3-E09"]["confirmedFacts"])
         self.assertEqual(
             {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
             set(packets["P3-E09"]["blocks"]),

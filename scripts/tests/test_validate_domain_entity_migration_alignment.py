@@ -70,7 +70,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         ddl_sha = hashlib.sha256(ddl.read_bytes()).hexdigest().upper()
         self.ddl_review = {
             "inputs": {"ddlPath": "specs/001-project-delivery-platform/appendices/test.sql", "currentDdlSha256": ddl_sha},
-            "decisionPolicy": {"current": "DEFER", "approvedDdlSha256": None},
+            "decisionPolicy": {"current": "DEFER"},
         }
         self._write_json("specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json", self.ddl_review)
         self._write_json(
@@ -195,7 +195,6 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             "candidateCommit": candidate_commit,
             "reviewDate": "2026-08-14",
             "reviewRange": f"{'b' * 40}..{candidate_commit}",
-            "approvedDdlSha256": None,
         }
         item = self.gate["items"][0]
         item.update({

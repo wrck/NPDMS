@@ -333,8 +333,6 @@ def validate_model_baseline(
                 if not _has_explicit_independent_go(review_text):
                     errors.append("P3-E09 independent review reference must record an independent GO conclusion")
                 errors.extend(formal_review_errors(review_text, evidence, register))
-    if "approvedDdlSha256" not in evidence:
-        errors.append("P3-E09 approvedDdlSha256 must be explicitly present and empty for the SDS model baseline")
-    elif evidence["approvedDdlSha256"] not in (None, ""):
-        errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
+    if "approvedDdlSha256" in evidence:
+        errors.append("legacy migration approval field is not allowed in P3-E09 model baseline")
     return errors

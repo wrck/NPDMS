@@ -33,7 +33,7 @@ class Phase3ValidatorTest(unittest.TestCase):
         contents = {
             "14-security-design.md": "AES-256 密钥材料与业务数据分离 五元组 临时输入 不落库 秘密扫描 fail closed 50MB SSRF 服务端",
             "17-audit-and-observability.md": "operationId correlationId traceId Outbox P95 ≤0.5% ≥99% ≤60秒 runbook 高风险",
-            "18-deployment-design.md": "JDK 25 pnpm 9.15.5 Expand -> Backfill -> Verify -> Switch -> Contract --frozen-lockfile 前向迁移 上一JAR 制品hash releaseId 不得修改已执行迁移 恢复 AI-MIG-000 approvedDdlSha256",
+            "18-deployment-design.md": "JDK 25 pnpm 9.15.5 Expand -> Backfill -> Verify -> Switch -> Contract --frozen-lockfile 前向迁移 上一JAR 制品hash releaseId 不得修改已执行迁移 恢复 AI-MIG-000 不定义迁移批准哈希",
             "19-performance-design.md": "P95≤2秒 ≤0.5% 50个并发登录用户 持续30分钟 ≥10000 50MB 20万 200万 1万 5万 2000 深度30 ≤30秒 ≥99% ≤60秒 dataSetVersion",
             "20-test-design.md": "正常 异常 权限拒绝 幂等 并发 Chrome Edge Firefox 1920×1080 1440×900 1366×768 1024×768 Playwright trace 秘密扫描0命中 ≥10000 ≤0.5% P95≤2秒 ≥99% ≤60秒",
         }
@@ -87,7 +87,6 @@ class Phase3ValidatorTest(unittest.TestCase):
                     "driftDecision": "DEFER",
                     "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
                     "deferredItemCount": 1,
-                    "approvedDdlSha256": None,
                     "q07Decision": {
                         "status": "RECONFIRMATION_REQUIRED", "technicalConstraintCount": 257,
                         "primaryKeyCount": 60, "tenantReferenceKeyCount": 60,

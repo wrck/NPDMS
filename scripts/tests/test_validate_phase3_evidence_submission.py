@@ -95,31 +95,17 @@ class Phase3EvidenceSubmissionTest(unittest.TestCase):
         self.write()
         self.assertTrue(any("exitCode=0" in item for item in VALIDATOR.validate(self.path)))
 
-    def test_e09_rejects_migration_approval_hash(self) -> None:
-        self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
-        self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
-        self.payload["confirmedFacts"]["approvedDdlSha256"] = "A"
-        self.write()
-        self.assertTrue(any("must remain empty" in item for item in VALIDATOR.validate(self.path)))
-
-    def test_e09_requires_explicit_empty_migration_approval_hash_fact(self) -> None:
-        self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
-        self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
-        self.payload["confirmedFacts"].pop("approvedDdlSha256", None)
-        self.write()
-        self.assertTrue(any("missing confirmed facts" in item for item in VALIDATOR.validate(self.path)))
-
-    def test_e09_accepts_explicit_null_migration_approval_hash_fact(self) -> None:
+    def test_e09_rejects_legacy_migration_approval_hash_field(self) -> None:
         self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
         self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
         self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED", "approvedDdlSha256": None})
         self.write()
-        self.assertEqual([], VALIDATOR.validate(self.path))
+        self.assertTrue(any("legacy migration approval field is not allowed" in item for item in VALIDATOR.validate(self.path)))
 
-    def test_e09_accepts_explicit_empty_migration_approval_hash_fact(self) -> None:
+    def test_e09_accepts_absent_migration_approval_hash_field(self) -> None:
         self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
         self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
-        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED", "approvedDdlSha256": ""})
+        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED"})
         self.write()
         self.assertEqual([], VALIDATOR.validate(self.path))
 

@@ -264,10 +264,8 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
     if {key: value for key, value in q08_fact.items() if key != "status"} != Q08_DECISION or q08_fact.get("status") not in {"RECONFIRMATION_REQUIRED", "ACCEPTED"}:
         errors.append("P3-E09 Q08 decision fact mismatch")
     deferred_count = facts.get("deferredItemCount")
-    if "approvedDdlSha256" not in facts:
-        errors.append("P3-E09 approvedDdlSha256 must be explicitly present and empty for the SDS model baseline")
-    elif facts["approvedDdlSha256"] not in (None, ""):
-        errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
+    if "approvedDdlSha256" in facts:
+        errors.append("legacy migration approval field is not allowed in P3-E09 model baseline")
     if deferred_count == 0:
         expected_drift = "ACCEPT_CURRENT"
         if facts.get("modelDecisionStatus") == "MODEL_BASELINE_READY":

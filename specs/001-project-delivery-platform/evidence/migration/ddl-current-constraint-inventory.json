@@ -876,7 +876,6 @@
     }
   ],
   "approval": {
-    "approvedDdlSha256": null,
     "decisionOwner": null,
     "reviewOwner": null,
     "evidenceRefs": []

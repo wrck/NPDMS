@@ -13,7 +13,7 @@ from pathlib import Path
 REGISTER = Path("docs/engineering/gates/phase-3/phase3-evidence-register.json")
 GENERATOR = Path("scripts/generate_phase3_evidence_packets.py")
 SYNC_FACTS = {
-    "currentDdlSha256", "modelDecisionStatus", "deferredItemCount", "approvedDdlSha256",
+    "currentDdlSha256", "modelDecisionStatus", "deferredItemCount",
     "v17DeltaStatus", "requirementOwnerConfirmation", "q07Decision", "q08Decision",
     "isolatedMysqlExecution", "targetCatalogDdlSha256", "mappingDdlSha256",
     "validationDdlSha256", "manifestDdlSha256", "itemsSha256", "itemIdsSha256",
@@ -36,6 +36,7 @@ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, 
         raise ValueError("Phase 3 register has no P3-E09 item")
     facts = item["confirmedFacts"]
     generated_facts = generated["confirmedFacts"]
+    facts.pop("approvedDdlSha256", None)
     for key in SYNC_FACTS:
         facts[key] = generated_facts[key]
     facts["driftDecision"] = "ACCEPT_CURRENT"

@@ -157,9 +157,6 @@ def build_packets() -> dict[str, dict[str, object]]:
             if execution.get("status") != "PASS" or execution.get("ddlSha256") != ddl_sha256:
                 raise ValueError("P3-E09 isolated MySQL execution evidence is absent or stale")
             deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
-            approved_hash = register.get("approval", {}).get("approvedDdlSha256")
-            if approved_hash is not None:
-                raise ValueError("P3-E09 model baseline must keep approvedDdlSha256 explicitly null")
             model_status, review_fields = model_baseline_review_status(Path.cwd(), register, execution.get("status"))
             if deferred_count != 0:
                 model_status = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED"
@@ -167,7 +164,6 @@ def build_packets() -> dict[str, dict[str, object]]:
                 "status": model_status,
                 "currentDdlSha256": ddl_sha256,
                 "deferredItemCount": deferred_count,
-                "approvedDdlSha256": None,
                 "blocks": P3E09_MODEL_BASELINE_BLOCKS,
             }
             if contract.get("p3e09ModelBaseline") != model_baseline:
@@ -187,7 +183,6 @@ def build_packets() -> dict[str, dict[str, object]]:
                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
                     "modelDecisionStatus": model_baseline["status"],
                     "deferredItemCount": deferred_count,
-                    "approvedDdlSha256": None,
                     "independentReviewResult": "GO" if model_status == "MODEL_BASELINE_READY" else None,
                     "independentReviewRef": P3E09_INDEPENDENT_REVIEW_REF if model_status == "MODEL_BASELINE_READY" else None,
                     "candidateCommit": review_fields.get("candidateCommit") if model_status == "MODEL_BASELINE_READY" else None,

@@ -150,7 +150,6 @@ def build(root: Path) -> dict[str, object]:
             "confirmedAt": confirmation.get("confirmedAt"),
             "decision": confirmation.get("decision"),
             "reviewStatus": confirmation.get("reviewStatus"),
-            "approvedDdlSha256": confirmation.get("approvedDdlSha256"),
             "preConfirmationSourceCommit": confirmation.get("preConfirmationSourceCommit"),
             "preConfirmationItemsSha256": confirmation.get("preConfirmationItemsSha256"),
             "preConfirmationRegisterFileSha256": confirmation.get("preConfirmationRegisterFileSha256"),
@@ -199,9 +198,9 @@ def render_markdown(packet: dict[str, object]) -> str:
         "",
         "推荐组合：`Q07 A、Q08 A、V1.7 A、Q09 A、Q10 A、Q11 A、Q12 A、Q13 A、Q14 A`。",
         "",
-        "该组合已形成当前哈希下的需求方决策，不代表Reviewer签署或生成`approvedDdlSha256`。"
+        "该组合已形成当前哈希下的需求方决策，不代表Reviewer签署或迁移批准。"
         if packet["status"] == "REQUIREMENT_OWNER_ACCEPTED"
-        else "该组合只形成当前哈希下的需求方决策，不代表Reviewer签署或生成`approvedDdlSha256`。",
+        else "该组合只形成当前哈希下的需求方决策，不代表Reviewer签署或迁移批准。",
     ])
     for group in packet["groups"]:
         lines.extend([

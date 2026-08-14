@@ -306,7 +306,7 @@ def current_constraint_inventory(ddl_sha256: str, tables: dict[str, Table]) -> d
         "constraintCount": sum(len(record["constraints"]) for record in records),
         "inventorySha256": sha256(canonical),
         "records": records,
-        "approval": {"approvedDdlSha256": None, "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+        "approval": {"decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
     }
 
 
@@ -403,7 +403,7 @@ def ddl_item_decision_register(
         "summary": {"itemCount": len(items), "byType": counts, "byComparisonStatus": statuses, "approvedCount": 0},
         "itemsSha256": sha256(canonical),
         "items": items,
-        "approval": {"approvedDdlSha256": None, "decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
+        "approval": {"decisionOwner": None, "reviewOwner": None, "evidenceRefs": []},
     }
 
 
@@ -570,7 +570,6 @@ def apply_model_baseline_candidate(
         "status": status,
         "currentDdlSha256": register["currentDdlSha256"],
         "deferredItemCount": deferred_count,
-        "approvedDdlSha256": None,
         "blocks": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
     }
     if contract.get("p3e09ModelBaseline") != baseline:
@@ -943,7 +942,6 @@ def build_report(repo: Path, ddl: Path, baseline_hash: str, catalog: Path, namin
         "decisionPolicy": {
             "allowed": ["ACCEPT_CURRENT", "RESTORE_APPROVED_BASELINE", "AMEND_CURRENT", "DEFER"],
             "current": "DEFER",
-            "approvedDdlSha256": None,
             "approvalEvidence": [],
         },
         "limitations": [] if constraints_comparable else [

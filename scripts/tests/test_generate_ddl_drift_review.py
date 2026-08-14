@@ -59,7 +59,7 @@ class DdlDriftReviewTest(unittest.TestCase):
         self.assertEqual("DDL_HASH", inventory["currentDdlSha256"])
         self.assertEqual(1, inventory["constraintCount"])
         self.assertEqual("DEFER", inventory["records"][0]["decision"])
-        self.assertIsNone(inventory["approval"]["approvedDdlSha256"])
+        self.assertNotIn("approvedDdlSha256", inventory["approval"])
 
     def test_parse_ddl_includes_alter_table_foreign_key(self) -> None:
         tables = MODULE.parse_ddl(b"""
@@ -83,7 +83,7 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertTrue(all(item["decision"] == "DEFER" for item in register["items"]))
         constraint = next(item for item in register["items"] if item["itemType"] == "CONSTRAINT")
         self.assertEqual("UNVERIFIED_BASELINE_MISSING", constraint["comparisonStatus"])
-        self.assertIsNone(register["approval"]["approvedDdlSha256"])
+        self.assertNotIn("approvedDdlSha256", register["approval"])
 
     def test_accepted_naming_decisions_do_not_fabricate_review_approval(self) -> None:
         baseline = MODULE.parse_ddl(b"CREATE TABLE old_table (old_name BIGINT NOT NULL) ENGINE = InnoDB;")
@@ -104,7 +104,7 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertEqual("AMEND_CURRENT", column["decision"])
         self.assertIsNone(table["reviewOwner"])
         self.assertEqual(0, decided["summary"]["approvedCount"])
-        self.assertIsNone(decided["approval"]["approvedDdlSha256"])
+        self.assertNotIn("approvedDdlSha256", decided["approval"])
 
     def test_accepted_project_code_decisions_are_exact_and_unapproved(self) -> None:
         baseline = MODULE.parse_ddl(b"CREATE TABLE proj_project (id BIGINT NOT NULL) ENGINE = InnoDB;")
@@ -222,12 +222,12 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
             "currentDdlSha256": "HASH",
             "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": None, "evidenceRefs": ["fact"]}],
             "summary": {"approvedCount": 0},
-            "approval": {"approvedDdlSha256": None},
+            "approval": {},
         }
         previous = {
             "currentDdlSha256": "HASH",
             "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": "REVIEWER", "evidenceRefs": ["fact", "review"]}],
-            "approval": {"approvedDdlSha256": None, "reviewOwner": "REVIEWER"},
+            "approval": {"reviewOwner": "REVIEWER"},
         }
         with self.assertRaisesRegex(ValueError, "per-item reviewer overlays are retired"):
             MODULE.apply_review_overlay(register, previous)
@@ -241,7 +241,6 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
             "status": "MODEL_BASELINE_REVIEW_PENDING",
             "currentDdlSha256": "CURRENT",
             "deferredItemCount": 0,
-            "approvedDdlSha256": None,
             "blocks": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
         }
         with tempfile.TemporaryDirectory() as directory:

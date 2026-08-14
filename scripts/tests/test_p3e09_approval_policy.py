@@ -65,7 +65,6 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "independentReviewResult": "GO",
             "independentReviewRef": self.review_ref,
             "candidateCommit": self.CANDIDATE_COMMIT,
-            "approvedDdlSha256": None,
             "decisionOwner": "requirement-owner",
             "reviewOwner": "independent-reviewer",
             "evidenceRefs": [self.review_ref],
@@ -84,7 +83,7 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.range_check.stop()
         self.temp.cleanup()
 
-    def test_complete_model_evidence_allows_sds_without_migration_approval(self) -> None:
+    def test_complete_model_evidence_allows_sds_without_migration_approval_field(self) -> None:
         self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
 
     def test_model_baseline_rejects_each_formal_artifact_hash_drift(self) -> None:
@@ -100,13 +99,13 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.evidence["deferredItemCount"] = 1
         self.assertTrue(any("DEFER" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
 
-    def test_model_baseline_rejects_migration_approval_hash(self) -> None:
-        self.evidence["approvedDdlSha256"] = "DDL"
-        self.assertTrue(any("must remain empty" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
-
-    def test_model_baseline_rejects_missing_migration_approval_hash_fact(self) -> None:
-        self.evidence.pop("approvedDdlSha256")
-        self.assertTrue(any("must be explicitly present" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+    def test_model_baseline_rejects_legacy_migration_approval_field(self) -> None:
+        for value in (None, "", "DDL"):
+            with self.subTest(value=value):
+                self.evidence["approvedDdlSha256"] = value
+                errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+                self.assertTrue(any("legacy migration approval field is not allowed" in error for error in errors))
+                self.evidence.pop("approvedDdlSha256")
 
     def test_model_baseline_rejects_self_review(self) -> None:
         self.evidence["reviewOwner"] = self.evidence["decisionOwner"]

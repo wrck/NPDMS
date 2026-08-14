@@ -92,7 +92,7 @@ Acceptance：`ts:check` exit code 0；不得关闭检查、扩大`any`或放宽�
 
 Gate scope：`DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION / DATA_CUTOVER`。P3-E09只发布当前数据模型基线；迁移执行与切换证据继续在下游关闭。
 
-Required fields：当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、目标字段目录/映射/校验hash、MySQL 8.4隔离执行结果、独立复审结论和Git基线提交。`approvedDdlSha256`必须显式为空：它不属于SDS模型基线。当前不要求四角色外部附件、OA/电子签名、独立批准JSON、迁移批准状态机或双确认提交。
+Required fields：当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、目标字段目录/映射/校验hash、MySQL 8.4隔离执行结果、独立复审结论和Git基线提交。P3-E09不定义迁移批准哈希：未来历史迁移门禁按真实批次另行定义。当前不要求四角色外部附件、OA/电子签名、独立批准JSON、迁移批准状态机或双确认提交。
 
 需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，按Q07～Q14及V1.7九组覆盖全部692项`DEFER`并绑定当前DDL哈希。`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`保留全部表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号；1,883项逐项决策已完成。独立复审只在`independent-review.md`复核候选制品的整体一致性，不逐项签署。
 

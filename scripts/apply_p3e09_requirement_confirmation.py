@@ -90,7 +90,6 @@ def apply_confirmation(contract: dict[str, object], packet: dict[str, object]) -
             for code, group in sorted(by_code.items())
         },
         "reviewStatus": "REVIEW_PENDING",
-        "approvedDdlSha256": None,
     }
     return contract
 

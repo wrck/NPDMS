@@ -97,7 +97,6 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
                 "decisionOwner": "requirement-owner",
                 "reviewOwner": "independent-reviewer",
                 "evidenceRefs": [review_ref],
-                "approvedDdlSha256": None,
                 "isolatedMysqlExecution": {"status": "PASS"},
             }
             with patch.object(POLICY, "candidate_commit_errors", return_value=[]), \

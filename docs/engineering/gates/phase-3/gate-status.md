@@ -22,7 +22,7 @@
 |---|---|
 | NFR有技术实现与验证方案 | PASS-DESIGN；运行证据按专项验收/发布门禁关闭 |
 | 发布、迁移、回退设计可执行 | PASS-DESIGN；目标环境实例在部署/发布前登记 |
-| 数据模型DDL/映射候选一致 | MODEL_BASELINE_REVIEW_PENDING（60表、1,240列、447项DDL约束/索引，哈希`5EB9742F…4249`，隔离MySQL 8.4.10执行PASS。84个对象、95项来源策略及10表V1.7差量已同步；1,883项为994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`。当前新候选待fresh review，上一轮GO不覆盖本轮变更；`approvedDdlSha256`显式为空，仅由未来历史迁移门禁管理） |
+| 数据模型DDL/映射候选一致 | MODEL_BASELINE_REVIEW_PENDING（60表、1,240列、447项DDL约束/索引，哈希`5EB9742F…4249`，隔离MySQL 8.4.10执行PASS。84个对象、95项来源策略及10表V1.7差量已同步；1,883项为994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`。当前新候选待fresh review，上一轮GO不覆盖本轮变更；P3-E09不定义迁移批准哈希，历史迁移门禁未来另行定义） |
 | 安全与审计不存在明显设计缺口 | PASS-DESIGN；KMS/Telemetry实例在对应生产门禁关闭 |
 | 测试覆盖正常/异常/权限拒绝/幂等/并发 | PASS-DESIGN；运行证据未生成 |
 | 性能环境和数据集可复现 | DOWNSTREAM-BLOCKED（P3-E06阻断性能验收/生产发布） |

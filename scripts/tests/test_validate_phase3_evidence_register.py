@@ -33,7 +33,6 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
                     "driftDecision": "DEFER",
                     "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
                     "deferredItemCount": 1,
-                    "approvedDdlSha256": None,
                     "q07Decision": {"status": "RECONFIRMATION_REQUIRED", **VALIDATOR.Q07_DECISION},
                     "q08Decision": {"status": "RECONFIRMATION_REQUIRED", **VALIDATOR.Q08_DECISION},
                 }
@@ -109,11 +108,11 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         self.write()
         self.assertTrue(any("coverage mismatch" in error for error in VALIDATOR.validate(self.path)))
 
-    def test_e09_requires_explicit_empty_migration_approval_hash_fact(self) -> None:
+    def test_e09_rejects_legacy_migration_approval_hash_fact(self) -> None:
         e09 = next(item for item in self.payload["items"] if item["id"] == "P3-E09")
-        e09["confirmedFacts"].pop("approvedDdlSha256")
+        e09["confirmedFacts"]["approvedDdlSha256"] = None
         self.write()
-        self.assertTrue(any("must be explicitly present" in error for error in VALIDATOR.validate(self.path)))
+        self.assertTrue(any("legacy migration approval field is not allowed" in error for error in VALIDATOR.validate(self.path)))
 
     def test_zero_defer_without_review_is_review_pending_not_ready(self) -> None:
         e09 = next(item for item in self.payload["items"] if item["id"] == "P3-E09")
