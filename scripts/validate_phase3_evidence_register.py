@@ -284,7 +284,11 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
                 except (OSError, json.JSONDecodeError) as exc:
                     errors.append(f"cannot read P3-E09 DDL register: {exc}")
                 else:
-                    errors.extend(validate_model_baseline(register, facts))
+                    errors.extend(validate_model_baseline(
+                        register,
+                        {**facts, "decisionOwner": e09.get("decisionOwner"), "reviewOwner": e09.get("reviewOwner"), "evidenceRefs": e09.get("evidenceRefs")},
+                        root=root,
+                    ))
     else:
         expected_model_status, expected_drift = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED", "DEFER"
     if facts.get("modelDecisionStatus") != expected_model_status or facts.get("driftDecision") != expected_drift:

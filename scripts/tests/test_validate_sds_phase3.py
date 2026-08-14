@@ -161,7 +161,7 @@ class Phase3ValidatorTest(unittest.TestCase):
                 "P3-E06": ["PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"],
                 "P3-E07": ["FEATURE_INTEGRATION", "FEATURE_RELEASE"],
                 "P3-E08": ["FRONTEND_FEATURE_ACCEPTANCE", "FRONTEND_RELEASE"],
-                "P3-E09": ["PHASE_3_BASELINE", "DATA_MODEL_BASELINE", "HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
+                "P3-E09": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
             }
             evidence_items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": evidence_blocks[identifier]})
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json").write_text(

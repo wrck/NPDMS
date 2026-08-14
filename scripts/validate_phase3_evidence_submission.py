@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from p3e09_approval_policy import validate_model_baseline
+from p3e09_approval_policy import DDL_ARTIFACT_HASH_FIELDS, validate_model_baseline
 
 
 REQUIRED_FACTS = {
@@ -22,8 +22,12 @@ REQUIRED_FACTS = {
     "P3-E06": {"environmentTopology", "nodeSpecs", "productionDifferences", "scalingModel", "networkConditions", "dataSetVersion", "migrationVolume", "accountDistribution", "externalDependencyMode", "loadScriptSha256", "monitoringRefs", "cleanupProcedure", "testOwner"},
     "P3-E07": {"requirementIds", "featureId", "externalSystem", "systemOwner", "direction", "endpointRef", "authenticationRef", "networkAllowlistRef", "mappingVersion", "sourceKey", "idempotencyKey", "timeoutMs", "retryPolicy", "compensation", "reconciliation", "degradation", "sandboxEvidenceId", "releaseApprovalId"},
     "P3-E08": {"implementationCommit", "nodeVersion", "pnpmVersion", "lockfileSha256", "command", "exitCode", "errorCount", "remediationOwner", "affectedPages", "lintResult", "buildResult", "browserRegressionEvidenceId"},
-    "P3-E09": {"currentDdlSha256", "itemsSha256", "itemIdsSha256", "deferredItemCount", "mysql84DdlSha256", "independentReviewResult"},
 }
+REQUIRED_P3_E09_FACTS = {
+    "itemsSha256", "itemIdsSha256", "deferredItemCount", "mysql84DdlSha256",
+    "independentReviewResult", "independentReviewRef", *DDL_ARTIFACT_HASH_FIELDS,
+}
+REQUIRED_FACTS["P3-E09"] = REQUIRED_P3_E09_FACTS
 VALID_STATUS = {"DRAFT", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED"}
 SECRET_NAME = re.compile(r"(?:password|passwd|secretValue|privateKey|tokenValue|connectionString)$", re.I)
 DIRECTION_DECISIONS = {
@@ -165,17 +169,17 @@ def validate(path: Path) -> list[str]:
             if root is None:
                 errors.append("P3-E09 VERIFIED submission must be stored in the project repository")
             else:
-                try:
-                    submission_ref = path.resolve().relative_to(root.resolve()).as_posix()
-                except ValueError:
-                    submission_ref = ""
                 register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
                 try:
                     register = json.loads(register_path.read_text(encoding="utf-8"))
                 except (OSError, json.JSONDecodeError) as exc:
                     errors.append(f"cannot read P3-E09 DDL register: {exc}")
                 else:
-                    errors.extend(validate_model_baseline(register, facts))
+                    errors.extend(validate_model_baseline(
+                        register,
+                        {**facts, "decisionOwner": payload.get("decisionOwner"), "reviewOwner": payload.get("reviewOwner"), "evidenceRefs": payload.get("evidenceRefs")},
+                        root=root,
+                    ))
     return errors
 
 

@@ -58,21 +58,35 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
         self.assertIn("does not exist", errors[0])
 
     def test_model_baseline_requires_facts_not_final_approval(self) -> None:
-        register = {
-            "currentDdlSha256": "CURRENT",
-            "itemsSha256": "ITEMS",
-            "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"}],
-        }
-        evidence = {
-            "currentDdlSha256": "CURRENT",
-            "itemsSha256": "ITEMS",
-            "itemIdsSha256": VALIDATOR.item_ids_sha256(register["items"]),
-            "deferredItemCount": 0,
-            "mysql84DdlSha256": "CURRENT",
-            "independentReviewResult": "GO",
-            "approvedDdlSha256": None,
-        }
-        self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            review_ref = "docs/engineering/gates/phase-3/independent-review.md"
+            review_path = root / review_ref
+            review_path.parent.mkdir(parents=True)
+            review_path.write_text("独立复审结论：GO", encoding="utf-8")
+            register = {
+                "currentDdlSha256": "CURRENT",
+                "itemsSha256": "ITEMS",
+                "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"}],
+            }
+            evidence = {
+                "currentDdlSha256": "CURRENT",
+                "targetCatalogDdlSha256": "CURRENT",
+                "mappingDdlSha256": "CURRENT",
+                "validationDdlSha256": "CURRENT",
+                "manifestDdlSha256": "CURRENT",
+                "itemsSha256": "ITEMS",
+                "itemIdsSha256": VALIDATOR.item_ids_sha256(register["items"]),
+                "deferredItemCount": 0,
+                "mysql84DdlSha256": "CURRENT",
+                "independentReviewResult": "GO",
+                "independentReviewRef": review_ref,
+                "decisionOwner": "requirement-owner",
+                "reviewOwner": "independent-reviewer",
+                "evidenceRefs": [review_ref],
+                "approvedDdlSha256": None,
+            }
+            self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence, root=root))
 
     def test_catalog_baseline_is_loaded_from_historical_hash(self) -> None:
         generator = Mock()

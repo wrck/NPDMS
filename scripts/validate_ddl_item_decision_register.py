@@ -59,9 +59,11 @@ def evidence_reference_errors(root: Path, items: list[dict[str, object]]) -> lis
     return errors
 
 
-def model_baseline_errors(register: dict[str, object], evidence: dict[str, object]) -> list[str]:
+def model_baseline_errors(
+    register: dict[str, object], evidence: dict[str, object], *, root: Path | None = None,
+) -> list[str]:
     """Expose the shared SDS model-fact policy without migration approval checks."""
-    return validate_model_baseline(register, evidence)
+    return validate_model_baseline(register, evidence, root=root)
 
 
 def load_generator(script_dir: Path):
