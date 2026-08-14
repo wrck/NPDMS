@@ -4,7 +4,7 @@
 
 `PROPOSED_FOR_REVIEW`
 
-P3-E09继续保持`OPEN / BLOCKED_BY_REVIEW`。本ADR只修正割接领域候选DDL及迁移证据，不构成DDL批准。
+P3-E09当前模型基线为`MODEL_BASELINE_READY`。本ADR只修正割接领域候选DDL及迁移证据；它不构成历史迁移或数据切换批准，`AI-MIG-000`仍保持`OPEN`。
 
 ## 日期
 

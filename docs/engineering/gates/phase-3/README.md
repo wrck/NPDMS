@@ -8,12 +8,12 @@ Phase 3审查安全、审计可观测、部署、性能和测试设计是否足�
 - [`gate-status.md`](gate-status.md)：Phase 3当前门禁与证据缺口。
 - [`production-evidence-register.md`](production-evidence-register.md)：P3-E01～E09逐项必填事实和验收规范。
 - [`frontend-ts-check-evidence.md`](frontend-ts-check-evidence.md)：P3-E08可复跑汇总；同名JSON保存逐错误机器证据。
-- [`evidence-packet-templates/`](evidence-packet-templates/)：按ADR-0004生成的P3-E01～E07、P3-E09逐Owner模板；使用`scripts/generate_phase3_evidence_packets.py --check`防止模板漂移。
-- [`submissions/`](submissions/)：Owner按环境或发布批次保存的版本化实际提交；生成器不得覆盖。
+- [`evidence-packet-templates/`](evidence-packet-templates/)：按ADR-0004生成P3-E01～E07运行证据模板和P3-E09模型事实模板；使用`scripts/generate_phase3_evidence_packets.py --check`防止模板漂移。
+- [`submissions/`](submissions/)：环境或发布批次的版本化实际提交；P3-E09模型基线不要求Owner签署提交，生成器不得覆盖。
 - [`evidence-submission-template.json`](evidence-submission-template.json)：仅作通用JSON结构示例；实际提交优先复制逐项模板，并用`scripts/validate_phase3_evidence_submission.py`校验。
 - [`phase3-evidence-register.json`](phase3-evidence-register.json)：可机器校验的当前状态、Owner、事实和证据引用。
 - [`self-review.md`](self-review.md)：当前自审结论和阻塞影响。
-- [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：ADR-0028已接受的需求方九组决策证据，覆盖确认时全部692项`DEFER`，并绑定写回前Git提交、寄存器Items哈希及文件哈希；当前仍须数据架构、业务、迁移三类Owner及独立Reviewer使用版本化P3-E09提交完成结构化签署和批准哈希门禁。
+- [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：ADR-0028已接受的需求方九组决策证据，覆盖确认时全部692项`DEFER`，并绑定寄存器Items哈希及文件哈希；结合当前DDL、`DEFER=0`、MySQL 8.4隔离执行和独立复审`GO`，它构成可复现的SDS数据模型输入，而非迁移批准。
 
 后续自审和独立复审分别登记为`self-review.md`和`independent-review.md`。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
 
@@ -27,7 +27,7 @@ py -3 -B scripts/validate_phase3_evidence_register.py
 py -3 -B scripts/validate_sds_phase3.py
 ```
 
-上述校验通过只证明结构、事实绑定和当前Gate状态一致；只有生产Owner证据与独立复核通过才能将门禁改为`VERIFIED`。
+上述校验通过只证明结构、事实绑定和当前Gate状态一致。P3-E09通过只发布`MODEL_BASELINE_READY`模型输入；生产或真实迁移批次的`VERIFIED`仍须在各自下游门禁以当时事实关闭。
 
 ## 放行原则
 

@@ -131,18 +131,18 @@
 - Requirement IDs: 全部需要历史数据迁移的V1/V2 Requirement
 - Area: DDL漂移与迁移基线（P3-E09 / AI-MIG-000）
 - Question: 当前DDL相对旧批准证据的差异采用`ACCEPT_CURRENT`、`RESTORE_APPROVED_BASELINE`、`AMEND_CURRENT`还是逐项`DEFER`？
-- Why it blocks design/implementation: 当前DDL hash与目标字段目录/校验hash不一致，无法安全生成迁移程序或执行切换。
+- Why it blocks design/implementation: 历史迁移批次尚未形成，不能执行迁移程序或数据切换；不阻断当前SDS数据模型基线。
 - Options: A. 先生成逐表/列/索引/约束差异，由数据架构和业务Owner逐项裁决；B. 整体恢复旧DDL后重新评审新增实体。
 - Recommended technical default: A；当前领域模型已经演进，整体恢复可能丢失已确认能力，但未经逐项批准也不能接受当前DDL。
 - Business decision required: 是，需批准每项漂移结论；执行程序只读生成差异，不授权生产迁移。
 - Resolution: A；继续只读生成逐表/列/索引/约束差异，由数据架构和业务Owner逐项裁决，不整体恢复旧DDL。
-- Confirmed naming decision: ADR-0019；业务表删除`pms_`，统一采用`<13领域编码>_<完整领域对象名称>`；表名默认使用完整英文词，仅允许`config`、`sn`两个已登记标准缩写；字段允许使用ADR登记且含义明确的受控缩写，并在无歧义时保持简短。52张表历史命名裁决已同步到当前核心迁移DDL和派生证据；P3-E09仍等待逐项Reviewer签署。
-- Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策已同步DDL、字段目录和P3-E09逐项寄存器，仍等待全量Reviewer签署。
-- Confirmed customer market classification decision: ADR-0021；市场部、系统部、拓展部、子行业四维分类归CUS，CRM组合目录落`cus_market_relation`；客户和项目直接保存四组编码/名称，禁止保存`relation_id`，也不推断为组织关系。该决策已同步DDL、字段映射和P3-E09逐项寄存器，仍等待全量Reviewer签署。
-- Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策已同步核心DDL、领域实体迁移策略、字段目录和P3-E09派生证据，仍等待全量Reviewer签署。
-- P3-E09 requirement-owner model decisions: ADR-0023中的Q01～Q06业务语义仍有效；交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”，订单—执行单允许多个默认主执行单关系。ADR-0028已绑定当前DDL哈希接受`Q07 A、Q08 A、V1.7 A、Q09～Q14 A`九组完整清单：逐项寄存器1,883项中994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`。需求方决策缺口已关闭；全部`reviewOwner`和批准哈希仍为空，不得提前放行历史迁移或切换。
-- V1.7 DDL delta: ADR-0025，并由ADR-0027完成割接物理模型纠偏；当前候选为60表、10表V1.7差量。需求方 2026-08-13 确认`pm_project_maintenance`全表不迁移，只保留顶层表级排除审计；当前不预建历史工单/工时对象或空壳表。目录快照对象/表亦按需求方决策删除，INT-05/INT-09复用基础平台主数据、`plt_sync_batch`和`plt_external_key_mapping`。当前哈希与规模以重建证据为准；P3-E09仍为`BLOCKED_BY_REVIEW`，等待全量Reviewer签署与`approvedDdlSha256`，不授权生产迁移、切换或旧`dppms`写入。
+- Confirmed naming decision: ADR-0019；业务表删除`pms_`，统一采用`<13领域编码>_<完整领域对象名称>`；表名默认使用完整英文词，仅允许`config`、`sn`两个已登记标准缩写；字段允许使用ADR登记且含义明确的受控缩写，并在无歧义时保持简短。52张表历史命名裁决已同步到当前核心迁移DDL和派生证据，并已纳入P3-E09模型基线。
+- Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策已同步DDL、字段目录和P3-E09逐项寄存器，并已纳入模型基线。
+- Confirmed customer market classification decision: ADR-0021；市场部、系统部、拓展部、子行业四维分类归CUS，CRM组合目录落`cus_market_relation`；客户和项目直接保存四组编码/名称，禁止保存`relation_id`，也不推断为组织关系。该决策已同步DDL、字段映射和P3-E09逐项寄存器，并已纳入模型基线。
+- Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策已同步核心DDL、领域实体迁移策略、字段目录和P3-E09派生证据，并已纳入模型基线。
+- P3-E09 requirement-owner model decisions: ADR-0023中的Q01～Q06业务语义仍有效；交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”，订单—执行单允许多个默认主执行单关系。ADR-0028已绑定当前DDL哈希接受`Q07 A、Q08 A、V1.7 A、Q09～Q14 A`九组完整清单：逐项寄存器1,883项中994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`。需求方决策缺口已关闭，独立复审为`GO`；`reviewOwner`和`approvedDdlSha256`为空不阻断P3-E09模型基线，但不授权历史迁移或切换。
+- V1.7 DDL delta: ADR-0025，并由ADR-0027完成割接物理模型纠偏；当前候选为60表、10表V1.7差量。需求方 2026-08-13 确认`pm_project_maintenance`全表不迁移，只保留顶层表级排除审计；当前不预建历史工单/工时对象或空壳表。目录快照对象/表亦按需求方决策删除，INT-05/INT-09复用基础平台主数据、`plt_sync_batch`和`plt_external_key_mapping`。当前哈希与规模以重建证据为准；P3-E09为`MODEL_BASELINE_READY`，只作为SDS和后续Feature输入；`AI-MIG-000`、历史迁移和数据切换仍`OPEN`，未经真实批次验证不得执行，也不授权旧`dppms`写入。
 - Cutover flow correction: ADR-0026；`CUT-01 / CutoverTask`是P1～P6唯一割接核心任务，`CUT-11`退出当前需求和CUT领域，`WO-06`后置为工单领域V3候选。原CUT-11三表及迁移映射必须从P3-E09候选删除后重新生成证据；该项为已确认变更，不再作为开放问题。
-- Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排与P6轻量闭环的当前物理项已通过ADR-0028九组清单获得Requirement Owner接受。当前候选为60表、10表V1.7差量，哈希与隔离MySQL 8.4证据已重建；仍等待Reviewer签署，不得把需求方接受解释为最终迁移批准。
+- Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排与P6轻量闭环的当前物理项已通过ADR-0028九组清单获得Requirement Owner接受。当前候选为60表、10表V1.7差量，哈希与隔离MySQL 8.4证据已重建并纳入模型基线；不得把需求方接受或模型基线解释为历史迁移、切换或生产批准。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13

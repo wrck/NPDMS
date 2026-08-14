@@ -1,6 +1,6 @@
 # ADR-0028：P3-E09当前哈希需求方确认
 
-> 状态：`ACCEPTED / REVIEW_PENDING`<br>
+> 状态：`ACCEPTED / MODEL_BASELINE_READY`<br>
 > 决策日期：2026-08-14<br>
 > 当前DDL SHA-256：`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
 > 决策入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`
@@ -23,4 +23,4 @@
 
 ## 3. 未完成事项
 
-本ADR不是Reviewer签署，也不生成`approvedDdlSha256`。逐项寄存器必须保持`reviewOwner=null`和`approvedCount=0`，直至数据架构、业务Owner、迁移Owner及独立Reviewer完成复核。只有最终批准同时绑定当前DDL SHA-256、当前items SHA-256和真实评审证据后，P3-E09才可关闭。
+本ADR不是迁移批准，也不生成`approvedDdlSha256`；该字段在P3-E09模型基线中显式为空。逐项寄存器的`reviewOwner=null`和`approvedCount=0`不阻断模型基线。当前DDL、当前items、机器校验、隔离执行和独立复审`GO`形成可复现的SDS/Feature输入；`AI-MIG-000`、历史迁移和数据切换仍须等待真实批次验证，未经验证不得执行。

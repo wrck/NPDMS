@@ -88,15 +88,15 @@ Required fields：实现提交、Node/pnpm/lockfile hash、`ts:check`命令和�
 
 Acceptance：`ts:check` exit code 0；不得关闭检查、扩大`any`或放宽规则换取通过；build通过不能覆盖类型失败。
 
-### P3-E09 AI-MIG-000迁移基线
+### P3-E09 数据模型基线与AI-MIG-000边界
 
-Gate scope：`PHASE_3_BASELINE / DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION / DATA_CUTOVER`。表、字段和约束裁决影响数据模型，必须前置；迁移执行与切换证据继续在下游关闭。
+Gate scope：`DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION / DATA_CUTOVER`。P3-E09只发布当前数据模型基线；迁移执行与切换证据继续在下游关闭。
 
-Required fields：数据元Excel hash、源结构抽取hash/水位、当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、`approvedDdlSha256`、目标字段目录/映射/校验hash、生成器版本、release manifest和验证结果。批准提交必须采用P3-E09 schemaVersion 2模板，精确绑定当前DDL hash、最终Items hash、Item数量及Item ID集合hash；数据架构Owner、业务Owner、迁移Owner和独立Reviewer须使用不同身份分别签署，并提供位于版本化`submissions/P3-E09/attestations/`目录下的独立证据及SHA-256。需求方ADR或确认包不能替代上述签署证据。
+Required fields：当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、目标字段目录/映射/校验hash、MySQL 8.4隔离执行结果、独立复审结论和Git基线提交。`approvedDdlSha256`必须显式为空：它不属于SDS模型基线。当前不要求四角色外部附件、OA/电子签名、独立批准JSON、迁移批准状态机或双确认提交。
 
 需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，按Q07～Q14及V1.7九组覆盖全部692项`DEFER`并绑定当前DDL哈希。Reviewer逐项复核入口：`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`，包含全部表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号。
 
-Acceptance：逐项登记的表、列、约束和表选项全部有决策与复核证据；DDL、目录、映射、校验和manifest引用同一批准hash；全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。
+Acceptance：逐项登记的表、列、约束和表选项全部有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；独立复审结论为`GO`；正式制品形成Git基线提交。全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。该结果只表示当前数据模型可作为SDS和后续Feature输入；`AI-MIG-000`、历史数据迁移和数据切换保持`OPEN`，未经真实批次验证不得执行。
 
 ## 3. 状态定义
 
