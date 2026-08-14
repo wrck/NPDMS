@@ -31,6 +31,12 @@ FORBIDDEN_PREFIXES = (
     "docs/superpowers/",
     "需求/",
 )
+CURRENT_GATE_PATHS = frozenset(
+    {
+        "docs/engineering/gates/phase-1/README.md",
+        "docs/engineering/gates/phase-1/gate-status.md",
+    }
+)
 MODEL_EVIDENCE_PATHS = frozenset(
     {
         "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
@@ -74,7 +80,11 @@ def _category_accepts(path: str, category: str) -> bool:
     if category == "BASELINE":
         return path.startswith("docs/baseline/")
     if category == "ENGINEERING":
-        return path in {"docs/README.md", "docs/engineering/00-engineering-chain.md"}
+        return path in {
+            "docs/README.md",
+            "docs/engineering/00-engineering-chain.md",
+            *CURRENT_GATE_PATHS,
+        }
     if category == "SDS":
         return path.startswith("docs/design/")
     if category == "DECISION":
@@ -101,7 +111,11 @@ def validate_relative_path(path: str, category: str) -> None:
     parts = PurePosixPath(path).parts
     if any(part in {"", ".", ".."} for part in parts):
         raise BaselineError(f"baseline path traversal is forbidden: {path}")
-    if path.startswith(FORBIDDEN_PREFIXES) or "archive" in parts or "input" in parts:
+    if (
+        (path.startswith(FORBIDDEN_PREFIXES) and path not in CURRENT_GATE_PATHS)
+        or "archive" in parts
+        or "input" in parts
+    ):
         raise BaselineError(f"process or external input material is forbidden: {path}")
     if not _category_accepts(path, category):
         raise BaselineError(f"path does not belong to category {category}: {path}")

@@ -26,13 +26,34 @@ from specification_baseline import (
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_109_files(self) -> None:
+    def test_allowlist_contains_exactly_111_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(109, len(entries))
-        self.assertEqual(109, len({entry.path for entry in entries}))
+        self.assertEqual(111, len(entries))
+        self.assertEqual(111, len({entry.path for entry in entries}))
+
+    def test_current_phase_1_gate_is_approved_and_ready_for_phase_2(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        allowlist = load_allowlist(repository / "docs/specification-baseline/allowlist.json")
+        managed_paths = {entry.path for entry in allowlist}
+        self.assertTrue(
+            {
+                "docs/engineering/gates/phase-1/README.md",
+                "docs/engineering/gates/phase-1/gate-status.md",
+            }.issubset(managed_paths)
+        )
+
+        readme = (repository / "docs/engineering/gates/phase-1/README.md").read_text(
+            encoding="utf-8"
+        )
+        gate_status = (repository / "docs/engineering/gates/phase-1/gate-status.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("审查状态：`APPROVED`", gate_status)
+        self.assertIn("结论：`READY_FOR_PHASE_2`", gate_status)
+        self.assertNotIn("当前仍为 `NOT_READY_FOR_PHASE_2`", readme)
 
     def test_rejects_path_traversal(self) -> None:
         invalid_paths = (

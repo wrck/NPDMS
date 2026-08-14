@@ -63,6 +63,8 @@
     {"path": "docs/design/README.md", "category": "SDS"},
     {"path": "docs/design/phase-1-domain-ownership.md", "category": "SDS"},
     {"path": "docs/engineering/00-engineering-chain.md", "category": "ENGINEERING"},
+    {"path": "docs/engineering/gates/phase-1/README.md", "category": "ENGINEERING"},
+    {"path": "docs/engineering/gates/phase-1/gate-status.md", "category": "ENGINEERING"},
     {"path": "docs/traceability/business-feedback-change-map.md", "category": "TRACEABILITY"},
     {"path": "docs/traceability/core-migration-schema-contract.json", "category": "TRACEABILITY"},
     {"path": "docs/traceability/database-naming-contract.json", "category": "TRACEABILITY"},

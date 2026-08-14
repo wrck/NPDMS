@@ -4,8 +4,7 @@ Phase 1 用于确认需求追溯、领域边界、聚合责任、系统架构、
 
 ## 当前文件
 
-- [`q2-evidence-manifest.json`](q2-evidence-manifest.json)：Q2 实施仓库、锁定提交、数据库目标、运行边界与构建结果的机器可读证据清单。
-- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总和放行结论。当前仍为 `NOT_READY_FOR_PHASE_2`，以文件中的硬门禁表为准。
+- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总和放行结论。当前为 `APPROVED / READY_FOR_PHASE_2`。
 - [`independent-review.md`](independent-review.md)：独立第三方评审结果。
 - [`context-refinement-review.md`](context-refinement-review.md)：领域上下文重构后的复审记录。
 - [`naming-review.md`](naming-review.md)：业务命名审查结论。

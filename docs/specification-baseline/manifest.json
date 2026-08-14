@@ -316,6 +316,16 @@
       "sha256": "d823de7fc0b1d3565c266f3a1e8685dc8a7c98926e64dba041ff3dc1f26b5770"
     },
     {
+      "path": "docs/engineering/gates/phase-1/README.md",
+      "category": "ENGINEERING",
+      "sha256": "b1261d7331c0ccb1b5ad382c9716bd357b5eca71322e205938a0f29cb86cee81"
+    },
+    {
+      "path": "docs/engineering/gates/phase-1/gate-status.md",
+      "category": "ENGINEERING",
+      "sha256": "6e606ce27dd335154fff7abb14cfbbb377f687e4e6caf3b8fe8f8e259f813bec"
+    },
+    {
       "path": "docs/traceability/business-feedback-change-map.md",
       "category": "TRACEABILITY",
       "sha256": "95cbddee6f7682c8894740096fa774674d71ae3e66c664e027449c210cdb934d"
