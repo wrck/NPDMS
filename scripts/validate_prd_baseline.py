@@ -180,6 +180,25 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
         )
         for candidate in ("V1", "V2")
     }
+    formal_statistics = section(appendix_a, "A.2 正式需求统计") if appendix_a else ""
+    expected_statistics = {
+        "V1/V2正式需求总数": len(formal),
+        "V1主版本需求": formal_versions["V1"],
+        "V2主版本需求": formal_versions["V2"],
+    }
+    actual_statistics = {
+        label: int(value)
+        for label, value in re.findall(
+            r"(?m)^\|\s*(V1/V2正式需求总数|V1主版本需求|V2主版本需求)\s*\|\s*(\d+)条\s*\|$",
+            formal_statistics,
+        )
+    }
+    add(
+        checks,
+        "附录A.2正式需求统计一致",
+        actual_statistics == expected_statistics,
+        f"期望={expected_statistics}；实际={actual_statistics}",
+    )
     footer = prd.rsplit("**文档结束**", 1)[-1] if "**文档结束**" in prd else ""
     add(checks, "文末基线版本一致", f"PRD {version}正式基线" in footer, f"文末应声明PRD {version}正式基线")
     add(checks, "文末正式需求数一致", f"{len(formal)}项V1/V2正式需求" in footer, f"正文={len(formal)}项")

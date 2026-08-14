@@ -11,6 +11,7 @@ from pathlib import Path
 
 PHASE2_DOCS = (
     "08-data-model.md",
+    "08a-domain-entity-migration-alignment.md",
     "09-database-design.md",
     "10-api-design.md",
     "11-event-design.md",
@@ -29,6 +30,8 @@ CONTRACT_FIELDS = (
     "需求名称", "数据对象", "数据表", "API", "事件", "外部集成",
     "文件契约", "工作流/状态", "授权与数据范围",
 )
+FULL_REQUIREMENT_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
+ACTIVE_REQUIREMENT_LINE = re.compile(r"^(?:>\s*)?(?:适用\s+)?Requirement(?: ID)?：(.+?)\s*$", re.M)
 
 
 def read(path: Path) -> str:
@@ -67,6 +70,55 @@ def parse_contract_map(path: Path) -> tuple[dict[str, dict[str, str]], list[str]
     return result, errors
 
 
+def requirement_ids(fragment: str) -> set[str]:
+    result: set[str] = set()
+    result.update(
+        identifier
+        for identifier in FULL_REQUIREMENT_ID.findall(fragment)
+        if not identifier.startswith("ADR-")
+    )
+    for match in re.finditer(
+        r"([A-Z]+(?:-[A-Z0-9]+)?-)(\d+)\s*～\s*(?:([A-Z]+(?:-[A-Z0-9]+)?-))?(\d+)",
+        fragment,
+    ):
+        start_prefix, start_value, end_prefix, end_value = match.groups()
+        prefix = end_prefix or start_prefix
+        if prefix != start_prefix:
+            continue
+        width = max(len(start_value), len(end_value))
+        result.update(
+            f"{prefix}{number:0{width}d}"
+            for number in range(int(start_value), int(end_value) + 1)
+        )
+    for match in re.finditer(r"([A-Z]+(?:-[A-Z0-9]+)?-)(\d+(?:\s*/\s*\d+)+)", fragment):
+        prefix, values = match.groups()
+        result.update(f"{prefix}{int(value):02d}" for value in re.findall(r"\d+", values))
+    return result
+
+
+def active_requirement_ids(text: str) -> set[str]:
+    """Extract IDs from formal scope declarations and Requirement table columns."""
+    result: set[str] = set()
+    for declaration in ACTIVE_REQUIREMENT_LINE.findall(text):
+        result.update(requirement_ids(declaration))
+
+    requirement_column: int | None = None
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            requirement_column = None
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if "Requirement" in cells:
+            requirement_column = cells.index("Requirement")
+            continue
+        if requirement_column is None or requirement_column >= len(cells):
+            continue
+        if set(cells[requirement_column]) <= {"-", ":"}:
+            continue
+        result.update(requirement_ids(cells[requirement_column]))
+    return result
+
+
 def validate(root: Path) -> list[str]:
     errors: list[str] = []
     design = root / "docs" / "design"
@@ -79,7 +131,8 @@ def validate(root: Path) -> list[str]:
             errors.append(f"missing Phase 2 document: {path.relative_to(root)}")
             continue
         text = read(path)
-        for marker in ("文档状态：`BASELINE`", "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
+        status_marker = "文档状态：`BASELINE ADDENDUM`" if name == "08a-domain-entity-migration-alignment.md" else "文档状态：`BASELINE`"
+        for marker in (status_marker, "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
             if marker not in text:
                 errors.append(f"{path.relative_to(root)} missing metadata: {marker}")
 
@@ -115,6 +168,25 @@ def validate(root: Path) -> list[str]:
     event_design = read(design / "11-event-design.md") if (design / "11-event-design.md").is_file() else ""
     integration_design = read(design / "12-integration-design.md") if (design / "12-integration-design.md").is_file() else ""
     file_design = read(design / "13-file-design.md") if (design / "13-file-design.md").is_file() else ""
+
+    formal_id_set = set(identifiers)
+    for name in PHASE2_DOCS:
+        path = design / name
+        if not path.is_file():
+            continue
+        for identifier in sorted(active_requirement_ids(read(path)) - formal_id_set):
+            errors.append(f"{name} active scope contains non-formal Requirement: {identifier}")
+
+    for line in event_design.splitlines():
+        if line.startswith("|") and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
+            errors.append("ProjectConversionCompleted must not declare WO as a V1/V2 consumer")
+    for name in ("12-integration-design.md", "16-exception-and-idempotency.md"):
+        path = design / name
+        if not path.is_file():
+            continue
+        for line in read(path).splitlines():
+            if line.startswith("|") and ("打卡原始事实" in line or "钉钉打卡" in line):
+                errors.append(f"{name} contains active DingTalk clock-in fact contract")
 
     for identifier, contract in contracts.items():
         for field in CONTRACT_FIELDS:

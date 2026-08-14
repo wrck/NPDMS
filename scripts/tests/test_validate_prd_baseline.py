@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -16,6 +17,23 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ValidatePrdBaselineTest(unittest.TestCase):
+    def test_appendix_a2_statistics_must_match_formal_requirements(self) -> None:
+        root = MODULE_PATH.parents[1]
+        source = root / "docs" / "baseline" / "prd-v1.7.md"
+        report = root / "docs" / "reports" / "2026-08-10-PRD与13领域FR差异审查.md"
+        text = source.read_text(encoding="utf-8-sig")
+        candidate_text = text.replace("| V2主版本需求 | 48条 |", "| V2主版本需求 | 49条 |", 1)
+        self.assertNotEqual(text, candidate_text)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary) / "prd.md"
+            candidate.write_text(candidate_text, encoding="utf-8")
+            checks = MODULE.validate(candidate, report, "V1.7", "正式基线")
+
+        statistics = {check.name: check for check in checks}
+        self.assertIn("附录A.2正式需求统计一致", statistics)
+        self.assertFalse(statistics["附录A.2正式需求统计一致"].passed)
+
     def test_requirement_blocks_support_mixed_heading_levels(self) -> None:
         text = """#### 4.2.1 PM-01 项目创建
 | 需求编号 | PM-01 |

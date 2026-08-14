@@ -6,7 +6,7 @@
 > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
 > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。
 
-本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖88个领域实体，并将当前实现、旧数据元、外部系统、派生来源、历史只读资料和排除字段拆成100条互斥来源记录。每条记录独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供88个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障、设备框板关系、HR目录同步快照，以及原通用工单/工时的只读历史迁移对象。
+本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖84个领域实体，通过95条来源绑定描述当前实现、旧数据元、外部系统、派生来源和排除证据，并登记1个明确排除源。每个对象独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供84个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障安排和设备框板关系；已删除的HR目录同步快照及历史工单/工时对象不在当前迁移对象集合中。
 
 ## 1. 证据和使用规则
 
@@ -202,4 +202,4 @@
 
 ## 12. 当前结论
 
-Phase 2的全部显式数据对象已获得迁移策略入口；核心链具有结构化证据，当前实现领域实体采用前向迁移，证据不足或新增能力已明确隔离。本文仍为`IN_REVIEW`：实际字段级映射、源表最终水位和DDL发布必须在`AI-MIG-000`及后续领域迁移工作包中逐项验证，不能用本文替代生产迁移放行。
+Phase 2的全部显式数据对象已获得迁移策略入口；核心链具有结构化证据，当前实现领域实体采用前向迁移，证据不足或新增能力已明确隔离。本文保持`BASELINE ADDENDUM`；实际字段级映射、源表最终水位和生产迁移执行`DEFERRED_TO_AI_MIG_000`，应用Schema前向迁移发布`DEFERRED_TO_FEATURE_INTEGRATION`，不能用本文替代生产迁移放行。

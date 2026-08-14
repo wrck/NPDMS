@@ -46,7 +46,7 @@
 |---|---|---|---|
 | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
-| 钉钉打卡 | 打卡记录ID+打卡人 | tenant + DingTalk | 更新同一同步事实，不重复工单/工时 |
+| 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
 | 财务出向 | 费用单ID+批准版本 | tenant + finance interface | 查询/返回原财务业务单 |
 | CollectionTask | 业务来源+平台任务幂等键 | tenant + sourceContext | 返回原平台任务 |
 | DAC 下发 | 平台 CollectionTaskId | provider | 返回原外部任务或查询状态 |
@@ -114,7 +114,7 @@
 | 系统 | 降级 |
 |---|---|
 | CRM/ERP/ITR/MES | 最近成功本地副本 + 截止时间；允许 PRD 定义的人工补缺，恢复后对账 |
-| 钉钉 | 平台自主记录/人工补录、站内待办，恢复后受控合并 |
+| 钉钉 | 站内待办兜底；恢复后按通知业务键重试并受控合并送达/阅读回执 |
 | OA | 平台内可继续流程不阻断；授权申请保持待审批，站内/邮件通知 |
 | 备件 | 线下申请后补录和核验；平台不重建库存业务 |
 | 授权系统 | 邮件申请/人工查询后补录，完整授权码不入日志 |
@@ -183,6 +183,6 @@
 | 部分失败与补偿明确 | PASS | 第 5、8 节 |
 | 树/设备/状态/DAC异常明确 | PASS | 第 6、7、9 节 |
 | 敏感数据不进入失败证据 | PASS | 第 9、12 节 |
-| 重试/熔断数值 | IN_REVIEW | Feature 联调/Phase 3 运行设计按外部 SLA 登记 |
+| 重试/熔断数值 | DEFERRED_TO_FEATURE_INTEGRATION | 对应 Feature 联调按外部 SLA 登记；Phase 3验证运行策略，不阻断 Phase 2 结构契约 |
 
 本分册满足 Phase 2 异常与幂等结构门禁；任何 Feature 不得通过禁用幂等、吞掉冲突、把未知状态当成功或减少授权校验来实现“流程顺畅”。

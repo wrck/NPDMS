@@ -187,7 +187,7 @@
 | Owner | Requirement | API | 关键边界 |
 |---|---|---|---|
 | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM 权威字段只读；临时客户显式标记来源 |
-| AST | EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/rma-replacements` | 设备归属用 `actions/assign-project`；同一时点唯一；维保为客观基本信息 |
+| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/rma-replacements` | 设备归属用 `actions/assign-project`；同一时点唯一；维保为客观基本信息 |
 | COM | COM-01～COM-02 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes`、`/fulfillment-reconciliations` | ERP合同/订单核心字段只读；CRM经营状态/履约回执独立展示；范围分配/释放为受控命令 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
@@ -198,7 +198,7 @@
 
 | Owner | Requirement | API | 规则 |
 |---|---|---|---|
-| ANA | RPT-01、RPT-02、RPT-04、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
+| ANA | RPT-02、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
 | PLT | PLT-01 | `/todos`、`/{id}/actions/complete` | 待办完成回调业务 Owner；不能自行宣告业务成功 |
 | PLT | PLT-02 | `/files:init-upload`、`/files/{id}:complete-upload`、`/files/{id}/versions`、`/file-references` | 文件 API 详见 13；下载实时校验业务权限 |
 | PLT | AUT-01～AUT-02 | `/authorization-grants` | 通用授权，不代替 DAC 凭证授权 |
