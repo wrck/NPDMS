@@ -294,7 +294,7 @@ def render(prd: Path, domain_root: Path) -> str:
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：SDS Phase 1与Phase 2均已通过独立复审并转为BASELINE；SDS Phase 3处于IN_REVIEW，尚未达到BASELINE",
+        "- 当前状态：SDS Phase 1、Phase 2与Phase 3均已通过门禁并转为BASELINE；运行、迁移与发布证据继续由对应下游门禁控制",
         "",
         "## 字段状态约定",
         "",

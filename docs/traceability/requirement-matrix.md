@@ -6,7 +6,7 @@
 
 - 正式需求：103项（V1 55项，V2 48项）
 - 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner
-- 当前状态：SDS Phase 1与Phase 2均已通过独立复审并转为BASELINE；SDS Phase 3处于IN_REVIEW，尚未达到BASELINE
+- 当前状态：SDS Phase 1、Phase 2与Phase 3均已通过门禁并转为BASELINE；运行、迁移与发布证据继续由对应下游门禁控制
 
 ## 字段状态约定
 
