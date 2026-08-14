@@ -1674,6 +1674,16 @@
     "srv_work_order_handling_record",
     "srv_work_order_sla"
   ],
+  "p3e09ModelBaseline": {
+    "status": "MODEL_BASELINE_READY",
+    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+    "deferredItemCount": 0,
+    "approvedDdlSha256": null,
+    "blocks": [
+      "HISTORICAL_DATA_MIGRATION",
+      "DATA_CUTOVER"
+    ]
+  },
   "p3e09RequirementOwnerConfirmation": {
     "decisionRef": "ADR-0028",
     "status": "ACCEPTED",

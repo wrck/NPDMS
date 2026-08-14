@@ -296,9 +296,9 @@
                 "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
                 "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-                "driftDecision": "REVIEW_PENDING",
+                "driftDecision": "ACCEPT_CURRENT",
                 "decisionRegisterItemCount": 1883,
-                "modelDecisionStatus": "DECISIONS_ACCEPTED_REVIEW_PENDING",
+                "modelDecisionStatus": "MODEL_BASELINE_READY",
                 "deferredItemCount": 0,
                 "approvedDdlSha256": null,
                 "q03DecisionStatus": "ACCEPTED",
@@ -364,8 +364,6 @@
                 "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json"
             ],
             "blocks": [
-                "PHASE_3_BASELINE",
-                "DATA_MODEL_BASELINE",
                 "HISTORICAL_DATA_MIGRATION",
                 "DATA_CUTOVER"
             ]

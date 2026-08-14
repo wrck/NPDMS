@@ -39,6 +39,8 @@ CORE_SCHEMA_CONTRACT = Path("docs/traceability/core-migration-schema-contract.js
 DDL_DECISION_REGISTER = Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json")
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 DDL_EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
+P3E09_MODEL_BASELINE_BLOCKS = ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"]
+P3E09_USAGE_RESTRICTION = "仅用于SDS数据模型基线事实校验；不得用于授权历史数据迁移或数据切换。"
 BACKUP_RETENTION_POLICY = {
     "dailyRetention": "P35D",
     "monthlyRetention": "P13M",
@@ -154,19 +156,26 @@ def build_packets() -> dict[str, dict[str, object]]:
                 raise ValueError("P3-E09 isolated MySQL execution evidence is absent or stale")
             deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
             approved_hash = register.get("approval", {}).get("approvedDdlSha256")
-            if approved_hash:
-                model_status = "APPROVED"
-            elif deferred_count == 0:
-                model_status = "DECISIONS_ACCEPTED_REVIEW_PENDING"
-            else:
-                model_status = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED"
+            if approved_hash is not None:
+                raise ValueError("P3-E09 model baseline must keep approvedDdlSha256 explicitly null")
+            model_baseline = {
+                "status": "MODEL_BASELINE_READY" if deferred_count == 0 else "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+                "currentDdlSha256": ddl_sha256,
+                "deferredItemCount": deferred_count,
+                "approvedDdlSha256": None,
+                "blocks": P3E09_MODEL_BASELINE_BLOCKS,
+            }
+            if contract.get("p3e09ModelBaseline") != model_baseline:
+                raise ValueError("P3-E09 core migration schema contract model baseline drift")
+            if register.get("modelBaseline") != model_baseline:
+                raise ValueError("P3-E09 DDL decision register model baseline drift")
             facts.update(
                 {
                     "currentDdlSha256": ddl_sha256,
                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
-                    "modelDecisionStatus": model_status,
+                    "modelDecisionStatus": model_baseline["status"],
                     "deferredItemCount": deferred_count,
-                    "approvedDdlSha256": approved_hash,
+                    "approvedDdlSha256": None,
                     "v17DeltaStatus": contract["v17Delta"]["status"],
                     "requirementOwnerConfirmation": {
                         "status": contract["p3e09RequirementOwnerConfirmation"]["status"],
@@ -260,27 +269,13 @@ def build_packets() -> dict[str, dict[str, object]]:
             "revalidationTriggers": [],
         }
         if identifier == "P3-E09":
+            packet["blocks"] = P3E09_MODEL_BASELINE_BLOCKS
+            packet["usageRestriction"] = P3E09_USAGE_RESTRICTION
             packet["approvalBinding"] = {
                 "currentDdlSha256": register["currentDdlSha256"],
                 "itemsSha256": None,
                 "itemCount": len(register["items"]),
                 "itemIdsSha256": item_ids_sha256(register["items"]),
-            }
-            packet["signoffs"] = {
-                role: {
-                    "status": "PENDING",
-                    "signerId": None,
-                    "signedAt": None,
-                    "attestationMethod": None,
-                    "evidenceRef": None,
-                    "evidenceSha256": None,
-                }
-                for role in (
-                    "DATA_ARCHITECTURE_OWNER",
-                    "BUSINESS_OWNER",
-                    "MIGRATION_OWNER",
-                    "INDEPENDENT_REVIEWER",
-                )
             }
         packets[identifier] = packet
     return packets

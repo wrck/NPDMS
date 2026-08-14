@@ -36,11 +36,12 @@ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, 
     generated_facts = generated["confirmedFacts"]
     for key in SYNC_FACTS:
         facts[key] = generated_facts[key]
-    facts["driftDecision"] = "REVIEW_PENDING"
+    facts["driftDecision"] = "ACCEPT_CURRENT"
     facts["decisionRegisterItemCount"] = 1883
     item["status"] = "OPEN"
     item["decisionOwner"] = "REQUIREMENT_OWNER"
     item["reviewOwner"] = None
+    item["blocks"] = generated["blocks"]
     for reference in generated["evidenceRefs"]:
         if reference not in item["evidenceRefs"]:
             item["evidenceRefs"].append(reference)

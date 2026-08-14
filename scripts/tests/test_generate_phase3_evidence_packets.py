@@ -33,7 +33,14 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         self.assertIn(GENERATOR.MODEL_DECISION_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertIn(GENERATOR.V17_DDL_DELTA_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["v17DeltaStatus"])
-        self.assertEqual("DECISIONS_ACCEPTED_REVIEW_PENDING", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
+        self.assertEqual("MODEL_BASELINE_READY", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
+        self.assertIsNone(packets["P3-E09"]["confirmedFacts"]["approvedDdlSha256"])
+        self.assertEqual(
+            {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
+            set(packets["P3-E09"]["blocks"]),
+        )
+        self.assertNotIn("signoffs", packets["P3-E09"])
+        self.assertIn("不得用于授权历史数据迁移", packets["P3-E09"]["usageRestriction"])
         self.assertEqual(0, packets["P3-E09"]["confirmedFacts"]["deferredItemCount"])
         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["requirementOwnerConfirmation"]["status"])
         self.assertEqual(9, packets["P3-E09"]["confirmedFacts"]["requirementOwnerConfirmation"]["groupCount"])
