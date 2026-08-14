@@ -33,7 +33,7 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         self.assertIn(GENERATOR.MODEL_DECISION_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertIn(GENERATOR.V17_DDL_DELTA_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["v17DeltaStatus"])
-        self.assertEqual("MODEL_BASELINE_READY", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
+        self.assertEqual("MODEL_BASELINE_REVIEW_PENDING", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
         self.assertIsNone(packets["P3-E09"]["confirmedFacts"]["approvedDdlSha256"])
         self.assertEqual(
             {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},

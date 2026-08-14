@@ -298,7 +298,7 @@
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "ACCEPT_CURRENT",
                 "decisionRegisterItemCount": 1883,
-                "modelDecisionStatus": "MODEL_BASELINE_READY",
+                "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
                 "deferredItemCount": 0,
                 "approvedDdlSha256": null,
                 "q03DecisionStatus": "ACCEPTED",

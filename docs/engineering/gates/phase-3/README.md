@@ -13,7 +13,7 @@ Phase 3审查安全、审计可观测、部署、性能和测试设计是否足�
 - [`evidence-submission-template.json`](evidence-submission-template.json)：仅作通用JSON结构示例；实际提交优先复制逐项模板，并用`scripts/validate_phase3_evidence_submission.py`校验。
 - [`phase3-evidence-register.json`](phase3-evidence-register.json)：可机器校验的当前状态、Owner、事实和证据引用。
 - [`self-review.md`](self-review.md)：当前自审结论和阻塞影响。
-- [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：ADR-0028已接受的需求方九组决策证据，覆盖确认时全部692项`DEFER`，并绑定寄存器Items哈希及文件哈希；结合当前DDL、`DEFER=0`、MySQL 8.4隔离执行和独立复审`GO`，它构成可复现的SDS数据模型输入，而非迁移批准。
+- [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：ADR-0028已接受的需求方九组决策证据，覆盖确认时全部692项`DEFER`，并绑定寄存器Items哈希及文件哈希；当前DDL、`DEFER=0`和MySQL 8.4隔离执行使其成为待独立复审的模型候选，而非迁移批准或已放行的SDS模型输入。
 
 后续自审和独立复审分别登记为`self-review.md`和`independent-review.md`。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
 
@@ -27,7 +27,7 @@ py -3 -B scripts/validate_phase3_evidence_register.py
 py -3 -B scripts/validate_sds_phase3.py
 ```
 
-上述校验通过只证明结构、事实绑定和当前Gate状态一致。P3-E09通过只发布`MODEL_BASELINE_READY`模型输入；生产或真实迁移批次的`VERIFIED`仍须在各自下游门禁以当时事实关闭。
+上述校验通过只证明结构、事实绑定和当前Gate状态一致。当前P3-E09为`MODEL_BASELINE_REVIEW_PENDING`；只有 fresh independent review 写入明确`GO`且完整模型校验通过后，后续发布轮次才可设置`MODEL_BASELINE_READY`。生产或真实迁移批次的`VERIFIED`仍须在各自下游门禁以当时事实关闭。
 
 ## 放行原则
 

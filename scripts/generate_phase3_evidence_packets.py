@@ -159,7 +159,10 @@ def build_packets() -> dict[str, dict[str, object]]:
             if approved_hash is not None:
                 raise ValueError("P3-E09 model baseline must keep approvedDdlSha256 explicitly null")
             model_baseline = {
-                "status": "MODEL_BASELINE_READY" if deferred_count == 0 else "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+                # Zero unresolved item decisions makes the model a review candidate,
+                # not a released SDS baseline.  READY is only derived by the
+                # phase-3 validator after its complete independent-review check.
+                "status": "MODEL_BASELINE_REVIEW_PENDING" if deferred_count == 0 else "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
                 "currentDdlSha256": ddl_sha256,
                 "deferredItemCount": deferred_count,
                 "approvedDdlSha256": None,

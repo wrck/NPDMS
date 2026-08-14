@@ -115,6 +115,45 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         self.write()
         self.assertTrue(any("must be explicitly present" in error for error in VALIDATOR.validate(self.path)))
 
+    def test_zero_defer_without_review_is_review_pending_not_ready(self) -> None:
+        e09 = next(item for item in self.payload["items"] if item["id"] == "P3-E09")
+        e09["confirmedFacts"].update({
+            "deferredItemCount": 0,
+            "driftDecision": "ACCEPT_CURRENT",
+            "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
+        })
+        self.write()
+        self.assertEqual([], VALIDATOR.validate(self.path))
+        self.assertTrue(any("P3-E09" in error for error in VALIDATOR.validate(self.path, require_ready=True)))
+
+    def test_manual_ready_without_review_evidence_fails(self) -> None:
+        root = Path(self.temp.name)
+        self.path = root / "docs/engineering/gates/phase-3/phase3-evidence-register.json"
+        self.path.parent.mkdir(parents=True)
+        register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
+        register_path.parent.mkdir(parents=True)
+        register_path.write_text(json.dumps({
+            "currentDdlSha256": "CURRENT",
+            "itemsSha256": "ITEMS",
+            "items": [{"itemId": "COLUMN:t:id", "decision": "ACCEPT_CURRENT"}],
+        }), encoding="utf-8")
+        e09 = next(item for item in self.payload["items"] if item["id"] == "P3-E09")
+        e09["confirmedFacts"].update({
+            "deferredItemCount": 0,
+            "driftDecision": "ACCEPT_CURRENT",
+            "modelDecisionStatus": "MODEL_BASELINE_READY",
+            "targetCatalogDdlSha256": "CURRENT",
+            "mappingDdlSha256": "CURRENT",
+            "validationDdlSha256": "CURRENT",
+            "manifestDdlSha256": "CURRENT",
+            "itemsSha256": "ITEMS",
+            "itemIdsSha256": "invalid",
+            "mysql84DdlSha256": "CURRENT",
+        })
+        self.write()
+        errors = VALIDATOR.validate(self.path)
+        self.assertTrue(any("independentReviewResult=GO" in error for error in errors))
+
     def test_wrong_direction_decision_is_detected(self) -> None:
         self.payload["items"][0]["confirmedFacts"]["directionDecision"] = "B"
         self.write()

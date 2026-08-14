@@ -269,8 +269,11 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
     elif facts["approvedDdlSha256"] not in (None, ""):
         errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
     if deferred_count == 0:
-        expected_model_status, expected_drift = "MODEL_BASELINE_READY", "ACCEPT_CURRENT"
-        if e09.get("status") == "VERIFIED":
+        expected_drift = "ACCEPT_CURRENT"
+        if facts.get("modelDecisionStatus") == "MODEL_BASELINE_READY":
+            # READY is never inferred from DEFER=0.  Any declared READY state
+            # must pass every model-baseline condition, regardless of the outer
+            # P3-E09 item status.
             root = None
             for candidate in (path.resolve().parent, *path.resolve().parents):
                 if (candidate / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json").is_file():
@@ -290,14 +293,23 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
                         {**facts, "decisionOwner": e09.get("decisionOwner"), "reviewOwner": e09.get("reviewOwner"), "evidenceRefs": e09.get("evidenceRefs")},
                         root=root,
                     ))
+            expected_model_status = "MODEL_BASELINE_READY"
+        else:
+            expected_model_status = "MODEL_BASELINE_REVIEW_PENDING"
     else:
         expected_model_status, expected_drift = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED", "DEFER"
     if facts.get("modelDecisionStatus") != expected_model_status or facts.get("driftDecision") != expected_drift:
         errors.append("P3-E09 model/drift state transition mismatch")
+    if e09.get("status") == "VERIFIED" and facts.get("modelDecisionStatus") != "MODEL_BASELINE_READY":
+        errors.append("P3-E09 VERIFIED requires MODEL_BASELINE_READY")
     if MODEL_DECISION_REF not in e09.get("evidenceRefs", []):
         errors.append("P3-E09 Q07/Q08 decision reference missing")
 
-    ready = all(by_id.get(identifier, {}).get("status") == "VERIFIED" for identifier in BASELINE_REQUIRED)
+    ready = all(
+        by_id.get(identifier, {}).get("status") == "VERIFIED"
+        and by_id.get(identifier, {}).get("confirmedFacts", {}).get("modelDecisionStatus") == "MODEL_BASELINE_READY"
+        for identifier in BASELINE_REQUIRED
+    )
     expected_overall = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"
     if payload.get("overallStatus") != expected_overall:
         errors.append(f"overallStatus must be {expected_overall}")

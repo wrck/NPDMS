@@ -2,7 +2,7 @@
 
 > 审查状态：`IN_REVIEW`
 > 依据：PRD V1.7、SDS Phase 1/2 `BASELINE`、实现仓库`856d052`
-> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09当前模型已达`MODEL_BASELINE_READY`，可作为SDS和后续Feature设计输入；Phase 3其余`IN_REVIEW`/下游门禁尚未整体完成，且该模型基线不授权历史迁移或数据切换）
+> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09当前候选为`MODEL_BASELINE_REVIEW_PENDING`，尚未放行`DATA_MODEL_BASELINE`；Phase 3其余`IN_REVIEW`/下游门禁亦未整体完成，历史迁移和数据切换继续阻断）
 
 ## 1. 输出状态
 
@@ -22,7 +22,7 @@
 |---|---|
 | NFR有技术实现与验证方案 | PASS-DESIGN；运行证据按专项验收/发布门禁关闭 |
 | 发布、迁移、回退设计可执行 | PASS-DESIGN；目标环境实例在部署/发布前登记 |
-| 数据模型DDL/映射基线一致 | MODEL_BASELINE_READY（当前候选为60表、1,240列、447项DDL约束/索引，哈希`5EB9742F…4249`，已在隔离MySQL 8.4.10执行PASS。84个对象、95项来源策略及10表V1.7差量已同步；ADR-0028九组清单已关闭需求方决策缺口，当前994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`，并已有独立复审`GO`。`approvedDdlSha256`显式为空，不是SDS模型基线条件） |
+| 数据模型DDL/映射候选一致 | MODEL_BASELINE_REVIEW_PENDING（当前候选为60表、1,240列、447项DDL约束/索引，哈希`5EB9742F…4249`，已在隔离MySQL 8.4.10执行PASS。84个对象、95项来源策略及10表V1.7差量已同步；ADR-0028九组清单已关闭需求方决策缺口，当前994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`。待 fresh independent review 的整体一致性复核；`approvedDdlSha256`显式为空，仅由未来历史迁移门禁管理） |
 | 安全与审计不存在明显设计缺口 | PASS-DESIGN；KMS/Telemetry实例在对应生产门禁关闭 |
 | 测试覆盖正常/异常/权限拒绝/幂等/并发 | PASS-DESIGN；运行证据未生成 |
 | 性能环境和数据集可复现 | DOWNSTREAM-BLOCKED（P3-E06阻断性能验收/生产发布） |
@@ -49,7 +49,7 @@ Phase 3逻辑设计和证据契约已达到基线复审条件，可以进行独�
 | P3-E06 | 不阻断 | DOWNSTREAM-GATED | 性能验收、生产发布 |
 | P3-E07 | 不阻断 | DOWNSTREAM-GATED | 对应Feature联调、发布 |
 | P3-E08 | 不阻断 | DOWNSTREAM-GATED | 前端Feature验收、发布 |
-| P3-E09 | 不阻断SDS模型输入 | MODEL_BASELINE_READY | 历史数据迁移实施、数据切换 |
+| P3-E09 | 当前阻断DATA_MODEL_BASELINE | MODEL_BASELINE_REVIEW_PENDING | 历史数据迁移实施、数据切换 |
 
 实现质量缺口：P3-E08（前端`ts:check`失败）不用于否定Phase 3逻辑设计，但阻塞任何前端Feature进入实现验收或正式发布。
 

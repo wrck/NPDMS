@@ -23,24 +23,24 @@
 
 |决策|数量|依据与边界|
 |---|---:|---|
-|`ACCEPT_CURRENT`|994|历史目标字段与当前字段定义完全一致，按基线继承；Reviewer 尚未签署|
-|`AMEND_CURRENT`|889|197项既有ADR决策，加上ADR-0028九组完整清单覆盖的692项当前哈希决策；Reviewer尚未签署|
-|`DEFER`|0|需求方决策缺口已关闭；不代表Reviewer或迁移批准完成|
+|`ACCEPT_CURRENT`|994|历史目标字段与当前字段定义完全一致，按基线继承；逐项决策已登记|
+|`AMEND_CURRENT`|889|197项既有ADR决策，加上ADR-0028九组完整清单覆盖的692项当前哈希决策；逐项决策已登记|
+|`DEFER`|0|需求方决策缺口已关闭；不代表独立整体一致性复审或迁移批准完成|
 
-全部逐项 `reviewOwner` 为空，`approvedCount=0`，`approvedDdlSha256` 为空。
+1,883项均已有逐项决策。`reviewOwner`不作为逐项签署字段，`approvedCount=0`；`approvedDdlSha256`显式为空且仅由未来历史迁移门禁管理。
 
 ## 3. 当前真实阻断
 
 |分组|数量|状态|关闭方式|
 |---|---:|---|---|
-|Q07 技术约束|257|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028已绑定当前哈希接受；等待Reviewer逐项签署|
+|Q07 技术约束|257|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028已绑定当前哈希接受；待独立整体一致性复审|
 |Q08 候选索引|122|`REQUIREMENT_OWNER_ACCEPTED_AS_CANDIDATE`|ADR-0028已接受为候选基线；真实性能仍由Feature查询计划和P3-E06验收|
-|V1.7 物理候选|10表、257项|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028使用显式itemId完整集合接受；等待Reviewer逐项签署|
+|V1.7 物理候选|10表、257项|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028使用显式itemId完整集合接受；待独立整体一致性复审|
 |Q09～Q14|108项|`REQUIREMENT_OWNER_ACCEPTED`|表选项、幂等/关系/身份版本键、跨字段CHECK和字段投影均按精确itemId接受|
 
 ADR-0023明确规定的哈希变化重确认已由ADR-0028完成；本次确认只适用于`5EB9742F…4249`，DDL哈希、数量、分类或itemId集合变化时必须重新确认。
 
-ADR-0025、ADR-0027仍保存候选形成与纠偏过程；十张表的当前物理项由ADR-0028和确认包形成Requirement Owner接受证据。该证据不替代Reviewer签署。
+ADR-0025、ADR-0027仍保存候选形成与纠偏过程；十张表的当前物理项由ADR-0028和确认包形成Requirement Owner接受证据。该证据不替代对候选制品哈希和整体一致性的独立复审。
 
 ## 4. 证据与安全边界
 
@@ -48,11 +48,11 @@ ADR-0025、ADR-0027仍保存候选形成与纠偏过程；十张表的当前物�
 - 已明确排除、后置或 V3 的表不得进入当前 DDL、对象映射或迁移目标。
 - `pm_project_maintenance` 仅保留顶层 `EXCLUDED / NO_MIGRATION` 审计，不建立对象、目标表或字段映射。
 - Q08 只代表候选索引，不代表查询计划或性能验收通过。
-- MySQL 可执行性不替代业务模型确认、Reviewer 签署或生产迁移批准。
+- MySQL 可执行性不替代业务模型确认、独立整体一致性复审或生产迁移批准。
 
 ## 5. 放行条件
 
 1. 【已完成】692项原`DEFER`已由当前哈希绑定的九组显式决策清单覆盖，生成器禁止按SQL类型或整表推定未来新增项。
-2. 【待完成】数据架构、业务Owner、迁移Owner完成逐项复核；签署证据与候选事实分离保存。
-3. 【待完成】形成非空`approvedDdlSha256`，并确保DDL、字段目录、迁移映射、校验与发布清单使用同一哈希。
-4. 【待完成】机器校验和独立复审均通过后，才可关闭P3-E09。
+2. 【待完成】fresh reviewer在`independent-review.md`完成候选制品、哈希、MySQL事实、`DEFER=0`和责任人分离的整体一致性复审；不逐项签署。
+3. 【边界】`approvedDdlSha256`保持显式`null`，不是P3-E09候选或模型基线条件；仅由未来历史迁移门禁与真实批次另行管理。
+4. 【待完成】完整机器校验和独立复审`GO`均通过后，后续发布轮次才可关闭P3-E09并设置`MODEL_BASELINE_READY`。

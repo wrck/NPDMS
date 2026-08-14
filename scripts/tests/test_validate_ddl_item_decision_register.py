@@ -43,9 +43,9 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
             VALIDATOR.generated_decision_errors(actual, expected),
         )
 
-    def test_generated_decision_allows_independent_review_overlay(self) -> None:
+    def test_generated_decision_does_not_require_per_item_reviewer(self) -> None:
         expected = {"COLUMN:a:id": {"decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": None, "evidenceRefs": ["fact"]}}
-        actual = {"COLUMN:a:id": {"decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": "REVIEWER", "evidenceRefs": ["fact", "review"]}}
+        actual = {"COLUMN:a:id": {"decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": None, "evidenceRefs": ["fact"]}}
         self.assertEqual([], VALIDATOR.generated_decision_errors(actual, expected))
 
     def test_missing_evidence_file_is_rejected(self) -> None:

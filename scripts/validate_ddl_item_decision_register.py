@@ -185,11 +185,9 @@ def validate(root: Path) -> list[str]:
     for item in items:
         counts[item["itemType"]] = counts.get(item["itemType"], 0) + 1
         statuses[item["comparisonStatus"]] = statuses.get(item["comparisonStatus"], 0) + 1
-    approved_count = sum(
-        item.get("decision") != "DEFER" and nonempty(item.get("reviewOwner"))
-        for item in items
-    )
-    expected_summary = {"itemCount": len(items), "byType": counts, "byComparisonStatus": statuses, "approvedCount": approved_count}
+    if any(nonempty(item.get("reviewOwner")) for item in items):
+        errors.append("DDL item register must not carry retired per-item reviewer signatures")
+    expected_summary = {"itemCount": len(items), "byType": counts, "byComparisonStatus": statuses, "approvedCount": 0}
     if register.get("summary") != expected_summary:
         errors.append("DDL item decision summary mismatch")
     return errors

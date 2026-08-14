@@ -33,7 +33,7 @@
       "MIGRATION_OWNER"
     ],
     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
-    "modelDecisionStatus": "MODEL_BASELINE_READY",
+    "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
     "v17DeltaStatus": "ACCEPTED",
     "requirementOwnerConfirmation": {
       "status": "ACCEPTED",

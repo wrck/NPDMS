@@ -545,27 +545,30 @@ def apply_unchanged_baseline_column_decisions(register: dict[str, object]) -> di
 
 
 def apply_review_overlay(register: dict[str, object], previous: dict[str, object] | None) -> dict[str, object]:
-    """Preserve independently supplied review signatures without changing generated decisions."""
-    if not previous or previous.get("currentDdlSha256") != register.get("currentDdlSha256"):
-        return register
-    previous_by_id = {item.get("itemId"): item for item in previous.get("items", []) if isinstance(item, dict)}
-    reviewed_count = 0
-    for item in register["items"]:
-        old = previous_by_id.get(item["itemId"])
-        if not old or not old.get("reviewOwner"):
-            continue
-        if old.get("decision") != item.get("decision") or old.get("decisionOwner") != item.get("decisionOwner"):
-            raise ValueError(f"review overlay conflicts with generated decision: {item['itemId']}")
-        item["reviewOwner"] = old["reviewOwner"]
-        for evidence_ref in old.get("evidenceRefs", []):
-            if evidence_ref not in item["evidenceRefs"]:
-                item["evidenceRefs"].append(evidence_ref)
-        reviewed_count += 1
-    if isinstance(previous.get("approval"), dict):
-        register["approval"] = previous["approval"]
-    register["summary"]["approvedCount"] = reviewed_count
-    canonical = json.dumps(register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    register["itemsSha256"] = sha256(canonical)
+    """Reject the retired per-item reviewer overlay.
+
+    Item decisions are generated from their evidence.  P3-E09 has one
+    independent whole-candidate review record; regeneration must never restore
+    per-item reviewer signatures or an approval hash.
+    """
+    if previous and any(item.get("reviewOwner") for item in previous.get("items", []) if isinstance(item, dict)):
+        raise ValueError("per-item reviewer overlays are retired; use the independent review record")
+    return register
+
+
+def apply_model_baseline_candidate(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
+    """Derive the review-pending P3-E09 candidate into the regenerated register."""
+    deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
+    baseline = {
+        "status": "MODEL_BASELINE_REVIEW_PENDING" if deferred_count == 0 else "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+        "currentDdlSha256": register["currentDdlSha256"],
+        "deferredItemCount": deferred_count,
+        "approvedDdlSha256": None,
+        "blocks": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
+    }
+    if contract.get("p3e09ModelBaseline") != baseline:
+        raise ValueError("core migration schema contract P3-E09 model baseline drift")
+    register["modelBaseline"] = baseline
     return register
 
 
@@ -1012,10 +1015,7 @@ def main() -> int:
             core_contract_data,
             json.loads(confirmation_packet_path.read_text(encoding="utf-8")),
         )
-    previous_register = None
-    if decision_output.exists():
-        previous_register = json.loads(decision_output.read_text(encoding="utf-8"))
-    decision_register = apply_review_overlay(decision_register, previous_register)
+    decision_register = apply_model_baseline_candidate(decision_register, core_contract_data)
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))
     print(f"WROTE {output.relative_to(repo).as_posix()}")

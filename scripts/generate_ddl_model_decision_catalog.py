@@ -211,8 +211,8 @@ def render_decision_analysis(
     exact_match_fields: list[tuple[str, str, str, bool]],
     requirement_owner_accepted: bool,
 ) -> list[str]:
-    q07_status = "需求方已按ADR-0028接受；待Reviewer签署" if requirement_owner_accepted else "当前哈希下仍须重新确认"
-    q08_status = "需求方已接受为候选基线；待Reviewer签署及后续性能验证" if requirement_owner_accepted else "当前哈希Q08须重新确认"
+    q07_status = "1,883项已决策；待独立整体一致性复审" if requirement_owner_accepted else "当前哈希下仍须重新确认"
+    q08_status = "已接受为候选索引；待独立整体一致性复审及后续性能验证" if requirement_owner_accepted else "当前哈希Q08须重新确认"
     lines = [
         "",
         f"### 1.1 {sum(len(items) for items in changes.values())}项证据的真实含义",
@@ -370,7 +370,7 @@ def render_decision_analysis(
         "|---|---|---|---|",
         "|L1 已确认业务变化|ADR-0019～0022对应111项|需求Owner复核引用|回写逐项登记，不重复讨论|",
         f"|L2 数据架构不变量|主键、租户引用、同域外键、稳定技术CHECK|{'REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING' if requirement_owner_accepted else 'RECONFIRMATION_REQUIRED'}|{q07_status}|",
-        f"|L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|{'九组已接受，待Reviewer逐项签署' if requirement_owner_accepted else '逐组批准；有空洞的先修模'}|",
+        f"|L3 业务唯一性与状态守卫|业务身份、来源幂等、当前唯一、关系粒度、状态耦合CHECK|需求Owner+数据架构Owner|{'九组已接受；待独立整体一致性复审' if requirement_owner_accepted else '逐组批准；有空洞的先修模'}|",
         f"|L4 性能候选|{len(constraints['INDEX'])}个普通索引|{'REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING' if requirement_owner_accepted else 'RECONFIRMATION_REQUIRED'}；Feature Owner+性能Owner后续验证|{q08_status}；仍须由P3-E06压测定稿|",
         "|L5 迁移运行证据|源库哈希、水位、脏数据量、对账、回退、切换|迁移Owner+独立复核人|AI-MIG-000实施/切换门禁关闭|",
     ])
@@ -388,7 +388,7 @@ def render(root: Path) -> str:
         and register.get("p3e09RequirementOwnerDecision", {}).get("requirementOwnerStatus") == "ACCEPTED"
     )
     review_label = "REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING" if requirement_owner_accepted else "REVIEW_REQUIRED"
-    decision_label = "需求方已决策，待Reviewer签署" if requirement_owner_accepted else "需确认"
+    decision_label = "逐项决策已完成，待独立整体一致性复审" if requirement_owner_accepted else "需确认"
 
     table_columns: dict[str, list[dict[str, object]]] = defaultdict(list)
     table_items: dict[str, dict[str, object]] = {}
@@ -455,7 +455,7 @@ def render(root: Path) -> str:
         "",
         "|分组|数量|当前事实|建议裁决方式|",
         "|---|---:|---|---|",
-        f"|表|{len(table_items)}|当前核心迁移子集；新增、修改和移除事实见逐项登记|按ADR及Reviewer证据逐项裁决|",
+        f"|表|{len(table_items)}|当前核心迁移子集；新增、修改和移除事实见逐项登记|逐项决策已登记；独立复审仅核对整体一致性|",
         f"|字段|{sum(len(items) for items in table_columns.values()):,}|当前DDL字段；不包含已移除V3治理表字段|按业务语义、类型和约束分类裁决|",
         f"|表选项|{len(table_options)}|旧基线未保存|{decision_label}|",
         f"|主键|{len(constraints['PRIMARY_KEY'])}|旧基线未保存|{decision_label}；Q07|",
@@ -510,7 +510,7 @@ def render(root: Path) -> str:
         "",
         "- `ACCEPT_CURRENT`表示接受当前DDL作为目标数据模型，不代表历史数据天然满足约束。",
         "- 历史数据违反已批准约束时进入迁移问题池并保留来源证据，不得静默删除、改写或临时放宽模型掩盖问题。",
-        "- 当前哈希九组决策已由需求方按ADR-0028接受；仍须Reviewer逐项签署，未签署前不得生成批准哈希。" if requirement_owner_accepted else "- 旧哈希下Q07/Q08决策已失效；当前哈希状态为RECONFIRMATION_REQUIRED，不得据此生成批准哈希。",
+        "- 当前哈希九组决策已由需求方按ADR-0028接受，1,883项均已有逐项决策；独立复审只复核候选制品、哈希和整体一致性，不重新逐项签署。`approvedDdlSha256`保持显式`null`，仅由未来历史迁移门禁另行管理。" if requirement_owner_accepted else "- 旧哈希下Q07/Q08决策已失效；当前哈希状态为RECONFIRMATION_REQUIRED，不得据此生成批准哈希。",
         "- 本清单不授权连接或修改旧库，不授权执行生产迁移。",
         "",
     ])

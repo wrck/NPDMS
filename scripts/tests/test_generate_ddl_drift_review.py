@@ -216,7 +216,7 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
         self.assertEqual("DEFER", result["items"][1]["decision"])
         self.assertEqual(1, result["unchangedBaselineColumnDecision"]["decidedItemCount"])
 
-    def test_review_overlay_preserves_signature_but_not_conflicting_decision(self) -> None:
+    def test_review_overlay_rejects_retired_per_item_signature(self) -> None:
         register = {
             "currentDdlSha256": "HASH",
             "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": None, "evidenceRefs": ["fact"]}],
@@ -228,13 +228,23 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
             "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "decisionOwner": "DATA_ARCHITECTURE_OWNER", "reviewOwner": "REVIEWER", "evidenceRefs": ["fact", "review"]}],
             "approval": {"approvedDdlSha256": None, "reviewOwner": "REVIEWER"},
         }
-        result = MODULE.apply_review_overlay(register, previous)
-        self.assertEqual("REVIEWER", result["items"][0]["reviewOwner"])
-        self.assertIn("review", result["items"][0]["evidenceRefs"])
-        self.assertEqual(1, result["summary"]["approvedCount"])
-        conflicting = {**previous, "items": [{**previous["items"][0], "decision": "DEFER"}]}
-        with self.assertRaisesRegex(ValueError, "conflicts"):
-            MODULE.apply_review_overlay(register, conflicting)
+        with self.assertRaisesRegex(ValueError, "per-item reviewer overlays are retired"):
+            MODULE.apply_review_overlay(register, previous)
+
+    def test_model_baseline_candidate_is_review_pending_and_regenerated(self) -> None:
+        register = {
+            "currentDdlSha256": "CURRENT",
+            "items": [{"decision": "ACCEPT_CURRENT"}],
+        }
+        expected = {
+            "status": "MODEL_BASELINE_REVIEW_PENDING",
+            "currentDdlSha256": "CURRENT",
+            "deferredItemCount": 0,
+            "approvedDdlSha256": None,
+            "blocks": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
+        }
+        result = MODULE.apply_model_baseline_candidate(register, {"p3e09ModelBaseline": expected})
+        self.assertEqual(expected, result["modelBaseline"])
 
     def test_v17_delta_decision_covers_every_item_and_preserves_review_gate(self) -> None:
         current = MODULE.parse_ddl(b"""
