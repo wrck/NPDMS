@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -243,7 +244,8 @@ ALTER TABLE child ADD CONSTRAINT fk_child_parent FOREIGN KEY (parent_id) REFEREN
             "approvedDdlSha256": None,
             "blocks": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
         }
-        result = MODULE.apply_model_baseline_candidate(register, {"p3e09ModelBaseline": expected})
+        with tempfile.TemporaryDirectory() as directory:
+            result = MODULE.apply_model_baseline_candidate(Path(directory), register, {"p3e09ModelBaseline": expected})
         self.assertEqual(expected, result["modelBaseline"])
 
     def test_v17_delta_decision_covers_every_item_and_preserves_review_gate(self) -> None:
@@ -290,7 +292,7 @@ CREATE TABLE imp_configuration_collection_result (
         self.assertTrue(all(any("0027-cutover" in ref for ref in item["evidenceRefs"]) for item in cutover))
         self.assertTrue(all(any("0025-v1.7" in ref for ref in item["evidenceRefs"]) for item in implementation))
         self.assertTrue(all(item["reviewOwner"] is None for item in result["items"]))
-        self.assertEqual("REVIEW_PENDING", result["v17DeltaDecision"]["reviewStatus"])
+        self.assertEqual("NOT_REQUIRED_PER_ITEM", result["v17DeltaDecision"]["reviewStatus"])
 
     def test_q03_decision_marks_business_facts_but_not_q07_q08_items(self) -> None:
         decided_ids = {

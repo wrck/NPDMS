@@ -425,7 +425,7 @@ def apply_accepted_naming_decisions(register: dict[str, object], contract: dict[
     register["namingDecision"] = {
         "decisionRef": "ADR-0019",
         "decidedItemCount": len(decided),
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -449,7 +449,7 @@ def apply_accepted_project_code_decisions(register: dict[str, object], contract:
     register["projectCodeDecision"] = {
         "decisionRef": "ADR-0020",
         "decidedItemCount": len(decided),
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -476,7 +476,7 @@ def apply_accepted_market_relation_decisions(register: dict[str, object], contra
     register["marketRelationDecision"] = {
         "decisionRef": "ADR-0021",
         "decidedItemCount": len(decided),
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -514,7 +514,7 @@ def apply_accepted_core_schema_decisions(register: dict[str, object], contract: 
         "decidedItemCount": len(decided),
         "removedV3TableCount": len(contract["v3DesignOnlyTables"]),
         "removedCrossDomainForeignKeyCount": 26,
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -539,7 +539,7 @@ def apply_unchanged_baseline_column_decisions(register: dict[str, object]) -> di
         "decision": "ACCEPT_CURRENT",
         "decidedItemCount": decided_count,
         "basis": "BASELINE_AND_CURRENT_COLUMN_FACTS_EQUAL",
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -556,11 +556,18 @@ def apply_review_overlay(register: dict[str, object], previous: dict[str, object
     return register
 
 
-def apply_model_baseline_candidate(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
-    """Derive the review-pending P3-E09 candidate into the regenerated register."""
+def apply_model_baseline_candidate(
+    repo: Path, register: dict[str, object], contract: dict[str, object]
+) -> dict[str, object]:
+    """Derive P3-E09 only from the formal independent-review record."""
+    from p3e09_approval_policy import model_baseline_review_status
+
     deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
+    status = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED"
+    if deferred_count == 0:
+        status, _fields = model_baseline_review_status(repo, register, "PASS")
     baseline = {
-        "status": "MODEL_BASELINE_REVIEW_PENDING" if deferred_count == 0 else "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+        "status": status,
         "currentDdlSha256": register["currentDdlSha256"],
         "deferredItemCount": deferred_count,
         "approvedDdlSha256": None,
@@ -610,7 +617,7 @@ def apply_accepted_v17_delta_decisions(
         "decisionRefs": ["ADR-0025", "ADR-0027"],
         "decidedItemCount": decided_count,
         "acceptedItemCount": len(decided),
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -678,7 +685,7 @@ def apply_accepted_q03_decisions(register: dict[str, object], contract: dict[str
         "decisionRef": "ADR-0023-Q03",
         "decidedItemCount": len(decided),
         "relatedDecisionRefs": ["P3-E09-Q07", "P3-E09-Q08"],
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -808,7 +815,7 @@ def apply_accepted_q07_q08_decisions(register: dict[str, object], contract: dict
         "decision": q07.get("decision"),
         "decidedItemCount": len(q07_ids),
         "requirementOwnerStatus": "ACCEPTED",
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     register["q08Decision"] = {
         "decisionRef": "ADR-0023-Q08",
@@ -817,7 +824,7 @@ def apply_accepted_q07_q08_decisions(register: dict[str, object], contract: dict
         "requirementOwnerStatus": "ACCEPTED",
         "performanceValidationStatus": "REQUIRED_AT_FEATURE_AND_P3_E06",
         "adjustmentPolicy": q08.get("adjustmentPolicy"),
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -880,7 +887,7 @@ def apply_accepted_p3e09_confirmation_decisions(
         "coveredDeferredItemCount": confirmation["coveredDeferredItemCount"],
         "groupCount": len(expected_codes),
         "requirementOwnerStatus": "ACCEPTED",
-        "reviewStatus": "REVIEW_PENDING",
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
     }
     return register
 
@@ -1015,7 +1022,7 @@ def main() -> int:
             core_contract_data,
             json.loads(confirmation_packet_path.read_text(encoding="utf-8")),
         )
-    decision_register = apply_model_baseline_candidate(decision_register, core_contract_data)
+    decision_register = apply_model_baseline_candidate(repo, decision_register, core_contract_data)
     decision_output.write_text(json.dumps(decision_register, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(report["summary"], ensure_ascii=False))
     print(f"WROTE {output.relative_to(repo).as_posix()}")

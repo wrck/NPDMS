@@ -1675,7 +1675,7 @@
     "srv_work_order_sla"
   ],
   "p3e09ModelBaseline": {
-    "status": "MODEL_BASELINE_REVIEW_PENDING",
+    "status": "MODEL_BASELINE_READY",
     "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "deferredItemCount": 0,
     "approvedDdlSha256": null,
@@ -1748,7 +1748,7 @@
         "itemIdsSha256": "B999B33EEBE4CDF8680BCC655338AE3B4D3F74042A455D256F05A6DA3D672F67"
       }
     },
-    "reviewStatus": "REVIEW_PENDING",
+    "reviewStatus": "INDEPENDENT_REVIEWED_GO",
     "approvedDdlSha256": null
   }
 }

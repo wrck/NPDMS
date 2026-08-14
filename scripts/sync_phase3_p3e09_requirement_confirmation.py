@@ -15,7 +15,9 @@ GENERATOR = Path("scripts/generate_phase3_evidence_packets.py")
 SYNC_FACTS = {
     "currentDdlSha256", "modelDecisionStatus", "deferredItemCount", "approvedDdlSha256",
     "v17DeltaStatus", "requirementOwnerConfirmation", "q07Decision", "q08Decision",
-    "isolatedMysqlExecution",
+    "isolatedMysqlExecution", "targetCatalogDdlSha256", "mappingDdlSha256",
+    "validationDdlSha256", "manifestDdlSha256", "itemsSha256", "itemIdsSha256",
+    "mysql84DdlSha256", "independentReviewResult", "independentReviewRef", "candidateCommit",
 }
 
 
@@ -38,9 +40,10 @@ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, 
         facts[key] = generated_facts[key]
     facts["driftDecision"] = "ACCEPT_CURRENT"
     facts["decisionRegisterItemCount"] = 1883
-    item["status"] = "OPEN"
+    ready = facts["modelDecisionStatus"] == "MODEL_BASELINE_READY"
+    item["status"] = "VERIFIED" if ready else "OPEN"
     item["decisionOwner"] = "REQUIREMENT_OWNER"
-    item["reviewOwner"] = None
+    item["reviewOwner"] = "INDEPENDENT_REVIEWER" if ready else None
     item["blocks"] = generated["blocks"]
     for reference in generated["evidenceRefs"]:
         if reference not in item["evidenceRefs"]:
@@ -64,7 +67,7 @@ def main() -> int:
         if path.read_text(encoding="utf-8") != expected_text:
             print("[FAIL] Phase 3 P3-E09 requirement confirmation drift")
             return 1
-        print("[PASS] Phase 3 P3-E09 is decisions-accepted and review-pending")
+        print("[PASS] Phase 3 P3-E09 model baseline is ready; migration remains blocked")
         return 0
     path.write_text(expected_text, encoding="utf-8", newline="\n")
     print(f"[WRITE] {REGISTER.as_posix()}")

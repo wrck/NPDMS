@@ -198,6 +198,6 @@ docker compose run --rm migrate validate
 | NFR-01～03量化验收设计 | PASS |
 | 103项逐项运行验证映射 | PASS-DESIGN；103/103均有测试类别和证据类型 |
 | 前端类型检查 | FAIL（P3-E08）；2026-08-13真实执行`corepack pnpm ts:check`退出码1，生产构建通过不能覆盖 |
-| 生产/性能环境、恢复、迁移和真实接口证据 | BLOCKED_BY_EVIDENCE（P3-E01～E07、P3-E09/AI-MIG-000） |
+| 生产/性能环境、恢复、迁移和真实接口证据 | BLOCKED_BY_EVIDENCE（P3-E01～E07、AI-MIG-000） |
 
 自动映射、测试策略、用例矩阵和证据契约完整后，本分册可进入SDS基线评审。环境证据和实际执行结果按Feature验收、专项验收或生产发布门禁关闭，不前置阻断测试设计基线。

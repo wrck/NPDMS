@@ -782,7 +782,7 @@ def validate_p3e09_requirement_confirmation(
         return errors
     if not isinstance(confirmation, dict) or confirmation.get("status") != "ACCEPTED":
         return ["accepted P3-E09 policies require the nine-group Requirement Owner confirmation"]
-    if confirmation.get("decision") != "ALL_RECOMMENDED_A" or confirmation.get("reviewStatus") != "REVIEW_PENDING":
+    if confirmation.get("decision") != "ALL_RECOMMENDED_A" or confirmation.get("reviewStatus") != "INDEPENDENT_REVIEWED_GO":
         errors.append("P3-E09 Requirement Owner confirmation state mismatch")
     if confirmation.get("approvedDdlSha256") is not None:
         errors.append("Requirement Owner confirmation must not fabricate approvedDdlSha256")

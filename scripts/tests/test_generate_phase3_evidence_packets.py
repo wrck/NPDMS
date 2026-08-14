@@ -33,7 +33,9 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         self.assertIn(GENERATOR.MODEL_DECISION_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertIn(GENERATOR.V17_DDL_DELTA_REF, packets["P3-E09"]["evidenceRefs"])
         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["v17DeltaStatus"])
-        self.assertEqual("MODEL_BASELINE_REVIEW_PENDING", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
+        self.assertEqual("MODEL_BASELINE_READY", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
+        self.assertEqual("GO", packets["P3-E09"]["confirmedFacts"]["independentReviewResult"])
+        self.assertEqual("INDEPENDENT_REVIEWER", packets["P3-E09"]["reviewOwner"])
         self.assertIsNone(packets["P3-E09"]["confirmedFacts"]["approvedDdlSha256"])
         self.assertEqual(
             {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
@@ -49,7 +51,7 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         self.assertEqual(122, packets["P3-E09"]["confirmedFacts"]["q08Decision"]["candidateIndexCount"])
         self.assertTrue(packets["P3-E09"]["confirmedFacts"]["q08Decision"]["p3e06PerformanceValidationRequired"])
         self.assertEqual("PASS", packets["P3-E09"]["confirmedFacts"]["isolatedMysqlExecution"]["status"])
-        self.assertIn("ddl-mysql84-execution-evidence.json", packets["P3-E09"]["evidenceRefs"][-1])
+        self.assertTrue(any("ddl-mysql84-execution-evidence.json" in ref for ref in packets["P3-E09"]["evidenceRefs"]))
         for identifier, packet in packets.items():
             self.assertEqual("DRAFT", packet["status"])
             self.assertEqual("ACCEPTED", packet["confirmedFacts"]["directionStatus"])

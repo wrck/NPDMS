@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from validate_phase3_evidence_submission import REQUIRED_FACTS
-from p3e09_approval_policy import item_ids_sha256
+from p3e09_approval_policy import item_ids_sha256, model_baseline_review_status
 
 
 DECISION_REF = "docs/decisions/0004-phase3-production-assurance-directions.md"
@@ -41,6 +41,8 @@ DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-ph
 DDL_EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
 P3E09_MODEL_BASELINE_BLOCKS = ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"]
 P3E09_USAGE_RESTRICTION = "仅用于SDS数据模型基线事实校验；不得用于授权历史数据迁移或数据切换。"
+P3E09_INDEPENDENT_REVIEW_REF = "docs/engineering/gates/phase-3/independent-review.md"
+P3E09_REVIEW_OWNER = "INDEPENDENT_REVIEWER"
 BACKUP_RETENTION_POLICY = {
     "dailyRetention": "P35D",
     "monthlyRetention": "P13M",
@@ -158,11 +160,11 @@ def build_packets() -> dict[str, dict[str, object]]:
             approved_hash = register.get("approval", {}).get("approvedDdlSha256")
             if approved_hash is not None:
                 raise ValueError("P3-E09 model baseline must keep approvedDdlSha256 explicitly null")
+            model_status, review_fields = model_baseline_review_status(Path.cwd(), register, execution.get("status"))
+            if deferred_count != 0:
+                model_status = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED"
             model_baseline = {
-                # Zero unresolved item decisions makes the model a review candidate,
-                # not a released SDS baseline.  READY is only derived by the
-                # phase-3 validator after its complete independent-review check.
-                "status": "MODEL_BASELINE_REVIEW_PENDING" if deferred_count == 0 else "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
+                "status": model_status,
                 "currentDdlSha256": ddl_sha256,
                 "deferredItemCount": deferred_count,
                 "approvedDdlSha256": None,
@@ -175,10 +177,20 @@ def build_packets() -> dict[str, dict[str, object]]:
             facts.update(
                 {
                     "currentDdlSha256": ddl_sha256,
+                    "targetCatalogDdlSha256": ddl_sha256,
+                    "mappingDdlSha256": ddl_sha256,
+                    "validationDdlSha256": ddl_sha256,
+                    "manifestDdlSha256": ddl_sha256,
+                    "itemsSha256": register["itemsSha256"],
+                    "itemIdsSha256": item_ids_sha256(register["items"]),
+                    "mysql84DdlSha256": ddl_sha256,
                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
                     "modelDecisionStatus": model_baseline["status"],
                     "deferredItemCount": deferred_count,
                     "approvedDdlSha256": None,
+                    "independentReviewResult": "GO" if model_status == "MODEL_BASELINE_READY" else None,
+                    "independentReviewRef": P3E09_INDEPENDENT_REVIEW_REF if model_status == "MODEL_BASELINE_READY" else None,
+                    "candidateCommit": review_fields.get("candidateCommit") if model_status == "MODEL_BASELINE_READY" else None,
                     "v17DeltaStatus": contract["v17Delta"]["status"],
                     "requirementOwnerConfirmation": {
                         "status": contract["p3e09RequirementOwnerConfirmation"]["status"],
@@ -253,6 +265,7 @@ def build_packets() -> dict[str, dict[str, object]]:
                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
                 "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json",
+                P3E09_INDEPENDENT_REVIEW_REF,
             ])
         if identifier in {"P3-E01", "P3-E04"}:
             evidence_refs.append(DEPLOYMENT_TIME_SELECTION_REF)
@@ -262,7 +275,7 @@ def build_packets() -> dict[str, dict[str, object]]:
             "status": "DRAFT",
             "decisionOwner": "REQUIREMENT_OWNER",
             "evidenceOwnerRoles": owner_roles,
-            "reviewOwner": None,
+            "reviewOwner": P3E09_REVIEW_OWNER if identifier == "P3-E09" and facts.get("modelDecisionStatus") == "MODEL_BASELINE_READY" else None,
             "environmentOrReleaseId": None,
             "capturedAt": None,
             "confirmedFacts": facts,

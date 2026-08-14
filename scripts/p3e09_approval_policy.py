@@ -164,6 +164,39 @@ def candidate_commit_errors(
     return errors
 
 
+def model_baseline_review_status(
+    root: Path,
+    register: dict[str, object],
+    isolated_mysql_status: object,
+) -> tuple[str, dict[str, str]]:
+    """Derive READY only from the one formal independent-review record."""
+    review_ref = "docs/engineering/gates/phase-3/independent-review.md"
+    review_path = root / review_ref
+    if not review_path.is_file():
+        return "MODEL_BASELINE_REVIEW_PENDING", {}
+    review_text = review_path.read_text(encoding="utf-8")
+    fields = formal_review_fields(review_text)
+    if fields.get("status") != "APPROVED" or fields.get("conclusion") != "GO":
+        return "MODEL_BASELINE_REVIEW_PENDING", fields
+    evidence = {
+        "candidateCommit": fields.get("candidateCommit"),
+        "independentReviewResult": "GO",
+        "isolatedMysqlExecution": {"status": isolated_mysql_status},
+    }
+    errors = formal_review_errors(review_text, evidence, register)
+    if not _has_explicit_independent_go(review_text):
+        errors.append("P3-E09 independent review reference must record an independent GO conclusion")
+    errors.extend(candidate_commit_errors(
+        root,
+        fields.get("candidateCommit"),
+        register.get("currentDdlSha256"),
+        register.get("itemsSha256"),
+    ))
+    if errors:
+        raise ValueError("P3-E09 formal independent review GO is invalid: " + "; ".join(errors))
+    return "MODEL_BASELINE_READY", fields
+
+
 def _is_within(path: Path, directory: Path) -> bool:
     try:
         path.relative_to(directory)

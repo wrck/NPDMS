@@ -310,7 +310,8 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
         and by_id.get(identifier, {}).get("confirmedFacts", {}).get("modelDecisionStatus") == "MODEL_BASELINE_READY"
         for identifier in BASELINE_REQUIRED
     )
-    expected_overall = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"
+    phase_ready = ready and all(item.get("status") == "VERIFIED" for item in by_id.values())
+    expected_overall = "READY_FOR_SDS_BASELINE" if phase_ready else "NOT_READY_FOR_SDS_BASELINE"
     if payload.get("overallStatus") != expected_overall:
         errors.append(f"overallStatus must be {expected_overall}")
     if require_ready and not ready:

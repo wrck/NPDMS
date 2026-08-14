@@ -91,6 +91,6 @@ corepack pnpm dev
 | P3-E06 | 已确认独立近生产性能环境；实际规格、迁移量、网络条件与测试账号未登记 | 19/20 NFR-01验收 | 测试、运维、数据Owner提供环境和数据集版本 |
 | P3-E07 | 已确认平台级接口配置注册表及不可变版本引用；真实endpoint、认证引用、白名单和数值型timeout/retry未登记 | Feature联调与生产发布 | 各外部系统技术Owner逐接口登记；不阻塞Phase 3逻辑设计，阻塞具体Feature上线 |
 | P3-E08 | 当前前端`ts:check`真实失败 | 任何前端Feature实现、浏览器验收和正式发布 | 前端Owner按错误清单修复契约/类型；保持现有严格度，重跑`ts:check`、lint、build及受影响页面真实浏览器回归 |
-| P3-E09 | 当前候选DDL、字段目录、迁移映射、MySQL 8.4执行证据和证据包已统一到`5EB9742F…4249`；ADR-0028已接受当前哈希九组完整清单，1,883项中994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`；独立整体一致性复审为`IN_REVIEW`，`approvedDdlSha256`显式为空 | DATA_MODEL_BASELINE、历史数据迁移、数据库切换和迁移发布声明 | fresh reviewer 给出`GO`前，候选不得作为SDS/Feature模型基线；`AI-MIG-000`在真实批次验证范围、水位、程序、对账和回退前，禁止执行迁移或切换 |
+| P3-E09 | 当前DDL、字段目录、迁移映射、MySQL 8.4执行证据和证据包已统一到`5EB9742F…4249`；ADR-0028九组清单覆盖1,883项，`DEFER=0`；独立复审已在正式记录给出`GO`，`approvedDdlSha256`显式为空 | 历史数据迁移、数据库切换和迁移发布声明 | `MODEL_BASELINE_READY`已放行SDS/Feature数据模型输入；`AI-MIG-000`在真实批次验证范围、水位、程序、对账和回退前，禁止执行迁移或切换 |
 
-P3-E01～E06是部署、专项验收或生产发布证据，不阻断逻辑SDS基线；缺失时仍严格阻断其登记的下游门禁。P3-E07按具体Feature阻塞联调/上线；P3-E08阻塞前端Feature验收或发布；P3-E09尚处于当前数据模型候选的独立复审阶段，阻断`DATA_MODEL_BASELINE`以及`AI-MIG-000`历史迁移实施与切换。
+P3-E01～E06是部署、专项验收或生产发布证据，不阻断逻辑SDS基线；缺失时仍严格阻断其登记的下游门禁。P3-E07按具体Feature阻塞联调/上线；P3-E08阻塞前端Feature验收或发布；P3-E09已放行`DATA_MODEL_BASELINE`，但`AI-MIG-000`历史迁移实施与切换仍保持阻断。

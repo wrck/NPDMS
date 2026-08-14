@@ -126,15 +126,16 @@ def validate(root: Path) -> list[str]:
         require_tokens(errors, "Phase 3 gate", gate, (
             "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE", "P3-E01", "P3-E02", "P3-E03",
             "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "DOWNSTREAM-GATED",
-            "MODEL_BASELINE_REVIEW_PENDING",
+            "MODEL_BASELINE_READY",
         ))
-        for legacy_claim in (
-            "P3-E09模型基线已发布",
-            "P3-E09已发布当前SDS模型基线",
-            "P3-E09模型基线可供SDS和后续Feature使用",
-        ):
-            if legacy_claim in gate:
-                errors.append(f"Phase 3 gate contains premature P3-E09 baseline claim: {legacy_claim}")
+        if "MODEL_BASELINE_REVIEW_PENDING" in gate:
+            for baseline_claim in (
+                "P3-E09模型基线已发布",
+                "P3-E09已发布当前SDS模型基线",
+                "P3-E09模型基线可供SDS和后续Feature使用",
+            ):
+                if baseline_claim in gate:
+                    errors.append(f"Phase 3 gate contains premature P3-E09 baseline claim: {baseline_claim}")
     register_validator_path = Path(__file__).with_name("validate_phase3_evidence_register.py")
     register_path = root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json"
     if not register_validator_path.exists() or not register_path.exists():

@@ -59,7 +59,7 @@ class Phase3ValidatorTest(unittest.TestCase):
             "> Phase 3验证注记状态：`IN_REVIEW`\n\n" + "\n".join(blocks), encoding="utf-8"
         )
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md").write_text(
-            "IN_REVIEW NOT_READY_FOR_SDS_BASELINE DOWNSTREAM-GATED MODEL_BASELINE_REVIEW_PENDING "
+            "IN_REVIEW NOT_READY_FOR_SDS_BASELINE DOWNSTREAM-GATED MODEL_BASELINE_READY "
             "P3-E01 P3-E02 P3-E03 P3-E04 P3-E05 P3-E06 P3-E08 P3-E09 AI-MIG-000",
             encoding="utf-8",
         )
@@ -196,7 +196,11 @@ class Phase3ValidatorTest(unittest.TestCase):
 
     def test_premature_p3e09_baseline_claim_fails(self) -> None:
         gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
-        gate.write_text(gate.read_text(encoding="utf-8") + "\nP3-E09模型基线已发布\n", encoding="utf-8")
+        gate.write_text(
+            gate.read_text(encoding="utf-8").replace("MODEL_BASELINE_READY", "MODEL_BASELINE_REVIEW_PENDING")
+            + "\nP3-E09模型基线已发布\n",
+            encoding="utf-8",
+        )
         self.assertTrue(any("premature P3-E09 baseline claim" in item for item in VALIDATOR.validate(self.root)))
 
 

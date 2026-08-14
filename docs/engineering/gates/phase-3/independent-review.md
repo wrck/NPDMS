@@ -1,20 +1,25 @@
 # P3-E09 数据模型基线独立复审记录
 
-> status: `IN_REVIEW`<br>
-> conclusion: `PENDING_FRESH_REVIEW`<br>
+> status: `APPROVED`<br>
+> conclusion: `GO`<br>
 > candidateCommit: `c1b87b19a9b4e9e1e16034f3bdc1de92b701074b`<br>
 > ddlSha256: `5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
 > itemsSha256: `36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D`<br>
 > itemCount: `1883`<br>
 > deferCount: `0`<br>
 > testResult: `PASS`<br>
-> 本记录不是 `GO`，不得据此设置 `MODEL_BASELINE_READY`、关闭 `P3-E09` 或放行 `DATA_MODEL_BASELINE`。fresh reviewer 如给出最终结论，必须同时替换全部 `IN_REVIEW`、`PENDING` 和“不是 `GO`”表述及上述固定字段，使其与当时的模型事实逐项精确匹配。
+> reviewDate: `2026-08-14`<br>
+> reviewRange: `a37c70aa0251419cd69f8a6969cbabb23d7ed834..bbc546bc8654458fceab9849626422d1e77e1b6c`
 
-## 候选绑定事实
+## 复审结论
+
+fresh closure 已核对候选提交、当前DDL blob、逐项寄存器哈希、1,883项决策、`DEFER=0`及隔离MySQL `PASS`，结论为`GO`。P3-E09因此仅发布为SDS和后续Feature的数据模型输入；它不授权`AI-MIG-000`、历史数据迁移或数据切换。
+
+## 已复审候选事实
 
 |项目|当前候选事实|
 |---|---|
-|候选 Git 基线|`candidateCommit`必须为完整40位提交SHA；fresh reviewer 必须在该精确、当前`HEAD`可达且其DDL/逐项寄存器制品仍与本记录一致的候选上重新复核|
+|候选 Git 基线|`candidateCommit`为完整40位提交SHA；reviewRange为`a37c70aa0251419cd69f8a6969cbabb23d7ed834..bbc546bc8654458fceab9849626422d1e77e1b6c`，候选DDL/逐项寄存器制品已与本记录一致|
 |当前 DDL SHA-256|`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`|
 |逐项寄存器|`ddl-item-decision-register.json`，SHA-256 `36503D53…87D5D`，共 1,883 项；994 项 `ACCEPT_CURRENT`、889 项 `AMEND_CURRENT`、0 项 `DEFER`|
 |逐项决策证据|ADR-0019～ADR-0023、ADR-0025、ADR-0027、ADR-0028；逐项裁决已完成|
@@ -26,4 +31,4 @@
 
 本复审只核对候选制品的整体一致性：正式制品哈希、当前 DDL、MySQL 8.4 执行事实、`DEFER=0`、决策与复审责任人不同，以及本记录所绑定候选的完整性。它不要求四角色外部附件、OA/电子签名、逐项 Reviewer 签署、独立批准 JSON 或迁移批准状态机。
 
-fresh reviewer 在精确候选 Git 上完成复核后，才可在本文件写入明确的独立复审结论 `GO`，并由后续发布轮次回写 `MODEL_BASELINE_READY`。`GO`记录的全部固定字段必须且只能出现一次，`testResult`和隔离MySQL状态均须为`PASS`。在此之前，P3-E09 是 `MODEL_BASELINE_REVIEW_PENDING`；`AI-MIG-000`、历史迁移实施和数据切换继续 `OPEN` / 阻断。
+`GO`记录的全部固定字段均只出现一次，`testResult`和隔离MySQL状态均为`PASS`。后续任何DDL、逐项寄存器或候选提交变化均须重新复审；`AI-MIG-000`、历史迁移实施和数据切换继续`OPEN` / 阻断。

@@ -42442,29 +42442,29 @@
     "decision": "ACCEPT_CURRENT",
     "decidedItemCount": 1000,
     "basis": "BASELINE_AND_CURRENT_COLUMN_FACTS_EQUAL",
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "namingDecision": {
     "decisionRef": "ADR-0019",
     "decidedItemCount": 54,
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "projectCodeDecision": {
     "decisionRef": "ADR-0020",
     "decidedItemCount": 7,
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "marketRelationDecision": {
     "decisionRef": "ADR-0021",
     "decidedItemCount": 25,
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "coreMigrationSchemaDecision": {
     "decisionRef": "ADR-0022",
     "decidedItemCount": 79,
     "removedV3TableCount": 4,
     "removedCrossDomainForeignKeyCount": 26,
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "q03Decision": {
     "decisionRef": "ADR-0023-Q03",
@@ -42473,14 +42473,14 @@
       "P3-E09-Q07",
       "P3-E09-Q08"
     ],
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "q07Decision": {
     "decisionRef": "ADR-0023-Q07",
     "decision": "ACCEPT_CURRENT_FOR_SDS",
     "decidedItemCount": 257,
     "requirementOwnerStatus": "ACCEPTED",
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "q08Decision": {
     "decisionRef": "ADR-0023-Q08",
@@ -42489,7 +42489,7 @@
     "requirementOwnerStatus": "ACCEPTED",
     "performanceValidationStatus": "REQUIRED_AT_FEATURE_AND_P3_E06",
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "v17DeltaDecision": {
     "decisionRefs": [
@@ -42498,7 +42498,7 @@
     ],
     "decidedItemCount": 257,
     "acceptedItemCount": 257,
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "p3e09RequirementOwnerDecision": {
     "decisionRef": "ADR-0028",
@@ -42507,10 +42507,10 @@
     "coveredDeferredItemCount": 692,
     "groupCount": 9,
     "requirementOwnerStatus": "ACCEPTED",
-    "reviewStatus": "REVIEW_PENDING"
+    "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "modelBaseline": {
-    "status": "MODEL_BASELINE_REVIEW_PENDING",
+    "status": "MODEL_BASELINE_READY",
     "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "deferredItemCount": 0,
     "approvedDdlSha256": null,

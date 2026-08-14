@@ -4,7 +4,7 @@
 
 `PROPOSED_FOR_REVIEW`
 
-P3-E09当前模型为`MODEL_BASELINE_REVIEW_PENDING`候选。本ADR只修正割接领域候选DDL及迁移证据；它不构成SDS/Feature模型输入、历史迁移或数据切换批准，`AI-MIG-000`仍保持`OPEN`。
+P3-E09当前模型为`MODEL_BASELINE_READY`。本ADR只修正割接领域DDL及迁移证据；模型输入不构成历史迁移或数据切换批准，`AI-MIG-000`仍保持`OPEN`。
 
 ## 日期
 

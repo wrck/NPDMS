@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 > 状态：`IN_REVIEW`
-> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09为`MODEL_BASELINE_REVIEW_PENDING`，尚未放行数据模型基线；Phase 3整体仍有P3-E08等`IN_REVIEW`/下游门禁，历史迁移和数据切换继续阻断）
+> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09为`MODEL_BASELINE_READY`并已放行数据模型输入；Phase 3整体仍有P3-E08等`IN_REVIEW`/下游门禁，历史迁移和数据切换继续阻断）
 > 边界：逻辑设计与证据契约已完成；生产环境、恢复、安全运行和性能证据保留为部署/专项验收/发布门禁，不代表生产就绪。
 
 > 方向决策：ADR-0004已批准`A、A、A、A、A、A、B、A`；本结论不关闭P3-E01～E08下游证据门禁，也不关闭`AI-MIG-000`的真实批次门禁。
@@ -53,7 +53,7 @@ git diff --check
 | 发布/迁移/回退 | PASS-DESIGN | JDK25、pnpm9.15.5、宿主机应用边界、制品/hash/releaseId、Expand→Backfill→Verify→Switch→Contract、应用回退与数据库前滚修复明确 |
 | 性能 | PASS-DESIGN | 50用户/30分钟/≥10000请求/P95≤2秒/错误率≤0.5%、20万项目/200万任务、1万/5万树、2000直接子节点、深度30、50MB、99%/60秒均转为可执行口径 |
 | 测试 | PASS-DESIGN | 正常、异常、权限拒绝、幂等、并发、集成、事件、文件、安全、三浏览器四视口和发布恢复矩阵完整；103/103均有测试类别和证据类型 |
-| 数据/迁移 | PASS-DESIGN-WITH-GATE | 08/09已吸收结构化数据元和历史迁移结论；当前60表、1,240列、447项DDL约束/索引和60项表选项已在隔离MySQL 8.4.10完整执行。V1.7的10表差量、84个对象和95项来源策略已按ADR-0027重建；CUT-11、目录快照、历史空壳及维护记录迁移均被机器禁止。P3-E09为待fresh review的模型候选，`GO`前不得作为SDS/Feature输入；`AI-MIG-000`仍阻断历史迁移和切换 |
+| 数据/迁移 | PASS-DESIGN-WITH-GATE | 08/09已吸收结构化数据元和历史迁移结论；当前60表、1,240列、447项DDL约束/索引和60项表选项已在隔离MySQL 8.4.10完整执行。V1.7的10表差量、84个对象和95项来源策略已按ADR-0027重建；CUT-11、目录快照、历史空壳及维护记录迁移均被机器禁止。P3-E09已通过fresh review的`GO`并可作为SDS/Feature数据模型输入；`AI-MIG-000`仍阻断历史迁移和切换 |
 
 ## 4. 当前阻塞与影响
 
@@ -67,7 +67,7 @@ git diff --check
 | P3-E06 | 近生产性能环境、数据规模、网络和账号未登记 | 性能验收和生产发布 | 推荐独立性能环境，数据库/Redis/节点规格与生产同级或给出缩放模型；数据按19分册版本化生成 |
 | P3-E07 | 外部接口真实地址、认证、白名单、timeout/retry未逐接口登记 | 不阻塞通用设计，阻塞对应Feature联调/上线 | 推荐每个Feature进入实施前完成接口配置档案和真实沙箱契约验证 |
 | P3-E08 | 前端`ts:check`失败 | 阻塞前端Feature实现验收、E2E和正式发布 | 推荐独立治理为实现仓库质量工作包；先修公共类型/生成契约，再按PMS页面分组清零，不放宽规则 |
-| P3-E09 | ADR-0028已接受当前哈希九组完整清单；1,883项中994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`，需求方决策缺口已关闭；独立整体一致性复审为`IN_REVIEW`，`approvedDdlSha256`显式为空 | DATA_MODEL_BASELINE、历史迁移实施与切换 | fresh reviewer 在精确候选上给出`GO`前，不得把候选升级为模型基线；`AI-MIG-000`须在真实批次验证范围、水位、程序、对账和回退后才可执行迁移或切换。Q08性能仍由Feature查询计划和P3-E06压测验收 |
+| P3-E09 | ADR-0028九组清单与fresh independent review均已完成；1,883项中994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`，`approvedDdlSha256`显式为空 | 历史迁移实施与切换 | 已发布为SDS/Feature数据模型输入；`AI-MIG-000`仍须在真实批次验证范围、水位、程序、对账和回退后才可执行迁移或切换。Q08性能仍由Feature查询计划和P3-E06压测验收 |
 
 ## 5. 数据证据专项复核
 
@@ -82,4 +82,4 @@ git diff --check
 
 ## 6. 自审结论
 
-Phase 3运行保障设计与证据契约已完成，P3-E01～E08均落在最晚安全门禁。P3-E09的核心迁移DDL、迁移映射、机器校验和隔离MySQL 8.4.10执行证据已经同步；ADR-0028已按Q07、Q08、V1.7及Q09～Q14九组完整清单关闭全部需求方决策缺口，当前`DEFER=0`，但独立整体一致性复审仍为`IN_REVIEW`。因此候选保持`MODEL_BASELINE_REVIEW_PENDING`，不放行SDS/Feature的`DATA_MODEL_BASELINE`。Phase 3整体仍因其他`IN_REVIEW`和下游门禁保持`NOT_READY_FOR_SDS_BASELINE`；`AI-MIG-000`、历史迁移和数据切换继续`OPEN`，未经真实批次验证不得执行。
+Phase 3运行保障设计与证据契约已完成，P3-E09的核心迁移DDL、迁移映射、机器校验和隔离MySQL 8.4.10执行证据已经同步；ADR-0028九组清单与fresh independent review的`GO`使其成为`MODEL_BASELINE_READY`并放行SDS/Feature数据模型输入。Phase 3整体仍因其他`IN_REVIEW`和下游门禁保持`NOT_READY_FOR_SDS_BASELINE`；`AI-MIG-000`、历史迁移和数据切换继续`OPEN`，未经真实批次验证不得执行。
