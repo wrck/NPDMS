@@ -154,14 +154,11 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
     def _validate(self) -> list[str]:
         commit_result = type("Completed", (), {"stdout": "TEST_COMMIT\n"})()
         clean_result = type("Completed", (), {"stdout": ""})()
-        with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]), \
-             patch.object(POLICY, "candidate_commit_errors", return_value=[]), \
-             patch.object(POLICY, "review_range_errors", return_value=[]):
+        with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]):
             return VALIDATOR.validate(self.root, self.impl)
 
-    def _enable_model_ready_with_null_migration_approval(self) -> None:
+    def _enable_model_ready_without_migration_approval(self) -> None:
         ddl_sha = self.ddl_review["inputs"]["currentDdlSha256"]
-        candidate_commit = "a" * 40
         items = [{"itemId": "COLUMN:proj_project:id", "decision": "ACCEPT_CURRENT"}]
         items_sha = POLICY.canonical_items_sha256(items)
         register = {
@@ -172,10 +169,9 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self._write_json("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json", register)
         review_ref = "docs/engineering/gates/phase-3/independent-review.md"
         (self.root / review_ref).write_text(
-            f"> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `{candidate_commit}`\n"
+            "> status: `APPROVED`\n> conclusion: `GO`\n"
             f"> ddlSha256: `{ddl_sha}`\n> itemsSha256: `{items_sha}`\n> itemCount: `1`\n"
-            "> deferCount: `0`\n> testResult: `PASS`\n> reviewDate: `2026-08-14`\n"
-            f"> reviewRange: `{'b' * 40}..{candidate_commit}`\n",
+            "> deferCount: `0`\n> testResult: `PASS`\n",
             encoding="utf-8",
         )
         facts = {
@@ -192,9 +188,6 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             "isolatedMysqlExecution": {"status": "PASS"},
             "independentReviewResult": "GO",
             "independentReviewRef": review_ref,
-            "candidateCommit": candidate_commit,
-            "reviewDate": "2026-08-14",
-            "reviewRange": f"{'b' * 40}..{candidate_commit}",
         }
         item = self.gate["items"][0]
         item.update({
@@ -333,12 +326,12 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self._write_json("docs/traceability/domain-entity-migration-contract.json", self.contract)
         self.assertTrue(any("binding statistics must be derived" in error for error in self._validate()))
 
-    def test_model_ready_with_null_migration_approval_is_valid(self) -> None:
-        self._enable_model_ready_with_null_migration_approval()
+    def test_model_ready_without_migration_approval_is_valid(self) -> None:
+        self._enable_model_ready_without_migration_approval()
         self.assertEqual([], self._validate())
 
     def test_model_ready_keeps_migration_and_cutover_blocked(self) -> None:
-        self._enable_model_ready_with_null_migration_approval()
+        self._enable_model_ready_without_migration_approval()
         self.gate["items"][0]["blocks"] = ["HISTORICAL_DATA_MIGRATION"]
         self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
         self.assertTrue(any("must keep historical migration and data cutover blocked" in error for error in self._validate()))

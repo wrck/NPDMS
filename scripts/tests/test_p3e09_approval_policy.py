@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).parents[1] / "p3e09_approval_policy.py"
@@ -16,22 +14,15 @@ SPEC.loader.exec_module(POLICY)
 
 
 class P3E09ApprovalPolicyTest(unittest.TestCase):
-    CANDIDATE_COMMIT = "a" * 40
-    REVIEW_DATE = "2026-08-14"
-    REVIEW_RANGE = "b" * 40 + ".." + CANDIDATE_COMMIT
-
     def write_review(self, **overrides: str) -> None:
         fields = {
             "status": "APPROVED",
             "conclusion": "GO",
-            "candidateCommit": self.CANDIDATE_COMMIT,
             "ddlSha256": "DDL",
             "itemsSha256": self.register["itemsSha256"],
             "itemCount": "2",
             "deferCount": "0",
             "testResult": "PASS",
-            "reviewDate": self.REVIEW_DATE,
-            "reviewRange": self.REVIEW_RANGE,
             **overrides,
         }
         content = "\n".join(f"> {name}: `{value}`" for name, value in fields.items()) + "\n"
@@ -64,23 +55,14 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "mysql84DdlSha256": "DDL",
             "independentReviewResult": "GO",
             "independentReviewRef": self.review_ref,
-            "candidateCommit": self.CANDIDATE_COMMIT,
             "decisionOwner": "requirement-owner",
             "reviewOwner": "independent-reviewer",
             "evidenceRefs": [self.review_ref],
             "isolatedMysqlExecution": {"status": "PASS"},
-            "reviewDate": self.REVIEW_DATE,
-            "reviewRange": self.REVIEW_RANGE,
         }
         self.write_review()
-        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
-        self.candidate_check.start()
-        self.range_check = patch.object(POLICY, "review_range_errors", return_value=[])
-        self.range_check.start()
 
     def tearDown(self) -> None:
-        self.candidate_check.stop()
-        self.range_check.stop()
         self.temp.cleanup()
 
     def test_complete_model_evidence_allows_sds_without_migration_approval_field(self) -> None:
@@ -152,16 +134,13 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.assertTrue(any("independent review status mismatch" in error for error in errors))
         self.assertTrue(any("independent review conclusion mismatch" in error for error in errors))
 
-    def test_model_baseline_rejects_stale_candidate_or_model_facts(self) -> None:
+    def test_model_baseline_rejects_stale_model_facts(self) -> None:
         for field, value in {
-            "candidateCommit": "b" * 40,
             "ddlSha256": "OLD_DDL",
             "itemsSha256": "OLD_ITEMS",
             "itemCount": "1882",
             "deferCount": "1",
             "testResult": "FAIL",
-            "reviewDate": "2026-08-15",
-            "reviewRange": "c" * 40 + ".." + self.CANDIDATE_COMMIT,
         }.items():
             with self.subTest(field=field):
                 self.write_review(**{field: value})
@@ -177,24 +156,14 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
     def test_model_baseline_rejects_duplicate_fixed_field_even_when_one_value_matches(self) -> None:
         self.write_review()
         with (self.root / self.review_ref).open("a", encoding="utf-8") as review:
-            review.write("> candidateCommit: `" + "b" * 40 + "`\n")
+            review.write("> ddlSha256: `OTHER`\n")
         errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
-        self.assertTrue(any("must appear exactly once: candidateCommit" in error for error in errors))
+        self.assertTrue(any("must appear exactly once: ddlSha256" in error for error in errors))
 
     def test_model_baseline_rejects_non_pass_review_test_result(self) -> None:
         self.write_review(testResult="FAIL")
         errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
         self.assertTrue(any("testResult must be PASS" in error for error in errors))
-
-    def test_model_baseline_rejects_invalid_review_date(self) -> None:
-        self.write_review(reviewDate="2026/08/14")
-        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
-        self.assertTrue(any("reviewDate must be ISO" in error for error in errors))
-
-    def test_model_baseline_rejects_mismatched_review_range(self) -> None:
-        self.write_review(reviewRange="c" * 40 + ".." + self.CANDIDATE_COMMIT)
-        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
-        self.assertTrue(any("independent review reviewRange mismatch" in error for error in errors))
 
     def test_model_baseline_rejects_non_pass_isolated_mysql_result(self) -> None:
         self.evidence["isolatedMysqlExecution"] = {"status": "FAIL"}
@@ -202,83 +171,6 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
         self.assertTrue(any("isolatedMysqlExecution.status must be PASS" in error for error in errors))
         self.assertTrue(any("testResult must be PASS" in error for error in errors))
-
-    def test_candidate_commit_rejects_nonexistent_commit(self) -> None:
-        self.candidate_check.stop()
-        result = type("Completed", (), {"returncode": 1, "stdout": b""})()
-        with patch.object(POLICY.subprocess, "run", return_value=result):
-            errors = POLICY.candidate_commit_errors(
-                self.root, self.CANDIDATE_COMMIT, "DDL", "ITEMS",
-            )
-        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
-        self.candidate_check.start()
-        self.assertTrue(any("does not resolve" in error for error in errors))
-
-    def test_candidate_commit_requires_full_hex_sha(self) -> None:
-        self.candidate_check.stop()
-        errors = POLICY.candidate_commit_errors(self.root, "cfd60d6", "DDL", "ITEMS")
-        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
-        self.candidate_check.start()
-        self.assertTrue(any("full 40-character" in error for error in errors))
-
-    def test_candidate_commit_rejects_non_ancestor_commit(self) -> None:
-        self.candidate_check.stop()
-        results = iter((
-            type("Completed", (), {"returncode": 0, "stdout": b""})(),
-            type("Completed", (), {"returncode": 1, "stdout": b""})(),
-        ))
-        with patch.object(POLICY.subprocess, "run", side_effect=lambda *_args, **_kwargs: next(results)):
-            errors = POLICY.candidate_commit_errors(
-                self.root, self.CANDIDATE_COMMIT, "DDL", "ITEMS",
-            )
-        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
-        self.candidate_check.start()
-        self.assertTrue(any("not reachable" in error for error in errors))
-
-    def test_candidate_commit_rejects_mismatched_model_artifacts(self) -> None:
-        self.candidate_check.stop()
-        candidate_items = [{"itemId": "COLUMN:a:id", "decision": "DEFER"}]
-        candidate_register = json.dumps({
-            "currentDdlSha256": "DDL", "itemsSha256": "ITEMS", "items": candidate_items,
-        }).encode("utf-8")
-        results = iter((
-            type("Completed", (), {"returncode": 0, "stdout": b""})(),
-            type("Completed", (), {"returncode": 0, "stdout": b""})(),
-            type("Completed", (), {"returncode": 0, "stdout": b"OTHER_DDL"})(),
-            type("Completed", (), {"returncode": 0, "stdout": b"CURRENT_DDL"})(),
-            type("Completed", (), {"returncode": 0, "stdout": candidate_register})(),
-        ))
-        with patch.object(POLICY.subprocess, "run", side_effect=lambda *_args, **_kwargs: next(results)):
-            errors = POLICY.candidate_commit_errors(
-                self.root,
-                self.CANDIDATE_COMMIT,
-                POLICY.sha256_bytes(b"DDL"),
-                "ITEMS",
-            )
-        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
-        self.candidate_check.start()
-        self.assertTrue(any("current DDL artifact differs" in error for error in errors))
-        self.assertTrue(any("does not match canonical items" in error for error in errors))
-
-    def test_candidate_commit_rejects_changed_items_with_stale_declared_hash(self) -> None:
-        self.candidate_check.stop()
-        candidate_items = [{"itemId": "COLUMN:a:id", "decision": "DEFER"}]
-        candidate_register = json.dumps({
-            "currentDdlSha256": "DDL", "itemsSha256": "ITEMS", "items": candidate_items,
-        }).encode("utf-8")
-        results = iter((
-            type("Completed", (), {"returncode": 0, "stdout": b""})(),
-            type("Completed", (), {"returncode": 0, "stdout": b""})(),
-            type("Completed", (), {"returncode": 0, "stdout": b"DDL"})(),
-            type("Completed", (), {"returncode": 0, "stdout": b"DDL"})(),
-            type("Completed", (), {"returncode": 0, "stdout": candidate_register})(),
-        ))
-        with patch.object(POLICY.subprocess, "run", side_effect=lambda *_args, **_kwargs: next(results)):
-            errors = POLICY.candidate_commit_errors(self.root, self.CANDIDATE_COMMIT, "DDL", "ITEMS")
-        self.candidate_check = patch.object(POLICY, "candidate_commit_errors", return_value=[])
-        self.candidate_check.start()
-        self.assertTrue(any("does not match canonical items" in error for error in errors))
-
 
 if __name__ == "__main__":
     unittest.main()

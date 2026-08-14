@@ -15,6 +15,11 @@ SPEC.loader.exec_module(VALIDATOR)
 
 
 class Phase3EvidenceSubmissionTest(unittest.TestCase):
+    def test_e09_does_not_require_duplicate_git_metadata(self) -> None:
+        self.assertNotIn("candidateCommit", VALIDATOR.REQUIRED_FACTS["P3-E09"])
+        self.assertNotIn("reviewDate", VALIDATOR.REQUIRED_FACTS["P3-E09"])
+        self.assertNotIn("reviewRange", VALIDATOR.REQUIRED_FACTS["P3-E09"])
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.path = Path(self.temp.name) / "submission.json"

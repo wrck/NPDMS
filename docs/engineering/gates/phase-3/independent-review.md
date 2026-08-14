@@ -2,24 +2,21 @@
 
 > status: `IN_REVIEW`<br>
 > conclusion: `PENDING_FRESH_REVIEW`<br>
-> candidateCommit: `37218eec2fcf82224a90e0b59f9e187bed71849d`<br>
 > ddlSha256: `5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
 > itemsSha256: `36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D`<br>
 > itemCount: `1883`<br>
 > deferCount: `0`<br>
 > testResult: `PASS`<br>
-> reviewDate: `2026-08-14`<br>
-> reviewRange: `a37c70aa0251419cd69f8a6969cbabb23d7ed834..37218eec2fcf82224a90e0b59f9e187bed71849d`
 
 ## 当前候选状态
 
-上一轮`GO`只覆盖当时的候选制品。本轮已加固复审固定字段、范围和候选寄存器内容校验，形成新的候选；在fresh independent review对新候选给出明确`GO`前，P3-E09为`MODEL_BASELINE_REVIEW_PENDING`，不得作为SDS/Feature模型输入。`AI-MIG-000`、历史数据迁移和数据切换持续阻断。
+上一轮`GO`只覆盖当时的候选制品。本轮已按V1.8轻量治理原则移除复审记录中重复的Git元数据和迁移批准哈希；在独立复审对当前模型事实给出明确`GO`前，P3-E09为`MODEL_BASELINE_REVIEW_PENDING`，不得作为SDS/Feature模型输入。`AI-MIG-000`、历史数据迁移和数据切换持续阻断。
 
 ## 已复审候选事实
 
 |项目|当前候选事实|
 |---|---|
-|候选 Git 基线|本轮核心修复提交后由metadata提交绑定新的完整40位`candidateCommit`及`reviewRange`；范围固定为基线提交至核心候选，不自引用metadata提交|
+|Git 基线|Git原生保存commit ID、作者、时间和差异；复审记录不重复维护候选提交、日期或范围字段|
 |当前 DDL SHA-256|`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`|
 |逐项寄存器|`ddl-item-decision-register.json`，SHA-256 `36503D53…87D5D`，共 1,883 项；994 项 `ACCEPT_CURRENT`、889 项 `AMEND_CURRENT`、0 项 `DEFER`|
 |逐项决策证据|ADR-0019～ADR-0023、ADR-0025、ADR-0027、ADR-0028；逐项裁决已完成|
@@ -29,6 +26,6 @@
 
 ## 独立复审范围
 
-本复审只核对候选制品的整体一致性：正式制品哈希、当前 DDL、MySQL 8.4 执行事实、`DEFER=0`、决策与复审责任人不同，以及本记录所绑定候选的完整性。它不要求四角色外部附件、OA/电子签名、逐项 Reviewer 签署、独立批准 JSON 或迁移批准状态机。
+本复审只核对当前模型制品的整体一致性：正式制品哈希、当前 DDL、MySQL 8.4 执行事实、`DEFER=0`以及决策与复审责任人不同。提交、作者、时间和文件差异由Git原生记录；本文件不重复构造候选提交、日期或范围授权。它不要求四角色外部附件、OA/电子签名、逐项 Reviewer 签署、独立批准 JSON 或迁移批准状态机。
 
-固定字段均只出现一次；仅在`APPROVED / GO`时才要求`testResult`和隔离MySQL状态均为`PASS`。后续任何DDL、逐项寄存器、复审校验或候选提交变化均须重新复审；`AI-MIG-000`、历史迁移实施和数据切换继续`OPEN` / 阻断。
+固定字段只包括复审结论和模型事实，且均只出现一次；仅在`APPROVED / GO`时才要求`testResult`和隔离MySQL状态均为`PASS`。后续任何DDL或逐项寄存器变化均会使模型哈希失配并要求重新复审；`AI-MIG-000`、历史迁移实施和数据切换继续`OPEN` / 阻断。

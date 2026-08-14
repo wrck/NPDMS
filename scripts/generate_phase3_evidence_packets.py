@@ -157,7 +157,7 @@ def build_packets() -> dict[str, dict[str, object]]:
             if execution.get("status") != "PASS" or execution.get("ddlSha256") != ddl_sha256:
                 raise ValueError("P3-E09 isolated MySQL execution evidence is absent or stale")
             deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
-            model_status, review_fields = model_baseline_review_status(Path.cwd(), register, execution.get("status"))
+            model_status, _review_fields = model_baseline_review_status(Path.cwd(), register, execution.get("status"))
             if deferred_count != 0:
                 model_status = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED"
             model_baseline = {
@@ -185,9 +185,6 @@ def build_packets() -> dict[str, dict[str, object]]:
                     "deferredItemCount": deferred_count,
                     "independentReviewResult": "GO" if model_status == "MODEL_BASELINE_READY" else None,
                     "independentReviewRef": P3E09_INDEPENDENT_REVIEW_REF if model_status == "MODEL_BASELINE_READY" else None,
-                    "candidateCommit": review_fields.get("candidateCommit") if model_status == "MODEL_BASELINE_READY" else None,
-                    "reviewDate": review_fields.get("reviewDate") if model_status == "MODEL_BASELINE_READY" else None,
-                    "reviewRange": review_fields.get("reviewRange") if model_status == "MODEL_BASELINE_READY" else None,
                     "v17DeltaStatus": contract["v17Delta"]["status"],
                     "requirementOwnerConfirmation": {
                         "status": contract["p3e09RequirementOwnerConfirmation"]["status"],

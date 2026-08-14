@@ -21,8 +21,6 @@
     "manifestDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "mappingDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "mysql84DdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-    "reviewDate": null,
-    "reviewRange": null,
     "targetCatalogDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "validationDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "directionDecision": "A",
@@ -35,7 +33,6 @@
     ],
     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
     "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
-    "candidateCommit": null,
     "v17DeltaStatus": "ACCEPTED",
     "requirementOwnerConfirmation": {
       "status": "ACCEPTED",

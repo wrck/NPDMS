@@ -17,7 +17,7 @@ SYNC_FACTS = {
     "v17DeltaStatus", "requirementOwnerConfirmation", "q07Decision", "q08Decision",
     "isolatedMysqlExecution", "targetCatalogDdlSha256", "mappingDdlSha256",
     "validationDdlSha256", "manifestDdlSha256", "itemsSha256", "itemIdsSha256",
-    "mysql84DdlSha256", "independentReviewResult", "independentReviewRef", "candidateCommit", "reviewDate", "reviewRange",
+    "mysql84DdlSha256", "independentReviewResult", "independentReviewRef",
 }
 
 
@@ -37,6 +37,8 @@ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, 
     facts = item["confirmedFacts"]
     generated_facts = generated["confirmedFacts"]
     facts.pop("approvedDdlSha256", None)
+    for key in ("candidateCommit", "reviewDate", "reviewRange"):
+        facts.pop(key, None)
     for key in SYNC_FACTS:
         facts[key] = generated_facts[key]
     facts["driftDecision"] = "ACCEPT_CURRENT"

@@ -12,7 +12,7 @@
 
 - 不修改PRD、60表DDL、领域模型、API、权限、状态机或业务流程。
 - 不新增OA、电子签名、四角色附件、迁移批准模板或通用证据系统。
-- `approvedDdlSha256`保持为空，AI-MIG-000、历史迁移和数据切换继续阻断。
+- P3-E09不定义`approvedDdlSha256`；AI-MIG-000、历史迁移和数据切换继续阻断。
 - Q08的122项仅为候选索引，继续受Feature查询计划和P3-E06性能验收约束。
 - 不读取、不修改、不暂存两份受保护的未跟踪原始资料。
 - 使用`py -3.13`；显式暂存；不推送。
@@ -40,9 +40,13 @@
 ```python
 def test_complete_model_evidence_allows_sds_without_migration_approval(self):
     payload = self.complete_model_payload()
-    payload["approvedDdlSha256"] = None
     errors = VALIDATOR.validate_model_baseline(payload)
     self.assertEqual([], errors)
+
+def test_model_baseline_rejects_legacy_migration_approval_field(self):
+    payload = self.complete_model_payload()
+    payload["approvedDdlSha256"] = None
+    self.assertTrue(VALIDATOR.validate_model_baseline(payload))
 
 def test_model_readiness_does_not_allow_migration(self):
     item = self.complete_model_item()
@@ -55,7 +59,7 @@ def test_model_readiness_does_not_allow_migration(self):
 
 Run: `py -3.13 -m unittest scripts.tests.test_p3e09_approval_policy scripts.tests.test_validate_ddl_item_decision_register scripts.tests.test_validate_phase3_evidence_register scripts.tests.test_validate_phase3_evidence_submission -v`
 
-Expected: FAIL，现有逻辑仍把四角色签署和`approvedDdlSha256`作为SDS模型基线条件。
+Expected: FAIL，现有逻辑仍把四角色签署或迁移批准字段作为SDS模型基线条件。
 
 - [ ] **Step 3: 最小化批准策略**
 
@@ -96,7 +100,7 @@ git commit -m "refactor(gate): 轻量化P3-E09模型门禁"
 def test_p3e09_is_model_ready_and_migration_pending(self):
     item = GENERATOR.build_packets()["P3-E09"]
     self.assertEqual("MODEL_BASELINE_READY", item["confirmedFacts"]["modelDecisionStatus"])
-    self.assertIsNone(item["confirmedFacts"]["approvedDdlSha256"])
+    self.assertNotIn("approvedDdlSha256", item["confirmedFacts"])
     self.assertEqual(
         {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
         set(item["blocks"]),
@@ -111,7 +115,7 @@ Expected: FAIL，现有状态仍等待外部签署或使用共用批准语义。
 
 - [ ] **Step 3: 修改生成和同步逻辑**
 
-状态只由现有模型事实派生；`approvedDdlSha256`不得因模型Ready被填充。旧模板删除四角色签署字段并明确标注“不得用于授权历史迁移”。
+状态只由现有模型事实派生；P3-E09不得定义`approvedDdlSha256`。旧模板删除四角色签署字段并明确标注“不得用于授权历史迁移”。
 
 - [ ] **Step 4: 重生成并验证正式制品**
 
@@ -176,7 +180,7 @@ Expected: 全部PASS；DDL和逐项裁决无业务变化。
 
 - [ ] **Step 4: 独立复审最小风险点**
 
-复审只回答四个问题：模型事实是否完整；DDL变化能否使门禁失效；SDS Ready是否误放行迁移；是否仍有无直接收益的治理结构。结论为GO后进入下一步。
+复审只回答四个问题：模型事实是否完整；DDL变化能否使门禁失效；SDS Ready是否误放行迁移；是否仍有无直接收益的治理结构。正式复审记录只机器绑定`status`、`conclusion`、DDL哈希、items哈希、item数量、DEFER数量和测试结果；Git原生保存commit ID、作者、时间和差异，不在复审记录或JSON中重复维护`candidateCommit`、`reviewDate`、`reviewRange`。结论为GO后进入下一步。
 
 - [ ] **Step 5: 创建模型基线提交**
 
