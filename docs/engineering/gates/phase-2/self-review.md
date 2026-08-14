@@ -1,8 +1,9 @@
 # SDS Phase 2 工程化自审
 
 > 日期：2026-08-15
-> 状态：`PHASE2_CORRECTION_IN_REVIEW`
-> 结论边界：V1.6独立评审证据保留在`independent-review.md`；本文件同步记录当前103项范围纠偏自审，不伪造新的独立复审结论
+> 状态：`APPROVED`
+> 结论：`READY_FOR_PHASE_3`
+> 结论边界：本文件记录当前103项范围纠偏自审；独立放行依据以`independent-review.md`的固定提交范围和GO结论为准
 
 ## 1. 审查范围
 
@@ -21,6 +22,7 @@
 | 业务命名门禁 | PASS |
 | Phase 2专用校验 | PASS，含08a的9份正式分册元数据、103项显式契约及链接/锚点有效 |
 | 追溯矩阵 | PASS，103个唯一Requirement，103行均链接逐项 `phase2-contract-map.md` |
+| 独立复审 | PASS，三项Required全部CLOSED，无Critical或新的Required |
 | `git diff --check` | PASS |
 
 可重复执行命令：
@@ -75,4 +77,6 @@ git diff --check
 
 ## 5. 自审结论
 
-V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。当前按PRD V1.7重新校准为103项正式需求、84对象/95来源绑定/1排除源，并清除V3 Requirement、WO消费者、钉钉打卡事实及历史工单/工时用户入口的当前范围漂移；本轮总审发现的`PENDING`范围绕过、V3统计漂移和后置状态混淆均已完成修复，但本文件不冒充新的独立复审。Q-P2-001已按方案B收口，不再作为规格阻塞。Phase 2 Gate仍保持`IN_REVIEW / NOT_READY_FOR_PHASE_3`，直至Task 4 fresh-context独立复审给出结论。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。
+当前按PRD V1.7校准为V1 55项、V2 48项、V1/V2正式需求103项、V3 30项和`OUT_OF_SCOPE` 9项；领域迁移设计覆盖84对象、95来源绑定和1排除源。V3 Requirement、WO消费者、钉钉打卡事实及历史工单/工时用户入口未进入当前范围；`PENDING`范围绕过、统计漂移和后置状态混淆三项Required均已修复并通过fresh-context定点复审。Q-P2-001已按方案B收口。Phase 2正式结论为`APPROVED / READY_FOR_PHASE_3`。
+
+P3-E09维持`MODEL_BASELINE_READY`，仅表示数据模型基线一致；Q08索引仅为候选，仍须Feature查询与性能验证。`AI-MIG-000`、真实历史迁移和数据切换继续作为独立后续门禁，不因Phase 2批准而放行。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。

@@ -1,69 +1,53 @@
 # SDS Phase 2 Review
 
-> 审查状态：`IN_REVIEW`
-> 依据：PRD V1.7、SDS Phase 1 `BASELINE`、实施仓库证据提交 `856d052`
-> 结论：`NOT_READY_FOR_PHASE_3`
-> 评审边界：V1.6独立评审结论保留；当前按 PRD V1.7 的103项正式契约和84对象/95来源绑定/1排除源机器事实执行纠偏，完成独立复审前不恢复放行。
+> 审查状态：`APPROVED`<br>
+> 依据：PRD V1.7、SDS Phase 1 `BASELINE`、实现证据冻结提交 `856d052`、独立复审固定范围 `b7c9d2a8de04391637aef942bc200ff43aec2122..87b40f90424495f0897b1bd8291b0e752786ebe9`<br>
+> 结论：`READY_FOR_PHASE_3`<br>
+> 当前范围：V1 55项、V2 48项、V1/V2正式需求103项；V3 30项；`OUT_OF_SCOPE` 9项
 
 ## 1. 输出状态
 
-| 输出 | 状态 | 门禁要点 |
+| 输出 | 状态 | 门禁结论 |
 |---|---|---|
-| P2-01 实现事实盘点 | PASS | 69 个业务表、59 个 Controller、65 个 DO 已按一致性分类 |
-| 08 Data Model | BASELINE | Owner、聚合、引用、版本、快照、历史及六项复审修复已通过独立复审 |
-| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 84个对象、95条来源绑定和1个排除源均有机器契约；历史工单/工时仅允许批准批次的不可变来源证据且无用户入口；真实批次字段映射与执行仍由`AI-MIG-000`控制 |
-| 09 Database Design | BASELINE | 表级约束、PM-05/06专表、临时用户名、消费确认和前向迁移已通过独立复审 |
-| 10 API Design | BASELINE | 103项显式契约、PM-05/06和DAC命令保留原独立复审结论；历史工单/工时用户API已移除，当前范围纠偏等待本轮独立复审 |
-| 11 Event Design | BASELINE | producer、consumer、version、顺序、Inbox/Outbox及业务消费完成边界已通过独立复审 |
-| 12 Integration Design | BASELINE | 字段Owner及全部外部系统操作级请求/响应映射已通过独立复审；环境参数待Feature联调登记 |
-| 13 File Design | BASELINE | 文件身份、引用、版本、哈希、权限、归档保持原契约；历史工单/工时附件不形成当前文件入口；保留期限和灾备数值明确后置至Phase 3 |
-| 15 Cache & Concurrency | BASELINE | 缓存非真值、版本冲突、树/归属并发已通过独立复审；容量和TTL数值明确后置至Phase 3 |
-| 16 Exception & Idempotency | BASELINE | 错误码、重放、超时、部分失败、补偿已通过独立复审 |
+| P2-01 实现事实盘点 | PASS | 现有业务表、Controller和DO已按PRD/SDS一致性分类，不以存量实现反向改变业务语义 |
+| 08 Data Model | BASELINE | Owner、聚合、关系、版本、快照、历史和当前对象边界可实现 |
+| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 84对象、95来源绑定、1排除源均有机器契约；真实迁移仍由`AI-MIG-000`控制 |
+| 09 Database Design | BASELINE | 表级约束、专项关系、消费确认和前向迁移契约可实现 |
+| 10 API Design | BASELINE | 103项显式契约可追溯；历史工单/工时用户API未进入当前范围 |
+| 11 Event Design | BASELINE | producer、consumer、version、幂等、顺序和业务消费完成边界明确 |
+| 12 Integration Design | BASELINE | 外部系统操作级映射、业务确认和失败语义明确；环境参数在Feature联调前登记 |
+| 13 File Design | BASELINE | 文件身份、版本、哈希、权限和归档明确；保留期限与灾备数值后置Phase 3 |
+| 15 Cache & Concurrency | BASELINE | 缓存非真值、版本冲突和树/归属并发明确；容量与TTL数值后置Phase 3 |
+| 16 Exception & Idempotency | BASELINE | 错误、重放、超时、部分失败和补偿契约明确 |
 
 ## 2. 硬门禁
 
-| 门禁 | 当前状态 | 通过条件 |
+| 门禁 | 状态 | 证据 |
 |---|---|---|
-| 数据 Owner 明确 | PASS | 每个业务事实只有一个 Owner，跨域仅引用/快照 |
-| 版本、快照、历史、审计可实现 | PASS | 数据模型和数据库设计同时落位 |
-| API 可追溯 | PASS | 103项均有显式数据对象、表、API、事件/集成/文件、工作流和授权契约；校验器检查符号真实存在 |
-| 状态通过 command/transition 改变 | PASS | 无通用状态字段直改 API/仓储绕过 |
-| 事件契约完整 | PASS | producer/consumer/version/idempotency/order 齐全 |
-| 外部集成可恢复 | PASS-WITH-FOLLOWUP | 全部外部系统已登记操作级字段映射、业务确认和失败语义；具体 endpoint、认证和数值型 timeout/retry 在Feature联调前登记 |
-| 实现漂移已识别 | PASS | 现有表/API/模块按与 PRD/SDS 一致性分类 |
+| 范围与统计一致 | PASS | PRD索引重算V1=55、V2=48、当前=103、V3=30、排除=9；01分册同步校验 |
+| 数据Owner与历史规则可实现 | PASS | 每项业务事实唯一Owner，跨域使用引用/快照，历史和审计不可覆盖 |
+| API与Requirement可追溯 | PASS | 103项逐项显式契约、矩阵、链接和符号校验通过 |
+| 状态通过command/transition改变 | PASS | 无通用状态字段直改API或仓储绕过 |
+| 事件与外部集成可恢复 | PASS | producer/consumer/version/idempotency/order及集成失败恢复契约齐全 |
+| V3/排除/工单范围隔离 | PASS | 普通`PENDING`不能绕过；当前无V3 Requirement、通用WorkOrder/工时、钉钉打卡事实回流 |
+| 领域迁移设计覆盖 | PASS | 84对象、95来源绑定、1排除源；证据由登记冻结提交确定性重放 |
+| 独立复审 | PASS | 三项Required全部CLOSED，无Critical或新的Required |
 
-## 3. 已登记漂移
+## 3. 当前结论与后续门禁
 
-| 编号 | 事项 | 处理状态 |
+| 编号 | 状态 | 结论 |
 |---|---|---|
-| P2-DRIFT-01 | 独立维保/续保语义超出范围 | CLOSED：08/09/10/12 已统一为 AST MaintenanceFact、ACC ServiceHandover 和客观状态边界，无续保经营入口 |
-| P2-DRIFT-02 | 技术公告被实现为本地发布治理 | CLOSED：08/09/10/12 已统一为 V2 ITR 同步、查询和引用，本地治理保持 V3 |
-| P2-DRIFT-03 | `license_key` 缺少敏感信息边界 | CLOSED：08/09/13/16 已区分授权材料与 DeviceCredential，并禁止未证明来源和明文迁移 |
-| P2-DRIFT-04 | 可配置状态字典可能被误作状态机 | CLOSED：08/09/10/16 已固化状态代码、受控命令和字典边界 |
+| P2-CORR-01 | CLOSED | fresh-context定点复审已确认范围绕过、统计漂移和后置状态三项Required全部关闭 |
+| P2-CORR-02 | CLOSED | 冻结实现提交可确定性读取，短/全SHA解析到同一提交，当前HEAD前进不改变已审证据 |
+| P2-CORR-03 | CLOSED | 历史工单/工时采用方案B：V1/V2无用户入口，仅保留批准迁移批次的不可变来源证据 |
+| P3-E09 | MODEL_BASELINE_READY | 只证明数据模型基线一致，不批准生产迁移或数据切换 |
+| AI-MIG-000 | OPEN | 真实批次、范围、水位、程序、演练、对账、回退和执行授权形成后单独关闭 |
+| Q08候选索引 | DEFERRED_TO_FEATURE_VALIDATION | 仅为查询索引候选，须在Feature查询计划和性能验收中验证 |
 
-## 4. 独立复审 Required 项
+真实接口地址、认证材料和数值型timeout/retry/limit属于Feature联调前证据；生产拓扑、KMS、容量实测属于Phase 3/部署证据；SIT/UAT和发布证据在对应阶段关闭。上述事项不反向阻断当前Phase 2，但各自门禁未通过前不得执行相应高风险动作。
 
-| 编号 | 原问题 | 修复状态 | 证据 |
-|---|---|---|---|
-| R-P2-01 | `saveAsCredential` 后本次任务仍错误保留为临时模式 | CLOSED | 08 §11、09 §9.3、10 §13.2、16 §9：同命令创建凭证/默认授权/任务并切换凭证模式，失败则不创建任务 |
-| R-P2-02 | CRM/ERP合同订单字段Owner冲突 | CLOSED | 08 §9.3、09 §8.2、10 §11、12 §4～5：按Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付事实 |
-| R-P2-03 | PM-05/PM-06仅机械追溯，无专属实施契约 | CLOSED | 08 §4、09 §4.4、10 §5.1～5.2、11 §5、15 §5.4、16 §7 |
-| R-P2-04 | 校验器只查链接存在，不查契约覆盖 | CLOSED | `phase2-contract-map.md` 103项显式映射；校验器检查ID集合、必填字段、真实表/API/事件/集成/文件符号和专项令牌 |
-| R-P2-05 | 外部集成缺少请求/响应字段映射 | CLOSED | 12 §4.1覆盖CRM、ERP、ITR、MES、钉钉、HR、OA、LDAP/AD、备件、授权、UMC、财务、通知和采集子应用 |
-| R-P2-06 | `CollectionCompleted` 可被模糊“契约终态”提前触发 | CLOSED | 08/09/10/11/16显式区分BUSINESS_CONSUMPTION和PRD独立中心CALLBACK_TERMINAL；失败/取消不发布完成 |
+## 4. 放行决定
 
-## 5. 当前阻塞
+独立复审固定范围为`b7c9d2a8de04391637aef942bc200ff43aec2122..87b40f90424495f0897b1bd8291b0e752786ebe9`，定点修复范围为`46421013b92644619870395a5dd7a180a0601533..87b40f90424495f0897b1bd8291b0e752786ebe9`。正式校验器、230项全量测试和生成器一致性均通过。
 
-| 编号 | 状态 | 当前阻塞 | 解除条件 |
-|---|---|---|---|
-| P2-CORR-01 | IN_REVIEW | 三项独立总审Required已完成修复和230项全量回归，但fresh-context复审尚未关闭 | fresh-context评审确认无Critical/Required并给出GO |
-| P2-CORR-02 | CLOSED | 迁移契约已改为从登记的冻结实现提交读取证据 | `edf6cb7`、`69dc27d`已证明实现HEAD前进不影响冻结证据，且短/全SHA均按同一提交解析 |
-| P2-CORR-03 | CLOSED | Q-P2-001采用方案B：V1/V2无历史工单/工时用户入口，仅保留`AI-MIG-000`不可变来源证据边界 | 08a、10、13和校验器已收口；未来查询能力必须独立PRD/Feature变更 |
-
-真实接口地址、认证材料、数值型 timeout/retry/limit 仍是 Feature 联调前证据门禁，不构成 Phase 2 当前阻塞。
-
-## 6. 批准后数据证据对齐说明（2026-08-13）
-
-用户要求08/09显式参考此前的数据元与数据迁移结论，并要求核心链之外的领域实体同样可迁移。本次新增08a，逐项覆盖全部显式领域数据对象的来源证据、迁移策略、排除项与Gate，同时补充证据层级、项目—合同—订单行—设备主链、来源载荷/结构化字段双层保存、迁移问题和`AI-MIG-000`漂移门禁。该段仅记录当时增量评审曾保留Phase 2 GO的历史批准证据；其结论已被本轮`IN_REVIEW / NOT_READY_FOR_PHASE_3`状态覆盖，不主张当前GO。新增内容已通过当时的领域实体迁移覆盖校验、Phase 2/3校验、PRD/领域校验和脚本单测，但不冒充此前独立复审已覆盖本轮纠偏；实际字段映射、DDL和数据迁移仍由`AI-MIG-000`及后续领域迁移工作包单独阻断和放行。
-
-增量独立首审发现R-MIG-01/02；修复后定点复审结论为`GO`，两项均`CLOSED`，无Critical/Required。08a转为`BASELINE ADDENDUM`。P3-E09当前为`MODEL_BASELINE_READY`，只证明数据模型基线一致；真实历史迁移与数据切换仍由`AI-MIG-000`保持`OPEN`，不得据此执行。
+Phase 2正式批准：`APPROVED / READY_FOR_PHASE_3`。
