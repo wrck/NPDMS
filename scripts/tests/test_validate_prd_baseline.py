@@ -17,6 +17,21 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ValidatePrdBaselineTest(unittest.TestCase):
+    def validate_candidate(self, mutate) -> dict[str, object]:
+        root = MODULE_PATH.parents[1]
+        source = root / "docs" / "baseline" / "prd-v1.7.md"
+        report = root / "docs" / "reports" / "2026-08-10-PRD与13领域FR差异审查.md"
+        text = source.read_text(encoding="utf-8-sig")
+        candidate_text = mutate(text)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary) / "prd.md"
+            candidate.write_text(candidate_text, encoding="utf-8")
+            return {
+                check.name: check
+                for check in MODULE.validate(candidate, report, "V1.7", "正式基线")
+            }
+
     def test_appendix_a2_statistics_must_match_formal_requirements(self) -> None:
         root = MODULE_PATH.parents[1]
         source = root / "docs" / "baseline" / "prd-v1.7.md"
@@ -58,6 +73,30 @@ class ValidatePrdBaselineTest(unittest.TestCase):
         self.assertIn("| 目标版本 | V1任务闭环；V2增强 |", blocks["CUT-01"])
         self.assertNotIn("巡检规则", blocks["CUT-01"])
         self.assertNotIn("# 附录", blocks["INS-01"])
+
+    def test_appendix_c_must_not_restore_work_order_core_object(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "| 4 | 满意度任务与问卷 | 项目成员执行的满意度收集、评分、签字和不达标整改重收 | ACC-02 |",
+                "| 4 | 工单 | 工时、实施及保障服务的工作记录 | WO-01～06 |",
+                1,
+            )
+        )
+
+        self.assertIn("附录C不含工单核心对象", checks)
+        self.assertFalse(checks["附录C不含工单核心对象"].passed)
+
+    def test_appendix_c_must_include_satisfaction_core_object_with_acc_02(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "| 4 | 满意度任务与问卷 | 项目成员执行的满意度收集、评分、签字和不达标整改重收 | ACC-02 |",
+                "| 4 | 客户反馈记录 | 项目成员记录客户反馈 | SUB-03 |",
+                1,
+            )
+        )
+
+        self.assertIn("附录C满意度核心对象", checks)
+        self.assertFalse(checks["附录C满意度核心对象"].passed)
 
     def test_requirement_id_pattern_accepts_domain_addendum_ids(self) -> None:
         text = """#### 13.5.15 AST-02 设备维保客观状态计算

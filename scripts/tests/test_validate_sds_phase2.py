@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -33,6 +34,22 @@ class ValidateSdsPhase2Test(unittest.TestCase):
         design.mkdir(parents=True)
         baseline.mkdir(parents=True)
         traceability.mkdir(parents=True)
+        (traceability / "core-migration-schema-contract.json").write_text(
+            json.dumps(
+                {
+                    "forbiddenV1V2Tables": [
+                        "srv_historical_time_record",
+                        "srv_historical_work_order",
+                        "srv_time_adjustment",
+                        "srv_time_claim",
+                        "srv_work_order",
+                        "srv_work_order_handling_record",
+                        "srv_work_order_sla",
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
         metadata = (
             "# Test\n\n"
             "> 文档状态：`BASELINE`  \n"
@@ -340,7 +357,91 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
                     errors = MODULE.validate(root)
 
-                    self.assertTrue(any(token in error and "must not return" in error for error in errors), errors)
+                    self.assertTrue(
+                        any(token in error and "forbidden active WorkOrder/time model token" in error for error in errors),
+                        errors,
+                    )
+
+    def test_chinese_current_work_order_inspection_file_context_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "13-file-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| Context | 文件用途 | 范围状态 |\n"
+                + "|---|---|---|\n"
+                + "| 工单/巡检 | 工单附件和巡检报告 | 当前V1/V2写模型 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("Work Order file context" in error for error in errors), errors)
+
+    def test_work_order_current_write_model_disclaimer_cannot_bypass_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "08-data-model.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| 数据对象 | 数据表 | 范围状态 |\n"
+                + "|---|---|---|\n"
+                + "| WorkOrder | srv_work_order | 当前V1/V2写模型 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertTrue(any("WorkOrder" in error or "srv_work_order" in error for error in errors), errors)
+
+    def test_every_core_contract_work_order_time_table_is_forbidden_in_active_scope(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        contract = json.loads(
+            (repository_root / "docs" / "traceability" / "core-migration-schema-contract.json")
+            .read_text(encoding="utf-8")
+        )
+        forbidden = [
+            table
+            for table in contract["forbiddenV1V2Tables"]
+            if "work_order" in table or table.startswith("srv_time_") or "historical_time" in table
+        ]
+        self.assertGreaterEqual(len(forbidden), 7)
+
+        for table in forbidden:
+            with tempfile.TemporaryDirectory() as temporary:
+                with self.subTest(table=table):
+                    root = Path(temporary)
+                    self.build_fixture(root)
+                    target = root / "docs" / "design" / "09-database-design.md"
+                    target.write_text(
+                        target.read_text(encoding="utf-8")
+                        + "\n| 数据对象 | 数据表 | 范围状态 |\n"
+                        + "|---|---|---|\n"
+                        + f"| CurrentServiceFact | {table} | 当前V1/V2写模型 |\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate(root)
+
+                    self.assertTrue(any(table in error for error in errors), errors)
+
+    def test_future_independent_work_order_change_explanation_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "08-data-model.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n未来如需WorkOrder或srv_work_order，必须通过独立PRD/Feature变更；"
+                + "该说明不属于当前V1/V2写模型。\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertFalse(any("WorkOrder" in error or "srv_work_order" in error for error in errors), errors)
 
     def test_structured_historical_model_exclusion_evidence_is_allowed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -357,7 +458,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             errors = MODULE.validate(root)
 
-            self.assertFalse(any("historical model token" in error for error in errors), errors)
+            self.assertEqual([], errors)
 
     def test_prd_immutable_history_governance_is_allowed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

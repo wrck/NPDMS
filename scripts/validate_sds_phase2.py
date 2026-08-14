@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -44,12 +45,6 @@ NON_ACTIVE_FIELD_VALUES = {
 FORBIDDEN_HISTORICAL_USER_APIS = (
     "/historical-work-orders",
     "/historical-time-records",
-)
-FORBIDDEN_HISTORICAL_MODEL_TOKENS = (
-    "HistoricalWorkOrder",
-    "HistoricalTimeRecord",
-    "srv_historical_work_order",
-    "srv_historical_time_record",
 )
 
 
@@ -154,6 +149,36 @@ def contract_table_rows(text: str):
         yield headers, cells, line
         if headers is None:
             header_candidate = cells
+
+
+def work_order_time_forbidden_tables(root: Path) -> tuple[set[str], list[str]]:
+    path = root / "docs" / "traceability" / "core-migration-schema-contract.json"
+    if not path.is_file():
+        return set(), ["missing core migration schema contract for Phase 2 forbidden-table validation"]
+    try:
+        contract = json.loads(read(path))
+    except (json.JSONDecodeError, OSError) as error:
+        return set(), [f"invalid core migration schema contract: {error}"]
+    forbidden = contract.get("forbiddenV1V2Tables")
+    if not isinstance(forbidden, list) or not all(isinstance(table, str) for table in forbidden):
+        return set(), ["core migration schema contract missing forbiddenV1V2Tables string list"]
+    tables = {
+        table
+        for table in forbidden
+        if table.startswith("srv_")
+        and ("work_order" in table or re.search(r"(?:^|_)time(?:_|$)", table))
+    }
+    if not tables:
+        return set(), ["core migration schema contract has no WorkOrder/time forbidden tables"]
+    return tables, []
+
+
+def forbidden_model_tokens(tables: set[str]) -> set[str]:
+    tokens = set(tables)
+    for table in tables:
+        parts = table.split("_")[1:] if table.startswith("srv_") else table.split("_")
+        tokens.add("".join(part.capitalize() for part in parts))
+    return tokens
 
 
 def prd_formal_requirement_ids(text: str) -> list[str]:
@@ -271,6 +296,10 @@ def validate(root: Path) -> list[str]:
     integration_design = read(design / "12-integration-design.md") if (design / "12-integration-design.md").is_file() else ""
     file_design = read(design / "13-file-design.md") if (design / "13-file-design.md").is_file() else ""
 
+    forbidden_tables, forbidden_contract_errors = work_order_time_forbidden_tables(root)
+    errors.extend(forbidden_contract_errors)
+    forbidden_tokens = forbidden_model_tokens(forbidden_tables)
+
     for api in FORBIDDEN_HISTORICAL_USER_APIS:
         if api in api_design:
             errors.append(f"V1/V2 must not expose historical user API: {api}")
@@ -280,23 +309,28 @@ def validate(root: Path) -> list[str]:
         if not path.is_file():
             continue
         content = read(path)
-        excluded_lines = {
-            line
-            for headers, cells, line in contract_table_rows(content)
-            if is_non_active_contract_row(cells, headers)
-        }
-        for line in content.splitlines():
-            if line in excluded_lines:
+        for headers, cells, line in contract_table_rows(content):
+            if is_non_active_contract_row(cells, headers):
                 continue
-            for token in FORBIDDEN_HISTORICAL_MODEL_TOKENS:
+            for token in sorted(forbidden_tokens, key=len, reverse=True):
                 if token in line:
-                    errors.append(f"{name} historical model token must not return to V1/V2: {token}")
+                    errors.append(f"{name} forbidden active WorkOrder/time model token: {token}")
+                    break
+        for line in content.splitlines():
+            if re.search(r"(?:当前对象|当前数据对象)\s*[:：]", line):
+                for token in sorted(forbidden_tokens, key=len, reverse=True):
+                    if token in line:
+                        errors.append(f"{name} forbidden active WorkOrder/time model token: {token}")
+                        break
 
     for declaration in ACTIVE_REQUIREMENT_LINE.findall(file_design):
         if re.search(r"(?:^|[、，/\s])WO(?:$|[、，/\s])", declaration):
             errors.append("13-file-design.md must not declare a current Work Order file context")
     for headers, cells, line in contract_table_rows(file_design):
-        if not is_non_active_contract_row(cells, headers) and re.search(r"\bWork\s+Order\b", line, re.I):
+        if not is_non_active_contract_row(cells, headers) and (
+            re.search(r"\bWork\s+Order\b", line, re.I)
+            or (cells and re.search(r"(?:^|[/、])工单(?:$|[/、])", cells[0]))
+        ):
             errors.append("13-file-design.md must not declare a current Work Order file context")
 
     formal_id_set = set(prd_identifiers)
@@ -319,6 +353,11 @@ def validate(root: Path) -> list[str]:
                 errors.append(f"{name} contains active DingTalk clock-in fact contract")
 
     for identifier, contract in contracts.items():
+        for field in ("数据对象", "数据表"):
+            for token in sorted(forbidden_tokens, key=len, reverse=True):
+                if token in contract.get(field, ""):
+                    errors.append(f"{identifier} forbidden active WorkOrder/time model token: {token}")
+                    break
         for field in CONTRACT_FIELDS:
             value = contract.get(field, "").strip()
             if not value:

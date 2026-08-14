@@ -226,6 +226,27 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     core_objects = ["项目", "项目任务", "设备", "设备凭证", "采集任务"]
     missing_objects = [name for name in core_objects if name not in appendix_c]
     add(checks, "核心对象索引", bool(appendix_c) and not missing_objects, f"缺少={','.join(missing_objects) or '无'}")
+    appendix_c_rows = [
+        tuple(cell.strip() for cell in match.groups())
+        for match in re.finditer(
+            r"(?m)^\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$",
+            appendix_c,
+        )
+    ]
+    appendix_c_names = {row[1] for row in appendix_c_rows}
+    satisfaction_rows = [row for row in appendix_c_rows if row[1] == "满意度任务与问卷"]
+    add(
+        checks,
+        "附录C不含工单核心对象",
+        "工单" not in appendix_c_names and "WorkOrder" not in appendix_c_names,
+        "工单已退出V1/V2核心对象；附录C必须与正文3.3一致",
+    )
+    add(
+        checks,
+        "附录C满意度核心对象",
+        len(satisfaction_rows) == 1 and "ACC-02" in satisfaction_rows[0][3],
+        "必须唯一列出满意度任务与问卷并以正式需求ACC-02为主要来源",
+    )
 
     semantic_issues = validate_semantics(prd)
     semantic_ids = sorted({issue.req_id for issue in semantic_issues})
