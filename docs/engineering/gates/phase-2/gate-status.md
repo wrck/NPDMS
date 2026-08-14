@@ -11,12 +11,12 @@
 |---|---|---|
 | P2-01 实现事实盘点 | PASS | 69 个业务表、59 个 Controller、65 个 DO 已按一致性分类 |
 | 08 Data Model | BASELINE | Owner、聚合、引用、版本、快照、历史及六项复审修复已通过独立复审 |
-| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 84个对象、95条来源绑定和1个排除源均有机器契约；真实批次字段映射与执行仍由`AI-MIG-000`在后续迁移Gate控制 |
+| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 84个对象、95条来源绑定和1个排除源均有机器契约；历史工单/工时仅允许批准批次的不可变来源证据且无用户入口；真实批次字段映射与执行仍由`AI-MIG-000`控制 |
 | 09 Database Design | BASELINE | 表级约束、PM-05/06专表、临时用户名、消费确认和前向迁移已通过独立复审 |
-| 10 API Design | BASELINE | 103项显式契约、PM-05/06和DAC命令保留原独立复审结论；当前范围纠偏等待本轮独立复审 |
+| 10 API Design | BASELINE | 103项显式契约、PM-05/06和DAC命令保留原独立复审结论；历史工单/工时用户API已移除，当前范围纠偏等待本轮独立复审 |
 | 11 Event Design | BASELINE | producer、consumer、version、顺序、Inbox/Outbox及业务消费完成边界已通过独立复审 |
 | 12 Integration Design | BASELINE | 字段Owner及全部外部系统操作级请求/响应映射已通过独立复审；环境参数待Feature联调登记 |
-| 13 File Design | BASELINE | 文件身份、引用、版本、哈希、权限、归档已通过独立复审 |
+| 13 File Design | BASELINE | 文件身份、引用、版本、哈希、权限、归档保持原契约；历史工单/工时附件不形成当前文件入口 |
 | 15 Cache & Concurrency | BASELINE | 缓存非真值、版本冲突、树/归属并发已通过独立复审 |
 | 16 Exception & Idempotency | BASELINE | 错误码、重放、超时、部分失败、补偿已通过独立复审 |
 
@@ -57,8 +57,8 @@
 | 编号 | 状态 | 当前阻塞 | 解除条件 |
 |---|---|---|---|
 | P2-CORR-01 | IN_REVIEW | 当前范围、统计和校验器纠偏尚未完成独立复审 | 本轮纠偏任务全部完成并由 fresh-context 评审给出 GO |
-| P2-CORR-02 | OPEN | 迁移契约仍需改为从登记的冻结实现提交读取证据 | 完成冻结提交绑定校验并证明实现 HEAD 前进不影响结果 |
-| P2-CORR-03 | BLOCKED_BY_SPEC | 历史资料的当前承载边界尚待需求方决定 | 仅关闭相关历史资料接口/文件边界；不阻断其他独立纠偏 |
+| P2-CORR-02 | CLOSED | 迁移契约已改为从登记的冻结实现提交读取证据 | `edf6cb7`、`69dc27d`已证明实现HEAD前进不影响冻结证据，且短/全SHA均按同一提交解析 |
+| P2-CORR-03 | CLOSED | Q-P2-001采用方案B：V1/V2无历史工单/工时用户入口，仅保留`AI-MIG-000`不可变来源证据边界 | 08a、10、13和校验器已收口；未来查询能力必须独立PRD/Feature变更 |
 
 真实接口地址、认证材料、数值型 timeout/retry/limit 仍是 Feature 联调前证据门禁，不构成 Phase 2 当前阻塞。
 

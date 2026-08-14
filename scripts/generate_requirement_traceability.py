@@ -210,7 +210,7 @@ def sds_reference(identifier: str) -> str:
         "IMP": ("6-implementation-execution-数据模型", "6-implementation-execution-与-acceptance-表设计", "7-imp现场实施-api"),
         "ACC": ("7-acceptance--closure-数据模型", "6-implementation-execution-与-acceptance-表设计", "8-acc验收与项目闭环-api"),
         "CUT": ("8-cutoverinspection-与-service-operations", "7-cutoverinspection-与服务状态", "9-cut割接-api"),
-        "SRV": ("8-cutoverinspection-与-service-operations", "7-cutoverinspection-与服务状态", "10-srv巡检服务状态与历史资料-api"),
+        "SRV": ("8-cutoverinspection-与-service-operations", "7-cutoverinspection-与服务状态", "10-srv巡检与服务状态-api"),
         "CUS": ("9-customerassetcommerce-与-resource", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),
         "AST": ("9-customerassetcommerce-与-resource", "5-asset-设备归属与维保基本事实", "11-cusastcomres-与-kno-api"),
         "COM": ("9-customerassetcommerce-与-resource", "8-customercommerceresource-与-knowledge", "11-cusastcomres-与-kno-api"),

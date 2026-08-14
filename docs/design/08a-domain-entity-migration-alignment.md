@@ -6,7 +6,7 @@
 > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
 > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。
 
-本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖84个领域实体，通过95条来源绑定描述当前实现、旧数据元、外部系统、派生来源和排除证据，并登记1个明确排除源。每个对象独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供84个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障安排和设备框板关系；已删除的HR目录同步快照及历史工单/工时对象不在当前迁移对象集合中。
+本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖84个领域实体，通过95条来源绑定描述当前实现、旧数据元、外部系统、派生来源和排除证据，并登记1个明确排除源。每个对象独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供84个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障安排和设备框板关系；已删除的HR目录同步快照及历史工单/工时对象不在当前迁移对象集合中，也不提供V1/V2用户查询、导出或附件入口。
 
 ## 1. 证据和使用规则
 
@@ -109,7 +109,7 @@
 | `ServiceIssue` | 当前`pms_srv_issue`、ITR问题候选 | CURRENT_FORWARD+EXTERNAL_SYNC | 按来源类型区分巡检问题与ITR问题；问题Owner不因项目引用改变 |
 | `ServiceStatus` | `fb_service`、`view_warranty*`、`warranty_info/change_logs`及当前维保表的客观字段 | STRUCTURED+EXTERNAL_SYNC | 只计算客观在保/在维/停产停维提示；续保动作、空间和报表全部排除 |
 
-`pm_project_maintenance` 全表按需求方 2026-08-13 确认执行 `EXCLUDED/NO_MIGRATION`，仅保留表级排除审计，不挂到任何业务对象，不生成字段绑定。PRD 第 8.2 节只保留历史事实不可删除的治理规则；在真实来源被识别且需求方确认迁移之前，不建立历史工单/工时迁移对象或空壳表。
+`pm_project_maintenance` 全表按需求方 2026-08-13 确认执行 `EXCLUDED/NO_MIGRATION`，仅保留表级排除审计，不挂到任何业务对象，不生成字段绑定。PRD 第 8.2 节“历史事实不可删除”是保存义务而非当前产品能力授权：V1/V2不建立历史工单/工时迁移对象、空壳表、菜单、查询、导出或附件入口。只有真实来源被识别并纳入已批准的`AI-MIG-000`批次时，才可把来源业务键、原状态、原责任、附件引用、审批和操作记录作为不可变来源载荷或受限迁移归档证据保存；该证据不挂接当前业务对象，也不产生用户访问契约。未来若需用户查询，必须通过独立PRD/Feature变更重新批准Owner、模型、API、权限、导出审计及来源映射。
 
 ## 8. Customer、Asset、Commerce、Resource
 
@@ -173,6 +173,7 @@
 | `pm_project_weekly*`、日报/周报 | `EXCLUDED`；可留历史查阅，不生成正式MetricSnapshot |
 | 维保档案、续保年限/动作/空间、续保率及过保空间报表 | `EXCLUDED`；仅客观设备MaintenanceFact和服务交接可结构化迁移 |
 | 工单时效、平台通用割接时效 | `EXCLUDED`；不生成目标阈值、考核字段或状态 |
+| 历史工单/工时用户查询、导出和附件入口 | V1/V2不建设；`AI-MIG-000`仅在批准批次内保存不可变来源载荷或受限归档证据，不形成领域对象、目标表映射或用户访问契约 |
 | 备件采购、库存、出入库 | `EXCLUDED`于本平台；只迁外部业务引用、RMA关系和对账键 |
 | 本地技术公告发布/停用/治理 | V1/V2 `COMPATIBILITY_ONLY`；V3是否启用另行批准 |
 | Activiti任务/通知送达/HTTP 2xx | 仅流程/传输证据，不迁为业务完成状态 |

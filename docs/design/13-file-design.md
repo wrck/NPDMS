@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PLT-02，以及 PRE-02/04/05、SOL、EXE-01～04、IMP-01～02、ACC-01～06、CLO、CUT、WO、INS、RES/SUB、INT-06/07/12 等使用文件和证据的正式需求
+> Requirement ID：PLT-02，以及 PRE-02/04/05、SOL、EXE-01～04、IMP-01～02、ACC-01～06、CLO、CUT、INS、RES/SUB、INT-06/07/12 等使用文件和证据的正式需求
 > Owner：基础平台 File Capability；业务含义、审核和归档状态仍由引用该文件的 Owner Context 持有
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
 
@@ -13,6 +13,7 @@
 - 相同内容可以去重存储，但不同业务文件身份、版本和权限不能因哈希相同而合并。
 - 业务表不得只保存可变 URL；保存 `artifactId + versionNo`，下载时生成短时受权地址。
 - Word 文档正文不做内容级审计；文件上传、版本替换、引用、下载、审核、归档和失效等业务动作仍按权限留痕。
+- 历史工单、工时及其附件不形成V1/V2业务文件入口。只有已纳入批准`AI-MIG-000`批次的真实来源，才可把原附件引用及校验信息保存为不可变来源载荷或受限迁移归档证据；不创建FileReference业务挂接、下载/预览/导出入口或新的文件权限。未来开放访问必须先经独立PRD/Feature变更批准。
 
 ## 2. 核心对象
 
@@ -88,7 +89,7 @@
 | Implementation Execution | 签收证据、安装照片、配置/联调结果、质量安全证据、DeliveryEvidence | IMP 上传和发布证据 revision |
 | Acceptance & Closure | 培训、问卷、验收报告、齐套清单、归档包、交接证据 | ACC 审核、批准和归档引用；不覆盖 IMP 原版本 |
 | Cutover | 方案、脚本引用、执行输出、验证和回退证据 | CUT 冻结批准方案版本和执行证据 |
-| Work Order/Inspection | 工单证据、离线脚本/结果、报告和整改附件 | Inspection 规则/报告版本不可覆盖；外部结果保留来源 |
+| Inspection | 离线脚本/结果、报告和整改附件 | Inspection 规则/报告版本不可覆盖；外部结果保留来源 |
 | Asset/Resource | 厂商凭证、RMA、服务商资质、转包/付款证据 | 业务 Owner 保存用途和有效期；敏感字段受控 |
 | Integration | 对账导出、人工回填、UMC报告、采集结果 | 保存接口批次、来源键、哈希和回调证据 |
 

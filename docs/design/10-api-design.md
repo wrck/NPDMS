@@ -169,9 +169,9 @@
 | `/cutover-tasks/{id}/approval-actions/{approve|reject}` | POST | 按人工等级和冻结路由校验节点；任一评审项为否必须驳回并填写原因 |
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
 
-## 10. SRV：巡检、服务状态与历史资料 API
+## 10. SRV：巡检与服务状态 API
 
-适用 Requirement：INS-01～INS-09、SRV-01；历史资料读取边界依据ADR-0024，不构成当前工单/工时能力。
+适用 Requirement：INS-01～INS-09、SRV-01。
 
 | Context | API | 约束 |
 |---|---|---|
@@ -180,7 +180,8 @@
 | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
 | Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
-| Historical Service Records | `/historical-work-orders`、`/historical-time-records` | 仅授权查询/导出；无create/update/action接口；保留来源键、原状态、责任、附件、审批和操作证据，导出留痕 |
+
+历史工单、工时及其附件在V1/V2不提供用户查询、导出或文件访问API。`AI-MIG-000`在已批准真实批次内保存的不可变来源载荷或受限迁移归档仅用于迁移对账、问题调查和来源审计，不是SRV业务API；未来用户访问能力必须通过独立PRD/Feature变更重新批准。
 
 ## 11. CUS、AST、COM、RES 与 KNO API
 
@@ -311,6 +312,6 @@
 | 服务端授权不可绕过 | PASS | 第 4 节；租户/项目/设备/文件/凭证范围 |
 | 幂等和并发输入明确 | PASS | Idempotency-Key、If-Match、错误响应 |
 | 敏感信息不回显 | PASS | 第 13 节 write-only 临时秘密和掩码响应 |
-| 已排除能力无新接口 | PASS | 无续保、周报日报、工单时效和本地公告治理入口 |
+| 已排除/后置能力无新接口 | PASS | 无续保、周报日报、工单时效、历史工单/工时用户访问和本地公告治理入口 |
 
 本分册可进入事件、集成、文件和异常幂等交叉评审；接口正式发布前仍需生成 OpenAPI、契约测试和兼容清单。

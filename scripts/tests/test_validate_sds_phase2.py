@@ -283,6 +283,95 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
                     self.assertFalse(any("DingTalk clock-in" in error for error in errors), errors)
 
+    def test_historical_work_order_and_time_user_apis_fail(self) -> None:
+        for api in ("/historical-work-orders", "/historical-time-records"):
+            with tempfile.TemporaryDirectory() as temporary:
+                with self.subTest(api=api):
+                    root = Path(temporary)
+                    self.build_fixture(root)
+                    target = root / "docs" / "design" / "10-api-design.md"
+                    target.write_text(
+                        target.read_text(encoding="utf-8")
+                        + f"\n| Historical Service Records | `{api}` | read/export |\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate(root)
+
+                    self.assertTrue(any(api in error and "must not expose" in error for error in errors), errors)
+
+    def test_current_work_order_file_context_fails(self) -> None:
+        mutations = (
+            lambda content: content
+            + "\n| Work Order/Inspection | 工单证据、巡检报告 | 当前V1/V2文件入口 |\n",
+            lambda content: content.replace(
+                "Requirement ID：REQ-001",
+                "Requirement ID：REQ-001、WO",
+            ),
+        )
+        for mutate in mutations:
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                self.build_fixture(root)
+                target = root / "docs" / "design" / "13-file-design.md"
+                target.write_text(mutate(target.read_text(encoding="utf-8")), encoding="utf-8")
+
+                errors = MODULE.validate(root)
+
+                self.assertTrue(any("Work Order file context" in error for error in errors), errors)
+
+    def test_historical_work_order_objects_and_tables_cannot_return(self) -> None:
+        injections = {
+            "08a-domain-entity-migration-alignment.md": "HistoricalWorkOrder",
+            "08-data-model.md": "HistoricalTimeRecord",
+            "09-database-design.md": "srv_historical_work_order",
+            "10-api-design.md": "srv_historical_time_record",
+        }
+        for name, token in injections.items():
+            with tempfile.TemporaryDirectory() as temporary:
+                with self.subTest(name=name, token=token):
+                    root = Path(temporary)
+                    self.build_fixture(root)
+                    target = root / "docs" / "design" / name
+                    target.write_text(
+                        target.read_text(encoding="utf-8") + f"\n当前对象：`{token}`。\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate(root)
+
+                    self.assertTrue(any(token in error and "must not return" in error for error in errors), errors)
+
+    def test_structured_historical_model_exclusion_evidence_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            target = root / "docs" / "design" / "09-database-design.md"
+            target.write_text(
+                target.read_text(encoding="utf-8")
+                + "\n| 对象 | 目标表 | status | 说明 |\n"
+                + "|---|---|---|---|\n"
+                + "| HistoricalWorkOrder | srv_historical_work_order | EXCLUDED | 不进入当前契约 |\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate(root)
+
+            self.assertFalse(any("historical model token" in error for error in errors), errors)
+
+    def test_prd_immutable_history_governance_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.build_fixture(root)
+            prd = root / "docs" / "baseline" / "prd-v1.7.md"
+            prd.write_text(
+                prd.read_text(encoding="utf-8")
+                + "\n已有历史工单、工时、附件、审批和明确要求记录的操作属于不可删除业务事实。\n",
+                encoding="utf-8",
+            )
+
+            self.assertEqual([], MODULE.validate(root))
+
 
 if __name__ == "__main__":
     unittest.main()

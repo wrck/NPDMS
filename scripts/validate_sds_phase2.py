@@ -41,6 +41,16 @@ NON_ACTIVE_FIELD_VALUES = {
     "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "PENDING_SOURCE_CONFIRMATION",
     "历史排除", "不属于当前", "不进入当前",
 }
+FORBIDDEN_HISTORICAL_USER_APIS = (
+    "/historical-work-orders",
+    "/historical-time-records",
+)
+FORBIDDEN_HISTORICAL_MODEL_TOKENS = (
+    "HistoricalWorkOrder",
+    "HistoricalTimeRecord",
+    "srv_historical_work_order",
+    "srv_historical_time_record",
+)
 
 
 def read(path: Path) -> str:
@@ -260,6 +270,34 @@ def validate(root: Path) -> list[str]:
     event_design = read(design / "11-event-design.md") if (design / "11-event-design.md").is_file() else ""
     integration_design = read(design / "12-integration-design.md") if (design / "12-integration-design.md").is_file() else ""
     file_design = read(design / "13-file-design.md") if (design / "13-file-design.md").is_file() else ""
+
+    for api in FORBIDDEN_HISTORICAL_USER_APIS:
+        if api in api_design:
+            errors.append(f"V1/V2 must not expose historical user API: {api}")
+
+    for name in PHASE2_DOCS:
+        path = design / name
+        if not path.is_file():
+            continue
+        content = read(path)
+        excluded_lines = {
+            line
+            for headers, cells, line in contract_table_rows(content)
+            if is_non_active_contract_row(cells, headers)
+        }
+        for line in content.splitlines():
+            if line in excluded_lines:
+                continue
+            for token in FORBIDDEN_HISTORICAL_MODEL_TOKENS:
+                if token in line:
+                    errors.append(f"{name} historical model token must not return to V1/V2: {token}")
+
+    for declaration in ACTIVE_REQUIREMENT_LINE.findall(file_design):
+        if re.search(r"(?:^|[、，/\s])WO(?:$|[、，/\s])", declaration):
+            errors.append("13-file-design.md must not declare a current Work Order file context")
+    for headers, cells, line in contract_table_rows(file_design):
+        if not is_non_active_contract_row(cells, headers) and re.search(r"\bWork\s+Order\b", line, re.I):
+            errors.append("13-file-design.md must not declare a current Work Order file context")
 
     formal_id_set = set(prd_identifiers)
     for name in PHASE2_DOCS:
