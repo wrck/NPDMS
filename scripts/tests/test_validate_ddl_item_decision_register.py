@@ -63,7 +63,12 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
             review_ref = "docs/engineering/gates/phase-3/independent-review.md"
             review_path = root / review_ref
             review_path.parent.mkdir(parents=True)
-            review_path.write_text("独立复审结论：GO", encoding="utf-8")
+            review_path.write_text(
+                "> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `TEST_COMMIT`\n"
+                "> ddlSha256: `CURRENT`\n> itemsSha256: `ITEMS`\n> itemCount: `1`\n"
+                "> deferCount: `0`\n> testResult: `PASS`\n",
+                encoding="utf-8",
+            )
             register = {
                 "currentDdlSha256": "CURRENT",
                 "itemsSha256": "ITEMS",
@@ -81,10 +86,12 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
                 "mysql84DdlSha256": "CURRENT",
                 "independentReviewResult": "GO",
                 "independentReviewRef": review_ref,
+                "candidateCommit": "TEST_COMMIT",
                 "decisionOwner": "requirement-owner",
                 "reviewOwner": "independent-reviewer",
                 "evidenceRefs": [review_ref],
                 "approvedDdlSha256": None,
+                "isolatedMysqlExecution": {"status": "PASS"},
             }
             self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence, root=root))
 

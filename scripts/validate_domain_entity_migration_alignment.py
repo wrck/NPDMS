@@ -9,7 +9,11 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
 
 
 ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "LEGACY_TABLE", "LEGACY_FIELD_PATTERN", "EXTERNAL_SYSTEM", "DERIVED_TARGET", "NONE_NEW", "PENDING_SOURCE_IDENTIFICATION"}
@@ -513,9 +517,31 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
     if actual_ddl_sha != ddl_review["inputs"].get("currentDdlSha256"):
         errors.append("DDL drift review current hash does not match the current DDL")
     p3e09 = next((item for item in gate.get("items", []) if item.get("id") == "P3-E09"), None)
-    drift_unapproved = ddl_review["decisionPolicy"].get("current") == "DEFER" or not ddl_review["decisionPolicy"].get("approvedDdlSha256")
-    if drift_unapproved and (not p3e09 or p3e09.get("status") != "OPEN"):
-        errors.append("unapproved DDL drift must keep P3-E09 OPEN and historical migration/data cutover blocked")
+    if not p3e09:
+        errors.append("domain migration alignment requires P3-E09 evidence")
+    else:
+        facts = p3e09.get("confirmedFacts", {})
+        blocks = set(p3e09.get("blocks", []))
+        required_migration_blocks = {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"}
+        if not required_migration_blocks <= blocks:
+            errors.append("P3-E09 must keep historical migration and data cutover blocked")
+        if facts.get("modelDecisionStatus") == "MODEL_BASELINE_READY":
+            register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
+            try:
+                register = load_json(register_path)
+            except (OSError, json.JSONDecodeError) as exc:
+                errors.append(f"P3-E09 READY requires the DDL decision register: {exc}")
+            else:
+                errors.extend(validate_model_baseline(
+                    register,
+                    {
+                        **facts,
+                        "decisionOwner": p3e09.get("decisionOwner"),
+                        "reviewOwner": p3e09.get("reviewOwner"),
+                        "evidenceRefs": p3e09.get("evidenceRefs"),
+                    },
+                    root=root,
+                ))
     if p3e09 and p3e09.get("confirmedFacts", {}).get("currentDdlSha256") not in {None, actual_ddl_sha}:
         errors.append("P3-E09 current DDL hash conflicts with the drift review")
     return errors

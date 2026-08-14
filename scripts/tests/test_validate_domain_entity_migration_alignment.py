@@ -75,7 +75,14 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             "docs/traceability/core-migration-schema-contract.json",
             {"v17Delta": {"objectTargetTables": {"Project": ["proj_project"]}}},
         )
-        self.gate = {"overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": [{"id": "P3-E09", "status": "OPEN"}]}
+        self.gate = {
+            "overallStatus": "NOT_READY_FOR_SDS_BASELINE",
+            "items": [{
+                "id": "P3-E09", "status": "OPEN", "decisionOwner": None, "reviewOwner": None,
+                "confirmedFacts": {}, "evidenceRefs": [],
+                "blocks": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
+            }],
+        }
         self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
         self.contract = {
             "implementationRepo": str(self.impl), "implementationCommit": "TEST_COMMIT", "implementationTreeState": "CLEAN",
@@ -147,6 +154,46 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         clean_result = type("Completed", (), {"stdout": ""})()
         with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]):
             return VALIDATOR.validate(self.root, self.impl)
+
+    def _enable_model_ready_with_null_migration_approval(self) -> None:
+        ddl_sha = self.ddl_review["inputs"]["currentDdlSha256"]
+        register = {
+            "currentDdlSha256": ddl_sha,
+            "itemsSha256": "ITEMS",
+            "items": [{"itemId": "COLUMN:proj_project:id", "decision": "ACCEPT_CURRENT"}],
+        }
+        self._write_json("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json", register)
+        review_ref = "docs/engineering/gates/phase-3/independent-review.md"
+        (self.root / review_ref).write_text(
+            f"> status: `APPROVED`\n> conclusion: `GO`\n> candidateCommit: `TEST_COMMIT`\n"
+            f"> ddlSha256: `{ddl_sha}`\n> itemsSha256: `ITEMS`\n> itemCount: `1`\n"
+            "> deferCount: `0`\n> testResult: `PASS`\n",
+            encoding="utf-8",
+        )
+        facts = {
+            "modelDecisionStatus": "MODEL_BASELINE_READY",
+            "currentDdlSha256": ddl_sha,
+            "targetCatalogDdlSha256": ddl_sha,
+            "mappingDdlSha256": ddl_sha,
+            "validationDdlSha256": ddl_sha,
+            "manifestDdlSha256": ddl_sha,
+            "itemsSha256": "ITEMS",
+            "itemIdsSha256": VALIDATOR.item_ids_sha256(register["items"]),
+            "deferredItemCount": 0,
+            "mysql84DdlSha256": ddl_sha,
+            "isolatedMysqlExecution": {"status": "PASS"},
+            "independentReviewResult": "GO",
+            "independentReviewRef": review_ref,
+            "candidateCommit": "TEST_COMMIT",
+            "approvedDdlSha256": None,
+        }
+        item = self.gate["items"][0]
+        item.update({
+            "status": "VERIFIED", "decisionOwner": "requirement-owner",
+            "reviewOwner": "independent-reviewer", "confirmedFacts": facts,
+            "evidenceRefs": [review_ref],
+        })
+        self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
 
     def test_complete_contract_passes(self) -> None:
         self.assertEqual([], self._validate())
@@ -277,11 +324,15 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self._write_json("docs/traceability/domain-entity-migration-contract.json", self.contract)
         self.assertTrue(any("binding statistics must be derived" in error for error in self._validate()))
 
-    def test_unapproved_ddl_cannot_close_gate(self) -> None:
-        self.gate["overallStatus"] = "READY_FOR_SDS_BASELINE"
-        self.gate["items"][0]["status"] = "CLOSED"
+    def test_model_ready_with_null_migration_approval_is_valid(self) -> None:
+        self._enable_model_ready_with_null_migration_approval()
+        self.assertEqual([], self._validate())
+
+    def test_model_ready_keeps_migration_and_cutover_blocked(self) -> None:
+        self._enable_model_ready_with_null_migration_approval()
+        self.gate["items"][0]["blocks"] = ["HISTORICAL_DATA_MIGRATION"]
         self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
-        self.assertTrue(any("must keep P3-E09 OPEN" in error for error in self._validate()))
+        self.assertTrue(any("must keep historical migration and data cutover blocked" in error for error in self._validate()))
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@
 | 输出 | 状态 | 放行条件 |
 |---|---|---|
 | P3-01运行事实盘点 | PASS | 已区分设计契约与部署/运行证据；P3-E01～E06保留下游门禁，不前置阻断SDS |
-| 08a领域实体迁移对齐 | PASS-DESIGN-WITH-GATE | 全部显式数据对象已有迁移策略；P3-E09模型基线已发布，AI-MIG-000真实批次与字段级迁移执行仍待关闭 |
+| 08a领域实体迁移对齐 | PASS-DESIGN-WITH-GATE | 全部显式数据对象已有迁移策略；P3-E09当前为待fresh review的模型候选，尚未放行SDS/Feature输入；AI-MIG-000真实批次与字段级迁移执行仍待关闭 |
 | 14 Security Design | READY_FOR_REVIEW | 逻辑控制与验证方案已形成；生产实例在部署/发布门禁登记 |
 | 17 Audit & Observability | READY_FOR_REVIEW | 审计、留存、采样、导出及Telemetry验收契约已形成；具体后端在部署时登记 |
 | 18 Deployment Design | READY_FOR_REVIEW | 制品、配置、前向迁移、发布、恢复和应用回退已定义；实际环境与演练下沉到对应门禁 |
@@ -53,4 +53,4 @@ Phase 3逻辑设计和证据契约已达到基线复审条件，可以进行独�
 
 实现质量缺口：P3-E08（前端`ts:check`失败）不用于否定Phase 3逻辑设计，但阻塞任何前端Feature进入实现验收或正式发布。
 
-数据模型与迁移边界：P3-E09已发布当前SDS模型基线，不再以`BLOCKED_BY_REVIEW`阻断该模型输入；`AI-MIG-000`、历史数据迁移和数据切换仍为`OPEN`，未经真实批次验证不得执行。旧`passed=true`不作为当前证据。
+数据模型与迁移边界：P3-E09当前为`MODEL_BASELINE_REVIEW_PENDING`候选，fresh reviewer写入精确`GO`且完整模型校验通过前，持续阻断`DATA_MODEL_BASELINE`与SDS/Feature输入；`AI-MIG-000`、历史数据迁移和数据切换仍为`OPEN`，未经真实批次验证不得执行。旧`passed=true`不作为当前证据。

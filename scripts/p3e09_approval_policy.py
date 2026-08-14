@@ -19,6 +19,14 @@ DDL_ARTIFACT_HASH_FIELDS = {
 FORMAL_REVIEW_PREFIXES = ("docs/engineering/gates/", "docs/decisions/")
 FORMAL_GO_CONCLUSION = re.compile(r"(?mi)^\s*(?:独立复审\s*)?结论\s*[：:]\s*GO\s*$")
 FORMAL_NO_GO_TOKEN = re.compile(r"(?i)(?<![A-Z])NO[-_ ]?GO(?![A-Z])")
+FORMAL_REVIEW_FIELDS = (
+    "status", "conclusion", "candidateCommit", "ddlSha256", "itemsSha256",
+    "itemCount", "deferCount", "testResult",
+)
+FORMAL_REVIEW_FIELD = re.compile(
+    r"(?mi)^\s*>?\s*(status|conclusion|candidateCommit|ddlSha256|itemsSha256|itemCount|deferCount|testResult)\s*[：:]\s*`?([^`\r\n<]+?)`?\s*(?:<br>)?\s*$"
+)
+FORMAL_REVIEW_CONTRADICTION = re.compile(r"(?mi)\bIN_REVIEW\b|\bPENDING(?:_[A-Z_]+)?\b|不是\s*`?GO`?|不得[^\n]*GO")
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -35,7 +43,45 @@ def _has_explicit_independent_go(review_text: str) -> bool:
     """Accept only an explicit GO conclusion, never a NO-GO substring."""
     if FORMAL_NO_GO_TOKEN.search(review_text):
         return False
-    return bool(FORMAL_GO_CONCLUSION.search(review_text))
+    return bool(FORMAL_GO_CONCLUSION.search(review_text)) or formal_review_fields(review_text).get("conclusion") == "GO"
+
+
+def formal_review_fields(review_text: str) -> dict[str, str]:
+    """Read the fixed, machine-checkable fields from a formal review record."""
+    return {name: value.strip() for name, value in FORMAL_REVIEW_FIELD.findall(review_text)}
+
+
+def formal_review_errors(
+    review_text: str,
+    evidence: dict[str, object],
+    register: dict[str, object],
+) -> list[str]:
+    """Ensure an APPROVED/GO review binds exactly to current model facts."""
+    fields = formal_review_fields(review_text)
+    errors: list[str] = []
+    for field in FORMAL_REVIEW_FIELDS:
+        if not fields.get(field):
+            errors.append(f"P3-E09 independent review missing fixed field: {field}")
+    expected = {
+        "status": "APPROVED",
+        "conclusion": "GO",
+        "candidateCommit": str(evidence.get("candidateCommit", "")),
+        "ddlSha256": str(register.get("currentDdlSha256", "")),
+        "itemsSha256": str(register.get("itemsSha256", "")),
+        "itemCount": str(len(register.get("items", []))),
+        "deferCount": "0",
+        "testResult": str(evidence.get("isolatedMysqlExecution", {}).get("status", "")),
+    }
+    for field, value in expected.items():
+        if not value:
+            errors.append(f"P3-E09 model facts missing independent review field: {field}")
+        elif fields.get(field) != value:
+            errors.append(f"P3-E09 independent review {field} mismatch")
+    if fields.get("conclusion") != evidence.get("independentReviewResult"):
+        errors.append("P3-E09 independent review conclusion must match independentReviewResult")
+    if FORMAL_REVIEW_CONTRADICTION.search(review_text):
+        errors.append("P3-E09 independent review contains pending or non-GO contradiction")
+    return errors
 
 
 def _is_within(path: Path, directory: Path) -> bool:
@@ -114,6 +160,7 @@ def validate_model_baseline(
                 review_text = review_path.read_text(encoding="utf-8")
                 if not _has_explicit_independent_go(review_text):
                     errors.append("P3-E09 independent review reference must record an independent GO conclusion")
+                errors.extend(formal_review_errors(review_text, evidence, register))
     if "approvedDdlSha256" not in evidence:
         errors.append("P3-E09 approvedDdlSha256 must be explicitly present and empty for the SDS model baseline")
     elif evidence["approvedDdlSha256"] not in (None, ""):

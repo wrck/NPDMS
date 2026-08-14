@@ -14,13 +14,28 @@ SPEC.loader.exec_module(POLICY)
 
 
 class P3E09ApprovalPolicyTest(unittest.TestCase):
+    def write_review(self, **overrides: str) -> None:
+        fields = {
+            "status": "APPROVED",
+            "conclusion": "GO",
+            "candidateCommit": "TEST_COMMIT",
+            "ddlSha256": "DDL",
+            "itemsSha256": "ITEMS",
+            "itemCount": "2",
+            "deferCount": "0",
+            "testResult": "PASS",
+            **overrides,
+        }
+        content = "\n".join(f"> {name}: `{value}`" for name, value in fields.items()) + "\n"
+        (self.root / self.review_ref).write_text(content, encoding="utf-8")
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.review_ref = "docs/engineering/gates/phase-3/independent-review.md"
         review_path = self.root / self.review_ref
         review_path.parent.mkdir(parents=True)
-        review_path.write_text("独立复审结论：GO", encoding="utf-8")
+        review_path.write_text("", encoding="utf-8")
         self.register = {
             "currentDdlSha256": "DDL",
             "itemsSha256": "ITEMS",
@@ -41,11 +56,14 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
             "mysql84DdlSha256": "DDL",
             "independentReviewResult": "GO",
             "independentReviewRef": self.review_ref,
+            "candidateCommit": "TEST_COMMIT",
             "approvedDdlSha256": None,
             "decisionOwner": "requirement-owner",
             "reviewOwner": "independent-reviewer",
             "evidenceRefs": [self.review_ref],
+            "isolatedMysqlExecution": {"status": "PASS"},
         }
+        self.write_review()
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -98,20 +116,46 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.assertTrue(any("must resolve inside a formal gate or ADR" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
 
     def test_model_baseline_accepts_explicit_formal_go_conclusion(self) -> None:
-        (self.root / self.review_ref).write_text("独立复审结论：GO\n", encoding="utf-8")
+        self.write_review()
         self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
 
     def test_model_baseline_accepts_explicit_go_conclusion(self) -> None:
-        (self.root / self.review_ref).write_text("结论：GO\n", encoding="utf-8")
+        self.write_review()
         self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
 
     def test_model_baseline_rejects_formal_no_go_conclusion(self) -> None:
-        (self.root / self.review_ref).write_text("独立复审结论：NO-GO\n", encoding="utf-8")
+        self.write_review(conclusion="NO_GO")
         self.assertTrue(any("independent GO conclusion" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
 
     def test_model_baseline_rejects_ambiguous_go_text(self) -> None:
         (self.root / self.review_ref).write_text("独立复审已完成，后续事项为 GO。\n", encoding="utf-8")
         self.assertTrue(any("independent GO conclusion" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+
+    def test_model_baseline_rejects_pending_or_non_go_review_record(self) -> None:
+        self.write_review(status="IN_REVIEW", conclusion="PENDING_FRESH_REVIEW")
+        errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+        self.assertTrue(any("independent review status mismatch" in error for error in errors))
+        self.assertTrue(any("independent review conclusion mismatch" in error for error in errors))
+
+    def test_model_baseline_rejects_stale_candidate_or_model_facts(self) -> None:
+        for field, value in {
+            "candidateCommit": "OLD_COMMIT",
+            "ddlSha256": "OLD_DDL",
+            "itemsSha256": "OLD_ITEMS",
+            "itemCount": "1882",
+            "deferCount": "1",
+            "testResult": "FAIL",
+        }.items():
+            with self.subTest(field=field):
+                self.write_review(**{field: value})
+                errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
+                self.assertTrue(any(f"independent review {field} mismatch" in error for error in errors))
+
+    def test_model_baseline_rejects_go_record_with_contradictory_text(self) -> None:
+        self.write_review()
+        with (self.root / self.review_ref).open("a", encoding="utf-8") as review:
+            review.write("本记录不是GO，仍待复审。\n")
+        self.assertTrue(any("contradiction" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
 
 
 if __name__ == "__main__":

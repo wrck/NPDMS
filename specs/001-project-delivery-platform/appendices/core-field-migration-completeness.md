@@ -10,7 +10,7 @@
 - 去冗余后的物理草案为52张表、1079个带中文注释的字段，覆盖客户、项目、合同、订单行实施范围、CRM辅助关系、SN物流、交付件、配置、版本、公告和故障；
 - DDL已在隔离MySQL 8.4.10实例验证，结果为52张表、79个租户复合外键、81个CHECK约束。
 
-> 以上DDL验证是2026-08-05历史快照。当前候选核心迁移子集已重建为60表、1,240列、48个同域外键、89个CHECK及122项候选普通索引，哈希为`5EB974...E4249`；ADR-0028已按该哈希接受九组需求方清单，4张V3技术公告治理表及跨领域物理外键仍被排除。当前子集已在隔离MySQL 8.4.10完整执行，但三类Owner、独立Reviewer结构化签署及`approvedDdlSha256`尚未形成，不得把“可执行”误作“已批准迁移切换”。
+> 以上DDL验证是2026-08-05历史快照。当前候选核心迁移子集已重建为60表、1,240列、48个同域外键、89个CHECK及122项候选普通索引，哈希为`5EB974...E4249`；ADR-0028已按该哈希接受九组需求方清单，4张V3技术公告治理表及跨领域物理外键仍被排除。当前子集已在隔离MySQL 8.4.10完整执行，但模型候选仍待fresh independent review的整体一致性`GO`，不得把“可执行”误作“已放行SDS/Feature模型输入”或“已批准迁移切换”。`approvedDdlSha256`保持显式`null`，仅由未来`AI-MIG-000`真实批次门禁管理。
 
 逐字段机器可读证据见[`../evidence/migration/core-field-mapping.jsonl`](../evidence/migration/core-field-mapping.jsonl)，汇总见[`../evidence/migration/core-field-mapping-summary.json`](../evidence/migration/core-field-mapping-summary.json)。
 
