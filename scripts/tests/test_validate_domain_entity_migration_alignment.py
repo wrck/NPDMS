@@ -3,11 +3,11 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).parents[1] / "validate_domain_entity_migration_alignment.py"
@@ -16,6 +16,12 @@ VALIDATOR = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(VALIDATOR)
 POLICY = sys.modules[VALIDATOR.validate_model_baseline.__module__]
+
+GENERATOR_PATH = Path(__file__).parents[1] / "generate_domain_entity_migration_contract.py"
+GENERATOR_SPEC = importlib.util.spec_from_file_location("generate_domain_entity_migration_contract", GENERATOR_PATH)
+GENERATOR = importlib.util.module_from_spec(GENERATOR_SPEC)
+assert GENERATOR_SPEC.loader is not None
+GENERATOR_SPEC.loader.exec_module(GENERATOR)
 
 
 class DomainEntityMigrationAlignmentTest(unittest.TestCase):
@@ -27,6 +33,10 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         (self.impl / "sql" / "migrations" / "V1__test.sql").write_text(
             "CREATE TABLE pms_eng_arrival (id bigint, renew_status varchar(20));\n", encoding="utf-8"
         )
+        subprocess.run(["git", "init", "-q"], cwd=self.impl, check=True)
+        subprocess.run(["git", "config", "user.name", "migration-test"], cwd=self.impl, check=True)
+        subprocess.run(["git", "config", "user.email", "migration-test@example.invalid"], cwd=self.impl, check=True)
+        self.pinned_commit = self._commit_implementation("seed migration")
         for relative in (
             "docs/traceability", "docs/design", "docs/engineering/gates/phase-3",
             "specs/001-project-delivery-platform/evidence/data-elements",
@@ -87,7 +97,8 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         }
         self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
         self.contract = {
-            "implementationRepo": str(self.impl), "implementationCommit": "TEST_COMMIT", "implementationTreeState": "CLEAN",
+            "implementationRepo": str(self.impl), "implementationCommit": self.pinned_commit,
+            "implementationEvidenceMode": "PINNED_GIT_COMMIT",
             "excludedSources": [{
                 "sourceType": "LEGACY_TABLE", "sourceObject": "pm_project_maintenance",
                 "disposition": "EXCLUDED", "mappingStatus": "NO_MIGRATION",
@@ -106,7 +117,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
                 },
                 {
                     "object": "ArrivalAcceptance", "owner": "IMP", "requirementIds": ["EXE-01"], "targetTables": ["imp_arrival_acceptance"],
-                    "sources": [{"sourceType": "CURRENT_TABLE", "sourceObject": "pms_eng_arrival", "evidenceRef": "implementation://TEST_COMMIT/sql/migrations/V1__test.sql#table=pms_eng_arrival", "disposition": "CURRENT_FORWARD", "transform": "map", "mappingStatus": "READY", "gate": "NEXT_FLYWAY"}],
+                    "sources": [{"sourceType": "CURRENT_TABLE", "sourceObject": "pms_eng_arrival", "evidenceRef": f"implementation://{self.pinned_commit}/sql/migrations/V1__test.sql#table=pms_eng_arrival", "disposition": "CURRENT_FORWARD", "transform": "map", "mappingStatus": "READY", "gate": "NEXT_FLYWAY"}],
                 },
             ],
         }
@@ -121,6 +132,14 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
 
     def _write_json(self, relative: str, value: dict) -> None:
         (self.root / relative).write_text(json.dumps(value), encoding="utf-8")
+
+    def _commit_implementation(self, message: str) -> str:
+        subprocess.run(["git", "add", "sql/migrations"], cwd=self.impl, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", message], cwd=self.impl, check=True)
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.impl, check=True,
+            text=True, encoding="utf-8", stdout=subprocess.PIPE,
+        ).stdout.strip()
 
     def _save_contract(self) -> None:
         legacy_bindings = [
@@ -152,10 +171,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self._write_json("docs/traceability/domain-object-table-map.json", {"schemaVersion": 1, "objects": self.contract["objectTableMap"]})
 
     def _validate(self) -> list[str]:
-        commit_result = type("Completed", (), {"stdout": "TEST_COMMIT\n"})()
-        clean_result = type("Completed", (), {"stdout": ""})()
-        with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]):
-            return VALIDATOR.validate(self.root, self.impl)
+        return VALIDATOR.validate(self.root, self.impl)
 
     def _enable_model_ready_without_migration_approval(self) -> None:
         ddl_sha = self.ddl_review["inputs"]["currentDdlSha256"]
@@ -199,6 +215,49 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
 
     def test_complete_contract_passes(self) -> None:
         self.assertEqual([], self._validate())
+
+    def test_head_can_advance_without_changing_pinned_migrations(self) -> None:
+        (self.impl / "README.md").write_text("later implementation work\n", encoding="utf-8")
+        subprocess.run(["git", "add", "README.md"], cwd=self.impl, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "advance head"], cwd=self.impl, check=True)
+        self.assertEqual([], self._validate())
+
+    def test_generator_reads_pinned_commit_instead_of_worktree(self) -> None:
+        (self.impl / "sql/migrations/V1__test.sql").write_text(
+            "CREATE TABLE pms_wrong_worktree_table (id bigint);\n", encoding="utf-8"
+        )
+        catalog = GENERATOR.git_table_catalog(self.impl, self.pinned_commit, "sql/migrations")
+        self.assertIn("pms_eng_arrival", catalog)
+        self.assertNotIn("pms_wrong_worktree_table", catalog)
+
+    def test_incompatible_pinned_commit_fails(self) -> None:
+        (self.impl / "sql/migrations/V1__test.sql").write_text(
+            "CREATE TABLE pms_incompatible (id bigint);\n", encoding="utf-8"
+        )
+        incompatible_commit = self._commit_implementation("incompatible migration")
+        self.contract["implementationCommit"] = incompatible_commit
+        self.contract["records"][1]["sources"][0]["evidenceRef"] = (
+            f"implementation://{incompatible_commit}/sql/migrations/V1__test.sql#table=pms_eng_arrival"
+        )
+        self._save_contract()
+        self.assertTrue(any("current source table not found" in error for error in self._validate()))
+
+    def test_missing_pinned_commit_fails(self) -> None:
+        self.contract["implementationCommit"] = "0" * 40
+        self._save_contract()
+        self.assertTrue(any("frozen implementation commit does not exist" in error for error in self._validate()))
+
+    def test_missing_migration_path_at_pinned_commit_fails(self) -> None:
+        (self.impl / "sql/migrations/V1__test.sql").unlink()
+        subprocess.run(["git", "add", "-u", "sql/migrations"], cwd=self.impl, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "remove migrations"], cwd=self.impl, check=True)
+        missing_path_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.impl, check=True,
+            text=True, encoding="utf-8", stdout=subprocess.PIPE,
+        ).stdout.strip()
+        self.contract["implementationCommit"] = missing_path_commit
+        self._save_contract()
+        self.assertTrue(any("migration path does not exist" in error for error in self._validate()))
 
     def test_wrong_owner_fails(self) -> None:
         self.contract["records"][0]["owner"] = "IMP"

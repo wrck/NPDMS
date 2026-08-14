@@ -8,12 +8,12 @@ import fnmatch
 import hashlib
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
+from generate_domain_entity_migration_contract import git_sql_blobs
 
 
 ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "LEGACY_TABLE", "LEGACY_FIELD_PATTERN", "EXTERNAL_SYSTEM", "DERIVED_TARGET", "NONE_NEW", "PENDING_SOURCE_IDENTIFICATION"}
@@ -75,14 +75,13 @@ def requirement_owners(path: Path) -> dict[str, str]:
     return result
 
 
-def sql_table_catalog(sql_root: Path) -> tuple[dict[str, str], dict[str, str]]:
+def git_sql_table_catalog(repository: Path, commit: str) -> tuple[dict[str, str], dict[str, str]]:
     tables: dict[str, str] = {}
     definitions: dict[str, str] = {}
     pattern = re.compile(r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-zA-Z0-9_]+)`?", re.I)
-    for path in sorted(sql_root.rglob("*.sql")):
-        text = path.read_text(encoding="utf-8-sig")
+    for path, text in git_sql_blobs(repository, commit).items():
         for table in pattern.findall(text):
-            tables[table] = path.relative_to(sql_root.parent.parent).as_posix()
+            tables[table] = path
             definitions[table] = text
     return tables, definitions
 
@@ -284,20 +283,18 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
     physical_target_columns = ddl_column_catalog(ddl_path.read_text(encoding="utf-8"))
     physical_target_tables = set(physical_target_columns)
     implementation = implementation_override or Path(payload.get("implementationRepo", ""))
+    frozen_commit = payload.get("implementationCommit", "")
     if not implementation.is_dir():
         errors.append(f"implementation repository unavailable: {implementation}")
         current_tables, current_definitions = {}, {}
     else:
-        current_tables, current_definitions = sql_table_catalog(implementation / "sql" / "migrations")
         try:
-            actual_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
-            if actual_commit != payload.get("implementationCommit"):
-                errors.append(f"implementation commit mismatch: contract={payload.get('implementationCommit')} actual={actual_commit}")
-            tree_state = subprocess.run(["git", "status", "--porcelain"], cwd=implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
-            if tree_state or payload.get("implementationTreeState") != "CLEAN":
-                errors.append("implementation source evidence must be generated from a clean locked tree")
-        except (OSError, subprocess.CalledProcessError) as exc:
-            errors.append(f"cannot verify implementation commit: {exc}")
+            if payload.get("implementationEvidenceMode") != "PINNED_GIT_COMMIT":
+                errors.append("implementation evidence mode must be PINNED_GIT_COMMIT")
+            current_tables, current_definitions = git_sql_table_catalog(implementation, frozen_commit)
+        except ValueError as exc:
+            errors.append(str(exc))
+            current_tables, current_definitions = {}, {}
 
     records = payload.get("records", [])
     excluded_sources = payload.get("excludedSources", [])

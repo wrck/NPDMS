@@ -287,13 +287,41 @@ OWNER_OVERRIDES = {
 }
 
 
-def table_catalog(sql_root: Path) -> dict[str, str]:
+def git_sql_blobs(repository: Path, commit: str, migration_root: str = "sql/migrations") -> dict[str, str]:
+    """Read migration SQL from an immutable Git commit, never from HEAD/worktree."""
+    if not repository.is_dir():
+        raise ValueError(f"implementation repository unavailable: {repository}")
+    try:
+        subprocess.run(
+            ["git", "cat-file", "-e", f"{commit}^{{commit}}"], cwd=repository,
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValueError(f"frozen implementation commit does not exist: {commit}") from exc
+    listing = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", commit, "--", migration_root],
+        cwd=repository, check=True, text=True, encoding="utf-8",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    ).stdout.splitlines()
+    paths = sorted(path for path in listing if path.endswith(".sql"))
+    if not paths:
+        raise ValueError(f"migration path does not exist at frozen commit: {commit}:{migration_root}")
+    blobs: dict[str, str] = {}
+    for path in paths:
+        result = subprocess.run(
+            ["git", "show", f"{commit}:{path}"], cwd=repository, check=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        blobs[path] = result.stdout.decode("utf-8-sig")
+    return blobs
+
+
+def git_table_catalog(repository: Path, commit: str, migration_root: str = "sql/migrations") -> dict[str, str]:
     catalog: dict[str, str] = {}
     pattern = re.compile(r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-zA-Z0-9_]+)`?", re.I)
-    for path in sorted(sql_root.rglob("*.sql")):
-        text = path.read_text(encoding="utf-8-sig")
+    for path, text in git_sql_blobs(repository, commit, migration_root).items():
         for table in pattern.findall(text):
-            catalog[table] = path.relative_to(sql_root.parent.parent).as_posix()
+            catalog[table] = path
     return catalog
 
 
@@ -434,12 +462,13 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             raise ValueError(f"{object_name} generator target policy differs from the maintained 09 object-table map")
     requirement_owners = parse_requirement_owners(args.requirement_matrix)
     database_design = args.database_design.read_text(encoding="utf-8")
-    current_catalog = table_catalog(args.implementation / "sql" / "migrations")
+    commit = args.implementation_commit
+    if not commit and args.json_output.exists():
+        commit = json.loads(args.json_output.read_text(encoding="utf-8")).get("implementationCommit")
+    if not commit:
+        raise ValueError("frozen implementation commit is required; pass --implementation-commit or retain it in the existing contract")
+    current_catalog = git_table_catalog(args.implementation, commit)
     legacy_catalog = legacy_tables(args.legacy_schema)
-    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=args.implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
-    tree_state = subprocess.run(["git", "status", "--porcelain"], cwd=args.implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
-    if tree_state:
-        raise ValueError("implementation repository must be clean before migration evidence is generated")
     records = []
     for object_name, target_tables in TARGETS.items():
         contract = phase2_contracts.get(object_name)
@@ -513,7 +542,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         "baseline": "PRD_V1.7",
         "implementationRepo": str(args.implementation.resolve()),
         "implementationCommit": commit,
-        "implementationTreeState": "CLEAN",
+        "implementationEvidenceMode": "PINNED_GIT_COMMIT",
         "bindingStatistics": binding_statistics(records, v17_target_tables),
         "excludedSources": EXCLUDED_SOURCES,
         "objectTableMap": object_table_map,
@@ -550,6 +579,7 @@ def main() -> int:
     parser.add_argument("--database-design", type=Path, default=Path("docs/design/09-database-design.md"))
     parser.add_argument("--legacy-schema", type=Path, default=Path("specs/001-project-delivery-platform/evidence/data-elements/schema-records.jsonl"))
     parser.add_argument("--implementation", type=Path, default=Path(r"E:\AICoding\Projects\NPDMS"))
+    parser.add_argument("--implementation-commit", help="immutable Git commit containing the registered sql/migrations evidence")
     parser.add_argument("--json-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.json"))
     parser.add_argument("--md-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.md"))
     parser.add_argument("--object-table-map", type=Path, default=Path("docs/traceability/domain-object-table-map.json"))
