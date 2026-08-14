@@ -224,6 +224,7 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
         paths.append(self.repo / "docs/specification-baseline/manifest.json")
         for path in paths:
             self.assertEqual([], list(path.parent.glob(f".{path.name}.*")))
+        self.assertFalse((self.repo / "docs/specification-baseline/.apply.lock").exists())
 
     def test_check_mode_never_writes(self) -> None:
         changes = plan_snapshot(self.repo, self.manifest, self.blobs)
@@ -334,6 +335,110 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
         self.assertEqual(original_manifest, manifest_path.read_bytes())
         self.assertFalse((self.repo / self.entries[0].path).exists())
         self.assertFalse((self.repo / self.entries[1].path).exists())
+        self._assert_no_transaction_artifacts()
+
+    def test_apply_restores_batch_when_nonfirst_backup_cleanup_fails(self) -> None:
+        original_contents = (b"old prd\n", b"old sds\n")
+        for entry, content in zip(self.entries, original_contents, strict=True):
+            target = self.repo / entry.path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            self._git("add", entry.path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        second_target = self.repo / self.entries[1].path
+        original_unlink = Path.unlink
+        cleanup_failed = False
+
+        def fail_second_backup_cleanup(path: Path, *args: object, **kwargs: object) -> None:
+            nonlocal cleanup_failed
+            if (
+                not cleanup_failed
+                and path.parent == second_target.parent
+                and path.name.startswith(f".{second_target.name}.")
+                and path.name.endswith(".backup")
+            ):
+                cleanup_failed = True
+                raise OSError("second backup cleanup failed")
+            original_unlink(path, *args, **kwargs)
+
+        with patch.object(Path, "unlink", autospec=True, side_effect=fail_second_backup_cleanup):
+            with self.assertRaisesRegex(BaselineError, "second backup cleanup failed"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertTrue(cleanup_failed)
+        self.assertEqual(original_contents[0], (self.repo / self.entries[0].path).read_bytes())
+        self.assertEqual(original_contents[1], second_target.read_bytes())
+        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+        self._assert_no_transaction_artifacts()
+
+    def test_apply_restores_manifest_when_backup_cleanup_fails(self) -> None:
+        manifest_path = self._write_contract_files()
+        original_manifest = manifest_path.read_bytes()
+        original_unlink = Path.unlink
+        cleanup_failed = False
+
+        def fail_manifest_backup_cleanup(path: Path, *args: object, **kwargs: object) -> None:
+            nonlocal cleanup_failed
+            if (
+                not cleanup_failed
+                and path.parent == manifest_path.parent
+                and path.name.startswith(f".{manifest_path.name}.")
+                and path.name.endswith(".backup")
+            ):
+                cleanup_failed = True
+                raise OSError("manifest backup cleanup failed")
+            original_unlink(path, *args, **kwargs)
+
+        with patch.object(Path, "unlink", autospec=True, side_effect=fail_manifest_backup_cleanup):
+            with self.assertRaisesRegex(BaselineError, "manifest backup cleanup failed"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertTrue(cleanup_failed)
+        self.assertEqual(original_manifest, manifest_path.read_bytes())
+        self.assertFalse((self.repo / self.entries[0].path).exists())
+        self.assertFalse((self.repo / self.entries[1].path).exists())
+        self._assert_no_transaction_artifacts()
+
+    def test_apply_aggregates_cleanup_and_transient_recovery_failures(self) -> None:
+        target = self.repo / self.entries[0].path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"old prd\n")
+        self._git("add", self.entries[0].path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        original_unlink = Path.unlink
+        original_replace = specification_baseline.os.replace
+        cleanup_failed = False
+        recovery_failed = False
+
+        def fail_backup_cleanup(path: Path, *args: object, **kwargs: object) -> None:
+            nonlocal cleanup_failed
+            if not cleanup_failed and path.name.endswith(".backup"):
+                cleanup_failed = True
+                raise OSError("backup cleanup failed")
+            original_unlink(path, *args, **kwargs)
+
+        def fail_first_recovery(source: object, destination: object) -> None:
+            nonlocal recovery_failed
+            if not recovery_failed and Path(source).name.endswith(".backup") and Path(destination) == target:
+                recovery_failed = True
+                raise OSError("recovery failed")
+            original_replace(source, destination)
+
+        with (
+            patch.object(Path, "unlink", autospec=True, side_effect=fail_backup_cleanup),
+            patch("specification_baseline.os.replace", side_effect=fail_first_recovery),
+        ):
+            with self.assertRaisesRegex(
+                BaselineError,
+                "backup cleanup failed.*recovery failed",
+            ):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertTrue(cleanup_failed)
+        self.assertTrue(recovery_failed)
+        self.assertEqual(b"old prd\n", target.read_bytes())
+        self.assertFalse((self.repo / self.entries[1].path).exists())
+        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
         self._assert_no_transaction_artifacts()
 
     def test_apply_reports_rollback_failure(self) -> None:

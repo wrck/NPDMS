@@ -323,6 +323,35 @@ def _restore_moved_target(path: Path, backup: Path) -> None:
         backup.unlink(missing_ok=True)
 
 
+def _restore_after_backup_cleanup_failure(
+    path: Path,
+    backup: Path,
+    cleanup_error: OSError,
+) -> None:
+    recovery_errors: list[OSError] = []
+    for _attempt in range(2):
+        try:
+            os.replace(backup, path)
+            break
+        except OSError as recovery_error:
+            recovery_errors.append(recovery_error)
+    else:
+        detail = "; ".join(str(error) for error in recovery_errors)
+        raise BaselineError(
+            f"failed to clean snapshot backup {backup}: {cleanup_error}; "
+            f"failed to restore snapshot target {path}: {detail}"
+        ) from cleanup_error
+
+    if recovery_errors:
+        raise BaselineError(
+            f"failed to clean snapshot backup {backup}: {cleanup_error}; "
+            f"initial recovery failed for {path}: {recovery_errors[0]}; target restored"
+        ) from cleanup_error
+    raise BaselineError(
+        f"failed to clean snapshot backup {backup}: {cleanup_error}; target restored"
+    ) from cleanup_error
+
+
 def _publish_staged_file(path: Path, staged: Path, expected: _TargetState) -> None:
     if expected.kind == "MISSING":
         try:
@@ -348,7 +377,12 @@ def _publish_staged_file(path: Path, staged: Path, expected: _TargetState) -> No
         if _target_state(backup) != expected:
             _publish_staged_file(path, backup, applied)
             raise BaselineError(f"managed destination changed during apply: {path}")
-        backup.unlink(missing_ok=True)
+        try:
+            backup.unlink(missing_ok=True)
+        except OSError as cleanup_error:
+            # The outer transaction cannot journal this target until this helper
+            # returns, so restore it here if cleanup fails after publication.
+            _restore_after_backup_cleanup_failure(path, backup, cleanup_error)
     else:
         raise BaselineError(f"cannot replace non-file managed destination: {path}")
     staged.unlink(missing_ok=True)
