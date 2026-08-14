@@ -1,5 +1,10 @@
 # 项目实施交付管理平台 Implementation Plan
 
+> **状态：SUPERSEDED**
+>
+> 本文件仅用于历史追溯，不再生成或驱动新开发任务。当前任务必须从
+> `docs/specification-baseline/manifest.json` 锁定的 Feature Spec 重新生成。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在已确认需求规格基础上，建设以Yudao为技术底座、PMS为核心业务域的项目实施交付管理平台，先完成V1业务闭环，再交付V2效率能力，并为V3智能化演进保留数据和契约基础。
