@@ -86,6 +86,18 @@ class P3E09ApprovalPolicyTest(unittest.TestCase):
         self.evidence["independentReviewRef"] = "docs/reference/review.md"
         self.assertTrue(any("formal gate or ADR" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
 
+    def test_model_baseline_accepts_explicit_formal_go_conclusion(self) -> None:
+        (self.root / self.review_ref).write_text("独立复审结论：GO\n", encoding="utf-8")
+        self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
+
+    def test_model_baseline_rejects_formal_no_go_conclusion(self) -> None:
+        (self.root / self.review_ref).write_text("独立复审结论：NO-GO\n", encoding="utf-8")
+        self.assertTrue(any("independent GO conclusion" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+
+    def test_model_baseline_rejects_ambiguous_go_text(self) -> None:
+        (self.root / self.review_ref).write_text("独立复审已完成，后续事项为 GO。\n", encoding="utf-8")
+        self.assertTrue(any("independent GO conclusion" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+
 
 if __name__ == "__main__":
     unittest.main()

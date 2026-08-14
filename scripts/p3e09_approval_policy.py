@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 
 
 DDL_ARTIFACT_HASH_FIELDS = {
@@ -16,6 +17,9 @@ DDL_ARTIFACT_HASH_FIELDS = {
     "manifestDdlSha256",
 }
 FORMAL_REVIEW_PREFIXES = ("docs/engineering/gates/", "docs/decisions/")
+INDEPENDENT_REVIEW_MARKER = re.compile(r"(?m)^\s*独立复审(?:\s*结论)?(?:\s*[：:].*)?\s*$")
+FORMAL_GO_CONCLUSION = re.compile(r"(?mi)^\s*(?:独立复审\s*)?结论\s*[：:]\s*GO\s*$")
+FORMAL_NO_GO_TOKEN = re.compile(r"(?i)(?<![A-Z])NO[-_ ]?GO(?![A-Z])")
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -26,6 +30,17 @@ def item_ids_sha256(items: list[dict[str, object]]) -> str:
     identifiers = sorted(str(item.get("itemId")) for item in items)
     canonical = json.dumps(identifiers, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     return sha256_bytes(canonical)
+
+
+def has_formal_independent_review_go_conclusion(review_text: str) -> bool:
+    """Accept only an explicit GO conclusion, never a NO-GO substring."""
+    if FORMAL_NO_GO_TOKEN.search(review_text):
+        return False
+    conclusion = FORMAL_GO_CONCLUSION.search(review_text)
+    return bool(
+        conclusion
+        and ("独立复审" in conclusion.group(0) or INDEPENDENT_REVIEW_MARKER.search(review_text))
+    )
 
 
 def validate_model_baseline(
@@ -88,7 +103,7 @@ def validate_model_baseline(
                 errors.append("P3-E09 independent review reference does not exist")
             else:
                 review_text = review_path.read_text(encoding="utf-8")
-                if "独立复审" not in review_text or "GO" not in review_text:
+                if not has_formal_independent_review_go_conclusion(review_text):
                     errors.append("P3-E09 independent review reference must record an independent GO conclusion")
     if evidence.get("approvedDdlSha256") not in (None, ""):
         errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
