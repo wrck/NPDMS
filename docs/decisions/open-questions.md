@@ -61,7 +61,7 @@
 - Requirement IDs: NFR-01、NFR-02、NFR-03
 - Area: 备份恢复目标（P3-E03）
 - Question: 平台生产RPO/RTO、备份频率/保留、文件和密钥引用恢复顺序及演练Owner是什么？
-- Why it blocks design/implementation: 无法验证发布失败或灾难后的业务恢复，不可批准Phase 3。
+- Why it blocks design/implementation: 不阻断SDS基线；未形成恢复设计和演练证据时，阻断恢复验收与生产发布。
 - Options: A. 业务Owner先批准RPO/RTO，再由DBA/运维设计并演练；B. 直接采用现有平台默认目标并由业务Owner签署适用性。
 - Recommended technical default: A；业务目标先行，避免基础设施默认值与交付业务风险不匹配。
 - Business decision required: 是。
@@ -89,7 +89,7 @@
 - Requirement IDs: NFR-01、NFR-02、NFR-03
 - Area: Telemetry与安全事件（P3-E05）
 - Question: 日志、指标、Trace、告警和安全事件分别进入哪个企业平台，访问角色、留存和采样如何批准？
-- Why it blocks design/implementation: 17分册无法落地，高风险审计fail-closed和NFR证据无法验证。
+- Why it blocks design/implementation: 不阻断17分册设计基线；具体后端未实例化时，阻断可观测验收、高风险审计生产验收与生产发布。
 - Options: A. OpenTelemetry统一采集后接入企业现有后端；B. 各信号使用现有独立Agent/平台并通过correlationId关联。
 - Recommended technical default: A；若现网平台限制采用B，但必须证明跨信号追溯和权限分离。
 - Business decision required: 是。
@@ -146,3 +146,18 @@
 - Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排与P6轻量闭环的当前物理项已通过ADR-0028九组清单获得Requirement Owner接受。当前候选为60表、10表V1.7差量，哈希与隔离MySQL 8.4证据已重建并纳入模型基线；不得把需求方接受或模型基线解释为历史迁移、切换或生产批准。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13
+
+## 九月首发执行信息
+
+以下问题来自`docs/superpowers/plans/2026-08-14-september-uat-go-live-project-plan.md`。它们不改变PRD V1.7业务范围，也不阻断52项首发Feature规格编制；未在最晚安全点关闭时，只阻断对应排期、联调、UAT、迁移或发布活动。
+
+| ID | 待确认信息 | 当前是否必须确认 | 最晚安全点 | 阻断范围 | 需要确认人 | 状态 |
+|---|---|---|---|---|---|---|
+| Q-REL-001 | 三个交付组的人员名单、角色和投入比例 | 是；进入P1薄切片实施前必须确认 | P1启动 | 实施排期、并行切片承诺 | 项目经理、研发与测试负责人 | OPEN_EXECUTION |
+| Q-REL-002 | UAT总负责人及各领域验收代表 | 否；可先编制UAT场景和用例 | P4 UAT准入评审前 | UAT准入、执行与签署 | 业务Owner、项目经理 | OPEN_UAT |
+| Q-REL-003 | CRM、基础平台、设备连接与采集平台的联调Owner和可用时间 | 是；可先使用冻结契约和Mock开发，但必须明确真实联调窗口 | P1结束前确认窗口，P2结束前完成真实联调 | 对应Feature联调与发布 | 集成架构、各外部系统Owner | OPEN_INTEGRATION |
+| Q-REL-004 | UAT环境和生产环境的运维负责人 | 否；不阻断Feature设计与开发 | P4环境准备开始前 | UAT环境、生产部署与发布 | 运维负责人 | OPEN_ENVIRONMENT |
+| Q-REL-005 | 九月底采用全量发布还是限定组织/项目灰度发布 | 否；不阻断Feature设计与开发 | P4发布预演前 | 发布方案、Go/No-Go | 业务Owner、项目经理、运维 | OPEN_RELEASE |
+| Q-REL-006 | 首发是否执行历史数据迁移；如执行，明确范围和业务对账人 | 是；Feature开发不受阻，但迁移程序和预演不得启动 | P1结束前确定是否迁移；P4前关闭AI-MIG-000适用批次 | 历史迁移、数据切换、上线准入 | 业务Owner、数据Owner、迁移负责人 | OPEN_MIGRATION |
+
+处理原则：Q-REL-001、Q-REL-003、Q-REL-006是近期排期输入，需要优先确认；Q-REL-002、Q-REL-004、Q-REL-005按表中最晚安全点后置。未确认项不得用虚构人员、环境参数或迁移范围填充，但不影响无关Feature继续推进。
