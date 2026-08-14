@@ -25,6 +25,10 @@ target/
 coverage/
 *.log
 
+# Python validation caches
+__pycache__/
+*.py[cod]
+
 # Local Maven repository (should never be committed)
 DMavenRepository/
 .m2-cache/

@@ -1,0 +1,341 @@
+#!/usr/bin/env python3
+"""Shared primitives for the commit-locked specification snapshot."""
+
+from __future__ import annotations
+
+import json
+import hashlib
+import os
+import re
+import subprocess
+import tempfile
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Mapping, Sequence
+
+
+ALLOWED_CATEGORIES = frozenset(
+    {
+        "BASELINE",
+        "ENGINEERING",
+        "SDS",
+        "DECISION",
+        "TRACEABILITY",
+        "DOMAIN_SPEC",
+        "MODEL_APPENDIX",
+        "MODEL_EVIDENCE",
+    }
+)
+FORBIDDEN_PREFIXES = (
+    "docs/engineering/gates/",
+    "docs/superpowers/",
+    "需求/",
+)
+MODEL_EVIDENCE_PATHS = frozenset(
+    {
+        "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+        "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
+    }
+)
+
+
+class BaselineError(ValueError):
+    """Raised when a baseline contract or repository fact is invalid."""
+
+
+@dataclass(frozen=True)
+class BaselineEntry:
+    path: str
+    category: str
+
+
+@dataclass(frozen=True)
+class SnapshotChange:
+    path: str
+    action: str
+
+
+def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        detail = ""
+        if isinstance(exc, subprocess.CalledProcessError):
+            detail = exc.stderr.decode("utf-8", errors="replace").strip()
+        raise BaselineError(detail or f"git command failed: {' '.join(args)}") from exc
+
+
+def _category_accepts(path: str, category: str) -> bool:
+    if category == "BASELINE":
+        return path.startswith("docs/baseline/")
+    if category == "ENGINEERING":
+        return path in {"docs/README.md", "docs/engineering/00-engineering-chain.md"}
+    if category == "SDS":
+        return path.startswith("docs/design/")
+    if category == "DECISION":
+        return path.startswith("docs/decisions/")
+    if category == "TRACEABILITY":
+        return path.startswith("docs/traceability/")
+    if category == "DOMAIN_SPEC":
+        return path == "specs/001-project-delivery-platform/00-master-spec.md" or path.startswith(
+            "specs/001-project-delivery-platform/domains/"
+        )
+    if category == "MODEL_APPENDIX":
+        return path.startswith("specs/001-project-delivery-platform/appendices/")
+    if category == "MODEL_EVIDENCE":
+        return path in MODEL_EVIDENCE_PATHS
+    return False
+
+
+def validate_relative_path(path: str, category: str) -> None:
+    if category not in ALLOWED_CATEGORIES:
+        raise BaselineError(f"unknown baseline category: {category}")
+    if not path or "\\" in path or re.match(r"^[A-Za-z]:", path) or path.startswith("/"):
+        raise BaselineError(f"baseline path must be a POSIX relative path: {path}")
+
+    parts = PurePosixPath(path).parts
+    if any(part in {"", ".", ".."} for part in parts):
+        raise BaselineError(f"baseline path traversal is forbidden: {path}")
+    if path.startswith(FORBIDDEN_PREFIXES) or "archive" in parts or "input" in parts:
+        raise BaselineError(f"process or external input material is forbidden: {path}")
+    if not _category_accepts(path, category):
+        raise BaselineError(f"path does not belong to category {category}: {path}")
+
+
+def load_allowlist(path: Path) -> tuple[BaselineEntry, ...]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise BaselineError(f"cannot read allowlist: {path}") from exc
+
+    if not isinstance(payload, dict) or set(payload) != {"schemaVersion", "files"}:
+        raise BaselineError("allowlist must contain only schemaVersion and files")
+    if payload["schemaVersion"] != 1 or not isinstance(payload["files"], list):
+        raise BaselineError("allowlist schemaVersion must be 1 and files must be a list")
+
+    entries: list[BaselineEntry] = []
+    for raw in payload["files"]:
+        if not isinstance(raw, dict) or set(raw) != {"path", "category"}:
+            raise BaselineError("each allowlist entry must contain only path and category")
+        if not isinstance(raw["path"], str) or not isinstance(raw["category"], str):
+            raise BaselineError("allowlist path and category must be strings")
+        validate_relative_path(raw["path"], raw["category"])
+        entries.append(BaselineEntry(raw["path"], raw["category"]))
+
+    paths = [entry.path for entry in entries]
+    if paths != sorted(paths):
+        raise BaselineError("allowlist paths must be sorted")
+    if len(paths) != len(set(paths)):
+        raise BaselineError("allowlist paths must be unique")
+    return tuple(entries)
+
+
+def resolve_full_commit(source_repo: Path, revision: str) -> str:
+    if not re.fullmatch(r"[0-9A-Fa-f]{40}", revision):
+        raise BaselineError("source revision must be a full 40-character commit id")
+    commit_type = _run_git(source_repo, "cat-file", "-t", revision).stdout.decode("ascii").strip()
+    if commit_type != "commit":
+        raise BaselineError(f"source revision is not a commit: {revision}")
+    resolved = _run_git(source_repo, "rev-parse", revision).stdout.decode("ascii").strip().lower()
+    if resolved != revision.lower():
+        raise BaselineError(f"source revision does not resolve exactly: {revision}")
+    return resolved
+
+
+def read_git_blob(source_repo: Path, commit: str, path: str) -> bytes:
+    return _run_git(source_repo, "show", f"{commit}:{path}").stdout
+
+
+def managed_worktree_changes(
+    source_repo: Path,
+    entries: Sequence[BaselineEntry],
+) -> tuple[str, ...]:
+    if not entries:
+        return ()
+    result = _run_git(
+        source_repo,
+        "status",
+        "--porcelain",
+        "--untracked-files=no",
+        "--",
+        *(entry.path for entry in entries),
+    )
+    return tuple(
+        line.decode("utf-8", errors="replace")
+        for line in result.stdout.splitlines()
+        if line.strip()
+    )
+
+
+def build_manifest(
+    commit: str,
+    entries: Sequence[BaselineEntry],
+    blobs: Mapping[str, bytes],
+) -> dict:
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise BaselineError("manifest commit must be a lowercase full commit id")
+    expected_paths = [entry.path for entry in entries]
+    if expected_paths != sorted(expected_paths) or len(expected_paths) != len(set(expected_paths)):
+        raise BaselineError("manifest entries must be sorted and unique")
+    if set(blobs) != set(expected_paths):
+        raise BaselineError("blob paths must exactly match baseline entries")
+
+    return {
+        "schemaVersion": 1,
+        "source": {
+            "repositoryId": "project-delivery-platform-spec",
+            "commit": commit,
+        },
+        "files": [
+            {
+                "path": entry.path,
+                "category": entry.category,
+                "sha256": hashlib.sha256(blobs[entry.path]).hexdigest(),
+            }
+            for entry in entries
+        ],
+    }
+
+
+def _manifest_entries(manifest: Mapping[str, object]) -> tuple[BaselineEntry, ...]:
+    files = manifest.get("files")
+    if not isinstance(files, list):
+        raise BaselineError("manifest files must be a list")
+    entries: list[BaselineEntry] = []
+    for raw in files:
+        if not isinstance(raw, dict) or set(raw) != {"path", "category", "sha256"}:
+            raise BaselineError("manifest file entry must be an object")
+        path = raw.get("path")
+        category = raw.get("category")
+        if not isinstance(path, str) or not isinstance(category, str):
+            raise BaselineError("manifest path and category must be strings")
+        validate_relative_path(path, category)
+        entries.append(BaselineEntry(path, category))
+    paths = [entry.path for entry in entries]
+    if paths != sorted(paths) or len(paths) != len(set(paths)):
+        raise BaselineError("manifest paths must be sorted and unique")
+    return tuple(entries)
+
+
+def _path_is_dirty(repo: Path, path: str) -> bool:
+    result = _run_git(repo, "status", "--porcelain", "--untracked-files=all", "--", path)
+    return bool(result.stdout.strip())
+
+
+def plan_snapshot(
+    destination_repo: Path,
+    manifest: Mapping[str, object],
+    blobs: Mapping[str, bytes],
+) -> tuple[SnapshotChange, ...]:
+    entries = _manifest_entries(manifest)
+    if set(blobs) != {entry.path for entry in entries}:
+        raise BaselineError("snapshot blobs must exactly match manifest paths")
+
+    changes: list[SnapshotChange] = []
+    for entry in entries:
+        target = destination_repo / entry.path
+        expected = blobs[entry.path]
+        if target.is_file() and target.read_bytes() == expected:
+            action = "KEEP"
+        elif target.exists() and _path_is_dirty(destination_repo, entry.path):
+            action = "CONFLICT"
+        elif target.exists():
+            action = "REPLACE"
+        else:
+            action = "ADD"
+        changes.append(SnapshotChange(entry.path, action))
+    return tuple(changes)
+
+
+def _atomic_write(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_name, path)
+    except BaseException:
+        try:
+            os.unlink(temp_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def apply_snapshot(
+    destination_repo: Path,
+    manifest: Mapping[str, object],
+    blobs: Mapping[str, bytes],
+) -> None:
+    changes = plan_snapshot(destination_repo, manifest, blobs)
+    conflicts = [change.path for change in changes if change.action == "CONFLICT"]
+    if conflicts:
+        raise BaselineError(f"managed destination has local changes: {', '.join(conflicts)}")
+
+    for change in changes:
+        if change.action != "KEEP":
+            _atomic_write(destination_repo / change.path, blobs[change.path])
+    manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    _atomic_write(
+        destination_repo / "docs" / "specification-baseline" / "manifest.json",
+        manifest_bytes,
+    )
+
+
+def validate_snapshot(destination_repo: Path, manifest_path: Path) -> list[str]:
+    errors: list[str] = []
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return [f"cannot read manifest: {exc}"]
+
+    if not isinstance(manifest, dict) or set(manifest) != {"schemaVersion", "source", "files"}:
+        return ["manifest must contain only schemaVersion, source, and files"]
+    if manifest.get("schemaVersion") != 1:
+        errors.append("manifest schemaVersion must be 1")
+    source = manifest.get("source")
+    if not isinstance(source, dict) or set(source) != {"repositoryId", "commit"}:
+        errors.append("manifest source must contain repositoryId and commit")
+    else:
+        if source.get("repositoryId") != "project-delivery-platform-spec":
+            errors.append("manifest repositoryId is invalid")
+        if not isinstance(source.get("commit"), str) or not re.fullmatch(
+            r"[0-9a-f]{40}", source["commit"]
+        ):
+            errors.append("manifest commit must be a lowercase full commit id")
+
+    try:
+        entries = _manifest_entries(manifest)
+    except BaselineError as exc:
+        return [*errors, str(exc)]
+
+    allowlist_path = manifest_path.with_name("allowlist.json")
+    try:
+        allowed_entries = load_allowlist(allowlist_path)
+    except BaselineError as exc:
+        return [*errors, str(exc)]
+    if entries != allowed_entries:
+        errors.append("manifest paths differ from allowlist")
+
+    raw_files = manifest["files"]
+    assert isinstance(raw_files, list)
+    for entry, raw in zip(entries, raw_files, strict=True):
+        sha256 = raw.get("sha256")
+        if not isinstance(sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", sha256):
+            errors.append(f"invalid sha256: {entry.path}")
+            continue
+        target = destination_repo / entry.path
+        if not target.is_file():
+            errors.append(f"missing snapshot file: {entry.path}")
+            continue
+        actual = hashlib.sha256(target.read_bytes()).hexdigest()
+        if actual != sha256:
+            errors.append(f"sha256 mismatch: {entry.path}")
+    return errors
