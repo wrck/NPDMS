@@ -1,6 +1,6 @@
 # DDL 漂移审查报告
 
-> 状态：`MODEL_BASELINE_REVIEW_PENDING`
+> 状态：`MODEL_BASELINE_READY`
 >
 > 门禁：`P3-E09 / AI-MIG-000`
 >
@@ -33,9 +33,9 @@
 
 |分组|数量|状态|关闭方式|
 |---|---:|---|---|
-|Q07 技术约束|257|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028已绑定当前哈希接受；当前新候选待fresh review|
+|Q07 技术约束|257|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028已绑定当前哈希接受；整体一致性独立复审为`GO`|
 |Q08 候选索引|122|`REQUIREMENT_OWNER_ACCEPTED_AS_CANDIDATE`|ADR-0028已接受为候选基线；真实性能仍由Feature查询计划和P3-E06验收|
-|V1.7 物理候选|10表、257项|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028使用显式itemId完整集合接受；当前新候选待fresh review|
+|V1.7 物理候选|10表、257项|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028使用显式itemId完整集合接受；整体一致性独立复审为`GO`|
 |Q09～Q14|108项|`REQUIREMENT_OWNER_ACCEPTED`|表选项、幂等/关系/身份版本键、跨字段CHECK和字段投影均按精确itemId接受|
 
 ADR-0023明确规定的哈希变化重确认已由ADR-0028完成；本次确认只适用于`5EB9742F…4249`，DDL哈希、数量、分类或itemId集合变化时必须重新确认。
@@ -55,4 +55,4 @@ ADR-0025、ADR-0027仍保存候选形成与纠偏过程；十张表的当前物�
 1. 【已完成】692项原`DEFER`已由当前哈希绑定的九组显式决策清单覆盖，生成器禁止按SQL类型或整表推定未来新增项。
 2. 【已完成】fresh reviewer已在`independent-review.md`完成当前制品、哈希、MySQL事实、`DEFER=0`和责任人分离的整体一致性复审，并给出`GO`；不逐项签署。
 3. 【边界】P3-E09不定义迁移批准哈希，不是P3-E09候选或模型基线条件；未来历史迁移门禁与真实批次另行定义。
-4. 【待完成】当前新候选待fresh review；上一轮GO不覆盖本轮复审校验变更。完整机器校验和新的独立复审`GO`均通过后才可设置`MODEL_BASELINE_READY`；历史迁移与数据切换仍在各自下游门禁关闭。
+4. 当前机器校验和独立复审`GO`均已通过，P3-E09为`MODEL_BASELINE_READY`，可作为SDS/Feature模型输入；历史迁移与数据切换仍由各自下游门禁阻断。

@@ -1,6 +1,6 @@
 # ADR-0028：P3-E09当前哈希需求方确认
 
-> 状态：`ACCEPTED / MODEL_BASELINE_REVIEW_PENDING`<br>
+> 状态：`ACCEPTED / MODEL_BASELINE_READY`<br>
 > 决策日期：2026-08-14<br>
 > 当前DDL SHA-256：`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
 > 决策入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`
@@ -23,4 +23,4 @@
 
 ## 3. 未完成事项
 
-本ADR不是迁移批准；P3-E09不定义迁移批准哈希，未来历史迁移门禁按真实批次另行定义。1,883项逐项决策已经完成，`reviewOwner=null`和`approvedCount=0`不再构成逐项复审要求；独立复审仅在正式记录核对模型整体一致性。当前DDL、当前items、机器校验和隔离执行形成可复现候选；当前新候选待fresh review，上一轮GO不覆盖本轮复审校验变更。`AI-MIG-000`、历史迁移和数据切换仍须等待真实批次验证，未经验证不得执行。
+本ADR不是迁移批准；P3-E09不定义迁移批准哈希，未来历史迁移门禁按真实批次另行定义。1,883项逐项决策已经完成，`reviewOwner=null`和`approvedCount=0`不再构成逐项复审要求；独立复审仅在正式记录核对模型整体一致性。当前DDL、当前items、机器校验和隔离执行已形成可复现模型基线，整体一致性独立复审为`GO`。`AI-MIG-000`、历史迁移和数据切换仍须等待真实批次验证，未经验证不得执行。

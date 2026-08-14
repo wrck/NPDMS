@@ -1,20 +1,20 @@
 # P3-E09 数据模型基线独立复审记录
 
-> status: `IN_REVIEW`<br>
-> conclusion: `PENDING_FRESH_REVIEW`<br>
+> status: `APPROVED`<br>
+> conclusion: `GO`<br>
 > ddlSha256: `5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
 > itemsSha256: `36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D`<br>
 > itemCount: `1883`<br>
 > deferCount: `0`<br>
 > testResult: `PASS`<br>
 
-## 当前候选状态
+## 复审结论
 
-上一轮`GO`只覆盖当时的候选制品。本轮已按V1.8轻量治理原则移除复审记录中重复的Git元数据和迁移批准哈希；在独立复审对当前模型事实给出明确`GO`前，P3-E09为`MODEL_BASELINE_REVIEW_PENDING`，不得作为SDS/Feature模型输入。`AI-MIG-000`、历史数据迁移和数据切换持续阻断。
+当前DDL、逐项裁决、派生制品哈希和隔离MySQL 8.4执行证据一致，`DEFER=0`，且P3-E09未定义迁移批准哈希。独立复审结论为`GO`，P3-E09可进入`MODEL_BASELINE_READY`并作为SDS/Feature模型输入。该结论不授权`AI-MIG-000`、历史数据迁移、数据切换或生产发布。
 
-## 已复审候选事实
+## 已复审模型事实
 
-|项目|当前候选事实|
+|项目|复审事实|
 |---|---|
 |Git 基线|Git原生保存commit ID、作者、时间和差异；复审记录不重复维护候选提交、日期或范围字段|
 |当前 DDL SHA-256|`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`|

@@ -35,9 +35,9 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建为候选；ADR-0028已按当前哈希接受Q07～Q14及V1.7九组完整清单，Q08的122项只作为候选索引，仍须Feature/P3-E06性能验证。当前新候选待fresh review，上一轮GO不覆盖本轮复审校验变更；该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建；ADR-0028已按当前哈希接受Q07～Q14及V1.7九组完整清单，Q08的122项只作为候选索引，仍须Feature/P3-E06性能验证。整体一致性独立复审为`GO`；该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
 
-ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。当前事实和机器校验形成`MODEL_BASELINE_REVIEW_PENDING`候选；当前新候选待fresh review，上一轮GO不覆盖本轮复审校验变更。P3-E09不定义迁移批准哈希，不建立Owner签署、外部附件或迁移批准流程。
+ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。当前事实、机器校验和独立复审形成`MODEL_BASELINE_READY`；P3-E09不定义迁移批准哈希，不建立Owner签署、外部附件或迁移批准流程。
 
 ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前缀`pms_`，并采用`<domain_code>_<full_domain_object_name>`；表名必须保留全部领域对象语义组件，默认使用完整英文词，仅允许ADR登记的`config`、`sn`两个表名标准缩写。字段可以在不产生业务歧义的前提下使用ADR登记的受控缩写、统一同义词并保持简洁。ADR-0019列出了当前52张物理表的逐表目标名称和首批同义字段裁决。该命名决策属于P3-E09模型输入，不等于批准旧DDL：本分册后续仍出现的`pms_*`仅表示尚待AI-MIG-000统一重建的当前证据名称，不再是目标命名。
 
@@ -45,7 +45,7 @@ ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表�
 
 ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0025与ADR-0027按PRD V1.7补齐10张当前范围差量表后，当前核心迁移DDL为60表、1,240列、447项DDL约束/索引和60项表选项，其中隔离MySQL登记325项主键/唯一键/同域外键/CHECK；机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，889项按既有ADR及ADR-0028九组当前哈希清单登记为`AMEND_CURRENT`，`DEFER=0`；当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。`reviewOwner`为空和`approvedCount=0`不构成逐项复审要求；P3-E09不定义迁移批准哈希，当前新候选待fresh review，持续阻断`DATA_MODEL_BASELINE`。完整逐项入口为`p3-e09-confirmation-packet.md`和`ddl-item-decision-register.json`。
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，889项按既有ADR及ADR-0028九组当前哈希清单登记为`AMEND_CURRENT`，`DEFER=0`；当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。`reviewOwner`为空和`approvedCount=0`不构成逐项复审要求；P3-E09不定义迁移批准哈希，独立复审`GO`已解除`DATA_MODEL_BASELINE`阻断。完整逐项入口为`p3-e09-confirmation-packet.md`和`ddl-item-decision-register.json`。
 
 - 本分册中的模型和约束是 SDS 目标契约；当前60表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
 - `AI-MIG-000`、历史数据迁移和数据切换继续`OPEN`；未经真实批次验证不得执行，也不在当前预建迁移批准状态机、批准JSON或双确认提交；
