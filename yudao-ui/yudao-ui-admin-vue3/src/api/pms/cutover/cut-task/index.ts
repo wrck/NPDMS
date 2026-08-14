@@ -43,15 +43,3 @@ export const approveCutTask = (data: CutTaskApproveVO) =>
   request.put({ url: `${baseUrl}/approve`, data })
 export const rejectCutTask = (data: CutTaskApproveVO) =>
   request.put({ url: `${baseUrl}/reject`, data })
-export const startExecution = (id: number) =>
-  request.put({ url: `${baseUrl}/start-execution`, params: { id } })
-export const completeExecution = (id: number) =>
-  request.put({ url: `${baseUrl}/complete-execution`, params: { id } })
-export const startObservation = (id: number) =>
-  request.put({ url: `${baseUrl}/start-observation`, params: { id } })
-export const completeObservation = (id: number) =>
-  request.put({ url: `${baseUrl}/complete-observation`, params: { id } })
-export const rollbackCutTask = (id: number) =>
-  request.put({ url: `${baseUrl}/rollback`, params: { id } })
-export const terminateCutTask = (id: number) =>
-  request.put({ url: `${baseUrl}/terminate`, params: { id } })

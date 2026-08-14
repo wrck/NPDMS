@@ -6,7 +6,6 @@ import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskAppro
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskSaveReqVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutPlanMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.risk.CutRiskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.domain.CutTaskStatusRules;
@@ -17,7 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -37,9 +35,6 @@ public class CutTaskServiceImpl implements CutTaskService {
 
     @Resource
     private CutRiskMapper cutRiskMapper;
-
-    @Resource
-    private CutPlanMapper cutPlanMapper;
 
     @Override
     public Long createCutTask(CutTaskSaveReqVO createReqVO) {
@@ -141,7 +136,7 @@ public class CutTaskServiceImpl implements CutTaskService {
     public void approve(CutTaskApproveReqVO reqVO) {
         // 1. 校验存在
         CutTaskDO entity = validateCutTaskExists(reqVO.getId());
-        // 2. 状态机校验：2待评审 → 3待执行
+        // 2. 状态机校验：2待评审 → 3闭环中
         CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.APPROVE);
         // 3. 更新状态与评审意见
         CutTaskDO update = new CutTaskDO();
@@ -164,96 +159,6 @@ public class CutTaskServiceImpl implements CutTaskService {
         update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.REJECT));
         update.setApprovalOpinion(reqVO.getApprovalOpinion());
         update.setVersion(reqVO.getVersion() != null ? reqVO.getVersion() : entity.getVersion());
-        cutTaskMapper.updateById(update);
-    }
-
-    @Override
-    public void startExecution(Long id) {
-        // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(id);
-        // 2. 前置门禁：校验存在已评审通过的割接方案
-        Long approvedPlan = cutPlanMapper.selectCountByTaskApproved(id);
-        if (approvedPlan == null || approvedPlan <= 0) {
-            throw exception(CUT_TASK_NOT_APPROVED, id);
-        }
-        // 3. 状态机校验：3待执行 → 4执行中
-        CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.START_EXECUTION);
-        // 4. 更新状态与实际开始时间
-        CutTaskDO update = new CutTaskDO();
-        update.setId(id);
-        update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.START_EXECUTION));
-        update.setActualTime(LocalDateTime.now());
-        update.setVersion(entity.getVersion());
-        cutTaskMapper.updateById(update);
-    }
-
-    @Override
-    public void completeExecution(Long id) {
-        // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(id);
-        // 2. 状态机校验：4执行中 → 5稳定观察
-        CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.COMPLETE_EXECUTION);
-        // 3. 更新状态
-        CutTaskDO update = new CutTaskDO();
-        update.setId(id);
-        update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.COMPLETE_EXECUTION));
-        update.setVersion(entity.getVersion());
-        cutTaskMapper.updateById(update);
-    }
-
-    @Override
-    public void startObservation(Long id) {
-        // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(id);
-        // 2. 状态机校验：4执行中 → 5稳定观察
-        CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.START_OBSERVATION);
-        // 3. 更新状态
-        CutTaskDO update = new CutTaskDO();
-        update.setId(id);
-        update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.START_OBSERVATION));
-        update.setVersion(entity.getVersion());
-        cutTaskMapper.updateById(update);
-    }
-
-    @Override
-    public void completeObservation(Long id) {
-        // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(id);
-        // 2. 状态机校验：5稳定观察 → 6已完成
-        CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.COMPLETE_OBSERVATION);
-        // 3. 更新状态
-        CutTaskDO update = new CutTaskDO();
-        update.setId(id);
-        update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.COMPLETE_OBSERVATION));
-        update.setVersion(entity.getVersion());
-        cutTaskMapper.updateById(update);
-    }
-
-    @Override
-    public void rollback(Long id) {
-        // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(id);
-        // 2. 状态机校验：4执行中 → 7已回退
-        CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.ROLLBACK);
-        // 3. 更新状态
-        CutTaskDO update = new CutTaskDO();
-        update.setId(id);
-        update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.ROLLBACK));
-        update.setVersion(entity.getVersion());
-        cutTaskMapper.updateById(update);
-    }
-
-    @Override
-    public void terminate(Long id) {
-        // 1. 校验存在
-        CutTaskDO entity = validateCutTaskExists(id);
-        // 2. 状态机校验：任意非终态 → 8已终止
-        CutTaskStatusRules.requireTransition(entity.getStatus(), CutTaskStatusRules.Action.TERMINATE);
-        // 3. 更新状态
-        CutTaskDO update = new CutTaskDO();
-        update.setId(id);
-        update.setStatus(CutTaskStatusRules.targetStatus(CutTaskStatusRules.Action.TERMINATE));
-        update.setVersion(entity.getVersion());
         cutTaskMapper.updateById(update);
     }
 

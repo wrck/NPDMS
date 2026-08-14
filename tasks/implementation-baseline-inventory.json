@@ -22,7 +22,7 @@
     },
     {
       "objectKey": "CutExecution",
-      "classification": "EXCLUDED_CURRENT",
+      "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["CUT-01", "CUT-06"],
       "codePaths": [
         "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/execution/",
@@ -33,11 +33,11 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/cut-execution/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-execution/"
       ],
-      "requiredAction": "REMOVE_CURRENT_WRITE_MODEL_AND_SALVAGE_ONLY_PROVEN_P6_FACTS"
+      "requiredAction": "PRESERVE_LEGACY_DATA_AND_REVIEW_PROVEN_P6_FACTS_SEPARATELY"
     },
     {
       "objectKey": "CutObservation",
-      "classification": "EXCLUDED_CURRENT",
+      "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["CUT-01", "CUT-06"],
       "codePaths": [
         "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/observation/",
@@ -48,7 +48,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/cut-observation/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-observation/"
       ],
-      "requiredAction": "REMOVE_STABLE_OBSERVATION_STATE_MACHINE"
+      "requiredAction": "PRESERVE_LEGACY_DATA_WITHOUT_CURRENT_RUNTIME_OR_MIGRATION"
     },
     {
       "objectKey": "CutoverUnclassifiedSurface",

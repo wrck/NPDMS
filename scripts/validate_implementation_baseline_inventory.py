@@ -15,13 +15,19 @@ ALLOWED_CLASSIFICATIONS = frozenset(
         "CURRENT_52",
         "VALID_V2_POSTPONED",
         "EXCLUDED_CURRENT",
+        "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
         "SEMANTIC_REWORK",
         "PLATFORM_UPSTREAM_UNCHANGED",
         "BLOCKED_BY_SPEC",
     }
 )
 BLOCKING_CLASSIFICATIONS = frozenset(
-    {"EXCLUDED_CURRENT", "SEMANTIC_REWORK", "BLOCKED_BY_SPEC"}
+    {
+        "EXCLUDED_CURRENT",
+        "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
+        "SEMANTIC_REWORK",
+        "BLOCKED_BY_SPEC",
+    }
 )
 REQ_PATTERN = re.compile(
     r"^(?:PM|PRE|PLN|SCH|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|NFR)-\d{2}$"
@@ -128,7 +134,20 @@ def validate_inventory(repository: Path, inventory: dict) -> list[str]:
             if not isinstance(raw_path, str) or "\\" in raw_path or raw_path.startswith("/"):
                 errors.append(f"{key} has invalid codePath: {raw_path}")
                 continue
-            if ".." in PurePosixPath(raw_path).parts or not (repository / raw_path).exists():
+            if ".." in PurePosixPath(raw_path).parts:
+                errors.append(f"{key} has invalid codePath: {raw_path}")
+                continue
+            resolved_path = repository / raw_path
+            path_exists = resolved_path.exists()
+            if classification == "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE":
+                has_runtime_content = resolved_path.is_file() or (
+                    resolved_path.is_dir()
+                    and any(path.is_file() for path in resolved_path.rglob("*"))
+                )
+                if has_runtime_content:
+                    errors.append(f"{key} retired runtime codePath still exists: {raw_path}")
+                continue
+            if not path_exists:
                 errors.append(f"{key} codePath does not exist: {raw_path}")
                 continue
             coverage.append((raw_path, key, classification))

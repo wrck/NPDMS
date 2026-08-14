@@ -93,7 +93,7 @@ public class CutTaskController {
     }
 
     @PutMapping("/approve")
-    @Operation(summary = "评审通过（2待评审 → 3待执行）")
+    @Operation(summary = "评审通过（2待评审 → 3闭环中）")
     @PreAuthorize("@ss.hasPermission('pms:cut-task:audit')")
     public CommonResult<Boolean> approve(@Valid @RequestBody CutTaskApproveReqVO reqVO) {
         cutTaskService.approve(reqVO);
@@ -108,57 +108,4 @@ public class CutTaskController {
         return success(true);
     }
 
-    @PutMapping("/start-execution")
-    @Operation(summary = "开始执行（3待执行 → 4执行中）")
-    @Parameter(name = "id", description = "割接任务编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
-    public CommonResult<Boolean> startExecution(@RequestParam("id") Long id) {
-        cutTaskService.startExecution(id);
-        return success(true);
-    }
-
-    @PutMapping("/complete-execution")
-    @Operation(summary = "完成执行（4执行中 → 5稳定观察）")
-    @Parameter(name = "id", description = "割接任务编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
-    public CommonResult<Boolean> completeExecution(@RequestParam("id") Long id) {
-        cutTaskService.completeExecution(id);
-        return success(true);
-    }
-
-    @PutMapping("/start-observation")
-    @Operation(summary = "开始观察（4执行中 → 5稳定观察）")
-    @Parameter(name = "id", description = "割接任务编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
-    public CommonResult<Boolean> startObservation(@RequestParam("id") Long id) {
-        cutTaskService.startObservation(id);
-        return success(true);
-    }
-
-    @PutMapping("/complete-observation")
-    @Operation(summary = "完成观察（5稳定观察 → 6已完成）")
-    @Parameter(name = "id", description = "割接任务编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
-    public CommonResult<Boolean> completeObservation(@RequestParam("id") Long id) {
-        cutTaskService.completeObservation(id);
-        return success(true);
-    }
-
-    @PutMapping("/rollback")
-    @Operation(summary = "回退（4执行中 → 7已回退）")
-    @Parameter(name = "id", description = "割接任务编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
-    public CommonResult<Boolean> rollback(@RequestParam("id") Long id) {
-        cutTaskService.rollback(id);
-        return success(true);
-    }
-
-    @PutMapping("/terminate")
-    @Operation(summary = "终止（任意非终态 → 8已终止）")
-    @Parameter(name = "id", description = "割接任务编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:cut-task:update')")
-    public CommonResult<Boolean> terminate(@RequestParam("id") Long id) {
-        cutTaskService.terminate(id);
-        return success(true);
-    }
 }

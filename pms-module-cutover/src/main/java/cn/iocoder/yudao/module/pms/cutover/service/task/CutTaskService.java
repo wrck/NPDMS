@@ -88,7 +88,7 @@ public interface CutTaskService {
     void submitForReview(Long id);
 
     /**
-     * 评审通过（2待评审 → 3待执行）
+     * 评审通过（2待评审 → 3闭环中）
      *
      * @param reqVO 评审请求
      */
@@ -101,45 +101,4 @@ public interface CutTaskService {
      */
     void reject(@Valid CutTaskApproveReqVO reqVO);
 
-    /**
-     * 开始执行（3待执行 → 4执行中）
-     *
-     * @param id 割接任务编号
-     */
-    void startExecution(Long id);
-
-    /**
-     * 完成执行（4执行中 → 5稳定观察）
-     *
-     * @param id 割接任务编号
-     */
-    void completeExecution(Long id);
-
-    /**
-     * 开始观察（4执行中 → 5稳定观察）
-     *
-     * @param id 割接任务编号
-     */
-    void startObservation(Long id);
-
-    /**
-     * 完成观察（5稳定观察 → 6已完成）
-     *
-     * @param id 割接任务编号
-     */
-    void completeObservation(Long id);
-
-    /**
-     * 回退（4执行中 → 7已回退）
-     *
-     * @param id 割接任务编号
-     */
-    void rollback(Long id);
-
-    /**
-     * 终止（任意非终态 → 8已终止）
-     *
-     * @param id 割接任务编号
-     */
-    void terminate(Long id);
 }

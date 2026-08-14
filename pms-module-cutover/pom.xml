@@ -10,7 +10,7 @@
     </parent>
     <artifactId>pms-module-cutover</artifactId>
     <name>${project.artifactId}</name>
-    <description>PMS 割接准备、评审、执行、回退与稳定观察</description>
+    <description>PMS 割接准备、评审与闭环</description>
 
     <dependencies>
         <dependency>
