@@ -6,9 +6,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import specification_baseline
 
 from specification_baseline import (
     BaselineError,
@@ -253,6 +256,56 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
         with self.assertRaises(BaselineError):
             apply_snapshot(self.repo, self.manifest, self.blobs)
         self.assertEqual(b"local edit\n", target.read_bytes())
+
+    def test_apply_rolls_back_when_second_write_fails(self) -> None:
+        original_contents = (b"old prd\n", b"old sds\n")
+        for entry, content in zip(self.entries, original_contents, strict=True):
+            target = self.repo / entry.path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            self._git("add", entry.path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+
+        original_atomic_write = specification_baseline._atomic_write
+        write_count = 0
+
+        def fail_second_write(path: Path, content: bytes) -> None:
+            nonlocal write_count
+            write_count += 1
+            if write_count == 2:
+                raise OSError("second write failed")
+            original_atomic_write(path, content)
+
+        with patch("specification_baseline._atomic_write", side_effect=fail_second_write):
+            with self.assertRaisesRegex(OSError, "second write failed"):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertEqual(original_contents[0], (self.repo / self.entries[0].path).read_bytes())
+        self.assertEqual(original_contents[1], (self.repo / self.entries[1].path).read_bytes())
+        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+
+    def test_apply_refuses_target_drift_after_preflight(self) -> None:
+        target = self.repo / self.entries[0].path
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b"committed\n")
+        self._git("add", self.entries[0].path)
+        self._git("commit", "-q", "-m", "managed snapshot")
+        original_plan_snapshot = specification_baseline.plan_snapshot
+
+        def mutate_target_after_preflight(*args: object, **kwargs: object) -> object:
+            changes = original_plan_snapshot(*args, **kwargs)
+            target.write_bytes(b"local edit after preflight\n")
+            return changes
+
+        with patch(
+            "specification_baseline.plan_snapshot",
+            side_effect=mutate_target_after_preflight,
+        ):
+            with self.assertRaises(BaselineError):
+                apply_snapshot(self.repo, self.manifest, self.blobs)
+
+        self.assertEqual(b"local edit after preflight\n", target.read_bytes())
+        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
 
     def test_second_apply_is_idempotent(self) -> None:
         apply_snapshot(self.repo, self.manifest, self.blobs)

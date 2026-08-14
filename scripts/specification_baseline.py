@@ -61,6 +61,12 @@ class SnapshotChange:
     action: str
 
 
+@dataclass(frozen=True)
+class _TargetState:
+    kind: str
+    content: bytes | None
+
+
 def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
     try:
         return subprocess.run(
@@ -283,24 +289,76 @@ def _atomic_write(path: Path, content: bytes) -> None:
         raise
 
 
+def _target_state(path: Path) -> _TargetState:
+    if path.is_file():
+        return _TargetState("FILE", path.read_bytes())
+    if path.exists():
+        return _TargetState("OTHER", None)
+    return _TargetState("MISSING", None)
+
+
+def _ensure_target_states(expected_states: Mapping[Path, _TargetState]) -> None:
+    for path, expected in expected_states.items():
+        if _target_state(path) != expected:
+            raise BaselineError(f"managed destination changed after preflight: {path}")
+
+
+def _restore_target_state(path: Path, original: _TargetState, applied: bytes) -> None:
+    if _target_state(path) != _TargetState("FILE", applied):
+        raise BaselineError(f"managed destination changed during apply: {path}")
+    if original.kind == "FILE":
+        assert original.content is not None
+        _atomic_write(path, original.content)
+    elif original.kind == "MISSING":
+        path.unlink()
+    else:
+        raise BaselineError(f"cannot restore non-file managed destination: {path}")
+
+
 def apply_snapshot(
     destination_repo: Path,
     manifest: Mapping[str, object],
     blobs: Mapping[str, bytes],
 ) -> None:
+    entries = _manifest_entries(manifest)
+    manifest_path = destination_repo / "docs" / "specification-baseline" / "manifest.json"
+    initial_states = {
+        destination_repo / entry.path: _target_state(destination_repo / entry.path)
+        for entry in entries
+    }
+    initial_states[manifest_path] = _target_state(manifest_path)
     changes = plan_snapshot(destination_repo, manifest, blobs)
     conflicts = [change.path for change in changes if change.action == "CONFLICT"]
     if conflicts:
         raise BaselineError(f"managed destination has local changes: {', '.join(conflicts)}")
 
-    for change in changes:
-        if change.action != "KEEP":
-            _atomic_write(destination_repo / change.path, blobs[change.path])
     manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-    _atomic_write(
-        destination_repo / "docs" / "specification-baseline" / "manifest.json",
-        manifest_bytes,
-    )
+    writes = [
+        (destination_repo / change.path, blobs[change.path])
+        for change in changes
+        if change.action != "KEEP"
+    ]
+    writes.append((manifest_path, manifest_bytes))
+    expected_states = dict(initial_states)
+    written: list[tuple[Path, bytes]] = []
+    try:
+        for path, content in writes:
+            _ensure_target_states(expected_states)
+            _atomic_write(path, content)
+            written.append((path, content))
+            expected_states[path] = _TargetState("FILE", content)
+        _ensure_target_states(expected_states)
+    except BaseException as exc:
+        rollback_errors: list[BaseException] = []
+        for path, content in reversed(written):
+            try:
+                _restore_target_state(path, initial_states[path], content)
+            except BaseException as rollback_error:
+                rollback_errors.append(rollback_error)
+        if rollback_errors:
+            detail = "; ".join(str(error) for error in rollback_errors)
+            raise BaselineError(f"snapshot apply failed and rollback failed: {detail}") from exc
+        raise
 
 
 def validate_snapshot(destination_repo: Path, manifest_path: Path) -> list[str]:
