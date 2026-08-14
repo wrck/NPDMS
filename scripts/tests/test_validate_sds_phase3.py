@@ -27,7 +27,7 @@ class Phase3ValidatorTest(unittest.TestCase):
             path.write_text("正式独立复审已GO、模型基线已发布；AI-MIG-000、迁移和切换仍阻断。", encoding="utf-8")
 
         common = (
-            "> 文档状态：`IN_REVIEW`\n> 适用基线：PRD V1.7\n"
+            "> 文档状态：`BASELINE`\n> 适用基线：PRD V1.7\n"
             "> Requirement ID：测试\n> Owner：测试Owner\n"
         )
         contents = {
@@ -60,10 +60,10 @@ class Phase3ValidatorTest(unittest.TestCase):
                 f"- Phase 3证据类型：自动化证据 {detail}\n"
             )
         (self.root / "docs" / "traceability" / "phase2-contract-map.md").write_text(
-            "> Phase 3验证注记状态：`IN_REVIEW`\n\n" + "\n".join(blocks), encoding="utf-8"
+            "> Phase 3验证注记状态：`BASELINE`\n\n" + "\n".join(blocks), encoding="utf-8"
         )
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md").write_text(
-            "IN_REVIEW NOT_READY_FOR_SDS_BASELINE DOWNSTREAM-GATED MODEL_BASELINE_READY "
+            "APPROVED READY_FOR_SDS_BASELINE DOWNSTREAM-GATED MODEL_BASELINE_READY "
             "P3-E01 P3-E02 P3-E03 P3-E04 P3-E05 P3-E06 P3-E08 P3-E09 AI-MIG-000",
             encoding="utf-8",
         )

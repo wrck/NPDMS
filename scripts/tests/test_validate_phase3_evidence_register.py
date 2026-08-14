@@ -93,6 +93,16 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         errors = VALIDATOR.validate(self.path, require_ready=True)
         self.assertTrue(any("P3-E09" in error for error in errors))
 
+    def test_downstream_open_items_do_not_block_sds_baseline(self) -> None:
+        by_id = {item["id"]: item for item in self.payload["items"]}
+        by_id["P3-E09"]["status"] = "VERIFIED"
+        by_id["P3-E09"]["confirmedFacts"]["modelDecisionStatus"] = "MODEL_BASELINE_READY"
+        self.assertTrue(VALIDATOR.sds_baseline_ready(by_id))
+
+    def test_p3e09_not_ready_blocks_sds_baseline(self) -> None:
+        by_id = {item["id"]: item for item in self.payload["items"]}
+        self.assertFalse(VALIDATOR.sds_baseline_ready(by_id))
+
     def test_gate_scope_drift_is_detected(self) -> None:
         self.payload["items"][0]["blocks"].append("PHASE_3_BASELINE")
         self.write()

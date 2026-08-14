@@ -2,6 +2,8 @@
 
 Phase 3审查安全、审计可观测、部署、性能和测试设计是否足以形成完整SDS基线。
 
+当前结论为`READY_FOR_SDS_BASELINE`。该状态仅放行SDS基线；P3-E01～08及P3-E09保留的下游阻断仍分别约束部署、联调、专项验收、历史迁移、切换和生产发布。
+
 ## 当前文件
 
 - [`runtime-fact-inventory.md`](runtime-fact-inventory.md)：实现仓库运行、构建、迁移和环境事实。

@@ -1,6 +1,6 @@
 ﻿# SDS Phase 3：安全设计
 
-> 文档状态：`IN_REVIEW`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
 > Requirement ID：NFR-01、NFR-02、INT-09、INT-12、PLT-02，以及全部103项需求的认证、授权、数据隔离、文件、集成和审计安全
 > Owner：SDS Phase 3安全架构；业务授权Owner继承07，凭证Owner继承Device Access & Collection

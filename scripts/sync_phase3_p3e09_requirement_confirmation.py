@@ -51,7 +51,7 @@ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, 
     for reference in generated["evidenceRefs"]:
         if reference not in item["evidenceRefs"]:
             item["evidenceRefs"].append(reference)
-    payload["overallStatus"] = "NOT_READY_FOR_SDS_BASELINE"
+    payload["overallStatus"] = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"
     return payload
 
 

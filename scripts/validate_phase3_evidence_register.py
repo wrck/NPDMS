@@ -26,6 +26,20 @@ EXPECTED_BLOCKS = {
     "P3-E08": {"FRONTEND_FEATURE_ACCEPTANCE", "FRONTEND_RELEASE"},
     "P3-E09": {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
 }
+
+
+def sds_baseline_ready(by_id: dict[str, dict[str, object]]) -> bool:
+    """Return whether model-affecting Phase 3 gates allow the SDS baseline.
+
+    P3-E01 through P3-E08 retain their deployment, integration, acceptance, and
+    release blocks, but those runtime facts do not exist at SDS baseline time.
+    """
+    return all(
+        by_id.get(identifier, {}).get("status") == "VERIFIED"
+        and by_id.get(identifier, {}).get("confirmedFacts", {}).get("modelDecisionStatus")
+        == "MODEL_BASELINE_READY"
+        for identifier in BASELINE_REQUIRED
+    )
 DIRECTION_DECISIONS = {
     "P3-E01": "A",
     "P3-E02": "A",
@@ -303,13 +317,8 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
     if MODEL_DECISION_REF not in e09.get("evidenceRefs", []):
         errors.append("P3-E09 Q07/Q08 decision reference missing")
 
-    ready = all(
-        by_id.get(identifier, {}).get("status") == "VERIFIED"
-        and by_id.get(identifier, {}).get("confirmedFacts", {}).get("modelDecisionStatus") == "MODEL_BASELINE_READY"
-        for identifier in BASELINE_REQUIRED
-    )
-    phase_ready = ready and all(item.get("status") == "VERIFIED" for item in by_id.values())
-    expected_overall = "READY_FOR_SDS_BASELINE" if phase_ready else "NOT_READY_FOR_SDS_BASELINE"
+    ready = sds_baseline_ready(by_id)
+    expected_overall = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"
     if payload.get("overallStatus") != expected_overall:
         errors.append(f"overallStatus must be {expected_overall}")
     if require_ready and not ready:

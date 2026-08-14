@@ -192,7 +192,7 @@ def render(prd: Path) -> str:
         "> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）",
         "> Requirement ID：附录 A.1 全部 103 项 V1/V2 正式需求",
         "> Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准",
-        "> Phase 3验证注记状态：`IN_REVIEW`（不改变已批准的Phase 2契约基线）",
+        "> Phase 3验证注记状态：`BASELINE`（不改变已批准的Phase 2契约基线）",
         "",
         "本文件逐项声明可实施的数据对象、表、API、事件/集成/文件、工作流和授权落点。相同基础契约可被多个相关 Requirement 复用，但每个 Requirement 必须显式登记；`N/A` 必须说明为何该类契约不适用。",
         "",

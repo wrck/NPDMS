@@ -53,7 +53,7 @@ def validate(root: Path) -> list[str]:
             continue
         text = path.read_text(encoding="utf-8")
         documents[name] = text
-        for marker in ("文档状态：`IN_REVIEW`", "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
+        for marker in ("文档状态：`BASELINE`", "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
             if marker not in text:
                 errors.append(f"{name} missing metadata: {marker}")
 
@@ -95,8 +95,8 @@ def validate(root: Path) -> list[str]:
         errors.append("missing explicit Phase 2/3 contract map")
     else:
         contract_text = contract_path.read_text(encoding="utf-8")
-        if "Phase 3验证注记状态：`IN_REVIEW`" not in contract_text:
-            errors.append("contract map missing Phase 3 IN_REVIEW marker")
+        if "Phase 3验证注记状态：`BASELINE`" not in contract_text:
+            errors.append("contract map missing Phase 3 BASELINE marker")
         blocks = parse_contract_blocks(contract_text)
         if len(blocks) != EXPECTED_REQUIREMENT_COUNT:
             errors.append(f"expected {EXPECTED_REQUIREMENT_COUNT} Phase 3 verification mappings, got {len(blocks)}")
@@ -130,8 +130,10 @@ def validate(root: Path) -> list[str]:
     else:
         gate = gate_path.read_text(encoding="utf-8")
         required_model_status = "MODEL_BASELINE_REVIEW_PENDING" if "MODEL_BASELINE_REVIEW_PENDING" in gate else "MODEL_BASELINE_READY"
+        required_review_status = "IN_REVIEW" if required_model_status == "MODEL_BASELINE_REVIEW_PENDING" else "APPROVED"
+        required_overall_status = "NOT_READY_FOR_SDS_BASELINE" if required_model_status == "MODEL_BASELINE_REVIEW_PENDING" else "READY_FOR_SDS_BASELINE"
         require_tokens(errors, "Phase 3 gate", gate, (
-            "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE", "P3-E01", "P3-E02", "P3-E03",
+            required_review_status, required_overall_status, "P3-E01", "P3-E02", "P3-E03",
             "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "DOWNSTREAM-GATED",
             required_model_status,
         ))

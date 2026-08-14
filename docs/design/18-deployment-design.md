@@ -1,6 +1,6 @@
 ﻿# SDS Phase 3：部署、迁移与回退设计
 
-> 文档状态：`IN_REVIEW`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE
 > Requirement ID：NFR-01、NFR-02、NFR-03及全部103项需求的构建、配置、迁移、发布和恢复保障
 > Owner：SDS Phase 3发布架构；生产基础设施Owner待P3-E01～E03登记

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-14
 > 状态：`IN_REVIEW`
-> 结论：`NOT_READY_FOR_SDS_BASELINE`（P3-E09已为`MODEL_BASELINE_READY`并放行数据模型输入；Phase 3整体仍有P3-E01～08的适用门禁，历史迁移和数据切换继续阻断）
+> 结论：`READY_FOR_SDS_BASELINE`（P3-E09已为`MODEL_BASELINE_READY`并放行数据模型输入；P3-E01～08继续约束各自下游门禁，历史迁移和数据切换继续阻断）
 > 边界：逻辑设计与证据契约已完成；生产环境、恢复、安全运行和性能证据保留为部署/专项验收/发布门禁，不代表生产就绪。
 
 > 方向决策：ADR-0004已批准`A、A、A、A、A、A、B、A`；本结论不关闭P3-E01～E08下游证据门禁，也不关闭`AI-MIG-000`的真实批次门禁。
@@ -82,4 +82,4 @@ git diff --check
 
 ## 6. 自审结论
 
-Phase 3运行保障设计与证据契约已完成，P3-E09的核心迁移DDL、迁移映射、机器校验和隔离MySQL 8.4.10执行证据已经同步；独立复审结论为`GO`，状态为`MODEL_BASELINE_READY`并放行SDS/Feature数据模型输入。Phase 3整体仍因P3-E01～08的适用门禁保持`NOT_READY_FOR_SDS_BASELINE`；`AI-MIG-000`、历史迁移和数据切换继续`OPEN`，未经真实批次验证不得执行。
+Phase 3运行保障设计与证据契约已完成，P3-E09的核心迁移DDL、迁移映射、机器校验和隔离MySQL 8.4.10执行证据已经同步；独立复审结论为`GO`，状态为`MODEL_BASELINE_READY`并放行SDS/Feature数据模型输入。P3-E01～08均已明确风险、验收方式和最晚关闭点，不再前置阻断SDS基线，Phase 3整体为`READY_FOR_SDS_BASELINE`；`AI-MIG-000`、历史迁移和数据切换继续`OPEN`，未经真实批次验证不得执行。

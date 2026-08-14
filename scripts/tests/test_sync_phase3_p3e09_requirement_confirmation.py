@@ -33,7 +33,7 @@ class Phase3P3E09RequirementConfirmationSyncTest(unittest.TestCase):
         self.assertNotIn("reviewDate", facts)
         self.assertNotIn("reviewRange", facts)
         self.assertEqual({"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"}, set(item["blocks"]))
-        self.assertEqual("NOT_READY_FOR_SDS_BASELINE", result["overallStatus"])
+        self.assertEqual("READY_FOR_SDS_BASELINE", result["overallStatus"])
 
 
 if __name__ == "__main__":
