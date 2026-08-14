@@ -1,6 +1,6 @@
 # P3-E09数据模型基线与迁移发布双门禁设计
 
-> 状态：`REVIEW_REQUESTED`<br>
+> 状态：`APPROVED`<br>
 > 日期：2026-08-14<br>
 > 适用基线：PRD V1.7、SDS Phase 3<br>
 > 关联门禁：P3-E09 / AI-MIG-000<br>
