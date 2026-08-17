@@ -118,6 +118,15 @@
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
     {
+      "objectKey": "ProjectTemplateFoundation",
+      "classification": "CURRENT_52",
+      "requirementRefs": ["PM-03"],
+      "codePaths": [
+        "sql/migrations/V52__proj_project_template_foundation.sql"
+      ],
+      "requiredAction": "F_PM03_SUPPLY_SIDE_IMPLEMENTATION"
+    },
+    {
       "objectKey": "ProjectUnclassifiedSurface",
       "classification": "BLOCKED_BY_SPEC",
       "requirementRefs": ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "ACC-05", "ACC-06", "CHG-01", "CLO-01", "CLO-02", "CUS-01", "CUS-02", "CUS-03", "CUS-04", "PLN-01", "PLN-02", "PLN-03", "PLN-04", "PM-01", "PM-02", "PM-03", "PM-04", "PM-05", "PM-06", "PM-07", "PM-08", "PM-09", "PM-10", "PM-11", "SCH-01", "SCH-02", "SCH-03", "SCH-04", "SCH-05"],
