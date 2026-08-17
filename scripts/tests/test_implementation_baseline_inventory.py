@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from validate_implementation_baseline_inventory import (
     find_retired_cutover_runtime_surfaces,
     find_retired_maintenance_runtime_surfaces,
+    find_retired_project_write_runtime_surfaces,
     find_retired_template_runtime_surfaces,
     load_inventory,
     validate_inventory,
@@ -485,6 +486,96 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
                     "pms_project_phase_template instantiate-from-template",
                 )
             self.assertEqual([], find_retired_template_runtime_surfaces(repository))
+
+    def test_retired_project_write_guard_scans_arbitrary_runtime_paths(self) -> None:
+        fixtures = {
+            "controller-composition": (
+                "pms-module-project/src/main/java/example/hidden/ShadowProjectController.java",
+                '@RequestMapping("/pms/project") class ShadowProjectController '
+                '{ @PostMapping("/create") void createProject() {} }',
+                "route composition",
+            ),
+            "api-composition": (
+                "yudao-ui/yudao-ui-admin-vue3/src/feature/hidden/arbitrary-compose.ts",
+                "const baseUrl = '/pms/project'; "
+                "request.put({ url: `${baseUrl}/classify`, data })",
+                "route composition",
+            ),
+            "full-route": (
+                "yudao-ui/yudao-ui-admin-vue3/src/feature/hidden/arbitrary-full.ts",
+                "request.post({ url: '/pms/project/create', data })",
+                "retired project write route",
+            ),
+            "permission": (
+                "pms-module-project/src/main/java/example/hidden/ShadowProjectPermission.java",
+                "@PreAuthorize(\"@ss.hasPermission('pms:project:assign')\")",
+                "permission",
+            ),
+            "comment-cannot-hide-route": (
+                "yudao-ui/yudao-ui-admin-vue3/src/feature/hidden/arbitrary-comment.ts",
+                "// legacy pms/project/assign-manager must not return",
+                "retired project write route",
+            ),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for name, (path, content, expected_label) in fixtures.items():
+                with self.subTest(name=name):
+                    self._write_runtime_fixture(repository, path, content)
+                    errors = find_retired_project_write_runtime_surfaces(repository)
+                    self.assertTrue(
+                        any(path in error and expected_label in error for error in errors),
+                        errors,
+                    )
+
+    def test_retired_project_write_guard_allows_plural_new_chain_surfaces(self) -> None:
+        rebuilt_sources = {
+            "controller": (
+                "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectController.java",
+                '@RequestMapping("/pms/projects") class ProjectController { '
+                '@PreAuthorize("@ss.hasPermission(\'pms:project:create\')") '
+                "@PostMapping void createProject() {} }",
+            ),
+            "api": (
+                "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
+                "const baseUrl = '/pms/projects'; request.post({ url: baseUrl, data }); "
+                "request.put({ url: `${baseUrl}/${id}/actions/assign-manager`, data })",
+            ),
+            "view": (
+                "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
+                "v-hasPermi=\"['pms:project:create', 'pms:project:assign']\"",
+            ),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for path, content in rebuilt_sources.values():
+                self._write_runtime_fixture(repository, path, content)
+            self.assertEqual([], find_retired_project_write_runtime_surfaces(repository))
+
+    def test_retired_project_write_guard_excludes_non_runtime_evidence(self) -> None:
+        excluded_paths = (
+            "sql/migrations/V49__pms_menu.sql",
+            "sql/migrations/V999__future.sql",
+            "docs/baseline/prd-v1.7.md",
+            "tasks/implementation-baseline-inventory.json",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for path in excluded_paths:
+                self._write_runtime_fixture(
+                    repository,
+                    path,
+                    "'/pms/project' + '/create' pms/project/classify "
+                    "pms:project:delete pms:project:assign",
+                )
+            self.assertEqual([], find_retired_project_write_runtime_surfaces(repository))
+
+    def test_retired_project_write_runtime_has_no_legacy_write_surface(self) -> None:
+        # Guard-first (F-PM01 T1): red while the legacy /pms/project write chain
+        # still exists; turns green when T5 freezes the legacy write surfaces.
+        self.assertEqual(
+            [], find_retired_project_write_runtime_surfaces(self.repository)
+        )
 
     def test_mes_work_order_is_not_removed_by_pms_keyword_rule(self) -> None:
         item = self._items()["MesProductionWorkOrder"]

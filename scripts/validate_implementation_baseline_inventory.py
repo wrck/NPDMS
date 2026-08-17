@@ -112,6 +112,24 @@ RETIRED_TEMPLATE_PATTERNS = (
         re.compile(r"\bpms_project_(?:template|phase_template)\b"),
     ),
 )
+RETIRED_PROJECT_WRITE_PATTERNS = (
+    (
+        "route",
+        re.compile(r"\bpms/project/(?:create|update|delete|classify|assign-manager)\b"),
+    ),
+)
+PROJECT_SINGULAR_BASE_PATTERN = re.compile(r"""["'`]/pms/project["'`]""")
+PROJECT_WRITE_FRAGMENT_PATTERN = re.compile(
+    r"""/(?:create|update|delete|classify|assign-manager)["'`]"""
+)
+PROJECT_WRITE_PERMISSION_PATTERN = re.compile(
+    r"\bpms:project:(?:create|update|delete|assign)\b"
+)
+PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES = (
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/",
+    "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
+    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/",
+)
 
 
 def load_inventory(path: Path) -> dict:
@@ -214,9 +232,36 @@ def find_retired_template_runtime_surfaces(repository: Path) -> list[str]:
     )
 
 
+def find_retired_project_write_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired singular /pms/project write surfaces in current runtime source.
+
+    The legacy chain keeps read-only endpoints, so retirement is enforced on write
+    surfaces only: full literal write routes, singular-base + write-fragment
+    composition inside one file, and write permission codes outside the rebuilt
+    plural-chain whitelist.
+    """
+    errors = _match_retired_patterns(
+        repository, RETIRED_PROJECT_WRITE_PATTERNS, "retired project write"
+    )
+    for path in _iter_runtime_source_files(repository):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        relative_path = path.relative_to(repository).as_posix()
+        if PROJECT_SINGULAR_BASE_PATTERN.search(content) and (
+            PROJECT_WRITE_FRAGMENT_PATTERN.search(content)
+        ):
+            errors.append(f"retired project write route composition: {relative_path}")
+        if PROJECT_WRITE_PERMISSION_PATTERN.search(content) and not any(
+            relative_path.startswith(prefix)
+            for prefix in PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES
+        ):
+            errors.append(f"retired project write permission: {relative_path}")
+    return errors
+
+
 def validate_inventory(repository: Path, inventory: dict) -> list[str]:
     errors = find_retired_cutover_runtime_surfaces(repository)
     errors.extend(find_retired_maintenance_runtime_surfaces(repository))
+    errors.extend(find_retired_project_write_runtime_surfaces(repository))
     if set(inventory) != {"schemaVersion", "status", "items"}:
         errors.append("inventory must contain only schemaVersion, status, and items")
         return errors
