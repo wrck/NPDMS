@@ -100,14 +100,6 @@ public class ProjectPhaseController {
         return success(BeanUtils.toBean(list, ProjectPhaseRespVO.class));
     }
 
-    @PostMapping("/instantiate-from-template")
-    @Operation(summary = "从模板实例化阶段到项目")
-    @PreAuthorize("@ss.hasPermission('pms:project-phase:update')")
-    public CommonResult<Long> instantiateFromTemplate(@RequestParam("projectId") Long projectId,
-                                                      @RequestParam("templateId") Long templateId) {
-        return success(projectPhaseService.instantiateFromTemplate(projectId, templateId));
-    }
-
     @GetMapping("/validate-sequence")
     @Operation(summary = "校验阶段顺序（前序阶段须已完成）")
     @Parameter(name = "phaseId", description = "阶段编号", required = true)

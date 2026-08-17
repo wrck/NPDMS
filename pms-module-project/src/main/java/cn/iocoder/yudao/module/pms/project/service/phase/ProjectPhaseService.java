@@ -58,15 +58,6 @@ public interface ProjectPhaseService {
     List<ProjectPhaseDO> getPhaseListByProjectId(Long projectId);
 
     /**
-     * 从模板实例化阶段到指定项目。模板必须启用，且项目内无重复 code。
-     *
-     * @param projectId 项目编号
-     * @param templateId 模板编号
-     * @return 创建的阶段编号
-     */
-    Long instantiateFromTemplate(Long projectId, Long templateId);
-
-    /**
      * 校验阶段顺序：开始某阶段前，前序阶段须已完成或已跳过。
      */
     void validateSequence(Long phaseId);

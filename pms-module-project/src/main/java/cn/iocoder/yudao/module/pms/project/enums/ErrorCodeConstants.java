@@ -46,16 +46,10 @@ public interface ErrorCodeConstants {
     // ========== 项目阶段模块 1-014-007-000 ==========
     ErrorCode PROJECT_PHASE_NOT_EXISTS = new ErrorCode(1_014_007_000, "项目阶段不存在");
     ErrorCode PROJECT_PHASE_CODE_DUPLICATE = new ErrorCode(1_014_007_001, "项目内阶段编码已存在");
-    ErrorCode PROJECT_PHASE_TEMPLATE_NOT_EXISTS = new ErrorCode(1_014_007_002, "阶段模板不存在");
     ErrorCode PROJECT_PHASE_GATE_NOT_PASSED = new ErrorCode(1_014_007_003, "阶段【{}】门禁校验未通过：{}");
     ErrorCode PROJECT_PHASE_ALREADY_COMPLETED = new ErrorCode(1_014_007_004, "阶段已完成，无法再次完成");
     ErrorCode PROJECT_PHASE_PROJECT_NOT_EXISTS = new ErrorCode(1_014_007_005, "所属项目不存在");
     ErrorCode PROJECT_PHASE_SEQUENCE_INVALID = new ErrorCode(1_014_007_006, "阶段顺序校验未通过：前序阶段尚未完成或跳过");
-
-    // ========== 阶段模板模块 1-014-008-000 ==========
-    ErrorCode PHASE_TEMPLATE_NOT_EXISTS = new ErrorCode(1_014_008_000, "阶段模板不存在");
-    ErrorCode PHASE_TEMPLATE_CODE_DUPLICATE = new ErrorCode(1_014_008_001, "阶段模板编码已存在");
-    ErrorCode PHASE_TEMPLATE_IN_USE = new ErrorCode(1_014_008_002, "阶段模板已被项目阶段引用，无法删除");
 
     // ========== 项目风险模块 1-014-009-000 ==========
     ErrorCode PROJECT_RISK_NOT_EXISTS = new ErrorCode(1_014_009_000, "项目风险不存在");
@@ -134,12 +128,5 @@ public interface ErrorCodeConstants {
     ErrorCode GOVERNANCE_ACTION_STATUS_INVALID = new ErrorCode(1_014_022_002, "项目治理动作状态流转不合法");
     ErrorCode GOVERNANCE_ACTION_PROJECT_NOT_EXISTS = new ErrorCode(1_014_022_003, "所属项目不存在");
     ErrorCode GOVERNANCE_ACTION_TYPE_INVALID = new ErrorCode(1_014_022_004, "项目治理动作类型不合法");
-
-    // ========== 项目模板模块 1-014-023-000 ==========
-    ErrorCode PROJECT_TEMPLATE_NOT_EXISTS = new ErrorCode(1_014_023_000, "项目模板不存在");
-    ErrorCode PROJECT_TEMPLATE_CODE_DUPLICATE = new ErrorCode(1_014_023_001, "项目模板编码已存在");
-    ErrorCode PROJECT_TEMPLATE_IN_USE = new ErrorCode(1_014_023_002, "项目模板已被项目引用，无法删除");
-    ErrorCode PROJECT_TEMPLATE_NOT_ENABLED = new ErrorCode(1_014_023_003, "项目模板未启用");
-    ErrorCode PROJECT_TEMPLATE_SNAPSHOT_INVALID = new ErrorCode(1_014_023_004, "项目模板快照校验未通过：{}");
 
 }
