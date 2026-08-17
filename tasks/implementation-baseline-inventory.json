@@ -122,9 +122,17 @@
       "classification": "CURRENT_52",
       "requirementRefs": ["PM-03"],
       "codePaths": [
-        "sql/migrations/V52__proj_project_template_foundation.sql"
+        "sql/migrations/V52__proj_project_template_foundation.sql",
+        "sql/migrations/V53__retire_legacy_template_runtime_surfaces.sql",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/template/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projecttemplate/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttemplate/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projecttemplate/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-templates/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/"
       ],
-      "requiredAction": "F_PM03_SUPPLY_SIDE_IMPLEMENTATION"
+      "requiredAction": "F_PM03_IMPLEMENTED_AND_UI_ACCEPTED"
     },
     {
       "objectKey": "ProjectUnclassifiedSurface",
