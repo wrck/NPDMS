@@ -34,6 +34,7 @@
     {"path": "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md", "category": "DECISION"},
     {"path": "docs/decisions/ADR-001-implementation-execution-naming.md", "category": "DECISION"},
     {"path": "docs/decisions/open-questions.md", "category": "DECISION"},
+    {"path": "docs/design/00-system-detailed-design.md", "category": "SDS"},
     {"path": "docs/design/01-requirement-traceability.md", "category": "SDS"},
     {"path": "docs/design/02-domain-model.md", "category": "SDS"},
     {"path": "docs/design/02a-context-map.md", "category": "SDS"},

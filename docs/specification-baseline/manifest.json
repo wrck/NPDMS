@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "8c047604bc54d0111c12da67b971e9149bf0c0ee"
+    "commit": "b71b5e35cbab95e94a685ab483743f737927d5cf"
   },
   "files": [
     {
@@ -169,6 +169,11 @@
       "path": "docs/decisions/open-questions.md",
       "category": "DECISION",
       "sha256": "7f9e4d3140dc77b34bf96dc89d3e13f043502a60235bae7556b6613be097b6f5"
+    },
+    {
+      "path": "docs/design/00-system-detailed-design.md",
+      "category": "SDS",
+      "sha256": "8fed402d5516512945d928ee5135b70edacd93ab7287a01ce447ed85a5ae0a9a"
     },
     {
       "path": "docs/design/01-requirement-traceability.md",
