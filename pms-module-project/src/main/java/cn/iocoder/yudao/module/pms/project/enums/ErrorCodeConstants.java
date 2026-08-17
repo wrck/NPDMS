@@ -129,4 +129,13 @@ public interface ErrorCodeConstants {
     ErrorCode GOVERNANCE_ACTION_PROJECT_NOT_EXISTS = new ErrorCode(1_014_022_003, "所属项目不存在");
     ErrorCode GOVERNANCE_ACTION_TYPE_INVALID = new ErrorCode(1_014_022_004, "项目治理动作类型不合法");
 
+    // ========== 项目模板模块（F-PM03 模板基座）1-014-023-000 ==========
+    ErrorCode PROJECT_TEMPLATE_NOT_EXISTS = new ErrorCode(1_014_023_000, "项目模板不存在");
+    ErrorCode PROJECT_TEMPLATE_CODE_DUPLICATE = new ErrorCode(1_014_023_001, "项目模板编码已存在");
+    ErrorCode PROJECT_TEMPLATE_CODE_IMMUTABLE = new ErrorCode(1_014_023_002, "模板编码不可修改");
+    ErrorCode PROJECT_TEMPLATE_DELETE_FORBIDDEN = new ErrorCode(1_014_023_003, "模板存在已发布版本或为系统保留，禁止删除");
+    ErrorCode PROJECT_TEMPLATE_NO_DRAFT_REVISION = new ErrorCode(1_014_023_004, "模板草稿版本不存在");
+    ErrorCode PROJECT_TEMPLATE_PUBLISH_INVALID = new ErrorCode(1_014_023_005, "模板发布校验未通过：{}");
+    ErrorCode PROJECT_TEMPLATE_STATUS_INVALID = new ErrorCode(1_014_023_006, "模板状态流转不合法");
+
 }
