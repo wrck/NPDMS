@@ -124,6 +124,7 @@
       "codePaths": [
         "sql/migrations/V52__proj_project_template_foundation.sql",
         "sql/migrations/V53__retire_legacy_template_runtime_surfaces.sql",
+        "sql/migrations/V54__fpm03_template_demo_seed.sql",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/template/",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projecttemplate/",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttemplate/",
