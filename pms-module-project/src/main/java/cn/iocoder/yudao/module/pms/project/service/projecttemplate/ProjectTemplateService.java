@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
@@ -37,6 +39,11 @@ public interface ProjectTemplateService {
      * 删除模板：仅无 PUBLISHED 版本且非系统保留（BR-8/留痕）
      */
     void deleteProjectTemplate(Long id);
+
+    /**
+     * 分页查询模板（状态/编码/名称过滤，优先级升序）
+     */
+    PageResult<ProjectTemplateDO> getProjectTemplatePage(ProjectTemplatePageReqVO pageReqVO);
 
     /**
      * 查询模板

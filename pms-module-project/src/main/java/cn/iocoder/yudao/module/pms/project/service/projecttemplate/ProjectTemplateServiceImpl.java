@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDeliverableDefinitionDO;
@@ -148,6 +150,11 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             revisionMapper.deleteById(draft.getId());
         }
         projectTemplateMapper.deleteById(id);
+    }
+
+    @Override
+    public PageResult<ProjectTemplateDO> getProjectTemplatePage(ProjectTemplatePageReqVO pageReqVO) {
+        return projectTemplateMapper.selectPage(pageReqVO);
     }
 
     @Override
