@@ -88,24 +88,6 @@
           <el-button @click="handleReset">
             <Icon icon="ep:refresh-left" />重置
           </el-button>
-          <el-button
-            type="primary"
-            plain
-            @click="openClassify()"
-            v-hasPermi="['pms:project:update']"
-            :disabled="!selectedProject"
-          >
-            <Icon icon="ep:collection" />项目分类
-          </el-button>
-          <el-button
-            type="success"
-            plain
-            @click="openAssign()"
-            v-hasPermi="['pms:project:assign']"
-            :disabled="!selectedProject"
-          >
-            <Icon icon="ep:user" />指派项目经理
-          </el-button>
         </el-form-item>
       </el-form>
     </ContentWrap>
@@ -125,7 +107,6 @@
         v-loading="listLoading"
         :data="projectList"
         empty-text="暂无项目数据"
-        @row-click="handleRowClick"
         highlight-current-row
         :row-class-name="rowClassName"
       >
@@ -171,23 +152,11 @@
         <el-table-column prop="createTime" label="创建时间" width="160">
           <template #default="{ row }">{{ formatDate(row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click.stop="goDetail(row)">
               <Icon icon="ep:view" />详情
             </el-button>
-            <el-button
-              link
-              type="primary"
-              @click.stop="openClassify(row)"
-              v-hasPermi="['pms:project:update']"
-            >分类</el-button>
-            <el-button
-              link
-              type="success"
-              @click.stop="openAssign(row)"
-              v-hasPermi="['pms:project:assign']"
-            >指派</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -198,81 +167,19 @@
         @pagination="loadList"
       />
     </ContentWrap>
-
-    <!-- ============ 项目分类 Dialog ============ -->
-    <Dialog v-model="classifyVisible" title="项目分类" width="520px">
-      <el-form ref="classifyFormRef" :model="classifyForm" :rules="classifyRules" label-width="120px">
-        <el-form-item label="项目" prop="projectId">
-          <PmsEntitySelect
-            v-model="classifyForm.projectId"
-            :api="ProjectApi.getProjectPage"
-            label-field="name"
-            value-field="id"
-            query-field="name"
-            placeholder="请选择项目"
-            :disabled="true"
-          />
-        </el-form-item>
-        <el-form-item label="项目分类" prop="category">
-          <el-select v-model="classifyForm.category" placeholder="请选择分类">
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="重大项目">
-          <el-switch v-model="classifyForm.majorProjectFlag" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="classifyVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveClassify">保存</el-button>
-      </template>
-    </Dialog>
-
-    <!-- ============ 指派项目经理 Dialog ============ -->
-    <Dialog v-model="assignVisible" title="指派项目经理" width="520px">
-      <el-form ref="assignFormRef" :model="assignForm" :rules="assignRules" label-width="120px">
-        <el-form-item label="项目" prop="projectId">
-          <PmsEntitySelect
-            v-model="assignForm.projectId"
-            :api="ProjectApi.getProjectPage"
-            label-field="name"
-            value-field="id"
-            query-field="name"
-            placeholder="请选择项目"
-            :disabled="true"
-          />
-        </el-form-item>
-        <el-form-item label="项目经理" prop="managerUserId">
-          <PmsEntitySelect
-            v-model="assignForm.managerUserId"
-            :api="UserApi.getUserPage"
-            label-field="nickname"
-            value-field="id"
-            query-field="nickname"
-            placeholder="请选择用户"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="assignVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveAssign">保存</el-button>
-      </template>
-    </Dialog>
-
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * 旧链项目列表页（F-PM01 存量冻结后仅只读）
+ *
+ * 写操作（分类/指派/编辑）已随旧链写端点退役；
+ * 新项目创建、分类、指派请使用新链页面（ProjectMaster）。
+ */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectApi from '@/api/pms/project/project'
-import type { ProjectClassifyReqVO, ProjectAssignManagerReqVO } from '@/api/pms/project/project'
 import { formatDate } from '@/utils/formatTime'
 import * as UserApi from '@/api/system/user'
 import UserTag from '@/components/UserTag/index.vue'
@@ -280,10 +187,8 @@ import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 
 defineOptions({ name: 'PmsProject' })
 
-const message = useMessage()
 const router = useRouter()
 const listLoading = ref(false)
-const saving = ref(false)
 
 // ============ 状态卡数据 ============
 const statusStats = reactive({
@@ -353,30 +258,6 @@ const query = reactive({
 const projectList = ref<any[]>([])
 const listTotal = ref(0)
 const listQuery = reactive({ pageNo: 1, pageSize: 10 })
-const selectedProject = ref<any>(null)
-
-// ============ Dialog ============
-const classifyVisible = ref(false)
-const classifyFormRef = ref()
-const classifyForm = reactive<ProjectClassifyReqVO>({
-  projectId: 0,
-  category: '',
-  majorProjectFlag: false
-})
-const classifyRules = {
-  projectId: [{ required: true, message: '请输入项目编号' }]
-}
-
-const assignVisible = ref(false)
-const assignFormRef = ref()
-const assignForm = reactive<ProjectAssignManagerReqVO>({
-  projectId: 0,
-  managerUserId: 0
-})
-const assignRules = {
-  projectId: [{ required: true, message: '请输入项目编号' }],
-  managerUserId: [{ required: true, message: '请输入项目经理用户编号' }]
-}
 
 // ============ 数据加载 ============
 const loadStats = async () => {
@@ -453,72 +334,12 @@ const toggleStatusFilter = (value?: number) => {
   loadList()
 }
 
-const handleRowClick = (row: any) => {
-  selectedProject.value = row
-}
-
 const rowClassName = ({ row }: { row: any }) => {
   return row.majorProjectFlag ? 'row-major' : ''
 }
 
 const goDetail = (row: any) => {
   router.push({ path: '/pms/project-detail', query: { projectId: row.id } })
-}
-
-// ============ Dialog 操作 ============
-const openClassify = (row?: any) => {
-  const p = row || selectedProject.value
-  if (!p) {
-    message.warning('请先选择项目')
-    return
-  }
-  Object.assign(classifyForm, {
-    projectId: p.id,
-    category: p.category || '',
-    majorProjectFlag: p.majorProjectFlag || false
-  })
-  classifyVisible.value = true
-}
-
-const saveClassify = async () => {
-  await classifyFormRef.value.validate()
-  saving.value = true
-  try {
-    await ProjectApi.classifyProject(classifyForm)
-    message.success('分类更新成功')
-    classifyVisible.value = false
-    await loadList()
-    await loadStats()
-  } finally {
-    saving.value = false
-  }
-}
-
-const openAssign = (row?: any) => {
-  const p = row || selectedProject.value
-  if (!p) {
-    message.warning('请先选择项目')
-    return
-  }
-  Object.assign(assignForm, {
-    projectId: p.id,
-    managerUserId: p.managerUserId || 0
-  })
-  assignVisible.value = true
-}
-
-const saveAssign = async () => {
-  await assignFormRef.value.validate()
-  saving.value = true
-  try {
-    await ProjectApi.assignProjectManager(assignForm)
-    message.success('指派成功')
-    assignVisible.value = false
-    await loadList()
-    await loadStats()
-  } finally {
-    saving.value = false
-  }
 }
 
 onMounted(() => {

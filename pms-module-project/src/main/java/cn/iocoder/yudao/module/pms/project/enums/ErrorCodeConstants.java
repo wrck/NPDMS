@@ -21,7 +21,6 @@ public interface ErrorCodeConstants {
     // ========== 项目主表模块 1-014-003-000 ==========
     ErrorCode PROJECT_NOT_EXISTS = new ErrorCode(1_014_003_000, "项目不存在");
     ErrorCode PROJECT_CODE_DUPLICATE = new ErrorCode(1_014_003_001, "项目编码已存在");
-    ErrorCode PROJECT_SOURCE_KEY_DUPLICATE = new ErrorCode(1_014_003_002, "项目来源业务键已存在");
     ErrorCode PROJECT_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_003_003, "项目客户不存在");
 
     // ========== 项目树模块 1-014-004-000 ==========

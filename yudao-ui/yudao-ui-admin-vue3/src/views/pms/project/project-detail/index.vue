@@ -115,14 +115,11 @@
 
       <!-- 右侧内容区 -->
       <div class="canvas">
-        <!-- ============ 项目概览：项目主数据（增强：可编辑） ============ -->
+        <!-- ============ 项目概览：项目主数据（旧链只读，F-PM01 冻结编辑） ============ -->
         <ContentWrap v-show="activeTab === 'project'">
           <div class="panel-header">
             <span class="panel-title"><Icon icon="ep:document" /> 项目主数据</span>
             <div class="panel-header-actions">
-              <el-button type="primary" size="small" @click="openProjectEdit">
-                <Icon icon="ep:edit" /> 编辑
-              </el-button>
               <el-button link type="primary" @click="goPage('/pms/project-management/project')">前往项目列表</el-button>
             </div>
           </div>
@@ -628,54 +625,6 @@
       </template>
     </el-dialog>
 
-    <!-- ============ 项目编辑弹窗 ============ -->
-    <el-dialog v-model="projectEditVisible" title="编辑项目" width="600px">
-      <el-form :model="projectEditForm" label-width="100px" v-loading="projectEditLoading">
-        <el-form-item label="项目编码" required>
-          <el-input v-model="projectEditForm.code" />
-        </el-form-item>
-        <el-form-item label="项目名称" required>
-          <el-input v-model="projectEditForm.name" />
-        </el-form-item>
-        <el-form-item label="客户名称">
-          <el-input v-model="projectEditForm.customerName" />
-        </el-form-item>
-        <el-form-item label="项目类型">
-          <el-input v-model="projectEditForm.projectType" />
-        </el-form-item>
-        <el-form-item label="项目经理">
-          <PmsEntitySelect
-            v-model="projectEditForm.managerUserId"
-            :api="UserApi.getUserPage"
-            label-field="nickname"
-            value-field="id"
-            query-field="nickname"
-            placeholder="请选择用户"
-          />
-        </el-form-item>
-        <el-form-item label="重大项目">
-          <el-switch v-model="projectEditForm.majorProjectFlag" />
-        </el-form-item>
-        <el-form-item label="项目分类">
-          <el-select v-model="projectEditForm.category" clearable placeholder="请选择">
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="projectEditForm.remark" type="textarea" :rows="3" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="projectEditVisible = false">取消</el-button>
-        <el-button type="primary" :loading="projectEditLoading" @click="submitProjectEdit">保存</el-button>
-      </template>
-    </el-dialog>
-
     <!-- ============ 模板选择弹窗（需求分析/实施方案） ============ -->
     <el-dialog
       v-model="templateSelectVisible"
@@ -851,7 +800,6 @@ import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
 import UserTag from '@/components/UserTag/index.vue'
 import CustomerTag from '@/components/CustomerTag/index.vue'
 import { getProjectPanoramic } from '@/api/pms/project/project-panoramic'
@@ -1513,11 +1461,6 @@ const formRules = ref<Record<string, any[]>>({})
 // 阶段详情状态
 const activePhaseId = ref<number | undefined>(undefined)
 
-// 项目编辑弹窗状态
-const projectEditVisible = ref(false)
-const projectEditForm = reactive<any>({})
-const projectEditLoading = ref(false)
-
 // ============ 模板化新增状态（需求分析/实施方案） ============
 // 模板选择弹窗
 const templateSelectVisible = ref(false)
@@ -2156,27 +2099,6 @@ const completePhase = async (phase: ProjectPhaseVO) => {
     await loadPhases()
   } catch (e) {
     if (e !== 'cancel') message.error('操作失败')
-  }
-}
-
-// ============ 项目编辑 ============
-const openProjectEdit = () => {
-  Object.keys(projectEditForm).forEach((k) => delete projectEditForm[k])
-  Object.assign(projectEditForm, project)
-  projectEditVisible.value = true
-}
-
-const submitProjectEdit = async () => {
-  projectEditLoading.value = true
-  try {
-    await ProjectApi.updateProject(projectEditForm)
-    message.success('修改成功')
-    projectEditVisible.value = false
-    if (currentProjectId.value) await loadProject(currentProjectId.value)
-  } catch (e) {
-    // 忽略
-  } finally {
-    projectEditLoading.value = false
   }
 }
 

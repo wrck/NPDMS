@@ -1,43 +1,19 @@
 package cn.iocoder.yudao.module.pms.project.service.project;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectAssignManagerReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectClassifyReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectPageReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 
-import jakarta.validation.Valid;
-
 /**
- * PMS 项目 Service 接口
+ * PMS 项目 Service 接口（旧链只读过渡，F-PM01 存量冻结）
+ * <p>
+ * 写方法已随 F-PM01 退役（新链 {@code ProjectManualCreationService} 承接）；
+ * 本接口仅保留 get/page 只读查询，旧 pms_project 数据冻结待 AI-MIG-000。
  */
 public interface ProjectService {
 
     /**
-     * 创建项目
-     *
-     * @param createReqVO 项目信息
-     * @return 项目编号
-     */
-    Long createProject(@Valid ProjectSaveReqVO createReqVO);
-
-    /**
-     * 更新项目
-     *
-     * @param updateReqVO 项目信息
-     */
-    void updateProject(@Valid ProjectSaveReqVO updateReqVO);
-
-    /**
-     * 删除项目
-     *
-     * @param id 项目编号
-     */
-    void deleteProject(Long id);
-
-    /**
-     * 获得项目
+     * 获得项目（只读）
      *
      * @param id 项目编号
      * @return 项目信息
@@ -45,25 +21,11 @@ public interface ProjectService {
     ProjectDO getProject(Long id);
 
     /**
-     * 获得项目分页列表
+     * 获得项目分页列表（只读）
      *
      * @param pageReqVO 分页条件
      * @return 项目分页列表
      */
     PageResult<ProjectDO> getProjectPage(ProjectPageReqVO pageReqVO);
-
-    /**
-     * 项目分类
-     *
-     * @param reqVO 分类信息
-     */
-    void classifyProject(@Valid ProjectClassifyReqVO reqVO);
-
-    /**
-     * 指派项目经理
-     *
-     * @param reqVO 指派信息
-     */
-    void assignProjectManager(@Valid ProjectAssignManagerReqVO reqVO);
 
 }

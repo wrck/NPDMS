@@ -1,5 +1,12 @@
 import request from '@/config/axios'
 
+/**
+ * 旧链项目 API（F-PM01 存量冻结后仅只读）
+ *
+ * 写端点（create/update/delete/classify/assign-manager）已随 F-PM01 退役，
+ * 新链复数路由 /pms/projects（api/pms/project/projects）承接全部写语义；
+ * 本模块仅保留 get/page 只读查询，供旧页面选择器过渡消费。
+ */
 export interface ProjectVO {
   id?: number
   code: string
@@ -29,36 +36,13 @@ export interface ProjectVO {
   createTime?: Date
 }
 
-export interface ProjectClassifyReqVO {
-  projectId: number
-  category?: string
-  majorProjectFlag?: boolean
-}
-
-export interface ProjectAssignManagerReqVO {
-  projectId: number
-  managerUserId: number
-}
-
 const baseUrl = '/pms/project'
 
-// 基础 CRUD
+// 只读查询
 export const getProjectPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getProject = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
-export const createProject = (data: ProjectVO) =>
-  request.post({ url: `${baseUrl}/create`, data })
-export const updateProject = (data: ProjectVO) =>
-  request.put({ url: `${baseUrl}/update`, data })
-export const deleteProject = (id: number) =>
-  request.delete({ url: `${baseUrl}/delete`, params: { id } })
-
-// 业务动作
-export const classifyProject = (data: ProjectClassifyReqVO) =>
-  request.put({ url: `${baseUrl}/classify`, data })
-export const assignProjectManager = (data: ProjectAssignManagerReqVO) =>
-  request.put({ url: `${baseUrl}/assign-manager`, data })
 
 // 简易列表（用于选择器，不分页）
 export const getProjectSimpleList = (params?: PageParam) =>
