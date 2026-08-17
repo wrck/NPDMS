@@ -361,6 +361,9 @@ export enum DICT_TYPE {
   // ========== PMS - 项目交付管理模块 ==========
   PMS_PROJECT_STATUS = 'pms_project_status', // 项目状态
   PMS_PROJECT_CATEGORY = 'pms_project_category', // 项目分类
+  PMS_SIGNING_METHOD = 'pms_signing_method', // 模板匹配维度：签约方式
+  PMS_IMPLEMENTATION_METHOD = 'pms_implementation_method', // 模板匹配维度：实施方式
+  PMS_MAJOR_PROJECT_LEVEL = 'pms_major_project_level', // 模板匹配维度：重大项目级别（CRM来源映射）
   PMS_TASK_STATUS = 'pms_task_status', // 任务WBS状态
   PMS_RISK_LEVEL = 'pms_risk_level', // 项目风险等级
   PMS_PLAN_CHANGE_STATUS = 'pms_plan_change_status', // 计划变更状态
