@@ -96,11 +96,6 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_ARCHIVE_DOCUMENT_CODE_DUPLICATE = new ErrorCode(1_014_015_001, "项目内归档文档编码已存在");
     ErrorCode ACC_ARCHIVE_DOCUMENT_STATUS_INVALID = new ErrorCode(1_014_015_002, "归档文档状态流转不合法");
 
-    // ========== 转维保 1-014-016-000 ==========
-    ErrorCode ACC_MAINTENANCE_TRANSITION_NOT_EXISTS = new ErrorCode(1_014_016_000, "转维保记录不存在");
-    ErrorCode ACC_MAINTENANCE_TRANSITION_CODE_DUPLICATE = new ErrorCode(1_014_016_001, "项目内转维保编码已存在");
-    ErrorCode ACC_MAINTENANCE_TRANSITION_STATUS_INVALID = new ErrorCode(1_014_016_002, "转维保状态流转不合法");
-
     // ========== 项目组合模块 1-014-017-000 ==========
     ErrorCode PORTFOLIO_NOT_EXISTS = new ErrorCode(1_014_017_000, "项目组合不存在");
     ErrorCode PORTFOLIO_CODE_DUPLICATE = new ErrorCode(1_014_017_001, "项目组合编码已存在");

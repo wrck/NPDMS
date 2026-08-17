@@ -34,6 +34,8 @@ REQ_PATTERN = re.compile(
 )
 RUNTIME_SOURCE_ROOTS = (
     "pms-module-cutover/src/main",
+    "pms-module-service/src/main",
+    "pms-module-project/src/main",
     "yudao-ui/yudao-ui-admin-vue3/src",
 )
 RUNTIME_SOURCE_SUFFIXES = frozenset(
@@ -72,6 +74,23 @@ CUT_TASK_BYPASS_PATTERN = re.compile(
     r"|\b(?:startExecution|completeExecution|startObservation|completeObservation)\b"
     r"|\b(?:rollback|terminate)\s*\(",
     re.IGNORECASE,
+)
+RETIRED_MAINTENANCE_PATTERNS = (
+    (
+        "maintenance type",
+        re.compile(r"\b(?:SrvMaintenance|MaintenanceTransition)\w*\b"),
+    ),
+    (
+        "maintenance route",
+        re.compile(r"\b(?:srv-maintenance|maintenance-transition)\b", re.IGNORECASE),
+    ),
+    (
+        "maintenance permission",
+        re.compile(
+            r"\bpms:(?:srv-maintenance|acc-maintenance-transition):[A-Za-z0-9:_*-]+",
+            re.IGNORECASE,
+        ),
+    ),
 )
 
 
@@ -123,9 +142,7 @@ def _requirement_ids(repository: Path) -> set[str]:
     return set(re.findall(REQ_PATTERN.pattern[1:-1], matrix))
 
 
-def find_retired_cutover_runtime_surfaces(repository: Path) -> list[str]:
-    """Find retired cutover surfaces in current runtime source, independent of inventory paths."""
-    errors: list[str] = []
+def _iter_runtime_source_files(repository: Path):
     for raw_root in RUNTIME_SOURCE_ROOTS:
         source_root = repository / raw_root
         if not source_root.is_dir():
@@ -133,22 +150,46 @@ def find_retired_cutover_runtime_surfaces(repository: Path) -> list[str]:
         for path in sorted(
             candidate for candidate in source_root.rglob("*") if candidate.is_file()
         ):
-            if path.suffix.lower() not in RUNTIME_SOURCE_SUFFIXES:
-                continue
-            content = path.read_text(encoding="utf-8", errors="ignore")
-            relative_path = path.relative_to(repository).as_posix()
-            for label, pattern in RETIRED_CUTOVER_PATTERNS:
-                if pattern.search(content):
-                    errors.append(f"retired cutover {label}: {relative_path}")
-            if CUT_TASK_CONTEXT_PATTERN.search(content) and CUT_TASK_BYPASS_PATTERN.search(
-                content
-            ):
-                errors.append(f"retired cutover cut-task bypass route or method: {relative_path}")
+            if path.suffix.lower() in RUNTIME_SOURCE_SUFFIXES:
+                yield path
+
+
+def _match_retired_patterns(repository: Path, patterns, prefix: str) -> list[str]:
+    errors: list[str] = []
+    for path in _iter_runtime_source_files(repository):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        relative_path = path.relative_to(repository).as_posix()
+        for label, pattern in patterns:
+            if pattern.search(content):
+                errors.append(f"{prefix} {label}: {relative_path}")
     return errors
+
+
+def find_retired_cutover_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired cutover surfaces in current runtime source, independent of inventory paths."""
+    errors = _match_retired_patterns(
+        repository, RETIRED_CUTOVER_PATTERNS, "retired cutover"
+    )
+    for path in _iter_runtime_source_files(repository):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        if CUT_TASK_CONTEXT_PATTERN.search(content) and CUT_TASK_BYPASS_PATTERN.search(
+            content
+        ):
+            relative_path = path.relative_to(repository).as_posix()
+            errors.append(f"retired cutover cut-task bypass route or method: {relative_path}")
+    return errors
+
+
+def find_retired_maintenance_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired SrvMaintenance/MaintenanceTransition surfaces in current runtime source."""
+    return _match_retired_patterns(
+        repository, RETIRED_MAINTENANCE_PATTERNS, "retired maintenance"
+    )
 
 
 def validate_inventory(repository: Path, inventory: dict) -> list[str]:
     errors = find_retired_cutover_runtime_surfaces(repository)
+    errors.extend(find_retired_maintenance_runtime_surfaces(repository))
     if set(inventory) != {"schemaVersion", "status", "items"}:
         errors.append("inventory must contain only schemaVersion, status, and items")
         return errors

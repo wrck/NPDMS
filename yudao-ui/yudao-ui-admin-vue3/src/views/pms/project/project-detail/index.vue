@@ -888,7 +888,6 @@ import * as AcceptanceApi from '@/api/pms/project/acceptance'
 import * as DeliverableCheckApi from '@/api/pms/project/deliverable-checklist'
 import * as ProjectClosureApi from '@/api/pms/project/project-closure'
 import * as ArchiveDocApi from '@/api/pms/project/archive-document'
-import * as MaintenanceTransApi from '@/api/pms/project/maintenance-transition'
 // 割接域
 import * as CutTaskApi from '@/api/pms/cutover/cut-task'
 import * as CutRiskApi from '@/api/pms/cutover/cut-risk'
@@ -897,7 +896,6 @@ import * as CutPlanApi from '@/api/pms/cutover/cut-plan'
 import * as SrvTaskApi from '@/api/pms/service/srv-task'
 import * as SrvReportApi from '@/api/pms/service/srv-report'
 import * as SrvIssueApi from '@/api/pms/service/srv-issue'
-import * as SrvMaintenanceApi from '@/api/pms/service/srv-maintenance'
 import * as DocTemplateApi from '@/api/pms/engineering/doc-template'
 
 defineOptions({ name: 'PmsProjectDetail' })
@@ -1018,8 +1016,7 @@ const businessGroups = [
       { key: 'acceptance', label: '验收管理', icon: 'ep:circle-check' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked' },
       { key: 'project-closure', label: '项目闭环', icon: 'ep:lock' },
-      { key: 'archive-document', label: '归档文档', icon: 'ep:archive' },
-      { key: 'maintenance-transition', label: '转维保', icon: 'ep:promotion' }
+      { key: 'archive-document', label: '归档文档', icon: 'ep:archive' }
     ],
     parallelItems: []
   },
@@ -1027,8 +1024,7 @@ const businessGroups = [
     key: 'maintenance',
     title: '维保服务',
     flowSteps: [
-      { key: 'inspection', label: '巡检管理', icon: 'ep:aim' },
-      { key: 'srv-maintenance', label: '维保状态', icon: 'ep:shield' }
+      { key: 'inspection', label: '巡检管理', icon: 'ep:aim' }
     ],
     parallelItems: []
   }
@@ -1476,49 +1472,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     actions: [
       { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => ArchiveDocApi.submitArchiveDocument(r.id), confirm: '提交该归档文档？' },
       { label: '归档', type: 'success', show: (r) => r.status === 1, run: (r) => ArchiveDocApi.archiveArchiveDocument(r.id), confirm: '归档该文档？' }
-    ]
-  },
-  'maintenance-transition': {
-    key: 'maintenance-transition', label: '转维保', icon: 'ep:promotion', path: '/pms/acceptance/maintenance-transition',
-    load: (pid, pageNo, pageSize) => MaintenanceTransApi.getMaintenanceTransitionPage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => MaintenanceTransApi.createMaintenanceTransition(data),
-    update: (data) => MaintenanceTransApi.updateMaintenanceTransition(data),
-    delete: (id) => MaintenanceTransApi.deleteMaintenanceTransition(id),
-    get: (id) => MaintenanceTransApi.getMaintenanceTransition(id),
-    columns: [
-      { prop: 'code', label: '编码', width: 130 },
-      { prop: 'name', label: '维保名称', minWidth: 180 },
-      { prop: 'acceptanceDate', label: '验收日期', width: 120, type: 'time' },
-      { prop: 'warrantyStartDate', label: '维保开始', width: 120, type: 'time' },
-      { prop: 'warrantyEndDate', label: '维保结束', width: 120, type: 'time' },
-      { prop: 'status', label: '状态', width: 90, type: 'status' }
-    ],
-    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待生效', tone: 'yellow' }, 2: { label: '生效中', tone: 'blue' }, 3: { label: '已过期', tone: 'gray' }, 4: { label: '已续保', tone: 'green' } },
-    actions: [
-      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => MaintenanceTransApi.submitMaintenanceTransition(r.id), confirm: '提交该转维保申请？' },
-      { label: '生效', type: 'success', show: (r) => r.status === 1, run: (r) => MaintenanceTransApi.activateMaintenanceTransition(r.id), confirm: '激活该维保？' },
-      { label: '续保', type: 'info', show: (r) => r.status === 2 || r.status === 3, run: (r) => MaintenanceTransApi.renewMaintenanceTransition(r.id), confirm: '续保该维保？' }
-    ]
-  },
-  // --- 维保服务 ---
-  'srv-maintenance': {
-    key: 'srv-maintenance', label: '维保状态', icon: 'ep:shield', path: '/pms/service/srv-maintenance',
-    load: (pid, pageNo, pageSize) => SrvMaintenanceApi.getSrvMaintenancePage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => SrvMaintenanceApi.createSrvMaintenance(data),
-    update: (data) => SrvMaintenanceApi.updateSrvMaintenance(data),
-    delete: (id) => SrvMaintenanceApi.deleteSrvMaintenance(id),
-    get: (id) => SrvMaintenanceApi.getSrvMaintenance(id),
-    columns: [
-      { prop: 'code', label: '编码', width: 130 },
-      { prop: 'startDate', label: '开始日期', width: 120, type: 'time' },
-      { prop: 'endDate', label: '结束日期', width: 120, type: 'time' },
-      { prop: 'serviceLevel', label: '服务等级', width: 100 },
-      { prop: 'maintenanceStatus', label: '维保状态', width: 100, type: 'status' }
-    ],
-    statusField: 'maintenanceStatus',
-    statusMap: { 0: { label: '未知', tone: 'gray' }, 1: { label: '生效中', tone: 'blue' }, 2: { label: '即将过期', tone: 'yellow' }, 3: { label: '已过期', tone: 'red' } },
-    actions: [
-      { label: '重新计算', type: 'primary', show: () => true, run: (r) => SrvMaintenanceApi.calculateStatus(r.id), confirm: '重新计算维保状态？' }
     ]
   }
 }

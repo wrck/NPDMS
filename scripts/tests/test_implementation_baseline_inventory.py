@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from validate_implementation_baseline_inventory import (
     find_retired_cutover_runtime_surfaces,
+    find_retired_maintenance_runtime_surfaces,
     load_inventory,
     validate_inventory,
 )
@@ -261,17 +262,131 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
         self.assertEqual("VALID_V2_POSTPONED", item["classification"])
         self.assertEqual(["INS-05"], item["requirementRefs"])
 
-    def test_srv_maintenance_is_semantic_rework(self) -> None:
-        item = self._items()["SrvMaintenance"]
+    def test_srv_maintenance_and_maintenance_transition_runtime_is_retired(self) -> None:
+        items = self._items()
 
-        self.assertEqual("SEMANTIC_REWORK", item["classification"])
-        self.assertIn("EQP-02", item["requirementRefs"])
+        expected = "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE"
+        self.assertEqual(expected, items["SrvMaintenance"]["classification"])
+        self.assertEqual(expected, items["MaintenanceTransition"]["classification"])
+        self.assertIn("EQP-02", items["SrvMaintenance"]["requirementRefs"])
+        self.assertIn("ACC-06", items["MaintenanceTransition"]["requirementRefs"])
 
-    def test_maintenance_transition_is_semantic_rework(self) -> None:
-        item = self._items()["MaintenanceTransition"]
+    def test_retired_maintenance_guard_scans_arbitrary_runtime_paths(self) -> None:
+        fixtures = {
+            "type-srv": ("class SrvMaintenanceShadow {}", "maintenance type"),
+            "type-transition": ("class MaintenanceTransitionShadow {}", "maintenance type"),
+            "route-srv": ('@RequestMapping("/pms/srv-maintenance")', "maintenance route"),
+            "route-transition": ("const path = '/pms/acceptance/maintenance-transition'", "maintenance route"),
+            "permission-srv": ("pms:srv-maintenance:create", "maintenance permission"),
+            "permission-transition": ("pms:acc-maintenance-transition:update", "maintenance permission"),
+            "comment-cannot-hide-type": ("// legacy SrvMaintenance must not return", "maintenance type"),
+        }
+        backend_roots = (
+            "pms-module-service/src/main/java/example/hidden",
+            "pms-module-project/src/main/java/example/hidden",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for index, (name, (content, expected_label)) in enumerate(fixtures.items()):
+                with self.subTest(name=name):
+                    root = backend_roots[index % len(backend_roots)]
+                    path = f"{root}/Arbitrary{index}.java"
+                    self._write_runtime_fixture(repository, path, content)
+                    errors = find_retired_maintenance_runtime_surfaces(repository)
+                    self.assertTrue(
+                        any(path in error and expected_label in error for error in errors),
+                        errors,
+                    )
 
-        self.assertEqual("SEMANTIC_REWORK", item["classification"])
-        self.assertIn("ACC-06", item["requirementRefs"])
+    def test_retired_maintenance_guard_scans_frontend_runtime_source(self) -> None:
+        fixtures = {
+            "api-route": ("request.get({ url: '/pms/srv-maintenance/page' })", "maintenance route"),
+            "view-import": ("import * as Api from '@/api/pms/project/maintenance-transition'", "maintenance route"),
+            "view-permission": ("v-hasPermi=['pms:srv-maintenance:update']", "maintenance permission"),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for index, (name, (content, expected_label)) in enumerate(fixtures.items()):
+                with self.subTest(name=name):
+                    path = (
+                        "yudao-ui/yudao-ui-admin-vue3/src/feature/hidden/"
+                        f"arbitrary-{index}.ts"
+                    )
+                    self._write_runtime_fixture(repository, path, content)
+                    errors = find_retired_maintenance_runtime_surfaces(repository)
+                    self.assertTrue(
+                        any(path in error and expected_label in error for error in errors),
+                        errors,
+                    )
+
+    def test_retired_maintenance_guard_excludes_non_runtime_evidence(self) -> None:
+        excluded_paths = (
+            "sql/migrations/V999__historical.sql",
+            "docs/design/09-database-design.md",
+            "tasks/implementation-baseline-inventory.json",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for path in excluded_paths:
+                self._write_runtime_fixture(
+                    repository,
+                    path,
+                    "SrvMaintenance /pms/srv-maintenance pms:acc-maintenance-transition:create",
+                )
+            self.assertEqual([], find_retired_maintenance_runtime_surfaces(repository))
+
+    def test_retired_maintenance_runtime_has_no_api_view_or_controller_surface(self) -> None:
+        forbidden_paths = (
+            "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvmaintenance",
+            "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/dataobject/srvmaintenance",
+            "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/mysql/srvmaintenance",
+            "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/srvmaintenance",
+            "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/maintenancetransition",
+            "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/maintenancetransition",
+            "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/maintenancetransition",
+            "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/maintenancetransition",
+            "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/srv-maintenance",
+            "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/maintenance-transition",
+            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/srv-maintenance",
+            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/maintenance-transition",
+        )
+        for raw_path in forbidden_paths:
+            path = self.repository / raw_path
+            has_runtime_content = path.is_file() or (
+                path.is_dir() and any(child.is_file() for child in path.rglob("*"))
+            )
+            self.assertFalse(has_runtime_content, raw_path)
+
+        shared_runtime_files = (
+            "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/enums/ErrorCodeConstants.java",
+            "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/package-info.java",
+            "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/enums/ErrorCodeConstants.java",
+            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-detail/index.vue",
+        )
+        forbidden_tokens = (
+            "SrvMaintenance",
+            "srv-maintenance",
+            "SRV_MAINTENANCE_",
+            "MaintenanceTransition",
+            "maintenance-transition",
+            "ACC_MAINTENANCE_TRANSITION_",
+        )
+        for raw_path in shared_runtime_files:
+            content = (self.repository / raw_path).read_text(encoding="utf-8")
+            for token in forbidden_tokens:
+                self.assertNotIn(token, content, f"{raw_path}: {token}")
+
+    def test_maintenance_retirement_migration_revokes_menu_permissions_without_touching_business_tables(self) -> None:
+        migration = self.repository / "sql/migrations/V51__retire_semantic_rework_maintenance_runtime_surfaces.sql"
+        self.assertTrue(migration.is_file())
+        content = migration.read_text(encoding="utf-8")
+        for menu_id in (19028, 19091, 19092, 19093, 19099, 19125, 19126, 19127, 19128, 19129):
+            self.assertIn(str(menu_id), content)
+        self.assertIn("UPDATE `system_role_menu`", content)
+        self.assertIn("UPDATE `system_menu`", content)
+        self.assertNotIn("DROP TABLE", content.upper())
+        self.assertNotIn("pms_srv_maintenance", content)
+        self.assertNotIn("pms_acc_maintenance_transition", content)
 
     def test_mes_work_order_is_not_removed_by_pms_keyword_rule(self) -> None:
         item = self._items()["MesProductionWorkOrder"]

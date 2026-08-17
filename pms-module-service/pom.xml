@@ -10,7 +10,7 @@
     </parent>
     <artifactId>pms-module-service</artifactId>
     <name>${project.artifactId}</name>
-    <description>PMS 巡检、工单、维保与续保</description>
+    <description>PMS 巡检、工单与服务问题处理</description>
 
     <dependencies>
         <dependency>

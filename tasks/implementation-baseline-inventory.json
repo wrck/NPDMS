@@ -88,7 +88,7 @@
     },
     {
       "objectKey": "MaintenanceTransition",
-      "classification": "SEMANTIC_REWORK",
+      "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["ACC-06"],
       "codePaths": [
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/maintenancetransition/",
@@ -98,7 +98,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/maintenance-transition/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/maintenance-transition/"
       ],
-      "requiredAction": "REBUILD_AS_SERVICE_HANDOVER_AND_ISOLATE_RENEWAL_FIELDS"
+      "requiredAction": "PRESERVE_LEGACY_DATA_AND_MIGRATE_PROVEN_HANDOVER_FIELDS_TO_ACC_SERVICE_HANDOVER"
     },
     {
       "objectKey": "MesProductionWorkOrder",
@@ -141,7 +141,7 @@
     },
     {
       "objectKey": "SrvMaintenance",
-      "classification": "SEMANTIC_REWORK",
+      "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["EQP-02"],
       "codePaths": [
         "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvmaintenance/",
@@ -151,7 +151,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/srv-maintenance/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/srv-maintenance/"
       ],
-      "requiredAction": "MOVE_OBJECTIVE_MAINTENANCE_FACTS_TO_ASSET_DOMAIN"
+      "requiredAction": "PRESERVE_LEGACY_DATA_AND_MIGRATE_PROVEN_OBJECTIVE_FACTS_TO_AST_MAINTENANCE_FACT"
     },
     {
       "objectKey": "SrvReport",
