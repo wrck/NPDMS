@@ -126,6 +126,7 @@
         "sql/migrations/V53__retire_legacy_template_runtime_surfaces.sql",
         "sql/migrations/V54__fpm03_template_demo_seed.sql",
         "sql/migrations/V55__fpm03_template_demo_seed_fullchain.sql",
+        "sql/migrations/V56__fpm03_template_draft_backfill.sql",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/template/",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projecttemplate/",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttemplate/",
