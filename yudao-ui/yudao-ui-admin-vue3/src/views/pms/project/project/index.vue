@@ -106,14 +106,6 @@
           >
             <Icon icon="ep:user" />指派项目经理
           </el-button>
-          <el-button
-            type="warning"
-            plain
-            @click="openCreateFromTemplate()"
-            v-hasPermi="['pms:project:create']"
-          >
-            <Icon icon="ep:document-copy" />从模板创建
-          </el-button>
         </el-form-item>
       </el-form>
     </ContentWrap>
@@ -272,78 +264,6 @@
       </template>
     </Dialog>
 
-    <!-- ============ 从模板创建项目 Dialog ============ -->
-    <Dialog v-model="tplCreateVisible" title="从模板创建项目" width="720px">
-      <el-form ref="tplFormRef" :model="tplForm" :rules="tplRules" label-width="120px">
-        <el-row :gutter="16">
-          <el-col :span="24">
-            <el-form-item label="项目模板" prop="templateId">
-              <el-select v-model="tplForm.templateId" placeholder="请选择项目模板" class="!w-full" @change="onTemplateChange">
-                <el-option
-                  v-for="t in enabledTemplates"
-                  :key="t.id"
-                  :label="`${t.code} - ${t.name}`"
-                  :value="t.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="项目编码" prop="code">
-              <el-input v-model="tplForm.code" placeholder="如 PMS202608001" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="项目名称" prop="name">
-              <el-input v-model="tplForm.name" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="客户" prop="customerId">
-              <PmsEntitySelect
-                v-model="tplForm.customerId"
-                :api="CustomerApi.getCustomerPage"
-                label-field="name"
-                value-field="id"
-                query-field="name"
-                placeholder="请选择客户"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="合同编码" prop="contractCode">
-              <el-input v-model="tplForm.contractCode" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="项目经理" prop="managerUserId">
-              <PmsEntitySelect
-                v-model="tplForm.managerUserId"
-                :api="UserApi.getUserPage"
-                label-field="nickname"
-                value-field="id"
-                query-field="nickname"
-                placeholder="请选择项目经理"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="来源系统" prop="sourceSystem">
-              <el-input v-model="tplForm.sourceSystem" placeholder="如 MANUAL" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="来源业务键" prop="sourceBusinessKey">
-              <el-input v-model="tplForm.sourceBusinessKey" placeholder="如 MANUAL-PMS202608001" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <template #footer>
-        <el-button @click="tplCreateVisible = false">取消</el-button>
-        <el-button type="primary" :loading="tplSaving" @click="saveCreateFromTemplate">创建</el-button>
-      </template>
-    </Dialog>
   </div>
 </template>
 
@@ -353,9 +273,6 @@ import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectApi from '@/api/pms/project/project'
 import type { ProjectClassifyReqVO, ProjectAssignManagerReqVO } from '@/api/pms/project/project'
-import * as TemplateApi from '@/api/pms/project/project-template'
-import type { ProjectCreateFromTemplateVO } from '@/api/pms/project/project-template'
-import * as CustomerApi from '@/api/pms/project/customer'
 import { formatDate } from '@/utils/formatTime'
 import * as UserApi from '@/api/system/user'
 import UserTag from '@/components/UserTag/index.vue'
@@ -601,66 +518,6 @@ const saveAssign = async () => {
     await loadStats()
   } finally {
     saving.value = false
-  }
-}
-
-// ============ 从模板创建 ============
-const tplCreateVisible = ref(false)
-const tplSaving = ref(false)
-const tplFormRef = ref()
-const enabledTemplates = ref<any[]>([])
-const tplForm = reactive<ProjectCreateFromTemplateVO>({
-  templateId: 0,
-  code: '',
-  name: '',
-  customerId: 0,
-  contractCode: '',
-  sourceSystem: 'MANUAL',
-  sourceBusinessKey: '',
-  managerUserId: undefined
-})
-const tplRules = {
-  templateId: [{ required: true, message: '请选择项目模板' }],
-  code: [{ required: true, message: '请输入项目编码' }],
-  name: [{ required: true, message: '请输入项目名称' }],
-  customerId: [{ required: true, message: '请选择客户' }],
-  sourceSystem: [{ required: true, message: '请输入来源系统' }],
-  sourceBusinessKey: [{ required: true, message: '请输入来源业务键' }]
-}
-
-const openCreateFromTemplate = async () => {
-  Object.assign(tplForm, {
-    templateId: 0,
-    code: '',
-    name: '',
-    customerId: 0,
-    contractCode: '',
-    sourceSystem: 'MANUAL',
-    sourceBusinessKey: '',
-    managerUserId: undefined
-  })
-  enabledTemplates.value = await TemplateApi.getEnabledProjectTemplateList()
-  tplCreateVisible.value = true
-}
-
-const onTemplateChange = (templateId: number) => {
-  const tpl = enabledTemplates.value.find((t) => t.id === templateId)
-  if (tpl && !tplForm.code) {
-    tplForm.sourceBusinessKey = `MANUAL-${tpl.code}-${Date.now()}`
-  }
-}
-
-const saveCreateFromTemplate = async () => {
-  await tplFormRef.value.validate()
-  tplSaving.value = true
-  try {
-    await TemplateApi.createProjectFromTemplate(tplForm)
-    message.success('项目创建成功')
-    tplCreateVisible.value = false
-    await loadList()
-    await loadStats()
-  } finally {
-    tplSaving.value = false
   }
 }
 
