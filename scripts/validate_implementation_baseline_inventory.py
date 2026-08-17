@@ -92,6 +92,26 @@ RETIRED_MAINTENANCE_PATTERNS = (
         ),
     ),
 )
+RETIRED_TEMPLATE_PATTERNS = (
+    (
+        "template type",
+        re.compile(r"\b(?:ProjectPhaseTemplate|ProjectCreateFromTemplate)\w*\b"),
+    ),
+    (
+        "template route",
+        re.compile(
+            r"(?<!:)\b(?:project-template|phase-template|instantiate-from-template)\b"
+        ),
+    ),
+    (
+        "template permission",
+        re.compile(r"\bpms:phase-template:[A-Za-z0-9:_*-]+"),
+    ),
+    (
+        "template table",
+        re.compile(r"\bpms_project_(?:template|phase_template)\b"),
+    ),
+)
 
 
 def load_inventory(path: Path) -> dict:
@@ -184,6 +204,13 @@ def find_retired_maintenance_runtime_surfaces(repository: Path) -> list[str]:
     """Find retired SrvMaintenance/MaintenanceTransition surfaces in current runtime source."""
     return _match_retired_patterns(
         repository, RETIRED_MAINTENANCE_PATTERNS, "retired maintenance"
+    )
+
+
+def find_retired_template_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired legacy project/phase template surfaces in current runtime source."""
+    return _match_retired_patterns(
+        repository, RETIRED_TEMPLATE_PATTERNS, "retired template"
     )
 
 

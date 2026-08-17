@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from validate_implementation_baseline_inventory import (
     find_retired_cutover_runtime_surfaces,
     find_retired_maintenance_runtime_surfaces,
+    find_retired_template_runtime_surfaces,
     load_inventory,
     validate_inventory,
 )
@@ -387,6 +388,103 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
         self.assertNotIn("DROP TABLE", content.upper())
         self.assertNotIn("pms_srv_maintenance", content)
         self.assertNotIn("pms_acc_maintenance_transition", content)
+
+    def test_retired_template_guard_scans_arbitrary_runtime_paths(self) -> None:
+        fixtures = {
+            "type-phase-template": ("class ProjectPhaseTemplateShadow {}", "template type"),
+            "type-create-from-template": ("class ProjectCreateFromTemplateShadow {}", "template type"),
+            "route-singular": ('@RequestMapping("/pms/project-template")', "template route"),
+            "route-phase-template": ("const base = '/pms/project/project-phase-template'", "template route"),
+            "route-instantiate": ('@PostMapping("/instantiate-from-template")', "template route"),
+            "permission-phase-template": ("pms:phase-template:create", "template permission"),
+            "table-project-template": ("String table = \"pms_project_template\";", "template table"),
+            "table-phase-template": ("String table = \"pms_project_phase_template\";", "template table"),
+        }
+        backend_root = "pms-module-project/src/main/java/example/hidden"
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for index, (name, (content, expected_label)) in enumerate(fixtures.items()):
+                with self.subTest(name=name):
+                    path = f"{backend_root}/Arbitrary{index}.java"
+                    self._write_runtime_fixture(repository, path, content)
+                    errors = find_retired_template_runtime_surfaces(repository)
+                    self.assertTrue(
+                        any(path in error and expected_label in error for error in errors),
+                        errors,
+                    )
+
+    def test_retired_template_guard_scans_frontend_runtime_source(self) -> None:
+        fixtures = {
+            "api-import": (
+                "import * as Api from '@/api/pms/project/project-template'",
+                "template route",
+            ),
+            "view-permission": (
+                "v-hasPermi=['pms:phase-template:query']",
+                "template permission",
+            ),
+            "comment-cannot-hide-type": (
+                "// legacy ProjectPhaseTemplateMapper must not return",
+                "template type",
+            ),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for index, (name, (content, expected_label)) in enumerate(fixtures.items()):
+                with self.subTest(name=name):
+                    path = (
+                        "yudao-ui/yudao-ui-admin-vue3/src/feature/hidden/"
+                        f"arbitrary-{index}.ts"
+                    )
+                    self._write_runtime_fixture(repository, path, content)
+                    errors = find_retired_template_runtime_surfaces(repository)
+                    self.assertTrue(
+                        any(path in error and expected_label in error for error in errors),
+                        errors,
+                    )
+
+    def test_retired_template_guard_allows_rebuilt_plural_surface(self) -> None:
+        rebuilt_sources = {
+            "controller": (
+                "pms-module-project/src/main/java/example/template/ProjectTemplateController.java",
+                '@RequestMapping("/pms/project-templates") class ProjectTemplateController {}',
+            ),
+            "service": (
+                "pms-module-project/src/main/java/example/template/ProjectTemplateServiceImpl.java",
+                "class ProjectTemplateServiceImpl { String table = \"proj_project_template\"; }",
+            ),
+            "api": (
+                "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-templates/index.ts",
+                "request.get({ url: '/pms/project-templates/page' })",
+            ),
+            "view": (
+                "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/index.vue",
+                "v-hasPermi=['pms:project-template:publish']",
+            ),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for path, content in rebuilt_sources.values():
+                self._write_runtime_fixture(repository, path, content)
+            self.assertEqual([], find_retired_template_runtime_surfaces(repository))
+
+    def test_retired_template_guard_excludes_non_runtime_evidence(self) -> None:
+        excluded_paths = (
+            "sql/migrations/V47__pms_project_template.sql",
+            "sql/migrations/V999__future.sql",
+            "docs/design/09-database-design.md",
+            "tasks/implementation-baseline-inventory.json",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            for path in excluded_paths:
+                self._write_runtime_fixture(
+                    repository,
+                    path,
+                    "ProjectPhaseTemplate /pms/project-template pms:phase-template:create "
+                    "pms_project_phase_template instantiate-from-template",
+                )
+            self.assertEqual([], find_retired_template_runtime_surfaces(repository))
 
     def test_mes_work_order_is_not_removed_by_pms_keyword_rule(self) -> None:
         item = self._items()["MesProductionWorkOrder"]
