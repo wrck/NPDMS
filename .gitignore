@@ -17,6 +17,9 @@ yudao-server/src/main/resources/application-npdms-dev.yaml
 Thumbs.db
 Desktop.ini
 
+# Runtime PID/log working dir for scripts/service.ps1
+.run/
+
 # Common build and dependency outputs
 node_modules/
 dist/
