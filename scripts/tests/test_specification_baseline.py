@@ -29,13 +29,13 @@ from specification_baseline import (
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_115_files(self) -> None:
+    def test_allowlist_contains_exactly_116_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(115, len(entries))
-        self.assertEqual(115, len({entry.path for entry in entries}))
+        self.assertEqual(116, len(entries))
+        self.assertEqual(116, len({entry.path for entry in entries}))
 
     def test_accepts_only_current_phase_gate_entry_paths(self) -> None:
         current_gate_paths = (
