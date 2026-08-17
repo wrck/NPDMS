@@ -270,6 +270,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             candidate.setCode(activeTemplate.getCode());
             candidate.setName(activeTemplate.getName());
             candidate.setMatchPriority(activeTemplate.getMatchPriority());
+            candidate.setLatestRevisionNo(latest.getRevisionNo());
             candidate.setSigningMethod(latest.getSigningMethod());
             candidate.setProjectCategory(latest.getProjectCategory());
             candidate.setImplementationMethod(latest.getImplementationMethod());

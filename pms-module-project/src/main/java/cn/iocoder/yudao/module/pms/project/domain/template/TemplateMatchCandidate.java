@@ -16,6 +16,8 @@ public class TemplateMatchCandidate {
     private String name;
     /** 匹配优先级（数值小者先命中） */
     private Integer matchPriority;
+    /** 最新已发布版本号（F-PM01 表单选择时展示概要） */
+    private Integer latestRevisionNo;
     /** 匹配条件：签约方式（null=不限） */
     private String signingMethod;
     /** 匹配条件：项目类别（null=不限） */

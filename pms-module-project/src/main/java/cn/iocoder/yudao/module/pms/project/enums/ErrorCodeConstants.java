@@ -138,4 +138,16 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TEMPLATE_PUBLISH_INVALID = new ErrorCode(1_014_023_005, "模板发布校验未通过：{}");
     ErrorCode PROJECT_TEMPLATE_STATUS_INVALID = new ErrorCode(1_014_023_006, "模板状态流转不合法");
 
+    // ========== 项目手工创建模块（F-PM01 / PM-01）1-014-024-000 ==========
+    // 注：PROJECT_NOT_EXISTS 复用 1-014-003-000（项目主表段，新旧链同语义）。
+    ErrorCode PROJECT_CREATE_FIELDS_INVALID = new ErrorCode(1_014_024_000, "手工创建必填项缺失：{}");
+    ErrorCode PROJECT_TEMPLATE_NO_MATCH = new ErrorCode(1_014_024_001, "无匹配的生效模板：{}");
+    ErrorCode PROJECT_TEMPLATE_AMBIGUOUS = new ErrorCode(1_014_024_002, "模板同优先级多命中，需人工选择：{}");
+    ErrorCode PROJECT_CODE_EXHAUSTED = new ErrorCode(1_014_024_003, "项目编码流水已耗尽（PJT 规则 V1 上限 999999）");
+    ErrorCode PROJECT_FIELD_IMMUTABLE = new ErrorCode(1_014_024_004, "项目字段不可经更新接口修改：{}");
+    ErrorCode PROJECT_MEMBER_ROLE_INVALID = new ErrorCode(1_014_024_005, "项目成员角色不合法");
+    ErrorCode PROJECT_MEMBER_INTERVAL_CONFLICT = new ErrorCode(1_014_024_006, "项目成员指派区间冲突");
+    ErrorCode PROJECT_TEMPLATE_NOT_SELECTABLE = new ErrorCode(1_014_024_007, "手工选择的模板不可用（非生效状态或无已发布版本）");
+    ErrorCode PMS_IDEMPOTENCY_KEY_CONFLICT = new ErrorCode(1_014_024_008, "幂等键冲突：同一 Idempotency-Key 已绑定不同请求体（PMS-COMMON-IDEMPOTENCY-0001）");
+
 }

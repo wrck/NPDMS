@@ -65,7 +65,7 @@ public final class TemplateMatcher {
         for (TemplateMatchCandidate candidate : top) {
             conflicts.add("模板【" + candidate.getCode() + "】" + candidate.getName());
         }
-        return TemplateMatchResult.multiMatch(conflicts);
+        return TemplateMatchResult.multiMatch(conflicts, top);
     }
 
     /**
