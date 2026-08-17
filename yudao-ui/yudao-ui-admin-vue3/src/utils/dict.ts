@@ -364,6 +364,15 @@ export enum DICT_TYPE {
   PMS_SIGNING_METHOD = 'pms_signing_method', // 模板匹配维度：签约方式
   PMS_IMPLEMENTATION_METHOD = 'pms_implementation_method', // 模板匹配维度：实施方式
   PMS_MAJOR_PROJECT_LEVEL = 'pms_major_project_level', // 模板匹配维度：重大项目级别（CRM来源映射）
+  PMS_PROJECT_MEMBER_ROLE = 'pms_project_member_role', // 项目成员角色（F-PM01 V57）
+  PMS_PROJECT_LIFECYCLE_STAGE = 'pms_project_lifecycle_stage', // 项目生命周期阶段 S0~S6/MAINT（F-PM01 V57）
+  PMS_TEMPLATE_LOAD_METHOD = 'pms_template_load_method', // 模板加载方式（F-PM01 V57）
+  PMS_PROJECT_STAGE_STATUS = 'pms_project_stage_status', // 阶段实例状态（F-PM01 V57）
+  PMS_PROJECT_TASK_STATUS = 'pms_project_task_status', // 任务实例状态（F-PM01 V57）
+  PMS_PROJECT_MILESTONE_STATUS = 'pms_project_milestone_status', // 里程碑实例状态（F-PM01 V57）
+  PMS_PROJECT_DELIVERABLE_STATUS = 'pms_project_deliverable_status', // 交付件实例状态（F-PM01 V57）
+  PMS_PROJECT_GATE_STATUS = 'pms_project_gate_status', // 门禁实例状态（F-PM01 V57）
+  PMS_PROJECT_SOURCE_TYPE = 'pms_project_source_type', // 项目创建来源（F-PM01 V57）
   PMS_TASK_STATUS = 'pms_task_status', // 任务WBS状态
   PMS_RISK_LEVEL = 'pms_risk_level', // 项目风险等级
   PMS_PLAN_CHANGE_STATUS = 'pms_plan_change_status', // 计划变更状态
