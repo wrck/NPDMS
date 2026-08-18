@@ -149,4 +149,9 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TEMPLATE_NOT_SELECTABLE = new ErrorCode(1_014_024_007, "手工选择的模板不可用（非生效状态或无已发布版本）");
     ErrorCode PMS_IDEMPOTENCY_KEY_CONFLICT = new ErrorCode(1_014_024_008, "幂等键冲突：同一 Idempotency-Key 已绑定不同请求体（PMS-COMMON-IDEMPOTENCY-0001）");
 
+    // ========== 项目树与进度汇总（F-PM02 / PM-02）1-014-024-009 ==========
+    ErrorCode PROJECT_MOVE_CYCLE = new ErrorCode(1_014_024_009, "子树移动会形成循环引用（目标父项目为自身或自身后代）");
+    ErrorCode PROJECT_MOVE_INVALID_PARENT = new ErrorCode(1_014_024_010, "移动目标父项目不存在或跨租户");
+    ErrorCode PROJECT_WEIGHT_SUM_INVALID = new ErrorCode(1_014_024_011, "直接子项目权重合计必须为100%：{}");
+
 }

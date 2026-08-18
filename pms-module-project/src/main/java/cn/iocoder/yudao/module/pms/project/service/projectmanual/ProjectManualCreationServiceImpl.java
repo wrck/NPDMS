@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.pms.project.domain.projectmanual.MemberAssignment
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectCodeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
+import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectTreeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TemplateInstantiator;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
@@ -85,23 +86,41 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     public ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
                                          String orderOfficeDepartmentCode, Long manualTemplateId,
                                          Long serviceManagerUserId) {
-        // a) BR-2 必填校验（失败不落库不实例化）
-        List<String> missing = ProjectRules.validateManualCreation(draft);
+        // a) BR-2 必填校验（失败不落库不实例化；子项目三维/模板继承父，仅名称+创建原因必填）
+        List<String> missing = draft.getParentId() == null
+                ? ProjectRules.validateManualCreation(draft)
+                : ProjectRules.validateChildCreation(draft);
         if (!missing.isEmpty()) {
             throw exception(PROJECT_CREATE_FIELDS_INVALID, String.join("、", missing));
         }
-        // b) 模板选择与冻结内容读取（BR-3/BR-4：无匹配/同优先级多匹配且未人工选择时阻断）
-        SelectedTemplate selected = selectTemplate(draft, manualTemplateId);
+        // b) 模板选择与冻结内容读取（根项目四维匹配/人工选择；子项目继承父模板版本）
+        SelectedTemplate selected = draft.getParentId() == null
+                ? selectTemplate(draft, manualTemplateId)
+                : selectInheritedTemplate(draft.getParentId());
         TemplateDefinitionContent content =
                 projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
-        // c) 平台编码分配（BR-8）+ 根项目树真值
-        draft.setProjectCode(projectCodeAllocator.allocateRootCode());
-        draft.setCodeRuleVersion(ProjectCodeRules.CODE_RULE_VERSION);
-        draft.setProjectSequence(ProjectCodeRules.ROOT_PROJECT_SEQUENCE);
-        draft.setParentId(null);
-        draft.setTreePath("");
-        draft.setTreeDepth(0);
-        draft.setTreeSort(0);
+        // c) 编码分配（BR-8）+ 树真值（根项目/子项目分支）
+        if (draft.getParentId() == null) {
+            draft.setProjectCode(projectCodeAllocator.allocateRootCode());
+            draft.setCodeRuleVersion(ProjectCodeRules.CODE_RULE_VERSION);
+            draft.setProjectSequence(ProjectCodeRules.ROOT_PROJECT_SEQUENCE);
+            draft.setTreePath(ProjectTreeRules.ROOT_PATH);
+            draft.setTreeDepth(0);
+            draft.setTreeSort(0);
+        } else {
+            ProjectMasterDO parent = validateProjectExists(draft.getParentId());
+            ProjectCodeAllocator.ChildCodeAllocation allocation =
+                    projectCodeAllocator.allocateChildCode(parent.getCodeRootId(), parent.getProjectCode());
+            draft.setProjectCode(allocation.projectCode());
+            draft.setCodeRuleVersion(ProjectCodeRules.CODE_RULE_VERSION);
+            draft.setProjectSequence(allocation.projectSequence());
+            draft.setCodeRootId(parent.getCodeRootId());
+            draft.setRootId(parent.getRootId());
+            draft.setTreePath(ProjectTreeRules.buildChildPath(parent.getTreePath(), parent.getId()));
+            draft.setTreeDepth(ProjectTreeRules.buildChildDepth(parent.getTreeDepth()));
+            draft.setTreeSort(0);
+            inheritFromParent(draft, parent);
+        }
         // d) 冻结模板引用（BR-4：绑定 revision 与流程定义版本写入主档）
         draft.setLifecycleTemplateId(selected.templateId());
         draft.setLifecycleTemplateRevisionNo(selected.revisionNo());
@@ -110,18 +129,21 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         draft.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
         draft.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
         draft.setStatus(ProjectRules.INITIAL_STATUS);
-        // e) 两段写入第一段：INSERT 时 code_root_id/root_id 先置 0（自增 id 尚不可知）
-        draft.setCodeRootId(0L);
-        draft.setRootId(0L);
-        projectMasterMapper.insert(draft);
-        // 两段写入第二段：根项目 code_root_id=root_id=id（同事务，uk/不变量成立）
-        ProjectMasterDO namespaceUpdate = new ProjectMasterDO();
-        namespaceUpdate.setId(draft.getId());
-        namespaceUpdate.setCodeRootId(draft.getId());
-        namespaceUpdate.setRootId(draft.getId());
-        projectMasterMapper.updateById(namespaceUpdate);
-        draft.setCodeRootId(draft.getId());
-        draft.setRootId(draft.getId());
+        // e) 主档写入：根项目两段（code_root_id=root_id=id）；子项目单段（继承父）
+        if (draft.getParentId() == null) {
+            draft.setCodeRootId(0L);
+            draft.setRootId(0L);
+            projectMasterMapper.insert(draft);
+            ProjectMasterDO namespaceUpdate = new ProjectMasterDO();
+            namespaceUpdate.setId(draft.getId());
+            namespaceUpdate.setCodeRootId(draft.getId());
+            namespaceUpdate.setRootId(draft.getId());
+            projectMasterMapper.updateById(namespaceUpdate);
+            draft.setCodeRootId(draft.getId());
+            draft.setRootId(draft.getId());
+        } else {
+            projectMasterMapper.insert(draft);
+        }
         // f) 冻结版本实例化五要素 + 门禁引用行（source_definition_id 无定义行ID时保持 NULL）
         ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, draft.getId());
         insertIfNotEmpty(instantiation.getStages(), stageInstanceMapper::insertBatch);
@@ -252,6 +274,36 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
         }
         return new SelectedTemplate(templateId, revisionNo, ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT);
+    }
+
+    /**
+     * 子项目继承父项目的冻结模板版本（BR-2：继承拆分时指定的模板版本）。
+     */
+    private SelectedTemplate selectInheritedTemplate(Long parentId) {
+        ProjectMasterDO parent = validateProjectExists(parentId);
+        if (parent.getLifecycleTemplateId() == null || parent.getLifecycleTemplateRevisionNo() == null) {
+            throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
+        }
+        // 子项目通过父项目继承模板版本，等价人工指定（不做四维匹配）
+        return new SelectedTemplate(parent.getLifecycleTemplateId(),
+                parent.getLifecycleTemplateRevisionNo(), ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
+    }
+
+    /**
+     * 子项目继承父项目的可继承主数据（客户/公司/部门/四维），仅当 draft 未提供时继承。
+     */
+    private void inheritFromParent(ProjectMasterDO draft, ProjectMasterDO parent) {
+        if (draft.getCustomerId() == null) draft.setCustomerId(parent.getCustomerId());
+        if (draft.getCustomerCode() == null) draft.setCustomerCode(parent.getCustomerCode());
+        if (draft.getCustomerName() == null) draft.setCustomerName(parent.getCustomerName());
+        if (draft.getSigningMethod() == null) draft.setSigningMethod(parent.getSigningMethod());
+        if (draft.getProjectCategory() == null) draft.setProjectCategory(parent.getProjectCategory());
+        if (draft.getImplementationMode() == null) draft.setImplementationMode(parent.getImplementationMode());
+        if (draft.getMajorProjectLevel() == null) draft.setMajorProjectLevel(parent.getMajorProjectLevel());
+        if (draft.getCompanyCode() == null) draft.setCompanyCode(parent.getCompanyCode());
+        if (draft.getCompanyName() == null) draft.setCompanyName(parent.getCompanyName());
+        if (draft.getDepartmentCode() == null) draft.setDepartmentCode(parent.getDepartmentCode());
+        if (draft.getDepartmentName() == null) draft.setDepartmentName(parent.getDepartmentName());
     }
 
     /**

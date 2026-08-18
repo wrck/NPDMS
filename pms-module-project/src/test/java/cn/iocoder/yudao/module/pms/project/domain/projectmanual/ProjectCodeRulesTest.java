@@ -48,6 +48,16 @@ class ProjectCodeRulesTest {
     }
 
     @Test
+    void childCodeFormatRootPrefixAndPaddedSequence() {
+        // PM-02 子项目编码：<根项目编码>-SP<流水6位零填充>
+        assertEquals("PJT2026000001-SP000001", ProjectCodeRules.buildChildCode("PJT2026000001", 1));
+        assertEquals("PJT2026000001-SP000042", ProjectCodeRules.buildChildCode("PJT2026000001", 42));
+        assertThrows(IllegalArgumentException.class, () -> ProjectCodeRules.buildChildCode("", 1));
+        assertThrows(IllegalArgumentException.class, () -> ProjectCodeRules.buildChildCode(null, 1));
+        assertThrows(IllegalArgumentException.class, () -> ProjectCodeRules.buildChildCode("PJT2026000001", 0));
+    }
+
+    @Test
     void codeNeverReleasedNorSequenceRecycled() {
         // BR-8：软删除/关闭/归档不释放编码；序号不回收复用（与状态、删除标记无关）
         assertFalse(ProjectCodeRules.isCodeReleasable("S0", false));

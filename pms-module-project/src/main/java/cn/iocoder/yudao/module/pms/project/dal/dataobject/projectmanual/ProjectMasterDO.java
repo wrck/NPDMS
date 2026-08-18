@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -67,6 +68,14 @@ public class ProjectMasterDO extends TenantBaseDO {
      * 同父下排序值（小者优先）
      */
     private Integer treeSort;
+    /**
+     * 业务层级标签编码（与结构层级 tree_depth 分离；字典 pms_project_business_level，前向扩列）
+     */
+    private String businessLevelCode;
+    /**
+     * 业务层级标签名称（前向扩列）
+     */
+    private String businessLevelName;
     /**
      * 直接客户主档ID
      */
@@ -239,6 +248,18 @@ public class ProjectMasterDO extends TenantBaseDO {
      * 项目状态（字典 pms_project_lifecycle_stage，初始 S0）
      */
     private String status;
+    /**
+     * 项目进度百分比（来源属 PM-11 阶段推进/任务闭环，本 Feature 仅消费做汇总；前向扩列）
+     */
+    private BigDecimal progress;
+    /**
+     * 相对直接父项目的权重（NULL=等权，读时按直接子项目数归一化；前向扩列）
+     */
+    private BigDecimal aggregationWeight;
+    /**
+     * 权重来源：DEFAULT_EQUAL 默认等权 / MANUAL 人工设置（前向扩列）
+     */
+    private String weightSource;
     /**
      * 乐观锁版本列：暂不接 @Version 拦截器，并发由 uk + 行锁保障
      */

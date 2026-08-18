@@ -11,6 +11,8 @@ public final class ProjectCodeRules {
 
     /** 编码前缀 */
     public static final String CODE_PREFIX = "PJT";
+    /** 子项目编码后缀分隔符（PM-02：`<根项目编码>-SP<流水>`） */
+    public static final String CHILD_CODE_SEPARATOR = "-SP";
     /** 编码规则版本（创建时冻结） */
     public static final String CODE_RULE_VERSION = "V1";
     /** 根项目固定命名空间序号（子项目>0 属 PM-02） */
@@ -32,6 +34,19 @@ public final class ProjectCodeRules {
         }
         requireSequenceAvailable(sequence);
         return CODE_PREFIX + String.format("%04d", year) + String.format("%06d", sequence);
+    }
+
+    /**
+     * 生成子项目编码（PM-02）：`<根项目编码>-SP<流水>`（流水6位零填充，命名空间内递增）。
+     *
+     * @throws IllegalArgumentException 根编码为空或流水超出 [1, 999999]
+     */
+    public static String buildChildCode(String rootProjectCode, long sequence) {
+        if (rootProjectCode == null || rootProjectCode.isBlank()) {
+            throw new IllegalArgumentException("根项目编码不能为空");
+        }
+        requireSequenceAvailable(sequence);
+        return rootProjectCode + CHILD_CODE_SEPARATOR + String.format("%06d", sequence);
     }
 
     /**

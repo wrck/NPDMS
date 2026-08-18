@@ -24,8 +24,16 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Component
 public class ProjectCodeAllocator {
 
-    /** V1 平台根项目编码命名空间（租户级；PM-02 预留 ROOT:<code_root_id>） */
+    /** V1 平台根项目编码命名空间（租户级） */
     public static final String NAMESPACE_PLATFORM_ROOT = "PLATFORM_ROOT";
+    /** 子项目编码命名空间前缀（PM-02：ROOT:<code_root_id>） */
+    public static final String NAMESPACE_CHILD_PREFIX = "ROOT:";
+
+    /**
+     * 子项目编码分配结果：编码 + 命名空间序号（>0，不回收复用）。
+     */
+    public record ChildCodeAllocation(String projectCode, int projectSequence) {
+    }
 
     @Resource
     private ProjectCodeSequenceMapper projectCodeSequenceMapper;
@@ -44,12 +52,40 @@ public class ProjectCodeAllocator {
     }
 
     private String doAllocateRootCode() {
-        ProjectCodeSequenceDO sequence = projectCodeSequenceMapper.selectByNamespaceForUpdate(NAMESPACE_PLATFORM_ROOT);
+        long nextValue = doAllocateSequence(NAMESPACE_PLATFORM_ROOT);
+        return ProjectCodeRules.buildRootCode(Year.now().getValue(), nextValue);
+    }
+
+    /**
+     * 分配子项目编码（PM-02 / ADR-0020）：命名空间 `ROOT:<code_root_id>` 内递增，
+     * 返回 `<根项目编码>-SP<流水>` 与命名空间序号（>0）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ChildCodeAllocation allocateChildCode(Long codeRootId, String rootProjectCode) {
+        try {
+            return doAllocateChildCode(codeRootId, rootProjectCode);
+        } catch (DuplicateKeyException concurrentFirstInsert) {
+            // 并发首插命名空间行冲突：重试一次
+            return doAllocateChildCode(codeRootId, rootProjectCode);
+        }
+    }
+
+    private ChildCodeAllocation doAllocateChildCode(Long codeRootId, String rootProjectCode) {
+        long nextValue = doAllocateSequence(NAMESPACE_CHILD_PREFIX + codeRootId);
+        return new ChildCodeAllocation(
+                ProjectCodeRules.buildChildCode(rootProjectCode, nextValue), (int) nextValue);
+    }
+
+    /**
+     * 行锁读序列表（tenant_id + code_namespace，不存在则先插入 next_value=1），
+     * 取 next_value 后递增。并发首插冲突（DuplicateKeyException）由调用方捕获重试。
+     */
+    private long doAllocateSequence(String namespace) {
+        ProjectCodeSequenceDO sequence = projectCodeSequenceMapper.selectByNamespaceForUpdate(namespace);
         if (sequence == null) {
             ProjectCodeSequenceDO created = new ProjectCodeSequenceDO();
-            created.setCodeNamespace(NAMESPACE_PLATFORM_ROOT);
+            created.setCodeNamespace(namespace);
             created.setNextValue(1L);
-            // 并发首插冲突（DuplicateKeyException）由外层 allocateRootCode 捕获后重试
             projectCodeSequenceMapper.insert(created);
             sequence = created;
         }
@@ -61,6 +97,6 @@ public class ProjectCodeAllocator {
         update.setId(sequence.getId());
         update.setNextValue(nextValue + 1);
         projectCodeSequenceMapper.updateById(update);
-        return ProjectCodeRules.buildRootCode(Year.now().getValue(), nextValue);
+        return nextValue;
     }
 }

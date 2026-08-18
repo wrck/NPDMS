@@ -110,6 +110,20 @@ public final class ProjectRules {
     }
 
     /**
+     * PM-02 子项目创建必填校验：名称、创建原因；三维与模板继承父项目，不在子项目表单必填。
+     */
+    public static List<String> validateChildCreation(ProjectMasterDO draft) {
+        List<String> missing = new ArrayList<>();
+        if (isBlank(draft.getProjectName())) {
+            missing.add("项目名称");
+        }
+        if (isBlank(draft.getCreationReason())) {
+            missing.add("创建原因");
+        }
+        return missing;
+    }
+
+    /**
      * BR-7 字段是否可经更新接口修改。
      */
     public static boolean isEditableField(String fieldName) {
@@ -135,6 +149,9 @@ public final class ProjectRules {
         update.setTreePath(current.getTreePath());
         update.setTreeDepth(current.getTreeDepth());
         update.setTreeSort(current.getTreeSort());
+        // 业务层级标签与权重（业务层级走拆分/移动，权重走汇总口径调整，均不走属性更新）
+        update.setBusinessLevelCode(current.getBusinessLevelCode());
+        update.setBusinessLevelName(current.getBusinessLevelName());
         // 负责人与组织（主负责人调整走指派链路，不走属性更新）
         update.setManagerId(current.getManagerId());
         update.setManagerEmployeeNo(current.getManagerEmployeeNo());
@@ -178,6 +195,10 @@ public final class ProjectRules {
         update.setProjectCloseTime(current.getProjectCloseTime());
         update.setSourceType(current.getSourceType());
         update.setStatus(current.getStatus());
+        // 进度与权重（进度来源属 PM-11，权重走汇总口径调整，均不走属性更新）
+        update.setProgress(current.getProgress());
+        update.setAggregationWeight(current.getAggregationWeight());
+        update.setWeightSource(current.getWeightSource());
     }
 
     private static boolean isBlank(String value) {

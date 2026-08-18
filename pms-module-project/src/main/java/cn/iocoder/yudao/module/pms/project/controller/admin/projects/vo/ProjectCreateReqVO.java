@@ -15,6 +15,9 @@ public class ProjectCreateReqVO {
     @NotEmpty(message = "项目名称不能为空")
     private String projectName;
 
+    @Schema(description = "父项目ID（空=独立根项目；非空=下挂子项目，继承父模板与可继承主数据）", example = "1")
+    private Long parentId;
+
     @Schema(description = "客户编码", example = "CUS-001")
     private String customerCode;
 
