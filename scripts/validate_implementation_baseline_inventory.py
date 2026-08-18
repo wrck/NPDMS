@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 ALLOWED_CLASSIFICATIONS = frozenset(
     {
         "CURRENT_52",
+        "CURRENT_57",
         "VALID_V2_POSTPONED",
         "EXCLUDED_CURRENT",
         "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",

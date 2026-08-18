@@ -118,6 +118,24 @@
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
     {
+      "objectKey": "ProjectManualCreation",
+      "classification": "CURRENT_57",
+      "requirementRefs": ["PM-01"],
+      "codePaths": [
+        "sql/migrations/V57__proj_project_manual_creation.sql",
+        "sql/migrations/V58__freeze_legacy_project_runtime_surfaces.sql",
+        "sql/migrations/V59__fpm01_manual_match_demo_seed.sql",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/"
+      ],
+      "requiredAction": "F_PM01_IMPLEMENTED_AND_UI_ACCEPTED"
+    },
+    {
       "objectKey": "ProjectTemplateFoundation",
       "classification": "CURRENT_52",
       "requirementRefs": ["PM-03"],
