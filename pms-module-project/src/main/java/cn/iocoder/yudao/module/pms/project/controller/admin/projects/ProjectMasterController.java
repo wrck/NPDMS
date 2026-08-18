@@ -12,7 +12,9 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectI
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMemberAssignmentRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectProgressRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeMoveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.IdempotencyRecordDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -20,6 +22,7 @@ import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantia
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.IdempotencyRecordService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectTreeService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,6 +79,8 @@ public class ProjectMasterController {
     private ProjectTemplateService projectTemplateService;
     @Resource
     private IdempotencyRecordService idempotencyRecordService;
+    @Resource
+    private ProjectTreeService projectTreeService;
 
     @PostMapping
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
@@ -205,6 +210,69 @@ public class ProjectMasterController {
         projectManualCreationService.assignServiceManager(id, assignReqVO.getUserId(),
                 assignReqVO.getEmployeeNo(), assignReqVO.getMemberName(), assignReqVO.getEffectiveFrom());
         return success(true);
+    }
+
+    @GetMapping("/{id}/children")
+    @Operation(summary = "直接下级项目（按需加载）")
+    @Parameter(name = "id", description = "项目编号", required = true)
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<java.util.List<ProjectRespVO>> getChildren(@PathVariable("id") Long id) {
+        return success(BeanUtils.toBean(projectTreeService.getChildren(id), ProjectRespVO.class));
+    }
+
+    @GetMapping("/{id}/descendants")
+    @Operation(summary = "全部后代项目")
+    @Parameter(name = "id", description = "项目编号", required = true)
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<java.util.List<ProjectRespVO>> getDescendants(@PathVariable("id") Long id) {
+        return success(BeanUtils.toBean(projectTreeService.getDescendants(id), ProjectRespVO.class));
+    }
+
+    @GetMapping("/{id}/ancestors")
+    @Operation(summary = "完整上级链（根→父）")
+    @Parameter(name = "id", description = "项目编号", required = true)
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<java.util.List<ProjectRespVO>> getAncestors(@PathVariable("id") Long id) {
+        return success(BeanUtils.toBean(projectTreeService.getAncestors(id), ProjectRespVO.class));
+    }
+
+    @GetMapping("/actions/by-business-level")
+    @Operation(summary = "按业务层级标签查询项目")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<java.util.List<ProjectRespVO>> getByBusinessLevel(
+            @RequestParam("businessLevelCode") String businessLevelCode) {
+        return success(BeanUtils.toBean(projectTreeService.getByBusinessLevel(businessLevelCode), ProjectRespVO.class));
+    }
+
+    @PostMapping("/{id}/actions/move")
+    @Operation(summary = "子树移动（校验无环后重建子树缓存）")
+    @Parameter(name = "id", description = "被移动的项目编号", required = true)
+    @PreAuthorize("@ss.hasPermission('pms:project:update')")
+    public CommonResult<Boolean> moveSubtree(@PathVariable("id") Long id,
+                                             @Valid @RequestBody ProjectTreeMoveReqVO moveReqVO) {
+        projectTreeService.moveSubtree(id, moveReqVO.getNewParentId());
+        return success(true);
+    }
+
+    @GetMapping("/{id}/progress")
+    @Operation(summary = "进度汇总（直接子项目进度列表 + 汇总进度）")
+    @Parameter(name = "id", description = "项目编号", required = true)
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<ProjectProgressRespVO> getProgress(@PathVariable("id") Long id) {
+        ProjectTreeService.ProjectProgress progress = projectTreeService.getProgress(id);
+        ProjectProgressRespVO respVO = new ProjectProgressRespVO();
+        respVO.setAggregate(progress.aggregate());
+        respVO.setChildren(progress.children().stream().map(child -> {
+            ProjectProgressRespVO.ChildItem item = new ProjectProgressRespVO.ChildItem();
+            item.setProjectId(child.projectId());
+            item.setProjectCode(child.projectCode());
+            item.setProjectName(child.projectName());
+            item.setProgress(child.progress());
+            item.setNormalizedWeight(child.normalizedWeight());
+            item.setWeightSource(child.weightSource());
+            return item;
+        }).toList());
+        return success(respVO);
     }
 
     // ========== 内部方法（幂等支撑） ==========
