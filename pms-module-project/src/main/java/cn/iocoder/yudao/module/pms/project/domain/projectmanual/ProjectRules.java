@@ -93,10 +93,7 @@ public final class ProjectRules {
         if (isBlank(draft.getProjectName())) {
             missing.add("项目名称");
         }
-        if (isBlank(draft.getCustomerCode())) {
-            // 客户至少登记编码（customerName 单独存在不满足 BR-2）
-            missing.add("客户编码");
-        }
+        // BR-2 必填清单：名称/三维/创建原因；客户编码与名称均为可选快照字段
         if (isBlank(draft.getCreationReason())) {
             missing.add("创建原因");
         }

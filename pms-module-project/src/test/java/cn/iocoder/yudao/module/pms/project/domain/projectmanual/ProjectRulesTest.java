@@ -30,12 +30,11 @@ class ProjectRulesTest {
         List<String> missing = ProjectRules.validateManualCreation(draft);
         assertEquals(List.of("项目名称"), missing);
 
-        // 客户编码缺失（customerName 单独存在不满足）
+        // 客户编码/名称均为可选快照字段（BR-2 必填清单外），单独缺失不阻断
         draft = validDraft();
         draft.setCustomerCode(null);
         draft.setCustomerName("某客户");
-        missing = ProjectRules.validateManualCreation(draft);
-        assertEquals(List.of("客户编码"), missing);
+        assertTrue(ProjectRules.validateManualCreation(draft).isEmpty());
 
         // 创建原因缺失
         draft = validDraft();
@@ -63,7 +62,7 @@ class ProjectRulesTest {
     @Test
     void allFieldsMissingReportedTogether() {
         List<String> missing = ProjectRules.validateManualCreation(new ProjectMasterDO());
-        assertEquals(List.of("项目名称", "客户编码", "创建原因", "签约方式", "项目类别", "实施方式"), missing);
+        assertEquals(List.of("项目名称", "创建原因", "签约方式", "项目类别", "实施方式"), missing);
     }
 
     @Test

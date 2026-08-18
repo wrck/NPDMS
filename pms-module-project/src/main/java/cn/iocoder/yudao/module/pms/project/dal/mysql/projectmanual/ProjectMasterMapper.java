@@ -21,7 +21,7 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
                                                    String implementationMode) {
         return selectPage(pageParam, new LambdaQueryWrapperX<ProjectMasterDO>()
                 .likeIfPresent(ProjectMasterDO::getProjectName, projectName)
-                .eqIfPresent(ProjectMasterDO::getProjectCode, projectCode)
+                .likeRightIfPresent(ProjectMasterDO::getProjectCode, projectCode)
                 .eqIfPresent(ProjectMasterDO::getStatus, status)
                 .eqIfPresent(ProjectMasterDO::getSigningMethod, signingMethod)
                 .eqIfPresent(ProjectMasterDO::getProjectCategory, projectCategory)

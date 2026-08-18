@@ -27,4 +27,22 @@ public class ProjectCreateRespVO {
 
     @Schema(description = "模板加载方式：AUTO_DEFAULT/MANUAL_SELECTED", example = "AUTO_DEFAULT")
     private String templateLoadMethod;
+
+    @Schema(description = "实例化阶段数", example = "7")
+    private Integer stageCount;
+
+    @Schema(description = "实例化任务数", example = "24")
+    private Integer taskCount;
+
+    @Schema(description = "实例化里程碑数", example = "8")
+    private Integer milestoneCount;
+
+    @Schema(description = "实例化交付件数", example = "17")
+    private Integer deliverableCount;
+
+    @Schema(description = "实例化门禁数", example = "14")
+    private Integer gateCount;
+
+    @Schema(description = "是否已同步指派一级服务经理", example = "true")
+    private Boolean serviceManagerAssigned;
 }

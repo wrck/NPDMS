@@ -577,7 +577,9 @@
           <el-tab-pane label="成员区间" name="members">
             <el-table v-if="members.length" :data="members" size="small" border>
               <el-table-column prop="memberName" label="姓名" width="100">
-                <template #default="{ row }">{{ row.memberName || `#${row.userId}` }}</template>
+                <template #default="{ row }">
+                  {{ row.memberName || userNickname(row.userId) || `#${row.userId}` }}
+                </template>
               </el-table-column>
               <el-table-column prop="employeeNo" label="工号" width="100">
                 <template #default="{ row }">{{ row.employeeNo || '-' }}</template>
@@ -646,6 +648,7 @@
             query-field="nickname"
             placeholder="请选择用户"
             class="!w-full"
+            @change="onAssignUserChange"
           />
         </el-form-item>
         <el-form-item label="成员工号">
@@ -931,8 +934,32 @@ const openDetail = async (row: ProjectMasterVO) => {
     detail.value = base
     instances.value = inst
     members.value = mem || []
+    // memberName 快照缺失的行按 userId 回查昵称
+    const unnamed = (mem || []).filter((m: ProjectMemberAssignmentVO) => !m.memberName).map((m: ProjectMemberAssignmentVO) => m.userId!)
+    if (unnamed.length) {
+      await loadUserNicknames(unnamed)
+    }
   } finally {
     detailLoading.value = false
+  }
+}
+
+// ============ 成员昵称回退（memberName 快照为空时按 userId 查询） ============
+const userNicknames = ref<Record<number, string>>({})
+const userNickname = (userId?: number) => (userId ? userNicknames.value[userId] : '')
+
+const loadUserNicknames = async (userIds: number[]) => {
+  const missing = userIds.filter((id) => id && !userNicknames.value[id])
+  if (!missing.length) return
+  try {
+    const data = await UserApi.getUserPage({ pageNo: 1, pageSize: 100 })
+    const map: Record<number, string> = {}
+    for (const u of data?.list || []) {
+      if (u?.id != null) map[u.id] = u.nickname || u.username || ''
+    }
+    userNicknames.value = { ...userNicknames.value, ...map }
+  } catch {
+    // 回退查询失败不阻断详情展示（仍显示 #userId 占位）
   }
 }
 
@@ -1006,6 +1033,11 @@ const openAssign = (row: ProjectMasterVO) => {
   assignTarget.value = row
   Object.assign(assignForm, { userId: undefined, employeeNo: '', memberName: '', effectiveFrom: '' })
   assignVisible.value = true
+}
+
+/** 选人后自动带出昵称快照（memberName 留痕，仍可手工修改） */
+const onAssignUserChange = (_val: any, selected: any) => {
+  assignForm.memberName = selected?.nickname || ''
 }
 
 const submitAssign = async () => {

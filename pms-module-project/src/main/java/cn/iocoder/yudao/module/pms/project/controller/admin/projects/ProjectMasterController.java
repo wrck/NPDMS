@@ -21,8 +21,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.IdempotencyRecordService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -77,8 +76,6 @@ public class ProjectMasterController {
     private ProjectTemplateService projectTemplateService;
     @Resource
     private IdempotencyRecordService idempotencyRecordService;
-    @Resource
-    private ObjectMapper objectMapper;
 
     @PostMapping
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
@@ -93,7 +90,7 @@ public class ProjectMasterController {
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
         String digest = sha256Digest(toJson(createReqVO));
         IdempotencyRecordDO existing = idempotencyRecordService.findByKey(
-                TenantContextHolder.getRequiredTenantId(), COMMAND_PROJECT_CREATE, actorId, idempotencyKey);
+                currentTenantId(), COMMAND_PROJECT_CREATE, actorId, idempotencyKey);
         if (existing != null) {
             // 同键异摘要 → 409；同键同摘要 → 重放返回原资源
             if (!digest.equals(existing.getRequestDigest())) {
@@ -217,7 +214,16 @@ public class ProjectMasterController {
         ProjectMasterDO created = projectManualCreationService.createProject(draft,
                 createReqVO.getOrderOfficeCompanyCode(), createReqVO.getOrderOfficeDepartmentCode(),
                 createReqVO.getTemplateId(), createReqVO.getServiceManagerUserId());
-        return BeanUtils.toBean(created, ProjectCreateRespVO.class);
+        ProjectCreateRespVO respVO = BeanUtils.toBean(created, ProjectCreateRespVO.class);
+        // 实例化摘要（幂等快照含计数，重放与首响一致）
+        ProjectInstantiation instantiation = projectManualCreationService.getInstances(created.getId());
+        respVO.setStageCount(instantiation.getStages().size());
+        respVO.setTaskCount(instantiation.getTasks().size());
+        respVO.setMilestoneCount(instantiation.getMilestones().size());
+        respVO.setDeliverableCount(instantiation.getDeliverables().size());
+        respVO.setGateCount(instantiation.getGates().size());
+        respVO.setServiceManagerAssigned(createReqVO.getServiceManagerUserId() != null);
+        return respVO;
     }
 
     private void saveIdempotencyRecord(String idempotencyKey, Long actorId, String digest, String responsePayload) {
@@ -237,19 +243,20 @@ public class ProjectMasterController {
     }
 
     private String toJson(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("幂等载荷序列化失败", ex);
-        }
+        return JsonUtils.toJsonString(value);
+    }
+
+    /**
+     * 当前租户号：多租户取上下文；单租户（V1 enable=false 无上下文）回退 0，
+     * 与各表 tenant_id DDL 默认值一致。
+     */
+    private Long currentTenantId() {
+        Long tenantId = TenantContextHolder.getTenantId();
+        return tenantId != null ? tenantId : 0L;
     }
 
     private ProjectCreateRespVO fromJson(String payload) {
-        try {
-            return objectMapper.readValue(payload, ProjectCreateRespVO.class);
-        } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("幂等载荷反序列化失败", ex);
-        }
+        return JsonUtils.parseObject(payload, ProjectCreateRespVO.class);
     }
 
     private String sha256Digest(String content) {
