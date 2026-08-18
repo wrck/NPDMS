@@ -16,6 +16,9 @@ export interface ProjectMasterVO {
   codeRuleVersion?: string
   projectName?: string
   parentId?: number
+  treeDepth?: number
+  businessLevelCode?: string
+  businessLevelName?: string
   customerCode?: string
   customerName?: string
   managerName?: string
@@ -33,13 +36,17 @@ export interface ProjectMasterVO {
   processDefinitionVersion?: string
   sourceType?: string
   status?: string
+  progress?: number
+  aggregationWeight?: number
+  weightSource?: string
   projectStartTime?: Date
   createTime?: Date
 }
 
-/** 手工创建请求（BR-2 必填：名称/三维/创建原因） */
+/** 手工创建请求（BR-2 必填：名称/三维/创建原因；parentId 非空=下挂子项目） */
 export interface ProjectCreateReqVO {
   projectName: string
+  parentId?: number
   customerCode?: string
   customerName?: string
   contractNo?: string
@@ -159,6 +166,19 @@ export interface ProjectInstancesVO {
 
 const baseUrl = '/pms/projects'
 
+/** 进度汇总（F-PM02 / PM-02） */
+export interface ProjectProgressVO {
+  aggregate?: number
+  children?: {
+    projectId: number
+    projectCode?: string
+    projectName?: string
+    progress?: number
+    normalizedWeight?: number
+    weightSource?: string
+  }[]
+}
+
 /** 手工创建项目（Idempotency-Key 幂等：同键同摘要重放返回原资源） */
 export const createProject = (data: ProjectCreateReqVO, idempotencyKey?: string) =>
   request.post<ProjectCreateRespVO>({
@@ -206,3 +226,27 @@ export const assignManager = (
   id: number,
   data: { userId: number; employeeNo?: string; memberName?: string; effectiveFrom?: string }
 ) => request.post<boolean>({ url: `${baseUrl}/${id}/actions/assign-manager`, data })
+
+/** 直接下级项目（按需加载，F-PM02） */
+export const getChildren = (id: number) =>
+  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/${id}/children` })
+
+/** 全部后代项目（F-PM02） */
+export const getDescendants = (id: number) =>
+  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/${id}/descendants` })
+
+/** 完整上级链（根→父，F-PM02） */
+export const getAncestors = (id: number) =>
+  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/${id}/ancestors` })
+
+/** 指定业务层级查询（F-PM02） */
+export const getByBusinessLevel = (businessLevelCode: string) =>
+  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/actions/by-business-level`, params: { businessLevelCode } })
+
+/** 子树移动（校验无环后重建子树缓存，F-PM02） */
+export const moveSubtree = (id: number, newParentId: number) =>
+  request.post<boolean>({ url: `${baseUrl}/${id}/actions/move`, data: { newParentId } })
+
+/** 进度汇总（直接子项目进度列表 + 汇总进度，F-PM02） */
+export const getProgress = (id: number) =>
+  request.get<ProjectProgressVO>({ url: `${baseUrl}/${id}/progress` })

@@ -169,7 +169,7 @@
         <el-table-column prop="createTime" label="创建时间" width="170" :formatter="dateFormatter" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:project:query']">
+            <el-button link type="primary" @click="goDetail(row)" v-hasPermi="['pms:project:query']">
               详情
             </el-button>
             <el-button link type="warning" @click="openEdit(row)" v-hasPermi="['pms:project:update']">
@@ -713,6 +713,7 @@
  * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）/ 指派服务经理。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getStrDictOptions, getDictLabel } from '@/utils/dict'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
@@ -731,6 +732,7 @@ import * as UserApi from '@/api/system/user'
 defineOptions({ name: 'PmsProjects' })
 
 const message = useMessage()
+const router = useRouter()
 
 // ============ 列表 ============
 const loading = ref(false)
@@ -1004,6 +1006,11 @@ const detailTab = ref('base')
 const detail = ref<ProjectMasterVO | null>(null)
 const instances = ref<ProjectInstancesVO | null>(null)
 const members = ref<ProjectMemberAssignmentVO[]>([])
+
+/** 跳转独立详情页（F-PM02 项目详情工作台） */
+const goDetail = (row: ProjectMasterVO) => {
+  router.push({ path: '/pms/project-management/project-master-detail', query: { projectId: row.id } })
+}
 
 const openDetail = async (row: ProjectMasterVO) => {
   detailTab.value = 'base'
