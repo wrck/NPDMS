@@ -1,5 +1,26 @@
 <template>
   <div>
+    <!-- ============ 顶部状态卡（生命周期阶段统计，可点击筛选） ============ -->
+    <div class="status-cards">
+      <div
+        v-for="card in statusCards"
+        :key="card.key"
+        class="status-card"
+        :class="[
+          `status-card--${card.tone}`,
+          { 'status-card--active': activeStatus === card.value }
+        ]"
+        @click="toggleStatusFilter(card.value)"
+      >
+        <div class="status-card-icon"><Icon :icon="card.icon" /></div>
+        <div class="status-card-body">
+          <div class="status-card-num">{{ card.count }}</div>
+          <div class="status-card-label">{{ card.label }}</div>
+        </div>
+        <div class="status-card-strip"></div>
+      </div>
+    </div>
+
     <!-- ============ 筛选 + 创建入口 ============ -->
     <ContentWrap>
       <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
@@ -71,6 +92,15 @@
 
     <!-- ============ 项目列表 ============ -->
     <ContentWrap>
+      <div class="table-toolbar">
+        <span class="table-title">
+          <Icon icon="ep:folder-opened" /> 项目列表
+          <span class="table-count">共 {{ total }} 条</span>
+        </span>
+        <el-button text bg @click="load">
+          <Icon icon="ep:refresh" />刷新
+        </el-button>
+      </div>
       <el-table v-loading="loading" :data="rows" empty-text="暂无项目数据">
         <el-table-column prop="projectCode" label="项目编码" width="160" fixed="left">
           <template #default="{ row }">
@@ -717,6 +747,62 @@ const query = reactive({
   implementationMode: ''
 })
 
+// ============ 顶部状态卡（生命周期阶段统计，逐阶段全展开） ============
+const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: string }[] = [
+  { value: 'S0', label: 'S0 待开始', tone: 'gray', icon: 'ep:clock' },
+  { value: 'S1', label: 'S1 工前准备', tone: 'blue', icon: 'ep:tools' },
+  { value: 'S2', label: 'S2 施工计划', tone: 'blue', icon: 'ep:calendar' },
+  { value: 'S3', label: 'S3 实施方案', tone: 'blue', icon: 'ep:files' },
+  { value: 'S4', label: 'S4 实施部署', tone: 'blue', icon: 'ep:setting' },
+  { value: 'S5', label: 'S5 验收交维', tone: 'yellow', icon: 'ep:circle-check' },
+  { value: 'S6', label: 'S6 闭环', tone: 'green', icon: 'ep:lock' },
+  { value: 'MAINT', label: 'MAINT 维护', tone: 'gray', icon: 'ep:refresh' }
+]
+
+const stats = reactive<Record<string, number>>({ total: 0 })
+for (const stage of LIFECYCLE_STAGES) stats[stage.value] = 0
+
+/** 当前选中的状态卡（'' = 全部） */
+const activeStatus = ref('')
+
+const statusCards = computed(() => [
+  { key: 'total', label: '项目总数', value: '', count: stats.total, tone: 'blue', icon: 'ep:folder-opened' },
+  ...LIFECYCLE_STAGES.map((stage) => ({
+    key: stage.value,
+    label: stage.label,
+    value: stage.value,
+    count: stats[stage.value],
+    tone: stage.tone,
+    icon: stage.icon
+  }))
+])
+
+/** 状态卡计数：总数 pageSize=1 取 total，各阶段按 status 精确筛选取 total */
+const loadStats = async () => {
+  try {
+    const totalRes = await ProjectsApi.getProjectPage({ pageNo: 1, pageSize: 1 })
+    stats.total = totalRes.total
+    const stageRes = await Promise.all(
+      LIFECYCLE_STAGES.map((stage) => {
+        const params = { pageNo: 1, pageSize: 1, status: stage.value }
+        return ProjectsApi.getProjectPage(params)
+      })
+    )
+    LIFECYCLE_STAGES.forEach((stage, index) => {
+      stats[stage.value] = stageRes[index].total
+    })
+  } catch {
+    // 统计失败不阻断列表
+  }
+}
+
+/** 点击状态卡：选中/取消该阶段筛选；再次点击同一卡回到全部 */
+const toggleStatusFilter = (value: string) => {
+  activeStatus.value = activeStatus.value === value ? '' : value
+  query.status = activeStatus.value
+  handleSearch()
+}
+
 const load = async () => {
   loading.value = true
   try {
@@ -740,6 +826,7 @@ const handleReset = () => {
   query.signingMethod = ''
   query.projectCategory = ''
   query.implementationMode = ''
+  activeStatus.value = ''
   handleSearch()
 }
 
@@ -1062,11 +1149,108 @@ const submitAssign = async () => {
 }
 
 onMounted(() => {
+  loadStats()
   load()
 })
 </script>
 
 <style lang="scss" scoped>
+/* ============ 顶部状态卡 ============ */
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.status-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  }
+  &--active {
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.12);
+  }
+
+  .status-card-icon {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #fff;
+  }
+  &--blue .status-card-icon { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+  &--green .status-card-icon { background: linear-gradient(135deg, #10b981, #34d399); }
+  &--gray .status-card-icon { background: linear-gradient(135deg, #64748b, #94a3b8); }
+  &--yellow .status-card-icon { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+
+  .status-card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .status-card-num {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2937;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    line-height: 1.1;
+  }
+  .status-card-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .status-card-strip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+  &--blue .status-card-strip { background: #3b82f6; }
+  &--green .status-card-strip { background: #10b981; }
+  &--gray .status-card-strip { background: #94a3b8; }
+  &--yellow .status-card-strip { background: #f59e0b; }
+}
+
+/* ============ 表格工具栏 ============ */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.table-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+.table-count {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
 .code-text {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
