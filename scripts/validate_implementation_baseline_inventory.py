@@ -130,6 +130,7 @@ PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES = (
     "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/",
     "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
     "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/",
+    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/",
 )
 RETIRED_PROJECT_TREE_WRITE_PATTERNS = (
     (
