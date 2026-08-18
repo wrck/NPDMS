@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from validate_implementation_baseline_inventory import (
     find_retired_cutover_runtime_surfaces,
     find_retired_maintenance_runtime_surfaces,
+    find_retired_project_tree_write_runtime_surfaces,
     find_retired_project_write_runtime_surfaces,
     find_retired_template_runtime_surfaces,
     load_inventory,
@@ -575,6 +576,13 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
         # still exists; turns green when T5 freezes the legacy write surfaces.
         self.assertEqual(
             [], find_retired_project_write_runtime_surfaces(self.repository)
+        )
+
+    def test_retired_project_tree_write_runtime_has_no_legacy_write_surface(self) -> None:
+        # Guard-first (F-PM02 T1): red while the legacy /pms/project-tree write
+        # chain still exists; turns green when T5 freezes the legacy write surfaces.
+        self.assertEqual(
+            [], find_retired_project_tree_write_runtime_surfaces(self.repository)
         )
 
     def test_mes_work_order_is_not_removed_by_pms_keyword_rule(self) -> None:
