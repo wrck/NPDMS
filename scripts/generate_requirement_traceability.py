@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the V1.7 requirement-to-engineering traceability index and SDS mappings."""
+"""Generate the V1.8 requirement-to-engineering traceability index and SDS mappings."""
 
 from __future__ import annotations
 
@@ -73,8 +73,8 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
                 "source": value.get("来源追溯", ""),
             }
         )
-    if len(requirements) != 103:
-        raise SystemExit(f"Appendix A.1 formal requirement count is {len(requirements)}, expected 103")
+    if len(requirements) != 100:
+        raise SystemExit(f"Appendix A.1 formal requirement count is {len(requirements)}, expected 100")
     return requirements
 
 
@@ -108,13 +108,13 @@ PREFIX_OWNER = {
 PHASE1_DESIGN = {
     "PROJ": ("项目治理", "Project / ProjectTask / ProjectTemplate", "Project或Task状态机；模板加载工作流", "ProjectTreeScope", "ProjectApplicationService", "Project、ProjectTask、ProjectTemplate", "业务规则+权限+树查询"),
     "SOL": ("交付准备与方案", "Preparation / ConstructionPlan / Solution", "Plan或Solution状态机；计划/方案审批流", "ProjectStageScope", "PreparationApplicationService", "Preparation、Plan、Solution、File", "业务规则+审批+文件"),
-    "IMP": ("实施执行", "ArrivalAcceptance / InstallationRecord / ConfigurationCollectionResult / JointDebuggingResult / ImplementationRisk / ImplementationQualityCheck / ImplementationSafetyCheck / DeliveryEvidence", "实施执行聚合状态机；质量/安全整改复核工作流；阶段门禁工作流", "ImplementationProjectBatchScope", "ImplementationExecutionApplicationService", "ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、ImplementationSafetyCheck、DeliveryEvidence", "业务规则+证据+权限+整改"),
+    "IMP": ("实施执行", "ArrivalAcceptance / InstallationRecord / ConfigurationCollectionResult / JointDebuggingResult / ImplementationRisk / ImplementationQualityCheck / DeliveryEvidence", "实施执行聚合状态机；质量整改复核工作流；阶段门禁工作流", "ImplementationProjectBatchScope", "ImplementationExecutionApplicationService", "ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence", "业务规则+证据+权限+整改"),
     "ACC": ("验收与项目闭环", "Acceptance / SatisfactionCollection / Artifact / ProjectClosure", "满意度、Artifact与ProjectClosure状态机；验收/闭环审批流", "ProjectStageScope", "AcceptanceApplicationService", "Acceptance、SatisfactionCollection、DeliveryArtifact、ProjectClosure、ServiceHandover", "业务规则+审批+门禁"),
     "CUT": ("变更切换与稳定治理", "CutoverTask / CutoverAssessment / CutoverPlan / CutoverClosure", "CutoverTask阶段状态机；P5分级审批与P6闭环归档流", "CutoverTaskScope", "CutoverApplicationService", "CutoverTask、CutoverAssessment、CutoverPlan、CutoverClosure", "业务规则+审批+闭环+幂等"),
     "SRV": ("Inspection / Service Operations", "InspectionTask / ServiceIssue / ServiceStatus", "Inspection与Service Operations分别维护状态机和闭环流", "AssignedProjectDeviceScope", "ServiceApplicationService", "InspectionTask、InspectionRule、ServiceIssue、ServiceStatus", "业务规则+权限+异常"),
     "CUS": ("Customer & Relationship", "Customer / Contact / AssetRelation", "Customer同步状态机；主数据同步流", "OrganizationCustomerScope", "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot", "数据同步+权限"),
     "AST": ("Asset Management", "Device / DeviceArchive / RMAReplacement", "Device服务状态机；设备同步流", "ProjectDeviceScope", "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot", "数据一致性+归属+安全"),
-    "COM": ("合同订单履约", "Contract / OrderLine / DeliveryScope / DeliveryScopeDetail", "Scope状态机；履约回写工作流", "ContractProjectScope", "ContractApplicationService", "Contract、OrderLine、DeliveryScope、DeliveryScopeDetail、FulfillmentRecord", "数量约束+对账+幂等"),
+    "COM": ("合同订单履约", "Contract / SalesOrder / OrderLine / DeliveryScope / DeliveryScopeDetail", "ERP权威事实同步；平台交付范围分配与释放", "ContractProjectScope", "ContractApplicationService", "Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail", "数量约束+权威来源+幂等"),
     "RES": ("资源与外包", "Supplier / SubcontractRequest / PaymentGate", "Subcontract与PaymentGate状态机；转包审批流", "OrganizationSupplierScope", "SubcontractApplicationService", "Supplier、SubcontractRequest、PaymentGate", "审批+门禁+财务集成"),
     "ANA": ("经营分析", "MetricSnapshot / PortfolioView", "指标快照生成流（只读）", "OrganizationReportScope", "AnalyticsQueryService", "MetricSnapshot、PortfolioView", "口径+数据范围+性能"),
     "PLT": ("基础平台能力 / Device Access & Collection", "Todo / FileArtifact / AuthorizationGrant / ChangeRequest / DeviceCredential / CredentialGrant / CollectionTask", "公共能力状态机、授权审批流和采集任务授权/回调流", "TenantOrganizationProjectScope / BusinessObjectDeviceCredentialScope", "PlatformApplicationService / CollectionOrchestrationService", "Todo、FileArtifact、AuthorizationGrant、ChangeRequest、AuditRecord、DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord", "安全+权限+审计+幂等"),
@@ -129,7 +129,6 @@ EXACT_PHASE1_DESIGN = {
     "EXE-05": ("实施执行", "ImplementationRisk", "ImplementationRisk状态机；风险处置工作流", "ImplementationProjectDeviceScope", "ImplementationRiskApplicationService", "ImplementationRisk、RiskEvidence", "风险规则+门禁+权限"),
     "EXE-06": ("实施执行", "CutoverReadinessContract（跨域契约）", "实施门禁状态机；CUT执行前置校验", "ImplementationProjectCutoverScope", "ImplementationReadinessApplicationService", "ReadinessSnapshot、CutoverTask引用", "门禁+跨域契约+权限"),
     "IMP-01": ("实施执行", "ImplementationQualityCheck", "ImplementationQualityCheck状态机；提交→复核→整改→再复核", "ImplementationProjectBatchScope", "ImplementationQualityApplicationService", "ImplementationQualityCheck、Remediation、QualityEvidence", "整改复核+权限+审计"),
-    "IMP-02": ("实施执行", "ImplementationSafetyCheck", "ImplementationSafetyCheck状态机；提交→复核→整改/豁免", "ImplementationProjectBatchScope", "ImplementationSafetyApplicationService", "ImplementationSafetyCheck、SafetyRemediation、SafetyExemption", "安全阻断+豁免审批+审计"),
     "INT-01": PHASE1_DESIGN["PROJ"], "INT-02": PHASE1_DESIGN["AST"], "INT-03": PHASE1_DESIGN["CUS"],
     "INT-04": PHASE1_DESIGN["KNO"], "INT-05": PHASE1_DESIGN["PLT"], "INT-06": PHASE1_DESIGN["AST"],
     "INT-07": PHASE1_DESIGN["RES"], "INT-09": PHASE1_DESIGN["PLT"], "INT-10": PHASE1_DESIGN["PLT"],
@@ -165,12 +164,12 @@ for _identifier in ("EQP-01", "EQP-02", "EQP-03", "EQP-04", "EQP-05", "EQP-07", 
         "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot",
         "数据一致性+归属+来源版本",
     )
-for _identifier in ("COM-01", "COM-02"):
+for _identifier in ("COM-01",):
     EXACT_PHASE1_DESIGN[_identifier] = (
-        "Contract & Fulfillment", "Contract / SalesOrder / OrderLine / DeliveryScope / DeliveryScopeDetail / FulfillmentSnapshot",
-        "Contract/Order同步状态机；范围分配与履约对账流", "ContractProjectScope",
-        "ContractApplicationService", "Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、FulfillmentSnapshot、ReconciliationRecord",
-        "数量约束+同步版本+对账幂等",
+        "Contract & Delivery Scope", "Contract / SalesOrder / OrderLine / DeliveryScope / DeliveryScopeDetail",
+        "ERP权威事实同步；平台范围分配与释放", "ContractProjectScope",
+        "ContractApplicationService", "Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail",
+        "数量约束+来源版本+分配幂等",
     )
 
 
@@ -262,7 +261,7 @@ def sds_reference(identifier: str) -> str:
         event_anchors.append("10-文件与待办事件")
     for event_anchor in dict.fromkeys(event_anchors):
         references.append(f"[11事件](../design/11-event-design.md#{event_anchor})")
-    integration_requirements = {"COM-01", "COM-02", "EQP-04", "CUT-08", "INS-05", "AUT-01", "AUT-02"}
+    integration_requirements = {"COM-01", "EQP-04", "CUT-08", "INS-05", "AUT-01", "AUT-02"}
     integration_requirements.add("PRE-03")
     if identifier.startswith("INT-") or identifier in integration_requirements:
         references.append("[12集成](../design/12-integration-design.md)")
@@ -278,7 +277,19 @@ def sds_reference(identifier: str) -> str:
     return " / ".join(references)
 
 
-def render(prd: Path, domain_root: Path) -> str:
+def existing_feature_links(output: Path) -> dict[str, str]:
+    if not output.exists():
+        return {}
+    result: dict[str, str] = {}
+    for line in read(output).splitlines():
+        identifier = re.match(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", line)
+        tail = re.search(r"\|\s*([^|]+?)\s*\|\s*[^|]+\s*\|\s*[^|]+\s*\|\s*[^|]+\s*\|$", line)
+        if identifier and tail and tail.group(1).strip() != "NOT_STARTED":
+            result[identifier.group(1)] = tail.group(1).strip()
+    return result
+
+
+def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = None) -> str:
     requirements = extract_requirements(read(prd))
     owners = domain_owners(requirements)
     missing = [item["id"] for item in requirements if item["id"] not in owners]
@@ -286,21 +297,21 @@ def render(prd: Path, domain_root: Path) -> str:
         raise SystemExit(f"missing domain owner: {', '.join(missing)}")
     counts = Counter(item["version"] for item in requirements)
     lines = [
-        "# V1.7需求追溯矩阵",
+        "# V1.8需求追溯矩阵",
         "",
-        "> 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.7业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。",
-        "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.7；领域决策：`docs/design/phase-1-domain-ownership.md`。",
+        "> 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。",
+        "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8；领域决策：`docs/design/phase-1-domain-ownership.md`。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：SDS Phase 1、Phase 2与Phase 3均已通过门禁并转为BASELINE；运行、迁移与发布证据继续由对应下游门禁控制",
+        "- 当前状态：PRD V1.8已发布；SDS Phase 1、Phase 2与Phase 3须按V1.8差量重新验证，旧V1.7门禁结论只保留为历史证据",
         "",
         "## 字段状态约定",
         "",
         "| 状态 | 含义 |",
         "|---|---|",
-        "| `BASELINE` | 已纳入PRD V1.7正式基线 |",
+        "| `BASELINE` | 已纳入PRD V1.8正式基线 |",
         "| `NOT_STARTED` | 下游工程资产尚未生成，不代表需求缺失 |",
         "| `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |",
         "| `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |",
@@ -313,10 +324,11 @@ def render(prd: Path, domain_root: Path) -> str:
     for item in requirements:
         domain, owner = owners[item["id"]]
         module, aggregate, lifecycle, permission, api, data, test_category = phase1_design(item["id"], domain)
+        feature = (feature_links or {}).get(item["id"], "NOT_STARTED")
         values = [
             item["id"], item["name"], f"{domain}（{owner}）", module, aggregate, lifecycle,
             permission, api, data, test_category, item["stage"], item["version"], item["priority"],
-            item["source"], sds_reference(item["id"]), "NOT_STARTED", "PRD/SDS-P1-BASELINE/SDS-P2-BASELINE", "NOT_STARTED", "BASELINE",
+            item["source"], sds_reference(item["id"]), feature, "PRD-V1.8-BASELINE/SDS-V1.8-REVALIDATION_REQUIRED", "NOT_STARTED", "BASELINE",
         ]
         lines.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
     return "\n".join(lines) + "\n"
@@ -329,7 +341,11 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(render(args.prd, args.domains), encoding="utf-8", newline="\n")
+    args.output.write_text(
+        render(args.prd, args.domains, existing_feature_links(args.output)),
+        encoding="utf-8",
+        newline="\n",
+    )
     print(f"WROTE {args.output}")
     return 0
 

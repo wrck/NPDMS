@@ -210,6 +210,21 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     )
     add(checks, "INT-12进入正式索引", "INT-12" in formal_index_ids, "INT-12必须为V1公共能力")
     add(checks, "排除编号未进正式索引", not ({"WO-07", "WO-11"} & set(formal_index_ids)), "WO-07/WO-11仅用于排除追溯")
+    v3_numbered = section(appendix_a, "A.3.1 已编号演进项") if appendix_a else ""
+    v3_numbered_ids = set(re.findall(r"(?m)^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", v3_numbered))
+    cross_evolution = section(appendix_a, "A.3.2 跨需求演进方向") if appendix_a else ""
+    cross_evolution_count = len(re.findall(r"(?m)^\|\s*(?:CLO-05→ACC-02|SUB-03)\s*\|", cross_evolution))
+    add(checks, "V1.8演进统计", len(v3_numbered_ids) == 31 and cross_evolution_count == 2, f"编号V3={len(v3_numbered_ids)}；跨需求={cross_evolution_count}")
+    add(
+        checks,
+        "V1.8退出需求边界",
+        not ({"COM-02", "IMP-02", "ACC-05"} & set(formal_index_ids))
+        and "ACC-05" in v3_numbered_ids
+        and not ({"COM-02", "IMP-02"} & v3_numbered_ids),
+        "ACC-05仅进入V3；COM-02/IMP-02不得进入正式或V3索引",
+    )
+    state_markers = ("current_stage", "lifecycle_status", "NORMAL_CLOSED", "EXCEPTION_CLOSED", "派生展示状态")
+    add(checks, "V1.8项目状态分层", all(marker in prd for marker in state_markers), f"必需标记={','.join(state_markers)}")
 
     for name, passed in cutover_flow_contract(prd).items():
         add(checks, f"CUT流程-{name}", passed, "割接流程必须符合0807流程设计及已确认业务决策")

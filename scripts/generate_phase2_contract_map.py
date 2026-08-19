@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the explicit 103-requirement Phase 2 implementation-contract map."""
+"""Generate the explicit 100-requirement Phase 2 implementation-contract map."""
 
 from __future__ import annotations
 
@@ -61,13 +61,12 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("EXE-05",), contract("ImplementationRisk", "imp_risk、imp_risk_treatment", "/implementation-risks", events="ImplementationRiskRaised/Closed", files="FileArtifact", workflow="风险提出、处置和关闭", authorization="ImplementationProjectDeviceScope；风险范围")),
     (("EXE-06",), contract("ImplementationReadinessSnapshot", "proj_project_stage_snapshot", "/implementation-readiness/{projectId}", events="ImplementationReadinessSnapshotPublished", workflow="就绪门禁汇总、快照发布与CUT消费", authorization="ImplementationProjectCutoverScope")),
     (("IMP-01",), contract("ImplementationQualityCheck", "imp_quality_check、imp_quality_item、imp_quality_remediation、imp_quality_review", "/quality-checks", events="QualitySafetyGateChanged", files="FileArtifact", workflow="提交→复核→整改→再复核", authorization="ImplementationProjectBatchScope；复核权限")),
-    (("IMP-02",), contract("ImplementationSafetyCheck", "imp_safety_check、imp_safety_item、imp_safety_remediation、imp_safety_exemption", "/safety-checks", events="QualitySafetyGateChanged", files="FileArtifact", workflow="提交→复核→阻断→整改/豁免→再复核", authorization="ImplementationProjectBatchScope；安全复核/豁免权限")),
 
     (("ACC-01", "ACC-03"), contract("Acceptance", "acc_acceptance、acc_acceptance_item、acc_confirmation", "/acceptances", files="FileArtifact", workflow="培训/报告提交、确认和问题留痕", authorization="ProjectStageScope、FileBusinessScope")),
     (("ACC-02",), contract("SatisfactionCollection", "acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result", "/satisfaction-tasks、/satisfaction-questionnaires/{token}/responses、/satisfaction-results", events="SatisfactionTaskCreated、SatisfactionResultRecorded", files="FileArtifact", workflow="冻结模板→指派→客户提交→判定→整改后新版本重收→归档", authorization="ProjectStageScope；客户一次性实例范围；答案/签字不可改写")),
     (("ACC-04",), contract("DeliveryArtifact", "acc_delivery_artifact、acc_artifact_review、acc_archive_record", "/delivery-artifacts", events="ArtifactAccepted/Archived", files="FileArtifact", workflow="齐套检查、审核和归档分离", authorization="ProjectStageScope、FileBusinessScope；ACC归档")),
     (("CLO-01", "CLO-02"), contract("ProjectClosure、ClosureGateSnapshot、SatisfactionCollection", "acc_project_closure、acc_closure_gate_snapshot、acc_closure_review、acc_satisfaction_result", "/closure-gates/{projectId}、/project-closures", events="ProjectClosureCompleted", files="FileArtifact", workflow="门禁校验、冻结流程审批、整改和闭环；不创建回访节点", authorization="ProjectStageScope；全部后代项目门禁与审批范围")),
-    (("ACC-05", "ACC-06"), contract("ServiceHandover、ProjectClosure", "acc_service_handover、acc_handover_item、acc_handover_result", "/service-handovers", events="ProjectClosureCompleted", files="FileArtifact", workflow="遗留问题及持续服务交接、接收确认", authorization="ProjectStageScope；交接双方项目/服务范围")),
+    (("ACC-06",), contract("ServiceHandover、ProjectClosure", "acc_service_handover、acc_handover_item、acc_handover_result", "/service-handovers", events="ProjectClosureCompleted", files="FileArtifact", workflow="交接门禁、静态交接快照和接收确认；不创建持续服务跟踪项", authorization="ProjectStageScope；交接双方项目/服务范围")),
 
     (("SUB-01", "SUB-02", "SUB-05"), contract("SubcontractRequest", "res_subcontract_request", "/subcontract-requests", events="SubcontractApproved", integration="OA", files="FileArtifact", workflow="平台内转包审批、价格审批与版本冻结", authorization="OrganizationSupplierScope；项目/供应商范围")),
     (("SUB-03", "SUB-04"), contract("PaymentGate、SatisfactionCollection", "res_payment_gate、acc_satisfaction_result", "/payment-gates", events="PaymentGateChanged", integration="财务系统", files="FileArtifact", workflow="付款前置满意度事实、批准版本和财务确认", authorization="OrganizationSupplierScope；付款门禁权限；满意度只读引用")),
@@ -107,8 +106,7 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("CHG-01",), contract("ChangeRequest", "plt_change_request", "/change-requests", files="FileArtifact", workflow="变更申请、审批、目标版本校验和执行", authorization="TenantOrganizationProjectScope；变更对象权限")),
     (("PLT-01",), contract("Todo", "plt_todo", "/todos、/{id}/actions/complete", events="TodoRequested、TodoCompleted", workflow="统一待办接入、完成回调Owner再校验", authorization="TenantOrganizationProjectScope；待办责任人范围")),
     (("PLT-02",), contract("FileArtifact", "plt_file_artifact、plt_file_version、plt_file_reference", "/files:init-upload、/files/{id}:complete-upload、/file-references", events="FileVersionCommitted、FileReferenceAttached/Detached、FileArchived", files="FileArtifact", workflow="初始化上传、内容校验、版本提交、引用和归档", authorization="FileBusinessScope；下载实时回源业务权限")),
-    (("COM-01",), contract("Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail", "com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail", "/contracts、/sales-orders、/order-lines、/delivery-scopes", events="DeliveryScopeAssigned/Released", integration="ERP、CRM", workflow="ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁", authorization="ContractProjectScope；ERP核心字段只读")),
-    (("COM-02",), contract("FulfillmentSnapshot、ReconciliationRecord", "com_fulfillment_snapshot、com_reconciliation_record", "/fulfillment-reconciliations", events="FulfillmentSnapshotPublished", integration="CRM", workflow="履约回写、业务回执、差异确认和关闭", authorization="ContractProjectScope；交付事实与经营状态分域")),
+    (("COM-01",), contract("Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail", "com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail", "/contracts、/sales-orders、/order-lines、/delivery-scopes", events="DeliveryScopeAssigned/Released", integration="ERP（合同订单权威）；CRM仅提供项目/客户上下文", workflow="ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁", authorization="ContractProjectScope；ERP核心字段只读")),
     (("RES-01",), contract("Supplier", "res_supplier、res_qualification", "/suppliers", integration="OA", files="FileArtifact", workflow="服务商档案、资质版本和可用状态", authorization="OrganizationSupplierScope；资质文件字段权限")),
 ]
 
@@ -188,11 +186,11 @@ def render(prd: Path) -> str:
     lines = [
         "# SDS Phase 2 显式需求契约映射",
         "",
-        "> 文档状态：`BASELINE`",
-        "> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）",
-        "> Requirement ID：附录 A.1 全部 103 项 V1/V2 正式需求",
+        "> 文档状态：`REVALIDATION_REQUIRED`",
+        "> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）",
+        "> Requirement ID：附录 A.1 全部 100 项 V1/V2 正式需求",
         "> Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准",
-        "> Phase 3验证注记状态：`BASELINE`（不改变已批准的Phase 2契约基线）",
+        "> Phase 3验证注记状态：`REVALIDATION_REQUIRED`（V1.7批准结论不自动继承到V1.8）",
         "",
         "本文件逐项声明可实施的数据对象、表、API、事件/集成/文件、工作流和授权落点。相同基础契约可被多个相关 Requirement 复用，但每个 Requirement 必须显式登记；`N/A` 必须说明为何该类契约不适用。",
         "",
@@ -222,7 +220,7 @@ def render(prd: Path) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prd", type=Path, default=Path("docs/baseline/prd-v1.7.md"))
+    parser.add_argument("--prd", type=Path, default=Path("docs/baseline/prd-v1.8.md"))
     parser.add_argument("--output", type=Path, default=Path("docs/traceability/phase2-contract-map.md"))
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()

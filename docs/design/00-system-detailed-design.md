@@ -1,8 +1,8 @@
 # 项目实施交付管理平台 系统详细设计说明书（SDS 总册）
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求
+> 文档状态：`REVALIDATION_REQUIRED`
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求
 > Owner：SDS 总编
 > 定位：本文件是 SDS 各分册的总册与索引，不复制分册内容；分册结论以其自身和对应门禁记录为准。
 
@@ -10,11 +10,11 @@
 
 | 阶段 | 审查状态 | 结论 | 门禁记录 |
 |---|---|---|---|
-| SDS Phase 1 | `APPROVED` | `READY_FOR_PHASE_2` | `docs/engineering/gates/phase-1/gate-status.md` |
-| SDS Phase 2 | `APPROVED` | `READY_FOR_PHASE_3` | `docs/engineering/gates/phase-2/gate-status.md` |
-| SDS Phase 3 | `APPROVED` | `READY_FOR_SDS_BASELINE` | `docs/engineering/gates/phase-3/gate-status.md` |
+| SDS Phase 1 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |
+| SDS Phase 2 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
+| SDS Phase 3 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-三阶段审查通过，本总册与全部正式分册构成 SDS Baseline，作为 Feature Spec 与实现的唯一设计输入。
+V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册和仍标注V1.7的分册不得作为新增Feature或实现的当前放行依据。
 
 ## 2. 分册索引
 

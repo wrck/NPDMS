@@ -4,6 +4,8 @@
 
 本目录用于沉淀《项目实施交付管理平台 系统详细设计说明书（SDS）》。
 
+> 当前基线提示：PRD V1.8已于2026-08-19发布。除`01-requirement-traceability.md`和总册的范围入口已同步外，其余仍标注PRD V1.7的分册只代表V1.7历史设计基线，当前统一处于`REVALIDATION_REQUIRED`；完成V1.8差量复审前不得作为新Feature或实现的放行依据。当前状态以各阶段`gate-status.md`为准。
+
 ## 目标文件
 
 Codex 按顺序维护：
@@ -63,4 +65,4 @@ Codex 按顺序维护：
 - 不确定的业务问题进入 `docs/decisions/open-questions.md`。
 - 每一阶段先 Review，再继续下一阶段。
 - SDS 通过后才进入 Feature Spec 和编码。
-- `specs/001-project-delivery-platform/domains/` 为历史参考资料；本目录的 SDS 必须直接以 PRD V1.7 和基线快照为准，并记录与旧规格的差异。
+- `specs/001-project-delivery-platform/domains/` 为PRD V1.8直接派生的领域需求输入；本目录的 SDS 必须直接以 PRD V1.8 和当前基线快照为准，并记录与V1.7设计的差异。

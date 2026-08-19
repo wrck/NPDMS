@@ -42,8 +42,35 @@ def parse_contract_blocks(text: str) -> dict[str, str]:
     }
 
 
+def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
+    """Validate the reopened V1.8 Phase 3 state without approving stale design assets."""
+    errors: list[str] = []
+    require_tokens(errors, "Phase 3 V1.8 gate", gate, (
+        "REVALIDATION_REQUIRED", "NOT_READY_FOR_SDS_BASELINE_V1.8",
+        "P3-E09", "AI-MIG-000", "Q08候选索引", "BLOCKED",
+    ))
+    contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+    if not contract_path.exists():
+        errors.append("missing V1.8 Phase 2/3 contract map")
+        return errors
+    contract_text = contract_path.read_text(encoding="utf-8")
+    if "Phase 3验证注记状态：`REVALIDATION_REQUIRED`" not in contract_text:
+        errors.append("V1.8 contract map missing Phase 3 revalidation marker")
+    blocks = parse_contract_blocks(contract_text)
+    if len(blocks) != 100:
+        errors.append(f"expected 100 V1.8 Phase 3 verification mappings, got {len(blocks)}")
+    if {"ACC-05", "COM-02", "IMP-02"} & set(blocks):
+        errors.append("removed/deferred V1.8 requirements leaked into Phase 3 mappings")
+    return errors
+
+
 def validate(root: Path) -> list[str]:
     errors: list[str] = []
+    gate_path = root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
+    if gate_path.exists():
+        gate = gate_path.read_text(encoding="utf-8")
+        if "REVALIDATION_REQUIRED" in gate:
+            return validate_v18_revalidation(root, gate)
     design_dir = root / "docs" / "design"
     documents: dict[str, str] = {}
     for name in DESIGN_FILES:
@@ -185,6 +212,10 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
+    gate_path = args.root.resolve() / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
+    if gate_path.is_file() and "REVALIDATION_REQUIRED" in gate_path.read_text(encoding="utf-8"):
+        print("[PASS] PRD V1.8 Phase 3 revalidation gate: 100 mappings; not released as SDS baseline")
+        return 0
     print(f"[PASS] SDS Phase 3 documents, NFR controls and {EXPECTED_REQUIREMENT_COUNT} verification mappings")
     return 0
 

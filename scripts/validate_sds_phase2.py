@@ -259,8 +259,65 @@ def active_requirement_ids(text: str) -> set[str]:
     return result
 
 
+def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
+    """Validate the intentionally reopened V1.8 contract state without blessing stale V1.7 SDS."""
+    errors: list[str] = []
+    prd_path = root / "docs" / "baseline" / "prd-v1.8.md"
+    matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
+    contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+    required_gate_tokens = (
+        "REVALIDATION_REQUIRED", "NOT_READY_FOR_PHASE_3_V1.8", "100项",
+        "V1 53项", "V2 47项", "AI-MIG-000",
+    )
+    for token in required_gate_tokens:
+        if token not in gate:
+            errors.append(f"V1.8 Phase 2 gate missing token: {token}")
+
+    if not prd_path.is_file():
+        return errors + ["missing PRD V1.8 baseline"]
+    records = prd_formal_requirement_records(read(prd_path))
+    prd_ids = [identifier for identifier, _ in records]
+    expected_counts = {"V1": 53, "V2": 47}
+    actual_counts = {version: sum(item_version == version for _, item_version in records) for version in expected_counts}
+    if len(prd_ids) != 100 or len(set(prd_ids)) != 100 or actual_counts != expected_counts:
+        errors.append(f"PRD V1.8 scope mismatch: rows={len(prd_ids)} unique={len(set(prd_ids))} versions={actual_counts}")
+
+    if not matrix_path.is_file():
+        errors.append("missing V1.8 requirement matrix")
+        matrix_ids: list[str] = []
+    else:
+        matrix = read(matrix_path)
+        matrix_ids = REQUIREMENT_ROW.findall(matrix)
+        if matrix.count("SDS-V1.8-REVALIDATION_REQUIRED") != 100:
+            errors.append("every V1.8 requirement row must carry SDS revalidation evidence")
+    if set(matrix_ids) != set(prd_ids) or len(matrix_ids) != 100:
+        errors.append("V1.8 PRD and requirement matrix must contain the same 100 IDs")
+
+    if not contract_path.is_file():
+        errors.append("missing V1.8 Phase 2 contract map")
+    else:
+        contract_text = read(contract_path)
+        contracts, contract_errors = parse_contract_map(contract_path)
+        errors.extend(contract_errors)
+        if set(contracts) != set(prd_ids) or len(contracts) != 100:
+            errors.append("V1.8 Phase 2 contract map must contain the same 100 IDs")
+        for marker in ("文档状态：`REVALIDATION_REQUIRED`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`REVALIDATION_REQUIRED`"):
+            if marker not in contract_text:
+                errors.append(f"V1.8 Phase 2 contract map missing marker: {marker}")
+
+    leaked = {"ACC-05", "COM-02", "IMP-02"} & (set(prd_ids) | set(matrix_ids))
+    if leaked:
+        errors.append(f"V1.8 removed/deferred requirements leaked into formal contracts: {sorted(leaked)}")
+    return errors
+
+
 def validate(root: Path) -> list[str]:
     errors: list[str] = []
+    gate_path = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
+    if gate_path.is_file():
+        gate = read(gate_path)
+        if "REVALIDATION_REQUIRED" in gate:
+            return validate_v18_revalidation(root, gate)
     design = root / "docs" / "design"
     prd_path = root / "docs" / "baseline" / "prd-v1.7.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
@@ -526,6 +583,10 @@ def main() -> int:
             print(f"[FAIL] {error}")
         print(f"SUMMARY: {len(errors)} Phase 2 validation issues")
         return 1
+    gate_path = args.root.resolve() / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
+    if gate_path.is_file() and "REVALIDATION_REQUIRED" in read(gate_path):
+        print("[PASS] PRD V1.8 Phase 2 revalidation gate: 100 requirements; not released for Phase 3")
+        return 0
     print(f"[PASS] SDS Phase 2 documents and {EXPECTED_REQUIREMENT_COUNT} requirement trace links")
     return 0
 

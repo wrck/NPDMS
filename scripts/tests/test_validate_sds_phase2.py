@@ -609,6 +609,18 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             self.assertEqual([], MODULE.validate(root))
 
+    def test_current_v18_revalidation_state_is_coherent_and_not_ready(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        gate_path = repository_root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
+        gate = gate_path.read_text(encoding="utf-8")
+
+        self.assertEqual([], MODULE.validate(repository_root))
+        errors = MODULE.validate_v18_revalidation(
+            repository_root,
+            gate.replace("NOT_READY_FOR_PHASE_3_V1.8", "READY_FOR_PHASE_3"),
+        )
+        self.assertTrue(any("NOT_READY_FOR_PHASE_3_V1.8" in error for error in errors), errors)
+
 
 if __name__ == "__main__":
     unittest.main()

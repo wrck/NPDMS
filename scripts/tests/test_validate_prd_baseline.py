@@ -19,8 +19,8 @@ SPEC.loader.exec_module(MODULE)
 class ValidatePrdBaselineTest(unittest.TestCase):
     def validate_candidate(self, mutate) -> dict[str, object]:
         root = MODULE_PATH.parents[1]
-        source = root / "docs" / "baseline" / "prd-v1.7.md"
-        report = root / "docs" / "reports" / "2026-08-10-PRD与13领域FR差异审查.md"
+        source = root / "docs" / "baseline" / "prd-v1.8.md"
+        report = root / "docs" / "reports" / "2026-08-19-PRD-V1.8基线变更报告.md"
         text = source.read_text(encoding="utf-8-sig")
         candidate_text = mutate(text)
 
@@ -29,21 +29,21 @@ class ValidatePrdBaselineTest(unittest.TestCase):
             candidate.write_text(candidate_text, encoding="utf-8")
             return {
                 check.name: check
-                for check in MODULE.validate(candidate, report, "V1.7", "正式基线")
+                for check in MODULE.validate(candidate, report, "V1.8", "正式基线")
             }
 
     def test_appendix_a2_statistics_must_match_formal_requirements(self) -> None:
         root = MODULE_PATH.parents[1]
-        source = root / "docs" / "baseline" / "prd-v1.7.md"
-        report = root / "docs" / "reports" / "2026-08-10-PRD与13领域FR差异审查.md"
+        source = root / "docs" / "baseline" / "prd-v1.8.md"
+        report = root / "docs" / "reports" / "2026-08-19-PRD-V1.8基线变更报告.md"
         text = source.read_text(encoding="utf-8-sig")
-        candidate_text = text.replace("| V2主版本需求 | 48条 |", "| V2主版本需求 | 49条 |", 1)
+        candidate_text = text.replace("| V2主版本需求 | 47条 |", "| V2主版本需求 | 48条 |", 1)
         self.assertNotEqual(text, candidate_text)
 
         with tempfile.TemporaryDirectory() as temporary:
             candidate = Path(temporary) / "prd.md"
             candidate.write_text(candidate_text, encoding="utf-8")
-            checks = MODULE.validate(candidate, report, "V1.7", "正式基线")
+            checks = MODULE.validate(candidate, report, "V1.8", "正式基线")
 
         statistics = {check.name: check for check in checks}
         self.assertIn("附录A.2正式需求统计一致", statistics)
@@ -105,6 +105,24 @@ class ValidatePrdBaselineTest(unittest.TestCase):
 """
 
         self.assertEqual(["AST-02"], [identifier for identifier, _ in MODULE.requirement_blocks(text)])
+
+    def test_v18_removed_requirements_do_not_return_to_formal_scope(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "| ACC-05 | 遗留问题转持续服务跟踪 | P1 | 从V1/V2移出至V3",
+                "| COM-02 | 合同订单履约回写与对账 | P1 | 从V1/V2移出至V3",
+                1,
+            )
+        )
+
+        self.assertFalse(checks["V1.8退出需求边界"].passed)
+
+    def test_v18_project_state_layers_are_required(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace("EXCEPTION_CLOSED", "REMOVED_EXCEPTION_STATE")
+        )
+
+        self.assertFalse(checks["V1.8项目状态分层"].passed)
 
     def test_confirmed_cutover_flow_contract_passes(self) -> None:
         text = """## 第十章 割接管理模块功能需求

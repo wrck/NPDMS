@@ -1,17 +1,19 @@
 baseline:
   product: project-delivery-platform
-  version: V1.7
+  version: V1.8
   status: formal-baseline
-  frozen_at: 2026-08-14
+  frozen_at: 2026-08-19
   source: 需求/PRD-项目实施交付管理平台.md
-  snapshot: docs/baseline/prd-v1.7.md
-  sha256: B326CD56544BD4462B32C897843FDD4437F98F5F2FB021EF6E0C1E9A02B9EA11
+  snapshot: docs/baseline/prd-v1.8.md
+  sha256: F2FA4A14EC20FF6521F83C49182BFABE858457B192E5F8E4FE5F301F46683D50
 
 scope:
-  formal_requirements: 103
-  v1: 55
-  v2: 48
-  v3_evolution_trace: 30
+  formal_requirements: 100
+  v1: 53
+  v2: 47
+  v3_evolution_trace: 31
+  v3_numbered_trace: 31
+  cross_requirement_evolution_trace: 2
   out_of_scope_trace: 9
   v3_implementation: false
   out_of_scope_implementation: false
@@ -22,7 +24,7 @@ ownership:
   owner_status: OWNER_SIGNED
   domain_source: docs/design/phase-1-domain-ownership.md
   historical_reference: specs/001-project-delivery-platform/domains/ (reference-only)
-  authority: 需求/PRD-项目实施交付管理平台.md
+  authority: docs/baseline/prd-v1.8.md
 
 validation:
   semantic: "py -3.13 -B scripts/validate_prd_semantics.py --prd 需求/PRD-项目实施交付管理平台.md"

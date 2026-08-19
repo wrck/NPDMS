@@ -1,10 +1,10 @@
 # SDS Phase 2 显式需求契约映射
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：附录 A.1 全部 103 项 V1/V2 正式需求
+> 文档状态：`REVALIDATION_REQUIRED`
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：附录 A.1 全部 100 项 V1/V2 正式需求
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
-> Phase 3验证注记状态：`BASELINE`（不改变已批准的Phase 2契约基线）
+> Phase 3验证注记状态：`REVALIDATION_REQUIRED`（V1.7批准结论不自动继承到V1.8）
 
 本文件逐项声明可实施的数据对象、表、API、事件/集成/文件、工作流和授权落点。相同基础契约可被多个相关 Requirement 复用，但每个 Requirement 必须显式登记；`N/A` 必须说明为何该类契约不适用。
 
@@ -458,7 +458,7 @@
 
 ### ACC-02
 
-- 需求名称：满意度调查电子化
+- 需求名称：满意度收集与结果管理
 - 数据对象：SatisfactionCollection
 - 数据表：acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result
 - API：/satisfaction-tasks、/satisfaction-questionnaires/{token}/responses、/satisfaction-results
@@ -514,7 +514,7 @@
 
 ### CLO-02
 
-- 需求名称：闭环审批流程
+- 需求名称：项目闭环审批
 - 数据对象：ProjectClosure、ClosureGateSnapshot、SatisfactionCollection
 - 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review、acc_satisfaction_result
 - API：/closure-gates/{projectId}、/project-closures
@@ -822,7 +822,7 @@
 
 ### CUT-06
 
-- 需求名称：割接执行闭环
+- 需求名称：割接跟踪与闭环
 - 数据对象：CutoverClosure、CollectionTask
 - 数据表：cut_cutover_closure、plt_collection_task
 - API：/cutover-tasks/{id}/closure
@@ -850,7 +850,7 @@
 
 ### CUT-08
 
-- 需求名称：割接备件集成
+- 需求名称：割接备件系统集成
 - 数据对象：CutoverTask
 - 数据表：cut_task、ast_asset_sync_item
 - API：/cutover-tasks
@@ -1303,24 +1303,10 @@
 - 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail
 - API：/contracts、/sales-orders、/order-lines、/delivery-scopes
 - 事件：DeliveryScopeAssigned/Released
-- 外部集成：ERP、CRM
+- 外部集成：ERP（合同订单权威）；CRM仅提供项目/客户上下文
 - 文件契约：N/A（不产生或不持有文件正文）
 - 工作流/状态：ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁
 - 授权与数据范围：ContractProjectScope；ERP核心字段只读
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
-
-### COM-02
-
-- 需求名称：合同订单履约回写与对账
-- 数据对象：FulfillmentSnapshot、ReconciliationRecord
-- 数据表：com_fulfillment_snapshot、com_reconciliation_record
-- API：/fulfillment-reconciliations
-- 事件：FulfillmentSnapshotPublished
-- 外部集成：CRM
-- 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：履约回写、业务回执、差异确认和关闭
-- 授权与数据范围：ContractProjectScope；交付事实与经营状态分域
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
@@ -1352,20 +1338,6 @@
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
-### IMP-02
-
-- 需求名称：现场工作安全检查
-- 数据对象：ImplementationSafetyCheck
-- 数据表：imp_safety_check、imp_safety_item、imp_safety_remediation、imp_safety_exemption
-- API：/safety-checks
-- 事件：QualitySafetyGateChanged
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：提交→复核→阻断→整改/豁免→再复核
-- 授权与数据范围：ImplementationProjectBatchScope；安全复核/豁免权限
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
 ### RES-01
 
 - 需求名称：服务商档案与资质权限
@@ -1380,30 +1352,16 @@
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
-### ACC-05
-
-- 需求名称：遗留问题转持续服务跟踪
-- 数据对象：ServiceHandover、ProjectClosure
-- 数据表：acc_service_handover、acc_handover_item、acc_handover_result
-- API：/service-handovers
-- 事件：ProjectClosureCompleted
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：遗留问题及持续服务交接、接收确认
-- 授权与数据范围：ProjectStageScope；交接双方项目/服务范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
-
 ### ACC-06
 
-- 需求名称：项目闭环与持续服务交接
+- 需求名称：项目闭环与服务交接
 - 数据对象：ServiceHandover、ProjectClosure
 - 数据表：acc_service_handover、acc_handover_item、acc_handover_result
 - API：/service-handovers
 - 事件：ProjectClosureCompleted
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：遗留问题及持续服务交接、接收确认
+- 工作流/状态：交接门禁、静态交接快照和接收确认；不创建持续服务跟踪项
 - 授权与数据范围：ProjectStageScope；交接双方项目/服务范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录

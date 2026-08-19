@@ -43,7 +43,7 @@ DOMAIN_BOUNDARIES = {
     "PLT": "身份、权限、流程、状态机、字典、文件、通知、审计、集成与平台非功能基线。",
     "CUS": "客户档案、项目联系人、服务等级及客户关系数据；不拥有项目交付事实。",
     "PROJ": "项目主档、项目层级、任务WBS、计划、团队、风险、阶段和项目关闭。",
-    "COM": "合同、订单、订单行及履约范围的权威引用；本轮PRD无直接正式需求。",
+    "COM": "ERP合同、订单及订单行权威引用与平台项目交付范围分配；平台不接管ERP商务事实。",
     "SOL": "工前准备、工勘、需求分析、施工计划、实施方案和方案基线。",
     "IMP": "现场到货签收、安装、配置、联调、实施风险及现场实施证据。",
     "CUT": "割接任务、分级、采集清单、方案、审批、执行、回退、观察和闭环。",
@@ -236,8 +236,8 @@ def render_domain(domain: str, requirements: dict[str, Requirement], formal_rows
         detail.append("本轮PRD未定义本领域直接负责的V1/V2正式需求，不新增业务能力；本领域仅承接其他领域通过依赖、输入、输出或事件引用的协作边界。")
     return f"""# {domain}领域需求：{name}
 
-> 文档状态：正式基线（来源PRD V1.7）<br>
-> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.7，正式基线）<br>
+> 文档状态：正式基线（来源PRD V1.8）<br>
+> 来源基线：`需求/PRD-项目实施交付管理平台.md`（V1.8，正式基线）<br>
 > 领域编码：`{domain}`<br>
 > 业务Owner：{name}<br>
 > 详细需求：{len(selected)}项
@@ -287,8 +287,8 @@ def main() -> int:
     v3_rows = _find_v3_rows(lines)
     cross_rows = _find_cross_v3_rows(lines)
     requirements = _extract_requirements(text, set(formal_rows))
-    if len(requirements) != 103:
-        raise RuntimeError(f"expected 103 formal requirements, got {len(requirements)}")
+    if len(requirements) != 100:
+        raise RuntimeError(f"expected 100 formal requirements, got {len(requirements)}")
     args.output.mkdir(parents=True, exist_ok=True)
     for domain in DOMAIN_ORDER:
         target = args.output / f"{domain}-{DOMAIN_NAMES[domain]}需求规格.md"
