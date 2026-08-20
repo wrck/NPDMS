@@ -1,9 +1,9 @@
 ﻿# SDS Phase 1：Context Map
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`IN_REVIEW`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8差量复核完成前不继承V1.7 Owner签署结论
+> Owner：SDS Phase 1 架构设计；V1.8机器差量校验已完成，待fresh-context独立复审
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 

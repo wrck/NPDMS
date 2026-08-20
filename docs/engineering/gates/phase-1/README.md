@@ -4,8 +4,9 @@ Phase 1 用于确认需求追溯、领域边界、聚合责任、系统架构、
 
 ## 当前文件
 
-- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总和放行结论。PRD V1.8发布后为 `REVALIDATION_REQUIRED / NOT_READY_FOR_PHASE_2_V1.8`。
-- [`independent-review.md`](independent-review.md)：V1.7及更早基线的独立第三方评审历史结果；V1.8须重新形成当前结论。
+- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总和放行结论。机器差量校验通过后为 `IN_REVIEW / NOT_READY_FOR_PHASE_2_V1.8`。
+- [`self-review.md`](self-review.md)：V1.8当前自审与机器门禁结果。
+- [`independent-review.md`](independent-review.md)：V1.8当前fresh-context独立复审记录；尚未形成GO前保持`PENDING_FRESH_REVIEW`。
 - [`context-refinement-review.md`](context-refinement-review.md)：领域上下文重构后的复审记录。
 - [`naming-review.md`](naming-review.md)：业务命名审查结论。
 - [`naming-inventory.md`](naming-inventory.md)：命名迁移盘点证据。
@@ -13,7 +14,7 @@ Phase 1 用于确认需求追溯、领域边界、聚合责任、系统架构、
 ## 输入与历史材料
 
 - `input/` 保存收到的外部评审稿，例如 `sds-phase1-domain-model-review-after-field-renaming.md`。输入稿保持原貌，修订意见通过正式审查记录表达。
-- `archive/` 保存已被当前结论替代的历史审查材料，例如旧版领域模型完整审查稿。
+- `archive/` 保存已被当前结论替代的历史审查材料，包括V1.7独立评审结论和旧版领域模型完整审查稿。
 
 ## 使用要求
 

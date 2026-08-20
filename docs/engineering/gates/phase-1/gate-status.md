@@ -1,36 +1,41 @@
 # SDS Phase 1 Review
 
-> 审查状态：`REVALIDATION_REQUIRED`<br>
-> 依据：PRD V1.8正式基线、正式工程链 V1.8<br>
+> 审查状态：`IN_REVIEW`<br>
+> 依据：PRD V1.8正式基线、正式工程链V1.8、ADR-0029<br>
 > 结论：`NOT_READY_FOR_PHASE_2_V1.8`<br>
-> 说明：V1.7的`APPROVED / READY_FOR_PHASE_2`保留为历史结论，不自动继承到V1.8。
+> 机器门禁：`PASS`<br>
+> 独立复审：`PENDING_FRESH_REVIEW`
 
-## 1. V1.8差量影响
+## 1. V1.8差量结果
 
-| 检查项 | 当前状态 | 需要关闭的差量 |
+| 检查项 | 当前状态 | 关闭证据 |
 |---|---|---|
-| 正式范围 | OPEN | 追溯范围由103项调整为100项（V1 53、V2 47） |
-| 领域与聚合 | OPEN | ACC-05后置V3；COM-02、IMP-02退出当前基线；确认旧聚合、对象和跨域契约无残留 |
-| 项目状态模型 | OPEN | 按`current_stage`、`lifecycle_status`、指派状态和派生展示状态重验证状态机与模块职责 |
-| 闭环与异常关闭 | OPEN | CLO-02唯一进入`NORMAL_CLOSED`，PM-10进入`EXCEPTION_CLOSED` |
-| 外部事实边界 | OPEN | ERP商务事实权威、CRM上下文和非阻断依赖分层须进入Context与Owner复审 |
-| 权限与工作流 | OPEN | 检查V1.8差量是否改变命令权限、冻结流程版本和数据范围，不从旧SDS推断新规则 |
-| Stage—ProjectTask工作台 | OPEN | 按ADR-0029复核WorkBinding统一必填、TASK_NATIVE默认业务实体、其他绑定Owner、分类型完成规则、两级导航与任意深度任务树边界 |
-| CUT-03同阶段工作台 | OPEN | 确认P1～P6不变，P3匹配/填写/采集回填不产生独立阶段、聚合或工单 |
+| 正式范围 | PASS | PRD、追溯矩阵与Owner映射均为100项，V1 53、V2 47 |
+| 领域与聚合 | PASS | 13个Owner唯一覆盖；ACC-05仅V3，COM-02、IMP-02不进入当前Owner和聚合 |
+| 项目状态模型 | PASS | `current_stage`、`lifecycle_status`、`assignment_status`和只读`display_status`保持分层 |
+| 闭环与异常关闭 | PASS | CLO-02唯一进入`NORMAL_CLOSED`，PM-10唯一进入`EXCEPTION_CLOSED` |
+| 外部事实边界 | PASS | ERP商务事实权威、CRM上下文、本地主数据副本和非阻断依赖边界已落位 |
+| 权限与工作流 | PASS | 状态机、审批流、命令权限、冻结规则和数据范围分别落位，无新增PRD外审批角色 |
+| Stage—ProjectTask工作台 | PASS | WorkBinding统一必填；TASK_NATIVE默认承载通用详情；其他类型按Owner事实执行和完成 |
+| CUT-03同阶段工作台 | PASS | P1～P6不变；P3匹配、填写、CollectionTask下发与结果回填不产生独立阶段、聚合或工单 |
+| fresh-context独立复审 | PENDING_FRESH_REVIEW | 当前记录见`independent-review.md`；未形成GO前不得放行Phase 2 |
 
-## 2. 当前可用资产
+## 2. 机器校验范围
 
-- PRD V1.8、13领域需求和需求追溯矩阵可作为本轮重验证输入。
-- `independent-review.md`、`context-refinement-review.md`、`naming-review.md`记录V1.7及更早版本的历史评审证据；未完成V1.8定点复审前不得作为当前GO结论。
-- P3-E09和生产证据门禁不因PRD发布自动关闭或失效；数据模型是否受V1.8影响需在后续阶段单独判断。`AI-MIG-000`按具体Release范围条件适用，仅包含历史迁移或数据切换时才作为前置门禁。
+- PRD V1.8正式需求、追溯矩阵和`phase-1-domain-ownership.md`精确同集且Owner唯一。
+- 01～07及02a～02e分册元数据、状态分层、Context/聚合、工作流和授权关键边界可复现。
+- 退出或后置需求不能回流当前Owner；WorkBinding空绑定、非原生通用完成绕过和CUT-03独立阶段均有负向测试。
+- Phase 1机器通过不替代独立复审，不产生表、API、DDL或迁移批准。
 
-## 3. 放行条件
+## 3. 后置边界
 
-1. V1.8的100项正式需求全部映射到唯一Owner和聚合；
-2. ACC-05、COM-02、IMP-02在当前SDS中无活动对象、API、表、事件或流程残留；
-3. 项目状态分层、正常闭环、异常关闭和外部事实边界完成差量审查；
-4. 追溯、状态机、工作流和权限设计校验通过；
-5. fresh-context独立复审给出GO。
-6. ADR-0029的ProjectTask工作台和CUT-03同阶段边界在领域、状态、流程与权限设计中无冲突。
+- WorkBinding、CompletionRule和CUT-03清单/结果引用的物理承载仍由Phase 2差量设计，当前保持`BLOCKED_BY_DESIGN`。
+- P3-E09仅在物理数据模型变化后重验证；Q08仍是候选索引。
+- `AI-MIG-000`只在Release包含历史迁移或数据切换时适用，并只允许在批准窗口内执行。
+- 生产配置、KMS、SIT/UAT和真实迁移/切换证据不前置到Phase 1。
 
-满足以上条件前，Phase 1保持`REVALIDATION_REQUIRED / NOT_READY_FOR_PHASE_2_V1.8`。
+## 4. 放行条件
+
+当前唯一未关闭项是fresh-context独立复审。复审必须对固定提交范围给出GO，并确认机器门禁没有循环自证或漏检，随后才能把Phase 1改为`APPROVED / READY_FOR_PHASE_2_V1.8`。
+
+在此之前保持`IN_REVIEW / NOT_READY_FOR_PHASE_2_V1.8`。

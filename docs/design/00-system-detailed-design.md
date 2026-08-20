@@ -10,11 +10,11 @@
 
 | 阶段 | 审查状态 | 结论 | 门禁记录 |
 |---|---|---|---|
-| SDS Phase 1 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |
+| SDS Phase 1 | `IN_REVIEW` | `NOT_READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |
 | SDS Phase 2 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
 | SDS Phase 3 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册及状态为`REVALIDATION_REQUIRED`/`DEFERRED_TO_PHASE_3`的分册不得作为新增Feature或实现的当前放行依据。
+V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册及状态为`IN_REVIEW`/`REVALIDATION_REQUIRED`/`DEFERRED_TO_PHASE_3`的分册不得作为新增Feature或实现的当前放行依据。
 
 ## 2. 分册索引
 

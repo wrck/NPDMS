@@ -1,6 +1,6 @@
 ﻿# SDS Phase 1：领域 Owner 重确认记录
 
-> 状态：`REVALIDATION_REQUIRED`
+> 状态：`IN_REVIEW`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求
 > 文档 Owner：需求方；本文件仅登记业务事实 Owner 映射，不替代实施责任人名册
@@ -26,7 +26,7 @@
 | CUT | CUT-01～CUT-10 | CUT-01核心任务及其问卷评估、P3动态清单与业务结果判定、调研、方案、分级审批、P6闭环和配置；不拥有WO-06工单语义，INT-12采集任务和原始回调由PLT拥有 |
 | SRV | INS-01～INS-09、SRV-01 | 巡检任务、规则、报告、问题及设备服务状态；内部 Context 分为 Inspection、Service Operations |
 | CUS | CUS-01～CUS-04、INT-03 | 客户、联系人和客户关系；CRM客户字段由外部Owner提供，平台保存必要同步副本 |
-| AST | EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06 | 设备身份、档案、版本、RMA、维保基本信息和设备相关外部同步；平台保存必要同步副本 |
+| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | 设备身份、档案、版本、RMA、维保基本信息和设备相关外部同步；平台保存必要同步副本 |
 | COM | COM-01 | ERP合同、销售订单、订单行同步副本和项目交付范围分配；COM-02不属于当前正式范围 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | 服务商、转包和付款门禁；财务系统拥有账务事实 |
 | ANA | RPT-02、ANA-01 | 项目状态、组合视图和经批准的只读经营分析 |
@@ -50,6 +50,6 @@
 
 | 确认项 | 结果 | 证据 |
 |---|---|---|
-| 13 个领域 Owner 映射 | `REVALIDATION_REQUIRED` | V1.8差量修正后待独立复审；当前文件第 2 节 |
+| 13 个领域 Owner 映射 | `OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING` | V1.8的100项唯一映射机器校验通过；当前文件第2节 |
 | 需求唯一 Owner | `PASS` | 100 项正式需求唯一归属，追溯矩阵校验通过 |
 | Context 拆分不改变领域编码 | `PASS` | 本文件第 1 节第 5 条及 Context 整改复审 |
