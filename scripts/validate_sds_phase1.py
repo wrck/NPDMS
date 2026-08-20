@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import re
 import sys
 from collections import Counter
@@ -114,7 +115,10 @@ def markdown_row(text: str, key: str) -> list[str]:
 
 
 def normalize_markdown_cell(value: str) -> str:
-    normalized = re.sub(r"</?[^>]+>", "", value.strip())
+    normalized = html.unescape(value)
+    normalized = re.sub(r"[\u200b-\u200d\u2060\ufeff]", "", normalized)
+    normalized = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", normalized)
+    normalized = re.sub(r"</?[^>]+>", "", normalized.strip())
     for marker in ("**", "__", "~~", "`"):
         normalized = normalized.replace(marker, "")
     return re.sub(r"\s+", " ", normalized).strip()
@@ -141,51 +145,82 @@ def markdown_rows(text: str, key: str) -> list[list[str]]:
 
 
 def has_inspection_precheck_bypass_claim(text: str) -> bool:
-    failure = re.compile(r"预检[^。；\n|]{0,20}(?:未通过|失败|未成功|不成功)")
-    permission = re.compile(r"(?:管理员|强制|仍可|允许|可以|可进入|可继续)")
-    progression = re.compile(r"(?:执行|巡检中|继续)")
-    prohibition = re.compile(r"(?:不得|不允许|禁止|不可|不能)")
-    for line in text.splitlines():
-        normalized = normalize_markdown_cell(line)
-        if failure.search(normalized) and permission.search(normalized) and progression.search(normalized):
-            if not prohibition.search(normalized):
+    normalized = normalize_markdown_cell(text)
+    failure = re.compile(r"预检[^。；|]{0,20}(?:未通过|失败|未成功|不成功)")
+    positive_progression = re.compile(
+        r"(?:(?:管理员|用户|操作人)[^。；|]{0,12})?"
+        r"(?:仍可|可以|允许|可强制|强制)[^。；|]{0,24}(?:进入巡检中|执行|继续)"
+    )
+    direct_prohibitions = ("不允许", "不得", "不可", "不能", "禁止")
+    for failed in failure.finditer(normalized):
+        tail = normalized[failed.end():failed.end() + 180]
+        for progression in positive_progression.finditer(tail):
+            prefix = tail[max(0, progression.start() - 8):progression.start()]
+            if not any(prefix.endswith(marker) for marker in direct_prohibitions):
                 return True
     return False
 
 
 def has_project_manager_close_or_reopen_grant(text: str) -> bool:
-    positive = re.compile(
-        r"项目经理[^。\n|]{0,40}(?:可|允许|有权)[^。\n|]{0,20}(?:关闭|重开)[^。\n|]{0,20}项目"
-        r"|项目经理[^。\n|]{0,40}(?:关闭|重开)[^。\n|]{0,20}任意项目"
+    normalized = normalize_markdown_cell(text)
+    positive_patterns = (
+        re.compile(
+            r"项目经理(?:可以|可|有权|能够)"
+            r"(?:(?:直接|自行|任意|按规则|在授权范围内)){0,2}"
+            r"(?:关闭|重开)(?:(?:或|、|和|及)(?:关闭|重开))?[^。；|]{0,8}项目"
+        ),
+        re.compile(
+            r"项目经理(?:可以|可|有权|能够)(?:对)?(?:任意|所有|该)?项目"
+            r"(?:执行|进行)?(?:关闭|重开)"
+        ),
+        re.compile(
+            r"允许(?:由)?项目经理(?:直接|自行|任意)?(?:关闭|重开)"
+            r"(?:(?:或|、|和|及)(?:关闭|重开))?[^。；|]{0,8}项目"
+        ),
     )
-    prohibition = re.compile(r"(?:无[^。\n|]{0,10}权限|只读|不得|不允许|禁止|不可|不能)")
-    for line in text.splitlines():
-        normalized = normalize_markdown_cell(line)
-        if positive.search(normalized) and not prohibition.search(normalized):
-            return True
-    return False
+    return any(pattern.search(normalized) for pattern in positive_patterns)
 
 
 def has_runtime_evidence_claim(text: str) -> bool:
-    patterns = (
-        re.compile(r"(?:运行提交|实现提交|baseCommit|implementationCommit|提交)\s*[:：=]?\s*[0-9a-f]{7,40}\b", re.I),
-        re.compile(r"(?:运行批次|证据批次|releaseId|batchId)\s*[:：=]?\s*[A-Z][A-Z0-9_-]{3,}\b", re.I),
-        re.compile(r"(?:测试结果|构建结果|测试|构建)\s*[:：=]?\s*(?:PASS|SUCCESS|通过)\b", re.I),
-        re.compile(r"(?:放行结论\s*[:：=]?\s*(?:APPROVED|GO|READY|PASS)|准予放行|已经放行|已放行)", re.I),
+    normalized = normalize_markdown_cell(text)
+    commit_value = re.search(
+        r"(?:运行提交|实现提交|baseCommit|implementationCommit|提交)\s*[:：=]?\s*[0-9a-f]{7,40}\b",
+        normalized,
+        re.I,
     )
-    for line in text.splitlines():
-        normalized = normalize_markdown_cell(line)
-        if sum(bool(pattern.search(normalized)) for pattern in patterns) >= 2:
-            return True
-    return False
+    batch_value = re.search(
+        r"(?:运行批次|证据批次|releaseId|batchId)\s*[:：=]?\s*[A-Z][A-Z0-9_-]{3,}\b",
+        normalized,
+        re.I,
+    )
+    if commit_value or batch_value:
+        return True
+
+    test_pass = re.search(
+        r"(?:测试结果|构建结果|测试|构建)\s*[:：=]?\s*(?:PASS|SUCCESS|通过)\b",
+        normalized,
+        re.I,
+    )
+    release = re.compile(
+        r"(?:放行结论\s*[:：=]?\s*(?:APPROVED|GO|READY|PASS)|准予放行|已经放行|已放行)",
+        re.I,
+    )
+    release_denials = ("不代表", "不构成", "不得据此", "不能据此", "不等于")
+    positive_release = False
+    for match in release.finditer(normalized):
+        prefix = normalized[max(0, match.start() - 12):match.start()]
+        if not any(prefix.endswith(marker) for marker in release_denials):
+            positive_release = True
+            break
+    return bool(test_pass and positive_release)
 
 
 def has_conflicting_gate_release_claim(text: str) -> bool:
     release = re.compile(r"\bAPPROVED\b|\bREADY_FOR_PHASE_2(?:_V1\.8)?\b", re.I)
-    conditional = re.compile(r"(?:方可|之后才能|后才能|若|如果|不得|不能|不代表|尚未|仍未)")
+    allowed_future_transition = "方可将Phase 1改为APPROVED / READY_FOR_PHASE_2_V1.8"
     for line in text.splitlines():
         normalized = normalize_markdown_cell(line)
-        if release.search(normalized) and not conditional.search(normalized):
+        if release.search(normalized) and allowed_future_transition not in normalized:
             return True
     return False
 
@@ -379,7 +414,7 @@ def validate(root: Path) -> list[str]:
     missing_contract_links = sorted(
         identifier
         for identifier in declared_contract_requirements
-        if "[02d契约]" not in " | ".join(markdown_row(matrix_text, identifier))
+        if "02d契约" not in " | ".join(markdown_row(matrix_text, identifier))
     )
     if (
         contract_header[:5] != ["契约", "Requirement ID", "Producer", "Consumer", "语义"]

@@ -169,7 +169,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         matrix = (REPOSITORY_ROOT / "docs/traceability/requirement-matrix.md").read_text(encoding="utf-8-sig")
         for identifier in ("EXE-03", "EXE-04", "EQP-02", "ACC-06", "SRV-01"):
-            self.assertIn("[02d契约]", " | ".join(MODULE.markdown_row(matrix, identifier)))
+            self.assertIn("02d契约", " | ".join(MODULE.markdown_row(matrix, identifier)))
 
     def test_pm10_reopen_guard_preserves_recoverable_state_and_side_effects(self) -> None:
         state = (REPOSITORY_ROOT / "docs/design/05-state-machine.md").read_text(encoding="utf-8-sig")
@@ -288,6 +288,87 @@ class ValidateSdsPhase1Test(unittest.TestCase):
             marker + "\n\n| 当前状态 | 结论 |\n|---|---|\n| Phase 1 | APPROVED / READY_FOR_PHASE_2_V1.8 |",
         )
         self.assertTrue(any("fresh-context" in error for error in errors), errors)
+
+    def test_html_entity_cannot_hide_second_service_handover_producer(self) -> None:
+        marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        errors = self.validate_mutation(
+            "docs/design/02d-cross-context-contracts.md",
+            marker,
+            marker + "\n| ServiceHandoverCre&#97;ted | SRV-01 | Service Operations | Project Delivery | 非法第二生产者 |",
+        )
+        self.assertTrue(any("cross-context contracts" in error for error in errors), errors)
+
+    def test_html_entity_cannot_hide_second_configuration_log_owner(self) -> None:
+        marker = "| ConfigurationLog | Asset Management | EQP-02统一管理一个原始整机Log及其不可变解析版本、设备/板卡关联和来源证据 | AcceptConfigurationLog、PublishConfigurationLogVersion | 不改写IMP实施结论，不覆盖原始文件或既有解析版本 |"
+        errors = self.validate_mutation(
+            "docs/design/02b-aggregate-boundary-decisions.md",
+            marker,
+            marker + "\n| Configuration&#76;og | Implementation Execution | 非法第二Owner | WriteConfigurationLog | 可覆盖原始文件 |",
+        )
+        self.assertTrue(any("ConfigurationLog Owner" in error for error in errors), errors)
+
+    def test_precheck_bypass_split_across_lines_is_rejected(self) -> None:
+        marker = "| 巡检任务主流程 | INS-01创建待准备任务 | INS-02.S1选择方式并冻结INS-03规则→在线进入待预检并经INS-04通过后执行，离线直接执行→INS-05生成报告→INS-06标注问题→INS-07闭环和归档 | 无需跟踪的问题完成标注后进入已闭环；需跟踪的问题进入待办跟踪中，全部关闭后进入已闭环并归档 | 预检未通过保持待预检；报告、标注或待办未完成不得跳过；取消保留原因和状态历史 |"
+        errors = self.validate_mutation(
+            "docs/design/06-workflow-design.md",
+            marker,
+            marker + "\n预检未成功。\n管理员仍可进入巡检中。",
+        )
+        self.assertTrue(any("Inspection state" in error for error in errors), errors)
+
+    def test_unrelated_prohibition_cannot_hide_precheck_bypass(self) -> None:
+        marker = "| 巡检任务主流程 | INS-01创建待准备任务 | INS-02.S1选择方式并冻结INS-03规则→在线进入待预检并经INS-04通过后执行，离线直接执行→INS-05生成报告→INS-06标注问题→INS-07闭环和归档 | 无需跟踪的问题完成标注后进入已闭环；需跟踪的问题进入待办跟踪中，全部关闭后进入已闭环并归档 | 预检未通过保持待预检；报告、标注或待办未完成不得跳过；取消保留原因和状态历史 |"
+        errors = self.validate_mutation(
+            "docs/design/06-workflow-design.md",
+            marker,
+            marker + "\n预检未成功，管理员仍可进入巡检中，但不得删除任务。",
+        )
+        self.assertTrue(any("Inspection state" in error for error in errors), errors)
+
+    def test_unrelated_prohibition_cannot_hide_pm10_grant(self) -> None:
+        marker = "| Project/PM-10 | 服务经理对本人主责且满足条件的项目发起回退 | 服务经理填写回退原因并结束当前责任区间，无关闭或重开权限 | 工程管理部关闭岗 | 关闭、重开仅限授权项目；关闭前校验后代、在途审批和领域任务，重开仅限EXCEPTION_CLOSED；项目经理和普通成员只读状态及原因摘要 |"
+        errors = self.validate_mutation(
+            "docs/design/07-authorization-design.md",
+            marker,
+            marker + "\n项目经理可关闭或重开任意项目，但不得删除项目。",
+        )
+        self.assertTrue(any("PM-10 authorization" in error for error in errors), errors)
+
+    def test_runtime_release_facts_split_across_lines_are_rejected(self) -> None:
+        marker = "- Phase 1只确认逻辑架构、Context、依赖和安全边界，不批准实现工作包、数据库迁移或生产发布。本规格仓库不承载正式实现或迁移代码。"
+        errors = self.validate_mutation(
+            "docs/design/03-system-architecture.md",
+            marker,
+            marker + "\n运行批次 BUILD-20260820\n提交 abcdef1\n测试通过\n准予放行。",
+        )
+        self.assertTrue(any("runtime evidence" in error for error in errors), errors)
+
+    def test_conditional_prefix_cannot_hide_current_gate_release_claim(self) -> None:
+        marker = "> 修复候选：`0fac3ab`（`REVIEW_PENDING`）"
+        errors = self.validate_mutation(
+            "docs/engineering/gates/phase-1/gate-status.md",
+            marker,
+            marker + "\n如果后续失败则修复；当前状态 APPROVED / READY_FOR_PHASE_2_V1.8。",
+        )
+        self.assertTrue(any("fresh-context" in error for error in errors), errors)
+
+    def test_project_manager_may_query_closed_projects(self) -> None:
+        marker = "| Project/PM-10 | 服务经理对本人主责且满足条件的项目发起回退 | 服务经理填写回退原因并结束当前责任区间，无关闭或重开权限 | 工程管理部关闭岗 | 关闭、重开仅限授权项目；关闭前校验后代、在途审批和领域任务，重开仅限EXCEPTION_CLOSED；项目经理和普通成员只读状态及原因摘要 |"
+        errors = self.validate_mutation(
+            "docs/design/07-authorization-design.md",
+            marker,
+            marker + "\n项目经理可以查询已关闭项目。",
+        )
+        self.assertEqual([], errors)
+
+    def test_test_pass_statement_may_explicitly_deny_release_meaning(self) -> None:
+        marker = "- 运行提交、证据批次、构建结果和放行结论只登记在对应工程门禁，不固化到正式架构正文；证据变化不得通过修改本章伪装为阶段批准。"
+        errors = self.validate_mutation(
+            "docs/design/03-system-architecture.md",
+            marker,
+            marker + "\n- 构建结果 PASS、测试结果 PASS 不代表准予放行。",
+        )
+        self.assertEqual([], errors)
 
 
 if __name__ == "__main__":
