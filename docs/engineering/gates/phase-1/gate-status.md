@@ -5,8 +5,8 @@
 > 结论：`NOT_READY_FOR_PHASE_2_V1.8`<br>
 > 机器门禁：`PASS`<br>
 > 独立复审：`RE_REVIEW_REQUIRED`<br>
-> 已评审候选：`5a4698f`（`NO_GO`）<br>
-> 修复候选：`PENDING`
+> 已评审候选：`9b56dae`（`NO_GO`）<br>
+> 修复候选：`0fac3ab`（`REVIEW_PENDING`）
 
 ## 1. V1.8差量结果
 
@@ -22,8 +22,10 @@
 | Stage—ProjectTask工作台 | PASS | WorkBinding统一必填；TASK_NATIVE默认承载通用详情；其他类型按Owner事实执行和完成 |
 | CUT-03同阶段工作台 | PASS | P1～P6不变；P3匹配、填写、CollectionTask下发与结果回填不产生独立阶段、聚合或工单 |
 | 正式文档治理 | PASS_AFTER_REPAIR | 运行提交、证据批次、构建结果和放行结论不再固化到正式架构正文 |
-| 机器门禁抗绕过 | PASS_AFTER_SECOND_REPAIR | 双Owner/双Producer、预检绕过、矛盾授权、运行证据回流及NOT_READY混写READY六类变体均被拒绝 |
-| fresh-context重新复审 | RE_REVIEW_REQUIRED | `5a4698f`复审为NO-GO；本轮修复候选固定后必须重新评审，旧结论不得转继 |
+| 机器门禁抗绕过 | PASS_AFTER_THIRD_REPAIR | Markdown标记、额外列、同义预检失败、正文矛盾授权、无冒号运行事实及状态表覆盖六类原始变体均被拒绝 |
+| 追溯生成确定性 | PASS_AFTER_THIRD_REPAIR | `generate_requirement_traceability.py --check`只读重建并比较生成器负责内容，漂移时不覆盖正式矩阵 |
+| P3-E09证据可复现性 | PASS_AFTER_THIRD_REPAIR | 哈希绑定DDL禁用Git换行转换；`core.autocrlf=true`干净检出仍为`5EB974…4249`且全量280项通过 |
+| fresh-context重新复审 | RE_REVIEW_REQUIRED | `9b56dae`复审为NO-GO；`0fac3ab`必须重新评审，旧结论不得转继 |
 
 ## 2. 机器校验范围
 
@@ -41,6 +43,6 @@
 
 ## 4. 放行条件
 
-`5a4698f`的NO-GO不能因工作区修复自动关闭。必须先固定新的修复候选提交，再由fresh-context评审对该固定范围给出GO，方可将Phase 1改为`APPROVED / READY_FOR_PHASE_2_V1.8`。
+`9b56dae`的NO-GO不能因后续修复自动关闭。必须由fresh-context评审对固定修复候选`0fac3ab`给出GO，方可将Phase 1改为`APPROVED / READY_FOR_PHASE_2_V1.8`。
 
 在此之前保持`IN_REVIEW / NOT_READY_FOR_PHASE_2_V1.8`。
