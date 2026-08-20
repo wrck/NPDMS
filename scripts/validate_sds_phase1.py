@@ -113,15 +113,81 @@ def markdown_row(text: str, key: str) -> list[str]:
     return rows[0] if rows else []
 
 
+def normalize_markdown_cell(value: str) -> str:
+    normalized = re.sub(r"</?[^>]+>", "", value.strip())
+    for marker in ("**", "__", "~~", "`"):
+        normalized = normalized.replace(marker, "")
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def parse_markdown_row(line: str) -> list[str]:
+    if not line.lstrip().startswith("|"):
+        return []
+    return [normalize_markdown_cell(cell) for cell in line.strip().strip("|").split("|")]
+
+
+def is_markdown_separator(row: list[str]) -> bool:
+    return bool(row) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in row)
+
+
 def markdown_rows(text: str, key: str) -> list[list[str]]:
     result: list[list[str]] = []
+    normalized_key = normalize_markdown_cell(key)
     for line in text.splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if cells and cells[0] == key:
+        cells = parse_markdown_row(line)
+        if cells and cells[0] == normalized_key:
             result.append(cells)
     return result
+
+
+def has_inspection_precheck_bypass_claim(text: str) -> bool:
+    failure = re.compile(r"预检[^。；\n|]{0,20}(?:未通过|失败|未成功|不成功)")
+    permission = re.compile(r"(?:管理员|强制|仍可|允许|可以|可进入|可继续)")
+    progression = re.compile(r"(?:执行|巡检中|继续)")
+    prohibition = re.compile(r"(?:不得|不允许|禁止|不可|不能)")
+    for line in text.splitlines():
+        normalized = normalize_markdown_cell(line)
+        if failure.search(normalized) and permission.search(normalized) and progression.search(normalized):
+            if not prohibition.search(normalized):
+                return True
+    return False
+
+
+def has_project_manager_close_or_reopen_grant(text: str) -> bool:
+    positive = re.compile(
+        r"项目经理[^。\n|]{0,40}(?:可|允许|有权)[^。\n|]{0,20}(?:关闭|重开)[^。\n|]{0,20}项目"
+        r"|项目经理[^。\n|]{0,40}(?:关闭|重开)[^。\n|]{0,20}任意项目"
+    )
+    prohibition = re.compile(r"(?:无[^。\n|]{0,10}权限|只读|不得|不允许|禁止|不可|不能)")
+    for line in text.splitlines():
+        normalized = normalize_markdown_cell(line)
+        if positive.search(normalized) and not prohibition.search(normalized):
+            return True
+    return False
+
+
+def has_runtime_evidence_claim(text: str) -> bool:
+    patterns = (
+        re.compile(r"(?:运行提交|实现提交|baseCommit|implementationCommit|提交)\s*[:：=]?\s*[0-9a-f]{7,40}\b", re.I),
+        re.compile(r"(?:运行批次|证据批次|releaseId|batchId)\s*[:：=]?\s*[A-Z][A-Z0-9_-]{3,}\b", re.I),
+        re.compile(r"(?:测试结果|构建结果|测试|构建)\s*[:：=]?\s*(?:PASS|SUCCESS|通过)\b", re.I),
+        re.compile(r"(?:放行结论\s*[:：=]?\s*(?:APPROVED|GO|READY|PASS)|准予放行|已经放行|已放行)", re.I),
+    )
+    for line in text.splitlines():
+        normalized = normalize_markdown_cell(line)
+        if sum(bool(pattern.search(normalized)) for pattern in patterns) >= 2:
+            return True
+    return False
+
+
+def has_conflicting_gate_release_claim(text: str) -> bool:
+    release = re.compile(r"\bAPPROVED\b|\bREADY_FOR_PHASE_2(?:_V1\.8)?\b", re.I)
+    conditional = re.compile(r"(?:方可|之后才能|后才能|若|如果|不得|不能|不代表|尚未|仍未)")
+    for line in text.splitlines():
+        normalized = normalize_markdown_cell(line)
+        if release.search(normalized) and not conditional.search(normalized):
+            return True
+    return False
 
 
 def metadata_values(text: str, label: str) -> list[str]:
@@ -228,10 +294,7 @@ def validate(root: Path) -> list[str]:
     }
     inspection_state_rows = markdown_rows(state, "InspectionTask")
     inspection_workflow_rows = markdown_rows(workflow, "巡检任务主流程")
-    inspection_contradiction = re.search(
-        r"(?:INS-04)?预检(?:未通过|失败)[^。\n]{0,100}(?:强制|允许|仍可|可以)[^。\n]{0,50}(?:执行|巡检中|继续)",
-        state + "\n" + workflow,
-    )
+    inspection_contradiction = has_inspection_precheck_bypass_claim(state + "\n" + workflow)
     if (
         len(inspection_state_rows) != 1
         or len(inspection_state_rows[0]) < 4
@@ -282,17 +345,19 @@ def validate(root: Path) -> list[str]:
 
     contract_header = markdown_row(config_contract, "契约")
     contract_rows = []
+    malformed_contract_rows = []
     for line in config_contract.splitlines():
-        if not line.startswith("|"):
+        cells = parse_markdown_row(line)
+        if not cells or cells[0] == "契约" or is_markdown_separator(cells):
             continue
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) == 5 and cells[0] not in {"契约", "---"}:
-            contract_rows.append(cells)
+        contract_rows.append(cells)
+        if len(cells) != 5:
+            malformed_contract_rows.append(cells[0])
     contract_names = Counter(row[0] for row in contract_rows)
     declared_contract_requirements: set[str] = set()
     invalid_contract_requirements: list[str] = []
     for row in contract_rows:
-        ids = set(requirement_ids(row[1]))
+        ids = set(requirement_ids(row[1])) if len(row) > 1 else set()
         declared_contract_requirements.update(ids)
         if not ids or not ids <= set(prd_ids):
             invalid_contract_requirements.append(row[0])
@@ -305,6 +370,7 @@ def validate(root: Path) -> list[str]:
         rows = [row for row in contract_rows if row[0] == name]
         if (
             len(rows) != 1
+            or len(rows[0]) != 5
             or set(requirement_ids(rows[0][1])) != expected_ids
             or rows[0][2] != producer
             or rows[0][3] != consumer
@@ -317,6 +383,8 @@ def validate(root: Path) -> list[str]:
     )
     if (
         contract_header[:5] != ["契约", "Requirement ID", "Producer", "Consumer", "语义"]
+        or len(contract_header) != 5
+        or malformed_contract_rows
         or invalid_contract_requirements
         or any(count != 1 for count in contract_names.values())
         or contract_errors
@@ -324,7 +392,8 @@ def validate(root: Path) -> list[str]:
     ):
         errors.append(
             "cross-context contracts must have unique Producer rows and exact Requirement traceability; "
-            f"invalid={invalid_contract_requirements} contractErrors={contract_errors} missingLinks={missing_contract_links}"
+            f"malformed={malformed_contract_rows} invalid={invalid_contract_requirements} "
+            f"contractErrors={contract_errors} missingLinks={missing_contract_links}"
         )
 
     require_markers(
@@ -389,6 +458,7 @@ def validate(root: Path) -> list[str]:
         or "关闭、重开仅限授权项目" not in pm10_rows[0][4]
         or "重开仅限EXCEPTION_CLOSED" not in pm10_rows[0][4]
         or any(marker not in state for marker in pm10_state_markers)
+        or has_project_manager_close_or_reopen_grant(authorization)
     ):
         errors.append("PM-10 authorization must separate service-manager rollback from engineering close/reopen")
 
@@ -404,6 +474,7 @@ def validate(root: Path) -> list[str]:
         or "实现工作包门禁已解除" in architecture
         or "NPDMS-SDS-P1-" in architecture
         or any(re.search(pattern, architecture, re.I) for pattern in runtime_evidence_patterns)
+        or has_runtime_evidence_claim(architecture)
     ):
         errors.append("formal architecture must not embed mutable runtime evidence or gate-release claims")
 
@@ -427,7 +498,10 @@ def validate(root: Path) -> list[str]:
         "已评审候选": "5a4698f",
         "修复候选": "PENDING",
     }
-    if any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items()):
+    if (
+        any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items())
+        or has_conflicting_gate_release_claim(gate)
+    ):
         errors.append("fresh-context Phase 1 gate must keep one exact IN_REVIEW/NOT_READY/RE_REVIEW_REQUIRED metadata set")
 
     self_review = read(root / "docs/engineering/gates/phase-1/self-review.md")
