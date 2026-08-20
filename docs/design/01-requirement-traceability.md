@@ -41,7 +41,7 @@ V1.8已重建100项工作追溯索引；V1.7的模块、聚合、状态机/工�
 | PLT 平台公共能力 | 待办、文件身份版本、变更、授权、NFR公共约束及 Device Access & Collection 采集编排 | PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10、INT-12 | Todo、FileArtifact、AuthorizationGrant、ChangeRequest、DeviceCredential、CredentialGrant、CollectionTask | OWNER_CONFIRMED / BASELINE |
 | KNO 技术知识治理 | 当前仅承接已确认的技术公告同步边界 | INT-04 | TechnicalNoticeReference | OWNER_CONFIRMED / BASELINE |
 
-上表已按PRD V1.8正式范围和`phase-1-domain-ownership.md`完成100项唯一Owner机器对齐；发生跨域需求时只保留一个数据Owner，其余领域以引用关系记录。当前结论仍须通过fresh-context独立复审，旧规格不得覆盖V1.8业务语义。
+上表已按PRD V1.8正式范围和`phase-1-domain-ownership.md`完成100项唯一Owner机器对齐；发生跨域需求时只保留一个数据Owner，其余领域以引用关系记录。当前结论已经fresh-context独立复审确认，旧规格不得覆盖V1.8业务语义。
 
 ## 4. 覆盖结论
 

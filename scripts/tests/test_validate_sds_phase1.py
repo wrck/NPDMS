@@ -46,12 +46,18 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("missing current Phase 1 metadata" in error for error in errors), errors)
 
     def test_approved_phase1_documents_cannot_retain_pending_body_claims(self) -> None:
-        errors = self.validate_mutation(
-            "docs/design/02-domain-model.md",
-            "V1.8独立复审GO，当前分册已纳入正式基线",
+        for pending_claim in (
             "V1.8机器差量校验已完成，待fresh-context独立复审",
-        )
-        self.assertTrue(any("stale Phase 1 pending-review" in error for error in errors), errors)
+            "当前结论仍须通过fresh-context独立复审",
+            "V1.8独立复审尚未完成",
+        ):
+            with self.subTest(pending_claim=pending_claim):
+                errors = self.validate_mutation(
+                    "docs/design/02-domain-model.md",
+                    "V1.8独立复审GO，当前分册已纳入正式基线",
+                    pending_claim,
+                )
+                self.assertTrue(any("stale Phase 1 pending-review" in error for error in errors), errors)
 
     def test_sds_master_must_publish_phase1_baseline_only(self) -> None:
         errors = self.validate_mutation(

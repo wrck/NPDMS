@@ -287,8 +287,12 @@ def validate(root: Path) -> list[str]:
         for marker in (status_marker, "PRD V1.8", "Requirement ID：", "Owner"):
             if marker not in text:
                 errors.append(f"{relative} missing current Phase 1 metadata: {marker}")
-        stale_markers = ("待fresh-context独立复审", "INDEPENDENT_REVIEW_PENDING", "V1.8 Phase 1处于`IN_REVIEW`")
-        if any(marker in text for marker in stale_markers):
+        stale_markers = ("INDEPENDENT_REVIEW_PENDING", "V1.8 Phase 1处于`IN_REVIEW`")
+        pending_review_claim = re.compile(
+            r"(?:待|仍须|仍需|尚待|尚未|未完成)[^。\n]{0,24}(?:fresh-context)?独立复审|"
+            r"(?:fresh-context)?独立复审[^。\n]{0,16}(?:待完成|未完成|PENDING)"
+        )
+        if any(marker in text for marker in stale_markers) or pending_review_claim.search(text):
             errors.append(f"{relative} retains stale Phase 1 pending-review claims after baseline approval")
 
     system_design = read(root / "docs/design/00-system-detailed-design.md")
