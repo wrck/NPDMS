@@ -128,6 +128,20 @@ def normalize_markdown_cell(value: str) -> str:
     return re.sub(r"\s+", " ", normalized).strip()
 
 
+def markdown_inline_visible_text(token) -> str:
+    """Return rendered cell text instead of the cell's Markdown source."""
+    children = token.children or ()
+    if not children:
+        return token.content
+    parts: list[str] = []
+    for child in children:
+        if child.type in {"softbreak", "hardbreak"}:
+            parts.append(" ")
+        elif child.nesting == 0 and child.content:
+            parts.append(child.content)
+    return "".join(parts)
+
+
 @lru_cache(maxsize=128)
 def markdown_table_blocks(text: str) -> tuple[tuple[tuple[str, ...], ...], ...]:
     blocks: list[list[list[str]]] = []
@@ -142,7 +156,7 @@ def markdown_table_blocks(text: str) -> tuple[tuple[tuple[str, ...], ...], ...]:
         elif token.type in {"th_open", "td_open"} and row is not None:
             cell_parts = []
         elif token.type == "inline" and cell_parts is not None:
-            cell_parts.append(token.content)
+            cell_parts.append(markdown_inline_visible_text(token))
         elif token.type in {"th_close", "td_close"} and row is not None and cell_parts is not None:
             row.append(normalize_markdown_cell("".join(cell_parts)))
             cell_parts = None
