@@ -247,6 +247,36 @@ class ValidateSdsPhase1Test(unittest.TestCase):
                 )
                 self.assertTrue(any("ConfigurationLog Owner" in error for error in errors), errors)
 
+    def test_inline_html_cannot_hide_second_service_handover_producer(self) -> None:
+        row = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        for rendered_name in (
+            'Service<span title="x>y"></span>HandoverCreated',
+            "Service<!-- > -->HandoverCreated",
+        ):
+            with self.subTest(rendered_name=rendered_name):
+                errors = self.validate_mutation(
+                    "docs/design/02d-cross-context-contracts.md",
+                    row,
+                    row
+                    + f"\n| {rendered_name} | SRV-01 | Service Operations | Project Delivery | 非法第二生产者 |",
+                )
+                self.assertTrue(any("ServiceHandoverCreated" in error for error in errors), errors)
+
+    def test_inline_html_cannot_hide_second_configuration_log_owner(self) -> None:
+        row = "| ConfigurationLog | Asset Management | EQP-02统一管理一个原始整机Log及其不可变解析版本、设备/板卡关联和来源证据 | AcceptConfigurationLog、PublishConfigurationLogVersion | 不改写IMP实施结论，不覆盖原始文件或既有解析版本 |"
+        for rendered_name in (
+            'Configuration<span title="x>y"></span>Log',
+            "Configuration<!-- > -->Log",
+        ):
+            with self.subTest(rendered_name=rendered_name):
+                errors = self.validate_mutation(
+                    "docs/design/02b-aggregate-boundary-decisions.md",
+                    row,
+                    row
+                    + f"\n| {rendered_name} | Implementation Execution | 非法第二Owner | WriteConfigurationLog | 可覆盖原始文件 |",
+                )
+                self.assertTrue(any("ConfigurationLog Owner" in error for error in errors), errors)
+
     def test_inspection_precheck_contradiction_is_rejected(self) -> None:
         row = "| 巡检任务主流程 | INS-01创建待准备任务 | INS-02.S1选择方式并冻结INS-03规则→在线进入待预检并经INS-04通过后执行，离线直接执行→INS-05生成报告→INS-06标注问题→INS-07闭环和归档 | 无需跟踪的问题完成标注后进入已闭环；需跟踪的问题进入待办跟踪中，全部关闭后进入已闭环并归档 | 预检未通过保持待预检；报告、标注或待办未完成不得跳过；取消保留原因和状态历史 |"
         errors = self.validate_mutation(

@@ -137,6 +137,8 @@ def markdown_inline_visible_text(token) -> str:
     for child in children:
         if child.type in {"softbreak", "hardbreak"}:
             parts.append(" ")
+        elif child.type == "html_inline":
+            continue
         elif child.nesting == 0 and child.content:
             parts.append(child.content)
     return "".join(parts)
