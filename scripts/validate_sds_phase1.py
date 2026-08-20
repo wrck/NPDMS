@@ -601,8 +601,8 @@ def validate(root: Path) -> list[str]:
         "结论": "NOT_READY_FOR_PHASE_2_V1.8",
         "机器门禁": "PASS",
         "独立复审": "RE_REVIEW_REQUIRED",
-        "已评审候选": "4804ed5",
-        "修复候选": "fcf3ba9",
+        "已评审候选": "d763ef6",
+        "修复候选": "c5659e2",
     }
     if (
         any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items())
@@ -622,7 +622,7 @@ def validate(root: Path) -> list[str]:
         errors,
         "fresh-context independent review record",
         independent,
-        ("当前状态：`IN_REVIEW`", "当前结论：`NO_GO`", "已评审候选：`4804ed5`", "修复候选：`fcf3ba9`", "不得据此放行Phase 2"),
+        ("当前状态：`IN_REVIEW`", "当前结论：`NO_GO`", "已评审候选：`d763ef6`", "修复候选：`c5659e2`", "不得据此放行Phase 2"),
     )
     return errors
 
