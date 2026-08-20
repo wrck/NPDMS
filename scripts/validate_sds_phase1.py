@@ -8,7 +8,10 @@ import html
 import re
 import sys
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
+
+from markdown_it import MarkdownIt
 
 
 PHASE1_DOCS = (
@@ -37,6 +40,7 @@ OWNER_CODES = {
     "PROJ", "SOL", "IMP", "ACC", "CUT", "SRV", "CUS",
     "AST", "COM", "RES", "ANA", "PLT", "KNO",
 }
+MARKDOWN_PARSER = MarkdownIt("commonmark").enable("table")
 REMOVED_OR_DEFERRED = {"ACC-05", "COM-02", "IMP-02"}
 REQ_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
 PRD_REQUIREMENT_ROW = re.compile(
@@ -124,83 +128,31 @@ def normalize_markdown_cell(value: str) -> str:
     return re.sub(r"\s+", " ", normalized).strip()
 
 
-def parse_markdown_row(line: str) -> list[str]:
-    stripped = line.strip()
-    if "|" not in stripped:
-        return []
-    if stripped.startswith("|"):
-        stripped = stripped[1:]
-    if stripped.endswith("|"):
-        stripped = stripped[:-1]
-    return [normalize_markdown_cell(cell) for cell in stripped.split("|")]
-
-
-def is_markdown_separator(row: list[str]) -> bool:
-    return bool(row) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in row)
-
-
-def markdown_renderable_lines(text: str) -> list[str]:
-    without_comments = re.sub(
-        r"<!--.*?(?:-->|$)",
-        lambda match: "".join("\n" if character == "\n" else " " for character in match.group(0)),
-        text,
-        flags=re.S,
-    )
-    renderable: list[str] = []
-    fence_character = ""
-    fence_length = 0
-    for line in without_comments.splitlines():
-        if fence_character:
-            closing = re.match(
-                rf"^ {{0,3}}{re.escape(fence_character)}{{{fence_length},}}\s*$",
-                line,
-            )
-            renderable.append("")
-            if closing:
-                fence_character = ""
-                fence_length = 0
-            continue
-
-        opening = re.match(r"^ {0,3}(`{3,}|~{3,})(?:[^`~].*)?$", line)
-        if opening:
-            marker = opening.group(1)
-            fence_character = marker[0]
-            fence_length = len(marker)
-            renderable.append("")
-            continue
-
-        if line.startswith("\t") or line.startswith("    "):
-            renderable.append("")
-            continue
-        renderable.append(line)
-    return renderable
-
-
-def markdown_table_blocks(text: str) -> list[list[list[str]]]:
-    lines = markdown_renderable_lines(text)
+@lru_cache(maxsize=128)
+def markdown_table_blocks(text: str) -> tuple[tuple[tuple[str, ...], ...], ...]:
     blocks: list[list[list[str]]] = []
-    index = 0
-    while index + 1 < len(lines):
-        header = parse_markdown_row(lines[index])
-        separator = parse_markdown_row(lines[index + 1])
-        if (
-            len(header) < 2
-            or len(separator) != len(header)
-            or not is_markdown_separator(separator)
-        ):
-            index += 1
-            continue
-
-        block = [header]
-        index += 2
-        while index < len(lines):
-            row = parse_markdown_row(lines[index])
-            if not row:
-                break
+    block: list[list[str]] | None = None
+    row: list[str] | None = None
+    cell_parts: list[str] | None = None
+    for token in MARKDOWN_PARSER.parse(text):
+        if token.type == "table_open":
+            block = []
+        elif token.type == "tr_open" and block is not None:
+            row = []
+        elif token.type in {"th_open", "td_open"} and row is not None:
+            cell_parts = []
+        elif token.type == "inline" and cell_parts is not None:
+            cell_parts.append(token.content)
+        elif token.type in {"th_close", "td_close"} and row is not None and cell_parts is not None:
+            row.append(normalize_markdown_cell("".join(cell_parts)))
+            cell_parts = None
+        elif token.type == "tr_close" and block is not None and row is not None:
             block.append(row)
-            index += 1
-        blocks.append(block)
-    return blocks
+            row = None
+        elif token.type == "table_close" and block is not None:
+            blocks.append(block)
+            block = None
+    return tuple(tuple(tuple(cells) for cells in table) for table in blocks)
 
 
 def markdown_rows(text: str, key: str) -> list[list[str]]:
@@ -209,7 +161,7 @@ def markdown_rows(text: str, key: str) -> list[list[str]]:
     for block in markdown_table_blocks(text):
         for cells in block:
             if cells and cells[0] == normalized_key:
-                result.append(cells)
+                result.append(list(cells))
     return result
 
 
@@ -452,7 +404,7 @@ def validate(root: Path) -> list[str]:
         for block in markdown_table_blocks(config_contract)
         if block and block[0] and block[0][0] == "契约"
     ]
-    contract_header = contract_blocks[0][0] if len(contract_blocks) == 1 else []
+    contract_header = list(contract_blocks[0][0]) if len(contract_blocks) == 1 else []
     contract_rows = [row for block in contract_blocks for row in block[1:]]
     malformed_contract_rows = []
     for cells in contract_rows:

@@ -374,6 +374,99 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertEqual([], errors)
 
+    def test_valid_fence_info_characters_do_not_expose_code_table(self) -> None:
+        marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        examples = (
+            """```~markdown
+| 契约 | Requirement ID | Producer | Consumer | 语义 |
+|---|---|---|---|---|
+| ServiceHandoverCreated | SRV-01 | Service Operations | Project Delivery | 示例 |
+```""",
+            """~~~`markdown`
+| 契约 | Requirement ID | Producer | Consumer | 语义 |
+|---|---|---|---|---|
+| ServiceHandoverCreated | SRV-01 | Service Operations | Project Delivery | 示例 |
+~~~""",
+        )
+        for example in examples:
+            with self.subTest(opening=example.splitlines()[0]):
+                errors = self.validate_mutation(
+                    "docs/design/02d-cross-context-contracts.md",
+                    marker,
+                    marker + "\n\n" + example,
+                )
+                self.assertEqual([], errors)
+
+    def test_invalid_backtick_fence_info_cannot_hide_real_contract_table(self) -> None:
+        marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        second_table = """```language`invalid
+
+| 契约 | Requirement ID | Producer | Consumer | 语义 |
+|---|---|---|---|---|
+| ServiceHandoverCreated | SRV-01 | Service Operations | Project Delivery | 非法第二生产者 |"""
+        errors = self.validate_mutation(
+            "docs/design/02d-cross-context-contracts.md",
+            marker,
+            marker + "\n\n" + second_table,
+        )
+        self.assertTrue(any("cross-context contracts" in error for error in errors), errors)
+
+    def test_mixed_space_tab_indented_code_table_is_not_a_contract_table(self) -> None:
+        marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        example = """ \t| 契约 | Requirement ID | Producer | Consumer | 语义 |
+ \t|---|---|---|---|---|
+ \t| ServiceHandoverCreated | SRV-01 | Service Operations | Project Delivery | 示例 |"""
+        errors = self.validate_mutation(
+            "docs/design/02d-cross-context-contracts.md",
+            marker,
+            marker + "\n\n" + example,
+        )
+        self.assertEqual([], errors)
+
+    def test_nested_list_gfm_table_remains_a_real_contract_table(self) -> None:
+        marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        second_table = """- 补充契约
+
+    | 契约 | Requirement ID | Producer | Consumer | 语义 |
+    |---|---|---|---|---|
+    | ServiceHandoverCreated | SRV-01 | Service Operations | Project Delivery | 非法第二生产者 |"""
+        errors = self.validate_mutation(
+            "docs/design/02d-cross-context-contracts.md",
+            marker,
+            marker + "\n\n" + second_table,
+        )
+        self.assertTrue(any("cross-context contracts" in error for error in errors), errors)
+
+    def test_literal_html_comment_marker_in_fence_cannot_hide_later_contract_table(self) -> None:
+        marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        second_table = """```text
+<!-- literal marker
+```
+
+| 契约 | Requirement ID | Producer | Consumer | 语义 |
+|---|---|---|---|---|
+| ServiceHandoverCreated | SRV-01 | Service Operations | Project Delivery | 非法第二生产者 |"""
+        errors = self.validate_mutation(
+            "docs/design/02d-cross-context-contracts.md",
+            marker,
+            marker + "\n\n" + second_table,
+        )
+        self.assertTrue(any("cross-context contracts" in error for error in errors), errors)
+
+    def test_literal_html_comment_marker_in_inline_code_cannot_hide_later_contract_table(self) -> None:
+        marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
+        second_table = """说明：`<!--`是字面量。
+
+| 契约 | Requirement ID | Producer | Consumer | 语义 |
+|---|---|---|---|---|
+| ServiceHandoverCreated | SRV-01 | Service Operations | Project Delivery | 非法第二生产者 |"""
+        errors = self.validate_mutation(
+            "docs/design/02d-cross-context-contracts.md",
+            marker,
+            marker + "\n\n" + second_table,
+        )
+        self.assertTrue(any("cross-context contracts" in error for error in errors), errors)
+
     def test_precheck_bypass_split_across_lines_is_rejected(self) -> None:
         marker = "| 巡检任务主流程 | INS-01创建待准备任务 | INS-02.S1选择方式并冻结INS-03规则→在线进入待预检并经INS-04通过后执行，离线直接执行→INS-05生成报告→INS-06标注问题→INS-07闭环和归档 | 无需跟踪的问题完成标注后进入已闭环；需跟踪的问题进入待办跟踪中，全部关闭后进入已闭环并归档 | 预检未通过保持待预检；报告、标注或待办未完成不得跳过；取消保留原因和状态历史 |"
         errors = self.validate_mutation(
