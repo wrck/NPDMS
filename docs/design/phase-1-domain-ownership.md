@@ -50,6 +50,6 @@
 
 | 确认项 | 结果 | 证据 |
 |---|---|---|
-| 13 个领域 Owner 映射 | `OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING` | V1.8的100项唯一映射机器校验通过；当前文件第2节 |
+| 13 个领域 Owner 映射 | `OWNER_CONFIRMED / BASELINE` | V1.8的100项唯一映射通过机器校验及fresh-context独立复审；当前文件第2节 |
 | 需求唯一 Owner | `PASS` | 100 项正式需求唯一归属，追溯矩阵校验通过 |
 | Context 拆分不改变领域编码 | `PASS` | 本文件第 1 节第 5 条及 Context 整改复审 |

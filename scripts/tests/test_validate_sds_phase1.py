@@ -45,6 +45,30 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("missing current Phase 1 metadata" in error for error in errors), errors)
 
+    def test_approved_phase1_documents_cannot_retain_pending_body_claims(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/02-domain-model.md",
+            "V1.8独立复审GO，当前分册已纳入正式基线",
+            "V1.8机器差量校验已完成，待fresh-context独立复审",
+        )
+        self.assertTrue(any("stale Phase 1 pending-review" in error for error in errors), errors)
+
+    def test_sds_master_must_publish_phase1_baseline_only(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/00-system-detailed-design.md",
+            "| SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` |",
+            "| SDS Phase 1 | `IN_REVIEW` | `NOT_READY_FOR_PHASE_2_V1.8` |",
+        )
+        self.assertTrue(any("SDS master Phase 1 summary" in error for error in errors), errors)
+
+    def test_gate_readme_must_bind_reviewed_candidate_and_core_fix(self) -> None:
+        errors = self.validate_mutation(
+            "docs/engineering/gates/phase-1/README.md",
+            "核心修复`537ab5a`已验证",
+            "核心修复尚未登记",
+        )
+        self.assertTrue(any("Phase 1 gate README" in error for error in errors), errors)
+
     def test_owner_map_must_cover_each_formal_requirement_once(self) -> None:
         errors = self.validate_mutation(
             "docs/design/phase-1-domain-ownership.md",

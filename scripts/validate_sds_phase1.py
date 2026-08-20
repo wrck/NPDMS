@@ -30,8 +30,10 @@ PHASE1_DOCS = (
     "docs/design/phase-1-domain-ownership.md",
 )
 REQUIRED_FILES = PHASE1_DOCS + (
+    "docs/design/00-system-detailed-design.md",
     "docs/baseline/prd-v1.8.md",
     "docs/traceability/requirement-matrix.md",
+    "docs/engineering/gates/phase-1/README.md",
     "docs/engineering/gates/phase-1/gate-status.md",
     "docs/engineering/gates/phase-1/self-review.md",
     "docs/engineering/gates/phase-1/independent-review.md",
@@ -285,6 +287,25 @@ def validate(root: Path) -> list[str]:
         for marker in (status_marker, "PRD V1.8", "Requirement ID：", "Owner"):
             if marker not in text:
                 errors.append(f"{relative} missing current Phase 1 metadata: {marker}")
+        stale_markers = ("待fresh-context独立复审", "INDEPENDENT_REVIEW_PENDING", "V1.8 Phase 1处于`IN_REVIEW`")
+        if any(marker in text for marker in stale_markers):
+            errors.append(f"{relative} retains stale Phase 1 pending-review claims after baseline approval")
+
+    system_design = read(root / "docs/design/00-system-detailed-design.md")
+    require_markers(
+        errors,
+        "SDS master Phase 1 summary",
+        system_design,
+        ("| SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |",),
+    )
+
+    gate_readme = read(root / "docs/engineering/gates/phase-1/README.md")
+    require_markers(
+        errors,
+        "Phase 1 gate README",
+        gate_readme,
+        ("APPROVED / READY_FOR_PHASE_2_V1.8", "4792f11", "537ab5a"),
+    )
 
     prd_ids = formal_prd_ids(read(root / "docs/baseline/prd-v1.8.md"))
     prd_counts = Counter(prd_ids)

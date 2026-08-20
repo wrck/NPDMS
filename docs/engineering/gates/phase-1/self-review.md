@@ -45,10 +45,10 @@ py -3 -B scripts/validate_prd_baseline.py --prd docs/baseline/prd-v1.8.md --repo
 git diff --check
 ```
 
-- Phase 1定点测试：58/58通过。
+- Phase 1定点测试：61/61通过。
 - 追溯生成器定点测试：3/3通过；正式矩阵`--check`通过。
 - `core.autocrlf=true`干净检出：DDL SHA-256仍为`5EB974…4249`，此前3个P3-E09错误关闭。
-- 脚本全量单元测试：309/309通过。
+- 脚本全量单元测试：312/312通过。
 - 正式需求Owner映射：100/100项由13 个 Owner唯一承接。
 - PRD正式基线：67/67通过；语义问题0项。
 - 13领域生成：正式100项、编号V3 31项、OUT_OF_SCOPE 9项。
