@@ -91,6 +91,6 @@ corepack pnpm dev
 | P3-E06 | 已确认独立近生产性能环境；实际规格、迁移量、网络条件与测试账号未登记 | 19/20 NFR-01验收 | 测试、运维、数据Owner提供环境和数据集版本 |
 | P3-E07 | 已确认平台级接口配置注册表及不可变版本引用；真实endpoint、认证引用、白名单和数值型timeout/retry未登记 | Feature联调与生产发布 | 各外部系统技术Owner逐接口登记；不阻塞Phase 3逻辑设计，阻塞具体Feature上线 |
 | P3-E08 | 当前前端`ts:check`真实失败 | 任何前端Feature实现、浏览器验收和正式发布 | 前端Owner按错误清单修复契约/类型；保持现有严格度，重跑`ts:check`、lint、build及受影响页面真实浏览器回归 |
-| P3-E09 | ADR-0030六表已进入当前DDL；字段目录、迁移映射、MySQL 8.4执行证据和证据包统一到`6B203BF3…75B`。当前2,079项、`DEFER=0`，但旧哈希独立GO已失效，状态为`MODEL_BASELINE_REVIEW_PENDING`；P3-E09不定义迁移批准哈希 | 当前哈希模型独立复审；历史迁移/切换只在对应Release中另行适用 | 当前阻断SDS/Feature数据模型基线恢复。普通功能Release不受`AI-MIG-000`阻断；适用Release须验证范围、水位、程序、对账、回退和执行窗口，达到`VERIFIED`后只在批准窗口内执行 |
+| P3-E09 | ADR-0030六表已进入当前DDL；字段目录、迁移映射、MySQL 8.4执行证据和证据包统一到`6B203BF3…75B`。当前2,079项、`DEFER=0`，正式独立复审已GO，状态为`MODEL_BASELINE_READY`；P3-E09不定义迁移批准哈希 | 历史迁移/切换只在对应Release中另行适用 | 当前可作为SDS/Feature数据模型输入。普通功能Release不受`AI-MIG-000`阻断；适用Release须验证范围、水位、程序、对账、回退和执行窗口，达到`VERIFIED`后只在批准窗口内执行 |
 
 P3-E01～E06是部署、专项验收或生产发布证据，不阻断逻辑SDS基线；缺失时仍严格阻断其登记的下游门禁。P3-E07按具体Feature阻塞联调/上线；P3-E08阻塞前端Feature验收或发布；P3-E09已放行`DATA_MODEL_BASELINE`。`AI-MIG-000`只阻断被纳入Release范围的历史迁移或数据切换，不扩大阻断普通功能发布。

@@ -2,7 +2,7 @@
     "schemaVersion": 1,
     "phase": "SDS_PHASE_3",
     "baseline": "PRD_V1.8",
-    "overallStatus": "NOT_READY_FOR_SDS_BASELINE",
+    "overallStatus": "READY_FOR_SDS_BASELINE",
     "updatedAt": "2026-08-19",
     "decisionBaseline": "docs/decisions/0004-phase3-production-assurance-directions.md",
     "items": [
@@ -287,9 +287,9 @@
         },
         {
             "id": "P3-E09",
-            "status": "OPEN",
+            "status": "VERIFIED",
             "decisionOwner": "REQUIREMENT_OWNER",
-            "reviewOwner": null,
+            "reviewOwner": "INDEPENDENT_REVIEWER",
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
@@ -300,7 +300,7 @@
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "ACCEPT_CURRENT",
                 "decisionRegisterItemCount": 2079,
-                "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
+                "modelDecisionStatus": "MODEL_BASELINE_READY",
                 "deferredItemCount": 0,
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
@@ -347,11 +347,11 @@
                 "mappingDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
                 "itemIdsSha256": "8DBB95DED5BA08D6184DA607B3EEC237FCF6763254F95D7971C9A226DA2F5C75",
                 "manifestDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
-                "independentReviewRef": null,
+                "independentReviewRef": "docs/engineering/gates/phase-3/independent-review.md",
                 "targetCatalogDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
                 "mysql84DdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
                 "validationDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
-                "independentReviewResult": null,
+                "independentReviewResult": "GO",
                 "itemsSha256": "DD49BDEF20995CF3B17D85E946F678A0CD8CFB404A4A585A36E00401A273D60D",
                 "v18DeltaStatus": "ACCEPTED"
             },

@@ -77,7 +77,7 @@
 | 语义证据 | 197行 / 108个唯一数据元 |
 | 迁移校验 | 现有`migration-validation.json.passed=true`已过期，不代表当前工作树通过 |
 
-`【P0迁移阻断】`当前DDL、目标字段目录、完整矩阵、摘要和校验结果已使用同一当前哈希。ADR-0028历史清单与ADR-0030六表差量共同覆盖逐项寄存器：994项`ACCEPT_CURRENT`、1,085项`AMEND_CURRENT`、0项`DEFER`。因DDL和item集合变化，旧独立GO已失效，P3-E09当前为`MODEL_BASELINE_REVIEW_PENDING`；P3-E09不要求四角色签署，也不定义迁移批准哈希。只有Release包含历史迁移或数据切换时，后续AI才必须完成`AI-MIG-000`独立复核并绑定批准窗口；普通功能Release记为`NOT_APPLICABLE`。在适用门禁完成前，不得把需求方接受、旧独立GO、历史“52表DDL已验证”或MySQL执行PASS升级为迁移切换放行证据，也不得把该子集冒充平台全量模型或开始生产迁移。Q08性能结论仍须由Feature查询计划和P3-E06压测形成。
+`【P0迁移阻断】`当前DDL、目标字段目录、完整矩阵、摘要和校验结果已使用同一当前哈希。ADR-0028历史清单与ADR-0030六表差量共同覆盖逐项寄存器：994项`ACCEPT_CURRENT`、1,085项`AMEND_CURRENT`、0项`DEFER`。正式独立复审已GO、模型基线已发布为`MODEL_BASELINE_READY`；P3-E09不要求四角色签署，也不定义迁移批准哈希。只有Release包含历史迁移或数据切换时，后续AI才必须完成`AI-MIG-000`独立复核并绑定批准窗口；普通功能Release记为`NOT_APPLICABLE`。在适用门禁完成前，不得把需求方接受、历史整体一致性结论、历史“52表DDL已验证”或MySQL执行PASS升级为迁移切换放行证据，也不得把该子集冒充平台全量模型或开始生产迁移。Q08性能结论仍须由Feature查询计划和P3-E06压测形成。
 
 当前唯一可启动的迁移工作包是`AI-MIG-000`。首先在仓库根目录复核漂移：
 

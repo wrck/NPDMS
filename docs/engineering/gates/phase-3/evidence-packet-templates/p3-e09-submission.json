@@ -8,15 +8,15 @@
     "BUSINESS_OWNER",
     "MIGRATION_OWNER"
   ],
-  "reviewOwner": null,
+  "reviewOwner": "INDEPENDENT_REVIEWER",
   "environmentOrReleaseId": null,
   "capturedAt": null,
   "confirmedFacts": {
     "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
     "deferredItemCount": 0,
     "executionWindowPolicy": "APPROVED_WINDOW_ONLY",
-    "independentReviewRef": null,
-    "independentReviewResult": null,
+    "independentReviewRef": "docs/engineering/gates/phase-3/independent-review.md",
+    "independentReviewResult": "GO",
     "itemIdsSha256": "8DBB95DED5BA08D6184DA607B3EEC237FCF6763254F95D7971C9A226DA2F5C75",
     "itemsSha256": "DD49BDEF20995CF3B17D85E946F678A0CD8CFB404A4A585A36E00401A273D60D",
     "manifestDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
@@ -34,7 +34,7 @@
       "MIGRATION_OWNER"
     ],
     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
-    "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
+    "modelDecisionStatus": "MODEL_BASELINE_READY",
     "v17DeltaStatus": "HISTORICAL_ACCEPTED",
     "v18DeltaStatus": "ACCEPTED",
     "decisionRegisterItemCount": 2079,

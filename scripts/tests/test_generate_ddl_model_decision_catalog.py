@@ -37,8 +37,8 @@ class DdlModelDecisionCatalogTest(unittest.TestCase):
         self.assertIn("ast_device_project_assignment.current_device_id", rendered)
         self.assertIn("ast_device_shipment_event.rma_marked", rendered)
         self.assertIn("ast_device_component_relation.current_slot_code", rendered)
-        self.assertIn("待独立整体一致性复审", rendered)
-        self.assertNotIn("独立整体一致性复审已GO", rendered)
+        self.assertIn("独立整体一致性复审已GO", rendered)
+        self.assertNotIn("待独立整体一致性复审", rendered)
         self.assertNotIn("当前哈希Q07待确认", rendered)
         self.assertNotIn("当前哈希Q08待确认", rendered)
 

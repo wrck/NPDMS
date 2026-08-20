@@ -57,14 +57,14 @@ ADR-0029已经确定逻辑模型，但原Phase 2未定义以下物理承载，�
 
 - Phase 2逻辑和物理设计、API、事件、并发、异常、追溯及领域迁移契约必须同步以上六张表和四类领域对象。
 - 本ADR批准物理模型及目标DDL承载，不直接创建或修改实现仓库Flyway，不授权历史迁移或数据切换。
-- Phase 3已将六张表纳入目标DDL和P3-E09逐项寄存器；当前模型变更须完成独立整体一致性复审后才能恢复`MODEL_BASELINE_READY`。只有对应Release包含历史迁移或数据切换时，`AI-MIG-000`才在Release批准窗口内成为前置门禁。
+- Phase 3已将六张表纳入目标DDL和P3-E09逐项寄存器；正式独立复审已GO、模型基线已发布为`MODEL_BASELINE_READY`。只有对应Release包含历史迁移或数据切换时，`AI-MIG-000`才在Release批准窗口内成为前置门禁。
 
 ## Phase 3落位事实
 
 - 当前目标DDL SHA-256：`6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B`。
 - ADR-0030六表差量精确覆盖196个DDL item，排序itemId集合SHA-256为`2EEE779BD667B1B1BDD1C11B0A4548A6E28E2BA706366C205AAD73F90C220629`。
 - 当前DDL共66表、1,382列；隔离MySQL 8.4.10执行通过。逐项寄存器共2,079项、`DEFER=0`。
-- 上述结果只形成SDS数据模型候选事实；P3-E09保持`MODEL_BASELINE_REVIEW_PENDING`直至独立复审，不生成迁移批准哈希，不执行AI-MIG、历史回填或数据切换。
+- 上述结果形成已复审的SDS数据模型事实；P3-E09为`MODEL_BASELINE_READY`，不生成迁移批准哈希，不执行AI-MIG、历史回填或数据切换。
 
 ## 明确排除
 

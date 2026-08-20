@@ -1254,11 +1254,9 @@
     "decisionRef": "ADR-0030",
     "status": "ACCEPTED",
     "requirementRefs": [
-      "CUT-01",
       "CUT-03",
       "INT-12",
       "PM-03",
-      "PM-10",
       "PM-11"
     ],
     "objectTargetTables": {
@@ -1387,7 +1385,6 @@
     },
     "proj_project_task_completion_evaluation": {
       "requirementRefs": [
-        "PM-10",
         "PM-11"
       ]
     },
@@ -1699,7 +1696,6 @@
     },
     "cut_cutover_checklist": {
       "requirementRefs": [
-        "CUT-01",
         "CUT-03"
       ]
     },
@@ -1740,7 +1736,7 @@
     "srv_work_order_sla"
   ],
   "p3e09ModelBaseline": {
-    "status": "MODEL_BASELINE_REVIEW_PENDING",
+    "status": "MODEL_BASELINE_READY",
     "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
     "deferredItemCount": 0,
     "blocks": [

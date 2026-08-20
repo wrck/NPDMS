@@ -763,6 +763,21 @@ class V18PhysicalCarrierContractTest(unittest.TestCase):
             MODULE.validate_v18_delta(self.contract, self.object_table_map, self.ddl),
         )
 
+    def test_v18_requirement_scope_does_not_claim_unrelated_project_close_or_task_container(self) -> None:
+        self.assertEqual(
+            {"PM-03", "PM-11", "CUT-03", "INT-12"},
+            set(self.contract["v18Delta"]["requirementRefs"]),
+        )
+        current_scope = self.contract["currentTableScope"]
+        self.assertEqual(
+            ["PM-11"],
+            current_scope["proj_project_task_completion_evaluation"]["requirementRefs"],
+        )
+        self.assertEqual(
+            ["CUT-03"],
+            current_scope["cut_cutover_checklist"]["requirementRefs"],
+        )
+
     def test_v18_physical_carriers_require_all_six_tables(self) -> None:
         ddl = self.ddl.replace("CREATE TABLE cut_cutover_checklist_item_result", "CREATE TABLE removed_cut_result")
         errors = MODULE.validate_v18_delta(self.contract, self.object_table_map, ddl)

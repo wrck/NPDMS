@@ -1,6 +1,6 @@
 # DDL 漂移审查报告
 
-> 状态：`MODEL_BASELINE_REVIEW_PENDING`
+> 状态：`MODEL_BASELINE_READY`
 >
 > 门禁：`P3-E09 / AI-MIG-000`
 >
@@ -27,13 +27,13 @@
 |`AMEND_CURRENT`|1,085|ADR-0028历史清单覆盖889项；ADR-0030以精确六表item集合新增覆盖196项；逐项决策已登记|
 |`DEFER`|0|需求方决策缺口已关闭；不代表独立整体一致性复审或迁移批准完成|
 
-2,079项均已有逐项决策。`reviewOwner`不作为逐项签署字段；P3-E09不定义迁移批准哈希，未来历史迁移门禁按真实批次另行定义。当前DDL和item集合已变化，旧独立GO失效，模型基线待当前哈希独立复审。
+2,079项均已有逐项决策。`reviewOwner`不作为逐项签署字段；P3-E09不定义迁移批准哈希，未来历史迁移门禁按真实批次另行定义。正式独立复审已GO、模型基线已发布。
 
 ## 3. 当前真实阻断
 
 |分组|数量|状态|关闭方式|
 |---|---:|---|---|
-|Q07 技术约束|282|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028历史清单与ADR-0030差量共同覆盖；当前整体一致性待独立复审|
+|Q07 技术约束|282|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0028历史清单与ADR-0030差量共同覆盖；当前整体一致性复审已GO|
 |Q08 候选索引|130|`REQUIREMENT_OWNER_ACCEPTED_AS_CANDIDATE`|当前只作为候选；真实性能仍由Feature查询计划和P3-E06验收|
 |V1.7 历史物理差量|10表、257项|`HISTORICAL_ACCEPTED`|ADR-0028显式itemId集合保留为历史证据锚点|
 |V1.8 物理差量|6表、196项|`REQUIREMENT_OWNER_ACCEPTED`|ADR-0030使用精确表集合和itemId集合SHA接受；不授权历史迁移|
@@ -56,4 +56,4 @@ ADR-0025、ADR-0027仍保存候选形成与纠偏过程；十张表的当前物�
 1. 【已完成】692项原`DEFER`已由当前哈希绑定的九组显式决策清单覆盖，生成器禁止按SQL类型或整表推定未来新增项。
 2. 【已完成】fresh reviewer已在`independent-review.md`完成当前制品、哈希、MySQL事实、`DEFER=0`和责任人分离的整体一致性复审，并给出`GO`；不逐项签署。
 3. 【边界】P3-E09不定义迁移批准哈希，不是P3-E09候选或模型基线条件；未来历史迁移门禁与真实批次另行定义。
-4. 当前机器校验已通过，旧哈希独立复审`GO`已因DDL和item集合变化失效；P3-E09为`MODEL_BASELINE_REVIEW_PENDING`，当前不得恢复SDS/Feature模型基线。历史迁移与数据切换仍按Release范围由`AI-MIG-000`阻断。
+4. 当前机器校验和正式独立复审均已通过；P3-E09为`MODEL_BASELINE_READY`，可作为SDS/Feature模型输入。历史迁移与数据切换仍按Release范围由`AI-MIG-000`阻断。

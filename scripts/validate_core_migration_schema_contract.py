@@ -47,7 +47,7 @@ EXPECTED_V18_OBJECT_TABLES = {
         "cut_cutover_checklist_item_result",
     },
 }
-EXPECTED_V18_REQUIREMENTS = {"PM-03", "PM-10", "PM-11", "CUT-01", "CUT-03", "INT-12"}
+EXPECTED_V18_REQUIREMENTS = {"PM-03", "PM-11", "CUT-03", "INT-12"}
 EXPECTED_V18_REQUIRED_COLUMNS = {
     "proj_project_template_task_definition": {
         "template_revision_id", "stage_definition_key", "task_definition_key",
@@ -187,7 +187,7 @@ EXPECTED_CURRENT_TABLE_SCOPE = {
     "proj_project_member_assignment": {"requirementRefs": ["PM-01", "PM-08", "PM-09"]},
     "proj_project_template_task_definition": {"requirementRefs": ["PM-03"]},
     "proj_project_task_execution_contract": {"requirementRefs": ["PM-03", "PM-11"]},
-    "proj_project_task_completion_evaluation": {"requirementRefs": ["PM-10", "PM-11"]},
+    "proj_project_task_completion_evaluation": {"requirementRefs": ["PM-11"]},
     "plt_business_document": {"requirementRefs": ["PLT-02"]},
     "plt_document_version": {"requirementRefs": ["PLT-02"]},
     "acc_deliverable_template": {"requirementRefs": ["ACC-04"]},
@@ -238,7 +238,7 @@ EXPECTED_CURRENT_TABLE_SCOPE = {
     "acc_satisfaction_result": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
     "cut_cutover_support_arrangement": {"requirementRefs": ["CUT-04"]},
     "cut_cutover_closure": {"requirementRefs": ["CUT-06"]},
-    "cut_cutover_checklist": {"requirementRefs": ["CUT-01", "CUT-03"]},
+    "cut_cutover_checklist": {"requirementRefs": ["CUT-03"]},
     "cut_cutover_checklist_item": {"requirementRefs": ["CUT-03"]},
     "cut_cutover_checklist_item_result": {"requirementRefs": ["CUT-03", "INT-12"]},
     "ast_device_component_relation": {"requirementRefs": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03"]},

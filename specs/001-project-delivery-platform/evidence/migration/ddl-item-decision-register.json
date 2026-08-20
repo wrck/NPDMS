@@ -46323,7 +46323,7 @@
     "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "modelBaseline": {
-    "status": "MODEL_BASELINE_REVIEW_PENDING",
+    "status": "MODEL_BASELINE_READY",
     "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
     "deferredItemCount": 0,
     "blocks": [

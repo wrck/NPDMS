@@ -96,7 +96,7 @@ Required fields：当前DDL hash、`ddl-item-decision-register.json`逐项漂移
 
 需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，保留当前DDL模型确认包及其历史决策引用。`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`保留表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号；其模型基线输入不等同于历史数据迁移批准。独立复审只在`independent-review.md`复核候选制品的整体一致性，不逐项签署。
 
-Acceptance（当前模型候选已满足、但仍待独立复审的事实条件）：逐项登记的表、列、约束和表选项均有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。当前P3-E09为`MODEL_BASELINE_REVIEW_PENDING`，完成当前哈希独立复审后才可恢复模型输入。若Release包含历史数据迁移或数据切换，`AI-MIG-000`须在真实批次验证后达到`VERIFIED`且只允许在批准窗口内执行；否则为`NOT_APPLICABLE`，不阻断普通功能发布。
+Acceptance（当前模型基线已满足）：逐项登记的表、列、约束和表选项均有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。正式独立复审已GO，当前P3-E09为`MODEL_BASELINE_READY`。若Release包含历史数据迁移或数据切换，`AI-MIG-000`须在真实批次验证后达到`VERIFIED`且只允许在批准窗口内执行；否则为`NOT_APPLICABLE`，不阻断普通功能发布。
 
 ## 3. 状态定义
 

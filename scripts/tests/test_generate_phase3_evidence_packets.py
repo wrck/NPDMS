@@ -90,12 +90,12 @@ class Phase3EvidencePacketTest(unittest.TestCase):
         self.assertEqual("HISTORICAL_ACCEPTED", packets["P3-E09"]["confirmedFacts"]["v17DeltaStatus"])
         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["v18DeltaStatus"])
         self.assertEqual(2079, packets["P3-E09"]["confirmedFacts"]["decisionRegisterItemCount"])
-        self.assertEqual("MODEL_BASELINE_REVIEW_PENDING", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
-        self.assertIsNone(packets["P3-E09"]["confirmedFacts"]["independentReviewResult"])
+        self.assertEqual("MODEL_BASELINE_READY", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
+        self.assertEqual("GO", packets["P3-E09"]["confirmedFacts"]["independentReviewResult"])
         self.assertNotIn("candidateCommit", packets["P3-E09"]["confirmedFacts"])
         self.assertNotIn("reviewDate", packets["P3-E09"]["confirmedFacts"])
         self.assertNotIn("reviewRange", packets["P3-E09"]["confirmedFacts"])
-        self.assertIsNone(packets["P3-E09"]["reviewOwner"])
+        self.assertEqual("INDEPENDENT_REVIEWER", packets["P3-E09"]["reviewOwner"])
         self.assertNotIn("approvedDdlSha256", packets["P3-E09"]["confirmedFacts"])
         self.assertEqual(
             {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
