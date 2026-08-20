@@ -2,9 +2,9 @@
 
 > 当前状态：`IN_REVIEW`<br>
 > 当前结论：`NO_GO`<br>
-> 已评审候选：`4914c4d`<br>
-> 固定评审范围：`2774804..4914c4d`<br>
-> 修复候选：`6d312d6`（`REVIEW_PENDING`）<br>
+> 已评审候选：`8a7d36d`<br>
+> 固定评审范围：`4914c4d..8a7d36d`<br>
+> 修复候选：`537ab5a`（`REVIEW_PENDING`）<br>
 > 重新复审：`RE_REVIEW_REQUIRED`
 
 ## 1. 评审边界
@@ -13,19 +13,19 @@
 - 评审重算PRD正式范围、Owner、版本、状态机、事件、授权和文档治理，不以候选自审结论作为事实。
 - 单模型复审完成后，需求方选择跳过跨模型第二意见并直接修复。
 
-## 2. `4914c4d`发现
+## 2. `8a7d36d`发现
 
 | 严重度 | 发现 | 最小修复要求 |
 |---|---|---|
-| Required | 完整引用式链接可同时绕过`ServiceHandoverCreated` Producer和`ConfigurationLog` Owner唯一性校验；校验器读取`inline.content`源码而非渲染后的可见文本 | 从`inline.children`提取可见文本；完整、折叠和快捷引用链接均纳入Producer/Owner负向测试 |
+| Required | HTML属性或注释内容含`>`时，标签删除正则留下不可见源码残片；可将第二`ServiceHandoverCreated` Producer或`ConfigurationLog` Owner伪装成不同业务键 | 直接忽略`html_inline` token，只拼接实际可见子token；属性与注释边界在Producer、Owner两侧均纳入负向测试 |
 
 ## 3. 执行事实
 
-- GFM表格块、围栏、代码、注释、列表相对缩进、可选边界和异常列边界均已通过独立反证。
-- `4914c4d`的51项定点和302项全量测试均通过，但测试未覆盖引用式链接的可见文本语义，因此不能抵消本轮Required。
-- `6d312d6`新增完整、折叠和快捷引用链接的Producer/Owner回归，当前自审为55/55定点、306/306全量，仍需fresh-context重新复审。
+- 完整、折叠和快捷引用链接的Producer/Owner六类回归已关闭；既有GFM表格、代码、注释、缩进和列表边界未回归。
+- `8a7d36d`的55项定点和306项全量测试均通过，但未覆盖HTML token中`>`造成的可见文本偏差，因此不能抵消本轮Required。
+- `537ab5a`在token层排除不可见HTML，并补齐四个反例；当前自审为57/57定点、308/308全量，仍需fresh-context重新复审。
 - 独立重算确认100项正式需求、V1 53/V2 47及13个Owner唯一映射；这些通过项不抵消机器门禁和证据复现缺陷。
 
 ## 4. 当前结论
 
-`4914c4d`为`NO_GO`。`6d312d6`的后续修复不自动改变本结论；只有对固定修复候选完成fresh-context重新复审后，才可重新判断Phase 1。当前不得据此放行Phase 2。
+`8a7d36d`为`NO_GO`。`537ab5a`的后续修复不自动改变本结论；只有对固定修复候选完成fresh-context重新复审后，才可重新判断Phase 1。当前不得据此放行Phase 2。
