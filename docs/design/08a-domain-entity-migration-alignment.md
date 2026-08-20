@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2补充分册：领域实体迁移对齐
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8、SDS Phase 1/2 REVALIDATION_REQUIRED
+> 适用基线：PRD V1.8、SDS Phase 1/2 BASELINE
 > Requirement ID：附录A.1全部100项V1/V2正式需求
 > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
 > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。

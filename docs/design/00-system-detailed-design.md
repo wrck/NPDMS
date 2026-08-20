@@ -39,13 +39,13 @@ V1.7三阶段历史审查证据保留。V1.8 Phase 1/2已完成差量复审；Ph
 | `11-event-design.md` | 事件设计 | `BASELINE` |
 | `12-integration-design.md` | 集成设计 | `BASELINE` |
 | `13-file-design.md` | 文件设计 | `BASELINE` |
-| `14-security-design.md` | 安全设计 | `BASELINE` |
+| `14-security-design.md` | 安全设计 | `IN_REVIEW` |
 | `15-cache-and-concurrency.md` | 缓存与并发 | `BASELINE` |
 | `16-exception-and-idempotency.md` | 异常与幂等 | `BASELINE` |
-| `17-audit-and-observability.md` | 审计与可观测 | `BASELINE` |
-| `18-deployment-design.md` | 部署设计 | `BASELINE` |
-| `19-performance-design.md` | 性能设计 | `BASELINE` |
-| `20-test-design.md` | 测试设计 | `BASELINE` |
+| `17-audit-and-observability.md` | 审计与可观测 | `IN_REVIEW` |
+| `18-deployment-design.md` | 部署设计 | `IN_REVIEW` |
+| `19-performance-design.md` | 性能设计 | `IN_REVIEW` |
+| `20-test-design.md` | 测试设计 | `IN_REVIEW` |
 | `phase-1-domain-ownership.md` | Phase 1 领域 Owner 签署 | `OWNER_SIGNED` |
 
 ## 3. 基线边界

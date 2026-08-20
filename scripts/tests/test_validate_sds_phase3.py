@@ -27,7 +27,7 @@ class Phase3ValidatorTest(unittest.TestCase):
             path.write_text("正式独立复审已GO、模型基线已发布；AI-MIG-000仅阻断纳入Release范围的历史迁移和数据切换，普通功能发布不适用。", encoding="utf-8")
 
         common = (
-            "> 文档状态：`BASELINE`\n> 适用基线：PRD V1.7\n"
+            "> 文档状态：`BASELINE`\n> 适用基线：PRD V1.8\n"
             "> Requirement ID：测试\n> Owner：测试Owner\n"
         )
         contents = {
@@ -51,16 +51,17 @@ class Phase3ValidatorTest(unittest.TestCase):
             "NFR-03": "99% 60秒",
             "PLT-02": "50MB 恶意内容 权限",
         }
-        synthetic_count = VALIDATOR.EXPECTED_REQUIREMENT_COUNT - len(exact)
+        synthetic_count = 100 - len(exact)
         identifiers = list(exact) + [f"REQ-{index:03d}" for index in range(1, synthetic_count + 1)]
         for identifier in identifiers:
             detail = exact.get(identifier, "业务规则")
             blocks.append(
                 f"### {identifier}\n- Phase 3测试类别：{detail}\n"
+                f"- Phase 3验收断言：按PRD {identifier}业务验收标准，验证{detail}；越权或非法状态拒绝且无业务副作用\n"
                 f"- Phase 3证据类型：自动化证据 {detail}\n"
             )
         (self.root / "docs" / "traceability" / "phase2-contract-map.md").write_text(
-            "> Phase 3验证注记状态：`BASELINE`\n\n" + "\n".join(blocks), encoding="utf-8"
+            "> Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`\n\n" + "\n".join(blocks), encoding="utf-8"
         )
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md").write_text(
             "APPROVED READY_FOR_SDS_BASELINE DOWNSTREAM-GATED MODEL_BASELINE_READY "
@@ -187,8 +188,17 @@ class Phase3ValidatorTest(unittest.TestCase):
 
     def test_missing_requirement_mapping_fails(self) -> None:
         path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
-        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-095", "### REQ-094"), encoding="utf-8")
-        self.assertTrue(any("expected 103" in item for item in VALIDATOR.validate(self.root)))
+        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-092", "### REQ-091"), encoding="utf-8")
+        self.assertTrue(any("expected 100" in item for item in VALIDATOR.validate(self.root)))
+
+    def test_missing_requirement_acceptance_assertion_fails(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("- Phase 3验收断言：按PRD PM-05", "- 验收说明：按PRD PM-05", 1),
+            encoding="utf-8",
+        )
+
+        self.assertTrue(any("PM-05 missing unique Phase 3 acceptance assertion" in item for item in VALIDATOR.validate(self.root)))
 
     def test_missing_rollback_and_secret_scan_fail(self) -> None:
         deploy = self.root / "docs" / "design" / "18-deployment-design.md"
@@ -224,6 +234,39 @@ class Phase3ValidatorTest(unittest.TestCase):
             gate.replace("NOT_READY_FOR_SDS_BASELINE_V1.8", "READY_FOR_SDS_BASELINE"),
         )
         self.assertTrue(any("NOT_READY_FOR_SDS_BASELINE_V1.8" in error for error in errors), errors)
+
+    def test_v18_revalidation_gate_does_not_bypass_design_validation(self) -> None:
+        gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
+        gate.write_text(
+            "REVALIDATION_REQUIRED NOT_READY_FOR_SDS_BASELINE_V1.8 "
+            "P3-E09 AI-MIG-000 Q08候选索引 | Phase 1/2前置 | PASS |",
+            encoding="utf-8",
+        )
+        security = self.root / "docs" / "design" / "14-security-design.md"
+        security.write_text(
+            security.read_text(encoding="utf-8").replace("秘密扫描", "安全验证待补"),
+            encoding="utf-8",
+        )
+
+        self.assertTrue(any("秘密扫描" in error for error in VALIDATOR.validate(self.root)))
+
+    def test_v18_design_metadata_rejects_v17_baseline(self) -> None:
+        security = self.root / "docs" / "design" / "14-security-design.md"
+        security.write_text(
+            security.read_text(encoding="utf-8").replace("PRD V1.8", "PRD V1.7"),
+            encoding="utf-8",
+        )
+
+        self.assertTrue(any("PRD V1.8" in error for error in VALIDATOR.validate(self.root)))
+
+    def test_v18_design_rejects_stale_revalidation_prose(self) -> None:
+        deployment = self.root / "docs" / "design" / "18-deployment-design.md"
+        deployment.write_text(
+            deployment.read_text(encoding="utf-8") + "\nV1.8差量复审尚未完成。\n",
+            encoding="utf-8",
+        )
+
+        self.assertTrue(any("stale V1.8 design state" in error for error in VALIDATOR.validate(self.root)))
 
 
 if __name__ == "__main__":

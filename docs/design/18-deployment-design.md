@@ -1,13 +1,13 @@
 ﻿# SDS Phase 3：部署、迁移与回退设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
-> 适用基线：PRD V1.8、SDS Phase 1/2 REVALIDATION_REQUIRED
+> 文档状态：`IN_REVIEW`
+> 适用基线：PRD V1.8、SDS Phase 1/2 BASELINE
 > Requirement ID：NFR-01、NFR-02、NFR-03及全部100项V1/V2正式需求的构建、配置、迁移、发布和恢复保障
 > Owner：SDS Phase 3发布架构；生产基础设施Owner待P3-E01～E03登记
-> 实现基线：`E:\AICoding\Projects\NPDMS` @ `856d05264ab4a4fb69b94896c172e4a1c29aae02`
+> 已冻结运行证据基线：`E:\AICoding\Projects\NPDMS` @ `856d05264ab4a4fb69b94896c172e4a1c29aae02`（不等同于当前实现HEAD）
 > 前置设计：09、12、13、14、17分册
 
-V1.8差量复审尚未完成，本分册仅作为部署与恢复设计输入，不构成当前发布放行或生产环境事实；生产参数仍按P3-E01～E07在部署/专项验收阶段登记。
+Phase 1/2 V1.8基线和P3-E09模型输入已就绪；本分册作为部署与恢复设计候选，不构成当前发布放行或生产环境事实。生产参数仍按P3-E01～E07在部署/专项验收阶段登记。
 
 ## 1. 部署边界
 

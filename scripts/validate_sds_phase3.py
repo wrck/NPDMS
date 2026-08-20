@@ -16,7 +16,7 @@ DESIGN_FILES = (
     "19-performance-design.md",
     "20-test-design.md",
 )
-EXPECTED_REQUIREMENT_COUNT = 103
+EXPECTED_REQUIREMENT_COUNT = 100
 P3E09_STATE_ASSETS = (
     "docs/decisions/0022-core-migration-schema-and-key-policy.md",
     "specs/001-project-delivery-platform/appendices/project-order-migration-mapping.md",
@@ -25,7 +25,14 @@ P3E09_STATE_ASSETS = (
 )
 REQUIREMENT_HEADING = re.compile(r"^###\s+([A-Z]+-\d+)\s*$", re.M)
 PHASE3_TEST = re.compile(r"^- Phase 3测试类别：(.+?)\s*$", re.M)
+PHASE3_ASSERTION = re.compile(r"^- Phase 3验收断言：(.+?)\s*$", re.M)
 PHASE3_EVIDENCE = re.compile(r"^- Phase 3证据类型：(.+?)\s*$", re.M)
+STALE_V18_DESIGN_TEXT = (
+    "SDS Phase 1/2 REVALIDATION_REQUIRED",
+    "V1.8差量复审尚未完成",
+    "docs\\baseline\\prd-v1.7.md",
+    "未形成可复核证据前本分册不能基线化",
+)
 
 
 def require_tokens(errors: list[str], label: str, text: str, tokens: tuple[str, ...]) -> None:
@@ -67,12 +74,16 @@ def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
 def validate(root: Path) -> list[str]:
     errors: list[str] = []
     gate_path = root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
+    gate = ""
+    revalidation = False
     if gate_path.exists():
         gate = gate_path.read_text(encoding="utf-8")
-        if "REVALIDATION_REQUIRED" in gate:
-            return validate_v18_revalidation(root, gate)
+        revalidation = "REVALIDATION_REQUIRED" in gate
+        if revalidation:
+            errors.extend(validate_v18_revalidation(root, gate))
     design_dir = root / "docs" / "design"
     documents: dict[str, str] = {}
+    expected_document_status = "文档状态：`IN_REVIEW`" if revalidation else "文档状态：`BASELINE`"
     for name in DESIGN_FILES:
         path = design_dir / name
         if not path.exists():
@@ -80,9 +91,12 @@ def validate(root: Path) -> list[str]:
             continue
         text = path.read_text(encoding="utf-8")
         documents[name] = text
-        for marker in ("文档状态：`BASELINE`", "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
+        for marker in (expected_document_status, "适用基线：PRD V1.8", "Requirement ID：", "Owner："):
             if marker not in text:
                 errors.append(f"{name} missing metadata: {marker}")
+        for stale_text in STALE_V18_DESIGN_TEXT:
+            if stale_text in text:
+                errors.append(f"{name} contains stale V1.8 design state: {stale_text}")
 
     security = documents.get("14-security-design.md", "")
     require_tokens(errors, "security design", security, (
@@ -122,18 +136,22 @@ def validate(root: Path) -> list[str]:
         errors.append("missing explicit Phase 2/3 contract map")
     else:
         contract_text = contract_path.read_text(encoding="utf-8")
-        if "Phase 3验证注记状态：`BASELINE`" not in contract_text:
-            errors.append("contract map missing Phase 3 BASELINE marker")
+        expected_contract_marker = "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`"
+        if expected_contract_marker not in contract_text:
+            errors.append(f"contract map missing marker: {expected_contract_marker}")
         blocks = parse_contract_blocks(contract_text)
         if len(blocks) != EXPECTED_REQUIREMENT_COUNT:
             errors.append(f"expected {EXPECTED_REQUIREMENT_COUNT} Phase 3 verification mappings, got {len(blocks)}")
         for identifier, block in blocks.items():
             tests = PHASE3_TEST.findall(block)
+            assertions = PHASE3_ASSERTION.findall(block)
             evidence = PHASE3_EVIDENCE.findall(block)
             if len(tests) != 1 or not tests[0].strip():
                 errors.append(f"{identifier} missing unique Phase 3 test categories")
             if len(evidence) != 1 or not evidence[0].strip():
                 errors.append(f"{identifier} missing unique Phase 3 evidence types")
+            if len(assertions) != 1 or not assertions[0].strip() or f"PRD {identifier}" not in assertions[0]:
+                errors.append(f"{identifier} missing unique Phase 3 acceptance assertion")
             if "领域测试" in block or "后续补充" in block:
                 errors.append(f"{identifier} uses generic Phase 3 placeholder")
 
@@ -155,10 +173,9 @@ def validate(root: Path) -> list[str]:
     if not gate_path.exists():
         errors.append("missing Phase 3 gate status")
     else:
-        gate = gate_path.read_text(encoding="utf-8")
         required_model_status = "MODEL_BASELINE_REVIEW_PENDING" if "MODEL_BASELINE_REVIEW_PENDING" in gate else "MODEL_BASELINE_READY"
-        required_review_status = "IN_REVIEW" if required_model_status == "MODEL_BASELINE_REVIEW_PENDING" else "APPROVED"
-        required_overall_status = "NOT_READY_FOR_SDS_BASELINE" if required_model_status == "MODEL_BASELINE_REVIEW_PENDING" else "READY_FOR_SDS_BASELINE"
+        required_review_status = "REVALIDATION_REQUIRED" if revalidation else "APPROVED"
+        required_overall_status = "NOT_READY_FOR_SDS_BASELINE_V1.8" if revalidation else "READY_FOR_SDS_BASELINE"
         require_tokens(errors, "Phase 3 gate", gate, (
             required_review_status, required_overall_status, "P3-E01", "P3-E02", "P3-E03",
             "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "DOWNSTREAM-GATED",

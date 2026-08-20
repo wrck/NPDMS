@@ -1,12 +1,12 @@
 ﻿# SDS Phase 3：测试设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
-> 适用基线：PRD V1.8、SDS Phase 1/2 REVALIDATION_REQUIRED及Phase 3分册
+> 文档状态：`IN_REVIEW`
+> 适用基线：PRD V1.8、SDS Phase 1/2 BASELINE及Phase 3设计候选
 > Requirement ID：附录A.1全部100项V1/V2正式需求；重点NFR-01～03
 > Owner：SDS Phase 3质量架构；具体Feature测试由Requirement Owner负责
 > 前置设计：01～19正式分册
 
-V1.8差量复审尚未完成，本分册定义测试设计和证据结构，不构成当前发布验收通过；V3、OUT_OF_SCOPE及后置工单/历史迁移内容只能作为边界负向测试或后续门禁输入。
+Phase 1/2 V1.8基线和P3-E09模型输入已就绪；本分册定义测试设计和证据结构，不构成当前发布验收通过。V3、OUT_OF_SCOPE及后置工单/历史迁移内容只能作为边界负向测试或后续门禁输入。
 
 ## 1. 测试原则
 
@@ -159,12 +159,12 @@ INT-12专项：
 
 ```powershell
 # 规格仓库
-py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
-py -3.13 -B scripts\validate_sds_phase2.py
-py -3.13 -B scripts\validate_domain_entity_migration_alignment.py
-py -3.13 -B scripts\validate_phase3_evidence_register.py
-py -3.13 -B scripts\validate_sds_phase3.py
-py -3.13 -B -m unittest discover -s scripts\tests -p "test_*.py"
+py -3 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.8.md
+py -3 -B scripts\validate_sds_phase2.py
+py -3 -B scripts\validate_domain_entity_migration_alignment.py
+py -3 -B scripts\validate_phase3_evidence_register.py
+py -3 -B scripts\validate_sds_phase3.py
+py -3 -B -m unittest discover -s scripts\tests -p "test_*.py"
 
 # 实现仓库后端（显式JDK25）
 mvn clean verify

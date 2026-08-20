@@ -1,8 +1,8 @@
 # SDS Phase 3 工程化自审
 
-> 日期：2026-08-20
+> 日期：2026-08-21
 > 状态：`REVALIDATION_REQUIRED`
-> 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`（Phase 1/2差量及P3-E09当前哈希复审已完成；100项测试追溯和Phase 3正式分册复核未完成）
+> 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`（Phase 1/2及P3-E09已完成；五份正式分册和100项测试追溯已形成候选，待Phase 3整体独立复审）
 > 边界：逻辑设计与证据契约已完成；生产环境、恢复、安全运行和性能证据保留为部署/专项验收/发布门禁，不代表生产就绪。
 
 > 方向决策：ADR-0004已批准`A、A、A、A、A、A、B、A`；本结论不关闭P3-E01～E08下游证据门禁。`AI-MIG-000`仅在Release包含历史迁移或数据切换时适用，须按真实批次验证并绑定批准窗口。
@@ -23,9 +23,9 @@
 | 13领域 | PASS，formal=100、V3=31、OUT_OF_SCOPE=9 |
 | Phase 2 | BASELINE，100项契约与追溯；READY_FOR_PHASE_3_V1.8 |
 | 领域实体迁移对齐 | BASELINE，85个显式数据对象、96项逐来源策略、1顶层排除源；执行契约/CUT清单对象与ADR-0030六张目标表已对齐，未新增历史来源或迁移授权 |
-| Phase 3 | REVALIDATION_REQUIRED，5份分册、NFR精确阈值、100项测试/证据映射 |
+| Phase 3 | IN_REVIEW，5份分册、NFR精确阈值、100项测试/验收断言/证据映射 |
 | Phase 3证据登记 | PASS-STRUCTURE；P3-E01～E09状态、Owner、事实、证据引用和最晚安全门禁可机器校验，但不代表Phase 3整体基线放行 |
-| 脚本单测 | PASS，330/330；覆盖Phase 1/2/3、割接边界、领域迁移、数据库命名、ADR-0030六表、P3-E09模型事实和运行门禁 |
+| 脚本单测 | PASS，334/334；覆盖Phase 1/2/3、割接边界、领域迁移、数据库命名、ADR-0030六表、P3-E09模型事实和运行门禁 |
 | 业务命名 | PASS |
 | `git diff --check` | PASS |
 | 实现仓库前端`ts:check` | FAIL，exit code 1，登记P3-E08 |
@@ -52,7 +52,7 @@ git diff --check
 | 审计与可观测 | PASS-DESIGN | 业务审计、运行日志、指标、Trace和安全事件分离；关联ID、RED/USE、领域水位、告警/runbook及NFR-03指标明确；未猜测PRD外阈值 |
 | 发布/迁移/回退 | PASS-DESIGN | JDK25、pnpm9.15.5、宿主机应用边界、制品/hash/releaseId、Expand→Backfill→Verify→Switch→Contract、应用回退与数据库前滚修复明确 |
 | 性能 | PASS-DESIGN | 50用户/30分钟/≥10000请求/P95≤2秒/错误率≤0.5%、20万项目/200万任务、1万/5万树、2000直接子节点、深度30、50MB、99%/60秒均转为可执行口径 |
-| 测试 | REVALIDATION_REQUIRED | 正常、异常、权限拒绝、幂等、并发、集成、事件、文件、安全、浏览器和发布恢复矩阵需按100项重新复核 |
+| 测试 | PASS-CANDIDATE | 正常、异常、权限拒绝、幂等、并发、集成、事件、文件、安全、浏览器和发布恢复矩阵已覆盖100项；每项绑定PRD验收标准、本项工作流/状态及授权拒绝断言 |
 | 数据/迁移 | PASS-MODEL / CONDITIONAL-RELEASE-GATE | 08/09已吸收结构化数据元和历史迁移结论；当前领域迁移契约为85个对象、96项来源策略、1顶层排除源；CUT-11、目录快照、历史空壳及维护记录迁移仍被机器禁止。ADR-0030六表、MySQL 8.4执行和当前哈希独立复审已通过；仅包含历史迁移或数据切换的Release受`AI-MIG-000`阻断，普通功能发布不适用 |
 
 ## 4. 当前阻塞与影响
@@ -82,4 +82,4 @@ git diff --check
 
 ## 6. 自审结论
 
-Phase 1/2前置复审已完成；Phase 3本轮已完成ADR-0030六表DDL、字段目录、逐项寄存器、MySQL 8.4隔离执行和当前哈希独立复审，但100项测试追溯复核与Phase 3正式分册复核尚未关闭，因此保持`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8`。P3-E01～08继续按部署、集成、性能、恢复和发布门禁关闭；P3-E09已成为可用模型输入。`AI-MIG-000`按具体Release范围判断：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前`VERIFIED`并在批准窗口内执行。
+Phase 1/2前置复审和P3-E09当前模型复审已完成；Phase 3本轮已将五份正式分册统一为V1.8候选，并为100项Requirement逐项登记测试类别、PRD验收断言和证据类型。自动校验不再因Gate处于回落状态而跳过分册与逐项映射。整体独立复审尚未关闭，因此保持`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8`。P3-E01～08继续按部署、集成、性能、恢复和发布门禁关闭；P3-E09是可用模型输入。`AI-MIG-000`按具体Release范围判断：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前`VERIFIED`并在批准窗口内执行。

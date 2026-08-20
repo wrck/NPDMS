@@ -1,7 +1,7 @@
 # Phase 3生产与发布证据登记规范
 
 > 状态：`IN_REVIEW`
-> 适用基线：PRD V1.8、SDS Phase 1/2 REVALIDATION_REQUIRED、Phase 3 REVALIDATION_REQUIRED
+> 适用基线：PRD V1.8、SDS Phase 1/2 BASELINE、Phase 3 IN_REVIEW
 > 机器状态：`phase3-evidence-register.json`
 > 原则：本文件定义需要什么证据，不填充未经Owner确认的生产事实。
 
