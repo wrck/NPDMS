@@ -109,13 +109,23 @@ def matrix_mapping(text: str) -> tuple[dict[str, str], list[str]]:
 
 
 def markdown_row(text: str, key: str) -> list[str]:
+    rows = markdown_rows(text, key)
+    return rows[0] if rows else []
+
+
+def markdown_rows(text: str, key: str) -> list[list[str]]:
+    result: list[list[str]] = []
     for line in text.splitlines():
         if not line.startswith("|"):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
         if cells and cells[0] == key:
-            return cells
-    return []
+            result.append(cells)
+    return result
+
+
+def metadata_values(text: str, label: str) -> list[str]:
+    return re.findall(rf"^>\s*{re.escape(label)}：`([^`]+)`", text, re.M)
 
 
 def require_markers(errors: list[str], label: str, text: str, markers: tuple[str, ...]) -> None:
@@ -185,6 +195,15 @@ def validate(root: Path) -> list[str]:
     eqp02_row = markdown_row(matrix_text, "EQP-02")
     if len(eqp02_row) < 9 or "ConfigurationLog" not in eqp02_row[4] or "ConfigurationLog" not in eqp02_row[8]:
         errors.append("EQP-02 traceability must assign ConfigurationLog aggregate and data ownership")
+    srv01_row = markdown_row(matrix_text, "SRV-01")
+    if (
+        len(srv01_row) < 9
+        or "ServiceHandoverReference" not in {item.strip() for item in srv01_row[4].split("/")}
+        or "ServiceHandoverReference" not in {item.strip() for item in srv01_row[8].split("、")}
+        or "ServiceHandover" in {item.strip() for item in srv01_row[4].split("/")}
+        or "ServiceHandover" in {item.strip() for item in srv01_row[8].split("、")}
+    ):
+        errors.append("SRV-01 traceability must use read-only ServiceHandoverReference, not own ServiceHandover")
 
     domain = read(root / "docs/design/02-domain-model.md")
     state = read(root / "docs/design/05-state-machine.md")
@@ -204,9 +223,27 @@ def validate(root: Path) -> list[str]:
     aggregate = read(root / "docs/design/02b-aggregate-boundary-decisions.md")
     workflow = read(root / "docs/design/06-workflow-design.md")
     authorization = read(root / "docs/design/07-authorization-design.md")
-    inspection_states = "待准备、待预检、巡检中、待报告、待标注、待办跟踪中、已闭环、已归档、已取消"
-    inspection_workflow = "在线进入待预检并经INS-04通过后执行，离线直接执行"
-    if inspection_states not in state or inspection_workflow not in workflow:
+    expected_inspection_states = {
+        "待准备", "待预检", "巡检中", "待报告", "待标注", "待办跟踪中", "已闭环", "已归档", "已取消",
+    }
+    inspection_state_rows = markdown_rows(state, "InspectionTask")
+    inspection_workflow_rows = markdown_rows(workflow, "巡检任务主流程")
+    inspection_contradiction = re.search(
+        r"(?:INS-04)?预检(?:未通过|失败)[^。\n]{0,100}(?:强制|允许|仍可|可以)[^。\n]{0,50}(?:执行|巡检中|继续)",
+        state + "\n" + workflow,
+    )
+    if (
+        len(inspection_state_rows) != 1
+        or len(inspection_state_rows[0]) < 4
+        or {item.strip() for item in inspection_state_rows[0][1].split("、")} != expected_inspection_states
+        or "在线分支进入待预检且仅INS-04通过后进入巡检中" not in inspection_state_rows[0][2]
+        or "离线分支直接进入巡检中" not in inspection_state_rows[0][2]
+        or len(inspection_workflow_rows) != 1
+        or len(inspection_workflow_rows[0]) < 5
+        or "在线进入待预检并经INS-04通过后执行，离线直接执行" not in inspection_workflow_rows[0][2]
+        or "预检未通过保持待预检" not in inspection_workflow_rows[0][4]
+        or inspection_contradiction
+    ):
         errors.append("Inspection state and workflow must preserve all PRD states and the INS-04 online guard")
     require_markers(
         errors,
@@ -228,15 +265,67 @@ def validate(root: Path) -> list[str]:
     config_contract = read(root / "docs/design/02d-cross-context-contracts.md")
     config_owner_checks = (
         (domain, "ConfigurationLog原始文件、不可变解析版本和设备关联"),
-        (aggregate, "| ConfigurationLog | Asset Management |"),
         (aggregate, "不拥有ConfigurationLog原始文件和不可变解析版本"),
         (ownership, "ConfigurationLog原始文件、不可变解析版本和设备关联"),
-        (config_contract, "| ConfigurationLogPublished | Implementation Execution | Asset Management |"),
+        (config_contract, "| ConfigurationLogPublished | EXE-03、EXE-04、EQP-02 | Implementation Execution | Asset Management |"),
         (modules, "| 资产管理 | 设备档案、归属、维保基本信息、ConfigurationLog原始文件/不可变解析版本"),
     )
     missing_config_owner = [marker for text, marker in config_owner_checks if marker not in text]
-    if missing_config_owner:
+    config_aggregate_rows = markdown_rows(aggregate, "ConfigurationLog")
+    if (
+        missing_config_owner
+        or len(config_aggregate_rows) != 1
+        or len(config_aggregate_rows[0]) < 2
+        or config_aggregate_rows[0][1] != "Asset Management"
+    ):
         errors.append(f"ConfigurationLog Owner boundary missing markers: {missing_config_owner}")
+
+    contract_header = markdown_row(config_contract, "契约")
+    contract_rows = []
+    for line in config_contract.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) == 5 and cells[0] not in {"契约", "---"}:
+            contract_rows.append(cells)
+    contract_names = Counter(row[0] for row in contract_rows)
+    declared_contract_requirements: set[str] = set()
+    invalid_contract_requirements: list[str] = []
+    for row in contract_rows:
+        ids = set(requirement_ids(row[1]))
+        declared_contract_requirements.update(ids)
+        if not ids or not ids <= set(prd_ids):
+            invalid_contract_requirements.append(row[0])
+    expected_contracts = {
+        "ConfigurationLogPublished": ({"EXE-03", "EXE-04", "EQP-02"}, "Implementation Execution", "Asset Management"),
+        "ServiceHandoverCreated": ({"ACC-06", "SRV-01"}, "Acceptance & Closure", "Service Operations"),
+    }
+    contract_errors: list[str] = []
+    for name, (expected_ids, producer, consumer) in expected_contracts.items():
+        rows = [row for row in contract_rows if row[0] == name]
+        if (
+            len(rows) != 1
+            or set(requirement_ids(rows[0][1])) != expected_ids
+            or rows[0][2] != producer
+            or rows[0][3] != consumer
+        ):
+            contract_errors.append(name)
+    missing_contract_links = sorted(
+        identifier
+        for identifier in declared_contract_requirements
+        if "[02d契约]" not in " | ".join(markdown_row(matrix_text, identifier))
+    )
+    if (
+        contract_header[:5] != ["契约", "Requirement ID", "Producer", "Consumer", "语义"]
+        or invalid_contract_requirements
+        or any(count != 1 for count in contract_names.values())
+        or contract_errors
+        or missing_contract_links
+    ):
+        errors.append(
+            "cross-context contracts must have unique Producer rows and exact Requirement traceability; "
+            f"invalid={invalid_contract_requirements} contractErrors={contract_errors} missingLinks={missing_contract_links}"
+        )
 
     require_markers(
         errors,
@@ -265,29 +354,56 @@ def validate(root: Path) -> list[str]:
             "ACC-05持续服务跟踪仅为V3",
         ),
     )
-    acceptance_module = markdown_row(modules, "验收与闭环")
-    service_module = markdown_row(modules, "服务运营")
+    acceptance_module_rows = markdown_rows(modules, "验收与闭环")
+    service_module_rows = markdown_rows(modules, "服务运营")
     if (
-        len(acceptance_module) < 5
-        or "ServiceHandoverCreated" not in acceptance_module[4]
-        or len(service_module) < 5
-        or "ServiceHandoverCreated" not in service_module[3]
-        or "ServiceHandoverCreated" in service_module[4]
-        or "| ServiceHandoverCreated | Acceptance & Closure | Service Operations |" not in config_contract
+        len(acceptance_module_rows) != 1
+        or len(service_module_rows) != 1
+        or len(acceptance_module_rows[0]) < 5
+        or "ServiceHandoverCreated" not in acceptance_module_rows[0][4]
+        or len(service_module_rows[0]) < 5
+        or "ServiceHandoverCreated" not in service_module_rows[0][3]
+        or "ServiceHandoverCreated" in service_module_rows[0][4]
+        or contract_names.get("ServiceHandoverCreated") != 1
     ):
         errors.append("ServiceHandoverCreated must have Acceptance & Closure as its single Producer")
+    pm10_rows = [
+        row for line in authorization.splitlines()
+        if line.startswith("|")
+        for row in [[cell.strip() for cell in line.strip().strip("|").split("|")]]
+        if row and "PM-10" in row[0]
+    ]
+    pm10_state_markers = (
+        "记录重开原因",
+        "恢复关闭前最后一个可恢复阶段",
+        "创建新的责任处理事项",
+        "不得自动恢复已终止的外部任务",
+    )
     if (
-        "| Project/PM-10 | 服务经理对本人主责且满足条件的项目发起回退 |" not in authorization
-        or "工程管理部关闭岗 | 关闭、重开" not in authorization
-        or "重开仅限EXCEPTION_CLOSED" not in authorization
+        len(pm10_rows) != 1
+        or len(pm10_rows[0]) < 5
+        or pm10_rows[0][0] != "Project/PM-10"
+        or "服务经理对本人主责且满足条件的项目发起回退" not in pm10_rows[0][1]
+        or "无关闭或重开权限" not in pm10_rows[0][2]
+        or pm10_rows[0][3] != "工程管理部关闭岗"
+        or "关闭、重开仅限授权项目" not in pm10_rows[0][4]
+        or "重开仅限EXCEPTION_CLOSED" not in pm10_rows[0][4]
+        or any(marker not in state for marker in pm10_state_markers)
     ):
         errors.append("PM-10 authorization must separate service-manager rollback from engineering close/reopen")
 
     architecture = read(root / "docs/design/03-system-architecture.md")
+    runtime_evidence_patterns = (
+        r"(?:运行提交|实现提交|baseCommit|implementationCommit)\s*[:：=]\s*[0-9A-Za-z_-]{6,}",
+        r"(?:证据批次|releaseId|batchId)\s*[:：=]\s*[0-9A-Za-z_-]{4,}",
+        r"(?:测试结果|构建结果|buildResult)\s*[:：=]\s*(?:PASS|SUCCESS|通过)",
+        r"(?:放行结论|门禁结论)\s*[:：=]\s*(?:APPROVED|GO|READY|PASS)",
+    )
     if (
         "运行提交、证据批次、构建结果和放行结论只登记在对应工程门禁" not in architecture
         or "实现工作包门禁已解除" in architecture
         or "NPDMS-SDS-P1-" in architecture
+        or any(re.search(pattern, architecture, re.I) for pattern in runtime_evidence_patterns)
     ):
         errors.append("formal architecture must not embed mutable runtime evidence or gate-release claims")
 
@@ -303,10 +419,16 @@ def validate(root: Path) -> list[str]:
             "机器门禁：`PASS`",
         ),
     )
-    if "> 独立复审：`RE_REVIEW_REQUIRED`" not in gate:
-        errors.append("fresh-context independent re-review must remain required until the repaired candidate receives GO")
-    if "READY_FOR_PHASE_2" in gate and "NOT_READY_FOR_PHASE_2" not in gate:
-        errors.append("Phase 1 gate must not claim READY before fresh-context independent review")
+    expected_gate_metadata = {
+        "审查状态": "IN_REVIEW",
+        "结论": "NOT_READY_FOR_PHASE_2_V1.8",
+        "机器门禁": "PASS",
+        "独立复审": "RE_REVIEW_REQUIRED",
+        "已评审候选": "5a4698f",
+        "修复候选": "PENDING",
+    }
+    if any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items()):
+        errors.append("fresh-context Phase 1 gate must keep one exact IN_REVIEW/NOT_READY/RE_REVIEW_REQUIRED metadata set")
 
     self_review = read(root / "docs/engineering/gates/phase-1/self-review.md")
     require_markers(
@@ -320,7 +442,7 @@ def validate(root: Path) -> list[str]:
         errors,
         "fresh-context independent review record",
         independent,
-        ("当前状态：`IN_REVIEW`", "当前结论：`NO_GO`", "已评审候选：`dc3ed2a`", "修复候选：`PENDING`", "不得据此放行Phase 2"),
+        ("当前状态：`IN_REVIEW`", "当前结论：`NO_GO`", "已评审候选：`5a4698f`", "修复候选：`PENDING`", "不得据此放行Phase 2"),
     )
     return errors
 

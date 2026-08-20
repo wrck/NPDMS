@@ -145,9 +145,9 @@ for _identifier in ("INS-01", "INS-02", "INS-03", "INS-04", "INS-05", "INS-06", 
         "业务规则+权限+采集结果",
     )
 EXACT_PHASE1_DESIGN["SRV-01"] = (
-    "Service Operations", "ServiceStatus / ServiceHandover",
+    "Service Operations", "ServiceStatus / ServiceHandoverReference",
     "ServiceStatus状态机；服务状态同步与提示流", "ProjectDeviceScope",
-    "ServiceOperationsApplicationService", "ServiceStatus、ServiceHandover、DeviceServiceSnapshot",
+    "ServiceOperationsApplicationService", "ServiceStatus、ServiceHandoverReference、DeviceServiceSnapshot",
     "来源同步+权限+提示",
 )
 for _identifier in ("CUS-01", "CUS-02", "CUS-03", "CUS-04", "INT-03"):
@@ -196,6 +196,14 @@ def phase1_design(identifier: str, domain: str) -> tuple[str, ...]:
     return EXACT_PHASE1_DESIGN.get(identifier) or PHASE1_DESIGN[domain]
 
 
+CROSS_CONTEXT_REQUIREMENT_IDS = {
+    "ACC-02", "ACC-04", "ACC-06", "CLO-01", "CLO-02", "CUT-01", "CUT-03", "CUT-06",
+    "EQP-01", "EQP-02", "EQP-03", "EQP-04", "EXE-01", "EXE-02", "EXE-03", "EXE-04",
+    "EXE-05", "EXE-06", "IMP-01", "INS-02", "INS-04", "INT-01", "INT-02", "INT-03",
+    "INT-06", "INT-12", "SRV-01", "SUB-03",
+}
+
+
 def sds_reference(identifier: str) -> str:
     """Return stable, requirement-specific Phase 1 and Phase 2 SDS links."""
     references = [
@@ -206,7 +214,7 @@ def sds_reference(identifier: str) -> str:
         "[06流程](../design/06-workflow-design.md#2-核心审批流)",
         "[07权限](../design/07-authorization-design.md#2-权限层次)",
     ]
-    if identifier.startswith(("EXE-", "IMP-", "CUT-", "INS-", "INT-")):
+    if identifier in CROSS_CONTEXT_REQUIREMENT_IDS:
         references.insert(2, "[02d契约](../design/02d-cross-context-contracts.md)")
     domain = PREFIX_OWNER.get(identifier) or PREFIX_OWNER.get(identifier.split("-")[0])
     phase2_sections = {
