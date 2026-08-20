@@ -26,6 +26,12 @@ EXPECTED_MODEL_EXTENSIONS = [
     {"target": "cut_cutover_support_arrangement", "owner": "CUT", "decisionRef": "ADR-0027", "requirementRefs": ["CUT-04"]},
     {"target": "cut_cutover_closure", "owner": "CUT", "decisionRef": "ADR-0027", "requirementRefs": ["CUT-06"]},
     {"target": "ast_device_component_relation", "owner": "AST", "decisionRef": "ADR-0025", "requirementRefs": ["EXE-03", "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
+    {"target": "proj_project_template_task_definition", "owner": "PROJ", "decisionRef": "ADR-0030", "requirementRefs": ["PM-03", "PM-11"]},
+    {"target": "proj_project_task_execution_contract", "owner": "PROJ", "decisionRef": "ADR-0030", "requirementRefs": ["PM-03", "PM-10", "PM-11"]},
+    {"target": "proj_project_task_completion_evaluation", "owner": "PROJ", "decisionRef": "ADR-0030", "requirementRefs": ["PM-10", "PM-11"]},
+    {"target": "cut_cutover_checklist", "owner": "CUT", "decisionRef": "ADR-0030", "requirementRefs": ["CUT-01", "CUT-03"]},
+    {"target": "cut_cutover_checklist_item", "owner": "CUT", "decisionRef": "ADR-0030", "requirementRefs": ["CUT-03"]},
+    {"target": "cut_cutover_checklist_item_result", "owner": "CUT", "decisionRef": "ADR-0030", "requirementRefs": ["CUT-03", "INT-12"]},
 ]
 
 
@@ -65,7 +71,7 @@ def validate_payload(payload: dict[str, object], adr_tables: list[dict[str, str]
     if extensions != [{"source": "pm_project_market_relations_from_sms", "target": "cus_market_relation", "owner": "CUS", "decisionRef": "ADR-0021"}]:
         errors.append("database naming contract ADR-0021 extension mismatch")
     if model_extensions != EXPECTED_MODEL_EXTENSIONS:
-        errors.append("database naming contract ADR-0023/ADR-0025/ADR-0027 model extension mismatch")
+        errors.append("database naming contract ADR-0023/ADR-0025/ADR-0027/ADR-0030 model extension mismatch")
     if not isinstance(implementation_scope, dict) or implementation_scope.get("coverage") != "CORE_MIGRATION_SUBSET" or implementation_scope.get("decisionRef") != "ADR-0022":
         errors.append("database naming contract implementation scope mismatch")
     if len(fields) != 6:

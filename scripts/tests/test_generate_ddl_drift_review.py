@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -292,6 +293,53 @@ CREATE TABLE imp_configuration_collection_result (
         self.assertTrue(all(any("0025-v1.7" in ref for ref in item["evidenceRefs"]) for item in implementation))
         self.assertTrue(all(item["reviewOwner"] is None for item in result["items"]))
         self.assertEqual("NOT_REQUIRED_PER_ITEM", result["v17DeltaDecision"]["reviewStatus"])
+
+    def test_v18_delta_decision_uses_exact_table_item_hash(self) -> None:
+        current = MODULE.parse_ddl(b"""
+CREATE TABLE cut_cutover_checklist (
+  id BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE = InnoDB;
+""")
+        register = MODULE.ddl_item_decision_register(
+            "OLD", "NEW", {}, current, constraints_comparable=False, options_comparable=False,
+        )
+        item_ids = sorted(item["itemId"] for item in register["items"])
+        item_hash = MODULE.sha256(
+            json.dumps(item_ids, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        )
+        contract = {
+            "v18Delta": {
+                "status": "ACCEPTED",
+                "ddlSha256": "NEW",
+                "objectTargetTables": {"CutoverChecklist": ["cut_cutover_checklist"]},
+                "acceptedDdlItemCount": len(item_ids),
+                "acceptedDdlItemsSha256": item_hash,
+                "itemEvidenceRef": "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md",
+            }
+        }
+        result = MODULE.apply_accepted_v18_delta_decisions(register, contract)
+        self.assertTrue(all(item["decision"] == "AMEND_CURRENT" for item in result["items"]))
+        self.assertEqual(len(item_ids), result["v18DeltaDecision"]["acceptedItemCount"])
+
+    def test_v18_delta_decision_rejects_item_hash_drift(self) -> None:
+        register = {
+            "currentDdlSha256": "NEW",
+            "items": [{"itemId": "TABLE:cut_cutover_checklist", "table": "cut_cutover_checklist"}],
+        }
+        contract = {
+            "v18Delta": {
+                "status": "ACCEPTED",
+                "ddlSha256": "NEW",
+                "objectTargetTables": {"CutoverChecklist": ["cut_cutover_checklist"]},
+                "acceptedDdlItemCount": 1,
+                "acceptedDdlItemsSha256": "WRONG",
+                "itemEvidenceRef": "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md",
+            }
+        }
+        with self.assertRaisesRegex(ValueError, "item hash"):
+            MODULE.apply_accepted_v18_delta_decisions(register, contract)
 
     def test_q03_decision_marks_business_facts_but_not_q07_q08_items(self) -> None:
         decided_ids = {

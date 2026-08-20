@@ -328,6 +328,7 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         "SRV": "服务支持",
         "AST": "资产与设备",
         "PLT": "基础平台",
+        "PROJ": "项目与任务",
     }
     v17_table_basis = {
         "imp_configuration_collection_result": ["PRD:EXE-03", "SDS:08-data-model#ConfigurationCollectionResult", "SDS:09-database-design#ConfigurationCollectionResult", "ADR-0025"],
@@ -341,6 +342,15 @@ def expected_outputs(root: Path) -> dict[Path, str]:
         "cut_cutover_closure": ["PRD:CUT-06", "ADR-0026#p6-closure", "SDS:09-database-design#CutoverClosure", "ADR-0027"],
         "ast_device_component_relation": ["PRD:EXE-03", "PRD:EQP-01", "SDS:08-data-model#DeviceComponentRelation", "ADR-0025"],
     }
+    v18_table_basis = {
+        "proj_project_template_task_definition": ["PRD:PM-03", "PRD:PM-11", "SDS:09-database-design#ProjectTask", "ADR-0030"],
+        "proj_project_task_execution_contract": ["PRD:PM-03", "PRD:PM-10", "PRD:PM-11", "SDS:09-database-design#WorkBinding", "ADR-0030"],
+        "proj_project_task_completion_evaluation": ["PRD:PM-10", "PRD:PM-11", "SDS:09-database-design#TaskCompletionEvaluation", "ADR-0030"],
+        "cut_cutover_checklist": ["PRD:CUT-01", "PRD:CUT-03", "SDS:09-database-design#CutoverChecklist", "ADR-0030"],
+        "cut_cutover_checklist_item": ["PRD:CUT-03", "SDS:09-database-design#CutoverChecklist", "ADR-0030"],
+        "cut_cutover_checklist_item_result": ["PRD:CUT-03", "PRD:INT-12", "SDS:09-database-design#CutoverChecklist", "ADR-0030"],
+    }
+    physical_table_basis = v17_table_basis | v18_table_basis
     # Derive data-element evidence exclusively from maintained source-to-target
     # bindings. Ranges in the contract are resolved back to the exact source
     # field coordinates, so design-only columns never inherit table-wide refs.
@@ -354,7 +364,7 @@ def expected_outputs(root: Path) -> dict[Path, str]:
                 if "." not in target_field:
                     continue
                 table_name, column_name = target_field.split(".", 1)
-                if table_name not in v17_table_basis:
+                if table_name not in physical_table_basis:
                     continue
                 legacy_data_element_basis.setdefault((table_name, column_name), set()).update(
                     exact_binding_coordinates(binding_entry, schema_records)
@@ -394,17 +404,19 @@ def expected_outputs(root: Path) -> dict[Path, str]:
                 "domain": domain,
                 "fieldClass": field_class,
                 "dataElementRefs": sorted(legacy_data_element_basis.get((table_name, column_name), set())),
-                "basisRefs": v17_table_basis.get(table_name, [f"ADR:{extension['decisionRef']}"]),
+                "basisRefs": physical_table_basis.get(table_name, [f"ADR:{extension['decisionRef']}"]),
             }
             if (table_name, column_name) in pending_migration_fields:
                 new_field_metadata[(table_name, column_name)]["migrationMappingStatus"] = "PENDING_FIELD_MAPPING"
-    for table_name in v17_table_basis:
+            elif table_name in v18_table_basis:
+                new_field_metadata[(table_name, column_name)]["migrationMappingStatus"] = "NEW_ONLY"
+    for table_name in physical_table_basis:
         missing = [
             column for column in ddl_tables[table_name].columns
             if not new_field_metadata[(table_name, column)].get("basisRefs")
         ]
         if missing:
-            raise ValueError(f"V1.7 field basis missing: {table_name}.{missing}")
+            raise ValueError(f"physical carrier field basis missing: {table_name}.{missing}")
     prior = [json.loads(line) for line in (root / CATALOG).read_text(encoding="utf-8").splitlines() if line]
     # Idempotent generation can use either the old or already-renamed catalog.
     naming_tables = contract["tables"] + contract.get("tableExtensions", []) + [

@@ -14,7 +14,8 @@ REGISTER = Path("docs/engineering/gates/phase-3/phase3-evidence-register.json")
 GENERATOR = Path("scripts/generate_phase3_evidence_packets.py")
 SYNC_FACTS = {
     "currentDdlSha256", "modelDecisionStatus", "deferredItemCount",
-    "v17DeltaStatus", "requirementOwnerConfirmation", "q07Decision", "q08Decision",
+    "v17DeltaStatus", "v18DeltaStatus", "decisionRegisterItemCount",
+    "requirementOwnerConfirmation", "q07Decision", "q08Decision",
     "isolatedMysqlExecution", "targetCatalogDdlSha256", "mappingDdlSha256",
     "validationDdlSha256", "manifestDdlSha256", "itemsSha256", "itemIdsSha256",
     "mysql84DdlSha256", "independentReviewResult", "independentReviewRef",
@@ -43,7 +44,6 @@ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, 
     for key in SYNC_FACTS:
         facts[key] = generated_facts[key]
     facts["driftDecision"] = "ACCEPT_CURRENT"
-    facts["decisionRegisterItemCount"] = 1883
     ready = facts["modelDecisionStatus"] == "MODEL_BASELINE_READY"
     item["status"] = "VERIFIED" if ready else "OPEN"
     item["decisionOwner"] = "REQUIREMENT_OWNER"

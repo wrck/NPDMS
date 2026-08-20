@@ -150,8 +150,12 @@ def validate(root: Path) -> list[str]:
         decided_expected = generator.apply_accepted_q07_q08_decisions(decided_expected, core_contract)
     if core_contract.get("v17Delta", {}).get("status") == "ACCEPTED":
         decided_expected = generator.apply_accepted_v17_delta_decisions(decided_expected, core_contract)
+    if core_contract.get("v18Delta", {}).get("status") == "ACCEPTED":
+        decided_expected = generator.apply_accepted_v18_delta_decisions(decided_expected, core_contract)
     confirmation = core_contract.get("p3e09RequirementOwnerConfirmation", {})
-    if isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED":
+    if isinstance(confirmation, dict) and confirmation.get("status") in {
+        "ACCEPTED", "HISTORICAL_ACCEPTED"
+    }:
         packet = json.loads((root / confirmation["packetRef"]).read_text(encoding="utf-8"))
         decided_expected = generator.apply_accepted_p3e09_confirmation_decisions(
             decided_expected, core_contract, packet
@@ -174,7 +178,11 @@ def validate(root: Path) -> list[str]:
         conditional_metadata.extend(["q07Decision", "q08Decision"])
     if core_contract.get("v17Delta", {}).get("status") == "ACCEPTED":
         conditional_metadata.append("v17DeltaDecision")
-    if isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED":
+    if core_contract.get("v18Delta", {}).get("status") == "ACCEPTED":
+        conditional_metadata.append("v18DeltaDecision")
+    if isinstance(confirmation, dict) and confirmation.get("status") in {
+        "ACCEPTED", "HISTORICAL_ACCEPTED"
+    }:
         conditional_metadata.append("p3e09RequirementOwnerDecision")
     for decision_key in conditional_metadata:
         if register.get(decision_key) != decided_expected.get(decision_key):

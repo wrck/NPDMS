@@ -29,7 +29,7 @@ py -3 -B scripts/validate_phase3_evidence_register.py
 py -3 -B scripts/validate_sds_phase3.py
 ```
 
-上述校验证明结构、事实绑定和当前Gate状态一致。P3-E09为`MODEL_BASELINE_READY`，可作为SDS/Feature数据模型输入。`AI-MIG-000`按Release范围条件适用：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前达到`VERIFIED`，并只在批准窗口内执行。其他生产证据仍须在各自下游门禁以当时事实关闭。
+上述校验证明结构、事实绑定和当前Gate状态一致。ADR-0030差量后P3-E09为`MODEL_BASELINE_REVIEW_PENDING`，须完成当前哈希独立复审后才能恢复SDS/Feature数据模型输入。`AI-MIG-000`按Release范围条件适用：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前达到`VERIFIED`，并只在批准窗口内执行。其他生产证据仍须在各自下游门禁以当时事实关闭。
 
 ## 放行原则
 

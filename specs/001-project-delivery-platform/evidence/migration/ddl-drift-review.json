@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T07:43:57.562980+00:00",
+  "generatedAt": "2026-08-20T15:24:06.396129+00:00",
   "status": "DEFER",
   "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
   "inputs": {
@@ -10,15 +10,15 @@
     "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
     "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
     "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+    "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
     "baselineNameNormalization": "ADR-0019"
   },
   "summary": {
     "baselineTableCount": 52,
-    "currentTableCount": 60,
+    "currentTableCount": 66,
     "baselineColumnCount": 1076,
-    "currentColumnCount": 1240,
-    "tableDiff": 16,
+    "currentColumnCount": 1382,
+    "tableDiff": 22,
     "columnDiff": 28,
     "constraintDiff": 0,
     "tableOptionDiff": 0,
@@ -59,6 +59,21 @@
     },
     {
       "table": "cus_market_relation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist_item",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist_item_result",
       "change": "ADDED",
       "decision": "DEFER"
     },
@@ -105,6 +120,21 @@
     {
       "table": "kno_technical_advisory_read_record",
       "change": "REMOVED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_task_completion_evaluation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_task_execution_contract",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_template_task_definition",
+      "change": "ADDED",
       "decision": "DEFER"
     }
   ],

@@ -22,8 +22,15 @@ class P3E09RequirementConfirmationTest(unittest.TestCase):
         packet = json.loads((ROOT / MODULE.PACKET).read_text(encoding="utf-8"))
         return contract, packet
 
-    def test_applies_all_nine_groups_without_reviewer_approval(self) -> None:
+    def load_historical_inputs(self):
         contract, packet = self.load_inputs()
+        contract.pop("v18Delta", None)
+        contract["q07TechnicalConstraintPolicy"]["ddlSha256"] = packet["currentDdlSha256"]
+        contract["q08OrdinaryIndexPolicy"]["ddlSha256"] = packet["currentDdlSha256"]
+        return contract, packet
+
+    def test_applies_all_nine_groups_without_reviewer_approval(self) -> None:
+        contract, packet = self.load_historical_inputs()
         result = MODULE.apply_confirmation(contract, packet)
         confirmation = result["p3e09RequirementOwnerConfirmation"]
         self.assertEqual("ACCEPTED", confirmation["status"])
@@ -39,13 +46,18 @@ class P3E09RequirementConfirmationTest(unittest.TestCase):
         self.assertEqual(257, len(result["v17Delta"]["acceptedDdlItems"]))
 
     def test_rejects_missing_group_and_wrong_hash(self) -> None:
-        contract, packet = self.load_inputs()
+        contract, packet = self.load_historical_inputs()
         packet["groups"] = packet["groups"][:-1]
         with self.assertRaisesRegex(ValueError, "exact nine"):
             MODULE.apply_confirmation(contract, packet)
 
-        contract, packet = self.load_inputs()
+        contract, packet = self.load_historical_inputs()
         packet["currentDdlSha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "current contract DDL"):
+            MODULE.apply_confirmation(contract, packet)
+
+    def test_historical_packet_cannot_overwrite_current_v18_contract(self) -> None:
+        contract, packet = self.load_inputs()
         with self.assertRaisesRegex(ValueError, "current contract DDL"):
             MODULE.apply_confirmation(contract, packet)
 

@@ -70,7 +70,7 @@ Phase 3 证据项按“返工收益+最晚安全点”归属下游门禁，SDS �
 | P3-E06 性能环境 | `DOWNSTREAM-GATED` | 性能验收、生产发布 |
 | P3-E07 联调 | `DOWNSTREAM-GATED` | 对应Feature联调、发布 |
 | P3-E08 前端类型 | `DOWNSTREAM-GATED` | 前端Feature验收、发布 |
-| P3-E09 模型基线 | `MODEL_BASELINE_READY` | 历史数据迁移实施、数据切换 |
+| P3-E09 模型基线 | `MODEL_BASELINE_REVIEW_PENDING` | 当前哈希独立复审；历史数据迁移实施、数据切换按Release范围另行门禁 |
 
 ## 5. 修订规则
 

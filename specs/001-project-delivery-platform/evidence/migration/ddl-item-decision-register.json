@@ -3,7 +3,7 @@
   "status": "DEFER",
   "purpose": "AI-MIG-000_ITEM_BY_ITEM_DECISION_REGISTER",
   "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
-  "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+  "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
   "allowedDecisions": [
     "ACCEPT_CURRENT",
     "RESTORE_APPROVED_BASELINE",
@@ -11,23 +11,23 @@
     "DEFER"
   ],
   "summary": {
-    "itemCount": 1883,
+    "itemCount": 2079,
     "byType": {
-      "TABLE": 64,
-      "COLUMN": 1308,
-      "CONSTRAINT": 447,
-      "TABLE_OPTION": 64
+      "TABLE": 70,
+      "COLUMN": 1450,
+      "CONSTRAINT": 489,
+      "TABLE_OPTION": 70
     },
     "byComparisonStatus": {
       "MATCH": 1048,
-      "UNVERIFIED_BASELINE_MISSING": 516,
-      "ADDED": 244,
+      "UNVERIFIED_BASELINE_MISSING": 564,
+      "ADDED": 392,
       "MODIFIED": 3,
       "REMOVED": 72
     },
     "approvedCount": 0
   },
-  "itemsSha256": "36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D",
+  "itemsSha256": "DD49BDEF20995CF3B17D85E946F678A0CD8CFB404A4A585A36E00401A273D60D",
   "items": [
     {
       "itemId": "TABLE:acc_deliverable_template",
@@ -28516,6 +28516,1946 @@
       ]
     },
     {
+      "itemId": "TABLE:cut_cutover_checklist",
+      "itemType": "TABLE",
+      "table": "cut_cutover_checklist",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:assessment_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "assessment_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "CUT-02等级评估逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:assessment_version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "assessment_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:checklist_version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "checklist_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:config_gap_snapshot",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "config_gap_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "无匹配规则时的配置缺口快照"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:config_revision_snapshot",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "config_revision_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "采集项与匹配配置revision快照"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:create_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:creator",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:current_marker",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "current_marker",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": null,
+        "generatedExpression": "CASE WHEN invalidated_at IS NULL THEN 1 ELSE NULL END"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:cutover_task_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "cutover_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "CUT-01割接任务逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:input_snapshot",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "input_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "P3规则匹配输入冻结快照"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:input_snapshot_hash",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "input_snapshot_hash",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "CHAR(64)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:invalidated_at",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "invalidated_at",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:invalidated_reason",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "invalidated_reason",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(1000)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:match_trace",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "match_trace",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "逐项规则匹配轨迹"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:status_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "status_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:submitted_at",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "submitted_at",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:submitted_by",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "submitted_by",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:update_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:updater",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist:version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist",
+      "name": "version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "草稿重匹配乐观锁版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist:chk_cutover_checklist_version",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist",
+      "name": "chk_cutover_checklist_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_checklist_version CHECK ( assessment_version > 0 AND checklist_version > 0 )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist:idx_cutover_checklist_assessment",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist",
+      "name": "idx_cutover_checklist_assessment",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_checklist_assessment ( tenant_id, assessment_id, assessment_version )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist:uk_cutover_checklist_current",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist",
+      "name": "uk_cutover_checklist_current",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_current ( tenant_id, cutover_task_id, current_marker )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist:uk_cutover_checklist_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist",
+      "name": "uk_cutover_checklist_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist:uk_cutover_checklist_version",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist",
+      "name": "uk_cutover_checklist_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_version ( tenant_id, cutover_task_id, checklist_version )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cut_cutover_checklist",
+      "itemType": "TABLE_OPTION",
+      "table": "cut_cutover_checklist",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-03调研及风险考察清单的输入、匹配与配置缺口版本'",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE:cut_cutover_checklist_item",
+      "itemType": "TABLE",
+      "table": "cut_cutover_checklist_item",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:applicable_flag",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "applicable_flag",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": false,
+        "defaultValue": "1",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:checklist_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "checklist_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "CUT-03清单版本ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:command_template_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "command_template_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "DAC命令模板逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:create_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:creator",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:custom_creator_user_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "custom_creator_user_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "一线补充自定义项的创建人"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:device_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "device_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "适用设备逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:display_condition_snapshot",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "display_condition_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "冻结显示条件"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:interface_format_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "interface_format_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:interface_schema_snapshot",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "interface_schema_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "冻结界面与输入Schema"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:item_definition_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "item_definition_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "系统采集项定义逻辑引用；自定义项为空"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:item_definition_version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "item_definition_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:item_description",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "item_description",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(2000)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:item_name",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "item_name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:item_type_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "item_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:matched_rule_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "matched_rule_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:matched_rule_version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "matched_rule_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:required_flag",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "required_flag",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:sort_order",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "sort_order",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:source_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "source_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:stable_item_key",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "stable_item_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:update_time",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:updater",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "草稿阶段乐观锁版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item:work_mode_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item",
+      "name": "work_mode_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:chk_cutover_checklist_item_applicable",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "chk_cutover_checklist_item_applicable",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_checklist_item_applicable CHECK (applicable_flag IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:chk_cutover_checklist_item_required",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "chk_cutover_checklist_item_required",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_checklist_item_required CHECK (required_flag IN (0, 1))",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:fk_cutover_checklist_item_checklist",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "fk_cutover_checklist_item_checklist",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT fk_cutover_checklist_item_checklist FOREIGN KEY (tenant_id, checklist_id) REFERENCES cut_cutover_checklist (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:idx_cutover_checklist_item_device",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "idx_cutover_checklist_item_device",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_checklist_item_device (tenant_id, device_id, checklist_id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:idx_cutover_checklist_item_type",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "idx_cutover_checklist_item_type",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_checklist_item_type ( tenant_id, checklist_id, item_type_code, applicable_flag, sort_order )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:uk_cutover_checklist_item_key",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "uk_cutover_checklist_item_key",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_item_key ( tenant_id, checklist_id, stable_item_key )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item:uk_cutover_checklist_item_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item",
+      "name": "uk_cutover_checklist_item_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_item_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cut_cutover_checklist_item",
+      "itemType": "TABLE_OPTION",
+      "table": "cut_cutover_checklist_item",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-03清单版本内稳定采集项、界面与匹配快照'",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE:cut_cutover_checklist_item_result",
+      "itemType": "TABLE",
+      "table": "cut_cutover_checklist_item_result",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:answer_snapshot",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "answer_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "结构化答案冻结快照"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:checklist_item_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "checklist_item_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "CUT-03清单项ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:collection_result_reference_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "collection_result_reference_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "DAC结果稳定引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:collection_result_version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "collection_result_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:collection_task_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "collection_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "DAC CollectionTask逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:created_at",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "created_at",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:created_by",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "created_by",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:current_marker",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "current_marker",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": null,
+        "generatedExpression": "CASE WHEN selection_ended_at IS NULL THEN 1 ELSE NULL END"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:external_source_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "external_source_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:fact_description",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "fact_description",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TEXT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "文本事实说明"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:load_failure_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "load_failure_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:manual_evidence_file_reference",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "manual_evidence_file_reference",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:queried_at",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "queried_at",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:query_condition_snapshot",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "query_condition_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "外部加载查询条件脱敏快照"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:result_source_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "result_source_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "直接填写、自动采集、外部加载或人工降级"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:result_version",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "result_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:selected_by",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "selected_by",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:selection_ended_at",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "selection_ended_at",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "受控切换后结束当前选择的时间"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:selection_reason_code",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "selection_reason_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:selection_started_at",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "selection_started_at",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "成为当前选择结果的时间"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:cut_cutover_checklist_item_result:tenant_id",
+      "itemType": "COLUMN",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:chk_cutover_checklist_item_result_selection",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "chk_cutover_checklist_item_result_selection",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_checklist_item_result_selection CHECK ( selection_ended_at IS NULL OR selection_ended_at >= selection_started_at )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:chk_cutover_checklist_item_result_version",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "chk_cutover_checklist_item_result_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_cutover_checklist_item_result_version CHECK (result_version > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:fk_cutover_checklist_item_result_item",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "fk_cutover_checklist_item_result_item",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT fk_cutover_checklist_item_result_item FOREIGN KEY (tenant_id, checklist_item_id) REFERENCES cut_cutover_checklist_item (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:idx_cutover_checklist_item_result_collection_task",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "idx_cutover_checklist_item_result_collection_task",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_checklist_item_result_collection_task ( tenant_id, collection_task_id )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:idx_cutover_checklist_item_result_selected",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "idx_cutover_checklist_item_result_selected",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_cutover_checklist_item_result_selected ( tenant_id, checklist_item_id, selection_started_at )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:uk_cutover_checklist_item_result_current",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "uk_cutover_checklist_item_result_current",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_item_result_current ( tenant_id, checklist_item_id, current_marker )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:uk_cutover_checklist_item_result_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "uk_cutover_checklist_item_result_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_item_result_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:cut_cutover_checklist_item_result:uk_cutover_checklist_item_result_version",
+      "itemType": "CONSTRAINT",
+      "table": "cut_cutover_checklist_item_result",
+      "name": "uk_cutover_checklist_item_result_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_cutover_checklist_item_result_version ( tenant_id, checklist_item_id, result_version )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:cut_cutover_checklist_item_result",
+      "itemType": "TABLE_OPTION",
+      "table": "cut_cutover_checklist_item_result",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-03直接填写、采集、外部加载和人工降级结果的追加事实'",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
       "itemId": "TABLE:cut_cutover_closure",
       "itemType": "TABLE",
       "table": "cut_cutover_closure",
@@ -41279,6 +43219,1882 @@
       ]
     },
     {
+      "itemId": "TABLE:proj_project_task_completion_evaluation",
+      "itemType": "TABLE",
+      "table": "proj_project_task_completion_evaluation",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:command_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "command_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:contract_version",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "contract_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:create_time",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:creator",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:evaluated_at",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "evaluated_at",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:evaluated_by",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "evaluated_by",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:evaluation_result_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "evaluation_result_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:execution_contract_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "execution_contract_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "执行契约版本逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:fact_context_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "fact_context_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:fact_object_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "fact_object_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:fact_object_type",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "fact_object_type",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:fact_version",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "fact_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:gate_snapshot_ref",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "gate_snapshot_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:idempotency_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "idempotency_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:project_task_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "project_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "ProjectTask逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:task_version",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "task_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:tenant_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_completion_evaluation:unmet_item_snapshot",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "unmet_item_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_completion_evaluation:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_completion_evaluation:chk_project_task_completion_evaluation_version",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "chk_project_task_completion_evaluation_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_project_task_completion_evaluation_version CHECK ( task_version > 0 AND contract_version > 0 )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_completion_evaluation:fk_project_task_completion_evaluation_contract",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "fk_project_task_completion_evaluation_contract",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT fk_project_task_completion_evaluation_contract FOREIGN KEY (tenant_id, execution_contract_id) REFERENCES proj_project_task_execution_contract (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_completion_evaluation:idx_project_task_completion_evaluation_time",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "idx_project_task_completion_evaluation_time",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_project_task_completion_evaluation_time ( tenant_id, project_task_id, evaluated_at, id )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_completion_evaluation:uk_project_task_completion_evaluation_idempotency",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "uk_project_task_completion_evaluation_idempotency",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_task_completion_evaluation_idempotency ( tenant_id, project_task_id, idempotency_key )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_completion_evaluation:uk_project_task_completion_evaluation_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_completion_evaluation",
+      "name": "uk_project_task_completion_evaluation_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_task_completion_evaluation_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:proj_project_task_completion_evaluation",
+      "itemType": "TABLE_OPTION",
+      "table": "proj_project_task_completion_evaluation",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ProjectTask完成规则对绑定事实的不可覆盖判定记录'",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE:proj_project_task_execution_contract",
+      "itemType": "TABLE",
+      "table": "proj_project_task_execution_contract",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:approval_instance_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "approval_instance_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:binding_parameter_snapshot",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "binding_parameter_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "冻结绑定参数与Schema版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:completion_rule_snapshot",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "completion_rule_snapshot",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "冻结完成规则与Schema版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:completion_rule_type_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "completion_rule_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:component_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "component_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:contract_version",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "contract_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:create_time",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:creator",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:current_marker",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "current_marker",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": null,
+        "generatedExpression": "CASE WHEN effective_to IS NULL THEN 1 ELSE NULL END"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:dynamic_form_revision_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "dynamic_form_revision_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:effective_from",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "effective_from",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:effective_to",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "effective_to",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:gate_ref",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "gate_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:permission_policy_ref",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "permission_policy_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:project_task_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "project_task_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "ProjectTask逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:source_definition_version",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "source_definition_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:target_context_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "target_context_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:target_object_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "target_object_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:target_object_type",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "target_object_type",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:template_task_definition_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "template_task_definition_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "来源模板任务定义逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:tenant_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:update_time",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:updater",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:version",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "受控换绑乐观锁版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_task_execution_contract:work_binding_type_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_task_execution_contract",
+      "name": "work_binding_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:chk_project_task_execution_contract_dates",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "chk_project_task_execution_contract_dates",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_project_task_execution_contract_dates CHECK ( effective_to IS NULL OR effective_to >= effective_from )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:chk_project_task_execution_contract_version",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "chk_project_task_execution_contract_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_project_task_execution_contract_version CHECK ( source_definition_version > 0 AND contract_version > 0 )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:fk_project_task_execution_contract_definition",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "fk_project_task_execution_contract_definition",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT fk_project_task_execution_contract_definition FOREIGN KEY (tenant_id, template_task_definition_id) REFERENCES proj_project_template_task_definition (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:idx_project_task_execution_contract_target",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "idx_project_task_execution_contract_target",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_project_task_execution_contract_target ( tenant_id, target_context_code, target_object_type, target_object_key )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:uk_project_task_execution_contract_current",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "uk_project_task_execution_contract_current",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_task_execution_contract_current ( tenant_id, project_task_id, current_marker )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:uk_project_task_execution_contract_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "uk_project_task_execution_contract_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_task_execution_contract_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_task_execution_contract:uk_project_task_execution_contract_version",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_task_execution_contract",
+      "name": "uk_project_task_execution_contract_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_task_execution_contract_version ( tenant_id, project_task_id, contract_version )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:proj_project_task_execution_contract",
+      "itemType": "TABLE_OPTION",
+      "table": "proj_project_task_execution_contract",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ProjectTask当前及历史WorkBinding、权限与完成规则冻结契约'",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE:proj_project_template_task_definition",
+      "itemType": "TABLE",
+      "table": "proj_project_template_task_definition",
+      "comparisonStatus": "ADDED",
+      "baselineValue": false,
+      "currentValue": true,
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:approval_definition_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "approval_definition_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:binding_config",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "binding_config",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "受控绑定参数与Schema版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:completion_rule_config",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "completion_rule_config",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "JSON",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "完成规则配置与Schema版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:completion_rule_type_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "completion_rule_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:component_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "component_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:create_time",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "create_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:creator",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "creator",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:definition_version",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "definition_version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:dynamic_form_revision_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "dynamic_form_revision_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:gate_ref",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "gate_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:id",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "主键ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:name",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "name",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(255)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "任务定义名称"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:parent_task_definition_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "parent_task_definition_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:permission_policy_ref",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "permission_policy_ref",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(512)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:sort_order",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "sort_order",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:stage_definition_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "stage_definition_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:target_context_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "target_context_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:target_object_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "target_object_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:target_object_type",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "target_object_type",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:task_definition_key",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "task_definition_key",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(128)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:template_revision_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "template_revision_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目模板发布版本逻辑引用"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:tenant_id",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "tenant_id",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "租户ID"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:update_time",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "update_time",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "DATETIME(3)",
+        "nullable": false,
+        "defaultValue": "CURRENT_TIMESTAMP(3)",
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:updater",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "updater",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:version",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "version",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "草稿阶段乐观锁版本"
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "COLUMN:proj_project_template_task_definition:work_binding_type_code",
+      "itemType": "COLUMN",
+      "table": "proj_project_template_task_definition",
+      "name": "work_binding_type_code",
+      "comparisonStatus": "ADDED",
+      "baselineValue": null,
+      "currentValue": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": null
+      },
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_template_task_definition:PRIMARY",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_template_task_definition",
+      "name": "PRIMARY",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "PRIMARY KEY (id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_template_task_definition:chk_project_template_task_definition_version",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_template_task_definition",
+      "name": "chk_project_template_task_definition_version",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "CONSTRAINT chk_project_template_task_definition_version CHECK (definition_version > 0)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_template_task_definition:idx_project_template_task_definition_tree",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_template_task_definition",
+      "name": "idx_project_template_task_definition_tree",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "KEY idx_project_template_task_definition_tree ( tenant_id, template_revision_id, stage_definition_key, parent_task_definition_key, sort_order )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_template_task_definition:uk_project_template_task_definition",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_template_task_definition",
+      "name": "uk_project_template_task_definition",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_template_task_definition ( tenant_id, template_revision_id, task_definition_key )",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "CONSTRAINT:proj_project_template_task_definition:uk_project_template_task_definition_tenant_row",
+      "itemType": "CONSTRAINT",
+      "table": "proj_project_template_task_definition",
+      "name": "uk_project_template_task_definition_tenant_row",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "UNIQUE KEY uk_project_template_task_definition_tenant_row (tenant_id, id)",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07",
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
+      "itemId": "TABLE_OPTION:proj_project_template_task_definition",
+      "itemType": "TABLE_OPTION",
+      "table": "proj_project_template_task_definition",
+      "comparisonStatus": "UNVERIFIED_BASELINE_MISSING",
+      "baselineValue": null,
+      "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目模板版本内的Stage-Task执行定义，发布后不可覆盖'",
+      "decision": "AMEND_CURRENT",
+      "decisionOwner": "REQUIREMENT_OWNER",
+      "reviewOwner": null,
+      "evidenceRefs": [
+        "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+      ]
+    },
+    {
       "itemId": "TABLE:srv_service_incident",
       "itemType": "TABLE",
       "table": "srv_service_incident",
@@ -42477,26 +46293,24 @@
   "q07Decision": {
     "decisionRef": "ADR-0023-Q07",
     "decision": "ACCEPT_CURRENT_FOR_SDS",
-    "decidedItemCount": 257,
+    "decidedItemCount": 282,
     "requirementOwnerStatus": "ACCEPTED",
     "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "q08Decision": {
     "decisionRef": "ADR-0023-Q08",
     "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
-    "decidedItemCount": 122,
+    "decidedItemCount": 130,
     "requirementOwnerStatus": "ACCEPTED",
     "performanceValidationStatus": "REQUIRED_AT_FEATURE_AND_P3_E06",
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
     "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
-  "v17DeltaDecision": {
-    "decisionRefs": [
-      "ADR-0025",
-      "ADR-0027"
-    ],
-    "decidedItemCount": 257,
-    "acceptedItemCount": 257,
+  "v18DeltaDecision": {
+    "decisionRef": "ADR-0030",
+    "decidedItemCount": 196,
+    "acceptedItemCount": 196,
+    "acceptedItemIdsSha256": "2EEE779BD667B1B1BDD1C11B0A4548A6E28E2BA706366C205AAD73F90C220629",
     "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "p3e09RequirementOwnerDecision": {
@@ -42509,8 +46323,8 @@
     "reviewStatus": "NOT_REQUIRED_PER_ITEM"
   },
   "modelBaseline": {
-    "status": "MODEL_BASELINE_READY",
-    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+    "status": "MODEL_BASELINE_REVIEW_PENDING",
+    "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
     "deferredItemCount": 0,
     "blocks": [
       "HISTORICAL_DATA_MIGRATION",

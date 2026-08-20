@@ -337,7 +337,7 @@ def validate_v18_physical_carriers(root: Path) -> list[str]:
             if marker not in texts[document_name]:
                 errors.append(f"V1.8 {document_name} carrier rule missing: {marker}")
 
-    for marker in ("ADR-0030", "PM-03", "PM-11", "CUT-03", "INT-12", "不创建或修改DDL/Flyway"):
+    for marker in ("ADR-0030", "PM-03", "PM-11", "CUT-03", "INT-12", "不授权历史迁移或数据切换"):
         if marker not in texts["decision"]:
             errors.append(f"V1.8 physical carrier decision missing marker: {marker}")
     gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", texts["gate"], re.MULTILINE)

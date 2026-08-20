@@ -621,6 +621,55 @@ def apply_accepted_v17_delta_decisions(
     return register
 
 
+def apply_accepted_v18_delta_decisions(
+    register: dict[str, object], contract: dict[str, object]
+) -> dict[str, object]:
+    """Bind the exact ADR-0030 six-table item set without a second item list."""
+    delta = contract.get("v18Delta", {})
+    if delta.get("status") != "ACCEPTED" or delta.get("ddlSha256") != register.get("currentDdlSha256"):
+        raise ValueError("V1.8 delta requires an ACCEPTED decision bound to the current DDL")
+    target_tables = {
+        table
+        for tables in delta.get("objectTargetTables", {}).values()
+        for table in tables
+    }
+    item_ids = sorted(
+        item["itemId"] for item in register["items"] if item.get("table") in target_tables
+    )
+    item_hash = sha256(
+        json.dumps(item_ids, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    )
+    if delta.get("acceptedDdlItemCount") != len(item_ids):
+        raise ValueError("V1.8 accepted delta item count mismatch")
+    if delta.get("acceptedDdlItemsSha256") != item_hash:
+        raise ValueError("V1.8 accepted delta item hash mismatch")
+    evidence_ref = delta.get("itemEvidenceRef")
+    if not isinstance(evidence_ref, str) or not evidence_ref:
+        raise ValueError("V1.8 accepted delta requires one versioned evidence reference")
+    decided = set(item_ids)
+    for item in register["items"]:
+        if item["itemId"] not in decided:
+            continue
+        item["decision"] = "AMEND_CURRENT"
+        item["decisionOwner"] = "REQUIREMENT_OWNER"
+        item["reviewOwner"] = None
+        if evidence_ref not in item["evidenceRefs"]:
+            item["evidenceRefs"].append(evidence_ref)
+    register["summary"]["approvedCount"] = 0
+    canonical = json.dumps(
+        register["items"], ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    register["itemsSha256"] = sha256(canonical)
+    register["v18DeltaDecision"] = {
+        "decisionRef": delta.get("decisionRef"),
+        "decidedItemCount": len(decided),
+        "acceptedItemCount": len(decided),
+        "acceptedItemIdsSha256": item_hash,
+        "reviewStatus": "NOT_REQUIRED_PER_ITEM",
+    }
+    return register
+
+
 def apply_accepted_q03_decisions(register: dict[str, object], contract: dict[str, object]) -> dict[str, object]:
     """Record ADR-0023 business-fact decisions without deciding Q07/Q08 physical details."""
     expected_facts = {
@@ -698,6 +747,7 @@ Q07_TEMPORAL_CHECKS = {
     "chk_configuration_parse_attempt_time", "chk_cutover_support_window",
     "chk_cutover_responsibility_dates", "chk_historical_work_order_dates",
     "chk_historical_time_dates", "chk_device_component_dates", "chk_directory_sync_times",
+    "chk_project_task_execution_contract_dates", "chk_cutover_checklist_item_result_selection",
 }
 Q07_NO_SELF_CHECKS = {
     "chk_device_relation_self", "chk_device_secondary_self", "chk_order_change_self",
@@ -711,6 +761,10 @@ Q07_NONNEGATIVE_CHECKS = {
     "chk_satisfaction_response_sequence", "chk_satisfaction_result_sequence",
     "chk_cutover_support_history_sequence", "chk_cutover_responsibility_interval_sequence",
     "chk_cutover_support_arrangement_no",
+    "chk_project_template_task_definition_version",
+    "chk_project_task_execution_contract_version",
+    "chk_project_task_completion_evaluation_version",
+    "chk_cutover_checklist_version", "chk_cutover_checklist_item_result_version",
 }
 
 
@@ -838,10 +892,14 @@ def apply_accepted_p3e09_confirmation_decisions(
 ) -> dict[str, object]:
     """Apply only the explicit item IDs in the current-hash nine-group confirmation packet."""
     confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
-    if not isinstance(confirmation, dict) or confirmation.get("status") != "ACCEPTED":
+    if not isinstance(confirmation, dict) or confirmation.get("status") not in {
+        "ACCEPTED", "HISTORICAL_ACCEPTED"
+    }:
         raise ValueError("P3-E09 nine-group Requirement Owner confirmation is not accepted")
-    if confirmation.get("ddlSha256") != register.get("currentDdlSha256") or packet.get("currentDdlSha256") != register.get("currentDdlSha256"):
-        raise ValueError("P3-E09 confirmation is not bound to the current DDL")
+    if packet.get("currentDdlSha256") != confirmation.get("ddlSha256"):
+        raise ValueError("P3-E09 confirmation packet is not bound to its historical DDL")
+    if confirmation.get("status") == "ACCEPTED" and confirmation.get("ddlSha256") != register.get("currentDdlSha256"):
+        raise ValueError("P3-E09 current confirmation is not bound to the current DDL")
     expected_codes = {"Q07", "Q08", "V1.7", "Q09", "Q10", "Q11", "Q12", "Q13", "Q14"}
     packet_groups = {group.get("code"): group for group in packet.get("groups", []) if isinstance(group, dict)}
     contract_groups = confirmation.get("groups", {})
@@ -857,10 +915,22 @@ def apply_accepted_p3e09_confirmation_decisions(
         if expected.get("itemIdsSha256") != confirmation_ids_sha256(item_ids):
             raise ValueError(f"P3-E09 confirmation group {code} item hash mismatch")
         decided.update(item_ids)
-    actual = {item["itemId"] for item in register["items"]}
-    missing = sorted(decided - actual)
+    actual_by_id = {item["itemId"]: item for item in register["items"]}
+    missing = sorted(decided - actual_by_id.keys())
     if missing:
         raise ValueError(f"P3-E09 confirmation references missing DDL items: {missing}")
+    packet_values = {
+        item["itemId"]: item.get("currentValue")
+        for group in packet_groups.values()
+        for item in group.get("items", [])
+        if isinstance(item, dict) and item.get("itemId")
+    }
+    changed = sorted(
+        identifier for identifier in decided
+        if actual_by_id[identifier].get("currentValue") != packet_values.get(identifier)
+    )
+    if changed:
+        raise ValueError(f"historically confirmed P3-E09 items changed in current DDL: {changed}")
     unconfirmed_defer = sorted(
         item["itemId"] for item in register["items"]
         if item.get("decision") == "DEFER" and item["itemId"] not in decided
@@ -1013,8 +1083,12 @@ def main() -> int:
         decision_register = apply_accepted_q07_q08_decisions(decision_register, core_contract_data)
     if core_contract_data.get("v17Delta", {}).get("status") == "ACCEPTED":
         decision_register = apply_accepted_v17_delta_decisions(decision_register, core_contract_data)
+    if core_contract_data.get("v18Delta", {}).get("status") == "ACCEPTED":
+        decision_register = apply_accepted_v18_delta_decisions(decision_register, core_contract_data)
     confirmation = core_contract_data.get("p3e09RequirementOwnerConfirmation", {})
-    if isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED":
+    if isinstance(confirmation, dict) and confirmation.get("status") in {
+        "ACCEPTED", "HISTORICAL_ACCEPTED"
+    }:
         decision_register = apply_accepted_p3e09_confirmation_decisions(
             decision_register,
             core_contract_data,

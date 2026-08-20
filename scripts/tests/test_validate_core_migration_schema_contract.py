@@ -744,5 +744,46 @@ ALTER TABLE ast_device_component_relation
                 self.assertTrue(any(expected_name in error for error in errors))
 
 
+class V18PhysicalCarrierContractTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.contract = json.loads(
+            (ROOT / "docs/traceability/core-migration-schema-contract.json").read_text(encoding="utf-8")
+        )
+        self.object_table_map = json.loads(
+            (ROOT / "docs/traceability/domain-object-table-map.json").read_text(encoding="utf-8")
+        )
+        self.ddl = (
+            ROOT
+            / "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql"
+        ).read_bytes().decode("utf-8-sig")
+
+    def test_v18_physical_carriers_match_accepted_contract(self) -> None:
+        self.assertEqual(
+            [],
+            MODULE.validate_v18_delta(self.contract, self.object_table_map, self.ddl),
+        )
+
+    def test_v18_physical_carriers_require_all_six_tables(self) -> None:
+        ddl = self.ddl.replace("CREATE TABLE cut_cutover_checklist_item_result", "CREATE TABLE removed_cut_result")
+        errors = MODULE.validate_v18_delta(self.contract, self.object_table_map, ddl)
+        self.assertTrue(any("cut_cutover_checklist_item_result" in error for error in errors), errors)
+
+    def test_v18_cut_result_rejects_dac_or_dispatch_status_copy(self) -> None:
+        ddl = self.ddl.replace(
+            "result_source_code VARCHAR(32)",
+            "dispatch_status_code VARCHAR(32)",
+        )
+        errors = MODULE.validate_v18_delta(self.contract, self.object_table_map, ddl)
+        self.assertTrue(any("dispatch_status_code" in error for error in errors), errors)
+
+    def test_v18_cut_result_requires_current_selection_interval(self) -> None:
+        ddl = self.ddl.replace(
+            "selection_ended_at DATETIME(3) NULL COMMENT",
+            "selection_closed_at DATETIME(3) NULL COMMENT",
+        )
+        errors = MODULE.validate_v18_delta(self.contract, self.object_table_map, ddl)
+        self.assertTrue(any("selection_ended_at" in error for error in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main()

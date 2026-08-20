@@ -71,15 +71,15 @@ RECOVERY_SWITCH_AUTH_REF = "docs/decisions/0017-disaster-recovery-switch-authori
 DEPLOYMENT_TIME_SELECTION_REF = "docs/decisions/0018-deployment-time-environment-and-kms-selection.md"
 MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
 Q07_DECISION = {
-    "technicalConstraintCount": 257,
-    "primaryKeyCount": 60,
-    "primaryKeyShape": {"singleId": 59, "compositeProjection": 1},
-    "tenantReferenceKeyCount": 60,
-    "sameDomainForeignKeyCount": 48,
-    "stableTechnicalCheckCount": 89,
+    "technicalConstraintCount": 282,
+    "primaryKeyCount": 66,
+    "primaryKeyShape": {"singleId": 65, "compositeProjection": 1},
+    "tenantReferenceKeyCount": 66,
+    "sameDomainForeignKeyCount": 52,
+    "stableTechnicalCheckCount": 98,
 }
 Q08_DECISION = {
-    "candidateIndexCount": 122,
+    "candidateIndexCount": 130,
     "featureQueryPlanValidationRequired": True,
     "p3e06PerformanceValidationRequired": True,
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",

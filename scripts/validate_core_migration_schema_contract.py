@@ -37,6 +37,85 @@ EXPECTED_V17_REQUIREMENTS = {
     "ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04", "CUT-04", "CUT-06",
     "EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03",
 }
+EXPECTED_V18_OBJECT_TABLES = {
+    "ProjectTemplate": {"proj_project_template_task_definition"},
+    "TaskWorkBinding": {"proj_project_task_execution_contract"},
+    "TaskCompletionEvaluation": {"proj_project_task_completion_evaluation"},
+    "CutoverChecklist": {
+        "cut_cutover_checklist",
+        "cut_cutover_checklist_item",
+        "cut_cutover_checklist_item_result",
+    },
+}
+EXPECTED_V18_REQUIREMENTS = {"PM-03", "PM-10", "PM-11", "CUT-01", "CUT-03", "INT-12"}
+EXPECTED_V18_REQUIRED_COLUMNS = {
+    "proj_project_template_task_definition": {
+        "template_revision_id", "stage_definition_key", "task_definition_key",
+        "parent_task_definition_key", "name", "sort_order", "work_binding_type_code",
+        "target_context_code", "target_object_type", "target_object_key", "component_key",
+        "dynamic_form_revision_id", "approval_definition_key", "binding_config",
+        "permission_policy_ref", "completion_rule_type_code", "completion_rule_config",
+        "gate_ref", "definition_version",
+    },
+    "proj_project_task_execution_contract": {
+        "project_task_id", "template_task_definition_id", "work_binding_type_code",
+        "target_context_code", "target_object_type", "target_object_key", "component_key",
+        "dynamic_form_revision_id", "approval_instance_id", "binding_parameter_snapshot",
+        "permission_policy_ref", "completion_rule_type_code", "completion_rule_snapshot",
+        "gate_ref", "source_definition_version", "contract_version", "effective_from",
+        "effective_to", "current_marker", "version",
+    },
+    "proj_project_task_completion_evaluation": {
+        "project_task_id", "execution_contract_id", "task_version", "contract_version",
+        "fact_context_code", "fact_object_type", "fact_object_key", "fact_version",
+        "evaluation_result_code", "unmet_item_snapshot", "gate_snapshot_ref", "command_id",
+        "idempotency_key", "evaluated_by", "evaluated_at",
+    },
+    "cut_cutover_checklist": {
+        "cutover_task_id", "assessment_id", "assessment_version", "checklist_version",
+        "status_code", "input_snapshot", "input_snapshot_hash", "config_revision_snapshot",
+        "match_trace", "config_gap_snapshot", "submitted_by", "submitted_at",
+        "invalidated_at", "invalidated_reason", "current_marker", "version",
+    },
+    "cut_cutover_checklist_item": {
+        "checklist_id", "stable_item_key", "item_definition_id", "item_definition_version",
+        "item_type_code", "item_name", "item_description", "interface_format_code",
+        "interface_schema_snapshot", "display_condition_snapshot", "work_mode_code",
+        "required_flag", "source_code", "device_id", "command_template_id", "matched_rule_id",
+        "matched_rule_version", "applicable_flag", "custom_creator_user_id", "sort_order", "version",
+    },
+    "cut_cutover_checklist_item_result": {
+        "checklist_item_id", "result_version", "result_source_code", "answer_snapshot",
+        "fact_description", "collection_task_id", "collection_result_reference_id",
+        "collection_result_version", "external_source_code", "query_condition_snapshot",
+        "queried_at", "load_failure_code", "manual_evidence_file_reference",
+        "selection_started_at", "selection_ended_at", "selected_by", "selection_reason_code",
+        "current_marker", "created_by", "created_at",
+    },
+}
+EXPECTED_V18_UNIQUE_KEYS = {
+    "proj_project_template_task_definition": {
+        "uk_project_template_task_definition": ("tenant_id", "template_revision_id", "task_definition_key"),
+    },
+    "proj_project_task_execution_contract": {
+        "uk_project_task_execution_contract_version": ("tenant_id", "project_task_id", "contract_version"),
+        "uk_project_task_execution_contract_current": ("tenant_id", "project_task_id", "current_marker"),
+    },
+    "proj_project_task_completion_evaluation": {
+        "uk_project_task_completion_evaluation_idempotency": ("tenant_id", "project_task_id", "idempotency_key"),
+    },
+    "cut_cutover_checklist": {
+        "uk_cutover_checklist_version": ("tenant_id", "cutover_task_id", "checklist_version"),
+        "uk_cutover_checklist_current": ("tenant_id", "cutover_task_id", "current_marker"),
+    },
+    "cut_cutover_checklist_item": {
+        "uk_cutover_checklist_item_key": ("tenant_id", "checklist_id", "stable_item_key"),
+    },
+    "cut_cutover_checklist_item_result": {
+        "uk_cutover_checklist_item_result_version": ("tenant_id", "checklist_item_id", "result_version"),
+        "uk_cutover_checklist_item_result_current": ("tenant_id", "checklist_item_id", "current_marker"),
+    },
+}
 EXPECTED_V17_UNIQUE_KEYS = {
     "imp_configuration_collection_result": {
         "uk_configuration_collection_result": ("tenant_id", "collection_task_id", "result_type_code", "result_version_no"),
@@ -106,6 +185,9 @@ EXPECTED_CURRENT_TABLE_SCOPE = {
     "proj_project_party": {"requirementRefs": ["PM-01"]},
     "proj_project_company_department_relation": {"requirementRefs": ["PM-01", "PM-08"]},
     "proj_project_member_assignment": {"requirementRefs": ["PM-01", "PM-08", "PM-09"]},
+    "proj_project_template_task_definition": {"requirementRefs": ["PM-03"]},
+    "proj_project_task_execution_contract": {"requirementRefs": ["PM-03", "PM-11"]},
+    "proj_project_task_completion_evaluation": {"requirementRefs": ["PM-10", "PM-11"]},
     "plt_business_document": {"requirementRefs": ["PLT-02"]},
     "plt_document_version": {"requirementRefs": ["PLT-02"]},
     "acc_deliverable_template": {"requirementRefs": ["ACC-04"]},
@@ -156,6 +238,9 @@ EXPECTED_CURRENT_TABLE_SCOPE = {
     "acc_satisfaction_result": {"requirementRefs": ["ACC-02", "CLO-01", "CLO-02", "SUB-03", "SUB-04"]},
     "cut_cutover_support_arrangement": {"requirementRefs": ["CUT-04"]},
     "cut_cutover_closure": {"requirementRefs": ["CUT-06"]},
+    "cut_cutover_checklist": {"requirementRefs": ["CUT-01", "CUT-03"]},
+    "cut_cutover_checklist_item": {"requirementRefs": ["CUT-03"]},
+    "cut_cutover_checklist_item_result": {"requirementRefs": ["CUT-03", "INT-12"]},
     "ast_device_component_relation": {"requirementRefs": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07", "EXE-03"]},
 }
 
@@ -302,6 +387,7 @@ TEMPORAL_CHECKS = {
     "chk_project_party_dates", "chk_service_incident_times",
     "chk_configuration_parse_attempt_time", "chk_cutover_support_window",
     "chk_cutover_responsibility_dates", "chk_device_component_dates",
+    "chk_project_task_execution_contract_dates", "chk_cutover_checklist_item_result_selection",
 }
 NO_SELF_CHECKS = {
     "chk_device_relation_self", "chk_device_secondary_self", "chk_order_change_self",
@@ -316,6 +402,10 @@ NONNEGATIVE_CHECKS = {
     "chk_satisfaction_response_sequence", "chk_satisfaction_result_sequence",
     "chk_cutover_support_history_sequence", "chk_cutover_responsibility_interval_sequence",
     "chk_cutover_support_arrangement_no",
+    "chk_project_template_task_definition_version",
+    "chk_project_task_execution_contract_version",
+    "chk_project_task_completion_evaluation_version",
+    "chk_cutover_checklist_version", "chk_cutover_checklist_item_result_version",
 }
 
 
@@ -395,6 +485,26 @@ def v17_table_contract_payload() -> dict[str, object]:
     }
 
 
+def v18_table_contract_payload() -> dict[str, object]:
+    return {
+        table: {
+            "requiredColumns": sorted(columns),
+            "uniqueKeys": {
+                name: list(key_columns)
+                for name, key_columns in EXPECTED_V18_UNIQUE_KEYS[table].items()
+            },
+        }
+        for table, columns in EXPECTED_V18_REQUIRED_COLUMNS.items()
+    }
+
+
+def v18_table_contract_sha256() -> str:
+    canonical = json.dumps(
+        v18_table_contract_payload(), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest().upper()
+
+
 def q07_q08_actual_counts(tables: dict[str, str], ddl: str) -> tuple[dict[str, object], int]:
     primary_count = 0
     single_id_primary_count = 0
@@ -456,7 +566,9 @@ def validate_v17_delta(
     if not isinstance(delta, dict):
         return ["V1.7 delta contract must be an object"]
     delta_status = delta.get("status")
-    if delta.get("decisionRef") != "ADR-0027" or delta_status not in {"BLOCKED_BY_REVIEW", "ACCEPTED"}:
+    if delta.get("decisionRef") != "ADR-0027" or delta_status not in {
+        "BLOCKED_BY_REVIEW", "ACCEPTED", "HISTORICAL_ACCEPTED"
+    }:
         errors.append("V1.7 delta metadata/status is invalid")
     if delta_status == "ACCEPTED":
         ddl_sha = hashlib.sha256(ddl.encode("utf-8")).hexdigest().upper()
@@ -587,6 +699,96 @@ def validate_v17_delta(
     relation_columns = {value.strip().lower() for value in relation_unique.split(",") if value.strip()}
     if relation_columns != {"tenant_id", "chassis_device_id", "current_slot_code"}:
         errors.append("V1.7 device component current unique key grain mismatch")
+    return errors
+
+
+def validate_v18_delta(
+    contract: dict[str, object], object_table_map: dict[str, object], ddl: str
+) -> list[str]:
+    """Validate the accepted V1.8 physical carrier delta from ADR-0030."""
+    errors: list[str] = []
+    tables = parse_tables(ddl)
+    expected_tables = set().union(*EXPECTED_V18_OBJECT_TABLES.values())
+    delta = contract.get("v18Delta", {})
+    if not isinstance(delta, dict):
+        return ["V1.8 delta contract must be an object"]
+    if delta.get("decisionRef") != "ADR-0030" or delta.get("status") != "ACCEPTED":
+        errors.append("V1.8 delta decision/status mismatch")
+    ddl_sha = hashlib.sha256(ddl.encode("utf-8")).hexdigest().upper()
+    if delta.get("ddlSha256") != ddl_sha:
+        errors.append("V1.8 accepted delta DDL hash mismatch")
+    if not isinstance(delta.get("acceptedDdlItemCount"), int) or not delta.get("acceptedDdlItemsSha256"):
+        errors.append("V1.8 accepted delta item coverage metadata is missing")
+    if set(delta.get("requirementRefs", [])) != EXPECTED_V18_REQUIREMENTS:
+        errors.append("V1.8 delta requirement reference set mismatch")
+    if delta.get("tableContractSha256") != v18_table_contract_sha256():
+        errors.append("V1.8 per-table column and constraint contract hash mismatch")
+    if delta.get("historicalMigrationPolicy") != "NONE_NEW":
+        errors.append("V1.8 physical carriers must not authorize historical migration")
+
+    declared = delta.get("objectTargetTables", {})
+    if not isinstance(declared, dict):
+        errors.append("V1.8 objectTargetTables must be an object")
+        declared = {}
+    declared_tables = {
+        table for values in declared.values() if isinstance(values, list) for table in values
+    }
+    if declared_tables != expected_tables:
+        errors.append("V1.8 delta must declare exactly the six approved target tables")
+    objects = object_table_map.get("objects", {})
+    if not isinstance(objects, dict):
+        objects = {}
+    for object_name, expected in EXPECTED_V18_OBJECT_TABLES.items():
+        if set(declared.get(object_name, [])) != expected:
+            errors.append(f"V1.8 contract table mapping mismatch: {object_name}")
+        mapped = objects.get(object_name, {})
+        mapped_tables = set(mapped.get("targetTables", [])) if isinstance(mapped, dict) else set()
+        if not expected.issubset(mapped_tables):
+            errors.append(f"V1.8 object table map mismatch: {object_name}")
+
+    generated_contracts = {
+        "proj_project_task_execution_contract.current_marker": "CASE WHEN effective_to IS NULL THEN 1 ELSE NULL END",
+        "cut_cutover_checklist.current_marker": "CASE WHEN invalidated_at IS NULL THEN 1 ELSE NULL END",
+        "cut_cutover_checklist_item_result.current_marker": "CASE WHEN selection_ended_at IS NULL THEN 1 ELSE NULL END",
+    }
+    for table in sorted(expected_tables):
+        body = tables.get(table)
+        if body is None:
+            errors.append(f"V1.8 target table missing: {table}")
+            continue
+        declarations = column_declarations(body)
+        for column in {"id", "tenant_id"} | EXPECTED_V18_REQUIRED_COLUMNS[table]:
+            if column not in declarations:
+                errors.append(f"V1.8 required column missing: {table}.{column}")
+        actual_keys = {name: normalized_columns(columns) for name, columns in unique_keys(body)}
+        for name, expected_columns in EXPECTED_V18_UNIQUE_KEYS[table].items():
+            if actual_keys.get(name) != expected_columns:
+                errors.append(f"V1.8 unique constraint shape mismatch: {table}.{name}")
+        for key, expression in generated_contracts.items():
+            expected_table, column = key.split(".", 1)
+            if table != expected_table:
+                continue
+            declaration = declarations.get(column, "")
+            generated = re.search(
+                r"GENERATED\s+ALWAYS\s+AS\s*\((.*?)\)\s*STORED",
+                declaration,
+                re.IGNORECASE | re.DOTALL,
+            )
+            if not generated or normalize_sql_expression(generated.group(1)) != normalize_sql_expression(expression):
+                errors.append(f"V1.8 generated expression mismatch: {table}.{column}")
+
+    result_columns = column_declarations(tables.get("cut_cutover_checklist_item_result", ""))
+    forbidden = sorted(column for column in result_columns if re.search(
+        r"(?:mapped|external|dispatch|schedule|collection|execution).*(?:status|state|phase|progress)|(?:status|state).*(?:mapped|external|dispatch|schedule|collection|execution)",
+        column,
+        re.IGNORECASE,
+    ))
+    if forbidden:
+        errors.append(f"V1.8 CUT result must not copy DAC or dispatch status columns: {forbidden}")
+    for table in ("proj_project_task_completion_evaluation", "cut_cutover_checklist_item_result"):
+        declarations = column_declarations(tables.get(table, ""))
+        for column in {"deleted", "updater", "update_time"} & declarations.keys():
+            errors.append(f"V1.8 immutable fact table contains mutable column: {table}.{column}")
     return errors
 
 
@@ -761,6 +963,11 @@ def accepted_decision_reference_errors(root: Path, contract: dict[str, object]) 
         reference = policy.get("decisionEvidenceRef")
         if not isinstance(reference, str) or not (root / reference.split("#", 1)[0]).is_file():
             errors.append(f"{policy_name} accepted decision evidence does not exist")
+    delta = contract.get("v18Delta", {})
+    if isinstance(delta, dict) and delta.get("status") == "ACCEPTED":
+        reference = delta.get("itemEvidenceRef")
+        if not isinstance(reference, str) or not (root / reference.split("#", 1)[0]).is_file():
+            errors.append("V1.8 accepted delta evidence does not exist")
     return errors
 
 
@@ -774,23 +981,37 @@ def validate_p3e09_requirement_confirmation(
 ) -> list[str]:
     errors: list[str] = []
     confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
-    accepted_policies = all(
-        contract.get(name, {}).get("status") == "ACCEPTED"
-        for name in ("q07TechnicalConstraintPolicy", "q08OrdinaryIndexPolicy", "v17Delta")
+    accepted_policies = (
+        contract.get("q07TechnicalConstraintPolicy", {}).get("status") == "ACCEPTED"
+        and contract.get("q08OrdinaryIndexPolicy", {}).get("status") == "ACCEPTED"
+        and contract.get("v17Delta", {}).get("status") in {"ACCEPTED", "HISTORICAL_ACCEPTED"}
+        and contract.get("v18Delta", {}).get("status") == "ACCEPTED"
     )
     if not accepted_policies:
         return errors
-    if not isinstance(confirmation, dict) or confirmation.get("status") != "ACCEPTED":
+    if not isinstance(confirmation, dict) or confirmation.get("status") not in {
+        "ACCEPTED", "HISTORICAL_ACCEPTED"
+    }:
         return ["accepted P3-E09 policies require the nine-group Requirement Owner confirmation"]
     if confirmation.get("decision") != "ALL_RECOMMENDED_A" or confirmation.get("reviewStatus") != "REVIEW_PENDING":
         errors.append("P3-E09 Requirement Owner confirmation state mismatch")
     if "approvedDdlSha256" in confirmation:
         errors.append("Requirement Owner confirmation must not define a migration approval hash")
-    ddl_sha = contract["q07TechnicalConstraintPolicy"].get("ddlSha256")
-    if confirmation.get("ddlSha256") != ddl_sha or packet.get("currentDdlSha256") != ddl_sha:
-        errors.append("P3-E09 confirmation DDL hash mismatch")
+    confirmation_ddl_sha = confirmation.get("ddlSha256")
+    if packet.get("currentDdlSha256") != confirmation_ddl_sha:
+        errors.append("P3-E09 confirmation packet historical DDL hash mismatch")
+    if confirmation.get("status") == "ACCEPTED" and (
+        confirmation_ddl_sha != contract["q07TechnicalConstraintPolicy"].get("ddlSha256")
+    ):
+        errors.append("P3-E09 current confirmation DDL hash mismatch")
     if confirmation.get("packetRef") != P3E09_CONFIRMATION_PACKET.as_posix():
         errors.append("P3-E09 confirmation packet reference mismatch")
+    if confirmation.get("status") == "HISTORICAL_ACCEPTED":
+        packet_path = root / P3E09_CONFIRMATION_PACKET
+        if not packet_path.is_file() or hashlib.sha256(packet_path.read_bytes()).hexdigest().upper() != confirmation.get(
+            "historicalAcceptedPacketFileSha256"
+        ):
+            errors.append("P3-E09 historical accepted packet file hash mismatch")
     expected_source_commit = "b490ed4e9bbd87f25b372fcf3ca6c91b30ee66fa"
     if confirmation.get("preConfirmationSourceCommit") != expected_source_commit:
         errors.append("P3-E09 pre-confirmation source commit mismatch")
@@ -881,6 +1102,11 @@ def main() -> int:
         json.loads(args.object_table_map.read_text(encoding="utf-8")),
         ddl_text,
     ))
+    errors.extend(validate_v18_delta(
+        contract,
+        json.loads(args.object_table_map.read_text(encoding="utf-8")),
+        ddl_text,
+    ))
     errors.extend(validate_execution_evidence(
         json.loads(args.execution_evidence.read_text(encoding="utf-8")),
         ddl_bytes,
@@ -890,7 +1116,7 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] ADR-0022/ADR-0027 core migration schema contract")
+    print("[PASS] ADR-0022/ADR-0027/ADR-0030 core migration schema contract")
     return 0
 
 

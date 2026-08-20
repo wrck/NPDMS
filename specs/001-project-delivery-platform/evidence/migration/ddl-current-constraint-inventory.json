@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "DEFER",
   "purpose": "AI-MIG-000_CURRENT_CONSTRAINT_REVIEW_INPUT",
-  "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-  "tableCount": 60,
-  "constraintCount": 447,
-  "inventorySha256": "3E5C1D29B8F1937E144AAC8D42F9587CAD0F674D6AD82C516AE208CF364648D0",
+  "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+  "tableCount": 66,
+  "constraintCount": 489,
+  "inventorySha256": "16774BF2EC19F56716319FBF61A10ACAD9046A45904354A374E522446F98D9E0",
   "records": [
     {
       "table": "acc_deliverable_template",
@@ -585,6 +585,50 @@
       "decision": "DEFER"
     },
     {
+      "table": "cut_cutover_checklist",
+      "constraints": [
+        "CONSTRAINT chk_cutover_checklist_version CHECK ( assessment_version > 0 AND checklist_version > 0 )",
+        "KEY idx_cutover_checklist_assessment ( tenant_id, assessment_id, assessment_version )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_cutover_checklist_current ( tenant_id, cutover_task_id, current_marker )",
+        "UNIQUE KEY uk_cutover_checklist_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_cutover_checklist_version ( tenant_id, cutover_task_id, checklist_version )"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-03调研及风险考察清单的输入、匹配与配置缺口版本'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist_item",
+      "constraints": [
+        "CONSTRAINT chk_cutover_checklist_item_applicable CHECK (applicable_flag IN (0, 1))",
+        "CONSTRAINT chk_cutover_checklist_item_required CHECK (required_flag IN (0, 1))",
+        "CONSTRAINT fk_cutover_checklist_item_checklist FOREIGN KEY (tenant_id, checklist_id) REFERENCES cut_cutover_checklist (tenant_id, id)",
+        "KEY idx_cutover_checklist_item_device (tenant_id, device_id, checklist_id)",
+        "KEY idx_cutover_checklist_item_type ( tenant_id, checklist_id, item_type_code, applicable_flag, sort_order )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_cutover_checklist_item_key ( tenant_id, checklist_id, stable_item_key )",
+        "UNIQUE KEY uk_cutover_checklist_item_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-03清单版本内稳定采集项、界面与匹配快照'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist_item_result",
+      "constraints": [
+        "CONSTRAINT chk_cutover_checklist_item_result_selection CHECK ( selection_ended_at IS NULL OR selection_ended_at >= selection_started_at )",
+        "CONSTRAINT chk_cutover_checklist_item_result_version CHECK (result_version > 0)",
+        "CONSTRAINT fk_cutover_checklist_item_result_item FOREIGN KEY (tenant_id, checklist_item_id) REFERENCES cut_cutover_checklist_item (tenant_id, id)",
+        "KEY idx_cutover_checklist_item_result_collection_task ( tenant_id, collection_task_id )",
+        "KEY idx_cutover_checklist_item_result_selected ( tenant_id, checklist_item_id, selection_started_at )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_cutover_checklist_item_result_current ( tenant_id, checklist_item_id, current_marker )",
+        "UNIQUE KEY uk_cutover_checklist_item_result_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_cutover_checklist_item_result_version ( tenant_id, checklist_item_id, result_version )"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'CUT-03直接填写、采集、外部加载和人工降级结果的追加事实'",
+      "decision": "DEFER"
+    },
+    {
       "table": "cut_cutover_closure",
       "constraints": [
         "CONSTRAINT chk_cutover_closure_execution CHECK (execution_normal IS NULL OR execution_normal IN (0, 1))",
@@ -845,6 +889,46 @@
         "UNIQUE KEY uk_project_relation_tenant_row (tenant_id, id)"
       ],
       "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '扩容、续采、改造等非树项目关系'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_task_completion_evaluation",
+      "constraints": [
+        "CONSTRAINT chk_project_task_completion_evaluation_version CHECK ( task_version > 0 AND contract_version > 0 )",
+        "CONSTRAINT fk_project_task_completion_evaluation_contract FOREIGN KEY (tenant_id, execution_contract_id) REFERENCES proj_project_task_execution_contract (tenant_id, id)",
+        "KEY idx_project_task_completion_evaluation_time ( tenant_id, project_task_id, evaluated_at, id )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_project_task_completion_evaluation_idempotency ( tenant_id, project_task_id, idempotency_key )",
+        "UNIQUE KEY uk_project_task_completion_evaluation_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ProjectTask完成规则对绑定事实的不可覆盖判定记录'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_task_execution_contract",
+      "constraints": [
+        "CONSTRAINT chk_project_task_execution_contract_dates CHECK ( effective_to IS NULL OR effective_to >= effective_from )",
+        "CONSTRAINT chk_project_task_execution_contract_version CHECK ( source_definition_version > 0 AND contract_version > 0 )",
+        "CONSTRAINT fk_project_task_execution_contract_definition FOREIGN KEY (tenant_id, template_task_definition_id) REFERENCES proj_project_template_task_definition (tenant_id, id)",
+        "KEY idx_project_task_execution_contract_target ( tenant_id, target_context_code, target_object_type, target_object_key )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_project_task_execution_contract_current ( tenant_id, project_task_id, current_marker )",
+        "UNIQUE KEY uk_project_task_execution_contract_tenant_row (tenant_id, id)",
+        "UNIQUE KEY uk_project_task_execution_contract_version ( tenant_id, project_task_id, contract_version )"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'ProjectTask当前及历史WorkBinding、权限与完成规则冻结契约'",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_template_task_definition",
+      "constraints": [
+        "CONSTRAINT chk_project_template_task_definition_version CHECK (definition_version > 0)",
+        "KEY idx_project_template_task_definition_tree ( tenant_id, template_revision_id, stage_definition_key, parent_task_definition_key, sort_order )",
+        "PRIMARY KEY (id)",
+        "UNIQUE KEY uk_project_template_task_definition ( tenant_id, template_revision_id, task_definition_key )",
+        "UNIQUE KEY uk_project_template_task_definition_tenant_row (tenant_id, id)"
+      ],
+      "tableOptions": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目模板版本内的Stage-Task执行定义，发布后不可覆盖'",
       "decision": "DEFER"
     },
     {

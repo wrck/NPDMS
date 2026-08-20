@@ -6,7 +6,7 @@
   "populationProfileStartedAt": "2026-08-05T00:58:22.284079600+08:00",
   "populationProfileFinishedAt": "2026-08-05T00:58:55.586141+08:00",
   "targetDdl": "appendices/project-order-physical-schema.mysql.sql",
-  "targetDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+  "targetDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
   "sourceTableCount": 18,
   "sourceColumnCount": 326,
   "mappedColumnCount": 326,

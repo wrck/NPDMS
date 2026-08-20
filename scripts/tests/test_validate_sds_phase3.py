@@ -90,13 +90,13 @@ class Phase3ValidatorTest(unittest.TestCase):
                     "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
                     "deferredItemCount": 1,
                     "q07Decision": {
-                        "status": "RECONFIRMATION_REQUIRED", "technicalConstraintCount": 257,
-                        "primaryKeyCount": 60, "tenantReferenceKeyCount": 60,
-                        "primaryKeyShape": {"singleId": 59, "compositeProjection": 1},
-                        "sameDomainForeignKeyCount": 48, "stableTechnicalCheckCount": 89,
+                        "status": "RECONFIRMATION_REQUIRED", "technicalConstraintCount": 282,
+                        "primaryKeyCount": 66, "tenantReferenceKeyCount": 66,
+                        "primaryKeyShape": {"singleId": 65, "compositeProjection": 1},
+                        "sameDomainForeignKeyCount": 52, "stableTechnicalCheckCount": 98,
                     },
                     "q08Decision": {
-                        "status": "RECONFIRMATION_REQUIRED", "candidateIndexCount": 122,
+                        "status": "RECONFIRMATION_REQUIRED", "candidateIndexCount": 130,
                         "featureQueryPlanValidationRequired": True,
                         "p3e06PerformanceValidationRequired": True,
                         "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",

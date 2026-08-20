@@ -1,27 +1,27 @@
 # P3-E09 数据模型基线独立复审记录
 
-> status: `APPROVED`<br>
-> conclusion: `GO`<br>
-> ddlSha256: `5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`<br>
-> itemsSha256: `36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D`<br>
-> itemCount: `1883`<br>
+> status: `IN_REVIEW`<br>
+> conclusion: `PENDING_FRESH_REVIEW`<br>
+> ddlSha256: `6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B`<br>
+> itemsSha256: `DD49BDEF20995CF3B17D85E946F678A0CD8CFB404A4A585A36E00401A273D60D`<br>
+> itemCount: `2079`<br>
 > deferCount: `0`<br>
-> testResult: `PASS`<br>
+> testResult: `PENDING`<br>
 
 ## 复审结论
 
-当前DDL、逐项裁决、派生制品哈希和隔离MySQL 8.4执行证据一致，`DEFER=0`，且P3-E09未定义迁移批准哈希。独立复审结论为`GO`，P3-E09可进入`MODEL_BASELINE_READY`并作为SDS/Feature模型输入。该结论不授权历史数据迁移或数据切换；只有包含这些范围的Release才适用`AI-MIG-000`，普通功能Release不受其阻断。
+ADR-0030六表已进入当前DDL和逐项寄存器，派生制品与隔离MySQL 8.4执行证据已同步，`DEFER=0`。由于DDL和item集合均发生变化，旧哈希独立复审结论自动失效；本记录已回落为`IN_REVIEW / PENDING_FRESH_REVIEW`，不得在新复审前宣称`MODEL_BASELINE_READY`。该状态不授权历史数据迁移或数据切换；只有包含这些范围的Release才适用`AI-MIG-000`。
 
 ## 已复审模型事实
 
 |项目|复审事实|
 |---|---|
 |Git 基线|Git原生保存commit ID、作者、时间和差异；复审记录不重复维护候选提交、日期或范围字段|
-|当前 DDL SHA-256|`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`|
-|逐项寄存器|`ddl-item-decision-register.json`，SHA-256 `36503D53…87D5D`，共 1,883 项；994 项 `ACCEPT_CURRENT`、889 项 `AMEND_CURRENT`、0 项 `DEFER`|
-|逐项决策证据|ADR-0019～ADR-0023、ADR-0025、ADR-0027、ADR-0028；逐项裁决已完成|
+|当前 DDL SHA-256|`6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B`|
+|逐项寄存器|`ddl-item-decision-register.json`，SHA-256 `DD49BDEF…3D60D`，共 2,079 项；994 项 `ACCEPT_CURRENT`、1,085 项 `AMEND_CURRENT`、0 项 `DEFER`|
+|逐项决策证据|ADR-0019～ADR-0023、ADR-0025、ADR-0027、ADR-0028历史清单及ADR-0030六表差量；逐项裁决已完成，整体一致性待复审|
 |隔离执行事实|MySQL 8.4.10 执行证据绑定同一当前 DDL 哈希，状态 `PASS`|
-|Q08|122 项候选索引；仍须由 Feature 查询计划及 P3-E06 性能验收验证|
+|Q08|130 项候选索引；仍须由 Feature 查询计划及 P3-E06 性能验收验证|
 |迁移批准哈希|P3-E09不定义该字段；未来历史迁移门禁按真实批次另行定义|
 
 ## 独立复审范围

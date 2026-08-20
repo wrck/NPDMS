@@ -56,7 +56,8 @@ def build(root: Path) -> dict[str, object]:
     by_id = {item["itemId"]: item for item in items}
     deferred = {item["itemId"] for item in items if item["decision"] == "DEFER"}
     confirmation = contract.get("p3e09RequirementOwnerConfirmation", {})
-    confirmed = isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED"
+    confirmation_status = confirmation.get("status") if isinstance(confirmation, dict) else None
+    confirmed = confirmation_status in {"ACCEPTED", "HISTORICAL_ACCEPTED"}
     if confirmed:
         source_commit = confirmation["preConfirmationSourceCommit"]
         frozen_register_bytes = git_blob(root, source_commit, REGISTER)
@@ -74,6 +75,22 @@ def build(root: Path) -> dict[str, object]:
             for group in frozen_packet["groups"]
         }
         confirmation_scope = set().union(*frozen_groups.values())
+        if confirmation_status == "HISTORICAL_ACCEPTED":
+            accepted_packet_bytes = (root / JSON_OUTPUT).read_bytes()
+            if hashlib.sha256(accepted_packet_bytes).hexdigest().upper() != confirmation.get(
+                "historicalAcceptedPacketFileSha256"
+            ):
+                raise ValueError("historical accepted P3-E09 packet file hash drift")
+            accepted_packet = json.loads(accepted_packet_bytes)
+            accepted_groups = {
+                group["code"]: {item["itemId"] for item in group["items"]}
+                for group in accepted_packet["groups"]
+            }
+            if accepted_groups != frozen_groups:
+                raise ValueError("historical accepted P3-E09 packet group drift")
+            if accepted_packet.get("currentDdlSha256") != confirmation.get("ddlSha256"):
+                raise ValueError("historical accepted P3-E09 packet DDL drift")
+            return accepted_packet
     else:
         frozen_groups = None
         confirmation_scope = deferred

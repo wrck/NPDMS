@@ -2,7 +2,7 @@
     "schemaVersion": 1,
     "phase": "SDS_PHASE_3",
     "baseline": "PRD_V1.8",
-    "overallStatus": "READY_FOR_SDS_BASELINE",
+    "overallStatus": "NOT_READY_FOR_SDS_BASELINE",
     "updatedAt": "2026-08-19",
     "decisionBaseline": "docs/decisions/0004-phase3-production-assurance-directions.md",
     "items": [
@@ -287,20 +287,20 @@
         },
         {
             "id": "P3-E09",
-            "status": "VERIFIED",
+            "status": "OPEN",
             "decisionOwner": "REQUIREMENT_OWNER",
-            "reviewOwner": "INDEPENDENT_REVIEWER",
+            "reviewOwner": null,
             "confirmedFacts": {
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
                 "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
                 "releaseApplicability": "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER",
                 "executionWindowPolicy": "APPROVED_WINDOW_ONLY",
-                "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+                "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "ACCEPT_CURRENT",
-                "decisionRegisterItemCount": 1883,
-                "modelDecisionStatus": "MODEL_BASELINE_READY",
+                "decisionRegisterItemCount": 2079,
+                "modelDecisionStatus": "MODEL_BASELINE_REVIEW_PENDING",
                 "deferredItemCount": 0,
                 "q03DecisionStatus": "ACCEPTED",
                 "q03CurrentBusinessFacts": {
@@ -312,19 +312,19 @@
                 },
                 "q07Decision": {
                     "status": "ACCEPTED",
-                    "technicalConstraintCount": 257,
-                    "primaryKeyCount": 60,
+                    "technicalConstraintCount": 282,
+                    "primaryKeyCount": 66,
                     "primaryKeyShape": {
-                        "singleId": 59,
+                        "singleId": 65,
                         "compositeProjection": 1
                     },
-                    "tenantReferenceKeyCount": 60,
-                    "sameDomainForeignKeyCount": 48,
-                    "stableTechnicalCheckCount": 89
+                    "tenantReferenceKeyCount": 66,
+                    "sameDomainForeignKeyCount": 52,
+                    "stableTechnicalCheckCount": 98
                 },
                 "q08Decision": {
                     "status": "ACCEPTED",
-                    "candidateIndexCount": 122,
+                    "candidateIndexCount": 130,
                     "featureQueryPlanValidationRequired": true,
                     "p3e06PerformanceValidationRequired": true,
                     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
@@ -332,27 +332,28 @@
                 "isolatedMysqlExecution": {
                     "status": "PASS",
                     "mysqlVersion": "8.4.10",
-                    "tableCount": 60,
-                    "columnCount": 1240,
-                    "constraintCount": 325
+                    "tableCount": 66,
+                    "columnCount": 1382,
+                    "constraintCount": 359
                 },
                 "requirementOwnerConfirmation": {
-                    "status": "ACCEPTED",
+                    "status": "HISTORICAL_ACCEPTED",
                     "decisionRef": "ADR-0028",
                     "groupCount": 9,
                     "confirmedUniqueItemCount": 695,
                     "reviewStatus": "REVIEW_PENDING"
                 },
-                "v17DeltaStatus": "ACCEPTED",
-                "mappingDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "itemIdsSha256": "3C40BB7B02F4DC3B588BF09D32564A6C175098518FC30173D27F15F6810A78F1",
-                "manifestDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "independentReviewRef": "docs/engineering/gates/phase-3/independent-review.md",
-                "targetCatalogDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "mysql84DdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "validationDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-                "independentReviewResult": "GO",
-                "itemsSha256": "36503D53BDBF9264E01D3FC59A157CCB5F8168D51159A0FCE29B688936F87D5D"
+                "v17DeltaStatus": "HISTORICAL_ACCEPTED",
+                "mappingDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+                "itemIdsSha256": "8DBB95DED5BA08D6184DA607B3EEC237FCF6763254F95D7971C9A226DA2F5C75",
+                "manifestDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+                "independentReviewRef": null,
+                "targetCatalogDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+                "mysql84DdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+                "validationDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+                "independentReviewResult": null,
+                "itemsSha256": "DD49BDEF20995CF3B17D85E946F678A0CD8CFB404A4A585A36E00401A273D60D",
+                "v18DeltaStatus": "ACCEPTED"
             },
             "evidenceRefs": [
                 "docs/decisions/0004-phase3-production-assurance-directions.md",

@@ -17,17 +17,17 @@ SPEC.loader.exec_module(MODULE)
 
 
 class Phase3P3E09RequirementConfirmationSyncTest(unittest.TestCase):
-    def test_sync_marks_model_ready_and_keeps_migration_blocks(self) -> None:
+    def test_sync_keeps_review_pending_and_migration_blocks(self) -> None:
         payload = json.loads((ROOT / MODULE.REGISTER).read_text(encoding="utf-8"))
         generated = MODULE.load_generator(ROOT).build_packets()["P3-E09"]
         result = MODULE.sync(payload, generated)
         item = next(row for row in result["items"] if row["id"] == "P3-E09")
         facts = item["confirmedFacts"]
         self.assertEqual(0, facts["deferredItemCount"])
-        self.assertEqual("MODEL_BASELINE_READY", facts["modelDecisionStatus"])
+        self.assertEqual("MODEL_BASELINE_REVIEW_PENDING", facts["modelDecisionStatus"])
         self.assertEqual("ACCEPT_CURRENT", facts["driftDecision"])
-        self.assertEqual("VERIFIED", item["status"])
-        self.assertEqual("INDEPENDENT_REVIEWER", item["reviewOwner"])
+        self.assertEqual("OPEN", item["status"])
+        self.assertIsNone(item["reviewOwner"])
         self.assertNotIn("approvedDdlSha256", facts)
         self.assertNotIn("candidateCommit", facts)
         self.assertNotIn("reviewDate", facts)
@@ -41,7 +41,7 @@ class Phase3P3E09RequirementConfirmationSyncTest(unittest.TestCase):
             facts["executionWindowPolicy"],
         )
         self.assertEqual({"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"}, set(item["blocks"]))
-        self.assertEqual("READY_FOR_SDS_BASELINE", result["overallStatus"])
+        self.assertEqual("NOT_READY_FOR_SDS_BASELINE", result["overallStatus"])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # SDS Phase 3 工程化自审
 
-> 日期：2026-08-19
+> 日期：2026-08-20
 > 状态：`REVALIDATION_REQUIRED`
 > 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`（Phase 1/2差量已完成；P3-E09新增DDL差量、100项测试追溯和本阶段独立复审未完成）
 > 边界：逻辑设计与证据契约已完成；生产环境、恢复、安全运行和性能证据保留为部署/专项验收/发布门禁，不代表生产就绪。
@@ -22,10 +22,10 @@
 | PRD语义 | PASS，0 semantic issues |
 | 13领域 | PASS，formal=100、V3=31、OUT_OF_SCOPE=9 |
 | Phase 2 | BASELINE，100项契约与追溯；READY_FOR_PHASE_3_V1.8 |
-| 领域实体迁移对齐 | BASELINE，85个显式数据对象、96项逐来源策略、1顶层排除源；新增执行契约/CUT清单对象已登记但DDL仍待Phase 3前向实现 |
+| 领域实体迁移对齐 | BASELINE，85个显式数据对象、96项逐来源策略、1顶层排除源；执行契约/CUT清单对象与ADR-0030六张目标表已对齐，未新增历史来源或迁移授权 |
 | Phase 3 | REVALIDATION_REQUIRED，5份分册、NFR精确阈值、100项测试/证据映射 |
 | Phase 3证据登记 | PASS-STRUCTURE；P3-E01～E09状态、Owner、事实、证据引用和最晚安全门禁可机器校验，但不代表Phase 3整体基线放行 |
-| 脚本单测 | PASS，235/235；覆盖Phase 1/2/3、割接边界、领域迁移、数据库命名、P3-E09模型事实和运行门禁 |
+| 脚本单测 | PASS，329/329；覆盖Phase 1/2/3、割接边界、领域迁移、数据库命名、ADR-0030六表、P3-E09模型事实和运行门禁 |
 | 业务命名 | PASS |
 | `git diff --check` | PASS |
 | 实现仓库前端`ts:check` | FAIL，exit code 1，登记P3-E08 |
@@ -33,8 +33,8 @@
 可复现命令：
 
 ```powershell
-py -3 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
-py -3 -B scripts\validate_prd_domain_generation.py --prd docs\baseline\prd-v1.7.md --domains specs\001-project-delivery-platform\domains
+py -3 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.8.md
+py -3 -B scripts\validate_prd_domain_generation.py --prd docs\baseline\prd-v1.8.md --domains specs\001-project-delivery-platform\domains
 py -3 -B scripts\validate_sds_phase2.py
 py -3 -B scripts\validate_domain_entity_migration_alignment.py
 py -3 -B scripts\validate_phase3_evidence_register.py
@@ -53,7 +53,7 @@ git diff --check
 | 发布/迁移/回退 | PASS-DESIGN | JDK25、pnpm9.15.5、宿主机应用边界、制品/hash/releaseId、Expand→Backfill→Verify→Switch→Contract、应用回退与数据库前滚修复明确 |
 | 性能 | PASS-DESIGN | 50用户/30分钟/≥10000请求/P95≤2秒/错误率≤0.5%、20万项目/200万任务、1万/5万树、2000直接子节点、深度30、50MB、99%/60秒均转为可执行口径 |
 | 测试 | REVALIDATION_REQUIRED | 正常、异常、权限拒绝、幂等、并发、集成、事件、文件、安全、浏览器和发布恢复矩阵需按100项重新复核 |
-| 数据/迁移 | REVALIDATION_REQUIRED | 08/09已吸收结构化数据元和历史迁移结论；当前领域迁移契约为81个对象、92项来源策略；CUT-11、目录快照、历史空壳及维护记录迁移仍被机器禁止。P3-E09模型事实可作为输入；仅包含历史迁移或数据切换的Release受`AI-MIG-000`阻断，普通功能发布不适用 |
+| 数据/迁移 | REVALIDATION_REQUIRED | 08/09已吸收结构化数据元和历史迁移结论；当前领域迁移契约为85个对象、96项来源策略、1顶层排除源；CUT-11、目录快照、历史空壳及维护记录迁移仍被机器禁止。ADR-0030六表与MySQL 8.4执行已通过，P3-E09因当前哈希变化待独立复审；仅包含历史迁移或数据切换的Release受`AI-MIG-000`阻断，普通功能发布不适用 |
 
 ## 4. 当前阻塞与影响
 
@@ -67,7 +67,7 @@ git diff --check
 | P3-E06 | 近生产性能环境、数据规模、网络和账号未登记 | 性能验收和生产发布 | 推荐独立性能环境，数据库/Redis/节点规格与生产同级或给出缩放模型；数据按19分册版本化生成 |
 | P3-E07 | 外部接口真实地址、认证、白名单、timeout/retry未逐接口登记 | 不阻塞通用设计，阻塞对应Feature联调/上线 | 推荐每个Feature进入实施前完成接口配置档案和真实沙箱契约验证 |
 | P3-E08 | 前端`ts:check`失败 | 阻塞前端Feature实现验收、E2E和正式发布 | 推荐独立治理为实现仓库质量工作包；先修公共类型/生成契约，再按PMS页面分组清零，不放宽规则 |
-| P3-E09 | 当前模型确认包与DDL/目录/隔离执行证据保持绑定；P3-E09不定义迁移批准哈希 | 仅含历史迁移或数据切换的Release | 仅允许作为SDS/Feature数据模型输入；适用Release的`AI-MIG-000`须在真实批次验证范围、水位、程序、对账和回退后达到`VERIFIED`，并只在批准窗口内执行。普通功能发布为`NOT_APPLICABLE`；Q08性能仍由Feature查询计划和P3-E06压测验收 |
+| P3-E09 | 当前66表DDL、2,079项寄存器、字段目录和MySQL 8.4证据已绑定；P3-E09不定义迁移批准哈希 | 当前哈希模型独立复审；历史迁移或数据切换只在对应Release中另行适用 | 当前保持`MODEL_BASELINE_REVIEW_PENDING`；完成整体一致性复审后才可恢复模型输入。适用Release的`AI-MIG-000`须在真实批次验证范围、水位、程序、对账和回退后达到`VERIFIED`，并只在批准窗口内执行；Q08的130项仍由Feature查询计划和P3-E06压测验收 |
 
 ## 5. 数据证据专项复核
 
@@ -82,4 +82,4 @@ git diff --check
 
 ## 6. 自审结论
 
-Phase 3本轮已完成V1.8文档口径修正，但尚未完成Phase 1/2前置复审、100项追溯复核和独立复审，因此保持`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8`。P3-E01～08继续按部署、集成、性能、恢复和发布门禁关闭；P3-E09只提供模型事实输入。`AI-MIG-000`按具体Release范围判断：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前`VERIFIED`并在批准窗口内执行。
+Phase 1/2前置复审已完成；Phase 3本轮已完成ADR-0030六表DDL、字段目录、逐项寄存器和MySQL 8.4隔离执行，但100项测试追溯复核、Phase 3正式分册复核及当前哈希独立复审尚未全部关闭，因此保持`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8`。P3-E01～08继续按部署、集成、性能、恢复和发布门禁关闭；P3-E09当前仅为待复审模型候选。`AI-MIG-000`按具体Release范围判断：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前`VERIFIED`并在批准窗口内执行。

@@ -97,6 +97,8 @@ TEMPORAL_CHECKS = {
     "chk_historical_time_dates",
     "chk_device_component_dates",
     "chk_directory_sync_times",
+    "chk_project_task_execution_contract_dates",
+    "chk_cutover_checklist_item_result_selection",
 }
 NO_SELF_CHECKS = {
     "chk_device_relation_self",
@@ -124,6 +126,11 @@ NONNEGATIVE_CHECKS = {
     "chk_cutover_support_history_sequence",
     "chk_cutover_responsibility_interval_sequence",
     "chk_cutover_support_arrangement_no",
+    "chk_project_template_task_definition_version",
+    "chk_project_task_execution_contract_version",
+    "chk_project_task_completion_evaluation_version",
+    "chk_cutover_checklist_version",
+    "chk_cutover_checklist_item_result_version",
 }
 CROSS_FIELD_CHECKS = {
     "chk_delivery_scope_detail_subject",
@@ -211,8 +218,10 @@ def render_decision_analysis(
     exact_match_fields: list[tuple[str, str, str, bool]],
     requirement_owner_accepted: bool,
     model_baseline_ready: bool,
+    decision_item_count: int,
 ) -> list[str]:
-    q07_status = "1,883项已决策；独立整体一致性复审已GO" if model_baseline_ready else ("1,883项已决策；待独立整体一致性复审" if requirement_owner_accepted else "当前哈希下仍须重新确认")
+    item_count_label = f"{decision_item_count:,}项"
+    q07_status = f"{item_count_label}已决策；独立整体一致性复审已GO" if model_baseline_ready else (f"{item_count_label}已决策；待独立整体一致性复审" if requirement_owner_accepted else "当前哈希下仍须重新确认")
     q08_status = "已接受为候选索引；独立整体一致性复审已GO，后续仍须性能验证" if model_baseline_ready else ("已接受为候选索引；待独立整体一致性复审及后续性能验证" if requirement_owner_accepted else "当前哈希Q08须重新确认")
     lines = [
         "",
@@ -389,6 +398,7 @@ def render(root: Path) -> str:
         and register.get("p3e09RequirementOwnerDecision", {}).get("requirementOwnerStatus") == "ACCEPTED"
     )
     model_baseline_ready = register.get("modelBaseline", {}).get("status") == "MODEL_BASELINE_READY"
+    item_count_label = f"{len(register['items']):,}项"
     review_label = "MODEL_BASELINE_READY" if model_baseline_ready else ("REQUIREMENT_OWNER_ACCEPTED / REVIEW_PENDING" if requirement_owner_accepted else "REVIEW_REQUIRED")
     decision_label = "逐项决策已完成；独立整体一致性复审已GO" if model_baseline_ready else ("逐项决策已完成，待独立整体一致性复审" if requirement_owner_accepted else "需确认")
 
@@ -476,6 +486,7 @@ def render(root: Path) -> str:
         exact_match_fields,
         requirement_owner_accepted,
         model_baseline_ready,
+        len(register["items"]),
     ))
     lines.extend([
         "",
@@ -513,7 +524,7 @@ def render(root: Path) -> str:
         "",
         "- `ACCEPT_CURRENT`表示接受当前DDL作为目标数据模型，不代表历史数据天然满足约束。",
         "- 历史数据违反已批准约束时进入迁移问题池并保留来源证据，不得静默删除、改写或临时放宽模型掩盖问题。",
-        "- 当前哈希九组决策已由需求方按ADR-0028接受，1,883项均已有逐项决策；独立复审已给出`GO`，仅复核制品、哈希和整体一致性，不重新逐项签署。P3-E09不定义迁移批准哈希；历史迁移门禁未来另行定义。" if model_baseline_ready else ("- 当前哈希九组决策已由需求方按ADR-0028接受，1,883项均已有逐项决策；独立复审只复核候选制品、哈希和整体一致性，不重新逐项签署。P3-E09不定义迁移批准哈希；历史迁移门禁未来另行定义。" if requirement_owner_accepted else "- 旧哈希下Q07/Q08决策已失效；当前哈希状态为RECONFIRMATION_REQUIRED，不得据此生成迁移批准。"),
+        f"- 当前哈希决策由ADR-0028历史清单与ADR-0030六表差量共同组成，{item_count_label}均已有逐项决策；独立复审已给出`GO`，仅复核制品、哈希和整体一致性，不重新逐项签署。P3-E09不定义迁移批准哈希；历史迁移门禁未来另行定义。" if model_baseline_ready else (f"- 当前哈希决策由ADR-0028历史清单与ADR-0030六表差量共同组成，{item_count_label}均已有逐项决策；独立复审只复核候选制品、哈希和整体一致性，不重新逐项签署。P3-E09不定义迁移批准哈希；历史迁移门禁未来另行定义。" if requirement_owner_accepted else "- 旧哈希下Q07/Q08决策已失效；当前哈希状态为RECONFIRMATION_REQUIRED，不得据此生成迁移批准。"),
         "- 本清单不授权连接或修改旧库，不授权执行生产迁移。",
         "",
     ])
