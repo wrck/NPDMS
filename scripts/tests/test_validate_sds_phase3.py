@@ -19,6 +19,7 @@ class Phase3ValidatorTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         (self.root / "docs" / "design").mkdir(parents=True)
+        (self.root / "docs" / "baseline").mkdir(parents=True)
         (self.root / "docs" / "traceability").mkdir(parents=True)
         (self.root / "docs" / "engineering" / "gates" / "phase-3").mkdir(parents=True)
         for relative_path in VALIDATOR.P3E09_STATE_ASSETS:
@@ -53,6 +54,13 @@ class Phase3ValidatorTest(unittest.TestCase):
         }
         synthetic_count = 100 - len(exact)
         identifiers = list(exact) + [f"REQ-{index:03d}" for index in range(1, synthetic_count + 1)]
+        prd_blocks = [
+            f"| 需求编号 | {identifier} |\n| 目标版本 | V1 |\n"
+            for identifier in identifiers
+        ]
+        (self.root / "docs" / "baseline" / "prd-v1.8.md").write_text(
+            "\n".join(prd_blocks), encoding="utf-8"
+        )
         for identifier in identifiers:
             detail = exact.get(identifier, "业务规则")
             blocks.append(
@@ -64,7 +72,8 @@ class Phase3ValidatorTest(unittest.TestCase):
             "> Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`\n\n" + "\n".join(blocks), encoding="utf-8"
         )
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md").write_text(
-            "APPROVED READY_FOR_SDS_BASELINE DOWNSTREAM-GATED MODEL_BASELINE_READY "
+            "> 审查状态：`APPROVED`\n> 结论：`READY_FOR_SDS_BASELINE_V1.8`\n"
+            "DOWNSTREAM-GATED MODEL_BASELINE_READY "
             "P3-E01 P3-E02 P3-E03 P3-E04 P3-E05 P3-E06 P3-E08 P3-E09 AI-MIG-000",
             encoding="utf-8",
         )
@@ -191,6 +200,16 @@ class Phase3ValidatorTest(unittest.TestCase):
         path.write_text(path.read_text(encoding="utf-8").replace("### REQ-092", "### REQ-091"), encoding="utf-8")
         self.assertTrue(any("expected 100" in item for item in VALIDATOR.validate(self.root)))
 
+    def test_equal_count_non_formal_requirement_substitution_fails(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        text = text.replace("### REQ-001", "### EQP-06", 1)
+        text = text.replace("PRD REQ-001", "PRD EQP-06", 1)
+        path.write_text(text, encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("must exactly match PRD V1.8" in item for item in errors), errors)
+
     def test_missing_requirement_acceptance_assertion_fails(self) -> None:
         path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
         path.write_text(
@@ -238,7 +257,8 @@ class Phase3ValidatorTest(unittest.TestCase):
     def test_v18_revalidation_gate_does_not_bypass_design_validation(self) -> None:
         gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
         gate.write_text(
-            "REVALIDATION_REQUIRED NOT_READY_FOR_SDS_BASELINE_V1.8 "
+            "> 审查状态：`REVALIDATION_REQUIRED`\n"
+            "> 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`\n"
             "P3-E09 AI-MIG-000 Q08候选索引 | Phase 1/2前置 | PASS |",
             encoding="utf-8",
         )
@@ -249,6 +269,18 @@ class Phase3ValidatorTest(unittest.TestCase):
         )
 
         self.assertTrue(any("秘密扫描" in error for error in VALIDATOR.validate(self.root)))
+
+    def test_gate_narrative_cannot_override_header_state(self) -> None:
+        gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
+        gate.write_text(
+            gate.read_text(encoding="utf-8")
+            .replace("`APPROVED`", "`IN_REVIEW`", 1)
+            + "\n历史结论曾为 REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8。\n",
+            encoding="utf-8",
+        )
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("invalid review state" in error for error in errors), errors)
 
     def test_v18_design_metadata_rejects_v17_baseline(self) -> None:
         security = self.root / "docs" / "design" / "14-security-design.md"

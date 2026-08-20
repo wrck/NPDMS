@@ -213,7 +213,7 @@ def render(prd: Path) -> str:
             f"- 工作流/状态：{spec.workflow}",
             f"- 授权与数据范围：{spec.authorization}",
             f"- Phase 3测试类别：{phase3_tests}",
-            f"- Phase 3验收断言：按PRD {identifier}业务验收标准，验证“{spec.workflow}”；越权、非法状态、版本冲突或不适用输入必须按“{spec.authorization}”拒绝且不产生业务副作用",
+            f"- Phase 3验收断言：按PRD {identifier}业务验收标准验证“{spec.workflow}”；越权按“{spec.authorization}”拒绝，适用的非法状态、版本冲突或无效输入由对应业务守卫拒绝，且不产生业务副作用",
             f"- Phase 3证据类型：{phase3_evidence}",
             "",
         ])

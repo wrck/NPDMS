@@ -24,9 +24,13 @@ P3E09_STATE_ASSETS = (
     "specs/001-project-delivery-platform/appendices/core-field-migration-completeness.md",
 )
 REQUIREMENT_HEADING = re.compile(r"^###\s+([A-Z]+-\d+)\s*$", re.M)
+PRD_REQUIREMENT_ROW = re.compile(r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$", re.M)
+PRD_TARGET_VERSION = re.compile(r"^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", re.M)
 PHASE3_TEST = re.compile(r"^- Phase 3测试类别：(.+?)\s*$", re.M)
 PHASE3_ASSERTION = re.compile(r"^- Phase 3验收断言：(.+?)\s*$", re.M)
 PHASE3_EVIDENCE = re.compile(r"^- Phase 3证据类型：(.+?)\s*$", re.M)
+GATE_REVIEW_STATE = re.compile(r"^>\s*审查状态：`([^`]+)`", re.M)
+GATE_CONCLUSION = re.compile(r"^>\s*结论：`([^`]+)`", re.M)
 STALE_V18_DESIGN_TEXT = (
     "SDS Phase 1/2 REVALIDATION_REQUIRED",
     "V1.8差量复审尚未完成",
@@ -49,9 +53,27 @@ def parse_contract_blocks(text: str) -> dict[str, str]:
     }
 
 
+def prd_formal_requirement_ids(text: str) -> list[str]:
+    """Extract the V1/V2 requirement IDs from the authoritative PRD blocks."""
+    matches = list(PRD_REQUIREMENT_ROW.finditer(text))
+    identifiers: list[str] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        version = PRD_TARGET_VERSION.search(text[match.end():end])
+        if version and version.group(1) in {"V1", "V2"}:
+            identifiers.append(match.group(1))
+    return identifiers
+
+
 def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
     """Validate the reopened V1.8 Phase 3 state without approving stale design assets."""
     errors: list[str] = []
+    state = GATE_REVIEW_STATE.search(gate)
+    conclusion = GATE_CONCLUSION.search(gate)
+    if not state or state.group(1) != "REVALIDATION_REQUIRED":
+        errors.append("Phase 3 V1.8 gate review state must be REVALIDATION_REQUIRED")
+    if not conclusion or conclusion.group(1) != "NOT_READY_FOR_SDS_BASELINE_V1.8":
+        errors.append("Phase 3 V1.8 gate conclusion must be NOT_READY_FOR_SDS_BASELINE_V1.8")
     require_tokens(errors, "Phase 3 V1.8 gate", gate, (
         "REVALIDATION_REQUIRED", "NOT_READY_FOR_SDS_BASELINE_V1.8",
         "P3-E09", "AI-MIG-000", "Q08候选索引", "| Phase 1/2前置 | PASS |",
@@ -78,7 +100,20 @@ def validate(root: Path) -> list[str]:
     revalidation = False
     if gate_path.exists():
         gate = gate_path.read_text(encoding="utf-8")
-        revalidation = "REVALIDATION_REQUIRED" in gate
+        state = GATE_REVIEW_STATE.search(gate)
+        conclusion = GATE_CONCLUSION.search(gate)
+        review_state = state.group(1) if state else None
+        gate_conclusion = conclusion.group(1) if conclusion else None
+        if review_state not in {"REVALIDATION_REQUIRED", "APPROVED"}:
+            errors.append(f"Phase 3 gate has invalid review state: {review_state}")
+        revalidation = review_state == "REVALIDATION_REQUIRED"
+        expected_conclusion = (
+            "NOT_READY_FOR_SDS_BASELINE_V1.8" if revalidation else "READY_FOR_SDS_BASELINE_V1.8"
+        )
+        if gate_conclusion != expected_conclusion:
+            errors.append(
+                f"Phase 3 gate conclusion mismatch; expected={expected_conclusion} actual={gate_conclusion}"
+            )
         if revalidation:
             errors.extend(validate_v18_revalidation(root, gate))
     design_dir = root / "docs" / "design"
@@ -132,6 +167,17 @@ def validate(root: Path) -> list[str]:
     ))
 
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+    prd_path = root / "docs" / "baseline" / "prd-v1.8.md"
+    prd_identifiers: list[str] = []
+    if not prd_path.exists():
+        errors.append("missing PRD V1.8 baseline for Phase 3 traceability")
+    else:
+        prd_identifiers = prd_formal_requirement_ids(prd_path.read_text(encoding="utf-8"))
+        if len(prd_identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(prd_identifiers)) != EXPECTED_REQUIREMENT_COUNT:
+            errors.append(
+                "PRD V1.8 expected 100 unique formal V1/V2 requirements for Phase 3 traceability; "
+                f"got rows={len(prd_identifiers)} unique={len(set(prd_identifiers))}"
+            )
     if not contract_path.exists():
         errors.append("missing explicit Phase 2/3 contract map")
     else:
@@ -142,6 +188,12 @@ def validate(root: Path) -> list[str]:
         blocks = parse_contract_blocks(contract_text)
         if len(blocks) != EXPECTED_REQUIREMENT_COUNT:
             errors.append(f"expected {EXPECTED_REQUIREMENT_COUNT} Phase 3 verification mappings, got {len(blocks)}")
+        if prd_identifiers and set(blocks) != set(prd_identifiers):
+            errors.append(
+                "Phase 3 verification mapping IDs must exactly match PRD V1.8 formal V1/V2 requirements; "
+                f"missing={sorted(set(prd_identifiers) - set(blocks))} "
+                f"extra={sorted(set(blocks) - set(prd_identifiers))}"
+            )
         for identifier, block in blocks.items():
             tests = PHASE3_TEST.findall(block)
             assertions = PHASE3_ASSERTION.findall(block)
@@ -174,10 +226,8 @@ def validate(root: Path) -> list[str]:
         errors.append("missing Phase 3 gate status")
     else:
         required_model_status = "MODEL_BASELINE_REVIEW_PENDING" if "MODEL_BASELINE_REVIEW_PENDING" in gate else "MODEL_BASELINE_READY"
-        required_review_status = "REVALIDATION_REQUIRED" if revalidation else "APPROVED"
-        required_overall_status = "NOT_READY_FOR_SDS_BASELINE_V1.8" if revalidation else "READY_FOR_SDS_BASELINE"
         require_tokens(errors, "Phase 3 gate", gate, (
-            required_review_status, required_overall_status, "P3-E01", "P3-E02", "P3-E03",
+            "P3-E01", "P3-E02", "P3-E03",
             "P3-E04", "P3-E05", "P3-E06", "P3-E08", "P3-E09", "AI-MIG-000", "DOWNSTREAM-GATED",
             required_model_status,
         ))
@@ -230,7 +280,10 @@ def main() -> int:
             print(f"[FAIL] {error}")
         return 1
     gate_path = args.root.resolve() / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
-    if gate_path.is_file() and "REVALIDATION_REQUIRED" in gate_path.read_text(encoding="utf-8"):
+    if gate_path.is_file() and (
+        (match := GATE_REVIEW_STATE.search(gate_path.read_text(encoding="utf-8")))
+        and match.group(1) == "REVALIDATION_REQUIRED"
+    ):
         print("[PASS] PRD V1.8 Phase 3 revalidation gate: 100 mappings; not released as SDS baseline")
         return 0
     print(f"[PASS] SDS Phase 3 documents, NFR controls and {EXPECTED_REQUIREMENT_COUNT} verification mappings")
