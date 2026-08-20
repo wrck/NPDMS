@@ -139,8 +139,45 @@ def is_markdown_separator(row: list[str]) -> bool:
     return bool(row) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in row)
 
 
+def markdown_renderable_lines(text: str) -> list[str]:
+    without_comments = re.sub(
+        r"<!--.*?(?:-->|$)",
+        lambda match: "".join("\n" if character == "\n" else " " for character in match.group(0)),
+        text,
+        flags=re.S,
+    )
+    renderable: list[str] = []
+    fence_character = ""
+    fence_length = 0
+    for line in without_comments.splitlines():
+        if fence_character:
+            closing = re.match(
+                rf"^ {{0,3}}{re.escape(fence_character)}{{{fence_length},}}\s*$",
+                line,
+            )
+            renderable.append("")
+            if closing:
+                fence_character = ""
+                fence_length = 0
+            continue
+
+        opening = re.match(r"^ {0,3}(`{3,}|~{3,})(?:[^`~].*)?$", line)
+        if opening:
+            marker = opening.group(1)
+            fence_character = marker[0]
+            fence_length = len(marker)
+            renderable.append("")
+            continue
+
+        if line.startswith("\t") or line.startswith("    "):
+            renderable.append("")
+            continue
+        renderable.append(line)
+    return renderable
+
+
 def markdown_table_blocks(text: str) -> list[list[list[str]]]:
-    lines = text.splitlines()
+    lines = markdown_renderable_lines(text)
     blocks: list[list[list[str]]] = []
     index = 0
     while index + 1 < len(lines):
