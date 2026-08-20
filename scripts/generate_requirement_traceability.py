@@ -353,10 +353,21 @@ def main() -> int:
     parser.add_argument("--prd", type=Path, required=True)
     parser.add_argument("--domains", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--check", action="store_true", help="compare generated content without writing")
     args = parser.parse_args()
+    generated = render(args.prd, args.domains, existing_feature_links(args.output))
+    if args.check:
+        if not args.output.is_file():
+            print(f"[FAIL] DRIFT: missing generated output {args.output}")
+            return 1
+        if read(args.output) != generated:
+            print(f"[FAIL] DRIFT: {args.output} does not match generator-owned content")
+            return 1
+        print(f"[PASS] requirement traceability is current: {args.output}")
+        return 0
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
-        render(args.prd, args.domains, existing_feature_links(args.output)),
+        generated,
         encoding="utf-8",
         newline="\n",
     )
