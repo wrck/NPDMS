@@ -88,10 +88,66 @@ class ValidateSdsPhase1Test(unittest.TestCase):
     def test_machine_gate_cannot_claim_ready_before_fresh_review(self) -> None:
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
-            "PENDING_FRESH_REVIEW",
+            "RE_REVIEW_REQUIRED",
             "APPROVED / READY_FOR_PHASE_2",
         )
         self.assertTrue(any("fresh-context" in error for error in errors), errors)
+
+    def test_version_scope_must_keep_v1_closure_and_v2_technical_notice(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/02e-version-scope-matrix.md",
+            "PM-10异常关闭和受控重开、CLO-02正常闭环",
+            "只维护ACTIVE项目",
+        )
+        self.assertTrue(any("version scope" in error for error in errors), errors)
+
+    def test_configuration_log_must_have_asset_owner(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/02c-data-ownership-matrix.md",
+            "ConfigurationLog原始文件、不可变解析版本和设备关联",
+            "配置Log关联",
+        )
+        self.assertTrue(any("ConfigurationLog Owner" in error for error in errors), errors)
+
+    def test_eqp02_traceability_must_include_configuration_log(self) -> None:
+        errors = self.validate_mutation(
+            "docs/traceability/requirement-matrix.md",
+            "ConfigurationLog / Device / DeviceArchive",
+            "Device / DeviceArchive",
+        )
+        self.assertTrue(any("EQP-02" in error for error in errors), errors)
+
+    def test_inspection_state_machine_must_keep_prd_states(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/05-state-machine.md",
+            "待准备、待预检、巡检中、待报告、待标注、待办跟踪中、已闭环、已归档、已取消",
+            "新建、准备、执行、报告、闭环",
+        )
+        self.assertTrue(any("Inspection state" in error for error in errors), errors)
+
+    def test_service_handover_event_must_have_one_producer(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/04-module-design.md",
+            "ServiceStatusChanged | 当前不创建持续服务跟踪对象",
+            "ServiceStatusChanged、ServiceHandoverCreated | 当前不创建持续服务跟踪对象",
+        )
+        self.assertTrue(any("ServiceHandoverCreated" in error for error in errors), errors)
+
+    def test_pm10_terminal_commands_need_operation_authorization(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/07-authorization-design.md",
+            "工程管理部关闭岗 | 关闭、重开",
+            "服务经理 | 关闭、重开",
+        )
+        self.assertTrue(any("PM-10 authorization" in error for error in errors), errors)
+
+    def test_formal_architecture_cannot_claim_runtime_gate_release(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/03-system-architecture.md",
+            "运行提交、证据批次、构建结果和放行结论只登记在对应工程门禁",
+            "Q2实现工作包门禁已解除",
+        )
+        self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
 
 if __name__ == "__main__":

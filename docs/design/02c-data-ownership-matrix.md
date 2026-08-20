@@ -11,7 +11,7 @@
 |---|---|---|
 | 项目、阶段、ProjectTask树、TASK_NATIVE通用任务事实、任务工作绑定和完成判定快照 | Project Delivery | TASK_NATIVE由ProjectTask自身承载；其他绑定业务对象仍由对应Context拥有，项目工作台通过查询/API装载，不复制业务正文 |
 | 到货、安装、实施结果解释、实施风险、质量检查、实施证据语义 | Implementation Execution | 通过查询、快照或事件引用；IMP-02安全检查不属于当前V1/V2 |
-| 设备身份、档案、客户/项目归属、安装位置、RMA/维保基本信息、配置Log关联 | AST / Asset Management | 实施和服务只引用；MES、ITR、备件必要主数据同步到本地，来源字段只读 |
+| 设备身份、档案、客户/项目归属、安装位置、RMA/维保基本信息、ConfigurationLog原始文件、不可变解析版本和设备关联 | AST / Asset Management | IMP发布采集业务结果和来源引用；AST/EQP-02接收后统一管理原始文件、解析版本与关联；MES、ITR、备件来源字段只读 |
 | 凭证、授权、采集任务、外部执行状态、原始结果引用、回调证据 | Device Access & Collection | 实施、割接、巡检通过任务契约使用；现有采集模块或子应用作为实现载体 |
 | CUT-01核心任务、问卷评估、P3调研清单及采集结果业务解释、方案、审批和P6闭环记录 | CUT | DAC只拥有CollectionTask技术执行与结果引用；项目只读任务进度和成功闭环结果；WO-06工单语义不进入CUT |
 | 巡检任务、规则、报告和问题 | Inspection（SRV） | 通过设备和 Device Access & Collection 任务契约使用 |

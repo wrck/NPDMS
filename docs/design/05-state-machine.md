@@ -20,7 +20,7 @@
 | Device | 无独立业务状态机（主数据事实）；设备状态、在网状态及停产停维状态使用来源事实和基础平台可配置字典 | 设备档案同步或受控平台扩展字段更新必须保留来源版本；项目归属变更不得隐式改写设备来源状态 | DeviceStatusSynchronized、DeviceOwnershipChanged |
 | CollectionTask | 创建、授权校验、已下发、执行中、回调中、已消费、完成、失败 | 幂等键、短期授权、回调签名/来源校验；失败只允许创建新的受控重试任务 | CollectionTaskDispatched、CollectionResultAvailable、CollectionCompleted |
 | CutoverTask | 待办理、等级确认中、调研中、方案编制中、审批中、驳回待修改、闭环中、已归档 | CUT-01贯穿P1～P6；P1是接入入口、工作台显示P2～P6；P3内部直接填写或关联CollectionTask不产生新状态；D级确认后跳过P3；P5任一否项驳回P4；P6提交形成归档闭环，最终成功才发布完成事件 | CutoverApproved、CutoverCompleted |
-| InspectionTask | 新建、准备、执行、报告、待办、闭环 | 在线/离线互斥；规则版本冻结；问题待办必须关闭或按规则转服务 | InspectionCompleted、InspectionClosed |
+| InspectionTask | 待准备、待预检、巡检中、待报告、待标注、待办跟踪中、已闭环、已归档、已取消 | INS-02.S1与INS-03完成后，在线分支进入待预检且仅INS-04通过后进入巡检中，离线分支直接进入巡检中；执行后依次经过INS-05报告、INS-06标注和INS-07闭环归档，不能跳过报告、标注或待办跟踪门禁 | InspectionCompleted、InspectionClosed |
 | DeliveryEvidence | 草稿、已上传、待审核、已通过、已驳回、已归档 | IMP 可在实施阶段上传并替换草稿；ACC 审核/归档；已归档版本不可被 IMP 覆盖 | DeliveryEvidenceUploaded、ArtifactAccepted |
 | ArrivalAcceptance | 草稿、部分签收、已签收、差异待处理、已确认 | 到货数量/序列号和证据校验；差异未确认不得作为齐套依据 | ArrivalAccepted、ArrivalDifferenceRaised |
 | InstallationRecord | 草稿、待确认、已安装、整改中、已确认 | 安装位置、照片和设备关联完整；整改完成后才能确认 | InstallationConfirmed、InstallationRemediationCreated |

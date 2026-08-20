@@ -11,13 +11,13 @@
 |---|---|---|---|---|---|
 | 项目治理 | 创建、指派、模板、项目树、Stage→ProjectTask工作台投影、TASK_NATIVE通用任务执行、其他业务绑定与完成判定、项目状态 | Project、ProjectTask、ProjectTemplate | CRM/ERP、组织主数据、非TASK_NATIVE绑定业务查询/API | ProjectCreated、ProjectStageChanged、TaskCompleted | 直接改设备/合同库、复制非TASK_NATIVE绑定业务正文、维护第二套导航树 |
 | 交付准备与方案 | 工勘、需求分析、计划、方案审核 | Preparation、Plan、Solution | Project、字典、文件 | PlanApproved、SolutionApproved | 直接改项目状态 |
-| 实施执行 | 到货签收、安装、配置Log、联调、风险、阶段质量检查、实施阶段交付件/证据上传 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence | Project、Device、CollectionTask、File | DeliveryEvidenceUploaded、ImplementationQualityChecked | 直接执行设备命令、直接改变验收归档状态；IMP-02安全检查不属于当前模块 |
+| 实施执行 | 到货签收、安装、配置Log采集业务结果、联调、风险、阶段质量检查、实施阶段交付件/证据上传 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence | Project、Device、CollectionTask、File | ConfigurationLogPublished、DeliveryEvidenceUploaded、ImplementationQualityChecked | 直接执行设备命令、拥有ConfigurationLog原始文件/不可变解析版本、直接改变验收归档状态；IMP-02安全检查不属于当前模块 |
 | 验收与闭环 | 培训、满意度收集、验收、交付件齐套校验、审核、统一归档、闭环交接 | Acceptance、SatisfactionCollection、ProjectClosure、Artifact | Project、DeliveryEvidence、File、Questionnaire | SatisfactionResultRecorded、ArtifactAccepted、ProjectClosureCompleted、ServiceHandoverCreated | 直接改财务事实、直接修改现场实施原始证据 |
 | 割接 | CUT-01任务、问卷评估、P3同工作台清单匹配/填写/采集回填、方案、审批和P6闭环 | CutoverTask、CutoverAssessment、CutoverPlan、CutoverClosure | Project、Device、CollectionTask | CutoverApproved、CutoverCompleted | 直接访问采集引擎、建设通用工单或独立采集阶段、逐步骤执行或稳定观察 |
 | 巡检 | INS-01～INS-09巡检任务、规则、报告和问题 | InspectionTask、InspectionRule、ServiceIssue | Device、Device Access & Collection、UMC | InspectionCompleted、IssueCreated | 读取凭证明文 |
-| 服务运营 | SRV-01设备服务状态；ACC-05持续服务跟踪仅为V3方向 | ServiceStatus、ServiceHandoverReference | Device、Customer、ProjectClosure | ServiceStatusChanged、ServiceHandoverCreated | 当前不创建持续服务跟踪对象，不直接改变设备主档核心身份 |
+| 服务运营 | SRV-01设备服务状态；ACC-05持续服务跟踪仅为V3方向 | ServiceStatus、ServiceHandoverReference | Device、Customer、ProjectClosureCompleted、ServiceHandoverCreated | ServiceStatusChanged | 当前不创建持续服务跟踪对象，不直接改变设备主档核心身份 |
 | 客户与关系 | 客户、联系人、客户关系和同步副本 | Customer、Contact、AssetRelation | CRM、Project、Asset Management | CustomerUpdated、CustomerSyncCompleted | 直接改变项目流程 |
-| 资产管理 | 设备档案、归属、维保基本信息和同步副本 | Device、DeviceArchive、RMAReplacement | MES、ITR、备件、Project | DeviceAssigned、AssetSyncCompleted | 直接改变项目状态 |
+| 资产管理 | 设备档案、归属、维保基本信息、ConfigurationLog原始文件/不可变解析版本和同步副本 | ConfigurationLog、Device、DeviceArchive、RMAReplacement | ConfigurationLogPublished、MES、ITR、备件、Project | ConfigurationLogVersionPublished、DeviceAssigned、AssetSyncCompleted | 改写IMP实施结论、直接改变项目状态 |
 | 合同履约 | ERP合同、订单行同步副本及项目交付范围主记录与明细 | Contract、OrderLine、DeliveryScope、DeliveryScopeDetail | ERP、Project | ScopeAllocated、ScopeReleased | 直接写 ERP；不创建COM-02履约回写/对账业务聚合 |
 | 资源外包 | 服务商、转包、付款满意度门禁 | Supplier、SubcontractRequest、PaymentGate | OA、Project、SatisfactionCollection | SubcontractApproved | 直接放行付款、修改满意度事实 |
 | 经营分析 | 项目组合、项目状态和经批准指标视图 | PortfolioView、MetricSnapshot | 各域只读事件 | ReportGenerated | 任何交易写操作、以其他事实伪造工时/人效指标 |

@@ -164,6 +164,12 @@ for _identifier in ("EQP-01", "EQP-02", "EQP-03", "EQP-04", "EQP-05", "EQP-07", 
         "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot",
         "数据一致性+归属+来源版本",
     )
+EXACT_PHASE1_DESIGN["EQP-02"] = (
+    "Asset Management", "ConfigurationLog / Device / DeviceArchive",
+    "ConfigurationLog不可变版本状态机；实施结果接收与设备关联流", "ProjectDeviceScope",
+    "AssetApplicationService", "ConfigurationLog、Device、DeviceArchive、FileReference、ParseVersion",
+    "原始文件不可覆盖+解析版本+设备关联+来源追溯",
+)
 for _identifier in ("COM-01",):
     EXACT_PHASE1_DESIGN[_identifier] = (
         "Contract & Delivery Scope", "Contract / SalesOrder / OrderLine / DeliveryScope / DeliveryScopeDetail",

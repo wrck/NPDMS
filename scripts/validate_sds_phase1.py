@@ -108,6 +108,16 @@ def matrix_mapping(text: str) -> tuple[dict[str, str], list[str]]:
     return mapping, duplicates
 
 
+def markdown_row(text: str, key: str) -> list[str]:
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if cells and cells[0] == key:
+            return cells
+    return []
+
+
 def require_markers(errors: list[str], label: str, text: str, markers: tuple[str, ...]) -> None:
     missing = [marker for marker in markers if marker not in text]
     if missing:
@@ -149,13 +159,32 @@ def validate(root: Path) -> list[str]:
     if leaked:
         errors.append(f"removed/deferred requirements returned to Phase 1 Owner scope: {leaked}")
 
-    matrix, matrix_duplicates = matrix_mapping(read(root / "docs/traceability/requirement-matrix.md"))
+    matrix_text = read(root / "docs/traceability/requirement-matrix.md")
+    matrix, matrix_duplicates = matrix_mapping(matrix_text)
     if matrix_duplicates or matrix != owners:
         errors.append(
             "requirement matrix Owner mapping must exactly equal Phase 1 Owner mapping; "
             f"duplicates={sorted(set(matrix_duplicates))} mismatched="
             f"{sorted(identifier for identifier in set(matrix) | set(owners) if matrix.get(identifier) != owners.get(identifier))}"
         )
+
+    version_scope = read(root / "docs/design/02e-version-scope-matrix.md")
+    project_scope_row = markdown_row(version_scope, "项目状态分层")
+    notice_scope_row = markdown_row(version_scope, "技术公告治理")
+    if (
+        len(project_scope_row) < 4
+        or "PM-10异常关闭和受控重开、CLO-02正常闭环" not in project_scope_row[1]
+        or "PM-10" in project_scope_row[2]
+        or "CLO-02" in project_scope_row[2]
+        or len(notice_scope_row) < 4
+        or "INT-04基础同步" not in notice_scope_row[2]
+        or "INT-04" in notice_scope_row[1]
+    ):
+        errors.append("version scope must keep PM-10/CLO-02 in V1 and INT-04 in V2")
+
+    eqp02_row = markdown_row(matrix_text, "EQP-02")
+    if len(eqp02_row) < 9 or "ConfigurationLog" not in eqp02_row[4] or "ConfigurationLog" not in eqp02_row[8]:
+        errors.append("EQP-02 traceability must assign ConfigurationLog aggregate and data ownership")
 
     domain = read(root / "docs/design/02-domain-model.md")
     state = read(root / "docs/design/05-state-machine.md")
@@ -172,10 +201,13 @@ def validate(root: Path) -> list[str]:
             "PM-10唯一产生EXCEPTION_CLOSED",
         ),
     )
-
     aggregate = read(root / "docs/design/02b-aggregate-boundary-decisions.md")
     workflow = read(root / "docs/design/06-workflow-design.md")
     authorization = read(root / "docs/design/07-authorization-design.md")
+    inspection_states = "待准备、待预检、巡检中、待报告、待标注、待办跟踪中、已闭环、已归档、已取消"
+    inspection_workflow = "在线进入待预检并经INS-04通过后执行，离线直接执行"
+    if inspection_states not in state or inspection_workflow not in workflow:
+        errors.append("Inspection state and workflow must preserve all PRD states and the INS-04 online guard")
     require_markers(
         errors,
         "TASK_NATIVE WorkBinding boundary",
@@ -190,6 +222,21 @@ def validate(root: Path) -> list[str]:
     )
     if "不以通用完成命令绕过目标业务事实" not in aggregate:
         errors.append("ProjectTask completion guard must reject generic completion for non-native business facts")
+
+    ownership = read(root / "docs/design/02c-data-ownership-matrix.md")
+    modules = read(root / "docs/design/04-module-design.md")
+    config_contract = read(root / "docs/design/02d-cross-context-contracts.md")
+    config_owner_checks = (
+        (domain, "ConfigurationLog原始文件、不可变解析版本和设备关联"),
+        (aggregate, "| ConfigurationLog | Asset Management |"),
+        (aggregate, "不拥有ConfigurationLog原始文件和不可变解析版本"),
+        (ownership, "ConfigurationLog原始文件、不可变解析版本和设备关联"),
+        (config_contract, "| ConfigurationLogPublished | Implementation Execution | Asset Management |"),
+        (modules, "| 资产管理 | 设备档案、归属、维保基本信息、ConfigurationLog原始文件/不可变解析版本"),
+    )
+    missing_config_owner = [marker for text, marker in config_owner_checks if marker not in text]
+    if missing_config_owner:
+        errors.append(f"ConfigurationLog Owner boundary missing markers: {missing_config_owner}")
 
     require_markers(
         errors,
@@ -218,6 +265,31 @@ def validate(root: Path) -> list[str]:
             "ACC-05持续服务跟踪仅为V3",
         ),
     )
+    acceptance_module = markdown_row(modules, "验收与闭环")
+    service_module = markdown_row(modules, "服务运营")
+    if (
+        len(acceptance_module) < 5
+        or "ServiceHandoverCreated" not in acceptance_module[4]
+        or len(service_module) < 5
+        or "ServiceHandoverCreated" not in service_module[3]
+        or "ServiceHandoverCreated" in service_module[4]
+        or "| ServiceHandoverCreated | Acceptance & Closure | Service Operations |" not in config_contract
+    ):
+        errors.append("ServiceHandoverCreated must have Acceptance & Closure as its single Producer")
+    if (
+        "| Project/PM-10 | 服务经理对本人主责且满足条件的项目发起回退 |" not in authorization
+        or "工程管理部关闭岗 | 关闭、重开" not in authorization
+        or "重开仅限EXCEPTION_CLOSED" not in authorization
+    ):
+        errors.append("PM-10 authorization must separate service-manager rollback from engineering close/reopen")
+
+    architecture = read(root / "docs/design/03-system-architecture.md")
+    if (
+        "运行提交、证据批次、构建结果和放行结论只登记在对应工程门禁" not in architecture
+        or "实现工作包门禁已解除" in architecture
+        or "NPDMS-SDS-P1-" in architecture
+    ):
+        errors.append("formal architecture must not embed mutable runtime evidence or gate-release claims")
 
     gate = read(root / "docs/engineering/gates/phase-1/gate-status.md")
     require_markers(
@@ -227,12 +299,12 @@ def validate(root: Path) -> list[str]:
         (
             "审查状态：`IN_REVIEW`",
             "结论：`NOT_READY_FOR_PHASE_2_V1.8`",
-            "PENDING_FRESH_REVIEW",
+            "RE_REVIEW_REQUIRED",
             "机器门禁：`PASS`",
         ),
     )
-    if "> 独立复审：`PENDING_FRESH_REVIEW`" not in gate:
-        errors.append("fresh-context independent review must remain pending until an external GO is recorded")
+    if "> 独立复审：`RE_REVIEW_REQUIRED`" not in gate:
+        errors.append("fresh-context independent re-review must remain required until the repaired candidate receives GO")
     if "READY_FOR_PHASE_2" in gate and "NOT_READY_FOR_PHASE_2" not in gate:
         errors.append("Phase 1 gate must not claim READY before fresh-context independent review")
 
@@ -241,14 +313,14 @@ def validate(root: Path) -> list[str]:
         errors,
         "Phase 1 self-review",
         self_review,
-        ("MACHINE_PASS", "PENDING_FRESH_REVIEW", "100/100", "13 个 Owner"),
+        ("MACHINE_PASS_AFTER_REPAIR", "RE_REVIEW_REQUIRED", "100/100", "13 个 Owner"),
     )
     independent = read(root / "docs/engineering/gates/phase-1/independent-review.md")
     require_markers(
         errors,
         "fresh-context independent review record",
         independent,
-        ("当前状态：`IN_REVIEW`", "当前结论：`PENDING_FRESH_REVIEW`", "不得据此放行Phase 2"),
+        ("当前状态：`IN_REVIEW`", "当前结论：`NO_GO`", "已评审候选：`dc3ed2a`", "修复候选：`PENDING`", "不得据此放行Phase 2"),
     )
     return errors
 

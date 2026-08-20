@@ -34,7 +34,7 @@ V1.8已重建100项工作追溯索引；V1.7的模块、聚合、状态机/工�
 | CUT 割接与稳定治理 | 割接任务、问卷分级、P3动态清单与采集结果、方案、分级审批、P6闭环和配置 | CUT-01～CUT-10 | CutoverTask、CutoverAssessment、CutoverChecklist、CutoverPlan、CutoverClosure | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |
 | SRV 服务运营 | 巡检、问题闭环和设备服务状态；内部 Context 拆为 Inspection、Service Operations | INS-01～INS-09、SRV-01 | InspectionTask、ServiceIssue、ServiceStatus | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |
 | CUS 客户与服务关系 | 客户、联系人、客户关系和 CRM 同步副本 | CUS-01～CUS-04、INT-03 | Customer、Contact、AssetRelation、CustomerSyncSnapshot | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |
-| AST 资产管理 | 设备序列号、设备档案、配置Log、维保客观状态和来源同步副本 | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |
+| AST 资产管理 | 设备序列号、设备档案、配置Log、维保客观状态和来源同步副本 | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | ConfigurationLog、Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |
 | COM 合同订单履约 | ERP权威合同订单引用和平台交付范围分配 | COM-01 | Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |
 | RES 资源与外包 | 服务商、转包申请与付款满意度门禁 | RES-01、SUB-01～SUB-05、INT-07 | Supplier、SubcontractRequest、PaymentGate | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |
 | ANA 经营分析 | 项目组合和项目状态统计 | ANA-01、RPT-02 | PortfolioView、MetricSnapshot | OWNER_CONFIRMED / INDEPENDENT_REVIEW_PENDING |

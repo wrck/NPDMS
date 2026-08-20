@@ -12,7 +12,8 @@
 | ProjectTask | Project Delivery | 单个任务身份、树关系、恰好一个当前WorkBinding/PermissionPolicy/CompletionRule/GateRef和完成判定快照；TASK_NATIVE由任务自身承载，其他类型引用Owner业务事实 | CreateTask、MoveTask、AssignTask、EvaluateTaskCompletion | 不复制或直接修改非TASK_NATIVE绑定业务对象，不以通用完成命令绕过目标业务事实 |
 | ArrivalAcceptance | Implementation Execution | 单次到货批次、序列号和签收证据 | ConfirmArrival、RaiseArrivalDifference | 不同步修改设备主档和验收结论 |
 | InstallationRecord | Implementation Execution | 一次安装记录及设备位置/照片 | RecordInstallation、ConfirmInstallation | 不修改到货签收状态 |
-| ConfigurationCollectionResult | Implementation Execution | 一次配置Log采集结果及解析版本 | ConsumeCollectionCallback、ConfirmParsedResult | 不下发设备命令、不持有凭证明文 |
+| ConfigurationCollectionResult | Implementation Execution | 一次配置Log采集业务结果、实施解析状态和结果引用 | ConsumeCollectionCallback、PublishConfigurationLogResult | 不下发设备命令、不持有凭证明文、不拥有ConfigurationLog原始文件和不可变解析版本 |
+| ConfigurationLog | Asset Management | EQP-02统一管理一个原始整机Log及其不可变解析版本、设备/板卡关联和来源证据 | AcceptConfigurationLog、PublishConfigurationLogVersion | 不改写IMP实施结论，不覆盖原始文件或既有解析版本 |
 | JointDebuggingResult | Implementation Execution | 一次业务联调结果及问题引用 | RecordDebuggingResult、ConfirmDebugging | 不改变割接执行状态 |
 | ImplementationRisk | Implementation Execution | 单机风险标记及处置记录 | RaiseRisk、CloseRisk | 不代替 CUT 风险矩阵 |
 | ImplementationQualityCheck | Implementation Execution | 阶段质量检查及整改复核 | SubmitQualityCheck、ReviewQuality、CompleteRemediation | 不直接关闭项目 |
