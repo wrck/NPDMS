@@ -125,22 +125,54 @@ def normalize_markdown_cell(value: str) -> str:
 
 
 def parse_markdown_row(line: str) -> list[str]:
-    if not line.lstrip().startswith("|"):
+    stripped = line.strip()
+    if "|" not in stripped:
         return []
-    return [normalize_markdown_cell(cell) for cell in line.strip().strip("|").split("|")]
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|"):
+        stripped = stripped[:-1]
+    return [normalize_markdown_cell(cell) for cell in stripped.split("|")]
 
 
 def is_markdown_separator(row: list[str]) -> bool:
     return bool(row) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in row)
 
 
+def markdown_table_blocks(text: str) -> list[list[list[str]]]:
+    lines = text.splitlines()
+    blocks: list[list[list[str]]] = []
+    index = 0
+    while index + 1 < len(lines):
+        header = parse_markdown_row(lines[index])
+        separator = parse_markdown_row(lines[index + 1])
+        if (
+            len(header) < 2
+            or len(separator) != len(header)
+            or not is_markdown_separator(separator)
+        ):
+            index += 1
+            continue
+
+        block = [header]
+        index += 2
+        while index < len(lines):
+            row = parse_markdown_row(lines[index])
+            if not row:
+                break
+            block.append(row)
+            index += 1
+        blocks.append(block)
+    return blocks
+
+
 def markdown_rows(text: str, key: str) -> list[list[str]]:
     result: list[list[str]] = []
     normalized_key = normalize_markdown_cell(key)
-    for line in text.splitlines():
-        cells = parse_markdown_row(line)
-        if cells and cells[0] == normalized_key:
-            result.append(cells)
+    for block in markdown_table_blocks(text):
+        for cells in block:
+            if cells and cells[0] == normalized_key:
+                result.append(cells)
     return result
 
 
@@ -378,14 +410,15 @@ def validate(root: Path) -> list[str]:
     ):
         errors.append(f"ConfigurationLog Owner boundary missing markers: {missing_config_owner}")
 
-    contract_header = markdown_row(config_contract, "契约")
-    contract_rows = []
+    contract_blocks = [
+        block
+        for block in markdown_table_blocks(config_contract)
+        if block and block[0] and block[0][0] == "契约"
+    ]
+    contract_header = contract_blocks[0][0] if len(contract_blocks) == 1 else []
+    contract_rows = [row for block in contract_blocks for row in block[1:]]
     malformed_contract_rows = []
-    for line in config_contract.splitlines():
-        cells = parse_markdown_row(line)
-        if not cells or cells[0] == "契约" or is_markdown_separator(cells):
-            continue
-        contract_rows.append(cells)
+    for cells in contract_rows:
         if len(cells) != 5:
             malformed_contract_rows.append(cells[0])
     contract_names = Counter(row[0] for row in contract_rows)
@@ -417,7 +450,8 @@ def validate(root: Path) -> list[str]:
         if "02d契约" not in " | ".join(markdown_row(matrix_text, identifier))
     )
     if (
-        contract_header[:5] != ["契约", "Requirement ID", "Producer", "Consumer", "语义"]
+        len(contract_blocks) != 1
+        or contract_header[:5] != ["契约", "Requirement ID", "Producer", "Consumer", "语义"]
         or len(contract_header) != 5
         or malformed_contract_rows
         or invalid_contract_requirements
