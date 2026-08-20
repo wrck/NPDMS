@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
+import json
+import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 
 SCRIPT_DIR = Path(__file__).parents[1]
+REPOSITORY_ROOT = SCRIPT_DIR.parent
 sys.path.insert(0, str(SCRIPT_DIR))
 MODULE_PATH = SCRIPT_DIR / "generate_phase3_evidence_packets.py"
 SPEC = importlib.util.spec_from_file_location("generate_phase3_evidence_packets", MODULE_PATH)
@@ -16,6 +20,26 @@ SPEC.loader.exec_module(GENERATOR)
 
 
 class Phase3EvidencePacketTest(unittest.TestCase):
+    def test_hash_bound_ddl_disables_checkout_line_ending_conversion(self) -> None:
+        relative = "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql"
+        attributes = subprocess.run(
+            ["git", "check-attr", "text", "diff", "--", relative],
+            cwd=REPOSITORY_ROOT,
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+        self.assertEqual(
+            [f"{relative}: text: unset", f"{relative}: diff: unset"],
+            attributes.splitlines(),
+        )
+
+        ddl_sha256 = hashlib.sha256((REPOSITORY_ROOT / relative).read_bytes()).hexdigest().upper()
+        evidence = json.loads(
+            (REPOSITORY_ROOT / GENERATOR.DDL_EXECUTION_EVIDENCE).read_text(encoding="utf-8")
+        )
+        self.assertEqual(evidence["ddlSha256"], ddl_sha256)
+
     def test_packet_coverage_and_decisions(self) -> None:
         packets = GENERATOR.build_packets()
         self.assertEqual({"P3-E01", "P3-E02", "P3-E03", "P3-E04", "P3-E05", "P3-E06", "P3-E07", "P3-E09"}, set(packets))
