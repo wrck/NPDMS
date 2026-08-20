@@ -3,8 +3,8 @@
 > 日期：2026-08-20<br>
 > 状态：`MACHINE_PASS_AFTER_REPAIR`<br>
 > 阶段结论：`RE_REVIEW_REQUIRED / NOT_READY_FOR_PHASE_2_V1.8`<br>
-> 已评审候选：`9b56dae`（`NO_GO`）<br>
-> 修复候选：`0fac3ab`（`REVIEW_PENDING`）<br>
+> 已评审候选：`5f9b569`（`NO_GO`）<br>
+> 修复候选：`4f72fea`（`REVIEW_PENDING`）<br>
 > 范围：PRD V1.8的100项V1/V2正式需求及Phase 1正式分册
 
 ## 1. 修复自审
@@ -24,8 +24,10 @@
 | PM-10重开副作用缺失 | 补齐原因、可恢复阶段、新责任事项和外部终止任务保护 | CLOSED_IN_`9b56dae` |
 | 六类矛盾设计可绕过第一版结构化门禁 | 统一规范化Markdown单元格和表形；增加正文冲突声明扫描；审查者原始六个变体均转绿 | CLOSED_IN_`b65a39e` |
 | 追溯生成器缺少只读检查 | 增加`--check`，内存重建、保留Feature列并在漂移时非零退出且不改文件 | CLOSED_IN_`6c8a7fa` |
-| 干净CRLF检出导致P3-E09三项测试失败 | 将哈希绑定DDL标记为binary并把既有`5EB974…4249`物理字节写入Git对象 | CLOSED_IN_`0fac3ab` |
-| 第三轮独立复审 | 登记`9b56dae`为NO-GO；固定`0fac3ab`为待fresh-context复审候选 | RE_REVIEW_REQUIRED |
+| 干净CRLF检出导致P3-E09三项测试失败 | 禁用哈希绑定DDL的换行转换并把既有`5EB974…4249`物理字节写入Git对象 | CLOSED_IN_`0fac3ab` |
+| HTML实体、跨行或无关否定词可隐藏业务冲突，合法查询/否定放行语句存在误报 | 解码实体并去除格式干扰；按巡检、PM-10、运行证据和Gate的局部业务动作识别；增加攻击与合法反例 | CLOSED_IN_`fb38703` |
+| DDL的`binary`属性隐藏SQL文本差异 | 改为`-text diff`，物理字节继续冻结、文本diff可见、merge保持未指定 | CLOSED_IN_`4f72fea` |
+| 第四轮独立复审 | 登记`5f9b569`为NO-GO；固定`4f72fea`为待fresh-context复审候选 | RE_REVIEW_REQUIRED |
 
 ## 2. 可复现校验
 
@@ -38,10 +40,10 @@ py -3 -B scripts/validate_prd_baseline.py --prd docs/baseline/prd-v1.8.md --repo
 git diff --check
 ```
 
-- Phase 1定点测试：30/30通过。
+- Phase 1定点测试：39/39通过。
 - 追溯生成器定点测试：3/3通过；正式矩阵`--check`通过。
 - `core.autocrlf=true`干净检出：DDL SHA-256仍为`5EB974…4249`，此前3个P3-E09错误关闭。
-- 脚本全量单元测试：280/280通过（在上述干净检出中复现）。
+- 脚本全量单元测试：290/290通过（在上述干净检出中复现）。
 - 正式需求Owner映射：100/100项由13 个 Owner唯一承接。
 - PRD正式基线：67/67通过；语义问题0项。
 - 13领域生成：正式100项、编号V3 31项、OUT_OF_SCOPE 9项。
@@ -49,7 +51,7 @@ git diff --check
 
 ## 3. 未关闭项
 
-- 修复候选已固定为`0fac3ab`，但`9b56dae`的NO-GO结论在重新复审前保持有效。
+- 修复候选已固定为`4f72fea`，但`5f9b569`的NO-GO结论在重新复审前保持有效。
 - 新候选必须执行fresh-context重新复审；本自审不得将自身升级为GO。
 - Phase 2物理模型和实现契约不属于本轮Phase 1修复范围。
 

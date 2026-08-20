@@ -227,7 +227,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_gate_cannot_mix_not_ready_with_approved_ready(self) -> None:
-        marker = "> 修复候选：`0fac3ab`（`REVIEW_PENDING`）"
+        marker = "> 修复候选：`4f72fea`（`REVIEW_PENDING`）"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
@@ -281,7 +281,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_gate_status_table_cannot_override_pending_metadata(self) -> None:
-        marker = "> 修复候选：`0fac3ab`（`REVIEW_PENDING`）"
+        marker = "> 修复候选：`4f72fea`（`REVIEW_PENDING`）"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
@@ -344,7 +344,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_conditional_prefix_cannot_hide_current_gate_release_claim(self) -> None:
-        marker = "> 修复候选：`0fac3ab`（`REVIEW_PENDING`）"
+        marker = "> 修复候选：`4f72fea`（`REVIEW_PENDING`）"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
