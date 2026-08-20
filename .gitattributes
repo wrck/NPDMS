@@ -7,7 +7,7 @@
 *.yaml text eol=lf
 
 # P3-E09证据按该DDL的物理字节计算SHA-256，禁止检出时转换换行符。
-specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql binary
+specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql -text diff
 
 *.docx binary
 *.xlsx binary

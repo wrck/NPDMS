@@ -5,6 +5,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -23,14 +24,18 @@ class Phase3EvidencePacketTest(unittest.TestCase):
     def test_hash_bound_ddl_disables_checkout_line_ending_conversion(self) -> None:
         relative = "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql"
         attributes = subprocess.run(
-            ["git", "check-attr", "text", "diff", "--", relative],
+            ["git", "check-attr", "text", "diff", "merge", "--", relative],
             cwd=REPOSITORY_ROOT,
             text=True,
             capture_output=True,
             check=True,
         ).stdout.strip()
         self.assertEqual(
-            [f"{relative}: text: unset", f"{relative}: diff: unset"],
+            [
+                f"{relative}: text: unset",
+                f"{relative}: diff: set",
+                f"{relative}: merge: unspecified",
+            ],
             attributes.splitlines(),
         )
 
@@ -39,6 +44,32 @@ class Phase3EvidencePacketTest(unittest.TestCase):
             (REPOSITORY_ROOT / GENERATOR.DDL_EXECUTION_EVIDENCE).read_text(encoding="utf-8")
         )
         self.assertEqual(evidence["ddlSha256"], ddl_sha256)
+
+    def test_hash_bound_ddl_remains_visible_as_text_diff(self) -> None:
+        relative = Path(
+            "specs/001-project-delivery-platform/appendices/"
+            "project-order-physical-schema.mysql.sql"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = root / relative
+            target.parent.mkdir(parents=True)
+            (root / ".gitattributes").write_text(f"{relative.as_posix()} -text diff\n", encoding="utf-8")
+            target.write_bytes(b"SELECT 1;\r\n")
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", ".gitattributes", relative.as_posix()], cwd=root, check=True)
+
+            target.write_bytes(b"SELECT 2;\r\n")
+            diff = subprocess.run(
+                ["git", "diff", "--", relative.as_posix()],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=True,
+            ).stdout
+
+        self.assertIn("-SELECT 1;", diff)
+        self.assertIn("+SELECT 2;", diff)
 
     def test_packet_coverage_and_decisions(self) -> None:
         packets = GENERATOR.build_packets()
