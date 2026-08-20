@@ -185,7 +185,7 @@ docker compose run --rm migrate validate
 
 ## 13. 100项覆盖方式
 
-`docs/traceability/phase2-contract-map.md`已为100项V1/V2正式需求逐项登记Phase 3测试类别和证据类型，并以`Phase 3验证注记状态：REVALIDATION_REQUIRED`与待复核的Phase 2契约字段隔离；相同聚合可以复用测试fixture，但每个Requirement必须能定位到专属业务用例/参数和验收断言，不能用一个“领域测试”占位。
+`docs/traceability/phase2-contract-map.md`已为100项V1/V2正式需求逐项登记Phase 3测试类别和证据类型，并以`Phase 3验证注记状态：READY_FOR_PHASE_3_V1.8`声明Phase 2契约已可作为测试设计输入；该状态不等于Phase 3测试已完成。相同聚合可以复用测试fixture，但每个Requirement必须能定位到专属业务用例/参数和验收断言，不能用一个“领域测试”占位。
 
 自动校验至少检查：100项ID集合一致；每项有正常/异常或适用性说明、权限/数据范围、幂等/并发适用性、测试层次和证据类型；NFR-01～03链接到本分册具体章节。
 

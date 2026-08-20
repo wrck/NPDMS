@@ -56,6 +56,21 @@ FORBIDDEN_HISTORICAL_USER_APIS = (
     "/historical-time-records",
 )
 
+V18_PHYSICAL_CARRIER_TABLES = (
+    "proj_project_template_task_definition",
+    "proj_project_task_execution_contract",
+    "proj_project_task_completion_evaluation",
+    "cut_cutover_checklist",
+    "cut_cutover_checklist_item",
+    "cut_cutover_checklist_item_result",
+)
+V18_PHYSICAL_CARRIER_OBJECTS = (
+    "TaskWorkBinding",
+    "TaskCompletionRule",
+    "TaskCompletionEvaluation",
+    "CutoverChecklist",
+)
+
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8-sig")
@@ -259,16 +274,137 @@ def active_requirement_ids(text: str) -> set[str]:
     return result
 
 
-def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
-    """Validate the intentionally reopened V1.8 contract state without blessing stale V1.7 SDS."""
+def validate_v18_physical_carriers(root: Path) -> list[str]:
+    """Validate the Phase 2 carrier design without pretending its DDL already exists."""
+    errors: list[str] = []
+    design = root / "docs" / "design"
+    paths = {
+        "model": design / "08-data-model.md",
+        "alignment": design / "08a-domain-entity-migration-alignment.md",
+        "database": design / "09-database-design.md",
+        "api": design / "10-api-design.md",
+        "event": design / "11-event-design.md",
+        "concurrency": design / "15-cache-and-concurrency.md",
+        "exception": design / "16-exception-and-idempotency.md",
+        "contract": root / "docs" / "traceability" / "phase2-contract-map.md",
+        "decision": root / "docs" / "decisions" / "0030-project-task-execution-contract-and-cutover-checklist-carriers.md",
+        "gate": root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md",
+    }
+    texts: dict[str, str] = {}
+    for name, path in paths.items():
+        if not path.is_file():
+            errors.append(f"missing V1.8 physical carrier document: {path.relative_to(root)}")
+            texts[name] = ""
+        else:
+            texts[name] = read(path)
+
+    for table in V18_PHYSICAL_CARRIER_TABLES:
+        if table not in texts["database"]:
+            errors.append(f"V1.8 database design missing physical carrier table: {table}")
+        if table not in texts["contract"]:
+            errors.append(f"V1.8 Phase 2 contract missing physical carrier table: {table}")
+
+    object_sources = texts["model"] + "\n" + texts["alignment"] + "\n" + texts["contract"]
+    for object_name in V18_PHYSICAL_CARRIER_OBJECTS:
+        if object_name not in object_sources:
+            errors.append(f"V1.8 physical carrier object is not traceable: {object_name}")
+
+    required_rules = {
+        "database": (
+            "TASK_NATIVE",
+            "current_marker",
+            "idempotency_key",
+            "stable_item_key",
+            "input_snapshot_hash",
+        ),
+        "api": (
+            "executionContractId/contractVersion",
+            "factObjectKey/factVersion",
+            "Idempotency-Key",
+        ),
+        "concurrency": (
+            "TaskCompletionEvaluation",
+            "checklistVersion + inputSnapshotHash",
+        ),
+        "exception": (
+            "TASK_NATIVE",
+            "VERSION_CONFLICT/BUSINESS_GATE",
+            "IDEMPOTENCY_CONFLICT",
+        ),
+    }
+    for document_name, markers in required_rules.items():
+        for marker in markers:
+            if marker not in texts[document_name]:
+                errors.append(f"V1.8 {document_name} carrier rule missing: {marker}")
+
+    for marker in ("ADR-0030", "PM-03", "PM-11", "CUT-03", "INT-12", "不创建或修改DDL/Flyway"):
+        if marker not in texts["decision"]:
+            errors.append(f"V1.8 physical carrier decision missing marker: {marker}")
+    gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", texts["gate"], re.MULTILINE)
+    gate_state = gate_state_match.group(1) if gate_state_match else None
+    if gate_state == "REVALIDATION_REQUIRED":
+        if "`PROPOSED_FOR_REVIEW`" not in texts["decision"] or "`ACCEPTED`" in texts["decision"]:
+            errors.append("ADR-0030 must remain PROPOSED_FOR_REVIEW while Phase 2 is REVALIDATION_REQUIRED")
+    elif gate_state == "APPROVED":
+        if "`ACCEPTED`" not in texts["decision"]:
+            errors.append("ADR-0030 must be ACCEPTED after the Phase 2 gate is approved")
+    else:
+        errors.append("V1.8 physical carrier gate state is not recognized")
+    if "ADR-0030" not in texts["database"]:
+        errors.append("V1.8 database design must reference ADR-0030")
+
+    cutover_section = texts["database"]
+    section_start = cutover_section.find("## 7. Cutover")
+    section_end = cutover_section.find("\n## 8.", section_start + 1) if section_start >= 0 else -1
+    if section_start < 0 or section_end < 0:
+        errors.append("V1.8 database design missing bounded CUT-03 carrier section")
+    else:
+        cutover_section = cutover_section[section_start:section_end]
+        result_row = next(
+            (line for line in cutover_section.splitlines() if line.startswith("| `cut_cutover_checklist_item_result`")),
+            "",
+        )
+        result_cells = markdown_cells(result_row)
+        result_fields = [] if len(result_cells) < 2 else [field.strip(" `") for field in result_cells[1].split("/")]
+        for selection_field in ("selection_started_at", "selection_ended_at"):
+            if selection_field not in result_fields:
+                errors.append(f"CUT-03 result carrier missing selection interval field: {selection_field}")
+        if "selection_ended_at is null" not in result_row or "checklist_item_id, current_marker" not in result_row:
+            errors.append("CUT-03 result carrier selection interval is not protected by the current-marker constraint")
+        for forbidden_status in result_fields:
+            if re.search(r"(?:status|state|dispatch|schedule)", forbidden_status, re.IGNORECASE):
+                errors.append(
+                    "CUT-03 result carrier must not copy DAC technical status: "
+                    f"{forbidden_status}"
+                )
+
+    formal_carrier_documents = (
+        "model", "alignment", "database", "api", "event", "concurrency", "exception", "decision", "contract",
+    )
+    for document_name in formal_carrier_documents:
+        if "BLOCKED_BY_DESIGN" in texts[document_name]:
+            errors.append(
+                "V1.8 physical carrier design still contains BLOCKED_BY_DESIGN: "
+                f"{paths[document_name].relative_to(root)}"
+            )
+    return errors
+
+
+def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
+    """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
     prd_path = root / "docs" / "baseline" / "prd-v1.8.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
-    required_gate_tokens = (
-        "REVALIDATION_REQUIRED", "NOT_READY_FOR_PHASE_3_V1.8", "100项",
-        "V1 53项", "V2 47项", "AI-MIG-000",
-    )
+    gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
+    gate_conclusion_match = re.search(r"^> 结论：`([^`]+)`", gate, re.MULTILINE)
+    expected_gate_state = "APPROVED" if approved else "REVALIDATION_REQUIRED"
+    expected_gate_conclusion = "READY_FOR_PHASE_3_V1.8" if approved else "NOT_READY_FOR_PHASE_3_V1.8"
+    if not gate_state_match or gate_state_match.group(1) != expected_gate_state:
+        errors.append(f"V1.8 Phase 2 gate state must be: {expected_gate_state}")
+    if not gate_conclusion_match or gate_conclusion_match.group(1) != expected_gate_conclusion:
+        errors.append(f"V1.8 Phase 2 gate conclusion must be: {expected_gate_conclusion}")
+    required_gate_tokens = ("100项", "V1 53项", "V2 47项", "AI-MIG-000")
     for token in required_gate_tokens:
         if token not in gate:
             errors.append(f"V1.8 Phase 2 gate missing token: {token}")
@@ -288,8 +424,9 @@ def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
     else:
         matrix = read(matrix_path)
         matrix_ids = REQUIREMENT_ROW.findall(matrix)
-        if matrix.count("SDS-V1.8-REVALIDATION_REQUIRED") != 100:
-            errors.append("every V1.8 requirement row must carry SDS revalidation evidence")
+        expected_sds_marker = "SDS-V1.8-PHASE2-BASELINE" if approved else "SDS-V1.8-REVALIDATION_REQUIRED"
+        if matrix.count(expected_sds_marker) != 100:
+            errors.append(f"every V1.8 requirement row must carry SDS evidence: {expected_sds_marker}")
     if set(matrix_ids) != set(prd_ids) or len(matrix_ids) != 100:
         errors.append("V1.8 PRD and requirement matrix must contain the same 100 IDs")
 
@@ -301,13 +438,32 @@ def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
         errors.extend(contract_errors)
         if set(contracts) != set(prd_ids) or len(contracts) != 100:
             errors.append("V1.8 Phase 2 contract map must contain the same 100 IDs")
-        for marker in ("文档状态：`REVALIDATION_REQUIRED`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`REVALIDATION_REQUIRED`"):
+        contract_markers = (
+            ("文档状态：`BASELINE`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`")
+            if approved
+            else ("文档状态：`REVALIDATION_REQUIRED`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`REVALIDATION_REQUIRED`")
+        )
+        for marker in contract_markers:
             if marker not in contract_text:
                 errors.append(f"V1.8 Phase 2 contract map missing marker: {marker}")
+
+    if approved:
+        for name in PHASE2_DOCS:
+            path = root / "docs" / "design" / name
+            if not path.is_file() or "文档状态：`BASELINE`" not in read(path):
+                errors.append(f"approved V1.8 Phase 2 document is not BASELINE: {name}")
+        for relative in (
+            "docs/traceability/domain-entity-migration-contract.json",
+            "docs/traceability/domain-object-table-map.json",
+        ):
+            path = root / relative
+            if not path.is_file() or json.loads(read(path)).get("status") != "BASELINE":
+                errors.append(f"approved V1.8 migration artifact is not BASELINE: {relative}")
 
     leaked = {"ACC-05", "COM-02", "IMP-02"} & (set(prd_ids) | set(matrix_ids))
     if leaked:
         errors.append(f"V1.8 removed/deferred requirements leaked into formal contracts: {sorted(leaked)}")
+    errors.extend(validate_v18_physical_carriers(root))
     return errors
 
 
@@ -316,8 +472,12 @@ def validate(root: Path) -> list[str]:
     gate_path = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
     if gate_path.is_file():
         gate = read(gate_path)
-        if "REVALIDATION_REQUIRED" in gate:
+        gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
+        gate_state = gate_state_match.group(1) if gate_state_match else None
+        if gate_state == "REVALIDATION_REQUIRED":
             return validate_v18_revalidation(root, gate)
+        if gate_state == "APPROVED" and "READY_FOR_PHASE_3_V1.8" in gate:
+            return validate_v18_revalidation(root, gate, approved=True)
     design = root / "docs" / "design"
     prd_path = root / "docs" / "baseline" / "prd-v1.7.md"
     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
@@ -584,9 +744,16 @@ def main() -> int:
         print(f"SUMMARY: {len(errors)} Phase 2 validation issues")
         return 1
     gate_path = args.root.resolve() / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
-    if gate_path.is_file() and "REVALIDATION_REQUIRED" in read(gate_path):
-        print("[PASS] PRD V1.8 Phase 2 revalidation gate: 100 requirements; not released for Phase 3")
-        return 0
+    if gate_path.is_file():
+        gate = read(gate_path)
+        gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
+        gate_state = gate_state_match.group(1) if gate_state_match else None
+        if gate_state == "REVALIDATION_REQUIRED":
+            print("[PASS] PRD V1.8 Phase 2 revalidation gate: 100 requirements; not released for Phase 3")
+            return 0
+        if gate_state == "APPROVED" and "READY_FOR_PHASE_3_V1.8" in gate:
+            print("[PASS] PRD V1.8 Phase 2 baseline: 100 requirements; ready for Phase 3 design")
+            return 0
     print(f"[PASS] SDS Phase 2 documents and {EXPECTED_REQUIREMENT_COUNT} requirement trace links")
     return 0
 

@@ -1,6 +1,6 @@
 ﻿# SDS Phase 2：异常与幂等设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：全部100项V1/V2正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
 > Owner：SDS Phase 2 应用与可靠性架构
@@ -102,7 +102,10 @@
 | ProjectTask绑定缺失或类型非法 | 模板发布/任务实例化拒绝；通用任务必须显式使用TASK_NATIVE，不允许以空绑定形成旁路 |
 | 非TASK_NATIVE绑定目标不存在/无权/版本失效 | 任务保持原状态；返回绑定错误或权限拒绝，不创建通用任务内容替代，不泄露目标是否存在 |
 | ProjectTask完成事实或规则版本冲突 | VERSION_CONFLICT/BUSINESS_GATE；重新读取事实和CompletionRule后评估，不按旧快照完成 |
-| CUT-03条件变化与采集回调并发 | DAC结果保留；CUT仅关联与当前清单版本/采集项相符的结果，其余进入待核对，不覆盖当前答案 |
+| ProjectTask完成判定失败 | 追加失败的TaskCompletionEvaluation及未满足项，不推进状态；同一幂等键重放返回原判定，改变请求摘要则IDEMPOTENCY_CONFLICT |
+| CUT-03条件变化与采集回调并发 | DAC结果保留；CUT仅关联与当前清单版本/stableItemKey/itemVersion/设备相符的结果，其余进入待核对，不覆盖当前答案、不复制DAC技术状态 |
+| CUT-03自动采集失败后人工降级 | 自动失败结果正文和原因保持不变；授权工程师在同一事务关闭旧选择区间并追加带人工证据的MANUAL结果，唯一当前选择冲突则整体回滚，不把原CollectionTask改写为成功 |
+| CUT-03已提交版本再次编辑 | VERSION_CONFLICT/BUSINESS_GATE；创建新清单版本并使下游未审批方案按PRD失效，不原位解锁或覆盖 |
 
 ## 8. 外部集成异常与降级
 

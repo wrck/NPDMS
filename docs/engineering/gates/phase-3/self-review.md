@@ -2,7 +2,7 @@
 
 > 日期：2026-08-19
 > 状态：`REVALIDATION_REQUIRED`
-> 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`（P3-E09仅作为模型事实输入；Phase 1/2差量、100项追溯和本阶段独立复审未完成）
+> 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`（Phase 1/2差量已完成；P3-E09新增DDL差量、100项测试追溯和本阶段独立复审未完成）
 > 边界：逻辑设计与证据契约已完成；生产环境、恢复、安全运行和性能证据保留为部署/专项验收/发布门禁，不代表生产就绪。
 
 > 方向决策：ADR-0004已批准`A、A、A、A、A、A、B、A`；本结论不关闭P3-E01～E08下游证据门禁。`AI-MIG-000`仅在Release包含历史迁移或数据切换时适用，须按真实批次验证并绑定批准窗口。
@@ -10,7 +10,7 @@
 ## 1. 审查范围
 
 - 正式分册：`14-security-design.md`、`17-audit-and-observability.md`、`18-deployment-design.md`、`19-performance-design.md`、`20-test-design.md`。
-- 上游：PRD V1.8、SDS Phase 1/2 REVALIDATION_REQUIRED、实现仓库`E:\AICoding\Projects\NPDMS`冻结提交及当前运行事实。
+- 上游：PRD V1.8、SDS Phase 1/2 BASELINE、实现仓库`E:\AICoding\Projects\NPDMS`冻结提交及当前运行事实。
 - 追溯：100项`phase2-contract-map.md`的Phase 3测试类别与证据类型。
 - 运行事实：JDK/Node/pnpm、MySQL/Redis/Flyway、宿主机应用边界、构建/类型检查和生产证据缺口。
 - 数据设计补充：结构化数据元、核心历史字段映射、项目—合同—订单行—设备迁移结论、ADR-0019～ADR-0022及DDL漂移门禁。
@@ -21,8 +21,8 @@
 |---|---|
 | PRD语义 | PASS，0 semantic issues |
 | 13领域 | PASS，formal=100、V3=31、OUT_OF_SCOPE=9 |
-| Phase 2 | REVALIDATION_REQUIRED，100项契约与追溯 |
-| 领域实体迁移对齐 | REVALIDATION_REQUIRED，81个显式数据对象、92项逐来源策略；CUT-11和已排除/后置对象不建立迁移目标，INT-04逻辑对象以前向迁移策略保留 |
+| Phase 2 | BASELINE，100项契约与追溯；READY_FOR_PHASE_3_V1.8 |
+| 领域实体迁移对齐 | BASELINE，85个显式数据对象、96项逐来源策略、1顶层排除源；新增执行契约/CUT清单对象已登记但DDL仍待Phase 3前向实现 |
 | Phase 3 | REVALIDATION_REQUIRED，5份分册、NFR精确阈值、100项测试/证据映射 |
 | Phase 3证据登记 | PASS-STRUCTURE；P3-E01～E09状态、Owner、事实、证据引用和最晚安全门禁可机器校验，但不代表Phase 3整体基线放行 |
 | 脚本单测 | PASS，235/235；覆盖Phase 1/2/3、割接边界、领域迁移、数据库命名、P3-E09模型事实和运行门禁 |

@@ -419,5 +419,46 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         self.assertTrue(any("must keep historical migration and data cutover blocked" in error for error in self._validate()))
 
 
+class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.repository_root = MODULE_PATH.parents[1]
+        cls.contract = json.loads(
+            (cls.repository_root / "docs/traceability/domain-entity-migration-contract.json").read_text(encoding="utf-8")
+        )
+        cls.records = {record["object"]: record for record in cls.contract["records"]}
+
+    def test_v18_physical_carrier_objects_have_exact_target_tables(self) -> None:
+        expected = {
+            "TaskWorkBinding": ["proj_project_task_execution_contract"],
+            "TaskCompletionRule": ["proj_project_task_execution_contract"],
+            "TaskCompletionEvaluation": ["proj_project_task_completion_evaluation"],
+            "CutoverChecklist": [
+                "cut_cutover_checklist",
+                "cut_cutover_checklist_item",
+                "cut_cutover_checklist_item_result",
+            ],
+        }
+
+        self.assertEqual(85, len(self.records))
+        for object_name, tables in expected.items():
+            with self.subTest(object_name=object_name):
+                self.assertEqual(tables, self.records[object_name]["targetTables"])
+                self.assertEqual(tables, self.contract["objectTableMap"][object_name]["targetTables"])
+
+    def test_v18_forward_initialization_does_not_infer_business_binding_or_cutover_results(self) -> None:
+        binding_source = self.records["TaskWorkBinding"]["sources"][0]
+        checklist_source = self.records["CutoverChecklist"]["sources"][0]
+
+        self.assertEqual("NONE_NEW", binding_source["sourceType"])
+        self.assertEqual("NEW_ONLY", binding_source["disposition"])
+        self.assertIn("TASK_NATIVE", binding_source["transform"])
+        self.assertIn("never infer", binding_source["transform"])
+        self.assertEqual("pms_cut_risk", checklist_source["sourceObject"])
+        self.assertEqual("PENDING_FIELD_MAPPING", checklist_source["mappingStatus"])
+        self.assertIn("never infer", checklist_source["transform"])
+        self.assertIn("CollectionTask", checklist_source["transform"])
+
+
 if __name__ == "__main__":
     unittest.main()

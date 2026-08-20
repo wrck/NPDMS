@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -609,7 +610,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             self.assertEqual([], MODULE.validate(root))
 
-    def test_current_v18_revalidation_state_is_coherent_and_not_ready(self) -> None:
+    def test_current_v18_baseline_state_is_coherent_and_ready_for_phase3_design(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         gate_path = repository_root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
         gate = gate_path.read_text(encoding="utf-8")
@@ -617,9 +618,184 @@ class ValidateSdsPhase2Test(unittest.TestCase):
         self.assertEqual([], MODULE.validate(repository_root))
         errors = MODULE.validate_v18_revalidation(
             repository_root,
-            gate.replace("NOT_READY_FOR_PHASE_3_V1.8", "READY_FOR_PHASE_3"),
+            gate.replace("READY_FOR_PHASE_3_V1.8", "NOT_READY_FOR_PHASE_3_V1.8"),
+            approved=True,
         )
-        self.assertTrue(any("NOT_READY_FOR_PHASE_3_V1.8" in error for error in errors), errors)
+        self.assertTrue(any("READY_FOR_PHASE_3_V1.8" in error for error in errors), errors)
+
+    def test_current_v18_physical_carrier_contract_is_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_v18_physical_carriers(repository_root))
+
+    def test_v18_physical_carrier_contract_rejects_missing_table(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "phase2-contract-map.md",
+                root / "docs" / "traceability" / "phase2-contract-map.md",
+            )
+            contract = root / "docs" / "traceability" / "phase2-contract-map.md"
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "proj_project_task_execution_contract、",
+                    "",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_v18_physical_carriers(root)
+
+            self.assertTrue(any("proj_project_task_execution_contract" in error for error in errors), errors)
+
+    def test_v18_cutover_checklist_must_not_copy_dac_status(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "phase2-contract-map.md",
+                root / "docs" / "traceability" / "phase2-contract-map.md",
+            )
+            database = root / "docs" / "design" / "09-database-design.md"
+            database.write_text(
+                database.read_text(encoding="utf-8").replace(
+                    "result_source_code",
+                    "mapped_status_code",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_v18_physical_carriers(root)
+
+            self.assertTrue(any("DAC technical status" in error for error in errors), errors)
+
+    def test_v18_cutover_checklist_rejects_renamed_dispatch_status(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            shutil.copytree(repository_root / "docs" / "decisions", root / "docs" / "decisions")
+            shutil.copytree(repository_root / "docs" / "engineering" / "gates" / "phase-2", root / "docs" / "engineering" / "gates" / "phase-2")
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "phase2-contract-map.md",
+                root / "docs" / "traceability" / "phase2-contract-map.md",
+            )
+            database = root / "docs" / "design" / "09-database-design.md"
+            database.write_text(
+                database.read_text(encoding="utf-8").replace(
+                    "result_source_code/answer_snapshot",
+                    "result_source_code/dispatch_status_code/answer_snapshot",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_v18_physical_carriers(root)
+
+            self.assertTrue(any("DAC technical status" in error for error in errors), errors)
+
+    def test_v18_revalidation_rejects_prematurely_accepted_adr(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            shutil.copytree(repository_root / "docs" / "decisions", root / "docs" / "decisions")
+            shutil.copytree(repository_root / "docs" / "engineering" / "gates" / "phase-2", root / "docs" / "engineering" / "gates" / "phase-2")
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "phase2-contract-map.md",
+                root / "docs" / "traceability" / "phase2-contract-map.md",
+            )
+            gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
+            gate.write_text(
+                gate.read_text(encoding="utf-8").replace("> 审查状态：`APPROVED`", "> 审查状态：`REVALIDATION_REQUIRED`", 1),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_v18_physical_carriers(root)
+
+            self.assertTrue(any("must remain PROPOSED_FOR_REVIEW" in error for error in errors), errors)
+
+    def test_v18_revalidation_rejects_blocked_by_design_in_alignment(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            shutil.copytree(repository_root / "docs" / "decisions", root / "docs" / "decisions")
+            shutil.copytree(repository_root / "docs" / "engineering" / "gates" / "phase-2", root / "docs" / "engineering" / "gates" / "phase-2")
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "phase2-contract-map.md",
+                root / "docs" / "traceability" / "phase2-contract-map.md",
+            )
+            alignment = root / "docs" / "design" / "08a-domain-entity-migration-alignment.md"
+            alignment.write_text(
+                alignment.read_text(encoding="utf-8") + "\nBLOCKED_BY_DESIGN\n",
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_v18_physical_carriers(root)
+
+            self.assertTrue(any("still contains BLOCKED_BY_DESIGN" in error for error in errors), errors)
+
+    def test_v18_approved_gate_accepts_reviewed_adr(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            shutil.copytree(repository_root / "docs" / "decisions", root / "docs" / "decisions")
+            shutil.copytree(repository_root / "docs" / "engineering" / "gates" / "phase-2", root / "docs" / "engineering" / "gates" / "phase-2")
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "phase2-contract-map.md",
+                root / "docs" / "traceability" / "phase2-contract-map.md",
+            )
+            decision = root / "docs" / "decisions" / "0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+            decision.write_text(
+                decision.read_text(encoding="utf-8").replace("`PROPOSED_FOR_REVIEW`", "`ACCEPTED`", 1),
+                encoding="utf-8",
+            )
+            gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
+            gate.write_text(
+                gate.read_text(encoding="utf-8").replace(
+                    "> 审查状态：`REVALIDATION_REQUIRED`",
+                    "> 审查状态：`APPROVED`",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual([], MODULE.validate_v18_physical_carriers(root))
+
+    def test_v18_cutover_result_requires_selection_interval(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            shutil.copytree(repository_root / "docs" / "decisions", root / "docs" / "decisions")
+            shutil.copytree(repository_root / "docs" / "engineering" / "gates" / "phase-2", root / "docs" / "engineering" / "gates" / "phase-2")
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "phase2-contract-map.md",
+                root / "docs" / "traceability" / "phase2-contract-map.md",
+            )
+            database = root / "docs" / "design" / "09-database-design.md"
+            database.write_text(
+                database.read_text(encoding="utf-8").replace("selection_ended_at/", "", 1),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_v18_physical_carriers(root)
+
+            self.assertTrue(any("selection interval" in error for error in errors), errors)
 
 
 if __name__ == "__main__":

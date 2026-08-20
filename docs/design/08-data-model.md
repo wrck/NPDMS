@@ -1,12 +1,13 @@
 ﻿# SDS Phase 2：数据模型
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
 > 实现证据：`docs/engineering/gates/phase-2/implementation-fact-inventory.md`
 > 领域实体迁移对齐：`08a-domain-entity-migration-alignment.md`
+> 工作绑定与清单承载决策：ADR-0029、ADR-0030
 
 ## 1. 设计目标与边界
 
@@ -98,6 +99,7 @@
 | ProjectTask | 聚合根 | 任务身份、负责人、计划、状态、层级、恰好一个当前工作绑定和完成判定 | `parentTaskId` 可空；无固定深度；层级与依赖关系正交；TASK_NATIVE由任务自身承载，其他类型不复制目标业务正文；完成按绑定事实与规则派生 |
 | TaskWorkBinding | ProjectTask值对象 | 绑定类型、目标Context/对象/标识、受信任组件键或表单/审批引用、参数和版本快照 | 类型限TASK_NATIVE/BUSINESS_OBJECT/BUSINESS_COMPONENT/DYNAMIC_FORM/APPROVAL/COMPOSITE；TASK_NATIVE不得配置外部目标；变更须受控生成新绑定版本 |
 | TaskCompletionRule | ProjectTask值对象 | 规则类型、事实选择器、规则版本、GateRef和最后判定快照 | 只引用可验证事实；规则评估与状态迁移同一ProjectTask事务留痕 |
+| TaskCompletionEvaluation | ProjectTask追加事实 | 一次完成命令使用的任务、绑定、规则、目标事实版本，判定结果、未满足项和门禁快照引用 | 不可覆盖；成功判定与任务状态迁移同事务；通知、HTTP或目标组件加载成功不能代替判定 |
 | ProjectWorkspaceProjection | 可重建投影 | 项目概览六页签、Stage→ProjectTask导航、允许操作和投影水位 | 不作为业务真值；不保存第二套导航结构；权限变化后可重建 |
 | TaskAncestorProjection | 可重建投影 | 任务祖先/后代查询路径 | 【建议】支持权限过滤、批量统计和树分页 |
 | TaskDependency | 关系实体 | 前置/后置依赖及依赖类型 | 不得用父子层级替代依赖；依赖图不得产生受控规则禁止的循环 |
@@ -178,7 +180,9 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Context | 聚合根 | Owner 事实 | 关键边界 |
 |---|---|---|---|
 | Cutover | CutoverTask | P1～P6统一任务身份、来源上下文、人工等级和阶段状态 | 不派生CUT保障工单；状态仅由P1～P6业务结果推进 |
-| Cutover | CutoverChecklist（CutoverTask从属版本实体） | P3输入快照、匹配规则版本、采集项版本/控件、答案、CollectionTask与结果引用、重新匹配差异 | 与P3同生命周期；不建立独立采集阶段；技术回调不直接产生业务通过 |
+| Cutover | CutoverChecklist（CutoverTask从属版本实体） | P3输入快照、匹配规则版本、配置缺口、提交/失效事实和重新匹配差异 | 与P3同生命周期；D级无清单；提交后不可覆盖，不建立独立采集阶段 |
+| Cutover | CutoverChecklistItem（版本内实体） | 稳定项键、采集项定义/界面/条件/工作方式快照、必填性、设备/命令模板引用、自定义来源和当前适用性 | 系统必填项不可删除；重匹配按稳定项键保留或移出，前端不按名称硬编码 |
+| Cutover | CutoverChecklistItemResult（追加事实） | 直接填写、自动采集、外部加载或人工降级结果，CollectionTask/结果版本、失败与人工证据引用、选择有效区间 | 结果正文不可覆盖；每项只允许一个未结束的当前选择区间；DAC技术状态不复制为CUT状态；回调成功不直接产生业务通过 |
 | Cutover | CutoverAssessment | 问卷版本、项目输入上下文、人工选择、人工等级和P5复核引用 | 自动建议等级仅V3；P2不增加审批节点 |
 | Cutover | CutoverPlan | 调研项、风险项、操作/验证/回退清单、附件、保障人员安排和批准版本 | 清单是方案内容而非执行状态；职责变化新建revision，联系人类变化留前后审计 |
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |

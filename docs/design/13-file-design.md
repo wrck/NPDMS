@@ -1,6 +1,6 @@
 ﻿# SDS Phase 2：文件设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PLT-02，以及 PRE-02/04/05、SOL、EXE-01～04、IMP-01、ACC-01～04、ACC-06、CLO、CUT、INS、RES/SUB、INT-06/07/12 等使用文件和证据的正式需求
 > Owner：基础平台 File Capability；业务含义、审核和归档状态仍由引用该文件的 Owner Context 持有

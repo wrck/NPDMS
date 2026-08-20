@@ -1,6 +1,6 @@
 ﻿# SDS Phase 2：事件设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：本分册覆盖全部 100 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
 > Owner：SDS Phase 2 事件与集成架构
@@ -86,7 +86,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `ProjectTreeChanged` | Project Delivery | Authorization/AST/ANA | changeBatchId + treeVersion | 一次无环树变更已提交；投影可据此重建 |
 | `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移 |
 | `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion + lifecycleStatus + closeReason | 项目关闭事实成立；NORMAL_CLOSED仅来自CLO-02，EXCEPTION_CLOSED来自PM-10，消费方不得据此新增维护阶段 |
-| `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion + completionSnapshotId | 任务指派/完成事实；完成事件仅在CompletionRule对绑定事实和版本校验成功后发布 |
+| `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion + executionContractId/contractVersion + completionEvaluationId + factVersion | 任务指派/完成事实；完成事件仅在CompletionRule回源校验绑定事实和版本、追加判定事实并完成状态迁移后发布 |
 | `ProjectConversionCompleted` | Project Delivery | IMP/CUT/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
 | `ProjectConversionPartiallyFailed` | Project Delivery | Todo/运维 | conversionId + aggregateVersion + failedItemRefs | 仅表示原批次仍待处理；成功项不回滚、不重复生成 |
 | `ProjectPhaseGroupChanged` | Project Delivery | Project Query/ANA | groupId + groupVersion + changedProjectIds | PM-06 多期关系有效版本变化；不改变成员项目自身状态 |
@@ -120,7 +120,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |
 | `CutoverApproved` | CUT | Todo/DAC | taskId、planRevision、approval snapshot | 不自动下发采集任务 |
 | `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、closureRevision、resultRef、archivedAt | 仅P6提交归档且最终成功时发布；失败、回退未成功或仅采集完成不得发布 |
-| `CutoverChecklistItemResultLinked` | CUT | ProjectTask Query/CUT Read Model | taskId、checklistRevision、itemId、collectionTaskId、resultRef、sourceType | P3同工作台已关联一个结果版本；不表示采集项通过或CUT阶段完成 |
+| `CutoverChecklistItemResultLinked` | CUT | ProjectTask Query/CUT Read Model | taskId、checklistId/checklistVersion、stableItemKey/itemVersion、collectionTaskId、resultRef/resultVersion、resultSourceCode | P3同工作台已选择一个结果版本；只引用DAC技术结果，不复制其状态，不表示采集项通过或CUT阶段完成 |
 
 ## 7. Collection 事件链
 

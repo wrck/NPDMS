@@ -1,6 +1,6 @@
 ﻿# SDS Phase 2：集成设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：INT-01～INT-07、INT-09～INT-10、INT-12，以及 COM-01、EQP-04、CUT-08、INS-05、AUT-01～02 等关联业务需求
 > Owner：SDS Phase 2 集成架构；业务数据 Owner 继承 `02c-data-ownership-matrix.md`

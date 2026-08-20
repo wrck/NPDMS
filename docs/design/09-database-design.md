@@ -1,10 +1,11 @@
 ﻿# SDS Phase 2：数据库设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
+> 物理承载决策：ADR-0030（ProjectTask执行契约与CUT-03清单）
 > 目标数据库：`npdms` / MySQL 8.4
 > 实现基线：`E:\AICoding\Projects\NPDMS` @ `856d05264ab4a4fb69b94896c172e4a1c29aae02`
 
@@ -154,7 +155,23 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 
 【建议】新增 `proj_task_tree_path`，结构和索引与项目路径表相同，并增加 `project_id` 作为高频过滤列。任务移动只修改任务父关系和路径投影，不自动创建/删除依赖。
 
-ADR-0029新增的TaskDefinition工作绑定、ProjectTask绑定快照、CompletionRule和完成判定快照已进入逻辑模型，但当前DDL尚未形成可验证的物理承载。本分册不得假定它们已经存在于`proj_project_task`或模板JSON中；Phase 2差量设计必须在“现有表受控扩展”与“独立从属表”之间给出字段、版本、唯一、索引和迁移结论，并重新执行P3-E09。完成前该部分保持`REVALIDATION_REQUIRED`，不修改当前DDL。
+ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义、实例冻结、判定追加”三层最小物理模型；不把可执行绑定只塞入模板JSON，也不把目标业务正文复制到ProjectTask：
+
+| 目标表 | 关键字段 | 约束与索引 |
+|---|---|---|
+| `proj_project_template_task_definition` | `template_revision_id/stage_definition_key/task_definition_key/parent_task_definition_key/name/sort_order/work_binding_type_code/target_context_code/target_object_type/target_object_key/component_key/dynamic_form_revision_id/approval_definition_key/binding_config/permission_policy_ref/completion_rule_type_code/completion_rule_config/gate_ref/definition_version` | `uk(tenant_id, template_revision_id, task_definition_key)`；`idx(tenant_id, template_revision_id, stage_definition_key, parent_task_definition_key, sort_order)`；模板revision发布后整行不可改 |
+| `proj_project_task_execution_contract` | `project_task_id/template_task_definition_id/work_binding_type_code/target_context_code/target_object_type/target_object_key/component_key/dynamic_form_revision_id/approval_instance_id/binding_parameter_snapshot/permission_policy_ref/completion_rule_type_code/completion_rule_snapshot/gate_ref/source_definition_version/contract_version/effective_from/effective_to/current_marker/version` | `uk(tenant_id, project_task_id, contract_version)`；生成列`current_marker`仅在`effective_to is null`时取1，并以`uk(tenant_id, project_task_id, current_marker)`保证至多一个当前契约；`idx(tenant_id, target_context_code, target_object_type, target_object_key)`只服务获权反查 |
+| `proj_project_task_completion_evaluation` | `project_task_id/execution_contract_id/task_version/contract_version/fact_context_code/fact_object_type/fact_object_key/fact_version/evaluation_result_code/unmet_item_snapshot/gate_snapshot_ref/command_id/idempotency_key/evaluated_by/evaluated_at` | 追加写；`uk(tenant_id, project_task_id, idempotency_key)`；`idx(tenant_id, project_task_id, evaluated_at, id)`；不得更新为另一结论或软删除 |
+
+约束规则：
+
+1. `TASK_NATIVE`行的目标Context、对象、组件、表单和审批字段必须为空；其他类型必须按绑定类型填写唯一受控目标，不允许任意前端路径、脚本或Repository名。`COMPOSITE`的子视图只保存在有Schema版本的`binding_config/binding_parameter_snapshot`中，并逐项引用受信任组件或对象，不能逃逸Owner API。
+2. 数据库唯一键只能保证“至多一个当前执行契约”；项目任务创建、模板实例化和受控换绑事务必须在提交前保证“恰好一个”。换绑先校验旧版本、生成新契约并关闭旧有效区间，不原位覆盖。
+3. WorkBinding、PermissionPolicy、CompletionRule和GateRef作为一个执行契约版本原子冻结。非`TASK_NATIVE`完成命令必须同时提交任务版本、执行契约版本、目标事实版本和幂等键；服务端重取Owner事实后写`completion_evaluation`，成功判定与ProjectTask状态迁移同事务完成。
+4. `proj_project_task_completion_evaluation`保存事实引用、版本、结论和未满足项快照，不保存外域业务正文。事件只引用成功判定ID；通知、HTTP成功、组件渲染成功或DAC回调成功都不能代替完成判定。
+5. 现有`pms_project_task`前向迁入`proj_project_task`后，对没有已批准业务绑定证据的存量任务生成`TASK_NATIVE`契约版本1；不得按任务名称、菜单、历史URL或模块名猜测其他绑定。模板任务定义和非原生绑定属于`NEW_ONLY`，由新模板发布或经批准的显式换绑命令产生。
+
+本节只批准Phase 2目标物理契约。实际建表、存量回填、约束执行和查询计划必须以新Flyway差量进入P3-E09；当前DDL未变，不得把本节误写为Schema已实施。
 
 ### 4.3 项目版本与快照
 
@@ -280,7 +297,21 @@ CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对�
 
 `cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
 
-CUT-03同工作台的清单版本、采集项答案、界面格式快照、CollectionTask及结果引用已进入逻辑模型；当前表组未明确这些事实由哪张表承载。Phase 2必须形成最小物理差量并校验不把清单塞入`cut_plan_revision`、不把CollectionTask技术状态复制为CUT业务状态、不新增采集阶段或通用工单。该差量进入DDL前须重新执行P3-E09，本次PRD/阶段修订不提前建表。
+CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_revision`，也不建立采集阶段、通用工单或结果中转页：
+
+| 目标表 | 关键字段 | 约束与索引 |
+|---|---|---|
+| `cut_cutover_checklist` | `cutover_task_id/assessment_id/assessment_version/checklist_version/status_code/input_snapshot/input_snapshot_hash/config_revision_snapshot/match_trace/config_gap_snapshot/submitted_by/submitted_at/invalidated_at/invalidated_reason/current_marker/version` | `uk(tenant_id, cutover_task_id, checklist_version)`；生成列`current_marker`在`invalidated_at is null`时取1，`uk(tenant_id, cutover_task_id, current_marker)`保证一个当前版本；`status_code`只允许PRD已有草稿、已提交、已失效语义 |
+| `cut_cutover_checklist_item` | `checklist_id/stable_item_key/item_definition_id/item_definition_version/item_type_code/item_name/item_description/interface_format_code/interface_schema_snapshot/display_condition_snapshot/work_mode_code/required_flag/source_code/device_id/command_template_id/matched_rule_id/matched_rule_version/applicable_flag/custom_creator_user_id/sort_order/version` | `uk(tenant_id, checklist_id, stable_item_key)`；`idx(tenant_id, checklist_id, item_type_code, applicable_flag, sort_order)`；系统必填项不可删除，自定义项在提交前只能由创建人移出适用范围 |
+| `cut_cutover_checklist_item_result` | `checklist_item_id/result_version/result_source_code/answer_snapshot/fact_description/collection_task_id/collection_result_reference_id/collection_result_version/external_source_code/query_condition_snapshot/queried_at/load_failure_code/manual_evidence_file_reference/selection_started_at/selection_ended_at/selected_by/selection_reason_code/current_marker/created_by/created_at` | 结果正文追加且不可覆盖；`uk(tenant_id, checklist_item_id, result_version)`；生成列`current_marker`仅在`selection_ended_at is null`时取1，`uk(tenant_id, checklist_item_id, current_marker)`保证每项至多一个当前选择；`check(selection_ended_at is null or selection_ended_at >= selection_started_at)`；`idx(tenant_id, collection_task_id)`用于回调关联；人工降级和自动失败记录并存 |
+
+`result_source_code`只表达CUT选择的直接填写、自动采集、外部加载或人工降级来源；本表不保存DAC的`mapped_status_code`、`external_status_raw`或调度状态副本。技术状态始终从`plt_collection_task`及结果引用读取，CUT只在验签、任务/清单/采集项/设备/结果版本匹配后选择一个结果版本，并按采集项规则解释是否满足。结果创建时写`selection_started_at`并成为当前选择；切换结果时在同一事务中锁定当前行、写旧行`selection_ended_at`并插入新结果版本。结果载荷、来源与证据字段不可更新，只有受控切换命令可以关闭选择区间。
+
+草稿重匹配使用`checklist_version + input_snapshot_hash`。稳定`stable_item_key`继续适用时可保留当前答案；移出适用范围的项把`applicable_flag`置为0并留审计，不进入提交；新增项写入同一草稿。已提交清单不可原位重匹配，输入发生受控变化时创建新版本并将旧版标记失效。D级任务禁止创建这三类记录。
+
+当前`pms_cut_risk`只作为可证明的旧风险/调研项候选来源：允许迁任务引用、原编码/名称/类型、原说明及可证明填写事实；不得推断采集项定义版本、界面Schema、绑定规则、必填性、CollectionTask、自动结果、业务通过或配置缺口。不能完成字段级证明的记录保留兼容来源证据或迁移问题。新清单根、匹配版本和结果引用由前向Feature产生。
+
+本节完成Phase 2物理设计，不修改当前DDL。三张表及`proj_*`任务执行契约表进入正式Flyway前必须重新执行P3-E09，且不触发`AI-MIG-000`；只有Release同时包含历史迁移或数据切换时，`AI-MIG-000`才在Release前适用并限定批准窗口。
 
 ## 8. Customer、Commerce、Resource 与 Knowledge
 

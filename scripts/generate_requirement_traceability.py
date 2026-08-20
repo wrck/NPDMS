@@ -319,7 +319,7 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：PRD V1.8已发布；SDS Phase 1、Phase 2与Phase 3须按V1.8差量重新验证，旧V1.7门禁结论只保留为历史证据",
+        "- 当前状态：PRD V1.8、SDS Phase 1和Phase 2已发布为正式基线；Phase 3须按V1.8差量重新验证，旧V1.7门禁结论只保留为历史证据",
         "",
         "## 字段状态约定",
         "",
@@ -342,7 +342,7 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         values = [
             item["id"], item["name"], f"{domain}（{owner}）", module, aggregate, lifecycle,
             permission, api, data, test_category, item["stage"], item["version"], item["priority"],
-            item["source"], sds_reference(item["id"]), feature, "PRD-V1.8-BASELINE/SDS-V1.8-REVALIDATION_REQUIRED", "NOT_STARTED", "BASELINE",
+            item["source"], sds_reference(item["id"]), feature, "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE", "NOT_STARTED", "BASELINE",
         ]
         lines.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
     return "\n".join(lines) + "\n"

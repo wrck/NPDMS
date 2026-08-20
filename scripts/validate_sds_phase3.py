@@ -47,15 +47,15 @@ def validate_v18_revalidation(root: Path, gate: str) -> list[str]:
     errors: list[str] = []
     require_tokens(errors, "Phase 3 V1.8 gate", gate, (
         "REVALIDATION_REQUIRED", "NOT_READY_FOR_SDS_BASELINE_V1.8",
-        "P3-E09", "AI-MIG-000", "Q08候选索引", "BLOCKED",
+        "P3-E09", "AI-MIG-000", "Q08候选索引", "| Phase 1/2前置 | PASS |",
     ))
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
     if not contract_path.exists():
         errors.append("missing V1.8 Phase 2/3 contract map")
         return errors
     contract_text = contract_path.read_text(encoding="utf-8")
-    if "Phase 3验证注记状态：`REVALIDATION_REQUIRED`" not in contract_text:
-        errors.append("V1.8 contract map missing Phase 3 revalidation marker")
+    if "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`" not in contract_text:
+        errors.append("V1.8 contract map missing Phase 3-ready input marker")
     blocks = parse_contract_blocks(contract_text)
     if len(blocks) != 100:
         errors.append(f"expected 100 V1.8 Phase 3 verification mappings, got {len(blocks)}")

@@ -11,10 +11,10 @@
 | 阶段 | 审查状态 | 结论 | 门禁记录 |
 |---|---|---|---|
 | SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |
-| SDS Phase 2 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
+| SDS Phase 2 | `BASELINE` | `READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
 | SDS Phase 3 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册及状态为`IN_REVIEW`/`REVALIDATION_REQUIRED`/`DEFERRED_TO_PHASE_3`的分册不得作为新增Feature或实现的当前放行依据。
+V1.7三阶段历史审查证据保留。V1.8 Phase 1/2已完成差量复审；Phase 3完成前，本总册及状态为`IN_REVIEW`/`REVALIDATION_REQUIRED`/`DEFERRED_TO_PHASE_3`的Phase 3分册不得作为新增Feature或实现的当前放行依据。
 
 ## 2. 分册索引
 
@@ -33,7 +33,7 @@ V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册
 | `06-workflow-design.md` | 工作流设计 | `BASELINE` |
 | `07-authorization-design.md` | 权限设计 | `BASELINE` |
 | `08-data-model.md` | 数据模型 | `BASELINE` |
-| `08a-domain-entity-migration-alignment.md` | 领域实体迁移对齐（补充分册） | `BASELINE ADDENDUM` |
+| `08a-domain-entity-migration-alignment.md` | 领域实体迁移对齐（补充分册） | `BASELINE` |
 | `09-database-design.md` | 数据库设计 | `BASELINE` |
 | `10-api-design.md` | API 设计 | `BASELINE` |
 | `11-event-design.md` | 事件设计 | `BASELINE` |

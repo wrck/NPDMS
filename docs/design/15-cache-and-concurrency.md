@@ -1,6 +1,6 @@
 ﻿# SDS Phase 2：缓存与并发设计
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：全部100项V1/V2正式需求中的查询性能和并发一致性；重点覆盖PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01、PLT、INT-12、NFR-01～02
 > Owner：SDS Phase 2 技术架构；业务真值仍归各 Context
@@ -88,7 +88,10 @@
 
 - 工作台导航投影只从ProjectStage和ProjectTask真值生成，`treeVersion/templateRevision`变化后切换新版本，不维护独立导航缓存真值。
 - 绑定业务组件的数据由Owner API返回；缓存只保存无敏感信息的绑定摘要。编辑、创建、审批、文件和设备采集操作必须回源授权。
-- CUT-03重新匹配使用`checklistVersion + inputSnapshotHash`并发令牌；条件变化和采集回调并发时，回调先落DAC结果，再由CUT按当前清单版本决定关联或进入待核对，不覆盖新草稿。
+- ProjectTask完成以`taskVersion + executionContractId/contractVersion + factVersion + Idempotency-Key`为并发边界。服务端锁定任务并重新读取当前执行契约和Owner事实；任一版本变化即拒绝，不用旧判定结果推进。成功判定、`TaskCompletionEvaluation`和任务状态迁移同事务提交。
+- 执行契约换版使用`projectTaskId + current contractVersion`乐观锁：新版本插入与旧版本关闭有效区间在同一事务，数据库当前标记唯一键防止两个当前版本。模板发布后任务定义不可原位更新。
+- CUT-03重新匹配使用`checklistVersion + inputSnapshotHash`并发令牌；条件变化和采集回调并发时，回调先落DAC结果，再由CUT按当前清单版本、stableItemKey和itemVersion决定追加/选择结果或进入待核对，不覆盖新草稿，也不复制DAC状态。
+- 清单项结果以`checklistItemId + resultVersion`追加；选择切换在锁定当前结果后，同一事务写旧行`selectionEndedAt`并插入带新`selectionStartedAt`的结果版本，生成`currentMarker`唯一约束防止两个未结束选择。结果载荷不可覆盖，人工降级不会删除自动失败结果；已提交清单的重新匹配必须创建新清单版本。
 
 ## 6. 设备唯一归属并发
 

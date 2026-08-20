@@ -1,25 +1,25 @@
 # SDS Phase 2 Review
 
-> 审查状态：`REVALIDATION_REQUIRED`<br>
-> 依据：PRD V1.8正式基线、待重验证的Phase 1设计<br>
-> 结论：`NOT_READY_FOR_PHASE_3_V1.8`<br>
+> 审查状态：`APPROVED`<br>
+> 依据：PRD V1.8正式基线、SDS Phase 1 V1.8正式基线、ADR-0029/ADR-0030、fresh-context独立复审<br>
+> 结论：`READY_FOR_PHASE_3_V1.8`<br>
 > 当前范围：V1 53项、V2 47项、V1/V2正式需求100项；已编号V3 31项、跨需求演进方向2项；`OUT_OF_SCOPE` 9项
 
 ## 1. 当前结论
 
-V1.7 Phase 2的`APPROVED / READY_FOR_PHASE_3`保留为历史审查结果。PRD V1.8改变正式范围、项目状态语义、项目闭环边界和外部事实Owner，原08～16分册及103项实现契约不能直接视为V1.8基线。
+V1.7 Phase 2的`APPROVED / READY_FOR_PHASE_3`只保留为历史审查结果。V1.8已按100项正式范围重建08～16分册、实现契约、迁移契约和物理承载差量，并通过fresh-context独立复审。
 
 ## 2. 必须重验证的契约
 
 | 范围 | 当前状态 | 关闭条件 |
 |---|---|---|
-| 数据与数据库 | REVALIDATION_REQUIRED | 已清理ACC-05、COM-02、IMP-02活动对象/迁移目标；已校准项目状态和闭环字段，仍待独立复审 |
-| API与命令 | REVALIDATION_REQUIRED | 100项正式需求已逐项落位；已移除退出需求的API并校准正常/异常关闭命令，仍待独立复审 |
-| 事件与集成 | REVALIDATION_REQUIRED | 已校准ERP/CRM权威事实、质量事件和非阻断依赖语义，仍待独立复审 |
-| 文件、缓存、并发、异常 | REVALIDATION_REQUIRED | 已同步V1.8文件、缓存、并发和异常边界，仍待独立复审，不机械继承V1.7结论 |
-| 迁移设计 | REVALIDATION_REQUIRED | 当前契约已收敛为81对象/92来源/1排除源；仅包含历史迁移或数据切换的发布由`AI-MIG-000`在Release前单独控制，并绑定批准窗口 |
-| 追溯 | REVALIDATION_REQUIRED | `phase2-contract-map.md`已按100项范围重生成；迁移对象和目标表映射已同步，待独立复审 |
-| 工作绑定与P3采集结果物理承载 | BLOCKED_BY_DESIGN | ADR-0029逻辑模型已确认，含WorkBinding必填、TASK_NATIVE默认类型和分类型CompletionRule；其表字段、约束及CUT-03清单/结果引用迁移差量尚未形成，不得沿用旧P3-E09结论假定已承载 |
+| 数据与数据库 | PASS | 已清理ACC-05、COM-02、IMP-02活动对象/迁移目标；已校准项目状态、闭环字段及新增六表物理设计 |
+| API与命令 | PASS | 100项正式需求已逐项落位；已移除退出需求API并补齐执行契约、事实版本和幂等边界 |
+| 事件与集成 | PASS | 已校准ERP/CRM权威事实、质量事件、非阻断依赖及CUT结果引用语义 |
+| 文件、缓存、并发、异常 | PASS | 已同步V1.8文件、缓存、并发和异常边界，不机械继承V1.7结论 |
+| 迁移设计 | PASS | 当前契约为85对象/96来源/1排除源；新增4个对象均有明确NEW_ONLY或字段级迁移处置，不从名称、菜单、历史状态或采集技术状态推断业务事实 |
+| 追溯 | PASS | `phase2-contract-map.md`已按100项范围重生成；迁移对象和目标表映射精确同步 |
+| 工作绑定与P3采集结果物理承载 | PASS | ADR-0030形成六张表的字段、约束、索引、选择区间、并发、API、事件、异常与迁移边界；这里只批准Phase 2设计，尚未创建DDL/Flyway |
 
 ## 3. 不变的后置边界
 
@@ -28,4 +28,4 @@ V1.7 Phase 2的`APPROVED / READY_FOR_PHASE_3`保留为历史审查结果。PRD V
 - 环境参数、生产拓扑、KMS、SIT/UAT和真实迁移/切换证据继续在各自最晚安全门禁关闭。
 - 本次新增逻辑事实影响当前物理模型时，P3-E09必须对差量DDL重新执行；在此之前旧DDL哈希只作历史模型证据，不能放行相关Feature实现。
 
-Phase 1完成V1.8差量GO且本阶段契约复审通过前，Phase 2保持`REVALIDATION_REQUIRED / NOT_READY_FOR_PHASE_3_V1.8`。
+Phase 2结论为`APPROVED / READY_FOR_PHASE_3_V1.8`。该结论只允许进入Phase 3形成Feature和前向DDL设计，不批准DDL执行、历史迁移、数据切换或Release。

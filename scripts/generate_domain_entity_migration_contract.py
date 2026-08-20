@@ -13,7 +13,9 @@ from pathlib import Path
 
 TARGETS: dict[str, tuple[str, ...]] = {
     "Project": ("proj_project",), "ProjectHierarchy": ("proj_project",), "ProjectAncestorProjection": ("proj_project_tree_path",),
-    "ProjectTemplate": ("proj_project_template_revision",), "ProjectTask": ("proj_project_task",), "TaskAncestorProjection": ("proj_task_tree_path",),
+    "ProjectTemplate": ("proj_project_template_revision", "proj_project_template_task_definition"), "ProjectTask": ("proj_project_task",),
+    "TaskWorkBinding": ("proj_project_task_execution_contract",), "TaskCompletionRule": ("proj_project_task_execution_contract",),
+    "TaskCompletionEvaluation": ("proj_project_task_completion_evaluation",), "TaskAncestorProjection": ("proj_task_tree_path",),
     "TaskDependency": ("proj_task_dependency",), "ProjectMemberAssignment": ("proj_project_member_assignment",),
     "ProjectPortfolio": ("proj_project_portfolio", "proj_project_portfolio_member", "proj_project_portfolio_revision"),
     "ProjectStageSnapshot": ("proj_project_stage_snapshot",), "BorrowedProjectConversion": ("proj_project_conversion",),
@@ -35,6 +37,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
     "ServiceHandover": ("acc_service_handover", "acc_handover_item", "acc_handover_result"),
     "CutoverTask": ("cut_task",), "CutoverAssessment": ("cut_assessment",),
+    "CutoverChecklist": ("cut_cutover_checklist", "cut_cutover_checklist_item", "cut_cutover_checklist_item_result"),
     "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverSupportArrangement": ("cut_cutover_support_arrangement",),
     "CutoverClosure": ("cut_cutover_closure",),
     "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
@@ -132,6 +135,9 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "JointDebuggingResult": [source("CURRENT_TABLE", "pms_eng_joint_test", "CURRENT_FORWARD", "map per-task result revision and issue references", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ImplementationRisk": [source("CURRENT_TABLE", "pms_eng_risk", "CURRENT_FORWARD", "map implementation risk and append-only treatments; keep separate from cutover risk", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ImplementationReadinessSnapshot": [source("DERIVED_TARGET", "ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck", "REBUILD", "rebuild from Owner facts at a declared watermark", "REBUILD_AFTER_OWNERS", "READINESS_REBUILD")],
+    "TaskWorkBinding": [source("NONE_NEW", "TaskWorkBinding", "NEW_ONLY", "forward-initialize existing ProjectTask rows with explicit TASK_NATIVE contract version 1; create non-native bindings only from a published template or approved rebinding command; never infer from names, menus, URLs or modules", "NEW_ONLY", "NEXT_FLYWAY")],
+    "TaskCompletionRule": [source("NONE_NEW", "TaskCompletionRule", "NEW_ONLY", "create atomically with the WorkBinding contract version; do not infer target facts or rule versions from legacy completed status", "NEW_ONLY", "NEXT_FLYWAY")],
+    "TaskCompletionEvaluation": [source("NONE_NEW", "TaskCompletionEvaluation", "NEW_ONLY", "append only for new-platform completion commands after task, contract, rule and fact version validation; never fabricate historical evaluations", "NEW_ONLY", "FEATURE_RELEASE")],
     "DeliveryEvidence": [source("CURRENT_TABLE", "pms_eng_deliverable", "CURRENT_FORWARD", "map implementation-stage evidence identity, immutable revisions, file references and upload results", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "DeliveryArtifact": [source("CURRENT_TABLE", "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate", "CURRENT_FORWARD", "separate artifact identity, checklist, review and archive records", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "SatisfactionCollection": [
@@ -166,6 +172,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("CURRENT_FIELD_PATTERN", "pms_acc_maintenance_transition.renew*", "EXCLUDED", "retain as compatibility evidence; never expose in new handover writes", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
     ],
     "CutoverPlan": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
+    "CutoverChecklist": [source("CURRENT_TABLE", "pms_cut_risk", "CURRENT_FORWARD", "map only provable task reference, original item code/name/type, description and answer facts; never infer item definition version, UI schema, binding rule, required flag, CollectionTask, automatic result, business pass or configuration gap", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "CutoverSupportArrangement": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "CutoverClosure": [source("CURRENT_TABLE", "pms_cut_execution", "CURRENT_FORWARD", "map only provable P6 result, rollback description, attachment, legacy-item text and final result fields; exclude step and observation lifecycle fields", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InspectionTask": [source("CURRENT_TABLE", "pms_srv_task|pms_srv_execution|pms_srv_offline_file", "CURRENT_FORWARD", "map only records classified as inspection and freeze rule snapshot", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
@@ -560,7 +567,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         raise ValueError("generated Owner/Requirement/target table contract differs from the maintained object-table map")
     return {
         "schemaVersion": 1,
-        "status": "REVALIDATION_REQUIRED",
+        "status": "BASELINE",
         "baseline": "PRD_V1.8",
         "implementationRepo": str(args.implementation.resolve()),
         "implementationCommit": commit,
@@ -576,8 +583,8 @@ def render_markdown(payload: dict[str, object]) -> str:
     lines = [
         "# 领域实体迁移显式契约",
         "",
-        "> 状态：`REVALIDATION_REQUIRED`",
-        "> 基线：PRD V1.8 / SDS Phase 2 REVALIDATION_REQUIRED",
+        "> 状态：`BASELINE`",
+        "> 基线：PRD V1.8 / SDS Phase 2 BASELINE",
         f"> 实现证据提交：`{payload['implementationCommit']}`",
         "> 生成源：`scripts/generate_domain_entity_migration_contract.py`；JSON为机器真值",
         "",

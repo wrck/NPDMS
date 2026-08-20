@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "REVALIDATION_REQUIRED",
+  "status": "BASELINE",
   "objects": {
     "Project": {
       "owner": "PROJ",
@@ -40,7 +40,8 @@
         "PM-03"
       ],
       "targetTables": [
-        "proj_project_template_revision"
+        "proj_project_template_revision",
+        "proj_project_template_task_definition"
       ]
     },
     "ProjectTask": {
@@ -50,6 +51,33 @@
       ],
       "targetTables": [
         "proj_project_task"
+      ]
+    },
+    "TaskWorkBinding": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionRule": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionEvaluation": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_completion_evaluation"
       ]
     },
     "TaskAncestorProjection": {
@@ -401,6 +429,17 @@
       ],
       "targetTables": [
         "cut_assessment"
+      ]
+    },
+    "CutoverChecklist": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-03"
+      ],
+      "targetTables": [
+        "cut_cutover_checklist",
+        "cut_cutover_checklist_item",
+        "cut_cutover_checklist_item_result"
       ]
     },
     "CutoverPlan": {

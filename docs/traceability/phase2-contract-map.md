@@ -1,10 +1,10 @@
 # SDS Phase 2 显式需求契约映射
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：附录 A.1 全部 100 项 V1/V2 正式需求
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
-> Phase 3验证注记状态：`REVALIDATION_REQUIRED`（V1.7批准结论不自动继承到V1.8）
+> Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`（仅表示SDS设计可进入Phase 3，不批准DDL、Feature或Release）
 
 本文件逐项声明可实施的数据对象、表、API、事件/集成/文件、工作流和授权落点。相同基础契约可被多个相关 Requirement 复用，但每个 Requirement 必须显式登记；`N/A` 必须说明为何该类契约不适用。
 
@@ -40,7 +40,7 @@
 
 - 需求名称：项目模板与阶段门禁
 - 数据对象：ProjectTemplate、ProjectStageSnapshot
-- 数据表：proj_project_template_revision、proj_project_stage_snapshot、BLOCKED_BY_DESIGN(ADR-0029任务绑定与完成规则物理承载待定)
+- 数据表：proj_project_template_revision、proj_project_template_task_definition、proj_project_stage_snapshot
 - API：/project-templates
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
@@ -151,13 +151,13 @@
 ### PM-11
 
 - 需求名称：项目任务管理
-- 数据对象：ProjectTask、TaskAncestorProjection、TaskDependency
-- 数据表：proj_project_task、proj_task_tree_path、proj_task_dependency、BLOCKED_BY_DESIGN(ADR-0029任务绑定与完成规则物理承载待定)
+- 数据对象：ProjectTask、TaskWorkBinding、TaskCompletionRule、TaskCompletionEvaluation、TaskAncestorProjection、TaskDependency
+- 数据表：proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency
 - API：/projects/{id}/workspace、/projects/{id}/tasks、/project-tasks/{id}/workbench、/project-tasks/{id}/actions/move、/project-tasks/{id}/actions/{submit|start|complete|cancel}
 - 事件：TaskAssigned、TaskCompleted
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：ProjectTask内必填WorkBinding/CompletionRule与Stage→ProjectTask工作台投影、任务任意层级移动；TASK_NATIVE按任务自身事实执行，其他类型按绑定事实完成并受依赖守卫
+- 工作流/状态：ProjectTask内必填WorkBinding/CompletionRule与Stage→ProjectTask工作台投影、任务任意层级移动；TASK_NATIVE按任务自身事实执行，其他类型回源绑定事实并追加完成判定后完成
 - 授权与数据范围：ProjectTreeScope；TASK_NATIVE任务范围；其他类型由服务端合并目标业务对象权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；5万节点、2000直接子节点、深度30任务树查询/移动测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；任务树数据集版本与性能报告
@@ -781,13 +781,13 @@
 ### CUT-03
 
 - 需求名称：割接采集清单动态多维绑定生成
-- 数据对象：CutoverTask、CollectionTask
-- 数据表：cut_task、plt_collection_task、BLOCKED_BY_DESIGN(ADR-0029割接清单结果承载待定)
+- 数据对象：CutoverTask、CutoverChecklist、CollectionTask
+- 数据表：cut_task、cut_cutover_checklist、cut_cutover_checklist_item、cut_cutover_checklist_item_result、plt_collection_task
 - API：/cutover-tasks/{id}/checklist、/cutover-tasks/{id}/checklist/actions/rematch、/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection
 - 事件：CollectionTaskRequested、CollectionResultAvailable、CutoverChecklistItemResultLinked
 - 外部集成：现有采集平台子应用
 - 文件契约：FileArtifact
-- 工作流/状态：CutoverTask内P3清单在同一工作台动态匹配、人工填写/上传、采集任务下发、回调结果回填和配置缺口留痕
+- 工作流/状态：CutoverTask内P3清单版本在同一工作台动态匹配、人工填写/上传、采集任务下发、结果版本选择和配置缺口留痕；不复制DAC技术状态
 - 授权与数据范围：CutoverTaskScope、BusinessObjectDeviceCredentialScope；服务端按清单项和设备范围裁剪
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
