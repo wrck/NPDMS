@@ -24,7 +24,7 @@ class Phase3ValidatorTest(unittest.TestCase):
         for relative_path in VALIDATOR.P3E09_STATE_ASSETS:
             path = self.root / relative_path
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("正式独立复审已GO、模型基线已发布；AI-MIG-000、迁移和切换仍阻断。", encoding="utf-8")
+            path.write_text("正式独立复审已GO、模型基线已发布；AI-MIG-000仅阻断纳入Release范围的历史迁移和数据切换，普通功能发布不适用。", encoding="utf-8")
 
         common = (
             "> 文档状态：`BASELINE`\n> 适用基线：PRD V1.7\n"
@@ -84,6 +84,8 @@ class Phase3ValidatorTest(unittest.TestCase):
                 facts = {
                     "currentDdlSha256": "CURRENT",
                     "legacyCatalogDdlSha256": "OLD",
+                    "releaseApplicability": "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER",
+                    "executionWindowPolicy": "APPROVED_WINDOW_ONLY",
                     "driftDecision": "DEFER",
                     "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
                     "deferredItemCount": 1,

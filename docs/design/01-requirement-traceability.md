@@ -27,11 +27,11 @@ V1.8已重建100项工作追溯索引；V1.7的模块、聚合、状态机/工�
 
 | Phase 1领域 | V1.7历史业务责任 | V1.8待重验证需求范围 | V1.7历史聚合根 | V1.8 Owner状态 |
 |---|---|---|---|---|
-| PROJ 项目治理 | 项目创建、主子项目、模板、任务、指派、项目状态 | PM-01～PM-11、PROJ-12 | Project、ProjectTemplate、ProjectTask | REVALIDATION_REQUIRED |
+| PROJ 项目治理 | 项目创建、主子项目、模板、任务、指派、项目状态 | PM-01～PM-11、PROJ-12 | Project、ProjectTemplate、ProjectTask、TaskWorkBinding、TaskCompletionRule | REVALIDATION_REQUIRED |
 | SOL 交付准备与方案 | 工勘、需求分析、计划、实施方案 | PRE-01～PRE-05、PLN-01～PLN-04、SCH-01～SCH-05 | Preparation、ConstructionPlan、ImplementationPlan | REVALIDATION_REQUIRED |
 | IMP 实施执行 | 到货、安装、配置Log、联调、风险、质量检查、实施阶段交付件上传 | EXE-01～EXE-06、IMP-01 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence | REVALIDATION_REQUIRED |
 | ACC 验收与闭环 | 培训、满意度收集、验收、交付件齐套校验、审核、统一归档、项目闭环、静态服务交接 | ACC-01～ACC-04、ACC-06、CLO-01～CLO-02 | Acceptance、SatisfactionCollection、DeliveryArtifact、ProjectClosure、ServiceHandover | REVALIDATION_REQUIRED |
-| CUT 割接与稳定治理 | 割接任务、问卷分级、采集清单、方案、分级审批、P6闭环和配置 | CUT-01～CUT-10 | CutoverTask、CutoverAssessment、CutoverPlan、CutoverClosure | REVALIDATION_REQUIRED |
+| CUT 割接与稳定治理 | 割接任务、问卷分级、P3动态清单与采集结果、方案、分级审批、P6闭环和配置 | CUT-01～CUT-10 | CutoverTask、CutoverAssessment、CutoverChecklist、CutoverPlan、CutoverClosure | REVALIDATION_REQUIRED |
 | SRV 服务运营 | 巡检、问题闭环和设备服务状态；内部 Context 拆为 Inspection、Service Operations | INS-01～INS-09、SRV-01 | InspectionTask、ServiceIssue、ServiceStatus | REVALIDATION_REQUIRED |
 | CUS 客户与服务关系 | 客户、联系人、客户关系和 CRM 同步副本 | CUS-01～CUS-04 | Customer、Contact、AssetRelation、CustomerSyncSnapshot | REVALIDATION_REQUIRED |
 | AST 资产管理 | 设备序列号、设备档案、配置Log、维保客观状态和来源同步副本 | EQP-01～EQP-07、AST-01～AST-02 | Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot | REVALIDATION_REQUIRED |

@@ -179,6 +179,80 @@ CUT-06不建立逐步骤执行状态机，也不生成稳定观察任务。
 
         self.assertTrue(checks["无步骤观察扩张"], checks)
 
+    def test_confirmed_project_workbench_contract_passes(self) -> None:
+        root = MODULE_PATH.parents[1]
+        text = (root / "docs" / "baseline" / "prd-v1.8.md").read_text(encoding="utf-8-sig")
+
+        checks = MODULE.project_workbench_contract(text)
+
+        self.assertTrue(all(checks.values()), checks)
+
+    def test_project_workbench_requires_default_task_native_binding(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "每个ProjectTask必须且只能有一个当前有效`WorkBinding`",
+                "ProjectTask可以没有WorkBinding",
+                1,
+            )
+        )
+
+        self.assertFalse(checks["工作台-WorkBinding统一必填"].passed)
+
+    def test_project_workbench_keeps_task_native_generic_detail(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "`TASK_NATIVE`直接使用ProjectTask通用详情执行",
+                "TASK_NATIVE不提供通用任务详情",
+                1,
+            )
+        )
+
+        self.assertFalse(checks["工作台-通用任务详情基础能力"].passed)
+
+    def test_project_workbench_generic_detail_cannot_replace_bound_business(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "通用基础信息不得替代非`TASK_NATIVE`绑定的业务执行",
+                "通用基础信息可以替代非TASK_NATIVE绑定的业务执行",
+                1,
+            )
+        )
+
+        self.assertFalse(checks["工作台-通用详情不替代绑定业务"].passed)
+
+    def test_project_workbench_non_native_completion_cannot_bypass_business_fact(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "非`TASK_NATIVE`任务不得通过通用“完成任务”动作绕过目标业务事实",
+                "非TASK_NATIVE任务可以直接使用通用完成动作",
+                1,
+            )
+        )
+
+        self.assertFalse(checks["工作台-任务完成按绑定类型判定"].passed)
+
+    def test_project_workbench_must_keep_unlimited_task_hierarchy(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "不把业务任务限制为固定两层",
+                "业务任务固定为两层",
+                1,
+            )
+        )
+
+        self.assertFalse(checks["工作台-StageTask导航不限制树深"].passed)
+
+    def test_cutover_collection_must_remain_in_same_p3_workbench(self) -> None:
+        checks = self.validate_candidate(
+            lambda text: text.replace(
+                "不新增采集阶段、独立通用任务或采集结果中转页面",
+                "新增独立采集阶段和采集结果中转页面",
+                1,
+            )
+        )
+
+        self.assertFalse(checks["工作台-CUT03同一P3工作台"].passed)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,9 +1,9 @@
 {
     "schemaVersion": 1,
     "phase": "SDS_PHASE_3",
-    "baseline": "PRD_V1.7",
+    "baseline": "PRD_V1.8",
     "overallStatus": "READY_FOR_SDS_BASELINE",
-    "updatedAt": "2026-08-13",
+    "updatedAt": "2026-08-19",
     "decisionBaseline": "docs/decisions/0004-phase3-production-assurance-directions.md",
     "items": [
         {
@@ -294,6 +294,8 @@
                 "directionDecision": "A",
                 "directionStatus": "ACCEPTED",
                 "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
+                "releaseApplicability": "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER",
+                "executionWindowPolicy": "APPROVED_WINDOW_ONLY",
                 "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
                 "driftDecision": "ACCEPT_CURRENT",

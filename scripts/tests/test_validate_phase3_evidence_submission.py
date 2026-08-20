@@ -103,16 +103,51 @@ class Phase3EvidenceSubmissionTest(unittest.TestCase):
     def test_e09_rejects_legacy_migration_approval_hash_field(self) -> None:
         self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
         self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
-        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED", "approvedDdlSha256": None})
+        self.payload["confirmedFacts"].update({
+            "directionDecision": "A",
+            "directionStatus": "ACCEPTED",
+            "releaseApplicability": VALIDATOR.AI_MIG_RELEASE_APPLICABILITY,
+            "executionWindowPolicy": VALIDATOR.AI_MIG_EXECUTION_WINDOW_POLICY,
+            "approvedDdlSha256": None,
+        })
         self.write()
         self.assertTrue(any("legacy migration approval field is not allowed" in item for item in VALIDATOR.validate(self.path)))
 
     def test_e09_accepts_absent_migration_approval_hash_field(self) -> None:
         self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
         self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
-        self.payload["confirmedFacts"].update({"directionDecision": "A", "directionStatus": "ACCEPTED"})
+        self.payload["confirmedFacts"].update({
+            "directionDecision": "A",
+            "directionStatus": "ACCEPTED",
+            "releaseApplicability": VALIDATOR.AI_MIG_RELEASE_APPLICABILITY,
+            "executionWindowPolicy": VALIDATOR.AI_MIG_EXECUTION_WINDOW_POLICY,
+        })
         self.write()
         self.assertEqual([], VALIDATOR.validate(self.path))
+
+    def test_e09_rejects_unconditional_release_gate(self) -> None:
+        self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
+        self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
+        self.payload["confirmedFacts"].update({
+            "directionDecision": "A",
+            "directionStatus": "ACCEPTED",
+            "releaseApplicability": "ALL_RELEASES",
+            "executionWindowPolicy": VALIDATOR.AI_MIG_EXECUTION_WINDOW_POLICY,
+        })
+        self.write()
+        self.assertTrue(any("release applicability" in item for item in VALIDATOR.validate(self.path)))
+
+    def test_e09_rejects_execution_outside_approved_window(self) -> None:
+        self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
+        self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
+        self.payload["confirmedFacts"].update({
+            "directionDecision": "A",
+            "directionStatus": "ACCEPTED",
+            "releaseApplicability": VALIDATOR.AI_MIG_RELEASE_APPLICABILITY,
+            "executionWindowPolicy": "ANY_TIME",
+        })
+        self.write()
+        self.assertTrue(any("approved window" in item for item in VALIDATOR.validate(self.path)))
 
     def test_secret_value_field_is_rejected(self) -> None:
         self.payload["confirmedFacts"] = {"password": "unsafe"}

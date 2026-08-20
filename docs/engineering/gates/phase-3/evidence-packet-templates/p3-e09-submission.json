@@ -14,6 +14,7 @@
   "confirmedFacts": {
     "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "deferredItemCount": 0,
+    "executionWindowPolicy": "APPROVED_WINDOW_ONLY",
     "independentReviewRef": "docs/engineering/gates/phase-3/independent-review.md",
     "independentReviewResult": "GO",
     "itemIdsSha256": "3C40BB7B02F4DC3B588BF09D32564A6C175098518FC30173D27F15F6810A78F1",
@@ -21,6 +22,7 @@
     "manifestDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "mappingDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "mysql84DdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+    "releaseApplicability": "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER",
     "targetCatalogDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "validationDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "directionDecision": "A",
@@ -94,7 +96,7 @@
     "HISTORICAL_DATA_MIGRATION",
     "DATA_CUTOVER"
   ],
-  "usageRestriction": "仅用于SDS数据模型基线事实校验；不得用于授权历史数据迁移或数据切换。",
+  "usageRestriction": "仅用于SDS数据模型基线事实校验；普通功能发布不触发AI-MIG-000，只有包含历史迁移或数据切换的发布才以前置门禁约束，并且只能在批准窗口内执行。",
   "approvalBinding": {
     "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
     "itemsSha256": null,

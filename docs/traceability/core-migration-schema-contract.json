@@ -1378,20 +1378,17 @@
     },
     "com_contract_receivable": {
       "requirementRefs": [
-        "COM-01",
-        "COM-02"
+        "COM-01"
       ]
     },
     "com_shipment_contract_reference": {
       "requirementRefs": [
-        "COM-01",
-        "COM-02"
+        "COM-01"
       ]
     },
     "com_shipment_package": {
       "requirementRefs": [
-        "COM-01",
-        "COM-02"
+        "COM-01"
       ]
     },
     "com_project_contract_relation": {

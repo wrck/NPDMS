@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "BASELINE_ADDENDUM",
+  "status": "REVALIDATION_REQUIRED",
   "objects": {
     "Project": {
       "owner": "PROJ",
@@ -286,23 +286,10 @@
         "imp_quality_review"
       ]
     },
-    "ImplementationSafetyCheck": {
-      "owner": "IMP",
-      "requirementIds": [
-        "IMP-02"
-      ],
-      "targetTables": [
-        "imp_safety_check",
-        "imp_safety_item",
-        "imp_safety_remediation",
-        "imp_safety_exemption"
-      ]
-    },
     "DeliveryEvidence": {
       "owner": "IMP",
       "requirementIds": [
-        "IMP-01",
-        "IMP-02"
+        "IMP-01"
       ],
       "targetTables": [
         "imp_delivery_evidence",
@@ -360,7 +347,6 @@
     "ProjectClosure": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-05",
         "ACC-06",
         "CLO-01",
         "CLO-02"
@@ -383,7 +369,6 @@
     "ServiceHandover": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-05",
         "ACC-06"
       ],
       "targetTables": [
@@ -397,6 +382,7 @@
       "requirementIds": [
         "CUT-01",
         "CUT-02",
+        "CUT-03",
         "CUT-08",
         "CUT-09",
         "CUT-10"
@@ -420,7 +406,6 @@
     "CutoverPlan": {
       "owner": "CUT",
       "requirementIds": [
-        "CUT-03",
         "CUT-04",
         "CUT-05",
         "CUT-07"
@@ -702,24 +687,6 @@
         "com_delivery_scope_detail"
       ]
     },
-    "FulfillmentSnapshot": {
-      "owner": "COM",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_fulfillment_snapshot"
-      ]
-    },
-    "ReconciliationRecord": {
-      "owner": "COM",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_reconciliation_record"
-      ]
-    },
     "Supplier": {
       "owner": "RES",
       "requirementIds": [
@@ -859,6 +826,7 @@
     "CollectionTask": {
       "owner": "PLT",
       "requirementIds": [
+        "CUT-03",
         "CUT-06",
         "EXE-03",
         "EXE-04",

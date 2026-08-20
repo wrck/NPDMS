@@ -45,7 +45,15 @@ class Phase3EvidencePacketTest(unittest.TestCase):
             set(packets["P3-E09"]["blocks"]),
         )
         self.assertNotIn("signoffs", packets["P3-E09"])
-        self.assertIn("不得用于授权历史数据迁移", packets["P3-E09"]["usageRestriction"])
+        self.assertIn("普通功能发布不触发AI-MIG-000", packets["P3-E09"]["usageRestriction"])
+        self.assertEqual(
+            GENERATOR.AI_MIG_RELEASE_APPLICABILITY,
+            packets["P3-E09"]["confirmedFacts"]["releaseApplicability"],
+        )
+        self.assertEqual(
+            GENERATOR.AI_MIG_EXECUTION_WINDOW_POLICY,
+            packets["P3-E09"]["confirmedFacts"]["executionWindowPolicy"],
+        )
         self.assertEqual(0, packets["P3-E09"]["confirmedFacts"]["deferredItemCount"])
         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["requirementOwnerConfirmation"]["status"])
         self.assertEqual(9, packets["P3-E09"]["confirmedFacts"]["requirementOwnerConfirmation"]["groupCount"])

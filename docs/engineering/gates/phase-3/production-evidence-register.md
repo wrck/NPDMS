@@ -1,7 +1,7 @@
 # Phase 3生产与发布证据登记规范
 
 > 状态：`IN_REVIEW`
-> 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE、Phase 3 IN_REVIEW
+> 适用基线：PRD V1.8、SDS Phase 1/2 REVALIDATION_REQUIRED、Phase 3 REVALIDATION_REQUIRED
 > 机器状态：`phase3-evidence-register.json`
 > 原则：本文件定义需要什么证据，不填充未经Owner确认的生产事实。
 
@@ -90,13 +90,13 @@ Acceptance：`ts:check` exit code 0；不得关闭检查、扩大`any`或放宽�
 
 ### P3-E09 数据模型基线与AI-MIG-000边界
 
-Gate scope：`DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION / DATA_CUTOVER`。P3-E09只发布当前数据模型基线；迁移执行与切换证据继续在下游关闭。
+Gate scope：`DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION / DATA_CUTOVER`。P3-E09只发布当前数据模型基线。`AI-MIG-000`不是所有Release的固定门禁：不含历史迁移和数据切换时记为`NOT_APPLICABLE`；包含任一项时才作为Release前置门禁，迁移执行与切换证据须在下游真实批次关闭，并绑定批准窗口。
 
 Required fields：当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、目标字段目录/映射/校验hash、MySQL 8.4隔离执行结果、独立复审结论和Git基线提交。P3-E09不定义迁移批准哈希：未来历史迁移门禁按真实批次另行定义。当前不要求四角色外部附件、OA/电子签名、独立批准JSON、迁移批准状态机或双确认提交。
 
-需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，按Q07～Q14及V1.7九组覆盖全部692项`DEFER`并绑定当前DDL哈希。`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`保留全部表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号；1,883项逐项决策已完成。独立复审只在`independent-review.md`复核候选制品的整体一致性，不逐项签署。
+需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，保留当前DDL模型确认包及其历史决策引用。`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`保留表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号；其模型基线输入不等同于历史数据迁移批准。独立复审只在`independent-review.md`复核候选制品的整体一致性，不逐项签署。
 
-Acceptance（当前模型基线已满足的事实条件）：逐项登记的表、列、约束和表选项均有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；正式制品形成Git基线提交。全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。独立复审结论为`GO`，P3-E09为`MODEL_BASELINE_READY`并可作为SDS/Feature模型输入。`AI-MIG-000`、历史数据迁移和数据切换保持`OPEN`，未经真实批次验证不得执行。
+Acceptance（当前模型基线已满足的事实条件）：逐项登记的表、列、约束和表选项均有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；正式制品形成Git基线提交。全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。独立复审结论为`GO`，P3-E09为`MODEL_BASELINE_READY`并可作为SDS/Feature模型输入。若Release包含历史数据迁移或数据切换，`AI-MIG-000`须在真实批次验证后达到`VERIFIED`且只允许在批准窗口内执行；否则为`NOT_APPLICABLE`，不阻断普通功能发布。
 
 ## 3. 状态定义
 

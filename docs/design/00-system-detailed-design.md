@@ -14,7 +14,7 @@
 | SDS Phase 2 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
 | SDS Phase 3 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册和仍标注V1.7的分册不得作为新增Feature或实现的当前放行依据。
+V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册及状态为`REVALIDATION_REQUIRED`/`DEFERRED_TO_PHASE_3`的分册不得作为新增Feature或实现的当前放行依据。
 
 ## 2. 分册索引
 
@@ -53,7 +53,7 @@ V1.7三阶段历史审查证据保留。V1.8差量复审未完成前，本总册
 本基线授权 Feature Spec 与实现使用上述设计契约，不授权以下事项：
 
 1. 宣称可部署、专项验收通过或生产发布；生产证据按部署/发布门禁登记。
-2. 执行历史数据迁移或数据切换；`AI-MIG-000` 与真实批次验证仍为 `OPEN`。
+2. 执行历史数据迁移或数据切换；只有发布包含该范围时，`AI-MIG-000`才是Release前置门禁，且须在真实批次验证通过后的批准窗口内执行；普通功能发布不受此门禁阻断。
 3. 恢复任何已被运行时退役排除的入口；退役处置见实现基线清单。
 
 ## 4. 下游证据门禁

@@ -1,9 +1,9 @@
 ﻿# SDS Phase 1：Context Map
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；V1.8差量复核完成前不继承V1.7 Owner签署结论
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -18,7 +18,7 @@
 | 上游 | 下游 | 关系 | 允许内容 |
 |---|---|---|---|
 | Preparation & Solution | Implementation Execution | Customer/Supplier | 下发已批准方案、计划和设备范围引用 |
-| Implementation Execution | Acceptance & Closure | Published Language | 发布实施证据、质量/安全检查快照和阶段完成事实 |
+| Implementation Execution | Acceptance & Closure | Published Language | 发布实施证据、阶段质量检查快照和阶段完成事实 |
 | Implementation Execution | 基础平台能力 | Customer/Supplier | 请求文件、待办、审计、字典和权限校验 |
 | Implementation Execution | Device Access & Collection | Customer/Supplier | 以任务级授权下发采集请求，接收结果引用；不接管原始执行 |
 | Implementation Execution | Cutover | Open Host Service | 提供割接上线门禁快照，不修改割接内部状态 |
@@ -30,4 +30,4 @@
 
 Context Map 只展示 bounded context 或外部系统，不把 `CollectionTask`、`DeliveryEvidence`、`CutoverTask` 或设备凭证当作 Context 节点。基础平台能力仅作为横向能力集合标注，不拥有业务交易事实；集成适配层不拥有外部系统或业务域事实。
 
-V1.7不再包含`Work Order & Time` Context。历史工单、工时、附件、审批和审计证据通过迁移契约只读保留，不暴露当前流转能力。
+V1.8当前不包含`Work Order & Time` Context。历史工单、工时、附件、审批和审计证据通过经批准的迁移契约只读保留，不暴露当前流转能力；ACC-05持续服务跟踪仅作为V3候选，不能回流为当前Context。

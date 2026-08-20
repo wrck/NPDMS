@@ -28,7 +28,6 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ConfigurationCollectionResult": ("imp_configuration_collection_result", "imp_configuration_collection_parse_attempt", "imp_configuration_component_candidate"),
     "JointDebuggingResult": ("imp_joint_debugging_result", "imp_joint_debugging_item"), "ImplementationRisk": ("imp_risk", "imp_risk_treatment"),
     "ImplementationQualityCheck": ("imp_quality_check", "imp_quality_item", "imp_quality_remediation", "imp_quality_review"),
-    "ImplementationSafetyCheck": ("imp_safety_check", "imp_safety_item", "imp_safety_remediation", "imp_safety_exemption"),
     "DeliveryEvidence": ("imp_delivery_evidence", "imp_delivery_evidence_revision"),
     "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_item", "acc_confirmation"),
     "SatisfactionCollection": ("acc_satisfaction_collection_task", "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result"),
@@ -47,8 +46,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "DeviceAssignmentHistory": ("ast_device_assignment_history",), "DeviceAncestorProjection": ("ast_device_project_ancestor",),
     "AssetSyncSnapshot": ("ast_asset_sync_batch", "ast_asset_sync_item", "ast_device"), "MaintenanceFact": ("ast_maintenance_fact",),
     "RMAReplacement": ("ast_rma_replacement",), "Contract": ("com_contract",), "SalesOrder": ("com_sales_order",),
-    "OrderLine": ("com_order_line",), "DeliveryScope": ("com_delivery_scope",), "DeliveryScopeDetail": ("com_delivery_scope_detail",), "FulfillmentSnapshot": ("com_fulfillment_snapshot",),
-    "ReconciliationRecord": ("com_reconciliation_record",), "Supplier": ("res_supplier", "res_qualification"),
+    "OrderLine": ("com_order_line",), "DeliveryScope": ("com_delivery_scope",), "DeliveryScopeDetail": ("com_delivery_scope_detail",), "Supplier": ("res_supplier", "res_qualification"),
     "SubcontractRequest": ("res_subcontract_request",), "PaymentGate": ("res_payment_gate",), "MetricDefinition": ("ana_metric_definition",), "MetricSnapshot": ("ana_metric_snapshot",),
     "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "AuthorizationGrant": ("plt_authorization_grant",),
     "ChangeRequest": ("plt_change_request",), "FileArtifact": ("plt_file_artifact", "plt_file_version", "plt_file_reference"),
@@ -65,7 +63,7 @@ TARGET_POLICIES = {
 }
 
 MODEL_ENTITY_CONTRACTS = {
-    "DeliveryEvidence": {"owner": "IMP", "requirementIds": ["IMP-01", "IMP-02"]},
+    "DeliveryEvidence": {"owner": "IMP", "requirementIds": ["IMP-01"]},
     "DeviceAssignmentHistory": {"owner": "AST", "requirementIds": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
     "DeviceAncestorProjection": {"owner": "AST", "requirementIds": ["EQP-01", "EQP-03"]},
     "MetricDefinition": {"owner": "ANA", "requirementIds": ["ANA-01"]},
@@ -133,7 +131,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "ConfigurationCollectionResult": [source("CURRENT_TABLE", "pms_eng_configuration|pms_equipment_config_log", "CURRENT_FORWARD", "map task/device/result versions, immutable raw logs, parse attempts and component candidates; never migrate connection secrets", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "JointDebuggingResult": [source("CURRENT_TABLE", "pms_eng_joint_test", "CURRENT_FORWARD", "map per-task result revision and issue references", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ImplementationRisk": [source("CURRENT_TABLE", "pms_eng_risk", "CURRENT_FORWARD", "map implementation risk and append-only treatments; keep separate from cutover risk", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "ImplementationReadinessSnapshot": [source("DERIVED_TARGET", "ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck|ImplementationSafetyCheck", "REBUILD", "rebuild from Owner facts at a declared watermark", "REBUILD_AFTER_OWNERS", "READINESS_REBUILD")],
+    "ImplementationReadinessSnapshot": [source("DERIVED_TARGET", "ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck", "REBUILD", "rebuild from Owner facts at a declared watermark", "REBUILD_AFTER_OWNERS", "READINESS_REBUILD")],
     "DeliveryEvidence": [source("CURRENT_TABLE", "pms_eng_deliverable", "CURRENT_FORWARD", "map implementation-stage evidence identity, immutable revisions, file references and upload results", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "DeliveryArtifact": [source("CURRENT_TABLE", "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate", "CURRENT_FORWARD", "separate artifact identity, checklist, review and archive records", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "SatisfactionCollection": [
@@ -238,14 +236,12 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
         terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS")],
     "DeliveryScopeDetail": [source("NONE_NEW", "DeliveryScopeDetail", "NEW_ONLY", "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header", "NEW_ONLY", "FEATURE_RELEASE")],
-    "FulfillmentSnapshot": [source("DERIVED_TARGET", "DeliveryScope|ArrivalAcceptance|InstallationRecord|Acceptance", "REBUILD", "rebuild versioned fulfillment view after Owner import", "REBUILD_AFTER_OWNERS", "FULFILLMENT_REBUILD")],
-    "ReconciliationRecord": [source("DERIVED_TARGET", "Contract|SalesOrder|OrderLine|DeliveryScope", "NEW_ONLY", "create reconciliation runs from migrated facts and external receipts", "NEW_ONLY", "POST_IMPORT_RECONCILIATION")],
     "Supplier": [source("LEGACY_TABLE", "pm_subcontract_facilitator", "STRUCTURED", "map supplier identity and qualification evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "SubcontractRequest": [source("LEGACY_TABLE", "pm_subcontract_project_header|pm_subcontract_project_line|pm_subcontract_project_price|pm_subcontract_project_callback", "STRUCTURED", "map request scope, price revision and approval/callback evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "PaymentGate": [source("LEGACY_TABLE", "pm_subcontract_project_payment|pm_subcontract_project_payment_sse", "STRUCTURED", "map approved prerequisites and external finance result reference", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "MetricDefinition": [source("NONE_NEW", "MetricDefinition", "NEW_ONLY", "create versioned metric definitions only after the suggested model is approved; do not migrate report formulas by name", "NEW_ONLY_SUGGESTED", "FEATURE_RELEASE")],
     "MetricSnapshot": [
-        source("DERIVED_TARGET", "Project|ProjectTask|DeliveryScope|FulfillmentSnapshot", "REBUILD", "recalculate by metric version and watermark", "REBUILD_AFTER_OWNERS", "METRIC_REBUILD"),
+        source("DERIVED_TARGET", "Project|ProjectTask|DeliveryScope", "REBUILD", "recalculate by metric version and watermark", "REBUILD_AFTER_OWNERS", "METRIC_REBUILD"),
         source("LEGACY_TABLE", "pm_project_weekly*", "EXCLUDED", "retain historical document only; never import as metric truth", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
     ],
     "PortfolioView": [source("DERIVED_TARGET", "ProjectPortfolio|MetricSnapshot", "REBUILD", "rebuild authorized read projection", "REBUILD_AFTER_OWNERS", "PORTFOLIO_REBUILD")],
@@ -564,8 +560,8 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         raise ValueError("generated Owner/Requirement/target table contract differs from the maintained object-table map")
     return {
         "schemaVersion": 1,
-        "status": "BASELINE_ADDENDUM",
-        "baseline": "PRD_V1.7",
+        "status": "REVALIDATION_REQUIRED",
+        "baseline": "PRD_V1.8",
         "implementationRepo": str(args.implementation.resolve()),
         "implementationCommit": commit,
         "implementationEvidenceMode": "PINNED_GIT_COMMIT",
@@ -580,8 +576,8 @@ def render_markdown(payload: dict[str, object]) -> str:
     lines = [
         "# 领域实体迁移显式契约",
         "",
-        "> 状态：`BASELINE ADDENDUM`",
-        "> 基线：PRD V1.7 / SDS Phase 2 BASELINE",
+        "> 状态：`REVALIDATION_REQUIRED`",
+        "> 基线：PRD V1.8 / SDS Phase 2 REVALIDATION_REQUIRED",
         f"> 实现证据提交：`{payload['implementationCommit']}`",
         "> 生成源：`scripts/generate_domain_entity_migration_contract.py`；JSON为机器真值",
         "",

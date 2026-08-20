@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "status": "BASELINE_ADDENDUM",
-  "baseline": "PRD_V1.7",
+  "status": "REVALIDATION_REQUIRED",
+  "baseline": "PRD_V1.8",
   "implementationRepo": "E:\\AICoding\\Projects\\NPDMS",
   "implementationCommit": "856d05264ab4a4fb69b94896c172e4a1c29aae02",
   "implementationEvidenceMode": "PINNED_GIT_COMMIT",
@@ -317,23 +317,10 @@
         "imp_quality_review"
       ]
     },
-    "ImplementationSafetyCheck": {
-      "owner": "IMP",
-      "requirementIds": [
-        "IMP-02"
-      ],
-      "targetTables": [
-        "imp_safety_check",
-        "imp_safety_item",
-        "imp_safety_remediation",
-        "imp_safety_exemption"
-      ]
-    },
     "DeliveryEvidence": {
       "owner": "IMP",
       "requirementIds": [
-        "IMP-01",
-        "IMP-02"
+        "IMP-01"
       ],
       "targetTables": [
         "imp_delivery_evidence",
@@ -391,7 +378,6 @@
     "ProjectClosure": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-05",
         "ACC-06",
         "CLO-01",
         "CLO-02"
@@ -414,7 +400,6 @@
     "ServiceHandover": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-05",
         "ACC-06"
       ],
       "targetTables": [
@@ -428,6 +413,7 @@
       "requirementIds": [
         "CUT-01",
         "CUT-02",
+        "CUT-03",
         "CUT-08",
         "CUT-09",
         "CUT-10"
@@ -451,7 +437,6 @@
     "CutoverPlan": {
       "owner": "CUT",
       "requirementIds": [
-        "CUT-03",
         "CUT-04",
         "CUT-05",
         "CUT-07"
@@ -733,24 +718,6 @@
         "com_delivery_scope_detail"
       ]
     },
-    "FulfillmentSnapshot": {
-      "owner": "COM",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_fulfillment_snapshot"
-      ]
-    },
-    "ReconciliationRecord": {
-      "owner": "COM",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_reconciliation_record"
-      ]
-    },
     "Supplier": {
       "owner": "RES",
       "requirementIds": [
@@ -890,6 +857,7 @@
     "CollectionTask": {
       "owner": "PLT",
       "requirementIds": [
+        "CUT-03",
         "CUT-06",
         "EXE-03",
         "EXE-04",
@@ -1626,37 +1594,11 @@
       ]
     },
     {
-      "object": "ImplementationSafetyCheck",
-      "owner": "IMP",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "IMP-02"
-      ],
-      "targetTables": [
-        "imp_safety_check",
-        "imp_safety_item",
-        "imp_safety_remediation",
-        "imp_safety_exemption"
-      ],
-      "sources": [
-        {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "ImplementationSafetyCheck",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=ImplementationSafetyCheck"
-        }
-      ]
-    },
-    {
       "object": "DeliveryEvidence",
       "owner": "IMP",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
-        "IMP-01",
-        "IMP-02"
+        "IMP-01"
       ],
       "targetTables": [
         "imp_delivery_evidence",
@@ -1687,12 +1629,12 @@
       "sources": [
         {
           "sourceType": "DERIVED_TARGET",
-          "sourceObject": "ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck|ImplementationSafetyCheck",
+          "sourceObject": "ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck",
           "disposition": "REBUILD",
           "transform": "rebuild from Owner facts at a declared watermark",
           "mappingStatus": "REBUILD_AFTER_OWNERS",
           "gate": "READINESS_REBUILD",
-          "evidenceRef": "phase2-contract://objects=ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck|ImplementationSafetyCheck"
+          "evidenceRef": "phase2-contract://objects=ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck"
         }
       ]
     },
@@ -1896,7 +1838,6 @@
       "owner": "ACC",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
-        "ACC-05",
         "ACC-06",
         "CLO-01",
         "CLO-02"
@@ -1945,7 +1886,6 @@
       "owner": "ACC",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
-        "ACC-05",
         "ACC-06"
       ],
       "targetTables": [
@@ -1981,6 +1921,7 @@
       "requirementIds": [
         "CUT-01",
         "CUT-02",
+        "CUT-03",
         "CUT-08",
         "CUT-09",
         "CUT-10"
@@ -2030,7 +1971,6 @@
       "owner": "CUT",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
-        "CUT-03",
         "CUT-04",
         "CUT-05",
         "CUT-07"
@@ -2854,50 +2794,6 @@
       ]
     },
     {
-      "object": "FulfillmentSnapshot",
-      "owner": "COM",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_fulfillment_snapshot"
-      ],
-      "sources": [
-        {
-          "sourceType": "DERIVED_TARGET",
-          "sourceObject": "DeliveryScope|ArrivalAcceptance|InstallationRecord|Acceptance",
-          "disposition": "REBUILD",
-          "transform": "rebuild versioned fulfillment view after Owner import",
-          "mappingStatus": "REBUILD_AFTER_OWNERS",
-          "gate": "FULFILLMENT_REBUILD",
-          "evidenceRef": "phase2-contract://objects=DeliveryScope|ArrivalAcceptance|InstallationRecord|Acceptance"
-        }
-      ]
-    },
-    {
-      "object": "ReconciliationRecord",
-      "owner": "COM",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_reconciliation_record"
-      ],
-      "sources": [
-        {
-          "sourceType": "DERIVED_TARGET",
-          "sourceObject": "Contract|SalesOrder|OrderLine|DeliveryScope",
-          "disposition": "NEW_ONLY",
-          "transform": "create reconciliation runs from migrated facts and external receipts",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "POST_IMPORT_RECONCILIATION",
-          "evidenceRef": "phase2-contract://objects=Contract|SalesOrder|OrderLine|DeliveryScope"
-        }
-      ]
-    },
-    {
       "object": "Supplier",
       "owner": "RES",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
@@ -3005,12 +2901,12 @@
       "sources": [
         {
           "sourceType": "DERIVED_TARGET",
-          "sourceObject": "Project|ProjectTask|DeliveryScope|FulfillmentSnapshot",
+          "sourceObject": "Project|ProjectTask|DeliveryScope",
           "disposition": "REBUILD",
           "transform": "recalculate by metric version and watermark",
           "mappingStatus": "REBUILD_AFTER_OWNERS",
           "gate": "METRIC_REBUILD",
-          "evidenceRef": "phase2-contract://objects=Project|ProjectTask|DeliveryScope|FulfillmentSnapshot"
+          "evidenceRef": "phase2-contract://objects=Project|ProjectTask|DeliveryScope"
         },
         {
           "sourceType": "LEGACY_TABLE",
@@ -3225,6 +3121,7 @@
       "owner": "PLT",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
+        "CUT-03",
         "CUT-06",
         "EXE-03",
         "EXE-04",

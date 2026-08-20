@@ -30,6 +30,8 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
                 facts = {
                     "currentDdlSha256": "CURRENT",
                     "legacyCatalogDdlSha256": "OLD",
+                    "releaseApplicability": "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER",
+                    "executionWindowPolicy": "APPROVED_WINDOW_ONLY",
                     "driftDecision": "DEFER",
                     "modelDecisionStatus": "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
                     "deferredItemCount": 1,
@@ -81,6 +83,11 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
     def test_open_register_is_structurally_valid(self) -> None:
         self.assertEqual([], VALIDATOR.validate(self.path))
 
+    def test_current_prd_v18_baseline_is_supported(self) -> None:
+        self.payload["baseline"] = "PRD_V1.8"
+        self.write()
+        self.assertEqual([], VALIDATOR.validate(self.path))
+
     def test_model_readiness_does_not_allow_migration(self) -> None:
         payload = json.loads(self.path.read_text(encoding="utf-8"))
         item = next(row for row in payload["items"] if row["id"] == "P3-E09")
@@ -88,6 +95,18 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         self.assertNotIn("PHASE_3_BASELINE", item["blocks"])
         self.assertIn("HISTORICAL_DATA_MIGRATION", item["blocks"])
         self.assertIn("DATA_CUTOVER", item["blocks"])
+
+    def test_ai_mig_release_applicability_is_required(self) -> None:
+        e09 = next(item for item in self.payload["items"] if item["id"] == "P3-E09")
+        del e09["confirmedFacts"]["releaseApplicability"]
+        self.write()
+        self.assertTrue(any("release applicability" in error for error in VALIDATOR.validate(self.path)))
+
+    def test_ai_mig_only_runs_in_approved_window(self) -> None:
+        e09 = next(item for item in self.payload["items"] if item["id"] == "P3-E09")
+        e09["confirmedFacts"]["executionWindowPolicy"] = "ANY_TIME"
+        self.write()
+        self.assertTrue(any("approved window" in error for error in VALIDATOR.validate(self.path)))
 
     def test_only_model_affecting_e09_blocks_sds_readiness(self) -> None:
         errors = VALIDATOR.validate(self.path, require_ready=True)

@@ -1,8 +1,8 @@
 ﻿# SDS Phase 2：数据库设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
+> 文档状态：`REVALIDATION_REQUIRED`
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
 > 目标数据库：`npdms` / MySQL 8.4
@@ -24,7 +24,7 @@
 
 | 层级 | 证据 | 设计约束 |
 |---|---|---|
-| 业务语义 | PRD V1.7、08数据模型、批准 ADR/决策 | 决定 Owner、聚合、不变量和排除范围 |
+| 业务语义 | PRD V1.8、08数据模型、批准 ADR/决策 | 决定 Owner、聚合、不变量和排除范围 |
 | 数据元 | `evidence/data-elements/manifest.json`、`semantic-elements.jsonl`、`schema-records.jsonl` | 决定已存在字段语义、来源坐标和旧结构候选；Excel 哈希变化时必须全量重建 |
 | 迁移规则 | `evidence/migration/*mapping*.jsonl`、`appendices/project-order-migration-mapping.md`、`legacy-data-element-business-object-mapping.md` | 决定旧字段的`STRUCTURED/RELATION/LINEAGE/PAYLOAD`处置、来源血缘、异常分类和对账 |
 | 物理实现 | 当前实现仓库未占用 Flyway 版本、批准目标 DDL | 决定最终表/列/索引/约束；不得编辑已执行迁移 |
@@ -35,7 +35,7 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建；ADR-0028已按当前哈希接受Q07～Q14及V1.7九组完整清单，Q08的122项只作为候选索引，仍须Feature/P3-E06性能验证。整体一致性独立复审为`GO`；该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`记录的DDL哈希、当前项数量及复核状态以本次V1.8校验产物为准；Q08的具体索引仍只是候选，必须经过Feature/P3-E06性能验证。隔离MySQL 8.4.10执行仅证明DDL可执行，不代表历史迁移或数据切换已获批准。因此：
 
 ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。当前事实、机器校验和独立复审形成`MODEL_BASELINE_READY`；P3-E09不定义迁移批准哈希，不建立Owner签署、外部附件或迁移批准流程。
 
@@ -43,12 +43,12 @@ ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前�
 
 ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
-ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0025与ADR-0027按PRD V1.7补齐10张当前范围差量表后，当前核心迁移DDL为60表、1,240列、447项DDL约束/索引和60项表选项，其中隔离MySQL登记325项主键/唯一键/同域外键/CHECK；机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
+ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。V1.8只保留PRD正式V1/V2需求映射出的目标表；COM-02、IMP-02和ACC-05（V3）不得通过数据库设计回流。机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
 当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，889项按既有ADR及ADR-0028九组当前哈希清单登记为`AMEND_CURRENT`，`DEFER=0`；当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。`reviewOwner`为空和`approvedCount=0`不构成逐项复审要求；P3-E09不定义迁移批准哈希，独立复审`GO`已解除`DATA_MODEL_BASELINE`阻断。完整逐项入口为`p3-e09-confirmation-packet.md`和`ddl-item-decision-register.json`。
 
 - 本分册中的模型和约束是 SDS 目标契约；当前60表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
-- `AI-MIG-000`、历史数据迁移和数据切换继续`OPEN`；未经真实批次验证不得执行，也不在当前预建迁移批准状态机、批准JSON或双确认提交；
+- `AI-MIG-000`不是通用Release门禁：只有发布包含历史数据迁移或数据切换时才适用并在验证前保持`BLOCKED`，普通功能发布记为`NOT_APPLICABLE`；适用时未经真实批次验证不得执行，且只允许在批准窗口内执行；当前不预建迁移批准状态机、批准JSON或双确认提交；
 - 历史`migration-validation.json.passed=true`已过期，不得作为当前发布证据；
 - 未关闭漂移前，可以实现不依赖争议 DDL 的领域代码和校验框架，但不得执行生产迁移或宣称数据切换 READY。
 
@@ -88,7 +88,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 - 表：`<domain_code>_<full_domain_object_name>`，例如`plt_collection_task`；不得增加业务系统名称`pms`前缀。
 - 主键：`pk_<table_short>`；唯一键：`uk_<table_short>_<business_semantics>`；普通索引：`idx_<table_short>_<query_semantics>`。
 - 外部来源字段统一为 `source_system/source_key/source_version/source_updated_at/synced_at`。
-- 生命周期字段统一为 `status_code`；历史旧表的 `status` 不原地改义，新增映射列或兼容适配层。
+- 项目生命周期不得统一压缩为一个 `status_code`：`current_stage` 使用 S0～S6，`lifecycle_status` 使用 ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED，`assignment_status` 独立保存，`display_status` 只读派生；历史旧表的 `status` 不原地改义，新增映射列或兼容适配层。
 
 ### 3.2 索引顺序
 
@@ -137,13 +137,24 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | 市场行业四维分类 | `market_code/market_name/system_code/system_name/expend_code/expend_name/industry_code/industry_name` | CRM权威同步；项目直接保存八个快照字段，不保存`relation_id`，历史未知值进入迁移问题 |
 | 实施方式/重大项目级别 | `implementation_mode_code/major_project_level_code` | 版本化字典映射；未知值进入待映射，不写默认值 |
 | 办事处、公司、部门 | 项目组织关系表，字段统一`company_*`、`department_*` | 公司—部门作为同一关系行共同解析和对账；禁止继续生成`org_*`目标字段 |
-| 旧状态/生命周期时间 | 稳定`status_code`及独立发生时间字段 | 使用版本化映射；未知状态只读隔离，旧时间不覆盖`create_time/update_time` |
+| 项目状态与生命周期时间 | `current_stage/lifecycle_status/assignment_status`及独立发生时间字段 | `current_stage`仅允许S0～S6；`lifecycle_status`仅允许ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED；`display_status`由服务端派生；旧时间不覆盖`create_time/update_time` |
+
+项目主表不得以单一状态字段表达多个业务维度：
+
+| 字段 | 类型/取值 | 约束 |
+|---|---|---|
+| `current_stage` | 稳定代码S0～S6 | 由阶段门禁命令迁移；正常闭环后保持S6 |
+| `lifecycle_status` | ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED | CLO-02唯一写入NORMAL_CLOSED；PM-10异常关闭写入EXCEPTION_CLOSED；不得由字典新增可执行值 |
+| `assignment_status` | 基础平台字典映射的稳定代码 | 与项目经理/执行指派独立迁移，不改变生命周期 |
+| `display_status` | 派生只读值 | 由上述字段及查询上下文计算，不落交易真值；不得被客户端写入 |
 
 ### 4.2 任务树与依赖
 
 现有 `proj_project_task` 保存当前父关系；`proj_task_dependency` 只保存任务依赖，二者不得混用。
 
 【建议】新增 `proj_task_tree_path`，结构和索引与项目路径表相同，并增加 `project_id` 作为高频过滤列。任务移动只修改任务父关系和路径投影，不自动创建/删除依赖。
+
+ADR-0029新增的TaskDefinition工作绑定、ProjectTask绑定快照、CompletionRule和完成判定快照已进入逻辑模型，但当前DDL尚未形成可验证的物理承载。本分册不得假定它们已经存在于`proj_project_task`或模板JSON中；Phase 2差量设计必须在“现有表受控扩展”与“独立从属表”之间给出字段、版本、唯一、索引和迁移结论，并重新执行P3-E09。完成前该部分保持`REVALIDATION_REQUIRED`，不修改当前DDL。
 
 ### 4.3 项目版本与快照
 
@@ -235,7 +246,6 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | JointDebuggingResult | `imp_joint_debugging_result` | `imp_joint_debugging_item` | 业务任务 + 结果版本唯一 |
 | ImplementationRisk | `imp_risk` | `imp_risk_treatment` | 状态迁移另记历史；不与 CUT risk 共表 |
 | ImplementationQualityCheck | `imp_quality_check` | `imp_quality_item`、`imp_quality_remediation`、`imp_quality_review` | 整改与复核追加；当前状态由聚合根维护 |
-| ImplementationSafetyCheck | `imp_safety_check` | `imp_safety_item`、`imp_safety_remediation`、`imp_safety_exemption` | 阻断标识由状态机计算，不能被通用更新接口直接清除 |
 | DeliveryEvidence | `imp_delivery_evidence` | `imp_delivery_evidence_revision` | `uk(tenant_id, evidence_id, revision_no)`；文件引用+哈希 |
 
 旧 `pms_eng_*` 表按字段语义映射到新 Owner；物理模块无需立即拆库，但新 Repository 必须按 Context 包隔离。复用旧表时以兼容视图/适配器映射稳定状态代码，不直接重解释历史 tinyint。
@@ -248,7 +258,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
 | DeliveryArtifact | `acc_delivery_artifact` | `acc_artifact_review`、`acc_archive_record` | 文件 revision + 清单项唯一；归档记录不可覆盖 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
-| ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | 不含续保年限、续保结束日期和续保状态 |
+| ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | V2静态交接快照；不含续保年限、续保结束日期、续保状态或持续跟踪对象 |
 
 历史 `pms_acc_maintenance_transition` 不改表。前向迁移只把可以证明的交接字段映射到新表，并保存 `legacy_record_id`；续保字段不进入新模型。
 
@@ -269,6 +279,8 @@ CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对�
 `cut_cutover_support_arrangement`只是`cut_plan_revision`从属明细，不得拥有派单/接管/转单/挂起状态。联系人、联系方式、到位时间变化在原批准方案下更新并写业务审计；角色或任务职责变化不得直接覆盖，必须创建新方案revision并按原人工等级重新进入P5。
 
 `cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
+
+CUT-03同工作台的清单版本、采集项答案、界面格式快照、CollectionTask及结果引用已进入逻辑模型；当前表组未明确这些事实由哪张表承载。Phase 2必须形成最小物理差量并校验不把清单塞入`cut_plan_revision`、不把CollectionTask技术状态复制为CUT业务状态、不新增采集阶段或通用工单。该差量进入DDL前须重新执行P3-E09，本次PRD/阶段修订不提前建表。
 
 ## 8. Customer、Commerce、Resource 与 Knowledge
 
@@ -462,6 +474,6 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | 版本、快照、历史可实现 | PASS | revision、snapshot、transition、sync batch 表 |
 | 敏感数据不明文持久化 | PASS | credential 密文/secretRef；临时密码无字段 |
 | 数据元与历史迁移结论已纳入 | PASS | 第1.1、4.1.1、8.1～8.3节；结构化证据优先、来源载荷+业务列双层保存 |
-| 漂移可前向纠正 | PASS-WITH-IMPLEMENTATION-GATE | 第1.2、12节；`AI-MIG-000`完成前不得生成当前迁移发布基线 |
+| 漂移可前向纠正 | PASS-WITH-IMPLEMENTATION-GATE | 第1.2、12节；包含历史迁移或数据切换的发布须先完成`AI-MIG-000`，普通应用Schema前向迁移不因此转为历史迁移门禁 |
 
-本分册达到 API、事件、集成和并发/幂等设计的数据库前置条件；实际应用Schema变更仍以实现仓库“下一个未占用 Flyway 版本”为准。历史迁移或数据切换则须由`AI-MIG-000`在真实批次中完成范围、水位、程序、校验、演练、对账和回退验证；P3-E09不定义迁移批准哈希。
+本分册达到 API、事件、集成和并发/幂等设计的数据库前置条件；实际应用Schema变更仍以实现仓库“下一个未占用 Flyway 版本”为准。只有发布包含历史迁移或数据切换时，才须由`AI-MIG-000`在Release前完成真实批次的范围、水位、程序、校验、演练、对账和回退验证，并在批准窗口内执行；普通功能发布不适用。P3-E09不定义迁移批准哈希。

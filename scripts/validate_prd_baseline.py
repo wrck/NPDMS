@@ -73,7 +73,9 @@ def cutover_flow_contract(text: str) -> dict[str, bool]:
         if re.search(r"(?m)^\|\s*目标版本\s*\|\s*V[12](?:[^|]*)\|\s*$", block)
     }
     return {
-        "CUT-01核心任务保留": "CUT-01" in formal_ids and "P1首页任务接入" in cutover and "P6割接跟踪与闭环" in cutover,
+        "CUT-01核心任务保留": "CUT-01" in formal_ids
+        and ("P1首页任务接入" in cutover or "P1是任务接入入口" in cutover)
+        and "P6割接跟踪与闭环" in cutover,
         "CUT-11退出当前范围": "CUT-11" not in formal_ids and "割接保障任务（CUT-11）" not in cutover,
         "问卷人工判级": "一线工程师提交问卷和人工等级" in cutover and "用服经理在P5审批中复核" in cutover,
         "P3配置缺口不阻断": "允许一线补充自定义项并标记配置缺口" in cutover and "不直接阻断割接主流程" in cutover,
@@ -87,6 +89,53 @@ def cutover_flow_contract(text: str) -> dict[str, bool]:
             cutover,
         ),
         "无遗留项归档阻断": "全部遗留项闭环后方可归档" not in cutover and "遗留项进入待办跟踪" not in cutover,
+    }
+
+
+def project_workbench_contract(text: str) -> dict[str, bool]:
+    """Validate the confirmed Stage -> ProjectTask business-workbench boundary."""
+    blocks = dict(requirement_blocks(text))
+    pm03 = blocks.get("PM-03", "")
+    pm11 = blocks.get("PM-11", "")
+    cut01 = blocks.get("CUT-01", "")
+    cut03 = blocks.get("CUT-03", "")
+    overview_tabs = ("基本信息", "项目树", "团队成员", "项目任务", "设备清单", "实施范围")
+    binding_kinds = ("TASK_NATIVE", "业务对象", "业务组件", "动态表单", "审批", "组合")
+    return {
+        "模板定义StageTask绑定": all(
+            marker in pm03
+            for marker in (
+                "StageDefinition → TaskDefinition",
+                "WorkBinding",
+                "PermissionPolicy",
+                "CompletionRule",
+                "GateRef",
+            )
+        ),
+        "不重复配置业务导航": "不再维护一套与ProjectTask重复的“业务导航配置”" in pm03,
+        "WorkBinding类型完整": all(kind in pm03 for kind in binding_kinds),
+        "WorkBinding统一必填": "每个ProjectTask必须且只能有一个当前有效`WorkBinding`" in pm03
+        and "默认`TASK_NATIVE`" in pm03
+        and "通用任务必须显式使用TASK_NATIVE" in pm03,
+        "StageTask导航不限制树深": "阶段作为一级导航、ProjectTask作为二级业务导航" in pm11
+        and "不把业务任务限制为固定两层" in pm11,
+        "通用任务详情基础能力": "`TASK_NATIVE`直接使用ProjectTask通用详情执行" in pm11
+        and "ProjectTask既是执行编排节点，也是`TASK_NATIVE`默认业务实体" in pm11,
+        "绑定任务按关系执行": "其他`WorkBinding`类型" in pm11
+        and all(marker in pm11 for marker in ("业务对象", "业务组件", "动态表单", "审批", "组合视图")),
+        "通用详情不替代绑定业务": "通用基础信息不得替代非`TASK_NATIVE`绑定的业务执行" in pm11,
+        "项目概览六页签": all(tab in pm11 for tab in overview_tabs),
+        "任务完成按绑定类型判定": "CompletionRule" in pm11
+        and "`TASK_NATIVE`校验ProjectTask自身必填信息与合法状态" in pm11
+        and "其他类型校验绑定业务事实" in pm11
+        and "非`TASK_NATIVE`任务不得通过通用“完成任务”动作绕过目标业务事实" in pm11,
+        "割接入口与五步工作台": "P1是任务接入入口" in cut01
+        and "五步工作台按P2～P6展示" in cut01,
+        "CUT03同一P3工作台": "同一个P3任务工作台" in cut03
+        and "不新增采集阶段" in cut03
+        and "CollectionTask" in cut03,
+        "采集结果不等于业务通过": "不把技术回调成功直接解释为风险项通过" in cut03
+        and "任何回调不得直接把采集项判定为通过" in cut03,
     }
 
 
@@ -228,6 +277,9 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
 
     for name, passed in cutover_flow_contract(prd).items():
         add(checks, f"CUT流程-{name}", passed, "割接流程必须符合0807流程设计及已确认业务决策")
+
+    for name, passed in project_workbench_contract(prd).items():
+        add(checks, f"工作台-{name}", passed, "项目工作区与割接工作台必须符合已确认线框设计")
 
     appendix_b = section(prd, "附录B 集成系统与平台组件清单")
     external = section(appendix_b, "B.1 外部系统") if appendix_b else ""

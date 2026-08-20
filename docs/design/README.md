@@ -4,7 +4,7 @@
 
 本目录用于沉淀《项目实施交付管理平台 系统详细设计说明书（SDS）》。
 
-> 当前基线提示：PRD V1.8已于2026-08-19发布。除`01-requirement-traceability.md`和总册的范围入口已同步外，其余仍标注PRD V1.7的分册只代表V1.7历史设计基线，当前统一处于`REVALIDATION_REQUIRED`；完成V1.8差量复审前不得作为新Feature或实现的放行依据。当前状态以各阶段`gate-status.md`为准。
+> 当前基线提示：PRD V1.8已于2026-08-19发布。当前分册已按阶段同步V1.8范围，但仍须通过对应`gate-status.md`的差量复审；状态为`REVALIDATION_REQUIRED`或`DEFERRED_TO_PHASE_3`的分册不得作为新Feature或实现的放行依据。V1.7审查材料只作为历史证据。
 
 ## 目标文件
 

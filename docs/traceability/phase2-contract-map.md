@@ -40,13 +40,13 @@
 
 - 需求名称：项目模板与阶段门禁
 - 数据对象：ProjectTemplate、ProjectStageSnapshot
-- 数据表：proj_project_template_revision、proj_project_stage_snapshot
+- 数据表：proj_project_template_revision、proj_project_stage_snapshot、BLOCKED_BY_DESIGN(ADR-0029任务绑定与完成规则物理承载待定)
 - API：/project-templates
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：模板发布、实例冻结和阶段门禁
-- 授权与数据范围：项目模板维护权限；项目阶段范围
+- 工作流/状态：模板内StageDefinition/TaskDefinition发布、实例冻结、必填WorkBinding（默认TASK_NATIVE）/PermissionPolicy/CompletionRule/GateRef校验和阶段门禁
+- 授权与数据范围：项目模板维护权限；项目阶段范围；非TASK_NATIVE绑定目标权限不得越权
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录
 
@@ -140,10 +140,10 @@
 - 数据对象：Project、ProjectStageSnapshot
 - 数据表：proj_project、proj_project_stage_snapshot
 - API：/projects/{id}/actions/rollback、/projects/{id}/actions/close
-- 事件：ProjectStageChanged、ProjectClosed
+- 事件：ProjectStageChanged、ProjectClosed(lifecycleStatus=EXCEPTION_CLOSED)
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：受控回退与闭环完成后关闭
+- 工作流/状态：受控回退保持ACTIVE；异常关闭置EXCEPTION_CLOSED；正常闭环仅由CLO-02产生NORMAL_CLOSED
 - 授权与数据范围：ProjectTreeScope；状态命令权限与门禁
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
@@ -152,13 +152,13 @@
 
 - 需求名称：项目任务管理
 - 数据对象：ProjectTask、TaskAncestorProjection、TaskDependency
-- 数据表：proj_project_task、proj_task_tree_path、proj_task_dependency
-- API：/projects/{id}/tasks、/project-tasks/{id}/actions/move
+- 数据表：proj_project_task、proj_task_tree_path、proj_task_dependency、BLOCKED_BY_DESIGN(ADR-0029任务绑定与完成规则物理承载待定)
+- API：/projects/{id}/workspace、/projects/{id}/tasks、/project-tasks/{id}/workbench、/project-tasks/{id}/actions/move、/project-tasks/{id}/actions/{submit|start|complete|cancel}
 - 事件：TaskAssigned、TaskCompleted
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：任务任意层级移动、状态迁移和依赖守卫
-- 授权与数据范围：ProjectTreeScope；任务数据范围
+- 工作流/状态：ProjectTask内必填WorkBinding/CompletionRule与Stage→ProjectTask工作台投影、任务任意层级移动；TASK_NATIVE按任务自身事实执行，其他类型按绑定事实完成并受依赖守卫
+- 授权与数据范围：ProjectTreeScope；TASK_NATIVE任务范围；其他类型由服务端合并目标业务对象权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；5万节点、2000直接子节点、深度30任务树查询/移动测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；任务树数据集版本与性能报告
 
@@ -781,16 +781,16 @@
 ### CUT-03
 
 - 需求名称：割接采集清单动态多维绑定生成
-- 数据对象：CutoverPlan
-- 数据表：cut_plan_revision、cut_step
-- API：/cutover-tasks/{id}/plan-revisions
-- 事件：CutoverApproved
-- 外部集成：N/A（平台内部契约）
+- 数据对象：CutoverTask、CollectionTask
+- 数据表：cut_task、plt_collection_task、BLOCKED_BY_DESIGN(ADR-0029割接清单结果承载待定)
+- API：/cutover-tasks/{id}/checklist、/cutover-tasks/{id}/checklist/actions/rematch、/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection
+- 事件：CollectionTaskRequested、CollectionResultAvailable、CutoverChecklistItemResultLinked
+- 外部集成：现有采集平台子应用
 - 文件契约：FileArtifact
-- 工作流/状态：动态清单、方案编审、分级审批和版本冻结
-- 授权与数据范围：CutoverTaskScope；分级审批权限
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
+- 工作流/状态：CutoverTask内P3清单在同一工作台动态匹配、人工填写/上传、采集任务下发、回调结果回填和配置缺口留痕
+- 授权与数据范围：CutoverTaskScope、BusinessObjectDeviceCredentialScope；服务端按清单项和设备范围裁剪
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-04
 
@@ -801,7 +801,7 @@
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：动态清单、方案编审、分级审批和版本冻结
+- 工作流/状态：方案编审、分级审批和版本冻结
 - 授权与数据范围：CutoverTaskScope；分级审批权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
@@ -815,7 +815,7 @@
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：动态清单、方案编审、分级审批和版本冻结
+- 工作流/状态：方案编审、分级审批和版本冻结
 - 授权与数据范围：CutoverTaskScope；分级审批权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
@@ -843,7 +843,7 @@
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：动态清单、方案编审、分级审批和版本冻结
+- 工作流/状态：方案编审、分级审批和版本冻结
 - 授权与数据范围：CutoverTaskScope；分级审批权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
@@ -1330,7 +1330,7 @@
 - 数据对象：ImplementationQualityCheck
 - 数据表：imp_quality_check、imp_quality_item、imp_quality_remediation、imp_quality_review
 - API：/quality-checks
-- 事件：QualitySafetyGateChanged
+- 事件：ImplementationQualityGateChanged
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
 - 工作流/状态：提交→复核→整改→再复核

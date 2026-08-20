@@ -13,9 +13,10 @@ V1.7 Phase 3的`APPROVED / READY_FOR_SDS_BASELINE`保留为历史证据。V1.8�
 | 门禁 | 当前状态 | 说明 |
 |---|---|---|
 | Phase 1/2前置 | BLOCKED | 两阶段尚未完成V1.8差量复审 |
-| 测试追溯 | OPEN | 测试设计须从103项调整为100项并覆盖新增状态分层规则 |
-| 数据模型影响 | OPEN | P3-E09既有模型事实保持可追溯，但须确认退出需求与状态字段是否引起模型差量 |
-| 历史迁移与切换 | BLOCKED | `AI-MIG-000`、真实迁移和数据切换继续保持OPEN |
+| 测试追溯 | REVALIDATION_REQUIRED | 测试设计已按100项V1/V2范围重标，须与Phase 2契约和新增项目状态分层规则完成独立复核 |
+| 设计分册口径 | REVALIDATION_REQUIRED | 14、17、18、19、20分册已切换V1.8元数据，但尚未恢复为当前SDS基线 |
+| 数据模型影响 | REVALIDATION_REQUIRED | P3-E09既有模型事实保持可追溯；ADR-0029确认WorkBinding必填、TASK_NATIVE默认类型及分类型CompletionRule，连同CUT-03清单结果引用须先完成Phase 2物理差量，再对新DDL重新校验，旧哈希不自动覆盖新增事实 |
+| 历史迁移与切换 | CONDITIONAL_RELEASE_GATE | Release不含历史迁移和数据切换时为`NOT_APPLICABLE`且不阻断发布；包含任一项时，`AI-MIG-000`须在Release前达到`VERIFIED`，并只允许在批准窗口内执行 |
 | Q08候选索引 | DEFERRED_TO_FEATURE_VALIDATION | 仍只是候选，不代表性能验收 |
 | 生产运行证据 | DOWNSTREAM_GATED | KMS、Telemetry、容量、恢复和发布证据在对应环境/发布门禁关闭 |
 

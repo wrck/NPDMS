@@ -40,7 +40,9 @@ DDL_DECISION_REGISTER = Path("specs/001-project-delivery-platform/evidence/migra
 DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
 DDL_EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
 P3E09_MODEL_BASELINE_BLOCKS = ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"]
-P3E09_USAGE_RESTRICTION = "仅用于SDS数据模型基线事实校验；不得用于授权历史数据迁移或数据切换。"
+AI_MIG_RELEASE_APPLICABILITY = "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER"
+AI_MIG_EXECUTION_WINDOW_POLICY = "APPROVED_WINDOW_ONLY"
+P3E09_USAGE_RESTRICTION = "仅用于SDS数据模型基线事实校验；普通功能发布不触发AI-MIG-000，只有包含历史迁移或数据切换的发布才以前置门禁约束，并且只能在批准窗口内执行。"
 P3E09_INDEPENDENT_REVIEW_REF = "docs/engineering/gates/phase-3/independent-review.md"
 P3E09_REVIEW_OWNER = "INDEPENDENT_REVIEWER"
 BACKUP_RETENTION_POLICY = {
@@ -173,6 +175,8 @@ def build_packets() -> dict[str, dict[str, object]]:
             facts.update(
                 {
                     "currentDdlSha256": ddl_sha256,
+                    "releaseApplicability": AI_MIG_RELEASE_APPLICABILITY,
+                    "executionWindowPolicy": AI_MIG_EXECUTION_WINDOW_POLICY,
                     "targetCatalogDdlSha256": ddl_sha256,
                     "mappingDdlSha256": ddl_sha256,
                     "validationDdlSha256": ddl_sha256,

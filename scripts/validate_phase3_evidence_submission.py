@@ -26,10 +26,13 @@ REQUIRED_FACTS = {
 REQUIRED_P3_E09_FACTS = {
     "itemsSha256", "itemIdsSha256", "deferredItemCount", "mysql84DdlSha256",
     "independentReviewResult", "independentReviewRef",
+    "releaseApplicability", "executionWindowPolicy",
     *DDL_ARTIFACT_HASH_FIELDS,
 }
 REQUIRED_FACTS["P3-E09"] = REQUIRED_P3_E09_FACTS
 VALID_STATUS = {"DRAFT", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED"}
+AI_MIG_RELEASE_APPLICABILITY = "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER"
+AI_MIG_EXECUTION_WINDOW_POLICY = "APPROVED_WINDOW_ONLY"
 SECRET_NAME = re.compile(r"(?:password|passwd|secretValue|privateKey|tokenValue|connectionString)$", re.I)
 DIRECTION_DECISIONS = {
     "P3-E01": "A", "P3-E02": "A", "P3-E03": "A", "P3-E04": "A",
@@ -163,6 +166,10 @@ def validate(path: Path) -> list[str]:
             errors.append("P3-E05 submitted evidence must retain ADR-0014 export authorization policy")
         if identifier == "P3-E09" and "approvedDdlSha256" in facts:
             errors.append("legacy migration approval field is not allowed in P3-E09 model baseline")
+        if identifier == "P3-E09" and facts.get("releaseApplicability") != AI_MIG_RELEASE_APPLICABILITY:
+            errors.append("P3-E09 release applicability must be limited to releases containing historical migration or data cutover")
+        if identifier == "P3-E09" and facts.get("executionWindowPolicy") != AI_MIG_EXECUTION_WINDOW_POLICY:
+            errors.append("P3-E09 AI-MIG-000 execution must remain restricted to the approved window")
     if status == "VERIFIED":
         if not nonempty(payload.get("reviewOwner")) or payload.get("verificationResult") != "PASS":
             errors.append(f"{identifier} VERIFIED requires reviewOwner and verificationResult=PASS")

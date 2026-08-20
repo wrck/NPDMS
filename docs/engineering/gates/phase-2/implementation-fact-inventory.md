@@ -1,10 +1,10 @@
 # Phase 2 实现事实盘点
 
 > 文档类型：Phase 2 门禁输入证据
-> 盘点基线：PRD V1.7、SDS Phase 1 `BASELINE`
+> 盘点基线：PRD V1.8、SDS Phase 1 `REVALIDATION_REQUIRED`
 > 实现仓库：`E:\AICoding\Projects\NPDMS`
 > 实现提交：`856d05264ab4a4fb69b94896c172e4a1c29aae02`
-> 状态：`COMPLETED`
+> 状态：`REVALIDATION_REQUIRED`
 
 ## 1. 盘点目的与判定规则
 
@@ -37,10 +37,10 @@
 | Project Delivery / PROJ | 项目、项目树、任务树、依赖、阶段、模板、组合、计划变更和治理动作已有表 | `REUSABLE_WITH_CHANGE` | 验证任意层级查询、项目树后代权限、任务依赖与层级正交、设备当前归属统计和状态迁移守卫 |
 | Preparation / PRE | 工勘、需求、资源就绪、交底等对象混在 engineering 模块 | `REUSABLE_WITH_CHANGE` | 按 Preparation 聚合重新界定 Owner；模块共存可以保留，禁止跨 Context 直连 Repository |
 | Solution / SOL | 方案、方案来源、模板已有表 | `REUSABLE_WITH_CHANGE` | 区分方案版本、评审结论和不可变发布版本；附件统一引用文件资产 |
-| Implementation Execution / IMP | 到货、安装、配置、联调、风险、交付件已有部分表 | `REUSABLE_WITH_CHANGE` | 补齐质量检查、安全检查、整改/复核事实；按独立聚合配置状态迁移和幂等提交 |
+| Implementation Execution / IMP | 到货、安装、配置、联调、风险、交付件已有部分表 | `REUSABLE_WITH_CHANGE` | 对齐到货、安装、配置、联调、风险、IMP-01质量检查和交付件；IMP-02不进入当前对象/表/API |
 | Acceptance & Closure / ACC | 验收、交付清单、归档、完工证明、闭环已有表 | `REUSABLE_WITH_CHANGE` | 对齐 Acceptance、DeliveryArtifact、ProjectClosure、ServiceHandover；移除“续保”业务语义 |
-| Cutover / CUT | 计划、任务、风险、执行、观察已有表 | `REUSABLE_WITH_CHANGE` | 对齐评估、审批、执行和稳定观察；不引入已排除的平台通用割接时效管控 |
-| Work Order & Time / SRV | 通用服务任务、规则、执行等对象已有表 | `REUSABLE_WITH_CHANGE` | 只保留 PRD 的工单与工时事实；排除工单时效要求 |
+| Cutover / CUT | 计划、任务、风险、执行、观察已有表 | `REUSABLE_WITH_CHANGE` | 对齐P1～P6评估、审批、方案和P6闭环快照；逐步骤状态与稳定观察不进入当前业务聚合 |
+| Work Order & Time / SRV | 通用服务任务、规则、执行等对象已有表 | `CONFLICT_REQUIRES_FORWARD_MIGRATION` | 不进入当前V1/V2对象、表、API或文件入口；历史事实仅按AI-MIG-000受控保存来源证据 |
 | Inspection / SRV | 巡检任务、规则、报告、问题已有表 | `REUSABLE_WITH_CHANGE` | 接入 Device Access & Collection 的凭证/临时明文入口、任务下发和回调，不重建采集引擎 |
 | Service Operations / SRV | 存在独立维保表 | `CONFLICT_REQUIRES_FORWARD_MIGRATION` | 独立维保、续保空间和续保报表不进入目标模型；客观维保信息归入设备档案 `MaintenanceFact` |
 | Customer / CUS | 客户、联系人、服务等级已有表 | `REUSABLE_WITH_CHANGE` | CRM 是客户主数据 Owner；平台保存必要同步副本，避免运行期全部远程查询 |

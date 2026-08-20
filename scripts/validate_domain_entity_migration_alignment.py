@@ -33,7 +33,7 @@ MULTI_OWNER_OBJECT_OWNER = {
     "ServiceStatus": "SRV",
 }
 MODEL_ENTITY_CONTRACTS = {
-    "DeliveryEvidence": ("IMP", {"IMP-01", "IMP-02"}),
+    "DeliveryEvidence": ("IMP", {"IMP-01"}),
     "DeviceAssignmentHistory": ("AST", {"EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"}),
     "DeviceAncestorProjection": ("AST", {"EQP-01", "EQP-03"}),
     "MetricDefinition": ("ANA", {"ANA-01"}),

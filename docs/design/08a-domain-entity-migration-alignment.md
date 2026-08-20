@@ -1,12 +1,12 @@
 ﻿# SDS Phase 2补充分册：领域实体迁移对齐
 
-> 文档状态：`BASELINE ADDENDUM`
-> 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE
-> Requirement ID：附录A.1全部103项V1/V2正式需求
+> 文档状态：`REVALIDATION_REQUIRED`
+> 适用基线：PRD V1.8、SDS Phase 1/2 REVALIDATION_REQUIRED
+> Requirement ID：附录A.1全部100项V1/V2正式需求
 > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
 > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。
 
-本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖84个领域实体，通过95条来源绑定描述当前实现、旧数据元、外部系统、派生来源和排除证据，并登记1个明确排除源。每个对象独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供84个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障安排和设备框板关系；已删除的HR目录同步快照及历史工单/工时对象不在当前迁移对象集合中，也不提供V1/V2用户查询、导出或附件入口。
+本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`；对象数量、来源数量和目标表映射以本轮生成结果为准。每个对象独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供对象到09目标表的精确机器映射。V1.8已移除COM-02、IMP-02，ACC-05转为V3；三者不得继续生成当前V1/V2实体、目标表或用户入口。已排除的历史工单/工时和目录同步对象仍只作为受控来源证据，不进入当前迁移对象集合。
 
 ## 1. 证据和使用规则
 
@@ -80,7 +80,6 @@
 | `JointDebuggingResult` | 当前`pms_eng_joint_test` | CURRENT_FORWARD | 按业务任务和结果版本迁移，问题只保存引用 |
 | `ImplementationRisk` | 当前`pms_eng_risk`、项目风险候选 | CURRENT_FORWARD+STRUCTURED | 风险与处置历史追加迁移；不与CUT风险混表 |
 | `ImplementationQualityCheck` | 当前未发现完整质量检查/整改/复核模型 | NEW_ONLY | 启用后产生，不用到货/安装结果冒充质量复核 |
-| `ImplementationSafetyCheck` | 当前未发现完整安全阻断/整改/豁免模型 | NEW_ONLY | 启用后产生，不从普通风险等级推断安全豁免 |
 | `ImplementationReadinessSnapshot` | 到货、安装、方案、风险、质量/安全等目标事实 | REBUILD | 从迁移后Owner事实按口径生成；旧项目状态缓存不作为快照真值 |
 
 ## 6. Acceptance & Closure
@@ -129,8 +128,6 @@
 | `SalesOrder` | `pm_order_data_from_erp` | STRUCTURED+EXTERNAL_SYNC | 按来源+公司+订单类型+订单号归并；冲突不取最大ID |
 | `OrderLine` | `pm_order_line_from_erp` | STRUCTURED+EXTERNAL_SYNC | 订单行稳定键、数量和正负方向保留；空键/多义进入问题 |
 | `DeliveryScope` | `pm_project_product_line`及明确订单行/项目关系 | STRUCTURED+RELATION | 必须保存项目、订单行、分配量和状态；缺量待补且不计统计，多项目分配防超配 |
-| `FulfillmentSnapshot` | 到货、安装、验收及订单范围Owner事实 | REBUILD | 由迁移后交易事实生成口径版本，不迁旧汇总缓存为真值 |
-| `ReconciliationRecord` | 同步批次、迁移问题和外部回执 | NEW_ONLY | 新平台对账过程产生；旧差异可作为首批问题输入 |
 | `Supplier` | 旧`pm_subcontract_facilitator`、当前外协/供应商候选 | STRUCTURED+CURRENT_FORWARD | 迁服务商主档和资质版本；备件供应商业务仍由外部系统承接 |
 | `SubcontractRequest` | 旧`pm_subcontract_project_header/line/price/callback`、当前外协申请 | STRUCTURED+CURRENT_FORWARD | 迁申请、范围、价格版本和审批引用；不改变项目树 |
 | `PaymentGate` | 旧转包付款及财务同步表 | STRUCTURED+EXTERNAL_SYNC | 迁已批准前置证据和外部结果引用；HTTP/同步成功不等于付款确认 |
@@ -154,7 +151,7 @@
 
 ### 9.1 08数据模型内部/建议实体补充
 
-这些实体未在103项Phase 2映射中独立列名，但已在08数据模型中承担正式明细、历史、投影、关系或支撑职责，因此同样纳入迁移覆盖。建议实体仅登记新建边界，不因此升级为PRD承诺。CUT领域的保障人员安排是`CutoverPlan`从属数据，不是独立任务聚合；WO-06后置到工单领域且不进入当前迁移覆盖。
+这些实体未在100项Phase 2映射中独立列名，但已在08数据模型中承担正式明细、历史、投影、关系或支撑职责，因此同样纳入迁移覆盖。建议实体仅登记新建边界，不因此升级为PRD承诺。CUT领域的保障人员安排是`CutoverPlan`从属数据，不是独立任务聚合；WO-06后置到工单领域且不进入当前迁移覆盖。V1.8移除的对象不得以“建议实体”名义回流。
 
 | 数据对象 | 来源摘要 | 迁移边界 |
 |---|---|---|
@@ -194,7 +191,7 @@
 
 领域迁移切换必须同时满足：
 
-1. `AI-MIG-000`在真实批次中完成范围、水位、程序、校验、演练、对账和回退验证；未经该验证不得执行迁移或切换；
+1. 只有发布包含历史迁移或数据切换时，`AI-MIG-000`才作为Release前置门禁；它须在真实批次中完成范围、水位、程序、校验、演练、对账和回退验证，迁移或切换只能在批准窗口内执行；普通功能发布记为`NOT_APPLICABLE`；
 2. 本分册每个数据对象均有策略，所有`PENDING_SOURCE_CONFIRMATION`已关闭或被批准为不迁移；
 3. 每条源记录形成目标事实、迁移问题或批准终态之一，不得静默丢失；
 4. 每个领域分别校验数量、唯一键、关系孤儿、状态/字典、金额/数量、文件hash和权限范围；

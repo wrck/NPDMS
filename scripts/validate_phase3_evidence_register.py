@@ -14,6 +14,7 @@ from p3e09_approval_policy import validate_model_baseline
 
 EXPECTED_IDS = {f"P3-E{index:02d}" for index in range(1, 10)}
 VALID_STATUS = {"OPEN", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED", "NOT_APPLICABLE"}
+SUPPORTED_BASELINES = {"PRD_V1.7", "PRD_V1.8"}
 BASELINE_REQUIRED: set[str] = {"P3-E09"}
 EXPECTED_BLOCKS = {
     "P3-E01": {"SECURITY_TRUST_BOUNDARY", "PRODUCTION_DEPLOYMENT", "PRODUCTION_RELEASE"},
@@ -26,6 +27,8 @@ EXPECTED_BLOCKS = {
     "P3-E08": {"FRONTEND_FEATURE_ACCEPTANCE", "FRONTEND_RELEASE"},
     "P3-E09": {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
 }
+AI_MIG_RELEASE_APPLICABILITY = "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER"
+AI_MIG_EXECUTION_WINDOW_POLICY = "APPROVED_WINDOW_ONLY"
 
 
 def sds_baseline_ready(by_id: dict[str, dict[str, object]]) -> bool:
@@ -155,7 +158,7 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
 
     if payload.get("schemaVersion") != 1:
         errors.append("unsupported evidence register schemaVersion")
-    if payload.get("phase") != "SDS_PHASE_3" or payload.get("baseline") != "PRD_V1.7":
+    if payload.get("phase") != "SDS_PHASE_3" or payload.get("baseline") not in SUPPORTED_BASELINES:
         errors.append("evidence register phase/baseline mismatch")
 
     items = payload.get("items")
@@ -269,6 +272,10 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
             errors.append(f"{identifier} deployment-time decision reference missing")
     e09 = by_id.get("P3-E09", {})
     facts = e09.get("confirmedFacts", {})
+    if facts.get("releaseApplicability") != AI_MIG_RELEASE_APPLICABILITY:
+        errors.append("P3-E09 release applicability must be limited to releases containing historical migration or data cutover")
+    if facts.get("executionWindowPolicy") != AI_MIG_EXECUTION_WINDOW_POLICY:
+        errors.append("P3-E09 AI-MIG-000 execution must remain restricted to the approved window")
     if facts.get("currentDdlSha256") == facts.get("legacyCatalogDdlSha256"):
         errors.append("P3-E09 current and legacy DDL hashes must differ")
     q07_fact = facts.get("q07Decision", {})
