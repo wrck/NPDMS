@@ -2,9 +2,9 @@
 
 > 日期：2026-08-20<br>
 > 状态：`MACHINE_PASS_AFTER_REPAIR`<br>
-> 阶段结论：`RE_REVIEW_REQUIRED / NOT_READY_FOR_PHASE_2_V1.8`<br>
-> 已评审候选：`8a7d36d`（`NO_GO`）<br>
-> 修复候选：`537ab5a`（`REVIEW_PENDING`）<br>
+> 阶段结论：`APPROVED / READY_FOR_PHASE_2_V1.8`<br>
+> 已评审候选：`4792f11`（`GO`）<br>
+> 核心修复：`537ab5a`（`VERIFIED`）<br>
 > 范围：PRD V1.8的100项V1/V2正式需求及Phase 1正式分册
 
 ## 1. 修复自审
@@ -32,7 +32,7 @@
 | 手写Markdown状态机仍有围栏info、代码内注释和列表相对缩进缺陷 | 用`markdown-it-py 4.2.0`提取真实GFM table token；增加验证依赖清单和六组完整边界回归 | CLOSED_IN_`aece769` |
 | 引用式链接可隐藏第二Producer或Owner | 从Markdown内联子token提取渲染后的可见文本；完整、折叠和快捷引用链接均执行唯一性校验 | CLOSED_IN_`6d312d6` |
 | HTML属性或注释内的`>`可使不可见token残片进入业务键 | 在内联token层忽略`html_inline`；不再依赖正则删除HTML源码，Producer与Owner两侧均补反例 | CLOSED_IN_`537ab5a` |
-| 第九轮独立复审 | 登记`8a7d36d`为NO-GO；固定`537ab5a`为待fresh-context复审候选 | RE_REVIEW_REQUIRED |
+| 第九轮独立复审 | 固定候选`4792f11`完成fresh-context反证；核心修复`537ab5a`验证通过，无Critical、Required或Optional | GO |
 
 ## 2. 可复现校验
 
@@ -45,21 +45,21 @@ py -3 -B scripts/validate_prd_baseline.py --prd docs/baseline/prd-v1.8.md --repo
 git diff --check
 ```
 
-- Phase 1定点测试：57/57通过。
+- Phase 1定点测试：58/58通过。
 - 追溯生成器定点测试：3/3通过；正式矩阵`--check`通过。
 - `core.autocrlf=true`干净检出：DDL SHA-256仍为`5EB974…4249`，此前3个P3-E09错误关闭。
-- 脚本全量单元测试：308/308通过。
+- 脚本全量单元测试：309/309通过。
 - 正式需求Owner映射：100/100项由13 个 Owner唯一承接。
 - PRD正式基线：67/67通过；语义问题0项。
 - 13领域生成：正式100项、编号V3 31项、OUT_OF_SCOPE 9项。
 - Phase 2/3、核心迁移契约和81个领域实体迁移契约交叉校验均通过。
 
-## 3. 未关闭项
+## 3. 后置边界
 
-- 修复候选已固定为`537ab5a`，但`8a7d36d`的NO-GO结论在重新复审前保持有效。
-- 新候选必须执行fresh-context重新复审；本自审不得将自身升级为GO。
 - Phase 2物理模型和实现契约不属于本轮Phase 1修复范围。
+- P3-E09只在物理模型变化后重验证；Q08仍为候选索引。
+- `AI-MIG-000`只在Release包含历史迁移或数据切换时适用，并只允许在批准窗口内执行。
 
 ## 4. 当前结论
 
-`MACHINE_PASS_AFTER_REPAIR / RE_REVIEW_REQUIRED / NOT_READY_FOR_PHASE_2_V1.8`
+`MACHINE_PASS_AFTER_REPAIR / APPROVED / READY_FOR_PHASE_2_V1.8`

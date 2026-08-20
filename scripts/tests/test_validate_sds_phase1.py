@@ -37,6 +37,14 @@ class ValidateSdsPhase1Test(unittest.TestCase):
     def test_current_phase1_review_candidate_passes_machine_gate(self) -> None:
         self.assertEqual([], MODULE.validate(REPOSITORY_ROOT))
 
+    def test_approved_phase1_documents_cannot_return_to_in_review(self) -> None:
+        errors = self.validate_mutation(
+            "docs/design/02-domain-model.md",
+            "> 文档状态：`BASELINE`",
+            "> 文档状态：`IN_REVIEW`",
+        )
+        self.assertTrue(any("missing current Phase 1 metadata" in error for error in errors), errors)
+
     def test_owner_map_must_cover_each_formal_requirement_once(self) -> None:
         errors = self.validate_mutation(
             "docs/design/phase-1-domain-ownership.md",
@@ -85,11 +93,11 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("CUT-03" in error for error in errors), errors)
 
-    def test_machine_gate_cannot_claim_ready_before_fresh_review(self) -> None:
+    def test_approved_gate_cannot_reintroduce_pending_review(self) -> None:
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
-            "RE_REVIEW_REQUIRED",
-            "APPROVED / READY_FOR_PHASE_2",
+            "> 独立复审：`GO`<br>",
+            "> 独立复审：`GO`<br>\n> 重新复审：`RE_REVIEW_REQUIRED`<br>",
         )
         self.assertTrue(any("fresh-context" in error for error in errors), errors)
 
@@ -305,11 +313,11 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_gate_cannot_mix_not_ready_with_approved_ready(self) -> None:
-        marker = "> 修复候选：`537ab5a`（`REVIEW_PENDING`）"
+        marker = "> 核心修复：`537ab5a`（`VERIFIED`）"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
-            marker + "\n> 审查状态：`APPROVED`<br>\n> 结论：`READY_FOR_PHASE_2_V1.8`",
+            marker + "\n> 审查状态：`IN_REVIEW`<br>\n> 结论：`NOT_READY_FOR_PHASE_2_V1.8`",
         )
         self.assertTrue(any("fresh-context" in error for error in errors), errors)
 
@@ -359,11 +367,11 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_gate_status_table_cannot_override_pending_metadata(self) -> None:
-        marker = "> 修复候选：`537ab5a`（`REVIEW_PENDING`）"
+        marker = "> 核心修复：`537ab5a`（`VERIFIED`）"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
-            marker + "\n\n| 当前状态 | 结论 |\n|---|---|\n| Phase 1 | APPROVED / READY_FOR_PHASE_2_V1.8 |",
+            marker + "\n\n| 当前状态 | 结论 |\n|---|---|\n| Phase 1 | IN_REVIEW / NOT_READY_FOR_PHASE_2_V1.8 |",
         )
         self.assertTrue(any("fresh-context" in error for error in errors), errors)
 
@@ -581,12 +589,12 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
-    def test_conditional_prefix_cannot_hide_current_gate_release_claim(self) -> None:
-        marker = "> 修复候选：`537ab5a`（`REVIEW_PENDING`）"
+    def test_conditional_prefix_cannot_hide_current_gate_pending_claim(self) -> None:
+        marker = "> 核心修复：`537ab5a`（`VERIFIED`）"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
-            marker + "\n如果后续失败则修复；当前状态 APPROVED / READY_FOR_PHASE_2_V1.8。",
+            marker + "\n如果后续通过则放行；当前状态 IN_REVIEW / NOT_READY_FOR_PHASE_2_V1.8。",
         )
         self.assertTrue(any("fresh-context" in error for error in errors), errors)
 

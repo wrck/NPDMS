@@ -1,6 +1,6 @@
 ﻿# SDS Phase 1：领域 Owner 重确认记录
 
-> 状态：`IN_REVIEW`
+> 状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求
 > 文档 Owner：需求方；本文件仅登记业务事实 Owner 映射，不替代实施责任人名册

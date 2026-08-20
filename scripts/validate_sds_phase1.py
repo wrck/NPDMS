@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the PRD V1.8 Phase 1 SDS review candidate without self-approving it."""
+"""Validate the independently approved PRD V1.8 Phase 1 SDS gate."""
 
 from __future__ import annotations
 
@@ -252,14 +252,13 @@ def has_runtime_evidence_claim(text: str) -> bool:
     return bool(test_pass and positive_release)
 
 
-def has_conflicting_gate_release_claim(text: str) -> bool:
-    release = re.compile(r"\bAPPROVED\b|\bREADY_FOR_PHASE_2(?:_V1\.8)?\b", re.I)
-    allowed_future_transition = "方可将Phase 1改为APPROVED / READY_FOR_PHASE_2_V1.8"
-    for line in text.splitlines():
-        normalized = normalize_markdown_cell(line)
-        if release.search(normalized) and allowed_future_transition not in normalized:
-            return True
-    return False
+def has_conflicting_gate_pending_claim(text: str) -> bool:
+    pending = re.compile(
+        r"\bIN_REVIEW\b|\bNOT_READY_FOR_PHASE_2(?:_V1\.8)?\b|"
+        r"\bRE_REVIEW_REQUIRED\b|\bNO_GO\b|\bREVIEW_PENDING\b",
+        re.I,
+    )
+    return any(pending.search(normalize_markdown_cell(line)) for line in text.splitlines())
 
 
 def metadata_values(text: str, label: str) -> list[str]:
@@ -282,7 +281,7 @@ def validate(root: Path) -> list[str]:
 
     for relative in PHASE1_DOCS:
         text = read(root / relative)
-        status_marker = "> 状态：`IN_REVIEW`" if relative.endswith("phase-1-domain-ownership.md") else "> 文档状态：`IN_REVIEW`"
+        status_marker = "> 状态：`BASELINE`" if relative.endswith("phase-1-domain-ownership.md") else "> 文档状态：`BASELINE`"
         for marker in (status_marker, "PRD V1.8", "Requirement ID：", "Owner"):
             if marker not in text:
                 errors.append(f"{relative} missing current Phase 1 metadata: {marker}")
@@ -558,39 +557,39 @@ def validate(root: Path) -> list[str]:
         "Phase 1 gate",
         gate,
         (
-            "审查状态：`IN_REVIEW`",
-            "结论：`NOT_READY_FOR_PHASE_2_V1.8`",
-            "RE_REVIEW_REQUIRED",
+            "审查状态：`APPROVED`",
+            "结论：`READY_FOR_PHASE_2_V1.8`",
+            "独立复审：`GO`",
             "机器门禁：`PASS`",
         ),
     )
     expected_gate_metadata = {
-        "审查状态": "IN_REVIEW",
-        "结论": "NOT_READY_FOR_PHASE_2_V1.8",
+        "审查状态": "APPROVED",
+        "结论": "READY_FOR_PHASE_2_V1.8",
         "机器门禁": "PASS",
-        "独立复审": "RE_REVIEW_REQUIRED",
-        "已评审候选": "8a7d36d",
-        "修复候选": "537ab5a",
+        "独立复审": "GO",
+        "已评审候选": "4792f11",
+        "核心修复": "537ab5a",
     }
     if (
         any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items())
-        or has_conflicting_gate_release_claim(gate)
+        or has_conflicting_gate_pending_claim(gate)
     ):
-        errors.append("fresh-context Phase 1 gate must keep one exact IN_REVIEW/NOT_READY/RE_REVIEW_REQUIRED metadata set")
+        errors.append("fresh-context Phase 1 gate must keep one exact APPROVED/READY/GO metadata set without pending claims")
 
     self_review = read(root / "docs/engineering/gates/phase-1/self-review.md")
     require_markers(
         errors,
         "Phase 1 self-review",
         self_review,
-        ("MACHINE_PASS_AFTER_REPAIR", "RE_REVIEW_REQUIRED", "100/100", "13 个 Owner"),
+        ("MACHINE_PASS_AFTER_REPAIR", "APPROVED", "READY_FOR_PHASE_2_V1.8", "100/100", "13 个 Owner"),
     )
     independent = read(root / "docs/engineering/gates/phase-1/independent-review.md")
     require_markers(
         errors,
         "fresh-context independent review record",
         independent,
-        ("当前状态：`IN_REVIEW`", "当前结论：`NO_GO`", "已评审候选：`8a7d36d`", "修复候选：`537ab5a`", "不得据此放行Phase 2"),
+        ("当前状态：`APPROVED`", "当前结论：`GO`", "已评审候选：`4792f11`", "核心修复：`537ab5a`", "APPROVED / READY_FOR_PHASE_2_V1.8"),
     )
     return errors
 
@@ -604,7 +603,7 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] PRD V1.8 Phase 1 machine gate: 100 requirements, 13 unique Owners; fresh review still pending")
+    print("[PASS] PRD V1.8 Phase 1 gate: 100 requirements, 13 unique Owners; independent review GO")
     return 0
 
 
