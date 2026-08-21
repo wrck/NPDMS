@@ -29,13 +29,29 @@ from specification_baseline import (
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_115_files(self) -> None:
+    def test_allowlist_contains_exactly_121_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(115, len(entries))
-        self.assertEqual(115, len({entry.path for entry in entries}))
+        self.assertEqual(121, len(entries))
+        self.assertEqual(121, len({entry.path for entry in entries}))
+
+    def test_f_proj_001_inputs_are_allowlisted(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        allowlist = load_allowlist(repository / "docs/specification-baseline/allowlist.json")
+        paths = {entry.path for entry in allowlist}
+        required = {
+            "docs/baseline/prd-v1.8.md",
+            "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md",
+            "docs/decisions/0029-stage-task-work-binding-workbench.md",
+            "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md",
+            "docs/decisions/0032-manual-project-creation-cross-context-atomicity.md",
+            "specs/features/README.md",
+            "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+        }
+
+        self.assertTrue(required <= paths)
 
     def test_accepts_only_current_phase_gate_entry_paths(self) -> None:
         current_gate_paths = (
@@ -50,6 +66,13 @@ class SpecificationBaselinePathTest(unittest.TestCase):
         for path in current_gate_paths:
             with self.subTest(path=path):
                 validate_relative_path(path, "ENGINEERING")
+
+    def test_accepts_formal_feature_spec_paths(self) -> None:
+        validate_relative_path("specs/features/README.md", "FEATURE_SPEC")
+        validate_relative_path(
+            "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+            "FEATURE_SPEC",
+        )
 
     def test_current_phase_1_gate_is_approved_and_ready_for_phase_2(self) -> None:
         repository = Path(__file__).resolve().parents[2]
@@ -69,7 +92,7 @@ class SpecificationBaselinePathTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("审查状态：`APPROVED`", gate_status)
-        self.assertIn("结论：`READY_FOR_PHASE_2`", gate_status)
+        self.assertIn("结论：`READY_FOR_PHASE_2_V1.8`", gate_status)
         self.assertNotIn("当前仍为 `NOT_READY_FOR_PHASE_2`", readme)
 
     def test_rejects_path_traversal(self) -> None:

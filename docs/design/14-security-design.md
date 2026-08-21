@@ -1,8 +1,8 @@
 ﻿# SDS Phase 3：安全设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：NFR-01、NFR-02、INT-09、INT-12、PLT-02，以及全部103项需求的认证、授权、数据隔离、文件、集成和审计安全
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：NFR-01、NFR-02、INT-09、INT-12、PLT-02，以及全部100项V1/V2需求的认证、授权、数据隔离、文件、集成和审计安全
 > Owner：SDS Phase 3安全架构；业务授权Owner继承07，凭证Owner继承Device Access & Collection
 > 前置设计：07、10、12、13、15、16分册
 
@@ -22,6 +22,7 @@
 | 资产 | 风险 | 强制控制 |
 |---|---|---|
 | 项目、任务、合同、设备、客户数据 | 跨租户/跨项目泄露或篡改 | tenant + 功能权限 + DataScope + 聚合守卫；查询与写入均服务端过滤 |
+| ProjectTask业务工作台 | 通过绑定配置加载未授权对象、任意脚本或跨Context数据 | 受控WorkBinding类型与执行器注册表；TASK_NATIVE只访问当前ProjectTask，其他类型由服务端合并任务范围和目标对象权限；禁止任意组件路径/脚本/仓储直连 |
 | 设备凭证和临时密码 | 明文泄露、越权取用、重放 | 密钥分离、五元组授权、任务级短期取密、全链路秘密扫描 |
 | 审批、状态、归属、交付证据 | 绕过门禁、否认操作或事后删除历史 | command/transition、不可变快照、操作审计、版本/幂等；业务事实、审批历史及明确留痕操作按ADR-0006永久不可删除 |
 | 普通网络与安全运行日志 | 留存不足、冷归档篡改或到期清理误删永久审计 | 按ADR-0007在线180天、不可变冷存储185天；分类隔离、加密、完整性校验、恢复抽检及清理清单 |
@@ -87,6 +88,7 @@ Browser
 | 场景 | 服务端证据 | 拒绝要求 |
 |---|---|---|
 | 项目/任务树 | ProjectTreeScope、treeVersion、主体项目角色 | 平级默认不可见；父级只查看明确授权后代；错误不泄露敏感子节点 |
+| ProjectTask业务工作台 | TaskWorkBinding版本、ProjectTreeScope、绑定类型、适用的目标对象权限与业务状态 | TASK_NATIVE按任务范围返回通用详情操作；其他类型的VIEW/EDIT/APPROVE/CREATE由服务端合并授权，目标对象无权时拒绝，不回退为通用任务编辑权限 |
 | 设备/实施/割接/巡检 | DeviceCurrentAssignment、祖先投影水位、业务对象范围 | 越级设备不可查、不可操作；投影延迟时写操作回源真值 |
 | 合同订单 | ERP来源映射、ContractProjectScope、DeliveryScope | 不得因项目权限自动获取全部合同金额/订单范围 |
 | 文件 | FileReference业务对象、文件版本、操作类型 | 下载/预览/替换/归档分别校验；签名URL短期且绑定主体/操作 |

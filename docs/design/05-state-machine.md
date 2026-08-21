@@ -1,9 +1,9 @@
 ﻿# SDS Phase 1：状态机设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -15,12 +15,12 @@
 
 | 对象 | 核心状态 | 关键迁移与守卫 | 事件 |
 |---|---|---|---|
-| Project | 待开始(S0)、工前准备(S1)、施工计划(S2)、实施方案(S3)、实施部署(S4)、验收交维(S5)、闭环(S6)、维护 | 只有当前阶段门禁满足且操作者有权时前进；回退需理由和权限；关闭后 V1/V2 只读 | ProjectStageChanged、ProjectClosed |
-| ProjectTask | 待分配、待开始、进行中、待验收、完成、关闭 | 父任务/阶段约束、交付件和验收条件；不限制层级深度但禁止环 | TaskAssigned、TaskCompleted |
+| Project | `current_stage`：待开始(S0)、工前准备(S1)、施工计划(S2)、实施方案(S3)、实施部署(S4)、验收交维(S5)、闭环(S6)；另有`lifecycle_status`：ACTIVE、NORMAL_CLOSED、EXCEPTION_CLOSED；`assignment_status`和派生`display_status`独立维护 | 阶段推进只改变`current_stage`；CLO-02唯一产生NORMAL_CLOSED，PM-10唯一产生EXCEPTION_CLOSED；回退、重开和归档按V1.8守卫执行；闭环后不得进入维护阶段 | ProjectStageChanged、ProjectClosed（携带lifecycleStatus与关闭原因） |
+| ProjectTask | 待分配、待开始、进行中、待验收、完成、关闭 | 父任务/阶段约束；不限制层级深度但禁止环；完成必须由冻结CompletionRule校验绑定业务事实/审批/表单/子任务/门禁快照，前端通用按钮不得直接推进 | TaskAssigned、TaskCompleted |
 | Device | 无独立业务状态机（主数据事实）；设备状态、在网状态及停产停维状态使用来源事实和基础平台可配置字典 | 设备档案同步或受控平台扩展字段更新必须保留来源版本；项目归属变更不得隐式改写设备来源状态 | DeviceStatusSynchronized、DeviceOwnershipChanged |
 | CollectionTask | 创建、授权校验、已下发、执行中、回调中、已消费、完成、失败 | 幂等键、短期授权、回调签名/来源校验；失败只允许创建新的受控重试任务 | CollectionTaskDispatched、CollectionResultAvailable、CollectionCompleted |
-| CutoverTask | 待办理、等级确认中、调研中、方案编制中、审批中、驳回待修改、闭环中、已归档 | CUT-01贯穿P1～P6；D级确认后跳过P3；P5任一否项驳回P4；P6提交形成归档闭环，最终成功才发布完成事件 | CutoverApproved、CutoverCompleted |
-| InspectionTask | 新建、准备、执行、报告、待办、闭环 | 在线/离线互斥；规则版本冻结；问题待办必须关闭或按规则转服务 | InspectionCompleted、InspectionClosed |
+| CutoverTask | 待办理、等级确认中、调研中、方案编制中、审批中、驳回待修改、闭环中、已归档 | CUT-01贯穿P1～P6；P1是接入入口、工作台显示P2～P6；P3内部直接填写或关联CollectionTask不产生新状态；D级确认后跳过P3；P5任一否项驳回P4；P6提交形成归档闭环，最终成功才发布完成事件 | CutoverApproved、CutoverCompleted |
+| InspectionTask | 待准备、待预检、巡检中、待报告、待标注、待办跟踪中、已闭环、已归档、已取消 | INS-02.S1与INS-03完成后，在线分支进入待预检且仅INS-04通过后进入巡检中，离线分支直接进入巡检中；执行后依次经过INS-05报告、INS-06标注和INS-07闭环归档，不能跳过报告、标注或待办跟踪门禁 | InspectionCompleted、InspectionClosed |
 | DeliveryEvidence | 草稿、已上传、待审核、已通过、已驳回、已归档 | IMP 可在实施阶段上传并替换草稿；ACC 审核/归档；已归档版本不可被 IMP 覆盖 | DeliveryEvidenceUploaded、ArtifactAccepted |
 | ArrivalAcceptance | 草稿、部分签收、已签收、差异待处理、已确认 | 到货数量/序列号和证据校验；差异未确认不得作为齐套依据 | ArrivalAccepted、ArrivalDifferenceRaised |
 | InstallationRecord | 草稿、待确认、已安装、整改中、已确认 | 安装位置、照片和设备关联完整；整改完成后才能确认 | InstallationConfirmed、InstallationRemediationCreated |
@@ -28,11 +28,20 @@
 | JointDebuggingResult | 待联调、联调中、问题待处理、已完成、已确认 | 联调结果和关联设备/版本完整；未完成问题不得确认 | JointDebuggingCompleted、JointDebuggingIssueRaised |
 | ImplementationRisk | 已标记、评估中、处置中、已关闭 | 风险等级、责任人和处置证据完整；高风险不得绕过门禁 | ImplementationRiskRaised、ImplementationRiskClosed |
 | ImplementationQualityCheck | 草稿、待复核、整改中、复核通过、复核不通过、阻断 | 不合格必须整改后再复核；豁免需有权角色、依据、范围、有效期和审计 | ImplementationQualityChecked、ImplementationQualityBlocked |
-| ImplementationSafetyCheck | 草稿、待复核、整改中、复核通过、复核不通过、安全阻断 | 高风险安全项阻断关联作业；解除阻断必须复核并留痕 | ImplementationSafetyChecked、ImplementationSafetyBlocked |
 | SatisfactionCollection | 待生成、待发送、收集中、待判定、未通过、已通过、归档待重试、已归档 | 冻结模板/题目/阈值；客户有效答案和签字不可覆盖；未通过须整改后创建新任务和问卷版本，不允许人工改分或异常放行 | SatisfactionTaskCreated、SatisfactionSubmitted、SatisfactionResultRecorded |
-| ProjectClosure | 草稿、待审核、材料审核、已闭环、驳回整改 | 项目冻结模板要求的交付件和有效满意度等门禁满足；不创建回访节点；驳回后重新校验并新建申请；完成后发布闭环事件请求 Project 关闭 | ClosureSubmitted、ProjectClosureCompleted |
+| ProjectClosure | 草稿、待审核、材料审核、已完成、驳回整改 | 项目冻结模板要求的交付件和有效满意度等门禁满足；CLO-02完成后形成不可变NORMAL_CLOSED闭环事实；不创建回访节点；驳回后重新校验并新建申请 | ClosureSubmitted、ProjectClosureCompleted |
 | DeviceCredential | 创建、启用、授权、撤销、轮换、停用 | 仅授权范围内任务可引用；撤销影响后续任务，不改历史快照 | CredentialGranted、CredentialRevoked |
+
+### 2.1 Project状态分层守卫
+
+1. PM-01创建项目时写入`lifecycle_status=ACTIVE`、`current_stage=S0`；未完成主责指派时`assignment_status=UNASSIGNED`。
+2. 阶段推进只允许在当前阶段门禁满足且操作者有权时修改`current_stage`；`display_status`只读派生，不得反写任何生命周期字段。
+3. PM-10“回退”保持`lifecycle_status=ACTIVE`，将`current_stage`回到S0并按规则置为待指派；PM-10“异常关闭”才写入`EXCEPTION_CLOSED`并保存关闭依据。
+4. CLO-02审批全部通过后才写入`NORMAL_CLOSED`并形成不可变闭环事实；任何其他接口、同步回调或通知不得产生该终态。
+5. 仅允许对`EXCEPTION_CLOSED`项目执行受控重开并恢复为`ACTIVE`；重开必须记录重开原因，恢复关闭前最后一个可恢复阶段并创建新的责任处理事项，不得自动恢复已终止的外部任务。`NORMAL_CLOSED`不得通过PM-10直接重开。正常闭环后的巡检、割接保障和其他售后活动使用独立领域任务，不新增项目维护阶段。
 
 ## 3. 版本化
 
 状态字典、迁移定义和门禁规则均带版本；任务实例保存绑定版本。已发布版本不可原地修改，只能新建版本并通过配置审批。
+
+ProjectTask的WorkBinding和CompletionRule版本与任务状态机版本分别冻结，且每个任务必须且只能有一个当前绑定。`TASK_NATIVE`按ProjectTask自身状态机和任务事实执行受控迁移；其他绑定的业务对象状态变化只触发重新评估，不允许业务Context直接写ProjectTask状态。Project Delivery在校验任务版本、绑定版本、事实版本和规则版本后执行受控迁移并记录完成判定快照。

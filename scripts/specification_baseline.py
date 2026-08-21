@@ -23,6 +23,7 @@ ALLOWED_CATEGORIES = frozenset(
         "DECISION",
         "TRACEABILITY",
         "DOMAIN_SPEC",
+        "FEATURE_SPEC",
         "MODEL_APPENDIX",
         "MODEL_EVIDENCE",
     }
@@ -106,6 +107,8 @@ def _category_accepts(path: str, category: str) -> bool:
         return path == "specs/001-project-delivery-platform/00-master-spec.md" or path.startswith(
             "specs/001-project-delivery-platform/domains/"
         )
+    if category == "FEATURE_SPEC":
+        return path.startswith("specs/features/")
     if category == "MODEL_APPENDIX":
         return path.startswith("specs/001-project-delivery-platform/appendices/")
     if category == "MODEL_EVIDENCE":

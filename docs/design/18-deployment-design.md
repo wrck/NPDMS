@@ -1,11 +1,13 @@
 ﻿# SDS Phase 3：部署、迁移与回退设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE
-> Requirement ID：NFR-01、NFR-02、NFR-03及全部103项需求的构建、配置、迁移、发布和恢复保障
+> 适用基线：PRD V1.8、SDS Phase 1/2 BASELINE
+> Requirement ID：NFR-01、NFR-02、NFR-03及全部100项V1/V2正式需求的构建、配置、迁移、发布和恢复保障
 > Owner：SDS Phase 3发布架构；生产基础设施Owner待P3-E01～E03登记
-> 实现基线：`E:\AICoding\Projects\NPDMS` @ `856d05264ab4a4fb69b94896c172e4a1c29aae02`
+> 已冻结运行证据基线：`E:\AICoding\Projects\NPDMS` @ `856d05264ab4a4fb69b94896c172e4a1c29aae02`（不等同于当前实现HEAD）
 > 前置设计：09、12、13、14、17分册
+
+Phase 1/2 V1.8基线和P3-E09模型输入已就绪；本分册已纳入SDS V1.8设计基线，但不构成当前发布放行或生产环境事实。生产参数仍按P3-E01～E07在部署/专项验收阶段登记。
 
 ## 1. 部署边界
 
@@ -109,7 +111,7 @@ Expand -> Backfill -> Verify -> Switch -> Contract
 
 - 不得修改已执行迁移或任何已执行Flyway文件；纠正使用下一版本迁移。
 - 迁移脚本不跨数据库直接读取历史库；数据迁移通过受控导出/校验/导入或应用迁移作业。
-- 历史数据迁移必须先由`AI-MIG-000`完成真实批次的范围、水位、程序、校验、演练、对账和回退验证；P3-E09不定义迁移批准哈希且不构成执行许可；旧`migration-validation.json.passed=true`因DDL哈希漂移不具备当前放行效力。
+- Release范围不包含历史迁移或数据切换时，`AI-MIG-000`记为`NOT_APPLICABLE`且不得阻断普通功能发布；包含任一项时，必须先由`AI-MIG-000`完成真实批次的范围、水位、程序、校验、演练、对账和回退验证，并且只能在批准窗口内执行。P3-E09不定义迁移批准哈希且不构成执行许可；旧`migration-validation.json.passed=true`因DDL哈希漂移不具备当前放行效力。
 - 迁移前保存schema/version/checksum、数据量、长事务/锁风险和备份证据；迁移后运行`info/validate`及业务校验。
 - 应用回退不执行破坏性数据库down migration；在兼容窗口内切回旧制品，数据库错误使用新前向迁移纠正。
 
@@ -144,7 +146,7 @@ Expand -> Backfill -> Verify -> Switch -> Contract
 | 前端静态制品 | 切回上一批准hash并清理/刷新静态缓存；验证业务接口兼容 |
 | 后端JAR | 在Expand兼容窗口切回上一JAR/配置；验证数据库、事件Consumer和外部幂等 |
 | 功能启用 | 关闭有Owner/到期日的开关；不回写已经发生的业务事实 |
-| 数据库 | 不修改/回滚已执行迁移；停止新写，使用批准前向修复或在灾难恢复流程恢复整库；历史数据切换另受`AI-MIG-000`约束 |
+| 数据库 | 不修改/回滚已执行迁移；停止新写，使用批准前向修复或在灾难恢复流程恢复整库；发布包含历史数据切换时另受`AI-MIG-000`及其批准窗口约束 |
 | 外部请求/事件 | 停止Producer/Consumer领取，核对Outbox/Inbox/外部业务号，恢复后按原幂等键重放 |
 | 文件 | 保留原版本，撤销错误引用/发布新版本；按hash核验，不物理覆盖证据 |
 

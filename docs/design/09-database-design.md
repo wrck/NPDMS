@@ -1,10 +1,11 @@
 ﻿# SDS Phase 2：数据库设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
+> 物理承载决策：ADR-0030（ProjectTask执行契约与CUT-03清单）、ADR-0031（客户服务等级与割接配置版本载体）
 > 目标数据库：`npdms` / MySQL 8.4
 > 实现基线：`E:\AICoding\Projects\NPDMS` @ `856d05264ab4a4fb69b94896c172e4a1c29aae02`
 
@@ -24,7 +25,7 @@
 
 | 层级 | 证据 | 设计约束 |
 |---|---|---|
-| 业务语义 | PRD V1.7、08数据模型、批准 ADR/决策 | 决定 Owner、聚合、不变量和排除范围 |
+| 业务语义 | PRD V1.8、08数据模型、批准 ADR/决策 | 决定 Owner、聚合、不变量和排除范围 |
 | 数据元 | `evidence/data-elements/manifest.json`、`semantic-elements.jsonl`、`schema-records.jsonl` | 决定已存在字段语义、来源坐标和旧结构候选；Excel 哈希变化时必须全量重建 |
 | 迁移规则 | `evidence/migration/*mapping*.jsonl`、`appendices/project-order-migration-mapping.md`、`legacy-data-element-business-object-mapping.md` | 决定旧字段的`STRUCTURED/RELATION/LINEAGE/PAYLOAD`处置、来源血缘、异常分类和对账 |
 | 物理实现 | 当前实现仓库未占用 Flyway 版本、批准目标 DDL | 决定最终表/列/索引/约束；不得编辑已执行迁移 |
@@ -35,20 +36,20 @@
 
 ### 1.2 DDL 漂移和实施门禁
 
-`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`已证明当前核心迁移 DDL SHA-256 为`5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249`，历史批准目录引用`2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33`。当前DDL及目标字段目录已按ADR-0019～ADR-0023、ADR-0025和ADR-0027重建；ADR-0028已按当前哈希接受Q07～Q14及V1.7九组完整清单，Q08的122项只作为候选索引，仍须Feature/P3-E06性能验证。整体一致性独立复审为`GO`；该DDL已在隔离MySQL 8.4.10中完整执行，证据见`ddl-mysql84-execution-evidence.json`。因此：
+`specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json`记录的DDL哈希、当前项数量及复核状态以本次V1.8校验产物为准；Q08的具体索引仍只是候选，必须经过Feature/P3-E06性能验证。隔离MySQL 8.4.10执行仅证明DDL可执行，不代表历史迁移或数据切换已获批准。因此：
 
-ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。当前事实、机器校验和独立复审形成`MODEL_BASELINE_READY`；P3-E09不定义迁移批准哈希，不建立Owner签署、外部附件或迁移批准流程。
+ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差异并逐项裁决的方向，不整体恢复旧DDL。ADR-0030六表差量已完成当前事实、机器校验和整体一致性独立复审，当前为`MODEL_BASELINE_READY`。P3-E09不定义迁移批准哈希，不建立Owner签署、外部附件或迁移批准流程。
 
 ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前缀`pms_`，并采用`<domain_code>_<full_domain_object_name>`；表名必须保留全部领域对象语义组件，默认使用完整英文词，仅允许ADR登记的`config`、`sn`两个表名标准缩写。字段可以在不产生业务歧义的前提下使用ADR登记的受控缩写、统一同义词并保持简洁。ADR-0019列出了当前52张物理表的逐表目标名称和首批同义字段裁决。该命名决策属于P3-E09模型输入，不等于批准旧DDL：本分册后续仍出现的`pms_*`仅表示尚待AI-MIG-000统一重建的当前证据名称，不再是目标命名。
 
 ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
-ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。ADR-0025与ADR-0027按PRD V1.7补齐10张当前范围差量表后，当前核心迁移DDL为60表、1,240列、447项DDL约束/索引和60项表选项，其中隔离MySQL登记325项主键/唯一键/同域外键/CHECK；机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
+ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。V1.8只保留PRD正式V1/V2需求映射出的目标表；COM-02、IMP-02和ACC-05（V3）不得通过数据库设计回流。机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
-当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共1,883项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，889项按既有ADR及ADR-0028九组当前哈希清单登记为`AMEND_CURRENT`，`DEFER=0`；当前DDL规模以60表、1,240列、447项DDL约束/索引和60项表选项为准。`reviewOwner`为空和`approvedCount=0`不构成逐项复审要求；P3-E09不定义迁移批准哈希，独立复审`GO`已解除`DATA_MODEL_BASELINE`阻断。完整逐项入口为`p3-e09-confirmation-packet.md`和`ddl-item-decision-register.json`。
+当前逐项登记见`ddl-item-decision-register.json`，为比较历史目录与当前DDL而保留新增、修改、移除的并集，共2,079项，覆盖当前和历史目录中表、列、约束/索引与表选项的并集事实。994项未变化字段按基线继承登记为`ACCEPT_CURRENT`，1,085项按既有ADR、ADR-0028历史清单及ADR-0030六表差量登记为`AMEND_CURRENT`，`DEFER=0`；当前DDL规模以66表、1,382列、489项DDL约束/索引和66项表选项为准。P3-E09不定义迁移批准哈希；正式独立复审已GO、模型基线已发布为`MODEL_BASELINE_READY`。完整当前入口为`ddl-item-decision-register.json`，ADR-0028确认包只作为未变化历史item的证据锚点。
 
-- 本分册中的模型和约束是 SDS 目标契约；当前60表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
-- `AI-MIG-000`、历史数据迁移和数据切换继续`OPEN`；未经真实批次验证不得执行，也不在当前预建迁移批准状态机、批准JSON或双确认提交；
+- 本分册中的模型和约束是 SDS 目标契约；当前66表只是迁移核心子集，不代表平台全量模型，也不可直接作为生产迁移执行；
+- `AI-MIG-000`不是通用Release门禁：只有发布包含历史数据迁移或数据切换时才适用并在验证前保持`BLOCKED`，普通功能发布记为`NOT_APPLICABLE`；适用时未经真实批次验证不得执行，且只允许在批准窗口内执行；当前不预建迁移批准状态机、批准JSON或双确认提交；
 - 历史`migration-validation.json.passed=true`已过期，不得作为当前发布证据；
 - 未关闭漂移前，可以实现不依赖争议 DDL 的领域代码和校验框架，但不得执行生产迁移或宣称数据切换 READY。
 
@@ -88,7 +89,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 - 表：`<domain_code>_<full_domain_object_name>`，例如`plt_collection_task`；不得增加业务系统名称`pms`前缀。
 - 主键：`pk_<table_short>`；唯一键：`uk_<table_short>_<business_semantics>`；普通索引：`idx_<table_short>_<query_semantics>`。
 - 外部来源字段统一为 `source_system/source_key/source_version/source_updated_at/synced_at`。
-- 生命周期字段统一为 `status_code`；历史旧表的 `status` 不原地改义，新增映射列或兼容适配层。
+- 项目生命周期不得统一压缩为一个 `status_code`：`current_stage` 使用 S0～S6，`lifecycle_status` 使用 ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED，`assignment_status` 独立保存，`display_status` 只读派生；历史旧表的 `status` 不原地改义，新增映射列或兼容适配层。
 
 ### 3.2 索引顺序
 
@@ -97,7 +98,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 3. 列表索引最后包含稳定排序键 `id`，避免同时间值翻页重复或遗漏。
 4. 不为低选择性 `deleted` 单独建索引；与租户、状态、业务范围组合。
 5. 所有索引必须对应明确查询、唯一性或门禁，不以“可能有用”为由全字段建索引。
-6. ADR-0023-Q08的“性能须下游验收、索引调整只允许前向迁移”原则继续有效；ADR-0028已将当前122项具体索引确认为候选基线，但不代表性能通过。Feature仍必须保存关键查询执行计划，P3-E06按近生产数据规模验收。
+6. ADR-0023-Q08的“性能须下游验收、索引调整只允许前向迁移”原则继续有效；ADR-0028历史清单与ADR-0030差量共同形成当前130项候选索引，但不代表性能通过。Feature仍必须保存关键查询执行计划，P3-E06按近生产数据规模验收。
 
 ## 4. Project Delivery 表设计
 
@@ -137,13 +138,40 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | 市场行业四维分类 | `market_code/market_name/system_code/system_name/expend_code/expend_name/industry_code/industry_name` | CRM权威同步；项目直接保存八个快照字段，不保存`relation_id`，历史未知值进入迁移问题 |
 | 实施方式/重大项目级别 | `implementation_mode_code/major_project_level_code` | 版本化字典映射；未知值进入待映射，不写默认值 |
 | 办事处、公司、部门 | 项目组织关系表，字段统一`company_*`、`department_*` | 公司—部门作为同一关系行共同解析和对账；禁止继续生成`org_*`目标字段 |
-| 旧状态/生命周期时间 | 稳定`status_code`及独立发生时间字段 | 使用版本化映射；未知状态只读隔离，旧时间不覆盖`create_time/update_time` |
+| 项目状态与生命周期时间 | `current_stage/lifecycle_status/assignment_status`及独立发生时间字段 | `current_stage`仅允许S0～S6；`lifecycle_status`仅允许ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED；`display_status`由服务端派生；旧时间不覆盖`create_time/update_time` |
+
+项目主表不得以单一状态字段表达多个业务维度：
+
+| 字段 | 类型/取值 | 约束 |
+|---|---|---|
+| `current_stage` | 稳定代码S0～S6 | 由阶段门禁命令迁移；正常闭环后保持S6 |
+| `lifecycle_status` | ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED | CLO-02唯一写入NORMAL_CLOSED；PM-10异常关闭写入EXCEPTION_CLOSED；不得由字典新增可执行值 |
+| `assignment_status` | 基础平台字典映射的稳定代码 | 与项目经理/执行指派独立迁移，不改变生命周期 |
+| `display_status` | 派生只读值 | 由上述字段及查询上下文计算，不落交易真值；不得被客户端写入 |
 
 ### 4.2 任务树与依赖
 
 现有 `proj_project_task` 保存当前父关系；`proj_task_dependency` 只保存任务依赖，二者不得混用。
 
 【建议】新增 `proj_task_tree_path`，结构和索引与项目路径表相同，并增加 `project_id` 作为高频过滤列。任务移动只修改任务父关系和路径投影，不自动创建/删除依赖。
+
+ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义、实例冻结、判定追加”三层最小物理模型；不把可执行绑定只塞入模板JSON，也不把目标业务正文复制到ProjectTask：
+
+| 目标表 | 关键字段 | 约束与索引 |
+|---|---|---|
+| `proj_project_template_task_definition` | `template_revision_id/stage_definition_key/task_definition_key/parent_task_definition_key/name/sort_order/work_binding_type_code/target_context_code/target_object_type/target_object_key/component_key/dynamic_form_revision_id/approval_definition_key/binding_config/permission_policy_ref/completion_rule_type_code/completion_rule_config/gate_ref/definition_version` | `uk(tenant_id, template_revision_id, task_definition_key)`；`idx(tenant_id, template_revision_id, stage_definition_key, parent_task_definition_key, sort_order)`；模板revision发布后整行不可改 |
+| `proj_project_task_execution_contract` | `project_task_id/template_task_definition_id/work_binding_type_code/target_context_code/target_object_type/target_object_key/component_key/dynamic_form_revision_id/approval_instance_id/binding_parameter_snapshot/permission_policy_ref/completion_rule_type_code/completion_rule_snapshot/gate_ref/source_definition_version/contract_version/effective_from/effective_to/current_marker/version` | `uk(tenant_id, project_task_id, contract_version)`；生成列`current_marker`仅在`effective_to is null`时取1，并以`uk(tenant_id, project_task_id, current_marker)`保证至多一个当前契约；`idx(tenant_id, target_context_code, target_object_type, target_object_key)`只服务获权反查 |
+| `proj_project_task_completion_evaluation` | `project_task_id/execution_contract_id/task_version/contract_version/fact_context_code/fact_object_type/fact_object_key/fact_version/evaluation_result_code/unmet_item_snapshot/gate_snapshot_ref/command_id/idempotency_key/evaluated_by/evaluated_at` | 追加写；`uk(tenant_id, project_task_id, idempotency_key)`；`idx(tenant_id, project_task_id, evaluated_at, id)`；不得更新为另一结论或软删除 |
+
+约束规则：
+
+1. `TASK_NATIVE`行的目标Context、对象、组件、表单和审批字段必须为空；其他类型必须按绑定类型填写唯一受控目标，不允许任意前端路径、脚本或Repository名。`COMPOSITE`的子视图只保存在有Schema版本的`binding_config/binding_parameter_snapshot`中，并逐项引用受信任组件或对象，不能逃逸Owner API。
+2. 数据库唯一键只能保证“至多一个当前执行契约”；项目任务创建、模板实例化和受控换绑事务必须在提交前保证“恰好一个”。换绑先校验旧版本、生成新契约并关闭旧有效区间，不原位覆盖。
+3. WorkBinding、PermissionPolicy、CompletionRule和GateRef作为一个执行契约版本原子冻结。非`TASK_NATIVE`完成命令必须同时提交任务版本、执行契约版本、目标事实版本和幂等键；服务端重取Owner事实后写`completion_evaluation`，成功判定与ProjectTask状态迁移同事务完成。
+4. `proj_project_task_completion_evaluation`保存事实引用、版本、结论和未满足项快照，不保存外域业务正文。事件只引用成功判定ID；通知、HTTP成功、组件渲染成功或DAC回调成功都不能代替完成判定。
+5. 现有`pms_project_task`前向迁入`proj_project_task`后，对没有已批准业务绑定证据的存量任务生成`TASK_NATIVE`契约版本1；不得按任务名称、菜单、历史URL或模块名猜测其他绑定。模板任务定义和非原生绑定属于`NEW_ONLY`，由新模板发布或经批准的显式换绑命令产生。
+
+本节只批准Phase 2目标物理契约。实际建表、存量回填、约束执行和查询计划必须以新Flyway差量进入P3-E09；当前DDL未变，不得把本节误写为Schema已实施。
 
 ### 4.3 项目版本与快照
 
@@ -235,7 +263,6 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | JointDebuggingResult | `imp_joint_debugging_result` | `imp_joint_debugging_item` | 业务任务 + 结果版本唯一 |
 | ImplementationRisk | `imp_risk` | `imp_risk_treatment` | 状态迁移另记历史；不与 CUT risk 共表 |
 | ImplementationQualityCheck | `imp_quality_check` | `imp_quality_item`、`imp_quality_remediation`、`imp_quality_review` | 整改与复核追加；当前状态由聚合根维护 |
-| ImplementationSafetyCheck | `imp_safety_check` | `imp_safety_item`、`imp_safety_remediation`、`imp_safety_exemption` | 阻断标识由状态机计算，不能被通用更新接口直接清除 |
 | DeliveryEvidence | `imp_delivery_evidence` | `imp_delivery_evidence_revision` | `uk(tenant_id, evidence_id, revision_no)`；文件引用+哈希 |
 
 旧 `pms_eng_*` 表按字段语义映射到新 Owner；物理模块无需立即拆库，但新 Repository 必须按 Context 包隔离。复用旧表时以兼容视图/适配器映射稳定状态代码，不直接重解释历史 tinyint。
@@ -248,7 +275,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
 | DeliveryArtifact | `acc_delivery_artifact` | `acc_artifact_review`、`acc_archive_record` | 文件 revision + 清单项唯一；归档记录不可覆盖 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
-| ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | 不含续保年限、续保结束日期和续保状态 |
+| ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | V2静态交接快照；不含续保年限、续保结束日期、续保状态或持续跟踪对象 |
 
 历史 `pms_acc_maintenance_transition` 不改表。前向迁移只把可以证明的交接字段映射到新表，并保存 `legacy_record_id`；续保字段不进入新模型。
 
@@ -256,7 +283,7 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
-| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure` | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
+| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
 | Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
@@ -269,6 +296,34 @@ CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对�
 `cut_cutover_support_arrangement`只是`cut_plan_revision`从属明细，不得拥有派单/接管/转单/挂起状态。联系人、联系方式、到位时间变化在原批准方案下更新并写业务审计；角色或任务职责变化不得直接覆盖，必须创建新方案revision并按原人工等级重新进入P5。
 
 `cut_cutover_closure`保存P6闭环快照。P4操作/验证/回退步骤只存在于方案revision，不复制为执行步骤表；当前不建立`cut_execution_step`或`cut_observation`。旧实现字段仅在能逐字段证明属于P6结果时迁移到闭环记录，无法证明的步骤/观察字段不进入当前目标。
+
+CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_revision`，也不建立采集阶段、通用工单或结果中转页：
+
+| 目标表 | 关键字段 | 约束与索引 |
+|---|---|---|
+| `cut_cutover_checklist` | `cutover_task_id/assessment_id/assessment_version/checklist_version/status_code/input_snapshot/input_snapshot_hash/config_revision_snapshot/match_trace/config_gap_snapshot/submitted_by/submitted_at/invalidated_at/invalidated_reason/current_marker/version` | `uk(tenant_id, cutover_task_id, checklist_version)`；生成列`current_marker`在`invalidated_at is null`时取1，`uk(tenant_id, cutover_task_id, current_marker)`保证一个当前版本；`status_code`只允许PRD已有草稿、已提交、已失效语义 |
+| `cut_cutover_checklist_item` | `checklist_id/stable_item_key/item_definition_id/item_definition_version/item_type_code/item_name/item_description/interface_format_code/interface_schema_snapshot/display_condition_snapshot/work_mode_code/required_flag/source_code/device_id/command_template_id/matched_rule_id/matched_rule_version/applicable_flag/custom_creator_user_id/sort_order/version` | `uk(tenant_id, checklist_id, stable_item_key)`；`idx(tenant_id, checklist_id, item_type_code, applicable_flag, sort_order)`；系统必填项不可删除，自定义项在提交前只能由创建人移出适用范围 |
+| `cut_cutover_checklist_item_result` | `checklist_item_id/result_version/result_source_code/answer_snapshot/fact_description/collection_task_id/collection_result_reference_id/collection_result_version/external_source_code/query_condition_snapshot/queried_at/load_failure_code/manual_evidence_file_reference/selection_started_at/selection_ended_at/selected_by/selection_reason_code/current_marker/created_by/created_at` | 结果正文追加且不可覆盖；`uk(tenant_id, checklist_item_id, result_version)`；生成列`current_marker`仅在`selection_ended_at is null`时取1，`uk(tenant_id, checklist_item_id, current_marker)`保证每项至多一个当前选择；`check(selection_ended_at is null or selection_ended_at >= selection_started_at)`；`idx(tenant_id, collection_task_id)`用于回调关联；人工降级和自动失败记录并存 |
+
+`result_source_code`只表达CUT选择的直接填写、自动采集、外部加载或人工降级来源；本表不保存DAC的`mapped_status_code`、`external_status_raw`或调度状态副本。技术状态始终从`plt_collection_task`及结果引用读取，CUT只在验签、任务/清单/采集项/设备/结果版本匹配后选择一个结果版本，并按采集项规则解释是否满足。结果创建时写`selection_started_at`并成为当前选择；切换结果时在同一事务中锁定当前行、写旧行`selection_ended_at`并插入新结果版本。结果载荷、来源与证据字段不可更新，只有受控切换命令可以关闭选择区间。
+
+### 7.2 CUT-07后台配置前向表
+
+以下表名是ADR-0031批准的Feature目标，不属于当前核心DDL；物理表由CUT-07 Feature前向迁移确定。
+
+| 目标表 | 关键字段 | 约束与索引 |
+|---|---|---|
+| `cut_cutover_configuration_revision` | `configuration_code/revision_no/status_code/effective_from/effective_to/published_by/published_at/disabled_at/dictionary_snapshot/version` | `uk(tenant_id, configuration_code, revision_no)`；发布版本不可覆盖；消费实例冻结revision和字典代码/名称快照 |
+| `cut_cutover_checklist_item_definition_revision` | `configuration_revision_id/stable_item_key/item_definition_version/item_type_code/item_name/interface_format_code/interface_schema/work_mode_code/required_flag/external_source_ref/status_code/sort_order/version` | `uk(tenant_id, configuration_revision_id, stable_item_key, item_definition_version)`；稳定项键不可复用为不同含义 |
+| `cut_cutover_checklist_binding_rule_revision` | `configuration_revision_id/item_definition_id/item_definition_version/rule_version/dimension_condition_snapshot/priority/status_code/version` | `uk(tenant_id, configuration_revision_id, item_definition_id, rule_version)`；维度条件必须可判定且引用启用的基础平台字典值 |
+
+割接类型、组网模式、设备类型使用基础平台可配置字典，不另建业务主表。新表只能由CUT-07 Feature创建；不从`pms_cut_plan`、`pms_cut_risk`或旧清单推断历史配置版本。
+
+草稿重匹配使用`checklist_version + input_snapshot_hash`。稳定`stable_item_key`继续适用时可保留当前答案；移出适用范围的项把`applicable_flag`置为0并留审计，不进入提交；新增项写入同一草稿。已提交清单不可原位重匹配，输入发生受控变化时创建新版本并将旧版标记失效。D级任务禁止创建这三类记录。
+
+当前`pms_cut_risk`只作为可证明的旧风险/调研项候选来源：允许迁任务引用、原编码/名称/类型、原说明及可证明填写事实；不得推断采集项定义版本、界面Schema、绑定规则、必填性、CollectionTask、自动结果、业务通过或配置缺口。不能完成字段级证明的记录保留兼容来源证据或迁移问题。新清单根、匹配版本和结果引用由前向Feature产生。
+
+本节完成Phase 2物理设计，不修改当前DDL。三张表及`proj_*`任务执行契约表进入正式Flyway前必须重新执行P3-E09，且不触发`AI-MIG-000`；只有Release同时包含历史迁移或数据切换时，`AI-MIG-000`才在Release前适用并限定批准窗口。
 
 ## 8. Customer、Commerce、Resource 与 Knowledge
 
@@ -296,12 +351,16 @@ INT-05/INT-09 复用基础平台现有用户、部门、岗位主数据，已有
 
 | Context | 目标表组 | 关键约束 |
 |---|---|---|
-| Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot` | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
+| Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot`；CUS-02 Feature前向表见8.2.1 | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
 | Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围主记录至少含订单行、项目、`allocated_qty`、`scope_status`及来源证据，范围明细保存地点、产品/设备类型、数量和可选批次 |
 | Resource | `res_supplier`、`res_qualification`、`res_subcontract_request`、`res_payment_gate` | 资质版本追加；财务结果只保存引用和回写状态 |
 | Knowledge | `TechnicalNoticeReference`逻辑对象；物理表由INT-04 Feature前向迁移确定 | V2公告按ITR来源键+版本唯一，只保存同步副本和业务引用；4张V3治理表不进入核心迁移DDL |
 
 `pms_eng_announcement`和`pms_eng_announcement_check`只作为历史来源证据保留。V1/V2新菜单和API只读取INT-04 Feature批准的ITR同步副本；本地创建记录不得混入外部主数据结果，也不得提前创建V3治理表。
+
+### 8.2.1 CUS-02服务等级前向表
+
+`cus_customer_service_level_revision`是ADR-0031批准的Feature目标，物理表由CUS-02 Feature前向迁移确定，不属于当前核心DDL。关键字段为`customer_id/service_level_code/policy_snapshot/effective_from/effective_to/current_marker/change_reason/evidence_ref/approver_id/version`；`uk(tenant_id, customer_id, version)`保存版本，生成列`current_marker`仅在`effective_to is null`时取1，`uk(tenant_id, customer_id, current_marker)`保证同一客户至多一个当前等级，并校验结束时间不早于开始时间。等级代码使用基础平台字典；无可靠历史来源，不从客户、联系人或关系快照反推等级。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
 
@@ -462,6 +521,6 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | 版本、快照、历史可实现 | PASS | revision、snapshot、transition、sync batch 表 |
 | 敏感数据不明文持久化 | PASS | credential 密文/secretRef；临时密码无字段 |
 | 数据元与历史迁移结论已纳入 | PASS | 第1.1、4.1.1、8.1～8.3节；结构化证据优先、来源载荷+业务列双层保存 |
-| 漂移可前向纠正 | PASS-WITH-IMPLEMENTATION-GATE | 第1.2、12节；`AI-MIG-000`完成前不得生成当前迁移发布基线 |
+| 漂移可前向纠正 | PASS-WITH-IMPLEMENTATION-GATE | 第1.2、12节；包含历史迁移或数据切换的发布须先完成`AI-MIG-000`，普通应用Schema前向迁移不因此转为历史迁移门禁 |
 
-本分册达到 API、事件、集成和并发/幂等设计的数据库前置条件；实际应用Schema变更仍以实现仓库“下一个未占用 Flyway 版本”为准。历史迁移或数据切换则须由`AI-MIG-000`在真实批次中完成范围、水位、程序、校验、演练、对账和回退验证；P3-E09不定义迁移批准哈希。
+本分册达到 API、事件、集成和并发/幂等设计的数据库前置条件；实际应用Schema变更仍以实现仓库“下一个未占用 Flyway 版本”为准。只有发布包含历史迁移或数据切换时，才须由`AI-MIG-000`在Release前完成真实批次的范围、水位、程序、校验、演练、对账和回退验证，并在批准窗口内执行；普通功能发布不适用。P3-E09不定义迁移批准哈希。
