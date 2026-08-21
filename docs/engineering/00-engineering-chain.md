@@ -2,8 +2,8 @@
 
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
-> 适用基线：`docs/baseline/prd-v1.8.md`<br>
-> 基线快照：`docs/baseline/prd-v1.8.md`<br>
+> 适用基线：`需求/PRD-项目实施交付管理平台.md` V1.7<br>
+> 基线快照：`docs/baseline/prd-v1.7.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
 > 替代版本：V1.7（归档于`docs/engineering/archive/00-engineering-chain-v1.7.md`）<br>
 > 文档治理：遵循[`docs/README.md`](../README.md)
@@ -12,7 +12,7 @@
 
 将PRD转换为可设计、可实现、可测试、可验证、可发布的工程资产，并让项目在明确但不过度的Gate下推进。
 
-当前工程范围为PRD V1.8附录A.1的100项V1/V2正式需求（V1 53项、V2 47项）；31项已编号V3、2项跨需求演进方向与9项`OUT_OF_SCOPE`仅保留演进或排除追溯，不得进入当前实现。需求基线、领域归属和下游资产状态以冻结快照及追溯矩阵为准；V1.7形成的SDS和阶段门禁必须完成V1.8差量重验证后才能恢复放行状态。
+当前工程范围为PRD V1.7附录A.1的103项V1/V2正式需求；V3与`OUT_OF_SCOPE`仅保留演进或排除追溯，不得进入当前实现。需求基线、领域归属和下游资产状态以PRD、冻结快照及追溯矩阵为准。
 
 本工程链统一遵循：
 
@@ -27,7 +27,7 @@
 
 ### 2.1 权威顺序
 
-1. `docs/baseline/`：唯一业务语义基线；
+1. PRD：唯一业务语义基线；
 2. 本工程治理基线：定义阶段、资产边界、门禁位置和质量标准，不产生业务规则；
 3. `docs/design/`：通过评审的正式SDS；
 4. `docs/decisions/`：已批准ADR和待确认问题，不能取代PRD或SDS正文；
@@ -38,13 +38,12 @@
 
 ### 2.2 文档分类
 
-- 正式业务基线：`docs/baseline/`；
+- 正式业务基线：`需求/`、`docs/baseline/`；
 - 正式SDS：`docs/design/`，同一主题只保留一个当前文件；
 - ADR与待确认问题：`docs/decisions/`；
 - 阶段门禁、评审输入和结论：`docs/engineering/gates/<phase>/`；
 - 计划和设计提案：`docs/superpowers/plans/`、`docs/superpowers/specs/`，不得代替正式SDS；
 - 外部输入、生成报告和临时材料按`docs/README.md`分类，不得混入正式设计目录。
-- 需求来源文档：`需求/`，业务基线PRD版本变更，需要同步变更该目录下PRD文件
 
 每个阶段只允许一个`gate-status.md`表达当前状态。业务语义变化必须回写PRD/CHG；设计结论必须回写SDS，具有长期影响的取舍同时记录ADR；`gate-status.md`只同步放行结果和证据，不能单独替代正式资产。被替代版本必须归档，禁止维护`draft`、`final2`等平行现行副本。
 
@@ -211,7 +210,7 @@ Git保存commit ID、作者、时间和diff，不再建立四角色外部附件�
 
 P3-E09通过、SDS Baseline、DDL哈希、Git提交、ADR或Schema执行成功均不授权历史迁移、数据切换、生产发布或网络割接。
 
-`AI-MIG-000`独立控制历史迁移与数据切换，但不是所有Release的固定前置项。发布范围不包含历史迁移或数据切换时，本门禁记为`NOT_APPLICABLE`，不得阻断普通功能发布；发布范围包含任一项时，本门禁必须在Release前达到`VERIFIED`，并且迁移或切换只能在该批次已批准的执行窗口内进行。当前不建设通用迁移审批系统；真实迁移批次形成后，再按该批次的源范围、水位、程序版本、校验、演练、对账、回退、执行责任和窗口设计最小门禁。运行事实尚未形成不阻断SDS。
+`AI-MIG-000`独立控制历史迁移与数据切换。当前不建设通用迁移审批系统；真实迁移批次形成后，再按该批次的源范围、水位、程序版本、校验、演练、对账、回退和执行责任设计最小门禁。运行事实尚未形成不阻断SDS，但门禁关闭前不得执行迁移或切换。
 
 ## 6. Feature研发循环
 

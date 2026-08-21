@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 ALLOWED_CLASSIFICATIONS = frozenset(
     {
         "CURRENT_52",
+        "CURRENT_57",
         "VALID_V2_POSTPONED",
         "EXCLUDED_CURRENT",
         "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
@@ -34,6 +35,8 @@ REQ_PATTERN = re.compile(
 )
 RUNTIME_SOURCE_ROOTS = (
     "pms-module-cutover/src/main",
+    "pms-module-service/src/main",
+    "pms-module-project/src/main",
     "yudao-ui/yudao-ui-admin-vue3/src",
 )
 RUNTIME_SOURCE_SUFFIXES = frozenset(
@@ -73,6 +76,71 @@ CUT_TASK_BYPASS_PATTERN = re.compile(
     r"|\b(?:rollback|terminate)\s*\(",
     re.IGNORECASE,
 )
+RETIRED_MAINTENANCE_PATTERNS = (
+    (
+        "maintenance type",
+        re.compile(r"\b(?:SrvMaintenance|MaintenanceTransition)\w*\b"),
+    ),
+    (
+        "maintenance route",
+        re.compile(r"\b(?:srv-maintenance|maintenance-transition)\b", re.IGNORECASE),
+    ),
+    (
+        "maintenance permission",
+        re.compile(
+            r"\bpms:(?:srv-maintenance|acc-maintenance-transition):[A-Za-z0-9:_*-]+",
+            re.IGNORECASE,
+        ),
+    ),
+)
+RETIRED_TEMPLATE_PATTERNS = (
+    (
+        "template type",
+        re.compile(r"\b(?:ProjectPhaseTemplate|ProjectCreateFromTemplate)\w*\b"),
+    ),
+    (
+        "template route",
+        re.compile(
+            r"(?<!:)\b(?:project-template|phase-template|instantiate-from-template)\b"
+        ),
+    ),
+    (
+        "template permission",
+        re.compile(r"\bpms:phase-template:[A-Za-z0-9:_*-]+"),
+    ),
+    (
+        "template table",
+        re.compile(r"\bpms_project_(?:template|phase_template)\b"),
+    ),
+)
+RETIRED_PROJECT_WRITE_PATTERNS = (
+    (
+        "route",
+        re.compile(r"\bpms/project/(?:create|update|delete|classify|assign-manager)\b"),
+    ),
+)
+PROJECT_SINGULAR_BASE_PATTERN = re.compile(r"""["'`]/pms/project["'`]""")
+PROJECT_WRITE_FRAGMENT_PATTERN = re.compile(
+    r"""/(?:create|update|delete|classify|assign-manager)["'`]"""
+)
+PROJECT_WRITE_PERMISSION_PATTERN = re.compile(
+    r"\bpms:project:(?:create|update|delete|assign)\b"
+)
+PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES = (
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/",
+    "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
+    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/",
+    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/",
+)
+RETIRED_PROJECT_TREE_WRITE_PATTERNS = (
+    (
+        "route",
+        re.compile(r"\bpms/project-tree/(?:create-child|move)\b"),
+    ),
+)
+PROJECT_TREE_SINGULAR_BASE_PATTERN = re.compile(r"""["'`]/pms/project-tree["'`]""")
+PROJECT_TREE_WRITE_FRAGMENT_PATTERN = re.compile(r"""/(?:create-child|move)["'`]""")
+PROJECT_TREE_WRITE_PERMISSION_PATTERN = re.compile(r"\bpms:project-tree:move\b")
 
 
 def load_inventory(path: Path) -> dict:
@@ -123,9 +191,7 @@ def _requirement_ids(repository: Path) -> set[str]:
     return set(re.findall(REQ_PATTERN.pattern[1:-1], matrix))
 
 
-def find_retired_cutover_runtime_surfaces(repository: Path) -> list[str]:
-    """Find retired cutover surfaces in current runtime source, independent of inventory paths."""
-    errors: list[str] = []
+def _iter_runtime_source_files(repository: Path):
     for raw_root in RUNTIME_SOURCE_ROOTS:
         source_root = repository / raw_root
         if not source_root.is_dir():
@@ -133,22 +199,105 @@ def find_retired_cutover_runtime_surfaces(repository: Path) -> list[str]:
         for path in sorted(
             candidate for candidate in source_root.rglob("*") if candidate.is_file()
         ):
-            if path.suffix.lower() not in RUNTIME_SOURCE_SUFFIXES:
-                continue
-            content = path.read_text(encoding="utf-8", errors="ignore")
+            if path.suffix.lower() in RUNTIME_SOURCE_SUFFIXES:
+                yield path
+
+
+def _match_retired_patterns(repository: Path, patterns, prefix: str) -> list[str]:
+    errors: list[str] = []
+    for path in _iter_runtime_source_files(repository):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        relative_path = path.relative_to(repository).as_posix()
+        for label, pattern in patterns:
+            if pattern.search(content):
+                errors.append(f"{prefix} {label}: {relative_path}")
+    return errors
+
+
+def find_retired_cutover_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired cutover surfaces in current runtime source, independent of inventory paths."""
+    errors = _match_retired_patterns(
+        repository, RETIRED_CUTOVER_PATTERNS, "retired cutover"
+    )
+    for path in _iter_runtime_source_files(repository):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        if CUT_TASK_CONTEXT_PATTERN.search(content) and CUT_TASK_BYPASS_PATTERN.search(
+            content
+        ):
             relative_path = path.relative_to(repository).as_posix()
-            for label, pattern in RETIRED_CUTOVER_PATTERNS:
-                if pattern.search(content):
-                    errors.append(f"retired cutover {label}: {relative_path}")
-            if CUT_TASK_CONTEXT_PATTERN.search(content) and CUT_TASK_BYPASS_PATTERN.search(
-                content
-            ):
-                errors.append(f"retired cutover cut-task bypass route or method: {relative_path}")
+            errors.append(f"retired cutover cut-task bypass route or method: {relative_path}")
+    return errors
+
+
+def find_retired_maintenance_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired SrvMaintenance/MaintenanceTransition surfaces in current runtime source."""
+    return _match_retired_patterns(
+        repository, RETIRED_MAINTENANCE_PATTERNS, "retired maintenance"
+    )
+
+
+def find_retired_template_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired legacy project/phase template surfaces in current runtime source."""
+    return _match_retired_patterns(
+        repository, RETIRED_TEMPLATE_PATTERNS, "retired template"
+    )
+
+
+def find_retired_project_write_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired singular /pms/project write surfaces in current runtime source.
+
+    The legacy chain keeps read-only endpoints, so retirement is enforced on write
+    surfaces only: full literal write routes, singular-base + write-fragment
+    composition inside one file, and write permission codes outside the rebuilt
+    plural-chain whitelist.
+    """
+    errors = _match_retired_patterns(
+        repository, RETIRED_PROJECT_WRITE_PATTERNS, "retired project write"
+    )
+    for path in _iter_runtime_source_files(repository):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        relative_path = path.relative_to(repository).as_posix()
+        if PROJECT_SINGULAR_BASE_PATTERN.search(content) and (
+            PROJECT_WRITE_FRAGMENT_PATTERN.search(content)
+        ):
+            errors.append(f"retired project write route composition: {relative_path}")
+        if PROJECT_WRITE_PERMISSION_PATTERN.search(content) and not any(
+            relative_path.startswith(prefix)
+            for prefix in PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES
+        ):
+            errors.append(f"retired project write permission: {relative_path}")
+    return errors
+
+
+def find_retired_project_tree_write_runtime_surfaces(repository: Path) -> list[str]:
+    """Find retired legacy /pms/project-tree write surfaces in current runtime source.
+
+    The legacy project-tree chain writes to the frozen `pms_project` table, so its
+    write surfaces (create-child / move) and the `pms:project-tree:move` permission
+    must disappear once F-PM02 rebuilds tree capabilities on the plural /pms/projects
+    chain. Full literal write routes and base-route + write-fragment composition are
+    both covered.
+    """
+    errors = _match_retired_patterns(
+        repository, RETIRED_PROJECT_TREE_WRITE_PATTERNS, "retired project tree write"
+    )
+    for path in _iter_runtime_source_files(repository):
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        relative_path = path.relative_to(repository).as_posix()
+        if PROJECT_TREE_SINGULAR_BASE_PATTERN.search(content) and (
+            PROJECT_TREE_WRITE_FRAGMENT_PATTERN.search(content)
+        ):
+            errors.append(f"retired project tree write route composition: {relative_path}")
+        if PROJECT_TREE_WRITE_PERMISSION_PATTERN.search(content):
+            errors.append(f"retired project tree write permission: {relative_path}")
     return errors
 
 
 def validate_inventory(repository: Path, inventory: dict) -> list[str]:
     errors = find_retired_cutover_runtime_surfaces(repository)
+    errors.extend(find_retired_maintenance_runtime_surfaces(repository))
+    errors.extend(find_retired_project_write_runtime_surfaces(repository))
+    errors.extend(find_retired_project_tree_write_runtime_surfaces(repository))
     if set(inventory) != {"schemaVersion", "status", "items"}:
         errors.append("inventory must contain only schemaVersion, status, and items")
         return errors

@@ -2,8 +2,6 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.projecttree;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projecttree.vo.ProjectTreeCreateChildReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projecttree.vo.ProjectTreeMoveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttree.vo.ProjectTreeNodeRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeService;
@@ -28,21 +26,6 @@ public class ProjectTreeController {
 
     @Resource
     private ProjectTreeService projectTreeService;
-
-    @PostMapping("/create-child")
-    @Operation(summary = "创建子项目")
-    @PreAuthorize("@ss.hasPermission('pms:project-tree:query')")
-    public CommonResult<Long> createChildProject(@Valid @RequestBody ProjectTreeCreateChildReqVO reqVO) {
-        return success(projectTreeService.createChildProject(reqVO));
-    }
-
-    @PutMapping("/move")
-    @Operation(summary = "移动子树")
-    @PreAuthorize("@ss.hasPermission('pms:project-tree:move')")
-    public CommonResult<Boolean> moveSubtree(@Valid @RequestBody ProjectTreeMoveReqVO reqVO) {
-        projectTreeService.moveSubtree(reqVO);
-        return success(true);
-    }
 
     @GetMapping("/tree")
     @Operation(summary = "获取项目树")

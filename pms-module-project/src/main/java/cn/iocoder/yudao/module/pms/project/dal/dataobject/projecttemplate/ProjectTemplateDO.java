@@ -1,27 +1,29 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * PMS 项目模板 DO
+ * 项目模板 DO（模板身份/状态/优先级，F-PM03 / V52）
  * <p>
- * 模板内容以 JSON 快照形式存储在 {@link #snapshotJson}，包含 phases/tasks/teamRoles 三类子模板。
+ * 状态：DRAFT草稿/ACTIVE生效/RETIRED停用（BR-1）；系统保留编码不得删除/复用/改义（BR-8）。
+ * 逻辑删除后编码因 uk(tenant_id, code) 不可复用，符合编码不复用约束。
  */
-@TableName(value = "pms_project_template", autoResultMap = true)
+@TableName("proj_project_template")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateDO extends TenantBaseDO {
 
+    /**
+     * 模板ID
+     */
     @TableId
     private Long id;
     /**
-     * 模板编码（全局唯一）
+     * 模板编码（租户内唯一，创建后不可修改）
      */
     private String code;
     /**
@@ -29,25 +31,19 @@ public class ProjectTemplateDO extends TenantBaseDO {
      */
     private String name;
     /**
-     * 适用项目类型（字典 pms_project_type）
+     * 状态：DRAFT草稿/ACTIVE生效/RETIRED停用
      */
-    private String projectType;
+    private String status;
     /**
-     * 描述
+     * 匹配优先级（数值小者先命中）
+     */
+    private Integer matchPriority;
+    /**
+     * 业务场景描述
      */
     private String description;
     /**
-     * 状态：0启用 1停用
+     * 系统保留编码标志：不得删除/复用/改义
      */
-    private Integer status;
-    /**
-     * 排序号
-     */
-    private Integer sort;
-    /**
-     * 模板内容快照（JSON）
-     */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private TemplateSnapshot snapshotJson;
-
+    private Boolean systemReserved;
 }

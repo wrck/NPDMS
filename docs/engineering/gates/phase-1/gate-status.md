@@ -1,48 +1,64 @@
 # SDS Phase 1 Review
 
-> 审查状态：`APPROVED`<br>
-> 依据：PRD V1.8正式基线、正式工程链V1.8、ADR-0029<br>
-> 结论：`READY_FOR_PHASE_2_V1.8`<br>
-> 机器门禁：`PASS`<br>
-> 独立复审：`GO`<br>
-> 已评审候选：`4792f11`（`GO`）<br>
-> 核心修复：`537ab5a`（`VERIFIED`）
+> 审查状态：`APPROVED`
+> 依据：PRD V1.7、基线快照、正式工程链 V1.8
+> 结论：`READY_FOR_PHASE_2`
+> Phase 1硬门禁：领域Owner签署、实现工作包登记、采集平台集成形态确认均已通过。
+> 独立第三方评审：V1.6结论为`GO`，详见`docs/engineering/gates/phase-1/independent-review.md`；V1.7为需求方批准的ADR-0024差量并已通过机器校验与自审，本文件不将其表述为新增独立评审结论。
 
-## 1. V1.8差量结果
+## 1. 审查清单
 
-| 检查项 | 当前状态 | 关闭证据 |
+| 检查项 | 结果 | 说明 |
 |---|---|---|
-| 正式范围 | PASS | PRD、追溯矩阵与Owner映射均为100项，V1 53、V2 47 |
-| 领域与聚合 | PASS_AFTER_SECOND_REPAIR | 13个Owner唯一覆盖；EQP-02拥有ConfigurationLog；SRV-01只保存ServiceHandoverReference，不拥有ACC-06交接事实 |
-| 版本范围 | PASS_AFTER_REPAIR | PM-10、CLO-02归V1，INT-04归V2；负向门禁阻止再次错位 |
-| 项目状态模型 | PASS | `current_stage`、`lifecycle_status`、`assignment_status`和只读`display_status`保持分层 |
-| 巡检状态与流程 | PASS_AFTER_SECOND_REPAIR | INS-01九个状态、在线INS-04预检守卫及INS-05～07顺序已结构化校验；相反规则会失败 |
-| 事件Owner与追溯 | PASS_AFTER_SECOND_REPAIR | 每个02d契约显式登记Requirement ID；ACC-06唯一发布`ServiceHandoverCreated`，Service Operations只保存引用 |
-| 权限与工作流 | PASS_AFTER_SECOND_REPAIR | PM-10分离回退与关闭/重开角色；重开恢复可恢复阶段、新建责任事项且不自动恢复外部终止任务 |
-| Stage—ProjectTask工作台 | PASS | WorkBinding统一必填；TASK_NATIVE默认承载通用详情；其他类型按Owner事实执行和完成 |
-| CUT-03同阶段工作台 | PASS | P1～P6不变；P3匹配、填写、CollectionTask下发与结果回填不产生独立阶段、聚合或工单 |
-| 正式文档治理 | PASS_AFTER_REPAIR | 运行提交、证据批次、构建结果和放行结论不再固化到正式架构正文 |
-| 机器门禁抗绕过 | PASS_AFTER_NINTH_REPAIR | 使用`markdown-it-py 4.2.0`提取真实GFM表格token及单元格可见文本；不可见HTML token不参与业务键比较，围栏、代码、注释、列表嵌套、表格边界和三类引用链接均有负向回归 |
-| 追溯生成确定性 | PASS_AFTER_THIRD_REPAIR | `generate_requirement_traceability.py --check`只读重建并比较生成器负责内容，漂移时不覆盖正式矩阵 |
-| P3-E09证据可复现性 | PASS_AFTER_FOURTH_REPAIR | 哈希绑定DDL使用`-text diff`：禁用Git换行转换且保留文本差异；`core.autocrlf=true`干净检出仍为`5EB974…4249`且全量290项通过 |
-| fresh-context重新复审 | PASS | 固定候选`4792f11`完成独立反证评审；Critical、Required、Optional均为0，核心修复`537ab5a`验证通过 |
+| 103 项正式需求进入追溯 | PASS | 追溯矩阵 103/103，V1 55、V2 48；已按 ADR-0024 完成业务反馈差量重构，并补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别映射 |
+| V1/V2/V3/OUT_OF_SCOPE 边界 | PASS | V3 和排除项未进入当前实现设计 |
+| Bounded Context | PASS | 已按 PRD-derived Owner 工作映射拆分，并由需求方确认；细化 Context 与平台能力边界已回写 |
+| 聚合边界 | PASS-WITH-FOLLOWUP | 项目、设备、采集、割接、巡检已分离；需在 Phase 2 落实表级边界 |
+| 跨模块 Repository 访问 | PASS | SDS 约束为应用服务/事件，不允许直接访问；`CollectionTaskRequested` 方向已修正为业务 Context 到 Device Access & Collection |
+| 核心生命周期状态机 | PASS-WITH-FOLLOWUP | 已定义核心状态和门禁；状态字典初始值与扩展映射需形成配置数据设计 |
+| Workflow 与状态机分离 | PASS | 审批节点不直接替代业务状态 |
+| 权限覆盖 | PASS | 已按 PRD 将到货/安装确认改为项目经理，删除配置采集结果中未定义的人工审批角色，定点复审通过 |
+| 外部系统 Owner | PASS | 外部系统只通过适配器/契约提供事实，平台不接管其内部业务 |
+| 是否发明业务规则 | PASS-WITH-FOLLOWUP | 文档中的架构选择以【建议】或【待确认】标记，未写入 PRD 业务规则 |
+| BLOCKED_BY_SPEC | ABSENT | 当前未发现需要回到 PRD/决策记录处理的业务语义冲突 |
+| BLOCKED_BY_EVIDENCE | ABSENT | 实施仓库 `856d052` 已固化当前运行边界与 `q2-evidence-manifest.json`，定点复审通过 |
+| 是否足以进入 Data/API/Integration 设计 | YES | R-N01～R-N04 全部关闭，独立定点复审给出 GO |
 
-## 2. 机器校验范围
+独立评审补充：Implementation Execution bounded context 可保留。命名后的 Context 整改已完成：新增 Device Access & Collection 作为正式采集 Context，并允许现有采集模块/子应用作为实现载体；SRV 当前范围拆为 Inspection、Service Operations，Work Order & Time 已退出 V1/V2；CUS/AST分别拆为 Customer & Relationship、Asset Management；COM保留必要主数据本地同步副本；Closure统一为 ProjectClosure。详见 `docs/engineering/gates/phase-1/context-refinement-review.md`。
 
-- PRD V1.8正式需求、追溯矩阵和`phase-1-domain-ownership.md`精确同集且Owner唯一。
-- 01～07及02a～02e分册元数据、版本归属、状态分层、Context/聚合、事件Owner、工作流和授权关键边界可复现。
-- EQP-02 ConfigurationLog Owner、02d逐事件Requirement追溯、巡检状态全集、PM-10权限/重开副作用、ACC-06事件Producer和正式文档证据边界均有结构化负向测试。
-- Phase 1机器通过不替代独立复审，不产生表、API、DDL或迁移批准。
+本轮确认记录：Q1 已确认当前 13 个领域 Owner 映射；Q3 已确认 V1 优先采用现有采集平台子应用集成。Q2 已登记实现仓库、锁定基线提交、基础平台来源和 NPDMS 开发数据库目标；需求方已确认统一证据批次号 `NPDMS-SDS-P1-20260812-01`，前端冻结安装与生产构建已在宿主机通过，构建配置已提交。
 
-## 3. 后置边界
+## 2. 阻塞项
 
-- WorkBinding、CompletionRule和CUT-03清单/结果引用的物理承载仍由Phase 2差量设计，当前保持`BLOCKED_BY_DESIGN`。
-- P3-E09仅在物理数据模型变化后重验证；Q08仍是候选索引。
-- `AI-MIG-000`只在Release包含历史迁移或数据切换时适用，并只允许在批准窗口内执行。
-- 生产配置、KMS、SIT/UAT和真实迁移/切换证据不前置到Phase 1。
+| 编号 | 当前状态 | 阻塞内容 | 影响 | 解除条件 |
+|---|---|---|---|---|
+| BLOCKED-SDS-01 | RESOLVED_BY_REQUESTER | 13 个领域 Owner 已形成 PRD-derived 工作映射，并由需求方确认 | 影响模块归属、数据 Owner、API 责任和权限边界 | 将确认来源纳入责任人名册或签署记录 |
+| BLOCKED-SDS-02 | RESOLVED_BY_EVIDENCE | 实现工作包证据曾与当前 Compose/宿主机运行边界冲突；实施仓库 `856d052` 已修复并提供机器可读清单 | 影响 Phase 2 技术契约与构建基线复核 | 已由独立复审验证 `q2-evidence-manifest.json`、`baseCommit` 及 `evidenceCommit` |
+| BLOCKED-SDS-03 | RESOLVED_BY_REQUESTER | V1 优先采用现有采集平台子应用集成；任务授权、执行身份和回调责任已按 PRD/SDS 确认 | 影响部署、鉴权、任务下发和回调边界 | Phase 2 登记具体网络端点、部署清单和接口契约 |
 
-## 4. 放行结论
+## 2.1 Q2 实现工作包建议
 
-固定候选`4792f11`已完成fresh-context独立复审并给出GO。Phase 1正式状态为`APPROVED / READY_FOR_PHASE_2_V1.8`。
+| 字段 | 建议值 | 当前登记状态 |
+|---|---|---|
+| `implementationRepo` | `E:\AICoding\Projects\NPDMS` | 已登记并核验 |
+| `branch/worktree` | `master`（基线分支，当前目录） | 已核验；Phase 2 实现切片应从该基线创建独立短期分支/工作树 |
+| `baseCommit` | `3c54ee1bb3c1d2fa4bad958ea6691956a7ac2464` | 已登记；包含根基线 `1a93fad14aa0cadcf9300535aa7b9b6617b9c3aa` 及 pnpm 9 宿主机构建配置，核验时工作树干净 |
+| `evidenceCommit` | `856d052` | 已登记；包含 `docs/engineering/gates/phase-1/q2-evidence-manifest.json` 及与当前 `compose.yaml` 一致的运行边界 |
+| `platformCommit` | mini `e6d814cb59cfc204f02aa2516799073382aba801`；BPM 补充来源 `a6558325b0f09017f531f1e5891613ef9b468132`；前端来源 `2d028c8f7a14dd2e532ac1a76d1fdf58840dc621` | 已按实现仓库 `docs/upstream-sources.md` 登记；基础平台主来源为 yudao-boot-mini `master-jdk25` 锁定提交 |
+| `databaseTarget` | `NPDMS-DEV-LOCAL` / `mysql:8.4` / 数据库 `npdms` / Compose 项目 `npdms` | 已按 `compose.yaml` 与 `.env.example` 核验；凭据仅通过 `NPDMS_*` 环境变量注入，不写入旧库 |
+| `buildEntry` | 后端：JDK 25，`mvn clean verify -B`；前端宿主机：Node 24.11.1、pnpm 9.15.5，`corepack pnpm install --frozen-lockfile --prefer-offline && corepack pnpm build:prod`；基础设施：`.\tests\infrastructure\verify-docker-baseline.ps1` | 后端 30/30 Reactor 模块、基础设施静态基线校验、前端冻结安装和生产构建均已通过；前端 `corepack pnpm ts:check` 暴露首次基线既有类型债务，需在进入前端功能实现前单独治理，不作为 Q2 仓库登记阻塞 |
+| `releaseId` | `NPDMS-SDS-P1-20260812-01` | `RESOLVED_BY_REQUESTER`；作为本轮构建、迁移、测试和门禁证据的统一批次号 |
 
-本结论仅批准进入Phase 2设计，不批准数据库迁移、历史数据迁移、数据切换或生产发布。
+Q2 核验记录：`E:\AICoding\Projects\NPDMS` 当前可访问，锁定可构建业务基线为 `3c54ee1bb3c1d2fa4bad958ea6691956a7ac2464`，证据提交为 `856d052`；后者是前者的后继提交，核验时工作树干净且未配置远端。实现基线统一使用 `NPDMS_*` 环境变量、`npdms` 数据库、`npdms` Compose 项目名和 `npdms-dev` 本地 Profile；本地 `.env` 与本地 Profile 均由 `.gitignore` 排除。前端冻结安装、离线复核和生产构建通过，共享依赖 Store 为 `E:\.pnpm-store\v3`。当前证据清单见实施仓库 `docs/engineering/gates/phase-1/q2-evidence-manifest.json`，`BLOCKED-SDS-02` 已由独立复审确认解除。
+
+前端质量跟进：`corepack pnpm ts:check` 当前失败，错误涉及首次基线已有的 PMS 页面类型契约、组件导入、字典常量和未使用变量等；生产构建成功不等于类型检查通过。该问题应建立独立质量治理任务，在进入前端功能实现前分批修复，不得通过关闭类型检查或放宽 TypeScript 规则规避。
+
+## 3. 风险
+
+- 直接沿用旧领域规格会把历史边界、旧编号或过时流程带入新设计。
+- 在未锁定实现仓库前生成数据库或 API 细节，会形成不可验证的伪契约。
+- 项目、任务无限层级和设备单时点归属必须在 Phase 2 设计索引、约束和并发策略，否则查询和统计可能退化。
+
+## 4. 阶段结论
+
+Phase 1 的 C-01～C-03、R-01～R-04 和 R-N01～R-N04 已全部关闭。独立定点复审确认无新阻塞，本阶段正式转为 `APPROVED / READY_FOR_PHASE_2`。`corepack pnpm ts:check` 的既有类型债务继续作为任何前端 Feature 实现前的强制门禁，不影响 Phase 1 放行。

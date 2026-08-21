@@ -88,7 +88,7 @@
     },
     {
       "objectKey": "MaintenanceTransition",
-      "classification": "SEMANTIC_REWORK",
+      "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["ACC-06"],
       "codePaths": [
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/maintenancetransition/",
@@ -98,7 +98,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/maintenance-transition/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/maintenance-transition/"
       ],
-      "requiredAction": "REBUILD_AS_SERVICE_HANDOVER_AND_ISOLATE_RENEWAL_FIELDS"
+      "requiredAction": "PRESERVE_LEGACY_DATA_AND_MIGRATE_PROVEN_HANDOVER_FIELDS_TO_ACC_SERVICE_HANDOVER"
     },
     {
       "objectKey": "MesProductionWorkOrder",
@@ -116,6 +116,44 @@
       "requirementRefs": ["SUB-01", "SUB-02", "SUB-03", "SUB-04", "SUB-05"],
       "codePaths": ["pms-module-outsourcing/"],
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "ProjectManualCreation",
+      "classification": "CURRENT_57",
+      "requirementRefs": ["PM-01"],
+      "codePaths": [
+        "sql/migrations/V57__proj_project_manual_creation.sql",
+        "sql/migrations/V58__freeze_legacy_project_runtime_surfaces.sql",
+        "sql/migrations/V59__fpm01_manual_match_demo_seed.sql",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/"
+      ],
+      "requiredAction": "F_PM01_IMPLEMENTED_AND_UI_ACCEPTED"
+    },
+    {
+      "objectKey": "ProjectTemplateFoundation",
+      "classification": "CURRENT_52",
+      "requirementRefs": ["PM-03"],
+      "codePaths": [
+        "sql/migrations/V52__proj_project_template_foundation.sql",
+        "sql/migrations/V53__retire_legacy_template_runtime_surfaces.sql",
+        "sql/migrations/V54__fpm03_template_demo_seed.sql",
+        "sql/migrations/V55__fpm03_template_demo_seed_fullchain.sql",
+        "sql/migrations/V56__fpm03_template_draft_backfill.sql",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/template/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projecttemplate/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttemplate/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttemplate/",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projecttemplate/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-templates/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/"
+      ],
+      "requiredAction": "F_PM03_IMPLEMENTED_AND_UI_ACCEPTED"
     },
     {
       "objectKey": "ProjectUnclassifiedSurface",
@@ -141,7 +179,7 @@
     },
     {
       "objectKey": "SrvMaintenance",
-      "classification": "SEMANTIC_REWORK",
+      "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["EQP-02"],
       "codePaths": [
         "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvmaintenance/",
@@ -151,7 +189,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/srv-maintenance/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/srv-maintenance/"
       ],
-      "requiredAction": "MOVE_OBJECTIVE_MAINTENANCE_FACTS_TO_ASSET_DOMAIN"
+      "requiredAction": "PRESERVE_LEGACY_DATA_AND_MIGRATE_PROVEN_OBJECTIVE_FACTS_TO_AST_MAINTENANCE_FACT"
     },
     {
       "objectKey": "SrvReport",

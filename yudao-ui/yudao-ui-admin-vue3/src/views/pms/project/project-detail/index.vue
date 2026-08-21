@@ -115,14 +115,11 @@
 
       <!-- 右侧内容区 -->
       <div class="canvas">
-        <!-- ============ 项目概览：项目主数据（增强：可编辑） ============ -->
+        <!-- ============ 项目概览：项目主数据（旧链只读，F-PM01 冻结编辑） ============ -->
         <ContentWrap v-show="activeTab === 'project'">
           <div class="panel-header">
             <span class="panel-title"><Icon icon="ep:document" /> 项目主数据</span>
             <div class="panel-header-actions">
-              <el-button type="primary" size="small" @click="openProjectEdit">
-                <Icon icon="ep:edit" /> 编辑
-              </el-button>
               <el-button link type="primary" @click="goPage('/pms/project-management/project')">前往项目列表</el-button>
             </div>
           </div>
@@ -628,54 +625,6 @@
       </template>
     </el-dialog>
 
-    <!-- ============ 项目编辑弹窗 ============ -->
-    <el-dialog v-model="projectEditVisible" title="编辑项目" width="600px">
-      <el-form :model="projectEditForm" label-width="100px" v-loading="projectEditLoading">
-        <el-form-item label="项目编码" required>
-          <el-input v-model="projectEditForm.code" />
-        </el-form-item>
-        <el-form-item label="项目名称" required>
-          <el-input v-model="projectEditForm.name" />
-        </el-form-item>
-        <el-form-item label="客户名称">
-          <el-input v-model="projectEditForm.customerName" />
-        </el-form-item>
-        <el-form-item label="项目类型">
-          <el-input v-model="projectEditForm.projectType" />
-        </el-form-item>
-        <el-form-item label="项目经理">
-          <PmsEntitySelect
-            v-model="projectEditForm.managerUserId"
-            :api="UserApi.getUserPage"
-            label-field="nickname"
-            value-field="id"
-            query-field="nickname"
-            placeholder="请选择用户"
-          />
-        </el-form-item>
-        <el-form-item label="重大项目">
-          <el-switch v-model="projectEditForm.majorProjectFlag" />
-        </el-form-item>
-        <el-form-item label="项目分类">
-          <el-select v-model="projectEditForm.category" clearable placeholder="请选择">
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="projectEditForm.remark" type="textarea" :rows="3" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="projectEditVisible = false">取消</el-button>
-        <el-button type="primary" :loading="projectEditLoading" @click="submitProjectEdit">保存</el-button>
-      </template>
-    </el-dialog>
-
     <!-- ============ 模板选择弹窗（需求分析/实施方案） ============ -->
     <el-dialog
       v-model="templateSelectVisible"
@@ -847,11 +796,10 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
+import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
 import UserTag from '@/components/UserTag/index.vue'
 import CustomerTag from '@/components/CustomerTag/index.vue'
 import { getProjectPanoramic } from '@/api/pms/project/project-panoramic'
@@ -888,7 +836,6 @@ import * as AcceptanceApi from '@/api/pms/project/acceptance'
 import * as DeliverableCheckApi from '@/api/pms/project/deliverable-checklist'
 import * as ProjectClosureApi from '@/api/pms/project/project-closure'
 import * as ArchiveDocApi from '@/api/pms/project/archive-document'
-import * as MaintenanceTransApi from '@/api/pms/project/maintenance-transition'
 // 割接域
 import * as CutTaskApi from '@/api/pms/cutover/cut-task'
 import * as CutRiskApi from '@/api/pms/cutover/cut-risk'
@@ -897,7 +844,6 @@ import * as CutPlanApi from '@/api/pms/cutover/cut-plan'
 import * as SrvTaskApi from '@/api/pms/service/srv-task'
 import * as SrvReportApi from '@/api/pms/service/srv-report'
 import * as SrvIssueApi from '@/api/pms/service/srv-issue'
-import * as SrvMaintenanceApi from '@/api/pms/service/srv-maintenance'
 import * as DocTemplateApi from '@/api/pms/engineering/doc-template'
 
 defineOptions({ name: 'PmsProjectDetail' })
@@ -1018,8 +964,7 @@ const businessGroups = [
       { key: 'acceptance', label: '验收管理', icon: 'ep:circle-check' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked' },
       { key: 'project-closure', label: '项目闭环', icon: 'ep:lock' },
-      { key: 'archive-document', label: '归档文档', icon: 'ep:archive' },
-      { key: 'maintenance-transition', label: '转维保', icon: 'ep:promotion' }
+      { key: 'archive-document', label: '归档文档', icon: 'ep:archive' }
     ],
     parallelItems: []
   },
@@ -1027,8 +972,7 @@ const businessGroups = [
     key: 'maintenance',
     title: '维保服务',
     flowSteps: [
-      { key: 'inspection', label: '巡检管理', icon: 'ep:aim' },
-      { key: 'srv-maintenance', label: '维保状态', icon: 'ep:shield' }
+      { key: 'inspection', label: '巡检管理', icon: 'ep:aim' }
     ],
     parallelItems: []
   }
@@ -1477,49 +1421,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => ArchiveDocApi.submitArchiveDocument(r.id), confirm: '提交该归档文档？' },
       { label: '归档', type: 'success', show: (r) => r.status === 1, run: (r) => ArchiveDocApi.archiveArchiveDocument(r.id), confirm: '归档该文档？' }
     ]
-  },
-  'maintenance-transition': {
-    key: 'maintenance-transition', label: '转维保', icon: 'ep:promotion', path: '/pms/acceptance/maintenance-transition',
-    load: (pid, pageNo, pageSize) => MaintenanceTransApi.getMaintenanceTransitionPage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => MaintenanceTransApi.createMaintenanceTransition(data),
-    update: (data) => MaintenanceTransApi.updateMaintenanceTransition(data),
-    delete: (id) => MaintenanceTransApi.deleteMaintenanceTransition(id),
-    get: (id) => MaintenanceTransApi.getMaintenanceTransition(id),
-    columns: [
-      { prop: 'code', label: '编码', width: 130 },
-      { prop: 'name', label: '维保名称', minWidth: 180 },
-      { prop: 'acceptanceDate', label: '验收日期', width: 120, type: 'time' },
-      { prop: 'warrantyStartDate', label: '维保开始', width: 120, type: 'time' },
-      { prop: 'warrantyEndDate', label: '维保结束', width: 120, type: 'time' },
-      { prop: 'status', label: '状态', width: 90, type: 'status' }
-    ],
-    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待生效', tone: 'yellow' }, 2: { label: '生效中', tone: 'blue' }, 3: { label: '已过期', tone: 'gray' }, 4: { label: '已续保', tone: 'green' } },
-    actions: [
-      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => MaintenanceTransApi.submitMaintenanceTransition(r.id), confirm: '提交该转维保申请？' },
-      { label: '生效', type: 'success', show: (r) => r.status === 1, run: (r) => MaintenanceTransApi.activateMaintenanceTransition(r.id), confirm: '激活该维保？' },
-      { label: '续保', type: 'info', show: (r) => r.status === 2 || r.status === 3, run: (r) => MaintenanceTransApi.renewMaintenanceTransition(r.id), confirm: '续保该维保？' }
-    ]
-  },
-  // --- 维保服务 ---
-  'srv-maintenance': {
-    key: 'srv-maintenance', label: '维保状态', icon: 'ep:shield', path: '/pms/service/srv-maintenance',
-    load: (pid, pageNo, pageSize) => SrvMaintenanceApi.getSrvMaintenancePage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => SrvMaintenanceApi.createSrvMaintenance(data),
-    update: (data) => SrvMaintenanceApi.updateSrvMaintenance(data),
-    delete: (id) => SrvMaintenanceApi.deleteSrvMaintenance(id),
-    get: (id) => SrvMaintenanceApi.getSrvMaintenance(id),
-    columns: [
-      { prop: 'code', label: '编码', width: 130 },
-      { prop: 'startDate', label: '开始日期', width: 120, type: 'time' },
-      { prop: 'endDate', label: '结束日期', width: 120, type: 'time' },
-      { prop: 'serviceLevel', label: '服务等级', width: 100 },
-      { prop: 'maintenanceStatus', label: '维保状态', width: 100, type: 'status' }
-    ],
-    statusField: 'maintenanceStatus',
-    statusMap: { 0: { label: '未知', tone: 'gray' }, 1: { label: '生效中', tone: 'blue' }, 2: { label: '即将过期', tone: 'yellow' }, 3: { label: '已过期', tone: 'red' } },
-    actions: [
-      { label: '重新计算', type: 'primary', show: () => true, run: (r) => SrvMaintenanceApi.calculateStatus(r.id), confirm: '重新计算维保状态？' }
-    ]
   }
 }
 
@@ -1559,11 +1460,6 @@ const formRules = ref<Record<string, any[]>>({})
 
 // 阶段详情状态
 const activePhaseId = ref<number | undefined>(undefined)
-
-// 项目编辑弹窗状态
-const projectEditVisible = ref(false)
-const projectEditForm = reactive<any>({})
-const projectEditLoading = ref(false)
 
 // ============ 模板化新增状态（需求分析/实施方案） ============
 // 模板选择弹窗
@@ -2203,27 +2099,6 @@ const completePhase = async (phase: ProjectPhaseVO) => {
     await loadPhases()
   } catch (e) {
     if (e !== 'cancel') message.error('操作失败')
-  }
-}
-
-// ============ 项目编辑 ============
-const openProjectEdit = () => {
-  Object.keys(projectEditForm).forEach((k) => delete projectEditForm[k])
-  Object.assign(projectEditForm, project)
-  projectEditVisible.value = true
-}
-
-const submitProjectEdit = async () => {
-  projectEditLoading.value = true
-  try {
-    await ProjectApi.updateProject(projectEditForm)
-    message.success('修改成功')
-    projectEditVisible.value = false
-    if (currentProjectId.value) await loadProject(currentProjectId.value)
-  } catch (e) {
-    // 忽略
-  } finally {
-    projectEditLoading.value = false
   }
 }
 

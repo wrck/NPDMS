@@ -4,8 +4,6 @@
 
 本目录用于沉淀《项目实施交付管理平台 系统详细设计说明书（SDS）》。
 
-> 当前基线提示：PRD V1.8已于2026-08-19发布。Phase 1/2/3分册均已通过独立复审并晋级`BASELINE`，可作为Feature Spec输入；这不替代Feature Ready、实现、专项验收、迁移、切换、UAT或Release门禁。V1.7审查材料只作为历史证据。
-
 ## 目标文件
 
 Codex 按顺序维护：
@@ -65,4 +63,4 @@ Codex 按顺序维护：
 - 不确定的业务问题进入 `docs/decisions/open-questions.md`。
 - 每一阶段先 Review，再继续下一阶段。
 - SDS 通过后才进入 Feature Spec 和编码。
-- `specs/001-project-delivery-platform/domains/` 为PRD V1.8直接派生的领域需求输入；本目录的 SDS 必须直接以 PRD V1.8 和当前基线快照为准，并记录与V1.7设计的差异。
+- `specs/001-project-delivery-platform/domains/` 为历史参考资料；本目录的 SDS 必须直接以 PRD V1.7 和基线快照为准，并记录与旧规格的差异。
