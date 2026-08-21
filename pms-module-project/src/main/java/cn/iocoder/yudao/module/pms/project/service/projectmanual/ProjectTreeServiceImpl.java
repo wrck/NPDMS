@@ -27,7 +27,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
  * 四类层级查询基于 tree_path 前缀 + root_id 过滤；子树移动在单事务内校验无环并重建
  * 子树 root_id/tree_path/tree_depth；进度汇总走等权兜底 + 手动权重合计 100% 校验。
  */
-@Service
+@Service("projectMasterTreeService")
 @Validated
 public class ProjectTreeServiceImpl implements ProjectTreeService {
 
@@ -126,6 +126,32 @@ public class ProjectTreeServiceImpl implements ProjectTreeService {
                     weights.get(i), child.getWeightSource()));
         }
         return new ProjectProgress(aggregate, childProgresses);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateChildWeights(Long projectId, Map<Long, BigDecimal> childWeights) {
+        validateProjectExists(projectId);
+        List<ProjectMasterDO> children = projectMasterMapper.selectChildren(projectId);
+        List<Long> childIds = children.stream().map(ProjectMasterDO::getId).toList();
+        if (children.isEmpty() || childWeights.size() != children.size()
+                || !childWeights.keySet().containsAll(childIds)) {
+            throw exception(PROJECT_WEIGHT_SUM_INVALID, "必须完整覆盖当前全部直接子项目");
+        }
+        List<BigDecimal> weights = childIds.stream().map(childWeights::get).toList();
+        try {
+            ProjectTreeRules.normalizedWeights(weights);
+        } catch (IllegalArgumentException ex) {
+            throw exception(PROJECT_WEIGHT_SUM_INVALID, ex.getMessage());
+        }
+        List<ProjectMasterDO> updates = childIds.stream().map(childId -> {
+            ProjectMasterDO update = new ProjectMasterDO();
+            update.setId(childId);
+            update.setAggregationWeight(childWeights.get(childId));
+            update.setWeightSource(ProjectTreeRules.WEIGHT_SOURCE_MANUAL);
+            return update;
+        }).toList();
+        projectMasterMapper.updateById(updates);
     }
 
     private ProjectMasterDO validateProjectExists(Long id) {

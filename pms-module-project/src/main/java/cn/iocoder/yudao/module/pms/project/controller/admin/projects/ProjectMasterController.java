@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectChildWeightsReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectInstancesRespVO;
@@ -43,15 +44,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_WEIGHT_SUM_INVALID;
 
 /**
  * 管理后台 - PMS 项目手工创建 Controller（F-PM01 / PM-01）。
@@ -251,6 +256,25 @@ public class ProjectMasterController {
     public CommonResult<Boolean> moveSubtree(@PathVariable("id") Long id,
                                              @Valid @RequestBody ProjectTreeMoveReqVO moveReqVO) {
         projectTreeService.moveSubtree(id, moveReqVO.getNewParentId());
+        return success(true);
+    }
+
+    @PutMapping("/{id}/child-weights")
+    @Operation(summary = "整组设置直接子项目人工权重（完整覆盖且合计100%）")
+    @Parameter(name = "id", description = "父项目编号", required = true)
+    @PreAuthorize("@ss.hasPermission('pms:project:update')")
+    public CommonResult<Boolean> updateChildWeights(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody ProjectChildWeightsReqVO reqVO) {
+        Map<Long, BigDecimal> weights = reqVO.getChildren().stream()
+                .collect(Collectors.toMap(
+                        ProjectChildWeightsReqVO.Item::getProjectId,
+                        ProjectChildWeightsReqVO.Item::getWeight,
+                        (left, right) -> right));
+        if (weights.size() != reqVO.getChildren().size()) {
+            throw exception(PROJECT_WEIGHT_SUM_INVALID, "子项目编号不得重复");
+        }
+        projectTreeService.updateChildWeights(id, weights);
         return success(true);
     }
 

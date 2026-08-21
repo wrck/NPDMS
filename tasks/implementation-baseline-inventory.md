@@ -17,6 +17,9 @@
 | `SrvMaintenance` | `RUNTIME_RETIRED_DATA_PENDING_EVIDENCE` | 独立维保经营生命周期运行入口已退役；旧表冻结为兼容来源，仅逐字段证明的客观维保事实后续迁入`ast_maintenance_fact` | `EQP-02` |
 | `MaintenanceTransition` | `RUNTIME_RETIRED_DATA_PENDING_EVIDENCE` | 转维保运行入口已退役；旧表不改，仅逐字段证明的交接事实后续迁入`acc_service_handover`，续保字段不进入新模型 | `ACC-06` |
 | MES生产工单 | `PLATFORM_UPSTREAM_UNCHANGED` | 基础平台生产能力，不属于PMS工单排除范围 | 基础平台 |
+| `ProjectTemplateFoundation` | `V1_7_REVALIDATION_REQUIRED` | V1.7 模板基座代码与验收证据仅作存量输入；必须按 V1.8 Feature Spec 逐项审计与改造 | `PM-03` |
+| `ProjectManualCreation` | `V1_7_REVALIDATION_REQUIRED` | V1.7 手工创建代码与验收证据仅作存量输入；不自动继承已实现结论 | `PM-01` |
+| `ProjectTreeAndDetail` | `V1_7_REVALIDATION_REQUIRED` | F-PM02 项目树、详情、进度汇总与权重设置仅作 V1.7 实现候选；需在对应 V1.8 Feature 启动后重验 | `PM-02` |
 
 ## 未核实存量面
 

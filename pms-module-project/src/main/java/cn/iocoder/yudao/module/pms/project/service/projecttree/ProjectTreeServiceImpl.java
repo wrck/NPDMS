@@ -31,7 +31,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
  *
  * 物化路径模型：path 格式 /{rootId}/.../{selfId}/，depth 从 0 开始。
  */
-@Service
+@Service("projectDetailTreeService")
 @Validated
 public class ProjectTreeServiceImpl implements ProjectTreeService {
 

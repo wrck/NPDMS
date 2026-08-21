@@ -119,7 +119,7 @@
     },
     {
       "objectKey": "ProjectManualCreation",
-      "classification": "CURRENT_57",
+      "classification": "V1_7_REVALIDATION_REQUIRED",
       "requirementRefs": ["PM-01"],
       "codePaths": [
         "sql/migrations/V57__proj_project_manual_creation.sql",
@@ -133,11 +133,11 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/"
       ],
-      "requiredAction": "F_PM01_IMPLEMENTED_AND_UI_ACCEPTED"
+      "requiredAction": "AUDIT_AND_ADAPT_AGAINST_V1_8_FEATURE_SPEC"
     },
     {
       "objectKey": "ProjectTemplateFoundation",
-      "classification": "CURRENT_52",
+      "classification": "V1_7_REVALIDATION_REQUIRED",
       "requirementRefs": ["PM-03"],
       "codePaths": [
         "sql/migrations/V52__proj_project_template_foundation.sql",
@@ -153,7 +153,27 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-templates/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/"
       ],
-      "requiredAction": "F_PM03_IMPLEMENTED_AND_UI_ACCEPTED"
+      "requiredAction": "AUDIT_AND_ADAPT_AGAINST_V1_8_FEATURE_SPEC"
+    },
+    {
+      "objectKey": "ProjectTreeAndDetail",
+      "classification": "V1_7_REVALIDATION_REQUIRED",
+      "requirementRefs": ["PM-02"],
+      "codePaths": [
+        "sql/migrations/V60__fpm02_project_tree_progress.sql",
+        "sql/migrations/V61__fpm02_project_tree_demo_seed.sql",
+        "sql/migrations/V62__fpm02_project_tree_fullchain_template.sql",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/projectmanual/ProjectTreeRules.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectTreeService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectTreeServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectChildWeightsReqVO.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectProgressRespVO.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectTreeMoveReqVO.java",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/"
+      ],
+      "requiredAction": "AUDIT_AND_ADAPT_AGAINST_V1_8_FEATURE_SPEC"
     },
     {
       "objectKey": "ProjectUnclassifiedSurface",

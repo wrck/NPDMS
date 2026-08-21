@@ -250,3 +250,9 @@ export const moveSubtree = (id: number, newParentId: number) =>
 /** 进度汇总（直接子项目进度列表 + 汇总进度，F-PM02） */
 export const getProgress = (id: number) =>
   request.get<ProjectProgressVO>({ url: `${baseUrl}/${id}/progress` })
+
+/** 整组设置直接子项目人工权重（完整覆盖且合计 100%，F-PM02） */
+export const updateChildWeights = (
+  id: number,
+  children: { projectId: number; weight: number }[]
+) => request.put<boolean>({ url: `${baseUrl}/${id}/child-weights`, data: { children } })

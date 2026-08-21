@@ -243,6 +243,9 @@
         <ContentWrap v-show="activeTab === 'progress'">
           <div class="panel-header">
             <span class="panel-title"><Icon icon="ep:data-analysis" /> 进度汇总</span>
+            <el-button v-if="children.length" type="primary" plain @click="openWeights">
+              <Icon icon="ep:edit" />设置权重
+            </el-button>
           </div>
           <el-descriptions :column="1" border size="small" class="mb-12px">
             <el-descriptions-item label="汇总进度">
@@ -327,11 +330,35 @@
         <el-button type="primary" :loading="saving" @click="submitMove">保存</el-button>
       </template>
     </Dialog>
+
+    <!-- ============ 直接子项目权重弹窗 ============ -->
+    <Dialog v-model="weightsVisible" title="设置直接子项目权重" width="680px">
+      <el-alert
+        title="必须完整设置全部直接子项目，人工权重合计为 100% 后整组生效。"
+        type="info"
+        :closable="false"
+        class="mb-12px"
+      />
+      <el-table :data="weightItems" size="small" border>
+        <el-table-column prop="projectCode" label="项目编码" min-width="190" />
+        <el-table-column prop="projectName" label="项目名称" min-width="180" show-overflow-tooltip />
+        <el-table-column label="权重（%）" width="150">
+          <template #default="{ row }">
+            <el-input-number v-model="row.weight" :min="0" :max="100" :precision="2" :step="1" />
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="mt-12px text-right">当前合计：{{ weightTotal.toFixed(2) }}%</div>
+      <template #footer>
+        <el-button @click="weightsVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitWeights">整组生效</el-button>
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
@@ -423,6 +450,45 @@ const submitMove = async () => {
     moveVisible.value = false
     await loadTreeData()
     await loadDetail()
+  } catch {
+    // 请求拦截器已展示业务错误；保留弹窗供用户修正目标父项目。
+  } finally {
+    saving.value = false
+  }
+}
+
+// ============ 直接子项目权重 ============
+const weightsVisible = ref(false)
+const weightItems = ref<
+  { projectId: number; projectCode?: string; projectName?: string; weight: number }[]
+>([])
+const weightTotal = computed(() => weightItems.value.reduce((sum, item) => sum + Number(item.weight || 0), 0))
+const openWeights = () => {
+  const equalWeight = children.value.length ? 100 / children.value.length : 0
+  weightItems.value = children.value.map((child) => ({
+    projectId: child.id!,
+    projectCode: child.projectCode,
+    projectName: child.projectName,
+    weight: Number(child.aggregationWeight ?? equalWeight)
+  }))
+  weightsVisible.value = true
+}
+const submitWeights = async () => {
+  if (Math.abs(weightTotal.value - 100) > 0.001) {
+    message.error(`直接子项目权重合计必须为 100%，当前为 ${weightTotal.value.toFixed(2)}%`)
+    return
+  }
+  saving.value = true
+  try {
+    await ProjectsApi.updateChildWeights(
+      detail.value!.id!,
+      weightItems.value.map((item) => ({ projectId: item.projectId, weight: item.weight }))
+    )
+    message.success('直接子项目权重已整组生效')
+    weightsVisible.value = false
+    await loadTreeData()
+  } catch {
+    // 请求拦截器已展示业务错误；保留弹窗供用户修正权重。
   } finally {
     saving.value = false
   }
@@ -456,7 +522,11 @@ const loadTreeData = async () => {
   const id = Number(route.query.projectId)
   if (!id) return
   children.value = (await ProjectsApi.getChildren(id)) || []
-  progress.value = await ProjectsApi.getProgress(id)
+  try {
+    progress.value = await ProjectsApi.getProgress(id)
+  } catch {
+    progress.value = null
+  }
 }
 
 const loadAll = async () => {

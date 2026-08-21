@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 项目树与进度汇总 Service（F-PM02 / PM-02）
@@ -37,6 +38,11 @@ public interface ProjectTreeService {
      * 子树移动：校验无环（非自身/非后代）后重建子树 root_id/tree_path/tree_depth 缓存。
      */
     void moveSubtree(Long projectId, Long newParentId);
+
+    /**
+     * 整组设置直接子项目人工权重；请求必须完整覆盖当前直接子项目且合计为 100%。
+     */
+    void updateChildWeights(Long projectId, Map<Long, BigDecimal> childWeights);
 
     /**
      * 进度汇总：直接子项目进度列表 + 归一化权重 + 汇总进度。

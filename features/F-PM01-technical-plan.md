@@ -1,8 +1,8 @@
 # F-PM01 Technical Plan
 
 > Feature ID：`F-PM01`（对应 Spec：`features/F-PM01-project-manual-creation.md`）
-> 文档状态：`IMPLEMENTED`（T1～T9 全部完成，真实浏览器 UI 验收通过）
-> 规格基线：快照 @ `fd6728c`；需求矩阵 `F-PM01-IMPLEMENTED` @ `fd6728c`
+> 文档状态：`V1_7_IMPLEMENTATION_EVIDENCE / V1_8_REVALIDATION_REQUIRED`
+> 历史基线：快照 @ `fd6728c`；V1.7 实现与浏览器证据仅作 V1.8 存量审计输入，不自动证明当前 Feature 已实现
 > 本计划不重新定义领域、权限或状态语义；业务规则以 F-PM01 Spec 第4节 BR-1～BR-9 为准。
 
 ## 1. 输入与边界回顾

@@ -1,8 +1,8 @@
 # F-PM02 Technical Plan
 
 > Feature ID：`F-PM02`（对应 Spec：`features/F-PM02-project-tree-and-detail.md`）
-> 文档状态：`PLANNED`（待评审后进入 T1）
-> 规格基线：快照 @ `fd6728c`；需求矩阵 PM-02 Feature 列 → `F-PM02`
+> 文档状态：`V1_7_IMPLEMENTATION_CANDIDATE / V1_8_REVALIDATION_REQUIRED`
+> 历史基线：快照 @ `8c047604bc54d0111c12da67b971e9149bf0c0ee`；实现与验收证据仅作 V1.8 存量审计输入，不得据此判定已实现
 > 本计划不重新定义领域、权限或状态语义；业务规则以 F-PM02 Spec 第4节 BR-1～BR-8 为准。
 
 ## 1. 输入与边界回顾

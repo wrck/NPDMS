@@ -1,8 +1,8 @@
 # F-PM03 Technical Plan
 
 > Feature ID：`F-PM03`（对应 Spec：`features/F-PM03-project-template-foundation.md`）
-> 文档状态：`IMPLEMENTED`（T1～T9 全部完成，真实浏览器 UI 验收 12 步全 PASS）
-> 规格基线：快照 @ `f604ef2`（SDS Baseline `b71b5e3` + PM-03 Feature 登记）；需求矩阵 `F-PM03-IMPLEMENTED` @ `28061c3`
+> 文档状态：`V1_7_IMPLEMENTATION_EVIDENCE / V1_8_REVALIDATION_REQUIRED`
+> 历史基线：快照 @ `f604ef2`（SDS Baseline `b71b5e3` + PM-03 Feature 登记）；V1.7 实现与浏览器证据仅作 V1.8 存量审计输入
 > 本计划不重新定义领域、权限或状态语义；业务规则以 F-PM03 Spec 第4节 BR-1～BR-8 为准。
 
 ## 1. 输入与边界回顾
