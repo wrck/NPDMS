@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectC
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,8 +56,9 @@ class ProjectMasterControllerContractTest {
     @Test
     void createContractUsesRevisionIdAndRequiredCandidateWatermark() throws Exception {
         assertNotNull(ProjectCreateReqVO.class.getDeclaredField("templateRevisionId"));
-        var watermark = ProjectCreateReqVO.class.getDeclaredField("candidateWatermark");
-        assertNotNull(watermark.getAnnotation(NotBlank.class), "候选水位必须由边界校验为非空");
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("candidateWatermark"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredMethod("isCandidateWatermarkValid")
+                .getAnnotation(AssertTrue.class), "根项目水位必填、子项目继承时可空必须由边界条件校验");
         assertNotNull(ProjectMatchTemplatesRespVO.class.getDeclaredField("candidateWatermark"));
         assertNotNull(ProjectMatchTemplatesRespVO.CandidateItem.class
                 .getDeclaredField("templateRevisionId"));

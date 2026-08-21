@@ -83,7 +83,8 @@ public class ProjectManualCreationApplicationService {
     private void validate(ManualProjectCreateCommand command, Actor actor) {
         if (command == null || command.draft() == null || command.idempotencyKey() == null
                 || command.idempotencyKey().isBlank() || command.requestDigest() == null
-                || command.candidateWatermark() == null || command.candidateWatermark().isBlank()
+                || command.draft().getParentId() == null
+                    && (command.candidateWatermark() == null || command.candidateWatermark().isBlank())
                 || actor == null || actor.tenantId() == null || actor.actorId() == null
                 || actor.correlationId() == null || actor.correlationId().isBlank()) {
             throw new IllegalArgumentException("正式项目创建命令不完整");

@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
 import lombok.Data;
 
 /**
@@ -56,10 +56,15 @@ public class ProjectCreateReqVO {
     @Schema(description = "人工选择的模板发布版本稳定ID（空=仅允许唯一默认候选）", example = "910101")
     private Long templateRevisionId;
 
-    @Schema(description = "候选查询水位（由候选接口返回）", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "候选查询水位不能为空")
+    @Schema(description = "候选查询水位（根项目必填；子项目继承父模板时为空）")
     private String candidateWatermark;
 
     @Schema(description = "可选一级服务经理用户ID（空=创建后人工指派）", example = "1")
     private Long serviceManagerUserId;
+
+    @AssertTrue(message = "根项目候选查询水位不能为空")
+    @Schema(hidden = true)
+    public boolean isCandidateWatermarkValid() {
+        return parentId != null || candidateWatermark != null && !candidateWatermark.isBlank();
+    }
 }

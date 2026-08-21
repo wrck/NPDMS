@@ -63,7 +63,7 @@ export interface ProjectCreateReqVO {
   majorProjectLevel?: string | null
   creationReason: string
   templateRevisionId?: number | null
-  candidateWatermark: string
+  candidateWatermark?: string
   serviceManagerUserId?: number | null
 }
 

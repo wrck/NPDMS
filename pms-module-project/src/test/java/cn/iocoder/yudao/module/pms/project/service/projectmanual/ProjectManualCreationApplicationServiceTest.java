@@ -14,8 +14,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +65,33 @@ class ProjectManualCreationApplicationServiceTest {
                 () -> service.create(command(), actor()));
 
         assertEquals(PMS_IDEMPOTENCY_KEY_CONFLICT.getCode(), exception.getCode());
+    }
+
+    @Test
+    void rootCreationRequiresCandidateWatermark() {
+        ManualProjectCreateCommand base = command();
+        ManualProjectCreateCommand invalid = new ManualProjectCreateCommand(
+                base.draft(), null, null, base.templateRevisionId(),
+                null, null, base.idempotencyKey(), base.requestDigest());
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(invalid, actor()));
+
+        verifyNoInteractions(platformFactService);
+    }
+
+    @Test
+    void childCreationMayInheritTemplateWithoutCandidateWatermark() {
+        ManualProjectCreateCommand base = command();
+        base.draft().setParentId(100L);
+        ManualProjectCreateCommand child = new ManualProjectCreateCommand(base.draft(), null, null, null,
+                null, null, base.idempotencyKey(), base.requestDigest());
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
+                new ProjectCreationPlatformFactService.ExecutionResult<>(
+                        ProjectCreationPlatformFactService.Decision.IN_PROGRESS, null));
+
+        ServiceException exception = assertThrows(ServiceException.class, () -> service.create(child, actor()));
+
+        assertEquals(PMS_IDEMPOTENCY_IN_PROGRESS.getCode(), exception.getCode());
     }
 
     private ManualProjectCreateCommand command() {

@@ -364,6 +364,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
+import { createSubmissionIdempotencyState } from '../projects/submissionIdempotency'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO,
@@ -404,11 +405,13 @@ const createChildVisible = ref(false)
 const createChildFormRef = ref()
 const saving = ref(false)
 const createChildForm = reactive({ projectName: '', creationReason: '' })
+const createChildSubmission = createSubmissionIdempotencyState()
 const createChildRules = {
   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
   creationReason: [{ required: true, message: '创建原因不能为空（BR-2）', trigger: 'blur' }]
 }
 const openCreateChild = () => {
+  createChildSubmission.reset()
   createChildForm.projectName = ''
   createChildForm.creationReason = ''
   createChildVisible.value = true
@@ -417,12 +420,14 @@ const submitCreateChild = async () => {
   await createChildFormRef.value?.validate()
   saving.value = true
   try {
-    await ProjectsApi.createProject({
+    const payload = {
       projectName: createChildForm.projectName,
       parentId: detail.value?.id,
       creationReason: createChildForm.creationReason
-    })
+    }
+    await ProjectsApi.createProject(payload, createChildSubmission.keyFor(payload))
     message.success('下挂子项目成功（继承父模板与三维）')
+    createChildSubmission.reset()
     createChildVisible.value = false
     await loadTreeData()
   } finally {
