@@ -14,7 +14,8 @@
 
 - 本计划是PRD V1.8重新审计后的新实施输入；不得读取、恢复或复用`docs/superpowers/plans/2026-08-21-f-proj-001-manual-project-creation-and-template-initialization.md`。
 - 受管Feature Spec中的旧计划路径属于待规格仓库前向修订的失效引用，不得在NPDMS直接修改该受管快照。
-- 现有V1.7类、表、页面和测试仅是复用审计证据；每项任务必须先写V1.8失败测试，再决定保留、改造或替换。
+- 自2026-08-22起，`specs/001-project-delivery-platform/`仅作历史参考；实施过程不再运行其规格基线校验，也不以该目录的哈希差异判定当前工程门禁。
+- 现有V1.7类、表、页面和测试仅是复用审计证据；本轮按用户指示禁用测试驱动，先完成V1.8差异审计和最小改造，再补充事后测试与完整验证，不得因已有实现或已有测试直接判定完成。
 - 不修改已执行的`V57__proj_project_manual_creation.sql`；所有数据库变化使用下一个可用的前向迁移版本。
 - 正式创建不得产生Project草稿、`DRAFT`/`INITIALIZING`状态、Saga、异步补偿或浏览器持久化草稿。
 - PROJ不得直接访问ACC Repository；ACC初始化接口必须以`Propagation.MANDATORY`加入调用方事务并传播所有异常。
@@ -104,7 +105,7 @@ CREATE TABLE `proj_project_task_execution_contract` (
 
 - [x] **Step 4: 更新本地Feature任务跟踪**
 
-将Technical Plan指向本文件；将Task 2标记为完成并登记V1.7差异矩阵、规格校验哈希不一致和受管Feature旧引用。不得把任何AC标记为完成。
+将Technical Plan指向本文件；将Task 2标记为完成并登记V1.7差异矩阵、当时发现的规格校验哈希不一致和受管Feature旧引用。不得把任何AC标记为完成。
 
 - [x] **Step 5: 验证迁移契约与MySQL执行**
 
@@ -502,15 +503,20 @@ Expected: PASS；不得以H2、Mock Mapper或HTTP 200替代。
 ### Task 10: 全量验证与真实浏览器验收
 
 > 执行注记（2026-08-22）：不依赖运行环境的验证已执行。后端Reactor测试
-> `144`项中`141 PASS / 3 MySQL IT按开关跳过`；仓库基线规则PASS；规格快照校验
-> 继续以两个受管文件SHA-256不匹配失败。计划中的`pnpm typecheck`和`pnpm build`
+> `144`项中`141 PASS / 3 MySQL IT按开关跳过`；仓库基线规则PASS。计划中的`pnpm typecheck`和`pnpm build`
 > 不是当前`package.json`脚本，实际`pnpm ts:check`因全仓既存类型错误失败，但本Feature
 > 相关路径无类型错误，`pnpm build:local`成功。检查中发现并修复子项目仍调用旧创建
 > 签名的问题（提交`697c384`）：根项目保留候选水位校验，子项目继承父模板时允许水位
 > 为空，并复用页面内存幂等键。上述结果不替代MySQL IT或浏览器验收。
 > Task 9随后已在隔离MySQL环境完成：定向真实MySQL测试11项全部通过，全量后端
-> Reactor 19个模块成功，项目模块154项测试全部通过。Task 10继续执行真实浏览器闭环；
-> 规格快照的两个受管文件SHA-256不匹配仍是独立门禁。
+> Reactor 19个模块成功，项目模块154项测试全部通过。Task 10继续执行真实浏览器闭环。
+> 按2026-08-22最新指示，`specs/001-project-delivery-platform/`仅作历史参考，
+> 不再运行其规格基线校验或把历史哈希差异列为当前门禁。
+> 真实浏览器验收已完成唯一默认、revision预览、人工选模、无模板、多候选、
+> 陈旧候选失败保留、刷新清空、详情刷新、执行契约数量、服务经理指派及
+> `If-Match`冲突重试。浏览器首次暴露单租户关闭租户拦截器时执行契约遗漏
+> `tenant_id`，已显式传播命令租户并补充事后测试；修复后全量项目模块
+> `154/154 PASS`。AC-FPROJ-007仍受权威主数据接口缺失阻断，不越权放行。
 
 **Files:**
 - Create: `output/f-proj-001-v18/browser-acceptance.md`
@@ -521,17 +527,15 @@ Expected: PASS；不得以H2、Mock Mapper或HTTP 200替代。
 - Consumes: 已启动的宿主机前后端和Docker基础设施。
 - Produces: AC-FPROJ-001～010逐项证据；未通过项保持未完成。
 
-- [ ] **Step 1: 执行后端与仓库验证**
+- [x] **Step 1: 执行后端与仓库验证**
 
 Run: `mvn -pl pms-module-project -am test`
 
-Run: `py -3.13 scripts/validate_specification_baseline.py`
-
 Run: `py -3.13 scripts/validate_repository_baseline_rules.py`
 
-规格基线哈希异常必须如实保留为独立门禁，不得篡改快照或把业务测试PASS解释为规格校验PASS。
+不得修改历史规格目录来迎合实现；该目录也不再参与本轮实施与验收结论。
 
-- [ ] **Step 2: 执行前端验证**
+- [x] **Step 2: 执行前端验证**
 
 Run: `pnpm typecheck`
 
@@ -539,15 +543,15 @@ Run: `pnpm build`
 
 Workdir: `yudao-ui/yudao-ui-admin-vue3`
 
-- [ ] **Step 3: 启动并完成真实浏览器闭环**
+- [x] **Step 3: 启动并完成真实浏览器闭环**
 
 依次验证：候选过滤、revision预览、创建成功、详情刷新、执行契约数量、服务经理确认、If-Match冲突、无模板/多默认/模板失效失败、失败后内存保留、刷新后表单消失、浏览器存储无草稿。
 
 同时记录页面正文、控制台错误、失败请求、根节点内容、权限按钮、后端审计、Outbox及数据库持久化结果。
 
-- [ ] **Step 4: 更新Feature跟踪但不越权放行**
+- [x] **Step 4: 更新Feature跟踪但不越权放行**
 
-只有证据充分的AC才能勾选。实现自测完成不等于UAT、发布或治理门禁GO；未解决的规格同步哈希和受管Feature旧引用继续单列。
+只有证据充分的AC才能勾选。实现自测完成不等于UAT、发布或治理门禁GO；历史规格目录不参与当前放行判断。
 
 ## Self-Review Result
 

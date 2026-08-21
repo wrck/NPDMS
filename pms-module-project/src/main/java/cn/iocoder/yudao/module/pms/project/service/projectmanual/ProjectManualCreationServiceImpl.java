@@ -174,6 +174,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             TemplateDefinitionContent.TaskDef definition = content.getTasks().get(index);
             ProjectTaskExecutionContractDO contract = taskExecutionContractFactory.create(
                     task.getId(), definition.getId(), definition, LocalDateTime.now());
+            contract.setTenantId(draft.getTenantId());
             taskExecutionContractMapper.insert(contract);
         }
         insertIfNotEmpty(instantiation.getMilestones(), milestoneInstanceMapper::insertBatch);

@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualP
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -18,6 +19,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_I
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +55,9 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("ACTIVE", result.lifecycleStatus());
         assertEquals("S0", result.currentStage());
         assertEquals("UNASSIGNED", result.assignmentStatus());
+        ArgumentCaptor<ProjectMasterDO> draftCaptor = ArgumentCaptor.forClass(ProjectMasterDO.class);
+        verify(projectCreationService).createProject(draftCaptor.capture(), any(), any(), any(), any(), any());
+        assertEquals(1L, draftCaptor.getValue().getTenantId());
     }
 
     @Test

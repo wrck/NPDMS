@@ -193,7 +193,9 @@ class ProjectManualCreationServiceImplTest {
             return 1;
         }).when(projectMasterMapper).insert(any(ProjectMasterDO.class));
 
-        ProjectMasterDO created = service.createProject(validDraft(), null, null, revisionId,
+        ProjectMasterDO draft = validDraft();
+        draft.setTenantId(1L);
+        ProjectMasterDO created = service.createProject(draft, null, null, revisionId,
                 CANDIDATE_WATERMARK, null);
 
         // 冻结上下文与主档语义
@@ -224,7 +226,10 @@ class ProjectManualCreationServiceImplTest {
         verify(stageInstanceMapper).insertBatch(anyCollection());
         verify(taskInstanceMapper).insert(any(ProjectTaskInstanceDO.class));
         verify(taskExecutionContractFactory).create(any(), any(), any(), any());
-        verify(taskExecutionContractMapper).insert(any(ProjectTaskExecutionContractDO.class));
+        ArgumentCaptor<ProjectTaskExecutionContractDO> contractCaptor =
+                ArgumentCaptor.forClass(ProjectTaskExecutionContractDO.class);
+        verify(taskExecutionContractMapper).insert(contractCaptor.capture());
+        assertEquals(1L, contractCaptor.getValue().getTenantId());
         verify(milestoneInstanceMapper).insertBatch(anyCollection());
         verify(deliverableInitializationApplicationService).initialize(any());
         verify(deliverableInstanceMapper, never()).insertBatch(anyCollection());

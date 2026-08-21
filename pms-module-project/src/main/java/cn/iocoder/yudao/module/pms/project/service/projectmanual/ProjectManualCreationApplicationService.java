@@ -38,7 +38,7 @@ public class ProjectManualCreationApplicationService {
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), CREATE_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), ManualProjectCreateResult.class,
-                () -> createOnce(command),
+                () -> createOnce(command, actor.tenantId()),
                 result -> successFacts(command, actor, result));
         if (execution.decision() == Decision.CONFLICT) {
             throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
@@ -49,7 +49,8 @@ public class ProjectManualCreationApplicationService {
         return execution.response();
     }
 
-    private ManualProjectCreateResult createOnce(ManualProjectCreateCommand command) {
+    private ManualProjectCreateResult createOnce(ManualProjectCreateCommand command, Long tenantId) {
+        command.draft().setTenantId(tenantId);
         ProjectMasterDO project = projectCreationService.createProject(command.draft(),
                 command.orderOfficeCompanyCode(), command.orderOfficeDepartmentCode(),
                 command.templateRevisionId(), command.candidateWatermark(), command.serviceManagerUserId());
