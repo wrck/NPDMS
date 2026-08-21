@@ -21,28 +21,28 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_D
 /**
  * 交付件完整性检查 Service 实现类
  * <p>
- * 状态机：0草稿 → 1已提交 → 2已通过 / 3已驳回
+ * 状态机：PENDING → SUBMITTED → ACCEPTED / REJECTED
  */
 @Service
 @Validated
 public class DeliverableChecklistServiceImpl implements DeliverableChecklistService {
 
     /**
-     * 状态：0草稿
+     * 状态：待提交
      */
-    private static final int STATUS_DRAFT = 0;
+    private static final String STATUS_PENDING = "PENDING";
     /**
-     * 状态：1已提交
+     * 状态：已提交
      */
-    private static final int STATUS_SUBMITTED = 1;
+    private static final String STATUS_SUBMITTED = "SUBMITTED";
     /**
-     * 状态：2已通过
+     * 状态：已通过
      */
-    private static final int STATUS_PASSED = 2;
+    private static final String STATUS_PASSED = "ACCEPTED";
     /**
-     * 状态：3已驳回
+     * 状态：已驳回
      */
-    private static final int STATUS_REJECTED = 3;
+    private static final String STATUS_REJECTED = "REJECTED";
 
     /**
      * 交付件类型：必交
@@ -58,9 +58,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
         // 插入
         DeliverableChecklistDO entity = BeanUtils.toBean(createReqVO, DeliverableChecklistDO.class);
-        if (entity.getStatus() == null) {
-            entity.setStatus(STATUS_DRAFT);
-        }
+        entity.setStatus(STATUS_PENDING);
         if (entity.getDeliverableType() == null) {
             entity.setDeliverableType(TYPE_REQUIRED);
         }
@@ -74,7 +72,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         // 校验项目内编码唯一
         validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
         // 仅草稿态允许修改核心字段
-        if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
+        if (!Objects.equals(existing.getStatus(), STATUS_PENDING)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
         DeliverableChecklistDO updateObj = BeanUtils.toBean(updateReqVO, DeliverableChecklistDO.class);
@@ -87,7 +85,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     public void deleteDeliverableChecklist(Long id) {
         DeliverableChecklistDO existing = validateExists(id);
         // 仅草稿或已驳回状态允许删除
-        if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
+        if (!Objects.equals(existing.getStatus(), STATUS_PENDING)
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
@@ -107,7 +105,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     @Override
     public void submitDeliverableChecklist(Long id) {
         DeliverableChecklistDO entity = validateExists(id);
-        if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
+        if (!Objects.equals(entity.getStatus(), STATUS_PENDING)) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
         updateStatus(id, STATUS_SUBMITTED);
@@ -135,7 +133,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         updateStatus(id, STATUS_REJECTED);
     }
 
-    private void updateStatus(Long id, int status) {
+    private void updateStatus(Long id, String status) {
         DeliverableChecklistDO updateObj = new DeliverableChecklistDO();
         updateObj.setId(id);
         updateObj.setStatus(status);

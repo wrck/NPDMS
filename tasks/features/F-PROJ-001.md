@@ -29,7 +29,7 @@
 - [x] Task 2：增加 Feature 前向数据库契约（`f153493`，V60 已在独立 `npms` 空库迁移并复跑通过）。
 - [x] Task 3：实现 PLT 事务支持（编码、幂等、审计、Outbox 的强制事务与回滚验证已完成）。
 - [x] Task 4：实现已发布模板候选与预览查询（复用并直接改造现有正式模板表映射，四维匹配、候选水位、受控预览和创建时重校验已完成）。
-- [ ] Task 5：实现 ACC 强制事务边界。
+- [x] Task 5：实现 ACC 强制事务边界（复用并改造正式 `acc_project_deliverable` 映射；ACC 以 `MANDATORY` 加入调用方事务，覆盖全量写入、失败回滚和幂等重放）。
 - [ ] Task 6：实现手动创建项目的单事务编排。
 - [ ] Task 7：发布业务 API 与服务端授权契约。
 - [ ] Task 8：实现 V1 服务经理人工确认。
@@ -65,6 +65,7 @@
 | 项目编码、来源键及客户存在性校验 | `ProjectServiceImpl` | `REUSE_AND_ADAPT`：迁入正式创建命令及租户内编码规则 |
 | 服务端创建权限 | `ProjectController`的`pms:project:create` | `REUSE_AS_IS`：保持服务端最终授权依据 |
 | 启用模板查询与模板快照 | `ProjectTemplateServiceImpl`、`TemplateSnapshot` | `REUSE_AND_ADAPT`：升级为四维候选、revision和受控预览 |
+| ACC交付件实例与持久化 | `DeliverableChecklistDO`、`DeliverableChecklistMapper`、`acc_project_deliverable` | `REUSE_AND_ADAPT`：直接适配正式表和字符串业务状态；新增ACC内部应用边界，不创建并存交付件模型；既有完整生命周期不得作为已符合PRD/SDS的实现复用，后续按独立ACC规格改造 |
 | 阶段、任务、团队实例化 | `ProjectTemplateServiceImpl` | `REUSE_AND_ADAPT`：纳入单事务并补齐执行契约、ACC交付件 |
 | 任意层级任务树 | `ProjectTaskServiceImpl` | `REUSE_AS_IS`：保留树构建、移动和环校验 |
 | 旧通用创建及从模板创建入口 | `ProjectController`、`ProjectTemplateController` | `DEPRECATE_AFTER_CUTOVER`：替代入口和前端消费者切换后再标废弃，当前不得提前删除 |

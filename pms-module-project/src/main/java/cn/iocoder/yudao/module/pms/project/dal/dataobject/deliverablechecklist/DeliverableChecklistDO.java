@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 /**
  * 交付件完整性检查 DO
  * <p>
- * 状态机：0草稿 → 1已提交 → 2已通过 / 3已驳回
+ * 状态机：PENDING → SUBMITTED → ACCEPTED / REJECTED
  * 交付件类型：REQUIRED 必交 / OPTIONAL 选交 / CONDITIONAL 条件
  * 用途：FR-ACC-005 验收通过前的交付件完整性门禁数据源
  */
@@ -30,6 +30,14 @@ public class DeliverableChecklistDO extends TenantBaseDO {
      * 所属项目编号
      */
     private Long projectId;
+    /** 模板中稳定的交付件要求键。 */
+    private String templateRequirementKey;
+    /** 创建时冻结的模板 revision。 */
+    private Long sourceTemplateRevisionId;
+    private String applicableStageCode;
+    private Boolean requiredFlag;
+    /** 可选的交付件模板编号。 */
+    private Long templateId;
     /**
      * 交付件编码，项目内唯一
      */
@@ -63,9 +71,9 @@ public class DeliverableChecklistDO extends TenantBaseDO {
      */
     private String checkResult;
     /**
-     * 状态 0草稿 1已提交 2已通过 3已驳回
+     * 状态 PENDING / SUBMITTED / ACCEPTED / REJECTED
      */
-    private Integer status;
+    private String status;
     /**
      * 备注
      */

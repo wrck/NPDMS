@@ -25,7 +25,7 @@ public class DeliverableChecklistPageReqVO extends PageParam {
     @Schema(description = "交付件类型 REQUIRED 必交 / OPTIONAL 选交 / CONDITIONAL 条件", example = "REQUIRED")
     private String deliverableType;
 
-    @Schema(description = "状态 0草稿 1已提交 2已通过 3已驳回", example = "0")
-    private Integer status;
+    @Schema(description = "状态 PENDING / SUBMITTED / ACCEPTED / REJECTED", example = "PENDING")
+    private String status;
 
 }

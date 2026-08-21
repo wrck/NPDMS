@@ -41,8 +41,8 @@ public class DeliverableChecklistSaveReqVO {
     @Schema(description = "检查结果")
     private String checkResult;
 
-    @Schema(description = "状态 0草稿 1已提交 2已通过 3已驳回", example = "0")
-    private Integer status;
+    @Schema(description = "状态 PENDING / SUBMITTED / ACCEPTED / REJECTED", example = "PENDING")
+    private String status;
 
     @Schema(description = "备注")
     @Size(max = 500, message = "备注长度不能超过 500 个字符")

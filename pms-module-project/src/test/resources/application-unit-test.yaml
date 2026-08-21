@@ -1,0 +1,24 @@
+spring:
+  main:
+    lazy-initialization: true
+    banner-mode: off
+  datasource:
+    name: npms-project-test
+    url: jdbc:h2:mem:project-testdb;MODE=MYSQL;DATABASE_TO_UPPER=false;NON_KEYWORDS=value;
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    druid:
+      async-init: true
+      initial-size: 1
+  sql:
+    init:
+      schema-locations: classpath:/sql/create_tables.sql
+
+mybatis-plus:
+  lazy-initialization: true
+  type-aliases-package: ${yudao.info.base-package}.module.*.dal.dataobject
+
+yudao:
+  info:
+    base-package: cn.iocoder.yudao.module
