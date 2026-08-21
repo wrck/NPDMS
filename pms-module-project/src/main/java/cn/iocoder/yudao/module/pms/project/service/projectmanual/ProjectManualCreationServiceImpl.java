@@ -30,6 +30,9 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionCon
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverableDefinition;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.InitializeProjectDeliverablesCommand;
@@ -51,6 +54,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NO_MATCH;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_VERSION_CONFLICT;
 
 /**
  * 项目手工创建 Service 实现（F-PM01 / PM-01）
@@ -194,7 +199,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         }
         // g) 可选服务经理指派（一级 SERVICE_MANAGER_L1；PROJECT_MANAGER 不写）
         if (serviceManagerUserId != null) {
-            doAssignServiceManager(draft.getId(), serviceManagerUserId, null, null, LocalDateTime.now());
+            doAssignServiceManager(draft.getId(), serviceManagerUserId,
+                    ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, null, null, null, LocalDateTime.now());
         }
         // h) 下单办事处关系（relation_role=ORDER_OFFICE，is_primary=1，effective_from=now）
         if (orderOfficeCompanyCode != null && !orderOfficeCompanyCode.isBlank()) {
@@ -278,10 +284,21 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void assignServiceManager(Long projectId, Long userId, String employeeNo, String name,
-                                     LocalDateTime effectiveFrom) {
-        validateProjectExists(projectId);
-        doAssignServiceManager(projectId, userId, employeeNo, name, effectiveFrom);
+    public AssignServiceManagerResult assignServiceManager(AssignServiceManagerCommand command) {
+        validateAssignmentCommand(command);
+        ProjectMasterDO project = validateProjectExists(command.projectId());
+        if (projectMasterMapper.incrementVersionIfMatch(command.projectId(), command.expectedVersion()) != 1) {
+            throw exception(PROJECT_VERSION_CONFLICT);
+        }
+        String memberRole = "L1".equals(command.levelCode())
+                ? ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1
+                : ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2;
+        ProjectMemberAssignmentDO assignment = doAssignServiceManager(command.projectId(), command.userId(),
+                memberRole, command.levelCode(), command.officeId(), command.locationId(), command.effectiveFrom());
+        int newVersion = command.expectedVersion() + 1;
+        return new AssignServiceManagerResult(command.projectId(), assignment.getId(), newVersion,
+                project.getAssignmentStatus() == null
+                        ? ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED : project.getAssignmentStatus());
     }
 
     // ========== 内部方法 ==========
@@ -368,15 +385,16 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     /**
      * 指派一级服务经理：与新区间重叠的旧区间关闭（effective_to=新区间起点，边界相接不重叠）+ 开新区间。
      */
-    private void doAssignServiceManager(Long projectId, Long userId, String employeeNo, String name,
-                                        LocalDateTime effectiveFrom) {
+    private ProjectMemberAssignmentDO doAssignServiceManager(Long projectId, Long userId, String memberRole,
+                                                             String levelCode, Long officeId, Long locationId,
+                                                             LocalDateTime effectiveFrom) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime from = effectiveFrom != null ? effectiveFrom : now;
         if (!MemberAssignmentRules.canStartIntervalAt(from, now)) {
             throw exception(PROJECT_MEMBER_INTERVAL_CONFLICT);
         }
-        List<ProjectMemberAssignmentDO> existing = memberAssignmentMapper.selectListByRole(
-                projectId, userId, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
+        List<ProjectMemberAssignmentDO> existing = memberAssignmentMapper.selectListByProjectAndRole(
+                projectId, memberRole);
         for (ProjectMemberAssignmentDO assignment : existing) {
             if (!MemberAssignmentRules.intervalsOverlap(assignment.getEffectiveFrom(),
                     assignment.getEffectiveTo(), from, null)) {
@@ -393,12 +411,26 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         ProjectMemberAssignmentDO fresh = new ProjectMemberAssignmentDO();
         fresh.setProjectId(projectId);
         fresh.setUserId(userId);
-        fresh.setEmployeeNo(employeeNo);
-        fresh.setMemberName(name);
-        fresh.setMemberRole(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
+        fresh.setMemberRole(memberRole);
+        if (levelCode != null) {
+            fresh.setResponsibility(JsonUtils.toJsonString(new AssignmentScope(levelCode, officeId, locationId)));
+        }
         fresh.setEffectiveFrom(from);
         fresh.setStatus(MemberAssignmentRules.STATUS_ACTIVE);
         memberAssignmentMapper.insert(fresh);
+        return fresh;
+    }
+
+    private void validateAssignmentCommand(AssignServiceManagerCommand command) {
+        if (command == null || command.projectId() == null || command.expectedVersion() == null
+                || command.expectedVersion() < 0 || command.userId() == null
+                || !"SERVICE_MANAGER".equals(command.roleCode())
+                || !("L1".equals(command.levelCode()) || "L2".equals(command.levelCode()))) {
+            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "角色、层级、人员或版本无效");
+        }
+    }
+
+    private record AssignmentScope(String levelCode, Long officeId, Long locationId) {
     }
 
     private ProjectMasterDO validateProjectExists(Long id) {

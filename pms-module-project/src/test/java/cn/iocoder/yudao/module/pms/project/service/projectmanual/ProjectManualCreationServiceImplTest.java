@@ -28,6 +28,8 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -59,6 +61,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NO_MATCH;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_VERSION_CONFLICT;
 
 /**
  * F-PM01 创建主流程单测（Mockito mock Mapper/依赖）：
@@ -353,7 +356,7 @@ class ProjectManualCreationServiceImplTest {
         openInterval.setMemberRole(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
         openInterval.setEffectiveFrom(LocalDateTime.of(2026, 1, 1, 0, 0));
         openInterval.setEffectiveTo(null);
-        when(memberAssignmentMapper.selectListByRole(102L, 66L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1))
+        when(memberAssignmentMapper.selectListByProjectAndRole(102L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1))
                 .thenReturn(List.of(openInterval));
 
         service.createProject(validDraft(), "CO-01", "DEP-01", null,
@@ -388,13 +391,60 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void assignServiceManagerRejectsFutureEffectiveFrom() {
         when(projectMasterMapper.selectById(1L)).thenReturn(persistedProject());
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
 
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.assignServiceManager(1L, 66L, "E001", "张三",
-                        LocalDateTime.now().plusDays(1)));
+                () -> service.assignServiceManager(assignCommand(LocalDateTime.now().plusDays(1))));
 
         assertEquals(PROJECT_MEMBER_INTERVAL_CONFLICT.getCode(), exception.getCode());
         verify(memberAssignmentMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
+    }
+
+    @Test
+    void assignServiceManagerRejectsStaleProjectVersion() {
+        when(projectMasterMapper.selectById(1L)).thenReturn(persistedProject());
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(0);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> service.assignServiceManager(assignCommand(LocalDateTime.now().minusMinutes(1))));
+
+        assertEquals(PROJECT_VERSION_CONFLICT.getCode(), exception.getCode());
+        verifyNoInteractions(memberAssignmentMapper);
+    }
+
+    @Test
+    void assignServiceManagerClosesRoleIntervalAndReturnsNewVersion() {
+        ProjectMasterDO project = persistedProject();
+        project.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
+        when(projectMasterMapper.selectById(1L)).thenReturn(project);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
+        ProjectMemberAssignmentDO previous = new ProjectMemberAssignmentDO();
+        previous.setId(7L);
+        previous.setUserId(55L);
+        previous.setMemberRole(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
+        previous.setEffectiveFrom(LocalDateTime.now().minusDays(2));
+        when(memberAssignmentMapper.selectListByProjectAndRole(
+                1L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1)).thenReturn(List.of(previous));
+        doAnswer(invocation -> {
+            ProjectMemberAssignmentDO inserted = invocation.getArgument(0);
+            inserted.setId(8L);
+            return 1;
+        }).when(memberAssignmentMapper).insert(any(ProjectMemberAssignmentDO.class));
+
+        AssignServiceManagerResult result = service.assignServiceManager(
+                assignCommand(LocalDateTime.now().minusMinutes(1)));
+
+        assertEquals(1, result.version());
+        assertEquals(8L, result.assignmentId());
+        assertEquals(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED, result.assignmentStatus());
+        ArgumentCaptor<ProjectMemberAssignmentDO> closeCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberAssignmentMapper).updateById(closeCaptor.capture());
+        assertEquals(7L, closeCaptor.getValue().getId());
+        ArgumentCaptor<ProjectMemberAssignmentDO> freshCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberAssignmentMapper).insert(freshCaptor.capture());
+        assertEquals(66L, freshCaptor.getValue().getUserId());
+        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"officeId\":20"));
+        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"locationId\":30"));
     }
 
     // ========== BR-7 更新不可变字段被忽略 ==========
@@ -508,6 +558,11 @@ class ProjectManualCreationServiceImplTest {
     private TemplateMatchResult withWatermark(TemplateMatchResult result) {
         result.setCandidateWatermark(CANDIDATE_WATERMARK);
         return result;
+    }
+
+    private AssignServiceManagerCommand assignCommand(LocalDateTime effectiveFrom) {
+        return new AssignServiceManagerCommand(1L, 0, "SERVICE_MANAGER", "L1", 66L,
+                20L, 30L, effectiveFrom, "assign-key", "b".repeat(64));
     }
 
     private TemplateDefinitionContent contentWithOneGateAndReference() {

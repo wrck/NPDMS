@@ -21,7 +21,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/** 将项目创建、幂等成功、审计和ProjectCreated事件封装在同一事务中。 */
+/** 将项目写命令、幂等成功、审计和Outbox事件封装在同一事务中。 */
 @Service
 public class ProjectCreationPlatformFactService {
 
@@ -79,7 +79,7 @@ public class ProjectCreationPlatformFactService {
         if (facts == null || isBlank(facts.operationCode()) || isBlank(facts.aggregateType())
                 || isBlank(facts.resourceKey()) || isBlank(facts.correlationId())
                 || facts.detailSnapshot() == null || isBlank(facts.eventType()) || facts.eventPayload() == null) {
-            throw new IllegalArgumentException("项目创建成功事实不完整");
+            throw new IllegalArgumentException("项目写命令成功事实不完整");
         }
         LocalDateTime now = LocalDateTime.now(clock);
         PlatformIdempotencyRecordDO completed = new PlatformIdempotencyRecordDO();

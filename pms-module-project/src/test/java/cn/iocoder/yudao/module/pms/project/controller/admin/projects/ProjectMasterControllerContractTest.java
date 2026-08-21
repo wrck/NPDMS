@@ -100,6 +100,8 @@ class ProjectMasterControllerContractTest {
     @Test
     void assignManagerEndpoint() {
         assertEndpoint("assignManager", PostMapping.class, "/{id}/actions/assign-manager", "pms:project:assign");
+        assertRequiredHeader("assignManager", "Idempotency-Key");
+        assertRequiredHeader("assignManager", "If-Match");
     }
 
     @Test
@@ -150,5 +152,15 @@ class ProjectMasterControllerContractTest {
         } catch (NoSuchFieldException expected) {
             // 符合V1.8 revision级契约。
         }
+    }
+
+    private static void assertRequiredHeader(String methodName, String headerName) {
+        Method method = findMethod(methodName);
+        RequestHeader header = java.util.Arrays.stream(method.getParameters())
+                .map(parameter -> parameter.getAnnotation(RequestHeader.class))
+                .filter(annotation -> annotation != null && headerName.equals(annotation.value()))
+                .findFirst().orElse(null);
+        assertNotNull(header, methodName + " 缺少 @RequestHeader " + headerName + " 参数");
+        assertTrue(header.required(), headerName + " 必须是必填请求头");
     }
 }

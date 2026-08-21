@@ -1,7 +1,7 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
 > Feature 状态：`IN_PROGRESS_V1_8_REVALIDATION`
-> 当前任务：`全新V1.8计划Task 1～5已完成；Task 6已完成revision级候选水位收紧，主数据版本/范围校验因权威接口缺口登记后置；继续Task 7版本化指派`
+> 当前任务：`Task 7已完成幂等、If-Match条件版本、功能权限及时态关系切片；主数据范围拒绝继续后置；进入Task 8前端向导改造`
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`86f175e05eb578cc35bae9b64715955b123bce584836c328be87b64c929e9431`
@@ -32,8 +32,8 @@
 | `Task 3` | `COMPLETED_ACC_OWNER_INTERFACE` |
 | `Task 4` | `IMPLEMENTED_MYSQL_FAILURE_INJECTION_PENDING_TASK_9` |
 | `Task 5` | `COMPLETED_PLATFORM_FACTS_ATOMIC` |
-| `Task 6` | `NOT_STARTED` |
-| `Task 7` | `NOT_STARTED` |
+| `Task 6` | `IMPLEMENTED_REVISION_WATERMARK_MASTER_DATA_BLOCKED` |
+| `Task 7` | `IMPLEMENTED_VERSIONED_ASSIGNMENT_RANGE_BLOCKED` |
 | `Task 8` | `NOT_STARTED` |
 | `Task 9` | `NOT_STARTED` |
 | `Task 10` | `NOT_STARTED` |
@@ -59,6 +59,8 @@
 
 平台幂等成功、操作审计与`ProjectCreated` Outbox现已由正式创建应用服务纳入同一事务，旧Controller事务外保存及吞异常路径已移除。创建提交已改为`templateRevisionId + candidateWatermark`重算校验，不再按模板ID重新选择latest revision。
 
+Task 7指派入口现已强制`Idempotency-Key`与`If-Match`，以`WHERE id=? AND version=?`条件递增Project版本；服务端再次校验`pms:project:assign`功能权限，关闭同Project同角色的重叠旧区间并追加带层级/办事处/地点责任快照的新区间。幂等成功、操作审计与`ProjectServiceManagerAssigned` Outbox复用平台事实事务边界；仅确认服务经理不会把主责状态从`UNASSIGNED`误改为已指派。
+
 Task 6后置阻断：当前仓库没有实施地点权威主数据接口；基础平台部门API也不暴露可比较版本，无法在不臆造语义的前提下完成客户/办事处/实施地点稳定ID、版本及数据范围的全量服务端校验。该缺口不阻断版本化指派、前端非主数据部分及后续故障注入准备，但在接口补齐前Task 6和AC-FPROJ-007不得判定完成。
 
-当前仍未完成版本化指派、完整API权限/主数据收紧、前端向导、真实MySQL故障注入与浏览器验收，因此所有AC继续保持未勾选。受管Feature Spec旧计划引用及规格基线哈希异常继续作为独立门禁记录。
+当前仍未完成主数据范围收紧、前端向导、真实MySQL故障注入与浏览器验收，因此所有AC继续保持未勾选。受管Feature Spec旧计划引用及规格基线哈希异常继续作为独立门禁记录。

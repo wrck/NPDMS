@@ -4,9 +4,10 @@ import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -63,8 +64,7 @@ public interface ProjectManualCreationService {
     /**
      * 指派一级服务经理（SERVICE_MANAGER_L1）：旧有效区间关闭+新区间开启，同事务留痕。
      *
-     * @param effectiveFrom 生效开始时间（空=当前时间；不得晚于当前时间）
+     * @param command 包含Project期望版本、角色责任范围与幂等事实的指派命令
      */
-    void assignServiceManager(Long projectId, Long userId, String employeeNo, String name,
-                              LocalDateTime effectiveFrom);
+    AssignServiceManagerResult assignServiceManager(AssignServiceManagerCommand command);
 }

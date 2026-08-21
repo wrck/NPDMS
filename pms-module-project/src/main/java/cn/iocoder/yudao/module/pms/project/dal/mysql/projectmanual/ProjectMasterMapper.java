@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -14,6 +15,15 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+
+    @Update("""
+            UPDATE proj_project
+            SET version = version + 1
+            WHERE id = #{projectId}
+              AND version = #{expectedVersion}
+              AND deleted = b'0'
+            """)
+    int incrementVersionIfMatch(Long projectId, Integer expectedVersion);
 
     /**
      * 分页查询（简单条件）：名称模糊、编码/状态/三维精确，id 倒序

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectChildWeightsReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateRespVO;
@@ -21,11 +22,14 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService.Actor;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectTreeService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,6 +64,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_WEIGHT_SUM_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
 
 /**
  * 管理后台 - PMS 项目手工创建 Controller（F-PM01 / PM-01）。
@@ -82,6 +87,8 @@ public class ProjectMasterController {
     @Resource
     private ProjectManualCreationApplicationService projectManualCreationApplicationService;
     @Resource
+    private ProjectManagerAssignmentApplicationService projectManagerAssignmentApplicationService;
+    @Resource
     private ProjectTreeService projectTreeService;
 
     @PostMapping
@@ -98,7 +105,8 @@ public class ProjectMasterController {
                 createReqVO.getServiceManagerUserId(), idempotencyKey,
                 sha256Digest(JsonUtils.toJsonString(createReqVO)));
         ManualProjectCreateResult result = projectManualCreationApplicationService.create(command,
-                new Actor(currentTenantId(), actorId, UUID.randomUUID().toString()));
+                new ProjectManualCreationApplicationService.Actor(
+                        currentTenantId(), actorId, UUID.randomUUID().toString()));
         return success(toResponse(result));
     }
 
@@ -200,11 +208,27 @@ public class ProjectMasterController {
     @Operation(summary = "指派一级服务经理（旧区间关闭+新区间开启，留痕前后值）")
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:assign')")
-    public CommonResult<Boolean> assignManager(@PathVariable("id") Long id,
-                                               @Valid @RequestBody ProjectAssignManagerReqVO assignReqVO) {
-        projectManualCreationService.assignServiceManager(id, assignReqVO.getUserId(),
-                assignReqVO.getEmployeeNo(), assignReqVO.getMemberName(), assignReqVO.getEffectiveFrom());
-        return success(true);
+    public CommonResult<ProjectAssignManagerRespVO> assignManager(
+            @PathVariable("id") Long id,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") @NotBlank String ifMatch,
+            @Valid @RequestBody ProjectAssignManagerReqVO assignReqVO) {
+        Integer expectedVersion = parseIfMatch(ifMatch);
+        String requestDigest = sha256Digest(id + ":" + expectedVersion + ":"
+                + JsonUtils.toJsonString(assignReqVO));
+        AssignServiceManagerCommand command = new AssignServiceManagerCommand(
+                id, expectedVersion, assignReqVO.getRoleCode(), assignReqVO.getLevelCode(),
+                assignReqVO.getUserId(), assignReqVO.getOfficeId(), assignReqVO.getLocationId(),
+                assignReqVO.getEffectiveFrom(), idempotencyKey, requestDigest);
+        AssignServiceManagerResult result = projectManagerAssignmentApplicationService.assign(command,
+                new Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                        UUID.randomUUID().toString()));
+        ProjectAssignManagerRespVO response = new ProjectAssignManagerRespVO();
+        response.setProjectId(result.projectId());
+        response.setAssignmentId(result.assignmentId());
+        response.setVersion(result.version());
+        response.setAssignmentStatus(result.assignmentStatus());
+        return success(response);
     }
 
     @GetMapping("/{id}/children")
@@ -325,6 +349,25 @@ public class ProjectMasterController {
             return HexFormat.of().formatHex(digest.digest(content.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 摘要算法不可用", ex);
+        }
+    }
+
+    private Integer parseIfMatch(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.startsWith("W/")) {
+            normalized = normalized.substring(2).trim();
+        }
+        if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
+            normalized = normalized.substring(1, normalized.length() - 1);
+        }
+        try {
+            int version = Integer.parseInt(normalized);
+            if (version < 0) {
+                throw new NumberFormatException("negative version");
+            }
+            return version;
+        } catch (NumberFormatException ex) {
+            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "If-Match必须是非负Project版本");
         }
     }
 }

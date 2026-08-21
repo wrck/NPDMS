@@ -23,13 +23,10 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
                 .orderByAsc(ProjectMemberAssignmentDO::getId));
     }
 
-    /**
-     * 按项目+用户+角色查询历史区间（重叠判定输入）
-     */
-    default List<ProjectMemberAssignmentDO> selectListByRole(Long projectId, Long userId, String memberRole) {
+    /** 按项目+角色查询历史区间，保证同角色任一人员的重叠关系都被关闭。 */
+    default List<ProjectMemberAssignmentDO> selectListByProjectAndRole(Long projectId, String memberRole) {
         return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
                 .eq(ProjectMemberAssignmentDO::getProjectId, projectId)
-                .eq(ProjectMemberAssignmentDO::getUserId, userId)
                 .eq(ProjectMemberAssignmentDO::getMemberRole, memberRole)
                 .orderByAsc(ProjectMemberAssignmentDO::getEffectiveFrom));
     }

@@ -381,6 +381,8 @@ Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests
 
 ### Task 7: 服务经理确认增加幂等、版本和责任范围
 
+> 执行注记（2026-08-21）：按用户指示禁用测试驱动，本Task测试均在实现后补充。`Idempotency-Key`、`If-Match`条件版本、功能权限、时态关系、审计与Outbox已实现并通过事后测试；office/location数据范围拒绝依赖Task 6已登记的权威主数据接口缺口，继续后置，Task 7不据此宣告完整完成。
+
 **Files:**
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationServiceImpl.java`
@@ -391,7 +393,7 @@ Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests
 - Consumes: `AssignServiceManagerCommand(projectId, expectedVersion, roleCode, userId, levelCode, officeId, locationId, effectiveFrom, idempotencyKey)`。
 - Produces: 新Project version、当前关系ID和仍按规则派生的assignment status。
 
-- [ ] **Step 1: 写版本冲突、范围拒绝和UNASSIGNED测试**
+- [ ] **Step 1: 写版本冲突、范围拒绝和UNASSIGNED测试**（版本冲突与UNASSIGNED已完成；范围拒绝后置）
 
 ```java
 @Test
@@ -405,11 +407,11 @@ void serviceManagerOnlyDoesNotMarkProjectAssigned() {
 
 Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ProjectManualCreationServiceImplTest test`
 
-- [ ] **Step 3: 实现条件更新、时态关系、审计和幂等**
+- [x] **Step 3: 实现条件更新、时态关系、审计和幂等**
 
 Project版本更新必须使用`WHERE id=? AND version=?`；更新行数为0返回`VERSION_CONFLICT`。关闭旧区间、追加新区间、Project投影、幂等与审计同事务提交。
 
-- [ ] **Step 4: 运行指派测试**
+- [x] **Step 4: 运行指派测试**
 
 Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ProjectManualCreationServiceImplTest test`
 
