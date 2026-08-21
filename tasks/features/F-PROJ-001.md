@@ -1,7 +1,7 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
 > Feature 状态：`IN_PROGRESS_V1_8_REVALIDATION`
-> 当前任务：`Task 8已完成revision向导、页面内存幂等键和版本化指派交互；主数据范围拒绝继续后置；进入Task 9真实MySQL事务/并发验证`
+> 当前任务：`Task 9真实MySQL测试基座已建立；固定端口13306被其他工作树容器占用，等待隔离环境后执行事务/并发证据`
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`86f175e05eb578cc35bae9b64715955b123bce584836c328be87b64c929e9431`
@@ -35,7 +35,7 @@
 | `Task 6` | `IMPLEMENTED_REVISION_WATERMARK_MASTER_DATA_BLOCKED` |
 | `Task 7` | `IMPLEMENTED_VERSIONED_ASSIGNMENT_RANGE_BLOCKED` |
 | `Task 8` | `IMPLEMENTED_BROWSER_ACCEPTANCE_PENDING` |
-| `Task 9` | `NOT_STARTED` |
+| `Task 9` | `IN_PROGRESS_ENVIRONMENT_BLOCKED` |
 | `Task 10` | `NOT_STARTED` |
 
 ## 验收跟踪
@@ -64,5 +64,9 @@ Task 7指派入口现已强制`Idempotency-Key`与`If-Match`，以`WHERE id=? AN
 Task 8前端候选选择已从template级切换为`templateRevisionId`，创建原样提交`candidateWatermark`；表单不写本地存储，同一未修改请求复用幂等Key，任一输入或revision变化后自动生成新Key。指派交互提交必需幂等头与Project版本，版本冲突时重新加载Project再要求用户确认；前端构建和5项事后测试通过。全仓`ts:check`仍被既有auto-import声明缺失阻断，目标Feature文件筛查无新增类型错误。
 
 Task 6后置阻断：当前仓库没有实施地点权威主数据接口；基础平台部门API也不暴露可比较版本，无法在不臆造语义的前提下完成客户/办事处/实施地点稳定ID、版本及数据范围的全量服务端校验。该缺口不阻断版本化指派、前端非主数据部分及后续故障注入准备，但在接口补齐前Task 6和AC-FPROJ-007不得判定完成。
+
+Task 9环境阻断：当前仓库Compose规定的MySQL固定端口`13306`被`E:\AICoding\Projects\NPDMS`工作树的`npdms-t8-mysql-1`占用。本工作树未复用该数据库、未停止跨工作树容器，也未擅自修改固定端口；真实MySQL集成测试已编译但尚未执行，AC-FPROJ-002/004/006/008/010不得据此判定完成。
+
+Task 10前置验证：后端Reactor测试`144`项中`141`项通过，`3`项真实MySQL IT因`skipITs`门禁跳过；仓库基线规则校验通过，规格快照校验仍有两个受管文件SHA-256不匹配。前端计划命令`typecheck/build`与当前脚本不一致；实际`ts:check`仍被全仓既存错误阻断，本Feature相关路径无类型错误，`build:local`通过。验证中发现的子项目旧创建签名回归已由`697c384`修复并通过17项定向后端测试、相关ESLint与前端构建。
 
 当前仍未完成主数据范围收紧、前端向导、真实MySQL故障注入与浏览器验收，因此所有AC继续保持未勾选。受管Feature Spec旧计划引用及规格基线哈希异常继续作为独立门禁记录。

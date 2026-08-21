@@ -470,6 +470,13 @@ Expected: PASS，且生产代码无`localStorage`、`sessionStorage`、`IndexedD
 
 ### Task 9: 验证同库事务、并发和故障注入
 
+> 执行注记（2026-08-21）：已建立受`-DskipITs=false`显式控制的真实MySQL测试基座，
+> 原子失败通过MySQL Trigger覆盖九个FailurePoint，并发测试覆盖同Key同摘要重放和
+> 同Key不同摘要冲突；测试只读取当前仓库环境变量或`.env`，且仅清理
+> `IT-FPROJ001-*`自有数据。当前宿主机固定端口`13306`被
+> `E:\AICoding\Projects\NPDMS`的`npdms-t8-mysql-1`占用，本工作树Compose MySQL无法启动；
+> 未获授权前不停止跨工作树容器，也不改用非权威端口，因此真实执行证据继续保持未完成。
+
 **Files:**
 - Create: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationMySqlIntegrationTest.java`
 - Create: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationConcurrencyMySqlIntegrationTest.java`
@@ -493,6 +500,14 @@ Run: `mvn -pl pms-module-project -am -DskipITs=false -DfailIfNoTests=false -Dtes
 Expected: PASS；不得以H2、Mock Mapper或HTTP 200替代。
 
 ### Task 10: 全量验证与真实浏览器验收
+
+> 执行注记（2026-08-22）：不依赖运行环境的验证已执行。后端Reactor测试
+> `144`项中`141 PASS / 3 MySQL IT按开关跳过`；仓库基线规则PASS；规格快照校验
+> 继续以两个受管文件SHA-256不匹配失败。计划中的`pnpm typecheck`和`pnpm build`
+> 不是当前`package.json`脚本，实际`pnpm ts:check`因全仓既存类型错误失败，但本Feature
+> 相关路径无类型错误，`pnpm build:local`成功。检查中发现并修复子项目仍调用旧创建
+> 签名的问题（提交`697c384`）：根项目保留候选水位校验，子项目继承父模板时允许水位
+> 为空，并复用页面内存幂等键。上述结果不替代MySQL IT或浏览器验收。
 
 **Files:**
 - Create: `output/f-proj-001-v18/browser-acceptance.md`
