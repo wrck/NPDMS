@@ -1,7 +1,7 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
-> Feature 状态：`IN_PROGRESS_V1_8_REVALIDATION`
-> 当前任务：`Task 6功能权限已补齐；AC-FPROJ-007权威主数据范围阻断后置登记`
+> Feature 状态：`BLOCKED_BY_SPEC_V1_8`
+> 当前任务：`BLOCKED_BY_SPEC：AC-FPROJ-007权威主数据范围契约缺失，且无下一Feature Ready输入`
 > Requirement ID：`PM-01`、`PM-03`
 > 历史 Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > 历史 Feature Spec SHA-256：`86f175e05eb578cc35bae9b64715955b123bce584836c328be87b64c929e9431`
@@ -65,6 +65,10 @@ Task 8前端候选选择已从template级切换为`templateRevisionId`，创建�
 Task 6后置阻断：当前仓库没有实施地点权威主数据接口；基础平台部门API也不暴露可比较版本，无法在不臆造语义的前提下完成客户/办事处/实施地点稳定ID、版本及数据范围的全量服务端校验。该缺口不阻断版本化指派、前端非主数据部分及后续故障注入准备，但在接口补齐前Task 6和AC-FPROJ-007不得判定完成。
 
 Task 6可授权部分已继续补齐：新增统一的`ProjectCreationAuthorizationService`，创建和指派应用入口均在幂等占用、审计、Outbox及业务写入前执行服务层功能权限校验，不再只依赖Controller注解。事后测试覆盖创建与指派的权限允许/拒绝及拒绝时零副作用；定向25项全部通过，项目模块非IT回归151项中148项通过、3项按`skipITs`跳过。该进展不替代办事处/实施地点/跨租户数据范围验收，AC-FPROJ-007继续保持未完成。
+
+阻断审计结论：该问题已到必须当前关闭的最晚安全点。客户、办事处和实施地点的稳定ID、可比较版本、失效语义及租户/组织/地点授权关系属于SDS/API/权限/集成契约，NPDMS不得自行把实施地点映射为部门，也不得继续把名称或编码冒充权威主数据。对应Open Question、追溯矩阵和Feature Spec均由`docs/specification-baseline/manifest.json`管理，必须先在规格仓库修订并锁定新的`source.commit`后同步；当前工作树不能直接改写。仓库目前仅有F-PROJ-001一个正式Feature Spec，不存在可绕过该阻断继续实施的下一Feature Ready输入。
+
+推荐解除条件：平台主数据Owner明确客户、办事处、实施地点各自的权威Owner、稳定ID与版本、查询/校验接口、失效规则，以及L1/L2服务经理的租户/办事处/实施地点数据范围关系；规格仓库同步回写SDS、Open Question、追溯矩阵和F-PROJ-001后，更新本仓库规格锁并继续Task 6、Task 7与AC-FPROJ-007。若要改为推进下一Feature，则必须先提供该Feature独立且达到`READY`的Feature Spec和Technical Plan。
 
 Task 9已完成：按授权停止旧`npdms-t8-mysql-1`后，使用当前工作树隔离的`npdms-50eb` Compose项目、MySQL 8.4.10与独立数据卷执行验证；旧容器及其数据卷未删除、未复用。Flyway 63个迁移校验通过，九个原子失败点和两个幂等并发场景共11项真实MySQL测试全部通过；全量后端Reactor 19个模块成功，项目模块154项测试全部通过。详细证据见`output/f-proj-001-v18/database-evidence.md`。
 

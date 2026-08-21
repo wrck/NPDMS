@@ -340,6 +340,8 @@ Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests
 
 > 执行注记（2026-08-22）：按用户指示禁用测试驱动，先实现再补事后测试。创建与指派已统一通过`ProjectCreationAuthorizationService`执行服务层功能权限校验，权限拒绝发生在幂等占用和业务写入之前；定向25项全部通过，项目模块非IT回归151项中148项通过、3项按`skipITs`跳过。普通成员和仅模板维护权限的功能权限边界已具备服务层拒绝能力；未授权办事处、未授权实施地点、跨租户主体以及客户/办事处/地点稳定ID和版本仍依赖尚未定义完整的权威主数据契约，因此本Task继续保持未完成。
 
+> 阻断审计（2026-08-22）：剩余范围不是可由实现层自行补齐的普通缺陷。客户、办事处和实施地点的稳定身份、可比较版本、租户/组织/地点授权关系以及失效判定会改变API、权限和集成契约，必须先由规格仓库回写相关SDS、Open Question、追溯矩阵和Feature Spec，再锁定新`source.commit`并同步受管快照。当前NPDMS不得直接修改这些受管文件，也不得把实施地点等同于部门或继续接受名称/编码作为权威事实。仓库同时不存在下一个达到Feature Ready的独立Feature Spec，因此没有可绕过本阻断继续实施的后续Feature。推荐由平台主数据Owner明确办事处与实施地点的权威Owner、稳定ID/版本、查询/校验契约和数据范围规则；同步新规格基线后再恢复Task 6、Task 7和AC-FPROJ-007。
+
 **Files:**
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java`
