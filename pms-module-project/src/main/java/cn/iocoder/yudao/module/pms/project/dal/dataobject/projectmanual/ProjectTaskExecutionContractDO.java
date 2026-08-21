@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTaskExecutionContractDO extends TenantBaseDO {
 
-    @TableId
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private Long projectTaskId;
     private Long templateTaskDefinitionId;

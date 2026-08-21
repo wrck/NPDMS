@@ -1,7 +1,7 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
 > Feature 状态：`IN_PROGRESS_V1_8_REVALIDATION`
-> 当前任务：`Task 9真实MySQL测试基座已建立；固定端口13306被其他工作树容器占用，等待隔离环境后执行事务/并发证据`
+> 当前任务：`Task 10真实浏览器闭环与逐项验收证据`
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`86f175e05eb578cc35bae9b64715955b123bce584836c328be87b64c929e9431`
@@ -21,7 +21,7 @@
 - [x] Feature Spec 路径及 SHA-256 已锁定。
 - [x] 实施仓库存在可验证的后端、前端、Flyway 和测试工程，且已在隔离分支核对。
 - [x] 已审计 `proj_*` 现有实现与本 Feature 的差量；没有将 V1.7 复用证据误作实现结论。
-- [x] PROJ 与 ACC 位于同一模块、同一数据源和Spring事务管理器；ACC初始化接口以`MANDATORY`强制加入创建事务。真实MySQL回滚证据仍留待集成测试门禁。
+- [x] PROJ 与 ACC 位于同一模块、同一数据源和Spring事务管理器；ACC初始化接口以`MANDATORY`强制加入创建事务，九个真实MySQL故障点的回滚证据已通过。
 - [x] 当前Schema、模块边界、权限与API实施输入已按锁定规格核对；未定义权威值域未作臆造。
 
 ## 后续任务标识
@@ -30,13 +30,13 @@
 | --- | --- |
 | `Task 2` | `COMPLETED_V1_8_DELTA_AUDIT` |
 | `Task 3` | `COMPLETED_ACC_OWNER_INTERFACE` |
-| `Task 4` | `IMPLEMENTED_MYSQL_FAILURE_INJECTION_PENDING_TASK_9` |
+| `Task 4` | `COMPLETED_MYSQL_FAILURE_INJECTION` |
 | `Task 5` | `COMPLETED_PLATFORM_FACTS_ATOMIC` |
 | `Task 6` | `IMPLEMENTED_REVISION_WATERMARK_MASTER_DATA_BLOCKED` |
 | `Task 7` | `IMPLEMENTED_VERSIONED_ASSIGNMENT_RANGE_BLOCKED` |
 | `Task 8` | `IMPLEMENTED_BROWSER_ACCEPTANCE_PENDING` |
-| `Task 9` | `IN_PROGRESS_ENVIRONMENT_BLOCKED` |
-| `Task 10` | `NOT_STARTED` |
+| `Task 9` | `COMPLETED_REAL_MYSQL_ATOMICITY_CONCURRENCY` |
+| `Task 10` | `IN_PROGRESS` |
 
 ## 验收跟踪
 
@@ -65,8 +65,8 @@ Task 8前端候选选择已从template级切换为`templateRevisionId`，创建�
 
 Task 6后置阻断：当前仓库没有实施地点权威主数据接口；基础平台部门API也不暴露可比较版本，无法在不臆造语义的前提下完成客户/办事处/实施地点稳定ID、版本及数据范围的全量服务端校验。该缺口不阻断版本化指派、前端非主数据部分及后续故障注入准备，但在接口补齐前Task 6和AC-FPROJ-007不得判定完成。
 
-Task 9环境阻断：当前仓库Compose规定的MySQL固定端口`13306`被`E:\AICoding\Projects\NPDMS`工作树的`npdms-t8-mysql-1`占用。本工作树未复用该数据库、未停止跨工作树容器，也未擅自修改固定端口；真实MySQL集成测试已编译但尚未执行，AC-FPROJ-002/004/006/008/010不得据此判定完成。
+Task 9已完成：按授权停止旧`npdms-t8-mysql-1`后，使用当前工作树隔离的`npdms-50eb` Compose项目、MySQL 8.4.10与独立数据卷执行验证；旧容器及其数据卷未删除、未复用。Flyway 63个迁移校验通过，九个原子失败点和两个幂等并发场景共11项真实MySQL测试全部通过；全量后端Reactor 19个模块成功，项目模块154项测试全部通过。详细证据见`output/f-proj-001-v18/database-evidence.md`。
 
-Task 10前置验证：后端Reactor测试`144`项中`141`项通过，`3`项真实MySQL IT因`skipITs`门禁跳过；仓库基线规则校验通过，规格快照校验仍有两个受管文件SHA-256不匹配。前端计划命令`typecheck/build`与当前脚本不一致；实际`ts:check`仍被全仓既存错误阻断，本Feature相关路径无类型错误，`build:local`通过。验证中发现的子项目旧创建签名回归已由`697c384`修复并通过17项定向后端测试、相关ESLint与前端构建。
+Task 10前置验证：全量后端Reactor 19个模块成功，项目模块154项测试全部通过，包含11项真实MySQL IT；仓库基线规则校验通过，规格快照校验仍有两个受管文件SHA-256不匹配。前端计划命令`typecheck/build`与当前脚本不一致；实际`ts:check`仍被全仓既存错误阻断，本Feature相关路径无类型错误，`build:local`通过。验证中发现的子项目旧创建签名回归已由`697c384`修复并通过17项定向后端测试、相关ESLint与前端构建。
 
-当前仍未完成主数据范围收紧、前端向导、真实MySQL故障注入与浏览器验收，因此所有AC继续保持未勾选。受管Feature Spec旧计划引用及规格基线哈希异常继续作为独立门禁记录。
+当前仍未完成主数据范围收紧与真实浏览器验收，因此所有AC继续保持未勾选；Task 9通过不单独代表任一跨层AC已完整验收。受管Feature Spec旧计划引用及规格基线哈希异常继续作为独立门禁记录。

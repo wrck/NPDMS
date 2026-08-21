@@ -30,7 +30,7 @@ class ProjectManualCreationConcurrencyMySqlIntegrationTest extends ProjectManual
                 () -> applicationService.create(newCommand(key, digest, projectName), newActor()),
                 () -> applicationService.create(newCommand(key, digest, projectName), newActor()));
 
-        assertTrue(outcomes.stream().allMatch(outcome -> outcome.failure() == null));
+        assertTrue(outcomes.stream().allMatch(outcome -> outcome.failure() == null), outcomes.toString());
         ManualProjectCreateResult first = outcomes.get(0).result();
         ManualProjectCreateResult second = outcomes.get(1).result();
         assertEquals(first.id(), second.id());
@@ -57,8 +57,8 @@ class ProjectManualCreationConcurrencyMySqlIntegrationTest extends ProjectManual
 
         List<Outcome> successes = outcomes.stream().filter(outcome -> outcome.failure() == null).toList();
         List<Outcome> failures = outcomes.stream().filter(outcome -> outcome.failure() != null).toList();
-        assertEquals(1, successes.size());
-        assertEquals(1, failures.size());
+        assertEquals(1, successes.size(), outcomes.toString());
+        assertEquals(1, failures.size(), outcomes.toString());
         ServiceException conflict = assertInstanceOf(ServiceException.class, failures.get(0).failure());
         assertEquals(PMS_IDEMPOTENCY_KEY_CONFLICT.getCode(), conflict.getCode());
         assertEquals(1L, jdbcTemplate.queryForObject(

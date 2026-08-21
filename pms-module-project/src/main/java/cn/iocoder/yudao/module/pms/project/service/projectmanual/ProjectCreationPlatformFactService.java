@@ -103,6 +103,7 @@ public class ProjectCreationPlatformFactService {
         audit.setResultCode("SUCCESS");
         audit.setDetailSnapshot(facts.detailSnapshot());
         audit.setOccurredAt(now);
+        audit.setCreateTime(now);
         if (auditMapper.insert(audit) != 1) {
             throw new IllegalStateException("平台操作审计写入失败");
         }

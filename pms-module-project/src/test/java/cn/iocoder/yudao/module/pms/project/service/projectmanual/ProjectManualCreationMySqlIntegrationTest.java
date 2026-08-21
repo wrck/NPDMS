@@ -3,6 +3,10 @@ package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
+import cn.iocoder.yudao.framework.mybatis.core.util.MyBatisUtils;
+import cn.iocoder.yudao.framework.tenant.config.TenantProperties;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.tenant.core.db.TenantDatabaseInterceptor;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
@@ -13,6 +17,8 @@ import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTempla
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateServiceImpl;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
@@ -92,27 +98,32 @@ abstract class ProjectManualCreationMySqlTestSupport {
         String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
-                + "&characterEncoding=utf8mb4&nullCatalogMeansCurrent=true");
+                + "&characterEncoding=UTF-8&nullCatalogMeansCurrent=true");
         registry.add("spring.datasource.username", () -> required(environment, "NPDMS_DB_USER"));
         registry.add("spring.datasource.password", () -> required(environment, "NPDMS_DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");
         registry.add("yudao.info.base-package", () -> "cn.iocoder.yudao.module.pms.project");
-        registry.add("mybatis-plus.global-config.db-config.id-type", () -> "NONE");
+        registry.add("mybatis-plus.global-config.db-config.id-type", () -> "AUTO");
         registry.add("mybatis-plus.configuration.map-underscore-to-camel-case", () -> "true");
     }
 
     @BeforeEach
     void cleanBefore() {
+        TenantContextHolder.setTenantId(0L);
         dropFailureTrigger();
         cleanOwnedFacts();
     }
 
     @AfterEach
     void cleanAfter() {
-        dropFailureTrigger();
-        cleanOwnedFacts();
+        try {
+            dropFailureTrigger();
+            cleanOwnedFacts();
+        } finally {
+            TenantContextHolder.clear();
+        }
     }
 
     ManualProjectCreateCommand newCommand() {
@@ -135,7 +146,9 @@ abstract class ProjectManualCreationMySqlTestSupport {
         TemplateMatchResult match = projectTemplateService.matchPreview(
                 draft.getSigningMethod(), draft.getProjectCategory(), draft.getImplementationMode(), null);
         if (match.getOutcome() != TemplateMatchResult.Outcome.MATCHED || match.getMatched() == null) {
-            throw new IllegalStateException("真实MySQL集成测试需要V54/V55提供唯一生效模板");
+            throw new IllegalStateException("真实MySQL集成测试需要V54/V55提供唯一生效模板：outcome="
+                    + match.getOutcome() + ", conflicts=" + match.getConflicts()
+                    + ", candidates=" + match.getCandidates());
         }
         return new ManualProjectCreateCommand(draft, null, null,
                 match.getMatched().getTemplateRevisionId(), match.getCandidateWatermark(), null,
@@ -217,8 +230,8 @@ abstract class ProjectManualCreationMySqlTestSupport {
 
     private static Map<String, String> currentEnvironment() {
         Map<String, String> values = new LinkedHashMap<>(System.getenv());
-        Path dotenv = Path.of(".env").toAbsolutePath().normalize();
-        if (!Files.isRegularFile(dotenv)) {
+        Path dotenv = findRepositoryDotenv();
+        if (dotenv == null) {
             return values;
         }
         try {
@@ -235,6 +248,17 @@ abstract class ProjectManualCreationMySqlTestSupport {
         } catch (IOException ex) {
             throw new IllegalStateException("无法读取当前仓库.env", ex);
         }
+    }
+
+    private static Path findRepositoryDotenv() {
+        for (Path directory = Path.of("").toAbsolutePath().normalize();
+                directory != null; directory = directory.getParent()) {
+            if (Files.isRegularFile(directory.resolve("compose.yaml"))) {
+                Path dotenv = directory.resolve(".env");
+                return Files.isRegularFile(dotenv) ? dotenv : null;
+            }
+        }
+        return null;
     }
 
     private static String unquote(String value) {
@@ -296,6 +320,14 @@ abstract class ProjectManualCreationMySqlTestSupport {
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        TenantLineInnerInterceptor tenantLineInnerInterceptor(MybatisPlusInterceptor interceptor) {
+            TenantLineInnerInterceptor inner = new TenantLineInnerInterceptor(
+                    new TenantDatabaseInterceptor(new TenantProperties()));
+            MyBatisUtils.addInterceptor(interceptor, inner, 0);
+            return inner;
         }
     }
 }

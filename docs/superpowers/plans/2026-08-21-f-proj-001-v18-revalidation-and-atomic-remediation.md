@@ -470,12 +470,12 @@ Expected: PASS，且生产代码无`localStorage`、`sessionStorage`、`IndexedD
 
 ### Task 9: 验证同库事务、并发和故障注入
 
-> 执行注记（2026-08-21）：已建立受`-DskipITs=false`显式控制的真实MySQL测试基座，
-> 原子失败通过MySQL Trigger覆盖九个FailurePoint，并发测试覆盖同Key同摘要重放和
-> 同Key不同摘要冲突；测试只读取当前仓库环境变量或`.env`，且仅清理
-> `IT-FPROJ001-*`自有数据。当前宿主机固定端口`13306`被
-> `E:\AICoding\Projects\NPDMS`的`npdms-t8-mysql-1`占用，本工作树Compose MySQL无法启动；
-> 未获授权前不停止跨工作树容器，也不改用非权威端口，因此真实执行证据继续保持未完成。
+> 执行注记（2026-08-22）：已在当前工作树隔离的`npdms-50eb` Compose项目、
+> MySQL 8.4.10和63个Flyway迁移上完成真实执行。九个FailurePoint的事务回滚、
+> 同Key同摘要成功重放及同Key不同摘要冲突共11项测试全部通过；全量后端Reactor
+> 19个模块成功，项目模块154项测试全部通过。证据见
+> `output/f-proj-001-v18/database-evidence.md`。旧`npdms-t8-mysql-1`仅按授权停止，
+> 未删除或复用其数据库与数据卷。
 
 **Files:**
 - Create: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationMySqlIntegrationTest.java`
@@ -485,15 +485,15 @@ Expected: PASS，且生产代码无`localStorage`、`sessionStorage`、`IndexedD
 - Consumes: Docker Compose MySQL/Flyway及完整创建应用服务。
 - Produces: AC-FPROJ-002/004/006/008/010的数据库证据。
 
-- [ ] **Step 1: 写真实MySQL原子失败测试**
+- [x] **Step 1: 写真实MySQL原子失败测试**
 
 每个FailurePoint执行后查询Project、Stage、Task、Milestone、Gate、执行契约、ACC交付件、成功幂等、成功审计和ProjectCreated Outbox，全部断言为0。
 
-- [ ] **Step 2: 写相同Key并发测试**
+- [x] **Step 2: 写相同Key并发测试**
 
 使用两个并发连接提交同Key同摘要，断言一个Project、一个编码、一个成功幂等事实；同Key不同摘要断言一个成功和一个幂等冲突。
 
-- [ ] **Step 3: 运行集成测试**
+- [x] **Step 3: 运行集成测试**
 
 Run: `mvn -pl pms-module-project -am -DskipITs=false -DfailIfNoTests=false -Dtest=ProjectManualCreationMySqlIntegrationTest,ProjectManualCreationConcurrencyMySqlIntegrationTest test`
 
@@ -508,6 +508,9 @@ Expected: PASS；不得以H2、Mock Mapper或HTTP 200替代。
 > 相关路径无类型错误，`pnpm build:local`成功。检查中发现并修复子项目仍调用旧创建
 > 签名的问题（提交`697c384`）：根项目保留候选水位校验，子项目继承父模板时允许水位
 > 为空，并复用页面内存幂等键。上述结果不替代MySQL IT或浏览器验收。
+> Task 9随后已在隔离MySQL环境完成：定向真实MySQL测试11项全部通过，全量后端
+> Reactor 19个模块成功，项目模块154项测试全部通过。Task 10继续执行真实浏览器闭环；
+> 规格快照的两个受管文件SHA-256不匹配仍是独立门禁。
 
 **Files:**
 - Create: `output/f-proj-001-v18/browser-acceptance.md`
