@@ -84,6 +84,18 @@ public class ProjectRespVO {
     @Schema(description = "项目状态（S0~S6/MAINT）")
     private String status;
 
+    @Schema(description = "生命周期状态")
+    private String lifecycleStatus;
+
+    @Schema(description = "当前阶段")
+    private String currentStage;
+
+    @Schema(description = "主责指派状态")
+    private String assignmentStatus;
+
+    @Schema(description = "Project乐观锁版本")
+    private Integer version;
+
     @Schema(description = "项目开始时间")
     private LocalDateTime projectStartTime;
 

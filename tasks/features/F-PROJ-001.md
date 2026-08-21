@@ -1,7 +1,7 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
 > Feature 状态：`IN_PROGRESS_V1_8_REVALIDATION`
-> 当前任务：`Task 7已完成幂等、If-Match条件版本、功能权限及时态关系切片；主数据范围拒绝继续后置；进入Task 8前端向导改造`
+> 当前任务：`Task 8已完成revision向导、页面内存幂等键和版本化指派交互；主数据范围拒绝继续后置；进入Task 9真实MySQL事务/并发验证`
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`86f175e05eb578cc35bae9b64715955b123bce584836c328be87b64c929e9431`
@@ -34,7 +34,7 @@
 | `Task 5` | `COMPLETED_PLATFORM_FACTS_ATOMIC` |
 | `Task 6` | `IMPLEMENTED_REVISION_WATERMARK_MASTER_DATA_BLOCKED` |
 | `Task 7` | `IMPLEMENTED_VERSIONED_ASSIGNMENT_RANGE_BLOCKED` |
-| `Task 8` | `NOT_STARTED` |
+| `Task 8` | `IMPLEMENTED_BROWSER_ACCEPTANCE_PENDING` |
 | `Task 9` | `NOT_STARTED` |
 | `Task 10` | `NOT_STARTED` |
 
@@ -60,6 +60,8 @@
 平台幂等成功、操作审计与`ProjectCreated` Outbox现已由正式创建应用服务纳入同一事务，旧Controller事务外保存及吞异常路径已移除。创建提交已改为`templateRevisionId + candidateWatermark`重算校验，不再按模板ID重新选择latest revision。
 
 Task 7指派入口现已强制`Idempotency-Key`与`If-Match`，以`WHERE id=? AND version=?`条件递增Project版本；服务端再次校验`pms:project:assign`功能权限，关闭同Project同角色的重叠旧区间并追加带层级/办事处/地点责任快照的新区间。幂等成功、操作审计与`ProjectServiceManagerAssigned` Outbox复用平台事实事务边界；仅确认服务经理不会把主责状态从`UNASSIGNED`误改为已指派。
+
+Task 8前端候选选择已从template级切换为`templateRevisionId`，创建原样提交`candidateWatermark`；表单不写本地存储，同一未修改请求复用幂等Key，任一输入或revision变化后自动生成新Key。指派交互提交必需幂等头与Project版本，版本冲突时重新加载Project再要求用户确认；前端构建和5项事后测试通过。全仓`ts:check`仍被既有auto-import声明缺失阻断，目标Feature文件筛查无新增类型错误。
 
 Task 6后置阻断：当前仓库没有实施地点权威主数据接口；基础平台部门API也不暴露可比较版本，无法在不臆造语义的前提下完成客户/办事处/实施地点稳定ID、版本及数据范围的全量服务端校验。该缺口不阻断版本化指派、前端非主数据部分及后续故障注入准备，但在接口补齐前Task 6和AC-FPROJ-007不得判定完成。
 

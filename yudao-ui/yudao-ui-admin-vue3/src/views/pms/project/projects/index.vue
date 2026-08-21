@@ -338,7 +338,9 @@
         >
           <el-table-column v-if="matchResult?.outcome === 'MULTI_MATCH'" label="" width="50">
             <template #default="{ row }">
-              <el-radio :value="row.templateId" v-model="selectedTemplateId">&nbsp;</el-radio>
+              <el-radio :value="row.templateRevisionId" v-model="selectedTemplateRevisionId">
+                <span class="sr-only">选择{{ row.name }}版本{{ row.latestRevisionNo }}</span>
+              </el-radio>
             </template>
           </el-table-column>
           <el-table-column prop="code" label="模板编码" width="170" />
@@ -367,6 +369,14 @@
 
       <!-- 步骤③：确认 + 可选服务经理 -->
       <div v-show="wizardStep === 2">
+        <el-alert
+          v-if="createErrorMessage"
+          type="error"
+          :closable="false"
+          show-icon
+          class="mb-16px"
+          :title="createErrorMessage"
+        />
         <el-descriptions :column="2" border size="small" class="mb-16px">
           <el-descriptions-item label="项目名称">{{ createForm.projectName }}</el-descriptions-item>
           <el-descriptions-item label="客户">{{ createForm.customerName || '-' }}</el-descriptions-item>
@@ -382,7 +392,7 @@
           <el-descriptions-item label="重大项目级别">{{ createForm.majorProjectLevel || '不限' }}</el-descriptions-item>
           <el-descriptions-item label="选用模板">
             <span v-if="selectedTemplate">
-              {{ selectedTemplate.name }}（#{{ selectedTemplate.templateId }} v{{ selectedTemplate.latestRevisionNo }}，人工选择）
+              {{ selectedTemplate.name }}（revision #{{ selectedTemplate.templateRevisionId }} v{{ selectedTemplate.latestRevisionNo }}，人工选择）
             </span>
             <span v-else-if="matchResult?.outcome === 'MATCHED'">
               {{ matchCandidates[0]?.name }}（唯一默认命中，自动加载）
@@ -678,14 +688,19 @@
             query-field="nickname"
             placeholder="请选择用户"
             class="!w-full"
-            @change="onAssignUserChange"
           />
         </el-form-item>
-        <el-form-item label="成员工号">
-          <el-input v-model="assignForm.employeeNo" placeholder="可选（快照留痕）" />
+        <el-form-item label="服务层级" prop="levelCode">
+          <el-select v-model="assignForm.levelCode" class="!w-full">
+            <el-option label="一级服务经理（L1）" value="L1" />
+            <el-option label="二级服务经理（L2）" value="L2" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="成员姓名">
-          <el-input v-model="assignForm.memberName" placeholder="可选（快照留痕）" />
+        <el-form-item label="办事处ID">
+          <el-input-number v-model="assignForm.officeId" :min="1" :controls="false" placeholder="已确认的稳定ID" class="!w-full" />
+        </el-form-item>
+        <el-form-item label="实施地点ID">
+          <el-input-number v-model="assignForm.locationId" :min="1" :controls="false" placeholder="已确认的稳定ID" class="!w-full" />
         </el-form-item>
         <el-form-item label="生效时间">
           <el-date-picker
@@ -728,6 +743,7 @@ import type {
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
 import * as UserApi from '@/api/system/user'
+import { createSubmissionIdempotencyState } from './submissionIdempotency'
 
 defineOptions({ name: 'PmsProjects' })
 
@@ -842,8 +858,8 @@ const wizardVisible = ref(false)
 const wizardStep = ref(0)
 const wizardFormRef = ref()
 const creating = ref(false)
-/** 幂等键：每次打开向导生成一次，重试/双击共用同一键（同键同摘要重放返回原资源） */
-let idempotencyKey = ''
+const createIdempotency = createSubmissionIdempotencyState()
+const createErrorMessage = ref('')
 
 const createForm = reactive({
   projectName: '',
@@ -886,9 +902,10 @@ const openWizard = () => {
     creationReason: '',
     serviceManagerUserId: undefined
   })
-  selectedTemplateId.value = undefined
+  selectedTemplateRevisionId.value = undefined
   matchResult.value = null
-  idempotencyKey = `pm01-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  createErrorMessage.value = ''
+  createIdempotency.reset()
   wizardVisible.value = true
 }
 
@@ -901,23 +918,24 @@ const wizardNext0 = async () => {
 // ============ 模板匹配（步骤②） ============
 const matchLoading = ref(false)
 const matchResult = ref<ProjectMatchTemplatesRespVO | null>(null)
-const selectedTemplateId = ref<number | undefined>(undefined)
+const selectedTemplateRevisionId = ref<number | undefined>(undefined)
 
 const matchCandidates = computed<TemplateCandidateVO[]>(() => matchResult.value?.candidates || [])
 const selectedTemplate = computed(
-  () => matchCandidates.value.find((c) => c.templateId === selectedTemplateId.value) || null
+  () => matchCandidates.value.find((c) => c.templateRevisionId === selectedTemplateRevisionId.value) || null
 )
 /** 步骤② → ③ 门槛：MATCHED 自动放行；MULTI_MATCH 必选一个；NO_MATCH 阻断 */
 const canGoStep2 = computed(() => {
   if (!matchResult.value) return false
-  if (matchResult.value.outcome === 'MATCHED') return true
-  if (matchResult.value.outcome === 'MULTI_MATCH') return !!selectedTemplateId.value
+  if (!matchResult.value.candidateWatermark) return false
+  if (matchResult.value.outcome === 'MATCHED') return matchCandidates.value.length === 1
+  if (matchResult.value.outcome === 'MULTI_MATCH') return !!selectedTemplateRevisionId.value
   return false
 })
 
 const runMatch = async () => {
   matchLoading.value = true
-  selectedTemplateId.value = undefined
+  selectedTemplateRevisionId.value = undefined
   try {
     matchResult.value = await ProjectsApi.matchTemplates({
       signingMethod: createForm.signingMethod || undefined,
@@ -932,7 +950,7 @@ const runMatch = async () => {
 
 const selectCandidate = (row: TemplateCandidateVO) => {
   if (matchResult.value?.outcome === 'MULTI_MATCH') {
-    selectedTemplateId.value = row.templateId
+    selectedTemplateRevisionId.value = row.templateRevisionId
   }
 }
 
@@ -967,33 +985,37 @@ const stageGates = (code: string) =>
 
 // ============ 提交创建（步骤③） ============
 const submitCreate = async () => {
+  const payload: ProjectsApi.ProjectCreateReqVO = {
+    projectName: createForm.projectName,
+    customerCode: createForm.customerCode || undefined,
+    customerName: createForm.customerName || undefined,
+    contractNo: createForm.contractNo || undefined,
+    orderOfficeCompanyCode: createForm.orderOfficeCompanyCode || undefined,
+    orderOfficeDepartmentCode: createForm.orderOfficeDepartmentCode || undefined,
+    implementationLocation: createForm.implementationLocation || undefined,
+    signingMethod: createForm.signingMethod,
+    projectCategory: createForm.projectCategory,
+    implementationMode: createForm.implementationMode,
+    majorProjectLevel: createForm.majorProjectLevel || null,
+    creationReason: createForm.creationReason,
+    templateRevisionId: selectedTemplateRevisionId.value,
+    candidateWatermark: matchResult.value?.candidateWatermark || '',
+    serviceManagerUserId: createForm.serviceManagerUserId || null
+  }
+  const idempotencyKey = createIdempotency.keyFor(payload)
   creating.value = true
+  createErrorMessage.value = ''
   try {
-    const created = await ProjectsApi.createProject(
-      {
-        projectName: createForm.projectName,
-        customerCode: createForm.customerCode || undefined,
-        customerName: createForm.customerName || undefined,
-        contractNo: createForm.contractNo || undefined,
-        orderOfficeCompanyCode: createForm.orderOfficeCompanyCode || undefined,
-        orderOfficeDepartmentCode: createForm.orderOfficeDepartmentCode || undefined,
-        implementationLocation: createForm.implementationLocation || undefined,
-        signingMethod: createForm.signingMethod,
-        projectCategory: createForm.projectCategory,
-        implementationMode: createForm.implementationMode,
-        majorProjectLevel: createForm.majorProjectLevel || null,
-        creationReason: createForm.creationReason,
-        templateId: selectedTemplateId.value,
-        serviceManagerUserId: createForm.serviceManagerUserId || null
-      },
-      idempotencyKey
-    )
+    const created = await ProjectsApi.createProject(payload, idempotencyKey)
     message.success(
       `创建成功：${created.projectCode}（实例：阶段${created.stageCount}/任务${created.taskCount}` +
         `/里程碑${created.milestoneCount}/交付件${created.deliverableCount}/门禁${created.gateCount}）`
     )
     wizardVisible.value = false
     await load()
+  } catch (error: any) {
+    createErrorMessage.value =
+      error?.response?.data?.msg || error?.message || '创建失败，请修正提示项后重新提交'
   } finally {
     creating.value = false
   }
@@ -1115,40 +1137,70 @@ const assignFormRef = ref()
 const assignTarget = ref<ProjectMasterVO | null>(null)
 const assignForm = reactive({
   userId: undefined as number | undefined,
-  employeeNo: '',
-  memberName: '',
+  levelCode: 'L1' as 'L1' | 'L2',
+  officeId: undefined as number | undefined,
+  locationId: undefined as number | undefined,
   effectiveFrom: ''
 })
 const assignRules = {
-  userId: [{ required: true, message: '请选择服务经理用户', trigger: 'change' }]
+  userId: [{ required: true, message: '请选择服务经理用户', trigger: 'change' }],
+  levelCode: [{ required: true, message: '请选择服务层级', trigger: 'change' }]
 }
+const PROJECT_VERSION_CONFLICT_CODE = 1014024014
+const assignIdempotency = createSubmissionIdempotencyState()
 
-const openAssign = (row: ProjectMasterVO) => {
-  assignTarget.value = row
-  Object.assign(assignForm, { userId: undefined, employeeNo: '', memberName: '', effectiveFrom: '' })
+const openAssign = async (row: ProjectMasterVO) => {
+  assignTarget.value = await ProjectsApi.getProject(row.id!)
+  Object.assign(assignForm, {
+    userId: undefined,
+    levelCode: 'L1',
+    officeId: undefined,
+    locationId: undefined,
+    effectiveFrom: ''
+  })
+  assignIdempotency.reset()
   assignVisible.value = true
-}
-
-/** 选人后自动带出昵称快照（memberName 留痕，仍可手工修改） */
-const onAssignUserChange = (_val: any, selected: any) => {
-  assignForm.memberName = selected?.nickname || ''
 }
 
 const submitAssign = async () => {
   await assignFormRef.value?.validate()
+  if (assignTarget.value?.version === undefined) {
+    message.error('Project版本缺失，请重新加载项目后再指派')
+    return
+  }
+  const payload = {
+    roleCode: 'SERVICE_MANAGER' as const,
+    levelCode: assignForm.levelCode,
+    userId: assignForm.userId!,
+    officeId: assignForm.officeId,
+    locationId: assignForm.locationId,
+    effectiveFrom: assignForm.effectiveFrom || undefined
+  }
+  const requestIdentity = {
+    projectId: assignTarget.value.id,
+    expectedVersion: assignTarget.value.version,
+    payload
+  }
   saving.value = true
   try {
-    await ProjectsApi.assignManager(assignTarget.value!.id!, {
-      userId: assignForm.userId!,
-      employeeNo: assignForm.employeeNo || undefined,
-      memberName: assignForm.memberName || undefined,
-      effectiveFrom: assignForm.effectiveFrom || undefined
-    })
+    const result = await ProjectsApi.assignManager(
+      assignTarget.value.id!,
+      payload,
+      assignTarget.value.version,
+      assignIdempotency.keyFor(requestIdentity)
+    )
+    assignTarget.value.version = result.version
     message.success('指派成功（旧区间已关闭，新区间生效）')
     assignVisible.value = false
     await load()
     if (detailVisible.value && detail.value?.id === assignTarget.value?.id) {
       members.value = await ProjectsApi.getProjectMembers(assignTarget.value!.id!)
+    }
+  } catch (error: any) {
+    if (error?.response?.data?.code === PROJECT_VERSION_CONFLICT_CODE && assignTarget.value?.id) {
+      assignTarget.value = await ProjectsApi.getProject(assignTarget.value.id)
+      assignIdempotency.reset()
+      message.warning('Project版本已变化，已重新加载，请确认后再次提交')
     }
   } finally {
     saving.value = false

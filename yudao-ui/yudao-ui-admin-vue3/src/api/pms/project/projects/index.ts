@@ -36,6 +36,10 @@ export interface ProjectMasterVO {
   processDefinitionVersion?: string
   sourceType?: string
   status?: string
+  lifecycleStatus?: string
+  currentStage?: string
+  assignmentStatus?: string
+  version?: number
   progress?: number
   aggregationWeight?: number
   weightSource?: string
@@ -58,7 +62,8 @@ export interface ProjectCreateReqVO {
   implementationMode?: string
   majorProjectLevel?: string | null
   creationReason: string
-  templateId?: number | null
+  templateRevisionId?: number | null
+  candidateWatermark: string
   serviceManagerUserId?: number | null
 }
 
@@ -75,6 +80,7 @@ export interface ProjectCreateRespVO extends ProjectMasterVO {
 /** 模板匹配候选 */
 export interface TemplateCandidateVO {
   templateId: number
+  templateRevisionId: number
   code: string
   name: string
   matchPriority: number
@@ -88,6 +94,7 @@ export interface TemplateCandidateVO {
 /** 模板匹配响应：MATCHED 唯一命中 / NO_MATCH 无匹配 / MULTI_MATCH 同优先级多匹配 */
 export interface ProjectMatchTemplatesRespVO {
   outcome: 'MATCHED' | 'NO_MATCH' | 'MULTI_MATCH'
+  candidateWatermark: string
   candidates: TemplateCandidateVO[]
   conflicts: string[]
 }
@@ -180,11 +187,11 @@ export interface ProjectProgressVO {
 }
 
 /** 手工创建项目（Idempotency-Key 幂等：同键同摘要重放返回原资源） */
-export const createProject = (data: ProjectCreateReqVO, idempotencyKey?: string) =>
+export const createProject = (data: ProjectCreateReqVO, idempotencyKey: string) =>
   request.post<ProjectCreateRespVO>({
     url: baseUrl,
     data,
-    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined
+    headers: { 'Idempotency-Key': idempotencyKey }
   })
 
 /** 按三维+级别实时匹配生效模板（创建向导第②步） */
@@ -193,15 +200,15 @@ export const matchTemplates = (params: {
   projectCategory?: string
   implementationMode?: string
   majorProjectLevel?: string
-}) => request.get<ProjectMatchTemplatesRespVO>({ url: `${baseUrl}/actions/match-templates`, params })
+}) =>
+  request.get<ProjectMatchTemplatesRespVO>({ url: `${baseUrl}/actions/match-templates`, params })
 
 /** 分页查询（名称/编码/状态/三维过滤） */
 export const getProjectPage = (params: PageParam) =>
   request.get<{ list: ProjectMasterVO[]; total: number }>({ url: `${baseUrl}/page`, params })
 
 /** 项目详情（基本信息+四维+模板绑定） */
-export const getProject = (id: number) =>
-  request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
+export const getProject = (id: number) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
 
 /** 更新可编辑属性（BR-7：编码/父节点/来源/模板绑定/状态不可改） */
 export const updateProject = (data: {
@@ -224,8 +231,27 @@ export const getProjectMembers = (id: number) =>
 /** 指派一级服务经理（旧区间关闭+新区间开启，留痕前后值） */
 export const assignManager = (
   id: number,
-  data: { userId: number; employeeNo?: string; memberName?: string; effectiveFrom?: string }
-) => request.post<boolean>({ url: `${baseUrl}/${id}/actions/assign-manager`, data })
+  data: {
+    roleCode: 'SERVICE_MANAGER'
+    levelCode: 'L1' | 'L2'
+    userId: number
+    officeId?: number
+    locationId?: number
+    effectiveFrom?: string
+  },
+  expectedVersion: number,
+  idempotencyKey: string
+) =>
+  request.post<{
+    projectId: number
+    assignmentId: number
+    version: number
+    assignmentStatus: string
+  }>({
+    url: `${baseUrl}/${id}/actions/assign-manager`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
+  })
 
 /** 直接下级项目（按需加载，F-PM02） */
 export const getChildren = (id: number) =>
@@ -241,7 +267,10 @@ export const getAncestors = (id: number) =>
 
 /** 指定业务层级查询（F-PM02） */
 export const getByBusinessLevel = (businessLevelCode: string) =>
-  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/actions/by-business-level`, params: { businessLevelCode } })
+  request.get<ProjectMasterVO[]>({
+    url: `${baseUrl}/actions/by-business-level`,
+    params: { businessLevelCode }
+  })
 
 /** 子树移动（校验无环后重建子树缓存，F-PM02） */
 export const moveSubtree = (id: number, newParentId: number) =>
@@ -252,7 +281,5 @@ export const getProgress = (id: number) =>
   request.get<ProjectProgressVO>({ url: `${baseUrl}/${id}/progress` })
 
 /** 整组设置直接子项目人工权重（完整覆盖且合计 100%，F-PM02） */
-export const updateChildWeights = (
-  id: number,
-  children: { projectId: number; weight: number }[]
-) => request.put<boolean>({ url: `${baseUrl}/${id}/child-weights`, data: { children } })
+export const updateChildWeights = (id: number, children: { projectId: number; weight: number }[]) =>
+  request.put<boolean>({ url: `${baseUrl}/${id}/child-weights`, data: { children } })

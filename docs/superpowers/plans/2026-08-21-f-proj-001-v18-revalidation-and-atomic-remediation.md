@@ -417,6 +417,8 @@ Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests
 
 ### Task 8: 改造Vue创建向导和指派交互
 
+> 执行注记（2026-08-21）：按用户指示禁用测试驱动，生产代码完成后使用Node 24内置测试运行器补充事后测试，避免为单个纯状态测试引入新的前端测试框架依赖。revision候选、水位提交、页面内存态幂等键、If-Match指派和版本冲突重载已实现；主数据范围校验仍受Task 6阻断。全量`pnpm ts:check`被仓库既有auto-import声明缺失阻断，但目标文件筛查无错误，`build:local`通过。
+
 **Files:**
 - Modify: `yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts`
 - Modify: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue`
@@ -426,7 +428,7 @@ Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests
 - Consumes: revision级候选、预览、创建和版本化指派API。
 - Produces: 仅当前页面内存表单；失败修正后新Key；刷新不可恢复；无本地持久化。
 
-- [ ] **Step 1: 写前端失败测试**
+- [x] **Step 1: 写前端事后测试**
 
 ```ts
 it('regenerates Idempotency-Key after a correctable failed request', async () => {
@@ -448,11 +450,15 @@ Run: `pnpm exec vitest run src/views/pms/project/projects/index.spec.ts`
 
 Workdir: `yudao-ui/yudao-ui-admin-vue3`
 
-- [ ] **Step 3: 修改API类型和向导状态机**
+- [x] **Step 3: 修改API类型和向导状态机**
 
 候选行以`templateRevisionId`为选择值并保存`candidateWatermark`；提交失败保留reactive内存表单和逐项错误。仅对同一未修改请求的网络重试复用Key；任一输入或revision修改后生成新Key。
 
-- [ ] **Step 4: 运行定向测试与类型检查**
+- [x] **Step 4: 运行定向测试、目标类型筛查与构建**
+
+Run: `node --test src/views/pms/project/projects/index.spec.ts`
+
+Run: `pnpm build:local`
 
 Run: `pnpm exec vitest run src/views/pms/project/projects/index.spec.ts`
 

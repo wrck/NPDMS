@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.projects;
 
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -143,6 +144,12 @@ class ProjectMasterControllerContractTest {
             return put.value().length > 0 ? put.value()[0] : "";
         }
         return fail("未覆盖的映射类型：" + mapping.annotationType());
+    }
+
+    @Test
+    void projectDetailExposesVersionForAssignmentIfMatch() throws Exception {
+        assertNotNull(ProjectRespVO.class.getDeclaredField("version"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("assignmentStatus"));
     }
 
     private static void assertThrowsNoField(Class<?> type, String name) {
