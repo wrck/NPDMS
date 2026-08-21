@@ -71,7 +71,10 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("SUB-01", "SUB-02", "SUB-05"), contract("SubcontractRequest", "res_subcontract_request", "/subcontract-requests", events="SubcontractApproved", integration="OA", files="FileArtifact", workflow="平台内转包审批、价格审批与版本冻结", authorization="OrganizationSupplierScope；项目/供应商范围")),
     (("SUB-03", "SUB-04"), contract("PaymentGate、SatisfactionCollection", "res_payment_gate、acc_satisfaction_result", "/payment-gates", events="PaymentGateChanged", integration="财务系统", files="FileArtifact", workflow="付款前置满意度事实、批准版本和财务确认", authorization="OrganizationSupplierScope；付款门禁权限；满意度只读引用")),
 
-    (("CUS-01", "CUS-02", "CUS-03", "CUS-04"), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation", "/customers、/customer-contacts、/customer-relationships", events="CustomerMerged、MasterDataSynchronized", integration="CRM", workflow="客户同步、临时客户受控合并和联系人关系", authorization="OrganizationCustomerScope；CRM字段只读")),
+    (("CUS-01",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customers/{id}/panorama", integration="CRM及平台内项目/设备/服务事实", workflow="按授权聚合客户全景；单卡片失败保留其他卡片并显示最近成功截止时间，不以0替代未知", authorization="OrganizationCustomerScope；敏感联系人、故障、配置和维保字段专项权限")),
+    (("CUS-02",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customers/{id}/service-level-revisions", events="CustomerServiceLevelChanged", workflow="结束原有效区间并生成新等级版本；新业务动作冻结等级与策略版本，历史业务快照不回写", authorization="OrganizationCustomerScope；服务经理或管理层客户等级维护权限")),
+    (("CUS-03",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customers", events="CustomerMerged、MasterDataSynchronized", integration="CRM", workflow="CRM客户同步、临时客户受控创建与合并；权威字段不可被平台覆盖", authorization="OrganizationCustomerScope；CRM权威字段只读")),
+    (("CUS-04",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customer-contacts、/projects/{id}/customer-contacts", events="CustomerContactChanged", integration="CRM", workflow="联系人维护、项目角色时态关系和业务发生时联系信息快照", authorization="OrganizationCustomerScope、ProjectTreeScope；联系人字段专项权限")),
     (("EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"), contract("Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment", "ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history", "/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history", events="DeviceAssigned、DeviceComponentRelationChanged", files="FileArtifact", workflow="设备档案、配置Log引用、框板关系、扫码和唯一归属", authorization="ProjectDeviceScope；当前归属、框板关系维护与祖先范围")),
     (("EQP-04",), contract("AssetSyncSnapshot、Device", "ast_asset_sync_batch、ast_asset_sync_item、ast_device", "/devices", events="MasterDataSynchronized", integration="MES", workflow="MES来源版本幂等同步与冲突隔离", authorization="ProjectDeviceScope；MES字段只读")),
     (("AST-01",), contract("RMAReplacement、MaintenanceFact", "ast_rma_replacement、ast_maintenance_fact", "/rma-replacements、/devices/{deviceId}/service-status", events="DeviceStatusSynchronized", integration="备件系统", files="FileArtifact", workflow="RMA替换、设备归属校验和维保事实衔接", authorization="ProjectDeviceScope；设备与来源范围")),
@@ -83,9 +86,10 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
 
     (("CUT-01", "CUT-02", "CUT-09", "CUT-10"), contract("CutoverTask、CutoverAssessment", "cut_task、cut_assessment", "/cutover-tasks、/cutover-tasks/{id}/assessment", events="CutoverApproved", files="FileArtifact", workflow="任务创建、分级评估、风险/调研矩阵", authorization="CutoverTaskScope；项目/设备范围")),
     (("CUT-03",), contract("CutoverTask、CutoverChecklist、CollectionTask", "cut_task、cut_cutover_checklist、cut_cutover_checklist_item、cut_cutover_checklist_item_result、plt_collection_task", "/cutover-tasks/{id}/checklist、/cutover-tasks/{id}/checklist/actions/rematch、/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection", events="CollectionTaskRequested、CollectionResultAvailable、CutoverChecklistItemResultLinked", integration="现有采集平台子应用", files="FileArtifact", workflow="CutoverTask内P3清单版本在同一工作台动态匹配、人工填写/上传、采集任务下发、结果版本选择和配置缺口留痕；不复制DAC技术状态", authorization="CutoverTaskScope、BusinessObjectDeviceCredentialScope；服务端按清单项和设备范围裁剪")),
-    (("CUT-04", "CUT-05", "CUT-07"), contract("CutoverPlan", "cut_plan_revision、cut_step", "/cutover-tasks/{id}/plan-revisions", events="CutoverApproved", files="FileArtifact", workflow="方案编审、分级审批和版本冻结", authorization="CutoverTaskScope；分级审批权限")),
+    (("CUT-04", "CUT-05"), contract("CutoverPlan", "cut_plan_revision、cut_step", "/cutover-tasks/{id}/plan-revisions", events="CutoverApproved", files="FileArtifact", workflow="方案编审、分级审批和版本冻结", authorization="CutoverTaskScope；分级审批权限")),
     (("CUT-06",), contract("CutoverClosure、CollectionTask", "cut_cutover_closure、plt_collection_task", "/cutover-tasks/{id}/closure", events="CollectionResultConsumed、CutoverCompleted", integration="现有采集平台子应用、ITR", files="FileArtifact", workflow="P6闭环填写、INT-12证据引用、提交归档和结果回流；不建立逐步骤执行或稳定观察", authorization="CutoverTaskScope、BusinessObjectDeviceCredentialScope")),
     (("CUT-08",), contract("CutoverTask", "cut_task、ast_asset_sync_item", "/cutover-tasks", integration="备件系统", workflow="备件申请映射、回调、门禁和对账", authorization="CutoverTaskScope；外部备件范围")),
+    (("CUT-07",), contract("CutoverPlan", "cut_plan_revision、cut_step", "/cutover-config/types、/cutover-config/network-modes、/cutover-config/checklist-items、/cutover-config/binding-rules", events="CutoverConfigurationPublished", integration="基础平台字典、可选外部动态数据源", workflow="草稿→已发布→已停用；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，已生成实例继续按消费版本解释", authorization="系统管理员配置权限；已发布版本和历史业务实例不可覆盖")),
 
     (("INS-01", "INS-02", "INS-04", "INS-07"), contract("InspectionTask、CollectionTask", "srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task", "/inspection-tasks、/collection-tasks", events="InspectionDispatched、InspectionCompleted、CollectionResultConsumed", integration="现有采集平台子应用", files="FileArtifact", workflow="方式选择、预检/执行、业务消费和归档门禁", authorization="AssignedProjectDeviceScope、BusinessObjectDeviceCredentialScope")),
     (("INS-03", "INS-09"), contract("InspectionRule", "srv_inspection_rule、srv_inspection_rule_revision", "/inspection-rules、/{id}/revisions", workflow="规则配置、发布版本和任务冻结", authorization="AssignedProjectDeviceScope；规则维护/使用分离")),
@@ -181,6 +185,15 @@ def phase3_verification(identifier: str, spec: Contract) -> tuple[str, str]:
     return "；".join(tests), "；".join(evidence)
 
 
+def phase3_side_effect(spec: Contract) -> str:
+    return (
+        f"成功仅按契约写入/引用数据对象“{spec.data}”及数据表“{spec.tables}”；"
+        f"事件边界为“{spec.events}”，文件边界为“{spec.files}”，外部集成为“{spec.integration}”。"
+        "授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；"
+        "仅允许保存拒绝/失败审计和已有事实不变的结果。"
+    )
+
+
 def render(prd: Path) -> str:
     requirements = load_requirements(prd)
     catalog = build_catalog(requirements)
@@ -213,7 +226,10 @@ def render(prd: Path) -> str:
             f"- 工作流/状态：{spec.workflow}",
             f"- 授权与数据范围：{spec.authorization}",
             f"- Phase 3测试类别：{phase3_tests}",
-            f"- Phase 3验收断言：按PRD {identifier}业务验收标准验证“{spec.workflow}”；越权按“{spec.authorization}”拒绝，适用的非法状态、版本冲突或无效输入由对应业务守卫拒绝，且不产生业务副作用",
+            f"- Phase 3 PRD验收基线：{item['acceptance']}",
+            f"- Phase 3授权拒绝断言：越权按“{spec.authorization}”拒绝，不返回未授权业务事实且不产生业务副作用",
+            f"- Phase 3业务守卫断言：按“{spec.workflow}”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变",
+            f"- Phase 3副作用断言：{phase3_side_effect(spec)}",
             f"- Phase 3证据类型：{phase3_evidence}",
             "",
         ])

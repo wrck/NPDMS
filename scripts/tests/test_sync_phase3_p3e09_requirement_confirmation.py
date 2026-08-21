@@ -41,7 +41,9 @@ class Phase3P3E09RequirementConfirmationSyncTest(unittest.TestCase):
             facts["executionWindowPolicy"],
         )
         self.assertEqual({"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"}, set(item["blocks"]))
-        self.assertEqual("READY_FOR_SDS_BASELINE", result["overallStatus"])
+        self.assertEqual(2, result["schemaVersion"])
+        self.assertEqual("MODEL_BASELINE_READY", result["modelEvidenceStatus"])
+        self.assertNotIn("overallStatus", result)
 
 
 if __name__ == "__main__":

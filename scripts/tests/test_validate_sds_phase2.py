@@ -633,6 +633,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            shutil.copytree(repository_root / "docs" / "decisions", root / "docs" / "decisions")
+            shutil.copytree(repository_root / "docs" / "engineering" / "gates" / "phase-2", root / "docs" / "engineering" / "gates" / "phase-2")
             (root / "docs" / "traceability").mkdir(parents=True)
             shutil.copy2(
                 repository_root / "docs" / "traceability" / "phase2-contract-map.md",
@@ -641,9 +643,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             contract = root / "docs" / "traceability" / "phase2-contract-map.md"
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "proj_project_task_execution_contract、",
-                    "",
-                    1,
+                    "proj_project_task_execution_contract",
+                    "removed_project_task_execution_contract",
                 ),
                 encoding="utf-8",
             )
@@ -657,6 +658,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            shutil.copytree(repository_root / "docs" / "decisions", root / "docs" / "decisions")
+            shutil.copytree(repository_root / "docs" / "engineering" / "gates" / "phase-2", root / "docs" / "engineering" / "gates" / "phase-2")
             (root / "docs" / "traceability").mkdir(parents=True)
             shutil.copy2(
                 repository_root / "docs" / "traceability" / "phase2-contract-map.md",

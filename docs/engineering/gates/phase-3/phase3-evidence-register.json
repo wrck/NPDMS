@@ -1,8 +1,8 @@
 {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "phase": "SDS_PHASE_3",
     "baseline": "PRD_V1.8",
-    "overallStatus": "READY_FOR_SDS_BASELINE",
+    "modelEvidenceStatus": "MODEL_BASELINE_READY",
     "updatedAt": "2026-08-19",
     "decisionBaseline": "docs/decisions/0004-phase3-production-assurance-directions.md",
     "items": [

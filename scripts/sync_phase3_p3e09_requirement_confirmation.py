@@ -52,7 +52,9 @@ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, 
     for reference in generated["evidenceRefs"]:
         if reference not in item["evidenceRefs"]:
             item["evidenceRefs"].append(reference)
-    payload["overallStatus"] = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"
+    payload.pop("overallStatus", None)
+    payload["schemaVersion"] = 2
+    payload["modelEvidenceStatus"] = "MODEL_BASELINE_READY" if ready else "MODEL_BASELINE_NOT_READY"
     return payload
 
 

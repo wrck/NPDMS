@@ -1,6 +1,6 @@
 # 项目实施交付管理平台 系统详细设计说明书（SDS 总册）
 
-> 文档状态：`REVALIDATION_REQUIRED`
+> 文档状态：`IN_REVIEW`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求
 > Owner：SDS 总编
@@ -12,9 +12,9 @@
 |---|---|---|---|
 | SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |
 | SDS Phase 2 | `BASELINE` | `READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
-| SDS Phase 3 | `REVALIDATION_REQUIRED` | `NOT_READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
+| SDS Phase 3 | `IN_REVIEW` | `NOT_READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7三阶段历史审查证据保留。V1.8 Phase 1/2已完成差量复审；Phase 3完成前，本总册及状态为`IN_REVIEW`/`REVALIDATION_REQUIRED`/`DEFERRED_TO_PHASE_3`的Phase 3分册不得作为新增Feature或实现的当前放行依据。
+V1.7三阶段历史审查证据保留。V1.8 Phase 1/2已完成差量复审；Phase 3完成前，本总册及状态为`IN_REVIEW`/`DEFERRED_TO_PHASE_3`的Phase 3分册不得作为新增Feature或实现的当前放行依据。
 
 ## 2. 分册索引
 

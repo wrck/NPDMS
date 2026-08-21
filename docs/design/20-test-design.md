@@ -202,7 +202,7 @@ docker compose run --rm migrate validate
 | 正常/异常/权限/幂等/并发测试设计 | PASS |
 | 数据库、事件、集成、文件、安全和浏览器设计 | PASS |
 | NFR-01～03量化验收设计 | PASS |
-| 100项逐项运行验证映射 | REVALIDATION_REQUIRED；100/100均有测试类别和证据类型 |
+| 100项逐项运行验证映射 | IN_REVIEW；100/100均有PRD验收基线、授权拒绝、业务守卫、副作用、测试类别和证据类型 |
 | 前端类型检查 | FAIL（P3-E08）；2026-08-13真实执行`corepack pnpm ts:check`退出码1，生产构建通过不能覆盖 |
 | 生产/性能环境、恢复和真实接口证据 | BLOCKED_BY_EVIDENCE（P3-E01～E07，按发布范围适用） |
 | 历史迁移/数据切换证据 | CONDITIONAL：发布包含任一项时由`AI-MIG-000`在Release前关闭并绑定批准窗口；否则`NOT_APPLICABLE` |

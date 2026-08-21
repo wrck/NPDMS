@@ -4,7 +4,7 @@
 
 本目录用于沉淀《项目实施交付管理平台 系统详细设计说明书（SDS）》。
 
-> 当前基线提示：PRD V1.8已于2026-08-19发布。Phase 1/2分册已通过独立复审并晋级`BASELINE`，可作为Phase 3设计输入；状态为`IN_REVIEW`、`REVALIDATION_REQUIRED`或`DEFERRED_TO_PHASE_3`的Phase 3分册仍不得作为新Feature或实现的放行依据。V1.7审查材料只作为历史证据。
+> 当前基线提示：PRD V1.8已于2026-08-19发布。Phase 1/2分册已通过独立复审并晋级`BASELINE`，可作为Phase 3设计输入；状态为`IN_REVIEW`或`DEFERRED_TO_PHASE_3`的Phase 3分册仍不得作为新Feature或实现的放行依据。V1.7审查材料只作为历史证据。
 
 ## 目标文件
 

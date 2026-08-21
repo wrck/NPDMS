@@ -2,7 +2,7 @@
 
 Phase 3审查安全、审计可观测、部署、性能和测试设计是否足以形成完整SDS基线。
 
-PRD V1.8发布后当前结论为`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8`。V1.7审查保留为历史证据；Phase 1/2已发布BASELINE，P3-E09只提供当前DDL与模型事实输入，不等同于Phase 3整体放行。五份Phase 3分册与100项测试/验收断言/证据映射已形成`IN_REVIEW`候选；本阶段独立复审完成前不得晋级BASELINE，部署、联调、专项验收、历史迁移、切换和生产发布门禁继续有效。
+PRD V1.8发布后当前结论为`IN_REVIEW / NOT_READY_FOR_SDS_BASELINE_V1.8`。V1.7审查保留为历史证据；Phase 1/2已发布BASELINE，P3-E09只提供当前DDL与模型事实输入，不等同于Phase 3整体放行。五份Phase 3分册与100项测试/验收断言/证据映射已形成`IN_REVIEW`候选；本阶段独立复审完成前不得晋级BASELINE，部署、联调、专项验收、历史迁移、切换和生产发布门禁继续有效。
 
 ## 当前文件
 

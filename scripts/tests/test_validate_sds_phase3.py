@@ -46,16 +46,22 @@ class Phase3ValidatorTest(unittest.TestCase):
             "PM-05": "部分失败 逐项重试",
             "PM-06": "无环 唯一期次",
             "PM-11": "5万节点 2000直接子节点 深度30",
+            "CUS-02": "CustomerRelationshipSnapshot /customers/{id}/service-level-revisions 结束原等级区间并生成新版本 等级与策略快照 历史业务快照不回写",
+            "CUT-07": "CutoverPlan /cutover-config/checklist-items 草稿→已发布→已停用 稳定编码 动态维度 已生成实例继续按消费版本解释",
             "INT-12": "五元组 临时明文不落库 原子切换 秘密扫描零命中",
-            "NFR-01": "50并发用户30分钟 10000请求 P95 Playwright trace",
-            "NFR-02": "AES-256 密钥轮换 秘密扫描",
+            "NFR-01": "50并发用户30分钟 10000请求 P95 错误率不高于0.5% 50MB 20万项目 200万任务 Chrome/Edge/Firefox Playwright trace",
+            "NFR-02": "AES-256 任务级短期取密 临时输入 密码记录数为0 撤销 明文命中数为0 密钥轮换 秘密扫描",
             "NFR-03": "99% 60秒",
             "PLT-02": "50MB 恶意内容 权限",
         }
         synthetic_count = 100 - len(exact)
         identifiers = list(exact) + [f"REQ-{index:03d}" for index in range(1, synthetic_count + 1)]
         prd_blocks = [
-            f"| 需求编号 | {identifier} |\n| 目标版本 | V1 |\n"
+            f"| 需求编号 | {identifier} |\n| 目标版本 | V1 |\n\n"
+            "**业务验收标准：**\n\n"
+            f"- **WHEN** 执行 {identifier} 有效业务请求\n"
+            f"- **THEN** 返回 {identifier} 可观察业务结果\n\n"
+            "**权限与数据范围：**\n\n测试范围\n"
             for identifier in identifiers
         ]
         (self.root / "docs" / "baseline" / "prd-v1.8.md").write_text(
@@ -63,10 +69,23 @@ class Phase3ValidatorTest(unittest.TestCase):
         )
         for identifier in identifiers:
             detail = exact.get(identifier, "业务规则")
+            acceptance = (
+                f"WHEN 执行 {identifier} 有效业务请求；"
+                f"THEN 返回 {identifier} 可观察业务结果"
+            )
             blocks.append(
-                f"### {identifier}\n- Phase 3测试类别：{detail}\n"
-                f"- Phase 3验收断言：按PRD {identifier}业务验收标准，验证{detail}；越权或非法状态拒绝且无业务副作用\n"
-                f"- Phase 3证据类型：自动化证据 {detail}\n"
+                f"### {identifier}\n"
+                "- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；"
+                "服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；"
+                f"{detail}\n"
+                f"- Phase 3 PRD验收基线：{acceptance}\n"
+                "- Phase 3授权拒绝断言：越权按“测试权限”拒绝，不返回未授权业务事实且不产生业务副作用\n"
+                f"- Phase 3业务守卫断言：按“{detail}”执行；非法状态由对应业务守卫拒绝，原有效业务事实保持不变\n"
+                "- Phase 3副作用断言：成功仅按契约写入/引用数据对象“测试对象”及数据表“测试表”；"
+                "事件边界为“N/A”，文件边界为“N/A”，外部集成为“N/A”。授权拒绝或业务守卫失败"
+                "不得新增有效业务版本、事件、文件引用或外部完成事实。\n"
+                "- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；"
+                f"数据库迁移/约束验证记录；{detail}\n"
             )
         (self.root / "docs" / "traceability" / "phase2-contract-map.md").write_text(
             "> Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`\n\n" + "\n".join(blocks), encoding="utf-8"
@@ -180,7 +199,7 @@ class Phase3ValidatorTest(unittest.TestCase):
             }
             evidence_items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": evidence_blocks[identifier]})
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json").write_text(
-            json.dumps({"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.7", "decisionBaseline": decision_ref, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": evidence_items}),
+            json.dumps({"schemaVersion": 2, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.7", "decisionBaseline": decision_ref, "modelEvidenceStatus": "MODEL_BASELINE_NOT_READY", "items": evidence_items}),
             encoding="utf-8",
         )
 
@@ -197,7 +216,7 @@ class Phase3ValidatorTest(unittest.TestCase):
 
     def test_missing_requirement_mapping_fails(self) -> None:
         path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
-        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-092", "### REQ-091"), encoding="utf-8")
+        path.write_text(path.read_text(encoding="utf-8").replace("### REQ-001", "### REQ-002", 1), encoding="utf-8")
         self.assertTrue(any("expected 100" in item for item in VALIDATOR.validate(self.root)))
 
     def test_equal_count_non_formal_requirement_substitution_fails(self) -> None:
@@ -213,11 +232,30 @@ class Phase3ValidatorTest(unittest.TestCase):
     def test_missing_requirement_acceptance_assertion_fails(self) -> None:
         path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
         path.write_text(
-            path.read_text(encoding="utf-8").replace("- Phase 3验收断言：按PRD PM-05", "- 验收说明：按PRD PM-05", 1),
+            path.read_text(encoding="utf-8").replace("- Phase 3 PRD验收基线：WHEN 执行 PM-05", "- 验收说明：WHEN 执行 PM-05", 1),
             encoding="utf-8",
         )
 
-        self.assertTrue(any("PM-05 missing unique Phase 3 acceptance assertion" in item for item in VALIDATOR.validate(self.root)))
+        self.assertTrue(any("PM-05 Phase 3 PRD acceptance" in item for item in VALIDATOR.validate(self.root)))
+
+    def test_generic_test_and_evidence_placeholders_fail(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        text = text.replace(
+            "业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；部分失败 逐项重试",
+            "占位测试A",
+            1,
+        )
+        text = text.replace(
+            "自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；部分失败 逐项重试",
+            "占位证据A",
+            1,
+        )
+        path.write_text(text, encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("PM-05 missing unique Phase 3 test categories" in item for item in errors), errors)
+        self.assertTrue(any("PM-05 missing unique Phase 3 evidence types" in item for item in errors), errors)
 
     def test_missing_rollback_and_secret_scan_fail(self) -> None:
         deploy = self.root / "docs" / "design" / "18-deployment-design.md"
@@ -248,7 +286,7 @@ class Phase3ValidatorTest(unittest.TestCase):
         gate = gate_path.read_text(encoding="utf-8")
 
         self.assertEqual([], VALIDATOR.validate(repository_root))
-        errors = VALIDATOR.validate_v18_revalidation(
+        errors = VALIDATOR.validate_v18_in_review(
             repository_root,
             gate.replace("NOT_READY_FOR_SDS_BASELINE_V1.8", "READY_FOR_SDS_BASELINE"),
         )
@@ -257,7 +295,7 @@ class Phase3ValidatorTest(unittest.TestCase):
     def test_v18_revalidation_gate_does_not_bypass_design_validation(self) -> None:
         gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
         gate.write_text(
-            "> 审查状态：`REVALIDATION_REQUIRED`\n"
+            "> 审查状态：`IN_REVIEW`\n"
             "> 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`\n"
             "P3-E09 AI-MIG-000 Q08候选索引 | Phase 1/2前置 | PASS |",
             encoding="utf-8",
@@ -274,8 +312,8 @@ class Phase3ValidatorTest(unittest.TestCase):
         gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
         gate.write_text(
             gate.read_text(encoding="utf-8")
-            .replace("`APPROVED`", "`IN_REVIEW`", 1)
-            + "\n历史结论曾为 REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8。\n",
+            .replace("`APPROVED`", "`REVALIDATION_REQUIRED`", 1)
+            + "\n历史结论曾为 IN_REVIEW / NOT_READY_FOR_SDS_BASELINE_V1.8。\n",
             encoding="utf-8",
         )
 

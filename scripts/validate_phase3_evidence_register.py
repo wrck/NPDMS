@@ -31,8 +31,8 @@ AI_MIG_RELEASE_APPLICABILITY = "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR
 AI_MIG_EXECUTION_WINDOW_POLICY = "APPROVED_WINDOW_ONLY"
 
 
-def sds_baseline_ready(by_id: dict[str, dict[str, object]]) -> bool:
-    """Return whether model-affecting Phase 3 gates allow the SDS baseline.
+def model_evidence_ready(by_id: dict[str, dict[str, object]]) -> bool:
+    """Return whether model-affecting Phase 3 evidence is ready.
 
     P3-E01 through P3-E08 retain their deployment, integration, acceptance, and
     release blocks, but those runtime facts do not exist at SDS baseline time.
@@ -156,7 +156,7 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
     except (OSError, json.JSONDecodeError) as exc:
         return [f"cannot read evidence register: {exc}"]
 
-    if payload.get("schemaVersion") != 1:
+    if payload.get("schemaVersion") != 2:
         errors.append("unsupported evidence register schemaVersion")
     if payload.get("phase") != "SDS_PHASE_3" or payload.get("baseline") not in SUPPORTED_BASELINES:
         errors.append("evidence register phase/baseline mismatch")
@@ -324,12 +324,14 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
     if MODEL_DECISION_REF not in e09.get("evidenceRefs", []):
         errors.append("P3-E09 Q07/Q08 decision reference missing")
 
-    ready = sds_baseline_ready(by_id)
-    expected_overall = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"
-    if payload.get("overallStatus") != expected_overall:
-        errors.append(f"overallStatus must be {expected_overall}")
+    if "overallStatus" in payload:
+        errors.append("overallStatus is not allowed; Phase 3 overall readiness belongs to the Gate")
+    ready = model_evidence_ready(by_id)
+    expected_model_status = "MODEL_BASELINE_READY" if ready else "MODEL_BASELINE_NOT_READY"
+    if payload.get("modelEvidenceStatus") != expected_model_status:
+        errors.append(f"modelEvidenceStatus must be {expected_model_status}")
     if require_ready and not ready:
-        errors.append(f"Phase 3 evidence not ready; unverified={sorted(identifier for identifier in BASELINE_REQUIRED if by_id.get(identifier, {}).get('status') != 'VERIFIED')}")
+        errors.append(f"Phase 3 model evidence not ready; unverified={sorted(identifier for identifier in BASELINE_REQUIRED if by_id.get(identifier, {}).get('status') != 'VERIFIED')}")
     return errors
 
 

@@ -88,7 +88,7 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
             {"v17Delta": {"objectTargetTables": {"Project": ["proj_project"]}}},
         )
         self.gate = {
-            "overallStatus": "NOT_READY_FOR_SDS_BASELINE",
+            "modelEvidenceStatus": "MODEL_BASELINE_NOT_READY",
             "items": [{
                 "id": "P3-E09", "status": "OPEN", "decisionOwner": None, "reviewOwner": None,
                 "confirmedFacts": {}, "evidenceRefs": [],

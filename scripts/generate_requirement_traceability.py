@@ -12,6 +12,11 @@ from pathlib import Path
 REQ_ID = re.compile(r"^[A-Z]+(?:-[A-Z0-9]+)?-\d+$")
 REQ_HEADER = re.compile(r"^#{3,4}\s+(?:\d+(?:\.\d+)*\s+)?([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s+(.+?)\s*$")
 INDEX_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|", re.M)
+ACCEPTANCE_HEADING = re.compile(r"^\*\*(?:业务)?验收标准：\*\*\s*$", re.M)
+POST_ACCEPTANCE_HEADING = re.compile(
+    r"^\*\*(?:涉及数据字段|权限与数据范围|异常、降级及留痕要求|依赖关系)：\*\*",
+    re.M,
+)
 
 
 def read(path: Path) -> str:
@@ -25,6 +30,33 @@ def fields(block: str) -> dict[str, str]:
         if match:
             result[match.group(1).strip()] = match.group(2).strip()
     return result
+
+
+def normalize_acceptance(text: str) -> str:
+    parts: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("- "):
+            line = line[2:].strip()
+        line = line.replace("**", "")
+        line = re.sub(r"\s+", " ", line).strip()
+        if line:
+            parts.append(line)
+    return "；".join(parts)
+
+
+def acceptance_section(block: str, identifier: str) -> str:
+    heading = ACCEPTANCE_HEADING.search(block)
+    if not heading:
+        raise SystemExit(f"formal requirement acceptance heading not found: {identifier}")
+    tail = block[heading.end():]
+    end = POST_ACCEPTANCE_HEADING.search(tail)
+    acceptance = normalize_acceptance(tail[:end.start() if end else len(tail)])
+    if not acceptance or "WHEN" not in acceptance or "THEN" not in acceptance:
+        raise SystemExit(f"formal requirement acceptance is not observable: {identifier}")
+    return acceptance
 
 
 def extract_requirements(text: str) -> list[dict[str, str]]:
@@ -71,6 +103,7 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
                 "version": version,
                 "roles": value.get("用户角色", ""),
                 "source": value.get("来源追溯", ""),
+                "acceptance": acceptance_section(block, identifier),
             }
         )
     if len(requirements) != 100:

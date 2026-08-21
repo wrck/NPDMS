@@ -1,6 +1,6 @@
 # SDS Phase 3 Review
 
-> 审查状态：`REVALIDATION_REQUIRED`<br>
+> 审查状态：`IN_REVIEW`<br>
 > 依据：PRD V1.8正式基线、SDS Phase 1/2 V1.8正式基线<br>
 > 结论：`NOT_READY_FOR_SDS_BASELINE_V1.8`
 
@@ -22,4 +22,4 @@ V1.7 Phase 3的`APPROVED / READY_FOR_SDS_BASELINE`保留为历史证据。V1.8�
 
 ## 3. 放行原则
 
-本次回落只反映PRD基线变化，不否定已验证的历史运行事实，也不提前要求部署时才存在的参数。Phase 1/2已完成V1.8差量GO；新增六表DDL差量、MySQL隔离执行和当前哈希独立复审已完成；五份Phase 3正式分册及100项测试追溯已形成可复核候选。整体独立复审尚未关闭，因此本阶段保持`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_V1.8`。
+本次回落只反映PRD基线变化，不否定已验证的历史运行事实，也不提前要求部署时才存在的参数。Phase 1/2已完成V1.8差量GO；新增六表DDL差量、MySQL隔离执行和当前哈希独立复审已完成；五份Phase 3正式分册及100项测试追溯已形成可复核候选。整体独立复审尚未关闭，因此本阶段保持`IN_REVIEW / NOT_READY_FOR_SDS_BASELINE_V1.8`。

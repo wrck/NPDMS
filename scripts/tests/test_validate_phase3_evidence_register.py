@@ -71,7 +71,7 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
                 refs.append(VALIDATOR.EXPORT_POLICY_REF)
                 refs.append(VALIDATOR.EXPORT_EXPIRATION_REF)
             items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": sorted(VALIDATOR.EXPECTED_BLOCKS[identifier])})
-        self.payload = {"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.7", "decisionBaseline": VALIDATOR.DECISION_REF, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": items}
+        self.payload = {"schemaVersion": 2, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.7", "decisionBaseline": VALIDATOR.DECISION_REF, "modelEvidenceStatus": "MODEL_BASELINE_NOT_READY", "items": items}
         self.write()
 
     def tearDown(self) -> None:
@@ -116,11 +116,17 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
         by_id = {item["id"]: item for item in self.payload["items"]}
         by_id["P3-E09"]["status"] = "VERIFIED"
         by_id["P3-E09"]["confirmedFacts"]["modelDecisionStatus"] = "MODEL_BASELINE_READY"
-        self.assertTrue(VALIDATOR.sds_baseline_ready(by_id))
+        self.assertTrue(VALIDATOR.model_evidence_ready(by_id))
 
     def test_p3e09_not_ready_blocks_sds_baseline(self) -> None:
         by_id = {item["id"]: item for item in self.payload["items"]}
-        self.assertFalse(VALIDATOR.sds_baseline_ready(by_id))
+        self.assertFalse(VALIDATOR.model_evidence_ready(by_id))
+
+    def test_rejects_legacy_overall_status(self) -> None:
+        self.payload["overallStatus"] = "READY_FOR_SDS_BASELINE"
+        self.write()
+        errors = VALIDATOR.validate(self.path)
+        self.assertTrue(any("overallStatus is not allowed" in error for error in errors), errors)
 
     def test_gate_scope_drift_is_detected(self) -> None:
         self.payload["items"][0]["blocks"].append("PHASE_3_BASELINE")
