@@ -1,8 +1,8 @@
 ﻿# SDS Phase 2：异常与幂等设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：全部 103 项 V1/V2 正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：全部100项V1/V2正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
 > Owner：SDS Phase 2 应用与可靠性架构
 > 前置设计：`09-database-design.md`～`15-cache-and-concurrency.md`
 
@@ -17,7 +17,7 @@
 | `STATE_CONFLICT` | 409 | 重新读取后决定 | 非法状态迁移、已归档版本修改 |
 | `VERSION_CONFLICT` | 409 | 使用新版本人工/受控重试 | If-Match 过期、树版本变化 |
 | `IDEMPOTENCY_CONFLICT` | 409 | 不可原样重试 | 同幂等键不同请求摘要 |
-| `BUSINESS_GATE` | 422 | 满足门禁后重试 | 安全阻断、交付件不齐、数量不足 |
+| `BUSINESS_GATE` | 422 | 满足门禁后重试 | 质量检查不合格、交付件不齐、数量不足 |
 | `DEPENDENCY_TEMPORARY` | 503/异步失败 | 按策略 | 外部超时、Broker/存储暂时不可用 |
 | `DEPENDENCY_REJECTED` | 422/异步失败 | 修正映射后 | 外部业务拒绝、未知字典、来源冲突 |
 | `INTERNAL` | 500 | 仅幂等安全时 | 未预期错误；响应不含堆栈和秘密 |
@@ -99,6 +99,13 @@
 | PM-05 同源已有生效目标 | IDEMPOTENCY_CONFLICT 或 BUSINESS_GATE；相同正式销售业务返回既有转销，不同目标拒绝 |
 | PM-06 期次/群组/循环冲突 | BUSINESS_GATE；返回冲突项目、关系类型和期次，不修改现有成员关系 |
 | PM-06 来源版本失效或部分期次无权 | 派生操作拒绝且不生成无来源副本；查询标记范围不完整，不把缺失期次计零 |
+| ProjectTask绑定缺失或类型非法 | 模板发布/任务实例化拒绝；通用任务必须显式使用TASK_NATIVE，不允许以空绑定形成旁路 |
+| 非TASK_NATIVE绑定目标不存在/无权/版本失效 | 任务保持原状态；返回绑定错误或权限拒绝，不创建通用任务内容替代，不泄露目标是否存在 |
+| ProjectTask完成事实或规则版本冲突 | VERSION_CONFLICT/BUSINESS_GATE；重新读取事实和CompletionRule后评估，不按旧快照完成 |
+| ProjectTask完成判定失败 | 追加失败的TaskCompletionEvaluation及未满足项，不推进状态；同一幂等键重放返回原判定，改变请求摘要则IDEMPOTENCY_CONFLICT |
+| CUT-03条件变化与采集回调并发 | DAC结果保留；CUT仅关联与当前清单版本/stableItemKey/itemVersion/设备相符的结果，其余进入待核对，不覆盖当前答案、不复制DAC技术状态 |
+| CUT-03自动采集失败后人工降级 | 自动失败结果正文和原因保持不变；授权工程师在同一事务关闭旧选择区间并追加带人工证据的MANUAL结果，唯一当前选择冲突则整体回滚，不把原CollectionTask改写为成功 |
+| CUT-03已提交版本再次编辑 | VERSION_CONFLICT/BUSINESS_GATE；创建新清单版本并使下游未审批方案按PRD失效，不原位解锁或覆盖 |
 
 ## 8. 外部集成异常与降级
 

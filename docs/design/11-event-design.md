@@ -1,8 +1,8 @@
 ﻿# SDS Phase 2：事件设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：本分册覆盖全部 103 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：本分册覆盖全部 100 项 V1/V2 正式需求中的跨聚合、跨 Context、异步投影、通知和外部回调协作；具体事件组在第 5～10 节标注范围
 > Owner：SDS Phase 2 事件与集成架构
 > 前置设计：`02d-cross-context-contracts.md`、`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
 
@@ -85,8 +85,8 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `ProjectCreated` | Project Delivery | SOL/IMP/ACC/ANA | aggregateVersion | 项目身份和来源映射已建立 |
 | `ProjectTreeChanged` | Project Delivery | Authorization/AST/ANA | changeBatchId + treeVersion | 一次无环树变更已提交；投影可据此重建 |
 | `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移 |
-| `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion | 项目关闭事实成立 |
-| `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion | 任务指派/完成事实 |
+| `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion + lifecycleStatus + closeReason | 项目关闭事实成立；NORMAL_CLOSED仅来自CLO-02，EXCEPTION_CLOSED来自PM-10，消费方不得据此新增维护阶段 |
+| `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion + executionContractId/contractVersion + completionEvaluationId + factVersion | 任务指派/完成事实；完成事件仅在CompletionRule回源校验绑定事实和版本、追加判定事实并完成状态迁移后发布 |
 | `ProjectConversionCompleted` | Project Delivery | IMP/CUT/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
 | `ProjectConversionPartiallyFailed` | Project Delivery | Todo/运维 | conversionId + aggregateVersion + failedItemRefs | 仅表示原批次仍待处理；成功项不回滚、不重复生成 |
 | `ProjectPhaseGroupChanged` | Project Delivery | Project Query/ANA | groupId + groupVersion + changedProjectIds | PM-06 多期关系有效版本变化；不改变成员项目自身状态 |
@@ -101,7 +101,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 
 ## 6. IMP、ACC 与 CUT 事件
 
-适用 Requirement：EXE-01～EXE-06、IMP-01～IMP-02、ACC-01～ACC-06、CLO-01～CLO-02、CUT-01～CUT-10。
+适用 Requirement：EXE-01～EXE-06、IMP-01、ACC-01～ACC-04、ACC-06、CLO-01～CLO-02、CUT-01～CUT-10。
 
 | 事件 | Producer | Consumer | Payload 核心 | 注意 |
 |---|---|---|---|---|
@@ -111,7 +111,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `DeviceComponentRelationChanged` | AST | IMP/CUT/Asset Query | chassisDeviceId、slotCode、cardDeviceId、effective interval、sourceRef、version | 仅在解析候选或人工绑定经校验后发布；原始Log和旧关系不覆盖 |
 | `JointDebuggingCompleted` | IMP | CUT/ACC | resultId、issueRefs、decision | 未完成问题需显式列出 |
 | `ImplementationRiskRaised/Closed` | IMP | Project/CUT Read Model | riskId、level、deviceId、evidenceRef | CUT 只消费引用，不共享风险状态表 |
-| `QualitySafetyGateChanged` | IMP | Project/ACC/CUT | project/batch、gateCode、decision、snapshotId | 阻断/解除均带规则和复核版本 |
+| `ImplementationQualityGateChanged` | IMP | Project/ACC/CUT | project/batch、gateCode、decision、snapshotId | 仅表示IMP-01质量检查结论；不承载IMP-02安全检查或额外安全豁免语义 |
 | `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、hash、source snapshot | ACC 审核引用，不覆盖 IMP revision |
 | `ImplementationReadinessSnapshotPublished` | IMP | CUT | snapshotId、version、decision、unmetCodes | CUT 执行冻结所校验快照 |
 | `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | artifactId、fileVersion、review/archive record | 归档不改变 FileArtifact 内容历史 |
@@ -120,6 +120,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |
 | `CutoverApproved` | CUT | Todo/DAC | taskId、planRevision、approval snapshot | 不自动下发采集任务 |
 | `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、closureRevision、resultRef、archivedAt | 仅P6提交归档且最终成功时发布；失败、回退未成功或仅采集完成不得发布 |
+| `CutoverChecklistItemResultLinked` | CUT | ProjectTask Query/CUT Read Model | taskId、checklistId/checklistVersion、stableItemKey/itemVersion、collectionTaskId、resultRef/resultVersion、resultSourceCode | P3同工作台已选择一个结果版本；只引用DAC技术结果，不复制其状态，不表示采集项通过或CUT阶段完成 |
 
 ## 7. Collection 事件链
 
@@ -170,14 +171,13 @@ Device Access & Collection
 
 ## 9. 主数据、商务、资源与知识事件
 
-适用 Requirement：CUS-01～CUS-04、COM-01～COM-02、RES-01、SUB-01～SUB-05、INT-03/04/07/09/10。
+适用 Requirement：CUS-01～CUS-04、COM-01、RES-01、SUB-01～SUB-05、INT-03/04/07/09/10。
 
 | 事件 | Producer | Consumer | 幂等与结果 |
 |---|---|---|---|
 | `MasterDataSynchronized` | 对应 Owner Context 的 Integration ACL | 各本地查询/投影 | sourceSystem + sourceKey + sourceVersion |
 | `CustomerMerged` | Customer | Project/ACC/Inspection | mergeBatchId；旧 ID 保留别名/引用映射 |
 | `DeliveryScopeAssigned/Released` | Commerce | Project/IMP/ACC | orderLine + scopeVersion |
-| `FulfillmentSnapshotPublished` | Commerce | Project/ANA | snapshotId + source watermarks |
 | `SubcontractApproved` | Resource | Project/Todo | requestId + revision |
 | `PaymentGateChanged` | Resource | Project/ACC | gate snapshot；外部付款回执并不自动表示所有门禁完成 |
 | `TechnicalNoticeSynchronized` | Knowledge | Asset/CUT/Inspection | ITR sourceKey + sourceVersion |
