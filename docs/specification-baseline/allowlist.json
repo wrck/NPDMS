@@ -2,8 +2,7 @@
   "schemaVersion": 1,
   "files": [
     {"path": "docs/README.md", "category": "ENGINEERING"},
-    {"path": "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md", "category": "BASELINE"},
-    {"path": "docs/baseline/prd-v1.8.md", "category": "BASELINE"},
+    {"path": "docs/baseline/prd-v1.7.md", "category": "BASELINE"},
     {"path": "docs/baseline/requirement-baseline.yaml", "category": "BASELINE"},
     {"path": "docs/decisions/0001-project-order-line-scope-model.md", "category": "DECISION"},
     {"path": "docs/decisions/0002-platform-identity-and-project-scoped-access.md", "category": "DECISION"},
@@ -33,9 +32,6 @@
     {"path": "docs/decisions/0026-cutover-flow-business-baseline-correction.md", "category": "DECISION"},
     {"path": "docs/decisions/0027-cutover-physical-model-correction.md", "category": "DECISION"},
     {"path": "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md", "category": "DECISION"},
-    {"path": "docs/decisions/0029-stage-task-work-binding-workbench.md", "category": "DECISION"},
-    {"path": "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md", "category": "DECISION"},
-    {"path": "docs/decisions/0032-manual-project-creation-cross-context-atomicity.md", "category": "DECISION"},
     {"path": "docs/decisions/ADR-001-implementation-execution-naming.md", "category": "DECISION"},
     {"path": "docs/decisions/open-questions.md", "category": "DECISION"},
     {"path": "docs/design/01-requirement-traceability.md", "category": "SDS"},
@@ -119,8 +115,6 @@
     {"path": "specs/001-project-delivery-platform/domains/SRV-服务运营需求规格.md", "category": "DOMAIN_SPEC"},
     {"path": "specs/001-project-delivery-platform/domains/项目实施交付管理平台规格体系调整原则（13领域版）.md", "category": "DOMAIN_SPEC"},
     {"path": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json", "category": "MODEL_EVIDENCE"},
-    {"path": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl", "category": "MODEL_EVIDENCE"},
-    {"path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md", "category": "FEATURE_SPEC"},
-    {"path": "specs/features/README.md", "category": "FEATURE_SPEC"}
+    {"path": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl", "category": "MODEL_EVIDENCE"}
   ]
 }

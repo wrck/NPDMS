@@ -1,12 +1,10 @@
 ﻿# SDS Phase 3：测试设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8、SDS Phase 1/2/3 BASELINE
-> Requirement ID：附录A.1全部100项V1/V2正式需求；重点NFR-01～03
+> 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE及Phase 3分册
+> Requirement ID：附录A.1全部103项V1/V2正式需求；重点NFR-01～03
 > Owner：SDS Phase 3质量架构；具体Feature测试由Requirement Owner负责
 > 前置设计：01～19正式分册
-
-Phase 1/2 V1.8基线和P3-E09模型输入已就绪；本分册定义测试设计和证据结构，不构成当前发布验收通过。V3、OUT_OF_SCOPE及后置工单/历史迁移内容只能作为边界负向测试或后续门禁输入。
 
 ## 1. 测试原则
 
@@ -68,10 +66,10 @@ Phase 1/2 V1.8基线和P3-E09模型输入已就绪；本分册定义测试设计
 |---|---|
 | Project | 任意层级树、无环、后代权限、投影完整版本；PM-05同源转销/部分失败/设备处置；PM-06唯一期次/冲突群组/派生不回写 |
 | SOL | 工期/计划/方案提交审批、版本冻结、动态表单schema版本、文件引用和退回历史 |
-| IMP | 到货部分签收/差异、安装确认/退回、配置解析、联调、风险事实、质量整改、就绪门禁；不新增安全聚合 |
-| ACC | 培训/调查/验收报告、交付件齐套/审核/归档、全部后代闭环门禁、V2静态服务交接快照 |
-| CUT | 任务/评估/方案/审批、批准方案引用、P6割接前/执行/测试/回退结果、动作类型+方向+正负值、DAC消费，不含平台通用割接时效和逐步骤状态机 |
-| SRV | 巡检在线/离线、预检/报告/问题闭环/误报、设备客观服务状态；历史工单/工时仅作迁移边界负向测试，不建立当前业务能力 |
+| IMP | 到货部分签收/差异、安装确认/退回、配置解析、联调、风险、质量整改、安全阻断/豁免、就绪门禁 |
+| ACC | 培训/调查/验收报告、交付件齐套/审核/归档、全部后代闭环门禁、持续服务交接且无续保经营 |
+| CUT | 任务/评估/方案/审批/执行/回退/观察、动作类型+方向+正负值、DAC消费，不含平台通用割接时效 |
+| SRV | 工单/工时原值调整、巡检在线/离线、预检/报告/问题闭环/误报、设备客观服务状态，不含工单时效/续保报表 |
 | CUS/AST/COM/RES | CRM客户Owner、ERP合同订单Owner、设备唯一归属、RMA/维保事实、范围超分配、服务商/转包/付款门禁 |
 | PLT/KNO/ANA | 待办不代业务成功、文件身份、授权、变更、ITR公告只读、指标/组合不回写交易事实 |
 
@@ -81,7 +79,7 @@ Phase 1/2 V1.8基线和P3-E09模型输入已就绪；本分册定义测试设计
 - 每个新增唯一/索引/约束验证成功、重复/冲突、并发和查询计划；租户必须包含在业务唯一键和高频索引。
 - Project/Task路径投影、Device当前归属/历史、DeliveryScope、Inbox/Outbox、文件版本、PM-05/06和DAC消费确认执行真实数据库并发测试。
 - Backfill验证批次/水位/暂停续跑、数量/hash/业务抽样和失败隔离；Switch前后旧/新应用兼容。
-- 只有发布包含历史迁移或数据切换时，才执行`AI-MIG-000`专项验证：先核验真实批次的范围、水位、程序、数据元/DDL/映射一致性、演练、对账、回退和批准窗口，再在窗口内执行源行覆盖、问题分类、数量金额、关系和抽样对账；普通功能发布不适用，旧`passed=true`不得复用。
+- 历史数据迁移先验证`AI-MIG-000`真实批次的范围、水位、程序、数据元/DDL/映射一致性、演练、对账和回退证据，再执行源行覆盖、问题分类、数量金额、关系和抽样对账；旧`passed=true`不得复用。
 - 已执行迁移文件发生checksum漂移必须失败；修复只能新增前向迁移。
 
 ## 7. 事件与外部集成测试
@@ -129,10 +127,6 @@ INT-12专项：
 
 每款浏览器执行登录→项目/任务树→创建/编辑/保存→刷新验证持久化→返回列表/详情→权限拒绝→文件上传/下载→审批/状态流转→实施/割接或巡检代表路径。必须点击真实按钮、填写真实表单并检查网络/console/DOM/业务记录；API预置可建立前置数据但不能代替用户动作。
 
-项目工作台必须验证：项目概览六页签独立存在；Stage→ProjectTask导航由实例生成；任意深度任务可按需展开；每个任务恰好一个当前WorkBinding；TASK_NATIVE显示通用任务详情并按ProjectTask自身事实完成；其他五类绑定在同一工作台显示真实业务执行区，无权模式不泄露数据，目标事实未满足时通用完成请求被拒绝，事实满足后按绑定和规则版本受控完成。不得以通用详情替代非TASK_NATIVE业务执行，也不得增加二次导航查找目标入口。
-
-割接代表路径必须验证：P1在入口完成接入，任务详情只显示P2～P6五步工作台但业务阶段记录仍完整P1～P6；A/B/C在P3同一页面完成条件重匹配、控件切换、直接填写、CollectionTask下发和结果回填；D级跳过P3；采集失败可人工降级并保留失败证据，技术回调成功不自动判定采集项通过。
-
 除明确允许横向滚动的数据表外，不得页面级横向溢出；导航、表单和操作区在窄视口重排，关键字段、按钮和错误提示无遮挡、可键盘到达。页面和接口业务结果跨三浏览器一致。
 
 ## 11. NFR验收
@@ -159,12 +153,12 @@ INT-12专项：
 
 ```powershell
 # 规格仓库
-py -3 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.8.md
-py -3 -B scripts\validate_sds_phase2.py
-py -3 -B scripts\validate_domain_entity_migration_alignment.py
-py -3 -B scripts\validate_phase3_evidence_register.py
-py -3 -B scripts\validate_sds_phase3.py
-py -3 -B -m unittest discover -s scripts\tests -p "test_*.py"
+py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
+py -3.13 -B scripts\validate_sds_phase2.py
+py -3.13 -B scripts\validate_domain_entity_migration_alignment.py
+py -3.13 -B scripts\validate_phase3_evidence_register.py
+py -3.13 -B scripts\validate_sds_phase3.py
+py -3.13 -B -m unittest discover -s scripts\tests -p "test_*.py"
 
 # 实现仓库后端（显式JDK25）
 mvn clean verify
@@ -183,11 +177,11 @@ docker compose run --rm migrate validate
 
 任何失败必须登记原命令、环境、exit code和日志引用；生产build通过不能覆盖`ts:check`/lint失败。当前实现仓库的真实结果在每个release重新执行，不沿用旧报告中的PASS标记。
 
-## 13. 100项覆盖方式
+## 13. 103项覆盖方式
 
-`docs/traceability/phase2-contract-map.md`已为100项V1/V2正式需求逐项登记Phase 3测试类别和证据类型，并以`Phase 3验证注记状态：READY_FOR_PHASE_3_V1.8`声明Phase 2契约已可作为测试设计输入；该状态不等于Phase 3测试已完成。相同聚合可以复用测试fixture，但每个Requirement必须能定位到专属业务用例/参数和验收断言，不能用一个“领域测试”占位。
+`docs/traceability/phase2-contract-map.md`已为103项正式需求逐项登记Phase 3测试类别和证据类型，并以`Phase 3验证注记状态：BASELINE`与已批准的Phase 2契约字段隔离；相同聚合可以复用测试fixture，但每个Requirement必须能定位到专属业务用例/参数和验收断言，不能用一个“领域测试”占位。
 
-自动校验至少检查：100项ID集合一致；每项有正常/异常或适用性说明、权限/数据范围、幂等/并发适用性、测试层次和证据类型；NFR-01～03链接到本分册具体章节。
+自动校验至少检查：103项ID集合一致；每项有正常/异常或适用性说明、权限/数据范围、幂等/并发适用性、测试层次和证据类型；NFR-01～03链接到本分册具体章节。
 
 ## 14. 缺陷、豁免与退出
 
@@ -202,9 +196,8 @@ docker compose run --rm migrate validate
 | 正常/异常/权限/幂等/并发测试设计 | PASS |
 | 数据库、事件、集成、文件、安全和浏览器设计 | PASS |
 | NFR-01～03量化验收设计 | PASS |
-| 100项逐项运行验证映射 | BASELINE；100/100均有PRD验收基线、授权拒绝、业务守卫、副作用、测试类别和证据类型 |
+| 103项逐项运行验证映射 | PASS-DESIGN；103/103均有测试类别和证据类型 |
 | 前端类型检查 | FAIL（P3-E08）；2026-08-13真实执行`corepack pnpm ts:check`退出码1，生产构建通过不能覆盖 |
-| 生产/性能环境、恢复和真实接口证据 | BLOCKED_BY_EVIDENCE（P3-E01～E07，按发布范围适用） |
-| 历史迁移/数据切换证据 | CONDITIONAL：发布包含任一项时由`AI-MIG-000`在Release前关闭并绑定批准窗口；否则`NOT_APPLICABLE` |
+| 生产/性能环境、恢复、迁移和真实接口证据 | BLOCKED_BY_EVIDENCE（P3-E01～E07、AI-MIG-000） |
 
 自动映射、测试策略、用例矩阵和证据契约完整后，本分册可进入SDS基线评审。环境证据和实际执行结果按Feature验收、专项验收或生产发布门禁关闭，不前置阻断测试设计基线。

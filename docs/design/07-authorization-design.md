@@ -1,9 +1,9 @@
 ﻿# SDS Phase 1：权限设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
-> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -31,19 +31,14 @@
 | JointDebuggingResult | 获分配工程师发起采集或上传联调 Log | 工程师处理授权设备结果；项目经理查看设备范围、结果和里程碑 | 无独立人工审批节点；系统按全部目标设备的有效联调记录自动计算里程碑 | 项目树后代、订单交付范围、设备当前归属 |
 | ImplementationRisk | 项目经理登记并提交 CRM 协同 | 项目经理核对 CRM 回传证据，选择关闭、继续跟进或取消 | 项目经理确认风险解除；不新增 PRD 未定义的自动阻断或服务经理审批 | 项目树后代、关联设备/作业 |
 | ImplementationQualityCheck | 检查人员 | 整改责任人 | 质量复核人 | 项目阶段、现场批次 |
+| ImplementationSafetyCheck | 安全检查人员 | 整改责任人 | 安全复核人；豁免审批人 | 项目阶段、现场批次；高风险关联作业 |
 | DeviceCredential | 创建人或授权管理员 | 被授权用户 | 授权审批人（如配置） | 凭证五元组：用户、设备、协议、命令模板、有效期 |
 | CollectionTask | 已获业务授权的发起人 | 任务执行身份 | Device Access & Collection 服务端校验 | 项目、设备、协议、命令模板、凭证/临时登录方式、有效期 |
-| Project/PM-10 | 服务经理对本人主责且满足条件的项目发起回退 | 服务经理填写回退原因并结束当前责任区间，无关闭或重开权限 | 工程管理部关闭岗 | 关闭、重开仅限授权项目；关闭前校验后代、在途审批和领域任务，重开仅限EXCEPTION_CLOSED；项目经理和普通成员只读状态及原因摘要 |
 | ProjectClosure | 项目经理 | 整改责任人 | 服务经理、材料审核人 | 项目树后代、项目阶段、交付范围；闭环后只读 |
 | SatisfactionCollection | 项目经理创建/指派；客户访问限定问卷 | 被指派项目成员发送/协助；客户提交本人答案 | 无独立审批；系统按冻结规则判定 | 项目、来源业务对象、问卷实例；答案、签字和历史版本不可人工改写 |
-| CustomerServiceLevelRevision | 客户服务管理岗为授权客户创建等级版本 | 客户服务管理岗维护未生效版本；服务经理只读本人客户等级和执行提示，不能修改策略字典 | 管理层按组织范围批准策略 | 租户、组织和授权客户范围；切换后历史等级、策略版本和业务快照只读 |
 | CutoverTask | 一线工程师办理来源任务或自建；集成账号仅按来源契约创建 | 一线工程师提交P2问卷/等级、填写P3/P4和P6；仅可操作授权项目与设备 | 用服经理在P5复核等级并审批；A/B按冻结路由增加二线/研发 | 项目树、设备当前归属、CUT任务、方案版本、审批节点；项目只读角色不可编辑 |
-| CutoverConfigurationRevision | 具备割接配置维护权限的系统管理员创建和编辑草稿 | 具备配置发布权限的管理员发布或停用版本；已发布版本不可覆盖 | 不新增业务审批节点；发布命令执行完整性和引用校验 | 租户隔离；配置权限不授予割接任务、设备配置、客户或采集结果查看权 |
-| ProjectTaskWorkbench | 项目模板实例化或项目经理在授权范围创建任务 | TASK_NATIVE仅允许任务范围内的通用详情与状态命令；其他类型只允许调用WorkBinding目标返回的服务端允许操作；CompletionRule由Project Delivery执行 | 审批类绑定跳转到目标工作流节点，不在任务层新增审批人 | 租户、项目树、ProjectTask、WorkBinding类型、目标业务对象/状态、PermissionPolicy和事实版本的交集 |
 
 服务器端必须在每次操作重新计算上述范围，不能仅信任前端传入的项目、设备或批次标识。
-
-WorkBinding不授予新权限。`TASK_NATIVE`的授权目标就是当前ProjectTask；其他类型必须合并任务范围与目标业务范围。工作台响应只返回受信任绑定类型、必要的目标稳定引用、允许操作码和必要展示数据；不得返回任意脚本、未授权对象详情或凭证明文。`VIEW/EDIT/CREATE/FILL/APPROVE`等模式是服务端权限和业务状态的结果，不是前端可切换参数。
 
 `Device Access & Collection` 的子应用或模块不得扩大调用方权限；任务下发前重新校验用户、租户、项目树、设备当前归属、订单交付范围、现场批次和凭证/临时登录方式。临时用户名密码可以用于单次连接但不落库；只有用户明确执行“保存为凭证”才创建 `DeviceCredential`。
 

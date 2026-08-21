@@ -1,8 +1,8 @@
 ﻿# SDS Phase 2：缓存与并发设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
-> Requirement ID：全部100项V1/V2正式需求中的查询性能和并发一致性；重点覆盖PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01、PLT、INT-12、NFR-01～02
+> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
+> Requirement ID：全部 103 项 V1/V2 正式需求中的查询性能和并发一致性；重点覆盖 PM-02/04/09/11、PROJ-12、EXE、CUT、INS、EQP、AST-01～02、COM-01～02、PLT、INT-12、NFR-01～02
 > Owner：SDS Phase 2 技术架构；业务真值仍归各 Context
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`、`11-event-design.md`
 
@@ -20,7 +20,6 @@
 |---|---|---|---|
 | 字典/展示配置 | 类型名称、颜色、排序 | tenant/global、dictType、configVersion | 版本化失效；不控制状态迁移 |
 | 项目/任务树查询 | 完整投影版本的子树页、祖先链 | tenant、root/scope、treeVersion、permissionScopeHash、cursor | 只读投影；树变更后新版本切换 |
-| 项目工作台投影 | 六页签摘要、Stage→ProjectTask导航、WorkBinding显示摘要 | tenant、project、templateRevision、treeVersion、permissionScopeHash、projectionVersion | 不缓存目标业务敏感正文；操作前回源权限与目标状态 |
 | 设备祖先统计 | device/project ancestor projection | tenant、treeVersion、assignmentVersion、scope | 可重建；返回水位 |
 | 主数据查询 | 客户、设备、合同必要副本 | tenant、objectId/sourceVersion、fieldScopeHash | 本地数据库是真值副本，缓存短期加速 |
 | 文件下载授权 | 短时访问令牌 | tenant、subject、artifact/version、operation、scopeHash | 到期/撤销；敏感操作可单次 |
@@ -47,9 +46,8 @@
 | 对象 | 并发令牌 | 冲突处理 |
 |---|---|---|
 | Project/ProjectTask | aggregateVersion + treeVersion（移动时） | 重新加载树和当前版本后由用户重试 |
-| ProjectTask Completion | aggregateVersion + bindingVersion + ruleVersion + businessFactVersion | 任一版本变化即重新读取事实并评估；不得按旧快照完成 |
 | ProjectTemplate/Solution/Rule | draft aggregateVersion；发布 revision 不可变 | 创建新 revision，不修改已发布版本 |
-| Arrival/Installation/Quality | aggregateVersion | 提交/确认/整改复核按状态守卫重试 |
+| Arrival/Installation/Quality/Safety | aggregateVersion | 提交/确认/整改复核按状态守卫重试 |
 | DeviceAssignment | device assignmentVersion + project treeVersion | 一次只有一个当前归属；冲突人工核对 |
 | DeliveryScope | orderLineVersion + allocationVersion | 重新计算可分配量，不允许超分配 |
 | CollectionTask | aggregateVersion + callback sequence/version | 重复幂等；乱序暂存，不回退状态 |
@@ -83,15 +81,6 @@
 - 设备处置不在 Project Delivery 内直接改 AST 表；逐台携带 `assignmentVersion` 调用 AST，冲突项进入部分失败，不能把源项目归档或把失败设备计入目标项目。
 - PM-06 成员调整校验 `groupVersion/memberVersion`，在同一事务内检查关系类型下项目唯一群组和群组内唯一期次；前后期图无环校验失败则整体拒绝本次成员变更。
 - 多期视图缓存 key 包含 tenant、groupId、groupVersion、permissionScopeHash 和各来源 revision watermark；权限变化或任一来源版本变化时新版本旁路旧缓存。
-
-### 5.5 Stage—ProjectTask工作台
-
-- 工作台导航投影只从ProjectStage和ProjectTask真值生成，`treeVersion/templateRevision`变化后切换新版本，不维护独立导航缓存真值。
-- 绑定业务组件的数据由Owner API返回；缓存只保存无敏感信息的绑定摘要。编辑、创建、审批、文件和设备采集操作必须回源授权。
-- ProjectTask完成以`taskVersion + executionContractId/contractVersion + factVersion + Idempotency-Key`为并发边界。服务端锁定任务并重新读取当前执行契约和Owner事实；任一版本变化即拒绝，不用旧判定结果推进。成功判定、`TaskCompletionEvaluation`和任务状态迁移同事务提交。
-- 执行契约换版使用`projectTaskId + current contractVersion`乐观锁：新版本插入与旧版本关闭有效区间在同一事务，数据库当前标记唯一键防止两个当前版本。模板发布后任务定义不可原位更新。
-- CUT-03重新匹配使用`checklistVersion + inputSnapshotHash`并发令牌；条件变化和采集回调并发时，回调先落DAC结果，再由CUT按当前清单版本、stableItemKey和itemVersion决定追加/选择结果或进入待核对，不覆盖新草稿，也不复制DAC状态。
-- 清单项结果以`checklistItemId + resultVersion`追加；选择切换在锁定当前结果后，同一事务写旧行`selectionEndedAt`并插入带新`selectionStartedAt`的结果版本，生成`currentMarker`唯一约束防止两个未结束选择。结果载荷不可覆盖，人工降级不会删除自动失败结果；已提交清单的重新匹配必须创建新清单版本。
 
 ## 6. 设备唯一归属并发
 
