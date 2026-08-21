@@ -54,7 +54,7 @@ public class ProjectTreeServiceImpl implements ProjectTreeService {
         if (ancestorIds.isEmpty()) {
             return List.of();
         }
-        List<ProjectMasterDO> ancestors = projectMasterMapper.selectByIds(ancestorIds);
+        List<ProjectMasterDO> ancestors = projectMasterMapper.selectBatchIds(ancestorIds);
         Map<Long, ProjectMasterDO> byId = ancestors.stream()
                 .collect(Collectors.toMap(ProjectMasterDO::getId, Function.identity()));
         return ancestorIds.stream().map(byId::get).filter(Objects::nonNull).toList();
