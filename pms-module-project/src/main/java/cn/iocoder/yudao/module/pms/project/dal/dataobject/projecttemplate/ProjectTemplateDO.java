@@ -13,7 +13,7 @@ import lombok.EqualsAndHashCode;
  * <p>
  * 模板内容以 JSON 快照形式存储在 {@link #snapshotJson}，包含 phases/tasks/teamRoles 三类子模板。
  */
-@TableName(value = "pms_project_template", autoResultMap = true)
+@TableName(value = "proj_project_template_revision", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTemplateDO extends TenantBaseDO {

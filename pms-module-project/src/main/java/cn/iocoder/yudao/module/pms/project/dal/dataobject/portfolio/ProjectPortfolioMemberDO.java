@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 项目组合成员 DO
  */
-@TableName("pms_project_portfolio_member")
+@TableName("proj_project_portfolio_member")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectPortfolioMemberDO extends TenantBaseDO {

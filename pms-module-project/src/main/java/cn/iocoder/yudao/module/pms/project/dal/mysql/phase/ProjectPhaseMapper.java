@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * PMS 项目阶段 Mapper（FR-PROJ-017 / FR-PROJ-016 / FR-PROJ-019）。
  * <p>
- * 唯一索引 {@code uk_pms_project_phase (project_id, code)} 保证项目内阶段编码唯一。
+ * 项目内阶段编码唯一索引保证同一项目不能出现重复阶段编码。
  */
 @Mapper
 public interface ProjectPhaseMapper extends BaseMapperX<ProjectPhaseDO> {

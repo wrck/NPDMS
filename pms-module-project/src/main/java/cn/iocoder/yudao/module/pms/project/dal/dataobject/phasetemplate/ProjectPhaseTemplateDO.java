@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 项目阶段模板 DO
  */
-@TableName("pms_project_phase_template")
+@TableName("proj_project_phase_template")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectPhaseTemplateDO extends TenantBaseDO {

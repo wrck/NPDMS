@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -9,7 +10,7 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 项目团队成员 DO
  */
-@TableName("pms_project_team_member")
+@TableName("proj_project_member_assignment")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTeamMemberDO extends TenantBaseDO {
@@ -30,6 +31,7 @@ public class ProjectTeamMemberDO extends TenantBaseDO {
     /**
      * 角色编码，如 PROJECT_MANAGER/SERVICE_MANAGER/ENGINEER
      */
+    @TableField("member_role")
     private String roleCode;
     /**
      * 角色名称
@@ -42,6 +44,7 @@ public class ProjectTeamMemberDO extends TenantBaseDO {
     /**
      * 备注
      */
+    @TableField("responsibility")
     private String remark;
 
 }

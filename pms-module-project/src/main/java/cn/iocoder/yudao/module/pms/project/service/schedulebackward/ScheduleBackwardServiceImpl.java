@@ -205,7 +205,7 @@ public class ScheduleBackwardServiceImpl implements ScheduleBackwardService {
         if (hasConflict) {
             throw exception(SCHEDULE_BACKWARD_HAS_CONFLICT);
         }
-        // 将计算结果更新到 pms_project_phase 的计划开始/结束时间
+        // 将计算结果更新到 proj_project_phase 的计划开始/结束时间
         for (ScheduleBackwardItemDO item : items) {
             if (item.getPhaseId() == null) {
                 continue;

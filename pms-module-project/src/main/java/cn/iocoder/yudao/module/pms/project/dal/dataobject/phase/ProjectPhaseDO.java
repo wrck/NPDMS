@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 项目阶段 DO（FR-PROJ-017 / T-V1-PROJ-007、FR-PROJ-016 / T-V1-PROJ-008）。
  * <p>
- * 对应表 {@code pms_project_phase}，承载项目实际阶段（从模板实例化或手工创建）。
+ * 对应表 {@code proj_project_phase}，承载项目实际阶段（从模板实例化或手工创建）。
  * 唯一索引 {@code (project_id, code)} 保证项目内阶段编码唯一；阶段顺序通过 {@link #sort} 控制。
  */
-@TableName("pms_project_phase")
+@TableName("proj_project_phase")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectPhaseDO extends TenantBaseDO {

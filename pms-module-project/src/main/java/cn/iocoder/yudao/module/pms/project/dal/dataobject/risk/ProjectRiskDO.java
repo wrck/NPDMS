@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 /**
  * PMS 项目风险 DO（FR-PROJ-026 / T-V1-PROJ-009）。
  * <p>
- * 对应表 {@code pms_project_risk}，承载项目风险登记册。
+ * 对应表 {@code proj_project_risk}，承载项目风险登记册。
  * 状态：0 已识别、1 处理中、2 已关闭、3 已发生；状态迁移由 {@code RiskStatusRules} 校验。
  */
-@TableName("pms_project_risk")
+@TableName("proj_project_risk")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectRiskDO extends TenantBaseDO {

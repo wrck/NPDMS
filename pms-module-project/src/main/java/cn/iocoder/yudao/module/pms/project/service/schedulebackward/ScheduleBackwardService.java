@@ -57,7 +57,7 @@ public interface ScheduleBackwardService {
     List<ScheduleBackwardItemDO> calculateScheduleBackward(Long id);
 
     /**
-     * 应用倒排结果到项目阶段：将计算结果更新到 pms_project_phase 的计划开始/结束时间。
+     * 应用倒排结果到项目阶段：将计算结果更新到 proj_project_phase 的计划开始/结束时间。
      * 存在冲突时不允许应用。
      *
      * @param id 倒排记录编号

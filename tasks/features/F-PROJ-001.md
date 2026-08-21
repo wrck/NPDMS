@@ -24,7 +24,7 @@
 
 ## 实施任务
 
-- [ ] Task 0：建立允许的本地基线，盘点并优先复用活跃实现，完成最小核心割接。
+- [ ] Task 0：建立允许的本地基线，盘点并优先复用活跃实现，完成最小核心割接（Schema与命名空间割接已完成；创建入口切换待后续步骤）。
 - [x] Task 1：锁定 V1.8 Feature 规格快照并登记当前任务。
 - [ ] Task 2：增加 Feature 前向数据库契约。
 - [ ] Task 3：实现 PLT 事务支持。
@@ -57,3 +57,16 @@
 - 仅在替代入口和全部消费者切换后标记旧代码为 `@Deprecated(forRemoval = false, since = "F-PROJ-001")`，禁止继续引用，暂不删除文件。
 - 文件一经标记废弃，后续不得读取正文；只允许路径级引用扫描与 Java 编译 lint。
 - 只允许本地提交；禁止推送、UAT或发布。
+
+## 活跃能力复用盘点
+
+| 能力 | 当前载体 | 处置 |
+|---|---|---|
+| 项目编码、来源键及客户存在性校验 | `ProjectServiceImpl` | `REUSE_AND_ADAPT`：迁入正式创建命令及租户内编码规则 |
+| 服务端创建权限 | `ProjectController`的`pms:project:create` | `REUSE_AS_IS`：保持服务端最终授权依据 |
+| 启用模板查询与模板快照 | `ProjectTemplateServiceImpl`、`TemplateSnapshot` | `REUSE_AND_ADAPT`：升级为四维候选、revision和受控预览 |
+| 阶段、任务、团队实例化 | `ProjectTemplateServiceImpl` | `REUSE_AND_ADAPT`：纳入单事务并补齐执行契约、ACC交付件 |
+| 任意层级任务树 | `ProjectTaskServiceImpl` | `REUSE_AS_IS`：保留树构建、移动和环校验 |
+| 旧通用创建及从模板创建入口 | `ProjectController`、`ProjectTemplateController` | `DEPRECATE_AFTER_CUTOVER`：替代入口和前端消费者切换后再标废弃，当前不得提前删除 |
+
+本盘点未发现已经标记`@Deprecated`的项目Java文件；后续文件一经标记废弃，不再读取其正文。

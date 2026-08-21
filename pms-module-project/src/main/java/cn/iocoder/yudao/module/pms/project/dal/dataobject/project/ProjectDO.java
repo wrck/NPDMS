@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.project;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
@@ -14,7 +15,7 @@ import lombok.EqualsAndHashCode;
  * - V5__pms_project_master_sync.sql：基础字段
  * - V7__pms_project_tree_and_team.sql：项目树相关字段（parent_id/root_id/path/depth/sort/category/major_project_flag/manager_user_id）
  */
-@TableName("pms_project")
+@TableName("proj_project")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectDO extends TenantBaseDO {
@@ -27,10 +28,12 @@ public class ProjectDO extends TenantBaseDO {
     /**
      * 全局唯一且不可复用的项目编码
      */
+    @TableField("project_code")
     private String code;
     /**
      * 项目名称
      */
+    @TableField("project_name")
     private String name;
     /**
      * 客户编号
@@ -87,18 +90,22 @@ public class ProjectDO extends TenantBaseDO {
     /**
      * 物化路径，格式 /{rootId}/.../{selfId}/
      */
+    @TableField("tree_path")
     private String path;
     /**
      * 路径深度，根项目为 0
      */
+    @TableField("tree_depth")
     private Integer depth;
     /**
      * 同级排序号
      */
+    @TableField("tree_sort")
     private Integer sort;
     /**
      * 项目分类
      */
+    @TableField("project_category")
     private String category;
     /**
      * 是否重大项目
@@ -107,10 +114,12 @@ public class ProjectDO extends TenantBaseDO {
     /**
      * 项目经理用户编号
      */
+    @TableField("manager_id")
     private Long managerUserId;
     /**
      * 来源项目模板编号（仅记录，不外键约束）
      */
+    @TableField("lifecycle_template_id")
     private Long templateId;
     /**
      * 乐观锁版本号

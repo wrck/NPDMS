@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
  * 回退：执行时将项目状态置回待指派、清空项目经理
  * 关闭：执行时将项目状态置为已关闭
  */
-@TableName("pms_project_governance_action")
+@TableName("proj_project_governance_action")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectGovernanceActionDO extends TenantBaseDO {

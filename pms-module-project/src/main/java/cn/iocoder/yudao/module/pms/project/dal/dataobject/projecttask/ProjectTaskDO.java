@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
  *
  * 物化路径模型：path 格式 /{rootId}/.../{selfId}/，depth 从 0 开始。
  */
-@TableName("pms_project_task")
+@TableName("proj_project_task")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectTaskDO extends TenantBaseDO {
@@ -40,14 +41,17 @@ public class ProjectTaskDO extends TenantBaseDO {
     /**
      * 物化路径，格式 /{rootId}/.../{selfId}/
      */
+    @TableField("tree_path")
     private String path;
     /**
      * 路径深度，根任务为 0
      */
+    @TableField("tree_depth")
     private Integer depth;
     /**
      * 同级排序号
      */
+    @TableField("tree_sort")
     private Integer sort;
     /**
      * 任务名称

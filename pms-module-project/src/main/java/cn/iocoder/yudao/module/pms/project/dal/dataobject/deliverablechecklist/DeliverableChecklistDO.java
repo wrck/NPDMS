@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * 交付件类型：REQUIRED 必交 / OPTIONAL 选交 / CONDITIONAL 条件
  * 用途：FR-ACC-005 验收通过前的交付件完整性门禁数据源
  */
-@TableName("pms_acc_deliverable_checklist")
+@TableName("acc_project_deliverable")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class DeliverableChecklistDO extends TenantBaseDO {
