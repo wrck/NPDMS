@@ -1,7 +1,7 @@
 # F-PROJ-001 手动项目创建与模板初始化
 
 > Feature 状态：`IN_PROGRESS_V1_8_REVALIDATION`
-> 当前任务：`Task 10已完成；AC-FPROJ-007权威主数据范围阻断后置登记`
+> 当前任务：`Task 6功能权限已补齐；AC-FPROJ-007权威主数据范围阻断后置登记`
 > Requirement ID：`PM-01`、`PM-03`
 > 历史 Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > 历史 Feature Spec SHA-256：`86f175e05eb578cc35bae9b64715955b123bce584836c328be87b64c929e9431`
@@ -31,7 +31,7 @@
 | `Task 3` | `COMPLETED_ACC_OWNER_INTERFACE` |
 | `Task 4` | `COMPLETED_MYSQL_FAILURE_INJECTION` |
 | `Task 5` | `COMPLETED_PLATFORM_FACTS_ATOMIC` |
-| `Task 6` | `IMPLEMENTED_REVISION_WATERMARK_MASTER_DATA_BLOCKED` |
+| `Task 6` | `IMPLEMENTED_FUNCTION_PERMISSION_MASTER_DATA_BLOCKED` |
 | `Task 7` | `IMPLEMENTED_VERSIONED_ASSIGNMENT_RANGE_BLOCKED` |
 | `Task 8` | `IMPLEMENTED_BROWSER_ACCEPTANCE_PENDING` |
 | `Task 9` | `COMPLETED_REAL_MYSQL_ATOMICITY_CONCURRENCY` |
@@ -63,6 +63,8 @@ Task 7指派入口现已强制`Idempotency-Key`与`If-Match`，以`WHERE id=? AN
 Task 8前端候选选择已从template级切换为`templateRevisionId`，创建原样提交`candidateWatermark`；表单不写本地存储，同一未修改请求复用幂等Key，任一输入或revision变化后自动生成新Key。指派交互提交必需幂等头与Project版本，版本冲突时重新加载Project再要求用户确认；前端构建和5项事后测试通过。全仓`ts:check`仍被既有auto-import声明缺失阻断，目标Feature文件筛查无新增类型错误。
 
 Task 6后置阻断：当前仓库没有实施地点权威主数据接口；基础平台部门API也不暴露可比较版本，无法在不臆造语义的前提下完成客户/办事处/实施地点稳定ID、版本及数据范围的全量服务端校验。该缺口不阻断版本化指派、前端非主数据部分及后续故障注入准备，但在接口补齐前Task 6和AC-FPROJ-007不得判定完成。
+
+Task 6可授权部分已继续补齐：新增统一的`ProjectCreationAuthorizationService`，创建和指派应用入口均在幂等占用、审计、Outbox及业务写入前执行服务层功能权限校验，不再只依赖Controller注解。事后测试覆盖创建与指派的权限允许/拒绝及拒绝时零副作用；定向25项全部通过，项目模块非IT回归151项中148项通过、3项按`skipITs`跳过。该进展不替代办事处/实施地点/跨租户数据范围验收，AC-FPROJ-007继续保持未完成。
 
 Task 9已完成：按授权停止旧`npdms-t8-mysql-1`后，使用当前工作树隔离的`npdms-50eb` Compose项目、MySQL 8.4.10与独立数据卷执行验证；旧容器及其数据卷未删除、未复用。Flyway 63个迁移校验通过，九个原子失败点和两个幂等并发场景共11项真实MySQL测试全部通过；全量后端Reactor 19个模块成功，项目模块154项测试全部通过。详细证据见`output/f-proj-001-v18/database-evidence.md`。
 

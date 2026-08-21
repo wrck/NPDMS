@@ -16,10 +16,12 @@ import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +32,8 @@ class ProjectManualCreationApplicationServiceTest {
     private ProjectCreationPlatformFactService platformFactService;
     @Mock
     private ProjectManualCreationService projectCreationService;
+    @Mock
+    private ProjectCreationAuthorizationService authorizationService;
 
     @InjectMocks
     private ProjectManualCreationApplicationService service;
@@ -55,6 +59,7 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("ACTIVE", result.lifecycleStatus());
         assertEquals("S0", result.currentStage());
         assertEquals("UNASSIGNED", result.assignmentStatus());
+        verify(authorizationService).assertCanCreate(7L);
         ArgumentCaptor<ProjectMasterDO> draftCaptor = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectCreationService).createProject(draftCaptor.capture(), any(), any(), any(), any(), any());
         assertEquals(1L, draftCaptor.getValue().getTenantId());
@@ -82,6 +87,19 @@ class ProjectManualCreationApplicationServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.create(invalid, actor()));
 
         verifyNoInteractions(platformFactService);
+        verifyNoInteractions(authorizationService);
+    }
+
+    @Test
+    void authorizationFailureStopsBeforeIdempotencyClaim() {
+        doThrow(new ServiceException(FORBIDDEN))
+                .when(authorizationService).assertCanCreate(7L);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> service.create(command(), actor()));
+
+        assertEquals(FORBIDDEN.getCode(), exception.getCode());
+        verifyNoInteractions(platformFactService, projectCreationService);
     }
 
     @Test

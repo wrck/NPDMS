@@ -338,6 +338,8 @@ Run: `mvn -pl pms-module-project -am -DskipITs -Dsurefire.failIfNoSpecifiedTests
 
 ### Task 6: 收紧API、主数据和权限边界
 
+> 执行注记（2026-08-22）：按用户指示禁用测试驱动，先实现再补事后测试。创建与指派已统一通过`ProjectCreationAuthorizationService`执行服务层功能权限校验，权限拒绝发生在幂等占用和业务写入之前；定向25项全部通过，项目模块非IT回归151项中148项通过、3项按`skipITs`跳过。普通成员和仅模板维护权限的功能权限边界已具备服务层拒绝能力；未授权办事处、未授权实施地点、跨租户主体以及客户/办事处/地点稳定ID和版本仍依赖尚未定义完整的权威主数据契约，因此本Task继续保持未完成。
+
 **Files:**
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java`

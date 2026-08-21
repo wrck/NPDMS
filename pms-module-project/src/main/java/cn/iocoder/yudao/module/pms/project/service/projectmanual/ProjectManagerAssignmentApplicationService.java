@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
-import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCreationPlatformFactService.Decision;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCreationPlatformFactService.IdempotencyScope;
@@ -14,7 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 
@@ -23,20 +21,16 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_I
 public class ProjectManagerAssignmentApplicationService {
 
     public static final String ASSIGN_SCOPE = "POST:/pms/projects/{id}/actions/assign-manager";
-    private static final String ASSIGN_PERMISSION = "pms:project:assign";
-
     @Resource
     private ProjectCreationPlatformFactService platformFactService;
     @Resource
     private ProjectManualCreationService projectService;
     @Resource
-    private PermissionCommonApi permissionApi;
+    private ProjectCreationAuthorizationService authorizationService;
 
     public AssignServiceManagerResult assign(AssignServiceManagerCommand command, Actor actor) {
         validate(command, actor);
-        if (!permissionApi.hasAnyPermissions(actor.actorId(), ASSIGN_PERMISSION)) {
-            throw exception(FORBIDDEN);
-        }
+        authorizationService.assertCanAssign(actor.actorId());
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), ASSIGN_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), AssignServiceManagerResult.class,

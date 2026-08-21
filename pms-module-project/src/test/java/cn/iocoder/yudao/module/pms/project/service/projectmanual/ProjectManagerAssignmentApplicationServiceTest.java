@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
-import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
@@ -20,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -32,7 +32,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @Mock
     private ProjectManualCreationService projectService;
     @Mock
-    private PermissionCommonApi permissionApi;
+    private ProjectCreationAuthorizationService authorizationService;
 
     @InjectMocks
     private ProjectManagerAssignmentApplicationService service;
@@ -41,7 +41,6 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @SuppressWarnings("unchecked")
     void authorizedAssignmentRunsInsidePlatformFactBoundary() {
         AssignServiceManagerResult assigned = new AssignServiceManagerResult(1L, 8L, 3, "UNASSIGNED");
-        when(permissionApi.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
         when(projectService.assignServiceManager(any())).thenReturn(assigned);
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<Object> operation = invocation.getArgument(3);
@@ -56,12 +55,14 @@ class ProjectManagerAssignmentApplicationServiceTest {
 
         assertEquals(8L, result.assignmentId());
         assertEquals(3, result.version());
+        verify(authorizationService).assertCanAssign(7L);
         verify(projectService).assignServiceManager(any());
     }
 
     @Test
     void permissionFailureStopsBeforeIdempotencyClaim() {
-        when(permissionApi.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(false);
+        doThrow(new ServiceException(FORBIDDEN))
+                .when(authorizationService).assertCanAssign(7L);
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.assign(command(), actor()));
@@ -73,7 +74,6 @@ class ProjectManagerAssignmentApplicationServiceTest {
 
     @Test
     void idempotencyConflictIsMappedToStableError() {
-        when(permissionApi.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
                 new ProjectCreationPlatformFactService.ExecutionResult<>(
                         ProjectCreationPlatformFactService.Decision.CONFLICT, null));

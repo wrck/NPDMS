@@ -32,9 +32,12 @@ public class ProjectManualCreationApplicationService {
     private ProjectCreationPlatformFactService platformFactService;
     @Resource
     private ProjectManualCreationService projectCreationService;
+    @Resource
+    private ProjectCreationAuthorizationService authorizationService;
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
+        authorizationService.assertCanCreate(actor.actorId());
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), CREATE_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), ManualProjectCreateResult.class,
