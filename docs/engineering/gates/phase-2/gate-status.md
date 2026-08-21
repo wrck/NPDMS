@@ -17,9 +17,9 @@ V1.7 Phase 2的`APPROVED / READY_FOR_PHASE_3`只保留为历史审查结果。V1
 | API与命令 | PASS | 100项正式需求已逐项落位；已移除退出需求API并补齐执行契约、事实版本和幂等边界 |
 | 事件与集成 | PASS | 已校准ERP/CRM权威事实、质量事件、非阻断依赖及CUT结果引用语义 |
 | 文件、缓存、并发、异常 | PASS | 已同步V1.8文件、缓存、并发和异常边界，不机械继承V1.7结论 |
-| 迁移设计 | PASS | 当前契约为85对象/96来源/1排除源；新增4个对象均有明确NEW_ONLY或字段级迁移处置，不从名称、菜单、历史状态或采集技术状态推断业务事实 |
+| 迁移设计 | PASS | 当前契约为87对象/98来源绑定/1排除源；新增的`CustomerServiceLevelRevision`和`CutoverConfigurationRevision`均为NONE_NEW/FEATURE_FORWARD_MIGRATION，不进入当前核心DDL，不从联系人、关系快照、旧方案或风险项反推历史业务事实 |
 | 追溯 | PASS | `phase2-contract-map.md`已按100项范围重生成；迁移对象和目标表映射精确同步 |
-| 工作绑定与P3采集结果物理承载 | PASS | ADR-0030形成六张表的字段、约束、索引、选择区间、并发、API、事件、异常与迁移边界；这里只批准Phase 2设计，尚未创建DDL/Flyway |
+| 工作绑定、P3采集结果与CUS-02/CUT-07承载 | PASS | ADR-0030六表已由P3-E09纳入当前冻结模型；ADR-0031仅批准两个逻辑对象及Feature前向表名，实际物理表须由对应Feature以前向迁移审批创建 |
 
 ## 3. 不变的后置边界
 

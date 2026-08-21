@@ -1,6 +1,6 @@
 ﻿# SDS Phase 3：性能与容量设计
 
-> 文档状态：`IN_REVIEW`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8
 > Requirement ID：NFR-01、NFR-02、NFR-03、PM-02、PM-11、PLT-02、INT-12及全部核心页面/接口
 > Owner：SDS Phase 3性能架构

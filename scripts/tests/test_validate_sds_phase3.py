@@ -416,17 +416,14 @@ class Phase3ValidatorTest(unittest.TestCase):
         gate.write_text(gate.read_text(encoding="utf-8").replace("MODEL_BASELINE_READY", "MODEL_BASELINE_REVIEW_PENDING"), encoding="utf-8")
         self.assertTrue(any("pending state" in item for item in VALIDATOR.validate(self.root)))
 
-    def test_current_v18_revalidation_state_is_coherent_and_not_ready(self) -> None:
+    def test_current_v18_baseline_state_is_coherent_and_ready(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         gate_path = repository_root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
         gate = gate_path.read_text(encoding="utf-8")
 
         self.assertEqual([], VALIDATOR.validate(repository_root))
-        errors = VALIDATOR.validate_v18_in_review(
-            repository_root,
-            gate.replace("NOT_READY_FOR_SDS_BASELINE_V1.8", "READY_FOR_SDS_BASELINE"),
-        )
-        self.assertTrue(any("NOT_READY_FOR_SDS_BASELINE_V1.8" in error for error in errors), errors)
+        self.assertIn("> 审查状态：`APPROVED`", gate)
+        self.assertIn("> 结论：`READY_FOR_SDS_BASELINE_V1.8`", gate)
 
     def test_v18_revalidation_gate_does_not_bypass_design_validation(self) -> None:
         gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"

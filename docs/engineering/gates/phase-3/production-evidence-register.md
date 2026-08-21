@@ -1,7 +1,7 @@
 # Phase 3生产与发布证据登记规范
 
-> 状态：`IN_REVIEW`
-> 适用基线：PRD V1.8、SDS Phase 1/2 BASELINE、Phase 3 IN_REVIEW
+> 状态：`BASELINE`
+> 适用基线：PRD V1.8、SDS Phase 1/2/3 BASELINE
 > 机器状态：`phase3-evidence-register.json`
 > 原则：本文件定义需要什么证据，不填充未经Owner确认的生产事实。
 
@@ -94,7 +94,7 @@ Gate scope：`DATA_MODEL_BASELINE / HISTORICAL_DATA_MIGRATION / DATA_CUTOVER`。
 
 Required fields：当前DDL hash、`ddl-item-decision-register.json`逐项漂移决策、目标字段目录/映射/校验hash、MySQL 8.4隔离执行结果、独立复审结论和Git基线提交。P3-E09不定义迁移批准哈希：未来历史迁移门禁按真实批次另行定义。当前不要求四角色外部附件、OA/电子签名、独立批准JSON、迁移批准状态机或双确认提交。
 
-需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，保留当前DDL模型确认包及其历史决策引用。`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`保留表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号；其模型基线输入不等同于历史数据迁移批准。独立复审只在`independent-review.md`复核候选制品的整体一致性，不逐项签署。
+需求方确认入口：`specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md`，保留当前DDL模型确认包及其历史决策引用。`ddl-model-decision-catalog.md`和`ddl-item-decision-register.json`保留表、字段、表选项、主键、外键、索引、唯一键和CHECK定义及稳定编号；其模型基线输入不等同于历史数据迁移批准。独立复审只在`independent-review.md`复核当前模型制品的整体一致性，不逐项签署。
 
 Acceptance（当前模型基线已满足）：逐项登记的表、列、约束和表选项均有决策证据，`DEFER=0`；DDL、目录、映射、校验和隔离执行证据绑定同一当前DDL hash；全部领域实体具有字段映射或批准终态；旧库只读、无跨库SQL；旧`passed=true`不复用。正式独立复审已GO，当前P3-E09为`MODEL_BASELINE_READY`。若Release包含历史数据迁移或数据切换，`AI-MIG-000`须在真实批次验证后达到`VERIFIED`且只允许在批准窗口内执行；否则为`NOT_APPLICABLE`，不阻断普通功能发布。
 

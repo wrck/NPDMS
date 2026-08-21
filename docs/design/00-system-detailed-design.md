@@ -1,6 +1,6 @@
 # 项目实施交付管理平台 系统详细设计说明书（SDS 总册）
 
-> 文档状态：`IN_REVIEW`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求
 > Owner：SDS 总编
@@ -12,9 +12,9 @@
 |---|---|---|---|
 | SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |
 | SDS Phase 2 | `BASELINE` | `READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
-| SDS Phase 3 | `IN_REVIEW` | `NOT_READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
+| SDS Phase 3 | `BASELINE` | `READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7三阶段历史审查证据保留。V1.8 Phase 1/2已完成差量复审；Phase 3完成前，本总册及状态为`IN_REVIEW`/`DEFERRED_TO_PHASE_3`的Phase 3分册不得作为新增Feature或实现的当前放行依据。
+V1.7三阶段历史审查证据保留。V1.8 Phase 1/2/3均已完成差量复审并纳入SDS基线，可作为Feature Spec输入；这不表示下游环境、性能、集成、迁移、切换、UAT或Release门禁已经通过。
 
 ## 2. 分册索引
 
@@ -39,13 +39,13 @@ V1.7三阶段历史审查证据保留。V1.8 Phase 1/2已完成差量复审；Ph
 | `11-event-design.md` | 事件设计 | `BASELINE` |
 | `12-integration-design.md` | 集成设计 | `BASELINE` |
 | `13-file-design.md` | 文件设计 | `BASELINE` |
-| `14-security-design.md` | 安全设计 | `IN_REVIEW` |
+| `14-security-design.md` | 安全设计 | `BASELINE` |
 | `15-cache-and-concurrency.md` | 缓存与并发 | `BASELINE` |
 | `16-exception-and-idempotency.md` | 异常与幂等 | `BASELINE` |
-| `17-audit-and-observability.md` | 审计与可观测 | `IN_REVIEW` |
-| `18-deployment-design.md` | 部署设计 | `IN_REVIEW` |
-| `19-performance-design.md` | 性能设计 | `IN_REVIEW` |
-| `20-test-design.md` | 测试设计 | `IN_REVIEW` |
+| `17-audit-and-observability.md` | 审计与可观测 | `BASELINE` |
+| `18-deployment-design.md` | 部署设计 | `BASELINE` |
+| `19-performance-design.md` | 性能设计 | `BASELINE` |
+| `20-test-design.md` | 测试设计 | `BASELINE` |
 | `phase-1-domain-ownership.md` | Phase 1 领域 Owner 签署 | `OWNER_SIGNED` |
 
 ## 3. 基线边界

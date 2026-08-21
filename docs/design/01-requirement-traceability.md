@@ -31,9 +31,9 @@ V1.8已重建100项工作追溯索引；V1.7的模块、聚合、状态机/工�
 | SOL 交付准备与方案 | 工勘、需求分析、计划、实施方案 | PRE-01～PRE-05、PLN-01～PLN-04、SCH-01～SCH-05、SOL-01 | Preparation、ConstructionPlan、ImplementationPlan | OWNER_CONFIRMED / BASELINE |
 | IMP 实施执行 | 到货、安装、配置Log、联调、风险、质量检查、实施阶段交付件上传 | EXE-01～EXE-06、IMP-01 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence | OWNER_CONFIRMED / BASELINE |
 | ACC 验收与闭环 | 培训、满意度收集、验收、交付件齐套校验、审核、统一归档、项目闭环、静态服务交接 | ACC-01～ACC-04、ACC-06、CLO-01～CLO-02 | Acceptance、SatisfactionCollection、DeliveryArtifact、ProjectClosure、ServiceHandover | OWNER_CONFIRMED / BASELINE |
-| CUT 割接与稳定治理 | 割接任务、问卷分级、P3动态清单与采集结果、方案、分级审批、P6闭环和配置 | CUT-01～CUT-10 | CutoverTask、CutoverAssessment、CutoverChecklist、CutoverPlan、CutoverClosure | OWNER_CONFIRMED / BASELINE |
+| CUT 割接与稳定治理 | 割接任务、问卷分级、P3动态清单与采集结果、方案、分级审批、P6闭环和配置 | CUT-01～CUT-10 | CutoverTask、CutoverAssessment、CutoverChecklist、CutoverConfigurationRevision、CutoverPlan、CutoverClosure | OWNER_CONFIRMED / BASELINE |
 | SRV 服务运营 | 巡检、问题闭环和设备服务状态；内部 Context 拆为 Inspection、Service Operations | INS-01～INS-09、SRV-01 | InspectionTask、ServiceIssue、ServiceStatus | OWNER_CONFIRMED / BASELINE |
-| CUS 客户与服务关系 | 客户、联系人、客户关系和 CRM 同步副本 | CUS-01～CUS-04、INT-03 | Customer、Contact、AssetRelation、CustomerSyncSnapshot | OWNER_CONFIRMED / BASELINE |
+| CUS 客户与服务关系 | 客户、联系人、客户关系、服务等级时态版本和 CRM 同步副本 | CUS-01～CUS-04、INT-03 | Customer、Contact、AssetRelation、CustomerServiceLevelRevision、CustomerSyncSnapshot | OWNER_CONFIRMED / BASELINE |
 | AST 资产管理 | 设备序列号、设备档案、配置Log、维保客观状态和来源同步副本 | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | ConfigurationLog、Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot | OWNER_CONFIRMED / BASELINE |
 | COM 合同订单履约 | ERP权威合同订单引用和平台交付范围分配 | COM-01 | Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail | OWNER_CONFIRMED / BASELINE |
 | RES 资源与外包 | 服务商、转包申请与付款满意度门禁 | RES-01、SUB-01～SUB-05、INT-07 | Supplier、SubcontractRequest、PaymentGate | OWNER_CONFIRMED / BASELINE |
@@ -47,5 +47,5 @@ V1.8已重建100项工作追溯索引；V1.7的模块、聚合、状态机/工�
 
 - 正式需求索引覆盖：100/100；13个Owner唯一映射和Phase 1核心边界通过机器校验及fresh-context独立复审。
 - 需求缺失：0。
-- 设计资产完成度：V1.7正式分册保留为历史输入；V1.8 Phase 1/2为`BASELINE`，Phase 3仍为`IN_REVIEW`，以对应门禁为准。
+- 设计资产完成度：V1.7正式分册保留为历史输入；V1.8 Phase 1/2/3均为`BASELINE`，可进入Feature Ready评估；生产、性能、集成、迁移、切换和Release仍受各自下游门禁约束。
 - 不能从旧规格直接推导的内容：数据库字段、接口契约、事件名称、组件拆分、性能实现和测试脚本。

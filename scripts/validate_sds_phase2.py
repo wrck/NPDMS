@@ -390,6 +390,47 @@ def validate_v18_physical_carriers(root: Path) -> list[str]:
     return errors
 
 
+def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
+    """Bind Phase 2 gate summaries to the generated migration contract facts."""
+    errors: list[str] = []
+    contract_path = root / "docs" / "traceability" / "domain-entity-migration-contract.json"
+    if not contract_path.is_file():
+        return ["missing V1.8 domain entity migration contract"]
+    try:
+        contract = json.loads(read(contract_path))
+    except (json.JSONDecodeError, OSError) as exc:
+        return [f"invalid V1.8 domain entity migration contract: {exc}"]
+
+    records = contract.get("records")
+    excluded_sources = contract.get("excludedSources")
+    if not isinstance(records, list) or not isinstance(excluded_sources, list):
+        return ["V1.8 domain entity migration contract is missing records or excludedSources"]
+    object_count = len(records)
+    source_count = sum(
+        len(record.get("sources", []))
+        for record in records
+        if isinstance(record, dict) and isinstance(record.get("sources"), list)
+    )
+    excluded_count = len(excluded_sources)
+    expected_summary = f"{object_count}对象/{source_count}来源绑定/{excluded_count}排除源"
+    evidence_paths = (
+        root / "docs" / "engineering" / "gates" / "phase-2" / "README.md",
+        root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md",
+        root / "docs" / "engineering" / "gates" / "phase-2" / "self-review.md",
+        root / "docs" / "engineering" / "gates" / "phase-2" / "independent-review.md",
+    )
+    for path in evidence_paths:
+        if not path.is_file():
+            errors.append(f"missing Phase 2 migration gate evidence: {path.relative_to(root)}")
+            continue
+        if expected_summary not in read(path):
+            errors.append(
+                f"Phase 2 migration gate evidence does not match current contract: "
+                f"{path.relative_to(root)} expected={expected_summary}"
+            )
+    return errors
+
+
 def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
     """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
@@ -463,6 +504,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     leaked = {"ACC-05", "COM-02", "IMP-02"} & (set(prd_ids) | set(matrix_ids))
     if leaked:
         errors.append(f"V1.8 removed/deferred requirements leaked into formal contracts: {sorted(leaked)}")
+    errors.extend(validate_v18_migration_gate_evidence(root))
     errors.extend(validate_v18_physical_carriers(root))
     return errors
 

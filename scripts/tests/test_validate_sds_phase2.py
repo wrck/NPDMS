@@ -628,6 +628,38 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
         self.assertEqual([], MODULE.validate_v18_physical_carriers(repository_root))
 
+    def test_current_v18_migration_gate_evidence_matches_generated_contract(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_v18_migration_gate_evidence(repository_root))
+
+    def test_v18_migration_gate_evidence_rejects_stale_phase2_summary(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "docs" / "traceability").mkdir(parents=True)
+            shutil.copy2(
+                repository_root / "docs" / "traceability" / "domain-entity-migration-contract.json",
+                root / "docs" / "traceability" / "domain-entity-migration-contract.json",
+            )
+            shutil.copytree(
+                repository_root / "docs" / "engineering" / "gates" / "phase-2",
+                root / "docs" / "engineering" / "gates" / "phase-2",
+            )
+            gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
+            gate.write_text(
+                gate.read_text(encoding="utf-8").replace(
+                    "87对象/98来源绑定/1排除源",
+                    "85对象/96来源绑定/1排除源",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            errors = MODULE.validate_v18_migration_gate_evidence(root)
+
+            self.assertTrue(any("gate-status.md" in error for error in errors), errors)
+
     def test_v18_physical_carrier_contract_rejects_missing_table(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         with tempfile.TemporaryDirectory() as temporary:
