@@ -2,7 +2,7 @@
 
 Phase 3审查安全、审计可观测、部署、性能和测试设计是否足以形成完整SDS基线。
 
-当前结论为`READY_FOR_SDS_BASELINE`。该状态仅放行SDS基线；P3-E01～08及P3-E09保留的下游阻断仍分别约束部署、联调、专项验收、历史迁移、切换和生产发布。
+当前结论为`APPROVED / READY_FOR_SDS_BASELINE_V1.8`。V1.7审查保留为历史证据；Phase 1/2、P3-E09及Phase 3整体独立复审均已GO，五份Phase 3分册与100项测试/验收断言/证据映射已晋级BASELINE。该结论只放行Feature Ready评估，部署、联调、专项验收、历史迁移、切换、UAT和生产发布门禁继续有效。
 
 ## 当前文件
 
@@ -17,7 +17,7 @@ Phase 3审查安全、审计可观测、部署、性能和测试设计是否足�
 - [`self-review.md`](self-review.md)：当前自审结论和阻塞影响。
 - [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：ADR-0028已接受的需求方九组决策证据，覆盖确认时全部692项`DEFER`，并绑定寄存器Items哈希及文件哈希；当前DDL、`DEFER=0`和MySQL 8.4隔离执行已通过独立复审并形成可用模型基线，但不构成迁移批准。
 
-后续自审和独立复审分别登记为`self-review.md`和`independent-review.md`。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
+当前自审和独立复审分别登记为`self-review.md`和`independent-review.md`。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
 
 ## 必跑校验
 
@@ -29,7 +29,7 @@ py -3 -B scripts/validate_phase3_evidence_register.py
 py -3 -B scripts/validate_sds_phase3.py
 ```
 
-上述校验证明结构、事实绑定和当前Gate状态一致。P3-E09为`MODEL_BASELINE_READY`，可作为SDS/Feature数据模型输入；生产或真实迁移批次的`VERIFIED`仍须在各自下游门禁以当时事实关闭。
+上述校验证明结构、事实绑定和当前Gate状态一致。ADR-0030差量后的正式独立复审已GO，P3-E09为`MODEL_BASELINE_READY`，可作为SDS/Feature数据模型输入。`AI-MIG-000`按Release范围条件适用：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前达到`VERIFIED`，并只在批准窗口内执行。其他生产证据仍须在各自下游门禁以当时事实关闭。
 
 ## 放行原则
 

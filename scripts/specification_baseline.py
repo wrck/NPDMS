@@ -25,6 +25,7 @@ ALLOWED_CATEGORIES = frozenset(
         "DOMAIN_SPEC",
         "MODEL_APPENDIX",
         "MODEL_EVIDENCE",
+        "FEATURE_SPEC",
     }
 )
 FORBIDDEN_PREFIXES = (
@@ -110,6 +111,8 @@ def _category_accepts(path: str, category: str) -> bool:
         return path.startswith("specs/001-project-delivery-platform/appendices/")
     if category == "MODEL_EVIDENCE":
         return path in MODEL_EVIDENCE_PATHS
+    if category == "FEATURE_SPEC":
+        return path == "specs/features/README.md" or path.startswith("specs/features/F-")
     return False
 
 

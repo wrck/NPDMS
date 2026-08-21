@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "BASELINE_ADDENDUM",
+  "status": "BASELINE",
   "objects": {
     "Project": {
       "owner": "PROJ",
@@ -40,7 +40,8 @@
         "PM-03"
       ],
       "targetTables": [
-        "proj_project_template_revision"
+        "proj_project_template_revision",
+        "proj_project_template_task_definition"
       ]
     },
     "ProjectTask": {
@@ -50,6 +51,33 @@
       ],
       "targetTables": [
         "proj_project_task"
+      ]
+    },
+    "TaskWorkBinding": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionRule": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionEvaluation": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_completion_evaluation"
       ]
     },
     "TaskAncestorProjection": {
@@ -286,23 +314,10 @@
         "imp_quality_review"
       ]
     },
-    "ImplementationSafetyCheck": {
-      "owner": "IMP",
-      "requirementIds": [
-        "IMP-02"
-      ],
-      "targetTables": [
-        "imp_safety_check",
-        "imp_safety_item",
-        "imp_safety_remediation",
-        "imp_safety_exemption"
-      ]
-    },
     "DeliveryEvidence": {
       "owner": "IMP",
       "requirementIds": [
-        "IMP-01",
-        "IMP-02"
+        "IMP-01"
       ],
       "targetTables": [
         "imp_delivery_evidence",
@@ -360,7 +375,6 @@
     "ProjectClosure": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-05",
         "ACC-06",
         "CLO-01",
         "CLO-02"
@@ -383,7 +397,6 @@
     "ServiceHandover": {
       "owner": "ACC",
       "requirementIds": [
-        "ACC-05",
         "ACC-06"
       ],
       "targetTables": [
@@ -397,6 +410,7 @@
       "requirementIds": [
         "CUT-01",
         "CUT-02",
+        "CUT-03",
         "CUT-08",
         "CUT-09",
         "CUT-10"
@@ -417,13 +431,35 @@
         "cut_assessment"
       ]
     },
+    "CutoverChecklist": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-03"
+      ],
+      "targetTables": [
+        "cut_cutover_checklist",
+        "cut_cutover_checklist_item",
+        "cut_cutover_checklist_item_result"
+      ]
+    },
+    "CutoverConfigurationRevision": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-07"
+      ],
+      "targetTables": [
+        "cut_cutover_configuration_revision",
+        "cut_cutover_checklist_item_definition_revision",
+        "cut_cutover_checklist_binding_rule_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-07"
+    },
     "CutoverPlan": {
       "owner": "CUT",
       "requirementIds": [
-        "CUT-03",
         "CUT-04",
-        "CUT-05",
-        "CUT-07"
+        "CUT-05"
       ],
       "targetTables": [
         "cut_plan_revision",
@@ -507,7 +543,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -520,7 +555,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04"
       ],
@@ -533,7 +567,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -541,6 +574,17 @@
       "targetTables": [
         "cus_customer_relationship_snapshot"
       ]
+    },
+    "CustomerServiceLevelRevision": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-02"
+      ],
+      "targetTables": [
+        "cus_customer_service_level_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUS-02"
     },
     "Device": {
       "owner": "AST",
@@ -702,24 +746,6 @@
         "com_delivery_scope_detail"
       ]
     },
-    "FulfillmentSnapshot": {
-      "owner": "COM",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_fulfillment_snapshot"
-      ]
-    },
-    "ReconciliationRecord": {
-      "owner": "COM",
-      "requirementIds": [
-        "COM-02"
-      ],
-      "targetTables": [
-        "com_reconciliation_record"
-      ]
-    },
     "Supplier": {
       "owner": "RES",
       "requirementIds": [
@@ -859,6 +885,7 @@
     "CollectionTask": {
       "owner": "PLT",
       "requirementIds": [
+        "CUT-03",
         "CUT-06",
         "EXE-03",
         "EXE-04",
