@@ -48,6 +48,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_AMBIGUOUS;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NO_MATCH;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
 
@@ -93,8 +94,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
-                                         String orderOfficeDepartmentCode, Long manualTemplateId,
-                                         Long serviceManagerUserId) {
+                                         String orderOfficeDepartmentCode, Long templateRevisionId,
+                                         String candidateWatermark, Long serviceManagerUserId) {
         // a) BR-2 必填校验（失败不落库不实例化；子项目三维/模板继承父，仅名称+创建原因必填）
         List<String> missing = draft.getParentId() == null
                 ? ProjectRules.validateManualCreation(draft)
@@ -104,7 +105,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         }
         // b) 模板选择与冻结内容读取（根项目四维匹配/人工选择；子项目继承父模板版本）
         SelectedTemplate selected = draft.getParentId() == null
-                ? selectTemplate(draft, manualTemplateId)
+                ? selectTemplate(draft, templateRevisionId, candidateWatermark)
                 : selectInheritedTemplate(draft.getParentId());
         TemplateDefinitionContent content =
                 projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
@@ -286,37 +287,46 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     // ========== 内部方法 ==========
 
     /**
-     * 模板选择（BR-3/BR-4）：manualTemplateId 非空=MANUAL_SELECTED（校验 ACTIVE 且有 PUBLISHED 版本）；
-     * 为空=四维 matchPreview 自动匹配：MATCHED→AUTO_DEFAULT；NO_MATCH/MULTI_MATCH→阻断并携带冲突清单。
+     * 模板选择（BR-FPROJ-003）：提交时重算候选水位；显式选择必须是当前候选中的发布revision，
+     * 未显式选择时仅允许唯一默认候选。禁止按模板ID重新挑选latest revision。
      */
-    private SelectedTemplate selectTemplate(ProjectMasterDO draft, Long manualTemplateId) {
-        if (manualTemplateId != null) {
-            ProjectTemplateDO template = projectTemplateService.getProjectTemplate(manualTemplateId);
-            if (template == null || !TemplateRules.STATUS_ACTIVE.equals(template.getStatus())) {
-                throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
-            }
-            ProjectTemplateRevisionDO revision = latestPublishedRevision(manualTemplateId);
-            if (revision == null) {
-                throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
-            }
-            return new SelectedTemplate(manualTemplateId, revision.getId(), revision.getRevisionNo(),
-                    ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
-        }
+    private SelectedTemplate selectTemplate(ProjectMasterDO draft, Long templateRevisionId,
+                                            String candidateWatermark) {
         TemplateMatchResult match = projectTemplateService.matchPreview(
                 draft.getSigningMethod(), draft.getProjectCategory(),
                 draft.getImplementationMode(), draft.getMajorProjectLevel());
+        if (candidateWatermark == null || !candidateWatermark.equals(match.getCandidateWatermark())) {
+            throw exception(PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT);
+        }
+        if (templateRevisionId != null) {
+            var candidate = match.getCandidates().stream()
+                    .filter(item -> templateRevisionId.equals(item.getTemplateRevisionId()))
+                    .findFirst().orElseThrow(() -> exception(PROJECT_TEMPLATE_NOT_SELECTABLE));
+            ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionById(templateRevisionId);
+            ProjectTemplateDO template = revision == null ? null
+                    : projectTemplateService.getProjectTemplate(revision.getTemplateId());
+            if (revision == null || template == null
+                    || !TemplateRules.STATUS_ACTIVE.equals(template.getStatus())
+                    || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())
+                    || !candidate.getTemplateId().equals(revision.getTemplateId())) {
+                throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
+            }
+            return new SelectedTemplate(revision.getTemplateId(), revision.getId(), revision.getRevisionNo(),
+                    ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
+        }
         if (match.getOutcome() == TemplateMatchResult.Outcome.NO_MATCH) {
             throw exception(PROJECT_TEMPLATE_NO_MATCH, String.join("；", match.getConflicts()));
         }
         if (match.getOutcome() == TemplateMatchResult.Outcome.MULTI_MATCH) {
             throw exception(PROJECT_TEMPLATE_AMBIGUOUS, String.join("；", match.getConflicts()));
         }
-        Long templateId = match.getMatched().getTemplateId();
-        ProjectTemplateRevisionDO revision = latestPublishedRevision(templateId);
-        if (revision == null) {
+        Long revisionId = match.getMatched().getTemplateRevisionId();
+        ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionById(revisionId);
+        if (revision == null || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())
+                || !match.getMatched().getTemplateId().equals(revision.getTemplateId())) {
             throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
         }
-        return new SelectedTemplate(templateId, revision.getId(), revision.getRevisionNo(),
+        return new SelectedTemplate(revision.getTemplateId(), revision.getId(), revision.getRevisionNo(),
                 ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT);
     }
 
@@ -353,17 +363,6 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         if (draft.getCompanyName() == null) draft.setCompanyName(parent.getCompanyName());
         if (draft.getDepartmentCode() == null) draft.setDepartmentCode(parent.getDepartmentCode());
         if (draft.getDepartmentName() == null) draft.setDepartmentName(parent.getDepartmentName());
-    }
-
-    /**
-     * 模板最新 PUBLISHED 版本号（草稿 revision_no=0 不参与）。
-     */
-    private ProjectTemplateRevisionDO latestPublishedRevision(Long templateId) {
-        return projectTemplateService.getRevisionList(templateId).stream()
-                .filter(revision -> TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus()))
-                .filter(revision -> revision.getRevisionNo() != null && revision.getRevisionNo() > 0)
-                .max(java.util.Comparator.comparing(ProjectTemplateRevisionDO::getRevisionNo))
-                .orElse(null);
     }
 
     /**

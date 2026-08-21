@@ -56,6 +56,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_AMBIGUOUS;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NO_MATCH;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
 
@@ -66,6 +67,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
  */
 @ExtendWith(MockitoExtension.class)
 class ProjectManualCreationServiceImplTest {
+
+    private static final String CANDIDATE_WATERMARK = "candidate-watermark-v1";
 
     @Mock
     private ProjectMasterMapper projectMasterMapper;
@@ -108,7 +111,7 @@ class ProjectManualCreationServiceImplTest {
         draft.setSigningMethod(null);
 
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.createProject(draft, null, null, null, null));
+                () -> service.createProject(draft, null, null, null, null, null));
 
         assertEquals(PROJECT_CREATE_FIELDS_INVALID.getCode(), exception.getCode());
         assertTrue(exception.getMessage().contains("创建原因"));
@@ -122,10 +125,10 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void creationBlockedWhenNoTemplateMatch() {
         when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(TemplateMatchResult.noMatch("无匹配的生效模板"));
+                .thenReturn(withWatermark(TemplateMatchResult.noMatch("无匹配的生效模板")));
 
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.createProject(validDraft(), null, null, null, null));
+                () -> service.createProject(validDraft(), null, null, null, CANDIDATE_WATERMARK, null));
 
         assertEquals(PROJECT_TEMPLATE_NO_MATCH.getCode(), exception.getCode());
         assertTrue(exception.getMessage().contains("无匹配"));
@@ -136,14 +139,29 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void creationBlockedOnSamePriorityMultiMatch() {
         TemplateMatchResult multi = TemplateMatchResult.multiMatch(List.of("模板【TPL-A】", "模板【TPL-B】"));
+        multi.setCandidateWatermark(CANDIDATE_WATERMARK);
         when(projectTemplateService.matchPreview(any(), any(), any(), any())).thenReturn(multi);
 
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.createProject(validDraft(), null, null, null, null));
+                () -> service.createProject(validDraft(), null, null, null, CANDIDATE_WATERMARK, null));
 
         assertEquals(PROJECT_TEMPLATE_AMBIGUOUS.getCode(), exception.getCode());
         assertTrue(exception.getMessage().contains("TPL-A"));
         assertTrue(exception.getMessage().contains("TPL-B"));
+        verifyNoInteractions(projectMasterMapper, projectCodeAllocator);
+    }
+
+    @Test
+    void creationRejectsStaleCandidateWatermarkBeforeSelectingRevision() {
+        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
+                .thenReturn(matchedCandidate(9L, 1002L));
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> service.createProject(validDraft(), null, null, 1002L,
+                        "stale-watermark", null));
+
+        assertEquals(PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT.getCode(), exception.getCode());
+        verify(projectTemplateService, never()).getRevisionById(anyLong());
         verifyNoInteractions(projectMasterMapper, projectCodeAllocator);
     }
 
@@ -152,11 +170,12 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void manualSelectionTakesEffectWithTwoPhaseNamespaceWrite() {
         Long templateId = 9L;
+        Long revisionId = 1002L;
+        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
+                .thenReturn(matchedCandidate(templateId, revisionId));
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-M"));
-        when(projectTemplateService.getRevisionList(templateId)).thenReturn(List.of(
-                revision(TemplateRules.REVISION_STATUS_DRAFT, 0),
-                revision(TemplateRules.REVISION_STATUS_PUBLISHED, 2),
-                revision(TemplateRules.REVISION_STATUS_PUBLISHED, 1)));
+        when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
+                revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 2));
         TemplateDefinitionContent content = contentWithOneGateAndReference();
         when(projectTemplateService.getRevisionContent(templateId, 2)).thenReturn(content);
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000007");
@@ -171,7 +190,8 @@ class ProjectManualCreationServiceImplTest {
             return 1;
         }).when(projectMasterMapper).insert(any(ProjectMasterDO.class));
 
-        ProjectMasterDO created = service.createProject(validDraft(), null, null, templateId, null);
+        ProjectMasterDO created = service.createProject(validDraft(), null, null, revisionId,
+                CANDIDATE_WATERMARK, null);
 
         // 冻结上下文与主档语义
         assertEquals(100L, created.getId());
@@ -210,14 +230,19 @@ class ProjectManualCreationServiceImplTest {
         verify(gateReferenceInstanceMapper).insert(any(ProjectGateReferenceInstanceDO.class));
         // 未指派/未登记办事处
         verifyNoInteractions(memberAssignmentMapper, companyDepartmentRelationMapper);
+        verify(projectTemplateService).getRevisionById(revisionId);
+        verify(projectTemplateService, never()).getRevisionList(templateId);
     }
 
     @Test
     void rejectsTemplateWithoutS0BeforeAllocatingCode() {
         Long templateId = 9L;
+        Long revisionId = 1001L;
+        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
+                .thenReturn(matchedCandidate(templateId, revisionId));
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-S2"));
-        when(projectTemplateService.getRevisionList(templateId)).thenReturn(List.of(
-                revision(TemplateRules.REVISION_STATUS_PUBLISHED, 1)));
+        when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
+                revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
         TemplateDefinitionContent invalid = new TemplateDefinitionContent();
         TemplateDefinitionContent.StageDef stage = new TemplateDefinitionContent.StageDef();
         stage.setStageCode("S2");
@@ -225,7 +250,8 @@ class ProjectManualCreationServiceImplTest {
         when(projectTemplateService.getRevisionContent(templateId, 1)).thenReturn(invalid);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.createProject(validDraft(), null, null, templateId, null));
+                () -> service.createProject(validDraft(), null, null, revisionId,
+                        CANDIDATE_WATERMARK, null));
 
         verifyNoInteractions(projectCodeAllocator, projectMasterMapper);
     }
@@ -233,12 +259,18 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void manualSelectionRejectsNonActiveTemplate() {
         Long templateId = 9L;
+        Long revisionId = 1001L;
+        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
+                .thenReturn(matchedCandidate(templateId, revisionId));
+        when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
+                revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
         ProjectTemplateDO retired = activeTemplate(templateId, "TPL-R");
         retired.setStatus(TemplateRules.STATUS_RETIRED);
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(retired);
 
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.createProject(validDraft(), null, null, templateId, null));
+                () -> service.createProject(validDraft(), null, null, revisionId,
+                        CANDIDATE_WATERMARK, null));
 
         assertEquals(PROJECT_TEMPLATE_NOT_SELECTABLE.getCode(), exception.getCode());
         verify(projectMasterMapper, never()).insert(any(ProjectMasterDO.class));
@@ -248,12 +280,16 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void manualSelectionRejectsTemplateWithoutPublishedRevision() {
         Long templateId = 9L;
+        Long revisionId = 1000L;
+        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
+                .thenReturn(matchedCandidate(templateId, revisionId));
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-D"));
-        when(projectTemplateService.getRevisionList(templateId)).thenReturn(List.of(
-                revision(TemplateRules.REVISION_STATUS_DRAFT, 0)));
+        when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
+                revision(templateId, TemplateRules.REVISION_STATUS_DRAFT, 0));
 
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.createProject(validDraft(), null, null, templateId, null));
+                () -> service.createProject(validDraft(), null, null, revisionId,
+                        CANDIDATE_WATERMARK, null));
 
         assertEquals(PROJECT_TEMPLATE_NOT_SELECTABLE.getCode(), exception.getCode());
         verify(projectMasterMapper, never()).insert(any(ProjectMasterDO.class));
@@ -265,11 +301,13 @@ class ProjectManualCreationServiceImplTest {
     void autoDefaultBindsUniqueMatchedTemplate() {
         TemplateMatchCandidate candidate = new TemplateMatchCandidate();
         candidate.setTemplateId(5L);
+        candidate.setTemplateRevisionId(1001L);
         candidate.setCode("TPL-AUTO");
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(TemplateMatchResult.matched(candidate));
-        when(projectTemplateService.getRevisionList(5L)).thenReturn(List.of(
-                revision(TemplateRules.REVISION_STATUS_PUBLISHED, 1)));
+        TemplateMatchResult match = TemplateMatchResult.matched(candidate);
+        match.setCandidateWatermark(CANDIDATE_WATERMARK);
+        when(projectTemplateService.matchPreview(any(), any(), any(), any())).thenReturn(match);
+        when(projectTemplateService.getRevisionById(1001L)).thenReturn(
+                revision(5L, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
         when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000008");
         doAnswer(invocation -> {
@@ -278,7 +316,8 @@ class ProjectManualCreationServiceImplTest {
             return 1;
         }).when(projectMasterMapper).insert(any(ProjectMasterDO.class));
 
-        ProjectMasterDO created = service.createProject(validDraft(), null, null, null, null);
+        ProjectMasterDO created = service.createProject(validDraft(), null, null, null,
+                CANDIDATE_WATERMARK, null);
 
         assertEquals(5L, created.getLifecycleTemplateId());
         assertEquals(1, created.getLifecycleTemplateRevisionNo());
@@ -294,10 +333,12 @@ class ProjectManualCreationServiceImplTest {
     void creationAssignsServiceManagerAndOrderOfficeRelation() {
         TemplateMatchCandidate candidate = new TemplateMatchCandidate();
         candidate.setTemplateId(5L);
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(TemplateMatchResult.matched(candidate));
-        when(projectTemplateService.getRevisionList(5L)).thenReturn(List.of(
-                revision(TemplateRules.REVISION_STATUS_PUBLISHED, 1)));
+        candidate.setTemplateRevisionId(1001L);
+        TemplateMatchResult match = TemplateMatchResult.matched(candidate);
+        match.setCandidateWatermark(CANDIDATE_WATERMARK);
+        when(projectTemplateService.matchPreview(any(), any(), any(), any())).thenReturn(match);
+        when(projectTemplateService.getRevisionById(1001L)).thenReturn(
+                revision(5L, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
         when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000009");
         doAnswer(invocation -> {
@@ -315,7 +356,8 @@ class ProjectManualCreationServiceImplTest {
         when(memberAssignmentMapper.selectListByRole(102L, 66L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1))
                 .thenReturn(List.of(openInterval));
 
-        service.createProject(validDraft(), "CO-01", "DEP-01", null, 66L);
+        service.createProject(validDraft(), "CO-01", "DEP-01", null,
+                CANDIDATE_WATERMARK, 66L);
 
         // 旧区间关闭：effective_to=新区间起点
         ArgumentCaptor<ProjectMemberAssignmentDO> closeCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
@@ -445,12 +487,27 @@ class ProjectManualCreationServiceImplTest {
         return template;
     }
 
-    private ProjectTemplateRevisionDO revision(String status, Integer revisionNo) {
+    private ProjectTemplateRevisionDO revision(Long templateId, String status, Integer revisionNo) {
         ProjectTemplateRevisionDO revision = new ProjectTemplateRevisionDO();
         revision.setId(revisionNo == null ? null : 1000L + revisionNo);
+        revision.setTemplateId(templateId);
         revision.setStatus(status);
         revision.setRevisionNo(revisionNo);
         return revision;
+    }
+
+    private TemplateMatchResult matchedCandidate(Long templateId, Long revisionId) {
+        TemplateMatchCandidate candidate = new TemplateMatchCandidate();
+        candidate.setTemplateId(templateId);
+        candidate.setTemplateRevisionId(revisionId);
+        TemplateMatchResult result = TemplateMatchResult.matched(candidate);
+        result.setCandidateWatermark(CANDIDATE_WATERMARK);
+        return result;
+    }
+
+    private TemplateMatchResult withWatermark(TemplateMatchResult result) {
+        result.setCandidateWatermark(CANDIDATE_WATERMARK);
+        return result;
     }
 
     private TemplateDefinitionContent contentWithOneGateAndReference() {

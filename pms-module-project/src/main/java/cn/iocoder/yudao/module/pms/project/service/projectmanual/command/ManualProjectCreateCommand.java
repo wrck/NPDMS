@@ -7,7 +7,8 @@ public record ManualProjectCreateCommand(
         ProjectMasterDO draft,
         String orderOfficeCompanyCode,
         String orderOfficeDepartmentCode,
-        Long templateId,
+        Long templateRevisionId,
+        String candidateWatermark,
         Long serviceManagerUserId,
         String idempotencyKey,
         String requestDigest) {

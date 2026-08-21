@@ -94,7 +94,8 @@ public class ProjectMasterController {
         ProjectMasterDO draft = BeanUtils.toBean(createReqVO, ProjectMasterDO.class);
         ManualProjectCreateCommand command = new ManualProjectCreateCommand(
                 draft, createReqVO.getOrderOfficeCompanyCode(), createReqVO.getOrderOfficeDepartmentCode(),
-                createReqVO.getTemplateId(), createReqVO.getServiceManagerUserId(), idempotencyKey,
+                createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
+                createReqVO.getServiceManagerUserId(), idempotencyKey,
                 sha256Digest(JsonUtils.toJsonString(createReqVO)));
         ManualProjectCreateResult result = projectManualCreationApplicationService.create(command,
                 new Actor(currentTenantId(), actorId, UUID.randomUUID().toString()));
@@ -113,6 +114,7 @@ public class ProjectMasterController {
                 signingMethod, projectCategory, implementationMode, majorProjectLevel);
         ProjectMatchTemplatesRespVO respVO = new ProjectMatchTemplatesRespVO();
         respVO.setOutcome(match.getOutcome().name());
+        respVO.setCandidateWatermark(match.getCandidateWatermark());
         respVO.setConflicts(match.getConflicts());
         respVO.setCandidates(BeanUtils.toBean(match.getCandidates(), ProjectMatchTemplatesRespVO.CandidateItem.class));
         return success(respVO);

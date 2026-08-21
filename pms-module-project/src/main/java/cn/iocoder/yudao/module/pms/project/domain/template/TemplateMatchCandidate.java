@@ -18,6 +18,8 @@ public class TemplateMatchCandidate {
     private Integer matchPriority;
     /** 最新已发布版本号（F-PM01 表单选择时展示概要） */
     private Integer latestRevisionNo;
+    /** 最新已发布版本稳定ID（正式创建按此ID冻结，不在提交时重新选择latest） */
+    private Long templateRevisionId;
     /** 匹配条件：签约方式（null=不限） */
     private String signingMethod;
     /** 匹配条件：项目类别（null=不限） */

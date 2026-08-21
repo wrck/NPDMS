@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
@@ -52,8 +53,12 @@ public class ProjectCreateReqVO {
     @NotEmpty(message = "手工创建原因不能为空")
     private String creationReason;
 
-    @Schema(description = "人工选择模板ID（空=四维自动匹配，多匹配/无匹配时阻断）", example = "910001")
-    private Long templateId;
+    @Schema(description = "人工选择的模板发布版本稳定ID（空=仅允许唯一默认候选）", example = "910101")
+    private Long templateRevisionId;
+
+    @Schema(description = "候选查询水位（由候选接口返回）", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "候选查询水位不能为空")
+    private String candidateWatermark;
 
     @Schema(description = "可选一级服务经理用户ID（空=创建后人工指派）", example = "1")
     private Long serviceManagerUserId;

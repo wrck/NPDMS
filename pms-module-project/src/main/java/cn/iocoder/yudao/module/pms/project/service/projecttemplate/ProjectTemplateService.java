@@ -61,6 +61,11 @@ public interface ProjectTemplateService {
     ProjectTemplateRevisionDO getRevision(Long templateId, Integer revisionNo);
 
     /**
+     * 按稳定ID查询指定模板版本。
+     */
+    ProjectTemplateRevisionDO getRevisionById(Long revisionId);
+
+    /**
      * 读取模板草稿内容（含六类定义行）
      */
     TemplateDefinitionContent getDraftContent(Long templateId);

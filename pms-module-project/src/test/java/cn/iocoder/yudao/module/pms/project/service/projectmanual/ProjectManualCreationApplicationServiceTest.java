@@ -34,7 +34,7 @@ class ProjectManualCreationApplicationServiceTest {
     @SuppressWarnings("unchecked")
     void applicationEntryBuildsResultInsidePlatformExecution() {
         ProjectMasterDO project = project();
-        when(projectCreationService.createProject(any(), any(), any(), any(), any())).thenReturn(project);
+        when(projectCreationService.createProject(any(), any(), any(), any(), any(), any())).thenReturn(project);
         when(projectCreationService.getInstances(100L)).thenReturn(new ProjectInstantiation());
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<Object> operation = invocation.getArgument(3);
@@ -68,7 +68,7 @@ class ProjectManualCreationApplicationServiceTest {
     private ManualProjectCreateCommand command() {
         ProjectMasterDO draft = new ProjectMasterDO();
         draft.setCreationReason("业务立项");
-        return new ManualProjectCreateCommand(draft, null, null, 9L, null,
+        return new ManualProjectCreateCommand(draft, null, null, 9002L, "candidate-watermark-v1", null,
                 "key-1", "a".repeat(64));
     }
 

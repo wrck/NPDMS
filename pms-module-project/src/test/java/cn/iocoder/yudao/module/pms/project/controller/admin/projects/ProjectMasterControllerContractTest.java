@@ -1,5 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projects;
 
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
+import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,6 +49,17 @@ class ProjectMasterControllerContractTest {
         RequestHeader header = keyParameter.getAnnotation(RequestHeader.class);
         assertEquals("Idempotency-Key", header.value(), "幂等头名称不符合契约");
         assertTrue(header.required(), "正式创建必须提供幂等头");
+    }
+
+    @Test
+    void createContractUsesRevisionIdAndRequiredCandidateWatermark() throws Exception {
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("templateRevisionId"));
+        var watermark = ProjectCreateReqVO.class.getDeclaredField("candidateWatermark");
+        assertNotNull(watermark.getAnnotation(NotBlank.class), "候选水位必须由边界校验为非空");
+        assertNotNull(ProjectMatchTemplatesRespVO.class.getDeclaredField("candidateWatermark"));
+        assertNotNull(ProjectMatchTemplatesRespVO.CandidateItem.class
+                .getDeclaredField("templateRevisionId"));
+        assertThrowsNoField(ProjectCreateReqVO.class, "templateId");
     }
 
     @Test
@@ -127,5 +141,14 @@ class ProjectMasterControllerContractTest {
             return put.value().length > 0 ? put.value()[0] : "";
         }
         return fail("未覆盖的映射类型：" + mapping.annotationType());
+    }
+
+    private static void assertThrowsNoField(Class<?> type, String name) {
+        try {
+            type.getDeclaredField(name);
+            fail(type.getSimpleName() + " 不得继续暴露旧字段 " + name);
+        } catch (NoSuchFieldException expected) {
+            // 符合V1.8 revision级契约。
+        }
     }
 }

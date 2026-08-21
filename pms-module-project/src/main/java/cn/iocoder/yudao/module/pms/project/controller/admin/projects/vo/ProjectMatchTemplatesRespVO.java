@@ -16,6 +16,9 @@ public class ProjectMatchTemplatesRespVO {
     @Schema(description = "匹配结局：MATCHED唯一命中/NO_MATCH无匹配/MULTI_MATCH同优先级多匹配")
     private String outcome;
 
+    @Schema(description = "候选查询水位；创建时原样回传，候选变化后旧水位失效")
+    private String candidateWatermark;
+
     @Schema(description = "命中候选清单（MATCHED=单元素，MULTI_MATCH=同优先级候选，NO_MATCH=空）")
     private List<CandidateItem> candidates = new ArrayList<>();
 
@@ -34,6 +37,8 @@ public class ProjectMatchTemplatesRespVO {
         private Integer matchPriority;
         @Schema(description = "最新已发布版本号")
         private Integer latestRevisionNo;
+        @Schema(description = "最新已发布版本稳定ID")
+        private Long templateRevisionId;
         @Schema(description = "匹配条件：签约方式（null=不限）")
         private String signingMethod;
         @Schema(description = "匹配条件：项目类别（null=不限）")

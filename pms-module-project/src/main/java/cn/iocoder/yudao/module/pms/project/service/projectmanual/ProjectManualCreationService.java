@@ -29,8 +29,8 @@ public interface ProjectManualCreationService {
      * @return 已落库项目主档（含自增ID与回填后的 code_root_id/root_id）
      */
     ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
-                                   String orderOfficeDepartmentCode, Long manualTemplateId,
-                                   Long serviceManagerUserId);
+                                  String orderOfficeDepartmentCode, Long templateRevisionId,
+                                  String candidateWatermark, Long serviceManagerUserId);
 
     /**
      * 更新可编辑属性（BR-7：名称/客户/合同号/实施地点；编码、父节点、来源、模板绑定、状态不可改，

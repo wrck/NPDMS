@@ -29,6 +29,8 @@ public class TemplateMatchResult {
     private List<TemplateMatchCandidate> candidates = new ArrayList<>();
     /** 冲突/未命中说明清单（人工处理） */
     private List<String> conflicts = new ArrayList<>();
+    /** 候选查询水位；正式创建必须回传并由服务端重算比较 */
+    private String candidateWatermark;
 
     public static TemplateMatchResult matched(TemplateMatchCandidate candidate) {
         TemplateMatchResult result = new TemplateMatchResult();

@@ -52,7 +52,7 @@ public class ProjectManualCreationApplicationService {
     private ManualProjectCreateResult createOnce(ManualProjectCreateCommand command) {
         ProjectMasterDO project = projectCreationService.createProject(command.draft(),
                 command.orderOfficeCompanyCode(), command.orderOfficeDepartmentCode(),
-                command.templateId(), command.serviceManagerUserId());
+                command.templateRevisionId(), command.candidateWatermark(), command.serviceManagerUserId());
         ProjectInstantiation instances = projectCreationService.getInstances(project.getId());
         return new ManualProjectCreateResult(
                 project.getId(), project.getProjectCode(), project.getStatus(), project.getLifecycleStatus(),
@@ -83,6 +83,7 @@ public class ProjectManualCreationApplicationService {
     private void validate(ManualProjectCreateCommand command, Actor actor) {
         if (command == null || command.draft() == null || command.idempotencyKey() == null
                 || command.idempotencyKey().isBlank() || command.requestDigest() == null
+                || command.candidateWatermark() == null || command.candidateWatermark().isBlank()
                 || actor == null || actor.tenantId() == null || actor.actorId() == null
                 || actor.correlationId() == null || actor.correlationId().isBlank()) {
             throw new IllegalArgumentException("正式项目创建命令不完整");

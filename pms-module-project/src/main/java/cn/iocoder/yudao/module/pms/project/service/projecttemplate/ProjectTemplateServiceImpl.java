@@ -33,6 +33,11 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -173,6 +178,11 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     @Override
+    public ProjectTemplateRevisionDO getRevisionById(Long revisionId) {
+        return revisionMapper.selectById(revisionId);
+    }
+
+    @Override
     public TemplateDefinitionContent getDraftContent(Long templateId) {
         ProjectTemplateRevisionDO draft = revisionMapper.selectDraftByTemplateId(templateId);
         if (draft == null) {
@@ -271,14 +281,51 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             candidate.setName(activeTemplate.getName());
             candidate.setMatchPriority(activeTemplate.getMatchPriority());
             candidate.setLatestRevisionNo(latest.getRevisionNo());
+            candidate.setTemplateRevisionId(latest.getId());
             candidate.setSigningMethod(latest.getSigningMethod());
             candidate.setProjectCategory(latest.getProjectCategory());
             candidate.setImplementationMethod(latest.getImplementationMethod());
             candidate.setMajorProjectLevel(latest.getMajorProjectLevel());
             candidates.add(candidate);
         }
-        return TemplateMatcher.match(candidates, signingMethod, projectCategory,
+        TemplateMatchResult result = TemplateMatcher.match(candidates, signingMethod, projectCategory,
                 implementationMethod, majorProjectLevel);
+        result.setCandidateWatermark(candidateWatermark(candidates, signingMethod, projectCategory,
+                implementationMethod, majorProjectLevel));
+        return result;
+    }
+
+    private String candidateWatermark(List<TemplateMatchCandidate> candidates, String signingMethod,
+                                      String projectCategory, String implementationMethod,
+                                      String majorProjectLevel) {
+        StringBuilder canonical = new StringBuilder();
+        appendToken(canonical, signingMethod);
+        appendToken(canonical, projectCategory);
+        appendToken(canonical, implementationMethod);
+        appendToken(canonical, majorProjectLevel);
+        candidates.stream()
+                .sorted(Comparator.comparing(TemplateMatchCandidate::getTemplateId))
+                .forEach(candidate -> {
+                    appendToken(canonical, candidate.getTemplateId());
+                    appendToken(canonical, candidate.getTemplateRevisionId());
+                    appendToken(canonical, candidate.getLatestRevisionNo());
+                    appendToken(canonical, candidate.getMatchPriority());
+                    appendToken(canonical, candidate.getSigningMethod());
+                    appendToken(canonical, candidate.getProjectCategory());
+                    appendToken(canonical, candidate.getImplementationMethod());
+                    appendToken(canonical, candidate.getMajorProjectLevel());
+                });
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256摘要算法不可用", ex);
+        }
+    }
+
+    private void appendToken(StringBuilder target, Object value) {
+        String token = value == null ? "" : String.valueOf(value);
+        target.append(token.length()).append(':').append(token).append(';');
     }
 
     // ========== 内部方法 ==========
