@@ -71,6 +71,8 @@
 - 跨 Context 流程以事件和 Saga/过程状态跟踪；每个步骤有 forward action、确认条件、可重试分类、补偿命令和人工接管点。
 - 补偿创建反向业务事实，不删除成功历史。例如释放 DeliveryScope、撤销未生效授权、取消外部未执行任务；已发生设备执行/财务入账需对账处理，不能技术回滚伪装未发生。
 
+ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一MySQL本地事务中同步调用ACC公开内部应用接口，ACC以`Propagation.MANDATORY`加入该事务；正式Project、ProjectTask执行契约、ACC交付件实例、幂等成功结果、成功审计和Outbox必须共同提交或共同回滚。失败不得形成Project草稿、初始化operation、`INITIALIZING`状态、Saga或异步补建任务。该例外不授权跨Context Repository访问；部署不再共享事务资源时必须阻断Feature并先完成批准的语义变更。
+
 ## 6. 状态机异常
 
 | 异常 | 处理 |

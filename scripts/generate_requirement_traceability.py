@@ -336,6 +336,12 @@ def existing_feature_links(output: Path) -> dict[str, str]:
     return result
 
 
+FEATURE_LINK_OVERRIDES = {
+    "PM-01": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
+    "PM-03": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
+}
+
+
 def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = None) -> str:
     requirements = extract_requirements(read(prd))
     owners = domain_owners(requirements)
@@ -348,6 +354,7 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "",
         "> 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。",
         "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8；领域决策：`docs/design/phase-1-domain-ownership.md`。",
+        "> 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
@@ -371,7 +378,7 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
     for item in requirements:
         domain, owner = owners[item["id"]]
         module, aggregate, lifecycle, permission, api, data, test_category = phase1_design(item["id"], domain)
-        feature = (feature_links or {}).get(item["id"], "NOT_STARTED")
+        feature = FEATURE_LINK_OVERRIDES.get(item["id"], (feature_links or {}).get(item["id"], "NOT_STARTED"))
         values = [
             item["id"], item["name"], f"{domain}（{owner}）", module, aggregate, lifecycle,
             permission, api, data, test_category, item["stage"], item["version"], item["priority"],

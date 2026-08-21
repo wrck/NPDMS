@@ -177,3 +177,35 @@
 | Q-REL-006 | 首发是否执行历史数据迁移；如执行，明确范围和业务对账人 | 是；Feature开发不受阻，但迁移程序和预演不得启动 | P1结束前确定是否迁移；P4前关闭AI-MIG-000适用批次 | 历史迁移、数据切换、上线准入 | 业务Owner、数据Owner、迁移负责人 | OPEN_MIGRATION |
 
 处理原则：Q-REL-001、Q-REL-003、Q-REL-006是近期排期输入，需要优先确认；Q-REL-002、Q-REL-004、Q-REL-005按表中最晚安全点后置。未确认项不得用虚构人员、环境参数或迁移范围填充，但不影响无关Feature继续推进。
+
+## Feature Ready问题
+
+### Q-FPROJ-001
+
+- Status: RESOLVED
+- Requirement IDs: PM-01、PM-03
+- Area: F-PROJ-001手动项目创建与模板初始化
+- Question: PRD要求“无可用模板时项目保持创建草稿且不得进入S0”，但当前SDS只定义正式Project创建为`ACTIVE / S0`。创建草稿应采用独立`ProjectCreationDraft`聚合、给Project新增`DRAFT`状态，还是不持久化表单？
+- Why it blocks design/implementation: 该选择会改变草稿业务身份、状态机、API和数据库；现已由需求方确认方案B并解除阻断。
+- Options: A. 独立`ProjectCreationDraft`，提交后原子生成正式Project并保留草稿审计引用；B. 校验失败不持久化，只保留客户端表单；C. 给Project新增`DRAFT`生命周期。
+- Recommended technical default: 历史推荐为A；需求方最终选择B，以避免新增草稿业务对象和Project状态。
+- Business decision required: 已完成。方案B：失败时不持久化Project或创建草稿；当前页面可保留内存表单供修正，刷新后不保证恢复。
+- Resolution: 方案B。批准依据为`CHG-PRD-2026-08-21-001`；不新增ProjectCreationDraft、Project DRAFT状态、草稿API、表或迁移。
+- Blocking scope: 已解除。F-PROJ-001按失败无持久化语义继续Feature Spec和Technical Plan。
+- Decision owner: 需求方（业务语义）；PROJ领域和数据架构负责人（SDS/物理契约回写）
+- Decision date: 2026-08-21
+
+### Q-FPROJ-002
+
+- Status: RESOLVED
+- Requirement IDs: PM-03、ACC-04
+- Area: F-PROJ-001手动项目创建与模板初始化
+- Question: PM-03要求项目创建时按模板加载交付件，但SDS明确交付件事实归ACC Context拥有、PROJ不得直接访问ACC Repository，且跨Context契约默认最终一致。项目创建成功是否必须等待ACC交付件实例全部落地？
+- Why it blocks design/implementation: 该选择会改变`POST /projects`成功语义、事务/Outbox边界、初始化状态、重试补偿和AC-FPROJ-002/008/010的验收口径；现已由需求方确认同步全有或全无并解除阻断。
+- Options: A. PROJ先提交并由ACC按Outbox事件最终一致初始化，存在`PENDING`；B. 同步编排但允许超时后保持可恢复处理中；C. 只冻结要求快照，进入阶段时再创建；D. 需求方选择：PROJ同步调用ACC内部应用接口，双方同库同Spring事务，要么全部提交，要么全部回滚，不产生中间状态。
+- Recommended technical default: 历史推荐为A；需求方最终选择D，以项目创建完整性优先于跨库拆分和异步可用性。
+- Business decision required: 已完成。创建成功必须同时证明ACC交付件实例全部落地；任一步失败则整体回滚。
+- Resolution: 方案D，详见ADR-0032。PROJ不得直接访问ACC Repository；ACC内部应用接口必须参与调用方同一数据库事务，不得使用`REQUIRES_NEW`、异步消息、Saga、初始化`PENDING`或吞异常降级。
+- Blocking scope: 已解除。F-PROJ-001按同步全有或全无语义继续Technical Plan；未来拆库/拆服务必须先批准业务语义变更。
+- Decision owner: 需求方（创建完成语义和用户效果）；PROJ、ACC领域负责人（契约和补偿）
+- Decision date: 2026-08-21
