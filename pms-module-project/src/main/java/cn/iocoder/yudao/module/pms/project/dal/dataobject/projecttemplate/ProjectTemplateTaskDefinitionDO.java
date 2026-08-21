@@ -61,4 +61,32 @@ public class ProjectTemplateTaskDefinitionDO extends TenantBaseDO {
      * 任务说明
      */
     private String description;
+    /**
+     * V1.8阶段定义稳定键
+     */
+    private String stageDefinitionKey;
+    /**
+     * V1.8任务定义稳定键
+     */
+    private String taskDefinitionKey;
+    /**
+     * V1.8父任务定义稳定键
+     */
+    private String parentTaskDefinitionKey;
+    /**
+     * 工作绑定类型
+     */
+    private String workBindingTypeCode;
+    private String targetContextCode;
+    private String targetObjectType;
+    private String targetObjectKey;
+    private String componentKey;
+    private Long dynamicFormRevisionId;
+    private String approvalDefinitionKey;
+    private String bindingConfig;
+    private String permissionPolicyRef;
+    private String completionRuleTypeCode;
+    private String completionRuleConfig;
+    private String gateRef;
+    private Integer definitionVersion;
 }

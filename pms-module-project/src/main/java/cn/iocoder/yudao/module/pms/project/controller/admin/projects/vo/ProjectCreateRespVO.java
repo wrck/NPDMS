@@ -19,6 +19,18 @@ public class ProjectCreateRespVO {
     @Schema(description = "项目状态（初始 S0）", example = "S0")
     private String status;
 
+    @Schema(description = "生命周期状态", example = "ACTIVE")
+    private String lifecycleStatus;
+
+    @Schema(description = "当前阶段", example = "S0")
+    private String currentStage;
+
+    @Schema(description = "主责指派状态", example = "UNASSIGNED")
+    private String assignmentStatus;
+
+    @Schema(description = "项目版本", example = "0")
+    private Integer version;
+
     @Schema(description = "冻结的生命周期模板ID", example = "910001")
     private Long lifecycleTemplateId;
 

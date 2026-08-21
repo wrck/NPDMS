@@ -17,13 +17,15 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectP
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeMoveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.IdempotencyRecordDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.IdempotencyRecordService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectTreeService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,7 +33,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,11 +53,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_WEIGHT_SUM_INVALID;
 
@@ -70,20 +73,14 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RestController
 @RequestMapping("/pms/projects")
 @Validated
-@Slf4j
 public class ProjectMasterController {
-
-    /** 幂等命令标识 */
-    private static final String COMMAND_PROJECT_CREATE = "ProjectCreate";
-    /** 幂等记录状态：已完成 */
-    private static final String IDEMPOTENCY_STATUS_COMPLETED = "COMPLETED";
 
     @Resource
     private ProjectManualCreationService projectManualCreationService;
     @Resource
     private ProjectTemplateService projectTemplateService;
     @Resource
-    private IdempotencyRecordService idempotencyRecordService;
+    private ProjectManualCreationApplicationService projectManualCreationApplicationService;
     @Resource
     private ProjectTreeService projectTreeService;
 
@@ -91,26 +88,17 @@ public class ProjectMasterController {
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
     @PreAuthorize("@ss.hasPermission('pms:project:create')")
     public CommonResult<ProjectCreateRespVO> createProject(
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @Valid @RequestBody ProjectCreateReqVO createReqVO) {
-        // 无幂等键：直接创建（不做幂等保护）
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            return success(doCreate(createReqVO));
-        }
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
-        String digest = sha256Digest(toJson(createReqVO));
-        IdempotencyRecordDO existing = idempotencyRecordService.findByKey(
-                currentTenantId(), COMMAND_PROJECT_CREATE, actorId, idempotencyKey);
-        if (existing != null) {
-            // 同键异摘要 → 409；同键同摘要 → 重放返回原资源
-            if (!digest.equals(existing.getRequestDigest())) {
-                throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
-            }
-            return success(fromJson(existing.getResponsePayload()));
-        }
-        ProjectCreateRespVO created = doCreate(createReqVO);
-        saveIdempotencyRecord(idempotencyKey, actorId, digest, toJson(created));
-        return success(created);
+        ProjectMasterDO draft = BeanUtils.toBean(createReqVO, ProjectMasterDO.class);
+        ManualProjectCreateCommand command = new ManualProjectCreateCommand(
+                draft, createReqVO.getOrderOfficeCompanyCode(), createReqVO.getOrderOfficeDepartmentCode(),
+                createReqVO.getTemplateId(), createReqVO.getServiceManagerUserId(), idempotencyKey,
+                sha256Digest(JsonUtils.toJsonString(createReqVO)));
+        ManualProjectCreateResult result = projectManualCreationApplicationService.create(command,
+                new Actor(currentTenantId(), actorId, UUID.randomUUID().toString()));
+        return success(toResponse(result));
     }
 
     @GetMapping("/actions/match-templates")
@@ -299,43 +287,25 @@ public class ProjectMasterController {
         return success(respVO);
     }
 
-    // ========== 内部方法（幂等支撑） ==========
-
-    private ProjectCreateRespVO doCreate(ProjectCreateReqVO createReqVO) {
-        ProjectMasterDO draft = BeanUtils.toBean(createReqVO, ProjectMasterDO.class);
-        ProjectMasterDO created = projectManualCreationService.createProject(draft,
-                createReqVO.getOrderOfficeCompanyCode(), createReqVO.getOrderOfficeDepartmentCode(),
-                createReqVO.getTemplateId(), createReqVO.getServiceManagerUserId());
-        ProjectCreateRespVO respVO = BeanUtils.toBean(created, ProjectCreateRespVO.class);
-        // 实例化摘要（幂等快照含计数，重放与首响一致）
-        ProjectInstantiation instantiation = projectManualCreationService.getInstances(created.getId());
-        respVO.setStageCount(instantiation.getStages().size());
-        respVO.setTaskCount(instantiation.getTasks().size());
-        respVO.setMilestoneCount(instantiation.getMilestones().size());
-        respVO.setDeliverableCount(instantiation.getDeliverables().size());
-        respVO.setGateCount(instantiation.getGates().size());
-        respVO.setServiceManagerAssigned(createReqVO.getServiceManagerUserId() != null);
-        return respVO;
-    }
-
-    private void saveIdempotencyRecord(String idempotencyKey, Long actorId, String digest, String responsePayload) {
-        try {
-            IdempotencyRecordDO record = new IdempotencyRecordDO();
-            record.setCommand(COMMAND_PROJECT_CREATE);
-            record.setActorId(actorId);
-            record.setIdempotencyKey(idempotencyKey);
-            record.setRequestDigest(digest);
-            record.setResponsePayload(responsePayload);
-            record.setStatus(IDEMPOTENCY_STATUS_COMPLETED);
-            idempotencyRecordService.save(record);
-        } catch (Exception ex) {
-            // 创建已成功，幂等记录失败仅告警（uk 冲突=并发重放，由重放路径返回原资源）
-            log.warn("保存幂等记录失败（command={}, key={}）", COMMAND_PROJECT_CREATE, idempotencyKey, ex);
-        }
-    }
-
-    private String toJson(Object value) {
-        return JsonUtils.toJsonString(value);
+    private ProjectCreateRespVO toResponse(ManualProjectCreateResult result) {
+        ProjectCreateRespVO response = new ProjectCreateRespVO();
+        response.setId(result.id());
+        response.setProjectCode(result.projectCode());
+        response.setStatus(result.status());
+        response.setLifecycleStatus(result.lifecycleStatus());
+        response.setCurrentStage(result.currentStage());
+        response.setAssignmentStatus(result.assignmentStatus());
+        response.setVersion(result.version());
+        response.setLifecycleTemplateId(result.lifecycleTemplateId());
+        response.setLifecycleTemplateRevisionNo(result.lifecycleTemplateRevisionNo());
+        response.setTemplateLoadMethod(result.templateLoadMethod());
+        response.setStageCount(result.stageCount());
+        response.setTaskCount(result.taskCount());
+        response.setMilestoneCount(result.milestoneCount());
+        response.setDeliverableCount(result.deliverableCount());
+        response.setGateCount(result.gateCount());
+        response.setServiceManagerAssigned(result.serviceManagerAssigned());
+        return response;
     }
 
     /**
@@ -345,10 +315,6 @@ public class ProjectMasterController {
     private Long currentTenantId() {
         Long tenantId = TenantContextHolder.getTenantId();
         return tenantId != null ? tenantId : 0L;
-    }
-
-    private ProjectCreateRespVO fromJson(String payload) {
-        return JsonUtils.parseObject(payload, ProjectCreateRespVO.class);
     }
 
     private String sha256Digest(String content) {

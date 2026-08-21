@@ -15,6 +15,7 @@ import java.lang.reflect.Parameter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -44,7 +45,7 @@ class ProjectMasterControllerContractTest {
         assertNotNull(keyParameter, "createProject 缺少 @RequestHeader Idempotency-Key 参数");
         RequestHeader header = keyParameter.getAnnotation(RequestHeader.class);
         assertEquals("Idempotency-Key", header.value(), "幂等头名称不符合契约");
-        assertFalse(header.required(), "幂等头应可选（无键直通创建）");
+        assertTrue(header.required(), "正式创建必须提供幂等头");
     }
 
     @Test

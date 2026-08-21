@@ -148,6 +148,7 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_MEMBER_INTERVAL_CONFLICT = new ErrorCode(1_014_024_006, "项目成员指派区间冲突");
     ErrorCode PROJECT_TEMPLATE_NOT_SELECTABLE = new ErrorCode(1_014_024_007, "手工选择的模板不可用（非生效状态或无已发布版本）");
     ErrorCode PMS_IDEMPOTENCY_KEY_CONFLICT = new ErrorCode(1_014_024_008, "幂等键冲突：同一 Idempotency-Key 已绑定不同请求体（PMS-COMMON-IDEMPOTENCY-0001）");
+    ErrorCode PMS_IDEMPOTENCY_IN_PROGRESS = new ErrorCode(1_014_024_012, "相同幂等请求正在处理中，请稍后重试");
 
     // ========== 项目树与进度汇总（F-PM02 / PM-02）1-014-024-009 ==========
     ErrorCode PROJECT_MOVE_CYCLE = new ErrorCode(1_014_024_009, "子树移动会形成循环引用（目标父项目为自身或自身后代）");

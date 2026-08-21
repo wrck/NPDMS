@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
+import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ public final class TemplatePublishValidator {
 
     /** 阶段码格式：S0～S6（PRD 4.2.3 生命周期阶段） */
     private static final String STAGE_CODE_PATTERN = "S[0-6]";
+    private static final TaskExecutionContractFactory EXECUTION_CONTRACT_FACTORY =
+            new TaskExecutionContractFactory();
 
     private TemplatePublishValidator() {
     }
@@ -36,6 +39,7 @@ public final class TemplatePublishValidator {
         validateMilestones(content.getMilestones(), stageCodes, failures);
         Set<String> deliverableCodes = validateDeliverables(content.getDeliverables(), stageCodes, taskCodes, failures);
         validateGates(content.getGates(), stageCodes, taskCodes, deliverableCodes, failures);
+        validateTaskGateRefs(content.getTasks(), content.getGates(), failures);
         return failures;
     }
 
@@ -95,6 +99,11 @@ public final class TemplatePublishValidator {
                 }
                 if (!stageCodes.contains(task.getStageCode())) {
                     failures.add("任务【" + task.getTaskCode() + "】引用的阶段【" + task.getStageCode() + "】不存在");
+                }
+                try {
+                    EXECUTION_CONTRACT_FACTORY.validateDefinition(task);
+                } catch (IllegalArgumentException ex) {
+                    failures.add("任务【" + task.getTaskCode() + "】" + ex.getMessage());
                 }
                 String parent = task.getParentTaskCode();
                 if (parent != null) {
@@ -226,6 +235,24 @@ public final class TemplatePublishValidator {
                 default:
                     failures.add("门禁【" + gate.getGateCode() + "】存在未知类型的引用行【" + ref.getRefType() + "】");
                     break;
+            }
+        }
+    }
+
+    private static void validateTaskGateRefs(List<TemplateDefinitionContent.TaskDef> tasks,
+                                             List<TemplateDefinitionContent.GateDef> gates,
+                                             List<String> failures) {
+        if (tasks == null) {
+            return;
+        }
+        Set<String> gateCodes = new HashSet<>();
+        if (gates != null) {
+            gates.stream().filter(gate -> gate != null && StringUtils.isNotBlank(gate.getGateCode()))
+                    .map(TemplateDefinitionContent.GateDef::getGateCode).forEach(gateCodes::add);
+        }
+        for (TemplateDefinitionContent.TaskDef task : tasks) {
+            if (task != null && StringUtils.isNotBlank(task.getGateRef()) && !gateCodes.contains(task.getGateRef())) {
+                failures.add("任务【" + task.getTaskCode() + "】GateRef【" + task.getGateRef() + "】不存在");
             }
         }
     }

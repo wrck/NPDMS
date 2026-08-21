@@ -249,6 +249,18 @@ public class ProjectMasterDO extends TenantBaseDO {
      */
     private String status;
     /**
+     * V1.8生命周期状态：ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED
+     */
+    private String lifecycleStatus;
+    /**
+     * V1.8当前阶段：S0～S6
+     */
+    private String currentStage;
+    /**
+     * V1.8主责指派状态：UNASSIGNED/ASSIGNED
+     */
+    private String assignmentStatus;
+    /**
      * 项目进度百分比（来源属 PM-11 阶段推进/任务闭环，本 Feature 仅消费做汇总；前向扩列）
      */
     private BigDecimal progress;

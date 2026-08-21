@@ -75,6 +75,27 @@ class TemplatePublishValidatorTest {
     }
 
     @Test
+    void taskWithoutWorkBindingRejected() {
+        TemplateDefinitionContent content = buildValidContent();
+        content.getTasks().get(0).setWorkBindingTypeCode(null);
+        assertHasFailure(content, "WorkBinding");
+    }
+
+    @Test
+    void taskNativeWithExternalTargetRejected() {
+        TemplateDefinitionContent content = buildValidContent();
+        content.getTasks().get(0).setTargetObjectKey("foreign-1");
+        assertHasFailure(content, "TASK_NATIVE不得配置外部目标");
+    }
+
+    @Test
+    void taskReferencingUnknownGateRejected() {
+        TemplateDefinitionContent content = buildValidContent();
+        content.getTasks().get(0).setGateRef("G-NOPE");
+        assertHasFailure(content, "GateRef【G-NOPE】不存在");
+    }
+
+    @Test
     void milestoneUnknownStageRejected() {
         TemplateDefinitionContent content = buildValidContent();
         content.getMilestones().get(0).setStageCode("S5");
@@ -159,9 +180,11 @@ class TemplatePublishValidatorTest {
         TemplateDefinitionContent.TaskDef t1 = new TemplateDefinitionContent.TaskDef();
         t1.setTaskCode("T-001"); t1.setName("编制项目计划"); t1.setStageCode("S0");
         t1.setPriority(1); t1.setSortOrder(0); t1.setEstimatedHours(new BigDecimal("8.0"));
+        setTaskNativeContract(t1);
         TemplateDefinitionContent.TaskDef t2 = new TemplateDefinitionContent.TaskDef();
         t2.setTaskCode("T-002"); t2.setName("环境准备"); t2.setParentTaskCode("T-001");
         t2.setStageCode("S1"); t2.setPriority(2); t2.setSortOrder(1);
+        setTaskNativeContract(t2);
         content.setTasks(List.of(t1, t2));
 
         TemplateDefinitionContent.MilestoneDef m1 = new TemplateDefinitionContent.MilestoneDef();
@@ -189,5 +212,14 @@ class TemplatePublishValidatorTest {
         g1.setReferences(new ArrayList<>(List.of(taskRef, deliverableRef, stateRef, processRef)));
         content.setGates(List.of(g1));
         return content;
+    }
+
+    private static void setTaskNativeContract(TemplateDefinitionContent.TaskDef task) {
+        task.setWorkBindingTypeCode("TASK_NATIVE");
+        task.setBindingConfig("{\"schemaVersion\":1}");
+        task.setPermissionPolicyRef("PROJECT_TASK_NATIVE_DEFAULT");
+        task.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
+        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
+        task.setDefinitionVersion(1);
     }
 }

@@ -7,10 +7,10 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectG
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectCompanyDepartmentRelationMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectDeliverableInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
@@ -18,16 +18,21 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMember
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.MemberAssignmentRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectCodeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectTreeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TemplateInstantiator;
+import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverableDefinition;
+import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.InitializeProjectDeliverablesCommand;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,9 +70,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Resource
     private ProjectTaskInstanceMapper taskInstanceMapper;
     @Resource
-    private ProjectMilestoneInstanceMapper milestoneInstanceMapper;
+    private ProjectTaskExecutionContractMapper taskExecutionContractMapper;
     @Resource
-    private ProjectDeliverableInstanceMapper deliverableInstanceMapper;
+    private ProjectMilestoneInstanceMapper milestoneInstanceMapper;
     @Resource
     private ProjectGateInstanceMapper gateInstanceMapper;
     @Resource
@@ -80,6 +85,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private ProjectTemplateService projectTemplateService;
     @Resource
     private ProjectCodeAllocator projectCodeAllocator;
+    @Resource
+    private TaskExecutionContractFactory taskExecutionContractFactory;
+    @Resource
+    private ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -99,6 +108,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 : selectInheritedTemplate(draft.getParentId());
         TemplateDefinitionContent content =
                 projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
+        // V1.8正式创建只能从唯一S0开始，且须在烧编码流水、写任何事实前阻断。
+        TemplateInstantiator.requireSingleS0(content);
         // c) 编码分配（BR-8）+ 树真值（根项目/子项目分支）
         if (draft.getParentId() == null) {
             draft.setProjectCode(projectCodeAllocator.allocateRootCode());
@@ -129,6 +140,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         draft.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
         draft.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
         draft.setStatus(ProjectRules.INITIAL_STATUS);
+        draft.setLifecycleStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
+        draft.setCurrentStage(ProjectRules.STATUS_S0);
+        draft.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
         // e) 主档写入：根项目两段（code_root_id=root_id=id）；子项目单段（继承父）
         if (draft.getParentId() == null) {
             draft.setCodeRootId(0L);
@@ -147,9 +161,23 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // f) 冻结版本实例化五要素 + 门禁引用行（source_definition_id 无定义行ID时保持 NULL）
         ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, draft.getId());
         insertIfNotEmpty(instantiation.getStages(), stageInstanceMapper::insertBatch);
-        insertIfNotEmpty(instantiation.getTasks(), taskInstanceMapper::insertBatch);
+        // 逐条写入任务以取得稳定实例ID，再冻结一任务一当前执行契约。
+        for (int index = 0; index < instantiation.getTasks().size(); index++) {
+            var task = instantiation.getTasks().get(index);
+            taskInstanceMapper.insert(task);
+            TemplateDefinitionContent.TaskDef definition = content.getTasks().get(index);
+            ProjectTaskExecutionContractDO contract = taskExecutionContractFactory.create(
+                    task.getId(), definition.getId(), definition, LocalDateTime.now());
+            taskExecutionContractMapper.insert(contract);
+        }
         insertIfNotEmpty(instantiation.getMilestones(), milestoneInstanceMapper::insertBatch);
-        insertIfNotEmpty(instantiation.getDeliverables(), deliverableInstanceMapper::insertBatch);
+        List<DeliverableDefinition> deliverableDefinitions = content.getDeliverables().stream()
+                .map(definition -> new DeliverableDefinition(
+                        definition.getDeliverableCode(), definition.getName(), definition.getStageCode(),
+                        definition.getTaskCode(), Boolean.TRUE.equals(definition.getRequired()), definition.getId()))
+                .toList();
+        deliverableInitializationApplicationService.initialize(new InitializeProjectDeliverablesCommand(
+                draft.getId(), selected.revisionId(), deliverableDefinitions));
         // 门禁需先落库取自增 id，供引用行回填 gate_id
         instantiation.getGates().forEach(gateInstanceMapper::insert);
         for (ProjectGateInstanceDO gate : instantiation.getGates()) {
@@ -213,7 +241,21 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         view.setStages(stageInstanceMapper.selectListByProjectId(projectId));
         view.setTasks(taskInstanceMapper.selectListByProjectId(projectId));
         view.setMilestones(milestoneInstanceMapper.selectListByProjectId(projectId));
-        view.setDeliverables(deliverableInstanceMapper.selectListByProjectId(projectId));
+        view.setDeliverables(deliverableInitializationApplicationService.getByProjectId(projectId).stream()
+                .map(deliverable -> {
+                    var legacyView = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectDeliverableInstanceDO();
+                    legacyView.setId(deliverable.id());
+                    legacyView.setProjectId(deliverable.projectId());
+                    legacyView.setDeliverableCode(deliverable.deliverableCode());
+                    legacyView.setName(deliverable.name());
+                    legacyView.setStageCode(deliverable.stageCode());
+                    legacyView.setTaskCode(deliverable.taskCode());
+                    legacyView.setRequired(deliverable.required());
+                    legacyView.setSourceDefinitionId(deliverable.sourceDefinitionId());
+                    legacyView.setStatus(deliverable.status());
+                    legacyView.setVersion(deliverable.version());
+                    return legacyView;
+                }).toList());
         view.setGates(gateInstanceMapper.selectListByProjectId(projectId));
         // 引用行按门禁实例分组回填到载体（实例视图复用实例化载体）
         if (!view.getGates().isEmpty()) {
@@ -253,11 +295,12 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             if (template == null || !TemplateRules.STATUS_ACTIVE.equals(template.getStatus())) {
                 throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
             }
-            Integer revisionNo = latestPublishedRevisionNo(manualTemplateId);
-            if (revisionNo == null) {
+            ProjectTemplateRevisionDO revision = latestPublishedRevision(manualTemplateId);
+            if (revision == null) {
                 throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
             }
-            return new SelectedTemplate(manualTemplateId, revisionNo, ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
+            return new SelectedTemplate(manualTemplateId, revision.getId(), revision.getRevisionNo(),
+                    ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
         }
         TemplateMatchResult match = projectTemplateService.matchPreview(
                 draft.getSigningMethod(), draft.getProjectCategory(),
@@ -269,11 +312,12 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             throw exception(PROJECT_TEMPLATE_AMBIGUOUS, String.join("；", match.getConflicts()));
         }
         Long templateId = match.getMatched().getTemplateId();
-        Integer revisionNo = latestPublishedRevisionNo(templateId);
-        if (revisionNo == null) {
+        ProjectTemplateRevisionDO revision = latestPublishedRevision(templateId);
+        if (revision == null) {
             throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
         }
-        return new SelectedTemplate(templateId, revisionNo, ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT);
+        return new SelectedTemplate(templateId, revision.getId(), revision.getRevisionNo(),
+                ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT);
     }
 
     /**
@@ -285,8 +329,13 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
         }
         // 子项目通过父项目继承模板版本，等价人工指定（不做四维匹配）
-        return new SelectedTemplate(parent.getLifecycleTemplateId(),
-                parent.getLifecycleTemplateRevisionNo(), ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
+        ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionList(parent.getLifecycleTemplateId())
+                .stream()
+                .filter(candidate -> parent.getLifecycleTemplateRevisionNo().equals(candidate.getRevisionNo()))
+                .filter(candidate -> TemplateRules.REVISION_STATUS_PUBLISHED.equals(candidate.getStatus()))
+                .findFirst().orElseThrow(() -> exception(PROJECT_TEMPLATE_NOT_SELECTABLE));
+        return new SelectedTemplate(parent.getLifecycleTemplateId(), revision.getId(), revision.getRevisionNo(),
+                ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
     }
 
     /**
@@ -309,12 +358,11 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     /**
      * 模板最新 PUBLISHED 版本号（草稿 revision_no=0 不参与）。
      */
-    private Integer latestPublishedRevisionNo(Long templateId) {
+    private ProjectTemplateRevisionDO latestPublishedRevision(Long templateId) {
         return projectTemplateService.getRevisionList(templateId).stream()
                 .filter(revision -> TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus()))
-                .map(ProjectTemplateRevisionDO::getRevisionNo)
-                .filter(revisionNo -> revisionNo != null && revisionNo > 0)
-                .max(Integer::compareTo)
+                .filter(revision -> revision.getRevisionNo() != null && revision.getRevisionNo() > 0)
+                .max(java.util.Comparator.comparing(ProjectTemplateRevisionDO::getRevisionNo))
                 .orElse(null);
     }
 
@@ -378,6 +426,6 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     /**
      * 模板选择结果（冻结上下文：templateId/revisionNo/加载方式）
      */
-    private record SelectedTemplate(Long templateId, Integer revisionNo, String loadMethod) {
+    private record SelectedTemplate(Long templateId, Long revisionId, Integer revisionNo, String loadMethod) {
     }
 }

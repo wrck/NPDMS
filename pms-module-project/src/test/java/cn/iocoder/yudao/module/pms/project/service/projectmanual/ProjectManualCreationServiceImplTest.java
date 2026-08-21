@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectG
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectCompanyDepartmentRelationMapper;
@@ -17,12 +19,15 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMember
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
+import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -69,6 +74,8 @@ class ProjectManualCreationServiceImplTest {
     @Mock
     private ProjectTaskInstanceMapper taskInstanceMapper;
     @Mock
+    private ProjectTaskExecutionContractMapper taskExecutionContractMapper;
+    @Mock
     private ProjectMilestoneInstanceMapper milestoneInstanceMapper;
     @Mock
     private ProjectDeliverableInstanceMapper deliverableInstanceMapper;
@@ -84,6 +91,10 @@ class ProjectManualCreationServiceImplTest {
     private ProjectTemplateService projectTemplateService;
     @Mock
     private ProjectCodeAllocator projectCodeAllocator;
+    @Mock
+    private TaskExecutionContractFactory taskExecutionContractFactory;
+    @Mock
+    private ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
 
     @InjectMocks
     private ProjectManualCreationServiceImpl service;
@@ -149,6 +160,8 @@ class ProjectManualCreationServiceImplTest {
         TemplateDefinitionContent content = contentWithOneGateAndReference();
         when(projectTemplateService.getRevisionContent(templateId, 2)).thenReturn(content);
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000007");
+        when(taskExecutionContractFactory.create(any(), any(), any(), any()))
+                .thenReturn(new ProjectTaskExecutionContractDO());
         // 快照 INSERT 时刻的 code_root_id（服务随后对同一 DO 原地回填，事后捕获拿不到占位值）
         AtomicLong codeRootIdAtInsert = new AtomicLong(-1);
         doAnswer(invocation -> {
@@ -167,6 +180,9 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(0, created.getProjectSequence());
         assertEquals(ProjectRules.SOURCE_TYPE_MANUAL, created.getSourceType());
         assertEquals(ProjectRules.STATUS_S0, created.getStatus());
+        assertEquals(ProjectRules.LIFECYCLE_STATUS_ACTIVE, created.getLifecycleStatus());
+        assertEquals(ProjectRules.STATUS_S0, created.getCurrentStage());
+        assertEquals(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED, created.getAssignmentStatus());
         assertEquals(templateId, created.getLifecycleTemplateId());
         assertEquals(2, created.getLifecycleTemplateRevisionNo());
         assertEquals(ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED, created.getTemplateLoadMethod());
@@ -183,14 +199,35 @@ class ProjectManualCreationServiceImplTest {
 
         // 五要素实例化批量落库
         verify(stageInstanceMapper).insertBatch(anyCollection());
-        verify(taskInstanceMapper).insertBatch(anyCollection());
+        verify(taskInstanceMapper).insert(any(ProjectTaskInstanceDO.class));
+        verify(taskExecutionContractFactory).create(any(), any(), any(), any());
+        verify(taskExecutionContractMapper).insert(any(ProjectTaskExecutionContractDO.class));
         verify(milestoneInstanceMapper).insertBatch(anyCollection());
-        verify(deliverableInstanceMapper).insertBatch(anyCollection());
+        verify(deliverableInitializationApplicationService).initialize(any());
+        verify(deliverableInstanceMapper, never()).insertBatch(anyCollection());
         // 门禁单条落库后引用行回填 gate_id
         doAnswerAsGateInsert();
         verify(gateReferenceInstanceMapper).insert(any(ProjectGateReferenceInstanceDO.class));
         // 未指派/未登记办事处
         verifyNoInteractions(memberAssignmentMapper, companyDepartmentRelationMapper);
+    }
+
+    @Test
+    void rejectsTemplateWithoutS0BeforeAllocatingCode() {
+        Long templateId = 9L;
+        when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-S2"));
+        when(projectTemplateService.getRevisionList(templateId)).thenReturn(List.of(
+                revision(TemplateRules.REVISION_STATUS_PUBLISHED, 1)));
+        TemplateDefinitionContent invalid = new TemplateDefinitionContent();
+        TemplateDefinitionContent.StageDef stage = new TemplateDefinitionContent.StageDef();
+        stage.setStageCode("S2");
+        invalid.getStages().add(stage);
+        when(projectTemplateService.getRevisionContent(templateId, 1)).thenReturn(invalid);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.createProject(validDraft(), null, null, templateId, null));
+
+        verifyNoInteractions(projectCodeAllocator, projectMasterMapper);
     }
 
     @Test
@@ -233,7 +270,7 @@ class ProjectManualCreationServiceImplTest {
                 .thenReturn(TemplateMatchResult.matched(candidate));
         when(projectTemplateService.getRevisionList(5L)).thenReturn(List.of(
                 revision(TemplateRules.REVISION_STATUS_PUBLISHED, 1)));
-        when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(new TemplateDefinitionContent());
+        when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000008");
         doAnswer(invocation -> {
             ProjectMasterDO inserted = invocation.getArgument(0);
@@ -246,8 +283,8 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(5L, created.getLifecycleTemplateId());
         assertEquals(1, created.getLifecycleTemplateRevisionNo());
         assertEquals(ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT, created.getTemplateLoadMethod());
-        // 空模板内容：无实例落库
-        verify(stageInstanceMapper, never()).insertBatch(anyCollection());
+        // V1.8模板必须含S0，且只有S0阶段实例落库。
+        verify(stageInstanceMapper).insertBatch(anyCollection());
         verifyNoInteractions(memberAssignmentMapper, companyDepartmentRelationMapper);
     }
 
@@ -261,7 +298,7 @@ class ProjectManualCreationServiceImplTest {
                 .thenReturn(TemplateMatchResult.matched(candidate));
         when(projectTemplateService.getRevisionList(5L)).thenReturn(List.of(
                 revision(TemplateRules.REVISION_STATUS_PUBLISHED, 1)));
-        when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(new TemplateDefinitionContent());
+        when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
         when(projectCodeAllocator.allocateRootCode()).thenReturn("PJT2026000009");
         doAnswer(invocation -> {
             ProjectMasterDO inserted = invocation.getArgument(0);
@@ -387,6 +424,9 @@ class ProjectManualCreationServiceImplTest {
         current.setProjectSequence(0);
         current.setCodeRuleVersion("V1");
         current.setStatus(ProjectRules.STATUS_S0);
+        current.setLifecycleStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
+        current.setCurrentStage(ProjectRules.STATUS_S0);
+        current.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
         current.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
         current.setLifecycleTemplateId(5L);
         current.setLifecycleTemplateRevisionNo(1);
@@ -407,6 +447,7 @@ class ProjectManualCreationServiceImplTest {
 
     private ProjectTemplateRevisionDO revision(String status, Integer revisionNo) {
         ProjectTemplateRevisionDO revision = new ProjectTemplateRevisionDO();
+        revision.setId(revisionNo == null ? null : 1000L + revisionNo);
         revision.setStatus(status);
         revision.setRevisionNo(revisionNo);
         return revision;
@@ -425,6 +466,12 @@ class ProjectManualCreationServiceImplTest {
         task.setTaskCode("T1");
         task.setName("工前任务");
         task.setStageCode("S0");
+        task.setWorkBindingTypeCode(TaskExecutionContractFactory.TASK_NATIVE);
+        task.setBindingConfig("{\"schemaVersion\":1}");
+        task.setPermissionPolicyRef("PROJECT_TASK_NATIVE_DEFAULT");
+        task.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
+        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
+        task.setDefinitionVersion(1);
         content.getTasks().add(task);
         TemplateDefinitionContent.MilestoneDef milestone = new TemplateDefinitionContent.MilestoneDef();
         milestone.setMilestoneCode("M1");
@@ -447,6 +494,16 @@ class ProjectManualCreationServiceImplTest {
         ref.setRefCode("T1");
         gate.getReferences().add(ref);
         content.getGates().add(gate);
+        return content;
+    }
+
+    private TemplateDefinitionContent contentWithS0Only() {
+        TemplateDefinitionContent content = new TemplateDefinitionContent();
+        TemplateDefinitionContent.StageDef stage = new TemplateDefinitionContent.StageDef();
+        stage.setStageCode("S0");
+        stage.setName("立项与指派");
+        stage.setSortOrder(0);
+        content.getStages().add(stage);
         return content;
     }
 
