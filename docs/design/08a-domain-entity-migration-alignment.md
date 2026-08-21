@@ -103,6 +103,7 @@
 | `CutoverTask` | 当前`cut_task` | CURRENT_FORWARD | 迁任务身份、等级、项目/设备和当前状态映射 |
 | `CutoverAssessment` | 当前`pms_cut_risk`及评估信息 | CURRENT_FORWARD | 风险项和评估结论版本化；技术公告只引用 |
 | `CutoverChecklist` | 当前`pms_cut_risk`中的风险/调研候选记录；新平台CUT-03清单版本 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁可证明的任务引用、原编码/名称/类型、说明和填写事实；不得推断采集项版本、界面Schema、绑定规则、必填性、CollectionTask、自动结果、业务通过或配置缺口；新清单版本和结果引用由前向Feature产生 |
+| `CutoverConfigurationRevision` | 无可靠旧来源；新平台CUT-07 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅由CUT-07 Feature新建配置、采集项定义和绑定规则版本；类型/组网/设备复用基础平台字典，不从旧方案或风险项反推配置主数据 |
 | `CutoverPlan` | 当前`pms_cut_plan` | CURRENT_FORWARD | 迁计划revision/步骤/审批引用；执行冻结已批准版本 |
 | `CutoverSupportArrangement` | 当前`pms_cut_plan`中可证明的保障人员字段；缺少逐字段证据时不迁 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 作为`CutoverPlan`从属明细；不得推导派单、状态、当前责任人或责任区间 |
 | `CutoverClosure` | 当前`pms_cut_execution`中可证明的P6结果字段 | CURRENT_FORWARD+FIELD_LEVEL_REVIEW | 只迁割接前/执行/测试结果、回退说明、附件、遗留项文本和最终结果；`pms_cut_execution_step`、`pms_cut_observation`不进入当前目标，不能把步骤状态或观察状态改名迁入 |
@@ -121,6 +122,7 @@
 | `Customer` | 数据元`pm_account`候选、项目/CRM冗余、当前`pms_customer` | EXTERNAL_SYNC+CURRENT_FORWARD | CRM权威字段按sourceKey同步；临时客户显式来源，禁止只按名称合并 |
 | `CustomerContact` | 数据元`pm_account_contact`、项目/CRM联系人、当前联系人表 | EXTERNAL_SYNC+CURRENT_FORWARD | 迁姓名/部门/职位/电话/邮箱/地址及来源键；主联系人是时态关系 |
 | `CustomerRelationshipSnapshot` | 迁移后的客户/联系人/项目关系 | REBUILD+SNAPSHOT | 按业务发生时生成，不把当前主档反写历史 |
+| `CustomerServiceLevelRevision` | 无可靠旧来源；新平台CUS-02 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅从新平台等级变更命令生成有效区间和策略快照；不得从联系人、关系快照或客户名称推断历史等级 |
 | `Device` | `fb_shipment_barcode`主SN/物料、MES/ITR、当前`ast_device` | STRUCTURED+EXTERNAL_SYNC+CURRENT_FORWARD | SN主档去重但源行不删除；权威字段保留来源版本 |
 | `DeviceArchive` | 当前设备版本/配置Log、旧软件版本/安装地址/配置数据元 | CURRENT_FORWARD+STRUCTURED | 版本、配置、位置按历史/来源分表；JSON不替代高频查询字段 |
 | `DeviceComponentRelation` | 配置Log解析结果、既有设备关系数据元及人工核对证据 | STRUCTURED+RELATION+PENDING_SOURCE_CONFIRMATION | 保存机框SN、槽位、板卡SN/型号、来源和生效区间；只有可证明关系进入当前/历史关系，多义记录进入待匹配且保留原始Log |

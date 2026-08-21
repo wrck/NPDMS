@@ -477,13 +477,25 @@
       "owner": "CUT",
       "requirementIds": [
         "CUT-04",
-        "CUT-05",
-        "CUT-07"
+        "CUT-05"
       ],
       "targetTables": [
         "cut_plan_revision",
         "cut_step"
       ]
+    },
+    "CutoverConfigurationRevision": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-07"
+      ],
+      "targetTables": [
+        "cut_cutover_configuration_revision",
+        "cut_cutover_checklist_item_definition_revision",
+        "cut_cutover_checklist_binding_rule_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-07"
     },
     "CutoverSupportArrangement": {
       "owner": "CUT",
@@ -562,7 +574,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -575,7 +586,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04"
       ],
@@ -588,7 +598,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -596,6 +605,17 @@
       "targetTables": [
         "cus_customer_relationship_snapshot"
       ]
+    },
+    "CustomerServiceLevelRevision": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-02"
+      ],
+      "targetTables": [
+        "cus_customer_service_level_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUS-02"
     },
     "Device": {
       "owner": "AST",
@@ -2102,8 +2122,7 @@
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUT-04",
-        "CUT-05",
-        "CUT-07"
+        "CUT-05"
       ],
       "targetTables": [
         "cut_plan_revision",
@@ -2120,6 +2139,32 @@
           "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
         }
       ]
+    },
+    {
+      "object": "CutoverConfigurationRevision",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-07"
+      ],
+      "targetTables": [
+        "cut_cutover_configuration_revision",
+        "cut_cutover_checklist_item_definition_revision",
+        "cut_cutover_checklist_binding_rule_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CutoverConfigurationRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create CUT-07 configuration, checklist item definition and binding rule revisions only from new-platform commands; reuse base-platform dictionaries and never infer configuration master data from plans or legacy risk items",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CutoverConfigurationRevision"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-07"
     },
     {
       "object": "CutoverSupportArrangement",
@@ -2300,7 +2345,6 @@
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -2335,7 +2379,6 @@
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04"
       ],
@@ -2370,7 +2413,6 @@
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -2389,6 +2431,30 @@
           "evidenceRef": "phase2-contract://objects=Customer|CustomerContact|Project"
         }
       ]
+    },
+    {
+      "object": "CustomerServiceLevelRevision",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-02"
+      ],
+      "targetTables": [
+        "cus_customer_service_level_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CustomerServiceLevelRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create temporal customer service-level and policy revisions only from CUS-02 commands; never infer historical levels from customer, contact or relationship snapshots",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CustomerServiceLevelRevision"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUS-02"
     },
     {
       "object": "Device",

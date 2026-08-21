@@ -38,12 +38,12 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ServiceHandover": ("acc_service_handover", "acc_handover_item", "acc_handover_result"),
     "CutoverTask": ("cut_task",), "CutoverAssessment": ("cut_assessment",),
     "CutoverChecklist": ("cut_cutover_checklist", "cut_cutover_checklist_item", "cut_cutover_checklist_item_result"),
-    "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverSupportArrangement": ("cut_cutover_support_arrangement",),
+    "CutoverPlan": ("cut_plan_revision", "cut_step"), "CutoverConfigurationRevision": ("cut_cutover_configuration_revision", "cut_cutover_checklist_item_definition_revision", "cut_cutover_checklist_binding_rule_revision"), "CutoverSupportArrangement": ("cut_cutover_support_arrangement",),
     "CutoverClosure": ("cut_cutover_closure",),
     "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
     "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
     "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
-    "CustomerRelationshipSnapshot": ("cus_customer_relationship_snapshot",), "Device": ("ast_device",), "DeviceArchive": ("ast_device", "ast_device_version", "ast_device_config_log"),
+    "CustomerRelationshipSnapshot": ("cus_customer_relationship_snapshot",), "CustomerServiceLevelRevision": ("cus_customer_service_level_revision",), "Device": ("ast_device",), "DeviceArchive": ("ast_device", "ast_device_version", "ast_device_config_log"),
     "DeviceComponentRelation": ("ast_device_component_relation",),
     "DeviceCurrentAssignment": ("ast_device_current_assignment", "ast_device_assignment_history"),
     "DeviceAssignmentHistory": ("ast_device_assignment_history",), "DeviceAncestorProjection": ("ast_device_project_ancestor",),
@@ -63,6 +63,8 @@ TARGETS: dict[str, tuple[str, ...]] = {
 TARGET_POLICIES = {
     "TechnicalNoticeReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
+    "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
+    "CutoverConfigurationRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-07"},
 }
 
 MODEL_ENTITY_CONTRACTS = {
@@ -75,6 +77,8 @@ MODEL_ENTITY_CONTRACTS = {
     "CallbackRecord": {"owner": "PLT", "requirementIds": ["INT-12"]},
     "CutoverSupportArrangement": {"owner": "CUT", "requirementIds": ["CUT-04"]},
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
+    "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07"]},
+    "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
 }
 
 EXCLUDED_SOURCES = [{
@@ -172,6 +176,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("CURRENT_FIELD_PATTERN", "pms_acc_maintenance_transition.renew*", "EXCLUDED", "retain as compatibility evidence; never expose in new handover writes", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
     ],
     "CutoverPlan": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
+    "CutoverConfigurationRevision": [source("NONE_NEW", "CutoverConfigurationRevision", "NEW_ONLY", "create CUT-07 configuration, checklist item definition and binding rule revisions only from new-platform commands; reuse base-platform dictionaries and never infer configuration master data from plans or legacy risk items", "NEW_ONLY", "FEATURE_RELEASE")],
     "CutoverChecklist": [source("CURRENT_TABLE", "pms_cut_risk", "CURRENT_FORWARD", "map only provable task reference, original item code/name/type, description and answer facts; never infer item definition version, UI schema, binding rule, required flag, CollectionTask, automatic result, business pass or configuration gap", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "CutoverSupportArrangement": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "CutoverClosure": [source("CURRENT_TABLE", "pms_cut_execution", "CURRENT_FORWARD", "map only provable P6 result, rollback description, attachment, legacy-item text and final result fields; exclude step and observation lifecycle fields", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
@@ -186,6 +191,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "Customer": [source("CURRENT_TABLE", "pms_customer", "CURRENT_FORWARD", "align local customer model and preserve source mapping", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "CRM authority fields synchronize by source key/version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "CustomerContact": [source("CURRENT_TABLE", "pms_customer_contact", "CURRENT_FORWARD", "align contact fields and temporal project relation", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "synchronize CRM-owned contact fields", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "CustomerRelationshipSnapshot": [source("DERIVED_TARGET", "Customer|CustomerContact|Project", "REBUILD", "freeze minimum relationship data at business event time", "REBUILD_AFTER_OWNERS", "RELATIONSHIP_REBUILD")],
+    "CustomerServiceLevelRevision": [source("NONE_NEW", "CustomerServiceLevelRevision", "NEW_ONLY", "create temporal customer service-level and policy revisions only from CUS-02 commands; never infer historical levels from customer, contact or relationship snapshots", "NEW_ONLY", "FEATURE_RELEASE")],
     "Device": [source("LEGACY_TABLE", "fb_shipment_barcode", "STRUCTURED", "deduplicate SN master while preserving every shipment lifecycle source row", "READY_FOR_FIELD_MAPPING", "AI-MIG-000"), source("EXTERNAL_SYSTEM", "MES|ITR", "EXTERNAL_SYNC", "synchronize authoritative identity fields by source key/version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "DeviceArchive": [source("CURRENT_TABLE", "pms_equipment_version|pms_equipment_config_log", "CURRENT_FORWARD", "map version/config history with effective time and source", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY"), source("LEGACY_TABLE", "pm_project_soft_version*", "STRUCTURED", "map provable software version history; conflicts become migration issues", "PENDING_FIELD_MAPPING", "AI-MIG-000",
         targetFieldBindings=[
@@ -512,6 +518,9 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             requirement_id = target_policy["featureRequirementId"]
             if f"物理表由{requirement_id} Feature前向迁移确定" not in database_design:
                 raise ValueError(f"{object_name} Feature-forward policy is not declared by 09 database design")
+            leaked_tables = set(target_tables) & v17_target_tables
+            if leaked_tables:
+                raise ValueError(f"{object_name} Feature-forward tables leaked into current core DDL: {sorted(leaked_tables)}")
         missing_owner_requirements = contract["requirements"] - set(requirement_owners)
         if missing_owner_requirements:
             raise ValueError(f"{object_name} requirements missing Owner: {sorted(missing_owner_requirements)}")

@@ -309,6 +309,36 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
         )
         self.assertEqual([], errors)
 
+    def test_feature_forward_migration_allows_declared_future_tables(self) -> None:
+        errors = VALIDATOR.validate_target_table_policy(
+            "CustomerServiceLevelRevision",
+            "CUS",
+            {"CUS-02"},
+            ["cus_customer_service_level_revision"],
+            {
+                "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+                "featureRequirementId": "CUS-02",
+            },
+            "`cus_customer_service_level_revision`；物理表由CUS-02 Feature前向迁移确定",
+            set(),
+        )
+        self.assertEqual([], errors)
+
+    def test_feature_forward_migration_cannot_leak_into_current_core_ddl(self) -> None:
+        errors = VALIDATOR.validate_target_table_policy(
+            "CustomerServiceLevelRevision",
+            "CUS",
+            {"CUS-02"},
+            ["cus_customer_service_level_revision"],
+            {
+                "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+                "featureRequirementId": "CUS-02",
+            },
+            "`cus_customer_service_level_revision`；物理表由CUS-02 Feature前向迁移确定",
+            {"cus_customer_service_level_revision"},
+        )
+        self.assertTrue(any("leaked into current core DDL" in error for error in errors), errors)
+
     def test_existing_table_owned_by_another_object_fails(self) -> None:
         self.contract["records"][0]["targetTables"] = ["imp_arrival_acceptance"]
         self._save_contract()
@@ -440,7 +470,7 @@ class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
             ],
         }
 
-        self.assertEqual(85, len(self.records))
+        self.assertEqual(87, len(self.records))
         for object_name, tables in expected.items():
             with self.subTest(object_name=object_name):
                 self.assertEqual(tables, self.records[object_name]["targetTables"])

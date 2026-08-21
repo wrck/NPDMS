@@ -22,10 +22,10 @@
 | PRD语义 | PASS，0 semantic issues |
 | 13领域 | PASS，formal=100、V3=31、OUT_OF_SCOPE=9 |
 | Phase 2 | BASELINE，100项契约与追溯；READY_FOR_PHASE_3_V1.8 |
-| 领域实体迁移对齐 | BASELINE，85个显式数据对象、96项逐来源策略、1顶层排除源；执行契约/CUT清单对象与ADR-0030六张目标表已对齐，未新增历史来源或迁移授权 |
+| 领域实体迁移对齐 | BASELINE，87个显式数据对象、98项逐来源策略、1顶层排除源；CUS-02服务等级与CUT-07后台配置按ADR-0031新增两个`NONE_NEW / FEATURE_FORWARD_MIGRATION`载体，未进入当前核心DDL，也未新增历史来源或迁移授权 |
 | Phase 3 | IN_REVIEW，5份分册、NFR精确阈值、100项测试/验收断言/证据映射 |
 | Phase 3证据登记 | PASS-STRUCTURE；P3-E01～E09状态、Owner、事实、证据引用和最晚安全门禁可机器校验；`modelEvidenceStatus`只表达P3-E09模型证据状态，不再代替Phase 3整体Gate结论 |
-| 脚本单测 | PASS，338/338；覆盖Phase 1/2/3、100项PRD验收块精确绑定、机械占位拒绝、割接边界、领域迁移、数据库命名、ADR-0030六表、P3-E09模型事实和运行门禁 |
+| 脚本单测 | PASS，347/347；覆盖Phase 1/2/3、100项PRD验收块精确绑定、正式声明与副作用集合一致、对象/表反向契约及空契约fail-closed、事件/文件/集成专项证据、割接边界、领域迁移、数据库命名、ADR-0030/0031和运行门禁 |
 | 业务命名 | PASS |
 | `git diff --check` | PASS |
 | 实现仓库前端`ts:check` | FAIL，exit code 1，登记P3-E08 |
@@ -53,7 +53,7 @@ git diff --check
 | 发布/迁移/回退 | PASS-DESIGN | JDK25、pnpm9.15.5、宿主机应用边界、制品/hash/releaseId、Expand→Backfill→Verify→Switch→Contract、应用回退与数据库前滚修复明确 |
 | 性能 | PASS-DESIGN | 50用户/30分钟/≥10000请求/P95≤2秒/错误率≤0.5%、20万项目/200万任务、1万/5万树、2000直接子节点、深度30、50MB、99%/60秒均转为可执行口径 |
 | 测试 | PASS-CANDIDATE | 正常、异常、权限拒绝、幂等、并发、集成、事件、文件、安全、浏览器和发布恢复矩阵已覆盖100项；编号集合与PRD V1.8正式V1/V2范围精确相等，每项精确绑定权威PRD验收块、本项工作流/状态、授权拒绝、业务守卫和副作用断言；CUS-02、CUT-07、NFR-01/02另有实质语义门禁，通用占位测试/证据会被拒绝 |
-| 数据/迁移 | PASS-MODEL / CONDITIONAL-RELEASE-GATE | 08/09已吸收结构化数据元和历史迁移结论；当前领域迁移契约为85个对象、96项来源策略、1顶层排除源；CUT-11、目录快照、历史空壳及维护记录迁移仍被机器禁止。ADR-0030六表、MySQL 8.4执行和当前哈希独立复审已通过；仅包含历史迁移或数据切换的Release受`AI-MIG-000`阻断，普通功能发布不适用 |
+| 数据/迁移 | PASS-MODEL / CONDITIONAL-RELEASE-GATE | 08/09已吸收结构化数据元和历史迁移结论；当前领域迁移契约为87个对象、98项来源策略、1顶层排除源。ADR-0031只登记CUS-02/CUT-07未来Feature表，不改变当前核心DDL/P3-E09哈希；CUT-11、目录快照、历史空壳及维护记录迁移仍被机器禁止。仅包含历史迁移或数据切换的Release受`AI-MIG-000`阻断，普通功能发布不适用 |
 
 ## 4. 当前阻塞与影响
 

@@ -442,12 +442,24 @@
         "cut_cutover_checklist_item_result"
       ]
     },
+    "CutoverConfigurationRevision": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-07"
+      ],
+      "targetTables": [
+        "cut_cutover_configuration_revision",
+        "cut_cutover_checklist_item_definition_revision",
+        "cut_cutover_checklist_binding_rule_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-07"
+    },
     "CutoverPlan": {
       "owner": "CUT",
       "requirementIds": [
         "CUT-04",
-        "CUT-05",
-        "CUT-07"
+        "CUT-05"
       ],
       "targetTables": [
         "cut_plan_revision",
@@ -531,7 +543,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -544,7 +555,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04"
       ],
@@ -557,7 +567,6 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-02",
         "CUS-03",
         "CUS-04",
         "INT-03"
@@ -565,6 +574,17 @@
       "targetTables": [
         "cus_customer_relationship_snapshot"
       ]
+    },
+    "CustomerServiceLevelRevision": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-02"
+      ],
+      "targetTables": [
+        "cus_customer_service_level_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUS-02"
     },
     "Device": {
       "owner": "AST",

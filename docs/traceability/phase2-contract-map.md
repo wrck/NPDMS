@@ -785,8 +785,8 @@
 ### CUS-02
 
 - 需求名称：服务等级管理
-- 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
+- 数据对象：CustomerServiceLevelRevision
+- 数据表：cus_customer_service_level_revision
 - API：/customers/{id}/service-level-revisions
 - 事件：CustomerServiceLevelChanged
 - 外部集成：N/A（平台内部契约）
@@ -797,7 +797,7 @@
 - Phase 3 PRD验收基线：WHEN 有权人员为客户设置有效等级、依据、生效时间和服务策略；THEN 平台结束原等级区间并生成新版本，后续项目/割接/服务动作保存命中等级与策略快照；WHEN 等级区间重叠、策略缺失、客户不存在或用户无客户管理权限；THEN 平台拒绝生效并保持原有效等级和既有业务动作不变
 - Phase 3授权拒绝断言：越权按“OrganizationCustomerScope；服务经理或管理层客户等级维护权限”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“结束原有效区间并生成新等级版本；新业务动作冻结等级与策略版本，历史业务快照不回写”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、CustomerContact、CustomerRelationshipSnapshot”及数据表“cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot”；事件边界为“CustomerServiceLevelChanged”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CustomerServiceLevelRevision”及数据表“cus_customer_service_level_revision”；事件边界为“CustomerServiceLevelChanged”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
 
 ### CUS-03
@@ -1073,8 +1073,8 @@
 ### CUT-07
 
 - 需求名称：割接后台配置
-- 数据对象：CutoverPlan
-- 数据表：cut_plan_revision、cut_step
+- 数据对象：CutoverConfigurationRevision
+- 数据表：cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision
 - API：/cutover-config/types、/cutover-config/network-modes、/cutover-config/checklist-items、/cutover-config/binding-rules
 - 事件：CutoverConfigurationPublished
 - 外部集成：基础平台字典、可选外部动态数据源
@@ -1085,7 +1085,7 @@
 - Phase 3 PRD验收基线：WHEN 管理员在后台维护割接类型（10类）和组网模式（5类）；THEN 系统支持新增/编辑/启用/停用/排序割接类型与组网模式，配置项包含编码、名称、描述、启用状态；AND 配置发布后仅对生效时间后的新任务可选，已创建任务继续显示其原配置版本；WHEN 管理员在后台维护设备类型（主字典数据）；THEN 系统支持新增/编辑/启用/停用设备类型（已知示例FW/SW/ADX，非穷举，支持扩展新增）；AND 设备类型由系统管理员维护，作为CUT-03动态多维绑定的维度之一；WHEN 管理员在后台维护统一采集项配置（合并原业务调研项配置+风险考察项配置+双机部署规范检查表配置为1个统一采集项配置模块）；THEN 系统支持通过"采集项类型"字段区分业务调研项/风险考察项/双机部署检查项，三类共用相同的配置字段结构：采集项ID（主键）、采集项类型（枚举）、项命名（文本）、项含义（文本）、界面格式（单选项/多选框/下拉框/输入框/表格/表单/文件上传按钮等）、界面格式动态数据查询（传入上下文信息调接口获取数据）、反馈结果内容（如：是/否+特殊情况备注；自定义文本；文件上传等）、数据关联关系（动态多维绑定，已知4维可扩展）、外部数据源接入（可选，配置外部数据来源接口）、所属子表（可选，双机部署检查项关联5类组网模式检查表）、启用状态、排序、操作（新增/编辑/保存/删除）；AND 此表格支持后台维护编辑，各字段的界面格式与内容用于采集信息分析与结果页面的填写说明；WHEN 管理员在后台为统一采集项配置外部数据源接入能力（所有采集项类型均可配置，实际应用中风险考察项使用较多）；THEN 系统支持配置数据来源接口（传入上下文信息调接口获取数据），支持动态数据查询；AND 接口加载的数据项显示编号/主题/描述/解决方案，补充本次是否涉及+采取措施；WHEN 管理员在后台配置动态多维绑定关系；THEN 系统支持配置"割接类型×组网模式×设备类型×割接等级"（已知4维）的动态多维绑定关系，并支持扩展新增维度；AND 绑定关系新版本发布后由新生成清单使用，已生成清单继续按原绑定版本解释；WHEN 管理员在后台维护双机部署检查项的"所属子表"关联（采集项类型=双机部署检查项）；THEN 系统支持5类组网模式共124行检查项的CRUD（VSM双机17项/静默双机25项/DRP双机23项/普通双机24项/集群8项），通过"所属子表"字段关联对应组网模式检查表；AND 各类检查表主数据按5类分别维护；WHEN 配置存在重复编码、无效引用、互斥绑定、评分区间重叠/缺口，或动态维度没有取值来源；THEN 平台阻止发布并保持配置草稿状态，逐项展示校验失败位置，不生成可被CUT-01～04消费的新版本
 - Phase 3授权拒绝断言：越权按“系统管理员配置权限；已发布版本和历史业务实例不可覆盖”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“草稿→已发布→已停用；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，已生成实例继续按消费版本解释”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan”及数据表“cut_plan_revision、cut_step”；事件边界为“CutoverConfigurationPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“基础平台字典、可选外部动态数据源”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverConfigurationRevision”及数据表“cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision”；事件边界为“CutoverConfigurationPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“基础平台字典、可选外部动态数据源”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### CUT-08

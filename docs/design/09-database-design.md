@@ -5,7 +5,7 @@
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
-> 物理承载决策：ADR-0030（ProjectTask执行契约与CUT-03清单）
+> 物理承载决策：ADR-0030（ProjectTask执行契约与CUT-03清单）、ADR-0031（客户服务等级与割接配置版本载体）
 > 目标数据库：`npdms` / MySQL 8.4
 > 实现基线：`E:\AICoding\Projects\NPDMS` @ `856d05264ab4a4fb69b94896c172e4a1c29aae02`
 
@@ -283,7 +283,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | Context | 目标表组 | 关键约束与索引 |
 |---|---|---|
-| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure` | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
+| Cutover | `cut_task`、`cut_assessment`、`cut_plan_revision`、`cut_step`、`cut_cutover_support_arrangement`、`cut_cutover_closure`；CUT-07 Feature前向表见7.2 | 任务内计划revision唯一；步骤只属于批准方案内容；保障人员安排从属于方案且联系人类变更留审计、职责变更新建revision；P6闭环一任务一版本递增，提交后只读 |
 | Inspection | `srv_inspection_task`、`srv_inspection_rule`、`srv_inspection_rule_revision`、`srv_inspection_task_rule_snapshot`、`srv_inspection_report_revision`、`srv_service_issue`、`srv_service_issue_remediation` | 在线/离线模式检查；任务规则快照唯一；报告 revision 只追加 |
 | Service Operations | `srv_service_status`、`srv_service_handover_reference` | 客观服务状态按设备+来源唯一；不新建续保空间/续保率表 |
 
@@ -306,6 +306,18 @@ CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_re
 | `cut_cutover_checklist_item_result` | `checklist_item_id/result_version/result_source_code/answer_snapshot/fact_description/collection_task_id/collection_result_reference_id/collection_result_version/external_source_code/query_condition_snapshot/queried_at/load_failure_code/manual_evidence_file_reference/selection_started_at/selection_ended_at/selected_by/selection_reason_code/current_marker/created_by/created_at` | 结果正文追加且不可覆盖；`uk(tenant_id, checklist_item_id, result_version)`；生成列`current_marker`仅在`selection_ended_at is null`时取1，`uk(tenant_id, checklist_item_id, current_marker)`保证每项至多一个当前选择；`check(selection_ended_at is null or selection_ended_at >= selection_started_at)`；`idx(tenant_id, collection_task_id)`用于回调关联；人工降级和自动失败记录并存 |
 
 `result_source_code`只表达CUT选择的直接填写、自动采集、外部加载或人工降级来源；本表不保存DAC的`mapped_status_code`、`external_status_raw`或调度状态副本。技术状态始终从`plt_collection_task`及结果引用读取，CUT只在验签、任务/清单/采集项/设备/结果版本匹配后选择一个结果版本，并按采集项规则解释是否满足。结果创建时写`selection_started_at`并成为当前选择；切换结果时在同一事务中锁定当前行、写旧行`selection_ended_at`并插入新结果版本。结果载荷、来源与证据字段不可更新，只有受控切换命令可以关闭选择区间。
+
+### 7.2 CUT-07后台配置前向表
+
+以下表名是ADR-0031批准的Feature目标，不属于当前核心DDL；物理表由CUT-07 Feature前向迁移确定。
+
+| 目标表 | 关键字段 | 约束与索引 |
+|---|---|---|
+| `cut_cutover_configuration_revision` | `configuration_code/revision_no/status_code/effective_from/effective_to/published_by/published_at/disabled_at/dictionary_snapshot/version` | `uk(tenant_id, configuration_code, revision_no)`；发布版本不可覆盖；消费实例冻结revision和字典代码/名称快照 |
+| `cut_cutover_checklist_item_definition_revision` | `configuration_revision_id/stable_item_key/item_definition_version/item_type_code/item_name/interface_format_code/interface_schema/work_mode_code/required_flag/external_source_ref/status_code/sort_order/version` | `uk(tenant_id, configuration_revision_id, stable_item_key, item_definition_version)`；稳定项键不可复用为不同含义 |
+| `cut_cutover_checklist_binding_rule_revision` | `configuration_revision_id/item_definition_id/item_definition_version/rule_version/dimension_condition_snapshot/priority/status_code/version` | `uk(tenant_id, configuration_revision_id, item_definition_id, rule_version)`；维度条件必须可判定且引用启用的基础平台字典值 |
+
+割接类型、组网模式、设备类型使用基础平台可配置字典，不另建业务主表。新表只能由CUT-07 Feature创建；不从`pms_cut_plan`、`pms_cut_risk`或旧清单推断历史配置版本。
 
 草稿重匹配使用`checklist_version + input_snapshot_hash`。稳定`stable_item_key`继续适用时可保留当前答案；移出适用范围的项把`applicable_flag`置为0并留审计，不进入提交；新增项写入同一草稿。已提交清单不可原位重匹配，输入发生受控变化时创建新版本并将旧版标记失效。D级任务禁止创建这三类记录。
 
@@ -339,12 +351,16 @@ INT-05/INT-09 复用基础平台现有用户、部门、岗位主数据，已有
 
 | Context | 目标表组 | 关键约束 |
 |---|---|---|
-| Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot` | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
+| Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot`；CUS-02 Feature前向表见8.2.1 | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
 | Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围主记录至少含订单行、项目、`allocated_qty`、`scope_status`及来源证据，范围明细保存地点、产品/设备类型、数量和可选批次 |
 | Resource | `res_supplier`、`res_qualification`、`res_subcontract_request`、`res_payment_gate` | 资质版本追加；财务结果只保存引用和回写状态 |
 | Knowledge | `TechnicalNoticeReference`逻辑对象；物理表由INT-04 Feature前向迁移确定 | V2公告按ITR来源键+版本唯一，只保存同步副本和业务引用；4张V3治理表不进入核心迁移DDL |
 
 `pms_eng_announcement`和`pms_eng_announcement_check`只作为历史来源证据保留。V1/V2新菜单和API只读取INT-04 Feature批准的ITR同步副本；本地创建记录不得混入外部主数据结果，也不得提前创建V3治理表。
+
+### 8.2.1 CUS-02服务等级前向表
+
+`cus_customer_service_level_revision`是ADR-0031批准的Feature目标，物理表由CUS-02 Feature前向迁移确定，不属于当前核心DDL。关键字段为`customer_id/service_level_code/policy_snapshot/effective_from/effective_to/current_marker/change_reason/evidence_ref/approver_id/version`；`uk(tenant_id, customer_id, version)`保存版本，生成列`current_marker`仅在`effective_to is null`时取1，`uk(tenant_id, customer_id, current_marker)`保证同一客户至多一个当前等级，并校验结束时间不早于开始时间。等级代码使用基础平台字典；无可靠历史来源，不从客户、联系人或关系快照反推等级。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
 

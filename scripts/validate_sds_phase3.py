@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import re
 from pathlib import Path
 
@@ -32,6 +33,12 @@ PHASE3_AUTHORIZATION_ASSERTION = re.compile(r"^- Phase 3授权拒绝断言：(.+
 PHASE3_GUARD_ASSERTION = re.compile(r"^- Phase 3业务守卫断言：(.+?)\s*$", re.M)
 PHASE3_SIDE_EFFECT_ASSERTION = re.compile(r"^- Phase 3副作用断言：(.+?)\s*$", re.M)
 PHASE3_EVIDENCE = re.compile(r"^- Phase 3证据类型：(.+?)\s*$", re.M)
+CONTRACT_DATA_OBJECTS = re.compile(r"^- 数据对象：(.+?)\s*$", re.M)
+CONTRACT_DATA_TABLES = re.compile(r"^- 数据表：(.+?)\s*$", re.M)
+SIDE_EFFECT_OBJECTS = re.compile(r"数据对象“([^”]+)”及数据表“([^”]+)”")
+SIDE_EFFECT_EVENT = re.compile(r"事件边界为“([^”]+)”")
+SIDE_EFFECT_FILE = re.compile(r"文件边界为“([^”]+)”")
+SIDE_EFFECT_INTEGRATION = re.compile(r"外部集成为“([^”]+)”")
 GATE_REVIEW_STATE = re.compile(r"^>\s*审查状态：`([^`]+)`", re.M)
 GATE_CONCLUSION = re.compile(r"^>\s*结论：`([^`]+)`", re.M)
 ACCEPTANCE_HEADING = re.compile(r"^\*\*(?:业务)?验收标准：\*\*\s*$", re.M)
@@ -45,6 +52,22 @@ STALE_V18_DESIGN_TEXT = (
     "docs\\baseline\\prd-v1.7.md",
     "未形成可复核证据前本分册不能基线化",
 )
+CROSS_CONTEXT_TABLE_REFERENCES = {
+    "PM-02": {"proj_project_tree_change"},
+    "PM-04": {"proj_project_tree_change"},
+    "PRE-03": {"ast_asset_sync_item"},
+    "EXE-06": {"proj_project_stage_snapshot"},
+    "CUT-08": {"ast_asset_sync_item"},
+    "INT-01": {"ast_asset_sync_batch", "ast_asset_sync_item"},
+    "INT-03": {"ast_asset_sync_batch", "ast_asset_sync_item"},
+    "INT-05": {"plt_sync_batch", "plt_external_key_mapping"},
+    "INT-07": {"plt_integration_reconciliation"},
+    "INT-09": {"ast_asset_sync_item"},
+    "INT-10": {"ast_asset_sync_item"},
+    "INT-12": {"plt_collection_result_consumption"},
+    "NFR-02": {"plt_collection_result_consumption"},
+    "NFR-03": {"ast_asset_sync_item"},
+}
 
 
 def require_tokens(errors: list[str], label: str, text: str, tokens: tuple[str, ...]) -> None:
@@ -59,6 +82,29 @@ def parse_contract_blocks(text: str) -> dict[str, str]:
         match.group(1): text[match.start(): matches[index + 1].start() if index + 1 < len(matches) else len(text)]
         for index, match in enumerate(matches)
     }
+
+
+def split_contract_values(value: str) -> list[str]:
+    return [item.strip() for item in value.split("、") if item.strip()]
+
+
+def load_object_table_contract(root: Path, errors: list[str]) -> dict[str, dict[str, object]]:
+    path = root / "docs" / "traceability" / "domain-object-table-map.json"
+    if not path.exists():
+        errors.append("missing domain object-table contract for Phase 3 reverse validation")
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as exc:
+        errors.append(f"invalid domain object-table contract: {exc}")
+        return {}
+    objects = payload.get("objects")
+    if not isinstance(objects, dict):
+        errors.append("domain object-table contract must contain an objects mapping")
+        return {}
+    if not objects:
+        errors.append("domain object-table contract objects mapping must not be empty")
+    return objects
 
 
 def prd_formal_requirement_ids(text: str) -> list[str]:
@@ -232,6 +278,21 @@ def validate(root: Path) -> list[str]:
         errors.append("missing explicit Phase 2/3 contract map")
     else:
         contract_text = contract_path.read_text(encoding="utf-8")
+        object_table_contract = load_object_table_contract(root, errors)
+        all_contract_tables = {
+            table
+            for object_contract in object_table_contract.values()
+            if isinstance(object_contract, dict)
+            for table in (object_contract.get("targetTables") or [])
+        }
+        database_design_path = root / "docs" / "design" / "09-database-design.md"
+        if database_design_path.exists():
+            all_contract_tables.update(
+                re.findall(
+                    r"`((?:proj|sol|imp|acc|cut|srv|cus|ast|com|res|ana|plt)_[a-z0-9_]+)`",
+                    database_design_path.read_text(encoding="utf-8"),
+                )
+            )
         expected_contract_marker = "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`"
         if expected_contract_marker not in contract_text:
             errors.append(f"contract map missing marker: {expected_contract_marker}")
@@ -250,6 +311,8 @@ def validate(root: Path) -> list[str]:
             authorization_assertions = PHASE3_AUTHORIZATION_ASSERTION.findall(block)
             guard_assertions = PHASE3_GUARD_ASSERTION.findall(block)
             side_effect_assertions = PHASE3_SIDE_EFFECT_ASSERTION.findall(block)
+            formal_object_values = CONTRACT_DATA_OBJECTS.findall(block)
+            formal_table_values = CONTRACT_DATA_TABLES.findall(block)
             evidence = PHASE3_EVIDENCE.findall(block)
             if len(tests) != 1 or not tests[0].strip() or not all(token in tests[0] for token in (
                 "业务规则/聚合单元测试", "API契约与输入边界测试", "服务端授权拒绝测试",
@@ -276,6 +339,74 @@ def validate(root: Path) -> list[str]:
                 for token in ("成功仅按契约写入/引用数据对象", "事件边界", "授权拒绝", "不得新增有效业务版本")
             ):
                 errors.append(f"{identifier} missing structured Phase 3 side-effect assertion")
+            else:
+                declaration = SIDE_EFFECT_OBJECTS.search(side_effect_assertions[0])
+                if not declaration:
+                    errors.append(f"{identifier} missing parseable object-table declaration")
+                elif len(formal_object_values) != 1 or len(formal_table_values) != 1:
+                    errors.append(f"{identifier} must declare exactly one formal data-object/table pair")
+                else:
+                    declared_objects = split_contract_values(formal_object_values[0])
+                    declared_tables = split_contract_values(formal_table_values[0])
+                    side_effect_objects = split_contract_values(declaration.group(1))
+                    side_effect_tables = split_contract_values(declaration.group(2))
+                    if set(declared_objects) != set(side_effect_objects):
+                        errors.append(
+                            f"{identifier} formal data objects differ from side-effect objects: "
+                            f"formal={declared_objects} sideEffect={side_effect_objects}"
+                        )
+                    if set(declared_tables) != set(side_effect_tables):
+                        errors.append(
+                            f"{identifier} formal data tables differ from side-effect tables: "
+                            f"formal={declared_tables} sideEffect={side_effect_tables}"
+                        )
+                    allows_feature_forward_description = False
+                    allowed_tables = set(CROSS_CONTEXT_TABLE_REFERENCES.get(identifier, set()))
+                    for object_name in declared_objects:
+                        object_contract = object_table_contract.get(object_name)
+                        if not isinstance(object_contract, dict):
+                            errors.append(f"{identifier} declares unknown domain object: {object_name}")
+                            continue
+                        requirement_ids = set(object_contract.get("requirementIds") or [])
+                        if identifier not in requirement_ids:
+                            errors.append(
+                                f"{identifier} cannot declare domain object {object_name}; "
+                                f"object requirements={sorted(requirement_ids)}"
+                            )
+                        allowed_tables.update(object_contract.get("targetTables") or [])
+                        allows_feature_forward_description = allows_feature_forward_description or (
+                            object_contract.get("targetTablePolicy") == "FEATURE_FORWARD_MIGRATION"
+                        )
+                    for table_name in declared_tables:
+                        if table_name in allowed_tables:
+                            continue
+                        if allows_feature_forward_description and table_name.startswith("FEATURE_FORWARD_MIGRATION("):
+                            continue
+                        errors.append(f"{identifier} declares unknown target table for its objects: {table_name}")
+                    for cross_context_table in CROSS_CONTEXT_TABLE_REFERENCES.get(identifier, set()):
+                        if cross_context_table not in all_contract_tables:
+                            errors.append(
+                                f"{identifier} cross-context table reference is absent from formal design: "
+                                f"{cross_context_table}"
+                            )
+
+            if len(side_effect_assertions) == 1:
+                side_effect = side_effect_assertions[0]
+                surfaces = (
+                    ("event", SIDE_EFFECT_EVENT, "事件Outbox/Inbox", "事件消息ID、Outbox/Inbox"),
+                    ("file", SIDE_EFFECT_FILE, "文件上传/下载/版本/恶意内容与权限回源测试", "文件哈希、版本、扫描、引用与权限拒绝记录"),
+                    ("integration", SIDE_EFFECT_INTEGRATION, "外部集成映射、超时/重试/对账/降级测试", "脱敏请求响应、幂等键、重试/对账与降级记录"),
+                )
+                for surface_name, pattern, test_token, evidence_token in surfaces:
+                    match = pattern.search(side_effect)
+                    if not match:
+                        errors.append(f"{identifier} missing {surface_name} boundary declaration")
+                        continue
+                    if not match.group(1).startswith("N/A"):
+                        if len(tests) != 1 or test_token not in tests[0]:
+                            errors.append(f"{identifier} missing {surface_name} specialty test")
+                        if len(evidence) != 1 or evidence_token not in evidence[0]:
+                            errors.append(f"{identifier} missing {surface_name} specialty evidence")
             if any(token in block for token in ("领域测试", "后续补充", "占位测试", "占位证据", "验证业务活动正确")):
                 errors.append(f"{identifier} uses generic Phase 3 placeholder")
 
@@ -284,11 +415,11 @@ def validate(root: Path) -> list[str]:
             "PM-06": ("无环", "唯一期次"),
             "PM-11": ("5万节点", "2000直接子节点", "深度30"),
             "CUS-02": (
-                "CustomerRelationshipSnapshot", "/customers/{id}/service-level-revisions",
+                "CustomerServiceLevelRevision", "cus_customer_service_level_revision", "/customers/{id}/service-level-revisions",
                 "结束原等级区间并生成新版本", "等级与策略快照", "历史业务快照不回写",
             ),
             "CUT-07": (
-                "CutoverPlan", "/cutover-config/checklist-items",
+                "CutoverConfigurationRevision", "cut_cutover_configuration_revision", "/cutover-config/checklist-items",
                 "草稿→已发布→已停用", "稳定编码", "动态维度", "已生成实例继续按消费版本解释",
             ),
             "INT-12": ("五元组", "临时明文不落库", "原子切换", "秘密扫描零命中"),

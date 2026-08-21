@@ -184,6 +184,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverChecklistItem（版本内实体） | 稳定项键、采集项定义/界面/条件/工作方式快照、必填性、设备/命令模板引用、自定义来源和当前适用性 | 系统必填项不可删除；重匹配按稳定项键保留或移出，前端不按名称硬编码 |
 | Cutover | CutoverChecklistItemResult（追加事实） | 直接填写、自动采集、外部加载或人工降级结果，CollectionTask/结果版本、失败与人工证据引用、选择有效区间 | 结果正文不可覆盖；每项只允许一个未结束的当前选择区间；DAC技术状态不复制为CUT状态；回调成功不直接产生业务通过 |
 | Cutover | CutoverAssessment | 问卷版本、项目输入上下文、人工选择、人工等级和P5复核引用 | 自动建议等级仅V3；P2不增加审批节点 |
+| Cutover | CutoverConfigurationRevision | CUT-07后台配置版本、统一采集项定义版本、动态绑定规则版本及基础平台字典维度快照 | 草稿发布后不可覆盖；类型/组网/设备使用基础平台字典；不归入CutoverPlan |
 | Cutover | CutoverPlan | 调研项、风险项、操作/验证/回退清单、附件、保障人员安排和批准版本 | 清单是方案内容而非执行状态；职责变化新建revision，联系人类变化留前后审计 |
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |
 | Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |
@@ -206,6 +207,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | MarketRelation | External Master Copy | CRM同步市场部、系统部、拓展部、子行业的编码与名称组合目录；CUS拥有本地同步副本，不把组合目录解释为组织树 |
 | CustomerContact | External Master Copy / 平台补充事实 | 权威字段不被平台覆盖；项目联系角色为独立时态关系 |
 | CustomerRelationshipSnapshot | 不可变快照 | 项目、验收、巡检等业务发生时冻结必要联系信息 |
+| CustomerServiceLevelRevision | 时态版本聚合 | CUS-02保存等级字典代码、策略快照和有效区间；同一客户同一时点仅一个有效版本，历史业务快照不回写 |
 
 Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/expendCode/expendName/industryCode/industryName`八个业务字段。`MarketRelation`只提供CRM组合目录、同步对账与候选选择，不是客户或项目的持久化外键目标；三者均禁止保存`relationId`。历史变更通过同步证据、审计和业务快照追溯，不依赖可变目录记录ID串联。
 

@@ -46,8 +46,8 @@ class Phase3ValidatorTest(unittest.TestCase):
             "PM-05": "部分失败 逐项重试",
             "PM-06": "无环 唯一期次",
             "PM-11": "5万节点 2000直接子节点 深度30",
-            "CUS-02": "CustomerRelationshipSnapshot /customers/{id}/service-level-revisions 结束原等级区间并生成新版本 等级与策略快照 历史业务快照不回写",
-            "CUT-07": "CutoverPlan /cutover-config/checklist-items 草稿→已发布→已停用 稳定编码 动态维度 已生成实例继续按消费版本解释",
+            "CUS-02": "CustomerServiceLevelRevision cus_customer_service_level_revision /customers/{id}/service-level-revisions 结束原等级区间并生成新版本 等级与策略快照 历史业务快照不回写",
+            "CUT-07": "CutoverConfigurationRevision cut_cutover_configuration_revision /cutover-config/checklist-items 草稿→已发布→已停用 稳定编码 动态维度 已生成实例继续按消费版本解释",
             "INT-12": "五元组 临时明文不落库 原子切换 秘密扫描零命中",
             "NFR-01": "50并发用户30分钟 10000请求 P95 错误率不高于0.5% 50MB 20万项目 200万任务 Chrome/Edge/Firefox Playwright trace",
             "NFR-02": "AES-256 任务级短期取密 临时输入 密码记录数为0 撤销 明文命中数为0 密钥轮换 秘密扫描",
@@ -56,6 +56,43 @@ class Phase3ValidatorTest(unittest.TestCase):
         }
         synthetic_count = 100 - len(exact)
         identifiers = list(exact) + [f"REQ-{index:03d}" for index in range(1, synthetic_count + 1)]
+        object_table_map = {
+            "objects": {
+                "测试对象": {
+                    "owner": "TEST",
+                    "requirementIds": identifiers,
+                    "targetTables": ["测试表"],
+                },
+                "CustomerServiceLevelRevision": {
+                    "owner": "CUS",
+                    "requirementIds": ["CUS-02"],
+                    "targetTables": ["cus_customer_service_level_revision"],
+                    "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+                },
+                "CutoverConfigurationRevision": {
+                    "owner": "CUT",
+                    "requirementIds": ["CUT-07"],
+                    "targetTables": [
+                        "cut_cutover_configuration_revision",
+                        "cut_cutover_checklist_item_definition_revision",
+                        "cut_cutover_checklist_binding_rule_revision",
+                    ],
+                    "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+                },
+                "技术支撑对象": {
+                    "owner": "PLT",
+                    "requirementIds": [],
+                    "targetTables": sorted({
+                        table
+                        for tables in VALIDATOR.CROSS_CONTEXT_TABLE_REFERENCES.values()
+                        for table in tables
+                    }),
+                },
+            }
+        }
+        (self.root / "docs" / "traceability" / "domain-object-table-map.json").write_text(
+            json.dumps(object_table_map, ensure_ascii=False), encoding="utf-8"
+        )
         prd_blocks = [
             f"| 需求编号 | {identifier} |\n| 目标版本 | V1 |\n\n"
             "**业务验收标准：**\n\n"
@@ -75,6 +112,8 @@ class Phase3ValidatorTest(unittest.TestCase):
             )
             blocks.append(
                 f"### {identifier}\n"
+                "- 数据对象：测试对象\n"
+                "- 数据表：测试表\n"
                 "- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；"
                 "服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；"
                 f"{detail}\n"
@@ -256,6 +295,103 @@ class Phase3ValidatorTest(unittest.TestCase):
         errors = VALIDATOR.validate(self.root)
         self.assertTrue(any("PM-05 missing unique Phase 3 test categories" in item for item in errors), errors)
         self.assertTrue(any("PM-05 missing unique Phase 3 evidence types" in item for item in errors), errors)
+
+    def test_invented_object_and_table_fail_independent_contract_check(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        text = text.replace(
+            "数据对象“测试对象”及数据表“测试表”",
+            "数据对象“InventedAggregate”及数据表“invented_table”",
+            1,
+        )
+        path.write_text(text, encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("InventedAggregate" in item for item in errors), errors)
+        self.assertTrue(any("invented_table" in item for item in errors), errors)
+
+    def test_object_cannot_be_reassigned_to_another_requirement(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        text = text.replace(
+            "数据对象“测试对象”及数据表“测试表”",
+            "数据对象“CustomerServiceLevelRevision”及数据表“cus_customer_service_level_revision”",
+            1,
+        )
+        path.write_text(text, encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("CustomerServiceLevelRevision" in item and "PM-05" in item for item in errors), errors)
+
+    def test_known_table_cannot_be_swapped_across_objects(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        start = text.index("### CUS-02")
+        end = text.index("\n### ", start + 1)
+        block = text[start:end]
+        block = block.replace("- 数据对象：测试对象", "- 数据对象：CustomerServiceLevelRevision")
+        block = block.replace("- 数据表：测试表", "- 数据表：cut_cutover_configuration_revision")
+        block = block.replace(
+            "数据对象“测试对象”及数据表“测试表”",
+            "数据对象“CustomerServiceLevelRevision”及数据表“cut_cutover_configuration_revision”",
+        )
+        path.write_text(text[:start] + block + text[end:], encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(
+            any("CUS-02 declares unknown target table" in item and "cut_cutover_configuration_revision" in item for item in errors),
+            errors,
+        )
+
+    def test_formal_object_table_rows_must_match_side_effect_assertion(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        start = text.index("### CUS-02")
+        end = text.index("\n### ", start + 1)
+        block = text[start:end]
+        block = block.replace("- 数据对象：测试对象", "- 数据对象：InventedAggregate")
+        block = block.replace("- 数据表：测试表", "- 数据表：invented_table")
+        path.write_text(text[:start] + block + text[end:], encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("CUS-02 formal data objects differ" in item for item in errors), errors)
+        self.assertTrue(any("CUS-02 formal data tables differ" in item for item in errors), errors)
+
+    def test_empty_object_table_contract_fails_closed(self) -> None:
+        path = self.root / "docs" / "traceability" / "domain-object-table-map.json"
+        path.write_text(json.dumps({"objects": {}}), encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("objects mapping must not be empty" in item for item in errors), errors)
+        self.assertTrue(any("declares unknown domain object" in item for item in errors), errors)
+
+    def test_declared_event_requires_specialty_test_and_evidence(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        start = text.index("### CUS-02")
+        end = text.index("\n### ", start + 1)
+        block = text[start:end].replace(
+            "事件边界为“N/A”",
+            "事件边界为“CustomerServiceLevelChanged”",
+        )
+        path.write_text(text[:start] + block + text[end:], encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("CUS-02 missing event specialty" in item for item in errors), errors)
+
+    def test_declared_integration_requires_specialty_test_and_evidence(self) -> None:
+        path = self.root / "docs" / "traceability" / "phase2-contract-map.md"
+        text = path.read_text(encoding="utf-8")
+        start = text.index("### CUT-07")
+        end = text.index("\n### ", start + 1)
+        block = text[start:end].replace(
+            "外部集成为“N/A”",
+            "外部集成为“基础平台字典”",
+        )
+        path.write_text(text[:start] + block + text[end:], encoding="utf-8")
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("CUT-07 missing integration specialty" in item for item in errors), errors)
 
     def test_missing_rollback_and_secret_scan_fail(self) -> None:
         deploy = self.root / "docs" / "design" / "18-deployment-design.md"

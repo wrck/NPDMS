@@ -41,6 +41,8 @@ MODEL_ENTITY_CONTRACTS = {
     "DispatchAttempt": ("PLT", {"INT-12"}),
     "CallbackRecord": ("PLT", {"INT-12"}),
     "CutoverSupportArrangement": ("CUT", {"CUT-04"}),
+    "CutoverConfigurationRevision": ("CUT", {"CUT-07"}),
+    "CustomerServiceLevelRevision": ("CUS", {"CUS-02"}),
 }
 MODEL_GOVERNANCE_CONTRACTS = {}
 
@@ -216,6 +218,7 @@ def validate_target_table_policy(
     target_tables: list[str],
     map_entry: dict,
     database_design: str,
+    current_core_tables: set[str] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     policy = map_entry.get("targetTablePolicy", "CURRENT_PHYSICAL_TARGET")
@@ -224,12 +227,15 @@ def validate_target_table_policy(
             errors.append(f"{object_name} targetTables must be non-empty and unique")
     elif policy == "FEATURE_FORWARD_MIGRATION":
         feature_requirement = map_entry.get("featureRequirementId")
-        if target_tables:
-            errors.append(f"{object_name} feature-forward targetTables must remain empty until its Feature migration is approved")
+        if len(target_tables) != len(set(target_tables)):
+            errors.append(f"{object_name} feature-forward targetTables must be unique")
         if not feature_requirement or feature_requirement not in requirement_ids:
             errors.append(f"{object_name} featureRequirementId must reference one of its Requirement IDs")
         elif f"物理表由{feature_requirement} Feature前向迁移确定" not in database_design:
             errors.append(f"{object_name} feature-forward policy is not declared by 09 database design")
+        leaked_tables = set(target_tables) & (current_core_tables or set())
+        if leaked_tables:
+            errors.append(f"{object_name} feature-forward tables leaked into current core DDL: {sorted(leaked_tables)}")
     else:
         errors.append(f"{object_name} has unsupported targetTablePolicy: {policy}")
     for table in target_tables:
@@ -404,7 +410,7 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
             errors.append(f"{object_name} target table policy does not match the machine object-table map")
         if record.get("featureRequirementId") != map_entry.get("featureRequirementId"):
             errors.append(f"{object_name} feature Requirement does not match the machine object-table map")
-        errors.extend(validate_target_table_policy(object_name, owner, actual_requirements, target_tables, map_entry, database_design))
+        errors.extend(validate_target_table_policy(object_name, owner, actual_requirements, target_tables, map_entry, database_design, v17_target_tables))
         sources = record.get("sources", [])
         if not sources:
             errors.append(f"{object_name} has no source-specific disposition")
