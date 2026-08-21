@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
+
 /**
  * PMS 项目模板 DO
  * <p>
@@ -23,11 +25,25 @@ public class ProjectTemplateDO extends TenantBaseDO {
     /**
      * 模板编码（全局唯一）
      */
+    @TableField("template_code")
     private String code;
     /**
      * 模板名称
      */
+    @TableField("template_name")
     private String name;
+    /** 稳定模板编号，同一模板的 revision 共用。 */
+    private Long templateId;
+    /** revision 号。 */
+    private Integer revisionNo;
+    /** 四个独立业务维度的适用条件。 */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private TemplateApplicability applicabilitySnapshot;
+    private String businessSceneCode;
+    private Integer matchPriority;
+    private Boolean defaultFlag;
+    private String workflowDefinitionKey;
+    private Integer workflowDefinitionVersion;
     /**
      * 适用项目类型（字典 pms_project_type）
      */
@@ -37,9 +53,9 @@ public class ProjectTemplateDO extends TenantBaseDO {
      */
     private String description;
     /**
-     * 状态：0启用 1停用
+     * revision 状态：DRAFT / PUBLISHED / DISABLED
      */
-    private Integer status;
+    private String status;
     /**
      * 排序号
      */
@@ -47,7 +63,12 @@ public class ProjectTemplateDO extends TenantBaseDO {
     /**
      * 模板内容快照（JSON）
      */
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "definition_snapshot", typeHandler = JacksonTypeHandler.class)
     private TemplateSnapshot snapshotJson;
+
+    private String contentSha256;
+    private LocalDateTime effectiveFrom;
+    private LocalDateTime effectiveTo;
+    private LocalDateTime publishedAt;
 
 }

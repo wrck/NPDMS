@@ -20,5 +20,5 @@ public class ProjectTemplatePageReqVO extends PageParam {
     private String projectType;
 
     @Schema(description = "状态：0启用 1停用", example = "0")
-    private Integer status;
+    private String status;
 }

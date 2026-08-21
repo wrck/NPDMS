@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.Projec
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 /**
  * PMS 项目模板 Mapper
@@ -21,17 +22,30 @@ public interface ProjectTemplateMapper extends BaseMapperX<ProjectTemplateDO> {
 
     default List<ProjectTemplateDO> selectEnabledList() {
         return selectList(new LambdaQueryWrapperX<ProjectTemplateDO>()
-                .eq(ProjectTemplateDO::getStatus, 0)
+                .eq(ProjectTemplateDO::getStatus, "PUBLISHED")
                 .orderByAsc(ProjectTemplateDO::getSort)
                 .orderByDesc(ProjectTemplateDO::getId));
     }
 
     default List<ProjectTemplateDO> selectEnabledListByType(String projectType) {
         return selectList(new LambdaQueryWrapperX<ProjectTemplateDO>()
-                .eq(ProjectTemplateDO::getStatus, 0)
+                .eq(ProjectTemplateDO::getStatus, "PUBLISHED")
                 .eqIfPresent(ProjectTemplateDO::getProjectType, projectType)
                 .orderByAsc(ProjectTemplateDO::getSort)
                 .orderByDesc(ProjectTemplateDO::getId));
+    }
+
+    default List<ProjectTemplateDO> selectPublishedCandidates(Long tenantId, String businessSceneCode,
+                                                               LocalDateTime effectiveAt) {
+        return selectList(new LambdaQueryWrapperX<ProjectTemplateDO>()
+                .eq(ProjectTemplateDO::getTenantId, tenantId)
+                .eq(ProjectTemplateDO::getStatus, "PUBLISHED")
+                .eq(ProjectTemplateDO::getBusinessSceneCode, businessSceneCode)
+                .le(ProjectTemplateDO::getEffectiveFrom, effectiveAt)
+                .and(wrapper -> wrapper.isNull(ProjectTemplateDO::getEffectiveTo)
+                        .or().gt(ProjectTemplateDO::getEffectiveTo, effectiveAt))
+                .orderByDesc(ProjectTemplateDO::getMatchPriority)
+                .orderByAsc(ProjectTemplateDO::getId));
     }
 
     default PageResult<ProjectTemplateDO> selectPage(ProjectTemplatePageReqVO reqVO) {

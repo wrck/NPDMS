@@ -146,5 +146,9 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TEMPLATE_IN_USE = new ErrorCode(1_014_023_002, "项目模板已被项目引用，无法删除");
     ErrorCode PROJECT_TEMPLATE_NOT_ENABLED = new ErrorCode(1_014_023_003, "项目模板未启用");
     ErrorCode PROJECT_TEMPLATE_SNAPSHOT_INVALID = new ErrorCode(1_014_023_004, "项目模板快照校验未通过：{}");
+    ErrorCode PROJECT_TEMPLATE_CANDIDATE_NOT_FOUND = new ErrorCode(1_014_023_005, "没有适用的已发布项目模板");
+    ErrorCode PROJECT_TEMPLATE_CANDIDATE_AMBIGUOUS = new ErrorCode(1_014_023_006, "存在多个同优先级默认项目模板");
+    ErrorCode PROJECT_TEMPLATE_CANDIDATE_CHANGED = new ErrorCode(1_014_023_007, "项目模板候选已变化，请重新加载");
+    ErrorCode PROJECT_TEMPLATE_CRITERIA_INVALID = new ErrorCode(1_014_023_008, "项目模板匹配条件不完整：{}");
 
 }

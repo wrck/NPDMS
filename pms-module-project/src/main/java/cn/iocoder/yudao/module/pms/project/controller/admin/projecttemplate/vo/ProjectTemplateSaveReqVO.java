@@ -31,8 +31,8 @@ public class ProjectTemplateSaveReqVO {
     @Size(max = 500, message = "描述长度不能超过 500 个字符")
     private String description;
 
-    @Schema(description = "状态（0启用 1停用）", example = "0")
-    private Integer status;
+    @Schema(description = "revision 状态", example = "DRAFT")
+    private String status;
 
     @Schema(description = "排序号", example = "1")
     private Integer sort;

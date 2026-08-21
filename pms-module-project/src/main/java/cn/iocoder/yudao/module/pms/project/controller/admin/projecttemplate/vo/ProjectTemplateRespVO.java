@@ -21,7 +21,7 @@ public class ProjectTemplateRespVO {
     @Schema(description = "描述")
     private String description;
     @Schema(description = "状态")
-    private Integer status;
+    private String status;
     @Schema(description = "排序号")
     private Integer sort;
     @Schema(description = "模板内容快照")

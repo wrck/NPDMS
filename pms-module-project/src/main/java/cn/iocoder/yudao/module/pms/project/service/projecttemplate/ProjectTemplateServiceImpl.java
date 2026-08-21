@@ -65,7 +65,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         validateCodeUnique(null, reqVO.getCode());
         ProjectTemplateDO template = BeanUtils.toBean(reqVO, ProjectTemplateDO.class);
         if (template.getStatus() == null) {
-            template.setStatus(0);
+            template.setStatus("DRAFT");
         }
         if (template.getSort() == null) {
             template.setSort(0);
@@ -121,7 +121,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         if (template == null) {
             throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         }
-        if (!Integer.valueOf(0).equals(template.getStatus())) {
+        if (!"PUBLISHED".equals(template.getStatus())) {
             throw exception(PROJECT_TEMPLATE_NOT_ENABLED);
         }
         // 2. 校验项目编码唯一、来源业务键唯一、客户存在
