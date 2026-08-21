@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 2,
+  "id": "P3-E09",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "DATA_ARCHITECTURE_OWNER",
+    "BUSINESS_OWNER",
+    "MIGRATION_OWNER"
+  ],
+  "reviewOwner": "INDEPENDENT_REVIEWER",
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "deferredItemCount": 0,
+    "executionWindowPolicy": "APPROVED_WINDOW_ONLY",
+    "independentReviewRef": "docs/engineering/gates/phase-3/independent-review.md",
+    "independentReviewResult": "GO",
+    "itemIdsSha256": "8DBB95DED5BA08D6184DA607B3EEC237FCF6763254F95D7971C9A226DA2F5C75",
+    "itemsSha256": "DD49BDEF20995CF3B17D85E946F678A0CD8CFB404A4A585A36E00401A273D60D",
+    "manifestDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "mappingDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "mysql84DdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "releaseApplicability": "ONLY_IF_RELEASE_INCLUDES_HISTORICAL_MIGRATION_OR_DATA_CUTOVER",
+    "targetCatalogDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "validationDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
+    "evidenceOwnerRoles": [
+      "DATA_ARCHITECTURE_OWNER",
+      "BUSINESS_OWNER",
+      "MIGRATION_OWNER"
+    ],
+    "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+    "modelDecisionStatus": "MODEL_BASELINE_READY",
+    "v17DeltaStatus": "HISTORICAL_ACCEPTED",
+    "v18DeltaStatus": "ACCEPTED",
+    "decisionRegisterItemCount": 2079,
+    "requirementOwnerConfirmation": {
+      "status": "HISTORICAL_ACCEPTED",
+      "decisionRef": "ADR-0028",
+      "groupCount": 9,
+      "confirmedUniqueItemCount": 695,
+      "reviewStatus": "REVIEW_PENDING"
+    },
+    "q07Decision": {
+      "status": "ACCEPTED",
+      "technicalConstraintCount": 282,
+      "primaryKeyCount": 66,
+      "primaryKeyShape": {
+        "singleId": 65,
+        "compositeProjection": 1
+      },
+      "tenantReferenceKeyCount": 66,
+      "sameDomainForeignKeyCount": 52,
+      "stableTechnicalCheckCount": 98
+    },
+    "q08Decision": {
+      "status": "ACCEPTED",
+      "candidateIndexCount": 130,
+      "featureQueryPlanValidationRequired": true,
+      "p3e06PerformanceValidationRequired": true,
+      "adjustmentPolicy": "FORWARD_MIGRATION_ONLY"
+    },
+    "isolatedMysqlExecution": {
+      "status": "PASS",
+      "mysqlVersion": "8.4.10",
+      "tableCount": 66,
+      "columnCount": 1382,
+      "constraintCount": 359
+    }
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "docs/decisions/0019-domain-coded-database-naming.md",
+    "docs/decisions/0020-project-code-identity-and-namespace.md",
+    "docs/decisions/0021-customer-market-relation-classification.md",
+    "docs/decisions/0022-core-migration-schema-and-key-policy.md",
+    "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md",
+    "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md",
+    "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md",
+    "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-drift-review.json",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
+    "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json",
+    "docs/engineering/gates/phase-3/independent-review.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": [],
+  "blocks": [
+    "HISTORICAL_DATA_MIGRATION",
+    "DATA_CUTOVER"
+  ],
+  "usageRestriction": "仅用于SDS数据模型基线事实校验；普通功能发布不触发AI-MIG-000，只有包含历史迁移或数据切换的发布才以前置门禁约束，并且只能在批准窗口内执行。",
+  "approvalBinding": {
+    "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "itemsSha256": null,
+    "itemCount": 2079,
+    "itemIdsSha256": "8DBB95DED5BA08D6184DA607B3EEC237FCF6763254F95D7971C9A226DA2F5C75"
+  }
+}

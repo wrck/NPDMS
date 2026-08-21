@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E03",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "BUSINESS_OWNER",
+    "DBA_OWNER",
+    "OPERATIONS_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "actualRpo": null,
+    "actualRto": null,
+    "approvedRpo": "PT1H",
+    "approvedRto": "PT4H",
+    "backupFrequency": null,
+    "backupMedia": null,
+    "businessProbeResult": null,
+    "encryption": null,
+    "exerciseEvidenceId": null,
+    "exerciseOwner": null,
+    "restoreOrder": null,
+    "retention": {
+      "dailyRetention": "P35D",
+      "monthlyRetention": "P13M",
+      "yearlyRetention": "P7Y",
+      "continuousLogMaxGap": "PT1H"
+    },
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "业务Owner先批准RPO/RTO，再由DBA/运维设计并演练",
+    "evidenceOwnerRoles": [
+      "BUSINESS_OWNER",
+      "DBA_OWNER",
+      "OPERATIONS_OWNER"
+    ],
+    "recoveryTopology": {
+      "primary": "METRO_WARM_STANDBY",
+      "fallback": "OFFLINE_COLD_BACKUP_FALLBACK",
+      "approvedRto": "PT4H"
+    },
+    "exercisePolicy": {
+      "isolatedRestoreFrequency": "P3M",
+      "fullWarmStandbySwitchFrequency": "P1Y"
+    },
+    "switchAuthorization": {
+      "initiator": "OPERATIONS_OWNER",
+      "requiredConfirmer": "BUSINESS_OWNER",
+      "securityIncidentAdditionalConfirmer": "SECURITY_OWNER",
+      "auditPolicy": "PERMANENT_NON_DELETABLE"
+    }
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "docs/decisions/0005-production-recovery-objectives.md",
+    "docs/decisions/0012-production-backup-retention.md",
+    "docs/decisions/0013-warm-standby-and-offline-cold-backup.md",
+    "docs/decisions/0015-recovery-exercise-frequency.md",
+    "docs/decisions/0017-disaster-recovery-switch-authorization.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

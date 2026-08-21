@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E07",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "INTEGRATION_ARCHITECTURE_OWNER",
+    "EXTERNAL_SYSTEM_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "authenticationRef": null,
+    "compensation": null,
+    "degradation": null,
+    "direction": null,
+    "endpointRef": null,
+    "externalSystem": null,
+    "featureId": null,
+    "idempotencyKey": null,
+    "mappingVersion": null,
+    "networkAllowlistRef": null,
+    "reconciliation": null,
+    "releaseApprovalId": null,
+    "requirementIds": null,
+    "retryPolicy": null,
+    "sandboxEvidenceId": null,
+    "sourceKey": null,
+    "systemOwner": null,
+    "timeoutMs": null,
+    "directionDecision": "B",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "建立平台级接口配置注册表，Feature引用不可变版本",
+    "evidenceOwnerRoles": [
+      "INTEGRATION_ARCHITECTURE_OWNER",
+      "EXTERNAL_SYSTEM_OWNER"
+    ]
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}
