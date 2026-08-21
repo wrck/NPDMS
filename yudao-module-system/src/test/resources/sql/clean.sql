@@ -10,3 +10,7 @@ DELETE FROM "system_dict_type";
 DELETE FROM "system_dict_data";
 DELETE FROM "system_login_log";
 DELETE FROM "system_operate_log";
+DELETE FROM "plt_outbox_event";
+DELETE FROM "plt_operation_audit";
+DELETE FROM "plt_idempotency_record";
+DELETE FROM "plt_business_code_rule";

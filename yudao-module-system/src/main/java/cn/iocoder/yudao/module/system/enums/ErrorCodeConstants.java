@@ -168,4 +168,10 @@ public interface ErrorCodeConstants {
     // ========== 站内信发送 1-002-028-000 ==========
     ErrorCode NOTIFY_SEND_TEMPLATE_PARAM_MISS = new ErrorCode(1_002_028_000, "模板参数({})缺失");
 
+    // ========== F-PROJ-001 平台事务支撑 1-002-029-000 ==========
+    ErrorCode BUSINESS_CODE_RULE_UNAVAILABLE = new ErrorCode(1_002_029_000, "业务编码规则不可用");
+    ErrorCode IDEMPOTENCY_REQUEST_CONFLICT = new ErrorCode(1_002_029_001,
+            "PMS-COMMON-IDEMPOTENCY-0001：幂等键对应的请求摘要不一致");
+    ErrorCode IDEMPOTENCY_RECORD_INCOMPLETE = new ErrorCode(1_002_029_002, "幂等记录尚未完成");
+
 }

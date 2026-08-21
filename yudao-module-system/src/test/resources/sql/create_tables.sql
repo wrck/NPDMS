@@ -212,3 +212,75 @@ CREATE TABLE IF NOT EXISTS "system_operate_log" (
     "tenant_id" bigint NOT NULL DEFAULT 0,
     PRIMARY KEY ("id")
 ) COMMENT '操作日志表';
+CREATE TABLE IF NOT EXISTS "plt_business_code_rule" (
+    "id" bigint NOT NULL,
+    "tenant_id" bigint NOT NULL,
+    "rule_code" varchar(64) NOT NULL,
+    "rule_version" varchar(32) NOT NULL,
+    "prefix" varchar(32) NOT NULL,
+    "padding_width" int NOT NULL,
+    "next_value" bigint NOT NULL,
+    "status" varchar(32) NOT NULL,
+    "effective_from" timestamp NOT NULL,
+    "effective_to" timestamp,
+    "version" int NOT NULL DEFAULT 0,
+    "creator" bigint,
+    "create_time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    "updater" bigint,
+    "update_time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY ("id"),
+    UNIQUE ("tenant_id", "rule_code", "rule_version")
+);
+
+CREATE TABLE IF NOT EXISTS "plt_idempotency_record" (
+    "id" bigint NOT NULL,
+    "tenant_id" bigint NOT NULL,
+    "scope_code" varchar(64) NOT NULL,
+    "actor_id" bigint NOT NULL,
+    "idempotency_key" varchar(128) NOT NULL,
+    "request_sha256" varchar(64) NOT NULL,
+    "status" varchar(32) NOT NULL,
+    "response_json" varchar(4000),
+    "resource_id" bigint,
+    "correlation_id" varchar(128),
+    "version" int NOT NULL DEFAULT 0,
+    "create_time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    "update_time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY ("id"),
+    UNIQUE ("tenant_id", "scope_code", "actor_id", "idempotency_key")
+);
+
+CREATE TABLE IF NOT EXISTS "plt_operation_audit" (
+    "id" bigint NOT NULL,
+    "tenant_id" bigint NOT NULL,
+    "actor_id" bigint,
+    "operation_code" varchar(64) NOT NULL,
+    "resource_type" varchar(64) NOT NULL,
+    "resource_id" varchar(128),
+    "decision_code" varchar(32) NOT NULL,
+    "detail_json" varchar(4000) NOT NULL,
+    "correlation_id" varchar(128),
+    "operation_time" timestamp NOT NULL,
+    "create_time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "plt_outbox_event" (
+    "id" bigint NOT NULL,
+    "tenant_id" bigint NOT NULL,
+    "event_id" varchar(128) NOT NULL,
+    "aggregate_type" varchar(64) NOT NULL,
+    "aggregate_id" varchar(128) NOT NULL,
+    "event_type" varchar(128) NOT NULL,
+    "event_version" int NOT NULL,
+    "payload_json" varchar(4000) NOT NULL,
+    "publish_status" varchar(32) NOT NULL,
+    "retry_count" int NOT NULL DEFAULT 0,
+    "next_retry_time" timestamp,
+    "published_time" timestamp,
+    "correlation_id" varchar(128),
+    "create_time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    "update_time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY ("id"),
+    UNIQUE ("event_id")
+);
