@@ -103,6 +103,13 @@ After implementation, report:
 - known limitations
 - follow-up tasks
 
+## 8. Implementation discipline
+
+- Surface assumptions, ambiguity, and meaningful trade-offs before implementation. Business-rule uncertainty follows the `BLOCKED_BY_SPEC` process.
+- Prefer the simplest implementation that satisfies approved requirements and acceptance criteria. Do not add speculative features, abstractions, configurability, or future-oriented infrastructure.
+- Make surgical changes. Touch only files and lines required by the current task; do not mix unrelated refactoring, formatting, comment cleanup, or modernization into the change.
+- Define verifiable outcomes before implementation. Every changed line must trace to the current requirement or task, and every task must finish with proportionate tests, build checks, or runtime verification.
+
 
 
 # 项目执行效率规则
