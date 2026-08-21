@@ -10,7 +10,7 @@
 - 去冗余后的物理草案为52张表、1079个带中文注释的字段，覆盖客户、项目、合同、订单行实施范围、CRM辅助关系、SN物流、交付件、配置、版本、公告和故障；
 - DDL已在隔离MySQL 8.4.10实例验证，结果为52张表、79个租户复合外键、81个CHECK约束。
 
-> 以上DDL验证是2026-08-05历史快照。当前核心迁移子集已重建为60表、1,240列、48个同域外键、89个CHECK及122项候选普通索引，哈希为`5EB974...E4249`；ADR-0028已按该哈希接受九组需求方清单，4张V3技术公告治理表及跨领域物理外键仍被排除。当前子集已在隔离MySQL 8.4.10完整执行；正式独立复审已GO、模型基线已发布，可作为SDS/Feature模型输入。不得把“模型可用”误作“已批准迁移切换”。P3-E09不定义迁移批准哈希；未来`AI-MIG-000`真实批次门禁另行定义其迁移授权证据。
+> 以上DDL验证是2026-08-05历史快照。当前核心迁移子集已扩展为66表、1,382列、52个同域外键、103个CHECK及130项候选普通索引，哈希为`6B203BF3...275B`；ADR-0028保留历史决策锚点，ADR-0030精确覆盖六表差量，4张V3技术公告治理表及跨领域物理外键仍被排除。当前子集已在隔离MySQL 8.4.10完整执行，正式独立复审已GO、模型基线已发布为`MODEL_BASELINE_READY`。P3-E09不定义迁移批准哈希；只有Release包含历史迁移或数据切换时，才另行启用`AI-MIG-000`真实批次门禁并绑定批准窗口，普通功能Release不适用。
 
 逐字段机器可读证据见[`../evidence/migration/core-field-mapping.jsonl`](../evidence/migration/core-field-mapping.jsonl)，汇总见[`../evidence/migration/core-field-mapping-summary.json`](../evidence/migration/core-field-mapping-summary.json)。
 

@@ -2,16 +2,16 @@
 
 Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存、并发、异常、幂等契约是否足以进入 Phase 3。
 
-> 当前门禁：`APPROVED / READY_FOR_PHASE_3`<br>
-> 当前范围：V1 55项、V2 48项、V1/V2正式需求103项；V3 30项；`OUT_OF_SCOPE` 9项<br>
-> 迁移边界：84对象、95来源绑定、1排除源；P3-E09=`MODEL_BASELINE_READY`；真实迁移与数据切换仍由`AI-MIG-000`单独控制
+> 当前门禁：`APPROVED / READY_FOR_PHASE_3_V1.8`<br>
+> 当前范围：V1 53项、V2 47项、V1/V2正式需求100项；已编号V3 31项、跨需求演进方向2项；`OUT_OF_SCOPE` 9项<br>
+> 迁移边界：87对象/98来源绑定/1排除源；`CustomerServiceLevelRevision`和`CutoverConfigurationRevision`均为`NONE_NEW / FEATURE_FORWARD_MIGRATION`，不进入当前核心DDL；P3-E09=`MODEL_BASELINE_READY`仅批准当前冻结模型。仅当发布包含历史迁移或数据切换时，才由`AI-MIG-000`作为Release前置门禁并绑定批准窗口，普通功能发布不适用
 
 ## 当前文件
 
 - [`gate-status.md`](gate-status.md)：Phase 2 当前门禁状态。
 - [`implementation-fact-inventory.md`](implementation-fact-inventory.md)：实现仓库事实、漂移分类和前向纠正约束。
-- [`self-review.md`](self-review.md)：Phase 2 工程化自审、修正项和当前批准结论。
-- [`independent-review.md`](independent-review.md)：当前唯一独立复审结论、固定评审范围、Required关闭和放行证据。
+- [`self-review.md`](self-review.md)：本轮V1.8 Phase 2 差量自审与回归证据。
+- [`independent-review.md`](independent-review.md)：本轮V1.8 fresh-context独立复审与最终GO结论；旧V1.7结论不作为放行依据。
 
 ## 归档规则
 
