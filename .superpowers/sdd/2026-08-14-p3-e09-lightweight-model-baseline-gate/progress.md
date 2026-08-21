@@ -1,0 +1,55 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-08-14-p3-e09-lightweight-model-baseline-gate.md
+
+- Controller baseline: `9a5285f`
+- Protected untracked inputs: preserve and exclude from every task and commit.
+- Plan review: compatible with Engineering Chain V1.8; tasks may extend their declared file list only to remove directly related stale heavy-approval wording or generated artifacts found by validation.
+- Task 1 BASE: `9a5285f07bd447dab27df462085f1794a65c6097`
+- Task 1 implementation commit: `d20d547c4c8d87f0acf1ba2900a8217e4ea1e761`
+- Task 1 review package: `review-9a5285f..d20d547.diff`
+- Task 1 review result: NO-GO (0 Critical, 3 Important).
+- Required fixes: restore current-DDL binding for formal model artifacts; prevent decisionOwner/reviewOwner self-review with a lightweight review reference; update stale full-suite fixture.
+- Task 1 fix round 1 commit: `30b092846e8f9ea55bbb33294eb19262908d36b3`
+- Task 1 re-review package: `review-9a5285f..30b0928.diff`
+- Task 1 re-review result: NO-GO (1 Critical: substring `GO` accepts `NO-GO`).
+- Task 1 fix round 2 commit: `81db3aff279cc70c29a7853dc8da5b40715e322f`
+- Task 1 final re-review package: `review-9a5285f..81db3af.diff`
+- Task 1 final re-review result: NO-GO (1 Critical, 2 Important).
+- Required fixes: accept exact `结论：GO`; reject path traversal after resolve; require explicit `approvedDdlSha256: null`.
+- Task 1 fix round 3 commit: `24e03c7a52d5aca5156b1862224b9941d740e35d`
+- Task 1 closure review package: `review-9a5285f..24e03c7.diff`
+- Task 1 closure review result: NO-GO (Critical: explicit-null field rejected by generic nonempty validation).
+- Task 1 fix round 4 commit: `170e0a2213aaa6ee7558e9a7359c3e32a04d3ff8`
+- Task 1 final closure package: `review-9a5285f..170e0a2.diff`
+- Task 1 final closure result: GO (62 scenarios; full suite 181/181 PASS).
+- Task 2 BASE: `170e0a2213aaa6ee7558e9a7359c3e32a04d3ff8`
+- Task 2 implementation commit: `a37c70aa0251419cd69f8a6969cbabb23d7ed834`
+- Task 2 review package: `review-170e0a2..a37c70a.diff`
+- Task 2 independent review: GO.
+- Task 3 BASE: `a37c70aa0251419cd69f8a6969cbabb23d7ed834`
+- Task 3 implementation commit: `6131470a4a83e31fca44b90df1137318bd7a3da9`
+- Task 3 review package: `review-a37c70a..6131470.diff`
+- Task 3 review result: NO-GO (0 Critical, 2 Important).
+- Required fixes: make MODEL_BASELINE_READY depend on complete formal independent GO evidence; remove current heavy per-item Reviewer/nonempty approval-hash wording from generator and derived evidence.
+- Task 3 fix round 1 commit: `433d339e56397964b9e04115741cbe8ea96324db`
+- Candidate status: `MODEL_BASELINE_REVIEW_PENDING`; formal review record `IN_REVIEW / PENDING_FRESH_REVIEW`.
+- Task 3 candidate review package: `review-a37c70a..433d339.diff`
+- Task 3 candidate review result: NO-GO (0 Critical, 4 Important; review-package byte finding is procedural and will be closed by explicit full-SHA/-U10 regeneration).
+- Required code/doc fixes: remove empty-approved-hash conflict from domain migration validator and current ADR/appendices; make formal review record structured and contradiction-safe; remove premature published wording.
+- Task 3 fix round 2 core commit: `cfd60d6`.
+- Task 3 candidate metadata commit: `c175eeef5467edc28f5d0c01356d459908d3c87b` (binds candidateCommit=`cfd60d6`, remains pending).
+- Task 3 candidate review package: `review-a37c70a..c175eee.diff` (explicit full SHA endpoints, `git diff -U10`).
+- Task 3 candidate re-review result: NO-GO (P1: duplicate fields, FAIL=FAIL, nonexistent candidate commit can pass).
+- Task 3 fix round 3 core commit: `c1b87b19a9b4e9e1e16034f3bdc1de92b701074b`.
+- Task 3 metadata commit: `bbc546bc8654458fceab9849626422d1e77e1b6c`.
+- Task 3 candidate review package: `review-a37c70a..bbc546b.diff` (explicit full SHA endpoints, `-U10`).
+- Task 3 candidate closure review: GO (0 Critical/Important).
+- Reviewed candidate: `c1b87b19a9b4e9e1e16034f3bdc1de92b701074b`; DDL `5EB9742F...EE4249`; Items `36503D53...F87D5D`; 1883 items; DEFER=0; tests PASS.
+- Task 3 final baseline commit: `e46dfdf8410bee4ac1f2adaa96a2be6d4bb46980`.
+- Task 3 final review package: `review-a37c70a..e46dfdf.diff` (explicit full SHA endpoints, `-U10`).
+- Task 3 final baseline review result: NO-GO (0 Critical, 3 Important).
+- Required fixes: clear four pending-review residuals; validate unique reviewDate/reviewRange; recompute candidate register canonical items hash.
+- Task 3 fix round 4 core commit: `37218eec2fcf82224a90e0b59f9e187bed71849d`.
+- Task 3 metadata commit: `1cf3ed118a400df0af5fdf00dff7ca92bb6a5ffa`.
+- Task 3 candidate package: `review-a37c70a..1cf3ed1.diff` (explicit full SHA endpoints, `-U10`).
+- Task 3 round-4 candidate review: NO-GO (2 Required: calendar-invalid reviewDate accepted; reviewRange base not independently anchored).
+- Current task: Task 3 fix round 5 in progress.

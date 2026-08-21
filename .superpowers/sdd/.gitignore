@@ -1,0 +1,6 @@
+# SDD plans, progress records, and review artifacts are versioned.
+# Raw review patches preserve original whitespace and stay local.
+*.diff
+**/task-*-brief.md
+**/task-*-report.md
+**/*review*.md
