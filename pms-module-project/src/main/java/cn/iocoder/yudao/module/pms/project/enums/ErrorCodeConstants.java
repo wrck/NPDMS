@@ -155,6 +155,10 @@ public interface ErrorCodeConstants {
             "Project版本冲突，请重新加载后重试");
     ErrorCode PROJECT_ASSIGNMENT_REQUEST_INVALID = new ErrorCode(1_014_024_015,
             "服务经理确认请求不合法：{}");
+    ErrorCode PROJECT_ORGANIZATION_SCOPE_INVALID = new ErrorCode(1_014_024_016,
+            "公司与部门不在同一有效授权范围：{}");
+    ErrorCode PROJECT_LOCATION_SCOPE_INVALID = new ErrorCode(1_014_024_017,
+            "项目实施地点范围不合法：{}");
 
     // ========== 项目树与进度汇总（F-PM02 / PM-02）1-014-024-009 ==========
     ErrorCode PROJECT_MOVE_CYCLE = new ErrorCode(1_014_024_009, "子树移动会形成循环引用（目标父项目为自身或自身后代）");

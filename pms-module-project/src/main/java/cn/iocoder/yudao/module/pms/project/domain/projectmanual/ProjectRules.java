@@ -201,6 +201,7 @@ public final class ProjectRules {
         update.setLifecycleStatus(current.getLifecycleStatus());
         update.setCurrentStage(current.getCurrentStage());
         update.setAssignmentStatus(current.getAssignmentStatus());
+        update.setLocationResolutionStatus(current.getLocationResolutionStatus());
         // 进度与权重（进度来源属 PM-11，权重走汇总口径调整，均不走属性更新）
         update.setProgress(current.getProgress());
         update.setAggregationWeight(current.getAggregationWeight());

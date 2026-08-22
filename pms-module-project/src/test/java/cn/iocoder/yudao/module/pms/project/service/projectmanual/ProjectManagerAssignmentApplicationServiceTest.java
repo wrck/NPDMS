@@ -3,6 +3,14 @@ package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
+import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectSiteDO;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
@@ -23,6 +32,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectManagerAssignmentApplicationServiceTest {
@@ -33,9 +43,26 @@ class ProjectManagerAssignmentApplicationServiceTest {
     private ProjectManualCreationService projectService;
     @Mock
     private ProjectCreationAuthorizationService authorizationService;
+    @Mock private AdminUserApi adminUserApi;
+    @Mock private DeptApi deptApi;
+    @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private AssetLocationApi assetLocationApi;
+    @Mock private ProjectSiteApplicationService projectSiteService;
 
     @InjectMocks
     private ProjectManagerAssignmentApplicationService service;
+
+    @BeforeEach
+    void setUpScope() {
+        ProjectMasterDO project = new ProjectMasterDO();
+        project.setId(1L); project.setCompanyId(10L);
+        lenient().when(projectService.getProject(1L)).thenReturn(project);
+        ProjectSiteDO site = new ProjectSiteDO(); site.setSiteId(30L);
+        lenient().when(projectSiteService.getActiveSites(1L)).thenReturn(List.of(site));
+        DeptRespDTO dept = new DeptRespDTO(); dept.setId(20L); dept.setCode("DEP-01");
+        lenient().when(deptApi.getDeptByCode("DEP-01")).thenReturn(dept);
+        lenient().when(organizationScopeApi.hasScope(66L, 10L, 20L)).thenReturn(true);
+    }
 
     @Test
     @SuppressWarnings("unchecked")
@@ -87,7 +114,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
 
     private AssignServiceManagerCommand command() {
         return new AssignServiceManagerCommand(1L, 2, "SERVICE_MANAGER", "L1", 66L,
-                20L, 30L, LocalDateTime.now().minusMinutes(1), "assign-key", "b".repeat(64));
+                30L, "DEP-01", LocalDateTime.now().minusMinutes(1), "assign-key", "b".repeat(64));
     }
 
     private ProjectManagerAssignmentApplicationService.Actor actor() {

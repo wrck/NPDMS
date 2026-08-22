@@ -60,6 +60,9 @@ public class ProjectRespVO {
     @Schema(description = "实施地点")
     private String implementationLocation;
 
+    @Schema(description = "地点解析状态：RESOLVED/UNRESOLVED")
+    private String locationResolutionStatus;
+
     @Schema(description = "手工创建原因")
     private String creationReason;
 

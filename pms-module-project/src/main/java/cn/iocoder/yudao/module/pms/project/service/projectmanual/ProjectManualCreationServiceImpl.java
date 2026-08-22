@@ -36,6 +36,10 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverableDefinition;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.InitializeProjectDeliverablesCommand;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,6 +99,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private TaskExecutionContractFactory taskExecutionContractFactory;
     @Resource
     private ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
+    @Resource
+    private AdminUserApi adminUserApi;
+    @Resource
+    private DeptApi deptApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -200,15 +208,20 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         }
         // g) 可选服务经理指派（一级 SERVICE_MANAGER_L1；PROJECT_MANAGER 不写）
         if (serviceManagerUserId != null) {
-            doAssignServiceManager(draft.getId(), serviceManagerUserId,
-                    ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, null, null, null, LocalDateTime.now());
+            doAssignServiceManager(draft.getId(), draft, serviceManagerUserId,
+                    ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, null, null,
+                    draft.getDepartmentCode(), LocalDateTime.now());
         }
         // h) 下单办事处关系（relation_role=ORDER_OFFICE，is_primary=1，effective_from=now）
         if (orderOfficeCompanyCode != null && !orderOfficeCompanyCode.isBlank()) {
             ProjectCompanyDepartmentRelationDO relation = new ProjectCompanyDepartmentRelationDO();
             relation.setProjectId(draft.getId());
+            relation.setCompanyId(draft.getCompanyId());
             relation.setCompanyCode(orderOfficeCompanyCode);
+            relation.setCompanyName(draft.getCompanyName());
+            relation.setDepartmentId(draft.getDepartmentId());
             relation.setDepartmentCode(orderOfficeDepartmentCode);
+            relation.setDepartmentName(draft.getDepartmentName());
             relation.setRelationRole(ProjectRules.RELATION_ROLE_ORDER_OFFICE);
             relation.setIsPrimary(Boolean.TRUE);
             relation.setEffectiveFrom(LocalDateTime.now());
@@ -294,8 +307,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         String memberRole = "L1".equals(command.levelCode())
                 ? ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1
                 : ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2;
-        ProjectMemberAssignmentDO assignment = doAssignServiceManager(command.projectId(), command.userId(),
-                memberRole, command.levelCode(), command.officeId(), command.locationId(), command.effectiveFrom());
+        ProjectMemberAssignmentDO assignment = doAssignServiceManager(command.projectId(), project, command.managerId(),
+                memberRole, command.levelCode(), command.siteId(), command.departmentCode(),
+                command.effectiveFrom());
         int newVersion = command.expectedVersion() + 1;
         return new AssignServiceManagerResult(command.projectId(), assignment.getId(), newVersion,
                 project.getAssignmentStatus() == null
@@ -386,8 +400,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     /**
      * 指派一级服务经理：与新区间重叠的旧区间关闭（effective_to=新区间起点，边界相接不重叠）+ 开新区间。
      */
-    private ProjectMemberAssignmentDO doAssignServiceManager(Long projectId, Long userId, String memberRole,
-                                                             String levelCode, Long officeId, Long locationId,
+    private ProjectMemberAssignmentDO doAssignServiceManager(Long projectId, ProjectMasterDO project, Long userId,
+                                                             String memberRole, String levelCode, Long siteId,
+                                                             String departmentCode,
                                                              LocalDateTime effectiveFrom) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime from = effectiveFrom != null ? effectiveFrom : now;
@@ -412,9 +427,17 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         ProjectMemberAssignmentDO fresh = new ProjectMemberAssignmentDO();
         fresh.setProjectId(projectId);
         fresh.setUserId(userId);
+        AdminUserRespDTO manager = adminUserApi.getUser(userId);
+        DeptRespDTO department = deptApi.getDeptByCode(departmentCode);
+        fresh.setMemberName(manager == null ? null : manager.getNickname());
+        fresh.setCompanyId(project.getCompanyId());
+        fresh.setCompanyCode(project.getCompanyCode());
+        fresh.setCompanyName(project.getCompanyName());
+        fresh.setDepartmentCode(departmentCode);
+        fresh.setDepartmentName(department == null ? null : department.getName());
         fresh.setMemberRole(memberRole);
         if (levelCode != null) {
-            fresh.setResponsibility(JsonUtils.toJsonString(new AssignmentScope(levelCode, officeId, locationId)));
+            fresh.setResponsibility(JsonUtils.toJsonString(new AssignmentScope(levelCode, siteId, departmentCode)));
         }
         fresh.setEffectiveFrom(from);
         fresh.setStatus(MemberAssignmentRules.STATUS_ACTIVE);
@@ -424,14 +447,16 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
 
     private void validateAssignmentCommand(AssignServiceManagerCommand command) {
         if (command == null || command.projectId() == null || command.expectedVersion() == null
-                || command.expectedVersion() < 0 || command.userId() == null
+                || command.expectedVersion() < 0 || command.managerId() == null
+                || command.siteId() == null || command.departmentCode() == null
+                || command.departmentCode().isBlank()
                 || !"SERVICE_MANAGER".equals(command.roleCode())
                 || !("L1".equals(command.levelCode()) || "L2".equals(command.levelCode()))) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "角色、层级、人员或版本无效");
         }
     }
 
-    private record AssignmentScope(String levelCode, Long officeId, Long locationId) {
+    private record AssignmentScope(String levelCode, Long siteId, String departmentCode) {
     }
 
     private ProjectMasterDO validateProjectExists(Long id) {

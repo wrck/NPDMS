@@ -143,6 +143,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
         draft.setSigningMethod("DIRECT_SIGN");
         draft.setProjectCategory("ENGINEERING");
         draft.setImplementationMode("DIRECT_SERVICE");
+        draft.setImplementationLocation("集成测试兼容地点");
         TemplateMatchResult match = projectTemplateService.matchPreview(
                 draft.getSigningMethod(), draft.getProjectCategory(), draft.getImplementationMode(), null);
         if (match.getOutcome() != TemplateMatchResult.Outcome.MATCHED || match.getMatched() == null) {
@@ -150,8 +151,8 @@ abstract class ProjectManualCreationMySqlTestSupport {
                     + match.getOutcome() + ", conflicts=" + match.getConflicts()
                     + ", candidates=" + match.getCandidates());
         }
-        return new ManualProjectCreateCommand(draft, null, null,
-                match.getMatched().getTemplateRevisionId(), match.getCandidateWatermark(), null,
+        return new ManualProjectCreateCommand(draft, 1L, 1L, java.util.List.of(),
+                match.getMatched().getTemplateRevisionId(), match.getCandidateWatermark(),
                 idempotencyKey, requestDigest);
     }
 

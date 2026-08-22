@@ -8,9 +8,9 @@ public record AssignServiceManagerCommand(
         Integer expectedVersion,
         String roleCode,
         String levelCode,
-        Long userId,
-        Long officeId,
-        Long locationId,
+        Long managerId,
+        Long siteId,
+        String departmentCode,
         LocalDateTime effectiveFrom,
         String idempotencyKey,
         String requestDigest) {

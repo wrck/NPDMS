@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projects;
 
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
 import jakarta.validation.constraints.NotBlank;
@@ -63,6 +64,23 @@ class ProjectMasterControllerContractTest {
         assertNotNull(ProjectMatchTemplatesRespVO.CandidateItem.class
                 .getDeclaredField("templateRevisionId"));
         assertThrowsNoField(ProjectCreateReqVO.class, "templateId");
+    }
+
+    @Test
+    void v18LocationAndOrganizationContractRejectsLegacyRawIdentifiers() throws Exception {
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("orderOfficeCompanyId"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("orderOfficeDepartmentId"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("sites"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredMethod("isLocationScopeValid")
+                .getAnnotation(AssertTrue.class));
+        assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeCompanyCode");
+        assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeDepartmentCode");
+        assertThrowsNoField(ProjectCreateReqVO.class, "serviceManagerUserId");
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("managerId"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("siteId"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("departmentCode"));
+        assertThrowsNoField(ProjectAssignManagerReqVO.class, "officeId");
+        assertThrowsNoField(ProjectAssignManagerReqVO.class, "locationId");
     }
 
     @Test

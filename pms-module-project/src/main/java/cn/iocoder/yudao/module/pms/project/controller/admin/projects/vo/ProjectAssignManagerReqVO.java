@@ -24,13 +24,15 @@ public class ProjectAssignManagerReqVO {
 
     @Schema(description = "人员稳定ID", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "用户ID不能为空")
-    private Long userId;
+    private Long managerId;
 
-    @Schema(description = "办事处稳定ID")
-    private Long officeId;
+    @Schema(description = "实施站点稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "站点ID不能为空")
+    private Long siteId;
 
-    @Schema(description = "实施地点稳定ID")
-    private Long locationId;
+    @Schema(description = "人工确认的办事处统一部门编码", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "办事处部门编码不能为空")
+    private String departmentCode;
 
     @Schema(description = "生效开始时间（空=当前时间，不得晚于当前时间）")
     private LocalDateTime effectiveFrom;

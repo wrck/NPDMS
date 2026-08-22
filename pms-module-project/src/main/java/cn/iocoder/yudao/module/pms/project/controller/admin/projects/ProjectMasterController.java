@@ -16,6 +16,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectM
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectProgressRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectSiteRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeMoveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -26,10 +27,12 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerA
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectTreeService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectSiteApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ProjectSiteCommand;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -90,6 +93,8 @@ public class ProjectMasterController {
     private ProjectManagerAssignmentApplicationService projectManagerAssignmentApplicationService;
     @Resource
     private ProjectTreeService projectTreeService;
+    @Resource
+    private ProjectSiteApplicationService projectSiteApplicationService;
 
     @PostMapping
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
@@ -100,10 +105,12 @@ public class ProjectMasterController {
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
         ProjectMasterDO draft = BeanUtils.toBean(createReqVO, ProjectMasterDO.class);
         ManualProjectCreateCommand command = new ManualProjectCreateCommand(
-                draft, createReqVO.getOrderOfficeCompanyCode(), createReqVO.getOrderOfficeDepartmentCode(),
+                draft, createReqVO.getOrderOfficeCompanyId(), createReqVO.getOrderOfficeDepartmentId(),
+                createReqVO.getSites() == null ? java.util.List.of() : createReqVO.getSites().stream()
+                        .map(site -> new ProjectSiteCommand(site.getSiteId(), site.getSiteVersion(),
+                                site.getPrimarySite())).toList(),
                 createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
-                createReqVO.getServiceManagerUserId(), idempotencyKey,
-                sha256Digest(JsonUtils.toJsonString(createReqVO)));
+                idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
         ManualProjectCreateResult result = projectManualCreationApplicationService.create(command,
                 new ProjectManualCreationApplicationService.Actor(
                         currentTenantId(), actorId, UUID.randomUUID().toString()));
@@ -148,6 +155,16 @@ public class ProjectMasterController {
             throw exception(PROJECT_NOT_EXISTS);
         }
         return success(BeanUtils.toBean(project, ProjectRespVO.class));
+    }
+
+    @GetMapping("/{id}/sites")
+    @Operation(summary = "查询项目当前实施站点")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<java.util.List<ProjectSiteRespVO>> getProjectSites(@PathVariable("id") Long id) {
+        if (projectManualCreationService.getProject(id) == null) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        return success(BeanUtils.toBean(projectSiteApplicationService.getActiveSites(id), ProjectSiteRespVO.class));
     }
 
     @PutMapping("/{id}")
@@ -218,7 +235,7 @@ public class ProjectMasterController {
                 + JsonUtils.toJsonString(assignReqVO));
         AssignServiceManagerCommand command = new AssignServiceManagerCommand(
                 id, expectedVersion, assignReqVO.getRoleCode(), assignReqVO.getLevelCode(),
-                assignReqVO.getUserId(), assignReqVO.getOfficeId(), assignReqVO.getLocationId(),
+                assignReqVO.getManagerId(), assignReqVO.getSiteId(), assignReqVO.getDepartmentCode(),
                 assignReqVO.getEffectiveFrom(), idempotencyKey, requestDigest);
         AssignServiceManagerResult result = projectManagerAssignmentApplicationService.assign(command,
                 new Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(),

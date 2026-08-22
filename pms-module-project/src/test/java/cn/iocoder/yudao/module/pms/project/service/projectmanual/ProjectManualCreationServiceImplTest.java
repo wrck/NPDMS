@@ -30,6 +30,8 @@ import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTempla
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -101,6 +103,10 @@ class ProjectManualCreationServiceImplTest {
     private TaskExecutionContractFactory taskExecutionContractFactory;
     @Mock
     private ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
+    @Mock
+    private AdminUserApi adminUserApi;
+    @Mock
+    private DeptApi deptApi;
 
     @InjectMocks
     private ProjectManualCreationServiceImpl service;
@@ -448,8 +454,8 @@ class ProjectManualCreationServiceImplTest {
         ArgumentCaptor<ProjectMemberAssignmentDO> freshCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberAssignmentMapper).insert(freshCaptor.capture());
         assertEquals(66L, freshCaptor.getValue().getUserId());
-        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"officeId\":20"));
-        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"locationId\":30"));
+        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"siteId\":30"));
+        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"departmentCode\":\"DEP-01\""));
     }
 
     // ========== BR-7 更新不可变字段被忽略 ==========
@@ -567,7 +573,7 @@ class ProjectManualCreationServiceImplTest {
 
     private AssignServiceManagerCommand assignCommand(LocalDateTime effectiveFrom) {
         return new AssignServiceManagerCommand(1L, 0, "SERVICE_MANAGER", "L1", 66L,
-                20L, 30L, effectiveFrom, "assign-key", "b".repeat(64));
+                30L, "DEP-01", effectiveFrom, "assign-key", "b".repeat(64));
     }
 
     private TemplateDefinitionContent contentWithOneGateAndReference() {

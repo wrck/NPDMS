@@ -4,6 +4,12 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
+import cn.iocoder.yudao.module.system.api.company.CompanyApi;
+import cn.iocoder.yudao.module.system.api.company.dto.CompanyRespDTO;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectManualCreationApplicationServiceTest {
@@ -34,9 +41,29 @@ class ProjectManualCreationApplicationServiceTest {
     private ProjectManualCreationService projectCreationService;
     @Mock
     private ProjectCreationAuthorizationService authorizationService;
+    @Mock
+    private CompanyApi companyApi;
+    @Mock
+    private DeptApi deptApi;
+    @Mock
+    private OrganizationScopeApi organizationScopeApi;
+    @Mock
+    private ProjectSiteApplicationService projectSiteService;
 
     @InjectMocks
     private ProjectManualCreationApplicationService service;
+
+    @BeforeEach
+    void setUpOrganization() {
+        CompanyRespDTO company = new CompanyRespDTO();
+        company.setId(10L); company.setCode("CO-01"); company.setName("公司一");
+        DeptRespDTO department = new DeptRespDTO();
+        department.setId(20L); department.setCode("DEP-01"); department.setName("办事处一");
+        lenient().when(companyApi.getCompany(10L)).thenReturn(company);
+        lenient().when(deptApi.getDept(20L)).thenReturn(department);
+        lenient().when(organizationScopeApi.hasScope(7L, 10L, 20L)).thenReturn(true);
+        lenient().when(projectSiteService.validateLocationScope(any(), any())).thenReturn("UNRESOLVED");
+    }
 
     @Test
     @SuppressWarnings("unchecked")
@@ -81,8 +108,8 @@ class ProjectManualCreationApplicationServiceTest {
     void rootCreationRequiresCandidateWatermark() {
         ManualProjectCreateCommand base = command();
         ManualProjectCreateCommand invalid = new ManualProjectCreateCommand(
-                base.draft(), null, null, base.templateRevisionId(),
-                null, null, base.idempotencyKey(), base.requestDigest());
+                base.draft(), 10L, 20L, java.util.List.of(), base.templateRevisionId(),
+                null, base.idempotencyKey(), base.requestDigest());
 
         assertThrows(IllegalArgumentException.class, () -> service.create(invalid, actor()));
 
@@ -106,8 +133,8 @@ class ProjectManualCreationApplicationServiceTest {
     void childCreationMayInheritTemplateWithoutCandidateWatermark() {
         ManualProjectCreateCommand base = command();
         base.draft().setParentId(100L);
-        ManualProjectCreateCommand child = new ManualProjectCreateCommand(base.draft(), null, null, null,
-                null, null, base.idempotencyKey(), base.requestDigest());
+        ManualProjectCreateCommand child = new ManualProjectCreateCommand(base.draft(), 10L, 20L,
+                java.util.List.of(), null, null, base.idempotencyKey(), base.requestDigest());
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
                 new ProjectCreationPlatformFactService.ExecutionResult<>(
                         ProjectCreationPlatformFactService.Decision.IN_PROGRESS, null));
@@ -120,7 +147,8 @@ class ProjectManualCreationApplicationServiceTest {
     private ManualProjectCreateCommand command() {
         ProjectMasterDO draft = new ProjectMasterDO();
         draft.setCreationReason("业务立项");
-        return new ManualProjectCreateCommand(draft, null, null, 9002L, "candidate-watermark-v1", null,
+        draft.setImplementationLocation("上海");
+        return new ManualProjectCreateCommand(draft, 10L, 20L, java.util.List.of(), 9002L, "candidate-watermark-v1",
                 "key-1", "a".repeat(64));
     }
 

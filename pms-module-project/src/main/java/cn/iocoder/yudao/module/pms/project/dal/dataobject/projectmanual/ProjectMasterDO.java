@@ -205,6 +205,10 @@ public class ProjectMasterDO extends TenantBaseDO {
      */
     private String implementationLocation;
     /**
+     * 地点解析状态：RESOLVED=已绑定站点，UNRESOLVED=仅保留兼容文本。
+     */
+    private String locationResolutionStatus;
+    /**
      * 手工创建原因（BR-2 必填，应用层校验；前向扩列）
      */
     private String creationReason;
