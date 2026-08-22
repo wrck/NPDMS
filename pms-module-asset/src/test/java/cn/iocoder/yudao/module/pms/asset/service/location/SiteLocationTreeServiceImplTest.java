@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationInput;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteLocationMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.*;
 class SiteLocationTreeServiceImplTest {
 
     @Mock private SiteLocationMapper mapper;
+    @Mock private EquipmentMapper equipmentMapper;
 
     private final Map<Long, SiteLocationDO> records = new LinkedHashMap<>();
     private final AtomicLong ids = new AtomicLong(100L);
@@ -29,7 +31,7 @@ class SiteLocationTreeServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new SiteLocationTreeServiceImpl(mapper);
+        service = new SiteLocationTreeServiceImpl(mapper, equipmentMapper);
         when(mapper.selectById(anyLong())).thenAnswer(invocation -> records.get(invocation.getArgument(0)));
         when(mapper.selectBySiteIdAndCode(anyLong(), anyString())).thenAnswer(invocation -> records.values().stream()
                 .filter(item -> item.getSiteId().equals(invocation.getArgument(0))

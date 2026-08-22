@@ -21,6 +21,7 @@ public class LocationSourceMappingDO extends TenantBaseDO {
     private String sourceVersion;
     private Long addressId;
     private Long siteId;
+    private Long siteLocationId;
     private String syncWatermark;
     private String matchStatus;
     private String locationResolutionStatus;

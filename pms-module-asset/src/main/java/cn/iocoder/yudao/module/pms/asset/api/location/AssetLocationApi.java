@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.asset.api.location;
 
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.AddressRespDTO;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.AreaDepartmentMappingRespDTO;
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationReferenceDTO;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationRespDTO;
@@ -28,5 +29,7 @@ public interface AssetLocationApi {
     AreaDepartmentMappingRespDTO resolveDepartment(String areaCode, String areaLevel);
 
     void validateSites(Collection<Long> siteIds);
+
+    void effectEquipmentLocation(EquipmentLocationEffectiveCommand command);
 
 }

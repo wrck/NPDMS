@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.asset.enums.LocationMatchStatus;
 import cn.iocoder.yudao.module.pms.asset.enums.LocationResolutionStatus;
 import cn.iocoder.yudao.module.pms.asset.service.location.AreaDepartmentMappingService;
 import cn.iocoder.yudao.module.pms.asset.service.location.SiteLocationTreeService;
+import cn.iocoder.yudao.module.pms.asset.service.equipment.EquipmentLocationEffectiveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
     private final LocationSourceMappingMapper sourceMappingMapper;
     private final SiteLocationTreeService siteLocationTreeService;
     private final AreaDepartmentMappingService areaDepartmentMappingService;
+    private final EquipmentLocationEffectiveService equipmentLocationEffectiveService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -120,6 +122,11 @@ public class AssetLocationApiImpl implements AssetLocationApi {
         if (validCount != siteIds.stream().distinct().count()) {
             throw exception(AST_LOCATION_REFERENCE_INVALID);
         }
+    }
+
+    @Override
+    public void effectEquipmentLocation(EquipmentLocationEffectiveCommand command) {
+        equipmentLocationEffectiveService.effect(command);
     }
 
     private AddressDO maintainAddress(AddressInput input) {
@@ -210,6 +217,10 @@ public class AssetLocationApiImpl implements AssetLocationApi {
                 && !Objects.equals(command.site().id(), mapping.getSiteId())) {
             throw exception(AST_LOCATION_SOURCE_CONFLICT);
         }
+        if (command.siteLocation() != null && command.siteLocation().id() != null
+                && !Objects.equals(command.siteLocation().id(), mapping.getSiteLocationId())) {
+            throw exception(AST_LOCATION_SOURCE_CONFLICT);
+        }
     }
 
     private void maintainSourceMapping(LocationSourceMappingDO existing, LocationMaintenanceCommand command,
@@ -224,6 +235,7 @@ public class AssetLocationApiImpl implements AssetLocationApi {
         entity.setSourceVersion(command.sourceVersion());
         entity.setAddressId(reference.addressId());
         entity.setSiteId(reference.siteId());
+        entity.setSiteLocationId(reference.siteLocationId());
         entity.setMatchStatus(reference.siteId() == null ? LocationMatchStatus.PENDING.name()
                 : LocationMatchStatus.MATCHED.name());
         entity.setLocationResolutionStatus(reference.locationResolutionStatus());
@@ -243,8 +255,10 @@ public class AssetLocationApiImpl implements AssetLocationApi {
     private LocationReferenceDTO toReference(LocationSourceMappingDO mapping, Long locationId, String fallback) {
         Integer addressVersion = mapping.getAddressId() == null ? null : getAddress(mapping.getAddressId(), null).version();
         Integer siteVersion = mapping.getSiteId() == null ? null : getSite(mapping.getSiteId(), null).version();
+        Long replayLocationId = locationId == null ? mapping.getSiteLocationId() : locationId;
+        Integer locationVersion = replayLocationId == null ? null : getSiteLocation(replayLocationId, null).version();
         return new LocationReferenceDTO(mapping.getLocationResolutionStatus(), mapping.getAddressId(), addressVersion,
-                mapping.getSiteId(), siteVersion, locationId, null, fallback);
+                mapping.getSiteId(), siteVersion, replayLocationId, locationVersion, fallback);
     }
 
     private void validateVersion(Integer actualVersion, Integer expectedVersion) {

@@ -18,6 +18,8 @@ public interface ErrorCodeConstants {
     ErrorCode AST_EQUIPMENT_SERIAL_NUMBER_DUPLICATE = new ErrorCode(1_015_001_001, "设备序列号已存在");
     ErrorCode AST_EQUIPMENT_STATUS_INVALID = new ErrorCode(1_015_001_002, "设备状态不允许当前操作");
     ErrorCode AST_EQUIPMENT_SCRAPPED = new ErrorCode(1_015_001_003, "设备已报废，不允许修改");
+    ErrorCode AST_EQUIPMENT_LOCATION_COMMAND_INVALID = new ErrorCode(1_015_001_004, "设备位置生效命令无效");
+    ErrorCode AST_EQUIPMENT_LOCATION_CONFLICT = new ErrorCode(1_015_001_005, "设备当前位置已变更，请刷新后重试");
 
     // ========== 设备版本历史 1_015_002_000 ==========
     ErrorCode AST_EQUIPMENT_VERSION_NOT_EXISTS = new ErrorCode(1_015_002_000, "设备版本记录不存在");
@@ -40,5 +42,6 @@ public interface ErrorCodeConstants {
     ErrorCode AST_AREA_DEPARTMENT_MAPPING_NOT_EXISTS = new ErrorCode(1_015_004_011, "行政区划与服务办事处映射不存在");
     ErrorCode AST_AREA_DEPARTMENT_MAPPING_OVERLAP = new ErrorCode(1_015_004_012, "同一行政区划存在重叠的有效服务办事处映射");
     ErrorCode AST_AREA_DEPARTMENT_MAPPING_INVALID = new ErrorCode(1_015_004_013, "行政区划与服务办事处映射无效");
+    ErrorCode AST_SITE_LOCATION_IN_USE = new ErrorCode(1_015_004_014, "站点位置仍被设备当前位置引用，不允许停用");
 
 }

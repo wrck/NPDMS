@@ -6,6 +6,8 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.equipment.vo.EquipmentPageReqVO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipment.EquipmentDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface EquipmentMapper extends BaseMapperX<EquipmentDO> {
@@ -25,5 +27,27 @@ public interface EquipmentMapper extends BaseMapperX<EquipmentDO> {
     default EquipmentDO selectBySerialNumber(String serialNumber) {
         return selectOne(EquipmentDO::getSerialNumber, serialNumber);
     }
+
+    default Long selectCountBySiteLocationId(Long siteLocationId) {
+        return selectCount(new LambdaQueryWrapperX<EquipmentDO>()
+                .eq(EquipmentDO::getSiteLocationId, siteLocationId));
+    }
+
+    @Update("""
+            UPDATE pms_equipment
+            SET site_id = #{update.siteId},
+                site_location_id = #{update.siteLocationId},
+                location = #{update.location},
+                location_resolution_status = #{update.locationResolutionStatus},
+                location_snapshot = #{update.locationSnapshot},
+                location_effective_from = #{update.locationEffectiveFrom},
+                location_source_installation_id = #{update.locationSourceInstallationId},
+                version = version + 1
+            WHERE id = #{update.id}
+              AND version = #{expectedVersion}
+              AND deleted = b'0'
+            """)
+    int updateLocationIfMatch(@Param("update") EquipmentDO update,
+                              @Param("expectedVersion") Integer expectedVersion);
 
 }

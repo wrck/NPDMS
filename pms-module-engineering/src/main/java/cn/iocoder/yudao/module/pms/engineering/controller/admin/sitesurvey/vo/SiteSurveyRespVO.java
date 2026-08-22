@@ -34,6 +34,16 @@ public class SiteSurveyRespVO {
     @Schema(description = "工勘地点")
     private String location;
 
+    private Long addressId;
+    private Integer addressVersion;
+    private Long siteId;
+    private Integer siteVersion;
+    private Long siteLocationId;
+    private Integer siteLocationVersion;
+    private String locationResolutionStatus;
+    private String addressSnapshot;
+    private String locationSnapshot;
+
     @Schema(description = "供电条件")
     private String powerSupply;
 

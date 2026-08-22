@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
@@ -46,6 +48,23 @@ public class SiteSurveyDO extends TenantBaseDO {
      * 工勘地点
      */
     private String location;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Long addressId;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Integer addressVersion;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Long siteId;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Integer siteVersion;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Long siteLocationId;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private Integer siteLocationVersion;
+    private String locationResolutionStatus;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private String addressSnapshot;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private String locationSnapshot;
     /**
      * 供电条件
      */

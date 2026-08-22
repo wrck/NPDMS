@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationInput;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteLocationMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
     private static final String ROOT_PATH = "/";
 
     private final SiteLocationMapper siteLocationMapper;
+    private final EquipmentMapper equipmentMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -87,6 +89,9 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
                         && CommonStatusEnum.isEnable(item.getStatus()));
         if (hasActiveChildren) {
             throw exception(AST_SITE_LOCATION_HAS_ACTIVE_CHILDREN);
+        }
+        if (equipmentMapper.selectCountBySiteLocationId(locationId) > 0) {
+            throw exception(AST_SITE_LOCATION_IN_USE);
         }
         SiteLocationDO update = new SiteLocationDO();
         update.setId(entity.getId());
