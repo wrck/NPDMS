@@ -2,12 +2,20 @@ package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
 import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
+import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.core.util.MyBatisUtils;
 import cn.iocoder.yudao.framework.tenant.config.TenantProperties;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantDatabaseInterceptor;
+import cn.iocoder.yudao.module.system.api.company.CompanyApi;
+import cn.iocoder.yudao.module.system.api.company.dto.CompanyRespDTO;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationServiceImpl;
@@ -54,6 +62,10 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 class ProjectManualCreationMySqlIntegrationTest extends ProjectManualCreationMySqlTestSupport {
@@ -321,6 +333,65 @@ abstract class ProjectManualCreationMySqlTestSupport {
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        AdminUserApi adminUserApi() {
+            return mock(AdminUserApi.class);
+        }
+
+        @Bean
+        DeptApi deptApi() {
+            DeptApi api = mock(DeptApi.class);
+            DeptRespDTO department = new DeptRespDTO();
+            department.setId(1L);
+            department.setCode("IT-DEPT");
+            department.setName("集成测试办事处");
+            when(api.getDept(1L)).thenReturn(department);
+            return api;
+        }
+
+        @Bean
+        CompanyApi companyApi() {
+            CompanyApi api = mock(CompanyApi.class);
+            CompanyRespDTO company = new CompanyRespDTO();
+            company.setId(1L);
+            company.setCode("IT-COMPANY");
+            company.setName("集成测试公司");
+            when(api.getCompany(1L)).thenReturn(company);
+            return api;
+        }
+
+        @Bean
+        OrganizationScopeApi organizationScopeApi() {
+            OrganizationScopeApi api = mock(OrganizationScopeApi.class);
+            when(api.hasScope(anyLong(), anyLong(), anyLong())).thenReturn(true);
+            return api;
+        }
+
+        @Bean
+        ProjectCreationAuthorizationService authorizationService() {
+            return mock(ProjectCreationAuthorizationService.class);
+        }
+
+        @Bean
+        PermissionCommonApi permissionCommonApi() {
+            PermissionCommonApi api = mock(PermissionCommonApi.class);
+            when(api.hasAnyPermissions(anyLong(), any())).thenReturn(true);
+            return api;
+        }
+
+        @Bean
+        ProjectSiteApplicationService projectSiteApplicationService() {
+            ProjectSiteApplicationService service = mock(ProjectSiteApplicationService.class);
+            when(service.validateLocationScope(any(), any()))
+                    .thenReturn(ProjectSiteApplicationService.LOCATION_UNRESOLVED);
+            return service;
+        }
+
+        @Bean
+        AssetLocationApi assetLocationApi() {
+            return mock(AssetLocationApi.class);
         }
 
         @Bean

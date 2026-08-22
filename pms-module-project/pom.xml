@@ -21,7 +21,7 @@
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
-            <artifactId>pms-module-asset</artifactId>
+            <artifactId>pms-module-asset-api</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>
