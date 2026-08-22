@@ -22,6 +22,10 @@ public interface DeptMapper extends BaseMapperX<DeptDO> {
         return selectOne(DeptDO::getParentId, parentId, DeptDO::getName, name);
     }
 
+    default DeptDO selectByCode(String code) {
+        return selectOne(DeptDO::getCode, code);
+    }
+
     default Long selectCountByParentId(Long parentId) {
         return selectCount(DeptDO::getParentId, parentId);
     }
