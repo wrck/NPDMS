@@ -2,8 +2,8 @@
 
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
-> Technical Plan：`docs/superpowers/plans/2026-08-21-f-proj-001-manual-project-creation-and-template-initialization.md`
-> Implementation Start：`BLOCKED_BY_IMPLEMENTATION_BASELINE`（目标仓库规格锁、核心`proj_*`割接与干净隔离worktree未满足）
+> Technical Plan：由目标实现仓库基于当前正式规格重新生成；禁止使用2026-08-21旧计划
+> Implementation Start：`READY_AFTER_TARGET_SPEC_LOCK`（目标仓库锁定包含`CHG-PRD-2026-08-23-002`的规格提交后开始）
 > 已关闭问题：`Q-FPROJ-001`（方案B：创建失败不持久化草稿）、`Q-FPROJ-002`（跨Context同步同事务、全有或全无）
 > Requirement：`PM-01`、`PM-03`
 > 关联边界：`PM-08`仅引用V1人工确认服务经理的边界，不覆盖V2自动指派
@@ -11,7 +11,7 @@
 > Gate Owner：需求方关闭业务语义问题；项目治理Feature负责人关闭其余DoR并在实施启动前登记具体责任人
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 
-本Feature同时适用已批准PRD增量`CHG-PRD-2026-08-21-001`。该增量只替代PM-01、PM-03的项目创建草稿语义，不改变其他PRD条款。
+本Feature同时适用已批准PRD增量`CHG-PRD-2026-08-21-001`与`CHG-PRD-2026-08-23-002`。前者替代PM-01、PM-03的项目创建草稿语义；后者补齐公司、部门、站点、地点解析和AST所有权契约。
 
 ## 1. 业务价值与目标
 
@@ -45,7 +45,7 @@
 
 ### 3.1 包含范围
 
-1. 工程管理部手动录入项目名称、客户、合同号（适用时）、办事处、实施地点、签约方式、项目类别、实施方式和创建原因。
+1. 工程管理部手动录入项目名称、客户、合同号（适用时），选择独立公司、办事处部门和一个或多个实施站点，并录入签约方式、项目类别、实施方式和创建原因；站点未维护时可显式使用待维护文本地点降级。
 2. 无CRM来源时重大项目级别保持空/不适用，不伪造CRM权威字段。
 3. 按四个独立业务维度和业务场景查询当前租户可用的已发布模板候选。
 4. 预览候选模板的阶段、任务、里程碑、交付件和门禁摘要。
@@ -75,7 +75,8 @@
 |---|---|---|
 | 身份与租户 | 已认证主体和租户上下文可用 | 拒绝请求，不建立业务事实 |
 | 功能与数据权限 | 服务端可判定项目创建、模板候选和项目范围 | `AUTHORIZATION_DENIED`，不依赖前端隐藏 |
-| 客户/组织主数据 | 客户、办事处、实施地点可查询并带稳定ID/版本 | 保持表单未提交；不得保存伪造主数据 |
+| 客户/组织主数据 | 客户、公司、办事处部门可查询并带稳定ID/编码/版本；公司与部门从同一授权范围校验 | 保持表单未提交；不得保存伪造主数据或由部门推导公司 |
+| 资产地点主数据 | AST可查询Address/Site/SiteLocation并校验版本；未维护站点允许显式`UNRESOLVED`文本降级 | 结构化引用无效时拒绝；未解析文本不得参与自动指派或结构化权限判断 |
 | 项目模板 | 至少一个完整、已发布且适用的revision | 拒绝创建，不持久化Project或创建草稿 |
 | 编码、审计、幂等 | 服务端编码、审计、`plt_idempotency_record`能力可用 | Feature不得标记READY |
 | 实现仓库 | 可构建的后端、前端、迁移与测试工程存在 | 当前规格仓库无业务源码；实施启动前另行验证 |
@@ -134,7 +135,7 @@ Project
 ### BR-FPROJ-006 服务经理人工确认
 
 - V1只实现工程管理部按PRD规则人工确认服务经理，不实现自动匹配算法。
-- 单省份项目记录实施地点服务经理；多省份/多办事处层级规则属于PM-01，但本Feature只在调用方提供已确认合法候选时保存关系，不推导候选。
+- 单省份项目可按主站点的`area_code + area_level`精确映射办事处部门候选；多省份/多办事处项目按各站点提示候选。本Feature只保存授权人员人工确认的合法候选，不自动决定服务经理，不做父级区划回退。
 - 指派命令必须记录角色层级、责任范围、生效区间、前后值和操作人。
 - 只要PRD要求的主责指派未全部完成，项目保持`UNASSIGNED`；本Feature不以只指派服务经理伪装S0指派完成。
 
@@ -182,7 +183,7 @@ WorkBinding不授予新权限。模板预览只返回创建决策所需摘要，
 
 `GET /project-templates`
 
-输入：签约方式、项目类别、实施方式、重大项目级别（可空/不适用）、业务场景、客户/办事处/实施地点稳定ID及其版本。
+输入：签约方式、项目类别、实施方式、重大项目级别（可空/不适用）、业务场景、客户、公司、办事处部门及站点稳定ID/版本；未解析时使用明确的文本降级标记。
 输出：适用的已发布revision摘要、匹配维度、优先级、是否默认以及预览引用。
 约束：服务端过滤tenant和权限；结果为空或多默认不代表创建成功。
 
@@ -197,7 +198,7 @@ WorkBinding不授予新权限。模板预览只返回创建决策所需摘要，
 `POST /projects`
 
 必需Header：`Idempotency-Key`。
-请求至少包含：项目基本信息、独立四维属性、创建原因、选定`templateRevisionId`（可省略仅限唯一默认）、候选查询水位/版本以及可选的服务经理人工确认信息。
+请求至少包含：项目基本信息、独立四维属性、创建原因、公司与办事处部门稳定引用、零到多个站点（含一个可选主站点）或未解析文本地点、选定`templateRevisionId`（可省略仅限唯一默认）、候选查询水位/版本以及可选的服务经理人工确认信息。
 响应包含：Project稳定ID、项目编码、`ACTIVE / S0 / UNASSIGNED`、冻结模板/流程版本、实例化数量摘要、服务经理确认结果、Project版本和详情链接。
 
 ### 8.4 人工确认服务经理
@@ -205,7 +206,7 @@ WorkBinding不授予新权限。模板预览只返回创建决策所需摘要，
 `POST /projects/{id}/actions/assign-manager`
 
 必需Header：`Idempotency-Key`、`If-Match`。
-请求包含：`roleCode=SERVICE_MANAGER`、人员稳定ID、一级/二级层级、办事处/实施地点责任范围和生效时间。
+请求包含：`roleCode=SERVICE_MANAGER`、人员稳定ID、一级/二级层级、`siteId/departmentCode`责任范围和生效时间；区划映射仅提供候选，最终值由授权人员确认。
 响应包含新Project版本、当前关系引用和`assignment_status`；不得仅因服务经理已确认就把未完成主责项目标记为`ASSIGNED`。
 
 ### 8.5 项目详情
@@ -340,12 +341,12 @@ WorkBinding不授予新权限。模板预览只返回创建决策所需摘要，
 | Requirement、Scope、Out of Scope | 本文第1～3节 | PASS |
 | Business Rules、State、Permission | 本文第5～7节 | PASS |
 | API、Data Change | 本文第8～9节 | PASS |
-| Integration Contract | 本Feature不执行CRM/ERP；客户/组织只读契约须实施前核对 | CONDITIONAL |
+| Integration Contract | 本Feature不执行CRM/ERP；公司、部门和AST地点使用稳定公开API | PASS |
 | Acceptance Criteria | 本文第12节 | PASS |
 | 相关Open Question | Q-FPROJ-001、Q-FPROJ-002均已关闭 | PASS |
 | 实现基线 | 当前仓库无业务源码；由Technical Plan登记目标工程和启动前检查 | PLAN_INPUT |
 
-结论：`BASELINE / READY`。方案B及跨Context同步全有或全无语义均已关闭，正式Technical Plan已完成。目标实现仓库当前仍不满足计划Start Gate：规格快照未锁定本Feature、核心`proj_*`单一写模型未落地且现有工作区不干净；在这些实现基线条件关闭前不得进入Implementation。
+结论：`BASELINE / READY`。方案B、跨Context同步全有或全无语义以及组织/AST地点契约均已关闭。目标实现仓库必须重新生成Technical Plan，并在规格快照锁定包含`CHG-PRD-2026-08-23-002`的提交后进入Implementation；不得沿用2026-08-21旧计划判断完成度。
 
 ## 15. 追溯
 

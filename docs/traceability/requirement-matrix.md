@@ -3,6 +3,7 @@
 > 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。
 > 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8；领域决策：`docs/design/phase-1-domain-ownership.md`。
 > 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。
+> 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。
 > V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。
 
 - 正式需求：100项（V1 53项，V2 47项）
@@ -17,6 +18,15 @@
 | `NOT_STARTED` | 下游工程资产尚未生成，不代表需求缺失 |
 | `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |
 | `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |
+
+## V1.8批准增量002追溯
+
+| 增量范围 | 关联Requirement | 增量契约 | 正式设计与决策 |
+|---|---|---|---|
+| 项目创建与指派 | PM-01、PM-08 | 公司/办事处部门同一范围校验；项目多站点；V1按区划映射提示并人工确认服务经理 | 04模块、07权限、08数据、09数据库、10 API、ADR-0033、F-PROJ-001 |
+| 安装与设备地点 | EXE-02、EQP-01 | 工勘/安装维护结构化地点；安装/迁移/拆除确认后驱动设备当前位置 | 02d契约、04模块、08数据、09数据库、10 API、ADR-0033 |
+| 客户地点引用 | CUS-01 | CUS只引用AST Address/Site，不拥有物理地点 | 02c Owner、04模块、08数据、10 API、ADR-0033 |
+| 组织主数据 | INT-09 | Company与Department独立；`system_dept.code`；用户公司—部门同一有效范围行 | 04模块、07权限、08数据、09数据库、10 API、ADR-0033 |
 
 ## 正式需求追溯
 

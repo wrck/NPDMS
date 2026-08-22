@@ -1,7 +1,7 @@
 ﻿# SDS Phase 1：权限设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
@@ -57,6 +57,13 @@ WorkBinding不授予新权限。`TASK_NATIVE`的授权目标就是当前ProjectT
 - 割接/巡检角色：分别只访问其专项任务及被授权设备。
 - 外协/驻场工程师：付款完成或授权到期后自动失去项目访问权。
 - 平台管理员：配置和审计管理，不因管理员角色自动取得设备凭证明文或业务审批权。
+
+组织与地点授权补充：
+
+- 办事处使用Department表达，统一以`department_id/department_code`校验；公司—部门权限必须命中同一条当前有效`UserCompanyDepartmentScope`，不得由部门树或部门编码推导公司。
+- 项目成员只能读取其授权项目通过`ProjectSite`引用的必要地点；地点管理员可维护AST地点主数据，但不能因此获得项目、客户或设备业务操作权限。
+- 工程师只能在已分配项目的工勘、安装范围内维护地点；未解析文本地点不产生自动办事处、正式站点统计或结构化地点权限。
+- 站点不绑定公司或办事处。`area_code + area_level`映射只生成服务办事处候选，V1最终服务经理指派仍由有权主体人工确认。
 
 ## 4. 设备凭证强制策略
 

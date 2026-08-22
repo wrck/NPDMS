@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "9087469316ec5ba321b34f09fc601d98c30a3d2b"
+    "commit": "052ecdb580cdbe2fe38ca7fbad771cc1bada3e5a"
   },
   "files": [
     {
@@ -14,6 +14,11 @@
       "path": "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md",
       "category": "BASELINE",
       "sha256": "2897f1c44bd1862e784b0f27c7a4e284cf896620554fbaaf8d8b4751e184534f"
+    },
+    {
+      "path": "docs/baseline/prd-v1.8-amendment-002-organization-and-asset-location.md",
+      "category": "BASELINE",
+      "sha256": "8c2bfd0f5237590e5c281f4d3962aefc3cd8a1a2bacfa56914553d68d80e529f"
     },
     {
       "path": "docs/baseline/prd-v1.8.md",
@@ -181,6 +186,11 @@
       "sha256": "044fa301a7879ca6b2baf629111e93ce4f3e887f75cb55a802b98dd482e162f7"
     },
     {
+      "path": "docs/decisions/0033-organization-and-asset-location-ownership.md",
+      "category": "DECISION",
+      "sha256": "2525b46001e3b8a6091ba4a2edd149f963c8c4d8ec22f9b4061f76edabf83505"
+    },
+    {
       "path": "docs/decisions/ADR-001-implementation-execution-naming.md",
       "category": "DECISION",
       "sha256": "066040ff5ca468f6c54fa52149893ce4831dccd99a295ef849ac62d7c85357d8"
@@ -213,12 +223,12 @@
     {
       "path": "docs/design/02c-data-ownership-matrix.md",
       "category": "SDS",
-      "sha256": "8d733081ed821d54de342daa9a24893d127afde8a0ab0c0359695ae0412998d1"
+      "sha256": "6f6bcda4f907d3a9e626dff8a72e6fe92f3d17dd2153c1f5a9d27eac252c86cf"
     },
     {
       "path": "docs/design/02d-cross-context-contracts.md",
       "category": "SDS",
-      "sha256": "5faeb2e22ba4dcf71ff59f5f6a5392cee6b82a116f27d82592ba60a1d64bd9bf"
+      "sha256": "63bd0436eea773dd14cab3b7616ef2d721d75246ef7fa997f56d7ded0b227d00"
     },
     {
       "path": "docs/design/02e-version-scope-matrix.md",
@@ -233,7 +243,7 @@
     {
       "path": "docs/design/04-module-design.md",
       "category": "SDS",
-      "sha256": "2253c770bbbf7afba514e1e2f2bfbe24549a5b72d9210b7e4b9c7f968a30858c"
+      "sha256": "fdc3f24047a11b197e22ed8c39c78c045ec075e7848f2cbfa9ad08d68a28e425"
     },
     {
       "path": "docs/design/05-state-machine.md",
@@ -248,12 +258,12 @@
     {
       "path": "docs/design/07-authorization-design.md",
       "category": "SDS",
-      "sha256": "2f83100a82f850eb997aa7ae65ad2e1a976858f8284efa6ca85d2dda7b54c2c5"
+      "sha256": "fc7f642d9dc38f93ee3d75c0788c734b2eb288eaf8ddf582cf78e60fa32e67f5"
     },
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "3ddccc9a93acaaff790b35ec82cb4f4982c102b669cec8861a6862ef8a630919"
+      "sha256": "b38c0b2acf910a8038c98bce8521e0a69cbd3de3614bd02156bbdf1cb840ae86"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
@@ -263,12 +273,12 @@
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "3c1b3bf351353c302bbf09d94bda5db049eb872261104ecff7da3ac41f4b76e0"
+      "sha256": "fa85d0d7be310241a5f2814294924c1c68f14f97116aaa2cae843e08b173d9e6"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "84ad36da28ac46d021583fd2371fca7247e8608ecb0343374051088aa4efd853"
+      "sha256": "e7c7fa942aaa42e1035d36276b4dbed91c45098ef996735a987a6a3fb539c63b"
     },
     {
       "path": "docs/design/11-event-design.md",
@@ -333,7 +343,7 @@
     {
       "path": "docs/engineering/00-engineering-chain.md",
       "category": "ENGINEERING",
-      "sha256": "d7ce4f2b2ee80d602deb5120d0082f0262520b2a709c79f11a4550872fa71d43"
+      "sha256": "75a6dc1adcaa79838c31500f8d6aba264ca9e60c8c34a644e97970c3670b6670"
     },
     {
       "path": "docs/engineering/gates/phase-1/README.md",
@@ -413,197 +423,12 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "1d948a179fdc2b7e6ae9633839b8195417e6cb679c25adbfe6aac597e9810174"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/00-master-spec.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "5cc8c74ce84780a98887006937243c30dc3bb73d7f2489b898cdb457fcfa0b45"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/acceptance-traceability.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "b350862d53e60206ad73be730823e5880765c790bf09b67f0d9cc75937679501"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/api-design-specification.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "7c0cf8895efe9b2c1a735d8571c03634d6f25c944b206f6dae8a6f9fde50ef58"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/api-inventory.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "91bb6939b03c00ad4e77f70b828013dbe486180627b53905ea0c31f2c926fcad"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/business-domain-table-design.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "a5ef8204922e290527e95e4bee8d493abdad2215cd85ee849fb1aef9e617c6ec"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/complete-field-migration-matrix.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "b7eeb569f8ba3a4509e9b16a9f688236e88f397546add9c9bfe81fdea6daae82"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/core-field-migration-completeness.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "5572643c0647ccb8f6fe94d2f907c63fe36a89ef12371b53907030c6c00c7950"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/data-dictionary.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "15f1666f8e666ebc603fc41e381afee47beefc12fee4eca970d0899a770c12f6"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/data-migration-and-core-business-ai-handoff.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "44b131354150f86909cb2f0eb91401ffb1f01d6393130dcfec4841d3ac1e84de"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/legacy-data-element-business-object-mapping.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "e9bf997ca89b1a6f0ffae100a6feaa295c08e031533755e80c69016c177f45b5"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/module-boundary-and-naming.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "09f486e71c17fe66456a69c4ef96a1bd468c60a98aa06a171d6978bb29afb252"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/permission-matrix.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "e77ad1dc441af31fd9c79d3035dc61bc83c25f654b0fca6d02ccf28fb751d979"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/platform-identity-access-migration.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "100fbe047f89ff80a42facbbeaa915891bc2b72bd5f7a28bc5f3573ed353f29b"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/project-order-migration-mapping.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "db0f1cfce9280c2214c2d69fdf22fc1253a32d05accbfa1fa6ee609b655f97d4"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/project-order-model-options-review.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "6b0206b354abf49fd2fbb6b23ab9d3d3c8d68427afaffc2237663eb2dbae0aff"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql",
-      "category": "MODEL_APPENDIX",
-      "sha256": "6b203bf3b4cc860dfaef1221977f2b48a620c0077638d857582ff7bb033e275b"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/project-order-target-schema-evidence.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "a54a1b59fcfd2d3c1dc1eb5e4e843b3d6b94f52596d3af32c410abe54a636285"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/requirement-migration.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "dfd4ecf5f590ac7e198479ad82d89609b9073c52b912d01ec63344c0078bba25"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/source-ledger.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "dbd8098bac373c3e7fa68dd42cb7f57590a6a68d1b97a1e538a8cb31ea7cd34d"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/state-machines.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "0be6d474b6d7787ec33032a72096a98e78f99ee8f1c7132f0e00128010bd8e14"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/appendices/table-structure-business-rule-traceability.md",
-      "category": "MODEL_APPENDIX",
-      "sha256": "b9bce0cd6b045337c2f48a5cdcd72d66e8332f3d423a68c6bb4c26e9dae798bc"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/ACC-验收与项目闭环需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "c090e30fbbcd43744c29b33abe81f17e005194a83111751b84bce3caae271e96"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/ANA-经营分析需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "a746a36be1d3c9a801c4e6ae2e1331f1ed4cef968ca18d4ae71cd9f0744d8e12"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/AST-资产管理需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "5b7d5cafbb37ceb437fefccc7eaf80fcb586b4f86291fbe6d0000598464bed9a"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/COM-合同订单履约需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "4ecdbefe8934730189d803f3252fdd995744c3b66498e728eb5da7877ea2d07f"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/CUS-客户与服务关系需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "74f6f21a981e69dd44f680bb75430df794b3399622a0cbeda151ac0156530c25"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/CUT-变更切换与稳定治理需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "e93d4afe9f1348f68fd99975ae0594f0d2f9379499bb84384a39f324449070eb"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/IMP-现场实施需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "007c5a97fe02c141d952f39835038a1918094f0df5a94e928cf138214c4642e7"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/KNO-技术知识治理需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "a8bfbebb6984864d522b875323c5c19acea8a5edc0fdd745d1ad7a7d1ba5c7c2"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/PLT-平台公共能力需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "150f0b1afc618d998cc53aa4365a03d8933adcb6a77a7efa0bc11926314c06ed"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/PROJ-项目治理需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "34d958272046a250d6aaec721039b6a9cfe249b283120471392b5b9115192bab"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/RES-资源与外包需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "ba7a87f31b61d0a9f42e2d9ab1e8a85e1645430acdc6ca26cab1a97f28e7e637"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/SOL-交付准备与方案需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "3f6869ee20655e4c9cf36f151090e33535433937ed3eac4c7634432d71c17e24"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/SRV-服务运营需求规格.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "2fc19f2b80a47febcdc388f3784ed8d5d8525a3ce619f3e2191d6d6dabf27b3a"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/domains/项目实施交付管理平台规格体系调整原则（13领域版）.md",
-      "category": "DOMAIN_SPEC",
-      "sha256": "fa7c4909348daee43bfc6e5a1b7c31070ab084c49040477a286387fb8b764953"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
-      "category": "MODEL_EVIDENCE",
-      "sha256": "ac979d2624ed0a4ce65120ee23aee0b91459e743095dc299295e78bd285f59a7"
-    },
-    {
-      "path": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
-      "category": "MODEL_EVIDENCE",
-      "sha256": "3aead6ade9b8b587024e561860250bf9b185b17b2ea6baa59b9acb4b20ddf82c"
+      "sha256": "08d1d61ef748ffee183461ae2640d496b87699eed585b5a76da56f485f5a18de"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
       "category": "FEATURE_SPEC",
-      "sha256": "86f175e05eb578cc35bae9b64715955b123bce584836c328be87b64c929e9431"
+      "sha256": "9a2d5203c1194e9ac19a12c6ddf81c564b976cb3af24194d5d8d6a1fbf77b68e"
     },
     {
       "path": "specs/features/README.md",
