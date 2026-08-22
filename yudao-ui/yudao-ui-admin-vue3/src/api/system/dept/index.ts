@@ -2,6 +2,7 @@ import request from '@/config/axios'
 
 export interface DeptVO {
   id: number
+  code: string
   name: string
   parentId: number
   status: number
@@ -10,6 +11,7 @@ export interface DeptVO {
   phone: string
   email: string
   createTime: Date
+  version?: number
   children?: DeptVO[]
 }
 

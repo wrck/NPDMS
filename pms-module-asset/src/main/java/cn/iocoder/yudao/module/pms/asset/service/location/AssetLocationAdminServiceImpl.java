@@ -127,7 +127,7 @@ public class AssetLocationAdminServiceImpl implements AssetLocationAdminService 
         DeptRespDTO department = getDepartment(entity.getDepartmentCode());
         return new AreaDepartmentMappingRespDTO(entity.getId(), entity.getAreaCode(), entity.getAreaLevel(),
                 entity.getMappingType(), entity.getDepartmentCode(), department == null ? null : department.getName(),
-                entity.getEffectiveFrom(), entity.getEffectiveTo(), entity.getVersion());
+                entity.getEffectiveFrom(), entity.getEffectiveTo(), entity.getStatus(), entity.getVersion());
     }
 
     private DeptRespDTO getDepartment(String departmentCode) {

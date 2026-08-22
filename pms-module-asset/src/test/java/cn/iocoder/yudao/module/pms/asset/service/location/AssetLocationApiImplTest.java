@@ -80,6 +80,25 @@ class AssetLocationApiImplTest {
     }
 
     @Test
+    void shouldMaintainReusableAddressWithoutCreatingSite() {
+        doAnswer(invocation -> {
+            AddressDO value = invocation.getArgument(0);
+            value.setId(12L);
+            return 1;
+        }).when(addressMapper).insert(any(AddressDO.class));
+
+        LocationReferenceDTO result = api.maintain(new LocationMaintenanceCommand(null,
+                new AddressInput(null, null, "CN", "中国", "330000", "浙江省", "330100", "杭州市",
+                        "330106", "西湖区", "文三路", "浙江省杭州市西湖区文三路", null, null, null, null),
+                null, null, null, null, null, null));
+
+        assertEquals("RESOLVED", result.locationResolutionStatus());
+        assertEquals(12L, result.addressId());
+        assertNull(result.siteId());
+        verifyNoInteractions(siteMapper);
+    }
+
+    @Test
     void shouldReplaySameSourceVersionAndRejectDifferentReferences() {
         LocationSourceMappingDO mapping = new LocationSourceMappingDO();
         mapping.setId(31L);

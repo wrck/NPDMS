@@ -42,7 +42,7 @@ public class AreaDepartmentMappingServiceImpl implements AreaDepartmentMappingSe
         }
         return new AreaDepartmentMappingRespDTO(mapping.getId(), mapping.getAreaCode(), mapping.getAreaLevel(),
                 mapping.getMappingType(), mapping.getDepartmentCode(), department.getName(),
-                mapping.getEffectiveFrom(), mapping.getEffectiveTo(), mapping.getVersion());
+                mapping.getEffectiveFrom(), mapping.getEffectiveTo(), mapping.getStatus(), mapping.getVersion());
     }
 
 }

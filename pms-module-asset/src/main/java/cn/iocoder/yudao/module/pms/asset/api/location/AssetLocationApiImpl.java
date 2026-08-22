@@ -64,8 +64,11 @@ public class AssetLocationApiImpl implements AssetLocationApi {
         }
         SiteLocationDO location = command.siteLocation() == null ? null
                 : siteLocationTreeService.maintain(site.getId(), command.siteLocation());
-        if (site == null && address != null) {
-            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        if (site == null) {
+            LocationReferenceDTO addressOnly = new LocationReferenceDTO(LocationResolutionStatus.RESOLVED.name(),
+                    address.getId(), address.getVersion(), null, null, null, null, command.fallbackLocation());
+            maintainSourceMapping(existingMapping, command, addressOnly);
+            return addressOnly;
         }
         LocationReferenceDTO result = new LocationReferenceDTO(LocationResolutionStatus.RESOLVED.name(),
                 address != null ? address.getId() : site.getAddressId(),

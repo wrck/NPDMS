@@ -60,6 +60,9 @@ public interface ErrorCodeConstants {
     // ========== 公司模块 1-002-029-000 ==========
     ErrorCode COMPANY_NOT_FOUND = new ErrorCode(1_002_029_000, "当前公司不存在");
     ErrorCode COMPANY_NOT_ENABLE = new ErrorCode(1_002_029_001, "公司({})不处于开启状态，不允许选择");
+    ErrorCode COMPANY_CODE_DUPLICATE = new ErrorCode(1_002_029_002, "已经存在该编码的公司");
+    ErrorCode COMPANY_VERSION_CONFLICT = new ErrorCode(1_002_029_003, "公司数据已变更，请刷新后重试");
+    ErrorCode COMPANY_STATUS_INVALID = new ErrorCode(1_002_029_004, "公司状态不合法");
 
     // ========== 岗位模块 1-002-005-000 ==========
     ErrorCode POST_NOT_FOUND = new ErrorCode(1_002_005_000, "当前岗位不存在");

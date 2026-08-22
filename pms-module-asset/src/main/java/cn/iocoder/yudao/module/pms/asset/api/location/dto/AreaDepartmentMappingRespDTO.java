@@ -11,5 +11,6 @@ public record AreaDepartmentMappingRespDTO(
         String departmentName,
         LocalDateTime effectiveFrom,
         LocalDateTime effectiveTo,
+        Integer status,
         Integer version) {
 }
