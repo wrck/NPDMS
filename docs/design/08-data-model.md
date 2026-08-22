@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：数据模型
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
@@ -93,6 +93,7 @@
 | 聚合/实体 | 类型 | Owner 事实 | 关键关系与不变量 |
 |---|---|---|---|
 | Project | 聚合根 | 项目身份、四维业务分类、行业四级快照、负责人、生命周期、来源映射 | `parentProjectId` 可空；父子无环；不限制深度；CRM项目编码默认复用；合同/订单/执行单独立关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用 |
+| ProjectSite | 时态关系 | 项目引用的站点、主站点标记、生效区间和发生时站点快照 | 项目可关联多个站点；同一站点可被多个项目复用；同一项目至多一个当前主站点；PROJ不读取AST地点表 |
 | ProjectHierarchy | 聚合内关系 | 当前父子关系、根节点、层级类型 | 层级类型来自字典；结构变更必须经过 MoveProject 并校验无环 |
 | ProjectAncestorProjection | 可重建投影 | 祖先/后代查询路径 | 【建议】保存 ancestor、descendant、distance；不是项目真值 |
 | ProjectTemplate | 聚合根 | 项目模板、StageDefinition、TaskDefinition、适用条件和版本 | 已发布模板不可覆盖；每个可执行TaskDefinition必须包含WorkBinding、PermissionPolicy、CompletionRule和可选GateRef；未指定其他业务绑定时使用TASK_NATIVE；项目实例冻结所用版本 |
@@ -144,7 +145,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | 聚合根 | 聚合内实体/值对象 | Owner 事实 | 跨域引用 |
 |---|---|---|---|
 | ArrivalAcceptance | ArrivalLine、ArrivalDifference、SignerSnapshot | 到货批次、实收数量、差异、签收结果和证据 | Project、Device、OrderLine、FileReference |
-| InstallationRecord | InstallationItem、LocationSnapshot、InstallationEvidence | 一次安装记录、位置、结果、照片和确认 | Project、Device、ArrivalAcceptance |
+| InstallationRecord | InstallationItem、LocationSnapshot、InstallationEvidence | 一次安装、迁移或拆除记录、位置、结果、照片和确认 | Project、Device、Address/Site/SiteLocation、ArrivalAcceptance |
 | ConfigurationCollectionResult | ParseAttempt、ResultReference、ParserVersion、ComponentParseCandidate | 配置 Log 回调、原始整机证据、框/槽/板卡解析候选、解析版本和业务确认 | CollectionTask、Device、DeviceComponentRelation、FileReference |
 | JointDebuggingResult | DebuggingItem、IssueReference、ResultReference | 联调输入、结论、问题引用和确认 | CollectionTask、Device、ProjectTask |
 | ImplementationRisk | RiskTag、RiskTreatment | 单机/现场风险、等级、处置和关闭证据 | Project、Device；不复用 CUT 风险状态 |
@@ -154,6 +155,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 关键不变量：
 
 - 到货差异、安装历史、采集解析失败、质量整改分别属于独立聚合，不合并为一个“现场执行单”；安全阻断不在当前 IMP-01 数据模型中另建聚合。
+- 工勘和安装可通过`AssetLocationApi`维护Address/Site/SiteLocation；确认安装、迁移或拆除前不改变设备当前位置，确认后由AST命令幂等生效并保留历史。
 - ConfigurationCollectionResult 与 JointDebuggingResult 消费 DAC 结果，但不持有连接参数和凭证明文。
 - ConfigurationCollectionResult完整保留原始整机Log；框/槽/板卡解析候选由AST确认后形成DeviceComponentRelation。自动匹配与人工绑定均保留来源、解析版本和证据引用。
 - IMP 上传交付件，ACC 负责齐套审核和归档；文件二进制只有一个 FileArtifact 身份。
@@ -208,6 +210,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | CustomerContact | External Master Copy / 平台补充事实 | 权威字段不被平台覆盖；项目联系角色为独立时态关系 |
 | CustomerRelationshipSnapshot | 不可变快照 | 项目、验收、巡检等业务发生时冻结必要联系信息 |
 | CustomerServiceLevelRevision | 时态版本聚合 | CUS-02保存等级字典代码、策略快照和有效区间；同一客户同一时点仅一个有效版本，历史业务快照不回写 |
+| CustomerLocationReference | 时态关系 | 客户对AST Address/Site的稳定引用、类型、来源版本和有效区间；CUS不拥有地点实体或位置树 |
 
 Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/expendCode/expendName/industryCode/industryName`八个业务字段。`MarketRelation`只提供CRM组合目录、同步对账与候选选择，不是客户或项目的持久化外键目标；三者均禁止保存`relationId`。历史变更通过同步证据、审计和业务快照追溯，不依赖可变目录记录ID串联。
 
@@ -219,6 +222,11 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 |---|---|---|
 | Device | 聚合根 / External Master Copy | MES/ITR 权威身份字段保留来源；平台拥有项目归属、档案补充和业务关联 |
 | DeviceArchive | 聚合内实体 | 安装位置、客户关系、配置 Log 引用、项目关联等平台档案信息 |
+| Address | 聚合根 | 国家、省、市、区县编码/名称、详细/完整地址、可空经纬度、标准化候选指纹和版本；指纹不作为自动合并键 |
+| Site | 聚合根 | 站点编码、名称、可空客户引用、Address引用、类型、状态和版本；不保存公司或部门字段，同址允许多站点 |
+| SiteLocation | 树实体 | 站点内任意深度位置节点、父节点、路径、深度、排序、类型、状态和版本；站点内编码唯一 |
+| LocationSourceMapping | 来源映射 | 来源系统、对象类型、来源键、来源版本、Address/Site引用、同步水位和匹配状态 |
+| AreaDepartmentMapping | 时态映射 | `area_code/area_level/mapping_type/department_code`及生效区间；`SERVICE_OFFICE`只精确匹配，不向父区划回退 |
 | DeviceComponentRelation | 时态关系 | 机框序列号、槽位、板卡序列号/型号、关系来源、生效区间和解析证据；同一机框槽位同一时点最多一个当前板卡，换板结束旧关系并新增 |
 | DeviceCurrentAssignment | 当前唯一关系 | 同一 tenant/device 只有一个有效当前项目；指向实际归属项目，不复制到祖先项目 |
 | DeviceAssignmentHistory | 时态历史 | 每次划转关闭旧区间并新增区间；有效区间不得重叠 |
@@ -275,13 +283,16 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 
 | 聚合/实体 | Owner 事实 | 规则 |
 |---|---|---|
+| Company | 公司稳定ID、统一编码、名称、状态和版本 | 与Department独立，不建立全局部门归属推导 |
+| Department | 部门稳定ID、`system_dept.code`、名称、树关系、状态和版本 | 办事处使用Department表达；树层级不产生公司权限 |
+| UserCompanyDepartmentScope | 用户公司—部门同一有效范围行、角色、主范围标记、生效区间和版本 | company必填，department可空；部门存在时ID/编码成对保存；仅同一有效行可授予组合范围 |
 | Todo | 待办身份、业务引用和同步状态 | 待办完成不等于业务完成；业务状态由 Owner Context 确认 |
 | AuthorizationGrant | 通用业务授权范围、有效期和撤销 | 不替代 DeviceCredential 的专用授权边界 |
 | ChangeRequest | 变更申请、差异、审批引用和执行结果 | 版本变更作为低优先级独立能力，能后置的后置 |
 | FileArtifact | 文件身份、内容版本、哈希和存储引用 | 详见 13；正文不复制进多个领域表 |
 | AuditRecord | 主体、动作、对象、结果和关联 ID | Word 文件本身无需内容审计；业务动作和文件版本操作仍留痕 |
 
-INT-05/INT-09 的人员、部门、岗位使用基础平台现有主数据；同步批次/水位和稳定来源键分别由已有 `plt_sync_batch`、`plt_external_key_mapping` 承载。不建立独立目录快照对象或替代表；基础平台主数据的前向实现仍由相应 Feature 管理。
+INT-05/INT-09 的人员、公司、部门、岗位使用基础平台主数据；同步批次/水位和稳定来源键分别由已有 `plt_sync_batch`、`plt_external_key_mapping` 承载。`system_dept.code`为统一部门编码，办事处按部门表达；用户公司—部门范围使用独立时态关系，不由部门树推导公司。基础平台主数据的前向实现仍由相应 Feature 管理。
 
 ### 10.3 Knowledge Reference
 

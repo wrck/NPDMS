@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：数据库设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；表级 Owner 与需求范围继承 `08-data-model.md`，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构
 > 前置设计：`08-data-model.md`、`08a-domain-entity-migration-alignment.md`
@@ -149,6 +149,12 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 | `assignment_status` | 基础平台字典映射的稳定代码 | 与项目经理/执行指派独立迁移，不改变生命周期 |
 | `display_status` | 派生只读值 | 由上述字段及查询上下文计算，不落交易真值；不得被客户端写入 |
 
+### 4.1.2 项目站点与地点降级
+
+新增`proj_project_site`保存`project_id/site_id/primary_site/scope_status/effective_from/effective_to/site_code_snapshot/site_name_snapshot/address_snapshot/version`。同一项目—站点—生效时间唯一；同一项目至多一个当前主站点。跨Context只保存AST稳定ID、版本和必要快照，不建立到`ast_site`的物理外键。
+
+`proj_project`增加`location_resolution_status`，仅允许`UNRESOLVED/RESOLVED`。现有`implementation_location`只作为站点未维护时的文本降级；结构化站点存在时不得形成第二权威。
+
 ### 4.2 任务树与依赖
 
 现有 `proj_project_task` 保存当前父关系；`proj_task_dependency` 只保存任务依赖，二者不得混用。
@@ -215,9 +221,23 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 历史 `pms_eng_site_survey/requirement/resource_ready/briefing/solution/form_*` 可作为迁移来源；新应用服务按 Preparation/Solution Owner 访问，不允许表单引擎直接写 Project 状态。
 
-## 5. Asset 设备归属与维保基本事实
+## 5. Asset 地点、设备归属与维保基本事实
 
 适用 Requirement：EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06。
+
+### 5.0 地点主数据与区划映射
+
+地点物理表全部由AST持有：
+
+| 表 | 关键字段 | 约束 |
+|---|---|---|
+| `ast_address` | 国家/省/市/区县编码名称、`detail_address/full_address`、经纬度、标准化文本/候选指纹、状态、版本 | 指纹仅索引候选，不作自动合并唯一键；地址不物理删除 |
+| `ast_site` | `code/name/customer_id/address_id/site_type/status/version` | `uk(tenant_id, code, deleted)`；`customer_id`可空且无跨Context外键；禁止公司/部门列；同址允许多站点 |
+| `ast_site_location` | `site_id/parent_id/code/name/location_type/tree_path/tree_depth/tree_sort/status/version` | `uk(tenant_id, site_id, code, deleted)`；任意深度、无环、跨站点移动拒绝 |
+| `ast_location_source_mapping` | 来源系统、对象类型、来源键/版本、Address/Site引用、同步水位、匹配状态 | `uk(tenant_id, source_system, object_type, source_key, deleted)`；状态限PENDING/MATCHED/CONFLICT/INVALID |
+| `ast_area_department_mapping` | `area_code/area_level/mapping_type/department_code/effective_from/effective_to/status/version` | 同一映射同一时点唯一；`area_level`限COUNTRY/PROVINCE/CITY/DISTRICT；V1只精确匹配 |
+
+所有表包含租户、审计、软删除和乐观锁版本。地点被引用后只允许受控修订；安装、迁移和拆除历史保存发生时快照。
 
 ### 5.1 当前唯一归属与历史
 
@@ -257,7 +277,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | 聚合 | 主表 | 明细/历史表 | 关键数据库约束 |
 |---|---|---|---|
 | ArrivalAcceptance | `imp_arrival_acceptance` | `imp_arrival_line`、`imp_arrival_difference` | 批次内来源行唯一；数量非负；差异通过独立记录表达 |
-| InstallationRecord | `imp_installation_record` | `imp_installation_item`、`imp_installation_evidence` | 设备/安装批次索引；历史记录不覆盖 |
+| InstallationRecord | `imp_installation_record` | `imp_installation_item`、`imp_installation_evidence` | 保存可空`site_id/site_location_id`、解析状态、文本降级、位置快照和有效区间；设备/安装批次索引；同一设备同一时点仅一个当前有效安装位置；历史记录不覆盖 |
 | ConfigurationCollectionResult | `imp_configuration_collection_result` | `imp_configuration_collection_parse_attempt` | `uk(tenant_id, collection_task_id, result_type_code, result_version_no)`；根保存项目/设备快照、脚本/解析器版本、原始整机Log文件引用及哈希；解析尝试追加 |
 | ConfigurationCollectionResult解析候选 | `imp_configuration_collection_result` | `imp_configuration_component_candidate` | 保存机框SN、槽位、板卡SN/型号、解析 revision、解析器版本、板卡配置引用和匹配状态；不能覆盖原始Log或直接改写已生效设备关系 |
 | JointDebuggingResult | `imp_joint_debugging_result` | `imp_joint_debugging_item` | 业务任务 + 结果版本唯一 |
@@ -345,7 +365,7 @@ CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_re
 
 业务副本表仍保存在对应 Owner Context，不集中塞入集成表。
 
-INT-05/INT-09 复用基础平台现有用户、部门、岗位主数据，已有 `plt_sync_batch` 承载同步批次/水位，`plt_external_key_mapping` 承载来源键映射。当前不建立独立目录快照表，也不因本决策新增替代表；若基础平台主数据不属于当前核心迁移 DDL，由相应 Feature 前向实现。
+INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已有`plt_sync_batch`承载同步批次/水位，`plt_external_key_mapping`承载来源键映射。前向实现增加`system_company`、`system_dept.code`及`system_user_company_department_scope`；公司与部门保持独立，Scope同一有效行保存公司和可选部门，禁止由部门推导公司。
 
 ### 8.2 目标表组
 

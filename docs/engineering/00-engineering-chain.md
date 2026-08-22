@@ -2,7 +2,7 @@
 
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
-> 适用基线：`docs/baseline/prd-v1.8.md`及已批准增量`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`<br>
+> 适用基线：`docs/baseline/prd-v1.8.md`及已批准增量`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`、`docs/baseline/prd-v1.8-amendment-002-organization-and-asset-location.md`<br>
 > 基线快照：`docs/baseline/prd-v1.8.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
 > 替代版本：V1.7（归档于`docs/engineering/archive/00-engineering-chain-v1.7.md`）<br>
