@@ -92,5 +92,10 @@ export const disableSiteLocation = (data: { id: number; version: number }) =>
   request.put({ url: `${baseUrl}/sites/tree/disable`, data })
 export const getAreaDepartmentMappingPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/area-department-mappings/page`, params })
+export const resolveAreaDepartment = (areaCode: string, areaLevel: string) =>
+  request.get<AreaDepartmentMappingVO | null>({
+    url: `${baseUrl}/area-department-mappings/resolve`,
+    params: { areaCode, areaLevel }
+  })
 export const saveAreaDepartmentMapping = (data: AreaDepartmentMappingVO) =>
   request.post({ url: `${baseUrl}/area-department-mappings/save`, data })

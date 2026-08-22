@@ -41,7 +41,19 @@
           <EquipmentTag :equipment-id="row.equipmentId" />
         </template>
       </el-table-column>
-      <el-table-column prop="installLocation" label="安装位置" min-width="180" show-overflow-tooltip />
+      <el-table-column
+        prop="installLocation"
+        label="安装位置"
+        min-width="180"
+        show-overflow-tooltip
+      />
+      <el-table-column prop="locationResolutionStatus" label="地点状态" width="110">
+        <template #default="{ row }">
+          <el-tag :type="row.locationResolutionStatus === 'RESOLVED' ? 'success' : 'warning'">
+            {{ row.locationResolutionStatus || 'UNRESOLVED' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="installTime" label="安装时间" width="160" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
@@ -50,7 +62,11 @@
       </el-table-column>
       <el-table-column label="操作" width="360" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-installation:update']"
+          <el-button
+            link
+            type="primary"
+            @click="openForm(row)"
+            v-hasPermi="['pms:eng-installation:update']"
             >编辑</el-button
           >
           <el-button
@@ -77,7 +93,11 @@
             v-hasPermi="['pms:eng-installation:update']"
             >标记异常</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-installation:delete']"
+          <el-button
+            link
+            type="danger"
+            @click="remove(row)"
+            v-hasPermi="['pms:eng-installation:delete']"
             >删除</el-button
           >
         </template>
@@ -91,7 +111,7 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? '编辑安装' : '新增安装'" width="780px">
+  <Dialog v-model="formVisible" :title="form.id ? '编辑安装' : '新增安装'" width="900px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-row :gutter="16">
         <el-col :span="12">
@@ -125,15 +145,24 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="安装人员" prop="installerUserId"><el-input v-model="form.installerUserId" /></el-form-item>
+          <el-form-item label="安装人员" prop="installerUserId"
+            ><el-input v-model="form.installerUserId"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="安装时间" prop="installTime">
-            <el-date-picker v-model="form.installTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" class="!w-full" />
+            <el-date-picker
+              v-model="form.installTime"
+              type="datetime"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              class="!w-full"
+            />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="安装位置" prop="installLocation"><el-input v-model="form.installLocation" /></el-form-item>
+        <el-col :span="24">
+          <el-form-item label="安装位置" prop="locationMaintenance">
+            <PmsLocationSelector v-model="form.locationMaintenance" :project-id="form.projectId" />
+          </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="环境检查" prop="environmentCheck">
@@ -146,7 +175,9 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="现场照片" prop="photoUrl"><UploadImg v-model="form.photoUrl" /></el-form-item>
+          <el-form-item label="现场照片" prop="photoUrl"
+            ><UploadImg v-model="form.photoUrl"
+          /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="安装结果" prop="result">
@@ -173,6 +204,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as InstallationApi from '@/api/pms/engineering/installation'
 import type { InstallationVO } from '@/api/pms/engineering/installation'
+import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
 
@@ -210,6 +242,7 @@ const openForm = (row?: InstallationVO) => {
       code: '',
       equipmentId: undefined,
       installLocation: '',
+      locationMaintenance: undefined,
       installTime: '',
       installerUserId: undefined,
       environmentCheck: '',
@@ -221,13 +254,82 @@ const openForm = (row?: InstallationVO) => {
     },
     row || {}
   )
+  form.locationMaintenance = toLocationMaintenance(row)
   formVisible.value = true
+}
+
+const toLocationMaintenance = (row?: InstallationVO): LocationMaintainRequest | undefined => {
+  if (!row) return { projectId: form.projectId }
+  if (row.locationResolutionStatus !== 'RESOLVED') {
+    return { projectId: row.projectId, fallbackLocation: row.installLocation }
+  }
+  return {
+    projectId: row.projectId,
+    address: row.addressId ? { id: row.addressId, expectedVersion: row.addressVersion } : undefined,
+    site: row.siteId ? { id: row.siteId, expectedVersion: row.siteVersion } : undefined,
+    siteLocation: row.siteLocationId
+      ? {
+          id: row.siteLocationId,
+          expectedVersion: row.siteLocationVersion,
+          code: '',
+          name: '',
+          locationType: '',
+          treeSort: 0
+        }
+      : undefined
+  }
+}
+
+const savePayload = () => {
+  const payload = { ...form }
+  const maintenance = payload.locationMaintenance
+  if (maintenance && !maintenance.address && !maintenance.site && !maintenance.siteLocation) {
+    if (!maintenance.fallbackLocation?.trim()) {
+      message.error('请选择地点或填写兼容地点')
+      return
+    }
+    payload.installLocation = maintenance.fallbackLocation
+    payload.locationMaintenance = undefined
+    return payload
+  }
+  if (
+    !maintenance?.site?.id &&
+    (!maintenance?.address?.countryName || !maintenance.address.detailAddress)
+  ) {
+    message.error('新地点必须填写国家和详细地址')
+    return
+  }
+  if (!maintenance.site?.id && (!maintenance.site?.code || !maintenance.site.name)) {
+    message.error('新地点必须填写站点编码和名称')
+    return
+  }
+  if (maintenance.siteLocation && !maintenance.siteLocation.id && !maintenance.siteLocation.code) {
+    maintenance.siteLocation = undefined
+  }
+  if (maintenance.address && !maintenance.address.id) {
+    maintenance.address.fullAddress = [
+      maintenance.address.countryName,
+      maintenance.address.provinceName,
+      maintenance.address.cityName,
+      maintenance.address.districtName,
+      maintenance.address.detailAddress
+    ]
+      .filter(Boolean)
+      .join('')
+  }
+  payload.installLocation =
+    maintenance.fallbackLocation || maintenance.address?.fullAddress || payload.installLocation
+  return payload
 }
 const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
-    form.id ? await InstallationApi.updateInstallation(form) : await InstallationApi.createInstallation(form)
+    const payload = savePayload()
+    if (!payload) return
+    form.id
+      ? await InstallationApi.updateInstallation(payload)
+      : await InstallationApi.createInstallation(payload)
     message.success('保存成功')
     formVisible.value = false
     await load()
@@ -245,7 +347,15 @@ const handleAction = async (row: InstallationVO, action: 'start' | 'complete' | 
   const actionText = { start: '开始安装', complete: '完成安装', markAbnormal: '标记异常' }[action]
   await message.confirm(`确认${actionText}安装记录【${row.code}】？`)
   if (action === 'start') await InstallationApi.startInstallation(row.id!)
-  if (action === 'complete') await InstallationApi.completeInstallation(row.id!)
+  if (action === 'complete') {
+    await InstallationApi.completeInstallation(row.id!)
+    if (row.equipmentId) {
+      await Promise.all([
+        EquipmentApi.getEquipment(row.equipmentId),
+        EquipmentApi.getEquipmentVersionList(row.equipmentId)
+      ])
+    }
+  }
   if (action === 'markAbnormal') await InstallationApi.markAbnormalInstallation(row.id!)
   message.success(`${actionText}成功`)
   await load()

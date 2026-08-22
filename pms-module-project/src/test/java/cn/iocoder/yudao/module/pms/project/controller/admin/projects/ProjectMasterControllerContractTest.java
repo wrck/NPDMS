@@ -170,6 +170,9 @@ class ProjectMasterControllerContractTest {
     void projectDetailExposesVersionForAssignmentIfMatch() throws Exception {
         assertNotNull(ProjectRespVO.class.getDeclaredField("version"));
         assertNotNull(ProjectRespVO.class.getDeclaredField("assignmentStatus"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("companyId"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("departmentId"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("locationResolutionStatus"));
     }
 
     private static void assertThrowsNoField(Class<?> type, String name) {

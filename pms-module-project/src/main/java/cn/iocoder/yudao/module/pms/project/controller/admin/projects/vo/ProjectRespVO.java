@@ -42,6 +42,24 @@ public class ProjectRespVO {
     @Schema(description = "负责人姓名")
     private String managerName;
 
+    @Schema(description = "下单公司稳定ID")
+    private Long companyId;
+
+    @Schema(description = "下单公司编码")
+    private String companyCode;
+
+    @Schema(description = "下单公司名称")
+    private String companyName;
+
+    @Schema(description = "下单办事处部门稳定ID")
+    private Long departmentId;
+
+    @Schema(description = "下单办事处部门编码")
+    private String departmentCode;
+
+    @Schema(description = "下单办事处部门名称")
+    private String departmentName;
+
     @Schema(description = "签约方式")
     private String signingMethod;
 

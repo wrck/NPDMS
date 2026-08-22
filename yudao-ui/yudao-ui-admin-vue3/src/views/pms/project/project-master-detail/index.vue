@@ -26,7 +26,9 @@
               {{ dimLabel(detail?.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) }} /
               {{ dimLabel(detail?.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) }}
             </span>
-            <span class="meta-item"><Icon icon="ep:calendar" />{{ formatDateTime(detail?.createTime) }}</span>
+            <span class="meta-item"
+              ><Icon icon="ep:calendar" />{{ formatDateTime(detail?.createTime) }}</span
+            >
           </div>
         </div>
         <div class="project-header-right">
@@ -86,9 +88,12 @@
           <el-descriptions v-if="detail" :column="2" border size="small">
             <el-descriptions-item label="项目编码">{{ detail.projectCode }}</el-descriptions-item>
             <el-descriptions-item label="编码命名空间">
-              根 #{{ detail.codeRootId }} · 序号 {{ detail.projectSequence }} · 规则 {{ detail.codeRuleVersion }}
+              根 #{{ detail.codeRootId }} · 序号 {{ detail.projectSequence }} · 规则
+              {{ detail.codeRuleVersion }}
             </el-descriptions-item>
-            <el-descriptions-item label="项目名称" :span="2">{{ detail.projectName }}</el-descriptions-item>
+            <el-descriptions-item label="项目名称" :span="2">{{
+              detail.projectName
+            }}</el-descriptions-item>
             <el-descriptions-item label="签约方式">
               <dict-tag :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="detail.signingMethod!" />
             </el-descriptions-item>
@@ -96,7 +101,10 @@
               <dict-tag :type="DICT_TYPE.PMS_PROJECT_CATEGORY" :value="detail.projectCategory!" />
             </el-descriptions-item>
             <el-descriptions-item label="实施方式">
-              <dict-tag :type="DICT_TYPE.PMS_IMPLEMENTATION_METHOD" :value="detail.implementationMode!" />
+              <dict-tag
+                :type="DICT_TYPE.PMS_IMPLEMENTATION_METHOD"
+                :value="detail.implementationMode!"
+              />
             </el-descriptions-item>
             <el-descriptions-item label="重大项目级别">
               <dict-tag
@@ -109,26 +117,44 @@
             <el-descriptions-item label="业务层级">
               {{ detail.businessLevelName || detail.businessLevelCode || '-' }}
             </el-descriptions-item>
-            <el-descriptions-item label="结构深度">{{ detail.treeDepth ?? '-' }}</el-descriptions-item>
-            <el-descriptions-item label="父项目">#{{ detail.parentId ?? '-' }}</el-descriptions-item>
-            <el-descriptions-item label="客户">{{ detail.customerName || '-' }}（{{ detail.customerCode || '-' }}）</el-descriptions-item>
-            <el-descriptions-item label="合同号">{{ detail.contractNo || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="实施地点">{{ detail.implementationLocation || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="结构深度">{{
+              detail.treeDepth ?? '-'
+            }}</el-descriptions-item>
+            <el-descriptions-item label="父项目"
+              >#{{ detail.parentId ?? '-' }}</el-descriptions-item
+            >
+            <el-descriptions-item label="客户"
+              >{{ detail.customerName || '-' }}（{{
+                detail.customerCode || '-'
+              }}）</el-descriptions-item
+            >
+            <el-descriptions-item label="合同号">{{
+              detail.contractNo || '-'
+            }}</el-descriptions-item>
+            <el-descriptions-item label="实施地点">{{
+              detail.implementationLocation || '-'
+            }}</el-descriptions-item>
             <el-descriptions-item label="状态">
               <dict-tag :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE" :value="detail.status!" />
             </el-descriptions-item>
             <el-descriptions-item label="创建来源">
               <dict-tag :type="DICT_TYPE.PMS_PROJECT_SOURCE_TYPE" :value="detail.sourceType!" />
             </el-descriptions-item>
-            <el-descriptions-item label="创建原因" :span="2">{{ detail.creationReason || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="创建时间" :span="2">{{ formatDateTime(detail.createTime) }}</el-descriptions-item>
+            <el-descriptions-item label="创建原因" :span="2">{{
+              detail.creationReason || '-'
+            }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间" :span="2">{{
+              formatDateTime(detail.createTime)
+            }}</el-descriptions-item>
           </el-descriptions>
         </ContentWrap>
 
         <!-- ============ 项目概览：生命周期实例 ============ -->
         <ContentWrap v-show="activeTab === 'instances'">
           <div class="panel-header">
-            <span class="panel-title"><Icon icon="ep:tickets" /> 生命周期实例（阶段/任务/里程碑/交付件/门禁）</span>
+            <span class="panel-title"
+              ><Icon icon="ep:tickets" /> 生命周期实例（阶段/任务/里程碑/交付件/门禁）</span
+            >
           </div>
           <el-collapse v-if="instances">
             <el-collapse-item
@@ -141,7 +167,9 @@
                 <dict-tag :type="DICT_TYPE.PMS_PROJECT_STAGE_STATUS" :value="stage.status" />
               </template>
               <div class="preview-block">
-                <div class="preview-block-title">任务（{{ instTasks(stage.stageCode).length }}）</div>
+                <div class="preview-block-title"
+                  >任务（{{ instTasks(stage.stageCode).length }}）</div
+                >
                 <el-table :data="instTasks(stage.stageCode)" size="small" border>
                   <el-table-column prop="taskCode" label="任务码" width="120" />
                   <el-table-column prop="name" label="任务名称" min-width="140" />
@@ -153,20 +181,37 @@
                 </el-table>
               </div>
               <div class="preview-block">
-                <div class="preview-block-title">里程碑（{{ instMilestones(stage.stageCode).length }}）</div>
-                <div v-for="m in instMilestones(stage.stageCode)" :key="m.milestoneCode" class="preview-line">
+                <div class="preview-block-title"
+                  >里程碑（{{ instMilestones(stage.stageCode).length }}）</div
+                >
+                <div
+                  v-for="m in instMilestones(stage.stageCode)"
+                  :key="m.milestoneCode"
+                  class="preview-line"
+                >
                   <el-tag size="small" type="warning">{{ m.milestoneCode }}</el-tag> {{ m.name }}
                   <span class="text-12px text-gray-400">{{ m.timing }}</span>
                 </div>
               </div>
               <div class="preview-block">
-                <div class="preview-block-title">交付件（{{ instDeliverables(stage.stageCode).length }}）</div>
-                <div v-for="d in instDeliverables(stage.stageCode)" :key="d.deliverableCode" class="preview-line">
-                  <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{ d.deliverableCode }}</el-tag> {{ d.name }}
+                <div class="preview-block-title"
+                  >交付件（{{ instDeliverables(stage.stageCode).length }}）</div
+                >
+                <div
+                  v-for="d in instDeliverables(stage.stageCode)"
+                  :key="d.deliverableCode"
+                  class="preview-line"
+                >
+                  <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{
+                    d.deliverableCode
+                  }}</el-tag>
+                  {{ d.name }}
                 </div>
               </div>
               <div class="preview-block">
-                <div class="preview-block-title">门禁（{{ instGates(stage.stageCode).length }}）</div>
+                <div class="preview-block-title"
+                  >门禁（{{ instGates(stage.stageCode).length }}）</div
+                >
                 <div v-for="g in instGates(stage.stageCode)" :key="g.gateCode" class="preview-line">
                   <el-tag size="small" :type="g.gateType === 'ENTRY' ? 'success' : 'primary'">
                     {{ g.gateType === 'ENTRY' ? '准入' : '准出' }}
@@ -209,10 +254,20 @@
           <div class="panel-header">
             <span class="panel-title"><Icon icon="ep:share" /> 项目树（直接下级，按需展开）</span>
             <div class="panel-header-actions">
-              <el-button type="primary" size="small" @click="openCreateChild" v-hasPermi="['pms:project:create']">
+              <el-button
+                type="primary"
+                size="small"
+                @click="openCreateChild"
+                v-hasPermi="['pms:project:create']"
+              >
                 <Icon icon="ep:plus" />下挂子项目
               </el-button>
-              <el-button type="warning" size="small" @click="openMove" v-hasPermi="['pms:project:update']">
+              <el-button
+                type="warning"
+                size="small"
+                @click="openMove"
+                v-hasPermi="['pms:project:update']"
+              >
                 <Icon icon="ep:rank" />子树移动
               </el-button>
             </div>
@@ -226,7 +281,12 @@
             empty-text="暂无直接下级项目"
           >
             <el-table-column prop="projectCode" label="项目编码" min-width="180" />
-            <el-table-column prop="projectName" label="项目名称" min-width="180" show-overflow-tooltip />
+            <el-table-column
+              prop="projectName"
+              label="项目名称"
+              min-width="180"
+              show-overflow-tooltip
+            />
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
                 <dict-tag :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE" :value="row.status" />
@@ -234,7 +294,9 @@
             </el-table-column>
             <el-table-column prop="treeDepth" label="深度" width="70" />
             <el-table-column label="业务层级" width="110">
-              <template #default="{ row }">{{ row.businessLevelName || row.businessLevelCode || '-' }}</template>
+              <template #default="{ row }">{{
+                row.businessLevelName || row.businessLevelCode || '-'
+              }}</template>
             </el-table-column>
           </el-table>
         </ContentWrap>
@@ -264,7 +326,12 @@
             empty-text="暂无直接子项目"
           >
             <el-table-column prop="projectCode" label="子项目编码" min-width="180" />
-            <el-table-column prop="projectName" label="子项目名称" min-width="160" show-overflow-tooltip />
+            <el-table-column
+              prop="projectName"
+              label="子项目名称"
+              min-width="160"
+              show-overflow-tooltip
+            />
             <el-table-column label="进度" width="140">
               <template #default="{ row }">
                 <el-progress :percentage="Number(row.progress ?? 0)" :stroke-width="6" />
@@ -290,7 +357,12 @@
 
     <!-- ============ 下挂子项目弹窗 ============ -->
     <Dialog v-model="createChildVisible" title="下挂子项目" width="520px">
-      <el-form ref="createChildFormRef" :model="createChildForm" :rules="createChildRules" label-width="100px">
+      <el-form
+        ref="createChildFormRef"
+        :model="createChildForm"
+        :rules="createChildRules"
+        label-width="100px"
+      >
         <el-form-item label="父项目">
           <el-input :model-value="detail?.projectCode + ' ' + detail?.projectName" disabled />
         </el-form-item>
@@ -298,7 +370,12 @@
           <el-input v-model="createChildForm.projectName" placeholder="子项目名称" />
         </el-form-item>
         <el-form-item label="创建原因" prop="creationReason">
-          <el-input v-model="createChildForm.creationReason" type="textarea" :rows="2" placeholder="BR-2 必填" />
+          <el-input
+            v-model="createChildForm.creationReason"
+            type="textarea"
+            :rows="2"
+            placeholder="BR-2 必填"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -341,7 +418,12 @@
       />
       <el-table :data="weightItems" size="small" border>
         <el-table-column prop="projectCode" label="项目编码" min-width="190" />
-        <el-table-column prop="projectName" label="项目名称" min-width="180" show-overflow-tooltip />
+        <el-table-column
+          prop="projectName"
+          label="项目名称"
+          min-width="180"
+          show-overflow-tooltip
+        />
         <el-table-column label="权重（%）" width="150">
           <template #default="{ row }">
             <el-input-number v-model="row.weight" :min="0" :max="100" :precision="2" :step="1" />
@@ -418,11 +500,24 @@ const openCreateChild = () => {
 }
 const submitCreateChild = async () => {
   await createChildFormRef.value?.validate()
+  if (!detail.value?.id || !detail.value.companyId || !detail.value.departmentId) {
+    message.error('父项目缺少下单公司或办事处，不能创建子项目')
+    return
+  }
   saving.value = true
   try {
+    const parentSites = await ProjectsApi.getProjectSites(detail.value.id)
     const payload = {
       projectName: createChildForm.projectName,
-      parentId: detail.value?.id,
+      parentId: detail.value.id,
+      orderOfficeCompanyId: detail.value.companyId,
+      orderOfficeDepartmentId: detail.value.departmentId,
+      sites: parentSites.map((site) => ({
+        siteId: site.siteId,
+        siteVersion: site.siteVersionSnapshot,
+        primarySite: site.primarySite
+      })),
+      implementationLocation: parentSites.length ? undefined : detail.value.implementationLocation,
       creationReason: createChildForm.creationReason
     }
     await ProjectsApi.createProject(payload, createChildSubmission.keyFor(payload))
@@ -467,7 +562,9 @@ const weightsVisible = ref(false)
 const weightItems = ref<
   { projectId: number; projectCode?: string; projectName?: string; weight: number }[]
 >([])
-const weightTotal = computed(() => weightItems.value.reduce((sum, item) => sum + Number(item.weight || 0), 0))
+const weightTotal = computed(() =>
+  weightItems.value.reduce((sum, item) => sum + Number(item.weight || 0), 0)
+)
 const openWeights = () => {
   const equalWeight = children.value.length ? 100 / children.value.length : 0
   weightItems.value = children.value.map((child) => ({
@@ -561,7 +658,10 @@ $primary: #1e3a5f;
   gap: 16px;
   flex-wrap: wrap;
 }
-.project-header-left { flex: 1; min-width: 0; }
+.project-header-left {
+  flex: 1;
+  min-width: 0;
+}
 .project-title-row {
   display: flex;
   align-items: center;
@@ -577,7 +677,12 @@ $primary: #1e3a5f;
   padding: 2px 8px;
   border-radius: 4px;
 }
-.project-name { margin: 0; font-size: 18px; font-weight: 600; color: #1f2937; }
+.project-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
 .project-meta-row {
   display: flex;
   gap: 20px;
@@ -585,8 +690,17 @@ $primary: #1e3a5f;
   font-size: 13px;
   color: #6b7280;
 }
-.meta-item { display: inline-flex; align-items: center; gap: 4px; }
-.project-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.project-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
 /* 主体布局 */
 .detail-body {
@@ -596,9 +710,13 @@ $primary: #1e3a5f;
 }
 .rail-wrap {
   flex: 0 0 220px;
-  :deep(.el-card__body) { padding: 8px 6px; }
+  :deep(.el-card__body) {
+    padding: 8px 6px;
+  }
 }
-.rail-stage { margin-bottom: 14px; }
+.rail-stage {
+  margin-bottom: 14px;
+}
 .rail-stage-title {
   font-size: 11px;
   letter-spacing: 1px;
@@ -621,17 +739,31 @@ $primary: #1e3a5f;
   font-size: 13px;
   text-align: left;
   transition: all 0.15s ease;
-  &:hover { background: #f3f4f6; }
+  &:hover {
+    background: #f3f4f6;
+  }
   &--active {
     background: rgba(30, 58, 95, 0.08);
     color: #1e3a5f;
     font-weight: 600;
   }
 }
-.rail-icon { font-size: 15px; flex-shrink: 0; }
-.rail-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.rail-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.canvas { flex: 1; min-width: 0; }
+.canvas {
+  flex: 1;
+  min-width: 0;
+}
 .panel-header {
   display: flex;
   align-items: center;
@@ -640,7 +772,11 @@ $primary: #1e3a5f;
   padding-bottom: 8px;
   border-bottom: 1px solid #f0f0f0;
 }
-.panel-header-actions { display: flex; align-items: center; gap: 8px; }
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .panel-title {
   display: inline-flex;
   align-items: center;
@@ -649,18 +785,30 @@ $primary: #1e3a5f;
   font-weight: 600;
   color: #1f2937;
 }
-.stage-title { margin-right: 8px; font-weight: 600; }
-.preview-block { margin-bottom: 10px; }
+.stage-title {
+  margin-right: 8px;
+  font-weight: 600;
+}
+.preview-block {
+  margin-bottom: 10px;
+}
 .preview-block-title {
   font-size: 13px;
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 4px;
 }
-.preview-line { padding: 2px 0; font-size: 13px; }
+.preview-line {
+  padding: 2px 0;
+  font-size: 13px;
+}
 
 @media (max-width: 1024px) {
-  .detail-body { flex-direction: column; }
-  .rail-wrap { flex: 1 1 auto; }
+  .detail-body {
+    flex-direction: column;
+  }
+  .rail-wrap {
+    flex: 1 1 auto;
+  }
 }
 </style>

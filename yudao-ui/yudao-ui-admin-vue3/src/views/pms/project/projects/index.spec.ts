@@ -47,4 +47,38 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.match(source, /'Idempotency-Key': idempotencyKey/)
     assert.match(source, /'If-Match': String\(expectedVersion\)/)
   })
+
+  it('uses organization selectors and a multi-site implementation scope', () => {
+    const source = readFileSync(new URL('./index.vue', import.meta.url), 'utf8')
+
+    assert.doesNotMatch(source, /officeId|locationId/)
+    assert.match(source, /orderOfficeCompanyId/)
+    assert.match(source, /orderOfficeDepartmentId/)
+    assert.match(source, /createForm\.sites/)
+    assert.match(source, /primarySiteIndex/)
+    assert.match(source, /UNRESOLVED/)
+    assert.match(source, /resolveAreaDepartment/)
+    assert.match(source, /departmentCode/)
+  })
+
+  it('keeps survey and installation location maintenance atomic and equipment location read-only', () => {
+    const surveySource = readFileSync(
+      new URL('../../engineering/site-survey/index.vue', import.meta.url),
+      'utf8'
+    )
+    const installationSource = readFileSync(
+      new URL('../../engineering/installation/index.vue', import.meta.url),
+      'utf8'
+    )
+    const equipmentSource = readFileSync(
+      new URL('../../asset/equipment/index.vue', import.meta.url),
+      'utf8'
+    )
+
+    assert.match(surveySource, /locationMaintenance/)
+    assert.match(installationSource, /locationMaintenance/)
+    assert.match(installationSource, /getEquipmentVersionList/)
+    assert.doesNotMatch(equipmentSource, /v-model="form\.location"/)
+    assert.match(equipmentSource, /位置变更历史/)
+  })
 })

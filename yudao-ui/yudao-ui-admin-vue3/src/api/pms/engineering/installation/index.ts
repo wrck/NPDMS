@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 
 export interface InstallationVO {
   id?: number
@@ -6,6 +7,18 @@ export interface InstallationVO {
   code: string
   equipmentId?: number
   installLocation?: string
+  locationMaintenance?: LocationMaintainRequest
+  addressId?: number
+  addressVersion?: number
+  siteId?: number
+  siteVersion?: number
+  siteLocationId?: number
+  siteLocationVersion?: number
+  locationResolutionStatus?: 'RESOLVED' | 'UNRESOLVED'
+  addressSnapshot?: string
+  locationSnapshot?: string
+  effectiveFrom?: Date
+  effectiveTo?: Date
   installTime?: Date
   installerUserId?: number
   environmentCheck?: string

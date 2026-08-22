@@ -34,7 +34,12 @@
           />
         </el-form-item>
         <el-form-item label="项目名称" prop="projectName">
-          <el-input v-model="query.projectName" clearable class="!w-200px" @keyup.enter="handleSearch" />
+          <el-input
+            v-model="query.projectName"
+            clearable
+            class="!w-200px"
+            @keyup.enter="handleSearch"
+          />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="query.status" placeholder="全部" clearable class="!w-140px">
@@ -67,7 +72,12 @@
           </el-select>
         </el-form-item>
         <el-form-item label="实施方式" prop="implementationMode">
-          <el-select v-model="query.implementationMode" placeholder="全部" clearable class="!w-150px">
+          <el-select
+            v-model="query.implementationMode"
+            placeholder="全部"
+            clearable
+            class="!w-150px"
+          >
             <el-option
               v-for="dict in getStrDictOptions(DICT_TYPE.PMS_IMPLEMENTATION_METHOD)"
               :key="dict.value"
@@ -79,11 +89,7 @@
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="handleReset"><Icon icon="ep:refresh-left" />重置</el-button>
-          <el-button
-            type="primary"
-            @click="openWizard"
-            v-hasPermi="['pms:project:create']"
-          >
+          <el-button type="primary" @click="openWizard" v-hasPermi="['pms:project:create']">
             <Icon icon="ep:plus" />创建项目
           </el-button>
         </el-form-item>
@@ -97,9 +103,7 @@
           <Icon icon="ep:folder-opened" /> 项目列表
           <span class="table-count">共 {{ total }} 条</span>
         </span>
-        <el-button text bg @click="load">
-          <Icon icon="ep:refresh" />刷新
-        </el-button>
+        <el-button text bg @click="load"> <Icon icon="ep:refresh" />刷新 </el-button>
       </div>
       <el-table v-loading="loading" :data="rows" empty-text="暂无项目数据">
         <el-table-column prop="projectCode" label="项目编码" width="160" fixed="left">
@@ -117,13 +121,21 @@
         </el-table-column>
         <el-table-column label="签约方式" width="100">
           <template #default="{ row }">
-            <dict-tag v-if="row.signingMethod" :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="row.signingMethod" />
+            <dict-tag
+              v-if="row.signingMethod"
+              :type="DICT_TYPE.PMS_SIGNING_METHOD"
+              :value="row.signingMethod"
+            />
             <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column label="项目类别" width="100">
           <template #default="{ row }">
-            <dict-tag v-if="row.projectCategory" :type="DICT_TYPE.PMS_PROJECT_CATEGORY" :value="row.projectCategory" />
+            <dict-tag
+              v-if="row.projectCategory"
+              :type="DICT_TYPE.PMS_PROJECT_CATEGORY"
+              :value="row.projectCategory"
+            />
             <span v-else>-</span>
           </template>
         </el-table-column>
@@ -156,7 +168,10 @@
           <template #default="{ row }">
             <span v-if="row.lifecycleTemplateId">
               #{{ row.lifecycleTemplateId }} v{{ row.lifecycleTemplateRevisionNo }}
-              <el-tag size="small" :type="row.templateLoadMethod === 'AUTO_DEFAULT' ? 'info' : 'primary'">
+              <el-tag
+                size="small"
+                :type="row.templateLoadMethod === 'AUTO_DEFAULT' ? 'info' : 'primary'"
+              >
                 {{ row.templateLoadMethod === 'AUTO_DEFAULT' ? '自动' : '人工' }}
               </el-tag>
             </span>
@@ -166,16 +181,36 @@
         <el-table-column prop="managerName" label="负责人" width="100">
           <template #default="{ row }">{{ row.managerName || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="170" :formatter="dateFormatter" />
+        <el-table-column
+          prop="createTime"
+          label="创建时间"
+          width="170"
+          :formatter="dateFormatter"
+        />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="goDetail(row)" v-hasPermi="['pms:project:query']">
+            <el-button
+              link
+              type="primary"
+              @click="goDetail(row)"
+              v-hasPermi="['pms:project:query']"
+            >
               详情
             </el-button>
-            <el-button link type="warning" @click="openEdit(row)" v-hasPermi="['pms:project:update']">
+            <el-button
+              link
+              type="warning"
+              @click="openEdit(row)"
+              v-hasPermi="['pms:project:update']"
+            >
               编辑
             </el-button>
-            <el-button link type="success" @click="openAssign(row)" v-hasPermi="['pms:project:assign']">
+            <el-button
+              link
+              type="success"
+              @click="openAssign(row)"
+              v-hasPermi="['pms:project:assign']"
+            >
               指派服务经理
             </el-button>
           </template>
@@ -226,19 +261,91 @@
           </el-row>
           <el-row :gutter="16">
             <el-col :span="12">
-              <el-form-item label="办事处公司编码" prop="orderOfficeCompanyCode">
-                <el-input v-model="createForm.orderOfficeCompanyCode" placeholder="COMP-SH（可选）" />
+              <el-form-item label="下单公司" prop="orderOfficeCompanyId">
+                <el-select
+                  v-model="createForm.orderOfficeCompanyId"
+                  filterable
+                  class="!w-full"
+                  placeholder="请选择公司"
+                >
+                  <el-option
+                    v-for="item in companies"
+                    :key="item.id"
+                    :label="`${item.code} ${item.name}`"
+                    :value="item.id ?? 0"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="办事处部门编码" prop="orderOfficeDepartmentCode">
-                <el-input v-model="createForm.orderOfficeDepartmentCode" placeholder="DEPT-SH-01（可选）" />
+              <el-form-item label="下单办事处" prop="orderOfficeDepartmentId">
+                <el-select
+                  v-model="createForm.orderOfficeDepartmentId"
+                  filterable
+                  class="!w-full"
+                  placeholder="请选择部门"
+                >
+                  <el-option
+                    v-for="item in departments"
+                    :key="item.id"
+                    :label="`${item.code} ${item.name}`"
+                    :value="item.id ?? 0"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="实施地点" prop="implementationLocation">
-            <el-input v-model="createForm.implementationLocation" placeholder="上海（多地点拆分属 PM-02）" />
+          <el-divider content-position="left">订单实施范围</el-divider>
+          <el-form-item label="地点录入方式">
+            <el-radio-group v-model="createForm.locationMode">
+              <el-radio-button value="sites">选择已维护站点</el-radio-button>
+              <el-radio-button value="fallback">站点未维护</el-radio-button>
+            </el-radio-group>
           </el-form-item>
+          <template v-if="createForm.locationMode === 'sites'">
+            <div v-for="(siteRow, index) in createForm.sites" :key="index" class="site-row">
+              <el-select
+                v-model="siteRow.siteId"
+                filterable
+                class="site-select"
+                placeholder="选择实施站点"
+                @change="syncSiteVersion(siteRow)"
+              >
+                <el-option
+                  v-for="item in availableSites"
+                  :key="item.id"
+                  :label="`${item.code} ${item.name}`"
+                  :value="item.id ?? 0"
+                />
+              </el-select>
+              <el-radio v-model="primarySiteIndex" :value="index">主站点</el-radio>
+              <el-button
+                link
+                type="danger"
+                :disabled="createForm.sites.length === 1"
+                @click="removeSiteRow(index)"
+                >移除</el-button
+              >
+            </div>
+            <el-button type="primary" plain @click="addSiteRow"
+              ><Icon icon="ep:plus" />增加站点</el-button
+            >
+          </template>
+          <el-form-item v-else label="兼容实施地点" prop="implementationLocation">
+            <el-input
+              v-model="createForm.implementationLocation"
+              placeholder="站点未维护时填写现场可识别地点"
+            />
+          </el-form-item>
+          <el-alert
+            v-if="createForm.locationMode === 'fallback'"
+            type="warning"
+            :closable="false"
+            show-icon
+            class="mb-16px"
+          >
+            项目将标记为 UNRESOLVED，可在工勘或安装环节补充结构化地点。
+          </el-alert>
           <el-divider content-position="left">项目分类三维（模板匹配依据）</el-divider>
           <el-row :gutter="16">
             <el-col :span="8">
@@ -255,7 +362,11 @@
             </el-col>
             <el-col :span="8">
               <el-form-item label="项目类别" prop="projectCategory">
-                <el-select v-model="createForm.projectCategory" placeholder="请选择" class="!w-full">
+                <el-select
+                  v-model="createForm.projectCategory"
+                  placeholder="请选择"
+                  class="!w-full"
+                >
                   <el-option
                     v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
                     :key="dict.value"
@@ -267,7 +378,11 @@
             </el-col>
             <el-col :span="8">
               <el-form-item label="实施方式" prop="implementationMode">
-                <el-select v-model="createForm.implementationMode" placeholder="请选择" class="!w-full">
+                <el-select
+                  v-model="createForm.implementationMode"
+                  placeholder="请选择"
+                  class="!w-full"
+                >
                   <el-option
                     v-for="dict in getStrDictOptions(DICT_TYPE.PMS_IMPLEMENTATION_METHOD)"
                     :key="dict.value"
@@ -279,7 +394,12 @@
             </el-col>
           </el-row>
           <el-form-item label="重大项目级别" prop="majorProjectLevel">
-            <el-select v-model="createForm.majorProjectLevel" placeholder="不限（NULL）" clearable class="!w-240px">
+            <el-select
+              v-model="createForm.majorProjectLevel"
+              placeholder="不限（NULL）"
+              clearable
+              class="!w-240px"
+            >
               <el-option
                 v-for="dict in getStrDictOptions(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL)"
                 :key="dict.value"
@@ -379,7 +499,9 @@
         />
         <el-descriptions :column="2" border size="small" class="mb-16px">
           <el-descriptions-item label="项目名称">{{ createForm.projectName }}</el-descriptions-item>
-          <el-descriptions-item label="客户">{{ createForm.customerName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="客户">{{
+            createForm.customerName || '-'
+          }}</el-descriptions-item>
           <el-descriptions-item label="签约方式">
             {{ dimLabel(createForm.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) }}
           </el-descriptions-item>
@@ -389,40 +511,45 @@
           <el-descriptions-item label="实施方式">
             {{ dimLabel(createForm.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) }}
           </el-descriptions-item>
-          <el-descriptions-item label="重大项目级别">{{ createForm.majorProjectLevel || '不限' }}</el-descriptions-item>
+          <el-descriptions-item label="重大项目级别">{{
+            createForm.majorProjectLevel || '不限'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="地点状态">
+            {{ createForm.locationMode === 'sites' ? 'RESOLVED' : 'UNRESOLVED' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="实施范围">
+            {{
+              createForm.locationMode === 'sites'
+                ? `${createForm.sites.length} 个站点`
+                : createForm.implementationLocation
+            }}
+          </el-descriptions-item>
           <el-descriptions-item label="选用模板">
             <span v-if="selectedTemplate">
-              {{ selectedTemplate.name }}（revision #{{ selectedTemplate.templateRevisionId }} v{{ selectedTemplate.latestRevisionNo }}，人工选择）
+              {{ selectedTemplate.name }}（revision #{{ selectedTemplate.templateRevisionId }} v{{
+                selectedTemplate.latestRevisionNo
+              }}，人工选择）
             </span>
             <span v-else-if="matchResult?.outcome === 'MATCHED'">
               {{ matchCandidates[0]?.name }}（唯一默认命中，自动加载）
             </span>
             <span v-else class="text-red-500">不可达</span>
           </el-descriptions-item>
-          <el-descriptions-item label="创建原因" :span="2">{{ createForm.creationReason }}</el-descriptions-item>
+          <el-descriptions-item label="创建原因" :span="2">{{
+            createForm.creationReason
+          }}</el-descriptions-item>
         </el-descriptions>
-        <el-form label-width="130px">
-          <el-form-item label="一级服务经理">
-            <PmsEntitySelect
-              v-model="createForm.serviceManagerUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
-              placeholder="可选：创建时同步指派（SERVICE_MANAGER_L1）"
-              clearable
-              class="!w-320px"
-            />
-          </el-form-item>
-        </el-form>
         <el-alert type="info" :closable="false" show-icon>
-          提交将单事务完成：编码分配（PJT+年份+流水）→ 模板实例化（阶段/任务/里程碑/交付件/门禁冻结）→ 可选指派；失败整体回滚。
+          提交将单事务完成：编码分配（PJT+年份+流水）→
+          模板实例化（阶段/任务/里程碑/交付件/门禁冻结）→ 实施站点绑定；失败整体回滚。
         </el-alert>
       </div>
 
       <template #footer>
         <el-button v-if="wizardStep > 0" @click="wizardStep--">上一步</el-button>
-        <el-button v-if="wizardStep === 0" type="primary" @click="wizardNext0">下一步：匹配模板</el-button>
+        <el-button v-if="wizardStep === 0" type="primary" @click="wizardNext0"
+          >下一步：匹配模板</el-button
+        >
         <el-button
           v-if="wizardStep === 1"
           type="primary"
@@ -442,11 +569,21 @@
     <el-drawer v-model="previewVisible" :title="`模板预览：${previewTitle}`" size="620px">
       <div v-loading="previewLoading">
         <el-descriptions v-if="previewContent" :column="2" border size="small" class="mb-12px">
-          <el-descriptions-item label="阶段数">{{ previewContent.stages.length }}</el-descriptions-item>
-          <el-descriptions-item label="任务数">{{ previewContent.tasks.length }}</el-descriptions-item>
-          <el-descriptions-item label="里程碑数">{{ previewContent.milestones.length }}</el-descriptions-item>
-          <el-descriptions-item label="交付件数">{{ previewContent.deliverables.length }}</el-descriptions-item>
-          <el-descriptions-item label="门禁数" :span="2">{{ previewContent.gates.length }}</el-descriptions-item>
+          <el-descriptions-item label="阶段数">{{
+            previewContent.stages.length
+          }}</el-descriptions-item>
+          <el-descriptions-item label="任务数">{{
+            previewContent.tasks.length
+          }}</el-descriptions-item>
+          <el-descriptions-item label="里程碑数">{{
+            previewContent.milestones.length
+          }}</el-descriptions-item>
+          <el-descriptions-item label="交付件数">{{
+            previewContent.deliverables.length
+          }}</el-descriptions-item>
+          <el-descriptions-item label="门禁数" :span="2">{{
+            previewContent.gates.length
+          }}</el-descriptions-item>
         </el-descriptions>
         <el-collapse v-if="previewContent">
           <el-collapse-item
@@ -456,26 +593,44 @@
             :name="stage.stageCode"
           >
             <div class="preview-block">
-              <div class="preview-block-title">任务（{{ stageTasks(stage.stageCode).length }}）</div>
+              <div class="preview-block-title"
+                >任务（{{ stageTasks(stage.stageCode).length }}）</div
+              >
               <div v-for="t in stageTasks(stage.stageCode)" :key="t.taskCode" class="preview-line">
                 <el-tag size="small" type="info">{{ t.taskCode }}</el-tag> {{ t.name }}
               </div>
             </div>
             <div class="preview-block">
-              <div class="preview-block-title">里程碑（{{ stageMilestones(stage.stageCode).length }}）</div>
-              <div v-for="m in stageMilestones(stage.stageCode)" :key="m.milestoneCode" class="preview-line">
+              <div class="preview-block-title"
+                >里程碑（{{ stageMilestones(stage.stageCode).length }}）</div
+              >
+              <div
+                v-for="m in stageMilestones(stage.stageCode)"
+                :key="m.milestoneCode"
+                class="preview-line"
+              >
                 <el-tag size="small" type="warning">{{ m.milestoneCode }}</el-tag> {{ m.name }}
               </div>
             </div>
             <div class="preview-block">
-              <div class="preview-block-title">交付件（{{ stageDeliverables(stage.stageCode).length }}）</div>
-              <div v-for="d in stageDeliverables(stage.stageCode)" :key="d.deliverableCode" class="preview-line">
-                <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{ d.deliverableCode }}</el-tag>
+              <div class="preview-block-title"
+                >交付件（{{ stageDeliverables(stage.stageCode).length }}）</div
+              >
+              <div
+                v-for="d in stageDeliverables(stage.stageCode)"
+                :key="d.deliverableCode"
+                class="preview-line"
+              >
+                <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{
+                  d.deliverableCode
+                }}</el-tag>
                 {{ d.name }}
               </div>
             </div>
             <div class="preview-block">
-              <div class="preview-block-title">门禁（{{ stageGates(stage.stageCode).length }}）</div>
+              <div class="preview-block-title"
+                >门禁（{{ stageGates(stage.stageCode).length }}）</div
+              >
               <div v-for="g in stageGates(stage.stageCode)" :key="g.gateCode" class="preview-line">
                 <el-tag size="small" :type="g.gateType === 'ENTRY' ? 'success' : 'primary'">
                   {{ g.gateType === 'ENTRY' ? '准入' : '准出' }}
@@ -492,16 +647,23 @@
     </el-drawer>
 
     <!-- ============ 项目详情抽屉 ============ -->
-    <el-drawer v-model="detailVisible" :title="`项目详情：${detail?.projectCode || ''}`" size="860px">
+    <el-drawer
+      v-model="detailVisible"
+      :title="`项目详情：${detail?.projectCode || ''}`"
+      size="860px"
+    >
       <div v-loading="detailLoading">
         <el-tabs v-model="detailTab">
           <el-tab-pane label="基本信息" name="base">
             <el-descriptions v-if="detail" :column="2" border size="small">
               <el-descriptions-item label="项目编码">{{ detail.projectCode }}</el-descriptions-item>
               <el-descriptions-item label="编码命名空间">
-                根 #{{ detail.codeRootId }} · 序号 {{ detail.projectSequence }} · 规则 {{ detail.codeRuleVersion }}
+                根 #{{ detail.codeRootId }} · 序号 {{ detail.projectSequence }} · 规则
+                {{ detail.codeRuleVersion }}
               </el-descriptions-item>
-              <el-descriptions-item label="项目名称" :span="2">{{ detail.projectName }}</el-descriptions-item>
+              <el-descriptions-item label="项目名称" :span="2">{{
+                detail.projectName
+              }}</el-descriptions-item>
               <el-descriptions-item label="签约方式">
                 <dict-tag :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="detail.signingMethod!" />
               </el-descriptions-item>
@@ -509,7 +671,10 @@
                 <dict-tag :type="DICT_TYPE.PMS_PROJECT_CATEGORY" :value="detail.projectCategory!" />
               </el-descriptions-item>
               <el-descriptions-item label="实施方式">
-                <dict-tag :type="DICT_TYPE.PMS_IMPLEMENTATION_METHOD" :value="detail.implementationMode!" />
+                <dict-tag
+                  :type="DICT_TYPE.PMS_IMPLEMENTATION_METHOD"
+                  :value="detail.implementationMode!"
+                />
               </el-descriptions-item>
               <el-descriptions-item label="重大项目级别">
                 <dict-tag
@@ -519,27 +684,55 @@
                 />
                 <span v-else>不限</span>
               </el-descriptions-item>
-              <el-descriptions-item label="客户">{{ detail.customerName || '-' }}（{{ detail.customerCode || '-' }}）</el-descriptions-item>
-              <el-descriptions-item label="合同号">{{ detail.contractNo || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="实施地点">{{ detail.implementationLocation || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="客户"
+                >{{ detail.customerName || '-' }}（{{
+                  detail.customerCode || '-'
+                }}）</el-descriptions-item
+              >
+              <el-descriptions-item label="合同号">{{
+                detail.contractNo || '-'
+              }}</el-descriptions-item>
+              <el-descriptions-item label="下单公司">
+                {{ detail.companyCode || '-' }} {{ detail.companyName || '' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="下单办事处">
+                {{ detail.departmentCode || '-' }} {{ detail.departmentName || '' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="实施地点">{{
+                detail.implementationLocation || '-'
+              }}</el-descriptions-item>
+              <el-descriptions-item label="地点状态">
+                <el-tag
+                  :type="detail.locationResolutionStatus === 'RESOLVED' ? 'success' : 'warning'"
+                >
+                  {{ detail.locationResolutionStatus || 'UNRESOLVED' }}
+                </el-tag>
+              </el-descriptions-item>
               <el-descriptions-item label="状态">
                 <dict-tag :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE" :value="detail.status!" />
               </el-descriptions-item>
               <el-descriptions-item label="创建来源">
                 <dict-tag :type="DICT_TYPE.PMS_PROJECT_SOURCE_TYPE" :value="detail.sourceType!" />
               </el-descriptions-item>
-              <el-descriptions-item label="创建原因" :span="2">{{ detail.creationReason || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="创建原因" :span="2">{{
+                detail.creationReason || '-'
+              }}</el-descriptions-item>
               <el-descriptions-item label="模板绑定" :span="2">
                 <span v-if="detail.lifecycleTemplateId">
                   #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }} ·
-                  <dict-tag :type="DICT_TYPE.PMS_TEMPLATE_LOAD_METHOD" :value="detail.templateLoadMethod!" />
+                  <dict-tag
+                    :type="DICT_TYPE.PMS_TEMPLATE_LOAD_METHOD"
+                    :value="detail.templateLoadMethod!"
+                  />
                   <span v-if="detail.processDefinitionKey" class="ml-8px text-12px text-gray-400">
                     流程 {{ detail.processDefinitionKey }}@{{ detail.processDefinitionVersion }}
                   </span>
                 </span>
                 <span v-else class="text-gray-400">-</span>
               </el-descriptions-item>
-              <el-descriptions-item label="创建时间" :span="2">{{ formatDateTime(detail.createTime) }}</el-descriptions-item>
+              <el-descriptions-item label="创建时间" :span="2">{{
+                formatDateTime(detail.createTime)
+              }}</el-descriptions-item>
             </el-descriptions>
           </el-tab-pane>
 
@@ -580,8 +773,14 @@
                   </el-table>
                 </div>
                 <div class="preview-block">
-                  <div class="preview-block-title">里程碑（{{ instMilestones(stage.stageCode).length }}）</div>
-                  <div v-for="m in instMilestones(stage.stageCode)" :key="m.milestoneCode" class="preview-line">
+                  <div class="preview-block-title"
+                    >里程碑（{{ instMilestones(stage.stageCode).length }}）</div
+                  >
+                  <div
+                    v-for="m in instMilestones(stage.stageCode)"
+                    :key="m.milestoneCode"
+                    class="preview-line"
+                  >
                     <dict-tag :type="DICT_TYPE.PMS_PROJECT_MILESTONE_STATUS" :value="m.status" />
                     <el-tag size="small" type="warning">{{ m.milestoneCode }}</el-tag>
                     {{ m.name }}
@@ -589,16 +788,30 @@
                   </div>
                 </div>
                 <div class="preview-block">
-                  <div class="preview-block-title">交付件（{{ instDeliverables(stage.stageCode).length }}）</div>
-                  <div v-for="d in instDeliverables(stage.stageCode)" :key="d.deliverableCode" class="preview-line">
+                  <div class="preview-block-title"
+                    >交付件（{{ instDeliverables(stage.stageCode).length }}）</div
+                  >
+                  <div
+                    v-for="d in instDeliverables(stage.stageCode)"
+                    :key="d.deliverableCode"
+                    class="preview-line"
+                  >
                     <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="d.status" />
-                    <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{ d.deliverableCode }}</el-tag>
+                    <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{
+                      d.deliverableCode
+                    }}</el-tag>
                     {{ d.name }}
                   </div>
                 </div>
                 <div class="preview-block">
-                  <div class="preview-block-title">门禁（{{ instGates(stage.stageCode).length }}）</div>
-                  <div v-for="g in instGates(stage.stageCode)" :key="g.gateCode" class="preview-line">
+                  <div class="preview-block-title"
+                    >门禁（{{ instGates(stage.stageCode).length }}）</div
+                  >
+                  <div
+                    v-for="g in instGates(stage.stageCode)"
+                    :key="g.gateCode"
+                    class="preview-line"
+                  >
                     <dict-tag :type="DICT_TYPE.PMS_PROJECT_GATE_STATUS" :value="g.status" />
                     <el-tag size="small" :type="g.gateType === 'ENTRY' ? 'success' : 'primary'">
                       {{ g.gateType === 'ENTRY' ? '准入' : '准出' }}
@@ -677,7 +890,10 @@
     <Dialog v-model="assignVisible" title="指派一级服务经理" width="520px">
       <el-form ref="assignFormRef" :model="assignForm" :rules="assignRules" label-width="110px">
         <el-form-item label="项目">
-          <el-input :model-value="`${assignTarget?.projectCode} ${assignTarget?.projectName}`" disabled />
+          <el-input
+            :model-value="`${assignTarget?.projectCode} ${assignTarget?.projectName}`"
+            disabled
+          />
         </el-form-item>
         <el-form-item label="服务经理" prop="userId">
           <PmsEntitySelect
@@ -696,12 +912,44 @@
             <el-option label="二级服务经理（L2）" value="L2" />
           </el-select>
         </el-form-item>
-        <el-form-item label="办事处ID">
-          <el-input-number v-model="assignForm.officeId" :min="1" :controls="false" placeholder="已确认的稳定ID" class="!w-full" />
+        <el-form-item label="实施站点" prop="siteId">
+          <el-select
+            v-model="assignForm.siteId"
+            class="!w-full"
+            placeholder="请选择项目实施站点"
+            @change="suggestDepartment"
+          >
+            <el-option
+              v-for="item in assignSites"
+              :key="item.siteId"
+              :label="`${item.siteCodeSnapshot || ''} ${item.siteNameSnapshot || ''}`"
+              :value="item.siteId"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="实施地点ID">
-          <el-input-number v-model="assignForm.locationId" :min="1" :controls="false" placeholder="已确认的稳定ID" class="!w-full" />
+        <el-form-item label="服务办事处" prop="departmentCode">
+          <el-select
+            v-model="assignForm.departmentCode"
+            filterable
+            class="!w-full"
+            placeholder="选择或人工确认办事处"
+          >
+            <el-option
+              v-for="item in departments"
+              :key="item.id"
+              :label="`${item.code} ${item.name}`"
+              :value="item.code"
+            />
+          </el-select>
         </el-form-item>
+        <el-alert
+          :type="assignSuggestion ? 'success' : 'info'"
+          :closable="false"
+          show-icon
+          class="mb-12px"
+        >
+          {{ assignSuggestion || '当前站点无区划映射建议，请人工选择服务办事处。' }}
+        </el-alert>
         <el-form-item label="生效时间">
           <el-date-picker
             v-model="assignForm.effectiveFrom"
@@ -738,11 +986,19 @@ import type {
   ProjectInstancesVO,
   ProjectMemberAssignmentVO,
   ProjectMatchTemplatesRespVO,
+  ProjectSiteReqVO,
+  ProjectSiteVO,
   TemplateCandidateVO
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
 import * as UserApi from '@/api/system/user'
+import * as CompanyApi from '@/api/system/company'
+import type { CompanyVO } from '@/api/system/company'
+import * as DeptApi from '@/api/system/dept'
+import type { DeptVO } from '@/api/system/dept'
+import * as LocationApi from '@/api/pms/asset/location'
+import type { SiteVO } from '@/api/pms/asset/location'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
 
 defineOptions({ name: 'PmsProjects' })
@@ -784,7 +1040,14 @@ for (const stage of LIFECYCLE_STAGES) stats[stage.value] = 0
 const activeStatus = ref('')
 
 const statusCards = computed(() => [
-  { key: 'total', label: '项目总数', value: '', count: stats.total, tone: 'blue', icon: 'ep:folder-opened' },
+  {
+    key: 'total',
+    label: '项目总数',
+    value: '',
+    count: stats.total,
+    tone: 'blue',
+    icon: 'ep:folder-opened'
+  },
   ...LIFECYCLE_STAGES.map((stage) => ({
     key: stage.value,
     label: stage.label,
@@ -860,29 +1123,61 @@ const wizardFormRef = ref()
 const creating = ref(false)
 const createIdempotency = createSubmissionIdempotencyState()
 const createErrorMessage = ref('')
+const companies = ref<CompanyVO[]>([])
+const departments = ref<DeptVO[]>([])
+const availableSites = ref<SiteVO[]>([])
+const primarySiteIndex = ref(0)
 
 const createForm = reactive({
   projectName: '',
   customerCode: '',
   customerName: '',
   contractNo: '',
-  orderOfficeCompanyCode: '',
-  orderOfficeDepartmentCode: '',
+  orderOfficeCompanyId: undefined as number | undefined,
+  orderOfficeDepartmentId: undefined as number | undefined,
+  locationMode: 'sites' as 'sites' | 'fallback',
+  sites: [{ siteId: undefined, siteVersion: undefined }] as Array<{
+    siteId?: number
+    siteVersion?: number
+  }>,
   implementationLocation: '',
   signingMethod: '',
   projectCategory: '',
   implementationMode: '',
   majorProjectLevel: '' as string,
-  creationReason: '',
-  serviceManagerUserId: undefined as number | undefined
+  creationReason: ''
 })
 
 const createRules = {
   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
+  orderOfficeCompanyId: [{ required: true, message: '请选择下单公司', trigger: 'change' }],
+  orderOfficeDepartmentId: [{ required: true, message: '请选择下单办事处', trigger: 'change' }],
   signingMethod: [{ required: true, message: '签约方式不能为空', trigger: 'change' }],
   projectCategory: [{ required: true, message: '项目类别不能为空', trigger: 'change' }],
   implementationMode: [{ required: true, message: '实施方式不能为空', trigger: 'change' }],
   creationReason: [{ required: true, message: '手工创建原因不能为空（BR-2）', trigger: 'blur' }]
+}
+
+const syncSiteVersion = (row: { siteId?: number; siteVersion?: number }) => {
+  row.siteVersion = availableSites.value.find((site) => site.id === row.siteId)?.version
+}
+
+const addSiteRow = () => createForm.sites.push({ siteId: undefined, siteVersion: undefined })
+
+const removeSiteRow = (index: number) => {
+  createForm.sites.splice(index, 1)
+  if (primarySiteIndex.value >= createForm.sites.length) primarySiteIndex.value = 0
+}
+
+const loadOrganizationAndSites = async () => {
+  const [companyList, deptList, sitePage] = await Promise.all([
+    CompanyApi.getSimpleCompanyList(),
+    DeptApi.getSimpleDeptList(),
+    LocationApi.getSitePage({ pageNo: 1, pageSize: 100 })
+  ])
+  companies.value = companyList || []
+  departments.value = deptList || []
+  availableSites.value = sitePage.list || []
 }
 
 const openWizard = () => {
@@ -892,16 +1187,18 @@ const openWizard = () => {
     customerCode: '',
     customerName: '',
     contractNo: '',
-    orderOfficeCompanyCode: '',
-    orderOfficeDepartmentCode: '',
+    orderOfficeCompanyId: undefined,
+    orderOfficeDepartmentId: undefined,
+    locationMode: 'sites',
+    sites: [{ siteId: undefined, siteVersion: undefined }],
     implementationLocation: '',
     signingMethod: '',
     projectCategory: '',
     implementationMode: '',
     majorProjectLevel: '',
-    creationReason: '',
-    serviceManagerUserId: undefined
+    creationReason: ''
   })
+  primarySiteIndex.value = 0
   selectedTemplateRevisionId.value = undefined
   matchResult.value = null
   createErrorMessage.value = ''
@@ -911,6 +1208,19 @@ const openWizard = () => {
 
 const wizardNext0 = async () => {
   await wizardFormRef.value?.validate()
+  if (createForm.locationMode === 'sites') {
+    if (createForm.sites.some((item) => !item.siteId || item.siteVersion === undefined)) {
+      message.error('请完整选择实施站点')
+      return
+    }
+    if (new Set(createForm.sites.map((item) => item.siteId)).size !== createForm.sites.length) {
+      message.error('实施站点不能重复')
+      return
+    }
+  } else if (!createForm.implementationLocation.trim()) {
+    message.error('站点未维护时必须填写兼容实施地点')
+    return
+  }
   await runMatch()
   wizardStep.value = 1
 }
@@ -922,7 +1232,9 @@ const selectedTemplateRevisionId = ref<number | undefined>(undefined)
 
 const matchCandidates = computed<TemplateCandidateVO[]>(() => matchResult.value?.candidates || [])
 const selectedTemplate = computed(
-  () => matchCandidates.value.find((c) => c.templateRevisionId === selectedTemplateRevisionId.value) || null
+  () =>
+    matchCandidates.value.find((c) => c.templateRevisionId === selectedTemplateRevisionId.value) ||
+    null
 )
 /** 步骤② → ③ 门槛：MATCHED 自动放行；MULTI_MATCH 必选一个；NO_MATCH 阻断 */
 const canGoStep2 = computed(() => {
@@ -965,7 +1277,10 @@ const previewTemplate = async (candidate: TemplateCandidateVO) => {
   previewVisible.value = true
   previewLoading.value = true
   try {
-    const detail = await getProjectTemplateRevision(candidate.templateId, candidate.latestRevisionNo)
+    const detail = await getProjectTemplateRevision(
+      candidate.templateId,
+      candidate.latestRevisionNo
+    )
     previewContent.value = detail?.content || null
   } catch {
     previewContent.value = null
@@ -985,22 +1300,31 @@ const stageGates = (code: string) =>
 
 // ============ 提交创建（步骤③） ============
 const submitCreate = async () => {
+  const sites: ProjectSiteReqVO[] | undefined =
+    createForm.locationMode === 'sites'
+      ? createForm.sites.map((item, index) => ({
+          siteId: item.siteId!,
+          siteVersion: item.siteVersion!,
+          primarySite: index === primarySiteIndex.value
+        }))
+      : undefined
   const payload: ProjectsApi.ProjectCreateReqVO = {
     projectName: createForm.projectName,
     customerCode: createForm.customerCode || undefined,
     customerName: createForm.customerName || undefined,
     contractNo: createForm.contractNo || undefined,
-    orderOfficeCompanyCode: createForm.orderOfficeCompanyCode || undefined,
-    orderOfficeDepartmentCode: createForm.orderOfficeDepartmentCode || undefined,
-    implementationLocation: createForm.implementationLocation || undefined,
+    orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
+    orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
+    sites,
+    implementationLocation:
+      createForm.locationMode === 'fallback' ? createForm.implementationLocation : undefined,
     signingMethod: createForm.signingMethod,
     projectCategory: createForm.projectCategory,
     implementationMode: createForm.implementationMode,
     majorProjectLevel: createForm.majorProjectLevel || null,
     creationReason: createForm.creationReason,
     templateRevisionId: selectedTemplateRevisionId.value,
-    candidateWatermark: matchResult.value?.candidateWatermark || '',
-    serviceManagerUserId: createForm.serviceManagerUserId || null
+    candidateWatermark: matchResult.value?.candidateWatermark || ''
   }
   const idempotencyKey = createIdempotency.keyFor(payload)
   creating.value = true
@@ -1031,7 +1355,10 @@ const members = ref<ProjectMemberAssignmentVO[]>([])
 
 /** 跳转独立详情页（F-PM02 项目详情工作台） */
 const goDetail = (row: ProjectMasterVO) => {
-  router.push({ path: '/pms/project-management/project-master-detail', query: { projectId: row.id } })
+  router.push({
+    path: '/pms/project-management/project-master-detail',
+    query: { projectId: row.id }
+  })
 }
 
 const openDetail = async (row: ProjectMasterVO) => {
@@ -1051,7 +1378,9 @@ const openDetail = async (row: ProjectMasterVO) => {
     instances.value = inst
     members.value = mem || []
     // memberName 快照缺失的行按 userId 回查昵称
-    const unnamed = (mem || []).filter((m: ProjectMemberAssignmentVO) => !m.memberName).map((m: ProjectMemberAssignmentVO) => m.userId!)
+    const unnamed = (mem || [])
+      .filter((m: ProjectMemberAssignmentVO) => !m.memberName)
+      .map((m: ProjectMemberAssignmentVO) => m.userId!)
     if (unnamed.length) {
       await loadUserNicknames(unnamed)
     }
@@ -1135,31 +1464,57 @@ const submitEdit = async () => {
 const assignVisible = ref(false)
 const assignFormRef = ref()
 const assignTarget = ref<ProjectMasterVO | null>(null)
+const assignSites = ref<ProjectSiteVO[]>([])
+const assignSuggestion = ref('')
 const assignForm = reactive({
   userId: undefined as number | undefined,
   levelCode: 'L1' as 'L1' | 'L2',
-  officeId: undefined as number | undefined,
-  locationId: undefined as number | undefined,
+  siteId: undefined as number | undefined,
+  departmentCode: '',
   effectiveFrom: ''
 })
 const assignRules = {
   userId: [{ required: true, message: '请选择服务经理用户', trigger: 'change' }],
-  levelCode: [{ required: true, message: '请选择服务层级', trigger: 'change' }]
+  levelCode: [{ required: true, message: '请选择服务层级', trigger: 'change' }],
+  siteId: [{ required: true, message: '请选择实施站点', trigger: 'change' }],
+  departmentCode: [{ required: true, message: '请选择服务办事处', trigger: 'change' }]
 }
 const PROJECT_VERSION_CONFLICT_CODE = 1014024014
 const assignIdempotency = createSubmissionIdempotencyState()
 
 const openAssign = async (row: ProjectMasterVO) => {
-  assignTarget.value = await ProjectsApi.getProject(row.id!)
+  const [project, sites] = await Promise.all([
+    ProjectsApi.getProject(row.id!),
+    ProjectsApi.getProjectSites(row.id!)
+  ])
+  assignTarget.value = project
+  assignSites.value = sites || []
   Object.assign(assignForm, {
     userId: undefined,
     levelCode: 'L1',
-    officeId: undefined,
-    locationId: undefined,
+    siteId: assignSites.value.find((item) => item.primarySite)?.siteId,
+    departmentCode: '',
     effectiveFrom: ''
   })
   assignIdempotency.reset()
   assignVisible.value = true
+  await suggestDepartment(assignForm.siteId)
+}
+
+const suggestDepartment = async (siteId?: number) => {
+  assignSuggestion.value = ''
+  const site = assignSites.value.find((item) => item.siteId === siteId)
+  if (!site?.addressSnapshot) return
+  try {
+    const address = JSON.parse(site.addressSnapshot) as { districtCode?: string }
+    if (!address.districtCode) return
+    const mapping = await LocationApi.resolveAreaDepartment(address.districtCode, 'DISTRICT')
+    if (!mapping?.departmentCode) return
+    assignForm.departmentCode = mapping.departmentCode
+    assignSuggestion.value = `已按区县 ${address.districtCode} 精确建议 ${mapping.departmentName || mapping.departmentCode}，可手动调整。`
+  } catch {
+    // 快照不可解析或无有效映射时保留人工指派。
+  }
 }
 
 const submitAssign = async () => {
@@ -1171,9 +1526,9 @@ const submitAssign = async () => {
   const payload = {
     roleCode: 'SERVICE_MANAGER' as const,
     levelCode: assignForm.levelCode,
-    userId: assignForm.userId!,
-    officeId: assignForm.officeId,
-    locationId: assignForm.locationId,
+    managerId: assignForm.userId!,
+    siteId: assignForm.siteId!,
+    departmentCode: assignForm.departmentCode,
     effectiveFrom: assignForm.effectiveFrom || undefined
   }
   const requestIdentity = {
@@ -1210,10 +1565,22 @@ const submitAssign = async () => {
 onMounted(() => {
   loadStats()
   load()
+  loadOrganizationAndSites()
 })
 </script>
 
 <style lang="scss" scoped>
+.site-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+
+  .site-select {
+    flex: 1;
+  }
+}
+
 /* ============ 顶部状态卡 ============ */
 .status-cards {
   display: grid;
@@ -1254,10 +1621,18 @@ onMounted(() => {
     font-size: 22px;
     color: #fff;
   }
-  &--blue .status-card-icon { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
-  &--green .status-card-icon { background: linear-gradient(135deg, #10b981, #34d399); }
-  &--gray .status-card-icon { background: linear-gradient(135deg, #64748b, #94a3b8); }
-  &--yellow .status-card-icon { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+  &--blue .status-card-icon {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  }
+  &--green .status-card-icon {
+    background: linear-gradient(135deg, #10b981, #34d399);
+  }
+  &--gray .status-card-icon {
+    background: linear-gradient(135deg, #64748b, #94a3b8);
+  }
+  &--yellow .status-card-icon {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  }
 
   .status-card-body {
     flex: 1;
@@ -1282,10 +1657,18 @@ onMounted(() => {
     bottom: 0;
     width: 3px;
   }
-  &--blue .status-card-strip { background: #3b82f6; }
-  &--green .status-card-strip { background: #10b981; }
-  &--gray .status-card-strip { background: #94a3b8; }
-  &--yellow .status-card-strip { background: #f59e0b; }
+  &--blue .status-card-strip {
+    background: #3b82f6;
+  }
+  &--green .status-card-strip {
+    background: #10b981;
+  }
+  &--gray .status-card-strip {
+    background: #94a3b8;
+  }
+  &--yellow .status-card-strip {
+    background: #f59e0b;
+  }
 }
 
 /* ============ 表格工具栏 ============ */

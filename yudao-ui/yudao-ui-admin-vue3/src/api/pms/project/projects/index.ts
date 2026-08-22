@@ -22,12 +22,19 @@ export interface ProjectMasterVO {
   customerCode?: string
   customerName?: string
   managerName?: string
+  companyId?: number
+  companyCode?: string
+  companyName?: string
+  departmentId?: number
+  departmentCode?: string
+  departmentName?: string
   signingMethod?: string
   projectCategory?: string
   implementationMode?: string
   majorProjectLevel?: string | null
   contractNo?: string
   implementationLocation?: string
+  locationResolutionStatus?: 'RESOLVED' | 'UNRESOLVED'
   creationReason?: string
   lifecycleTemplateId?: number
   lifecycleTemplateRevisionNo?: number
@@ -54,8 +61,9 @@ export interface ProjectCreateReqVO {
   customerCode?: string
   customerName?: string
   contractNo?: string
-  orderOfficeCompanyCode?: string
-  orderOfficeDepartmentCode?: string
+  orderOfficeCompanyId: number
+  orderOfficeDepartmentId: number
+  sites?: ProjectSiteReqVO[]
   implementationLocation?: string
   signingMethod?: string
   projectCategory?: string
@@ -64,7 +72,24 @@ export interface ProjectCreateReqVO {
   creationReason: string
   templateRevisionId?: number | null
   candidateWatermark?: string
-  serviceManagerUserId?: number | null
+}
+
+export interface ProjectSiteReqVO {
+  siteId: number
+  siteVersion: number
+  primarySite: boolean
+}
+
+export interface ProjectSiteVO {
+  id: number
+  projectId: number
+  siteId: number
+  siteVersionSnapshot: number
+  primarySite: boolean
+  scopeStatus: string
+  siteCodeSnapshot?: string
+  siteNameSnapshot?: string
+  addressSnapshot?: string
 }
 
 /** 创建响应（含实例化摘要） */
@@ -210,6 +235,9 @@ export const getProjectPage = (params: PageParam) =>
 /** 项目详情（基本信息+四维+模板绑定） */
 export const getProject = (id: number) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
 
+export const getProjectSites = (id: number) =>
+  request.get<ProjectSiteVO[]>({ url: `${baseUrl}/${id}/sites` })
+
 /** 更新可编辑属性（BR-7：编码/父节点/来源/模板绑定/状态不可改） */
 export const updateProject = (data: {
   id: number
@@ -234,9 +262,9 @@ export const assignManager = (
   data: {
     roleCode: 'SERVICE_MANAGER'
     levelCode: 'L1' | 'L2'
-    userId: number
-    officeId?: number
-    locationId?: number
+    managerId: number
+    siteId: number
+    departmentCode: string
     effectiveFrom?: string
   },
   expectedVersion: number,
