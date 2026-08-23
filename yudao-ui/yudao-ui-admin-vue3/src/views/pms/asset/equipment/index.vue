@@ -99,9 +99,9 @@
         <PmsEntitySelect
           v-model="form.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
         />
       </el-form-item>
@@ -221,7 +221,7 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
 import type { EquipmentVO, EquipmentStatusChangeReqVO } from '@/api/pms/asset/equipment'
 import type { EquipmentVersionVO } from '@/api/pms/asset/equipment'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectApi from '@/api/pms/project/projects'
 import * as CustomerApi from '@/api/pms/project/customer'
 
 defineOptions({ name: 'PmsAssetEquipment' })

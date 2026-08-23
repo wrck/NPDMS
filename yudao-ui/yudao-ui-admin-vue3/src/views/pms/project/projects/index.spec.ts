@@ -78,6 +78,12 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.match(surveySource, /locationMaintenance/)
     assert.match(installationSource, /locationMaintenance/)
     assert.match(installationSource, /getEquipmentVersionList/)
+    for (const source of [surveySource, installationSource, equipmentSource]) {
+      assert.match(source, /@\/api\/pms\/project\/projects/)
+      assert.match(source, /label-field="projectName"/)
+      assert.match(source, /query-field="projectName"/)
+      assert.doesNotMatch(source, /@\/api\/pms\/project\/project'/)
+    }
     assert.doesNotMatch(equipmentSource, /v-model="form\.location"/)
     assert.match(equipmentSource, /位置变更历史/)
   })
