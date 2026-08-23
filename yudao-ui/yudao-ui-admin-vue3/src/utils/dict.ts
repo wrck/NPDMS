@@ -410,6 +410,7 @@ export enum DICT_TYPE {
   PMS_SRV_ISSUE_STATUS = 'pms_srv_issue_status', // 巡检问题状态
   PMS_SRV_MAINTENANCE_STATUS = 'pms_srv_maintenance_status', // 维保状态
   PMS_SERVICE_LEVEL = 'pms_service_level', // 服务等级
+  PMS_SRV_LEVEL_STATUS = 'pms_srv_level_status', // 服务等级状态
   PMS_EQUIPMENT_STATUS = 'pms_equipment_status', // 设备状态
   PMS_BATCH_CHANGE_STATUS = 'pms_batch_change_status', // 批量变更状态
   PMS_APPROVAL_STATUS = 'pms_approval_status', // 审批状态(通用7态)
