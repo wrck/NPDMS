@@ -80,4 +80,16 @@ class SiteLocationTreeServiceImplTest {
         assertEquals(1, child.getTreeDepth());
     }
 
+    @Test
+    void shouldResolveIdOnlyReferenceWithoutUpdatingSharedLocation() {
+        SiteLocationDO location = service.maintain(1L,
+                new SiteLocationInput(null, null, null, "ROOM-1", "机房1", "ROOM", 0));
+
+        SiteLocationDO referenced = service.maintain(1L,
+                new SiteLocationInput(location.getId(), 0, null, null, null, null, null));
+
+        assertSame(location, referenced);
+        verify(mapper, never()).updateByIdAndVersion(any(), anyInt());
+    }
+
 }

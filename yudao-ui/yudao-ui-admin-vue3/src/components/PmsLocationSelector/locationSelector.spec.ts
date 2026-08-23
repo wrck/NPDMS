@@ -13,9 +13,17 @@ describe('PmsLocationSelector contract', () => {
 
   it('submits a nested location maintenance command', () => {
     assert.match(source, /address:/)
-    assert.match(source, /site:/)
+    assert.match(source, /site: \{ siteType: 'CUSTOMER_SITE' \}/)
     assert.match(source, /siteLocation:/)
     assert.match(source, /fallbackLocation/)
+  })
+
+  it('references an existing location without mutable fields', () => {
+    assert.match(source, /id: location\.id,\s*expectedVersion: location\.version/)
+    assert.doesNotMatch(
+      source,
+      /id: location\.id,\s*expectedVersion: location\.version,\s*(code|name|locationType|treeSort):/
+    )
   })
 
   it('does not cap the site location tree depth', () => {

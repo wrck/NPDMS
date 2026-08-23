@@ -165,8 +165,9 @@ public class InstallationServiceImpl implements InstallationService {
 
     private void updateStatus(InstallationDO installation, int newStatus) {
         installation.setStatus(newStatus);
-        installation.setVersion(installation.getVersion() + 1);
-        installationMapper.updateById(installation);
+        if (installationMapper.updateById(installation) == 0) {
+            throw exception(INSTALLATION_VERSION_NOT_MATCH);
+        }
     }
 
     private void applyLocation(InstallationDO installation, String fallbackLocation,

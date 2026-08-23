@@ -44,6 +44,9 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
         if (!Objects.equals(existing.getSiteId(), siteId)) {
             throw exception(AST_SITE_LOCATION_CROSS_SITE);
         }
+        if (isReferenceOnly(input)) {
+            return existing;
+        }
         validateCodeUnique(siteId, existing.getId(), input.code());
         SiteLocationDO parent = validateParent(siteId, existing.getId(), input.parentId());
         validateNoCycle(existing, parent);
@@ -124,6 +127,11 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
         if (parent.getTreePath().startsWith(descendantPrefix)) {
             throw exception(AST_SITE_LOCATION_CYCLE);
         }
+    }
+
+    private boolean isReferenceOnly(SiteLocationInput input) {
+        return input.parentId() == null && input.code() == null && input.name() == null
+                && input.locationType() == null && input.treeSort() == null;
     }
 
     private void validateCodeUnique(Long siteId, Long currentId, String code) {

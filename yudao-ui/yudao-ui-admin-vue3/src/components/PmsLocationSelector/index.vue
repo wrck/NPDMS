@@ -115,7 +115,7 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: LocationMaintainReque
 const emptyDraft = (): LocationMaintainRequest => ({
   projectId: props.projectId,
   address: {},
-  site: {},
+  site: { siteType: 'CUSTOMER_SITE' },
   siteLocation: { code: '', name: '', locationType: '', treeSort: 0 },
   fallbackLocation: ''
 })
@@ -158,11 +158,7 @@ const selectLocation = (id?: number) => {
   draft.siteLocation = location
     ? {
         id: location.id,
-        expectedVersion: location.version,
-        code: '',
-        name: '',
-        locationType: '',
-        treeSort: 0
+        expectedVersion: location.version
       }
     : undefined
   const site = sites.value.find((item) => item.id === selectedSiteId.value)

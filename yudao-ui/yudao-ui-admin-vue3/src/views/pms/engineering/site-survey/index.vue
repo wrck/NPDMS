@@ -292,11 +292,7 @@ const toLocationMaintenance = (row?: SiteSurveyVO): LocationMaintainRequest | un
     siteLocation: row.siteLocationId
       ? {
           id: row.siteLocationId,
-          expectedVersion: row.siteLocationVersion,
-          code: '',
-          name: '',
-          locationType: '',
-          treeSort: 0
+          expectedVersion: row.siteLocationVersion
         }
       : undefined
   }

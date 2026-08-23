@@ -243,7 +243,7 @@ const openForm = (row?: InstallationVO) => {
       equipmentId: undefined,
       installLocation: '',
       locationMaintenance: undefined,
-      installTime: '',
+      installTime: undefined,
       installerUserId: undefined,
       environmentCheck: '',
       specCheck: '',
@@ -270,11 +270,7 @@ const toLocationMaintenance = (row?: InstallationVO): LocationMaintainRequest | 
     siteLocation: row.siteLocationId
       ? {
           id: row.siteLocationId,
-          expectedVersion: row.siteLocationVersion,
-          code: '',
-          name: '',
-          locationType: '',
-          treeSort: 0
+          expectedVersion: row.siteLocationVersion
         }
       : undefined
   }

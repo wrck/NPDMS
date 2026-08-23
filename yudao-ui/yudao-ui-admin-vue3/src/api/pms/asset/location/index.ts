@@ -49,6 +49,16 @@ export interface SiteLocationVO {
   children?: SiteLocationVO[]
 }
 
+export interface SiteLocationInput {
+  id?: number
+  expectedVersion?: number
+  parentId?: number
+  code?: string
+  name?: string
+  locationType?: string
+  treeSort?: number
+}
+
 export interface AreaDepartmentMappingVO {
   id?: number
   expectedVersion?: number
@@ -67,7 +77,7 @@ export interface LocationMaintainRequest {
   projectId?: number
   address?: AddressVO
   site?: SiteVO
-  siteLocation?: SiteLocationVO
+  siteLocation?: SiteLocationInput
   fallbackLocation?: string
   sourceBusinessType?: string
   sourceBusinessId?: string

@@ -102,6 +102,26 @@ class InstallationLocationServiceTest {
     }
 
     @Test
+    void letsMybatisManageVersionAndRejectsStaleStatusUpdate() {
+        InstallationDO installation = installation(201L, 8L, 0, null);
+        installation.setVersion(7);
+        when(mapper.selectById(201L)).thenReturn(installation);
+
+        service.startInstallation(201L);
+
+        verify(mapper).updateById(argThat((InstallationDO value) -> value.getStatus() == 1
+                && value.getVersion() == 7));
+
+        reset(mapper);
+        InstallationDO stale = installation(202L, 8L, 0, null);
+        stale.setVersion(7);
+        when(mapper.selectById(202L)).thenReturn(stale);
+        when(mapper.updateById(any(InstallationDO.class))).thenReturn(0);
+
+        assertThrows(ServiceException.class, () -> service.startInstallation(202L));
+    }
+
+    @Test
     void assetFailurePropagatesSoCompletionTransactionCanRollback() {
         InstallationDO installation = installation(201L, 8L, 1, LocalDateTime.now());
         installation.setLocationResolutionStatus("UNRESOLVED");
