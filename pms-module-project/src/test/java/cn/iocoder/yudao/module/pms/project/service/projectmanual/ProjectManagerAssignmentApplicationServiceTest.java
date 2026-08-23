@@ -87,6 +87,40 @@ class ProjectManagerAssignmentApplicationServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void unresolvedProjectAllowsAuthorizedDepartmentAssignmentWithoutSite() {
+        when(projectSiteService.getActiveSites(1L)).thenReturn(List.of());
+        AssignServiceManagerResult assigned = new AssignServiceManagerResult(1L, 9L, 3, "UNASSIGNED");
+        when(projectService.assignServiceManager(any())).thenReturn(assigned);
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            Supplier<Object> operation = invocation.getArgument(3);
+            Object result = operation.get();
+            return new ProjectCreationPlatformFactService.ExecutionResult<>(
+                    ProjectCreationPlatformFactService.Decision.NEW, result);
+        });
+        AssignServiceManagerCommand command = new AssignServiceManagerCommand(1L, 2,
+                "SERVICE_MANAGER", "L1", 66L, null, "DEP-01",
+                LocalDateTime.now().minusMinutes(1), "fallback-assign-key", "c".repeat(64));
+
+        AssignServiceManagerResult result = service.assign(command, actor());
+
+        assertEquals(9L, result.assignmentId());
+        verify(assetLocationApi, never()).getSite(any(), any());
+        verify(projectService).assignServiceManager(command);
+    }
+
+    @Test
+    void resolvedProjectStillRequiresSiteWithinProjectScope() {
+        AssignServiceManagerCommand command = new AssignServiceManagerCommand(1L, 2,
+                "SERVICE_MANAGER", "L1", 66L, null, "DEP-01",
+                LocalDateTime.now().minusMinutes(1), "missing-site-key", "d".repeat(64));
+
+        assertThrows(ServiceException.class, () -> service.assign(command, actor()));
+
+        verifyNoInteractions(platformFactService);
+    }
+
+    @Test
     void permissionFailureStopsBeforeIdempotencyClaim() {
         doThrow(new ServiceException(FORBIDDEN))
                 .when(authorizationService).assertCanAssign(7L);

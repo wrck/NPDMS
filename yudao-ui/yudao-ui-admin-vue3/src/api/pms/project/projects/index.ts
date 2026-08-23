@@ -263,7 +263,7 @@ export const assignManager = (
     roleCode: 'SERVICE_MANAGER'
     levelCode: 'L1' | 'L2'
     managerId: number
-    siteId: number
+    siteId?: number
     departmentCode: string
     effectiveFrom?: string
   },

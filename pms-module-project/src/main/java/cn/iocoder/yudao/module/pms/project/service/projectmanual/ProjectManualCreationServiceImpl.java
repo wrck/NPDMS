@@ -448,7 +448,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private void validateAssignmentCommand(AssignServiceManagerCommand command) {
         if (command == null || command.projectId() == null || command.expectedVersion() == null
                 || command.expectedVersion() < 0 || command.managerId() == null
-                || command.siteId() == null || command.departmentCode() == null
+                || command.departmentCode() == null
                 || command.departmentCode().isBlank()
                 || !"SERVICE_MANAGER".equals(command.roleCode())
                 || !("L1".equals(command.levelCode()) || "L2".equals(command.levelCode()))) {

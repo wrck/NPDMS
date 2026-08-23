@@ -26,8 +26,7 @@ public class ProjectAssignManagerReqVO {
     @NotNull(message = "用户ID不能为空")
     private Long managerId;
 
-    @Schema(description = "实施站点稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "站点ID不能为空")
+    @Schema(description = "实施站点稳定ID；仅站点未维护的UNRESOLVED项目可为空")
     private Long siteId;
 
     @Schema(description = "人工确认的办事处统一部门编码", requiredMode = Schema.RequiredMode.REQUIRED)

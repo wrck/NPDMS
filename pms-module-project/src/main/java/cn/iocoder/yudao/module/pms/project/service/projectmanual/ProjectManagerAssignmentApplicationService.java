@@ -81,7 +81,7 @@ public class ProjectManagerAssignmentApplicationService {
 
     private void validate(AssignServiceManagerCommand command, Actor actor) {
         if (command == null || command.projectId() == null || command.expectedVersion() == null
-                || command.managerId() == null || command.siteId() == null
+                || command.managerId() == null
                 || command.departmentCode() == null || command.departmentCode().isBlank()
                 || command.idempotencyKey() == null || command.idempotencyKey().isBlank()
                 || command.requestDigest() == null || actor == null || actor.tenantId() == null
@@ -96,12 +96,19 @@ public class ProjectManagerAssignmentApplicationService {
         if (project == null || project.getCompanyId() == null) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "项目或项目公司范围不存在");
         }
-        boolean projectContainsSite = projectSiteService.getActiveSites(command.projectId()).stream()
-                .anyMatch(site -> command.siteId().equals(site.getSiteId()));
-        if (!projectContainsSite) {
-            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "站点不在项目当前实施范围内");
+        var projectSites = projectSiteService.getActiveSites(command.projectId());
+        if (projectSites.isEmpty()) {
+            if (command.siteId() != null) {
+                throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "待维护地点项目不接受站点责任范围");
+            }
+        } else {
+            boolean projectContainsSite = projectSites.stream()
+                    .anyMatch(site -> command.siteId() != null && command.siteId().equals(site.getSiteId()));
+            if (!projectContainsSite) {
+                throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "站点不在项目当前实施范围内");
+            }
+            assetLocationApi.getSite(command.siteId(), null);
         }
-        assetLocationApi.getSite(command.siteId(), null);
         adminUserApi.validateUser(command.managerId());
         DeptRespDTO department = deptApi.getDeptByCode(command.departmentCode());
         if (department == null) {

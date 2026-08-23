@@ -912,7 +912,7 @@
             <el-option label="二级服务经理（L2）" value="L2" />
           </el-select>
         </el-form-item>
-        <el-form-item label="实施站点" prop="siteId">
+        <el-form-item v-if="assignSites.length" label="实施站点" prop="siteId">
           <el-select
             v-model="assignForm.siteId"
             class="!w-full"
@@ -927,6 +927,14 @@
             />
           </el-select>
         </el-form-item>
+        <el-alert
+          v-else
+          type="warning"
+          :closable="false"
+          show-icon
+          class="mb-12px"
+          title="站点待维护：本次仅按项目和办事处范围人工确认，不进行地点自动解析。"
+        />
         <el-form-item label="服务办事处" prop="departmentCode">
           <el-select
             v-model="assignForm.departmentCode"
@@ -1476,7 +1484,15 @@ const assignForm = reactive({
 const assignRules = {
   userId: [{ required: true, message: '请选择服务经理用户', trigger: 'change' }],
   levelCode: [{ required: true, message: '请选择服务层级', trigger: 'change' }],
-  siteId: [{ required: true, message: '请选择实施站点', trigger: 'change' }],
+  siteId: [
+    {
+      validator: (_rule: unknown, value: number | undefined, callback: (error?: Error) => void) => {
+        if (assignSites.value.length && !value) callback(new Error('请选择实施站点'))
+        else callback()
+      },
+      trigger: 'change'
+    }
+  ],
   departmentCode: [{ required: true, message: '请选择服务办事处', trigger: 'change' }]
 }
 const PROJECT_VERSION_CONFLICT_CODE = 1014024014
@@ -1527,7 +1543,7 @@ const submitAssign = async () => {
     roleCode: 'SERVICE_MANAGER' as const,
     levelCode: assignForm.levelCode,
     managerId: assignForm.userId!,
-    siteId: assignForm.siteId!,
+    siteId: assignForm.siteId,
     departmentCode: assignForm.departmentCode,
     effectiveFrom: assignForm.effectiveFrom || undefined
   }
