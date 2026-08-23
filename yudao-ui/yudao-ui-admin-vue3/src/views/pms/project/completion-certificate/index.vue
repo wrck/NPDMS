@@ -189,7 +189,6 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as CompletionCertificateApi from '@/api/pms/project/completion-certificate'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as CustomerApi from '@/api/pms/project/customer'
-import CustomerTag from '@/components/CustomerTag/index.vue'
 import type { CompletionCertificateVO } from '@/api/pms/project/completion-certificate'
 
 defineOptions({ name: 'PmsCompletionCertificate' })

@@ -248,7 +248,7 @@
 
   <!-- 生成对话框 -->
   <Dialog v-model="generateVisible" title="生成交底书" width="560px">
-    <el-form ref="generateFormRef" :model="generateForm" label-width="120px">
+    <el-form :model="generateForm" label-width="120px">
       <el-form-item label="交底书">{{ generateForm.code }}</el-form-item>
       <el-form-item label="模板ID" prop="templateId">
         <el-input-number v-model="generateForm.templateId" :min="0" class="!w-full" placeholder="可选，关联交底书模板ID" />
@@ -400,7 +400,6 @@ const openDetail = async (row: BriefingVO) => {
 
 // 生成
 const generateVisible = ref(false)
-const generateFormRef = ref()
 const generateForm = reactive({
   id: undefined as number | undefined,
   code: '',

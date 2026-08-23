@@ -143,7 +143,7 @@
       <!-- 静态成员：项目选择 -->
       <template v-if="form.memberType === 'STATIC'">
         <el-divider content-position="left">静态成员项目</el-divider>
-        <div v-for="(pid, idx) in form.staticProjectIds" :key="idx" class="mb-8px">
+        <div v-for="(_, idx) in form.staticProjectIds" :key="idx" class="mb-8px">
           <el-row :gutter="8" align="middle">
             <el-col :span="20">
               <PmsEntitySelect

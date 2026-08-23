@@ -448,7 +448,6 @@ import * as ProjectApi from '@/api/pms/project/project'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
 import * as SrvRuleApi from '@/api/pms/service/srv-rule'
 import type { SrvTaskVO, SrvExecutionVO, SrvOfflineFileVO } from '@/api/pms/service/srv-task'
-import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'PmsSrvTask' })
 const message = useMessage()

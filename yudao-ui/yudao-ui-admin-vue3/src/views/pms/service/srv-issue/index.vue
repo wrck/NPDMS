@@ -205,7 +205,6 @@ import * as SrvIssueApi from '@/api/pms/service/srv-issue'
 import * as SrvTaskApi from '@/api/pms/service/srv-task'
 import * as UserApi from '@/api/system/user'
 import type { SrvIssueVO } from '@/api/pms/service/srv-issue'
-import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'PmsSrvIssue' })
 const message = useMessage()

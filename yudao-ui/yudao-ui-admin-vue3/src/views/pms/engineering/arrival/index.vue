@@ -159,7 +159,6 @@ import * as ArrivalApi from '@/api/pms/engineering/arrival'
 import type { ArrivalVO } from '@/api/pms/engineering/arrival'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
 
 defineOptions({ name: 'PmsEngArrival' })
 const message = useMessage()

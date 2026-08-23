@@ -266,7 +266,7 @@
 
   <!-- 确认/关闭对话框 -->
   <Dialog v-model="handleVisible" :title="handleTitle" width="560px">
-    <el-form ref="handleFormRef" :model="handleForm" label-width="100px">
+    <el-form :model="handleForm" label-width="100px">
       <el-form-item label="风险编号">{{ handleForm.code }}</el-form-item>
       <el-form-item label="处理人" prop="handlerUserId">
         <PmsEntitySelect
@@ -402,7 +402,6 @@ const openDetail = async (row: RiskVO) => {
 
 // 确认/关闭对话框
 const handleVisible = ref(false)
-const handleFormRef = ref()
 const handleTitle = ref('')
 const handleAction = ref<'confirm' | 'close'>('confirm')
 const handleForm = reactive({

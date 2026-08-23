@@ -360,7 +360,6 @@ import * as UserApi from '@/api/system/user'
 import type { MaterialExchangeVO } from '@/api/pms/engineering/material-exch'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import EquipmentTag from '@/components/EquipmentTag/index.vue'
-import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'PmsEngMaterialExch' })
 const message = useMessage()

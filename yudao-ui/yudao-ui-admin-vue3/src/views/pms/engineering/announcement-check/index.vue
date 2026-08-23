@@ -258,7 +258,7 @@
 
   <!-- 处置对话框 -->
   <Dialog v-model="handleVisible" :title="handleTitle" width="560px">
-    <el-form ref="handleFormRef" :model="handleForm" label-width="100px">
+    <el-form :model="handleForm" label-width="100px">
       <el-form-item label="检查编号">{{ handleForm.code }}</el-form-item>
       <el-form-item label="处理意见" prop="handleOpinion">
         <el-input v-model="handleForm.handleOpinion" type="textarea" :rows="3" />
@@ -398,7 +398,6 @@ const handlePerformCheck = async (row: AnnouncementCheckVO) => {
 
 // 处置对话框
 const handleVisible = ref(false)
-const handleFormRef = ref()
 const handleTitle = ref('')
 const handleForm = reactive({
   id: undefined as number | undefined,

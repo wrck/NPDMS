@@ -164,7 +164,6 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as BatchChangeApi from '@/api/pms/project/batch-change'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as UserApi from '@/api/system/user'
-import UserTag from '@/components/UserTag/index.vue'
 import type { TeamBatchChangeItemVO, TeamBatchChangeVO } from '@/api/pms/project/batch-change'
 
 defineOptions({ name: 'PmsTeamBatchChange' })

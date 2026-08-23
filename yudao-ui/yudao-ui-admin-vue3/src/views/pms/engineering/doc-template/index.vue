@@ -773,29 +773,6 @@ const overridesArr = ref<VisOverride[]>([])
 // 排除章节可视化数组
 const excludedArr = ref<string[]>([])
 
-// sections JSON 字符串 <-> 可视化数组
-const parseSectionsToArr = (raw?: string): VisSection[] => {
-  if (!raw) return []
-  try {
-    const arr = JSON.parse(raw)
-    if (!Array.isArray(arr)) return []
-    return arr.map((s: any) => ({
-      code: s.code || '',
-      title: s.title || '',
-      order: s.order || 1,
-      fields: Array.isArray(s.fields)
-        ? s.fields.map((f: any) => ({
-            field: f.field || '',
-            title: f.title || '',
-            controlType: fieldToControlType(f),
-            rows: f.props?.rows || 3
-          }))
-        : []
-    }))
-  } catch {
-    return []
-  }
-}
 const stringifySections = (arr: VisSection[]): string => {
   return JSON.stringify(
     arr.map((s) => ({
@@ -810,21 +787,6 @@ const stringifySections = (arr: VisSection[]): string => {
       })
     }))
   )
-}
-// sectionOverrides JSON 字符串 <-> 可视化数组
-const parseOverridesToArr = (raw?: string): VisOverride[] => {
-  if (!raw) return []
-  try {
-    const obj = JSON.parse(raw)
-    if (!obj || typeof obj !== 'object') return []
-    return Object.keys(obj).map((code) => ({
-      code,
-      required: obj[code]?.required !== false,
-      remark: obj[code]?.remark || ''
-    }))
-  } catch {
-    return []
-  }
 }
 const stringifyOverrides = (arr: VisOverride[]): string => {
   if (!arr.length) return ''
@@ -880,12 +842,6 @@ const addOverride = () => {
 const removeOverride = (idx: number) => {
   overridesArr.value.splice(idx, 1)
 }
-// 辅助：根据章节编码获取标题
-const sectionTitleByCode = (code: string) => {
-  const s = sectionsArr.value.find((x) => x.code === code)
-  return s ? `${s.code} - ${s.title}` : code
-}
-
 // 版本管理
 const versionVisible = ref(false)
 const versionLoading = ref(false)
