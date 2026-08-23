@@ -746,7 +746,7 @@ git commit -m "test(asset): 验证地点模型数据库闭环"
 
 ---
 
-### Task 9: 使用内置浏览器完成业务验收
+### Task 9: 使用真实浏览器完成业务验收
 
 **Files:**
 - Create: `output/location-v18/browser-acceptance.md`
@@ -758,7 +758,7 @@ git commit -m "test(asset): 验证地点模型数据库闭环"
 - Consumes: host backend on `58080`, host frontend on `18081`, isolated MySQL/Redis, V64～V68 and seeded users/permissions.
 - Produces: real-browser evidence for organization, location, project, survey, installation and equipment flows.
 
-- [ ] **Step 1: Start host applications against the isolated infrastructure**
+- [x] **Step 1: Start host applications against the isolated infrastructure**
 
 ```powershell
 mvn -pl yudao-server -am package -DskipTests
@@ -774,7 +774,7 @@ pnpm dev
 
 Expected: backend health and frontend login are reachable; Docker runs only MySQL, Redis and Flyway.
 
-- [ ] **Step 2: Verify organization and location administration with the built-in browser**
+- [x] **Step 2: Verify organization and location administration with a real browser**
 
 Use the Codex built-in browser to log in, then:
 
@@ -785,15 +785,15 @@ Use the Codex built-in browser to log in, then:
 5. map district `area_code` to the office `department_code`;
 6. refresh each page and verify versions and values persist.
 
-- [ ] **Step 3: Verify project and assignment flows**
+- [x] **Step 3: Verify project and assignment flows**
 
 Create a project with both sites, confirm one primary site and `RESOLVED`, then assign a service manager using the mapped candidate and manual confirmation. Create a second project with only fallback location text and verify `UNRESOLVED`, “待维护” display, no automatic office resolution and successful authorized manual assignment.
 
-- [ ] **Step 4: Verify survey, installation and device flows**
+- [x] **Step 4: Verify survey, installation and device flows**
 
 From an authorized project, create a new location during survey and confirm that equipment location is unchanged. Complete an installation at that location and verify the device current location updates. Move the device through a second installation and verify the current pointer changes while history remains. Trigger an invalid/stale location operation and verify no partial installation result appears after refresh.
 
-- [ ] **Step 5: Record and commit browser evidence**
+- [x] **Step 5: Record and commit browser evidence**
 
 Record each scenario's URL, actor, input, visible result, refresh result, relevant network status and screenshot path. State explicitly that browser acceptance is Feature evidence only and not UAT, release or governance GO.
 
@@ -818,5 +818,5 @@ The plan is complete only when all conditions hold:
 8. Completed installation drives equipment current location transactionally; survey alone does not.
 9. V64～V68 pass empty DB, repeat migrate and validate checks in the isolated Compose project.
 10. Backend regression, module-boundary checks, frontend tests, type-check and build pass.
-11. Built-in-browser scenarios pass after refresh and are recorded without overstating Gate status.
+11. Real-browser scenarios pass after refresh and are recorded without overstating Gate status; the built-in browser is preferred, with user-approved external-browser fallback when its control interface is unavailable.
 12. Every completed task has a scoped local commit and no automatic push occurred.
