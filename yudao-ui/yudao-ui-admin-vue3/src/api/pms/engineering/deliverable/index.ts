@@ -22,7 +22,7 @@ export interface DeliverableVO {
 
 const baseUrl = '/pms/eng-deliverable'
 
-export const getDeliverablePage = (params: PageParam) =>
+export const getDeliverablePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getDeliverable = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

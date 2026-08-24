@@ -17,7 +17,7 @@ export interface SrvReportVO {
 
 const baseUrl = '/pms/srv-report'
 
-export const getSrvReportPage = (params: PageParam) =>
+export const getSrvReportPage = (params: PmsTaskPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getSrvReport = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

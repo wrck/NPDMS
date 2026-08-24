@@ -1165,7 +1165,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
     actions: [
-      { label: '计算', type: 'primary', show: (r) => r.status === 0, run: (r) => ScheduleBackwardApi.calculateScheduleBackward({ projectId: r.projectId, targetDate: r.targetDate }), confirm: '执行工期倒排计算？' },
+      { label: '计算', type: 'primary', show: (r) => r.status === 0, run: (r) => ScheduleBackwardApi.calculateScheduleBackward(r.id), confirm: '执行工期倒排计算？' },
       { label: '应用', type: 'success', show: (r) => r.status === 0, run: (r) => ScheduleBackwardApi.applyScheduleBackward(r.id), confirm: '应用该倒排计划？' }
     ]
   },

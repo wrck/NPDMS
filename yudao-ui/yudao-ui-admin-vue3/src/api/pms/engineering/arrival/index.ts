@@ -19,7 +19,7 @@ export interface ArrivalVO {
 
 const baseUrl = '/pms/eng-arrival'
 
-export const getArrivalPage = (params: PageParam) =>
+export const getArrivalPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getArrival = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

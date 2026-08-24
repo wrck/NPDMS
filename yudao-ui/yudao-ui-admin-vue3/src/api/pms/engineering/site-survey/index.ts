@@ -36,7 +36,7 @@ export interface SiteSurveyVO {
 
 const baseUrl = '/pms/eng-site-survey'
 
-export const getSiteSurveyPage = (params: PageParam) =>
+export const getSiteSurveyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getSiteSurvey = (id: number) => request.get({ url: `${baseUrl}/get`, params: { id } })
 export const createSiteSurvey = (data: SiteSurveyVO) =>

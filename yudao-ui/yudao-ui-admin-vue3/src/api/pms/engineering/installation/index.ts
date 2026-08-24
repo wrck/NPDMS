@@ -33,7 +33,7 @@ export interface InstallationVO {
 
 const baseUrl = '/pms/eng-installation'
 
-export const getInstallationPage = (params: PageParam) =>
+export const getInstallationPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getInstallation = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

@@ -25,7 +25,7 @@ export interface RequirementVO {
 
 const baseUrl = '/pms/eng-requirement'
 
-export const getRequirementPage = (params: PageParam) =>
+export const getRequirementPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getRequirement = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

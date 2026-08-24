@@ -19,7 +19,7 @@ export interface DeliverableChecklistVO {
 
 const baseUrl = '/pms/acc-deliverable-checklist'
 
-export const getDeliverableChecklistPage = (params: PageParam) =>
+export const getDeliverableChecklistPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getDeliverableChecklist = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

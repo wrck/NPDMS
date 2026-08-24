@@ -45,7 +45,7 @@ export interface PlanChangeApproveReqVO {
 
 const baseUrl = '/pms/plan-change'
 
-export const getPlanChangePage = (params: PageParam) =>
+export const getPlanChangePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getPlanChange = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

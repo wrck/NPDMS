@@ -18,7 +18,7 @@ export interface ResourceReadyVO {
 
 const baseUrl = '/pms/eng-resource'
 
-export const getResourceReadyPage = (params: PageParam) =>
+export const getResourceReadyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getResourceReady = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

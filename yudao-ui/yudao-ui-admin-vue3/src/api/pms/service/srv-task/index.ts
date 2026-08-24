@@ -20,7 +20,7 @@ export interface SrvTaskVO {
 
 const baseUrl = '/pms/srv-task'
 
-export const getSrvTaskPage = (params: PageParam) =>
+export const getSrvTaskPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getSrvTask = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

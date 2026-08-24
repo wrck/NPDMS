@@ -28,7 +28,7 @@ export interface BriefingVO {
 
 const baseUrl = '/pms/eng-briefing'
 
-export const getBriefingPage = (params: PageParam) =>
+export const getBriefingPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getBriefing = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
