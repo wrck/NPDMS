@@ -38,7 +38,7 @@ public class ProjectManagerAssignmentApplicationService {
     @Resource
     private ProjectManualCreationService projectService;
     @Resource
-    private ProjectMasterMapper projectMapper;
+    private ProjectMasterMapper projectMasterMapper;
     @Resource
     private ProjectCreationAuthorizationService authorizationService;
     @Resource
@@ -103,7 +103,7 @@ public class ProjectManagerAssignmentApplicationService {
     }
 
     private void validateBusinessScope(AssignServiceManagerCommand command, Actor actor) {
-        ProjectMasterDO project = projectMapper.selectById(command.projectId());
+        ProjectMasterDO project = projectMasterMapper.selectById(command.projectId());
         if (project == null || !java.util.Objects.equals(project.getTenantId(), actor.tenantId())
                 || project.getCompanyId() == null) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "项目或项目公司范围不存在");
