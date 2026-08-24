@@ -38,6 +38,7 @@ class SpecificationBaselineTest(unittest.TestCase):
         required = {
             "docs/baseline/prd-v1.8.md",
             "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md",
+            "docs/coding/database-query-interface.md",
             "docs/decisions/0029-stage-task-work-binding-workbench.md",
             "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md",
             "docs/decisions/0032-manual-project-creation-cross-context-atomicity.md",
@@ -50,13 +51,13 @@ class SpecificationBaselineTest(unittest.TestCase):
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_88_files(self) -> None:
+    def test_allowlist_contains_exactly_89_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(88, len(entries))
-        self.assertEqual(88, len({entry.path for entry in entries}))
+        self.assertEqual(89, len(entries))
+        self.assertEqual(89, len({entry.path for entry in entries}))
 
     def test_accepts_feature_spec_paths(self) -> None:
         feature_spec_paths = (
@@ -69,6 +70,12 @@ class SpecificationBaselinePathTest(unittest.TestCase):
         for path in feature_spec_paths:
             with self.subTest(path=path):
                 validate_relative_path(path, "FEATURE_SPEC")
+
+    def test_accepts_coding_baseline_paths(self) -> None:
+        validate_relative_path(
+            "docs/coding/database-query-interface.md",
+            "ENGINEERING",
+        )
 
     def test_accepts_only_current_phase_gate_entry_paths(self) -> None:
         current_gate_paths = (

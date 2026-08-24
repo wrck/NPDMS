@@ -92,7 +92,7 @@ def _category_accepts(path: str, category: str) -> bool:
     if category == "BASELINE":
         return path.startswith("docs/baseline/")
     if category == "ENGINEERING":
-        return path in {
+        return path.startswith("docs/coding/") or path in {
             "docs/README.md",
             "docs/engineering/00-engineering-chain.md",
             *CURRENT_GATE_PATHS,

@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "0be4056e6334be4c5b0c9ae9810bd04c782f81c1"
+    "commit": "44dd2aea08f82fa691c7236de0e5c617bcd701b4"
   },
   "files": [
     {
       "path": "docs/README.md",
       "category": "ENGINEERING",
-      "sha256": "5c1ffedc60b19a6d7e7d307528ddbad82064388c83c5cc5752dfaf02a11805ea"
+      "sha256": "e6d018180d5457987b1974c0301bfc208bae629d58b82d6d30798905e06d66df"
     },
     {
       "path": "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md",
@@ -29,6 +29,11 @@
       "path": "docs/baseline/requirement-baseline.yaml",
       "category": "BASELINE",
       "sha256": "1c77345ac579e4c310a18c482432f862d4f8a940155af47a64d71eae7fcc53a7"
+    },
+    {
+      "path": "docs/coding/database-query-interface.md",
+      "category": "ENGINEERING",
+      "sha256": "4e561b1e36460dcefe9f6732e546948809fb614387f584d6bc0aa40018b18350"
     },
     {
       "path": "docs/decisions/0001-project-order-line-scope-model.md",

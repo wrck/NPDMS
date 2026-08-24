@@ -6,6 +6,7 @@
     {"path": "docs/baseline/prd-v1.8-amendment-002-organization-and-asset-location.md", "category": "BASELINE"},
     {"path": "docs/baseline/prd-v1.8.md", "category": "BASELINE"},
     {"path": "docs/baseline/requirement-baseline.yaml", "category": "BASELINE"},
+    {"path": "docs/coding/database-query-interface.md", "category": "ENGINEERING"},
     {"path": "docs/decisions/0001-project-order-line-scope-model.md", "category": "DECISION"},
     {"path": "docs/decisions/0002-platform-identity-and-project-scoped-access.md", "category": "DECISION"},
     {"path": "docs/decisions/0003-contract-scoped-secondary-sn-cache.md", "category": "DECISION"},

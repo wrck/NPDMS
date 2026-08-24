@@ -34,6 +34,14 @@
 - 模块间不得依赖目标模块的 `-biz`、Service、Mapper、Repository 或直接访问其业务表。
 - 无稳定跨模块调用方时，不创建空的 `-api` 模块。
 
+## 数据库查询编码
+
+- 新增或改造数据库查询前，必须读取并遵守 `docs/coding/database-query-interface.md`。
+- 除主键和稳定复合唯一键查询外，Mapper 查询方法必须只接收一个场景化 Query 对象；禁止长位置参数列表、`Map` 和万能查询对象。
+- 简单单表条件使用类型安全的 `LambdaQueryWrapperX`；联表、窗口函数、动态集合、锁查询等文本 SQL 必须进入 Mapper XML。
+- 禁止 SQL 注解、`${}`、`.last(...)` 及在 Service/Controller 中拼接 SQL。
+- 空权限集合或空集合筛选必须返回空结果，不能因省略条件扩大查询范围；租户、权限和模块表所有权边界必须保持生效。
+
 # AI编码行为
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
