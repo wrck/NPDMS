@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "44dd2aea08f82fa691c7236de0e5c617bcd701b4"
+    "commit": "52dffd8286e619576086a72ab66bd6b050e80354"
   },
   "files": [
     {
@@ -428,7 +428,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "2e71d809d3c8445d67b72ac4c8e4755bfa90a1d2560d6619bfe6e6b437b249d5"
+      "sha256": "cddaed0f9a3b2f3f6e7927f679daf377a4e0b9a297f700db958650197ad9513c"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -448,7 +448,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "72188f08812725c9dde809c197590b501c6c18fc4927c909a0ba9215daea7292"
+      "sha256": "c65ad5b192701e917326ad2da17e37228e7c123e7f57fa81e816f3303286a657"
     }
   ]
 }

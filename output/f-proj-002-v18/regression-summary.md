@@ -2,7 +2,7 @@
 
 结论：`PASS`。
 
-- 规格快照：锁定规格仓库`44dd2aea08f82fa691c7236de0e5c617bcd701b4`，离线校验通过，同步检查89/89为`KEEP`。
+- 规格快照：锁定规格仓库`52dffd8286e619576086a72ab66bd6b050e80354`，离线校验通过；该提交已回写NPDMS `57923b1`实施完成状态，两仓进度一致。
 - SDS状态：Phase 1/2/3保持已审核`BASELINE`，本Feature不触发重审。
 - 后端：`mvn -pl pms-module-commerce,pms-module-asset,pms-module-project,yudao-server -am test`通过，32个Reactor模块零失败；项目模块194项、7项条件跳过。
 - 静态契约：F-PROJ-002迁移与前端合同测试16/16通过。

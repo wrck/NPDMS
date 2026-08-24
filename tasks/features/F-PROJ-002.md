@@ -12,7 +12,7 @@
 > Feature Spec SHA-256：`dfd09ac27e6ede86a640ec610e4eade8c9b5b55d902f3272f93f29de5b44395f`
 > Feature 物理契约：`specs/features/F-PROJ-002-physical-contract.json`
 > Technical Plan：`docs/superpowers/plans/2026-08-24-f-proj-002-project-split-tree-and-progress-aggregation.md`
-> 锁定规格提交：`44dd2aea08f82fa691c7236de0e5c617bcd701b4`
+> 锁定规格提交：`52dffd8286e619576086a72ab66bd6b050e80354`
 
 ## 事实边界
 
