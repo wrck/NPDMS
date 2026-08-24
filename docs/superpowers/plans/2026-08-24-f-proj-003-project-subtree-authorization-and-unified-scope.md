@@ -320,23 +320,23 @@ fix(project): 统一项目入口数据范围
 - Consumes: V77表结构、现有`system_dict_type/system_dict_data/system_menu`和F-PROJ-002高段示例项目树。
 - Produces: `pms_project_authorization_action`、`pms_project_authorization_scope`、`pms:project:authorization:query/manage/revoke`及组合示例数据。
 
-- [ ] **Step 1: 写入幂等字典和菜单权限**
+- [x] **Step 1: 写入幂等字典和菜单权限**
 
 动作值固定`PROJECT_VIEW/PROJECT_MANAGE`，范围固定`CURRENT_PROJECT/PROJECT_AND_DESCENDANTS`；菜单挂在现有项目主档详情能力下，不创建第二套项目导航。
 
-- [ ] **Step 2: 写入高段组合示例授权**
+- [x] **Step 2: 写入高段组合示例授权**
 
 覆盖精确当前项目、全部后代、未生效、已到期、已撤权、停用不参与和无匹配；引用现有真实用户/项目种子时使用可重复选择规则，不臆造CRM或外部授权值域。
 
-- [ ] **Step 3: 验证空库、V76升级、重复迁移和当前库**
+- [x] **Step 3: 验证空库、V76升级、重复迁移和当前库**
 
-Run: `docker compose run --rm flyway migrate`
+Run: `docker compose -p npdms-50eb run --rm migrate`
 
 Run: `C:\Users\user\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest scripts.tests.test_fproj003_v18_migration -v`
 
 Expected: 四种迁移路径PASS，校验表、索引、字典、菜单、组合样例和幂等性。
 
-- [ ] **Step 4: 提交迁移与初始化数据**
+- [x] **Step 4: 提交迁移与初始化数据**
 
 ```text
 feat(database): 初始化项目授权数据
