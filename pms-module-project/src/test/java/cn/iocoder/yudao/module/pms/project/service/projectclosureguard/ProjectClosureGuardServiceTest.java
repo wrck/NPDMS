@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectclosureguard;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectprogress.ProjectProgressSnapshotDO;
@@ -128,7 +129,7 @@ class ProjectClosureGuardServiceTest {
     }
 
     private void allowScope(Set<Long> fullProjectIds) {
-        when(scopeService.resolve(9L, 10L, 4L)).thenReturn(
+        when(scopeService.resolve(new ProjectScopeQuery(0L, 9L, 10L, "PROJECT_VIEW", 4L))).thenReturn(
                 new ProjectTreeScopeService.ProjectTreeScope(10L, 4L, fullProjectIds, Set.of(), Set.of()));
     }
 

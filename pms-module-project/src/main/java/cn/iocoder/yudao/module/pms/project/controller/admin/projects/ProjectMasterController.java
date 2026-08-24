@@ -26,6 +26,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCr
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeQueryService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
@@ -65,7 +66,6 @@ import java.util.UUID;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
 
 /**
@@ -142,7 +142,8 @@ public class ProjectMasterController {
     public CommonResult<PageResult<ProjectRespVO>> getProjectPage(@Valid ProjectPageReqVO pageReqVO) {
         PageResult<ProjectMasterDO> pageResult = projectManualCreationService.getProjectPage(
                 pageReqVO, pageReqVO.getProjectName(), pageReqVO.getProjectCode(), pageReqVO.getStatus(),
-                pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode());
+                pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode(),
+                accessActor());
         return success(BeanUtils.toBean(pageResult, ProjectRespVO.class));
     }
 
@@ -151,10 +152,7 @@ public class ProjectMasterController {
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectRespVO> getProject(@PathVariable("id") Long id) {
-        ProjectMasterDO project = projectManualCreationService.getProject(id);
-        if (project == null) {
-            throw exception(PROJECT_NOT_EXISTS);
-        }
+        ProjectMasterDO project = projectManualCreationService.getProject(id, accessActor());
         return success(BeanUtils.toBean(project, ProjectRespVO.class));
     }
 
@@ -162,9 +160,7 @@ public class ProjectMasterController {
     @Operation(summary = "查询项目当前实施站点")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<java.util.List<ProjectSiteRespVO>> getProjectSites(@PathVariable("id") Long id) {
-        if (projectManualCreationService.getProject(id) == null) {
-            throw exception(PROJECT_NOT_EXISTS);
-        }
+        projectManualCreationService.getProject(id, accessActor());
         return success(BeanUtils.toBean(projectSiteApplicationService.getActiveSites(id), ProjectSiteRespVO.class));
     }
 
@@ -176,7 +172,7 @@ public class ProjectMasterController {
                                                @Valid @RequestBody ProjectUpdateReqVO updateReqVO) {
         ProjectMasterDO update = BeanUtils.toBean(updateReqVO, ProjectMasterDO.class);
         update.setId(id);
-        projectManualCreationService.updateProject(update);
+        projectManualCreationService.updateProject(update, accessActor());
         return success(true);
     }
 
@@ -185,11 +181,8 @@ public class ProjectMasterController {
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectInstancesRespVO> getProjectInstances(@PathVariable("id") Long id) {
-        ProjectMasterDO project = projectManualCreationService.getProject(id);
-        if (project == null) {
-            throw exception(PROJECT_NOT_EXISTS);
-        }
-        ProjectInstantiation instantiation = projectManualCreationService.getInstances(id);
+        ProjectMasterDO project = projectManualCreationService.getProject(id, accessActor());
+        ProjectInstantiation instantiation = projectManualCreationService.getInstances(id, accessActor());
         ProjectInstancesRespVO respVO = new ProjectInstancesRespVO();
         respVO.setProjectId(id);
         respVO.setLifecycleTemplateId(project.getLifecycleTemplateId());
@@ -218,7 +211,7 @@ public class ProjectMasterController {
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<java.util.List<ProjectMemberAssignmentRespVO>> getProjectMembers(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectManualCreationService.getMemberAssignments(id),
+        return success(BeanUtils.toBean(projectManualCreationService.getMemberAssignments(id, accessActor()),
                 ProjectMemberAssignmentRespVO.class));
     }
 
@@ -321,6 +314,10 @@ public class ProjectMasterController {
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 摘要算法不可用", ex);
         }
+    }
+
+    private ProjectAccessActor accessActor() {
+        return new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId());
     }
 
     private Integer parseIfMatch(String value) {

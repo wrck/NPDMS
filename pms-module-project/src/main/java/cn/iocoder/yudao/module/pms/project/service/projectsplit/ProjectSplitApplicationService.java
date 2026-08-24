@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyCommand;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyResult;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitItemDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitRequestDO;
@@ -37,6 +38,7 @@ import java.util.UUID;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_MANAGE;
 
 @Service
 @RequiredArgsConstructor
@@ -99,7 +101,8 @@ public class ProjectSplitApplicationService {
                 || !Objects.equals(parent.getVersion(), command.expectedParentVersion())) {
             throw exception(PROJECT_SPLIT_APPLY_VERSION_CONFLICT);
         }
-        treeScopeService.assertFullAccess(actor.actorId(), parent.getId(), command.expectedTreeVersion());
+        treeScopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), parent.getId(), ACTION_MANAGE, command.expectedTreeVersion()));
         ProjectSplitPreviewService.PreviewResult preview = previewService.preview(
                 new ProjectSplitPreviewCommand(request.getId(), command.expectedDraftVersion()), actor);
         if (!preview.valid()) {

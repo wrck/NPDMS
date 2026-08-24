@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectprogress;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApi;
 import cn.iocoder.yudao.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import cn.iocoder.yudao.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
@@ -34,6 +35,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_PROGRESS_POLICY_STATUS_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_PROGRESS_POLICY_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_PROJECTION_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_MANAGE;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -59,7 +62,7 @@ public class ProjectProgressPolicyService {
         validate(command, actor);
         ProjectMasterDO parent = requireParentForUpdate(command.parentProjectId(), actor.tenantId());
         ProjectTreeVersionDO treeVersion = requireActiveTree(parent);
-        scopeService.assertFullAccess(actor.actorId(), parent.getId(), treeVersion.getTreeVersion());
+        assertScope(actor, parent.getId(), treeVersion.getTreeVersion(), ACTION_MANAGE);
         List<Long> childIds = projectMapper.selectChildren(parent.getId()).stream()
                 .map(ProjectMasterDO::getId).toList();
         List<CreateProgressPolicyCommand.Item> normalized = normalize(command.policyType(), childIds, command.items());
@@ -90,7 +93,7 @@ public class ProjectProgressPolicyService {
         }
         ProjectMasterDO parent = requireParentForUpdate(revision.getParentProjectId(), actor.tenantId());
         ProjectTreeVersionDO treeVersion = requireActiveTree(parent);
-        scopeService.assertFullAccess(actor.actorId(), parent.getId(), treeVersion.getTreeVersion());
+        assertScope(actor, parent.getId(), treeVersion.getTreeVersion(), ACTION_MANAGE);
         String processKey = properties.getProcessDefinitionKey();
         if (processKey == null || processKey.isBlank()) throw exception(PROJECT_PROGRESS_APPROVAL_NOT_CONFIGURED);
         BpmProcessInstanceCreateReqDTO request = new BpmProcessInstanceCreateReqDTO()
@@ -157,7 +160,7 @@ public class ProjectProgressPolicyService {
         active = revisionMapper.selectActiveByParentForUpdate(parentProjectId);
         if (active != null) return active;
         ProjectTreeVersionDO treeVersion = requireActiveTree(parent);
-        scopeService.assertFullAccess(actor.actorId(), parent.getId(), treeVersion.getTreeVersion());
+        assertScope(actor, parent.getId(), treeVersion.getTreeVersion(), ACTION_VIEW);
         List<Long> childIds = projectMapper.selectChildren(parentProjectId).stream().map(ProjectMasterDO::getId).toList();
         List<CreateProgressPolicyCommand.Item> items = normalize(
                 ProjectProgressRules.POLICY_SYSTEM_EQUAL, childIds, List.of());
@@ -178,7 +181,7 @@ public class ProjectProgressPolicyService {
             throw exception(PROJECT_NOT_EXISTS);
         }
         ProjectTreeVersionDO treeVersion = requireActiveTree(parent);
-        scopeService.assertFullAccess(actor.actorId(), parent.getId(), treeVersion.getTreeVersion());
+        assertScope(actor, parent.getId(), treeVersion.getTreeVersion(), ACTION_MANAGE);
         return revisionMapper.selectListByParent(parentProjectId);
     }
 
@@ -256,6 +259,11 @@ public class ProjectProgressPolicyService {
         ProjectTreeVersionDO active = treeVersionMapper.selectLatestActive(rootId);
         if (active == null) throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
         return active;
+    }
+
+    private void assertScope(Actor actor, Long projectId, Long treeVersion, String actionCode) {
+        scopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), projectId, actionCode, treeVersion));
     }
 
     private void validate(CreateProgressPolicyCommand command, Actor actor) {

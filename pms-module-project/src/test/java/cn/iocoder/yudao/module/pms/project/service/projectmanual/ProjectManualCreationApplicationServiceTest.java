@@ -72,7 +72,7 @@ class ProjectManualCreationApplicationServiceTest {
     void applicationEntryBuildsResultInsidePlatformExecution() {
         ProjectMasterDO project = project();
         when(projectCreationService.createProject(any(), any(), any(), any(), any(), any())).thenReturn(project);
-        when(projectCreationService.getInstances(100L)).thenReturn(new ProjectInstantiation());
+        when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<Object> operation = invocation.getArgument(3);
             Function<Object, ?> facts = invocation.getArgument(4);

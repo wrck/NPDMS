@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignS
 import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectSiteDO;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
@@ -45,6 +46,8 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @Mock
     private ProjectManualCreationService projectService;
     @Mock
+    private ProjectMasterMapper projectMapper;
+    @Mock
     private ProjectCreationAuthorizationService authorizationService;
     @Mock private AdminUserApi adminUserApi;
     @Mock private DeptApi deptApi;
@@ -59,8 +62,8 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @BeforeEach
     void setUpScope() {
         ProjectMasterDO project = new ProjectMasterDO();
-        project.setId(1L); project.setCompanyId(10L);
-        lenient().when(projectService.getProject(1L)).thenReturn(project);
+        project.setId(1L); project.setTenantId(1L); project.setCompanyId(10L);
+        lenient().when(projectMapper.selectById(1L)).thenReturn(project);
         ProjectSiteDO site = new ProjectSiteDO(); site.setSiteId(30L);
         lenient().when(projectSiteService.getActiveSites(1L)).thenReturn(List.of(site));
         DeptRespDTO dept = new DeptRespDTO(); dept.setId(20L); dept.setCode("DEP-01");

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
@@ -86,10 +87,12 @@ class ProjectTreeMoveConcurrencyMySqlTest {
             insertPath(pathId++, baseId, childId, 1);
             insertPath(pathId++, childId, childId, 0);
         }
-        jdbcTemplate.update("INSERT INTO proj_project_member_assignment "
-                        + "(id,project_id,user_id,member_role,status,version,tenant_id) "
-                        + "VALUES (?,?,?,'SERVICE_MANAGER_L1','ACTIVE',0,0)",
-                baseId, baseId, 9_900_006L);
+        for (long projectId = baseId; projectId <= baseId + 3; projectId++) {
+            jdbcTemplate.update("INSERT INTO proj_project_member_assignment "
+                            + "(id,project_id,user_id,member_role,status,version,tenant_id) "
+                            + "VALUES (?,?,?,'SERVICE_MANAGER_L1','ACTIVE',0,0)",
+                    projectId, projectId, 9_900_006L);
+        }
     }
 
     @AfterEach
@@ -100,7 +103,8 @@ class ProjectTreeMoveConcurrencyMySqlTest {
             jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE idempotency_key LIKE ?",
                     KEY_PREFIX + baseId + "%");
             jdbcTemplate.update("DELETE FROM proj_project_tree_change WHERE project_id = ?", baseId + 1);
-            jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE project_id = ?", baseId);
+            jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE project_id BETWEEN ? AND ?",
+                    baseId, baseId + 3);
             jdbcTemplate.update("DELETE FROM proj_project_tree_path WHERE root_project_id = ?", baseId);
             jdbcTemplate.update("DELETE FROM proj_project_tree_version WHERE root_project_id = ?", baseId);
             jdbcTemplate.update("DELETE FROM proj_project WHERE id BETWEEN ? AND ?", baseId, baseId + 3);
@@ -122,8 +126,9 @@ class ProjectTreeMoveConcurrencyMySqlTest {
 
             assertEquals(1, outcomes.stream().filter(
                     ProjectTreeProjectionService.MoveProjectSubtreeResult.class::isInstance).count());
-            Object failure = outcomes.stream().filter(Throwable.class::isInstance).findFirst().orElseThrow();
-            assertInstanceOf(ServiceException.class, failure);
+            Throwable failure = (Throwable) outcomes.stream().filter(Throwable.class::isInstance)
+                    .findFirst().orElseThrow();
+            assertInstanceOf(ServiceException.class, failure, () -> failureChain(failure));
             assertEquals(1L, jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM proj_project_tree_change WHERE project_id = ?", Long.class, baseId + 1));
             assertEquals(1L, jdbcTemplate.queryForObject(
@@ -145,6 +150,17 @@ class ProjectTreeMoveConcurrencyMySqlTest {
         } finally {
             TenantContextHolder.clear();
         }
+    }
+
+    private static String failureChain(Throwable failure) {
+        StringBuilder summary = new StringBuilder();
+        for (Throwable current = failure; current != null; current = current.getCause()) {
+            if (!summary.isEmpty()) {
+                summary.append(" <- ");
+            }
+            summary.append(current.getClass().getSimpleName()).append(": ").append(current.getMessage());
+        }
+        return summary.toString();
     }
 
     private void insertProject(long id, Long parentId, long rootId, String path, int depth, int sequence) {
@@ -178,5 +194,8 @@ class ProjectTreeMoveConcurrencyMySqlTest {
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean MeterRegistry meterRegistry() { return new SimpleMeterRegistry(); }
+        @Bean AuthorizationGrantApi authorizationGrantApi() {
+            return org.mockito.Mockito.mock(AuthorizationGrantApi.class);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectprogress;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectprogress.ProjectProgressFactDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectprogress.ProjectProgressPolicyItemDO;
@@ -78,6 +79,8 @@ class ProjectProgressSnapshotServiceTest {
                 .filter(item -> item.childProjectId().equals(12L)).findFirst().orElseThrow().missingReason());
         verify(metrics).snapshot(org.mockito.ArgumentMatchers.eq("PENDING"),
                 org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.anyLong());
+        verify(scopeService).assertFullAccess(
+                new ProjectScopeQuery(0L, 9L, 10L, "PROJECT_VIEW", 4L));
     }
 
     private static ProjectMasterDO project(Long id, Long rootId) {

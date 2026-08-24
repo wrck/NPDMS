@@ -84,7 +84,7 @@ public class ProjectManualCreationApplicationService {
                 company.getCode(), department.getCode(), command.templateRevisionId(),
                 command.candidateWatermark(), null);
         projectSiteService.bindSites(project.getId(), command.sites());
-        ProjectInstantiation instances = projectCreationService.getInstances(project.getId());
+        ProjectInstantiation instances = projectCreationService.getInstancesForCreation(project.getId(), tenantId);
         return new ManualProjectCreateResult(
                 project.getId(), project.getProjectCode(), project.getStatus(), project.getLifecycleStatus(),
                 project.getCurrentStage(), project.getAssignmentStatus(), project.getVersion(),

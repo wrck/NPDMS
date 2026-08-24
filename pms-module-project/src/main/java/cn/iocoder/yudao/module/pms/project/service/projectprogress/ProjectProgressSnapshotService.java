@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectprogress;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectprogress.ProjectProgressFactDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectprogress.ProjectProgressPolicyItemDO;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_PROJECTION_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -67,7 +69,8 @@ public class ProjectProgressSnapshotService {
         Long rootId = parent.getRootId() == null ? parent.getId() : parent.getRootId();
         ProjectTreeVersionDO treeVersion = treeVersionMapper.selectLatestActive(rootId);
         if (treeVersion == null) throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
-        scopeService.assertFullAccess(actor.actorId(), projectId, treeVersion.getTreeVersion());
+        scopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), projectId, ACTION_VIEW, treeVersion.getTreeVersion()));
         List<ProjectMasterDO> children = projectMapper.selectChildren(projectId);
         if (children.isEmpty()) {
             throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_PROGRESS_POLICY_INVALID,

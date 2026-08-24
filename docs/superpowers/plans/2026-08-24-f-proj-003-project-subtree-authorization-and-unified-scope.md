@@ -260,13 +260,21 @@ feat(project): 增加项目授权管理入口
 
 **Files:**
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/query/VisibleProjectPageQuery.java`
+- Create: `pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectMasterMapper.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttree/ProjectTreeVersionMapper.java`
+- Modify: `pms-module-project/src/main/resources/mapper/projecttree/ProjectTreeVersionMapper.xml`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationServiceImpl.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationApplicationService.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManagerAssignmentApplicationService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeProjectionService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeQueryService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectprogress/ProjectProgressQueryService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectprogress/ProjectProgressPolicyService.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectprogress/ProjectProgressSnapshotService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectsplit/ProjectSplitDraftService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectsplit/ProjectSplitApplicationService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectclosureguard/ProjectClosureGuardService.java`
@@ -276,25 +284,25 @@ feat(project): 增加项目授权管理入口
 - Consumes: `ProjectScopeApi.resolve(query)`，读入口使用`PROJECT_VIEW`，写入口使用`PROJECT_MANAGE`。
 - Produces: 项目详情、分页、树、进度、拆分与闭环守卫对同一主体/动作/授权版本/树版本的一致结果。
 
-- [ ] **Step 1: 修正项目分页和详情的服务端范围过滤**
+- [x] **Step 1: 修正项目分页和详情的服务端范围过滤**
 
 Controller从登录上下文传递主体；Service先解析可见ID，再构造`VisibleProjectPageQuery`；权限集合为空直接返回空页；Mapper不再接收长位置参数列表或Controller ReqVO。
 
-- [ ] **Step 2: 为树、进度和闭环读入口显式传入`PROJECT_VIEW`**
+- [x] **Step 2: 为树、进度和闭环读入口显式传入`PROJECT_VIEW`**
 
 完整节点仅来自`fullProjectIds`；祖先占位继续通过`ProjectTreeViewSanitizer`只返回稳定ID；不再返回经理同根项目摘要。
 
-- [ ] **Step 3: 为拆分、进度策略、移动和闭环命令显式传入`PROJECT_MANAGE`**
+- [x] **Step 3: 为拆分、进度策略、移动和闭环命令显式传入`PROJECT_MANAGE`**
 
 任何空范围或陈旧树版本均拒绝；缓存不可用时回源，不能退化为租户全量。
 
-- [ ] **Step 4: 运行当前PROJ回归**
+- [x] **Step 4: 运行当前PROJ回归**
 
 Run: `mvn.cmd -pl pms-module-project -am -Ppms-test-unit -DskipITs=true test`
 
 Expected: F-PROJ-001创建/指派与F-PROJ-002拆分、树、进度、移动、闭环守卫保持PASS，新权限负向用例PASS。
 
-- [ ] **Step 5: 提交入口统一过滤**
+- [x] **Step 5: 提交入口统一过滤**
 
 ```text
 fix(project): 统一项目入口数据范围

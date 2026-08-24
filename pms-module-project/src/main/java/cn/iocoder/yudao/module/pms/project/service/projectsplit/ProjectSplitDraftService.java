@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.service.projectsplit;
 
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeSliceDTO;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectCompanyDepartmentRelationDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitItemDO;
@@ -30,6 +31,7 @@ import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_MANAGE;
 
 @Service
 @RequiredArgsConstructor
@@ -58,7 +60,7 @@ public class ProjectSplitDraftService {
         Long rootId = parent.getRootId() == null ? parent.getId() : parent.getRootId();
         ProjectTreeVersionDO activeTree = treeVersionMapper.selectLatestActive(rootId);
         if (activeTree == null) throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
-        treeScopeService.assertFullAccess(actor.actorId(), parent.getId(), activeTree.getTreeVersion());
+        assertManageScope(actor, parent.getId(), activeTree.getTreeVersion());
 
         ProjectSplitRequestDO request;
         long scopeVersion;
@@ -95,7 +97,7 @@ public class ProjectSplitDraftService {
         auditService.record(actor.tenantId(), actor.actorId(), actor.correlationId(), "PROJECT_SPLIT_DRAFT_SAVE",
                 request.getId(), "SUCCESS", Map.of("itemCount", command.items().size(),
                         "draftVersion", request.getDraftVersion()));
-        return getDraft(request.getId(), actor);
+        return loadDraft(request);
     }
 
     private long resolveScopeVersion(Long parentProjectId, Long fallbackVersion) {
@@ -114,8 +116,12 @@ public class ProjectSplitDraftService {
         validateActor(actor);
         ProjectSplitRequestDO request = requireRequest(requestId, actor);
         requireProjectScope(request.getParentProjectId(), actor.actorId());
-        treeScopeService.assertFullAccess(actor.actorId(), request.getParentProjectId(), request.getTreeVersion());
-        List<ProjectSplitItemDO> items = itemMapper.selectByRequestId(requestId);
+        assertManageScope(actor, request.getParentProjectId(), request.getTreeVersion());
+        return loadDraft(request);
+    }
+
+    private DraftResult loadDraft(ProjectSplitRequestDO request) {
+        List<ProjectSplitItemDO> items = itemMapper.selectByRequestId(request.getId());
         List<ProjectSplitScopeDO> scopes = scopeMapper.selectByItemIds(items.stream().map(ProjectSplitItemDO::getId).toList());
         return new DraftResult(request, items, scopes);
     }
@@ -180,6 +186,11 @@ public class ProjectSplitDraftService {
         if (relation == null || !organizationScopeApi.hasScope(actorId, relation.getCompanyId(), relation.getDepartmentId())) {
             throw exception(PROJECT_SPLIT_SCOPE_FORBIDDEN);
         }
+    }
+
+    private void assertManageScope(Actor actor, Long projectId, Long treeVersion) {
+        treeScopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), projectId, ACTION_MANAGE, treeVersion));
     }
 
     private void validateActor(Actor actor) {

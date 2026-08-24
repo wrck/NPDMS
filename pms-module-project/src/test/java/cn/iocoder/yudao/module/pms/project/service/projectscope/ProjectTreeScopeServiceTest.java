@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantDTO;
+import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantPageQuery;
+import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantPageResult;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -31,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -149,6 +152,46 @@ class ProjectTreeScopeServiceTest {
     }
 
     @Test
+    void globalScopeReturnsEmptyWithoutMemberOrGrantAnchors() {
+        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class))).thenReturn(List.of());
+        when(authorizationGrantApi.page(any(AuthorizationGrantPageQuery.class)))
+                .thenReturn(new AuthorizationGrantPageResult(List.of(), 0));
+
+        assertEquals(Set.of(), service.resolveAllFullProjectIds(0L, 9L, "PROJECT_VIEW"));
+
+        verify(projectMapper, never()).selectBatchIds(any());
+    }
+
+    @Test
+    void globalScopeDiscoversGrantOnlyTreeAndReusesUnifiedResolution() {
+        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class))).thenReturn(List.of());
+        when(authorizationGrantApi.page(any(AuthorizationGrantPageQuery.class))).thenAnswer(invocation -> {
+            AuthorizationGrantPageQuery query = invocation.getArgument(0);
+            return "PROJECT_VIEW".equals(query.actionCode())
+                    ? new AuthorizationGrantPageResult(
+                            List.of(grant(3L, "PROJECT_VIEW", "CURRENT_PROJECT")), 1)
+                    : new AuthorizationGrantPageResult(List.of(), 0);
+        });
+        ProjectMasterDO granted = project(3L, 1L);
+        when(projectMapper.selectBatchIds(Set.of(3L))).thenReturn(List.of(granted));
+        when(projectMapper.selectById(1L)).thenReturn(project(1L, 1L));
+        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
+        version.setTreeVersion(7L);
+        when(versionMapper.selectLatestActive(1L)).thenReturn(version);
+        when(pathMapper.selectByAncestor(1L, 7L, 1L, null)).thenReturn(List.of(
+                path(1L, 1L), path(1L, 2L), path(1L, 3L)));
+        when(authorizationGrantApi.listEffective(any(AuthorizationGrantQuery.class))).thenAnswer(invocation -> {
+            AuthorizationGrantQuery query = invocation.getArgument(0);
+            return "PROJECT_VIEW".equals(query.actionCode())
+                    ? List.of(grant(3L, "PROJECT_VIEW", "CURRENT_PROJECT")) : List.of();
+        });
+        when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
+                .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
+
+        assertEquals(Set.of(3L), service.resolveAllFullProjectIds(0L, 9L, "PROJECT_VIEW"));
+    }
+
+    @Test
     void sanitizerReturnsOnlyStableIdForPathPlaceholder() {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(4L);
@@ -186,6 +229,14 @@ class ProjectTreeScopeServiceTest {
         ProjectMemberAssignmentDO value = new ProjectMemberAssignmentDO();
         value.setProjectId(projectId);
         value.setMemberRole(role);
+        return value;
+    }
+
+    private ProjectMasterDO project(Long id, Long rootId) {
+        ProjectMasterDO value = new ProjectMasterDO();
+        value.setId(id);
+        value.setRootId(rootId);
+        value.setTenantId(0L);
         return value;
     }
 

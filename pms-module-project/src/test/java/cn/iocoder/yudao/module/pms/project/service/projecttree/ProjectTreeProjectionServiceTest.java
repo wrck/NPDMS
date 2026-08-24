@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttree;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
@@ -56,7 +57,7 @@ class ProjectTreeProjectionServiceTest {
         ProjectMasterDO grandchild = project(3L, 2L, 1L);
         when(projectMapper.selectTreeByRootId(1L)).thenReturn(List.of(root, child, grandchild));
         when(projectMapper.selectByIdForUpdate(1L)).thenReturn(root);
-        when(versionMapper.selectLatestActive(1L)).thenReturn(activeVersion(7L));
+        when(versionMapper.selectLatestActiveForUpdate(1L)).thenReturn(activeVersion(7L));
         when(versionMapper.insert(any(ProjectTreeVersionDO.class))).thenReturn(1);
         when(versionMapper.updateById(any(ProjectTreeVersionDO.class))).thenReturn(1);
         AtomicInteger insertedPaths = new AtomicInteger();
@@ -83,7 +84,7 @@ class ProjectTreeProjectionServiceTest {
         ProjectMasterDO cycle = project(2L, 2L, 1L);
         when(projectMapper.selectTreeByRootId(1L)).thenReturn(List.of(root, cycle));
         when(projectMapper.selectByIdForUpdate(1L)).thenReturn(root);
-        when(versionMapper.selectLatestActive(1L)).thenReturn(activeVersion(8L));
+        when(versionMapper.selectLatestActiveForUpdate(1L)).thenReturn(activeVersion(8L));
         when(versionMapper.insert(any(ProjectTreeVersionDO.class))).thenReturn(1);
         when(versionMapper.updateById(any(ProjectTreeVersionDO.class))).thenReturn(1);
 
@@ -108,8 +109,8 @@ class ProjectTreeProjectionServiceTest {
         when(projectMapper.selectByIdsForUpdate(List.of(1L, 2L, 3L))).thenReturn(List.of(root, node, target));
         ProjectTreeVersionDO active = new ProjectTreeVersionDO();
         active.setRootProjectId(1L); active.setTreeVersion(7L); active.setStatus("ACTIVE");
-        when(versionMapper.selectLatestActive(1L)).thenReturn(active);
-        when(versionMapper.selectLatest(1L)).thenReturn(active);
+        when(versionMapper.selectLatestActiveForUpdate(1L)).thenReturn(active);
+        when(versionMapper.selectLatestForUpdate(1L)).thenReturn(active);
         ProjectTreePathDO self = new ProjectTreePathDO();
         self.setAncestorProjectId(2L); self.setDescendantProjectId(2L); self.setDistance(0);
         when(pathMapper.selectByAncestor(1L, 7L, 2L, null)).thenReturn(List.of(self));
@@ -135,8 +136,8 @@ class ProjectTreeProjectionServiceTest {
         ArgumentCaptor<ProjectMasterDO> update = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectMapper).updateById(update.capture());
         assertEquals(3L, update.getValue().getParentId());
-        verify(scopeService).assertFullAccess(9L, 2L, 7L);
-        verify(scopeService).assertFullAccess(9L, 3L, 7L);
+        verify(scopeService).assertFullAccess(new ProjectScopeQuery(1L, 9L, 2L, "PROJECT_MANAGE", 7L));
+        verify(scopeService).assertFullAccess(new ProjectScopeQuery(1L, 9L, 3L, "PROJECT_MANAGE", 7L));
         verify(changeMapper).insert(any(cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeChangeDO.class));
     }
 

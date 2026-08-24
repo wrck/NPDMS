@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.service.projectsplit;
 
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeSliceDTO;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectCompanyDepartmentRelationDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitItemDO;
@@ -83,6 +84,8 @@ class ProjectSplitDraftServiceTest {
         verify(itemMapper).physicallyDeleteByRequestId(1L, 20L);
         verify(itemMapper).insert(any(ProjectSplitItemDO.class));
         verify(scopeMapper).insert(any(ProjectSplitScopeDO.class));
+        verify(treeScopeService).assertFullAccess(
+                new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectclosureguard;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectprogress.ProjectProgressSnapshotDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
@@ -27,6 +28,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -55,8 +57,8 @@ public class ProjectClosureGuardService {
         if (active == null || !Objects.equals(active.getTreeVersion(), expectedTreeVersion)) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
-        ProjectTreeScopeService.ProjectTreeScope scope = scopeService.resolve(
-                actor.actorId(), projectId, expectedTreeVersion);
+        ProjectTreeScopeService.ProjectTreeScope scope = scopeService.resolve(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), projectId, ACTION_VIEW, expectedTreeVersion));
         if (scope.visibility(projectId) != ProjectTreeScopeService.Visibility.FULL) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }

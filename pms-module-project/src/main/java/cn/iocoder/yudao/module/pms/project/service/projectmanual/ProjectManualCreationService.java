@@ -37,29 +37,32 @@ public interface ProjectManualCreationService {
      * 更新可编辑属性（BR-7：名称/客户/合同号/实施地点；编码、父节点、来源、模板绑定、状态不可改，
      * 更新载荷中的不可变字段被忽略）。
      */
-    void updateProject(ProjectMasterDO update);
+    void updateProject(ProjectMasterDO update, ProjectAccessActor actor);
 
     /**
      * 查询项目主档。
      */
-    ProjectMasterDO getProject(Long id);
+    ProjectMasterDO getProject(Long id, ProjectAccessActor actor);
 
     /**
      * 分页查询（简单条件：名称/编码/状态/三维）。
      */
     PageResult<ProjectMasterDO> getProjectPage(PageParam pageParam, String projectName, String projectCode,
                                                String status, String signingMethod, String projectCategory,
-                                               String implementationMode);
+                                               String implementationMode, ProjectAccessActor actor);
 
     /**
      * 实例视图：阶段→任务/里程碑/交付件/门禁+门禁引用行（按冻结版本只读）。
      */
-    ProjectInstantiation getInstances(Long projectId);
+    ProjectInstantiation getInstances(Long projectId, ProjectAccessActor actor);
+
+    /** 创建事务内读取刚完成初始化的实例，不作为用户查询入口。 */
+    ProjectInstantiation getInstancesForCreation(Long projectId, Long tenantId);
 
     /**
      * 成员区间列表（当前有效+历史）。
      */
-    List<ProjectMemberAssignmentDO> getMemberAssignments(Long projectId);
+    List<ProjectMemberAssignmentDO> getMemberAssignments(Long projectId, ProjectAccessActor actor);
 
     /**
      * 指派一级服务经理（SERVICE_MANAGER_L1）：旧有效区间关闭+新区间开启，同事务留痕。
@@ -67,4 +70,7 @@ public interface ProjectManualCreationService {
      * @param command 包含Project期望版本、角色责任范围与幂等事实的指派命令
      */
     AssignServiceManagerResult assignServiceManager(AssignServiceManagerCommand command);
+
+    record ProjectAccessActor(Long tenantId, Long actorId) {
+    }
 }

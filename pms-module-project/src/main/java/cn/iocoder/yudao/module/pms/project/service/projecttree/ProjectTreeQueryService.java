@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttree;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
@@ -21,6 +22,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_PROJECTION_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_QUERY_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -61,8 +63,8 @@ public class ProjectTreeQueryService {
         }
         int pageSize = query.pageSize() == null ? DEFAULT_PAGE_SIZE
                 : Math.min(Math.max(query.pageSize(), 1), MAX_PAGE_SIZE);
-        ProjectTreeScopeService.ProjectTreeScope scope = scopeService.resolve(
-                actor.actorId(), query.anchorProjectId(), active.getTreeVersion());
+        ProjectTreeScopeService.ProjectTreeScope scope = scopeService.resolve(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), query.anchorProjectId(), ACTION_VIEW, active.getTreeVersion()));
         if (scope.rootProjectId() != rootId
                 || scope.visibility(query.anchorProjectId()) == ProjectTreeScopeService.Visibility.NONE) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);

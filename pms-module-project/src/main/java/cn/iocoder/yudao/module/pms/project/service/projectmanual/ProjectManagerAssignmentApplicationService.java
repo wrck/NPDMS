@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
@@ -37,6 +38,8 @@ public class ProjectManagerAssignmentApplicationService {
     @Resource
     private ProjectManualCreationService projectService;
     @Resource
+    private ProjectMasterMapper projectMapper;
+    @Resource
     private ProjectCreationAuthorizationService authorizationService;
     @Resource
     private AdminUserApi adminUserApi;
@@ -57,7 +60,7 @@ public class ProjectManagerAssignmentApplicationService {
         authorizationService.assertCanAssign(actor.actorId());
         projectAuthorizationGuard.assertCanAssign(
                 new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.actorId()), command.projectId());
-        validateBusinessScope(command);
+        validateBusinessScope(command, actor);
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), ASSIGN_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), AssignServiceManagerResult.class,
@@ -99,9 +102,10 @@ public class ProjectManagerAssignmentApplicationService {
         }
     }
 
-    private void validateBusinessScope(AssignServiceManagerCommand command) {
-        ProjectMasterDO project = projectService.getProject(command.projectId());
-        if (project == null || project.getCompanyId() == null) {
+    private void validateBusinessScope(AssignServiceManagerCommand command, Actor actor) {
+        ProjectMasterDO project = projectMapper.selectById(command.projectId());
+        if (project == null || !java.util.Objects.equals(project.getTenantId(), actor.tenantId())
+                || project.getCompanyId() == null) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "项目或项目公司范围不存在");
         }
         var projectSites = projectSiteService.getActiveSites(command.projectId());

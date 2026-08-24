@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper">
+
+    <select id="selectListByIdsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT *
+        FROM proj_project
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND deleted = b'0'
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
+    <update id="incrementVersionIfMatch">
+        UPDATE proj_project
+        SET version = version + 1
+        WHERE id = #{projectId}
+          AND version = #{expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+</mapper>

@@ -19,6 +19,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilest
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.MemberAssignmentRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectCodeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
@@ -30,6 +32,9 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionCon
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -60,6 +65,10 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_PROJECTION_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_MANAGE;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 /**
  * 项目手工创建 Service 实现（F-PM01 / PM-01）
@@ -103,6 +112,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private AdminUserApi adminUserApi;
     @Resource
     private DeptApi deptApi;
+    @Resource
+    private ProjectTreeVersionMapper projectTreeVersionMapper;
+    @Resource
+    private ProjectTreeScopeService projectTreeScopeService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -234,32 +247,49 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     @Override
-    public void updateProject(ProjectMasterDO update) {
+    public void updateProject(ProjectMasterDO update, ProjectAccessActor actor) {
         if (update == null || update.getId() == null) {
             throw exception(PROJECT_NOT_EXISTS);
         }
-        ProjectMasterDO current = validateProjectExists(update.getId());
+        ProjectMasterDO current = requireScopedProject(update.getId(), actor, ACTION_MANAGE);
         // BR-7：不可变字段以库内值为准（更新载荷中的不可变字段值被忽略）
         ProjectRules.applyImmutableFields(update, current);
         projectMasterMapper.updateById(update);
     }
 
     @Override
-    public ProjectMasterDO getProject(Long id) {
-        return projectMasterMapper.selectById(id);
+    public ProjectMasterDO getProject(Long id, ProjectAccessActor actor) {
+        return requireScopedProject(id, actor, ACTION_VIEW);
     }
 
     @Override
     public PageResult<ProjectMasterDO> getProjectPage(PageParam pageParam, String projectName, String projectCode,
                                                       String status, String signingMethod, String projectCategory,
-                                                      String implementationMode) {
-        return projectMasterMapper.selectPage(pageParam, projectName, projectCode, status,
-                signingMethod, projectCategory, implementationMode);
+                                                      String implementationMode, ProjectAccessActor actor) {
+        validateActor(actor);
+        var visibleProjectIds = projectTreeScopeService.resolveAllFullProjectIds(
+                actor.tenantId(), actor.actorId(), ACTION_VIEW);
+        return projectMasterMapper.selectPage(new VisibleProjectPageQuery(
+                actor.tenantId(), visibleProjectIds, pageParam, projectName, projectCode, status,
+                signingMethod, projectCategory, implementationMode));
     }
 
     @Override
-    public ProjectInstantiation getInstances(Long projectId) {
-        validateProjectExists(projectId);
+    public ProjectInstantiation getInstances(Long projectId, ProjectAccessActor actor) {
+        requireScopedProject(projectId, actor, ACTION_VIEW);
+        return loadInstances(projectId);
+    }
+
+    @Override
+    public ProjectInstantiation getInstancesForCreation(Long projectId, Long tenantId) {
+        ProjectMasterDO project = projectMasterMapper.selectById(projectId);
+        if (project == null || !java.util.Objects.equals(project.getTenantId(), tenantId)) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        return loadInstances(projectId);
+    }
+
+    private ProjectInstantiation loadInstances(Long projectId) {
         ProjectInstantiation view = new ProjectInstantiation();
         view.setStages(stageInstanceMapper.selectListByProjectId(projectId));
         view.setTasks(taskInstanceMapper.selectListByProjectId(projectId));
@@ -293,9 +323,38 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     @Override
-    public List<ProjectMemberAssignmentDO> getMemberAssignments(Long projectId) {
-        validateProjectExists(projectId);
+    public List<ProjectMemberAssignmentDO> getMemberAssignments(Long projectId, ProjectAccessActor actor) {
+        requireScopedProject(projectId, actor, ACTION_VIEW);
         return memberAssignmentMapper.selectListByProjectId(projectId);
+    }
+
+    private ProjectMasterDO requireScopedProject(Long projectId, ProjectAccessActor actor, String actionCode) {
+        validateActor(actor);
+        ProjectMasterDO project = projectMasterMapper.selectById(projectId);
+        if (project == null || !java.util.Objects.equals(project.getTenantId(), actor.tenantId())) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        Long rootId = project.getRootId() == null ? project.getId() : project.getRootId();
+        ProjectTreeVersionDO active = projectTreeVersionMapper.selectLatestActive(rootId);
+        if (active == null) {
+            throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
+        }
+        var scope = projectTreeScopeService.resolve(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), projectId, actionCode, active.getTreeVersion()));
+        if (!scope.fullProjectIds().contains(projectId)) {
+            if (ACTION_VIEW.equals(actionCode)) {
+                throw exception(PROJECT_NOT_EXISTS);
+            }
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        return project;
+    }
+
+    private void validateActor(ProjectAccessActor actor) {
+        if (actor == null || actor.tenantId() == null || actor.tenantId() < 0
+                || actor.actorId() == null || actor.actorId() <= 0) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
     }
 
     @Override

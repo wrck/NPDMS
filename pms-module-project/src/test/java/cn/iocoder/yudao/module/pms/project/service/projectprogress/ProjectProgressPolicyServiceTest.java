@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.service.projectprogress;
 
 import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectprogress.ProjectProgressPolicyRevisionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress.ProjectProgressPolicyItemMapper;
@@ -46,6 +49,31 @@ class ProjectProgressPolicyServiceTest {
         verify(revisionMapper).updateById(approved);
         verify(metrics).approvalCallback("approved");
         verify(auditService).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void policyListingRequiresExplicitManageScope() {
+        ProjectMasterMapper projectMapper = mock(ProjectMasterMapper.class);
+        ProjectTreeVersionMapper versionMapper = mock(ProjectTreeVersionMapper.class);
+        ProjectProgressPolicyRevisionMapper revisionMapper = mock(ProjectProgressPolicyRevisionMapper.class);
+        ProjectTreeScopeService scopeService = mock(ProjectTreeScopeService.class);
+        ProjectProgressPolicyService service = new ProjectProgressPolicyService(
+                projectMapper, versionMapper, revisionMapper, mock(ProjectProgressPolicyItemMapper.class),
+                scopeService, mock(BpmProcessInstanceApi.class), new ProjectProgressProperties(),
+                mock(OperationAuditApi.class), mock(ProjectProgressMetrics.class));
+        ProjectMasterDO project = new ProjectMasterDO();
+        project.setId(7L);
+        project.setRootId(7L);
+        project.setTenantId(1L);
+        when(projectMapper.selectById(7L)).thenReturn(project);
+        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
+        version.setTreeVersion(4L);
+        when(versionMapper.selectLatestActive(7L)).thenReturn(version);
+
+        service.listByParent(7L, new ProjectProgressPolicyService.Actor(1L, 9L, "corr-1"));
+
+        verify(scopeService).assertFullAccess(
+                new ProjectScopeQuery(1L, 9L, 7L, "PROJECT_MANAGE", 4L));
     }
 
     private static ProjectProgressPolicyRevisionDO revision(Long id, Long parentId, String status, int version) {

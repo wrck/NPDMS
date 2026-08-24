@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttree;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeChangeDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
@@ -32,6 +33,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_PROJECTION_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_MANAGE;
 
 @Service
 @RequiredArgsConstructor
@@ -91,14 +93,16 @@ public class ProjectTreeProjectionService {
         if (!lockIds.contains(sourceRootId) || !lockIds.contains(targetRootId)) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
-        ProjectTreeVersionDO sourceActive = requireStableActive(sourceRootId);
+        ProjectTreeVersionDO sourceActive = requireStableActiveForUpdate(sourceRootId);
         ProjectTreeVersionDO targetActive = Objects.equals(sourceRootId, targetRootId)
-                ? sourceActive : requireStableActive(targetRootId);
+                ? sourceActive : requireStableActiveForUpdate(targetRootId);
         if (!Objects.equals(sourceActive.getTreeVersion(), command.expectedTreeVersion())) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
-        scopeService.assertFullAccess(actor.actorId(), node.getId(), sourceActive.getTreeVersion());
-        scopeService.assertFullAccess(actor.actorId(), newParent.getId(), targetActive.getTreeVersion());
+        scopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), node.getId(), ACTION_MANAGE, sourceActive.getTreeVersion()));
+        scopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), newParent.getId(), ACTION_MANAGE, targetActive.getTreeVersion()));
         List<ProjectTreePathDO> subtreePaths = pathMapper.selectByAncestor(
                 sourceRootId, sourceActive.getTreeVersion(), node.getId(), null);
         if (node.getId().equals(newParent.getId()) || subtreePaths.stream()
@@ -178,9 +182,9 @@ public class ProjectTreeProjectionService {
         }
     }
 
-    private ProjectTreeVersionDO requireStableActive(Long rootId) {
-        ProjectTreeVersionDO active = versionMapper.selectLatestActive(rootId);
-        ProjectTreeVersionDO latest = versionMapper.selectLatest(rootId);
+    private ProjectTreeVersionDO requireStableActiveForUpdate(Long rootId) {
+        ProjectTreeVersionDO active = versionMapper.selectLatestActiveForUpdate(rootId);
+        ProjectTreeVersionDO latest = versionMapper.selectLatestForUpdate(rootId);
         if (active == null) throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
         if (latest != null && "BUILDING".equals(latest.getStatus())
                 && latest.getTreeVersion() > active.getTreeVersion()) {
@@ -223,7 +227,7 @@ public class ProjectTreeProjectionService {
         if (rootLock == null) {
             throw exception(PROJECT_NOT_EXISTS);
         }
-        ProjectTreeVersionDO active = versionMapper.selectLatestActive(rootProjectId);
+        ProjectTreeVersionDO active = versionMapper.selectLatestActiveForUpdate(rootProjectId);
         long expectedVersion = active == null ? 1L : active.getTreeVersion() + 1;
         if (treeVersion != expectedVersion) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttree;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 
 @ExtendWith(MockitoExtension.class)
@@ -116,7 +118,7 @@ class ProjectTreeQueryServiceTest {
         assertThrows(ServiceException.class, () -> service.query(
                 new ProjectTreeQuery(1L, ProjectTreeQuery.QueryType.CHILDREN, null, 10, null), actor));
 
-        verify(scopeService, never()).resolve(anyLong(), anyLong(), anyLong());
+        verify(scopeService, never()).resolve(any(ProjectScopeQuery.class));
     }
 
     @Test
@@ -128,7 +130,7 @@ class ProjectTreeQueryServiceTest {
         assertThrows(ServiceException.class, () -> service.query(
                 new ProjectTreeQuery(1L, ProjectTreeQuery.QueryType.CHILDREN, null, 10, staleCursor), actor));
 
-        verify(scopeService, never()).resolve(anyLong(), anyLong(), anyLong());
+        verify(scopeService, never()).resolve(any(ProjectScopeQuery.class));
     }
 
     @Test
@@ -136,7 +138,7 @@ class ProjectTreeQueryServiceTest {
         when(projectMapper.selectById(1L)).thenReturn(project(1L, null, 1L, 0, null));
         when(versionMapper.selectLatestActive(1L)).thenReturn(version(7L, "ACTIVE"));
         when(versionMapper.selectLatest(1L)).thenReturn(version(7L, "ACTIVE"));
-        when(scopeService.resolve(9L, 1L, 7L)).thenReturn(
+        when(scopeService.resolve(new ProjectScopeQuery(1L, 9L, 1L, "PROJECT_VIEW", 7L))).thenReturn(
                 new ProjectTreeScopeService.ProjectTreeScope(1L, 7L, Set.of(), Set.of(), Set.of()));
 
         assertThrows(ServiceException.class, () -> service.query(
@@ -146,7 +148,7 @@ class ProjectTreeQueryServiceTest {
     }
 
     private void stubFullScope() {
-        when(scopeService.resolve(anyLong(), anyLong(), anyLong())).thenReturn(
+        when(scopeService.resolve(any(ProjectScopeQuery.class))).thenReturn(
                 new ProjectTreeScopeService.ProjectTreeScope(1L, 7L,
                         Set.of(1L, 2L, 3L), Set.of(), Set.of()));
     }

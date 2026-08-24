@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectCompanyDepartmentRelationDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
@@ -8,6 +10,8 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectCompanyDepartmentRelationMapper;
@@ -20,6 +24,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilest
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
@@ -27,6 +33,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidat
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
@@ -41,6 +48,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -107,6 +115,10 @@ class ProjectManualCreationServiceImplTest {
     private AdminUserApi adminUserApi;
     @Mock
     private DeptApi deptApi;
+    @Mock
+    private ProjectTreeVersionMapper projectTreeVersionMapper;
+    @Mock
+    private ProjectTreeScopeService projectTreeScopeService;
 
     @InjectMocks
     private ProjectManualCreationServiceImpl service;
@@ -464,6 +476,7 @@ class ProjectManualCreationServiceImplTest {
     void updateIgnoresImmutableFields() {
         ProjectMasterDO current = persistedProject();
         when(projectMasterMapper.selectById(100L)).thenReturn(current);
+        allowScope(100L, "PROJECT_MANAGE");
 
         ProjectMasterDO update = new ProjectMasterDO();
         update.setId(100L);
@@ -477,7 +490,7 @@ class ProjectManualCreationServiceImplTest {
         update.setLifecycleTemplateId(888L);
         update.setTemplateLoadMethod(ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
 
-        service.updateProject(update);
+        service.updateProject(update, new ProjectManualCreationService.ProjectAccessActor(0L, 7L));
 
         ArgumentCaptor<ProjectMasterDO> captor = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectMasterMapper).updateById(captor.capture());
@@ -500,7 +513,50 @@ class ProjectManualCreationServiceImplTest {
         payload.setId(404L);
         when(projectMasterMapper.selectById(404L)).thenReturn(null);
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.updateProject(payload));
+                () -> service.updateProject(payload,
+                        new ProjectManualCreationService.ProjectAccessActor(0L, 7L)));
+        assertEquals(PROJECT_NOT_EXISTS.getCode(), exception.getCode());
+    }
+
+    @Test
+    void projectPageUsesServerResolvedViewScopeAndKeepsEmptyScopeEmpty() {
+        ProjectManualCreationService.ProjectAccessActor actor =
+                new ProjectManualCreationService.ProjectAccessActor(0L, 7L);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L, 7L, "PROJECT_VIEW"))
+                .thenReturn(Set.of());
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class)))
+                .thenReturn(PageResult.empty());
+        PageParam page = new PageParam();
+        page.setPageNo(1);
+        page.setPageSize(20);
+
+        PageResult<ProjectMasterDO> result = service.getProjectPage(
+                page, "名称", "PJT", "ACTIVE", null, null, null, actor);
+
+        assertEquals(0L, result.getTotal());
+        ArgumentCaptor<VisibleProjectPageQuery> query =
+                ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(query.capture());
+        assertEquals(Set.of(), query.getValue().visibleProjectIds());
+        assertEquals("名称", query.getValue().projectNameKeyword());
+        assertEquals("PJT", query.getValue().projectCodePrefix());
+    }
+
+    @Test
+    void projectDetailHidesProjectWhenViewScopeIsEmpty() {
+        ProjectMasterDO current = persistedProject();
+        when(projectMasterMapper.selectById(100L)).thenReturn(current);
+        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
+        version.setTreeVersion(1L);
+        when(projectTreeVersionMapper.selectLatestActive(100L)).thenReturn(version);
+        when(projectTreeScopeService.resolve(new ProjectScopeQuery(
+                0L, 7L, 100L, "PROJECT_VIEW", 1L))).thenReturn(
+                new ProjectTreeScopeService.ProjectTreeScope(
+                        100L, 1L, Set.of(), Set.of(), Set.of()));
+
+        ServiceException exception = assertThrows(ServiceException.class, () -> service.getProject(
+                100L, new ProjectManualCreationService.ProjectAccessActor(0L, 7L)));
+
         assertEquals(PROJECT_NOT_EXISTS.getCode(), exception.getCode());
     }
 
@@ -521,6 +577,7 @@ class ProjectManualCreationServiceImplTest {
     private ProjectMasterDO persistedProject() {
         ProjectMasterDO current = validDraft();
         current.setId(100L);
+        current.setTenantId(0L);
         current.setProjectCode("PJT2026000001");
         current.setCodeRootId(100L);
         current.setRootId(100L);
@@ -536,6 +593,16 @@ class ProjectManualCreationServiceImplTest {
         current.setTemplateLoadMethod(ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT);
         current.setContractNo("HT-2026-001");
         return current;
+    }
+
+    private void allowScope(Long projectId, String actionCode) {
+        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
+        version.setTreeVersion(1L);
+        when(projectTreeVersionMapper.selectLatestActive(projectId)).thenReturn(version);
+        when(projectTreeScopeService.resolve(new ProjectScopeQuery(
+                0L, 7L, projectId, actionCode, 1L))).thenReturn(
+                new ProjectTreeScopeService.ProjectTreeScope(
+                        projectId, 1L, java.util.Set.of(projectId), java.util.Set.of(), java.util.Set.of()));
     }
 
     private ProjectTemplateDO activeTemplate(Long id, String code) {

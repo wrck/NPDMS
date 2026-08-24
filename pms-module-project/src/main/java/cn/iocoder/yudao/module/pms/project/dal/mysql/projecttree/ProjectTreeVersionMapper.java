@@ -12,6 +12,10 @@ public interface ProjectTreeVersionMapper extends BaseMapperX<ProjectTreeVersion
 
     ProjectTreeVersionDO selectLatest(Long rootProjectId);
 
+    ProjectTreeVersionDO selectLatestActiveForUpdate(Long rootProjectId);
+
+    ProjectTreeVersionDO selectLatestForUpdate(Long rootProjectId);
+
     default ProjectTreeVersionDO selectActiveVersion(Long rootProjectId, Long treeVersion) {
         return selectOne(new LambdaQueryWrapperX<ProjectTreeVersionDO>()
                 .eq(ProjectTreeVersionDO::getRootProjectId, rootProjectId)

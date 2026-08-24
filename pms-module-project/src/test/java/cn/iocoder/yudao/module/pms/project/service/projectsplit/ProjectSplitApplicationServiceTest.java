@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectsplit;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -89,7 +90,8 @@ class ProjectSplitApplicationServiceTest {
         assertFalse(result.replayed());
         assertEquals(200L, result.projects().getFirst().projectId());
         assertEquals(8L, result.treeVersion());
-        verify(treeScopeService).assertFullAccess(9L, 100L, 7L);
+        verify(treeScopeService).assertFullAccess(
+                new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
         verify(deliveryScopeApi).applySplit(argThat(value -> value.projectIdsByClientItemKey().get("A") == 200L));
         verify(treeProjectionService).publish(eq(100L), eq(8L), anyString());
         verify(treeChangeMapper).insert(any(ProjectTreeChangeDO.class));

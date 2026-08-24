@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.project.service.projectscope;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantDTO;
+import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantPageQuery;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -39,6 +40,7 @@ public class ProjectTreeScopeService {
     private static final String SCOPE_DESCENDANTS = "PROJECT_AND_DESCENDANTS";
     private static final Set<String> MANAGER_ROLES = Set.of(
             "PROJECT_MANAGER", "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+    private static final int GRANT_DISCOVERY_PAGE_SIZE = 100;
 
     private final ProjectMasterMapper projectMapper;
     private final ProjectMemberAssignmentMapper memberMapper;
@@ -98,18 +100,44 @@ public class ProjectTreeScopeService {
                 Set.copyOf(placeholders), Set.of());
     }
 
-    /** F-PROJ-002内部兼容入口；Task 5将当前业务入口全部改为显式动作。 */
-    public ProjectTreeScope resolve(Long actorId, Long anchorProjectId, long treeVersion) {
-        Long tenantId = TenantContextHolder.getRequiredTenantId();
-        return resolve(new ProjectScopeQuery(
-                tenantId, actorId, anchorProjectId, ACTION_VIEW, treeVersion));
+    /**
+     * 解析主体在租户内可完整访问的全部项目，用于无锚点的项目分页入口。
+     * 成员关系和有效授权只用于发现候选树，最终范围仍逐树复用统一 resolve 算法。
+     */
+    public Set<Long> resolveAllFullProjectIds(Long tenantId, Long subjectUserId, String actionCode) {
+        validateActorAction(tenantId, subjectUserId, actionCode);
+        LocalDateTime effectiveAt = LocalDateTime.now();
+        Set<Long> anchors = memberMapper.selectActiveByUser(
+                        new ActiveProjectMemberQuery(tenantId, subjectUserId, effectiveAt)).stream()
+                .filter(item -> allows(item.getMemberRole(), actionCode))
+                .map(ProjectMemberAssignmentDO::getProjectId)
+                .collect(Collectors.toCollection(HashSet::new));
+        discoverGrantAnchors(tenantId, subjectUserId, actionCode, effectiveAt, anchors);
+        if (ACTION_VIEW.equals(actionCode)) {
+            discoverGrantAnchors(tenantId, subjectUserId, ACTION_MANAGE, effectiveAt, anchors);
+        }
+        if (anchors.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> rootIds = projectMapper.selectBatchIds(anchors).stream()
+                .filter(project -> Objects.equals(project.getTenantId(), tenantId))
+                .map(project -> project.getRootId() == null ? project.getId() : project.getRootId())
+                .collect(Collectors.toSet());
+        Set<Long> visible = new HashSet<>();
+        for (Long rootId : rootIds) {
+            ProjectTreeVersionDO version = versionMapper.selectLatestActive(rootId);
+            if (version == null) {
+                continue;
+            }
+            visible.addAll(resolve(new ProjectScopeQuery(
+                    tenantId, subjectUserId, rootId, actionCode, version.getTreeVersion())).fullProjectIds());
+        }
+        return Set.copyOf(visible);
     }
 
-    public void assertFullAccess(Long actorId, Long projectId, long treeVersion) {
-        Long tenantId = TenantContextHolder.getRequiredTenantId();
-        ProjectTreeScope scope = resolve(new ProjectScopeQuery(
-                tenantId, actorId, projectId, ACTION_MANAGE, treeVersion));
-        if (scope.visibility(projectId) != Visibility.FULL) {
+    public void assertFullAccess(ProjectScopeQuery query) {
+        ProjectTreeScope scope = resolve(query);
+        if (scope.visibility(query.anchorProjectId()) != Visibility.FULL) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
     }
@@ -131,6 +159,25 @@ public class ProjectTreeScopeService {
                 "PROJ", "PROJECT", rootNodes, actionCode, effectiveAt);
     }
 
+    private void discoverGrantAnchors(Long tenantId, Long subjectUserId, String actionCode,
+                                      LocalDateTime effectiveAt, Set<Long> anchors) {
+        int pageNo = 1;
+        long consumed;
+        long total;
+        do {
+            var page = authorizationGrantApi.page(new AuthorizationGrantPageQuery(
+                    tenantId, "USER", subjectUserId, "PROJ", "PROJECT", null,
+                    actionCode, null, "ACTIVE", effectiveAt, pageNo, GRANT_DISCOVERY_PAGE_SIZE));
+            page.list().stream().map(AuthorizationGrantDTO::resourceId).forEach(anchors::add);
+            consumed = (long) pageNo * GRANT_DISCOVERY_PAGE_SIZE;
+            total = page.total();
+            pageNo++;
+            if (page.list().isEmpty()) {
+                break;
+            }
+        } while (consumed < total);
+    }
+
     private boolean allows(String memberRole, String actionCode) {
         return ACTION_VIEW.equals(actionCode) || MANAGER_ROLES.contains(memberRole);
     }
@@ -143,6 +190,16 @@ public class ProjectTreeScopeService {
                 || query.anchorProjectId() == null || query.anchorProjectId() <= 0
                 || query.expectedTreeVersion() == null || query.expectedTreeVersion() <= 0
                 || !Set.of(ACTION_VIEW, ACTION_MANAGE).contains(query.actionCode())) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+    }
+
+    private void validateActorAction(Long tenantId, Long subjectUserId, String actionCode) {
+        Long contextTenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null || tenantId < 0
+                || contextTenantId != null && !contextTenantId.equals(tenantId)
+                || subjectUserId == null || subjectUserId <= 0
+                || !Set.of(ACTION_VIEW, ACTION_MANAGE).contains(actionCode)) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
     }

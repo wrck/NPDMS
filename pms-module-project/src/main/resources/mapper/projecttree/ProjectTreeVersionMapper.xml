@@ -29,4 +29,27 @@
         ORDER BY tree_version DESC, id DESC
         LIMIT 1
     </select>
+
+    <select id="selectLatestActiveForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO">
+        SELECT <include refid="columns"/>
+        FROM proj_project_tree_version
+        WHERE root_project_id = #{rootProjectId}
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+        ORDER BY tree_version DESC, id DESC
+        LIMIT 1
+        FOR UPDATE
+    </select>
+
+    <select id="selectLatestForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO">
+        SELECT <include refid="columns"/>
+        FROM proj_project_tree_version
+        WHERE root_project_id = #{rootProjectId}
+          AND deleted = b'0'
+        ORDER BY tree_version DESC, id DESC
+        LIMIT 1
+        FOR UPDATE
+    </select>
 </mapper>
