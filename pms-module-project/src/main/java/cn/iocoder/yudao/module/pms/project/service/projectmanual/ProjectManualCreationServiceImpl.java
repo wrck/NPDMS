@@ -20,6 +20,9 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageI
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentMemberResponsibilityQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStatusUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.MemberAssignmentRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectCodeRules;
@@ -56,6 +59,7 @@ import org.springframework.validation.annotation.Validated;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -245,9 +249,12 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         }
         // g) 可选服务经理指派（一级 SERVICE_MANAGER_L1；PROJECT_MANAGER 不写）
         if (serviceManagerUserId != null) {
-            doAssignServiceManager(draft.getId(), draft, serviceManagerUserId,
-                    ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, null, null,
-                    draft.getDepartmentCode(), LocalDateTime.now());
+            AssignServiceManagerCommand initialAssignment = new AssignServiceManagerCommand(
+                    draft.getId(), draft.getVersion(), "L1", serviceManagerUserId, null,
+                    ProjectRules.ASSIGNMENT_TYPE_PRIMARY, draft.getDepartmentId(), draft.getDepartmentCode(),
+                    "项目创建时指定", null, null);
+            doAssignServiceManager(initialAssignment, draft,
+                    ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, LocalDateTime.now());
         }
         // h) 下单办事处关系（relation_role=ORDER_OFFICE，is_primary=1，effective_from=now）
         if (orderOfficeCompanyCode != null && !orderOfficeCompanyCode.isBlank()) {
@@ -392,16 +399,30 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         if (projectMasterMapper.incrementVersionIfMatch(command.projectId(), command.expectedVersion()) != 1) {
             throw exception(PROJECT_VERSION_CONFLICT);
         }
+        LocalDateTime effectiveFrom = LocalDateTime.now();
         String memberRole = "L1".equals(command.levelCode())
                 ? ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1
                 : ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2;
-        ProjectMemberAssignmentDO assignment = doAssignServiceManager(command.projectId(), project, command.managerId(),
-                memberRole, command.levelCode(), command.siteId(), command.departmentCode(),
-                command.effectiveFrom());
+        List<ProjectMemberAssignmentDO> activeBefore = memberAssignmentMapper.selectActiveForAssignmentState(
+                new ProjectAssignmentStateQuery(command.projectId(), effectiveFrom));
+        Long previousPrimaryManagerId = currentPrimaryServiceManager(activeBefore, memberRole, command.siteId());
+        ProjectMemberAssignmentDO assignment = doAssignServiceManager(
+                command, project, memberRole, effectiveFrom);
         int newVersion = command.expectedVersion() + 1;
+        List<ProjectMemberAssignmentDO> activeAfter = memberAssignmentMapper.selectActiveForAssignmentState(
+                new ProjectAssignmentStateQuery(command.projectId(), effectiveFrom));
+        String assignmentStatus = calculateAssignmentStatus(activeAfter);
+        String storedStatus = project.getAssignmentStatus() == null
+                ? ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED : project.getAssignmentStatus();
+        if (!Objects.equals(storedStatus, assignmentStatus)
+                && projectMasterMapper.updateAssignmentStatusIfVersion(
+                new ProjectAssignmentStatusUpdate(command.projectId(), newVersion, assignmentStatus)) != 1) {
+            throw exception(PROJECT_VERSION_CONFLICT);
+        }
+        Long currentPrimaryManagerId = ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(command.assignmentType())
+                ? command.managerId() : currentPrimaryServiceManager(activeAfter, memberRole, command.siteId());
         return new AssignServiceManagerResult(command.projectId(), assignment.getId(), newVersion,
-                project.getAssignmentStatus() == null
-                        ? ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED : project.getAssignmentStatus());
+                assignmentStatus, effectiveFrom, previousPrimaryManagerId, currentPrimaryManagerId);
     }
 
     // ========== 内部方法 ==========
@@ -466,46 +487,45 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     /**
      * 指派一级服务经理：与新区间重叠的旧区间关闭（effective_to=新区间起点，边界相接不重叠）+ 开新区间。
      */
-    private ProjectMemberAssignmentDO doAssignServiceManager(Long projectId, ProjectMasterDO project, Long userId,
-                                                             String memberRole, String levelCode, Long siteId,
-                                                             String departmentCode,
+    private ProjectMemberAssignmentDO doAssignServiceManager(AssignServiceManagerCommand command,
+                                                             ProjectMasterDO project, String memberRole,
                                                              LocalDateTime effectiveFrom) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime from = effectiveFrom != null ? effectiveFrom : now;
-        if (!MemberAssignmentRules.canStartIntervalAt(from, now)) {
-            throw exception(PROJECT_MEMBER_INTERVAL_CONFLICT);
-        }
-        List<ProjectMemberAssignmentDO> existing = memberAssignmentMapper.selectListByProjectAndRole(
-                projectId, memberRole);
+        List<ProjectMemberAssignmentDO> existing = memberAssignmentMapper.selectCurrentResponsibilityForUpdate(
+                new CurrentMemberResponsibilityQuery(command.projectId(), memberRole,
+                        command.assignmentType(), command.siteId(), effectiveFrom));
         for (ProjectMemberAssignmentDO assignment : existing) {
-            if (!MemberAssignmentRules.intervalsOverlap(assignment.getEffectiveFrom(),
-                    assignment.getEffectiveTo(), from, null)) {
+            if (ProjectRules.ASSIGNMENT_TYPE_COLLABORATOR.equals(command.assignmentType())) {
+                if (Objects.equals(assignment.getUserId(), command.managerId())) {
+                    throw exception(PROJECT_MEMBER_INTERVAL_CONFLICT);
+                }
                 continue;
             }
-            if (!MemberAssignmentRules.canCloseAt(from, assignment.getEffectiveFrom())) {
+            if (!MemberAssignmentRules.canCloseAt(effectiveFrom, assignment.getEffectiveFrom())) {
                 throw exception(PROJECT_MEMBER_INTERVAL_CONFLICT);
             }
             ProjectMemberAssignmentDO close = new ProjectMemberAssignmentDO();
             close.setId(assignment.getId());
-            close.setEffectiveTo(from);
+            close.setEffectiveTo(effectiveFrom);
             memberAssignmentMapper.updateById(close);
         }
         ProjectMemberAssignmentDO fresh = new ProjectMemberAssignmentDO();
-        fresh.setProjectId(projectId);
-        fresh.setUserId(userId);
-        AdminUserRespDTO manager = adminUserApi.getUser(userId);
-        DeptRespDTO department = deptApi.getDeptByCode(departmentCode);
+        fresh.setProjectId(command.projectId());
+        fresh.setUserId(command.managerId());
+        AdminUserRespDTO manager = adminUserApi.getUser(command.managerId());
+        DeptRespDTO department = deptApi.getDeptByCode(command.departmentCode());
         fresh.setMemberName(manager == null ? null : manager.getNickname());
         fresh.setCompanyId(project.getCompanyId());
         fresh.setCompanyCode(project.getCompanyCode());
         fresh.setCompanyName(project.getCompanyName());
-        fresh.setDepartmentCode(departmentCode);
+        fresh.setDepartmentId(command.departmentId());
+        fresh.setDepartmentCode(command.departmentCode());
         fresh.setDepartmentName(department == null ? null : department.getName());
         fresh.setMemberRole(memberRole);
-        if (levelCode != null) {
-            fresh.setResponsibility(JsonUtils.toJsonString(new AssignmentScope(levelCode, siteId, departmentCode)));
-        }
-        fresh.setEffectiveFrom(from);
+        fresh.setAssignmentType(command.assignmentType());
+        fresh.setSiteId(command.siteId());
+        fresh.setResponsibility(command.levelCode());
+        fresh.setChangeReason(command.changeReason().trim());
+        fresh.setEffectiveFrom(effectiveFrom);
         fresh.setStatus(MemberAssignmentRules.STATUS_ACTIVE);
         memberAssignmentMapper.insert(fresh);
         return fresh;
@@ -514,15 +534,42 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private void validateAssignmentCommand(AssignServiceManagerCommand command) {
         if (command == null || command.projectId() == null || command.expectedVersion() == null
                 || command.expectedVersion() < 0 || command.managerId() == null
+                || command.departmentId() == null
                 || command.departmentCode() == null
                 || command.departmentCode().isBlank()
-                || !"SERVICE_MANAGER".equals(command.roleCode())
-                || !("L1".equals(command.levelCode()) || "L2".equals(command.levelCode()))) {
+                || !("L1".equals(command.levelCode()) || "L2".equals(command.levelCode()))
+                || !(ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(command.assignmentType())
+                || ProjectRules.ASSIGNMENT_TYPE_COLLABORATOR.equals(command.assignmentType()))
+                || command.changeReason() == null || command.changeReason().isBlank()
+                || command.changeReason().trim().length() > 500
+                || ("L2".equals(command.levelCode()) && command.siteId() == null)) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "角色、层级、人员或版本无效");
         }
     }
 
-    private record AssignmentScope(String levelCode, Long siteId, String departmentCode) {
+    private String calculateAssignmentStatus(List<ProjectMemberAssignmentDO> active) {
+        boolean projectManagerPresent = active.stream().anyMatch(assignment ->
+                ProjectRules.MEMBER_ROLE_PROJECT_MANAGER.equals(assignment.getMemberRole()));
+        boolean primaryServiceManagerPresent = active.stream().anyMatch(assignment ->
+                isServiceManager(assignment.getMemberRole())
+                        && (assignment.getAssignmentType() == null
+                        || ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(assignment.getAssignmentType())));
+        return projectManagerPresent && primaryServiceManagerPresent
+                ? ProjectRules.ASSIGNMENT_STATUS_ASSIGNED : ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED;
+    }
+
+    private Long currentPrimaryServiceManager(List<ProjectMemberAssignmentDO> active,
+                                              String memberRole, Long siteId) {
+        return active.stream().filter(assignment -> Objects.equals(memberRole, assignment.getMemberRole()))
+                .filter(assignment -> Objects.equals(siteId, assignment.getSiteId()))
+                .filter(assignment -> assignment.getAssignmentType() == null
+                        || ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(assignment.getAssignmentType()))
+                .map(ProjectMemberAssignmentDO::getUserId).findFirst().orElse(null);
+    }
+
+    private boolean isServiceManager(String memberRole) {
+        return ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1.equals(memberRole)
+                || ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2.equals(memberRole);
     }
 
     private ProjectMasterDO validateProjectExists(Long id) {

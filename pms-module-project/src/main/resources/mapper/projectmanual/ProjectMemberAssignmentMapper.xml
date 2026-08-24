@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper">
+
+    <select id="selectCurrentResponsibilityForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT *
+        FROM proj_project_member_assignment
+        WHERE project_id = #{query.projectId}
+          AND member_role = #{query.memberRole}
+          <choose>
+              <when test='query.assignmentType == "PRIMARY"'>
+                  AND (assignment_type = 'PRIMARY' OR assignment_type IS NULL)
+              </when>
+              <otherwise>
+                  AND assignment_type = #{query.assignmentType}
+              </otherwise>
+          </choose>
+          AND ((site_id = #{query.siteId}) OR (site_id IS NULL AND #{query.siteId} IS NULL))
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
+</mapper>

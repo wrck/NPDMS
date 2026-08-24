@@ -67,7 +67,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_AMBIGUOUS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT;
@@ -375,7 +374,7 @@ class ProjectManualCreationServiceImplTest {
         openInterval.setMemberRole(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
         openInterval.setEffectiveFrom(LocalDateTime.of(2026, 1, 1, 0, 0));
         openInterval.setEffectiveTo(null);
-        when(memberAssignmentMapper.selectListByProjectAndRole(102L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1))
+        when(memberAssignmentMapper.selectCurrentResponsibilityForUpdate(any()))
                 .thenReturn(List.of(openInterval));
 
         service.createProject(validDraft(), "CO-01", "DEP-01", null,
@@ -408,24 +407,12 @@ class ProjectManualCreationServiceImplTest {
     // ========== 指派动作 ==========
 
     @Test
-    void assignServiceManagerRejectsFutureEffectiveFrom() {
-        when(projectMasterMapper.selectById(1L)).thenReturn(persistedProject());
-        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
-
-        ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.assignServiceManager(assignCommand(LocalDateTime.now().plusDays(1))));
-
-        assertEquals(PROJECT_MEMBER_INTERVAL_CONFLICT.getCode(), exception.getCode());
-        verify(memberAssignmentMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
-    }
-
-    @Test
     void assignServiceManagerRejectsStaleProjectVersion() {
         when(projectMasterMapper.selectById(1L)).thenReturn(persistedProject());
         when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(0);
 
         ServiceException exception = assertThrows(ServiceException.class,
-                () -> service.assignServiceManager(assignCommand(LocalDateTime.now().minusMinutes(1))));
+                () -> service.assignServiceManager(assignCommand()));
 
         assertEquals(PROJECT_VERSION_CONFLICT.getCode(), exception.getCode());
         verifyNoInteractions(memberAssignmentMapper);
@@ -441,29 +428,84 @@ class ProjectManualCreationServiceImplTest {
         previous.setId(7L);
         previous.setUserId(55L);
         previous.setMemberRole(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
+        previous.setAssignmentType(ProjectRules.ASSIGNMENT_TYPE_PRIMARY);
+        previous.setSiteId(30L);
         previous.setEffectiveFrom(LocalDateTime.now().minusDays(2));
-        when(memberAssignmentMapper.selectListByProjectAndRole(
-                1L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1)).thenReturn(List.of(previous));
+        ProjectMemberAssignmentDO projectManager = new ProjectMemberAssignmentDO();
+        projectManager.setUserId(77L);
+        projectManager.setMemberRole(ProjectRules.MEMBER_ROLE_PROJECT_MANAGER);
+        ProjectMemberAssignmentDO current = new ProjectMemberAssignmentDO();
+        current.setUserId(66L);
+        current.setMemberRole(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
+        current.setAssignmentType(ProjectRules.ASSIGNMENT_TYPE_PRIMARY);
+        current.setSiteId(30L);
+        when(memberAssignmentMapper.selectActiveForAssignmentState(any()))
+                .thenReturn(List.of(previous, projectManager), List.of(current, projectManager));
+        when(memberAssignmentMapper.selectCurrentResponsibilityForUpdate(any())).thenReturn(List.of(previous));
+        when(projectMasterMapper.updateAssignmentStatusIfVersion(any())).thenReturn(1);
         doAnswer(invocation -> {
             ProjectMemberAssignmentDO inserted = invocation.getArgument(0);
             inserted.setId(8L);
             return 1;
         }).when(memberAssignmentMapper).insert(any(ProjectMemberAssignmentDO.class));
 
-        AssignServiceManagerResult result = service.assignServiceManager(
-                assignCommand(LocalDateTime.now().minusMinutes(1)));
+        LocalDateTime invocationStartedAt = LocalDateTime.now();
+        AssignServiceManagerResult result = service.assignServiceManager(assignCommand());
 
         assertEquals(1, result.version());
         assertEquals(8L, result.assignmentId());
-        assertEquals(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED, result.assignmentStatus());
+        assertEquals(ProjectRules.ASSIGNMENT_STATUS_ASSIGNED, result.assignmentStatus());
+        assertEquals(55L, result.previousPrimaryManagerId());
+        assertEquals(66L, result.currentPrimaryManagerId());
+        assertTrue(!result.effectiveFrom().isBefore(invocationStartedAt));
         ArgumentCaptor<ProjectMemberAssignmentDO> closeCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberAssignmentMapper).updateById(closeCaptor.capture());
         assertEquals(7L, closeCaptor.getValue().getId());
         ArgumentCaptor<ProjectMemberAssignmentDO> freshCaptor = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberAssignmentMapper).insert(freshCaptor.capture());
         assertEquals(66L, freshCaptor.getValue().getUserId());
-        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"siteId\":30"));
-        assertTrue(freshCaptor.getValue().getResponsibility().contains("\"departmentCode\":\"DEP-01\""));
+        assertEquals("L1", freshCaptor.getValue().getResponsibility());
+        assertEquals(30L, freshCaptor.getValue().getSiteId());
+        assertEquals(20L, freshCaptor.getValue().getDepartmentId());
+        assertEquals("DEP-01", freshCaptor.getValue().getDepartmentCode());
+        assertEquals(ProjectRules.ASSIGNMENT_TYPE_PRIMARY, freshCaptor.getValue().getAssignmentType());
+        assertEquals("人工指派", freshCaptor.getValue().getChangeReason());
+    }
+
+    @Test
+    void collaboratorAssignmentKeepsExistingCollaboratorsAndDoesNotDriveStatus() {
+        ProjectMasterDO project = persistedProject();
+        project.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_ASSIGNED);
+        when(projectMasterMapper.selectById(1L)).thenReturn(project);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
+        ProjectMemberAssignmentDO primary = assignment(
+                55L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, ProjectRules.ASSIGNMENT_TYPE_PRIMARY);
+        ProjectMemberAssignmentDO projectManager = assignment(
+                77L, ProjectRules.MEMBER_ROLE_PROJECT_MANAGER, null);
+        ProjectMemberAssignmentDO collaborator = assignment(
+                88L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, ProjectRules.ASSIGNMENT_TYPE_COLLABORATOR);
+        when(memberAssignmentMapper.selectActiveForAssignmentState(any()))
+                .thenReturn(List.of(primary, projectManager), List.of(primary, projectManager, collaborator));
+        when(memberAssignmentMapper.selectCurrentResponsibilityForUpdate(any()))
+                .thenReturn(List.of(collaborator));
+        doAnswer(invocation -> {
+            ProjectMemberAssignmentDO inserted = invocation.getArgument(0);
+            inserted.setId(9L);
+            return 1;
+        }).when(memberAssignmentMapper).insert(any(ProjectMemberAssignmentDO.class));
+
+        AssignServiceManagerCommand command = new AssignServiceManagerCommand(
+                1L, 0, "L1", 66L, 30L, "COLLABORATOR", 20L, "DEP-01",
+                "协同支持", "collaborator-key", "c".repeat(64));
+        AssignServiceManagerResult result = service.assignServiceManager(command);
+
+        assertEquals(ProjectRules.ASSIGNMENT_STATUS_ASSIGNED, result.assignmentStatus());
+        assertEquals(55L, result.currentPrimaryManagerId());
+        verify(memberAssignmentMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
+        verify(projectMasterMapper, never()).updateAssignmentStatusIfVersion(any());
+        ArgumentCaptor<ProjectMemberAssignmentDO> inserted = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberAssignmentMapper).insert(inserted.capture());
+        assertEquals(ProjectRules.ASSIGNMENT_TYPE_COLLABORATOR, inserted.getValue().getAssignmentType());
     }
 
     // ========== BR-7 更新不可变字段被忽略 ==========
@@ -633,9 +675,19 @@ class ProjectManualCreationServiceImplTest {
                 TemplateMatchDecisionRules.MATCHER_VERSION, decisionMode, templateId, revisionId, 1);
     }
 
-    private AssignServiceManagerCommand assignCommand(LocalDateTime effectiveFrom) {
-        return new AssignServiceManagerCommand(1L, 0, "SERVICE_MANAGER", "L1", 66L,
-                30L, "DEP-01", effectiveFrom, "assign-key", "b".repeat(64));
+    private AssignServiceManagerCommand assignCommand() {
+        return new AssignServiceManagerCommand(1L, 0, "L1", 66L, 30L,
+                "PRIMARY", 20L, "DEP-01", "人工指派", "assign-key", "b".repeat(64));
+    }
+
+    private ProjectMemberAssignmentDO assignment(Long userId, String memberRole, String assignmentType) {
+        ProjectMemberAssignmentDO assignment = new ProjectMemberAssignmentDO();
+        assignment.setUserId(userId);
+        assignment.setMemberRole(memberRole);
+        assignment.setAssignmentType(assignmentType);
+        assignment.setSiteId(30L);
+        assignment.setEffectiveFrom(LocalDateTime.now().minusDays(1));
+        return assignment;
     }
 
     private TemplateDefinitionContent contentWithOneGateAndReference() {

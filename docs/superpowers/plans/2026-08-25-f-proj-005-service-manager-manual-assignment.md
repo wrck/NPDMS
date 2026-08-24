@@ -146,23 +146,23 @@ Expected: 定向测试及编译PASS。提交：`feat(system): 提供服务经理
 - Request: `managerId/levelCode/assignmentType/siteId/departmentId/departmentCode/changeReason`，不接收`effectiveFrom`。
 - Event payload: `assignmentId/projectId/recipientUserId/templateCode/templateParamsSnapshot/assignmentType/levelCode/effectiveFrom`。
 
-- [ ] **Step 1: 收敛请求与提交重验**
+- [x] **Step 1: 收敛请求与提交重验**
 
 服务端重新校验租户、项目公司、部门ID/编码、用户启用、有效组织范围、节点/站点、功能权限和MANAGE范围；L2必须有当前项目站点，L1允许无站点。
 
-- [ ] **Step 2: 实现即时主责/协同时间关系**
+- [x] **Step 2: 实现即时主责/协同时间关系**
 
 以一次服务端事务时间为`effectiveFrom`。Project版本CAS成功后，XML锁查询按项目、角色、assignmentType、site范围读取重叠关系；PRIMARY改派关闭原区间并新增，COLLABORATOR不关闭其他协同。
 
-- [ ] **Step 3: 重算assignment_status**
+- [x] **Step 3: 重算assignment_status**
 
 当前节点存在有效PRIMARY服务经理且有效PROJECT_MANAGER时写`ASSIGNED`，否则写`UNASSIGNED`；不改`current_stage/lifecycle_status`。
 
-- [ ] **Step 4: 冻结审计与事件payload**
+- [x] **Step 4: 冻结审计与事件payload**
 
 审计保存前后主责、范围、原因和操作者。Outbox payload使用新record，不再序列化不含收件人的`AssignServiceManagerResult`；模板参数在事务内冻结，禁止后续重建。
 
-- [ ] **Step 5: 验证并提交**
+- [x] **Step 5: 验证并提交**
 
 Run: `mvn.cmd -pl pms-module-project -am -DskipITs=false -Dtest=ProjectManualCreationServiceImplTest,ProjectManagerAssignmentApplicationServiceTest,ProjectMasterControllerContractTest test`
 

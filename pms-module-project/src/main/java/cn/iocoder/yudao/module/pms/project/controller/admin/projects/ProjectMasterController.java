@@ -275,9 +275,9 @@ public class ProjectMasterController {
         String requestDigest = sha256Digest(id + ":" + expectedVersion + ":"
                 + JsonUtils.toJsonString(assignReqVO));
         AssignServiceManagerCommand command = new AssignServiceManagerCommand(
-                id, expectedVersion, assignReqVO.getRoleCode(), assignReqVO.getLevelCode(),
-                assignReqVO.getManagerId(), assignReqVO.getSiteId(), assignReqVO.getDepartmentCode(),
-                assignReqVO.getEffectiveFrom(), idempotencyKey, requestDigest);
+                id, expectedVersion, assignReqVO.getLevelCode(), assignReqVO.getManagerId(),
+                assignReqVO.getSiteId(), assignReqVO.getAssignmentType(), assignReqVO.getDepartmentId(),
+                assignReqVO.getDepartmentCode(), assignReqVO.getChangeReason(), idempotencyKey, requestDigest);
         AssignServiceManagerResult result = projectManagerAssignmentApplicationService.assign(command,
                 new Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(),
                         UUID.randomUUID().toString()));
@@ -286,6 +286,7 @@ public class ProjectMasterController {
         response.setAssignmentId(result.assignmentId());
         response.setVersion(result.version());
         response.setAssignmentStatus(result.assignmentStatus());
+        response.setEffectiveFrom(result.effectiveFrom());
         return success(response);
     }
 

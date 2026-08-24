@@ -24,6 +24,14 @@
           AND deleted = b'0'
     </update>
 
+    <update id="updateAssignmentStatusIfVersion">
+        UPDATE proj_project
+        SET assignment_status = #{query.assignmentStatus}
+        WHERE id = #{query.projectId}
+          AND version = #{query.version}
+          AND deleted = b'0'
+    </update>
+
     <update id="updateBusinessAttributesIfMatch">
         UPDATE proj_project
         SET signing_method = #{query.signingMethod},

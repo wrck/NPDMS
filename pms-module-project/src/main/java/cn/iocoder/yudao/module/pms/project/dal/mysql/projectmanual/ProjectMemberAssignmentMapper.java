@@ -4,7 +4,10 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentMemberResponsibilityQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -24,12 +27,18 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
                 .orderByAsc(ProjectMemberAssignmentDO::getId));
     }
 
-    /** 按项目+角色查询历史区间，保证同角色任一人员的重叠关系都被关闭。 */
-    default List<ProjectMemberAssignmentDO> selectListByProjectAndRole(Long projectId, String memberRole) {
+    List<ProjectMemberAssignmentDO> selectCurrentResponsibilityForUpdate(
+            @Param("query") CurrentMemberResponsibilityQuery query);
+
+    default List<ProjectMemberAssignmentDO> selectActiveForAssignmentState(ProjectAssignmentStateQuery query) {
         return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
-                .eq(ProjectMemberAssignmentDO::getProjectId, projectId)
-                .eq(ProjectMemberAssignmentDO::getMemberRole, memberRole)
-                .orderByAsc(ProjectMemberAssignmentDO::getEffectiveFrom));
+                .eq(ProjectMemberAssignmentDO::getProjectId, query.projectId())
+                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
+                        .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
+                .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
+                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.effectiveAt()))
+                .orderByAsc(ProjectMemberAssignmentDO::getMemberRole, ProjectMemberAssignmentDO::getId));
     }
 
     default List<ProjectMemberAssignmentDO> selectActiveByUser(ActiveProjectMemberQuery query) {

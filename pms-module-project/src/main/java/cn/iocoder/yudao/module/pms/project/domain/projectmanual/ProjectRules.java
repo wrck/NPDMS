@@ -32,6 +32,7 @@ public final class ProjectRules {
     /** V1.8创建后的生命周期与主责指派初始状态 */
     public static final String LIFECYCLE_STATUS_ACTIVE = "ACTIVE";
     public static final String ASSIGNMENT_STATUS_UNASSIGNED = "UNASSIGNED";
+    public static final String ASSIGNMENT_STATUS_ASSIGNED = "ASSIGNED";
 
     // ========== 创建来源（字典 pms_project_source_type） ==========
     public static final String SOURCE_TYPE_MANUAL = "MANUAL";
@@ -71,6 +72,8 @@ public final class ProjectRules {
     public static final String MEMBER_ROLE_PROJECT_MANAGER = "PROJECT_MANAGER";
     public static final String MEMBER_ROLE_SERVICE_MANAGER_L1 = "SERVICE_MANAGER_L1";
     public static final String MEMBER_ROLE_SERVICE_MANAGER_L2 = "SERVICE_MANAGER_L2";
+    public static final String ASSIGNMENT_TYPE_PRIMARY = "PRIMARY";
+    public static final String ASSIGNMENT_TYPE_COLLABORATOR = "COLLABORATOR";
 
     // ========== 组织关系角色（字典 pms_company_relation_role；PM-01 使用） ==========
     public static final String RELATION_ROLE_ORDER_OFFICE = "ORDER_OFFICE";
