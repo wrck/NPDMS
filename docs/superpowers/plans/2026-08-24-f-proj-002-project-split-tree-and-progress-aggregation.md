@@ -586,19 +586,19 @@ mvn -pl pms-module-project -am -Dtest=ProjectClosureGuardServiceTest test
 - `ProjectProgressPanel`: 当前策略、待计算缺失项、历史版本、创建/提交策略。
 - `ProjectClosureGuardPanel`: 只展示守卫结果，不执行闭环审批。
 
-- [ ] **Step 1: 建立TypeScript契约并移除旧树API**
+- [x] **Step 1: 建立TypeScript契约并移除旧树API**
 
 所有写请求显式传`Idempotency-Key`和版本头；不得继续调用`/pms/project-tree`或无版本的`child-weights`。
 
-- [ ] **Step 2: 拆分项目详情大组件并复用Yudao/Element Plus**
+- [x] **Step 2: 拆分项目详情大组件并复用Yudao/Element Plus**
 
 使用`ContentWrap`、`Dialog`、`el-form`、`el-table`、`el-tree-v2`或现有树组件、`el-result`和`el-skeleton`；不引入新UI库。
 
-- [ ] **Step 3: 完成四类视口布局**
+- [x] **Step 3: 完成四类视口布局**
 
 桌面`>=1200px`为侧栏+内容；窄桌面`992～1199px`压缩侧栏；平板`768～991px`改顶部Tabs；手机`<768px`使用卡片列表、全宽Dialog和纵向操作。颜色、边框、文字和背景使用`--el-*`主题变量；表格只允许组件内部滚动，页面级无横向溢出。
 
-- [ ] **Step 4: 增加静态合同测试并构建**
+- [x] **Step 4: 增加静态合同测试并构建**
 
 ```powershell
 py -3.13 -B -m unittest scripts.tests.test_fproj002_frontend_contract
@@ -607,7 +607,7 @@ pnpm ts:check
 pnpm build:local
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(ui): 完成项目拆分树与进度工作台`
 

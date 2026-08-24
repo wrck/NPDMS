@@ -5,14 +5,14 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 10 实现响应式拆分、项目树和进度界面
+> 当前任务：Task 11 初始化数据、全量验证与V1.8验收闭环
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
 > Feature Spec SHA-256：`dfd09ac27e6ede86a640ec610e4eade8c9b5b55d902f3272f93f29de5b44395f`
 > Feature 物理契约：`specs/features/F-PROJ-002-physical-contract.json`
 > Technical Plan：`docs/superpowers/plans/2026-08-24-f-proj-002-project-split-tree-and-progress-aggregation.md`
-> 锁定规格提交：`0be4056e6334be4c5b0c9ae9810bd04c782f81c1`
+> 锁定规格提交：`44dd2aea08f82fa691c7236de0e5c617bcd701b4`
 
 ## 事实边界
 
@@ -33,7 +33,7 @@
 
 ## 下一步
 
-Task 9 已完成当前完整树版本下的全部后代闭环守卫、权限脱敏、根项目并发锁、闭环提交接线和审计；仅以权威`lifecycle_status`认定关闭，历史闭环表终态不能覆盖`ACTIVE`生命周期。自动化守卫、适配器和API合同验证通过，全模块回归及统一服务装配通过，MySQL用例按既定停库约束跳过并留待Task 11数据库闭环统一执行。下一步执行Task 10，实现响应式拆分、项目树和进度界面。
+Task 10 已完成V1.8拆分草稿、五类项目树查询、进度策略与闭环守卫的响应式工作台；旧`/pms/project-tree`和无版本`child-weights`前端入口已退役，写请求携带幂等键和版本条件。静态合同测试、TypeScript检查和生产构建通过；真实浏览器与数据库闭环按计划归入Task 11统一验收。下一步执行Task 11，补齐初始化数据、全量回归、性能证据和V1.8验收闭环。
 
 ## 已登记的非阻断问题
 

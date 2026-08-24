@@ -55,6 +55,17 @@
           </button>
         </div>
         <div class="rail-stage">
+          <div class="rail-stage-title">项目拆分</div>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'split' }"
+            @click="switchTab('split')"
+          >
+            <Icon icon="ep:operation" class="rail-icon" />
+            <span class="rail-label">拆分方案</span>
+          </button>
+        </div>
+        <div class="rail-stage">
           <div class="rail-stage-title">项目树</div>
           <button
             class="rail-item"
@@ -75,6 +86,14 @@
             <Icon icon="ep:data-analysis" class="rail-icon" />
             <span class="rail-label">进度汇总</span>
           </button>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'closure' }"
+            @click="switchTab('closure')"
+          >
+            <Icon icon="ep:circle-check" class="rail-icon" />
+            <span class="rail-label">闭环守卫</span>
+          </button>
         </div>
       </ContentWrap>
 
@@ -85,7 +104,7 @@
           <div class="panel-header">
             <span class="panel-title"><Icon icon="ep:document" /> 基本信息</span>
           </div>
-          <el-descriptions v-if="detail" :column="2" border size="small">
+          <el-descriptions v-if="detail" :column="descriptionColumns" border size="small">
             <el-descriptions-item label="项目编码">{{ detail.projectCode }}</el-descriptions-item>
             <el-descriptions-item label="编码命名空间">
               根 #{{ detail.codeRootId }} · 序号 {{ detail.projectSequence }} · 规则
@@ -249,225 +268,65 @@
           <el-empty v-else description="暂无成员" />
         </ContentWrap>
 
-        <!-- ============ 项目树 ============ -->
-        <ContentWrap v-show="activeTab === 'tree'">
-          <div class="panel-header">
-            <span class="panel-title"><Icon icon="ep:share" /> 项目树（直接下级，按需展开）</span>
-            <div class="panel-header-actions">
-              <el-button
-                type="primary"
-                size="small"
-                @click="openCreateChild"
-                v-hasPermi="['pms:project:create']"
-              >
-                <Icon icon="ep:plus" />下挂子项目
-              </el-button>
-              <el-button
-                type="warning"
-                size="small"
-                @click="openMove"
-                v-hasPermi="['pms:project:update']"
-              >
-                <Icon icon="ep:rank" />子树移动
-              </el-button>
-            </div>
-          </div>
-          <el-table
-            :data="children"
-            row-key="id"
-            :tree-props="{ children: 'children' }"
-            default-expand-all
-            size="small"
-            empty-text="暂无直接下级项目"
-          >
-            <el-table-column prop="projectCode" label="项目编码" min-width="180" />
-            <el-table-column
-              prop="projectName"
-              label="项目名称"
-              min-width="180"
-              show-overflow-tooltip
-            />
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <dict-tag :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE" :value="row.status" />
-              </template>
-            </el-table-column>
-            <el-table-column prop="treeDepth" label="深度" width="70" />
-            <el-table-column label="业务层级" width="110">
-              <template #default="{ row }">{{
-                row.businessLevelName || row.businessLevelCode || '-'
-              }}</template>
-            </el-table-column>
-          </el-table>
-        </ContentWrap>
-
-        <!-- ============ 进度汇总 ============ -->
-        <ContentWrap v-show="activeTab === 'progress'">
-          <div class="panel-header">
-            <span class="panel-title"><Icon icon="ep:data-analysis" /> 进度汇总</span>
-            <el-button v-if="children.length" type="primary" plain @click="openWeights">
-              <Icon icon="ep:edit" />设置权重
-            </el-button>
-          </div>
-          <el-descriptions :column="1" border size="small" class="mb-12px">
-            <el-descriptions-item label="汇总进度">
-              <el-progress
-                :percentage="Number(progress?.aggregate ?? 0)"
-                :stroke-width="12"
-                :format="(p) => `${p}%`"
-              />
-            </el-descriptions-item>
-          </el-descriptions>
-          <el-table
-            v-if="progress?.children?.length"
-            :data="progress.children"
-            size="small"
-            border
-            empty-text="暂无直接子项目"
-          >
-            <el-table-column prop="projectCode" label="子项目编码" min-width="180" />
-            <el-table-column
-              prop="projectName"
-              label="子项目名称"
-              min-width="160"
-              show-overflow-tooltip
-            />
-            <el-table-column label="进度" width="140">
-              <template #default="{ row }">
-                <el-progress :percentage="Number(row.progress ?? 0)" :stroke-width="6" />
-              </template>
-            </el-table-column>
-            <el-table-column label="权重" width="110">
-              <template #default="{ row }">
-                {{ ((row.normalizedWeight ?? 0) * 100).toFixed(2) }}%
-              </template>
-            </el-table-column>
-            <el-table-column label="权重来源" width="120">
-              <template #default="{ row }">
-                <el-tag size="small" :type="row.weightSource === 'MANUAL' ? 'primary' : 'info'">
-                  {{ row.weightSource === 'MANUAL' ? '人工' : '等权' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-empty v-else description="暂无直接子项目" />
-        </ContentWrap>
+        <ProjectSplitWizard
+          v-if="detail?.id && visitedTabs.has('split')"
+          v-show="activeTab === 'split'"
+          :project-id="detail.id"
+          @applied="treeRefreshKey++"
+        />
+        <ProjectTreePanel
+          v-if="detail?.id && visitedTabs.has('tree')"
+          :key="treeRefreshKey"
+          v-show="activeTab === 'tree'"
+          :project-id="detail.id"
+          @tree-version="treeVersion = $event"
+        />
+        <ProjectProgressPanel
+          v-if="detail?.id && visitedTabs.has('progress')"
+          v-show="activeTab === 'progress'"
+          :project-id="detail.id"
+          :tree-version="treeVersion"
+        />
+        <ProjectClosureGuardPanel
+          v-if="detail?.id && visitedTabs.has('closure')"
+          v-show="activeTab === 'closure'"
+          :project-id="detail.id"
+          :tree-version="treeVersion"
+        />
       </div>
     </div>
-
-    <!-- ============ 下挂子项目弹窗 ============ -->
-    <Dialog v-model="createChildVisible" title="下挂子项目" width="520px">
-      <el-form
-        ref="createChildFormRef"
-        :model="createChildForm"
-        :rules="createChildRules"
-        label-width="100px"
-      >
-        <el-form-item label="父项目">
-          <el-input :model-value="detail?.projectCode + ' ' + detail?.projectName" disabled />
-        </el-form-item>
-        <el-form-item label="项目名称" prop="projectName">
-          <el-input v-model="createChildForm.projectName" placeholder="子项目名称" />
-        </el-form-item>
-        <el-form-item label="创建原因" prop="creationReason">
-          <el-input
-            v-model="createChildForm.creationReason"
-            type="textarea"
-            :rows="2"
-            placeholder="BR-2 必填"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="createChildVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitCreateChild">保存</el-button>
-      </template>
-    </Dialog>
-
-    <!-- ============ 子树移动弹窗 ============ -->
-    <Dialog v-model="moveVisible" title="子树移动" width="520px">
-      <el-form ref="moveFormRef" :model="moveForm" :rules="moveRules" label-width="110px">
-        <el-form-item label="待移动项目">
-          <el-input :model-value="detail?.projectCode + ' ' + detail?.projectName" disabled />
-        </el-form-item>
-        <el-form-item label="目标父项目" prop="newParentId">
-          <PmsEntitySelect
-            v-model="moveForm.newParentId"
-            :api="ProjectsApi.getProjectPage"
-            label-field="projectName"
-            value-field="id"
-            query-field="projectName"
-            placeholder="请选择目标父项目"
-            class="!w-full"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="moveVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitMove">保存</el-button>
-      </template>
-    </Dialog>
-
-    <!-- ============ 直接子项目权重弹窗 ============ -->
-    <Dialog v-model="weightsVisible" title="设置直接子项目权重" width="680px">
-      <el-alert
-        title="必须完整设置全部直接子项目，人工权重合计为 100% 后整组生效。"
-        type="info"
-        :closable="false"
-        class="mb-12px"
-      />
-      <el-table :data="weightItems" size="small" border>
-        <el-table-column prop="projectCode" label="项目编码" min-width="190" />
-        <el-table-column
-          prop="projectName"
-          label="项目名称"
-          min-width="180"
-          show-overflow-tooltip
-        />
-        <el-table-column label="权重（%）" width="150">
-          <template #default="{ row }">
-            <el-input-number v-model="row.weight" :min="0" :max="100" :precision="2" :step="1" />
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="mt-12px text-right">当前合计：{{ weightTotal.toFixed(2) }}%</div>
-      <template #footer>
-        <el-button @click="weightsVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitWeights">整组生效</el-button>
-      </template>
-    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
-import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
-import { createSubmissionIdempotencyState } from '../projects/submissionIdempotency'
-import type {
-  ProjectMasterVO,
-  ProjectInstancesVO,
-  ProjectMemberAssignmentVO,
-  ProjectProgressVO
-} from '@/api/pms/project/projects'
+import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
+import ProjectTreePanel from './components/ProjectTreePanel.vue'
+import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
+import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
+import type { ProjectMasterVO, ProjectInstancesVO, ProjectMemberAssignmentVO } from '@/api/pms/project/projects'
 
 defineOptions({ name: 'PmsProjectMasterDetail' })
 
 const route = useRoute()
 const router = useRouter()
-const message = useMessage()
+const mobile = useMediaQuery('(max-width: 767px)')
+const descriptionColumns = computed(() => mobile.value ? 1 : 2)
 
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
 const instances = ref<ProjectInstancesVO | null>(null)
 const members = ref<ProjectMemberAssignmentVO[]>([])
-const children = ref<ProjectMasterVO[]>([])
-const progress = ref<ProjectProgressVO | null>(null)
+const treeVersion = ref<number>()
+const treeRefreshKey = ref(0)
 
 const activeTab = ref('base')
+const visitedTabs = ref(new Set(['base']))
 const overviewSteps = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
   { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
@@ -480,120 +339,7 @@ const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
 const switchTab = (key: string) => {
   activeTab.value = key
-}
-
-// ============ 下挂子项目 ============
-const createChildVisible = ref(false)
-const createChildFormRef = ref()
-const saving = ref(false)
-const createChildForm = reactive({ projectName: '', creationReason: '' })
-const createChildSubmission = createSubmissionIdempotencyState()
-const createChildRules = {
-  projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
-  creationReason: [{ required: true, message: '创建原因不能为空（BR-2）', trigger: 'blur' }]
-}
-const openCreateChild = () => {
-  createChildSubmission.reset()
-  createChildForm.projectName = ''
-  createChildForm.creationReason = ''
-  createChildVisible.value = true
-}
-const submitCreateChild = async () => {
-  await createChildFormRef.value?.validate()
-  if (!detail.value?.id || !detail.value.companyId || !detail.value.departmentId) {
-    message.error('父项目缺少下单公司或办事处，不能创建子项目')
-    return
-  }
-  saving.value = true
-  try {
-    const parentSites = await ProjectsApi.getProjectSites(detail.value.id)
-    const payload = {
-      projectName: createChildForm.projectName,
-      parentId: detail.value.id,
-      orderOfficeCompanyId: detail.value.companyId,
-      orderOfficeDepartmentId: detail.value.departmentId,
-      sites: parentSites.map((site) => ({
-        siteId: site.siteId,
-        siteVersion: site.siteVersionSnapshot,
-        primarySite: site.primarySite
-      })),
-      implementationLocation: parentSites.length ? undefined : detail.value.implementationLocation,
-      creationReason: createChildForm.creationReason
-    }
-    await ProjectsApi.createProject(payload, createChildSubmission.keyFor(payload))
-    message.success('下挂子项目成功（继承父模板与三维）')
-    createChildSubmission.reset()
-    createChildVisible.value = false
-    await loadTreeData()
-  } finally {
-    saving.value = false
-  }
-}
-
-// ============ 子树移动 ============
-const moveVisible = ref(false)
-const moveFormRef = ref()
-const moveForm = reactive({ newParentId: undefined as number | undefined })
-const moveRules = {
-  newParentId: [{ required: true, message: '请选择目标父项目', trigger: 'change' }]
-}
-const openMove = () => {
-  moveForm.newParentId = undefined
-  moveVisible.value = true
-}
-const submitMove = async () => {
-  await moveFormRef.value?.validate()
-  saving.value = true
-  try {
-    await ProjectsApi.moveSubtree(detail.value!.id!, moveForm.newParentId!)
-    message.success('子树移动成功')
-    moveVisible.value = false
-    await loadTreeData()
-    await loadDetail()
-  } catch {
-    // 请求拦截器已展示业务错误；保留弹窗供用户修正目标父项目。
-  } finally {
-    saving.value = false
-  }
-}
-
-// ============ 直接子项目权重 ============
-const weightsVisible = ref(false)
-const weightItems = ref<
-  { projectId: number; projectCode?: string; projectName?: string; weight: number }[]
->([])
-const weightTotal = computed(() =>
-  weightItems.value.reduce((sum, item) => sum + Number(item.weight || 0), 0)
-)
-const openWeights = () => {
-  const equalWeight = children.value.length ? 100 / children.value.length : 0
-  weightItems.value = children.value.map((child) => ({
-    projectId: child.id!,
-    projectCode: child.projectCode,
-    projectName: child.projectName,
-    weight: Number(child.aggregationWeight ?? equalWeight)
-  }))
-  weightsVisible.value = true
-}
-const submitWeights = async () => {
-  if (Math.abs(weightTotal.value - 100) > 0.001) {
-    message.error(`直接子项目权重合计必须为 100%，当前为 ${weightTotal.value.toFixed(2)}%`)
-    return
-  }
-  saving.value = true
-  try {
-    await ProjectsApi.updateChildWeights(
-      detail.value!.id!,
-      weightItems.value.map((item) => ({ projectId: item.projectId, weight: item.weight }))
-    )
-    message.success('直接子项目权重已整组生效')
-    weightsVisible.value = false
-    await loadTreeData()
-  } catch {
-    // 请求拦截器已展示业务错误；保留弹窗供用户修正权重。
-  } finally {
-    saving.value = false
-  }
+  visitedTabs.value = new Set([...visitedTabs.value, key])
 }
 
 // ============ 实例视图 ============
@@ -620,21 +366,10 @@ const loadMembers = async () => {
   if (!id) return
   members.value = (await ProjectsApi.getProjectMembers(id)) || []
 }
-const loadTreeData = async () => {
-  const id = Number(route.query.projectId)
-  if (!id) return
-  children.value = (await ProjectsApi.getChildren(id)) || []
-  try {
-    progress.value = await ProjectsApi.getProgress(id)
-  } catch {
-    progress.value = null
-  }
-}
-
 const loadAll = async () => {
   loading.value = true
   try {
-    await Promise.all([loadDetail(), loadInstances(), loadMembers(), loadTreeData()])
+    await Promise.all([loadDetail(), loadInstances(), loadMembers()])
   } finally {
     loading.value = false
   }
@@ -648,8 +383,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-$primary: #1e3a5f;
-
 /* 顶部档案区 */
 .project-header {
   display: flex;
@@ -672,8 +405,8 @@ $primary: #1e3a5f;
 .project-code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -681,14 +414,14 @@ $primary: #1e3a5f;
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
 }
 .project-meta-row {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--el-text-color-secondary);
 }
 .meta-item {
   display: inline-flex;
@@ -720,7 +453,7 @@ $primary: #1e3a5f;
 .rail-stage-title {
   font-size: 11px;
   letter-spacing: 1px;
-  color: #9ca3af;
+  color: var(--el-text-color-placeholder);
   padding: 6px 10px 4px;
   font-weight: 600;
   text-transform: uppercase;
@@ -735,16 +468,16 @@ $primary: #1e3a5f;
   background: transparent;
   border-radius: 6px;
   cursor: pointer;
-  color: #374151;
+  color: var(--el-text-color-regular);
   font-size: 13px;
   text-align: left;
   transition: all 0.15s ease;
   &:hover {
-    background: #f3f4f6;
+    background: var(--el-fill-color-light);
   }
   &--active {
-    background: rgba(30, 58, 95, 0.08);
-    color: #1e3a5f;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
     font-weight: 600;
   }
 }
@@ -770,7 +503,7 @@ $primary: #1e3a5f;
   justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .panel-header-actions {
   display: flex;
@@ -783,7 +516,7 @@ $primary: #1e3a5f;
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
 }
 .stage-title {
   margin-right: 8px;
@@ -795,7 +528,7 @@ $primary: #1e3a5f;
 .preview-block-title {
   font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 .preview-line {
@@ -803,12 +536,32 @@ $primary: #1e3a5f;
   font-size: 13px;
 }
 
-@media (max-width: 1024px) {
+@media (min-width: 992px) and (max-width: 1199px) {
+  .rail-wrap { flex-basis: 180px; }
+}
+
+@media (max-width: 991px) {
   .detail-body {
     flex-direction: column;
   }
   .rail-wrap {
+    width: 100%;
     flex: 1 1 auto;
+    :deep(.el-card__body) {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+    }
   }
+  .rail-stage { display: flex; flex: 0 0 auto; margin-bottom: 0; }
+  .rail-stage-title { display: none; }
+  .rail-item { width: auto; white-space: nowrap; }
+}
+
+@media (max-width: 767px) {
+  .project-header-right, .project-header-right .el-button { width: 100%; }
+  .project-meta-row { display: grid; gap: 6px; }
+  .panel-header { align-items: flex-start; flex-direction: column; }
+  .canvas { width: 100%; overflow: hidden; }
 }
 </style>

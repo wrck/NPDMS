@@ -198,17 +198,71 @@ export interface ProjectInstancesVO {
 
 const baseUrl = '/pms/projects'
 
-/** 进度汇总（F-PM02 / PM-02） */
+export type ProjectTreeQueryType =
+  | 'CHILDREN'
+  | 'DESCENDANTS'
+  | 'ANCESTORS'
+  | 'BUSINESS_LEVEL'
+  | 'LOCATE'
+
+export interface ProjectTreeNodeVO {
+  projectId: number
+  projectName?: string
+  lifecycleStatus?: string
+  currentStage?: string
+  milestoneProgress?: number
+  visibility: 'FULL' | 'ROOT_SUMMARY' | 'PATH_PLACEHOLDER'
+}
+
+export interface ProjectTreeQueryVO {
+  treeVersion: number
+  items: ProjectTreeNodeVO[]
+  nextCursor?: string
+  updating: boolean
+}
+
 export interface ProjectProgressVO {
-  aggregate?: number
-  children?: {
+  projectId: number
+  policyRevisionId?: number
+  treeVersion: number
+  sourceWatermark?: string
+  status: 'READY' | 'PENDING'
+  progress?: number
+  items: {
+    childProjectId: number
+    factVersion?: number
+    childProgress?: number
+    normalizedWeight?: number
+    contribution?: number
+    missingReason?: string
+  }[]
+}
+
+export interface ProjectProgressPolicyVO {
+  id: number
+  parentProjectId: number
+  revisionNo: number
+  status: string
+  policyType: 'SYSTEM_EQUAL' | 'MANUAL'
+  processInstanceId?: string
+  effectiveFrom?: string
+  effectiveTo?: string
+  approvedBy?: number
+  approvedAt?: string
+  version: number
+  items: { childProjectId: number; weight: number; includeStatuses?: string[] }[]
+}
+
+export interface ProjectClosureGuardVO {
+  allowed: boolean
+  treeVersion: number
+  blockers: {
     projectId: number
     projectCode?: string
     projectName?: string
-    progress?: number
-    normalizedWeight?: number
-    weightSource?: string
+    blockerType: 'EXECUTING' | 'PAUSED' | 'CLOSURE_APPROVING'
   }[]
+  pendingProgressProjects: number[]
 }
 
 /** 手工创建项目（Idempotency-Key 幂等：同键同摘要重放返回原资源） */
@@ -281,33 +335,56 @@ export const assignManager = (
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
   })
 
-/** 直接下级项目（按需加载，F-PM02） */
-export const getChildren = (id: number) =>
-  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/${id}/children` })
+export const queryTree = (
+  id: number,
+  params: { queryType: ProjectTreeQueryType; businessLevelCode?: string; pageSize?: number; cursor?: string }
+) => request.get<ProjectTreeQueryVO>({ url: `${baseUrl}/${id}/tree`, params })
 
-/** 全部后代项目（F-PM02） */
-export const getDescendants = (id: number) =>
-  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/${id}/descendants` })
-
-/** 完整上级链（根→父，F-PM02） */
-export const getAncestors = (id: number) =>
-  request.get<ProjectMasterVO[]>({ url: `${baseUrl}/${id}/ancestors` })
-
-/** 指定业务层级查询（F-PM02） */
-export const getByBusinessLevel = (businessLevelCode: string) =>
-  request.get<ProjectMasterVO[]>({
-    url: `${baseUrl}/actions/by-business-level`,
-    params: { businessLevelCode }
+export const moveSubtree = (
+  id: number,
+  data: { newParentId: number; reason?: string },
+  expectedTreeVersion: number,
+  idempotencyKey: string
+) =>
+  request.post<{ treeVersion: number }>({
+    url: `${baseUrl}/${id}/actions/move`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedTreeVersion) }
   })
 
-/** 子树移动（校验无环后重建子树缓存，F-PM02） */
-export const moveSubtree = (id: number, newParentId: number) =>
-  request.post<boolean>({ url: `${baseUrl}/${id}/actions/move`, data: { newParentId } })
-
-/** 进度汇总（直接子项目进度列表 + 汇总进度，F-PM02） */
 export const getProgress = (id: number) =>
   request.get<ProjectProgressVO>({ url: `${baseUrl}/${id}/progress` })
 
-/** 整组设置直接子项目人工权重（完整覆盖且合计 100%，F-PM02） */
-export const updateChildWeights = (id: number, children: { projectId: number; weight: number }[]) =>
-  request.put<boolean>({ url: `${baseUrl}/${id}/child-weights`, data: { children } })
+export const getProgressPolicies = (id: number) =>
+  request.get<ProjectProgressPolicyVO[]>({ url: `${baseUrl}/${id}/progress-policies` })
+
+export const createProgressPolicy = (
+  id: number,
+  data: {
+    policyType: 'SYSTEM_EQUAL' | 'MANUAL'
+    items: { childProjectId: number; weight: number; includeStatuses?: string[] }[]
+  },
+  idempotencyKey: string,
+  expectedTreeVersion: number
+) =>
+  request.post<number>({
+    url: `${baseUrl}/${id}/progress-policies`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedTreeVersion) }
+  })
+
+export const submitProgressPolicy = (
+  revisionId: number,
+  expectedVersion: number,
+  idempotencyKey: string
+) =>
+  request.post<string>({
+    url: `/pms/progress-policies/${revisionId}/actions/submit`,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
+  })
+
+export const getClosureGuard = (projectId: number, treeVersion: number) =>
+  request.get<ProjectClosureGuardVO>({
+    url: `/pms/closure-gates/${projectId}`,
+    params: { treeVersion }
+  })
