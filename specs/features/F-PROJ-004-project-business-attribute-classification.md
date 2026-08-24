@@ -8,7 +8,9 @@
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`及本Feature聚焦修正
 > 前置Feature：`F-PROJ-001`（`IMPLEMENTATION_COMPLETE / PASS`）
 > Technical Plan：Feature Ready且NPDMS锁定新规格提交后重新生成；不得使用历史计划或根据现有实现判定完成
-> 实施状态：`NOT_STARTED`
+> 实施状态：`IMPLEMENTATION_COMPLETE / PASS`
+> Implementation Done：`GO NPDMS-FPROJ004-IMPLEMENTATION-DONE-20260825-07`
+> 实施证据：NPDMS `8e466f8`、`61f7dbc`、`2f7bb6d`、`8e64cd7`、`f033989`及Task 6迁移、自动化、真实MySQL、真实浏览器与独立复审证据；仅关闭PM-07的PROJ子切片
 
 ## 1. 目标
 
