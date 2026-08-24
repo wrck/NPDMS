@@ -189,25 +189,25 @@ public record ProjectScopeResult(Long rootProjectId, Long treeVersion,
         Set<Long> fullProjectIds, Set<Long> placeholderProjectIds) {}
 ```
 
-- [ ] **Step 1: 创建非空PROJ API模块和公开DTO**
+- [x] **Step 1: 创建非空PROJ API模块和公开DTO**
 
 公开契约只返回稳定ID、完整树版本与占位ID，不返回PROJ DO；项目实现模块依赖自身API，后续业务模块只能依赖`pms-module-project-api`。
 
-- [ ] **Step 2: 将成员查询改为场景化Query对象**
+- [x] **Step 2: 将成员查询改为场景化Query对象**
 
 `selectActiveByUser(ActiveProjectMemberQuery query)`明确租户、用户和左闭右开有效时点；必填权限条件缺失时Service拒绝，空结果不扩大范围。
 
-- [ ] **Step 3: 重写范围合并算法**
+- [x] **Step 3: 重写范围合并算法**
 
 成员关系只把自身`projectId`加入对应角色允许的当前项目动作；只有`PROJECT_AND_DESCENDANTS`授权调用`selectByAncestors`展开后代；`CURRENT_PROJECT`只加入锚点；`PROJECT_MANAGE`包含同范围查看；祖先仅形成结构占位，不返回同根摘要业务明细。
 
-- [ ] **Step 4: 验证移动、撤权、到期和空范围**
+- [x] **Step 4: 验证移动、撤权、到期和空范围**
 
 测试应断言：经理无显式授权时不能读后代；显式后代授权命中；撤权/到期立即收缩；项目移动后按同一授权锚点和新树版本重算；空成员和空授权返回空范围。
 
 Run: `mvn.cmd -pl pms-module-project -am -DskipITs=false -Dtest=ProjectTreeScopeServiceTest,ProjectTreeAuthorizationMySqlTest test`
 
-- [ ] **Step 5: 提交统一项目范围**
+- [x] **Step 5: 提交统一项目范围**
 
 ```text
 feat(project): 发布显式项目子树范围契约

@@ -3,9 +3,9 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
 import org.apache.ibatis.annotations.Mapper;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -32,14 +32,15 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
                 .orderByAsc(ProjectMemberAssignmentDO::getEffectiveFrom));
     }
 
-    default List<ProjectMemberAssignmentDO> selectActiveByUser(Long userId, LocalDateTime at) {
+    default List<ProjectMemberAssignmentDO> selectActiveByUser(ActiveProjectMemberQuery query) {
         return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
-                .eq(ProjectMemberAssignmentDO::getUserId, userId)
+                .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
+                .eq(ProjectMemberAssignmentDO::getUserId, query.userId())
                 .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
-                        .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, at))
+                        .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
-                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, at))
+                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.effectiveAt()))
                 .orderByAsc(ProjectMemberAssignmentDO::getProjectId, ProjectMemberAssignmentDO::getId));
     }
 }
