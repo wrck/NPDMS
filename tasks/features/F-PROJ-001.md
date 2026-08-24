@@ -2,21 +2,22 @@
 
 > Feature 实施状态：`IMPLEMENTATION_COMPLETE`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
-> Implementation Done Gate：`BLOCKED_BY_MANAGED_TRACEABILITY_SYNC`
-> 当前任务：将已完成实现与验证结果回写规格仓库，并同步新的受管快照
+> Implementation Done Gate：`PASS`
+> 当前阻断：无
+> 当前任务：基于已批准 SDS V1.8 在规格仓库形成 PM-02 正式 Feature Spec
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
-> Feature Spec SHA-256：`9a2d5203c1194e9ac19a12c6ddf81c564b976cb3af24194d5d8d6a1fbf77b68e`
+> Feature Spec SHA-256：`566fdcf3f82fe26fa1121c37e50d622080c70f225c6134ad8dbc25adbb17dd97`
 > Technical Plan：`docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md`
-> 锁定规格提交：`052ecdb580cdbe2fe38ca7fbad771cc1bada3e5a`
+> 锁定规格提交：`ecb4b429ad1914cf9ecc78ad080ea6909afc950c`
 
 ## 事实边界
 
 - 本 Feature 已从 PRD V1.8 首个 Feature 重新审计并改造，没有根据 V1.7 存量实现推定完成。
 - `specs/001-project-delivery-platform/`仅作历史参考，不参与当前门禁校验。
 - `tasks/plan.md`、`tasks/todo.md`及 2026-08-21 的旧 F-PROJ-001 计划均不作为当前实施输入。
-- 当前受管快照的 `specs/features/README.md` 仍写“Implementation Start Gate 未满足”，`docs/traceability/requirement-matrix.md` 仍将 PM-01、PM-03 标为 `NOT_STARTED`。两处均由 `docs/specification-baseline/manifest.json` 管理，NPDMS 不直接改写；必须在规格仓库前向修订后重新同步。
-- F-PROJ-001 的局部实施计划完成不表示总体 Implementation Phase 完成。按 PRD 顺序，PM-01/PM-03 之后首个尚未实施的 P0 Requirement 是 PM-02；当前受管快照没有其正式 Feature Spec，因此不得提前进入 Deployment，也不得在 NPDMS 自行猜造下一 Feature。
+- 当前受管快照已回写 F-PROJ-001、PM-01、PM-03 的实施完成状态与 Code/Test 证据，规格仓库与 NPDMS 进度一致。
+- F-PROJ-001 的局部实施计划完成不表示总体 Implementation Phase 完成。按 PRD 顺序，PM-01/PM-03 之后首个尚未实施的 P0 Requirement 是 PM-02；形成其正式 Feature Spec 是下一正常任务，不构成阻断。Feature Spec 提交并同步前不得开始 PM-02 代码改造，所有当前范围 Feature 完成前不得进入 Deployment。
 
 ## 任务完成情况
 
@@ -70,6 +71,6 @@ AC-FPROJ-007 原阻断已由 V1.8 组织与地点基础改造关闭：公司、�
 
 ## 当前门禁与下一步
 
-代码、Schema、测试、浏览器证据和评审已满足本 Feature 的工程实现完成条件，但受管追溯尚未同步，因此 Implementation Done Gate 暂记 `BLOCKED_BY_MANAGED_TRACEABILITY_SYNC`，不得据此宣称 Deployment、SIT、UAT、Release 或治理 GO。
+代码、Schema、测试、浏览器证据、评审及受管追溯均已满足本 Feature 的工程实现完成条件，Implementation Done Gate 为 `PASS`。该结论不代表 Deployment、SIT、UAT、Release 或治理 GO。
 
-该阻断只影响 F-PROJ-001 正式门禁晋级，不回退已完成任务。总体 Implementation Phase 继续按 Feature 顺序推进；规格仓库必须先回写 F-PROJ-001 实施状态及 PM-01、PM-03 的 Code/Test 追溯，并形成 PM-02 对应的正式 Feature Spec，再锁定新提交并由 NPDMS 同步受管快照。所有当前范围 Feature 完成前不得进入 Deployment。
+当前阻断为无。总体 Implementation Phase 继续按 Feature 顺序推进；下一任务是在规格仓库基于已批准 SDS V1.8 形成 PM-02 正式 Feature Spec，达到 Feature Ready 后锁定新提交并同步受管快照，再生成全新的 V1.8 Technical Plan。旧 F-PM02 Spec、Technical Plan 与现有代码只作存量审计输入，不得据此判断已实现。

@@ -48,13 +48,13 @@ class SpecificationBaselineTest(unittest.TestCase):
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_121_files(self) -> None:
+    def test_allowlist_contains_exactly_86_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(121, len(entries))
-        self.assertEqual(121, len({entry.path for entry in entries}))
+        self.assertEqual(86, len(entries))
+        self.assertEqual(86, len({entry.path for entry in entries}))
 
     def test_accepts_feature_spec_paths(self) -> None:
         feature_spec_paths = (

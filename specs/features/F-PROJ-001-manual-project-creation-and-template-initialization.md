@@ -3,7 +3,8 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
 > Technical Plan：由目标实现仓库基于当前正式规格重新生成；禁止使用2026-08-21旧计划
-> Implementation Start：`READY_AFTER_TARGET_SPEC_LOCK`（目标仓库锁定包含`CHG-PRD-2026-08-23-002`的规格提交后开始）
+> Implementation Start：`SATISFIED`（NPDMS 已锁定包含`CHG-PRD-2026-08-23-002`的规格提交）
+> Implementation Done：`PASS`（NPDMS `1c76050`；任务、自动化、真实MySQL、真实浏览器与独立复审证据已登记）
 > 已关闭问题：`Q-FPROJ-001`（方案B：创建失败不持久化草稿）、`Q-FPROJ-002`（跨Context同步同事务、全有或全无）
 > Requirement：`PM-01`、`PM-03`
 > 关联边界：`PM-08`仅引用V1人工确认服务经理的边界，不覆盖V2自动指派
