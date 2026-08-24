@@ -341,6 +341,19 @@ FEATURE_LINK_OVERRIDES = {
     "PM-03": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
 }
 
+IMPLEMENTATION_OVERRIDES = {
+    "PM-01": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "NPDMS `1c76050`任务、自动化、真实MySQL、真实浏览器与独立复审证据",
+        "IMPLEMENTATION_COMPLETE",
+    ),
+    "PM-03": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "NPDMS `1c76050`任务、自动化、真实MySQL、真实浏览器与独立复审证据",
+        "IMPLEMENTATION_COMPLETE",
+    ),
+}
+
 
 def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = None) -> str:
     requirements = extract_requirements(read(prd))
@@ -355,20 +368,31 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "> 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。",
         "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8；领域决策：`docs/design/phase-1-domain-ownership.md`。",
         "> 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。",
+        "> 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：PRD V1.8、SDS Phase 1和Phase 2已发布为正式基线；Phase 3须按V1.8差量重新验证，旧V1.7门禁结论只保留为历史证据",
+        "- 当前状态：PRD V1.8与SDS Phase 1/2/3均已发布为正式基线；旧V1.7门禁结论只保留为历史证据",
         "",
         "## 字段状态约定",
         "",
         "| 状态 | 含义 |",
         "|---|---|",
         "| `BASELINE` | 已纳入PRD V1.8正式基线 |",
+        "| `IMPLEMENTATION_COMPLETE` | Feature实现、适用验证与代码评审已完成；不代表Deployment、SIT、UAT或Release通过 |",
         "| `NOT_STARTED` | 下游工程资产尚未生成，不代表需求缺失 |",
         "| `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |",
         "| `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |",
+        "",
+        "## V1.8批准增量002追溯",
+        "",
+        "| 增量范围 | 关联Requirement | 增量契约 | 正式设计与决策 |",
+        "|---|---|---|---|",
+        "| 项目创建与指派 | PM-01、PM-08 | 公司/办事处部门同一范围校验；项目多站点；V1按区划映射提示并人工确认服务经理 | 04模块、07权限、08数据、09数据库、10 API、ADR-0033、F-PROJ-001 |",
+        "| 安装与设备地点 | EXE-02、EQP-01 | 工勘/安装维护结构化地点；安装/迁移/拆除确认后驱动设备当前位置 | 02d契约、04模块、08数据、09数据库、10 API、ADR-0033 |",
+        "| 客户地点引用 | CUS-01 | CUS只引用AST Address/Site，不拥有物理地点 | 02c Owner、04模块、08数据、10 API、ADR-0033 |",
+        "| 组织主数据 | INT-09 | Company与Department独立；`system_dept.code`；用户公司—部门同一有效范围行 | 04模块、07权限、08数据、09数据库、10 API、ADR-0033 |",
         "",
         "## 正式需求追溯",
         "",
@@ -379,10 +403,14 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         domain, owner = owners[item["id"]]
         module, aggregate, lifecycle, permission, api, data, test_category = phase1_design(item["id"], domain)
         feature = FEATURE_LINK_OVERRIDES.get(item["id"], (feature_links or {}).get(item["id"], "NOT_STARTED"))
+        evidence, status = IMPLEMENTATION_OVERRIDES.get(
+            item["id"],
+            ("PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE", "BASELINE"),
+        )
         values = [
             item["id"], item["name"], f"{domain}（{owner}）", module, aggregate, lifecycle,
             permission, api, data, test_category, item["stage"], item["version"], item["priority"],
-            item["source"], sds_reference(item["id"]), feature, "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE", "NOT_STARTED", "BASELINE",
+            item["source"], sds_reference(item["id"]), feature, evidence, "NOT_STARTED", status,
         ]
         lines.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
     return "\n".join(lines) + "\n"
