@@ -180,6 +180,17 @@
           </el-descriptions>
         </ContentWrap>
 
+        <ProjectAttributePanel
+          v-if="detail?.id && activeTab === 'attributes'"
+          :project="detail"
+          @updated="handleAttributeUpdated"
+        />
+        <ProjectTemplateMatchHistoryPanel
+          v-if="detail?.id && activeTab === 'match-history'"
+          :key="historyRefreshKey"
+          :project-id="detail.id"
+        />
+
         <!-- ============ 项目概览：生命周期实例 ============ -->
         <ContentWrap v-show="activeTab === 'instances'">
           <div class="panel-header">
@@ -327,6 +338,8 @@ import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
 import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
+import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
+import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO,
@@ -346,11 +359,14 @@ const instances = ref<ProjectInstancesVO | null>(null)
 const members = ref<ProjectMemberAssignmentVO[]>([])
 const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
+const historyRefreshKey = ref(0)
 
 const activeTab = ref('base')
 const visitedTabs = ref(new Set(['base']))
 const overviewSteps = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
+  { key: 'attributes', label: '属性判定', icon: 'ep:edit' },
+  { key: 'match-history', label: '匹配历史', icon: 'ep:clock' },
   { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
   { key: 'members', label: '成员区间', icon: 'ep:user-filled' }
 ]
@@ -377,6 +393,10 @@ const loadDetail = async () => {
   const id = Number(route.query.projectId)
   if (!id) return
   detail.value = await ProjectsApi.getProject(id)
+}
+const handleAttributeUpdated = async () => {
+  await loadDetail()
+  historyRefreshKey.value++
 }
 const loadInstances = async () => {
   const id = Number(route.query.projectId)

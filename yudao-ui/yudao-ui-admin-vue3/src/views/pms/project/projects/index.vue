@@ -225,7 +225,7 @@
     </ContentWrap>
 
     <!-- ============ 创建向导 ============ -->
-    <Dialog v-model="wizardVisible" title="手工创建项目" width="880px">
+    <Dialog v-model="wizardVisible" title="手工创建项目" :width="wizardWidth">
       <el-steps :active="wizardStep" finish-status="success" align-center class="mb-20px">
         <el-step title="① 基本信息" />
         <el-step title="② 模板匹配" />
@@ -234,7 +234,13 @@
 
       <!-- 步骤①：基本信息 + 三维 -->
       <div v-show="wizardStep === 0">
-        <el-form ref="wizardFormRef" :model="createForm" :rules="createRules" label-width="130px">
+        <el-form
+          ref="wizardFormRef"
+          :model="createForm"
+          :rules="createRules"
+          :label-width="mobile ? 'auto' : '130px'"
+          :label-position="mobile ? 'top' : 'right'"
+        >
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="项目名称" prop="projectName">
@@ -348,7 +354,7 @@
           </el-alert>
           <el-divider content-position="left">项目分类三维（模板匹配依据）</el-divider>
           <el-row :gutter="16">
-            <el-col :span="8">
+            <el-col :xs="24" :sm="8">
               <el-form-item label="签约方式" prop="signingMethod">
                 <el-select v-model="createForm.signingMethod" placeholder="请选择" class="!w-full">
                   <el-option
@@ -360,7 +366,7 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="8">
+            <el-col :xs="24" :sm="8">
               <el-form-item label="项目类别" prop="projectCategory">
                 <el-select
                   v-model="createForm.projectCategory"
@@ -376,7 +382,7 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="8">
+            <el-col :xs="24" :sm="8">
               <el-form-item label="实施方式" prop="implementationMode">
                 <el-select
                   v-model="createForm.implementationMode"
@@ -393,22 +399,14 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="重大项目级别" prop="majorProjectLevel">
-            <el-select
-              v-model="createForm.majorProjectLevel"
-              placeholder="不限（NULL）"
-              clearable
-              class="!w-240px"
-            >
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-            <span class="ml-8px text-12px text-gray-400">CRM 属性映射值域，空 = 不限</span>
-          </el-form-item>
+          <el-alert
+            title="CRM重大项目级别：不适用"
+            description="手工创建不维护该CRM权威属性，系统按空值参与模板匹配。"
+            type="info"
+            :closable="false"
+            show-icon
+            class="mb-16px"
+          />
           <el-form-item label="创建原因" prop="creationReason">
             <el-input
               v-model="createForm.creationReason"
@@ -497,7 +495,7 @@
           class="mb-16px"
           :title="createErrorMessage"
         />
-        <el-descriptions :column="2" border size="small" class="mb-16px">
+        <el-descriptions :column="mobile ? 1 : 2" border size="small" class="mb-16px">
           <el-descriptions-item label="项目名称">{{ createForm.projectName }}</el-descriptions-item>
           <el-descriptions-item label="客户">{{
             createForm.customerName || '-'
@@ -511,9 +509,7 @@
           <el-descriptions-item label="实施方式">
             {{ dimLabel(createForm.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) }}
           </el-descriptions-item>
-          <el-descriptions-item label="重大项目级别">{{
-            createForm.majorProjectLevel || '不限'
-          }}</el-descriptions-item>
+          <el-descriptions-item label="重大项目级别">不适用</el-descriptions-item>
           <el-descriptions-item label="地点状态">
             {{ createForm.locationMode === 'sites' ? 'RESOLVED' : 'UNRESOLVED' }}
           </el-descriptions-item>
@@ -984,6 +980,7 @@
  * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）/ 指派服务经理。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getStrDictOptions, getDictLabel } from '@/utils/dict'
@@ -1013,6 +1010,8 @@ defineOptions({ name: 'PmsProjects' })
 
 const message = useMessage()
 const router = useRouter()
+const mobile = useMediaQuery('(max-width: 767px)')
+const wizardWidth = computed(() => (mobile.value ? '96%' : '880px'))
 
 // ============ 列表 ============
 const loading = ref(false)
@@ -1152,7 +1151,6 @@ const createForm = reactive({
   signingMethod: '',
   projectCategory: '',
   implementationMode: '',
-  majorProjectLevel: '' as string,
   creationReason: ''
 })
 
@@ -1163,7 +1161,9 @@ const createRules = {
   signingMethod: [{ required: true, message: '签约方式不能为空', trigger: 'change' }],
   projectCategory: [{ required: true, message: '项目类别不能为空', trigger: 'change' }],
   implementationMode: [{ required: true, message: '实施方式不能为空', trigger: 'change' }],
-  creationReason: [{ required: true, message: '手工创建原因不能为空（BR-2）', trigger: 'blur' }]
+  creationReason: [
+    { required: true, whitespace: true, message: '手工创建原因不能为空（BR-2）', trigger: 'blur' }
+  ]
 }
 
 const syncSiteVersion = (row: { siteId?: number; siteVersion?: number }) => {
@@ -1203,7 +1203,6 @@ const openWizard = () => {
     signingMethod: '',
     projectCategory: '',
     implementationMode: '',
-    majorProjectLevel: '',
     creationReason: ''
   })
   primarySiteIndex.value = 0
@@ -1260,8 +1259,7 @@ const runMatch = async () => {
     matchResult.value = await ProjectsApi.matchTemplates({
       signingMethod: createForm.signingMethod || undefined,
       projectCategory: createForm.projectCategory || undefined,
-      implementationMode: createForm.implementationMode || undefined,
-      majorProjectLevel: createForm.majorProjectLevel || undefined
+      implementationMode: createForm.implementationMode || undefined
     })
   } finally {
     matchLoading.value = false
@@ -1329,8 +1327,7 @@ const submitCreate = async () => {
     signingMethod: createForm.signingMethod,
     projectCategory: createForm.projectCategory,
     implementationMode: createForm.implementationMode,
-    majorProjectLevel: createForm.majorProjectLevel || null,
-    creationReason: createForm.creationReason,
+    creationReason: createForm.creationReason.trim(),
     templateRevisionId: selectedTemplateRevisionId.value,
     candidateWatermark: matchResult.value?.candidateWatermark || ''
   }
@@ -1340,8 +1337,8 @@ const submitCreate = async () => {
   try {
     const created = await ProjectsApi.createProject(payload, idempotencyKey)
     message.success(
-      `创建成功：${created.projectCode}（实例：阶段${created.stageCount}/任务${created.taskCount}` +
-        `/里程碑${created.milestoneCount}/交付件${created.deliverableCount}/门禁${created.gateCount}）`
+      `创建成功：${created.projectCode}；匹配${created.matchResult || '-'} / ` +
+        `${created.matchDecisionMode || '-'}；operationId ${created.matchOperationId || '-'}`
     )
     wizardVisible.value = false
     await load()

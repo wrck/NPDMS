@@ -272,25 +272,27 @@ Expected: 跨租户、越权、业务用户写重大级别、版本冲突、幂�
 - Consumes: Task 3创建响应和Task 4的classify/history API。
 - Produces: 无独立分类工作台；在现有详情中展示四属性、冻结模板与匹配历史。
 
-- [ ] **Step 1: 修正创建表单**
+- [x] **Step 1: 修正创建表单**
 
-重大级别只显示“不适用”说明且不进入提交载荷；项目类别仅`GENERAL/ENGINEERING`；creationReason去空白校验；创建成功显示matchResult、decisionMode和operationId摘要。
+重大级别只显示“不适用”说明且不进入提交载荷；项目类别仅`GENERAL/ENGINEERING`；creationReason去空白校验；创建成功显示matchResult、matchDecisionMode和operationId摘要。
 
-- [ ] **Step 2: 实现响应式属性调整面板**
+- [x] **Step 2: 实现响应式属性调整面板**
 
 使用`ElDescriptions`、`ElDrawer`、`ElForm`和权限指令；项目经理/服务经理只读，具备`pms:project:classify`时显示调整入口；提交携带If-Match和稳定幂等键。
 
-- [ ] **Step 3: 实现响应式匹配历史分页**
+- [x] **Step 3: 实现响应式匹配历史分页**
 
-桌面使用`ElTable`，320/768视口使用卡片化描述列表；筛选triggerType/matchResult/impactResult/time，展示前后快照、候选结果、模板修订、影响、原因、操作者、operationId和时间。
+768及以上视口使用`ElTable`，320窄屏使用卡片化描述列表；筛选triggerType/matchResult/impactResult/time，展示前后快照、候选结果、模板修订、影响、原因、操作者、operationId和时间。
 
-- [ ] **Step 4: 运行前端验证**
+- [x] **Step 4: 运行前端验证**
 
-Run from `yudao-ui/yudao-ui-admin-vue3`: `pnpm exec vitest run src/views/pms/project/projects/index.spec.ts src/views/pms/project/project-master-detail/components/ProjectAttributePanel.spec.ts src/views/pms/project/project-master-detail/components/ProjectTemplateMatchHistoryPanel.spec.ts`
+Run from `yudao-ui/yudao-ui-admin-vue3`: `node --test src/views/pms/project/projects/index.spec.ts`
+
+Run: `pnpm exec vitest run src/views/pms/project/project-master-detail/components/ProjectAttributePanel.spec.ts src/views/pms/project/project-master-detail/components/ProjectTemplateMatchHistoryPanel.spec.ts`
 
 Run: `pnpm exec vue-tsc --noEmit`
 
-- [ ] **Step 5: 更新Task状态并提交**
+- [x] **Step 5: 更新Task状态并提交**
 
 提交信息：`feat(ui): 展示项目属性与模板匹配历史`
 

@@ -100,6 +100,62 @@ export interface ProjectCreateRespVO extends ProjectMasterVO {
   deliverableCount?: number
   gateCount?: number
   serviceManagerAssigned?: boolean
+  matchResult?: string
+  matchDecisionMode?: string
+  matchOperationId?: string
+}
+
+export interface ProjectAttributeClassifyReqVO {
+  signingMethod: string
+  projectCategory: string
+  implementationMode: string
+  adjustmentReason: string
+}
+
+export interface ProjectAttributeClassifyRespVO {
+  projectId: number
+  version: number
+  matchResult: string
+  impactResult: string
+  operationId: string
+}
+
+export interface ProjectTemplateMatchHistoryVO {
+  id: number
+  projectId: number
+  triggerType: string
+  recordPurpose: string
+  inputOrigin: string
+  beforeAttributeSnapshot?: string | null
+  attributeSnapshot: string
+  attributeOwnerSnapshot: string
+  sourceSystem?: string | null
+  sourceVersion?: string | null
+  matcherVersion: string
+  matchResult: string
+  candidateDigest: string
+  decisionMode?: string | null
+  matchedTemplateId?: number | null
+  matchedTemplateRevisionId?: number | null
+  frozenTemplateRevisionId?: number | null
+  impactResult: string
+  operatorId: number
+  changeReason: string
+  occurredAt: string
+  recordedAt: string
+  operationId: string
+  traceId?: string | null
+  auditLogId?: number | null
+}
+
+export type ProjectTemplateMatchHistoryPageParams = PageParam & {
+  triggerType?: string
+  matchResult?: string
+  impactResult?: string
+  occurredAtBegin?: string
+  occurredAtEnd?: string
+  orderBy?: 'occurredAt' | 'recordedAt' | 'id'
+  ascending?: boolean
 }
 
 /** 模板匹配候选 */
@@ -326,6 +382,27 @@ export const getProjectPage = (params: PageParam) =>
 
 /** 项目详情（基本信息+四维+模板绑定） */
 export const getProject = (id: number) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
+
+export const classifyProject = (
+  id: number,
+  data: ProjectAttributeClassifyReqVO,
+  expectedVersion: number,
+  idempotencyKey: string
+) =>
+  request.post<ProjectAttributeClassifyRespVO>({
+    url: `${baseUrl}/${id}/actions/classify`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
+  })
+
+export const getProjectTemplateMatchHistoryPage = (
+  id: number,
+  params: ProjectTemplateMatchHistoryPageParams
+) =>
+  request.get<{ list: ProjectTemplateMatchHistoryVO[]; total: number }>({
+    url: `${baseUrl}/${id}/template-match-history`,
+    params
+  })
 
 export const getProjectSites = (id: number) =>
   request.get<ProjectSiteVO[]>({ url: `${baseUrl}/${id}/sites` })

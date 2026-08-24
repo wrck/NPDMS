@@ -38,6 +38,26 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.doesNotMatch(source, /templateId: selectedTemplateId\.value/)
   })
 
+  it('keeps CRM major level out of manual creation and reports the match decision', () => {
+    const source = readFileSync(new URL('./index.vue', import.meta.url), 'utf8')
+
+    assert.doesNotMatch(source, /v-model="createForm\.majorProjectLevel"/)
+    assert.doesNotMatch(source, /majorProjectLevel:\s*(?:null|undefined)/)
+    assert.match(source, /creationReason: createForm\.creationReason\.trim\(\)/)
+    assert.match(source, /created\.matchResult/)
+    assert.match(source, /created\.matchDecisionMode/)
+    assert.match(source, /created\.matchOperationId/)
+  })
+
+  it('adapts the creation wizard to narrow viewports', () => {
+    const source = readFileSync(new URL('./index.vue', import.meta.url), 'utf8')
+
+    assert.match(source, /useMediaQuery\('\(max-width: 767px\)'\)/)
+    assert.match(source, /:width="wizardWidth"/)
+    assert.match(source, /:xs="24" :sm="8"/)
+    assert.doesNotMatch(source, /\sstyle=/)
+  })
+
   it('sends required idempotency and project version headers for assignment', () => {
     const source = readFileSync(
       new URL('../../../../api/pms/project/projects/index.ts', import.meta.url),
