@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox.PlatformOutboxDeliveryMapper">
+
+    <select id="selectDueForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOutboxEventDO">
+        SELECT id, event_id, event_type, aggregate_type, aggregate_key, payload, status,
+               occurred_at, next_retry_time, retry_count, tenant_id,
+               creator, create_time, updater, update_time
+        FROM plt_outbox_event
+        WHERE tenant_id = #{query.tenantId}
+          AND event_type = #{query.eventType}
+          AND status = 'PENDING'
+          AND (next_retry_time IS NULL OR next_retry_time &lt;= #{query.dueAt})
+        ORDER BY COALESCE(next_retry_time, occurred_at), id
+        LIMIT #{query.limit}
+        FOR UPDATE SKIP LOCKED
+    </select>
+
+    <update id="markDeliveredIfPending">
+        UPDATE plt_outbox_event
+        SET status = 'DELIVERED', next_retry_time = NULL, update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND event_id = #{query.eventId}
+          AND status = 'PENDING'
+          AND retry_count = #{query.expectedRetryCount}
+    </update>
+
+    <update id="scheduleRetryIfPending">
+        UPDATE plt_outbox_event
+        SET retry_count = retry_count + 1,
+            next_retry_time = #{query.nextRetryTime},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND event_id = #{query.eventId}
+          AND status = 'PENDING'
+          AND retry_count = #{query.expectedRetryCount}
+    </update>
+</mapper>

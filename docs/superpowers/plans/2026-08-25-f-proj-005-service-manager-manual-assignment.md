@@ -221,15 +221,15 @@ void markDelivered(String eventId, int expectedRetryCount);
 void scheduleRetry(String eventId, int expectedRetryCount, LocalDateTime nextRetryTime);
 ```
 
-- [ ] **Step 1: 由PLATFORM公开Outbox投递API**
+- [x] **Step 1: 由PLATFORM公开Outbox投递API**
 
 锁查询只在PLATFORM Mapper XML；领取只限`ProjectServiceManagerAssigned`和到期PENDING事件，状态/CAS防重复完成。
 
-- [ ] **Step 2: 实现PROJECT通知处理器**
+- [x] **Step 2: 实现PROJECT通知处理器**
 
 反序列化8字段payload，直接构造`NotifyMessageSendApi`请求，`deliveryKey=eventId`。成功标记投递；异常按有界退避写`retryCount/nextRetryTime`，不回滚指派。
 
-- [ ] **Step 3: 验证并提交**
+- [x] **Step 3: 验证并提交**
 
 覆盖首次发送、重复领取、消息已创建但Outbox未完成、改派后旧事件重试内容不变、失败重试。提交：`feat(project): 打通服务经理通知投递`
 

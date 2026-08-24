@@ -9,6 +9,7 @@ V1 = MIGRATIONS / "V1__yudao_platform.sql"
 V57 = MIGRATIONS / "V57__proj_project_manual_creation.sql"
 V82 = MIGRATIONS / "V82__fproj004_project_category_deduplicate.sql"
 V83 = MIGRATIONS / "V83__fproj005_service_manager_assignment.sql"
+V84 = MIGRATIONS / "V84__fproj005_service_manager_notification_template.sql"
 
 
 class FProj005V18MigrationTest(unittest.TestCase):
@@ -18,6 +19,7 @@ class FProj005V18MigrationTest(unittest.TestCase):
         cls.v1 = V1.read_text(encoding="utf-8")
         cls.v57 = V57.read_text(encoding="utf-8")
         cls.v83 = V83.read_text(encoding="utf-8")
+        cls.v84 = V84.read_text(encoding="utf-8")
         cls.legacy_member_table = cls.v57.split(
             "CREATE TABLE IF NOT EXISTS `proj_project_member_assignment` (", 1
         )[1].split(") ENGINE=InnoDB", 1)[0]
@@ -26,6 +28,13 @@ class FProj005V18MigrationTest(unittest.TestCase):
         self.assertTrue(V82.is_file())
         self.assertTrue(V83.is_file())
         self.assertEqual(83, int(V83.name[1:3]))
+
+    def test_v84_seeds_notification_template_and_dispatch_job(self) -> None:
+        self.assertTrue(V84.is_file())
+        self.assertIn("pms_project_service_manager_assigned", self.v84)
+        self.assertIn("projectServiceManagerNotificationJob", self.v84)
+        self.assertIn("WHERE NOT EXISTS", self.v84)
+        self.assertNotRegex(self.v84, r"(?i)CREATE\s+TABLE")
 
     def test_v83_adds_approved_member_assignment_fields(self) -> None:
         for field in ("department_id", "assignment_type", "site_id", "change_reason"):
