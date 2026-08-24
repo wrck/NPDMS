@@ -33,16 +33,34 @@ public class NotifySendServiceImpl implements NotifySendService {
 
     @Override
     public Long sendSingleNotifyToAdmin(Long userId, String templateCode, Map<String, Object> templateParams) {
-        return sendSingleNotify(userId, UserTypeEnum.ADMIN.getValue(), templateCode, templateParams);
+        return sendSingleNotifyToAdmin(userId, templateCode, templateParams, null);
+    }
+
+    @Override
+    public Long sendSingleNotifyToAdmin(Long userId, String templateCode, Map<String, Object> templateParams,
+                                        String deliveryKey) {
+        return sendSingleNotify(userId, UserTypeEnum.ADMIN.getValue(), templateCode, templateParams, deliveryKey);
     }
 
     @Override
     public Long sendSingleNotifyToMember(Long userId, String templateCode, Map<String, Object> templateParams) {
-        return sendSingleNotify(userId, UserTypeEnum.MEMBER.getValue(), templateCode, templateParams);
+        return sendSingleNotifyToMember(userId, templateCode, templateParams, null);
+    }
+
+    @Override
+    public Long sendSingleNotifyToMember(Long userId, String templateCode, Map<String, Object> templateParams,
+                                         String deliveryKey) {
+        return sendSingleNotify(userId, UserTypeEnum.MEMBER.getValue(), templateCode, templateParams, deliveryKey);
     }
 
     @Override
     public Long sendSingleNotify(Long userId, Integer userType, String templateCode, Map<String, Object> templateParams) {
+        return sendSingleNotify(userId, userType, templateCode, templateParams, null);
+    }
+
+    @Override
+    public Long sendSingleNotify(Long userId, Integer userType, String templateCode,
+                                 Map<String, Object> templateParams, String deliveryKey) {
         // 校验模版
         NotifyTemplateDO template = validateNotifyTemplate(templateCode);
         if (Objects.equals(template.getStatus(), CommonStatusEnum.DISABLE.getStatus())) {
@@ -54,7 +72,8 @@ public class NotifySendServiceImpl implements NotifySendService {
 
         // 发送站内信
         String content = notifyTemplateService.formatNotifyTemplateContent(template.getContent(), templateParams);
-        return notifyMessageService.createNotifyMessage(userId, userType, template, content, templateParams);
+        return notifyMessageService.createNotifyMessage(
+                userId, userType, template, content, templateParams, deliveryKey);
     }
 
     @VisibleForTesting

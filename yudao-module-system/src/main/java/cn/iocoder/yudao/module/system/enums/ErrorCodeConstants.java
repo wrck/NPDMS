@@ -175,5 +175,11 @@ public interface ErrorCodeConstants {
 
     // ========== 站内信发送 1-002-028-000 ==========
     ErrorCode NOTIFY_SEND_TEMPLATE_PARAM_MISS = new ErrorCode(1_002_028_000, "模板参数({})缺失");
+    ErrorCode NOTIFY_DELIVERY_KEY_INVALID = new ErrorCode(1_002_028_001, "站内信投递键不合法");
+    ErrorCode NOTIFY_DELIVERY_KEY_CONFLICT = new ErrorCode(1_002_028_002, "站内信投递键对应的消息事实不一致");
+
+    // ========== 组织范围 1-002-029-100 ==========
+    ErrorCode ORGANIZATION_SCOPE_INVALID_ARGUMENT = new ErrorCode(1_002_029_100, "组织候选查询参数不合法");
+    ErrorCode ORGANIZATION_SCOPE_INVALID = new ErrorCode(1_002_029_101, "组织范围不存在、已停用或编码不一致");
 
 }

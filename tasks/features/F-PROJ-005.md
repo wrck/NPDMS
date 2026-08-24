@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ005-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`PENDING`
 > 当前阻断：无
-> 当前任务：Task 2 提供SYSTEM候选与幂等站内信API
+> 当前任务：Task 3 改造PROJ指派事务与状态语义
 > Requirement ID：`PM-08`（仅V1人工指派）
 > Feature Spec：`specs/features/F-PROJ-005-service-manager-manual-assignment.md`
 > Feature物理契约：`specs/features/F-PROJ-005-physical-contract.json`
@@ -23,7 +23,7 @@
 ## 任务跟踪
 
 - [x] Task 1 建立SYSTEM与成员物理基础（迁移契约5/5、25模块Reactor编译通过）
-- [ ] Task 2 提供SYSTEM候选与幂等站内信API
+- [x] Task 2 提供SYSTEM候选与幂等站内信API（定向测试8/8、18模块Reactor通过）
 - [ ] Task 3 改造PROJ指派事务与状态语义
 - [ ] Task 4 增加候选与责任分布查询API
 - [ ] Task 5 完成Outbox站内信投递闭环

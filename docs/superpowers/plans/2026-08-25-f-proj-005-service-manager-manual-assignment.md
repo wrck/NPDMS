@@ -108,19 +108,19 @@ public class NotifySendSingleToUserReqDTO {
 }
 ```
 
-- [ ] **Step 1: 实现精确组织候选分页**
+- [x] **Step 1: 实现精确组织候选分页**
 
 Service校验`companyId/departmentId/departmentCode/pageNo/pageSize`和ID/编码一致性；Mapper XML按当前时点联接启用用户、部门和有效范围，固定`user_id`排序兜底。合法空范围返回空页，禁止父部门或跨办事处回退。
 
-- [ ] **Step 2: 实现站内信持久幂等**
+- [x] **Step 2: 实现站内信持久幂等**
 
 有`deliveryKey`时在SYSTEM事务内插入；唯一键冲突后读取原消息，收件人/模板/参数摘要一致则返回原ID，否则抛投递键冲突。空键保持上游原行为。
 
-- [ ] **Step 3: 补API自动化验证**
+- [x] **Step 3: 补API自动化验证**
 
 覆盖精确命中、启用/停用、过期范围、部门ID/编码冲突、空页、页大小上限；覆盖站内信首次写、崩溃窗重放、异载荷冲突和空键兼容。
 
-- [ ] **Step 4: 验证并提交**
+- [x] **Step 4: 验证并提交**
 
 Run: `mvn.cmd -pl yudao-module-system -am -DskipTests -DskipITs=false -Dtest=OrganizationScopeApiImplTest,NotifyMessageSendApiImplTest test`
 
