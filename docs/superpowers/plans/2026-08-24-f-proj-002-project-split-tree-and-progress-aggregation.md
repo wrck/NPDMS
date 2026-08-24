@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- 规格输入锁定为`b453cb0b80804e288be360b50ee0bfef6809b798`；SDS Phase 1/2/3保持`BASELINE`，不重新审核。
+- 规格输入锁定为`0be4056e6334be4c5b0c9ae9810bd04c782f81c1`；SDS Phase 1/2/3保持`BASELINE`，不重新审核。
 - `specs/001-project-delivery-platform/`仅作历史参考，不参与实施门禁。
 - V1.7 Spec、代码、迁移、页面和测试只作复用审计证据；每项任务从未完成状态开始验证。
 - 用户已禁用测试驱动顺序；不要求先制造失败测试，但每项任务提交前必须执行与风险匹配的验证。
@@ -161,19 +161,19 @@ public interface AssetDeviceScopeApi {
 - `SplitScopePreviewCommand`以`clientItemKey`关联尚未创建的子项目方案；`SplitScopeApplyCommand`在子项目ID产生后使用相同`clientItemKey`完成原子分配。
 - `applySplit`必须基于订单行锁和`expectedScopeVersion`拒绝超分配，在同一事务写`DeliveryScopeAssigned/Released` Commerce Outbox；不得访问PROJ表或Service。
 
-- [ ] **Step 1: 增加Commerce API与业务模块装配**
+- [x] **Step 1: 增加Commerce API与业务模块装配**
 
 根POM同时声明`pms-module-commerce-api`和`pms-module-commerce`，PROJ只依赖API，`yudao-server`装配业务模块。
 
-- [ ] **Step 2: 创建V70权威范围表与约束**
+- [x] **Step 2: 创建V70权威范围表与约束**
 
 约束至少包括来源键版本唯一、当前范围唯一、`allocated_qty > 0`、明细合计由Service同事务校验、`allocation_version`乐观并发和订单行可用数量行锁。
 
-- [ ] **Step 3: 实现范围预览/应用和AST序列号校验**
+- [x] **Step 3: 实现范围预览/应用和AST序列号校验**
 
 预览无写入；应用只移动或拆分Commerce自有范围事实并返回新版本。AST接口只返回存在性、租户、当前可分配状态和失败SN，不返回凭证或敏感设备明细。
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
 
 Run:
 
@@ -183,7 +183,7 @@ mvn -pl pms-module-commerce,pms-module-asset,pms-module-project -am test
 
 Expected: 精确分配、部分分配、超配、重复SN、失效SN、陈旧版本和并发争用均有断言且PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(commerce): 建立拆分范围公开契约`
 

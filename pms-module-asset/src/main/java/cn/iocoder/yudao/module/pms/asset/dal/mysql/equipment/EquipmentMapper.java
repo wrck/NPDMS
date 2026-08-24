@@ -9,6 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.Collection;
+import java.util.List;
+
 @Mapper
 public interface EquipmentMapper extends BaseMapperX<EquipmentDO> {
 
@@ -26,6 +29,11 @@ public interface EquipmentMapper extends BaseMapperX<EquipmentDO> {
 
     default EquipmentDO selectBySerialNumber(String serialNumber) {
         return selectOne(EquipmentDO::getSerialNumber, serialNumber);
+    }
+
+    default List<EquipmentDO> selectListBySerialNumbers(Collection<String> serialNumbers) {
+        return selectList(new LambdaQueryWrapperX<EquipmentDO>()
+                .in(EquipmentDO::getSerialNumber, serialNumbers));
     }
 
     default Long selectCountBySiteLocationId(Long siteLocationId) {

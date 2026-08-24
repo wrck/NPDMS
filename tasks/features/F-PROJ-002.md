@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 2 建立 Commerce 与 AST 公开校验契约
+> 当前任务：Task 3 建立拆分、树版本和进度正式载体
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
@@ -33,4 +33,4 @@
 
 ## 下一步
 
-Task 1 已锁定Feature-forward物理、API、事件和独立机器契约，并保持SDS Phase 1/2/3审核基线及迁移对象/来源计数不变。下一步执行Task 2，只建立F-PROJ-002所需Commerce DeliveryScope切片与AST SN校验公开契约，不宣称COM-01全量完成。
+Task 2 已建立Commerce DeliveryScope查询、预览、父范围拆分/移动、版本锁与Outbox公开切片，以及AST SN可分配校验；未宣称COM-01全量同步或管理页面完成。下一步执行Task 3，建立PROJ拆分草稿、完整树版本、进度事实、策略与快照载体。
