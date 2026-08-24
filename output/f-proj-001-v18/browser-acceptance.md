@@ -73,3 +73,9 @@
 - 控制台仅观察到全局既存的 Vue Router `next()` 弃用警告和 Element Plus link underline 弃用警告；未发现本Feature新增的控制台错误。
 - AC-FPROJ-001～006、008～010已有跨页面、API、MySQL和测试证据。
 - AC-FPROJ-007仍受实施地点权威主数据接口及可比较版本缺失阻断；本轮没有通过手填稳定ID或臆造值域绕过，因此不能放行该AC，也不等同于UAT、发布或治理门禁GO。
+
+## 2026-08-24 V1.8 组织与地点改造后的状态
+
+上述 AC-FPROJ-007 结论保留为本轮浏览器执行时的历史状态。后续 V1.8 组织与地点基础改造已补齐公司、部门编码、同一行公司—部门授权范围、AST 地址/站点/位置、项目多站点、区划—办事处建议和人工指派契约，并通过服务端负向测试、真实 MySQL 与真实浏览器复验；AC-FPROJ-007 的实现阻断已经关闭。后续证据见 `output/location-v18/browser-acceptance.md`、`output/location-v18/mysql-acceptance.md`和`output/location-v18/regression-summary.md`。
+
+该补充只更新 Feature 实现证据状态，不构成 Deployment、SIT、UAT、Release 或治理 GO；受管 Feature 索引与 Requirement 追溯仍须在规格仓库回写后重新同步。
