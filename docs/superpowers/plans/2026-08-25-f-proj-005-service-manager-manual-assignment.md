@@ -53,19 +53,19 @@
 - Consumes: F-PROJ-005物理契约。
 - Produces: 成员列`departmentId/assignmentType/siteId/changeReason`；站内信列`deliveryKey`及`uk(tenant_id,user_type,delivery_key)`。
 
-- [ ] **Step 1: 编写V83前向迁移**
+- [x] **Step 1: 编写V83前向迁移**
 
 使用幂等DDL新增四个成员列和可空`system_notify_message.delivery_key varchar(128)`；建立通知唯一键及成员当前责任查询索引。不得创建成员历史、通知历史或重试表。
 
-- [ ] **Step 2: 对齐DO字段**
+- [x] **Step 2: 对齐DO字段**
 
 `ProjectMemberAssignmentDO`增加`Long departmentId/String assignmentType/Long siteId/String changeReason`；`NotifyMessageDO`增加`String deliveryKey`。
 
-- [ ] **Step 3: 增加迁移契约验证**
+- [x] **Step 3: 增加迁移契约验证**
 
 断言V83包含全部列、通知唯一键和禁止建表清单，并断言V1～V82未修改。
 
-- [ ] **Step 4: 验证并提交**
+- [x] **Step 4: 验证并提交**
 
 Run: `python -m unittest scripts.tests.test_fproj005_v18_migration`
 
@@ -274,4 +274,3 @@ Run: PROJ、SYSTEM、PLATFORM定向测试和三个模块完整回归；执行V83
 - 禁止能力：计划不含V2自动指派、PM-11指派、预约生效、新历史/通知表、固定层级、自动后代成员或Deployment材料。
 - 类型一致性：`departmentId/departmentCode`、`assignmentType`、8字段事件payload及`deliveryKey=eventId`在SYSTEM、PROJ、PLATFORM和UI间一致。
 - 占位扫描：无TBD/TODO或未定义实施步骤；具体错误码沿用各模块现有错误码体系并在对应Task测试中固定。
-

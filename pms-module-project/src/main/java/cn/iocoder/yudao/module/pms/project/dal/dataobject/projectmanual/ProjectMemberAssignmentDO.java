@@ -55,6 +55,10 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
      */
     private String companyName;
     /**
+     * 部门ID快照
+     */
+    private Long departmentId;
+    /**
      * 部门编码
      */
     private String departmentCode;
@@ -67,9 +71,21 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
      */
     private String memberRole;
     /**
+     * 责任类型（PRIMARY/COLLABORATOR）
+     */
+    private String assignmentType;
+    /**
+     * AST站点稳定ID；L1统筹责任可为空
+     */
+    private Long siteId;
+    /**
      * 职责
      */
     private String responsibility;
+    /**
+     * 指派或改派原因
+     */
+    private String changeReason;
     /**
      * 生效开始时间
      */
