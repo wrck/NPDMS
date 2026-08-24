@@ -359,6 +359,11 @@ IMPLEMENTATION_OVERRIDES = {
         "NPDMS `1c76050`任务、自动化、真实MySQL、真实浏览器与独立复审证据",
         "IMPLEMENTATION_COMPLETE",
     ),
+    "PM-04": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "NPDMS `9ab894f` Task、自动化、真实MySQL、真实浏览器与Implementation Done证据",
+        "IMPLEMENTATION_COMPLETE",
+    ),
 }
 
 

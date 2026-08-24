@@ -8,6 +8,8 @@
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 前置Feature：`F-PROJ-002`（`IMPLEMENTATION_COMPLETE / PASS`）
 > Technical Plan：由NPDMS锁定本Feature规格提交后重新生成；不得沿用V1.7计划或根据现有实现直接判定完成
+> 实施状态：`IMPLEMENTATION_COMPLETE / PASS`
+> 实施证据：NPDMS `9ab894f`（Task、自动化、真实MySQL、真实浏览器与Implementation Done记录）
 
 ## 1. 业务价值与目标
 
