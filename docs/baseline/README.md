@@ -15,6 +15,7 @@
 | `prd-v1.8.md` | PRD V1.8的当前内容快照，供SDS、Feature和测试读取；不得直接编辑 |
 | `prd-v1.8-amendment-001-no-manual-project-draft.md` | 已批准增量：手动项目创建失败不保留草稿 |
 | `prd-v1.8-amendment-002-organization-and-asset-location.md` | 已批准增量：组织主数据与AST地点所有权 |
+| `prd-v1.8-amendment-003-pm07-template-match-decision-history.md` | 已批准增量：PM-07模板匹配决策历史与影响识别 |
 | `prd-v1.7.md` | 已被V1.8替代的历史快照；仅用于差异和审计追溯 |
 | `requirement-baseline.yaml` | 版本、数量、哈希、范围分类和校验命令 |
 | `baseline-signoff.md` | 基线批准、适用范围和签署记录；不虚构签署人 |

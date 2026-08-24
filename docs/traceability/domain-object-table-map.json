@@ -14,6 +14,17 @@
         "proj_project"
       ]
     },
+    "ProjectTemplateMatchHistory": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-07"
+      ],
+      "targetTables": [
+        "proj_project_template_match_history"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-07"
+    },
     "ProjectHierarchy": {
       "owner": "PROJ",
       "requirementIds": [

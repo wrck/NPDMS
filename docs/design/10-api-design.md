@@ -70,12 +70,12 @@
 
 | 路径 | 方法/命令 | 作用 | 关键约束 |
 |---|---|---|---|
-| `/projects` | `POST`, `GET` | 创建、分页查询项目 | 创建需幂等键；公司与办事处部门按同一组织范围校验；请求包含零到多个站点及一个可选主站点，或显式未解析文本降级；查询服务端过滤 ProjectTreeScope |
-| `/projects/{id}` | `GET`, `PATCH` | 项目详情、可编辑属性 | `PATCH` 不能修改状态、父节点和来源权威字段 |
+| `/projects` | `POST`, `GET` | 创建、分页查询项目 | 创建需幂等键及必填非空白createReason；公司与办事处部门按同一组织范围校验；请求包含零到多个站点及一个可选主站点，或显式未解析文本降级；F-PROJ-004生效后所有成功创建须记录AUTO_UNIQUE或EXPLICIT_SELECTION的INITIAL_CREATE历史；查询服务端过滤 ProjectTreeScope |
+| `/projects/{id}` | `GET`, `PATCH` | 项目详情、可编辑属性 | `PATCH`不能修改状态、父节点、来源权威字段及四项模板输入属性；四属性只能走PM-07受控命令并追加历史 |
 | `/projects/{id}/workspace` | `GET` | 项目概览六页签、Stage→ProjectTask导航和投影水位 | 不返回第二套导航真值；按ProjectTreeScope裁剪，任务子树按需加载 |
 | `/projects/{id}/tree` | `GET` | 直接下级、全部后代、完整上级链、指定业务层级或节点定位 | 先执行ProjectTreeScope；返回同一完整`treeVersion`、裁剪结果和稳定游标 |
 | `/projects/{id}/actions/move` | `POST` | 移动到目标父项目 | `Idempotency-Key`、`If-Match`、无环校验、树变更批次和新`treeVersion` |
-| `/projects/{id}/actions/classify` | `POST` | 项目级别识别/确认 | 类型字典可扩展，识别结果与人工确认留痕 |
+| `/projects/{id}/actions/classify` | `POST` | 四项模板输入的受控人工调整 | 以5.5为唯一详细契约；追加MANUAL_ADJUSTMENT历史，不更换冻结模板 |
 | `/projects/{id}/actions/assign-manager` | `POST` | 指派项目经理/服务经理 | 仅使用 PRD 已定义角色和规则 |
 | `/projects/{id}/actions/rollback` | `POST` | 受控阶段回退 | 保存原因、目标阶段和新门禁快照 |
 | `/projects/{id}/actions/close` | `POST` | 接收闭环完成后的关闭命令 | 只能由闭环契约触发或满足相同门禁的授权入口 |
@@ -139,6 +139,18 @@ PLT公开`AuthorizationGrantApi`完成授权创建、撤销和按主体/资源/�
 | `/project-phase-groups/{id}/actions/remove-phase` | `POST` | 关闭成员有效区间并返回新版本 | 不删除项目事实、历史引用或已发布汇总快照 |
 | `/project-phase-groups/{id}/phases` | `GET` | 按期次返回独立项目状态、来源版本、设备分类和资料差异，附 completeScope 标识 | 只返回用户有权期次；缺失期次标记不完整，不按零值汇总 |
 | `/project-phase-groups/{id}/actions/derive-content` | `POST` | 输入 sourceProjectId/sourceObjectType/sourceObjectId/sourceVersion/targetProjectId；返回派生对象和来源关系 | 只允许 PRD 指定的客户视图、拓扑、方案和设备视图复用；派生修改不回写来源 |
+
+### 5.5 PM-07属性判定与匹配历史契约
+
+| 路径 | 操作 | 输入/输出 | 守卫 |
+|---|---|---|---|
+| 既有`/projects/{id}` | `GET` | 继续返回当前四属性 | 不增加重复当前属性资源 |
+| 既有`/projects` | `POST` | 必填非空白createReason；候选结果与`AUTO_UNIQUE/EXPLICIT_SELECTION`决策；返回Project、冻结模板和INITIAL_CREATE历史operationId | 原因trim后为空在事务前拒绝；无匹配拒绝；多匹配必须显式选择本次合法候选；Project、历史、模板冻结和实例化同事务 |
+| `/projects/{id}/template-match-history` | `GET` | 按触发类型、匹配结果、影响结论、operationId和时间分页；返回可用的traceId/auditLogId关联 | ProjectTreeScope；排序白名单；越权按不存在 |
+| `/projects/{id}/actions/classify` | `POST` | 允许修正的维度及必填非空白adjustmentReason；返回当前四属性、新增历史ID及operationId | 原因trim后为空在事务前拒绝；`Idempotency-Key`、`If-Match`、项目处置权限；业务用户不得写CRM重大级别；不重新实例化；不以异步系统日志写入作为成功条件 |
+| 内部`ProjectAttributeSourceCorrectionCommand` | 应用命令 | 已定位projectId、CRM Owner字段、来源键/事件/版本/发生时间/原值摘要、必填非空白correctionReason、幂等键和服务身份 | 原因trim后为空在事务前拒绝；仅受信任INT服务；serviceIdentity须映射为稳定已注册服务主体ID作为operatorId；同事务更新当前值并追加SOURCE_CORRECTION历史；不负责来源定位、重试或对账 |
+
+PROJ内部`ProjectAttributeResolutionService`供手工创建与未来CRM自动创建编排复用，输出确定属性输入后调用既有TemplateMatcher。无匹配，或多匹配但未显式选择本次合法候选时，首次创建整体失败；创建后classify只追加重新评估历史。集合响应统一分页；写命令同键同摘要重放、同键不同摘要冲突，进行中重复返回409。
 
 ## 6. SOL：交付准备与方案 API
 

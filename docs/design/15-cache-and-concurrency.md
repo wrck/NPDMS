@@ -93,6 +93,14 @@
 - CUT-03重新匹配使用`checklistVersion + inputSnapshotHash`并发令牌；条件变化和采集回调并发时，回调先落DAC结果，再由CUT按当前清单版本、stableItemKey和itemVersion决定追加/选择结果或进入待核对，不覆盖新草稿，也不复制DAC状态。
 - 清单项结果以`checklistItemId + resultVersion`追加；选择切换在锁定当前结果后，同一事务写旧行`selectionEndedAt`并插入带新`selectionStartedAt`的结果版本，生成`currentMarker`唯一约束防止两个未结束选择。结果载荷不可覆盖，人工降级不会删除自动失败结果；已提交清单的重新匹配必须创建新清单版本。
 
+### 5.6 PM-07属性修正与匹配历史并发
+
+- 首次匹配决策历史与Project、模板冻结及实例化使用F-PROJ-001同一事务边界，失败不留下Project或历史孤儿。
+- 创建后属性修正同时校验`Idempotency-Key`请求摘要与`If-Match` Project版本；事务中重新读取当前属性、冻结模板和匹配器版本，原子更新当前值并追加一条历史。
+- `ProjectAttributeSourceCorrectionCommand`还校验受信任服务身份、来源键和单调来源版本；旧版/重复来源事件不更新当前值，不重复追加历史，同一来源版本不同摘要进入冲突处置。
+- 同键同请求重放，同键不同请求拒绝，进行中重复返回409；并发冲突整体回滚，不产生与当前值不一致的历史。
+- 历史查询按`tenant + projectId + recordedAt/id`游标或受控分页，不缓存敏感全量历史；缓存不可用不能跳过ProjectTreeScope。
+
 ## 6. 设备唯一归属并发
 
 设备归属命令以 `tenantId+deviceId` 唯一当前行和 assignmentVersion 为互斥边界：

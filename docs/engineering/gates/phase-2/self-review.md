@@ -17,6 +17,7 @@
 | S2-V18-06 | Stage→ProjectTask工作台统一使用必填WorkBinding，默认TASK_NATIVE承载通用任务详情，其他类型按绑定关系执行并按对应事实完成 | ADR-0030、08～16 SDS与契约映射已同步；不按名称、菜单、模块、URL或历史状态推断绑定和完成事实 |
 | S2-V18-07 | CUT-03在P3同工作台使用版本化清单、采集项和追加式结果引用 | 三张物理承载表已完成字段、约束、并发和异常设计；不复制DAC技术状态，不新增采集阶段或结果中转页 |
 | S2-V18-08 | CUS-02和CUT-07分别使用`CustomerServiceLevelRevision`、`CutoverConfigurationRevision`承载时态等级与后台配置版本 | 当前契约更新为87对象/98来源绑定/1排除源；两对象均为NONE_NEW/FEATURE_FORWARD_MIGRATION，不改当前核心DDL或P3-E09哈希 |
+| S2-V18-09 | F-PROJ-004以`ProjectTemplateMatchHistory`承载单一权威匹配决策历史 | 当前契约更新为88对象/99来源绑定/1排除源；对象已登记FeatureRequirementId=PM-07并通过专用迁移对齐校验，等待Feature Ready独立复审 |
 
 ## 2. 可复现校验
 

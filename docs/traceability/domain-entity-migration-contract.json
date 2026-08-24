@@ -75,6 +75,17 @@
         "proj_project_template_task_definition"
       ]
     },
+    "ProjectTemplateMatchHistory": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-07"
+      ],
+      "targetTables": [
+        "proj_project_template_match_history"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-07"
+    },
     "ProjectTask": {
       "owner": "PROJ",
       "requirementIds": [
@@ -1101,6 +1112,30 @@
           "evidenceRef": "phase2-contract://object=ProjectTemplate"
         }
       ]
+    },
+    {
+      "object": "ProjectTemplateMatchHistory",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-07"
+      ],
+      "targetTables": [
+        "proj_project_template_match_history"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "ProjectTemplateMatchHistory",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=ProjectTemplateMatchHistory"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-07"
     },
     {
       "object": "ProjectTask",

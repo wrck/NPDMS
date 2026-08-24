@@ -13,7 +13,8 @@ from pathlib import Path
 
 TARGETS: dict[str, tuple[str, ...]] = {
     "Project": ("proj_project",), "ProjectHierarchy": ("proj_project",), "ProjectAncestorProjection": ("proj_project_tree_path",),
-    "ProjectTemplate": ("proj_project_template_revision", "proj_project_template_task_definition"), "ProjectTask": ("proj_project_task",),
+    "ProjectTemplate": ("proj_project_template_revision", "proj_project_template_task_definition"),
+    "ProjectTemplateMatchHistory": ("proj_project_template_match_history",), "ProjectTask": ("proj_project_task",),
     "TaskWorkBinding": ("proj_project_task_execution_contract",), "TaskCompletionRule": ("proj_project_task_execution_contract",),
     "TaskCompletionEvaluation": ("proj_project_task_completion_evaluation",), "TaskAncestorProjection": ("proj_task_tree_path",),
     "TaskDependency": ("proj_task_dependency",), "ProjectMemberAssignment": ("proj_project_member_assignment",),
@@ -61,6 +62,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
 }
 
 TARGET_POLICIES = {
+    "ProjectTemplateMatchHistory": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "PM-07"},
     "TechnicalNoticeReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},

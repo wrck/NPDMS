@@ -47,6 +47,7 @@
 | `ProjectHierarchy` | 当前`pms_project.parent_id/root_id/path/depth`；旧库无等价正式树 | CURRENT_FORWARD | 旧项目默认根节点；旧项目组、名称、地区、编码不推断父子 |
 | `ProjectAncestorProjection` | 当前路径字段/目标闭包投影 | REBUILD | 按迁移后邻接真值重建并记录treeVersion，不迁旧path为独立真值 |
 | `ProjectTemplate` | 当前`pms_project_template`；旧`fnd_basic_prjstate`仅状态配置 | CURRENT_FORWARD+PENDING_SOURCE_CONFIRMATION | 当前模板前向对齐；旧状态配置不得冒充项目模板 |
+| `ProjectTemplateMatchHistory` | 当前无可证明的等价权威历史 | NEW_ONLY / FEATURE_FORWARD_MIGRATION(PM-07) | 仅从新平台INITIAL_CREATE、SOURCE_CORRECTION、MANUAL_ADJUSTMENT命令追加；不得从现有异步操作日志反推 |
 | `ProjectTask` | 旧`pm_project_task`；当前`proj_project_task` | STRUCTURED+CURRENT_FORWARD | 迁任务、计划、责任和历史状态映射；父子与依赖分离 |
 | `TaskWorkBinding` | 当前ProjectTask无可证明的统一绑定字段 | NEW_ONLY | 前向初始化为`TASK_NATIVE`版本1；不得按任务名称、历史菜单或模块名猜测业务对象/组件/表单/审批绑定 |
 | `TaskCompletionRule` | 当前ProjectTask无可证明的分类型完成规则 | NEW_ONLY | 与WorkBinding同版本原子生成；TASK_NATIVE使用任务自身守卫，其他类型只由新模板或批准换绑命令产生 |

@@ -10,6 +10,10 @@
 
 Phase 2 V1.8的08、08a、09、10、11、12、13、15、16分册，100项显式契约映射及87对象/98来源绑定/1排除源的迁移契约已通过独立复审。ADR-0030的六张物理设计表能够最小承载ProjectTask执行契约、完成判定和CUT-03版本化清单；ADR-0031补充的两个逻辑对象均采用NONE_NEW/FEATURE_FORWARD_MIGRATION，不改变当前核心DDL或P3-E09哈希。两项决策均不复制目标业务正文或DAC技术状态，不新增PRD外角色、审批、割接阶段或通用工单。
 
+2026-08-25 F-PROJ-004首次Feature Ready复审为NO-GO；整改后当前迁移契约为88对象/99来源绑定/1排除源，新增`ProjectTemplateMatchHistory`已进入受管生成链。此统计只证明机器契约已同步，不替代待执行的第二次Feature Ready独立裁决。
+
+2026-08-25最终聚焦裁决`NPDMS-FPROJ004-FEATURE-READY-20260825-06`为`GO`：PRD修订、显式选模、属性写入旁路、权威历史字段矩阵、审计主体/原因来源及迁移受管链均已闭合。该GO只放行Feature Ready与后续快照锁定/Technical Plan，不代表实现、迁移、SIT/UAT或发布完成。
+
 允许将ADR-0030标记为`ACCEPTED`、Phase 2分册标记为`BASELINE`，并进入Phase 3形成Feature和前向DDL设计。
 
 ## 2. 复审发现与关闭
