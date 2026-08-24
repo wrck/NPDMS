@@ -143,7 +143,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             draft.setRootId(parent.getRootId());
             draft.setTreePath(ProjectTreeRules.buildChildPath(parent.getTreePath(), parent.getId()));
             draft.setTreeDepth(ProjectTreeRules.buildChildDepth(parent.getTreeDepth()));
-            draft.setTreeSort(0);
+            if (draft.getTreeSort() == null) {
+                draft.setTreeSort(0);
+            }
             inheritFromParent(draft, parent);
         }
         // d) 冻结模板引用（BR-4：绑定 revision 与流程定义版本写入主档）

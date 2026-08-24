@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
+import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
@@ -38,7 +40,7 @@ import static org.mockito.Mockito.lenient;
 class ProjectManagerAssignmentApplicationServiceTest {
 
     @Mock
-    private ProjectCreationPlatformFactService platformFactService;
+    private ProjectCommandExecutionService platformFactService;
     @Mock
     private ProjectManualCreationService projectService;
     @Mock
@@ -74,8 +76,8 @@ class ProjectManagerAssignmentApplicationServiceTest {
             Function<Object, ?> facts = invocation.getArgument(4);
             Object result = operation.get();
             facts.apply(result);
-            return new ProjectCreationPlatformFactService.ExecutionResult<>(
-                    ProjectCreationPlatformFactService.Decision.NEW, result);
+            return new ProjectCommandExecutionService.ExecutionResult<>(
+                    ProjectCommandExecutionService.Decision.NEW, result);
         });
 
         AssignServiceManagerResult result = service.assign(command(), actor());
@@ -95,8 +97,8 @@ class ProjectManagerAssignmentApplicationServiceTest {
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<Object> operation = invocation.getArgument(3);
             Object result = operation.get();
-            return new ProjectCreationPlatformFactService.ExecutionResult<>(
-                    ProjectCreationPlatformFactService.Decision.NEW, result);
+            return new ProjectCommandExecutionService.ExecutionResult<>(
+                    ProjectCommandExecutionService.Decision.NEW, result);
         });
         AssignServiceManagerCommand command = new AssignServiceManagerCommand(1L, 2,
                 "SERVICE_MANAGER", "L1", 66L, null, "DEP-01",
@@ -136,8 +138,8 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @Test
     void idempotencyConflictIsMappedToStableError() {
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
-                new ProjectCreationPlatformFactService.ExecutionResult<>(
-                        ProjectCreationPlatformFactService.Decision.CONFLICT, null));
+                new ProjectCommandExecutionService.ExecutionResult<>(
+                        ProjectCommandExecutionService.Decision.CONFLICT, null));
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.assign(command(), actor()));

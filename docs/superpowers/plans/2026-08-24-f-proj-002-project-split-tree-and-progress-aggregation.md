@@ -321,17 +321,17 @@ record ApplyProjectSplitCommand(
 - `ProjectChildCreationService`创建并实例化一个子项目，但不自行完成幂等、审计或Outbox；外层`ProjectCommandExecutionService`只为整个批次写一个完成点。
 - 同一事务顺序：锁草稿/父项目/范围版本→服务端重验→批量创建子项目与五要素→Commerce分配→发布树版本→标记APPLIED→审计/Outbox/幂等成功。
 
-- [ ] **Step 1: 提取可复用子项目创建原语并保持F-PROJ-001回归**
+- [x] **Step 1: 提取可复用子项目创建原语并保持F-PROJ-001回归**
 
 子项目必须冻结父模板版本并产生独立不可复用编码；不复制父项目的实时进度、闭环结果或敏感授权。
 
-- [ ] **Step 2: 实现批次应用与故障注入点**
+- [x] **Step 2: 实现批次应用与故障注入点**
 
 测试注入子项目第N个失败、模板实例化失败、Commerce分配失败、审计失败和Outbox失败，断言Project、范围、树和完成点全部回滚，草稿仍可修正重试。
 
 指标记录批次成功/失败、失败阶段、范围冲突和总耗时；失败标签使用受控错误分类，不写项目名称、SN或范围正文。
 
-- [ ] **Step 3: 增加正式确认接口**
+- [x] **Step 3: 增加正式确认接口**
 
 ```text
 POST /pms/project-split-requests/{id}/actions/apply
@@ -339,13 +339,13 @@ Headers: Idempotency-Key, If-Match
 Body: expectedParentVersion, expectedScopeVersion, expectedTreeVersion
 ```
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
 
 ```powershell
 mvn -pl pms-module-project,pms-module-commerce -am -Dtest=ProjectSplitApplicationServiceTest,ProjectSplitMySqlIntegrationTest,ProjectManualCreationApplicationServiceTest test
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(project): 原子应用项目拆分方案`
 

@@ -17,4 +17,11 @@ public class ProjectSplitMetrics {
         meterRegistry.timer("pms.project.split.preview.duration", "result", success ? "success" : "failure")
                 .record(Duration.ofNanos(elapsedNanos));
     }
+
+    public void apply(boolean success, String failureStage, long elapsedNanos) {
+        meterRegistry.counter("pms.project.split.apply", "result", success ? "success" : "failure",
+                "failure_stage", success ? "none" : failureStage).increment();
+        meterRegistry.timer("pms.project.split.apply.duration", "result", success ? "success" : "failure")
+                .record(Duration.ofNanos(elapsedNanos));
+    }
 }

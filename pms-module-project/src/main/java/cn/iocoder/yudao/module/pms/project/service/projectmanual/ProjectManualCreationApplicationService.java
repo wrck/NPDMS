@@ -8,9 +8,10 @@ import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCreationPlatformFactService.Decision;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCreationPlatformFactService.IdempotencyScope;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectCreationPlatformFactService.SuccessFacts;
+import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService.Decision;
+import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService.IdempotencyScope;
+import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService.SuccessFacts;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import jakarta.annotation.Resource;
@@ -36,7 +37,7 @@ public class ProjectManualCreationApplicationService {
     public static final String CREATE_SCOPE = "POST:/pms/projects";
 
     @Resource
-    private ProjectCreationPlatformFactService platformFactService;
+    private ProjectCommandExecutionService platformFactService;
     @Resource
     private ProjectManualCreationService projectCreationService;
     @Resource

@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.pms.project.service.acceptance.application.Projec
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateServiceImpl;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -321,7 +322,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
             MybatisPlusJoinAutoConfiguration.class,
             SpringUtil.class,
             ProjectManualCreationApplicationService.class,
-            ProjectCreationPlatformFactService.class,
+            ProjectCommandExecutionService.class,
             ProjectManualCreationServiceImpl.class,
             ProjectTemplateServiceImpl.class,
             ProjectCodeAllocator.class,

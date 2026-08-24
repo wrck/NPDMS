@@ -168,5 +168,7 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_SPLIT_DRAFT_INVALID = new ErrorCode(1_014_024_019, "项目拆分草稿不合法：{}");
     ErrorCode PROJECT_SPLIT_DRAFT_VERSION_CONFLICT = new ErrorCode(1_014_024_020, "项目拆分草稿版本冲突，请重新加载");
     ErrorCode PROJECT_SPLIT_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_021, "无权访问该项目拆分范围");
+    ErrorCode PROJECT_SPLIT_APPLY_INVALID = new ErrorCode(1_014_024_022, "项目拆分方案不可应用：{}");
+    ErrorCode PROJECT_SPLIT_APPLY_VERSION_CONFLICT = new ErrorCode(1_014_024_023, "项目拆分权威版本已变化，请重新预览");
 
 }

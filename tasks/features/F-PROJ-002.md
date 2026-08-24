@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 5 实现原子批量应用拆分方案
+> 当前任务：Task 6 发布完整项目树版本并收敛单一正式入口
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
@@ -33,4 +33,4 @@
 
 ## 下一步
 
-Task 4 已实现持久化拆分草稿、稳定项键版本更新、服务端预览、组织/Commerce/AST逐项校验、失败草稿保留、操作审计和Micrometer指标。下一步执行Task 5，在单一事务内原子应用全部子项目、范围和树版本。
+Task 5 已实现单批次幂等事务、子项目与模板实例化、Commerce范围分配、完整树版本、拆分状态、审计和Outbox原子提交，并新增正式确认接口。下一步执行Task 6，提取树投影服务并收敛五类查询和移动命令的单一正式入口。

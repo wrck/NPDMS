@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.service.projectmanual;
+package cn.iocoder.yudao.module.pms.project.service.platform;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformIdempotencyRecordDO;
@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 
 /** 将项目写命令、幂等成功、审计和Outbox事件封装在同一事务中。 */
 @Service
-public class ProjectCreationPlatformFactService {
+public class ProjectCommandExecutionService {
 
     public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
     public static final String STATUS_COMPLETED = "COMPLETED";

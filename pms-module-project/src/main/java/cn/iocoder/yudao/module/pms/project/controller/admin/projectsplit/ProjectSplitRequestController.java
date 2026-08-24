@@ -4,13 +4,17 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectsplit.vo.ProjectSplitDraftSaveReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projectsplit.vo.ApplyProjectSplitReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectsplit.vo.ProjectSplitPreviewRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectsplit.vo.ProjectSplitRequestRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitItemDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitScopeDO;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.ProjectSplitDraftService;
+import cn.iocoder.yudao.module.pms.project.service.projectsplit.ProjectSplitApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.ProjectSplitPreviewService;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitDraftCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitPreviewCommand;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +28,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
@@ -36,6 +44,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class ProjectSplitRequestController {
     private final ProjectSplitDraftService draftService;
     private final ProjectSplitPreviewService previewService;
+    private final ProjectSplitApplicationService applicationService;
 
     @PostMapping
     @Operation(summary = "创建项目拆分草稿")
@@ -75,6 +84,22 @@ public class ProjectSplitRequestController {
                                                              @RequestParam @NotNull Integer expectedDraftVersion) {
         return success(toResponse(previewService.validateAgain(
                 new ProjectSplitPreviewCommand(id, expectedDraftVersion), actor())));
+    }
+
+    @PostMapping("/{id}/actions/apply")
+    @Operation(summary = "原子应用项目拆分方案")
+    @PreAuthorize("@ss.hasPermission('pms:project:create')")
+    public CommonResult<ApplyProjectSplitResult> apply(
+            @PathVariable("id") Long id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("If-Match") String ifMatch,
+            @Valid @RequestBody ApplyProjectSplitReqVO request) {
+        Integer expectedDraftVersion = Integer.valueOf(ifMatch.replace("\"", "").trim());
+        String digest = sha256(id + "|" + expectedDraftVersion + "|" + request.getExpectedParentVersion()
+                + "|" + request.getExpectedScopeVersion() + "|" + request.getExpectedTreeVersion());
+        return success(applicationService.apply(new ApplyProjectSplitCommand(id, expectedDraftVersion,
+                request.getExpectedParentVersion(), request.getExpectedScopeVersion(),
+                request.getExpectedTreeVersion(), idempotencyKey, digest), actor()));
     }
 
     private ProjectSplitDraftCommand toCommand(Long requestId, ProjectSplitDraftSaveReqVO request) {
@@ -145,5 +170,14 @@ public class ProjectSplitRequestController {
             return value;
         }).toList());
         return response;
+    }
+
+    private String sha256(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 }

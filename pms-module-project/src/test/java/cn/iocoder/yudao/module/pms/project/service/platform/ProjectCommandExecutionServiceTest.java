@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.service.projectmanual;
+package cn.iocoder.yudao.module.pms.project.service.platform;
 
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformIdempotencyRecordDO;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ProjectCreationPlatformFactServiceTest {
+class ProjectCommandExecutionServiceTest {
 
     private static final String DIGEST_A = "a".repeat(64);
     private static final String DIGEST_B = "b".repeat(64);
@@ -38,7 +38,7 @@ class ProjectCreationPlatformFactServiceTest {
     private PlatformOutboxEventMapper outboxMapper;
 
     @InjectMocks
-    private ProjectCreationPlatformFactService service;
+    private ProjectCommandExecutionService service;
 
     @Test
     void newExecutionPersistsAllSuccessFacts() {
@@ -55,7 +55,7 @@ class ProjectCreationPlatformFactServiceTest {
         var result = service.execute(scope(), DIGEST_A, ProjectCreateRespVO.class,
                 () -> response, ignored -> facts("100"));
 
-        assertEquals(ProjectCreationPlatformFactService.Decision.NEW, result.decision());
+        assertEquals(ProjectCommandExecutionService.Decision.NEW, result.decision());
         assertEquals(100L, result.response().getId());
         verify(auditMapper).insert(any(PlatformOperationAuditDO.class));
         verify(outboxMapper).insert(any(PlatformOutboxEventDO.class));
@@ -65,7 +65,7 @@ class ProjectCreationPlatformFactServiceTest {
     void completedSameDigestReplaysWithoutExecutingOperation() {
         when(idempotencyMapper.insertIfAbsent(any(PlatformIdempotencyRecordDO.class))).thenReturn(0);
         PlatformIdempotencyRecordDO existing = existing(DIGEST_A,
-                ProjectCreationPlatformFactService.STATUS_COMPLETED);
+                ProjectCommandExecutionService.STATUS_COMPLETED);
         existing.setResponsePayload("{\"id\":100}");
         when(idempotencyMapper.selectByScope(1L, "POST:/pms/projects", 7L, "key-1"))
                 .thenReturn(existing);
@@ -77,7 +77,7 @@ class ProjectCreationPlatformFactServiceTest {
                     return response(200L);
                 }, ignored -> facts("200"));
 
-        assertEquals(ProjectCreationPlatformFactService.Decision.REPLAY_COMPLETED, result.decision());
+        assertEquals(ProjectCommandExecutionService.Decision.REPLAY_COMPLETED, result.decision());
         assertEquals(100L, result.response().getId());
         assertEquals(0, executions.get());
         verify(auditMapper, never()).insert(any(PlatformOperationAuditDO.class));
@@ -87,7 +87,7 @@ class ProjectCreationPlatformFactServiceTest {
     void sameKeyDifferentDigestConflictsWithoutExecutingOperation() {
         when(idempotencyMapper.insertIfAbsent(any(PlatformIdempotencyRecordDO.class))).thenReturn(0);
         when(idempotencyMapper.selectByScope(1L, "POST:/pms/projects", 7L, "key-1"))
-                .thenReturn(existing(DIGEST_A, ProjectCreationPlatformFactService.STATUS_COMPLETED));
+                .thenReturn(existing(DIGEST_A, ProjectCommandExecutionService.STATUS_COMPLETED));
         AtomicInteger executions = new AtomicInteger();
 
         var result = service.execute(scope(), DIGEST_B, ProjectCreateRespVO.class,
@@ -96,7 +96,7 @@ class ProjectCreationPlatformFactServiceTest {
                     return response(200L);
                 }, ignored -> facts("200"));
 
-        assertEquals(ProjectCreationPlatformFactService.Decision.CONFLICT, result.decision());
+        assertEquals(ProjectCommandExecutionService.Decision.CONFLICT, result.decision());
         assertEquals(0, executions.get());
     }
 
@@ -133,13 +133,13 @@ class ProjectCreationPlatformFactServiceTest {
                 ProjectCreateRespVO.class, () -> response(100L), ignored -> facts("100")));
     }
 
-    private ProjectCreationPlatformFactService.IdempotencyScope scope() {
-        return new ProjectCreationPlatformFactService.IdempotencyScope(
+    private ProjectCommandExecutionService.IdempotencyScope scope() {
+        return new ProjectCommandExecutionService.IdempotencyScope(
                 1L, "POST:/pms/projects", 7L, "key-1");
     }
 
-    private ProjectCreationPlatformFactService.SuccessFacts facts(String resourceKey) {
-        return new ProjectCreationPlatformFactService.SuccessFacts(
+    private ProjectCommandExecutionService.SuccessFacts facts(String resourceKey) {
+        return new ProjectCommandExecutionService.SuccessFacts(
                 "PROJECT_CREATE", "Project", resourceKey, "correlation-1",
                 "{\"templateRevisionId\":10,\"stageCount\":7}",
                 "ProjectCreated", "{\"projectId\":" + resourceKey + "}");

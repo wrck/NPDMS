@@ -16,6 +16,17 @@ import java.util.List;
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
 
+    default ProjectMasterDO selectByIdForUpdate(Long id) {
+        return selectOneForUpdate(new LambdaQueryWrapperX<ProjectMasterDO>()
+                .eq(ProjectMasterDO::getId, id));
+    }
+
+    default List<ProjectMasterDO> selectTreeByRootId(Long rootId) {
+        return selectList(new LambdaQueryWrapperX<ProjectMasterDO>()
+                .eq(ProjectMasterDO::getRootId, rootId)
+                .orderByAsc(ProjectMasterDO::getTreeDepth, ProjectMasterDO::getTreeSort, ProjectMasterDO::getId));
+    }
+
     @Update("""
             UPDATE proj_project
             SET version = version + 1
