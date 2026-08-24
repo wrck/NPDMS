@@ -4,7 +4,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * 平台命令幂等、审计和Outbox同事务执行契约。
+ * 平台命令幂等与审计同事务执行契约；存在业务事件时同时写入Outbox。
  */
 public interface PlatformCommandExecutionApi {
 

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +61,26 @@ class PlatformCommandExecutionApiImplTest {
         assertEquals(100L, result.response().id());
         verify(auditMapper).insert(any(PlatformOperationAuditDO.class));
         verify(outboxMapper).insert(any(PlatformOutboxEventDO.class));
+    }
+
+    @Test
+    void newExecutionWithoutBusinessEventSkipsOutbox() {
+        doAnswer(invocation -> {
+            PlatformIdempotencyRecordDO row = invocation.getArgument(0);
+            row.setId(100L);
+            return 1;
+        }).when(idempotencyMapper).insertIfAbsent(any(PlatformIdempotencyRecordDO.class));
+        when(idempotencyMapper.updateById(any(PlatformIdempotencyRecordDO.class))).thenReturn(1);
+        when(auditMapper.insert(any(PlatformOperationAuditDO.class))).thenReturn(1);
+
+        var result = service.execute(scope(), DIGEST_A, SampleResponse.class,
+                () -> response(101L), ignored -> new PlatformCommandExecutionApi.SuccessFacts(
+                        "AUTHORIZATION_GRANT_CREATE", "AuthorizationGrant", "101", "correlation-1",
+                        "{}", null, null));
+
+        assertEquals(PlatformCommandExecutionApi.Decision.NEW, result.decision());
+        verify(auditMapper).insert(any(PlatformOperationAuditDO.class));
+        verifyNoInteractions(outboxMapper);
     }
 
     @Test

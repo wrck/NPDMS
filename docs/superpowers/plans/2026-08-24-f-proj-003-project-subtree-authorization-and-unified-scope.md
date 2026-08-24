@@ -132,19 +132,19 @@ public record AuthorizationGrantQuery(Long tenantId, String subjectTypeCode,
         Set<Long> resourceIds, String actionCode, LocalDateTime effectiveAt) {}
 ```
 
-- [ ] **Step 1: 以前向迁移建立`plt_authorization_grant`**
+- [x] **Step 1: 以前向迁移建立`plt_authorization_grant`**
 
 V77实现规格中的全部字段；`current_marker=1`占用当前授权键，撤权和确认到期置空；唯一键精确使用`tenant+subject+resource context/type/id+action+scope+current_marker`，有效区间满足`effective_to IS NULL OR effective_to > effective_from`。
 
-- [ ] **Step 2: 实现Query对象、Mapper与有效授权查询**
+- [x] **Step 2: 实现Query对象、Mapper与有效授权查询**
 
 `listEffective`必须校验租户、状态、`effective_from <= effectiveAt`和`effective_to > effectiveAt`；`resourceIds`为空立即返回空集合。`page`按主体、动作、范围、状态和有效时点查询当前与历史，并以`granted_at DESC,id DESC`稳定分页；不得使用SQL注解、`${}`或`.last(...)`。
 
-- [ ] **Step 3: 实现创建、撤权、版本和幂等事务**
+- [x] **Step 3: 实现创建、撤权、版本和幂等事务**
 
 创建只接受主体类型`USER`、资源Context`PROJ`、资源类型`PROJECT`、动作`PROJECT_VIEW/PROJECT_MANAGE`和范围`CURRENT_PROJECT/PROJECT_AND_DESCENDANTS`；撤权以期望版本更新并记录撤销人、时间、原因，历史不删除；重复创建由当前标记唯一约束转换为明确冲突。
 
-- [ ] **Step 4: 验证授权生命周期与真实MySQL约束**
+- [x] **Step 4: 验证授权生命周期与真实MySQL约束**
 
 覆盖未生效、当前有效、到期、撤权、同键重放、同键不同摘要、并发重复授权和版本冲突。
 
@@ -152,7 +152,7 @@ Run: `mvn.cmd -pl pms-module-platform -am -DskipITs=false -DskipTests=false -Dte
 
 Expected: 单元与MySQL测试PASS；数据库只存在一个当前有效事实，历史仍可查询。
 
-- [ ] **Step 5: 提交PLT授权事实**
+- [x] **Step 5: 提交PLT授权事实**
 
 ```text
 feat(platform): 实现项目授权事实与生命周期

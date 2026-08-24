@@ -23,7 +23,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/** 将项目写命令、幂等成功、审计和Outbox事件封装在同一事务中。 */
+/** 将平台写命令、幂等成功、审计和可选Outbox事件封装在同一事务中。 */
 @Service
 public class PlatformCommandExecutionApiImpl implements PlatformCommandExecutionApi {
 
@@ -81,8 +81,9 @@ public class PlatformCommandExecutionApiImpl implements PlatformCommandExecution
                                     T response, SuccessFacts facts) {
         if (facts == null || isBlank(facts.operationCode()) || isBlank(facts.aggregateType())
                 || isBlank(facts.resourceKey()) || isBlank(facts.correlationId())
-                || facts.detailSnapshot() == null || isBlank(facts.eventType()) || facts.eventPayload() == null) {
-            throw new IllegalArgumentException("项目写命令成功事实不完整");
+                || facts.detailSnapshot() == null
+                || (isBlank(facts.eventType()) != (facts.eventPayload() == null))) {
+            throw new IllegalArgumentException("平台写命令成功事实不完整");
         }
         LocalDateTime now = LocalDateTime.now(clock);
         PlatformIdempotencyRecordDO completed = new PlatformIdempotencyRecordDO();
@@ -111,18 +112,20 @@ public class PlatformCommandExecutionApiImpl implements PlatformCommandExecution
             throw new IllegalStateException("平台操作审计写入失败");
         }
 
-        PlatformOutboxEventDO outbox = new PlatformOutboxEventDO();
-        outbox.setTenantId(scope.tenantId());
-        outbox.setEventId(UUID.randomUUID().toString());
-        outbox.setEventType(facts.eventType());
-        outbox.setAggregateType(facts.aggregateType());
-        outbox.setAggregateKey(facts.resourceKey());
-        outbox.setPayload(facts.eventPayload());
-        outbox.setStatus(OUTBOX_STATUS_PENDING);
-        outbox.setOccurredAt(now);
-        outbox.setRetryCount(0);
-        if (outboxMapper.insert(outbox) != 1) {
-            throw new IllegalStateException("平台Outbox事件写入失败");
+        if (!isBlank(facts.eventType())) {
+            PlatformOutboxEventDO outbox = new PlatformOutboxEventDO();
+            outbox.setTenantId(scope.tenantId());
+            outbox.setEventId(UUID.randomUUID().toString());
+            outbox.setEventType(facts.eventType());
+            outbox.setAggregateType(facts.aggregateType());
+            outbox.setAggregateKey(facts.resourceKey());
+            outbox.setPayload(facts.eventPayload());
+            outbox.setStatus(OUTBOX_STATUS_PENDING);
+            outbox.setOccurredAt(now);
+            outbox.setRetryCount(0);
+            if (outboxMapper.insert(outbox) != 1) {
+                throw new IllegalStateException("平台Outbox事件写入失败");
+            }
         }
     }
 
