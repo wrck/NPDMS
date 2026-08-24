@@ -141,18 +141,19 @@
 - 需求名称：服务经理自动指派
 - 数据对象：ProjectMemberAssignment
 - 数据表：proj_project_member_assignment
-- API：/projects/{id}/actions/assign-manager
-- 事件：N/A（同步命令或查询，无跨 Context 业务事件）
+- API：/projects/{id}/service-manager-candidates、/projects/{id}/actions/assign-manager、/projects/{rootId}/service-manager-responsibilities；SYSTEM OrganizationScopeApi.pageActiveUsers、NotifyMessageSendApi(deliveryKey)
+- 事件：ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：V1手动指派、V2规则候选确认
+- 工作流/状态：V1手动且服务端即时生效、V2规则候选确认；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立
 - 授权与数据范围：项目管理范围；仅PRD角色
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试
 - Phase 3 PRD验收基线：WHEN V1工程管理部人员为项目节点选择在职且属于适用办事处的服务经理；THEN 平台保存主责服务经理、责任项目节点和生效时间，将项目`assignment_status`从“待指派”更新为“已指派”；`current_stage`和`lifecycle_status`保持不变，并向被指派人发送通知；WHEN 项目涉及多个省份和多个实际项目节点；THEN 平台允许分别为统筹节点和实施节点人工指派主责人，不要求节点位于固定结构深度，并可从根项目查看各节点责任分布；WHEN 候选人已离职、办事处不匹配、实施地点缺失或项目节点已有生效中的主责人；THEN 平台拒绝直接覆盖，保持原责任关系或“待指派”状态，并提示补齐地点或执行改派流程
+- F-PROJ-005聚焦裁决：PM-08局部验收中的服务经理指派后ASSIGNED，解释为该操作使有效主责服务经理和有效项目经理两项条件全部满足时ASSIGNED；仅服务经理有效时仍为UNASSIGNED。V1只支持服务端即时生效，不实现PM-11项目经理指派或预约生效。
 - Phase 3授权拒绝断言：越权按“项目管理范围；仅PRD角色”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“V1手动指派、V2规则候选确认”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectMemberAssignment”及数据表“proj_project_member_assignment”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录
+- Phase 3业务守卫断言：按“V1手动且服务端即时生效、V2规则候选确认；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectMemberAssignment”及数据表“proj_project_member_assignment”；事件边界为“ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。同时写入Project版本/状态、幂等/审计及一个Outbox；处理器以eventId调用SYSTEM幂等站内信接口。通知失败不回滚指派，只更新Outbox重试事实；授权拒绝或业务守卫失败不得新增有效业务版本、事件、站内信或外部完成事实，一致重放不得新增成员区间、事件或站内信。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
 
 ### PM-09
 

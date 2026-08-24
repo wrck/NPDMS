@@ -245,6 +245,13 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 - 新前向迁移将`pms_project_category`候选收敛为`GENERAL/ENGINEERING`，移除`MAIN/SUB`候选但不修改旧迁移；手工项目的重大项目级别用数据库NULL表示、界面显示“不适用”。先清查存量错误值和手工来源非空重大级别，禁止自动映射或静默清空。
 - 初始化数据只补字典/菜单/权限及不冒充CRM权威值的组合示例。
 
+### 4.5.1 PM-08服务经理指派与通知幂等前向字段
+
+- `proj_project_member_assignment`复用`employee_no/member_name/company_id/company_code/company_name/department_code/department_name/member_role/effective_from/effective_to`，前向新增`department_id/assignment_type/site_id/change_reason`；必填组织快照为`company_id + department_id + department_code + department_name`。
+- V1仅支持服务端事务时间立即生效。同一项目节点的所有写入口先以`proj_project.version` CAS锁定，再在事务内检查同角色/站点范围重叠；不增加会破坏时间历史的“当前主责”物理唯一键，真实MySQL竞态测试证明同版本只有一个成功。
+- `system_notify_message`前向新增可空`delivery_key varchar(128)`及`uk(tenant_id,user_type,delivery_key)`；既有调用留空不受影响。PM-08以Outbox `event_id`填入，重复一致请求返回首次消息ID，重复键但收件人、模板或参数摘要不一致时冲突。
+- 不新增成员历史、通知历史或重试表；成员区间、`system_notify_message`和`plt_outbox_event`分别是责任历史、幂等投递和重试事实。
+
 ### 4.6 Preparation & Solution
 
 适用 Requirement：PRE-01～PRE-05、PLN-01～PLN-04、SCH-01～SCH-05、SOL-01。

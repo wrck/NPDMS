@@ -38,8 +38,8 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("PM-03",), contract("ProjectTemplate、ProjectStageSnapshot", "proj_project_template_revision、proj_project_template_task_definition、proj_project_stage_snapshot", "/project-templates", workflow="模板内StageDefinition/TaskDefinition发布、实例冻结、必填WorkBinding（默认TASK_NATIVE）/PermissionPolicy/CompletionRule/GateRef校验和阶段门禁", authorization="项目模板维护权限；项目阶段范围；非TASK_NATIVE绑定目标权限不得越权")),
     (("PM-05",), contract("BorrowedProjectConversion、ConversionItem、ConversionDeviceDisposition", "proj_project_conversion、proj_project_conversion_item、proj_project_conversion_device", "/project-conversions、/project-conversions/{id}/actions/retry-failed", events="ProjectConversionCompleted、ProjectConversionPartiallyFailed", integration="CRM、ERP", files="FileArtifact", workflow="处理中→部分失败/待处理→已完成；全部成功后源项目只读归档", authorization="同时具备源/目标项目管理权限；原敏感对象权限继续生效")),
     (("PM-06",), contract("MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference", "proj_multi_phase_project_group、proj_multi_phase_project_member、proj_project_cross_phase_reference", "/project-phase-groups、/project-phase-groups/{id}/actions/add-phase、/project-phase-groups/{id}/actions/derive-content", events="ProjectPhaseGroupChanged", workflow="群组成员增删、唯一期次、无环和派生版本", authorization="同时有权的期次可维护；查询按各期权限裁剪")),
-    (("PM-07",), contract("Project", "proj_project", "/projects/{id}/actions/classify", workflow="自动识别结果确认与留痕", authorization="项目管理范围；来源证据只读")),
-    (("PM-08",), contract("ProjectMemberAssignment", "proj_project_member_assignment", "/projects/{id}/actions/assign-manager", workflow="V1手动指派、V2规则候选确认", authorization="项目管理范围；仅PRD角色")),
+    (("PM-07",), contract("Project、ProjectTemplateMatchHistory", "proj_project、proj_project_template_match_history", "复用POST /projects与/projects/{id}当前四属性；/projects/{id}/template-match-history；/projects/{id}/actions/classify；内部ProjectAttributeResolutionService与ProjectAttributeSourceCorrectionCommand", events="N/A（当前只保存影响识别历史，不发布CHG事件）", integration="N/A（INT自动建项、来源定位和重试不在本Feature完成范围）", workflow="模板匹配前形成确定输入；正式Project不新增待分类/待选模状态；创建后只追加影响识别历史", authorization="项目管理范围；手工创建不得写CRM重大级别；工程管理部受控修正允许维度；来源证据只读")),
+    (("PM-08",), contract("ProjectMemberAssignment", "proj_project_member_assignment", "/projects/{id}/service-manager-candidates、/projects/{id}/actions/assign-manager、/projects/{rootId}/service-manager-responsibilities；SYSTEM OrganizationScopeApi.pageActiveUsers、NotifyMessageSendApi(deliveryKey)", events="ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）", workflow="V1手动且服务端即时生效、V2规则候选确认；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立", authorization="项目管理范围；仅PRD角色")),
     (("PM-09",), contract("ProjectMemberAssignment", "proj_project_member_assignment", "/projects/{id}/members:batch-change", workflow="批量逐项变更并保留有效区间", authorization="项目管理范围；逐项目校验")),
     (("PM-10",), contract("Project、ProjectStageSnapshot", "proj_project、proj_project_stage_snapshot", "/projects/{id}/actions/rollback、/projects/{id}/actions/close", events="ProjectStageChanged、ProjectClosed(lifecycleStatus=EXCEPTION_CLOSED)", workflow="受控回退保持ACTIVE；异常关闭置EXCEPTION_CLOSED；正常闭环仅由CLO-02产生NORMAL_CLOSED", authorization="ProjectTreeScope；状态命令权限与门禁")),
     (("PM-11",), contract("ProjectTask、TaskWorkBinding、TaskCompletionRule、TaskCompletionEvaluation、TaskAncestorProjection、TaskDependency", "proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency", "/projects/{id}/workspace、/projects/{id}/tasks、/project-tasks/{id}/workbench、/project-tasks/{id}/actions/move、/project-tasks/{id}/actions/{submit|start|complete|cancel}", events="TaskAssigned、TaskCompleted", workflow="ProjectTask内必填WorkBinding/CompletionRule与Stage→ProjectTask工作台投影、任务任意层级移动；TASK_NATIVE按任务自身事实执行，其他类型回源绑定事实并追加完成判定后完成", authorization="ProjectTreeScope；TASK_NATIVE任务范围；其他类型由服务端合并目标业务对象权限")),
@@ -159,10 +159,10 @@ def phase3_verification(identifier: str, spec: Contract) -> tuple[str, str]:
     ]
     evidence = ["自动化测试报告（用例ID、业务对象ID、断言与结果）", "数据库迁移/约束验证记录"]
 
-    if spec.events != NA_EVENT:
+    if not spec.events.startswith("N/A"):
         tests.append("事件Outbox/Inbox、重复/乱序/重放测试")
         evidence.append("事件消息ID、Outbox/Inbox及消费水位证据")
-    if spec.integration != NA_INTEGRATION:
+    if not spec.integration.startswith("N/A"):
         tests.append("外部集成映射、超时/重试/对账/降级测试")
         evidence.append("脱敏请求响应、幂等键、重试/对账与降级记录")
     if spec.files != NA_FILE:
@@ -170,6 +170,7 @@ def phase3_verification(identifier: str, spec: Contract) -> tuple[str, str]:
         evidence.append("文件哈希、版本、扫描、引用与权限拒绝记录")
 
     exact: dict[str, tuple[list[str], list[str]]] = {
+        "PM-07": (["append-only匹配历史与真实浏览器响应式闭环"], ["真实MySQL原子性与append-only历史、真实浏览器响应式闭环、值域清查和独立评审"]),
         "PM-05": (["转换部分失败、逐项重试、源项目只读归档测试"], ["转换批次、逐项结果及源/目标一致性清单"]),
         "PM-06": (["多期群组无环、唯一期次、跨期派生版本测试"], ["群组树快照、派生来源与无环校验记录"]),
         "PM-11": (["5万节点、2000直接子节点、深度30任务树查询/移动测试"], ["任务树数据集版本与性能报告"]),
@@ -194,6 +195,31 @@ def phase3_side_effect(spec: Contract) -> str:
     )
 
 
+ACCEPTANCE_OVERRIDES: dict[str, str] = {}
+
+DECISION_NOTES = {
+    "PM-07": "F-PROJ-004聚焦裁决（`CHG-PRD-2026-08-25-003`）：本Feature仅实现PM-07的PROJ子切片，包括四属性复用、INITIAL_CREATE决策历史、SOURCE_CORRECTION/MANUAL_ADJUSTMENT影响识别；无匹配拒绝，多匹配仅在显式选择本次合法候选时创建。不新增待分类/待选模状态、独立属性历史、分类案例、影响处理表、重新实例化或CHG事件。INT来源定位/自动建项/重试/对账及CHG分派/处理/关闭保持未完成，不计入本Feature完成度。",
+    "PM-08": "F-PROJ-005聚焦裁决：PM-08局部验收中的服务经理指派后ASSIGNED，解释为该操作使有效主责服务经理和有效项目经理两项条件全部满足时ASSIGNED；仅服务经理有效时仍为UNASSIGNED。V1只支持服务端即时生效，不实现PM-11项目经理指派或预约生效。",
+}
+
+FEATURE_LINES = {
+    "PM-07": "Feature：F-PROJ-004（项目业务属性判定、模板匹配历史与影响识别）",
+}
+
+BUSINESS_GUARD_OVERRIDES = {
+    "PM-07": "按“模板匹配前确定输入、首次创建原子记录、创建后只读影响评估”执行；非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变",
+}
+
+AUTHORIZATION_ASSERTION_OVERRIDES = {
+    "PM-07": "项目管理范围、属性Owner和手工重大级别禁写边界",
+}
+
+SIDE_EFFECT_OVERRIDES = {
+    "PM-07": "成功仅按契约写入/引用数据对象“Project、ProjectTemplateMatchHistory”及数据表“proj_project、proj_project_template_match_history”；事件边界为“N/A（不发布CHG事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（INT自动建项与重试不在本Feature）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝审计和已有事实不变的结果。",
+    "PM-08": "成功仅按契约写入/引用数据对象“ProjectMemberAssignment”及数据表“proj_project_member_assignment”；事件边界为“ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。同时写入Project版本/状态、幂等/审计及一个Outbox；处理器以eventId调用SYSTEM幂等站内信接口。通知失败不回滚指派，只更新Outbox重试事实；授权拒绝或业务守卫失败不得新增有效业务版本、事件、站内信或外部完成事实，一致重放不得新增成员区间、事件或站内信。",
+}
+
+
 def render(prd: Path) -> str:
     requirements = load_requirements(prd)
     catalog = build_catalog(requirements)
@@ -213,10 +239,12 @@ def render(prd: Path) -> str:
         identifier = item["id"]
         spec = catalog[identifier]
         phase3_tests, phase3_evidence = phase3_verification(identifier, spec)
+        acceptance = ACCEPTANCE_OVERRIDES.get(identifier, item["acceptance"])
         lines.extend([
             f"### {identifier}",
             "",
             f"- 需求名称：{item['name']}",
+            *([f"- {FEATURE_LINES[identifier]}"] if identifier in FEATURE_LINES else []),
             f"- 数据对象：{spec.data}",
             f"- 数据表：{spec.tables}",
             f"- API：{spec.apis}",
@@ -226,10 +254,11 @@ def render(prd: Path) -> str:
             f"- 工作流/状态：{spec.workflow}",
             f"- 授权与数据范围：{spec.authorization}",
             f"- Phase 3测试类别：{phase3_tests}",
-            f"- Phase 3 PRD验收基线：{item['acceptance']}",
-            f"- Phase 3授权拒绝断言：越权按“{spec.authorization}”拒绝，不返回未授权业务事实且不产生业务副作用",
-            f"- Phase 3业务守卫断言：按“{spec.workflow}”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变",
-            f"- Phase 3副作用断言：{phase3_side_effect(spec)}",
+            f"- Phase 3 PRD验收基线：{acceptance}",
+            *([f"- {DECISION_NOTES[identifier]}"] if identifier in DECISION_NOTES else []),
+            f"- Phase 3授权拒绝断言：越权按“{AUTHORIZATION_ASSERTION_OVERRIDES.get(identifier, spec.authorization)}”拒绝，不返回未授权业务事实且不产生业务副作用",
+            f"- Phase 3业务守卫断言：{BUSINESS_GUARD_OVERRIDES.get(identifier, f'按“{spec.workflow}”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变')}",
+            f"- Phase 3副作用断言：{SIDE_EFFECT_OVERRIDES.get(identifier, phase3_side_effect(spec))}",
             f"- Phase 3证据类型：{phase3_evidence}",
             "",
         ])

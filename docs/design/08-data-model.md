@@ -143,6 +143,12 @@ PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。�
 
 无匹配，或多匹配但未显式选择本次合法候选的首次创建，在Project产生前失败，只保留通用请求/审计证据；唯一候选自动决定或多候选显式选择时，决策历史与Project原子提交。创建后属性变化更新既有当前列并追加匹配决策历史；后续CHG可从历史派生工单，但本Feature不产生CHG状态或事件。
 
+### 4.2 PM-08服务经理人工指派
+
+`ProjectMemberAssignment`继续使用同一时态关系承载当前与历史。V1显式保存`PRIMARY/COLLABORATOR`、L1统筹/L2属地责任、可选站点、公司及`department_id/department_code/department_name`快照、服务端即时生效时间和原因；L1/L2不是项目树深度。主责改派以同一事务时间结束旧区间并新增关系，不覆盖快照，不预约未来生效。
+
+`assignment_status=ASSIGNED`当且仅当当前项目节点同时存在有效主责服务经理和有效项目经理；协同不参与，任一主责缺失均为`UNASSIGNED`。成员关系只授予当前节点角色动作，不自动产生子孙关系或ProjectTreeScope。候选由SYSTEM公开组织范围API返回，PROJ提交时重新校验用户、项目公司和部门有效范围。
+
 ## 5. Preparation & Solution 数据模型
 
 适用 Requirement：PRE-01～PRE-05、PLN-01～PLN-04、SCH-01～SCH-05、SOL-01。

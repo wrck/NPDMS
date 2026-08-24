@@ -210,6 +210,13 @@ for _identifier in ("COM-01",):
         "ContractApplicationService", "Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail",
         "数量约束+来源版本+分配幂等",
     )
+EXACT_PHASE1_DESIGN["PM-07"] = (
+    "项目治理", "Project / ProjectTemplateMatchHistory / ProjectTemplate",
+    "正式Project不新增分类状态；首次匹配原子记录，创建后只追加影响识别", "ProjectTreeScope + 属性Owner",
+    "ProjectAttributeResolutionService / ProjectAttributeClassificationApplicationApi / ProjectAttributeSourceCorrectionCommand",
+    "proj_project既有四属性列、proj_project_template_match_history",
+    "模板前判定+原子创建+append-only历史+权限+幂等并发+响应式UI",
+)
 
 
 def domain_owners(requirements: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
@@ -239,6 +246,22 @@ CROSS_CONTEXT_REQUIREMENT_IDS = {
 
 def sds_reference(identifier: str) -> str:
     """Return stable, requirement-specific Phase 1 and Phase 2 SDS links."""
+    if identifier == "PM-07":
+        return " / ".join([
+            "[01追溯](../design/01-requirement-traceability.md#2-phase-1-追溯链)",
+            "[02领域](../design/02-domain-model.md)",
+            "[02c Owner](../design/02c-data-ownership-matrix.md)",
+            "[04模块](../design/04-module-design.md)",
+            "[05状态](../design/05-state-machine.md#2-核心状态机)",
+            "[07权限](../design/07-authorization-design.md#4-pm-07业务属性权限)",
+            "[08数据](../design/08-data-model.md#41-pm-07属性判定与模板匹配历史)",
+            "[09数据库](../design/09-database-design.md#45-pm-07模板匹配决策历史前向表)",
+            "[10接口](../design/10-api-design.md#55-pm-07属性判定与匹配历史契约)",
+            "[12集成](../design/12-integration-design.md#5-crm--erp项目客户合同订单与履约)",
+            "[15并发](../design/15-cache-and-concurrency.md#56-pm-07属性修正与匹配历史并发)",
+            "[16异常](../design/16-exception-and-idempotency.md)",
+            "[P2契约](phase2-contract-map.md#pm-07)",
+        ])
     references = [
         "[01追溯](../design/01-requirement-traceability.md#2-phase-1-追溯链)",
         "[02领域](../design/02-domain-model.md)",
@@ -341,6 +364,7 @@ FEATURE_LINK_OVERRIDES = {
     "PM-02": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md)",
     "PM-03": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
     "PM-04": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md) / [F-PROJ-003](../../specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md)",
+    "PM-08": "[F-PROJ-005](../../specs/features/F-PROJ-005-service-manager-manual-assignment.md)（仅V1人工指派）",
 }
 
 IMPLEMENTATION_OVERRIDES = {
@@ -364,6 +388,12 @@ IMPLEMENTATION_OVERRIDES = {
         "NPDMS `9ab894f` Task、自动化、真实MySQL、真实浏览器与Implementation Done证据",
         "IMPLEMENTATION_COMPLETE",
     ),
+    "PM-07": (
+        "PRD-V1.8-BASELINE+CHG-PRD-2026-08-25-003/SDS-V1.8-PHASE2-BASELINE / "
+        "F-PROJ-004-BASELINE-READY / GO `NPDMS-FPROJ004-IMPLEMENTATION-DONE-20260825-07` / "
+        "NPDMS Task 1～6自动化、真实MySQL、真实浏览器与独立复审证据",
+        "IMPLEMENTATION_PARTIAL（F-PROJ-004 PROJ子切片完成；INT与CHG保持未完成）",
+    ),
 }
 
 
@@ -381,11 +411,13 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8；领域决策：`docs/design/phase-1-domain-ownership.md`。",
         "> 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。",
         "> 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。",
+        "> 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
         "- 当前状态：PRD V1.8与SDS Phase 1/2/3均已发布为正式基线；旧V1.7门禁结论只保留为历史证据",
+        "- PM-07完成口径：F-PROJ-004只关闭PROJ子切片；INT来源定位/自动建项/重试/对账及CHG分派/处理/关闭保持未完成，不得把Feature完成登记为PM-07全部验收完成。",
         "",
         "## 字段状态约定",
         "",
@@ -419,8 +451,9 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
             item["id"],
             ("PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE", "BASELINE"),
         )
+        owner_label = "PROJ（项目治理；INT传输后置）" if item["id"] == "PM-07" else f"{domain}（{owner}）"
         values = [
-            item["id"], item["name"], f"{domain}（{owner}）", module, aggregate, lifecycle,
+            item["id"], item["name"], owner_label, module, aggregate, lifecycle,
             permission, api, data, test_category, item["stage"], item["version"], item["priority"],
             item["source"], sds_reference(item["id"]), feature, evidence, "NOT_STARTED", status,
         ]
