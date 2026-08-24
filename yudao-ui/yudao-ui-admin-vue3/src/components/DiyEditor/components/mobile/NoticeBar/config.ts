@@ -1,4 +1,5 @@
 import { ComponentStyle, DiyComponent } from '@/components/DiyEditor/util'
+import defaultImage from '@/assets/svgs/default-image.svg'
 
 /** 公告栏属性 */
 export interface NoticeBarProperty {
@@ -28,7 +29,7 @@ export const component = {
   name: '公告栏',
   icon: 'ep:bell',
   property: {
-    iconUrl: 'https://example.com/static/images/xinjian.png',
+    iconUrl: defaultImage,
     contents: [
       {
         text: '',
