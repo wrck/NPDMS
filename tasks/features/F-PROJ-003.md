@@ -1,11 +1,11 @@
 # F-PROJ-003 项目子树授权与统一数据范围
 
-> Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTATION_DONE`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS`
-> Implementation Done Gate：`NOT_READY`
+> Implementation Done Gate：`PASS`
 > 当前阻断：无
-> 当前任务：Task 8 完成真实闭环验证与Implementation Done证据
+> 当前任务：Feature闭环完成，等待工程链进入下一Feature
 > Requirement ID：`PM-04`
 > 关联契约：`AUT-01`、`AUT-02`的最小AuthorizationGrant载体
 > Feature Spec：`specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md`
@@ -30,19 +30,21 @@
 - [x] Task 5 将当前PROJ入口统一到动作化ProjectScope
 - [x] Task 6 补齐字典、菜单、示例授权和迁移验证
 - [x] Task 7 实现响应式项目授权维护界面
-- [ ] Task 8 完成真实闭环验证与Implementation Done证据
+- [x] Task 8 完成真实闭环验证与Implementation Done证据
 
 ## 验收跟踪
 
-- [ ] AC-FPROJ003-001 当前项目与后代范围
-- [ ] AC-FPROJ003-002 角色不自动扩大范围
-- [ ] AC-FPROJ003-003 授权不得越界
-- [ ] AC-FPROJ003-004 撤权与到期
-- [ ] AC-FPROJ003-005 项目移动后重算
-- [ ] AC-FPROJ003-006 幂等与并发
-- [ ] AC-FPROJ003-007 当前业务入口统一过滤
-- [ ] AC-FPROJ003-008 模块边界
-- [ ] AC-FPROJ003-009 真实浏览器与响应式
+- [x] AC-FPROJ003-001 当前项目与后代范围
+- [x] AC-FPROJ003-002 角色不自动扩大范围
+- [x] AC-FPROJ003-003 授权不得越界
+- [x] AC-FPROJ003-004 撤权与到期
+- [x] AC-FPROJ003-005 项目移动后重算
+- [x] AC-FPROJ003-006 幂等与并发
+- [x] AC-FPROJ003-007 当前业务入口统一过滤
+- [x] AC-FPROJ003-008 模块边界
+- [x] AC-FPROJ003-009 真实浏览器与响应式
+
+验收证据：`docs/acceptance/F-PROJ-003-project-subtree-authorization.md`。
 
 ## 已登记的非阻断边界
 

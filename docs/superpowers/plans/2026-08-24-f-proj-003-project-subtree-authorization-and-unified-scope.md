@@ -400,7 +400,7 @@ feat(ui): 增加响应式项目授权面板
 - Consumes: Tasks 1～7全部提交、当前Compose MySQL/Redis、宿主机JDK 25后端和pnpm前端。
 - Produces: AC-FPROJ003-001～009逐项证据与当前Feature Implementation Done结论；不宣称完整AUT-01/AUT-02或PM-04后续业务对象接入完成。
 
-- [ ] **Step 1: 运行后端全量与架构边界校验**
+- [x] **Step 1: 运行后端全量与架构边界校验**
 
 Run: `mvn.cmd -Ppms-test-unit -DskipITs=true test`
 
@@ -412,19 +412,19 @@ Run: `rg -n "module\.pms\.(project|platform)\.(service|dal)" pms-module-project 
 
 Expected: 自动化全绿；跨模块源码只引用`api`包，不引用目标Service、Mapper、Repository、DO或业务表。
 
-- [ ] **Step 2: 使用真实MySQL验证授权收缩和树移动**
+- [x] **Step 2: 使用真实MySQL验证授权收缩和树移动**
 
 依次验证当前项目、全部后代、平级拒绝、授权越界、撤权、到期、并发重复、空范围、Redis不可用回源和项目移动后重算；记录SQL事实ID、版本、树版本和返回错误码，不记录凭据。
 
-- [ ] **Step 3: 优先使用内置浏览器完成真实页面闭环**
+- [x] **Step 3: 优先使用内置浏览器完成真实页面闭环**
 
 在桌面≥1200、窄桌面992～1199、平板768～991、手机≤767四档视口执行创建授权、切换范围、负向访问、撤权、刷新保持；检查页面级横向溢出、控制台和网络请求。内置浏览器不可用时才使用已获允许的外部浏览器并登记原因。
 
-- [ ] **Step 4: 回写验收与任务状态**
+- [x] **Step 4: 回写验收与任务状态**
 
 验收文档逐项引用测试命令、浏览器步骤、数据库事实和提交；`tasks/features/F-PROJ-003.md`只在证据存在时勾选AC。规格仓库仅回写实施状态与NPDMS提交，不改变已批准业务语义或重开SDS门禁。
 
-- [ ] **Step 5: 运行最终规格与工作树检查并提交闭环**
+- [x] **Step 5: 运行最终规格与工作树检查并提交闭环**
 
 Run: `C:\Users\user\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe scripts/validate_specification_baseline.py`
 
