@@ -109,7 +109,18 @@ F-PROJ-001创建和指派不得接受无来源的数值`officeId/locationId`。�
 
 拆分草稿允许办事处部门编码，不接受通过`addressId`反推办事处。SN由AST公开契约校验，DeliveryScope由COM公开契约预览和分配；PROJ不得直接访问AST/COM Repository或表。管理端实际路由由`/admin-api/pms`装配，上述资源语义映射到对外`/api/v1/pms`时保持字段、版本和错误分类一致。
 
-### 5.2 PM-05 借货项目转销契约
+### 5.2 PM-04 项目子树授权契约
+
+| 路径 | 操作 | 输入/输出 | 业务守卫 |
+|---|---|---|---|
+| `/projects/{projectId}/actions/assign-manager` | `POST` | 用户、PRD已定义项目角色和生效区间；返回成员角色区间版本 | 服务经理、功能权限、同租户和目标项目管理范围；角色本身不产生后代范围 |
+| `/projects/{projectId}/authorization-grants` | `POST`, `GET` | 创建时输入主体用户、动作、范围、生效区间和原因；查询按主体、动作、范围、状态和有效时点分页 | 创建要求`Idempotency-Key`且不得超出授权人范围；查询空范围返回空页 |
+| `/project-authorization-grants/{grantId}` | `GET` | 返回授权、授予和撤销摘要 | 越权按不存在处理，不泄露授权存在性 |
+| `/project-authorization-grants/{grantId}/actions/revoke` | `POST` | 原因和期望版本；返回撤权版本与失效时间 | `Idempotency-Key`、`If-Match`；同请求重放原结果 |
+
+PLT公开`AuthorizationGrantApi`完成授权创建、撤销和按主体/资源/动作/有效时点查询，不读取项目树。PROJ公开`ProjectScopeApi`，合并当前成员关系、PLT有效授权和当前完整项目树版本；其他模块不得访问双方Service、Mapper、Repository或表。
+
+### 5.3 PM-05 借货项目转销契约
 
 | 路径 | 操作 | 输入/输出 | 业务守卫 |
 |---|---|---|---|
@@ -119,7 +130,7 @@ F-PROJ-001创建和指派不得接受无来源的数值`officeId/locationId`。�
 
 对象清单的 `handlingMode` 只能是 `READ_ONLY_REFERENCE` 或 `DERIVED_COPY`；默认前者。派生副本必须返回 `sourceObjectId/sourceVersion/derivedObjectId`。只有所有项成功后服务端才完成转销并归档源项目，不提供客户端直接设置完成/归档状态的接口。
 
-### 5.3 PM-06 多期项目契约
+### 5.4 PM-06 多期项目契约
 
 | 路径 | 操作 | 输入/输出 | 业务守卫 |
 |---|---|---|---|
@@ -244,7 +255,7 @@ AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装
 | ANA | RPT-02、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
 | PLT | PLT-01 | `/todos`、`/{id}/actions/complete` | 待办完成回调业务 Owner；不能自行宣告业务成功 |
 | PLT | PLT-02 | `/files:init-upload`、`/files/{id}:complete-upload`、`/files/{id}/versions`、`/file-references` | 文件 API 详见 13；下载实时校验业务权限 |
-| PLT | AUT-01～AUT-02 | `/authorization-grants` | 通用授权，不代替 DAC 凭证授权 |
+| PLT | AUT-01～AUT-02 | `/authorization-grants`、`/authorization-grants/{id}/actions/revoke`；内部`AuthorizationGrantApi` | 创建需幂等键，查询分页，撤权需期望版本；通用授权不代替DAC凭证授权 |
 | PLT | CHG-01 | `/change-requests`、状态命令 | 低优先级独立能力，按版本范围后置实施 |
 | SYSTEM | INT-09 | `/system/companies`、`/system/departments` | Company与Department独立；Department响应包含统一`code`和`version`；办事处按Department表达 |
 | SYSTEM | INT-09、PM-01 | 内部`CompanyApi/DeptApi/OrganizationScopeApi` | 按稳定ID/编码查询；用户公司—部门范围必须命中同一有效行，不由部门推导公司 |

@@ -212,7 +212,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | `proj_task_tree_change` | 任务移动批次 | 追加写；项目和任务范围必填 |
 | `proj_project_stage_snapshot` | 项目阶段切换时的阶段、模板版本和项目状态快照 | `uk(tenant_id, project_id, stage_code, snapshot_no)`；由PROJ维护 |
 | `imp_implementation_readiness_snapshot` | 实施就绪门禁输入、检查结果和来源版本 | `uk(tenant_id, project_id, readiness_type, snapshot_no)`；由IMP维护，PROJ只引用结果 |
-| `proj_project_member_assignment` | 角色成员当前/历史有效期 | 同一项目/角色/用户的有效区间由应用服务防重叠 |
+| `proj_project_member_assignment` | 角色成员当前/历史有效期 | 同一项目/角色/用户的有效区间由应用服务防重叠；不增加授权范围列，角色只产生当前项目允许动作，后代范围由PLT显式授权承载 |
 | `proj_project_template_revision` | 模板发布版本 | `uk(tenant_id, template_id, revision_no)`；发布后只读 |
 | `proj_project_portfolio` | 项目组合身份、类型、状态和当前发布版本 | `uk(tenant_id, portfolio_code)`；不改变成员项目Owner |
 | `proj_project_portfolio_member` | 组合成员、主组合标识、关系类型和有效区间 | 同组合/项目/关系有效区间不重叠；一个项目的默认主组合由受控唯一约束保证 |
@@ -509,7 +509,7 @@ proj_project
 | `plt_inbox_message` | Consumer 去重和处理结果 | `uk(tenant_id, consumer_code, event_id)` |
 | `plt_operation_audit` | 业务操作、权限决策和敏感动作审计 | 追加写；详情先脱敏再落库 |
 | `plt_todo` | 统一待办身份、业务引用和同步状态 | 业务对象+节点+责任人+版本幂等；待办完成不能直接改业务状态 |
-| `plt_authorization_grant` | 通用授权范围、有效期、撤销和来源 | 主体+资源+动作+范围+有效区间唯一；不代替 DAC 凭证授权 |
+| `plt_authorization_grant` | `subject_type_code/subject_id/resource_context_code/resource_type_code/resource_id/action_code/scope_code/effective_from/effective_to/status_code/source_context_code/source_object_type/source_object_id/granted_by/granted_at/revoked_by/revoked_at/revoke_reason/version/current_marker` | `current_marker=1`占用当前授权键，撤权或已确认到期时置空；查询始终校验有效区间；唯一键为`(tenant_id, subject_type_code, subject_id, resource_context_code, resource_type_code, resource_id, action_code, scope_code, current_marker)`，并为主体、资源、动作、状态和有效区间建立组合索引；不代替DAC凭证授权 |
 | `plt_change_request` | 项目变更申请、差异快照、审批引用和执行结果 | 申请 revision 只追加；变更执行按目标聚合版本幂等 |
 | `ana_metric_definition` | 【建议】指标代码、口径版本、单位、粒度和来源 | 只有口径模型获批后创建；同一指标版本不可覆盖；不得从旧报表名称猜测公式 |
 | `ana_metric_snapshot` | 指标代码、口径版本、水位、范围和结果快照 | `uk(tenant_id, metric_code, metric_version, scope_hash, snapshot_at)`；不可回写交易状态 |

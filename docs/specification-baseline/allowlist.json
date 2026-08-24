@@ -39,6 +39,7 @@
     {"path": "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md", "category": "DECISION"},
     {"path": "docs/decisions/0032-manual-project-creation-cross-context-atomicity.md", "category": "DECISION"},
     {"path": "docs/decisions/0033-organization-and-asset-location-ownership.md", "category": "DECISION"},
+    {"path": "docs/decisions/0034-project-role-and-subtree-authorization-separation.md", "category": "DECISION"},
     {"path": "docs/decisions/ADR-001-implementation-execution-naming.md", "category": "DECISION"},
     {"path": "docs/decisions/open-questions.md", "category": "DECISION"},
     {"path": "docs/design/01-requirement-traceability.md", "category": "SDS"},
@@ -89,6 +90,8 @@
     {"path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-002-physical-contract.json", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-PROJ-003-physical-contract.json", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/README.md", "category": "FEATURE_SPEC"}
   ]
 }

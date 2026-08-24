@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "52dffd8286e619576086a72ab66bd6b050e80354"
+    "commit": "69b2b48320a858f91d938ae6914146681c97fb0a"
   },
   "files": [
     {
@@ -196,6 +196,11 @@
       "sha256": "2525b46001e3b8a6091ba4a2edd149f963c8c4d8ec22f9b4061f76edabf83505"
     },
     {
+      "path": "docs/decisions/0034-project-role-and-subtree-authorization-separation.md",
+      "category": "DECISION",
+      "sha256": "a9265b6e47a2e96ad2f9a927c0b7343092f4cd1fd441a1b8a31ebc0ea47f7ddd"
+    },
+    {
       "path": "docs/decisions/ADR-001-implementation-execution-naming.md",
       "category": "DECISION",
       "sha256": "066040ff5ca468f6c54fa52149893ce4831dccd99a295ef849ac62d7c85357d8"
@@ -263,12 +268,12 @@
     {
       "path": "docs/design/07-authorization-design.md",
       "category": "SDS",
-      "sha256": "fc7f642d9dc38f93ee3d75c0788c734b2eb288eaf8ddf582cf78e60fa32e67f5"
+      "sha256": "78cc992780595b87b978287159c0980bec53289aeeb40f54d5a859dc04b83360"
     },
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "7fe3e00cfe5d1dd70002fd58affeb329a83fe38d4a4dce1ef540e79cce4acdbd"
+      "sha256": "9cac4b56e409d9cd9c34e9ba098f162138d27aadde378f1395e9f5877e8a8850"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
@@ -278,12 +283,12 @@
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "2b18d1325969702d33f1173b74b098c327cfeb44300f3009ee250d83e5ed80c4"
+      "sha256": "7d6dc420803370286a619d0c2e7d78822120581b5a4a2c0a388ce58a3c7dca92"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "e2ab09f450ca6b2e4341b6183897cb4bdfee5e330522c0c5cd71767ba8fa7618"
+      "sha256": "3dda15a47c1596c4a8beb56f601ffe68ccac319ee7472fc844ef230e8b06847c"
     },
     {
       "path": "docs/design/11-event-design.md",
@@ -313,7 +318,7 @@
     {
       "path": "docs/design/16-exception-and-idempotency.md",
       "category": "SDS",
-      "sha256": "ffa9f402ae881849eaf73f395fdfd7c13efe29caf782aab23834a631f3a26410"
+      "sha256": "968f19b9c2aa1de5de49bd20cd9194d2711b3de625454e9da722ec8eff81b60b"
     },
     {
       "path": "docs/design/17-audit-and-observability.md",
@@ -368,7 +373,7 @@
     {
       "path": "docs/engineering/gates/phase-2/gate-status.md",
       "category": "ENGINEERING",
-      "sha256": "09a9616b0f7c9c3e86e74f6592e53d0d99fa8bff361993245cff1966110ba3ea"
+      "sha256": "99976fcc6dacdd07459c1eb004c1beb11e3e125ccb03a66cf56bd5a570c1b490"
     },
     {
       "path": "docs/engineering/gates/phase-3/README.md",
@@ -428,7 +433,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "cddaed0f9a3b2f3f6e7927f679daf377a4e0b9a297f700db958650197ad9513c"
+      "sha256": "b69f12132919b7d52ce920fe6ecd83623463a23821ca41623da4153e1cdc8466"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -446,9 +451,19 @@
       "sha256": "dfd09ac27e6ede86a640ec610e4eade8c9b5b55d902f3272f93f29de5b44395f"
     },
     {
+      "path": "specs/features/F-PROJ-003-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "4d30131635385da53701a21964136e05ca550b5ed5956e34c8f19e6dc818ea6c"
+    },
+    {
+      "path": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "5dade5a19ff1424fa1ff6ebf91136d7a9a62547145f121f0eeef67c0bd06069c"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "c65ad5b192701e917326ad2da17e37228e7c123e7f57fa81e816f3303286a657"
+      "sha256": "068ef167f7a61ad92eb74c021cf6295a88c910b0c1f9c284806f908a500f06fa"
     }
   ]
 }
