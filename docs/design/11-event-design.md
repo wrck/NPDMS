@@ -87,6 +87,8 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 | `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移 |
 | `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion + lifecycleStatus + closeReason | 项目关闭事实成立；NORMAL_CLOSED仅来自CLO-02，EXCEPTION_CLOSED来自PM-10，消费方不得据此新增维护阶段 |
 | `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion + executionContractId/contractVersion + completionEvaluationId + factVersion | 任务指派/完成事实；完成事件仅在CompletionRule回源校验绑定事实和版本、追加判定事实并完成状态迁移后发布 |
+
+F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatchId/treeVersion/operationType/affectedRootProjectIds/affectedProjectIds/occurredAt`。同一`changeBatchId + treeVersion`只发布一次；消费者按根项目水位拒绝旧版本和乱序覆盖。事件表示父子真值及可识别的新完整版本已经提交，不表示Authorization、AST或ANA投影已经追平；投影未追平时消费方读取上一完整版本或明确返回结构更新中。
 | `ProjectConversionCompleted` | Project Delivery | IMP/CUT/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
 | `ProjectConversionPartiallyFailed` | Project Delivery | Todo/运维 | conversionId + aggregateVersion + failedItemRefs | 仅表示原批次仍待处理；成功项不回滚、不重复生成 |
 | `ProjectPhaseGroupChanged` | Project Delivery | Project Query/ANA | groupId + groupVersion + changedProjectIds | PM-06 多期关系有效版本变化；不改变成员项目自身状态 |
@@ -182,6 +184,8 @@ Device Access & Collection
 | `PaymentGateChanged` | Resource | Project/ACC | gate snapshot；外部付款回执并不自动表示所有门禁完成 |
 | `TechnicalNoticeSynchronized` | Knowledge | Asset/CUT/Inspection | ITR sourceKey + sourceVersion |
 | `NotificationRequested` | 任意 Owner | 基础平台通知适配器 | businessObject + notificationType + recipient + revision |
+
+F-PROJ-002使用的`DeliveryScopeAssigned/Released`载荷至少包含`eventId/tenantId/orderLineId/projectId/scopeId/scopeVersion/allocatedQty/dimensionDigest/occurredAt`。`dimensionDigest`只用于一致性和审计，不包含SN明文列表或商务正文；事件与COM范围事实同事务进入COM Outbox。Project拆分确认失败时不得出现任何已分配事件；重复、乱序或旧`scopeVersion`不得覆盖新范围投影。
 | `NotificationDelivered/Failed` | 通知适配器 | Owner/运维 | providerMessageId + attemptNo；只表示交付结果 |
 
 V1/V2 不定义 `TechnicalNoticePublishedByPlatform`，避免把 V3 本地治理提前纳入。
