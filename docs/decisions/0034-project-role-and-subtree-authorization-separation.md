@@ -1,6 +1,6 @@
 # ADR-0034：项目角色与项目子树授权范围分离
 
-> 状态：`PROPOSED`
+> 状态：`ACCEPTED`
 > 日期：2026-08-24
 > 适用基线：PRD V1.8
 > Requirement：`PM-04`；关联`AUT-01`、`AUT-02`

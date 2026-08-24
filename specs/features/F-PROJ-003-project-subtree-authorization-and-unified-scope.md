@@ -1,7 +1,7 @@
 # F-PROJ-003 项目子树授权与统一数据范围 Feature Spec
 
-> 文档状态：`IN_REVIEW`
-> Feature Ready：`NOT_READY`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY`
 > Requirement：`PM-04`
 > 关联契约：`AUT-01`、`AUT-02`的`AuthorizationGrant`最小公开载体；本Feature不宣称完整实现AUT审批和外部授权流程
 > Owner Context：`PROJ（项目治理）`；授权事实Owner为`PLT（平台公共能力）`
@@ -212,9 +212,9 @@ PROJ不访问PLT授权表，PLT不访问PROJ项目表，其他模块只依赖公
 | UI与验证 | 本文第8～10节 | PASS |
 | 相关Open Question | `open-questions.md`无PM-04未关闭业务决策 | PASS |
 | 前置Feature | F-PROJ-002 `IMPLEMENTATION_COMPLETE / PASS` | PASS |
-| 书面规格复核 | 等待需求方确认本文范围、动作、模块边界和验收标准 | WAITING |
+| 书面规格复核 | 需求方于2026-08-24确认本文范围、动作、模块边界和验收标准 | PASS |
 
-结论：`IN_REVIEW / NOT_READY`。需求方确认本文后，回写ADR与相关SDS为正式基线，再由NPDMS锁定规格提交并重新生成V1.8 Technical Plan；不得根据F-PROJ-002已有实现直接勾选本Feature AC。
+结论：`BASELINE / READY`。NPDMS须锁定本次规格提交并重新生成V1.8 Technical Plan；不得根据F-PROJ-002已有实现直接勾选本Feature AC。
 
 ## 12. 追溯与完成边界
 

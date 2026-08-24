@@ -20,6 +20,7 @@ V1.7 Phase 2的`APPROVED / READY_FOR_PHASE_3`只保留为历史审查结果。V1
 | 迁移设计 | PASS | 当前契约为87对象/98来源绑定/1排除源；新增的`CustomerServiceLevelRevision`和`CutoverConfigurationRevision`均为NONE_NEW/FEATURE_FORWARD_MIGRATION，不进入当前核心DDL，不从联系人、关系快照、旧方案或风险项反推历史业务事实 |
 | 追溯 | PASS | `phase2-contract-map.md`已按100项范围重生成；迁移对象和目标表映射精确同步 |
 | 工作绑定、P3采集结果与CUS-02/CUT-07承载 | PASS | ADR-0030六表已由P3-E09纳入当前冻结模型；ADR-0031仅批准两个逻辑对象及Feature前向表名，实际物理表须由对应Feature以前向迁移审批创建 |
+| F-PROJ-003 PM-04角色与项目子树授权精化 | PASS | ADR-0034已接受，角色与范围分离、PLT授权事实、PROJ范围计算、API、物理字段及幂等边界已落位；属于Feature级差量精化，不重新打开Phase 2总体门禁 |
 
 ## 3. 不变的后置边界
 

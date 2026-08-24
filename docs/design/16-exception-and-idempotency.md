@@ -45,6 +45,7 @@
 | 场景 | 幂等键 | 作用域 | 首次结果重放 |
 |---|---|---|---|
 | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
+| 项目授权创建/撤权 | `Idempotency-Key` | tenant + actor + project/grant + command | 同键同摘要返回原授权或撤权版本；同键不同摘要拒绝 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
 | 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
 | 财务出向 | 费用单ID+批准版本 | tenant + finance interface | 查询/返回原财务业务单 |
@@ -63,6 +64,8 @@
 3. 同键同摘要且可重试失败：由服务端状态机决定继续原 operation，不新建业务事实。
 4. 同键不同摘要：返回 `IDEMPOTENCY_CONFLICT`，不使用新请求覆盖旧记录。
 5. 业务要求“失败重试必须新任务”时（如 CollectionTask），retry command 创建新任务ID和新幂等键，并保存 `retryOfTaskId`；临时密码重新输入。
+
+项目授权创建或撤权由PLT在本地事务内原子提交授权事实、幂等完成点和审计。跨租户、超出授权人范围、已到期、已撤销或版本冲突不得生成当前有效授权或成功幂等结果；授权版本或项目树版本变化后，敏感访问不得继续信任旧范围缓存。
 
 ## 5. 事务、部分失败与 Saga
 

@@ -3,7 +3,7 @@
   "featureId": "F-PROJ-003",
   "requirementIds": ["PM-04"],
   "relatedRequirementSlices": ["AUT-01", "AUT-02"],
-  "status": "IN_REVIEW",
+  "status": "BASELINE",
   "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
   "phaseGateImpact": "NONE",
   "objects": {

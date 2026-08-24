@@ -110,7 +110,7 @@
 | ProjectWorkspaceProjection | 可重建投影 | 项目概览六页签、Stage→ProjectTask导航、允许操作和投影水位 | 不作为业务真值；不保存第二套导航结构；权限变化后可重建 |
 | TaskAncestorProjection | 可重建投影 | 任务祖先/后代查询路径 | 【建议】支持权限过滤、批量统计和树分页 |
 | TaskDependency | 关系实体 | 前置/后置依赖及依赖类型 | 不得用父子层级替代依赖；依赖图不得产生受控规则禁止的循环 |
-| ProjectMemberAssignment | 时态关系 | 项目角色、成员及生效区间 | 批量变更追加历史；角色来自已确认业务角色或基础平台权限映射 |
+| ProjectMemberAssignment | 时态关系 | 项目角色、成员及生效区间 | 批量变更追加历史；角色来自已确认业务角色或基础平台权限映射；当前有效关系只授予该角色在当前项目允许的动作，不自动产生后代范围 |
 | ProjectPortfolio | 聚合根 | 项目组合定义和成员关系 | 不改变成员项目 Owner；组合指标读取快照 |
 | ProjectStageSnapshot | 不可变快照 | 项目在阶段切换时的门禁输入和结果 | 阶段回退保留原快照并生成新快照 |
 | BorrowedProjectConversion | 聚合根 | PM-05 转销批次、源/目标项目、正式销售业务、处理状态和汇总 | 源借货项目与目标正式项目保持独立；同一源项目只允许一个生效转销目标；全部对象成功前不得归档源项目 |
@@ -299,7 +299,7 @@ F-PROJ-002只消费DeliveryScope的版本化查询、预览和分配公开契约
 | Department | 部门稳定ID、`system_dept.code`、名称、树关系、状态和版本 | 办事处使用Department表达；树层级不产生公司权限 |
 | UserCompanyDepartmentScope | 用户公司—部门同一有效范围行、角色、主范围标记、生效区间和版本 | company必填，department可空；部门存在时ID/编码成对保存；仅同一有效行可授予组合范围 |
 | Todo | 待办身份、业务引用和同步状态 | 待办完成不等于业务完成；业务状态由 Owner Context 确认 |
-| AuthorizationGrant | 通用业务授权范围、有效期和撤销 | 不替代 DeviceCredential 的专用授权边界 |
+| AuthorizationGrant | 主体、资源、动作、范围、生效区间、来源、授予与撤销事实 | PLT拥有授权事实；PM-04使用`CURRENT_PROJECT`和`PROJECT_AND_DESCENDANTS`，由PROJ按当前完整项目树版本展开；不替代DeviceCredential专用授权边界 |
 | ChangeRequest | 变更申请、差异、审批引用和执行结果 | 版本变更作为低优先级独立能力，能后置的后置 |
 | FileArtifact | 文件身份、内容版本、哈希和存储引用 | 详见 13；正文不复制进多个领域表 |
 | AuditRecord | 主体、动作、对象、结果和关联 ID | Word 文件本身无需内容审计；业务动作和文件版本操作仍留痕 |
