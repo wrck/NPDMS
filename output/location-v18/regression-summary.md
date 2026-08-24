@@ -18,3 +18,16 @@
 构建同时保留一条既有 Lightning CSS 警告：旧式 `.clearfix` 中的 `*zoom: 1` 无法被 minifier 解析；该警告未阻断产物生成。
 
 上述两项已作为基线技术债记录，本任务不扩大范围修复。该摘要不构成 UAT 或正式发布批准。
+
+## 2026-08-24 总门禁补充复验
+
+原始回归时登记的全仓类型错误已在后续独立切片中完成收敛，保留上文作为当时的历史记录。本次从当前工作树重新执行：
+
+- 规格快照：Codex 随附 Python 执行 `scripts/validate_specification_baseline.py`，结果 `SUMMARY PASS snapshot matches manifest and allowlist`。
+- PMS 模块边界：显式传入当前仓库 `-RepositoryRoot`，结果 `PMS module boundary verification passed.`。
+- 后端全量回归：`mvn -pl yudao-server -am test`，30 个 Reactor 模块全部 `SUCCESS`，总耗时 56.310 秒。
+- 前端合同测试：项目创建、地点合同和地点选择器共 15/15 通过。
+- 前端类型检查：`pnpm.cmd ts:check` 通过，0 个 TypeScript 错误。
+- 前端构建：`pnpm.cmd build:local` 成功，8158 个模块完成转换，耗时 25.90 秒；仍保留上文已登记的 legacy CSS `*zoom` 非阻断警告。
+
+因此计划总完成条件第 10 项的全局类型检查缺口已经关闭。本补充只证明当前 Feature 实施计划的工程验证完成，不构成 UAT、发布 Gate、治理 GO 或 Release GO。

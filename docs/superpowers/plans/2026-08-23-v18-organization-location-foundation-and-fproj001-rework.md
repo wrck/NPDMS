@@ -26,6 +26,7 @@
 - 地点实体由 `pms-module-asset` 拥有，统一使用 `ast_` 表前缀；不得新建 `pms-module-location`，CUS 只保存客户对地址/站点的稳定引用。
 - 模块间不得依赖目标模块 Service、Mapper、Repository 或业务表；只能调用公共 API 或消费公开事件。
 - UI 闭环优先使用 Codex 内置浏览器；静态页面、编译、HTTP 200 或单元测试不能替代业务验收。
+- 前端页面必须支持响应式布局；优先复用 Yudao 既有页面组件，其次使用 Element Plus 的布局、组件与样式；确需自研时遵循 Element Plus 的结构和主题变量，减少内联样式，并保留统一主题调节能力。
 
 ---
 
