@@ -105,7 +105,8 @@ public class ProjectManualCreationApplicationService {
         ProjectInstantiation instances = projectCreationService.getInstancesForCreation(project.getId(), actor.tenantId());
         String matchOperationId = null;
         if (matchDecision != null) {
-            matchOperationId = actor.correlationId();
+            matchOperationId = TemplateMatchDecisionRules.operationId(
+                    project.getId(), TemplateMatchDecisionRules.TRIGGER_INITIAL, command.idempotencyKey());
             templateMatchHistoryService.appendInitial(new InitialMatchHistoryCommand(
                     actor.tenantId(), project.getId(), attributes(project),
                     ProjectAttributeOwnerSnapshot.manualProject(), matchDecision,

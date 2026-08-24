@@ -7,6 +7,8 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAttributeClassifyReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAttributeClassifyRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectInstancesRespVO;
@@ -18,10 +20,16 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectS
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeMoveReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeQueryReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeQueryRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTemplateMatchHistoryPageReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTemplateMatchHistoryRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectattribute.query.ProjectTemplateMatchHistoryPageQuery;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeClassificationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryQueryService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.ManualProjectAttributeAdjustmentCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
@@ -96,6 +104,10 @@ public class ProjectMasterController {
     private ProjectTreeProjectionService projectTreeProjectionService;
     @Resource
     private ProjectSiteApplicationService projectSiteApplicationService;
+    @Resource
+    private ProjectAttributeClassificationApplicationService projectAttributeClassificationApplicationService;
+    @Resource
+    private ProjectTemplateMatchHistoryQueryService projectTemplateMatchHistoryQueryService;
 
     @PostMapping
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
@@ -174,6 +186,41 @@ public class ProjectMasterController {
         update.setId(id);
         projectManualCreationService.updateProject(update, accessActor());
         return success(true);
+    }
+
+    @PostMapping("/{id}/actions/classify")
+    @Operation(summary = "人工调整项目业务属性并记录模板匹配影响")
+    @PreAuthorize("@ss.hasPermission('pms:project:classify')")
+    public CommonResult<ProjectAttributeClassifyRespVO> classifyProject(
+            @PathVariable("id") Long id,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") @NotBlank String ifMatch,
+            @Valid @RequestBody ProjectAttributeClassifyReqVO reqVO) {
+        Integer expectedVersion = parseIfMatch(ifMatch);
+        String requestDigest = sha256Digest(id + ":" + expectedVersion + ":" + JsonUtils.toJsonString(reqVO));
+        var result = projectAttributeClassificationApplicationService.adjust(
+                new ManualProjectAttributeAdjustmentCommand(id, expectedVersion,
+                        reqVO.getSigningMethod(), reqVO.getProjectCategory(), reqVO.getImplementationMode(),
+                        reqVO.getAdjustmentReason(), idempotencyKey, requestDigest),
+                new ProjectAttributeClassificationApplicationService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()));
+        return success(BeanUtils.toBean(result, ProjectAttributeClassifyRespVO.class));
+    }
+
+    @GetMapping("/{id}/template-match-history")
+    @Operation(summary = "分页查询项目模板匹配决策历史")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<PageResult<ProjectTemplateMatchHistoryRespVO>> getTemplateMatchHistory(
+            @PathVariable("id") Long id,
+            @Valid ProjectTemplateMatchHistoryPageReqVO reqVO) {
+        var page = projectTemplateMatchHistoryQueryService.page(
+                new ProjectTemplateMatchHistoryPageQuery(currentTenantId(), id, reqVO,
+                        reqVO.getTriggerType(), reqVO.getMatchResult(), reqVO.getImpactResult(),
+                        reqVO.getOccurredAtBegin(), reqVO.getOccurredAtEnd(), reqVO.getOrderBy(),
+                        reqVO.getAscending()),
+                new ProjectTemplateMatchHistoryQueryService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId()));
+        return success(BeanUtils.toBean(page, ProjectTemplateMatchHistoryRespVO.class));
     }
 
     @GetMapping("/{id}/instances")

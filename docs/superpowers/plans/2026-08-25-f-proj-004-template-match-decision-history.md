@@ -230,29 +230,29 @@ public record ProjectAttributeSourceCorrectionCommand(
         String idempotencyKey, String requestDigest, String serviceIdentity) {}
 ```
 
-- [ ] **Step 1: 封闭通用PUT的四属性写入口**
+- [x] **Step 1: 封闭通用PUT的四属性写入口**
 
 `ProjectUpdateReqVO`不接受四属性；Service即使收到DO载荷也从当前值覆盖四属性，确保只有本Task两个命令可修改。
 
-- [ ] **Step 2: 实现人工调整命令**
+- [x] **Step 2: 实现人工调整命令**
 
 校验`pms:project:classify`、ProjectTreeScope、If-Match、可维护维度、非空原因和幂等；事务内锁定Project当前版本、保存before/after快照、更新既有列、只读评估并追加`MANUAL_ADJUSTMENT`历史。
 
-- [ ] **Step 3: 实现受信任来源修正命令**
+- [x] **Step 3: 实现受信任来源修正命令**
 
 仅接受已定位projectId和CRM Owner维度；把serviceIdentity解析为已注册稳定服务主体ID，拒绝无法解析的身份；来源版本、键、事件、时间、摘要、映射版本和原因全部必填。不得实现来源查找、重试或对账。
 
-- [ ] **Step 4: 实现历史分页与不可变守卫**
+- [x] **Step 4: 实现历史分页与不可变守卫**
 
 `GET /projects/{id}/template-match-history`先校验VIEW scope，再以场景化Query分页；`POST /projects/{id}/actions/classify`使用Idempotency-Key与If-Match。创建后UNIQUE/NO_MATCH/MULTIPLE_MATCHES只写相应impactResult，冻结模板及实例表行数和内容不变。
 
-- [ ] **Step 5: 运行权限、幂等、并发和MySQL测试**
+- [x] **Step 5: 运行权限、幂等、并发和MySQL测试**
 
 Run: `mvn.cmd -pl pms-module-project -Dtest=ProjectAttributeClassificationApplicationServiceTest,ProjectAttributeSourceCorrectionServiceTest,ProjectTemplateMatchHistoryQueryServiceTest,ProjectAttributeCorrectionMySqlIntegrationTest,ProjectMasterControllerContractTest test`
 
 Expected: 跨租户、越权、业务用户写重大级别、版本冲突、幂等冲突和重复进行中均无有效副作用。
 
-- [ ] **Step 6: 更新Task状态并提交**
+- [x] **Step 6: 更新Task状态并提交**
 
 提交信息：`feat(project): 增加属性修正与匹配影响识别`
 

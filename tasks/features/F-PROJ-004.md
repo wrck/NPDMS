@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ004-FEATURE-READY-20260825-06`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 4 实现创建后属性修正、影响评估和历史查询API
+> 当前任务：Task 5 改造创建与详情界面
 > Requirement ID：`PM-07`（仅PROJ子切片）
 > Feature Spec：`specs/features/F-PROJ-004-project-business-attribute-classification.md`
 > Feature物理契约：`specs/features/F-PROJ-004-physical-contract.json`
@@ -25,7 +25,7 @@
 - [x] Task 1 建立历史事实表、值域纠偏和持久化模型
 - [x] Task 2 实现统一属性判定、匹配决策和历史构造
 - [x] Task 3 将首次匹配历史纳入项目创建原子事务
-- [ ] Task 4 实现创建后属性修正、影响评估和历史查询API
+- [x] Task 4 实现创建后属性修正、影响评估和历史查询API
 - [ ] Task 5 改造创建与详情界面
 - [ ] Task 6 完成全链验证、评审与Implementation Done证据
 

@@ -11,6 +11,10 @@ public record ProjectAttributeOwnerSnapshot(
         return new ProjectAttributeOwnerSnapshot("PROJ_MANUAL", "PROJ", "PROJ_MANUAL", "CRM");
     }
 
+    public static ProjectAttributeOwnerSnapshot classification(boolean manualSource) {
+        return manualSource ? manualProject() : sourceCorrection();
+    }
+
     public static ProjectAttributeOwnerSnapshot sourceCorrection() {
         return new ProjectAttributeOwnerSnapshot("CRM", "PROJ", "CRM", "CRM");
     }

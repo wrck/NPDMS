@@ -1,5 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.domain.projectattribute;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.Set;
 
 /** PM-07四属性、触发矩阵和影响结论的纯领域规则。 */
@@ -73,6 +77,23 @@ public final class TemplateMatchDecisionRules {
             case MATCH_MULTIPLE -> MATCH_MULTIPLE;
             default -> throw new IllegalArgumentException("未知模板匹配结果");
         };
+    }
+
+    /**
+     * 以命令幂等事实生成稳定、项目级唯一的业务操作标识；技术trace不得充当operationId。
+     */
+    public static String operationId(Long projectId, String triggerType, String idempotencyKey) {
+        if (projectId == null || projectId <= 0 || !Set.of(TRIGGER_INITIAL, TRIGGER_SOURCE, TRIGGER_MANUAL)
+                .contains(triggerType) || isBlank(idempotencyKey)) {
+            throw new IllegalArgumentException("模板匹配业务操作标识输入不完整");
+        }
+        try {
+            String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(idempotencyKey.getBytes(StandardCharsets.UTF_8)));
+            return "PM07:" + triggerType + ":" + projectId + ":" + digest;
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256摘要算法不可用", ex);
+        }
     }
 
     public static void validateInitialDecision(TemplateMatchDecision decision) {

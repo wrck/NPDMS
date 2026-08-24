@@ -50,6 +50,8 @@ public interface ProjectManualCreationService {
      */
     ProjectMasterDO getProject(Long id, ProjectAccessActor actor);
 
+    ProjectMasterDO getProjectForManage(Long id, ProjectAccessActor actor);
+
     /**
      * 分页查询（简单条件：名称/编码/状态/三维）。
      */

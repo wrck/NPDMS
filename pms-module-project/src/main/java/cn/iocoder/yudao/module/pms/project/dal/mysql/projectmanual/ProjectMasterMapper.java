@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessAttributeUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -38,6 +39,8 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
 
     int incrementVersionIfMatch(@Param("projectId") Long projectId,
                                 @Param("expectedVersion") Integer expectedVersion);
+
+    int updateBusinessAttributesIfMatch(@Param("query") ProjectBusinessAttributeUpdate query);
 
     /** 服务端范围过滤后的项目分页；空权限集合必须返回空页。 */
     default PageResult<ProjectMasterDO> selectPage(VisibleProjectPageQuery query) {

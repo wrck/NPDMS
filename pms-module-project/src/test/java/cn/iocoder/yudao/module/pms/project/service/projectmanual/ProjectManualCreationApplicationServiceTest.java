@@ -103,7 +103,9 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("UNASSIGNED", result.assignmentStatus());
         assertEquals(TemplateMatchDecisionRules.MATCH_UNIQUE, result.matchResult());
         assertEquals(TemplateMatchDecisionRules.DECISION_EXPLICIT, result.matchDecisionMode());
-        assertEquals("correlation-1", result.matchOperationId());
+        String expectedOperationId = TemplateMatchDecisionRules.operationId(
+                100L, TemplateMatchDecisionRules.TRIGGER_INITIAL, "key-1");
+        assertEquals(expectedOperationId, result.matchOperationId());
         verify(authorizationService).assertCanCreate(7L);
         ArgumentCaptor<ProjectMasterDO> draftCaptor = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectCreationService).createProject(draftCaptor.capture(), any(), any(), eq(matchDecision), isNull());
@@ -114,7 +116,8 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals(100L, historyCaptor.getValue().projectId());
         assertEquals(7L, historyCaptor.getValue().operatorId());
         assertEquals("业务立项", historyCaptor.getValue().changeReason());
-        assertEquals("correlation-1", historyCaptor.getValue().operationId());
+        assertEquals(expectedOperationId, historyCaptor.getValue().operationId());
+        assertEquals("correlation-1", historyCaptor.getValue().traceId());
     }
 
     @Test

@@ -485,6 +485,10 @@ class ProjectManualCreationServiceImplTest {
         update.setSourceType(ProjectRules.SOURCE_TYPE_ORDER);
         update.setLifecycleTemplateId(888L);
         update.setTemplateLoadMethod(ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
+        update.setSigningMethod("ATTACK_SIGNING");
+        update.setProjectCategory("ATTACK_CATEGORY");
+        update.setImplementationMode("ATTACK_MODE");
+        update.setMajorProjectLevel("ATTACK_LEVEL");
 
         service.updateProject(update, new ProjectManualCreationService.ProjectAccessActor(0L, 7L));
 
@@ -501,6 +505,10 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(ProjectRules.SOURCE_TYPE_MANUAL, saved.getSourceType());
         assertEquals(5L, saved.getLifecycleTemplateId());
         assertEquals(ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT, saved.getTemplateLoadMethod());
+        assertEquals(current.getSigningMethod(), saved.getSigningMethod());
+        assertEquals(current.getProjectCategory(), saved.getProjectCategory());
+        assertEquals(current.getImplementationMode(), saved.getImplementationMode());
+        assertEquals(current.getMajorProjectLevel(), saved.getMajorProjectLevel());
     }
 
     @Test

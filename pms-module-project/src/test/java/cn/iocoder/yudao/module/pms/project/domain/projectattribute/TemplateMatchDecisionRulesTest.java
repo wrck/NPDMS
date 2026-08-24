@@ -3,9 +3,25 @@ package cn.iocoder.yudao.module.pms.project.domain.projectattribute;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TemplateMatchDecisionRulesTest {
+
+    @Test
+    void operationIdIsStableAndSeparatedByProjectAndTrigger() {
+        String operationId = TemplateMatchDecisionRules.operationId(
+                100L, TemplateMatchDecisionRules.TRIGGER_MANUAL, "key-1");
+
+        assertEquals(operationId, TemplateMatchDecisionRules.operationId(
+                100L, TemplateMatchDecisionRules.TRIGGER_MANUAL, "key-1"));
+        assertNotEquals(operationId, TemplateMatchDecisionRules.operationId(
+                100L, TemplateMatchDecisionRules.TRIGGER_MANUAL, " key-1 "));
+        assertNotEquals(operationId, TemplateMatchDecisionRules.operationId(
+                101L, TemplateMatchDecisionRules.TRIGGER_MANUAL, "key-1"));
+        assertNotEquals(operationId, TemplateMatchDecisionRules.operationId(
+                100L, TemplateMatchDecisionRules.TRIGGER_SOURCE, "key-1"));
+    }
 
     @Test
     void manualAttributesRejectMajorLevelAndTreeCategoryCodes() {

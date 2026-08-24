@@ -285,6 +285,11 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     @Override
+    public ProjectMasterDO getProjectForManage(Long id, ProjectAccessActor actor) {
+        return requireScopedProject(id, actor, ACTION_MANAGE);
+    }
+
+    @Override
     public PageResult<ProjectMasterDO> getProjectPage(PageParam pageParam, String projectName, String projectCode,
                                                       String status, String signingMethod, String projectCategory,
                                                       String implementationMode, ProjectAccessActor actor) {

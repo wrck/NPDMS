@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectC
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.Test;
@@ -159,6 +160,28 @@ class ProjectMasterControllerContractTest {
             return put.value().length > 0 ? put.value()[0] : "";
         }
         return fail("未覆盖的映射类型：" + mapping.annotationType());
+    }
+
+    @Test
+    void classifyEndpointUsesDedicatedPermissionAndConcurrencyHeaders() {
+        assertEndpoint("classifyProject", PostMapping.class,
+                "/{id}/actions/classify", "pms:project:classify");
+        assertRequiredHeader("classifyProject", "Idempotency-Key");
+        assertRequiredHeader("classifyProject", "If-Match");
+    }
+
+    @Test
+    void matchHistoryEndpointIsReadOnlyAndScoped() {
+        assertEndpoint("getTemplateMatchHistory", GetMapping.class,
+                "/{id}/template-match-history", "pms:project:query");
+    }
+
+    @Test
+    void genericUpdateCannotCarryBusinessAttributes() {
+        assertThrowsNoField(ProjectUpdateReqVO.class, "signingMethod");
+        assertThrowsNoField(ProjectUpdateReqVO.class, "projectCategory");
+        assertThrowsNoField(ProjectUpdateReqVO.class, "implementationMode");
+        assertThrowsNoField(ProjectUpdateReqVO.class, "majorProjectLevel");
     }
 
     @Test

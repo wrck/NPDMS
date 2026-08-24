@@ -23,6 +23,13 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualP
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeClassificationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeSourceCorrectionService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryQueryService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.TrustedProjectServicePrincipalRegistry;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateServiceImpl;
@@ -183,6 +190,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
                 "proj_project", "proj_project_stage", "proj_project_task",
                 "proj_project_milestone", "proj_project_gate", "proj_project_gate_reference",
                 "proj_project_task_execution_contract", "acc_project_deliverable",
+                "proj_project_template_match_history",
                 "plt_idempotency_record", "plt_operation_audit", "plt_outbox_event")) {
             counts.put(table, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + table, Long.class));
         }
@@ -206,6 +214,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
         if (!projectIds.isEmpty()) {
             String placeholders = String.join(",", projectIds.stream().map(ignored -> "?").toList());
             Object[] ids = projectIds.toArray();
+            // PM-07历史通过专用append-only Mapper封闭写入口；测试也不删除已落历史。
             jdbcTemplate.update("DELETE FROM plt_outbox_event WHERE aggregate_type = 'Project' "
                     + "AND aggregate_key IN (" + placeholders + ")", Arrays.stream(ids)
                     .map(String::valueOf).toArray());
@@ -221,6 +230,8 @@ abstract class ProjectManualCreationMySqlTestSupport {
                     "proj_project_task", "proj_project_stage")) {
                 jdbcTemplate.update("DELETE FROM " + table + " WHERE project_id IN (" + placeholders + ")", ids);
             }
+            jdbcTemplate.update("DELETE FROM proj_project_tree_version WHERE root_project_id IN ("
+                    + placeholders + ")", ids);
             jdbcTemplate.update("DELETE FROM proj_project WHERE id IN (" + placeholders + ")", ids);
         }
         jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE correlation_id LIKE ?", KEY_PREFIX + "%");
@@ -301,6 +312,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
         GATE("INSERT", "proj_project_gate"),
         CONTRACT("INSERT", "proj_project_task_execution_contract"),
         ACC_DELIVERABLE("INSERT", "acc_project_deliverable"),
+        MATCH_HISTORY("INSERT", "proj_project_template_match_history"),
         IDEMPOTENCY_SUCCESS("UPDATE", "plt_idempotency_record"),
         AUDIT("INSERT", "plt_operation_audit"),
         OUTBOX("INSERT", "plt_outbox_event");
@@ -330,6 +342,11 @@ abstract class ProjectManualCreationMySqlTestSupport {
             PlatformCommandExecutionApiImpl.class,
             ProjectManualCreationServiceImpl.class,
             ProjectTemplateServiceImpl.class,
+            ProjectAttributeResolutionService.class,
+            ProjectTemplateMatchHistoryService.class,
+            ProjectAttributeClassificationApplicationService.class,
+            ProjectAttributeSourceCorrectionService.class,
+            ProjectTemplateMatchHistoryQueryService.class,
             ProjectCodeAllocator.class,
             TaskExecutionContractFactory.class,
             ProjectDeliverableInitializationApplicationServiceImpl.class
@@ -390,6 +407,20 @@ abstract class ProjectManualCreationMySqlTestSupport {
             PermissionCommonApi api = mock(PermissionCommonApi.class);
             when(api.hasAnyPermissions(anyLong(), any())).thenReturn(true);
             return api;
+        }
+
+        @Bean
+        PermissionApi permissionApi() {
+            PermissionApi api = mock(PermissionApi.class);
+            when(api.hasAnyPermissions(anyLong(), any())).thenReturn(true);
+            return api;
+        }
+
+        @Bean
+        TrustedProjectServicePrincipalRegistry trustedProjectServicePrincipalRegistry() {
+            TrustedProjectServicePrincipalRegistry registry = mock(TrustedProjectServicePrincipalRegistry.class);
+            when(registry.resolve("int-crm-sync")).thenReturn(9_900_002L);
+            return registry;
         }
 
         @Bean
