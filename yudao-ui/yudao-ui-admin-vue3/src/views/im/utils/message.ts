@@ -296,7 +296,7 @@ export function getCardLabelInfo(card: { targetType?: number } | null | undefine
   icon: string
 } {
   if (card?.targetType === ImConversationType.GROUP) {
-    return { label: '群名片', icon: 'ant-design:usergroup-outlined' }
+    return { label: '群名片', icon: 'ant-design:team-outlined' }
   }
   return { label: '个人名片', icon: 'ant-design:user-outlined' }
 }
