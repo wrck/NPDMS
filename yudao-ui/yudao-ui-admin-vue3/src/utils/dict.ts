@@ -373,6 +373,8 @@ export enum DICT_TYPE {
   PMS_PROJECT_DELIVERABLE_STATUS = 'pms_project_deliverable_status', // 交付件实例状态（F-PM01 V57）
   PMS_PROJECT_GATE_STATUS = 'pms_project_gate_status', // 门禁实例状态（F-PM01 V57）
   PMS_PROJECT_SOURCE_TYPE = 'pms_project_source_type', // 项目创建来源（F-PM01 V57）
+  PMS_PROJECT_AUTHORIZATION_ACTION = 'pms_project_authorization_action', // 项目授权动作（F-PROJ-003 V78）
+  PMS_PROJECT_AUTHORIZATION_SCOPE = 'pms_project_authorization_scope', // 项目授权范围（F-PROJ-003 V78）
   PMS_TASK_STATUS = 'pms_task_status', // 任务WBS状态
   PMS_RISK_LEVEL = 'pms_risk_level', // 项目风险等级
   PMS_PLAN_CHANGE_STATUS = 'pms_plan_change_status', // 计划变更状态

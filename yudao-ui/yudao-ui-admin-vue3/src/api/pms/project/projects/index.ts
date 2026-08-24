@@ -265,6 +265,44 @@ export interface ProjectClosureGuardVO {
   pendingProgressProjects: number[]
 }
 
+export type ProjectAuthorizationAction = 'PROJECT_VIEW' | 'PROJECT_MANAGE'
+export type ProjectAuthorizationScope = 'CURRENT_PROJECT' | 'PROJECT_AND_DESCENDANTS'
+export type ProjectAuthorizationStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED'
+
+export interface ProjectAuthorizationVO {
+  id: number
+  subjectUserId: number
+  projectId: number
+  actionCode: ProjectAuthorizationAction
+  scopeCode: ProjectAuthorizationScope
+  effectiveFrom: string
+  effectiveTo?: string | null
+  statusCode: ProjectAuthorizationStatus
+  grantedBy: number
+  grantedAt: string
+  revokedBy?: number | null
+  revokedAt?: string | null
+  revokeReason?: string | null
+  version: number
+}
+
+export interface ProjectAuthorizationCreateReqVO {
+  subjectUserId: number
+  actionCode: ProjectAuthorizationAction
+  scopeCode: ProjectAuthorizationScope
+  effectiveFrom?: string
+  effectiveTo?: string
+  reason?: string
+}
+
+export type ProjectAuthorizationPageParams = PageParam & {
+  subjectUserId?: number
+  actionCode?: ProjectAuthorizationAction
+  scopeCode?: ProjectAuthorizationScope
+  statusCode?: ProjectAuthorizationStatus
+  effectiveAt?: string
+}
+
 /** 手工创建项目（Idempotency-Key 幂等：同键同摘要重放返回原资源） */
 export const createProject = (data: ProjectCreateReqVO, idempotencyKey: string) =>
   request.post<ProjectCreateRespVO>({
@@ -337,7 +375,12 @@ export const assignManager = (
 
 export const queryTree = (
   id: number,
-  params: { queryType: ProjectTreeQueryType; businessLevelCode?: string; pageSize?: number; cursor?: string }
+  params: {
+    queryType: ProjectTreeQueryType
+    businessLevelCode?: string
+    pageSize?: number
+    cursor?: string
+  }
 ) => request.get<ProjectTreeQueryVO>({ url: `${baseUrl}/${id}/tree`, params })
 
 export const moveSubtree = (
@@ -387,4 +430,39 @@ export const getClosureGuard = (projectId: number, treeVersion: number) =>
   request.get<ProjectClosureGuardVO>({
     url: `/pms/closure-gates/${projectId}`,
     params: { treeVersion }
+  })
+
+export const getProjectAuthorizationPage = (
+  projectId: number,
+  params: ProjectAuthorizationPageParams
+) =>
+  request.get<{ list: ProjectAuthorizationVO[]; total: number }>({
+    url: `${baseUrl}/${projectId}/authorization-grants`,
+    params
+  })
+
+export const createProjectAuthorization = (
+  projectId: number,
+  data: ProjectAuthorizationCreateReqVO,
+  idempotencyKey: string
+) =>
+  request.post<ProjectAuthorizationVO>({
+    url: `${baseUrl}/${projectId}/authorization-grants`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey }
+  })
+
+export const getProjectAuthorization = (grantId: number) =>
+  request.get<ProjectAuthorizationVO>({ url: `/pms/project-authorization-grants/${grantId}` })
+
+export const revokeProjectAuthorization = (
+  grantId: number,
+  expectedVersion: number,
+  reason: string,
+  idempotencyKey: string
+) =>
+  request.post<ProjectAuthorizationVO>({
+    url: `/pms/project-authorization-grants/${grantId}/actions/revoke`,
+    data: { reason },
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
   })

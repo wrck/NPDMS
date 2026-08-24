@@ -95,6 +95,18 @@
             <span class="rail-label">闭环守卫</span>
           </button>
         </div>
+        <div class="rail-stage">
+          <div class="rail-stage-title">项目权限</div>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'authorization' }"
+            @click="switchTab('authorization')"
+            v-hasPermi="['pms:project:authorization:query']"
+          >
+            <Icon icon="ep:key" class="rail-icon" />
+            <span class="rail-label">项目授权</span>
+          </button>
+        </div>
       </ContentWrap>
 
       <!-- 右侧内容区 -->
@@ -293,6 +305,11 @@
           :project-id="detail.id"
           :tree-version="treeVersion"
         />
+        <ProjectAuthorizationPanel
+          v-if="detail?.id && visitedTabs.has('authorization')"
+          v-show="activeTab === 'authorization'"
+          :project-id="detail.id"
+        />
       </div>
     </div>
   </div>
@@ -309,14 +326,19 @@ import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
 import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
-import type { ProjectMasterVO, ProjectInstancesVO, ProjectMemberAssignmentVO } from '@/api/pms/project/projects'
+import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
+import type {
+  ProjectMasterVO,
+  ProjectInstancesVO,
+  ProjectMemberAssignmentVO
+} from '@/api/pms/project/projects'
 
 defineOptions({ name: 'PmsProjectMasterDetail' })
 
 const route = useRoute()
 const router = useRouter()
 const mobile = useMediaQuery('(max-width: 767px)')
-const descriptionColumns = computed(() => mobile.value ? 1 : 2)
+const descriptionColumns = computed(() => (mobile.value ? 1 : 2))
 
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
@@ -537,7 +559,9 @@ onMounted(() => {
 }
 
 @media (min-width: 992px) and (max-width: 1199px) {
-  .rail-wrap { flex-basis: 180px; }
+  .rail-wrap {
+    flex-basis: 180px;
+  }
 }
 
 @media (max-width: 991px) {
@@ -553,15 +577,36 @@ onMounted(() => {
       overflow-x: auto;
     }
   }
-  .rail-stage { display: flex; flex: 0 0 auto; margin-bottom: 0; }
-  .rail-stage-title { display: none; }
-  .rail-item { width: auto; white-space: nowrap; }
+  .rail-stage {
+    display: flex;
+    flex: 0 0 auto;
+    margin-bottom: 0;
+  }
+  .rail-stage-title {
+    display: none;
+  }
+  .rail-item {
+    width: auto;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 767px) {
-  .project-header-right, .project-header-right .el-button { width: 100%; }
-  .project-meta-row { display: grid; gap: 6px; }
-  .panel-header { align-items: flex-start; flex-direction: column; }
-  .canvas { width: 100%; overflow: hidden; }
+  .project-header-right,
+  .project-header-right .el-button {
+    width: 100%;
+  }
+  .project-meta-row {
+    display: grid;
+    gap: 6px;
+  }
+  .panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .canvas {
+    width: 100%;
+    overflow: hidden;
+  }
 }
 </style>
