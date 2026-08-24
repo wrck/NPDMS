@@ -1,5 +1,7 @@
 import request from '@/config/axios'
 
+export type LongId = number | string
+
 export interface ProjectSplitScopeInput {
   orderLineId: number
   quantity: number
@@ -24,7 +26,7 @@ export interface ProjectSplitDraftInput {
 }
 
 export interface ProjectSplitDraftVO {
-  id: number
+  id: LongId
   parentProjectId: number
   status: string
   draftVersion: number
@@ -36,7 +38,7 @@ export interface ProjectSplitDraftVO {
   validationStatus?: string
   validatedAt?: string
   items: {
-    id: number
+    id: LongId
     clientItemKey: string
     projectName: string
     businessLevelCode?: string
@@ -44,7 +46,7 @@ export interface ProjectSplitDraftVO {
     officeDepartmentCode?: string
     itemStatus?: string
     scopes: {
-      id: number
+      id: LongId
       orderLineId: number
       allocatedQty: number
       officeDepartmentCode?: string
@@ -55,7 +57,7 @@ export interface ProjectSplitDraftVO {
 }
 
 export interface ProjectSplitPreviewVO {
-  requestId: number
+  requestId: LongId
   draftVersion: number
   valid: boolean
   previewHash?: string
@@ -76,11 +78,11 @@ export const createDraft = (data: ProjectSplitDraftInput, idempotencyKey: string
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': '0' }
   })
 
-export const getDraft = (id: number) =>
+export const getDraft = (id: LongId) =>
   request.get<ProjectSplitDraftVO>({ url: `${baseUrl}/${id}` })
 
 export const updateDraft = (
-  id: number,
+  id: LongId,
   data: ProjectSplitDraftInput,
   expectedDraftVersion: number,
   idempotencyKey: string
@@ -91,14 +93,14 @@ export const updateDraft = (
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedDraftVersion) }
   })
 
-export const previewDraft = (id: number, expectedDraftVersion: number, idempotencyKey: string) =>
+export const previewDraft = (id: LongId, expectedDraftVersion: number, idempotencyKey: string) =>
   request.post<ProjectSplitPreviewVO>({
     url: `${baseUrl}/${id}/actions/preview`,
     params: { expectedDraftVersion },
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedDraftVersion) }
   })
 
-export const validateDraft = (id: number, expectedDraftVersion: number, idempotencyKey: string) =>
+export const validateDraft = (id: LongId, expectedDraftVersion: number, idempotencyKey: string) =>
   request.post<ProjectSplitPreviewVO>({
     url: `${baseUrl}/${id}/actions/validate`,
     params: { expectedDraftVersion },
@@ -109,7 +111,7 @@ export const applyDraft = (
   draft: ProjectSplitDraftVO,
   idempotencyKey: string
 ) =>
-  request.post<{ requestId: number; projectIds: number[]; treeVersion: number }>({
+  request.post<{ requestId: LongId; projectIds: LongId[]; treeVersion: number }>({
     url: `${baseUrl}/${draft.id}/actions/apply`,
     data: {
       expectedParentVersion: draft.parentVersion,

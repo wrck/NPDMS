@@ -156,13 +156,10 @@
       "requiredAction": "AUDIT_AND_ADAPT_AGAINST_V1_8_FEATURE_SPEC"
     },
     {
-      "objectKey": "ProjectTreeAndDetail",
-      "classification": "V1_7_REVALIDATION_REQUIRED",
+      "objectKey": "ProjectTreeAdaptedRuntime",
+      "classification": "ADAPTED",
       "requirementRefs": ["PM-02"],
       "codePaths": [
-        "sql/migrations/V60__fpm02_project_tree_progress.sql",
-        "sql/migrations/V61__fpm02_project_tree_demo_seed.sql",
-        "sql/migrations/V62__fpm02_project_tree_fullchain_template.sql",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/projectmanual/ProjectTreeRules.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeProjectionService.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeQueryService.java",
@@ -177,7 +174,28 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/"
       ],
-      "requiredAction": "AUDIT_AND_ADAPT_AGAINST_V1_8_FEATURE_SPEC"
+      "requiredAction": "V1_8_FPROJ002_IMPLEMENTATION_VERIFIED"
+    },
+    {
+      "objectKey": "ProjectTreeLegacyDemo",
+      "classification": "RETIRED",
+      "requirementRefs": ["PM-02"],
+      "codePaths": ["sql/migrations/V61__fpm02_project_tree_demo_seed.sql"],
+      "requiredAction": "HISTORICAL_MIGRATION_RETAINED_RUNTIME_SEED_REPLACED_BY_V72_TO_V76"
+    },
+    {
+      "objectKey": "ProjectTreeLegacySchema",
+      "classification": "REPLACED",
+      "requirementRefs": ["PM-02"],
+      "codePaths": ["sql/migrations/V60__fpm02_project_tree_progress.sql"],
+      "requiredAction": "HISTORICAL_MIGRATION_RETAINED_V1_8_CARRIERS_REPLACED_BY_V70_TO_V71"
+    },
+    {
+      "objectKey": "ProjectTreeReusedTemplate",
+      "classification": "REUSED",
+      "requirementRefs": ["PM-02"],
+      "codePaths": ["sql/migrations/V62__fpm02_project_tree_fullchain_template.sql"],
+      "requiredAction": "PUBLISHED_FULL_CHAIN_TEMPLATE_REUSED_AND_BOUND_BY_V75"
     },
     {
       "objectKey": "ProjectUnclassifiedSurface",

@@ -110,6 +110,7 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
                                          @Param("limit") int limit);
 
     @Select("""
+            <script>
             SELECT p.*
             FROM proj_project_tree_path t
             JOIN proj_project p ON p.id = t.descendant_project_id
@@ -123,6 +124,7 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
               </foreach>
             ORDER BY p.tree_depth, p.tree_sort, p.id
             LIMIT #{offset}, #{limit}
+            </script>
             """)
     List<ProjectMasterDO> selectBusinessLevelPage(@Param("tenantId") Long tenantId,
                                                   @Param("rootId") Long rootId,

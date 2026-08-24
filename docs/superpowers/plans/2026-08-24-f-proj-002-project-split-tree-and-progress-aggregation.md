@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- 规格输入锁定为`0be4056e6334be4c5b0c9ae9810bd04c782f81c1`；SDS Phase 1/2/3保持`BASELINE`，不重新审核。
+- F-PROJ-002契约提交为`0be4056e6334be4c5b0c9ae9810bd04c782f81c1`；当前完整规格输入锁定为其后继`44dd2aea08f82fa691c7236de0e5c617bcd701b4`，仅追加数据库查询编码基线。SDS Phase 1/2/3保持`BASELINE`，不重新审核。
 - `specs/001-project-delivery-platform/`仅作历史参考，不参与实施门禁。
 - V1.7 Spec、代码、迁移、页面和测试只作复用审计证据；每项任务从未完成状态开始验证。
 - 用户已禁用测试驱动顺序；不要求先制造失败测试，但每项任务提交前必须执行与风险匹配的验证。
@@ -630,11 +630,11 @@ pnpm build:local
 - 种子覆盖精确命中、部分限定、优先级让位、无匹配、停用不参与、深度30、业务层级跨深度、等权/人工策略、待计算、同根有限可见性和后代闭环阻断。
 - 所有示例使用高段ID/专用前缀和`creator='seed'`，前向且幂等；不臆造ERP权威数量或CRM属性值。
 
-- [ ] **Step 1: 创建V72示例与菜单配置**
+- [x] **Step 1: 创建V72示例与菜单配置**
 
 ERP未同步的数量标记`PENDING_AUTHORITY`且不可分配；另建明确`CONFIRMED`示例用于完整拆分验收。菜单只收敛到项目详情正式入口，旧项目树菜单隐藏。
 
-- [ ] **Step 2: 执行数据库和模块验证**
+- [x] **Step 2: 执行数据库和模块验证**
 
 ```powershell
 docker compose up -d mysql redis migrate
@@ -647,15 +647,15 @@ mvn -pl pms-module-commerce,pms-module-asset,pms-module-project,yudao-server -am
 
 运行`verify_fproj002_performance.py`构造`max(实际迁移项目量×2, 200000)`项目、单树10000节点、直接子项目2000和深度30数据集，记录五类权限过滤查询与树页面API的P50/P95、SQL次数和投影水位；P95必须不超过2秒且不存在逐层N+1查询。
 
-- [ ] **Step 3: 执行真实浏览器验收**
+- [x] **Step 3: 执行真实浏览器验收**
 
 优先使用Codex内置浏览器，必要时使用已授权外部浏览器。覆盖：草稿恢复、自由组合预览、校验失败无副作用、原子批量创建、五类树查询、移动冲突、权限负向、策略审批版本、待计算、闭环守卫和四类视口；刷新后事实保持，控制台与网络无未解释错误。
 
-- [ ] **Step 4: 完成存量分类和Feature状态**
+- [x] **Step 4: 完成存量分类和Feature状态**
 
 把`ProjectTreeAndDetail`从`V1_7_REVALIDATION_REQUIRED`改为按文件列出的`REUSED/ADAPTED/RETIRED/REPLACED`结果；只有AC-FPROJ002-001～012均有当前证据时，才将`Implementation Done Gate`改为`PASS`。
 
-- [ ] **Step 5: 全量回归和最终提交**
+- [x] **Step 5: 全量回归和最终提交**
 
 ```powershell
 py -3.13 -B scripts/validate_specification_baseline.py

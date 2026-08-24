@@ -186,7 +186,7 @@ const applyDraft = async () => {
 const itemErrors = (clientItemKey: string) => preview.value?.items.find((item) => item.clientItemKey === clientItemKey)?.errors || []
 const restore = async () => {
   draft.value = undefined; preview.value = undefined; items.value = []
-  const requestId = Number(localStorage.getItem(storageKey()))
+  const requestId = localStorage.getItem(storageKey())
   if (requestId) {
     try { draft.value = await SplitApi.getDraft(requestId); hydrate(draft.value) } catch { localStorage.removeItem(storageKey()) }
   }

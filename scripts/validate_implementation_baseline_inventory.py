@@ -20,6 +20,10 @@ ALLOWED_CLASSIFICATIONS = frozenset(
         "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
         "SEMANTIC_REWORK",
         "PLATFORM_UPSTREAM_UNCHANGED",
+        "REUSED",
+        "ADAPTED",
+        "RETIRED",
+        "REPLACED",
         "BLOCKED_BY_SPEC",
     }
 )

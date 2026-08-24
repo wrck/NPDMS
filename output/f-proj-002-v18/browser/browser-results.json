@@ -1,0 +1,97 @@
+{
+  "url": "http://127.0.0.1:18082/pms/project-management/project-master-detail?projectId=992002000000",
+  "navigationTexts": [
+    "返回列表",
+    "基本信息",
+    "生命周期实例",
+    "成员区间",
+    "拆分方案",
+    "项目树",
+    "进度汇总",
+    "闭环守卫",
+    "新增子项目",
+    "保存草稿",
+    "移除",
+    "删除范围",
+    "新增组合范围",
+    "移除",
+    "删除范围",
+    "新增组合范围",
+    "生成预览",
+    "重新校验",
+    "确认原子应用",
+    "重新检查",
+    "查看全部"
+  ],
+  "checks": {
+    "splitNavigation": true,
+    "splitPanel": true,
+    "treeNavigation": true,
+    "treePanel": true,
+    "progressNavigation": true,
+    "progressPanel": true,
+    "closureNavigation": true,
+    "closurePanel": true
+  },
+  "splitChecks": {
+    "markerAlreadyApplied": false,
+    "draftRestored": true,
+    "invalidPreviewRejected": true,
+    "validationHasNoSideEffect": true,
+    "combinationRestored": true,
+    "validPreviewVisible": true,
+    "atomicBatchCreated": true,
+    "draftStorageCleared": true
+  },
+  "treeChecks": {
+    "CHILDREN": true,
+    "DESCENDANTS": true,
+    "ANCESTORS": true,
+    "BUSINESS_LEVEL": true,
+    "LOCATE": true,
+    "cycleRejected": true
+  },
+  "lifecycleChecks": {
+    "policyVersions": true,
+    "pendingProgress": true,
+    "closureBlockedByDescendant": true
+  },
+  "permissionNegative": true,
+  "responsive": {
+    "desktop": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "overflow": false,
+      "panelVisible": true
+    },
+    "narrow-desktop": {
+      "viewport": [
+        1100,
+        800
+      ],
+      "overflow": false,
+      "panelVisible": true
+    },
+    "tablet": {
+      "viewport": [
+        820,
+        1000
+      ],
+      "overflow": false,
+      "panelVisible": true
+    },
+    "mobile": {
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": false,
+      "panelVisible": true
+    }
+  },
+  "failedApiResponses": [],
+  "consoleErrors": [],
+  "pass": true
+}

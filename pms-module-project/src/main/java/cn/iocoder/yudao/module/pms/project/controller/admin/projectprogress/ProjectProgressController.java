@@ -126,7 +126,12 @@ public class ProjectProgressController {
     }
 
     private ProjectProgressPolicyService.Actor actor() {
-        return new ProjectProgressPolicyService.Actor(TenantContextHolder.getRequiredTenantId(),
+        return new ProjectProgressPolicyService.Actor(currentTenantId(),
                 SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString());
+    }
+
+    private Long currentTenantId() {
+        Long tenantId = TenantContextHolder.getTenantId();
+        return tenantId != null ? tenantId : 0L;
     }
 }

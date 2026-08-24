@@ -113,8 +113,13 @@ public class ProjectSplitRequestController {
     }
 
     private ProjectSplitDraftService.Actor actor() {
-        return new ProjectSplitDraftService.Actor(TenantContextHolder.getTenantId(),
+        return new ProjectSplitDraftService.Actor(currentTenantId(),
                 SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString());
+    }
+
+    private Long currentTenantId() {
+        Long tenantId = TenantContextHolder.getTenantId();
+        return tenantId != null ? tenantId : 0L;
     }
 
     private ProjectSplitRequestRespVO toResponse(ProjectSplitDraftService.DraftResult draft) {

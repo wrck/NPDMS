@@ -1,0 +1,37 @@
+{
+  "dataset": {
+    "projects": 200000,
+    "singleTreeNodes": 10000,
+    "directChildren": 2000,
+    "depthFixture": 30
+  },
+  "runsPerQuery": 20,
+  "queries": {
+    "children": {
+      "p50Ms": 119.88,
+      "p95Ms": 135.36,
+      "sqlCount": 1
+    },
+    "descendants": {
+      "p50Ms": 122.96,
+      "p95Ms": 139.93,
+      "sqlCount": 1
+    },
+    "ancestors": {
+      "p50Ms": 114.0,
+      "p95Ms": 130.66,
+      "sqlCount": 1
+    },
+    "locate": {
+      "p50Ms": 116.43,
+      "p95Ms": 123.38,
+      "sqlCount": 1
+    },
+    "business_level": {
+      "p50Ms": 124.02,
+      "p95Ms": 133.2,
+      "sqlCount": 1
+    }
+  },
+  "pass": true
+}

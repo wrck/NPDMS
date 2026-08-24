@@ -86,7 +86,7 @@ public class ProjectClosureController {
     public CommonResult<Boolean> submit(@RequestParam("id") Long id,
                                         @RequestHeader("If-Match") long expectedTreeVersion) {
         projectClosureService.submitProjectClosure(id, expectedTreeVersion,
-                new ProjectClosureGuardService.Actor(TenantContextHolder.getRequiredTenantId(),
+                new ProjectClosureGuardService.Actor(currentTenantId(),
                         SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()));
         return success(true);
     }
@@ -125,6 +125,11 @@ public class ProjectClosureController {
     public CommonResult<Boolean> archive(@RequestParam("id") Long id) {
         projectClosureService.archiveProjectClosure(id);
         return success(true);
+    }
+
+    private Long currentTenantId() {
+        Long tenantId = TenantContextHolder.getTenantId();
+        return tenantId != null ? tenantId : 0L;
     }
 
 }

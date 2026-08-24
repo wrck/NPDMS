@@ -34,7 +34,12 @@ public class ProjectClosureGuardController {
             @PathVariable Long projectId,
             @RequestParam("treeVersion") @Positive long treeVersion) {
         return success(guardService.evaluate(projectId, treeVersion,
-                new ProjectClosureGuardService.Actor(TenantContextHolder.getRequiredTenantId(),
+                new ProjectClosureGuardService.Actor(currentTenantId(),
                         SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString())));
+    }
+
+    private Long currentTenantId() {
+        Long tenantId = TenantContextHolder.getTenantId();
+        return tenantId != null ? tenantId : 0L;
     }
 }

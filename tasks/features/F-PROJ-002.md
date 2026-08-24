@@ -1,11 +1,11 @@
 # F-PROJ-002 项目拆分、项目树与进度汇总
 
-> Feature 实施状态：`IMPLEMENTATION_IN_PROGRESS`
+> Feature 实施状态：`IMPLEMENTATION_COMPLETE`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS`
-> Implementation Done Gate：`NOT_EVALUATED`
+> Implementation Done Gate：`PASS`
 > 当前阻断：无
-> 当前任务：Task 11 初始化数据、全量验证与V1.8验收闭环
+> 当前任务：F-PROJ-002已完成，按工程链定位下一Feature
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
@@ -31,9 +31,26 @@
 - 规格仓库 Phase 1、Phase 2、Phase 3 校验及追溯生成器检查通过。
 - F-PROJ-001 前置 Feature 已达到 `IMPLEMENTATION_COMPLETE / PASS`。
 
-## 下一步
+## Task 11完成结论
 
-Task 10 已完成V1.8拆分草稿、五类项目树查询、进度策略与闭环守卫的响应式工作台；旧`/pms/project-tree`和无版本`child-weights`前端入口已退役，写请求携带幂等键和版本条件。静态合同测试、TypeScript检查和生产构建通过；真实浏览器与数据库闭环按计划归入Task 11统一验收。下一步执行Task 11，补齐初始化数据、全量回归、性能证据和V1.8验收闭环。
+V72～V76已覆盖组合范围、权限、深度30、进度策略、待计算、闭环阻断、组织范围、模板绑定及编码流水；空库、V69→V76、重复迁移和当前库均通过Flyway验证。后端全量回归、静态合同、TypeScript、生产构建、20万项目性能数据集和真实浏览器四档响应式闭环全部通过。AC-FPROJ002-001～012均形成当前V1.8证据，Implementation Done Gate为`PASS`。
+
+## 验收跟踪
+
+- [x] AC-FPROJ002-001 组合拆分与预览
+- [x] AC-FPROJ002-002 校验失败保留草稿且无业务副作用
+- [x] AC-FPROJ002-003 原子批量创建
+- [x] AC-FPROJ002-004 任意深度与无环移动
+- [x] AC-FPROJ002-005 五类项目树查询
+- [x] AC-FPROJ002-006 权限与有限可见性
+- [x] AC-FPROJ002-007 权重与审批版本
+- [x] AC-FPROJ002-008 进度待计算
+- [x] AC-FPROJ002-009 全部后代闭环守卫
+- [x] AC-FPROJ002-010 幂等、并发与完整版本
+- [x] AC-FPROJ002-011 规模性能
+- [x] AC-FPROJ002-012 真实浏览器与响应式
+
+下一步仍处于Implementation Phase：按规格仓库工程链定位下一个正式Feature并执行Feature Ready，不进入Deployment、SIT、UAT或Release。
 
 ## 已登记的非阻断问题
 
