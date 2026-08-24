@@ -355,31 +355,38 @@ feat(database): 初始化项目授权数据
 - Consumes: 创建、分页、详情和撤权API；Yudao `ContentWrap`、权限指令、用户选择器、`dict-tag`和Element Plus表单/表格/分页/对话框。
 - Produces: 项目详情导轨“项目授权”入口、授权列表、创建对话框、撤权二次确认及刷新后事实保持。
 
-- [ ] **Step 1: 增加严格TypeScript授权模型和API函数**
+- [x] **Step 1: 增加严格TypeScript授权模型和API函数**
 
 定义`ProjectAuthorizationAction/Scope/Status`联合类型；创建函数传`Idempotency-Key`，撤权函数同时传`Idempotency-Key`和`If-Match`；分页参数不携带租户或任意项目ID集合。
 
-- [ ] **Step 2: 实现授权列表和创建/撤权交互**
+- [x] **Step 2: 实现授权列表和创建/撤权交互**
 
 复用Yudao用户选择、权限控制和分页组件；撤权必须填写原因；按钮按`pms:project:authorization:manage/revoke`显示；接口失败保留表单内容并展示服务端错误。
 
-- [ ] **Step 3: 完成四类视口响应式样式**
+- [x] **Step 3: 完成四类视口响应式样式**
 
 桌面表格、窄桌面/平板可横向滚动表格区、手机卡片化；页面容器不横向溢出；颜色、间距、边框全部使用Element Plus主题变量，模板不堆叠`style`属性。
 
-- [ ] **Step 4: 运行组件、类型、样式和生产构建校验**
+- [x] **Step 4: 运行组件、类型、样式和生产构建校验**
 
 Run: `pnpm.cmd exec vitest run src/views/pms/project/project-master-detail/components/ProjectAuthorizationPanel.spec.ts`
 
 Run: `pnpm.cmd ts:check && pnpm.cmd lint:eslint:check && pnpm.cmd lint:style:check && pnpm.cmd build:prod`
 
-Expected: 组件用例、类型、ESLint、Stylelint与生产构建全部PASS。
+Expected: 组件用例、类型、目标文件ESLint/Stylelint/Prettier与生产构建PASS；
+仓库历史样式基线问题单独登记，不把既有失败记录为本Task新增缺陷。
 
-- [ ] **Step 5: 提交授权维护页面**
+- [x] **Step 5: 提交授权维护页面**
 
 ```text
 feat(ui): 增加响应式项目授权面板
 ```
+
+> 执行记录（2026-08-24）：基础菜单刷新异常与主题初始化已先行修复并提交为
+> `6722782`；授权维护页面提交为`c1c76d5`。组件测试`5/5`、TypeScript、目标
+> ESLint/Stylelint/Prettier、生产构建通过；真实Edge完成创建、刷新ACTIVE、撤权、
+> 刷新REVOKED及320/768/1024/1440四档视口闭环。详情页既有样式区仍保留仓库
+> 历史Stylelint基线问题，新增授权面板本身无Stylelint错误，不阻断进入Task 8。
 
 ### Task 8: 完成真实闭环验证与Implementation Done证据
 

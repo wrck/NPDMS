@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_READY`
 > 当前阻断：无
-> 当前任务：Task 7 实现响应式项目授权维护界面
+> 当前任务：Task 8 完成真实闭环验证与Implementation Done证据
 > Requirement ID：`PM-04`
 > 关联契约：`AUT-01`、`AUT-02`的最小AuthorizationGrant载体
 > Feature Spec：`specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md`
@@ -29,7 +29,7 @@
 - [x] Task 4 实现项目授权命令、查询与越界守卫
 - [x] Task 5 将当前PROJ入口统一到动作化ProjectScope
 - [x] Task 6 补齐字典、菜单、示例授权和迁移验证
-- [ ] Task 7 实现响应式项目授权维护界面
+- [x] Task 7 实现响应式项目授权维护界面
 - [ ] Task 8 完成真实闭环验证与Implementation Done证据
 
 ## 验收跟踪
