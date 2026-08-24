@@ -193,7 +193,7 @@
 
 ## 9. 数据变化与Owner边界
 
-机器可读契约：`specs/features/contracts/F-PROJ-002-physical-contract.json`。该契约只锁定本Feature前向实现输入，`phaseGateImpact=NONE`，不改写Phase 1/2/3已审核迁移基线。
+机器可读契约：`specs/features/F-PROJ-002-physical-contract.json`。该契约只锁定本Feature前向实现输入，`phaseGateImpact=NONE`，不改写Phase 1/2/3已审核迁移基线。
 
 正式数据变化至少承载以下逻辑事实；Technical Plan必须以当前Schema核对后锁定表名、字段、约束、索引和前向迁移版本：
 
