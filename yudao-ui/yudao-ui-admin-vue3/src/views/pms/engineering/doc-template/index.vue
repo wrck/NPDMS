@@ -162,7 +162,7 @@
                 v-for="item in parentTemplateOptions"
                 :key="item.id"
                 :label="item.name"
-                :value="item.id"
+                :value="item.id!"
               />
             </el-select>
           </el-form-item>
@@ -708,7 +708,8 @@ const isSectionExcluded = (code: string) => currentVersionExcluded.value.include
 const getSectionOverride = (code: string) => currentVersionOverrides.value[code] || null
 // 字段标签辅助
 const fieldControlLabel = (f: any): string => fieldToControlType(f) === 'TEXT' ? '单行' : fieldToControlType(f) === 'TEXTAREA' ? '多行' : fieldToControlType(f) === 'NUMBER' ? '数字' : fieldToControlType(f) === 'UPLOAD' ? '上传' : '文本'
-const fieldTagType = (f: any): string => {
+type ElTagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
+const fieldTagType = (f: any): ElTagType => {
   const ct = fieldToControlType(f)
   return ct === 'UPLOAD' ? 'success' : ct === 'NUMBER' ? 'warning' : 'info'
 }

@@ -22,7 +22,7 @@ export interface SrvIssueVO {
 export interface SrvIssueAssignVO {
   id: number
   ownerUserId: number
-  deadline?: Date
+  deadline?: number
   version?: number
 }
 

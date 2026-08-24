@@ -638,8 +638,14 @@ const reload = () => {
 
 const statusLabel = (status?: string) =>
   ({ DRAFT: '草稿', ACTIVE: '生效', RETIRED: '停用' })[status ?? ''] ?? status
-const statusTagType = (status?: string) =>
-  ({ DRAFT: 'info', ACTIVE: 'success', RETIRED: 'danger' })[status ?? ''] ?? 'info'
+type ElTagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
+const statusTagTypes: Record<string, ElTagType> = {
+  DRAFT: 'info',
+  ACTIVE: 'success',
+  RETIRED: 'danger'
+}
+const statusTagType = (status?: string): ElTagType =>
+  statusTagTypes[status ?? ''] ?? 'info'
 
 // ============ 新增 ============
 const createVisible = ref(false)

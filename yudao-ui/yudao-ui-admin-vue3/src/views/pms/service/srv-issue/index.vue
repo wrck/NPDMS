@@ -198,6 +198,7 @@
 </template>
 
 <script setup lang="ts">
+import dayjs from 'dayjs'
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
@@ -302,7 +303,7 @@ const submitAssign = async () => {
     await SrvIssueApi.assignIssue({
       id: assignForm.id,
       ownerUserId: assignForm.ownerUserId!,
-      deadline: assignForm.deadline,
+      deadline: assignForm.deadline ? dayjs(assignForm.deadline).valueOf() : undefined,
       version: assignForm.version
     })
     message.success('分派成功')

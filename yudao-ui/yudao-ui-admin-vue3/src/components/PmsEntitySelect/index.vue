@@ -16,7 +16,7 @@
     @change="handleChange"
   >
     <el-option
-      v-for="item in options"
+      v-for="item in resolvedOptions"
       :key="item[valueField]"
       :label="getDisplayLabel(item)"
       :value="item[valueField]"
@@ -26,6 +26,8 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
+import type { ComponentSize } from 'element-plus'
+import { propTypes } from '@/utils/propTypes'
 
 defineOptions({ name: 'PmsEntitySelect' })
 
@@ -71,10 +73,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  size: {
-    type: String,
-    default: 'default'
-  },
+  size: propTypes.oneOf<ComponentSize>(['default', 'small', 'large']).def('default'),
   /** 是否多选 */
   multiple: {
     type: Boolean,
@@ -95,7 +94,7 @@ const selectedValue = computed({
 })
 
 const loading = ref(false)
-const options = ref<any[]>([])
+const resolvedOptions = ref<any[]>([])
 
 /** 获取显示标签：支持多字段拼接 */
 const getDisplayLabel = (item: any) => {
@@ -118,9 +117,9 @@ const handleSearch = async (keyword: string) => {
       ...props.extraParams
     }
     const res = await props.api(params)
-    options.value = res?.list || res || []
+    resolvedOptions.value = res?.list || res || []
   } catch (e) {
-    options.value = []
+    resolvedOptions.value = []
   } finally {
     loading.value = false
   }
@@ -129,12 +128,12 @@ const handleSearch = async (keyword: string) => {
 /** 值变化时回查当前选中项的完整对象 */
 const handleChange = (val: any) => {
   if (props.multiple) {
-    const selected = options.value.filter((i: any) =>
+    const selected = resolvedOptions.value.filter((i: any) =>
       Array.isArray(val) ? val.includes(i[props.valueField]) : false
     )
     emit('change', val, selected)
   } else {
-    const selected = options.value.find((i: any) => i[props.valueField] === val)
+    const selected = resolvedOptions.value.find((i: any) => i[props.valueField] === val)
     emit('change', val, selected)
   }
 }
@@ -153,7 +152,7 @@ const loadInitial = async () => {
 watch(
   () => props.modelValue,
   (val) => {
-    if (val && options.value.length === 0) {
+    if (val && resolvedOptions.value.length === 0) {
       loadInitial()
     }
   },

@@ -14,7 +14,7 @@
       </el-form-item>
       <el-form-item label="模板" prop="templateId">
         <el-select v-model="query.templateId" clearable filterable class="!w-220px" placeholder="请选择模板">
-          <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id" />
+          <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id!" />
         </el-select>
       </el-form-item>
       <el-form-item label="编号" prop="code">
@@ -139,7 +139,7 @@
         <el-col :span="12">
           <el-form-item label="模板" prop="templateId">
             <el-select v-model="form.templateId" filterable class="!w-full" :disabled="!!form.id" placeholder="请选择已发布模板">
-              <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id" />
+              <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id!" />
             </el-select>
           </el-form-item>
         </el-col>

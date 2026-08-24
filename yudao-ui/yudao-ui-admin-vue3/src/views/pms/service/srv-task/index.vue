@@ -552,7 +552,8 @@ const executionStatusOptions = [
 ]
 const executionStatusLabel = (status: number) =>
   executionStatusOptions.find((i) => i.value === status)?.label || '未知'
-const executionStatusTagType = (status: number) => {
+type ElTagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
+const executionStatusTagType = (status: number): ElTagType => {
   switch (status) {
     case 2:
       return 'success'
@@ -561,7 +562,7 @@ const executionStatusTagType = (status: number) => {
     case 1:
       return 'warning'
     default:
-      return ''
+      return undefined
   }
 }
 const openExecutionDlg = async (row: SrvTaskVO) => {
@@ -654,7 +655,7 @@ const parseStatusOptions = [
 ]
 const parseStatusLabel = (status: number) =>
   parseStatusOptions.find((i) => i.value === status)?.label || '未知'
-const parseStatusTagType = (status: number) => {
+const parseStatusTagType = (status: number): ElTagType => {
   switch (status) {
     case 2:
       return 'success'
@@ -663,7 +664,7 @@ const parseStatusTagType = (status: number) => {
     case 1:
       return 'warning'
     default:
-      return ''
+      return undefined
   }
 }
 const openOfflineFileDlg = async (row: SrvTaskVO) => {

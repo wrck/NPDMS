@@ -228,7 +228,7 @@
                 v-for="ph in projectPhases"
                 :key="ph.id"
                 :label="`${ph.code} - ${ph.name}`"
-                :value="ph.id"
+                :value="ph.id!"
               />
             </el-select>
           </template>
