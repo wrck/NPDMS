@@ -22,7 +22,8 @@ import cn.iocoder.yudao.module.pms.project.service.acceptance.application.Projec
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateServiceImpl;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mybatis.spring.annotation.MapperScan;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.SpringBootConfiguration;
@@ -312,6 +314,8 @@ abstract class ProjectManualCreationMySqlTestSupport {
     }
 
     @SpringBootConfiguration(proxyBeanMethods = false)
+    @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql",
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
     @Import({
             YudaoDataSourceAutoConfiguration.class,
             DataSourceAutoConfiguration.class,
@@ -322,7 +326,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
             MybatisPlusJoinAutoConfiguration.class,
             SpringUtil.class,
             ProjectManualCreationApplicationService.class,
-            ProjectCommandExecutionService.class,
+            PlatformCommandExecutionApiImpl.class,
             ProjectManualCreationServiceImpl.class,
             ProjectTemplateServiceImpl.class,
             ProjectCodeAllocator.class,

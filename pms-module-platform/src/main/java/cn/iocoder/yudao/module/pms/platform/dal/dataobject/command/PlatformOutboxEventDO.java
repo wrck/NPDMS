@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.dal.dataobject.platform;
+package cn.iocoder.yudao.module.pms.platform.dal.dataobject.command;
 
 import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
 import com.baomidou.mybatisplus.annotation.TableId;

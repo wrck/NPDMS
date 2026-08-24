@@ -1,8 +1,9 @@
-package cn.iocoder.yudao.module.pms.project.service.platform;
+package cn.iocoder.yudao.module.pms.platform.service.command;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformOperationAuditDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.platform.PlatformOperationAuditMapper;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOperationAuditDO;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOperationAuditMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,15 +16,17 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class ProjectOperationAuditService {
+public class OperationAuditApiImpl implements OperationAuditApi {
     private final PlatformOperationAuditMapper auditMapper;
 
+    @Override
     public void record(Long tenantId, Long actorId, String correlationId, String operationCode,
                        Long requestId, String resultCode, Map<String, ?> safeDetail) {
         record(tenantId, actorId, correlationId, operationCode, "ProjectSplitRequest",
                 String.valueOf(requestId), resultCode, safeDetail);
     }
 
+    @Override
     public void record(Long tenantId, Long actorId, String correlationId, String operationCode,
                        String aggregateType, String aggregateKey, String resultCode,
                        Map<String, ?> safeDetail) {

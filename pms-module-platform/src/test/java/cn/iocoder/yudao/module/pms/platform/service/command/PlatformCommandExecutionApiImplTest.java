@@ -1,12 +1,13 @@
-package cn.iocoder.yudao.module.pms.project.service.platform;
+package cn.iocoder.yudao.module.pms.platform.service.command;
 
-import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateRespVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformIdempotencyRecordDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformOperationAuditDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformOutboxEventDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.platform.PlatformIdempotencyRecordMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.platform.PlatformOperationAuditMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.platform.PlatformOutboxEventMapper;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformIdempotencyRecordDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOperationAuditDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOutboxEventDO;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOperationAuditMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOutboxEventMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.query.IdempotencyScopeQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ProjectCommandExecutionServiceTest {
+class PlatformCommandExecutionApiImplTest {
 
     private static final String DIGEST_A = "a".repeat(64);
     private static final String DIGEST_B = "b".repeat(64);
@@ -38,7 +39,7 @@ class ProjectCommandExecutionServiceTest {
     private PlatformOutboxEventMapper outboxMapper;
 
     @InjectMocks
-    private ProjectCommandExecutionService service;
+    private PlatformCommandExecutionApiImpl service;
 
     @Test
     void newExecutionPersistsAllSuccessFacts() {
@@ -50,13 +51,13 @@ class ProjectCommandExecutionServiceTest {
         when(idempotencyMapper.updateById(any(PlatformIdempotencyRecordDO.class))).thenReturn(1);
         when(auditMapper.insert(any(PlatformOperationAuditDO.class))).thenReturn(1);
         when(outboxMapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);
-        ProjectCreateRespVO response = response(100L);
+        SampleResponse response = response(100L);
 
-        var result = service.execute(scope(), DIGEST_A, ProjectCreateRespVO.class,
+        var result = service.execute(scope(), DIGEST_A, SampleResponse.class,
                 () -> response, ignored -> facts("100"));
 
-        assertEquals(ProjectCommandExecutionService.Decision.NEW, result.decision());
-        assertEquals(100L, result.response().getId());
+        assertEquals(PlatformCommandExecutionApi.Decision.NEW, result.decision());
+        assertEquals(100L, result.response().id());
         verify(auditMapper).insert(any(PlatformOperationAuditDO.class));
         verify(outboxMapper).insert(any(PlatformOutboxEventDO.class));
     }
@@ -65,20 +66,20 @@ class ProjectCommandExecutionServiceTest {
     void completedSameDigestReplaysWithoutExecutingOperation() {
         when(idempotencyMapper.insertIfAbsent(any(PlatformIdempotencyRecordDO.class))).thenReturn(0);
         PlatformIdempotencyRecordDO existing = existing(DIGEST_A,
-                ProjectCommandExecutionService.STATUS_COMPLETED);
+                PlatformCommandExecutionApiImpl.STATUS_COMPLETED);
         existing.setResponsePayload("{\"id\":100}");
-        when(idempotencyMapper.selectByScope(1L, "POST:/pms/projects", 7L, "key-1"))
+        when(idempotencyMapper.selectByScope(any(IdempotencyScopeQuery.class)))
                 .thenReturn(existing);
         AtomicInteger executions = new AtomicInteger();
 
-        var result = service.execute(scope(), DIGEST_A, ProjectCreateRespVO.class,
+        var result = service.execute(scope(), DIGEST_A, SampleResponse.class,
                 () -> {
                     executions.incrementAndGet();
                     return response(200L);
                 }, ignored -> facts("200"));
 
-        assertEquals(ProjectCommandExecutionService.Decision.REPLAY_COMPLETED, result.decision());
-        assertEquals(100L, result.response().getId());
+        assertEquals(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, result.decision());
+        assertEquals(100L, result.response().id());
         assertEquals(0, executions.get());
         verify(auditMapper, never()).insert(any(PlatformOperationAuditDO.class));
     }
@@ -86,17 +87,17 @@ class ProjectCommandExecutionServiceTest {
     @Test
     void sameKeyDifferentDigestConflictsWithoutExecutingOperation() {
         when(idempotencyMapper.insertIfAbsent(any(PlatformIdempotencyRecordDO.class))).thenReturn(0);
-        when(idempotencyMapper.selectByScope(1L, "POST:/pms/projects", 7L, "key-1"))
-                .thenReturn(existing(DIGEST_A, ProjectCommandExecutionService.STATUS_COMPLETED));
+        when(idempotencyMapper.selectByScope(any(IdempotencyScopeQuery.class)))
+                .thenReturn(existing(DIGEST_A, PlatformCommandExecutionApiImpl.STATUS_COMPLETED));
         AtomicInteger executions = new AtomicInteger();
 
-        var result = service.execute(scope(), DIGEST_B, ProjectCreateRespVO.class,
+        var result = service.execute(scope(), DIGEST_B, SampleResponse.class,
                 () -> {
                     executions.incrementAndGet();
                     return response(200L);
                 }, ignored -> facts("200"));
 
-        assertEquals(ProjectCommandExecutionService.Decision.CONFLICT, result.decision());
+        assertEquals(PlatformCommandExecutionApi.Decision.CONFLICT, result.decision());
         assertEquals(0, executions.get());
     }
 
@@ -112,7 +113,7 @@ class ProjectCommandExecutionServiceTest {
                 .when(auditMapper).insert(any(PlatformOperationAuditDO.class));
 
         assertThrows(IllegalStateException.class, () -> service.execute(scope(), DIGEST_A,
-                ProjectCreateRespVO.class, () -> response(100L), ignored -> facts("100")));
+                SampleResponse.class, () -> response(100L), ignored -> facts("100")));
 
         verify(outboxMapper, never()).insert(any(PlatformOutboxEventDO.class));
     }
@@ -130,16 +131,16 @@ class ProjectCommandExecutionServiceTest {
                 .when(outboxMapper).insert(any(PlatformOutboxEventDO.class));
 
         assertThrows(IllegalStateException.class, () -> service.execute(scope(), DIGEST_A,
-                ProjectCreateRespVO.class, () -> response(100L), ignored -> facts("100")));
+                SampleResponse.class, () -> response(100L), ignored -> facts("100")));
     }
 
-    private ProjectCommandExecutionService.IdempotencyScope scope() {
-        return new ProjectCommandExecutionService.IdempotencyScope(
+    private PlatformCommandExecutionApi.IdempotencyScope scope() {
+        return new PlatformCommandExecutionApi.IdempotencyScope(
                 1L, "POST:/pms/projects", 7L, "key-1");
     }
 
-    private ProjectCommandExecutionService.SuccessFacts facts(String resourceKey) {
-        return new ProjectCommandExecutionService.SuccessFacts(
+    private PlatformCommandExecutionApi.SuccessFacts facts(String resourceKey) {
+        return new PlatformCommandExecutionApi.SuccessFacts(
                 "PROJECT_CREATE", "Project", resourceKey, "correlation-1",
                 "{\"templateRevisionId\":10,\"stageCount\":7}",
                 "ProjectCreated", "{\"projectId\":" + resourceKey + "}");
@@ -152,9 +153,10 @@ class ProjectCommandExecutionServiceTest {
         return row;
     }
 
-    private ProjectCreateRespVO response(Long id) {
-        ProjectCreateRespVO response = new ProjectCreateRespVO();
-        response.setId(id);
-        return response;
+    private SampleResponse response(Long id) {
+        return new SampleResponse(id);
+    }
+
+    private record SampleResponse(Long id) {
     }
 }

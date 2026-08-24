@@ -11,7 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitRequestMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChangeMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectSplitApplicationServiceTest {
-    @Mock ProjectCommandExecutionService commandExecutionService;
+    @Mock PlatformCommandExecutionApi commandExecutionService;
     @Mock ProjectSplitDraftService draftService;
     @Mock ProjectSplitPreviewService previewService;
     @Mock ProjectSplitRequestMapper requestMapper;
@@ -62,8 +62,8 @@ class ProjectSplitApplicationServiceTest {
         ProjectSplitDraftService.Actor actor = new ProjectSplitDraftService.Actor(1L, 9L, "corr-1");
         ProjectSplitDraftService.DraftResult draft = draft();
         when(draftService.getDraft(20L, actor)).thenReturn(draft);
-        doAnswer(invocation -> new ProjectCommandExecutionService.ExecutionResult<>(
-                ProjectCommandExecutionService.Decision.NEW,
+        doAnswer(invocation -> new PlatformCommandExecutionApi.ExecutionResult<>(
+                PlatformCommandExecutionApi.Decision.NEW,
                 invocation.<java.util.function.Supplier<?>>getArgument(3).get()))
                 .when(commandExecutionService).execute(any(), anyString(), eq(cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult.class), any(), any());
         when(requestMapper.selectByIdForUpdate(20L)).thenReturn(draft.request());
@@ -100,8 +100,8 @@ class ProjectSplitApplicationServiceTest {
         ProjectSplitDraftService.Actor actor = new ProjectSplitDraftService.Actor(1L, 9L, "corr-2");
         ProjectSplitDraftService.DraftResult draft = draft();
         when(draftService.getDraft(20L, actor)).thenReturn(draft);
-        doAnswer(invocation -> new ProjectCommandExecutionService.ExecutionResult<>(
-                ProjectCommandExecutionService.Decision.NEW,
+        doAnswer(invocation -> new PlatformCommandExecutionApi.ExecutionResult<>(
+                PlatformCommandExecutionApi.Decision.NEW,
                 invocation.<java.util.function.Supplier<?>>getArgument(3).get()))
                 .when(commandExecutionService).execute(any(), anyString(), eq(cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult.class), any(), any());
         when(requestMapper.selectByIdForUpdate(20L)).thenReturn(draft.request());
@@ -128,8 +128,8 @@ class ProjectSplitApplicationServiceTest {
         ProjectSplitDraftService.Actor actor = new ProjectSplitDraftService.Actor(1L, 9L, "corr-3");
         ProjectSplitDraftService.DraftResult draft = draft();
         when(draftService.getDraft(20L, actor)).thenReturn(draft);
-        doAnswer(invocation -> new ProjectCommandExecutionService.ExecutionResult<>(
-                ProjectCommandExecutionService.Decision.NEW,
+        doAnswer(invocation -> new PlatformCommandExecutionApi.ExecutionResult<>(
+                PlatformCommandExecutionApi.Decision.NEW,
                 invocation.<java.util.function.Supplier<?>>getArgument(3).get()))
                 .when(commandExecutionService).execute(any(), anyString(), eq(cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult.class), any(), any());
         when(requestMapper.selectByIdForUpdate(20L)).thenReturn(draft.request());

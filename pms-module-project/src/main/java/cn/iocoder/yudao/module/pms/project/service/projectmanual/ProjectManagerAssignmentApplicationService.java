@@ -7,10 +7,10 @@ import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService.Decision;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService.IdempotencyScope;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService.SuccessFacts;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.Decision;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.IdempotencyScope;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.SuccessFacts;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import jakarta.annotation.Resource;
@@ -31,7 +31,7 @@ public class ProjectManagerAssignmentApplicationService {
 
     public static final String ASSIGN_SCOPE = "POST:/pms/projects/{id}/actions/assign-manager";
     @Resource
-    private ProjectCommandExecutionService platformFactService;
+    private PlatformCommandExecutionApi platformFactService;
     @Resource
     private ProjectManualCreationService projectService;
     @Resource

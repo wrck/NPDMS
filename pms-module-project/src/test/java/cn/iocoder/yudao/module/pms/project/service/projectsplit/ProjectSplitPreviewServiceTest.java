@@ -13,7 +13,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitRequestMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectOperationAuditService;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitPreviewCommand;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +40,7 @@ class ProjectSplitPreviewServiceTest {
     @Mock DeliveryScopeApi deliveryScopeApi;
     @Mock AssetDeviceScopeApi assetDeviceScopeApi;
     @Mock DeptApi deptApi;
-    @Mock ProjectOperationAuditService auditService;
+    @Mock OperationAuditApi auditService;
     @Mock ProjectSplitMetrics metrics;
 
     private ProjectSplitPreviewService service;

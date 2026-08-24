@@ -7,7 +7,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChangeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +37,7 @@ class ProjectTreeProjectionServiceTest {
     @Mock ProjectTreeVersionMapper versionMapper;
     @Mock ProjectTreePathMapper pathMapper;
     @Mock ProjectTreeChangeMapper changeMapper;
-    @Mock ProjectCommandExecutionService commandExecutionService;
+    @Mock PlatformCommandExecutionApi commandExecutionService;
     @Mock ProjectTreeMetrics metrics;
     @Mock ProjectTreeScopeService scopeService;
 
@@ -116,8 +116,8 @@ class ProjectTreeProjectionServiceTest {
         when(projectMapper.updateById(any(ProjectMasterDO.class))).thenReturn(1);
         when(changeMapper.insert(any(cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeChangeDO.class)))
                 .thenReturn(1);
-        doAnswer(invocation -> new ProjectCommandExecutionService.ExecutionResult<>(
-                ProjectCommandExecutionService.Decision.NEW,
+        doAnswer(invocation -> new PlatformCommandExecutionApi.ExecutionResult<>(
+                PlatformCommandExecutionApi.Decision.NEW,
                 invocation.<java.util.function.Supplier<?>>getArgument(3).get()))
                 .when(commandExecutionService).execute(any(), anyString(),
                         eq(ProjectTreeProjectionService.MoveProjectSubtreeResult.class), any(), any());

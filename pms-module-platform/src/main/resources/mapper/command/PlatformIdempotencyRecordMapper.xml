@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper">
+
+    <insert id="insertIfAbsent" useGeneratedKeys="true" keyProperty="id">
+        INSERT IGNORE INTO plt_idempotency_record
+            (tenant_id, scope_code, actor_id, idempotency_key, request_digest, status, version)
+        VALUES
+            (#{tenantId}, #{scopeCode}, #{actorId}, #{idempotencyKey}, #{requestDigest}, #{status}, 0)
+    </insert>
+
+    <select id="selectByScope"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformIdempotencyRecordDO">
+        SELECT id, tenant_id, scope_code, actor_id, idempotency_key, request_digest,
+               status, resource_type, resource_key, response_payload, version,
+               creator, create_time, updater, update_time, deleted
+        FROM plt_idempotency_record
+        WHERE tenant_id = #{query.tenantId}
+          AND scope_code = #{query.scopeCode}
+          AND actor_id = #{query.actorId}
+          AND idempotency_key = #{query.idempotencyKey}
+          AND deleted = 0
+    </select>
+</mapper>

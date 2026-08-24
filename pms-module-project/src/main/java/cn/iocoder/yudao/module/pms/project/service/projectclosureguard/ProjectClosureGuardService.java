@@ -8,7 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress.ProjectProgressSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectOperationAuditService;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,7 +37,7 @@ public class ProjectClosureGuardService {
     private final ProjectProgressSnapshotMapper snapshotMapper;
     private final ProjectTreeScopeService scopeService;
     private final ClosureStatePort closureStatePort;
-    private final ProjectOperationAuditService auditService;
+    private final OperationAuditApi auditService;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectClosureGuardResult evaluate(Long projectId, long expectedTreeVersion, Actor actor) {

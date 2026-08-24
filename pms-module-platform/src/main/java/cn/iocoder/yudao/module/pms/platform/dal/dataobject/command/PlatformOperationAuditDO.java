@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.project.dal.dataobject.platform;
+package cn.iocoder.yudao.module.pms.platform.dal.dataobject.command;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;

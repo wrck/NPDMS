@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.lenient;
 class ProjectManualCreationApplicationServiceTest {
 
     @Mock
-    private ProjectCommandExecutionService platformFactService;
+    private PlatformCommandExecutionApi platformFactService;
     @Mock
     private ProjectManualCreationService projectCreationService;
     @Mock
@@ -78,8 +78,8 @@ class ProjectManualCreationApplicationServiceTest {
             Function<Object, ?> facts = invocation.getArgument(4);
             Object result = operation.get();
             facts.apply(result);
-            return new ProjectCommandExecutionService.ExecutionResult<>(
-                    ProjectCommandExecutionService.Decision.NEW, result);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(
+                    PlatformCommandExecutionApi.Decision.NEW, result);
         });
 
         var result = service.create(command(), actor());
@@ -97,8 +97,8 @@ class ProjectManualCreationApplicationServiceTest {
     @Test
     void conflictDecisionIsMappedToStableError() {
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
-                new ProjectCommandExecutionService.ExecutionResult<>(
-                        ProjectCommandExecutionService.Decision.CONFLICT, null));
+                new PlatformCommandExecutionApi.ExecutionResult<>(
+                        PlatformCommandExecutionApi.Decision.CONFLICT, null));
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.create(command(), actor()));
@@ -138,8 +138,8 @@ class ProjectManualCreationApplicationServiceTest {
         ManualProjectCreateCommand child = new ManualProjectCreateCommand(base.draft(), 10L, 20L,
                 java.util.List.of(), null, null, base.idempotencyKey(), base.requestDigest());
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenReturn(
-                new ProjectCommandExecutionService.ExecutionResult<>(
-                        ProjectCommandExecutionService.Decision.IN_PROGRESS, null));
+                new PlatformCommandExecutionApi.ExecutionResult<>(
+                        PlatformCommandExecutionApi.Decision.IN_PROGRESS, null));
 
         ServiceException exception = assertThrows(ServiceException.class, () -> service.create(child, actor()));
 

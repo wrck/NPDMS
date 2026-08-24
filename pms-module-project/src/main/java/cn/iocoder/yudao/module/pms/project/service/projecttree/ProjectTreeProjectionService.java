@@ -9,7 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChangeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import lombok.RequiredArgsConstructor;
@@ -42,25 +42,25 @@ public class ProjectTreeProjectionService {
     private final ProjectTreeVersionMapper versionMapper;
     private final ProjectTreePathMapper pathMapper;
     private final ProjectTreeChangeMapper changeMapper;
-    private final ProjectCommandExecutionService commandExecutionService;
+    private final PlatformCommandExecutionApi commandExecutionService;
     private final ProjectTreeMetrics metrics;
     private final ProjectTreeScopeService scopeService;
 
     public MoveProjectSubtreeResult move(MoveProjectSubtreeCommand command, Actor actor) {
         validateMove(command, actor);
         var execution = commandExecutionService.execute(
-                new ProjectCommandExecutionService.IdempotencyScope(
+                new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), MOVE_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), MoveProjectSubtreeResult.class,
                 () -> moveOnce(command, actor), result -> moveFacts(result, actor));
-        if (execution.decision() == ProjectCommandExecutionService.Decision.CONFLICT) {
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
             throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
         }
-        if (execution.decision() == ProjectCommandExecutionService.Decision.IN_PROGRESS) {
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
             throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
         }
         MoveProjectSubtreeResult result = execution.response();
-        return execution.decision() == ProjectCommandExecutionService.Decision.REPLAY_COMPLETED
+        return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
                 ? new MoveProjectSubtreeResult(result.projectId(), result.parentId(), result.changeBatchId(),
                 result.treeVersion(), result.affectedRoots(), true) : result;
     }
@@ -189,12 +189,12 @@ public class ProjectTreeProjectionService {
         return active;
     }
 
-    private ProjectCommandExecutionService.SuccessFacts moveFacts(MoveProjectSubtreeResult result, Actor actor) {
+    private PlatformCommandExecutionApi.SuccessFacts moveFacts(MoveProjectSubtreeResult result, Actor actor) {
         Map<String, Object> detail = Map.of("projectId", result.projectId(), "parentId", result.parentId(),
                 "changeBatchId", result.changeBatchId(), "treeVersion", result.treeVersion(),
                 "affectedRoots", result.affectedRoots());
         String payload = JsonUtils.toJsonString(detail);
-        return new ProjectCommandExecutionService.SuccessFacts("PROJECT_TREE_MOVE", "ProjectTree",
+        return new PlatformCommandExecutionApi.SuccessFacts("PROJECT_TREE_MOVE", "ProjectTree",
                 String.valueOf(result.projectId()), actor.correlationId(), payload, "ProjectTreeChanged", payload);
     }
 

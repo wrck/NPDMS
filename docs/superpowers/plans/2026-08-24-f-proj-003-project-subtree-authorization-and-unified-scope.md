@@ -72,25 +72,25 @@ public interface OperationAuditApi {
 }
 ```
 
-- [ ] **Step 1: 创建PLT API与实现模块并接入Maven reactor**
+- [x] **Step 1: 创建PLT API与实现模块并接入Maven reactor**
 
 根`pom.xml`按API在实现前的顺序加入`pms-module-platform/pms-module-platform-api`和`pms-module-platform`；`yudao-server`装配实现模块；PROJ只依赖`pms-module-platform-api`。
 
-- [ ] **Step 2: 把平台DO、Mapper和事务实现物理迁入PLT**
+- [x] **Step 2: 把平台DO、Mapper和事务实现物理迁入PLT**
 
 保留现有表名、幂等作用域、请求摘要、完成结果、审计和Outbox语义；类名收敛为`PlatformCommandExecutionApiImpl`与`OperationAuditApiImpl`，实现类不暴露给PROJ。
 
-- [ ] **Step 3: 将PROJ调用替换为公开接口**
+- [x] **Step 3: 将PROJ调用替换为公开接口**
 
 修改手工创建、服务经理指派、拆分应用、树移动、进度策略和闭环守卫调用；源码检查不得残留PROJ对`plt_*` DO/Mapper或PLT实现包的引用。
 
-- [ ] **Step 4: 运行所有受影响的单元与原子事务测试**
+- [x] **Step 4: 运行所有受影响的单元与原子事务测试**
 
 Run: `mvn.cmd -pl pms-module-platform,pms-module-project -am -Ppms-test-unit -DskipITs=true test`
 
 Expected: 平台命令重放/冲突/处理中及F-PROJ-001/F-PROJ-002单元测试全部PASS。
 
-- [ ] **Step 5: 提交平台所有权归位**
+- [x] **Step 5: 提交平台所有权归位**
 
 ```text
 refactor(platform): 归位平台命令事实所有权

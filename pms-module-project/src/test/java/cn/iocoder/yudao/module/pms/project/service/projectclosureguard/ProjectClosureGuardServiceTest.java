@@ -9,7 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress.ProjectProgressSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectOperationAuditService;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class ProjectClosureGuardServiceTest {
     private final ProjectProgressSnapshotMapper snapshotMapper = mock(ProjectProgressSnapshotMapper.class);
     private final ProjectTreeScopeService scopeService = mock(ProjectTreeScopeService.class);
     private final ClosureStatePort closureStatePort = mock(ClosureStatePort.class);
-    private final ProjectOperationAuditService auditService = mock(ProjectOperationAuditService.class);
+    private final OperationAuditApi auditService = mock(OperationAuditApi.class);
     private final ProjectClosureGuardService service = new ProjectClosureGuardService(projectMapper,
             treeVersionMapper, pathMapper, snapshotMapper, scopeService, closureStatePort, auditService);
 

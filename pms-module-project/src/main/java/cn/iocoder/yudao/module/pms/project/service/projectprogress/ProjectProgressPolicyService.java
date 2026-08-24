@@ -13,7 +13,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress.ProjectProg
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress.ProjectProgressPolicyRevisionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectprogress.ProjectProgressRules;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectOperationAuditService;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.service.projectprogress.command.CreateProgressPolicyCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +51,7 @@ public class ProjectProgressPolicyService {
     private final ProjectTreeScopeService scopeService;
     private final BpmProcessInstanceApi processInstanceApi;
     private final ProjectProgressProperties properties;
-    private final ProjectOperationAuditService auditService;
+    private final OperationAuditApi auditService;
     private final ProjectProgressMetrics metrics;
 
     @Transactional(rollbackFor = Exception.class)

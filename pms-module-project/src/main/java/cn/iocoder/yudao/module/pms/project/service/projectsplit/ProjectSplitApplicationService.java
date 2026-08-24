@@ -14,7 +14,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitRequestMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChangeMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
@@ -43,7 +43,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 public class ProjectSplitApplicationService {
     public static final String APPLY_SCOPE = "POST:/pms/project-split-requests/{id}/actions/apply";
 
-    private final ProjectCommandExecutionService commandExecutionService;
+    private final PlatformCommandExecutionApi commandExecutionService;
     private final ProjectSplitDraftService draftService;
     private final ProjectSplitPreviewService previewService;
     private final ProjectSplitRequestMapper requestMapper;
@@ -62,19 +62,19 @@ public class ProjectSplitApplicationService {
         long started = System.nanoTime();
         try {
             var execution = commandExecutionService.execute(
-                    new ProjectCommandExecutionService.IdempotencyScope(
+                    new PlatformCommandExecutionApi.IdempotencyScope(
                             actor.tenantId(), APPLY_SCOPE, actor.actorId(), command.idempotencyKey()),
                     command.requestDigest(), ApplyProjectSplitResult.class,
                     () -> applyOnce(command, actor),
                     result -> successFacts(actor, result));
-            if (execution.decision() == ProjectCommandExecutionService.Decision.CONFLICT) {
+            if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
                 throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
             }
-            if (execution.decision() == ProjectCommandExecutionService.Decision.IN_PROGRESS) {
+            if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
                 throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
             }
             ApplyProjectSplitResult result = execution.response();
-            if (execution.decision() == ProjectCommandExecutionService.Decision.REPLAY_COMPLETED) {
+            if (execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED) {
                 result = new ApplyProjectSplitResult(result.requestId(), result.projects(), result.scopeVersion(),
                         result.changeBatchId(), result.treeVersion(), true);
             }
@@ -183,12 +183,12 @@ public class ProjectSplitApplicationService {
         }
     }
 
-    private ProjectCommandExecutionService.SuccessFacts successFacts(ProjectSplitDraftService.Actor actor,
+    private PlatformCommandExecutionApi.SuccessFacts successFacts(ProjectSplitDraftService.Actor actor,
                                                                       ApplyProjectSplitResult result) {
         Map<String, Object> detail = Map.of("requestId", result.requestId(),
                 "projectCount", result.projects().size(), "scopeVersion", result.scopeVersion(),
                 "treeVersion", result.treeVersion(), "changeBatchId", result.changeBatchId());
-        return new ProjectCommandExecutionService.SuccessFacts("PROJECT_SPLIT_APPLY", "ProjectSplitRequest",
+        return new PlatformCommandExecutionApi.SuccessFacts("PROJECT_SPLIT_APPLY", "ProjectSplitRequest",
                 String.valueOf(result.requestId()), actor.correlationId(), JsonUtils.toJsonString(detail),
                 "ProjectTreeChanged", JsonUtils.toJsonString(detail));
     }

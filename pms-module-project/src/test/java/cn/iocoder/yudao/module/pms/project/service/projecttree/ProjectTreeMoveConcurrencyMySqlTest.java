@@ -5,7 +5,8 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
@@ -168,11 +169,11 @@ class ProjectTreeMoveConcurrencyMySqlTest {
     @SpringBootConfiguration
     @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual",
             "cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree",
-            "cn.iocoder.yudao.module.pms.project.dal.mysql.platform"})
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
-            MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, ProjectCommandExecutionService.class,
+            MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, PlatformCommandExecutionApiImpl.class,
             ProjectTreeProjectionService.class, ProjectTreeMetrics.class, ProjectTreeScopeService.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }

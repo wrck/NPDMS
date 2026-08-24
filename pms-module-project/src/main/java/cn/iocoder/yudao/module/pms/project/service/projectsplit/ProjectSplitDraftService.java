@@ -15,7 +15,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitRe
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitScopeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectsplit.ProjectSplitRules;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectOperationAuditService;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitDraftCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
@@ -43,7 +43,7 @@ public class ProjectSplitDraftService {
     private final DeliveryScopeApi deliveryScopeApi;
     private final OrganizationScopeApi organizationScopeApi;
     private final ProjectSplitRules rules;
-    private final ProjectOperationAuditService auditService;
+    private final OperationAuditApi auditService;
     private final ProjectTreeScopeService treeScopeService;
 
     @Transactional(rollbackFor = Exception.class)

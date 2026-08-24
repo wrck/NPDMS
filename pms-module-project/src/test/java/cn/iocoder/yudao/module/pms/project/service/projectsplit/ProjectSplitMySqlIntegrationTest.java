@@ -4,7 +4,8 @@ import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -40,7 +41,7 @@ class ProjectSplitMySqlIntegrationTest {
     private static final String TRIGGER = "it_fproj002_outbox_failure";
     private static final String KEY_PREFIX = "it-fproj002-";
 
-    @Resource ProjectCommandExecutionService commandExecutionService;
+    @Resource PlatformCommandExecutionApi commandExecutionService;
     @Resource JdbcTemplate jdbcTemplate;
 
     @DynamicPropertySource
@@ -84,7 +85,7 @@ class ProjectSplitMySqlIntegrationTest {
         String batch = KEY_PREFIX + UUID.randomUUID();
 
         assertThrows(RuntimeException.class, () -> commandExecutionService.execute(
-                new ProjectCommandExecutionService.IdempotencyScope(0L, "IT:FPROJ002", 9_900_002L, key),
+                new PlatformCommandExecutionApi.IdempotencyScope(0L, "IT:FPROJ002", 9_900_002L, key),
                 "a".repeat(64), ApplyProjectSplitResult.class,
                 () -> {
                     jdbcTemplate.update("INSERT INTO proj_project_split_request "
@@ -94,7 +95,7 @@ class ProjectSplitMySqlIntegrationTest {
                                     + "(id,root_project_id,tree_version,status,change_batch_id,node_count,path_count,version,tenant_id) "
                                     + "VALUES (?,?,1,'ACTIVE',?,0,0,0,0)", requestId, requestId, batch);
                     return new ApplyProjectSplitResult(requestId, List.of(), 1L, batch, 1L, false);
-                }, result -> new ProjectCommandExecutionService.SuccessFacts(
+                }, result -> new PlatformCommandExecutionApi.SuccessFacts(
                         "PROJECT_SPLIT_APPLY", "ProjectSplitRequest", String.valueOf(requestId), key,
                         "{}", "ProjectSplitApplied", "{}")));
 
@@ -126,11 +127,11 @@ class ProjectSplitMySqlIntegrationTest {
     }
 
     @SpringBootConfiguration
-    @MapperScan("cn.iocoder.yudao.module.pms.project.dal.mysql.platform")
+    @MapperScan("cn.iocoder.yudao.module.pms.platform.dal.mysql.command")
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
-            MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, ProjectCommandExecutionService.class})
+            MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, PlatformCommandExecutionApiImpl.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
     }

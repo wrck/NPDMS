@@ -1,11 +1,11 @@
 # F-PROJ-003 项目子树授权与统一数据范围
 
-> Feature实施状态：`NOT_STARTED`
+> Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_READY`
 > 当前阻断：无
-> 当前任务：Task 1 建立PLT模块并归位平台事实所有权
+> 当前任务：Task 2 实现PLT AuthorizationGrant物理模型与公开API
 > Requirement ID：`PM-04`
 > 关联契约：`AUT-01`、`AUT-02`的最小AuthorizationGrant载体
 > Feature Spec：`specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md`
@@ -23,7 +23,7 @@
 
 ## 任务跟踪
 
-- [ ] Task 1 建立PLT模块并归位平台事实所有权
+- [x] Task 1 建立PLT模块并归位平台事实所有权
 - [ ] Task 2 实现PLT AuthorizationGrant物理模型与公开API
 - [ ] Task 3 发布ProjectScopeApi并重写统一范围计算
 - [ ] Task 4 实现项目授权命令、查询与越界守卫

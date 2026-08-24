@@ -1,12 +1,14 @@
-package cn.iocoder.yudao.module.pms.project.service.platform;
+package cn.iocoder.yudao.module.pms.platform.service.command;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformIdempotencyRecordDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformOperationAuditDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.platform.PlatformOutboxEventDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.platform.PlatformIdempotencyRecordMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.platform.PlatformOperationAuditMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.platform.PlatformOutboxEventMapper;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformIdempotencyRecordDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOperationAuditDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOutboxEventDO;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOperationAuditMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOutboxEventMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.query.IdempotencyScopeQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +25,7 @@ import java.util.function.Supplier;
 
 /** 将项目写命令、幂等成功、审计和Outbox事件封装在同一事务中。 */
 @Service
-public class ProjectCommandExecutionService {
+public class PlatformCommandExecutionApiImpl implements PlatformCommandExecutionApi {
 
     public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
     public static final String STATUS_COMPLETED = "COMPLETED";
@@ -39,6 +41,7 @@ public class ProjectCommandExecutionService {
     private final Clock clock = Clock.systemDefaultZone();
 
     @Transactional(rollbackFor = Exception.class)
+    @Override
     public <T> ExecutionResult<T> execute(IdempotencyScope scope, String requestDigest,
                                           Class<T> responseType, Supplier<T> operation,
                                           Function<T, SuccessFacts> successFactsFactory) {
@@ -57,7 +60,7 @@ public class ProjectCommandExecutionService {
     private <T> ExecutionResult<T> decideExisting(IdempotencyScope scope, String requestDigest,
                                                    Class<T> responseType) {
         PlatformIdempotencyRecordDO existing = idempotencyMapper.selectByScope(
-                scope.tenantId(), scope.scopeCode(), scope.actorId(), scope.key());
+                new IdempotencyScopeQuery(scope.tenantId(), scope.scopeCode(), scope.actorId(), scope.key()));
         if (existing == null) {
             return new ExecutionResult<>(Decision.IN_PROGRESS, null);
         }
@@ -160,16 +163,4 @@ public class ProjectCommandExecutionService {
         return value == null || value.isBlank();
     }
 
-    public enum Decision { NEW, REPLAY_COMPLETED, CONFLICT, IN_PROGRESS }
-
-    public record IdempotencyScope(Long tenantId, String scopeCode, Long actorId, String key) {
-    }
-
-    public record SuccessFacts(String operationCode, String aggregateType, String resourceKey,
-                               String correlationId, String detailSnapshot,
-                               String eventType, String eventPayload) {
-    }
-
-    public record ExecutionResult<T>(Decision decision, T response) {
-    }
 }

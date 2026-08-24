@@ -6,7 +6,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress.ProjectProgressPolicyItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress.ProjectProgressPolicyRevisionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
-import cn.iocoder.yudao.module.pms.project.service.platform.ProjectOperationAuditService;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ class ProjectProgressPolicyServiceTest {
     @Test
     void approvalSupersedesCurrentPolicyAndActivatesImmutableRevision() {
         ProjectProgressPolicyRevisionMapper revisionMapper = mock(ProjectProgressPolicyRevisionMapper.class);
-        ProjectOperationAuditService auditService = mock(ProjectOperationAuditService.class);
+        OperationAuditApi auditService = mock(OperationAuditApi.class);
         ProjectProgressMetrics metrics = mock(ProjectProgressMetrics.class);
         ProjectProgressPolicyService service = new ProjectProgressPolicyService(
                 mock(ProjectMasterMapper.class), mock(ProjectTreeVersionMapper.class), revisionMapper,
