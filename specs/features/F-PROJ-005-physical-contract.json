@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-PROJ-005",
+  "requirementIds": ["PM-08"],
+  "relatedRequirementSlices": ["PM-01", "PM-04", "PM-11"],
+  "status": "BASELINE_READY",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "NPDMS_FPROJ005_FEATURE_READY_20260825_01",
+  "requirementCompletionPolicy": "PM08_V1_MANUAL_ASSIGNMENT_ONLY",
+  "objects": {
+    "ProjectMemberAssignment": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_member_assignment"],
+      "reusedFields": ["tenant_id", "project_id", "user_id", "employee_no", "member_name", "company_id", "company_code", "company_name", "department_code", "department_name", "member_role", "responsibility", "effective_from", "effective_to", "status", "version"],
+      "additiveFields": ["department_id", "assignment_type", "site_id", "change_reason"],
+      "assignmentTypes": ["PRIMARY", "COLLABORATOR"],
+      "memberRoleSemantics": {
+        "SERVICE_MANAGER_L1": "ORDER_OFFICE_OR_COORDINATING_RESPONSIBILITY_NOT_TREE_DEPTH",
+        "SERVICE_MANAGER_L2": "IMPLEMENTATION_SITE_OR_LOCAL_RESPONSIBILITY_NOT_TREE_DEPTH"
+      },
+      "requiredOnWrite": ["tenant_id", "project_id", "user_id", "member_name", "company_id", "department_id", "department_code", "department_name", "member_role", "assignment_type", "change_reason", "effective_from", "status"],
+      "conditionalRules": {
+        "SERVICE_MANAGER_L2": {"mustBeNonNull": ["site_id"]},
+        "PRIMARY_REASSIGNMENT": {"closePreviousInterval": true, "appendNewRow": true, "reasonRequired": true},
+        "COLLABORATOR": {"participatesInAssignmentStatus": false}
+      },
+      "historyPolicy": "TEMPORAL_ROWS; NEVER_OVERWRITE_BUSINESS_SNAPSHOT; ONLY_CLOSE_EFFECTIVE_INTERVAL",
+      "effectiveTimePolicy": "V1_SERVER_TRANSACTION_TIME_ONLY; CLIENT_SCHEDULED_EFFECTIVE_TIME_FORBIDDEN",
+      "currentPrimaryInvariant": "AT_MOST_ONE_EFFECTIVE_PRIMARY_PER_TENANT_PROJECT_MEMBER_ROLE_SITE_SCOPE",
+      "concurrency": "PROJECT_VERSION_CAS_PLUS_TRANSACTIONAL_OVERLAP_QUERY_LOCK"
+    },
+    "Project": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project"],
+      "reusedFields": ["assignment_status", "current_stage", "lifecycle_status", "version"],
+      "assignmentStatusRule": "ASSIGNED_IFF_EFFECTIVE_PRIMARY_SERVICE_MANAGER_AND_EFFECTIVE_PROJECT_MANAGER_EXIST_ON_CURRENT_PROJECT_NODE; OTHERWISE_UNASSIGNED",
+      "ignoredForAssignmentStatus": ["COLLABORATOR_SERVICE_MANAGER"],
+      "immutableByFeature": ["current_stage", "lifecycle_status"]
+    },
+    "PlatformOutboxEvent": {
+      "owner": "PLATFORM",
+      "targetTables": ["plt_outbox_event"],
+      "eventType": "ProjectServiceManagerAssigned",
+      "reusedFields": ["event_id", "event_type", "aggregate_type", "aggregate_key", "payload", "status", "occurred_at", "next_retry_time", "retry_count", "tenant_id"],
+      "immutablePayloadFields": ["assignmentId", "projectId", "recipientUserId", "templateCode", "templateParamsSnapshot", "assignmentType", "levelCode", "effectiveFrom"],
+      "payloadSource": "FROZEN_IN_ASSIGNMENT_TRANSACTION",
+      "retrySourcePolicy": "READ_OUTBOX_PAYLOAD_ONLY; FORBID_REDERIVING_RECIPIENT_TEMPLATE_OR_PARAMS_FROM_CURRENT_MUTABLE_STATE",
+      "delivery": "IDEMPOTENT_HANDLER_CALLS_SYSTEM_NOTIFY_MESSAGE_SEND_API",
+      "failurePolicy": "DO_NOT_ROLL_BACK_ASSIGNMENT; INCREMENT_RETRY_COUNT_AND_SCHEDULE_NEXT_RETRY",
+      "newTableAllowed": false
+    },
+    "SystemNotifyMessage": {
+      "owner": "SYSTEM",
+      "targetTables": ["system_notify_message"],
+      "additiveFields": ["delivery_key"],
+      "deliveryKeyNullableForExistingCallers": true,
+      "requiredForFeature": true,
+      "uniqueKey": ["tenant_id", "user_type", "delivery_key"],
+      "replayPolicy": "SAME_DELIVERY_KEY_AND_SAME_RECIPIENT_TEMPLATE_PAYLOAD_DIGEST_RETURNS_ORIGINAL_MESSAGE_ID; DIFFERENT_FACTS_CONFLICT",
+      "newTableAllowed": false
+    }
+  },
+  "interfaces": {
+    "ServiceManagerCandidateQuery": {
+      "owner": "PROJ",
+      "route": "GET /projects/{id}/service-manager-candidates",
+      "requiredFilters": ["tenantId", "projectCompanyId", "confirmedDepartmentCode", "activeUser", "activeCompanyDepartmentScope"],
+      "siteMapping": "AREA_CODE_PLUS_AREA_LEVEL_SUGGESTS_SYSTEM_DEPT_CODE_ONLY",
+      "emptyScopePolicy": "RETURN_EMPTY_PAGE",
+      "systemDependency": "PUBLIC_APPLICATION_API_ONLY"
+    },
+    "AssignManagerCommand": {
+      "owner": "PROJ",
+      "route": "POST /projects/{id}/actions/assign-manager",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "requiredInputs": ["userId", "levelCode", "assignmentType", "departmentId", "departmentCode", "changeReason"],
+      "conditionalInputs": {"L2": ["siteId"]},
+      "effectiveFrom": "SERVER_TRANSACTION_TIME_RETURNED_IN_RESPONSE; CLIENT_INPUT_FORBIDDEN_IN_V1",
+      "transactionFacts": ["MEMBER_ASSIGNMENT", "PROJECT_VERSION_AND_STATUS", "IDEMPOTENCY_SUCCESS", "OPERATION_AUDIT", "OUTBOX_EVENT"]
+    },
+    "ServiceManagerResponsibilityQuery": {
+      "owner": "PROJ",
+      "route": "GET /projects/{rootId}/service-manager-responsibilities",
+      "scope": "PROJECT_TREE_SCOPE",
+      "pagination": true
+    },
+    "OrganizationScopeApi.pageActiveUsers": {
+      "owner": "SYSTEM",
+      "request": ["companyId", "departmentId", "departmentCode", "keyword", "pageNo", "pageSize"],
+      "responseItem": ["userId", "username", "nickname", "employeeNo", "companyId", "departmentId", "departmentCode", "departmentName"],
+      "pageSizeRange": [1, 100],
+      "emptyExactScope": "EMPTY_PAGE_NO_FALLBACK",
+      "errors": ["INVALID_ARGUMENT", "ORG_SCOPE_INVALID"],
+      "submitRevalidation": ["tenant", "projectCompany", "departmentIdAndCode", "activeUser", "effectiveCompanyDepartmentScope"]
+    },
+    "NotifyMessageSendApi": {
+      "owner": "SYSTEM",
+      "additiveRequestField": "deliveryKey",
+      "featureValue": "OUTBOX_EVENT_ID",
+      "replayReturnsOriginalMessageId": true
+    }
+  },
+  "organizationContract": {
+    "officeMeaning": "SYSTEM_DEPARTMENT",
+    "stableDepartmentField": "system_dept.code",
+    "forbiddenSynonyms": ["office_code"],
+    "siteBindsCompanyOrDepartment": false,
+    "candidateDefinition": "ACTIVE_ADMIN_USER_WITH_EFFECTIVE_SCOPE_FOR_PROJECT_COMPANY_AND_CONFIRMED_DEPARTMENT",
+    "inventedGlobalServiceManagerRoleAllowed": false
+  },
+  "events": {
+    "ProjectServiceManagerAssigned": {
+      "producer": "PROJ",
+      "consumer": "PMS_NOTIFICATION_DELIVERY_HANDLER",
+      "deliveryTarget": "SYSTEM.NotifyMessageSendApi",
+      "idempotencyKey": "event_id",
+      "payload": ["assignmentId", "projectId", "recipientUserId", "templateCode", "templateParamsSnapshot", "assignmentType", "levelCode", "effectiveFrom"],
+      "payloadImmutability": "TRANSACTION_SNAPSHOT; RETRY_MUST_NOT_QUERY_CURRENT_PROJECT_ASSIGNMENT_OR_USER_TO_REBUILD_MESSAGE",
+      "persistentDeduplication": "system_notify_message.uk(tenant_id,user_type,delivery_key)"
+    }
+  },
+  "forbiddenCapabilities": [
+    "PM08_V2_AUTOMATIC_ASSIGNMENT",
+    "PM11_PROJECT_MANAGER_ASSIGNMENT_IMPLEMENTATION",
+    "FIXED_DEPTH_PROJECT_TREE",
+    "AUTOMATIC_DESCENDANT_MEMBERSHIP",
+    "MEMBERSHIP_DERIVED_PROJECT_TREE_SCOPE",
+    "SITE_COMPANY_OR_OFFICE_BINDING",
+    "NEW_NOTIFICATION_HISTORY_OR_RETRY_TABLE",
+    "CLIENT_SCHEDULED_EFFECTIVE_TIME_IN_V1",
+    "CURRENT_STAGE_OR_LIFECYCLE_STATUS_CHANGE"
+  ]
+}

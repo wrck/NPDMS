@@ -95,6 +95,8 @@
     {"path": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-004-physical-contract.json", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-004-project-business-attribute-classification.md", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-PROJ-005-physical-contract.json", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-PROJ-005-service-manager-manual-assignment.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/README.md", "category": "FEATURE_SPEC"}
   ]
 }
