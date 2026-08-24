@@ -193,6 +193,8 @@
 
 ## 9. 数据变化与Owner边界
 
+机器可读契约：`specs/features/F-PROJ-002-physical-contract.json`。该契约只锁定本Feature前向实现输入，`phaseGateImpact=NONE`，不改写Phase 1/2/3已审核迁移基线。
+
 正式数据变化至少承载以下逻辑事实；Technical Plan必须以当前Schema核对后锁定表名、字段、约束、索引和前向迁移版本：
 
 - PROJ：拆分申请、拆分范围引用与快照、项目直接父关系、树变更批次、完整祖先投影版本、汇总策略修订、策略明细、进度快照；
@@ -200,7 +202,14 @@
 - AST：设备/SN身份与当前事实，PROJ不得直接访问AST Repository或业务表；
 - ACC/CLO：闭环申请和审批，只消费PROJ公开守卫结果。
 
-SDS已冻结`proj_project`、`proj_project_tree_path`和`proj_project_tree_change`作为项目树正式物理承载。拆分草稿、版本化汇总策略和进度快照所需的新增物理对象属于Feature前向数据变化：必须追加新迁移并同步08/09机器契约，不得修改已执行迁移，也不得把多个逻辑事实压回`proj_project`可变JSON或单一进度字段。
+F-PROJ-002前向物理契约锁定如下：
+
+- COM范围切片：`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`和`com_outbox_event`；
+- PROJ拆分草稿：`proj_project_split_request`、`proj_project_split_item`和`proj_project_split_scope`；
+- PROJ树：`proj_project`直接父关系真值、`proj_project_tree_version`完整版本、`proj_project_tree_path`祖先投影和`proj_project_tree_change`追加变更；
+- PROJ进度：`proj_project_progress_fact`、`proj_project_progress_policy_revision`、`proj_project_progress_policy_item`、`proj_project_progress_snapshot`和`proj_project_progress_snapshot_detail`。
+
+上述对象均以Feature-forward migration进入实施，不修改已执行迁移。`proj_project.root_id/tree_path/tree_depth`只作为当前完整版本兼容缓存，`progress/aggregation_weight/weight_source`只作为V1.7兼容读字段；不得把多个逻辑事实压回`proj_project`可变JSON或单一进度字段。此处补齐物理与机器契约，不改变Phase 1/2/3已批准业务语义和门禁状态。
 
 ## 10. 事务、幂等、并发与错误语义
 

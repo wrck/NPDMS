@@ -110,20 +110,19 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 
 项目编码按ADR-0020与层级解耦：`project_code`租户内唯一且默认不可变；`code_root_id`和`project_sequence`冻结创建时的编码命名空间，项目移动时不得修改。CRM项目关联多个合同、执行单或订单时仍保持一个项目编码，商业关系通过Commerce关系对象及`DeliveryScope`表达。只有形成独立交付边界时才创建子项目，并由基础平台按`tenant_id + code_root_id`原子分配不可复用流水号。
 
-【建议】新增 `proj_project_tree_path`：
+F-PROJ-002以前向迁移新增`proj_project_tree_version`、`proj_project_tree_path`和`proj_project_tree_change`：
 
-| 字段 | 约束/索引 | 说明 |
+| 表 | 关键字段 | 约束/索引与语义 |
 |---|---|---|
-| `tenant_id, ancestor_project_id, descendant_project_id` | 复合主键或唯一键 | 一个祖先到后代只有一条当前路径 |
-| `distance` | `not null` | 自身为 0，直接子级为 1 |
-| `tree_version` | 索引 | 结构变更批次/完整投影版本 |
-| `project_id, parent_id_before, parent_id_after` | 记录在 `proj_project_tree_change` | 移动节点审计，不放在路径表 |
+| `proj_project_tree_version` | `id/root_project_id/tree_version/status/change_batch_id/node_count/path_count/activated_at/failed_reason/version` | `uk(tenant_id, root_project_id, tree_version)`；`idx(tenant_id, root_project_id, status, tree_version)`；状态只允许BUILDING/ACTIVE/FAILED，同一根查询只读取最后完整ACTIVE版本 |
+| `proj_project_tree_path` | `tree_version/root_project_id/ancestor_project_id/descendant_project_id/distance` | `uk(tenant_id, root_project_id, tree_version, ancestor_project_id, descendant_project_id)`；自身distance=0，直接子级=1；只允许引用同一完整版本 |
+| `proj_project_tree_change` | `change_batch_id/operation_type/project_id/parent_id_before/parent_id_after/base_tree_version/new_tree_version/actor_id/reason/occurred_at` | `uk(tenant_id, change_batch_id, project_id)`；`idx(tenant_id, project_id, occurred_at, id)`；追加写，不因后续移动覆盖 |
 
 索引：
 
-- `uk(tenant_id, ancestor_project_id, descendant_project_id)`；
-- `idx(tenant_id, descendant_project_id, ancestor_project_id)` 用于反查祖先；
-- `idx(tenant_id, ancestor_project_id, distance, descendant_project_id)` 用于子树分页。
+- `idx(tenant_id, root_project_id, tree_version, descendant_project_id, ancestor_project_id)` 用于反查祖先；
+- `idx(tenant_id, root_project_id, tree_version, ancestor_project_id, distance, descendant_project_id)` 用于子树分页；
+- 跨根移动以同一`change_batch_id`分别生成源根和目标根完整版本；任何BUILDING或FAILED版本不得成为授权、查询或汇总输入。
 
 移动节点事务：锁定被移动项目和目标父项目，校验目标父项目不在自身后代集合，更新邻接真值并生成 `tree_change_batch_id`；路径投影在同事务或可靠事件中切换到完整版本。禁止逐节点 HTTP 递归更新。
 
@@ -154,6 +153,32 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台�
 新增`proj_project_site`保存`project_id/site_id/primary_site/scope_status/effective_from/effective_to/site_code_snapshot/site_name_snapshot/address_snapshot/version`。同一项目—站点—生效时间唯一；同一项目至多一个当前主站点。跨Context只保存AST稳定ID、版本和必要快照，不建立到`ast_site`的物理外键。
 
 `proj_project`增加`location_resolution_status`，仅允许`UNRESOLVED/RESOLVED`。现有`implementation_location`只作为站点未维护时的文本降级；结构化站点存在时不得形成第二权威。
+
+### 4.1.3 PM-02拆分草稿与范围快照前向表
+
+以下物理表由PM-02 Feature前向迁移确定，不改变Phase 1/2/3既有Gate状态。
+
+F-PROJ-002以前向迁移新增：
+
+| 表 | 关键字段 | 约束/索引与语义 |
+|---|---|---|
+| `proj_project_split_request` | `parent_project_id/status/draft_version/parent_version/scope_version/tree_version/template_revision_id/preview_hash/validation_status/validated_at/applied_change_batch_id/version` | `idx(tenant_id, parent_project_id, status, update_time, id)`；状态只允许DRAFT/APPLIED；APPLIED后不得再次生成项目 |
+| `proj_project_split_item` | `split_request_id/client_item_key/project_name/business_level_code/tree_sort/office_department_code/item_status` | `uk(tenant_id, split_request_id, client_item_key)`；同一草稿内稳定关联预览和应用结果 |
+| `proj_project_split_scope` | `split_item_id/order_line_id/allocated_qty/office_department_code/serial_no/source_scope_version/source_snapshot` | `uk(tenant_id, split_item_id, order_line_id, office_department_code, serial_no)`；数量大于0；`source_snapshot`只保存发生时必要摘要，不替代COM/AST当前真值 |
+
+草稿校验失败仍保留DRAFT和逐项结果，不新增`proj_project`、DeliveryScope分配或树关系。确认命令锁定草稿、父项目、范围版本和树版本后重验；全部子项目、模板实例、范围分配、树版本、审计、幂等成功和Outbox在同一事务完成或整体回滚。
+
+### 4.1.4 PM-02进度事实、策略与快照前向表
+
+| 表 | 关键字段 | 约束/索引与语义 |
+|---|---|---|
+| `proj_project_progress_fact` | `project_id/fact_source_type/fact_source_id/fact_version/progress/source_watermark/occurred_at` | `uk(tenant_id, project_id, fact_source_type, fact_source_id, fact_version)`；追加写；progress为0～100，缺行表示无有效事实而不是0 |
+| `proj_project_progress_policy_revision` | `parent_project_id/revision_no/status/policy_type/process_definition_key/process_instance_id/effective_from/effective_to/approved_by/approved_at/supersedes_revision_id/version` | `uk(tenant_id, parent_project_id, revision_no)`；`uk(tenant_id, process_instance_id)`；批准版本不覆盖，当前生效区间不得重叠 |
+| `proj_project_progress_policy_item` | `policy_revision_id/child_project_id/weight/include_status_snapshot` | `uk(tenant_id, policy_revision_id, child_project_id)`；同一版本全部直接子项目权重合计100%，默认等权也固化为版本 |
+| `proj_project_progress_snapshot` | `project_id/policy_revision_id/tree_version/source_watermark/snapshot_status/progress/missing_item_count/calculated_at` | `uk(tenant_id, project_id, policy_revision_id, tree_version, source_watermark)`；状态READY/PENDING；历史不追溯重算 |
+| `proj_project_progress_snapshot_detail` | `snapshot_id/child_project_id/fact_version/child_progress/normalized_weight/contribution/missing_reason` | `uk(tenant_id, snapshot_id, child_project_id)`；解释一次直接子项目汇总，不保存未授权正文 |
+
+V1.7已有`proj_project.progress/aggregation_weight/weight_source`仅保留为兼容读字段，不再是F-PROJ-002正式写真值。子项目关闭、撤销等状态是否进入分母固化在生效策略版本；任一必要直接子项目缺少有效事实时生成PENDING快照并禁止据此闭环。
 
 ### 4.2 任务树与依赖
 
@@ -381,6 +406,19 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 ### 8.2.1 CUS-02服务等级前向表
 
 `cus_customer_service_level_revision`是ADR-0031批准的Feature目标，物理表由CUS-02 Feature前向迁移确定，不属于当前核心DDL。关键字段为`customer_id/service_level_code/policy_snapshot/effective_from/effective_to/current_marker/change_reason/evidence_ref/approver_id/version`；`uk(tenant_id, customer_id, version)`保存版本，生成列`current_marker`仅在`effective_to is null`时取1，`uk(tenant_id, customer_id, current_marker)`保证同一客户至多一个当前等级，并校验结束时间不早于开始时间。等级代码使用基础平台字典；无可靠历史来源，不从客户、联系人或关系快照反推等级。
+
+### 8.2.2 F-PROJ-002使用的COM-01 DeliveryScope前向切片
+
+本切片只批准F-PROJ-002稳定调用所需的订单行数量与范围分配载体，不表示COM-01合同/订单全量同步、人工补录、对账或管理页面已经完成。
+
+| 表 | 关键字段 | 约束/索引与语义 |
+|---|---|---|
+| `com_order_line` | `source_system/source_key/source_version/order_id/line_code/item_code/quantity/unit_code/quantity_status/source_updated_at/synced_at/version` | `uk(tenant_id, source_system, source_key)`；ERP字段只读；quantity_status为CONFIRMED/PENDING_AUTHORITY，后者不计入可分配量 |
+| `com_delivery_scope` | `order_line_id/project_id/allocated_qty/scope_status/allocation_version/source_evidence/effective_from/effective_to/version` | `uk(tenant_id, order_line_id, project_id, allocation_version)`；当前有效量不得使订单行超配；取消、退货和ERP减量必须产生受控冲突或释放事实 |
+| `com_delivery_scope_detail` | `delivery_scope_id/office_department_code/serial_no/allocated_qty/detail_status/source_snapshot/version` | `uk(tenant_id, delivery_scope_id, office_department_code, serial_no)`；明细数量合计等于主记录；办事处只用部门稳定编码，不以地址ID推导 |
+| `com_outbox_event` | `event_id/event_type/aggregate_type/aggregate_key/scope_version/payload/status/occurred_at/retry_count` | `uk(tenant_id, event_id)`；`idx(tenant_id, status, occurred_at, id)`；仅由COM事务发布DeliveryScopeAssigned/Released |
+
+预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量和SN/办事处组合后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
 

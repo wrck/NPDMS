@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "b453cb0b80804e288be360b50ee0bfef6809b798"
+    "commit": "0be4056e6334be4c5b0c9ae9810bd04c782f81c1"
   },
   "files": [
     {
@@ -263,7 +263,7 @@
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "b38c0b2acf910a8038c98bce8521e0a69cbd3de3614bd02156bbdf1cb840ae86"
+      "sha256": "7fe3e00cfe5d1dd70002fd58affeb329a83fe38d4a4dce1ef540e79cce4acdbd"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
@@ -273,17 +273,17 @@
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "fa85d0d7be310241a5f2814294924c1c68f14f97116aaa2cae843e08b173d9e6"
+      "sha256": "2b18d1325969702d33f1173b74b098c327cfeb44300f3009ee250d83e5ed80c4"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "e7c7fa942aaa42e1035d36276b4dbed91c45098ef996735a987a6a3fb539c63b"
+      "sha256": "e2ab09f450ca6b2e4341b6183897cb4bdfee5e330522c0c5cd71767ba8fa7618"
     },
     {
       "path": "docs/design/11-event-design.md",
       "category": "SDS",
-      "sha256": "25ccba395bfa45b49e9f985d3177edb274151e87f7627a8db46fda111796edbd"
+      "sha256": "8e605191a9824f672f8378b2ac00c2be26f277affd040cb0a5a1e65969f52c23"
     },
     {
       "path": "docs/design/12-integration-design.md",
@@ -431,9 +431,14 @@
       "sha256": "566fdcf3f82fe26fa1121c37e50d622080c70f225c6134ad8dbc25adbb17dd97"
     },
     {
+      "path": "specs/features/F-PROJ-002-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "e3aa86021c7a84a1d4ebf062426af86370b6f5d9e3d9d19d78d502a72f170028"
+    },
+    {
       "path": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
       "category": "FEATURE_SPEC",
-      "sha256": "3280e0654694f7a3def4ad0885bf051629fa2d7c31b49c93e46f613ed75181d2"
+      "sha256": "dfd09ac27e6ede86a640ec610e4eade8c9b5b55d902f3272f93f29de5b44395f"
     },
     {
       "path": "specs/features/README.md",

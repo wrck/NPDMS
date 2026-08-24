@@ -96,6 +96,12 @@
 | ProjectSite | 时态关系 | 项目引用的站点、主站点标记、生效区间和发生时站点快照 | 项目可关联多个站点；同一站点可被多个项目复用；同一项目至多一个当前主站点；PROJ不读取AST地点表 |
 | ProjectHierarchy | 聚合内关系 | 当前父子关系、根节点、层级类型 | 层级类型来自字典；结构变更必须经过 MoveProject 并校验无环 |
 | ProjectAncestorProjection | 可重建投影 | 祖先/后代查询路径 | 【建议】保存 ancestor、descendant、distance；不是项目真值 |
+| ProjectSplitRequest | 聚合根 | 拆分草稿、组合范围、服务端预览、校验水位和应用结果 | 草稿失败可修正；确认应用后不可再次创建子项目；范围只保存COM/AST稳定引用与发生时快照 |
+| ProjectSplitItem | 聚合内实体 | 一个拟创建子项目的名称、业务层级、排序和范围组合 | 使用`clientItemKey`在预览与批量应用间稳定关联；不得以客户端预览结果代替服务端重验 |
+| ProjectSplitScope | 聚合内实体 | 订单行、数量、办事处部门编码、SN及权威范围版本快照 | 组合维度可任意选取；同一有效范围不得重复分配，办事处不通过地址ID反推 |
+| ProjectProgressFact | 追加事实 | 一个项目可参与汇总的进度、来源类型、来源对象和事实水位 | 缺失事实表示待计算；不得以0、旧快照或`proj_project.progress`兼容值静默替代 |
+| ProgressPolicyRevision | 聚合根 | 一个父项目的直接子项目权重、分母口径、审批引用和生效区间 | 默认等权也形成不可变版本；人工版本同级权重合计100%；批准版本不原位覆盖且生效区间不重叠 |
+| ProjectProgressSnapshot | 不可变快照 | 项目、策略版本、树版本、直接子项目事实水位、结果或缺失项 | 新策略不追溯重算历史；任一必要直接子项目缺失事实时状态为PENDING |
 | ProjectTemplate | 聚合根 | 项目模板、StageDefinition、TaskDefinition、适用条件和版本 | 已发布模板不可覆盖；每个可执行TaskDefinition必须包含WorkBinding、PermissionPolicy、CompletionRule和可选GateRef；未指定其他业务绑定时使用TASK_NATIVE；项目实例冻结所用版本 |
 | ProjectTask | 聚合根 | 任务身份、负责人、计划、状态、层级、恰好一个当前工作绑定和完成判定 | `parentTaskId` 可空；无固定深度；层级与依赖关系正交；TASK_NATIVE由任务自身承载，其他类型不复制目标业务正文；完成按绑定事实与规则派生 |
 | TaskWorkBinding | ProjectTask值对象 | 绑定类型、目标Context/对象/标识、受信任组件键或表单/审批引用、参数和版本快照 | 类型限TASK_NATIVE/BUSINESS_OBJECT/BUSINESS_COMPONENT/DYNAMIC_FORM/APPROVAL/COMPOSITE；TASK_NATIVE不得配置外部目标；变更须受控生成新绑定版本 |
@@ -119,6 +125,10 @@
 - 权限“包含子项目”读取 `ProjectAncestorProjection`，不得递归逐层调用接口。
 - 父项目的直接子项目快照与全后代闭环门禁是不同口径，必须在查询模型中显式命名。
 - 移动项目节点后，项目真值和投影采用同一变更批次号；投影未完成时返回“结构更新中”或读取上一完整版本，不得返回半棵树。
+
+PM-02拆分确认是跨Owner公开契约参与的单个业务事务：PROJ拥有草稿、子项目、树真值、策略和快照，COM拥有订单行与DeliveryScope分配，AST拥有设备/SN当前事实。PROJ不得复制COM可分配量或AST设备状态作为当前真值；预览和确认必须携带并重验各Owner版本，任一步失败不产生部分子项目、部分范围或半完成树版本。
+
+ProjectProgressSnapshot只解释直接子项目的逐级汇总。叶子项目进度由PM-11等合法来源形成ProjectProgressFact；非叶子项目读取直接子项目的当前有效事实或快照。全部后代闭环守卫读取同一完整树版本，任何后代未闭环或必要快照PENDING时拒绝进入CLO-02，但不替代ACC/CLO的申请与审批事实。
 
 PM-05 是对象级可恢复转销过程，不是 Project 的普通状态更新：`BorrowedProjectConversion` 以 `sourceProjectId + formalSalesBusinessId` 幂等，状态使用 PRD 已定义的处理中、部分失败/待处理、已完成；对象项逐项保存结果。只有目标正式项目已由有效 CRM/ERP 销售业务建立、全部对象校验成功且设备处置完成后，才将源项目转为只读归档。
 
@@ -250,6 +260,8 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 | OrderLine | 物料/服务行、数量和交付维度 | 数量不可由项目分配反向改写 |
 | DeliveryScope | 订单行到实际承接项目节点的当前范围主记录 | 对应历史迁移语义`ProjectOrderLineScope`；同一项目节点—订单行同一时点只有一条当前主记录，保存分配总量、范围状态和来源证据；同一订单行可拆分多个项目但有效分配量不得超配；缺数量为待补数量，不计入交付统计；分配、释放均留历史 |
 | DeliveryScopeDetail | 交付范围按地点、产品/设备类型和批次拆分的明细 | 一个当前DeliveryScope可包含多条明细；明细数量合计必须等于主记录分配数量。形成独立负责人、计划、验收或闭环边界时，不继续堆叠明细，而是分配到独立子项目 |
+
+F-PROJ-002只消费DeliveryScope的版本化查询、预览和分配公开契约。拆分可按订单行、数量、办事处部门编码和SN自由组合；COM校验有效订单量、其他项目有效分配量、单位精度、取消/退货/ERP减量和并发版本，PROJ不得直接访问COM表。ERP权威数量缺失时范围状态为待权威确认，不计入可分配量，也不得为完成项目拆分而臆造数量。
 
 ### 9.4 Supplier & Subcontract
 

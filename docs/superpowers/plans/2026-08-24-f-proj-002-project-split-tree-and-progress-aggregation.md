@@ -47,7 +47,7 @@
 - Modify in specification repo: `docs/design/09-database-design.md`
 - Modify in specification repo: `docs/design/10-api-design.md`
 - Modify in specification repo: `docs/design/11-event-design.md`
-- Modify in specification repo: `docs/traceability/domain-object-table-map.json`
+- Create in specification repo: `specs/features/F-PROJ-002-physical-contract.json`
 - Modify in specification repo: `specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
 
 **Interfaces:**
@@ -80,15 +80,15 @@ Events:
   ProjectTreeChanged
 ```
 
-- [ ] **Step 1: 在规格仓库追加 Feature-forward 物理契约**
+- [x] **Step 1: 在规格仓库追加 Feature-forward 物理契约**
 
 明确每张表的Owner、主键、租户键、唯一约束、版本字段、生效区间和索引；明确`parent_id`是真值、树路径是完整版本投影、`progress/aggregation_weight`是兼容字段。保持 Phase 1/2/3 gate-status不变，不生成重审材料。
 
-- [ ] **Step 2: 更新机器契约和Feature Spec物理引用**
+- [x] **Step 2: 更新独立Feature机器契约和Feature Spec物理引用**
 
-`domain-object-table-map.json`必须把`ProjectHierarchy`、`ProjectAncestorProjection`、`DeliveryScope`、`ProgressPolicyRevision`和`ProjectProgressSnapshot`映射到上述Owner表；Feature Spec只补正式名称，不改变已批准业务语义。
+独立`F-PROJ-002-physical-contract.json`必须把`ProjectHierarchy`、`ProjectAncestorProjection`、`DeliveryScope`、`ProgressPolicyRevision`和`ProjectProgressSnapshot`映射到上述Owner表；不得修改已审核SDS的`domain-object-table-map.json`或迁移对象/来源计数。Feature Spec只补正式名称，不改变已批准业务语义。
 
-- [ ] **Step 3: 提交规格仓库并同步NPDMS受管快照**
+- [x] **Step 3: 提交规格仓库并同步NPDMS受管快照**
 
 Run:
 
@@ -107,7 +107,7 @@ py -3.13 -B -m unittest scripts.tests.test_specification_baseline
 
 Expected: 两仓`source.commit`一致，全部PASS，SDS仍为`BASELINE`。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Specification repo: `docs(feature): 锁定 F-PROJ-002 前向物理契约`
 
