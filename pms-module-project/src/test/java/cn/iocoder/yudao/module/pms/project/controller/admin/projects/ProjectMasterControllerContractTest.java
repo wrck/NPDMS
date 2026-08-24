@@ -125,11 +125,6 @@ class ProjectMasterControllerContractTest {
         assertRequiredHeader("assignManager", "If-Match");
     }
 
-    @Test
-    void updateChildWeightsEndpoint() {
-        assertEndpoint("updateChildWeights", PutMapping.class, "/{id}/child-weights", "pms:project:update");
-    }
-
     // ========== 断言辅助 ==========
 
     private static void assertEndpoint(String methodName, Class<? extends Annotation> httpAnnotation,

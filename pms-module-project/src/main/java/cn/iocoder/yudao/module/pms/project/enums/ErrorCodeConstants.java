@@ -163,10 +163,10 @@ public interface ErrorCodeConstants {
     // ========== 项目树与进度汇总（F-PM02 / PM-02）1-014-024-009 ==========
     ErrorCode PROJECT_MOVE_CYCLE = new ErrorCode(1_014_024_009, "子树移动会形成循环引用（目标父项目为自身或自身后代）");
     ErrorCode PROJECT_MOVE_INVALID_PARENT = new ErrorCode(1_014_024_010, "移动目标父项目不存在或跨租户");
-    ErrorCode PROJECT_TREE_VERSION_CONFLICT = new ErrorCode(1_014_024_013, "项目树版本冲突");
-    ErrorCode PROJECT_TREE_PROJECTION_UNAVAILABLE = new ErrorCode(1_014_024_014, "项目树完整投影暂不可用");
-    ErrorCode PROJECT_TREE_QUERY_INVALID = new ErrorCode(1_014_024_015, "项目树查询参数或游标无效");
-    ErrorCode PROJECT_TREE_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_016, "无权访问该项目树范围");
+    ErrorCode PROJECT_TREE_VERSION_CONFLICT = new ErrorCode(1_014_024_030, "项目树版本冲突");
+    ErrorCode PROJECT_TREE_PROJECTION_UNAVAILABLE = new ErrorCode(1_014_024_031, "项目树完整投影暂不可用");
+    ErrorCode PROJECT_TREE_QUERY_INVALID = new ErrorCode(1_014_024_032, "项目树查询参数或游标无效");
+    ErrorCode PROJECT_TREE_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_033, "无权访问该项目树范围");
     ErrorCode PROJECT_WEIGHT_SUM_INVALID = new ErrorCode(1_014_024_011, "直接子项目权重合计必须为100%：{}");
     ErrorCode PROJECT_SPLIT_REQUEST_NOT_EXISTS = new ErrorCode(1_014_024_018, "项目拆分草稿不存在");
     ErrorCode PROJECT_SPLIT_DRAFT_INVALID = new ErrorCode(1_014_024_019, "项目拆分草稿不合法：{}");
@@ -174,5 +174,11 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_SPLIT_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_021, "无权访问该项目拆分范围");
     ErrorCode PROJECT_SPLIT_APPLY_INVALID = new ErrorCode(1_014_024_022, "项目拆分方案不可应用：{}");
     ErrorCode PROJECT_SPLIT_APPLY_VERSION_CONFLICT = new ErrorCode(1_014_024_023, "项目拆分权威版本已变化，请重新预览");
+    ErrorCode PROJECT_PROGRESS_POLICY_INVALID = new ErrorCode(1_014_024_024, "项目进度策略不合法：{}");
+    ErrorCode PROJECT_PROGRESS_POLICY_NOT_EXISTS = new ErrorCode(1_014_024_025, "项目进度策略版本不存在");
+    ErrorCode PROJECT_PROGRESS_POLICY_VERSION_CONFLICT = new ErrorCode(1_014_024_026, "项目进度策略版本冲突");
+    ErrorCode PROJECT_PROGRESS_POLICY_STATUS_INVALID = new ErrorCode(1_014_024_027, "项目进度策略状态不允许当前操作");
+    ErrorCode PROJECT_PROGRESS_APPROVAL_NOT_CONFIGURED = new ErrorCode(1_014_024_028, "项目进度策略审批流程未配置");
+    ErrorCode PROJECT_PROGRESS_PENDING = new ErrorCode(1_014_024_029, "项目进度待计算");
 
 }

@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 7 实施ProjectTreeScope与有限同根可见性
+> 当前任务：Task 9 提供全部后代闭环守卫
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
@@ -33,4 +33,8 @@
 
 ## 下一步
 
-Task 6 已发布BUILDING到ACTIVE的根级完整投影，五类查询使用固定版本游标，移动命令按稳定ID加锁并支持跨根重建；旧`/pms/project-tree`运行面已退役。自动化测试与全模块编译通过，按既定环境约束保持MySQL停止，因此并发数据库用例本轮跳过并留待Task 11数据库闭环统一执行，不构成当前阻断。下一步执行Task 7，统一接入ProjectTreeScope并验证有限同根可见性和负向权限矩阵。
+Task 8 已完成不可变权重策略修订、BPM提交与重复/乱序回调处理、直接子项目逐级快照、`PENDING`缺失语义及正式API；V1.7旧权重/进度运行入口已退役。自动化规则、服务、API合同与全模块回归通过，MySQL用例按既定停库约束跳过并留待Task 11数据库闭环统一执行。下一步执行Task 9，提供当前完整树版本下的全部后代闭环守卫。
+
+## 已登记的非阻断问题
+
+- BPM公共流程状态事件当前不携带最终审批人编号，无法可靠填写`approved_by`；本任务保留流程实例、审批完成时间和完整策略版本证据，不用发起人或系统用户伪造审批人。该字段补齐需BPM公共事件提供权威最终审批人后前向修正，不影响策略审批、生效区间和快照链继续实施。

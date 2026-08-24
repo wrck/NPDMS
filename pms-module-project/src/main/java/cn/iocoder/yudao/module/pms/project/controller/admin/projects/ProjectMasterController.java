@@ -7,14 +7,12 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerRespVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectChildWeightsReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectInstancesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMemberAssignmentRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectProgressRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectSiteRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeMoveReqVO;
@@ -28,7 +26,6 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCr
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectTreeService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeQueryService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
@@ -60,19 +57,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_WEIGHT_SUM_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
 
 /**
@@ -97,8 +90,6 @@ public class ProjectMasterController {
     private ProjectManualCreationApplicationService projectManualCreationApplicationService;
     @Resource
     private ProjectManagerAssignmentApplicationService projectManagerAssignmentApplicationService;
-    @Resource
-    private ProjectTreeService projectTreeService;
     @Resource
     private ProjectTreeQueryService projectTreeQueryService;
     @Resource
@@ -291,47 +282,6 @@ public class ProjectMasterController {
                 new ProjectTreeProjectionService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(),
                         UUID.randomUUID().toString()));
         return success(result);
-    }
-
-    @PutMapping("/{id}/child-weights")
-    @Operation(summary = "整组设置直接子项目人工权重（完整覆盖且合计100%）")
-    @Parameter(name = "id", description = "父项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:update')")
-    public CommonResult<Boolean> updateChildWeights(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody ProjectChildWeightsReqVO reqVO) {
-        Map<Long, BigDecimal> weights = reqVO.getChildren().stream()
-                .collect(Collectors.toMap(
-                        ProjectChildWeightsReqVO.Item::getProjectId,
-                        ProjectChildWeightsReqVO.Item::getWeight,
-                        (left, right) -> right));
-        if (weights.size() != reqVO.getChildren().size()) {
-            throw exception(PROJECT_WEIGHT_SUM_INVALID, "子项目编号不得重复");
-        }
-        projectTreeService.updateChildWeights(id, weights, SecurityFrameworkUtils.getLoginUserId());
-        return success(true);
-    }
-
-    @GetMapping("/{id}/progress")
-    @Operation(summary = "进度汇总（直接子项目进度列表 + 汇总进度）")
-    @Parameter(name = "id", description = "项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<ProjectProgressRespVO> getProgress(@PathVariable("id") Long id) {
-        ProjectTreeService.ProjectProgress progress = projectTreeService.getProgress(
-                id, SecurityFrameworkUtils.getLoginUserId());
-        ProjectProgressRespVO respVO = new ProjectProgressRespVO();
-        respVO.setAggregate(progress.aggregate());
-        respVO.setChildren(progress.children().stream().map(child -> {
-            ProjectProgressRespVO.ChildItem item = new ProjectProgressRespVO.ChildItem();
-            item.setProjectId(child.projectId());
-            item.setProjectCode(child.projectCode());
-            item.setProjectName(child.projectName());
-            item.setProgress(child.progress());
-            item.setNormalizedWeight(child.normalizedWeight());
-            item.setWeightSource(child.weightSource());
-            return item;
-        }).toList());
-        return success(respVO);
     }
 
     private ProjectCreateRespVO toResponse(ManualProjectCreateResult result) {

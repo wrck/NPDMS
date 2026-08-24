@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 @Mapper
 public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
@@ -39,6 +40,18 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
                 .eq(ProjectTreePathDO::getRootProjectId, rootId)
                 .eq(ProjectTreePathDO::getTreeVersion, treeVersion)
                 .in(ProjectTreePathDO::getDescendantProjectId, descendantIds));
+    }
+
+    default Set<Long> selectParentsWithChildren(Long rootId, Long treeVersion,
+                                                Collection<Long> candidateProjectIds) {
+        if (candidateProjectIds == null || candidateProjectIds.isEmpty()) return Set.of();
+        return selectList(new LambdaQueryWrapperX<ProjectTreePathDO>()
+                .select(ProjectTreePathDO::getAncestorProjectId)
+                .eq(ProjectTreePathDO::getRootProjectId, rootId)
+                .eq(ProjectTreePathDO::getTreeVersion, treeVersion)
+                .eq(ProjectTreePathDO::getDistance, 1)
+                .in(ProjectTreePathDO::getAncestorProjectId, candidateProjectIds)).stream()
+                .map(ProjectTreePathDO::getAncestorProjectId).collect(java.util.stream.Collectors.toSet());
     }
 
     @Select("""

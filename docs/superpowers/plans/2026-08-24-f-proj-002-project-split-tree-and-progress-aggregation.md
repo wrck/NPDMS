@@ -491,17 +491,17 @@ ProjectProgressResult getCurrent(Long projectId, Actor actor);
 - 任何必要直接子项目无有效进度事实时生成`PENDING`快照和缺失项；不得用0或旧快照替代。
 - 新策略只影响生效后的新快照，历史快照不追溯重算。
 
-- [ ] **Step 1: 实现策略草稿、提交审批和幂等回调**
+- [x] **Step 1: 实现策略草稿、提交审批和幂等回调**
 
 重复/乱序回调不重复生效；激活新版本时关闭旧版本生效区间。
 
-- [ ] **Step 2: 实现叶子进度事实与逐级快照**
+- [x] **Step 2: 实现叶子进度事实与逐级快照**
 
 叶子读取`proj_project_progress_fact`，非叶子读取直接子项目当前事实或快照；快照保存解释明细和水位。
 
 指标至少覆盖待计算项目数、缺失事实数、快照计算耗时和策略回调重复/乱序次数；日志不输出未授权子项目明细。
 
-- [ ] **Step 3: 收敛正式API**
+- [x] **Step 3: 收敛正式API**
 
 ```text
 POST /pms/projects/{id}/progress-policies
@@ -510,7 +510,7 @@ GET  /pms/projects/{id}/progress
 GET  /pms/projects/{id}/progress-policies
 ```
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
 
 ```powershell
 mvn -pl pms-module-project -am -Dtest=ProjectProgressRulesTest,ProjectProgressPolicyServiceTest,ProjectProgressSnapshotMySqlTest test

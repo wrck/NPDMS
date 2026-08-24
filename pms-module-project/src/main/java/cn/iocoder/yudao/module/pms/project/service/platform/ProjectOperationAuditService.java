@@ -20,11 +20,18 @@ public class ProjectOperationAuditService {
 
     public void record(Long tenantId, Long actorId, String correlationId, String operationCode,
                        Long requestId, String resultCode, Map<String, ?> safeDetail) {
+        record(tenantId, actorId, correlationId, operationCode, "ProjectSplitRequest",
+                String.valueOf(requestId), resultCode, safeDetail);
+    }
+
+    public void record(Long tenantId, Long actorId, String correlationId, String operationCode,
+                       String aggregateType, String aggregateKey, String resultCode,
+                       Map<String, ?> safeDetail) {
         PlatformOperationAuditDO audit = new PlatformOperationAuditDO();
         audit.setTenantId(tenantId);
         audit.setOperationCode(operationCode);
-        audit.setAggregateType("ProjectSplitRequest");
-        audit.setAggregateKey(String.valueOf(requestId));
+        audit.setAggregateType(aggregateType);
+        audit.setAggregateKey(aggregateKey);
         audit.setActorId(actorId);
         audit.setCorrelationId(correlationId);
         audit.setIdempotencyKeyDigest(sha256(correlationId));
