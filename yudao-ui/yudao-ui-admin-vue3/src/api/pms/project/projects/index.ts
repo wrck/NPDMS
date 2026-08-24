@@ -425,16 +425,78 @@ export const getProjectInstances = (id: number) =>
 export const getProjectMembers = (id: number) =>
   request.get<ProjectMemberAssignmentVO[]>({ url: `${baseUrl}/${id}/members` })
 
-/** 指派一级服务经理（旧区间关闭+新区间开启，留痕前后值） */
+export interface ServiceManagerCandidateVO {
+  userId: number
+  username: string
+  nickname: string
+  employeeNo?: string
+  companyId: number
+  departmentId: number
+  departmentCode: string
+  departmentName: string
+}
+
+export interface ServiceManagerResponsibilityVO {
+  projectId: number
+  projectCode: string
+  projectName: string
+  parentId?: number
+  treeDepth: number
+  assignmentStatus: string
+  responsibilities: Array<{
+    levelCode: 'L1' | 'L2'
+    siteId?: number
+    departmentId: number
+    departmentCode: string
+    departmentName: string
+    primaryManager?: ServiceManagerResponsibilityMemberVO
+    collaborators: ServiceManagerResponsibilityMemberVO[]
+  }>
+}
+
+export interface ServiceManagerResponsibilityMemberVO {
+  assignmentId: number
+  userId: number
+  employeeNo?: string
+  memberName: string
+  effectiveFrom: string
+  changeReason: string
+}
+
+export const getServiceManagerCandidates = (
+  id: number,
+  params: {
+    siteId?: number
+    departmentId: number
+    departmentCode: string
+    keyword?: string
+    pageNo: number
+    pageSize: number
+  }
+) => request.get<PageResult<ServiceManagerCandidateVO>>({
+  url: `${baseUrl}/${id}/service-manager-candidates`,
+  params
+})
+
+export const getServiceManagerResponsibilities = (
+  rootId: number,
+  params: { projectId?: number; pageNo: number; pageSize: number }
+) => request.get<PageResult<ServiceManagerResponsibilityVO>>({
+  url: `${baseUrl}/${rootId}/service-manager-responsibilities`,
+  params
+})
+
+/** 人工指派或改派主责/协同服务经理 */
 export const assignManager = (
   id: number,
   data: {
-    roleCode: 'SERVICE_MANAGER'
     levelCode: 'L1' | 'L2'
     managerId: number
     siteId?: number
+    assignmentType: 'PRIMARY' | 'COLLABORATOR'
+    departmentId: number
     departmentCode: string
-    effectiveFrom?: string
+    changeReason: string
   },
   expectedVersion: number,
   idempotencyKey: string
@@ -444,6 +506,7 @@ export const assignManager = (
     assignmentId: number
     version: number
     assignmentStatus: string
+    effectiveFrom: string
   }>({
     url: `${baseUrl}/${id}/actions/assign-manager`,
     data,

@@ -23,6 +23,10 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectT
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTemplateMatchHistoryPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTemplateMatchHistoryRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerCandidatePageReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerCandidateRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerResponsibilityPageReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerResponsibilityRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
@@ -32,6 +36,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTempl
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.ManualProjectAttributeAdjustmentCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerQueryService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
@@ -108,6 +113,8 @@ public class ProjectMasterController {
     private ProjectAttributeClassificationApplicationService projectAttributeClassificationApplicationService;
     @Resource
     private ProjectTemplateMatchHistoryQueryService projectTemplateMatchHistoryQueryService;
+    @Resource
+    private ProjectServiceManagerQueryService projectServiceManagerQueryService;
 
     @PostMapping
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
@@ -263,7 +270,7 @@ public class ProjectMasterController {
     }
 
     @PostMapping("/{id}/actions/assign-manager")
-    @Operation(summary = "指派一级服务经理（旧区间关闭+新区间开启，留痕前后值）")
+    @Operation(summary = "人工指派或改派主责/协同服务经理")
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:assign')")
     public CommonResult<ProjectAssignManagerRespVO> assignManager(
@@ -288,6 +295,28 @@ public class ProjectMasterController {
         response.setAssignmentStatus(result.assignmentStatus());
         response.setEffectiveFrom(result.effectiveFrom());
         return success(response);
+    }
+
+    @GetMapping("/{id}/service-manager-candidates")
+    @Operation(summary = "分页查询项目公司与确认办事处范围内的服务经理候选")
+    @PreAuthorize("@ss.hasPermission('pms:project:assign')")
+    public CommonResult<PageResult<ServiceManagerCandidateRespVO>> getServiceManagerCandidates(
+            @PathVariable("id") Long id,
+            @Valid ServiceManagerCandidatePageReqVO request) {
+        return success(projectServiceManagerQueryService.getCandidates(id, request,
+                new ProjectServiceManagerQueryService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId())));
+    }
+
+    @GetMapping("/{rootId}/service-manager-responsibilities")
+    @Operation(summary = "分页查询ProjectTreeScope内的服务经理责任分布")
+    @PreAuthorize("@ss.hasPermission('pms:project:assign')")
+    public CommonResult<PageResult<ServiceManagerResponsibilityRespVO>> getServiceManagerResponsibilities(
+            @PathVariable("rootId") Long rootId,
+            @Valid ServiceManagerResponsibilityPageReqVO request) {
+        return success(projectServiceManagerQueryService.getResponsibilities(rootId, request,
+                new ProjectServiceManagerQueryService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId())));
     }
 
     @GetMapping("/{id}/tree")

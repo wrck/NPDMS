@@ -25,4 +25,52 @@
         FOR UPDATE
     </select>
 
+    <sql id="responsibilityNodeWhere">
+        p.tenant_id = #{query.tenantId}
+        AND p.id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        <if test="query.filterProjectId != null">
+            AND p.id = #{query.filterProjectId}
+        </if>
+        AND p.deleted = b'0'
+    </sql>
+
+    <select id="selectResponsibilityNodeCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM proj_project p
+        WHERE <include refid="responsibilityNodeWhere"/>
+    </select>
+
+    <select id="selectResponsibilityNodePage"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT p.id, p.project_code, p.project_name, p.parent_id, p.tree_path, p.tree_depth,
+               p.tree_sort, p.assignment_status
+        FROM proj_project p
+        WHERE <include refid="responsibilityNodeWhere"/>
+        ORDER BY p.tree_path, p.tree_sort, p.id
+        LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+
+    <select id="selectCurrentServiceManagerAssignments"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT id, project_id, user_id, employee_no, member_name, department_id, department_code,
+               department_name, member_role, assignment_type, site_id, change_reason, effective_from
+        FROM proj_project_member_assignment
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id IN
+          <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+              #{projectId}
+          </foreach>
+          AND member_role IN ('SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2')
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+        ORDER BY project_id, member_role, site_id, department_id,
+                 CASE WHEN assignment_type = 'PRIMARY' OR assignment_type IS NULL THEN 0 ELSE 1 END,
+                 id
+    </select>
+
 </mapper>

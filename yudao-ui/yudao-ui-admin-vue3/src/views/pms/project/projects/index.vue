@@ -883,7 +883,7 @@
     </Dialog>
 
     <!-- ============ 指派服务经理弹窗 ============ -->
-    <Dialog v-model="assignVisible" title="指派一级服务经理" width="520px">
+    <Dialog v-model="assignVisible" title="指派服务经理" width="520px">
       <el-form ref="assignFormRef" :model="assignForm" :rules="assignRules" label-width="110px">
         <el-form-item label="项目">
           <el-input
@@ -907,6 +907,12 @@
             <el-option label="一级服务经理（L1）" value="L1" />
             <el-option label="二级服务经理（L2）" value="L2" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="责任类型" prop="assignmentType">
+          <el-radio-group v-model="assignForm.assignmentType">
+            <el-radio-button value="PRIMARY">主责</el-radio-button>
+            <el-radio-button value="COLLABORATOR">协同</el-radio-button>
+          </el-radio-group>
         </el-form-item>
         <el-form-item v-if="assignSites.length" label="实施站点" prop="siteId">
           <el-select
@@ -954,13 +960,13 @@
         >
           {{ assignSuggestion || '当前站点无区划映射建议，请人工选择服务办事处。' }}
         </el-alert>
-        <el-form-item label="生效时间">
-          <el-date-picker
-            v-model="assignForm.effectiveFrom"
-            type="datetime"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            placeholder="空 = 当前时间"
-            class="!w-full"
+        <el-form-item label="指派原因" prop="changeReason">
+          <el-input
+            v-model="assignForm.changeReason"
+            type="textarea"
+            :maxlength="500"
+            show-word-limit
+            placeholder="请填写指派或改派原因"
           />
         </el-form-item>
       </el-form>
@@ -1474,9 +1480,10 @@ const assignSuggestion = ref('')
 const assignForm = reactive({
   userId: undefined as number | undefined,
   levelCode: 'L1' as 'L1' | 'L2',
+  assignmentType: 'PRIMARY' as 'PRIMARY' | 'COLLABORATOR',
   siteId: undefined as number | undefined,
   departmentCode: '',
-  effectiveFrom: ''
+  changeReason: ''
 })
 const assignRules = {
   userId: [{ required: true, message: '请选择服务经理用户', trigger: 'change' }],
@@ -1484,13 +1491,15 @@ const assignRules = {
   siteId: [
     {
       validator: (_rule: unknown, value: number | undefined, callback: (error?: Error) => void) => {
-        if (assignSites.value.length && !value) callback(new Error('请选择实施站点'))
+        if (assignForm.levelCode === 'L2' && !value) callback(new Error('L2服务经理必须选择实施站点'))
         else callback()
       },
       trigger: 'change'
     }
   ],
-  departmentCode: [{ required: true, message: '请选择服务办事处', trigger: 'change' }]
+  departmentCode: [{ required: true, message: '请选择服务办事处', trigger: 'change' }],
+  assignmentType: [{ required: true, message: '请选择责任类型', trigger: 'change' }],
+  changeReason: [{ required: true, message: '请填写指派原因', trigger: 'blur' }]
 }
 const PROJECT_VERSION_CONFLICT_CODE = 1014024014
 const assignIdempotency = createSubmissionIdempotencyState()
@@ -1505,9 +1514,10 @@ const openAssign = async (row: ProjectMasterVO) => {
   Object.assign(assignForm, {
     userId: undefined,
     levelCode: 'L1',
+    assignmentType: 'PRIMARY',
     siteId: assignSites.value.find((item) => item.primarySite)?.siteId,
     departmentCode: '',
-    effectiveFrom: ''
+    changeReason: ''
   })
   assignIdempotency.reset()
   assignVisible.value = true
@@ -1536,13 +1546,19 @@ const submitAssign = async () => {
     message.error('Project版本缺失，请重新加载项目后再指派')
     return
   }
+  const department = departments.value.find((item) => item.code === assignForm.departmentCode)
+  if (!department?.id) {
+    message.error('办事处部门数据已变化，请重新选择')
+    return
+  }
   const payload = {
-    roleCode: 'SERVICE_MANAGER' as const,
     levelCode: assignForm.levelCode,
     managerId: assignForm.userId!,
     siteId: assignForm.siteId,
+    assignmentType: assignForm.assignmentType,
+    departmentId: department.id,
     departmentCode: assignForm.departmentCode,
-    effectiveFrom: assignForm.effectiveFrom || undefined
+    changeReason: assignForm.changeReason
   }
   const requestIdentity = {
     projectId: assignTarget.value.id,

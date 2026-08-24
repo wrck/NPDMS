@@ -190,15 +190,15 @@ PageResult<ServiceManagerResponsibilityRespVO> getResponsibilities(
         Long rootProjectId, ServiceManagerResponsibilityPageReqVO request, Actor actor);
 ```
 
-- [ ] **Step 1: 实现候选查询编排**
+- [x] **Step 1: 实现候选查询编排**
 
 PROJ先校验项目/站点/部门及MANAGE范围，再调用SYSTEM公开API；响应只暴露规格字段，合法无候选返回空页。
 
-- [ ] **Step 2: 实现责任分布分页**
+- [x] **Step 2: 实现责任分布分页**
 
 按ProjectTreeScope解析可见节点；空集合直接空页。Mapper XML按当前时点查询实际节点的主责/协同、站点/部门和节点状态，固定树序与ID排序。
 
-- [ ] **Step 3: 验证并提交**
+- [x] **Step 3: 验证并提交**
 
 覆盖空范围、跨租户、任意树深度、主责/协同和稳定分页。提交：`feat(project): 增加服务经理责任查询`
 

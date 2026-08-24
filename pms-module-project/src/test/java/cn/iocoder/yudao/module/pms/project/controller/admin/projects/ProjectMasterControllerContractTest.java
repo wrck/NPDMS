@@ -79,7 +79,11 @@ class ProjectMasterControllerContractTest {
         assertThrowsNoField(ProjectCreateReqVO.class, "serviceManagerUserId");
         assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("managerId"));
         assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("siteId"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("assignmentType"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("departmentId"));
         assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("departmentCode"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("changeReason"));
+        assertThrowsNoField(ProjectAssignManagerReqVO.class, "effectiveFrom");
         assertThrowsNoField(ProjectAssignManagerReqVO.class, "officeId");
         assertThrowsNoField(ProjectAssignManagerReqVO.class, "locationId");
     }
@@ -160,6 +164,14 @@ class ProjectMasterControllerContractTest {
             return put.value().length > 0 ? put.value()[0] : "";
         }
         return fail("未覆盖的映射类型：" + mapping.annotationType());
+    }
+
+    @Test
+    void serviceManagerQueryEndpointsUseAssignmentPermission() {
+        assertEndpoint("getServiceManagerCandidates", GetMapping.class,
+                "/{id}/service-manager-candidates", "pms:project:assign");
+        assertEndpoint("getServiceManagerResponsibilities", GetMapping.class,
+                "/{rootId}/service-manager-responsibilities", "pms:project:assign");
     }
 
     @Test
