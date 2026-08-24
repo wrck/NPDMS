@@ -57,4 +57,13 @@ public class ProjectCreateRespVO {
 
     @Schema(description = "是否已同步指派一级服务经理", example = "true")
     private Boolean serviceManagerAssigned;
+
+    @Schema(description = "模板候选结果：UNIQUE/MULTIPLE_MATCHES", example = "UNIQUE")
+    private String matchResult;
+
+    @Schema(description = "首次选模方式：AUTO_UNIQUE/EXPLICIT_SELECTION", example = "AUTO_UNIQUE")
+    private String matchDecisionMode;
+
+    @Schema(description = "首次模板匹配决策稳定操作ID")
+    private String matchOperationId;
 }

@@ -295,6 +295,9 @@ public class ProjectMasterController {
         response.setDeliverableCount(result.deliverableCount());
         response.setGateCount(result.gateCount());
         response.setServiceManagerAssigned(result.serviceManagerAssigned());
+        response.setMatchResult(result.matchResult());
+        response.setMatchDecisionMode(result.matchDecisionMode());
+        response.setMatchOperationId(result.matchOperationId());
         return response;
     }
 

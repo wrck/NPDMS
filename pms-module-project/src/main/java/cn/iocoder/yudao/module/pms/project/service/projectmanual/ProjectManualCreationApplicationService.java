@@ -8,12 +8,19 @@ import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.ProjectAttributeOwnerSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.ProjectAttributeSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecisionRules;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.Decision;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.IdempotencyScope;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.SuccessFacts;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +31,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
+import java.time.LocalDateTime;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
@@ -50,6 +58,10 @@ public class ProjectManualCreationApplicationService {
     private OrganizationScopeApi organizationScopeApi;
     @Resource
     private ProjectSiteApplicationService projectSiteService;
+    @Resource
+    private ProjectAttributeResolutionService projectAttributeResolutionService;
+    @Resource
+    private ProjectTemplateMatchHistoryService templateMatchHistoryService;
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
@@ -57,7 +69,7 @@ public class ProjectManualCreationApplicationService {
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), CREATE_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), ManualProjectCreateResult.class,
-                () -> createOnce(command, actor.tenantId()),
+                () -> createOnce(command, actor),
                 result -> successFacts(command, actor, result));
         if (execution.decision() == Decision.CONFLICT) {
             throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
@@ -68,10 +80,10 @@ public class ProjectManualCreationApplicationService {
         return execution.response();
     }
 
-    private ManualProjectCreateResult createOnce(ManualProjectCreateCommand command, Long tenantId) {
+    private ManualProjectCreateResult createOnce(ManualProjectCreateCommand command, Actor actor) {
         CompanyRespDTO company = resolveCompany(command.orderOfficeCompanyId());
         DeptRespDTO department = resolveDepartment(command.orderOfficeDepartmentId());
-        command.draft().setTenantId(tenantId);
+        command.draft().setTenantId(actor.tenantId());
         command.draft().setCompanyId(company.getId());
         command.draft().setCompanyCode(company.getCode());
         command.draft().setCompanyName(company.getName());
@@ -80,18 +92,36 @@ public class ProjectManualCreationApplicationService {
         command.draft().setDepartmentName(department.getName());
         command.draft().setLocationResolutionStatus(projectSiteService.validateLocationScope(
                 command.sites(), command.draft().getImplementationLocation()));
-        ProjectMasterDO project = projectCreationService.createProject(command.draft(),
-                company.getCode(), department.getCode(), command.templateRevisionId(),
-                command.candidateWatermark(), null);
+        TemplateMatchDecision matchDecision = command.draft().getParentId() == null
+                ? projectAttributeResolutionService.resolveInitial(attributes(command.draft()),
+                        command.templateRevisionId(), command.candidateWatermark())
+                : null;
+        ProjectMasterDO project = matchDecision == null
+                ? projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
+                        command.templateRevisionId(), command.candidateWatermark(), null)
+                : projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
+                        matchDecision, null);
         projectSiteService.bindSites(project.getId(), command.sites());
-        ProjectInstantiation instances = projectCreationService.getInstancesForCreation(project.getId(), tenantId);
+        ProjectInstantiation instances = projectCreationService.getInstancesForCreation(project.getId(), actor.tenantId());
+        String matchOperationId = null;
+        if (matchDecision != null) {
+            matchOperationId = actor.correlationId();
+            templateMatchHistoryService.appendInitial(new InitialMatchHistoryCommand(
+                    actor.tenantId(), project.getId(), attributes(project),
+                    ProjectAttributeOwnerSnapshot.manualProject(), matchDecision,
+                    matchDecision.matchedTemplateRevisionId(), ProjectTemplateMatchHistoryService.INPUT_MANUAL,
+                    null, actor.actorId(), project.getCreationReason(), LocalDateTime.now(),
+                    command.idempotencyKey(), command.requestDigest(), matchOperationId,
+                    actor.correlationId(), null));
+        }
         return new ManualProjectCreateResult(
                 project.getId(), project.getProjectCode(), project.getStatus(), project.getLifecycleStatus(),
                 project.getCurrentStage(), project.getAssignmentStatus(), project.getVersion(),
                 project.getLifecycleTemplateId(), project.getLifecycleTemplateRevisionNo(),
                 project.getTemplateLoadMethod(), instances.getStages().size(), instances.getTasks().size(),
                 instances.getMilestones().size(), instances.getDeliverables().size(), instances.getGates().size(),
-                false);
+                false, matchDecision == null ? null : matchDecision.matchResult(),
+                matchDecision == null ? null : matchDecision.decisionMode(), matchOperationId);
     }
 
     private SuccessFacts successFacts(ManualProjectCreateCommand command, Actor actor,
@@ -106,6 +136,9 @@ public class ProjectManualCreationApplicationService {
         detail.put("milestoneCount", result.milestoneCount());
         detail.put("deliverableCount", result.deliverableCount());
         detail.put("gateCount", result.gateCount());
+        detail.put("matchResult", result.matchResult());
+        detail.put("matchDecisionMode", result.matchDecisionMode());
+        detail.put("matchOperationId", result.matchOperationId());
         return new SuccessFacts("PROJECT_CREATE", "Project", String.valueOf(result.id()),
                 actor.correlationId(), JsonUtils.toJsonString(detail),
                 "ProjectCreated", JsonUtils.toJsonString(result));
@@ -120,6 +153,19 @@ public class ProjectManualCreationApplicationService {
                 || actor == null || actor.tenantId() == null || actor.actorId() == null
                 || actor.correlationId() == null || actor.correlationId().isBlank()) {
             throw new IllegalArgumentException("正式项目创建命令不完整");
+        }
+        command.draft().setCreationReason(
+                TemplateMatchDecisionRules.requireReason(command.draft().getCreationReason()));
+        if (command.draft().getParentId() == null) {
+            ProjectAttributeSnapshot normalized = TemplateMatchDecisionRules.requireManualCreationAttributes(
+                    attributes(command.draft()));
+            command.draft().setSigningMethod(normalized.signingMethod());
+            command.draft().setProjectCategory(normalized.projectCategory());
+            command.draft().setImplementationMode(normalized.implementationMode());
+            command.draft().setMajorProjectLevel(null);
+        } else if (command.draft().getMajorProjectLevel() != null
+                && !command.draft().getMajorProjectLevel().isBlank()) {
+            throw new IllegalArgumentException("手工项目不得填写CRM重大项目级别");
         }
         companyApi.validateCompanyList(List.of(command.orderOfficeCompanyId()));
         deptApi.validateDeptList(List.of(command.orderOfficeDepartmentId()));
@@ -153,6 +199,11 @@ public class ProjectManualCreationApplicationService {
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256摘要算法不可用", ex);
         }
+    }
+
+    private ProjectAttributeSnapshot attributes(ProjectMasterDO project) {
+        return new ProjectAttributeSnapshot(project.getSigningMethod(), project.getProjectCategory(),
+                project.getImplementationMode(), project.getMajorProjectLevel());
     }
 
     public record Actor(Long tenantId, Long actorId, String correlationId) {

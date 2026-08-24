@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
 
 import java.util.List;
 
@@ -32,6 +33,11 @@ public interface ProjectManualCreationService {
     ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
                                   String orderOfficeDepartmentCode, Long templateRevisionId,
                                   String candidateWatermark, Long serviceManagerUserId);
+
+    /** 使用应用层已在同一事务内确定的模板匹配决策创建根项目。 */
+    ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
+                                  String orderOfficeDepartmentCode, TemplateMatchDecision matchDecision,
+                                  Long serviceManagerUserId);
 
     /**
      * 更新可编辑属性（BR-7：名称/客户/合同号/实施地点；编码、父节点、来源、模板绑定、状态不可改，

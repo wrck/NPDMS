@@ -173,25 +173,25 @@ Expected: 三类matchResult、两种首次决策、三种trigger及非法矩阵�
 - Consumes: Task 2的`resolveInitial`和`appendInitial`。
 - Produces: `ManualProjectCreateResult`新增`matchResult`、`decisionMode`和`matchOperationId`。
 
-- [ ] **Step 1: 在事务前验证创建原因和手工重大级别**
+- [x] **Step 1: 在事务前验证创建原因和手工重大级别**
 
 Controller保留字段用于服务端负向验证，但前端不提交；Application Service在进入`PlatformCommandExecutionApi.execute`前拒绝null/空白`creationReason`以及任何非空`majorProjectLevel`。
 
-- [ ] **Step 2: 用统一判定结果替换只返回模板ID的选择逻辑**
+- [x] **Step 2: 用统一判定结果替换只返回模板ID的选择逻辑**
 
 根项目调用`resolveInitial`并把已选revision传给实例化；子项目继承冻结模板的现有路径不调用匹配器，也不得伪造PM-07匹配决策。Task与验收材料明确本Feature INITIAL_CREATE闭环针对执行四属性模板匹配的正式根项目创建路径。
 
-- [ ] **Step 3: 在同一事务追加INITIAL_CREATE历史**
+- [x] **Step 3: 在同一事务追加INITIAL_CREATE历史**
 
 Project取得稳定ID后、事务返回前写历史；历史使用Project最终四属性、冻结revision、创建幂等键/摘要、认证用户ID、creationReason和actor correlationId。任何历史插入、实例化或站点绑定失败必须整体回滚。
 
-- [ ] **Step 4: 扩展创建响应与原子性验证**
+- [x] **Step 4: 扩展创建响应与原子性验证**
 
 验证AUTO_UNIQUE、合法EXPLICIT_SELECTION、无匹配、多匹配未选择、非空重大级别、历史插入失败回滚、实例化失败回滚、幂等重放和并发唯一性。
 
 Run: `mvn.cmd -pl pms-module-project -Dtest=ProjectManualCreationApplicationServiceTest,ProjectManualCreationServiceImplTest,ProjectManualCreationMySqlIntegrationTest,ProjectManualCreationConcurrencyMySqlIntegrationTest test`
 
-- [ ] **Step 5: 更新Task状态并提交**
+- [x] **Step 5: 更新Task状态并提交**
 
 提交信息：`feat(project): 原子记录首次模板匹配决策`
 

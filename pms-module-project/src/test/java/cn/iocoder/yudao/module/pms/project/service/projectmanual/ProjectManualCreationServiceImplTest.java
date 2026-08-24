@@ -28,10 +28,11 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Visible
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecisionRules;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
@@ -64,6 +65,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
@@ -106,6 +108,8 @@ class ProjectManualCreationServiceImplTest {
     @Mock
     private ProjectTemplateService projectTemplateService;
     @Mock
+    private ProjectAttributeResolutionService projectAttributeResolutionService;
+    @Mock
     private ProjectCodeAllocator projectCodeAllocator;
     @Mock
     private TaskExecutionContractFactory taskExecutionContractFactory;
@@ -145,8 +149,8 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void creationBlockedWhenNoTemplateMatch() {
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(withWatermark(TemplateMatchResult.noMatch("无匹配的生效模板")));
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenThrow(exception(PROJECT_TEMPLATE_NO_MATCH, "无匹配的生效模板"));
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.createProject(validDraft(), null, null, null, CANDIDATE_WATERMARK, null));
@@ -159,9 +163,8 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void creationBlockedOnSamePriorityMultiMatch() {
-        TemplateMatchResult multi = TemplateMatchResult.multiMatch(List.of("模板【TPL-A】", "模板【TPL-B】"));
-        multi.setCandidateWatermark(CANDIDATE_WATERMARK);
-        when(projectTemplateService.matchPreview(any(), any(), any(), any())).thenReturn(multi);
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenThrow(exception(PROJECT_TEMPLATE_AMBIGUOUS, "模板【TPL-A】；模板【TPL-B】"));
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.createProject(validDraft(), null, null, null, CANDIDATE_WATERMARK, null));
@@ -174,8 +177,8 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void creationRejectsStaleCandidateWatermarkBeforeSelectingRevision() {
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(matchedCandidate(9L, 1002L));
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenThrow(exception(PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT));
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.createProject(validDraft(), null, null, 1002L,
@@ -192,8 +195,8 @@ class ProjectManualCreationServiceImplTest {
     void manualSelectionTakesEffectWithTwoPhaseNamespaceWrite() {
         Long templateId = 9L;
         Long revisionId = 1002L;
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(matchedCandidate(templateId, revisionId));
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenReturn(decision(templateId, revisionId, TemplateMatchDecisionRules.DECISION_EXPLICIT));
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-M"));
         when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
                 revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 2));
@@ -264,8 +267,8 @@ class ProjectManualCreationServiceImplTest {
     void rejectsTemplateWithoutS0BeforeAllocatingCode() {
         Long templateId = 9L;
         Long revisionId = 1001L;
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(matchedCandidate(templateId, revisionId));
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenReturn(decision(templateId, revisionId, TemplateMatchDecisionRules.DECISION_EXPLICIT));
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-S2"));
         when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
                 revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
@@ -286,8 +289,8 @@ class ProjectManualCreationServiceImplTest {
     void manualSelectionRejectsNonActiveTemplate() {
         Long templateId = 9L;
         Long revisionId = 1001L;
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(matchedCandidate(templateId, revisionId));
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenReturn(decision(templateId, revisionId, TemplateMatchDecisionRules.DECISION_EXPLICIT));
         when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
                 revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
         ProjectTemplateDO retired = activeTemplate(templateId, "TPL-R");
@@ -307,8 +310,8 @@ class ProjectManualCreationServiceImplTest {
     void manualSelectionRejectsTemplateWithoutPublishedRevision() {
         Long templateId = 9L;
         Long revisionId = 1000L;
-        when(projectTemplateService.matchPreview(any(), any(), any(), any()))
-                .thenReturn(matchedCandidate(templateId, revisionId));
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenReturn(decision(templateId, revisionId, TemplateMatchDecisionRules.DECISION_EXPLICIT));
         when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-D"));
         when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
                 revision(templateId, TemplateRules.REVISION_STATUS_DRAFT, 0));
@@ -325,13 +328,9 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void autoDefaultBindsUniqueMatchedTemplate() {
-        TemplateMatchCandidate candidate = new TemplateMatchCandidate();
-        candidate.setTemplateId(5L);
-        candidate.setTemplateRevisionId(1001L);
-        candidate.setCode("TPL-AUTO");
-        TemplateMatchResult match = TemplateMatchResult.matched(candidate);
-        match.setCandidateWatermark(CANDIDATE_WATERMARK);
-        when(projectTemplateService.matchPreview(any(), any(), any(), any())).thenReturn(match);
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenReturn(decision(5L, 1001L, TemplateMatchDecisionRules.DECISION_AUTO_UNIQUE));
+        when(projectTemplateService.getProjectTemplate(5L)).thenReturn(activeTemplate(5L, "TPL-AUTO"));
         when(projectTemplateService.getRevisionById(1001L)).thenReturn(
                 revision(5L, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
         when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
@@ -357,12 +356,9 @@ class ProjectManualCreationServiceImplTest {
 
     @Test
     void creationAssignsServiceManagerAndOrderOfficeRelation() {
-        TemplateMatchCandidate candidate = new TemplateMatchCandidate();
-        candidate.setTemplateId(5L);
-        candidate.setTemplateRevisionId(1001L);
-        TemplateMatchResult match = TemplateMatchResult.matched(candidate);
-        match.setCandidateWatermark(CANDIDATE_WATERMARK);
-        when(projectTemplateService.matchPreview(any(), any(), any(), any())).thenReturn(match);
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenReturn(decision(5L, 1001L, TemplateMatchDecisionRules.DECISION_AUTO_UNIQUE));
+        when(projectTemplateService.getProjectTemplate(5L)).thenReturn(activeTemplate(5L, "TPL-AUTO"));
         when(projectTemplateService.getRevisionById(1001L)).thenReturn(
                 revision(5L, TemplateRules.REVISION_STATUS_PUBLISHED, 1));
         when(projectTemplateService.getRevisionContent(5L, 1)).thenReturn(contentWithS0Only());
@@ -624,18 +620,9 @@ class ProjectManualCreationServiceImplTest {
         return revision;
     }
 
-    private TemplateMatchResult matchedCandidate(Long templateId, Long revisionId) {
-        TemplateMatchCandidate candidate = new TemplateMatchCandidate();
-        candidate.setTemplateId(templateId);
-        candidate.setTemplateRevisionId(revisionId);
-        TemplateMatchResult result = TemplateMatchResult.matched(candidate);
-        result.setCandidateWatermark(CANDIDATE_WATERMARK);
-        return result;
-    }
-
-    private TemplateMatchResult withWatermark(TemplateMatchResult result) {
-        result.setCandidateWatermark(CANDIDATE_WATERMARK);
-        return result;
+    private TemplateMatchDecision decision(Long templateId, Long revisionId, String decisionMode) {
+        return new TemplateMatchDecision(TemplateMatchDecisionRules.MATCH_UNIQUE, CANDIDATE_WATERMARK,
+                TemplateMatchDecisionRules.MATCHER_VERSION, decisionMode, templateId, revisionId, 1);
     }
 
     private AssignServiceManagerCommand assignCommand(LocalDateTime effectiveFrom) {

@@ -17,5 +17,8 @@ public record ManualProjectCreateResult(
         Integer milestoneCount,
         Integer deliverableCount,
         Integer gateCount,
-        Boolean serviceManagerAssigned) {
+        Boolean serviceManagerAssigned,
+        String matchResult,
+        String matchDecisionMode,
+        String matchOperationId) {
 }

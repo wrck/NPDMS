@@ -5,6 +5,11 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecisionRules;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.company.dto.CompanyRespDTO;
@@ -31,6 +36,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
 
@@ -51,6 +58,10 @@ class ProjectManualCreationApplicationServiceTest {
     private OrganizationScopeApi organizationScopeApi;
     @Mock
     private ProjectSiteApplicationService projectSiteService;
+    @Mock
+    private ProjectAttributeResolutionService projectAttributeResolutionService;
+    @Mock
+    private ProjectTemplateMatchHistoryService templateMatchHistoryService;
 
     @InjectMocks
     private ProjectManualCreationApplicationService service;
@@ -71,7 +82,9 @@ class ProjectManualCreationApplicationServiceTest {
     @SuppressWarnings("unchecked")
     void applicationEntryBuildsResultInsidePlatformExecution() {
         ProjectMasterDO project = project();
-        when(projectCreationService.createProject(any(), any(), any(), any(), any(), any())).thenReturn(project);
+        TemplateMatchDecision matchDecision = decision();
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
+        when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull())).thenReturn(project);
         when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
         when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<Object> operation = invocation.getArgument(3);
@@ -88,10 +101,20 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("ACTIVE", result.lifecycleStatus());
         assertEquals("S0", result.currentStage());
         assertEquals("UNASSIGNED", result.assignmentStatus());
+        assertEquals(TemplateMatchDecisionRules.MATCH_UNIQUE, result.matchResult());
+        assertEquals(TemplateMatchDecisionRules.DECISION_EXPLICIT, result.matchDecisionMode());
+        assertEquals("correlation-1", result.matchOperationId());
         verify(authorizationService).assertCanCreate(7L);
         ArgumentCaptor<ProjectMasterDO> draftCaptor = ArgumentCaptor.forClass(ProjectMasterDO.class);
-        verify(projectCreationService).createProject(draftCaptor.capture(), any(), any(), any(), any(), any());
+        verify(projectCreationService).createProject(draftCaptor.capture(), any(), any(), eq(matchDecision), isNull());
         assertEquals(1L, draftCaptor.getValue().getTenantId());
+        ArgumentCaptor<InitialMatchHistoryCommand> historyCaptor =
+                ArgumentCaptor.forClass(InitialMatchHistoryCommand.class);
+        verify(templateMatchHistoryService).appendInitial(historyCaptor.capture());
+        assertEquals(100L, historyCaptor.getValue().projectId());
+        assertEquals(7L, historyCaptor.getValue().operatorId());
+        assertEquals("业务立项", historyCaptor.getValue().changeReason());
+        assertEquals("correlation-1", historyCaptor.getValue().operationId());
     }
 
     @Test
@@ -132,6 +155,38 @@ class ProjectManualCreationApplicationServiceTest {
     }
 
     @Test
+    void rootCreationRejectsMajorProjectLevelBeforePlatformExecution() {
+        ManualProjectCreateCommand invalid = command();
+        invalid.draft().setMajorProjectLevel("MAJOR");
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(invalid, actor()));
+
+        verifyNoInteractions(platformFactService, authorizationService, projectCreationService);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void historyFailureEscapesPlatformTransaction() {
+        ProjectMasterDO project = project();
+        TemplateMatchDecision matchDecision = decision();
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
+        when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull())).thenReturn(project);
+        when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
+        doThrow(new IllegalStateException("history insert failed"))
+                .when(templateMatchHistoryService).appendInitial(any());
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            Supplier<Object> operation = invocation.getArgument(3);
+            return operation.get();
+        });
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> service.create(command(), actor()));
+
+        assertEquals("history insert failed", exception.getMessage());
+        verify(projectSiteService).bindSites(eq(100L), any());
+    }
+
+    @Test
     void childCreationMayInheritTemplateWithoutCandidateWatermark() {
         ManualProjectCreateCommand base = command();
         base.draft().setParentId(100L);
@@ -150,8 +205,17 @@ class ProjectManualCreationApplicationServiceTest {
         ProjectMasterDO draft = new ProjectMasterDO();
         draft.setCreationReason("业务立项");
         draft.setImplementationLocation("上海");
+        draft.setSigningMethod("DIRECT");
+        draft.setProjectCategory("GENERAL");
+        draft.setImplementationMode("DIRECT_SERVICE");
         return new ManualProjectCreateCommand(draft, 10L, 20L, java.util.List.of(), 9002L, "candidate-watermark-v1",
                 "key-1", "a".repeat(64));
+    }
+
+    private TemplateMatchDecision decision() {
+        return new TemplateMatchDecision(TemplateMatchDecisionRules.MATCH_UNIQUE, "candidate-watermark-v1",
+                TemplateMatchDecisionRules.MATCHER_VERSION, TemplateMatchDecisionRules.DECISION_EXPLICIT,
+                9L, 9002L, 2);
     }
 
     private ProjectManualCreationApplicationService.Actor actor() {
@@ -166,6 +230,7 @@ class ProjectManualCreationApplicationServiceTest {
         project.setLifecycleStatus("ACTIVE");
         project.setCurrentStage("S0");
         project.setAssignmentStatus("UNASSIGNED");
+        project.setCreationReason("业务立项");
         project.setVersion(0);
         project.setLifecycleTemplateId(9L);
         project.setLifecycleTemplateRevisionNo(2);
