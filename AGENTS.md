@@ -110,6 +110,14 @@ After implementation, report:
 - Make surgical changes. Touch only files and lines required by the current task; do not mix unrelated refactoring, formatting, comment cleanup, or modernization into the change.
 - Define verifiable outcomes before implementation. Every changed line must trace to the current requirement or task, and every task must finish with proportionate tests, build checks, or runtime verification.
 
+## 9. Database query coding baseline
+
+- Before adding or changing a database query, read and follow `docs/coding/database-query-interface.md`.
+- Except for primary-key and stable composite-unique-key lookups, a Mapper query method must accept exactly one scenario-specific Query object; long positional parameter lists, `Map`, and universal query objects are prohibited.
+- Use type-safe `LambdaQueryWrapperX` for simple single-table predicates; textual SQL for joins, window functions, dynamic collections, and locks must be placed in Mapper XML.
+- SQL annotations, `${}`, `.last(...)`, and SQL construction in Service or Controller code are prohibited.
+- Empty permission scopes and empty collection filters must return no rows rather than broadening the query; tenant, authorization, and module table-ownership boundaries remain mandatory.
+
 
 
 # 项目执行效率规则
