@@ -265,15 +265,15 @@ public class ProjectMasterDO extends TenantBaseDO {
      */
     private String assignmentStatus;
     /**
-     * 项目进度百分比（来源属 PM-11 阶段推进/任务闭环，本 Feature 仅消费做汇总；前向扩列）
+     * V1.7兼容读字段；F-PROJ-002新写命令以版本化进度事实和快照为真值。
      */
     private BigDecimal progress;
     /**
-     * 相对直接父项目的权重（NULL=等权，读时按直接子项目数归一化；前向扩列）
+     * V1.7兼容读字段；正式权重写入进度策略版本项。
      */
     private BigDecimal aggregationWeight;
     /**
-     * 权重来源：DEFAULT_EQUAL 默认等权 / MANUAL 人工设置（前向扩列）
+     * V1.7兼容读字段；不得作为F-PROJ-002策略写命令输入。
      */
     private String weightSource;
     /**

@@ -208,26 +208,26 @@ Expected: 精确分配、部分分配、超配、重复SN、失效SN、陈旧版
 - `ProjectProgressPolicyRevisionDO.status`: `DRAFT/APPROVING/ACTIVE/REJECTED/SUPERSEDED`。
 - `ProjectProgressSnapshotDO.status`: `READY/PENDING`，并保存`policyRevisionId/treeVersion/sourceWatermark/calculatedAt`。
 
-- [ ] **Step 1: 创建V71前向迁移**
+- [x] **Step 1: 创建V71前向迁移**
 
 所有业务表含`tenant_id`、审计字段、逻辑删除和必要版本；策略生效区间不可重叠由Service锁定父项目后校验；快照以`project_id + policy_revision_id + tree_version + source_watermark`唯一。
 
-- [ ] **Step 2: 明确V1.7兼容字段处置**
+- [x] **Step 2: 明确V1.7兼容字段处置**
 
 保留V60字段以兼容旧读模型，但Java注释和服务入口明确禁止把`progress/aggregation_weight/weight_source`当作新写命令真值；不得修改V60～V62。
 
-- [ ] **Step 3: 增加DO、Mapper和迁移合同测试**
+- [x] **Step 3: 增加DO、Mapper和迁移合同测试**
 
 迁移测试必须验证表、约束、索引、Owner前缀、V70/V71顺序和禁止编辑旧迁移。
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
 
 ```powershell
 py -3.13 -B -m unittest scripts.tests.test_fproj002_v18_migration
 mvn -pl pms-module-project -am -DskipTests compile
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(project): 建立拆分树与进度正式载体`
 
