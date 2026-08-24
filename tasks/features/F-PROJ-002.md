@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 9 提供全部后代闭环守卫
+> 当前任务：Task 10 实现响应式拆分、项目树和进度界面
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
@@ -33,8 +33,9 @@
 
 ## 下一步
 
-Task 8 已完成不可变权重策略修订、BPM提交与重复/乱序回调处理、直接子项目逐级快照、`PENDING`缺失语义及正式API；V1.7旧权重/进度运行入口已退役。自动化规则、服务、API合同与全模块回归通过，MySQL用例按既定停库约束跳过并留待Task 11数据库闭环统一执行。下一步执行Task 9，提供当前完整树版本下的全部后代闭环守卫。
+Task 9 已完成当前完整树版本下的全部后代闭环守卫、权限脱敏、根项目并发锁、闭环提交接线和审计；仅以权威`lifecycle_status`认定关闭，历史闭环表终态不能覆盖`ACTIVE`生命周期。自动化守卫、适配器和API合同验证通过，全模块回归及统一服务装配通过，MySQL用例按既定停库约束跳过并留待Task 11数据库闭环统一执行。下一步执行Task 10，实现响应式拆分、项目树和进度界面。
 
 ## 已登记的非阻断问题
 
 - BPM公共流程状态事件当前不携带最终审批人编号，无法可靠填写`approved_by`；本任务保留流程实例、审批完成时间和完整策略版本证据，不用发起人或系统用户伪造审批人。该字段补齐需BPM公共事件提供权威最终审批人后前向修正，不影响策略审批、生效区间和快照链继续实施。
+- 当前项目权威状态仅有`ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED`，现有闭环审批也没有独立的暂停事实源。守卫将未关闭且非闭环审批中的项目保守归类为`EXECUTING`，因此暂停不会被误放行；待后续执行域提供权威暂停状态后，`ClosureStatePort.PAUSED`可返回精确阻断类型。该展示粒度不影响当前门禁正确性。

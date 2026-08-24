@@ -546,21 +546,21 @@ record ProjectClosureGuardResult(
 - PROJ按当前完整树版本检查全部层级后代；ACC适配器只提供执行/暂停/关闭审批状态，不把审批表或Mapper暴露给PROJ。
 - 任一后代未关闭或必要汇总`PENDING`时拒绝；成功只表示可进入CLO-02，不直接通过或归档闭环。
 
-- [ ] **Step 1: 实现版本一致的全后代守卫**
+- [x] **Step 1: 实现版本一致的全后代守卫**
 
 返回未满足项目的授权后摘要；无权项目只返回稳定ID和阻断类型，不泄露敏感信息。
 
-- [ ] **Step 2: 在现有闭环提交入口调用守卫适配器**
+- [x] **Step 2: 在现有闭环提交入口调用守卫适配器**
 
 这只是当前模块化单体兼容接线，不改变ACC/CLO Owner；后续物理拆分时由ACC模块继续依赖PROJ公开守卫。
 
-- [ ] **Step 3: 验证**
+- [x] **Step 3: 验证**
 
 ```powershell
 mvn -pl pms-module-project -am -Dtest=ProjectClosureGuardServiceTest test
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 `feat(project): 增加全部后代闭环守卫`
 
