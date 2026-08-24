@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePath
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,13 +39,14 @@ class ProjectTreeProjectionServiceTest {
     @Mock ProjectTreeChangeMapper changeMapper;
     @Mock ProjectCommandExecutionService commandExecutionService;
     @Mock ProjectTreeMetrics metrics;
+    @Mock ProjectTreeScopeService scopeService;
 
     private ProjectTreeProjectionService service;
 
     @BeforeEach
     void setUp() {
         service = new ProjectTreeProjectionService(projectMapper, versionMapper, pathMapper,
-                changeMapper, commandExecutionService, metrics);
+                changeMapper, commandExecutionService, metrics, scopeService);
     }
 
     @Test
@@ -133,6 +135,8 @@ class ProjectTreeProjectionServiceTest {
         ArgumentCaptor<ProjectMasterDO> update = ArgumentCaptor.forClass(ProjectMasterDO.class);
         verify(projectMapper).updateById(update.capture());
         assertEquals(3L, update.getValue().getParentId());
+        verify(scopeService).assertFullAccess(9L, 2L, 7L);
+        verify(scopeService).assertFullAccess(9L, 3L, 7L);
         verify(changeMapper).insert(any(cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeChangeDO.class));
     }
 

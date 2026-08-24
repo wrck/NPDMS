@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Collection;
 import java.util.List;
 
 @Mapper
@@ -22,6 +23,24 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
                 .orderByAsc(ProjectTreePathDO::getDistance, ProjectTreePathDO::getDescendantProjectId));
     }
 
+    default List<ProjectTreePathDO> selectByAncestors(Long rootId, Long treeVersion,
+                                                       Collection<Long> ancestorIds) {
+        if (ancestorIds == null || ancestorIds.isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<ProjectTreePathDO>()
+                .eq(ProjectTreePathDO::getRootProjectId, rootId)
+                .eq(ProjectTreePathDO::getTreeVersion, treeVersion)
+                .in(ProjectTreePathDO::getAncestorProjectId, ancestorIds));
+    }
+
+    default List<ProjectTreePathDO> selectByDescendants(Long rootId, Long treeVersion,
+                                                         Collection<Long> descendantIds) {
+        if (descendantIds == null || descendantIds.isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<ProjectTreePathDO>()
+                .eq(ProjectTreePathDO::getRootProjectId, rootId)
+                .eq(ProjectTreePathDO::getTreeVersion, treeVersion)
+                .in(ProjectTreePathDO::getDescendantProjectId, descendantIds));
+    }
+
     @Select("""
             <script>
             SELECT p.*
@@ -31,6 +50,10 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
             WHERE t.tenant_id = #{tenantId} AND t.deleted = b'0'
               AND t.root_project_id = #{rootId} AND t.tree_version = #{treeVersion}
               AND t.ancestor_project_id = #{ancestorId}
+              AND p.id IN
+              <foreach collection="visibleProjectIds" item="visibleProjectId" open="(" separator="," close=")">
+                #{visibleProjectId}
+              </foreach>
               <if test="directOnly">AND t.distance = 1</if>
               <if test="directOnly == false">AND t.distance &gt; 0</if>
             ORDER BY p.tree_depth, p.tree_sort, p.id
@@ -42,6 +65,7 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
                                                 @Param("treeVersion") Long treeVersion,
                                                 @Param("ancestorId") Long ancestorId,
                                                 @Param("directOnly") boolean directOnly,
+                                                @Param("visibleProjectIds") Collection<Long> visibleProjectIds,
                                                 @Param("offset") int offset,
                                                 @Param("limit") int limit);
 
@@ -54,6 +78,10 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
             WHERE t.tenant_id = #{tenantId} AND t.deleted = b'0'
               AND t.root_project_id = #{rootId} AND t.tree_version = #{treeVersion}
               AND t.descendant_project_id = #{descendantId}
+              AND p.id IN
+              <foreach collection="visibleProjectIds" item="visibleProjectId" open="(" separator="," close=")">
+                #{visibleProjectId}
+              </foreach>
               <if test="includeSelf == false">AND t.distance &gt; 0</if>
             ORDER BY t.distance DESC
             LIMIT #{offset}, #{limit}
@@ -64,6 +92,7 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
                                          @Param("treeVersion") Long treeVersion,
                                          @Param("descendantId") Long descendantId,
                                          @Param("includeSelf") boolean includeSelf,
+                                         @Param("visibleProjectIds") Collection<Long> visibleProjectIds,
                                          @Param("offset") int offset,
                                          @Param("limit") int limit);
 
@@ -75,6 +104,10 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
             WHERE t.tenant_id = #{tenantId} AND t.deleted = b'0'
               AND t.root_project_id = #{rootId} AND t.tree_version = #{treeVersion}
               AND t.distance = 0 AND p.business_level_code = #{businessLevelCode}
+              AND p.id IN
+              <foreach collection="visibleProjectIds" item="visibleProjectId" open="(" separator="," close=")">
+                #{visibleProjectId}
+              </foreach>
             ORDER BY p.tree_depth, p.tree_sort, p.id
             LIMIT #{offset}, #{limit}
             """)
@@ -82,6 +115,7 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
                                                   @Param("rootId") Long rootId,
                                                   @Param("treeVersion") Long treeVersion,
                                                   @Param("businessLevelCode") String businessLevelCode,
+                                                  @Param("visibleProjectIds") Collection<Long> visibleProjectIds,
                                                   @Param("offset") int offset,
                                                   @Param("limit") int limit);
 }

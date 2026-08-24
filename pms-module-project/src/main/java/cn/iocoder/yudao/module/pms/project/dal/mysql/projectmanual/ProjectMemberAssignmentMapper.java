@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -29,5 +30,16 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
                 .eq(ProjectMemberAssignmentDO::getProjectId, projectId)
                 .eq(ProjectMemberAssignmentDO::getMemberRole, memberRole)
                 .orderByAsc(ProjectMemberAssignmentDO::getEffectiveFrom));
+    }
+
+    default List<ProjectMemberAssignmentDO> selectActiveByUser(Long userId, LocalDateTime at) {
+        return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+                .eq(ProjectMemberAssignmentDO::getUserId, userId)
+                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
+                        .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, at))
+                .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
+                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, at))
+                .orderByAsc(ProjectMemberAssignmentDO::getProjectId, ProjectMemberAssignmentDO::getId));
     }
 }

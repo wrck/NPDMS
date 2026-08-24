@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChan
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitPreviewCommand;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ class ProjectSplitApplicationServiceTest {
     @Mock ProjectTreeProjectionService treeProjectionService;
     @Mock ProjectTreeChangeMapper treeChangeMapper;
     @Mock ProjectSplitMetrics metrics;
+    @Mock ProjectTreeScopeService treeScopeService;
 
     private ProjectSplitApplicationService service;
 
@@ -52,7 +54,7 @@ class ProjectSplitApplicationServiceTest {
     void setUp() {
         service = new ProjectSplitApplicationService(commandExecutionService, draftService, previewService,
                 requestMapper, itemMapper, projectMapper, childCreationService, deliveryScopeApi,
-                treeProjectionService, treeChangeMapper, metrics);
+                treeProjectionService, treeChangeMapper, metrics, treeScopeService);
     }
 
     @Test
@@ -87,6 +89,7 @@ class ProjectSplitApplicationServiceTest {
         assertFalse(result.replayed());
         assertEquals(200L, result.projects().getFirst().projectId());
         assertEquals(8L, result.treeVersion());
+        verify(treeScopeService).assertFullAccess(9L, 100L, 7L);
         verify(deliveryScopeApi).applySplit(argThat(value -> value.projectIdsByClientItemKey().get("A") == 200L));
         verify(treeProjectionService).publish(eq(100L), eq(8L), anyString());
         verify(treeChangeMapper).insert(any(ProjectTreeChangeDO.class));

@@ -17,6 +17,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChan
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult.CreatedProject;
@@ -53,6 +54,7 @@ public class ProjectSplitApplicationService {
     private final ProjectTreeProjectionService treeProjectionService;
     private final ProjectTreeChangeMapper treeChangeMapper;
     private final ProjectSplitMetrics metrics;
+    private final ProjectTreeScopeService treeScopeService;
 
     public ApplyProjectSplitResult apply(ApplyProjectSplitCommand command, ProjectSplitDraftService.Actor actor) {
         validate(command, actor);
@@ -97,6 +99,7 @@ public class ProjectSplitApplicationService {
                 || !Objects.equals(parent.getVersion(), command.expectedParentVersion())) {
             throw exception(PROJECT_SPLIT_APPLY_VERSION_CONFLICT);
         }
+        treeScopeService.assertFullAccess(actor.actorId(), parent.getId(), command.expectedTreeVersion());
         ProjectSplitPreviewService.PreviewResult preview = previewService.preview(
                 new ProjectSplitPreviewCommand(request.getId(), command.expectedDraftVersion()), actor);
         if (!preview.valid()) {

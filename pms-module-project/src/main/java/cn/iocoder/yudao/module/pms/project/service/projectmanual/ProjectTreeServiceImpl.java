@@ -1,8 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectTreeRules;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -14,6 +17,7 @@ import java.util.Map;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_WEIGHT_SUM_INVALID;
 
 /**
@@ -27,10 +31,15 @@ public class ProjectTreeServiceImpl implements ProjectTreeService {
 
     @Resource
     private ProjectMasterMapper projectMasterMapper;
+    @Resource
+    private ProjectTreeVersionMapper projectTreeVersionMapper;
+    @Resource
+    private ProjectTreeScopeService projectTreeScopeService;
 
     @Override
-    public ProjectProgress getProgress(Long projectId) {
+    public ProjectProgress getProgress(Long projectId, Long actorId) {
         ProjectMasterDO node = validateProjectExists(projectId);
+        assertFullAccess(node, actorId);
         List<ProjectMasterDO> children = projectMasterMapper.selectChildren(projectId);
         if (children.isEmpty()) {
             return new ProjectProgress(BigDecimal.ZERO, List.of());
@@ -58,8 +67,9 @@ public class ProjectTreeServiceImpl implements ProjectTreeService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
-    public void updateChildWeights(Long projectId, Map<Long, BigDecimal> childWeights) {
-        validateProjectExists(projectId);
+    public void updateChildWeights(Long projectId, Map<Long, BigDecimal> childWeights, Long actorId) {
+        ProjectMasterDO project = validateProjectExists(projectId);
+        assertFullAccess(project, actorId);
         List<ProjectMasterDO> children = projectMasterMapper.selectChildren(projectId);
         List<Long> childIds = children.stream().map(ProjectMasterDO::getId).toList();
         if (children.isEmpty() || childWeights.size() != children.size()
@@ -88,5 +98,14 @@ public class ProjectTreeServiceImpl implements ProjectTreeService {
             throw exception(PROJECT_NOT_EXISTS);
         }
         return project;
+    }
+
+    private void assertFullAccess(ProjectMasterDO project, Long actorId) {
+        Long rootId = project.getRootId() == null ? project.getId() : project.getRootId();
+        ProjectTreeVersionDO activeVersion = projectTreeVersionMapper.selectLatestActive(rootId);
+        if (activeVersion == null) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        projectTreeScopeService.assertFullAccess(actorId, project.getId(), activeVersion.getTreeVersion());
     }
 }

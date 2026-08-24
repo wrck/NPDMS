@@ -166,6 +166,7 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TREE_VERSION_CONFLICT = new ErrorCode(1_014_024_013, "项目树版本冲突");
     ErrorCode PROJECT_TREE_PROJECTION_UNAVAILABLE = new ErrorCode(1_014_024_014, "项目树完整投影暂不可用");
     ErrorCode PROJECT_TREE_QUERY_INVALID = new ErrorCode(1_014_024_015, "项目树查询参数或游标无效");
+    ErrorCode PROJECT_TREE_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_016, "无权访问该项目树范围");
     ErrorCode PROJECT_WEIGHT_SUM_INVALID = new ErrorCode(1_014_024_011, "直接子项目权重合计必须为100%：{}");
     ErrorCode PROJECT_SPLIT_REQUEST_NOT_EXISTS = new ErrorCode(1_014_024_018, "项目拆分草稿不存在");
     ErrorCode PROJECT_SPLIT_DRAFT_INVALID = new ErrorCode(1_014_024_019, "项目拆分草稿不合法：{}");

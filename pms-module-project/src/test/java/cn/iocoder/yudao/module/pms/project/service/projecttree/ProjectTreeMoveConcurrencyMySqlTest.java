@@ -7,6 +7,7 @@ import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -84,6 +85,10 @@ class ProjectTreeMoveConcurrencyMySqlTest {
             insertPath(pathId++, baseId, childId, 1);
             insertPath(pathId++, childId, childId, 0);
         }
+        jdbcTemplate.update("INSERT INTO proj_project_member_assignment "
+                        + "(id,project_id,user_id,member_role,status,version,tenant_id) "
+                        + "VALUES (?,?,?,'SERVICE_MANAGER_L1','ACTIVE',0,0)",
+                baseId, baseId, 9_900_006L);
     }
 
     @AfterEach
@@ -94,6 +99,7 @@ class ProjectTreeMoveConcurrencyMySqlTest {
             jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE idempotency_key LIKE ?",
                     KEY_PREFIX + baseId + "%");
             jdbcTemplate.update("DELETE FROM proj_project_tree_change WHERE project_id = ?", baseId + 1);
+            jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE project_id = ?", baseId);
             jdbcTemplate.update("DELETE FROM proj_project_tree_path WHERE root_project_id = ?", baseId);
             jdbcTemplate.update("DELETE FROM proj_project_tree_version WHERE root_project_id = ?", baseId);
             jdbcTemplate.update("DELETE FROM proj_project WHERE id BETWEEN ? AND ?", baseId, baseId + 3);
@@ -167,7 +173,7 @@ class ProjectTreeMoveConcurrencyMySqlTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, ProjectCommandExecutionService.class,
-            ProjectTreeProjectionService.class, ProjectTreeMetrics.class})
+            ProjectTreeProjectionService.class, ProjectTreeMetrics.class, ProjectTreeScopeService.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean MeterRegistry meterRegistry() { return new SimpleMeterRegistry(); }

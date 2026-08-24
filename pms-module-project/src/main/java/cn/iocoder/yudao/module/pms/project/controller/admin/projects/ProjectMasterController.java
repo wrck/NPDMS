@@ -269,7 +269,7 @@ public class ProjectMasterController {
                 new ProjectTreeQueryService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId()));
         ProjectTreeQueryRespVO response = new ProjectTreeQueryRespVO();
         response.setTreeVersion(result.treeVersion());
-        response.setItems(BeanUtils.toBean(result.items(), ProjectRespVO.class));
+        response.setItems(BeanUtils.toBean(result.items(), ProjectTreeQueryRespVO.Node.class));
         response.setNextCursor(result.nextCursor());
         response.setUpdating(result.updating());
         return success(response);
@@ -308,7 +308,7 @@ public class ProjectMasterController {
         if (weights.size() != reqVO.getChildren().size()) {
             throw exception(PROJECT_WEIGHT_SUM_INVALID, "子项目编号不得重复");
         }
-        projectTreeService.updateChildWeights(id, weights);
+        projectTreeService.updateChildWeights(id, weights, SecurityFrameworkUtils.getLoginUserId());
         return success(true);
     }
 
@@ -317,7 +317,8 @@ public class ProjectMasterController {
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectProgressRespVO> getProgress(@PathVariable("id") Long id) {
-        ProjectTreeService.ProjectProgress progress = projectTreeService.getProgress(id);
+        ProjectTreeService.ProjectProgress progress = projectTreeService.getProgress(
+                id, SecurityFrameworkUtils.getLoginUserId());
         ProjectProgressRespVO respVO = new ProjectProgressRespVO();
         respVO.setAggregate(progress.aggregate());
         respVO.setChildren(progress.children().stream().map(child -> {

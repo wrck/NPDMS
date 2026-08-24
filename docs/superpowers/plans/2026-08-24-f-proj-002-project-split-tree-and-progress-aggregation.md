@@ -440,15 +440,15 @@ enum Visibility { FULL, ROOT_SUMMARY, PATH_PLACEHOLDER, NONE }
 - 功能权限控制能否拆分/移动；项目成员区间和完整树版本控制数据范围。
 - 同父平级默认不可见；获授权服务经理可查看同根树名称、状态、阶段、里程碑进度、交付件目录和齐套状态，不能查看任务明细、人员、凭证、商务敏感字段和正文。
 
-- [ ] **Step 1: 计算Actor的直接节点、后代范围与同根摘要范围**
+- [x] **Step 1: 计算Actor的直接节点、后代范围与同根摘要范围**
 
 权限无法计算时拒绝，不降级为租户全量；所有查询先过滤后组装VO。
 
-- [ ] **Step 2: 在拆分、移动、树查询、进度查询中统一接入Scope**
+- [x] **Step 2: 在拆分、移动、树查询、进度查询中统一接入Scope**
 
 客户端根节点、路径、深度、业务层级或游标均不得扩大Scope。
 
-- [ ] **Step 3: 验证负向矩阵**
+- [x] **Step 3: 验证负向矩阵**
 
 覆盖平级隔离、祖先/后代、有限摘要、敏感字段、跨租户、陈旧树版本和零副作用。
 
@@ -456,7 +456,7 @@ enum Visibility { FULL, ROOT_SUMMARY, PATH_PLACEHOLDER, NONE }
 mvn -pl pms-module-project -am -Dtest=ProjectTreeScopeServiceTest,ProjectTreeAuthorizationMySqlTest test
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 `feat(project): 实施项目树数据范围`
 

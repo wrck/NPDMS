@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.ProjectTreeQuery;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeViewSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_PROJECTION_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_QUERY_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,8 @@ public class ProjectTreeQueryService {
     private final ProjectTreeVersionMapper versionMapper;
     private final ProjectTreePathMapper pathMapper;
     private final ProjectTreeMetrics metrics;
+    private final ProjectTreeScopeService scopeService;
+    private final ProjectTreeViewSanitizer viewSanitizer;
 
     public ProjectTreeQueryResult query(ProjectTreeQuery query, Actor actor) {
         validate(query, actor);
@@ -56,28 +61,38 @@ public class ProjectTreeQueryService {
         }
         int pageSize = query.pageSize() == null ? DEFAULT_PAGE_SIZE
                 : Math.min(Math.max(query.pageSize(), 1), MAX_PAGE_SIZE);
+        ProjectTreeScopeService.ProjectTreeScope scope = scopeService.resolve(
+                actor.actorId(), query.anchorProjectId(), active.getTreeVersion());
+        if (scope.rootProjectId() != rootId
+                || scope.visibility(query.anchorProjectId()) == ProjectTreeScopeService.Visibility.NONE) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
         List<ProjectMasterDO> fetched = resolvePage(query, actor.tenantId(), rootId,
-                active.getTreeVersion(), offset, pageSize + 1);
+                active.getTreeVersion(), scope.visibleProjectIds(), offset, pageSize + 1);
         boolean hasNext = fetched.size() > pageSize;
         List<ProjectMasterDO> page = hasNext ? List.copyOf(fetched.subList(0, pageSize)) : List.copyOf(fetched);
+        List<ProjectTreeViewSanitizer.ProjectTreeNodeView> visiblePage = page.stream()
+                .map(project -> viewSanitizer.sanitize(project, scope.visibility(project.getId())))
+                .filter(Objects::nonNull).toList();
         String next = hasNext ? encodeCursor(rootId, active.getTreeVersion(), query, offset + pageSize) : null;
-        metrics.query(query.queryType().name(), updating, System.nanoTime() - started, page.size());
-        return new ProjectTreeQueryResult(active.getTreeVersion(), page, next, updating);
+        metrics.query(query.queryType().name(), updating, System.nanoTime() - started, visiblePage.size());
+        return new ProjectTreeQueryResult(active.getTreeVersion(), visiblePage, next, updating);
     }
 
     private List<ProjectMasterDO> resolvePage(ProjectTreeQuery query, Long tenantId, Long rootId,
-                                              Long treeVersion, int offset, int limit) {
+                                              Long treeVersion, java.util.Set<Long> visibleProjectIds,
+                                              int offset, int limit) {
         return switch (query.queryType()) {
             case CHILDREN -> pathMapper.selectDescendantsPage(tenantId, rootId, treeVersion,
-                    query.anchorProjectId(), true, offset, limit);
+                    query.anchorProjectId(), true, visibleProjectIds, offset, limit);
             case DESCENDANTS -> pathMapper.selectDescendantsPage(tenantId, rootId, treeVersion,
-                    query.anchorProjectId(), false, offset, limit);
+                    query.anchorProjectId(), false, visibleProjectIds, offset, limit);
             case ANCESTORS -> pathMapper.selectPathPage(tenantId, rootId, treeVersion,
-                    query.anchorProjectId(), false, offset, limit);
+                    query.anchorProjectId(), false, visibleProjectIds, offset, limit);
             case LOCATE -> pathMapper.selectPathPage(tenantId, rootId, treeVersion,
-                    query.anchorProjectId(), true, offset, limit);
+                    query.anchorProjectId(), true, visibleProjectIds, offset, limit);
             case BUSINESS_LEVEL -> pathMapper.selectBusinessLevelPage(tenantId, rootId, treeVersion,
-                    query.businessLevelCode(), offset, limit);
+                    query.businessLevelCode(), visibleProjectIds, offset, limit);
         };
     }
 
@@ -126,7 +141,8 @@ public class ProjectTreeQueryService {
     public record Actor(Long tenantId, Long actorId) {
     }
 
-    public record ProjectTreeQueryResult(Long treeVersion, List<ProjectMasterDO> items,
+    public record ProjectTreeQueryResult(Long treeVersion,
+                                         List<ProjectTreeViewSanitizer.ProjectTreeNodeView> items,
                                          String nextCursor, boolean updating) {
     }
 

@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePath
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +44,7 @@ public class ProjectTreeProjectionService {
     private final ProjectTreeChangeMapper changeMapper;
     private final ProjectCommandExecutionService commandExecutionService;
     private final ProjectTreeMetrics metrics;
+    private final ProjectTreeScopeService scopeService;
 
     public MoveProjectSubtreeResult move(MoveProjectSubtreeCommand command, Actor actor) {
         validateMove(command, actor);
@@ -95,6 +97,8 @@ public class ProjectTreeProjectionService {
         if (!Objects.equals(sourceActive.getTreeVersion(), command.expectedTreeVersion())) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
+        scopeService.assertFullAccess(actor.actorId(), node.getId(), sourceActive.getTreeVersion());
+        scopeService.assertFullAccess(actor.actorId(), newParent.getId(), targetActive.getTreeVersion());
         List<ProjectTreePathDO> subtreePaths = pathMapper.selectByAncestor(
                 sourceRootId, sourceActive.getTreeVersion(), node.getId(), null);
         if (node.getId().equals(newParent.getId()) || subtreePaths.stream()

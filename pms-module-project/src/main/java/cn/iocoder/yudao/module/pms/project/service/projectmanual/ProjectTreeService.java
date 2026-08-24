@@ -15,12 +15,12 @@ public interface ProjectTreeService {
     /**
      * 整组设置直接子项目人工权重；请求必须完整覆盖当前直接子项目且合计为 100%。
      */
-    void updateChildWeights(Long projectId, Map<Long, BigDecimal> childWeights);
+    void updateChildWeights(Long projectId, Map<Long, BigDecimal> childWeights, Long actorId);
 
     /**
      * 进度汇总：直接子项目进度列表 + 归一化权重 + 汇总进度。
      */
-    ProjectProgress getProgress(Long projectId);
+    ProjectProgress getProgress(Long projectId, Long actorId);
 
     /**
      * 直接子项目进度项。

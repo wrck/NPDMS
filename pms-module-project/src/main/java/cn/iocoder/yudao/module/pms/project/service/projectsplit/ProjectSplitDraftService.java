@@ -17,6 +17,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVers
 import cn.iocoder.yudao.module.pms.project.domain.projectsplit.ProjectSplitRules;
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectOperationAuditService;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitDraftCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class ProjectSplitDraftService {
     private final OrganizationScopeApi organizationScopeApi;
     private final ProjectSplitRules rules;
     private final ProjectOperationAuditService auditService;
+    private final ProjectTreeScopeService treeScopeService;
 
     @Transactional(rollbackFor = Exception.class)
     public DraftResult saveDraft(ProjectSplitDraftCommand command, Actor actor) {
@@ -55,6 +57,8 @@ public class ProjectSplitDraftService {
         requireProjectScope(parent.getId(), actor.actorId());
         Long rootId = parent.getRootId() == null ? parent.getId() : parent.getRootId();
         ProjectTreeVersionDO activeTree = treeVersionMapper.selectLatestActive(rootId);
+        if (activeTree == null) throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
+        treeScopeService.assertFullAccess(actor.actorId(), parent.getId(), activeTree.getTreeVersion());
 
         ProjectSplitRequestDO request;
         long scopeVersion;
@@ -110,6 +114,7 @@ public class ProjectSplitDraftService {
         validateActor(actor);
         ProjectSplitRequestDO request = requireRequest(requestId, actor);
         requireProjectScope(request.getParentProjectId(), actor.actorId());
+        treeScopeService.assertFullAccess(actor.actorId(), request.getParentProjectId(), request.getTreeVersion());
         List<ProjectSplitItemDO> items = itemMapper.selectByRequestId(requestId);
         List<ProjectSplitScopeDO> scopes = scopeMapper.selectByItemIds(items.stream().map(ProjectSplitItemDO::getId).toList());
         return new DraftResult(request, items, scopes);
