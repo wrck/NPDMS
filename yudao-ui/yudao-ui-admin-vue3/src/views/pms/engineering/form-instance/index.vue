@@ -188,7 +188,7 @@
       </el-descriptions-item>
       <el-descriptions-item label="模板">{{ templateLabel(current.templateId) }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_FORM_INSTANCE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_FORM_INSTANCE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="版本号">{{ current.version }}</el-descriptions-item>
       <el-descriptions-item label="填报人">

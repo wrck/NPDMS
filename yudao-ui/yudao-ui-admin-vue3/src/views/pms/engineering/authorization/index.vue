@@ -221,10 +221,10 @@
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
       </el-descriptions-item>
       <el-descriptions-item label="授权类型">
-        <dict-tag :type="DICT_TYPE.PMS_AUTHORIZATION_TYPE" :value="current.authorizationType" />
+        <dict-tag :type="DICT_TYPE.PMS_AUTHORIZATION_TYPE" :value="current.authorizationType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="设备型号">{{ current.deviceModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备序列号">{{ current.deviceSerial || '-' }}</el-descriptions-item>

@@ -308,7 +308,7 @@
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目"><ProjectTag :project-id="current.projectId" /></el-descriptions-item>
       <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_REQ_TYPE" :value="current.requisitionType" />
+        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_REQ_TYPE" :value="current.requisitionType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="关联设备">{{ current.equipmentId }}</el-descriptions-item>
       <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
@@ -319,10 +319,10 @@
       <el-descriptions-item label="备件库编号">{{ current.warehouseId }}</el-descriptions-item>
       <el-descriptions-item label="备件库名称">{{ current.warehouseName }}</el-descriptions-item>
       <el-descriptions-item label="库存状态">
-        <dict-tag :type="DICT_TYPE.PMS_STOCK_STATUS" :value="current.stockStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_STOCK_STATUS" :value="current.stockStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>

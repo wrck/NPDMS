@@ -218,10 +218,10 @@
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
       </el-descriptions-item>
       <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_TYPE" :value="current.briefingType" />
+        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_TYPE" :value="current.briefingType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="编制人">
         <UserTag v-if="current.creatorUserId" :user-id="current.creatorUserId" />

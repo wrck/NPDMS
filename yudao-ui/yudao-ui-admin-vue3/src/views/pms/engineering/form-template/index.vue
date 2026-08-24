@@ -162,10 +162,10 @@
       <el-descriptions-item label="编号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="产品类型">
-        <dict-tag :type="DICT_TYPE.PMS_PRODUCT_TYPE" :value="current.productType" />
+        <dict-tag :type="DICT_TYPE.PMS_PRODUCT_TYPE" :value="current.productType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_FORM_TEMPLATE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_FORM_TEMPLATE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="版本号">{{ current.version }}</el-descriptions-item>
       <el-descriptions-item label="创建时间">{{ current.createTime }}</el-descriptions-item>

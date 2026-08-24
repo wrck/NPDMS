@@ -214,17 +214,17 @@
       </el-descriptions-item>
       <el-descriptions-item label="项目编号"><ProjectTag :project-id="current.projectId" /></el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_GOVERNANCE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_GOVERNANCE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
       <el-descriptions-item label="审批人"><UserTag :user-id="current.approverUserId" /></el-descriptions-item>
       <el-descriptions-item label="审批时间">{{ current.approveTime || '-' }}</el-descriptions-item>
       <el-descriptions-item label="执行前项目状态">
-        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.beforeProjectStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.beforeProjectStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="执行后项目状态">
-        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.afterProjectStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.afterProjectStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="原因" :span="2">
         <div v-html="current.reason"></div>

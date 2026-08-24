@@ -335,7 +335,7 @@
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目">{{ current.projectId }}</el-descriptions-item>
       <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_EXT_PROC_TYPE" :value="current.procurementType" />
+        <dict-tag :type="DICT_TYPE.PMS_EXT_PROC_TYPE" :value="current.procurementType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
       <el-descriptions-item label="物料编码">{{ current.materialCode }}</el-descriptions-item>
@@ -345,10 +345,10 @@
       <el-descriptions-item label="数量">{{ current.quantity }} {{ current.unit }}</el-descriptions-item>
       <el-descriptions-item label="单价">{{ current.unitPrice }}</el-descriptions-item>
       <el-descriptions-item label="总价">{{ current.totalPrice }}
-        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency" />
+        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="币种">
-        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency" />
+        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="供应商名称">{{ current.supplierName }}</el-descriptions-item>
       <el-descriptions-item label="供应商联系人">{{ current.supplierContact }}</el-descriptions-item>
@@ -358,10 +358,10 @@
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="触发来源">
-        <dict-tag :type="DICT_TYPE.PMS_TRIGGER_SOURCE" :value="current.triggerSource" />
+        <dict-tag :type="DICT_TYPE.PMS_TRIGGER_SOURCE" :value="current.triggerSource ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="备注" :span="2">{{ current.remark }}</el-descriptions-item>
       <el-descriptions-item v-if="current.approveOpinion" label="审批意见" :span="2">

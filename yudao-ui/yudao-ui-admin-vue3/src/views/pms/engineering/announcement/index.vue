@@ -213,14 +213,14 @@
       <el-descriptions-item label="编号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="标题">{{ current.title }}</el-descriptions-item>
       <el-descriptions-item label="公告类型">
-        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_TYPE" :value="current.announcementType" />
+        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_TYPE" :value="current.announcementType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="严重等级">
-        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_SEVERITY" :value="current.severity" />
+        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_SEVERITY" :value="current.severity ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="适用型号">{{ current.productModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="发布日期">{{ current.publishDate || '-' }}</el-descriptions-item>
       <el-descriptions-item label="生效日期">{{ current.effectiveDate || '-' }}</el-descriptions-item>

@@ -237,13 +237,13 @@
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
       </el-descriptions-item>
       <el-descriptions-item label="风险类型">
-        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_TYPE" :value="current.riskType" />
+        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_TYPE" :value="current.riskType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="风险等级">
-        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_LEVEL" :value="current.riskLevel" />
+        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_LEVEL" :value="current.riskLevel ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="设备型号">{{ current.deviceModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备序列号">{{ current.deviceSerial || '-' }}</el-descriptions-item>

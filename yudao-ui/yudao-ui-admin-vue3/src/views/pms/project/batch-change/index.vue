@@ -133,7 +133,7 @@
     <el-descriptions :column="3" border class="mb-15px">
       <el-descriptions-item label="批次编号">{{ current.batchNo }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_BATCH_CHANGE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_BATCH_CHANGE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="总数/成功/失败">
         {{ current.totalCount }} / {{ current.successCount }} / {{ current.failureCount }}

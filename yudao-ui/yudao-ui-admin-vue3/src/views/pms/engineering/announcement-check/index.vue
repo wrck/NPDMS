@@ -236,13 +236,13 @@
         <AnnouncementTag v-if="current.announcementId" :announcement-id="current.announcementId" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="设备型号">{{ current.deviceModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备序列号">{{ current.deviceSerial || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备版本">{{ current.deviceVersion || '-' }}</el-descriptions-item>
       <el-descriptions-item label="匹配结果">
-        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_MATCH" :value="current.matchResult" />
+        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_MATCH" :value="current.matchResult ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="EOS/EOM">{{ current.eomStatus || '-' }}</el-descriptions-item>
       <el-descriptions-item label="检查人">

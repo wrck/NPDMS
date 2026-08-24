@@ -126,7 +126,7 @@
         {{ current.projectType === 'DIRECT' ? '直签' : '非直签' }}
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_SCHEDULE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_SCHEDULE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="冲突汇总" :span="2">
         <el-text v-if="current.conflictSummary" type="danger">{{ current.conflictSummary }}</el-text>

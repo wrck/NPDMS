@@ -287,7 +287,7 @@
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目"><ProjectTag :project-id="current.projectId" /></el-descriptions-item>
       <el-descriptions-item label="换货类型">
-        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="current.exchangeType" />
+        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="current.exchangeType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="关联设备"><EquipmentTag :equipment-id="current.equipmentId" /></el-descriptions-item>
       <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
@@ -298,10 +298,10 @@
       <el-descriptions-item label="申请人">{{ current.applicantUserId }}</el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="CRM推送状态">
-        <dict-tag :type="DICT_TYPE.PMS_CRM_SYNC_STATUS" :value="current.crmPushStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_CRM_SYNC_STATUS" :value="current.crmPushStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="CRM推送时间">{{ current.crmPushTime }}</el-descriptions-item>
       <el-descriptions-item label="CRM订单号">{{ current.crmOrderNo }}</el-descriptions-item>

@@ -341,7 +341,7 @@
         <dict-tag :type="DICT_TYPE.PMS_DOC_CATEGORY" :value="current.docCategory" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_DOC_TEMPLATE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_DOC_TEMPLATE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="父模板">{{ parentTemplateName(current.parentTemplateId) }}</el-descriptions-item>
       <el-descriptions-item label="当前版本">{{ currentVersionLabel(current) }}</el-descriptions-item>

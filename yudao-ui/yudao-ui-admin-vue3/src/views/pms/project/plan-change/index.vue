@@ -305,7 +305,7 @@
         <dict-tag :type="DICT_TYPE.PMS_PLAN_CHANGE_TYPE" :value="current.changeType" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_PLAN_CHANGE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_PLAN_CHANGE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="基线版本">{{ current.baselineVersion }}</el-descriptions-item>
       <el-descriptions-item v-if="current.newBaselineVersion" label="新基线版本">
