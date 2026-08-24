@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_READY`
 > 当前阻断：无
-> 当前任务：Task 4 实现项目授权命令、查询与越界守卫
+> 当前任务：Task 5 将当前PROJ入口统一到动作化ProjectScope
 > Requirement ID：`PM-04`
 > 关联契约：`AUT-01`、`AUT-02`的最小AuthorizationGrant载体
 > Feature Spec：`specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md`
@@ -26,7 +26,7 @@
 - [x] Task 1 建立PLT模块并归位平台事实所有权
 - [x] Task 2 实现PLT AuthorizationGrant物理模型与公开API
 - [x] Task 3 发布ProjectScopeApi并重写统一范围计算
-- [ ] Task 4 实现项目授权命令、查询与越界守卫
+- [x] Task 4 实现项目授权命令、查询与越界守卫
 - [ ] Task 5 将当前PROJ入口统一到动作化ProjectScope
 - [ ] Task 6 补齐字典、菜单、示例授权和迁移验证
 - [ ] Task 7 实现响应式项目授权维护界面

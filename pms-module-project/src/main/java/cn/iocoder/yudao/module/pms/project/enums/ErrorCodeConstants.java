@@ -181,4 +181,11 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_PROGRESS_APPROVAL_NOT_CONFIGURED = new ErrorCode(1_014_024_028, "项目进度策略审批流程未配置");
     ErrorCode PROJECT_PROGRESS_PENDING = new ErrorCode(1_014_024_029, "项目进度待计算");
 
+    // ========== 项目子树授权（F-PROJ-003 / PM-04）1-014-024-034 ==========
+    ErrorCode PROJECT_AUTHORIZATION_FORBIDDEN = new ErrorCode(1_014_024_034, "无权管理该项目授权");
+    ErrorCode PROJECT_AUTHORIZATION_NOT_FOUND = new ErrorCode(1_014_024_035, "项目授权不存在");
+    ErrorCode PROJECT_AUTHORIZATION_INVALID = new ErrorCode(1_014_024_036, "项目授权请求不合法");
+    ErrorCode PROJECT_AUTHORIZATION_VERSION_CONFLICT = new ErrorCode(1_014_024_037, "项目授权版本冲突");
+    ErrorCode PROJECT_AUTHORIZATION_CONFLICT = new ErrorCode(1_014_024_038, "项目当前授权发生并发冲突");
+
 }

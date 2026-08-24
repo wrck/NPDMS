@@ -11,10 +11,12 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.Decision;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.IdempotencyScope;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.SuccessFacts;
+import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -46,10 +48,15 @@ public class ProjectManagerAssignmentApplicationService {
     private AssetLocationApi assetLocationApi;
     @Resource
     private ProjectSiteApplicationService projectSiteService;
+    @Resource
+    private ProjectAuthorizationGuard projectAuthorizationGuard;
 
+    @Transactional(rollbackFor = Exception.class)
     public AssignServiceManagerResult assign(AssignServiceManagerCommand command, Actor actor) {
         validate(command, actor);
         authorizationService.assertCanAssign(actor.actorId());
+        projectAuthorizationGuard.assertCanAssign(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.actorId()), command.projectId());
         validateBusinessScope(command);
         var execution = platformFactService.execute(
                 new IdempotencyScope(actor.tenantId(), ASSIGN_SCOPE, actor.actorId(), command.idempotencyKey()),

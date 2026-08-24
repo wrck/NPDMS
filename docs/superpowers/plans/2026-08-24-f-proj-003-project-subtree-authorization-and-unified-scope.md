@@ -232,25 +232,25 @@ feat(project): 发布显式项目子树范围契约
 - Consumes: `ProjectScopeApi`用于授权人范围上界，`AuthorizationGrantApi`用于PLT事实，`PermissionApi`与当前服务经理成员关系用于功能/角色守卫。
 - Produces: 规格5.1的创建、分页、详情、撤权端点；服务经理指派命令复用同一管理范围上界。
 
-- [ ] **Step 1: 实现授权人三重守卫**
+- [x] **Step 1: 实现授权人三重守卫**
 
 必须同时命中`pms:project:authorization:manage`、当前有效`SERVICE_MANAGER_L1/L2`成员关系和目标项目`PROJECT_MANAGE`；授权对象同租户，动作/范围不得超过授权人；项目经理和普通成员拒绝。
 
-- [ ] **Step 2: 实现四类HTTP契约**
+- [x] **Step 2: 实现四类HTTP契约**
 
 创建和撤权读取`Idempotency-Key`；撤权读取`If-Match`；分页页大小上限100并按`granted_at DESC,id DESC`稳定排序；越权详情按不存在处理；客户端不能提交路径、深度或项目ID集合。
 
-- [ ] **Step 3: 把服务经理指派接入相同范围上界**
+- [x] **Step 3: 把服务经理指派接入相同范围上界**
 
 保留公司、Department办事处和站点候选校验；增加授权人服务经理角色与`PROJECT_MANAGE`范围校验；被指派角色本身不产生后代授权。
 
-- [ ] **Step 4: 验证正向、越界和无副作用场景**
+- [x] **Step 4: 验证正向、越界和无副作用场景**
 
 覆盖跨租户、平级项目、超范围动作、普通项目经理授权、无权限详情、撤权重放和错误版本；失败后无有效成员/授权和成功幂等事实。
 
 Run: `mvn.cmd -pl pms-module-project -am -Ppms-test-unit -DskipITs=true test`
 
-- [ ] **Step 5: 提交授权业务入口**
+- [x] **Step 5: 提交授权业务入口**
 
 ```text
 feat(project): 增加项目授权管理入口

@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
+import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectSiteDO;
@@ -50,6 +51,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
     @Mock private OrganizationScopeApi organizationScopeApi;
     @Mock private AssetLocationApi assetLocationApi;
     @Mock private ProjectSiteApplicationService projectSiteService;
+    @Mock private ProjectAuthorizationGuard projectAuthorizationGuard;
 
     @InjectMocks
     private ProjectManagerAssignmentApplicationService service;
@@ -85,6 +87,7 @@ class ProjectManagerAssignmentApplicationServiceTest {
         assertEquals(8L, result.assignmentId());
         assertEquals(3, result.version());
         verify(authorizationService).assertCanAssign(7L);
+        verify(projectAuthorizationGuard).assertCanAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L);
         verify(projectService).assignServiceManager(any());
     }
 
@@ -132,6 +135,20 @@ class ProjectManagerAssignmentApplicationServiceTest {
 
         assertEquals(FORBIDDEN.getCode(), exception.getCode());
         verifyNoInteractions(platformFactService);
+        verify(projectService, never()).assignServiceManager(any());
+    }
+
+    @Test
+    void projectScopeFailureStopsBeforeBusinessValidationAndIdempotencyClaim() {
+        doThrow(new ServiceException(FORBIDDEN)).when(projectAuthorizationGuard)
+                .assertCanAssign(new ProjectAuthorizationGuard.Actor(1L, 7L), 1L);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> service.assign(command(), actor()));
+
+        assertEquals(FORBIDDEN.getCode(), exception.getCode());
+        verifyNoInteractions(platformFactService);
+        verify(adminUserApi, never()).validateUser(any());
         verify(projectService, never()).assignServiceManager(any());
     }
 
