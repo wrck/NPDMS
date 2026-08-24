@@ -264,7 +264,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="原因附件" prop="reasonFiles">
-            <UploadFile v-model="form.reasonFiles" />
+            <UploadFile v-model="form.reasonFiles!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">

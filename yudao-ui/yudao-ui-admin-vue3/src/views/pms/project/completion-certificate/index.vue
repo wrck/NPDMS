@@ -165,7 +165,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="证明附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl" />
+            <UploadFile v-model="form.attachmentUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">

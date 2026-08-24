@@ -199,7 +199,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="客户证明材料" prop="customerProofFiles">
-            <UploadFile v-model="form.customerProofFiles" />
+            <UploadFile v-model="form.customerProofFiles!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">

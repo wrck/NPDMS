@@ -129,7 +129,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="配置日志" prop="configLogUrl"><UploadFile v-model="form.configLogUrl" /></el-form-item>
+          <el-form-item label="配置日志" prop="configLogUrl"><UploadFile v-model="form.configLogUrl!" /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="调试结果" prop="debugResult">
