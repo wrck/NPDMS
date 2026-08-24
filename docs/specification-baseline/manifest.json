@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "58a57198e686fec82c1fcd6cbcf27b8e9b3fb517"
+    "commit": "975107a665f156ce527480e939ad89a614cd1a21"
   },
   "files": [
     {
@@ -443,7 +443,7 @@
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
       "category": "FEATURE_SPEC",
-      "sha256": "2f334336042b4e7babe1bf5f3d34af71695bf8448402314087b520f7b3db19c4"
+      "sha256": "f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb"
     },
     {
       "path": "specs/features/F-PROJ-002-physical-contract.json",

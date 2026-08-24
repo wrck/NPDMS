@@ -4,8 +4,9 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CreatedProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessAttributeUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -41,6 +42,18 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
                                 @Param("expectedVersion") Integer expectedVersion);
 
     int updateBusinessAttributesIfMatch(@Param("query") ProjectBusinessAttributeUpdate query);
+
+    /** F-PROJ-001创建人只读基础范围；空候选集合不得扩大为租户全量。 */
+    default List<ProjectMasterDO> selectListCreatedBy(CreatedProjectScopeQuery query) {
+        if (query.candidateProjectIds() != null && query.candidateProjectIds().isEmpty()) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapperX<ProjectMasterDO>()
+                .eq(ProjectMasterDO::getTenantId, query.tenantId())
+                .eq(ProjectMasterDO::getCreator, query.creatorId())
+                .inIfPresent(ProjectMasterDO::getId, query.candidateProjectIds())
+                .orderByAsc(ProjectMasterDO::getId));
+    }
 
     /** 服务端范围过滤后的项目分页；空权限集合必须返回空页。 */
     default PageResult<ProjectMasterDO> selectPage(VisibleProjectPageQuery query) {

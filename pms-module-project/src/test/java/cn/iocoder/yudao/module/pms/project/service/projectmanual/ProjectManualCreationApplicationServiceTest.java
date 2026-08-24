@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatch
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.company.dto.CompanyRespDTO;
@@ -62,6 +63,8 @@ class ProjectManualCreationApplicationServiceTest {
     private ProjectAttributeResolutionService projectAttributeResolutionService;
     @Mock
     private ProjectTemplateMatchHistoryService templateMatchHistoryService;
+    @Mock
+    private ProjectTreeProjectionService projectTreeProjectionService;
 
     @InjectMocks
     private ProjectManualCreationApplicationService service;
@@ -113,6 +116,7 @@ class ProjectManualCreationApplicationServiceTest {
         ArgumentCaptor<InitialMatchHistoryCommand> historyCaptor =
                 ArgumentCaptor.forClass(InitialMatchHistoryCommand.class);
         verify(templateMatchHistoryService).appendInitial(historyCaptor.capture());
+        verify(projectTreeProjectionService).publish(100L, 1L, "PROJECT_CREATE:100");
         assertEquals(100L, historyCaptor.getValue().projectId());
         assertEquals(7L, historyCaptor.getValue().operatorId());
         assertEquals("业务立项", historyCaptor.getValue().changeReason());

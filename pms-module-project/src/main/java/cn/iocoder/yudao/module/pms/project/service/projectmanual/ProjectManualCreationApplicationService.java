@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualP
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,8 @@ public class ProjectManualCreationApplicationService {
     private ProjectAttributeResolutionService projectAttributeResolutionService;
     @Resource
     private ProjectTemplateMatchHistoryService templateMatchHistoryService;
+    @Resource
+    private ProjectTreeProjectionService projectTreeProjectionService;
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
@@ -101,6 +104,9 @@ public class ProjectManualCreationApplicationService {
                         command.templateRevisionId(), command.candidateWatermark(), null)
                 : projectCreationService.createProject(command.draft(), company.getCode(), department.getCode(),
                         matchDecision, null);
+        if (project.getParentId() == null) {
+            projectTreeProjectionService.publish(project.getId(), 1L, "PROJECT_CREATE:" + project.getId());
+        }
         projectSiteService.bindSites(project.getId(), command.sites());
         ProjectInstantiation instances = projectCreationService.getInstancesForCreation(project.getId(), actor.tenantId());
         String matchOperationId = null;

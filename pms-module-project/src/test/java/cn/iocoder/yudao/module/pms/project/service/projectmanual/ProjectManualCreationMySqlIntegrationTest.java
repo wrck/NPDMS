@@ -20,6 +20,8 @@ import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionCon
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationServiceImpl;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeMetrics;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
@@ -42,6 +44,7 @@ import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mybatis.spring.annotation.MapperScan;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -80,6 +83,20 @@ import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 class ProjectManualCreationMySqlIntegrationTest extends ProjectManualCreationMySqlTestSupport {
+
+    @Test
+    void successfulRootCreationPublishesInitialTreeProjection() {
+        var created = applicationService.create(newCommand(), newActor());
+
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_project_tree_version WHERE root_project_id=? "
+                        + "AND tree_version=1 AND status='ACTIVE' AND node_count=1 AND path_count=1",
+                Long.class, created.id()));
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_project_tree_path WHERE root_project_id=? "
+                        + "AND tree_version=1 AND ancestor_project_id=? AND descendant_project_id=? AND distance=0",
+                Long.class, created.id(), created.id(), created.id()));
+    }
 
     @ParameterizedTest(name = "{0} failure rolls back every fact")
     @EnumSource(FailurePoint.class)
@@ -190,7 +207,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
                 "proj_project", "proj_project_stage", "proj_project_task",
                 "proj_project_milestone", "proj_project_gate", "proj_project_gate_reference",
                 "proj_project_task_execution_contract", "acc_project_deliverable",
-                "proj_project_template_match_history",
+                "proj_project_template_match_history", "proj_project_tree_version", "proj_project_tree_path",
                 "plt_idempotency_record", "plt_operation_audit", "plt_outbox_event")) {
             counts.put(table, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + table, Long.class));
         }
@@ -230,6 +247,8 @@ abstract class ProjectManualCreationMySqlTestSupport {
                     "proj_project_task", "proj_project_stage")) {
                 jdbcTemplate.update("DELETE FROM " + table + " WHERE project_id IN (" + placeholders + ")", ids);
             }
+            jdbcTemplate.update("DELETE FROM proj_project_tree_path WHERE root_project_id IN ("
+                    + placeholders + ")", ids);
             jdbcTemplate.update("DELETE FROM proj_project_tree_version WHERE root_project_id IN ("
                     + placeholders + ")", ids);
             jdbcTemplate.update("DELETE FROM proj_project WHERE id IN (" + placeholders + ")", ids);
@@ -313,6 +332,8 @@ abstract class ProjectManualCreationMySqlTestSupport {
         CONTRACT("INSERT", "proj_project_task_execution_contract"),
         ACC_DELIVERABLE("INSERT", "acc_project_deliverable"),
         MATCH_HISTORY("INSERT", "proj_project_template_match_history"),
+        TREE_VERSION("INSERT", "proj_project_tree_version"),
+        TREE_PATH("INSERT", "proj_project_tree_path"),
         IDEMPOTENCY_SUCCESS("UPDATE", "plt_idempotency_record"),
         AUDIT("INSERT", "plt_operation_audit"),
         OUTBOX("INSERT", "plt_outbox_event");
@@ -347,6 +368,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
             ProjectAttributeClassificationApplicationService.class,
             ProjectAttributeSourceCorrectionService.class,
             ProjectTemplateMatchHistoryQueryService.class,
+            ProjectTreeProjectionService.class,
             ProjectCodeAllocator.class,
             TaskExecutionContractFactory.class,
             ProjectDeliverableInitializationApplicationServiceImpl.class
@@ -400,6 +422,11 @@ abstract class ProjectManualCreationMySqlTestSupport {
         @Bean
         ProjectTreeScopeService projectTreeScopeService() {
             return mock(ProjectTreeScopeService.class);
+        }
+
+        @Bean
+        ProjectTreeMetrics projectTreeMetrics() {
+            return mock(ProjectTreeMetrics.class);
         }
 
         @Bean

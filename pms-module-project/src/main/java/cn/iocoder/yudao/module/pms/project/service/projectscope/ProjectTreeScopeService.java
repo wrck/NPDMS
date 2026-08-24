@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTre
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CreatedProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import lombok.RequiredArgsConstructor;
@@ -76,6 +77,12 @@ public class ProjectTreeScopeService {
                 .toList();
         Set<Long> full = assignments.stream().map(ProjectMemberAssignmentDO::getProjectId)
                 .collect(Collectors.toCollection(HashSet::new));
+        if (ACTION_VIEW.equals(query.actionCode())) {
+            projectMapper.selectListCreatedBy(new CreatedProjectScopeQuery(
+                            query.tenantId(), String.valueOf(query.subjectUserId()), rootNodes)).stream()
+                    .map(ProjectMasterDO::getId)
+                    .forEach(full::add);
+        }
 
         List<AuthorizationGrantDTO> grants = listEffectiveGrants(query, rootNodes, effectiveAt);
         Set<Long> descendantAnchors = new HashSet<>();
@@ -112,6 +119,12 @@ public class ProjectTreeScopeService {
                 .filter(item -> allows(item.getMemberRole(), actionCode))
                 .map(ProjectMemberAssignmentDO::getProjectId)
                 .collect(Collectors.toCollection(HashSet::new));
+        if (ACTION_VIEW.equals(actionCode)) {
+            projectMapper.selectListCreatedBy(new CreatedProjectScopeQuery(
+                            tenantId, String.valueOf(subjectUserId), null)).stream()
+                    .map(ProjectMasterDO::getId)
+                    .forEach(anchors::add);
+        }
         discoverGrantAnchors(tenantId, subjectUserId, actionCode, effectiveAt, anchors);
         if (ACTION_VIEW.equals(actionCode)) {
             discoverGrantAnchors(tenantId, subjectUserId, ACTION_MANAGE, effectiveAt, anchors);

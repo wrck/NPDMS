@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTre
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CreatedProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -35,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTreeScopeServiceTest {
@@ -51,6 +53,8 @@ class ProjectTreeScopeServiceTest {
         TenantContextHolder.setTenantId(0L);
         service = new ProjectTreeScopeService(
                 projectMapper, memberMapper, pathMapper, versionMapper, authorizationGrantApi);
+        lenient().when(projectMapper.selectListCreatedBy(any(CreatedProjectScopeQuery.class)))
+                .thenReturn(List.of());
     }
 
     @AfterEach
@@ -125,6 +129,31 @@ class ProjectTreeScopeServiceTest {
 
         assertEquals(Set.of(), scope.fullProjectIds());
         assertEquals(Set.of(), scope.placeholderProjectIds());
+    }
+
+    @Test
+    void creatorCanViewOwnProjectWithoutReceivingManagerRole() {
+        stubRootProjection();
+        when(projectMapper.selectListCreatedBy(any(CreatedProjectScopeQuery.class)))
+                .thenReturn(List.of(project(3L, 1L)));
+        when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
+                .thenReturn(List.of(path(1L, 3L), path(2L, 3L), path(3L, 3L)));
+
+        var scope = service.resolve(query("PROJECT_VIEW"));
+
+        assertEquals(Set.of(3L), scope.fullProjectIds());
+        assertEquals(Set.of(1L, 2L), scope.placeholderProjectIds());
+        verify(memberMapper).selectActiveByUser(any(ActiveProjectMemberQuery.class));
+    }
+
+    @Test
+    void creatorDoesNotReceiveManageScope() {
+        stubRootProjection();
+
+        var scope = service.resolve(query("PROJECT_MANAGE"));
+
+        assertEquals(Set.of(), scope.fullProjectIds());
+        verify(projectMapper, never()).selectListCreatedBy(any(CreatedProjectScopeQuery.class));
     }
 
     @Test

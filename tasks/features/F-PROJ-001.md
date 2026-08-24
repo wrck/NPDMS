@@ -7,9 +7,9 @@
 > 当前任务：F-PROJ-002 已达到 Feature Ready，转入全新 V1.8 Technical Plan
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
-> Feature Spec SHA-256：`566fdcf3f82fe26fa1121c37e50d622080c70f225c6134ad8dbc25adbb17dd97`
+> Feature Spec SHA-256：`f7051c41ba5b1214fc9cc82fe72e801d8c8f90e9b43bd21e85d357a8b32aa8bb`
 > Technical Plan：`docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md`
-> 锁定规格提交：`b453cb0b80804e288be360b50ee0bfef6809b798`
+> 锁定规格提交：`975107a665f156ce527480e939ad89a614cd1a21`
 
 ## 事实边界
 
@@ -74,3 +74,13 @@ AC-FPROJ-007 原阻断已由 V1.8 组织与地点基础改造关闭：公司、�
 代码、Schema、测试、浏览器证据、评审及受管追溯均已满足本 Feature 的工程实现完成条件，Implementation Done Gate 为 `PASS`。该结论不代表 Deployment、SIT、UAT、Release 或治理 GO。
 
 当前阻断为无。PM-02 正式 Feature Spec 已达到 `BASELINE / READY` 并同步到锁定提交 `b453cb0b80804e288be360b50ee0bfef6809b798`。总体 Implementation Phase 继续转入 F-PROJ-002 全新 V1.8 Technical Plan；旧 F-PM02 Spec、Technical Plan 与现有代码只作存量审计输入，不得据此判断已实现。
+
+## 2026-08-25 集成回归关闭
+
+F-PROJ-004 浏览器验收暴露出 F-PROJ-001 与后续统一 ProjectTreeScope 集成后的回归：
+根项目创建成功时未同步建立首版树投影，且创建人基础查看范围未被统一范围服务合并。
+本次已在原规格边界内修复：根项目创建事务同步发布版本 1 与自路径，创建人仅获得
+`VIEW` 基础范围，不新增成员角色或显式授权。定向单测 18/18、MySQL 13/13、项目模块
+完整回归 256 项均通过；真实页面创建项目 `992002000102` 后首次进入及刷新详情均通过。
+独立裁决结论为 `GO`。详细证据见
+`docs/acceptance/F-PROJ-001-root-creation-scope-regression.md`。
