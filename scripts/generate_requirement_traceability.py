@@ -340,6 +340,7 @@ FEATURE_LINK_OVERRIDES = {
     "PM-01": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
     "PM-02": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md)",
     "PM-03": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
+    "PM-04": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md) / [F-PROJ-003](../../specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md)",
 }
 
 IMPLEMENTATION_OVERRIDES = {
