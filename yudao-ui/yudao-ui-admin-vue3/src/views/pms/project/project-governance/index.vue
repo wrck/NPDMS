@@ -317,12 +317,12 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<ProjectGovernanceVO>({
-  projectId: undefined,
+  projectId: undefined!,
   actionNo: '',
   actionType: 'ROLLBACK',
   reason: '',
   proofFiles: '',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })

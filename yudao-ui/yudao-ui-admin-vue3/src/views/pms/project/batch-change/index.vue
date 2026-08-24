@@ -182,8 +182,8 @@ const query = reactive({
 const createVisible = ref(false)
 const formRef = ref()
 const form = reactive<TeamBatchChangeVO>({
-  sourceUserId: undefined,
-  targetUserId: undefined,
+  sourceUserId: undefined!,
+  targetUserId: undefined!,
   scopeType: 'SELECTED',
   projectIds: [],
   reason: '',

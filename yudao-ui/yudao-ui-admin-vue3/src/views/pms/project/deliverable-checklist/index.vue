@@ -217,7 +217,7 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<DeliverableChecklistVO>({ projectId: undefined, code: '', name: '' })
+const form = reactive<DeliverableChecklistVO>({ projectId: undefined!, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入交付件编号' }],

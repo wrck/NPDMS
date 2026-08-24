@@ -207,7 +207,7 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<CompletionCertificateVO>({ projectId: undefined, code: '', name: '' })
+const form = reactive<CompletionCertificateVO>({ projectId: undefined!, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入证明编号' }],

@@ -393,7 +393,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<MaterialExchangeVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   exchangeType: 'INCOMPATIBLE',
@@ -401,12 +401,12 @@ const form = reactive<MaterialExchangeVO>({
   materialName: '',
   materialCode: '',
   specification: '',
-  quantity: undefined,
+  quantity: undefined!,
   unit: '个',
   originalOrderNo: '',
   reason: '',
   reasonFiles: '',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })

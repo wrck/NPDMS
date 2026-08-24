@@ -447,7 +447,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<ExternalProcurementVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   procurementType: 'GOODS',
@@ -456,7 +456,7 @@ const form = reactive<ExternalProcurementVO>({
   specification: '',
   brand: '',
   model: '',
-  quantity: undefined,
+  quantity: undefined!,
   unit: '个',
   unitPrice: undefined,
   totalPrice: undefined,
@@ -468,7 +468,7 @@ const form = reactive<ExternalProcurementVO>({
   expectedDeliveryDate: '',
   attachmentFiles: '',
   triggerSource: 'MANUAL',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })

@@ -336,7 +336,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<BriefingVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   briefingType: 'STANDARD',

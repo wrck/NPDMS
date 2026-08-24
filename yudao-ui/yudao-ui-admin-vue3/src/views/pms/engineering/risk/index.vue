@@ -333,7 +333,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<RiskVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   riskType: 'SINGLE_DEVICE',

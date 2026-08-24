@@ -405,13 +405,13 @@ const formVisible = ref(false)
 const formRef = ref()
 const projectPhases = ref<ProjectPhaseVO[]>([])
 const form = reactive<PlanChangeVO>({
-  projectId: undefined,
+  projectId: undefined!,
   changeNo: '',
   title: '',
   changeType: 'PLAN_ADJUST',
   reason: '',
   customerProofFiles: '',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   baselineVersion: 0,
   remark: '',

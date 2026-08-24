@@ -411,7 +411,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<MaterialRequisitionVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   requisitionType: 'SPARE',
@@ -419,7 +419,7 @@ const form = reactive<MaterialRequisitionVO>({
   materialName: '',
   materialCode: '',
   specification: '',
-  quantity: undefined,
+  quantity: undefined!,
   unit: '个',
   neededDate: '',
   warehouseId: undefined,
@@ -427,7 +427,7 @@ const form = reactive<MaterialRequisitionVO>({
   stockStatus: 'IN_STOCK',
   attachmentFiles: '',
   triggerSource: 'MANUAL',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })

@@ -324,7 +324,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<AuthorizationVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   authorizationType: 'TEMPORARY',

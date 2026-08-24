@@ -304,8 +304,8 @@ const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<FormInstanceVO>({
   code: '',
-  projectId: undefined,
-  templateId: undefined,
+  projectId: undefined!,
+  templateId: undefined!,
   name: '',
   formData: '',
   fillerUserId: undefined,

@@ -177,7 +177,7 @@ const query = reactive({
 const createVisible = ref(false)
 const formRef = ref()
 const form = reactive<ScheduleBackwardVO>({
-  projectId: undefined,
+  projectId: undefined!,
   targetDate: '',
   projectType: 'DIRECT',
   remark: ''

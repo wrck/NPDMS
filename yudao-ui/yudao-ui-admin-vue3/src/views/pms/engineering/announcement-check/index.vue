@@ -326,8 +326,8 @@ const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<AnnouncementCheckVO>({
   code: '',
-  projectId: undefined,
-  announcementId: undefined,
+  projectId: undefined!,
+  announcementId: undefined!,
   deviceModel: '',
   deviceSerial: '',
   deviceVersion: '',

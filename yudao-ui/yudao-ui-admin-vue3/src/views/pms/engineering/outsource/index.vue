@@ -420,7 +420,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<OutsourceRequestVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   outsourceType: 'LABOR',
@@ -436,7 +436,7 @@ const form = reactive<OutsourceRequestVO>({
   contactPhone: '',
   attachmentFiles: '',
   triggerSource: 'MANUAL',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })
