@@ -132,25 +132,25 @@ public interface ProjectTemplateMatchHistoryService {
 }
 ```
 
-- [ ] **Step 1: 实现四属性快照和值域守卫**
+- [x] **Step 1: 实现四属性快照和值域守卫**
 
 手工来源只接受非空签约方式、`GENERAL/ENGINEERING`项目类别、非空实施方式和SQL NULL重大级别；原因统一trim后校验非空。快照JSON固定`schemaVersion=1`和四个稳定字段名。
 
-- [ ] **Step 2: 适配现有TemplateMatcher产生确定性决策**
+- [x] **Step 2: 适配现有TemplateMatcher产生确定性决策**
 
 唯一候选未显式选择返回`AUTO_UNIQUE`；任何显式合法候选返回`EXPLICIT_SELECTION`；无匹配和未选择的多匹配抛既有业务异常。候选摘要对排序后的候选稳定字段做SHA-256，matcher版本使用代码常量并写入历史。
 
-- [ ] **Step 3: 实现INITIAL_CREATE与IMPACT_EVALUATION历史构造**
+- [x] **Step 3: 实现INITIAL_CREATE与IMPACT_EVALUATION历史构造**
 
 按trigger/result矩阵校验所有必填、必空和固定值；`appendInitial/appendImpact`只能调用Mapper.insert，不暴露update/delete方法；operationId、reason、operatorId和idempotency证据必填。
 
-- [ ] **Step 4: 运行领域与服务测试**
+- [x] **Step 4: 运行领域与服务测试**
 
 Run: `mvn.cmd -pl pms-module-project -Dtest=TemplateMatchDecisionRulesTest,ProjectAttributeResolutionServiceTest,ProjectTemplateMatchHistoryServiceTest test`
 
 Expected: 三类matchResult、两种首次决策、三种trigger及非法矩阵全部覆盖并PASS。
 
-- [ ] **Step 5: 更新Task状态并提交**
+- [x] **Step 5: 更新Task状态并提交**
 
 提交信息：`feat(project): 实现属性判定与匹配历史构造`
 
