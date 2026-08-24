@@ -164,5 +164,9 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_MOVE_CYCLE = new ErrorCode(1_014_024_009, "子树移动会形成循环引用（目标父项目为自身或自身后代）");
     ErrorCode PROJECT_MOVE_INVALID_PARENT = new ErrorCode(1_014_024_010, "移动目标父项目不存在或跨租户");
     ErrorCode PROJECT_WEIGHT_SUM_INVALID = new ErrorCode(1_014_024_011, "直接子项目权重合计必须为100%：{}");
+    ErrorCode PROJECT_SPLIT_REQUEST_NOT_EXISTS = new ErrorCode(1_014_024_018, "项目拆分草稿不存在");
+    ErrorCode PROJECT_SPLIT_DRAFT_INVALID = new ErrorCode(1_014_024_019, "项目拆分草稿不合法：{}");
+    ErrorCode PROJECT_SPLIT_DRAFT_VERSION_CONFLICT = new ErrorCode(1_014_024_020, "项目拆分草稿版本冲突，请重新加载");
+    ErrorCode PROJECT_SPLIT_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_021, "无权访问该项目拆分范围");
 
 }

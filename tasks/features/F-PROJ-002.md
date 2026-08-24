@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 4 实现持久化拆分草稿、预览和校验
+> 当前任务：Task 5 实现原子批量应用拆分方案
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
@@ -33,4 +33,4 @@
 
 ## 下一步
 
-Task 3 已以前向V71建立PROJ拆分草稿、完整树版本、进度事实、策略与快照载体，并通过合同测试锁定V60～V62不变。下一步执行Task 4，实现持久化拆分草稿、服务端预览和逐项校验。
+Task 4 已实现持久化拆分草稿、稳定项键版本更新、服务端预览、组织/Commerce/AST逐项校验、失败草稿保留、操作审计和Micrometer指标。下一步执行Task 5，在单一事务内原子应用全部子项目、范围和树版本。

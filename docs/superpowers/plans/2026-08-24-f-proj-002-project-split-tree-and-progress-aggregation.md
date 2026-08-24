@@ -258,17 +258,17 @@ ProjectSplitPreview preview(Long requestId, Integer expectedDraftVersion, Actor 
 - 草稿项使用`clientItemKey`稳定关联；范围项显式保存`orderLineId/quantity/officeDepartmentCode/serialNumbers/sourceScopeVersion`。
 - 预览依次校验父项目、租户、ProjectTreeScope、组织部门编码、Commerce可分配量和AST序列号；任何失败均返回逐项结果且不创建Project。
 
-- [ ] **Step 1: 实现自由组合规则和草稿版本控制**
+- [x] **Step 1: 实现自由组合规则和草稿版本控制**
 
 允许订单行、数量、办事处部门编码和SN任意组合；同一SN不可在两个方案项重复；数量为正且总量不超过父项目可分配范围。
 
-- [ ] **Step 2: 实现服务端预览**
+- [x] **Step 2: 实现服务端预览**
 
 客户端提交的预览摘要不可回传作为确认依据；服务端生成`previewHash`和`validatedAt`，持久化逐项结果与权威水位。
 
 草稿保存、预览、重新校验和失败结果写平台操作审计；Micrometer指标至少记录预览成功/失败、失败类型和耗时，不记录范围正文、SN或商务敏感值。
 
-- [ ] **Step 3: 暴露草稿、读取、更新、预览和重新校验接口**
+- [x] **Step 3: 暴露草稿、读取、更新、预览和重新校验接口**
 
 正式路由：
 
@@ -280,13 +280,13 @@ POST /pms/project-split-requests/{id}/actions/preview
 POST /pms/project-split-requests/{id}/actions/validate
 ```
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
 
 ```powershell
 mvn -pl pms-module-project -am -Dtest=ProjectSplitRulesTest,ProjectSplitPreviewServiceTest test
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(project): 实现拆分草稿与方案预览`
 
