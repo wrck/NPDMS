@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "ecb4b429ad1914cf9ecc78ad080ea6909afc950c"
+    "commit": "b453cb0b80804e288be360b50ee0bfef6809b798"
   },
   "files": [
     {
@@ -423,7 +423,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "e4d08c58e84a8df7af9b5b815aa2b1723881262f836c5ca3b02c36e333aeb9b4"
+      "sha256": "2e71d809d3c8445d67b72ac4c8e4755bfa90a1d2560d6619bfe6e6b437b249d5"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -431,9 +431,14 @@
       "sha256": "566fdcf3f82fe26fa1121c37e50d622080c70f225c6134ad8dbc25adbb17dd97"
     },
     {
+      "path": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "3280e0654694f7a3def4ad0885bf051629fa2d7c31b49c93e46f613ed75181d2"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "349725b9aa0be53fe7ac17636595353a439a6984a142ba92a79141b578c34eae"
+      "sha256": "72188f08812725c9dde809c197590b501c6c18fc4927c909a0ba9215daea7292"
     }
   ]
 }

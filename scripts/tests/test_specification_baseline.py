@@ -32,7 +32,7 @@ class SpecificationBaselineTest(unittest.TestCase):
     def setUp(self) -> None:
         self.repo = Path(__file__).resolve().parents[2]
 
-    def test_f_proj_001_inputs_are_allowlisted(self) -> None:
+    def test_project_feature_inputs_are_allowlisted(self) -> None:
         allowlist = load_allowlist(self.repo / "docs/specification-baseline/allowlist.json")
         paths = {item.path for item in allowlist}
         required = {
@@ -43,23 +43,25 @@ class SpecificationBaselineTest(unittest.TestCase):
             "docs/decisions/0032-manual-project-creation-cross-context-atomicity.md",
             "specs/features/README.md",
             "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+            "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
         }
         self.assertTrue(required <= paths)
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_86_files(self) -> None:
+    def test_allowlist_contains_exactly_87_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(86, len(entries))
-        self.assertEqual(86, len({entry.path for entry in entries}))
+        self.assertEqual(87, len(entries))
+        self.assertEqual(87, len({entry.path for entry in entries}))
 
     def test_accepts_feature_spec_paths(self) -> None:
         feature_spec_paths = (
             "specs/features/README.md",
             "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+            "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
         )
 
         for path in feature_spec_paths:

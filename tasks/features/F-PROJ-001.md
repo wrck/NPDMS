@@ -4,12 +4,12 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Implementation Done Gate：`PASS`
 > 当前阻断：无
-> 当前任务：基于已批准 SDS V1.8 在规格仓库形成 PM-02 正式 Feature Spec
+> 当前任务：F-PROJ-002 已达到 Feature Ready，转入全新 V1.8 Technical Plan
 > Requirement ID：`PM-01`、`PM-03`
 > Feature Spec：`specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md`
 > Feature Spec SHA-256：`566fdcf3f82fe26fa1121c37e50d622080c70f225c6134ad8dbc25adbb17dd97`
 > Technical Plan：`docs/superpowers/plans/2026-08-23-v18-organization-location-foundation-and-fproj001-rework.md`
-> 锁定规格提交：`ecb4b429ad1914cf9ecc78ad080ea6909afc950c`
+> 锁定规格提交：`b453cb0b80804e288be360b50ee0bfef6809b798`
 
 ## 事实边界
 
@@ -73,4 +73,4 @@ AC-FPROJ-007 原阻断已由 V1.8 组织与地点基础改造关闭：公司、�
 
 代码、Schema、测试、浏览器证据、评审及受管追溯均已满足本 Feature 的工程实现完成条件，Implementation Done Gate 为 `PASS`。该结论不代表 Deployment、SIT、UAT、Release 或治理 GO。
 
-当前阻断为无。总体 Implementation Phase 继续按 Feature 顺序推进；下一任务是在规格仓库基于已批准 SDS V1.8 形成 PM-02 正式 Feature Spec，达到 Feature Ready 后锁定新提交并同步受管快照，再生成全新的 V1.8 Technical Plan。旧 F-PM02 Spec、Technical Plan 与现有代码只作存量审计输入，不得据此判断已实现。
+当前阻断为无。PM-02 正式 Feature Spec 已达到 `BASELINE / READY` 并同步到锁定提交 `b453cb0b80804e288be360b50ee0bfef6809b798`。总体 Implementation Phase 继续转入 F-PROJ-002 全新 V1.8 Technical Plan；旧 F-PM02 Spec、Technical Plan 与现有代码只作存量审计输入，不得据此判断已实现。
