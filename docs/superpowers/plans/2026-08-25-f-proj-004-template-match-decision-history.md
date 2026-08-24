@@ -305,7 +305,7 @@ Run: `pnpm exec vue-tsc --noEmit`
 - Modify: `tasks/features/F-PROJ-004.md`
 - Modify after implementation evidence exists: Feature实施状态只能先回写规格仓库，再通过受管同步进入NPDMS。
 
-- [ ] **Step 1: 执行后端和迁移全量验证**
+- [x] **Step 1: 执行后端和迁移全量验证**
 
 Run: `mvn.cmd -pl pms-module-project -am test`
 
@@ -313,27 +313,27 @@ Run: `docker compose run --rm flyway migrate`
 
 Run: `docker compose run --rm flyway validate`
 
-在隔离MySQL验证V1～V81、错误存量值未被自动改写、历史唯一约束、append-only应用边界和回滚原子性。
+在隔离MySQL验证V1～V82、错误存量值未被自动改写、历史唯一约束、append-only应用边界和回滚原子性。
 
-- [ ] **Step 2: 执行前端构建与回归**
+- [x] **Step 2: 执行前端构建与回归**
 
-Run from `yudao-ui/yudao-ui-admin-vue3`: `pnpm exec vitest run`
+Run from `yudao-ui/yudao-ui-admin-vue3`: 对5个`node:test`契约文件执行`node --test`，对3个组件规格执行`pnpm exec vitest run <spec files>`；两类运行器不得混跑。
 
 Run: `pnpm build:prod`
 
-- [ ] **Step 3: 使用真实浏览器完成业务闭环**
+- [x] **Step 3: 使用真实浏览器完成业务闭环**
 
 优先使用Codex内置浏览器；若内置交接不可用再使用已获许可的外部浏览器。验证唯一自动命中、合法显式选择、无/多匹配拒绝、历史查询、人工调整、越权拒绝、刷新保持，以及320/768/1024/1440无页面级溢出和主题一致。
 
-- [ ] **Step 4: 完成代码评审和边界扫描**
+- [x] **Step 4: 完成代码评审和边界扫描**
 
 确认无同义四属性列、无属性历史表、无分类状态/案例/影响表、无重新实例化入口、无CHG事件；确认模块没有跨上下文DO/Mapper/业务表访问。
 
-- [ ] **Step 5: 形成验收证据并关闭Task**
+- [x] **Step 5: 形成验收证据并关闭Task**
 
 验收文档逐项映射`AC-FPROJ004-001`～`012`到测试、MySQL事实、浏览器步骤和提交。只把PM-07的PROJ子切片标为Implementation Done；INT、CHG、PM-08和E2E继续保持未完成。
 
-- [ ] **Step 6: 提交实施闭环材料**
+- [x] **Step 6: 提交实施闭环材料**
 
 提交信息：`docs(feature): 完成 F-PROJ-004 实施闭环`
 

@@ -10,6 +10,7 @@ V54 = MIGRATIONS / "V54__fpm03_template_demo_seed.sql"
 V59 = MIGRATIONS / "V59__fpm01_manual_match_demo_seed.sql"
 V80 = MIGRATIONS / "V80__fproj004_template_match_history.sql"
 V81 = MIGRATIONS / "V81__fproj004_template_match_seed_and_permission.sql"
+V82 = MIGRATIONS / "V82__fproj004_project_category_deduplicate.sql"
 PHYSICAL_CONTRACT = ROOT / "specs" / "features" / "F-PROJ-004-physical-contract.json"
 
 
@@ -21,11 +22,12 @@ class FProj004V18MigrationTest(unittest.TestCase):
         cls.v59 = V59.read_text(encoding="utf-8")
         cls.v80 = V80.read_text(encoding="utf-8")
         cls.v81 = V81.read_text(encoding="utf-8")
+        cls.v82 = V82.read_text(encoding="utf-8")
         cls.physical_contract = json.loads(PHYSICAL_CONTRACT.read_text(encoding="utf-8"))
 
     def test_forward_migrations_follow_v79(self) -> None:
-        self.assertEqual([80, 81], [int(path.name[1:3]) for path in (V80, V81)])
-        self.assertNotIn("ALTER TABLE `proj_project` ADD", self.v80 + self.v81)
+        self.assertEqual([80, 81, 82], [int(path.name[1:3]) for path in (V80, V81, V82)])
+        self.assertNotIn("ALTER TABLE `proj_project` ADD", self.v80 + self.v81 + self.v82)
 
     def test_v80_creates_only_the_approved_append_only_fact(self) -> None:
         self.assertEqual(
@@ -66,6 +68,12 @@ class FProj004V18MigrationTest(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, combined)
         self.assertNotIn("INSERT INTO `proj_project_template`", self.v81)
+
+    def test_v82_disables_duplicate_categories_without_rewriting_projects(self) -> None:
+        self.assertEqual(2, self.v82.count("UPDATE `system_dict_data`"))
+        self.assertIn("`id` <> 992004020001", self.v82)
+        self.assertIn("`id` <> 992004020002", self.v82)
+        self.assertNotRegex(self.v82, r"UPDATE\s+`?proj_project`?")
 
 
 if __name__ == "__main__":

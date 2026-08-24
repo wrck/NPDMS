@@ -1,11 +1,11 @@
 # F-PROJ-004 项目业务属性判定、模板匹配历史与影响识别
 
-> Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`
-> 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
 > Feature Ready Gate：`PASS / NPDMS-FPROJ004-FEATURE-READY-20260825-06`
-> Implementation Done Gate：`NOT_EVALUATED`
+> Implementation Done Gate：`PASS / NPDMS-FPROJ004-IMPLEMENTATION-DONE-20260825-07`
 > 当前阻断：无
-> 当前任务：Task 6 完成全链验证、评审与Implementation Done证据
+> 当前任务：无；Task 1～6已完成
 > Requirement ID：`PM-07`（仅PROJ子切片）
 > Feature Spec：`specs/features/F-PROJ-004-project-business-attribute-classification.md`
 > Feature物理契约：`specs/features/F-PROJ-004-physical-contract.json`
@@ -27,7 +27,7 @@
 - [x] Task 3 将首次匹配历史纳入项目创建原子事务
 - [x] Task 4 实现创建后属性修正、影响评估和历史查询API
 - [x] Task 5 改造创建与详情界面
-- [ ] Task 6 完成全链验证、评审与Implementation Done证据
+- [x] Task 6 完成全链验证、评审与Implementation Done证据
 
 ## 非阻断边界
 
