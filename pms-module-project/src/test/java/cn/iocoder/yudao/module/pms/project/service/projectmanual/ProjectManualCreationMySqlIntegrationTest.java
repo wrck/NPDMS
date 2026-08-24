@@ -21,6 +21,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationServiceImpl;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
@@ -377,6 +378,11 @@ abstract class ProjectManualCreationMySqlTestSupport {
         @Bean
         ProjectCreationAuthorizationService authorizationService() {
             return mock(ProjectCreationAuthorizationService.class);
+        }
+
+        @Bean
+        ProjectTreeScopeService projectTreeScopeService() {
+            return mock(ProjectTreeScopeService.class);
         }
 
         @Bean
