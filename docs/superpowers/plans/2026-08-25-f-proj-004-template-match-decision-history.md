@@ -47,8 +47,7 @@
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projectattribute/ProjectTemplateMatchHistoryDO.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectattribute/ProjectTemplateMatchHistoryMapper.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectattribute/query/ProjectTemplateMatchHistoryPageQuery.java`
-- Create: `pms-module-project/src/main/resources/mapper/projectattribute/ProjectTemplateMatchHistoryMapper.xml`
-- Create: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/migration/FProj004MigrationContractTest.java`
+- Create: `scripts/tests/test_fproj004_v18_migration.py`
 - Create: `tasks/features/F-PROJ-004.md`
 
 **Interfaces:**
@@ -69,27 +68,27 @@ public record ProjectTemplateMatchHistoryPageQuery(
         String orderBy, Boolean ascending) {}
 ```
 
-- [ ] **Step 1: 新增V80历史表与约束**
+- [x] **Step 1: 新增V80历史表与约束**
 
 建立契约列、通用审计列、`uk(tenant_id,operation_id)`、`uk(tenant_id,project_id,idempotency_key)`、项目时间分页索引；表注释明确永久保留和只插入。数据库约束覆盖trigger/result矩阵中可稳定表达的固定值，复杂条件由领域校验承担。
 
-- [ ] **Step 2: 新增V81值域、权限和组合种子**
+- [x] **Step 2: 新增V81值域、权限和组合种子**
 
 停用`pms_project_category`的`MAIN/SUB`候选，幂等保证`GENERAL/ENGINEERING`启用；增加`pms:project:classify`按钮权限。种子覆盖唯一命中、部分限定优先级让位、无匹配、多匹配和停用模板不参与，但不改写任何存量项目错误值。
 
-- [ ] **Step 3: 实现DO、Mapper和分页XML**
+- [x] **Step 3: 实现DO、Mapper和类型安全分页**
 
-DO逐列映射物理契约；分页XML固定`project_id/tenant_id`并使用显式排序白名单，禁止`${}`和`.last(...)`。
+DO逐列映射物理契约；简单单表分页使用`LambdaQueryWrapperX`固定`project_id/tenant_id`，排序通过Java字段白名单映射方法引用，禁止`${}`和`.last(...)`。
 
-- [ ] **Step 4: 补迁移契约测试并验证**
+- [x] **Step 4: 补迁移契约测试并验证**
 
 Run: `mvn.cmd -pl pms-module-project -am -DskipTests compile`
 
-Run: `mvn.cmd -pl pms-module-project -Dtest=FProj004MigrationContractTest test`
+Run: `& '<bundled-python>' -m unittest scripts.tests.test_fproj004_v18_migration`
 
 Expected: 编译及迁移契约测试PASS；测试证明没有`proj_project_business_attribute_history`或其他禁建表。
 
-- [ ] **Step 5: 更新Task状态并提交**
+- [x] **Step 5: 更新Task状态并提交**
 
 提交信息：`feat(project): 建立模板匹配决策历史事实`
 
