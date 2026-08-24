@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class AuthorizationGrantDO extends TenantBaseDO {
 
-    @TableId
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private String subjectTypeCode;
     private Long subjectId;

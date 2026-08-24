@@ -52,6 +52,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -82,7 +83,7 @@ class AuthorizationGrantMySqlTest {
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");
         registry.add("yudao.info.base-package", () -> "cn.iocoder.yudao.module.pms.platform");
-        registry.add("mybatis-plus.global-config.db-config.id-type", () -> "ASSIGN_ID");
+        registry.add("mybatis-plus.global-config.db-config.id-type", () -> "AUTO");
         registry.add("mybatis-plus.configuration.map-underscore-to-camel-case", () -> "true");
     }
 
@@ -110,6 +111,9 @@ class AuthorizationGrantMySqlTest {
         AuthorizationGrantDTO created = service.create(createCommand(
                 "lifecycle", "PROJECT_VIEW", "CURRENT_PROJECT", now.minusHours(1), now.plusHours(1)));
 
+        assertNotNull(created.id());
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_authorization_grant WHERE id = ?", Long.class, created.id()));
         assertEquals(1, effectiveAt(now).size());
         assertEquals(0, effectiveAt(now.plusHours(2)).size());
 
