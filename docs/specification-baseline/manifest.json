@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "8f76f2ff94389ec7257d8b0fb9d67c3dd10a4166"
+    "commit": "79125ceac092f7b586c66bbd251e9eb93ba894a2"
   },
   "files": [
     {
@@ -19,6 +19,11 @@
       "path": "docs/baseline/prd-v1.8-amendment-002-organization-and-asset-location.md",
       "category": "BASELINE",
       "sha256": "8c2bfd0f5237590e5c281f4d3962aefc3cd8a1a2bacfa56914553d68d80e529f"
+    },
+    {
+      "path": "docs/baseline/prd-v1.8-amendment-003-pm07-template-match-decision-history.md",
+      "category": "BASELINE",
+      "sha256": "8375ac37a4d81ad95f362dbc16d99e4db7fc63a455d4ca337b1e0a2e0299c61e"
     },
     {
       "path": "docs/baseline/prd-v1.8.md",
@@ -218,7 +223,7 @@
     {
       "path": "docs/design/02-domain-model.md",
       "category": "SDS",
-      "sha256": "ed9aa719fea9611e3c154aa1939a7be37ebc474b1f6f491ae38427754cfa3671"
+      "sha256": "a2e4224645027ef9d391c1f5d9d0468582671afb5ff88639823a3ba607eb669b"
     },
     {
       "path": "docs/design/02a-context-map.md",
@@ -233,7 +238,7 @@
     {
       "path": "docs/design/02c-data-ownership-matrix.md",
       "category": "SDS",
-      "sha256": "6f6bcda4f907d3a9e626dff8a72e6fe92f3d17dd2153c1f5a9d27eac252c86cf"
+      "sha256": "f35331f2beae99a3b14c524aebe31677290a1308225962ab031cc23156c193de"
     },
     {
       "path": "docs/design/02d-cross-context-contracts.md",
@@ -253,7 +258,7 @@
     {
       "path": "docs/design/04-module-design.md",
       "category": "SDS",
-      "sha256": "fdc3f24047a11b197e22ed8c39c78c045ec075e7848f2cbfa9ad08d68a28e425"
+      "sha256": "8e9df195697878822961c2c3c1d1dcb479e2a0e4e0dd32fd836b11f40daf0027"
     },
     {
       "path": "docs/design/05-state-machine.md",
@@ -268,27 +273,27 @@
     {
       "path": "docs/design/07-authorization-design.md",
       "category": "SDS",
-      "sha256": "78cc992780595b87b978287159c0980bec53289aeeb40f54d5a859dc04b83360"
+      "sha256": "478b337e605c131e984d097a3ffdaac15a76bf27356de90d33e602bf53c06b2f"
     },
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "9cac4b56e409d9cd9c34e9ba098f162138d27aadde378f1395e9f5877e8a8850"
+      "sha256": "81f5b609489631d832b247cba6106b1e2cc1fb551fea5f1d3bd08d1440daaf7c"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
       "category": "SDS",
-      "sha256": "452a30cd1fe24a7d86c4bc578a034679df810ad675168cde9e46bd1eaa9dbfe7"
+      "sha256": "3a43d5beb14b6ba59ec74988e09708339de82ae930abdbc8043e4a41841d4640"
     },
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "7d6dc420803370286a619d0c2e7d78822120581b5a4a2c0a388ce58a3c7dca92"
+      "sha256": "70940e061b8785150bddc5e45296bd3e4dcf36cb4fcf337b6486226793324283"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "3dda15a47c1596c4a8beb56f601ffe68ccac319ee7472fc844ef230e8b06847c"
+      "sha256": "6a77dfcc72ecfed57e2a150a1bccb113b6cd44376a992694492b2856411ba8e9"
     },
     {
       "path": "docs/design/11-event-design.md",
@@ -298,7 +303,7 @@
     {
       "path": "docs/design/12-integration-design.md",
       "category": "SDS",
-      "sha256": "ea4fdd537f4e092577842be0e53f8d6f5844362ec5619a8bfc68061cd426656e"
+      "sha256": "b48443485702b1f30807f33159210a29434b8d778a67accb5b49776716011e78"
     },
     {
       "path": "docs/design/13-file-design.md",
@@ -313,17 +318,17 @@
     {
       "path": "docs/design/15-cache-and-concurrency.md",
       "category": "SDS",
-      "sha256": "7ba9a1ccb061c777804fa8f3c7b490f355bc34ddece3179ff87e7a2501044184"
+      "sha256": "d2f2bea0f88142f0c531a5ceae65071ab6570ccc1c317d591a293bde2b152bd0"
     },
     {
       "path": "docs/design/16-exception-and-idempotency.md",
       "category": "SDS",
-      "sha256": "968f19b9c2aa1de5de49bd20cd9194d2711b3de625454e9da722ec8eff81b60b"
+      "sha256": "828f239f8ddbc972d6a8b89ac76039e48e4615c619b8c11552c41174d8ef9cb2"
     },
     {
       "path": "docs/design/17-audit-and-observability.md",
       "category": "SDS",
-      "sha256": "5d490b2cd5a601d7400d130f132386aa883796cfadce4e0cabeef9e5bc71ceed"
+      "sha256": "889c0b90b95856d213cac77ea1a1efacb5ec7857395dcbe74e1651edd973d12c"
     },
     {
       "path": "docs/design/18-deployment-design.md",
@@ -368,12 +373,12 @@
     {
       "path": "docs/engineering/gates/phase-2/README.md",
       "category": "ENGINEERING",
-      "sha256": "0c5051d5f4828c4c74b6b0d122a49356ca34a41e5446de9935f9116ca4887580"
+      "sha256": "e5ad1d6f6c03f6fd8489413a5fe8232221992aec6ee1f3aaa5330aff6b3ca6e6"
     },
     {
       "path": "docs/engineering/gates/phase-2/gate-status.md",
       "category": "ENGINEERING",
-      "sha256": "99976fcc6dacdd07459c1eb004c1beb11e3e125ccb03a66cf56bd5a570c1b490"
+      "sha256": "b4ec81d9b096babbcd510a648239ef7c7051509cffded1a937508154c2373d99"
     },
     {
       "path": "docs/engineering/gates/phase-3/README.md",
@@ -403,17 +408,17 @@
     {
       "path": "docs/traceability/domain-entity-migration-contract.json",
       "category": "TRACEABILITY",
-      "sha256": "fbf80fda02c4f1eeee91c890617fd2f18d338a292197747a79fcaea8c0e0f512"
+      "sha256": "69231f5cf0718d6372dc7ed1645203752b87b7ea2bfd89bae8c463a161a4528f"
     },
     {
       "path": "docs/traceability/domain-entity-migration-contract.md",
       "category": "TRACEABILITY",
-      "sha256": "93a5610564101ee362c1ff240e06c154e96ff983c8045970e7da4d13b8b64a96"
+      "sha256": "f9c2dfe05b7e01bf6d526252cc1f8fab9aa0f99db25a0c4793105b9dba5085af"
     },
     {
       "path": "docs/traceability/domain-object-table-map.json",
       "category": "TRACEABILITY",
-      "sha256": "8d1378b75bb4309ea7fbbb15c5dd2bd5666e9eb9e413fcb627161b47bb570438"
+      "sha256": "283198988cb5ad67819c825ea95186e4078ab1a7a4d2f859bf6e9d5917fe86ab"
     },
     {
       "path": "docs/traceability/market-relation-contract.json",
@@ -423,7 +428,7 @@
     {
       "path": "docs/traceability/phase2-contract-map.md",
       "category": "TRACEABILITY",
-      "sha256": "6789b4ce611a822e3a60b9b39efa4e01328824525b912db9081b6b56a41d7ca2"
+      "sha256": "7e3d65a946506ca22cb4ce688615e1d3707e13837db4c3cb77060e65e3974588"
     },
     {
       "path": "docs/traceability/project-code-contract.json",
@@ -433,12 +438,12 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "d515b6ea089f94c6d2f257bb88cc5e10b7a84b33133bd96de5d2247e22b9ba07"
+      "sha256": "0db97e187a711bec0ac0957981ed866c7dbb6bcac24c6befe8e0658a81b691fc"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
       "category": "FEATURE_SPEC",
-      "sha256": "566fdcf3f82fe26fa1121c37e50d622080c70f225c6134ad8dbc25adbb17dd97"
+      "sha256": "2f334336042b4e7babe1bf5f3d34af71695bf8448402314087b520f7b3db19c4"
     },
     {
       "path": "specs/features/F-PROJ-002-physical-contract.json",
@@ -461,9 +466,19 @@
       "sha256": "514cce60c73aab306749e6d31d75675eb0d086b83522b3757db5ea97ca3259e0"
     },
     {
+      "path": "specs/features/F-PROJ-004-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "ebef66a44d05866d2740bedabe92bb1050450c69dfdf76b9eb1257e8ecd6030e"
+    },
+    {
+      "path": "specs/features/F-PROJ-004-project-business-attribute-classification.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "7f4e0abb685cb7f4353e3a1a933d9cc9a366332584dcea581ac4a0b106a125f4"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "fb46ddcc03a1a1b5a483fab1bcd7e35daac509fe5987d78f569e9821d08d83d9"
+      "sha256": "3577f1051f285e6e3d0008c3c58bb0b82bce95d45004e6a246fc58ce60c69e0f"
     }
   ]
 }

@@ -6,6 +6,8 @@ Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存
 > 当前范围：V1 53项、V2 47项、V1/V2正式需求100项；已编号V3 31项、跨需求演进方向2项；`OUT_OF_SCOPE` 9项<br>
 > 迁移边界：87对象/98来源绑定/1排除源；`CustomerServiceLevelRevision`和`CutoverConfigurationRevision`均为`NONE_NEW / FEATURE_FORWARD_MIGRATION`，不进入当前核心DDL；P3-E09=`MODEL_BASELINE_READY`仅批准当前冻结模型。仅当发布包含历史迁移或数据切换时，才由`AI-MIG-000`作为Release前置门禁并绑定批准窗口，普通功能发布不适用
 
+> 2026-08-25聚焦增量：F-PROJ-004新增`ProjectTemplateMatchHistory`后，当前迁移契约为88对象/99来源绑定/1排除源；该对象为`NONE_NEW / FEATURE_FORWARD_MIGRATION(PM-07)`，不进入既有核心DDL，Feature Ready独立复审仍须单独GO。
+
 ## 当前文件
 
 - [`gate-status.md`](gate-status.md)：Phase 2 当前门禁状态。

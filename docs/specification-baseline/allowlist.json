@@ -4,6 +4,7 @@
     {"path": "docs/README.md", "category": "ENGINEERING"},
     {"path": "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md", "category": "BASELINE"},
     {"path": "docs/baseline/prd-v1.8-amendment-002-organization-and-asset-location.md", "category": "BASELINE"},
+    {"path": "docs/baseline/prd-v1.8-amendment-003-pm07-template-match-decision-history.md", "category": "BASELINE"},
     {"path": "docs/baseline/prd-v1.8.md", "category": "BASELINE"},
     {"path": "docs/baseline/requirement-baseline.yaml", "category": "BASELINE"},
     {"path": "docs/coding/database-query-interface.md", "category": "ENGINEERING"},
@@ -92,6 +93,8 @@
     {"path": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-003-physical-contract.json", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-PROJ-004-physical-contract.json", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-PROJ-004-project-business-attribute-classification.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/README.md", "category": "FEATURE_SPEC"}
   ]
 }

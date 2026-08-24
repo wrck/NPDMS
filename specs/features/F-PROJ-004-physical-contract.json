@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-PROJ-004",
+  "requirementIds": ["PM-07"],
+  "relatedRequirementSlices": ["PM-01", "PM-03", "INT-01", "INT-03", "CHG-01"],
+  "status": "BASELINE_READY",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "FEATURE_READY_GO_NPDMS_FPROJ004_20260825_06",
+  "requirementCompletionPolicy": "PROJ_SLICE_ONLY_DO_NOT_CLOSE_PM07_INT_OR_CHG_ACCEPTANCE",
+  "objects": {
+    "Project": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project"],
+      "reusedColumns": ["signing_method", "project_category", "implementation_mode", "major_project_level"],
+      "manualProjectMajorLevelStorage": "SQL_NULL_WITH_UI_NOT_APPLICABLE_LABEL",
+      "duplicateBusinessColumnsAllowed": false
+    },
+    "ProjectTemplateMatchHistory": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_template_match_history"],
+      "mutationPolicy": "APPEND_ONLY",
+      "retentionPolicy": "PERMANENT_NON_DELETABLE",
+      "physicalFields": [
+        "tenant_id",
+        "project_id",
+        "trigger_type",
+        "record_purpose",
+        "input_origin",
+        "snapshot_schema_version",
+        "before_attribute_snapshot",
+        "attribute_snapshot",
+        "attribute_owner_snapshot",
+        "source_owner",
+        "source_system",
+        "source_key",
+        "source_event_id",
+        "source_version",
+        "source_occurred_at",
+        "source_value_digest",
+        "mapping_version",
+        "matcher_version",
+        "match_result",
+        "candidate_digest",
+        "decision_mode",
+        "matched_template_id",
+        "matched_template_revision_id",
+        "frozen_template_revision_id",
+        "impact_result",
+        "operator_id",
+        "change_reason",
+        "occurred_at",
+        "recorded_at",
+        "idempotency_key",
+        "request_digest",
+        "operation_id",
+        "trace_id",
+        "audit_log_id"
+      ],
+      "commonNonNullFields": [
+        "tenant_id",
+        "project_id",
+        "trigger_type",
+        "record_purpose",
+        "input_origin",
+        "snapshot_schema_version",
+        "attribute_snapshot",
+        "attribute_owner_snapshot",
+        "source_system",
+        "matcher_version",
+        "match_result",
+        "candidate_digest",
+        "frozen_template_revision_id",
+        "impact_result",
+        "operator_id",
+        "change_reason",
+        "occurred_at",
+        "recorded_at",
+        "idempotency_key",
+        "request_digest",
+        "operation_id"
+      ],
+      "triggerTypes": ["INITIAL_CREATE", "SOURCE_CORRECTION", "MANUAL_ADJUSTMENT"],
+      "recordPurposes": ["CREATE_DECISION", "IMPACT_EVALUATION"],
+      "inputOrigins": ["MANUAL", "SOURCE"],
+      "matchResults": ["UNIQUE", "NO_MATCH", "MULTIPLE_MATCHES"],
+      "decisionModes": ["AUTO_UNIQUE", "EXPLICIT_SELECTION"],
+      "fieldValueMatrix": {
+        "INITIAL_CREATE": {
+          "record_purpose": "CREATE_DECISION",
+          "mustBeNull": ["before_attribute_snapshot"],
+          "fixedValues": {"impact_result": "NOT_APPLICABLE"},
+          "fieldSourceRules": {
+            "operator_id": "AUTHENTICATED_USER_ID_OR_REGISTERED_SERVICE_PRINCIPAL_ID",
+            "change_reason": "REQUIRED_NON_BLANK_CREATE_REASON_AFTER_TRIM_FROM_POST_PROJECTS_COMMAND"
+          },
+          "transaction": "SAME_TRANSACTION_AS_PROJECT_TEMPLATE_FREEZE_AND_INSTANTIATION",
+          "inputOriginRules": {
+            "MANUAL": {
+              "fixedValues": {"source_system": "MANUAL"},
+              "allowedNull": ["source_owner", "source_key", "source_event_id", "source_version", "source_occurred_at", "source_value_digest", "mapping_version"]
+            },
+            "SOURCE": {
+              "mustBeNonNull": ["source_owner", "source_key", "source_event_id", "source_version", "source_occurred_at", "source_value_digest", "mapping_version"]
+            }
+          },
+          "matchResultRules": {
+            "NO_MATCH": {"persistence": "FORBIDDEN_PROJECT_AND_HISTORY_NOT_CREATED"},
+            "UNIQUE": {"mustBeNonNull": ["decision_mode", "matched_template_id", "matched_template_revision_id"], "allowedDecisionModes": ["AUTO_UNIQUE", "EXPLICIT_SELECTION"]},
+            "MULTIPLE_MATCHES": {"persistence": "ONLY_WITH_EXPLICIT_SELECTION_FROM_CURRENT_CANDIDATES", "fixedValues": {"decision_mode": "EXPLICIT_SELECTION"}, "mustBeNonNull": ["matched_template_id", "matched_template_revision_id"]}
+          }
+        },
+        "SOURCE_CORRECTION": {
+          "record_purpose": "IMPACT_EVALUATION",
+          "fixedValues": {"input_origin": "SOURCE"},
+          "fieldSourceRules": {
+            "operator_id": "STABLE_REGISTERED_SERVICE_PRINCIPAL_ID_MAPPED_FROM_SERVICE_IDENTITY",
+            "change_reason": "REQUIRED_NON_BLANK_CORRECTION_REASON_AFTER_TRIM_FROM_COMMAND"
+          },
+          "mustBeNonNull": ["before_attribute_snapshot", "source_owner", "source_key", "source_event_id", "source_version", "source_occurred_at", "source_value_digest", "mapping_version"],
+          "mustBeNull": ["decision_mode"],
+          "matchResultRules": {
+            "UNIQUE": {"mustBeNonNull": ["matched_template_id", "matched_template_revision_id"]},
+            "NO_MATCH": {"mustBeNull": ["matched_template_id", "matched_template_revision_id"]},
+            "MULTIPLE_MATCHES": {"mustBeNull": ["matched_template_id", "matched_template_revision_id"]}
+          }
+        },
+        "MANUAL_ADJUSTMENT": {
+          "record_purpose": "IMPACT_EVALUATION",
+          "fieldSourceRules": {
+            "operator_id": "AUTHENTICATED_USER_ID",
+            "change_reason": "REQUIRED_NON_BLANK_ADJUSTMENT_REASON_AFTER_TRIM_FROM_CLASSIFY_COMMAND"
+          },
+          "mustBeNonNull": ["before_attribute_snapshot", "operator_id", "change_reason"],
+          "mustBeNull": ["decision_mode"],
+          "fixedValues": {"input_origin": "MANUAL", "source_system": "MANUAL"},
+          "allowedNull": ["source_owner", "source_key", "source_event_id", "source_version", "source_occurred_at", "source_value_digest", "mapping_version"],
+          "matchResultRules": {
+            "UNIQUE": {"mustBeNonNull": ["matched_template_id", "matched_template_revision_id"]},
+            "NO_MATCH": {"mustBeNull": ["matched_template_id", "matched_template_revision_id"]},
+            "MULTIPLE_MATCHES": {"mustBeNull": ["matched_template_id", "matched_template_revision_id"]}
+          }
+        }
+      },
+      "requiredCorrelationFields": ["operation_id"],
+      "optionalCorrelationFields": ["trace_id", "audit_log_id"],
+      "auditLinkPolicy": "BEST_EFFORT_LINK_ONLY_NOT_A_TRANSACTIONAL_DEPENDENCY"
+    }
+  },
+  "interfaces": {
+    "ProjectAttributeResolutionService": {
+      "owner": "PROJ",
+      "visibility": "INTERNAL_APPLICATION_SERVICE",
+      "affectedCommand": "POST /projects",
+      "requiredCommandInputs": ["create_reason"],
+      "reasonValidation": "REJECT_NULL_EMPTY_OR_WHITESPACE_ONLY_BEFORE_TRANSACTION",
+      "createDecisionContract": "AUTO_UNIQUE_OR_EXPLICIT_SELECTION_WITH_INITIAL_CREATE_HISTORY"
+    },
+    "ProjectAttributeClassificationApplicationApi": {
+      "owner": "PROJ",
+      "caller": "PMS_ADMIN_UI",
+      "requiredCommandInputs": ["adjustment_reason"],
+      "reasonValidation": "REJECT_NULL_EMPTY_OR_WHITESPACE_ONLY_BEFORE_TRANSACTION"
+    },
+    "ProjectAttributeSourceCorrectionCommand": {
+      "owner": "PROJ",
+      "caller": "TRUSTED_INT_SERVICE_AFTER_PROJECT_ID_RESOLUTION",
+      "visibility": "INTERNAL_APPLICATION_COMMAND",
+      "requiredInputs": ["project_id", "source_key", "source_event_id", "source_version", "source_occurred_at", "source_value_digest", "correction_reason", "idempotency_key", "service_identity"],
+      "reasonValidation": "REJECT_NULL_EMPTY_OR_WHITESPACE_ONLY_BEFORE_TRANSACTION",
+      "operatorMapping": "service_identity MUST resolve to a stable registered service principal id used as operator_id",
+      "forbiddenResponsibilities": ["SOURCE_PROJECT_LOOKUP", "TRANSPORT_RETRY", "RECONCILIATION", "DIRECT_TABLE_WRITE"]
+    }
+  },
+  "events": {},
+  "existingAuditCapabilityAssessment": {
+    "result": "FAIL_NOT_REUSABLE_AS_PM07_AUTHORITATIVE_TRACE",
+    "reasons": [
+      "NO_PROJECT_ATTRIBUTE_DIMENSION_INSTRUMENTATION",
+      "NO_STRUCTURED_PROJECT_AND_ATTRIBUTE_QUERY",
+      "ASYNC_BEST_EFFORT_WRITE_CAN_BE_MISSING_AFTER_BUSINESS_COMMIT",
+      "PERMANENT_RETENTION_NOT_PHYSICALLY_VERIFIED"
+    ],
+    "decision": "DO_NOT_CREATE_PROJECT_BUSINESS_ATTRIBUTE_HISTORY; USE_TEMPLATE_MATCH_HISTORY_AS_THE_FEATURE_FACT; DEFER_COMMON_AUDIT_ENHANCEMENT"
+  },
+  "forbiddenCapabilities": [
+    "PROJECT_CLASSIFICATION_STATUS_AXIS",
+    "PROJECT_TEMPLATE_MATCH_STATUS_AXIS",
+    "PROJECT_CLASSIFICATION_CASE",
+    "PROJECT_TEMPLATE_IMPACT_TABLE",
+    "TEMPLATE_REMATCH_EXECUTION",
+    "PROJECT_TEMPLATE_IMPACT_EVENT"
+  ]
+}

@@ -9,7 +9,7 @@
 
 | 模块 | 职责 | 主要聚合 | 入向依赖 | 出向事件/服务 | 禁止依赖 |
 |---|---|---|---|---|---|
-| 项目治理 | 创建、指派、模板、项目树、项目—站点关系、Stage→ProjectTask工作台投影、TASK_NATIVE通用任务执行、其他业务绑定与完成判定、项目状态 | Project、ProjectSite、ProjectTask、ProjectTemplate | CRM/ERP、组织主数据、AssetLocationApi、非TASK_NATIVE绑定业务查询/API | ProjectCreated、ProjectStageChanged、TaskCompleted | 直接改设备/地点/合同库、复制非TASK_NATIVE绑定业务正文、维护第二套导航树 |
+| 项目治理 | 创建、指派、模板、项目树、项目—站点关系、模板前属性判定、模板匹配决策历史和创建后影响识别、Stage→ProjectTask工作台投影、TASK_NATIVE通用任务执行、其他业务绑定与完成判定、项目状态 | Project、ProjectTemplateMatchHistory、ProjectSite、ProjectTask、ProjectTemplate | CRM/ERP属性输入、组织主数据、AssetLocationApi、非TASK_NATIVE绑定业务查询/API | ProjectCreated、ProjectStageChanged、TaskCompleted、内部ProjectAttributeResolutionService | 直接改设备/地点/合同库、反写CRM来源、建设第二套模板匹配器或CHG流程、复制非TASK_NATIVE绑定业务正文、维护第二套导航树 |
 | 交付准备与方案 | 工勘、需求分析、计划、方案审核 | Preparation、Plan、Solution | Project、字典、文件 | PlanApproved、SolutionApproved | 直接改项目状态 |
 | 实施执行 | 到货签收、工勘地点维护、安装/迁移/拆除及位置生效事实、配置Log采集业务结果、联调、风险、阶段质量检查、实施阶段交付件/证据上传 | ArrivalAcceptance、InstallationRecord、ConfigurationCollectionResult、JointDebuggingResult、ImplementationRisk、ImplementationQualityCheck、DeliveryEvidence | Project、Device、AssetLocationApi、CollectionTask、File | ConfigurationLogPublished、DeliveryEvidenceUploaded、ImplementationQualityChecked | 直接执行设备命令、持有AST地点DO/Mapper/Repository、拥有ConfigurationLog原始文件/不可变解析版本、直接改变验收归档状态；IMP-02安全检查不属于当前模块 |
 | 验收与闭环 | 培训、满意度收集、验收、交付件齐套校验、审核、统一归档、闭环交接 | Acceptance、SatisfactionCollection、ProjectClosure、Artifact | Project、DeliveryEvidence、File、Questionnaire | SatisfactionResultRecorded、ArtifactAccepted、ProjectClosureCompleted、ServiceHandoverCreated | 直接改财务事实、直接修改现场实施原始证据 |
@@ -23,7 +23,7 @@
 | 经营分析 | 项目组合、项目状态和经批准指标视图 | PortfolioView、MetricSnapshot | 各域只读事件 | ReportGenerated | 任何交易写操作、以其他事实伪造工时/人效指标 |
 | 设备连接与采集 | 凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord | 外部采集平台、IMP、CUT、Inspection | CollectionTaskAccepted、CollectionResultAvailable | 不重复建设连接和原始采集引擎 |
 | 基础平台能力 | 公司、部门、用户公司—部门范围、待办、文件、授权、变更、字典和审计通用能力 | Company、Department、UserCompanyDepartmentScope、Todo、FileArtifact、Grant、ChangeRequest | LDAP/AD及所有模块 | CompanyApi、DeptApi、OrganizationScopeApi、TodoCreated、AuditRecorded | 由部门推导公司、拥有业务域状态 |
-| 集成适配 | 外部同步、回调、失败补偿和对账 | ExternalMapping、CallbackRecord | 外部系统 | Domain command/event | 直接写业务表 |
+| 集成适配 | 外部同步、回调、失败补偿和对账 | ExternalMapping、CallbackRecord | 外部系统 | Domain command/event | 直接写业务表或访问业务模块Service/Mapper/Repository |
 
 ## 服务边界
 

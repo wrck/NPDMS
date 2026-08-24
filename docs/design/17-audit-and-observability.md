@@ -79,6 +79,8 @@
 
 业务审计与业务事务原子提交；跨Context过程各Owner记录自己的动作并共享correlationId。审计记录追加写；依据ADR-0006，业务事实、审批历史及PRD/SDS明确要求留痕的操作采用`PERMANENT_NON_DELETABLE`策略，业务用户、管理员、API、后台任务和存储生命周期均无修改、覆盖或删除能力；Word正文不做内容级审计。
 
+PM-07 Feature Ready核验发现，当前`system_operate_log`只提供通用`bizId/type/subType/action/time`查询，项目模块未接入属性维度结构化变更日志，且通用日志通过`@Async`尽力写入，未形成与业务事务原子提交及ADR-0006永久保留的物理保证。因此F-PROJ-004不得把它作为权威属性追溯，也不得夹带新增通用属性历史表；该Feature以事务内、append-only的`proj_project_template_match_history`保存完整输入/前后值、来源、原因、操作者和稳定`operationId`，`traceId/auditLogId`仅作可选关联。公共审计平台若要统一承接，须独立立项补齐结构化属性查询、事务必达和永久保留验证。
+
 ### 5.2 审计查询
 
 - 审计人员按授权tenant、时间、主体、对象类型、动作和结果查询；敏感对象遵守字段级脱敏。

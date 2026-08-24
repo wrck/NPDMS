@@ -35,7 +35,7 @@
 
 | 聚合根 | 关键不变量 |
 |---|---|
-| Project | 项目编码唯一；CRM来源默认沿用CRM项目编码；合同、订单、执行单通过关系关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用；父子关系无环且层级不设固定深度；`current_stage`仅取S0～S6，`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED，`assignment_status`独立维护，`display_status`只读派生；CLO-02唯一产生NORMAL_CLOSED，PM-10唯一产生EXCEPTION_CLOSED |
+| Project | 项目编码唯一；CRM来源默认沿用CRM项目编码；合同、订单、执行单通过关系关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用；模板匹配前必须形成确定属性输入，匹配决策历史只追加；正式Project创建即冻结模板并实例化，不增加待分类/待选模状态；父子关系无环且层级不设固定深度；`current_stage`仅取S0～S6，`lifecycle_status`独立取ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED，`assignment_status`独立维护，`display_status`只读派生；CLO-02唯一产生NORMAL_CLOSED，PM-10唯一产生EXCEPTION_CLOSED |
 | ProjectTask | 任务父子关系无环且不限制深度；每个可执行任务必须且只能冻结一个当前WorkBinding、PermissionPolicy、CompletionRule和可选GateRef，未指定其他业务绑定时使用TASK_NATIVE；状态变化必须经过受控 transition，完成必须由对应绑定事实和规则判定；查询按项目树索引和权限范围过滤 |
 | Device | 序列号/设备身份唯一；同一时点同一设备只能有一个当前项目归属；机框、槽位、板卡当前关系唯一且按生效区间保留换板历史；历史归属通过关系版本保留 |
 | ConfigurationLog | EQP-02统一管理原始整机Log、不可变解析版本和设备/板卡关联；EXE-03/04只发布实施采集与解释事实，不得覆盖原始文件或已发布解析版本 |
@@ -99,6 +99,8 @@ ProjectInstance
 `Cutover → Project Delivery` 只发布CUT-06成功闭环结果引用；`Service Operations` 消费项目闭环和设备服务事实。ACC-05仅作为V3持续服务跟踪方向保留，当前不形成ServiceFollowUp对象；WO-06后置为工单领域V3候选，不形成当前可流转Context、聚合或CUT事件。
 
 `基础平台能力`通过命令、查询、事件和统一权限服务横向支撑各 Context，不作为万能业务 Context，也不拥有业务域交易数据；`集成适配层`只负责协议、映射、幂等、重试和对账。
+
+PM-07复用Project既有四属性和TemplateMatcher。首次匹配决策与Project、模板冻结及实例化原子提交；创建后属性变化只追加模板匹配决策历史并识别影响，不替换冻结模板或修改已实例化事实。INT自动建项和CHG处理仍由各自后续Feature完成。
 
 ## 5. 跨域契约
 

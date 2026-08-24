@@ -233,7 +233,19 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 多期群组成员变更按 `group.version + memberVersion` 乐观锁校验；加入前检查同关系类型唯一群组、期次唯一和有向关系无环。移出只关闭有效区间，不删除项目和历史引用。
 
-### 4.5 Preparation & Solution
+### 4.5 PM-07模板匹配决策历史前向表
+
+- `proj_project`复用既有`signing_method`、`project_category`、`implementation_mode`、`major_project_level`，不新增同义业务属性列或分类/选模状态轴。
+- `proj_project_template_match_history`物理表由PM-07 Feature前向迁移确定，至少保存`tenant_id/project_id/trigger_type/record_purpose/input_origin/snapshot_schema_version/before_attribute_snapshot/attribute_snapshot/attribute_owner_snapshot/source_owner/source_system/source_key/source_event_id/source_version/source_occurred_at/source_value_digest/mapping_version/matcher_version/match_result/candidate_digest/decision_mode/matched_template_id/matched_template_revision_id/frozen_template_revision_id/impact_result/operator_id/change_reason/operation_id/trace_id/audit_log_id/idempotency_key/request_digest/occurred_at/recorded_at`及通用审计字段。业务字段只插入不更新；`uk(tenant_id, project_id, idempotency_key)`防止重复决策，`uk(tenant_id, operation_id)`提供稳定业务关联；`trace_id/audit_log_id`可空且只作关联，不依赖异步系统日志保证事务完整性。
+- `INITIAL_CREATE`使用`record_purpose=CREATE_DECISION`，前值为NULL、影响结论为`NOT_APPLICABLE`，决策方式为`AUTO_UNIQUE/EXPLICIT_SELECTION`；`UNIQUE`和经显式选择持久化的`MULTIPLE_MATCHES`均须保存最终模板及修订，`NO_MATCH`不产生Project级历史。
+- `SOURCE_CORRECTION/MANUAL_ADJUSTMENT`使用`record_purpose=IMPACT_EVALUATION`且`decision_mode`必须为NULL，前值必填；结果为`UNIQUE`时新候选模板及修订必填，`NO_MATCH/MULTIPLE_MATCHES`时命中模板字段必须为NULL且候选摘要必填。来源修正另要求来源Owner/键/事件/版本/发生时间/原值摘要/映射版本；人工调整要求操作者和原因。
+- `operator_id/change_reason`所有历史行有效：手工INITIAL_CREATE取认证用户稳定ID与必填非空白`create_reason`，自动INITIAL_CREATE取已注册服务主体稳定ID与必填非空白创建原因；SOURCE_CORRECTION将`service_identity`解析为已注册服务主体稳定ID并要求命令提交必填非空白`correction_reason`；MANUAL_ADJUSTMENT取认证用户稳定ID与必填非空白`adjustment_reason`。三类原因先trim，null、空字符串或纯空白在事务前拒绝；服务身份解析失败时整条业务命令失败，不写临时显示名或网络标识代替稳定主体。
+- 首次唯一候选自动决定或从多候选显式选择的记录，与Project、模板冻结和全部实例要素同事务提交；创建后记录只保存只读重新评估结果，不更新冻结模板引用。
+- 不新增`proj_project_business_attribute_history`；现有`system_operate_log`不具备属性维度结构化查询、事务内必达和已验证永久保留语义，公共审计增强须独立立项。
+- 新前向迁移将`pms_project_category`候选收敛为`GENERAL/ENGINEERING`，移除`MAIN/SUB`候选但不修改旧迁移；手工项目的重大项目级别用数据库NULL表示、界面显示“不适用”。先清查存量错误值和手工来源非空重大级别，禁止自动映射或静默清空。
+- 初始化数据只补字典/菜单/权限及不冒充CRM权威值的组合示例。
+
+### 4.6 Preparation & Solution
 
 适用 Requirement：PRE-01～PRE-05、PLN-01～PLN-04、SCH-01～SCH-05、SOL-01。
 

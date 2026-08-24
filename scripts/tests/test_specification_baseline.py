@@ -38,6 +38,7 @@ class SpecificationBaselineTest(unittest.TestCase):
         required = {
             "docs/baseline/prd-v1.8.md",
             "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md",
+            "docs/baseline/prd-v1.8-amendment-003-pm07-template-match-decision-history.md",
             "docs/coding/database-query-interface.md",
             "docs/decisions/0029-stage-task-work-binding-workbench.md",
             "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md",
@@ -46,18 +47,20 @@ class SpecificationBaselineTest(unittest.TestCase):
             "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
             "specs/features/F-PROJ-002-physical-contract.json",
             "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
+            "specs/features/F-PROJ-004-physical-contract.json",
+            "specs/features/F-PROJ-004-project-business-attribute-classification.md",
         }
         self.assertTrue(required <= paths)
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_92_files(self) -> None:
+    def test_allowlist_contains_exactly_95_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(92, len(entries))
-        self.assertEqual(92, len({entry.path for entry in entries}))
+        self.assertEqual(95, len(entries))
+        self.assertEqual(95, len({entry.path for entry in entries}))
 
     def test_accepts_feature_spec_paths(self) -> None:
         feature_spec_paths = (
@@ -65,6 +68,8 @@ class SpecificationBaselinePathTest(unittest.TestCase):
             "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
             "specs/features/F-PROJ-002-physical-contract.json",
             "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
+            "specs/features/F-PROJ-004-physical-contract.json",
+            "specs/features/F-PROJ-004-project-business-attribute-classification.md",
         )
 
         for path in feature_spec_paths:
