@@ -338,6 +338,7 @@ def existing_feature_links(output: Path) -> dict[str, str]:
 
 FEATURE_LINK_OVERRIDES = {
     "PM-01": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
+    "PM-02": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md)",
     "PM-03": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
 }
 
