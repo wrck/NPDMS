@@ -380,11 +380,11 @@ enum QueryType { CHILDREN, DESCENDANTS, ANCESTORS, BUSINESS_LEVEL, LOCATE }
 - 每个受影响根创建`BUILDING`版本，批量写完整祖先投影后原子切换`ACTIVE`；查询读取同一`treeVersion`，游标继续读取同一版本。
 - 移动按稳定项目ID顺序锁节点，校验同租户、非自身/后代和期望版本；跨根移动同时重建源根与目标根。
 
-- [ ] **Step 1: 实现根级完整投影构建与原子激活**
+- [x] **Step 1: 实现根级完整投影构建与原子激活**
 
 构建失败保留上一ACTIVE版本并记录FAILED；不得把BUILDING行暴露给查询或授权。
 
-- [ ] **Step 2: 实现五类查询和游标**
+- [x] **Step 2: 实现五类查询和游标**
 
 统一端点：
 
@@ -396,22 +396,22 @@ GET /pms/projects/{id}/tree?queryType=CHILDREN|DESCENDANTS|ANCESTORS|BUSINESS_LE
 
 指标记录投影构建延迟、失败版本数、五类查询耗时、节点数和版本陈旧命中；不得以项目ID作为高基数指标标签。
 
-- [ ] **Step 3: 改造移动命令**
+- [x] **Step 3: 改造移动命令**
 
 `POST /pms/projects/{id}/actions/move`要求`Idempotency-Key`与`If-Match`，成功生成唯一`changeBatchId`和`ProjectTreeChanged`。
 
-- [ ] **Step 4: 退役旧pms_project树运行面**
+- [x] **Step 4: 退役旧pms_project树运行面**
 
 删除旧Bean、Controller和VO；历史`pms_project`表及V7迁移不删除。更新运行面扫描规则，禁止`/pms/project-tree`重新出现。
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**
 
 ```powershell
 mvn -pl pms-module-project -am -Dtest=ProjectTreeProjectionServiceTest,ProjectTreeQueryServiceTest,ProjectTreeMoveConcurrencyMySqlTest test
 py -3.13 -B -m unittest scripts.tests.test_implementation_baseline_inventory
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 `feat(project): 发布版本化项目树`
 
@@ -576,8 +576,8 @@ mvn -pl pms-module-project -am -Dtest=ProjectClosureGuardServiceTest test
 - Create: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectProgressPanel.vue`
 - Create: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectClosureGuardPanel.vue`
 - Modify: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/index.vue`
-- Delete: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-tree/index.vue`
-- Delete: `yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-tree/index.ts`
+- Already retired in Task 6: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-tree/index.vue`
+- Already retired in Task 6: `yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/project-tree/index.ts`
 - Create: `scripts/tests/test_fproj002_frontend_contract.py`
 
 **Interfaces:**

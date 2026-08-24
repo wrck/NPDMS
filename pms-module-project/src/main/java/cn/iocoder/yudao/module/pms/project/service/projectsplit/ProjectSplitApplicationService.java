@@ -10,16 +10,13 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSp
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitRequestDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitScopeDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeChangeDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitRequestMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChangeMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildCreationService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitResult.CreatedProject;
@@ -53,8 +50,7 @@ public class ProjectSplitApplicationService {
     private final ProjectMasterMapper projectMapper;
     private final ProjectChildCreationService childCreationService;
     private final DeliveryScopeApi deliveryScopeApi;
-    private final ProjectTreeVersionMapper treeVersionMapper;
-    private final ProjectTreePathMapper treePathMapper;
+    private final ProjectTreeProjectionService treeProjectionService;
     private final ProjectTreeChangeMapper treeChangeMapper;
     private final ProjectSplitMetrics metrics;
 
@@ -162,43 +158,8 @@ public class ProjectSplitApplicationService {
                                     ProjectSplitDraftService.Actor actor, String changeBatchId,
                                     long baseVersion, long newVersion) {
         Long rootId = parent.getRootId() == null ? parent.getId() : parent.getRootId();
-        List<ProjectMasterDO> nodes = projectMapper.selectTreeByRootId(rootId);
-        Map<Long, ProjectMasterDO> byId = new HashMap<>();
-        nodes.forEach(node -> byId.put(node.getId(), node));
-        int pathCount = 0;
-        for (ProjectMasterDO node : nodes) {
-            ProjectMasterDO current = node;
-            int distance = 0;
-            java.util.Set<Long> visited = new java.util.HashSet<>();
-            while (current != null) {
-                if (!visited.add(current.getId())) {
-                    throw exception(PROJECT_SPLIT_APPLY_INVALID, "PROJECT_TREE_CYCLE");
-                }
-                ProjectTreePathDO path = new ProjectTreePathDO();
-                path.setTreeVersion(newVersion); path.setRootProjectId(rootId);
-                path.setAncestorProjectId(current.getId()); path.setDescendantProjectId(node.getId());
-                path.setDistance(distance++); path.setVersion(0);
-                treePathMapper.insert(path);
-                pathCount++;
-                if (current.getParentId() == null) {
-                    if (!Objects.equals(current.getId(), rootId)) {
-                        throw exception(PROJECT_SPLIT_APPLY_INVALID, "PROJECT_TREE_ROOT_INVALID");
-                    }
-                    current = null;
-                } else {
-                    current = byId.get(current.getParentId());
-                    if (current == null) {
-                        throw exception(PROJECT_SPLIT_APPLY_INVALID, "PROJECT_TREE_ANCESTOR_MISSING");
-                    }
-                }
-            }
-        }
+        treeProjectionService.publish(rootId, newVersion, changeBatchId);
         LocalDateTime now = LocalDateTime.now();
-        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
-        version.setRootProjectId(rootId); version.setTreeVersion(newVersion); version.setStatus("ACTIVE");
-        version.setChangeBatchId(changeBatchId); version.setNodeCount(nodes.size());
-        version.setPathCount(pathCount); version.setActivatedAt(now); version.setVersion(0);
-        treeVersionMapper.insert(version);
         for (CreatedProject child : created) {
             ProjectTreeChangeDO change = new ProjectTreeChangeDO();
             change.setChangeBatchId(changeBatchId); change.setOperationType("SPLIT_CREATE");
@@ -226,7 +187,7 @@ public class ProjectSplitApplicationService {
                 "treeVersion", result.treeVersion(), "changeBatchId", result.changeBatchId());
         return new ProjectCommandExecutionService.SuccessFacts("PROJECT_SPLIT_APPLY", "ProjectSplitRequest",
                 String.valueOf(result.requestId()), actor.correlationId(), JsonUtils.toJsonString(detail),
-                "ProjectSplitApplied", JsonUtils.toJsonString(detail));
+                "ProjectTreeChanged", JsonUtils.toJsonString(detail));
     }
 
     private void validate(ApplyProjectSplitCommand command, ProjectSplitDraftService.Actor actor) {

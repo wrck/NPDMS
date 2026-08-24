@@ -578,9 +578,8 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
             [], find_retired_project_write_runtime_surfaces(self.repository)
         )
 
-    def test_retired_project_tree_write_runtime_has_no_legacy_write_surface(self) -> None:
-        # Guard-first (F-PM02 T1): red while the legacy /pms/project-tree write
-        # chain still exists; turns green when T5 freezes the legacy write surfaces.
+    def test_retired_project_tree_runtime_has_no_legacy_surface(self) -> None:
+        # F-PROJ-002收敛到/pms/projects/{id}/tree后，旧树运行面不得回流。
         self.assertEqual(
             [], find_retired_project_tree_write_runtime_surfaces(self.repository)
         )

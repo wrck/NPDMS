@@ -12,4 +12,18 @@ public interface ProjectTreeVersionMapper extends BaseMapperX<ProjectTreeVersion
                 .orderByDesc(ProjectTreeVersionDO::getTreeVersion)
                 .last("LIMIT 1"));
     }
+
+    default ProjectTreeVersionDO selectLatest(Long rootProjectId) {
+        return selectOne(new LambdaQueryWrapperX<ProjectTreeVersionDO>()
+                .eq(ProjectTreeVersionDO::getRootProjectId, rootProjectId)
+                .orderByDesc(ProjectTreeVersionDO::getTreeVersion)
+                .last("LIMIT 1"));
+    }
+
+    default ProjectTreeVersionDO selectActiveVersion(Long rootProjectId, Long treeVersion) {
+        return selectOne(new LambdaQueryWrapperX<ProjectTreeVersionDO>()
+                .eq(ProjectTreeVersionDO::getRootProjectId, rootProjectId)
+                .eq(ProjectTreeVersionDO::getTreeVersion, treeVersion)
+                .eq(ProjectTreeVersionDO::getStatus, "ACTIVE"));
+    }
 }

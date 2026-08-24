@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`
 > Implementation Done Gate：`NOT_EVALUATED`
 > 当前阻断：无
-> 当前任务：Task 6 发布完整项目树版本并收敛单一正式入口
+> 当前任务：Task 7 实施ProjectTreeScope与有限同根可见性
 > Requirement ID：`PM-02`
 > 关联契约：`PM-04` 项目树数据范围、`COM-01` 交付范围、`CLO-02` 闭环守卫
 > Feature Spec：`specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md`
@@ -33,4 +33,4 @@
 
 ## 下一步
 
-Task 5 已实现单批次幂等事务、子项目与模板实例化、Commerce范围分配、完整树版本、拆分状态、审计和Outbox原子提交，并新增正式确认接口。下一步执行Task 6，提取树投影服务并收敛五类查询和移动命令的单一正式入口。
+Task 6 已发布BUILDING到ACTIVE的根级完整投影，五类查询使用固定版本游标，移动命令按稳定ID加锁并支持跨根重建；旧`/pms/project-tree`运行面已退役。自动化测试与全模块编译通过，按既定环境约束保持MySQL停止，因此并发数据库用例本轮跳过并留待Task 11数据库闭环统一执行，不构成当前阻断。下一步执行Task 7，统一接入ProjectTreeScope并验证有限同根可见性和负向权限矩阵。

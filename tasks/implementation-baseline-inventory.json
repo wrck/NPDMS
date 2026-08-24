@@ -170,6 +170,10 @@
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectChildWeightsReqVO.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectProgressRespVO.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectTreeMoveReqVO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/outbox/CommerceOutboxEventDO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDetailDO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/OrderLineDO.java",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/"
       ],
@@ -178,7 +182,7 @@
     {
       "objectKey": "ProjectUnclassifiedSurface",
       "classification": "BLOCKED_BY_SPEC",
-      "requirementRefs": ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "ACC-05", "ACC-06", "CHG-01", "CLO-01", "CLO-02", "CUS-01", "CUS-02", "CUS-03", "CUS-04", "PLN-01", "PLN-02", "PLN-03", "PLN-04", "PM-01", "PM-02", "PM-03", "PM-04", "PM-05", "PM-06", "PM-07", "PM-08", "PM-09", "PM-10", "PM-11", "SCH-01", "SCH-02", "SCH-03", "SCH-04", "SCH-05"],
+      "requirementRefs": ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "ACC-06", "CHG-01", "CLO-01", "CLO-02", "CUS-01", "CUS-02", "CUS-03", "CUS-04", "PLN-01", "PLN-02", "PLN-03", "PLN-04", "PM-01", "PM-02", "PM-03", "PM-04", "PM-05", "PM-06", "PM-07", "PM-08", "PM-09", "PM-10", "PM-11", "SCH-01", "SCH-02", "SCH-03", "SCH-04", "SCH-05"],
       "codePaths": [
         "pms-module-project/",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/",

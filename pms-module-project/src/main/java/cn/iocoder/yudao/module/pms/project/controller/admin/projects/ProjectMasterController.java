@@ -18,6 +18,8 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectP
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectSiteRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeMoveReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeQueryReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeQueryRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
@@ -27,6 +29,10 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerA
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectTreeService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeQueryService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.command.ProjectTreeQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectSiteApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
@@ -93,6 +99,10 @@ public class ProjectMasterController {
     private ProjectManagerAssignmentApplicationService projectManagerAssignmentApplicationService;
     @Resource
     private ProjectTreeService projectTreeService;
+    @Resource
+    private ProjectTreeQueryService projectTreeQueryService;
+    @Resource
+    private ProjectTreeProjectionService projectTreeProjectionService;
     @Resource
     private ProjectSiteApplicationService projectSiteApplicationService;
 
@@ -248,46 +258,39 @@ public class ProjectMasterController {
         return success(response);
     }
 
-    @GetMapping("/{id}/children")
-    @Operation(summary = "直接下级项目（按需加载）")
-    @Parameter(name = "id", description = "项目编号", required = true)
+    @GetMapping("/{id}/tree")
+    @Operation(summary = "查询同一完整版本的项目树")
+    @Parameter(name = "id", description = "锚点项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getChildren(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectTreeService.getChildren(id), ProjectRespVO.class));
-    }
-
-    @GetMapping("/{id}/descendants")
-    @Operation(summary = "全部后代项目")
-    @Parameter(name = "id", description = "项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getDescendants(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectTreeService.getDescendants(id), ProjectRespVO.class));
-    }
-
-    @GetMapping("/{id}/ancestors")
-    @Operation(summary = "完整上级链（根→父）")
-    @Parameter(name = "id", description = "项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getAncestors(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectTreeService.getAncestors(id), ProjectRespVO.class));
-    }
-
-    @GetMapping("/actions/by-business-level")
-    @Operation(summary = "按业务层级标签查询项目")
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getByBusinessLevel(
-            @RequestParam("businessLevelCode") String businessLevelCode) {
-        return success(BeanUtils.toBean(projectTreeService.getByBusinessLevel(businessLevelCode), ProjectRespVO.class));
+    public CommonResult<ProjectTreeQueryRespVO> queryTree(@PathVariable("id") Long id,
+                                                          @Valid ProjectTreeQueryReqVO reqVO) {
+        var result = projectTreeQueryService.query(new ProjectTreeQuery(id, reqVO.getQueryType(),
+                        reqVO.getBusinessLevelCode(), reqVO.getPageSize(), reqVO.getCursor()),
+                new ProjectTreeQueryService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId()));
+        ProjectTreeQueryRespVO response = new ProjectTreeQueryRespVO();
+        response.setTreeVersion(result.treeVersion());
+        response.setItems(BeanUtils.toBean(result.items(), ProjectRespVO.class));
+        response.setNextCursor(result.nextCursor());
+        response.setUpdating(result.updating());
+        return success(response);
     }
 
     @PostMapping("/{id}/actions/move")
     @Operation(summary = "子树移动（校验无环后重建子树缓存）")
     @Parameter(name = "id", description = "被移动的项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:update')")
-    public CommonResult<Boolean> moveSubtree(@PathVariable("id") Long id,
+    public CommonResult<ProjectTreeProjectionService.MoveProjectSubtreeResult> moveSubtree(@PathVariable("id") Long id,
+                                             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+                                             @RequestHeader("If-Match") @NotBlank String ifMatch,
                                              @Valid @RequestBody ProjectTreeMoveReqVO moveReqVO) {
-        projectTreeService.moveSubtree(id, moveReqVO.getNewParentId());
-        return success(true);
+        Long expectedTreeVersion = parseLongIfMatch(ifMatch);
+        String requestDigest = sha256Digest(id + ":" + expectedTreeVersion + ":"
+                + JsonUtils.toJsonString(moveReqVO));
+        var result = projectTreeProjectionService.move(new MoveProjectSubtreeCommand(id, moveReqVO.getNewParentId(),
+                        expectedTreeVersion, moveReqVO.getReason(), idempotencyKey, requestDigest),
+                new ProjectTreeProjectionService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                        UUID.randomUUID().toString()));
+        return success(result);
     }
 
     @PutMapping("/{id}/child-weights")
@@ -385,6 +388,21 @@ public class ProjectMasterController {
             return version;
         } catch (NumberFormatException ex) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "If-Match必须是非负Project版本");
+        }
+    }
+
+    private Long parseLongIfMatch(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.startsWith("W/")) normalized = normalized.substring(2).trim();
+        if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
+            normalized = normalized.substring(1, normalized.length() - 1);
+        }
+        try {
+            long version = Long.parseLong(normalized);
+            if (version < 0) throw new NumberFormatException("negative version");
+            return version;
+        } catch (NumberFormatException ex) {
+            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "If-Match必须是非负Tree版本");
         }
     }
 }

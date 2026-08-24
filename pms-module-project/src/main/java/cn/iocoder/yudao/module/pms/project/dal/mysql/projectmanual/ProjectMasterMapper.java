@@ -21,6 +21,16 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
                 .eq(ProjectMasterDO::getId, id));
     }
 
+    default List<ProjectMasterDO> selectByIdsForUpdate(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapperX<ProjectMasterDO>()
+                .in(ProjectMasterDO::getId, ids)
+                .orderByAsc(ProjectMasterDO::getId)
+                .last("FOR UPDATE"));
+    }
+
     default List<ProjectMasterDO> selectTreeByRootId(Long rootId) {
         return selectList(new LambdaQueryWrapperX<ProjectMasterDO>()
                 .eq(ProjectMasterDO::getRootId, rootId)

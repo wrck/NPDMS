@@ -7,15 +7,13 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSp
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitRequestDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectsplit.ProjectSplitScopeDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeChangeDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitItemMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectsplit.ProjectSplitRequestMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeChangeMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.service.platform.ProjectCommandExecutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectChildCreationService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ApplyProjectSplitCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectsplit.command.ProjectSplitPreviewCommand;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,8 +42,7 @@ class ProjectSplitApplicationServiceTest {
     @Mock ProjectMasterMapper projectMapper;
     @Mock ProjectChildCreationService childCreationService;
     @Mock DeliveryScopeApi deliveryScopeApi;
-    @Mock ProjectTreeVersionMapper treeVersionMapper;
-    @Mock ProjectTreePathMapper treePathMapper;
+    @Mock ProjectTreeProjectionService treeProjectionService;
     @Mock ProjectTreeChangeMapper treeChangeMapper;
     @Mock ProjectSplitMetrics metrics;
 
@@ -55,7 +52,7 @@ class ProjectSplitApplicationServiceTest {
     void setUp() {
         service = new ProjectSplitApplicationService(commandExecutionService, draftService, previewService,
                 requestMapper, itemMapper, projectMapper, childCreationService, deliveryScopeApi,
-                treeVersionMapper, treePathMapper, treeChangeMapper, metrics);
+                treeProjectionService, treeChangeMapper, metrics);
     }
 
     @Test
@@ -81,7 +78,8 @@ class ProjectSplitApplicationServiceTest {
         when(deliveryScopeApi.applySplit(any())).thenReturn(
                 new SplitScopeApplyResult(true, false, 6L, List.of(), List.of()));
         when(itemMapper.markApplied(1L, 20L, 30L, 200L)).thenReturn(1);
-        when(projectMapper.selectTreeByRootId(100L)).thenReturn(List.of(parent, child));
+        when(treeProjectionService.publish(eq(100L), eq(8L), anyString())).thenReturn(
+                new ProjectTreeProjectionService.ProjectionResult(100L, 8L, 2, 3));
         when(requestMapper.markAppliedIfMatch(eq(1L), eq(20L), eq(2), anyString())).thenReturn(1);
 
         var result = service.apply(command(), actor);
@@ -90,7 +88,7 @@ class ProjectSplitApplicationServiceTest {
         assertEquals(200L, result.projects().getFirst().projectId());
         assertEquals(8L, result.treeVersion());
         verify(deliveryScopeApi).applySplit(argThat(value -> value.projectIdsByClientItemKey().get("A") == 200L));
-        verify(treePathMapper, times(3)).insert(any(ProjectTreePathDO.class));
+        verify(treeProjectionService).publish(eq(100L), eq(8L), anyString());
         verify(treeChangeMapper).insert(any(ProjectTreeChangeDO.class));
     }
 
@@ -118,7 +116,7 @@ class ProjectSplitApplicationServiceTest {
         assertThrows(RuntimeException.class, () -> service.apply(command(), actor));
 
         verify(itemMapper, never()).markApplied(anyLong(), anyLong(), anyLong(), anyLong());
-        verify(treeVersionMapper, never()).insert(any(cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO.class));
+        verify(treeProjectionService, never()).publish(anyLong(), anyLong(), anyString());
         verify(requestMapper, never()).markAppliedIfMatch(anyLong(), anyLong(), anyInt(), anyString());
     }
 
