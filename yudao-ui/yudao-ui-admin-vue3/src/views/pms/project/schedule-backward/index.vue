@@ -188,7 +188,7 @@ const rules = {
   projectType: [{ required: true, message: '请选择项目类型' }]
 }
 const detailVisible = ref(false)
-const current = ref<ScheduleBackwardVO>({})
+const current = ref<Partial<ScheduleBackwardVO>>({})
 const detailItems = ref<ScheduleBackwardItemVO[]>([])
 
 const load = async () => {

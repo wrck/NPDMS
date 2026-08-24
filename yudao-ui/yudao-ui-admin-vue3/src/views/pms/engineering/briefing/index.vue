@@ -392,7 +392,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<BriefingVO>({})
+const current = ref<Partial<BriefingVO>>({})
 const openDetail = async (row: BriefingVO) => {
   current.value = await BriefingApi.getBriefing(row.id!)
   detailVisible.value = true

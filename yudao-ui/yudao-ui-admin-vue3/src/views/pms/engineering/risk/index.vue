@@ -394,7 +394,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<RiskVO>({})
+const current = ref<Partial<RiskVO>>({})
 const openDetail = async (row: RiskVO) => {
   current.value = await RiskApi.getRisk(row.id!)
   detailVisible.value = true

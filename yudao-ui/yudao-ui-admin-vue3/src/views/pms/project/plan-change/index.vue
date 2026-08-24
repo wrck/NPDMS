@@ -509,7 +509,16 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<PlanChangeVO>({})
+const current = ref<PlanChangeVO>({
+  projectId: 0,
+  changeNo: '',
+  title: '',
+  changeType: '',
+  reason: '',
+  applicantUserId: 0,
+  applyTime: '',
+  phaseSnapshots: []
+})
 const detailSnapshots = ref<PlanChangePhaseSnapshotVO[]>([])
 const openDetail = async (row: PlanChangeVO) => {
   current.value = await PlanChangeApi.getPlanChange(row.id!)

@@ -345,7 +345,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<AnnouncementVO>({})
+const current = ref<Partial<AnnouncementVO>>({})
 const openDetail = async (row: AnnouncementVO) => {
   current.value = await AnnouncementApi.getAnnouncement(row.id!)
   detailVisible.value = true

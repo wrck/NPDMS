@@ -388,7 +388,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<AuthorizationVO>({})
+const current = ref<Partial<AuthorizationVO>>({})
 const openDetail = async (row: AuthorizationVO) => {
   current.value = await AuthorizationApi.getAuthorization(row.id!)
   detailVisible.value = true

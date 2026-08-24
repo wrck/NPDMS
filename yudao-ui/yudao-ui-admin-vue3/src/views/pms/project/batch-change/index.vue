@@ -195,7 +195,7 @@ const rules = {
   scopeType: [{ required: true, message: '请选择范围' }]
 }
 const detailVisible = ref(false)
-const current = ref<TeamBatchChangeVO>({})
+const current = ref<Partial<TeamBatchChangeVO>>({})
 const detailItems = ref<TeamBatchChangeItemVO[]>([])
 
 const load = async () => {

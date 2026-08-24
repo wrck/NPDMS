@@ -673,7 +673,7 @@ const save = async () => {
 
 // 详情
 const detailVisible = ref(false)
-const current = ref<DocTemplateVO>({})
+const current = ref<DocTemplateVO>({ code: '', name: '', docCategory: '', applicability: '' })
 const currentVersionSections = ref<any[]>([])
 const currentVersionExcluded = ref<string[]>([])
 const currentVersionOverrides = ref<Record<string, any>>({})

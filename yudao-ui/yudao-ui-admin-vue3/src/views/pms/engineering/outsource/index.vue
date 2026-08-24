@@ -500,7 +500,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<OutsourceRequestVO>({})
+const current = ref<Partial<OutsourceRequestVO>>({})
 const openDetail = async (row: OutsourceRequestVO) => {
   current.value = await OutsourceApi.getOutsourceRequest(row.id!)
   detailVisible.value = true

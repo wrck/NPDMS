@@ -373,7 +373,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<ProjectGovernanceVO>({})
+const current = ref<Partial<ProjectGovernanceVO>>({})
 const openDetail = async (row: ProjectGovernanceVO) => {
   current.value = await GovernanceApi.getGovernanceAction(row.id!)
   detailVisible.value = true

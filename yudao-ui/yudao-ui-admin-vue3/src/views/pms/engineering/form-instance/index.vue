@@ -357,7 +357,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<FormInstanceVO>({})
+const current = ref<Partial<FormInstanceVO>>({})
 const openDetail = async (row: FormInstanceVO) => {
   current.value = await FormInstanceApi.getFormInstance(row.id!)
   detailVisible.value = true

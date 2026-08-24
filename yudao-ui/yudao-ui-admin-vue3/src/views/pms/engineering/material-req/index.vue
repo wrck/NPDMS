@@ -492,7 +492,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<MaterialRequisitionVO>({})
+const current = ref<Partial<MaterialRequisitionVO>>({})
 const openDetail = async (row: MaterialRequisitionVO) => {
   current.value = await MaterialReqApi.getMaterialRequisition(row.id!)
   detailVisible.value = true

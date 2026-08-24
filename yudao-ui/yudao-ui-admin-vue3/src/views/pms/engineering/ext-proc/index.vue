@@ -538,7 +538,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<ExternalProcurementVO>({})
+const current = ref<Partial<ExternalProcurementVO>>({})
 const openDetail = async (row: ExternalProcurementVO) => {
   current.value = await ExtProcApi.getExternalProcurement(row.id!)
   detailVisible.value = true
