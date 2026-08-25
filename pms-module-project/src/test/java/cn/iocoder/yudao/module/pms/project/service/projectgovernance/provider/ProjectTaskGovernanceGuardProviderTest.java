@@ -72,7 +72,7 @@ class ProjectTaskGovernanceGuardProviderTest {
         assertTrue(empty.blockers().isEmpty());
         verifyNoInteractions(taskMapper);
         assertThrows(IllegalArgumentException.class, () -> provider.inspect(
-                new ProjectGovernanceGuardQuery(8L, Set.of(1L), "CLOSE", CHECKED_AT)));
+                new ProjectGovernanceGuardQuery(8L, Set.of(1L), "EXCEPTION_CLOSE", CHECKED_AT)));
     }
 
     @Test
@@ -106,8 +106,14 @@ class ProjectTaskGovernanceGuardProviderTest {
         assertThrows(UnsupportedOperationException.class, () -> query.projectIds().add(4L));
     }
 
+    @Test
+    void queryMustRejectUnknownAction() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new ProjectGovernanceGuardQuery(TENANT_ID, Set.of(1L), "UNKNOWN", CHECKED_AT));
+    }
+
     private static ProjectGovernanceGuardQuery query(Set<Long> projectIds) {
-        return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "CLOSE", CHECKED_AT);
+        return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "EXCEPTION_CLOSE", CHECKED_AT);
     }
 
     private static ProjectTaskDO task(Long projectId, Long id, String code, Integer status, Integer version) {

@@ -13,12 +13,17 @@ public record ProjectGovernanceGuardQuery(
         String action,
         LocalDateTime checkedAt) {
 
+    private static final Set<String> SUPPORTED_ACTIONS = Set.of("ROLLBACK", "EXCEPTION_CLOSE", "REOPEN");
+
     public ProjectGovernanceGuardQuery {
         if (tenantId == null || projectIds == null || action == null || action.isBlank()
                 || checkedAt == null || projectIds.stream().anyMatch(id -> id == null || id <= 0)) {
             throw new IllegalArgumentException("invalid project governance guard query");
         }
-        projectIds = Collections.unmodifiableSet(new LinkedHashSet<>(new TreeSet<>(projectIds)));
         action = action.trim();
+        if (!SUPPORTED_ACTIONS.contains(action)) {
+            throw new IllegalArgumentException("unsupported project governance action");
+        }
+        projectIds = Collections.unmodifiableSet(new LinkedHashSet<>(new TreeSet<>(projectIds)));
     }
 }

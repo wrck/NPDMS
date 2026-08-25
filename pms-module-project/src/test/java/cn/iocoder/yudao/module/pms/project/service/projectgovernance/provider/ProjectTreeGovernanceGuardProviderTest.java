@@ -172,7 +172,7 @@ class ProjectTreeGovernanceGuardProviderTest {
         assertTrue(empty.blockers().isEmpty());
         verifyNoInteractions(projectMapper, treeVersionMapper, treePathMapper);
         assertThrows(IllegalArgumentException.class, () -> provider.inspect(
-                new ProjectGovernanceGuardQuery(8L, Set.of(11L), "CLOSE", CHECKED_AT)));
+                new ProjectGovernanceGuardQuery(8L, Set.of(11L), "EXCEPTION_CLOSE", CHECKED_AT)));
     }
 
     @Test
@@ -217,7 +217,7 @@ class ProjectTreeGovernanceGuardProviderTest {
     }
 
     private static ProjectGovernanceGuardQuery query(Set<Long> projectIds) {
-        return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "CLOSE", CHECKED_AT);
+        return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "EXCEPTION_CLOSE", CHECKED_AT);
     }
 
     private static ProjectMasterDO project(Long id, String code, String lifecycleStatus, Integer version) {
