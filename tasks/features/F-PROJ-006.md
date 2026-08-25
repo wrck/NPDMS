@@ -31,6 +31,6 @@
 - [x] Task 7 实现回退命令闭环（PASS / `1ea4411..0722afc` / 独立裁决GO）
 - [x] Task 8 实现异常关闭与受控重开（PASS / `bc3d086` / 独立裁决GO）
 - [x] Task 9 提供治理API与append-only历史查询（PASS / `e5e5687..1beb732` / 独立裁决GO）
-- [ ] Task 10 完成响应式治理界面与Feature验收（UI/自动化/真实MySQL子项GO / `10e05fe`；四档响应式、主题持久化、守卫失败关闭PASS；正向浏览器闭环待COLLECTION）
+- [ ] Task 10 完成响应式治理界面与Feature验收（既有UI/自动化/真实MySQL/四档响应式/主题/P3-E08均已闭环；正向浏览器三动作及刷新后历史保持PASS，待独立复审）
 
-> 检查点（2026-08-25）：规格基线`126ba19`；Task 1～9及Task 10 UI/MySQL子项已通过既有裁决，P3-E08已VERIFIED；COLLECTION接口预留且不属当前必需Provider，无阻塞；下一步完成Task 10正向治理真实浏览器闭环并送Feature Done复审。
+> 检查点（2026-08-25）：规格基线`126ba19`；Task 1～9已PASS，P3-E08已VERIFIED，COLLECTION仅预留；Task 10正向浏览器回退→异常关闭→重开与刷新后3条历史已PASS，隔离库V1～V87及物理审计/Outbox/幂等已核验；下一步独立复审Task 10与Feature Done。
