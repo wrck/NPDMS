@@ -89,19 +89,28 @@ class ProjectManualCreationMySqlIntegrationTest extends ProjectManualCreationMyS
     @Test
     void successfulRootCreationPublishesInitialTreeProjection() {
         ManualProjectCreateCommand command = newCommand();
+        Integer originalSortOrder = jdbcTemplate.queryForObject(
+                "SELECT sort_order FROM proj_project_template_task_definition "
+                        + "WHERE template_revision_id=? AND task_code='T-ASSIGN-PM'",
+                Integer.class, command.templateRevisionId());
+        Integer parentSortOrder = jdbcTemplate.queryForObject(
+                "SELECT sort_order FROM proj_project_template_task_definition "
+                        + "WHERE template_revision_id=? AND task_code='T-ASSIGN-SM'",
+                Integer.class, command.templateRevisionId());
         int changed = jdbcTemplate.update("UPDATE proj_project_template_task_definition "
-                        + "SET parent_task_code='T-ASSIGN-SM' WHERE template_revision_id=? "
+                        + "SET parent_task_code='T-ASSIGN-SM', sort_order=? WHERE template_revision_id=? "
                         + "AND task_code='T-ASSIGN-PM' AND parent_task_code IS NULL",
-                command.templateRevisionId());
+                parentSortOrder - 1, command.templateRevisionId());
         assertEquals(1, changed, "集成测试模板必须包含可组成三层树的冻结任务");
         ManualProjectCreateResult created;
         try {
             created = applicationService.create(command, newActor());
         } finally {
-            jdbcTemplate.update("UPDATE proj_project_template_task_definition SET parent_task_code=NULL "
+            jdbcTemplate.update("UPDATE proj_project_template_task_definition "
+                            + "SET parent_task_code=NULL, sort_order=? "
                             + "WHERE template_revision_id=? AND task_code='T-ASSIGN-PM' "
                             + "AND parent_task_code='T-ASSIGN-SM'",
-                    command.templateRevisionId());
+                    originalSortOrder, command.templateRevisionId());
         }
 
         assertEquals(1L, jdbcTemplate.queryForObject(

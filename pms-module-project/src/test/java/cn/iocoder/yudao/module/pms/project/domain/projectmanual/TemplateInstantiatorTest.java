@@ -60,6 +60,21 @@ class TemplateInstantiatorTest {
     }
 
     @Test
+    void ordersForwardReferencedParentBeforeChild() {
+        TemplateDefinitionContent content = fullContent();
+        TemplateDefinitionContent.TaskDef root = content.getTasks().get(0);
+        TemplateDefinitionContent.TaskDef child = content.getTasks().get(1);
+        content.getTasks().clear();
+        content.getTasks().add(child);
+        content.getTasks().add(root);
+
+        ProjectInstantiation instantiation = instantiate(content);
+
+        assertEquals(List.of("T1", "T1-1"), instantiation.getTasks().stream()
+                .map(ProjectTaskInstanceDO::getTaskCode).toList());
+    }
+
+    @Test
     void fiveElementSnapshotsFullyCopied() {
         TemplateDefinitionContent content = fullContent();
         ProjectInstantiation instantiation = instantiate(content);

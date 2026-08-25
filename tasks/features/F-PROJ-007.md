@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ007-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
-> 当前阻断：`待独立复审：V89模板建项兼容写路径整改`
+> 当前阻断：`待独立复审：模板前向引用的父先子后持久化整改`
 > 当前任务：`Task 1 建立任务树、状态机和责任事实物理基础`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
@@ -23,4 +23,4 @@
 - [x] 闭环首次计划复审四项NO-GO
 - [x] 获得Technical Plan独立裁决
 
-> 检查点（2026-08-25）：已前移模板建项所需最小任务树能力；V89空库三层建项、6条闭包、一任务一当前契约及全事务回滚均PASS；未增加任务命令/API，待提交后独立复审Task 1。
+> 检查点（2026-08-25）：已按树深度稳定拓扑排序，合法前向引用模板可父先子后落库；V89空库三层建项、6条闭包、唯一当前契约及全事务回滚均PASS；待独立复审Task 1。

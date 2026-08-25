@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectT
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,16 +117,21 @@ public final class TemplateInstantiator {
 
     private static void buildTaskStructure(ProjectInstantiation instantiation) {
         Map<String, ProjectTaskInstanceDO> tasksByCode = new LinkedHashMap<>();
+        Map<String, Integer> taskOrderByCode = new LinkedHashMap<>();
         for (ProjectTaskInstanceDO task : instantiation.getTasks()) {
             if (task.getTaskCode() == null || task.getTaskCode().isBlank()
                     || tasksByCode.putIfAbsent(task.getTaskCode(), task) != null) {
                 throw new IllegalArgumentException("模板任务码不能为空且必须唯一");
             }
+            taskOrderByCode.put(task.getTaskCode(), taskOrderByCode.size());
         }
         Map<String, Integer> resolveStates = new LinkedHashMap<>();
         for (ProjectTaskInstanceDO task : instantiation.getTasks()) {
             resolveTaskStructure(task, tasksByCode, resolveStates, instantiation);
         }
+        instantiation.getTasks().sort(Comparator
+                .comparingInt((ProjectTaskInstanceDO task) -> task.getTreeDepth())
+                .thenComparingInt(task -> taskOrderByCode.get(task.getTaskCode())));
     }
 
     private static void resolveTaskStructure(ProjectTaskInstanceDO task,
