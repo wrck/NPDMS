@@ -3,6 +3,16 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapper">
 
+    <insert id="insertDraft">
+        INSERT INTO proj_task_state_machine_revision
+            (id, revision_no, status, effective_from, published_by, published_at,
+             version, creator, updater, tenant_id)
+        VALUES
+            (#{revision.id}, #{revision.revisionNo}, 'DRAFT', #{revision.effectiveFrom},
+             NULL, NULL, #{revision.version}, #{revision.creator}, #{revision.updater},
+             #{revision.tenantId})
+    </insert>
+
     <select id="selectCurrentPublished"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateMachineRevisionDO">
         SELECT revision.*
@@ -14,5 +24,62 @@
         ORDER BY revision.revision_no DESC, revision.id DESC
         LIMIT 1
     </select>
+
+    <select id="selectRevisionForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateMachineRevisionDO">
+        SELECT *
+        FROM proj_task_state_machine_revision
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.revisionId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectTransitions"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateTransitionDO">
+        SELECT *
+        FROM proj_task_state_transition
+        WHERE tenant_id = #{query.tenantId}
+          AND revision_id = #{query.revisionId}
+          AND deleted = b'0'
+        ORDER BY from_status_code, action_code, id
+    </select>
+
+    <select id="selectTransitionsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateTransitionDO">
+        SELECT *
+        FROM proj_task_state_transition
+        WHERE tenant_id = #{query.tenantId}
+          AND revision_id = #{query.revisionId}
+          AND deleted = b'0'
+        ORDER BY from_status_code, action_code, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectTransition"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateTransitionDO">
+        SELECT *
+        FROM proj_task_state_transition
+        WHERE tenant_id = #{query.tenantId}
+          AND revision_id = #{query.revisionId}
+          AND from_status_code = #{query.fromStatusCode}
+          AND action_code = #{query.actionCode}
+          AND deleted = b'0'
+    </select>
+
+    <update id="publishRevisionIfMatch">
+        UPDATE proj_task_state_machine_revision
+        SET status = 'PUBLISHED',
+            published_by = #{query.publishedBy},
+            published_at = #{query.publishedAt},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = #{query.publishedAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.revisionId}
+          AND status = 'DRAFT'
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
 
 </mapper>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskDependencyMapper">
+
+    <select id="existsDependencyPath" resultType="boolean">
+        WITH RECURSIVE reachable(task_id) AS (
+            SELECT successor_task_id
+            FROM proj_task_dependency
+            WHERE tenant_id = #{query.tenantId}
+              AND project_id = #{query.projectId}
+              AND predecessor_task_id = #{query.fromTaskId}
+              AND deleted = b'0'
+            UNION DISTINCT
+            SELECT dependency.successor_task_id
+            FROM proj_task_dependency dependency
+            JOIN reachable ON reachable.task_id = dependency.predecessor_task_id
+            WHERE dependency.tenant_id = #{query.tenantId}
+              AND dependency.project_id = #{query.projectId}
+              AND dependency.deleted = b'0'
+        )
+        SELECT EXISTS(
+            SELECT 1 FROM reachable WHERE task_id = #{query.toTaskId}
+        )
+    </select>
+
+</mapper>

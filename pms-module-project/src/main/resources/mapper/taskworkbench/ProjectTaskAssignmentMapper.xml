@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapper">
+
+    <insert id="insertAssignment">
+        INSERT INTO proj_project_task_assignment
+            (id, project_task_id, assignee_user_id, effective_from, effective_to,
+             assigned_by, reason, version, creator, updater, tenant_id)
+        VALUES
+            (#{assignment.id}, #{assignment.projectTaskId}, #{assignment.assigneeUserId},
+             #{assignment.effectiveFrom}, #{assignment.effectiveTo}, #{assignment.assignedBy},
+             #{assignment.reason}, #{assignment.version}, #{assignment.creator},
+             #{assignment.updater}, #{assignment.tenantId})
+    </insert>
+
+    <select id="selectCurrentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskAssignmentDO">
+        SELECT *
+        FROM proj_project_task_assignment
+        WHERE tenant_id = #{query.tenantId}
+          AND project_task_id = #{query.projectTaskId}
+          AND current_marker = 1
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="closeCurrentIfMatch">
+        UPDATE proj_project_task_assignment
+        SET effective_to = #{query.effectiveTo},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = #{query.effectiveTo}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.assignmentId}
+          AND version = #{query.expectedVersion}
+          AND current_marker = 1
+          AND effective_to IS NULL
+          AND effective_from &lt;= #{query.effectiveTo}
+          AND deleted = b'0'
+    </update>
+
+</mapper>
