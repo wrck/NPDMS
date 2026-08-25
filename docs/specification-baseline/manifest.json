@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "73a9481f540ad3e101a17eea159d136e427672ee"
+    "commit": "fa06444b70ec5d19b6998d40427325036501ae15"
   },
   "files": [
     {
@@ -438,7 +438,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "10a29935fba5637ff9f4a2787ae81d1e57bc53f6485b7cbbfdc68bcb002b1b9c"
+      "sha256": "28f9e7e1764f31c7fdd2efa62243925e717f3b7ba5416045bb4f203d9480a4d9"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -496,9 +496,19 @@
       "sha256": "ef81cdf0f6f4af5cae36e9a8c7bcff1f0786e1c0ee6aceff889bbac0eca4c3df"
     },
     {
+      "path": "specs/features/F-PROJ-007-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "b065fb0a7bf506e17fef3183733204e4e9d8b3a16b0364be3ac920a1fe2e67ad"
+    },
+    {
+      "path": "specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "a9314a38392bfddc0f24a410253ac31659be19fedaa793bbb5a00227642414cc"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "0857dab0aa9cfa8599fe40b88375877814f0b9e180a82b7fd50ce14163ea9050"
+      "sha256": "928bfd122426bd85278365d71e565a1a3df852b159aec718756a581448e059ee"
     }
   ]
 }
