@@ -3,9 +3,9 @@
   "featureId": "F-PROJ-007",
   "requirementIds": ["PM-11"],
   "relatedRequirementSlices": ["PM-02", "PM-03", "PM-04", "PM-08"],
-  "status": "DRAFT_REVIEW_PENDING",
+  "status": "BASELINE_READY",
   "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
-  "phaseGateImpact": "NPDMS_FPROJ007_FEATURE_READY_REVIEW_PENDING_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
+  "phaseGateImpact": "NPDMS_FPROJ007_FEATURE_READY_20260825_01_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
   "v1Scope": {
     "included": ["UNBOUNDED_TASK_TREE", "BASIC_DEPENDENCIES", "TEMPORAL_ASSIGNMENT", "VERSIONED_STATE_MACHINE", "TASK_NATIVE_WORKBENCH", "TASK_PROGRESS_FACT", "BINDING_HOST_FAIL_CLOSED"],
     "deferred": ["V2_GANTT", "ADVANCED_ORCHESTRATION", "RESOURCE_LEVELING", "OWNER_FEATURE_NON_NATIVE_ADAPTERS", "AI_MIG_000"]
@@ -194,9 +194,7 @@
       "payload": ["eventId", "tenantId", "projectId", "projectTaskId", "completionEvaluationId", "taskVersion", "executionContractId", "contractVersion", "factVersion", "completedBy", "occurredAt"]
     }
   },
-  "reviewQuestions": [
-    "APPROVE_OR_REJECT_TASK_PROGRESS_FACT_FORMULA: APPLICABLE_LEAF_TASKS_ONLY; POSITIVE_ESTIMATED_HOURS_WITH_WEIGHT_1_FALLBACK; DONE_ONLY_100; EMPTY_MEANS_NO_FACT"
-  ],
+  "featureReadyDecision": "GO_NPDMS_FPROJ007_FEATURE_READY_20260825_01_TASK_PROGRESS_FACT_FORMULA_APPROVED",
   "forbiddenCapabilities": [
     "V2_GANTT_OR_ADVANCED_ORCHESTRATION",
     "LEGACY_AND_V18_DUAL_WRITE",
