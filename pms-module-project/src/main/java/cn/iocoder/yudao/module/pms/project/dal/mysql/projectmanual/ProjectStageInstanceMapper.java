@@ -22,4 +22,10 @@ public interface ProjectStageInstanceMapper extends BaseMapperX<ProjectStageInst
                 .orderByAsc(ProjectStageInstanceDO::getSortOrder)
                 .orderByAsc(ProjectStageInstanceDO::getId));
     }
+
+    default ProjectStageInstanceDO selectByProjectIdAndStageCode(Long projectId, String stageCode) {
+        return selectOne(new LambdaQueryWrapperX<ProjectStageInstanceDO>()
+                .eq(ProjectStageInstanceDO::getProjectId, projectId)
+                .eq(ProjectStageInstanceDO::getStageCode, stageCode));
+    }
 }

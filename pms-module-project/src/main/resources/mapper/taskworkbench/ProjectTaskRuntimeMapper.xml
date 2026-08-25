@@ -245,6 +245,16 @@
         FOR UPDATE
     </select>
 
+    <select id="selectProjectForCommandForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT *
+        FROM proj_project
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
     <select id="selectSourceTaskForUpdate"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
         SELECT *
@@ -308,6 +318,52 @@
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.projectId}
           AND task_tree_version = #{query.expectedTaskTreeVersion}
+          AND deleted = b'0'
+    </update>
+
+    <insert id="insertNewTaskPaths">
+        INSERT INTO proj_task_tree_path
+            (project_id, ancestor_task_id, descendant_task_id, distance,
+             version, creator, updater, tenant_id)
+        SELECT #{query.projectId}, ancestor_task_id, #{query.taskId}, distance + 1,
+               0, #{query.creator}, #{query.creator}, #{query.tenantId}
+        FROM proj_task_tree_path
+        WHERE #{query.parentTaskId} IS NOT NULL
+          AND tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND descendant_task_id = #{query.parentTaskId}
+          AND deleted = b'0'
+        UNION ALL
+        SELECT #{query.projectId}, #{query.taskId}, #{query.taskId}, 0,
+               0, #{query.creator}, #{query.creator}, #{query.tenantId}
+    </insert>
+
+    <update id="updateBasicIfMatch">
+        UPDATE proj_project_task
+        SET name = #{query.name},
+            business_level_code = COALESCE(#{query.businessLevelCode}, business_level_code),
+            plan_start_time = COALESCE(#{query.planStartTime}, plan_start_time),
+            plan_end_time = COALESCE(#{query.planEndTime}, plan_end_time),
+            priority = COALESCE(#{query.priority}, priority),
+            sort_order = COALESCE(#{query.sortOrder}, sort_order),
+            description = COALESCE(#{query.description}, description),
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="incrementTaskVersionIfMatch">
+        UPDATE proj_project_task
+        SET version = version + 1,
+            updater = #{updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{tenantId}
+          AND id = #{taskId}
+          AND version = #{expectedVersion}
           AND deleted = b'0'
     </update>
 

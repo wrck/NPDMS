@@ -22,4 +22,10 @@ public interface ProjectTaskInstanceMapper extends BaseMapperX<ProjectTaskInstan
                 .orderByAsc(ProjectTaskInstanceDO::getSortOrder)
                 .orderByAsc(ProjectTaskInstanceDO::getId));
     }
+
+    default ProjectTaskInstanceDO selectByProjectIdAndTaskCode(Long projectId, String taskCode) {
+        return selectOne(new LambdaQueryWrapperX<ProjectTaskInstanceDO>()
+                .eq(ProjectTaskInstanceDO::getProjectId, projectId)
+                .eq(ProjectTaskInstanceDO::getTaskCode, taskCode));
+    }
 }

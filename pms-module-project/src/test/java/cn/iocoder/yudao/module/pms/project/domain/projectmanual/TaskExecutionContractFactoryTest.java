@@ -45,6 +45,17 @@ class TaskExecutionContractFactoryTest {
         assertNull(contract.getEffectiveTo());
     }
 
+    @Test
+    void createsManualTaskNativeContractWithCanonicalDoneRule() {
+        ProjectTaskExecutionContractDO contract = factory.createTaskNative(12L, NOW);
+
+        assertEquals("TASK_NATIVE", contract.getWorkBindingTypeCode());
+        assertEquals("PROJECT_TASK_NATIVE_DEFAULT", contract.getPermissionPolicyRef());
+        assertEquals("TASK_NATIVE_STATUS", contract.getCompletionRuleTypeCode());
+        assertEquals("{\"requiredStatus\":\"DONE\"}", contract.getCompletionRuleSnapshot());
+        assertNull(contract.getTargetObjectKey());
+    }
+
     private TemplateDefinitionContent.TaskDef validTaskNative() {
         TemplateDefinitionContent.TaskDef task = new TemplateDefinitionContent.TaskDef();
         task.setTaskCode("T-001");

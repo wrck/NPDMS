@@ -44,6 +44,21 @@ public class TaskExecutionContractFactory {
         return contract;
     }
 
+    public ProjectTaskExecutionContractDO createTaskNative(Long projectTaskId, LocalDateTime effectiveFrom) {
+        ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
+        contract.setProjectTaskId(projectTaskId);
+        contract.setWorkBindingTypeCode(TASK_NATIVE);
+        contract.setBindingParameterSnapshot("{}");
+        contract.setPermissionPolicyRef("PROJECT_TASK_NATIVE_DEFAULT");
+        contract.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
+        contract.setCompletionRuleSnapshot("{\"requiredStatus\":\"DONE\"}");
+        contract.setSourceDefinitionVersion(1);
+        contract.setContractVersion(1);
+        contract.setEffectiveFrom(effectiveFrom);
+        contract.setVersion(0);
+        return contract;
+    }
+
     public void validateDefinition(TemplateDefinitionContent.TaskDef definition) {
         if (definition == null || StringUtils.isBlank(definition.getWorkBindingTypeCode())
                 || !SUPPORTED_TYPES.contains(definition.getWorkBindingTypeCode())) {

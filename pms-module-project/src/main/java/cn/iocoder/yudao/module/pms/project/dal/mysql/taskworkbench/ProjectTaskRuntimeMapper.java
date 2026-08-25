@@ -4,6 +4,9 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskMoveLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.NewTaskTreePathInsert;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskBasicUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskStructureUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
@@ -64,6 +67,8 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
 
     ProjectMasterDO selectProjectForUpdate(@Param("query") ProjectTaskMoveLockQuery query);
 
+    ProjectMasterDO selectProjectForCommandForUpdate(@Param("query") ProjectTaskProjectLockQuery query);
+
     ProjectTaskInstanceDO selectSourceTaskForUpdate(@Param("query") ProjectTaskMoveLockQuery query);
 
     ProjectTaskInstanceDO selectTargetParentForUpdate(@Param("query") ProjectTaskMoveLockQuery query);
@@ -73,6 +78,15 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     int updateStructureIfMatch(@Param("query") ProjectTaskStructureUpdate update);
 
     int incrementTaskTreeVersion(@Param("query") ProjectTaskTreeVersionUpdate update);
+
+    int insertNewTaskPaths(@Param("query") NewTaskTreePathInsert insert);
+
+    int updateBasicIfMatch(@Param("query") ProjectTaskBasicUpdate update);
+
+    int incrementTaskVersionIfMatch(@Param("tenantId") Long tenantId,
+                                    @Param("taskId") Long taskId,
+                                    @Param("expectedVersion") Integer expectedVersion,
+                                    @Param("updater") String updater);
 
     default void rebuildMovedSubtreePaths(ProjectTaskStructureUpdate update) {
         deleteOldExternalPaths(update);

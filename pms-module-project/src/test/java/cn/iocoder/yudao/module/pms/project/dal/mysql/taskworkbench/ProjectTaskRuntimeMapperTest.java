@@ -4,6 +4,8 @@ import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.NewTaskTreePathInsert;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskBasicUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskMoveLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskStructureUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
@@ -345,6 +347,32 @@ class ProjectTaskRuntimeMapperTest {
                 "SELECT COUNT(*) FROM proj_task_tree_path WHERE project_id=? "
                         + "AND ancestor_task_id=? AND descendant_task_id=?",
                 Long.class, projectId, secondRootTaskId, firstTaskId + DEPTH - 1));
+    }
+
+    @Test
+    void shouldPersistNewTaskPathsAndApplyTaskCasUpdates() {
+        long newTaskId = projectId + 950;
+        long parentTaskId = firstTaskId + 1;
+        insertTask(newTaskId, parentTaskId, firstTaskId, 2, 950, "T-NEW", "L2");
+
+        assertEquals(3, mapper.insertNewTaskPaths(new NewTaskTreePathInsert(
+                0L, projectId, newTaskId, parentTaskId, "fproj007-task5-test")));
+        assertEquals(3L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_task_tree_path WHERE tenant_id=0 AND project_id=? "
+                        + "AND descendant_task_id=?",
+                Long.class, projectId, newTaskId));
+
+        assertEquals(1, mapper.updateBasicIfMatch(new ProjectTaskBasicUpdate(
+                0L, newTaskId, 0, "更新任务", "L3", null, null,
+                7, 951, "更新描述", "fproj007-task5-test")));
+        assertEquals("更新任务", jdbcTemplate.queryForObject(
+                "SELECT name FROM proj_project_task WHERE id=?", String.class, newTaskId));
+        assertEquals(1, mapper.incrementTaskVersionIfMatch(
+                0L, newTaskId, 1, "fproj007-task5-test"));
+        assertEquals(2, jdbcTemplate.queryForObject(
+                "SELECT version FROM proj_project_task WHERE id=?", Integer.class, newTaskId));
+        assertEquals(0, mapper.incrementTaskVersionIfMatch(
+                0L, newTaskId, 1, "fproj007-task5-test"));
     }
 
     private ProjectTaskTreeQuery query(ProjectTaskTreeQuery.Mode mode, Long parentTaskId,

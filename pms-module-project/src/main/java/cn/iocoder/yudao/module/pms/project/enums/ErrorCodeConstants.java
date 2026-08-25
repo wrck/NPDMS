@@ -199,5 +199,7 @@ public interface ErrorCodeConstants {
             "项目治理动作写入失败");
     ErrorCode PROJECT_TASK_QUERY_INVALID = new ErrorCode(1_014_024_044, "项目任务查询参数无效");
     ErrorCode PROJECT_TASK_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_045, "无权访问该项目任务");
+    ErrorCode PROJECT_TASK_COMMAND_INVALID = new ErrorCode(1_014_024_046, "项目任务命令不符合当前规则");
+    ErrorCode PROJECT_TASK_VERSION_CONFLICT = new ErrorCode(1_014_024_047, "项目任务版本冲突");
 
 }

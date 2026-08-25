@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectWorkspaceRespVO;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,8 @@ import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.reflect.Method;
@@ -58,6 +61,14 @@ class ProjectTaskWorkbenchControllerTest {
     }
 
     @Test
+    void shouldExposeLockedTaskFiveCommandRoutes() {
+        assertRoute("createTask", PostMapping.class, "/projects/{id}/tasks", "pms:project-task:create");
+        assertRoute("updateTask", PatchMapping.class, "/project-tasks/{id}", "pms:project-task:update");
+        assertRoute("moveTask", PostMapping.class, "/project-tasks/{id}/actions/move", "pms:project-task:move");
+        assertRoute("addDependency", PostMapping.class, "/project-tasks/{id}/dependencies", "pms:project-task:move");
+    }
+
+    @Test
     void singleTenantHttpQueryEstablishesTrustedTenantZeroForCallOnly() throws Exception {
         ProjectTaskQueryService queryService = mock(ProjectTaskQueryService.class);
         Environment environment = mock(Environment.class);
@@ -68,7 +79,8 @@ class ProjectTaskWorkbenchControllerTest {
             assertEquals(0L, actor.tenantId());
             return new ProjectWorkspaceRespVO();
         });
-        MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(queryService, environment)).build();
+        MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(
+                queryService, mock(ProjectTaskCommandService.class), environment)).build();
 
         mvc.perform(get("/api/v1/pms/projects/100/workspace"))
                 .andExpect(status().isOk());
@@ -80,7 +92,8 @@ class ProjectTaskWorkbenchControllerTest {
     void defaultEnabledMultiTenantHttpQueryWithoutContextFailsClosed() {
         ProjectTaskQueryService queryService = mock(ProjectTaskQueryService.class);
         Environment environment = new MockEnvironment();
-        MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(queryService, environment)).build();
+        MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(
+                queryService, mock(ProjectTaskCommandService.class), environment)).build();
 
         Exception error = assertThrows(Exception.class,
                 () -> mvc.perform(get("/api/v1/pms/projects/100/workspace")));
@@ -94,5 +107,15 @@ class ProjectTaskWorkbenchControllerTest {
     private Method findMethod(String name) {
         return java.util.Arrays.stream(ProjectTaskWorkbenchController.class.getDeclaredMethods())
                 .filter(method -> method.getName().equals(name)).findFirst().orElseThrow();
+    }
+
+    private <A extends java.lang.annotation.Annotation> void assertRoute(
+            String methodName, Class<A> annotationType, String route, String permission) {
+        Method method = findMethod(methodName);
+        String[] values;
+        if (annotationType == PostMapping.class) values = method.getAnnotation(PostMapping.class).value();
+        else values = method.getAnnotation(PatchMapping.class).value();
+        assertArrayEquals(new String[]{route}, values);
+        assertEquals("@ss.hasPermission('" + permission + "')", method.getAnnotation(PreAuthorize.class).value());
     }
 }
