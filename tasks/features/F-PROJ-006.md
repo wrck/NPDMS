@@ -4,8 +4,8 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无当前必停阻断；COLLECTION权威守卫来源证据在Task 5核验，缺失时失败关闭并登记为Feature Done前阻断
-> 当前任务：`Task 5 提供BPM与COLLECTION集成守卫`
+> 当前阻断：无当前必停阻断；COLLECTION权威端点、响应契约与真实验收证据缺失，登记为Feature Done前阻断，不阻断Task 6～9
+> 当前任务：`Task 6 签发并重验不透明守卫令牌`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
 > Feature物理契约：`specs/features/F-PROJ-006-physical-contract.json`
@@ -26,7 +26,7 @@
 - [x] Task 2 实现共享快照持久化与Project原子更新（PASS / `4060039..2ca2f92` / 独立裁决GO）
 - [x] Task 3 固化守卫公共契约与PROJ事实（PASS / `9256cb5..39f5260` / 独立裁决GO）
 - [x] Task 4 提供CUT与INSPECTION守卫事实（PASS / `0341aa6` / 独立裁决GO）
-- [ ] Task 5 提供BPM与COLLECTION集成守卫
+- [ ] Task 5 提供BPM与COLLECTION集成守卫（BPM子项PASS / `4b4ba22` / COLLECTION权威契约待外部证据）
 - [ ] Task 6 签发并重验不透明守卫令牌
 - [ ] Task 7 实现回退命令闭环
 - [ ] Task 8 实现异常关闭与受控重开
@@ -46,3 +46,5 @@
 > 检查点（2026-08-25）：Task 3公共守卫契约及PROJ事实经整改后独立Implementation Done裁决GO，提交范围`9256cb5..39f5260`；已回写PASS并推进Task 4，不重开Feature Ready、PRD、SDS门禁。
 
 > 检查点（2026-08-25）：Task 4的CUT与INSPECTION本域守卫事实独立Implementation Done裁决GO，提交`0341aa6`；已回写PASS并推进Task 5，不重开Feature Ready、PRD、SDS门禁。
+
+> 检查点（2026-08-25）：Task 5裁决GO：BPM子项提交`4b4ba22`达到Implementation Done；COLLECTION权威契约及真实验收待外部证据，整个Task 5保持未关闭并登记为Feature Done前阻断；允许继续Task 6～9，当前推进Task 6。
