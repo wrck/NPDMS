@@ -46,8 +46,8 @@
 ### Task 1: 建立共享快照与权限物理基础
 
 **Files:**
-- Create: `sql/migrations/V85__fproj006_project_governance_foundation.sql`
-- Create: `sql/migrations/V86__fproj006_project_governance_seed.sql`
+- Create: `sql/migrations/V86__fproj006_project_governance_foundation.sql`
+- Create: `sql/migrations/V87__fproj006_project_governance_seed.sql`
 - Create: `scripts/tests/test_fproj006_v18_migration.py`
 - Create: `tasks/features/F-PROJ-006.md`
 
@@ -55,17 +55,17 @@
 - Consumes: F-PROJ-006物理契约的共享表、权限码和事件定义。
 - Produces: `proj_project_stage_snapshot`共享表、PM-10可空列、双唯一键、原因字典、稳定权限与菜单种子。
 
-- [ ] **Step 1: 编写V85前向迁移**
+- [ ] **Step 1: 编写V86前向迁移**
 
-创建共享`proj_project_stage_snapshot`，公共列至少为`tenant_id/project_id/stage_code/snapshot_no`；PM-10动作列使用规格中的19个可空字段。建立`uk(tenant_id, project_id, stage_code, snapshot_no)`与`uk(tenant_id, operation_id)`，不得修改V1～V84。
+创建共享`proj_project_stage_snapshot`，公共列至少为`tenant_id/project_id/stage_code/snapshot_no`；PM-10动作列使用规格中的19个可空字段。建立`uk(tenant_id, project_id, stage_code, snapshot_no)`与`uk(tenant_id, operation_id)`，不得修改V1～V85。
 
-- [ ] **Step 2: 编写V86幂等种子**
+- [ ] **Step 2: 编写V87幂等种子**
 
 写入回退/异常关闭/重开原因字典和`pms:project:governance:query`、`pms:project:rollback`、`pms:project:close`、`pms:project:reopen`权限。旧`pms:project-governance:*`写菜单停用或移除角色关联，历史查询不删除。
 
 - [ ] **Step 3: 增加迁移契约验证**
 
-断言共享唯一键未被替换、PM-10字段物理可空、审计表名为`plt_operation_audit`、未创建独立治理动作/责任工单表、V1～V84哈希未改变。
+断言共享唯一键未被替换、PM-10字段物理可空、审计表名为`plt_operation_audit`、未创建独立治理动作/责任工单表、V1～V85哈希未改变。
 
 - [ ] **Step 4: 验证并提交**
 
@@ -384,7 +384,7 @@ Controller使用四个稳定权限码；服务端再次执行租户、功能权�
 
 - [ ] **Step 3: 执行自动化和真实MySQL**
 
-执行PROJ、PLATFORM及守卫Provider定向测试和模块回归；全新隔离库执行V1～V86；验证回退/关闭/重开事务、并发、跨租户、树T→T+1和Provider水位变化无副作用。
+执行PROJ、PLATFORM及守卫Provider定向测试和模块回归；全新隔离库执行V1～V87；验证回退/关闭/重开事务、并发、跨租户、树T→T+1和Provider水位变化无副作用。
 
 - [ ] **Step 4: 使用真实浏览器验收**
 
@@ -411,7 +411,7 @@ Controller使用四个稳定权限码；服务端再次执行租户、功能权�
 | BPM现有公开API只支持创建/触发 | 不能直接按项目读取审批水位 | 在PMS集成适配层使用Flowable公开能力，不修改基础模块、不直查表；版本/摘要由适配层稳定生成 |
 | 树在守卫后并发变化 | 旧检查可能误关闭新增ACTIVE后代 | guardToken冻结treeVersion，命令提交前重读最新完整树并逐claim比较 |
 | 共享快照被收窄成PM-10表 | 破坏PM-03/EXE-06后续复用 | 保持共享键和公共列；PM-10列物理可空，动作必填只在应用层验证 |
-| 旧治理页面继续写旧事实 | 形成双写和状态冲突 | V86停用旧写权限；Controller和UI只保留历史只读，不自动转换旧记录 |
+| 旧治理页面继续写旧事实 | 形成双写和状态冲突 | V87停用旧写权限；Controller和UI只保留历史只读，不自动转换旧记录 |
 
 ## Self-Review
 

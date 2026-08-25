@@ -6,10 +6,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS = ROOT / "sql" / "migrations"
-V85 = MIGRATIONS / "V85__fproj006_project_governance_foundation.sql"
-V86 = MIGRATIONS / "V86__fproj006_project_governance_seed.sql"
+V86 = MIGRATIONS / "V86__fproj006_project_governance_foundation.sql"
+V87 = MIGRATIONS / "V87__fproj006_project_governance_seed.sql"
 PREVIOUS_MIGRATIONS_SHA256 = (
-    "dce6b1fcd3024bf95c0ba00bfcab76c49474439114ce24b21be0b68659c86c81"
+    "a0c5aee57dfb759f0b8f97e824b63a839260eedf3c454d5e0db8380f32b47c88"
 )
 
 
@@ -17,29 +17,29 @@ class FProj006V18MigrationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.v85 = V85.read_text(encoding="utf-8")
         cls.v86 = V86.read_text(encoding="utf-8")
-        cls.snapshot_table = cls.v85.split(
+        cls.v87 = V87.read_text(encoding="utf-8")
+        cls.snapshot_table = cls.v86.split(
             "CREATE TABLE IF NOT EXISTS `proj_project_stage_snapshot` (", 1
         )[1].split(") ENGINE=InnoDB", 1)[0]
 
-    def test_v85_and_v86_are_forward_migrations(self) -> None:
-        self.assertTrue(V85.is_file())
+    def test_v86_and_v87_are_forward_migrations(self) -> None:
         self.assertTrue(V86.is_file())
-        self.assertEqual(85, int(V85.name[1:3]))
+        self.assertTrue(V87.is_file())
         self.assertEqual(86, int(V86.name[1:3]))
+        self.assertEqual(87, int(V87.name[1:3]))
 
-    def test_v1_through_v84_remain_unchanged(self) -> None:
+    def test_v1_through_v85_remain_unchanged(self) -> None:
         digest = hashlib.sha256()
         previous = sorted(
             (
                 path
                 for path in MIGRATIONS.glob("V*__*.sql")
-                if int(re.match(r"V(\d+)", path.name).group(1)) <= 84
+                if int(re.match(r"V(\d+)", path.name).group(1)) <= 85
             ),
             key=lambda path: int(re.match(r"V(\d+)", path.name).group(1)),
         )
-        self.assertEqual(84, len(previous))
+        self.assertEqual(85, len(previous))
         for path in previous:
             digest.update(path.name.encode())
             digest.update(b"\0")
@@ -100,10 +100,10 @@ class FProj006V18MigrationTest(unittest.TestCase):
             for path in MIGRATIONS.glob("V*__*.sql")
         )
         self.assertIn("CREATE TABLE IF NOT EXISTS `plt_operation_audit`", platform_migrations)
-        self.assertNotIn("plt_audit_record", self.v85 + self.v86)
+        self.assertNotIn("plt_audit_record", self.v86 + self.v87)
 
     def test_no_parallel_governance_fact_tables_are_created(self) -> None:
-        migration = (self.v85 + self.v86).lower()
+        migration = (self.v86 + self.v87).lower()
         for forbidden in (
             "proj_project_governance_action",
             "proj_project_governance_history",
@@ -121,10 +121,10 @@ class FProj006V18MigrationTest(unittest.TestCase):
             "pms:project:reopen",
         ):
             with self.subTest(permission=permission):
-                self.assertIn(permission, self.v86)
-        self.assertIn("pms_project_governance_reason", self.v86)
-        self.assertNotRegex(self.v86, r"(?i)INSERT\s+(?:IGNORE\s+)?INTO\s+`system_role_menu`")
-        self.assertIn("WHERE `id` IN (19158, 19159, 19160, 19161, 19162)", self.v86)
+                self.assertIn(permission, self.v87)
+        self.assertIn("pms_project_governance_reason", self.v87)
+        self.assertNotRegex(self.v87, r"(?i)INSERT\s+(?:IGNORE\s+)?INTO\s+`system_role_menu`")
+        self.assertIn("WHERE `id` IN (19158, 19159, 19160, 19161, 19162)", self.v87)
 
 
 if __name__ == "__main__":
