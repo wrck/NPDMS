@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentServiceManagerAssignmentsQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentMemberResponsibilityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
@@ -33,6 +34,9 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
 
     List<ProjectMemberAssignmentDO> selectCurrentResponsibilityForUpdate(
             @Param("query") CurrentMemberResponsibilityQuery query);
+
+    List<ProjectMemberAssignmentDO> selectActiveByUserForUpdate(
+            @Param("query") ActiveProjectMemberForUpdateQuery query);
 
     Long selectResponsibilityNodeCount(@Param("query") ServiceManagerResponsibilityPageQuery query);
 

@@ -5,9 +5,9 @@ import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceBlocker;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardProviderApi;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceProviderFact;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectTaskGovernanceGuardQuery;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttask.ProjectTaskMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +24,7 @@ public class ProjectTaskGovernanceGuardProvider implements ProjectGovernanceGuar
     public static final String PROVIDER_CODE = "PROJECT_TASK";
     private static final String FACT_VERSION = "PROJECT_TASK_V1";
 
-    private final ProjectTaskMapper taskMapper;
+    private final ProjectTaskRuntimeMapper taskMapper;
 
     @Override
     public String providerCode() {
@@ -37,7 +37,7 @@ public class ProjectTaskGovernanceGuardProvider implements ProjectGovernanceGuar
         if (query.projectIds().isEmpty()) {
             return fact(List.of(), List.of());
         }
-        List<ProjectTaskDO> tasks = taskMapper.selectListForGovernanceGuard(
+        List<ProjectTaskInstanceDO> tasks = taskMapper.selectListForGovernanceGuard(
                 new ProjectTaskGovernanceGuardQuery(query.tenantId(), query.projectIds()));
         if (tasks.stream().anyMatch(task -> !Objects.equals(task.getTenantId(), query.tenantId())
                 || !query.projectIds().contains(task.getProjectId()))) {
@@ -46,7 +46,8 @@ public class ProjectTaskGovernanceGuardProvider implements ProjectGovernanceGuar
         List<String> facts = tasks.stream().map(ProjectTaskGovernanceGuardProvider::canonicalFact).toList();
         List<ProjectGovernanceBlocker> blockers = tasks.stream()
                 .filter(ProjectTaskGovernanceGuardProvider::isBlocking)
-                .sorted(Comparator.comparing(ProjectTaskDO::getProjectId).thenComparing(ProjectTaskDO::getId))
+                .sorted(Comparator.comparing(ProjectTaskInstanceDO::getProjectId)
+                        .thenComparing(ProjectTaskInstanceDO::getId))
                 .map(ProjectTaskGovernanceGuardProvider::toBlocker).toList();
         return fact(facts, blockers);
     }
@@ -68,7 +69,7 @@ public class ProjectTaskGovernanceGuardProvider implements ProjectGovernanceGuar
                 ProjectGovernanceFactDigest.digest(orderedFacts), blockers);
     }
 
-    private static String canonicalFact(ProjectTaskDO task) {
+    private static String canonicalFact(ProjectTaskInstanceDO task) {
         return value(task.getProjectId()) + "|" + value(task.getId()) + "|" + value(task.getStatus())
                 + "|" + value(task.getVersion()) + "|" + value(task.getUpdateTime());
     }
@@ -78,28 +79,19 @@ public class ProjectTaskGovernanceGuardProvider implements ProjectGovernanceGuar
         return fields[0] + "|" + fields[1] + "|" + fields[3] + "|" + fields[4];
     }
 
-    private static boolean isBlocking(ProjectTaskDO task) {
-        return task.getStatus() == null || task.getStatus() < 5 || task.getStatus() > 6;
+    private static boolean isBlocking(ProjectTaskInstanceDO task) {
+        return !"DONE".equals(task.getStatus()) && !"CLOSED".equals(task.getStatus());
     }
 
-    private static ProjectGovernanceBlocker toBlocker(ProjectTaskDO task) {
+    private static ProjectGovernanceBlocker toBlocker(ProjectTaskInstanceDO task) {
         return new ProjectGovernanceBlocker("PROJECT_TASK", String.valueOf(task.getId()),
                 statusName(task.getStatus()), "NON_TERMINAL_PROJECT_TASK",
                 "项目任务阻断");
     }
 
-    private static String statusName(Integer status) {
+    private static String statusName(String status) {
         if (status == null) return "UNKNOWN";
-        return switch (status) {
-            case 0 -> "DRAFT";
-            case 1 -> "PENDING";
-            case 2 -> "IN_PROGRESS";
-            case 3 -> "BLOCKED";
-            case 4 -> "PENDING_VERIFICATION";
-            case 5 -> "COMPLETED";
-            case 6 -> "CANCELLED";
-            default -> "UNKNOWN";
-        };
+        return status;
     }
 
     private static String value(Object value) {

@@ -61,4 +61,14 @@ public final class ProjectTaskCommands {
     public record AssignTaskCommand(Long taskId, Integer expectedTaskVersion, Long assigneeUserId,
                                     String reason, String idempotencyKey, String requestDigest) {
     }
+
+    public record TaskActionCommand(Long taskId, Integer expectedTaskVersion, String actionCode,
+                                    String reason, Long executionContractId, Integer contractVersion,
+                                    String factObjectKey, Long factVersion,
+                                    String idempotencyKey, String requestDigest) {
+    }
+
+    public record PublishTaskStateMachineCommand(Long revisionId, Integer expectedVersion,
+                                                 String idempotencyKey, String requestDigest) {
+    }
 }

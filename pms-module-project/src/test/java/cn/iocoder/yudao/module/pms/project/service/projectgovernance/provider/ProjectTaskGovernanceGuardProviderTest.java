@@ -3,8 +3,8 @@ package cn.iocoder.yudao.module.pms.project.service.projectgovernance.provider;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceProviderFact;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttask.ProjectTaskMapper;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ class ProjectTaskGovernanceGuardProviderTest {
     private static final LocalDateTime CHECKED_AT = LocalDateTime.of(2026, 8, 25, 12, 0);
 
     @Mock
-    private ProjectTaskMapper taskMapper;
+    private ProjectTaskRuntimeMapper taskMapper;
     private ProjectTaskGovernanceGuardProvider provider;
 
     @BeforeEach
@@ -46,8 +46,8 @@ class ProjectTaskGovernanceGuardProviderTest {
 
     @Test
     void shouldReturnStableFactAndOnlyBlockNonTerminalTasks() {
-        ProjectTaskDO pending = task(2L, 101L, "T-PENDING", 2, 3);
-        ProjectTaskDO completed = task(1L, 100L, "T-DONE", 5, 4);
+        ProjectTaskInstanceDO pending = task(2L, 101L, "T-PENDING", "IN_PROGRESS", 3);
+        ProjectTaskInstanceDO completed = task(1L, 100L, "T-DONE", "DONE", 4);
         when(taskMapper.selectListForGovernanceGuard(any())).thenReturn(List.of(pending, completed))
                 .thenReturn(List.of(completed, pending));
 
@@ -77,7 +77,7 @@ class ProjectTaskGovernanceGuardProviderTest {
 
     @Test
     void shouldRejectOutOfScopeFactsReturnedByPersistence() {
-        ProjectTaskDO crossTenant = task(1L, 100L, "T-100", 5, 1);
+        ProjectTaskInstanceDO crossTenant = task(1L, 100L, "T-100", "DONE", 1);
         crossTenant.setTenantId(8L);
         when(taskMapper.selectListForGovernanceGuard(any())).thenReturn(List.of(crossTenant));
 
@@ -86,8 +86,8 @@ class ProjectTaskGovernanceGuardProviderTest {
 
     @Test
     void shouldChangeFrozenFactWhenTaskVersionChanges() {
-        ProjectTaskDO before = task(1L, 100L, "T-100", 5, 1);
-        ProjectTaskDO after = task(1L, 100L, "T-100", 5, 2);
+        ProjectTaskInstanceDO before = task(1L, 100L, "T-100", "DONE", 1);
+        ProjectTaskInstanceDO after = task(1L, 100L, "T-100", "DONE", 2);
         after.setUpdateTime(before.getUpdateTime().plusSeconds(1));
         when(taskMapper.selectListForGovernanceGuard(any())).thenReturn(List.of(before), List.of(after));
 
@@ -116,12 +116,12 @@ class ProjectTaskGovernanceGuardProviderTest {
         return new ProjectGovernanceGuardQuery(TENANT_ID, projectIds, "EXCEPTION_CLOSE", CHECKED_AT);
     }
 
-    private static ProjectTaskDO task(Long projectId, Long id, String code, Integer status, Integer version) {
-        ProjectTaskDO task = new ProjectTaskDO();
+    private static ProjectTaskInstanceDO task(Long projectId, Long id, String code, String status, Integer version) {
+        ProjectTaskInstanceDO task = new ProjectTaskInstanceDO();
         task.setTenantId(TENANT_ID);
         task.setProjectId(projectId);
         task.setId(id);
-        task.setCode(code);
+        task.setTaskCode(code);
         task.setStatus(status);
         task.setVersion(version);
         task.setUpdateTime(CHECKED_AT.plusMinutes(id));

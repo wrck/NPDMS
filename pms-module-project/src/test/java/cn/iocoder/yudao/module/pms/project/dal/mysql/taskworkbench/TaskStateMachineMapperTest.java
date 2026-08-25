@@ -117,13 +117,14 @@ class TaskStateMachineMapperTest extends TaskWorkbenchMySqlTestSupport {
         mapper.insertDraft(draft);
         createdRevisionIds.add(draft.getId());
         for (TaskStateTransitionDO transition : published.transitions()) {
-            jdbcTemplate.update("INSERT INTO proj_task_state_transition "
-                            + "(revision_id,from_status_code,action_code,to_status_code,standard_status_mapping,"
-                            + "allowed_role_code,entry_condition,exit_condition,version,creator,updater,tenant_id) "
-                            + "VALUES (?,?,?,?,?,?,CAST(? AS JSON),CAST(? AS JSON),0,'test','test',0)",
-                    draft.getId(), transition.getFromStatusCode(), transition.getActionCode(),
-                    transition.getToStatusCode(), transition.getStandardStatusMapping(),
-                    transition.getAllowedRoleCode(), transition.getEntryCondition(), transition.getExitCondition());
+            TaskStateTransitionDO copy = copyTransitions(List.of(transition)).getFirst();
+            copy.setId(IdUtil.getSnowflakeNextId());
+            copy.setTenantId(0L);
+            copy.setRevisionId(draft.getId());
+            copy.setVersion(0);
+            copy.setCreator("test");
+            copy.setUpdater("test");
+            assertEquals(1, mapper.insertTransition(copy));
         }
         return draft;
     }

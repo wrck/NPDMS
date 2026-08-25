@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/** 领取TaskAssigned Outbox并投递到本地应用事件入口。 */
+/** 领取项目任务Outbox并投递到本地应用事件入口。 */
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -34,7 +34,7 @@ public class ProjectTaskOutboxDeliveryJob implements JobHandler {
     public String execute(String param) {
         LocalDateTime dueAt = LocalDateTime.now();
         List<PlatformOutboxMessageDTO> messages = outboxDeliveryApi.claimDue(
-                new PlatformOutboxClaimQuery(dueAt, BATCH_SIZE, Set.of("TaskAssigned")));
+                new PlatformOutboxClaimQuery(dueAt, BATCH_SIZE, Set.of("TaskAssigned", "TaskCompleted")));
         int delivered = 0;
         int retried = 0;
         for (PlatformOutboxMessageDTO message : messages) {
@@ -46,19 +46,24 @@ public class ProjectTaskOutboxDeliveryJob implements JobHandler {
                 LocalDateTime nextRetryTime = dueAt.plusMinutes(retryDelayMinutes(message.retryCount()));
                 outboxDeliveryApi.scheduleRetry(message.eventId(), message.retryCount(), nextRetryTime);
                 retried++;
-                log.warn("[execute][任务指派事件({})投递失败，计划于({})重试]",
+                log.warn("[execute][项目任务事件({})投递失败，计划于({})重试]",
                         message.eventId(), nextRetryTime, exception);
             }
         }
-        return String.format("任务指派事件投递成功 %d 条，待重试 %d 条", delivered, retried);
+        return String.format("项目任务事件投递成功 %d 条，待重试 %d 条", delivered, retried);
     }
 
-    private TaskAssignedMessage toMessage(PlatformOutboxMessageDTO message) {
+    private Object toMessage(PlatformOutboxMessageDTO message) {
         if (message == null || message.eventId() == null || message.eventId().isBlank()
-                || !"TaskAssigned".equals(message.eventType())
                 || !Objects.equals(message.tenantId(), TenantContextHolder.getRequiredTenantId())) {
-            throw new IllegalArgumentException("任务指派事件元数据不完整");
+            throw new IllegalArgumentException("项目任务事件元数据不完整");
         }
+        if ("TaskAssigned".equals(message.eventType())) return toAssignedMessage(message);
+        if ("TaskCompleted".equals(message.eventType())) return toCompletedMessage(message);
+        throw new IllegalArgumentException("未知项目任务事件类型");
+    }
+
+    private TaskAssignedMessage toAssignedMessage(PlatformOutboxMessageDTO message) {
         TaskAssignedMessage.Payload payload = JsonUtils.parseObject(message.payload(),
                 TaskAssignedMessage.Payload.class);
         if (payload == null || !Objects.equals(payload.tenantId(), message.tenantId())
@@ -70,6 +75,23 @@ public class ProjectTaskOutboxDeliveryJob implements JobHandler {
         return new TaskAssignedMessage(message.eventId(), payload.tenantId(), payload.projectId(),
                 payload.projectTaskId(), payload.assigneeUserId(), payload.assignmentId(), payload.taskVersion(),
                 payload.assignedBy(), payload.occurredAt());
+    }
+
+    private TaskCompletedMessage toCompletedMessage(PlatformOutboxMessageDTO message) {
+        TaskCompletedMessage.Payload payload = JsonUtils.parseObject(message.payload(),
+                TaskCompletedMessage.Payload.class);
+        if (payload == null || !Objects.equals(payload.tenantId(), message.tenantId())
+                || payload.projectId() == null || payload.projectTaskId() == null
+                || payload.completionEvaluationId() == null || payload.taskVersion() < 1
+                || payload.executionContractId() == null || payload.contractVersion() < 1
+                || payload.factVersion() == null || payload.factVersion() < 0
+                || payload.completedBy() == null || payload.occurredAt() == null) {
+            throw new IllegalArgumentException("任务完成事件冻结载荷不完整");
+        }
+        return new TaskCompletedMessage(message.eventId(), payload.tenantId(), payload.projectId(),
+                payload.projectTaskId(), payload.completionEvaluationId(), payload.taskVersion(),
+                payload.executionContractId(), payload.contractVersion(), payload.factVersion(),
+                payload.completedBy(), payload.occurredAt());
     }
 
     private static long retryDelayMinutes(int retryCount) {

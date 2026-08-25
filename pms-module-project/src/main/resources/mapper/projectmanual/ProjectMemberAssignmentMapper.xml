@@ -25,6 +25,21 @@
         FOR UPDATE
     </select>
 
+    <select id="selectActiveByUserForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT *
+        FROM proj_project_member_assignment
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND user_id = #{query.userId}
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
     <sql id="responsibilityNodeWhere">
         p.tenant_id = #{query.tenantId}
         AND p.id IN

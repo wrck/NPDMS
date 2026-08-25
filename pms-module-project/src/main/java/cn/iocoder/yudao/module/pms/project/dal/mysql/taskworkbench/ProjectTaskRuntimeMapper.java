@@ -14,8 +14,11 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAnc
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentCommandQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskCompletionFactsQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskLifecycleStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVersionUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectTaskGovernanceGuardQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -48,6 +51,9 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     List<ProjectTaskInstanceDO> selectAncestorQuery(@Param("query") TaskAncestorBatchQuery query);
 
     ProjectTaskInstanceDO selectTask(@Param("query") TaskByIdQuery query);
+
+    List<ProjectTaskInstanceDO> selectListForGovernanceGuard(
+            @Param("query") ProjectTaskGovernanceGuardQuery query);
 
     ProjectTaskInstanceDO selectTaskForAssignmentForUpdate(@Param("query") TaskAssignmentCommandQuery query);
 
@@ -91,6 +97,12 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     int incrementTaskVersionIfMatch(@Param("query") TaskVersionUpdate update);
 
     int assignTaskIfMatch(@Param("query") TaskAssignmentStateUpdate update);
+
+    long countNonTerminalDescendants(@Param("query") TaskCompletionFactsQuery query);
+
+    long countNonTerminalPredecessors(@Param("query") TaskCompletionFactsQuery query);
+
+    int updateLifecycleIfMatch(@Param("query") TaskLifecycleStateUpdate update);
 
     default void rebuildMovedSubtreePaths(ProjectTaskStructureUpdate update) {
         deleteOldExternalPaths(update);

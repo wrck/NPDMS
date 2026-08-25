@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectWorkspaceRespVO;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskAssignmentService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
 import org.junit.jupiter.api.AfterEach;
@@ -78,6 +79,13 @@ class ProjectTaskWorkbenchControllerTest {
     }
 
     @Test
+    void shouldExposeTaskSevenLifecycleRoute() {
+        assertRoute("actTask", PostMapping.class,
+                "/project-tasks/{id}/actions/{action}",
+                "@ss.hasPermission('pms:project-task:execute') or @ss.hasPermission('pms:project-task:complete')");
+    }
+
+    @Test
     void singleTenantHttpQueryEstablishesTrustedTenantZeroForCallOnly() throws Exception {
         ProjectTaskQueryService queryService = mock(ProjectTaskQueryService.class);
         Environment environment = mock(Environment.class);
@@ -90,7 +98,7 @@ class ProjectTaskWorkbenchControllerTest {
         });
         MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(
                 queryService, mock(ProjectTaskCommandService.class),
-                mock(ProjectTaskAssignmentService.class), environment)).build();
+                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class), environment)).build();
 
         mvc.perform(get("/api/v1/pms/projects/100/workspace"))
                 .andExpect(status().isOk());
@@ -104,7 +112,7 @@ class ProjectTaskWorkbenchControllerTest {
         Environment environment = new MockEnvironment();
         MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(
                 queryService, mock(ProjectTaskCommandService.class),
-                mock(ProjectTaskAssignmentService.class), environment)).build();
+                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class), environment)).build();
 
         Exception error = assertThrows(Exception.class,
                 () -> mvc.perform(get("/api/v1/pms/projects/100/workspace")));
@@ -128,6 +136,7 @@ class ProjectTaskWorkbenchControllerTest {
         else if (annotationType == PatchMapping.class) values = method.getAnnotation(PatchMapping.class).value();
         else values = method.getAnnotation(GetMapping.class).value();
         assertArrayEquals(new String[]{route}, values);
-        assertEquals("@ss.hasPermission('" + permission + "')", method.getAnnotation(PreAuthorize.class).value());
+        String expected = permission.startsWith("@ss.") ? permission : "@ss.hasPermission('" + permission + "')";
+        assertEquals(expected, method.getAnnotation(PreAuthorize.class).value());
     }
 }

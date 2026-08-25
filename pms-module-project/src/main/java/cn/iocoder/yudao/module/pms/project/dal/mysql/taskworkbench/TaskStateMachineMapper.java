@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskSta
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateMachinePublishUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateMachineRevisionLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateMachineTenantQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -18,6 +19,10 @@ import java.util.List;
 public interface TaskStateMachineMapper {
 
     int insertDraft(@Param("revision") TaskStateMachineRevisionDO revision);
+
+    int insertTransition(@Param("transition") TaskStateTransitionDO transition);
+
+    TaskStateMachineRevisionDO selectLatestRevisionForUpdate(@Param("query") TaskStateMachineTenantQuery query);
 
     TaskStateMachineRevisionDO selectCurrentPublished(@Param("query") TaskStateMachinePublishedQuery query);
 

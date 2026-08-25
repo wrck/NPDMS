@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.Pro
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskAssigneeCandidateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskAssigneeCandidateRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskAssignReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskActionReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskDependencyReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskMoveReqVO;
@@ -20,18 +21,21 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.Pro
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskAssignmentService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AddDependencyCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AssignTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.CreateTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.MoveTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.UpdateTaskCommand;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
@@ -70,6 +74,7 @@ public class ProjectTaskWorkbenchController {
     private final ProjectTaskQueryService queryService;
     private final ProjectTaskCommandService commandService;
     private final ProjectTaskAssignmentService assignmentService;
+    private final ProjectTaskLifecycleService lifecycleService;
     private final Environment environment;
 
     @GetMapping("/projects/{id}/workspace")
@@ -181,6 +186,24 @@ public class ProjectTaskWorkbenchController {
         return withTrustedTenant(() -> success(commandService.addDependency(new AddDependencyCommand(taskId,
                 expectedVersion, request.getPredecessorTaskId(), request.getDependencyTypeCode(), idempotencyKey,
                 digest(taskId + ":" + expectedVersion + ":" + JsonUtils.toJsonString(request))), actor())));
+    }
+
+    @PostMapping("/project-tasks/{id}/actions/{action}")
+    @Operation(summary = "执行TASK_NATIVE任务动作")
+    @PreAuthorize("@ss.hasPermission('pms:project-task:execute') or "
+            + "@ss.hasPermission('pms:project-task:complete')")
+    public CommonResult<TaskCommandResult> actTask(
+            @PathVariable("id") Long taskId,
+            @PathVariable("action") @Pattern(regexp = "start|submit|complete|cancel") String action,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") String ifMatch,
+            @Valid @RequestBody ProjectTaskActionReqVO request) {
+        int expectedVersion = parseIfMatch(ifMatch);
+        return withTrustedTenant(() -> success(lifecycleService.act(new TaskActionCommand(taskId,
+                expectedVersion, action, request.getReason(), request.getExecutionContractId(),
+                request.getContractVersion(), request.getFactObjectKey(), request.getFactVersion(),
+                idempotencyKey, digest(taskId + ":" + expectedVersion + ":" + action + ":"
+                + JsonUtils.toJsonString(request))), actor())));
     }
 
     private TaskWorkbenchActor actor() {

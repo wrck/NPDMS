@@ -145,6 +145,19 @@
           AND task.deleted = b'0'
     </select>
 
+    <select id="selectListForGovernanceGuard"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+          AND task.deleted = b'0'
+        ORDER BY task.project_id, task.id
+    </select>
+
     <sql id="taskVisibilityPredicate">
         <choose>
             <when test="query.fullProjectAccess">
@@ -387,6 +400,61 @@
             version = version + 1,
             updater = #{query.updater},
             update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.projectTaskId}
+          AND version = #{query.expectedVersion}
+          AND status = #{query.expectedStatus}
+          AND deleted = b'0'
+    </update>
+
+    <select id="countNonTerminalDescendants" resultType="long">
+        SELECT COUNT(*)
+        FROM proj_task_tree_path path
+        JOIN proj_project_task task
+          ON task.tenant_id = path.tenant_id
+         AND task.project_id = path.project_id
+         AND task.id = path.descendant_task_id
+         AND task.deleted = b'0'
+        WHERE path.tenant_id = #{query.tenantId}
+          AND path.project_id = #{query.projectId}
+          AND path.ancestor_task_id = #{query.projectTaskId}
+          AND path.distance &gt; 0
+          AND path.deleted = b'0'
+          AND (task.status IS NULL OR task.status NOT IN ('DONE', 'CLOSED'))
+    </select>
+
+    <select id="countNonTerminalPredecessors" resultType="long">
+        SELECT COUNT(*)
+        FROM proj_task_dependency dependency
+        LEFT JOIN proj_project_task predecessor
+          ON predecessor.tenant_id = dependency.tenant_id
+         AND predecessor.project_id = dependency.project_id
+         AND predecessor.id = dependency.predecessor_task_id
+         AND predecessor.deleted = b'0'
+        WHERE dependency.tenant_id = #{query.tenantId}
+          AND dependency.project_id = #{query.projectId}
+          AND dependency.successor_task_id = #{query.projectTaskId}
+          AND dependency.deleted = b'0'
+          AND (predecessor.id IS NULL OR predecessor.status IS NULL
+               OR predecessor.status NOT IN ('DONE', 'CLOSED'))
+    </select>
+
+    <update id="updateLifecycleIfMatch">
+        UPDATE proj_project_task
+        SET status = #{query.nextStatus},
+        <if test="query.initializeActualStartTime">
+            actual_start_time = COALESCE(actual_start_time, #{query.occurredAt}),
+        </if>
+        <if test="query.setActualEndTime">
+            actual_end_time = #{query.occurredAt},
+        </if>
+        <if test="query.progress != null">
+            progress = #{query.progress},
+        </if>
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = #{query.occurredAt}
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
           AND id = #{query.projectTaskId}

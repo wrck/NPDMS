@@ -7,6 +7,9 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentCommandQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentStateUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskCompletionFactsQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskLifecycleStateUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectTaskGovernanceGuardQuery;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -127,6 +131,38 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
                 0L, projectId, taskId, 0, "PENDING_ASSIGN", "PENDING_START", "fproj007-task6-test")));
         assertNull(transactionTemplate.execute(status -> taskMapper.selectTaskForAssignmentForUpdate(
                 new TaskAssignmentCommandQuery(1L, projectId, taskId))));
+    }
+
+    @Test
+    void shouldPersistLifecycleTimesProgressAndExposeCurrentGovernanceTruth() {
+        long taskId = taskIds.getFirst();
+        LocalDateTime startedAt = LocalDateTime.now().withNano(123_000_000);
+        assertEquals(1, taskMapper.assignTaskIfMatch(new TaskAssignmentStateUpdate(
+                0L, projectId, taskId, 0, "PENDING_ASSIGN", "PENDING_START", "fproj007-task7-test")));
+        assertEquals(1, taskMapper.updateLifecycleIfMatch(new TaskLifecycleStateUpdate(
+                0L, projectId, taskId, 1, "PENDING_START", "IN_PROGRESS",
+                true, false, null, startedAt, "fproj007-task7-test")));
+        assertEquals(1, taskMapper.updateLifecycleIfMatch(new TaskLifecycleStateUpdate(
+                0L, projectId, taskId, 2, "IN_PROGRESS", "PENDING_ACCEPT",
+                false, false, 99, startedAt.plusMinutes(1), "fproj007-task7-test")));
+        LocalDateTime endedAt = startedAt.plusHours(1);
+        assertEquals(1, taskMapper.updateLifecycleIfMatch(new TaskLifecycleStateUpdate(
+                0L, projectId, taskId, 3, "PENDING_ACCEPT", "CLOSED",
+                false, true, null, endedAt, "fproj007-task7-test")));
+
+        assertEquals(startedAt, jdbcTemplate.queryForObject(
+                "SELECT actual_start_time FROM proj_project_task WHERE id=?", LocalDateTime.class, taskId));
+        assertEquals(endedAt, jdbcTemplate.queryForObject(
+                "SELECT actual_end_time FROM proj_project_task WHERE id=?", LocalDateTime.class, taskId));
+        assertEquals(99, jdbcTemplate.queryForObject(
+                "SELECT progress FROM proj_project_task WHERE id=?", Integer.class, taskId));
+        TaskCompletionFactsQuery facts = new TaskCompletionFactsQuery(0L, projectId, taskId);
+        assertEquals(0L, taskMapper.countNonTerminalDescendants(facts));
+        assertEquals(0L, taskMapper.countNonTerminalPredecessors(facts));
+        assertEquals("CLOSED", taskMapper.selectListForGovernanceGuard(
+                new ProjectTaskGovernanceGuardQuery(0L, Set.of(projectId))).getFirst().getStatus());
+        assertEquals(0, taskMapper.selectListForGovernanceGuard(
+                new ProjectTaskGovernanceGuardQuery(1L, Set.of(projectId))).size());
     }
 
     private static ProjectTaskAssignmentDO assignment(long taskId, long assigneeId,
