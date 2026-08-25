@@ -22,6 +22,15 @@
          b'0', #{tenantId})
     </insert>
 
+    <select id="selectNextSnapshotNo" resultType="int">
+        SELECT COALESCE(MAX(snapshot_no), 0) + 1
+        FROM proj_project_stage_snapshot
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND stage_code = #{query.stageCode}
+          AND deleted = b'0'
+    </select>
+
     <sql id="governanceHistoryWhere">
         tenant_id = #{query.tenantId}
         AND project_id = #{query.projectId}

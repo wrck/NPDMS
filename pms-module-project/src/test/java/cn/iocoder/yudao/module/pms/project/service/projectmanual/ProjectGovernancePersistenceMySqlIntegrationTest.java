@@ -148,6 +148,66 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
     }
 
     @Test
+    void concurrentRollbackCasHasOneWinner() throws Exception {
+        var project = applicationService.create(newCommand(), newActor());
+        int version = currentVersion(project.id());
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> inTenantTransaction(() -> {
+                await(start);
+                return projectMasterMapper.updateGovernanceStateIfMatch(
+                        new ProjectGovernanceStateUpdate(0L, project.id(), version, "ACTIVE",
+                                "S0", "ACTIVE", "UNASSIGNED", "fproj006-it"));
+            }));
+            var second = executor.submit(() -> inTenantTransaction(() -> {
+                await(start);
+                return projectMasterMapper.updateGovernanceStateIfMatch(
+                        new ProjectGovernanceStateUpdate(0L, project.id(), version, "ACTIVE",
+                                "S0", "ACTIVE", "UNASSIGNED", "fproj006-it"));
+            }));
+
+            start.countDown();
+            assertEquals(java.util.List.of(0, 1),
+                    java.util.List.of(first.get(), second.get()).stream().sorted().toList());
+        }
+        assertEquals(version + 1, currentVersion(project.id()));
+        assertEquals("S0", jdbcTemplate.queryForObject(
+                "SELECT current_stage FROM proj_project WHERE id=?", String.class, project.id()));
+        assertEquals("UNASSIGNED", jdbcTemplate.queryForObject(
+                "SELECT assignment_status FROM proj_project WHERE id=?", String.class, project.id()));
+    }
+
+    @Test
+    void failedRollbackTransactionLeavesNoSuccessfulSideEffects() {
+        var project = applicationService.create(newCommand(), newActor());
+        int version = currentVersion(project.id());
+        LocalDateTime operatedAt = LocalDateTime.now().withNano(0);
+        insertMember(project.id(), 9_920_071L, "SERVICE_MANAGER_L1", "PRIMARY", operatedAt);
+        insertMember(project.id(), 9_920_072L, "SERVICE_MANAGER_L2", "COLLABORATOR", operatedAt);
+
+        assertThrows(IllegalStateException.class, () -> inTenantTransaction(() -> {
+            assertEquals(1, projectMasterMapper.updateGovernanceStateIfMatch(
+                    new ProjectGovernanceStateUpdate(0L, project.id(), version, "ACTIVE",
+                            "S0", "ACTIVE", "UNASSIGNED", "fproj006-it")));
+            assertEquals(2, memberAssignmentMapper.closeEffectiveServiceManagerAssignments(
+                    new ProjectServiceManagerIntervalClose(0L, project.id(), operatedAt, "fproj006-it")));
+            snapshotRepository.append(rollbackSnapshot(project.id(), 1, operatedAt));
+            throw new IllegalStateException("force rollback after all business writes");
+        }));
+
+        assertEquals(version, currentVersion(project.id()));
+        assertEquals(2L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id=? "
+                        + "AND member_role IN ('SERVICE_MANAGER_L1','SERVICE_MANAGER_L2') "
+                        + "AND effective_to IS NULL",
+                Long.class, project.id()));
+        assertEquals(0L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_project_stage_snapshot WHERE tenant_id=0 AND project_id=? "
+                        + "AND operation_type='ROLLBACK'",
+                Long.class, project.id()));
+    }
+
+    @Test
     void appendRejectsSnapshotFromAnotherTenantWithoutSideEffects() {
         var project = applicationService.create(newCommand(), newActor());
         ProjectStageSnapshotDO close = exceptionCloseSnapshot(
@@ -189,6 +249,17 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
                                                    Long relatedSnapshotId, LocalDateTime operatedAt) {
         ProjectStageSnapshotDO snapshot = commonSnapshot(projectId, snapshotNo, "REOPEN", operatedAt);
         snapshot.setRelatedSnapshotId(relatedSnapshotId);
+        return snapshot;
+    }
+
+    private ProjectStageSnapshotDO rollbackSnapshot(Long projectId, int snapshotNo,
+                                                     LocalDateTime operatedAt) {
+        ProjectStageSnapshotDO snapshot = commonSnapshot(projectId, snapshotNo, "ROLLBACK", operatedAt);
+        snapshot.setAfterLifecycleStatus("ACTIVE");
+        snapshot.setReassignmentRequirement("重新匹配属地服务经理");
+        snapshot.setGuardSnapshotJson("{}");
+        snapshot.setTreeVersion(1L);
+        snapshot.setProviderFactsJson("{}");
         return snapshot;
     }
 

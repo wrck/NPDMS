@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectExceptionCloseSnapshotQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectGovernanceHistoryPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectStageSnapshotSequenceQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,6 +15,8 @@ public interface ProjectStageSnapshotMapper {
 
     /** 仅供Repository在动作规则校验后追加；本Mapper不暴露更新或删除能力。 */
     int insertAppendOnly(ProjectStageSnapshotDO snapshot);
+
+    Integer selectNextSnapshotNo(@Param("query") ProjectStageSnapshotSequenceQuery query);
 
     default PageResult<ProjectStageSnapshotDO> selectGovernanceHistoryPage(
             ProjectGovernanceHistoryPageQuery query) {

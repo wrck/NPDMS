@@ -191,5 +191,11 @@ public interface ErrorCodeConstants {
             "项目治理守卫令牌无效");
     ErrorCode PROJECT_GOVERNANCE_VERSION_CONFLICT = new ErrorCode(1_014_024_040,
             "项目治理事实版本冲突，请重新检查守卫");
+    ErrorCode PROJECT_GOVERNANCE_ACTION_FORBIDDEN = new ErrorCode(1_014_024_041,
+            "无权执行该项目治理动作");
+    ErrorCode PROJECT_GOVERNANCE_STATE_INVALID = new ErrorCode(1_014_024_042,
+            "项目当前状态不允许执行该治理动作");
+    ErrorCode PROJECT_GOVERNANCE_PERSISTENCE_FAILED = new ErrorCode(1_014_024_043,
+            "项目治理动作写入失败");
 
 }
