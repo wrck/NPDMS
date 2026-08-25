@@ -14,12 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
-/** 服务经理指派事件的Outbox投递状态管理。 */
+/** 受控业务事件集合的Outbox投递状态管理。 */
 @Service
 public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi {
 
-    static final String SUPPORTED_EVENT_TYPE = "ProjectServiceManagerAssigned";
+    static final Set<String> SUPPORTED_EVENT_TYPES = Set.of(
+            "ProjectServiceManagerAssigned", "TaskAssigned", "TaskCompleted");
     static final int MAX_BATCH_SIZE = 100;
 
     @Resource
@@ -28,13 +30,15 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
     @Override
     @Transactional
     public List<PlatformOutboxMessageDTO> claimDue(PlatformOutboxClaimQuery query) {
-        if (query == null || query.dueAt() == null || query.limit() <= 0 || query.limit() > MAX_BATCH_SIZE) {
+        if (query == null || query.dueAt() == null || query.limit() <= 0 || query.limit() > MAX_BATCH_SIZE
+                || query.eventTypes() == null || query.eventTypes().isEmpty()
+                || !SUPPORTED_EVENT_TYPES.containsAll(query.eventTypes())) {
             throw new IllegalArgumentException("Outbox领取条件不完整或批次超过上限");
         }
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         DueOutboxListQuery dalQuery = DueOutboxListQuery.builder()
                 .tenantId(tenantId)
-                .eventType(SUPPORTED_EVENT_TYPE)
+                .eventTypes(query.eventTypes())
                 .dueAt(query.dueAt())
                 .limit(query.limit())
                 .build();
@@ -48,8 +52,10 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
     @Transactional
     public void markDelivered(String eventId, int expectedRetryCount) {
         validateCas(eventId, expectedRetryCount);
-        mapper.markDeliveredIfPending(new OutboxDeliveryUpdateQuery(
-                TenantContextHolder.getRequiredTenantId(), eventId, expectedRetryCount));
+        if (mapper.markDeliveredIfPending(new OutboxDeliveryUpdateQuery(
+                TenantContextHolder.getRequiredTenantId(), eventId, expectedRetryCount)) != 1) {
+            throw new IllegalStateException("OUTBOX_DELIVERY_CAS_CONFLICT");
+        }
     }
 
     @Override
@@ -59,8 +65,10 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
         if (nextRetryTime == null) {
             throw new IllegalArgumentException("Outbox下次重试时间不能为空");
         }
-        mapper.scheduleRetryIfPending(new OutboxRetryUpdateQuery(
-                TenantContextHolder.getRequiredTenantId(), eventId, expectedRetryCount, nextRetryTime));
+        if (mapper.scheduleRetryIfPending(new OutboxRetryUpdateQuery(
+                TenantContextHolder.getRequiredTenantId(), eventId, expectedRetryCount, nextRetryTime)) != 1) {
+            throw new IllegalStateException("OUTBOX_RETRY_CAS_CONFLICT");
+        }
     }
 
     private static void validateCas(String eventId, int expectedRetryCount) {

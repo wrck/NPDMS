@@ -57,4 +57,8 @@ public final class ProjectTaskCommands {
                                        Long predecessorTaskId, String dependencyTypeCode,
                                        String idempotencyKey, String requestDigest) {
     }
+
+    public record AssignTaskCommand(Long taskId, Integer expectedTaskVersion, Long assigneeUserId,
+                                    String reason, String idempotencyKey, String requestDigest) {
+    }
 }

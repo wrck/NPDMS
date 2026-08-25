@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /** 消费服务经理指派Outbox并投递站内信。 */
 @Component
@@ -36,7 +37,7 @@ public class ProjectServiceManagerNotificationJob implements JobHandler {
     public String execute(String param) {
         LocalDateTime dueAt = LocalDateTime.now();
         List<PlatformOutboxMessageDTO> messages = outboxDeliveryApi.claimDue(
-                new PlatformOutboxClaimQuery(dueAt, BATCH_SIZE));
+                new PlatformOutboxClaimQuery(dueAt, BATCH_SIZE, Set.of("ProjectServiceManagerAssigned")));
         int delivered = 0;
         int retried = 0;
         for (PlatformOutboxMessageDTO message : messages) {

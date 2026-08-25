@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -54,7 +55,8 @@ class PlatformOutboxDeliveryApiImplTest {
         row.setOccurredAt(dueAt.minusMinutes(1));
         when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of(row));
 
-        var result = service.claimDue(new PlatformOutboxClaimQuery(dueAt, 20));
+        var result = service.claimDue(new PlatformOutboxClaimQuery(
+                dueAt, 20, Set.of("ProjectServiceManagerAssigned", "TaskAssigned")));
 
         assertEquals(1, result.size());
         assertEquals("evt-1", result.getFirst().eventId());
@@ -62,13 +64,16 @@ class PlatformOutboxDeliveryApiImplTest {
         ArgumentCaptor<DueOutboxListQuery> captor = ArgumentCaptor.forClass(DueOutboxListQuery.class);
         verify(mapper).selectDueForUpdate(captor.capture());
         assertEquals(7L, captor.getValue().tenantId());
-        assertEquals("ProjectServiceManagerAssigned", captor.getValue().eventType());
+        assertEquals(Set.of("ProjectServiceManagerAssigned", "TaskAssigned"),
+                captor.getValue().eventTypes());
         assertEquals(20, captor.getValue().limit());
     }
 
     @Test
     void completionAndRetryUseTenantRetryCountCas() {
         LocalDateTime next = LocalDateTime.of(2026, 8, 25, 9, 5);
+        when(mapper.markDeliveredIfPending(new OutboxDeliveryUpdateQuery(7L, "evt-2", 3))).thenReturn(1);
+        when(mapper.scheduleRetryIfPending(new OutboxRetryUpdateQuery(7L, "evt-3", 4, next))).thenReturn(1);
 
         service.markDelivered("evt-2", 3);
         service.scheduleRetry("evt-3", 4, next);
@@ -78,10 +83,23 @@ class PlatformOutboxDeliveryApiImplTest {
     }
 
     @Test
+    void rejectsStaleDeliveryAndRetryCas() {
+        LocalDateTime next = LocalDateTime.of(2026, 8, 25, 9, 5);
+
+        assertThrows(IllegalStateException.class, () -> service.markDelivered("evt-stale", 1));
+        assertThrows(IllegalStateException.class, () -> service.scheduleRetry("evt-stale", 1, next));
+    }
+
+    @Test
     void rejectsUnboundedClaimAndInvalidCas() {
         LocalDateTime now = LocalDateTime.of(2026, 8, 25, 9, 0);
         assertThrows(IllegalArgumentException.class,
-                () -> service.claimDue(new PlatformOutboxClaimQuery(now, 101)));
+                () -> service.claimDue(new PlatformOutboxClaimQuery(
+                        now, 101, Set.of("ProjectServiceManagerAssigned"))));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.claimDue(new PlatformOutboxClaimQuery(now, 10, Set.of())));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.claimDue(new PlatformOutboxClaimQuery(now, 10, Set.of("UNKNOWN"))));
         assertThrows(IllegalArgumentException.class, () -> service.markDelivered("", 0));
         assertThrows(IllegalArgumentException.class,
                 () -> service.scheduleRetry("evt-1", -1, now));

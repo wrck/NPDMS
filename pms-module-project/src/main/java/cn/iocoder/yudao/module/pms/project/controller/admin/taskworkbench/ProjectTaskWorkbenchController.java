@@ -1,10 +1,14 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskDetailRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskAssigneeCandidateReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskAssigneeCandidateRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskAssignReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskDependencyReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskMoveReqVO;
@@ -14,9 +18,11 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.Pro
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskWorkbenchRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectWorkspaceRespVO;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskAssignmentService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AddDependencyCommand;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AssignTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.CreateTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.MoveTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.UpdateTaskCommand;
@@ -63,6 +69,7 @@ public class ProjectTaskWorkbenchController {
 
     private final ProjectTaskQueryService queryService;
     private final ProjectTaskCommandService commandService;
+    private final ProjectTaskAssignmentService assignmentService;
     private final Environment environment;
 
     @GetMapping("/projects/{id}/workspace")
@@ -93,6 +100,29 @@ public class ProjectTaskWorkbenchController {
     @PreAuthorize("@ss.hasPermission('pms:project-task:query')")
     public CommonResult<ProjectTaskWorkbenchRespVO> getWorkbench(@PathVariable("id") Long taskId) {
         return withTrustedTenant(() -> success(queryService.getWorkbench(taskId, actor())));
+    }
+
+    @GetMapping("/project-tasks/{id}/assignee-candidates")
+    @Operation(summary = "分页查询项目任务负责人候选")
+    @PreAuthorize("@ss.hasPermission('pms:project-task:assign')")
+    public CommonResult<PageResult<ProjectTaskAssigneeCandidateRespVO>>
+            getAssigneeCandidates(@PathVariable("id") Long taskId,
+                                  @Valid @ModelAttribute ProjectTaskAssigneeCandidateReqVO request) {
+        return withTrustedTenant(() -> success(assignmentService.getAssigneeCandidates(taskId, request, actor())));
+    }
+
+    @PostMapping("/project-tasks/{id}/actions/assign")
+    @Operation(summary = "指派或转派项目任务负责人")
+    @PreAuthorize("@ss.hasPermission('pms:project-task:assign')")
+    public CommonResult<TaskCommandResult> assignTask(
+            @PathVariable("id") Long taskId,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") String ifMatch,
+            @Valid @RequestBody ProjectTaskAssignReqVO request) {
+        int expectedVersion = parseIfMatch(ifMatch);
+        return withTrustedTenant(() -> success(assignmentService.assign(new AssignTaskCommand(taskId,
+                expectedVersion, request.getAssigneeUserId(), request.getReason(), idempotencyKey,
+                digest(taskId + ":" + expectedVersion + ":" + JsonUtils.toJsonString(request))), actor())));
     }
 
     @PostMapping("/projects/{id}/tasks")

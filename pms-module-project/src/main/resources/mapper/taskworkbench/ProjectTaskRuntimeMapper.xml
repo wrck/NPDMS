@@ -255,6 +255,17 @@
         FOR UPDATE
     </select>
 
+    <select id="selectTaskForAssignmentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.id = #{query.projectTaskId}
+          AND task.deleted = b'0'
+        FOR UPDATE
+    </select>
+
     <select id="selectSourceTaskForUpdate"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
         SELECT *
@@ -367,6 +378,20 @@
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="assignTaskIfMatch">
+        UPDATE proj_project_task
+        SET status = #{query.nextStatus},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.projectTaskId}
+          AND version = #{query.expectedVersion}
+          AND status = #{query.expectedStatus}
           AND deleted = b'0'
     </update>
 

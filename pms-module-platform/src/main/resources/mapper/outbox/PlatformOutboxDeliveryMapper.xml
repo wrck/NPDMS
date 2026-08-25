@@ -10,7 +10,10 @@
                creator, create_time, updater, update_time
         FROM plt_outbox_event
         WHERE tenant_id = #{query.tenantId}
-          AND event_type = #{query.eventType}
+          AND event_type IN
+        <foreach collection="query.eventTypes" item="eventType" open="(" separator="," close=")">
+            #{eventType}
+        </foreach>
           AND status = 'PENDING'
           AND (next_retry_time IS NULL OR next_retry_time &lt;= #{query.dueAt})
         ORDER BY COALESCE(next_retry_time, occurred_at), id

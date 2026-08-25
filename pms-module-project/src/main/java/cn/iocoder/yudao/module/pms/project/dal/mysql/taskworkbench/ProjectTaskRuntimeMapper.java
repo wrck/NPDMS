@@ -11,6 +11,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentCommandQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVersionUpdate;
@@ -46,6 +48,8 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     List<ProjectTaskInstanceDO> selectAncestorQuery(@Param("query") TaskAncestorBatchQuery query);
 
     ProjectTaskInstanceDO selectTask(@Param("query") TaskByIdQuery query);
+
+    ProjectTaskInstanceDO selectTaskForAssignmentForUpdate(@Param("query") TaskAssignmentCommandQuery query);
 
     List<Long> selectVisibleTaskIds(@Param("query") TaskVisibilityQuery query);
 
@@ -85,6 +89,8 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     int updateBasicIfMatch(@Param("query") ProjectTaskBasicUpdate update);
 
     int incrementTaskVersionIfMatch(@Param("query") TaskVersionUpdate update);
+
+    int assignTaskIfMatch(@Param("query") TaskAssignmentStateUpdate update);
 
     default void rebuildMovedSubtreePaths(ProjectTaskStructureUpdate update) {
         deleteOldExternalPaths(update);

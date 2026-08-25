@@ -3,7 +3,10 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskCompletionEvaluationDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentCloseUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentCommandQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentStateUpdate;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,8 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
 
     @Resource
     private ProjectTaskAssignmentMapper assignmentMapper;
+    @Resource
+    private ProjectTaskRuntimeMapper taskMapper;
     @Resource
     private ProjectTaskCompletionEvaluationMapper evaluationMapper;
 
@@ -97,6 +102,31 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
                 "SELECT COUNT(*) FROM proj_project_task_completion_evaluation "
                         + "WHERE tenant_id=0 AND project_task_id=? AND idempotency_key='complete-once'",
                 Long.class, taskId));
+    }
+
+    @Test
+    void shouldLockAndAssignTaskWithVersionAndStatusCas() {
+        long taskId = taskIds.getFirst();
+        transactionTemplate.executeWithoutResult(status -> {
+            assertEquals(projectId, taskMapper.selectProjectForCommandForUpdate(
+                    new ProjectTaskProjectLockQuery(0L, projectId)).getId());
+            assertEquals(taskId, taskMapper.selectTaskForAssignmentForUpdate(
+                    new TaskAssignmentCommandQuery(0L, projectId, taskId)).getId());
+            assertEquals(1, taskMapper.assignTaskIfMatch(new TaskAssignmentStateUpdate(
+                    0L, projectId, taskId, 0, "PENDING_ASSIGN", "PENDING_START", "fproj007-task6-test")));
+            ProjectTaskAssignmentDO assignment = assignment(taskId, 1001L, LocalDateTime.now(), "首次指派");
+            assignment.setId(taskId + 20);
+            assertEquals(1, assignmentMapper.insertAssignment(assignment));
+        });
+
+        assertEquals("PENDING_START", jdbcTemplate.queryForObject(
+                "SELECT status FROM proj_project_task WHERE id=?", String.class, taskId));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT version FROM proj_project_task WHERE id=?", Integer.class, taskId));
+        assertEquals(0, taskMapper.assignTaskIfMatch(new TaskAssignmentStateUpdate(
+                0L, projectId, taskId, 0, "PENDING_ASSIGN", "PENDING_START", "fproj007-task6-test")));
+        assertNull(transactionTemplate.execute(status -> taskMapper.selectTaskForAssignmentForUpdate(
+                new TaskAssignmentCommandQuery(1L, projectId, taskId))));
     }
 
     private static ProjectTaskAssignmentDO assignment(long taskId, long assigneeId,

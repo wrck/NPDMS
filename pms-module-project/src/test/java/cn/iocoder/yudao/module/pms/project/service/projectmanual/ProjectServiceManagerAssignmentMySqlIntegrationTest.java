@@ -111,15 +111,18 @@ class ProjectServiceManagerAssignmentMySqlIntegrationTest
                 "{}", occurredAt);
 
         assertEquals(1, outboxDeliveryApi.claimDue(
-                new PlatformOutboxClaimQuery(LocalDateTime.now(), 10)).stream()
+                new PlatformOutboxClaimQuery(LocalDateTime.now(), 10,
+                        java.util.Set.of("ProjectServiceManagerAssigned"))).stream()
                 .filter(message -> eventId.equals(message.eventId())).count());
         LocalDateTime nextRetryTime = LocalDateTime.now().plusMinutes(5).withNano(0);
         outboxDeliveryApi.scheduleRetry(eventId, 0, nextRetryTime);
         assertEquals(0, outboxDeliveryApi.claimDue(
-                new PlatformOutboxClaimQuery(nextRetryTime.minusSeconds(1), 10)).stream()
+                new PlatformOutboxClaimQuery(nextRetryTime.minusSeconds(1), 10,
+                        java.util.Set.of("ProjectServiceManagerAssigned"))).stream()
                 .filter(message -> eventId.equals(message.eventId())).count());
         assertEquals(1, outboxDeliveryApi.claimDue(
-                new PlatformOutboxClaimQuery(nextRetryTime, 10)).stream()
+                new PlatformOutboxClaimQuery(nextRetryTime, 10,
+                        java.util.Set.of("ProjectServiceManagerAssigned"))).stream()
                 .filter(message -> eventId.equals(message.eventId())).count());
 
         outboxDeliveryApi.markDelivered(eventId, 1);
@@ -127,7 +130,8 @@ class ProjectServiceManagerAssignmentMySqlIntegrationTest
         assertEquals("DELIVERED", jdbcTemplate.queryForObject(
                 "SELECT status FROM plt_outbox_event WHERE event_id=?", String.class, eventId));
         assertEquals(0, outboxDeliveryApi.claimDue(
-                new PlatformOutboxClaimQuery(nextRetryTime.plusMinutes(1), 10)).stream()
+                new PlatformOutboxClaimQuery(nextRetryTime.plusMinutes(1), 10,
+                        java.util.Set.of("ProjectServiceManagerAssigned"))).stream()
                 .filter(message -> eventId.equals(message.eventId())).count());
     }
 
