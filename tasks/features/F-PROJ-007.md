@@ -6,7 +6,7 @@
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
 > 当前阻断：`无`
-> 当前任务：`Task 6 提供候选责任人与指派命令`
+> 当前任务：`Task 7 实现TASK_NATIVE动作命令、完成判定和状态机管理`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
@@ -27,5 +27,6 @@
 - [x] Task 3 Implementation Done（独立裁决GO；`8c2f0f1`）
 - [x] Task 4 Implementation Done（独立裁决GO；`d5892ae`、`43b556c`）
 - [x] Task 5 Implementation Done（独立裁决GO；`25071a2`、`bba329e`）
+- [x] Task 6 Implementation Done（独立裁决GO；`26cce6b`）
 
-> 检查点（2026-08-26）：Task 5独立裁决GO，人工任务结构命令、真实部分更新、专用成功/拒绝审计、场景化版本CAS及应用服务级真实MySQL事务/幂等回归闭环。聚焦测试23/23、Mapper真实MySQL 9/9、应用服务真实MySQL 3/3 PASS。已推进Task 6，待按锁定计划实施候选责任人与指派命令。
+> 检查点（2026-08-26）：Task 6独立裁决GO，候选分页、指派/转派时态责任区间、冻结状态机扩展中间态、任务版本CAS、审计、TaskAssigned及封闭Outbox领取闭环。聚焦测试23/23、25模块Reactor BUILD SUCCESS、真实MySQL 3/3 PASS。已推进Task 7，待按锁定计划实现TASK_NATIVE动作命令、完成判定和状态机管理。
