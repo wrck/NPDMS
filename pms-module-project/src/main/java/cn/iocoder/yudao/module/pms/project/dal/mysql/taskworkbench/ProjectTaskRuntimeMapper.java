@@ -33,7 +33,9 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
                 ? null : selectTargetParentForUpdate(query);
         List<ProjectTaskInstanceDO> subtree = source == null
                 ? List.of() : selectMovedSubtreeForUpdate(query);
-        boolean targetInsideSubtree = target != null && existsTargetInsideMovedSubtree(query) > 0;
+        boolean targetInsideSubtree = target != null && source != null
+                && (target.getId().equals(source.getId())
+                || subtree.stream().anyMatch(task -> target.getId().equals(task.getId())));
         return new ProjectTaskMoveLocks(project, source, target, subtree, targetInsideSubtree);
     }
 
@@ -44,8 +46,6 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     ProjectTaskInstanceDO selectTargetParentForUpdate(@Param("query") ProjectTaskMoveLockQuery query);
 
     List<ProjectTaskInstanceDO> selectMovedSubtreeForUpdate(@Param("query") ProjectTaskMoveLockQuery query);
-
-    int existsTargetInsideMovedSubtree(@Param("query") ProjectTaskMoveLockQuery query);
 
     int updateStructureIfMatch(@Param("query") ProjectTaskStructureUpdate update);
 

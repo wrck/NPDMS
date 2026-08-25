@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -172,6 +174,51 @@ class ProjectTaskRuntimeMapperTest {
         assertEquals(firstTaskId + DEPTH - 1, locks.targetParentTask().getId());
         assertEquals(DEPTH - 2, locks.movedSubtree().size());
         assertTrue(locks.targetInsideMovedSubtree());
+    }
+
+    @Test
+    void shouldDetectCycleFromLockedCurrentFactsAfterRepeatableReadSnapshotBecomesStale() {
+        long sourceTaskId = firstTaskId + 1;
+        ProjectTaskRuntimeMapper.ProjectTaskMoveLocks locks;
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            locks = transactionTemplate.execute(status -> {
+                assertEquals(0L, jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM proj_task_tree_path WHERE tenant_id=0 AND project_id=? "
+                                + "AND ancestor_task_id=? AND descendant_task_id=?",
+                        Long.class, projectId, sourceTaskId, secondRootTaskId));
+
+                var concurrentMove = executor.submit(() -> transactionTemplate.executeWithoutResult(innerStatus -> {
+                    ProjectTaskStructureUpdate update = new ProjectTaskStructureUpdate(
+                            0L, projectId, secondRootTaskId, sourceTaskId, 0,
+                            firstTaskId, 2, 2, "fproj007-task2-concurrent-test");
+                    assertEquals(1, mapper.updateStructureIfMatch(update));
+                    mapper.rebuildMovedSubtreePaths(update);
+                    assertEquals(1, mapper.incrementTaskTreeVersion(
+                            new ProjectTaskTreeVersionUpdate(0L, projectId, 0L,
+                                    "fproj007-task2-concurrent-test")));
+                }));
+                try {
+                    concurrentMove.get(10, TimeUnit.SECONDS);
+                } catch (Exception exception) {
+                    throw new IllegalStateException("并发树移动未完成", exception);
+                }
+                return mapper.selectMoveLocks(new ProjectTaskMoveLockQuery(
+                        0L, projectId, sourceTaskId, secondRootTaskId));
+            });
+        }
+
+        assertTrue(locks.targetInsideMovedSubtree());
+        assertTrue(ids(locks.movedSubtree()).contains(secondRootTaskId));
+        assertEquals(sourceTaskId, jdbcTemplate.queryForObject(
+                "SELECT parent_task_id FROM proj_project_task WHERE id=?", Long.class, secondRootTaskId));
+        assertEquals(firstTaskId, jdbcTemplate.queryForObject(
+                "SELECT parent_task_id FROM proj_project_task WHERE id=?", Long.class, sourceTaskId));
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_task_tree_path WHERE project_id=? "
+                        + "AND ancestor_task_id=? AND descendant_task_id=?",
+                Long.class, projectId, sourceTaskId, secondRootTaskId));
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT task_tree_version FROM proj_project WHERE id=?", Long.class, projectId));
     }
 
     @Test

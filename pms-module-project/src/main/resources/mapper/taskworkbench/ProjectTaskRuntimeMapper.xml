@@ -130,16 +130,6 @@
         FOR UPDATE
     </select>
 
-    <select id="existsTargetInsideMovedSubtree" resultType="int">
-        SELECT COUNT(*)
-        FROM proj_task_tree_path
-        WHERE tenant_id = #{query.tenantId}
-          AND project_id = #{query.projectId}
-          AND ancestor_task_id = #{query.sourceTaskId}
-          AND descendant_task_id = #{query.targetParentTaskId}
-          AND deleted = b'0'
-    </select>
-
     <update id="updateStructureIfMatch">
         UPDATE proj_project_task
         SET parent_task_id = #{query.targetParentTaskId},
