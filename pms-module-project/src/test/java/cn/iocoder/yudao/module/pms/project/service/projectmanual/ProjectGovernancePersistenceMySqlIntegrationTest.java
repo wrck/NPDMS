@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectStageSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectExceptionCloseSnapshotQuery;
@@ -8,17 +9,31 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGovernanceStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectServiceManagerIntervalClose;
+import cn.iocoder.yudao.module.pms.project.dal.repository.projectgovernance.ProjectStageSnapshotRepository;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import jakarta.annotation.Resource;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.springframework.context.annotation.Import;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
+@Import(ProjectStageSnapshotRepository.class)
 class ProjectGovernancePersistenceMySqlIntegrationTest
         extends ProjectManualCreationMySqlTestSupport {
 
@@ -28,6 +43,20 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
     private ProjectMemberAssignmentMapper memberAssignmentMapper;
     @Resource
     private ProjectStageSnapshotMapper snapshotMapper;
+    @Resource
+    private ProjectStageSnapshotRepository snapshotRepository;
+    @Resource
+    private PlatformTransactionManager transactionManager;
+
+    @BeforeEach
+    void cleanGovernanceSnapshotsBefore() {
+        cleanGovernanceSnapshots();
+    }
+
+    @AfterEach
+    void cleanGovernanceSnapshotsAfter() {
+        cleanGovernanceSnapshots();
+    }
 
     @Test
     @Transactional
@@ -55,18 +84,58 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
                         + "WHERE project_id=? AND member_role='PROJECT_MANAGER' AND effective_to IS NULL",
                 Long.class, project.id()));
 
-        ProjectStageSnapshotDO close = snapshot(project.id(), 1, "EXCEPTION_CLOSE", null, closedAt);
-        snapshotMapper.insert(close);
-        assertEquals(close.getId(), snapshotMapper.selectLatestReusableExceptionCloseForUpdate(
+        ProjectStageSnapshotDO close = exceptionCloseSnapshot(project.id(), 1, closedAt);
+        snapshotRepository.append(close);
+        assertEquals(close.getId(), snapshotRepository.selectLatestReusableExceptionCloseForUpdate(
                 new ProjectExceptionCloseSnapshotQuery(0L, project.id())).getId());
         assertEquals(1, snapshotMapper.selectGovernanceHistoryPage(
-                new ProjectGovernanceHistoryPageQuery(0L, project.id(), 0, 10)).getList().size());
+                new ProjectGovernanceHistoryPageQuery(0L, project.id(), page(1, 10))).getList().size());
 
-        snapshotMapper.insert(snapshot(project.id(), 2, "REOPEN", close.getId(), closedAt.plusSeconds(1)));
-        assertNull(snapshotMapper.selectLatestReusableExceptionCloseForUpdate(
+        snapshotRepository.append(reopenSnapshot(project.id(), 2, close.getId(), closedAt.plusSeconds(1)));
+        assertNull(snapshotRepository.selectLatestReusableExceptionCloseForUpdate(
                 new ProjectExceptionCloseSnapshotQuery(0L, project.id())));
         assertEquals(2, snapshotMapper.selectGovernanceHistoryPage(
-                new ProjectGovernanceHistoryPageQuery(0L, project.id(), 0, 10)).getList().size());
+                new ProjectGovernanceHistoryPageQuery(0L, project.id(), page(1, 10))).getList().size());
+    }
+
+    @Test
+    void concurrentReopenConsumersHaveOneWinner() throws Exception {
+        var project = applicationService.create(newCommand(), newActor());
+        LocalDateTime operatedAt = LocalDateTime.now().withNano(0);
+        ProjectStageSnapshotDO close = exceptionCloseSnapshot(project.id(), 1, operatedAt);
+        snapshotRepository.append(close);
+
+        CountDownLatch firstLocked = new CountDownLatch(1);
+        CountDownLatch releaseFirst = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> inTenantTransaction(() -> {
+                ProjectStageSnapshotDO selected = snapshotRepository.selectLatestReusableExceptionCloseForUpdate(
+                        new ProjectExceptionCloseSnapshotQuery(0L, project.id()));
+                firstLocked.countDown();
+                await(releaseFirst);
+                snapshotRepository.append(reopenSnapshot(
+                        project.id(), 2, selected.getId(), operatedAt.plusSeconds(1)));
+                return selected.getId();
+            }));
+            firstLocked.await();
+
+            var second = executor.submit(() -> inTenantTransaction(() ->
+                    snapshotRepository.selectLatestReusableExceptionCloseForUpdate(
+                            new ProjectExceptionCloseSnapshotQuery(0L, project.id()))));
+            try {
+                assertThrows(TimeoutException.class, () -> second.get(300, TimeUnit.MILLISECONDS));
+                assertFalse(second.isDone());
+            } finally {
+                releaseFirst.countDown();
+            }
+
+            assertEquals(close.getId(), first.get());
+            assertNull(second.get());
+        }
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_project_stage_snapshot WHERE tenant_id=0 AND project_id=? "
+                        + "AND operation_type='REOPEN' AND related_snapshot_id=?",
+                Long.class, project.id(), close.getId()));
     }
 
     private int currentVersion(Long projectId) {
@@ -82,17 +151,79 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
                 projectId, userId, role, assignmentType, role, closedAt.minusMinutes(1));
     }
 
-    private ProjectStageSnapshotDO snapshot(Long projectId, int snapshotNo, String operationType,
-                                             Long relatedSnapshotId, LocalDateTime operatedAt) {
+    private ProjectStageSnapshotDO exceptionCloseSnapshot(Long projectId, int snapshotNo,
+                                                           LocalDateTime operatedAt) {
+        ProjectStageSnapshotDO snapshot = commonSnapshot(projectId, snapshotNo,
+                "EXCEPTION_CLOSE", operatedAt);
+        snapshot.setBusinessBasis("客户书面确认终止");
+        snapshot.setLegacyItemsJson("[]");
+        snapshot.setGuardSnapshotJson("{}");
+        snapshot.setTreeVersion(1L);
+        snapshot.setProviderFactsJson("{}");
+        return snapshot;
+    }
+
+    private ProjectStageSnapshotDO reopenSnapshot(Long projectId, int snapshotNo,
+                                                   Long relatedSnapshotId, LocalDateTime operatedAt) {
+        ProjectStageSnapshotDO snapshot = commonSnapshot(projectId, snapshotNo, "REOPEN", operatedAt);
+        snapshot.setRelatedSnapshotId(relatedSnapshotId);
+        return snapshot;
+    }
+
+    private ProjectStageSnapshotDO commonSnapshot(Long projectId, int snapshotNo, String operationType,
+                                                   LocalDateTime operatedAt) {
         ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
         snapshot.setTenantId(0L);
         snapshot.setProjectId(projectId);
         snapshot.setStageCode("S0");
         snapshot.setSnapshotNo(snapshotNo);
         snapshot.setOperationType(operationType);
-        snapshot.setRelatedSnapshotId(relatedSnapshotId);
+        snapshot.setBeforeStage("S3");
+        snapshot.setAfterStage("S0");
+        snapshot.setBeforeLifecycleStatus("ACTIVE");
+        snapshot.setAfterLifecycleStatus("EXCEPTION_CLOSED");
+        snapshot.setBeforeAssignmentStatus("ASSIGNED");
+        snapshot.setAfterAssignmentStatus("UNASSIGNED");
+        snapshot.setReasonCode("CONFIGURED_REASON");
+        snapshot.setReasonDetail("真实MySQL治理验证");
         snapshot.setOperationId("fproj006-it-" + projectId + "-" + snapshotNo);
+        snapshot.setOperatorUserId(9_900_001L);
         snapshot.setOperatedAt(operatedAt);
         return snapshot;
+    }
+
+    private PageParam page(int pageNo, int pageSize) {
+        PageParam page = new PageParam();
+        page.setPageNo(pageNo);
+        page.setPageSize(pageSize);
+        return page;
+    }
+
+    private <T> T inTenantTransaction(java.util.concurrent.Callable<T> action) {
+        TenantContextHolder.setTenantId(0L);
+        try {
+            return new TransactionTemplate(transactionManager).execute(status -> {
+                try {
+                    return action.call();
+                } catch (Exception exception) {
+                    throw new IllegalStateException(exception);
+                }
+            });
+        } finally {
+            TenantContextHolder.clear();
+        }
+    }
+
+    private void await(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private void cleanGovernanceSnapshots() {
+        jdbcTemplate.update("DELETE FROM proj_project_stage_snapshot WHERE operation_id LIKE 'fproj006-it-%'");
     }
 }

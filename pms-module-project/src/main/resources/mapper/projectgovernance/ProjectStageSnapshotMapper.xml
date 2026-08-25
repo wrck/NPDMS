@@ -3,6 +3,25 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectStageSnapshotMapper">
 
+    <insert id="insertAppendOnly" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO proj_project_stage_snapshot
+        (project_id, stage_code, snapshot_no, operation_type,
+         before_stage, after_stage, before_lifecycle_status, after_lifecycle_status,
+         before_assignment_status, after_assignment_status, reason_code, reason_detail,
+         reassignment_requirement, business_basis, legacy_items_json, guard_snapshot_json,
+         tree_version, provider_facts_json, related_snapshot_id, operation_id,
+         operator_user_id, operated_at, creator, create_time, updater, update_time,
+         deleted, tenant_id)
+        VALUES
+        (#{projectId}, #{stageCode}, #{snapshotNo}, #{operationType},
+         #{beforeStage}, #{afterStage}, #{beforeLifecycleStatus}, #{afterLifecycleStatus},
+         #{beforeAssignmentStatus}, #{afterAssignmentStatus}, #{reasonCode}, #{reasonDetail},
+         #{reassignmentRequirement}, #{businessBasis}, #{legacyItemsJson}, #{guardSnapshotJson},
+         #{treeVersion}, #{providerFactsJson}, #{relatedSnapshotId}, #{operationId},
+         #{operatorUserId}, #{operatedAt}, #{creator}, CURRENT_TIMESTAMP, #{updater}, CURRENT_TIMESTAMP,
+         b'0', #{tenantId})
+    </insert>
+
     <sql id="governanceHistoryWhere">
         tenant_id = #{query.tenantId}
         AND project_id = #{query.projectId}
@@ -25,7 +44,7 @@
         LIMIT #{query.limit} OFFSET #{query.offset}
     </select>
 
-    <select id="selectLatestReusableExceptionCloseForUpdate"
+    <select id="selectLatestReusableExceptionClose"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO">
         SELECT close_snapshot.*
         FROM proj_project_stage_snapshot close_snapshot
@@ -44,7 +63,6 @@
           )
         ORDER BY close_snapshot.operated_at DESC, close_snapshot.id DESC
         LIMIT 1
-        FOR UPDATE
     </select>
 
 </mapper>

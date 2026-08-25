@@ -7,6 +7,10 @@ ROOT = Path(__file__).resolve().parents[2]
 PROJECT_MAPPER = ROOT / "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml"
 MEMBER_MAPPER = ROOT / "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml"
 SNAPSHOT_MAPPER = ROOT / "pms-module-project/src/main/resources/mapper/projectgovernance/ProjectStageSnapshotMapper.xml"
+SNAPSHOT_REPOSITORY = ROOT / (
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/repository/"
+    "projectgovernance/ProjectStageSnapshotRepository.java"
+)
 
 
 class FProj006Task2PersistenceTest(unittest.TestCase):
@@ -16,19 +20,35 @@ class FProj006Task2PersistenceTest(unittest.TestCase):
         cls.project = PROJECT_MAPPER.read_text(encoding="utf-8")
         cls.member = MEMBER_MAPPER.read_text(encoding="utf-8")
         cls.snapshot = SNAPSHOT_MAPPER.read_text(encoding="utf-8")
+        cls.snapshot_repository = SNAPSHOT_REPOSITORY.read_text(encoding="utf-8")
 
     def test_history_page_has_tenant_scope_and_stable_order(self) -> None:
         self.assertIn("tenant_id = #{query.tenantId}", self.snapshot)
         self.assertIn("project_id = #{query.projectId}", self.snapshot)
         self.assertIn("ORDER BY operated_at DESC, id DESC", self.snapshot)
         self.assertIn("LIMIT #{query.limit} OFFSET #{query.offset}", self.snapshot)
+        page_query = (ROOT / "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/"
+                             "projectgovernance/query/ProjectGovernanceHistoryPageQuery.java").read_text(encoding="utf-8")
+        self.assertIn("PageParam pageParam", page_query)
+        self.assertIn("MAX_PAGE_SIZE = 200", page_query)
+
+    def test_snapshot_mapper_has_only_append_insert_and_read_contracts(self) -> None:
+        mapper = (ROOT / "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/"
+                         "projectgovernance/ProjectStageSnapshotMapper.java").read_text(encoding="utf-8")
+        self.assertNotIn("BaseMapperX", mapper)
+        self.assertIn("insertAppendOnly", mapper)
+        self.assertNotRegex(mapper, re.compile(r"\b(update|delete)\w*\s*\("))
 
     def test_reopen_locks_only_unconsumed_latest_exception_close(self) -> None:
         self.assertIn("operation_type = 'EXCEPTION_CLOSE'", self.snapshot)
         self.assertIn("reopen_snapshot.operation_type = 'REOPEN'", self.snapshot)
         self.assertIn("reopen_snapshot.related_snapshot_id = close_snapshot.id", self.snapshot)
         self.assertIn("ORDER BY close_snapshot.operated_at DESC, close_snapshot.id DESC", self.snapshot)
-        self.assertIn("FOR UPDATE", self.snapshot)
+        lock_call = "projectMasterMapper.selectByIdForUpdate(query.projectId())"
+        select_call = "mapper.selectLatestReusableExceptionClose(query)"
+        self.assertIn(lock_call, self.snapshot_repository)
+        self.assertIn(select_call, self.snapshot_repository)
+        self.assertLess(self.snapshot_repository.index(lock_call), self.snapshot_repository.index(select_call))
 
     def test_project_governance_update_is_tenant_scoped_cas(self) -> None:
         update = self.project.split('<update id="updateGovernanceStateIfMatch">', 1)[1].split("</update>", 1)[0]
