@@ -250,7 +250,8 @@ public class ProjectGovernanceApplicationService {
                 Objects.equals(assignment.getProjectId(), projectId)
                         && Objects.equals(assignment.getUserId(), actor.actorId())
                         && SERVICE_MANAGER_ROLES.contains(assignment.getMemberRole())
-                        && "PRIMARY".equals(assignment.getAssignmentType()));
+                        && (assignment.getAssignmentType() == null
+                        || "PRIMARY".equals(assignment.getAssignmentType())));
         if (!currentPrimary) {
             throw exception(PROJECT_GOVERNANCE_ACTION_FORBIDDEN);
         }

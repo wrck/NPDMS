@@ -144,6 +144,20 @@ class ProjectGovernanceApplicationServiceTest {
     }
 
     @Test
+    void shouldRollbackLegacyPrimaryWithNullAssignmentType() {
+        ProjectMemberAssignmentDO legacyPrimary = primary();
+        legacyPrimary.setAssignmentType(null);
+        when(memberMapper.selectCurrentServiceManagerAssignments(any())).thenReturn(List.of(legacyPrimary));
+
+        GovernanceActionResult result = service.rollback(command("0".repeat(64)), actor());
+
+        assertEquals("ROLLBACK", result.action());
+        assertEquals("S0", result.currentStage());
+        verify(projectMapper).updateGovernanceStateIfMatch(any());
+        verify(snapshotRepository).append(any());
+    }
+
+    @Test
     void shouldRejectNonPrimaryWithoutSuccessfulSideEffects() {
         when(memberMapper.selectCurrentServiceManagerAssignments(any())).thenReturn(List.of());
 
