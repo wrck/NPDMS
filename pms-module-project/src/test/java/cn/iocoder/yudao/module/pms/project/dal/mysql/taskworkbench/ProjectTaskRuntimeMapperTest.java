@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskStructureUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -32,6 +33,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +88,7 @@ class ProjectTaskRuntimeMapperTest {
         long seed = Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
         projectId = 970_000_000_000L + seed * 100L;
         firstTaskId = projectId + 1;
-        secondRootTaskId = projectId + 90;
+        secondRootTaskId = projectId + 900;
         stateMachineRevisionId = jdbcTemplate.queryForObject(
                 "SELECT id FROM proj_task_state_machine_revision WHERE tenant_id=0 "
                         + "AND status='PUBLISHED' ORDER BY revision_no DESC LIMIT 1", Long.class);
@@ -188,6 +190,31 @@ class ProjectTaskRuntimeMapperTest {
         assertTrue(mapper.selectVisibleTaskIds(crossTenant).isEmpty());
         assertTrue(mapper.selectFullTaskIds(crossTenant).isEmpty());
         assertTrue(mapper.selectStageCounts(crossTenant).isEmpty());
+    }
+
+    @Test
+    void shouldBatchAllAncestorsBeyondPageLimitAndDeduplicateMultipleMatches() {
+        int deepTreeDepth = 205;
+        extendChainToDepth(deepTreeDepth);
+        long penultimateTaskId = firstTaskId + deepTreeDepth - 2;
+        long lastTaskId = firstTaskId + deepTreeDepth - 1;
+        jdbcTemplate.update("INSERT INTO proj_project_task_assignment "
+                        + "(id,project_task_id,assignee_user_id,effective_from,effective_to,assigned_by,reason,"
+                        + "version,creator,updater,tenant_id) VALUES (?,?,?,?,NULL,?,'test',0,'test','test',0)",
+                projectId + 998, lastTaskId, 900L, java.time.LocalDateTime.now(), 901L);
+
+        List<ProjectTaskInstanceDO> ancestors = mapper.selectAncestors(new TaskAncestorBatchQuery(
+                0L, projectId, 900L, false, Set.of(penultimateTaskId, lastTaskId)));
+
+        assertEquals(deepTreeDepth - 1, ancestors.size());
+        assertEquals(deepTreeDepth - 1, new HashSet<>(ids(ancestors)).size());
+        assertTrue(ids(ancestors).contains(firstTaskId));
+        assertTrue(ids(ancestors).contains(penultimateTaskId));
+        assertFalse(ids(ancestors).contains(lastTaskId));
+        assertTrue(mapper.selectAncestors(new TaskAncestorBatchQuery(
+                0L, projectId, 902L, false, Set.of(lastTaskId))).isEmpty());
+        assertTrue(mapper.selectAncestors(new TaskAncestorBatchQuery(
+                1L, projectId, 901L, true, Set.of(lastTaskId))).isEmpty());
     }
 
     @Test
@@ -367,6 +394,35 @@ class ProjectTaskRuntimeMapperTest {
         insertTask(secondRootTaskId, null, secondRootTaskId, 0, 100,
                 "TASK-SECOND-ROOT", "LEVEL-ROOT");
         insertPath(secondRootTaskId, secondRootTaskId, 0);
+    }
+
+    private void extendChainToDepth(int targetDepth) {
+        List<Object[]> tasks = new ArrayList<>();
+        for (int depth = DEPTH; depth < targetDepth; depth++) {
+            long taskId = firstTaskId + depth;
+            tasks.add(new Object[]{taskId, projectId, "TASK-" + depth, "TASK-" + depth,
+                    taskId - 1, firstTaskId, depth,
+                    depth % 2 == 0 ? "LEVEL-EVEN" : "LEVEL-ODD",
+                    stateMachineRevisionId, depth});
+        }
+        jdbcTemplate.batchUpdate("INSERT INTO proj_project_task "
+                        + "(id,project_id,task_code,name,parent_task_id,root_task_id,tree_depth,"
+                        + "business_level_code,state_machine_revision_id,stage_code,sort_order,status,version,tenant_id) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?,'S1',?,'PENDING_ASSIGN',0,0)", tasks);
+
+        jdbcTemplate.update("INSERT INTO proj_task_tree_path "
+                        + "(project_id,ancestor_task_id,descendant_task_id,distance,version,tenant_id) "
+                        + "SELECT ?, ancestor.id, descendant.id, "
+                        + "descendant.tree_depth - ancestor.tree_depth, 0, 0 "
+                        + "FROM proj_project_task ancestor "
+                        + "JOIN proj_project_task descendant "
+                        + "ON descendant.tenant_id=ancestor.tenant_id "
+                        + "AND descendant.project_id=ancestor.project_id "
+                        + "AND descendant.root_task_id=ancestor.root_task_id "
+                        + "AND descendant.tree_depth>=ancestor.tree_depth "
+                        + "WHERE ancestor.tenant_id=0 AND ancestor.project_id=? "
+                        + "AND descendant.tree_depth>=? AND descendant.tree_depth<?",
+                projectId, projectId, DEPTH, targetDepth);
     }
 
     private void insertTask(long id, Long parentId, long rootTaskId, int depth, int sortOrder,

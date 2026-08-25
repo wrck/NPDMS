@@ -115,6 +115,27 @@
         LIMIT #{query.pageSize}
     </select>
 
+    <select id="selectAncestorQuery"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT DISTINCT <include refid="taskColumns"/>
+        FROM proj_task_tree_path path
+        JOIN proj_project_task task
+          ON task.tenant_id = path.tenant_id
+         AND task.project_id = path.project_id
+         AND task.id = path.ancestor_task_id
+         AND task.deleted = b'0'
+        WHERE path.tenant_id = #{query.tenantId}
+          AND path.project_id = #{query.projectId}
+          AND path.descendant_task_id IN
+        <foreach collection="query.descendantTaskIds" item="taskId" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+          AND path.distance &gt; 0
+          AND path.deleted = b'0'
+          AND <include refid="taskVisibilityPredicate"/>
+        ORDER BY task.tree_depth, COALESCE(task.sort_order, 0), task.id
+    </select>
+
     <select id="selectTask"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
         SELECT <include refid="taskColumns"/>

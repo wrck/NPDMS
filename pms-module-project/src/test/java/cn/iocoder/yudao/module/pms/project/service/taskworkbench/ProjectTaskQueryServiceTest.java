@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVers
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -90,6 +92,26 @@ class ProjectTaskQueryServiceTest {
         assertNull(response.getRows().getFirst().getName());
         assertNull(response.getRows().getFirst().getAssigneeUserId());
         assertEquals(1L, response.getRows().getFirst().getTaskId());
+    }
+
+    @Test
+    void shouldBatchLocateAncestorsOnceAndDeduplicateSharedPath() {
+        stubProjectScope(true);
+        when(taskMapper.selectTree(any())).thenReturn(List.of(
+                task(3L, 2L, 2), task(4L, 2L, 2)));
+        when(taskMapper.selectAncestors(any())).thenReturn(List.of(
+                task(1L, null, 0), task(2L, 1L, 1)));
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of());
+        ProjectTaskTreeQueryReqVO request = new ProjectTaskTreeQueryReqVO();
+        request.setMode("LOCATE");
+        request.setKeyword("Task");
+
+        var response = service.getTasks(100L, request, actor());
+
+        assertEquals(List.of(1L, 2L, 3L, 4L),
+                response.getRows().stream().map(item -> item.getTaskId()).toList());
+        verify(taskMapper).selectAncestors(argThat((TaskAncestorBatchQuery query) ->
+                query.descendantTaskIds().equals(Set.of(3L, 4L))));
     }
 
     @Test

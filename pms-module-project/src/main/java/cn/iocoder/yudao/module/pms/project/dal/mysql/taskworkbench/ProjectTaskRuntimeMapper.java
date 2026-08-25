@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskStructureUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -28,6 +29,17 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     }
 
     List<ProjectTaskInstanceDO> selectTreeQuery(@Param("query") ProjectTaskTreeQuery query);
+
+    default List<ProjectTaskInstanceDO> selectAncestors(TaskAncestorBatchQuery query) {
+        if (query == null || query.tenantId() == null || query.projectId() == null
+                || query.actorId() == null || query.descendantTaskIds() == null
+                || query.descendantTaskIds().isEmpty()) {
+            return List.of();
+        }
+        return selectAncestorQuery(query);
+    }
+
+    List<ProjectTaskInstanceDO> selectAncestorQuery(@Param("query") TaskAncestorBatchQuery query);
 
     ProjectTaskInstanceDO selectTask(@Param("query") TaskByIdQuery query);
 

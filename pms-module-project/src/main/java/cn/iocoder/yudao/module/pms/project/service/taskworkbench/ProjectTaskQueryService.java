@@ -25,6 +25,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRu
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStageCount;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.CurrentTaskAssignmentsQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
@@ -100,7 +101,7 @@ public class ProjectTaskQueryService {
         boolean hasMore = tasks.size() > pageSize;
         List<ProjectTaskInstanceDO> page = hasMore ? tasks.subList(0, pageSize) : tasks;
         if (mode == ProjectTaskTreeQuery.Mode.LOCATE) {
-            page = withLocateAncestors(page, access, actor);
+            page = withLocateAncestors(page, access);
         }
         Map<Long, Long> assignees = currentAssignees(actor.tenantId(), page);
         List<ProjectTaskNodeRespVO> rows = page.stream()
@@ -183,16 +184,15 @@ public class ProjectTaskQueryService {
     }
 
     private List<ProjectTaskInstanceDO> withLocateAncestors(List<ProjectTaskInstanceDO> matches,
-                                                             TaskAccess access, TaskWorkbenchActor actor) {
+                                                             TaskAccess access) {
         Map<Long, ProjectTaskInstanceDO> rows = new LinkedHashMap<>();
-        for (ProjectTaskInstanceDO match : matches) {
-            List<ProjectTaskInstanceDO> ancestors = taskMapper.selectTree(ProjectTaskTreeQuery.builder()
-                    .tenantId(actor.tenantId()).projectIds(Set.of(match.getProjectId()))
-                    .visibilityQuery(access.visibilityQuery()).mode(ProjectTaskTreeQuery.Mode.ANCESTOR_CHAIN)
-                    .targetTaskId(match.getId()).pageSize(200).build());
-            ancestors.forEach(item -> rows.put(item.getId(), item));
-            rows.put(match.getId(), match);
-        }
+        Set<Long> matchIds = matches.stream().map(ProjectTaskInstanceDO::getId).collect(Collectors.toSet());
+        TaskVisibilityQuery visibility = access.visibilityQuery();
+        taskMapper.selectAncestors(new TaskAncestorBatchQuery(
+                        visibility.tenantId(), visibility.projectId(), visibility.actorId(),
+                        visibility.fullProjectAccess(), matchIds))
+                .forEach(item -> rows.put(item.getId(), item));
+        matches.forEach(item -> rows.put(item.getId(), item));
         return rows.values().stream()
                 .sorted(Comparator.comparing(ProjectTaskInstanceDO::getTreeDepth)
                         .thenComparing(item -> item.getSortOrder() == null ? 0 : item.getSortOrder())
