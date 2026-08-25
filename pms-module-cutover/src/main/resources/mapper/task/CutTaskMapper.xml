@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper">
+    <select id="selectListForGovernanceGuard0"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO">
+        SELECT id, tenant_id, project_id, code, status, version, update_time
+        FROM pms_cut_task
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = b'0'
+          AND project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        ORDER BY project_id, id
+    </select>
+</mapper>
