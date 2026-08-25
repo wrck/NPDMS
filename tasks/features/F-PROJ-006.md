@@ -4,8 +4,8 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无当前必停阻断；设备连接与采集中心的COLLECTION权威端点、响应契约与真实验收证据缺失，登记为Feature Done前阻断，不阻断Task 8～9
-> 当前任务：`Task 9 提供治理API与append-only历史查询`
+> 当前阻断：无当前必停阻断；设备连接与采集中心的COLLECTION权威端点、响应契约与真实验收证据缺失，登记为Feature Done前阻断，不阻断Task 10界面实施与其余可执行验收
+> 当前任务：`Task 10 完成响应式治理界面与Feature验收`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
 > Feature物理契约：`specs/features/F-PROJ-006-physical-contract.json`
@@ -30,7 +30,7 @@
 - [x] Task 6 签发并重验不透明守卫令牌（PASS / `f58115b..48a72d9` / 独立裁决GO）
 - [x] Task 7 实现回退命令闭环（PASS / `1ea4411..0722afc` / 独立裁决GO）
 - [x] Task 8 实现异常关闭与受控重开（PASS / `bc3d086` / 独立裁决GO）
-- [ ] Task 9 提供治理API与append-only历史查询
+- [x] Task 9 提供治理API与append-only历史查询（PASS / `e5e5687..1beb732` / 独立裁决GO）
 - [ ] Task 10 完成响应式治理界面与Feature验收
 
 > 检查点（2026-08-25）：Feature Ready正式GO；规格提交`cb55c747`已同步至NPDMS基线`8d6e7e7`；新Technical Plan基于V1.8差距审计生成，未复用旧计划；下一步执行Task 1。
@@ -54,3 +54,5 @@
 > 检查点（2026-08-25）：Task 7经存量兼容整改后独立Implementation Done裁决GO，提交范围`1ea4411..0722afc`；回退命令以同一平台事务完成Project CAS、服务经理区间结束、append-only快照、幂等、审计和Outbox，`assignment_type IS NULL`沿用既有兼容主责语义；COLLECTION外部契约阻断保持，当前推进Task 8。
 
 > 检查点（2026-08-25）：Task 8提交`bc3d086`经独立Implementation Done裁决GO；异常关闭与受控重开已闭合权限、状态、守卫、事务、快照消费及事件契约，聚焦测试21/21 PASS；COLLECTION权威契约仍为Feature Done前阻断，当前推进Task 9。
+
+> 检查点（2026-08-25）：Task 9提交范围`e5e5687..1beb732`经独立Implementation Done裁决GO；治理API、append-only历史和前端调用契约已固化，单租户关闭租户模块时在调用范围建立受信tenantId=0，多租户缺失上下文失败关闭；COLLECTION权威契约阻断保持，当前推进Task 10。
