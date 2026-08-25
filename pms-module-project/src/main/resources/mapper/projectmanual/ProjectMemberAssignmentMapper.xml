@@ -73,4 +73,20 @@
                  id
     </select>
 
+    <update id="closeEffectiveServiceManagerAssignments">
+        UPDATE proj_project_member_assignment
+        SET effective_to = #{query.closedAt},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND member_role IN ('SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2')
+          AND (assignment_type IN ('PRIMARY', 'COLLABORATOR') OR assignment_type IS NULL)
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+          AND (effective_from IS NULL OR effective_from &lt;= #{query.closedAt})
+          AND (effective_to IS NULL OR effective_to &gt; #{query.closedAt})
+    </update>
+
 </mapper>

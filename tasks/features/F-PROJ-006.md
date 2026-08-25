@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > 当前阻断：无当前必停阻断；COLLECTION权威守卫来源证据在Task 5核验，缺失时失败关闭并登记为Feature Done前阻断
-> 当前任务：`Task 2 实现共享快照持久化与Project原子更新`
+> 当前任务：`Task 2 实现共享快照持久化与Project原子更新（待独立裁决）`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
 > Feature物理契约：`specs/features/F-PROJ-006-physical-contract.json`
@@ -38,3 +38,5 @@
 > 检查点（2026-08-25）：Task 1已建立V85共享阶段快照和V86原因字典/稳定权限种子；迁移契约7/7、Project Reactor编译PASS；当前仅待独立Implementation Done裁决，不提前进入Task 2。
 
 > 检查点（2026-08-25）：Task 1独立Implementation Done裁决GO，提交`82e2193`；已回写PASS并推进Task 2，不重开Feature Ready、PRD、SDS门禁。
+
+> 检查点（2026-08-25）：Task 2已完成共享快照、动作校验、稳定分页、关闭快照锁、Project CAS及成员闭区间；契约11/11、规则4/4、Reactor 274通过/19既有IT跳过、独立空库V1～V86及MySQL闭环1/1通过；待独立裁决。
