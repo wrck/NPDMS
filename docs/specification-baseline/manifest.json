@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "00857e6052e9035b361b280fb0ae8227ba1a2395"
+    "commit": "cb55c7478378ed769f0a4fd401fabb8840017242"
   },
   "files": [
     {
@@ -438,7 +438,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "bef5bd19510c12de106a9cfc259c5aaa4048a27062e2fca988b494380dd8ab80"
+      "sha256": "80c379754dfba47f7668b74c5b8da1f8095d76c06b23ed44e09ef2c883488dbd"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -486,9 +486,19 @@
       "sha256": "043e072f374dfa159dd78f29b0297fc5f6e7c5a8a9f9352f8d5af3dea76a2487"
     },
     {
+      "path": "specs/features/F-PROJ-006-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "97bfec857ad4356d83a40379352572658f67985639be6da21e11d9ca350f11c8"
+    },
+    {
+      "path": "specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "1df1a0806855dd1178f2b44891f92759d1f0eac8919574d8bdcd7d12623e5645"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "88bd70af43cd8b2bb034f975bf5ba755bfa90f99cf324b4ecbc5476835b3e90c"
+      "sha256": "e1589f415fb5f1c5f59a96a3dc1681da933090bee71a495c0d3dad51abc8da9c"
     }
   ]
 }
