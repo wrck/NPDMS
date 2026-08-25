@@ -12,9 +12,9 @@
   "confirmedFacts": {
     "implementationCommit": "726bf4f067d4ad33356627c9ad66fc45dd8d4dfa",
     "nodeVersion": "v24.11.1",
-    "pnpmVersion": "11.17.0",
+    "pnpmVersion": "9.15.5",
     "lockfileSha256": "A060B9B0DCE5A1BA5B537AA18112BB45693D545A4013EC9BB0F4FF00D23E23F4",
-    "command": "pnpm.cmd ts:check",
+    "command": "corepack pnpm ts:check",
     "exitCode": 0,
     "errorCount": 0,
     "remediationOwner": "FRONTEND_OWNER",
