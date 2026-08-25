@@ -83,6 +83,33 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
     def test_open_register_is_structurally_valid(self) -> None:
         self.assertEqual([], VALIDATOR.validate(self.path))
 
+    def test_verified_e08_closure_is_valid(self) -> None:
+        e08 = next(item for item in self.payload["items"] if item["id"] == "P3-E08")
+        e08.update({
+            "status": "VERIFIED",
+            "decisionOwner": "FRONTEND_OWNER",
+            "reviewOwner": "INDEPENDENT_REVIEWER",
+        })
+        e08["confirmedFacts"] = {
+            "result": "PASS",
+            "exitCode": 0,
+            "errorCount": 0,
+            "browserRegressionEvidenceId": "P3-E08-BROWSER-TEST",
+        }
+        self.write()
+        self.assertEqual([], VALIDATOR.validate(self.path))
+
+    def test_verified_e08_requires_browser_evidence(self) -> None:
+        e08 = next(item for item in self.payload["items"] if item["id"] == "P3-E08")
+        e08.update({
+            "status": "VERIFIED",
+            "decisionOwner": "FRONTEND_OWNER",
+            "reviewOwner": "INDEPENDENT_REVIEWER",
+        })
+        e08["confirmedFacts"] = {"result": "PASS", "exitCode": 0, "errorCount": 0}
+        self.write()
+        self.assertTrue(any("browser regression evidence" in error for error in VALIDATOR.validate(self.path)))
+
     def test_current_prd_v18_baseline_is_supported(self) -> None:
         self.payload["baseline"] = "PRD_V1.8"
         self.write()

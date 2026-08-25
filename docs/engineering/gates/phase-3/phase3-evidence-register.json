@@ -257,28 +257,27 @@
         },
         {
             "id": "P3-E08",
-            "status": "OPEN",
+            "status": "VERIFIED",
             "decisionOwner": "FRONTEND_OWNER",
-            "reviewOwner": null,
+            "reviewOwner": "INDEPENDENT_REVIEWER",
             "confirmedFacts": {
                 "command": "corepack pnpm ts:check",
-                "result": "FAIL",
-                "exitCode": 1,
-                "errorCount": 182,
-                "scopeCounts": {
-                    "PMS_ENGINEERING": 85,
-                    "PMS_PROJECT": 80,
-                    "PMS_SERVICE": 9,
-                    "PMS_CUTOVER": 3,
-                    "PMS_SHARED": 1,
-                    "UPSTREAM_OR_NON_PMS": 4
-                },
-                "verifiedAt": "2026-08-13",
-                "implementationCommit": "856d05264ab4a4fb69b94896c172e4a1c29aae02"
+                "result": "PASS",
+                "exitCode": 0,
+                "errorCount": 0,
+                "verifiedAt": "2026-08-25",
+                "implementationCommit": "726bf4f067d4ad33356627c9ad66fc45dd8d4dfa",
+                "nodeVersion": "v24.11.1",
+                "pnpmVersion": "9.15.5",
+                "lockfileSha256": "A060B9B0DCE5A1BA5B537AA18112BB45693D545A4013EC9BB0F4FF00D23E23F4",
+                "browserRegressionEvidenceId": "P3-E08-BROWSER-20260825-726BF4F",
+                "lintResult": "本提交文件定向 ESLint/Prettier PASS；全量 Stylelint 既有 389 项错误作为综合前端质量债管理",
+                "buildResult": "pnpm.cmd build:local PASS；保留既有 *zoom Lightning CSS warning"
             },
             "evidenceRefs": [
-                "docs/engineering/gates/phase-3/frontend-ts-check-evidence.json",
-                "docs/engineering/gates/phase-3/frontend-ts-check-evidence.md"
+                "docs/engineering/gates/phase-3/submissions/p3-e08-726bf4f-submission.json",
+                "docs/engineering/gates/phase-3/submissions/p3-e08-726bf4f-browser-smoke.json",
+                "docs/engineering/gates/phase-3/submissions/p3-e08-726bf4f-browser-smoke.png"
             ],
             "blocks": [
                 "FRONTEND_FEATURE_ACCEPTANCE",

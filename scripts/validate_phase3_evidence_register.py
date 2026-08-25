@@ -256,8 +256,17 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
     if EXPORT_POLICY_REF not in e05.get("evidenceRefs", []) or EXPORT_EXPIRATION_REF not in e05.get("evidenceRefs", []):
         errors.append("P3-E05 export authorization decision reference missing")
     e08 = by_id.get("P3-E08", {})
-    if e08.get("confirmedFacts", {}).get("result") != "FAIL" or e08.get("status") == "VERIFIED":
-        errors.append("P3-E08 must retain the currently verified ts:check failure until closure evidence replaces it")
+    e08_facts = e08.get("confirmedFacts", {})
+    if e08.get("status") == "VERIFIED":
+        if (
+            e08_facts.get("result") != "PASS"
+            or e08_facts.get("exitCode") != 0
+            or e08_facts.get("errorCount") != 0
+            or not e08_facts.get("browserRegressionEvidenceId")
+        ):
+            errors.append("P3-E08 VERIFIED requires zero-error ts:check and browser regression evidence")
+    elif e08_facts.get("result") != "FAIL":
+        errors.append("P3-E08 must retain the verified ts:check failure until closure evidence replaces it")
     for identifier, expected_blocks in EXPECTED_BLOCKS.items():
         actual_blocks = set(by_id.get(identifier, {}).get("blocks", []))
         if actual_blocks != expected_blocks:

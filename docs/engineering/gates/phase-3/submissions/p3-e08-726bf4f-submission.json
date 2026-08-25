@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "id": "P3-E08",
-  "status": "EVIDENCE_SUBMITTED",
+  "status": "VERIFIED",
   "decisionOwner": "FRONTEND_OWNER",
   "evidenceOwnerRoles": [
     "FRONTEND_OWNER"
   ],
-  "reviewOwner": null,
+  "reviewOwner": "INDEPENDENT_REVIEWER",
   "environmentOrReleaseId": "NPDMS-LOCAL-P3-E08-20260825",
   "capturedAt": "2026-08-25T18:35:25+08:00",
   "confirmedFacts": {
@@ -31,9 +31,8 @@
     "docs/engineering/gates/phase-3/submissions/p3-e08-726bf4f-browser-smoke.png",
     "docs/engineering/gates/phase-3/frontend-ts-check-evidence.md"
   ],
-  "verificationResult": null,
+  "verificationResult": "PASS",
   "unresolvedItems": [
-    "等待独立复审后晋级 VERIFIED",
     "全量 Stylelint 既有 389 项错误继续作为综合前端质量债治理"
   ],
   "revalidationTriggers": [
