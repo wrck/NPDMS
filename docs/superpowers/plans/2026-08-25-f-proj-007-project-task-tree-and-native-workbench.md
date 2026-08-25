@@ -66,11 +66,11 @@
 
 **Interfaces:**
 - Consumes: F-PROJ-007物理契约中的表、字段、唯一键、状态、权限和菜单边界。
-- Produces: `proj_project_task`/`proj_project`前向列、闭包/依赖/责任/完成判定/状态机表、默认状态机、权限菜单和V63规则修正。
+- Produces: `proj_project_task`/`proj_project`前向列、6张闭包/依赖/责任/完成判定/状态机新表、默认状态机、存量任务状态机版本回填、权限菜单和V63规则修正。
 
 - [ ] **Step 1: 编写V88前向结构迁移**
 
-为`proj_project_task`增加`parent_task_id/root_task_id/tree_depth/business_level_code/milestone_id/plan_start_time/plan_end_time/actual_start_time/actual_end_time/progress/state_machine_revision_id`；为`proj_project`增加`task_tree_version/task_progress_version`。创建物理契约列出的五张新表及唯一键、外键和查询索引，不修改V1～V87。
+为`proj_project_task`增加`parent_task_id/root_task_id/tree_depth/business_level_code/milestone_id/plan_start_time/plan_end_time/actual_start_time/actual_end_time/progress/state_machine_revision_id`；为`proj_project`增加`task_tree_version/task_progress_version`。创建物理契约列出的6张新表：`proj_task_tree_path`、`proj_task_dependency`、`proj_project_task_assignment`、`proj_project_task_completion_evaluation`、`proj_task_state_machine_revision`、`proj_task_state_transition`，并建立唯一键、外键和查询索引；不修改V1～V87。
 
 - [ ] **Step 2: 在V88修正规则与模板实例路径**
 
@@ -78,11 +78,11 @@
 
 - [ ] **Step 3: 编写V89幂等种子**
 
-追加默认核心状态机版本和五条核心迁移，写入`pms:project-task:query/create/update/move/assign/execute/complete`及`pms:project-task-state:manage`权限和新项目任务页菜单；停用旧写菜单及`pms:project-task:delete`角色关联，不删除历史表。
+为每个现有租户追加且只追加一个默认PUBLISHED核心状态机版本，迁移精确为4条线性动作：`PENDING_ASSIGN --ASSIGN--> PENDING_START`、`PENDING_START --START--> IN_PROGRESS`、`IN_PROGRESS --SUBMIT--> PENDING_ACCEPT`、`PENDING_ACCEPT --COMPLETE--> DONE`，以及4条CANCEL动作：`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT --CANCEL--> CLOSED`。随后按同租户确定性回填所有存量`proj_project_task.state_machine_revision_id`到该租户默认已发布版本，并以迁移断言保证同租户且无NULL。写入稳定权限和新项目任务页菜单；停用旧写菜单及`pms:project-task:delete`角色关联，不删除历史表。
 
 - [ ] **Step 4: 增加迁移契约回归**
 
-`test_fproj007_v18_migration.py`断言：V1～V87哈希不变、无固定层级列/约束、共享审计表仍为`plt_operation_audit`、旧任务表无新增写触发器、核心状态和权限精确、修正规则只命中TASK_NATIVE。
+`test_fproj007_v18_migration.py`断言：V1～V87哈希不变、恰有6张新表、无固定层级列/约束、共享审计表仍为`plt_operation_audit`、旧任务表无新增写触发器、核心状态精确为4条线性迁移加4条CANCEL迁移、存量任务版本同租户且无NULL、权限精确、修正规则只命中TASK_NATIVE。
 
 - [ ] **Step 5: 验证并提交**
 
@@ -203,6 +203,10 @@ Expected: 聚焦测试PASS。提交：`feat(project): 持久化任务责任与�
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/vo/ProjectWorkspaceRespVO.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskQueryService.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskBindingHostRegistry.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskBindingHostProvider.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskBindingInspectionQuery.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskBindingInspection.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskNativeBindingHostProvider.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskWorkbenchActor.java`
 
 **Interfaces:**
@@ -211,12 +215,15 @@ Expected: 聚焦测试PASS。提交：`feat(project): 持久化任务责任与�
 record TaskWorkbenchActor(Long tenantId, Long actorId, String correlationId) {}
 record TaskQueryResult(List<ProjectTaskNodeRespVO> rows, String nextCursor,
         long taskTreeVersion, String projectionWatermark) {}
+record TaskBindingInspection(String bindingType, Set<String> allowedActions,
+        String factVersion, String recoverableError) {}
 
 ProjectWorkspaceRespVO getWorkspace(Long projectId, TaskWorkbenchActor actor);
 TaskQueryResult getTasks(Long projectId, ProjectTaskTreeQueryReqVO request, TaskWorkbenchActor actor);
 ProjectTaskDetailRespVO getTask(Long taskId, TaskWorkbenchActor actor);
 ProjectTaskWorkbenchRespVO getWorkbench(Long taskId, TaskWorkbenchActor actor);
 Optional<TaskBindingHostProvider> providerFor(String bindingType);
+TaskBindingInspection inspect(TaskBindingInspectionQuery query);
 ```
 
 - [ ] **Step 1: 建立只读Controller契约**
@@ -229,7 +236,7 @@ Optional<TaskBindingHostProvider> providerFor(String bindingType);
 
 - [ ] **Step 3: 建立WorkBinding注册宿主**
 
-仅注册TASK_NATIVE本域Provider。未注册、不可用、无权、事实未知返回稳定`recoverableError`和空`allowedActions`；不得返回任意前端路径、脚本或外域正文。
+在本Task创建并注册只读`TaskNativeBindingHostProvider`，读取冻结执行契约、当前任务状态、负责人和版本，计算`inspect/allowedActions`，但不执行写动作。未注册、不可用、无权、事实未知返回稳定`recoverableError`和空`allowedActions`；不得返回任意前端路径、脚本或外域正文。由此Task 4可独立验收TASK_NATIVE工作台只读链，Task 7只增加动作命令与完成判定。
 
 - [ ] **Step 4: 补Controller/服务回归并提交**
 
@@ -292,21 +299,34 @@ Expected: 聚焦测试PASS。提交：`feat(project): 实现任务结构变更�
 
 **Files:**
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/vo/ProjectTaskAssigneeCandidateReqVO.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/vo/ProjectTaskAssigneeCandidateRespVO.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/vo/ProjectTaskAssignReqVO.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskAssignmentService.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/event/ProjectTaskOutboxDeliveryJob.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/event/TaskAssignedMessage.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/ProjectTaskWorkbenchController.java`
+- Modify: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/outbox/dto/PlatformOutboxClaimQuery.java`
+- Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImpl.java`
+- Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/outbox/query/DueOutboxListQuery.java`
+- Modify: `pms-module-platform/src/main/resources/mapper/outbox/PlatformOutboxDeliveryMapper.xml`
+- Modify: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImplTest.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectServiceManagerNotificationJob.java`
 
 **Interfaces:**
 
 ```java
-PageResult<OrganizationUserCandidateRespDTO> getAssigneeCandidates(Long taskId,
+// GET /api/v1/pms/project-tasks/{id}/assignee-candidates
+PageResult<ProjectTaskAssigneeCandidateRespVO> getAssigneeCandidates(Long taskId,
         ProjectTaskAssigneeCandidateReqVO request, TaskWorkbenchActor actor);
 TaskCommandResult assign(AssignTaskCommand command);
+
+record PlatformOutboxClaimQuery(LocalDateTime dueAt, int limit,
+        Set<String> eventTypes) {}
 ```
 
-- [ ] **Step 1: 复用SYSTEM公开候选接口**
+- [ ] **Step 1: 复用SYSTEM公开候选并提供PROJ HTTP路由**
 
-按受信租户、项目公司/部门组织范围和关键词调用`AdminUserApi/DeptApi/CompanyApi`及现有组织候选分页能力；不得接受请求自报租户，不直查SYSTEM表。
+增加`GET /api/v1/pms/project-tasks/{id}/assignee-candidates`，请求使用`ProjectTaskAssigneeCandidateReqVO`分页，响应为`PageResult<ProjectTaskAssigneeCandidateRespVO>`。路由要求`pms:project-task:assign`并在服务端重验项目`MANAGE`；按受信租户、项目公司/部门组织范围和关键词调用`AdminUserApi/DeptApi/CompanyApi`及现有组织候选分页能力，不接受请求自报租户，不直查SYSTEM表。
 
 - [ ] **Step 2: 实现主体权限与候选重验**
 
@@ -316,60 +336,66 @@ TaskCommandResult assign(AssignTaskCommand command);
 
 同一事务关闭旧区间并插入新区间；首次指派把`PENDING_ASSIGN`推进`PENDING_START`，转派保持当前合法状态；通过平台命令事实发布单个`TaskAssigned`。
 
-- [ ] **Step 4: 补回归并提交**
+- [ ] **Step 4: 最小扩展PLATFORM公共Outbox领取并增加TaskAssigned处理入口**
 
-覆盖首次指派、转派、历史保留、同一时点唯一负责人、无效/跨租户/无组织范围/越权候选、重放和并发冲突。
+把`PlatformOutboxClaimQuery`和`DueOutboxListQuery`从硬编码单一事件改为调用方显式提交非空、封闭的`eventTypes`集合；PLATFORM当前只接受`ProjectServiceManagerAssigned/TaskAssigned/TaskCompleted`，未知值失败关闭。Mapper XML按集合领取到期PENDING事件，仍按租户、到期时间、ID稳定加锁。同步改造既有`ProjectServiceManagerNotificationJob`只领取`ProjectServiceManagerAssigned`。新增`ProjectTaskOutboxDeliveryJob`只领取`TaskAssigned`，校验冻结payload后发布带`eventId`的`TaskAssignedMessage`到本地应用事件入口；发布异常调用`scheduleRetry`，成功调用`markDelivered`。不新增通知模板、收件人或业务副作用。
 
-Run: `mvn.cmd -pl pms-module-project -am '-Dtest=ProjectTaskAssignmentServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
+- [ ] **Step 5: 补回归并提交**
+
+覆盖候选HTTP分页、assign权限+MANAGE、首次指派、转派、历史保留、同一时点唯一负责人、无效/跨租户/无组织范围/越权候选、重放和并发冲突；覆盖事件类型集合封闭、TaskAssigned领取、发布失败重试、成功CAS交付、已交付eventId不再领取以及服务经理旧事件仍可领取。
+
+Run: `mvn.cmd -pl pms-module-project,pms-module-platform -am '-Dtest=ProjectTaskAssignmentServiceTest,ProjectTaskWorkbenchControllerTest,ProjectTaskOutboxDeliveryJobTest,PlatformOutboxDeliveryApiImplTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
 
 Expected: 聚焦测试PASS。提交：`feat(project): 实现任务责任指派`
 
 ---
 
-### Task 7: 实现TASK_NATIVE状态流转、完成判定和状态机管理
+### Task 7: 实现TASK_NATIVE动作命令、完成判定和状态机管理
 
 **Files:**
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/vo/ProjectTaskActionReqVO.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/vo/TaskStateMachineSaveReqVO.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/TaskStateMachineController.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskLifecycleService.java`
-- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskNativeBindingHostProvider.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/TaskStateMachineService.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/event/TaskCompletedMessage.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/ProjectTaskWorkbenchController.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/event/ProjectTaskOutboxDeliveryJob.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectgovernance/provider/ProjectTaskGovernanceGuardProvider.java`
 
 **Interfaces:**
 
 ```java
 TaskCommandResult act(TaskActionCommand command);
-record TaskBindingInspection(String bindingType, Set<String> allowedActions,
-        String factVersion, String recoverableError) {}
-TaskBindingInspection inspect(TaskBindingInspectionQuery query);
 TaskStateMachineDefinition getPublished(Long tenantId);
 TaskStateMachineDefinition publish(PublishTaskStateMachineCommand command);
 ```
 
 - [ ] **Step 1: 实现核心动作和值域封闭**
 
-只接受`start/submit/complete/cancel`；按冻结状态机执行`PENDING_START→IN_PROGRESS→PENDING_ACCEPT→DONE`和未终态→CLOSED。execute只允许当前负责人，complete/cancel只允许MANAGE且满足规则主体。
+只接受`start/submit/complete/cancel`；按冻结状态机执行`PENDING_START→IN_PROGRESS→PENDING_ACCEPT→DONE`和4个非终态→CLOSED。execute只允许当前负责人，complete/cancel只允许MANAGE且满足规则主体。START以服务端事务时点写`actual_start_time`（已有值不覆盖）；CANCEL写`actual_end_time`，不得由客户端提交实际时间。
 
 - [ ] **Step 2: 实现TASK_NATIVE完成判定**
 
-complete重验任务、执行契约、状态机、子任务、依赖、门禁、契约版本和任务版本；每次命令追加判定。成功时判定、DONE、进度100、审计和单个`TaskCompleted`同事务；失败判定不推进任务。
+complete重验任务、执行契约、状态机、子任务、依赖、门禁、契约版本和任务版本；每次命令追加判定。成功时以同一服务端事务时点写`actual_end_time`，并将判定、DONE、进度100、审计和单个`TaskCompleted`同事务提交；失败判定不推进任务。
 
 - [ ] **Step 3: 实现状态机草稿与发布**
 
 只允许`pms:project-task-state:manage`租户管理员；发布版本append-only，核心状态不可删改，未知映射/角色/条件失败关闭，新任务才冻结新版本。
 
-- [ ] **Step 4: 修正治理守卫当前真值**
+- [ ] **Step 4: 扩展项目任务Outbox处理入口**
+
+将Task 6的`ProjectTaskOutboxDeliveryJob`领取集合扩展为`TaskAssigned/TaskCompleted`，按事件类型反序列化并发布带`eventId`的`TaskCompletedMessage`；未知类型、非法payload和发布异常失败关闭并安排重试，成功才CAS标记DELIVERED。不发送通知、不创建模板或推断收件人。
+
+- [ ] **Step 5: 修正治理守卫当前真值**
 
 `ProjectTaskGovernanceGuardProvider`改为只读取`proj_project_task`并按`DONE/CLOSED`解释终态；删除其对旧`pms_project_task`状态整数的依赖，保持公共守卫契约不变。
 
-- [ ] **Step 5: 补回归并提交**
+- [ ] **Step 6: 补回归并提交**
 
-覆盖主链、取消、未知动作/状态、非负责人、无权完成、旧契约/事实、未满足项、重复提交、发布冻结和治理守卫不漏检。
+覆盖主链、START实际开始时间、DONE/CLOSED实际结束时间、取消、未知动作/状态、非负责人、无权完成、旧契约/事实、未满足项、重复提交、发布冻结、TaskCompleted领取/失败重试/eventId交付CAS和治理守卫不漏检。
 
-Run: `mvn.cmd -pl pms-module-project -am '-Dtest=ProjectTaskLifecycleServiceTest,TaskStateMachineServiceTest,ProjectTaskGovernanceGuardProviderTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
+Run: `mvn.cmd -pl pms-module-project -am '-Dtest=ProjectTaskLifecycleServiceTest,TaskStateMachineServiceTest,ProjectTaskOutboxDeliveryJobTest,ProjectTaskGovernanceGuardProviderTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
 
 Expected: 聚焦测试PASS。提交：`feat(project): 闭合原生任务状态与完成判定`
 
@@ -379,12 +405,15 @@ Expected: 聚焦测试PASS。提交：`feat(project): 闭合原生任务状态�
 
 **Files:**
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskProgressService.java`
+- Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/command/UpdateTaskProgressCommand.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/taskworkbench/query/ApplicableLeafTaskProgressQuery.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/taskworkbench/ProjectTaskRuntimeMapper.java`
 - Modify: `pms-module-project/src/main/resources/mapper/taskworkbench/ProjectTaskRuntimeMapper.xml`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectprogress/ProjectProgressFactMapper.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskLifecycleService.java`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskCommandService.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/vo/ProjectTaskUpdateReqVO.java`
+- Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/taskworkbench/ProjectTaskWorkbenchController.java`
 
 **Interfaces:**
 
@@ -392,25 +421,30 @@ Expected: 聚焦测试PASS。提交：`feat(project): 闭合原生任务状态�
 Optional<ProjectProgressFact> recompute(Long tenantId, Long projectId,
         long expectedTaskProgressVersion, LocalDateTime occurredAt);
 List<ApplicableLeafTaskProgress> selectApplicableLeaves(ApplicableLeafTaskProgressQuery query);
+TaskCommandResult updateProgress(UpdateTaskProgressCommand command);
 ```
 
-- [ ] **Step 1: 实现叶子任务参与集合和权重**
+- [ ] **Step 1: 在既有PATCH下增加互斥的进度执行分支**
+
+`PATCH /api/v1/pms/project-tasks/{id}`继续使用`If-Match`。当请求仅含`progress`时路由到`updateProgress`；`progress`与名称、业务层级、计划时间、优先级、排序或描述任一字段混合提交立即拒绝。进度分支只允许`IN_PROGRESS`、当前有效负责人、`pms:project-task:execute`和ProjectTreeScope `EDIT`同时满足，取值为0～99；租户、负责人、状态和任务版本均在写入前回源重验。
+
+- [ ] **Step 2: 实现叶子任务参与集合和权重**
 
 只选择当前适用叶子任务；正数`estimated_hours`按工时权重，缺失/非正数按1，全部缺失时等权。父任务不重复计数；CLOSED保留关闭前进度且不视为100。
 
-- [ ] **Step 2: 原子递增水位并追加事实**
+- [ ] **Step 3: 原子写任务进度、递增水位并追加事实**
 
-进度、适用性或终态变化时CAS递增`task_progress_version`并追加`fact_source_type=PROJECT_TASK/fact_source_id=projectId`事实，来源水位冻结`taskTreeVersion/taskProgressVersion/participantCount`；无参与叶子任务不生成0事实。
+进度PATCH在同一事务内执行任务版本CAS、写0～99、递增`task_progress_version`并追加`fact_source_type=PROJECT_TASK/fact_source_id=projectId`事实和审计。其他适用性或终态变化也走同一重算入口；来源水位冻结`taskTreeVersion/taskProgressVersion/participantCount`，无参与叶子任务不生成0事实。任一步失败时任务进度、水位和事实均不变。
 
-- [ ] **Step 3: 接入F-PROJ-002消费契约**
+- [ ] **Step 4: 接入F-PROJ-002消费契约**
 
 保持`ProjectProgressSnapshotService`只消费最新合法版本；确认任务事实缺失继续形成PENDING，不用`proj_project.progress`兼容字段替代。
 
-- [ ] **Step 4: 补回归并提交**
+- [ ] **Step 5: 补回归并提交**
 
-覆盖工时加权、部分缺失、全缺失等权、父任务去重、PENDING/IN_PROGRESS/PENDING_ACCEPT/DONE/CLOSED、空事实和并发水位冲突。
+覆盖PATCH仅progress成功、混合资料+progress拒绝、非IN_PROGRESS、非当前负责人、缺少execute/EDIT、越界值、旧If-Match及无副作用；覆盖工时加权、部分缺失、全缺失等权、父任务去重、PENDING/IN_PROGRESS/PENDING_ACCEPT/DONE/CLOSED、空事实和并发水位冲突。
 
-Run: `mvn.cmd -pl pms-module-project -am '-Dtest=ProjectTaskProgressServiceTest,ProjectProgressSnapshotServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
+Run: `mvn.cmd -pl pms-module-project -am '-Dtest=ProjectTaskProgressServiceTest,ProjectTaskWorkbenchControllerTest,ProjectProgressSnapshotServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
 
 Expected: 聚焦测试PASS。提交：`feat(project): 生产项目任务进度事实`
 
@@ -435,6 +469,8 @@ Expected: 聚焦测试PASS。提交：`feat(project): 生产项目任务进度�
 export const getProjectWorkspace: (projectId: number) => Promise<ProjectWorkspace>
 export const getProjectTasks: (projectId: number, params: TaskTreeQuery) => Promise<CursorResult<TaskNode>>
 export const getTaskWorkbench: (taskId: number) => Promise<TaskWorkbench>
+export const getTaskAssigneeCandidates: (taskId: number, params: CandidatePageQuery) => Promise<PageResult<TaskAssigneeCandidate>>
+export const updateTaskProgress: (taskId: number, progress: number, version: number) => Promise<TaskCommandResult>
 export const executeTaskAction: (taskId: number, action: TaskAction, command: TaskActionCommand) => Promise<TaskCommandResult>
 ```
 
@@ -444,7 +480,7 @@ export const executeTaskAction: (taskId: number, action: TaskAction, command: Ta
 
 - [ ] **Step 2: 实现服务端真值驱动的操作**
 
-创建、移动、指派、start/submit/complete/cancel只使用服务端`allowedActions`；命令传`Idempotency-Key/If-Match`及树版本，不从角色名或按钮可见性推断权限。
+创建、移动、指派、start/submit/complete/cancel只使用服务端`allowedActions`；指派弹窗通过Task 6的`GET /project-tasks/{id}/assignee-candidates`分页加载候选，不复用服务经理专属路由。IN_PROGRESS进度编辑只调用同一PATCH的progress-only分支并传`If-Match`，不与资料字段混合。状态命令传`Idempotency-Key/If-Match`及树版本，不从角色名或按钮可见性推断权限。
 
 - [ ] **Step 3: 退役V1.7写入口**
 
@@ -452,7 +488,7 @@ export const executeTaskAction: (taskId: number, action: TaskAction, command: Ta
 
 - [ ] **Step 4: 补组件验证并提交**
 
-覆盖按需加载、刷新持久化、失败关闭、服务端允许动作、窄屏Drawer和旧入口跳转；定向运行组件测试、类型检查、ESLint、Stylelint和本地构建。
+覆盖按需加载、候选分页、进度0～99、进度与资料分离提交、刷新持久化、失败关闭、服务端允许动作、窄屏Drawer和旧入口跳转；定向运行组件测试、类型检查、ESLint、Stylelint和本地构建。
 
 Run: `corepack pnpm vitest run src/views/pms/project/project-master-detail/components/ProjectTaskPanel.spec.ts`
 
@@ -475,6 +511,7 @@ Expected: 定向组件、类型、样式和构建PASS。提交：`feat(ui): 建�
 **Files:**
 - Create: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskWorkbenchMySqlTest.java`
 - Create: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskTreePerformanceTest.java`
+- Create: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/ProjectTaskOutboxDeliveryMySqlTest.java`
 - Create: `tasks/evidence/f-proj-007-browser-regression.json`
 - Modify: `tasks/features/F-PROJ-007.md`
 
@@ -484,15 +521,15 @@ Expected: 定向组件、类型、样式和构建PASS。提交：`feat(ui): 建�
 
 - [ ] **Step 1: 在全新隔离MySQL执行迁移与业务闭环**
 
-使用当前工作树独立Compose项目从空库执行V1～V89；验证模板/人工创建、闭包、依赖、责任区间、状态机、完成判定、项目进度事实、唯一约束、事务回滚和旧表零新写入。
+使用当前工作树独立Compose项目从空库执行V1～V89；验证模板/人工创建、闭包、依赖、责任区间、状态机、进度PATCH、完成判定、项目进度事实、唯一约束、事务回滚和旧表零新写入。对`TaskAssigned/TaskCompleted`真实Outbox行模拟首次发布失败、到期重试和成功交付，证明eventId不变、DELIVERED后不再领取且任务/责任/完成判定等业务事实不重复。
 
 - [ ] **Step 2: 执行规模与并发验收**
 
-在200万任务、单树5万节点、直接子节点2000、深度30数据下，对权限过滤后的基础查询记录P95≤2秒；验证更深层级保持正确且按需加载。并发覆盖移动、指派、完成、状态机发布和进度水位CAS。
+在200万任务、单树5万节点、直接子节点2000、深度30数据下，对权限过滤后的基础查询记录P95≤2秒；验证更深层级保持正确且按需加载。并发覆盖移动、指派、完成、状态机发布、进度水位CAS和同eventId Outbox领取/交付CAS。
 
 - [ ] **Step 3: 执行真实浏览器闭环**
 
-优先使用内置浏览器；验证创建→指派→开始→提交→完成、移动、五种查询、刷新持久化、权限负向、未知绑定失败关闭及320/768/1024/1440响应式。记录截图、控制台/网络错误和证据ID。
+优先使用内置浏览器；验证创建→候选分页→指派→开始并记录实际开始时间→进度0～99→提交→完成并记录实际结束时间、取消写结束时间、移动、五种查询、刷新持久化、权限负向、未知绑定失败关闭及320/768/1024/1440响应式。记录截图、控制台/网络错误和证据ID。
 
 - [ ] **Step 4: 执行完整验证与独立复审**
 
@@ -502,7 +539,7 @@ Run: `python scripts/validate_specification_baseline.py`
 
 Run: `git diff --check`
 
-Expected: 后端Reactor、受管快照、前端Task 9命令、真实MySQL、性能和浏览器证据全部PASS；基础框架目录无变更。按规定格式请求独立Implementation Done裁决。
+Expected: 后端Reactor、受管快照、前端Task 9命令、真实MySQL、Outbox失败重试/eventId幂等、性能和浏览器证据全部PASS；基础框架目录无变更。按规定格式请求独立Implementation Done裁决。
 
 - [ ] **Step 5: 回写并提交**
 
@@ -510,9 +547,18 @@ Expected: 后端Reactor、受管快照、前端Task 9命令、真实MySQL、性�
 
 ---
 
+## Technical Plan Review Closure
+
+针对裁决`NPDMS-FPROJ007-TECHPLAN-20260825-01`的四项NO-GO整改：
+
+1. Task 1已明确6张新表、4条线性迁移、4条CANCEL迁移，以及默认PUBLISHED版本创建后对全部存量任务执行同租户、无NULL的确定性回填；
+2. `TaskNativeBindingHostProvider`的只读inspect/allowedActions创建与注册已前移至Task 4，Task 7不再成为Task 4前置；
+3. Task 6增加候选分页HTTP路由及assign+MANAGE守卫，Task 9增加前端API；Task 8增加progress-only PATCH、execute+EDIT+当前负责人守卫及同事务进度事实，Task 7明确实际开始/结束时间；
+4. Task 6最小扩展PLATFORM公共Outbox按封闭事件集合领取并建立TaskAssigned处理入口，Task 7加入TaskCompleted，Task 10验证失败重试、eventId交付幂等和不重复业务事实，不新增通知模板或收件人。
+
 ## Plan Self-Review
 
-- Spec coverage：Task 1～3覆盖物理模型、任意深度树、依赖、责任和状态机；Task 4覆盖查询/工作台宿主；Task 5～8覆盖全部写命令、TASK_NATIVE和进度事实；Task 9～10覆盖旧入口退役、响应式UI及AC-FPROJ007-001～013。
+- Spec coverage：Task 1～3覆盖6张新表、任意深度树、依赖、责任和状态机；Task 4覆盖查询及TASK_NATIVE只读Provider；Task 5～8覆盖全部写命令、候选HTTP链、实际时间、进度PATCH、TASK_NATIVE、Outbox投递和进度事实；Task 9～10覆盖旧入口退役、响应式UI及AC-FPROJ007-001～013。
 - Scope control：未纳入V2甘特图、资源拉平、PM-09、非原生Owner实现、AI-MIG、Deployment、SIT、UAT或Release。
 - Type consistency：所有后端当前任务类型统一复用`ProjectTaskInstanceDO`；新服务统一使用`taskworkbench`包；状态、权限、事件、API路径与Feature物理契约一致。
 - Placeholder scan：计划不含待定实现项；真实证据ID只在Task 10执行后由浏览器运行事实生成，不在计划阶段伪造。
