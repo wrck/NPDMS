@@ -31,6 +31,7 @@ class FProj006Task2PersistenceTest(unittest.TestCase):
                              "projectgovernance/query/ProjectGovernanceHistoryPageQuery.java").read_text(encoding="utf-8")
         self.assertIn("PageParam pageParam", page_query)
         self.assertIn("MAX_PAGE_SIZE = 200", page_query)
+        self.assertIn("pageParam = copy", page_query)
 
     def test_snapshot_mapper_has_only_append_insert_and_read_contracts(self) -> None:
         mapper = (ROOT / "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/"
@@ -49,6 +50,12 @@ class FProj006Task2PersistenceTest(unittest.TestCase):
         self.assertIn(lock_call, self.snapshot_repository)
         self.assertIn(select_call, self.snapshot_repository)
         self.assertLess(self.snapshot_repository.index(lock_call), self.snapshot_repository.index(select_call))
+        self.assertIn("FOR UPDATE", self.snapshot)
+
+    def test_snapshot_append_uses_trusted_tenant_context(self) -> None:
+        self.assertIn("TenantContextHolder.getRequiredTenantId()", self.snapshot_repository)
+        self.assertIn("snapshot.setTenantId(tenantId)", self.snapshot_repository)
+        self.assertIn("snapshot tenant must match trusted tenant context", self.snapshot_repository)
 
     def test_project_governance_update_is_tenant_scoped_cas(self) -> None:
         update = self.project.split('<update id="updateGovernanceStateIfMatch">', 1)[1].split("</update>", 1)[0]

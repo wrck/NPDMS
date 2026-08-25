@@ -18,6 +18,10 @@ public record ProjectGovernanceHistoryPageQuery(
                 || pageParam.getPageSize() > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("pageSize must be between 1 and " + MAX_PAGE_SIZE);
         }
+        PageParam copy = new PageParam();
+        copy.setPageNo(pageParam.getPageNo());
+        copy.setPageSize(pageParam.getPageSize());
+        pageParam = copy;
     }
 
     public long offset() {

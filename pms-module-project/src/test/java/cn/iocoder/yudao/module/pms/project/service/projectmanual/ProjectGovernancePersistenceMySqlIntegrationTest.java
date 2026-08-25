@@ -106,6 +106,7 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
         snapshotRepository.append(close);
 
         CountDownLatch firstLocked = new CountDownLatch(1);
+        CountDownLatch secondReadViewEstablished = new CountDownLatch(1);
         CountDownLatch releaseFirst = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(2)) {
             var first = executor.submit(() -> inTenantTransaction(() -> {
@@ -119,9 +120,17 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
             }));
             firstLocked.await();
 
-            var second = executor.submit(() -> inTenantTransaction(() ->
-                    snapshotRepository.selectLatestReusableExceptionCloseForUpdate(
-                            new ProjectExceptionCloseSnapshotQuery(0L, project.id()))));
+            var second = executor.submit(() -> inTenantTransaction(() -> {
+                assertEquals("REPEATABLE-READ", jdbcTemplate.queryForObject(
+                        "SELECT @@transaction_isolation", String.class));
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM proj_project_stage_snapshot WHERE tenant_id=0 AND project_id=?",
+                        Long.class, project.id());
+                secondReadViewEstablished.countDown();
+                return snapshotRepository.selectLatestReusableExceptionCloseForUpdate(
+                        new ProjectExceptionCloseSnapshotQuery(0L, project.id()));
+            }));
+            await(secondReadViewEstablished);
             try {
                 assertThrows(TimeoutException.class, () -> second.get(300, TimeUnit.MILLISECONDS));
                 assertFalse(second.isDone());
@@ -136,6 +145,19 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
                 "SELECT COUNT(*) FROM proj_project_stage_snapshot WHERE tenant_id=0 AND project_id=? "
                         + "AND operation_type='REOPEN' AND related_snapshot_id=?",
                 Long.class, project.id(), close.getId()));
+    }
+
+    @Test
+    void appendRejectsSnapshotFromAnotherTenantWithoutSideEffects() {
+        var project = applicationService.create(newCommand(), newActor());
+        ProjectStageSnapshotDO close = exceptionCloseSnapshot(
+                project.id(), 1, LocalDateTime.now().withNano(0));
+        close.setTenantId(1L);
+        long before = snapshotCount(project.id());
+
+        assertThrows(IllegalArgumentException.class, () -> snapshotRepository.append(close));
+
+        assertEquals(before, snapshotCount(project.id()));
     }
 
     private int currentVersion(Long projectId) {
@@ -225,5 +247,10 @@ class ProjectGovernancePersistenceMySqlIntegrationTest
 
     private void cleanGovernanceSnapshots() {
         jdbcTemplate.update("DELETE FROM proj_project_stage_snapshot WHERE operation_id LIKE 'fproj006-it-%'");
+    }
+
+    private long snapshotCount(Long projectId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM proj_project_stage_snapshot WHERE project_id=?", Long.class, projectId);
     }
 }
