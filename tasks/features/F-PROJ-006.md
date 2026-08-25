@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > 当前阻断：无当前必停阻断；COLLECTION权威守卫来源证据在Task 5核验，缺失时失败关闭并登记为Feature Done前阻断
-> 当前任务：`Task 1 建立共享快照与权限物理基础`
+> 当前任务：`Task 1 建立共享快照与权限物理基础（待独立裁决）`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
 > Feature物理契约：`specs/features/F-PROJ-006-physical-contract.json`
@@ -34,3 +34,5 @@
 - [ ] Task 10 完成响应式治理界面与Feature验收
 
 > 检查点（2026-08-25）：Feature Ready正式GO；规格提交`cb55c747`已同步至NPDMS基线`8d6e7e7`；新Technical Plan基于V1.8差距审计生成，未复用旧计划；下一步执行Task 1。
+
+> 检查点（2026-08-25）：Task 1已建立V85共享阶段快照和V86原因字典/稳定权限种子；迁移契约7/7、Project Reactor编译PASS；当前仅待独立Implementation Done裁决，不提前进入Task 2。
