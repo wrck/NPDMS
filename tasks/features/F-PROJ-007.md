@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ007-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
-> 当前阻断：`无`
+> 当前阻断：`待独立复审：Task 2当前任务树持久化实现`
 > 当前任务：`Task 2 实现当前任务、闭包路径和版本水位持久化`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
@@ -23,5 +23,6 @@
 - [x] 闭环首次计划复审四项NO-GO
 - [x] 获得Technical Plan独立裁决
 - [x] Task 1 Implementation Done（独立裁决GO；`63c442b`、`20edc84`、`7637add`）
+- [ ] Task 2 Implementation Done（实现及本地验证完成，待独立裁决）
 
-> 检查点（2026-08-25）：Task 1已获独立GO并回写PASS；当前推进Task 2“当前任务、闭包路径和版本水位持久化”，既有PRD/SDS/Feature Ready/Technical Plan门禁保持关闭。
+> 检查点（2026-08-25）：基线`5f37b2d`；当前Gate为Task 2 Implementation Done；五类查询、锁顺序、闭包移动、独立版本CAS及回滚经真实MySQL 5/5 PASS，25模块构建与快照校验PASS；待提交并独立复审。

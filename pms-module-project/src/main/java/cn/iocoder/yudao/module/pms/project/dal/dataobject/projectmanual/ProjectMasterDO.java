@@ -265,6 +265,14 @@ public class ProjectMasterDO extends TenantBaseDO {
      */
     private String assignmentStatus;
     /**
+     * 项目内任务树结构版本水位
+     */
+    private Long taskTreeVersion;
+    /**
+     * 项目内任务进度事实版本水位
+     */
+    private Long taskProgressVersion;
+    /**
      * V1.7兼容读字段；F-PROJ-002新写命令以版本化进度事实和快照为真值。
      */
     private BigDecimal progress;

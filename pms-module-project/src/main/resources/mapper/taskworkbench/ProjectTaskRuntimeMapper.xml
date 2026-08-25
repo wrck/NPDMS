@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper">
+
+    <sql id="taskColumns">
+        task.id, task.project_id, task.task_code, task.name, task.parent_task_code,
+        task.parent_task_id, task.root_task_id, task.tree_depth, task.business_level_code,
+        task.milestone_id, task.plan_start_time, task.plan_end_time, task.actual_start_time,
+        task.actual_end_time, task.progress, task.state_machine_revision_id, task.stage_code,
+        task.priority, task.sort_order, task.estimated_hours, task.satisfaction_timing,
+        task.description, task.source_definition_id, task.status, task.version,
+        task.creator, task.create_time, task.updater, task.update_time, task.deleted, task.tenant_id
+    </sql>
+
+    <select id="selectTreeQuery"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        <if test="query.mode.name() == 'ALL_DESCENDANTS'">
+            JOIN proj_task_tree_path path
+              ON path.tenant_id = task.tenant_id
+             AND path.project_id = task.project_id
+             AND path.descendant_task_id = task.id
+             AND path.ancestor_task_id = #{query.targetTaskId}
+             AND path.distance &gt; 0
+             AND path.deleted = b'0'
+        </if>
+        <if test="query.mode.name() == 'ANCESTOR_CHAIN'">
+            JOIN proj_task_tree_path path
+              ON path.tenant_id = task.tenant_id
+             AND path.project_id = task.project_id
+             AND path.ancestor_task_id = task.id
+             AND path.descendant_task_id = #{query.targetTaskId}
+             AND path.distance &gt; 0
+             AND path.deleted = b'0'
+        </if>
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.deleted = b'0'
+          AND task.project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+          AND task.id IN
+        <foreach collection="query.visibleTaskIds" item="taskId" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+        <choose>
+            <when test="query.mode.name() == 'DIRECT_CHILDREN'">
+                <choose>
+                    <when test="query.parentTaskId != null">
+                        AND task.parent_task_id = #{query.parentTaskId}
+                    </when>
+                    <otherwise>
+                        AND task.parent_task_id IS NULL
+                    </otherwise>
+                </choose>
+            </when>
+            <when test="query.mode.name() == 'BUSINESS_LEVEL'">
+                AND task.business_level_code = #{query.businessLevelCode}
+            </when>
+            <when test="query.mode.name() == 'LOCATE'">
+                <choose>
+                    <when test="query.targetTaskId != null">
+                        AND task.id = #{query.targetTaskId}
+                    </when>
+                    <otherwise>
+                        AND (task.task_code LIKE CONCAT('%', #{query.keyword}, '%')
+                            OR task.name LIKE CONCAT('%', #{query.keyword}, '%'))
+                    </otherwise>
+                </choose>
+            </when>
+        </choose>
+        <if test="query.cursorSortOrder != null and query.cursorTaskId != null">
+            AND (COALESCE(task.sort_order, 0) &gt; #{query.cursorSortOrder}
+                OR (COALESCE(task.sort_order, 0) = #{query.cursorSortOrder}
+                    AND task.id &gt; #{query.cursorTaskId}))
+        </if>
+        ORDER BY COALESCE(task.sort_order, 0), task.id
+        LIMIT #{query.pageSize}
+    </select>
+
+    <select id="selectProjectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT *
+        FROM proj_project
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectSourceTaskForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT *
+        FROM proj_project_task
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.sourceTaskId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectTargetParentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT *
+        FROM proj_project_task
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.targetParentTaskId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectMovedSubtreeForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT task.*
+        FROM proj_task_tree_path path
+        JOIN proj_project_task task
+          ON task.tenant_id = path.tenant_id
+         AND task.project_id = path.project_id
+         AND task.id = path.descendant_task_id
+         AND task.deleted = b'0'
+        WHERE path.tenant_id = #{query.tenantId}
+          AND path.project_id = #{query.projectId}
+          AND path.ancestor_task_id = #{query.sourceTaskId}
+          AND path.descendant_task_id &lt;&gt; #{query.sourceTaskId}
+          AND path.deleted = b'0'
+        ORDER BY task.id
+        FOR UPDATE
+    </select>
+
+    <select id="existsTargetInsideMovedSubtree" resultType="int">
+        SELECT COUNT(*)
+        FROM proj_task_tree_path
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND ancestor_task_id = #{query.sourceTaskId}
+          AND descendant_task_id = #{query.targetParentTaskId}
+          AND deleted = b'0'
+    </select>
+
+    <update id="updateStructureIfMatch">
+        UPDATE proj_project_task
+        SET parent_task_id = #{query.targetParentTaskId},
+            root_task_id = #{query.newRootTaskId},
+            tree_depth = #{query.newTreeDepth},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedTaskVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="incrementTaskTreeVersion">
+        UPDATE proj_project
+        SET task_tree_version = task_tree_version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND task_tree_version = #{query.expectedTaskTreeVersion}
+          AND deleted = b'0'
+    </update>
+
+    <delete id="deleteOldExternalPaths">
+        DELETE external_path
+        FROM proj_task_tree_path external_path
+        JOIN proj_task_tree_path subtree
+          ON subtree.tenant_id = external_path.tenant_id
+         AND subtree.project_id = external_path.project_id
+         AND subtree.ancestor_task_id = #{query.taskId}
+         AND subtree.descendant_task_id = external_path.descendant_task_id
+         AND subtree.deleted = b'0'
+        LEFT JOIN proj_task_tree_path internal_ancestor
+          ON internal_ancestor.tenant_id = external_path.tenant_id
+         AND internal_ancestor.project_id = external_path.project_id
+         AND internal_ancestor.ancestor_task_id = #{query.taskId}
+         AND internal_ancestor.descendant_task_id = external_path.ancestor_task_id
+         AND internal_ancestor.deleted = b'0'
+        WHERE external_path.tenant_id = #{query.tenantId}
+          AND external_path.project_id = #{query.projectId}
+          AND external_path.deleted = b'0'
+          AND internal_ancestor.id IS NULL
+    </delete>
+
+    <insert id="insertNewExternalPaths">
+        INSERT INTO proj_task_tree_path
+            (project_id, ancestor_task_id, descendant_task_id, distance,
+             version, creator, updater, tenant_id)
+        SELECT #{query.projectId}, parent_path.ancestor_task_id, subtree.descendant_task_id,
+               parent_path.distance + subtree.distance + 1,
+               0, #{query.updater}, #{query.updater}, #{query.tenantId}
+        FROM proj_task_tree_path parent_path
+        JOIN proj_task_tree_path subtree
+          ON subtree.tenant_id = parent_path.tenant_id
+         AND subtree.project_id = parent_path.project_id
+         AND subtree.ancestor_task_id = #{query.taskId}
+         AND subtree.deleted = b'0'
+        WHERE #{query.targetParentTaskId} IS NOT NULL
+          AND parent_path.tenant_id = #{query.tenantId}
+          AND parent_path.project_id = #{query.projectId}
+          AND parent_path.descendant_task_id = #{query.targetParentTaskId}
+          AND parent_path.deleted = b'0'
+    </insert>
+
+    <update id="updateMovedSubtreeShape">
+        UPDATE proj_project_task task
+        JOIN proj_task_tree_path subtree
+          ON subtree.tenant_id = task.tenant_id
+         AND subtree.project_id = task.project_id
+         AND subtree.descendant_task_id = task.id
+         AND subtree.ancestor_task_id = #{query.taskId}
+         AND subtree.deleted = b'0'
+        SET task.root_task_id = #{query.newRootTaskId},
+            task.tree_depth = task.tree_depth + #{query.depthDelta},
+            task.updater = #{query.updater},
+            task.update_time = CURRENT_TIMESTAMP(3)
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.id &lt;&gt; #{query.taskId}
+          AND task.deleted = b'0'
+    </update>
+
+</mapper>
