@@ -5,8 +5,8 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ007-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
-> 当前阻断：`待独立复审：Task 3持久化实现`
-> 当前任务：`Task 3 实现依赖、责任区间、状态机版本和完成判定持久化`
+> 当前阻断：`无`
+> 当前任务：`Task 4 提供项目工作区、任务树、详情和工作台只读API`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
@@ -24,6 +24,6 @@
 - [x] 获得Technical Plan独立裁决
 - [x] Task 1 Implementation Done（独立裁决GO；`63c442b`、`20edc84`、`7637add`）
 - [x] Task 2 Implementation Done（独立裁决GO；`fa55d74`、`ef4e955`）
-- [ ] Task 3 Implementation Done（实现及本地验证完成，待独立裁决）
+- [x] Task 3 Implementation Done（独立裁决GO；`8c2f0f1`）
 
-> 检查点（2026-08-25）：基线`5f37b2d`；当前Gate为Task 3 Implementation Done；依赖无环、责任区间、追加完成判定、状态机校验与并发发布经空库V1→V89、真实MySQL 7/7及25模块构建PASS；待提交并独立复审。
+> 检查点（2026-08-25）：Task 3独立裁决GO；依赖、责任区间、追加完成判定及状态机版本持久化以`8c2f0f1`闭环，空库V1→V89、真实MySQL 7/7及25模块构建PASS；推进Task 4只读API与TASK_NATIVE Provider。
