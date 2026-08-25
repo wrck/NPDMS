@@ -1,16 +1,16 @@
 # F-PROJ-006 项目回退、异常关闭与受控重开
 
-> Feature实施状态：`IMPLEMENTATION_PLANNED`
-> 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
-> Implementation Done Gate：`NOT_STARTED`
+> Implementation Done Gate：`PASS / fc9f8b1 / 独立复审GO`
 > 当前阻断：无；`COLLECTION`仅预留公共接口，INT-12后续实施，不作为当前Feature前置
-> 当前任务：`Task 10 完成正向治理浏览器闭环与Feature验收`
+> 当前任务：`已完成；按工程链推进下一Feature`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
 > Feature物理契约：`specs/features/F-PROJ-006-physical-contract.json`
 > Technical Plan：`docs/superpowers/plans/2026-08-25-f-proj-006-project-rollback-exception-close-and-reopen.md`
-> 锁定规格提交：`126ba19c4ab5a62b13248d0cd1bbdc15ae35b19b`
+> 锁定规格提交：`73a9481f540ad3e101a17eea159d136e427672ee`
 
 ## 事实边界
 
@@ -31,6 +31,6 @@
 - [x] Task 7 实现回退命令闭环（PASS / `1ea4411..0722afc` / 独立裁决GO）
 - [x] Task 8 实现异常关闭与受控重开（PASS / `bc3d086` / 独立裁决GO）
 - [x] Task 9 提供治理API与append-only历史查询（PASS / `e5e5687..1beb732` / 独立裁决GO）
-- [ ] Task 10 完成响应式治理界面与Feature验收（既有UI/自动化/真实MySQL/四档响应式/主题/P3-E08均已闭环；正向浏览器三动作及刷新后历史保持PASS，待独立复审）
+- [x] Task 10 完成响应式治理界面与Feature验收（PASS / `fc9f8b1` / 独立裁决GO）
 
-> 检查点（2026-08-25）：规格基线`126ba19`；Task 1～9已PASS，P3-E08已VERIFIED，COLLECTION仅预留；Task 10正向浏览器回退→异常关闭→重开与刷新后3条历史已PASS，隔离库V1～V87及物理审计/Outbox/幂等已核验；下一步独立复审Task 10与Feature Done。
+> 检查点（2026-08-25）：F-PROJ-006 Task 1～10与Implementation Done经独立复审GO；提交`fc9f8b1`完成回退→异常关闭→重开真实浏览器闭环，隔离库V1～V87及快照、审计、Outbox、幂等核验PASS；COLLECTION仅预留，下一步按工程链定位首个未完成Feature。
