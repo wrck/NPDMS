@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench.command;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public final class ProjectTaskCommands {
 
@@ -17,7 +19,33 @@ public final class ProjectTaskCommands {
     public record UpdateTaskCommand(Long taskId, Integer expectedTaskVersion, String name,
                                     String businessLevelCode, LocalDateTime planStartTime,
                                     LocalDateTime planEndTime, Integer priority, Integer sortOrder,
-                                    String description) {
+                                    String description, Set<String> submittedFields) {
+        public UpdateTaskCommand {
+            submittedFields = submittedFields == null ? null : Set.copyOf(submittedFields);
+        }
+
+        public UpdateTaskCommand(Long taskId, Integer expectedTaskVersion, String name,
+                                 String businessLevelCode, LocalDateTime planStartTime,
+                                 LocalDateTime planEndTime, Integer priority, Integer sortOrder,
+                                 String description) {
+            this(taskId, expectedTaskVersion, name, businessLevelCode, planStartTime, planEndTime,
+                    priority, sortOrder, description, inferSubmittedFields(name, businessLevelCode,
+                            planStartTime, planEndTime, priority, sortOrder, description));
+        }
+
+        private static Set<String> inferSubmittedFields(String name, String businessLevelCode,
+                                                        LocalDateTime planStartTime, LocalDateTime planEndTime,
+                                                        Integer priority, Integer sortOrder, String description) {
+            Set<String> fields = new LinkedHashSet<>();
+            if (name != null) fields.add("name");
+            if (businessLevelCode != null) fields.add("businessLevelCode");
+            if (planStartTime != null) fields.add("planStartTime");
+            if (planEndTime != null) fields.add("planEndTime");
+            if (priority != null) fields.add("priority");
+            if (sortOrder != null) fields.add("sortOrder");
+            if (description != null) fields.add("description");
+            return Set.copyOf(fields);
+        }
     }
 
     public record MoveTaskCommand(Long taskId, Integer expectedTaskVersion, Long targetParentTaskId,

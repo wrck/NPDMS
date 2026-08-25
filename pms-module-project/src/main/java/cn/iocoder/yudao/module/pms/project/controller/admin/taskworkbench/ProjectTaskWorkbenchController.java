@@ -119,7 +119,8 @@ public class ProjectTaskWorkbenchController {
         int expectedVersion = parseIfMatch(ifMatch);
         return withTrustedTenant(() -> success(commandService.update(new UpdateTaskCommand(taskId,
                 expectedVersion, request.getName(), request.getBusinessLevelCode(), request.getPlanStartTime(),
-                request.getPlanEndTime(), request.getPriority(), request.getSortOrder(), request.getDescription()),
+                request.getPlanEndTime(), request.getPriority(), request.getSortOrder(), request.getDescription(),
+                request.getSubmittedFields()),
                 actor())));
     }
 

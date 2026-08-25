@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVersionUpdate;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -364,15 +365,21 @@ class ProjectTaskRuntimeMapperTest {
 
         assertEquals(1, mapper.updateBasicIfMatch(new ProjectTaskBasicUpdate(
                 0L, newTaskId, 0, "更新任务", "L3", null, null,
-                7, 951, "更新描述", "fproj007-task5-test")));
+                7, 951, "更新描述", "fproj007-task5-test",
+                Set.of("name", "businessLevelCode", "priority", "sortOrder", "description"))));
         assertEquals("更新任务", jdbcTemplate.queryForObject(
                 "SELECT name FROM proj_project_task WHERE id=?", String.class, newTaskId));
-        assertEquals(1, mapper.incrementTaskVersionIfMatch(
-                0L, newTaskId, 1, "fproj007-task5-test"));
+        assertEquals(1, mapper.incrementTaskVersionIfMatch(new TaskVersionUpdate(
+                0L, newTaskId, 1, "fproj007-task5-test")));
         assertEquals(2, jdbcTemplate.queryForObject(
                 "SELECT version FROM proj_project_task WHERE id=?", Integer.class, newTaskId));
-        assertEquals(0, mapper.incrementTaskVersionIfMatch(
-                0L, newTaskId, 1, "fproj007-task5-test"));
+        assertEquals(0, mapper.incrementTaskVersionIfMatch(new TaskVersionUpdate(
+                0L, newTaskId, 1, "fproj007-task5-test")));
+        assertEquals(1, mapper.updateBasicIfMatch(new ProjectTaskBasicUpdate(
+                0L, newTaskId, 2, null, null, null, null,
+                null, null, null, "fproj007-task5-test", Set.of("description"))));
+        assertNull(jdbcTemplate.queryForObject(
+                "SELECT description FROM proj_project_task WHERE id=?", String.class, newTaskId));
     }
 
     private ProjectTaskTreeQuery query(ProjectTaskTreeQuery.Mode mode, Long parentTaskId,

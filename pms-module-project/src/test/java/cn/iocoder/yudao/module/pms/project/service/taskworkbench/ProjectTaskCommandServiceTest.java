@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
@@ -33,8 +34,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_COMMAND_INVALID;
@@ -44,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
@@ -67,15 +71,17 @@ class ProjectTaskCommandServiceTest {
     @Mock ProjectTreeVersionMapper treeVersionMapper;
     @Mock ProjectTreeScopeService treeScopeService;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
+    @Mock OperationAuditApi operationAuditApi;
 
     private ProjectTaskCommandService service;
     private ProjectMasterDO project;
+    private final AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts = new AtomicReference<>();
 
     @BeforeEach
     void setUp() {
         service = new ProjectTaskCommandService(taskMapper, taskInstanceMapper, dependencyMapper, contractMapper,
                 new TaskExecutionContractFactory(), stateMachineMapper, stageMapper, milestoneMapper, memberMapper,
-                treeVersionMapper, treeScopeService, commandExecutionApi);
+                treeVersionMapper, treeScopeService, commandExecutionApi, operationAuditApi);
         project = new ProjectMasterDO();
         project.setId(100L);
         project.setRootId(100L);
@@ -115,6 +121,9 @@ class ProjectTaskCommandServiceTest {
         assertEquals(4L, result.taskTreeVersion());
         verify(contractMapper).insert(any(ProjectTaskExecutionContractDO.class));
         verify(taskMapper).insertNewTaskPaths(any());
+        String audit = successFacts.get().detailSnapshot();
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("stateMachineRevisionId"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("executionContractId"));
     }
 
     @Test
@@ -128,6 +137,55 @@ class ProjectTaskCommandServiceTest {
                 new UpdateTaskCommand(11L, 2, "更新", null, null, null, 1, 0, null), ACTOR));
 
         assertEquals(PROJECT_TASK_VERSION_CONFLICT.getCode(), error.getCode());
+    }
+
+    @Test
+    void updatesPriorityOnly() {
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, 2, "IN_PROGRESS"));
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        when(taskMapper.updateBasicIfMatch(any())).thenReturn(1);
+
+        TaskCommandResult result = service.update(
+                new UpdateTaskCommand(11L, 2, null, null, null, null, 1, null, null), ACTOR);
+
+        assertEquals(3, result.taskVersion());
+        verify(taskMapper).updateBasicIfMatch(argThat(update -> update.name() == null
+                && update.priority() == 1 && update.description() == null));
+    }
+
+    @Test
+    void updatesDescriptionOnly() {
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, 2, "IN_PROGRESS"));
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        when(taskMapper.updateBasicIfMatch(any())).thenReturn(1);
+
+        service.update(new UpdateTaskCommand(
+                11L, 2, null, null, null, null, null, null, "说明"), ACTOR);
+
+        verify(taskMapper).updateBasicIfMatch(argThat(update -> update.name() == null
+                && "说明".equals(update.description()) && update.priority() == null));
+    }
+
+    @Test
+    void clearsSubmittedNullableDescriptionOnly() {
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, 2, "IN_PROGRESS"));
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        when(taskMapper.updateBasicIfMatch(any())).thenReturn(1);
+
+        service.update(new UpdateTaskCommand(11L, 2, null, null, null, null,
+                null, null, null, Set.of("description")), ACTOR);
+
+        verify(taskMapper).updateBasicIfMatch(argThat(update -> update.description() == null
+                && update.submittedFields().equals(Set.of("description"))));
+    }
+
+    @Test
+    void rejectsEmptyPatchWithoutWrites() {
+        ServiceException error = assertThrows(ServiceException.class, () -> service.update(
+                new UpdateTaskCommand(11L, 2, null, null, null, null, null, null, null), ACTOR));
+
+        assertEquals(PROJECT_TASK_COMMAND_INVALID.getCode(), error.getCode());
+        verify(taskMapper, never()).updateBasicIfMatch(any());
     }
 
     @Test
@@ -158,6 +216,49 @@ class ProjectTaskCommandServiceTest {
 
         assertEquals(PROJECT_TASK_COMMAND_INVALID.getCode(), error.getCode());
         verify(dependencyMapper, never()).insert(any(ProjectTaskDependencyDO.class));
+        verify(operationAuditApi).record(eq(0L), eq(9L), eq("trace-1"),
+                eq("PROJECT_TASK_DEPENDENCY_ADD"), eq("ProjectTask"), eq("11"), eq("REJECTED"),
+                argThat(detail -> String.valueOf(PROJECT_TASK_COMMAND_INVALID.getCode())
+                        .equals(detail.get("failureCode"))));
+    }
+
+    @Test
+    void auditsMovePathAndReason() {
+        ProjectTaskInstanceDO source = task(11L, 2, "IN_PROGRESS");
+        source.setParentTaskId(10L);
+        source.setRootTaskId(10L);
+        source.setTreeDepth(1);
+        when(taskMapper.selectTask(any())).thenReturn(source);
+        when(taskMapper.selectMoveLocks(any())).thenReturn(new ProjectTaskRuntimeMapper.ProjectTaskMoveLocks(
+                project, source, null, List.of(source), false));
+        when(taskMapper.updateStructureIfMatch(any())).thenReturn(1);
+        when(taskMapper.incrementTaskTreeVersion(any())).thenReturn(1);
+
+        service.move(new MoveTaskCommand(11L, 2, null, 3L, "调整层级", "key-move", DIGEST), ACTOR);
+
+        String audit = successFacts.get().detailSnapshot();
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"beforeParentTask\":10"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"afterParentTask\":\"ROOT\""));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"reason\":\"调整层级\""));
+    }
+
+    @Test
+    void auditsDependencyEndpointsAndType() {
+        ProjectTaskInstanceDO successor = task(11L, 2, "IN_PROGRESS");
+        ProjectTaskInstanceDO predecessor = task(12L, 1, "IN_PROGRESS");
+        when(taskMapper.selectTask(any())).thenReturn(successor, predecessor);
+        when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
+        when(dependencyMapper.existsDependencyPath(any())).thenReturn(false);
+        when(dependencyMapper.insert(any(ProjectTaskDependencyDO.class))).thenReturn(1);
+        when(taskMapper.incrementTaskVersionIfMatch(any())).thenReturn(1);
+
+        service.addDependency(new AddDependencyCommand(
+                11L, 2, 12L, "FINISH_TO_START", "key-dependency", DIGEST), ACTOR);
+
+        String audit = successFacts.get().detailSnapshot();
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"predecessorTaskId\":12"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"successorTaskId\":11"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"dependencyTypeCode\":\"FINISH_TO_START\""));
     }
 
     @Test
@@ -212,7 +313,7 @@ class ProjectTaskCommandServiceTest {
 
         assertEquals(PROJECT_TASK_COMMAND_INVALID.getCode(), error.getCode());
         verify(dependencyMapper, never()).insert(any(ProjectTaskDependencyDO.class));
-        verify(taskMapper, never()).incrementTaskVersionIfMatch(any(), any(), any(), any());
+        verify(taskMapper, never()).incrementTaskVersionIfMatch(any());
     }
 
     @Test
@@ -235,7 +336,7 @@ class ProjectTaskCommandServiceTest {
                     Supplier operation = invocation.getArgument(3);
                     Object result = operation.get();
                     Function facts = invocation.getArgument(4);
-                    facts.apply(result);
+                    successFacts.set((PlatformCommandExecutionApi.SuccessFacts) facts.apply(result));
                     return new PlatformCommandExecutionApi.ExecutionResult<>(
                             PlatformCommandExecutionApi.Decision.NEW, result);
                 });

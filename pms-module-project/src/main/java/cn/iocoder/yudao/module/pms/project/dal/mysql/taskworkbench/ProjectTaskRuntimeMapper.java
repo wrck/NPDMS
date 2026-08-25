@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVersionUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -83,10 +84,7 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
 
     int updateBasicIfMatch(@Param("query") ProjectTaskBasicUpdate update);
 
-    int incrementTaskVersionIfMatch(@Param("tenantId") Long tenantId,
-                                    @Param("taskId") Long taskId,
-                                    @Param("expectedVersion") Integer expectedVersion,
-                                    @Param("updater") String updater);
+    int incrementTaskVersionIfMatch(@Param("query") TaskVersionUpdate update);
 
     default void rebuildMovedSubtreePaths(ProjectTaskStructureUpdate update) {
         deleteOldExternalPaths(update);

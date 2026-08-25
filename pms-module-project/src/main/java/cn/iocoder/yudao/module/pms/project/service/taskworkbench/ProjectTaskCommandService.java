@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
@@ -27,6 +29,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskDependencyPathQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateMachinePublishedQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVersionUpdate;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AddDependencyCommand;
@@ -40,9 +43,12 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
@@ -58,6 +64,8 @@ public class ProjectTaskCommandService {
     private static final Set<String> DEPENDENCY_TYPES = Set.of(
             "FINISH_TO_START", "START_TO_START", "FINISH_TO_FINISH", "START_TO_FINISH");
     private static final Set<String> TERMINAL_STATUSES = Set.of("DONE", "CLOSED");
+    private static final Set<String> BASIC_UPDATE_FIELDS = Set.of("name", "businessLevelCode", "planStartTime",
+            "planEndTime", "priority", "sortOrder", "description");
 
     private final ProjectTaskRuntimeMapper taskMapper;
     private final ProjectTaskInstanceMapper taskInstanceMapper;
@@ -71,12 +79,21 @@ public class ProjectTaskCommandService {
     private final ProjectTreeVersionMapper projectTreeVersionMapper;
     private final ProjectTreeScopeService treeScopeService;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    private final OperationAuditApi operationAuditApi;
 
     public TaskCommandResult create(CreateTaskCommand command, TaskWorkbenchActor actor) {
-        validateCommon(command == null ? null : command.idempotencyKey(),
-                command == null ? null : command.requestDigest(), actor);
-        return execute("POST:/api/v1/pms/projects/{id}/tasks", command.idempotencyKey(),
-                command.requestDigest(), actor, () -> createOnce(command, actor), "PROJECT_TASK_CREATE");
+        AtomicReference<Map<String, ?>> auditDetail = new AtomicReference<>(Map.of());
+        try {
+            validateCommon(command == null ? null : command.idempotencyKey(),
+                    command == null ? null : command.requestDigest(), actor);
+            return execute("POST:/api/v1/pms/projects/{id}/tasks", command.idempotencyKey(),
+                    command.requestDigest(), actor, () -> createOnce(command, actor, auditDetail),
+                    "PROJECT_TASK_CREATE", auditDetail);
+        } catch (RuntimeException exception) {
+            auditRejected("PROJECT_TASK_CREATE", command == null ? null : command.projectId(), actor,
+                    createRejectedDetail(command, exception));
+            throw exception;
+        }
     }
 
     public TaskCommandResult update(UpdateTaskCommand command, TaskWorkbenchActor actor) {
@@ -85,20 +102,37 @@ public class ProjectTaskCommandService {
     }
 
     public TaskCommandResult move(MoveTaskCommand command, TaskWorkbenchActor actor) {
-        validateCommon(command == null ? null : command.idempotencyKey(),
-                command == null ? null : command.requestDigest(), actor);
-        return execute("POST:/api/v1/pms/project-tasks/{id}/actions/move", command.idempotencyKey(),
-                command.requestDigest(), actor, () -> moveOnce(command, actor), "PROJECT_TASK_MOVE");
+        AtomicReference<Map<String, ?>> auditDetail = new AtomicReference<>(Map.of());
+        try {
+            validateCommon(command == null ? null : command.idempotencyKey(),
+                    command == null ? null : command.requestDigest(), actor);
+            return execute("POST:/api/v1/pms/project-tasks/{id}/actions/move", command.idempotencyKey(),
+                    command.requestDigest(), actor, () -> moveOnce(command, actor, auditDetail),
+                    "PROJECT_TASK_MOVE", auditDetail);
+        } catch (RuntimeException exception) {
+            auditRejected("PROJECT_TASK_MOVE", command == null ? null : command.taskId(), actor,
+                    moveRejectedDetail(command, exception));
+            throw exception;
+        }
     }
 
     public TaskCommandResult addDependency(AddDependencyCommand command, TaskWorkbenchActor actor) {
-        validateCommon(command == null ? null : command.idempotencyKey(),
-                command == null ? null : command.requestDigest(), actor);
-        return execute("POST:/api/v1/pms/project-tasks/{id}/dependencies", command.idempotencyKey(),
-                command.requestDigest(), actor, () -> addDependencyOnce(command, actor), "PROJECT_TASK_DEPENDENCY_ADD");
+        AtomicReference<Map<String, ?>> auditDetail = new AtomicReference<>(Map.of());
+        try {
+            validateCommon(command == null ? null : command.idempotencyKey(),
+                    command == null ? null : command.requestDigest(), actor);
+            return execute("POST:/api/v1/pms/project-tasks/{id}/dependencies", command.idempotencyKey(),
+                    command.requestDigest(), actor, () -> addDependencyOnce(command, actor, auditDetail),
+                    "PROJECT_TASK_DEPENDENCY_ADD", auditDetail);
+        } catch (RuntimeException exception) {
+            auditRejected("PROJECT_TASK_DEPENDENCY_ADD", command == null ? null : command.taskId(), actor,
+                    dependencyRejectedDetail(command, exception));
+            throw exception;
+        }
     }
 
-    private TaskCommandResult createOnce(CreateTaskCommand command, TaskWorkbenchActor actor) {
+    private TaskCommandResult createOnce(CreateTaskCommand command, TaskWorkbenchActor actor,
+                                         AtomicReference<Map<String, ?>> auditDetail) {
         if (command.projectId() == null || blank(command.taskCode()) || blank(command.name())
                 || blank(command.stageCode()) || invalidPlan(command.planStartTime(), command.planEndTime())) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
@@ -146,32 +180,46 @@ public class ProjectTaskCommandService {
             throw new IllegalStateException("PROJECT_TASK_CREATE_WRITE_FAILED");
         }
         ProjectTaskExecutionContractDO contract = contractFactory.createTaskNative(task.getId(), LocalDateTime.now());
+        contract.setId(IdWorker.getId());
         contract.setTenantId(actor.tenantId());
         if (contractMapper.insert(contract) != 1) throw new IllegalStateException("PROJECT_TASK_CONTRACT_WRITE_FAILED");
         long nextTreeVersion = project.getTaskTreeVersion() + 1;
         requireTreeVersionIncrement(project, actor);
+        auditDetail.set(createAuditDetail(task, contract));
         return new TaskCommandResult(task.getId(), 0, nextTreeVersion, task.getStatus(), "NEW");
     }
 
     private TaskCommandResult updateOnce(UpdateTaskCommand command, TaskWorkbenchActor actor) {
-        if (command.taskId() == null || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
-                || blank(command.name()) || invalidPlan(command.planStartTime(), command.planEndTime())) {
+        if (command == null || command.taskId() == null || command.expectedTaskVersion() == null
+                || command.expectedTaskVersion() < 0 || emptyUpdate(command)
+                || !BASIC_UPDATE_FIELDS.containsAll(command.submittedFields())
+                || command.submittedFields().contains("name") && blank(command.name())
+                || command.submittedFields().contains("priority") && command.priority() == null
+                || command.submittedFields().contains("sortOrder") && command.sortOrder() == null
+                || invalidSubmittedText(command, "businessLevelCode", command.businessLevelCode())
+                || invalidSubmittedText(command, "description", command.description())) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         }
         ProjectTaskInstanceDO task = requireTask(command.taskId(), actor);
+        LocalDateTime effectiveStart = command.submittedFields().contains("planStartTime")
+                ? command.planStartTime() : task.getPlanStartTime();
+        LocalDateTime effectiveEnd = command.submittedFields().contains("planEndTime")
+                ? command.planEndTime() : task.getPlanEndTime();
+        if (invalidPlan(effectiveStart, effectiveEnd)) throw exception(PROJECT_TASK_COMMAND_INVALID);
         ProjectMasterDO project = lockProject(actor.tenantId(), task.getProjectId());
         requireActiveProjectManager(project, actor);
         if (TERMINAL_STATUSES.contains(task.getStatus())) throw exception(PROJECT_TASK_COMMAND_INVALID);
         int changed = taskMapper.updateBasicIfMatch(new ProjectTaskBasicUpdate(actor.tenantId(), task.getId(),
-                command.expectedTaskVersion(), command.name().trim(), trim(command.businessLevelCode()),
+                command.expectedTaskVersion(), trim(command.name()), trim(command.businessLevelCode()),
                 command.planStartTime(), command.planEndTime(), command.priority(), command.sortOrder(),
-                trim(command.description()), actorName(actor)));
+                trim(command.description()), actorName(actor), command.submittedFields()));
         if (changed != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
         return new TaskCommandResult(task.getId(), command.expectedTaskVersion() + 1,
                 project.getTaskTreeVersion(), task.getStatus(), "NEW");
     }
 
-    private TaskCommandResult moveOnce(MoveTaskCommand command, TaskWorkbenchActor actor) {
+    private TaskCommandResult moveOnce(MoveTaskCommand command, TaskWorkbenchActor actor,
+                                       AtomicReference<Map<String, ?>> auditDetail) {
         if (command.taskId() == null || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
                 || command.expectedTaskTreeVersion() == null || command.expectedTaskTreeVersion() < 0
                 || blank(command.reason())) throw exception(PROJECT_TASK_COMMAND_INVALID);
@@ -201,11 +249,13 @@ public class ProjectTaskCommandService {
         if (taskMapper.updateStructureIfMatch(update) != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
         taskMapper.rebuildMovedSubtreePaths(update);
         requireTreeVersionIncrement(project, actor);
+        auditDetail.set(moveAuditDetail(source, target, newRoot, newDepth, command.reason()));
         return new TaskCommandResult(source.getId(), source.getVersion() + 1,
                 project.getTaskTreeVersion() + 1, source.getStatus(), "NEW");
     }
 
-    private TaskCommandResult addDependencyOnce(AddDependencyCommand command, TaskWorkbenchActor actor) {
+    private TaskCommandResult addDependencyOnce(AddDependencyCommand command, TaskWorkbenchActor actor,
+                                                AtomicReference<Map<String, ?>> auditDetail) {
         if (command.taskId() == null || command.predecessorTaskId() == null
                 || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
                 || !DEPENDENCY_TYPES.contains(command.dependencyTypeCode())
@@ -231,9 +281,11 @@ public class ProjectTaskCommandService {
         dependency.setDependencyTypeCode(command.dependencyTypeCode());
         dependency.setVersion(0);
         if (dependencyMapper.insert(dependency) != 1 || taskMapper.incrementTaskVersionIfMatch(
-                actor.tenantId(), successor.getId(), command.expectedTaskVersion(), actorName(actor)) != 1) {
+                new TaskVersionUpdate(actor.tenantId(), successor.getId(), command.expectedTaskVersion(),
+                        actorName(actor))) != 1) {
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
         }
+        auditDetail.set(dependencyAuditDetail(predecessor, successor, command.dependencyTypeCode()));
         return new TaskCommandResult(successor.getId(), command.expectedTaskVersion() + 1,
                 project.getTaskTreeVersion(), successor.getStatus(), "NEW");
     }
@@ -281,10 +333,11 @@ public class ProjectTaskCommandService {
     }
 
     private TaskCommandResult execute(String scope, String key, String digest, TaskWorkbenchActor actor,
-                                      java.util.function.Supplier<TaskCommandResult> action, String operation) {
+                                      java.util.function.Supplier<TaskCommandResult> action, String operation,
+                                      AtomicReference<Map<String, ?>> auditDetail) {
         var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), scope, actor.actorId(), key), digest, TaskCommandResult.class, action,
-                result -> facts(operation, result, actor));
+                result -> facts(operation, result, actor, auditDetail.get()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT)
             throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
         if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || execution.response() == null)
@@ -296,11 +349,100 @@ public class ProjectTaskCommandService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts facts(String operation, TaskCommandResult result,
-                                                            TaskWorkbenchActor actor) {
-        String detail = JsonUtils.toJsonString(Map.of("taskId", result.taskId(), "taskVersion",
-                result.taskVersion(), "taskTreeVersion", result.taskTreeVersion(), "status", result.status()));
+                                                            TaskWorkbenchActor actor, Map<String, ?> commandDetail) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.putAll(commandDetail);
+        snapshot.put("taskId", result.taskId());
+        snapshot.put("taskVersion", result.taskVersion());
+        snapshot.put("taskTreeVersion", result.taskTreeVersion());
+        snapshot.put("status", result.status());
+        String detail = JsonUtils.toJsonString(snapshot);
         return new PlatformCommandExecutionApi.SuccessFacts(operation, "ProjectTask",
                 String.valueOf(result.taskId()), actor.correlationId(), detail, null, null);
+    }
+
+    private Map<String, ?> createAuditDetail(ProjectTaskInstanceDO task, ProjectTaskExecutionContractDO contract) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("projectId", task.getProjectId());
+        detail.put("parentTask", task.getParentTaskId() == null ? "ROOT" : task.getParentTaskId());
+        detail.put("stateMachineRevisionId", task.getStateMachineRevisionId());
+        detail.put("executionContractId", contract.getId());
+        detail.put("contractVersion", contract.getContractVersion());
+        return Collections.unmodifiableMap(detail);
+    }
+
+    private Map<String, ?> moveAuditDetail(ProjectTaskInstanceDO source, ProjectTaskInstanceDO target,
+                                           long newRoot, int newDepth, String reason) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("beforeParentTask", source.getParentTaskId() == null ? "ROOT" : source.getParentTaskId());
+        detail.put("beforeRootTaskId", source.getRootTaskId());
+        detail.put("beforeTreeDepth", source.getTreeDepth());
+        detail.put("afterParentTask", target == null ? "ROOT" : target.getId());
+        detail.put("afterRootTaskId", newRoot);
+        detail.put("afterTreeDepth", newDepth);
+        detail.put("reason", reason.trim());
+        return Collections.unmodifiableMap(detail);
+    }
+
+    private Map<String, ?> dependencyAuditDetail(ProjectTaskInstanceDO predecessor,
+                                                 ProjectTaskInstanceDO successor, String dependencyType) {
+        return Map.of("predecessorTaskId", predecessor.getId(), "successorTaskId", successor.getId(),
+                "dependencyTypeCode", dependencyType);
+    }
+
+    private Map<String, ?> createRejectedDetail(CreateTaskCommand command, RuntimeException exception) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        if (command != null) {
+            putIfNotNull(detail, "projectId", command.projectId());
+            putIfNotNull(detail, "taskCode", trim(command.taskCode()));
+            putIfNotNull(detail, "stageCode", trim(command.stageCode()));
+            detail.put("parentTask", command.parentTaskId() == null ? "ROOT" : command.parentTaskId());
+        }
+        detail.put("failureCode", failureCode(exception));
+        return Collections.unmodifiableMap(detail);
+    }
+
+    private Map<String, ?> moveRejectedDetail(MoveTaskCommand command, RuntimeException exception) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        if (command != null) {
+            putIfNotNull(detail, "taskId", command.taskId());
+            detail.put("targetParentTask",
+                    command.targetParentTaskId() == null ? "ROOT" : command.targetParentTaskId());
+            putIfNotNull(detail, "expectedTaskVersion", command.expectedTaskVersion());
+            putIfNotNull(detail, "expectedTaskTreeVersion", command.expectedTaskTreeVersion());
+            putIfNotNull(detail, "reason", trim(command.reason()));
+        }
+        detail.put("failureCode", failureCode(exception));
+        return Collections.unmodifiableMap(detail);
+    }
+
+    private Map<String, ?> dependencyRejectedDetail(AddDependencyCommand command, RuntimeException exception) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        if (command != null) {
+            putIfNotNull(detail, "successorTaskId", command.taskId());
+            putIfNotNull(detail, "predecessorTaskId", command.predecessorTaskId());
+            putIfNotNull(detail, "dependencyTypeCode", command.dependencyTypeCode());
+            putIfNotNull(detail, "expectedTaskVersion", command.expectedTaskVersion());
+        }
+        detail.put("failureCode", failureCode(exception));
+        return Collections.unmodifiableMap(detail);
+    }
+
+    private void putIfNotNull(Map<String, Object> detail, String key, Object value) {
+        if (value != null) detail.put(key, value);
+    }
+
+    private void auditRejected(String operation, Long aggregateId, TaskWorkbenchActor actor, Map<String, ?> detail) {
+        if (actor == null || actor.tenantId() == null || actor.actorId() == null || blank(actor.correlationId())) return;
+        operationAuditApi.record(actor.tenantId(), actor.actorId(), actor.correlationId(), operation,
+                "ProjectTask", aggregateId == null ? "UNKNOWN" : String.valueOf(aggregateId), "REJECTED", detail);
+    }
+
+    private String failureCode(RuntimeException exception) {
+        if (exception instanceof ServiceException serviceException) return String.valueOf(serviceException.getCode());
+        if (exception instanceof IllegalStateException && !blank(exception.getMessage())
+                && exception.getMessage().startsWith("PROJECT_TASK_")) return exception.getMessage();
+        return "PROJECT_TASK_COMMAND_FAILED";
     }
 
     private void validateCommon(String key, String digest, TaskWorkbenchActor actor) {
@@ -316,6 +458,14 @@ public class ProjectTaskCommandService {
 
     private boolean invalidPlan(LocalDateTime start, LocalDateTime end) {
         return start != null && end != null && end.isBefore(start);
+    }
+
+    private boolean emptyUpdate(UpdateTaskCommand command) {
+        return command.submittedFields() == null || command.submittedFields().isEmpty();
+    }
+
+    private boolean invalidSubmittedText(UpdateTaskCommand command, String field, String value) {
+        return command.submittedFields().contains(field) && value != null && value.isBlank();
     }
 
     private String actorName(TaskWorkbenchActor actor) { return String.valueOf(actor.actorId()); }

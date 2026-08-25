@@ -340,13 +340,16 @@
 
     <update id="updateBasicIfMatch">
         UPDATE proj_project_task
-        SET name = #{query.name},
-            business_level_code = COALESCE(#{query.businessLevelCode}, business_level_code),
-            plan_start_time = COALESCE(#{query.planStartTime}, plan_start_time),
-            plan_end_time = COALESCE(#{query.planEndTime}, plan_end_time),
-            priority = COALESCE(#{query.priority}, priority),
-            sort_order = COALESCE(#{query.sortOrder}, sort_order),
-            description = COALESCE(#{query.description}, description),
+        SET
+        <if test="query.submittedFields.contains('name')">name = #{query.name},</if>
+        <if test="query.submittedFields.contains('businessLevelCode')">
+            business_level_code = #{query.businessLevelCode},
+        </if>
+        <if test="query.submittedFields.contains('planStartTime')">plan_start_time = #{query.planStartTime},</if>
+        <if test="query.submittedFields.contains('planEndTime')">plan_end_time = #{query.planEndTime},</if>
+        <if test="query.submittedFields.contains('priority')">priority = #{query.priority},</if>
+        <if test="query.submittedFields.contains('sortOrder')">sort_order = #{query.sortOrder},</if>
+        <if test="query.submittedFields.contains('description')">description = #{query.description},</if>
             version = version + 1,
             updater = #{query.updater},
             update_time = CURRENT_TIMESTAMP(3)
@@ -359,11 +362,11 @@
     <update id="incrementTaskVersionIfMatch">
         UPDATE proj_project_task
         SET version = version + 1,
-            updater = #{updater},
+            updater = #{query.updater},
             update_time = CURRENT_TIMESTAMP(3)
-        WHERE tenant_id = #{tenantId}
-          AND id = #{taskId}
-          AND version = #{expectedVersion}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
           AND deleted = b'0'
     </update>
 
