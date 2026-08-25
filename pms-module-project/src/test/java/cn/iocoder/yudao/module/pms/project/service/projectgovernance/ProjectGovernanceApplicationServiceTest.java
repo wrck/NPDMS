@@ -14,7 +14,9 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMember
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGovernanceStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.repository.projectgovernance.ProjectStageSnapshotRepository;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.ExceptionCloseProjectCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.GovernanceActionResult;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.ReopenProjectCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.RollbackProjectCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -32,8 +34,14 @@ import java.util.function.Supplier;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_GOVERNANCE_ACTION_FORBIDDEN;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_GOVERNANCE_STATE_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_GOVERNANCE_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceApplicationService.PERMISSION_CLOSE;
+import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceApplicationService.PERMISSION_REOPEN;
 import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceApplicationService.PERMISSION_ROLLBACK;
+import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceApplicationService.EXCEPTION_CLOSE_SCOPE;
+import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceApplicationService.REOPEN_SCOPE;
+import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceGuardService.GovernanceAction.EXCEPTION_CLOSE;
 import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceGuardService.GovernanceAction.ROLLBACK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -87,6 +95,8 @@ class ProjectGovernanceApplicationServiceTest {
         successFacts = new AtomicReference<>();
         stubNewExecution();
         when(permissionApi.hasAnyPermissions(ACTOR_ID, PERMISSION_ROLLBACK)).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(ACTOR_ID, PERMISSION_CLOSE)).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(ACTOR_ID, PERMISSION_REOPEN)).thenReturn(true);
         ProjectMasterDO project = project();
         when(projectMapper.selectById(PROJECT_ID)).thenReturn(project);
         when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(project);
@@ -94,6 +104,8 @@ class ProjectGovernanceApplicationServiceTest {
         when(memberMapper.selectCurrentServiceManagerAssignments(any())).thenReturn(List.of(primary()));
         when(guardService.verifyAndRevalidate("guard", PROJECT_ID, ROLLBACK, VERSION, actor()))
                 .thenReturn(verifiedGuard());
+        when(guardService.verifyAndRevalidate("close-guard", PROJECT_ID,
+                EXCEPTION_CLOSE, VERSION, actor())).thenReturn(verifiedGuard(EXCEPTION_CLOSE));
         when(projectMapper.updateGovernanceStateIfMatch(any())).thenReturn(1);
         when(memberMapper.closeEffectiveServiceManagerAssignments(any())).thenReturn(2);
         when(snapshotMapper.selectNextSnapshotNo(any())).thenReturn(4);
@@ -155,6 +167,137 @@ class ProjectGovernanceApplicationServiceTest {
         assertEquals("S0", result.currentStage());
         verify(projectMapper).updateGovernanceStateIfMatch(any());
         verify(snapshotRepository).append(any());
+    }
+
+    @Test
+    void shouldExceptionCloseAndPublishFrozenCloseFacts() {
+        GovernanceActionResult result = service.close(closeCommand("1".repeat(64)), actor());
+
+        assertEquals("EXCEPTION_CLOSED", result.lifecycleStatus());
+        assertEquals("S3", result.currentStage());
+        assertEquals("UNASSIGNED", result.assignmentStatus());
+        verify(memberMapper).closeEffectiveServiceManagerAssignments(any());
+        ArgumentCaptor<ProjectStageSnapshotDO> snapshot = ArgumentCaptor.forClass(ProjectStageSnapshotDO.class);
+        verify(snapshotRepository).append(snapshot.capture());
+        assertEquals("EXCEPTION_CLOSE", snapshot.getValue().getOperationType());
+        assertEquals("S3", snapshot.getValue().getBeforeStage());
+        assertEquals("S3", snapshot.getValue().getAfterStage());
+        assertEquals("客户书面确认终止实施", snapshot.getValue().getBusinessBasis());
+        assertTrue(snapshot.getValue().getLegacyItemsJson().contains("遗留设备移交"));
+        assertEquals("ProjectClosed", successFacts.get().eventType());
+        assertTrue(successFacts.get().eventPayload().contains("\"lifecycleStatus\":\"EXCEPTION_CLOSED\""));
+        assertTrue(successFacts.get().detailSnapshot().contains("\"guardResultSummary\""));
+        ArgumentCaptor<PlatformCommandExecutionApi.IdempotencyScope> scope =
+                ArgumentCaptor.forClass(PlatformCommandExecutionApi.IdempotencyScope.class);
+        verify(commandExecutionApi).execute(scope.capture(), anyString(),
+                eq(GovernanceActionResult.class), any(), any());
+        assertEquals(EXCEPTION_CLOSE_SCOPE, scope.getValue().scopeCode());
+    }
+
+    @Test
+    void shouldRejectChangedCloseGuardWithoutBusinessWrites() {
+        when(guardService.verifyAndRevalidate("close-guard", PROJECT_ID,
+                EXCEPTION_CLOSE, VERSION, actor()))
+                .thenThrow(exception(PROJECT_GOVERNANCE_VERSION_CONFLICT));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.close(closeCommand("2".repeat(64)), actor()));
+
+        assertEquals(PROJECT_GOVERNANCE_VERSION_CONFLICT.getCode(), error.getCode());
+        verify(projectMapper, never()).updateGovernanceStateIfMatch(any());
+        verify(memberMapper, never()).closeEffectiveServiceManagerAssignments(any());
+        verify(snapshotRepository, never()).append(any());
+    }
+
+    @Test
+    void shouldRejectCloseWithoutStablePermission() {
+        when(permissionApi.hasAnyPermissions(ACTOR_ID, PERMISSION_CLOSE)).thenReturn(false);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.close(closeCommand("6".repeat(64)), actor()));
+
+        assertEquals(PROJECT_GOVERNANCE_ACTION_FORBIDDEN.getCode(), error.getCode());
+        verify(projectMapper, never()).selectByIdForUpdate(any());
+        verify(snapshotRepository, never()).append(any());
+    }
+
+    @Test
+    void shouldReopenLatestExceptionCloseWithoutRestoringMemberIntervals() {
+        ProjectMasterDO closed = project();
+        closed.setLifecycleStatus("EXCEPTION_CLOSED");
+        closed.setCurrentStage("S4");
+        closed.setAssignmentStatus("UNASSIGNED");
+        when(projectMapper.selectById(PROJECT_ID)).thenReturn(closed);
+        when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(closed);
+        when(snapshotRepository.selectLatestReusableExceptionCloseForUpdate(any()))
+                .thenReturn(exceptionCloseSnapshot(92L, "S2"));
+
+        GovernanceActionResult result = service.reopen(reopenCommand(92L, "3".repeat(64)), actor());
+
+        assertEquals("REOPEN", result.action());
+        assertEquals("ACTIVE", result.lifecycleStatus());
+        assertEquals("S2", result.currentStage());
+        ArgumentCaptor<ProjectGovernanceStateUpdate> update =
+                ArgumentCaptor.forClass(ProjectGovernanceStateUpdate.class);
+        verify(projectMapper).updateGovernanceStateIfMatch(update.capture());
+        assertEquals("EXCEPTION_CLOSED", update.getValue().expectedLifecycleStatus());
+        assertEquals("S2", update.getValue().currentStage());
+        verify(memberMapper, never()).closeEffectiveServiceManagerAssignments(any());
+        ArgumentCaptor<ProjectStageSnapshotDO> snapshot = ArgumentCaptor.forClass(ProjectStageSnapshotDO.class);
+        verify(snapshotRepository).append(snapshot.capture());
+        assertEquals("REOPEN", snapshot.getValue().getOperationType());
+        assertEquals(92L, snapshot.getValue().getRelatedSnapshotId());
+        assertEquals("ProjectStageChanged", successFacts.get().eventType());
+        assertTrue(successFacts.get().eventPayload().contains("\"action\":\"REOPEN\""));
+        ArgumentCaptor<PlatformCommandExecutionApi.IdempotencyScope> scope =
+                ArgumentCaptor.forClass(PlatformCommandExecutionApi.IdempotencyScope.class);
+        verify(commandExecutionApi).execute(scope.capture(), anyString(),
+                eq(GovernanceActionResult.class), any(), any());
+        assertEquals(REOPEN_SCOPE, scope.getValue().scopeCode());
+    }
+
+    @Test
+    void shouldRejectNormalClosedProjectWithoutReadingCloseSnapshot() {
+        ProjectMasterDO normalClosed = project();
+        normalClosed.setLifecycleStatus("NORMAL_CLOSED");
+        when(projectMapper.selectById(PROJECT_ID)).thenReturn(normalClosed);
+        when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(normalClosed);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.reopen(reopenCommand(92L, "4".repeat(64)), actor()));
+
+        assertEquals(PROJECT_GOVERNANCE_STATE_INVALID.getCode(), error.getCode());
+        verify(snapshotRepository, never()).selectLatestReusableExceptionCloseForUpdate(any());
+        verify(projectMapper, never()).updateGovernanceStateIfMatch(any());
+    }
+
+    @Test
+    void shouldRejectNonLatestOrConsumedExceptionCloseSnapshot() {
+        ProjectMasterDO closed = project();
+        closed.setLifecycleStatus("EXCEPTION_CLOSED");
+        when(projectMapper.selectById(PROJECT_ID)).thenReturn(closed);
+        when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(closed);
+        when(snapshotRepository.selectLatestReusableExceptionCloseForUpdate(any()))
+                .thenReturn(exceptionCloseSnapshot(93L, "S2"));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.reopen(reopenCommand(92L, "5".repeat(64)), actor()));
+
+        assertEquals(PROJECT_GOVERNANCE_STATE_INVALID.getCode(), error.getCode());
+        verify(projectMapper, never()).updateGovernanceStateIfMatch(any());
+        verify(snapshotRepository, never()).append(any());
+    }
+
+    @Test
+    void shouldRejectReopenWithoutStablePermission() {
+        when(permissionApi.hasAnyPermissions(ACTOR_ID, PERMISSION_REOPEN)).thenReturn(false);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.reopen(reopenCommand(92L, "7".repeat(64)), actor()));
+
+        assertEquals(PROJECT_GOVERNANCE_ACTION_FORBIDDEN.getCode(), error.getCode());
+        verify(projectMapper, never()).selectByIdForUpdate(any());
+        verify(snapshotRepository, never()).append(any());
     }
 
     @Test
@@ -271,6 +414,11 @@ class ProjectGovernanceApplicationServiceTest {
     }
 
     private static ProjectGovernanceGuardService.VerifiedGuard verifiedGuard() {
+        return verifiedGuard(ROLLBACK);
+    }
+
+    private static ProjectGovernanceGuardService.VerifiedGuard verifiedGuard(
+            ProjectGovernanceGuardService.GovernanceAction action) {
         LocalDateTime checkedAt = LocalDateTime.of(2026, 8, 25, 16, 0);
         List<ProjectGovernanceGuardResult.ProviderVersion> providers =
                 ProjectGovernanceProviderRegistry.REQUIRED_PROVIDERS.stream()
@@ -279,9 +427,9 @@ class ProjectGovernanceApplicationServiceTest {
                         .toList();
         ProjectGovernanceGuardTokenService.GuardClaims claims =
                 new ProjectGovernanceGuardTokenService.GuardClaims(
-                        TENANT_ID, PROJECT_ID, "ROLLBACK", VERSION, ROOT_ID, 7L, providers, checkedAt);
+                        TENANT_ID, PROJECT_ID, action.name(), VERSION, ROOT_ID, 7L, providers, checkedAt);
         ProjectGovernanceGuardResult latest = new ProjectGovernanceGuardResult(
-                PROJECT_ID, VERSION, ROOT_ID, 7L, "ROLLBACK", true,
+                PROJECT_ID, VERSION, ROOT_ID, 7L, action.name(), true,
                 "guard", providers, List.of(), checkedAt);
         return new ProjectGovernanceGuardService.VerifiedGuard(claims, latest);
     }
@@ -289,6 +437,28 @@ class ProjectGovernanceApplicationServiceTest {
     private static RollbackProjectCommand command(String digest) {
         return new RollbackProjectCommand(PROJECT_ID, VERSION, "guard", "DELIVERY_SCOPE_CHANGED",
                 "客户实施范围调整", "需要重新匹配属地服务经理", "idem-1", digest);
+    }
+
+    private static ExceptionCloseProjectCommand closeCommand(String digest) {
+        return new ExceptionCloseProjectCommand(PROJECT_ID, VERSION, "close-guard",
+                "CUSTOMER_TERMINATED", "客户不再继续实施", "客户书面确认终止实施",
+                List.of(new ExceptionCloseProjectCommand.LegacyItem(
+                        "DEVICE", "遗留设备移交", "客户项目经理", "OPEN")),
+                "close-idem-1", digest);
+    }
+
+    private static ReopenProjectCommand reopenCommand(Long closeSnapshotId, String digest) {
+        return new ReopenProjectCommand(PROJECT_ID, VERSION, "BUSINESS_RESUMED",
+                "客户确认恢复实施", closeSnapshotId, "reopen-idem-1", digest);
+    }
+
+    private static ProjectStageSnapshotDO exceptionCloseSnapshot(Long id, String beforeStage) {
+        ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
+        snapshot.setId(id);
+        snapshot.setProjectId(PROJECT_ID);
+        snapshot.setOperationType("EXCEPTION_CLOSE");
+        snapshot.setBeforeStage(beforeStage);
+        return snapshot;
     }
 
     private static ProjectGovernanceGuardService.Actor actor() {

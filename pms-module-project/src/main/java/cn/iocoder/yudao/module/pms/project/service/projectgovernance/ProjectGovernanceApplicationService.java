@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectStageSnapshotMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectExceptionCloseSnapshotQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectStageSnapshotSequenceQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
@@ -17,7 +18,9 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectServiceManagerIntervalClose;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.repository.projectgovernance.ProjectStageSnapshotRepository;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.ExceptionCloseProjectCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.GovernanceActionResult;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.ReopenProjectCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.RollbackProjectCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -42,14 +45,21 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_GOVERNANCE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceGuardService.GovernanceAction.ROLLBACK;
+import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceGuardService.GovernanceAction.EXCEPTION_CLOSE;
+import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceGuardService.GovernanceAction.REOPEN;
 
 @Service
 @RequiredArgsConstructor
 public class ProjectGovernanceApplicationService {
 
     public static final String ROLLBACK_SCOPE = "POST:/pms/projects/{id}/actions/rollback";
+    public static final String EXCEPTION_CLOSE_SCOPE = "POST:/pms/projects/{id}/actions/close";
+    public static final String REOPEN_SCOPE = "POST:/pms/projects/{id}/actions/reopen";
     public static final String PERMISSION_ROLLBACK = "pms:project:rollback";
+    public static final String PERMISSION_CLOSE = "pms:project:close";
+    public static final String PERMISSION_REOPEN = "pms:project:reopen";
     private static final String ACTIVE = "ACTIVE";
+    private static final String EXCEPTION_CLOSED = "EXCEPTION_CLOSED";
     private static final String STAGE_S0 = "S0";
     private static final String UNASSIGNED = "UNASSIGNED";
     private static final Set<String> SERVICE_MANAGER_ROLES =
@@ -68,7 +78,7 @@ public class ProjectGovernanceApplicationService {
     public GovernanceActionResult rollback(RollbackProjectCommand command,
                                            ProjectGovernanceGuardService.Actor actor) {
         validate(command, actor);
-        requirePermission(actor);
+        requirePermission(actor, PERMISSION_ROLLBACK);
         PlatformCommandExecutionApi.ExecutionResult<GovernanceActionResult> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), ROLLBACK_SCOPE, actor.actorId(), command.idempotencyKey()),
@@ -90,6 +100,287 @@ public class ProjectGovernanceApplicationService {
                 result.currentStage(), result.assignmentStatus(), result.projectVersion(),
                 result.stageSnapshotId(), result.operationId(), result.operatedAt(), true)
                 : result;
+    }
+
+    public GovernanceActionResult close(ExceptionCloseProjectCommand command,
+                                         ProjectGovernanceGuardService.Actor actor) {
+        validate(command, actor);
+        requirePermission(actor, PERMISSION_CLOSE);
+        PlatformCommandExecutionApi.ExecutionResult<GovernanceActionResult> execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(
+                        actor.tenantId(), EXCEPTION_CLOSE_SCOPE, actor.actorId(), command.idempotencyKey()),
+                command.requestDigest(), GovernanceActionResult.class,
+                () -> closeOnce(command, actor),
+                result -> closeSuccessFacts(command, actor, result));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
+            throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
+        }
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
+                || execution.response() == null) {
+            throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
+        }
+        GovernanceActionResult result = execution.response();
+        return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
+                ? replayed(result) : result;
+    }
+
+    public GovernanceActionResult reopen(ReopenProjectCommand command,
+                                          ProjectGovernanceGuardService.Actor actor) {
+        validate(command, actor);
+        requirePermission(actor, PERMISSION_REOPEN);
+        PlatformCommandExecutionApi.ExecutionResult<GovernanceActionResult> execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(
+                        actor.tenantId(), REOPEN_SCOPE, actor.actorId(), command.idempotencyKey()),
+                command.requestDigest(), GovernanceActionResult.class,
+                () -> reopenOnce(command, actor),
+                result -> reopenSuccessFacts(command, actor, result));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
+            throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
+        }
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
+                || execution.response() == null) {
+            throw exception(PMS_IDEMPOTENCY_IN_PROGRESS);
+        }
+        GovernanceActionResult result = execution.response();
+        return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
+                ? replayed(result) : result;
+    }
+
+    private GovernanceActionResult reopenOnce(ReopenProjectCommand command,
+                                               ProjectGovernanceGuardService.Actor actor) {
+        ProjectMasterDO initial = requireProject(command.projectId(), actor.tenantId());
+        long treeVersion = requireTreeVersion(initial, actor.tenantId());
+        treeScopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), command.projectId(), ACTION_MANAGE, treeVersion));
+
+        ProjectMasterDO project = projectMapper.selectByIdForUpdate(command.projectId());
+        if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        if (!EXCEPTION_CLOSED.equals(project.getLifecycleStatus())) {
+            throw exception(PROJECT_GOVERNANCE_STATE_INVALID);
+        }
+        if (!Objects.equals(project.getVersion(), command.expectedVersion())) {
+            throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
+        }
+        ProjectStageSnapshotDO closeSnapshot = snapshotRepository.selectLatestReusableExceptionCloseForUpdate(
+                new ProjectExceptionCloseSnapshotQuery(actor.tenantId(), project.getId()));
+        if (closeSnapshot == null
+                || !Objects.equals(closeSnapshot.getId(), command.exceptionCloseSnapshotId())
+                || blank(closeSnapshot.getBeforeStage())) {
+            throw exception(PROJECT_GOVERNANCE_STATE_INVALID);
+        }
+        LocalDateTime operatedAt = LocalDateTime.now();
+        if (projectMapper.updateGovernanceStateIfMatch(new ProjectGovernanceStateUpdate(
+                actor.tenantId(), project.getId(), command.expectedVersion(), EXCEPTION_CLOSED,
+                closeSnapshot.getBeforeStage(), ACTIVE, UNASSIGNED,
+                String.valueOf(actor.actorId()))) != 1) {
+            throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
+        }
+
+        String operationId = UUID.randomUUID().toString();
+        ProjectStageSnapshotDO snapshot = reopenSnapshot(
+                command, actor, project, closeSnapshot, operationId, operatedAt);
+        if (snapshotRepository.append(snapshot) != 1 || snapshot.getId() == null) {
+            throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
+        }
+        return new GovernanceActionResult(project.getId(), REOPEN.name(),
+                project.getLifecycleStatus(), project.getCurrentStage(), project.getAssignmentStatus(),
+                ACTIVE, closeSnapshot.getBeforeStage(), UNASSIGNED,
+                command.expectedVersion() + 1, snapshot.getId(), operationId, operatedAt, false);
+    }
+
+    private ProjectStageSnapshotDO reopenSnapshot(
+            ReopenProjectCommand command, ProjectGovernanceGuardService.Actor actor,
+            ProjectMasterDO project, ProjectStageSnapshotDO closeSnapshot,
+            String operationId, LocalDateTime operatedAt) {
+        String restoredStage = closeSnapshot.getBeforeStage();
+        Integer snapshotNo = snapshotMapper.selectNextSnapshotNo(new ProjectStageSnapshotSequenceQuery(
+                actor.tenantId(), project.getId(), restoredStage));
+        if (snapshotNo == null || snapshotNo <= 0) {
+            throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
+        }
+        ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
+        snapshot.setProjectId(project.getId());
+        snapshot.setStageCode(restoredStage);
+        snapshot.setSnapshotNo(snapshotNo);
+        snapshot.setOperationType(REOPEN.name());
+        snapshot.setBeforeStage(project.getCurrentStage());
+        snapshot.setAfterStage(restoredStage);
+        snapshot.setBeforeLifecycleStatus(project.getLifecycleStatus());
+        snapshot.setAfterLifecycleStatus(ACTIVE);
+        snapshot.setBeforeAssignmentStatus(project.getAssignmentStatus());
+        snapshot.setAfterAssignmentStatus(UNASSIGNED);
+        snapshot.setReasonCode(command.reasonCode().trim());
+        snapshot.setReasonDetail(command.reasonDetail().trim());
+        snapshot.setRelatedSnapshotId(closeSnapshot.getId());
+        snapshot.setOperationId(operationId);
+        snapshot.setOperatorUserId(actor.actorId());
+        snapshot.setOperatedAt(operatedAt);
+        snapshot.setCreator(String.valueOf(actor.actorId()));
+        snapshot.setUpdater(String.valueOf(actor.actorId()));
+        return snapshot;
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts reopenSuccessFacts(
+            ReopenProjectCommand command, ProjectGovernanceGuardService.Actor actor,
+            GovernanceActionResult result) {
+        Map<String, Object> beforeState = state(result.beforeLifecycleStatus(),
+                result.beforeStage(), result.beforeAssignmentStatus());
+        Map<String, Object> afterState = state(
+                result.lifecycleStatus(), result.currentStage(), result.assignmentStatus());
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("projectId", result.projectId());
+        detail.put("action", result.action());
+        detail.put("beforeState", beforeState);
+        detail.put("afterState", afterState);
+        detail.put("stageSnapshotId", result.stageSnapshotId());
+        detail.put("relatedSnapshotId", command.exceptionCloseSnapshotId());
+        detail.put("operationId", result.operationId());
+        detail.put("reasonCode", command.reasonCode().trim());
+        detail.put("reasonDetail", command.reasonDetail().trim());
+        detail.put("projectVersion", result.projectVersion());
+        detail.put("expectedVersion", command.expectedVersion());
+        detail.put("idempotencyKey", command.idempotencyKey().trim());
+        detail.put("requestDigest", command.requestDigest());
+        detail.put("operatorUserId", actor.actorId());
+        detail.put("occurredAt", result.operatedAt());
+        detail.put("traceId", actor.correlationId());
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("eventId", result.operationId());
+        event.put("tenantId", actor.tenantId());
+        event.put("projectId", result.projectId());
+        event.put("action", result.action());
+        event.put("beforeState", beforeState);
+        event.put("afterState", afterState);
+        event.put("projectVersion", result.projectVersion());
+        event.put("stageSnapshotId", result.stageSnapshotId());
+        event.put("operatorUserId", actor.actorId());
+        event.put("occurredAt", result.operatedAt());
+        return new PlatformCommandExecutionApi.SuccessFacts("PROJECT_REOPEN", "Project",
+                String.valueOf(result.projectId()), actor.correlationId(), JsonUtils.toJsonString(detail),
+                "ProjectStageChanged", JsonUtils.toJsonString(event));
+    }
+
+    private GovernanceActionResult closeOnce(ExceptionCloseProjectCommand command,
+                                              ProjectGovernanceGuardService.Actor actor) {
+        ProjectMasterDO initial = requireProject(command.projectId(), actor.tenantId());
+        long treeVersion = requireTreeVersion(initial, actor.tenantId());
+        treeScopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), command.projectId(), ACTION_MANAGE, treeVersion));
+
+        ProjectMasterDO project = projectMapper.selectByIdForUpdate(command.projectId());
+        if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        if (!ACTIVE.equals(project.getLifecycleStatus()) || blank(project.getCurrentStage())) {
+            throw exception(PROJECT_GOVERNANCE_STATE_INVALID);
+        }
+        if (!Objects.equals(project.getVersion(), command.expectedVersion())) {
+            throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
+        }
+        ProjectGovernanceGuardService.VerifiedGuard verified = guardService.verifyAndRevalidate(
+                command.guardToken(), command.projectId(), EXCEPTION_CLOSE,
+                command.expectedVersion(), actor);
+        LocalDateTime operatedAt = LocalDateTime.now();
+        if (projectMapper.updateGovernanceStateIfMatch(new ProjectGovernanceStateUpdate(
+                actor.tenantId(), project.getId(), command.expectedVersion(), ACTIVE,
+                project.getCurrentStage(), EXCEPTION_CLOSED, UNASSIGNED,
+                String.valueOf(actor.actorId()))) != 1) {
+            throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
+        }
+        memberMapper.closeEffectiveServiceManagerAssignments(new ProjectServiceManagerIntervalClose(
+                actor.tenantId(), project.getId(), operatedAt, String.valueOf(actor.actorId())));
+
+        String operationId = UUID.randomUUID().toString();
+        ProjectStageSnapshotDO snapshot = exceptionCloseSnapshot(
+                command, actor, project, verified, operationId, operatedAt);
+        if (snapshotRepository.append(snapshot) != 1 || snapshot.getId() == null) {
+            throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
+        }
+        return new GovernanceActionResult(project.getId(), EXCEPTION_CLOSE.name(),
+                project.getLifecycleStatus(), project.getCurrentStage(), project.getAssignmentStatus(),
+                EXCEPTION_CLOSED, project.getCurrentStage(), UNASSIGNED,
+                command.expectedVersion() + 1, snapshot.getId(), operationId, operatedAt, false);
+    }
+
+    private ProjectStageSnapshotDO exceptionCloseSnapshot(
+            ExceptionCloseProjectCommand command, ProjectGovernanceGuardService.Actor actor,
+            ProjectMasterDO project, ProjectGovernanceGuardService.VerifiedGuard verified,
+            String operationId, LocalDateTime operatedAt) {
+        Integer snapshotNo = snapshotMapper.selectNextSnapshotNo(new ProjectStageSnapshotSequenceQuery(
+                actor.tenantId(), project.getId(), project.getCurrentStage()));
+        if (snapshotNo == null || snapshotNo <= 0) {
+            throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
+        }
+        ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
+        snapshot.setProjectId(project.getId());
+        snapshot.setStageCode(project.getCurrentStage());
+        snapshot.setSnapshotNo(snapshotNo);
+        snapshot.setOperationType(EXCEPTION_CLOSE.name());
+        snapshot.setBeforeStage(project.getCurrentStage());
+        snapshot.setAfterStage(project.getCurrentStage());
+        snapshot.setBeforeLifecycleStatus(project.getLifecycleStatus());
+        snapshot.setAfterLifecycleStatus(EXCEPTION_CLOSED);
+        snapshot.setBeforeAssignmentStatus(project.getAssignmentStatus());
+        snapshot.setAfterAssignmentStatus(UNASSIGNED);
+        snapshot.setReasonCode(command.reasonCode().trim());
+        snapshot.setReasonDetail(command.reasonDetail().trim());
+        snapshot.setBusinessBasis(command.businessBasis().trim());
+        snapshot.setLegacyItemsJson(JsonUtils.toJsonString(command.legacyItems()));
+        snapshot.setGuardSnapshotJson(JsonUtils.toJsonString(verified.claims()));
+        snapshot.setTreeVersion(verified.claims().treeVersion());
+        snapshot.setProviderFactsJson(JsonUtils.toJsonString(verified.claims().providerFacts()));
+        snapshot.setOperationId(operationId);
+        snapshot.setOperatorUserId(actor.actorId());
+        snapshot.setOperatedAt(operatedAt);
+        snapshot.setCreator(String.valueOf(actor.actorId()));
+        snapshot.setUpdater(String.valueOf(actor.actorId()));
+        return snapshot;
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts closeSuccessFacts(
+            ExceptionCloseProjectCommand command, ProjectGovernanceGuardService.Actor actor,
+            GovernanceActionResult result) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("projectId", result.projectId());
+        detail.put("action", result.action());
+        detail.put("beforeState", state(result.beforeLifecycleStatus(),
+                result.beforeStage(), result.beforeAssignmentStatus()));
+        detail.put("afterState", state(
+                result.lifecycleStatus(), result.currentStage(), result.assignmentStatus()));
+        detail.put("stageSnapshotId", result.stageSnapshotId());
+        detail.put("operationId", result.operationId());
+        detail.put("reasonCode", command.reasonCode().trim());
+        detail.put("reasonDetail", command.reasonDetail().trim());
+        detail.put("businessBasis", command.businessBasis().trim());
+        detail.put("legacyItems", command.legacyItems());
+        detail.put("projectVersion", result.projectVersion());
+        detail.put("expectedVersion", command.expectedVersion());
+        detail.put("idempotencyKey", command.idempotencyKey().trim());
+        detail.put("requestDigest", command.requestDigest());
+        detail.put("operatorUserId", actor.actorId());
+        detail.put("occurredAt", result.operatedAt());
+        detail.put("traceId", actor.correlationId());
+        Map<String, Object> guardSummary = new LinkedHashMap<>();
+        guardSummary.put("verified", true);
+        guardSummary.put("action", result.action());
+        guardSummary.put("projectVersion", command.expectedVersion());
+        guardSummary.put("stageSnapshotId", result.stageSnapshotId());
+        detail.put("guardResultSummary", guardSummary);
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("eventId", result.operationId());
+        event.put("tenantId", actor.tenantId());
+        event.put("projectId", result.projectId());
+        event.put("lifecycleStatus", result.lifecycleStatus());
+        event.put("closeReasonCode", command.reasonCode().trim());
+        event.put("projectVersion", result.projectVersion());
+        event.put("stageSnapshotId", result.stageSnapshotId());
+        event.put("operatorUserId", actor.actorId());
+        event.put("occurredAt", result.operatedAt());
+        return new PlatformCommandExecutionApi.SuccessFacts("PROJECT_EXCEPTION_CLOSE", "Project",
+                String.valueOf(result.projectId()), actor.correlationId(), JsonUtils.toJsonString(detail),
+                "ProjectClosed", JsonUtils.toJsonString(event));
     }
 
     private GovernanceActionResult rollbackOnce(RollbackProjectCommand command,
@@ -222,6 +513,14 @@ public class ProjectGovernanceApplicationService {
         return state;
     }
 
+    private static GovernanceActionResult replayed(GovernanceActionResult result) {
+        return new GovernanceActionResult(result.projectId(), result.action(),
+                result.beforeLifecycleStatus(), result.beforeStage(), result.beforeAssignmentStatus(),
+                result.lifecycleStatus(), result.currentStage(), result.assignmentStatus(),
+                result.projectVersion(), result.stageSnapshotId(), result.operationId(),
+                result.operatedAt(), true);
+    }
+
     private ProjectMasterDO requireProject(Long projectId, Long tenantId) {
         ProjectMasterDO project = projectMapper.selectById(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), tenantId)) {
@@ -257,9 +556,49 @@ public class ProjectGovernanceApplicationService {
         }
     }
 
-    private void requirePermission(ProjectGovernanceGuardService.Actor actor) {
-        if (!permissionApi.hasAnyPermissions(actor.actorId(), PERMISSION_ROLLBACK)) {
+    private void requirePermission(ProjectGovernanceGuardService.Actor actor, String permission) {
+        if (!permissionApi.hasAnyPermissions(actor.actorId(), permission)) {
             throw exception(PROJECT_GOVERNANCE_ACTION_FORBIDDEN);
+        }
+    }
+
+    private static void validate(ExceptionCloseProjectCommand command,
+                                 ProjectGovernanceGuardService.Actor actor) {
+        Long trustedTenantId = TenantContextHolder.getRequiredTenantId();
+        if (command == null || command.projectId() == null || command.projectId() <= 0
+                || command.expectedVersion() == null || command.expectedVersion() < 0
+                || blank(command.guardToken()) || blank(command.reasonCode())
+                || blank(command.reasonDetail()) || blank(command.businessBasis())
+                || command.legacyItems() == null
+                || command.legacyItems().stream().anyMatch(item -> item == null
+                || blank(item.type()) || blank(item.summary())
+                || blank(item.owner()) || blank(item.status()))
+                || command.reasonCode().trim().length() > 64
+                || command.reasonDetail().trim().length() > 1000
+                || blank(command.idempotencyKey()) || command.idempotencyKey().length() > 128
+                || command.requestDigest() == null || !command.requestDigest().matches("[0-9a-f]{64}")
+                || actor == null || actor.tenantId() == null || actor.actorId() == null
+                || actor.actorId() <= 0 || blank(actor.correlationId())
+                || !Objects.equals(actor.tenantId(), trustedTenantId)) {
+            throw new IllegalArgumentException("invalid exception close project command");
+        }
+    }
+
+    private static void validate(ReopenProjectCommand command,
+                                 ProjectGovernanceGuardService.Actor actor) {
+        Long trustedTenantId = TenantContextHolder.getRequiredTenantId();
+        if (command == null || command.projectId() == null || command.projectId() <= 0
+                || command.expectedVersion() == null || command.expectedVersion() < 0
+                || blank(command.reasonCode()) || blank(command.reasonDetail())
+                || command.reasonCode().trim().length() > 64
+                || command.reasonDetail().trim().length() > 1000
+                || command.exceptionCloseSnapshotId() == null || command.exceptionCloseSnapshotId() <= 0
+                || blank(command.idempotencyKey()) || command.idempotencyKey().length() > 128
+                || command.requestDigest() == null || !command.requestDigest().matches("[0-9a-f]{64}")
+                || actor == null || actor.tenantId() == null || actor.actorId() == null
+                || actor.actorId() <= 0 || blank(actor.correlationId())
+                || !Objects.equals(actor.tenantId(), trustedTenantId)) {
+            throw new IllegalArgumentException("invalid reopen project command");
         }
     }
 
