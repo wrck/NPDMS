@@ -5,8 +5,8 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ007-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
-> 当前阻断：`待独立复审：Task 2循环判定整改`
-> 当前任务：`Task 2 实现当前任务、闭包路径和版本水位持久化`
+> 当前阻断：`无`
+> 当前任务：`Task 3 实现依赖、责任区间、状态机版本和完成判定持久化`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
@@ -23,6 +23,6 @@
 - [x] 闭环首次计划复审四项NO-GO
 - [x] 获得Technical Plan独立裁决
 - [x] Task 1 Implementation Done（独立裁决GO；`63c442b`、`20edc84`、`7637add`）
-- [ ] Task 2 Implementation Done（实现及本地验证完成，待独立裁决）
+- [x] Task 2 Implementation Done（独立裁决GO；`fa55d74`、`ef4e955`）
 
-> 检查点（2026-08-25）：基线`5f37b2d`；当前Gate为Task 2 Implementation Done；循环判定已改用锁定当前子树事实，RR旧快照并发回归及原持久化用例真实MySQL 6/6 PASS、25模块构建PASS；待整改提交并独立复审。
+> 检查点（2026-08-25）：基线`5f37b2d`；Task 2获独立GO，提交`fa55d74/ef4e955`，RR并发循环回归6/6及25模块构建PASS；当前Gate切换为Task 3 Implementation Done，下一步实现依赖、责任区间、状态机版本与完成判定持久化。
