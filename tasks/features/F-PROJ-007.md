@@ -5,8 +5,8 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ007-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
-> 当前阻断：`待独立复审：模板前向引用的父先子后持久化整改`
-> 当前任务：`Task 1 建立任务树、状态机和责任事实物理基础`
+> 当前阻断：`无`
+> 当前任务：`Task 2 实现当前任务、闭包路径和版本水位持久化`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
@@ -22,5 +22,6 @@
 - [x] 基于锁定基线全新生成Technical Plan
 - [x] 闭环首次计划复审四项NO-GO
 - [x] 获得Technical Plan独立裁决
+- [x] Task 1 Implementation Done（独立裁决GO；`63c442b`、`20edc84`、`7637add`）
 
-> 检查点（2026-08-25）：已按树深度稳定拓扑排序，合法前向引用模板可父先子后落库；V89空库三层建项、6条闭包、唯一当前契约及全事务回滚均PASS；待独立复审Task 1。
+> 检查点（2026-08-25）：Task 1已获独立GO并回写PASS；当前推进Task 2“当前任务、闭包路径和版本水位持久化”，既有PRD/SDS/Feature Ready/Technical Plan门禁保持关闭。
