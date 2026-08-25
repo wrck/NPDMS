@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,9 +26,43 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class TemplateInstantiatorTest {
 
     @Test
+    void freezesStableIdsStateRevisionAndThreeLevelClosure() {
+        TemplateDefinitionContent content = fullContent();
+        TemplateDefinitionContent.TaskDef grandchild = new TemplateDefinitionContent.TaskDef();
+        grandchild.setTaskCode("T1-1-1");
+        grandchild.setName("细化计划");
+        grandchild.setParentTaskCode("T1-1");
+        grandchild.setStageCode("S1");
+        content.getTasks().add(grandchild);
+        AtomicLong ids = new AtomicLong(1000L);
+
+        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(
+                content, 100L, 88L, ids::incrementAndGet);
+
+        ProjectTaskInstanceDO root = findByTaskCode(instantiation.getTasks(), "T1");
+        ProjectTaskInstanceDO child = findByTaskCode(instantiation.getTasks(), "T1-1");
+        ProjectTaskInstanceDO leaf = findByTaskCode(instantiation.getTasks(), "T1-1-1");
+        assertEquals(root.getId(), root.getRootTaskId());
+        assertNull(root.getParentTaskId());
+        assertEquals(0, root.getTreeDepth());
+        assertEquals(root.getId(), child.getParentTaskId());
+        assertEquals(root.getId(), child.getRootTaskId());
+        assertEquals(1, child.getTreeDepth());
+        assertEquals(child.getId(), leaf.getParentTaskId());
+        assertEquals(root.getId(), leaf.getRootTaskId());
+        assertEquals(2, leaf.getTreeDepth());
+        instantiation.getTasks().forEach(task -> assertEquals(88L, task.getStateMachineRevisionId()));
+        assertEquals(6, instantiation.getTaskTreePaths().size());
+        assertTrue(instantiation.getTaskTreePaths().stream().anyMatch(path ->
+                root.getId().equals(path.getAncestorTaskId())
+                        && leaf.getId().equals(path.getDescendantTaskId())
+                        && path.getDistance() == 2));
+    }
+
+    @Test
     void fiveElementSnapshotsFullyCopied() {
         TemplateDefinitionContent content = fullContent();
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
+        ProjectInstantiation instantiation = instantiate(content);
 
         // 阶段快照
         ProjectStageInstanceDO stage = findByCode(instantiation.getStages(), "S1");
@@ -65,7 +100,7 @@ class TemplateInstantiatorTest {
     void minSortOrderStageActiveOthersPending() {
         TemplateDefinitionContent content = fullContent();
         // S0 sort=0 最小 → ACTIVE；S1/S2 PENDING
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
+        ProjectInstantiation instantiation = instantiate(content);
         assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, findByCode(instantiation.getStages(), "S0").getStatus());
         assertEquals(ProjectRules.STAGE_STATUS_PENDING, findByCode(instantiation.getStages(), "S1").getStatus());
         assertEquals(ProjectRules.STAGE_STATUS_PENDING, findByCode(instantiation.getStages(), "S2").getStatus());
@@ -76,7 +111,7 @@ class TemplateInstantiatorTest {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
         content.getStages().add(stage("S2", "实施方案", 1));
         content.getStages().add(stage("S3", "实施部署", 2));
-        assertThrows(IllegalArgumentException.class, () -> TemplateInstantiator.instantiate(content, 100L));
+        assertThrows(IllegalArgumentException.class, () -> instantiate(content));
     }
 
     @Test
@@ -84,13 +119,13 @@ class TemplateInstantiatorTest {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
         content.getStages().add(stage("S0", "待开始", null));
         content.getStages().add(stage("S1", "工前准备", 1));
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
+        ProjectInstantiation instantiation = instantiate(content);
         assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, findByCode(instantiation.getStages(), "S0").getStatus());
     }
 
     @Test
     void initialStatusesForTaskMilestoneDeliverableGate() {
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(fullContent(), 100L);
+        ProjectInstantiation instantiation = instantiate(fullContent());
         instantiation.getTasks().forEach(task ->
                 assertEquals(ProjectRules.TASK_STATUS_PENDING_ASSIGN, task.getStatus()));
         instantiation.getMilestones().forEach(milestone ->
@@ -103,7 +138,7 @@ class TemplateInstantiatorTest {
 
     @Test
     void validationSummaryJoinsTypeAndCodeWithSemicolon() {
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(fullContent(), 100L);
+        ProjectInstantiation instantiation = instantiate(fullContent());
         ProjectGateInstanceDO gate = findGateByCode(instantiation.getGates(), "G-EXIT-S1");
         assertEquals("TASK:T1;DELIVERABLE:D1", gate.getValidationSummary());
     }
@@ -119,7 +154,7 @@ class TemplateInstantiatorTest {
         gate.setReferences(refs);
         content.getGates().add(gate);
 
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
+        ProjectInstantiation instantiation = instantiate(content);
         String summary = findGateByCode(instantiation.getGates(), "G-BIG").getValidationSummary();
         assertEquals(1000, summary.length());
     }
@@ -129,13 +164,13 @@ class TemplateInstantiatorTest {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
         content.getStages().add(stage("S0", "立项与指派", 0));
         content.getGates().add(gate("G-EMPTY", "无引用门禁", "ENTRY", "S0"));
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
+        ProjectInstantiation instantiation = instantiate(content);
         assertNull(findGateByCode(instantiation.getGates(), "G-EMPTY").getValidationSummary());
     }
 
     @Test
     void gateReferencesCopiedWithVersionAndGroupedByGateCode() {
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(fullContent(), 100L);
+        ProjectInstantiation instantiation = instantiate(fullContent());
         Map<String, List<ProjectGateReferenceInstanceDO>> grouped = instantiation.getGateReferencesByGateCode();
 
         assertEquals(2, grouped.size());
@@ -159,7 +194,7 @@ class TemplateInstantiatorTest {
     @Test
     void sourceDefinitionIdSlotsStayNull() {
         // F-PM03 内容模型无定义行 ID：source_definition_id 保持 NULL 映射槽
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(fullContent(), 100L);
+        ProjectInstantiation instantiation = instantiate(fullContent());
         instantiation.getStages().forEach(stage -> assertNull(stage.getSourceDefinitionId()));
         instantiation.getTasks().forEach(task -> assertNull(task.getSourceDefinitionId()));
         instantiation.getMilestones().forEach(milestone -> assertNull(milestone.getSourceDefinitionId()));
@@ -171,7 +206,7 @@ class TemplateInstantiatorTest {
     void emptyContentProducesEmptyInstantiation() {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
         content.getStages().add(stage("S0", "立项与指派", 0));
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
+        ProjectInstantiation instantiation = instantiate(content);
         assertEquals(1, instantiation.getStages().size());
         assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, instantiation.getStages().getFirst().getStatus());
         assertTrue(instantiation.getTasks().isEmpty());
@@ -182,6 +217,11 @@ class TemplateInstantiatorTest {
     }
 
     // ========== 辅助 ==========
+
+    private ProjectInstantiation instantiate(TemplateDefinitionContent content) {
+        AtomicLong ids = new AtomicLong(1000L);
+        return TemplateInstantiator.instantiate(content, 100L, 88L, ids::incrementAndGet);
+    }
 
     private TemplateDefinitionContent fullContent() {
         TemplateDefinitionContent content = new TemplateDefinitionContent();

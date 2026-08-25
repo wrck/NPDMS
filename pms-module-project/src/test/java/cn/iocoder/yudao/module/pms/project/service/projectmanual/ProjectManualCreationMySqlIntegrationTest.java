@@ -57,6 +57,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -87,7 +88,21 @@ class ProjectManualCreationMySqlIntegrationTest extends ProjectManualCreationMyS
 
     @Test
     void successfulRootCreationPublishesInitialTreeProjection() {
-        var created = applicationService.create(newCommand(), newActor());
+        ManualProjectCreateCommand command = newCommand();
+        int changed = jdbcTemplate.update("UPDATE proj_project_template_task_definition "
+                        + "SET parent_task_code='T-ASSIGN-SM' WHERE template_revision_id=? "
+                        + "AND task_code='T-ASSIGN-PM' AND parent_task_code IS NULL",
+                command.templateRevisionId());
+        assertEquals(1, changed, "集成测试模板必须包含可组成三层树的冻结任务");
+        ManualProjectCreateResult created;
+        try {
+            created = applicationService.create(command, newActor());
+        } finally {
+            jdbcTemplate.update("UPDATE proj_project_template_task_definition SET parent_task_code=NULL "
+                            + "WHERE template_revision_id=? AND task_code='T-ASSIGN-PM' "
+                            + "AND parent_task_code='T-ASSIGN-SM'",
+                    command.templateRevisionId());
+        }
 
         assertEquals(1L, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM proj_project_tree_version WHERE root_project_id=? "
@@ -97,6 +112,53 @@ class ProjectManualCreationMySqlIntegrationTest extends ProjectManualCreationMyS
                 "SELECT COUNT(*) FROM proj_project_tree_path WHERE root_project_id=? "
                         + "AND tree_version=1 AND ancestor_project_id=? AND descendant_project_id=? AND distance=0",
                 Long.class, created.id(), created.id(), created.id()));
+        assertEquals(3L, jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM proj_project_task task
+                JOIN proj_task_state_machine_revision revision
+                  ON revision.tenant_id = task.tenant_id
+                 AND revision.id = task.state_machine_revision_id
+                WHERE task.project_id=?
+                  AND task.task_code IN ('T-ASSIGN-SM', 'T-ASSIGN-PM', 'T-TEAM-BUILD')
+                  AND task.root_task_id IS NOT NULL
+                  AND task.tree_depth IN (0, 1, 2)
+                  AND revision.status='PUBLISHED'
+                """, Long.class, created.id()));
+        assertEquals(1L, jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM proj_project_task root
+                JOIN proj_project_task child
+                  ON child.tenant_id=root.tenant_id AND child.project_id=root.project_id
+                 AND child.parent_task_id=root.id AND child.root_task_id=root.id AND child.tree_depth=1
+                JOIN proj_project_task grandchild
+                  ON grandchild.tenant_id=child.tenant_id AND grandchild.project_id=child.project_id
+                 AND grandchild.parent_task_id=child.id AND grandchild.root_task_id=root.id
+                 AND grandchild.tree_depth=2
+                WHERE root.project_id=? AND root.task_code='T-ASSIGN-SM'
+                  AND root.parent_task_id IS NULL AND root.root_task_id=root.id AND root.tree_depth=0
+                  AND child.task_code='T-ASSIGN-PM' AND grandchild.task_code='T-TEAM-BUILD'
+                """, Long.class, created.id()));
+        assertEquals(6L, jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM proj_task_tree_path path
+                JOIN proj_project_task ancestor ON ancestor.id=path.ancestor_task_id
+                JOIN proj_project_task descendant ON descendant.id=path.descendant_task_id
+                WHERE path.project_id=?
+                  AND ancestor.task_code IN ('T-ASSIGN-SM', 'T-ASSIGN-PM', 'T-TEAM-BUILD')
+                  AND descendant.task_code IN ('T-ASSIGN-SM', 'T-ASSIGN-PM', 'T-TEAM-BUILD')
+                """, Long.class, created.id()));
+        assertEquals(0L, jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM (
+                    SELECT task.id
+                    FROM proj_project_task task
+                    LEFT JOIN proj_project_task_execution_contract contract
+                      ON contract.tenant_id=task.tenant_id AND contract.project_task_id=task.id
+                     AND contract.current_marker=1 AND contract.deleted=b'0'
+                    WHERE task.project_id=?
+                    GROUP BY task.id
+                    HAVING COUNT(contract.id) <> 1
+                ) invalid_contracts
+                """, Long.class, created.id()));
     }
 
     @ParameterizedTest(name = "{0} failure rolls back every fact")
@@ -207,7 +269,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
         for (String table : List.of(
                 "proj_project", "proj_project_stage", "proj_project_task",
                 "proj_project_milestone", "proj_project_gate", "proj_project_gate_reference",
-                "proj_project_task_execution_contract", "acc_project_deliverable",
+                "proj_project_task_execution_contract", "proj_task_tree_path", "acc_project_deliverable",
                 "proj_project_template_match_history", "proj_project_tree_version", "proj_project_tree_path",
                 "plt_idempotency_record", "plt_operation_audit", "plt_outbox_event")) {
             counts.put(table, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + table, Long.class));
@@ -243,11 +305,13 @@ abstract class ProjectManualCreationMySqlTestSupport {
                     + "(SELECT id FROM proj_project_gate WHERE project_id IN (" + placeholders + "))", ids);
             jdbcTemplate.update("DELETE FROM proj_project_task_execution_contract WHERE project_task_id IN "
                     + "(SELECT id FROM proj_project_task WHERE project_id IN (" + placeholders + "))", ids);
+            jdbcTemplate.update("DELETE FROM proj_task_tree_path WHERE project_id IN (" + placeholders + ")", ids);
             for (String table : List.of("acc_project_deliverable", "proj_project_company_department_relation",
                     "proj_project_member_assignment", "proj_project_gate", "proj_project_milestone",
-                    "proj_project_task", "proj_project_stage")) {
+                    "proj_project_stage")) {
                 jdbcTemplate.update("DELETE FROM " + table + " WHERE project_id IN (" + placeholders + ")", ids);
             }
+            deleteProjectTasksForTest(projectIds, placeholders);
             jdbcTemplate.update("DELETE FROM proj_project_tree_path WHERE root_project_id IN ("
                     + placeholders + ")", ids);
             jdbcTemplate.update("DELETE FROM proj_project_tree_version WHERE root_project_id IN ("
@@ -256,6 +320,26 @@ abstract class ProjectManualCreationMySqlTestSupport {
         }
         jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE correlation_id LIKE ?", KEY_PREFIX + "%");
         jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE idempotency_key LIKE ?", KEY_PREFIX + "%");
+    }
+
+    private void deleteProjectTasksForTest(List<Long> projectIds, String placeholders) {
+        jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
+            try (var statement = connection.createStatement()) {
+                statement.execute("SET FOREIGN_KEY_CHECKS=0");
+            }
+            try (var delete = connection.prepareStatement(
+                    "DELETE FROM proj_project_task WHERE project_id IN (" + placeholders + ")")) {
+                for (int index = 0; index < projectIds.size(); index++) {
+                    delete.setLong(index + 1, projectIds.get(index));
+                }
+                delete.executeUpdate();
+            } finally {
+                try (var statement = connection.createStatement()) {
+                    statement.execute("SET FOREIGN_KEY_CHECKS=1");
+                }
+            }
+            return null;
+        });
     }
 
     static String sha256(String value) {
@@ -328,6 +412,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
     enum FailurePoint {
         STAGE("INSERT", "proj_project_stage"),
         TASK("INSERT", "proj_project_task"),
+        TASK_TREE_PATH("INSERT", "proj_task_tree_path"),
         MILESTONE("INSERT", "proj_project_milestone"),
         GATE("INSERT", "proj_project_gate"),
         CONTRACT("INSERT", "proj_project_task_execution_contract"),

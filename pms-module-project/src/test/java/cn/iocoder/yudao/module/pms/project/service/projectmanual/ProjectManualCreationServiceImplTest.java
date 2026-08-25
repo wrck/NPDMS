@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateMachineRevisionDO;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
@@ -26,6 +27,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskIn
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskTreePathMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
@@ -40,6 +43,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignS
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -62,6 +66,7 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -93,6 +98,10 @@ class ProjectManualCreationServiceImplTest {
     private ProjectTaskInstanceMapper taskInstanceMapper;
     @Mock
     private ProjectTaskExecutionContractMapper taskExecutionContractMapper;
+    @Mock
+    private ProjectTaskTreePathMapper taskTreePathMapper;
+    @Mock
+    private TaskStateMachineMapper taskStateMachineMapper;
     @Mock
     private ProjectMilestoneInstanceMapper milestoneInstanceMapper;
     @Mock
@@ -126,6 +135,13 @@ class ProjectManualCreationServiceImplTest {
 
     @InjectMocks
     private ProjectManualCreationServiceImpl service;
+
+    @BeforeEach
+    void setUpPublishedTaskStateMachine() {
+        TaskStateMachineRevisionDO revision = new TaskStateMachineRevisionDO();
+        revision.setId(8801L);
+        lenient().when(taskStateMachineMapper.selectCurrentPublished(any())).thenReturn(revision);
+    }
 
     // ========== BR-2 必填阻断 ==========
 
@@ -611,6 +627,7 @@ class ProjectManualCreationServiceImplTest {
 
     private ProjectMasterDO validDraft() {
         ProjectMasterDO draft = new ProjectMasterDO();
+        draft.setTenantId(1L);
         draft.setProjectName("某数据中心建设项目");
         draft.setCustomerCode("CUST-001");
         draft.setCustomerName("某客户");

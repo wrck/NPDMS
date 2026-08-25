@@ -24,6 +24,9 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Current
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStatusUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskTreePathMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMachineMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateMachinePublishedQuery;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.MemberAssignmentRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectCodeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
@@ -52,6 +55,7 @@ import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import jakarta.annotation.Resource;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -59,7 +63,9 @@ import org.springframework.validation.annotation.Validated;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -95,6 +101,10 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private ProjectTaskInstanceMapper taskInstanceMapper;
     @Resource
     private ProjectTaskExecutionContractMapper taskExecutionContractMapper;
+    @Resource
+    private ProjectTaskTreePathMapper taskTreePathMapper;
+    @Resource
+    private TaskStateMachineMapper taskStateMachineMapper;
     @Resource
     private ProjectMilestoneInstanceMapper milestoneInstanceMapper;
     @Resource
@@ -164,6 +174,19 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
         // V1.8正式创建只能从唯一S0开始，且须在烧编码流水、写任何事实前阻断。
         TemplateInstantiator.requireSingleS0(content);
+        LocalDateTime instantiationTime = LocalDateTime.now();
+        Long trustedTenantId = draft.getTenantId();
+        if (trustedTenantId == null || trustedTenantId < 0) {
+            throw new IllegalArgumentException("项目受信租户不能为空");
+        }
+        var stateMachineRevision = taskStateMachineMapper.selectCurrentPublished(
+                TaskStateMachinePublishedQuery.builder()
+                        .tenantId(trustedTenantId)
+                        .effectiveAt(instantiationTime)
+                        .build());
+        if (stateMachineRevision == null) {
+            throw new IllegalStateException("当前租户没有生效的已发布任务状态机版本");
+        }
         // c) 编码分配（BR-8）+ 树真值（根项目/子项目分支）
         if (draft.getParentId() == null) {
             draft.setProjectCode(projectCodeAllocator.allocateRootCode());
@@ -215,15 +238,22 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             projectMasterMapper.insert(draft);
         }
         // f) 冻结版本实例化五要素 + 门禁引用行（source_definition_id 无定义行ID时保持 NULL）
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, draft.getId());
+        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(
+                content, draft.getId(), stateMachineRevision.getId(), IdWorker::getId);
         insertIfNotEmpty(instantiation.getStages(), stageInstanceMapper::insertBatch);
-        // 逐条写入任务以取得稳定实例ID，再冻结一任务一当前执行契约。
-        for (int index = 0; index < instantiation.getTasks().size(); index++) {
-            var task = instantiation.getTasks().get(index);
-            taskInstanceMapper.insert(task);
-            TemplateDefinitionContent.TaskDef definition = content.getTasks().get(index);
+        // 任务ID已在落库前确定；先写完整任务集合，再写闭包和一任务一当前执行契约。
+        instantiation.getTasks().forEach(taskInstanceMapper::insert);
+        insertIfNotEmpty(instantiation.getTaskTreePaths(), taskTreePathMapper::insertBatch);
+        Map<String, TemplateDefinitionContent.TaskDef> definitionsByCode = new LinkedHashMap<>();
+        content.getTasks().stream().filter(Objects::nonNull)
+                .forEach(definition -> definitionsByCode.put(definition.getTaskCode(), definition));
+        for (var task : instantiation.getTasks()) {
+            TemplateDefinitionContent.TaskDef definition = definitionsByCode.get(task.getTaskCode());
+            if (definition == null) {
+                throw new IllegalArgumentException("模板任务定义不存在：" + task.getTaskCode());
+            }
             ProjectTaskExecutionContractDO contract = taskExecutionContractFactory.create(
-                    task.getId(), definition.getId(), definition, LocalDateTime.now());
+                    task.getId(), definition.getId(), definition, instantiationTime);
             contract.setTenantId(draft.getTenantId());
             taskExecutionContractMapper.insert(contract);
         }

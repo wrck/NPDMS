@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectG
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMilestoneInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskTreePathDO;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -28,6 +29,8 @@ public class ProjectInstantiation {
     private List<ProjectStageInstanceDO> stages = new ArrayList<>();
     /** 任务实例（初始 PENDING_ASSIGN） */
     private List<ProjectTaskInstanceDO> tasks = new ArrayList<>();
+    /** 任务树自反及祖先闭包当前投影 */
+    private List<ProjectTaskTreePathDO> taskTreePaths = new ArrayList<>();
     /** 里程碑实例（初始 PENDING） */
     private List<ProjectMilestoneInstanceDO> milestones = new ArrayList<>();
     /** ACC查询接口返回的交付件兼容视图；创建输出保持为空 */

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 项目任务实例 DO（F-PM01 / V57 `proj_project_task`）
@@ -41,6 +42,38 @@ public class ProjectTaskInstanceDO extends TenantBaseDO {
      * 父任务码（NULL=顶层）
      */
     private String parentTaskCode;
+    /**
+     * 当前直接父任务ID（NULL=根任务）
+     */
+    private Long parentTaskId;
+    /**
+     * 当前根任务ID（根任务为自身ID）
+     */
+    private Long rootTaskId;
+    /**
+     * 结构深度（根任务为0）
+     */
+    private Integer treeDepth;
+    /**
+     * 业务层级编码（与结构深度无关）
+     */
+    private String businessLevelCode;
+    /**
+     * 关联里程碑实例ID
+     */
+    private Long milestoneId;
+    private LocalDateTime planStartTime;
+    private LocalDateTime planEndTime;
+    private LocalDateTime actualStartTime;
+    private LocalDateTime actualEndTime;
+    /**
+     * 任务进度0～100
+     */
+    private BigDecimal progress;
+    /**
+     * 创建时冻结的任务状态机版本ID
+     */
+    private Long stateMachineRevisionId;
     /**
      * 所属阶段码
      */
