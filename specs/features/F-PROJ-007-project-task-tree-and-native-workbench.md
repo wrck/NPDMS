@@ -1,7 +1,7 @@
 # F-PROJ-007 项目任务树与原生任务工作台 Feature Spec
 
-> 文档状态：`DRAFT / REVIEW_PENDING`
-> Feature Ready：`NOT_READY / 待独立裁决`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO NPDMS-FPROJ007-FEATURE-READY-20260825-01`
 > Requirement：`PM-11（V1层级模型与基础查询）`
 > 关联Requirement：`PM-02`、`PM-03`、`PM-04`、`PM-08`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
@@ -176,12 +176,12 @@
 
 | 项目 | 当前状态 |
 |---|---|
-| PM-11 V1与V2边界 | PASS（候选） |
-| V1.7双模型与旧入口处置 | PASS（候选） |
-| 任务树、依赖、责任区间与状态机 | PASS（候选） |
-| 任务与叶子项目进度口径 | PENDING（待独立裁决） |
-| TASK_NATIVE与非原生宿主边界 | PASS（候选） |
-| API、权限、并发、事件和UI验收 | PASS（候选） |
-| 独立Feature Ready裁决 | PENDING |
+| PM-11 V1与V2边界 | PASS |
+| V1.7双模型与旧入口处置 | PASS |
+| 任务树、依赖、责任区间与状态机 | PASS |
+| 任务与叶子项目进度口径 | PASS（采用本规格叶子任务加权口径） |
+| TASK_NATIVE与非原生宿主边界 | PASS |
+| API、权限、并发、事件和UI验收 | PASS |
+| 独立Feature Ready裁决 | PASS（`NPDMS-FPROJ007-FEATURE-READY-20260825-01`） |
 
-结论：`DRAFT / REVIEW_PENDING`。独立Feature Ready裁决GO前不得标记READY、不得生成Technical Plan或实施代码；不重开已通过的PRD/SDS门禁，不得根据V1.7现有实现直接勾选任何AC。
+结论：`BASELINE / READY`。允许在NPDMS锁定本规格提交后全新生成Technical Plan；不重开已通过的PRD/SDS门禁，不得根据V1.7现有实现直接勾选任何AC。
