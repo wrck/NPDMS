@@ -1,10 +1,23 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.vo.ProjectExceptionCloseReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.vo.ProjectReopenReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.vo.ProjectRollbackReqVO;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceGuardResult;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceGuardService;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.ProjectGovernanceHistoryQueryService;
+import cn.iocoder.yudao.module.pms.project.service.projectgovernance.command.GovernanceActionResult;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -12,12 +25,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
 
 class ProjectGovernanceCommandControllerContractTest {
 
@@ -63,6 +89,73 @@ class ProjectGovernanceCommandControllerContractTest {
             assertFalse(method.isAnnotationPresent(org.springframework.web.bind.annotation.DeleteMapping.class),
                     method.getName());
         }
+    }
+
+    @Test
+    void singleTenantHttpGuardAndRollbackEstablishTrustedTenantZero() throws Exception {
+        TenantContextHolder.clear();
+        LoginUser loginUser = new LoginUser();
+        loginUser.setId(9L);
+        loginUser.setTenantId(0L);
+        SecurityFrameworkUtils.setLoginUser(loginUser, new MockHttpServletRequest());
+        try {
+            ProjectGovernanceGuardService guardService = mock(ProjectGovernanceGuardService.class);
+            ProjectGovernanceApplicationService applicationService = mock(ProjectGovernanceApplicationService.class);
+            ProjectGovernanceHistoryQueryService historyService = mock(ProjectGovernanceHistoryQueryService.class);
+            Environment environment = mock(Environment.class);
+            when(environment.getProperty("yudao.tenant.enable", Boolean.class, true)).thenReturn(false);
+            LocalDateTime operatedAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+            when(guardService.evaluate(eq(11L), eq(ProjectGovernanceGuardService.GovernanceAction.ROLLBACK), any()))
+                    .thenAnswer(invocation -> {
+                        assertEquals(0L, TenantContextHolder.getRequiredTenantId());
+                        ProjectGovernanceGuardService.Actor actor = invocation.getArgument(2);
+                        assertEquals(0L, actor.tenantId());
+                        return new ProjectGovernanceGuardResult(11L, 3, "ACTIVE", "S3", "ASSIGNED",
+                                10L, 5L, "ROLLBACK", true, "guard-token", List.of(), List.of(), operatedAt);
+                    });
+            when(applicationService.rollback(any(), any())).thenAnswer(invocation -> {
+                assertEquals(0L, TenantContextHolder.getRequiredTenantId());
+                ProjectGovernanceGuardService.Actor actor = invocation.getArgument(1);
+                assertEquals(0L, actor.tenantId());
+                return new GovernanceActionResult(11L, "ROLLBACK", "ACTIVE", "S3", "ASSIGNED",
+                        "ACTIVE", "S0", "UNASSIGNED", 4, 101L, "op-1", operatedAt, false);
+            });
+            MockMvc mvc = standaloneSetup(new ProjectGovernanceCommandController(
+                    guardService, applicationService, historyService, environment)).build();
+
+            mvc.perform(get("/pms/projects/11/governance-guard")
+                            .param("action", "ROLLBACK"))
+                    .andExpect(status().isOk());
+            assertNull(TenantContextHolder.getTenantId());
+            mvc.perform(post("/pms/projects/11/actions/rollback")
+                            .header("Idempotency-Key", "idem-1")
+                            .header("If-Match", "3")
+                            .contentType("application/json")
+                            .content("""
+                                    {"guardToken":"guard-token","reasonCode":"CORRECTION",
+                                     "reasonDetail":"回退修正","reassignmentRequirement":"重新指派"}
+                                    """))
+                    .andExpect(status().isOk());
+            assertNull(TenantContextHolder.getTenantId());
+        } finally {
+            TenantContextHolder.clear();
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void enabledMultiTenantWithoutTrustedContextFailsClosed() {
+        TenantContextHolder.clear();
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("yudao.tenant.enable", Boolean.class, true)).thenReturn(true);
+        ProjectGovernanceCommandController controller = new ProjectGovernanceCommandController(
+                mock(ProjectGovernanceGuardService.class), mock(ProjectGovernanceApplicationService.class),
+                mock(ProjectGovernanceHistoryQueryService.class), environment);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> controller.getGuard(11L, ProjectGovernanceGuardService.GovernanceAction.ROLLBACK, 1, 20));
+
+        assertEquals(PROJECT_TREE_SCOPE_FORBIDDEN.getCode(), error.getCode());
     }
 
     private static void assertEndpoint(String methodName, Class<? extends Annotation> mappingType,
