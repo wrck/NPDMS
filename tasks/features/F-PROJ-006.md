@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > 当前阻断：无当前必停阻断；COLLECTION权威守卫来源证据在Task 5核验，缺失时失败关闭并登记为Feature Done前阻断
-> 当前任务：`Task 3 固化守卫公共契约与PROJ事实`
+> 当前任务：`Task 4 提供CUT与INSPECTION守卫事实`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
 > Feature物理契约：`specs/features/F-PROJ-006-physical-contract.json`
@@ -24,7 +24,7 @@
 
 - [x] Task 1 建立共享快照与权限物理基础（PASS / `82e2193` / 独立裁决GO）
 - [x] Task 2 实现共享快照持久化与Project原子更新（PASS / `4060039..2ca2f92` / 独立裁决GO）
-- [ ] Task 3 固化守卫公共契约与PROJ事实
+- [x] Task 3 固化守卫公共契约与PROJ事实（PASS / `9256cb5..39f5260` / 独立裁决GO）
 - [ ] Task 4 提供CUT与INSPECTION守卫事实
 - [ ] Task 5 提供BPM与COLLECTION集成守卫
 - [ ] Task 6 签发并重验不透明守卫令牌
@@ -42,3 +42,5 @@
 > 检查点（2026-08-25）：Task 2完成审查整改：快照仅经受信租户上下文和动作校验追加，分页防御复制且上限200，项目行锁后以当前读重验消费；契约13/13、规则4/4、Reactor 277通过/22既有IT跳过、空库V1～V86及MySQL并发/越租户3/3通过；待独立裁决。
 
 > 检查点（2026-08-25）：Task 2独立Implementation Done裁决GO，提交范围`4060039..2ca2f92`；已回写PASS并推进Task 3，不重开Feature Ready、PRD、SDS门禁。
+
+> 检查点（2026-08-25）：Task 3公共守卫契约及PROJ事实经整改后独立Implementation Done裁决GO，提交范围`9256cb5..39f5260`；已回写PASS并推进Task 4，不重开Feature Ready、PRD、SDS门禁。
