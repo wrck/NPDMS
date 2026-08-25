@@ -1,4 +1,5 @@
 import { ComponentStyle, DiyComponent } from '@/components/DiyEditor/util'
+import defaultImage from '@/assets/svgs/default-image.svg'
 
 /** 轮播图属性 */
 export interface CarouselProperty {
@@ -41,8 +42,8 @@ export const component = {
     interval: 3,
     height: 174,
     items: [
-      { type: 'img', imgUrl: 'https://example.com/mall/banner-01.jpg', videoUrl: '' },
-      { type: 'img', imgUrl: 'https://example.com/mall/banner-02.jpg', videoUrl: '' }
+      { type: 'img', imgUrl: defaultImage, videoUrl: '' },
+      { type: 'img', imgUrl: defaultImage, videoUrl: '' }
     ] as CarouselItemProperty[],
     style: {
       bgType: 'color',

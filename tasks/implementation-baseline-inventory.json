@@ -156,29 +156,51 @@
       "requiredAction": "AUDIT_AND_ADAPT_AGAINST_V1_8_FEATURE_SPEC"
     },
     {
-      "objectKey": "ProjectTreeAndDetail",
-      "classification": "V1_7_REVALIDATION_REQUIRED",
+      "objectKey": "ProjectTreeAdaptedRuntime",
+      "classification": "ADAPTED",
       "requirementRefs": ["PM-02"],
       "codePaths": [
-        "sql/migrations/V60__fpm02_project_tree_progress.sql",
-        "sql/migrations/V61__fpm02_project_tree_demo_seed.sql",
-        "sql/migrations/V62__fpm02_project_tree_fullchain_template.sql",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/projectmanual/ProjectTreeRules.java",
-        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectTreeService.java",
-        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectTreeServiceImpl.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeProjectionService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeQueryService.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/ProjectMasterController.java",
-        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectChildWeightsReqVO.java",
-        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectProgressRespVO.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectprogress/vo/ProjectProgressPolicyReqVO.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectprogress/vo/ProjectProgressRespVO.java",
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectTreeMoveReqVO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/outbox/CommerceOutboxEventDO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/DeliveryScopeDetailDO.java",
+        "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/scope/OrderLineDO.java",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/"
       ],
-      "requiredAction": "AUDIT_AND_ADAPT_AGAINST_V1_8_FEATURE_SPEC"
+      "requiredAction": "V1_8_FPROJ002_IMPLEMENTATION_VERIFIED"
+    },
+    {
+      "objectKey": "ProjectTreeLegacyDemo",
+      "classification": "RETIRED",
+      "requirementRefs": ["PM-02"],
+      "codePaths": ["sql/migrations/V61__fpm02_project_tree_demo_seed.sql"],
+      "requiredAction": "HISTORICAL_MIGRATION_RETAINED_RUNTIME_SEED_REPLACED_BY_V72_TO_V76"
+    },
+    {
+      "objectKey": "ProjectTreeLegacySchema",
+      "classification": "REPLACED",
+      "requirementRefs": ["PM-02"],
+      "codePaths": ["sql/migrations/V60__fpm02_project_tree_progress.sql"],
+      "requiredAction": "HISTORICAL_MIGRATION_RETAINED_V1_8_CARRIERS_REPLACED_BY_V70_TO_V71"
+    },
+    {
+      "objectKey": "ProjectTreeReusedTemplate",
+      "classification": "REUSED",
+      "requirementRefs": ["PM-02"],
+      "codePaths": ["sql/migrations/V62__fpm02_project_tree_fullchain_template.sql"],
+      "requiredAction": "PUBLISHED_FULL_CHAIN_TEMPLATE_REUSED_AND_BOUND_BY_V75"
     },
     {
       "objectKey": "ProjectUnclassifiedSurface",
       "classification": "BLOCKED_BY_SPEC",
-      "requirementRefs": ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "ACC-05", "ACC-06", "CHG-01", "CLO-01", "CLO-02", "CUS-01", "CUS-02", "CUS-03", "CUS-04", "PLN-01", "PLN-02", "PLN-03", "PLN-04", "PM-01", "PM-02", "PM-03", "PM-04", "PM-05", "PM-06", "PM-07", "PM-08", "PM-09", "PM-10", "PM-11", "SCH-01", "SCH-02", "SCH-03", "SCH-04", "SCH-05"],
+      "requirementRefs": ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "ACC-06", "CHG-01", "CLO-01", "CLO-02", "CUS-01", "CUS-02", "CUS-03", "CUS-04", "PLN-01", "PLN-02", "PLN-03", "PLN-04", "PM-01", "PM-02", "PM-03", "PM-04", "PM-05", "PM-06", "PM-07", "PM-08", "PM-09", "PM-10", "PM-11", "SCH-01", "SCH-02", "SCH-03", "SCH-04", "SCH-05"],
       "codePaths": [
         "pms-module-project/",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/",

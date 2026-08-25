@@ -37,10 +37,6 @@ public class EquipmentSaveReqVO {
     @Schema(description = "所属项目编号", example = "4096")
     private Long projectId;
 
-    @Schema(description = "设备位置", example = "机房A-机柜03-U12")
-    @Size(max = 255, message = "设备位置长度不能超过 255 个字符")
-    private String location;
-
     @Schema(description = "保修开始日期", example = "2026-01-01")
     private LocalDate warrantyStartDate;
 

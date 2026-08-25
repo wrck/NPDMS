@@ -2,7 +2,12 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.AssertTrue;
 import lombok.Data;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
 
 /**
  * 手工创建项目 Request VO（F-PM01 / PM-01，BR-2 必填：名称/三维/创建原因）
@@ -27,11 +32,17 @@ public class ProjectCreateReqVO {
     @Schema(description = "手工登记合同号", example = "HT-2026-001")
     private String contractNo;
 
-    @Schema(description = "下单办事处公司编码（登记 ORDER_OFFICE 关系）", example = "COMP-SH")
-    private String orderOfficeCompanyCode;
+    @Schema(description = "下单办事处所属公司稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "下单办事处所属公司不能为空")
+    private Long orderOfficeCompanyId;
 
-    @Schema(description = "下单办事处部门编码", example = "DEPT-SH-01")
-    private String orderOfficeDepartmentCode;
+    @Schema(description = "下单办事处部门稳定ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "下单办事处部门不能为空")
+    private Long orderOfficeDepartmentId;
+
+    @Schema(description = "实施站点；为空时必须填写兼容实施地点")
+    @Valid
+    private List<ProjectSiteReqVO> sites;
 
     @Schema(description = "实施地点", example = "上海")
     private String implementationLocation;
@@ -52,9 +63,22 @@ public class ProjectCreateReqVO {
     @NotEmpty(message = "手工创建原因不能为空")
     private String creationReason;
 
-    @Schema(description = "人工选择模板ID（空=四维自动匹配，多匹配/无匹配时阻断）", example = "910001")
-    private Long templateId;
+    @Schema(description = "人工选择的模板发布版本稳定ID（空=仅允许唯一默认候选）", example = "910101")
+    private Long templateRevisionId;
 
-    @Schema(description = "可选一级服务经理用户ID（空=创建后人工指派）", example = "1")
-    private Long serviceManagerUserId;
+    @Schema(description = "候选查询水位（根项目必填；子项目继承父模板时为空）")
+    private String candidateWatermark;
+
+    @AssertTrue(message = "根项目候选查询水位不能为空")
+    @Schema(hidden = true)
+    public boolean isCandidateWatermarkValid() {
+        return parentId != null || candidateWatermark != null && !candidateWatermark.isBlank();
+    }
+
+    @AssertTrue(message = "实施站点与兼容实施地点不能同时为空")
+    @Schema(hidden = true)
+    public boolean isLocationScopeValid() {
+        return sites != null && !sites.isEmpty()
+                || implementationLocation != null && !implementationLocation.isBlank();
+    }
 }

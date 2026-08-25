@@ -3,11 +3,14 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosurePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosureRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosureSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO;
 import cn.iocoder.yudao.module.pms.project.service.projectclosure.ProjectClosureService;
+import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +19,8 @@ import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 
@@ -78,8 +83,11 @@ public class ProjectClosureController {
     @Operation(summary = "提交项目闭环（0草稿 → 1待审批）")
     @Parameter(name = "id", description = "编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:acc-project-closure:submit')")
-    public CommonResult<Boolean> submit(@RequestParam("id") Long id) {
-        projectClosureService.submitProjectClosure(id);
+    public CommonResult<Boolean> submit(@RequestParam("id") Long id,
+                                        @RequestHeader("If-Match") long expectedTreeVersion) {
+        projectClosureService.submitProjectClosure(id, expectedTreeVersion,
+                new ProjectClosureGuardService.Actor(currentTenantId(),
+                        SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()));
         return success(true);
     }
 
@@ -117,6 +125,11 @@ public class ProjectClosureController {
     public CommonResult<Boolean> archive(@RequestParam("id") Long id) {
         projectClosureService.archiveProjectClosure(id);
         return success(true);
+    }
+
+    private Long currentTenantId() {
+        Long tenantId = TenantContextHolder.getTenantId();
+        return tenantId != null ? tenantId : 0L;
     }
 
 }

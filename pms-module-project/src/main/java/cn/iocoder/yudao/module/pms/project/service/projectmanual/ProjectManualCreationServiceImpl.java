@@ -7,10 +7,10 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectG
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectCompanyDepartmentRelationMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectDeliverableInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
@@ -18,33 +18,62 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMember
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentMemberResponsibilityQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStatusUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.MemberAssignmentRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectCodeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectTreeRules;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TemplateInstantiator;
+import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.ProjectAttributeSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
+import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecisionRules;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.DeliverableDefinition;
+import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.InitializeProjectDeliverablesCommand;
+import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_AMBIGUOUS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NO_MATCH;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_PROJECTION_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_MANAGE;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 /**
  * 项目手工创建 Service 实现（F-PM01 / PM-01）
@@ -65,9 +94,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Resource
     private ProjectTaskInstanceMapper taskInstanceMapper;
     @Resource
-    private ProjectMilestoneInstanceMapper milestoneInstanceMapper;
+    private ProjectTaskExecutionContractMapper taskExecutionContractMapper;
     @Resource
-    private ProjectDeliverableInstanceMapper deliverableInstanceMapper;
+    private ProjectMilestoneInstanceMapper milestoneInstanceMapper;
     @Resource
     private ProjectGateInstanceMapper gateInstanceMapper;
     @Resource
@@ -79,12 +108,46 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     @Resource
     private ProjectTemplateService projectTemplateService;
     @Resource
+    private ProjectAttributeResolutionService projectAttributeResolutionService;
+    @Resource
     private ProjectCodeAllocator projectCodeAllocator;
+    @Resource
+    private TaskExecutionContractFactory taskExecutionContractFactory;
+    @Resource
+    private ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
+    @Resource
+    private AdminUserApi adminUserApi;
+    @Resource
+    private DeptApi deptApi;
+    @Resource
+    private ProjectTreeVersionMapper projectTreeVersionMapper;
+    @Resource
+    private ProjectTreeScopeService projectTreeScopeService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
-                                         String orderOfficeDepartmentCode, Long manualTemplateId,
+                                         String orderOfficeDepartmentCode, Long templateRevisionId,
+                                         String candidateWatermark, Long serviceManagerUserId) {
+        List<String> missing = draft.getParentId() == null
+                ? ProjectRules.validateManualCreation(draft)
+                : ProjectRules.validateChildCreation(draft);
+        if (!missing.isEmpty()) {
+            throw exception(PROJECT_CREATE_FIELDS_INVALID, String.join("、", missing));
+        }
+        TemplateMatchDecision matchDecision = draft.getParentId() == null
+                ? projectAttributeResolutionService.resolveInitial(new ProjectAttributeSnapshot(
+                        draft.getSigningMethod(), draft.getProjectCategory(), draft.getImplementationMode(),
+                        draft.getMajorProjectLevel()), templateRevisionId, candidateWatermark)
+                : null;
+        return createProject(draft, orderOfficeCompanyCode, orderOfficeDepartmentCode,
+                matchDecision, serviceManagerUserId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProjectMasterDO createProject(ProjectMasterDO draft, String orderOfficeCompanyCode,
+                                         String orderOfficeDepartmentCode, TemplateMatchDecision matchDecision,
                                          Long serviceManagerUserId) {
         // a) BR-2 必填校验（失败不落库不实例化；子项目三维/模板继承父，仅名称+创建原因必填）
         List<String> missing = draft.getParentId() == null
@@ -95,10 +158,12 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         }
         // b) 模板选择与冻结内容读取（根项目四维匹配/人工选择；子项目继承父模板版本）
         SelectedTemplate selected = draft.getParentId() == null
-                ? selectTemplate(draft, manualTemplateId)
+                ? selectTemplate(matchDecision)
                 : selectInheritedTemplate(draft.getParentId());
         TemplateDefinitionContent content =
                 projectTemplateService.getRevisionContent(selected.templateId(), selected.revisionNo());
+        // V1.8正式创建只能从唯一S0开始，且须在烧编码流水、写任何事实前阻断。
+        TemplateInstantiator.requireSingleS0(content);
         // c) 编码分配（BR-8）+ 树真值（根项目/子项目分支）
         if (draft.getParentId() == null) {
             draft.setProjectCode(projectCodeAllocator.allocateRootCode());
@@ -118,7 +183,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             draft.setRootId(parent.getRootId());
             draft.setTreePath(ProjectTreeRules.buildChildPath(parent.getTreePath(), parent.getId()));
             draft.setTreeDepth(ProjectTreeRules.buildChildDepth(parent.getTreeDepth()));
-            draft.setTreeSort(0);
+            if (draft.getTreeSort() == null) {
+                draft.setTreeSort(0);
+            }
             inheritFromParent(draft, parent);
         }
         // d) 冻结模板引用（BR-4：绑定 revision 与流程定义版本写入主档）
@@ -129,6 +196,9 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         draft.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
         draft.setSourceType(ProjectRules.SOURCE_TYPE_MANUAL);
         draft.setStatus(ProjectRules.INITIAL_STATUS);
+        draft.setLifecycleStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
+        draft.setCurrentStage(ProjectRules.STATUS_S0);
+        draft.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
         // e) 主档写入：根项目两段（code_root_id=root_id=id）；子项目单段（继承父）
         if (draft.getParentId() == null) {
             draft.setCodeRootId(0L);
@@ -147,9 +217,24 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         // f) 冻结版本实例化五要素 + 门禁引用行（source_definition_id 无定义行ID时保持 NULL）
         ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, draft.getId());
         insertIfNotEmpty(instantiation.getStages(), stageInstanceMapper::insertBatch);
-        insertIfNotEmpty(instantiation.getTasks(), taskInstanceMapper::insertBatch);
+        // 逐条写入任务以取得稳定实例ID，再冻结一任务一当前执行契约。
+        for (int index = 0; index < instantiation.getTasks().size(); index++) {
+            var task = instantiation.getTasks().get(index);
+            taskInstanceMapper.insert(task);
+            TemplateDefinitionContent.TaskDef definition = content.getTasks().get(index);
+            ProjectTaskExecutionContractDO contract = taskExecutionContractFactory.create(
+                    task.getId(), definition.getId(), definition, LocalDateTime.now());
+            contract.setTenantId(draft.getTenantId());
+            taskExecutionContractMapper.insert(contract);
+        }
         insertIfNotEmpty(instantiation.getMilestones(), milestoneInstanceMapper::insertBatch);
-        insertIfNotEmpty(instantiation.getDeliverables(), deliverableInstanceMapper::insertBatch);
+        List<DeliverableDefinition> deliverableDefinitions = content.getDeliverables().stream()
+                .map(definition -> new DeliverableDefinition(
+                        definition.getDeliverableCode(), definition.getName(), definition.getStageCode(),
+                        definition.getTaskCode(), Boolean.TRUE.equals(definition.getRequired()), definition.getId()))
+                .toList();
+        deliverableInitializationApplicationService.initialize(new InitializeProjectDeliverablesCommand(
+                draft.getId(), selected.revisionId(), deliverableDefinitions));
         // 门禁需先落库取自增 id，供引用行回填 gate_id
         instantiation.getGates().forEach(gateInstanceMapper::insert);
         for (ProjectGateInstanceDO gate : instantiation.getGates()) {
@@ -165,14 +250,23 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         }
         // g) 可选服务经理指派（一级 SERVICE_MANAGER_L1；PROJECT_MANAGER 不写）
         if (serviceManagerUserId != null) {
-            doAssignServiceManager(draft.getId(), serviceManagerUserId, null, null, LocalDateTime.now());
+            AssignServiceManagerCommand initialAssignment = new AssignServiceManagerCommand(
+                    draft.getId(), draft.getVersion(), "L1", serviceManagerUserId, null,
+                    ProjectRules.ASSIGNMENT_TYPE_PRIMARY, draft.getDepartmentId(), draft.getDepartmentCode(),
+                    "项目创建时指定", null, null);
+            doAssignServiceManager(initialAssignment, draft,
+                    ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, LocalDateTime.now());
         }
         // h) 下单办事处关系（relation_role=ORDER_OFFICE，is_primary=1，effective_from=now）
         if (orderOfficeCompanyCode != null && !orderOfficeCompanyCode.isBlank()) {
             ProjectCompanyDepartmentRelationDO relation = new ProjectCompanyDepartmentRelationDO();
             relation.setProjectId(draft.getId());
+            relation.setCompanyId(draft.getCompanyId());
             relation.setCompanyCode(orderOfficeCompanyCode);
+            relation.setCompanyName(draft.getCompanyName());
+            relation.setDepartmentId(draft.getDepartmentId());
             relation.setDepartmentCode(orderOfficeDepartmentCode);
+            relation.setDepartmentName(draft.getDepartmentName());
             relation.setRelationRole(ProjectRules.RELATION_ROLE_ORDER_OFFICE);
             relation.setIsPrimary(Boolean.TRUE);
             relation.setEffectiveFrom(LocalDateTime.now());
@@ -183,37 +277,73 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     @Override
-    public void updateProject(ProjectMasterDO update) {
+    public void updateProject(ProjectMasterDO update, ProjectAccessActor actor) {
         if (update == null || update.getId() == null) {
             throw exception(PROJECT_NOT_EXISTS);
         }
-        ProjectMasterDO current = validateProjectExists(update.getId());
+        ProjectMasterDO current = requireScopedProject(update.getId(), actor, ACTION_MANAGE);
         // BR-7：不可变字段以库内值为准（更新载荷中的不可变字段值被忽略）
         ProjectRules.applyImmutableFields(update, current);
         projectMasterMapper.updateById(update);
     }
 
     @Override
-    public ProjectMasterDO getProject(Long id) {
-        return projectMasterMapper.selectById(id);
+    public ProjectMasterDO getProject(Long id, ProjectAccessActor actor) {
+        return requireScopedProject(id, actor, ACTION_VIEW);
+    }
+
+    @Override
+    public ProjectMasterDO getProjectForManage(Long id, ProjectAccessActor actor) {
+        return requireScopedProject(id, actor, ACTION_MANAGE);
     }
 
     @Override
     public PageResult<ProjectMasterDO> getProjectPage(PageParam pageParam, String projectName, String projectCode,
                                                       String status, String signingMethod, String projectCategory,
-                                                      String implementationMode) {
-        return projectMasterMapper.selectPage(pageParam, projectName, projectCode, status,
-                signingMethod, projectCategory, implementationMode);
+                                                      String implementationMode, ProjectAccessActor actor) {
+        validateActor(actor);
+        var visibleProjectIds = projectTreeScopeService.resolveAllFullProjectIds(
+                actor.tenantId(), actor.actorId(), ACTION_VIEW);
+        return projectMasterMapper.selectPage(new VisibleProjectPageQuery(
+                actor.tenantId(), visibleProjectIds, pageParam, projectName, projectCode, status,
+                signingMethod, projectCategory, implementationMode));
     }
 
     @Override
-    public ProjectInstantiation getInstances(Long projectId) {
-        validateProjectExists(projectId);
+    public ProjectInstantiation getInstances(Long projectId, ProjectAccessActor actor) {
+        requireScopedProject(projectId, actor, ACTION_VIEW);
+        return loadInstances(projectId);
+    }
+
+    @Override
+    public ProjectInstantiation getInstancesForCreation(Long projectId, Long tenantId) {
+        ProjectMasterDO project = projectMasterMapper.selectById(projectId);
+        if (project == null || !java.util.Objects.equals(project.getTenantId(), tenantId)) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        return loadInstances(projectId);
+    }
+
+    private ProjectInstantiation loadInstances(Long projectId) {
         ProjectInstantiation view = new ProjectInstantiation();
         view.setStages(stageInstanceMapper.selectListByProjectId(projectId));
         view.setTasks(taskInstanceMapper.selectListByProjectId(projectId));
         view.setMilestones(milestoneInstanceMapper.selectListByProjectId(projectId));
-        view.setDeliverables(deliverableInstanceMapper.selectListByProjectId(projectId));
+        view.setDeliverables(deliverableInitializationApplicationService.getByProjectId(projectId).stream()
+                .map(deliverable -> {
+                    var legacyView = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectDeliverableInstanceDO();
+                    legacyView.setId(deliverable.id());
+                    legacyView.setProjectId(deliverable.projectId());
+                    legacyView.setDeliverableCode(deliverable.deliverableCode());
+                    legacyView.setName(deliverable.name());
+                    legacyView.setStageCode(deliverable.stageCode());
+                    legacyView.setTaskCode(deliverable.taskCode());
+                    legacyView.setRequired(deliverable.required());
+                    legacyView.setSourceDefinitionId(deliverable.sourceDefinitionId());
+                    legacyView.setStatus(deliverable.status());
+                    legacyView.setVersion(deliverable.version());
+                    return legacyView;
+                }).toList());
         view.setGates(gateInstanceMapper.selectListByProjectId(projectId));
         // 引用行按门禁实例分组回填到载体（实例视图复用实例化载体）
         if (!view.getGates().isEmpty()) {
@@ -228,52 +358,96 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     @Override
-    public List<ProjectMemberAssignmentDO> getMemberAssignments(Long projectId) {
-        validateProjectExists(projectId);
+    public List<ProjectMemberAssignmentDO> getMemberAssignments(Long projectId, ProjectAccessActor actor) {
+        requireScopedProject(projectId, actor, ACTION_VIEW);
         return memberAssignmentMapper.selectListByProjectId(projectId);
+    }
+
+    private ProjectMasterDO requireScopedProject(Long projectId, ProjectAccessActor actor, String actionCode) {
+        validateActor(actor);
+        ProjectMasterDO project = projectMasterMapper.selectById(projectId);
+        if (project == null || !java.util.Objects.equals(project.getTenantId(), actor.tenantId())) {
+            throw exception(PROJECT_NOT_EXISTS);
+        }
+        Long rootId = project.getRootId() == null ? project.getId() : project.getRootId();
+        ProjectTreeVersionDO active = projectTreeVersionMapper.selectLatestActive(rootId);
+        if (active == null) {
+            throw exception(PROJECT_TREE_PROJECTION_UNAVAILABLE);
+        }
+        var scope = projectTreeScopeService.resolve(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), projectId, actionCode, active.getTreeVersion()));
+        if (!scope.fullProjectIds().contains(projectId)) {
+            if (ACTION_VIEW.equals(actionCode)) {
+                throw exception(PROJECT_NOT_EXISTS);
+            }
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        return project;
+    }
+
+    private void validateActor(ProjectAccessActor actor) {
+        if (actor == null || actor.tenantId() == null || actor.tenantId() < 0
+                || actor.actorId() == null || actor.actorId() <= 0) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void assignServiceManager(Long projectId, Long userId, String employeeNo, String name,
-                                     LocalDateTime effectiveFrom) {
-        validateProjectExists(projectId);
-        doAssignServiceManager(projectId, userId, employeeNo, name, effectiveFrom);
+    public AssignServiceManagerResult assignServiceManager(AssignServiceManagerCommand command) {
+        validateAssignmentCommand(command);
+        ProjectMasterDO project = validateProjectExists(command.projectId());
+        if (projectMasterMapper.incrementVersionIfMatch(command.projectId(), command.expectedVersion()) != 1) {
+            throw exception(PROJECT_VERSION_CONFLICT);
+        }
+        LocalDateTime effectiveFrom = LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);
+        String memberRole = "L1".equals(command.levelCode())
+                ? ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1
+                : ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2;
+        List<ProjectMemberAssignmentDO> activeBefore = memberAssignmentMapper.selectActiveForAssignmentState(
+                new ProjectAssignmentStateQuery(command.projectId(), effectiveFrom));
+        Long previousPrimaryManagerId = currentPrimaryServiceManager(activeBefore, memberRole, command.siteId());
+        ProjectMemberAssignmentDO assignment = doAssignServiceManager(
+                command, project, memberRole, effectiveFrom);
+        int newVersion = command.expectedVersion() + 1;
+        List<ProjectMemberAssignmentDO> activeAfter = memberAssignmentMapper.selectActiveForAssignmentState(
+                new ProjectAssignmentStateQuery(command.projectId(), effectiveFrom));
+        String assignmentStatus = calculateAssignmentStatus(activeAfter);
+        String storedStatus = project.getAssignmentStatus() == null
+                ? ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED : project.getAssignmentStatus();
+        if (!Objects.equals(storedStatus, assignmentStatus)
+                && projectMasterMapper.updateAssignmentStatusIfVersion(
+                new ProjectAssignmentStatusUpdate(command.projectId(), newVersion, assignmentStatus)) != 1) {
+            throw exception(PROJECT_VERSION_CONFLICT);
+        }
+        Long currentPrimaryManagerId = ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(command.assignmentType())
+                ? command.managerId() : currentPrimaryServiceManager(activeAfter, memberRole, command.siteId());
+        return new AssignServiceManagerResult(command.projectId(), assignment.getId(), newVersion,
+                assignmentStatus, effectiveFrom, previousPrimaryManagerId, currentPrimaryManagerId);
     }
 
     // ========== 内部方法 ==========
 
     /**
-     * 模板选择（BR-3/BR-4）：manualTemplateId 非空=MANUAL_SELECTED（校验 ACTIVE 且有 PUBLISHED 版本）；
-     * 为空=四维 matchPreview 自动匹配：MATCHED→AUTO_DEFAULT；NO_MATCH/MULTI_MATCH→阻断并携带冲突清单。
+     * 模板选择（BR-FPROJ-003）：提交时重算候选水位；显式选择必须是当前候选中的发布revision，
+     * 未显式选择时仅允许唯一默认候选。禁止按模板ID重新挑选latest revision。
      */
-    private SelectedTemplate selectTemplate(ProjectMasterDO draft, Long manualTemplateId) {
-        if (manualTemplateId != null) {
-            ProjectTemplateDO template = projectTemplateService.getProjectTemplate(manualTemplateId);
-            if (template == null || !TemplateRules.STATUS_ACTIVE.equals(template.getStatus())) {
-                throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
-            }
-            Integer revisionNo = latestPublishedRevisionNo(manualTemplateId);
-            if (revisionNo == null) {
-                throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
-            }
-            return new SelectedTemplate(manualTemplateId, revisionNo, ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
-        }
-        TemplateMatchResult match = projectTemplateService.matchPreview(
-                draft.getSigningMethod(), draft.getProjectCategory(),
-                draft.getImplementationMode(), draft.getMajorProjectLevel());
-        if (match.getOutcome() == TemplateMatchResult.Outcome.NO_MATCH) {
-            throw exception(PROJECT_TEMPLATE_NO_MATCH, String.join("；", match.getConflicts()));
-        }
-        if (match.getOutcome() == TemplateMatchResult.Outcome.MULTI_MATCH) {
-            throw exception(PROJECT_TEMPLATE_AMBIGUOUS, String.join("；", match.getConflicts()));
-        }
-        Long templateId = match.getMatched().getTemplateId();
-        Integer revisionNo = latestPublishedRevisionNo(templateId);
-        if (revisionNo == null) {
+    private SelectedTemplate selectTemplate(TemplateMatchDecision matchDecision) {
+        TemplateMatchDecisionRules.validateInitialDecision(matchDecision);
+        Long revisionId = matchDecision.matchedTemplateRevisionId();
+        ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionById(revisionId);
+        ProjectTemplateDO template = revision == null ? null
+                : projectTemplateService.getProjectTemplate(revision.getTemplateId());
+        if (revision == null || template == null
+                || !TemplateRules.STATUS_ACTIVE.equals(template.getStatus())
+                || !TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus())
+                || !matchDecision.matchedTemplateId().equals(revision.getTemplateId())) {
             throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
         }
-        return new SelectedTemplate(templateId, revisionNo, ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT);
+        String loadMethod = TemplateMatchDecisionRules.DECISION_AUTO_UNIQUE.equals(matchDecision.decisionMode())
+                ? ProjectRules.TEMPLATE_LOAD_AUTO_DEFAULT : ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED;
+        return new SelectedTemplate(revision.getTemplateId(), revision.getId(), revision.getRevisionNo(),
+                loadMethod);
     }
 
     /**
@@ -285,8 +459,13 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             throw exception(PROJECT_TEMPLATE_NOT_SELECTABLE);
         }
         // 子项目通过父项目继承模板版本，等价人工指定（不做四维匹配）
-        return new SelectedTemplate(parent.getLifecycleTemplateId(),
-                parent.getLifecycleTemplateRevisionNo(), ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
+        ProjectTemplateRevisionDO revision = projectTemplateService.getRevisionList(parent.getLifecycleTemplateId())
+                .stream()
+                .filter(candidate -> parent.getLifecycleTemplateRevisionNo().equals(candidate.getRevisionNo()))
+                .filter(candidate -> TemplateRules.REVISION_STATUS_PUBLISHED.equals(candidate.getStatus()))
+                .findFirst().orElseThrow(() -> exception(PROJECT_TEMPLATE_NOT_SELECTABLE));
+        return new SelectedTemplate(parent.getLifecycleTemplateId(), revision.getId(), revision.getRevisionNo(),
+                ProjectRules.TEMPLATE_LOAD_MANUAL_SELECTED);
     }
 
     /**
@@ -307,51 +486,91 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     }
 
     /**
-     * 模板最新 PUBLISHED 版本号（草稿 revision_no=0 不参与）。
-     */
-    private Integer latestPublishedRevisionNo(Long templateId) {
-        return projectTemplateService.getRevisionList(templateId).stream()
-                .filter(revision -> TemplateRules.REVISION_STATUS_PUBLISHED.equals(revision.getStatus()))
-                .map(ProjectTemplateRevisionDO::getRevisionNo)
-                .filter(revisionNo -> revisionNo != null && revisionNo > 0)
-                .max(Integer::compareTo)
-                .orElse(null);
-    }
-
-    /**
      * 指派一级服务经理：与新区间重叠的旧区间关闭（effective_to=新区间起点，边界相接不重叠）+ 开新区间。
      */
-    private void doAssignServiceManager(Long projectId, Long userId, String employeeNo, String name,
-                                        LocalDateTime effectiveFrom) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime from = effectiveFrom != null ? effectiveFrom : now;
-        if (!MemberAssignmentRules.canStartIntervalAt(from, now)) {
-            throw exception(PROJECT_MEMBER_INTERVAL_CONFLICT);
-        }
-        List<ProjectMemberAssignmentDO> existing = memberAssignmentMapper.selectListByRole(
-                projectId, userId, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
+    private ProjectMemberAssignmentDO doAssignServiceManager(AssignServiceManagerCommand command,
+                                                             ProjectMasterDO project, String memberRole,
+                                                             LocalDateTime effectiveFrom) {
+        List<ProjectMemberAssignmentDO> existing = memberAssignmentMapper.selectCurrentResponsibilityForUpdate(
+                new CurrentMemberResponsibilityQuery(command.projectId(), memberRole,
+                        command.assignmentType(), command.siteId(), effectiveFrom));
         for (ProjectMemberAssignmentDO assignment : existing) {
-            if (!MemberAssignmentRules.intervalsOverlap(assignment.getEffectiveFrom(),
-                    assignment.getEffectiveTo(), from, null)) {
+            if (ProjectRules.ASSIGNMENT_TYPE_COLLABORATOR.equals(command.assignmentType())) {
+                if (Objects.equals(assignment.getUserId(), command.managerId())) {
+                    throw exception(PROJECT_MEMBER_INTERVAL_CONFLICT);
+                }
                 continue;
             }
-            if (!MemberAssignmentRules.canCloseAt(from, assignment.getEffectiveFrom())) {
+            if (!MemberAssignmentRules.canCloseAt(effectiveFrom, assignment.getEffectiveFrom())) {
                 throw exception(PROJECT_MEMBER_INTERVAL_CONFLICT);
             }
             ProjectMemberAssignmentDO close = new ProjectMemberAssignmentDO();
             close.setId(assignment.getId());
-            close.setEffectiveTo(from);
+            close.setEffectiveTo(effectiveFrom);
             memberAssignmentMapper.updateById(close);
         }
         ProjectMemberAssignmentDO fresh = new ProjectMemberAssignmentDO();
-        fresh.setProjectId(projectId);
-        fresh.setUserId(userId);
-        fresh.setEmployeeNo(employeeNo);
-        fresh.setMemberName(name);
-        fresh.setMemberRole(ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1);
-        fresh.setEffectiveFrom(from);
+        fresh.setProjectId(command.projectId());
+        fresh.setUserId(command.managerId());
+        AdminUserRespDTO manager = adminUserApi.getUser(command.managerId());
+        DeptRespDTO department = deptApi.getDeptByCode(command.departmentCode());
+        fresh.setMemberName(manager == null ? null : manager.getNickname());
+        fresh.setCompanyId(project.getCompanyId());
+        fresh.setCompanyCode(project.getCompanyCode());
+        fresh.setCompanyName(project.getCompanyName());
+        fresh.setDepartmentId(command.departmentId());
+        fresh.setDepartmentCode(command.departmentCode());
+        fresh.setDepartmentName(department == null ? null : department.getName());
+        fresh.setMemberRole(memberRole);
+        fresh.setAssignmentType(command.assignmentType());
+        fresh.setSiteId(command.siteId());
+        fresh.setResponsibility(command.levelCode());
+        fresh.setChangeReason(command.changeReason().trim());
+        fresh.setEffectiveFrom(effectiveFrom);
         fresh.setStatus(MemberAssignmentRules.STATUS_ACTIVE);
         memberAssignmentMapper.insert(fresh);
+        return fresh;
+    }
+
+    private void validateAssignmentCommand(AssignServiceManagerCommand command) {
+        if (command == null || command.projectId() == null || command.expectedVersion() == null
+                || command.expectedVersion() < 0 || command.managerId() == null
+                || command.departmentId() == null
+                || command.departmentCode() == null
+                || command.departmentCode().isBlank()
+                || !("L1".equals(command.levelCode()) || "L2".equals(command.levelCode()))
+                || !(ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(command.assignmentType())
+                || ProjectRules.ASSIGNMENT_TYPE_COLLABORATOR.equals(command.assignmentType()))
+                || command.changeReason() == null || command.changeReason().isBlank()
+                || command.changeReason().trim().length() > 500
+                || ("L2".equals(command.levelCode()) && command.siteId() == null)) {
+            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "角色、层级、人员或版本无效");
+        }
+    }
+
+    private String calculateAssignmentStatus(List<ProjectMemberAssignmentDO> active) {
+        boolean projectManagerPresent = active.stream().anyMatch(assignment ->
+                ProjectRules.MEMBER_ROLE_PROJECT_MANAGER.equals(assignment.getMemberRole()));
+        boolean primaryServiceManagerPresent = active.stream().anyMatch(assignment ->
+                isServiceManager(assignment.getMemberRole())
+                        && (assignment.getAssignmentType() == null
+                        || ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(assignment.getAssignmentType())));
+        return projectManagerPresent && primaryServiceManagerPresent
+                ? ProjectRules.ASSIGNMENT_STATUS_ASSIGNED : ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED;
+    }
+
+    private Long currentPrimaryServiceManager(List<ProjectMemberAssignmentDO> active,
+                                              String memberRole, Long siteId) {
+        return active.stream().filter(assignment -> Objects.equals(memberRole, assignment.getMemberRole()))
+                .filter(assignment -> Objects.equals(siteId, assignment.getSiteId()))
+                .filter(assignment -> assignment.getAssignmentType() == null
+                        || ProjectRules.ASSIGNMENT_TYPE_PRIMARY.equals(assignment.getAssignmentType()))
+                .map(ProjectMemberAssignmentDO::getUserId).findFirst().orElse(null);
+    }
+
+    private boolean isServiceManager(String memberRole) {
+        return ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1.equals(memberRole)
+                || ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2.equals(memberRole);
     }
 
     private ProjectMasterDO validateProjectExists(Long id) {
@@ -378,6 +597,6 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     /**
      * 模板选择结果（冻结上下文：templateId/revisionNo/加载方式）
      */
-    private record SelectedTemplate(Long templateId, Integer revisionNo, String loadMethod) {
+    private record SelectedTemplate(Long templateId, Long revisionId, Integer revisionNo, String loadMethod) {
     }
 }

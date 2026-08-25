@@ -7,6 +7,9 @@ import lombok.Data;
 @Data
 public class DeptListReqVO {
 
+    @Schema(description = "部门编码，模糊匹配", example = "OFFICE-HZ")
+    private String code;
+
     @Schema(description = "部门名称，模糊匹配", example = "NPMS")
     private String name;
 

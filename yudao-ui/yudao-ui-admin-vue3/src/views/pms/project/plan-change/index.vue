@@ -199,7 +199,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="客户证明材料" prop="customerProofFiles">
-            <UploadFile v-model="form.customerProofFiles" />
+            <UploadFile v-model="form.customerProofFiles!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -228,7 +228,7 @@
                 v-for="ph in projectPhases"
                 :key="ph.id"
                 :label="`${ph.code} - ${ph.name}`"
-                :value="ph.id"
+                :value="ph.id!"
               />
             </el-select>
           </template>
@@ -305,7 +305,7 @@
         <dict-tag :type="DICT_TYPE.PMS_PLAN_CHANGE_TYPE" :value="current.changeType" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_PLAN_CHANGE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_PLAN_CHANGE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="基线版本">{{ current.baselineVersion }}</el-descriptions-item>
       <el-descriptions-item v-if="current.newBaselineVersion" label="新基线版本">
@@ -405,13 +405,13 @@ const formVisible = ref(false)
 const formRef = ref()
 const projectPhases = ref<ProjectPhaseVO[]>([])
 const form = reactive<PlanChangeVO>({
-  projectId: undefined,
+  projectId: undefined!,
   changeNo: '',
   title: '',
   changeType: 'PLAN_ADJUST',
   reason: '',
   customerProofFiles: '',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   baselineVersion: 0,
   remark: '',
@@ -509,7 +509,16 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<PlanChangeVO>({})
+const current = ref<PlanChangeVO>({
+  projectId: 0,
+  changeNo: '',
+  title: '',
+  changeType: '',
+  reason: '',
+  applicantUserId: 0,
+  applyTime: '',
+  phaseSnapshots: []
+})
 const detailSnapshots = ref<PlanChangePhaseSnapshotVO[]>([])
 const openDetail = async (row: PlanChangeVO) => {
   current.value = await PlanChangeApi.getPlanChange(row.id!)

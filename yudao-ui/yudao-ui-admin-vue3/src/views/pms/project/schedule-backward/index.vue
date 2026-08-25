@@ -126,7 +126,7 @@
         {{ current.projectType === 'DIRECT' ? '直签' : '非直签' }}
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_SCHEDULE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_SCHEDULE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="冲突汇总" :span="2">
         <el-text v-if="current.conflictSummary" type="danger">{{ current.conflictSummary }}</el-text>
@@ -177,7 +177,7 @@ const query = reactive({
 const createVisible = ref(false)
 const formRef = ref()
 const form = reactive<ScheduleBackwardVO>({
-  projectId: undefined,
+  projectId: undefined!,
   targetDate: '',
   projectType: 'DIRECT',
   remark: ''
@@ -188,7 +188,7 @@ const rules = {
   projectType: [{ required: true, message: '请选择项目类型' }]
 }
 const detailVisible = ref(false)
-const current = ref<ScheduleBackwardVO>({})
+const current = ref<Partial<ScheduleBackwardVO>>({})
 const detailItems = ref<ScheduleBackwardItemVO[]>([])
 
 const load = async () => {

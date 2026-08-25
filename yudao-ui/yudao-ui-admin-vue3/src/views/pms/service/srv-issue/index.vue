@@ -198,6 +198,7 @@
 </template>
 
 <script setup lang="ts">
+import dayjs from 'dayjs'
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
@@ -205,7 +206,6 @@ import * as SrvIssueApi from '@/api/pms/service/srv-issue'
 import * as SrvTaskApi from '@/api/pms/service/srv-task'
 import * as UserApi from '@/api/system/user'
 import type { SrvIssueVO } from '@/api/pms/service/srv-issue'
-import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'PmsSrvIssue' })
 const message = useMessage()
@@ -303,7 +303,7 @@ const submitAssign = async () => {
     await SrvIssueApi.assignIssue({
       id: assignForm.id,
       ownerUserId: assignForm.ownerUserId!,
-      deadline: assignForm.deadline,
+      deadline: assignForm.deadline ? dayjs(assignForm.deadline).valueOf() : undefined,
       version: assignForm.version
     })
     message.success('分派成功')

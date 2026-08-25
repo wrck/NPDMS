@@ -278,7 +278,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="attachmentFiles">
-            <UploadFile v-model="form.attachmentFiles" />
+            <UploadFile v-model="form.attachmentFiles!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -313,11 +313,11 @@
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目">{{ current.projectId }}</el-descriptions-item>
       <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_OUTSOURCE_TYPE" :value="current.outsourceType" />
+        <dict-tag :type="DICT_TYPE.PMS_OUTSOURCE_TYPE" :value="current.outsourceType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="工作量">{{ current.workQuantity }} {{ current.workUnit }}</el-descriptions-item>
       <el-descriptions-item label="币种">
-        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency" />
+        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="预估费用">{{ current.estimatedCost }}</el-descriptions-item>
       <el-descriptions-item label="实际费用">{{ current.actualCost }}</el-descriptions-item>
@@ -328,10 +328,10 @@
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="触发来源">
-        <dict-tag :type="DICT_TYPE.PMS_TRIGGER_SOURCE" :value="current.triggerSource" />
+        <dict-tag :type="DICT_TYPE.PMS_TRIGGER_SOURCE" :value="current.triggerSource ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="工作内容" :span="2">
         <div v-html="current.workContent"></div>
@@ -420,7 +420,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<OutsourceRequestVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   outsourceType: 'LABOR',
@@ -436,7 +436,7 @@ const form = reactive<OutsourceRequestVO>({
   contactPhone: '',
   attachmentFiles: '',
   triggerSource: 'MANUAL',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })
@@ -500,7 +500,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<OutsourceRequestVO>({})
+const current = ref<Partial<OutsourceRequestVO>>({})
 const openDetail = async (row: OutsourceRequestVO) => {
   current.value = await OutsourceApi.getOutsourceRequest(row.id!)
   detailVisible.value = true

@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.project.domain.projectmanual;
 
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectDeliverableInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMilestoneInstanceDO;
@@ -18,6 +17,7 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * BR-4 实例化规则单测：五要素快照完整性、最小阶段 ACTIVE、初始态、validation_summary 拼接与截断、引用行复制
@@ -51,13 +51,8 @@ class TemplateInstantiatorTest {
         assertEquals("S1", milestone.getStageCode());
         assertEquals("S1 末", milestone.getTiming());
         assertEquals("评审通过", milestone.getCriteria());
-        // 交付件快照（required 冻结）
-        ProjectDeliverableInstanceDO required = findByDeliverable(instantiation.getDeliverables(), "D1");
-        assertEquals(Boolean.TRUE, required.getRequired());
-        assertEquals("T1-1", required.getTaskCode());
-        ProjectDeliverableInstanceDO optional = findByDeliverable(instantiation.getDeliverables(), "D2");
-        assertEquals(Boolean.FALSE, optional.getRequired());
-        assertNull(optional.getTaskCode());
+        // 交付件由ACC Owner接口初始化，不进入PROJ实例载体的创建输出。
+        assertTrue(instantiation.getDeliverables().isEmpty());
         // 门禁快照
         ProjectGateInstanceDO gate = findGateByCode(instantiation.getGates(), "G-EXIT-S1");
         assertEquals("S1 准出门禁", gate.getName());
@@ -77,14 +72,11 @@ class TemplateInstantiatorTest {
     }
 
     @Test
-    void activeStageDeterminedByMinSortOrderEvenIfNotS0() {
-        // 最小 sort_order 阶段不是 S0 时仍按最小 sort 定 ACTIVE
+    void rejectsTemplateWithoutS0() {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
         content.getStages().add(stage("S2", "实施方案", 1));
         content.getStages().add(stage("S3", "实施部署", 2));
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
-        assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, findByCode(instantiation.getStages(), "S2").getStatus());
-        assertEquals(ProjectRules.STAGE_STATUS_PENDING, findByCode(instantiation.getStages(), "S3").getStatus());
+        assertThrows(IllegalArgumentException.class, () -> TemplateInstantiator.instantiate(content, 100L));
     }
 
     @Test
@@ -119,6 +111,7 @@ class TemplateInstantiatorTest {
     @Test
     void validationSummaryTruncatedTo1000Chars() {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
+        content.getStages().add(stage("S0", "立项与指派", 0));
         TemplateDefinitionContent.GateDef gate = gate("G-BIG", "大引用门禁", "EXIT", "S0");
         List<TemplateDefinitionContent.GateRef> refs = new ArrayList<>();
         // 每条引用 "TASK:CODE-i;" 约 12 字符，100 条即超出 1000
@@ -134,6 +127,7 @@ class TemplateInstantiatorTest {
     @Test
     void gateWithoutReferencesHasNullSummary() {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
+        content.getStages().add(stage("S0", "立项与指派", 0));
         content.getGates().add(gate("G-EMPTY", "无引用门禁", "ENTRY", "S0"));
         ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
         assertNull(findGateByCode(instantiation.getGates(), "G-EMPTY").getValidationSummary());
@@ -175,8 +169,11 @@ class TemplateInstantiatorTest {
 
     @Test
     void emptyContentProducesEmptyInstantiation() {
-        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(new TemplateDefinitionContent(), 100L);
-        assertTrue(instantiation.getStages().isEmpty());
+        TemplateDefinitionContent content = new TemplateDefinitionContent();
+        content.getStages().add(stage("S0", "立项与指派", 0));
+        ProjectInstantiation instantiation = TemplateInstantiator.instantiate(content, 100L);
+        assertEquals(1, instantiation.getStages().size());
+        assertEquals(ProjectRules.STAGE_STATUS_ACTIVE, instantiation.getStages().getFirst().getStatus());
         assertTrue(instantiation.getTasks().isEmpty());
         assertTrue(instantiation.getMilestones().isEmpty());
         assertTrue(instantiation.getDeliverables().isEmpty());
@@ -292,7 +289,4 @@ class TemplateInstantiatorTest {
         return findByCode(list, ProjectTaskInstanceDO::getTaskCode, code);
     }
 
-    private ProjectDeliverableInstanceDO findByDeliverable(List<ProjectDeliverableInstanceDO> list, String code) {
-        return findByCode(list, ProjectDeliverableInstanceDO::getDeliverableCode, code);
-    }
 }

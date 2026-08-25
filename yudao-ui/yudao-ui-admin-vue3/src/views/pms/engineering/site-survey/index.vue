@@ -5,9 +5,9 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-180px"
         />
@@ -41,6 +41,13 @@
       <el-table-column prop="code" label="工勘编码" min-width="140" />
       <el-table-column prop="name" label="工勘名称" min-width="180" />
       <el-table-column prop="location" label="工勘地点" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="locationResolutionStatus" label="地点状态" width="110">
+        <template #default="{ row }">
+          <el-tag :type="row.locationResolutionStatus === 'RESOLVED' ? 'success' : 'warning'">
+            {{ row.locationResolutionStatus || 'UNRESOLVED' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="surveyDate" label="工勘日期" width="120" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
@@ -49,7 +56,11 @@
       </el-table-column>
       <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-site-survey:update']"
+          <el-button
+            link
+            type="primary"
+            @click="openForm(row)"
+            v-hasPermi="['pms:eng-site-survey:update']"
             >编辑</el-button
           >
           <el-button
@@ -76,7 +87,11 @@
             v-hasPermi="['pms:eng-site-survey:update']"
             >归档</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-site-survey:delete']"
+          <el-button
+            link
+            type="danger"
+            @click="remove(row)"
+            v-hasPermi="['pms:eng-site-survey:delete']"
             >删除</el-button
           >
         </template>
@@ -90,7 +105,7 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? '编辑工勘' : '新增工勘'" width="780px">
+  <Dialog v-model="formVisible" :title="form.id ? '编辑工勘' : '新增工勘'" width="900px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-row :gutter="16">
         <el-col :span="12">
@@ -98,9 +113,9 @@
             <PmsEntitySelect
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
@@ -116,7 +131,12 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="工勘日期" prop="surveyDate">
-            <el-date-picker v-model="form.surveyDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
+            <el-date-picker
+              v-model="form.surveyDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              class="!w-full"
+            />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -124,29 +144,45 @@
             <el-input v-model="form.surveyorUserId" />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="工勘地点" prop="location"><el-input v-model="form.location" /></el-form-item>
+        <el-col :span="24">
+          <el-form-item label="工勘地点" prop="locationMaintenance">
+            <PmsLocationSelector v-model="form.locationMaintenance" :project-id="form.projectId" />
+          </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="供电情况" prop="powerSupply"><el-input v-model="form.powerSupply" /></el-form-item>
+          <el-form-item label="供电情况" prop="powerSupply"
+            ><el-input v-model="form.powerSupply"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="机柜情况" prop="cabinet"><el-input v-model="form.cabinet" /></el-form-item>
+          <el-form-item label="机柜情况" prop="cabinet"
+            ><el-input v-model="form.cabinet"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="网口情况" prop="networkPort"><el-input v-model="form.networkPort" /></el-form-item>
+          <el-form-item label="网口情况" prop="networkPort"
+            ><el-input v-model="form.networkPort"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="光纤情况" prop="fiber"><el-input v-model="form.fiber" /></el-form-item>
+          <el-form-item label="光纤情况" prop="fiber"
+            ><el-input v-model="form.fiber"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="模块情况" prop="module"><el-input v-model="form.module" /></el-form-item>
+          <el-form-item label="模块情况" prop="module"
+            ><el-input v-model="form.module"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="线缆情况" prop="cable"><el-input v-model="form.cable" /></el-form-item>
+          <el-form-item label="线缆情况" prop="cable"
+            ><el-input v-model="form.cable"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="接地情况" prop="ground"><el-input v-model="form.ground" /></el-form-item>
+          <el-form-item label="接地情况" prop="ground"
+            ><el-input v-model="form.ground"
+          /></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="施工资源" prop="constructionResource">
@@ -178,7 +214,8 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SiteSurveyApi from '@/api/pms/engineering/site-survey'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey'
-import * as ProjectApi from '@/api/pms/project/project'
+import type { LocationMaintainRequest } from '@/api/pms/asset/location'
+import * as ProjectApi from '@/api/pms/project/projects'
 
 defineOptions({ name: 'PmsEngSiteSurvey' })
 const message = useMessage()
@@ -186,7 +223,14 @@ const loading = ref(false)
 const saving = ref(false)
 const rows = ref<SiteSurveyVO[]>([])
 const total = ref(0)
-const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', name: '', status: undefined })
+const query = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  projectId: '',
+  code: '',
+  name: '',
+  status: undefined
+})
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<SiteSurveyVO>({ projectId: 0, code: '', name: '' })
@@ -217,6 +261,7 @@ const openForm = (row?: SiteSurveyVO) => {
       surveyDate: '',
       surveyorUserId: undefined,
       location: '',
+      locationMaintenance: undefined,
       powerSupply: '',
       cabinet: '',
       networkPort: '',
@@ -231,13 +276,78 @@ const openForm = (row?: SiteSurveyVO) => {
     },
     row || {}
   )
+  form.locationMaintenance = toLocationMaintenance(row)
   formVisible.value = true
+}
+
+const toLocationMaintenance = (row?: SiteSurveyVO): LocationMaintainRequest | undefined => {
+  if (!row) return { projectId: form.projectId }
+  if (row.locationResolutionStatus !== 'RESOLVED') {
+    return { projectId: row.projectId, fallbackLocation: row.location }
+  }
+  return {
+    projectId: row.projectId,
+    address: row.addressId ? { id: row.addressId, expectedVersion: row.addressVersion } : undefined,
+    site: row.siteId ? { id: row.siteId, expectedVersion: row.siteVersion } : undefined,
+    siteLocation: row.siteLocationId
+      ? {
+          id: row.siteLocationId,
+          expectedVersion: row.siteLocationVersion
+        }
+      : undefined
+  }
+}
+
+const savePayload = () => {
+  const payload = { ...form }
+  const maintenance = payload.locationMaintenance
+  if (maintenance && !maintenance.address && !maintenance.site && !maintenance.siteLocation) {
+    if (!maintenance.fallbackLocation?.trim()) {
+      message.error('请选择地点或填写兼容地点')
+      return
+    }
+    payload.location = maintenance.fallbackLocation
+    payload.locationMaintenance = undefined
+    return payload
+  }
+  if (
+    !maintenance?.site?.id &&
+    (!maintenance?.address?.countryName || !maintenance.address.detailAddress)
+  ) {
+    message.error('新地点必须填写国家和详细地址')
+    return
+  }
+  if (!maintenance.site?.id && (!maintenance.site?.code || !maintenance.site.name)) {
+    message.error('新地点必须填写站点编码和名称')
+    return
+  }
+  if (maintenance.siteLocation && !maintenance.siteLocation.id && !maintenance.siteLocation.code) {
+    maintenance.siteLocation = undefined
+  }
+  if (maintenance.address && !maintenance.address.id) {
+    maintenance.address.fullAddress = [
+      maintenance.address.countryName,
+      maintenance.address.provinceName,
+      maintenance.address.cityName,
+      maintenance.address.districtName,
+      maintenance.address.detailAddress
+    ]
+      .filter(Boolean)
+      .join('')
+  }
+  payload.location =
+    maintenance.fallbackLocation || maintenance.address?.fullAddress || payload.location
+  return payload
 }
 const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
-    form.id ? await SiteSurveyApi.updateSiteSurvey(form) : await SiteSurveyApi.createSiteSurvey(form)
+    const payload = savePayload()
+    if (!payload) return
+    form.id
+      ? await SiteSurveyApi.updateSiteSurvey(payload)
+      : await SiteSurveyApi.createSiteSurvey(payload)
     message.success('保存成功')
     formVisible.value = false
     await load()

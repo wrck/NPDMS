@@ -87,7 +87,7 @@
   },
   "v17Delta": {
     "decisionRef": "ADR-0027",
-    "status": "ACCEPTED",
+    "status": "HISTORICAL_ACCEPTED",
     "requirementRefs": [
       "ACC-02",
       "CLO-01",
@@ -1250,36 +1250,68 @@
     },
     "requirementOwnerDecisionRef": "ADR-0028"
   },
+  "v18Delta": {
+    "decisionRef": "ADR-0030",
+    "status": "ACCEPTED",
+    "requirementRefs": [
+      "CUT-03",
+      "INT-12",
+      "PM-03",
+      "PM-11"
+    ],
+    "objectTargetTables": {
+      "ProjectTemplate": [
+        "proj_project_template_task_definition"
+      ],
+      "TaskWorkBinding": [
+        "proj_project_task_execution_contract"
+      ],
+      "TaskCompletionEvaluation": [
+        "proj_project_task_completion_evaluation"
+      ],
+      "CutoverChecklist": [
+        "cut_cutover_checklist",
+        "cut_cutover_checklist_item",
+        "cut_cutover_checklist_item_result"
+      ]
+    },
+    "historicalMigrationPolicy": "NONE_NEW",
+    "tableContractSha256": "A6532B0D49789B05272F5365664F022B8731B635B191B3F72ACC558B04152E1D",
+    "ddlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "acceptedDdlItemCount": 196,
+    "acceptedDdlItemsSha256": "2EEE779BD667B1B1BDD1C11B0A4548A6E28E2BA706366C205AAD73F90C220629",
+    "itemEvidenceRef": "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md"
+  },
   "q07TechnicalConstraintPolicy": {
     "status": "ACCEPTED",
-    "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-    "primaryKeyCount": 60,
+    "ddlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "primaryKeyCount": 66,
     "primaryKeyShape": {
-      "singleId": 59,
+      "singleId": 65,
       "compositeProjection": 1
     },
-    "tenantReferenceKeyCount": 60,
-    "sameDomainForeignKeyCount": 48,
+    "tenantReferenceKeyCount": 66,
+    "sameDomainForeignKeyCount": 52,
     "stableTechnicalCheckGroups": {
       "softDelete": 45,
-      "temporalOrder": 16,
-      "booleanFlag": 12,
+      "temporalOrder": 18,
+      "booleanFlag": 14,
       "noSelf": 4,
-      "nonnegativeCount": 12
+      "nonnegativeCount": 17
     },
     "historicalViolationPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
     "decision": "ACCEPT_CURRENT_FOR_SDS",
-    "decisionEvidenceRef": "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md"
+    "decisionEvidenceRef": "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q07"
   },
   "q08OrdinaryIndexPolicy": {
     "status": "ACCEPTED",
-    "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
-    "candidateIndexCount": 122,
+    "ddlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "candidateIndexCount": 130,
     "featureQueryPlanValidationRequired": true,
     "p3e06PerformanceValidationRequired": true,
     "adjustmentPolicy": "FORWARD_MIGRATION_ONLY",
     "decision": "ACCEPT_AS_CANDIDATE_BASELINE",
-    "decisionEvidenceRef": "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md"
+    "decisionEvidenceRef": "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md#q08"
   },
   "historicalAnomalyPolicy": "MIGRATION_ISSUE_WITH_SOURCE_EVIDENCE",
   "migrationIssueTable": "plt_migration_issue",
@@ -1340,6 +1372,22 @@
         "PM-09"
       ]
     },
+    "proj_project_template_task_definition": {
+      "requirementRefs": [
+        "PM-03"
+      ]
+    },
+    "proj_project_task_execution_contract": {
+      "requirementRefs": [
+        "PM-03",
+        "PM-11"
+      ]
+    },
+    "proj_project_task_completion_evaluation": {
+      "requirementRefs": [
+        "PM-11"
+      ]
+    },
     "plt_business_document": {
       "requirementRefs": [
         "PLT-02"
@@ -1378,20 +1426,17 @@
     },
     "com_contract_receivable": {
       "requirementRefs": [
-        "COM-01",
-        "COM-02"
+        "COM-01"
       ]
     },
     "com_shipment_contract_reference": {
       "requirementRefs": [
-        "COM-01",
-        "COM-02"
+        "COM-01"
       ]
     },
     "com_shipment_package": {
       "requirementRefs": [
-        "COM-01",
-        "COM-02"
+        "COM-01"
       ]
     },
     "com_project_contract_relation": {
@@ -1648,6 +1693,22 @@
       "requirementRefs": [
         "CUT-06"
       ]
+    },
+    "cut_cutover_checklist": {
+      "requirementRefs": [
+        "CUT-03"
+      ]
+    },
+    "cut_cutover_checklist_item": {
+      "requirementRefs": [
+        "CUT-03"
+      ]
+    },
+    "cut_cutover_checklist_item_result": {
+      "requirementRefs": [
+        "CUT-03",
+        "INT-12"
+      ]
     }
   },
   "forbiddenV1V2Tables": [
@@ -1676,7 +1737,7 @@
   ],
   "p3e09ModelBaseline": {
     "status": "MODEL_BASELINE_READY",
-    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+    "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
     "deferredItemCount": 0,
     "blocks": [
       "HISTORICAL_DATA_MIGRATION",
@@ -1685,7 +1746,7 @@
   },
   "p3e09RequirementOwnerConfirmation": {
     "decisionRef": "ADR-0028",
-    "status": "ACCEPTED",
+    "status": "HISTORICAL_ACCEPTED",
     "confirmedAt": "2026-08-14",
     "decision": "ALL_RECOMMENDED_A",
     "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
@@ -1695,6 +1756,7 @@
     "preConfirmationItemsSha256": "D383F3F194DB7094BE229B03EB3E5199EC9FD813BDEC6483FB5B853F42760D20",
     "preConfirmationRegisterFileSha256": "2D859D216A67645B9188087C0A96751F6A8133202E377EE07AC7341CA56065E5",
     "preConfirmationPacketFileSha256": "43C433AFBE7E9F7BEB614B1071E8BD87DA2E516CE70C0B6A063696DC301C5342",
+    "historicalAcceptedPacketFileSha256": "DB8B742DEC96F683BB75FD98D508FE619965835B7C898C1B7B6E46987E4CF9F8",
     "deferredItemCountAtConfirmation": 692,
     "coveredDeferredItemCount": 692,
     "reconfirmedExistingDecisionItemCount": 3,

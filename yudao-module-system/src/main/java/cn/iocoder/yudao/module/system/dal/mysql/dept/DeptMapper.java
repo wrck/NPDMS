@@ -14,12 +14,17 @@ public interface DeptMapper extends BaseMapperX<DeptDO> {
 
     default List<DeptDO> selectList(DeptListReqVO reqVO) {
         return selectList(new LambdaQueryWrapperX<DeptDO>()
+                .likeIfPresent(DeptDO::getCode, reqVO.getCode())
                 .likeIfPresent(DeptDO::getName, reqVO.getName())
                 .eqIfPresent(DeptDO::getStatus, reqVO.getStatus()));
     }
 
     default DeptDO selectByParentIdAndName(Long parentId, String name) {
         return selectOne(DeptDO::getParentId, parentId, DeptDO::getName, name);
+    }
+
+    default DeptDO selectByCode(String code) {
+        return selectOne(DeptDO::getCode, code);
     }
 
     default Long selectCountByParentId(Long parentId) {

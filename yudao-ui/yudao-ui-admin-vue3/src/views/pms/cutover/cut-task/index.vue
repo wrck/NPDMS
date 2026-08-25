@@ -232,7 +232,7 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', name: '', status: undefined, riskLevel: undefined })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<CutTaskVO>({ projectId: 0, code: '' })
+const form = reactive<CutTaskVO>({ projectId: 0, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请输入项目编号' }],
   code: [{ required: true, message: '请输入任务编码' }],

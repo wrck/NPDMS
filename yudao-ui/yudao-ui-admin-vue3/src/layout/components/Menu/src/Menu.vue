@@ -1,7 +1,6 @@
 <script lang="tsx">
 import { PropType, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { ElMenu, ElScrollbar } from 'element-plus'
-import type { MenuInstance } from 'element-plus'
 import { useAppStore } from '@/store/modules/app'
 import { usePermissionStore } from '@/store/modules/permission'
 import { useRenderMenuItem } from './components/useRenderMenuItem'
@@ -64,14 +63,16 @@ export default defineComponent({
 
     const menuWrapRef = ref<HTMLElement>()
 
-    const menuRef = ref<MenuInstance>()
-
     const menuMode = computed(
       (): 'vertical' | 'horizontal' =>
         props.mode || (isHorizontalMenuLayout(unref(layout)) ? 'horizontal' : 'vertical')
     )
 
     const collapse = computed(() => appStore.getCollapse)
+
+    const isVerticalCollapsed = computed(
+      () => unref(menuMode) === 'vertical' && !isTwoColumnLayout(unref(layout)) && unref(collapse)
+    )
 
     const uniqueOpened = computed(() => appStore.getUniqueOpened)
 
@@ -203,7 +204,7 @@ export default defineComponent({
     }
 
     const defaultOpeneds = computed(() => {
-      if (unref(menuMode) === 'horizontal') {
+      if (unref(menuMode) === 'horizontal' || unref(isVerticalCollapsed)) {
         return []
       }
       if (props.rootOnly) {
@@ -212,14 +213,15 @@ export default defineComponent({
       return findOpenMenuPaths(unref(routers), normalizeMenuTargetPath(unref(activeMenu)))
     })
 
-    let lastAutoOpeneds: string[] = []
-
-    const warnMenuOpenError = (action: 'close' | 'open', path: string, error: unknown) => {
-      if (!import.meta.env.DEV) {
-        return
-      }
-      console.warn(`[Menu] Failed to ${action} submenu "${path}"`, error)
-    }
+    const menuStateKey = computed(() =>
+      JSON.stringify({
+        mode: unref(menuMode),
+        collapsed: unref(isVerticalCollapsed),
+        rootOnly: props.rootOnly,
+        split: props.split,
+        openeds: unref(defaultOpeneds)
+      })
+    )
 
     const setSplitMenus = (targetPath: string) => {
       const rootInfo = getRootMenuRoute(permissionStore.getRouters, targetPath)
@@ -252,54 +254,6 @@ export default defineComponent({
         }
       },
       {
-        immediate: true
-      }
-    )
-
-    const syncDefaultOpeneds = () => {
-      if (unref(menuMode) === 'horizontal' || props.rootOnly) {
-        lastAutoOpeneds = []
-        return
-      }
-      nextTick(() => {
-        const menu = unref(menuRef)
-        if (!menu) {
-          return
-        }
-        const nextOpeneds = unref(defaultOpeneds)
-        if (unref(uniqueOpened)) {
-          lastAutoOpeneds
-            .filter((path) => !nextOpeneds.includes(path))
-            .forEach((path) => {
-              try {
-                menu.close(path)
-              } catch (error) {
-                warnMenuOpenError('close', path, error)
-              }
-            })
-        }
-        nextOpeneds.forEach((path) => {
-          try {
-            menu.open(path)
-          } catch (error) {
-            warnMenuOpenError('open', path, error)
-          }
-        })
-        lastAutoOpeneds = [...nextOpeneds]
-      })
-    }
-
-    watch(
-      () =>
-        [
-          unref(menuMode),
-          unref(collapse),
-          unref(defaultOpeneds).join(','),
-          unref(uniqueOpened)
-        ] as const,
-      syncDefaultOpeneds,
-      {
-        flush: 'post',
         immediate: true
       }
     )
@@ -422,16 +376,12 @@ export default defineComponent({
     const renderMenu = () => {
       return (
         <ElMenu
-          ref={menuRef}
+          key={unref(menuStateKey)}
           defaultActive={unref(activeMenu)}
           defaultOpeneds={unref(defaultOpeneds)}
           mode={unref(menuMode)}
           menuTrigger={props.rootOnly && unref(menuMode) === 'horizontal' ? 'click' : 'hover'}
-          collapse={
-            unref(menuMode) === 'horizontal' || isTwoColumnLayout(unref(layout))
-              ? false
-              : unref(collapse)
-          }
+          collapse={unref(isVerticalCollapsed)}
           uniqueOpened={unref(menuMode) === 'horizontal' ? false : unref(uniqueOpened)}
           backgroundColor={unref(menuBgColor)}
           ellipsis={unref(menuMode) === 'horizontal' ? true : undefined}
@@ -769,6 +719,12 @@ $prefix-cls: #{$namespace}-menu-popper;
       background-color: var(--left-menu-bg-active-color) !important;
     }
   }
+}
+
+.el-popper.#{$prefix-cls}--menu {
+  color: var(--left-menu-text-color);
+  background-color: var(--left-menu-bg-color);
+  border-color: var(--left-menu-bg-light-color);
 }
 
 .#{$prefix-cls}--header {

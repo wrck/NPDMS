@@ -27,7 +27,7 @@ export interface CutTaskApproveVO {
 
 const baseUrl = '/pms/cut-task'
 
-export const getCutTaskPage = (params: PageParam) =>
+export const getCutTaskPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getCutTask = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

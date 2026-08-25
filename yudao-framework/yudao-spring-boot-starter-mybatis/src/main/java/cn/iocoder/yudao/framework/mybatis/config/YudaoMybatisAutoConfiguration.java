@@ -88,7 +88,7 @@ public class YudaoMybatisAutoConfiguration {
             objectMapper = JsonUtils.getObjectMapper();
         }
         Jackson3TypeHandler.setObjectMapper(objectMapper);
-        return new Jackson3TypeHandler(Object.class);
+        return new Object();
     }
 
 }

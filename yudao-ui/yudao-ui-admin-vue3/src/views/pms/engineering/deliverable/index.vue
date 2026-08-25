@@ -150,7 +150,7 @@
           <el-form-item label="来源业务编号" prop="sourceId"><el-input v-model="form.sourceId" /></el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="文件地址" prop="fileUrl"><UploadFile v-model="form.fileUrl" /></el-form-item>
+          <el-form-item label="文件地址" prop="fileUrl"><UploadFile v-model="form.fileUrl!" /></el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="文件大小(B)" prop="fileSize"><el-input v-model="form.fileSize" /></el-form-item>

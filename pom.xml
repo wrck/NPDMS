@@ -17,11 +17,17 @@
         <module>yudao-module-infra</module>
 <!--        <module>yudao-module-member</module>-->
         <module>yudao-module-bpm</module>
+        <module>pms-module-platform/pms-module-platform-api</module>
+        <module>pms-module-project/pms-module-project-api</module>
+        <module>pms-module-asset/pms-module-asset-api</module>
+        <module>pms-module-commerce/pms-module-commerce-api</module>
+        <module>pms-module-platform</module>
         <module>pms-module-project</module>
         <module>pms-module-engineering</module>
         <module>pms-module-cutover</module>
         <module>pms-module-service</module>
         <module>pms-module-asset</module>
+        <module>pms-module-commerce</module>
         <module>pms-module-outsourcing</module>
         <module>pms-module-analytics</module>
         <module>pms-module-integration</module>

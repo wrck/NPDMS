@@ -18,7 +18,7 @@ export interface ProjectClosureVO {
 
 const baseUrl = '/pms/acc-project-closure'
 
-export const getProjectClosurePage = (params: PageParam) =>
+export const getProjectClosurePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getProjectClosure = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

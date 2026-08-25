@@ -29,7 +29,7 @@ export interface ScheduleBackwardVO {
 
 const baseUrl = '/pms/schedule-backward'
 
-export const getScheduleBackwardPage = (params: PageParam) =>
+export const getScheduleBackwardPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getScheduleBackward = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

@@ -38,9 +38,22 @@
         </template>
       </el-table-column>
       <el-table-column prop="location" label="位置" min-width="140" show-overflow-tooltip />
-      <el-table-column prop="warrantyEndDate" label="保修截止" min-width="120" :formatter="dateFormatter" />
+      <el-table-column prop="locationResolutionStatus" label="地点状态" width="110">
+        <template #default="{ row }">
+          <el-tag :type="row.locationResolutionStatus === 'RESOLVED' ? 'success' : 'warning'">
+            {{ row.locationResolutionStatus || 'UNRESOLVED' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="warrantyEndDate"
+        label="保修截止"
+        min-width="120"
+        :formatter="dateFormatter"
+      />
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
+          <el-button link type="primary" @click="openDetail(row)">地点详情</el-button>
           <el-button link type="primary" @click="open(row)" v-hasPermi="['pms:equipment:update']"
             >编辑</el-button
           >
@@ -86,18 +99,30 @@
         <PmsEntitySelect
           v-model="form.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
         />
       </el-form-item>
-      <el-form-item label="设备位置"><el-input v-model="form.location" /></el-form-item>
+      <el-alert type="info" :closable="false" show-icon class="mb-16px">
+        设备当前位置由安装完成动作生效，此处仅维护设备档案。
+      </el-alert>
       <el-form-item label="保修开始日期">
-        <el-date-picker v-model="form.warrantyStartDate" type="date" value-format="YYYY-MM-DD" class="!w-220px" />
+        <el-date-picker
+          v-model="form.warrantyStartDate"
+          type="date"
+          value-format="YYYY-MM-DD"
+          class="!w-220px"
+        />
       </el-form-item>
       <el-form-item label="保修结束日期">
-        <el-date-picker v-model="form.warrantyEndDate" type="date" value-format="YYYY-MM-DD" class="!w-220px" />
+        <el-date-picker
+          v-model="form.warrantyEndDate"
+          type="date"
+          value-format="YYYY-MM-DD"
+          class="!w-220px"
+        />
       </el-form-item>
       <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
     </el-form>
@@ -107,10 +132,56 @@
     </template>
   </Dialog>
 
+  <Dialog v-model="detailVisible" title="设备当前位置与变更轨迹" width="760px">
+    <el-descriptions v-if="detail" :column="2" border>
+      <el-descriptions-item label="设备"
+        >{{ detail.serialNumber }} {{ detail.name }}</el-descriptions-item
+      >
+      <el-descriptions-item label="解析状态">
+        <el-tag :type="detail.locationResolutionStatus === 'RESOLVED' ? 'success' : 'warning'">
+          {{ detail.locationResolutionStatus || 'UNRESOLVED' }}
+        </el-tag>
+      </el-descriptions-item>
+      <el-descriptions-item label="当前地点" :span="2">{{
+        detail.location || '-'
+      }}</el-descriptions-item>
+      <el-descriptions-item label="站点">{{
+        detail.siteId ? `#${detail.siteId}` : '-'
+      }}</el-descriptions-item>
+      <el-descriptions-item label="站点位置">{{
+        detail.siteLocationId ? `#${detail.siteLocationId}` : '-'
+      }}</el-descriptions-item>
+      <el-descriptions-item label="生效时间">{{
+        detail.locationEffectiveFrom || '-'
+      }}</el-descriptions-item>
+      <el-descriptions-item label="来源安装记录">
+        {{ detail.locationSourceInstallationId ? `#${detail.locationSourceInstallationId}` : '-' }}
+      </el-descriptions-item>
+      <el-descriptions-item label="发生时快照" :span="2">
+        <pre class="snapshot">{{ detail.locationSnapshot || '-' }}</pre>
+      </el-descriptions-item>
+    </el-descriptions>
+    <el-divider content-position="left">位置变更历史</el-divider>
+    <el-timeline>
+      <el-timeline-item
+        v-for="item in locationHistory"
+        :key="item.id"
+        :timestamp="String(item.createTime || '')"
+      >
+        <strong>{{ item.changeType }}</strong> · {{ item.changeDescription || '-' }}
+      </el-timeline-item>
+    </el-timeline>
+  </Dialog>
+
   <Dialog v-model="statusVisible" title="设备状态变更" width="520px">
     <el-form ref="statusFormRef" :model="statusForm" :rules="statusRules" label-width="120px">
       <el-form-item label="设备编号" prop="id">
-        <el-input-number v-model="statusForm.id" :min="1" controls-position="right" :disabled="true" />
+        <el-input-number
+          v-model="statusForm.id"
+          :min="1"
+          controls-position="right"
+          :disabled="true"
+        />
       </el-form-item>
       <el-form-item label="动作" prop="action">
         <el-select v-model="statusForm.action" class="!w-220px" @change="onActionChange">
@@ -131,7 +202,9 @@
           <el-option :value="1" label="1 在用" />
         </el-select>
       </el-form-item>
-      <el-form-item label="变更描述"><el-input v-model="statusForm.changeDescription" type="textarea" /></el-form-item>
+      <el-form-item label="变更描述"
+        ><el-input v-model="statusForm.changeDescription" type="textarea"
+      /></el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="statusVisible = false">取消</el-button>
@@ -147,7 +220,8 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
 import type { EquipmentVO, EquipmentStatusChangeReqVO } from '@/api/pms/asset/equipment'
-import * as ProjectApi from '@/api/pms/project/project'
+import type { EquipmentVersionVO } from '@/api/pms/asset/equipment'
+import * as ProjectApi from '@/api/pms/project/projects'
 import * as CustomerApi from '@/api/pms/project/customer'
 
 defineOptions({ name: 'PmsAssetEquipment' })
@@ -164,6 +238,9 @@ const query = reactive({
   status: undefined as number | undefined
 })
 const visible = ref(false)
+const detailVisible = ref(false)
+const detail = ref<EquipmentVO>()
+const locationHistory = ref<EquipmentVersionVO[]>([])
 const formRef = ref()
 const form = reactive<EquipmentVO>({
   serialNumber: '',
@@ -208,7 +285,6 @@ const open = (row?: EquipmentVO) => {
       model: '',
       customerId: undefined,
       projectId: undefined,
-      location: '',
       warrantyStartDate: undefined,
       warrantyEndDate: undefined,
       remark: ''
@@ -221,13 +297,39 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
-    form.id ? await EquipmentApi.updateEquipment(form) : await EquipmentApi.createEquipment(form)
+    const payload = {
+      id: form.id,
+      serialNumber: form.serialNumber,
+      name: form.name,
+      model: form.model,
+      customerId: form.customerId,
+      projectId: form.projectId,
+      status: form.status,
+      warrantyStartDate: form.warrantyStartDate,
+      warrantyEndDate: form.warrantyEndDate,
+      remark: form.remark,
+      version: form.version
+    }
+    form.id
+      ? await EquipmentApi.updateEquipment(payload)
+      : await EquipmentApi.createEquipment(payload)
     message.success('保存成功')
     visible.value = false
     await load()
   } finally {
     saving.value = false
   }
+}
+const openDetail = async (row: EquipmentVO) => {
+  const [current, versions] = await Promise.all([
+    EquipmentApi.getEquipment(row.id!),
+    EquipmentApi.getEquipmentVersionList(row.id!)
+  ])
+  detail.value = current
+  locationHistory.value = (versions || []).filter(
+    (item: EquipmentVersionVO) => item.changeType === 'LOCATION_EFFECTIVE'
+  )
+  detailVisible.value = true
 }
 const remove = async (row: EquipmentVO) => {
   await message.delConfirm()
@@ -263,3 +365,11 @@ const saveStatusChange = async () => {
 }
 onMounted(load)
 </script>
+
+<style scoped>
+.snapshot {
+  margin: 0;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+</style>

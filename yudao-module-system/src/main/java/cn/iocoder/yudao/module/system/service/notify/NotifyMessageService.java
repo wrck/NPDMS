@@ -30,6 +30,9 @@ public interface NotifyMessageService {
     Long createNotifyMessage(Long userId, Integer userType,
                              NotifyTemplateDO template, String templateContent, Map<String, Object> templateParams);
 
+    Long createNotifyMessage(Long userId, Integer userType, NotifyTemplateDO template,
+                             String templateContent, Map<String, Object> templateParams, String deliveryKey);
+
     /**
      * 获得站内信分页
      *

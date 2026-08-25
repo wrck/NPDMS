@@ -146,7 +146,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="证据附件" prop="evidenceUrl"><UploadFile v-model="form.evidenceUrl" /></el-form-item>
+          <el-form-item label="证据附件" prop="evidenceUrl"><UploadFile v-model="form.evidenceUrl!" /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="备注" prop="remark">

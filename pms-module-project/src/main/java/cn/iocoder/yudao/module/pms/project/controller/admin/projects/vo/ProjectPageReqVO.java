@@ -16,7 +16,7 @@ public class ProjectPageReqVO extends PageParam {
     @Schema(description = "项目名称（模糊）", example = "网络优化")
     private String projectName;
 
-    @Schema(description = "项目编码", example = "PJT2026000001")
+    @Schema(description = "项目编码前缀", example = "PJT2026")
     private String projectCode;
 
     @Schema(description = "项目状态", example = "S0")

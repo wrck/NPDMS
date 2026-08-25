@@ -14,7 +14,7 @@
       </el-form-item>
       <el-form-item label="模板" prop="templateId">
         <el-select v-model="query.templateId" clearable filterable class="!w-220px" placeholder="请选择模板">
-          <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id" />
+          <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id!" />
         </el-select>
       </el-form-item>
       <el-form-item label="编号" prop="code">
@@ -139,7 +139,7 @@
         <el-col :span="12">
           <el-form-item label="模板" prop="templateId">
             <el-select v-model="form.templateId" filterable class="!w-full" :disabled="!!form.id" placeholder="请选择已发布模板">
-              <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id" />
+              <el-option v-for="item in templateOptions" :key="item.id" :label="item.name" :value="item.id!" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -188,7 +188,7 @@
       </el-descriptions-item>
       <el-descriptions-item label="模板">{{ templateLabel(current.templateId) }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_FORM_INSTANCE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_FORM_INSTANCE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="版本号">{{ current.version }}</el-descriptions-item>
       <el-descriptions-item label="填报人">
@@ -304,8 +304,8 @@ const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<FormInstanceVO>({
   code: '',
-  projectId: undefined,
-  templateId: undefined,
+  projectId: undefined!,
+  templateId: undefined!,
   name: '',
   formData: '',
   fillerUserId: undefined,
@@ -357,7 +357,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<FormInstanceVO>({})
+const current = ref<Partial<FormInstanceVO>>({})
 const openDetail = async (row: FormInstanceVO) => {
   current.value = await FormInstanceApi.getFormInstance(row.id!)
   detailVisible.value = true

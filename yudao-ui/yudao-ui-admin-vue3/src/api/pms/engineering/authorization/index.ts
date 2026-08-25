@@ -33,7 +33,7 @@ export interface AuthorizationVO {
 
 const baseUrl = '/pms/eng-authorization'
 
-export const getAuthorizationPage = (params: PageParam) =>
+export const getAuthorizationPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getAuthorization = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

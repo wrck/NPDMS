@@ -148,7 +148,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="文件地址" prop="fileUrl">
-            <UploadFile v-model="form.fileUrl" />
+            <UploadFile v-model="form.fileUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -195,7 +195,7 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<ArchiveDocumentVO>({ projectId: undefined, code: '', name: '' })
+const form = reactive<ArchiveDocumentVO>({ projectId: undefined!, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入文档编号' }],

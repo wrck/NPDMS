@@ -191,7 +191,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="fileUrl">
-            <UploadFile v-model="form.fileUrl" />
+            <UploadFile v-model="form.fileUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -213,14 +213,14 @@
       <el-descriptions-item label="编号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="标题">{{ current.title }}</el-descriptions-item>
       <el-descriptions-item label="公告类型">
-        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_TYPE" :value="current.announcementType" />
+        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_TYPE" :value="current.announcementType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="严重等级">
-        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_SEVERITY" :value="current.severity" />
+        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_SEVERITY" :value="current.severity ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="适用型号">{{ current.productModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_ANNOUNCEMENT_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="发布日期">{{ current.publishDate || '-' }}</el-descriptions-item>
       <el-descriptions-item label="生效日期">{{ current.effectiveDate || '-' }}</el-descriptions-item>
@@ -345,7 +345,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<AnnouncementVO>({})
+const current = ref<Partial<AnnouncementVO>>({})
 const openDetail = async (row: AnnouncementVO) => {
   current.value = await AnnouncementApi.getAnnouncement(row.id!)
   detailVisible.value = true

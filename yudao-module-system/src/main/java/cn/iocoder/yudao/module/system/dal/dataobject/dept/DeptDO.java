@@ -29,6 +29,10 @@ public class DeptDO extends TenantBaseDO {
     @TableId
     private Long id;
     /**
+     * 统一部门编码
+     */
+    private String code;
+    /**
      * 部门名称
      */
     private String name;
@@ -62,5 +66,9 @@ public class DeptDO extends TenantBaseDO {
      * 枚举 {@link CommonStatusEnum}
      */
     private Integer status;
+    /**
+     * 乐观锁版本
+     */
+    private Integer version;
 
 }

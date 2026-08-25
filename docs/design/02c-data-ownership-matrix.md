@@ -1,23 +1,27 @@
 ﻿# SDS Phase 1：数据 Owner 矩阵
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
 | 数据事实 | Owner | 其他领域使用方式 |
 |---|---|---|
-| 到货、安装、实施结果解释、实施风险、质量/安全检查、实施证据语义 | Implementation Execution | 通过查询、快照或事件引用 |
-| 设备身份、档案、客户/项目归属、安装位置、RMA/维保基本信息、配置Log关联 | AST / Asset Management | 实施和服务只引用；MES、ITR、备件必要主数据同步到本地，来源字段只读 |
+| 项目、阶段、ProjectTask树、TASK_NATIVE通用任务事实、任务工作绑定和完成判定快照；项目业务属性当前值和不可变模板匹配决策历史 | Project Delivery | TASK_NATIVE由ProjectTask自身承载；其他绑定业务对象仍由对应Context拥有，项目工作台通过查询/API装载，不复制业务正文；属性变化后的影响只记录，不冒充CHG执行 |
+| 公司、部门、统一部门编码、用户公司—部门有效范围 | 基础平台 / SYSTEM | 办事处按部门表达；公司与部门从同一有效范围行解析，其他Context只保存稳定引用和必要快照，不由部门推导公司 |
+| 到货、安装、实施结果解释、实施风险、质量检查、实施证据语义 | Implementation Execution | 通过查询、快照或事件引用；IMP-02安全检查不属于当前V1/V2 |
+| 地址、站点、站点位置树、来源映射、区划—部门映射、设备身份、档案、客户/项目归属、当前安装位置、RMA/维保基本信息、ConfigurationLog原始文件、不可变解析版本和设备关联 | AST / Asset Management | CUS只引用客户地址/站点；PROJ拥有项目—站点关系；IMP拥有工勘、安装、迁移与拆除记录并通过AST公开命令使设备位置生效；MES、ITR、备件来源字段只读 |
 | 凭证、授权、采集任务、外部执行状态、原始结果引用、回调证据 | Device Access & Collection | 实施、割接、巡检通过任务契约使用；现有采集模块或子应用作为实现载体 |
-| CUT-01核心任务、问卷评估、调研清单、方案、审批和P6闭环记录 | CUT | 实施只提供上线门禁快照；项目只读任务进度和成功闭环结果；WO-06工单语义不进入CUT |
+| CUT-01核心任务、问卷评估、P3调研清单及采集结果业务解释、CUT-07后台配置版本、方案、审批和P6闭环记录 | CUT | DAC只拥有CollectionTask技术执行与结果引用；基础平台只拥有字典值；项目只读任务进度和成功闭环结果；WO-06工单语义不进入CUT |
 | 巡检任务、规则、报告和问题 | Inspection（SRV） | 通过设备和 Device Access & Collection 任务契约使用 |
-| 设备服务状态和持续服务跟踪 | Service Operations（SRV） | 消费设备、客户和项目闭环事实 |
+| 设备服务状态 | Service Operations（SRV） | 消费设备、客户和项目闭环事实；ACC-05持续服务跟踪仅为V3候选 |
 | 交付件齐套、验收、归档、闭环和交维 | ACC | 读取实施证据，不覆盖原始事实 |
 | 满意度任务、问卷版本、客户答案、签字和评分判定 | ACC | CLO-01和SUB-03只引用有效判定，不修改客户事实 |
-| 合同、订单行、交付范围和履约对账 | Contract & Fulfillment（COM） | 合同和订单必要主数据同步到本地；ERP为权威来源，平台维护范围分配和履约事实 |
+| 客户服务等级、策略快照和生效区间版本 | CUS | 项目、割接和服务动作只冻结触发时命中的等级与策略版本；基础平台只拥有等级字典值，不得回写历史业务快照 |
+| ERP合同、订单行及项目交付范围分配 | Contract & Fulfillment（COM） | 合同和订单必要主数据同步到本地；ERP为权威来源，平台维护范围分配事实；不建立COM-02履约回写/对账聚合 |
+| CRM项目签约方式、实施方式和重大项目级别权威来源与传输水位 | CRM / Integration ACL（INT） | PROJ在模板匹配决策历史中冻结实际消费的来源/版本；INT自动建项、来源定位、重试和对账另行建设；平台项目类别仍由PROJ拥有 |
 
 `CollectionTask` 不属于 Implementation Execution；实施执行域只拥有业务结果解释和证据关联。日常业务查询优先读取本地同步副本；同步失败时展示最近成功版本、截止时间和同步状态。
 

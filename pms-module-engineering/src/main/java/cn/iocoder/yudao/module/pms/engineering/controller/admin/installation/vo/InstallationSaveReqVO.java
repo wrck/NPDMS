@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo;
 
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,6 +35,9 @@ public class InstallationSaveReqVO {
 
     @Schema(description = "安装位置", example = "机房A-机柜01")
     private String installLocation;
+
+    @Schema(description = "地点维护命令；提供时创建或修订结构化地址、站点和站点位置")
+    private LocationMaintenanceCommand locationMaintenance;
 
     @Schema(description = "安装时间")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

@@ -32,7 +32,7 @@ export interface IssueVerifyVO {
 
 const baseUrl = '/pms/eng-issue'
 
-export const getIssuePage = (params: PageParam) =>
+export const getIssuePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getIssue = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

@@ -221,10 +221,10 @@
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
       </el-descriptions-item>
       <el-descriptions-item label="授权类型">
-        <dict-tag :type="DICT_TYPE.PMS_AUTHORIZATION_TYPE" :value="current.authorizationType" />
+        <dict-tag :type="DICT_TYPE.PMS_AUTHORIZATION_TYPE" :value="current.authorizationType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="设备型号">{{ current.deviceModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备序列号">{{ current.deviceSerial || '-' }}</el-descriptions-item>
@@ -324,7 +324,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<AuthorizationVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   authorizationType: 'TEMPORARY',
@@ -388,7 +388,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<AuthorizationVO>({})
+const current = ref<Partial<AuthorizationVO>>({})
 const openDetail = async (row: AuthorizationVO) => {
   current.value = await AuthorizationApi.getAuthorization(row.id!)
   detailVisible.value = true

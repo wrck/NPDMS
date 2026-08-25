@@ -19,7 +19,7 @@ export interface ArchiveDocumentVO {
 
 const baseUrl = '/pms/acc-archive-document'
 
-export const getArchiveDocumentPage = (params: PageParam) =>
+export const getArchiveDocumentPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getArchiveDocument = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

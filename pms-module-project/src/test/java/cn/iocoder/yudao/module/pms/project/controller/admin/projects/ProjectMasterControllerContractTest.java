@@ -1,5 +1,12 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projects;
 
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +22,7 @@ import java.lang.reflect.Parameter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -44,7 +52,40 @@ class ProjectMasterControllerContractTest {
         assertNotNull(keyParameter, "createProject 缺少 @RequestHeader Idempotency-Key 参数");
         RequestHeader header = keyParameter.getAnnotation(RequestHeader.class);
         assertEquals("Idempotency-Key", header.value(), "幂等头名称不符合契约");
-        assertFalse(header.required(), "幂等头应可选（无键直通创建）");
+        assertTrue(header.required(), "正式创建必须提供幂等头");
+    }
+
+    @Test
+    void createContractUsesRevisionIdAndRequiredCandidateWatermark() throws Exception {
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("templateRevisionId"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("candidateWatermark"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredMethod("isCandidateWatermarkValid")
+                .getAnnotation(AssertTrue.class), "根项目水位必填、子项目继承时可空必须由边界条件校验");
+        assertNotNull(ProjectMatchTemplatesRespVO.class.getDeclaredField("candidateWatermark"));
+        assertNotNull(ProjectMatchTemplatesRespVO.CandidateItem.class
+                .getDeclaredField("templateRevisionId"));
+        assertThrowsNoField(ProjectCreateReqVO.class, "templateId");
+    }
+
+    @Test
+    void v18LocationAndOrganizationContractRejectsLegacyRawIdentifiers() throws Exception {
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("orderOfficeCompanyId"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("orderOfficeDepartmentId"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredField("sites"));
+        assertNotNull(ProjectCreateReqVO.class.getDeclaredMethod("isLocationScopeValid")
+                .getAnnotation(AssertTrue.class));
+        assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeCompanyCode");
+        assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeDepartmentCode");
+        assertThrowsNoField(ProjectCreateReqVO.class, "serviceManagerUserId");
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("managerId"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("siteId"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("assignmentType"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("departmentId"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("departmentCode"));
+        assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("changeReason"));
+        assertThrowsNoField(ProjectAssignManagerReqVO.class, "effectiveFrom");
+        assertThrowsNoField(ProjectAssignManagerReqVO.class, "officeId");
+        assertThrowsNoField(ProjectAssignManagerReqVO.class, "locationId");
     }
 
     @Test
@@ -85,11 +126,8 @@ class ProjectMasterControllerContractTest {
     @Test
     void assignManagerEndpoint() {
         assertEndpoint("assignManager", PostMapping.class, "/{id}/actions/assign-manager", "pms:project:assign");
-    }
-
-    @Test
-    void updateChildWeightsEndpoint() {
-        assertEndpoint("updateChildWeights", PutMapping.class, "/{id}/child-weights", "pms:project:update");
+        assertRequiredHeader("assignManager", "Idempotency-Key");
+        assertRequiredHeader("assignManager", "If-Match");
     }
 
     // ========== 断言辅助 ==========
@@ -126,5 +164,63 @@ class ProjectMasterControllerContractTest {
             return put.value().length > 0 ? put.value()[0] : "";
         }
         return fail("未覆盖的映射类型：" + mapping.annotationType());
+    }
+
+    @Test
+    void serviceManagerQueryEndpointsUseAssignmentPermission() {
+        assertEndpoint("getServiceManagerCandidates", GetMapping.class,
+                "/{id}/service-manager-candidates", "pms:project:assign");
+        assertEndpoint("getServiceManagerResponsibilities", GetMapping.class,
+                "/{rootId}/service-manager-responsibilities", "pms:project:assign");
+    }
+
+    @Test
+    void classifyEndpointUsesDedicatedPermissionAndConcurrencyHeaders() {
+        assertEndpoint("classifyProject", PostMapping.class,
+                "/{id}/actions/classify", "pms:project:classify");
+        assertRequiredHeader("classifyProject", "Idempotency-Key");
+        assertRequiredHeader("classifyProject", "If-Match");
+    }
+
+    @Test
+    void matchHistoryEndpointIsReadOnlyAndScoped() {
+        assertEndpoint("getTemplateMatchHistory", GetMapping.class,
+                "/{id}/template-match-history", "pms:project:query");
+    }
+
+    @Test
+    void genericUpdateCannotCarryBusinessAttributes() {
+        assertThrowsNoField(ProjectUpdateReqVO.class, "signingMethod");
+        assertThrowsNoField(ProjectUpdateReqVO.class, "projectCategory");
+        assertThrowsNoField(ProjectUpdateReqVO.class, "implementationMode");
+        assertThrowsNoField(ProjectUpdateReqVO.class, "majorProjectLevel");
+    }
+
+    @Test
+    void projectDetailExposesVersionForAssignmentIfMatch() throws Exception {
+        assertNotNull(ProjectRespVO.class.getDeclaredField("version"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("assignmentStatus"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("companyId"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("departmentId"));
+        assertNotNull(ProjectRespVO.class.getDeclaredField("locationResolutionStatus"));
+    }
+
+    private static void assertThrowsNoField(Class<?> type, String name) {
+        try {
+            type.getDeclaredField(name);
+            fail(type.getSimpleName() + " 不得继续暴露旧字段 " + name);
+        } catch (NoSuchFieldException expected) {
+            // 符合V1.8 revision级契约。
+        }
+    }
+
+    private static void assertRequiredHeader(String methodName, String headerName) {
+        Method method = findMethod(methodName);
+        RequestHeader header = java.util.Arrays.stream(method.getParameters())
+                .map(parameter -> parameter.getAnnotation(RequestHeader.class))
+                .filter(annotation -> annotation != null && headerName.equals(annotation.value()))
+                .findFirst().orElse(null);
+        assertNotNull(header, methodName + " 缺少 @RequestHeader " + headerName + " 参数");
+        assertTrue(header.required(), headerName + " 必须是必填请求头");
     }
 }

@@ -22,7 +22,7 @@ export interface SrvIssueVO {
 export interface SrvIssueAssignVO {
   id: number
   ownerUserId: number
-  deadline?: Date
+  deadline?: number
   version?: number
 }
 
@@ -35,7 +35,7 @@ export interface SrvIssueActionVO {
 
 const baseUrl = '/pms/srv-issue'
 
-export const getSrvIssuePage = (params: PageParam) =>
+export const getSrvIssuePage = (params: PmsTaskPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getSrvIssue = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

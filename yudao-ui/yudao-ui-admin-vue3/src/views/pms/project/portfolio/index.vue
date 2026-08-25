@@ -143,7 +143,7 @@
       <!-- 静态成员：项目选择 -->
       <template v-if="form.memberType === 'STATIC'">
         <el-divider content-position="left">静态成员项目</el-divider>
-        <div v-for="(pid, idx) in form.staticProjectIds" :key="idx" class="mb-8px">
+        <div v-for="(_, idx) in form.staticProjectIds" :key="idx" class="mb-8px">
           <el-row :gutter="8" align="middle">
             <el-col :span="20">
               <PmsEntitySelect
@@ -162,7 +162,7 @@
             </el-col>
           </el-row>
         </div>
-        <el-button type="primary" plain size="small" @click="form.staticProjectIds.push(undefined as any)">
+        <el-button type="primary" plain size="small" @click="form.staticProjectIds.push(undefined)">
           <Icon icon="ep:plus" />添加项目
         </el-button>
       </template>
@@ -263,7 +263,19 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, code: '', name: '', status: undefined, memberType: '' })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<PortfolioVO>({ code: '', name: '', status: 0, memberType: 'STATIC', staticProjectIds: [], rules: [] })
+type PortfolioForm = Omit<PortfolioVO, 'staticProjectIds' | 'rules'> & {
+  staticProjectIds: Array<number | undefined>
+  rules: PortfolioRuleVO[]
+}
+
+const form = reactive<PortfolioForm>({
+  code: '',
+  name: '',
+  status: 0,
+  memberType: 'STATIC',
+  staticProjectIds: [],
+  rules: []
+})
 const rules = {
   code: [{ required: true, message: '请输入组合编码' }],
   name: [{ required: true, message: '请输入组合名称' }],
@@ -298,33 +310,34 @@ const openForm = async (row?: PortfolioVO) => {
       rules: [],
       version: undefined
     },
-    row ? { ...row } : {}
+    row ? { ...row, staticProjectIds: row.staticProjectIds ?? [], rules: row.rules ?? [] } : {}
   )
   // 编辑时加载详情（含规则）
   if (row?.id) {
     const detail = await PortfolioApi.getPortfolio(row.id)
     Object.assign(form, {
-      rules: detail.rules || [],
-      staticProjectIds: detail.staticProjectIds || []
+      rules: detail.rules ?? [],
+      staticProjectIds: detail.staticProjectIds ?? []
     })
   }
   formVisible.value = true
 }
 
 const addRule = () => {
-  if (!form.rules) form.rules = []
   form.rules.push({ ruleField: 'CUSTOMER', ruleOperator: 'EQ', ruleValue: '' } as PortfolioRuleVO)
 }
 
 const save = async () => {
   await formRef.value.validate()
   // 清理空规则与空项目
-  const payload = { ...form }
+  const payload: PortfolioVO = {
+    ...form,
+    staticProjectIds: form.staticProjectIds.filter((id): id is number => Boolean(id))
+  }
   if (payload.memberType === 'DYNAMIC') {
     payload.rules = (payload.rules || []).filter((r) => r.ruleValue)
     delete payload.staticProjectIds
   } else {
-    payload.staticProjectIds = (payload.staticProjectIds || []).filter((id) => id)
     delete payload.rules
   }
   saving.value = true

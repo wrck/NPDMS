@@ -1,8 +1,8 @@
 ﻿# SDS Phase 2：API 设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；接口组在第 5～14 节回指具体 Requirement
 > Owner：SDS Phase 2 应用与接口架构
 > 前置设计：`07-authorization-design.md`、`08-data-model.md`、`09-database-design.md`
 
@@ -70,25 +70,57 @@
 
 | 路径 | 方法/命令 | 作用 | 关键约束 |
 |---|---|---|---|
-| `/projects` | `POST`, `GET` | 创建、分页查询项目 | 创建需幂等键；查询服务端过滤 ProjectTreeScope |
-| `/projects/{id}` | `GET`, `PATCH` | 项目详情、可编辑属性 | `PATCH` 不能修改状态、父节点和来源权威字段 |
-| `/projects/{id}/tree` | `GET` | 祖先、直接子级或全后代 | 返回 `treeVersion`；支持稳定游标 |
-| `/projects/{id}/actions/move` | `POST` | 移动到目标父项目 | `If-Match`、无环校验、树变更批次 |
-| `/projects/{id}/actions/classify` | `POST` | 项目级别识别/确认 | 类型字典可扩展，识别结果与人工确认留痕 |
+| `/projects` | `POST`, `GET` | 创建、分页查询项目 | 创建需幂等键及必填非空白createReason；公司与办事处部门按同一组织范围校验；请求包含零到多个站点及一个可选主站点，或显式未解析文本降级；F-PROJ-004生效后所有成功创建须记录AUTO_UNIQUE或EXPLICIT_SELECTION的INITIAL_CREATE历史；查询服务端过滤 ProjectTreeScope |
+| `/projects/{id}` | `GET`, `PATCH` | 项目详情、可编辑属性 | `PATCH`不能修改状态、父节点、来源权威字段及四项模板输入属性；四属性只能走PM-07受控命令并追加历史 |
+| `/projects/{id}/workspace` | `GET` | 项目概览六页签、Stage→ProjectTask导航和投影水位 | 不返回第二套导航真值；按ProjectTreeScope裁剪，任务子树按需加载 |
+| `/projects/{id}/tree` | `GET` | 直接下级、全部后代、完整上级链、指定业务层级或节点定位 | 先执行ProjectTreeScope；返回同一完整`treeVersion`、裁剪结果和稳定游标 |
+| `/projects/{id}/actions/move` | `POST` | 移动到目标父项目 | `Idempotency-Key`、`If-Match`、无环校验、树变更批次和新`treeVersion` |
+| `/projects/{id}/actions/classify` | `POST` | 四项模板输入的受控人工调整 | 以5.5为唯一详细契约；追加MANUAL_ADJUSTMENT历史，不更换冻结模板 |
 | `/projects/{id}/actions/assign-manager` | `POST` | 指派项目经理/服务经理 | 仅使用 PRD 已定义角色和规则 |
 | `/projects/{id}/actions/rollback` | `POST` | 受控阶段回退 | 保存原因、目标阶段和新门禁快照 |
 | `/projects/{id}/actions/close` | `POST` | 接收闭环完成后的关闭命令 | 只能由闭环契约触发或满足相同门禁的授权入口 |
 | `/projects/{id}/members:batch-change` | `POST` | 人员批量变更 | 逐项结果、有效期和历史，不覆盖原记录 |
 | `/projects/{id}/tasks` | `POST`, `GET` | 创建/查询任意层级任务 | 任务父节点可空；不限制深度 |
 | `/project-tasks/{id}` | `GET`, `PATCH` | 任务详情与可编辑属性 | 状态和父节点不可普通修改 |
+| `/project-tasks/{id}/workbench` | `GET` | 返回任务通用基础信息、executionContractId/contractVersion、WorkBinding类型、允许操作和完成规则摘要；TASK_NATIVE不返回外部目标，其他类型返回必要的目标稳定引用、受信任组件键/表单/审批引用 | 每次按任务、项目树、绑定类型及适用的目标对象和状态重新授权；不返回任意脚本或跨域数据正文 |
 | `/project-tasks/{id}/actions/move` | `POST` | 移动任务节点 | 无环、树版本、项目范围校验 |
-| `/project-tasks/{id}/actions/{submit|start|complete|cancel}` | `POST` | 任务状态命令 | 按 05 状态机守卫执行 |
-| `/project-templates` | CRUD + `actions/publish` | 项目/阶段/任务模板 | 已发布 revision 只读 |
+| `/project-tasks/{id}/actions/{submit|start|complete|cancel}` | `POST` | 任务状态命令；complete必须提交taskVersion、executionContractId/contractVersion、适用的factObjectKey/factVersion和Idempotency-Key | 按05状态机守卫执行；TASK_NATIVE按任务自身事实完成，其他绑定由服务端回源Owner事实并追加TaskCompletionEvaluation；不能用通用按钮绕过目标业务 |
+| `/project-templates` | CRUD + `actions/publish` | 项目/阶段/任务模板；发布请求逐个TaskDefinition提交WorkBinding、PermissionPolicy、CompletionRule和可选GateRef | 已发布 revision 只读；缺失绑定/规则、绑定字段与类型不一致、目标未发布或GateRef无效时整版拒绝 |
 | `/project-portfolios` | CRUD + `actions/publish` | 项目组合 | V2；成员项目只引用不改 Owner |
 
 外部项目同步不直接暴露为普通用户 CRUD；由第 12 分册定义的 CRM/ERP 适配器调用内部 upsert 命令并保存来源版本。
 
-### 5.1 PM-05 借货项目转销契约
+F-PROJ-001创建和指派不得接受无来源的数值`officeId/locationId`。公司、办事处部门和结构化站点均使用稳定ID、编码和版本；未维护站点时返回`locationResolutionStatus=UNRESOLVED`，未解析文本不参与自动办事处解析或结构化权限判断。`assign-manager`可携带`siteId/departmentCode`，区划映射只提供候选，V1最终值由授权人员人工确认。
+
+### 5.1 PM-02 项目拆分、树版本与进度契约
+
+| 路径 | 操作 | 输入/输出 | 业务守卫 |
+|---|---|---|---|
+| `/project-split-requests` | `POST` | 输入父项目、组合方案和稳定`clientItemKey`；返回草稿ID与`draftVersion` | 工程管理部或获授权服务经理；父项目ProjectTreeScope、租户和功能权限同时满足 |
+| `/project-split-requests/{id}` | `GET`, `PUT` | 读取/更新草稿、范围项和逐项校验结果 | APPLIED不可编辑；`If-Match`校验草稿版本；失败草稿保留 |
+| `/project-split-requests/{id}/actions/{preview|validate}` | `POST` | 服务端返回子项目方案、Commerce/AST/组织校验结果、`previewHash`与各Owner水位 | 无业务写入；客户端预览摘要不能作为确认依据；权威范围不可用时禁止确认 |
+| `/project-split-requests/{id}/actions/apply` | `POST` | `Idempotency-Key`、`If-Match`及父项目/范围/树期望版本；返回全部子项目、范围分配、`changeBatchId/treeVersion` | 服务端重新校验；全部子项目、模板实例、范围、树、审计、Outbox和幂等完成点原子提交 |
+| `/projects/{id}/tree` | `GET` | `queryType=CHILDREN/DESCENDANTS/ANCESTORS/BUSINESS_LEVEL/LOCATE`、业务层级、游标；返回`treeVersion/items/nextCursor/updating` | 游标固定在同一完整版本；服务端先执行租户与ProjectTreeScope；无权路径只返回必要占位 |
+| `/projects/{id}/actions/move` | `POST` | 目标父项目、原因、`Idempotency-Key`、`If-Match`；返回`changeBatchId/treeVersion` | 按稳定ID锁定，拒绝自身、后代、跨租户和陈旧版本；移动不改项目编码命名空间 |
+| `/projects/{id}/progress-policies` | `POST`, `GET` | 创建/查询直接子项目权重和分母口径版本 | 草稿完整覆盖直接子项目；权重合计100%；默认等权也形成版本；历史版本只读 |
+| `/progress-policies/{id}/actions/submit` | `POST` | 提交配置化BPM审批；返回流程实例和策略版本 | `If-Match`；批准回调幂等；未批准版本不影响当前计算 |
+| `/projects/{id}/progress` | `GET` | 返回策略版本、树版本、事实水位、READY/PENDING、汇总结果、缺失项和直接子项目解释 | 任一必要事实缺失时PENDING，不以0或旧快照替代；按ProjectTreeScope裁剪明细 |
+| `/projects/{id}/closure-guard` | `GET` | 返回当前完整树版本、是否可进入CLO-02、未满足后代和待计算项目 | 只提供PROJ守卫，不创建、批准或完成闭环；未授权后代不泄露敏感字段 |
+
+拆分草稿允许办事处部门编码，不接受通过`addressId`反推办事处。SN由AST公开契约校验，DeliveryScope由COM公开契约预览和分配；PROJ不得直接访问AST/COM Repository或表。管理端实际路由由`/admin-api/pms`装配，上述资源语义映射到对外`/api/v1/pms`时保持字段、版本和错误分类一致。
+
+### 5.2 PM-04 项目子树授权契约
+
+| 路径 | 操作 | 输入/输出 | 业务守卫 |
+|---|---|---|---|
+| `/projects/{projectId}/actions/assign-manager` | `POST` | 用户、PRD已定义项目角色和生效区间；返回成员角色区间版本 | 服务经理、功能权限、同租户和目标项目管理范围；角色本身不产生后代范围 |
+| `/projects/{projectId}/authorization-grants` | `POST`, `GET` | 创建时输入主体用户、动作、范围、生效区间和原因；查询按主体、动作、范围、状态和有效时点分页 | 创建要求`Idempotency-Key`且不得超出授权人范围；查询空范围返回空页 |
+| `/project-authorization-grants/{grantId}` | `GET` | 返回授权、授予和撤销摘要 | 越权按不存在处理，不泄露授权存在性 |
+| `/project-authorization-grants/{grantId}/actions/revoke` | `POST` | 原因和期望版本；返回撤权版本与失效时间 | `Idempotency-Key`、`If-Match`；同请求重放原结果 |
+
+PLT公开`AuthorizationGrantApi`完成授权创建、撤销和按主体/资源/动作/有效时点查询，不读取项目树。PROJ公开`ProjectScopeApi`，合并当前成员关系、PLT有效授权和当前完整项目树版本；其他模块不得访问双方Service、Mapper、Repository或表。
+
+### 5.3 PM-05 借货项目转销契约
 
 | 路径 | 操作 | 输入/输出 | 业务守卫 |
 |---|---|---|---|
@@ -98,7 +130,7 @@
 
 对象清单的 `handlingMode` 只能是 `READ_ONLY_REFERENCE` 或 `DERIVED_COPY`；默认前者。派生副本必须返回 `sourceObjectId/sourceVersion/derivedObjectId`。只有所有项成功后服务端才完成转销并归档源项目，不提供客户端直接设置完成/归档状态的接口。
 
-### 5.2 PM-06 多期项目契约
+### 5.4 PM-06 多期项目契约
 
 | 路径 | 操作 | 输入/输出 | 业务守卫 |
 |---|---|---|---|
@@ -107,6 +139,30 @@
 | `/project-phase-groups/{id}/actions/remove-phase` | `POST` | 关闭成员有效区间并返回新版本 | 不删除项目事实、历史引用或已发布汇总快照 |
 | `/project-phase-groups/{id}/phases` | `GET` | 按期次返回独立项目状态、来源版本、设备分类和资料差异，附 completeScope 标识 | 只返回用户有权期次；缺失期次标记不完整，不按零值汇总 |
 | `/project-phase-groups/{id}/actions/derive-content` | `POST` | 输入 sourceProjectId/sourceObjectType/sourceObjectId/sourceVersion/targetProjectId；返回派生对象和来源关系 | 只允许 PRD 指定的客户视图、拓扑、方案和设备视图复用；派生修改不回写来源 |
+
+### 5.5 PM-07属性判定与匹配历史契约
+
+| 路径 | 操作 | 输入/输出 | 守卫 |
+|---|---|---|---|
+| 既有`/projects/{id}` | `GET` | 继续返回当前四属性 | 不增加重复当前属性资源 |
+| 既有`/projects` | `POST` | 必填非空白createReason；候选结果与`AUTO_UNIQUE/EXPLICIT_SELECTION`决策；返回Project、冻结模板和INITIAL_CREATE历史operationId | 原因trim后为空在事务前拒绝；无匹配拒绝；多匹配必须显式选择本次合法候选；Project、历史、模板冻结和实例化同事务 |
+| `/projects/{id}/template-match-history` | `GET` | 按触发类型、匹配结果、影响结论、operationId和时间分页；返回可用的traceId/auditLogId关联 | ProjectTreeScope；排序白名单；越权按不存在 |
+| `/projects/{id}/actions/classify` | `POST` | 允许修正的维度及必填非空白adjustmentReason；返回当前四属性、新增历史ID及operationId | 原因trim后为空在事务前拒绝；`Idempotency-Key`、`If-Match`、项目处置权限；业务用户不得写CRM重大级别；不重新实例化；不以异步系统日志写入作为成功条件 |
+| 内部`ProjectAttributeSourceCorrectionCommand` | 应用命令 | 已定位projectId、CRM Owner字段、来源键/事件/版本/发生时间/原值摘要、必填非空白correctionReason、幂等键和服务身份 | 原因trim后为空在事务前拒绝；仅受信任INT服务；serviceIdentity须映射为稳定已注册服务主体ID作为operatorId；同事务更新当前值并追加SOURCE_CORRECTION历史；不负责来源定位、重试或对账 |
+
+PROJ内部`ProjectAttributeResolutionService`供手工创建与未来CRM自动创建编排复用，输出确定属性输入后调用既有TemplateMatcher。无匹配，或多匹配但未显式选择本次合法候选时，首次创建整体失败；创建后classify只追加重新评估历史。集合响应统一分页；写命令同键同摘要重放、同键不同摘要冲突，进行中重复返回409。
+
+### 5.6 PM-08服务经理人工指派契约
+
+| 接口 | 输入/输出 | 业务守卫 |
+|---|---|---|
+| `GET /projects/{id}/service-manager-candidates` | `siteId/departmentCode/keyword/pageNo/pageSize`；返回候选分页 | 校验租户、Project公司、实际节点/站点、部门映射及MANAGE范围；合法精确范围无人员返回空页，不跨部门回退 |
+| `POST /projects/{id}/actions/assign-manager` | `userId/levelCode/assignmentType/siteId/departmentId/departmentCode/changeReason`及`Idempotency-Key/If-Match`；返回关系ID、服务端`effectiveFrom`、Project版本和状态 | V1禁止客户端预约生效；提交时重验启用用户、公司、部门ID/编码及有效范围；Project CAS后检查重叠主责；改派同一时点关闭旧区间并新增关系 |
+| `GET /projects/{rootId}/service-manager-responsibilities` | 按实际节点分页返回站点/部门、当前主责、协同和节点状态 | ProjectTreeScope裁剪；不生成隐式关系或后代授权 |
+
+SYSTEM公开`OrganizationScopeApi.pageActiveUsers(OrganizationUserCandidatePageReqDTO)`：请求必填`companyId/departmentId/departmentCode/pageNo/pageSize`，关键字可空，页大小1～100，租户来自受信任上下文；响应`PageResult`项为`userId/username/nickname/employeeNo/companyId/departmentId/departmentCode/departmentName`。参数非法返回`INVALID_ARGUMENT`，组织ID/编码冲突或主数据不可用返回`ORG_SCOPE_INVALID`，合法范围无人员返回空页。PROJ只调用公开API，不访问SYSTEM Service/Mapper/表。
+
+`NotifyMessageSendApi`为请求增加可空`deliveryKey`；现有调用可空，PM-08必须传Outbox `eventId`。SYSTEM持久去重后，一致重放返回首次消息ID，不一致重放返回投递键冲突。通知失败不回滚已提交指派，Outbox退避重试。
 
 ## 6. SOL：交付准备与方案 API
 
@@ -122,7 +178,7 @@
 
 ## 7. IMP：现场实施 API
 
-适用 Requirement：EXE-01～EXE-06、IMP-01～IMP-02。
+适用 Requirement：EXE-01～EXE-06、IMP-01。
 
 | 聚合 | API | 状态命令/特殊约束 |
 |---|---|---|
@@ -132,7 +188,6 @@
 | JointDebuggingResult | `/debugging-results` | 关联 CollectionTask；记录联调结论和问题引用 |
 | ImplementationRisk | `/implementation-risks` | `raise`、`treat`、`close`；不调用 CUT 风险状态接口 |
 | ImplementationQualityCheck | `/quality-checks` | `submit`、`review`、`complete-remediation`、`re-review` |
-| ImplementationSafetyCheck | `/safety-checks` | `submit`、`review`、`block-work`、`complete-remediation`、`approve-exemption` |
 | DeliveryEvidence | `/implementation-evidence`, `/{id}/versions` | 上传/替换草稿；ACC 审核归档，不由 IMP 调归档命令 |
 | Readiness | `/implementation-readiness/{projectId}` | 只读门禁查询，返回快照版本与未满足项；供 CUT 执行前校验 |
 
@@ -163,9 +218,12 @@
 |---|---|---|
 | `/cutover-tasks` | create、list、detail | 来源键幂等；项目/设备归属校验 |
 | `/cutover-tasks/{id}/assessment` | save draft、submit | 一线提交问卷与人工等级；用服经理在P5复核，不新增P2审批 |
+| `/cutover-tasks/{id}/checklist` | detail、save draft、submit | P3同一工作台返回checklistId/version、inputSnapshotHash、匹配项、界面格式、当前选择结果、CollectionTask/结果引用和重新匹配差异；D级不存在该资源 | save/submit携带If-Match与Idempotency-Key；提交只读取当前适用项和当前选择结果，全部必填满足后冻结版本 |
+| `/cutover-tasks/{id}/checklist/actions/rematch` | POST | 输入checklistVersion、inputSnapshotHash和新维度，预览或应用差异 | 保留stableItemKey未变的有效答案；移出项仅留历史，不进入当前提交；已提交版本不得原位重匹配 |
+| `/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection` | POST | 输入checklistVersion、itemVersion、deviceId、commandTemplateId和Idempotency-Key，为设备采集项创建DAC CollectionTask | 绑定任务、清单版本、采集项、设备和命令模板；DAC回调只生成技术结果，CUT经版本匹配后追加/选择ItemResult，不直接判定采集项通过 |
 | `/cutover-tasks/{id}/plan-revisions` | create、submit、approve、reject | 文件/安全/归属/人工确认校验；不强制解析全部模板字段 |
 | `/cutover-tasks/{id}/support-arrangements` | update contacts / revise duties | 联系人、联系方式、到位时间变化留痕不重审；角色/职责变化必须生成新方案revision并重走P5 |
-| `/cutover-tasks/{id}/actions/request-collection` | POST | 创建 DAC 任务；不读取凭证明文 |
+| `/cutover-tasks/{id}/actions/request-collection` | POST | 兼容非清单级采集入口 | 新P3采集项使用item级入口；均不读取凭证明文，不创建独立采集阶段 |
 | `/cutover-tasks/{id}/approval-actions/{approve|reject}` | POST | 按人工等级和冻结路由校验节点；任一评审项为否必须驳回并填写原因 |
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
 
@@ -187,13 +245,32 @@
 
 | Owner | Requirement | API | 关键边界 |
 |---|---|---|---|
-| CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM 权威字段只读；临时客户显式标记来源 |
-| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/rma-replacements` | 设备归属用 `actions/assign-project`；同一时点唯一；维保为客观基本信息 |
-| COM | COM-01～COM-02 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes`、`/fulfillment-reconciliations` | ERP合同/订单核心字段只读；CRM经营状态/履约回执独立展示；范围分配/释放为受控命令 |
+| CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM权威字段只读；临时客户显式标记来源；客户地址/站点只保存AST稳定引用 |
+| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/asset-locations/addresses`、`/asset-locations/sites`、`/asset-locations/sites/{id}/tree`、`/asset-locations/area-department-mappings`、`/rma-replacements` | 设备归属用`actions/assign-project`；地点由AST拥有；站点不绑定公司/部门；设备当前位置由已确认安装/迁移/拆除事实生效 |
+| COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；平台仅维护项目交付范围分配/释放；F-PROJ-002先落查询、预览和分配公开契约切片，不宣称合同/订单全量同步、人工补录、对账或管理页面完成 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
 
 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
+
+跨模块只调用`AssetLocationApi`：
+
+- `maintain(command)`：在授权项目的工勘/安装中维护Address/Site/SiteLocation，返回稳定ID和版本；
+- `getAddress/getSite/getSiteLocation/getLocationTree`：按租户、状态、版本和调用方业务范围查询；
+- `resolveDepartment(areaCode, areaLevel)`：仅精确查询`SERVICE_OFFICE`有效映射，缺失或停用返回无候选，不向父级回退；
+- `validateSites(siteIds)`：批量校验站点状态、版本和租户；
+- `effectEquipmentLocation(command)`：以安装业务键幂等使设备当前位置生效，写设备版本历史；失败回滚调用方安装完成事务。
+
+F-PROJ-002另使用以下Owner公开契约：
+
+- `AssetDeviceScopeApi.validateAssignableSerials(tenantId, parentProjectId, serialNumbers)`：AST返回SN存在性、租户和当前可分配结论及失败SN；不返回凭证明文或敏感设备详情；
+- `DeliveryScopeApi.getAvailableSlices(parentProjectId, expectedScopeVersion)`：COM返回当前可分配订单行、数量、维度和权威版本；`PENDING_AUTHORITY`数量不进入结果；
+- `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；
+- `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。
+
+PROJ只能依赖上述API及DTO，COM/AST实现不得回调PROJ Mapper、Repository或业务表。公开契约不可用时可继续保存/修正拆分草稿，但禁止确认应用，不把待核对数量视为可分配量。
+
+AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装事实和位置快照，AST只消费公开命令参数。
 
 ## 12. ANA 与公共能力 API
 
@@ -202,8 +279,10 @@
 | ANA | RPT-02、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
 | PLT | PLT-01 | `/todos`、`/{id}/actions/complete` | 待办完成回调业务 Owner；不能自行宣告业务成功 |
 | PLT | PLT-02 | `/files:init-upload`、`/files/{id}:complete-upload`、`/files/{id}/versions`、`/file-references` | 文件 API 详见 13；下载实时校验业务权限 |
-| PLT | AUT-01～AUT-02 | `/authorization-grants` | 通用授权，不代替 DAC 凭证授权 |
+| PLT | AUT-01～AUT-02 | `/authorization-grants`、`/authorization-grants/{id}/actions/revoke`；内部`AuthorizationGrantApi` | 创建需幂等键，查询分页，撤权需期望版本；通用授权不代替DAC凭证授权 |
 | PLT | CHG-01 | `/change-requests`、状态命令 | 低优先级独立能力，按版本范围后置实施 |
+| SYSTEM | INT-09 | `/system/companies`、`/system/departments` | Company与Department独立；Department响应包含统一`code`和`version`；办事处按Department表达 |
+| SYSTEM | INT-09、PM-01 | 内部`CompanyApi/DeptApi/OrganizationScopeApi` | 按稳定ID/编码查询；用户公司—部门范围必须命中同一有效行，不由部门推导公司 |
 
 周报/日报不提供独立 API；周期性展示复用指标快照。
 

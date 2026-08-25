@@ -6,24 +6,50 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectChildWeightsReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAttributeClassifyReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAttributeClassifyRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectCreateRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectInstancesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMemberAssignmentRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectProgressRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectSiteRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeMoveReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeQueryReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTreeQueryRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTemplateMatchHistoryPageReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectTemplateMatchHistoryRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectUpdateReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.IdempotencyRecordDO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerCandidatePageReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerCandidateRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerResponsibilityPageReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ServiceManagerResponsibilityRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.IdempotencyRecordService;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectattribute.query.ProjectTemplateMatchHistoryPageQuery;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeClassificationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryQueryService;
+import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.ManualProjectAttributeAdjustmentCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectServiceManagerQueryService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManagerAssignmentApplicationService.Actor;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
-import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectTreeService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeQueryService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.command.ProjectTreeQuery;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectSiteApplicationService;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ProjectSiteCommand;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,7 +57,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,19 +71,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_WEIGHT_SUM_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ASSIGNMENT_REQUEST_INVALID;
 
 /**
  * 管理后台 - PMS 项目手工创建 Controller（F-PM01 / PM-01）。
@@ -70,47 +93,48 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @RestController
 @RequestMapping("/pms/projects")
 @Validated
-@Slf4j
 public class ProjectMasterController {
-
-    /** 幂等命令标识 */
-    private static final String COMMAND_PROJECT_CREATE = "ProjectCreate";
-    /** 幂等记录状态：已完成 */
-    private static final String IDEMPOTENCY_STATUS_COMPLETED = "COMPLETED";
 
     @Resource
     private ProjectManualCreationService projectManualCreationService;
     @Resource
     private ProjectTemplateService projectTemplateService;
     @Resource
-    private IdempotencyRecordService idempotencyRecordService;
+    private ProjectManualCreationApplicationService projectManualCreationApplicationService;
     @Resource
-    private ProjectTreeService projectTreeService;
+    private ProjectManagerAssignmentApplicationService projectManagerAssignmentApplicationService;
+    @Resource
+    private ProjectTreeQueryService projectTreeQueryService;
+    @Resource
+    private ProjectTreeProjectionService projectTreeProjectionService;
+    @Resource
+    private ProjectSiteApplicationService projectSiteApplicationService;
+    @Resource
+    private ProjectAttributeClassificationApplicationService projectAttributeClassificationApplicationService;
+    @Resource
+    private ProjectTemplateMatchHistoryQueryService projectTemplateMatchHistoryQueryService;
+    @Resource
+    private ProjectServiceManagerQueryService projectServiceManagerQueryService;
 
     @PostMapping
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
     @PreAuthorize("@ss.hasPermission('pms:project:create')")
     public CommonResult<ProjectCreateRespVO> createProject(
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @Valid @RequestBody ProjectCreateReqVO createReqVO) {
-        // 无幂等键：直接创建（不做幂等保护）
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            return success(doCreate(createReqVO));
-        }
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
-        String digest = sha256Digest(toJson(createReqVO));
-        IdempotencyRecordDO existing = idempotencyRecordService.findByKey(
-                currentTenantId(), COMMAND_PROJECT_CREATE, actorId, idempotencyKey);
-        if (existing != null) {
-            // 同键异摘要 → 409；同键同摘要 → 重放返回原资源
-            if (!digest.equals(existing.getRequestDigest())) {
-                throw exception(PMS_IDEMPOTENCY_KEY_CONFLICT);
-            }
-            return success(fromJson(existing.getResponsePayload()));
-        }
-        ProjectCreateRespVO created = doCreate(createReqVO);
-        saveIdempotencyRecord(idempotencyKey, actorId, digest, toJson(created));
-        return success(created);
+        ProjectMasterDO draft = BeanUtils.toBean(createReqVO, ProjectMasterDO.class);
+        ManualProjectCreateCommand command = new ManualProjectCreateCommand(
+                draft, createReqVO.getOrderOfficeCompanyId(), createReqVO.getOrderOfficeDepartmentId(),
+                createReqVO.getSites() == null ? java.util.List.of() : createReqVO.getSites().stream()
+                        .map(site -> new ProjectSiteCommand(site.getSiteId(), site.getSiteVersion(),
+                                site.getPrimarySite())).toList(),
+                createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
+                idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
+        ManualProjectCreateResult result = projectManualCreationApplicationService.create(command,
+                new ProjectManualCreationApplicationService.Actor(
+                        currentTenantId(), actorId, UUID.randomUUID().toString()));
+        return success(toResponse(result));
     }
 
     @GetMapping("/actions/match-templates")
@@ -125,6 +149,7 @@ public class ProjectMasterController {
                 signingMethod, projectCategory, implementationMode, majorProjectLevel);
         ProjectMatchTemplatesRespVO respVO = new ProjectMatchTemplatesRespVO();
         respVO.setOutcome(match.getOutcome().name());
+        respVO.setCandidateWatermark(match.getCandidateWatermark());
         respVO.setConflicts(match.getConflicts());
         respVO.setCandidates(BeanUtils.toBean(match.getCandidates(), ProjectMatchTemplatesRespVO.CandidateItem.class));
         return success(respVO);
@@ -136,7 +161,8 @@ public class ProjectMasterController {
     public CommonResult<PageResult<ProjectRespVO>> getProjectPage(@Valid ProjectPageReqVO pageReqVO) {
         PageResult<ProjectMasterDO> pageResult = projectManualCreationService.getProjectPage(
                 pageReqVO, pageReqVO.getProjectName(), pageReqVO.getProjectCode(), pageReqVO.getStatus(),
-                pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode());
+                pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode(),
+                accessActor());
         return success(BeanUtils.toBean(pageResult, ProjectRespVO.class));
     }
 
@@ -145,11 +171,16 @@ public class ProjectMasterController {
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectRespVO> getProject(@PathVariable("id") Long id) {
-        ProjectMasterDO project = projectManualCreationService.getProject(id);
-        if (project == null) {
-            throw exception(PROJECT_NOT_EXISTS);
-        }
+        ProjectMasterDO project = projectManualCreationService.getProject(id, accessActor());
         return success(BeanUtils.toBean(project, ProjectRespVO.class));
+    }
+
+    @GetMapping("/{id}/sites")
+    @Operation(summary = "查询项目当前实施站点")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<java.util.List<ProjectSiteRespVO>> getProjectSites(@PathVariable("id") Long id) {
+        projectManualCreationService.getProject(id, accessActor());
+        return success(BeanUtils.toBean(projectSiteApplicationService.getActiveSites(id), ProjectSiteRespVO.class));
     }
 
     @PutMapping("/{id}")
@@ -160,8 +191,43 @@ public class ProjectMasterController {
                                                @Valid @RequestBody ProjectUpdateReqVO updateReqVO) {
         ProjectMasterDO update = BeanUtils.toBean(updateReqVO, ProjectMasterDO.class);
         update.setId(id);
-        projectManualCreationService.updateProject(update);
+        projectManualCreationService.updateProject(update, accessActor());
         return success(true);
+    }
+
+    @PostMapping("/{id}/actions/classify")
+    @Operation(summary = "人工调整项目业务属性并记录模板匹配影响")
+    @PreAuthorize("@ss.hasPermission('pms:project:classify')")
+    public CommonResult<ProjectAttributeClassifyRespVO> classifyProject(
+            @PathVariable("id") Long id,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") @NotBlank String ifMatch,
+            @Valid @RequestBody ProjectAttributeClassifyReqVO reqVO) {
+        Integer expectedVersion = parseIfMatch(ifMatch);
+        String requestDigest = sha256Digest(id + ":" + expectedVersion + ":" + JsonUtils.toJsonString(reqVO));
+        var result = projectAttributeClassificationApplicationService.adjust(
+                new ManualProjectAttributeAdjustmentCommand(id, expectedVersion,
+                        reqVO.getSigningMethod(), reqVO.getProjectCategory(), reqVO.getImplementationMode(),
+                        reqVO.getAdjustmentReason(), idempotencyKey, requestDigest),
+                new ProjectAttributeClassificationApplicationService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), UUID.randomUUID().toString()));
+        return success(BeanUtils.toBean(result, ProjectAttributeClassifyRespVO.class));
+    }
+
+    @GetMapping("/{id}/template-match-history")
+    @Operation(summary = "分页查询项目模板匹配决策历史")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<PageResult<ProjectTemplateMatchHistoryRespVO>> getTemplateMatchHistory(
+            @PathVariable("id") Long id,
+            @Valid ProjectTemplateMatchHistoryPageReqVO reqVO) {
+        var page = projectTemplateMatchHistoryQueryService.page(
+                new ProjectTemplateMatchHistoryPageQuery(currentTenantId(), id, reqVO,
+                        reqVO.getTriggerType(), reqVO.getMatchResult(), reqVO.getImpactResult(),
+                        reqVO.getOccurredAtBegin(), reqVO.getOccurredAtEnd(), reqVO.getOrderBy(),
+                        reqVO.getAscending()),
+                new ProjectTemplateMatchHistoryQueryService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId()));
+        return success(BeanUtils.toBean(page, ProjectTemplateMatchHistoryRespVO.class));
     }
 
     @GetMapping("/{id}/instances")
@@ -169,11 +235,8 @@ public class ProjectMasterController {
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectInstancesRespVO> getProjectInstances(@PathVariable("id") Long id) {
-        ProjectMasterDO project = projectManualCreationService.getProject(id);
-        if (project == null) {
-            throw exception(PROJECT_NOT_EXISTS);
-        }
-        ProjectInstantiation instantiation = projectManualCreationService.getInstances(id);
+        ProjectMasterDO project = projectManualCreationService.getProject(id, accessActor());
+        ProjectInstantiation instantiation = projectManualCreationService.getInstances(id, accessActor());
         ProjectInstancesRespVO respVO = new ProjectInstancesRespVO();
         respVO.setProjectId(id);
         respVO.setLifecycleTemplateId(project.getLifecycleTemplateId());
@@ -202,140 +265,117 @@ public class ProjectMasterController {
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<java.util.List<ProjectMemberAssignmentRespVO>> getProjectMembers(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectManualCreationService.getMemberAssignments(id),
+        return success(BeanUtils.toBean(projectManualCreationService.getMemberAssignments(id, accessActor()),
                 ProjectMemberAssignmentRespVO.class));
     }
 
     @PostMapping("/{id}/actions/assign-manager")
-    @Operation(summary = "指派一级服务经理（旧区间关闭+新区间开启，留痕前后值）")
+    @Operation(summary = "人工指派或改派主责/协同服务经理")
     @Parameter(name = "id", description = "项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:assign')")
-    public CommonResult<Boolean> assignManager(@PathVariable("id") Long id,
-                                               @Valid @RequestBody ProjectAssignManagerReqVO assignReqVO) {
-        projectManualCreationService.assignServiceManager(id, assignReqVO.getUserId(),
-                assignReqVO.getEmployeeNo(), assignReqVO.getMemberName(), assignReqVO.getEffectiveFrom());
-        return success(true);
+    public CommonResult<ProjectAssignManagerRespVO> assignManager(
+            @PathVariable("id") Long id,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") @NotBlank String ifMatch,
+            @Valid @RequestBody ProjectAssignManagerReqVO assignReqVO) {
+        Integer expectedVersion = parseIfMatch(ifMatch);
+        String requestDigest = sha256Digest(id + ":" + expectedVersion + ":"
+                + JsonUtils.toJsonString(assignReqVO));
+        AssignServiceManagerCommand command = new AssignServiceManagerCommand(
+                id, expectedVersion, assignReqVO.getLevelCode(), assignReqVO.getManagerId(),
+                assignReqVO.getSiteId(), assignReqVO.getAssignmentType(), assignReqVO.getDepartmentId(),
+                assignReqVO.getDepartmentCode(), assignReqVO.getChangeReason(), idempotencyKey, requestDigest);
+        AssignServiceManagerResult result = projectManagerAssignmentApplicationService.assign(command,
+                new Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                        UUID.randomUUID().toString()));
+        ProjectAssignManagerRespVO response = new ProjectAssignManagerRespVO();
+        response.setProjectId(result.projectId());
+        response.setAssignmentId(result.assignmentId());
+        response.setVersion(result.version());
+        response.setAssignmentStatus(result.assignmentStatus());
+        response.setEffectiveFrom(result.effectiveFrom());
+        return success(response);
     }
 
-    @GetMapping("/{id}/children")
-    @Operation(summary = "直接下级项目（按需加载）")
-    @Parameter(name = "id", description = "项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getChildren(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectTreeService.getChildren(id), ProjectRespVO.class));
+    @GetMapping("/{id}/service-manager-candidates")
+    @Operation(summary = "分页查询项目公司与确认办事处范围内的服务经理候选")
+    @PreAuthorize("@ss.hasPermission('pms:project:assign')")
+    public CommonResult<PageResult<ServiceManagerCandidateRespVO>> getServiceManagerCandidates(
+            @PathVariable("id") Long id,
+            @Valid ServiceManagerCandidatePageReqVO request) {
+        return success(projectServiceManagerQueryService.getCandidates(id, request,
+                new ProjectServiceManagerQueryService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId())));
     }
 
-    @GetMapping("/{id}/descendants")
-    @Operation(summary = "全部后代项目")
-    @Parameter(name = "id", description = "项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getDescendants(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectTreeService.getDescendants(id), ProjectRespVO.class));
+    @GetMapping("/{rootId}/service-manager-responsibilities")
+    @Operation(summary = "分页查询ProjectTreeScope内的服务经理责任分布")
+    @PreAuthorize("@ss.hasPermission('pms:project:assign')")
+    public CommonResult<PageResult<ServiceManagerResponsibilityRespVO>> getServiceManagerResponsibilities(
+            @PathVariable("rootId") Long rootId,
+            @Valid ServiceManagerResponsibilityPageReqVO request) {
+        return success(projectServiceManagerQueryService.getResponsibilities(rootId, request,
+                new ProjectServiceManagerQueryService.Actor(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId())));
     }
 
-    @GetMapping("/{id}/ancestors")
-    @Operation(summary = "完整上级链（根→父）")
-    @Parameter(name = "id", description = "项目编号", required = true)
+    @GetMapping("/{id}/tree")
+    @Operation(summary = "查询同一完整版本的项目树")
+    @Parameter(name = "id", description = "锚点项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getAncestors(@PathVariable("id") Long id) {
-        return success(BeanUtils.toBean(projectTreeService.getAncestors(id), ProjectRespVO.class));
-    }
-
-    @GetMapping("/actions/by-business-level")
-    @Operation(summary = "按业务层级标签查询项目")
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<java.util.List<ProjectRespVO>> getByBusinessLevel(
-            @RequestParam("businessLevelCode") String businessLevelCode) {
-        return success(BeanUtils.toBean(projectTreeService.getByBusinessLevel(businessLevelCode), ProjectRespVO.class));
+    public CommonResult<ProjectTreeQueryRespVO> queryTree(@PathVariable("id") Long id,
+                                                          @Valid ProjectTreeQueryReqVO reqVO) {
+        var result = projectTreeQueryService.query(new ProjectTreeQuery(id, reqVO.getQueryType(),
+                        reqVO.getBusinessLevelCode(), reqVO.getPageSize(), reqVO.getCursor()),
+                new ProjectTreeQueryService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId()));
+        ProjectTreeQueryRespVO response = new ProjectTreeQueryRespVO();
+        response.setTreeVersion(result.treeVersion());
+        response.setItems(BeanUtils.toBean(result.items(), ProjectTreeQueryRespVO.Node.class));
+        response.setNextCursor(result.nextCursor());
+        response.setUpdating(result.updating());
+        return success(response);
     }
 
     @PostMapping("/{id}/actions/move")
     @Operation(summary = "子树移动（校验无环后重建子树缓存）")
     @Parameter(name = "id", description = "被移动的项目编号", required = true)
     @PreAuthorize("@ss.hasPermission('pms:project:update')")
-    public CommonResult<Boolean> moveSubtree(@PathVariable("id") Long id,
+    public CommonResult<ProjectTreeProjectionService.MoveProjectSubtreeResult> moveSubtree(@PathVariable("id") Long id,
+                                             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+                                             @RequestHeader("If-Match") @NotBlank String ifMatch,
                                              @Valid @RequestBody ProjectTreeMoveReqVO moveReqVO) {
-        projectTreeService.moveSubtree(id, moveReqVO.getNewParentId());
-        return success(true);
+        Long expectedTreeVersion = parseLongIfMatch(ifMatch);
+        String requestDigest = sha256Digest(id + ":" + expectedTreeVersion + ":"
+                + JsonUtils.toJsonString(moveReqVO));
+        var result = projectTreeProjectionService.move(new MoveProjectSubtreeCommand(id, moveReqVO.getNewParentId(),
+                        expectedTreeVersion, moveReqVO.getReason(), idempotencyKey, requestDigest),
+                new ProjectTreeProjectionService.Actor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                        UUID.randomUUID().toString()));
+        return success(result);
     }
 
-    @PutMapping("/{id}/child-weights")
-    @Operation(summary = "整组设置直接子项目人工权重（完整覆盖且合计100%）")
-    @Parameter(name = "id", description = "父项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:update')")
-    public CommonResult<Boolean> updateChildWeights(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody ProjectChildWeightsReqVO reqVO) {
-        Map<Long, BigDecimal> weights = reqVO.getChildren().stream()
-                .collect(Collectors.toMap(
-                        ProjectChildWeightsReqVO.Item::getProjectId,
-                        ProjectChildWeightsReqVO.Item::getWeight,
-                        (left, right) -> right));
-        if (weights.size() != reqVO.getChildren().size()) {
-            throw exception(PROJECT_WEIGHT_SUM_INVALID, "子项目编号不得重复");
-        }
-        projectTreeService.updateChildWeights(id, weights);
-        return success(true);
-    }
-
-    @GetMapping("/{id}/progress")
-    @Operation(summary = "进度汇总（直接子项目进度列表 + 汇总进度）")
-    @Parameter(name = "id", description = "项目编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:project:query')")
-    public CommonResult<ProjectProgressRespVO> getProgress(@PathVariable("id") Long id) {
-        ProjectTreeService.ProjectProgress progress = projectTreeService.getProgress(id);
-        ProjectProgressRespVO respVO = new ProjectProgressRespVO();
-        respVO.setAggregate(progress.aggregate());
-        respVO.setChildren(progress.children().stream().map(child -> {
-            ProjectProgressRespVO.ChildItem item = new ProjectProgressRespVO.ChildItem();
-            item.setProjectId(child.projectId());
-            item.setProjectCode(child.projectCode());
-            item.setProjectName(child.projectName());
-            item.setProgress(child.progress());
-            item.setNormalizedWeight(child.normalizedWeight());
-            item.setWeightSource(child.weightSource());
-            return item;
-        }).toList());
-        return success(respVO);
-    }
-
-    // ========== 内部方法（幂等支撑） ==========
-
-    private ProjectCreateRespVO doCreate(ProjectCreateReqVO createReqVO) {
-        ProjectMasterDO draft = BeanUtils.toBean(createReqVO, ProjectMasterDO.class);
-        ProjectMasterDO created = projectManualCreationService.createProject(draft,
-                createReqVO.getOrderOfficeCompanyCode(), createReqVO.getOrderOfficeDepartmentCode(),
-                createReqVO.getTemplateId(), createReqVO.getServiceManagerUserId());
-        ProjectCreateRespVO respVO = BeanUtils.toBean(created, ProjectCreateRespVO.class);
-        // 实例化摘要（幂等快照含计数，重放与首响一致）
-        ProjectInstantiation instantiation = projectManualCreationService.getInstances(created.getId());
-        respVO.setStageCount(instantiation.getStages().size());
-        respVO.setTaskCount(instantiation.getTasks().size());
-        respVO.setMilestoneCount(instantiation.getMilestones().size());
-        respVO.setDeliverableCount(instantiation.getDeliverables().size());
-        respVO.setGateCount(instantiation.getGates().size());
-        respVO.setServiceManagerAssigned(createReqVO.getServiceManagerUserId() != null);
-        return respVO;
-    }
-
-    private void saveIdempotencyRecord(String idempotencyKey, Long actorId, String digest, String responsePayload) {
-        try {
-            IdempotencyRecordDO record = new IdempotencyRecordDO();
-            record.setCommand(COMMAND_PROJECT_CREATE);
-            record.setActorId(actorId);
-            record.setIdempotencyKey(idempotencyKey);
-            record.setRequestDigest(digest);
-            record.setResponsePayload(responsePayload);
-            record.setStatus(IDEMPOTENCY_STATUS_COMPLETED);
-            idempotencyRecordService.save(record);
-        } catch (Exception ex) {
-            // 创建已成功，幂等记录失败仅告警（uk 冲突=并发重放，由重放路径返回原资源）
-            log.warn("保存幂等记录失败（command={}, key={}）", COMMAND_PROJECT_CREATE, idempotencyKey, ex);
-        }
-    }
-
-    private String toJson(Object value) {
-        return JsonUtils.toJsonString(value);
+    private ProjectCreateRespVO toResponse(ManualProjectCreateResult result) {
+        ProjectCreateRespVO response = new ProjectCreateRespVO();
+        response.setId(result.id());
+        response.setProjectCode(result.projectCode());
+        response.setStatus(result.status());
+        response.setLifecycleStatus(result.lifecycleStatus());
+        response.setCurrentStage(result.currentStage());
+        response.setAssignmentStatus(result.assignmentStatus());
+        response.setVersion(result.version());
+        response.setLifecycleTemplateId(result.lifecycleTemplateId());
+        response.setLifecycleTemplateRevisionNo(result.lifecycleTemplateRevisionNo());
+        response.setTemplateLoadMethod(result.templateLoadMethod());
+        response.setStageCount(result.stageCount());
+        response.setTaskCount(result.taskCount());
+        response.setMilestoneCount(result.milestoneCount());
+        response.setDeliverableCount(result.deliverableCount());
+        response.setGateCount(result.gateCount());
+        response.setServiceManagerAssigned(result.serviceManagerAssigned());
+        response.setMatchResult(result.matchResult());
+        response.setMatchDecisionMode(result.matchDecisionMode());
+        response.setMatchOperationId(result.matchOperationId());
+        return response;
     }
 
     /**
@@ -347,16 +387,50 @@ public class ProjectMasterController {
         return tenantId != null ? tenantId : 0L;
     }
 
-    private ProjectCreateRespVO fromJson(String payload) {
-        return JsonUtils.parseObject(payload, ProjectCreateRespVO.class);
-    }
-
     private String sha256Digest(String content) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(digest.digest(content.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 摘要算法不可用", ex);
+        }
+    }
+
+    private ProjectAccessActor accessActor() {
+        return new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId());
+    }
+
+    private Integer parseIfMatch(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.startsWith("W/")) {
+            normalized = normalized.substring(2).trim();
+        }
+        if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
+            normalized = normalized.substring(1, normalized.length() - 1);
+        }
+        try {
+            int version = Integer.parseInt(normalized);
+            if (version < 0) {
+                throw new NumberFormatException("negative version");
+            }
+            return version;
+        } catch (NumberFormatException ex) {
+            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "If-Match必须是非负Project版本");
+        }
+    }
+
+    private Long parseLongIfMatch(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.startsWith("W/")) normalized = normalized.substring(2).trim();
+        if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
+            normalized = normalized.substring(1, normalized.length() - 1);
+        }
+        try {
+            long version = Long.parseLong(normalized);
+            if (version < 0) throw new NumberFormatException("negative version");
+            return version;
+        } catch (NumberFormatException ex) {
+            throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "If-Match必须是非负Tree版本");
         }
     }
 }

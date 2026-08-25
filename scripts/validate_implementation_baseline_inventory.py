@@ -20,6 +20,10 @@ ALLOWED_CLASSIFICATIONS = frozenset(
         "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
         "SEMANTIC_REWORK",
         "PLATFORM_UPSTREAM_UNCHANGED",
+        "REUSED",
+        "ADAPTED",
+        "RETIRED",
+        "REPLACED",
         "BLOCKED_BY_SPEC",
     }
 )
@@ -129,19 +133,19 @@ PROJECT_WRITE_PERMISSION_PATTERN = re.compile(
 )
 PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES = (
     "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectsplit/",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectCreationAuthorizationService.java",
     "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
     "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/",
     "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/",
 )
-RETIRED_PROJECT_TREE_WRITE_PATTERNS = (
+RETIRED_PROJECT_TREE_PATTERNS = (
     (
         "route",
-        re.compile(r"\bpms/project-tree/(?:create-child|move)\b"),
+        re.compile(r"\bpms/project-tree(?:/|[\"'`])"),
     ),
 )
-PROJECT_TREE_SINGULAR_BASE_PATTERN = re.compile(r"""["'`]/pms/project-tree["'`]""")
-PROJECT_TREE_WRITE_FRAGMENT_PATTERN = re.compile(r"""/(?:create-child|move)["'`]""")
-PROJECT_TREE_WRITE_PERMISSION_PATTERN = re.compile(r"\bpms:project-tree:move\b")
+PROJECT_TREE_PERMISSION_PATTERN = re.compile(r"\bpms:project-tree:[a-z-]+\b")
 
 
 def load_inventory(path: Path) -> dict:
@@ -271,26 +275,15 @@ def find_retired_project_write_runtime_surfaces(repository: Path) -> list[str]:
 
 
 def find_retired_project_tree_write_runtime_surfaces(repository: Path) -> list[str]:
-    """Find retired legacy /pms/project-tree write surfaces in current runtime source.
-
-    The legacy project-tree chain writes to the frozen `pms_project` table, so its
-    write surfaces (create-child / move) and the `pms:project-tree:move` permission
-    must disappear once F-PM02 rebuilds tree capabilities on the plural /pms/projects
-    chain. Full literal write routes and base-route + write-fragment composition are
-    both covered.
-    """
+    """Find the retired legacy /pms/project-tree runtime and permission surfaces."""
     errors = _match_retired_patterns(
-        repository, RETIRED_PROJECT_TREE_WRITE_PATTERNS, "retired project tree write"
+        repository, RETIRED_PROJECT_TREE_PATTERNS, "retired project tree"
     )
     for path in _iter_runtime_source_files(repository):
         content = path.read_text(encoding="utf-8", errors="ignore")
         relative_path = path.relative_to(repository).as_posix()
-        if PROJECT_TREE_SINGULAR_BASE_PATTERN.search(content) and (
-            PROJECT_TREE_WRITE_FRAGMENT_PATTERN.search(content)
-        ):
-            errors.append(f"retired project tree write route composition: {relative_path}")
-        if PROJECT_TREE_WRITE_PERMISSION_PATTERN.search(content):
-            errors.append(f"retired project tree write permission: {relative_path}")
+        if PROJECT_TREE_PERMISSION_PATTERN.search(content):
+            errors.append(f"retired project tree permission: {relative_path}")
     return errors
 
 

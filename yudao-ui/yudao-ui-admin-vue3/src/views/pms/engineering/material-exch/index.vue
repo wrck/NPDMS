@@ -264,7 +264,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="原因附件" prop="reasonFiles">
-            <UploadFile v-model="form.reasonFiles" />
+            <UploadFile v-model="form.reasonFiles!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -287,7 +287,7 @@
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目"><ProjectTag :project-id="current.projectId" /></el-descriptions-item>
       <el-descriptions-item label="换货类型">
-        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="current.exchangeType" />
+        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="current.exchangeType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="关联设备"><EquipmentTag :equipment-id="current.equipmentId" /></el-descriptions-item>
       <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
@@ -298,10 +298,10 @@
       <el-descriptions-item label="申请人">{{ current.applicantUserId }}</el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="CRM推送状态">
-        <dict-tag :type="DICT_TYPE.PMS_CRM_SYNC_STATUS" :value="current.crmPushStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_CRM_SYNC_STATUS" :value="current.crmPushStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="CRM推送时间">{{ current.crmPushTime }}</el-descriptions-item>
       <el-descriptions-item label="CRM订单号">{{ current.crmOrderNo }}</el-descriptions-item>
@@ -360,7 +360,6 @@ import * as UserApi from '@/api/system/user'
 import type { MaterialExchangeVO } from '@/api/pms/engineering/material-exch'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import EquipmentTag from '@/components/EquipmentTag/index.vue'
-import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'PmsEngMaterialExch' })
 const message = useMessage()
@@ -394,7 +393,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<MaterialExchangeVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   exchangeType: 'INCOMPATIBLE',
@@ -402,12 +401,12 @@ const form = reactive<MaterialExchangeVO>({
   materialName: '',
   materialCode: '',
   specification: '',
-  quantity: undefined,
+  quantity: undefined!,
   unit: '个',
   originalOrderNo: '',
   reason: '',
   reasonFiles: '',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })
@@ -470,7 +469,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<MaterialExchangeVO>({})
+const current = ref<Partial<MaterialExchangeVO>>({})
 const openDetail = async (row: MaterialExchangeVO) => {
   current.value = await MaterialExchApi.getMaterialExchange(row.id!)
   detailVisible.value = true

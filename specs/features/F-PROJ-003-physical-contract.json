@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-PROJ-003",
+  "requirementIds": ["PM-04"],
+  "relatedRequirementSlices": ["AUT-01", "AUT-02"],
+  "status": "BASELINE",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "NONE",
+  "objects": {
+    "AuthorizationGrant": {
+      "owner": "PLT",
+      "targetTables": ["plt_authorization_grant"]
+    },
+    "ProjectMemberAssignment": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_member_assignment"]
+    },
+    "ProjectHierarchy": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project", "proj_project_tree_version", "proj_project_tree_path"]
+    }
+  },
+  "interfaces": {
+    "AuthorizationGrantApi": {"owner": "PLT"},
+    "ProjectScopeApi": {"owner": "PROJ"}
+  },
+  "events": {}
+}

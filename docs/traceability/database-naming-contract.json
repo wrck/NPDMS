@@ -159,6 +159,42 @@
         "EQP-05",
         "EQP-07"
       ]
+    },
+    {
+      "target": "proj_project_template_task_definition",
+      "owner": "PROJ",
+      "decisionRef": "ADR-0030",
+      "requirementRefs": ["PM-03", "PM-11"]
+    },
+    {
+      "target": "proj_project_task_execution_contract",
+      "owner": "PROJ",
+      "decisionRef": "ADR-0030",
+      "requirementRefs": ["PM-03", "PM-10", "PM-11"]
+    },
+    {
+      "target": "proj_project_task_completion_evaluation",
+      "owner": "PROJ",
+      "decisionRef": "ADR-0030",
+      "requirementRefs": ["PM-10", "PM-11"]
+    },
+    {
+      "target": "cut_cutover_checklist",
+      "owner": "CUT",
+      "decisionRef": "ADR-0030",
+      "requirementRefs": ["CUT-01", "CUT-03"]
+    },
+    {
+      "target": "cut_cutover_checklist_item",
+      "owner": "CUT",
+      "decisionRef": "ADR-0030",
+      "requirementRefs": ["CUT-03"]
+    },
+    {
+      "target": "cut_cutover_checklist_item_result",
+      "owner": "CUT",
+      "decisionRef": "ADR-0030",
+      "requirementRefs": ["CUT-03", "INT-12"]
     }
   ],
   "implementationScope": {

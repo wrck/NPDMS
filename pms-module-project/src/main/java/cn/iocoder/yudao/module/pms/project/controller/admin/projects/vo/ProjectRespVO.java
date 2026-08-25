@@ -42,6 +42,24 @@ public class ProjectRespVO {
     @Schema(description = "负责人姓名")
     private String managerName;
 
+    @Schema(description = "下单公司稳定ID")
+    private Long companyId;
+
+    @Schema(description = "下单公司编码")
+    private String companyCode;
+
+    @Schema(description = "下单公司名称")
+    private String companyName;
+
+    @Schema(description = "下单办事处部门稳定ID")
+    private Long departmentId;
+
+    @Schema(description = "下单办事处部门编码")
+    private String departmentCode;
+
+    @Schema(description = "下单办事处部门名称")
+    private String departmentName;
+
     @Schema(description = "签约方式")
     private String signingMethod;
 
@@ -59,6 +77,9 @@ public class ProjectRespVO {
 
     @Schema(description = "实施地点")
     private String implementationLocation;
+
+    @Schema(description = "地点解析状态：RESOLVED/UNRESOLVED")
+    private String locationResolutionStatus;
 
     @Schema(description = "手工创建原因")
     private String creationReason;
@@ -83,6 +104,18 @@ public class ProjectRespVO {
 
     @Schema(description = "项目状态（S0~S6/MAINT）")
     private String status;
+
+    @Schema(description = "生命周期状态")
+    private String lifecycleStatus;
+
+    @Schema(description = "当前阶段")
+    private String currentStage;
+
+    @Schema(description = "主责指派状态")
+    private String assignmentStatus;
+
+    @Schema(description = "Project乐观锁版本")
+    private Integer version;
 
     @Schema(description = "项目开始时间")
     private LocalDateTime projectStartTime;

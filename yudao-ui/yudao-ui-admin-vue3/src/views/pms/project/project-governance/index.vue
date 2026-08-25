@@ -175,7 +175,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="证明材料" prop="proofFiles">
-            <UploadFile v-model="form.proofFiles" />
+            <UploadFile v-model="form.proofFiles!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -214,17 +214,17 @@
       </el-descriptions-item>
       <el-descriptions-item label="项目编号"><ProjectTag :project-id="current.projectId" /></el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_GOVERNANCE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_GOVERNANCE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
       <el-descriptions-item label="审批人"><UserTag :user-id="current.approverUserId" /></el-descriptions-item>
       <el-descriptions-item label="审批时间">{{ current.approveTime || '-' }}</el-descriptions-item>
       <el-descriptions-item label="执行前项目状态">
-        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.beforeProjectStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.beforeProjectStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="执行后项目状态">
-        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.afterProjectStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_PROJECT_STATUS" :value="current.afterProjectStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="原因" :span="2">
         <div v-html="current.reason"></div>
@@ -317,12 +317,12 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<ProjectGovernanceVO>({
-  projectId: undefined,
+  projectId: undefined!,
   actionNo: '',
   actionType: 'ROLLBACK',
   reason: '',
   proofFiles: '',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })
@@ -373,7 +373,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<ProjectGovernanceVO>({})
+const current = ref<Partial<ProjectGovernanceVO>>({})
 const openDetail = async (row: ProjectGovernanceVO) => {
   current.value = await GovernanceApi.getGovernanceAction(row.id!)
   detailVisible.value = true

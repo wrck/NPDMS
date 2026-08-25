@@ -22,6 +22,9 @@ public interface NotifySendService {
      */
     Long sendSingleNotifyToAdmin(Long userId,
                                  String templateCode, Map<String, Object> templateParams);
+
+    Long sendSingleNotifyToAdmin(Long userId, String templateCode,
+                                 Map<String, Object> templateParams, String deliveryKey);
     /**
      * 发送单条站内信给用户 APP 的用户
      *
@@ -35,6 +38,9 @@ public interface NotifySendService {
     Long sendSingleNotifyToMember(Long userId,
                                   String templateCode, Map<String, Object> templateParams);
 
+    Long sendSingleNotifyToMember(Long userId, String templateCode,
+                                  Map<String, Object> templateParams, String deliveryKey);
+
     /**
      * 发送单条站内信给用户
      *
@@ -46,6 +52,9 @@ public interface NotifySendService {
      */
     Long sendSingleNotify( Long userId, Integer userType,
                            String templateCode, Map<String, Object> templateParams);
+
+    Long sendSingleNotify(Long userId, Integer userType, String templateCode,
+                          Map<String, Object> templateParams, String deliveryKey);
 
     default void sendBatchNotify(List<String> mobiles, List<Long> userIds, Integer userType,
                                  String templateCode, Map<String, Object> templateParams) {

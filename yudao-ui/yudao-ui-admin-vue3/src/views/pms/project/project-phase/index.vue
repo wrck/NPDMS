@@ -201,7 +201,7 @@ const rules = {
 const completeVisible = ref(false)
 const completeFormRef = ref()
 const completeForm = reactive<ProjectPhaseCompleteReqVO>({
-  phaseId: undefined,
+  phaseId: undefined!,
   gateEvidence: '',
   version: 0
 })

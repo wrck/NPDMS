@@ -69,6 +69,8 @@ public class TemplateDefinitionContent {
 
     @Data
     public static class TaskDef {
+        /** 发布版本中的任务定义行ID；草稿提交时忽略，由服务端生成 */
+        private Long id;
         /** 任务码（版本内唯一） */
         private String taskCode;
         private String name;
@@ -86,6 +88,32 @@ public class TemplateDefinitionContent {
         private String satisfactionTiming;
         /** 任务说明 */
         private String description;
+        /** WorkBinding类型 */
+        private String workBindingTypeCode;
+        /** 目标Owner Context */
+        private String targetContextCode;
+        /** 目标对象类型 */
+        private String targetObjectType;
+        /** 目标对象稳定键 */
+        private String targetObjectKey;
+        /** 受信任业务组件键 */
+        private String componentKey;
+        /** 动态表单发布版本 */
+        private Long dynamicFormRevisionId;
+        /** 审批定义键 */
+        private String approvalDefinitionKey;
+        /** 受控绑定参数JSON */
+        private String bindingConfig;
+        /** 权限策略引用 */
+        private String permissionPolicyRef;
+        /** 完成规则类型 */
+        private String completionRuleTypeCode;
+        /** 完成规则配置JSON */
+        private String completionRuleConfig;
+        /** 可选门禁引用 */
+        private String gateRef;
+        /** 不可变定义版本 */
+        private Integer definitionVersion;
     }
 
     @Data
@@ -103,6 +131,8 @@ public class TemplateDefinitionContent {
 
     @Data
     public static class DeliverableDef {
+        /** 发布版本中的交付件定义行ID；草稿提交时忽略，由服务端生成 */
+        private Long id;
         /** 交付件码（版本内唯一） */
         private String deliverableCode;
         private String name;

@@ -1,8 +1,8 @@
 ﻿# SDS Phase 2：异常与幂等设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：全部 103 项 V1/V2 正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
+> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：全部100项V1/V2正式需求中的正常/异常、降级、重试、补偿和留痕；重点覆盖跨系统、文件、状态机、树、设备归属和 Device Access & Collection
 > Owner：SDS Phase 2 应用与可靠性架构
 > 前置设计：`09-database-design.md`～`15-cache-and-concurrency.md`
 
@@ -17,7 +17,7 @@
 | `STATE_CONFLICT` | 409 | 重新读取后决定 | 非法状态迁移、已归档版本修改 |
 | `VERSION_CONFLICT` | 409 | 使用新版本人工/受控重试 | If-Match 过期、树版本变化 |
 | `IDEMPOTENCY_CONFLICT` | 409 | 不可原样重试 | 同幂等键不同请求摘要 |
-| `BUSINESS_GATE` | 422 | 满足门禁后重试 | 安全阻断、交付件不齐、数量不足 |
+| `BUSINESS_GATE` | 422 | 满足门禁后重试 | 质量检查不合格、交付件不齐、数量不足 |
 | `DEPENDENCY_TEMPORARY` | 503/异步失败 | 按策略 | 外部超时、Broker/存储暂时不可用 |
 | `DEPENDENCY_REJECTED` | 422/异步失败 | 修正映射后 | 外部业务拒绝、未知字典、来源冲突 |
 | `INTERNAL` | 500 | 仅幂等安全时 | 未预期错误；响应不含堆栈和秘密 |
@@ -45,6 +45,7 @@
 | 场景 | 幂等键 | 作用域 | 首次结果重放 |
 |---|---|---|---|
 | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
+| 项目授权创建/撤权 | `Idempotency-Key` | tenant + actor + project/grant + command | 同键同摘要返回原授权或撤权版本；同键不同摘要拒绝 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
 | 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
 | 财务出向 | 费用单ID+批准版本 | tenant + finance interface | 查询/返回原财务业务单 |
@@ -64,12 +65,16 @@
 4. 同键不同摘要：返回 `IDEMPOTENCY_CONFLICT`，不使用新请求覆盖旧记录。
 5. 业务要求“失败重试必须新任务”时（如 CollectionTask），retry command 创建新任务ID和新幂等键，并保存 `retryOfTaskId`；临时密码重新输入。
 
+项目授权创建或撤权由PLT在本地事务内原子提交授权事实、幂等完成点和审计。跨租户、超出授权人范围、已到期、已撤销或版本冲突不得生成当前有效授权或成功幂等结果；授权版本或项目树版本变化后，敏感访问不得继续信任旧范围缓存。
+
 ## 5. 事务、部分失败与 Saga
 
 - 单聚合命令在本地事务内原子提交聚合、状态历史和 Outbox。
 - 跨聚合批量操作逐项事务，返回逐项结果；只有 PRD 明确要求全有或全无时才在单 Context 内扩大事务。
 - 跨 Context 流程以事件和 Saga/过程状态跟踪；每个步骤有 forward action、确认条件、可重试分类、补偿命令和人工接管点。
 - 补偿创建反向业务事实，不删除成功历史。例如释放 DeliveryScope、撤销未生效授权、取消外部未执行任务；已发生设备执行/财务入账需对账处理，不能技术回滚伪装未发生。
+
+ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一MySQL本地事务中同步调用ACC公开内部应用接口，ACC以`Propagation.MANDATORY`加入该事务；正式Project、ProjectTask执行契约、ACC交付件实例、幂等成功结果、成功审计和Outbox必须共同提交或共同回滚。失败不得形成Project草稿、初始化operation、`INITIALIZING`状态、Saga或异步补建任务。该例外不授权跨Context Repository访问；部署不再共享事务资源时必须阻断Feature并先完成批准的语义变更。
 
 ## 6. 状态机异常
 
@@ -99,6 +104,19 @@
 | PM-05 同源已有生效目标 | IDEMPOTENCY_CONFLICT 或 BUSINESS_GATE；相同正式销售业务返回既有转销，不同目标拒绝 |
 | PM-06 期次/群组/循环冲突 | BUSINESS_GATE；返回冲突项目、关系类型和期次，不修改现有成员关系 |
 | PM-06 来源版本失效或部分期次无权 | 派生操作拒绝且不生成无来源副本；查询标记范围不完整，不把缺失期次计零 |
+| ProjectTask绑定缺失或类型非法 | 模板发布/任务实例化拒绝；通用任务必须显式使用TASK_NATIVE，不允许以空绑定形成旁路 |
+| 非TASK_NATIVE绑定目标不存在/无权/版本失效 | 任务保持原状态；返回绑定错误或权限拒绝，不创建通用任务内容替代，不泄露目标是否存在 |
+| ProjectTask完成事实或规则版本冲突 | VERSION_CONFLICT/BUSINESS_GATE；重新读取事实和CompletionRule后评估，不按旧快照完成 |
+| ProjectTask完成判定失败 | 追加失败的TaskCompletionEvaluation及未满足项，不推进状态；同一幂等键重放返回原判定，改变请求摘要则IDEMPOTENCY_CONFLICT |
+| PM-07手工项目非空CRM重大级别 | BUSINESS_GATE/FORBIDDEN；拒绝创建或修正，不依赖前端隐藏 |
+| PM-07首次无候选，或多候选未显式选择合法候选 | BUSINESS_GATE；不创建正式Project、决策历史或模板实例，仅允许通用失败审计；多候选显式选择本次合法候选可继续原子创建 |
+| PM-07属性修正幂等重放 | 同键同摘要返回原当前值和历史ID；同键不同摘要IDEMPOTENCY_CONFLICT，不重复追加历史 |
+| PM-07属性修正版本冲突 | VERSION_CONFLICT；当前值与历史均不改变 |
+| PM-07创建后候选变化/无匹配/多匹配 | 当前值和只读评估历史按命令事务保存；冻结模板及阶段、任务、审批、交付件保持不变，不产生CHG完成事实 |
+| PM-07既有异步操作日志写入失败 | 不删除或回滚已原子提交的匹配决策历史；以operationId保留完整业务证据并告警，可选auditLogId保持空；公共审计必达能力另行立项 |
+| CUT-03条件变化与采集回调并发 | DAC结果保留；CUT仅关联与当前清单版本/stableItemKey/itemVersion/设备相符的结果，其余进入待核对，不覆盖当前答案、不复制DAC技术状态 |
+| CUT-03自动采集失败后人工降级 | 自动失败结果正文和原因保持不变；授权工程师在同一事务关闭旧选择区间并追加带人工证据的MANUAL结果，唯一当前选择冲突则整体回滚，不把原CollectionTask改写为成功 |
+| CUT-03已提交版本再次编辑 | VERSION_CONFLICT/BUSINESS_GATE；创建新清单版本并使下游未审批方案按PRD失效，不原位解锁或覆盖 |
 
 ## 8. 外部集成异常与降级
 

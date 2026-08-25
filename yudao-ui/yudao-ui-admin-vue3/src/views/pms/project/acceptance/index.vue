@@ -174,7 +174,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl" />
+            <UploadFile v-model="form.attachmentUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -216,7 +216,7 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<AcceptanceVO>({ projectId: undefined, code: '', name: '' })
+const form = reactive<AcceptanceVO>({ projectId: undefined!, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入验收编号' }],

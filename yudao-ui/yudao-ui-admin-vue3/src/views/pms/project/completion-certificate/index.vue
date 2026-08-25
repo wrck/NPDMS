@@ -165,7 +165,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="证明附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl" />
+            <UploadFile v-model="form.attachmentUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -189,7 +189,6 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as CompletionCertificateApi from '@/api/pms/project/completion-certificate'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as CustomerApi from '@/api/pms/project/customer'
-import CustomerTag from '@/components/CustomerTag/index.vue'
 import type { CompletionCertificateVO } from '@/api/pms/project/completion-certificate'
 
 defineOptions({ name: 'PmsCompletionCertificate' })
@@ -208,7 +207,7 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<CompletionCertificateVO>({ projectId: undefined, code: '', name: '' })
+const form = reactive<CompletionCertificateVO>({ projectId: undefined!, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入证明编号' }],

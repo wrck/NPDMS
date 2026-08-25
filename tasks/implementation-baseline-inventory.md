@@ -19,7 +19,10 @@
 | MES生产工单 | `PLATFORM_UPSTREAM_UNCHANGED` | 基础平台生产能力，不属于PMS工单排除范围 | 基础平台 |
 | `ProjectTemplateFoundation` | `V1_7_REVALIDATION_REQUIRED` | V1.7 模板基座代码与验收证据仅作存量输入；必须按 V1.8 Feature Spec 逐项审计与改造 | `PM-03` |
 | `ProjectManualCreation` | `V1_7_REVALIDATION_REQUIRED` | V1.7 手工创建代码与验收证据仅作存量输入；不自动继承已实现结论 | `PM-01` |
-| `ProjectTreeAndDetail` | `V1_7_REVALIDATION_REQUIRED` | F-PM02 项目树、详情、进度汇总与权重设置仅作 V1.7 实现候选；需在对应 V1.8 Feature 启动后重验 | `PM-02` |
+| `ProjectTreeAdaptedRuntime` | `ADAPTED` | 项目树、拆分、进度、闭环、Commerce范围与响应式详情页已按F-PROJ-002 V1.8改造并验收 | `PM-02` |
+| `ProjectTreeLegacySchema` | `REPLACED` | V60只保留不可变历史；V1.8物理载体由V70/V71前向替代 | `PM-02` |
+| `ProjectTreeLegacyDemo` | `RETIRED` | V61只保留不可变历史；V1.8组合场景、权限和流水种子由V72～V76承接 | `PM-02` |
+| `ProjectTreeReusedTemplate` | `REUSED` | V62发布的S0～S6完整模板经V75绑定给V1.8验收根项目继续复用 | `PM-02` |
 
 ## 未核实存量面
 

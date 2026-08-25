@@ -58,6 +58,11 @@
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-platform</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-engineering</artifactId>
             <version>${revision}</version>
         </dependency>
@@ -74,6 +79,11 @@
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-asset</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-commerce</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>

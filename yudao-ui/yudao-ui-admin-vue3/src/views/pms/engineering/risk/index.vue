@@ -237,13 +237,13 @@
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
       </el-descriptions-item>
       <el-descriptions-item label="风险类型">
-        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_TYPE" :value="current.riskType" />
+        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_TYPE" :value="current.riskType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="风险等级">
-        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_LEVEL" :value="current.riskLevel" />
+        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_LEVEL" :value="current.riskLevel ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_ENG_RISK_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="设备型号">{{ current.deviceModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备序列号">{{ current.deviceSerial || '-' }}</el-descriptions-item>
@@ -266,7 +266,7 @@
 
   <!-- 确认/关闭对话框 -->
   <Dialog v-model="handleVisible" :title="handleTitle" width="560px">
-    <el-form ref="handleFormRef" :model="handleForm" label-width="100px">
+    <el-form :model="handleForm" label-width="100px">
       <el-form-item label="风险编号">{{ handleForm.code }}</el-form-item>
       <el-form-item label="处理人" prop="handlerUserId">
         <PmsEntitySelect
@@ -333,7 +333,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<RiskVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   riskType: 'SINGLE_DEVICE',
@@ -394,7 +394,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<RiskVO>({})
+const current = ref<Partial<RiskVO>>({})
 const openDetail = async (row: RiskVO) => {
   current.value = await RiskApi.getRisk(row.id!)
   detailVisible.value = true
@@ -402,7 +402,6 @@ const openDetail = async (row: RiskVO) => {
 
 // 确认/关闭对话框
 const handleVisible = ref(false)
-const handleFormRef = ref()
 const handleTitle = ref('')
 const handleAction = ref<'confirm' | 'close'>('confirm')
 const handleForm = reactive({

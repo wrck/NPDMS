@@ -19,6 +19,18 @@ public class ProjectCreateRespVO {
     @Schema(description = "项目状态（初始 S0）", example = "S0")
     private String status;
 
+    @Schema(description = "生命周期状态", example = "ACTIVE")
+    private String lifecycleStatus;
+
+    @Schema(description = "当前阶段", example = "S0")
+    private String currentStage;
+
+    @Schema(description = "主责指派状态", example = "UNASSIGNED")
+    private String assignmentStatus;
+
+    @Schema(description = "项目版本", example = "0")
+    private Integer version;
+
     @Schema(description = "冻结的生命周期模板ID", example = "910001")
     private Long lifecycleTemplateId;
 
@@ -45,4 +57,13 @@ public class ProjectCreateRespVO {
 
     @Schema(description = "是否已同步指派一级服务经理", example = "true")
     private Boolean serviceManagerAssigned;
+
+    @Schema(description = "模板候选结果：UNIQUE/MULTIPLE_MATCHES", example = "UNIQUE")
+    private String matchResult;
+
+    @Schema(description = "首次选模方式：AUTO_UNIQUE/EXPLICIT_SELECTION", example = "AUTO_UNIQUE")
+    private String matchDecisionMode;
+
+    @Schema(description = "首次模板匹配决策稳定操作ID")
+    private String matchOperationId;
 }

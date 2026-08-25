@@ -1,12 +1,13 @@
 ﻿# SDS Phase 2：数据模型
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.7（`docs/baseline/prd-v1.7.md`）
-> Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`
+> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；本分册按 Owner 和聚合给出数据落位，逐项链接见 `docs/traceability/requirement-matrix.md`
 > Owner：SDS Phase 2 数据架构；业务 Owner 沿用 `docs/design/phase-1-domain-ownership.md` 的已签署结论
 > 前置设计：`02-domain-model.md`、`02b-aggregate-boundary-decisions.md`、`05-state-machine.md`、`07-authorization-design.md`
 > 实现证据：`docs/engineering/gates/phase-2/implementation-fact-inventory.md`
 > 领域实体迁移对齐：`08a-domain-entity-migration-alignment.md`
+> 工作绑定与清单承载决策：ADR-0029、ADR-0030
 
 ## 1. 设计目标与边界
 
@@ -34,7 +35,7 @@
 | `semantic-data-element-canonical.jsonl` | 108个归并语义数据元，含客户/联系人/项目/公司部门/设备等目标语义 | 校验核心对象必须具备的可查询字段及关系落位 | 将数据元中的展示分组直接当成聚合边界 |
 | `core-field-mapping.jsonl`及摘要 | 18张核心旧表、326字段曾完成逐字段处置；旧记录要求完整保留来源载荷 | 识别结构化事实、关系解析、血缘和仅载荷字段；形成迁移问题而非丢行 | 把历史`326/326`当成当前目标 DDL 已放行 |
 | `legacy-data-element-business-object-mapping.md`与`project-order-migration-mapping.md` | 项目—合同—订单行—设备链、重复/多义/空键和数量分配已有证据结论 | 约束目标关系、不变量、问题分类和迁移顺序 | 用旧项目组推断项目树/项目组合，或用执行单/合同后缀推断订单行归属 |
-| `ddl-drift-review.md` | 当前核心迁移 DDL 哈希`5EB974...E4249`与旧目录哈希`2B2069...BF33`不同；ADR-0028已按当前哈希接受Q07的257项技术约束、Q08的122项候选索引及V1.7/Q09～Q14清单，并保留Feature/P3-E06性能验证；隔离MySQL 8.4.10执行PASS，整体一致性独立复审为`GO` | 数据模型为`MODEL_BASELINE_READY`，可作为SDS/Feature输入；P3-E09不定义迁移批准哈希，历史迁移和数据切换继续阻断 | 把候选索引误称为性能已验收，或将模型基线、语法执行成功误称为当前迁移已获批准 |
+| `ddl-drift-review.md` | 当前核心迁移 DDL 哈希、约束与索引以P3-E09当前复核产物为准；Q08索引仍是候选，保留Feature/P3-E06性能验证；隔离MySQL 8.4.10执行证据只证明语法可执行 | 数据模型仅作为V1.8 SDS/Feature输入；仅包含历史迁移或数据切换的发布受`AI-MIG-000`阻断，普通功能发布不适用 | 把候选索引误称为性能已验收，或将模型基线、语法执行成功误称为当前迁移已获批准 |
 
 数据元、旧库结构和 PRD 发生冲突时：业务语义以 PRD/批准决策为准；旧库物理事实以最终只读一致性抽取为准；无法裁决的记录进入迁移问题，不由实现按字段名、后缀、最大 ID 或任意候选值猜测。
 
@@ -92,13 +93,24 @@
 | 聚合/实体 | 类型 | Owner 事实 | 关键关系与不变量 |
 |---|---|---|---|
 | Project | 聚合根 | 项目身份、四维业务分类、行业四级快照、负责人、生命周期、来源映射 | `parentProjectId` 可空；父子无环；不限制深度；CRM项目编码默认复用；合同/订单/执行单独立关联；签约方式、项目类别、实施方式、重大项目级别分别保存且Owner不可混用 |
+| ProjectSite | 时态关系 | 项目引用的站点、主站点标记、生效区间和发生时站点快照 | 项目可关联多个站点；同一站点可被多个项目复用；同一项目至多一个当前主站点；PROJ不读取AST地点表 |
 | ProjectHierarchy | 聚合内关系 | 当前父子关系、根节点、层级类型 | 层级类型来自字典；结构变更必须经过 MoveProject 并校验无环 |
 | ProjectAncestorProjection | 可重建投影 | 祖先/后代查询路径 | 【建议】保存 ancestor、descendant、distance；不是项目真值 |
-| ProjectTemplate | 聚合根 | 项目模板、阶段模板、任务模板和适用条件 | 已发布模板不可覆盖；项目实例冻结所用模板版本 |
-| ProjectTask | 聚合根 | 任务身份、负责人、计划、状态和层级 | `parentTaskId` 可空；无固定深度；层级与依赖关系正交 |
+| ProjectSplitRequest | 聚合根 | 拆分草稿、组合范围、服务端预览、校验水位和应用结果 | 草稿失败可修正；确认应用后不可再次创建子项目；范围只保存COM/AST稳定引用与发生时快照 |
+| ProjectSplitItem | 聚合内实体 | 一个拟创建子项目的名称、业务层级、排序和范围组合 | 使用`clientItemKey`在预览与批量应用间稳定关联；不得以客户端预览结果代替服务端重验 |
+| ProjectSplitScope | 聚合内实体 | 订单行、数量、办事处部门编码、SN及权威范围版本快照 | 组合维度可任意选取；同一有效范围不得重复分配，办事处不通过地址ID反推 |
+| ProjectProgressFact | 追加事实 | 一个项目可参与汇总的进度、来源类型、来源对象和事实水位 | 缺失事实表示待计算；不得以0、旧快照或`proj_project.progress`兼容值静默替代 |
+| ProgressPolicyRevision | 聚合根 | 一个父项目的直接子项目权重、分母口径、审批引用和生效区间 | 默认等权也形成不可变版本；人工版本同级权重合计100%；批准版本不原位覆盖且生效区间不重叠 |
+| ProjectProgressSnapshot | 不可变快照 | 项目、策略版本、树版本、直接子项目事实水位、结果或缺失项 | 新策略不追溯重算历史；任一必要直接子项目缺失事实时状态为PENDING |
+| ProjectTemplate | 聚合根 | 项目模板、StageDefinition、TaskDefinition、适用条件和版本 | 已发布模板不可覆盖；每个可执行TaskDefinition必须包含WorkBinding、PermissionPolicy、CompletionRule和可选GateRef；未指定其他业务绑定时使用TASK_NATIVE；项目实例冻结所用版本 |
+| ProjectTask | 聚合根 | 任务身份、负责人、计划、状态、层级、恰好一个当前工作绑定和完成判定 | `parentTaskId` 可空；无固定深度；层级与依赖关系正交；TASK_NATIVE由任务自身承载，其他类型不复制目标业务正文；完成按绑定事实与规则派生 |
+| TaskWorkBinding | ProjectTask值对象 | 绑定类型、目标Context/对象/标识、受信任组件键或表单/审批引用、参数和版本快照 | 类型限TASK_NATIVE/BUSINESS_OBJECT/BUSINESS_COMPONENT/DYNAMIC_FORM/APPROVAL/COMPOSITE；TASK_NATIVE不得配置外部目标；变更须受控生成新绑定版本 |
+| TaskCompletionRule | ProjectTask值对象 | 规则类型、事实选择器、规则版本、GateRef和最后判定快照 | 只引用可验证事实；规则评估与状态迁移同一ProjectTask事务留痕 |
+| TaskCompletionEvaluation | ProjectTask追加事实 | 一次完成命令使用的任务、绑定、规则、目标事实版本，判定结果、未满足项和门禁快照引用 | 不可覆盖；成功判定与任务状态迁移同事务；通知、HTTP或目标组件加载成功不能代替判定 |
+| ProjectWorkspaceProjection | 可重建投影 | 项目概览六页签、Stage→ProjectTask导航、允许操作和投影水位 | 不作为业务真值；不保存第二套导航结构；权限变化后可重建 |
 | TaskAncestorProjection | 可重建投影 | 任务祖先/后代查询路径 | 【建议】支持权限过滤、批量统计和树分页 |
 | TaskDependency | 关系实体 | 前置/后置依赖及依赖类型 | 不得用父子层级替代依赖；依赖图不得产生受控规则禁止的循环 |
-| ProjectMemberAssignment | 时态关系 | 项目角色、成员及生效区间 | 批量变更追加历史；角色来自已确认业务角色或基础平台权限映射 |
+| ProjectMemberAssignment | 时态关系 | 项目角色、成员及生效区间 | 批量变更追加历史；角色来自已确认业务角色或基础平台权限映射；当前有效关系只授予该角色在当前项目允许的动作，不自动产生后代范围 |
 | ProjectPortfolio | 聚合根 | 项目组合定义和成员关系 | 不改变成员项目 Owner；组合指标读取快照 |
 | ProjectStageSnapshot | 不可变快照 | 项目在阶段切换时的门禁输入和结果 | 阶段回退保留原快照并生成新快照 |
 | BorrowedProjectConversion | 聚合根 | PM-05 转销批次、源/目标项目、正式销售业务、处理状态和汇总 | 源借货项目与目标正式项目保持独立；同一源项目只允许一个生效转销目标；全部对象成功前不得归档源项目 |
@@ -114,9 +126,28 @@
 - 父项目的直接子项目快照与全后代闭环门禁是不同口径，必须在查询模型中显式命名。
 - 移动项目节点后，项目真值和投影采用同一变更批次号；投影未完成时返回“结构更新中”或读取上一完整版本，不得返回半棵树。
 
+PM-02拆分确认是跨Owner公开契约参与的单个业务事务：PROJ拥有草稿、子项目、树真值、策略和快照，COM拥有订单行与DeliveryScope分配，AST拥有设备/SN当前事实。PROJ不得复制COM可分配量或AST设备状态作为当前真值；预览和确认必须携带并重验各Owner版本，任一步失败不产生部分子项目、部分范围或半完成树版本。
+
+ProjectProgressSnapshot只解释直接子项目的逐级汇总。叶子项目进度由PM-11等合法来源形成ProjectProgressFact；非叶子项目读取直接子项目的当前有效事实或快照。全部后代闭环守卫读取同一完整树版本，任何后代未闭环或必要快照PENDING时拒绝进入CLO-02，但不替代ACC/CLO的申请与审批事实。
+
 PM-05 是对象级可恢复转销过程，不是 Project 的普通状态更新：`BorrowedProjectConversion` 以 `sourceProjectId + formalSalesBusinessId` 幂等，状态使用 PRD 已定义的处理中、部分失败/待处理、已完成；对象项逐项保存结果。只有目标正式项目已由有效 CRM/ERP 销售业务建立、全部对象校验成功且设备处置完成后，才将源项目转为只读归档。
 
 PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。群组查询按用户对各期项目的交集权限裁剪，缺失期次必须标记“不完整”；跨期设备视图按 Device ID 去重，并区分当前归属、历史参与和跨期复用。
+
+### 4.1 PM-07属性判定与模板匹配历史
+
+| 对象 | 语义 | 关键不变量 |
+|---|---|---|
+| `Project` | 既有四列上的当前稳定编码 | 复用既有属性列，不建同义列；CRM重大级别与平台项目类别Owner分离；不增加分类/选模状态轴 |
+| `ProjectTemplateMatchHistory` | 冻结一次模板匹配的四属性输入、来源/映射/算法版本、候选、命中模板修订和影响结论 | 严格append-only；首次匹配与Project、模板冻结和实例化同事务；创建后评估只识别影响，不替换模板 |
+
+无匹配，或多匹配但未显式选择本次合法候选的首次创建，在Project产生前失败，只保留通用请求/审计证据；唯一候选自动决定或多候选显式选择时，决策历史与Project原子提交。创建后属性变化更新既有当前列并追加匹配决策历史；后续CHG可从历史派生工单，但本Feature不产生CHG状态或事件。
+
+### 4.2 PM-08服务经理人工指派
+
+`ProjectMemberAssignment`继续使用同一时态关系承载当前与历史。V1显式保存`PRIMARY/COLLABORATOR`、L1统筹/L2属地责任、可选站点、公司及`department_id/department_code/department_name`快照、服务端即时生效时间和原因；L1/L2不是项目树深度。主责改派以同一事务时间结束旧区间并新增关系，不覆盖快照，不预约未来生效。
+
+`assignment_status=ASSIGNED`当且仅当当前项目节点同时存在有效主责服务经理和有效项目经理；协同不参与，任一主责缺失均为`UNASSIGNED`。成员关系只授予当前节点角色动作，不自动产生子孙关系或ProjectTreeScope。候选由SYSTEM公开组织范围API返回，PROJ提交时重新校验用户、项目公司和部门有效范围。
 
 ## 5. Preparation & Solution 数据模型
 
@@ -134,30 +165,29 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 ## 6. Implementation Execution 数据模型
 
-适用 Requirement：EXE-01～EXE-06、IMP-01～IMP-02。
+适用 Requirement：EXE-01～EXE-06、IMP-01。
 
 | 聚合根 | 聚合内实体/值对象 | Owner 事实 | 跨域引用 |
 |---|---|---|---|
 | ArrivalAcceptance | ArrivalLine、ArrivalDifference、SignerSnapshot | 到货批次、实收数量、差异、签收结果和证据 | Project、Device、OrderLine、FileReference |
-| InstallationRecord | InstallationItem、LocationSnapshot、InstallationEvidence | 一次安装记录、位置、结果、照片和确认 | Project、Device、ArrivalAcceptance |
+| InstallationRecord | InstallationItem、LocationSnapshot、InstallationEvidence | 一次安装、迁移或拆除记录、位置、结果、照片和确认 | Project、Device、Address/Site/SiteLocation、ArrivalAcceptance |
 | ConfigurationCollectionResult | ParseAttempt、ResultReference、ParserVersion、ComponentParseCandidate | 配置 Log 回调、原始整机证据、框/槽/板卡解析候选、解析版本和业务确认 | CollectionTask、Device、DeviceComponentRelation、FileReference |
 | JointDebuggingResult | DebuggingItem、IssueReference、ResultReference | 联调输入、结论、问题引用和确认 | CollectionTask、Device、ProjectTask |
 | ImplementationRisk | RiskTag、RiskTreatment | 单机/现场风险、等级、处置和关闭证据 | Project、Device；不复用 CUT 风险状态 |
 | ImplementationQualityCheck | QualityItem、Remediation、ReviewRecord | 阶段质量检查、整改和复核结论 | Project、现场批次、FileReference |
-| ImplementationSafetyCheck | SafetyItem、SafetyRemediation、SafetyExemption | 安全检查、阻断、整改、复核和豁免审批引用 | Project、现场批次、关联作业 |
 | DeliveryEvidence | EvidenceRevision、UploadAttempt | IMP 阶段交付件身份、版本、来源和上传结果 | FileArtifact；ACC 只审核/归档引用 |
 
 关键不变量：
 
-- 到货差异、安装历史、采集解析失败、质量整改和安全阻断分别属于独立聚合，不合并为一个“现场执行单”。
+- 到货差异、安装历史、采集解析失败、质量整改分别属于独立聚合，不合并为一个“现场执行单”；安全阻断不在当前 IMP-01 数据模型中另建聚合。
+- 工勘和安装可通过`AssetLocationApi`维护Address/Site/SiteLocation；确认安装、迁移或拆除前不改变设备当前位置，确认后由AST命令幂等生效并保留历史。
 - ConfigurationCollectionResult 与 JointDebuggingResult 消费 DAC 结果，但不持有连接参数和凭证明文。
 - ConfigurationCollectionResult完整保留原始整机Log；框/槽/板卡解析候选由AST确认后形成DeviceComponentRelation。自动匹配与人工绑定均保留来源、解析版本和证据引用。
-- 安全高风险阻断关联作业；只有 PRD 已定义的整改复核或豁免结果才能解除，不新增抽象审批角色。
 - IMP 上传交付件，ACC 负责齐套审核和归档；文件二进制只有一个 FileArtifact 身份。
 
 ## 7. Acceptance & Closure 数据模型
 
-适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。
+适用 Requirement：ACC-01～ACC-04、ACC-06、CLO-01～CLO-02。
 
 | 聚合/实体 | Owner 事实 | 不变量 |
 |---|---|---|
@@ -166,7 +196,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | DeliveryArtifact | 应交清单、实际证据引用、齐套结果、审核和归档状态 | 审核与归档追加记录；不得修改 IMP 原文件历史 |
 | ProjectClosure | 闭环申请、门禁快照、审核结论和完成事件 | 全部后代项目按既定门禁满足后才能完成闭环 |
 | ClosureGateSnapshot | 闭环时交付件、问题、有效满意度结果和材料状态快照 | 不可变；重新提交生成新快照；不保存回访审批节点 |
-| ServiceHandover | 遗留问题、设备、客户、责任方和持续服务交接结果 | 不包含续保年限、续保动作或续保报表 |
+| ServiceHandover | 遗留问题、设备、客户、责任方和一次性交接结果 | V2静态交接快照；不创建持续跟踪对象，不包含续保年限、续保动作或续保报表 |
 
 历史 `pms_acc_maintenance_transition` 不能作为目标聚合继续扩展；其可用交接事实通过前向迁移映射到 ServiceHandover，续保字段只保留兼容读取，不进入新写接口。
 
@@ -177,7 +207,11 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Context | 聚合根 | Owner 事实 | 关键边界 |
 |---|---|---|---|
 | Cutover | CutoverTask | P1～P6统一任务身份、来源上下文、人工等级和阶段状态 | 不派生CUT保障工单；状态仅由P1～P6业务结果推进 |
+| Cutover | CutoverChecklist（CutoverTask从属版本实体） | P3输入快照、匹配规则版本、配置缺口、提交/失效事实和重新匹配差异 | 与P3同生命周期；D级无清单；提交后不可覆盖，不建立独立采集阶段 |
+| Cutover | CutoverChecklistItem（版本内实体） | 稳定项键、采集项定义/界面/条件/工作方式快照、必填性、设备/命令模板引用、自定义来源和当前适用性 | 系统必填项不可删除；重匹配按稳定项键保留或移出，前端不按名称硬编码 |
+| Cutover | CutoverChecklistItemResult（追加事实） | 直接填写、自动采集、外部加载或人工降级结果，CollectionTask/结果版本、失败与人工证据引用、选择有效区间 | 结果正文不可覆盖；每项只允许一个未结束的当前选择区间；DAC技术状态不复制为CUT状态；回调成功不直接产生业务通过 |
 | Cutover | CutoverAssessment | 问卷版本、项目输入上下文、人工选择、人工等级和P5复核引用 | 自动建议等级仅V3；P2不增加审批节点 |
+| Cutover | CutoverConfigurationRevision | CUT-07后台配置版本、统一采集项定义版本、动态绑定规则版本及基础平台字典维度快照 | 草稿发布后不可覆盖；类型/组网/设备使用基础平台字典；不归入CutoverPlan |
 | Cutover | CutoverPlan | 调研项、风险项、操作/验证/回退清单、附件、保障人员安排和批准版本 | 清单是方案内容而非执行状态；职责变化新建revision，联系人类变化留前后审计 |
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |
 | Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |
@@ -200,6 +234,8 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | MarketRelation | External Master Copy | CRM同步市场部、系统部、拓展部、子行业的编码与名称组合目录；CUS拥有本地同步副本，不把组合目录解释为组织树 |
 | CustomerContact | External Master Copy / 平台补充事实 | 权威字段不被平台覆盖；项目联系角色为独立时态关系 |
 | CustomerRelationshipSnapshot | 不可变快照 | 项目、验收、巡检等业务发生时冻结必要联系信息 |
+| CustomerServiceLevelRevision | 时态版本聚合 | CUS-02保存等级字典代码、策略快照和有效区间；同一客户同一时点仅一个有效版本，历史业务快照不回写 |
+| CustomerLocationReference | 时态关系 | 客户对AST Address/Site的稳定引用、类型、来源版本和有效区间；CUS不拥有地点实体或位置树 |
 
 Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/expendCode/expendName/industryCode/industryName`八个业务字段。`MarketRelation`只提供CRM组合目录、同步对账与候选选择，不是客户或项目的持久化外键目标；三者均禁止保存`relationId`。历史变更通过同步证据、审计和业务快照追溯，不依赖可变目录记录ID串联。
 
@@ -211,6 +247,11 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 |---|---|---|
 | Device | 聚合根 / External Master Copy | MES/ITR 权威身份字段保留来源；平台拥有项目归属、档案补充和业务关联 |
 | DeviceArchive | 聚合内实体 | 安装位置、客户关系、配置 Log 引用、项目关联等平台档案信息 |
+| Address | 聚合根 | 国家、省、市、区县编码/名称、详细/完整地址、可空经纬度、标准化候选指纹和版本；指纹不作为自动合并键 |
+| Site | 聚合根 | 站点编码、名称、可空客户引用、Address引用、类型、状态和版本；不保存公司或部门字段，同址允许多站点 |
+| SiteLocation | 树实体 | 站点内任意深度位置节点、父节点、路径、深度、排序、类型、状态和版本；站点内编码唯一 |
+| LocationSourceMapping | 来源映射 | 来源系统、对象类型、来源键、来源版本、Address/Site引用、同步水位和匹配状态 |
+| AreaDepartmentMapping | 时态映射 | `area_code/area_level/mapping_type/department_code`及生效区间；`SERVICE_OFFICE`只精确匹配，不向父区划回退 |
 | DeviceComponentRelation | 时态关系 | 机框序列号、槽位、板卡序列号/型号、关系来源、生效区间和解析证据；同一机框槽位同一时点最多一个当前板卡，换板结束旧关系并新增 |
 | DeviceCurrentAssignment | 当前唯一关系 | 同一 tenant/device 只有一个有效当前项目；指向实际归属项目，不复制到祖先项目 |
 | DeviceAssignmentHistory | 时态历史 | 每次划转关闭旧区间并新增区间；有效区间不得重叠 |
@@ -225,7 +266,7 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 
 ### 9.3 Contract & Fulfillment
 
-适用 Requirement：COM-01～COM-02。
+适用 Requirement：COM-01。
 
 | 聚合/实体 | Owner 事实 | 规则 |
 |---|---|---|
@@ -234,8 +275,8 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 | OrderLine | 物料/服务行、数量和交付维度 | 数量不可由项目分配反向改写 |
 | DeliveryScope | 订单行到实际承接项目节点的当前范围主记录 | 对应历史迁移语义`ProjectOrderLineScope`；同一项目节点—订单行同一时点只有一条当前主记录，保存分配总量、范围状态和来源证据；同一订单行可拆分多个项目但有效分配量不得超配；缺数量为待补数量，不计入交付统计；分配、释放均留历史 |
 | DeliveryScopeDetail | 交付范围按地点、产品/设备类型和批次拆分的明细 | 一个当前DeliveryScope可包含多条明细；明细数量合计必须等于主记录分配数量。形成独立负责人、计划、验收或闭环边界时，不继续堆叠明细，而是分配到独立子项目 |
-| FulfillmentSnapshot | 到货、安装、验收等履约汇总 | 按业务事件生成带口径版本的快照 |
-| ReconciliationRecord | 平台与外部系统差异、处理和结果 | HTTP 成功不等于对账完成；支持重复执行幂等 |
+
+F-PROJ-002只消费DeliveryScope的版本化查询、预览和分配公开契约。拆分可按订单行、数量、办事处部门编码和SN自由组合；COM校验有效订单量、其他项目有效分配量、单位精度、取消/退货/ERP减量和并发版本，PROJ不得直接访问COM表。ERP权威数量缺失时范围状态为待权威确认，不计入可分配量，也不得为完成项目拆分而臆造数量。
 
 ### 9.4 Supplier & Subcontract
 
@@ -269,13 +310,16 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
 
 | 聚合/实体 | Owner 事实 | 规则 |
 |---|---|---|
+| Company | 公司稳定ID、统一编码、名称、状态和版本 | 与Department独立，不建立全局部门归属推导 |
+| Department | 部门稳定ID、`system_dept.code`、名称、树关系、状态和版本 | 办事处使用Department表达；树层级不产生公司权限 |
+| UserCompanyDepartmentScope | 用户公司—部门同一有效范围行、角色、主范围标记、生效区间和版本 | company必填，department可空；部门存在时ID/编码成对保存；仅同一有效行可授予组合范围 |
 | Todo | 待办身份、业务引用和同步状态 | 待办完成不等于业务完成；业务状态由 Owner Context 确认 |
-| AuthorizationGrant | 通用业务授权范围、有效期和撤销 | 不替代 DeviceCredential 的专用授权边界 |
+| AuthorizationGrant | 主体、资源、动作、范围、生效区间、来源、授予与撤销事实 | PLT拥有授权事实；PM-04使用`CURRENT_PROJECT`和`PROJECT_AND_DESCENDANTS`，由PROJ按当前完整项目树版本展开；不替代DeviceCredential专用授权边界 |
 | ChangeRequest | 变更申请、差异、审批引用和执行结果 | 版本变更作为低优先级独立能力，能后置的后置 |
 | FileArtifact | 文件身份、内容版本、哈希和存储引用 | 详见 13；正文不复制进多个领域表 |
 | AuditRecord | 主体、动作、对象、结果和关联 ID | Word 文件本身无需内容审计；业务动作和文件版本操作仍留痕 |
 
-INT-05/INT-09 的人员、部门、岗位使用基础平台现有主数据；同步批次/水位和稳定来源键分别由已有 `plt_sync_batch`、`plt_external_key_mapping` 承载。不建立独立目录快照对象或替代表；基础平台主数据的前向实现仍由相应 Feature 管理。
+INT-05/INT-09 的人员、公司、部门、岗位使用基础平台主数据；同步批次/水位和稳定来源键分别由已有 `plt_sync_batch`、`plt_external_key_mapping` 承载。`system_dept.code`为统一部门编码，办事处按部门表达；用户公司—部门范围使用独立时态关系，不由部门树推导公司。基础平台主数据的前向实现仍由相应 Feature 管理。
 
 ### 10.3 Knowledge Reference
 

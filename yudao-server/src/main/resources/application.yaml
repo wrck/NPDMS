@@ -351,4 +351,9 @@ yudao:
     message-bus:
       type: redis # 消息总线的类型
 
+pms:
+  project:
+    progress-policy:
+      process-definition-key: ${PMS_PROGRESS_POLICY_PROCESS_KEY:}
+
 debug: false

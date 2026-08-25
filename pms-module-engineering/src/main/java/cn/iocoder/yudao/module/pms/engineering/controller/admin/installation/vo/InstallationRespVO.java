@@ -27,6 +27,18 @@ public class InstallationRespVO {
     @Schema(description = "安装位置")
     private String installLocation;
 
+    private Long addressId;
+    private Integer addressVersion;
+    private Long siteId;
+    private Integer siteVersion;
+    private Long siteLocationId;
+    private Integer siteLocationVersion;
+    private String locationResolutionStatus;
+    private String addressSnapshot;
+    private String locationSnapshot;
+    private LocalDateTime effectiveFrom;
+    private LocalDateTime effectiveTo;
+
     @Schema(description = "安装时间")
     private LocalDateTime installTime;
 

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.authorization.AuthorizationGrantMapper">
+
+    <sql id="columns">
+        id, tenant_id, subject_type_code, subject_id, resource_context_code,
+        resource_type_code, resource_id, action_code, scope_code, effective_from,
+        effective_to, status_code, source_context_code, source_object_type,
+        source_object_id, granted_by, granted_at, revoked_by, revoked_at,
+        revoke_reason, version, current_marker, creator, create_time, updater,
+        update_time, deleted
+    </sql>
+
+    <select id="selectByTenantAndId"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.AuthorizationGrantDO">
+        SELECT <include refid="columns"/>
+        FROM plt_authorization_grant
+        WHERE tenant_id = #{tenantId}
+          AND id = #{grantId}
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectListEffective"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.AuthorizationGrantDO">
+        SELECT <include refid="columns"/>
+        FROM plt_authorization_grant
+        WHERE tenant_id = #{query.tenantId}
+          AND subject_type_code = #{query.subjectTypeCode}
+          AND subject_id = #{query.subjectId}
+          AND resource_context_code = #{query.resourceContextCode}
+          AND resource_type_code = #{query.resourceTypeCode}
+          AND action_code = #{query.actionCode}
+          AND status_code = 'ACTIVE'
+          AND current_marker = 1
+          AND effective_from &lt;= #{query.effectiveAt}
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+          AND deleted = b'0'
+          AND resource_id IN
+          <foreach collection="query.resourceIds" item="resourceId" open="(" separator="," close=")">
+              #{resourceId}
+          </foreach>
+        ORDER BY resource_id, scope_code, id
+    </select>
+
+    <sql id="pageConditions">
+        tenant_id = #{query.tenantId}
+        AND deleted = b'0'
+        <if test="query.subjectTypeCode != null and query.subjectTypeCode != ''">
+            AND subject_type_code = #{query.subjectTypeCode}
+        </if>
+        <if test="query.subjectId != null">
+            AND subject_id = #{query.subjectId}
+        </if>
+        <if test="query.resourceContextCode != null and query.resourceContextCode != ''">
+            AND resource_context_code = #{query.resourceContextCode}
+        </if>
+        <if test="query.resourceTypeCode != null and query.resourceTypeCode != ''">
+            AND resource_type_code = #{query.resourceTypeCode}
+        </if>
+        <if test="query.resourceId != null">
+            AND resource_id = #{query.resourceId}
+        </if>
+        <if test="query.actionCode != null and query.actionCode != ''">
+            AND action_code = #{query.actionCode}
+        </if>
+        <if test="query.scopeCode != null and query.scopeCode != ''">
+            AND scope_code = #{query.scopeCode}
+        </if>
+        <if test="query.statusCode != null and query.statusCode != ''">
+            AND status_code = #{query.statusCode}
+        </if>
+        <if test="query.effectiveAt != null">
+            AND effective_from &lt;= #{query.effectiveAt}
+            AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+        </if>
+    </sql>
+
+    <select id="selectListPage"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.authorization.AuthorizationGrantDO">
+        SELECT <include refid="columns"/>
+        FROM plt_authorization_grant
+        WHERE <include refid="pageConditions"/>
+        ORDER BY granted_at DESC, id DESC
+        LIMIT #{query.offset}, #{query.limit}
+    </select>
+
+    <select id="selectCountPage" resultType="long">
+        SELECT COUNT(*)
+        FROM plt_authorization_grant
+        WHERE <include refid="pageConditions"/>
+    </select>
+
+    <update id="expireCurrentByKey">
+        UPDATE plt_authorization_grant
+        SET status_code = 'EXPIRED', current_marker = NULL, version = version + 1,
+            update_time = #{query.expiredAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND subject_type_code = #{query.subjectTypeCode}
+          AND subject_id = #{query.subjectId}
+          AND resource_context_code = #{query.resourceContextCode}
+          AND resource_type_code = #{query.resourceTypeCode}
+          AND resource_id = #{query.resourceId}
+          AND action_code = #{query.actionCode}
+          AND scope_code = #{query.scopeCode}
+          AND status_code = 'ACTIVE'
+          AND current_marker = 1
+          AND effective_to IS NOT NULL
+          AND effective_to &lt;= #{query.expiredAt}
+          AND deleted = b'0'
+    </update>
+
+    <update id="revoke">
+        UPDATE plt_authorization_grant
+        SET status_code = 'REVOKED', current_marker = NULL,
+            revoked_by = #{update.revokedBy}, revoked_at = #{update.revokedAt},
+            revoke_reason = #{update.revokeReason}, version = version + 1,
+            update_time = #{update.revokedAt}
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.grantId}
+          AND version = #{update.expectedVersion}
+          AND status_code = 'ACTIVE'
+          AND current_marker = 1
+          AND deleted = b'0'
+    </update>
+</mapper>

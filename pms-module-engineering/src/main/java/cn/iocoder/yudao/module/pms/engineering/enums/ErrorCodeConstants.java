@@ -36,6 +36,8 @@ public interface ErrorCodeConstants {
     ErrorCode SITE_SURVEY_CODE_DUPLICATE = new ErrorCode(1_011_001_001, "工勘编码已存在");
     ErrorCode SITE_SURVEY_STATUS_INVALID = new ErrorCode(1_011_001_002, "工勘当前状态不允许该操作");
     ErrorCode SITE_SURVEY_VERSION_NOT_MATCH = new ErrorCode(1_011_001_003, "工勘版本号已变更，请刷新后重试");
+    ErrorCode SITE_SURVEY_LOCATION_REQUIRED = new ErrorCode(1_011_001_004, "工勘地点不能为空");
+    ErrorCode SITE_SURVEY_LOCATION_INVALID = new ErrorCode(1_011_001_005, "工勘地点结构化维护结果无效");
 
     // ========== 需求分析 requirement 1-011-002-000 ==========
     ErrorCode REQUIREMENT_NOT_EXISTS = new ErrorCode(1_011_002_000, "需求分析不存在");
@@ -61,6 +63,9 @@ public interface ErrorCodeConstants {
     ErrorCode INSTALLATION_CODE_DUPLICATE = new ErrorCode(1_011_005_001, "安装编码已存在");
     ErrorCode INSTALLATION_STATUS_INVALID = new ErrorCode(1_011_005_002, "安装当前状态不允许该操作");
     ErrorCode INSTALLATION_VERSION_NOT_MATCH = new ErrorCode(1_011_005_003, "安装版本号已变更，请刷新后重试");
+    ErrorCode INSTALLATION_LOCATION_REQUIRED = new ErrorCode(1_011_005_004, "安装位置不能为空");
+    ErrorCode INSTALLATION_LOCATION_INVALID = new ErrorCode(1_011_005_005, "安装地点结构化引用无效");
+    ErrorCode INSTALLATION_EFFECTIVE_TIME_INVALID = new ErrorCode(1_011_005_006, "安装位置生效时间必须晚于设备当前位置");
 
     // ========== 配置调试 configuration 1-011-006-000 ==========
     ErrorCode CONFIGURATION_NOT_EXISTS = new ErrorCode(1_011_006_000, "配置调试记录不存在");

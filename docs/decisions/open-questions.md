@@ -156,10 +156,10 @@
 - Confirmed project identity decision: ADR-0020；同一CRM项目的多合同/多订单不派生项目编码，只有独立交付边界才拆分子项目；项目编码租户内唯一，编码命名空间与可变项目层级分离，项目移动不得改码。该决策已同步DDL、字段目录和P3-E09逐项寄存器，并已纳入模型基线。
 - Confirmed customer market classification decision: ADR-0021；市场部、系统部、拓展部、子行业四维分类归CUS，CRM组合目录落`cus_market_relation`；客户和项目直接保存四组编码/名称，禁止保存`relation_id`，也不推断为组织关系。该决策已同步DDL、字段映射和P3-E09逐项寄存器，并已纳入模型基线。
 - Confirmed core migration schema decision: ADR-0022；当前DDL是迁移核心子集而非平台全量模型；4张技术公告治理表属于V3设计，不进入V1/V2核心DDL；跨领域使用逻辑引用；外部键映射支持目标角色和稳定顺序；当前唯一性使用生成标记；项目、合同、订单、SN及来源键不可复用；历史异常进入迁移问题并保留逐源证据。该决策已同步核心DDL、领域实体迁移策略、字段目录和P3-E09派生证据，并已纳入模型基线。
-- P3-E09 requirement-owner model decisions: ADR-0023中的Q01～Q06业务语义仍有效；交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”，订单—执行单允许多个默认主执行单关系。ADR-0028已绑定当前DDL哈希接受`Q07 A、Q08 A、V1.7 A、Q09～Q14 A`九组完整清单：逐项寄存器1,883项中994项`ACCEPT_CURRENT`、889项`AMEND_CURRENT`、0项`DEFER`。需求方逐项决策和整体一致性复审均已关闭，P3-E09为`MODEL_BASELINE_READY`并可作为SDS/Feature数据模型输入；P3-E09不定义迁移批准哈希，历史迁移或切换继续阻断。
-- V1.7 DDL delta: ADR-0025，并由ADR-0027完成割接物理模型纠偏；当前模型为60表、10表V1.7差量。需求方 2026-08-13 确认`pm_project_maintenance`全表不迁移，只保留顶层表级排除审计；当前不预建历史工单/工时对象或空壳表。目录快照对象/表亦按需求方决策删除，INT-05/INT-09复用基础平台主数据、`plt_sync_batch`和`plt_external_key_mapping`。当前哈希与规模以重建证据为准；P3-E09为`MODEL_BASELINE_READY`，可作为SDS/Feature模型输入；`AI-MIG-000`、历史迁移和数据切换仍`OPEN`，未经真实批次验证不得执行，也不授权旧`dppms`写入。
+- P3-E09 requirement-owner model decisions: ADR-0023中的Q01～Q06业务语义仍有效；交付范围采用“项目节点—订单行当前唯一主记录+多条范围明细”，订单—执行单允许多个默认主执行单关系。当前DDL由ADR-0028历史清单与ADR-0030六表差量共同覆盖：逐项寄存器2,079项中994项`ACCEPT_CURRENT`、1,085项`AMEND_CURRENT`、0项`DEFER`。需求方逐项决策与当前哈希整体一致性复审均已关闭，P3-E09当前为`MODEL_BASELINE_READY`。P3-E09不定义迁移批准哈希，历史迁移或切换继续按Release范围受`AI-MIG-000`阻断。
+- V1.7 DDL delta: ADR-0025，并由ADR-0027完成割接物理模型纠偏；10表V1.7差量保留为历史已接受证据。需求方 2026-08-13 确认`pm_project_maintenance`全表不迁移，只保留顶层表级排除审计；当前不预建历史工单/工时对象或空壳表。目录快照对象/表亦按需求方决策删除，INT-05/INT-09复用基础平台主数据、`plt_sync_batch`和`plt_external_key_mapping`。ADR-0030六表加入后当前模型为66表，P3-E09经整体一致性复审恢复为`MODEL_BASELINE_READY`。仅当Release包含历史迁移或数据切换时，`AI-MIG-000`才保持`BLOCKED`直至真实批次验证通过，并只在批准窗口内执行；普通功能Release为`NOT_APPLICABLE`，任何状态均不授权旧`dppms`写入。
 - Cutover flow correction: ADR-0026；`CUT-01 / CutoverTask`是P1～P6唯一割接核心任务，`CUT-11`退出当前需求和CUT领域，`WO-06`后置为工单领域V3候选。原CUT-11三表及迁移映射必须从P3-E09候选删除后重新生成证据；该项为已确认变更，不再作为开放问题。
-- Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排与P6轻量闭环的当前物理项已通过ADR-0028九组清单获得Requirement Owner接受。当前候选为60表、10表V1.7差量，哈希与隔离MySQL 8.4证据已重建并纳入模型基线；不得把需求方接受或模型基线解释为历史迁移、切换或生产批准。
+- Cutover physical model correction: ADR-0027；原CUT-11三表已删除，逐步骤执行与稳定观察不进入当前物理模型；P4保障人员安排与P6轻量闭环的物理项保留历史接受证据。ADR-0030新增CUT-03清单三表后当前候选为66表，哈希与隔离MySQL 8.4证据已重建但整体一致性待复审；不得把需求方接受或MySQL执行PASS解释为历史迁移、切换或生产批准。
 - Decision owner: 需求方（方向）；数据架构、业务Owner、迁移负责人（逐项裁决与证据）
 - Decision date: 2026-08-13
 
@@ -177,3 +177,35 @@
 | Q-REL-006 | 首发是否执行历史数据迁移；如执行，明确范围和业务对账人 | 是；Feature开发不受阻，但迁移程序和预演不得启动 | P1结束前确定是否迁移；P4前关闭AI-MIG-000适用批次 | 历史迁移、数据切换、上线准入 | 业务Owner、数据Owner、迁移负责人 | OPEN_MIGRATION |
 
 处理原则：Q-REL-001、Q-REL-003、Q-REL-006是近期排期输入，需要优先确认；Q-REL-002、Q-REL-004、Q-REL-005按表中最晚安全点后置。未确认项不得用虚构人员、环境参数或迁移范围填充，但不影响无关Feature继续推进。
+
+## Feature Ready问题
+
+### Q-FPROJ-001
+
+- Status: RESOLVED
+- Requirement IDs: PM-01、PM-03
+- Area: F-PROJ-001手动项目创建与模板初始化
+- Question: PRD要求“无可用模板时项目保持创建草稿且不得进入S0”，但当前SDS只定义正式Project创建为`ACTIVE / S0`。创建草稿应采用独立`ProjectCreationDraft`聚合、给Project新增`DRAFT`状态，还是不持久化表单？
+- Why it blocks design/implementation: 该选择会改变草稿业务身份、状态机、API和数据库；现已由需求方确认方案B并解除阻断。
+- Options: A. 独立`ProjectCreationDraft`，提交后原子生成正式Project并保留草稿审计引用；B. 校验失败不持久化，只保留客户端表单；C. 给Project新增`DRAFT`生命周期。
+- Recommended technical default: 历史推荐为A；需求方最终选择B，以避免新增草稿业务对象和Project状态。
+- Business decision required: 已完成。方案B：失败时不持久化Project或创建草稿；当前页面可保留内存表单供修正，刷新后不保证恢复。
+- Resolution: 方案B。批准依据为`CHG-PRD-2026-08-21-001`；不新增ProjectCreationDraft、Project DRAFT状态、草稿API、表或迁移。
+- Blocking scope: 已解除。F-PROJ-001按失败无持久化语义继续Feature Spec和Technical Plan。
+- Decision owner: 需求方（业务语义）；PROJ领域和数据架构负责人（SDS/物理契约回写）
+- Decision date: 2026-08-21
+
+### Q-FPROJ-002
+
+- Status: RESOLVED
+- Requirement IDs: PM-03、ACC-04
+- Area: F-PROJ-001手动项目创建与模板初始化
+- Question: PM-03要求项目创建时按模板加载交付件，但SDS明确交付件事实归ACC Context拥有、PROJ不得直接访问ACC Repository，且跨Context契约默认最终一致。项目创建成功是否必须等待ACC交付件实例全部落地？
+- Why it blocks design/implementation: 该选择会改变`POST /projects`成功语义、事务/Outbox边界、初始化状态、重试补偿和AC-FPROJ-002/008/010的验收口径；现已由需求方确认同步全有或全无并解除阻断。
+- Options: A. PROJ先提交并由ACC按Outbox事件最终一致初始化，存在`PENDING`；B. 同步编排但允许超时后保持可恢复处理中；C. 只冻结要求快照，进入阶段时再创建；D. 需求方选择：PROJ同步调用ACC内部应用接口，双方同库同Spring事务，要么全部提交，要么全部回滚，不产生中间状态。
+- Recommended technical default: 历史推荐为A；需求方最终选择D，以项目创建完整性优先于跨库拆分和异步可用性。
+- Business decision required: 已完成。创建成功必须同时证明ACC交付件实例全部落地；任一步失败则整体回滚。
+- Resolution: 方案D，详见ADR-0032。PROJ不得直接访问ACC Repository；ACC内部应用接口必须参与调用方同一数据库事务，不得使用`REQUIRES_NEW`、异步消息、Saga、初始化`PENDING`或吞异常降级。
+- Blocking scope: 已解除。F-PROJ-001按同步全有或全无语义继续Technical Plan；未来拆库/拆服务必须先批准业务语义变更。
+- Decision owner: 需求方（创建完成语义和用户效果）；PROJ、ACC领域负责人（契约和补偿）
+- Decision date: 2026-08-21

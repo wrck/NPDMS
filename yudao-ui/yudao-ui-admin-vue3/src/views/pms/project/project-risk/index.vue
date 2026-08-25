@@ -144,7 +144,6 @@ import * as ProjectRiskApi from '@/api/pms/project/project-risk'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as UserApi from '@/api/system/user'
 import ProjectTag from '@/components/ProjectTag/index.vue'
-import UserTag from '@/components/UserTag/index.vue'
 import type { ProjectRiskVO } from '@/api/pms/project/project-risk'
 
 defineOptions({ name: 'PmsProjectRisk' })
