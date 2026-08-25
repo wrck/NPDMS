@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：无当前必停阻断；设备连接与采集中心的COLLECTION权威端点、响应契约与真实验收证据缺失，登记为Feature Done前阻断，不阻断Task 10界面实施与其余可执行验收
+> 当前阻断：Task 10界面、自动化与真实MySQL已完成；P3-E08仍为`OPEN / FAIL`并明确阻断正式真实浏览器验收，设备连接与采集中心的COLLECTION权威端点、响应契约与真实验收证据仍缺失；二者均为Feature Done前阻断
 > 当前任务：`Task 10 完成响应式治理界面与Feature验收`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
@@ -31,7 +31,7 @@
 - [x] Task 7 实现回退命令闭环（PASS / `1ea4411..0722afc` / 独立裁决GO）
 - [x] Task 8 实现异常关闭与受控重开（PASS / `bc3d086` / 独立裁决GO）
 - [x] Task 9 提供治理API与append-only历史查询（PASS / `e5e5687..1beb732` / 独立裁决GO）
-- [ ] Task 10 完成响应式治理界面与Feature验收
+- [ ] Task 10 完成响应式治理界面与Feature验收（界面/自动化/真实MySQL完成；浏览器与Feature Done Gate待阻断闭环）
 
 > 检查点（2026-08-25）：Feature Ready正式GO；规格提交`cb55c747`已同步至NPDMS基线`8d6e7e7`；新Technical Plan基于V1.8差距审计生成，未复用旧计划；下一步执行Task 1。
 
@@ -56,3 +56,5 @@
 > 检查点（2026-08-25）：Task 8提交`bc3d086`经独立Implementation Done裁决GO；异常关闭与受控重开已闭合权限、状态、守卫、事务、快照消费及事件契约，聚焦测试21/21 PASS；COLLECTION权威契约仍为Feature Done前阻断，当前推进Task 9。
 
 > 检查点（2026-08-25）：Task 9提交范围`e5e5687..1beb732`经独立Implementation Done裁决GO；治理API、append-only历史和前端调用契约已固化，单租户关闭租户模块时在调用范围建立受信tenantId=0，多租户缺失上下文失败关闭；COLLECTION权威契约阻断保持，当前推进Task 10。
+
+> 检查点（2026-08-25）：Task 10已实现项目详情“异常治理”响应式面板、服务端守卫优先的三动作表单、阻断与历史分页，并将V1.7治理页面收敛为历史只读；详情组件自动化23/23、主题初始化5/5、ESLint/Stylelint、前端构建、PROJ 25模块回归（Project 323项）及独立空库V1～V87与治理MySQL集成5/5通过。本轮`ts:check`仅剩公共`src/plugins/svgIcon/index.ts:13`一项，但P3-E08仍明确禁止正式浏览器验收；Task 10不提前回写PASS，COLLECTION权威契约阻断同时保持。

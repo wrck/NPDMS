@@ -96,6 +96,18 @@
           </button>
         </div>
         <div class="rail-stage">
+          <div class="rail-stage-title">异常治理</div>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'governance' }"
+            @click="switchTab('governance')"
+            v-hasPermi="['pms:project:governance:query']"
+          >
+            <Icon icon="ep:warning-filled" class="rail-icon" />
+            <span class="rail-label">异常治理</span>
+          </button>
+        </div>
+        <div class="rail-stage">
           <div class="rail-stage-title">项目权限</div>
           <button
             class="rail-item"
@@ -342,6 +354,12 @@
           v-show="activeTab === 'authorization'"
           :project-id="detail.id"
         />
+        <ProjectGovernancePanel
+          v-if="detail?.id && visitedTabs.has('governance')"
+          v-show="activeTab === 'governance'"
+          :project="detail"
+          @updated="loadAll"
+        />
         <ProjectServiceManagerPanel
           v-if="detail?.id && visitedTabs.has('service-managers')"
           v-show="activeTab === 'service-managers'"
@@ -364,6 +382,7 @@ import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
 import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
+import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
 import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'
 import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
