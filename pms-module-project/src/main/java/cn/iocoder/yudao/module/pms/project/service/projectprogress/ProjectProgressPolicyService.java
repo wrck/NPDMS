@@ -100,7 +100,9 @@ public class ProjectProgressPolicyService {
                 .setProcessDefinitionKey(processKey)
                 .setBusinessKey(String.valueOf(revision.getId()))
                 .setVariables(Map.of("policyRevisionId", revision.getId(),
-                        "parentProjectId", revision.getParentProjectId(), "revisionNo", revision.getRevisionNo()));
+                        "parentProjectId", revision.getParentProjectId(),
+                        "projectId", revision.getParentProjectId(),
+                        "revisionNo", revision.getRevisionNo()));
         String processInstanceId = processInstanceApi.createProcessInstance(actor.actorId(), request);
         if (processInstanceId == null || processInstanceId.isBlank()) {
             throw new IllegalStateException("项目进度策略审批流程未返回实例编号");

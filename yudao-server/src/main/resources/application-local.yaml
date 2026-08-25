@@ -254,6 +254,11 @@ yudao:
     miniprogram-state: developer # 跳转小程序类型：开发版为 “developer”；体验版为 “trial”为；正式版为 “formal”
   tencent-lbs-key: ${NPDMS_TENCENT_LBS_KEY:disabled} # QQ 地图的密钥
 
+pms:
+  integration:
+    collection-guard:
+      base-url: ${NPDMS_COLLECTION_GUARD_BASE_URL:}
+
 justauth:
   enabled: true
   type:
