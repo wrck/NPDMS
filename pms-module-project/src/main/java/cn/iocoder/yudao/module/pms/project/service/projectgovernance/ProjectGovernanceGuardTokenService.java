@@ -21,6 +21,7 @@ public class ProjectGovernanceGuardTokenService {
 
     private static final String TOKEN_VERSION = "g1";
     private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private static final int HMAC_SHA256_LENGTH = 32;
     private static final Set<String> SUPPORTED_ACTIONS = Set.of(
             "ROLLBACK", "EXCEPTION_CLOSE", "REOPEN");
 
@@ -43,13 +44,13 @@ public class ProjectGovernanceGuardTokenService {
             throw invalidToken();
         }
         try {
+            byte[] payload = decodeCanonical(parts[1], null);
             byte[] expected = sign(signingInput(parts[1]));
-            byte[] actual = Base64.getUrlDecoder().decode(parts[2]);
+            byte[] actual = decodeCanonical(parts[2], HMAC_SHA256_LENGTH);
             if (!MessageDigest.isEqual(expected, actual)) {
                 throw invalidToken();
             }
-            GuardClaims claims = JsonUtils.parseObject(
-                    Base64.getUrlDecoder().decode(parts[1]), GuardClaims.class);
+            GuardClaims claims = JsonUtils.parseObject(payload, GuardClaims.class);
             validateClaims(claims);
             return claims;
         } catch (IllegalArgumentException ex) {
@@ -82,6 +83,15 @@ public class ProjectGovernanceGuardTokenService {
 
     private static String encode(byte[] value) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(value);
+    }
+
+    private static byte[] decodeCanonical(String value, Integer expectedLength) {
+        byte[] decoded = Base64.getUrlDecoder().decode(value);
+        if ((expectedLength != null && decoded.length != expectedLength)
+                || !encode(decoded).equals(value)) {
+            throw invalidToken();
+        }
+        return decoded;
     }
 
     private static void validateClaims(GuardClaims claims) {

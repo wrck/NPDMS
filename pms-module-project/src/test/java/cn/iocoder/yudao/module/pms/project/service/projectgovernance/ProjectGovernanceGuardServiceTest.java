@@ -38,6 +38,8 @@ import static org.mockito.Mockito.when;
 
 class ProjectGovernanceGuardServiceTest {
 
+    private static final String BASE64_URL_ALPHABET =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     private static final Long TENANT_ID = 7L;
     private static final Long PROJECT_ID = 11L;
     private static final Long ROOT_ID = 10L;
@@ -90,14 +92,24 @@ class ProjectGovernanceGuardServiceTest {
     @Test
     void shouldRejectTamperedToken() {
         String token = service.evaluate(PROJECT_ID, EXCEPTION_CLOSE, actor()).guardToken();
-        String tampered = token.substring(0, token.length() - 1)
-                + (token.endsWith("A") ? "B" : "A");
+        String tampered = equivalentNonCanonicalSignature(token);
 
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.verifyAndRevalidate(tampered, PROJECT_ID,
                         EXCEPTION_CLOSE, PROJECT_VERSION, actor()));
 
         assertEquals(PROJECT_GOVERNANCE_GUARD_TOKEN_INVALID.getCode(), error.getCode());
+    }
+
+    private static String equivalentNonCanonicalSignature(String token) {
+        int signatureStart = token.lastIndexOf('.') + 1;
+        int lastCharacter = token.length() - 1;
+        int canonicalIndex = BASE64_URL_ALPHABET.indexOf(token.charAt(lastCharacter));
+        if (signatureStart <= 0 || canonicalIndex < 0 || (canonicalIndex & 3) != 0) {
+            throw new IllegalStateException("unexpected canonical HMAC-SHA256 token");
+        }
+        char equivalent = BASE64_URL_ALPHABET.charAt(canonicalIndex + 1);
+        return token.substring(0, lastCharacter) + equivalent;
     }
 
     @Test
