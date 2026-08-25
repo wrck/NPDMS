@@ -48,6 +48,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -449,7 +450,7 @@ class ProjectManualCreationServiceImplTest {
             return 1;
         }).when(memberAssignmentMapper).insert(any(ProjectMemberAssignmentDO.class));
 
-        LocalDateTime invocationStartedAt = LocalDateTime.now();
+        LocalDateTime invocationStartedAt = LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);
         AssignServiceManagerResult result = service.assignServiceManager(assignCommand());
 
         assertEquals(1, result.version());

@@ -883,25 +883,25 @@
     </Dialog>
 
     <!-- ============ 指派服务经理弹窗 ============ -->
-    <Dialog v-model="assignVisible" title="指派服务经理" width="520px">
-      <el-form ref="assignFormRef" :model="assignForm" :rules="assignRules" label-width="110px">
+    <Dialog v-model="assignVisible" title="指派服务经理" :width="assignDialogWidth">
+      <el-form
+        ref="assignFormRef"
+        :model="assignForm"
+        :rules="assignRules"
+        :label-position="mobile ? 'top' : 'right'"
+        label-width="110px"
+      >
         <el-form-item label="项目">
           <el-input
             :model-value="`${assignTarget?.projectCode} ${assignTarget?.projectName}`"
             disabled
           />
         </el-form-item>
-        <el-form-item label="服务经理" prop="userId">
-          <PmsEntitySelect
-            v-model="assignForm.userId"
-            :api="UserApi.getUserPage"
-            label-field="nickname"
-            value-field="id"
-            query-field="nickname"
-            placeholder="请选择用户"
-            class="!w-full"
-          />
-        </el-form-item>
+        <el-alert type="info" :closable="false" show-icon class="mb-12px">
+          下单办事处：{{ assignTarget?.departmentCode || '-' }}
+          {{ assignTarget?.departmentName || '未记录名称' }}；所属公司：
+          {{ assignTarget?.companyName || assignTarget?.companyCode || '-' }}
+        </el-alert>
         <el-form-item label="服务层级" prop="levelCode">
           <el-select v-model="assignForm.levelCode" class="!w-full">
             <el-option label="一级服务经理（L1）" value="L1" />
@@ -943,9 +943,10 @@
             filterable
             class="!w-full"
             placeholder="选择或人工确认办事处"
+            @change="handleAssignDepartmentChange"
           >
             <el-option
-              v-for="item in departments"
+              v-for="item in assignDepartments"
               :key="item.id"
               :label="`${item.code} ${item.name}`"
               :value="item.code"
@@ -960,6 +961,28 @@
         >
           {{ assignSuggestion || '当前站点无区划映射建议，请人工选择服务办事处。' }}
         </el-alert>
+        <el-form-item label="服务经理" prop="managerId">
+          <el-select
+            v-model="assignForm.managerId"
+            filterable
+            remote
+            clearable
+            class="!w-full"
+            placeholder="请先确认办事处，再搜索精确候选"
+            :remote-method="searchAssignCandidates"
+            :loading="assignCandidateLoading"
+          >
+            <el-option
+              v-for="item in assignCandidates"
+              :key="item.userId"
+              :label="`${item.nickname || item.username}（${item.employeeNo || item.username}）· ${item.departmentCode}`"
+              :value="item.userId"
+            />
+          </el-select>
+          <div class="form-helper">
+            候选仅来自当前项目公司与确认办事处的有效人员；提交时会再次刷新。
+          </div>
+        </el-form-item>
         <el-form-item label="指派原因" prop="changeReason">
           <el-input
             v-model="assignForm.changeReason"
@@ -999,6 +1022,7 @@ import type {
   ProjectMatchTemplatesRespVO,
   ProjectSiteReqVO,
   ProjectSiteVO,
+  ServiceManagerCandidateVO,
   TemplateCandidateVO
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
@@ -1018,6 +1042,7 @@ const message = useMessage()
 const router = useRouter()
 const mobile = useMediaQuery('(max-width: 767px)')
 const wizardWidth = computed(() => (mobile.value ? '96%' : '880px'))
+const assignDialogWidth = computed(() => (mobile.value ? '96%' : '560px'))
 
 // ============ 列表 ============
 const loading = ref(false)
@@ -1138,6 +1163,7 @@ const createIdempotency = createSubmissionIdempotencyState()
 const createErrorMessage = ref('')
 const companies = ref<CompanyVO[]>([])
 const departments = ref<DeptVO[]>([])
+const assignDepartments = computed(() => departments.value.filter((item) => item.id && item.code))
 const availableSites = ref<SiteVO[]>([])
 const primarySiteIndex = ref(0)
 
@@ -1477,8 +1503,10 @@ const assignFormRef = ref()
 const assignTarget = ref<ProjectMasterVO | null>(null)
 const assignSites = ref<ProjectSiteVO[]>([])
 const assignSuggestion = ref('')
+const assignCandidates = ref<ServiceManagerCandidateVO[]>([])
+const assignCandidateLoading = ref(false)
 const assignForm = reactive({
-  userId: undefined as number | undefined,
+  managerId: undefined as number | undefined,
   levelCode: 'L1' as 'L1' | 'L2',
   assignmentType: 'PRIMARY' as 'PRIMARY' | 'COLLABORATOR',
   siteId: undefined as number | undefined,
@@ -1486,12 +1514,13 @@ const assignForm = reactive({
   changeReason: ''
 })
 const assignRules = {
-  userId: [{ required: true, message: '请选择服务经理用户', trigger: 'change' }],
+  managerId: [{ required: true, message: '请选择精确候选服务经理', trigger: 'change' }],
   levelCode: [{ required: true, message: '请选择服务层级', trigger: 'change' }],
   siteId: [
     {
       validator: (_rule: unknown, value: number | undefined, callback: (error?: Error) => void) => {
-        if (assignForm.levelCode === 'L2' && !value) callback(new Error('L2服务经理必须选择实施站点'))
+        if (assignForm.levelCode === 'L2' && !value)
+          callback(new Error('L2服务经理必须选择实施站点'))
         else callback()
       },
       trigger: 'change'
@@ -1512,11 +1541,11 @@ const openAssign = async (row: ProjectMasterVO) => {
   assignTarget.value = project
   assignSites.value = sites || []
   Object.assign(assignForm, {
-    userId: undefined,
+    managerId: undefined,
     levelCode: 'L1',
     assignmentType: 'PRIMARY',
     siteId: assignSites.value.find((item) => item.primarySite)?.siteId,
-    departmentCode: '',
+    departmentCode: project.departmentCode || '',
     changeReason: ''
   })
   assignIdempotency.reset()
@@ -1526,18 +1555,60 @@ const openAssign = async (row: ProjectMasterVO) => {
 
 const suggestDepartment = async (siteId?: number) => {
   assignSuggestion.value = ''
+  assignForm.managerId = undefined
+  assignCandidates.value = []
   const site = assignSites.value.find((item) => item.siteId === siteId)
-  if (!site?.addressSnapshot) return
+  if (!site?.addressSnapshot) {
+    await loadAssignCandidates()
+    return
+  }
   try {
     const address = JSON.parse(site.addressSnapshot) as { districtCode?: string }
-    if (!address.districtCode) return
-    const mapping = await LocationApi.resolveAreaDepartment(address.districtCode, 'DISTRICT')
-    if (!mapping?.departmentCode) return
-    assignForm.departmentCode = mapping.departmentCode
-    assignSuggestion.value = `已按区县 ${address.districtCode} 精确建议 ${mapping.departmentName || mapping.departmentCode}，可手动调整。`
+    if (address.districtCode) {
+      const mapping = await LocationApi.resolveAreaDepartment(address.districtCode, 'DISTRICT')
+      if (mapping?.departmentCode) {
+        assignForm.departmentCode = mapping.departmentCode
+        assignSuggestion.value = `已按区县 ${address.districtCode} 精确建议 ${mapping.departmentName || mapping.departmentCode}，可手动调整。`
+      }
+    }
   } catch {
     // 快照不可解析或无有效映射时保留人工指派。
   }
+  await loadAssignCandidates()
+}
+
+const selectedAssignDepartment = () =>
+  assignDepartments.value.find((item) => item.code === assignForm.departmentCode)
+
+const loadAssignCandidates = async (keyword = '') => {
+  const projectId = assignTarget.value?.id
+  const department = selectedAssignDepartment()
+  if (!projectId || !department?.id || !assignForm.departmentCode) {
+    assignCandidates.value = []
+    return []
+  }
+  assignCandidateLoading.value = true
+  try {
+    const page = await ProjectsApi.getServiceManagerCandidates(projectId, {
+      siteId: assignForm.siteId,
+      departmentId: department.id,
+      departmentCode: assignForm.departmentCode,
+      keyword: keyword.trim() || undefined,
+      pageNo: 1,
+      pageSize: 100
+    })
+    assignCandidates.value = page.list || []
+    return assignCandidates.value
+  } finally {
+    assignCandidateLoading.value = false
+  }
+}
+
+const searchAssignCandidates = (keyword: string) => loadAssignCandidates(keyword)
+
+const handleAssignDepartmentChange = async () => {
+  assignForm.managerId = undefined
+  await loadAssignCandidates()
 }
 
 const submitAssign = async () => {
@@ -1546,14 +1617,29 @@ const submitAssign = async () => {
     message.error('Project版本缺失，请重新加载项目后再指派')
     return
   }
-  const department = departments.value.find((item) => item.code === assignForm.departmentCode)
+  const department = selectedAssignDepartment()
   if (!department?.id) {
     message.error('办事处部门数据已变化，请重新选择')
     return
   }
+  const selectedCandidate = assignCandidates.value.find(
+    (item) => item.userId === assignForm.managerId
+  )
+  if (!selectedCandidate) {
+    message.error('候选数据已变化，请重新选择服务经理')
+    return
+  }
+  const refreshedCandidates = await loadAssignCandidates(
+    selectedCandidate.employeeNo || selectedCandidate.username || selectedCandidate.nickname
+  )
+  if (!refreshedCandidates.some((item) => item.userId === assignForm.managerId)) {
+    assignForm.managerId = undefined
+    message.error('该人员已不在当前公司与办事处的有效候选中，请重新选择')
+    return
+  }
   const payload = {
     levelCode: assignForm.levelCode,
-    managerId: assignForm.userId!,
+    managerId: assignForm.managerId!,
     siteId: assignForm.siteId,
     assignmentType: assignForm.assignmentType,
     departmentId: department.id,
@@ -1610,6 +1696,13 @@ onMounted(() => {
   }
 }
 
+.form-helper {
+  margin-top: 4px;
+  font-size: var(--el-font-size-extra-small);
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
 /* ============ 顶部状态卡 ============ */
 .status-cards {
   display: grid;
@@ -1617,48 +1710,54 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 15px;
 }
+
 .status-card {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 14px;
   padding: 16px 18px;
+  overflow: hidden;
+  cursor: pointer;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  cursor: pointer;
   transition: all 0.2s ease;
-  overflow: hidden;
+  align-items: center;
+  gap: 14px;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 6px 16px rgb(15 23 42 / 8%);
   }
+
   &--active {
     border-color: #1e3a5f;
-    box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.12);
+    box-shadow: 0 0 0 2px rgb(30 58 95 / 12%);
   }
 
   .status-card-icon {
-    flex-shrink: 0;
+    display: flex;
     width: 42px;
     height: 42px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 22px;
     color: #fff;
+    border-radius: 10px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
   }
+
   &--blue .status-card-icon {
     background: linear-gradient(135deg, #3b82f6, #60a5fa);
   }
+
   &--green .status-card-icon {
     background: linear-gradient(135deg, #10b981, #34d399);
   }
+
   &--gray .status-card-icon {
     background: linear-gradient(135deg, #64748b, #94a3b8);
   }
+
   &--yellow .status-card-icon {
     background: linear-gradient(135deg, #f59e0b, #fbbf24);
   }
@@ -1667,34 +1766,41 @@ onMounted(() => {
     flex: 1;
     min-width: 0;
   }
+
   .status-card-num {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 24px;
     font-weight: 700;
-    color: #1f2937;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
     line-height: 1.1;
+    color: #1f2937;
   }
+
   .status-card-label {
+    margin-top: 2px;
     font-size: 12px;
     color: #6b7280;
-    margin-top: 2px;
   }
+
   .status-card-strip {
     position: absolute;
-    left: 0;
     top: 0;
     bottom: 0;
+    left: 0;
     width: 3px;
   }
+
   &--blue .status-card-strip {
     background: #3b82f6;
   }
+
   &--green .status-card-strip {
     background: #10b981;
   }
+
   &--gray .status-card-strip {
     background: #94a3b8;
   }
+
   &--yellow .status-card-strip {
     background: #f59e0b;
   }
@@ -1707,6 +1813,7 @@ onMounted(() => {
   justify-content: space-between;
   margin-bottom: 12px;
 }
+
 .table-title {
   display: inline-flex;
   align-items: center;
@@ -1715,11 +1822,12 @@ onMounted(() => {
   font-weight: 600;
   color: #1f2937;
 }
+
 .table-count {
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 400;
   margin-left: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
 }
 
 .code-text {
@@ -1727,26 +1835,32 @@ onMounted(() => {
   font-size: 12px;
   color: #6b7280;
 }
+
 .name-link {
+  font-weight: 500;
   color: var(--el-color-primary);
   cursor: pointer;
-  font-weight: 500;
+
   &:hover {
     text-decoration: underline;
   }
 }
+
 .stage-title {
   margin-right: 8px;
   font-weight: 600;
 }
+
 .preview-block {
   margin-bottom: 10px;
+
   .preview-block-title {
+    margin-bottom: 4px;
     font-size: 13px;
     font-weight: 600;
     color: #1f2937;
-    margin-bottom: 4px;
   }
+
   .preview-line {
     padding: 2px 0;
     font-size: 13px;

@@ -2,7 +2,6 @@ package cn.iocoder.yudao.module.system.api.permission;
 
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
@@ -64,7 +63,6 @@ public class OrganizationScopeApiImpl implements OrganizationScopeApi {
             throw exception(ORGANIZATION_SCOPE_INVALID);
         }
         OrganizationUserCandidatePageQuery query = OrganizationUserCandidatePageQuery.builder()
-                .tenantId(TenantContextHolder.getRequiredTenantId())
                 .companyId(request.getCompanyId())
                 .departmentId(request.getDepartmentId())
                 .departmentCode(request.getDepartmentCode())

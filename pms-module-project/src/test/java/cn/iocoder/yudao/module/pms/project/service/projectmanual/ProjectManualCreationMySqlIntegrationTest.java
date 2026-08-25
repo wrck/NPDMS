@@ -34,6 +34,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectattribute.TrustedProje
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.outbox.PlatformOutboxDeliveryApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateServiceImpl;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -349,7 +350,8 @@ abstract class ProjectManualCreationMySqlTestSupport {
 
     @SpringBootConfiguration(proxyBeanMethods = false)
     @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql",
-            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command",
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox"})
     @Import({
             YudaoDataSourceAutoConfiguration.class,
             DataSourceAutoConfiguration.class,
@@ -361,6 +363,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
             SpringUtil.class,
             ProjectManualCreationApplicationService.class,
             PlatformCommandExecutionApiImpl.class,
+            PlatformOutboxDeliveryApiImpl.class,
             ProjectManualCreationServiceImpl.class,
             ProjectTemplateServiceImpl.class,
             ProjectAttributeResolutionService.class,

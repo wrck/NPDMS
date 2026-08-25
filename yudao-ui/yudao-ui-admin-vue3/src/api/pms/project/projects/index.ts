@@ -473,18 +473,20 @@ export const getServiceManagerCandidates = (
     pageNo: number
     pageSize: number
   }
-) => request.get<PageResult<ServiceManagerCandidateVO>>({
-  url: `${baseUrl}/${id}/service-manager-candidates`,
-  params
-})
+) =>
+  request.get<PageResult<ServiceManagerCandidateVO[]>>({
+    url: `${baseUrl}/${id}/service-manager-candidates`,
+    params
+  })
 
 export const getServiceManagerResponsibilities = (
   rootId: number,
   params: { projectId?: number; pageNo: number; pageSize: number }
-) => request.get<PageResult<ServiceManagerResponsibilityVO>>({
-  url: `${baseUrl}/${rootId}/service-manager-responsibilities`,
-  params
-})
+) =>
+  request.get<PageResult<ServiceManagerResponsibilityVO[]>>({
+    url: `${baseUrl}/${rootId}/service-manager-responsibilities`,
+    params
+  })
 
 /** 人工指派或改派主责/协同服务经理 */
 export const assignManager = (

@@ -76,6 +76,18 @@ class ProjectAuthorizationGuardTest {
     }
 
     @Test
+    void engineeringManagerWithManageScopeCanAssignServiceManagerWithoutExistingServiceManagerRole() {
+        stubProjectAndTree();
+        when(projectScopeApi.resolve(any())).thenReturn(new ProjectScopeResult(1L, 5L,
+                Set.of(2L), Set.of(1L)));
+        when(pathMapper.selectByAncestor(1L, 5L, 2L, null)).thenReturn(List.of(path(2L)));
+
+        guard.assertCanAssign(actor(), 2L);
+
+        verify(memberMapper, never()).selectActiveByUser(any());
+    }
+
+    @Test
     void currentOnlyManageScopeCannotGrantDescendants() {
         stubProjectAndTree();
         when(permissionApi.hasAnyPermissions(7L, ProjectAuthorizationGuard.PERMISSION_MANAGE)).thenReturn(true);

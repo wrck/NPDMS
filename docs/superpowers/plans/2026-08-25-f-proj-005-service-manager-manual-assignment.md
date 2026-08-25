@@ -246,25 +246,25 @@ void scheduleRetry(String eventId, int expectedRetryCount, LocalDateTime nextRet
 
 **Interfaces:** Consumes Task 3/4 APIs；不在浏览器缓存候选或权限真值。
 
-- [ ] **Step 1: 改造指派表单**
+- [x] **Step 1: 改造指派表单**
 
 展示订单办事处、站点、映射建议、精确候选、PRIMARY/COLLABORATOR、L1/L2和必填原因；移除客户端生效时间。提交前刷新候选并保留服务端最终重验。
 
-- [ ] **Step 2: 增加责任分布面板**
+- [x] **Step 2: 增加责任分布面板**
 
 在项目详情复用Yudao表格/抽屉/权限组件，按节点分页显示主责、协同、站点/部门和assignmentStatus。
 
-- [ ] **Step 3: 执行自动化与真实MySQL**
+- [x] **Step 3: 执行自动化与真实MySQL**
 
 Run: PROJ、SYSTEM、PLATFORM定向测试和三个模块完整回归；执行V83真实MySQL迁移、并发同版本唯一成功、时间区间、状态组合与Outbox重试校验。
 
-- [ ] **Step 4: 使用真实浏览器验收**
+- [x] **Step 4: 使用真实浏览器验收**
 
-优先内置浏览器；必要时使用已授权外部Chromium。验证候选、主责/协同、改派、责任分布、刷新持久化、越权/跨租户及320/768/1024/1440视口；检查控制台和失败请求。
+优先内置浏览器；必要时使用已授权外部Chromium。单租户配置验证候选、主责/协同、改派、责任分布、刷新持久化及320/768/1024/1440视口；多租户隔离另以`yudao.tenant.enable=true`启动同一代码，验证跨租户候选与提交被拒绝且无指派、幂等、审计或Outbox副作用。检查控制台和失败请求。
 
-- [ ] **Step 5: 独立Implementation Done复审并提交**
+- [x] **Step 5: 独立Implementation Done复审并提交**
 
-把自动化、MySQL、浏览器、提交和遗留边界写入Task记录，按固定结构送裁决官。GO后回写Feature/Task状态并分别提交NPDMS与规格仓库；不生成Deployment/SIT/UAT/Release材料。
+自动化、MySQL、浏览器和遗留边界已写入Task记录；裁决任务`01a03545-11b6-74a2-8ea5-177a96dd1e55`正式`GO`。已回写Feature/Task状态并提交NPDMS；不生成Deployment/SIT/UAT/Release材料。
 
 ---
 

@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_ORGANIZATION_SCOPE_INVALID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -169,6 +170,18 @@ class ProjectManagerAssignmentApplicationServiceTest {
         assertEquals(FORBIDDEN.getCode(), exception.getCode());
         verifyNoInteractions(platformFactService);
         verify(adminUserApi, never()).validateUser(any());
+        verify(projectService, never()).assignServiceManager(any());
+    }
+
+    @Test
+    void organizationScopeFailureStopsBeforeIdempotencyClaimAndAssignment() {
+        when(organizationScopeApi.hasScope(66L, 10L, 20L)).thenReturn(false);
+
+        ServiceException exception = assertThrows(ServiceException.class,
+                () -> service.assign(command(), actor()));
+
+        assertEquals(PROJECT_ORGANIZATION_SCOPE_INVALID.getCode(), exception.getCode());
+        verifyNoInteractions(platformFactService);
         verify(projectService, never()).assignServiceManager(any());
     }
 

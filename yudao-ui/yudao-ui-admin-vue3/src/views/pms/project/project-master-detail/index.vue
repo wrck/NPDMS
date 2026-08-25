@@ -10,7 +10,7 @@
             <dict-tag
               v-if="detail?.status"
               :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
-              :value="detail.status!"
+              :value="detail.status ?? ''"
             />
             <el-tag v-if="detail?.lifecycleTemplateId" size="small" type="info">
               模板 #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }}
@@ -107,6 +107,18 @@
             <span class="rail-label">项目授权</span>
           </button>
         </div>
+        <div class="rail-stage">
+          <div class="rail-stage-title">服务经理</div>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'service-managers' }"
+            @click="switchTab('service-managers')"
+            v-hasPermi="['pms:project:assign']"
+          >
+            <Icon icon="ep:user-filled" class="rail-icon" />
+            <span class="rail-label">责任分布</span>
+          </button>
+        </div>
       </ContentWrap>
 
       <!-- 右侧内容区 -->
@@ -126,22 +138,25 @@
               detail.projectName
             }}</el-descriptions-item>
             <el-descriptions-item label="签约方式">
-              <dict-tag :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="detail.signingMethod!" />
+              <dict-tag :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="detail.signingMethod ?? ''" />
             </el-descriptions-item>
             <el-descriptions-item label="项目类别">
-              <dict-tag :type="DICT_TYPE.PMS_PROJECT_CATEGORY" :value="detail.projectCategory!" />
+              <dict-tag
+                :type="DICT_TYPE.PMS_PROJECT_CATEGORY"
+                :value="detail.projectCategory ?? ''"
+              />
             </el-descriptions-item>
             <el-descriptions-item label="实施方式">
               <dict-tag
                 :type="DICT_TYPE.PMS_IMPLEMENTATION_METHOD"
-                :value="detail.implementationMode!"
+                :value="detail.implementationMode ?? ''"
               />
             </el-descriptions-item>
             <el-descriptions-item label="重大项目级别">
               <dict-tag
                 v-if="detail.majorProjectLevel"
                 :type="DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL"
-                :value="detail.majorProjectLevel"
+                :value="detail.majorProjectLevel ?? ''"
               />
               <span v-else>不限</span>
             </el-descriptions-item>
@@ -166,10 +181,16 @@
               detail.implementationLocation || '-'
             }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <dict-tag :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE" :value="detail.status!" />
+              <dict-tag
+                :type="DICT_TYPE.PMS_PROJECT_LIFECYCLE_STAGE"
+                :value="detail.status ?? ''"
+              />
             </el-descriptions-item>
             <el-descriptions-item label="创建来源">
-              <dict-tag :type="DICT_TYPE.PMS_PROJECT_SOURCE_TYPE" :value="detail.sourceType!" />
+              <dict-tag
+                :type="DICT_TYPE.PMS_PROJECT_SOURCE_TYPE"
+                :value="detail.sourceType ?? ''"
+              />
             </el-descriptions-item>
             <el-descriptions-item label="创建原因" :span="2">{{
               detail.creationReason || '-'
@@ -321,6 +342,11 @@
           v-show="activeTab === 'authorization'"
           :project-id="detail.id"
         />
+        <ProjectServiceManagerPanel
+          v-if="detail?.id && visitedTabs.has('service-managers')"
+          v-show="activeTab === 'service-managers'"
+          :project-id="detail.id"
+        />
       </div>
     </div>
   </div>
@@ -338,6 +364,7 @@ import ProjectTreePanel from './components/ProjectTreePanel.vue'
 import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
 import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
+import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'
 import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
 import type {
@@ -433,10 +460,12 @@ onMounted(() => {
   gap: 16px;
   flex-wrap: wrap;
 }
+
 .project-header-left {
   flex: 1;
   min-width: 0;
 }
+
 .project-title-row {
   display: flex;
   align-items: center;
@@ -444,20 +473,23 @@ onMounted(() => {
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
+
 .project-code {
+  padding: 2px 8px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);
-  padding: 2px 8px;
   border-radius: 4px;
 }
+
 .project-name {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
+
 .project-meta-row {
   display: flex;
   gap: 20px;
@@ -465,11 +497,13 @@ onMounted(() => {
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
+
 .meta-item {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
+
 .project-header-right {
   display: flex;
   align-items: center;
@@ -483,50 +517,59 @@ onMounted(() => {
   align-items: flex-start;
   gap: 15px;
 }
+
 .rail-wrap {
   flex: 0 0 220px;
+
   :deep(.el-card__body) {
     padding: 8px 6px;
   }
 }
+
 .rail-stage {
   margin-bottom: 14px;
 }
+
 .rail-stage-title {
+  padding: 6px 10px 4px;
   font-size: 11px;
+  font-weight: 600;
   letter-spacing: 1px;
   color: var(--el-text-color-placeholder);
-  padding: 6px 10px 4px;
-  font-weight: 600;
   text-transform: uppercase;
 }
+
 .rail-item {
-  width: 100%;
   display: flex;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  transition: all 0.15s ease;
   align-items: center;
   gap: 6px;
-  padding: 7px 10px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-  text-align: left;
-  transition: all 0.15s ease;
+
   &:hover {
     background: var(--el-fill-color-light);
   }
+
   &--active {
-    background: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
     font-weight: 600;
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
   }
 }
+
 .rail-icon {
   font-size: 15px;
   flex-shrink: 0;
 }
+
 .rail-label {
   flex: 1;
   min-width: 0;
@@ -539,19 +582,22 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
 }
+
 .panel-header {
   display: flex;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
 }
+
 .panel-header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .panel-title {
   display: inline-flex;
   align-items: center;
@@ -560,70 +606,82 @@ onMounted(() => {
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
+
 .stage-title {
   margin-right: 8px;
   font-weight: 600;
 }
+
 .preview-block {
   margin-bottom: 10px;
 }
+
 .preview-block-title {
+  margin-bottom: 4px;
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  margin-bottom: 4px;
 }
+
 .preview-line {
   padding: 2px 0;
   font-size: 13px;
 }
 
-@media (min-width: 992px) and (max-width: 1199px) {
+@media (width >= 992px) and (width <= 1199px) {
   .rail-wrap {
     flex-basis: 180px;
   }
 }
 
-@media (max-width: 991px) {
+@media (width <= 991px) {
   .detail-body {
     flex-direction: column;
   }
+
   .rail-wrap {
     width: 100%;
     flex: 1 1 auto;
+
     :deep(.el-card__body) {
       display: flex;
       gap: 6px;
       overflow-x: auto;
     }
   }
+
   .rail-stage {
     display: flex;
     flex: 0 0 auto;
     margin-bottom: 0;
   }
+
   .rail-stage-title {
     display: none;
   }
+
   .rail-item {
     width: auto;
     white-space: nowrap;
   }
 }
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .project-header-right,
   .project-header-right .el-button {
     width: 100%;
   }
+
   .project-meta-row {
     display: grid;
     gap: 6px;
   }
+
   .panel-header {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .canvas {
     width: 100%;
     overflow: hidden;

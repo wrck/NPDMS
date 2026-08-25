@@ -20,8 +20,7 @@
            AND d.code = s.department_code
            AND d.status = #{query.enabledStatus}
            AND d.deleted = FALSE
-        WHERE s.tenant_id = #{query.tenantId}
-          AND s.company_id = #{query.companyId}
+        WHERE s.company_id = #{query.companyId}
           AND s.department_id = #{query.departmentId}
           AND s.department_code = #{query.departmentCode}
           AND s.status = #{query.enabledStatus}

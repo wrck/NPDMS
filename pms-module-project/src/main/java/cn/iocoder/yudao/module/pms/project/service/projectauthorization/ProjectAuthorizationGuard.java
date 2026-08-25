@@ -52,14 +52,14 @@ public class ProjectAuthorizationGuard {
 
     public void assertCanCreate(Actor actor, Long projectId, String actionCode, String scopeCode) {
         requirePermission(actor, PERMISSION_MANAGE);
-        ManagementBounds bounds = resolveBounds(actor, projectId, true);
+        ManagementBounds bounds = resolveBounds(actor, projectId, true, true);
         assertGrantFits(bounds, actionCode, scopeCode);
     }
 
     public ManagementBounds assertCanQuery(Actor actor, Long projectId, boolean hideDenied) {
         try {
             requirePermission(actor, PERMISSION_QUERY);
-            return resolveBounds(actor, projectId, false);
+            return resolveBounds(actor, projectId, false, true);
         } catch (ServiceException ex) {
             if (hideDenied) {
                 throw exception(PROJECT_AUTHORIZATION_NOT_FOUND);
@@ -71,15 +71,16 @@ public class ProjectAuthorizationGuard {
     public void assertCanRevoke(Actor actor, AuthorizationGrantDTO grant) {
         requirePermission(actor, PERMISSION_MANAGE);
         requirePermission(actor, PERMISSION_REVOKE);
-        ManagementBounds bounds = resolveBounds(actor, grant.resourceId(), true);
+        ManagementBounds bounds = resolveBounds(actor, grant.resourceId(), true, true);
         assertGrantFits(bounds, grant.actionCode(), grant.scopeCode());
     }
 
     public void assertCanAssign(Actor actor, Long projectId) {
-        resolveBounds(actor, projectId, true);
+        resolveBounds(actor, projectId, true, false);
     }
 
-    private ManagementBounds resolveBounds(Actor actor, Long projectId, boolean lockRoot) {
+    private ManagementBounds resolveBounds(Actor actor, Long projectId, boolean lockRoot,
+                                           boolean serviceManagerOnly) {
         requireActor(actor);
         ProjectMasterDO initial = requireProject(actor.tenantId(), projectId);
         long rootId = rootId(initial);
@@ -94,7 +95,9 @@ public class ProjectAuthorizationGuard {
         if (version == null) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
-        requireServiceManagerRole(actor);
+        if (serviceManagerOnly) {
+            requireServiceManagerRole(actor);
+        }
         ProjectScopeResult scope = projectScopeApi.resolve(new ProjectScopeQuery(
                 actor.tenantId(), actor.actorId(), projectId, ACTION_MANAGE, version.getTreeVersion()));
         if (!scope.fullProjectIds().contains(projectId)) {

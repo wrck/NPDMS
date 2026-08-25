@@ -57,6 +57,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -399,7 +400,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         if (projectMasterMapper.incrementVersionIfMatch(command.projectId(), command.expectedVersion()) != 1) {
             throw exception(PROJECT_VERSION_CONFLICT);
         }
-        LocalDateTime effectiveFrom = LocalDateTime.now();
+        LocalDateTime effectiveFrom = LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);
         String memberRole = "L1".equals(command.levelCode())
                 ? ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1
                 : ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L2;

@@ -17,7 +17,6 @@ import cn.iocoder.yudao.module.system.dal.mysql.permission.UserCompanyDepartment
 import cn.iocoder.yudao.module.system.dal.mysql.user.AdminUserMapper;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
 
@@ -44,11 +43,6 @@ class OrganizationScopeApiImplTest extends BaseDbUnitTest {
     private DeptMapper deptMapper;
     @Resource
     private AdminUserMapper userMapper;
-
-    @BeforeEach
-    void setTenantContext() {
-        TenantContextHolder.setTenantId(1L);
-    }
 
     @AfterEach
     void clearTenantContext() {
@@ -103,6 +97,24 @@ class OrganizationScopeApiImplTest extends BaseDbUnitTest {
         assertEquals(1101L, result.getList().getFirst().getUserId());
         assertEquals("active", result.getList().getFirst().getUsername());
         assertEquals("杭州办事处", result.getList().getFirst().getDepartmentName());
+    }
+
+    @Test
+    void pageActiveUsers_worksWithoutTenantContextWhenTenantInterceptionIsDisabled() {
+        long companyId = 2105L;
+        long departmentId = 3105L;
+        insertOrganization(companyId, departmentId, "OFFICE-NJ");
+        insertUser(1105L, "single-tenant", "单租户服务经理", CommonStatusEnum.ENABLE.getStatus());
+        scopeMapper.insert(scope(1105L, companyId, departmentId,
+                LocalDateTime.now().minusDays(1), null, CommonStatusEnum.ENABLE.getStatus())
+                .setDepartmentCode("OFFICE-NJ").setDepartmentName("南京办事处"));
+        TenantContextHolder.clear();
+
+        PageResult<OrganizationUserCandidateRespDTO> result = scopeApi.pageActiveUsers(
+                candidateRequest(companyId, departmentId, "OFFICE-NJ"));
+
+        assertEquals(1L, result.getTotal());
+        assertEquals(1105L, result.getList().getFirst().getUserId());
     }
 
     @Test

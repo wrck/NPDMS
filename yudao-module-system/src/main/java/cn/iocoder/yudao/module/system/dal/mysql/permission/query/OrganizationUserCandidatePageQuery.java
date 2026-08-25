@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 @Builder
 public class OrganizationUserCandidatePageQuery {
 
-    Long tenantId;
     Long companyId;
     Long departmentId;
     String departmentCode;
