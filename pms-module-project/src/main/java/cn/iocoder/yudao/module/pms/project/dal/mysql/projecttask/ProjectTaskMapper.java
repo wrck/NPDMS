@@ -5,7 +5,9 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttask.vo.ProjectTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectTaskGovernanceGuardQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -49,5 +51,15 @@ public interface ProjectTaskMapper extends BaseMapperX<ProjectTaskDO> {
         return selectList(new LambdaQueryWrapperX<ProjectTaskDO>()
                 .likeRight(ProjectTaskDO::getPath, pathPrefix));
     }
+
+    default List<ProjectTaskDO> selectListForGovernanceGuard(ProjectTaskGovernanceGuardQuery query) {
+        if (query.projectIds().isEmpty()) {
+            return List.of();
+        }
+        return selectListForGovernanceGuardQuery(query);
+    }
+
+    List<ProjectTaskDO> selectListForGovernanceGuardQuery(
+            @Param("query") ProjectTaskGovernanceGuardQuery query);
 
 }
