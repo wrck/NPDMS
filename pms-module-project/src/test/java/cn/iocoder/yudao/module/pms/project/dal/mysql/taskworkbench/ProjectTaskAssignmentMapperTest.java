@@ -23,6 +23,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = TaskWorkbenchMySqlTestApplication.class,
@@ -157,8 +158,8 @@ class ProjectTaskAssignmentMapperTest extends TaskWorkbenchMySqlTestSupport {
         assertEquals(99, jdbcTemplate.queryForObject(
                 "SELECT progress FROM proj_project_task WHERE id=?", Integer.class, taskId));
         TaskCompletionFactsQuery facts = new TaskCompletionFactsQuery(0L, projectId, taskId);
-        assertEquals(0L, taskMapper.countNonTerminalDescendants(facts));
-        assertEquals(0L, taskMapper.countNonTerminalPredecessors(facts));
+        assertTrue(taskMapper.selectNonTerminalDescendantIdsForUpdate(facts).isEmpty());
+        assertTrue(taskMapper.selectNonTerminalPredecessorIdsForUpdate(facts).isEmpty());
         assertEquals("CLOSED", taskMapper.selectListForGovernanceGuard(
                 new ProjectTaskGovernanceGuardQuery(0L, Set.of(projectId))).getFirst().getStatus());
         assertEquals(0, taskMapper.selectListForGovernanceGuard(

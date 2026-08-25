@@ -408,8 +408,8 @@
           AND deleted = b'0'
     </update>
 
-    <select id="countNonTerminalDescendants" resultType="long">
-        SELECT COUNT(*)
+    <select id="selectNonTerminalDescendantIdsForUpdate" resultType="long">
+        SELECT task.id
         FROM proj_task_tree_path path
         JOIN proj_project_task task
           ON task.tenant_id = path.tenant_id
@@ -422,10 +422,12 @@
           AND path.distance &gt; 0
           AND path.deleted = b'0'
           AND (task.status IS NULL OR task.status NOT IN ('DONE', 'CLOSED'))
+        ORDER BY task.id
+        FOR UPDATE
     </select>
 
-    <select id="countNonTerminalPredecessors" resultType="long">
-        SELECT COUNT(*)
+    <select id="selectNonTerminalPredecessorIdsForUpdate" resultType="long">
+        SELECT dependency.predecessor_task_id
         FROM proj_task_dependency dependency
         LEFT JOIN proj_project_task predecessor
           ON predecessor.tenant_id = dependency.tenant_id
@@ -438,6 +440,8 @@
           AND dependency.deleted = b'0'
           AND (predecessor.id IS NULL OR predecessor.status IS NULL
                OR predecessor.status NOT IN ('DONE', 'CLOSED'))
+        ORDER BY dependency.predecessor_task_id
+        FOR UPDATE
     </select>
 
     <update id="updateLifecycleIfMatch">

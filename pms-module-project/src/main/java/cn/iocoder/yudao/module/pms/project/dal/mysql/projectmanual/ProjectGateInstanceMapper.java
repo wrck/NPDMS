@@ -3,7 +3,9 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateForUpdateQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -23,4 +25,6 @@ public interface ProjectGateInstanceMapper extends BaseMapperX<ProjectGateInstan
                 .orderByAsc(ProjectGateInstanceDO::getGateType)
                 .orderByAsc(ProjectGateInstanceDO::getId));
     }
+
+    ProjectGateInstanceDO selectByCodeForUpdate(@Param("query") ProjectGateForUpdateQuery query);
 }

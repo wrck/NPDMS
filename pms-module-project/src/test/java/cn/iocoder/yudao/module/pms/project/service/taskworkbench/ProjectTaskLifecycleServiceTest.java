@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -121,7 +122,7 @@ class ProjectTaskLifecycleServiceTest {
     @Test
     void unmetDescendantPersistsEvaluationWithoutAdvancingTask() {
         allowAction("PENDING_ACCEPT", "COMPLETE", "DONE");
-        when(taskMapper.countNonTerminalDescendants(any())).thenReturn(1L);
+        when(taskMapper.selectNonTerminalDescendantIdsForUpdate(any())).thenReturn(java.util.List.of(12L));
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
 
         TaskCommandResult result = service.act(command("complete", 3, 91L, 2), actor());
@@ -190,7 +191,13 @@ class ProjectTaskLifecycleServiceTest {
         contract.setWorkBindingTypeCode("TASK_NATIVE");
         contract.setCompletionRuleSnapshot("{\"requiredStatus\":\"DONE\"}");
         contract.setContractVersion(2);
-        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
+        if ("COMPLETE".equals(action)) {
+            lenient().when(taskMapper.selectNonTerminalDescendantIdsForUpdate(any()))
+                    .thenReturn(java.util.List.of());
+            lenient().when(taskMapper.selectNonTerminalPredecessorIdsForUpdate(any()))
+                    .thenReturn(java.util.List.of());
+        }
         if (Set.of("START", "SUBMIT").contains(action)) {
             ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
             assignment.setAssigneeUserId(9L);

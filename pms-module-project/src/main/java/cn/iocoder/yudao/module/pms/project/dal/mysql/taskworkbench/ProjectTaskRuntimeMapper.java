@@ -98,9 +98,9 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
 
     int assignTaskIfMatch(@Param("query") TaskAssignmentStateUpdate update);
 
-    long countNonTerminalDescendants(@Param("query") TaskCompletionFactsQuery query);
+    List<Long> selectNonTerminalDescendantIdsForUpdate(@Param("query") TaskCompletionFactsQuery query);
 
-    long countNonTerminalPredecessors(@Param("query") TaskCompletionFactsQuery query);
+    List<Long> selectNonTerminalPredecessorIdsForUpdate(@Param("query") TaskCompletionFactsQuery query);
 
     int updateLifecycleIfMatch(@Param("query") TaskLifecycleStateUpdate update);
 

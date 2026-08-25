@@ -15,6 +15,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateIn
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskCompletionEvaluationMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
@@ -148,7 +150,8 @@ public class ProjectTaskLifecycleService {
     }
 
     private ProjectTaskExecutionContractDO requireNativeContract(ProjectTaskInstanceDO task, Long tenantId) {
-        ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskId(task.getId());
+        ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskIdForUpdate(
+                new CurrentTaskExecutionContractLockQuery(tenantId, task.getId()));
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
                 || !"TASK_NATIVE".equals(contract.getWorkBindingTypeCode())) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
@@ -187,13 +190,16 @@ public class ProjectTaskLifecycleService {
         if (task.getName() == null || task.getName().isBlank() || task.getStageCode() == null
                 || task.getStageCode().isBlank()) unmet.add("TASK_REQUIRED_FACT_MISSING");
         TaskCompletionFactsQuery query = new TaskCompletionFactsQuery(actor.tenantId(), task.getProjectId(), task.getId());
-        if (taskMapper.countNonTerminalDescendants(query) > 0) unmet.add("NON_TERMINAL_DESCENDANT");
-        if (taskMapper.countNonTerminalPredecessors(query) > 0) unmet.add("NON_TERMINAL_PREDECESSOR");
+        if (!taskMapper.selectNonTerminalDescendantIdsForUpdate(query).isEmpty()) {
+            unmet.add("NON_TERMINAL_DESCENDANT");
+        }
+        if (!taskMapper.selectNonTerminalPredecessorIdsForUpdate(query).isEmpty()) {
+            unmet.add("NON_TERMINAL_PREDECESSOR");
+        }
         String gateSnapshot = null;
         if (contract.getGateRef() != null && !contract.getGateRef().isBlank()) {
-            ProjectGateInstanceDO gate = gateMapper.selectListByProjectId(task.getProjectId()).stream()
-                    .filter(item -> Objects.equals(item.getTenantId(), actor.tenantId()))
-                    .filter(item -> contract.getGateRef().equals(item.getGateCode())).findFirst().orElse(null);
+            ProjectGateInstanceDO gate = gateMapper.selectByCodeForUpdate(new ProjectGateForUpdateQuery(
+                    actor.tenantId(), task.getProjectId(), contract.getGateRef()));
             gateSnapshot = contract.getGateRef() + ":" + (gate == null ? "UNKNOWN" : gate.getStatus())
                     + ":" + (gate == null ? "" : gate.getVersion());
             if (gate == null || !"PASSED".equals(gate.getStatus())) unmet.add("GATE_NOT_PASSED");

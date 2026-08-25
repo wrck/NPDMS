@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImp
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -23,6 +24,8 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerA
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -30,9 +33,14 @@ import org.springframework.test.context.DynamicPropertySource;
 
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -51,10 +59,13 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
     @Resource ProjectTaskLifecycleService service;
     @Resource TaskNativeBindingHostProvider nativeProvider;
     @Resource JdbcTemplate jdbcTemplate;
+    @Resource DataSource dataSource;
+    @Resource InitialTaskReadProbe initialTaskReadProbe;
 
     private long projectId;
     private long taskId;
     private long contractId;
+    private long revisionId;
     private String keyPrefix;
     private TaskWorkbenchActor actor;
 
@@ -84,6 +95,7 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
         keyPrefix = "fproj007-task7-it-" + projectId;
         actor = new TaskWorkbenchActor(0L, 9L, keyPrefix + "-trace");
         reset(nativeProvider);
+        initialTaskReadProbe.reset();
         when(nativeProvider.inspect(any())).thenReturn(new TaskBindingInspection(
                 "TASK_NATIVE", Set.of("COMPLETE"), "0:1:1", null));
         insertFixture();
@@ -105,7 +117,7 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
                     statement.executeUpdate("DELETE FROM proj_project_task_execution_contract WHERE project_task_id="
                             + taskId);
                     statement.executeUpdate("DELETE FROM proj_task_tree_path WHERE project_id=" + projectId);
-                    statement.executeUpdate("DELETE FROM proj_project_task WHERE id=" + taskId);
+                    statement.executeUpdate("DELETE FROM proj_project_task WHERE project_id=" + projectId);
                     statement.executeUpdate("DELETE FROM proj_project_member_assignment WHERE project_id=" + projectId);
                     statement.executeUpdate("DELETE FROM proj_project WHERE id=" + projectId);
                 } finally {
@@ -147,8 +159,77 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
         assertEquals(1L, count("plt_idempotency_record", "idempotency_key", keyPrefix + "-complete"));
     }
 
+    @Test
+    void concurrentChildCommittedAfterOldReadViewBlocksCompletionWithCurrentFacts() throws Exception {
+        TaskActionCommand command = new TaskActionCommand(taskId, 0, "complete", null,
+                contractId, 1, String.valueOf(taskId), 0L, keyPrefix + "-rr-complete", DIGEST);
+        long childTaskId = taskId + 20;
+        try (var blocker = dataSource.getConnection(); var executor = Executors.newSingleThreadExecutor()) {
+            blocker.setAutoCommit(false);
+            blocker.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);
+            try (var lock = blocker.prepareStatement("SELECT id FROM proj_project WHERE id=? FOR UPDATE")) {
+                lock.setLong(1, projectId);
+                lock.executeQuery();
+            }
+            var completion = executor.submit(() -> {
+                TenantContextHolder.setTenantId(0L);
+                try {
+                    return service.act(command, actor);
+                } finally {
+                    TenantContextHolder.clear();
+                }
+            });
+            initialTaskReadProbe.awaitRead();
+            insertBlockingChild(blocker, childTaskId);
+            blocker.commit();
+
+            TaskCommandResult result = completion.get(10, TimeUnit.SECONDS);
+            assertEquals("PENDING_ACCEPT", result.status());
+        }
+
+        assertEquals("PENDING_ACCEPT", jdbcTemplate.queryForObject(
+                "SELECT status FROM proj_project_task WHERE id=?", String.class, taskId));
+        assertEquals("NOT_SATISFIED", jdbcTemplate.queryForObject(
+                "SELECT evaluation_result_code FROM proj_project_task_completion_evaluation "
+                        + "WHERE project_task_id=? AND idempotency_key=?",
+                String.class, taskId, keyPrefix + "-rr-complete"));
+        assertEquals(0L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_outbox_event WHERE aggregate_key=? AND event_type='TaskCompleted'",
+                Long.class, String.valueOf(taskId)));
+    }
+
+    private void insertBlockingChild(java.sql.Connection connection, long childTaskId) throws Exception {
+        try (var insertTask = connection.prepareStatement("INSERT INTO proj_project_task "
+                + "(id,project_id,task_code,name,parent_task_id,root_task_id,tree_depth,"
+                + "state_machine_revision_id,stage_code,sort_order,status,progress,version,tenant_id) "
+                + "VALUES (?,?,?,?,?,?,1,?,'S1',1,'PENDING_ASSIGN',0,0,0)")) {
+            insertTask.setLong(1, childTaskId);
+            insertTask.setLong(2, projectId);
+            insertTask.setString(3, "T-BLOCKING-CHILD");
+            insertTask.setString(4, "并发新增阻断子任务");
+            insertTask.setLong(5, taskId);
+            insertTask.setLong(6, taskId);
+            insertTask.setLong(7, revisionId);
+            insertTask.executeUpdate();
+        }
+        try (var insertPath = connection.prepareStatement("INSERT INTO proj_task_tree_path "
+                + "(id,project_id,ancestor_task_id,descendant_task_id,distance,version,tenant_id) "
+                + "VALUES (?,?,?,?,?,0,0)")) {
+            insertPath.setLong(1, projectId + 21);
+            insertPath.setLong(2, projectId);
+            insertPath.setLong(3, taskId);
+            insertPath.setLong(4, childTaskId);
+            insertPath.setInt(5, 1);
+            insertPath.executeUpdate();
+            insertPath.setLong(1, projectId + 22);
+            insertPath.setLong(3, childTaskId);
+            insertPath.setInt(5, 0);
+            insertPath.executeUpdate();
+        }
+    }
+
     private void insertFixture() {
-        Long revisionId = jdbcTemplate.queryForObject(
+        revisionId = jdbcTemplate.queryForObject(
                 "SELECT id FROM proj_task_state_machine_revision WHERE tenant_id=0 "
                         + "AND status='PUBLISHED' ORDER BY revision_no DESC LIMIT 1", Long.class);
         jdbcTemplate.update("INSERT INTO proj_project "
@@ -202,5 +283,32 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean TaskNativeBindingHostProvider nativeProvider() { return mock(TaskNativeBindingHostProvider.class); }
+        @Bean InitialTaskReadProbe initialTaskReadProbe() { return new InitialTaskReadProbe(); }
+        @Bean
+        @Primary
+        ProjectTaskRuntimeMapper probedTaskMapper(
+                @Qualifier("projectTaskRuntimeMapper") ProjectTaskRuntimeMapper delegate,
+                InitialTaskReadProbe probe) {
+            return (ProjectTaskRuntimeMapper) Proxy.newProxyInstance(
+                    ProjectTaskRuntimeMapper.class.getClassLoader(),
+                    new Class<?>[]{ProjectTaskRuntimeMapper.class}, (proxy, method, arguments) -> {
+                        try {
+                            Object result = method.invoke(delegate, arguments);
+                            if ("selectTask".equals(method.getName())) probe.taskRead();
+                            return result;
+                        } catch (InvocationTargetException exception) {
+                            throw exception.getCause();
+                        }
+                    });
+        }
+    }
+
+    static final class InitialTaskReadProbe {
+        private volatile CountDownLatch read = new CountDownLatch(1);
+        void reset() { read = new CountDownLatch(1); }
+        void taskRead() { read.countDown(); }
+        void awaitRead() throws InterruptedException {
+            if (!read.await(5, TimeUnit.SECONDS)) throw new IllegalStateException("任务初始读未发生");
+        }
     }
 }
