@@ -429,7 +429,7 @@ class ProjectGovernanceApplicationServiceTest {
                 new ProjectGovernanceGuardTokenService.GuardClaims(
                         TENANT_ID, PROJECT_ID, action.name(), VERSION, ROOT_ID, 7L, providers, checkedAt);
         ProjectGovernanceGuardResult latest = new ProjectGovernanceGuardResult(
-                PROJECT_ID, VERSION, ROOT_ID, 7L, action.name(), true,
+                PROJECT_ID, VERSION, "ACTIVE", "S3", "ASSIGNED", ROOT_ID, 7L, action.name(), true,
                 "guard", providers, List.of(), checkedAt);
         return new ProjectGovernanceGuardService.VerifiedGuard(claims, latest);
     }

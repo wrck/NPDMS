@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectgovernance;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceBlocker;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuery;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceProviderFact;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -10,6 +9,8 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTre
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_GOVERNANCE_GUARD_TOKEN_INVALID;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_GOVERNANCE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -34,27 +36,35 @@ public class ProjectGovernanceGuardService {
     private final ProjectTreePathMapper pathMapper;
     private final ProjectGovernanceProviderRegistry providerRegistry;
     private final ProjectGovernanceGuardTokenService tokenService;
+    private final ProjectTreeScopeService treeScopeService;
 
     public ProjectGovernanceGuardResult evaluate(Long projectId, GovernanceAction action, Actor actor) {
         validate(projectId, action, actor);
         GuardContext context = loadContext(projectId, actor.tenantId());
+        treeScopeService.assertFullAccess(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), projectId, ACTION_VIEW, context.treeVersion()));
         LocalDateTime checkedAt = LocalDateTime.now();
         ProjectGovernanceGuardQuery query = new ProjectGovernanceGuardQuery(
                 actor.tenantId(), context.projectIds(), action.name(), checkedAt);
         List<ProjectGovernanceProviderFact> facts = providerRegistry.inspectAll(query);
         List<ProjectGovernanceGuardResult.ProviderVersion> versions = facts.stream()
                 .map(ProjectGovernanceGuardService::version).toList();
-        List<ProjectGovernanceBlocker> blockers = facts.stream()
-                .flatMap(fact -> fact.blockers().stream())
-                .sorted(Comparator.comparing(ProjectGovernanceBlocker::objectType)
-                        .thenComparing(ProjectGovernanceBlocker::objectId)
-                        .thenComparing(ProjectGovernanceBlocker::code)).toList();
+        List<ProjectGovernanceGuardResult.Blocker> blockers = facts.stream()
+                .flatMap(fact -> fact.blockers().stream().map(blocker ->
+                        new ProjectGovernanceGuardResult.Blocker(fact.provider(), blocker.objectType(),
+                                blocker.objectId(), blocker.status(), blocker.code(), blocker.summary())))
+                .sorted(Comparator.comparing(ProjectGovernanceGuardResult.Blocker::provider)
+                        .thenComparing(ProjectGovernanceGuardResult.Blocker::objectType)
+                        .thenComparing(ProjectGovernanceGuardResult.Blocker::objectId)
+                        .thenComparing(ProjectGovernanceGuardResult.Blocker::code)).toList();
         boolean allowed = blockers.isEmpty();
         ProjectGovernanceGuardTokenService.GuardClaims claims = new ProjectGovernanceGuardTokenService.GuardClaims(
                 actor.tenantId(), projectId, action.name(), context.project().getVersion(),
                 context.rootProjectId(), context.treeVersion(), versions, checkedAt);
         String token = allowed ? tokenService.issue(claims) : null;
         return new ProjectGovernanceGuardResult(projectId, context.project().getVersion(),
+                context.project().getLifecycleStatus(), context.project().getCurrentStage(),
+                context.project().getAssignmentStatus(),
                 context.rootProjectId(), context.treeVersion(), action.name(), allowed,
                 token, versions, blockers, checkedAt);
     }

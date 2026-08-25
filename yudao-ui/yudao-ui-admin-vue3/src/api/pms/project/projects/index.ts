@@ -321,6 +321,91 @@ export interface ProjectClosureGuardVO {
   pendingProgressProjects: number[]
 }
 
+export type ProjectGovernanceAction = 'ROLLBACK' | 'EXCEPTION_CLOSE' | 'REOPEN'
+
+export interface ProjectGovernanceProviderFactVO {
+  provider: string
+  factVersion: string
+  watermark: string
+  factDigest: string
+}
+
+export interface ProjectGovernanceBlockerVO {
+  provider: string
+  objectType: string
+  objectId: string
+  status: string
+  code: string
+  summary: string
+}
+
+export interface ProjectGovernanceGuardVO {
+  projectId: number
+  projectVersion: number
+  lifecycleStatus: string
+  currentStage: string
+  assignmentStatus: string
+  treeRootProjectId: number
+  treeVersion: number
+  action: ProjectGovernanceAction
+  allowed: boolean
+  guardToken?: string | null
+  providerFacts: ProjectGovernanceProviderFactVO[]
+  blockers: ProjectGovernanceBlockerVO[]
+  blockerTotal: number
+  blockerPageNo: number
+  blockerPageSize: number
+  checkedAt: string
+}
+
+export interface ProjectGovernanceActionResultVO {
+  projectId: number
+  action: ProjectGovernanceAction
+  beforeLifecycleStatus: string
+  beforeStage: string
+  beforeAssignmentStatus: string
+  lifecycleStatus: string
+  currentStage: string
+  assignmentStatus: string
+  projectVersion: number
+  stageSnapshotId: number
+  operationId: string
+  operatedAt: string
+  replayed: boolean
+}
+
+export interface ProjectGovernanceHistoryVO {
+  id: number
+  projectId: number
+  stageCode: string
+  snapshotNo: number
+  operationType: ProjectGovernanceAction
+  beforeStage: string
+  afterStage: string
+  beforeLifecycleStatus: string
+  afterLifecycleStatus: string
+  beforeAssignmentStatus: string
+  afterAssignmentStatus: string
+  reasonCode: string
+  reasonDetail: string
+  reassignmentRequirement?: string | null
+  businessBasis?: string | null
+  legacyItemsJson?: string | null
+  treeVersion?: number | null
+  providerFactsJson?: string | null
+  relatedSnapshotId?: number | null
+  operationId: string
+  operatorUserId: number
+  operatedAt: string
+}
+
+export interface ProjectGovernanceLegacyItem {
+  type: string
+  summary: string
+  owner: string
+  status: string
+}
+
 export type ProjectAuthorizationAction = 'PROJECT_VIEW' | 'PROJECT_MANAGE'
 export type ProjectAuthorizationScope = 'CURRENT_PROJECT' | 'PROJECT_AND_DESCENDANTS'
 export type ProjectAuthorizationStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED'
@@ -572,6 +657,73 @@ export const getClosureGuard = (projectId: number, treeVersion: number) =>
   request.get<ProjectClosureGuardVO>({
     url: `/pms/closure-gates/${projectId}`,
     params: { treeVersion }
+  })
+
+export const getProjectGovernanceGuard = (
+  projectId: number,
+  action: ProjectGovernanceAction,
+  pageNo = 1,
+  pageSize = 20
+) =>
+  request.get<ProjectGovernanceGuardVO>({
+    url: `${baseUrl}/${projectId}/governance-guard`,
+    params: { action, pageNo, pageSize }
+  })
+
+export const rollbackProject = (
+  projectId: number,
+  data: {
+    guardToken: string
+    reasonCode: string
+    reasonDetail: string
+    reassignmentRequirement: string
+  },
+  expectedVersion: number,
+  idempotencyKey: string
+) =>
+  request.post<ProjectGovernanceActionResultVO>({
+    url: `${baseUrl}/${projectId}/actions/rollback`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
+  })
+
+export const exceptionCloseProject = (
+  projectId: number,
+  data: {
+    guardToken: string
+    reasonCode: string
+    reasonDetail: string
+    businessBasis: string
+    legacyItems: ProjectGovernanceLegacyItem[]
+  },
+  expectedVersion: number,
+  idempotencyKey: string
+) =>
+  request.post<ProjectGovernanceActionResultVO>({
+    url: `${baseUrl}/${projectId}/actions/close`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
+  })
+
+export const reopenProject = (
+  projectId: number,
+  data: { reasonCode: string; reasonDetail: string; exceptionCloseSnapshotId: number },
+  expectedVersion: number,
+  idempotencyKey: string
+) =>
+  request.post<ProjectGovernanceActionResultVO>({
+    url: `${baseUrl}/${projectId}/actions/reopen`,
+    data,
+    headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
+  })
+
+export const getProjectGovernanceHistory = (
+  projectId: number,
+  params: { pageNo: number; pageSize: number }
+) =>
+  request.get<{ list: ProjectGovernanceHistoryVO[]; total: number }>({
+    url: `${baseUrl}/${projectId}/governance-history`,
+    params
   })
 
 export const getProjectAuthorizationPage = (

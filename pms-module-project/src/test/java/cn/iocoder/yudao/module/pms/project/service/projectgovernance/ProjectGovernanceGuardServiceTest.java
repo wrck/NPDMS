@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTre
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,7 @@ class ProjectGovernanceGuardServiceTest {
     private ProjectTreePathMapper pathMapper;
     private ProjectGovernanceProviderRegistry registry;
     private ProjectGovernanceGuardTokenService tokenService;
+    private ProjectTreeScopeService treeScopeService;
     private ProjectGovernanceGuardService service;
 
     @BeforeEach
@@ -59,11 +61,12 @@ class ProjectGovernanceGuardServiceTest {
         treeVersionMapper = mock(ProjectTreeVersionMapper.class);
         pathMapper = mock(ProjectTreePathMapper.class);
         registry = mock(ProjectGovernanceProviderRegistry.class);
+        treeScopeService = mock(ProjectTreeScopeService.class);
         ProjectGovernanceGuardProperties properties = new ProjectGovernanceGuardProperties();
         properties.setSigningKey("task-6-test-signing-key-with-sufficient-entropy");
         tokenService = new ProjectGovernanceGuardTokenService(properties);
         service = new ProjectGovernanceGuardService(
-                projectMapper, treeVersionMapper, pathMapper, registry, tokenService);
+                projectMapper, treeVersionMapper, pathMapper, registry, tokenService, treeScopeService);
         stubTree(7L);
         when(registry.inspectAll(any())).thenReturn(providerFacts("w1"));
     }
