@@ -36,6 +36,7 @@
     "@element-plus/icons-vue": "2.3.2",
     "@form-create/designer": "^3.4.0",
     "@form-create/element-ui": "^3.2.38",
+    "@iconify/utils": "3.1.0",
     "@iconify/vue": "^5.0.1",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@videojs-player/vue": "^1.0.0",
@@ -138,6 +139,7 @@
     "vite": "8.1.4",
     "vite-plugin-compression": "^0.5.1",
     "vite-plugin-svg-icons-ng": "^1.9.0",
+    "vitest": "4.1.11",
     "vue-eslint-parser": "^10.4.0",
     "vue-tsc": "^3.2.8"
   },

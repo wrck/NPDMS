@@ -1,5 +1,6 @@
 import 'virtual:svg-icons-register'
 
+import { quicklyValidateIconSet } from '@iconify/utils'
 import { addCollection } from '@iconify/vue/offline'
 import epIcons from '@iconify/json/json/ep.json'
 import faIcons from '@iconify/json/json/fa.json'
@@ -9,6 +10,10 @@ import generatedCollections from './iconify.generated.json'
 addCollection(epIcons)
 addCollection(faIcons)
 addCollection(faSolidIcons)
-generatedCollections.forEach((collection) =>
-  addCollection(collection as Parameters<typeof addCollection>[0])
-)
+generatedCollections.forEach((collection) => {
+  const validatedCollection = quicklyValidateIconSet(collection)
+  if (!validatedCollection) {
+    throw new Error(`Invalid generated Iconify collection: ${collection.prefix}`)
+  }
+  addCollection(validatedCollection)
+})
