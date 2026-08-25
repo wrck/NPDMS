@@ -16,6 +16,7 @@ public class ProjectTaskUpdateReqVO {
     private LocalDateTime planEndTime;
     private Integer priority;
     private Integer sortOrder;
+    private Integer progress;
     @Size(max = 500) private String description;
     @JsonIgnore private final Set<String> submittedFields = new LinkedHashSet<>();
 
@@ -27,7 +28,18 @@ public class ProjectTaskUpdateReqVO {
     public void setPlanEndTime(LocalDateTime value) { planEndTime = value; submittedFields.add("planEndTime"); }
     public void setPriority(Integer value) { priority = value; submittedFields.add("priority"); }
     public void setSortOrder(Integer value) { sortOrder = value; submittedFields.add("sortOrder"); }
+    public void setProgress(Integer value) { progress = value; submittedFields.add("progress"); }
     public void setDescription(String value) { description = value; submittedFields.add("description"); }
+
+    @JsonIgnore
+    public boolean isProgressSubmitted() {
+        return submittedFields.contains("progress");
+    }
+
+    @JsonIgnore
+    public boolean isProgressOnly() {
+        return submittedFields.size() == 1 && submittedFields.contains("progress");
+    }
 
     @JsonIgnore
     public Set<String> getSubmittedFields() {

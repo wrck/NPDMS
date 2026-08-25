@@ -27,6 +27,7 @@ import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.Project
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.MoveTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.UpdateTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,6 +73,8 @@ class ProjectTaskCommandServiceTest {
     @Mock ProjectTreeScopeService treeScopeService;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
+    @Mock ProjectTaskProgressService progressService;
+    @Mock PermissionApi permissionApi;
 
     private ProjectTaskCommandService service;
     private ProjectMasterDO project;
@@ -81,13 +84,15 @@ class ProjectTaskCommandServiceTest {
     void setUp() {
         service = new ProjectTaskCommandService(taskMapper, taskInstanceMapper, dependencyMapper, contractMapper,
                 new TaskExecutionContractFactory(), stateMachineMapper, stageMapper, milestoneMapper, memberMapper,
-                treeVersionMapper, treeScopeService, commandExecutionApi, operationAuditApi);
+                treeVersionMapper, treeScopeService, commandExecutionApi, operationAuditApi,
+                progressService, permissionApi);
         project = new ProjectMasterDO();
         project.setId(100L);
         project.setRootId(100L);
         project.setTenantId(0L);
         project.setLifecycleStatus("ACTIVE");
         project.setTaskTreeVersion(3L);
+        project.setTaskProgressVersion(0L);
         ProjectMemberAssignmentDO manager = new ProjectMemberAssignmentDO();
         manager.setProjectId(100L);
         manager.setUserId(9L);
@@ -97,6 +102,7 @@ class ProjectTaskCommandServiceTest {
         ProjectTreeVersionDO treeVersion = new ProjectTreeVersionDO();
         treeVersion.setTreeVersion(1L);
         lenient().when(treeVersionMapper.selectLatestActive(100L)).thenReturn(treeVersion);
+        lenient().when(permissionApi.hasAnyPermissions(any(), any())).thenReturn(true);
         delegatePlatformOperation();
     }
 

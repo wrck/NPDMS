@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQuer
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskAssignmentService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskProgressService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AddDependencyCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AssignTaskCommand;
@@ -30,6 +31,7 @@ import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.Project
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.UpdateTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.UpdateTaskProgressCommand;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -75,6 +77,7 @@ public class ProjectTaskWorkbenchController {
     private final ProjectTaskCommandService commandService;
     private final ProjectTaskAssignmentService assignmentService;
     private final ProjectTaskLifecycleService lifecycleService;
+    private final ProjectTaskProgressService progressService;
     private final Environment environment;
 
     @GetMapping("/projects/{id}/workspace")
@@ -146,17 +149,24 @@ public class ProjectTaskWorkbenchController {
 
     @PatchMapping("/project-tasks/{id}")
     @Operation(summary = "更新项目任务基础信息")
-    @PreAuthorize("@ss.hasPermission('pms:project-task:update')")
+    @PreAuthorize("@ss.hasPermission('pms:project-task:update') or "
+            + "@ss.hasPermission('pms:project-task:execute')")
     public CommonResult<TaskCommandResult> updateTask(
             @PathVariable("id") Long taskId,
             @RequestHeader("If-Match") String ifMatch,
             @Valid @RequestBody ProjectTaskUpdateReqVO request) {
         int expectedVersion = parseIfMatch(ifMatch);
-        return withTrustedTenant(() -> success(commandService.update(new UpdateTaskCommand(taskId,
-                expectedVersion, request.getName(), request.getBusinessLevelCode(), request.getPlanStartTime(),
-                request.getPlanEndTime(), request.getPriority(), request.getSortOrder(), request.getDescription(),
-                request.getSubmittedFields()),
-                actor())));
+        return withTrustedTenant(() -> {
+            if (request.isProgressSubmitted()) {
+                if (!request.isProgressOnly()) throw exception(PROJECT_TASK_COMMAND_INVALID);
+                return success(progressService.updateProgress(new UpdateTaskProgressCommand(
+                        taskId, expectedVersion, request.getProgress()), actor()));
+            }
+            return success(commandService.update(new UpdateTaskCommand(taskId,
+                    expectedVersion, request.getName(), request.getBusinessLevelCode(), request.getPlanStartTime(),
+                    request.getPlanEndTime(), request.getPriority(), request.getSortOrder(), request.getDescription(),
+                    request.getSubmittedFields()), actor()));
+        });
     }
 
     @PostMapping("/project-tasks/{id}/actions/move")

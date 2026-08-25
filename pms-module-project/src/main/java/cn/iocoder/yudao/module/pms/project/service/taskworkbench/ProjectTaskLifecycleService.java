@@ -70,6 +70,7 @@ public class ProjectTaskLifecycleService {
     private final TaskNativeBindingHostProvider nativeProvider;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
+    private final ProjectTaskProgressService progressService;
 
     public TaskCommandResult act(TaskActionCommand command, TaskWorkbenchActor actor) {
         AtomicReference<ActionFacts> facts = new AtomicReference<>();
@@ -143,6 +144,9 @@ public class ProjectTaskLifecycleService {
                 task.getId(), task.getVersion(), task.getStatus(), nextStatus, "START".equals(action),
                 "COMPLETE".equals(action) || "CANCEL".equals(action), progress, occurredAt,
                 String.valueOf(actor.actorId()))) != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
+        if (Set.of("SUBMIT", "COMPLETE", "CANCEL").contains(action)) {
+            progressService.recompute(actor.tenantId(), project.getId(), project.getTaskProgressVersion(), occurredAt);
+        }
         ActionFacts facts = ActionFacts.changed(task, contract, completion, occurredAt);
         factsRef.set(facts);
         return new TaskCommandResult(task.getId(), task.getVersion() + 1, project.getTaskTreeVersion(),

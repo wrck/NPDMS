@@ -52,6 +52,7 @@ class ProjectTaskLifecycleServiceTest {
     @Mock TaskNativeBindingHostProvider nativeProvider;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
+    @Mock ProjectTaskProgressService progressService;
 
     private ProjectTaskLifecycleService service;
     private PlatformCommandExecutionApi.SuccessFacts successFacts;
@@ -60,7 +61,7 @@ class ProjectTaskLifecycleServiceTest {
     void setUp() {
         service = new ProjectTaskLifecycleService(taskMapper, contractMapper, assignmentMapper, memberMapper,
                 evaluationMapper, gateMapper,
-                stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi);
+                stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService);
     }
 
     @Test
@@ -176,6 +177,7 @@ class ProjectTaskLifecycleServiceTest {
         project.setTenantId(0L);
         project.setLifecycleStatus("ACTIVE");
         project.setTaskTreeVersion(4L);
+        project.setTaskProgressVersion(0L);
         when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
         TaskStateTransitionDO transition = new TaskStateTransitionDO();
         transition.setFromStatusCode(status);

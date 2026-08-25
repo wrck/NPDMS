@@ -4,18 +4,22 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskMoveLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ApplicableLeafTaskProgress;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ApplicableLeafTaskProgressQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.NewTaskTreePathInsert;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskBasicUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskStructureUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProgressVersionUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAncestorBatchQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentCommandQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskCompletionFactsQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskLifecycleStateUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskProgressUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVersionUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectTaskGovernanceGuardQuery;
@@ -103,6 +107,13 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
     List<Long> selectNonTerminalPredecessorIdsForUpdate(@Param("query") TaskCompletionFactsQuery query);
 
     int updateLifecycleIfMatch(@Param("query") TaskLifecycleStateUpdate update);
+
+    List<ApplicableLeafTaskProgress> selectApplicableLeaves(
+            @Param("query") ApplicableLeafTaskProgressQuery query);
+
+    int updateProgressIfMatch(@Param("query") TaskProgressUpdate update);
+
+    int incrementTaskProgressVersion(@Param("query") ProjectTaskProgressVersionUpdate update);
 
     default void rebuildMovedSubtreePaths(ProjectTaskStructureUpdate update) {
         deleteOldExternalPaths(update);

@@ -467,6 +467,53 @@
           AND deleted = b'0'
     </update>
 
+    <select id="selectApplicableLeaves"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ApplicableLeafTaskProgress">
+        SELECT task.id AS task_id,
+               task.progress,
+               task.estimated_hours,
+               task.status
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM proj_project_task child
+              WHERE child.tenant_id = task.tenant_id
+                AND child.project_id = task.project_id
+                AND child.parent_task_id = task.id
+                AND child.deleted = b'0'
+          )
+        ORDER BY task.id
+        FOR UPDATE
+    </select>
+
+    <update id="updateProgressIfMatch">
+        UPDATE proj_project_task
+        SET progress = #{query.progress},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = #{query.occurredAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.projectTaskId}
+          AND version = #{query.expectedVersion}
+          AND status = 'IN_PROGRESS'
+          AND deleted = b'0'
+    </update>
+
+    <update id="incrementTaskProgressVersion">
+        UPDATE proj_project
+        SET task_progress_version = task_progress_version + 1,
+            updater = #{query.updater},
+            update_time = #{query.occurredAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND task_progress_version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
     <delete id="deleteOldExternalPaths">
         DELETE external_path
         FROM proj_task_tree_path external_path

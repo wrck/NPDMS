@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 public interface ProjectScopeApi {
 
     String ACTION_VIEW = "PROJECT_VIEW";
+    String ACTION_EDIT = "PROJECT_EDIT";
     String ACTION_MANAGE = "PROJECT_MANAGE";
 
     ProjectScopeResult resolve(ProjectScopeQuery query);

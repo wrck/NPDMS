@@ -132,6 +132,20 @@ class ProjectTreeScopeServiceTest {
     }
 
     @Test
+    void ordinaryMemberCanEditCurrentProjectWithoutManageScope() {
+        stubRootProjection();
+        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+                .thenReturn(List.of(assignment(3L, "ENGINEER")));
+        when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
+                .thenReturn(List.of(path(1L, 3L), path(2L, 3L), path(3L, 3L)));
+
+        var scope = service.resolve(query("PROJECT_EDIT"));
+
+        assertEquals(Set.of(3L), scope.fullProjectIds());
+        assertEquals(Set.of(1L, 2L), scope.placeholderProjectIds());
+    }
+
+    @Test
     void creatorCanViewOwnProjectWithoutReceivingManagerRole() {
         stubRootProjection();
         when(projectMapper.selectListCreatedBy(any(CreatedProjectScopeQuery.class)))

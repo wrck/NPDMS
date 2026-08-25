@@ -37,6 +37,7 @@ import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.Project
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.MoveTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.UpdateTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -80,6 +81,8 @@ public class ProjectTaskCommandService {
     private final ProjectTreeScopeService treeScopeService;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
+    private final ProjectTaskProgressService progressService;
+    private final PermissionApi permissionApi;
 
     public TaskCommandResult create(CreateTaskCommand command, TaskWorkbenchActor actor) {
         AtomicReference<Map<String, ?>> auditDetail = new AtomicReference<>(Map.of());
@@ -185,6 +188,8 @@ public class ProjectTaskCommandService {
         if (contractMapper.insert(contract) != 1) throw new IllegalStateException("PROJECT_TASK_CONTRACT_WRITE_FAILED");
         long nextTreeVersion = project.getTaskTreeVersion() + 1;
         requireTreeVersionIncrement(project, actor);
+        progressService.recompute(actor.tenantId(), project.getId(), project.getTaskProgressVersion(),
+                LocalDateTime.now());
         auditDetail.set(createAuditDetail(task, contract));
         return new TaskCommandResult(task.getId(), 0, nextTreeVersion, task.getStatus(), "NEW");
     }
@@ -199,6 +204,9 @@ public class ProjectTaskCommandService {
                 || invalidSubmittedText(command, "businessLevelCode", command.businessLevelCode())
                 || invalidSubmittedText(command, "description", command.description())) {
             throw exception(PROJECT_TASK_COMMAND_INVALID);
+        }
+        if (!permissionApi.hasAnyPermissions(actor.actorId(), "pms:project-task:update")) {
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         }
         ProjectTaskInstanceDO task = requireTask(command.taskId(), actor);
         LocalDateTime effectiveStart = command.submittedFields().contains("planStartTime")
@@ -249,6 +257,8 @@ public class ProjectTaskCommandService {
         if (taskMapper.updateStructureIfMatch(update) != 1) throw exception(PROJECT_TASK_VERSION_CONFLICT);
         taskMapper.rebuildMovedSubtreePaths(update);
         requireTreeVersionIncrement(project, actor);
+        progressService.recompute(actor.tenantId(), project.getId(), project.getTaskProgressVersion(),
+                LocalDateTime.now());
         auditDetail.set(moveAuditDetail(source, target, newRoot, newDepth, command.reason()));
         return new TaskCommandResult(source.getId(), source.getVersion() + 1,
                 project.getTaskTreeVersion() + 1, source.getStatus(), "NEW");

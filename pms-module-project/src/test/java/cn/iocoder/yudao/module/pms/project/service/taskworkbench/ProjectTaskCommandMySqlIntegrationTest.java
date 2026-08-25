@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScope
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.AddDependencyCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.CreateTaskCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -47,6 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = ProjectTaskCommandMySqlIntegrationTest.TestApplication.class,
@@ -58,6 +62,7 @@ class ProjectTaskCommandMySqlIntegrationTest {
     @Resource ProjectTaskCommandService service;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource ContractInsertFault contractInsertFault;
+    @Resource PermissionApi permissionApi;
 
     private long projectId;
     private long publishedRevisionId;
@@ -87,6 +92,8 @@ class ProjectTaskCommandMySqlIntegrationTest {
         keyPrefix = "fproj007-task5-it-" + projectId;
         actor = new TaskWorkbenchActor(0L, 9L, keyPrefix + "-trace");
         contractInsertFault.enabled = false;
+        reset(permissionApi);
+        when(permissionApi.hasAnyPermissions(any(), any())).thenReturn(true);
         publishedRevisionId = jdbcTemplate.queryForObject(
                 "SELECT id FROM proj_task_state_machine_revision WHERE tenant_id=0 "
                         + "AND status='PUBLISHED' ORDER BY revision_no DESC LIMIT 1", Long.class);
@@ -104,6 +111,8 @@ class ProjectTaskCommandMySqlIntegrationTest {
                     statement.executeUpdate("DELETE FROM plt_idempotency_record WHERE idempotency_key LIKE '"
                             + keyPrefix + "%'");
                     statement.executeUpdate("DELETE FROM proj_task_dependency WHERE tenant_id=0 AND project_id=" + projectId);
+                    statement.executeUpdate("DELETE FROM proj_project_progress_fact WHERE tenant_id=0 AND project_id="
+                            + projectId);
                     statement.executeUpdate("DELETE FROM proj_project_task_execution_contract WHERE tenant_id=0 "
                             + "AND project_task_id IN (SELECT id FROM proj_project_task WHERE project_id=" + projectId + ")");
                     statement.executeUpdate("DELETE FROM proj_task_tree_path WHERE tenant_id=0 AND project_id=" + projectId);
@@ -246,15 +255,18 @@ class ProjectTaskCommandMySqlIntegrationTest {
     @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual",
             "cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree",
             "cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench",
+            "cn.iocoder.yudao.module.pms.project.dal.mysql.projectprogress",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, PlatformCommandExecutionApiImpl.class,
-            OperationAuditApiImpl.class, ProjectTaskCommandService.class, TaskExecutionContractFactory.class})
+            OperationAuditApiImpl.class, ProjectTaskCommandService.class, ProjectTaskProgressService.class,
+            TaskExecutionContractFactory.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean ProjectTreeScopeService projectTreeScopeService() { return mock(ProjectTreeScopeService.class); }
+        @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ContractInsertFault contractInsertFault() { return new ContractInsertFault(); }
         @Bean
         @Primary

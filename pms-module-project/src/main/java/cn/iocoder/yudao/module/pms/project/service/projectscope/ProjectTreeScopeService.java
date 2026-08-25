@@ -31,6 +31,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_MANAGE;
+import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT;
 import static cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW;
 
 @Service
@@ -126,7 +127,7 @@ public class ProjectTreeScopeService {
                     .forEach(anchors::add);
         }
         discoverGrantAnchors(tenantId, subjectUserId, actionCode, effectiveAt, anchors);
-        if (ACTION_VIEW.equals(actionCode)) {
+        if (ACTION_VIEW.equals(actionCode) || ACTION_EDIT.equals(actionCode)) {
             discoverGrantAnchors(tenantId, subjectUserId, ACTION_MANAGE, effectiveAt, anchors);
         }
         if (anchors.isEmpty()) {
@@ -162,6 +163,9 @@ public class ProjectTreeScopeService {
         if (ACTION_VIEW.equals(query.actionCode())) {
             grants.addAll(authorizationGrantApi.listEffective(
                     authorizationQuery(query, rootNodes, ACTION_MANAGE, effectiveAt)));
+        } else if (ACTION_EDIT.equals(query.actionCode())) {
+            grants.addAll(authorizationGrantApi.listEffective(
+                    authorizationQuery(query, rootNodes, ACTION_MANAGE, effectiveAt)));
         }
         return grants;
     }
@@ -192,7 +196,8 @@ public class ProjectTreeScopeService {
     }
 
     private boolean allows(String memberRole, String actionCode) {
-        return ACTION_VIEW.equals(actionCode) || MANAGER_ROLES.contains(memberRole);
+        return ACTION_VIEW.equals(actionCode) || ACTION_EDIT.equals(actionCode)
+                || MANAGER_ROLES.contains(memberRole);
     }
 
     private void validate(ProjectScopeQuery query) {
@@ -202,7 +207,7 @@ public class ProjectTreeScopeService {
                 || query.subjectUserId() == null || query.subjectUserId() <= 0
                 || query.anchorProjectId() == null || query.anchorProjectId() <= 0
                 || query.expectedTreeVersion() == null || query.expectedTreeVersion() <= 0
-                || !Set.of(ACTION_VIEW, ACTION_MANAGE).contains(query.actionCode())) {
+                || !Set.of(ACTION_VIEW, ACTION_EDIT, ACTION_MANAGE).contains(query.actionCode())) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
     }
@@ -212,7 +217,7 @@ public class ProjectTreeScopeService {
         if (tenantId == null || tenantId < 0
                 || contextTenantId != null && !contextTenantId.equals(tenantId)
                 || subjectUserId == null || subjectUserId <= 0
-                || !Set.of(ACTION_VIEW, ACTION_MANAGE).contains(actionCode)) {
+                || !Set.of(ACTION_VIEW, ACTION_EDIT, ACTION_MANAGE).contains(actionCode)) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
     }

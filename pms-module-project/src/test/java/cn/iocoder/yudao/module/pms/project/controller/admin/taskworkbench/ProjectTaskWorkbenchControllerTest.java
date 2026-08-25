@@ -2,16 +2,24 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectWorkspaceRespVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskUpdateReqVO;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskCommandService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskAssignmentService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskProgressService;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.UpdateTaskProgressCommand;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.env.Environment;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +39,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,6 +52,7 @@ class ProjectTaskWorkbenchControllerTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -65,7 +75,8 @@ class ProjectTaskWorkbenchControllerTest {
     @Test
     void shouldExposeLockedTaskFiveCommandRoutes() {
         assertRoute("createTask", PostMapping.class, "/projects/{id}/tasks", "pms:project-task:create");
-        assertRoute("updateTask", PatchMapping.class, "/project-tasks/{id}", "pms:project-task:update");
+        assertRoute("updateTask", PatchMapping.class, "/project-tasks/{id}",
+                "@ss.hasPermission('pms:project-task:update') or @ss.hasPermission('pms:project-task:execute')");
         assertRoute("moveTask", PostMapping.class, "/project-tasks/{id}/actions/move", "pms:project-task:move");
         assertRoute("addDependency", PostMapping.class, "/project-tasks/{id}/dependencies", "pms:project-task:move");
     }
@@ -98,7 +109,8 @@ class ProjectTaskWorkbenchControllerTest {
         });
         MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(
                 queryService, mock(ProjectTaskCommandService.class),
-                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class), environment)).build();
+                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class),
+                mock(ProjectTaskProgressService.class), environment)).build();
 
         mvc.perform(get("/api/v1/pms/projects/100/workspace"))
                 .andExpect(status().isOk());
@@ -112,7 +124,8 @@ class ProjectTaskWorkbenchControllerTest {
         Environment environment = new MockEnvironment();
         MockMvc mvc = standaloneSetup(new ProjectTaskWorkbenchController(
                 queryService, mock(ProjectTaskCommandService.class),
-                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class), environment)).build();
+                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class),
+                mock(ProjectTaskProgressService.class), environment)).build();
 
         Exception error = assertThrows(Exception.class,
                 () -> mvc.perform(get("/api/v1/pms/projects/100/workspace")));
@@ -121,6 +134,52 @@ class ProjectTaskWorkbenchControllerTest {
         assertEquals(PROJECT_TASK_SCOPE_FORBIDDEN.getCode(), serviceException.getCode());
         verifyNoInteractions(queryService);
         assertNull(TenantContextHolder.getTenantId());
+    }
+
+    @Test
+    void progressOnlyPatchDispatchesToProgressService() {
+        LoginUser loginUser = new LoginUser();
+        loginUser.setId(9L);
+        loginUser.setTenantId(0L);
+        SecurityFrameworkUtils.setLoginUser(loginUser, new MockHttpServletRequest());
+        ProjectTaskProgressService progressService = mock(ProjectTaskProgressService.class);
+        when(progressService.updateProgress(any(), any())).thenReturn(
+                new TaskCommandResult(11L, 4, 5L, "IN_PROGRESS", "NEW"));
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("yudao.tenant.enable", Boolean.class, true)).thenReturn(false);
+        ProjectTaskWorkbenchController controller = new ProjectTaskWorkbenchController(
+                mock(ProjectTaskQueryService.class), mock(ProjectTaskCommandService.class),
+                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class),
+                progressService, environment);
+        ProjectTaskUpdateReqVO request = new ProjectTaskUpdateReqVO();
+        request.setProgress(60);
+
+        controller.updateTask(11L, "\"3\"", request);
+
+        verify(progressService).updateProgress(eq(new UpdateTaskProgressCommand(11L, 3, 60)), any());
+        assertNull(TenantContextHolder.getTenantId());
+    }
+
+    @Test
+    void mixedProgressAndBasicPatchIsRejectedBeforeEitherCommandRuns() {
+        ProjectTaskCommandService commandService = mock(ProjectTaskCommandService.class);
+        ProjectTaskProgressService progressService = mock(ProjectTaskProgressService.class);
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("yudao.tenant.enable", Boolean.class, true)).thenReturn(false);
+        ProjectTaskWorkbenchController controller = new ProjectTaskWorkbenchController(
+                mock(ProjectTaskQueryService.class), commandService,
+                mock(ProjectTaskAssignmentService.class), mock(ProjectTaskLifecycleService.class),
+                progressService, environment);
+        ProjectTaskUpdateReqVO request = new ProjectTaskUpdateReqVO();
+        request.setProgress(60);
+        request.setName("mixed");
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> controller.updateTask(11L, "3", request));
+
+        assertEquals(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_COMMAND_INVALID.getCode(),
+                error.getCode());
+        verifyNoInteractions(commandService, progressService);
     }
 
     private Method findMethod(String name) {
