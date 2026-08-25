@@ -84,7 +84,8 @@ class ProjectGovernanceGuardServiceTest {
         assertNotNull(result.guardToken());
         assertEquals(ROOT_ID, result.treeRootProjectId());
         assertEquals(7L, result.treeVersion());
-        assertEquals(6, result.providerFacts().size());
+        assertEquals(ProjectGovernanceProviderRegistry.REQUIRED_PROVIDERS.size(),
+                result.providerFacts().size());
         ArgumentCaptor<ProjectGovernanceGuardQuery> queryCaptor =
                 ArgumentCaptor.forClass(ProjectGovernanceGuardQuery.class);
         verify(registry).inspectAll(queryCaptor.capture());
@@ -170,26 +171,44 @@ class ProjectGovernanceGuardServiceTest {
     }
 
     @Test
-    void registryShouldFailClosedForMissingAndTimedOutProviders() {
+    void registryShouldFailClosedForMissingAndTimedOutRequiredProviders() {
         List<ProjectGovernanceGuardProviderApi> providers = new ArrayList<>();
         for (String code : ProjectGovernanceProviderRegistry.REQUIRED_PROVIDERS) {
-            if (!"COLLECTION".equals(code)) {
+            if (!"BPM_APPROVAL".equals(code)) {
                 providers.add(provider(code, false));
             }
         }
         ProjectGovernanceGuardQuery query = new ProjectGovernanceGuardQuery(
                 TENANT_ID, Set.of(PROJECT_ID), "EXCEPTION_CLOSE", LocalDateTime.now());
         ProjectGovernanceProviderFact missing = new ProjectGovernanceProviderRegistry(providers)
-                .inspectAll(query).stream().filter(fact -> "COLLECTION".equals(fact.provider()))
+                .inspectAll(query).stream().filter(fact -> "BPM_APPROVAL".equals(fact.provider()))
                 .findFirst().orElseThrow();
         assertEquals("PROVIDER_UNAVAILABLE", missing.blockers().getFirst().code());
 
-        providers.add(provider("COLLECTION", true));
+        providers.add(provider("BPM_APPROVAL", true));
         ProjectGovernanceProviderFact timedOut = new ProjectGovernanceProviderRegistry(providers)
-                .inspectAll(query).stream().filter(fact -> "COLLECTION".equals(fact.provider()))
+                .inspectAll(query).stream().filter(fact -> "BPM_APPROVAL".equals(fact.provider()))
                 .findFirst().orElseThrow();
         assertEquals("QUERY_FAILED", timedOut.watermark());
         assertFalse(timedOut.blockers().isEmpty());
+    }
+
+    @Test
+    void registryShouldNotInvokeReservedCollectionProvider() {
+        List<ProjectGovernanceGuardProviderApi> providers = new ArrayList<>();
+        for (String code : ProjectGovernanceProviderRegistry.REQUIRED_PROVIDERS) {
+            providers.add(provider(code, false));
+        }
+        providers.add(provider("COLLECTION", true));
+        ProjectGovernanceGuardQuery query = new ProjectGovernanceGuardQuery(
+                TENANT_ID, Set.of(PROJECT_ID), "EXCEPTION_CLOSE", LocalDateTime.now());
+
+        List<ProjectGovernanceProviderFact> facts = new ProjectGovernanceProviderRegistry(providers)
+                .inspectAll(query);
+
+        assertEquals(ProjectGovernanceProviderRegistry.REQUIRED_PROVIDERS.size(), facts.size());
+        assertTrue(facts.stream().noneMatch(fact -> "COLLECTION".equals(fact.provider())));
+        assertTrue(facts.stream().allMatch(fact -> fact.blockers().isEmpty()));
     }
 
     private void stubTree(Long treeVersion) {

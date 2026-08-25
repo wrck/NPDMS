@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "cb55c7478378ed769f0a4fd401fabb8840017242"
+    "commit": "126ba19c4ab5a62b13248d0cd1bbdc15ae35b19b"
   },
   "files": [
     {
@@ -488,12 +488,12 @@
     {
       "path": "specs/features/F-PROJ-006-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "97bfec857ad4356d83a40379352572658f67985639be6da21e11d9ca350f11c8"
+      "sha256": "505fc871f32ddabd780b25d20827f3b530e3f9de66e45d64f3eb8404159c0b76"
     },
     {
       "path": "specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md",
       "category": "FEATURE_SPEC",
-      "sha256": "1df1a0806855dd1178f2b44891f92759d1f0eac8919574d8bdcd7d12623e5645"
+      "sha256": "ef81cdf0f6f4af5cae36e9a8c7bcff1f0786e1c0ee6aceff889bbac0eca4c3df"
     },
     {
       "path": "specs/features/README.md",

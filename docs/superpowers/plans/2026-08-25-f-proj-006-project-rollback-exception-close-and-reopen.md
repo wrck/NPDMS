@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- 规格仓库提交锁定为`cb55c7478378ed769f0a4fd401fabb8840017242`，NPDMS基线提交为`8d6e7e76c213b0fdf1dc7f82e40a8620d1acb43d`；受管快照只由同步工具维护。
+- 规格仓库提交锁定为`126ba19c4ab5a62b13248d0cd1bbdc15ae35b19b`；受管快照只由同步工具维护。
 - 已通过的PRD/SDS门禁不重开；本计划只推进F-PROJ-006 Implementation，不生成Deployment、SIT、UAT或Release材料。
 - V1.7代码、页面、测试和`pms_project_governance_action`只是差距审计输入；不得据此勾选任何V1.8验收项，不再向旧表写入新治理动作。
 - 用户已禁用测试驱动顺序；每个Task先完成最小实现，再补齐风险匹配的自动化、真实MySQL或真实浏览器验证。
@@ -39,7 +39,7 @@
 | `PlatformCommandExecutionApi` | 复用同事务幂等、`plt_operation_audit`与单个Outbox写入；按动作生成稳定响应和事件payload |
 | `proj_project_stage_snapshot` | 当前未落物理表；按已批准共享模型前向创建，不改成PM-10专属动作表 |
 | `ProjectClosureGuardPanel.vue` | 现有面板只服务CLO-02资格检查；新增独立治理面板，不混淆正常闭环与异常关闭 |
-| DAC采集提供方 | 仓库内暂无权威适配实现证据；Task 3先核对现有外部适配配置，缺失时注册UNAVAILABLE事实并继续其他任务，但Feature Done前必须接入可验证的Owner事实来源 |
+| DAC采集提供方 | `COLLECTION`公共接口与UNAVAILABLE占位继续保留；INT-12实现尚未开始，不属于F-PROJ-006当前必需提供方，后续由PLT/DAC权威事实接入 |
 
 ---
 
@@ -208,13 +208,13 @@ SRV内部按相同契约读取巡检任务；只由SRV解释终态，不让PROJ�
 
 - [ ] **Step 2: 核对并实现COLLECTION适配**
 
-先从仓库配置和现有外部子应用契约确认权威端点；使用`NPDMS_COLLECTION_GUARD_BASE_URL`配置只读客户端。未配置、超时或响应未知时返回`PROVIDER_UNAVAILABLE`阻断，禁止以“仓库没有表”推导无任务。
+保留`COLLECTION`公共Provider接口及现有`PROVIDER_UNAVAILABLE`占位，但不加入F-PROJ-006当前必需Provider集合。不得把占位解释为“无采集任务”，也不得在本Feature前置建设INT-12表、端点或适配器；INT-12后续实施时由PLT/DAC权威事实接入并独立验收。
 
 - [ ] **Step 3: 验证并提交**
 
 覆盖活动/完成审批、采集无任务/在途、未配置、超时、乱序水位、空集合和跨租户。提交：`feat(integration): 提供审批采集治理守卫`
 
-> 检查点：若COLLECTION权威端点仍无仓库或环境证据，登记为Feature Done前阻断并继续Task 6～9；不得伪造“无采集任务”正向事实。
+> 检查点：BPM为当前必需Provider；COLLECTION仅预留公共接口，INT-12后续实施，不作为F-PROJ-006当前前置。验证注册表不调用预留Provider后关闭Task 5并继续Task 10。
 
 ---
 
@@ -241,7 +241,7 @@ VerifiedGuard verifyAndRevalidate(String guardToken, Long projectId,
 
 - [ ] **Step 1: 聚合完整树与全部必需Provider**
 
-按`PROJECT_TREE/BPM_APPROVAL/PROJECT_TASK/CUTOVER/COLLECTION/INSPECTION`固定集合执行；任一缺失、异常、超时、未知状态都形成阻断，不能因其他Provider通过而降级。
+按`PROJECT_TREE/BPM_APPROVAL/PROJECT_TASK/CUTOVER/INSPECTION`当前必需集合执行；任一缺失、异常、超时、未知状态都形成阻断，不能因其他Provider通过而降级。`COLLECTION`只保留公共接口，待INT-12实施后再纳入。
 
 - [ ] **Step 2: 签发不透明令牌**
 
@@ -392,7 +392,7 @@ Controller使用四个稳定权限码；服务端再次执行租户、功能权�
 
 - [ ] **Step 5: 独立Implementation Done复审并提交**
 
-将自动化、MySQL、浏览器、COLLECTION权威来源和遗留边界写入Task记录，取得独立GO后回写Feature状态；不生成Deployment/SIT/UAT/Release材料。提交：`feat(project): 完成项目异常治理闭环`
+将自动化、MySQL、浏览器、COLLECTION预留边界和遗留边界写入Task记录，取得独立GO后回写Feature状态；不生成Deployment/SIT/UAT/Release材料。提交：`feat(project): 完成项目异常治理闭环`
 
 ---
 
@@ -407,7 +407,7 @@ Controller使用四个稳定权限码；服务端再次执行租户、功能权�
 
 | 风险 | 影响 | 处理 |
 |---|---|---|
-| COLLECTION权威来源尚无仓库证据 | 不能可信判定无在途采集 | Task 5先核对现有适配；未配置时明确UNAVAILABLE并失败关闭，Feature Done前必须补齐可验证来源 |
+| INT-12 V1/P0实现尚未开始 | COLLECTION暂无可消费权威事实 | 保留公共接口和UNAVAILABLE占位，不加入当前必需集合；INT-12后续独立实施和联动验收 |
 | BPM现有公开API只支持创建/触发 | 不能直接按项目读取审批水位 | 在PMS集成适配层使用Flowable公开能力，不修改基础模块、不直查表；版本/摘要由适配层稳定生成 |
 | 树在守卫后并发变化 | 旧检查可能误关闭新增ACTIVE后代 | guardToken冻结treeVersion，命令提交前重读最新完整树并逐claim比较 |
 | 共享快照被收窄成PM-10表 | 破坏PM-03/EXE-06后续复用 | 保持共享键和公共列；PM-10列物理可空，动作必填只在应用层验证 |
@@ -418,4 +418,4 @@ Controller使用四个稳定权限码；服务端再次执行租户、功能权�
 - Spec覆盖：状态轴、权限、完整树、跨域阻断、守卫令牌、Project CAS、成员时态、共享快照、幂等、审计、Outbox、历史查询和响应式UI均有对应Task。
 - 禁止能力：计划不含CLO-02正常闭环、NORMAL_CLOSED重开、自动终止/恢复外部任务、新责任工单表、新状态轴或旧Flyway修改。
 - 类型一致性：`guardToken/treeVersion/providerFacts/reasonCode/reasonDetail/operationId`在物理、服务、HTTP和UI间使用同一语义。
-- 占位扫描：无延后填充项；COLLECTION未知不被猜测为成功，而是有明确失败关闭行为和Feature Done门禁。
+- 占位扫描：COLLECTION明确为预留接口，不参与当前守卫判断；占位结果不被解释为“无采集任务”，后续只由PLT/DAC权威实现替换。

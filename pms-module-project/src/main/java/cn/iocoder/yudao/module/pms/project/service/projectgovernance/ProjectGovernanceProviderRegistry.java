@@ -21,7 +21,7 @@ public class ProjectGovernanceProviderRegistry {
 
     public static final List<String> REQUIRED_PROVIDERS = List.of(
             "PROJECT_TREE", "BPM_APPROVAL", "PROJECT_TASK",
-            "CUTOVER", "COLLECTION", "INSPECTION");
+            "CUTOVER", "INSPECTION");
 
     private final Map<String, ProjectGovernanceGuardProviderApi> providers;
 
