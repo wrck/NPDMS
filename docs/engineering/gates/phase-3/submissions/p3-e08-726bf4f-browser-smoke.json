@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P3-E08-BROWSER-20260825-726BF4F",
+  "implementationCommit": "726bf4f067d4ad33356627c9ad66fc45dd8d4dfa",
+  "capturedAt": "2026-08-25T18:35:25+08:00",
+  "runner": {
+    "browser": "Google Chrome 151.0.7922.173",
+    "automation": "Playwright 1.62.1",
+    "viewport": "1366x768",
+    "url": "http://127.0.0.1:18082/login"
+  },
+  "result": "PASS",
+  "httpStatus": 200,
+  "pageTitle": "项目实施交付管理平台 - 登录",
+  "representativeCollection": "ant-design",
+  "representativeIcons": {
+    "expected": 4,
+    "rendered": 4,
+    "svgPathCount": 4,
+    "renderedSize": "30x30"
+  },
+  "consoleErrorCount": 0,
+  "pageErrorCount": 0,
+  "externalIconifyRequestCount": 0,
+  "totalRequestCount": 353,
+  "screenshot": {
+    "path": "docs/engineering/gates/phase-3/submissions/p3-e08-726bf4f-browser-smoke.png",
+    "sha256": "665ED1B50AD774183699B5BAF21F6FF21C9AF8B1A3F0013A57F9177FDDC080DB"
+  }
+}
