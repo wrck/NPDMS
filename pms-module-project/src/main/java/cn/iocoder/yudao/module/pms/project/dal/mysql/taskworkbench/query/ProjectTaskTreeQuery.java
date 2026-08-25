@@ -10,6 +10,7 @@ public record ProjectTaskTreeQuery(
         Long tenantId,
         Set<Long> projectIds,
         Set<Long> visibleTaskIds,
+        TaskVisibilityQuery visibilityQuery,
         Mode mode,
         Long parentTaskId,
         Long targetTaskId,

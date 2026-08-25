@@ -197,5 +197,7 @@ public interface ErrorCodeConstants {
             "项目当前状态不允许执行该治理动作");
     ErrorCode PROJECT_GOVERNANCE_PERSISTENCE_FAILED = new ErrorCode(1_014_024_043,
             "项目治理动作写入失败");
+    ErrorCode PROJECT_TASK_QUERY_INVALID = new ErrorCode(1_014_024_044, "项目任务查询参数无效");
+    ErrorCode PROJECT_TASK_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_045, "无权访问该项目任务");
 
 }

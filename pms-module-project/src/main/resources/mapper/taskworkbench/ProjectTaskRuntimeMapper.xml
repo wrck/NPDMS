@@ -41,10 +41,38 @@
         <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
             #{projectId}
         </foreach>
-          AND task.id IN
-        <foreach collection="query.visibleTaskIds" item="taskId" open="(" separator="," close=")">
-            #{taskId}
-        </foreach>
+        <choose>
+            <when test="query.visibilityQuery != null">
+                <choose>
+                    <when test="query.visibilityQuery.fullProjectAccess">
+                        AND TRUE
+                    </when>
+                    <otherwise>
+                        AND EXISTS (
+                            SELECT 1
+                            FROM proj_task_tree_path visible_path
+                            JOIN proj_project_task_assignment assignment
+                              ON assignment.tenant_id = visible_path.tenant_id
+                             AND assignment.project_task_id = visible_path.descendant_task_id
+                             AND assignment.current_marker = 1
+                             AND assignment.effective_to IS NULL
+                             AND assignment.deleted = b'0'
+                            WHERE visible_path.tenant_id = task.tenant_id
+                              AND visible_path.project_id = task.project_id
+                              AND visible_path.ancestor_task_id = task.id
+                              AND visible_path.deleted = b'0'
+                              AND assignment.assignee_user_id = #{query.visibilityQuery.actorId}
+                        )
+                    </otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                AND task.id IN
+                <foreach collection="query.visibleTaskIds" item="taskId" open="(" separator="," close=")">
+                    #{taskId}
+                </foreach>
+            </otherwise>
+        </choose>
         <choose>
             <when test="query.mode.name() == 'DIRECT_CHILDREN'">
                 <choose>
@@ -58,6 +86,9 @@
             </when>
             <when test="query.mode.name() == 'BUSINESS_LEVEL'">
                 AND task.business_level_code = #{query.businessLevelCode}
+                <if test="query.visibilityQuery != null and !query.visibilityQuery.fullProjectAccess">
+                    AND <include refid="nestedTaskFullVisibilityPredicate"/>
+                </if>
             </when>
             <when test="query.mode.name() == 'LOCATE'">
                 <choose>
@@ -69,6 +100,10 @@
                             OR task.name LIKE CONCAT('%', #{query.keyword}, '%'))
                     </otherwise>
                 </choose>
+                <if test="query.keyword != null and query.visibilityQuery != null
+                        and !query.visibilityQuery.fullProjectAccess">
+                    AND <include refid="nestedTaskFullVisibilityPredicate"/>
+                </if>
             </when>
         </choose>
         <if test="query.cursorSortOrder != null and query.cursorTaskId != null">
@@ -78,6 +113,105 @@
         </if>
         ORDER BY COALESCE(task.sort_order, 0), task.id
         LIMIT #{query.pageSize}
+    </select>
+
+    <select id="selectTask"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.id = #{query.taskId}
+          AND task.deleted = b'0'
+    </select>
+
+    <sql id="taskVisibilityPredicate">
+        <choose>
+            <when test="query.fullProjectAccess">
+                TRUE
+            </when>
+            <otherwise>
+                EXISTS (
+                    SELECT 1
+                    FROM proj_task_tree_path visible_path
+                    JOIN proj_project_task_assignment assignment
+                      ON assignment.tenant_id = visible_path.tenant_id
+                     AND assignment.project_task_id = visible_path.descendant_task_id
+                     AND assignment.current_marker = 1
+                     AND assignment.effective_to IS NULL
+                     AND assignment.deleted = b'0'
+                    WHERE visible_path.tenant_id = task.tenant_id
+                      AND visible_path.project_id = task.project_id
+                      AND visible_path.ancestor_task_id = task.id
+                      AND visible_path.deleted = b'0'
+                      AND assignment.assignee_user_id = #{query.actorId}
+                )
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="taskFullVisibilityPredicate">
+        <choose>
+            <when test="query.fullProjectAccess">
+                TRUE
+            </when>
+            <otherwise>
+                EXISTS (
+                    SELECT 1
+                    FROM proj_project_task_assignment assignment
+                    WHERE assignment.tenant_id = task.tenant_id
+                      AND assignment.project_task_id = task.id
+                      AND assignment.assignee_user_id = #{query.actorId}
+                      AND assignment.current_marker = 1
+                      AND assignment.effective_to IS NULL
+                      AND assignment.deleted = b'0'
+                )
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="nestedTaskFullVisibilityPredicate">
+        EXISTS (
+            SELECT 1
+            FROM proj_project_task_assignment assignment
+            WHERE assignment.tenant_id = task.tenant_id
+              AND assignment.project_task_id = task.id
+              AND assignment.assignee_user_id = #{query.visibilityQuery.actorId}
+              AND assignment.current_marker = 1
+              AND assignment.effective_to IS NULL
+              AND assignment.deleted = b'0'
+        )
+    </sql>
+
+    <select id="selectVisibleTaskIds" resultType="java.lang.Long">
+        SELECT task.id
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND <include refid="taskVisibilityPredicate"/>
+        ORDER BY task.id
+    </select>
+
+    <select id="selectFullTaskIds" resultType="java.lang.Long">
+        SELECT task.id
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND <include refid="taskFullVisibilityPredicate"/>
+        ORDER BY task.id
+    </select>
+
+    <select id="selectStageCounts"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStageCount">
+        SELECT task.stage_code AS stageCode, COUNT(*) AS taskCount
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND <include refid="taskFullVisibilityPredicate"/>
+        GROUP BY task.stage_code
+        ORDER BY task.stage_code
     </select>
 
     <select id="selectProjectForUpdate"

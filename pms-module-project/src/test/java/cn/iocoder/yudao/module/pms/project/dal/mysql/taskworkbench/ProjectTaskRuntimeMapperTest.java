@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskStructureUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -98,6 +99,8 @@ class ProjectTaskRuntimeMapperTest {
         jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
             try (var statement = connection.createStatement()) {
                 statement.execute("SET FOREIGN_KEY_CHECKS=0");
+                statement.executeUpdate("DELETE FROM proj_project_task_assignment WHERE tenant_id=0 "
+                        + "AND project_task_id IN (SELECT id FROM proj_project_task WHERE project_id=" + projectId + ")");
                 statement.executeUpdate("DELETE FROM proj_task_tree_path WHERE tenant_id=0 AND project_id=" + projectId);
                 statement.executeUpdate("DELETE FROM proj_project_task WHERE tenant_id=0 AND project_id=" + projectId);
                 statement.executeUpdate("DELETE FROM proj_project WHERE tenant_id=0 AND id=" + projectId);
@@ -161,6 +164,30 @@ class ProjectTaskRuntimeMapperTest {
                 .tenantId(1L).projectIds(Set.of(projectId)).visibleTaskIds(allTaskIds())
                 .mode(ProjectTaskTreeQuery.Mode.LOCATE).targetTaskId(firstTaskId).pageSize(10).build();
         assertTrue(mapper.selectTree(crossTenant).isEmpty());
+    }
+
+    @Test
+    void shouldResolveAssigneeBodyAndAncestorPlaceholdersWithoutCrossTenantLeakage() {
+        long assignedTaskId = firstTaskId + DEPTH - 1;
+        jdbcTemplate.update("INSERT INTO proj_project_task_assignment "
+                        + "(id,project_task_id,assignee_user_id,effective_from,effective_to,assigned_by,reason,"
+                        + "version,creator,updater,tenant_id) VALUES (?,?,?,?,NULL,?,'test',0,'test','test',0)",
+                projectId + 99, assignedTaskId, 900L, java.time.LocalDateTime.now(), 901L);
+
+        TaskVisibilityQuery engineer = new TaskVisibilityQuery(0L, projectId, 900L, false);
+        assertEquals(DEPTH, mapper.selectVisibleTaskIds(engineer).size());
+        assertEquals(List.of(assignedTaskId), mapper.selectFullTaskIds(engineer));
+        assertEquals(1L, mapper.selectStageCounts(engineer).getFirst().taskCount());
+
+        TaskVisibilityQuery manager = new TaskVisibilityQuery(0L, projectId, 901L, true);
+        assertEquals(DEPTH + 1, mapper.selectVisibleTaskIds(manager).size());
+        assertEquals(DEPTH + 1, mapper.selectFullTaskIds(manager).size());
+        assertEquals(DEPTH + 1L, mapper.selectStageCounts(manager).getFirst().taskCount());
+
+        TaskVisibilityQuery crossTenant = new TaskVisibilityQuery(1L, projectId, 900L, true);
+        assertTrue(mapper.selectVisibleTaskIds(crossTenant).isEmpty());
+        assertTrue(mapper.selectFullTaskIds(crossTenant).isEmpty());
+        assertTrue(mapper.selectStageCounts(crossTenant).isEmpty());
     }
 
     @Test

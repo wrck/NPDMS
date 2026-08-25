@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskStructureUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskTreeVersionUpdate;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -18,13 +20,22 @@ public interface ProjectTaskRuntimeMapper extends BaseMapperX<ProjectTaskInstanc
 
     default List<ProjectTaskInstanceDO> selectTree(ProjectTaskTreeQuery query) {
         if (query == null || query.projectIds() == null || query.projectIds().isEmpty()
-                || query.visibleTaskIds() == null || query.visibleTaskIds().isEmpty()) {
+                || (query.visibilityQuery() == null
+                    && (query.visibleTaskIds() == null || query.visibleTaskIds().isEmpty()))) {
             return List.of();
         }
         return selectTreeQuery(query);
     }
 
     List<ProjectTaskInstanceDO> selectTreeQuery(@Param("query") ProjectTaskTreeQuery query);
+
+    ProjectTaskInstanceDO selectTask(@Param("query") TaskByIdQuery query);
+
+    List<Long> selectVisibleTaskIds(@Param("query") TaskVisibilityQuery query);
+
+    List<Long> selectFullTaskIds(@Param("query") TaskVisibilityQuery query);
+
+    List<TaskStageCount> selectStageCounts(@Param("query") TaskVisibilityQuery query);
 
     default ProjectTaskMoveLocks selectMoveLocks(ProjectTaskMoveLockQuery query) {
         ProjectMasterDO project = selectProjectForUpdate(query);
