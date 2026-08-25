@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
 > 当前阻断：无当前必停阻断；设备连接与采集中心的COLLECTION权威端点、响应契约与真实验收证据缺失，登记为Feature Done前阻断，不阻断Task 8～9
-> 当前任务：`Task 8 实现异常关闭与受控重开`
+> 当前任务：`Task 9 提供治理API与append-only历史查询`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
 > Feature物理契约：`specs/features/F-PROJ-006-physical-contract.json`
@@ -29,7 +29,7 @@
 - [ ] Task 5 提供BPM与COLLECTION集成守卫（BPM子项PASS / `4b4ba22` / COLLECTION权威契约待外部证据）
 - [x] Task 6 签发并重验不透明守卫令牌（PASS / `f58115b..48a72d9` / 独立裁决GO）
 - [x] Task 7 实现回退命令闭环（PASS / `1ea4411..0722afc` / 独立裁决GO）
-- [ ] Task 8 实现异常关闭与受控重开
+- [x] Task 8 实现异常关闭与受控重开（PASS / `bc3d086` / 独立裁决GO）
 - [ ] Task 9 提供治理API与append-only历史查询
 - [ ] Task 10 完成响应式治理界面与Feature验收
 
@@ -52,3 +52,5 @@
 > 检查点（2026-08-25）：Task 6经整改后独立Implementation Done裁决GO，提交范围`f58115b..48a72d9`；版本化守卫令牌已封闭非规范Base64URL等价编码篡改，完整树及六Provider事实执行提交前重验；COLLECTION仍只消费设备连接与采集中心权威事实，外部契约阻断保持，当前推进Task 7。
 
 > 检查点（2026-08-25）：Task 7经存量兼容整改后独立Implementation Done裁决GO，提交范围`1ea4411..0722afc`；回退命令以同一平台事务完成Project CAS、服务经理区间结束、append-only快照、幂等、审计和Outbox，`assignment_type IS NULL`沿用既有兼容主责语义；COLLECTION外部契约阻断保持，当前推进Task 8。
+
+> 检查点（2026-08-25）：Task 8提交`bc3d086`经独立Implementation Done裁决GO；异常关闭与受控重开已闭合权限、状态、守卫、事务、快照消费及事件契约，聚焦测试21/21 PASS；COLLECTION权威契约仍为Feature Done前阻断，当前推进Task 9。
