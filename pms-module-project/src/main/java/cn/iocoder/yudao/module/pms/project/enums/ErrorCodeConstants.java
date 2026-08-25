@@ -187,5 +187,9 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_AUTHORIZATION_INVALID = new ErrorCode(1_014_024_036, "项目授权请求不合法");
     ErrorCode PROJECT_AUTHORIZATION_VERSION_CONFLICT = new ErrorCode(1_014_024_037, "项目授权版本冲突");
     ErrorCode PROJECT_AUTHORIZATION_CONFLICT = new ErrorCode(1_014_024_038, "项目当前授权发生并发冲突");
+    ErrorCode PROJECT_GOVERNANCE_GUARD_TOKEN_INVALID = new ErrorCode(1_014_024_039,
+            "项目治理守卫令牌无效");
+    ErrorCode PROJECT_GOVERNANCE_VERSION_CONFLICT = new ErrorCode(1_014_024_040,
+            "项目治理事实版本冲突，请重新检查守卫");
 
 }

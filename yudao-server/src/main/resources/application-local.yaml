@@ -258,6 +258,10 @@ pms:
   integration:
     collection-guard:
       base-url: ${NPDMS_COLLECTION_GUARD_BASE_URL:}
+  project:
+    governance:
+      guard:
+        signing-key: ${NPDMS_PROJECT_GOVERNANCE_GUARD_SIGNING_KEY:}
 
 justauth:
   enabled: true
