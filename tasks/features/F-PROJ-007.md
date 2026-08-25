@@ -1,11 +1,12 @@
 # F-PROJ-007 项目任务树与原生任务工作台
 
-> Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`TECHNICAL_PLAN_REVIEW`
+> Feature实施状态：`IN_PROGRESS`
+> 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`PASS / NPDMS-FPROJ007-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：`无；Technical Plan四项整改待独立复审`
-> 当前任务：`Technical Plan整改复审`
+> Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
+> 当前阻断：`待独立裁决：V89新必填列与后续模板任务创建改造的Task边界`
+> 当前任务：`Task 1 建立任务树、状态机和责任事实物理基础`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
@@ -20,6 +21,6 @@
 - [x] 获得独立Feature Ready裁决
 - [x] 基于锁定基线全新生成Technical Plan
 - [x] 闭环首次计划复审四项NO-GO
-- [ ] 获得Technical Plan独立裁决
+- [x] 获得Technical Plan独立裁决
 
-> 检查点（2026-08-25）：基线`5f37b2d`；当前Gate为Technical Plan整改复审，已按`NPDMS-FPROJ007-TECHPLAN-20260825-01`闭环六表/状态机回填、Provider前移、候选与进度链、Outbox重试；无其他阻断，下一步重新送审，GO后执行Task 1。
+> 检查点（2026-08-25）：基线`5f37b2d`；当前Gate为Task 1 Implementation Done，V88/V89契约10/10、MySQL空库及V87三层升级、25模块编译均PASS；待裁决新必填列与模板创建改造边界，下一步提交候选并独立评审。
