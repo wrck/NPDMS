@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS / NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Implementation Done Gate：`NOT_STARTED`
-> 当前阻断：Task 10界面、自动化与真实MySQL已完成；P3-E08仍为`OPEN / FAIL`并明确阻断正式真实浏览器验收，设备连接与采集中心的COLLECTION权威端点、响应契约与真实验收证据仍缺失；二者均为Feature Done前阻断
+> 当前阻断：P3-E08已`VERIFIED`；真实Chrome已完成四档响应式、主题持久化与守卫失败关闭验收。设备连接与采集中心的COLLECTION权威端点、响应契约和真实验收证据仍缺失，正向治理闭环无法可信验收，Task 5、Task 10及Feature Done保持未关闭
 > 当前任务：`Task 10 完成响应式治理界面与Feature验收`
 > Requirement ID：`PM-10`（V1）
 > Feature Spec：`specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md`
@@ -31,7 +31,7 @@
 - [x] Task 7 实现回退命令闭环（PASS / `1ea4411..0722afc` / 独立裁决GO）
 - [x] Task 8 实现异常关闭与受控重开（PASS / `bc3d086` / 独立裁决GO）
 - [x] Task 9 提供治理API与append-only历史查询（PASS / `e5e5687..1beb732` / 独立裁决GO）
-- [ ] Task 10 完成响应式治理界面与Feature验收（UI/自动化/真实MySQL子项GO / `10e05fe`；浏览器与Feature Done Gate待阻断闭环）
+- [ ] Task 10 完成响应式治理界面与Feature验收（UI/自动化/真实MySQL子项GO / `10e05fe`；四档响应式、主题持久化、守卫失败关闭PASS；正向浏览器闭环待COLLECTION）
 
 > 检查点（2026-08-25）：Feature Ready正式GO；规格提交`cb55c747`已同步至NPDMS基线`8d6e7e7`；新Technical Plan基于V1.8差距审计生成，未复用旧计划；下一步执行Task 1。
 
@@ -58,3 +58,5 @@
 > 检查点（2026-08-25）：Task 9提交范围`e5e5687..1beb732`经独立Implementation Done裁决GO；治理API、append-only历史和前端调用契约已固化，单租户关闭租户模块时在调用范围建立受信tenantId=0，多租户缺失上下文失败关闭；COLLECTION权威契约阻断保持，当前推进Task 10。
 
 > 检查点（2026-08-25）：基线`cb55c747`；Task 10 UI/MySQL子项独立GO（`10e05fe`，组件23/23、主题5/5、25模块/Project 323、空库V1～V87与MySQL 5/5）；Task 10未关闭，P3-E08 `OPEN/FAIL`阻断浏览器，COLLECTION权威契约缺失；下一步等待最近前置Gate闭环后继续正式浏览器验收。
+
+> 检查点（2026-08-25）：P3-E08已由`478ecda`关闭为VERIFIED；真实Chrome四档响应式、主题刷新持久化及回退/异常关闭失败关闭PASS，零控制台/页面/HTTP错误。COLLECTION仍固定不可用，正向三动作与历史持久化未验收，Task 5/10不关闭；320px基础设置抽屉裁切登记为非本Feature问题，不修改基础框架。
