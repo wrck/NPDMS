@@ -209,3 +209,87 @@
 - Blocking scope: 已解除。F-PROJ-001按同步全有或全无语义继续Technical Plan；未来拆库/拆服务必须先批准业务语义变更。
 - Decision owner: 需求方（创建完成语义和用户效果）；PROJ、ACC领域负责人（契约和补偿）
 - Decision date: 2026-08-21
+
+### Q-FCUS-001
+
+- Status: RESOLVED
+- Requirement IDs: CUS-03、INT-03
+- Area: F-CUS-001 CRM字段级写入与本地物理契约
+- Question: CRM权威字段、平台扩展字段、内部写API、来源版本、当前CRM映射唯一键、客户主表列约束和字段映射如何冻结？
+- Why it blocks design/implementation: 已完成业务与架构决策并回写SDS/Feature，不再阻断。
+- Options: A. CUS公开应用接口；B. 消费集成事件；C. 集成模块直写表。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: INT-03只调用`CustomerMasterDataApi`，不得直接写CUS表；CRM权威字段采用PRD明确范围，四维市场属性保存编码/名称；按`tenantId + crmCustomerId + sourceVersion`判定新旧，`eventId`防重复，同版本不同载荷进入冲突；客户编码软删除后仍占用；核心字段主表分列，来源映射、字段历史和同步快照独立追加保存。
+- Decision owner: 需求方；CUS、集成与数据架构负责人
+- Decision date: 2026-08-25
+
+### Q-FCUS-002
+
+- Status: RESOLVED
+- Requirement IDs: CUS-03、EQP-01、PM-01
+- Area: F-CUS-001跨域引用守卫与客户地点命令
+- Question: 删除客户前哪些Owner参与引用守卫；客户Address/Site引用如何维护？
+- Why it blocks design/implementation: 已完成业务与架构决策并回写SDS/Feature，不再阻断。
+- Options: A. 统一批量引用守卫；B. 各域定制；C. CUS本地投影。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: 删除前检查项目、设备、联系人、领域任务和外部问题记录等全部有效业务引用；任一守卫未知、超时或不可用时失败关闭。各Owner实现统一`CustomerReferenceGuardApi`批量契约并返回类型、数量和最小摘要，CUS不得跨域查表。CUS只保存Address/Site稳定ID、类型、来源版本和有效区间，写引用前调用`AssetLocationApi`校验租户、对象类型、存在性和版本。
+- Decision owner: 需求方；CUS、PROJ、AST及相关领域负责人
+- Decision date: 2026-08-25
+
+### Q-FCUS-003
+
+- Status: RESOLVED
+- Requirement IDs: CUS-03
+- Area: F-CUS-001独立customer模块迁移与权限契约
+- Question: 旧客户实现如何迁移，新API、API模块和权限如何冻结？
+- Why it blocks design/implementation: 已完成业务与架构决策并回写SDS/Feature，不再阻断。
+- Options: A. 一次性切换Owner；B. 短期双写；C. 长期兼容。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: 新建`pms-module-customer`和稳定`pms-module-customer-api`；以前向迁移一次性切换Owner，不设双写期。旧客户API立即退出，新路径固定为`/api/v1/pms/customers`。联系方式默认脱敏，具备敏感查看权限且命中数据范围时详情可见明文，导出另需权限并审计。权限拆分为查询、创建、更新、删除、恢复、敏感查看和导出。
+- Decision owner: 需求方；CUS、PROJ、数据与权限负责人
+- Decision date: 2026-08-25
+
+### Q-FAST-001
+
+- Status: RESOLVED
+- Requirement IDs: EQP-01、EQP-04、INT-02、INT-04
+- Area: F-AST-001官网信息与V1外部来源交付边界
+- Question: 官网信息Owner、维护方式及外部同步未完成时的验收边界如何冻结？
+- Why it blocks design/implementation: 已完成业务与架构决策并回写SDS/Feature，不再阻断。
+- Options: A. KNO受控维护；B. 自动采集；C. MES提供。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: 官网信息归KNO，由授权人员受控维护来源URL、核验时间、摘要和版本，V1不建设自动爬取。AST通过KNO公开查询契约按产品/设备映射读取已发布版本，无记录显示未维护。`INT-02`、`INT-04`和`EQP-04`保持独立Feature；其未完成时F-AST-001允许使用已核验种子或受控替身验收主档消费和降级，但不得宣称外部同步完成。
+- Decision owner: 需求方；AST、KNO与集成负责人
+- Decision date: 2026-08-25
+
+### Q-FAST-002
+
+- Status: RESOLVED
+- Requirement IDs: EQP-01、CUS-03
+- Area: F-AST-001客户直接归属时态写契约
+- Question: 设备客户归属Owner、命令、状态守卫和物理模型如何冻结？
+- Why it blocks design/implementation: 已完成业务与架构决策并回写SDS/Feature，不再阻断。
+- Options: A. AST单一Owner；B. CUS维护；C. 跟随项目。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: AST是设备当前客户直接归属、时态历史及租用/共管关系的单一Owner；稳定命令为`POST /api/v1/pms/devices/{id}/actions/assign-customer`。停用客户禁止新归属，已有关系与历史保留并进入待核对。物理模型采用当前唯一表加统一时态关系表；项目当前客户与设备当前客户不一致时保留双方事实并创建待核对项，不自动覆盖。
+- Decision owner: 需求方；AST、CUS与数据架构负责人
+- Decision date: 2026-08-25
+
+### Q-FAST-003
+
+- Status: RESOLVED
+- Requirement IDs: EQP-01、EQP-02
+- Area: F-AST-001字段级API、权限与机器物理契约
+- Question: 详情DTO、权限、下载、来源状态及物理模型如何冻结？
+- Why it blocks design/implementation: 已完成业务与架构决策并回写SDS/Feature，不再阻断。
+- Options: A. 固定外壳和分Tab DTO；B. 单一大DTO；C. 动态Map。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: 设备详情采用固定摘要外壳和分Tab DTO，各切片统一返回`sourceSystem/sourceVersion/dataAsOf/syncStatus`。沿用现有资产查询/维护权限，仅新增项目归属、客户归属、冲突处置和配置Log下载高风险权限；Log查看同时校验设备查询和文件查看权限。下载链接默认5分钟、可配置并绑定用户。来源状态统一为`FRESH/STALE/FAILED/PENDING_MAPPING/NOT_AVAILABLE`。物理模型采用Device主表加MES/ITR/KNO等分来源表；序列号软删除后仍占用并沿用原deviceId恢复。
+- Decision owner: 需求方；AST、KNO、权限与数据架构负责人
+- Decision date: 2026-08-25
