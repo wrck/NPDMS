@@ -104,7 +104,8 @@
       "trustedContext": ["tenantId"],
       "response": ["provider", "factVersion", "watermark", "factDigest", "blockers"],
       "blockerItem": ["objectType", "objectId", "status", "code", "summary"],
-      "requiredProviders": ["PROJECT_TREE", "BPM_APPROVAL", "PROJECT_TASK", "CUTOVER", "COLLECTION", "INSPECTION"],
+      "requiredProviders": ["PROJECT_TREE", "BPM_APPROVAL", "PROJECT_TASK", "CUTOVER", "INSPECTION"],
+      "reservedProviders": ["COLLECTION"],
       "forbiddenDependencies": ["PROVIDER_BIZ", "PROVIDER_SERVICE", "PROVIDER_MAPPER", "PROVIDER_REPOSITORY", "PROVIDER_TABLE"]
     }
   },
