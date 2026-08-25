@@ -18,10 +18,12 @@ public record ProjectGovernanceHistoryPageQuery(
                 || pageParam.getPageSize() > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("pageSize must be between 1 and " + MAX_PAGE_SIZE);
         }
-        PageParam copy = new PageParam();
-        copy.setPageNo(pageParam.getPageNo());
-        copy.setPageSize(pageParam.getPageSize());
-        pageParam = copy;
+        pageParam = copyOf(pageParam);
+    }
+
+    @Override
+    public PageParam pageParam() {
+        return copyOf(pageParam);
     }
 
     public long offset() {
@@ -30,5 +32,12 @@ public record ProjectGovernanceHistoryPageQuery(
 
     public int limit() {
         return pageParam.getPageSize();
+    }
+
+    private static PageParam copyOf(PageParam source) {
+        PageParam copy = new PageParam();
+        copy.setPageNo(source.getPageNo());
+        copy.setPageSize(source.getPageSize());
+        return copy;
     }
 }

@@ -31,7 +31,9 @@ class FProj006Task2PersistenceTest(unittest.TestCase):
                              "projectgovernance/query/ProjectGovernanceHistoryPageQuery.java").read_text(encoding="utf-8")
         self.assertIn("PageParam pageParam", page_query)
         self.assertIn("MAX_PAGE_SIZE = 200", page_query)
-        self.assertIn("pageParam = copy", page_query)
+        self.assertIn("pageParam = copyOf(pageParam)", page_query)
+        self.assertIn("public PageParam pageParam()", page_query)
+        self.assertIn("return copyOf(pageParam)", page_query)
 
     def test_snapshot_mapper_has_only_append_insert_and_read_contracts(self) -> None:
         mapper = (ROOT / "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/"
