@@ -29,6 +29,14 @@
         FOR UPDATE
     </select>
 
+    <select id="selectByItemForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO">
+        SELECT <include refid="columns"/> FROM sol_dynamic_form_instance
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+          AND item_id = #{query.itemId}
+        FOR UPDATE
+    </select>
+
     <select id="selectListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO">
         SELECT <include refid="columns"/> FROM sol_dynamic_form_instance
         WHERE tenant_id = #{query.tenantId}

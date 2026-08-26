@@ -1,14 +1,21 @@
 package cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationCursorPageRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationCandidatePageReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationItemPatchReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationItemPatchRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationItemRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationRespVO;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
+import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,12 +27,16 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.UUID;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
@@ -39,6 +50,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.P
 public class PreparationController {
 
     private final PreparationQueryService queryService;
+    private final PreparationItemApplicationService itemApplicationService;
     private final Environment environment;
 
     @GetMapping
@@ -66,6 +78,38 @@ public class PreparationController {
         return withTrustedTenant(() -> success(queryService.getItems(id, request, actor())));
     }
 
+    @GetMapping("/{id}/assignment-candidates")
+    @Operation(summary = "按项目所属组织分页查询工勘负责人候选")
+    @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
+    public CommonResult<PageResult<OrganizationUserCandidateRespDTO>> getAssignmentCandidates(
+            @PathVariable("id") @Positive Long id,
+            @Valid @ModelAttribute PreparationCandidatePageReqVO request) {
+        return withTrustedTenant(() -> success(itemApplicationService.getCandidates(id, request, commandActor())));
+    }
+
+    @PatchMapping("/{id}/items/{itemId}")
+    @Operation(summary = "按字段存在性修改工勘项及固定表单")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:manage','pms:preparation-survey:fill')")
+    public CommonResult<PreparationItemPatchRespVO> patchItem(
+            @PathVariable("id") @Positive Long id,
+            @PathVariable("itemId") @Positive Long itemId,
+            @RequestHeader("If-Match") String ifMatch,
+            @Valid @RequestBody PreparationItemPatchReqVO request) {
+        return withTrustedTenant(() -> {
+            var evidence = request.getEvidenceReferences() == null ? null
+                    : request.getEvidenceReferences().stream().map(row ->
+                    new PatchPreparationItemCommand.EvidenceReference(row.getArtifactId(), row.getVersionNo(),
+                            row.getReferenceKey(), row.getFileFactVersion(), row.getScopeVersion())).toList();
+            var command = new PatchPreparationItemCommand(id, itemId, parseVersion(ifMatch),
+                    request.getExpectedPreparationVersion(), request.getExpectedInputVersion(),
+                    request.getExpectedReadinessVersion(), request.getExpectedFormVersion(),
+                    request.getExpectedProjectVersion(), request.getSubmittedFields(),
+                    request.getApplicabilityCode(), request.getOutsourced(), request.getAssigneeUserId(),
+                    request.getSiteResultCode(), request.getSiteResultDetail(), request.getFormValueSnapshot(), evidence);
+            return success(itemApplicationService.patch(command, commandActor()));
+        });
+    }
+
     @GetMapping("/history")
     @Operation(summary = "稳定游标查询项目工勘准备版本历史")
     @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:query','pms:preparation-survey:manage')")
@@ -79,6 +123,23 @@ public class PreparationController {
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
         if (actorId == null || actorId <= 0) throw exception(PREPARATION_PROJECT_FACT_INVALID);
         return new PreparationQueryService.Actor(TenantContextHolder.getRequiredTenantId(), actorId);
+    }
+
+    private PreparationItemApplicationService.Actor commandActor() {
+        Long actorId = SecurityFrameworkUtils.getLoginUserId();
+        if (actorId == null || actorId <= 0) throw exception(PREPARATION_PROJECT_FACT_INVALID);
+        return new PreparationItemApplicationService.Actor(TenantContextHolder.getRequiredTenantId(), actorId,
+                UUID.randomUUID().toString());
+    }
+
+    private Integer parseVersion(String value) {
+        try {
+            int version = Integer.parseInt(value);
+            if (version < 0) throw new NumberFormatException();
+            return version;
+        } catch (NumberFormatException failure) {
+            throw exception(PREPARATION_PROJECT_FACT_INVALID);
+        }
     }
 
     private <T> T withTrustedTenant(Supplier<T> action) {

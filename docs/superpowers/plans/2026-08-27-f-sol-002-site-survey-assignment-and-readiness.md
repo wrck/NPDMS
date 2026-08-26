@@ -205,7 +205,7 @@ Expected: 初始化与查询API主线PASS。提交：`feat(engineering): 初始�
 
 - [ ] **Step 1: 实现项目经理指派与适用性管理**
 
-项目经理可修改负责人、适用性、外包和结构化地点引用；每次只更新实际提交字段，空PATCH拒绝。候选分页复用SYSTEM公开`OrganizationUserCandidateApi`及项目所属公司/部门范围，服务端再次校验用户启用、同租户和组织范围；空范围返回空，不扩大为全租户。写成功递增item/form及preparation inputVersion并使旧快照非当前。
+项目经理可修改负责人、适用性和外包；每次只更新实际提交字段，空PATCH拒绝。候选分页复用SYSTEM公开`OrganizationScopeApi.pageActiveUsers`及PROJ公开`ProjectOrganizationFactApi`返回的项目所属公司/部门范围，服务端再次校验用户启用、同租户和组织范围；空范围返回空，不扩大为全租户。地点维护继续使用独立AST公共能力，本Feature不在PRE-02 PATCH、item/form、inputVersion或就绪事实中保存、复制或冻结地点真值。写成功递增实际修改的item/form及preparation inputVersion并使旧快照非当前。
 
 - [ ] **Step 2: 实现负责人填写**
 

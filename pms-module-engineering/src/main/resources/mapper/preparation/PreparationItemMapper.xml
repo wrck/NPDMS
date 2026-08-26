@@ -35,6 +35,12 @@
         )
     </insert>
 
+    <select id="selectByObjectId" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.itemId}
+    </select>
+
     <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
         SELECT <include refid="columns"/> FROM sol_preparation_item
         WHERE tenant_id = #{query.tenantId}
