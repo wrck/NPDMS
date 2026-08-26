@@ -6,7 +6,7 @@
 > Implementation Done Gate：`PENDING`
 > Technical Plan Gate：`PASS / NPDMS-FSOL001-TECHPLAN-20260826-01`
 > 当前阻断：Task 6客户依据成功提交、Task 9对应真实场景、Task 10完整浏览器闭环及Feature Done依赖`PLT-02 / FileArtifact`真实公共事实；不阻断此前独立任务
-> 当前任务：`Task 3 建立SOL持久化、状态值域和查询原语`
+> 当前任务：`Task 4 实现首次工期录入与查询`
 > Requirement ID：`PRE-01（V1）`
 > Feature Spec：`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`
 > Feature物理契约：`specs/features/F-SOL-001-physical-contract.json`
@@ -25,7 +25,7 @@
 
 - [x] Task 1 建立SOL工期物理模型、配置种子和Feature工作单（PASS / `b2b019d` / 独立裁决GO）
 - [x] Task 2 提供PROJ项目资格与当前参与人公共事实（PASS / `365d907` / 独立裁决GO）
-- [ ] Task 3 建立SOL持久化、状态值域和查询原语
+- [x] Task 3 建立SOL持久化、状态值域和查询原语（PASS / `3e3bdf3` + `df3f3ce` / 独立裁决GO）
 - [ ] Task 4 实现首次工期录入与查询
 - [ ] Task 5 实现工期变更草稿与部分更新
 - [ ] Task 6 冻结依据并提交平台BPM审批
@@ -41,3 +41,5 @@
 > 检查点（2026-08-26）：Task 2提交`365d9073f56ecbc5ad41cc98d2d03b78fd820169`经独立复审GO；公共契约、封闭角色值域、受信租户、项目行与主责区间锁顺序、版本/阶段守卫及范围边界均通过，允许推进Task 3。
 
 > 检查点（2026-08-26）：Task 3已完成自然日工期规则、三表DO、封闭写接口、场景化锁定/CAS/稳定分页与流程实例查询原语；聚焦规则、Mapper接口契约及V1～V91隔离MySQL回归10/10、20模块Reactor均PASS，当前等待独立Implementation Done复审，尚未回写Task 3 PASS。
+
+> 检查点（2026-08-26）：Task 3候选提交`3e3bdf3`及整改提交`df3f3cec5cb032dbeb72a128e2cf17a4c7c8914e`经独立复审GO；通用CRUD写入口已封闭，显式持久化原语、日期规则和真实MySQL证据均通过，允许推进Task 4。
