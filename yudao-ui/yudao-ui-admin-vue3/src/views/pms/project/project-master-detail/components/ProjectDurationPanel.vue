@@ -180,7 +180,10 @@ const load = async () => {
     draft.value = undefined
     if (plan.value) {
       const page = await DurationApi.getChanges(plan.value.planId, { pageSize: 20 })
-      draft.value = page.items.find((item) => item.status === 'DRAFT')
+      const draftSummary = page.items.find((item) => item.status === 'DRAFT')
+      draft.value = draftSummary
+        ? await DurationApi.getChange(plan.value.planId, draftSummary.changeId)
+        : undefined
     }
   } finally {
     loading.value = false

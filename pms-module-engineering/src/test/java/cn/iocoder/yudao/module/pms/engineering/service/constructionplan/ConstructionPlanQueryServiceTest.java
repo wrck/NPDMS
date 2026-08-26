@@ -76,6 +76,24 @@ class ConstructionPlanQueryServiceTest {
     }
 
     @Test
+    void detailReturnsPendingChangeCandidateRevision() {
+        stubViewScope();
+        ConstructionPlanDO plan = plan();
+        plan.setPendingChangeId(801L);
+        when(planMapper.selectById(any())).thenReturn(plan);
+        when(revisionMapper.selectById(any())).thenReturn(
+                revision(701L, 1), revision(702L, 2));
+        when(changeMapper.selectById(any())).thenReturn(change(801L,
+                LocalDateTime.of(2026, 8, 26, 13, 0)));
+
+        var response = service.getById(501L, actor());
+
+        assertEquals(801L, response.getPendingChangeSummary().getChangeId());
+        assertEquals(702L, response.getPendingChangeSummary().getCandidateRevision().getRevisionId());
+        assertEquals("customer-delay", response.getPendingChangeSummary().getCustomerEvidenceReferenceKey());
+    }
+
+    @Test
     void revisionPageUsesStableCursorAndOneExtraRow() {
         stubViewScope();
         when(planMapper.selectById(any())).thenReturn(plan());
@@ -128,6 +146,7 @@ class ConstructionPlanQueryServiceTest {
 
         assertEquals(801L, response.getChangeId());
         assertEquals(702L, response.getCandidateRevision().getRevisionId());
+        assertEquals("customer-delay", response.getCustomerEvidenceReferenceKey());
         assertFalse(response.getCandidateRevision().getCurrent());
     }
 
@@ -177,6 +196,7 @@ class ConstructionPlanQueryServiceTest {
         row.setStatusCode("DRAFT");
         row.setReasonTypeCode("CUSTOMER_DELAY");
         row.setCustomerEvidenceRequired(false);
+        row.setCustomerEvidenceReferenceKey("customer-delay");
         row.setApplicantUserId(9L);
         row.setCreatedAt(createdAt);
         row.setVersion(0);

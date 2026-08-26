@@ -49,6 +49,7 @@ describe('F-SOL-001 project duration panel', () => {
     expect(form).toContain('customerEvidenceReferenceKey')
     expect(panel).toContain('customerEvidenceRequired && !draft.value.customerEvidenceFileId')
     expect(form).not.toMatch(/customerEvidenceUrl|storagePath/)
+    expect(form.match(/emit\('saved'\)/g)?.length).toBeGreaterThanOrEqual(4)
   })
 
   it('uses platform BPM for approval and applicant cancellation without SOL terminal writes', () => {
@@ -62,6 +63,7 @@ describe('F-SOL-001 project duration panel', () => {
     expect(panel).toContain('plan.currentRevision')
     expect(panel).toContain('plan.pendingChangeSummary')
     expect(panel).toContain('PENDING_RECALCULATION')
+    expect(panel).toContain('await DurationApi.getChange(plan.value.planId, draftSummary.changeId)')
     expect(history).toContain('nextCursor')
     expect(history).toContain('hasMore')
   })

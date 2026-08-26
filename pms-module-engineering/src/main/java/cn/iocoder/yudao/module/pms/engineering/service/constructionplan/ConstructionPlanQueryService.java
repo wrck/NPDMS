@@ -137,11 +137,22 @@ public class ConstructionPlanQueryService {
         if (plan.getPendingChangeId() != null && pending == null) {
             throw exception(CONSTRUCTION_PLAN_NOT_EXISTS);
         }
+        ConstructionPlanRevisionDO pendingCandidate = pending == null ? null
+                : revisionMapper.selectById(new ConstructionPlanRevisionLockQuery(
+                        actor.tenantId(), plan.getId(), pending.getCandidateRevisionId()));
+        if (pending != null && pendingCandidate == null) {
+            throw exception(CONSTRUCTION_PLAN_NOT_EXISTS);
+        }
         ConstructionPlanRespVO response = new ConstructionPlanRespVO();
         response.setPlanId(plan.getId());
         response.setProjectId(plan.getProjectId());
         response.setCurrentRevision(toRevision(current, plan.getCurrentDurationRevisionId()));
-        response.setPendingChangeSummary(pending == null ? null : toChange(pending));
+        if (pending != null) {
+            ConstructionPlanChangeRespVO pendingSummary = toChange(pending);
+            pendingSummary.setCandidateRevision(toRevision(
+                    pendingCandidate, plan.getCurrentDurationRevisionId()));
+            response.setPendingChangeSummary(pendingSummary);
+        }
         response.setPlanRecalculationStatus(plan.getPlanRecalculationStatusCode());
         response.setPlanRecalculationSourceRevisionId(plan.getPlanRecalculationSourceRevisionId());
         response.setPlanVersion(plan.getVersion());
@@ -197,6 +208,7 @@ public class ConstructionPlanQueryService {
         response.setCustomerEvidenceRequired(row.getCustomerEvidenceRequired());
         response.setCustomerEvidenceFileId(row.getCustomerEvidenceFileId());
         response.setCustomerEvidenceFileVersion(row.getCustomerEvidenceFileVersion());
+        response.setCustomerEvidenceReferenceKey(row.getCustomerEvidenceReferenceKey());
         response.setProcessDefinitionKey(row.getProcessDefinitionKey());
         response.setProcessInstanceId(row.getProcessInstanceId());
         response.setSubmittedAt(row.getSubmittedAt());

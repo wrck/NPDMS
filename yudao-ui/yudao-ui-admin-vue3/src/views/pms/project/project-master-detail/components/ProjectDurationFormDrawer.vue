@@ -269,6 +269,7 @@ const saveEvidence = async (selection: FileSelection) => {
         customerEvidenceFileVersion: selection.versionNo,
         customerEvidenceReferenceKey: selection.referenceKey
       })
+    emit('saved')
   } catch {
     const recovered = await recoverDraftAfterPatchLoss()
     message.warning(
@@ -307,6 +308,7 @@ const clearEvidence = async (result: DetachedFileSlot) => {
         customerEvidenceFileVersion: undefined,
         customerEvidenceReferenceKey: undefined
       })
+    emit('saved')
   } catch {
     const recovered = await recoverDraftAfterPatchLoss()
     message.warning(
