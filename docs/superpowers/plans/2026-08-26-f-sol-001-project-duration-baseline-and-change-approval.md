@@ -59,19 +59,19 @@ F-SOL-001内不得创建`plt_file_*`表、空`-api`、URL兼容字段、总是�
 
 **Consumes:** 机器物理契约三表、三轴状态、V1～V89不可变、字典/配置/权限和旧入口冻结规则。
 
-- [ ] **Step 1: 创建三张前向表**
+- [x] **Step 1: 创建三张前向表**
 
 V90创建`sol_construction_plan`、`sol_construction_plan_revision`、`sol_construction_plan_change`。使用`tenant_id+id`引用键及契约中的稳定唯一键、索引和SOL内部复合外键；`project_id`不建PROJ外键。plan两个revision指针物理可空以解除插入环，但应用事务提交前必须满足非空同租户同plan不变量。根唯一键精确为`uk(tenant_id,project_id)`，不含`deleted`；不创建`sol_construction_plan_item`。
 
-- [ ] **Step 2: 建立确定性种子**
+- [x] **Step 2: 建立确定性种子**
 
 V91以幂等SQL写`pms_duration_change_reason_type`、`CUSTOMER_DELAY`、配置`pms.sol.duration-change.customer-evidence-required-reason-codes=CUSTOMER_DELAY`和三项功能权限菜单。新写权限不自动授予角色。冻结旧工期倒排/计划变更PRE-01写菜单和角色关联，不删除旧表、历史数据或仍供后续PLN分析的只读证据。
 
-- [ ] **Step 3: 建立错误码和工作单**
+- [x] **Step 3: 建立错误码和工作单**
 
 在engineering错误码现有分段后新增`construction-plan`专用稳定错误码，覆盖不存在、参数、状态、版本、项目事实、待审冲突、BPM配置/关联、字典配置和FileArtifact不可用/无权。创建`tasks/features/F-SOL-001.md`，记录Feature Ready PASS、锁定规格提交、Technical Plan待审、Task 1～10和PLT-02依赖；不复制历史`tasks/plan.md`。
 
-- [ ] **Step 4: 实施后验证并提交**
+- [x] **Step 4: 实施后验证并提交**
 
 验证V1→V91空库迁移、三表字段/唯一键/外键、同项目重复根、指针约束策略、字典/配置/权限种子幂等、V1～V89内容未变和无旧表双写。运行迁移契约测试、`mvn -pl pms-module-engineering -am -DskipTests compile`及`git diff --check`。
 
@@ -408,4 +408,4 @@ Expected: 完整证据与独立GO成立。提交：`docs(feature): 通过 F-SOL-
 
 ## Technical Plan Gate
 
-当前状态：`PENDING_INDEPENDENT_REVIEW`。计划提交并取得独立GO前不得开始Task 1实现。
+当前状态：`GO / NPDMS-FSOL001-TECHPLAN-20260826-01`。整改提交`5dfaf2c951ec246f4150f9ee77901dd64a97cf43`已获独立批准，允许按计划从Task 1开始实施。

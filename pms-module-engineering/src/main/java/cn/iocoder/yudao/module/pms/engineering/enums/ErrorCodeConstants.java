@@ -28,6 +28,7 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
  * - ann-check:      1-011-020-000 (V2 FR-ENG-009)
  * - authorization:  1-011-021-000 (V2 FR-ENG-010)
  * - doc-template:   1-011-022-000 (V36 结构化文档模板)
+ * - construction-plan: 1-011-023-000 (F-SOL-001 PRE-01)
  */
 public interface ErrorCodeConstants {
 
@@ -188,5 +189,19 @@ public interface ErrorCodeConstants {
     ErrorCode DOC_TEMPLATE_VERSION_PUBLISHED = new ErrorCode(1_011_022_006, "已发布版本不可修改");
     ErrorCode DOC_TEMPLATE_PARENT_NOT_EXISTS = new ErrorCode(1_011_022_007, "父模板不存在");
     ErrorCode DOC_TEMPLATE_NO_PUBLISHED_VERSION = new ErrorCode(1_011_022_008, "模板尚无已发布版本，无法使用");
+
+    // ========== 项目工期 construction-plan 1-011-023-000 ==========
+    ErrorCode CONSTRUCTION_PLAN_NOT_EXISTS = new ErrorCode(1_011_023_000, "项目工期不存在");
+    ErrorCode CONSTRUCTION_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_023_001, "项目工期参数无效");
+    ErrorCode CONSTRUCTION_PLAN_STATUS_INVALID = new ErrorCode(1_011_023_002, "项目工期当前状态不允许该操作");
+    ErrorCode CONSTRUCTION_PLAN_VERSION_NOT_MATCH = new ErrorCode(1_011_023_003, "项目工期版本号已变更，请刷新后重试");
+    ErrorCode CONSTRUCTION_PLAN_PROJECT_FACT_INVALID = new ErrorCode(1_011_023_004, "项目资格或当前参与人事实无效");
+    ErrorCode DURATION_CHANGE_NOT_EXISTS = new ErrorCode(1_011_023_005, "工期变更不存在");
+    ErrorCode DURATION_CHANGE_PENDING_CONFLICT = new ErrorCode(1_011_023_006, "项目已存在待审批的工期变更");
+    ErrorCode DURATION_CHANGE_BPM_CONFIG_INVALID = new ErrorCode(1_011_023_007, "工期变更审批流程配置无效");
+    ErrorCode DURATION_CHANGE_BPM_ASSOCIATION_INVALID = new ErrorCode(1_011_023_008, "工期变更审批流程关联无效");
+    ErrorCode DURATION_CHANGE_REASON_CONFIG_INVALID = new ErrorCode(1_011_023_009, "工期变更原因或客户依据配置无效");
+    ErrorCode DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE = new ErrorCode(1_011_023_010, "客户依据文件事实暂不可用");
+    ErrorCode DURATION_CHANGE_FILE_ARTIFACT_FORBIDDEN = new ErrorCode(1_011_023_011, "无权使用客户依据文件");
 
 }
