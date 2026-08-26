@@ -1,12 +1,12 @@
 # F-SOL-001 项目工期基线与版本化变更审批
 
-> Feature实施状态：`IMPLEMENTATION_REVIEW_PENDING`
+> Feature实施状态：`IMPLEMENTING`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`PASS / NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`
 > Implementation Done Gate：`PENDING`
 > Technical Plan Gate：`PASS / NPDMS-FSOL001-TECHPLAN-20260826-01`
 > 当前阻断：Task 6客户依据成功提交、Task 9对应真实场景、Task 10完整浏览器闭环及Feature Done依赖`PLT-02 / FileArtifact`真实公共事实；不阻断此前独立任务
-> 当前任务：`Task 1 实施与验证完成，待独立Implementation Done复审`
+> 当前任务：`Task 2 提供PROJ项目资格与当前参与人公共事实`
 > Requirement ID：`PRE-01（V1）`
 > Feature Spec：`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`
 > Feature物理契约：`specs/features/F-SOL-001-physical-contract.json`
@@ -23,7 +23,7 @@
 
 ## 任务跟踪
 
-- [ ] Task 1 建立SOL工期物理模型、配置种子和Feature工作单（实施候选已完成，待独立GO）
+- [x] Task 1 建立SOL工期物理模型、配置种子和Feature工作单（PASS / `b2b019d` / 独立裁决GO）
 - [ ] Task 2 提供PROJ项目资格与当前参与人公共事实
 - [ ] Task 3 建立SOL持久化、状态值域和查询原语
 - [ ] Task 4 实现首次工期录入与查询
@@ -34,4 +34,4 @@
 - [ ] Task 9 完成真实MySQL、事务并发和BPM集成验证
 - [ ] Task 10 完成真实浏览器、独立复审和Feature Done回写
 
-> 检查点（2026-08-26）：Task 1候选已完成；V1～V91隔离MySQL迁移、根唯一键、种子幂等、迁移契约4/4、20模块Reactor编译及规格快照校验均PASS，待提交并送独立复审。
+> 检查点（2026-08-26）：Task 1提交`b2b019d`经独立复审GO；V1～V91隔离MySQL迁移、根唯一键、种子幂等、迁移契约4/4、20模块Reactor编译及规格快照校验均PASS，允许推进Task 2。
