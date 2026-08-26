@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
 > Implementation Done Gate：`PENDING`
 > 当前阻断：`无；INT-05未实施时仅OA必需项保持NOT_READY，不阻断无OA正向主线`
-> 当前任务：`Task 4 实现模板初始化、当前准备查询与历史投影`
+> 当前任务：`Task 5 实现逐项指派、填写与精确文件证据`
 > Requirement ID：`PRE-02（V1/P0）`
 > Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
 > Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
@@ -26,8 +26,8 @@
 - [x] Task 1 建立PRE-02六表、字典权限与Feature工作单（PASS / NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1）
 - [x] Task 2 提供PROJ冻结WorkBinding公共事实（PASS / NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1）
 - [x] Task 3 实现SOL六表持久化原语与固定表单规则（PASS / 979a0588cae59b90359e7c4aab6f7413f2b64377）
-- [ ] Task 4 实现模板初始化、当前准备查询与历史投影（实施中）
-- [ ] Task 5 实现逐项指派、填写与精确文件证据
+- [x] Task 4 实现模板初始化、当前准备查询与历史投影（PASS / 7f340ba21a41d6eeb5d798d95b4d7285e23c16a9）
+- [ ] Task 5 实现逐项指派、填写与精确文件证据（实施中）
 - [ ] Task 6 实现提交、逐项确认及退回新版本
 - [ ] Task 7 实现就绪评估、不可变快照与公共重验API
 - [ ] Task 8 实现来源同步异常、外包引用与逐项豁免
@@ -53,3 +53,5 @@
 > Task 4候选证据（2026-08-27）：新增窄`pms-module-engineering-api`初始化契约；项目创建仅在冻结模板声明PRE-02时，按冻结ProjectTask/ExecutionContract事实生成稳定初始化键并在外层事务同步调用SOL。SOL初始化使用受信租户、PROJ WorkBinding锁定重验及平台四段幂等，原子创建businessVersion 1 current DRAFT、启用工勘项与固定Schema表单；跨actor授权恢复按稳定业务键返回既有事实且只追加真实actor的NO_CHANGE审计。当前/详情/items/版本历史查询使用PROJECT_VIEW、稳定游标和批量表单投影，无用户初始化HTTP。聚焦回归20/20 PASS；`mvn.cmd -pl pms-module-engineering -am test`为27模块Reactor BUILD SUCCESS，其中PROJECT 446项0失败、ENGINEERING 119项0失败，真实环境条件用例按既有开关跳过。正式PASS以独立Implementation Done裁决为准。
 
 > Task 4整改证据（2026-08-27）：同actor遇到既有businessVersion 1时仍进入原四段平台幂等作用域，由平台对同key同digest返回原结果、异digest拒绝；跨actor授权恢复继续按稳定业务键返回既有事实并只记录真实actor的`PREPARATION_INITIALIZATION_RECOVERY/NO_CHANGE`。新增隔离MySQL真实装配回归，使用真实PROJ项目/任务/ExecutionContract、SOL Preparation/item/form Mapper和平台幂等/审计实现；成功路径证明三域事实在项目创建外层事务共同提交，SOL写入后强制异常证明三域事实共同回滚。聚焦单元与真实MySQL共5/5 PASS。正式PASS以独立Implementation Done复审为准。
+
+> Task 4独立裁决（2026-08-27）：提交`7f340ba21a41d6eeb5d798d95b4d7285e23c16a9`闭环同actor平台幂等重放及PROJ/SOL/平台真实外层事务共同提交与共同回滚；独立复审GO，允许回写PASS并推进Task 5。
