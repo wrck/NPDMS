@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.project.api.scope;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 
 /** 项目范围公开契约；项目树和授权合并算法仅由PROJ实现。 */
 public interface ProjectScopeApi {
@@ -15,4 +16,7 @@ public interface ProjectScopeApi {
 
     /** 由PROJ选择当前生效树版本后解析范围。 */
     ProjectScopeResult resolveCurrent(ProjectCurrentScopeQuery query);
+
+    /** 锁住当前根树版本至外层事务结束；调用方必须比较返回版本与expectedScopeVersion。 */
+    ProjectScopeResult lockAndRevalidate(ProjectScopeRevalidationQuery query);
 }

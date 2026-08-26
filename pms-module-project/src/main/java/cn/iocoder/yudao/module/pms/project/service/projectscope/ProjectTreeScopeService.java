@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationG
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
@@ -63,6 +64,10 @@ public class ProjectTreeScopeService {
                 || !Objects.equals(currentVersion.getTreeVersion(), query.expectedTreeVersion())) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
+        return resolveAtVersion(query, rootId);
+    }
+
+    private ProjectTreeScope resolveAtVersion(ProjectScopeQuery query, long rootId) {
         Set<Long> rootNodes = pathMapper.selectByAncestor(
                         rootId, query.expectedTreeVersion(), rootId, null).stream()
                 .map(ProjectTreePathDO::getDescendantProjectId)
@@ -122,6 +127,33 @@ public class ProjectTreeScopeService {
         }
         return resolve(new ProjectScopeQuery(query.tenantId(), query.subjectUserId(),
                 query.anchorProjectId(), query.actionCode(), currentVersion.getTreeVersion()));
+    }
+
+    public ProjectTreeScope lockAndRevalidate(ProjectScopeRevalidationQuery query) {
+        validateRevalidation(query);
+        ProjectMasterDO initialAnchor = projectMapper.selectById(query.anchorProjectId());
+        if (initialAnchor == null || !Objects.equals(initialAnchor.getTenantId(), query.tenantId())) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        long rootId = initialAnchor.getRootId() == null ? initialAnchor.getId() : initialAnchor.getRootId();
+        ProjectMasterDO lockedRoot = projectMapper.selectByIdForUpdate(rootId);
+        if (lockedRoot == null || !Objects.equals(lockedRoot.getTenantId(), query.tenantId())) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        ProjectMasterDO lockedAnchor = Objects.equals(rootId, query.anchorProjectId())
+                ? lockedRoot : projectMapper.selectByIdForUpdate(query.anchorProjectId());
+        long lockedRootId = lockedAnchor == null || lockedAnchor.getRootId() == null
+                ? query.anchorProjectId() : lockedAnchor.getRootId();
+        if (lockedAnchor == null || !Objects.equals(lockedAnchor.getTenantId(), query.tenantId())
+                || !Objects.equals(rootId, lockedRootId)) {
+            throw exception(PROJECT_TREE_VERSION_CONFLICT);
+        }
+        ProjectTreeVersionDO lockedVersion = versionMapper.selectLatestActiveForUpdate(rootId);
+        if (lockedVersion == null) {
+            throw exception(PROJECT_TREE_VERSION_CONFLICT);
+        }
+        return resolveAtVersion(new ProjectScopeQuery(query.tenantId(), query.subjectUserId(),
+                query.anchorProjectId(), query.actionCode(), lockedVersion.getTreeVersion()), rootId);
     }
 
     /**
@@ -240,6 +272,17 @@ public class ProjectTreeScopeService {
 
     private void validateCurrent(ProjectCurrentScopeQuery query) {
         if (query == null) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        validateActorAction(query.tenantId(), query.subjectUserId(), query.actionCode());
+        if (query.anchorProjectId() == null || query.anchorProjectId() <= 0) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+    }
+
+    private void validateRevalidation(ProjectScopeRevalidationQuery query) {
+        if (query == null || query.expectedScopeVersion() == null
+                || query.expectedScopeVersion() <= 0) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
         validateActorAction(query.tenantId(), query.subjectUserId(), query.actionCode());

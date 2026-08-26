@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationG
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
@@ -92,6 +93,33 @@ class ProjectTreeScopeServiceTest {
 
         assertEquals(7L, scope.treeVersion());
         assertEquals(ProjectTreeScopeService.Visibility.FULL, scope.visibility(3L));
+    }
+
+    @Test
+    void revalidationLocksRootAndCurrentVersionAndReturnsLockedFact() {
+        ProjectMasterDO anchor = project(3L, 1L);
+        ProjectMasterDO root = project(1L, null);
+        when(projectMapper.selectById(3L)).thenReturn(anchor);
+        when(projectMapper.selectByIdForUpdate(1L)).thenReturn(root);
+        when(projectMapper.selectByIdForUpdate(3L)).thenReturn(anchor);
+        ProjectTreeVersionDO lockedVersion = new ProjectTreeVersionDO();
+        lockedVersion.setTreeVersion(7L);
+        when(versionMapper.selectLatestActiveForUpdate(1L)).thenReturn(lockedVersion);
+        when(pathMapper.selectByAncestor(1L, 7L, 1L, null)).thenReturn(List.of(
+                path(1L, 1L), path(1L, 3L)));
+        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+                .thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
+        when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
+                .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
+
+        var scope = service.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                0L, 9L, 3L, "PROJECT_VIEW", 6L));
+
+        assertEquals(7L, scope.treeVersion());
+        assertEquals(Set.of(3L), scope.fullProjectIds());
+        verify(projectMapper).selectByIdForUpdate(1L);
+        verify(projectMapper).selectByIdForUpdate(3L);
+        verify(versionMapper).selectLatestActiveForUpdate(1L);
     }
 
     @Test

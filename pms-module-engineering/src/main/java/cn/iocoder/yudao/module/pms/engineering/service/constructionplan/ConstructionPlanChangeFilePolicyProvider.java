@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipan
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -84,11 +85,13 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
         boolean mutating = MUTATING_ACTIONS.contains(query.requiredAction());
         Set<String> roles = mutating ? PROJECT_MANAGER_ROLE : FILE_READER_ROLES;
         String scopeAction = mutating ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
-        ProjectScopeResult scopeBefore = requireScope(query.tenantId(), query.actorUserId(),
-                located.plan().getProjectId(), scopeAction);
-        if (!Objects.equals(scopeBefore.treeVersion(), query.expectedScopeVersion())) {
+        ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(
+                new ProjectScopeRevalidationQuery(query.tenantId(), query.actorUserId(),
+                        located.plan().getProjectId(), scopeAction, query.expectedScopeVersion()));
+        requireScope(lockedScope, located.plan().getProjectId());
+        if (!Objects.equals(lockedScope.treeVersion(), query.expectedScopeVersion())) {
             return policy(actionAllowed(query.requiredAction(), located.change()),
-                    scopeBefore.treeVersion(), located.change());
+                    lockedScope.treeVersion(), located.change());
         }
         ProjectParticipantFact participant = participantFactApi.inspect(new ProjectParticipantFactQuery(
                 located.plan().getProjectId(), query.actorUserId(), roles, LocalDateTime.now()));
@@ -108,14 +111,8 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
                 || !Objects.equals(lockedPlan.getProjectId(), located.plan().getProjectId())) {
             return denied();
         }
-        ProjectScopeResult scopeAfter = requireScope(query.tenantId(), query.actorUserId(),
-                lockedPlan.getProjectId(), scopeAction);
-        if (!Objects.equals(scopeBefore.treeVersion(), scopeAfter.treeVersion())) {
-            return policy(actionAllowed(query.requiredAction(), lockedChange),
-                    scopeAfter.treeVersion(), lockedChange);
-        }
         return policy(actionAllowed(query.requiredAction(), lockedChange),
-                scopeAfter.treeVersion(), lockedChange);
+                lockedScope.treeVersion(), lockedChange);
     }
 
     private FileBusinessObjectPolicyFact inspectCurrent(Long actorUserId, String action, Context context) {
@@ -161,11 +158,15 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
                                             String action) {
         ProjectScopeResult scope = projectScopeApi.resolveCurrent(
                 new ProjectCurrentScopeQuery(tenantId, actorUserId, projectId, action));
+        requireScope(scope, projectId);
+        return scope;
+    }
+
+    private void requireScope(ProjectScopeResult scope, Long projectId) {
         if (scope == null || scope.treeVersion() == null || scope.treeVersion() < 0
                 || !scope.fullProjectIds().contains(projectId)) {
             throw new IllegalStateException("SOL_FILE_SCOPE_FORBIDDEN");
         }
-        return scope;
     }
 
     private boolean actionAllowed(String action, ConstructionPlanChangeDO change) {

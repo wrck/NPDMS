@@ -43,6 +43,7 @@ import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImp
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
+import cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
@@ -51,7 +52,14 @@ import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipan
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApiImpl;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeMetrics;
+import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
@@ -92,6 +100,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -113,6 +122,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -142,19 +152,22 @@ class DurationChangeBpmMySqlIntegrationTest {
     @Resource IdentityService identityService;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource PermissionApi permissionApi;
-    @Resource ProjectScopeApi projectScopeApi;
+    @Resource SwitchingProjectScopeApi projectScopeApi;
     @Resource SwitchingProjectParticipantFactApi participantFactApi;
     @Resource DictDataApi dictDataApi;
     @Resource ConfigApi configApi;
     @Resource DurationChangeApplicationService durationChangeService;
     @Resource BpmModelService modelService;
     @Resource BpmProcessDefinitionService processDefinitionService;
+    @Resource ProjectTreeProjectionService treeProjectionService;
+    @Resource TransactionTemplate transactionTemplate;
 
     private long projectId;
     private long planId;
     private long baseRevisionId;
     private long candidateRevisionId;
     private long changeId;
+    private long rootProjectId;
     private String deploymentId;
     private String processInstanceId;
     private BpmnModel bpmnModel;
@@ -195,6 +208,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         baseRevisionId = planId + 2;
         candidateRevisionId = planId + 3;
         changeId = planId + 4;
+        rootProjectId = planId + 20;
         bpmnModel = model();
         deploymentId = repositoryService.createDeployment()
                 .name(PROCESS_KEY)
@@ -202,7 +216,8 @@ class DurationChangeBpmMySqlIntegrationTest {
                 .addBpmnModel(PROCESS_KEY + ".bpmn20.xml", bpmnModel)
                 .deploy().getId();
         participantFactApi.useMock();
-        reset(permissionApi, projectScopeApi, participantFactApi.mock(), dictDataApi, configApi,
+        projectScopeApi.useMock();
+        reset(permissionApi, projectScopeApi.mock(), participantFactApi.mock(), dictDataApi, configApi,
                 modelService, processDefinitionService);
         when(modelService.getBpmnModelByDefinitionId(anyString())).thenReturn(bpmnModel);
         when(processDefinitionService.getProcessDefinitionInfo(anyString()))
@@ -232,9 +247,14 @@ class DurationChangeBpmMySqlIntegrationTest {
         jdbcTemplate.update("DELETE FROM sol_construction_plan_change WHERE tenant_id=0 AND plan_id=?", planId);
         jdbcTemplate.update("DELETE FROM sol_construction_plan_revision WHERE tenant_id=0 AND plan_id=?", planId);
         jdbcTemplate.update("DELETE FROM sol_construction_plan WHERE tenant_id=0 AND id=?", planId);
-        jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id=?",
-                projectId);
+        jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id IN (?,?)",
+                projectId, rootProjectId);
+        jdbcTemplate.update("DELETE FROM proj_project_tree_path WHERE tenant_id=0 AND root_project_id=?",
+                rootProjectId);
+        jdbcTemplate.update("DELETE FROM proj_project_tree_version WHERE tenant_id=0 AND root_project_id=?",
+                rootProjectId);
         jdbcTemplate.update("DELETE FROM proj_project WHERE tenant_id=0 AND id=?", projectId);
+        jdbcTemplate.update("DELETE FROM proj_project WHERE tenant_id=0 AND id=?", rootProjectId);
         jdbcTemplate.update("DELETE FROM plt_file_reference WHERE tenant_id=0 AND object_id=?",
                 String.valueOf(changeId));
         jdbcTemplate.update("DELETE FROM plt_file_version WHERE tenant_id=0 AND artifact_id=?", planId + 5);
@@ -398,6 +418,69 @@ class DurationChangeBpmMySqlIntegrationTest {
         assertEquals(baseRevisionId,
                 number("SELECT current_duration_revision_id FROM sol_construction_plan WHERE id=?", planId));
         assertEquals(changeId, number("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+    }
+
+    @Test
+    void concurrentTreePublishMakesFrozenScopeVersionConflictWithoutTerminalSideEffects() throws Exception {
+        prepareRequiredEvidenceSubmission();
+        insertRealProjectTreeFacts();
+        projectScopeApi.useReal();
+        participantFactApi.useReal();
+        login(APPLICANT);
+        var response = durationChangeService.submit(new SubmitDurationChangeCommand(
+                        planId, changeId, 0, 3,
+                        "task6-scope-submit-" + changeId, "f".repeat(64)),
+                new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
+                        "task6-scope-submit-" + changeId));
+        processInstanceId = response.getProcessInstanceId();
+
+        CountDownLatch rootLocked = new CountDownLatch(1);
+        CountDownLatch publishAllowed = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<?> publish = executor.submit(() -> {
+                TenantContextHolder.setTenantId(0L);
+                try {
+                    transactionTemplate.executeWithoutResult(status -> {
+                        jdbcTemplate.queryForObject("SELECT id FROM proj_project WHERE tenant_id=0 AND id=? FOR UPDATE",
+                                Long.class, rootProjectId);
+                        rootLocked.countDown();
+                        await(publishAllowed);
+                        treeProjectionService.publish(rootProjectId, 8L,
+                                "task6-scope-publish-" + changeId);
+                    });
+                } finally {
+                    TenantContextHolder.clear();
+                }
+            });
+            if (!rootLocked.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("树发布未取得根项目锁");
+            }
+            Future<?> terminal = executor.submit(() -> {
+                invoke(Command.APPROVE);
+                return null;
+            });
+            assertThrows(TimeoutException.class, () -> terminal.get(500, TimeUnit.MILLISECONDS));
+
+            publishAllowed.countDown();
+            publish.get(10, TimeUnit.SECONDS);
+            assertThrows(java.util.concurrent.ExecutionException.class,
+                    () -> terminal.get(10, TimeUnit.SECONDS));
+        } finally {
+            publishAllowed.countDown();
+        }
+
+        assertEquals(8L, number("SELECT MAX(tree_version) FROM proj_project_tree_version "
+                + "WHERE tenant_id=0 AND root_project_id=? AND status='ACTIVE'", rootProjectId));
+        assertNotNull(runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult());
+        assertEquals(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL,
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(baseRevisionId,
+                number("SELECT current_duration_revision_id FROM sol_construction_plan WHERE id=?", planId));
+        assertEquals(changeId, number("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND operation_code='DURATION_CHANGE_BPM_RESULT' "
+                + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(changeId)));
     }
 
     @Test
@@ -583,6 +666,17 @@ class DurationChangeBpmMySqlIntegrationTest {
         };
     }
 
+    private static void await(CountDownLatch latch) {
+        try {
+            if (!latch.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("等待并发事务超时");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("等待并发事务被中断", exception);
+        }
+    }
+
     private void invoke(Command command) {
         long actor = command == Command.CANCEL ? APPLICANT : APPROVER;
         login(actor);
@@ -600,11 +694,14 @@ class DurationChangeBpmMySqlIntegrationTest {
 
     private void stubAuthorization(Failure failure, Command command) {
         participantFactApi.useMock();
-        reset(permissionApi, projectScopeApi, participantFactApi.mock());
+        projectScopeApi.useMock();
+        reset(permissionApi, projectScopeApi.mock(), participantFactApi.mock());
         when(permissionApi.hasAnyPermissions(anyLong(), anyString())).thenReturn(failure != Failure.PERMISSION);
-        when(projectScopeApi.resolveCurrent(any())).thenReturn(failure == Failure.SCOPE
+        ProjectScopeResult scope = failure == Failure.SCOPE
                 ? new ProjectScopeResult(projectId, 7L, Set.of(), Set.of())
-                : new ProjectScopeResult(projectId, 7L, Set.of(projectId), Set.of()));
+                : new ProjectScopeResult(projectId, 7L, Set.of(projectId), Set.of());
+        when(projectScopeApi.mock().resolveCurrent(any())).thenReturn(scope);
+        when(projectScopeApi.mock().lockAndRevalidate(any())).thenReturn(scope);
         long actor = command == Command.CANCEL ? APPLICANT : APPROVER;
         Set<String> roles = command == Command.CANCEL
                 ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
@@ -680,6 +777,44 @@ class DurationChangeBpmMySqlIntegrationTest {
                 ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
     }
 
+    private void insertRealProjectTreeFacts() {
+        jdbcTemplate.update("INSERT INTO proj_project "
+                        + "(id,project_code,code_root_id,project_sequence,project_name,manager_id,root_id,tree_path,"
+                        + "tree_depth,tree_sort,status,lifecycle_status,current_stage,assignment_status,"
+                        + "task_tree_version,task_progress_version,version,tenant_id) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?,?,'S0','ACTIVE','S1','ASSIGNED',0,0,3,0)",
+                rootProjectId, "FSOL001-T6-ROOT-" + rootProjectId, rootProjectId, 0,
+                "F-SOL-001 Task6 Root " + rootProjectId, APPLICANT, rootProjectId, "/", 0, 0);
+        jdbcTemplate.update("INSERT INTO proj_project "
+                        + "(id,project_code,code_root_id,project_sequence,project_name,manager_id,parent_id,root_id,tree_path,"
+                        + "tree_depth,tree_sort,status,lifecycle_status,current_stage,assignment_status,"
+                        + "task_tree_version,task_progress_version,version,tenant_id) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?,?,?,'S0','ACTIVE','S1','ASSIGNED',0,0,3,0)",
+                projectId, "FSOL001-T6-CHILD-" + projectId, rootProjectId, 1,
+                "F-SOL-001 Task6 Child " + projectId, APPLICANT, rootProjectId, rootProjectId,
+                "/" + rootProjectId + "/", 1, 1);
+        jdbcTemplate.update("INSERT INTO proj_project_tree_version "
+                        + "(id,root_project_id,tree_version,status,change_batch_id,node_count,path_count,version,tenant_id) "
+                        + "VALUES (?,?,7,'ACTIVE',?,2,3,0,0)",
+                rootProjectId, rootProjectId, "task6-scope-v7-" + changeId);
+        jdbcTemplate.update("INSERT INTO proj_project_tree_path "
+                        + "(id,tree_version,root_project_id,ancestor_project_id,descendant_project_id,distance,version,tenant_id) "
+                        + "VALUES (?,7,?,?,?,?,0,0),(?,7,?,?,?,?,0,0),(?,7,?,?,?,?,0,0)",
+                planId + 30, rootProjectId, rootProjectId, rootProjectId, 0,
+                planId + 31, rootProjectId, rootProjectId, projectId, 1,
+                planId + 32, rootProjectId, projectId, projectId, 0);
+        jdbcTemplate.update("INSERT INTO proj_project_member_assignment "
+                        + "(project_id,user_id,member_role,assignment_type,responsibility,effective_from,effective_to,"
+                        + "status,version,tenant_id) VALUES (?,?,?,'PRIMARY',?,NOW(3),NULL,'ACTIVE',0,0)",
+                projectId, APPLICANT, ProjectParticipantFactApi.ROLE_PROJECT_MANAGER,
+                ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+        jdbcTemplate.update("INSERT INTO proj_project_member_assignment "
+                        + "(project_id,user_id,member_role,assignment_type,responsibility,effective_from,effective_to,"
+                        + "status,version,tenant_id) VALUES (?,?,?,'PRIMARY',?,NOW(3),NULL,'ACTIVE',0,0)",
+                projectId, APPROVER, ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
+                ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
+    }
+
     private Object value(String sql, long id) {
         return jdbcTemplate.queryForObject(sql, Object.class, id);
     }
@@ -745,6 +880,35 @@ class DurationChangeBpmMySqlIntegrationTest {
         void run();
     }
 
+    static final class SwitchingProjectScopeApi implements ProjectScopeApi {
+        private final ProjectScopeApi real;
+        private final ProjectScopeApi mock = org.mockito.Mockito.mock(ProjectScopeApi.class);
+        private volatile boolean useReal;
+
+        SwitchingProjectScopeApi(ProjectScopeApi real) {
+            this.real = real;
+        }
+
+        ProjectScopeApi mock() { return mock; }
+        void useMock() { useReal = false; }
+        void useReal() { useReal = true; }
+
+        @Override
+        public ProjectScopeResult resolve(ProjectScopeQuery query) {
+            return (useReal ? real : mock).resolve(query);
+        }
+
+        @Override
+        public ProjectScopeResult resolveCurrent(ProjectCurrentScopeQuery query) {
+            return (useReal ? real : mock).resolveCurrent(query);
+        }
+
+        @Override
+        public ProjectScopeResult lockAndRevalidate(ProjectScopeRevalidationQuery query) {
+            return (useReal ? real : mock).lockAndRevalidate(query);
+        }
+    }
+
     static final class SwitchingProjectParticipantFactApi implements ProjectParticipantFactApi {
         private final ProjectParticipantFactApi real;
         private final ProjectParticipantFactApi mock = org.mockito.Mockito.mock(ProjectParticipantFactApi.class);
@@ -783,7 +947,8 @@ class DurationChangeBpmMySqlIntegrationTest {
     @MapperScan({"cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.file",
-            "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual"})
+            "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual",
+            "cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
@@ -794,11 +959,18 @@ class DurationChangeBpmMySqlIntegrationTest {
             FileArtifactApiImpl.class, ConstructionPlanChangeFilePolicyProvider.class,
             DurationChangeApplicationService.class,
             DurationChangeProperties.class, DurationChangeBpmListener.class,
-            DurationChangeBpmAuthorizationGuard.class, DurationChangeBpmResultService.class})
+            DurationChangeBpmAuthorizationGuard.class, DurationChangeBpmResultService.class,
+            ProjectTreeScopeService.class, ProjectTreeProjectionService.class, ProjectTreeMetrics.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
-        @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
+        @Bean ProjectScopeApiImpl realProjectScopeApi(ProjectTreeScopeService scopeService) {
+            return new ProjectScopeApiImpl(scopeService);
+        }
+        @Bean @Primary
+        SwitchingProjectScopeApi projectScopeApi(ProjectScopeApiImpl realProjectScopeApi) {
+            return new SwitchingProjectScopeApi(realProjectScopeApi);
+        }
         @Bean
         SwitchingProjectParticipantFactApi participantFactApi(ProjectMasterMapper projectMapper,
                                                                ProjectMemberAssignmentMapper memberMapper) {
@@ -806,6 +978,10 @@ class DurationChangeBpmMySqlIntegrationTest {
                     new ProjectParticipantFactApiImpl(projectMapper, memberMapper));
         }
         @Bean DictDataApi dictDataApi() { return mock(DictDataApi.class); }
+        @Bean AuthorizationGrantApi authorizationGrantApi() { return mock(AuthorizationGrantApi.class); }
+        @Bean io.micrometer.core.instrument.MeterRegistry meterRegistry() {
+            return new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        }
         @Bean ConfigApi configApi() { return mock(ConfigApi.class); }
         @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
             return new TransactionTemplate(transactionManager);

@@ -57,10 +57,15 @@ class ConstructionPlanChangeFilePolicyProviderTest {
 
     @Test
     void locksProjectFactsAndReturnsSameScopeForReference() {
-        stubCurrent(ConstructionPlanChangeDO.STATUS_DRAFT,
-                ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+        when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(planMapper.selectById(any())).thenReturn(plan());
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
+                "PRIMARY", "ACTIVE", "S1", 3, 3L));
         when(planMapper.selectForUpdate(any())).thenReturn(plan());
         when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
+                new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
                 100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
                 "PRIMARY", "ACTIVE", "S1", 3, 3L));

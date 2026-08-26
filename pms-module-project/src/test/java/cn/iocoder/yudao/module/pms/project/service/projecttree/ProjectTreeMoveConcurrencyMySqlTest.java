@@ -7,6 +7,7 @@ import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.command.MoveProjectSubtreeCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
@@ -30,6 +31,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -40,9 +43,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = ProjectTreeMoveConcurrencyMySqlTest.TestApplication.class,
@@ -51,7 +57,9 @@ class ProjectTreeMoveConcurrencyMySqlTest {
     private static final String KEY_PREFIX = "it-tree-move-";
 
     @Resource ProjectTreeProjectionService service;
+    @Resource ProjectTreeScopeService scopeService;
     @Resource JdbcTemplate jdbcTemplate;
+    @Resource TransactionTemplate transactionTemplate;
     private long baseId;
 
     @DynamicPropertySource
@@ -137,6 +145,71 @@ class ProjectTreeMoveConcurrencyMySqlTest {
         }
     }
 
+    @Test
+    void lockedScopeSerializesTreePublishAndExposesNewVersion() throws Exception {
+        CountDownLatch scopeLocked = new CountDownLatch(1);
+        CountDownLatch releaseScope = new CountDownLatch(1);
+        CountDownLatch moveStarted = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<Long> lockedVersion = executor.submit(() -> {
+                TenantContextHolder.setTenantId(0L);
+                try {
+                    return transactionTemplate.execute(status -> {
+                        var scope = scopeService.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                                0L, 9_900_006L, baseId + 1, "PROJECT_MANAGE", 7L));
+                        scopeLocked.countDown();
+                        await(releaseScope);
+                        return scope.treeVersion();
+                    });
+                } finally {
+                    TenantContextHolder.clear();
+                }
+            });
+            if (!scopeLocked.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("范围版本锁未建立");
+            }
+            Future<ProjectTreeProjectionService.MoveProjectSubtreeResult> publish = executor.submit(() -> {
+                TenantContextHolder.setTenantId(0L);
+                moveStarted.countDown();
+                try {
+                    return service.move(new MoveProjectSubtreeCommand(baseId + 1, baseId + 2, 7L,
+                                    "范围锁并发发布", KEY_PREFIX + baseId + "scope", "a".repeat(64)),
+                            new ProjectTreeProjectionService.Actor(0L, 9_900_006L,
+                                    KEY_PREFIX + baseId + "scope"));
+                } finally {
+                    TenantContextHolder.clear();
+                }
+            });
+            if (!moveStarted.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("树发布事务未启动");
+            }
+            assertThrows(TimeoutException.class, () -> publish.get(500, TimeUnit.MILLISECONDS));
+
+            releaseScope.countDown();
+            assertEquals(7L, lockedVersion.get(10, TimeUnit.SECONDS));
+            assertEquals(8L, publish.get(10, TimeUnit.SECONDS).treeVersion());
+
+            TenantContextHolder.setTenantId(0L);
+            Long currentVersion = transactionTemplate.execute(status -> scopeService.lockAndRevalidate(
+                    new ProjectScopeRevalidationQuery(
+                            0L, 9_900_006L, baseId + 1, "PROJECT_MANAGE", 7L)).treeVersion());
+            assertEquals(8L, currentVersion);
+        } finally {
+            releaseScope.countDown();
+        }
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            if (!latch.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("等待并发事务超时");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("等待并发事务被中断", exception);
+        }
+    }
+
     private Object moveAfter(CountDownLatch start, long targetParentId, String suffix) {
         try {
             start.await();
@@ -193,6 +266,9 @@ class ProjectTreeMoveConcurrencyMySqlTest {
             ProjectTreeProjectionService.class, ProjectTreeMetrics.class, ProjectTreeScopeService.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
+        @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
+            return new TransactionTemplate(transactionManager);
+        }
         @Bean MeterRegistry meterRegistry() { return new SimpleMeterRegistry(); }
         @Bean AuthorizationGrantApi authorizationGrantApi() {
             return org.mockito.Mockito.mock(AuthorizationGrantApi.class);
