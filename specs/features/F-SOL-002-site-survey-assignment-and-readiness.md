@@ -41,7 +41,8 @@
 
 ### BR-FSOL002-001 模板冻结与准备版本
 
-- 项目创建已冻结的公开WorkBinding事实必须提供`targetContext=SOL`、`objectType=SITE_SURVEY_PREPARATION`、模板修订、PRE-02固定表单版本和工勘项配置。SOL按受信租户及项目幂等初始化，不读取PROJ表。
+- PROJ Owner在现有`pms-module-project-api`前向增加窄`ProjectWorkBindingFactApi`。`inspect`按受信租户、`projectId+bindingCode=PRE_02_SITE_SURVEY`精确返回冻结事实；`lockAndRevalidate`携带`projectId/bindingCode/expectedBindingVersion/expectedProjectVersion`，在调用方事务内锁定项目与该冻结执行契约并持有至提交。响应必须包含`templateId/templateRevisionId/targetContext/objectType/fixedFormCatalogVersion/itemConfigurationSnapshot/bindingVersion/projectVersion`。
+- 项目创建已冻结的公开WorkBinding事实必须满足`targetContext=SOL`、`objectType=SITE_SURVEY_PREPARATION`并包含PRE-02固定表单版本和工勘项配置。空、多记录、越租户、版本变化或配置不完整均失败关闭；SOL按受信项目事实幂等初始化，不读取PROJ表，也不前置`TASK_NATIVE`工作台。
 - V1表单结构只允许平台发布的PRE-02固定`formCode+formVersion`；SOL冻结该版本及字段定义快照。不存在、未发布、未知字段类型或任意脚本配置均失败关闭。
 - 同一项目、`PRE_02`准备类型和业务版本唯一；同一时点只有一个current版本。退回后原提交版本保持冻结，显式创建下一`DRAFT`版本并复制可编辑事实，不覆盖历史。
 - 每个版本至少包含模板要求的六类基准项中适用的项目；扩展项编码必须命中启用字典与冻结模板配置。模板后续变更不反向覆盖已冻结版本。
@@ -51,13 +52,16 @@
 - 工勘项将适用性与确认生命周期分轴：`REQUIRED/NOT_APPLICABLE_PENDING/NOT_APPLICABLE_CONFIRMED`和`PENDING/CONFIRMED/RETURNED`不得混载。
 - 项目经理负责适用性、负责人、外包标识及“不适用”确认。工程师只能填写本人当前有效指派的适用项、固定表单值、现场结论和证据引用；不得改模板规则或他人项。
 - 表单保存只允许`DRAFT`准备版本和当前负责人，使用item/form版本CAS。提交确认前服务端验证固定Schema字段、必填项和PLT精确证据引用。
-- 确认或退回由当前项目经理执行。确认冻结表单值、负责人、外包、证据及来源输入；退回须有原因并生成下一业务版本的可编辑副本。`NOT_APPLICABLE_CONFIRMED`必须冻结项目经理、原因和时间。
+- 确认或退回由当前项目经理执行。确认冻结表单值、负责人、外包、证据及来源输入；`NOT_APPLICABLE_CONFIRMED`同时把item确认状态记为`CONFIRMED`并冻结项目经理、原因和时间。
+- 最后一个未决item确认后，同一事务把Preparation从`PENDING_CONFIRMATION`推进为`CONFIRMED`；聚合条件是每个`REQUIRED`项均为`CONFIRMED`，每个非适用项均为`NOT_APPLICABLE_CONFIRMED+CONFIRMED`，且不存在`RETURNED`项。
+- 任一`PENDING_CONFIRMATION`或`CONFIRMED`版本的item被退回时，旧item记`RETURNED`、旧Preparation记`RETURNED`并清除`current_marker`，随后原子创建`businessVersion+1`的current `DRAFT`。新版本保留同一模板/表单版本：未退回且已确认项连同冻结事实与确认元数据复制为`CONFIRMED`；退回项复制表单值、负责人、外包和证据作为可编辑基线，但重置为`PENDING`、表单`DRAFT`并清除确认/退回元数据；其他未决项保持`PENDING`。来源稳定引用及last-success可复制，但当前权威值清空且同步状态置`UNKNOWN`；豁免按`projectId+itemCode`继续引用原追加历史，不复制或重建。
 
 ### BR-FSOL002-003 文件与来源事实
 
 - 每份证据冻结`artifactId+versionNo+referenceKey+fileFactVersion+scopeVersion`，不保存文件正文、URL或INFRA定位。证据数量和用途由冻结项策略决定。
 - OA仍是领料/外采流程Owner。SOL只保存`sourceType/sourceObjectType/sourceObjectId/sourceReferenceKey`、归一结果、来源版本/水位和同步状态，不复制原单据。
-- 涉及OA的项必须通过INT-05公开Provider同步inspect/lockAndRevalidate；Provider不可用、未命中、越租户、未知结果、同步异常或版本变化均形成阻断，不能解释为“无来源要求”。保留上次成功值只作显示，不得在同步异常时判READY。
+- 涉及OA的项必须通过INT-05公开Provider同步inspect/lockAndRevalidate；Provider不可用、未命中、越租户、未知结果、同步异常或版本变化均形成阻断，不能解释为“无来源要求”。来源表将当前权威值与`last_success_*`分开：只有`SYNCED`时当前`normalizedResult/sourceFactVersion/sourceWatermark`非空；首次失败时三者为空；已有成功后的失败同样清空当前权威值并保留last-success只作显示，不得据其判READY。
+- 显式来源刷新命令捕获Provider失败，在自身事务内写`ERROR/UNKNOWN`、稳定失败码和拒绝审计后提交，再由HTTP层返回失败结果；不以抛异常回滚该异常事实，也不产生成功幂等/审计。就绪评估遇到Provider失败时可在同一评估事务记录来源异常并追加`NOT_READY`快照；公共只读inspect/revalidate不得写来源行。
 - 无OA要求的项不伪造来源记录；已批准且仍有效的逐项豁免可按冻结规则替代指定来源条件。
 
 ### BR-FSOL002-004 逐项豁免
@@ -70,15 +74,17 @@
 ### BR-FSOL002-005 就绪计算与不可变快照
 
 - 当前版本只有在所有适用项均已确认、固定表单有效、必需证据可用、负责人/外包规则满足、必需来源达到模板要求终态且同步正常、所有剩余阻断均被有效豁免时才为`READY`。
-- 每次评估追加`sol_preparation_readiness_snapshot`，冻结项目范围版本、准备/项/表单版本、PLT文件事实、来源版本/水位、豁免版本、阻断清单和计算规则版本；历史快照不可更新或删除。
-- `sol_preparation`只保存最新快照指针、当前`READY/NOT_READY`和单调`readiness_version`。任一冻结输入变化、文件失效、来源变化/异常、角色/指派失效或豁免失效后，下一次inspect或命令必须重新计算并追加`NOT_READY`快照，不能继续信任历史READY。
+- 只有显式`evaluate-readiness`命令在幂等事务中追加`sol_preparation_readiness_snapshot`，冻结项目范围版本、准备输入版本、项/表单版本、PLT文件事实、来源版本/水位、豁免版本、阻断清单和计算规则版本；历史快照不可更新或删除。
+- `sol_preparation`保存单调`input_version/readiness_version`、最新快照指针和持久`READY/NOT_READY`。任一SOL输入变更在原命令事务内递增`input_version`、置`NOT_READY`并把快照标记为非当前，但不隐式追加快照；外部文件/来源/范围变化由只读inspect实时比对结构化事实向量发现。
+- evaluate锁定根行并计算排序稳定的结构化事实向量；若与最新快照的`inputVersion/projectScopeVersion/itemVersions/fileFacts/sourceFacts/waiverFacts`完全相同，直接重放该快照，不递增`readiness_version`；仅向量变化时追加`snapshotNo+1`并CAS更新指针与状态。无需哈希或查询写入即可保证同一事实不重复快照。
+- inspect/lockAndRevalidate只读重算：当前向量与最新快照不一致时返回`snapshotCurrent=false/NOT_READY`或版本冲突，不修改来源、快照、指针和版本。调用方必须先显式evaluate获得当前快照，不能继续信任历史READY。
 - F-SOL-002不写IMP/PROJ表、不改变项目阶段。后续S4命令必须调用SOL `lockAndRevalidate`，以当前锁定事实为准。
 
 ### BR-FSOL002-006 状态轴
 
 | 事实 | 物理承载 | 值域/规则 |
 |---|---|---|
-| 准备版本生命周期 | `sol_preparation.status_code` | `DRAFT/PENDING_CONFIRMATION/CONFIRMED/RETURNED/SUPERSEDED` |
+| 准备版本生命周期 | `sol_preparation.status_code` | `DRAFT/PENDING_CONFIRMATION/CONFIRMED/RETURNED`；退回版本保留RETURNED并由下一DRAFT接任current |
 | 项适用性 | `sol_preparation_item.applicability_code` | `REQUIRED/NOT_APPLICABLE_PENDING/NOT_APPLICABLE_CONFIRMED` |
 | 项确认状态 | `sol_preparation_item.confirmation_status_code` | `PENDING/CONFIRMED/RETURNED` |
 | 来源同步 | `sol_preparation_source_reference.sync_status_code` | `SYNCED/ERROR/UNKNOWN` |
@@ -101,7 +107,7 @@
 
 ### BR-FSOL002-008 幂等、并发与审计
 
-- 初始化、提交准备版本、确认/退回、来源刷新、豁免申请/决定和就绪评估使用`Idempotency-Key`；同键同载荷重放原结果，异载荷冲突。
+- 初始化、提交准备版本、确认/退回、来源刷新、豁免申请/决定和显式就绪评估使用`Idempotency-Key`；同键同载荷重放原结果，异载荷冲突。inspect和lockAndRevalidate为纯只读，不要求幂等键。
 - 所有修改使用`If-Match`和场景化CAS。稳定锁序为PROJ范围事实→SOL准备/项/表单/来源/豁免→PLT精确文件事实；INT-05来源重验在SOL锁后按冻结引用批量执行。版本变化返回稳定冲突且无成功副作用。
 - 成功审计冻结项目、准备/项/表单/来源/豁免/快照标识、动作、前后状态与版本、阻断摘要、operationId、操作者和时间；失败事务回滚后通过平台公共审计记录稳定拒绝码和必要安全事实。
 - SDS锁定为同步命令或查询；本Feature不发布跨Context业务事件，不建立Outbox事件。
@@ -128,14 +134,14 @@
 
 ### 4.1 SOL公共就绪契约
 
-- `SiteSurveyReadinessApi.inspect(SiteSurveyReadinessQuery)`输入受信`projectId`及可选`preparationId`，返回当前preparation、businessVersion、status、readinessStatus、latestSnapshotId/snapshotNo、preparationVersion/readinessVersion、projectScopeVersion、阻断代码列表和`factVersion`。
-- `SiteSurveyReadinessApi.lockAndRevalidate(SiteSurveyReadinessRevalidationQuery)`必须携带`projectId/preparationId/expectedBusinessVersion/expectedPreparationVersion/expectedReadinessVersion/expectedSnapshotId/expectedProjectScopeVersion`；任一为空、越租户、非current、版本变化或当前不READY均失败关闭。
-- 重验在调用方事务中持有PROJ范围和SOL事实锁至提交，并同步重验精确PLT文件引用、INT-05来源事实及豁免有效性。返回的READY只对该事务冻结事实有效。
+- `SiteSurveyReadinessApi.inspect(SiteSurveyReadinessQuery)`输入受信`projectId`及可选`preparationId`，纯只读返回当前preparation、businessVersion、status、readinessStatus、latestSnapshotId/snapshotNo、inputVersion/preparationVersion/readinessVersion、projectScopeVersion、`snapshotCurrent`、阻断代码和结构化`ReadinessFactVector`。
+- `SiteSurveyReadinessApi.lockAndRevalidate(SiteSurveyReadinessRevalidationQuery)`必须携带`projectId/preparationId/expectedBusinessVersion/expectedInputVersion/expectedPreparationVersion/expectedReadinessVersion/expectedSnapshotId/expectedProjectScopeVersion/expectedFactVector`；任一为空、越租户、非current、版本变化、向量变化、快照非当前或当前不READY均失败关闭。
+- inspect与重验均不写业务表。重验在调用方事务中持有PROJ范围和SOL事实锁至提交，并同步重验精确PLT文件引用、INT-05来源事实及豁免有效性；返回的READY只对该事务冻结事实有效。
 - 后续IMP S4只消费该公开只读契约，不读SOL表；本Feature不创建IMP快照或S4命令。
 
 ### 4.2 WorkBinding与领域边界
 
-- PRE-02工勘项是SOL业务事实，不是`TASK_NATIVE`任务正文。F-SOL-002 V1使用项目工作区的SOL页面，不以任务工作台作为完成前置。
+- PRE-02工勘项是SOL业务事实，不是`TASK_NATIVE`任务正文。初始化只消费上述PROJ Owner的窄`ProjectWorkBindingFactApi`；F-SOL-002 V1使用项目工作区的SOL页面，不以任务工作台作为完成前置。
 - 后续接入F-PROJ-007工作台时，只能注册`BUSINESS_OBJECT`或`DYNAMIC_FORM`非原生绑定Provider，目标键指向SOL preparation/item；allowedActions和complete均回源SOL重验，缺失、无权、版本变化或Provider不可用失败关闭。
 - SOL位于`pms-module-engineering`并持有六表DO/Mapper/Service。SOL只消费PROJ、PLT和INT-05公开API，不访问其Service/Mapper/DO/表。
 - INT-05尚未实施时，来源Provider固定返回不可用；这只让有OA要求且无有效豁免的项保持阻断，不伪造“无OA要求”，也不阻断无OA项的正向主线。
@@ -159,11 +165,11 @@
 ## 7. 验收标准
 
 - `AC-FSOL002-001`：项目冻结模板可幂等初始化PRE-02 current版本、六类基准项和固定表单版本；前向父Feature数据不存在、模板非法或通用脚本配置均失败关闭。
-- `AC-FSOL002-002`：项目经理指派/适用性、负责人填写/证据、项目经理确认/退回/不适用确认按主体和CAS生效；退回生成下一业务版本且历史冻结不被覆盖。
+- `AC-FSOL002-002`：项目经理指派/适用性、负责人填写/证据、项目经理确认/退回/不适用确认按主体和CAS生效；最后一项确认聚合CONFIRMED；退回按锁定复制/重置矩阵原子切换下一current DRAFT且历史冻结不被覆盖。
 - `AC-FSOL002-003`：证据只冻结精确FileArtifact引用；文件失效或版本/范围变化后旧READY重验失败并追加NOT_READY快照。
-- `AC-FSOL002-004`：OA引用只保存稳定引用、结果、版本/水位和同步状态；Provider未知/不可用/越租户保持阻断，最后成功值不伪装完成；无OA要求项可正常闭环。
+- `AC-FSOL002-004`：OA引用只保存稳定引用、当前权威结果、last-success、版本/水位和同步状态；首次及后续失败可提交异常事实并保持阻断，最后成功值不伪装完成；无OA要求项可正常闭环。
 - `AC-FSOL002-005`：豁免仅由项目经理申请、冻结角色的当前参与人审批；有效豁免只替代指定阻断，过期/撤回/角色变化后重新阻断。
-- `AC-FSOL002-006`：READY要求所有当前输入满足；每次评估追加不可变快照，阻断代码与来源版本可追溯，同一输入幂等重放不重复业务事实。
+- `AC-FSOL002-006`：READY要求所有当前输入满足；仅显式evaluate在事实向量变化时追加不可变快照，同一向量/幂等重放不重复；inspect/revalidate纯只读且旧快照向量不匹配时失败关闭。
 - `AC-FSOL002-007`：SOL公共inspect/lockAndRevalidate精确冻结current准备、快照、范围、文件、来源和豁免；任一版本变化返回冲突且调用方无成功副作用。
 - `AC-FSOL002-008`：仅使用`PROJECT_VIEW/PROJECT_MANAGE`范围动作；项目经理、负责人、豁免审批人及跨租户/越权负向均由服务端拒绝。
 - `AC-FSOL002-009`：并发指派、填写、确认、豁免决定和就绪评估均单胜；同键同载荷重放，异载荷冲突，审计可按project/preparation/item/operationId追溯。

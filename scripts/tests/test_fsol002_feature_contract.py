@@ -36,13 +36,37 @@ class Fsol002FeatureContractTest(unittest.TestCase):
         self.assertIn("lockAndRevalidate", " ".join(api["contracts"]))
         for field in (
             "expectedBusinessVersion",
+            "expectedInputVersion",
             "expectedPreparationVersion",
             "expectedReadinessVersion",
             "expectedSnapshotId",
             "expectedProjectScopeVersion",
         ):
             self.assertIn(field, api["revalidationQuery"])
+        self.assertIn("expectedFactVector", api["revalidationQuery"])
+        self.assertIn("without writing", api["readOnlyPolicy"])
         self.assertIn("synchronous lock-and-revalidate", api["readyPolicy"])
+
+    def test_project_work_binding_has_a_narrow_locking_contract(self) -> None:
+        binding = self.contract["dependencies"]["projectWorkBinding"]
+        self.assertEqual(
+            ["trustedTenantId", "projectId", "bindingCode=PRE_02_SITE_SURVEY"],
+            binding["stableSelectionKey"],
+        )
+        self.assertIn("expectedBindingVersion", binding["revalidationQuery"])
+        self.assertIn("lockAndRevalidate", " ".join(binding["contracts"]))
+
+    def test_return_creates_one_next_current_draft(self) -> None:
+        state_machine = self.contract["preparationItemStateMachine"]
+        self.assertIn("businessVersion+1", state_machine["returnItem"])
+        self.assertIn("one current preparation only", state_machine["currentInvariant"])
+        self.assertIn("set UNKNOWN", state_machine["sourceCopy"])
+
+    def test_source_failure_preserves_only_display_last_success(self) -> None:
+        source = self.contract["tables"]["sol_preparation_source_reference"]
+        self.assertIn("clears current authoritative fields", source["failurePolicy"])
+        for field in ("normalized_result_code", "source_fact_version", "source_watermark"):
+            self.assertIn(field, source["nullableFields"])
 
     def test_scope_actions_and_events_stay_within_locked_sds(self) -> None:
         permissions = self.contract["permissions"]
