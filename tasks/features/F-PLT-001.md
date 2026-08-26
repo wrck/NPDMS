@@ -1,11 +1,11 @@
 # F-PLT-001 统一文件身份与版本管理
 
-> Feature实施状态：`IMPLEMENTATION_DONE`
-> 总体工程阶段：`IMPLEMENTATION`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
 > Feature Ready Gate：`PASS / NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
 > Technical Plan Gate：`PASS / NPDMS-FPLT001-TECHPLAN-20260826-01-R3`
 > Implementation Done Gate：`PASS / 38f36b1f0d345bc2653207302a37d2792362e58a / 独立裁决GO`
-> 当前任务：`实施完成，待规格仓库追溯回写与基线同步`
+> 当前任务：`F-PLT-001已完成；等待下一工程单元`
 > Requirement ID：`PLT-02（V1/P0，FR-PLT-008）`
 > Feature Spec：`specs/features/F-PLT-001-unified-file-identity-and-version-management.md`
 > Feature物理契约：`specs/features/F-PLT-001-physical-contract.json`
@@ -39,22 +39,4 @@
 - F-SOL-001 Task 9材料场景：Task 9接入SOL用途并完成真实MySQL链路后解除。
 - F-SOL-001 Task 10：上述材料主线闭合后返回其正式浏览器验收。
 
-> 检查点（2026-08-26）：Task 1提交`c1e3a46e768e670a7788b7d933899494963cbcf9`经独立复审GO；V92六表、5条租户复合外键、V93确定性种子、50MB/52MB应用边界、稳定错误码及迁移契约均通过，允许推进Task 2。
-
-> 检查点（2026-08-26）：Task 2提交`38f6a6b0a72ffc0b2285128e12a1a741ff8bf579`经独立复审GO；窄化INFRA存储回执契约、跨配置确定性重放、冻结配置短时访问/补偿删除及真实MySQL验证通过，允许推进Task 3。
-
-> 检查点（2026-08-26）：Task 3提交`974feb3a17c0f15c5ece59c8b2745862c18c8f33`经独立复审GO；公共文件契约、九动作封闭值域、业务Provider唯一解析、六表显式Mapper、精确槽位/稳定游标/锁定读与场景CAS均通过，允许推进Task 4。
-
-> 检查点（2026-08-26）：Task 4提交`0a2869a`及整改提交`48fe53c`经独立复审GO；受信上传初始化、50MB有界内容校验、ClamAV规范响应失败关闭、完整成功/拒绝审计及真实扫描验证通过，允许推进Task 5。
-
-> 检查点（2026-08-26）：Task 5提交`81e1c0f`及整改提交`9b4a9d443c95ff1f5bd606e9a1c97c23eb295e99`经独立复审GO；首次上传与ADD_VERSION、精确引用、四类文件事件投递、Quartz自动注册/退避重领及最终存储补偿闭环通过，允许推进Task 6。
-
-> 检查点（2026-08-27）：Task 6实现提交`34ce4dff8f380192e96aba679656cf4728527feb`及范围锁整改`eb42aa3ae4d1f5a4510e73c824e3cdc4d866b3ef`经独立复审GO；SOL客户依据上传、固定版本冻结、BPM三终态重验及PROJ根树范围版本锁闭环通过，真实MySQL/Flowable/PROJ/PLT/SOL验证确认版本变化时无成功终态或审计，允许推进Task 7。
-
-> 检查点（2026-08-27）：Task 7提交`5b90a16`经独立复审GO；Artifact、版本历史、精确引用及短时下载/预览链路闭合，租户、权限、Provider、版本可用性与scopeVersion守卫生效，真实MySQL 6/6及模块回归68项零失败，允许推进Task 8。
-
-> 检查点（2026-08-27）：Task 8实现提交`6611d83`及整改提交`83ee8b4`经独立复审GO；稳定键目标绑定、版本不可用/失效/恢复、跨幂等键归档重放均闭环，隔离MySQL聚焦17/17及模块回归78项零失败，允许推进Task 9。
-
-> 检查点（2026-08-27）：Task 9实现提交`7e68962`及整改提交`75cf9c3`经独立复审GO；响应式共享文件组件、SOL客户依据接入、稳定槽位解绑重绑和PATCH响应丢失恢复闭环，运行时回归7/7、类型检查、定向规范检查与构建通过，允许推进Task 10。
-
-> 检查点（2026-08-27）：Task 10实现提交`5acac6462f86dcd4dd8145c1ad06ab23586d3682`及单租户BPM整改`38f36b1f0d345bc2653207302a37d2792362e58a`经独立复审GO；清洁库V1～V95、真实MySQL/Flowable/Quartz/ClamAV、统一文件浏览器主线和pnpm 9.15.5工具链事实均通过，未直接修改Flowable运行表或基础框架。Task 10 PASS，F-PLT-001达到Implementation Done；本结论不包含Deployment、SIT、UAT或Release。
+> 检查点（2026-08-27）：基线规格`51ff74a`；F-PLT-001 Implementation Done独立GO，NPDMS `6d6c6ea`及Task 1～10、真实MySQL/Flowable/Quartz/ClamAV、SOL消费链和浏览器证据通过；无阻塞；规格追溯与受管基线已同步。下一步定位首个未完成Feature，不进入Deployment/SIT/UAT/Release。
