@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "f2c563df978b7d7b3b1de9ad245b9c485bbdbae8"
+    "commit": "2efd8c476430d77ce2003c6e9fe300a335eac6a7"
   },
   "files": [
     {
@@ -204,6 +204,11 @@
       "path": "docs/decisions/0034-project-role-and-subtree-authorization-separation.md",
       "category": "DECISION",
       "sha256": "a9265b6e47a2e96ad2f9a927c0b7343092f4cd1fd441a1b8a31ebc0ea47f7ddd"
+    },
+    {
+      "path": "docs/decisions/0035-file-storage-receipt-adapter-exception.md",
+      "category": "DECISION",
+      "sha256": "eb1ecae672646682a0369ac6332457b8ae6572984ccb6299a60b4e91a2b14642"
     },
     {
       "path": "docs/decisions/ADR-001-implementation-execution-naming.md",
@@ -438,7 +443,17 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "28fffa67adce51fdc3361074170b59c687e63d3cdb9c2bcc4d3963610373f790"
+      "sha256": "b8a8eafb49ea96b56b275cfab3d1187a367687c3fc8893316afd40c01037150c"
+    },
+    {
+      "path": "specs/features/F-PLT-001-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "da966ae4ff47ead627d49b133dd503ac141c8655815818aa06cb80b7d9f4aa3f"
+    },
+    {
+      "path": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "77976a9d1f5d0541cd91a0fb1562bbf7e21b22f6fe5047541c1600dd0f75f1dc"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -518,7 +533,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "60cd02c649652cb50a03d7af827ed6ba480fb4413a6d6eeda9282ef068a4523a"
+      "sha256": "3c53a98228d4278b122f10349a153b96633a712f5efe877f3a9b9887cd10badd"
     }
   ]
 }
