@@ -11,7 +11,11 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.Preparation
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalog;
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalogProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationInitializationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
@@ -45,6 +49,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,8 +63,11 @@ import static org.mockito.Mockito.when;
 class PreparationInitializationMySqlIntegrationTest {
 
     @Resource PreparationInitializationService service;
+    @Resource PreparationReviewService reviewService;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource TransactionTemplate transactionTemplate;
+    @Resource PermissionApi permissionApi;
+    @Resource ProjectScopeApi projectScopeApi;
 
     private long projectId;
     private long taskId;
@@ -110,6 +118,12 @@ class PreparationInitializationMySqlIntegrationTest {
         templateDefinitionId = ((Number) definition.get("id")).longValue();
         sourceDefinitionVersion = ((Number) definition.get("definition_version")).intValue();
         bindingSnapshot = definition.get("binding_config").toString();
+        when(permissionApi.hasAnyPermissions(9L, PreparationInitializationService.PERMISSION_MANAGE))
+                .thenReturn(true);
+        var scope = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
+                projectId, 1L, Set.of(projectId), Set.of());
+        when(projectScopeApi.resolveCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
+        when(projectScopeApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
     }
 
     @AfterEach
@@ -127,10 +141,10 @@ class PreparationInitializationMySqlIntegrationTest {
                 statement.executeUpdate("DELETE FROM proj_project_task WHERE tenant_id=0 AND project_id=" + projectId);
                 statement.executeUpdate("DELETE FROM proj_project WHERE tenant_id=0 AND id=" + projectId);
                 statement.executeUpdate("DELETE FROM plt_operation_audit WHERE tenant_id=0 "
-                        + "AND correlation_id='PRE02-IT-" + projectId + "'");
+                        + "AND correlation_id IN ('PRE02-IT-" + projectId + "','PRE02-REVIEW-" + projectId + "')");
                 statement.executeUpdate("DELETE FROM plt_idempotency_record WHERE tenant_id=0 "
-                        + "AND scope_code='PREPARATION_INITIALIZE' AND actor_id=9 "
-                        + "AND idempotency_key='" + idempotencyKey + "'");
+                        + "AND actor_id=9 AND (idempotency_key='" + idempotencyKey + "' "
+                        + "OR idempotency_key LIKE '%" + projectId + "%')");
             } finally {
                 try (var statement = connection.createStatement()) {
                     statement.execute("SET FOREIGN_KEY_CHECKS=1");
@@ -177,6 +191,54 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals(0L, count("sol_preparation", "project_id", projectId));
         assertEquals(0L, completedIdempotencyCount());
         assertEquals(0L, successAuditCount());
+    }
+
+    @Test
+    void submitConfirmAndReturnKeepOneCurrentBusinessVersion() {
+        transactionTemplate.executeWithoutResult(status -> {
+            insertProjectTaskAndContract();
+            service.initialize(command());
+        });
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
+                + "evidence_policy_snapshot='{\"required\":false}' WHERE tenant_id=0 AND preparation_id=?",
+                preparationId);
+        jdbcTemplate.update("UPDATE sol_dynamic_form_instance SET value_snapshot='{\"siteCondition\":\"正常\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-REVIEW-" + projectId);
+
+        var submitted = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
+                preparationId, null, 0, null, 4, null, "REVIEW-SUBMIT-" + projectId), actor);
+        assertEquals("PENDING_CONFIRMATION", submitted.statusCode());
+        List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
+        int preparationVersion = 1;
+        for (int index = 0; index < itemIds.size(); index++) {
+            var confirmed = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.CONFIRM,
+                    preparationId, itemIds.get(index), preparationVersion, 0, 4, null,
+                    "REVIEW-CONFIRM-" + projectId + "-" + index), actor);
+            preparationVersion = confirmed.preparationVersion();
+        }
+        assertEquals("CONFIRMED", jdbcTemplate.queryForObject("SELECT status_code FROM sol_preparation "
+                + "WHERE tenant_id=0 AND id=?", String.class, preparationId));
+
+        var returned = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.RETURN,
+                preparationId, itemIds.getFirst(), preparationVersion, 1, 4, "补充现场资料",
+                "REVIEW-RETURN-" + projectId), actor);
+
+        assertEquals("DRAFT", returned.statusCode());
+        assertEquals(2, returned.businessVersion());
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId));
+        assertEquals("RETURNED", jdbcTemplate.queryForObject("SELECT status_code FROM sol_preparation "
+                + "WHERE tenant_id=0 AND id=?", String.class, preparationId));
+        assertEquals("PENDING", jdbcTemplate.queryForObject("SELECT confirmation_status_code "
+                + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? AND source_item_id=?",
+                String.class, returned.currentPreparationId(), itemIds.getFirst()));
+        assertEquals((long) itemIds.size() - 1, jdbcTemplate.queryForObject("SELECT COUNT(*) "
+                + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? "
+                + "AND confirmation_status_code='CONFIRMED'", Long.class, returned.currentPreparationId()));
     }
 
     private void insertProjectTaskAndContract() {
@@ -245,7 +307,8 @@ class PreparationInitializationMySqlIntegrationTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            PreparationInitializationService.class, ProjectWorkBindingFactApiImpl.class,
+            PreparationInitializationService.class, PreparationReviewService.class,
+            ProjectWorkBindingFactApiImpl.class,
             PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
     static class TestApplication {
 
@@ -276,6 +339,10 @@ class PreparationInitializationMySqlIntegrationTest {
 
         @Bean PermissionApi permissionApi() {
             return mock(PermissionApi.class);
+        }
+
+        @Bean FileArtifactApi fileArtifactApi() {
+            return mock(FileArtifactApi.class);
         }
 
         private static FixedSurveyFormCatalog catalog() {

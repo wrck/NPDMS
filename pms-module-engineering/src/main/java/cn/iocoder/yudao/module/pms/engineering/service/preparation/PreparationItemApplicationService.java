@@ -71,7 +71,8 @@ public class PreparationItemApplicationService {
 
     public static final String PERMISSION_FILL = "pms:preparation-survey:fill";
     private static final String OPERATION = "PREPARATION_ITEM_PATCH";
-    private static final Set<String> MANAGER_FIELDS = Set.of("applicabilityCode", "outsourced", "assignee");
+    private static final Set<String> MANAGER_FIELDS = Set.of(
+            "applicabilityCode", "outsourced", "assignee", "notApplicableReason");
     private static final Set<String> ASSIGNEE_FIELDS = Set.of(
             "siteResultCode", "siteResultDetail", "formValueSnapshot", "evidenceReferences");
     private static final Set<String> ALL_FIELDS;
@@ -186,7 +187,8 @@ public class PreparationItemApplicationService {
                 actor.tenantId(), preparation.getId(), item.getId(), item.getVersion(), Set.copyOf(itemFields),
                 command.applicabilityCode(), command.outsourced(), command.assigneeUserId(),
                 command.submittedFields().contains("assignee") ? LocalDateTime.now() : item.getAssigneeEffectiveFrom(),
-                command.siteResultCode(), command.siteResultDetail(), evidenceSnapshot, null,
+                command.siteResultCode(), command.siteResultDetail(), evidenceSnapshot,
+                command.notApplicableReason(),
                 String.valueOf(actor.actorId()))) != 1) {
             throw exception(PREPARATION_VERSION_NOT_MATCH);
         }
@@ -220,6 +222,9 @@ public class PreparationItemApplicationService {
         if (command.submittedFields().contains("outsourced")) after.put("outsourced", command.outsourced());
         if (command.submittedFields().contains("assignee")) {
             after.put("assigneeUserId", command.assigneeUserId() == null ? "NONE" : command.assigneeUserId());
+        }
+        if (command.submittedFields().contains("notApplicableReason")) {
+            after.put("notApplicableReason", auditValue(command.notApplicableReason()));
         }
         if (command.submittedFields().contains("siteResultCode")) {
             after.put("siteResultCode", auditValue(command.siteResultCode()));

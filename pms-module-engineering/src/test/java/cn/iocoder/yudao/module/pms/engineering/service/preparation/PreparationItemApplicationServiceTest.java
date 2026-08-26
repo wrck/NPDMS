@@ -177,7 +177,7 @@ class PreparationItemApplicationServiceTest {
     private PatchPreparationItemCommand command(Set<String> fields, Long assigneeId,
             String formValue, List<PatchPreparationItemCommand.EvidenceReference> evidence) {
         return new PatchPreparationItemCommand(1L, 2L, 1, 1, 1, 1, 1, 3,
-                fields, null, null, assigneeId, null, null, formValue, evidence);
+                fields, null, null, assigneeId, null, null, null, formValue, evidence);
     }
 
     private PreparationDO preparation() {

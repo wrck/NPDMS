@@ -20,6 +20,7 @@ public class PreparationItemPatchReqVO {
     private String applicabilityCode;
     private Boolean outsourced;
     private Long assigneeUserId;
+    @Size(max = 2000) private String notApplicableReason;
     @Size(max = 64) private String siteResultCode;
     @Size(max = 2000) private String siteResultDetail;
     private String formValueSnapshot;
@@ -34,6 +35,7 @@ public class PreparationItemPatchReqVO {
     public void setApplicabilityCode(String value) { applicabilityCode = value; submittedFields.add("applicabilityCode"); }
     public void setOutsourced(Boolean value) { outsourced = value; submittedFields.add("outsourced"); }
     public void setAssigneeUserId(Long value) { assigneeUserId = value; submittedFields.add("assignee"); }
+    public void setNotApplicableReason(String value) { notApplicableReason = value; submittedFields.add("notApplicableReason"); }
     public void setSiteResultCode(String value) { siteResultCode = value; submittedFields.add("siteResultCode"); }
     public void setSiteResultDetail(String value) { siteResultDetail = value; submittedFields.add("siteResultDetail"); }
     public void setFormValueSnapshot(String value) { formValueSnapshot = value; submittedFields.add("formValueSnapshot"); }

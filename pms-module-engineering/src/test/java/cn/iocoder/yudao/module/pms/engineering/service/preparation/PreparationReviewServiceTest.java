@@ -1,0 +1,202 @@
+package cn.iocoder.yudao.module.pms.engineering.service.preparation;
+
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationSourceReferenceDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationSourceReferenceMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemReviewUpdate;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class PreparationReviewServiceTest {
+
+    @Mock private PreparationMapper preparationMapper;
+    @Mock private PreparationItemMapper itemMapper;
+    @Mock private DynamicFormInstanceMapper formMapper;
+    @Mock private PreparationSourceReferenceMapper sourceMapper;
+    @Mock private PermissionApi permissionApi;
+    @Mock private ProjectScopeApi projectScopeApi;
+    @Mock private ProjectParticipantFactApi participantFactApi;
+    @Mock private FileArtifactApi fileArtifactApi;
+    @Mock private PlatformCommandExecutionApi commandExecutionApi;
+    @Mock private OperationAuditApi operationAuditApi;
+    @Mock private TransactionTemplate transactionTemplate;
+    @InjectMocks private PreparationReviewService service;
+
+    @BeforeEach
+    @SuppressWarnings("unchecked")
+    void setUp() {
+        when(transactionTemplate.execute(any())).thenAnswer(invocation ->
+                ((TransactionCallback<Object>) invocation.getArgument(0))
+                        .doInTransaction(mock(TransactionStatus.class)));
+        when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
+        ProjectScopeResult scope = new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope);
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope);
+        when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            Supplier<Object> operation = invocation.getArgument(3);
+            Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
+            Object response = operation.get();
+            facts.apply(response);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
+        });
+    }
+
+    @Test
+    void submitFreezesRequiredAndNotApplicableItems() {
+        PreparationDO preparation = preparation("DRAFT", 1, 1);
+        PreparationItemDO required = item(101L, "REQUIRED", "PENDING", 1);
+        required.setAssigneeUserId(9L);
+        required.setSiteResultCode("READY");
+        required.setEvidencePolicySnapshot("{\"required\":false}");
+        PreparationItemDO notApplicable = item(102L, "NOT_APPLICABLE_PENDING", "PENDING", 1);
+        notApplicable.setNotApplicableReason("现场不涉及");
+        stubRows(preparation, List.of(required, notApplicable), List.of(form(201L, 101L), form(202L, 102L)));
+        when(formMapper.freezeIfMatch(any())).thenReturn(1);
+        when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        var result = service.execute(command(PreparationReviewCommand.SUBMIT, null, 1, null, null), actor());
+
+        assertEquals("PENDING_CONFIRMATION", result.statusCode());
+        assertEquals(2, result.preparationVersion());
+        verify(formMapper, org.mockito.Mockito.times(2)).freezeIfMatch(any());
+        verify(preparationMapper).updateLifecycleIfMatch(any());
+    }
+
+    @Test
+    void lastItemConfirmationAggregatesPreparation() {
+        PreparationDO preparation = preparation("PENDING_CONFIRMATION", 4, 2);
+        PreparationItemDO selected = item(101L, "REQUIRED", "PENDING", 3);
+        PreparationItemDO confirmed = item(102L, "NOT_APPLICABLE_CONFIRMED", "CONFIRMED", 2);
+        stubRows(preparation, List.of(selected, confirmed), List.of(form(201L, 101L), form(202L, 102L)));
+        when(itemMapper.updateReviewIfMatch(any())).thenReturn(1);
+        when(preparationMapper.invalidateReadinessIfMatch(any())).thenReturn(1);
+        when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        var result = service.execute(command(PreparationReviewCommand.CONFIRM, 101L, 4, 3, null), actor());
+
+        assertEquals("CONFIRMED", result.statusCode());
+        assertEquals(6, result.preparationVersion());
+        verify(preparationMapper).invalidateReadinessIfMatch(any());
+        verify(preparationMapper).updateLifecycleIfMatch(any());
+    }
+
+    @Test
+    void returnCreatesNewCurrentDraftAndResetsOnlyReturnedItem() {
+        PreparationDO preparation = preparation("CONFIRMED", 5, 2);
+        preparation.setBusinessVersion(1);
+        PreparationItemDO returned = item(101L, "REQUIRED", "CONFIRMED", 2);
+        PreparationItemDO retained = item(102L, "NOT_APPLICABLE_CONFIRMED", "CONFIRMED", 2);
+        stubRows(preparation, List.of(returned, retained), List.of(form(201L, 101L), form(202L, 102L)));
+        PreparationSourceReferenceDO source = new PreparationSourceReferenceDO();
+        source.setItemId(101L); source.setSourceTypeCode("OA"); source.setSourceReferenceKey("OA-1");
+        source.setSyncStatusCode("SUCCESS"); source.setVersion(1);
+        when(sourceMapper.selectListForUpdate(any())).thenReturn(List.of(source));
+        when(itemMapper.updateReviewIfMatch(any())).thenReturn(1);
+        when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        when(preparationMapper.clearCurrentMarkerIfMatch(any())).thenReturn(1);
+        when(preparationMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationDO row = invocation.getArgument(0); row.setId(2L); return 1;
+        });
+        when(itemMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationItemDO row = invocation.getArgument(0); row.setId(1000L + row.getSourceItemId()); return 1;
+        });
+        when(formMapper.insert(any())).thenReturn(1);
+        when(sourceMapper.insert(any())).thenReturn(1);
+
+        var result = service.execute(command(PreparationReviewCommand.RETURN, 101L, 5, 2, "资料需补充"), actor());
+
+        assertEquals("DRAFT", result.statusCode());
+        assertEquals(2, result.businessVersion());
+        assertEquals(2L, result.currentPreparationId());
+        ArgumentCaptor<PreparationItemDO> copied = ArgumentCaptor.forClass(PreparationItemDO.class);
+        verify(itemMapper, org.mockito.Mockito.times(2)).insert(copied.capture());
+        assertEquals("PENDING", copied.getAllValues().get(0).getConfirmationStatusCode());
+        assertEquals("CONFIRMED", copied.getAllValues().get(1).getConfirmationStatusCode());
+        ArgumentCaptor<PreparationSourceReferenceDO> copiedSource = ArgumentCaptor.forClass(PreparationSourceReferenceDO.class);
+        verify(sourceMapper).insert(copiedSource.capture());
+        assertEquals("UNKNOWN", copiedSource.getValue().getSyncStatusCode());
+    }
+
+    private void stubRows(PreparationDO preparation, List<PreparationItemDO> items,
+                          List<DynamicFormInstanceDO> forms) {
+        when(preparationMapper.selectById(any())).thenReturn(preparation);
+        when(preparationMapper.selectForUpdate(any())).thenReturn(preparation);
+        when(itemMapper.selectListForUpdate(any())).thenReturn(items);
+        when(formMapper.selectListForUpdate(any())).thenReturn(forms);
+    }
+
+    private PreparationReviewCommand command(String action, Long itemId, Integer preparationVersion,
+                                             Integer itemVersion, String reason) {
+        return new PreparationReviewCommand(action, 1L, itemId, preparationVersion, itemVersion,
+                3, reason, "review-key-" + action);
+    }
+
+    private PreparationItemApplicationService.Actor actor() {
+        return new PreparationItemApplicationService.Actor(1L, 7L, "review-op");
+    }
+
+    private PreparationDO preparation(String status, int version, int businessVersion) {
+        PreparationDO row = new PreparationDO(); row.setId(1L); row.setTenantId(1L); row.setProjectId(10L);
+        row.setBusinessVersion(businessVersion); row.setCurrentMarker(1); row.setStatusCode(status);
+        row.setReadinessStatusCode("NOT_READY"); row.setInputVersion(1); row.setReadinessVersion(0);
+        row.setSnapshotCurrent(false); row.setVersion(version); row.setSubmittedAt(LocalDateTime.now());
+        return row;
+    }
+
+    private PreparationItemDO item(Long id, String applicability, String confirmation, int version) {
+        PreparationItemDO row = new PreparationItemDO(); row.setId(id); row.setTenantId(1L); row.setPreparationId(1L);
+        row.setItemCode("ITEM-" + id); row.setItemName("工勘项" + id); row.setSortOrder(id.intValue());
+        row.setApplicabilityCode(applicability); row.setConfirmationStatusCode(confirmation);
+        row.setFormCode("SITE_SURVEY_COMMON"); row.setFormVersion(1);
+        row.setFormSchemaSnapshot(schema()); row.setEvidencePolicySnapshot("{\"required\":false}");
+        row.setSourcePolicySnapshot("{}"); row.setWaiverPolicySnapshot("{}"); row.setVersion(version);
+        return row;
+    }
+
+    private DynamicFormInstanceDO form(Long id, Long itemId) {
+        DynamicFormInstanceDO row = new DynamicFormInstanceDO(); row.setId(id); row.setTenantId(1L);
+        row.setPreparationId(1L); row.setItemId(itemId); row.setFormCode("SITE_SURVEY_COMMON");
+        row.setFormVersion(1); row.setSchemaSnapshot(schema()); row.setValueSnapshot("{\"siteCondition\":\"正常\"}");
+        row.setStatusCode("DRAFT"); row.setVersion(1); return row;
+    }
+
+    private String schema() {
+        return "{\"schemaVersion\":1,\"formCode\":\"SITE_SURVEY_COMMON\",\"formVersion\":1,"
+                + "\"fields\":[{\"fieldCode\":\"siteCondition\",\"fieldType\":\"TEXT\","
+                + "\"required\":true,\"maxLength\":200,\"options\":[],\"sortOrder\":1}]}";
+    }
+}

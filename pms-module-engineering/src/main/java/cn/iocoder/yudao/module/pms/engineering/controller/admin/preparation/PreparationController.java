@@ -12,9 +12,13 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.P
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationItemRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReviewReqVO;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewResult;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +32,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,6 +46,7 @@ import java.util.UUID;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.PREPARATION_PROJECT_FACT_INVALID;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.PREPARATION_COMMAND_INVALID;
 
 @Tag(name = "管理后台 - PMS 工勘准备")
 @RestController
@@ -51,6 +57,7 @@ public class PreparationController {
 
     private final PreparationQueryService queryService;
     private final PreparationItemApplicationService itemApplicationService;
+    private final PreparationReviewService reviewService;
     private final Environment environment;
 
     @GetMapping
@@ -105,9 +112,45 @@ public class PreparationController {
                     request.getExpectedReadinessVersion(), request.getExpectedFormVersion(),
                     request.getExpectedProjectVersion(), request.getSubmittedFields(),
                     request.getApplicabilityCode(), request.getOutsourced(), request.getAssigneeUserId(),
-                    request.getSiteResultCode(), request.getSiteResultDetail(), request.getFormValueSnapshot(), evidence);
+                    request.getNotApplicableReason(), request.getSiteResultCode(), request.getSiteResultDetail(),
+                    request.getFormValueSnapshot(), evidence);
             return success(itemApplicationService.patch(command, commandActor()));
         });
+    }
+
+    @PostMapping("/{id}/actions/submit")
+    @Operation(summary = "提交并冻结当前工勘准备版本")
+    @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
+    public CommonResult<PreparationReviewResult> submit(@PathVariable("id") @Positive Long id,
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PreparationReviewReqVO request) {
+        return review(id, null, PreparationReviewCommand.SUBMIT, ifMatch, idempotencyKey, request);
+    }
+
+    @PostMapping("/{id}/items/{itemId}/actions/{action}")
+    @Operation(summary = "确认、确认不适用或退回工勘项")
+    @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
+    public CommonResult<PreparationReviewResult> reviewItem(@PathVariable("id") @Positive Long id,
+            @PathVariable("itemId") @Positive Long itemId, @PathVariable("action") String action,
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PreparationReviewReqVO request) {
+        String commandAction = switch (action) {
+            case "confirm" -> PreparationReviewCommand.CONFIRM;
+            case "confirm-not-applicable" -> PreparationReviewCommand.CONFIRM_NOT_APPLICABLE;
+            case "return" -> PreparationReviewCommand.RETURN;
+            default -> throw exception(PREPARATION_COMMAND_INVALID);
+        };
+        return review(id, itemId, commandAction, ifMatch, idempotencyKey, request);
+    }
+
+    private CommonResult<PreparationReviewResult> review(Long preparationId, Long itemId, String action,
+            String ifMatch, String idempotencyKey, PreparationReviewReqVO request) {
+        return withTrustedTenant(() -> success(reviewService.execute(new PreparationReviewCommand(action,
+                preparationId, itemId, itemId == null ? parseVersion(ifMatch) : request.getExpectedPreparationVersion(),
+                itemId == null ? null : parseVersion(ifMatch), request.getExpectedProjectVersion(),
+                request.getReason(), idempotencyKey), commandActor())));
     }
 
     @GetMapping("/history")

@@ -15,4 +15,5 @@ public interface PreparationItemMapper {
     List<PreparationItemDO> selectListForUpdate(@Param("query") PreparationChildrenQuery query);
     List<PreparationItemDO> selectPage(@Param("query") PreparationItemPageQuery query);
     int updateDraftIfMatch(@Param("update") PreparationItemDraftUpdate update);
+    int updateReviewIfMatch(@Param("update") PreparationItemReviewUpdate update);
 }

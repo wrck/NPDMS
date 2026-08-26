@@ -10,7 +10,7 @@ public record PatchPreparationItemCommand(Long preparationId, Long itemId,
         Integer expectedInputVersion, Integer expectedReadinessVersion,
         Integer expectedFormVersion, Integer expectedProjectVersion,
         Set<String> submittedFields, String applicabilityCode, Boolean outsourced,
-        Long assigneeUserId, String siteResultCode, String siteResultDetail,
+        Long assigneeUserId, String notApplicableReason, String siteResultCode, String siteResultDetail,
         String formValueSnapshot, List<EvidenceReference> evidenceReferences) {
 
     public record EvidenceReference(Long artifactId, Integer versionNo, String referenceKey,

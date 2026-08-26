@@ -98,4 +98,32 @@
           AND confirmation_status_code IN ('PENDING', 'RETURNED')
     </update>
 
+    <update id="updateReviewIfMatch">
+        UPDATE sol_preparation_item
+        SET applicability_code = #{update.applicabilityCode},
+            confirmation_status_code = #{update.confirmationStatusCode},
+            not_applicable_reason = CASE WHEN #{update.applicabilityCode} = 'NOT_APPLICABLE_CONFIRMED'
+                THEN #{update.notApplicableReason} ELSE not_applicable_reason END,
+            not_applicable_confirmed_by = CASE WHEN #{update.applicabilityCode} = 'NOT_APPLICABLE_CONFIRMED'
+                THEN #{update.actorUserId} ELSE not_applicable_confirmed_by END,
+            not_applicable_confirmed_at = CASE WHEN #{update.applicabilityCode} = 'NOT_APPLICABLE_CONFIRMED'
+                THEN #{update.decidedAt} ELSE not_applicable_confirmed_at END,
+            confirmed_by = CASE WHEN #{update.confirmationStatusCode} = 'CONFIRMED'
+                THEN #{update.actorUserId} ELSE confirmed_by END,
+            confirmed_at = CASE WHEN #{update.confirmationStatusCode} = 'CONFIRMED'
+                THEN #{update.decidedAt} ELSE confirmed_at END,
+            returned_by = CASE WHEN #{update.confirmationStatusCode} = 'RETURNED'
+                THEN #{update.actorUserId} ELSE returned_by END,
+            returned_at = CASE WHEN #{update.confirmationStatusCode} = 'RETURNED'
+                THEN #{update.decidedAt} ELSE returned_at END,
+            return_reason = CASE WHEN #{update.confirmationStatusCode} = 'RETURNED'
+                THEN #{update.returnReason} ELSE return_reason END,
+            updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3), version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND preparation_id = #{update.preparationId}
+          AND id = #{update.itemId}
+          AND version = #{update.expectedVersion}
+          AND confirmation_status_code = #{update.expectedConfirmationStatus}
+    </update>
+
 </mapper>
