@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.api.workbinding;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
@@ -38,6 +39,8 @@ class ProjectWorkBindingFactApiImplTest {
             + item("POWER", 10) + "," + item("NETWORK_PORT", 20) + "," + item("FIBER", 30) + ","
             + item("CABINET", 40) + "," + item("NETWORK_CABLE", 50) + ","
             + item("OPTICAL_MODULE", 60) + "]}";
+    private static final String BINDING_WITH_EXTENSION = BINDING.replace("]}",
+            "," + extensionItem() + "]}");
 
     @Mock
     private ProjectMasterMapper projectMapper;
@@ -72,6 +75,19 @@ class ProjectWorkBindingFactApiImplTest {
         assertEquals(0L, captor.getValue().tenantId());
         assertEquals("BUSINESS_OBJECT", captor.getValue().workBindingTypeCode());
         assertEquals("SOL", captor.getValue().targetContextCode());
+    }
+
+    @Test
+    void frozenApprovedExtensionRemainsReadableWithoutDictionaryLookup() {
+        when(factMapper.selectCurrentFacts(any())).thenReturn(List.of(record(0L, BINDING_WITH_EXTENSION)));
+        assertEquals(7, JsonUtils.parseObject(api.inspect(new ProjectWorkBindingFactQuery(100L))
+                .itemConfigurationSnapshot(), List.class).size());
+
+        when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
+        when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
+        when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract(0L, 3, BINDING_WITH_EXTENSION));
+        assertEquals(7, JsonUtils.parseObject(api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
+                100L, 101L, 102L, 7, 3, 11)).itemConfigurationSnapshot(), List.class).size());
     }
 
     @Test
@@ -182,5 +198,12 @@ class ProjectWorkBindingFactApiImplTest {
                 + "\",\"formVersion\":1,\"evidenceRequired\":false,"
                 + "\"sourceRequirementCode\":\"NONE\",\"waiverAllowed\":false,"
                 + "\"approvalRoleCode\":\"SERVICE_MANAGER_L1\",\"sortOrder\":" + sortOrder + "}";
+    }
+
+    private static String extensionItem() {
+        return "{\"itemCode\":\"GROUNDING\",\"itemName\":\"接地\",\"enabled\":true,"
+                + "\"formCode\":\"POWER\",\"formVersion\":1,\"evidenceRequired\":true,"
+                + "\"sourceRequirementCode\":\"NONE\",\"waiverAllowed\":false,"
+                + "\"approvalRoleCode\":\"SERVICE_MANAGER_L1\",\"sortOrder\":70}";
     }
 }

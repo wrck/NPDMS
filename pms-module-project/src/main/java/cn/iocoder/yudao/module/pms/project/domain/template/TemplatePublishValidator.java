@@ -35,6 +35,11 @@ public final class TemplatePublishValidator {
      * 校验模板及PRE-02固定目录引用；fixedFormCatalogJson仅在模板声明PRE-02时使用。
      */
     public static List<String> validate(TemplateDefinitionContent content, String fixedFormCatalogJson) {
+        return validate(content, fixedFormCatalogJson, null);
+    }
+
+    public static List<String> validate(TemplateDefinitionContent content, String fixedFormCatalogJson,
+                                        Set<String> approvedPreparationItemCodes) {
         List<String> failures = new ArrayList<>();
         if (content == null) {
             failures.add("模板内容为空");
@@ -47,7 +52,8 @@ public final class TemplatePublishValidator {
         Set<String> deliverableCodes = validateDeliverables(content.getDeliverables(), stageCodes, taskCodes, failures);
         validateGates(content.getGates(), stageCodes, taskCodes, deliverableCodes, failures);
         validateTaskGateRefs(content.getTasks(), content.getGates(), failures);
-        validatePreparationBindings(content.getTasks(), fixedFormCatalogJson, failures);
+        validatePreparationBindings(content.getTasks(), fixedFormCatalogJson,
+                approvedPreparationItemCodes, failures);
         return failures;
     }
 
@@ -273,6 +279,7 @@ public final class TemplatePublishValidator {
 
     private static void validatePreparationBindings(List<TemplateDefinitionContent.TaskDef> tasks,
                                                     String fixedFormCatalogJson,
+                                                    Set<String> approvedItemCodes,
                                                     List<String> failures) {
         if (tasks == null) {
             return;
@@ -289,7 +296,12 @@ public final class TemplatePublishValidator {
             }
             matches++;
             try {
-                PreparationWorkBindingSchema.parseAndValidate(task.getBindingConfig(), fixedFormCatalogJson);
+                if (approvedItemCodes == null) {
+                    PreparationWorkBindingSchema.parseAndValidate(task.getBindingConfig(), fixedFormCatalogJson);
+                } else {
+                    PreparationWorkBindingSchema.parseAndValidate(task.getBindingConfig(), fixedFormCatalogJson,
+                            approvedItemCodes);
+                }
             } catch (IllegalArgumentException ex) {
                 failures.add("任务【" + task.getTaskCode() + "】" + ex.getMessage());
             }

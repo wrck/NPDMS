@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -183,6 +184,22 @@ class TemplatePublishValidatorTest {
                 .anyMatch(failure -> failure.contains("目标四元组无效")));
     }
 
+    @Test
+    void preparationBindingAcceptsOnlyDictionaryApprovedExtensionItems() {
+        TemplateDefinitionContent content = buildValidContent();
+        String binding = preparationBinding().replace("]}", "," + extensionItem() + "]}");
+        setPreparationBinding(content.getTasks().get(1), binding);
+        Set<String> approved = Set.of("POWER", "NETWORK_PORT", "FIBER", "CABINET",
+                "NETWORK_CABLE", "OPTICAL_MODULE", "GROUNDING");
+
+        List<String> failures = TemplatePublishValidator.validate(content, fixedCatalog(), approved);
+        assertTrue(failures.isEmpty(), () -> "批准扩展项应通过，实际：" + failures);
+
+        List<String> rejected = TemplatePublishValidator.validate(content, fixedCatalog(),
+                Set.of("POWER", "NETWORK_PORT", "FIBER", "CABINET", "NETWORK_CABLE", "OPTICAL_MODULE"));
+        assertTrue(rejected.stream().anyMatch(failure -> failure.contains("未命中启用字典")));
+    }
+
     private void assertHasFailure(TemplateDefinitionContent content, String keyword) {
         List<String> failures = TemplatePublishValidator.validate(content);
         assertTrue(failures.stream().anyMatch(f -> f.contains(keyword)),
@@ -290,5 +307,12 @@ class TemplatePublishValidatorTest {
                 + "\",\"formVersion\":1,\"evidenceRequired\":false,"
                 + "\"sourceRequirementCode\":\"NONE\",\"waiverAllowed\":false,"
                 + "\"approvalRoleCode\":\"SERVICE_MANAGER_L1\",\"sortOrder\":" + sortOrder + "}";
+    }
+
+    private static String extensionItem() {
+        return "{\"itemCode\":\"GROUNDING\",\"itemName\":\"接地\",\"enabled\":true,"
+                + "\"formCode\":\"POWER\",\"formVersion\":1,\"evidenceRequired\":true,"
+                + "\"sourceRequirementCode\":\"NONE\",\"waiverAllowed\":false,"
+                + "\"approvalRoleCode\":\"SERVICE_MANAGER_L1\",\"sortOrder\":70}";
     }
 }

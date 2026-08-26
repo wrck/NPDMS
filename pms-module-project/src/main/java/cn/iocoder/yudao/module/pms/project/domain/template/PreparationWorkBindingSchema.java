@@ -15,6 +15,7 @@ public final class PreparationWorkBindingSchema {
     public static final String TARGET_CONTEXT = "SOL";
     public static final String TARGET_OBJECT_TYPE = "SITE_SURVEY_PREPARATION";
     public static final String TARGET_OBJECT_KEY = "PRE_02_SITE_SURVEY";
+    public static final String ITEM_CODE_DICT_TYPE = "pms_preparation_survey_item_code";
 
     private static final Set<String> BASELINE_ITEMS = Set.of(
             "POWER", "NETWORK_PORT", "FIBER", "CABINET", "NETWORK_CABLE", "OPTICAL_MODULE");
@@ -46,8 +47,16 @@ public final class PreparationWorkBindingSchema {
     }
 
     public static ParsedBinding parseAndValidate(String bindingJson, String catalogJson) {
+        return parseAndValidate(bindingJson, catalogJson, BASELINE_ITEMS);
+    }
+
+    public static ParsedBinding parseAndValidate(String bindingJson, String catalogJson,
+                                                 Set<String> approvedItemCodes) {
         Catalog catalog = parseCatalog(catalogJson);
-        return parseBinding(bindingJson, catalog);
+        if (approvedItemCodes == null) {
+            throw new IllegalArgumentException("PRE-02工勘项批准字典不可用");
+        }
+        return parseBinding(bindingJson, catalog, Set.copyOf(approvedItemCodes));
     }
 
     /** 运行时只校验已冻结的V1事实，不回读可变配置。 */
@@ -56,10 +65,10 @@ public final class PreparationWorkBindingSchema {
         for (String code : BASELINE_ITEMS) {
             forms.add(new FormIdentity(code, 1));
         }
-        return parseBinding(bindingJson, new Catalog(1, Set.copyOf(forms)));
+        return parseBinding(bindingJson, new Catalog(1, Set.copyOf(forms)), null);
     }
 
-    private static ParsedBinding parseBinding(String bindingJson, Catalog catalog) {
+    private static ParsedBinding parseBinding(String bindingJson, Catalog catalog, Set<String> approvedItemCodes) {
         Map<?, ?> binding = requireObject(bindingJson, "PRE-02绑定配置不是合法JSON对象");
         requireExactKeys(binding, BINDING_KEYS, "PRE-02绑定配置字段不符合V1契约");
         requireInteger(binding, "schemaVersion", 1);
@@ -73,7 +82,7 @@ public final class PreparationWorkBindingSchema {
             throw new IllegalArgumentException("PRE-02固定表单目录版本不匹配");
         }
         List<?> items = requireList(binding.get("itemConfiguration"), "PRE-02工勘项配置缺失");
-        validateItems(items, catalog.forms());
+        validateItems(items, catalog.forms(), approvedItemCodes);
         return new ParsedBinding(templateCode, templateRevision, catalogVersion, JsonUtils.toJsonString(items));
     }
 
@@ -135,7 +144,7 @@ public final class PreparationWorkBindingSchema {
         }
     }
 
-    private static void validateItems(List<?> items, Set<FormIdentity> forms) {
+    private static void validateItems(List<?> items, Set<FormIdentity> forms, Set<String> approvedItemCodes) {
         if (items.isEmpty()) {
             throw new IllegalArgumentException("PRE-02工勘项配置缺失");
         }
@@ -163,8 +172,11 @@ public final class PreparationWorkBindingSchema {
                 throw new IllegalArgumentException("PRE-02工勘项身份、排序或表单引用无效");
             }
         }
-        if (!itemCodes.equals(BASELINE_ITEMS)) {
-            throw new IllegalArgumentException("PRE-02模板未精确覆盖六类基准项");
+        if (!itemCodes.containsAll(BASELINE_ITEMS)) {
+            throw new IllegalArgumentException("PRE-02模板未完整覆盖六类基准项");
+        }
+        if (approvedItemCodes != null && !approvedItemCodes.containsAll(itemCodes)) {
+            throw new IllegalArgumentException("PRE-02工勘项编码未命中启用字典");
         }
     }
 

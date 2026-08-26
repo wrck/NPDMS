@@ -1,10 +1,13 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
+import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
+import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDeliverableDefinitionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateGateDefinitionDO;
@@ -39,8 +42,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CODE_DUPLICATE;
@@ -65,6 +70,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     private ProjectTemplateMapper projectTemplateMapper;
     @Resource
     private ConfigApi configApi;
+    @Resource
+    private DictDataApi dictDataApi;
     @Resource
     private ProjectTemplateRevisionMapper revisionMapper;
     @Resource
@@ -218,9 +225,13 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         }
         // BR-2 发布校验：失败保持草稿并列出失败项（重试用原版本号）
         TemplateDefinitionContent content = loadContent(draft);
-        String fixedFormCatalog = TemplatePublishValidator.requiresPreparationCatalog(content)
+        boolean requiresPreparationCatalog = TemplatePublishValidator.requiresPreparationCatalog(content);
+        String fixedFormCatalog = requiresPreparationCatalog
                 ? configApi.getConfigValueByKey(PreparationWorkBindingSchema.CONFIG_KEY) : null;
-        List<String> failures = TemplatePublishValidator.validate(content, fixedFormCatalog);
+        Set<String> approvedPreparationItemCodes = requiresPreparationCatalog
+                ? getApprovedPreparationItemCodes() : null;
+        List<String> failures = TemplatePublishValidator.validate(
+                content, fixedFormCatalog, approvedPreparationItemCodes);
         if (!failures.isEmpty()) {
             String summary = String.join("；", failures);
             // 校验结果留痕到草稿行
@@ -252,6 +263,22 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         statusUpdate.setId(id);
         statusUpdate.setStatus(TemplateRules.STATUS_ACTIVE);
         projectTemplateMapper.updateById(statusUpdate);
+    }
+
+    private Set<String> getApprovedPreparationItemCodes() {
+        List<DictDataRespDTO> values = dictDataApi.getDictDataList(PreparationWorkBindingSchema.ITEM_CODE_DICT_TYPE);
+        Set<String> approved = new HashSet<>();
+        if (values == null) {
+            return approved;
+        }
+        for (DictDataRespDTO value : values) {
+            if (value != null && CommonStatusEnum.ENABLE.getStatus().equals(value.getStatus())
+                    && PreparationWorkBindingSchema.ITEM_CODE_DICT_TYPE.equals(value.getDictType())
+                    && value.getValue() != null && !value.getValue().isBlank()) {
+                approved.add(value.getValue().trim());
+            }
+        }
+        return approved;
     }
 
     @Override
