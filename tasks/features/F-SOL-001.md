@@ -5,8 +5,8 @@
 > Feature Ready Gate：`PASS / NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`
 > Implementation Done Gate：`PENDING`
 > Technical Plan Gate：`PASS / NPDMS-FSOL001-TECHPLAN-20260826-01`
-> 当前阻断：Task 6客户依据成功提交、Task 9材料场景、Task 10完整浏览器闭环及Feature Done依赖`PLT-02 / FileArtifact`真实公共事实；Task 9 Step 1～3／无材料主线已PASS
-> 当前任务：`Task 9 等待PLT-02上游实现；不得推进Task 10`
+> 当前阻断：Task 10完整浏览器闭环及Feature Done等待F-PLT-001统一文件界面接入；后端材料主线已解除
+> 当前任务：`等待F-PLT-001 Task 9界面接入后执行Task 10`
 > Requirement ID：`PRE-01（V1）`
 > Feature Spec：`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`
 > Feature物理契约：`specs/features/F-SOL-001-physical-contract.json`
@@ -19,7 +19,7 @@
 - SOL以`sol_construction_plan`、`sol_construction_plan_revision`、`sol_construction_plan_change`承载当前事实，不创建`sol_construction_plan_item`。
 - 首次工期直接生效；后续变更通过平台BPM单节点服务经理审批。审批通过后新工期成为唯一当前版本，计划仅标记待重算，不覆盖旧施工计划。
 - 旧工期倒排和计划变更仅作历史只读证据，不迁移、不双写、不作为V1.8当前真值。
-- `PLT-02 / FileArtifact`未实施前保持失败关闭，不伪造文件事实；其前置独立任务继续推进。
+- 客户依据统一复用PLT FileArtifact固定版本事实；SOL不保存URL或自建文件真值。
 
 ## 任务跟踪
 
@@ -28,10 +28,10 @@
 - [x] Task 3 建立SOL持久化、状态值域和查询原语（PASS / `3e3bdf3` + `df3f3ce` / 独立裁决GO）
 - [x] Task 4 实现首次工期录入与查询（PASS / `5cf50e8` / 独立裁决GO）
 - [x] Task 5 实现工期变更草稿与部分更新（PASS / `59115fe` + `30bf273` / 独立裁决GO）
-- [ ] Task 6 冻结依据并提交平台BPM审批（BPM提交与BPM_APPROVAL守卫子项PASS / `834c182` + `f4d3cca`；FileArtifact成功路径`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`）
-- [x] Task 7 同步消费BPM终态并生效工期结果（无材料终态主线PASS / `d659501` + `b0fdc23` / 独立裁决GO；材料分支`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`）
+- [x] Task 6 冻结依据并提交平台BPM审批（PASS / `834c182` + `f4d3cca` + `34ce4df` + `eb42aa3` / 独立裁决GO）
+- [x] Task 7 同步消费BPM终态并生效工期结果（PASS / `d659501` + `b0fdc23` + `34ce4df` + `eb42aa3` / 独立裁决GO）
 - [x] Task 8 建设响应式项目工期界面并冻结旧PRE-01写入口（PASS / `668234d` / `NPDMS-FSOL001-TASK8-20260826-01`）
-- [ ] Task 9 完成真实MySQL、事务并发和BPM集成验证（Step 1～3／无材料主线PASS / `db394a0` + `7e9d6d3` / 独立裁决GO；材料场景`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`）
+- [x] Task 9 完成真实MySQL、事务并发和BPM集成验证（PASS / `db394a0` + `7e9d6d3` + `34ce4df` + `eb42aa3` / 独立裁决GO）
 - [ ] Task 10 完成真实浏览器、独立复审和Feature Done回写
 
 > 检查点（2026-08-26）：Task 1提交`b2b019d`经独立复审GO；V1～V91隔离MySQL迁移、根唯一键、种子幂等、迁移契约4/4、20模块Reactor编译及规格快照校验均PASS，允许推进Task 2。
@@ -55,3 +55,5 @@
 > 检查点（2026-08-26）：Task 8提交`668234dad63bb017b1a0a7fdffc1087b791639cc`经独立裁决`NPDMS-FSOL001-TASK8-20260826-01`确认GO；响应式项目工期主线、字段存在性PATCH/null清空、平台BPM跳转与申请人撤回、游标历史和旧V1.7写入口退役均通过，允许推进Task 9。Task 9/10、正式浏览器闭环及PLT-02材料分支未提前关闭。
 
 > 检查点（2026-08-26）：Task 9主实现提交`db394a0`及真实PROJ参与事实整改`7e9d6d351dc405e83340fbef9517d58d108aa16c`经独立复审GO；V1～V91迁移/种子、真实SOL/PLATFORM/Flowable事务链、BPM_APPROVAL守卫及真实`ProjectParticipantFactApiImpl`项目版本重验均通过。仅登记Step 1～3／无材料主线PASS；Task 9整体继续保持`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`，不得推进Task 10。
+
+> 检查点（2026-08-27）：F-PLT-001 Task 6提交`34ce4dff8f380192e96aba679656cf4728527feb`及整改`eb42aa3ae4d1f5a4510e73c824e3cdc4d866b3ef`经独立复审GO；客户依据上传、固定版本冻结、三终态锁定重验和PROJ范围版本并发冲突均由真实MySQL、Flowable、PROJ、PLT、SOL验证通过，Task 6/7材料分支与Task 9材料场景阻断解除。Task 10仍等待F-PLT-001统一文件界面接入。
