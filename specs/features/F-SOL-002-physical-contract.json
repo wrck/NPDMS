@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-SOL-002",
+  "requirementIds": ["PRE-02"],
+  "status": "DRAFT",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "FEATURE_READY_REVIEW_ONLY_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
+  "owner": {
+    "context": "SOL",
+    "implementationModule": "pms-module-engineering",
+    "forbiddenOwners": ["PROJ", "PLATFORM", "IMP", "OA"]
+  },
+  "v1Scope": {
+    "included": [
+      "PRE02_TEMPLATE_SNAPSHOT",
+      "FIXED_FORM_VERSION",
+      "ITEM_ASSIGNMENT_AND_FILLING",
+      "EXACT_FILE_EVIDENCE",
+      "ITEM_CONFIRM_RETURN_NOT_APPLICABLE",
+      "SOURCE_REFERENCE_AND_SYNC_FACT",
+      "ITEM_WAIVER",
+      "READINESS_BLOCKERS_AND_IMMUTABLE_SNAPSHOT",
+      "READINESS_INSPECT_AND_REVALIDATE",
+      "RESPONSIVE_UI"
+    ],
+    "deferred": [
+      "GENERAL_SCHEMA_DESIGNER",
+      "SOL_01_FULL_DYNAMIC_FORM_PLATFORM",
+      "INT_05_OA_PROCESS_IMPLEMENTATION",
+      "PM_11_TASK_TREE_OR_NATIVE_TASK_BODY",
+      "S4_AGGREGATE_GATE_AND_COMMAND",
+      "AI_MIG_000",
+      "DEPLOYMENT_SIT_UAT_RELEASE"
+    ]
+  },
+  "tables": {
+    "sol_preparation": {
+      "purpose": "versioned PRE-02 aggregate and current readiness pointer",
+      "requiredFields": ["id", "tenant_id", "project_id", "preparation_type_code", "business_version", "current_marker", "template_id", "template_revision_id", "template_snapshot", "fixed_form_catalog_version", "status_code", "readiness_status_code", "readiness_version", "version", "creator", "create_time", "updater", "update_time"],
+      "nullableFields": ["latest_readiness_snapshot_id", "submitted_at", "confirmed_at", "returned_at", "return_reason"],
+      "stableKey": ["tenant_id", "project_id", "preparation_type_code", "business_version"],
+      "uniqueKeys": [["tenant_id", "project_id", "preparation_type_code", "business_version"], ["tenant_id", "project_id", "preparation_type_code", "current_marker"]],
+      "referenceKey": ["tenant_id", "id"],
+      "currentPolicy": "current_marker is 1 only on the current row and NULL on history rows; MySQL unique key permits multiple historical NULL rows",
+      "statusCodes": ["DRAFT", "PENDING_CONFIRMATION", "CONFIRMED", "RETURNED", "SUPERSEDED"],
+      "readinessStatusCodes": ["NOT_READY", "READY"],
+      "crossContextReference": "project_id has no database foreign key to PROJ",
+      "concurrency": "ROW_LOCK_PLUS_VERSION_CAS_AND_READINESS_VERSION_CAS"
+    },
+    "sol_preparation_item": {
+      "purpose": "one frozen survey item definition and current result per preparation business version",
+      "requiredFields": ["id", "tenant_id", "preparation_id", "item_code", "item_name", "sort_order", "applicability_code", "confirmation_status_code", "form_code", "form_version", "form_schema_snapshot", "evidence_policy_snapshot", "source_policy_snapshot", "waiver_policy_snapshot", "outsourced", "version", "creator", "create_time", "updater", "update_time"],
+      "nullableFields": ["assignee_user_id", "assignee_effective_from", "site_result_code", "site_result_detail", "evidence_reference_snapshot", "not_applicable_reason", "not_applicable_confirmed_by", "not_applicable_confirmed_at", "confirmed_by", "confirmed_at", "returned_by", "returned_at", "return_reason"],
+      "stableKey": ["tenant_id", "preparation_id", "item_code"],
+      "referenceKey": ["tenant_id", "id"],
+      "applicabilityCodes": ["REQUIRED", "NOT_APPLICABLE_PENDING", "NOT_APPLICABLE_CONFIRMED"],
+      "confirmationStatusCodes": ["PENDING", "CONFIRMED", "RETURNED"],
+      "foreignKeys": ["(tenant_id, preparation_id) -> sol_preparation(tenant_id, id)"],
+      "evidencePolicy": "JSON array of exact artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion facts; never URL, body or infra location",
+      "immutability": "items of a submitted preparation business version have no generic update or delete entry"
+    },
+    "sol_dynamic_form_instance": {
+      "purpose": "PRE-02 V1 fixed form values; not a general schema designer",
+      "requiredFields": ["id", "tenant_id", "preparation_id", "item_id", "form_code", "form_version", "schema_snapshot", "value_snapshot", "status_code", "version", "creator", "create_time", "updater", "update_time"],
+      "nullableFields": ["frozen_at", "frozen_by"],
+      "stableKey": ["tenant_id", "preparation_id", "item_id", "form_code"],
+      "referenceKey": ["tenant_id", "id"],
+      "statusCodes": ["DRAFT", "FROZEN"],
+      "foreignKeys": ["(tenant_id, preparation_id) -> sol_preparation(tenant_id, id)", "(tenant_id, item_id) -> sol_preparation_item(tenant_id, id)"],
+      "immutability": "value and schema have no update entry after frozen_at is set"
+    },
+    "sol_preparation_source_reference": {
+      "purpose": "stable OA or other authoritative source reference and normalized current fact",
+      "requiredFields": ["id", "tenant_id", "preparation_id", "item_id", "source_type_code", "source_object_type", "source_object_id", "source_reference_key", "required_result_policy_snapshot", "normalized_result_code", "sync_status_code", "source_fact_version", "source_watermark", "version", "creator", "create_time", "updater", "update_time"],
+      "nullableFields": ["last_synced_at", "last_sync_error_code"],
+      "stableKey": ["tenant_id", "item_id", "source_type_code", "source_reference_key"],
+      "referenceKey": ["tenant_id", "id"],
+      "syncStatusCodes": ["SYNCED", "ERROR", "UNKNOWN"],
+      "normalizedResultPolicy": "closed values are supplied by each approved provider contract; UNKNOWN always blocks",
+      "foreignKeys": ["(tenant_id, preparation_id) -> sol_preparation(tenant_id, id)", "(tenant_id, item_id) -> sol_preparation_item(tenant_id, id)"],
+      "crossContextReference": "source object has no database foreign key and raw OA document is never copied"
+    },
+    "sol_preparation_item_waiver": {
+      "purpose": "append-only item waiver approval and effective window",
+      "requiredFields": ["id", "tenant_id", "preparation_id", "item_id", "waiver_no", "status_code", "blocker_codes_snapshot", "reason", "risk", "compensation", "valid_from", "valid_until", "approval_role_code", "applicant_user_id", "version", "creator", "create_time", "updater", "update_time"],
+      "nullableFields": ["submitted_at", "decided_by", "decided_at", "decision_opinion", "withdrawn_at"],
+      "stableKey": ["tenant_id", "item_id", "waiver_no"],
+      "referenceKey": ["tenant_id", "id"],
+      "statusCodes": ["DRAFT", "PENDING_APPROVAL", "APPROVED", "REJECTED", "WITHDRAWN"],
+      "transitions": {"SUBMIT": "DRAFT->PENDING_APPROVAL", "APPROVE": "PENDING_APPROVAL->APPROVED", "REJECT": "PENDING_APPROVAL->REJECTED", "WITHDRAW": "DRAFT|PENDING_APPROVAL->WITHDRAWN"},
+      "effectivePolicy": "APPROVED and current time within valid_from/valid_until; expiry is derived and triggers readiness reevaluation",
+      "foreignKeys": ["(tenant_id, preparation_id) -> sol_preparation(tenant_id, id)", "(tenant_id, item_id) -> sol_preparation_item(tenant_id, id)"]
+    },
+    "sol_preparation_readiness_snapshot": {
+      "purpose": "append-only PRE-02 readiness evaluation with complete frozen inputs and blockers",
+      "requiredFields": ["id", "tenant_id", "preparation_id", "snapshot_no", "result_code", "rule_version", "project_scope_version", "preparation_version", "readiness_version", "item_facts_snapshot", "file_facts_snapshot", "source_facts_snapshot", "waiver_facts_snapshot", "blockers_snapshot", "evaluated_by", "evaluated_at", "creator", "create_time"],
+      "nullableFields": [],
+      "stableKey": ["tenant_id", "preparation_id", "snapshot_no"],
+      "referenceKey": ["tenant_id", "id"],
+      "resultCodes": ["NOT_READY", "READY"],
+      "foreignKeys": ["(tenant_id, preparation_id) -> sol_preparation(tenant_id, id)"],
+      "immutability": "insert and stable query only; no update or delete interface"
+    }
+  },
+  "stateAxes": {
+    "preparationLifecycle": "sol_preparation.status_code",
+    "itemApplicability": "sol_preparation_item.applicability_code",
+    "itemConfirmation": "sol_preparation_item.confirmation_status_code",
+    "sourceSynchronization": "sol_preparation_source_reference.sync_status_code",
+    "waiverApprovalAndEffectiveWindow": ["sol_preparation_item_waiver.status_code", "valid_from", "valid_until"],
+    "currentReadiness": ["sol_preparation.readiness_status_code", "sol_preparation.latest_readiness_snapshot_id", "sol_preparation.readiness_version"],
+    "forbidden": "one overloaded state axis or deriving current readiness solely from an old snapshot"
+  },
+  "transactions": {
+    "initialize": "RESOLVE_TRUSTED_PROJECT_AND_FROZEN_WORK_BINDING; VALIDATE_FIXED_FORM_AND_ITEM_DICTIONARY; INSERT_CURRENT_PREPARATION_AND_ITEMS_AND_FORM_INSTANCES; IDEMPOTENCY_SUCCESS; AUDIT",
+    "itemEdit": "LOCK_AND_REVALIDATE_PROJECT_SCOPE_AND_SUBJECT; LOCK_CURRENT_PREPARATION_ITEM_FORM; VALIDATE_DRAFT_AND_IF_MATCH; PATCH_SUBMITTED_FIELDS; CAS; AUDIT",
+    "itemConfirmOrReturn": "LOCK_PROJECT_SCOPE; LOCK_CURRENT_PREPARATION_AND_ITEM_INPUTS; REVALIDATE_FILE_AND_SOURCE_FACTS; CONFIRM_OR_FREEZE_RETURNED_VERSION_AND_CREATE_NEXT_DRAFT; IDEMPOTENCY_SUCCESS; AUDIT",
+    "waiverDecision": "LOCK_PROJECT_SCOPE_AND_CURRENT_ROLE; LOCK_ITEM_AND_WAIVER; VALIDATE_FROZEN_APPROVAL_ROLE_AND_STATE; CAS_TERMINAL_RESULT; REEVALUATE_READINESS; AUDIT",
+    "evaluateReadiness": "LOCK_PROJECT_SCOPE; LOCK_CURRENT_PREPARATION_ITEMS_FORMS_SOURCES_WAIVERS; REVALIDATE_EXACT_FILE_FACTS_AND_SOURCE_PROVIDER_FACTS; COMPUTE_BLOCKERS; APPEND_IMMUTABLE_SNAPSHOT; CAS_LATEST_POINTER_AND_READINESS_VERSION; IDEMPOTENCY_SUCCESS; AUDIT",
+    "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_WRITE_REJECTED_PLATFORM_AUDIT_WITH_NO_SUCCESS_SIDE_EFFECT"
+  },
+  "interfaces": {
+    "httpBase": "/api/v1/pms/preparations",
+    "currentLookup": "GET /preparations?projectId={projectId}&type=PRE_02",
+    "detailAndItems": ["GET /preparations/{id}", "GET /preparations/{id}/items"],
+    "itemCommands": ["PATCH /preparations/{id}/items/{itemId}", "POST /preparations/{id}/items/{itemId}/actions/confirm", "POST /preparations/{id}/items/{itemId}/actions/return", "POST /preparations/{id}/items/{itemId}/actions/confirm-not-applicable"],
+    "sourceRefresh": "POST /preparations/{id}/items/{itemId}/sources/actions/refresh",
+    "waivers": ["POST|GET /preparations/{id}/items/{itemId}/waivers", "POST /preparations/{id}/items/{itemId}/waivers/{waiverId}/actions/{submit|approve|reject|withdraw}"],
+    "readiness": ["POST /preparations/{id}/actions/evaluate-readiness", "GET /preparations/{id}/readiness-snapshots"],
+    "trustedInputs": ["tenantId", "actorUserId", "currentProjectRoles"],
+    "forbiddenInputs": ["tenantId", "actorRoleCode", "approverUserId", "readyResult"]
+  },
+  "publicReadinessApi": {
+    "providerModule": "pms-module-engineering-api",
+    "contracts": ["SiteSurveyReadinessApi.inspect(SiteSurveyReadinessQuery)", "SiteSurveyReadinessApi.lockAndRevalidate(SiteSurveyReadinessRevalidationQuery)"],
+    "inspectQuery": ["projectId", "preparationId(optional)"],
+    "revalidationQuery": ["projectId", "preparationId", "expectedBusinessVersion", "expectedPreparationVersion", "expectedReadinessVersion", "expectedSnapshotId", "expectedProjectScopeVersion"],
+    "response": ["projectId", "preparationId", "businessVersion", "status", "readinessStatus", "latestSnapshotId", "snapshotNo", "preparationVersion", "readinessVersion", "projectScopeVersion", "blockerCodes", "factVersion"],
+    "lockOrder": "PROJ_PROJECT_SCOPE -> SOL_PREPARATION_ITEMS_FORMS_SOURCES_WAIVERS -> PLT_EXACT_FILE_FACTS -> INT05_SOURCE_FACTS",
+    "readyPolicy": "only a current READY fact that passes synchronous lock-and-revalidate may be consumed by a later S4 command",
+    "unknownPolicy": "missing, cross-tenant, non-current, unavailable provider, unknown source, invalid file or any expected-version change fails closed"
+  },
+  "dependencies": {
+    "projectWorkBinding": "consume frozen public WorkBinding fact; no PROJ table access and no TASK_NATIVE body",
+    "fileArtifact": "consume F-PLT-001 exact reference inspect/lockAndRevalidate; SOL stores no body, URL or infra fact",
+    "oaSource": "consume INT-05 public source provider when available; until then OA-required items are blocked and no-OA items or valid-waiver paths continue",
+    "impS4": "future IMP consumer uses publicReadinessApi; SOL never writes IMP snapshot or stage",
+    "events": "none; approved SDS boundary is synchronous command or query"
+  },
+  "permissions": {
+    "query": {"permissionCode": "pms:preparation-survey:query", "projectScopeAction": "PROJECT_VIEW"},
+    "manage": {"permissionCode": "pms:preparation-survey:manage", "projectScopeAction": "PROJECT_MANAGE", "subjectConstraint": "CURRENT_PROJECT_MANAGER"},
+    "fill": {"permissionCode": "pms:preparation-survey:fill", "projectScopeAction": "PROJECT_VIEW", "subjectConstraint": "CURRENT_EFFECTIVE_ITEM_ASSIGNEE"},
+    "waiverApprove": {"permissionCode": "pms:preparation-survey:waiver-approve", "projectScopeAction": "PROJECT_VIEW", "subjectConstraint": "CURRENT_PARTICIPANT_WITH_FROZEN_APPROVAL_ROLE_AND_NOT_APPLICANT"},
+    "frontendBackendTruth": "same permission codes; server revalidates trusted tenant, function, ProjectStageScope, current subject, state and version"
+  },
+  "platformFacts": {
+    "idempotencyTable": "plt_idempotency_record",
+    "auditTable": "plt_operation_audit",
+    "outboxEvents": [],
+    "fileFacts": "exact FileArtifact version and reference only",
+    "reason": "locked SDS defines synchronous command or query and no cross-context event"
+  },
+  "legacy": {
+    "table": "pms_eng_site_survey",
+    "policy": "V1.7 gap and migration-source evidence only; no current truth, no dual write, no completion inference",
+    "reusableSlices": ["AST structured location maintenance", "field validation that matches V1.8", "Yudao and Element Plus page patterns"],
+    "forbiddenReuse": ["single-row current truth", "legacy status inference", "direct generic CRUD", "file URL as evidence", "copying OA raw documents"]
+  },
+  "migration": {
+    "strategy": "NEXT_UNUSED_FLYWAY_AFTER_IMPLEMENTATION_BASELINE",
+    "forwardOnly": true,
+    "seedRequirements": ["six approved PRE-02 item dictionary codes", "fixed V1 form catalog/version", "four stable permissions", "representative template combinations with required/no-source/waiver/disabled cases"],
+    "forbidden": ["EDIT_EXECUTED_MIGRATIONS", "LEGACY_DUAL_WRITE", "HISTORICAL_DATA_CUTOVER", "WRITE_PROJ_IMP_OA_OR_PLT_BUSINESS_TABLES"]
+  },
+  "featureReadyDecision": "PENDING_REVIEW"
+}

@@ -375,6 +375,7 @@ FEATURE_LINK_OVERRIDES = {
     "PM-10": "[F-PROJ-006](../../specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md)",
     "PM-11": "[F-PROJ-007](../../specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md)",
     "PRE-01": "[F-SOL-001](../../specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md)",
+    "PRE-02": "[F-SOL-002](../../specs/features/F-SOL-002-site-survey-assignment-and-readiness.md)",
     "PLT-02": "[F-PLT-001](../../specs/features/F-PLT-001-unified-file-identity-and-version-management.md)",
 }
 
