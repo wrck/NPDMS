@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
 > Technical Plan Gate：`PASS / NPDMS-FPLT001-TECHPLAN-20260826-01-R3`
 > Implementation Done Gate：`PENDING`
-> 当前任务：`Task 5 闭合首次上传、版本提交、精确引用与文件事件投递`
+> 当前任务：`Task 6 接入首个SOL消费者并解除材料主线阻断`
 > Requirement ID：`PLT-02（V1/P0，FR-PLT-008）`
 > Feature Spec：`specs/features/F-PLT-001-unified-file-identity-and-version-management.md`
 > Feature物理契约：`specs/features/F-PLT-001-physical-contract.json`
@@ -26,8 +26,8 @@
 - [x] Task 2 实现批准的INFRA技术存储回执适配（PASS / `38f6a6b` / 独立裁决GO）
 - [x] Task 3 定义PLT公共文件契约、Provider注册与持久化原语（PASS / `974feb3` / 独立裁决GO）
 - [x] Task 4 实现上传初始化、用途授权与策略选择（PASS / `0a2869a` + `48fe53c` / 独立裁决GO）
-- [ ] Task 5 实现50MB正向上传、版本提交、引用绑定与文件事件投递
-- [ ] Task 6 实现文件查询与精确引用锁定重验
+- [x] Task 5 实现50MB正向上传、版本提交、引用绑定与文件事件投递（PASS / `81e1c0f` + `9b4a9d4` / 独立裁决GO）
+- [ ] Task 6 接入首个SOL消费者并解除材料主线阻断
 - [ ] Task 7 实现短时下载/预览访问
 - [ ] Task 8 实现解绑、草稿删除、失效与归档
 - [ ] Task 9 建设响应式统一文件界面并接入SOL客户延期依据
@@ -46,3 +46,5 @@
 > 检查点（2026-08-26）：Task 3提交`974feb3a17c0f15c5ece59c8b2745862c18c8f33`经独立复审GO；公共文件契约、九动作封闭值域、业务Provider唯一解析、六表显式Mapper、精确槽位/稳定游标/锁定读与场景CAS均通过，允许推进Task 4。
 
 > 检查点（2026-08-26）：Task 4提交`0a2869a`及整改提交`48fe53c`经独立复审GO；受信上传初始化、50MB有界内容校验、ClamAV规范响应失败关闭、完整成功/拒绝审计及真实扫描验证通过，允许推进Task 5。
+
+> 检查点（2026-08-26）：Task 5提交`81e1c0f`及整改提交`9b4a9d443c95ff1f5bd606e9a1c97c23eb295e99`经独立复审GO；首次上传与ADD_VERSION、精确引用、四类文件事件投递、Quartz自动注册/退避重领及最终存储补偿闭环通过，允许推进Task 6。
