@@ -27,9 +27,9 @@
 
 该接口仅提供三个场景化方法：
 
-1. `store(FileStorageStoreCommand)`：接收由PLT生成的稳定`storageOperationId`，以及已完成大小、摘要、媒体类型和安全扫描校验的非空`byte[] content`、文件名和媒体类型。INFRA在保留目录下由`storageOperationId`确定技术路径；首次调用复用现有FileClient上传并登记`infra_file`，顺序重试先按主配置和确定性path返回已有记录，不重复创建技术对象。回执至少包含`storageOperationId/infraFileId/name/mediaType/sizeBytes`。PLT只持久化`infraFileId`作为技术定位，不保存URL、configId或storagePath。PLT必须以已提交的UploadSession行锁保证同一`storageOperationId`单飞，不能把该ID开放为普通HTTP自报字段。
+1. `store(FileStorageStoreCommand)`：接收由PLT生成的稳定`storageOperationId`，以及已完成大小、摘要、媒体类型和安全扫描校验的非空`byte[] content`、文件名和媒体类型。INFRA在专用保留目录下仅由`storageOperationId`生成跨配置一致的确定性path；每次调用先在INFRA内部按该保留path跨全部存储配置查询`infra_file`。结果为0条时才冻结本次取得的当前master并复用现有FileClient上传、登记；结果为1条时按该记录冻结的`configId`返回已有回执，不重复创建技术对象；结果超过1条时失败关闭并登记存储对账，禁止任选一条或向当前master再创建。回执至少包含`storageOperationId/infraFileId/name/mediaType/sizeBytes`。PLT只持久化`infraFileId`作为技术定位，不保存URL、configId或storagePath。PLT必须以已提交的UploadSession行锁保证同一`storageOperationId`单飞，不能把该ID开放为普通HTTP自报字段。
 2. `presignGet(FileStorageAccessQuery)`：按`infraFileId+expirationSeconds`读取INFRA自身记录并生成短时访问URL，返回`url/expiresAt`；URL只存在于本次响应。
-3. `delete(FileStorageDeleteCommand)`：按`storageOperationId`定位并幂等删除技术对象，只允许PLT在确认没有已提交FileVersion引用后用于本次上传失败补偿；对象或记录已不存在视为补偿完成。
+3. `delete(FileStorageDeleteCommand)`：按`storageOperationId`生成同一保留path并跨全部存储配置查询；0条视为补偿完成，1条按记录冻结的`configId+path`幂等删除，超过1条失败关闭并登记存储对账，禁止任选一条。该方法只允许PLT在确认没有已提交FileVersion引用后用于本次上传失败补偿。
 
 `FileStorageReceiptApi`不成为PLT业务API，也不改变`infra_file`的技术存储记录语义。PLT的`FileArtifact/FileVersion/FileReference`仍是唯一业务真值。
 
@@ -47,7 +47,7 @@ F-PLT-001 V1不采用浏览器直传后再整文件回读。上传改为PMS业�
 ### 3. 原子性、重放与补偿
 
 - 初始化命令先提交UploadSession；`sessionId`同时作为本次受信`storageOperationId`。实际上传命令锁定该会话、完成内容校验，再声明平台幂等命令并调用`store`；FileVersion提交前只存在技术回执，不存在可用业务文件事实。
-- `store`的确定性path与UploadSession行锁共同保证同一操作顺序重试返回同一INFRA技术记录。平台同一幂等键重放已成功结果时直接返回已保存的PLT结果，不再次调用`store`。
+- `store`的跨配置确定性path、全配置查询与UploadSession行锁共同保证同一操作顺序重试返回同一INFRA技术记录；master在首次成功与重试之间切换时仍命中原记录冻结的configId。平台同一幂等键重放已成功结果时直接返回已保存的PLT结果，不再次调用`store`。
 - INFRA成功而PLT事务失败时，已提交的UploadSession仍保留`storageOperationId`。再次提交先由`store`找回同一回执；确认不再重试时，PLT只在证明该operation未被任何已提交FileVersion使用后调用`delete(storageOperationId)`。补偿重试幂等，不能删除其他上传或既有版本对象。
 - 进程在INFRA成功而PLT事务尚未提交时异常退出，不会丢失补偿定位：过期UploadSession对账按其`storageOperationId`检查无FileVersion引用后执行同一删除补偿。该对账不把技术对象解释为业务文件。
 - 短时访问每次实时重验PLT权限、业务范围和版本可用性后才调用`presignGet`；短时URL不进入PLT表、审计快照或事件。
@@ -82,5 +82,5 @@ INFRA不依赖PLT，不理解租户文件业务、用途、审批或业务范围
 
 - 本ADR在独立批准前保持`IN_REVIEW`，F-PLT-001不得据此修改INFRA、回写Feature Ready或进入Technical Plan。
 - 批准后，F-PLT-001 Feature Spec和物理契约必须引用本ADR，删除原`FileApi`前向加法及直传后回读方案，明确后端有界上传、技术回执、短时访问和补偿。
-- Technical Plan必须验证：现有`FileApi`兼容不变；50MB以内正向上传；超过上限在调用INFRA前拒绝；store成功但PLT回滚时仅补偿无引用对象；短时访问不持久化URL。
+- Technical Plan必须验证：现有`FileApi`兼容不变；50MB以内正向上传；超过上限在调用INFRA前拒绝；store成功但PLT回滚时仅补偿无引用对象；首次store成功后切换master，重试仍返回原configId回执且补偿仍删除原对象；同一保留path出现多条记录时store/delete均失败关闭并进入对账；短时访问不持久化URL。
 - 该例外不批准修改`infra_file`表结构、增加跨模块外键、Deployment、SIT、UAT或Release。
