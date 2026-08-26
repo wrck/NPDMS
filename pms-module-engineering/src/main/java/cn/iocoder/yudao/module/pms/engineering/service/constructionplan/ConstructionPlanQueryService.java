@@ -17,6 +17,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangePageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanLockQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionLockQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionListQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionPageQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -29,7 +30,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -96,7 +100,21 @@ public class ConstructionPlanQueryService {
                         cursor.createdAt(), cursor.id(), pageSize + 1));
         boolean hasMore = fetched.size() > pageSize;
         List<ConstructionPlanChangeDO> page = hasMore ? fetched.subList(0, pageSize) : fetched;
-        List<ConstructionPlanChangeRespVO> items = page.stream().map(this::toChange).toList();
+        Set<Long> candidateRevisionIds = page.stream()
+                .map(ConstructionPlanChangeDO::getCandidateRevisionId)
+                .collect(Collectors.toSet());
+        Map<Long, ConstructionPlanRevisionDO> candidateRevisions = revisionMapper.selectListByIds(
+                        new ConstructionPlanRevisionListQuery(actor.tenantId(), plan.getId(), candidateRevisionIds))
+                .stream().collect(Collectors.toMap(ConstructionPlanRevisionDO::getId, Function.identity()));
+        List<ConstructionPlanChangeRespVO> items = page.stream().map(change -> {
+            ConstructionPlanRevisionDO candidate = candidateRevisions.get(change.getCandidateRevisionId());
+            if (candidate == null) {
+                throw exception(CONSTRUCTION_PLAN_NOT_EXISTS);
+            }
+            ConstructionPlanChangeRespVO response = toChange(change);
+            response.setCandidateRevision(toRevision(candidate, plan.getCurrentDurationRevisionId()));
+            return response;
+        }).toList();
         String next = hasMore ? changeCursor(page.get(page.size() - 1)) : null;
         return new ConstructionPlanCursorPageRespVO<>(items, next, hasMore);
     }

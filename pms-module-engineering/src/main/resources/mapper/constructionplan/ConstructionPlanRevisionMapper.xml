@@ -52,6 +52,25 @@
           AND id = #{query.revisionId}
     </select>
 
+    <select id="selectListByIds"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanRevisionDO">
+        SELECT <include refid="columns"/>
+        FROM sol_construction_plan_revision
+        WHERE tenant_id = #{query.tenantId}
+          AND plan_id = #{query.planId}
+        <choose>
+            <when test="query.revisionIds != null and !query.revisionIds.isEmpty()">
+                AND id IN
+                <foreach collection="query.revisionIds" item="revisionId" open="(" separator="," close=")">
+                    #{revisionId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
     <select id="selectPage"
             resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanRevisionDO">
         SELECT <include refid="columns"/>

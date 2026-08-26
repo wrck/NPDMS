@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.Constr
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangePageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionPageQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionListQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -123,6 +124,8 @@ class ConstructionPlanQueryServiceTest {
                 .thenReturn(List.of(change(702L, cursorTime.minusMinutes(1)),
                         change(701L, cursorTime.minusMinutes(2)),
                         change(700L, cursorTime.minusMinutes(3))));
+        when(revisionMapper.selectListByIds(new ConstructionPlanRevisionListQuery(
+                0L, 501L, Set.of(702L)))).thenReturn(List.of(revision(702L, 2)));
         ConstructionPlanChangePageReqVO request = new ConstructionPlanChangePageReqVO();
         request.setCursor(cursorTime + "|703");
         request.setPageSize(2);
@@ -132,6 +135,7 @@ class ConstructionPlanQueryServiceTest {
         assertEquals(2, page.getItems().size());
         assertTrue(page.getHasMore());
         assertEquals(cursorTime.minusMinutes(2) + "|701", page.getNextCursor());
+        assertEquals(702L, page.getItems().get(0).getCandidateRevision().getRevisionId());
     }
 
     @Test
