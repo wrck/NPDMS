@@ -231,7 +231,6 @@ Expected: 草稿与部分更新聚焦测试PASS。提交：`feat(engineering): �
 **Files:**
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeProperties.java`
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/command/SubmitDurationChangeCommand.java`
-- Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationApprovalTaskPermissionListener.java`
 - Modify: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeApplicationService.java`
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/constructionplan/vo/DurationChangeSubmitReqVO.java`
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/constructionplan/vo/DurationChangeSubmitRespVO.java`
@@ -246,9 +245,7 @@ Expected: 草稿与部分更新聚焦测试PASS。提交：`feat(engineering): �
 
 - [ ] **Step 1: 建立单节点BPM资源与配置**
 
-增加流程键配置`pms.sol.duration-change.process-definition-key`，BPMN精确为开始→`serviceManagerApprove`单用户任务→结束。通过`startUserSelectAssignees`冻结一个当前主责L1/L2服务经理，排除申请人，并在change的`approver_user_id`冻结该唯一候选；不修改BPM基础模块。流程变量只含标准`projectId(Long)`、constructionPlanId、durationChangeId，businessKey使用changeId。
-
-`serviceManagerApprove`绑定engineering模块的Flowable任务完成监听器。监听器只在本流程任务完成事务内校验当前登录用户等于冻结审批人、具备`pms:construction-plan:duration-approve`、PROJECT_MANAGE且仍为当前主责服务经理；任一不满足抛出业务异常使BPM完成事务回滚。撤回仍由BPM既有入口按发起人身份处理。由此不新增SOL通过/驳回端点，也不修改BPM Controller。
+增加流程键配置`pms.sol.duration-change.process-definition-key`，BPMN精确为开始→`serviceManagerApprove`单用户任务→结束。通过`startUserSelectAssignees`冻结一个当前主责L1/L2服务经理，排除申请人，并在change的`approver_user_id`冻结该唯一候选；不修改BPM基础模块。流程变量只含标准`projectId(Long)`、constructionPlanId、durationChangeId，businessKey使用changeId。APPROVE、REJECT、CANCEL的业务授权统一在Task 7同步终态事件入口校验，不绑定只覆盖complete路径的Flowable TaskListener。
 
 - [ ] **Step 2: 实现提交事务**
 
@@ -262,7 +259,7 @@ Expected: 草稿与部分更新聚焦测试PASS。提交：`feat(engineering): �
 
 - [ ] **Step 4: 实施后验证并提交**
 
-先完成代码与mock边界验证：字典/配置、审批人选择、非申请人、审批任务功能权限与PROJECT_MANAGE、标准变量、同键重放、BPM空ID回滚、旧base/已有pending、Provider多键/活动/终态/未知关联/跨租户。PLT-02未就绪时只登记文件成功路径与默认种子端到端阻断，不把Task 6整体回写PASS；其余子项可独立登记PASS。
+先完成代码与mock边界验证：字典/配置、审批人选择、非申请人、标准变量、同键重放、BPM空ID回滚、旧base/已有pending、Provider多键/活动/终态/未知关联/跨租户。三种终态的功能权限、PROJECT_MANAGE和当前角色回滚验证由Task 7统一执行。PLT-02未就绪时只登记文件成功路径与默认种子端到端阻断，不把Task 6整体回写PASS；其余子项可独立登记PASS。
 
 Expected: BPM与守卫子项PASS；文件成功路径状态为`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`。完整Task提交在阻断闭环后执行：`feat(engineering): 提交工期变更审批`
 
@@ -272,28 +269,34 @@ Expected: BPM与守卫子项PASS；文件成功路径状态为`BLOCKED_BY_UPSTRE
 
 **Files:**
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeBpmListener.java`
+- Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeBpmAuthorizationGuard.java`
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeBpmResultService.java`
 - Modify: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/constructionplan/ConstructionPlanMapper.java`
 - Modify: `pms-module-engineering/src/main/resources/mapper/constructionplan/ConstructionPlanMapper.xml`
 - Modify: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/constructionplan/ConstructionPlanChangeMapper.java`
 - Modify: `pms-module-engineering/src/main/resources/mapper/constructionplan/ConstructionPlanChangeMapper.xml`
 - Test: `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/DurationChangeBpmResultServiceTest.java`
+- Test: `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/constructionplan/DurationChangeBpmAuthorizationIntegrationTest.java`
 
 **Consumes:** Task 6冻结流程关联、BPM状态事件、Task 2 PROJ锁定重验。
 
 - [ ] **Step 1: 封闭事件入口**
 
-Listener只接收配置的process definition key并传processInstanceId/status/reason。Service只接受APPROVE/REJECT/CANCEL；未知、非终态、无匹配、重复或乱序事件不推进业务状态。
+Listener只接收配置的process definition key并同步处理processInstanceId/status/reason。Spring `ApplicationEventPublisher`在Flowable流程完成命令内同步调用该Listener；Listener或Service抛出的业务异常必须原样向上传播，使当前BPM命令与SOL写入共同回滚，禁止吞异常、异步化或`REQUIRES_NEW`。Service只接受APPROVE/REJECT/CANCEL；未知、非终态、无匹配、重复或乱序事件不推进业务状态。
 
-- [ ] **Step 2: 实现终态事务**
+- [ ] **Step 2: 在三种终态共同入口执行业务授权**
 
-根据冻结processInstanceId定位change，先PROJ锁定重验ACTIVE、当前角色和projectVersion事实，再锁plan/pending change并重验process/base/candidate/pending指针。APPROVE切换current revision、清pending、change=APPROVED、写approver/时间/意见，并将影响状态和source revision写PENDING_RECALCULATION；REJECT要求非空意见，清pending但保留current和原影响；CANCEL仅在BPM确认申请人撤回终态后写WITHDRAWN并保留current。
+先以冻结processInstanceId读取change关联并取得projectId、applicantUserId和冻结approverUserId，不写SOL事实。APPROVE/REJECT要求当前受信登录用户等于冻结审批人、具备`pms:construction-plan:duration-approve`、PROJECT_MANAGE且仍为当前主责L1/L2服务经理；CANCEL要求当前受信登录用户等于冻结申请人、具备`pms:construction-plan:duration-manage`、PROJECT_MANAGE且仍为当前项目经理。无登录主体、BPM管理员取消、权限失效、范围失效、角色改派、申请人与审批人混同或租户不符均抛稳定业务异常。该同步守卫覆盖`taskService.complete(...)`的通过、`moveTaskToEnd(...)`的驳回和发起人流程取消，不依赖Flowable任务完成监听器。
+
+- [ ] **Step 3: 实现终态事务**
+
+授权守卫先通过PROJ锁定重验ACTIVE、对应当前角色和最新projectVersion事实，再锁plan/pending change并重验process/base/candidate/pending指针。APPROVE切换current revision、清pending、change=APPROVED、写审批时间/意见，并将影响状态和source revision写PENDING_RECALCULATION；REJECT要求非空意见，清pending但保留current和原影响；CANCEL仅在BPM确认申请人取消终态后写WITHDRAWN并保留current。
 
 不调用PLN-01，不改项目阶段和旧施工计划，不写Outbox。若冻结了FileArtifact引用，终态前通过同一PLT-02公共事实重验版本仍存在且安全；Provider不可用则失败关闭并保留PENDING_APPROVAL，供平台事件重试。
 
-- [ ] **Step 3: 实施后验证并提交**
+- [ ] **Step 4: 实施后验证并提交**
 
-覆盖三终态、驳回意见、非申请人服务经理、重复/乱序、旧pending、并发终态单胜、项目版本/角色变化、PLN-01不存在仍批准、指针与审计恰一、FileArtifact失效/不可用。PLT-02未就绪时无文件成功子项可PASS，含文件终态仍登记同一上游阻断。
+单元覆盖三终态、驳回意见、重复/乱序、旧pending、并发终态单胜、项目版本/角色变化、PLN-01不存在仍批准、指针与审计恰一、FileArtifact失效/不可用。真实BPM集成分别执行APPROVE、REJECT和发起人CANCEL：撤销SOL功能权限、PROJECT_MANAGE或当前角色后，BPM实例/任务不得进入终态且SOL仍为PENDING_APPROVAL、current/pending指针不变；合法冻结审批人/申请人才允许BPM终态与SOL状态同事务提交。PLT-02未就绪时无文件成功子项可PASS，含文件终态仍登记同一上游阻断。
 
 Expected: 无文件终态主链PASS，含文件主链待PLT-02。完整Task提交：`feat(engineering): 生效工期审批结果`
 
@@ -319,7 +322,7 @@ Expected: 无文件终态主链PASS，含文件主链待PLT-02。完整Task提�
 
 - [ ] **Step 2: 增加项目详情工期面板**
 
-沿用项目详情惰性面板和`useMediaQuery`模式。展示当前起止/天数/口径、PENDING_RECALCULATION、待审摘要、revision/change历史；项目经理按allowedActions录入、建草稿、部分修改和提交。服务经理只跳转平台BPM待办处理，页面不存在SOL approve/reject终态接口。
+沿用项目详情惰性面板和`useMediaQuery`模式。展示当前起止/天数/口径、PENDING_RECALCULATION、待审摘要、revision/change历史；项目经理按allowedActions录入、建草稿、部分修改和提交。服务经理只跳转平台BPM待办处理；申请人撤回调用既有`ProcessInstanceApi.cancelProcessInstanceByStartUser`，不误用“撤回已办任务”的`BpmTaskApi.withdrawTask`。页面不存在SOL approve/reject/cancel终态接口。
 
 - [ ] **Step 3: 冻结旧写调用**
 
@@ -389,6 +392,10 @@ Expected: 全部真实MySQL和BPM集成PASS后提交：`test(engineering): 验�
 独立GO后在规格仓库回写Feature索引/追溯真实提交和证据，创建新规格提交，再通过同步工具更新NPDMS受管基线。不得进入Deployment、SIT、UAT、Release。
 
 Expected: 完整证据与独立GO成立。提交：`docs(feature): 通过 F-SOL-001 Implementation Done`
+
+## Technical Plan Review Closure
+
+针对`NPDMS-FSOL001-TECHPLAN-20260826-01`唯一NO-GO项，Task 6已删除只绑定`TaskListener.EVENTNAME_COMPLETE`的授权方案；Task 7改为在APPROVE、REJECT、CANCEL共同经过的同步`BpmProcessInstanceStatusEvent`入口，分别校验冻结主体、SOL功能权限、PROJECT_MANAGE和当前角色，异常向上传播并回滚BPM与SOL事务。真实集成回归明确覆盖三终态权限/范围/角色失效时两域均不提交。未修改BPM基础模块，未新增SOL终态写接口，未扩大PLT-02依赖。
 
 ## Plan Self-Review
 
