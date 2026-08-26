@@ -1,0 +1,124 @@
+{
+  "evidenceId": "F-PROJ-007-TASK10-BROWSER-MYSQL-PERF-20260826-01",
+  "featureId": "F-PROJ-007",
+  "task": 10,
+  "capturedAt": "2026-08-26T12:56:07+08:00",
+  "specificationCommit": "5f37b2d1adf4666ccfc595f0acf1829cd323e44f",
+  "environment": {
+    "database": "isolated MySQL 8.4, Flyway V1-V89",
+    "frontendUrl": "http://127.0.0.1:18081",
+    "backendUrl": "http://127.0.0.1:58080",
+    "nodeVersion": "24.11.1",
+    "pnpmVersion": "9.15.5",
+    "browser": "Chromium 151.0.7922.34"
+  },
+  "realMySql": {
+    "migrationResult": "PASS",
+    "projectionModes": [
+      "DIRECT_CHILDREN",
+      "ALL_DESCENDANTS",
+      "ANCESTOR_CHAIN",
+      "BUSINESS_LEVEL",
+      "LOCATE"
+    ],
+    "workbenchProjectionResult": "PASS",
+    "outboxRetryAndEventIdIdempotencyResult": "PASS",
+    "focusedTests": {
+      "count": 26,
+      "failures": 0,
+      "errors": 0,
+      "reactorModules": 25,
+      "result": "BUILD SUCCESS"
+    }
+  },
+  "performance": {
+    "test": "ProjectTaskTreePerformanceTest",
+    "result": "PASS",
+    "taskCount": 2000000,
+    "largeTreeNodeCount": 50000,
+    "directChildCount": 2000,
+    "verifiedDepth": 31,
+    "samplesPerQuery": 20,
+    "p95LimitMs": 2000,
+    "queriesWithinLimit": [
+      "two-million roots",
+      "two-thousand direct children",
+      "fifty-thousand descendants"
+    ]
+  },
+  "browserRegression": {
+    "projectId": "999000000001",
+    "lifecycleTaskId": "2092471097612365825",
+    "lifecycleTaskCode": "F007-LIFE-1787718959941",
+    "cancelledTaskId": "2092471101324324865",
+    "unknownBindingTaskId": "2092471105476685825",
+    "journey": [
+      "CREATE",
+      "MOVE",
+      "ASSIGN",
+      "START",
+      "UPDATE_PROGRESS_35",
+      "SUBMIT",
+      "COMPLETE",
+      "REFRESH_AND_VERIFY"
+    ],
+    "completedStatus": "DONE",
+    "completedProgress": 100,
+    "actualStartTimeRecorded": true,
+    "actualEndTimeRecorded": true,
+    "cancelledStatus": "CLOSED",
+    "cancelActualEndTimeRecorded": true,
+    "queryModeResult": "PASS",
+    "unknownBinding": {
+      "result": "FAIL_CLOSED",
+      "recoverableError": "BINDING_PROVIDER_UNREGISTERED"
+    },
+    "permissionNegative": {
+      "workbenchCode": 403,
+      "commandCode": 403,
+      "result": "PASS"
+    },
+    "responsive": [
+      {
+        "width": 320,
+        "horizontalOverflow": false,
+        "drawerWidth": 320,
+        "screenshot": "tasks/evidence/f-proj-007-browser-320.png"
+      },
+      {
+        "width": 768,
+        "horizontalOverflow": false,
+        "drawerWidth": 720,
+        "screenshot": "tasks/evidence/f-proj-007-browser-768.png"
+      },
+      {
+        "width": 1024,
+        "horizontalOverflow": false,
+        "drawerWidth": 720,
+        "screenshot": "tasks/evidence/f-proj-007-browser-1024.png"
+      },
+      {
+        "width": 1440,
+        "horizontalOverflow": false,
+        "drawerWidth": 720,
+        "screenshot": "tasks/evidence/f-proj-007-browser-1440.png"
+      }
+    ],
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "failedHttpResponses": 0
+  },
+  "frontendVerification": {
+    "componentTests": "7/7 PASS",
+    "typeCheck": "PASS",
+    "targetedEslint": "PASS",
+    "targetedStylelint": "PASS",
+    "offlineIconCheck": "PASS",
+    "buildLocal": "PASS"
+  },
+  "repositoryVerification": {
+    "specificationSnapshot": "PASS",
+    "gitDiffCheck": "PASS",
+    "yudaoFrameworkChanges": 0
+  }
+}

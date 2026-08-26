@@ -143,6 +143,10 @@ class ProjectTreeScopeServiceTest {
 
         assertEquals(Set.of(3L), scope.fullProjectIds());
         assertEquals(Set.of(1L, 2L), scope.placeholderProjectIds());
+        ArgumentCaptor<AuthorizationGrantQuery> grantCaptor =
+                ArgumentCaptor.forClass(AuthorizationGrantQuery.class);
+        verify(authorizationGrantApi).listEffective(grantCaptor.capture());
+        assertEquals("PROJECT_MANAGE", grantCaptor.getValue().actionCode());
     }
 
     @Test

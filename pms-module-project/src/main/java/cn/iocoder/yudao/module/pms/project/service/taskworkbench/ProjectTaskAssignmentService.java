@@ -306,8 +306,8 @@ public class ProjectTaskAssignmentService {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
         companyApi.validateCompanyList(Set.of(project.getCompanyId()));
-        var department = deptApi.getDeptByCode(project.getDepartmentCode());
-        if (department == null || !Objects.equals(department.getId(), project.getDepartmentId())) {
+        var department = deptApi.getDept(project.getDepartmentId());
+        if (department == null || !Objects.equals(department.getCode(), project.getDepartmentCode())) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
         deptApi.validateDeptList(Set.of(project.getDepartmentId()));

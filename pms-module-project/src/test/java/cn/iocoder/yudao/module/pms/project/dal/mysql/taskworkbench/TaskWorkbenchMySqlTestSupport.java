@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-abstract class TaskWorkbenchMySqlTestSupport {
+public abstract class TaskWorkbenchMySqlTestSupport {
 
     @Resource
     protected JdbcTemplate jdbcTemplate;

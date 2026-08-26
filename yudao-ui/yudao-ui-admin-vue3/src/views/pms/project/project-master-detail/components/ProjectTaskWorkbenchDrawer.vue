@@ -1,5 +1,11 @@
 <template>
-  <el-drawer v-model="visible" :size="drawerSize" destroy-on-close title="任务工作台">
+  <el-drawer
+    v-model="visible"
+    append-to-body
+    size="min(720px, 100vw)"
+    destroy-on-close
+    title="任务工作台"
+  >
     <div v-loading="loading" class="workbench">
       <el-alert
         v-if="workbench?.recoverableError"
@@ -213,7 +219,6 @@ const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
-const drawerSize = computed(() => (mobile.value ? '100%' : 'min(720px, 72vw)'))
 const descriptionColumns = computed(() => (mobile.value ? 1 : 2))
 const loading = ref(false)
 const submitting = ref(false)

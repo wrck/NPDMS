@@ -92,12 +92,15 @@ describe('F-PROJ-007 project task workbench', () => {
     expect(api).toContain("'If-Match': String(version)")
     expect(panel).toContain('expectedTaskTreeVersion: workspace.value.taskTreeVersion')
     expect(detail).toContain("{ key: 'tasks', label: '项目任务'")
+    expect(panel).toContain('targetParentTaskId: optionalTaskId(moveForm.targetParentTaskId)')
   })
 
   it('uses responsive Element Plus layouts and theme variables without inline styles', () => {
     expect(panel).toContain('<ContentWrap')
     expect(tree).toContain('<el-tree')
     expect(drawer).toContain('<el-drawer')
+    expect(drawer).toContain('append-to-body')
+    expect(drawer).toContain('size="min(720px, 100vw)"')
     expect(drawer).toContain('<el-descriptions')
     expect(panel).toContain('@media (width <= 767px)')
     expect(drawer).toContain('@media (width <= 767px)')

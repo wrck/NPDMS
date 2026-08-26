@@ -71,7 +71,7 @@ class ProjectTaskAssignmentServiceTest {
         DeptRespDTO department = new DeptRespDTO();
         department.setId(20L);
         department.setCode("DEP-01");
-        when(deptApi.getDeptByCode("DEP-01")).thenReturn(department);
+        when(deptApi.getDept(20L)).thenReturn(department);
         OrganizationUserCandidateRespDTO candidate = new OrganizationUserCandidateRespDTO();
         candidate.setUserId(66L);
         candidate.setCompanyId(10L);
@@ -258,7 +258,7 @@ class ProjectTaskAssignmentServiceTest {
         DeptRespDTO department = new DeptRespDTO();
         department.setId(20L);
         department.setCode("DEP-01");
-        when(deptApi.getDeptByCode("DEP-01")).thenReturn(department);
+        when(deptApi.getDept(20L)).thenReturn(department);
         when(organizationScopeApi.hasScope(anyLong(), eq(10L), eq(20L))).thenReturn(true);
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult> action =

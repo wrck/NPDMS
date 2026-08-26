@@ -24,7 +24,7 @@ import javax.sql.DataSource;
         DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
         YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
         MybatisPlusJoinAutoConfiguration.class, SpringUtil.class})
-class TaskWorkbenchMySqlTestApplication {
+public class TaskWorkbenchMySqlTestApplication {
 
     @Bean
     JdbcTemplate jdbcTemplate(DataSource dataSource) {

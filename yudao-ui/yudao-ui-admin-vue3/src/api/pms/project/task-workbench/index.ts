@@ -114,7 +114,7 @@ export interface TaskCreateCommand {
   taskCode: string
   name: string
   stageCode: string
-  parentTaskId?: number
+  parentTaskId?: number | string
   businessLevelCode?: string
   planStartTime?: string
   planEndTime?: string
@@ -124,7 +124,7 @@ export interface TaskCreateCommand {
 }
 
 export interface TaskMoveCommand {
-  targetParentTaskId?: number
+  targetParentTaskId?: number | string
   expectedTaskTreeVersion: number
   reason: string
 }

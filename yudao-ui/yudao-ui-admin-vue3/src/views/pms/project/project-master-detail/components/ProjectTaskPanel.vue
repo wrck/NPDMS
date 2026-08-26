@@ -100,10 +100,11 @@
         ></el-col>
         <el-col :xs="24" :sm="12"
           ><el-form-item label="父任务 ID"
-            ><el-input-number
+            ><el-input
               v-model="createForm.parentTaskId"
-              :min="1"
-              controls-position="right" /></el-form-item
+              inputmode="numeric"
+              maxlength="20"
+              placeholder="留空表示根任务" /></el-form-item
         ></el-col>
         <el-col :xs="24" :sm="12"
           ><el-form-item label="业务层级"
@@ -147,7 +148,12 @@
   <Dialog v-model="moveVisible" title="移动任务" width="min(560px, calc(100vw - 24px))">
     <el-form :model="moveForm" label-position="top">
       <el-form-item label="目标父任务 ID">
-        <el-input-number v-model="moveForm.targetParentTaskId" :min="1" controls-position="right" />
+        <el-input
+          v-model="moveForm.targetParentTaskId"
+          inputmode="numeric"
+          maxlength="20"
+          placeholder="留空表示根任务"
+        />
         <span class="form-hint">留空表示移动为根任务</span>
       </el-form-item>
       <el-form-item label="移动原因" required>
@@ -208,7 +214,7 @@ const createForm = reactive({
   taskCode: '',
   name: '',
   stageCode: '',
-  parentTaskId: undefined as number | undefined,
+  parentTaskId: undefined as string | undefined,
   businessLevelCode: '',
   planStartTime: undefined as string | undefined,
   planEndTime: undefined as string | undefined,
@@ -216,13 +222,14 @@ const createForm = reactive({
   sortOrder: 0,
   description: ''
 })
-const moveForm = reactive({ targetParentTaskId: undefined as number | undefined, reason: '' })
+const moveForm = reactive({ targetParentTaskId: undefined as string | undefined, reason: '' })
 const createRules: FormRules = {
   taskCode: [{ required: true, message: '请输入任务编码' }],
   name: [{ required: true, message: '请输入任务名称' }],
   stageCode: [{ required: true, message: '请选择所属阶段' }]
 }
 const idempotencyKey = () => crypto.randomUUID()
+const optionalTaskId = (value?: string) => value?.trim() || undefined
 
 const loadWorkspace = async () => {
   loading.value = true
@@ -282,7 +289,11 @@ const create = async () => {
   if (!(await createFormRef.value?.validate())) return
   submitting.value = true
   try {
-    await TaskWorkbenchApi.createTask(props.projectId, { ...createForm }, idempotencyKey())
+    await TaskWorkbenchApi.createTask(
+      props.projectId,
+      { ...createForm, parentTaskId: optionalTaskId(createForm.parentTaskId) },
+      idempotencyKey()
+    )
     message.success('任务创建成功')
     createVisible.value = false
     await reload()
@@ -293,7 +304,10 @@ const create = async () => {
 
 const openMove = (task: TaskDetail) => {
   movingTask.value = task
-  Object.assign(moveForm, { targetParentTaskId: task.parentTaskId, reason: '' })
+  Object.assign(moveForm, {
+    targetParentTaskId: task.parentTaskId == null ? undefined : String(task.parentTaskId),
+    reason: ''
+  })
   moveVisible.value = true
 }
 
@@ -309,7 +323,11 @@ const move = async () => {
   try {
     await TaskWorkbenchApi.moveTask(
       movingTask.value.taskId,
-      { ...moveForm, expectedTaskTreeVersion: workspace.value.taskTreeVersion },
+      {
+        ...moveForm,
+        targetParentTaskId: optionalTaskId(moveForm.targetParentTaskId),
+        expectedTaskTreeVersion: workspace.value.taskTreeVersion
+      },
       movingTask.value.version,
       idempotencyKey()
     )

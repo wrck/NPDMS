@@ -126,8 +126,9 @@ public class ProjectTreeScopeService {
                     .map(ProjectMasterDO::getId)
                     .forEach(anchors::add);
         }
-        discoverGrantAnchors(tenantId, subjectUserId, actionCode, effectiveAt, anchors);
-        if (ACTION_VIEW.equals(actionCode) || ACTION_EDIT.equals(actionCode)) {
+        String primaryGrantAction = ACTION_EDIT.equals(actionCode) ? ACTION_MANAGE : actionCode;
+        discoverGrantAnchors(tenantId, subjectUserId, primaryGrantAction, effectiveAt, anchors);
+        if (ACTION_VIEW.equals(actionCode)) {
             discoverGrantAnchors(tenantId, subjectUserId, ACTION_MANAGE, effectiveAt, anchors);
         }
         if (anchors.isEmpty()) {
@@ -158,12 +159,11 @@ public class ProjectTreeScopeService {
 
     private List<AuthorizationGrantDTO> listEffectiveGrants(
             ProjectScopeQuery query, Set<Long> rootNodes, LocalDateTime effectiveAt) {
+        String primaryGrantAction = ACTION_EDIT.equals(query.actionCode())
+                ? ACTION_MANAGE : query.actionCode();
         List<AuthorizationGrantDTO> grants = new ArrayList<>(authorizationGrantApi.listEffective(
-                authorizationQuery(query, rootNodes, query.actionCode(), effectiveAt)));
+                authorizationQuery(query, rootNodes, primaryGrantAction, effectiveAt)));
         if (ACTION_VIEW.equals(query.actionCode())) {
-            grants.addAll(authorizationGrantApi.listEffective(
-                    authorizationQuery(query, rootNodes, ACTION_MANAGE, effectiveAt)));
-        } else if (ACTION_EDIT.equals(query.actionCode())) {
             grants.addAll(authorizationGrantApi.listEffective(
                     authorizationQuery(query, rootNodes, ACTION_MANAGE, effectiveAt)));
         }

@@ -121,11 +121,11 @@
             AND task.stage_code = #{query.stageCode}
         </if>
         <if test="query.cursorSortOrder != null and query.cursorTaskId != null">
-            AND (COALESCE(task.sort_order, 0) &gt; #{query.cursorSortOrder}
-                OR (COALESCE(task.sort_order, 0) = #{query.cursorSortOrder}
+            AND (task.sort_order &gt; #{query.cursorSortOrder}
+                OR (task.sort_order = #{query.cursorSortOrder}
                     AND task.id &gt; #{query.cursorTaskId}))
         </if>
-        ORDER BY COALESCE(task.sort_order, 0), task.id
+        ORDER BY task.sort_order, task.id
         LIMIT #{query.pageSize}
     </select>
 
