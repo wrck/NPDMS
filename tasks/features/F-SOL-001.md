@@ -1,12 +1,12 @@
 # F-SOL-001 项目工期基线与版本化变更审批
 
-> Feature实施状态：`IMPLEMENTING`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`PASS / NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`
-> Implementation Done Gate：`PENDING`
+> Implementation Done Gate：`PASS / 独立复审GO（2026-08-27）`
 > Technical Plan Gate：`PASS / NPDMS-FSOL001-TECHPLAN-20260826-01`
 > 当前阻断：`无；F-PLT-001已完成并解除PLT-02客户延期材料分支阻断`
-> 当前任务：`Task 10 完成真实浏览器、独立复审和Feature Done回写`
+> 当前任务：`Implementation Done追溯回写与规格基线同步`
 > Requirement ID：`PRE-01（V1）`
 > Feature Spec：`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`
 > Feature物理契约：`specs/features/F-SOL-001-physical-contract.json`
@@ -32,7 +32,7 @@
 - [x] Task 7 同步消费BPM终态并生效工期结果（PASS / `d659501` + `b0fdc23` + `34ce4df` + `eb42aa3` / 独立裁决GO）
 - [x] Task 8 建设响应式项目工期界面并冻结旧PRE-01写入口（PASS / `668234d` / `NPDMS-FSOL001-TASK8-20260826-01`）
 - [x] Task 9 完成真实MySQL、事务并发和BPM集成验证（PASS / `db394a0` + `7e9d6d3` + `34ce4df` + `eb42aa3` / 独立裁决GO）
-- [ ] Task 10 完成真实浏览器、独立复审和Feature Done回写
+- [x] Task 10 完成真实浏览器、独立复审和Feature Done回写（PASS / `4e9a0aa` + `cf2ff42` + `85b6d09` + `43110a7` / 独立裁决GO）
 
 > 检查点（2026-08-26）：Task 1提交`b2b019d`经独立复审GO；V1～V91隔离MySQL迁移、根唯一键、种子幂等、迁移契约4/4、20模块Reactor编译及规格快照校验均PASS，允许推进Task 2。
 
@@ -59,3 +59,5 @@
 > 检查点（2026-08-27）：F-PLT-001 Task 6提交`34ce4dff8f380192e96aba679656cf4728527feb`及整改`eb42aa3ae4d1f5a4510e73c824e3cdc4d866b3ef`经独立复审GO；客户依据上传、固定版本冻结、三终态锁定重验和PROJ范围版本并发冲突均由真实MySQL、Flowable、PROJ、PLT、SOL验证通过，Task 6/7材料分支与Task 9材料场景阻断解除。Task 10仍等待F-PLT-001统一文件界面接入。
 
 > 检查点（2026-08-27）：F-PLT-001 Task 10整改提交`38f36b1f0d345bc2653207302a37d2792362e58a`经独立复审GO；统一文件界面、客户延期材料上传冻结、单租户Flowable正向审批和清洁库浏览器链已闭合，`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`正式解除。F-SOL-001现可进入Task 10正式浏览器与独立Feature Done复审，本检查点不提前将Task 10或Implementation Done回写PASS。
+
+> 检查点（2026-08-27）：Task 10实现整改`85b6d09db65a7b02f4ad291aaafbe5ead4a06eb0`及浏览器证据提交`43110a7`经独立复审GO；公开UI/API已覆盖服务经理驳回、项目经理权限拒绝、项目版本冲突、刷新持久化和无成功副作用，变更历史候选版本投影已闭合。Task 10与F-SOL-001 Implementation Done正式PASS；本结论不包含Deployment、SIT、UAT或Release。
