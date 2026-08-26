@@ -53,7 +53,7 @@ V96按物理契约创建`sol_preparation`、`sol_preparation_item`、`sol_dynami
 
 - [ ] **Step 2: 创建确定性初始化数据**
 
-V97幂等写六类批准项编码`POWER/NETWORK_PORT/FIBER/CABINET/NETWORK_CABLE/OPTICAL_MODULE`、四项权限，并在既有`infra_config`唯一写入稳定键`pms.sol.preparation.site-survey.form-catalog.v1`。该配置是V1固定表单目录的唯一权威载体，值为封闭JSON：根字段仅允许`schemaVersion=1/catalogCode=PRE_02_SITE_SURVEY/catalogVersion=1/forms`；每个form仅允许`formCode/formVersion=1/fields`；field仅允许`fieldCode/fieldType/required/maxLength/options/sortOrder`，`fieldType`封闭为`TEXT/NUMBER/BOOLEAN/SINGLE_SELECT/MULTI_SELECT`，无脚本、表达式或运行时发布入口。`forms`必须精确覆盖六类基准项且`formCode`唯一；V1扩展项只能引用目录中已存在的固定form，不可动态扩Schema。只为现有seed-owned DRAFT模板定义插入`PRE_02_SITE_SURVEY`的BUSINESS_OBJECT示例配置，覆盖必需证据、无来源、OA来源、可豁免和停用项组合；不修改PUBLISHED模板、不自动授权角色、不臆造CRM值。
+V97幂等写六类批准项编码`POWER/NETWORK_PORT/FIBER/CABINET/NETWORK_CABLE/OPTICAL_MODULE`、四项权限，并在既有`infra_config`唯一写入稳定键`pms.sol.preparation.site-survey.form-catalog.v1`。该配置是V1固定表单目录的唯一权威载体，且必须适配既有`infra_config.value VARCHAR(500)`：根字段仅允许`schemaVersion=1/catalogCode=PRE_02_SITE_SURVEY/catalogVersion=1/commonFields/forms`；`commonFields`只保存一次V1通用现场情况字段，field仅允许`fieldCode/fieldType/required/maxLength/options/sortOrder`，`fieldType`封闭为`TEXT/NUMBER/BOOLEAN/SINGLE_SELECT/MULTI_SELECT`；每个form仅允许`formCode/formVersion=1`并复用同一`commonFields`。无脚本、表达式或运行时发布入口。`forms`必须精确覆盖六类基准项且`formCode`唯一；V1扩展项只能引用目录中已存在的固定form，不可动态扩Schema。只为现有seed-owned DRAFT模板定义插入`PRE_02_SITE_SURVEY`的BUSINESS_OBJECT示例配置，覆盖必需证据、无来源、OA来源、可豁免和停用项组合；不修改PUBLISHED模板、不自动授权角色、不臆造CRM值。
 
 - [ ] **Step 3: 建立工作单和错误码**
 
@@ -128,7 +128,7 @@ Expected: PROJ公共契约与模板冻结链PASS。提交：`feat(project): 暴�
 
 - [ ] **Step 2: 实现固定表单与状态纯规则**
 
-`FixedSurveyFormCatalogProvider`只通过既有`ConfigApi`和稳定键`pms.sol.preparation.site-survey.form-catalog.v1`读取Task 1目录，按Task 1封闭Schema解析并返回精确`formCode+formVersion`定义；缺失、非法、未知字段类型、重复字段或版本不匹配均失败关闭。实例化把命中的完整form定义冻结到`sol_dynamic_form_instance.schema_snapshot`，运行期校验只使用该冻结快照，配置后续变化不改写既有实例。固定Schema仅接受批准字段类型、必填/枚举/长度规则和排序稳定value snapshot，不执行表达式或脚本。Preparation×Item状态规则精确实现DRAFT/PENDING_CONFIRMATION/CONFIRMED/RETURNED及item适用性/确认分轴。
+`FixedSurveyFormCatalogProvider`只通过既有`ConfigApi`和稳定键`pms.sol.preparation.site-survey.form-catalog.v1`读取Task 1目录，按Task 1封闭Schema解析并返回精确`formCode+formVersion`及唯一`commonFields`；缺失、非法、未知字段类型、重复字段或版本不匹配均失败关闭。实例化把form身份与`commonFields`组合为完整Schema并冻结到`sol_dynamic_form_instance.schema_snapshot`，运行期校验只使用该冻结快照，配置后续变化不改写既有实例。固定Schema仅接受批准字段类型、必填/枚举/长度规则和排序稳定value snapshot，不执行表达式或脚本。Preparation×Item状态规则精确实现DRAFT/PENDING_CONFIRMATION/CONFIRMED/RETURNED及item适用性/确认分轴。
 
 - [ ] **Step 3: 实现稳定分页和当前约束**
 
