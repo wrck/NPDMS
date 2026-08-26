@@ -6,7 +6,7 @@
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
 > 当前阻断：`无`
-> 当前任务：`Task 9 建设响应式任务工作台并退役旧写入口`
+> 当前任务：`Task 10 完成真实浏览器、性能与完整证据验收`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
@@ -30,5 +30,6 @@
 - [x] Task 6 Implementation Done（独立裁决GO；`26cce6b`）
 - [x] Task 7 Implementation Done（独立裁决GO；`687388b`、`4db86ed`）
 - [x] Task 8 Implementation Done（独立裁决GO；`62c496a`）
+- [x] Task 9 Implementation Done（独立裁决GO；`0c64a8e`、`3106797`、`e266992`、`d414336`、`314059c`、`3ff1cd2`）
 
-> 检查点（2026-08-26）：基线`5f37b2d`；Task 8独立裁决GO，提交`62c496a`，聚焦测试49/49、真实MySQL 7/7、空库V1→V89及规格快照PASS；无阻断。当前Gate切换至Task 9 Implementation Done，下一步按锁定计划建设响应式任务工作台并退役V1.7写入口。
+> 检查点（2026-08-26）：Task 9独立裁决GO；响应式任务工作台已接入服务端权限与动作真值，旧V1.7写入口已退役；真实部分PATCH、Stage游标分页及跨Stage导航阻断均闭环。当前Gate切换至Task 10，按锁定计划执行真实浏览器、规模性能、真实MySQL与完整证据验收。
