@@ -8,9 +8,11 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
@@ -48,6 +50,9 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,11 +69,13 @@ class FileLifecycleMySqlIntegrationTest {
     @Resource FileArtifactMapper artifactMapper;
     @Resource FileVersionMapper versionMapper;
     @Resource FileReferenceMapper referenceMapper;
+    @Resource FileUploadSessionMapper uploadSessionMapper;
     @Resource JdbcTemplate jdbcTemplate;
 
     private Long artifactId;
     private Long referenceId;
     private Long draftArtifactId;
+    private Long mismatchArtifactId;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -90,6 +97,10 @@ class FileLifecycleMySqlIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM plt_outbox_event WHERE tenant_id=0 "
+                + "AND JSON_UNQUOTE(JSON_EXTRACT(payload,'$.operationId')) LIKE 'life-%'");
+        jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 AND correlation_id LIKE 'life-%'");
+        jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=0 AND idempotency_key LIKE 'life-%'");
         reset(policyRegistry, securityFrameworkService);
         when(policyRegistry.inspect(any())).thenReturn(policy());
         when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
@@ -102,16 +113,19 @@ class FileLifecycleMySqlIntegrationTest {
     void tearDown() {
         jdbcTemplate.update("DELETE FROM plt_outbox_event WHERE tenant_id=0 AND aggregate_key IN (?, ?)",
                 String.valueOf(artifactId), String.valueOf(referenceId));
-        jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 AND aggregate_key IN (?, ?)",
-                String.valueOf(artifactId), String.valueOf(referenceId));
+        jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 AND aggregate_key IN (?, ?, ?, ?)",
+                String.valueOf(artifactId), String.valueOf(referenceId),
+                String.valueOf(draftArtifactId), String.valueOf(mismatchArtifactId));
         jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=0 AND idempotency_key LIKE 'life-%'");
         jdbcTemplate.update("DELETE FROM plt_file_archive_record WHERE tenant_id=0 AND artifact_id=?", artifactId);
-        jdbcTemplate.update("DELETE FROM plt_file_reference WHERE tenant_id=0 AND artifact_id IN (?, ?)",
-                artifactId, draftArtifactId);
-        jdbcTemplate.update("DELETE FROM plt_file_version WHERE tenant_id=0 AND artifact_id IN (?, ?)",
-                artifactId, draftArtifactId);
-        jdbcTemplate.update("DELETE FROM plt_file_artifact WHERE tenant_id=0 AND id IN (?, ?)",
-                artifactId, draftArtifactId);
+        jdbcTemplate.update("DELETE FROM plt_file_upload_session WHERE tenant_id=0 AND artifact_id IN (?, ?, ?)",
+                artifactId, draftArtifactId, mismatchArtifactId);
+        jdbcTemplate.update("DELETE FROM plt_file_reference WHERE tenant_id=0 AND artifact_id IN (?, ?, ?)",
+                artifactId, draftArtifactId, mismatchArtifactId);
+        jdbcTemplate.update("DELETE FROM plt_file_version WHERE tenant_id=0 AND artifact_id IN (?, ?, ?)",
+                artifactId, draftArtifactId, mismatchArtifactId);
+        jdbcTemplate.update("DELETE FROM plt_file_artifact WHERE tenant_id=0 AND id IN (?, ?, ?)",
+                artifactId, draftArtifactId, mismatchArtifactId);
     }
 
     @Test
@@ -166,30 +180,67 @@ class FileLifecycleMySqlIntegrationTest {
                 "SELECT sha256 FROM plt_file_version WHERE tenant_id=0 AND artifact_id=? AND version_no=1",
                 String.class, artifactId);
 
-        service.changeAvailability(availability("life-invalid", 0, "INVALIDATED", "COMPLIANCE"));
-        jdbcTemplate.update("UPDATE plt_file_version SET availability_status_code='UNAVAILABLE' "
-                + "WHERE tenant_id=0 AND artifact_id=? AND version_no=1", artifactId);
-        service.changeAvailability(availability("life-restore", 1, "AVAILABLE", null));
+        service.changeAvailability(availability("life-unavailable", 0, "UNAVAILABLE", "CONTENT_MISSING"));
+        service.changeAvailability(availability("life-unavailable-restore", 1, "AVAILABLE", null));
+        service.changeAvailability(availability("life-invalid", 2, "INVALIDATED", "COMPLIANCE"));
+        service.changeAvailability(availability("life-invalid-restore", 3, "AVAILABLE", null));
 
         Map<String, Object> row = jdbcTemplate.queryForMap(
                 "SELECT sha256, availability_status_code, availability_version FROM plt_file_version "
                         + "WHERE tenant_id=0 AND artifact_id=? AND version_no=1", artifactId);
         assertEquals(before, row.get("sha256"));
         assertEquals("AVAILABLE", row.get("availability_status_code"));
-        assertEquals(2, ((Number) row.get("availability_version")).intValue());
+        assertEquals(4, ((Number) row.get("availability_version")).intValue());
     }
 
     @Test
-    void archivesOnceAndKeepsAppendOnlyFact() {
-        var command = new ArchiveFileReferenceCommand(0L, 9L, "life-archive", referenceId, 0,
+    void rejectsAvailabilityChangeWhenAuthorizedKeyBelongsToAnotherArtifact() {
+        mismatchArtifactId = createUnboundActiveArtifact();
+        var command = new ChangeFileAvailabilityCommand(0L, 9L, "life-mismatch-availability",
+                mismatchArtifactId, 1, 0, "INVALIDATED", "COMPLIANCE", "错配",
+                "SOL", "CONSTRUCTION_PLAN_CHANGE", "99001", "CUSTOMER_DELAY_EVIDENCE", "slot-a");
+
+        assertThrows(RuntimeException.class, () -> service.changeAvailability(command));
+
+        assertEquals("AVAILABLE", jdbcTemplate.queryForObject(
+                "SELECT availability_status_code FROM plt_file_version WHERE tenant_id=0 AND artifact_id=? "
+                        + "AND version_no=1", String.class, mismatchArtifactId));
+        assertEquals(0L, auditCount("FILE_VERSION_AVAILABILITY_CHANGE", "SUCCESS"));
+        assertEquals(0L, completedIdempotencyCount("life-mismatch-availability"));
+        assertEquals(0L, outboxCount("FileArchived"));
+    }
+
+    @Test
+    void archivesOnceAcrossConcurrentDifferentIdempotencyKeys() throws Exception {
+        var commandA = new ArchiveFileReferenceCommand(0L, 9L, "life-archive-a", referenceId, 0,
                 "batch-01", "decision-01", "归档", "SOL", "CONSTRUCTION_PLAN_CHANGE",
                 "99001", "CUSTOMER_DELAY_EVIDENCE", "slot-a");
+        var commandB = new ArchiveFileReferenceCommand(0L, 9L, "life-archive-b", referenceId, 0,
+                "batch-01", "decision-01", "归档", "SOL", "CONSTRUCTION_PLAN_CHANGE",
+                "99001", "CUSTOMER_DELAY_EVIDENCE", "slot-a");
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            Future<FileLifecycleApplicationService.LifecycleResult> first = executor.submit(() -> {
+                ready.countDown(); start.await(); return service.archive(commandA);
+            });
+            Future<FileLifecycleApplicationService.LifecycleResult> second = executor.submit(() -> {
+                ready.countDown(); start.await(); return service.archive(commandB);
+            });
+            ready.await();
+            start.countDown();
+            assertEquals("ARCHIVED", first.get().status());
+            assertEquals("ARCHIVED", second.get().status());
+        }
 
-        var result = service.archive(command);
-        var replay = service.archive(command);
+        assertEquals(1L, count("plt_file_archive_record", "artifact_id", artifactId));
+        assertEquals(1L, outboxCount("FileArchived"));
+        assertEquals(2L, auditCount("FILE_REFERENCE_ARCHIVE", "SUCCESS"));
 
-        assertEquals("ARCHIVED", result.status());
-        assertEquals(result, replay);
+        var conflict = new ArchiveFileReferenceCommand(0L, 9L, "life-archive-conflict", referenceId, 0,
+                "batch-01", "decision-02", "归档", "SOL", "CONSTRUCTION_PLAN_CHANGE",
+                "99001", "CUSTOMER_DELAY_EVIDENCE", "slot-a");
+        assertThrows(RuntimeException.class, () -> service.archive(conflict));
         assertEquals(1L, count("plt_file_archive_record", "artifact_id", artifactId));
         assertEquals(1L, outboxCount("FileArchived"));
     }
@@ -218,6 +269,21 @@ class FileLifecycleMySqlIntegrationTest {
                 "SELECT deleted FROM plt_file_artifact WHERE tenant_id=0 AND id=?", Integer.class, draftArtifactId));
         assertEquals(1L, count("plt_file_reference", "artifact_id", draftArtifactId));
         assertEquals(1L, auditCount("FILE_DRAFT_DELETE", "REJECTED"));
+    }
+
+    @Test
+    void rejectsDraftDeleteWhenAuthorizedKeyDoesNotOwnArtifact() {
+        var command = new DeleteDraftFileCommand(0L, 9L, "life-delete-mismatch",
+                draftArtifactId, 0, "SOL", "CONSTRUCTION_PLAN_CHANGE", "99001",
+                "CUSTOMER_DELAY_EVIDENCE", "slot-a", "取消草稿");
+
+        assertThrows(RuntimeException.class, () -> service.deleteDraft(command));
+
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT deleted FROM plt_file_artifact WHERE tenant_id=0 AND id=?", Integer.class, draftArtifactId));
+        assertEquals(0L, auditCount("FILE_DRAFT_DELETE", "SUCCESS"));
+        assertEquals(0L, completedIdempotencyCount("life-delete-mismatch"));
+        assertEquals(0L, outboxCount("FileArchived"));
     }
 
     private ChangeFileAvailabilityCommand availability(String key, int expected, String target, String reason) {
@@ -255,6 +321,38 @@ class FileLifecycleMySqlIntegrationTest {
         FileArtifactDO draft = artifact("DRAFT", "draft.pdf", LocalDateTime.now());
         assertEquals(1, artifactMapper.insert(draft));
         draftArtifactId = draft.getId();
+        createDraftBinding();
+    }
+
+    private void createDraftBinding() {
+        LocalDateTime now = LocalDateTime.now();
+        FileUploadSessionDO session = new FileUploadSessionDO();
+        session.setModeCode("CREATE_ARTIFACT"); session.setOwnerContext("SOL");
+        session.setObjectType("CONSTRUCTION_PLAN_CHANGE"); session.setObjectId("99002");
+        session.setPurposeCode("CUSTOMER_DELAY_EVIDENCE"); session.setReferenceKey("draft-slot");
+        session.setFileName("draft.pdf"); session.setCategoryCode("CUSTOMER_EVIDENCE");
+        session.setDeclaredSizeBytes(64L); session.setDeclaredMediaType("application/pdf");
+        session.setStorageOperationId("life-draft-" + draftArtifactId); session.setStatusCode("FAILED_FINAL");
+        session.setScopeVersion(8L); session.setExpiresAt(now.plusMinutes(15)); session.setVersion(1);
+        session.setArtifactId(draftArtifactId); session.setFailureCode("CANCELLED");
+        session.setCreator("9"); session.setUpdater("9"); session.setCreateTime(now); session.setUpdateTime(now);
+        session.setTenantId(0L);
+        assertEquals(1, uploadSessionMapper.insert(session));
+    }
+
+    private Long createUnboundActiveArtifact() {
+        LocalDateTime now = LocalDateTime.now();
+        FileArtifactDO artifact = artifact("ACTIVE", "other.pdf", now);
+        assertEquals(1, artifactMapper.insert(artifact));
+        FileVersionDO version = new FileVersionDO();
+        version.setTenantId(0L); version.setArtifactId(artifact.getId()); version.setVersionNo(1);
+        version.setInfraFileId(8_910_003L); version.setAvailabilityVersion(0);
+        version.setSha256("c".repeat(64)); version.setSizeBytes(32L);
+        version.setDeclaredMediaType("application/pdf"); version.setDetectedMediaType("application/pdf");
+        version.setScanStatusCode("PASSED"); version.setAvailabilityStatusCode("AVAILABLE");
+        version.setCreatedBy(9L); version.setCreatedAt(now);
+        assertEquals(1, versionMapper.insert(version));
+        return artifact.getId();
     }
 
     private void createDraftReference() {
@@ -297,6 +395,10 @@ class FileLifecycleMySqlIntegrationTest {
     private long auditCount(String operation, String result) {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=0 "
                 + "AND operation_code=? AND result_code=?", Long.class, operation, result);
+    }
+    private long completedIdempotencyCount(String key) {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=0 "
+                + "AND idempotency_key=? AND status='COMPLETED'", Long.class, key);
     }
     private long count(String table, String column, Object value) {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE tenant_id=0 AND "

@@ -13,10 +13,12 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArchiveRecor
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArchiveRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.*;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.*;
 import cn.iocoder.yudao.module.pms.platform.service.file.event.FileArchivedMessage;
@@ -33,6 +35,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -50,6 +53,7 @@ public class FileLifecycleApplicationService {
     private final FileArtifactMapper artifactMapper;
     private final FileVersionMapper versionMapper;
     private final FileReferenceMapper referenceMapper;
+    private final FileUploadSessionMapper uploadSessionMapper;
     private final FileArchiveRecordMapper archiveRecordMapper;
     private final FileEventFactory eventFactory;
 
@@ -156,8 +160,12 @@ public class FileLifecycleApplicationService {
         FileArtifactDO artifact = artifactMapper.selectForUpdate(new FileArtifactLockQuery(
                 command.tenantId(), command.artifactId()));
         if (artifact == null) throw exception(FILE_ARTIFACT_NOT_FOUND);
+        FileUploadSessionDO binding = uploadSessionMapper.selectArtifactBindingForUpdate(
+                new FileUploadSessionArtifactBindingQuery(command.tenantId(), command.artifactId(),
+                        key.ownerContext(), key.objectType(), key.objectId(), key.purposeCode(), key.referenceKey()));
         if (!"DRAFT".equals(artifact.getLifecycleStatusCode())
                 || !command.expectedArtifactVersion().equals(artifact.getVersion())
+                || binding == null
                 || !referenceMapper.selectByArtifactForUpdate(
                 new FileArtifactReferenceQuery(command.tenantId(), command.artifactId())).isEmpty()) {
             throw exception(FILE_COMMAND_INVALID);
@@ -178,6 +186,10 @@ public class FileLifecycleApplicationService {
         ValidatedKey key = key(command.ownerContext(), command.objectType(), command.objectId(),
                 command.purposeCode(), command.referenceKey());
         authorize(command.tenantId(), command.actorUserId(), key, FileActionCodes.INVALIDATE);
+        FileReferenceDO reference = lockReference(command.tenantId(), key);
+        if (!command.artifactId().equals(reference.getArtifactId())) {
+            throw exception(FILE_REFERENCE_VERSION_CONFLICT);
+        }
         FileArtifactDO artifact = artifactMapper.selectForUpdate(new FileArtifactLockQuery(
                 command.tenantId(), command.artifactId()));
         if (artifact == null || !"ACTIVE".equals(artifact.getLifecycleStatusCode())) {
@@ -188,8 +200,11 @@ public class FileLifecycleApplicationService {
         if (version == null) throw exception(FILE_VERSION_NOT_FOUND);
         String target = text(command.targetStatus()).toUpperCase();
         String expected = version.getAvailabilityStatusCode();
-        if (!("INVALIDATED".equals(target) && !"INVALIDATED".equals(expected))
-                && !("AVAILABLE".equals(target) && "UNAVAILABLE".equals(expected))) {
+        boolean degrade = Set.of("INVALIDATED", "UNAVAILABLE").contains(target)
+                && "AVAILABLE".equals(expected);
+        boolean recover = "AVAILABLE".equals(target)
+                && Set.of("INVALIDATED", "UNAVAILABLE").contains(expected);
+        if (!degrade && !recover) {
             throw exception(FILE_COMMAND_INVALID);
         }
         if (!command.expectedAvailabilityVersion().equals(version.getAvailabilityVersion())) {
@@ -214,13 +229,29 @@ public class FileLifecycleApplicationService {
         FileBusinessObjectPolicyFact policy = authorize(command.tenantId(), command.actorUserId(), key,
                 FileActionCodes.ARCHIVE);
         FileReferenceDO reference = lockReference(command.tenantId(), key);
-        if (!command.referenceId().equals(reference.getId()) || !"ACTIVE".equals(reference.getStatusCode())
-                || !command.expectedReferenceVersion().equals(reference.getVersion())) {
+        if (!command.referenceId().equals(reference.getId())) {
             throw exception(FILE_REFERENCE_VERSION_CONFLICT);
         }
         FileArchiveRecordQuery archiveQuery = new FileArchiveRecordQuery(command.tenantId(),
                 text(command.archiveBatchId()), reference.getArtifactId(), reference.getFileVersionNo());
-        if (archiveRecordMapper.selectOne(archiveQuery) != null) throw exception(FILE_ARCHIVE_CONFLICT);
+        FileArchiveRecordDO existing = archiveRecordMapper.selectOne(archiveQuery);
+        if ("ARCHIVED".equals(reference.getStatusCode())) {
+            if (existing == null || !sameArchiveFacts(command, existing)
+                    || !(command.expectedReferenceVersion().equals(reference.getVersion())
+                    || command.expectedReferenceVersion() + 1 == reference.getVersion())) {
+                throw exception(FILE_ARCHIVE_CONFLICT);
+            }
+            LifecycleFacts replay = facts(command.tenantId(), command.actorUserId(), command.idempotencyKey(),
+                    reference, "ACTIVE", "ARCHIVED", reference.getVersion() - 1, reference.getVersion(),
+                    reference.getScopeVersion(), existing.getArchivedAt(), existing.getArchiveBatchId(),
+                    existing.getBusinessDecisionRef());
+            return replay.withoutEvent();
+        }
+        if (!"ACTIVE".equals(reference.getStatusCode())
+                || !command.expectedReferenceVersion().equals(reference.getVersion())) {
+            throw exception(FILE_REFERENCE_VERSION_CONFLICT);
+        }
+        if (existing != null) throw exception(FILE_ARCHIVE_CONFLICT);
         LocalDateTime now = LocalDateTime.now();
         FileArchiveRecordDO record = new FileArchiveRecordDO();
         record.setTenantId(command.tenantId());
@@ -269,12 +300,13 @@ public class FileLifecycleApplicationService {
 
     private PlatformCommandExecutionApi.SuccessFacts archiveSuccess(ArchiveFileReferenceCommand command,
                                                                     LifecycleFacts facts) {
-        var event = eventFactory.archived(new FileArchivedMessage(UUID.randomUUID().toString(),
+        List<PlatformCommandExecutionApi.BusinessEvent> events = facts.publishEvent()
+                ? List.of(eventFactory.archived(new FileArchivedMessage(UUID.randomUUID().toString(),
                 facts.tenantId(), facts.referenceId(), facts.artifactId(), facts.versionNo(),
                 facts.key().ownerContext(), facts.key().objectType(), facts.key().objectId(),
                 facts.key().purposeCode(), facts.archiveBatchId(), facts.businessDecisionRef(),
-                facts.occurredAt(), facts.operationId()));
-        return success("FILE_REFERENCE_ARCHIVE", facts, List.of(event));
+                facts.occurredAt(), facts.operationId()))) : List.of();
+        return success("FILE_REFERENCE_ARCHIVE", facts, events);
     }
 
     private PlatformCommandExecutionApi.SuccessFacts genericSuccess(String operation, LifecycleFacts facts) {
@@ -347,6 +379,11 @@ public class FileLifecycleApplicationService {
         if (!"MUTABLE".equals(policy.referenceMutability())) throw exception(FILE_SCOPE_FORBIDDEN);
     }
 
+    private boolean sameArchiveFacts(ArchiveFileReferenceCommand command, FileArchiveRecordDO existing) {
+        return text(command.businessDecisionRef()).equals(existing.getBusinessDecisionRef())
+                && java.util.Objects.equals(nullable(command.archiveNote()), existing.getArchiveNote());
+    }
+
     private String text(String value) {
         if (value == null || value.isBlank()) throw exception(FILE_COMMAND_INVALID);
         return value.trim();
@@ -383,14 +420,31 @@ public class FileLifecycleApplicationService {
                                   Long referenceId, ValidatedKey key, String statusBefore,
                                   String statusAfter, Integer versionBefore, Integer versionAfter,
                                   Long scopeVersion, LocalDateTime occurredAt, String reasonCode,
-                                  String reasonDetail, String archiveBatchId, String businessDecisionRef) {
+                                  String reasonDetail, String archiveBatchId, String businessDecisionRef,
+                                  boolean publishEvent) {
         LifecycleFacts(LifecycleResult result, Long tenantId, Long actorUserId, String operationId,
                        Long artifactId, Integer versionNo, Long referenceId, ValidatedKey key,
                        String statusBefore, String statusAfter, Integer versionBefore, Integer versionAfter,
                        Long scopeVersion, LocalDateTime occurredAt, String reasonCode, String reasonDetail) {
             this(result, tenantId, actorUserId, operationId, artifactId, versionNo, referenceId, key,
                     statusBefore, statusAfter, versionBefore, versionAfter, scopeVersion, occurredAt,
-                    reasonCode, reasonDetail, null, null);
+                    reasonCode, reasonDetail, null, null, true);
+        }
+
+        LifecycleFacts(LifecycleResult result, Long tenantId, Long actorUserId, String operationId,
+                       Long artifactId, Integer versionNo, Long referenceId, ValidatedKey key,
+                       String statusBefore, String statusAfter, Integer versionBefore, Integer versionAfter,
+                       Long scopeVersion, LocalDateTime occurredAt, String reasonCode, String reasonDetail,
+                       String archiveBatchId, String businessDecisionRef) {
+            this(result, tenantId, actorUserId, operationId, artifactId, versionNo, referenceId, key,
+                    statusBefore, statusAfter, versionBefore, versionAfter, scopeVersion, occurredAt,
+                    reasonCode, reasonDetail, archiveBatchId, businessDecisionRef, true);
+        }
+
+        LifecycleFacts withoutEvent() {
+            return new LifecycleFacts(result, tenantId, actorUserId, operationId, artifactId, versionNo,
+                    referenceId, key, statusBefore, statusAfter, versionBefore, versionAfter, scopeVersion,
+                    occurredAt, reasonCode, reasonDetail, archiveBatchId, businessDecisionRef, false);
         }
     }
 }
