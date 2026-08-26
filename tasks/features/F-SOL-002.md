@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
 > Implementation Done Gate：`PENDING`
 > 当前阻断：`无；INT-05未实施时仅OA必需项保持NOT_READY，不阻断无OA正向主线`
-> 当前任务：`Task 1 建立PRE-02物理基础与种子`
+> 当前任务：`Task 2 提供PROJ冻结WorkBinding公共事实`
 > Requirement ID：`PRE-02（V1/P0）`
 > Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
 > Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
@@ -23,8 +23,8 @@
 
 ## 任务跟踪
 
-- [ ] Task 1 建立PRE-02六表、字典权限与Feature工作单（候选完成，待独立Implementation Done复审）
-- [ ] Task 2 提供PROJ冻结WorkBinding公共事实
+- [x] Task 1 建立PRE-02六表、字典权限与Feature工作单（PASS / NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1）
+- [ ] Task 2 提供PROJ冻结WorkBinding公共事实（实施中）
 - [ ] Task 3 实现SOL六表持久化原语与固定表单规则
 - [ ] Task 4 实现模板初始化、当前准备查询与历史投影
 - [ ] Task 5 实现逐项指派、填写与精确文件证据
@@ -37,3 +37,5 @@
 > 检查点（2026-08-27）：Feature Ready及Technical Plan均经独立裁决GO；按锁定计划从Task 1开始实施，不重开PRD或SDS。
 
 > Task 1候选证据（2026-08-27）：迁移契约6/6 PASS；清洁隔离MySQL从V1成功迁移至V97，六张SOL表、10条SOL域内租户复合外键、6个工勘项字典、4项权限及唯一固定目录均核验通过；固定目录JSON长度445且有效；同稳定键不同ID的存量目录可原位恢复且保持唯一，固定ID被其他配置占用时V97拒绝并保持无关配置不变；仅5份seed-owned DRAFT模板获得PRE-02绑定，PUBLISHED模板未修改。正式PASS以独立Implementation Done裁决为准。
+
+> Task 1独立裁决（2026-08-27）：`NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1 / GO`；允许回写PASS并推进Task 2。
