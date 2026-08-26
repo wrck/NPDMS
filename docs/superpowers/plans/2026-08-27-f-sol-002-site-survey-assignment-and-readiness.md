@@ -168,7 +168,9 @@ Expected: 六表原语与规则PASS。提交：`feat(engineering): 持久化工�
 
 建立窄engineering-api模块，先只放初始化命令且不提供HTTP入口。`PreparationInitializationCommand`只含受信`projectId/projectTaskId/executionContractId/expectedProjectVersion/expectedProjectTaskVersion/expectedContractVersion/triggerType/idempotencyKey/operationId/actorUserId`；tenant只取上下文，`triggerType`封闭为`PROJECT_CREATION/AUTHORIZED_RECOVERY`，不接受模板、角色或表单Schema自报。项目创建在ProjectTask与ExecutionContract冻结后同步调用`PreparationInitializationApi.initialize`；服务锁定ProjectWorkBinding及项目资格，并在同一模块化单体事务创建businessVersion 1 current DRAFT、item和Task 3读取的固定form实例，冻结task/contract/template标识与配置。
 
-项目创建外层编排器按冻结标识生成稳定`Idempotency-Key=PRE02_INIT:{projectId}:{executionContractId}:{contractVersion}`，`operationId`单独用于命令与审计关联；平台幂等作用域固定为`tenantId+PREPARATION_INITIALIZE+idempotencyKey`，业务载荷事实固定为上述project/task/contract标识及三个expected版本，`triggerType/actorUserId/operationId`仅作为受信调用与审计事实、不改变同一初始化业务载荷，复用平台既有载荷指纹判定同键同载荷重放与异载荷冲突。`PreparationInitializationApiImpl`和平台幂等/成功审计使用默认`REQUIRED`加入项目创建外层事务，禁止`REQUIRES_NEW`、异常吞并或异步提交；任一初始化失败必须共同回滚项目、任务、ExecutionContract、Preparation、幂等成功记录和成功审计。`AUTHORIZED_RECOVERY`仍使用同一确定性键和原冻结载荷，只允许具备`pms:preparation-survey:manage + PROJECT_MANAGE + 当前PROJECT_MANAGER`的受信操作者从内部运维服务调用；不新增用户初始化HTTP或前端按钮。恢复事实不一致失败关闭并记录既有平台REJECTED审计。
+项目创建外层编排器按冻结标识生成稳定`Idempotency-Key=PRE02_INIT:{projectId}:{executionContractId}:{contractVersion}`，`operationId`单独用于命令与审计关联；严格沿用既有平台四段幂等作用域`tenantId+PREPARATION_INITIALIZE+actorUserId+idempotencyKey`，业务载荷事实固定为上述project/task/contract标识及三个expected版本。同一操作者同键同载荷由`PlatformCommandExecutionApi`重放原结果，异载荷冲突；不得虚构、固定或复用其他操作者身份。`PreparationInitializationApiImpl`和平台幂等/成功审计使用默认`REQUIRED`加入项目创建外层事务，禁止`REQUIRES_NEW`、异常吞并或异步提交；任一初始化失败必须共同回滚项目、任务、ExecutionContract、Preparation、幂等成功记录和成功审计。
+
+`AUTHORIZED_RECOVERY`仍使用同一确定性键和原冻结业务载荷，只允许具备`pms:preparation-survey:manage + PROJECT_MANAGE + 当前PROJECT_MANAGER`的受信操作者从内部运维服务调用。不同操作者形成新的四段命令作用域；服务必须先完成权限、Project/WorkBinding锁定重验，再以Preparation稳定业务键`tenantId+projectId+PRE_02_SITE_SURVEY+businessVersion=1`锁定查询：若既有行的executionContractId及冻结版本与命令完全一致，直接返回既有结果，不进入平台初始化命令、不新增Preparation/item/form、幂等成功记录或`PREPARATION_INITIALIZE`成功审计，仅以真实当前actor追加一次`PREPARATION_INITIALIZATION_RECOVERY/NO_CHANGE`审计；若不存在才在该当前actor作用域执行初始化；既有行与冻结事实不一致则失败关闭并记录真实actor的REJECTED审计。不新增用户初始化HTTP或前端按钮。
 
 - [ ] **Step 2: 实现只读投影**
 
@@ -180,7 +182,7 @@ Expected: 六表原语与规则PASS。提交：`feat(engineering): 持久化工�
 
 - [ ] **Step 4: 实施后验证并提交**
 
-覆盖合法初始化、同键同载荷重放、同键异载荷冲突、恢复权限、绑定/项目版本变化、0/多绑定、非经理、单/多租户上下文，以及项目创建外层事务中项目/任务/契约/Preparation/平台幂等与成功审计共同提交或共同回滚和稳定查询。
+覆盖合法初始化、同actor同键同载荷重放、同actor同键异载荷冲突、跨actor授权恢复返回同一Preparation且不重复item/form/幂等成功记录/初始化成功审计、恢复审计actor为真实当前操作者、绑定/项目版本变化、0/多绑定、非经理、单/多租户上下文，以及项目创建外层事务中项目/任务/契约/Preparation/平台幂等与成功审计共同提交或共同回滚和稳定查询。
 
 Expected: 初始化与查询API主线PASS。提交：`feat(engineering): 初始化项目工勘准备`
 
