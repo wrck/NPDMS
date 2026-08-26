@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,6 +78,19 @@ class FileStorageReceiptApiImplTest {
         assertEquals(201L, receipt.infraFileId());
         verify(fileConfigService, never()).getMasterFileClient();
         verify(fileMapper, never()).insert(any(FileDO.class));
+    }
+
+    @Test
+    void inspectsTheFrozenReceiptWithoutExposingStorageLocation() {
+        FileDO existing = file(211L, 21L, "op-211", "evidence.pdf", "application/pdf", 3L);
+        when(fileMapper.selectListByStorageOperation(any())).thenReturn(List.of(existing), List.of());
+
+        FileStorageReceipt receipt = api.inspect("op-211");
+
+        assertEquals(211L, receipt.infraFileId());
+        assertEquals("op-211", receipt.storageOperationId());
+        assertNull(api.inspect("op-212"));
+        verify(fileConfigService, never()).getMasterFileClient();
     }
 
     @Test

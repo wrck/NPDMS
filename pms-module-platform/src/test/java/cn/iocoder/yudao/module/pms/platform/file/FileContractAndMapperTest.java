@@ -106,11 +106,13 @@ class FileContractAndMapperTest {
         assertMapperMethods(FileArtifactMapper.class,
                 Set.of("insert", "selectOne", "selectForUpdate", "activateDraftIfMatch"));
         assertMapperMethods(FileVersionMapper.class,
-                Set.of("insert", "selectOne", "selectForUpdate", "selectCursor"));
+                Set.of("insert", "selectOne", "selectForUpdate", "selectCursor",
+                        "selectByInfraFileIdForUpdate"));
         assertMapperMethods(FileReferenceMapper.class,
                 Set.of("insert", "selectExact", "selectForUpdate", "selectCursor", "replaceVersionIfMatch"));
         assertMapperMethods(FileUploadSessionMapper.class,
-                Set.of("insert", "selectForUpdate", "beginValidationIfInitialized", "completeIfValidating"));
+                Set.of("insert", "selectForUpdate", "beginValidationIfInitialized", "completeIfValidating",
+                        "terminateIfRetryable"));
         assertMapperMethods(FileAccessGrantMapper.class, Set.of("insert"));
         assertMapperMethods(FileArchiveRecordMapper.class, Set.of("insert"));
     }

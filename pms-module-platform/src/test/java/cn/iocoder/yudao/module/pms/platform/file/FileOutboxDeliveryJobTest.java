@@ -15,11 +15,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -52,7 +55,7 @@ class FileOutboxDeliveryJobTest {
                 message("evt-v", "FileVersionCommitted", JsonUtils.toJsonString(version), 0, occurredAt),
                 message("evt-r", "FileReferenceAttached", JsonUtils.toJsonString(reference), 1, occurredAt)));
 
-        String result = new FileOutboxDeliveryJob(outboxApi, publisher).execute(null);
+        String result = new FileOutboxDeliveryJob(outboxApi, publisher, new MockEnvironment()).execute(null);
 
         assertEquals("文件事件投递成功 2 条，待重试 0 条", result);
         verify(publisher).publishEvent(version);
@@ -71,12 +74,32 @@ class FileOutboxDeliveryJobTest {
         doThrow(new IllegalStateException("consumer failed")).when(publisher)
                 .publishEvent(any(FileVersionCommittedMessage.class));
 
-        String result = new FileOutboxDeliveryJob(outboxApi, publisher).execute(null);
+        String result = new FileOutboxDeliveryJob(outboxApi, publisher, new MockEnvironment()).execute(null);
 
         assertEquals("文件事件投递成功 0 条，待重试 1 条", result);
         ArgumentCaptor<LocalDateTime> retryAt = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(outboxApi).scheduleRetry(org.mockito.ArgumentMatchers.eq("evt-v"),
                 org.mockito.ArgumentMatchers.eq(2), retryAt.capture());
+    }
+
+    @Test
+    void establishesTenantZeroOnlyWhenSingleTenantModeIsExplicitlyConfigured() {
+        TenantContextHolder.clear();
+        when(outboxApi.claimDue(any())).thenReturn(List.of());
+
+        String result = new FileOutboxDeliveryJob(outboxApi, publisher,
+                new MockEnvironment().withProperty("yudao.tenant.enable", "false")).execute(null);
+
+        assertEquals("文件事件投递成功 0 条，待重试 0 条", result);
+        assertNull(TenantContextHolder.getTenantId());
+    }
+
+    @Test
+    void rejectsMissingTenantContextWhenMultiTenantModeIsEnabled() {
+        TenantContextHolder.clear();
+
+        assertThrows(NullPointerException.class, () -> new FileOutboxDeliveryJob(outboxApi, publisher,
+                new MockEnvironment().withProperty("yudao.tenant.enable", "true")).execute(null));
     }
 
     private PlatformOutboxMessageDTO message(String eventId, String eventType, String payload,

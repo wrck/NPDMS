@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.module.infra.api.file.FileStorageReceiptApi;
 import cn.iocoder.yudao.module.infra.api.file.dto.FileStorageReceipt;
+import cn.iocoder.yudao.module.infra.api.file.dto.FileStorageStoreCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
@@ -45,9 +46,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -70,6 +76,7 @@ class FileUploadMySqlIntegrationTest {
     @Resource JdbcTemplate jdbcTemplate;
 
     private String objectId;
+    private String keyPrefix;
     private String initKey;
     private String completeKey;
     private Long artifactId;
@@ -95,14 +102,20 @@ class FileUploadMySqlIntegrationTest {
     @BeforeEach
     void setUp() {
         objectId = "it-fplt001-task5-" + UUID.randomUUID();
-        initKey = "init-" + UUID.randomUUID();
-        completeKey = "complete-" + UUID.randomUUID();
-        reset(policyRegistry, multipartReader, contentPolicyService, storageReceiptApi);
+        keyPrefix = "task5-" + UUID.randomUUID() + "-";
+        initKey = key("init");
+        completeKey = key("complete");
+        reset(policyRegistry, contentPolicyService, storageReceiptApi);
         when(policyRegistry.inspect(any())).thenReturn(policy());
         when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
-        when(multipartReader.read(any(), anyLong())).thenReturn(PDF);
         when(contentPolicyService.validateBounded(any())).thenReturn(
                 new ValidatedFileContent(PDF, PDF.length, SHA, "application/pdf", ".pdf", "CLAMAV", "1"));
+        AtomicLong infraFileId = new AtomicLong(8_900_000L);
+        when(storageReceiptApi.store(any())).thenAnswer(invocation -> {
+            FileStorageStoreCommand command = invocation.getArgument(0);
+            return new FileStorageReceipt(command.storageOperationId(), infraFileId.incrementAndGet(),
+                    command.name(), command.mediaType(), command.validatedContent().length);
+        });
     }
 
     @AfterEach
@@ -115,14 +128,12 @@ class FileUploadMySqlIntegrationTest {
         }
         jdbcTemplate.update("DELETE FROM plt_outbox_event WHERE tenant_id=0 AND aggregate_key=?",
                 artifactId == null ? "NONE" : String.valueOf(artifactId));
-        jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 AND correlation_id IN (?,?)",
-                initKey, completeKey);
         if (artifactId != null) {
             jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 AND aggregate_key=?",
                     String.valueOf(artifactId));
         }
-        jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=0 AND idempotency_key IN (?,?)",
-                initKey, completeKey);
+        jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=0 AND idempotency_key LIKE ?",
+                keyPrefix + "%");
     }
 
     @Test
@@ -132,9 +143,6 @@ class FileUploadMySqlIntegrationTest {
                 "CUSTOMER_EVIDENCE", "slot-a", "evidence.pdf", "CUSTOMER_EVIDENCE",
                 (long) PDF.length, "application/pdf", null));
         artifactId = initialized.artifactId();
-        when(storageReceiptApi.store(any())).thenReturn(
-                new FileStorageReceipt(String.valueOf(initialized.sessionId()), 8_900_001L,
-                        "evidence.pdf", "application/pdf", PDF.length));
         var file = new MockMultipartFile("file", "evidence.pdf", "application/pdf", PDF);
 
         var first = service.complete(new FileUploadCompleteCommand(
@@ -164,6 +172,93 @@ class FileUploadMySqlIntegrationTest {
         assertEquals(2, ids.size());
         ids.forEach(row -> assertEquals(row.get("event_id"), row.get("payload_event_id")));
         assertNotNull(first.referenceId());
+    }
+
+    @Test
+    void addsImmutableVersionsAndAllowsOnlyOneConcurrentReferenceCas() throws Exception {
+        var initialized = initialize("CREATE_ARTIFACT", null, null, key("initial-init"));
+        artifactId = initialized.artifactId();
+        var first = complete(initialized, key("initial-complete"), PDF);
+        Long firstInfraFileId = jdbcTemplate.queryForObject(
+                "SELECT infra_file_id FROM plt_file_version WHERE tenant_id=0 AND artifact_id=? AND version_no=1",
+                Long.class, artifactId);
+
+        var replacement = initialize("ADD_VERSION", artifactId, 0, key("replace-init"));
+        String replacementKey = key("replace-complete");
+        var second = complete(replacement, replacementKey, PDF);
+        assertEquals(second, complete(replacement, replacementKey, PDF));
+        assertThrows(RuntimeException.class, () -> complete(replacement, replacementKey,
+                "%PDF-1.4 changed".getBytes(StandardCharsets.US_ASCII)));
+
+        assertEquals(2, second.versionNo());
+        assertEquals(2L, count("plt_file_version", "artifact_id", artifactId));
+        assertEquals(firstInfraFileId, jdbcTemplate.queryForObject(
+                "SELECT infra_file_id FROM plt_file_version WHERE tenant_id=0 AND artifact_id=? AND version_no=1",
+                Long.class, artifactId));
+        assertEquals(SHA, jdbcTemplate.queryForObject(
+                "SELECT sha256 FROM plt_file_version WHERE tenant_id=0 AND artifact_id=? AND version_no=1",
+                String.class, artifactId));
+        assertReference(2, 1);
+
+        var contenderA = initialize("ADD_VERSION", artifactId, 1, key("race-a-init"));
+        var contenderB = initialize("ADD_VERSION", artifactId, 1, key("race-b-init"));
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            Future<Boolean> a = executor.submit(() -> raceComplete(contenderA, key("race-a-complete"), ready, start));
+            Future<Boolean> b = executor.submit(() -> raceComplete(contenderB, key("race-b-complete"), ready, start));
+            ready.await();
+            start.countDown();
+            assertEquals(1, (a.get() ? 1 : 0) + (b.get() ? 1 : 0));
+        }
+
+        assertEquals(3L, count("plt_file_version", "artifact_id", artifactId));
+        assertReference(3, 2);
+        assertEquals(6L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=0 AND aggregate_key=? "
+                        + "AND event_type IN ('FileVersionCommitted','FileReferenceAttached')",
+                Long.class, String.valueOf(artifactId)));
+        assertEquals(first.referenceId(), second.referenceId());
+    }
+
+    private boolean raceComplete(cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitialized initialized,
+                                 String key, CountDownLatch ready, CountDownLatch start) throws InterruptedException {
+        ready.countDown();
+        start.await();
+        try {
+            complete(initialized, key, PDF);
+            return true;
+        } catch (RuntimeException failure) {
+            return false;
+        }
+    }
+
+    private cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitialized initialize(
+            String mode, Long existingArtifactId, Integer expectedReferenceVersion, String key) {
+        return service.initialize(new FileUploadInitializeCommand(0L, 9L, key,
+                mode, existingArtifactId, expectedReferenceVersion, "SOL", "DURATION_CHANGE", objectId,
+                "CUSTOMER_EVIDENCE", "slot-a", "evidence.pdf", "CUSTOMER_EVIDENCE",
+                (long) PDF.length, "application/pdf", null));
+    }
+
+    private cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadCompleted complete(
+            cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitialized initialized,
+            String key, byte[] content) {
+        return service.complete(new FileUploadCompleteCommand(0L, 9L, key, initialized.artifactId(),
+                initialized.sessionId(), new MockMultipartFile(
+                "file", "evidence.pdf", "application/pdf", content), null));
+    }
+
+    private void assertReference(int versionNo, int referenceVersion) {
+        Map<String, Object> reference = jdbcTemplate.queryForMap(
+                "SELECT file_version_no, version FROM plt_file_reference WHERE tenant_id=0 AND artifact_id=?",
+                artifactId);
+        assertEquals(versionNo, ((Number) reference.get("file_version_no")).intValue());
+        assertEquals(referenceVersion, ((Number) reference.get("version")).intValue());
+    }
+
+    private String key(String suffix) {
+        return keyPrefix + suffix;
     }
 
     private long count(String table, String column, Object value) {
@@ -232,7 +327,7 @@ class FileUploadMySqlIntegrationTest {
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean FileBusinessObjectPolicyRegistry policyRegistry() { return mock(FileBusinessObjectPolicyRegistry.class); }
-        @Bean BoundedMultipartReader multipartReader() { return mock(BoundedMultipartReader.class); }
+        @Bean BoundedMultipartReader multipartReader() { return new BoundedMultipartReader(); }
         @Bean FileContentPolicyService contentPolicyService() { return mock(FileContentPolicyService.class); }
         @Bean FileStorageReceiptApi storageReceiptApi() { return mock(FileStorageReceiptApi.class); }
     }

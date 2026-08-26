@@ -58,4 +58,16 @@
         ORDER BY version_no DESC, id DESC
         LIMIT #{query.limit}
     </select>
+
+    <select id="selectByInfraFileIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO">
+        SELECT id, artifact_id, version_no, infra_file_id, availability_version, sha256, size_bytes,
+               declared_media_type, detected_media_type, scan_status_code, scan_provider_code,
+               scan_provider_version, availability_status_code, unavailable_reason_code,
+               unavailable_at, version_note, created_by, created_at, tenant_id
+        FROM plt_file_version
+        WHERE tenant_id = #{query.tenantId}
+          AND infra_file_id = #{query.infraFileId}
+        FOR UPDATE
+    </select>
 </mapper>

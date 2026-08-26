@@ -20,6 +20,7 @@ class FileArtifactMigrationContractTest {
     private static String schemaSql;
     private static String seedSql;
     private static String applicationYaml;
+    private static String quartzSql;
 
     @BeforeAll
     static void loadFiles() throws IOException {
@@ -29,6 +30,8 @@ class FileArtifactMigrationContractTest {
         seedSql = Files.readString(root.resolve("sql/migrations/V93__fplt001_file_seed.sql"),
                 StandardCharsets.UTF_8);
         applicationYaml = Files.readString(root.resolve("yudao-server/src/main/resources/application.yaml"),
+                StandardCharsets.UTF_8);
+        quartzSql = Files.readString(root.resolve("sql/migrations/V94__quartz_2_5_2_mysql_schema.sql"),
                 StandardCharsets.UTF_8);
     }
 
@@ -93,6 +96,24 @@ class FileArtifactMigrationContractTest {
         assertTrue(applicationYaml.contains("max-file-size: 50MB"));
         assertTrue(applicationYaml.contains("max-request-size: 52MB"));
         assertFalse(applicationYaml.contains("max-file-size: 16MB"));
+    }
+
+    @Test
+    void installsTheLockedQuartzSchemaWithoutDroppingRuntimeFacts() {
+        assertEquals(11, countMatches(quartzSql, "CREATE TABLE QRTZ_"));
+        assertTrue(quartzSql.contains("CREATE TABLE QRTZ_JOB_DETAILS"));
+        assertTrue(quartzSql.contains("CREATE TABLE QRTZ_LOCKS"));
+        assertTrue(quartzSql.contains("CREATE TABLE QRTZ_CRON_TRIGGERS"));
+        assertFalse(Pattern.compile("(?im)^\\s*DROP\\s+TABLE").matcher(quartzSql).find());
+        assertFalse(quartzSql.contains("INSERT INTO QRTZ_"));
+    }
+
+    private static int countMatches(String value, String token) {
+        int count = 0;
+        for (int offset = 0; (offset = value.indexOf(token, offset)) >= 0; offset += token.length()) {
+            count++;
+        }
+        return count;
     }
 
     private static Path locateRepositoryRoot() {

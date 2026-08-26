@@ -12,6 +12,8 @@ public interface FileStorageReceiptApi {
 
     FileStorageReceipt store(@Valid @NotNull FileStorageStoreCommand command);
 
+    FileStorageReceipt inspect(@NotBlank String storageOperationId);
+
     FileStorageAccessReceipt presignGet(@NotNull Long infraFileId,
                                         @NotNull @Positive Integer expirationSeconds);
 

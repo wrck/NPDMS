@@ -97,6 +97,13 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
     }
 
     @Override
+    public FileStorageReceipt inspect(String storageOperationId) {
+        String operationId = validateStorageOperationId(storageOperationId);
+        List<FileDO> files = selectByStoragePath(buildStoragePath(operationId), operationId);
+        return files.isEmpty() ? null : toReceipt(operationId, files.getFirst());
+    }
+
+    @Override
     @SneakyThrows
     public void delete(String storageOperationId) {
         String operationId = validateStorageOperationId(storageOperationId);

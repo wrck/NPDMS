@@ -213,6 +213,7 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 ### Task 5: 闭合首次上传、版本提交和精确引用正向事务
 
 **Files:**
+- Create: `sql/migrations/V94__quartz_2_5_2_mysql_schema.sql`
 - Modify: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/command/PlatformCommandExecutionApi.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/command/PlatformCommandExecutionApiImpl.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImpl.java`
@@ -221,6 +222,8 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 - Modify: `yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/job/JobService.java`
 - Modify: `yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/job/JobServiceImpl.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileUploadApplicationService.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileUploadCompensationService.java`
+- Modify: `yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/FileStorageReceiptApi.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/file/vo/FileUploadCompleteRespVO.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileArtifactApiImpl.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileEventFactory.java`
@@ -236,6 +239,7 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 - Test: `yudao-module-infra/src/test/java/cn/iocoder/yudao/module/infra/api/job/JobApiImplTest.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileOutboxQuartzRegistrarTest.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileUploadMySqlIntegrationTest.java`
+- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileUploadCompensationMySqlIntegrationTest.java`
 
 **Consumes:** Tasks 2～4；这是首个真实生产者主线。
 
@@ -253,11 +257,11 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 
 - [ ] **Step 4: 实现补偿边界**
 
-INFRA成功而PLT回滚时保留Session与同一operationId供重试找回回执；仅在Session确认终止且没有任何已提交Version引用时调用delete补偿。不得在事务异常中删除可能已被已提交Version使用的对象。
+INFRA成功而PLT回滚时保留Session与同一operationId供重试通过窄`inspect(storageOperationId)`找回回执；终止入口锁定Session并收敛为`FAILED_FINAL`，随后再次锁定Session并按infraFileId锁定检查Version。仅在确认不再重试且没有任何已提交Version引用时调用delete补偿；已有Version时失败关闭并保留对象。不得在事务异常中删除可能已被已提交Version使用的对象。
 
 - [ ] **Step 5: 建立自动Quartz注册入口**
 
-INFRA新增唯一公开方法`JobApi.syncEnabledJobByHandlerName(String handlerName)`，`JobApiImpl`只委托新增的同名`JobService`场景方法；`JobServiceImpl`按handlerName调用既有`JobMapper.selectByHandlerName`并对0条/多条/非启用/Bean不存在/cron非法失败关闭，然后只把该记录通过既有`SchedulerManager.deleteJob/addJob`同步到Quartz。既有无参`JobService.syncJob()`和`JobController.syncJob()`保持不变。PLATFORM的`FileOutboxQuartzRegistrar`实现`ApplicationRunner`，最终应用完成Flyway和Bean装配后自动调用该公开API同步`fileOutboxDeliveryJob`；异常向上抛出使启动失败，不静默降级为未调度。
+V94原样采用锁定Quartz 2.5.2官方MySQL schema建立QRTZ表，不修改V1～V93、不写QRTZ运行事实。INFRA新增唯一公开方法`JobApi.syncEnabledJobByHandlerName(String handlerName)`，`JobApiImpl`只委托新增的同名`JobService`场景方法；`JobServiceImpl`按handlerName调用既有`JobMapper.selectByHandlerName`并对0条/多条/非启用/Bean不存在/cron非法失败关闭，然后只把该记录通过既有`SchedulerManager.deleteJob/addJob`同步到Quartz。既有无参`JobService.syncJob()`和`JobController.syncJob()`保持不变。PLATFORM的`FileOutboxQuartzRegistrar`实现`ApplicationRunner`，仅在真实Scheduler Bean存在时自动调用该公开API同步`fileOutboxDeliveryJob`；Quartz未装配时不调用，已装配时同步异常向上抛出使启动失败。
 
 - [ ] **Step 6: 建立四类文件事件生产投递链**
 
@@ -265,7 +269,7 @@ INFRA新增唯一公开方法`JobApi.syncEnabledJobByHandlerName(String handlerN
 
 - [ ] **Step 7: 实施后验证并提交**
 
-真实MySQL+存储+扫描覆盖首次上传、同键重放、异载荷冲突、并发完成单胜、两个事件恰一、审计恰一、各故障点回滚/重试、master切换找回同一回执，以及inspect/revalidate精确槽位。事件验收从空库启动最终应用，不调用管理端`/infra/job/sync`、`JobService.syncJob()`或`Job.execute`，断言QRTZ Job/Trigger已存在并自动处理到期事件；同时覆盖发布失败→到期重领→同一eventId成功、业务事实不重复、旧单事件兼容、未知第五类拒绝及原管理端全量同步回归。
+空库执行V1→V94。真实MySQL+存储+扫描覆盖首次上传与`ADD_VERSION`、旧版本不可变、精确Reference CAS、同键重放、异载荷冲突、并发完成单胜、事件与审计恰一、各故障点回滚/重试、master切换找回同一回执、终止补偿的无引用删除/已有Version保护，以及inspect/revalidate精确槽位。事件验收从空库启动最终应用，不调用管理端`/infra/job/sync`、`JobService.syncJob()`或`Job.execute`，断言QRTZ Job/Trigger已存在并自动处理到期事件；同时覆盖发布失败→到期重领→同一eventId成功、业务事实不重复、旧单事件兼容、未知第五类拒绝及原管理端全量同步回归。
 
 Expected: 首次上传至可冻结引用主线PASS。提交：`feat(platform): 提交文件版本与精确引用`
 
@@ -275,7 +279,7 @@ Expected: 首次上传至可冻结引用主线PASS。提交：`feat(platform): �
 
 **Files:**
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/constructionplan/ConstructionPlanChangeFilePolicyProvider.java`
-- Create: `sql/migrations/V94__fsol001_file_artifact_freeze.sql`
+- Create: `sql/migrations/V95__fsol001_file_artifact_freeze.sql`
 - Modify: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/constructionplan/ConstructionPlanChangeDO.java`
 - Modify: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/constructionplan/ConstructionPlanChangeMapper.java`
 - Modify: `pms-module-engineering/src/main/resources/mapper/constructionplan/ConstructionPlanChangeMapper.xml`
@@ -288,7 +292,7 @@ Expected: 首次上传至可冻结引用主线PASS。提交：`feat(platform): �
 
 - [ ] **Step 1: 前向补齐SOL冻结字段**
 
-V94对`sol_construction_plan_change`前向增加`customer_evidence_reference_key`、三段fileFactVersion和`customer_evidence_scope_version`可空字段；无材料记录保持NULL，材料必填提交前必须完整。不得修改V90～V93。
+V95对`sol_construction_plan_change`前向增加`customer_evidence_reference_key`、三段fileFactVersion和`customer_evidence_scope_version`可空字段；无材料记录保持NULL，材料必填提交前必须完整。不得修改V90～V94。
 
 - [ ] **Step 2: 实现SOL业务Owner Provider**
 
@@ -408,7 +412,7 @@ Expected: 共享UI和工期接入PASS。提交：`feat(ui): 接入统一文件�
 
 - [ ] **Step 1: 全新数据库和真实基础设施验证**
 
-使用独立Compose空库执行V1→V94，装配真实MySQL、Redis、INFRA私有存储配置、ClamAV及应用。验证50MB正向上传、50MB+1拒绝、跨master重放/补偿、扫描拒绝、六表约束和无遗留对象。
+使用独立Compose空库执行V1→V95，装配真实MySQL、Redis、INFRA私有存储配置、ClamAV及应用。验证50MB正向上传、50MB+1拒绝、跨master重放/补偿、扫描拒绝、六表约束和无遗留对象。
 
 - [ ] **Step 2: PLATFORM业务全链验证**
 

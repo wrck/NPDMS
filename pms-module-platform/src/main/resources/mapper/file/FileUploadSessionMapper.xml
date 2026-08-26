@@ -64,4 +64,18 @@
           AND status_code = 'VALIDATING'
           AND version = #{query.expectedVersion}
     </update>
+
+    <update id="terminateIfRetryable">
+        UPDATE plt_file_upload_session
+        SET status_code = 'FAILED_FINAL',
+            failure_code = #{query.reasonCode},
+            failure_detail = NULL,
+            version = version + 1,
+            updater = #{query.actorUserId},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.sessionId}
+          AND status_code IN ('INITIALIZED', 'FAILED_RETRYABLE', 'EXPIRED')
+          AND version = #{query.expectedVersion}
+    </update>
 </mapper>
