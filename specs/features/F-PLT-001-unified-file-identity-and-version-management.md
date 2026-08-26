@@ -7,6 +7,7 @@
 > 前置能力：Yudao INFRA 文件存储配置、FileClient、私有对象存储和平台权限模型
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 边界裁决：`GO / NPDMS-FPLT001-BOUNDARY-20260826-01`
+> INFRA架构例外：`GO / NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`；`docs/decisions/0035-file-storage-receipt-adapter-exception.md`
 > Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成
 
 ## 1. 目标
@@ -20,7 +21,7 @@
 ### 2.1 包含
 
 - tenant-aware的FileArtifact、不可变FileVersion、固定版本FileReference及稳定查询；
-- 上传会话初始化、短时直传、完成校验、内容摘要、媒体类型嗅探、安全扫描和元数据提交；
+- 上传会话初始化、后端有界上传、完成校验、内容摘要、媒体类型嗅探、安全扫描和元数据提交；
 - 新Artifact首版本、已有Artifact新版本、草稿引用CAS换版、解绑、未引用草稿逻辑删除；
 - 文件版本失效、引用归档、短时下载/预览授权和拒绝审计；
 - 业务对象权限实时回源SPI，未知Context/ObjectType、无Provider或Provider异常全部失败关闭；
@@ -28,7 +29,7 @@
 - 文件类型与敏感级别字典校验、文件策略、50MB普通上传上限及私有存储；
 - 可复用响应式文件上传、版本历史、引用和访问组件；
 - 首个真实SOL消费者用途：`SOL / CONSTRUCTION_PLAN_CHANGE / CUSTOMER_DELAY_EVIDENCE`，只负责对象存在、项目范围和引用动作授权，不持有或推进PRE-01审批状态；
-- 对Yudao `FileApi`候选最小前向加法进行Feature Ready单独裁决，旧方法和现有调用行为保持不变。
+- 复用已批准的独立`FileStorageReceiptApi`技术回执例外，旧`FileApi`、`FileClient`方法和现有调用行为保持不变。
 
 ### 2.2 不包含
 
@@ -52,10 +53,10 @@
 ### BR-FPLT001-002 上传初始化与完成
 
 - `POST /files:init-upload`必须携带`Idempotency-Key`，并提交业务Context、对象类型/ID、用途、引用键、文件类型、文件名、声明大小和媒体类型；tenantId、上传人和存储目录不得由请求自报。
-- PLT先通过业务对象Provider验证对象存在、UPLOAD/REPLACE动作、项目范围、用途基数和允许策略，再创建`UploadSession`。初始化只返回短时上传凭据和会话ID，上传URL不得持久化为Artifact或Version身份。
-- 完成上传以`sessionId+服务端实际SHA-256`幂等。PLT通过INFRA公共技术契约读取已上传对象，服务端校验实际大小、摘要、扩展名/声明MIME/内容嗅探类型、文件策略和安全扫描；客户端摘要只用于比对，不作为权威摘要。
-- 只有安全扫描`PASSED`且所有校验通过，才注册INFRA技术文件回执并在PLT事务中创建FileVersion、创建或CAS切换FileReference、完成UploadSession、写幂等成功和审计。扫描`REJECTED/ERROR`、对象缺失或元数据冲突均不得产生可引用FileVersion。
-- 普通上传单文件不超过50MB；未知大小、超限、可执行白名单外内容、压缩包越界或类型不一致失败关闭。
+- PLT先通过业务对象Provider验证对象存在、UPLOAD/REPLACE动作、项目范围、用途基数和允许策略，再提交`UploadSession`。初始化只返回artifactId、sessionId和expiresAt，不返回直传凭据或存储定位；sessionId同时作为受信`storageOperationId`。
+- 完成上传以`sessionId+服务端实际SHA-256`幂等，通过后端`multipart/form-data`接收文件。复用Yudao/Spring现有MultipartFile解析和`MaxUploadSizeExceededException`处理，只把NPDMS应用级单文件配置从当前16MB前向调至50MB、请求上限调至容纳单文件及表单开销；不修改基础框架。PLT再以`50MB+1字节`有界读取，超过上限时在完整载入和调用INFRA前拒绝；不得调用`MultipartFile.getBytes()`读取未知大小对象。
+- PLT校验实际大小、摘要、扩展名/声明MIME/内容嗅探类型、文件策略和安全扫描；客户端摘要只用于比对，不作为权威摘要。只有安全扫描`PASSED`且所有校验通过，才把已验证的有限`byte[]`交给`FileStorageReceiptApi.store(...)`，并在PLT事务中创建FileVersion、创建或CAS切换FileReference、完成UploadSession、写幂等成功、审计和锁定文件事件Outbox。
+- 普通上传单文件不超过50MB；未知大小、超限、可执行白名单外内容、压缩包越界、类型不一致、扫描`REJECTED/ERROR`或技术存储冲突均不得产生可引用FileVersion。
 
 ### BR-FPLT001-003 换版、解绑、删除、失效和归档
 
@@ -86,23 +87,25 @@
 - 前端按钮不构成权限真值；服务端依次校验受信租户、功能权限、业务对象Provider、用途策略、版本状态和CAS。
 - 下载/预览生成短时、最小权限的访问授权；PLT持久化授权事实和不可逆token摘要，不持久化短时URL。对象存储桶保持私有，URL过期或撤销后重新授权。
 
-### BR-FPLT001-006 INFRA复用与候选例外
+### BR-FPLT001-006 INFRA复用与已批准例外
 
-- 保留现有`FileApi.createFile(...)`和`presignGetUrl(String,...)`的签名与行为；现有`infra_file`仍是技术存储记录且保持`@TenantIgnore`，不得被PLT查询为业务真值。
-- Feature Ready候选申请仅对`yudao-module-infra`公开`FileApi`做以下最小前向加法：
-  1. `createUploadTicket(FileStorageUploadTicketRequest)`返回`configId/storagePath/uploadUrl/expiresAt`；
-  2. `readStorageObject(FileStorageObjectQuery)`按`configId+storagePath`返回内容字节，限本Feature50MB完成校验；
-  3. `registerStorageObject(FileStorageRegisterCommand)`返回`infraFileId/configId/storagePath/name/mediaType/size`稳定技术回执；
-  4. `presignGetStorageObject(FileStorageObjectQuery, expirationSeconds)`按指定配置和path生成短时读取URL；
-  5. `deleteRegisteredStorageObject(infraFileId)`仅供PLT完成失败后的受控技术补偿。
-- 新DTO不包含tenantId、业务对象、Artifact/Version/Reference或业务权限；PLT不能传入永久公开ACL。`configId+storagePath`是技术定位，不是业务身份；URL只作为短时响应。
-- 上述例外未获Feature Ready独立批准前不得修改INFRA。若拒绝该例外，本Feature保持`NOT_READY`，不得退化为URL真值或另造存储客户端。
+- 按ADR-0035及独立裁决`NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`新增独立`FileStorageReceiptApi`；保留现有`FileApi`、`FileClient`、`infra_file`语义和全部既有调用行为，不修改`yudao-framework`。
+- `store(FileStorageStoreCommand)`只接收受信`storageOperationId`和已由PLT完成上限、摘要、媒体类型及扫描校验的有限内容，返回`storageOperationId/infraFileId/name/mediaType/sizeBytes`；`presignGet`按infraFileId生成短时URL；`delete`只按storageOperationId补偿无已提交FileVersion引用的技术对象。
+- 保留path仅由storageOperationId生成且跨配置一致。INFRA在store/delete前跨全部配置查询：0条时store才冻结当前master创建，1条按既有记录configId返回或删除，多条失败关闭并进入存储对账；禁止任选、重复创建或按当前master猜测。
+- 新DTO不包含tenantId、业务对象、Artifact/Version/Reference或业务权限；PLT只保存`infraFileId`技术定位，URL只作为短时响应。PLT不得自行实现对象存储客户端或直访INFRA内部。
 
-### BR-FPLT001-007 幂等、并发、补偿与审计
+### BR-FPLT001-007 文件事件
+
+- 封闭事件集合固定为`FileVersionCommitted`、`FileReferenceAttached`、`FileReferenceDetached`、`FileArchived`，不得静默删除或新增其他文件事件。
+- 业务事实与对应Outbox在同一PLT事务写入；事件使用稳定eventId和operationId，载荷不可变且不含正文、短时URL、token、storagePath或业务详情。
+- `FileVersionCommitted`最小载荷为`eventId/tenantId/artifactId/versionNo/sha256/scanStatus/occurredAt/operationId`；Attached/Detached最小载荷为`eventId/tenantId/referenceId/artifactId/versionNo/ownerContext/objectType/objectId/purposeCode/occurredAt/operationId`；`FileArchived`另携带`archiveBatchId/businessDecisionRef`。
+- Outbox失败重试不回滚已提交文件业务事实；消费方按eventId幂等，重复、乱序或重放不得产生重复业务事实。业务事务失败时没有成功事件。
+
+### BR-FPLT001-008 幂等、并发、补偿与审计
 
 - 初始化上传、完成上传、创建/换版引用、解绑、草稿删除、归档和失效均使用平台幂等记录；同键同规范载荷重放原结果，同键异载荷冲突。
 - Artifact新版本号通过Artifact行锁/版本CAS和唯一键分配；Reference换版通过`referenceVersion+If-Match`单胜；同会话只允许一个完成结果。
-- 对象已上传而PLT事务失败时，UploadSession保持可重试并引用同一技术对象；确认不再重试后由补偿按会话删除未注册/未引用对象。INFRA注册成功而PLT提交失败时按`infraFileId`补偿，不删除任何已有PLT Version使用的对象。
+- INFRA成功而PLT事务失败时，已提交UploadSession保留同一storageOperationId；重试通过跨配置保留path找回原技术回执。确认不再重试后，只有证明该operation没有已提交FileVersion引用才按storageOperationId补偿；不得删除任何已有PLT Version使用的对象。
 - 数据库已有Version而对象不可读时标记`UNAVAILABLE`并告警，不返回成功下载、不伪造空文件；恢复后只恢复可用状态，不改内容摘要。
 - 成功和拒绝审计记录actor、artifact/version/reference/session、业务Context/object/purpose、动作、前后状态/版本、摘要、operationId、失败码和时间；不记录文件正文、上传URL或访问token明文。
 
@@ -112,8 +115,8 @@
 
 | 接口 | 操作 | 契约 |
 |---|---|---|
-| `/files:init-upload` | `POST` | Header必填`Idempotency-Key`；输入业务对象、用途、引用键、文件策略元数据和可选expectedReferenceVersion；返回artifactId、sessionId、短时上传票据、expiresAt |
-| `/files/{artifactId}:complete-upload` | `POST` | Header必填`Idempotency-Key`；输入sessionId和可选客户端摘要；完成服务端校验、扫描、技术注册、Version及Reference提交 |
+| `/files:init-upload` | `POST` | Header必填`Idempotency-Key`；输入业务对象、用途、引用键、文件策略元数据和可选expectedReferenceVersion；返回artifactId、sessionId、expiresAt，不返回存储凭据 |
+| `/files/{artifactId}:complete-upload` | `POST multipart/form-data` | Header必填`Idempotency-Key`；输入sessionId、file和可选客户端摘要；50MB前置与有界读取、服务端校验、扫描、技术回执、Version、Reference及事件同一业务提交 |
 | `/files/{artifactId}` | `GET` | 返回Artifact元数据、可见当前引用摘要、artifactVersion和allowedActions；不返回storagePath或永久URL |
 | `/files/{artifactId}/versions` | `GET` | 按`versionNo,id`稳定游标返回授权可见版本及可用/失效状态 |
 | `/file-references` | `GET` | 按业务对象、用途和引用键查询；无范围返回空结果，不放宽到其他对象 |
@@ -127,19 +130,19 @@
 
 `pms-module-platform-api`新增稳定公共契约：
 
-- `FileArtifactApi.inspect(FileArtifactVersionQuery)`：按受信租户、artifactId、versionNo、业务对象和用途检查固定版本可引用/可访问事实；
-- `FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)`：锁定当前Version/Reference并比较`fileFactVersion/scopeVersion`，供业务写事务在提交前失败关闭；
-- `FileBusinessObjectPolicyProvider.inspect(FileBusinessObjectPolicyQuery)`：由业务Owner提供实时对象权限、用途基数、文件策略、引用可变性和scopeVersion；
+- `FileArtifactApi.inspect(FileArtifactVersionQuery)`：输入artifactId、versionNo、业务对象、用途和requiredAction；按受信租户检查固定版本可引用/可访问事实，返回由`artifactVersion/referenceVersion/availabilityVersion`组成的`fileFactVersion`及业务`scopeVersion`；
+- `FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)`：除inspect稳定键外必须输入`expectedFileFactVersion`和`expectedScopeVersion`。同一事务先调用业务Provider锁定重验scope，再依次锁定Artifact、精确FileVersion、精确FileReference；比较三段文件事实版本、引用目标/状态、版本可用性和scopeVersion，任一变化、缺失或越租户均返回版本冲突且无消费方成功副作用。
+- `FileBusinessObjectPolicyProvider.inspect(...)`提供读取事实；`lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery)`按expectedScopeVersion锁定业务Owner事实并保持到调用事务结束，返回用途策略、引用可变性和当前scopeVersion；
 - `FileSecurityScanProvider.scan(FileSecurityScanCommand)`：PLT内部技术Provider，返回`PASSED/REJECTED/ERROR`及非敏感扫描版本/原因码；未配置或异常时完成上传失败关闭。
 
-返回事实不包含文件正文、storagePath、INFRA URL或访问token。SOL提交只消费`artifactId+versionNo+fileFactVersion`，并在自身事务通过`lockAndRevalidate`重验；PLT不接收SOL审批结论。
+`artifactVersion`随Artifact生命周期变化递增，`referenceVersion`随绑定版本、引用状态或持久化范围事实变化递增，`availabilityVersion`随精确FileVersion的可用/失效/恢复变化递增；内容字段保持不可变。返回事实不包含文件正文、storagePath、INFRA URL或访问token。SOL冻结`artifactId+versionNo+fileFactVersion+scopeVersion`，并在自身事务通过`lockAndRevalidate`重验；PLT不接收SOL审批结论。
 
 ### 4.2 模块与依赖方向
 
 - 业务真值、应用服务、DO、Mapper和公共API归属`pms-module-platform`/`pms-module-platform-api`；业务消费者只依赖platform-api。
-- `pms-module-platform`仅通过公开`FileApi`调用`yudao-module-infra`技术存储能力，不访问INFRA Mapper、DO或Service；不得把`infra_file_id`暴露为业务文件ID。
+- `pms-module-platform`仅通过已批准的公开`FileStorageReceiptApi`调用`yudao-module-infra`技术存储能力，不访问INFRA Mapper、DO或Service；不得把`infra_file_id`暴露为业务文件ID。
 - SOL等业务模块实现`FileBusinessObjectPolicyProvider`并只读本域事实；Provider不回调PLT写命令，避免依赖环。
-- Feature Ready批准INFRA最小例外后，依赖方向为`PLATFORM -> INFRA public FileApi`；旧INFRA HTTP/API继续兼容。若未批准，Feature不得实施。
+- 依赖方向固定为`PLATFORM -> INFRA public FileStorageReceiptApi`；旧INFRA HTTP/API及`FileApi`继续兼容，例外不得扩大到FileClient或框架。
 
 ## 5. 数据与物理边界
 
@@ -171,10 +174,12 @@
 - `AC-FPLT001-008`：下载/预览实时重验功能权限和业务对象范围，只返回短时URL；无权访问拒绝并留审计，PLT表不持久化短时URL/token明文。
 - `AC-FPLT001-009`：对象已上传但元数据失败可按同session重试；最终补偿只删除无PLT引用对象，不影响已有版本；同键异载荷冲突。
 - `AC-FPLT001-010`：首个SOL消费者能上传并冻结`artifactId+versionNo`，项目范围或文件事实变化时PRE-01提交失败且无BPM/SOL成功副作用；PLT不推进PRE-01状态。
-- `AC-FPLT001-011`：INFRA候选加法保留旧FileApi方法和既有调用；PLT只持久化技术回执中的`infraFileId/configId/storagePath`，业务响应不暴露它们。
+- `AC-FPLT001-011`：已批准INFRA例外保留旧FileApi/FileClient方法和既有调用；PLT只持久化技术回执中的infraFileId，业务响应不暴露技术定位；master切换重试仍找回原回执，多记录失败关闭。
 - `AC-FPLT001-012`：全新MySQL从V1迁移至实施版本，验证六表、复合外键、唯一键、CAS、幂等、回滚和字典/权限种子；已执行迁移不前向修改。
 - `AC-FPLT001-013`：真实浏览器完成上传→服务端校验→引用→换版→历史查看→短时下载/预览，以及权限负向、失败重试、刷新持久和四档响应式；无当前功能控制台/失败HTTP异常。
 - `AC-FPLT001-014`：不宣称PLT-01、INT-12、业务审核、历史迁移、Deployment、SIT、UAT或Release完成。
+- `AC-FPLT001-015`：四类锁定文件事件与业务事实同事务进入Outbox，eventId重放不重复业务事实；业务失败无成功事件。
+- `AC-FPLT001-016`：SOL冻结fileFactVersion三段及scopeVersion；Artifact生命周期、Reference绑定/状态、Version可用性或业务范围任一变化后锁定重验失败且无SOL/BPM成功副作用。
 
 ## 8. 测试与证据
 
@@ -188,7 +193,7 @@
 | 文件身份、版本、引用和技术存储分层 | PASS |
 | 上传、访问、换版、失效、归档、权限、幂等与补偿 | PASS |
 | 公共业务API、物理契约和首个SOL用途 | PASS |
-| Yudao INFRA FileApi最小例外 | PENDING_FEATURE_READY_DECISION |
+| Yudao INFRA技术回执例外 | PASS（ADR-0035；`NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`） |
 | 独立Feature Ready裁决 | PENDING |
 
-结论：`IN_REVIEW / NOT_READY`。当前候选仅用于Feature Ready复审；不得修改INFRA、创建Technical Plan、同步NPDMS或开始Implementation。独立裁决必须明确批准或拒绝BR-FPLT001-006的最小API例外。
+结论：`IN_REVIEW / NOT_READY`。当前整改候选仅用于Feature Ready复审；不得创建Technical Plan、同步NPDMS或开始Implementation。Feature Ready仍须独立GO。

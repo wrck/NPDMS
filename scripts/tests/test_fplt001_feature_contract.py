@@ -20,10 +20,16 @@ class Fplt001FeatureContractTest(unittest.TestCase):
     def test_platform_owns_business_truth_and_infra_is_technical_only(self) -> None:
         owner = self.contract["owner"]
         self.assertEqual("PLATFORM", owner["context"])
-        storage = self.contract["interfaces"]["infraFileApiExceptionCandidate"]
+        storage = self.contract["interfaces"]["infraFileStorageReceiptApi"]
+        self.assertEqual(
+            "APPROVED_NPDMS_FPLT001_INFRA_EXCEPTION_20260826_01_R1",
+            storage["approvalStatus"],
+        )
         self.assertIn("URL_AS_FILE_IDENTITY", storage["forbidden"])
         self.assertIn("PLT_DIRECT_INFRA_MAPPER", storage["forbidden"])
-        self.assertIn("retain all existing FileApi methods", storage["compatibility"])
+        self.assertIn("retain all existing FileApi and FileClient methods", storage["compatibility"])
+        self.assertIn("search all configs", storage["methods"]["store"]["lookup"])
+        self.assertIn("50MB+1 bounded read", storage["uploadBoundary"])
 
     def test_artifact_version_and_reference_are_separate_facts(self) -> None:
         tables = self.contract["tables"]
@@ -50,13 +56,42 @@ class Fplt001FeatureContractTest(unittest.TestCase):
         self.assertIn("zero, multiple", provider["selectionPolicy"])
         self.assertIn("never writes or returns PRE-01 approval status", provider["solFirstConsumer"])
 
-    def test_storage_api_exception_remains_explicitly_unapproved(self) -> None:
-        candidate = self.contract["interfaces"]["infraFileApiExceptionCandidate"]
-        self.assertEqual("PENDING_FEATURE_READY_DECISION", candidate["approvalStatus"])
-        self.assertEqual("IN_REVIEW", self.contract["status"])
-        self.assertIn("PENDING_FEATURE_READY_DECISION", self.feature_spec)
+    def test_revalidation_freezes_file_and_scope_versions(self) -> None:
+        api = self.contract["interfaces"]["fileArtifactApi"]
+        self.assertIn("expectedFileFactVersion.artifactVersion", api["lockAndRevalidateInput"])
+        self.assertIn("expectedFileFactVersion.referenceVersion", api["lockAndRevalidateInput"])
+        self.assertIn("expectedFileFactVersion.availabilityVersion", api["lockAndRevalidateInput"])
+        self.assertIn("expectedScopeVersion", api["lockAndRevalidateInput"])
         self.assertEqual(
-            "PENDING_INDEPENDENT_REVIEW_WITH_INFRA_FILE_API_EXCEPTION_DECISION",
+            [
+                "BUSINESS_PROVIDER_LOCK_AND_REVALIDATE_EXPECTED_SCOPE_VERSION",
+                "PLT_FILE_ARTIFACT_FOR_UPDATE",
+                "PLT_EXACT_FILE_VERSION_FOR_UPDATE",
+                "PLT_EXACT_FILE_REFERENCE_FOR_UPDATE",
+            ],
+            api["lockOrder"],
+        )
+        self.assertIn("VERSION_CONFLICT", api["conflictPolicy"])
+
+    def test_locked_file_events_use_transactional_outbox(self) -> None:
+        facts = self.contract["platformFacts"]
+        self.assertEqual(
+            {
+                "FileVersionCommitted",
+                "FileReferenceAttached",
+                "FileReferenceDetached",
+                "FileArchived",
+            },
+            set(facts["outboxEvents"]),
+        )
+        self.assertIn("same PLT transaction", facts["outboxPolicy"])
+        self.assertIn("stable eventId", facts["outboxPolicy"])
+
+    def test_feature_remains_in_review_after_exception_approval(self) -> None:
+        self.assertEqual("IN_REVIEW", self.contract["status"])
+        self.assertIn("NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1", self.feature_spec)
+        self.assertEqual(
+            "PENDING_INDEPENDENT_REVIEW_AFTER_NPDMS_FPLT001_FEATURE_READY_20260826_01_REMEDIATION",
             self.contract["featureReadyDecision"],
         )
 

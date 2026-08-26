@@ -1,11 +1,11 @@
 # ADR-0035：文件技术存储回执适配例外
 
-> 状态：`IN_REVIEW`
+> 状态：`ACCEPTED`
 > 日期：2026-08-26
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > Requirement：`PLT-02（V1/P0，FR-PLT-008）`
 > 关联Feature：`F-PLT-001`
-> 待裁决编号：`NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01`
+> 批准裁决：`GO / NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`
 
 ## 背景
 
@@ -80,7 +80,7 @@ INFRA不依赖PLT，不理解租户文件业务、用途、审批或业务范围
 
 ## 后果与门禁
 
-- 本ADR在独立批准前保持`IN_REVIEW`，F-PLT-001不得据此修改INFRA、回写Feature Ready或进入Technical Plan。
-- 批准后，F-PLT-001 Feature Spec和物理契约必须引用本ADR，删除原`FileApi`前向加法及直传后回读方案，明确后端有界上传、技术回执、短时访问和补偿。
+- 本ADR已由`NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`独立批准；该GO只允许F-PLT-001引用本例外继续Feature Ready，不代表Feature Ready或Implementation通过。
+- F-PLT-001 Feature Spec和物理契约必须引用本ADR，删除原`FileApi`前向加法及直传后回读方案，明确后端有界上传、技术回执、短时访问和补偿。
 - Technical Plan必须验证：现有`FileApi`兼容不变；50MB以内正向上传；超过上限在调用INFRA前拒绝；store成功但PLT回滚时仅补偿无引用对象；首次store成功后切换master，重试仍返回原configId回执且补偿仍删除原对象；同一保留path出现多条记录时store/delete均失败关闭并进入对账；短时访问不持久化URL。
 - 该例外不批准修改`infra_file`表结构、增加跨模块外键、Deployment、SIT、UAT或Release。
