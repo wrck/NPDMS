@@ -41,6 +41,7 @@ import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -87,6 +88,7 @@ public class PreparationItemApplicationService {
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
     private final ProjectOrganizationFactApi organizationFactApi;
+    private final AdminUserApi adminUserApi;
     private final OrganizationScopeApi organizationScopeApi;
     private final FileArtifactApi fileArtifactApi;
     private final OperationAuditApi operationAuditApi;
@@ -143,6 +145,7 @@ public class PreparationItemApplicationService {
             ProjectOrganizationFact organization = organizationFactApi.lockAndRevalidate(
                     new ProjectOrganizationFactRevalidationQuery(located.getProjectId(),
                             command.expectedProjectVersion()));
+            adminUserApi.validateUser(command.assigneeUserId());
             if (!organizationScopeApi.hasScope(command.assigneeUserId(),
                     organization.companyId(), organization.departmentId())) {
                 throw exception(PREPARATION_PROJECT_FACT_INVALID);

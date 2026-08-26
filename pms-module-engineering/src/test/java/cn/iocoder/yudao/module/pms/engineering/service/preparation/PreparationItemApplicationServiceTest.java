@@ -21,6 +21,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,6 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +53,7 @@ class PreparationItemApplicationServiceTest {
     @Mock private ProjectScopeApi projectScopeApi;
     @Mock private ProjectParticipantFactApi participantFactApi;
     @Mock private ProjectOrganizationFactApi organizationFactApi;
+    @Mock private AdminUserApi adminUserApi;
     @Mock private OrganizationScopeApi organizationScopeApi;
     @Mock private FileArtifactApi fileArtifactApi;
     @Mock private OperationAuditApi operationAuditApi;
@@ -85,6 +89,31 @@ class PreparationItemApplicationServiceTest {
         assertEquals(2, response.getPreparationVersion());
         verify(organizationScopeApi).hasScope(200L, 20L, 30L);
         verify(operationAuditApi).record(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void disabledCandidateIsRejectedBeforeAnyBusinessWrite() {
+        useTransaction();
+        when(preparationMapper.selectById(any())).thenReturn(preparation());
+        when(permissionApi.hasAnyPermissions(100L, PreparationInitializationService.PERMISSION_MANAGE))
+                .thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        when(organizationFactApi.lockAndRevalidate(any()))
+                .thenReturn(new ProjectOrganizationFact(10L, 3, 20L, 30L, "D30"));
+        doThrow(new IllegalArgumentException("disabled")).when(adminUserApi).validateUser(200L);
+
+        assertThrows(RuntimeException.class,
+                () -> service.patch(command(Set.of("assignee"), 200L, null, null), actor(100L)));
+
+        verify(adminUserApi).validateUser(200L);
+        verify(organizationScopeApi, never()).hasScope(any(), any(), any());
+        verify(itemMapper, never()).updateDraftIfMatch(any());
+        verify(formMapper, never()).updateDraftIfMatch(any());
+        verify(preparationMapper, never()).invalidateReadinessIfMatch(any());
+        verify(operationAuditApi).record(any(), any(), any(), any(), any(), any(),
+                org.mockito.ArgumentMatchers.eq("REJECTED"), any());
     }
 
     @Test
