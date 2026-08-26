@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskTreeQueryReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
@@ -47,6 +48,7 @@ class ProjectTaskQueryServiceTest {
     @Mock ProjectTaskAssignmentMapper assignmentMapper;
     @Mock ProjectTaskExecutionContractMapper contractMapper;
     @Mock TaskBindingHostRegistry bindingRegistry;
+    @Mock PermissionCommonApi permissionApi;
 
     private ProjectTaskQueryService service;
 
@@ -54,7 +56,7 @@ class ProjectTaskQueryServiceTest {
     void setUp() {
         service = new ProjectTaskQueryService(projectMapper, projectTreeVersionMapper,
                 projectTreeScopeService, memberMapper, stageMapper, taskMapper, assignmentMapper,
-                contractMapper, bindingRegistry);
+                contractMapper, bindingRegistry, permissionApi);
     }
 
     @Test
@@ -151,6 +153,32 @@ class ProjectTaskQueryServiceTest {
                 () -> service.getTask(992L, new TaskWorkbenchActor(1L, 9L, "cross-tenant")));
     }
 
+    @Test
+    void shouldExposeOnlyServerApprovedWorkspaceAndWorkbenchActions() {
+        stubProjectScope(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:create")).thenReturn(true);
+
+        assertEquals(Set.of("CREATE"), service.getWorkspace(100L, actor()).getAllowedActions());
+
+        ProjectTaskInstanceDO task = task(11L, null, 0);
+        when(taskMapper.selectTask(any())).thenReturn(task);
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of());
+        ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L);
+        contract.setTenantId(0L);
+        contract.setProjectTaskId(11L);
+        contract.setWorkBindingTypeCode("TASK_NATIVE");
+        contract.setContractVersion(1);
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(
+                new TaskBindingInspection("TASK_NATIVE", Set.of("START"), "0:1:0", null));
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:update")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:move")).thenReturn(true);
+
+        assertEquals(Set.of("START", "UPDATE", "MOVE"),
+                service.getWorkbench(11L, actor()).getAllowedActions());
+    }
+
     private void stubProjectScope(boolean manager) {
         stubProjectRecord();
         when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(
@@ -171,6 +199,7 @@ class ProjectTaskQueryServiceTest {
         project.setRootId(100L);
         project.setTenantId(0L);
         project.setTaskTreeVersion(3L);
+        project.setLifecycleStatus("ACTIVE");
         when(projectMapper.selectById(100L)).thenReturn(project);
         ProjectTreeVersionDO version = new ProjectTreeVersionDO();
         version.setTreeVersion(7L);

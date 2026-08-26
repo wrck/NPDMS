@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskDetailRespVO;
@@ -9,6 +10,7 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.Pro
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskWorkbenchRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectWorkspaceRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
@@ -34,6 +36,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +66,7 @@ public class ProjectTaskQueryService {
     private final ProjectTaskAssignmentMapper assignmentMapper;
     private final ProjectTaskExecutionContractMapper contractMapper;
     private final TaskBindingHostRegistry bindingRegistry;
+    private final PermissionCommonApi permissionApi;
 
     public ProjectWorkspaceRespVO getWorkspace(Long projectId, TaskWorkbenchActor actor) {
         TaskAccess access = resolveAccess(projectId, actor, true);
@@ -78,7 +82,7 @@ public class ProjectTaskQueryService {
         response.setStageTaskNavigation(navigation);
         response.setTaskTreeVersion(access.project().getTaskTreeVersion());
         response.setProjectionWatermark(watermark(access.project()));
-        response.setAllowedActions(Set.of());
+        response.setAllowedActions(workspaceAllowedActions(access, actor));
         return response;
     }
 
@@ -136,7 +140,7 @@ public class ProjectTaskQueryService {
         response.setContractVersion(contract.getContractVersion());
         response.setBindingType(contract.getWorkBindingTypeCode());
         response.setTrustedTargetRef(trustedTargetRef(contract));
-        response.setAllowedActions(inspection.allowedActions());
+        response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor));
         response.setFactVersion(inspection.factVersion());
         response.setRecoverableError(inspection.recoverableError());
         return response;
@@ -161,15 +165,18 @@ public class ProjectTaskQueryService {
             if (requireProject) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             return null;
         }
-        boolean fullProjectAccess = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
-                        actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
-                .anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
-                        && MANAGER_ROLES.contains(item.getMemberRole()));
+        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
+                actor.tenantId(), actor.actorId(), LocalDateTime.now()));
+        boolean fullProjectAccess = memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
+                && MANAGER_ROLES.contains(item.getMemberRole()));
+        boolean projectManager = memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
+                && "PROJECT_MANAGER".equals(item.getMemberRole()));
         TaskVisibilityQuery visibilityQuery = new TaskVisibilityQuery(
                 actor.tenantId(), projectId, actor.actorId(), fullProjectAccess);
         Set<Long> full = fullProjectAccess
                 ? Set.of() : Set.copyOf(taskMapper.selectFullTaskIds(visibilityQuery));
-        return new TaskAccess(project, visibilityQuery, fullProjectAccess, full);
+        return new TaskAccess(project, visibilityQuery, fullProjectAccess, full, projectManager,
+                treeVersion.getTreeVersion());
     }
 
     private TaskAndAccess requireFullTask(Long taskId, TaskWorkbenchActor actor) {
@@ -272,6 +279,34 @@ public class ProjectTaskQueryService {
                 + contract.getTargetObjectKey();
     }
 
+    private Set<String> workspaceAllowedActions(TaskAccess access, TaskWorkbenchActor actor) {
+        if (!activeProjectManagerWithManageScope(access, actor)
+                || !hasPermission(actor.actorId(), "pms:project-task:create")) return Set.of();
+        return Set.of("CREATE");
+    }
+
+    private Set<String> workbenchAllowedActions(TaskAndAccess value, Set<String> bindingActions,
+                                                TaskWorkbenchActor actor) {
+        Set<String> actions = new HashSet<>(bindingActions);
+        if (!activeProjectManagerWithManageScope(value.access(), actor)
+                || Set.of("DONE", "CLOSED").contains(value.task().getStatus())) return Set.copyOf(actions);
+        if (hasPermission(actor.actorId(), "pms:project-task:update")) actions.add("UPDATE");
+        if (hasPermission(actor.actorId(), "pms:project-task:move")) actions.add("MOVE");
+        return Set.copyOf(actions);
+    }
+
+    private boolean activeProjectManagerWithManageScope(TaskAccess access, TaskWorkbenchActor actor) {
+        if (!access.projectManager() || !"ACTIVE".equals(access.project().getLifecycleStatus())) return false;
+        ProjectTreeScopeService.ProjectTreeScope scope = projectTreeScopeService.resolve(new ProjectScopeQuery(
+                actor.tenantId(), actor.actorId(), access.project().getId(), ProjectScopeApi.ACTION_MANAGE,
+                access.projectTreeVersion()));
+        return scope.visibility(access.project().getId()) == ProjectTreeScopeService.Visibility.FULL;
+    }
+
+    private boolean hasPermission(Long actorId, String permission) {
+        return permissionApi.hasAnyPermissions(actorId, permission);
+    }
+
     private ProjectTaskTreeQuery.Mode parseMode(String value) {
         try {
             return ProjectTaskTreeQuery.Mode.valueOf(value == null ? "DIRECT_CHILDREN" : value.trim());
@@ -324,6 +359,7 @@ public class ProjectTaskQueryService {
 
     private record Cursor(Integer sortOrder, Long taskId) {}
     private record TaskAccess(ProjectMasterDO project, TaskVisibilityQuery visibilityQuery,
-                              boolean fullProjectAccess, Set<Long> fullTaskIds) {}
+                              boolean fullProjectAccess, Set<Long> fullTaskIds, boolean projectManager,
+                              long projectTreeVersion) {}
     private record TaskAndAccess(ProjectTaskInstanceDO task, TaskAccess access) {}
 }

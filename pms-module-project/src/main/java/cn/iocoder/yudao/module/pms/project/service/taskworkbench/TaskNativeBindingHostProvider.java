@@ -43,7 +43,9 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
             "START", "pms:project-task:execute",
             "SUBMIT", "pms:project-task:execute",
             "COMPLETE", "pms:project-task:complete",
-            "CANCEL", "pms:project-task:complete");
+            "CANCEL", "pms:project-task:complete",
+            "UPDATE_PROGRESS", "pms:project-task:execute");
+    private static final Set<String> TERMINAL_STATUSES = Set.of("DONE", "CLOSED");
 
     private final ProjectTaskRuntimeMapper taskMapper;
     private final ProjectTaskExecutionContractMapper contractMapper;
@@ -88,6 +90,18 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
                 .filter(item -> hasPermission(query.actorId(), item.getActionCode()))
                 .map(TaskStateTransitionDO::getActionCode)
                 .forEach(allowedActions::add);
+        boolean knownNonTerminal = !TERMINAL_STATUSES.contains(task.getStatus()) && transitions.stream()
+                .anyMatch(item -> Objects.equals(item.getFromStatusCode(), task.getStatus())
+                        || Objects.equals(item.getToStatusCode(), task.getStatus()));
+        if (knownNonTerminal && roles.contains("CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_SERVICE_MANAGER_FOR_CROSS_REGION")
+                && hasScope(task, query, ProjectScopeApi.ACTION_MANAGE) && hasPermission(query.actorId(), "ASSIGN")) {
+            allowedActions.add("ASSIGN");
+        }
+        if ("IN_PROGRESS".equals(task.getStatus()) && roles.contains("CURRENT_EFFECTIVE_ASSIGNEE")
+                && hasScope(task, query, ProjectScopeApi.ACTION_EDIT)
+                && hasPermission(query.actorId(), "UPDATE_PROGRESS")) {
+            allowedActions.add("UPDATE_PROGRESS");
+        }
         String factVersion = task.getVersion() + ":" + contract.getContractVersion() + ":"
                 + (assignment == null ? 0 : assignment.getVersion());
         return new TaskBindingInspection(BINDING_TYPE, Set.copyOf(allowedActions), factVersion, null);
@@ -117,13 +131,18 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
     }
 
     private boolean hasManageScope(ProjectTaskInstanceDO task, TaskBindingInspectionQuery query) {
+        return hasScope(task, query, ProjectScopeApi.ACTION_MANAGE);
+    }
+
+    private boolean hasScope(ProjectTaskInstanceDO task, TaskBindingInspectionQuery query, String action) {
         ProjectMasterDO project = projectMapper.selectById(task.getProjectId());
-        if (project == null || !Objects.equals(project.getTenantId(), query.tenantId())) return false;
+        if (project == null || !Objects.equals(project.getTenantId(), query.tenantId())
+                || !"ACTIVE".equals(project.getLifecycleStatus())) return false;
         long rootId = project.getRootId() == null ? project.getId() : project.getRootId();
         var version = projectTreeVersionMapper.selectLatestActive(rootId);
         if (version == null) return false;
         var scope = projectTreeScopeService.resolve(new ProjectScopeQuery(query.tenantId(), query.actorId(),
-                task.getProjectId(), ProjectScopeApi.ACTION_MANAGE, version.getTreeVersion()));
+                task.getProjectId(), action, version.getTreeVersion()));
         return scope.visibility(task.getProjectId()) == ProjectTreeScopeService.Visibility.FULL;
     }
 

@@ -3,8 +3,10 @@ package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateTransitionDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
@@ -20,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -43,13 +46,14 @@ class TaskNativeBindingHostProviderTest {
 
     private TaskNativeBindingHostProvider provider;
     private ProjectTaskExecutionContractDO contract;
+    private ProjectTaskInstanceDO task;
 
     @BeforeEach
     void setUp() {
         provider = new TaskNativeBindingHostProvider(taskMapper, contractMapper, assignmentMapper,
                 memberMapper, stateMachineMapper, permissionApi, projectMapper,
                 projectTreeVersionMapper, projectTreeScopeService);
-        ProjectTaskInstanceDO task = new ProjectTaskInstanceDO();
+        task = new ProjectTaskInstanceDO();
         task.setId(11L);
         task.setTenantId(0L);
         task.setProjectId(100L);
@@ -96,5 +100,42 @@ class TaskNativeBindingHostProviderTest {
 
         assertEquals("BINDING_CONTRACT_INVALID", result.recoverableError());
         assertTrue(result.allowedActions().isEmpty());
+    }
+
+    @Test
+    void shouldExposeAssignmentAndProgressOnlyWithinTrustedScope() {
+        task.setStatus("IN_PROGRESS");
+        ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
+        assignment.setProjectTaskId(11L);
+        assignment.setAssigneeUserId(9L);
+        assignment.setVersion(1);
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));
+        var membership = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
+        membership.setProjectId(100L);
+        membership.setMemberRole("PROJECT_MANAGER");
+        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(membership));
+        TaskStateTransitionDO transition = new TaskStateTransitionDO();
+        transition.setFromStatusCode("IN_PROGRESS");
+        transition.setToStatusCode("PENDING_ACCEPT");
+        transition.setActionCode("SUBMIT");
+        transition.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
+        when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(transition));
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:assign")).thenReturn(true);
+        ProjectMasterDO project = new ProjectMasterDO();
+        project.setId(100L);
+        project.setRootId(100L);
+        project.setTenantId(0L);
+        project.setLifecycleStatus("ACTIVE");
+        when(projectMapper.selectById(100L)).thenReturn(project);
+        ProjectTreeVersionDO version = new ProjectTreeVersionDO();
+        version.setTreeVersion(7L);
+        when(projectTreeVersionMapper.selectLatestActive(100L)).thenReturn(version);
+        when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(
+                100L, 7L, Set.of(100L), Set.of(), Set.of()));
+
+        TaskBindingInspection result = provider.inspect(new TaskBindingInspectionQuery(0L, 11L, 9L, "test"));
+
+        assertEquals(Set.of("SUBMIT", "ASSIGN", "UPDATE_PROGRESS"), result.allowedActions());
     }
 }
