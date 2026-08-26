@@ -29,6 +29,7 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
  * - authorization:  1-011-021-000 (V2 FR-ENG-010)
  * - doc-template:   1-011-022-000 (V36 结构化文档模板)
  * - construction-plan: 1-011-023-000 (F-SOL-001 PRE-01)
+ * - preparation:      1-011-024-000 (F-SOL-002 PRE-02)
  */
 public interface ErrorCodeConstants {
 
@@ -203,5 +204,21 @@ public interface ErrorCodeConstants {
     ErrorCode DURATION_CHANGE_REASON_CONFIG_INVALID = new ErrorCode(1_011_023_009, "工期变更原因或客户依据配置无效");
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE = new ErrorCode(1_011_023_010, "客户依据文件事实暂不可用");
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_FORBIDDEN = new ErrorCode(1_011_023_011, "无权使用客户依据文件");
+
+    // ========== 工勘准备 preparation 1-011-024-000 ==========
+    ErrorCode PREPARATION_NOT_EXISTS = new ErrorCode(1_011_024_000, "工勘准备不存在");
+    ErrorCode PREPARATION_WORK_BINDING_NOT_AVAILABLE = new ErrorCode(1_011_024_001, "工勘准备绑定不存在");
+    ErrorCode PREPARATION_WORK_BINDING_AMBIGUOUS = new ErrorCode(1_011_024_002, "工勘准备绑定不唯一");
+    ErrorCode PREPARATION_FIXED_FORM_CATALOG_INVALID = new ErrorCode(1_011_024_003, "工勘固定表单目录无效");
+    ErrorCode PREPARATION_STATUS_INVALID = new ErrorCode(1_011_024_004, "工勘准备当前状态不允许该操作");
+    ErrorCode PREPARATION_VERSION_NOT_MATCH = new ErrorCode(1_011_024_005, "工勘准备版本已变更，请刷新后重试");
+    ErrorCode PREPARATION_ASSIGNEE_FORBIDDEN = new ErrorCode(1_011_024_006, "当前用户不是该工勘项负责人");
+    ErrorCode PREPARATION_FILE_FACT_INVALID = new ErrorCode(1_011_024_007, "工勘证据文件事实无效");
+    ErrorCode PREPARATION_SOURCE_UNAVAILABLE = new ErrorCode(1_011_024_008, "工勘权威来源暂不可用");
+    ErrorCode PREPARATION_WAIVER_INVALID = new ErrorCode(1_011_024_009, "工勘项豁免事实无效");
+    ErrorCode PREPARATION_READINESS_NOT_READY = new ErrorCode(1_011_024_010, "工勘准备尚未达到实施就绪");
+    ErrorCode PREPARATION_READINESS_VERSION_CONFLICT = new ErrorCode(1_011_024_011, "工勘就绪事实已变更，请刷新后重试");
+    ErrorCode PREPARATION_COMMAND_INVALID = new ErrorCode(1_011_024_012, "工勘准备命令参数无效");
+    ErrorCode PREPARATION_PROJECT_FACT_INVALID = new ErrorCode(1_011_024_013, "工勘准备项目资格或主体事实无效");
 
 }
