@@ -63,7 +63,7 @@ V92按物理契约创建`plt_file_artifact/version/reference/upload_session/acce
 
 - [ ] **Step 2: 写确定性种子和应用上传配置**
 
-V93幂等写文件类别、敏感级别、用途策略和六项权限菜单，不自动授予新角色；按锁定规格提供覆盖首个SOL用途及精确/部分限定、优先级让位、无匹配、停用不参与的示例策略。将`application.yaml`单文件上限改为50MB、请求上限改为52MB，不修改Spring/Yudao解析链。
+V93幂等写文件类别、敏感级别、用途策略和六项权限菜单，不自动授予新角色；按锁定规格提供覆盖首个SOL用途及精确/部分限定、优先级让位、无匹配、停用不参与的示例策略。V93同时按既有`infra_job`种子模式幂等注册唯一启用的`fileOutboxDeliveryJob`，稳定handlerName为`fileOutboxDeliveryJob`、cron为`0/30 * * * * ?`，不新增第二套调度机制。将`application.yaml`单文件上限改为50MB、请求上限改为52MB，不修改Spring/Yudao解析链。
 
 - [ ] **Step 3: 建立错误码与Feature工作单**
 
@@ -71,7 +71,7 @@ V93幂等写文件类别、敏感级别、用途策略和六项权限菜单，�
 
 - [ ] **Step 4: 实施后验证并提交**
 
-执行空库V1→V93、六表字段/索引/复合外键、精确Reference唯一键、50MB配置和种子幂等验证；确认V1～V91未变。运行迁移契约测试、platform编译、`git diff --check`。
+执行空库V1→V93、六表字段/索引/复合外键、精确Reference唯一键、50MB配置和种子幂等验证；断言`infra_job`中该handler恰一、status=1且Quartz可解析cron。Task 5创建Job Bean后再完成handler解析和自动触发验收。确认V1～V91未变。运行迁移契约测试、platform编译、`git diff --check`。
 
 Expected: 物理契约与迁移PASS。提交：`feat(platform): 建立统一文件物理基础`
 
@@ -248,11 +248,11 @@ INFRA成功而PLT回滚时保留Session与同一operationId供重试找回回执
 
 - [ ] **Step 5: 建立四类文件事件生产投递链**
 
-把四类锁定文件事件加入`PlatformOutboxDeliveryApiImpl.SUPPORTED_EVENT_TYPES`，不增加第五类。`FileOutboxDeliveryJob`沿用现有`JobHandler + @TenantJob + PlatformOutboxDeliveryApi`机制，按封闭集合领取到期事件，逐类反序列化并核验eventId/tenantId/最小载荷后发布对应本地不可变Message；发布成功才`markDelivered`，异常按现有指数退避调用`scheduleRetry`。Task 8只生产Detached/Archived并复用本链，不另建第二套投递器；本Feature不臆造通知、收件人或业务消费者。
+把四类锁定文件事件加入`PlatformOutboxDeliveryApiImpl.SUPPORTED_EVENT_TYPES`，不增加第五类。`FileOutboxDeliveryJob`沿用现有`JobHandler + @TenantJob + PlatformOutboxDeliveryApi`机制，并与Task 1 V93注册的稳定handlerName完全一致；Quartz每30秒触发后按封闭集合领取到期事件，逐类反序列化并核验eventId/tenantId/最小载荷，再发布对应本地不可变Message。发布成功才`markDelivered`，异常按现有指数退避调用`scheduleRetry`。Task 8只生产Detached/Archived并复用本链，不另建第二套投递器；本Feature不臆造通知、收件人或业务消费者。
 
 - [ ] **Step 6: 实施后验证并提交**
 
-真实MySQL+存储+扫描覆盖首次上传、同键重放、异载荷冲突、并发完成单胜、两个事件恰一、审计恰一、各故障点回滚/重试、master切换找回同一回执，以及inspect/revalidate精确槽位。事件验证至少包含发布失败→到期重领→使用同一eventId成功、业务文件事实不重复、旧单事件构造/领取/投递兼容和未知第五类仍被拒绝。
+真实MySQL+存储+扫描覆盖首次上传、同键重放、异载荷冲突、并发完成单胜、两个事件恰一、审计恰一、各故障点回滚/重试、master切换找回同一回执，以及inspect/revalidate精确槽位。事件验证至少包含空库迁移后Quartz无需人工调用即触发Job、发布失败→到期重领→使用同一eventId成功、业务文件事实不重复、旧单事件构造/领取/投递兼容和未知第五类仍被拒绝。
 
 Expected: 首次上传至可冻结引用主线PASS。提交：`feat(platform): 提交文件版本与精确引用`
 
@@ -399,7 +399,7 @@ Expected: 共享UI和工期接入PASS。提交：`feat(ui): 接入统一文件�
 
 - [ ] **Step 2: PLATFORM业务全链验证**
 
-覆盖初始化→完成→Version/Reference→inspect/revalidate→访问，以及换版、detach、重绑、失效/恢复、归档；验证同租户/跨租户、权限负向、scope/CAS并发、幂等重放/冲突、审计，以及四类Outbox经`FileOutboxDeliveryJob`领取、发布、成功标记、失败退避、到期重领和同一eventId幂等；确认业务事实不因投递重试重复。
+覆盖初始化→完成→Version/Reference→inspect/revalidate→访问，以及换版、detach、重绑、失效/恢复、归档；验证同租户/跨租户、权限负向、scope/CAS并发、幂等重放/冲突、审计，以及V93启用Job由Quartz自动触发后四类Outbox经`FileOutboxDeliveryJob`领取、发布、成功标记、失败退避、到期重领和同一eventId幂等；确认业务事实不因投递重试重复。
 
 - [ ] **Step 3: SOL正向浏览器闭环**
 
