@@ -255,6 +255,15 @@ yudao:
   tencent-lbs-key: ${NPDMS_TENCENT_LBS_KEY:disabled} # QQ 地图的密钥
 
 pms:
+  file:
+    upload:
+      session-ttl: PT15M
+    scan:
+      clamav:
+        host: ${NPDMS_CLAMAV_HOST:127.0.0.1}
+        port: ${NPDMS_CLAMAV_PORT:13310}
+        connect-timeout-ms: 3000
+        read-timeout-ms: 30000
   integration:
     collection-guard:
       base-url: ${NPDMS_COLLECTION_GUARD_BASE_URL:}

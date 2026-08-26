@@ -5,14 +5,14 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="row.id">
         INSERT INTO plt_file_upload_session
-            (mode_code, owner_context, object_type, object_id, purpose_code, reference_key,
+            (id, mode_code, owner_context, object_type, object_id, purpose_code, reference_key,
              file_name, category_code, declared_size_bytes, declared_media_type,
              storage_operation_id, status_code, scope_version, expires_at, version,
              artifact_id, reference_id, expected_reference_version, client_sha256, actual_sha256,
              completed_file_version_no, registered_infra_file_id, failure_code, failure_detail,
              completed_at, creator, create_time, updater, update_time, tenant_id)
         VALUES
-            (#{row.modeCode}, #{row.ownerContext}, #{row.objectType}, #{row.objectId},
+            (#{row.id}, #{row.modeCode}, #{row.ownerContext}, #{row.objectType}, #{row.objectId},
              #{row.purposeCode}, #{row.referenceKey}, #{row.fileName}, #{row.categoryCode},
              #{row.declaredSizeBytes}, #{row.declaredMediaType}, #{row.storageOperationId},
              #{row.statusCode}, #{row.scopeVersion}, #{row.expiresAt}, #{row.version},
