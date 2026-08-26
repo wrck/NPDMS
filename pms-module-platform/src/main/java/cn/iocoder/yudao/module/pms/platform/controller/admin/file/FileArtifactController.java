@@ -7,6 +7,14 @@ import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileUploadInitReqVO;
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileUploadInitRespVO;
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileUploadCompleteRespVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileAccessTicketReqVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileAccessTicketRespVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileArtifactRespVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileCursorPageRespVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileReferenceRespVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileVersionRespVO;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileAccessTicketService;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileQueryService;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadCompleteCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitializeCommand;
@@ -20,6 +28,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,15 +48,17 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 
 @Tag(name = "管理后台 - PMS 统一文件")
 @RestController
-@RequestMapping("/api/v1/pms/files")
+@RequestMapping("/api/v1/pms")
 @Validated
 @RequiredArgsConstructor
 public class FileArtifactController {
 
     private final FileUploadApplicationService uploadService;
+    private final FileQueryService queryService;
+    private final FileAccessTicketService accessTicketService;
     private final Environment environment;
 
-    @PostMapping(":init-upload")
+    @PostMapping("/files:init-upload")
     @Operation(summary = "初始化受控文件上传")
     @PreAuthorize("@ss.hasPermission('pms:file:upload')")
     public CommonResult<FileUploadInitRespVO> initializeUpload(
@@ -66,7 +77,7 @@ public class FileArtifactController {
         });
     }
 
-    @PostMapping(value = "/{artifactId}:complete-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/files/{artifactId}:complete-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "完成受控文件上传")
     @PreAuthorize("@ss.hasPermission('pms:file:upload')")
     public CommonResult<FileUploadCompleteRespVO> completeUpload(
@@ -82,6 +93,76 @@ public class FileArtifactController {
             return success(new FileUploadCompleteRespVO(result.artifactId(), result.versionNo(),
                     result.referenceId(), result.referenceKey(), result.sha256()));
         });
+    }
+
+    @GetMapping("/files/{artifactId}")
+    @Operation(summary = "查询文件业务身份")
+    @PreAuthorize("@ss.hasPermission('pms:file:query')")
+    public CommonResult<FileArtifactRespVO> getArtifact(
+            @PathVariable Long artifactId,
+            @RequestParam @NotBlank @Size(max = 32) String ownerContext,
+            @RequestParam @NotBlank @Size(max = 64) String objectType,
+            @RequestParam @NotBlank @Size(max = 128) String objectId,
+            @RequestParam @NotBlank @Size(max = 64) String purposeCode,
+            @RequestParam @NotBlank @Size(max = 128) String referenceKey) {
+        return withTrustedTenant(() -> success(queryService.getArtifact(
+                artifactQuery(artifactId, ownerContext, objectType, objectId, purposeCode, referenceKey), actor())));
+    }
+
+    @GetMapping("/files/{artifactId}/versions")
+    @Operation(summary = "查询文件版本历史")
+    @PreAuthorize("@ss.hasPermission('pms:file:query')")
+    public CommonResult<FileCursorPageRespVO<FileVersionRespVO>> getVersions(
+            @PathVariable Long artifactId,
+            @RequestParam @NotBlank @Size(max = 32) String ownerContext,
+            @RequestParam @NotBlank @Size(max = 64) String objectType,
+            @RequestParam @NotBlank @Size(max = 128) String objectId,
+            @RequestParam @NotBlank @Size(max = 64) String purposeCode,
+            @RequestParam @NotBlank @Size(max = 128) String referenceKey,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer pageSize) {
+        return withTrustedTenant(() -> success(queryService.getVersions(
+                artifactQuery(artifactId, ownerContext, objectType, objectId, purposeCode, referenceKey),
+                cursor, pageSize, actor())));
+    }
+
+    @GetMapping("/file-references")
+    @Operation(summary = "按完整业务稳定键查询文件引用")
+    @PreAuthorize("@ss.hasPermission('pms:file:query')")
+    public CommonResult<FileReferenceRespVO> getReference(
+            @RequestParam Long artifactId,
+            @RequestParam @NotBlank @Size(max = 32) String ownerContext,
+            @RequestParam @NotBlank @Size(max = 64) String objectType,
+            @RequestParam @NotBlank @Size(max = 128) String objectId,
+            @RequestParam @NotBlank @Size(max = 64) String purposeCode,
+            @RequestParam @NotBlank @Size(max = 128) String referenceKey) {
+        return withTrustedTenant(() -> success(queryService.getReference(
+                artifactQuery(artifactId, ownerContext, objectType, objectId, purposeCode, referenceKey), actor())));
+    }
+
+    @PostMapping("/files/{artifactId}/access-tickets")
+    @Operation(summary = "创建文件短时下载或预览授权")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:file:download', 'pms:file:preview')")
+    public CommonResult<FileAccessTicketRespVO> createAccessTicket(
+            @PathVariable Long artifactId,
+            @Valid @RequestBody FileAccessTicketReqVO request) {
+        return withTrustedTenant(() -> success(accessTicketService.create(
+                new FileAccessTicketService.AccessCommand(TenantContextHolder.getRequiredTenantId(),
+                        SecurityFrameworkUtils.getLoginUserId(), artifactId, request.getVersionNo(),
+                        request.getOperationCode(), request.getOwnerContext(), request.getObjectType(),
+                        request.getObjectId(), request.getPurposeCode(), request.getReferenceKey()))));
+    }
+
+    private FileQueryService.ArtifactQuery artifactQuery(Long artifactId, String ownerContext,
+                                                         String objectType, String objectId,
+                                                         String purposeCode, String referenceKey) {
+        return new FileQueryService.ArtifactQuery(artifactId, ownerContext, objectType,
+                objectId, purposeCode, referenceKey);
+    }
+
+    private FileQueryService.Actor actor() {
+        return new FileQueryService.Actor(TenantContextHolder.getRequiredTenantId(),
+                SecurityFrameworkUtils.getLoginUserId());
     }
 
     private <T> T withTrustedTenant(Supplier<T> action) {
