@@ -49,3 +49,5 @@
 > Task 3候选证据（2026-08-27）：六张SOL表已建立不继承通用CRUD的封闭Mapper与场景Query/XML，只暴露显式insert、租户精确查询、稳定游标、`FOR UPDATE`当前读、生命周期/current/input/readiness版本CAS及不可变快照追加；固定V1目录仅经既有`ConfigApi`读取，封闭校验六类form、五种字段类型与字段规则，并将form身份和唯一`commonFields`确定性冻结，运行期只校验冻结Schema；Preparation与Item适用性/确认状态分轴规则已闭合。聚焦规则/Mapper契约7/7 PASS，`mvn.cmd -pl pms-module-engineering -am test`为26模块Reactor BUILD SUCCESS，engineering 114项中79通过、35项按真实环境条件跳过。正式PASS以独立Implementation Done裁决为准。
 
 > Task 3独立裁决（2026-08-27）：提交`979a0588cae59b90359e7c4aab6f7413f2b64377`闭环必填TEXT空白值和必填MULTI_SELECT空集合校验；聚焦测试7/7 PASS，26模块Reactor BUILD SUCCESS。独立复审GO，允许回写PASS并推进Task 4。
+
+> Task 4候选证据（2026-08-27）：新增窄`pms-module-engineering-api`初始化契约；项目创建仅在冻结模板声明PRE-02时，按冻结ProjectTask/ExecutionContract事实生成稳定初始化键并在外层事务同步调用SOL。SOL初始化使用受信租户、PROJ WorkBinding锁定重验及平台四段幂等，原子创建businessVersion 1 current DRAFT、启用工勘项与固定Schema表单；跨actor授权恢复按稳定业务键返回既有事实且只追加真实actor的NO_CHANGE审计。当前/详情/items/版本历史查询使用PROJECT_VIEW、稳定游标和批量表单投影，无用户初始化HTTP。聚焦回归20/20 PASS；`mvn.cmd -pl pms-module-engineering -am test`为27模块Reactor BUILD SUCCESS，其中PROJECT 446项0失败、ENGINEERING 119项0失败，真实环境条件用例按既有开关跳过。正式PASS以独立Implementation Done裁决为准。

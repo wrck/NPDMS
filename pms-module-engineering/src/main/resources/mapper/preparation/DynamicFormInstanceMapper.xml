@@ -37,6 +37,22 @@
         FOR UPDATE
     </select>
 
+    <select id="selectListByItemIds" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO">
+        SELECT <include refid="columns"/> FROM sol_dynamic_form_instance
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        <choose>
+            <when test="query.itemIds != null and !query.itemIds.isEmpty()">
+                AND item_id IN
+                <foreach collection="query.itemIds" item="itemId" open="(" separator="," close=")">
+                    #{itemId}
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY item_id ASC, form_code ASC, id ASC
+    </select>
+
     <update id="updateDraftIfMatch">
         UPDATE sol_dynamic_form_instance
         SET value_snapshot = #{update.valueSnapshot},

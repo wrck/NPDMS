@@ -12,6 +12,7 @@ public interface PreparationMapper {
     int insert(@Param("row") PreparationDO row);
     PreparationDO selectCurrent(@Param("query") PreparationCurrentQuery query);
     PreparationDO selectCurrentForUpdate(@Param("query") PreparationCurrentQuery query);
+    PreparationDO selectBusinessVersionForUpdate(@Param("query") PreparationBusinessVersionQuery query);
     PreparationDO selectById(@Param("query") PreparationRowQuery query);
     PreparationDO selectForUpdate(@Param("query") PreparationRowQuery query);
     List<PreparationDO> selectPage(@Param("query") PreparationPageQuery query);

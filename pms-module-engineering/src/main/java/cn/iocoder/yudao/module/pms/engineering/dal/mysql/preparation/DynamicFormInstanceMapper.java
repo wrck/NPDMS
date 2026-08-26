@@ -12,6 +12,7 @@ public interface DynamicFormInstanceMapper {
     int insert(@Param("row") DynamicFormInstanceDO row);
     DynamicFormInstanceDO selectForUpdate(@Param("query") DynamicFormRowQuery query);
     List<DynamicFormInstanceDO> selectListForUpdate(@Param("query") PreparationChildrenQuery query);
+    List<DynamicFormInstanceDO> selectListByItemIds(@Param("query") DynamicFormItemListQuery query);
     int updateDraftIfMatch(@Param("update") DynamicFormDraftUpdate update);
     int freezeIfMatch(@Param("update") DynamicFormFreezeUpdate update);
 }

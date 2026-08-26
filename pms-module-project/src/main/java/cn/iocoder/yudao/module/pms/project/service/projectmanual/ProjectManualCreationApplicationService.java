@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectInstantiation;
+import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.ProjectAttributeOwnerSnapshot;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.ProjectAttributeSnapshot;
 import cn.iocoder.yudao.module.pms.project.domain.projectattribute.TemplateMatchDecision;
@@ -16,11 +17,16 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.Decision;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.IdempotencyScope;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.SuccessFacts;
+import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
+import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationCommand;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateResult;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttributeResolutionService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryService;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
+import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -65,6 +71,12 @@ public class ProjectManualCreationApplicationService {
     private ProjectTemplateMatchHistoryService templateMatchHistoryService;
     @Resource
     private ProjectTreeProjectionService projectTreeProjectionService;
+    @Resource
+    private ProjectTemplateService projectTemplateService;
+    @Resource
+    private ProjectWorkBindingFactApi projectWorkBindingFactApi;
+    @Resource
+    private PreparationInitializationApi preparationInitializationApi;
 
     public ManualProjectCreateResult create(ManualProjectCreateCommand command, Actor actor) {
         validate(command, actor);
@@ -108,6 +120,7 @@ public class ProjectManualCreationApplicationService {
             projectTreeProjectionService.publish(project.getId(), 1L, "PROJECT_CREATE:" + project.getId());
         }
         projectSiteService.bindSites(project.getId(), command.sites());
+        initializePreparationIfConfigured(project, actor);
         ProjectInstantiation instances = projectCreationService.getInstancesForCreation(project.getId(), actor.tenantId());
         String matchOperationId = null;
         if (matchDecision != null) {
@@ -129,6 +142,22 @@ public class ProjectManualCreationApplicationService {
                 instances.getMilestones().size(), instances.getDeliverables().size(), instances.getGates().size(),
                 false, matchDecision == null ? null : matchDecision.matchResult(),
                 matchDecision == null ? null : matchDecision.decisionMode(), matchOperationId);
+    }
+
+    private void initializePreparationIfConfigured(ProjectMasterDO project, Actor actor) {
+        var content = projectTemplateService.getRevisionContent(
+                project.getLifecycleTemplateId(), project.getLifecycleTemplateRevisionNo());
+        if (content.getTasks().stream().noneMatch(PreparationWorkBindingSchema::isPreparationBinding)) {
+            return;
+        }
+        var fact = projectWorkBindingFactApi.inspect(new ProjectWorkBindingFactQuery(project.getId()));
+        String idempotencyKey = "PRE02_INIT:" + project.getId() + ":"
+                + fact.executionContractId() + ":" + fact.contractVersion();
+        preparationInitializationApi.initialize(new PreparationInitializationCommand(
+                project.getId(), fact.projectTaskId(), fact.executionContractId(), fact.projectVersion(),
+                fact.projectTaskVersion(), fact.contractVersion(),
+                PreparationInitializationApi.TRIGGER_PROJECT_CREATION, idempotencyKey,
+                "PROJECT_CREATE:" + project.getId() + ":PRE02", actor.actorId()));
     }
 
     private SuccessFacts successFacts(ManualProjectCreateCommand command, Actor actor,

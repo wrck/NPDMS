@@ -21,12 +21,13 @@ class PreparationMapperContractTest {
     void exposesOnlyScenarioSpecificPersistenceMethods() {
         assertMapperContract(PreparationMapper.class, Set.of(
                 "insert", "selectCurrent", "selectCurrentForUpdate", "selectById", "selectForUpdate",
-                "selectPage", "updateLifecycleIfMatch", "clearCurrentMarkerIfMatch",
+                "selectPage", "selectBusinessVersionForUpdate", "updateLifecycleIfMatch", "clearCurrentMarkerIfMatch",
                 "invalidateReadinessIfMatch", "updateReadinessIfMatch"));
         assertMapperContract(PreparationItemMapper.class, Set.of(
                 "insert", "selectForUpdate", "selectListForUpdate", "selectPage", "updateDraftIfMatch"));
         assertMapperContract(DynamicFormInstanceMapper.class, Set.of(
-                "insert", "selectForUpdate", "selectListForUpdate", "updateDraftIfMatch", "freezeIfMatch"));
+                "insert", "selectForUpdate", "selectListForUpdate", "selectListByItemIds",
+                "updateDraftIfMatch", "freezeIfMatch"));
         assertMapperContract(PreparationSourceReferenceMapper.class, Set.of(
                 "insert", "selectListForUpdate", "updateSyncIfMatch"));
         assertMapperContract(PreparationItemWaiverMapper.class, Set.of(

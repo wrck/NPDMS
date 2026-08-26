@@ -11,6 +11,12 @@ import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectAttri
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.ProjectTemplateMatchHistoryService;
 import cn.iocoder.yudao.module.pms.project.service.projectattribute.command.InitialMatchHistoryCommand;
 import cn.iocoder.yudao.module.pms.project.service.projecttree.ProjectTreeProjectionService;
+import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateService;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
+import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
+import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.ManualProjectCreateCommand;
 import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.company.dto.CompanyRespDTO;
@@ -65,6 +71,12 @@ class ProjectManualCreationApplicationServiceTest {
     private ProjectTemplateMatchHistoryService templateMatchHistoryService;
     @Mock
     private ProjectTreeProjectionService projectTreeProjectionService;
+    @Mock
+    private ProjectTemplateService projectTemplateService;
+    @Mock
+    private ProjectWorkBindingFactApi projectWorkBindingFactApi;
+    @Mock
+    private PreparationInitializationApi preparationInitializationApi;
 
     @InjectMocks
     private ProjectManualCreationApplicationService service;
@@ -79,6 +91,8 @@ class ProjectManualCreationApplicationServiceTest {
         lenient().when(deptApi.getDept(20L)).thenReturn(department);
         lenient().when(organizationScopeApi.hasScope(7L, 10L, 20L)).thenReturn(true);
         lenient().when(projectSiteService.validateLocationScope(any(), any())).thenReturn("UNRESOLVED");
+        lenient().when(projectTemplateService.getRevisionContent(any(), any()))
+                .thenReturn(new TemplateDefinitionContent());
     }
 
     @Test
@@ -122,6 +136,45 @@ class ProjectManualCreationApplicationServiceTest {
         assertEquals("业务立项", historyCaptor.getValue().changeReason());
         assertEquals(expectedOperationId, historyCaptor.getValue().operationId());
         assertEquals("correlation-1", historyCaptor.getValue().traceId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void preparationBindingInitializesInsideProjectCreationOperation() {
+        ProjectMasterDO project = project();
+        TemplateMatchDecision matchDecision = decision();
+        TemplateDefinitionContent content = new TemplateDefinitionContent();
+        TemplateDefinitionContent.TaskDef task = new TemplateDefinitionContent.TaskDef();
+        task.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        task.setTargetContextCode("SOL");
+        task.setTargetObjectType("SITE_SURVEY_PREPARATION");
+        task.setTargetObjectKey("PRE_02_SITE_SURVEY");
+        content.setTasks(java.util.List.of(task));
+        when(projectTemplateService.getRevisionContent(9L, 2)).thenReturn(content);
+        when(projectWorkBindingFactApi.inspect(any())).thenReturn(new ProjectWorkBindingFact(
+                100L, 0, 200L, 3, 300L, 4, 400L, 5,
+                "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION", "PRE_02_SITE_SURVEY",
+                "PRE_02_SITE_SURVEY", 1, 1, "[]"));
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any())).thenReturn(matchDecision);
+        when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull())).thenReturn(project);
+        when(projectCreationService.getInstancesForCreation(100L, 1L)).thenReturn(new ProjectInstantiation());
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            Supplier<Object> operation = invocation.getArgument(3);
+            Object result = operation.get();
+            return new PlatformCommandExecutionApi.ExecutionResult<>(
+                    PlatformCommandExecutionApi.Decision.NEW, result);
+        });
+
+        service.create(command(), actor());
+
+        ArgumentCaptor<PreparationInitializationCommand> captor =
+                ArgumentCaptor.forClass(PreparationInitializationCommand.class);
+        verify(preparationInitializationApi).initialize(captor.capture());
+        assertEquals("PRE02_INIT:100:300:4", captor.getValue().idempotencyKey());
+        assertEquals("PROJECT_CREATE:100:PRE02", captor.getValue().operationId());
+        assertEquals(PreparationInitializationApi.TRIGGER_PROJECT_CREATION,
+                captor.getValue().triggerType());
+        assertEquals(7L, captor.getValue().actorUserId());
     }
 
     @Test

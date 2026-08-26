@@ -473,6 +473,18 @@ abstract class ProjectManualCreationMySqlTestSupport {
     static class TestApplication {
 
         @Bean
+        cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi
+                projectWorkBindingFactApi() {
+            return mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi.class);
+        }
+
+        @Bean
+        cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi
+                preparationInitializationApi() {
+            return mock(cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi.class);
+        }
+
+        @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
         }

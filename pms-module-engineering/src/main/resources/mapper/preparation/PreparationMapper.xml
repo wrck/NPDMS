@@ -50,6 +50,16 @@
         FOR UPDATE
     </select>
 
+    <select id="selectBusinessVersionForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/>
+        FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND preparation_type_code = #{query.preparationTypeCode}
+          AND business_version = #{query.businessVersion}
+        FOR UPDATE
+    </select>
+
     <select id="selectById" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
         SELECT <include refid="columns"/>
         FROM sol_preparation
