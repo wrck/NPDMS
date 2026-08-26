@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS / NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
 > Technical Plan Gate：`PASS / NPDMS-FPLT001-TECHPLAN-20260826-01-R3`
 > Implementation Done Gate：`PENDING`
-> 当前任务：`Task 1 建立统一文件物理基础`
+> 当前任务：`Task 2 实现批准的INFRA技术存储回执适配`
 > Requirement ID：`PLT-02（V1/P0，FR-PLT-008）`
 > Feature Spec：`specs/features/F-PLT-001-unified-file-identity-and-version-management.md`
 > Feature物理契约：`specs/features/F-PLT-001-physical-contract.json`
@@ -22,7 +22,7 @@
 
 ## 任务跟踪
 
-- [ ] Task 1 建立六表、字典/策略/权限/Job种子、50MB配置和Feature工作单
+- [x] Task 1 建立六表、字典/策略/权限/Job种子、50MB配置和Feature工作单（PASS / `c1e3a46` / 独立裁决GO）
 - [ ] Task 2 实现批准的INFRA技术存储回执适配
 - [ ] Task 3 定义PLT公共文件契约、Provider注册与持久化原语
 - [ ] Task 4 实现上传初始化、用途授权与策略选择
@@ -38,3 +38,5 @@
 - F-SOL-001 Task 6材料分支：Task 5～6提供真实上传、固定版本引用及锁定重验后解除。
 - F-SOL-001 Task 9材料场景：Task 9接入SOL用途并完成真实MySQL链路后解除。
 - F-SOL-001 Task 10：上述材料主线闭合后返回其正式浏览器验收。
+
+> 检查点（2026-08-26）：Task 1提交`c1e3a46e768e670a7788b7d933899494963cbcf9`经独立复审GO；V92六表、5条租户复合外键、V93确定性种子、50MB/52MB应用边界、稳定错误码及迁移契约均通过，允许推进Task 2。
