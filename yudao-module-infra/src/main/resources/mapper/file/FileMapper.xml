@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.infra.dal.mysql.file.FileMapper">
+
+    <select id="selectListByStorageOperation"
+            resultType="cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO">
+        SELECT id, config_id, name, path, url, type, size,
+               creator, create_time, updater, update_time, deleted
+        FROM infra_file
+        WHERE path = #{query.storagePath}
+          AND deleted = b'0'
+        ORDER BY id
+    </select>
+
+</mapper>

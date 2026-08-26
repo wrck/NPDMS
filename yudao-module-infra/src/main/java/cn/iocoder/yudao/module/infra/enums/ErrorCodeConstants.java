@@ -34,6 +34,10 @@ public interface ErrorCodeConstants {
     ErrorCode FILE_NOT_EXISTS = new ErrorCode(1_001_003_001, "文件不存在");
     ErrorCode FILE_IS_EMPTY = new ErrorCode(1_001_003_002, "文件为空");
     ErrorCode FILE_PATH_INVALID = new ErrorCode(1_001_003_003, "文件路径不正确");
+    ErrorCode FILE_STORAGE_RECEIPT_CONFLICT = new ErrorCode(1_001_003_004, "文件存储回执存在冲突，需进入对账");
+    ErrorCode FILE_STORAGE_RECEIPT_REPLAY_MISMATCH = new ErrorCode(1_001_003_005, "文件存储操作重放内容不一致");
+    ErrorCode FILE_STORAGE_CONTENT_TOO_LARGE = new ErrorCode(1_001_003_006, "文件存储内容超过允许上限");
+    ErrorCode FILE_STORAGE_COMPENSATION_FAILED = new ErrorCode(1_001_003_007, "文件存储补偿失败，需进入对账");
 
     // ========== 代码生成器 1-001-004-000 ==========
     ErrorCode CODEGEN_TABLE_EXISTS = new ErrorCode(1_001_004_002, "表定义已经存在");
