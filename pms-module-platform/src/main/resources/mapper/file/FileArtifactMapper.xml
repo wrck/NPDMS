@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id">
+        INSERT INTO plt_file_artifact
+            (name, category_code, owner_context, lifecycle_status_code,
+             invalid_reason_code, invalid_reason_detail, invalidated_at, invalidated_by,
+             version, creator, create_time, updater, update_time, tenant_id)
+        VALUES
+            (#{row.name}, #{row.categoryCode}, #{row.ownerContext}, #{row.lifecycleStatusCode},
+             #{row.invalidReasonCode}, #{row.invalidReasonDetail}, #{row.invalidatedAt}, #{row.invalidatedBy},
+             #{row.version}, #{row.creator}, COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)),
+             #{row.updater}, COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId})
+    </insert>
+
+    <select id="selectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO">
+        SELECT id, name, category_code, owner_context, lifecycle_status_code,
+               invalid_reason_code, invalid_reason_detail, invalidated_at, invalidated_by,
+               version, creator, create_time, updater, update_time, deleted, tenant_id
+        FROM plt_file_artifact
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.artifactId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="activateDraftIfMatch">
+        UPDATE plt_file_artifact
+        SET lifecycle_status_code = 'ACTIVE', version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.artifactId}
+          AND lifecycle_status_code = 'DRAFT'
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+</mapper>

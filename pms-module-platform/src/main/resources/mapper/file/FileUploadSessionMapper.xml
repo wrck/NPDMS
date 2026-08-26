@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id">
+        INSERT INTO plt_file_upload_session
+            (mode_code, owner_context, object_type, object_id, purpose_code, reference_key,
+             file_name, category_code, declared_size_bytes, declared_media_type,
+             storage_operation_id, status_code, scope_version, expires_at, version,
+             artifact_id, reference_id, expected_reference_version, client_sha256, actual_sha256,
+             completed_file_version_no, registered_infra_file_id, failure_code, failure_detail,
+             completed_at, creator, create_time, updater, update_time, tenant_id)
+        VALUES
+            (#{row.modeCode}, #{row.ownerContext}, #{row.objectType}, #{row.objectId},
+             #{row.purposeCode}, #{row.referenceKey}, #{row.fileName}, #{row.categoryCode},
+             #{row.declaredSizeBytes}, #{row.declaredMediaType}, #{row.storageOperationId},
+             #{row.statusCode}, #{row.scopeVersion}, #{row.expiresAt}, #{row.version},
+             #{row.artifactId}, #{row.referenceId}, #{row.expectedReferenceVersion},
+             #{row.clientSha256}, #{row.actualSha256}, #{row.completedFileVersionNo},
+             #{row.registeredInfraFileId}, #{row.failureCode}, #{row.failureDetail},
+             #{row.completedAt}, #{row.creator}, COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)),
+             #{row.updater}, COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId})
+    </insert>
+
+    <select id="selectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO">
+        SELECT id, mode_code, owner_context, object_type, object_id, purpose_code, reference_key,
+               file_name, category_code, declared_size_bytes, declared_media_type,
+               storage_operation_id, status_code, scope_version, expires_at, version,
+               artifact_id, reference_id, expected_reference_version, client_sha256, actual_sha256,
+               completed_file_version_no, registered_infra_file_id, failure_code, failure_detail,
+               completed_at, creator, create_time, updater, update_time, tenant_id
+        FROM plt_file_upload_session
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.sessionId}
+        FOR UPDATE
+    </select>
+
+    <update id="completeIfValidating">
+        UPDATE plt_file_upload_session
+        SET status_code = 'COMPLETED',
+            artifact_id = #{query.artifactId},
+            reference_id = #{query.referenceId},
+            actual_sha256 = #{query.actualSha256},
+            completed_file_version_no = #{query.completedFileVersionNo},
+            registered_infra_file_id = #{query.registeredInfraFileId},
+            completed_at = #{query.completedAt},
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.sessionId}
+          AND status_code = 'VALIDATING'
+          AND version = #{query.expectedVersion}
+    </update>
+</mapper>
