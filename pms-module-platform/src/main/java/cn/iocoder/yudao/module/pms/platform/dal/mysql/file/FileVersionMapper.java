@@ -13,6 +13,8 @@ public interface FileVersionMapper {
 
     int insert(@Param("row") FileVersionDO row);
 
+    FileVersionDO selectOne(@Param("query") FileVersionLockQuery query);
+
     FileVersionDO selectForUpdate(@Param("query") FileVersionLockQuery query);
 
     List<FileVersionDO> selectCursor(@Param("query") FileVersionCursorQuery query);

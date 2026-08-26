@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class PlatformCommandExecutionApiImplTest {
@@ -81,6 +83,49 @@ class PlatformCommandExecutionApiImplTest {
         assertEquals(PlatformCommandExecutionApi.Decision.NEW, result.decision());
         verify(auditMapper).insert(any(PlatformOperationAuditDO.class));
         verifyNoInteractions(outboxMapper);
+    }
+
+    @Test
+    void newExecutionPersistsMultipleEventsWithProducerEventIds() {
+        doAnswer(invocation -> {
+            PlatformIdempotencyRecordDO row = invocation.getArgument(0);
+            row.setId(102L);
+            return 1;
+        }).when(idempotencyMapper).insertIfAbsent(any(PlatformIdempotencyRecordDO.class));
+        when(idempotencyMapper.updateById(any(PlatformIdempotencyRecordDO.class))).thenReturn(1);
+        when(auditMapper.insert(any(PlatformOperationAuditDO.class))).thenReturn(1);
+        when(outboxMapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);
+
+        service.execute(scope(), DIGEST_A, SampleResponse.class, () -> response(102L), ignored ->
+                new PlatformCommandExecutionApi.SuccessFacts("FILE_UPLOAD_COMPLETE", "FileArtifact", "102",
+                        "correlation-1", "{}", List.of(
+                        new PlatformCommandExecutionApi.BusinessEvent("evt-1", "FileVersionCommitted",
+                                "{\"eventId\":\"evt-1\"}"),
+                        new PlatformCommandExecutionApi.BusinessEvent("evt-2", "FileReferenceAttached",
+                                "{\"eventId\":\"evt-2\"}"))));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(PlatformOutboxEventDO.class);
+        verify(outboxMapper, times(2)).insert(captor.capture());
+        assertEquals(List.of("evt-1", "evt-2"),
+                captor.getAllValues().stream().map(PlatformOutboxEventDO::getEventId).toList());
+    }
+
+    @Test
+    void rejectsDuplicateOrPayloadMismatchedProducerEventIds() {
+        doAnswer(invocation -> {
+            PlatformIdempotencyRecordDO row = invocation.getArgument(0);
+            row.setId(103L);
+            return 1;
+        }).when(idempotencyMapper).insertIfAbsent(any(PlatformIdempotencyRecordDO.class));
+
+        assertThrows(IllegalArgumentException.class, () -> service.execute(scope(), DIGEST_A,
+                SampleResponse.class, () -> response(103L), ignored ->
+                        new PlatformCommandExecutionApi.SuccessFacts("FILE_UPLOAD_COMPLETE", "FileArtifact", "103",
+                                "correlation-1", "{}", List.of(
+                                new PlatformCommandExecutionApi.BusinessEvent("evt-1", "A",
+                                        "{\"eventId\":\"evt-other\"}")))));
+        verify(auditMapper, never()).insert(any(PlatformOperationAuditDO.class));
+        verify(outboxMapper, never()).insert(any(PlatformOutboxEventDO.class));
     }
 
     @Test

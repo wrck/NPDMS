@@ -104,13 +104,13 @@ class FileContractAndMapperTest {
     @Test
     void exposesOnlyScenarioMapperMethodsAndNoGenericCrud() {
         assertMapperMethods(FileArtifactMapper.class,
-                Set.of("insert", "selectForUpdate", "activateDraftIfMatch"));
+                Set.of("insert", "selectOne", "selectForUpdate", "activateDraftIfMatch"));
         assertMapperMethods(FileVersionMapper.class,
-                Set.of("insert", "selectForUpdate", "selectCursor"));
+                Set.of("insert", "selectOne", "selectForUpdate", "selectCursor"));
         assertMapperMethods(FileReferenceMapper.class,
                 Set.of("insert", "selectExact", "selectForUpdate", "selectCursor", "replaceVersionIfMatch"));
         assertMapperMethods(FileUploadSessionMapper.class,
-                Set.of("insert", "selectForUpdate", "completeIfValidating"));
+                Set.of("insert", "selectForUpdate", "beginValidationIfInitialized", "completeIfValidating"));
         assertMapperMethods(FileAccessGrantMapper.class, Set.of("insert"));
         assertMapperMethods(FileArchiveRecordMapper.class, Set.of("insert"));
     }

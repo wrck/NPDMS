@@ -19,6 +19,10 @@ public interface JobMapper extends BaseMapperX<JobDO> {
         return selectOne(JobDO::getHandlerName, handlerName);
     }
 
+    default java.util.List<JobDO> selectListByHandlerName(String handlerName) {
+        return selectList(new LambdaQueryWrapperX<JobDO>().eq(JobDO::getHandlerName, handlerName));
+    }
+
     default PageResult<JobDO> selectPage(JobPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<JobDO>()
                 .likeIfPresent(JobDO::getName, reqVO.getName())

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.platform.api.command;
 
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -19,7 +20,29 @@ public interface PlatformCommandExecutionApi {
 
     record SuccessFacts(String operationCode, String aggregateType, String resourceKey,
                         String correlationId, String detailSnapshot,
-                        String eventType, String eventPayload) {
+                        String eventType, String eventPayload,
+                        List<BusinessEvent> businessEvents) {
+
+        public SuccessFacts {
+            businessEvents = businessEvents == null ? List.of() : List.copyOf(businessEvents);
+        }
+
+        public SuccessFacts(String operationCode, String aggregateType, String resourceKey,
+                            String correlationId, String detailSnapshot,
+                            String eventType, String eventPayload) {
+            this(operationCode, aggregateType, resourceKey, correlationId, detailSnapshot,
+                    eventType, eventPayload, List.of());
+        }
+
+        public SuccessFacts(String operationCode, String aggregateType, String resourceKey,
+                            String correlationId, String detailSnapshot,
+                            List<BusinessEvent> businessEvents) {
+            this(operationCode, aggregateType, resourceKey, correlationId, detailSnapshot,
+                    null, null, businessEvents);
+        }
+    }
+
+    record BusinessEvent(String eventId, String eventType, String eventPayload) {
     }
 
     record ExecutionResult<T>(Decision decision, T response) {

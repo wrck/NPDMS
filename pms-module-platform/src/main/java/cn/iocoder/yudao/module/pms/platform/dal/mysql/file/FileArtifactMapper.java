@@ -11,6 +11,8 @@ public interface FileArtifactMapper {
 
     int insert(@Param("row") FileArtifactDO row);
 
+    FileArtifactDO selectOne(@Param("query") FileArtifactLockQuery query);
+
     FileArtifactDO selectForUpdate(@Param("query") FileArtifactLockQuery query);
 
     int activateDraftIfMatch(@Param("query") FileArtifactActivationUpdate query);

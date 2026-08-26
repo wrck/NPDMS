@@ -159,6 +159,25 @@ public class JobServiceImpl implements JobService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void syncEnabledJobByHandlerName(String handlerName) throws SchedulerException {
+        if (handlerName == null || handlerName.isBlank()) {
+            throw new IllegalArgumentException("handlerName不能为空");
+        }
+        List<JobDO> jobs = jobMapper.selectListByHandlerName(handlerName.trim());
+        if (jobs.size() != 1 || !JobStatusEnum.NORMAL.getStatus().equals(jobs.getFirst().getStatus())) {
+            throw new IllegalStateException("JOB_ENABLED_HANDLER_NOT_UNIQUE");
+        }
+        JobDO job = jobs.getFirst();
+        validateCronExpression(job.getCronExpression());
+        validateJobHandlerExists(job.getHandlerName());
+        schedulerManager.deleteJob(job.getHandlerName());
+        schedulerManager.addJob(job.getId(), job.getHandlerName(), job.getHandlerParam(), job.getCronExpression(),
+                job.getRetryCount(), job.getRetryInterval());
+        log.info("[syncEnabledJobByHandlerName][id({}) handlerName({}) 同步完成]", job.getId(), job.getHandlerName());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteJob(Long id) throws SchedulerException {
         // 校验存在
         JobDO job = validateJobExists(id);

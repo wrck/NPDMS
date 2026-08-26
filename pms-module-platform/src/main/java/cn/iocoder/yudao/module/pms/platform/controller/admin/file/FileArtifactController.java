@@ -6,7 +6,9 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileUploadInitReqVO;
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileUploadInitRespVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileUploadCompleteRespVO;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService;
+import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadCompleteCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitializeCommand;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,7 +23,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -56,6 +63,24 @@ public class FileArtifactController {
                     request.getDeclaredMediaType(), request.getClientSha256()));
             return success(new FileUploadInitRespVO(
                     result.artifactId(), result.sessionId(), result.expiresAt()));
+        });
+    }
+
+    @PostMapping(value = "/{artifactId}:complete-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "完成受控文件上传")
+    @PreAuthorize("@ss.hasPermission('pms:file:upload')")
+    public CommonResult<FileUploadCompleteRespVO> completeUpload(
+            @PathVariable Long artifactId,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestParam Long sessionId,
+            @RequestParam(required = false) String clientSha256,
+            @RequestPart("file") MultipartFile file) {
+        return withTrustedTenant(() -> {
+            var result = uploadService.complete(new FileUploadCompleteCommand(
+                    TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                    idempotencyKey, artifactId, sessionId, file, clientSha256));
+            return success(new FileUploadCompleteRespVO(result.artifactId(), result.versionNo(),
+                    result.referenceId(), result.referenceKey(), result.sha256()));
         });
     }
 

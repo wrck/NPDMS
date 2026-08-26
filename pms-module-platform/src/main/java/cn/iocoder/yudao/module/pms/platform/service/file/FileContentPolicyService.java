@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanResult;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileContentValidationCommand;
+import cn.iocoder.yudao.module.pms.platform.service.file.command.BoundedFileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MimeTypeException;
@@ -26,6 +27,7 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_SECURITY_SCAN_REJECTED;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_SECURITY_SCAN_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_SIZE_EXCEEDED;
 
 @Service
 public class FileContentPolicyService {
@@ -49,6 +51,25 @@ public class FileContentPolicyService {
             throw exception(FILE_SCOPE_FORBIDDEN);
         }
         byte[] content = multipartReader.read(command.file(), maxBytes);
+        return validateBounded(new BoundedFileContentValidationCommand(
+                content, command.expectedFileName(), command.declaredSizeBytes(),
+                command.declaredMediaType(), command.clientSha256(), command.policy()));
+    }
+
+    public ValidatedFileContent validateBounded(BoundedFileContentValidationCommand command) {
+        if (command == null || command.content() == null || command.content().length == 0
+                || command.expectedFileName() == null || command.expectedFileName().isBlank()
+                || command.declaredSizeBytes() <= 0 || command.declaredMediaType() == null
+                || command.declaredMediaType().isBlank() || command.policy() == null
+                || command.policy().maxSizeBytes() == null) {
+            throw exception(FILE_COMMAND_INVALID);
+        }
+        FileBusinessObjectPolicyFact policy = command.policy();
+        long maxBytes = Math.min(FileUploadApplicationService.PLATFORM_MAX_BYTES, policy.maxSizeBytes());
+        byte[] content = command.content();
+        if (content.length > maxBytes) {
+            throw exception(FILE_SIZE_EXCEEDED);
+        }
         if (content.length != command.declaredSizeBytes()) {
             throw exception(FILE_COMMAND_INVALID);
         }
@@ -56,7 +77,7 @@ public class FileContentPolicyService {
         String declaredMediaType = normalizeMediaType(command.declaredMediaType());
         String detectedMediaType = normalizeMediaType(TIKA.detect(content));
         String nameMediaType = normalizeMediaType(TIKA.detect(command.expectedFileName()));
-        Set<String> allowedMediaTypes = policy.allowedMediaTypes().stream()
+        Set<String> allowedMediaTypes = command.policy().allowedMediaTypes().stream()
                 .map(FileContentPolicyService::normalizeMediaType)
                 .collect(Collectors.toUnmodifiableSet());
         if (!allowedMediaTypes.contains(declaredMediaType)

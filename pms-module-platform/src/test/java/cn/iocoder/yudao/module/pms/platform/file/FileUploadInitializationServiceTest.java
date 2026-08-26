@@ -6,10 +6,17 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.infra.api.file.FileStorageReceiptApi;
+import cn.iocoder.yudao.module.pms.platform.service.file.BoundedMultipartReader;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileContentPolicyService;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitializeCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitialized;
+import cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +45,14 @@ import static org.mockito.Mockito.when;
 class FileUploadInitializationServiceTest {
 
     @Mock FileUploadSessionMapper sessionMapper;
+    @Mock FileArtifactMapper artifactMapper;
+    @Mock FileVersionMapper versionMapper;
+    @Mock FileReferenceMapper referenceMapper;
     @Mock FileBusinessObjectPolicyRegistry policyRegistry;
+    @Mock BoundedMultipartReader multipartReader;
+    @Mock FileContentPolicyService contentPolicyService;
+    @Mock FileStorageReceiptApi storageReceiptApi;
+    @Mock FileEventFactory eventFactory;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
 
@@ -49,7 +63,9 @@ class FileUploadInitializationServiceTest {
     @BeforeEach
     void setUp() {
         service = new FileUploadApplicationService(
-                sessionMapper, policyRegistry, commandExecutionApi, operationAuditApi,
+                sessionMapper, artifactMapper, versionMapper, referenceMapper, policyRegistry,
+                multipartReader, contentPolicyService, storageReceiptApi, eventFactory,
+                commandExecutionApi, operationAuditApi,
                 Duration.ofMinutes(15));
     }
 

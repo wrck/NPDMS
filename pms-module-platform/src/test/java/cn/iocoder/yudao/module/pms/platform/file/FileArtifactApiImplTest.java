@@ -1,0 +1,142 @@
+package cn.iocoder.yudao.module.pms.platform.file;
+
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+
+import java.util.Set;
+import java.util.List;
+
+import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_FACT_VERSION_CONFLICT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class FileArtifactApiImplTest {
+
+    @Mock FileBusinessObjectPolicyRegistry policyRegistry;
+    @Mock FileArtifactMapper artifactMapper;
+    @Mock FileVersionMapper versionMapper;
+    @Mock FileReferenceMapper referenceMapper;
+
+    private FileArtifactApiImpl api;
+
+    @BeforeEach
+    void setUp() {
+        TenantContextHolder.setTenantId(7L);
+        LoginUser user = new LoginUser();
+        user.setId(9L);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(user, null, List.of()));
+        api = new FileArtifactApiImpl(policyRegistry, artifactMapper, versionMapper, referenceMapper);
+    }
+
+    @AfterEach
+    void clear() {
+        TenantContextHolder.clear();
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void inspectsAndRevalidatesTheSameExactReferenceFact() {
+        when(policyRegistry.inspect(any())).thenReturn(policy());
+        when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        when(referenceMapper.selectExact(any())).thenReturn(reference());
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact());
+        when(versionMapper.selectForUpdate(any())).thenReturn(version());
+        when(referenceMapper.selectForUpdate(any())).thenReturn(reference());
+
+        var inspected = api.inspect(query());
+        var revalidated = api.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
+                11L, 2, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", FileActionCodes.READ,
+                inspected.fileFactVersion(), inspected.scopeVersion()));
+
+        assertEquals("slot-a", revalidated.referenceKey());
+        assertEquals(new FileFactVersion(3, 4, 5), revalidated.fileFactVersion());
+        assertEquals(8L, revalidated.scopeVersion());
+    }
+
+    @Test
+    void rejectsChangedFrozenFileFact() {
+        when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact());
+        when(versionMapper.selectForUpdate(any())).thenReturn(version());
+        when(referenceMapper.selectForUpdate(any())).thenReturn(reference());
+
+        ServiceException failure = assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
+                new FileArtifactVersionRevalidationQuery(11L, 2, "SOL", "CHANGE", "900", "EVIDENCE",
+                        "slot-a", FileActionCodes.READ, new FileFactVersion(3, 3, 5), 8L)));
+
+        assertEquals(FILE_FACT_VERSION_CONFLICT.getCode(), failure.getCode());
+    }
+
+    private FileArtifactVersionQuery query() {
+        return new FileArtifactVersionQuery(11L, 2, "SOL", "CHANGE", "900", "EVIDENCE",
+                "slot-a", FileActionCodes.READ);
+    }
+
+    private FileBusinessObjectPolicyFact policy() {
+        return new FileBusinessObjectPolicyFact(true, 8L, "MUTABLE", "SINGLE",
+                Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL");
+    }
+
+    private FileArtifactDO artifact() {
+        FileArtifactDO row = new FileArtifactDO();
+        row.setId(11L);
+        row.setName("evidence.pdf");
+        row.setOwnerContext("SOL");
+        row.setCategoryCode("EVIDENCE");
+        row.setLifecycleStatusCode("ACTIVE");
+        row.setVersion(3);
+        return row;
+    }
+
+    private FileVersionDO version() {
+        FileVersionDO row = new FileVersionDO();
+        row.setArtifactId(11L);
+        row.setVersionNo(2);
+        row.setSizeBytes(3L);
+        row.setDetectedMediaType("application/pdf");
+        row.setSha256("a".repeat(64));
+        row.setAvailabilityStatusCode("AVAILABLE");
+        row.setAvailabilityVersion(5);
+        return row;
+    }
+
+    private FileReferenceDO reference() {
+        FileReferenceDO row = new FileReferenceDO();
+        row.setId(21L);
+        row.setReferenceKey("slot-a");
+        row.setArtifactId(11L);
+        row.setFileVersionNo(2);
+        row.setStatusCode("ACTIVE");
+        row.setScopeVersion(8L);
+        row.setVersion(4);
+        return row;
+    }
+}

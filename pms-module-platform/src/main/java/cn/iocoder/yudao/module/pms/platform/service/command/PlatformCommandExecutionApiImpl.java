@@ -19,6 +19,9 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -85,6 +88,7 @@ public class PlatformCommandExecutionApiImpl implements PlatformCommandExecution
                 || (isBlank(facts.eventType()) != (facts.eventPayload() == null))) {
             throw new IllegalArgumentException("平台写命令成功事实不完整");
         }
+        validateBusinessEvents(facts.businessEvents());
         LocalDateTime now = LocalDateTime.now(clock);
         PlatformIdempotencyRecordDO completed = new PlatformIdempotencyRecordDO();
         completed.setId(reservation.getId());
@@ -113,19 +117,47 @@ public class PlatformCommandExecutionApiImpl implements PlatformCommandExecution
         }
 
         if (!isBlank(facts.eventType())) {
-            PlatformOutboxEventDO outbox = new PlatformOutboxEventDO();
-            outbox.setTenantId(scope.tenantId());
-            outbox.setEventId(UUID.randomUUID().toString());
-            outbox.setEventType(facts.eventType());
-            outbox.setAggregateType(facts.aggregateType());
-            outbox.setAggregateKey(facts.resourceKey());
-            outbox.setPayload(facts.eventPayload());
-            outbox.setStatus(OUTBOX_STATUS_PENDING);
-            outbox.setOccurredAt(now);
-            outbox.setRetryCount(0);
-            if (outboxMapper.insert(outbox) != 1) {
-                throw new IllegalStateException("平台Outbox事件写入失败");
+            persistOutbox(scope.tenantId(), UUID.randomUUID().toString(), facts.eventType(),
+                    facts.aggregateType(), facts.resourceKey(), facts.eventPayload(), now);
+        }
+        for (PlatformCommandExecutionApi.BusinessEvent event : facts.businessEvents()) {
+            persistOutbox(scope.tenantId(), event.eventId(), event.eventType(),
+                    facts.aggregateType(), facts.resourceKey(), event.eventPayload(), now);
+        }
+    }
+
+    private void validateBusinessEvents(java.util.List<PlatformCommandExecutionApi.BusinessEvent> events) {
+        if (events == null) {
+            throw new IllegalArgumentException("平台业务事件集合不能为空");
+        }
+        Set<String> eventIds = new HashSet<>();
+        for (PlatformCommandExecutionApi.BusinessEvent event : events) {
+            if (event == null || isBlank(event.eventId()) || isBlank(event.eventType())
+                    || isBlank(event.eventPayload()) || !eventIds.add(event.eventId())) {
+                throw new IllegalArgumentException("平台业务事件事实不完整");
             }
+            Map<?, ?> payload = JsonUtils.parseObject(event.eventPayload(), Map.class);
+            if (payload == null || !event.eventId().equals(payload.get("eventId"))) {
+                throw new IllegalArgumentException("平台业务事件标识与载荷不一致");
+            }
+        }
+    }
+
+    private void persistOutbox(Long tenantId, String eventId, String eventType,
+                               String aggregateType, String aggregateKey,
+                               String payload, LocalDateTime occurredAt) {
+        PlatformOutboxEventDO outbox = new PlatformOutboxEventDO();
+        outbox.setTenantId(tenantId);
+        outbox.setEventId(eventId);
+        outbox.setEventType(eventType);
+        outbox.setAggregateType(aggregateType);
+        outbox.setAggregateKey(aggregateKey);
+        outbox.setPayload(payload);
+        outbox.setStatus(OUTBOX_STATUS_PENDING);
+        outbox.setOccurredAt(occurredAt);
+        outbox.setRetryCount(0);
+        if (outboxMapper.insert(outbox) != 1) {
+            throw new IllegalStateException("平台Outbox事件写入失败");
         }
     }
 
