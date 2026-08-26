@@ -50,7 +50,7 @@ class PreparationRulesTest {
         var fields = List.of(
                 new FixedSurveyFormCatalog.FieldDefinition("note", "TEXT", true, 5, null, 10),
                 new FixedSurveyFormCatalog.FieldDefinition("mode", "SINGLE_SELECT", true, null, List.of("A", "B"), 20),
-                new FixedSurveyFormCatalog.FieldDefinition("tags", "MULTI_SELECT", false, null, List.of("X", "Y"), 30));
+                new FixedSurveyFormCatalog.FieldDefinition("tags", "MULTI_SELECT", true, null, List.of("X", "Y"), 30));
         String schema = FixedSurveyFormRules.freeze(1,
                 new FixedSurveyFormCatalog.FormDefinition("POWER", 1), fields);
 
@@ -58,6 +58,8 @@ class PreparationRulesTest {
                 FixedSurveyFormRules.validateAndNormalizeValue(schema,
                         "{\"tags\":[\"Y\",\"X\"],\"mode\":\"A\",\"note\":\"ok\"}"));
         assertThrows(ServiceException.class, () -> FixedSurveyFormRules.validateAndNormalizeValue(schema, "{\"mode\":\"A\"}"));
+        assertThrows(ServiceException.class, () -> FixedSurveyFormRules.validateAndNormalizeValue(schema, "{\"note\":\"  \u3000\",\"mode\":\"A\",\"tags\":[\"X\"]}"));
+        assertThrows(ServiceException.class, () -> FixedSurveyFormRules.validateAndNormalizeValue(schema, "{\"note\":\"ok\",\"mode\":\"A\",\"tags\":[]}"));
         assertThrows(ServiceException.class, () -> FixedSurveyFormRules.validateAndNormalizeValue(schema, "{\"note\":\"123456\",\"mode\":\"A\"}"));
         assertThrows(ServiceException.class, () -> FixedSurveyFormRules.validateAndNormalizeValue(schema, "{\"note\":\"ok\",\"mode\":\"C\"}"));
         assertThrows(ServiceException.class, () -> FixedSurveyFormRules.validateAndNormalizeValue(schema, "{\"note\":\"ok\",\"mode\":\"A\",\"script\":true}"));

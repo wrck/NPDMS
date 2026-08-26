@@ -123,7 +123,8 @@ public final class FixedSurveyFormRules {
     private static Object normalizeField(FixedSurveyFormCatalog.FieldDefinition field, JsonNode value) {
         return switch (field.fieldType()) {
             case "TEXT" -> {
-                if (!value.isString() || value.asText().length() > field.maxLength()) throw invalid();
+                if (!value.isString() || value.asText().length() > field.maxLength()
+                        || Boolean.TRUE.equals(field.required()) && value.asText().isBlank()) throw invalid();
                 yield value.asText();
             }
             case "NUMBER" -> {
@@ -147,6 +148,7 @@ public final class FixedSurveyFormRules {
                     }
                     selected.add(option.asText());
                 }
+                if (Boolean.TRUE.equals(field.required()) && selected.isEmpty()) throw invalid();
                 yield selected;
             }
             default -> throw invalid();
