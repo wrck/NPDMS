@@ -1,6 +1,8 @@
 # F-PLT-001 统一文件身份与版本管理 Implementation Plan
 
 > **执行要求：** 使用 `superpowers:executing-plans` 按主线依赖推进；用户已明确禁用TDD，因此每个Task先完成当前最小实现，再执行与风险相称的自动化、真实MySQL、对象存储或浏览器验证。每个Task独立复审并按情况本地提交，不推送。
+>
+> **Technical Plan Gate：** `GO / NPDMS-FPLT001-TECHPLAN-20260826-01-R3`
 
 **Goal:** 以PLT拥有的FileArtifact、不可变FileVersion和固定版本FileReference建立统一文件业务真值，先闭合F-SOL-001客户延期材料的“上传—冻结—提交审批—终态重验”正向链，再补换版、解绑、失效和归档分支。
 
