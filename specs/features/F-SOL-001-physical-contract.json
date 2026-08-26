@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-SOL-001",
+  "requirementIds": ["PRE-01"],
+  "status": "IN_REVIEW",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "FEATURE_READY_REVIEW_ONLY_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
+  "owner": {
+    "context": "SOL",
+    "implementationModule": "pms-module-engineering",
+    "forbiddenOwners": ["PROJ", "PLATFORM", "BPM", "SYSTEM"]
+  },
+  "v1Scope": {
+    "included": [
+      "INITIAL_DURATION_BASELINE",
+      "VERSIONED_DURATION_CHANGE",
+      "SERVICE_MANAGER_APPROVAL",
+      "CURRENT_DURATION_POINTER",
+      "PLAN_RECALCULATION_IMPACT",
+      "HISTORY_QUERY",
+      "RESPONSIVE_UI"
+    ],
+    "deferred": [
+      "PRE_02",
+      "PLN_01_CALCULATION",
+      "PLN_04_PLAN_APPROVAL",
+      "INT_05_NOTIFICATION",
+      "AI_MIG_000",
+      "DEPLOYMENT_SIT_UAT_RELEASE"
+    ]
+  },
+  "tables": {
+    "sol_construction_plan": {
+      "purpose": "one ConstructionPlan root per project; separates current duration, pending change and plan recalculation impact",
+      "requiredFields": [
+        "id",
+        "tenant_id",
+        "project_id",
+        "plan_recalculation_status_code",
+        "version",
+        "creator",
+        "create_time",
+        "updater",
+        "update_time",
+        "deleted"
+      ],
+      "nullableFields": [
+        "current_duration_revision_id",
+        "pending_change_id",
+        "plan_recalculation_source_revision_id"
+      ],
+      "stableKey": ["tenant_id", "project_id", "deleted"],
+      "referenceKey": ["tenant_id", "id"],
+      "indexes": [
+        ["tenant_id", "current_duration_revision_id"],
+        ["tenant_id", "pending_change_id"],
+        ["tenant_id", "plan_recalculation_status_code", "project_id"]
+      ],
+      "crossContextReference": "project_id has no database foreign key to PROJ",
+      "concurrency": "ROW_LOCK_PLUS_VERSION_CAS",
+      "currentPolicy": "current_duration_revision_id is the only current effective duration truth",
+      "pendingPolicy": "pending_change_id is the only current pending change truth",
+      "pointerPolicy": "pointer columns are physically nullable to avoid a MySQL insert cycle; initialCreate must set current_duration_revision_id and plan_recalculation_source_revision_id before commit, and all non-deleted committed plans must satisfy the post-transaction invariants",
+      "recalculationStatusCodes": [
+        "PENDING_RECALCULATION",
+        "RECALCULATED",
+        "RECALCULATION_FAILED"
+      ],
+      "fsol001WritePolicy": "writes PENDING_RECALCULATION only; other outcomes require a real PLN-01 producer"
+    },
+    "sol_construction_plan_revision": {
+      "purpose": "duration baseline revision; draft candidate may change until submit and is immutable after submit",
+      "requiredFields": [
+        "id",
+        "tenant_id",
+        "plan_id",
+        "revision_no",
+        "calculation_basis_code",
+        "start_date",
+        "end_date",
+        "duration_days",
+        "created_by",
+        "created_at",
+        "version"
+      ],
+      "nullableFields": ["source_change_id", "frozen_at", "effective_at"],
+      "stableKey": ["tenant_id", "plan_id", "revision_no"],
+      "referenceKey": ["tenant_id", "id"],
+      "calculationBasisCodes": ["DATE_RANGE", "DURATION_FROM_START"],
+      "guards": [
+        "duration_days > 0",
+        "end_date >= start_date",
+        "inclusive duration equals end_date - start_date + 1"
+      ],
+      "foreignKeys": [
+        "(tenant_id, plan_id) -> sol_construction_plan(tenant_id, id)"
+      ],
+      "immutability": "duration fields cannot change after frozen_at is set"
+    },
+    "sol_construction_plan_change": {
+      "purpose": "duration change request, approval lifecycle and frozen evidence",
+      "requiredFields": [
+        "id",
+        "tenant_id",
+        "plan_id",
+        "base_revision_id",
+        "candidate_revision_id",
+        "status_code",
+        "reason_type_code",
+        "reason_detail",
+        "customer_evidence_required",
+        "applicant_user_id",
+        "created_at",
+        "version"
+      ],
+      "nullableFields": [
+        "customer_evidence_file_id",
+        "customer_evidence_file_version",
+        "submitted_at",
+        "approver_user_id",
+        "approved_at",
+        "approval_opinion"
+      ],
+      "stableKey": ["tenant_id", "plan_id", "candidate_revision_id"],
+      "referenceKey": ["tenant_id", "id"],
+      "indexes": [
+        ["tenant_id", "plan_id", "status_code", "id"],
+        ["tenant_id", "applicant_user_id", "created_at", "id"],
+        ["tenant_id", "approver_user_id", "approved_at", "id"]
+      ],
+      "statusCodes": [
+        "DRAFT",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "REJECTED",
+        "WITHDRAWN"
+      ],
+      "transitions": {
+        "SUBMIT": "DRAFT->PENDING_APPROVAL",
+        "APPROVE": "PENDING_APPROVAL->APPROVED",
+        "REJECT": "PENDING_APPROVAL->REJECTED",
+        "WITHDRAW": "PENDING_APPROVAL->WITHDRAWN"
+      },
+      "foreignKeys": [
+        "(tenant_id, plan_id) -> sol_construction_plan(tenant_id, id)",
+        "(tenant_id, base_revision_id) -> sol_construction_plan_revision(tenant_id, id)",
+        "(tenant_id, candidate_revision_id) -> sol_construction_plan_revision(tenant_id, id)"
+      ],
+      "evidencePolicy": "store FileArtifact id and exact version only; never URL or file body",
+      "approvalPolicy": "current primary service manager, not applicant; subject fact comes from PROJ public read-only API"
+    }
+  },
+  "stateAxes": {
+    "changeApprovalLifecycle": "sol_construction_plan_change.status_code",
+    "currentEffectiveDuration": "sol_construction_plan.current_duration_revision_id",
+    "planRecalculationImpact": [
+      "sol_construction_plan.plan_recalculation_status_code",
+      "sol_construction_plan.plan_recalculation_source_revision_id"
+    ],
+    "forbidden": "one overloaded status field for approval, current-effectiveness and recalculation"
+  },
+  "postTransactionInvariants": [
+    "every non-deleted sol_construction_plan has a non-null current_duration_revision_id that resolves to a revision of the same tenant and plan",
+    "every non-deleted sol_construction_plan has a non-null plan_recalculation_source_revision_id that resolves to a revision of the same tenant and plan",
+    "pending_change_id is null or resolves to the same tenant and plan with status PENDING_APPROVAL",
+    "current_duration_revision_id is the only current effective duration marker; revision rows do not carry a second current flag"
+  ],
+  "transactions": {
+    "initialCreate": "PLAN_PLUS_REVISION1_PLUS_CURRENT_POINTER_PLUS_PENDING_RECALCULATION_PLUS_IDEMPOTENCY_SUCCESS_PLUS_AUDIT",
+    "submit": "LOCK_PLAN; VALIDATE_BASE_CURRENT_AND_NO_PENDING; FREEZE_REVISION_AND_EVIDENCE; SET_CHANGE_PENDING_AND_PENDING_POINTER; IDEMPOTENCY_SUCCESS; AUDIT",
+    "approve": "LOCK_PLAN_AND_PENDING_CHANGE; REVALIDATE_SCOPE_ROLE_NOT_APPLICANT_AND_FILE_VERSION; SET_CHANGE_APPROVED; SWITCH_CURRENT_POINTER; CLEAR_PENDING; SET_PENDING_RECALCULATION; IDEMPOTENCY_SUCCESS; AUDIT",
+    "rejectOrWithdraw": "LOCK_PLAN_AND_PENDING_CHANGE; VALIDATE_SUBJECT_STATE_VERSION; SET_TERMINAL_CHANGE_STATUS; CLEAR_PENDING; KEEP_CURRENT_AND_RECALCULATION_IMPACT; IDEMPOTENCY_SUCCESS; AUDIT",
+    "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_WRITE_REJECTED_OPERATION_AUDIT_WITHOUT_SUCCESS_SIDE_EFFECTS"
+  },
+  "configuration": {
+    "reasonDictionaryType": "pms_duration_change_reason_type",
+    "authoritativeSeedValues": ["CUSTOMER_DELAY"],
+    "customerEvidenceRequiredConfigKey": "pms.sol.duration-change.customer-evidence-required-reason-codes",
+    "requiredSeedConfigValue": "CUSTOMER_DELAY",
+    "submitPolicy": "reload dictionary and config; invalid or missing config fails closed; freeze resolved boolean on change"
+  },
+  "interfaces": {
+    "initialCreate": {
+      "route": "POST /api/v1/pms/construction-plans",
+      "requiredHeaders": ["Idempotency-Key"],
+      "requiredInputs": ["projectId", "calculationBasis"],
+      "conditionalInputs": ["startDate", "endDate", "durationDays"],
+      "trustedContext": ["tenantId", "actorUserId"]
+    },
+    "detail": {
+      "route": "GET /api/v1/pms/construction-plans/{id}",
+      "response": [
+        "planId",
+        "projectId",
+        "currentRevision",
+        "pendingChangeSummary",
+        "planRecalculationStatus",
+        "planRecalculationSourceRevisionId",
+        "planVersion",
+        "allowedActions"
+      ]
+    },
+    "projectLookup": {
+      "route": "GET /api/v1/pms/construction-plans?projectId={projectId}",
+      "emptyPolicy": "empty business result, not another project's plan"
+    },
+    "revisions": {
+      "route": "GET /api/v1/pms/construction-plans/{id}/revisions",
+      "pagination": "stable cursor revisionNo,id"
+    },
+    "changes": {
+      "routes": [
+        "POST|GET /api/v1/pms/construction-plans/{id}/changes",
+        "GET|PATCH /api/v1/pms/construction-plans/{id}/changes/{changeId}"
+      ],
+      "createRequiredHeaders": ["Idempotency-Key", "If-Match"],
+      "patchRequiredHeaders": ["If-Match"],
+      "pagination": "stable cursor createTime,id"
+    },
+    "actions": {
+      "route": "POST /api/v1/pms/construction-plans/{id}/actions/{submit|approve|reject|withdraw}",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "requiredInputs": ["changeId"],
+      "conditionalInputs": ["opinion"],
+      "forbiddenInputs": ["tenantId", "applicantUserId", "approverUserId"]
+    },
+    "projectParticipantFact": {
+      "providerModule": "pms-module-project-api",
+      "contract": "ProjectParticipantFactApi.inspect(ProjectParticipantFactQuery)",
+      "query": ["projectId", "userId", "requiredRoleCodes", "checkedAt"],
+      "trustedContext": ["tenantId"],
+      "response": [
+        "projectId",
+        "userId",
+        "effectiveRoleCodes",
+        "assignmentType",
+        "factVersion"
+      ],
+      "unknownPolicy": "missing, cross-tenant, inconsistent or unknown facts fail closed"
+    }
+  },
+  "permissions": {
+    "query": {
+      "permissionCode": "pms:construction-plan:query",
+      "projectScopeAction": "VIEW"
+    },
+    "durationManage": {
+      "permissionCode": "pms:construction-plan:duration-manage",
+      "projectScopeAction": "EDIT",
+      "subjectConstraint": "CURRENT_PROJECT_MANAGER"
+    },
+    "durationApprove": {
+      "permissionCode": "pms:construction-plan:duration-approve",
+      "projectScopeAction": "MANAGE",
+      "subjectConstraint": "CURRENT_PRIMARY_SERVICE_MANAGER_AND_NOT_APPLICANT"
+    },
+    "frontendBackendTruth": "same permission codes; server revalidates tenant, function, project scope, current participant fact, change state and version"
+  },
+  "platformFacts": {
+    "idempotencyTable": "plt_idempotency_record",
+    "auditTable": "plt_operation_audit",
+    "outboxEvents": [],
+    "reason": "Phase 2 locks PRE-01 to SOL internal synchronous contract and event N/A"
+  },
+  "legacy": {
+    "tables": ["pms_schedule_backward", "pms_schedule_backward_item", "pms_plan_change_request", "pms_plan_change_phase_snapshot"],
+    "policy": "audit for reusable validation and transition logic only; no current truth, no dual write, no automatic migration",
+    "forbiddenReuse": [
+      "directly update project phase plan dates",
+      "treat an applied backward calculation as current PRE-01 duration",
+      "accept applicant or approver ids from request",
+      "store file URLs as evidence truth",
+      "infer approval from legacy numeric status"
+    ]
+  },
+  "migration": {
+    "strategy": "NEXT_UNUSED_FLYWAY_AFTER_IMPLEMENTATION_BASELINE",
+    "implementationBaseline": "NPDMS_V89_AT_FEATURE_READY_DRAFT_TIME",
+    "forwardOnly": true,
+    "forbidden": ["EDIT_V1_TO_V89", "CREATE_SOL_CONSTRUCTION_PLAN_ITEM_EARLY", "LEGACY_DUAL_WRITE", "HISTORICAL_DATA_CUTOVER"]
+  },
+  "featureReadyDecision": "PENDING_INDEPENDENT_REVIEW"
+}

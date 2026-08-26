@@ -374,6 +374,7 @@ FEATURE_LINK_OVERRIDES = {
     "PM-08": "[F-PROJ-005](../../specs/features/F-PROJ-005-service-manager-manual-assignment.md)（仅V1人工指派）",
     "PM-10": "[F-PROJ-006](../../specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md)",
     "PM-11": "[F-PROJ-007](../../specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md)",
+    "PRE-01": "[F-SOL-001](../../specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md)",
 }
 
 IMPLEMENTATION_OVERRIDES = {
