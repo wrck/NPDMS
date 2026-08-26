@@ -45,3 +45,5 @@
 > Task 2整改记录（2026-08-27）：首次独立复审发现模板校验错误收窄为恰好六类基准项。现已改为发布时通过既有`DictDataApi`读取启用的`pms_preparation_survey_item_code`，要求完整包含六类基准项且全部扩展编码命中启用字典；冻结事实读取与锁定重验不回读可变字典，并接受结构合法的已批准扩展项。整改聚焦测试29/29 PASS，正式结论待独立复审。
 
 > Task 2独立裁决（2026-08-27）：`NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1 / GO`；允许回写PASS并推进Task 3。
+
+> Task 3候选证据（2026-08-27）：六张SOL表已建立不继承通用CRUD的封闭Mapper与场景Query/XML，只暴露显式insert、租户精确查询、稳定游标、`FOR UPDATE`当前读、生命周期/current/input/readiness版本CAS及不可变快照追加；固定V1目录仅经既有`ConfigApi`读取，封闭校验六类form、五种字段类型与字段规则，并将form身份和唯一`commonFields`确定性冻结，运行期只校验冻结Schema；Preparation与Item适用性/确认状态分轴规则已闭合。聚焦规则/Mapper契约7/7 PASS，`mvn.cmd -pl pms-module-engineering -am test`为26模块Reactor BUILD SUCCESS，engineering 114项中79通过、35项按真实环境条件跳过。正式PASS以独立Implementation Done裁决为准。

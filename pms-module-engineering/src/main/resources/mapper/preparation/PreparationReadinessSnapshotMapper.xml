@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationReadinessSnapshotMapper">
+
+    <sql id="columns">
+        id, preparation_id, snapshot_no, result_code, rule_version, project_scope_version,
+        input_version, preparation_version, readiness_version, item_facts_snapshot,
+        file_facts_snapshot, source_facts_snapshot, waiver_facts_snapshot, blockers_snapshot,
+        evaluated_by, evaluated_at, creator, create_time, tenant_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_preparation_readiness_snapshot (
+            preparation_id, snapshot_no, result_code, rule_version, project_scope_version,
+            input_version, preparation_version, readiness_version, item_facts_snapshot,
+            file_facts_snapshot, source_facts_snapshot, waiver_facts_snapshot, blockers_snapshot,
+            evaluated_by, evaluated_at, creator, create_time, tenant_id
+        ) VALUES (
+            #{row.preparationId}, #{row.snapshotNo}, #{row.resultCode}, #{row.ruleVersion}, #{row.projectScopeVersion},
+            #{row.inputVersion}, #{row.preparationVersion}, #{row.readinessVersion}, #{row.itemFactsSnapshot},
+            #{row.fileFactsSnapshot}, #{row.sourceFactsSnapshot}, #{row.waiverFactsSnapshot}, #{row.blockersSnapshot},
+            #{row.evaluatedBy}, #{row.evaluatedAt}, COALESCE(#{row.creator}, ''),
+            COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId}
+        )
+    </insert>
+
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationReadinessSnapshotDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_readiness_snapshot
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        <choose>
+            <when test="query.cursorSnapshotNo == null and query.cursorId == null"/>
+            <when test="query.cursorSnapshotNo != null and query.cursorId != null">
+                AND (snapshot_no &gt; #{query.cursorSnapshotNo}
+                    OR (snapshot_no = #{query.cursorSnapshotNo} AND id &gt; #{query.cursorId}))
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY snapshot_no ASC, id ASC
+        LIMIT #{query.limit}
+    </select>
+
+</mapper>

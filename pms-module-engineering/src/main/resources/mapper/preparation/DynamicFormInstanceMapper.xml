@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper">
+
+    <sql id="columns">
+        id, preparation_id, item_id, form_code, form_version, schema_snapshot, value_snapshot,
+        status_code, frozen_at, frozen_by, version, creator, create_time, updater, update_time, tenant_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_dynamic_form_instance (
+            preparation_id, item_id, form_code, form_version, schema_snapshot, value_snapshot,
+            status_code, frozen_at, frozen_by, version, creator, create_time, updater, update_time, tenant_id
+        ) VALUES (
+            #{row.preparationId}, #{row.itemId}, #{row.formCode}, #{row.formVersion},
+            #{row.schemaSnapshot}, #{row.valueSnapshot}, #{row.statusCode}, #{row.frozenAt}, #{row.frozenBy},
+            #{row.version}, COALESCE(#{row.creator}, ''), COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)),
+            COALESCE(#{row.updater}, ''), COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId}
+        )
+    </insert>
+
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO">
+        SELECT <include refid="columns"/> FROM sol_dynamic_form_instance
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+          AND item_id = #{query.itemId}
+          AND id = #{query.formInstanceId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO">
+        SELECT <include refid="columns"/> FROM sol_dynamic_form_instance
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        ORDER BY item_id ASC, form_code ASC, id ASC
+        FOR UPDATE
+    </select>
+
+    <update id="updateDraftIfMatch">
+        UPDATE sol_dynamic_form_instance
+        SET value_snapshot = #{update.valueSnapshot},
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND preparation_id = #{update.preparationId}
+          AND item_id = #{update.itemId}
+          AND id = #{update.formInstanceId}
+          AND version = #{update.expectedVersion}
+          AND status_code = 'DRAFT'
+          AND frozen_at IS NULL
+    </update>
+
+    <update id="freezeIfMatch">
+        UPDATE sol_dynamic_form_instance
+        SET status_code = 'FROZEN',
+            frozen_at = #{update.frozenAt},
+            frozen_by = #{update.frozenBy},
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND preparation_id = #{update.preparationId}
+          AND item_id = #{update.itemId}
+          AND id = #{update.formInstanceId}
+          AND version = #{update.expectedVersion}
+          AND status_code = 'DRAFT'
+          AND frozen_at IS NULL
+    </update>
+
+</mapper>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationSourceReferenceMapper">
+
+    <sql id="columns">
+        id, preparation_id, item_id, source_type_code, source_object_type, source_object_id,
+        source_reference_key, required_result_policy_snapshot, normalized_result_code,
+        source_fact_version, source_watermark, sync_status_code, last_success_result_code,
+        last_success_fact_version, last_success_watermark, last_success_at, last_synced_at,
+        last_sync_error_code, version, creator, create_time, updater, update_time, tenant_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_preparation_source_reference (
+            preparation_id, item_id, source_type_code, source_object_type, source_object_id,
+            source_reference_key, required_result_policy_snapshot, normalized_result_code,
+            source_fact_version, source_watermark, sync_status_code, last_success_result_code,
+            last_success_fact_version, last_success_watermark, last_success_at, last_synced_at,
+            last_sync_error_code, version, creator, create_time, updater, update_time, tenant_id
+        ) VALUES (
+            #{row.preparationId}, #{row.itemId}, #{row.sourceTypeCode}, #{row.sourceObjectType}, #{row.sourceObjectId},
+            #{row.sourceReferenceKey}, #{row.requiredResultPolicySnapshot}, #{row.normalizedResultCode},
+            #{row.sourceFactVersion}, #{row.sourceWatermark}, #{row.syncStatusCode}, #{row.lastSuccessResultCode},
+            #{row.lastSuccessFactVersion}, #{row.lastSuccessWatermark}, #{row.lastSuccessAt}, #{row.lastSyncedAt},
+            #{row.lastSyncErrorCode}, #{row.version}, COALESCE(#{row.creator}, ''),
+            COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)), COALESCE(#{row.updater}, ''),
+            COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId}
+        )
+    </insert>
+
+    <select id="selectListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationSourceReferenceDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_source_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        ORDER BY item_id ASC, source_type_code ASC, source_reference_key ASC, id ASC
+        FOR UPDATE
+    </select>
+
+    <update id="updateSyncIfMatch">
+        UPDATE sol_preparation_source_reference
+        SET sync_status_code = #{update.syncStatusCode},
+            normalized_result_code = #{update.normalizedResultCode},
+            source_fact_version = #{update.sourceFactVersion},
+            source_watermark = #{update.sourceWatermark},
+            last_success_result_code = #{update.lastSuccessResultCode},
+            last_success_fact_version = #{update.lastSuccessFactVersion},
+            last_success_watermark = #{update.lastSuccessWatermark},
+            last_success_at = #{update.lastSuccessAt},
+            last_synced_at = #{update.lastSyncedAt},
+            last_sync_error_code = #{update.lastSyncErrorCode},
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND preparation_id = #{update.preparationId}
+          AND item_id = #{update.itemId}
+          AND id = #{update.sourceReferenceId}
+          AND version = #{update.expectedVersion}
+    </update>
+
+</mapper>

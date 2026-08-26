@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper">
+
+    <sql id="columns">
+        id, project_id, preparation_type_code, business_version, current_marker,
+        template_id, template_revision_id, template_snapshot, fixed_form_catalog_version,
+        status_code, readiness_status_code, latest_readiness_snapshot_id,
+        input_version, readiness_version, snapshot_current,
+        submitted_at, confirmed_at, returned_at, return_reason, version,
+        creator, create_time, updater, update_time, tenant_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_preparation (
+            project_id, preparation_type_code, business_version, current_marker,
+            template_id, template_revision_id, template_snapshot, fixed_form_catalog_version,
+            status_code, readiness_status_code, latest_readiness_snapshot_id,
+            input_version, readiness_version, snapshot_current,
+            submitted_at, confirmed_at, returned_at, return_reason, version,
+            creator, create_time, updater, update_time, tenant_id
+        ) VALUES (
+            #{row.projectId}, #{row.preparationTypeCode}, #{row.businessVersion}, #{row.currentMarker},
+            #{row.templateId}, #{row.templateRevisionId}, #{row.templateSnapshot}, #{row.fixedFormCatalogVersion},
+            #{row.statusCode}, #{row.readinessStatusCode}, #{row.latestReadinessSnapshotId},
+            #{row.inputVersion}, #{row.readinessVersion}, #{row.snapshotCurrent},
+            #{row.submittedAt}, #{row.confirmedAt}, #{row.returnedAt}, #{row.returnReason}, #{row.version},
+            COALESCE(#{row.creator}, ''), COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)),
+            COALESCE(#{row.updater}, ''), COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId}
+        )
+    </insert>
+
+    <select id="selectCurrent" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/>
+        FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND preparation_type_code = #{query.preparationTypeCode}
+          AND current_marker = 1
+    </select>
+
+    <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/>
+        FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND preparation_type_code = #{query.preparationTypeCode}
+          AND current_marker = 1
+        FOR UPDATE
+    </select>
+
+    <select id="selectById" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/>
+        FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.preparationId}
+    </select>
+
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/>
+        FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.preparationId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/>
+        FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND preparation_type_code = #{query.preparationTypeCode}
+        <choose>
+            <when test="query.cursorBusinessVersion == null and query.cursorId == null"/>
+            <when test="query.cursorBusinessVersion != null and query.cursorId != null">
+                AND (business_version &lt; #{query.cursorBusinessVersion}
+                    OR (business_version = #{query.cursorBusinessVersion} AND id &lt; #{query.cursorId}))
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY business_version DESC, id DESC
+        LIMIT #{query.limit}
+    </select>
+
+    <update id="updateLifecycleIfMatch">
+        UPDATE sol_preparation
+        SET status_code = #{update.statusCode},
+            submitted_at = #{update.submittedAt},
+            confirmed_at = #{update.confirmedAt},
+            returned_at = #{update.returnedAt},
+            return_reason = #{update.returnReason},
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.preparationId}
+          AND version = #{update.expectedVersion}
+          AND status_code = #{update.expectedStatusCode}
+    </update>
+
+    <update id="clearCurrentMarkerIfMatch">
+        UPDATE sol_preparation
+        SET current_marker = NULL,
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.preparationId}
+          AND version = #{update.expectedVersion}
+          AND current_marker = 1
+    </update>
+
+    <update id="invalidateReadinessIfMatch">
+        UPDATE sol_preparation
+        SET readiness_status_code = 'NOT_READY',
+            snapshot_current = b'0',
+            input_version = input_version + 1,
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.preparationId}
+          AND version = #{update.expectedVersion}
+          AND input_version = #{update.expectedInputVersion}
+          AND readiness_version = #{update.expectedReadinessVersion}
+    </update>
+
+    <update id="updateReadinessIfMatch">
+        UPDATE sol_preparation
+        SET readiness_status_code = #{update.readinessStatusCode},
+            latest_readiness_snapshot_id = #{update.latestReadinessSnapshotId},
+            snapshot_current = #{update.snapshotCurrent},
+            readiness_version = readiness_version + 1,
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.preparationId}
+          AND version = #{update.expectedVersion}
+          AND input_version = #{update.expectedInputVersion}
+          AND readiness_version = #{update.expectedReadinessVersion}
+    </update>
+
+</mapper>
