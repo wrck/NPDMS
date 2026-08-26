@@ -96,17 +96,17 @@ Expected: 迁移契约和编译PASS。提交：`feat(engineering): 建立项目�
 
 **Consumes:** `ProjectScopeApi`、`proj_project`、`proj_project_member_assignment`，不向SOL暴露DO/Mapper。
 
-- [ ] **Step 1: 定义封闭公共契约**
+- [x] **Step 1: 定义封闭公共契约**
 
 `inspect(query)`要求`projectId`和非空`requiredRoleCodes`；`subjectUserId`为空时只选择当前符合角色的项目经理或主责服务经理。结果返回project/user/effectiveRoleCodes/assignmentType/lifecycleStatus/currentStage/projectVersion/factVersion。角色值域只接受`PROJECT_MANAGER/SERVICE_MANAGER_L1/SERVICE_MANAGER_L2`。
 
 `lockAndRevalidate(query)`要求projectId、userId、expectedProjectVersion、requiredLifecycleStatus、requiredRoleCodes，可选requiredCurrentStage；受信tenantId来自调用上下文且必须与query一致。任何空、越租户、版本变化、角色不符或多主责歧义失败关闭。
 
-- [ ] **Step 2: 实现当前读与锁定读**
+- [x] **Step 2: 实现当前读与锁定读**
 
 Mapper XML按`proj_project`行先锁定，再读取当前有效成员区间；PRIMARY兼容沿用既有`assignment_type='PRIMARY' OR assignment_type IS NULL`。`checkedAt`只用于inspect时态快照；锁定重验使用服务端事务时间。空角色集合直接拒绝，不生成全量查询。
 
-- [ ] **Step 3: 实施后验证并提交**
+- [x] **Step 3: 实施后验证并提交**
 
 覆盖当前项目经理、L1/L2主责、NULL主责兼容、排除协同、申请人与审批人同一用户、ACTIVE/S1、离开S1后的ACTIVE、项目版本冲突、跨租户、空角色、历史区间和并发角色变化。真实MySQL验证锁定顺序与最新事实。
 

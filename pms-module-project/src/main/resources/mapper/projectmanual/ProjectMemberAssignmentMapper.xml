@@ -88,6 +88,61 @@
                  id
     </select>
 
+    <select id="selectParticipantFacts"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT id, project_id, user_id, member_role, assignment_type, version, tenant_id
+        FROM proj_project_member_assignment
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          <if test="query.subjectUserId != null">
+              AND user_id = #{query.subjectUserId}
+          </if>
+          <choose>
+              <when test="query.requiredRoleCodes != null and !query.requiredRoleCodes.isEmpty()">
+                  AND member_role IN
+                  <foreach collection="query.requiredRoleCodes" item="roleCode" open="(" separator="," close=")">
+                      #{roleCode}
+                  </foreach>
+              </when>
+              <otherwise>
+                  AND 1 = 0
+              </otherwise>
+          </choose>
+          AND (assignment_type = 'PRIMARY' OR assignment_type IS NULL)
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+        ORDER BY user_id, member_role, id
+    </select>
+
+    <select id="selectParticipantFactsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT id, project_id, user_id, member_role, assignment_type, version, tenant_id
+        FROM proj_project_member_assignment
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND user_id = #{query.userId}
+          <choose>
+              <when test="query.requiredRoleCodes != null and !query.requiredRoleCodes.isEmpty()">
+                  AND member_role IN
+                  <foreach collection="query.requiredRoleCodes" item="roleCode" open="(" separator="," close=")">
+                      #{roleCode}
+                  </foreach>
+              </when>
+              <otherwise>
+                  AND 1 = 0
+              </otherwise>
+          </choose>
+          AND (assignment_type = 'PRIMARY' OR assignment_type IS NULL)
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+          AND (effective_from IS NULL OR effective_from &lt;= CURRENT_TIMESTAMP(3))
+          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))
+        ORDER BY user_id, member_role, id
+        FOR UPDATE
+    </select>
+
     <update id="closeEffectiveServiceManagerAssignments">
         UPDATE proj_project_member_assignment
         SET effective_to = #{query.closedAt},

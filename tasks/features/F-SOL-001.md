@@ -35,3 +35,5 @@
 - [ ] Task 10 完成真实浏览器、独立复审和Feature Done回写
 
 > 检查点（2026-08-26）：Task 1提交`b2b019d`经独立复审GO；V1～V91隔离MySQL迁移、根唯一键、种子幂等、迁移契约4/4、20模块Reactor编译及规格快照校验均PASS，允许推进Task 2。
+
+> 检查点（2026-08-26）：Task 2已完成PROJ项目资格与当前参与人公共事实候选实现；公共API行为8/8、V1～V91隔离MySQL Mapper/锁定回归4/4及25模块Reactor均PASS，当前等待独立Implementation Done复审，尚未回写Task 2 PASS。

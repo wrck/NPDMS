@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveP
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentServiceManagerAssignmentsQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentMemberResponsibilityQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLockQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLookupQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectServiceManagerIntervalClose;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ServiceManagerResponsibilityPageQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -45,6 +47,12 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
 
     List<ProjectMemberAssignmentDO> selectCurrentServiceManagerAssignments(
             @Param("query") CurrentServiceManagerAssignmentsQuery query);
+
+    List<ProjectMemberAssignmentDO> selectParticipantFacts(
+            @Param("query") ProjectParticipantFactLookupQuery query);
+
+    List<ProjectMemberAssignmentDO> selectParticipantFactsForUpdate(
+            @Param("query") ProjectParticipantFactLockQuery query);
 
     int closeEffectiveServiceManagerAssignments(
             @Param("query") ProjectServiceManagerIntervalClose query);
