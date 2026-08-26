@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-PLT-001",
+  "requirementIds": ["PLT-02"],
+  "status": "IN_REVIEW",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "FEATURE_READY_REVIEW_ONLY_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
+  "boundaryDecision": "GO_NPDMS_FPLT001_BOUNDARY_20260826_01",
+  "owner": {
+    "context": "PLATFORM",
+    "implementationModule": "pms-module-platform",
+    "publicContractModule": "pms-module-platform-api",
+    "technicalStorageProvider": "yudao-module-infra public FileApi only",
+    "forbiddenOwners": ["INFRA_FILE_TABLE", "SOL", "IMP", "ACC", "CUT", "INS"]
+  },
+  "v1Scope": {
+    "included": [
+      "FILE_ARTIFACT_IDENTITY",
+      "IMMUTABLE_FILE_VERSION",
+      "FIXED_VERSION_BUSINESS_REFERENCE",
+      "UPLOAD_SESSION_AND_SERVER_VALIDATION",
+      "SECURITY_SCAN",
+      "DRAFT_REFERENCE_REPLACEMENT",
+      "DETACH_AND_DRAFT_LOGICAL_DELETE",
+      "INVALIDATION_AND_ARCHIVE",
+      "SHORT_LIVED_ACCESS",
+      "BUSINESS_OBJECT_PERMISSION_PROVIDER",
+      "SOL_CUSTOMER_DELAY_EVIDENCE_FIRST_CONSUMER",
+      "RESPONSIVE_SHARED_UI"
+    ],
+    "deferred": [
+      "PLT_01",
+      "INT_11",
+      "INT_12",
+      "DOMAIN_APPROVAL_AND_COMPLETENESS_STATUS",
+      "FILES_OVER_50_MB",
+      "HISTORICAL_ATTACHMENT_MIGRATION",
+      "DEPLOYMENT_SIT_UAT_RELEASE"
+    ]
+  },
+  "tables": {
+    "plt_file_artifact": {
+      "purpose": "tenant-aware stable business identity independent from storage object and content versions",
+      "requiredFields": [
+        "id", "tenant_id", "name", "category_code", "owner_context", "lifecycle_status_code",
+        "version", "creator", "create_time", "updater", "update_time", "deleted"
+      ],
+      "nullableFields": ["invalid_reason_code", "invalid_reason_detail", "invalidated_at", "invalidated_by"],
+      "referenceKey": ["tenant_id", "id"],
+      "indexes": [
+        ["tenant_id", "owner_context", "category_code", "id"],
+        ["tenant_id", "creator", "create_time", "id"]
+      ],
+      "lifecycleStatusCodes": ["DRAFT", "ACTIVE", "INVALIDATED"],
+      "identityPolicy": "artifact id never changes on new content and is never an infra file id, path or URL",
+      "deletionPolicy": "logical delete only for a never-referenced draft; id and version history are never reused",
+      "concurrency": "ROW_LOCK_PLUS_VERSION_CAS"
+    },
+    "plt_file_version": {
+      "purpose": "immutable content version and stable technical storage receipt",
+      "requiredFields": [
+        "id", "tenant_id", "artifact_id", "version_no", "infra_file_id", "storage_config_id", "storage_path",
+        "sha256", "size_bytes", "declared_media_type", "detected_media_type", "scan_status_code",
+        "availability_status_code", "created_by", "created_at"
+      ],
+      "nullableFields": ["version_note", "scan_provider_code", "scan_provider_version", "unavailable_reason_code", "unavailable_at"],
+      "stableKey": ["tenant_id", "artifact_id", "version_no"],
+      "referenceKey": ["tenant_id", "artifact_id", "version_no"],
+      "uniqueKeys": [
+        ["tenant_id", "artifact_id", "version_no"],
+        ["storage_config_id", "storage_path"],
+        ["infra_file_id"]
+      ],
+      "indexes": [
+        ["tenant_id", "artifact_id", "created_at", "id"],
+        ["tenant_id", "availability_status_code", "id"]
+      ],
+      "foreignKeys": ["(tenant_id, artifact_id) -> plt_file_artifact(tenant_id, id)"],
+      "scanStatusCodes": ["PASSED"],
+      "availabilityStatusCodes": ["AVAILABLE", "UNAVAILABLE", "INVALIDATED"],
+      "immutability": "no application update or delete entry for content, hash, size, media type, storage receipt or version number",
+      "storageBoundary": "infra_file_id, storage_config_id and storage_path are technical locators; none is a PLT business identity and no database foreign key points to INFRA"
+    },
+    "plt_file_reference": {
+      "purpose": "stable business object purpose slot fixed to one artifact and immutable version at a time",
+      "requiredFields": [
+        "id", "tenant_id", "owner_context", "object_type", "object_id", "purpose_code", "reference_key",
+        "artifact_id", "file_version_no", "sensitivity_code", "status_code", "scope_version", "version",
+        "creator", "create_time", "updater", "update_time"
+      ],
+      "nullableFields": ["detached_at", "detached_by", "detached_reason", "archived_at"],
+      "stableKey": ["tenant_id", "owner_context", "object_type", "object_id", "purpose_code", "reference_key"],
+      "referenceKey": ["tenant_id", "id"],
+      "indexes": [
+        ["tenant_id", "artifact_id", "file_version_no", "status_code", "id"],
+        ["tenant_id", "owner_context", "object_type", "object_id", "status_code", "id"]
+      ],
+      "foreignKeys": [
+        "(tenant_id, artifact_id) -> plt_file_artifact(tenant_id, id)",
+        "(tenant_id, artifact_id, file_version_no) -> plt_file_version(tenant_id, artifact_id, version_no)"
+      ],
+      "statusCodes": ["ACTIVE", "DETACHED", "ARCHIVED"],
+      "replacementPolicy": "an ACTIVE business-mutable reference may CAS to a new version of the same artifact; a DETACHED stable slot may rebind and return ACTIVE only after fresh provider authorization and If-Match; business approvals retain frozen artifactId plus versionNo",
+      "concurrency": "VERSION_CAS_WITH_IF_MATCH"
+    },
+    "plt_file_upload_session": {
+      "purpose": "one authorized short-lived upload intent and its completion/compensation facts",
+      "requiredFields": [
+        "id", "tenant_id", "mode_code", "owner_context", "object_type", "object_id", "purpose_code",
+        "reference_key", "file_name", "category_code", "declared_size_bytes", "declared_media_type",
+        "storage_config_id", "storage_path", "status_code", "scope_version", "expires_at", "version",
+        "creator", "create_time", "updater", "update_time"
+      ],
+      "nullableFields": [
+        "artifact_id", "reference_id", "expected_reference_version", "client_sha256", "actual_sha256",
+        "completed_file_version_no", "registered_infra_file_id", "failure_code", "failure_detail", "completed_at"
+      ],
+      "referenceKey": ["tenant_id", "id"],
+      "uniqueKeys": [["storage_config_id", "storage_path"]],
+      "indexes": [
+        ["tenant_id", "status_code", "expires_at", "id"],
+        ["tenant_id", "owner_context", "object_type", "object_id", "create_time", "id"]
+      ],
+      "modeCodes": ["CREATE_ARTIFACT", "ADD_VERSION"],
+      "statusCodes": ["INITIALIZED", "VALIDATING", "COMPLETED", "FAILED_RETRYABLE", "FAILED_FINAL", "EXPIRED"],
+      "successPolicy": "COMPLETED requires a PASSED server scan, registered INFRA receipt, committed FileVersion and committed FileReference create/CAS",
+      "urlPolicy": "presigned upload URL is response-only and is never persisted"
+    },
+    "plt_file_access_grant": {
+      "purpose": "short-lived least-privilege download or preview authorization",
+      "requiredFields": [
+        "id", "tenant_id", "artifact_id", "file_version_no", "subject_user_id", "operation_code",
+        "business_scope_hash", "token_digest", "status_code", "expires_at", "created_at"
+      ],
+      "nullableFields": ["consumed_at", "revoked_at", "revoked_by", "revoke_reason"],
+      "referenceKey": ["tenant_id", "id"],
+      "uniqueKeys": [["token_digest"]],
+      "indexes": [
+        ["tenant_id", "subject_user_id", "status_code", "expires_at", "id"],
+        ["tenant_id", "artifact_id", "file_version_no", "status_code", "id"]
+      ],
+      "foreignKeys": ["(tenant_id, artifact_id, file_version_no) -> plt_file_version(tenant_id, artifact_id, version_no)"],
+      "operationCodes": ["DOWNLOAD", "PREVIEW"],
+      "statusCodes": ["ACTIVE", "CONSUMED", "REVOKED", "EXPIRED"],
+      "secretPolicy": "store irreversible token digest only; never persist token plaintext or short-lived URL"
+    },
+    "plt_file_archive_record": {
+      "purpose": "append-only archive fact for an exact artifact version and business decision",
+      "requiredFields": [
+        "id", "tenant_id", "artifact_id", "file_version_no", "archive_batch_id", "business_decision_ref",
+        "archived_by", "archived_at", "created_at"
+      ],
+      "nullableFields": ["archive_note"],
+      "stableKey": ["tenant_id", "archive_batch_id", "artifact_id", "file_version_no"],
+      "referenceKey": ["tenant_id", "id"],
+      "indexes": [["tenant_id", "artifact_id", "file_version_no", "archived_at", "id"]],
+      "foreignKeys": ["(tenant_id, artifact_id, file_version_no) -> plt_file_version(tenant_id, artifact_id, version_no)"],
+      "immutability": "append-only; no update or delete application entry"
+    }
+  },
+  "stateAxes": {
+    "artifactLifecycle": "plt_file_artifact.lifecycle_status_code",
+    "versionAvailability": "plt_file_version.availability_status_code",
+    "referenceLifecycle": "plt_file_reference.status_code",
+    "uploadLifecycle": "plt_file_upload_session.status_code",
+    "accessGrantLifecycle": "plt_file_access_grant.status_code",
+    "businessApproval": "owned only by the referencing business context and never inferred from file states"
+  },
+  "transactions": {
+    "initUpload": "TRUSTED_TENANT_AND_ACTOR; FUNCTION_PERMISSION; BUSINESS_PROVIDER_INSPECT; FILE_POLICY; IDEMPOTENCY_CLAIM; CREATE_UPLOAD_SESSION; CREATE_INFRA_UPLOAD_TICKET; AUDIT",
+    "completeUpload": "LOCK_SESSION; IDEMPOTENCY_REPLAY_OR_CONFLICT; READ_STORAGE_OBJECT; SERVER_SIZE_HASH_MIME_AND_SCAN; REGISTER_INFRA_OBJECT; LOCK_ARTIFACT; ALLOCATE_VERSION; CREATE_IMMUTABLE_FILE_VERSION; CREATE_OR_CAS_REFERENCE; COMPLETE_SESSION; IDEMPOTENCY_SUCCESS; AUDIT",
+    "referenceMutation": "FUNCTION_PERMISSION; BUSINESS_PROVIDER_REVALIDATE_SCOPE_AND_MUTABILITY; LOCK_REFERENCE; IF_MATCH; DETACH_OR_ARCHIVE; AUDIT",
+    "access": "FUNCTION_PERMISSION; BUSINESS_PROVIDER_REVALIDATE; FILE_VERSION_AVAILABLE; CREATE_SHORT_LIVED_GRANT; PRESIGN_INFRA_GET; AUDIT",
+    "failure": "ROLLBACK_PLT_BUSINESS_TRANSACTION; WRITE_REJECTED_AUDIT; RETRY_SAME_SESSION_OR_COMPENSATE_ONLY_UNREFERENCED_STORAGE_OBJECT"
+  },
+  "interfaces": {
+    "http": {
+      "prefix": "/api/v1/pms",
+      "routes": [
+        "POST /files:init-upload",
+        "POST /files/{artifactId}:complete-upload",
+        "GET /files/{artifactId}",
+        "GET /files/{artifactId}/versions",
+        "GET /file-references",
+        "DELETE /file-references/{id}",
+        "POST /files/{artifactId}/actions/delete-draft",
+        "POST /files/{artifactId}/actions/invalidate",
+        "POST /file-references/{id}/actions/archive",
+        "POST /files/{artifactId}/access-tickets"
+      ],
+      "trustedContext": ["tenantId", "actorUserId"],
+      "forbiddenInputs": ["tenantId", "actorUserId", "storageConfigId", "storagePath", "permanentUrl", "publicAcl"],
+      "pagination": "stable cursors versionNo,id and createTime,id"
+    },
+    "fileArtifactApi": {
+      "providerModule": "pms-module-platform-api",
+      "contract": [
+        "FileArtifactApi.inspect(FileArtifactVersionQuery)",
+        "FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)"
+      ],
+      "query": ["artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "requiredAction"],
+      "trustedContext": ["tenantId", "actorUserId"],
+      "response": [
+        "artifactId", "versionNo", "categoryCode", "name", "sizeBytes", "mediaType", "sha256",
+        "availabilityStatus", "referenceStatus", "fileFactVersion", "scopeVersion"
+      ],
+      "unknownPolicy": "missing, cross-tenant, unreferenced, invalidated, unavailable, unauthorized or version-changed facts fail closed"
+    },
+    "businessObjectPolicyProvider": {
+      "providerModule": "pms-module-platform-api",
+      "contract": "FileBusinessObjectPolicyProvider.inspect(FileBusinessObjectPolicyQuery)",
+      "key": ["ownerContext", "objectType"],
+      "actionCodes": ["UPLOAD", "REFERENCE", "READ", "DOWNLOAD", "PREVIEW", "REPLACE", "DETACH", "ARCHIVE", "INVALIDATE"],
+      "response": ["allowed", "scopeVersion", "referenceMutability", "cardinality", "allowedCategoryCodes", "allowedMediaTypes", "maxSizeBytes", "sensitivityCode"],
+      "selectionPolicy": "exactly one provider must support a key; zero, multiple, exception or unknown action fail closed",
+      "solFirstConsumer": "SOL/CONSTRUCTION_PLAN_CHANGE/CUSTOMER_DELAY_EVIDENCE; authorizes file actions only and never writes or returns PRE-01 approval status"
+    },
+    "securityScanProvider": {
+      "providerModule": "pms-module-platform",
+      "contract": "FileSecurityScanProvider.scan(FileSecurityScanCommand)",
+      "resultCodes": ["PASSED", "REJECTED", "ERROR"],
+      "failurePolicy": "missing provider, ERROR or exception prevents FileVersion and FileReference success"
+    },
+    "infraFileApiExceptionCandidate": {
+      "providerModule": "yudao-module-infra public FileApi",
+      "approvalStatus": "PENDING_FEATURE_READY_DECISION",
+      "additiveMethods": {
+        "createUploadTicket": {
+          "request": ["name", "directoryHint"],
+          "response": ["configId", "storagePath", "uploadUrl", "expiresAt"]
+        },
+        "readStorageObject": {
+          "request": ["configId", "storagePath"],
+          "response": "byte[] limited by the caller-enforced 50MB PLT policy"
+        },
+        "registerStorageObject": {
+          "request": ["configId", "storagePath", "name", "mediaType", "size"],
+          "response": ["infraFileId", "configId", "storagePath", "name", "mediaType", "size"]
+        },
+        "presignGetStorageObject": {
+          "request": ["configId", "storagePath", "expirationSeconds"],
+          "response": ["shortLivedUrl", "expiresAt"]
+        },
+        "deleteRegisteredStorageObject": {
+          "request": ["infraFileId"],
+          "response": "idempotent technical deletion result used only after PLT verifies no committed version reference"
+        }
+      },
+      "compatibility": "retain all existing FileApi methods and observable behavior; new DTOs contain no tenant, business object, PLT identity or permission fields",
+      "forbidden": ["PLT_DIRECT_INFRA_MAPPER", "PLT_DIRECT_INFRA_DO", "PLT_DIRECT_INFRA_SERVICE", "URL_AS_FILE_IDENTITY", "PMS_OBJECT_STORAGE_CLIENT_DUPLICATION", "Yudao_FRAMEWORK_CHANGE"]
+    }
+  },
+  "permissions": {
+    "query": {"permissionCode": "pms:file:query", "providerAction": "READ"},
+    "upload": {"permissionCode": "pms:file:upload", "providerActions": ["UPLOAD", "REPLACE"]},
+    "download": {"permissionCode": "pms:file:download", "providerAction": "DOWNLOAD"},
+    "preview": {"permissionCode": "pms:file:preview", "providerAction": "PREVIEW"},
+    "manage": {"permissionCode": "pms:file:manage", "providerAction": "DETACH"},
+    "archive": {"permissionCode": "pms:file:archive", "providerActions": ["ARCHIVE", "INVALIDATE"]},
+    "frontendBackendTruth": "same permission codes; server revalidates trusted tenant, function, business provider, scopeVersion, file status and CAS"
+  },
+  "configuration": {
+    "categoryDictionaryType": "pms_file_category",
+    "sensitivityDictionaryType": "pms_file_sensitivity_level",
+    "solCustomerDelayCategoryCode": "CUSTOMER_DELAY_EVIDENCE",
+    "normalUploadMaxBytes": 52428800,
+    "storagePolicy": "private bucket, server encryption and TLS; deployment-specific config is not a Feature Ready blocker",
+    "scanPolicy": "a configured FileSecurityScanProvider is mandatory for successful completion; provider product and environment instance are selected in Technical Plan/Deployment without changing this contract"
+  },
+  "platformFacts": {
+    "idempotencyTable": "plt_idempotency_record",
+    "auditTable": "plt_operation_audit",
+    "outboxEvents": [],
+    "reason": "PLT metadata and INFRA storage call are synchronous in the modular monolith; no consumer requires a new cross-context event in this Feature"
+  },
+  "migration": {
+    "strategy": "NEXT_UNUSED_FLYWAY_AFTER_IMPLEMENTATION_BASELINE",
+    "forwardOnly": true,
+    "tables": [
+      "plt_file_artifact", "plt_file_version", "plt_file_reference", "plt_file_upload_session",
+      "plt_file_access_grant", "plt_file_archive_record"
+    ],
+    "forbidden": ["EDIT_ALREADY_EXECUTED_MIGRATION", "ALTER_INFRA_FILE_BUSINESS_MEANING", "HISTORICAL_ATTACHMENT_CUTOVER", "CROSS_CONTEXT_DATABASE_FOREIGN_KEY"]
+  },
+  "featureReadyDecision": "PENDING_INDEPENDENT_REVIEW_WITH_INFRA_FILE_API_EXCEPTION_DECISION"
+}
