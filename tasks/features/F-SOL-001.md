@@ -40,4 +40,4 @@
 
 > 检查点（2026-08-26）：Task 2提交`365d9073f56ecbc5ad41cc98d2d03b78fd820169`经独立复审GO；公共契约、封闭角色值域、受信租户、项目行与主责区间锁顺序、版本/阶段守卫及范围边界均通过，允许推进Task 3。
 
-> 检查点（2026-08-26）：Task 3已完成自然日工期规则、三表DO、场景化锁定/CAS/稳定分页与流程实例查询原语；聚焦规则及V1～V91隔离MySQL Mapper回归9/9、20模块Reactor均PASS，当前等待独立Implementation Done复审，尚未回写Task 3 PASS。
+> 检查点（2026-08-26）：Task 3已完成自然日工期规则、三表DO、封闭写接口、场景化锁定/CAS/稳定分页与流程实例查询原语；聚焦规则、Mapper接口契约及V1～V91隔离MySQL回归10/10、20模块Reactor均PASS，当前等待独立Implementation Done复审，尚未回写Task 3 PASS。

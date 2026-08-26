@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan;
 
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeLockQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangePageQuery;
@@ -12,7 +11,9 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 @Mapper
-public interface ConstructionPlanChangeMapper extends BaseMapperX<ConstructionPlanChangeDO> {
+public interface ConstructionPlanChangeMapper {
+
+    int insert(@Param("row") ConstructionPlanChangeDO row);
 
     ConstructionPlanChangeDO selectForUpdate(@Param("query") ConstructionPlanChangeLockQuery query);
 

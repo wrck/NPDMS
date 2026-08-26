@@ -9,6 +9,22 @@
         version, creator, create_time, updater, update_time, deleted, tenant_id
     </sql>
 
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_construction_plan (
+            project_id, current_duration_revision_id, pending_change_id,
+            plan_recalculation_status_code, plan_recalculation_source_revision_id,
+            version, creator, create_time, updater, update_time, tenant_id
+        ) VALUES (
+            #{row.projectId}, #{row.currentDurationRevisionId}, #{row.pendingChangeId},
+            #{row.planRecalculationStatusCode}, #{row.planRecalculationSourceRevisionId},
+            #{row.version}, COALESCE(#{row.creator}, ''),
+            COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)),
+            COALESCE(#{row.updater}, ''),
+            COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)),
+            #{row.tenantId}
+        )
+    </insert>
+
     <select id="selectByProjectId"
             resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO">
         SELECT <include refid="columns"/>

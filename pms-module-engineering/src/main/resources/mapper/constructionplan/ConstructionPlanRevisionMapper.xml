@@ -9,6 +9,19 @@
         created_at, version, tenant_id
     </sql>
 
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_construction_plan_revision (
+            plan_id, revision_no, calculation_basis_code, start_date, end_date,
+            duration_days, source_change_id, frozen_at, effective_at, created_by,
+            created_at, version, tenant_id
+        ) VALUES (
+            #{row.planId}, #{row.revisionNo}, #{row.calculationBasisCode},
+            #{row.startDate}, #{row.endDate}, #{row.durationDays}, #{row.sourceChangeId},
+            #{row.frozenAt}, #{row.effectiveAt}, #{row.createdBy}, #{row.createdAt},
+            #{row.version}, #{row.tenantId}
+        )
+    </insert>
+
     <select id="selectForUpdate"
             resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanRevisionDO">
         SELECT <include refid="columns"/>

@@ -12,6 +12,25 @@
         created_at, version, tenant_id
     </sql>
 
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_construction_plan_change (
+            plan_id, base_revision_id, candidate_revision_id, status_code,
+            reason_type_code, reason_detail, customer_evidence_required,
+            customer_evidence_file_id, customer_evidence_file_version,
+            process_definition_key, process_instance_id, submitted_at,
+            applicant_user_id, approver_user_id, approved_at, approval_opinion,
+            created_at, version, tenant_id
+        ) VALUES (
+            #{row.planId}, #{row.baseRevisionId}, #{row.candidateRevisionId},
+            #{row.statusCode}, #{row.reasonTypeCode}, #{row.reasonDetail},
+            #{row.customerEvidenceRequired}, #{row.customerEvidenceFileId},
+            #{row.customerEvidenceFileVersion}, #{row.processDefinitionKey},
+            #{row.processInstanceId}, #{row.submittedAt}, #{row.applicantUserId},
+            #{row.approverUserId}, #{row.approvedAt}, #{row.approvalOpinion},
+            #{row.createdAt}, #{row.version}, #{row.tenantId}
+        )
+    </insert>
+
     <select id="selectForUpdate"
             resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
         SELECT <include refid="columns"/>
