@@ -71,11 +71,11 @@
               object-type="CONSTRUCTION_PLAN_CHANGE"
               :object-id="String(draft.changeId)"
               purpose-code="CUSTOMER_DELAY_EVIDENCE"
-              :reference-key="evidenceReferenceKey"
+              :reference-key="activeEvidenceReferenceKey"
               :artifact-id="form.customerEvidenceFileId"
               :version-no="form.customerEvidenceFileVersion"
               editable
-              @loaded="evidenceReferenceVersion = $event.reference.referenceVersion"
+              @loaded="evidenceSlot.loaded"
               @detached="clearEvidence"
             />
             <PmsFileUploader
@@ -83,12 +83,13 @@
               object-type="CONSTRUCTION_PLAN_CHANGE"
               :object-id="String(draft.changeId)"
               purpose-code="CUSTOMER_DELAY_EVIDENCE"
-              :reference-key="evidenceReferenceKey"
+              :reference-key="activeEvidenceReferenceKey"
               category-code="CUSTOMER_DELAY_EVIDENCE"
-              :artifact-id="form.customerEvidenceFileId"
-              :expected-reference-version="evidenceReferenceVersion"
+              :artifact-id="evidenceSlot.state.artifactId"
+              :expected-reference-version="evidenceSlot.state.referenceVersion"
               :disabled="
-                Boolean(form.customerEvidenceFileId) && evidenceReferenceVersion === undefined
+                Boolean(evidenceSlot.state.artifactId) &&
+                evidenceSlot.state.referenceVersion === undefined
               "
               class="evidence-uploader"
               @completed="saveEvidence"
@@ -112,15 +113,20 @@ import { useMediaQuery } from '@vueuse/core'
 import { getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
-import type { FileSelection } from '@/components/PmsFileArtifact'
+import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
+import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
   ConstructionPlanChangeVO,
   ConstructionPlanVO,
-  DurationCalculationBasis,
   PatchDurationChangeReqVO
 } from '@/api/pms/engineering/construction-plan'
+import {
+  formStateFromChange,
+  reconcilePatchResponseLoss,
+  type DurationChangeFormState
+} from './durationChangeFormState'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const emit = defineEmits<{ saved: [] }>()
@@ -143,17 +149,7 @@ const title = computed(() =>
 )
 const reasonOptions = computed(() => getStrDictOptions('pms_duration_change_reason_type'))
 
-interface FormModel {
-  calculationBasis: DurationCalculationBasis
-  startDate: string
-  endDate?: string
-  durationDays?: number
-  reasonType: string
-  reasonDetail: string
-  customerEvidenceFileId?: number
-  customerEvidenceFileVersion?: number
-  customerEvidenceReferenceKey?: string
-}
+type FormModel = DurationChangeFormState
 
 const emptyForm = (): FormModel => ({
   calculationBasis: 'DATE_RANGE',
@@ -169,7 +165,10 @@ const emptyForm = (): FormModel => ({
 const form = reactive<FormModel>(emptyForm())
 const evidenceReferenceKey = 'customer-delay'
 const evidenceListRef = ref<InstanceType<typeof PmsFileReferenceList>>()
-const evidenceReferenceVersion = ref<number>()
+const evidenceSlot = useFileSlotState()
+const activeEvidenceReferenceKey = computed(
+  () => evidenceSlot.state.referenceKey || evidenceReferenceKey
+)
 const rules: FormRules<FormModel> = {
   calculationBasis: [{ required: true, message: '请选择计算口径' }],
   startDate: [{ required: true, message: '请选择开始日期' }],
@@ -196,6 +195,7 @@ const openInitial = () => {
   plan.value = undefined
   draft.value = undefined
   original.value = undefined
+  evidenceSlot.reset()
   assign({})
   visible.value = true
 }
@@ -204,6 +204,7 @@ const openCreate = (value: ConstructionPlanVO) => {
   plan.value = value
   draft.value = undefined
   original.value = undefined
+  evidenceSlot.reset()
   assign({ ...value.currentRevision, reasonType: '', reasonDetail: '' })
   visible.value = true
 }
@@ -211,16 +212,10 @@ const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) =
   mode.value = 'EDIT'
   plan.value = value
   draft.value = change
-  const snapshot: FormModel = {
-    ...change.candidateRevision,
-    reasonType: change.reasonType,
-    reasonDetail: change.reasonDetail || '',
-    customerEvidenceFileId: change.customerEvidenceFileId,
-    customerEvidenceFileVersion: change.customerEvidenceFileVersion,
-    customerEvidenceReferenceKey: change.customerEvidenceReferenceKey
-  }
+  const snapshot = formStateFromChange(change)
   assign(snapshot)
   original.value = structuredClone(snapshot)
+  evidenceSlot.reset(change.customerEvidenceFileId, change.customerEvidenceReferenceKey)
   visible.value = true
 }
 
@@ -249,6 +244,7 @@ const patchPayload = (): PatchDurationChangeReqVO => {
 
 const saveEvidence = async (selection: FileSelection) => {
   if (!plan.value || !draft.value) return
+  evidenceSlot.uploaded(selection)
   Object.assign(form, {
     customerEvidenceFileId: selection.artifactId,
     customerEvidenceFileVersion: selection.versionNo,
@@ -274,14 +270,19 @@ const saveEvidence = async (selection: FileSelection) => {
         customerEvidenceReferenceKey: selection.referenceKey
       })
   } catch {
-    message.warning('文件已完成校验，业务草稿尚未保存，请点击“保存草稿”重试')
+    const recovered = await recoverDraftAfterPatchLoss()
+    message.warning(
+      recovered
+        ? '文件已完成校验，已读取最新草稿；请点击“保存草稿”完成剩余变化'
+        : '文件已完成校验，草稿状态读取失败，请刷新后重试'
+    )
   } finally {
-    evidenceReferenceVersion.value = undefined
     await evidenceListRef.value?.refresh()
   }
 }
-const clearEvidence = async () => {
+const clearEvidence = async (result: DetachedFileSlot) => {
   if (!plan.value || !draft.value) return
+  evidenceSlot.detached(result)
   Object.assign(form, {
     customerEvidenceFileId: undefined,
     customerEvidenceFileVersion: undefined,
@@ -307,9 +308,27 @@ const clearEvidence = async () => {
         customerEvidenceReferenceKey: undefined
       })
   } catch {
-    message.warning('文件引用已解除，业务草稿尚未保存，请点击“保存草稿”重试')
-  } finally {
-    evidenceReferenceVersion.value = undefined
+    const recovered = await recoverDraftAfterPatchLoss()
+    message.warning(
+      recovered
+        ? '文件引用已解除，已读取最新草稿；请点击“保存草稿”完成剩余变化'
+        : '文件引用已解除，草稿状态读取失败，请刷新后重试'
+    )
+  }
+}
+
+const recoverDraftAfterPatchLoss = async () => {
+  if (!plan.value || !draft.value) return false
+  const local = structuredClone(toRaw(form))
+  try {
+    const current = await DurationApi.getChange(plan.value.planId, draft.value.changeId)
+    const recovered = reconcilePatchResponseLoss(local, current)
+    draft.value = recovered.current
+    assign(recovered.form)
+    original.value = recovered.baseline
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -343,16 +362,10 @@ const save = async () => {
       if (form.reasonType === 'CUSTOMER_DELAY') {
         mode.value = 'EDIT'
         draft.value = created
-        const snapshot: FormModel = {
-          ...created.candidateRevision,
-          reasonType: created.reasonType,
-          reasonDetail: created.reasonDetail || '',
-          customerEvidenceFileId: created.customerEvidenceFileId,
-          customerEvidenceFileVersion: created.customerEvidenceFileVersion,
-          customerEvidenceReferenceKey: created.customerEvidenceReferenceKey
-        }
+        const snapshot = formStateFromChange(created)
         assign(snapshot)
         original.value = structuredClone(snapshot)
+        evidenceSlot.reset(created.customerEvidenceFileId, created.customerEvidenceReferenceKey)
         emit('saved')
         return
       }

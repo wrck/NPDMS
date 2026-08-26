@@ -86,6 +86,14 @@ export interface FileAccessTicketVO {
   expiresAt: string
 }
 
+export interface FileLifecycleResultVO {
+  artifactId: number
+  versionNo?: number
+  referenceId?: number
+  factVersion: number
+  status: string
+}
+
 const baseUrl = '/api/v1/pms'
 
 export const initializeUpload = (data: FileUploadInitReqVO, idempotencyKey: string) =>
@@ -143,7 +151,7 @@ export const detachReference = (
   reason: string,
   idempotencyKey: string
 ) =>
-  request.delete({
+  request.delete<FileLifecycleResultVO>({
     url: `${baseUrl}/file-references/${referenceId}`,
     data: { ...key, reason },
     headers: { 'If-Match': String(referenceVersion), 'Idempotency-Key': idempotencyKey }

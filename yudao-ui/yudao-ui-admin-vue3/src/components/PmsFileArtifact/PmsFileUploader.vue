@@ -29,7 +29,7 @@
       class="upload-submit"
       @click="submit"
     >
-      {{ artifactId ? '上传新版本' : '上传并绑定' }}
+      {{ uploadMode === 'ADD_VERSION' ? '上传新版本' : '上传并绑定' }}
     </el-button>
   </div>
 </template>
@@ -40,6 +40,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as FileApi from '@/api/pms/platform/file'
 import type { FileBusinessKey } from '@/api/pms/platform/file'
 import type { FileSelection } from './types'
+import { resolveFileUploadMode } from './useFileSlotState'
 
 const props = withDefaults(
   defineProps<
@@ -63,6 +64,7 @@ const selectedFile = ref<File>()
 const busy = ref(false)
 const progress = ref(0)
 const stage = ref<'UPLOADING' | 'VALIDATING'>('UPLOADING')
+const uploadMode = computed(() => resolveFileUploadMode(props.artifactId))
 const attempt = ref<{
   initKey: string
   completeKey: string
@@ -103,7 +105,7 @@ const submit = async () => {
       (await FileApi.initializeUpload(
         {
           ...businessKey(),
-          modeCode: props.artifactId ? 'ADD_VERSION' : 'CREATE_ARTIFACT',
+          modeCode: uploadMode.value,
           artifactId: props.artifactId,
           expectedReferenceVersion: props.expectedReferenceVersion,
           fileName: file.name,

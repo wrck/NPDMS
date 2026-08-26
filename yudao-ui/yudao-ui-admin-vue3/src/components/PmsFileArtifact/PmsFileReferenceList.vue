@@ -55,6 +55,7 @@
 import { useMessage } from '@/hooks/web/useMessage'
 import * as FileApi from '@/api/pms/platform/file'
 import type { FileAccessOperation, FileArtifactVO, FileBusinessKey } from '@/api/pms/platform/file'
+import type { DetachedFileSlot } from './types'
 import PmsFileVersionDrawer from './PmsFileVersionDrawer.vue'
 
 const props = withDefaults(
@@ -67,7 +68,10 @@ const props = withDefaults(
   >(),
   { editable: false }
 )
-const emit = defineEmits<{ detached: []; loaded: [artifact: FileArtifactVO] }>()
+const emit = defineEmits<{
+  detached: [result: DetachedFileSlot]
+  loaded: [artifact: FileArtifactVO]
+}>()
 const message = useMessage()
 const loading = ref(false)
 const artifact = ref<FileArtifactVO>()
@@ -116,7 +120,7 @@ const openAccess = async (operation: FileAccessOperation) => {
 const detach = async () => {
   if (!artifact.value) return
   const prompt = await message.prompt('请输入解绑原因', '解除材料引用')
-  await FileApi.detachReference(
+  const result = await FileApi.detachReference(
     artifact.value.reference.referenceId,
     artifact.value.reference.referenceVersion,
     businessKey.value,
@@ -125,7 +129,7 @@ const detach = async () => {
   )
   message.success('材料引用已解除')
   artifact.value = undefined
-  emit('detached')
+  emit('detached', { ...result, referenceKey: businessKey.value.referenceKey })
 }
 const statusLabel = (status: string) =>
   ({ ACTIVE: '已绑定', DETACHED: '已解绑', ARCHIVED: '已归档' })[status] || status
