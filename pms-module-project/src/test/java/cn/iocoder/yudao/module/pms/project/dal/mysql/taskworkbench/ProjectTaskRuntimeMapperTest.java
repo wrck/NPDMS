@@ -177,6 +177,11 @@ class ProjectTaskRuntimeMapperTest {
             insertRootTaskWithStage(projectId + 2_000 + index, 1_000 + index, "S0");
         }
         List<Long> expected = new ArrayList<>();
+        long crossStageParentId = projectId + 3_100;
+        long crossStageChildId = projectId + 3_101;
+        insertRootTaskWithStage(crossStageParentId, 1_900, "S0");
+        insertChildTaskWithStage(crossStageChildId, crossStageParentId, 1_999, "S2");
+        expected.add(crossStageChildId);
         for (int index = 0; index < 3; index++) {
             long taskId = projectId + 3_000 + index;
             insertRootTaskWithStage(taskId, 2_000 + index, "S2");
@@ -189,6 +194,7 @@ class ProjectTaskRuntimeMapperTest {
                 .mode(ProjectTaskTreeQuery.Mode.DIRECT_CHILDREN).stageCode("S2").pageSize(50).build());
 
         assertEquals(expected, ids(page));
+        assertEquals(crossStageParentId, page.get(0).getParentTaskId());
     }
 
     @Test
@@ -497,6 +503,17 @@ class ProjectTaskRuntimeMapperTest {
                         + "VALUES (?,?,?,?,?,0,?,?,?,'PENDING_ASSIGN',0,0)",
                 id, projectId, "STAGE-" + id, "STAGE-" + id, id,
                 stateMachineRevisionId, stageCode, sortOrder);
+        insertPath(id, id, 0);
+    }
+
+    private void insertChildTaskWithStage(long id, long parentId, int sortOrder, String stageCode) {
+        jdbcTemplate.update("INSERT INTO proj_project_task "
+                        + "(id,project_id,task_code,name,parent_task_id,root_task_id,tree_depth,"
+                        + "state_machine_revision_id,stage_code,sort_order,status,version,tenant_id) "
+                        + "VALUES (?,?,?,?,?,?,1,?,?,?,'PENDING_ASSIGN',0,0)",
+                id, projectId, "STAGE-" + id, "STAGE-" + id, parentId, parentId,
+                stateMachineRevisionId, stageCode, sortOrder);
+        insertPath(parentId, id, 1);
         insertPath(id, id, 0);
     }
 

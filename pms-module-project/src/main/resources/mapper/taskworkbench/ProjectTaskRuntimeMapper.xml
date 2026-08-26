@@ -79,6 +79,17 @@
                     <when test="query.parentTaskId != null">
                         AND task.parent_task_id = #{query.parentTaskId}
                     </when>
+                    <when test="query.stageCode != null">
+                        AND (task.parent_task_id IS NULL OR NOT EXISTS (
+                            SELECT 1
+                            FROM proj_project_task stage_parent
+                            WHERE stage_parent.tenant_id = task.tenant_id
+                              AND stage_parent.project_id = task.project_id
+                              AND stage_parent.id = task.parent_task_id
+                              AND stage_parent.stage_code = #{query.stageCode}
+                              AND stage_parent.deleted = b'0'
+                        ))
+                    </when>
                     <otherwise>
                         AND task.parent_task_id IS NULL
                     </otherwise>
