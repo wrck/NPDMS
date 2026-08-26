@@ -357,6 +357,6 @@ pms:
       process-definition-key: ${PMS_SOL_DURATION_CHANGE_PROCESS_KEY:pms-sol-duration-change}
   project:
     progress-policy:
-      process-definition-key: ${PMS_PROGRESS_POLICY_PROCESS_KEY:}
+      process-definition-key: ${PMS_PROGRESS_POLICY_PROCESS_KEY:project-progress-policy}
 
 debug: false
