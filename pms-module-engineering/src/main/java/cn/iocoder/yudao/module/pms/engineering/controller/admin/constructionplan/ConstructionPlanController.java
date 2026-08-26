@@ -12,9 +12,15 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanRevisionPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanRevisionRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangeCreateReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangePatchReqVO;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanQueryService;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateInitialDurationCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateDurationChangeCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.PatchDurationChangeCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.DurationChangePatch;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -28,6 +34,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -39,6 +46,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -55,6 +64,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.C
 public class ConstructionPlanController {
 
     private final ConstructionPlanApplicationService applicationService;
+    private final DurationChangeApplicationService changeApplicationService;
     private final ConstructionPlanQueryService queryService;
     private final Environment environment;
 
@@ -110,9 +120,80 @@ public class ConstructionPlanController {
         return withTrustedTenant(() -> success(queryService.getChanges(planId, request, queryActor())));
     }
 
+    @PostMapping("/{id}/changes")
+    @Operation(summary = "创建工期变更草稿")
+    @PreAuthorize("@ss.hasPermission('pms:construction-plan:duration-manage')")
+    public CommonResult<ConstructionPlanChangeRespVO> createChange(
+            @PathVariable("id") @Positive Long planId,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") @NotBlank String ifMatch,
+            @Valid @RequestBody DurationChangeCreateReqVO request) {
+        return withTrustedTenant(() -> {
+            Integer expectedPlanVersion = parseVersion(ifMatch);
+            var command = new CreateDurationChangeCommand(planId, expectedPlanVersion,
+                    request.getExpectedProjectVersion(), request.getCalculationBasis(),
+                    request.getStartDate(), request.getEndDate(), request.getDurationDays(),
+                    request.getReasonType(), request.getReasonDetail(),
+                    request.getCustomerEvidenceFileId(), request.getCustomerEvidenceFileVersion(),
+                    idempotencyKey, changeDigest(planId, expectedPlanVersion, request));
+            return success(changeApplicationService.createDraft(command, commandActor()));
+        });
+    }
+
+    @GetMapping("/{id}/changes/{changeId}")
+    @Operation(summary = "查询工期变更详情")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:construction-plan:query','pms:construction-plan:duration-manage')")
+    public CommonResult<ConstructionPlanChangeRespVO> getChange(
+            @PathVariable("id") @Positive Long planId,
+            @PathVariable("changeId") @Positive Long changeId) {
+        return withTrustedTenant(() -> success(queryService.getChange(planId, changeId, queryActor())));
+    }
+
+    @PatchMapping("/{id}/changes/{changeId}")
+    @Operation(summary = "部分修改工期变更草稿")
+    @PreAuthorize("@ss.hasPermission('pms:construction-plan:duration-manage')")
+    public CommonResult<ConstructionPlanChangeRespVO> patchChange(
+            @PathVariable("id") @Positive Long planId,
+            @PathVariable("changeId") @Positive Long changeId,
+            @RequestHeader("If-Match") @NotBlank String ifMatch,
+            @Valid @RequestBody DurationChangePatchReqVO request) {
+        return withTrustedTenant(() -> {
+            var patch = new DurationChangePatch(request.getCalculationBasis(), request.getStartDate(),
+                    request.getEndDate(), request.getDurationDays(), request.getReasonType(),
+                    request.getReasonDetail(), request.getCustomerEvidenceFileId(),
+                    request.getCustomerEvidenceFileVersion(), request.getSubmittedFields());
+            var command = new PatchDurationChangeCommand(planId, changeId, parseVersion(ifMatch),
+                    request.getExpectedProjectVersion(), patch);
+            return success(changeApplicationService.patchDraft(command, commandActor()));
+        });
+    }
+
     private ConstructionPlanQueryService.Actor queryActor() {
         return new ConstructionPlanQueryService.Actor(
                 TenantContextHolder.getRequiredTenantId(), requiredActorId());
+    }
+
+    private ConstructionPlanApplicationService.Actor commandActor() {
+        return new ConstructionPlanApplicationService.Actor(
+                TenantContextHolder.getRequiredTenantId(), requiredActorId(), UUID.randomUUID().toString());
+    }
+
+    private Integer parseVersion(String value) {
+        try {
+            int version = Integer.parseInt(value);
+            if (version < 0) throw new NumberFormatException();
+            return version;
+        } catch (NumberFormatException failure) {
+            throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
+        }
+    }
+
+    private String changeDigest(Long planId, Integer planVersion, DurationChangeCreateReqVO request) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("planId", planId);
+        payload.put("expectedPlanVersion", planVersion);
+        payload.put("request", request);
+        return digest(JsonUtils.toJsonString(payload));
     }
 
     private Long requiredActorId() {

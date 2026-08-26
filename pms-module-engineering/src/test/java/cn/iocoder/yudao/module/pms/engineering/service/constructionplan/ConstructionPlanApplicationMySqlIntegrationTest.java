@@ -6,7 +6,10 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateInitialDurationCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.PatchDurationChangeCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.DurationChangePatch;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
@@ -58,6 +61,7 @@ import static org.mockito.Mockito.when;
 class ConstructionPlanApplicationMySqlIntegrationTest {
 
     @Resource ConstructionPlanApplicationService service;
+    @Resource DurationChangeApplicationService changeService;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource PermissionApi permissionApi;
     @Resource ProjectScopeApi projectScopeApi;
@@ -107,6 +111,9 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
         jdbcTemplate.update("UPDATE sol_construction_plan SET current_duration_revision_id=NULL, "
                 + "pending_change_id=NULL, plan_recalculation_source_revision_id=NULL "
                 + "WHERE tenant_id=0 AND project_id=?", projectId);
+        jdbcTemplate.update("DELETE c FROM sol_construction_plan_change c "
+                + "JOIN sol_construction_plan p ON p.tenant_id=c.tenant_id AND p.id=c.plan_id "
+                + "WHERE p.tenant_id=0 AND p.project_id=?", projectId);
         jdbcTemplate.update("DELETE r FROM sol_construction_plan_revision r "
                 + "JOIN sol_construction_plan p ON p.tenant_id=r.tenant_id AND p.id=r.plan_id "
                 + "WHERE p.tenant_id=0 AND p.project_id=?", projectId);
@@ -114,7 +121,8 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
         jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 "
                 + "AND correlation_id LIKE ?", keyPrefix + "%");
         jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=0 "
-                + "AND scope_code='POST:/api/v1/pms/construction-plans' AND actor_id=9 "
+                + "AND scope_code IN ('POST:/api/v1/pms/construction-plans', "
+                + "'POST:/api/v1/pms/construction-plans/{id}/changes') AND actor_id=9 "
                 + "AND idempotency_key LIKE ?", keyPrefix + "%");
         TenantContextHolder.clear();
     }
@@ -170,9 +178,86 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND correlation_id=? AND result_code='SUCCESS'", Long.class, key));
     }
 
+    @Test
+    void changeDraftReplayAndConflictKeepOneCandidateAndOneChange() {
+        var plan = service.createInitial(command(keyPrefix + "-baseline", "a".repeat(64)),
+                actor(keyPrefix + "-baseline"));
+        String key = keyPrefix + "-draft";
+
+        var first = changeService.createDraft(changeCommand(plan.getPlanId(), plan.getPlanVersion(), key,
+                "b".repeat(64)), actor(key));
+        var replay = changeService.createDraft(changeCommand(plan.getPlanId(), plan.getPlanVersion(), key,
+                "b".repeat(64)), actor(key + "-replay"));
+
+        assertEquals(first.getChangeId(), replay.getChangeId());
+        assertThrows(ServiceException.class, () -> changeService.createDraft(
+                changeCommand(plan.getPlanId(), plan.getPlanVersion(), key, "c".repeat(64)),
+                actor(key + "-conflict")));
+        assertEquals(2L, count("sol_construction_plan_revision", "plan_id", plan.getPlanId()));
+        assertEquals(1L, count("sol_construction_plan_change", "plan_id", plan.getPlanId()));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_construction_plan "
+                + "WHERE tenant_id=0 AND id=? AND pending_change_id IS NOT NULL", Long.class,
+                plan.getPlanId()));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record "
+                + "WHERE tenant_id=0 AND scope_code="
+                + "'POST:/api/v1/pms/construction-plans/{id}/changes' AND actor_id=9 "
+                + "AND idempotency_key=? AND status='COMPLETED'", Long.class, key));
+    }
+
+    @Test
+    void realPartialPatchUpdatesOnlySubmittedFactsAndRecalculatesDuration() {
+        var plan = service.createInitial(command(keyPrefix + "-baseline-patch", "a".repeat(64)),
+                actor(keyPrefix + "-baseline-patch"));
+        var draft = changeService.createDraft(changeCommand(plan.getPlanId(), plan.getPlanVersion(),
+                keyPrefix + "-patch-draft", "b".repeat(64)), actor(keyPrefix + "-patch-draft"));
+
+        var reasonPatched = changeService.patchDraft(new PatchDurationChangeCommand(
+                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3,
+                new DurationChangePatch(null, null, null, null, null, null, null, null,
+                        Set.of("reasonDetail"))), actor(keyPrefix + "-patch-reason"));
+        var durationPatched = changeService.patchDraft(new PatchDurationChangeCommand(
+                plan.getPlanId(), draft.getChangeId(), reasonPatched.getVersion(), 3,
+                new DurationChangePatch(null, null, null, 7, null, null, null, null,
+                        Set.of("durationDays"))), actor(keyPrefix + "-patch-days"));
+
+        assertEquals("", reasonPatched.getReasonDetail());
+        assertEquals("CUSTOMER_DELAY", durationPatched.getReasonType());
+        assertEquals(LocalDate.of(2026, 9, 16), durationPatched.getCandidateRevision().getEndDate());
+        assertEquals(7, durationPatched.getCandidateRevision().getDurationDays());
+        assertEquals(2, durationPatched.getVersion());
+        assertEquals(1, durationPatched.getCandidateRevision().getVersion());
+    }
+
+    @Test
+    void candidateInsertFailureRollsBackDraftAndIdempotency() {
+        var plan = service.createInitial(command(keyPrefix + "-baseline-fault", "a".repeat(64)),
+                actor(keyPrefix + "-baseline-fault"));
+        String key = keyPrefix + "-draft-fault";
+        revisionInsertFault.enabled = true;
+
+        assertThrows(IllegalStateException.class, () -> changeService.createDraft(
+                changeCommand(plan.getPlanId(), plan.getPlanVersion(), key, "b".repeat(64)), actor(key)));
+
+        assertEquals(1L, count("sol_construction_plan_revision", "plan_id", plan.getPlanId()));
+        assertEquals(0L, count("sol_construction_plan_change", "plan_id", plan.getPlanId()));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record "
+                + "WHERE tenant_id=0 AND scope_code="
+                + "'POST:/api/v1/pms/construction-plans/{id}/changes' AND actor_id=9 "
+                + "AND idempotency_key=?", Long.class, key));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND correlation_id=? AND result_code='REJECTED'", Long.class, key));
+    }
+
     private CreateInitialDurationCommand command(String key, String digest) {
         return new CreateInitialDurationCommand(projectId, "DATE_RANGE",
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5, 3, key, digest);
+    }
+
+    private CreateDurationChangeCommand changeCommand(Long planId, Integer planVersion,
+                                                       String key, String digest) {
+        return new CreateDurationChangeCommand(planId, planVersion, 3,
+                "DURATION_FROM_START", LocalDate.of(2026, 9, 10), null, 5,
+                "CUSTOMER_DELAY", "客户延期", null, null, key, digest);
     }
 
     private ConstructionPlanApplicationService.Actor actor(String correlationId) {
@@ -198,7 +283,7 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class,
-            ConstructionPlanApplicationService.class})
+            ConstructionPlanApplicationService.class, DurationChangeApplicationService.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {

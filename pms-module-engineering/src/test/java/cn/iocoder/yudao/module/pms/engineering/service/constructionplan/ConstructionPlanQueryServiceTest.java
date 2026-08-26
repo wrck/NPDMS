@@ -116,6 +116,21 @@ class ConstructionPlanQueryServiceTest {
         assertEquals(cursorTime.minusMinutes(2) + "|701", page.getNextCursor());
     }
 
+    @Test
+    void changeDetailIncludesItsCandidateRevision() {
+        stubViewScope();
+        when(planMapper.selectById(any())).thenReturn(plan());
+        when(changeMapper.selectById(any())).thenReturn(change(801L,
+                LocalDateTime.of(2026, 8, 26, 13, 0)));
+        when(revisionMapper.selectById(any())).thenReturn(revision(702L, 2));
+
+        var response = service.getChange(501L, 801L, actor());
+
+        assertEquals(801L, response.getChangeId());
+        assertEquals(702L, response.getCandidateRevision().getRevisionId());
+        assertFalse(response.getCandidateRevision().getCurrent());
+    }
+
     private void stubViewScope() {
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanQueryService.PERMISSION_QUERY,

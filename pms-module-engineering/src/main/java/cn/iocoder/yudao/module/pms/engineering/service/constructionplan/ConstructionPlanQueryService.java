@@ -35,6 +35,7 @@ import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeC
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.CONSTRUCTION_PLAN_ARGUMENT_INVALID;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.CONSTRUCTION_PLAN_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanApplicationService.PERMISSION_MANAGE;
 
 @Service
@@ -98,6 +99,21 @@ public class ConstructionPlanQueryService {
         List<ConstructionPlanChangeRespVO> items = page.stream().map(this::toChange).toList();
         String next = hasMore ? changeCursor(page.get(page.size() - 1)) : null;
         return new ConstructionPlanCursorPageRespVO<>(items, next, hasMore);
+    }
+
+    public ConstructionPlanChangeRespVO getChange(
+            Long planId, Long changeId, Actor actor) {
+        ConstructionPlanDO plan = requireVisiblePlan(planId, actor);
+        ConstructionPlanChangeDO change = changeMapper.selectById(new ConstructionPlanChangeLockQuery(
+                actor.tenantId(), plan.getId(), requirePositive(changeId)));
+        if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);
+        ConstructionPlanRevisionDO candidate = revisionMapper.selectById(
+                new ConstructionPlanRevisionLockQuery(actor.tenantId(), plan.getId(),
+                        change.getCandidateRevisionId()));
+        if (candidate == null) throw exception(CONSTRUCTION_PLAN_NOT_EXISTS);
+        ConstructionPlanChangeRespVO response = toChange(change);
+        response.setCandidateRevision(toRevision(candidate, plan.getCurrentDurationRevisionId()));
+        return response;
     }
 
     private ConstructionPlanDO requireVisiblePlan(Long planId, Actor actor) {

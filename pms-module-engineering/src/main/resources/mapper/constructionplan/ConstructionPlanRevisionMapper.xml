@@ -11,11 +11,11 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
         INSERT INTO sol_construction_plan_revision (
-            plan_id, revision_no, calculation_basis_code, start_date, end_date,
+            id, plan_id, revision_no, calculation_basis_code, start_date, end_date,
             duration_days, source_change_id, frozen_at, effective_at, created_by,
             created_at, version, tenant_id
         ) VALUES (
-            #{row.planId}, #{row.revisionNo}, #{row.calculationBasisCode},
+            #{row.id}, #{row.planId}, #{row.revisionNo}, #{row.calculationBasisCode},
             #{row.startDate}, #{row.endDate}, #{row.durationDays}, #{row.sourceChangeId},
             #{row.frozenAt}, #{row.effectiveAt}, #{row.createdBy}, #{row.createdAt},
             #{row.version}, #{row.tenantId}
@@ -71,5 +71,20 @@
         ORDER BY revision_no DESC, id DESC
         LIMIT #{query.limit}
     </select>
+
+    <update id="updateDraftIfMatch">
+        UPDATE sol_construction_plan_revision
+        SET calculation_basis_code = #{update.calculationBasisCode},
+            start_date = #{update.startDate},
+            end_date = #{update.endDate},
+            duration_days = #{update.durationDays},
+            source_change_id = #{update.sourceChangeId},
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND plan_id = #{update.planId}
+          AND id = #{update.revisionId}
+          AND version = #{update.expectedVersion}
+          AND frozen_at IS NULL
+    </update>
 
 </mapper>

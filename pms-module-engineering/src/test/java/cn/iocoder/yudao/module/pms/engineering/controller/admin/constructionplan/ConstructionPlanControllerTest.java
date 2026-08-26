@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanQueryService;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeApplicationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
@@ -36,7 +37,8 @@ class ConstructionPlanControllerTest {
         ConstructionPlanQueryService queryService = mock(ConstructionPlanQueryService.class);
         MockEnvironment environment = new MockEnvironment().withProperty("yudao.tenant.enable", "false");
         ConstructionPlanController controller = new ConstructionPlanController(
-                mock(ConstructionPlanApplicationService.class), queryService, environment);
+                mock(ConstructionPlanApplicationService.class),
+                mock(DurationChangeApplicationService.class), queryService, environment);
 
         controller.getByProjectId(100L);
 
@@ -50,7 +52,8 @@ class ConstructionPlanControllerTest {
         login(9L);
         ConstructionPlanQueryService queryService = mock(ConstructionPlanQueryService.class);
         ConstructionPlanController controller = new ConstructionPlanController(
-                mock(ConstructionPlanApplicationService.class), queryService,
+                mock(ConstructionPlanApplicationService.class),
+                mock(DurationChangeApplicationService.class), queryService,
                 new MockEnvironment().withProperty("yudao.tenant.enable", "true"));
 
         ServiceException error = assertThrows(ServiceException.class,

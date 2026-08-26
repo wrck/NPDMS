@@ -9,6 +9,7 @@ public class ConstructionPlanChangeRespVO {
     private Long changeId;
     private Long baseRevisionId;
     private Long candidateRevisionId;
+    private ConstructionPlanRevisionRespVO candidateRevision;
     private String status;
     private String reasonType;
     private String reasonDetail;

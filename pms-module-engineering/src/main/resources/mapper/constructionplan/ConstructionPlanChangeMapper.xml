@@ -14,14 +14,14 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
         INSERT INTO sol_construction_plan_change (
-            plan_id, base_revision_id, candidate_revision_id, status_code,
+            id, plan_id, base_revision_id, candidate_revision_id, status_code,
             reason_type_code, reason_detail, customer_evidence_required,
             customer_evidence_file_id, customer_evidence_file_version,
             process_definition_key, process_instance_id, submitted_at,
             applicant_user_id, approver_user_id, approved_at, approval_opinion,
             created_at, version, tenant_id
         ) VALUES (
-            #{row.planId}, #{row.baseRevisionId}, #{row.candidateRevisionId},
+            #{row.id}, #{row.planId}, #{row.baseRevisionId}, #{row.candidateRevisionId},
             #{row.statusCode}, #{row.reasonTypeCode}, #{row.reasonDetail},
             #{row.customerEvidenceRequired}, #{row.customerEvidenceFileId},
             #{row.customerEvidenceFileVersion}, #{row.processDefinitionKey},
@@ -97,6 +97,28 @@
           AND plan_id = #{update.planId}
           AND id = #{update.changeId}
           AND version = #{update.expectedVersion}
+    </update>
+
+    <update id="updateDraftIfMatch">
+        UPDATE sol_construction_plan_change
+        <set>
+            <if test="update.submittedFields.contains('reasonType')">
+                reason_type_code = #{update.reasonTypeCode},
+            </if>
+            <if test="update.submittedFields.contains('reasonDetail')">
+                reason_detail = #{update.reasonDetail},
+            </if>
+            <if test="update.submittedFields.contains('customerEvidence')">
+                customer_evidence_file_id = #{update.customerEvidenceFileId},
+                customer_evidence_file_version = #{update.customerEvidenceFileVersion},
+            </if>
+            version = version + 1
+        </set>
+        WHERE tenant_id = #{update.tenantId}
+          AND plan_id = #{update.planId}
+          AND id = #{update.changeId}
+          AND version = #{update.expectedVersion}
+          AND status_code = 'DRAFT'
     </update>
 
 </mapper>
