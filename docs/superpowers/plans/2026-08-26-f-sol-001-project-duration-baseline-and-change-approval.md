@@ -139,15 +139,15 @@ Expected: 公共API和真实Mapper回归PASS，`pms-module-project-api`不依赖
 
 **Consumes:** Task 1物理模型；旧倒排只复制自然日计算思路，不依赖旧Service/Mapper。
 
-- [ ] **Step 1: 实现纯日期规则**
+- [x] **Step 1: 实现纯日期规则**
 
 `DATE_RANGE`接收start/end并按含首尾计算正整数days；`DURATION_FROM_START`接收start/days并计算`end=start+days-1`。若客户端同时提交派生值，必须与计算值一致；倒置、零/负、溢出和口径字段混用拒绝。
 
-- [ ] **Step 2: 实现场景化持久化**
+- [x] **Step 2: 实现场景化持久化**
 
 提供按tenant+project唯一查询、plan/change/revision锁定读、plan/change版本CAS、最大revisionNo锁定计算、稳定revisionNo/id分页、createTime/id游标分页及processInstanceId唯一查询。提交冻结后revision工期字段无更新入口；plan无delete/rebuild入口。
 
-- [ ] **Step 3: 实施后验证并提交**
+- [x] **Step 3: 实施后验证并提交**
 
 覆盖两种口径、派生冲突、稳定分页、同项目唯一根、同plan revision号、同候选唯一change、processInstanceId唯一、CAS及指针同租户同plan。运行聚焦单元/Mapper测试和模块编译。
 

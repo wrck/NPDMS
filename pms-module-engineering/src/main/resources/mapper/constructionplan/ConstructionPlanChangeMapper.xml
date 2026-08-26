@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanChangeMapper">
+
+    <sql id="columns">
+        id, plan_id, base_revision_id, candidate_revision_id, status_code,
+        reason_type_code, reason_detail, customer_evidence_required,
+        customer_evidence_file_id, customer_evidence_file_version,
+        process_definition_key, process_instance_id, submitted_at,
+        applicant_user_id, approver_user_id, approved_at, approval_opinion,
+        created_at, version, tenant_id
+    </sql>
+
+    <select id="selectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
+        SELECT <include refid="columns"/>
+        FROM sol_construction_plan_change
+        WHERE tenant_id = #{query.tenantId}
+          AND plan_id = #{query.planId}
+          AND id = #{query.changeId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectByProcessInstanceId"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
+        SELECT <include refid="columns"/>
+        FROM sol_construction_plan_change
+        WHERE tenant_id = #{query.tenantId}
+          AND process_instance_id = #{query.processInstanceId}
+    </select>
+
+    <select id="selectPage"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
+        SELECT <include refid="columns"/>
+        FROM sol_construction_plan_change
+        WHERE tenant_id = #{query.tenantId}
+          AND plan_id = #{query.planId}
+        <choose>
+            <when test="query.cursorCreatedAt == null and query.cursorId == null"/>
+            <when test="query.cursorCreatedAt != null and query.cursorId != null">
+                AND (created_at &lt; #{query.cursorCreatedAt}
+                    OR (created_at = #{query.cursorCreatedAt} AND id &lt; #{query.cursorId}))
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{query.limit}
+    </select>
+
+    <update id="updateVersionIfMatch">
+        UPDATE sol_construction_plan_change
+        SET status_code = #{update.statusCode},
+            reason_type_code = #{update.reasonTypeCode},
+            reason_detail = #{update.reasonDetail},
+            customer_evidence_required = #{update.customerEvidenceRequired},
+            customer_evidence_file_id = #{update.customerEvidenceFileId},
+            customer_evidence_file_version = #{update.customerEvidenceFileVersion},
+            process_definition_key = #{update.processDefinitionKey},
+            process_instance_id = #{update.processInstanceId},
+            submitted_at = #{update.submittedAt},
+            approver_user_id = #{update.approverUserId},
+            approved_at = #{update.approvedAt},
+            approval_opinion = #{update.approvalOpinion},
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND plan_id = #{update.planId}
+          AND id = #{update.changeId}
+          AND version = #{update.expectedVersion}
+    </update>
+
+</mapper>
