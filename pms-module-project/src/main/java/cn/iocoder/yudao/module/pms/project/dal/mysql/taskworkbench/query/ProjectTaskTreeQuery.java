@@ -15,6 +15,7 @@ public record ProjectTaskTreeQuery(
         Long parentTaskId,
         Long targetTaskId,
         String businessLevelCode,
+        String stageCode,
         String keyword,
         Integer cursorSortOrder,
         Long cursorTaskId,

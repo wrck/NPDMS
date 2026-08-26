@@ -100,6 +100,7 @@ public class ProjectTaskQueryService {
                 .tenantId(actor.tenantId()).projectIds(Set.of(projectId)).visibilityQuery(access.visibilityQuery())
                 .mode(mode).parentTaskId(request.getParentTaskId()).targetTaskId(request.getTaskId())
                 .businessLevelCode(trimToNull(request.getBusinessLevelCode()))
+                .stageCode(trimToNull(request.getStageCode()))
                 .keyword(trimToNull(request.getKeyword())).cursorSortOrder(cursor.sortOrder())
                 .cursorTaskId(cursor.taskId()).pageSize(pageSize + 1).build());
         boolean hasMore = tasks.size() > pageSize;

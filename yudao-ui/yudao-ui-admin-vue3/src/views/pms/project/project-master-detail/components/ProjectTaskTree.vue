@@ -60,19 +60,17 @@ const nextCursor = ref<string>()
 const rootRows = ref<TaskNode[]>([])
 const treeProps = { label: 'name', children: 'children', isLeaf: 'placeholder' }
 
-const filterStage = (rows: TaskNode[]) =>
-  props.stageCode ? rows.filter((row) => row.stageCode === props.stageCode) : rows
-
 const loadNode: LoadFunction = async (node, resolve) => {
   if (props.keyword) return resolve([])
   try {
     const response = await TaskWorkbenchApi.getProjectTasks(props.projectId, {
       mode: 'DIRECT_CHILDREN',
+      stageCode: props.stageCode,
       parentTaskId: node.level === 0 ? undefined : (node.data as TaskNode).taskId,
       pageSize: 50
     })
     emit('version', response.taskTreeVersion)
-    const rows = node.level === 0 ? filterStage(response.rows) : response.rows
+    const rows = response.rows
     if (node.level === 0) {
       rootRows.value = rows
       nextCursor.value = response.nextCursor
@@ -121,11 +119,12 @@ const loadMore = async () => {
   if (!nextCursor.value) return
   const response = await TaskWorkbenchApi.getProjectTasks(props.projectId, {
     mode: 'DIRECT_CHILDREN',
+    stageCode: props.stageCode,
     cursor: nextCursor.value,
     pageSize: 50
   })
   emit('version', response.taskTreeVersion)
-  rootRows.value.push(...filterStage(response.rows))
+  rootRows.value.push(...response.rows)
   treeRows.value = [...rootRows.value]
   nextCursor.value = response.nextCursor
   renderKey.value++

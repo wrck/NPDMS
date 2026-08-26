@@ -172,6 +172,26 @@ class ProjectTaskRuntimeMapperTest {
     }
 
     @Test
+    void shouldApplyStageBeforeTheStableCursorLimit() {
+        for (int index = 0; index < 55; index++) {
+            insertRootTaskWithStage(projectId + 2_000 + index, 1_000 + index, "S0");
+        }
+        List<Long> expected = new ArrayList<>();
+        for (int index = 0; index < 3; index++) {
+            long taskId = projectId + 3_000 + index;
+            insertRootTaskWithStage(taskId, 2_000 + index, "S2");
+            expected.add(taskId);
+        }
+
+        List<ProjectTaskInstanceDO> page = mapper.selectTree(ProjectTaskTreeQuery.builder()
+                .tenantId(0L).projectIds(Set.of(projectId))
+                .visibilityQuery(new TaskVisibilityQuery(0L, projectId, 901L, true))
+                .mode(ProjectTaskTreeQuery.Mode.DIRECT_CHILDREN).stageCode("S2").pageSize(50).build());
+
+        assertEquals(expected, ids(page));
+    }
+
+    @Test
     void shouldResolveAssigneeBodyAndAncestorPlaceholdersWithoutCrossTenantLeakage() {
         long assignedTaskId = firstTaskId + DEPTH - 1;
         jdbcTemplate.update("INSERT INTO proj_project_task_assignment "
@@ -468,6 +488,16 @@ class ProjectTaskRuntimeMapperTest {
                         + "VALUES (?,?,?,?,?,?,?,?,?,'S1',?,'PENDING_ASSIGN',0,0)",
                 id, projectId, taskCode, taskCode, parentId, rootTaskId, depth,
                 businessLevelCode, stateMachineRevisionId, sortOrder);
+    }
+
+    private void insertRootTaskWithStage(long id, int sortOrder, String stageCode) {
+        jdbcTemplate.update("INSERT INTO proj_project_task "
+                        + "(id,project_id,task_code,name,root_task_id,tree_depth,state_machine_revision_id,"
+                        + "stage_code,sort_order,status,version,tenant_id) "
+                        + "VALUES (?,?,?,?,?,0,?,?,?,'PENDING_ASSIGN',0,0)",
+                id, projectId, "STAGE-" + id, "STAGE-" + id, id,
+                stateMachineRevisionId, stageCode, sortOrder);
+        insertPath(id, id, 0);
     }
 
     private void insertPath(long ancestorTaskId, long descendantTaskId, int distance) {

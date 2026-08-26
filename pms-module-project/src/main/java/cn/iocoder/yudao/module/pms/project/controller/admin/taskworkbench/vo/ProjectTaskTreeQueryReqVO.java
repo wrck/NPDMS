@@ -12,6 +12,8 @@ public class ProjectTaskTreeQueryReqVO {
     private Long taskId;
     @Size(max = 64)
     private String businessLevelCode;
+    @Size(max = 32)
+    private String stageCode;
     @Size(max = 100)
     private String keyword;
     @Size(max = 100)

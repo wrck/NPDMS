@@ -192,6 +192,11 @@ import type {
   TaskDetail,
   TaskWorkbench
 } from '@/api/pms/project/task-workbench'
+import {
+  buildTaskUpdatePayload,
+  snapshotTaskEdit,
+  type TaskEditSnapshot
+} from './project-task-update'
 
 defineOptions({ name: 'ProjectTaskWorkbenchDrawer' })
 
@@ -232,6 +237,7 @@ const editForm = reactive({
   sortOrder: undefined as number | undefined,
   description: ''
 })
+const editSnapshot = ref<TaskEditSnapshot>()
 
 const allowed = (action: string) => workbench.value?.allowedActions.includes(action) === true
 const stateActions = computed(() =>
@@ -305,27 +311,36 @@ const saveProgress = async () => {
 
 const openEdit = () => {
   if (!task.value) return
+  editSnapshot.value = snapshotTaskEdit(task.value)
   Object.assign(editForm, {
-    name: task.value.name || '',
-    businessLevelCode: task.value.businessLevelCode || '',
-    planStartTime: task.value.planStartTime,
-    planEndTime: task.value.planEndTime,
-    priority: task.value.priority,
-    sortOrder: task.value.sortOrder,
-    description: task.value.description || ''
+    name: editSnapshot.value.name,
+    businessLevelCode: editSnapshot.value.businessLevelCode || '',
+    planStartTime: editSnapshot.value.planStartTime || undefined,
+    planEndTime: editSnapshot.value.planEndTime || undefined,
+    priority: editSnapshot.value.priority ?? undefined,
+    sortOrder: editSnapshot.value.sortOrder ?? undefined,
+    description: editSnapshot.value.description || ''
   })
   editVisible.value = true
 }
 
 const saveEdit = async () => {
-  if (task.value?.version == null || !editForm.name.trim()) return
+  if (task.value?.version == null || !editSnapshot.value || !editForm.name.trim()) return
+  let payload
+  try {
+    payload = buildTaskUpdatePayload(editSnapshot.value, editForm)
+  } catch {
+    message.warning('优先级和排序号不能清空')
+    return
+  }
+  if (Object.keys(payload).length === 0) {
+    message.info('未检测到资料变更')
+    editVisible.value = false
+    return
+  }
   submitting.value = true
   try {
-    const result = await TaskWorkbenchApi.updateTask(
-      task.value.taskId,
-      { ...editForm },
-      task.value.version
-    )
+    const result = await TaskWorkbenchApi.updateTask(task.value.taskId, payload, task.value.version)
     editVisible.value = false
     await finishCommand(result)
   } finally {

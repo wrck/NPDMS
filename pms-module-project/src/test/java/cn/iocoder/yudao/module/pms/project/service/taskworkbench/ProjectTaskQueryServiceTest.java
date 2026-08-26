@@ -117,6 +117,20 @@ class ProjectTaskQueryServiceTest {
     }
 
     @Test
+    void shouldPassStageFilterIntoTheCursorQuery() {
+        stubProjectScope(true);
+        when(taskMapper.selectTree(any())).thenReturn(List.of());
+        ProjectTaskTreeQueryReqVO request = new ProjectTaskTreeQueryReqVO();
+        request.setMode("DIRECT_CHILDREN");
+        request.setStageCode("S3");
+
+        service.getTasks(100L, request, actor());
+
+        verify(taskMapper).selectTree(argThat((ProjectTaskTreeQuery query) ->
+                "S3".equals(query.stageCode())));
+    }
+
+    @Test
     void shouldReturnEmptyWhenProjectTreeScopeIsEmpty() {
         stubProjectRecord();
         when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(

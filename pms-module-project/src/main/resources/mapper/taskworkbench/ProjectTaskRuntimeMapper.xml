@@ -106,6 +106,9 @@
                 </if>
             </when>
         </choose>
+        <if test="query.stageCode != null">
+            AND task.stage_code = #{query.stageCode}
+        </if>
         <if test="query.cursorSortOrder != null and query.cursorTaskId != null">
             AND (COALESCE(task.sort_order, 0) &gt; #{query.cursorSortOrder}
                 OR (COALESCE(task.sort_order, 0) = #{query.cursorSortOrder}

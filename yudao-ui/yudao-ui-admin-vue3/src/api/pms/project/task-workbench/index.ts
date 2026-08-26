@@ -52,6 +52,7 @@ export interface TaskNode {
 
 export interface TaskTreeQuery {
   mode?: TaskTreeMode
+  stageCode?: string
   parentTaskId?: number
   taskId?: number
   businessLevelCode?: string
@@ -128,6 +129,16 @@ export interface TaskMoveCommand {
   reason: string
 }
 
+export interface TaskUpdateCommand {
+  name?: string
+  businessLevelCode?: string | null
+  planStartTime?: string | null
+  planEndTime?: string | null
+  priority?: number
+  sortOrder?: number
+  description?: string | null
+}
+
 export interface TaskActionCommand {
   reason?: string
   executionContractId?: number
@@ -170,7 +181,7 @@ export const createTask = (projectId: number, data: TaskCreateCommand, idempoten
     headers: { 'Idempotency-Key': idempotencyKey }
   })
 
-export const updateTask = (taskId: number, data: Partial<TaskDetail>, version: number) =>
+export const updateTask = (taskId: number, data: TaskUpdateCommand, version: number) =>
   patchTask<TaskCommandResult>(`${baseUrl}/project-tasks/${taskId}`, data, version)
 
 export const updateTaskProgress = (taskId: number, progress: number, version: number) =>
