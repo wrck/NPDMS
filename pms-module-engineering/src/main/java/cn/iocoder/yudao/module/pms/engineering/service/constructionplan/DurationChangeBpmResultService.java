@@ -13,6 +13,10 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionLockQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanVersionUpdate;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +44,7 @@ public class DurationChangeBpmResultService {
     private final ConstructionPlanChangeMapper changeMapper;
     private final DurationChangeBpmAuthorizationGuard authorizationGuard;
     private final OperationAuditApi operationAuditApi;
+    private final FileArtifactApi fileArtifactApi;
 
     @Transactional(rollbackFor = Exception.class)
     public void handle(String processInstanceId, Integer status, String reason) {
@@ -76,9 +81,7 @@ public class DurationChangeBpmResultService {
                 || !Objects.equals(candidate.getSourceChangeId(), change.getId())) {
             throw exception(DURATION_CHANGE_BPM_ASSOCIATION_INVALID);
         }
-        if (Boolean.TRUE.equals(change.getCustomerEvidenceRequired())) {
-            throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
-        }
+        revalidateFrozenEvidence(change);
 
         Long currentBefore = plan.getCurrentDurationRevisionId();
         String recalculationBefore = plan.getPlanRecalculationStatusCode();
@@ -100,7 +103,10 @@ public class DurationChangeBpmResultService {
                 authorization.tenantId(), plan.getId(), change.getId(), change.getVersion(),
                 changeStatusAfter, change.getReasonTypeCode(), change.getReasonDetail(),
                 change.getCustomerEvidenceRequired(), change.getCustomerEvidenceFileId(),
-                change.getCustomerEvidenceFileVersion(), change.getProcessDefinitionKey(),
+                change.getCustomerEvidenceFileVersion(), change.getCustomerEvidenceReferenceKey(),
+                change.getCustomerEvidenceArtifactVersion(), change.getCustomerEvidenceReferenceVersion(),
+                change.getCustomerEvidenceAvailabilityVersion(), change.getCustomerEvidenceScopeVersion(),
+                change.getProcessDefinitionKey(),
                 change.getProcessInstanceId(), change.getSubmittedAt(), change.getApproverUserId(),
                 result == TerminalResult.APPROVE ? decidedAt : null, reason)) != 1) {
             throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
@@ -114,6 +120,37 @@ public class DurationChangeBpmResultService {
         recordSuccess(processInstanceId, reason, result, authorization, plan, change,
                 currentBefore, currentAfter, recalculationBefore, recalculationAfter,
                 recalculationSourceBefore, recalculationSourceAfter, decidedAt);
+    }
+
+    private void revalidateFrozenEvidence(ConstructionPlanChangeDO change) {
+        if (!Boolean.TRUE.equals(change.getCustomerEvidenceRequired())) return;
+        if (change.getCustomerEvidenceFileId() == null
+                || change.getCustomerEvidenceFileVersion() == null
+                || change.getCustomerEvidenceReferenceKey() == null
+                || change.getCustomerEvidenceArtifactVersion() == null
+                || change.getCustomerEvidenceReferenceVersion() == null
+                || change.getCustomerEvidenceAvailabilityVersion() == null
+                || change.getCustomerEvidenceScopeVersion() == null) {
+            throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
+        }
+        try {
+            var fact = fileArtifactApi.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
+                    change.getCustomerEvidenceFileId(), change.getCustomerEvidenceFileVersion(),
+                    ConstructionPlanChangeFilePolicyProvider.OWNER_CONTEXT,
+                    ConstructionPlanChangeFilePolicyProvider.OBJECT_TYPE,
+                    String.valueOf(change.getId()),
+                    ConstructionPlanChangeFilePolicyProvider.PURPOSE_CODE,
+                    change.getCustomerEvidenceReferenceKey(), FileActionCodes.READ,
+                    new FileFactVersion(change.getCustomerEvidenceArtifactVersion(),
+                            change.getCustomerEvidenceReferenceVersion(),
+                            change.getCustomerEvidenceAvailabilityVersion()),
+                    change.getCustomerEvidenceScopeVersion()));
+            if (fact == null) {
+                throw new IllegalStateException("DURATION_CHANGE_FILE_FACT_MISSING");
+            }
+        } catch (RuntimeException failure) {
+            throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
+        }
     }
 
     private void recordSuccess(String processInstanceId, String reason, TerminalResult result,

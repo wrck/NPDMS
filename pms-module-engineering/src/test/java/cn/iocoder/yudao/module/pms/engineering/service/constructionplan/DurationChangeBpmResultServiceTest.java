@@ -11,6 +11,9 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.Constr
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeVersionUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanVersionUpdate;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,13 +38,14 @@ class DurationChangeBpmResultServiceTest {
     @Mock ConstructionPlanChangeMapper changeMapper;
     @Mock DurationChangeBpmAuthorizationGuard authorizationGuard;
     @Mock OperationAuditApi operationAuditApi;
+    @Mock FileArtifactApi fileArtifactApi;
 
     private DurationChangeBpmResultService service;
 
     @BeforeEach
     void setUp() {
         service = new DurationChangeBpmResultService(planMapper, revisionMapper, changeMapper,
-                authorizationGuard, operationAuditApi);
+                authorizationGuard, operationAuditApi, fileArtifactApi);
     }
 
     @Test
@@ -130,6 +134,24 @@ class DurationChangeBpmResultServiceTest {
         verify(planMapper, never()).updateVersionIfMatch(any());
     }
 
+    @Test
+    void shouldApproveAfterRevalidatingFrozenFileFact() {
+        stubPending(true);
+        FileArtifactVersionFact fact = new FileArtifactVersionFact(
+                901L, 2, "customer-delay", "CUSTOMER_DELAY_EVIDENCE", "evidence.pdf",
+                128L, "application/pdf", "b".repeat(64), "AVAILABLE", "ACTIVE",
+                new FileFactVersion(4, 5, 6), 7L);
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fact);
+        when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
+        when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
+
+        service.handle("P-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意");
+
+        verify(fileArtifactApi).lockAndRevalidate(any());
+        verify(changeMapper).updateVersionIfMatch(any());
+        verify(planMapper).updateVersionIfMatch(any());
+    }
+
     private void stubPending(boolean evidenceRequired) {
         stubAuthorization();
         when(planMapper.selectForUpdate(any())).thenReturn(plan());
@@ -173,6 +195,13 @@ class DurationChangeBpmResultServiceTest {
         change.setReasonTypeCode("INTERNAL_ADJUSTMENT");
         change.setReasonDetail("reason");
         change.setCustomerEvidenceRequired(false);
+        change.setCustomerEvidenceFileId(901L);
+        change.setCustomerEvidenceFileVersion(2);
+        change.setCustomerEvidenceReferenceKey("customer-delay");
+        change.setCustomerEvidenceArtifactVersion(4);
+        change.setCustomerEvidenceReferenceVersion(5);
+        change.setCustomerEvidenceAvailabilityVersion(6);
+        change.setCustomerEvidenceScopeVersion(7L);
         change.setProcessDefinitionKey("pms-sol-duration-change");
         change.setProcessInstanceId("P-1");
         change.setSubmittedAt(LocalDateTime.now());

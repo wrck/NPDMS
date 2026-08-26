@@ -7,6 +7,9 @@
         id, plan_id, base_revision_id, candidate_revision_id, status_code,
         reason_type_code, reason_detail, customer_evidence_required,
         customer_evidence_file_id, customer_evidence_file_version,
+        customer_evidence_reference_key, customer_evidence_artifact_version,
+        customer_evidence_reference_version, customer_evidence_availability_version,
+        customer_evidence_scope_version,
         process_definition_key, process_instance_id, submitted_at,
         applicant_user_id, approver_user_id, approved_at, approval_opinion,
         created_at, version, tenant_id
@@ -17,6 +20,9 @@
             id, plan_id, base_revision_id, candidate_revision_id, status_code,
             reason_type_code, reason_detail, customer_evidence_required,
             customer_evidence_file_id, customer_evidence_file_version,
+            customer_evidence_reference_key, customer_evidence_artifact_version,
+            customer_evidence_reference_version, customer_evidence_availability_version,
+            customer_evidence_scope_version,
             process_definition_key, process_instance_id, submitted_at,
             applicant_user_id, approver_user_id, approved_at, approval_opinion,
             created_at, version, tenant_id
@@ -24,7 +30,10 @@
             #{row.id}, #{row.planId}, #{row.baseRevisionId}, #{row.candidateRevisionId},
             #{row.statusCode}, #{row.reasonTypeCode}, #{row.reasonDetail},
             #{row.customerEvidenceRequired}, #{row.customerEvidenceFileId},
-            #{row.customerEvidenceFileVersion}, #{row.processDefinitionKey},
+            #{row.customerEvidenceFileVersion}, #{row.customerEvidenceReferenceKey},
+            #{row.customerEvidenceArtifactVersion}, #{row.customerEvidenceReferenceVersion},
+            #{row.customerEvidenceAvailabilityVersion}, #{row.customerEvidenceScopeVersion},
+            #{row.processDefinitionKey},
             #{row.processInstanceId}, #{row.submittedAt}, #{row.applicantUserId},
             #{row.approverUserId}, #{row.approvedAt}, #{row.approvalOpinion},
             #{row.createdAt}, #{row.version}, #{row.tenantId}
@@ -58,6 +67,14 @@
           AND id = #{query.changeId}
     </select>
 
+    <select id="selectByObjectId"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
+        SELECT <include refid="columns"/>
+        FROM sol_construction_plan_change
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.changeId}
+    </select>
+
     <select id="selectPage"
             resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
         SELECT <include refid="columns"/>
@@ -86,6 +103,11 @@
             customer_evidence_required = #{update.customerEvidenceRequired},
             customer_evidence_file_id = #{update.customerEvidenceFileId},
             customer_evidence_file_version = #{update.customerEvidenceFileVersion},
+            customer_evidence_reference_key = #{update.customerEvidenceReferenceKey},
+            customer_evidence_artifact_version = #{update.customerEvidenceArtifactVersion},
+            customer_evidence_reference_version = #{update.customerEvidenceReferenceVersion},
+            customer_evidence_availability_version = #{update.customerEvidenceAvailabilityVersion},
+            customer_evidence_scope_version = #{update.customerEvidenceScopeVersion},
             process_definition_key = #{update.processDefinitionKey},
             process_instance_id = #{update.processInstanceId},
             submitted_at = #{update.submittedAt},
@@ -111,6 +133,7 @@
             <if test="update.submittedFields.contains('customerEvidence')">
                 customer_evidence_file_id = #{update.customerEvidenceFileId},
                 customer_evidence_file_version = #{update.customerEvidenceFileVersion},
+                customer_evidence_reference_key = #{update.customerEvidenceReferenceKey},
             </if>
             version = version + 1
         </set>

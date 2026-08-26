@@ -138,6 +138,7 @@ public class ConstructionPlanController {
                     request.getStartDate(), request.getEndDate(), request.getDurationDays(),
                     request.getReasonType(), request.getReasonDetail(),
                     request.getCustomerEvidenceFileId(), request.getCustomerEvidenceFileVersion(),
+                    request.getCustomerEvidenceReferenceKey(),
                     idempotencyKey, changeDigest(planId, expectedPlanVersion, request));
             return success(changeApplicationService.createDraft(command, commandActor()));
         });
@@ -164,7 +165,8 @@ public class ConstructionPlanController {
             var patch = new DurationChangePatch(request.getCalculationBasis(), request.getStartDate(),
                     request.getEndDate(), request.getDurationDays(), request.getReasonType(),
                     request.getReasonDetail(), request.getCustomerEvidenceFileId(),
-                    request.getCustomerEvidenceFileVersion(), request.getSubmittedFields());
+                    request.getCustomerEvidenceFileVersion(), request.getCustomerEvidenceReferenceKey(),
+                    request.getSubmittedFields());
             var command = new PatchDurationChangeCommand(planId, changeId, parseVersion(ifMatch),
                     request.getExpectedProjectVersion(), patch);
             return success(changeApplicationService.patchDraft(command, commandActor()));

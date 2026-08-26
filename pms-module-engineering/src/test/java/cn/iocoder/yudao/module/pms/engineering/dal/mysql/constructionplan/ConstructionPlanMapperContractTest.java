@@ -19,7 +19,7 @@ class ConstructionPlanMapperContractTest {
                         "updateDraftIfMatch", "freezeForSubmitIfMatch"));
         assertMapperContract(ConstructionPlanChangeMapper.class,
                 Set.of("insert", "selectById", "selectForUpdate", "selectByProcessInstanceId", "selectPage",
-                        "updateVersionIfMatch", "updateDraftIfMatch"));
+                        "selectByObjectId", "updateVersionIfMatch", "updateDraftIfMatch"));
     }
 
     private static void assertMapperContract(Class<?> mapperType, Set<String> expectedMethods) {

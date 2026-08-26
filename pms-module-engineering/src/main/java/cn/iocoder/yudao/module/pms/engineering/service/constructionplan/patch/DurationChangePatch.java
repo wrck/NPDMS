@@ -7,8 +7,17 @@ import java.util.Set;
 public record DurationChangePatch(
         String calculationBasis, LocalDate startDate, LocalDate endDate, Integer durationDays,
         String reasonType, String reasonDetail, Long customerEvidenceFileId,
-        Integer customerEvidenceFileVersion, Set<String> submittedFields) {
+        Integer customerEvidenceFileVersion, String customerEvidenceReferenceKey,
+        Set<String> submittedFields) {
     public DurationChangePatch {
         submittedFields = submittedFields == null ? Set.of() : Set.copyOf(submittedFields);
+    }
+
+    public DurationChangePatch(
+            String calculationBasis, LocalDate startDate, LocalDate endDate, Integer durationDays,
+            String reasonType, String reasonDetail, Long customerEvidenceFileId,
+            Integer customerEvidenceFileVersion, Set<String> submittedFields) {
+        this(calculationBasis, startDate, endDate, durationDays, reasonType, reasonDetail,
+                customerEvidenceFileId, customerEvidenceFileVersion, null, submittedFields);
     }
 }

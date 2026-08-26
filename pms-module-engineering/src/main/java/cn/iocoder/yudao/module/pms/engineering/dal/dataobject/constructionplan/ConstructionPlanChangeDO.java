@@ -29,6 +29,11 @@ public class ConstructionPlanChangeDO implements Serializable {
     private Boolean customerEvidenceRequired;
     private Long customerEvidenceFileId;
     private Integer customerEvidenceFileVersion;
+    private String customerEvidenceReferenceKey;
+    private Integer customerEvidenceArtifactVersion;
+    private Integer customerEvidenceReferenceVersion;
+    private Integer customerEvidenceAvailabilityVersion;
+    private Long customerEvidenceScopeVersion;
     private String processDefinitionKey;
     private String processInstanceId;
     private LocalDateTime submittedAt;

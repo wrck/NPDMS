@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan;
 
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeLockQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeObjectQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeDraftUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangePageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeProcessQuery;
@@ -19,6 +20,9 @@ public interface ConstructionPlanChangeMapper {
     ConstructionPlanChangeDO selectForUpdate(@Param("query") ConstructionPlanChangeLockQuery query);
 
     ConstructionPlanChangeDO selectById(@Param("query") ConstructionPlanChangeLockQuery query);
+
+    ConstructionPlanChangeDO selectByObjectId(
+            @Param("query") ConstructionPlanChangeObjectQuery query);
 
     ConstructionPlanChangeDO selectByProcessInstanceId(
             @Param("query") ConstructionPlanChangeProcessQuery query);

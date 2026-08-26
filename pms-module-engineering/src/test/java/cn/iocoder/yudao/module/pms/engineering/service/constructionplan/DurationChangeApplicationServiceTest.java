@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.DurationChangePatch;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -54,6 +55,7 @@ class DurationChangeApplicationServiceTest {
     @Mock ConstructionPlanChangeMapper changeMapper;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
+    @Mock FileArtifactApi fileArtifactApi;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
     @Mock ProjectParticipantFactApi participantFactApi;
@@ -68,7 +70,7 @@ class DurationChangeApplicationServiceTest {
     void setUp() {
         properties = new DurationChangeProperties();
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
-                commandExecutionApi, operationAuditApi, permissionApi, projectScopeApi,
+                commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
                 participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
                 transactionTemplate);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {

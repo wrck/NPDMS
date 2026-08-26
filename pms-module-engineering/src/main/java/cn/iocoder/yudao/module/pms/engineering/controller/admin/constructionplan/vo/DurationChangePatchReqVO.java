@@ -21,6 +21,7 @@ public class DurationChangePatchReqVO {
     @Size(max = 1000) private String reasonDetail;
     private Long customerEvidenceFileId;
     private Integer customerEvidenceFileVersion;
+    @Size(max = 128) private String customerEvidenceReferenceKey;
     @JsonIgnore private final Set<String> submittedFields = new LinkedHashSet<>();
 
     public void setExpectedProjectVersion(Integer value) { expectedProjectVersion = value; }
@@ -35,6 +36,9 @@ public class DurationChangePatchReqVO {
     }
     public void setCustomerEvidenceFileVersion(Integer value) {
         customerEvidenceFileVersion = value; submittedFields.add("customerEvidenceFileVersion");
+    }
+    public void setCustomerEvidenceReferenceKey(String value) {
+        customerEvidenceReferenceKey = value; submittedFields.add("customerEvidenceReferenceKey");
     }
 
     @JsonIgnore

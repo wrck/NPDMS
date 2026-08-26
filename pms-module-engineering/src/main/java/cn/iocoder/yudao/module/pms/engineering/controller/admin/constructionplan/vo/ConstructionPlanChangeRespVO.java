@@ -16,6 +16,7 @@ public class ConstructionPlanChangeRespVO {
     private Boolean customerEvidenceRequired;
     private Long customerEvidenceFileId;
     private Integer customerEvidenceFileVersion;
+    private String customerEvidenceReferenceKey;
     private String processDefinitionKey;
     private String processInstanceId;
     private LocalDateTime submittedAt;

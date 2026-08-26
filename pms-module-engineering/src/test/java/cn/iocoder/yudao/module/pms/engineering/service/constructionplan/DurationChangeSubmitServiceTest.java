@@ -16,6 +16,9 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.SubmitDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
@@ -57,6 +60,7 @@ class DurationChangeSubmitServiceTest {
     @Mock ConstructionPlanChangeMapper changeMapper;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
+    @Mock FileArtifactApi fileArtifactApi;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
     @Mock ProjectParticipantFactApi participantFactApi;
@@ -73,7 +77,7 @@ class DurationChangeSubmitServiceTest {
         DurationChangeProperties properties = new DurationChangeProperties();
         properties.setProcessDefinitionKey("pms-sol-duration-change");
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
-                commandExecutionApi, operationAuditApi, permissionApi, projectScopeApi,
+                commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
                 participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
                 transactionTemplate);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
@@ -156,9 +160,43 @@ class DurationChangeSubmitServiceTest {
     }
 
     @Test
+    void freezesRequiredFileArtifactFactsBeforeCreatingBpm() {
+        stubCommandExecution();
+        stubAuthorizedFacts(10L);
+        ConstructionPlanChangeDO change = change("CUSTOMER_DELAY");
+        stubRows(change, plan());
+        stubReasonConfiguration();
+        FileArtifactVersionFact fileFact = fileFact();
+        when(fileArtifactApi.inspect(any())).thenReturn(fileFact);
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fileFact);
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("bpm-801");
+        when(revisionMapper.freezeForSubmitIfMatch(any())).thenReturn(1);
+        when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
+        when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
+
+        service.submit(command(), actor());
+
+        ArgumentCaptor<ConstructionPlanChangeVersionUpdate> update = ArgumentCaptor.forClass(
+                ConstructionPlanChangeVersionUpdate.class);
+        verify(changeMapper).updateVersionIfMatch(update.capture());
+        assertEquals(true, update.getValue().customerEvidenceRequired());
+        assertEquals(901L, update.getValue().customerEvidenceFileId());
+        assertEquals(2, update.getValue().customerEvidenceFileVersion());
+        assertEquals("customer-delay", update.getValue().customerEvidenceReferenceKey());
+        assertEquals(4, update.getValue().customerEvidenceArtifactVersion());
+        assertEquals(5, update.getValue().customerEvidenceReferenceVersion());
+        assertEquals(6, update.getValue().customerEvidenceAvailabilityVersion());
+        assertEquals(7L, update.getValue().customerEvidenceScopeVersion());
+        verify(fileArtifactApi).inspect(any());
+        verify(fileArtifactApi).lockAndRevalidate(any());
+    }
+
+    @Test
     void rejectsApplicantAsTheFrozenServiceManager() {
         stubCommandExecution();
         stubAuthorizedFacts(9L);
+        when(changeMapper.selectById(any())).thenReturn(change("INTERNAL_ADJUSTMENT"));
+        stubReasonConfiguration();
 
         assertThrows(ServiceException.class, () -> service.submit(command(), actor()));
 
@@ -188,7 +226,10 @@ class DurationChangeSubmitServiceTest {
         ConstructionPlanDO plan = plan();
         plan.setPendingChangeId(800L);
         when(planMapper.selectForUpdate(any())).thenReturn(plan);
-        when(changeMapper.selectForUpdate(any())).thenReturn(change("INTERNAL_ADJUSTMENT"));
+        ConstructionPlanChangeDO change = change("INTERNAL_ADJUSTMENT");
+        when(changeMapper.selectById(any())).thenReturn(change);
+        when(changeMapper.selectForUpdate(any())).thenReturn(change);
+        stubReasonConfiguration();
 
         assertThrows(ServiceException.class, () -> service.submit(command(), actor()));
 
@@ -224,6 +265,7 @@ class DurationChangeSubmitServiceTest {
     }
 
     private void stubRows(ConstructionPlanChangeDO change, ConstructionPlanDO plan) {
+        when(changeMapper.selectById(any())).thenReturn(change);
         when(planMapper.selectForUpdate(any())).thenReturn(plan);
         when(changeMapper.selectForUpdate(any())).thenReturn(change);
         when(revisionMapper.selectForUpdate(any())).thenReturn(candidate());
@@ -273,6 +315,7 @@ class DurationChangeSubmitServiceTest {
         row.setReasonDetail("reason");
         row.setCustomerEvidenceFileId(901L);
         row.setCustomerEvidenceFileVersion(2);
+        row.setCustomerEvidenceReferenceKey("customer-delay");
         row.setApplicantUserId(9L);
         row.setVersion(0);
         row.setTenantId(0L);
@@ -298,6 +341,13 @@ class DurationChangeSubmitServiceTest {
     private SubmitDurationChangeCommand command() {
         return new SubmitDurationChangeCommand(501L, 801L, 0, 3,
                 "submit-801", "a".repeat(64));
+    }
+
+    private FileArtifactVersionFact fileFact() {
+        return new FileArtifactVersionFact(901L, 2, "customer-delay",
+                "CUSTOMER_DELAY_EVIDENCE", "evidence.pdf", 128L,
+                "application/pdf", "b".repeat(64), "AVAILABLE", "ACTIVE",
+                new FileFactVersion(4, 5, 6), 7L);
     }
 
     private ConstructionPlanApplicationService.Actor actor() {

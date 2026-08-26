@@ -20,4 +20,5 @@ public class DurationChangeCreateReqVO {
     @Size(max = 1000) private String reasonDetail;
     @Positive private Long customerEvidenceFileId;
     @Positive private Integer customerEvidenceFileVersion;
+    @Size(max = 128) private String customerEvidenceReferenceKey;
 }

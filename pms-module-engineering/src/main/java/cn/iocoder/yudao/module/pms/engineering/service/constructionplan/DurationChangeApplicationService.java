@@ -31,6 +31,11 @@ import cn.iocoder.yudao.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -89,6 +94,7 @@ public class DurationChangeApplicationService {
     private final ConstructionPlanChangeMapper changeMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
+    private final FileArtifactApi fileArtifactApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
@@ -152,6 +158,7 @@ public class DurationChangeApplicationService {
     private DurationChangeSubmitRespVO submitOnce(
             SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor,
             AtomicReference<Map<String, Object>> auditSnapshot) {
+        FileArtifactVersionFact inspectedEvidence = inspectEvidenceBeforeLocks(command, actor);
         ProjectParticipantFact applicant = requireManageAndProject(
                 command.planId(), command.expectedProjectVersion(), actor);
         if (applicant == null || applicant.projectId() == null) {
@@ -180,8 +187,8 @@ public class DurationChangeApplicationService {
 
         boolean evidenceRequired = resolveEvidenceRequired(change.getReasonTypeCode());
         Evidence frozenEvidence = evidenceRequired
-                ? requireFileArtifact()
-                : new Evidence(null, null);
+                ? requireFileArtifact(change, inspectedEvidence)
+                : Evidence.empty();
         String processKey = normalizeProcessKey();
         BpmProcessInstanceCreateReqDTO request = new BpmProcessInstanceCreateReqDTO()
                 .setProcessDefinitionKey(processKey)
@@ -204,7 +211,10 @@ public class DurationChangeApplicationService {
                 actor.tenantId(), plan.getId(), change.getId(), change.getVersion(),
                 ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL, change.getReasonTypeCode(),
                 change.getReasonDetail(), evidenceRequired, frozenEvidence.fileId(),
-                frozenEvidence.fileVersion(), processKey, processInstanceId, submittedAt,
+                frozenEvidence.fileVersion(), frozenEvidence.referenceKey(),
+                frozenEvidence.artifactVersion(), frozenEvidence.referenceVersion(),
+                frozenEvidence.availabilityVersion(), frozenEvidence.scopeVersion(),
+                processKey, processInstanceId, submittedAt,
                 approver.userId(), null, null)) != 1) {
             throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
         }
@@ -237,6 +247,9 @@ public class DurationChangeApplicationService {
         detail.put("customerEvidenceRequired", evidenceRequired);
         detail.put("customerEvidenceFileId", auditValue(frozenEvidence.fileId()));
         detail.put("customerEvidenceFileVersion", auditValue(frozenEvidence.fileVersion()));
+        detail.put("customerEvidenceReferenceKey", auditValue(frozenEvidence.referenceKey()));
+        detail.put("customerEvidenceFileFactVersion", frozenEvidence.auditFileFactVersion());
+        detail.put("customerEvidenceScopeVersion", auditValue(frozenEvidence.scopeVersion()));
         detail.put("candidateRevision", Map.copyOf(
                 revisionAuditSnapshot(revisionResponse(candidate))));
         detail.put("processDefinitionKey", processKey);
@@ -257,7 +270,8 @@ public class DurationChangeApplicationService {
                 command.startDate(), command.endDate(), command.durationDays());
         String reasonType = requiredCode(command.reasonType());
         String reasonDetail = normalizeDetail(command.reasonDetail());
-        Evidence evidence = evidence(command.customerEvidenceFileId(), command.customerEvidenceFileVersion());
+        Evidence evidence = evidence(command.customerEvidenceFileId(), command.customerEvidenceFileVersion(),
+                command.customerEvidenceReferenceKey());
 
         var execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(
@@ -311,6 +325,7 @@ public class DurationChangeApplicationService {
         change.setCustomerEvidenceRequired(false);
         change.setCustomerEvidenceFileId(evidence.fileId());
         change.setCustomerEvidenceFileVersion(evidence.fileVersion());
+        change.setCustomerEvidenceReferenceKey(evidence.referenceKey());
         change.setApplicantUserId(actor.actorId());
         change.setCreatedAt(candidate.getCreatedAt());
         change.setVersion(0);
@@ -367,13 +382,15 @@ public class DurationChangeApplicationService {
         Set<String> changeFields = changeFields(patch);
         if (changeMapper.updateDraftIfMatch(new ConstructionPlanChangeDraftUpdate(
                 actor.tenantId(), plan.getId(), change.getId(), change.getVersion(),
-                reasonType, reasonDetail, evidence.fileId(), evidence.fileVersion(), changeFields)) != 1) {
+                reasonType, reasonDetail, evidence.fileId(), evidence.fileVersion(),
+                evidence.referenceKey(), changeFields)) != 1) {
             throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
         }
         change.setReasonTypeCode(reasonType);
         change.setReasonDetail(reasonDetail);
         change.setCustomerEvidenceFileId(evidence.fileId());
         change.setCustomerEvidenceFileVersion(evidence.fileVersion());
+        change.setCustomerEvidenceReferenceKey(evidence.referenceKey());
         change.setVersion(change.getVersion() + 1);
         recordPatchSuccess(plan, change, patch, before, auditSnapshot(change, candidate), actor);
         return response(change, candidate);
@@ -454,9 +471,52 @@ public class DurationChangeApplicationService {
         return requiredReasons.contains(reasonType);
     }
 
-    private Evidence requireFileArtifact() {
-        // PLT-02尚未提供稳定FileArtifact公共事实；材料必填路径必须失败关闭。
-        throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
+    private FileArtifactVersionFact inspectEvidenceBeforeLocks(
+            SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
+        ConstructionPlanDO plan = planMapper.selectById(
+                new ConstructionPlanLockQuery(actor.tenantId(), command.planId()));
+        if (plan == null) throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
+        ConstructionPlanChangeDO change = changeMapper.selectById(new ConstructionPlanChangeLockQuery(
+                actor.tenantId(), plan.getId(), command.changeId()));
+        if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);
+        if (!resolveEvidenceRequired(change.getReasonTypeCode())) return null;
+        Evidence evidence = evidence(change.getCustomerEvidenceFileId(),
+                change.getCustomerEvidenceFileVersion(), change.getCustomerEvidenceReferenceKey());
+        try {
+            return fileArtifactApi.inspect(new FileArtifactVersionQuery(
+                    evidence.fileId(), evidence.fileVersion(),
+                    ConstructionPlanChangeFilePolicyProvider.OWNER_CONTEXT,
+                    ConstructionPlanChangeFilePolicyProvider.OBJECT_TYPE,
+                    String.valueOf(change.getId()),
+                    ConstructionPlanChangeFilePolicyProvider.PURPOSE_CODE,
+                    evidence.referenceKey(), FileActionCodes.REFERENCE));
+        } catch (RuntimeException failure) {
+            throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
+        }
+    }
+
+    private Evidence requireFileArtifact(ConstructionPlanChangeDO change,
+                                         FileArtifactVersionFact inspected) {
+        if (inspected == null || inspected.fileFactVersion() == null
+                || !Objects.equals(inspected.artifactId(), change.getCustomerEvidenceFileId())
+                || !Objects.equals(inspected.versionNo(), change.getCustomerEvidenceFileVersion())
+                || !Objects.equals(inspected.referenceKey(), change.getCustomerEvidenceReferenceKey())) {
+            throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
+        }
+        try {
+            FileArtifactVersionFact locked = fileArtifactApi.lockAndRevalidate(
+                    new FileArtifactVersionRevalidationQuery(
+                            inspected.artifactId(), inspected.versionNo(),
+                            ConstructionPlanChangeFilePolicyProvider.OWNER_CONTEXT,
+                            ConstructionPlanChangeFilePolicyProvider.OBJECT_TYPE,
+                            String.valueOf(change.getId()),
+                            ConstructionPlanChangeFilePolicyProvider.PURPOSE_CODE,
+                            inspected.referenceKey(), FileActionCodes.REFERENCE,
+                            inspected.fileFactVersion(), inspected.scopeVersion()));
+            return Evidence.frozen(locked);
+        } catch (RuntimeException failure) {
+            throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
+        }
     }
 
     private String normalizeProcessKey() {
@@ -470,16 +530,22 @@ public class DurationChangeApplicationService {
     private Evidence mergedEvidence(ConstructionPlanChangeDO change, DurationChangePatch patch) {
         boolean idSubmitted = patch.submittedFields().contains("customerEvidenceFileId");
         boolean versionSubmitted = patch.submittedFields().contains("customerEvidenceFileVersion");
-        if (!idSubmitted && !versionSubmitted) {
-            return new Evidence(change.getCustomerEvidenceFileId(), change.getCustomerEvidenceFileVersion());
+        boolean referenceSubmitted = patch.submittedFields().contains("customerEvidenceReferenceKey");
+        if (!idSubmitted && !versionSubmitted && !referenceSubmitted) {
+            return new Evidence(change.getCustomerEvidenceFileId(),
+                    change.getCustomerEvidenceFileVersion(), change.getCustomerEvidenceReferenceKey(),
+                    null, null, null, null);
         }
         if ((idSubmitted && patch.customerEvidenceFileId() == null)
-                || (versionSubmitted && patch.customerEvidenceFileVersion() == null)) {
-            return new Evidence(null, null);
+                || (versionSubmitted && patch.customerEvidenceFileVersion() == null)
+                || (referenceSubmitted && patch.customerEvidenceReferenceKey() == null)) {
+            return Evidence.empty();
         }
         return evidence(idSubmitted ? patch.customerEvidenceFileId() : change.getCustomerEvidenceFileId(),
                 versionSubmitted ? patch.customerEvidenceFileVersion()
-                        : change.getCustomerEvidenceFileVersion());
+                        : change.getCustomerEvidenceFileVersion(),
+                referenceSubmitted ? patch.customerEvidenceReferenceKey()
+                        : change.getCustomerEvidenceReferenceKey());
     }
 
     private Set<String> changeFields(DurationChangePatch patch) {
@@ -487,7 +553,8 @@ public class DurationChangeApplicationService {
         if (patch.submittedFields().contains("reasonType")) fields.add("reasonType");
         if (patch.submittedFields().contains("reasonDetail")) fields.add("reasonDetail");
         if (patch.submittedFields().contains("customerEvidenceFileId")
-                || patch.submittedFields().contains("customerEvidenceFileVersion")) {
+                || patch.submittedFields().contains("customerEvidenceFileVersion")
+                || patch.submittedFields().contains("customerEvidenceReferenceKey")) {
             fields.add("customerEvidence");
         }
         return Set.copyOf(fields);
@@ -533,12 +600,13 @@ public class DurationChangeApplicationService {
         return value == null ? "" : value.trim();
     }
 
-    private Evidence evidence(Long fileId, Integer fileVersion) {
-        if (fileId == null && fileVersion == null) return new Evidence(null, null);
-        if (fileId == null || fileId <= 0 || fileVersion == null || fileVersion <= 0) {
+    private Evidence evidence(Long fileId, Integer fileVersion, String referenceKey) {
+        if (fileId == null && fileVersion == null && referenceKey == null) return Evidence.empty();
+        if (fileId == null || fileId <= 0 || fileVersion == null || fileVersion <= 0
+                || referenceKey == null || referenceKey.isBlank() || referenceKey.length() > 128) {
             throw exception(CONSTRUCTION_PLAN_ARGUMENT_INVALID);
         }
-        return new Evidence(fileId, fileVersion);
+        return new Evidence(fileId, fileVersion, referenceKey.trim(), null, null, null, null);
     }
 
     private void validateCreate(CreateDurationChangeCommand command,
@@ -601,6 +669,7 @@ public class DurationChangeApplicationService {
         response.setCustomerEvidenceRequired(change.getCustomerEvidenceRequired());
         response.setCustomerEvidenceFileId(change.getCustomerEvidenceFileId());
         response.setCustomerEvidenceFileVersion(change.getCustomerEvidenceFileVersion());
+        response.setCustomerEvidenceReferenceKey(change.getCustomerEvidenceReferenceKey());
         response.setApplicantUserId(change.getApplicantUserId());
         response.setCreatedAt(change.getCreatedAt());
         response.setVersion(change.getVersion());
@@ -642,6 +711,7 @@ public class DurationChangeApplicationService {
         detail.put("reasonDetail", response.getReasonDetail());
         detail.put("customerEvidenceFileId", auditValue(response.getCustomerEvidenceFileId()));
         detail.put("customerEvidenceFileVersion", auditValue(response.getCustomerEvidenceFileVersion()));
+        detail.put("customerEvidenceReferenceKey", auditValue(response.getCustomerEvidenceReferenceKey()));
         detail.put("candidateRevision", revisionAuditSnapshot(response.getCandidateRevision()));
         detail.put("planVersion", plan.getVersion());
         return new PlatformCommandExecutionApi.SuccessFacts(CREATE_OPERATION, "ConstructionPlanChange",
@@ -684,6 +754,7 @@ public class DurationChangeApplicationService {
         snapshot.put("reasonDetail", change.getReasonDetail());
         snapshot.put("customerEvidenceFileId", auditValue(change.getCustomerEvidenceFileId()));
         snapshot.put("customerEvidenceFileVersion", auditValue(change.getCustomerEvidenceFileVersion()));
+        snapshot.put("customerEvidenceReferenceKey", auditValue(change.getCustomerEvidenceReferenceKey()));
         snapshot.put("candidateRevision", revisionAuditSnapshot(revisionResponse(candidate)));
         return snapshot;
     }
@@ -727,6 +798,28 @@ public class DurationChangeApplicationService {
         return "DURATION_CHANGE_COMMAND_FAILED";
     }
 
-    private record Evidence(Long fileId, Integer fileVersion) {
+    private record Evidence(Long fileId, Integer fileVersion, String referenceKey,
+                            Integer artifactVersion, Integer referenceVersion,
+                            Integer availabilityVersion, Long scopeVersion) {
+
+        static Evidence empty() {
+            return new Evidence(null, null, null, null, null, null, null);
+        }
+
+        static Evidence frozen(FileArtifactVersionFact fact) {
+            return new Evidence(fact.artifactId(), fact.versionNo(), fact.referenceKey(),
+                    fact.fileFactVersion().artifactVersion(),
+                    fact.fileFactVersion().referenceVersion(),
+                    fact.fileFactVersion().availabilityVersion(), fact.scopeVersion());
+        }
+
+        Object auditFileFactVersion() {
+            if (artifactVersion == null && referenceVersion == null && availabilityVersion == null) {
+                return "NONE";
+            }
+            return Map.of("artifactVersion", artifactVersion,
+                    "referenceVersion", referenceVersion,
+                    "availabilityVersion", availabilityVersion);
+        }
     }
 }

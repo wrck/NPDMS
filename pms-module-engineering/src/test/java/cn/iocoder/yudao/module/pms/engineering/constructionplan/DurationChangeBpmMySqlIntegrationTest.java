@@ -37,9 +37,12 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.Duration
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeProperties;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanChangeFilePolicyProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.SubmitDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
@@ -232,6 +235,10 @@ class DurationChangeBpmMySqlIntegrationTest {
         jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id=?",
                 projectId);
         jdbcTemplate.update("DELETE FROM proj_project WHERE tenant_id=0 AND id=?", projectId);
+        jdbcTemplate.update("DELETE FROM plt_file_reference WHERE tenant_id=0 AND object_id=?",
+                String.valueOf(changeId));
+        jdbcTemplate.update("DELETE FROM plt_file_version WHERE tenant_id=0 AND artifact_id=?", planId + 5);
+        jdbcTemplate.update("DELETE FROM plt_file_artifact WHERE tenant_id=0 AND id=?", planId + 5);
         jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 "
                 + "AND operation_code='DURATION_CHANGE_BPM_RESULT' AND aggregate_key=?", String.valueOf(changeId));
     }
@@ -335,6 +342,64 @@ class DurationChangeBpmMySqlIntegrationTest {
         assertEquals(changeId, number("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
     }
 
+    @ParameterizedTest
+    @EnumSource(Command.class)
+    void requiredEvidenceSubmissionAndTerminalResultFreezeRealPltFacts(Command command) {
+        prepareRequiredEvidenceSubmission();
+        login(APPLICANT);
+
+        var response = durationChangeService.submit(new SubmitDurationChangeCommand(
+                        planId, changeId, 0, 3,
+                        "task6-file-submit-" + changeId, "c".repeat(64)),
+                new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
+                        "task6-file-submit-" + changeId));
+        processInstanceId = response.getProcessInstanceId();
+
+        assertEquals(4L, number("SELECT customer_evidence_artifact_version "
+                + "FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(5L, number("SELECT customer_evidence_reference_version "
+                + "FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(6L, number("SELECT customer_evidence_availability_version "
+                + "FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(7L, number("SELECT customer_evidence_scope_version "
+                + "FROM sol_construction_plan_change WHERE id=?", changeId));
+
+        invoke(command);
+
+        assertEquals(command.changeStatus(),
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(command == Command.APPROVE ? candidateRevisionId : baseRevisionId,
+                number("SELECT current_duration_revision_id FROM sol_construction_plan WHERE id=?", planId));
+    }
+
+    @Test
+    void changedReferenceFactRollsBackBpmAndSolTerminalResult() {
+        prepareRequiredEvidenceSubmission();
+        login(APPLICANT);
+        var response = durationChangeService.submit(new SubmitDurationChangeCommand(
+                        planId, changeId, 0, 3,
+                        "task6-file-conflict-" + changeId, "d".repeat(64)),
+                new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
+                        "task6-file-conflict-" + changeId));
+        processInstanceId = response.getProcessInstanceId();
+        jdbcTemplate.update("UPDATE plt_file_reference SET version=version+1 WHERE tenant_id=0 "
+                + "AND object_id=?", String.valueOf(changeId));
+
+        login(APPROVER);
+        String taskId = flowableTaskService.createTaskQuery().processInstanceId(processInstanceId)
+                .singleResult().getId();
+        assertThrows(RuntimeException.class, () -> bpmTaskService.approveTask(APPROVER,
+                new BpmTaskApproveReqVO().setId(taskId).setReason("并发换版")));
+
+        assertNotNull(runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult());
+        assertEquals(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL,
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(baseRevisionId,
+                number("SELECT current_duration_revision_id FROM sol_construction_plan WHERE id=?", planId));
+        assertEquals(changeId, number("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+    }
+
     @Test
     void concurrentSubmissionsAllowOnlyOnePendingApproval() throws Exception {
         prepareRealSubmission();
@@ -394,9 +459,15 @@ class DurationChangeBpmMySqlIntegrationTest {
     private void prepareRealSubmission() {
         resetPendingFactsToDraft();
         stubAuthorization(Failure.NONE, Command.CANCEL);
-        when(participantFactApi.mock().inspect(any())).thenReturn(new ProjectParticipantFact(
-                projectId, APPROVER, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+        when(participantFactApi.mock().inspect(any())).thenAnswer(invocation -> {
+            ProjectParticipantFactQuery query = invocation.getArgument(0);
+            Long userId = query.subjectUserId() == null ? APPROVER : query.subjectUserId();
+            Set<String> roles = userId == APPLICANT
+                    ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
+                    : Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
+            return new ProjectParticipantFact(projectId, userId, roles,
+                    "PRIMARY", "ACTIVE", "S1", 3, 3L);
+        });
         when(participantFactApi.mock().lockAndRevalidate(any())).thenAnswer(invocation -> {
             var query = invocation.getArgument(0, ProjectParticipantFactRevalidationQuery.class);
             long userId = query.userId();
@@ -425,6 +496,35 @@ class DurationChangeBpmMySqlIntegrationTest {
         when(processDefinitionService.getActiveProcessDefinition(PROCESS_KEY)).thenReturn(definition);
         when(processDefinitionService.getProcessDefinition(definition.getId())).thenReturn(definition);
         when(processDefinitionService.getProcessDefinitionBpmnModel(definition.getId())).thenReturn(bpmnModel);
+    }
+
+    private void prepareRequiredEvidenceSubmission() {
+        prepareRealSubmission();
+        long artifactId = planId + 5;
+        long fileVersionId = planId + 6;
+        long referenceId = planId + 7;
+        long infraFileId = planId + 8;
+        jdbcTemplate.update("UPDATE sol_construction_plan_change SET reason_type_code='CUSTOMER_DELAY', "
+                        + "customer_evidence_file_id=?, customer_evidence_file_version=2, "
+                        + "customer_evidence_reference_key='customer-delay' WHERE id=?",
+                artifactId, changeId);
+        jdbcTemplate.update("INSERT INTO plt_file_artifact "
+                        + "(id,name,category_code,owner_context,lifecycle_status_code,version,creator,updater,tenant_id) "
+                        + "VALUES (?,'客户延期依据.pdf','CUSTOMER_DELAY_EVIDENCE','SOL','ACTIVE',4,'9','9',0)",
+                artifactId);
+        jdbcTemplate.update("INSERT INTO plt_file_version "
+                        + "(id,artifact_id,version_no,infra_file_id,availability_version,sha256,size_bytes,"
+                        + "declared_media_type,detected_media_type,scan_status_code,scan_provider_code,"
+                        + "scan_provider_version,availability_status_code,created_by,created_at,tenant_id) "
+                        + "VALUES (?,?,2,?,6,?,128,'application/pdf','application/pdf','PASSED',"
+                        + "'CLAMAV','1','AVAILABLE',9,NOW(3),0)",
+                fileVersionId, artifactId, infraFileId, "e".repeat(64));
+        jdbcTemplate.update("INSERT INTO plt_file_reference "
+                        + "(id,owner_context,object_type,object_id,purpose_code,reference_key,artifact_id,"
+                        + "file_version_no,sensitivity_code,status_code,scope_version,version,creator,updater,tenant_id) "
+                        + "VALUES (?,'SOL','CONSTRUCTION_PLAN_CHANGE',?,'CUSTOMER_DELAY_EVIDENCE',"
+                        + "'customer-delay',?,2,'INTERNAL','ACTIVE',7,5,'9','9',0)",
+                referenceId, String.valueOf(changeId), artifactId);
     }
 
     private void submit(String key) {
@@ -682,6 +782,7 @@ class DurationChangeBpmMySqlIntegrationTest {
             ProcessEngineServicesAutoConfiguration.class})
     @MapperScan({"cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command",
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.file",
             "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
@@ -689,7 +790,9 @@ class DurationChangeBpmMySqlIntegrationTest {
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             BpmTaskServiceImpl.class, BpmProcessInstanceServiceImpl.class, BpmProcessInstanceApiImpl.class,
             BpmProcessInstanceEventListener.class, PlatformCommandExecutionApiImpl.class,
-            OperationAuditApiImpl.class, DurationChangeApplicationService.class,
+            OperationAuditApiImpl.class, FileBusinessObjectPolicyRegistry.class,
+            FileArtifactApiImpl.class, ConstructionPlanChangeFilePolicyProvider.class,
+            DurationChangeApplicationService.class,
             DurationChangeProperties.class, DurationChangeBpmListener.class,
             DurationChangeBpmAuthorizationGuard.class, DurationChangeBpmResultService.class})
     static class TestApplication {

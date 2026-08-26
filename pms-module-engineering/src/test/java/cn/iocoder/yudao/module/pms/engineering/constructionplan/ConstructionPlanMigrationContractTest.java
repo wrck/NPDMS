@@ -15,6 +15,7 @@ class ConstructionPlanMigrationContractTest {
 
     private static String schemaSql;
     private static String seedSql;
+    private static String fileFreezeSql;
 
     @BeforeAll
     static void loadMigrations() throws IOException {
@@ -27,6 +28,8 @@ class ConstructionPlanMigrationContractTest {
                 migrationDirectory.resolve("V90__fsol001_construction_plan_duration.sql"), StandardCharsets.UTF_8);
         seedSql = Files.readString(
                 migrationDirectory.resolve("V91__fsol001_duration_seed.sql"), StandardCharsets.UTF_8);
+        fileFreezeSql = Files.readString(
+                migrationDirectory.resolve("V95__fsol001_file_artifact_freeze.sql"), StandardCharsets.UTF_8);
     }
 
     @Test
@@ -73,6 +76,18 @@ class ConstructionPlanMigrationContractTest {
         assertTrue(seedSql.contains("19152, 19153, 19154, 19155, 19156"));
         assertFalse(seedSql.contains("INSERT INTO `system_role_menu`"));
         assertFalse(seedSql.contains("DELETE FROM"));
+    }
+
+    @Test
+    void addsOnlyNullableFrozenFileFactsForward() {
+        assertTrue(fileFreezeSql.contains("ALTER TABLE `sol_construction_plan_change`"));
+        assertTrue(fileFreezeSql.contains("`customer_evidence_reference_key` VARCHAR(128) NULL"));
+        assertTrue(fileFreezeSql.contains("`customer_evidence_artifact_version` INT UNSIGNED NULL"));
+        assertTrue(fileFreezeSql.contains("`customer_evidence_reference_version` INT UNSIGNED NULL"));
+        assertTrue(fileFreezeSql.contains("`customer_evidence_availability_version` INT UNSIGNED NULL"));
+        assertTrue(fileFreezeSql.contains("`customer_evidence_scope_version` BIGINT NULL"));
+        assertFalse(fileFreezeSql.contains("CREATE TABLE"));
+        assertFalse(fileFreezeSql.contains("proj_"));
     }
 
 }
