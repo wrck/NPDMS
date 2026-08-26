@@ -13,12 +13,16 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Pattern;
 
 @Component
 public class ClamAvFileSecurityScanProvider implements FileSecurityScanProvider {
 
     private static final String PROVIDER_CODE = "CLAMAV";
     private static final int STREAM_CHUNK_BYTES = 64 * 1024;
+    private static final Pattern VERSION_RESPONSE = Pattern.compile(
+            "ClamAV \\d+(?:\\.\\d+){1,3}(?:/[^\\r\\n\\u0000]+)?");
+    private static final Pattern MALWARE_RESPONSE = Pattern.compile("stream: .+ FOUND");
 
     private final String host;
     private final int port;
@@ -44,10 +48,10 @@ public class ClamAvFileSecurityScanProvider implements FileSecurityScanProvider 
         try {
             String version = queryVersion();
             String response = scanContent(command.validatedContent());
-            if (response.endsWith(" OK")) {
+            if ("stream: OK".equals(response)) {
                 return new FileSecurityScanResult("PASSED", PROVIDER_CODE, version, null);
             }
-            if (response.endsWith(" FOUND")) {
+            if (MALWARE_RESPONSE.matcher(response).matches()) {
                 return new FileSecurityScanResult("REJECTED", PROVIDER_CODE, version, "MALWARE_FOUND");
             }
             return new FileSecurityScanResult("ERROR", PROVIDER_CODE, version, "INVALID_SCAN_RESPONSE");
@@ -61,8 +65,8 @@ public class ClamAvFileSecurityScanProvider implements FileSecurityScanProvider 
             socket.getOutputStream().write("zVERSION\0".getBytes(StandardCharsets.US_ASCII));
             socket.getOutputStream().flush();
             String version = readNullTerminated(socket.getInputStream());
-            if (version.isBlank()) {
-                throw new IOException("empty ClamAV version");
+            if (!VERSION_RESPONSE.matcher(version).matches()) {
+                throw new IOException("invalid ClamAV version response");
             }
             return version;
         }
@@ -99,7 +103,7 @@ public class ClamAvFileSecurityScanProvider implements FileSecurityScanProvider 
         if (value != 0) {
             throw new IOException("incomplete ClamAV response");
         }
-        return response.toString(StandardCharsets.US_ASCII).trim();
+        return response.toString(StandardCharsets.US_ASCII);
     }
 
     private boolean configured() {

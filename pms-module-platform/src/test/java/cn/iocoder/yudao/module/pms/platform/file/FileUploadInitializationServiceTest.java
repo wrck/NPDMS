@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.platform.file;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
@@ -16,7 +18,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -36,13 +40,17 @@ class FileUploadInitializationServiceTest {
     @Mock FileUploadSessionMapper sessionMapper;
     @Mock FileBusinessObjectPolicyRegistry policyRegistry;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
+    @Mock OperationAuditApi operationAuditApi;
 
     private FileUploadApplicationService service;
+    private final AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts =
+            new AtomicReference<>();
 
     @BeforeEach
     void setUp() {
         service = new FileUploadApplicationService(
-                sessionMapper, policyRegistry, commandExecutionApi, Duration.ofMinutes(15));
+                sessionMapper, policyRegistry, commandExecutionApi, operationAuditApi,
+                Duration.ofMinutes(15));
     }
 
     @Test
@@ -64,6 +72,17 @@ class FileUploadInitializationServiceTest {
         assertEquals(result.artifactId(), row.getArtifactId());
         assertEquals("INITIALIZED", row.getStatusCode());
         assertEquals(8L, row.getScopeVersion());
+        Map<?, ?> audit = JsonUtils.parseObject(successFacts.get().detailSnapshot(), Map.class);
+        assertEquals("evidence.pdf", audit.get("fileName"));
+        assertEquals(1024, audit.get("declaredSizeBytes"));
+        assertEquals("application/pdf", audit.get("declaredMediaType"));
+        assertEquals("NONE", audit.get("expectedReferenceVersion"));
+        assertEquals("idem-1", audit.get("operationId"));
+        assertEquals(String.valueOf(result.sessionId()), audit.get("storageOperationId"));
+        assertEquals("NONE", audit.get("statusBefore"));
+        assertEquals("INITIALIZED", audit.get("statusAfter"));
+        assertEquals("NONE", audit.get("versionBefore"));
+        assertEquals(0, audit.get("versionAfter"));
     }
 
     @Test
@@ -75,6 +94,11 @@ class FileUploadInitializationServiceTest {
                 "CREATE_ARTIFACT", null, null, 101L, "application/pdf")));
 
         verify(sessionMapper, never()).insert(any());
+        ArgumentCaptor<Map<String, ?>> audit = rejectedAudit();
+        assertEquals(101L, audit.getValue().get("declaredSizeBytes"));
+        assertEquals("REJECTED", audit.getValue().get("statusAfter"));
+        assertEquals("idem-1", audit.getValue().get("operationId"));
+        assertNotNull(audit.getValue().get("failureCode"));
     }
 
     @Test
@@ -99,6 +123,9 @@ class FileUploadInitializationServiceTest {
 
         verify(sessionMapper, never()).insert(any());
         verify(policyRegistry, never()).inspect(any());
+        ArgumentCaptor<Map<String, ?>> audit = rejectedAudit();
+        assertEquals("NONE", audit.getValue().get("expectedReferenceVersion"));
+        assertEquals("NONE", audit.getValue().get("versionAfter"));
     }
 
     @Test
@@ -125,10 +152,19 @@ class FileUploadInitializationServiceTest {
                     Function<FileUploadInitialized, PlatformCommandExecutionApi.SuccessFacts> factsFactory =
                             invocation.getArgument(4);
                     FileUploadInitialized result = operation.get();
-                    factsFactory.apply(result);
+                    successFacts.set(factsFactory.apply(result));
                     return new PlatformCommandExecutionApi.ExecutionResult<>(
                             PlatformCommandExecutionApi.Decision.NEW, result);
                 });
+    }
+
+    @SuppressWarnings("unchecked")
+    private ArgumentCaptor<Map<String, ?>> rejectedAudit() {
+        ArgumentCaptor<Map<String, ?>> detail = ArgumentCaptor.forClass((Class) Map.class);
+        verify(operationAuditApi).record(eq(0L), eq(7L), eq("idem-1"),
+                eq("FILE_UPLOAD_INITIALIZE"), eq("FileUploadSession"), eq("UNKNOWN"),
+                eq("REJECTED"), detail.capture());
+        return detail;
     }
 
     private FileUploadInitializeCommand command(String mode, Long artifactId,

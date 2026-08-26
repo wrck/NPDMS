@@ -124,6 +124,39 @@ class FileContentValidationTest {
     }
 
     @Test
+    void clamAvAdapterRejectsNonCanonicalOkResponse() throws Exception {
+        FileSecurityScanResult result = scanWithStubResponses("ClamAV 1.4.3", "garbage OK");
+
+        assertEquals("ERROR", result.resultCode());
+        assertEquals("INVALID_SCAN_RESPONSE", result.reasonCode());
+    }
+
+    @Test
+    void clamAvAdapterRejectsInvalidVersionResponse() throws Exception {
+        try (ServerSocket server = new ServerSocket(0)) {
+            CompletableFuture<Void> daemon = CompletableFuture.runAsync(() -> {
+                try (Socket socket = server.accept()) {
+                    assertArrayEquals("zVERSION\0".getBytes(StandardCharsets.US_ASCII),
+                            socket.getInputStream().readNBytes(9));
+                    socket.getOutputStream().write("not-clamav\0".getBytes(StandardCharsets.US_ASCII));
+                } catch (IOException ex) {
+                    throw new IllegalStateException(ex);
+                }
+            });
+            ClamAvFileSecurityScanProvider provider = new ClamAvFileSecurityScanProvider(
+                    "127.0.0.1", server.getLocalPort(), 1000, 3000);
+
+            FileSecurityScanResult result = provider.scan(
+                    new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanCommand(
+                            PDF, "evidence.pdf", "application/pdf", "application/pdf", "a".repeat(64)));
+
+            assertEquals("ERROR", result.resultCode());
+            assertEquals("PROVIDER_UNAVAILABLE", result.reasonCode());
+            daemon.get(3, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
     @EnabledIfEnvironmentVariable(named = "NPDMS_CLAMAV_IT", matches = "true")
     void realClamAvRejectsEicar() {
         int port = Integer.parseInt(System.getenv().getOrDefault("NPDMS_CLAMAV_PORT", "13310"));
@@ -155,6 +188,46 @@ class FileContentValidationTest {
             assertArrayEquals(expected, input.readNBytes(length));
             assertEquals(0, input.readInt());
             socket.getOutputStream().write("stream: OK\0".getBytes(StandardCharsets.US_ASCII));
+        }
+    }
+
+    private static FileSecurityScanResult scanWithStubResponses(String versionResponse,
+                                                                 String scanResponse) throws Exception {
+        try (ServerSocket server = new ServerSocket(0)) {
+            CompletableFuture<Void> daemon = CompletableFuture.runAsync(() -> {
+                try (Socket versionSocket = server.accept()) {
+                    assertArrayEquals("zVERSION\0".getBytes(StandardCharsets.US_ASCII),
+                            versionSocket.getInputStream().readNBytes(9));
+                    versionSocket.getOutputStream().write(
+                            (versionResponse + "\0").getBytes(StandardCharsets.US_ASCII));
+                } catch (IOException ex) {
+                    throw new IllegalStateException(ex);
+                }
+                try {
+                    respondToScanWithResponse(server.accept(), PDF, scanResponse);
+                } catch (IOException ex) {
+                    throw new IllegalStateException(ex);
+                }
+            });
+            ClamAvFileSecurityScanProvider provider = new ClamAvFileSecurityScanProvider(
+                    "127.0.0.1", server.getLocalPort(), 1000, 3000);
+            FileSecurityScanResult result = provider.scan(
+                    new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanCommand(
+                            PDF, "evidence.pdf", "application/pdf", "application/pdf", "a".repeat(64)));
+            daemon.get(3, TimeUnit.SECONDS);
+            return result;
+        }
+    }
+
+    private static void respondToScanWithResponse(Socket socket, byte[] expected,
+                                                   String response) throws IOException {
+        try (socket; DataInputStream input = new DataInputStream(socket.getInputStream())) {
+            assertArrayEquals("zINSTREAM\0".getBytes(StandardCharsets.US_ASCII), input.readNBytes(10));
+            int length = input.readInt();
+            assertEquals(expected.length, length);
+            assertArrayEquals(expected, input.readNBytes(length));
+            assertEquals(0, input.readInt());
+            socket.getOutputStream().write((response + "\0").getBytes(StandardCharsets.US_ASCII));
         }
     }
 

@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.platform.service.file;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
@@ -40,20 +42,32 @@ public class FileUploadApplicationService {
     private final FileUploadSessionMapper sessionMapper;
     private final FileBusinessObjectPolicyRegistry policyRegistry;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    private final OperationAuditApi operationAuditApi;
     private final Duration sessionTtl;
 
     public FileUploadApplicationService(
             FileUploadSessionMapper sessionMapper,
             FileBusinessObjectPolicyRegistry policyRegistry,
             PlatformCommandExecutionApi commandExecutionApi,
+            OperationAuditApi operationAuditApi,
             @Value("${pms.file.upload.session-ttl:PT15M}") Duration sessionTtl) {
         this.sessionMapper = sessionMapper;
         this.policyRegistry = policyRegistry;
         this.commandExecutionApi = commandExecutionApi;
+        this.operationAuditApi = operationAuditApi;
         this.sessionTtl = sessionTtl;
     }
 
     public FileUploadInitialized initialize(FileUploadInitializeCommand command) {
+        try {
+            return initializeInTransaction(command);
+        } catch (RuntimeException failure) {
+            auditRejected(command, failure);
+            throw failure;
+        }
+    }
+
+    private FileUploadInitialized initializeInTransaction(FileUploadInitializeCommand command) {
         ValidatedInitialization validated = validate(command);
         Long artifactId = MODE_CREATE_ARTIFACT.equals(validated.modeCode())
                 ? IdWorker.getId() : command.artifactId();
@@ -65,7 +79,7 @@ public class FileUploadApplicationService {
                         "PLT:FILE:INIT_UPLOAD", command.actorUserId(), validated.idempotencyKey()),
                 requestDigest(command, validated), FileUploadInitialized.class,
                 () -> authorizeAndCreateSession(command, validated, artifactId, sessionId, expiresAt, policyRef),
-                initialized -> successFacts(initialized, validated, requirePolicy(policyRef)));
+                initialized -> successFacts(initialized, command, validated, requirePolicy(policyRef)));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS
                 || execution.response() == null) {
@@ -120,7 +134,8 @@ public class FileUploadApplicationService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(
-            FileUploadInitialized initialized, ValidatedInitialization validated,
+            FileUploadInitialized initialized, FileUploadInitializeCommand command,
+            ValidatedInitialization validated,
             FileBusinessObjectPolicyFact policy) {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("artifactId", initialized.artifactId());
@@ -131,12 +146,80 @@ public class FileUploadApplicationService {
         detail.put("objectId", validated.objectId());
         detail.put("purposeCode", validated.purposeCode());
         detail.put("referenceKey", validated.referenceKey());
+        detail.put("fileName", validated.fileName());
         detail.put("categoryCode", validated.categoryCode());
+        detail.put("declaredSizeBytes", command.declaredSizeBytes());
+        detail.put("declaredMediaType", validated.declaredMediaType());
+        detail.put("clientSha256", auditValue(normalizeDigest(command.clientSha256())));
+        detail.put("expectedReferenceVersion", auditValue(command.expectedReferenceVersion()));
+        detail.put("action", validated.action());
         detail.put("scopeVersion", policy.scopeVersion());
+        detail.put("operationId", validated.idempotencyKey());
+        detail.put("storageOperationId", String.valueOf(initialized.sessionId()));
+        detail.put("statusBefore", "NONE");
+        detail.put("statusAfter", "INITIALIZED");
+        detail.put("versionBefore", "NONE");
+        detail.put("versionAfter", 0);
         detail.put("expiresAt", initialized.expiresAt());
         return new PlatformCommandExecutionApi.SuccessFacts(
                 "FILE_UPLOAD_INITIALIZE", "FileUploadSession", String.valueOf(initialized.sessionId()),
                 validated.idempotencyKey(), JsonUtils.toJsonString(detail), null, null);
+    }
+
+    private void auditRejected(FileUploadInitializeCommand command, RuntimeException failure) {
+        if (command == null || command.tenantId() == null || command.tenantId() < 0
+                || command.actorUserId() == null || command.actorUserId() <= 0
+                || command.idempotencyKey() == null || command.idempotencyKey().isBlank()) {
+            return;
+        }
+        Map<String, Object> detail = new LinkedHashMap<>();
+        putIfNotNull(detail, "modeCode", auditText(command.modeCode()));
+        putIfNotNull(detail, "artifactId", command.artifactId());
+        putIfNotNull(detail, "ownerContext", auditText(command.ownerContext()));
+        putIfNotNull(detail, "objectType", auditText(command.objectType()));
+        putIfNotNull(detail, "objectId", auditText(command.objectId()));
+        putIfNotNull(detail, "purposeCode", auditText(command.purposeCode()));
+        putIfNotNull(detail, "referenceKey", auditText(command.referenceKey()));
+        putIfNotNull(detail, "fileName", auditText(command.fileName()));
+        putIfNotNull(detail, "categoryCode", auditText(command.categoryCode()));
+        putIfNotNull(detail, "declaredSizeBytes", command.declaredSizeBytes());
+        putIfNotNull(detail, "declaredMediaType", auditText(command.declaredMediaType()));
+        putIfNotNull(detail, "clientSha256", auditText(command.clientSha256()));
+        detail.put("action", MODE_ADD_VERSION.equals(auditText(command.modeCode()))
+                ? FileActionCodes.REPLACE : FileActionCodes.UPLOAD);
+        detail.put("operationId", command.idempotencyKey());
+        detail.put("expectedReferenceVersion", auditValue(command.expectedReferenceVersion()));
+        detail.put("statusBefore", "NONE");
+        detail.put("statusAfter", "REJECTED");
+        detail.put("versionBefore", "NONE");
+        detail.put("versionAfter", "NONE");
+        detail.put("failureCode", failureCode(failure));
+        operationAuditApi.record(command.tenantId(), command.actorUserId(), command.idempotencyKey(),
+                "FILE_UPLOAD_INITIALIZE", "FileUploadSession", "UNKNOWN", "REJECTED", Map.copyOf(detail));
+    }
+
+    private static Object auditValue(Object value) {
+        return value == null ? "NONE" : value;
+    }
+
+    private static String auditText(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static void putIfNotNull(Map<String, Object> detail, String key, Object value) {
+        if (value != null) {
+            detail.put(key, value);
+        }
+    }
+
+    private static String failureCode(RuntimeException failure) {
+        if (failure instanceof ServiceException serviceException) {
+            return String.valueOf(serviceException.getCode());
+        }
+        if (failure.getMessage() != null && failure.getMessage().startsWith("FILE_")) {
+            return failure.getMessage();
+        }
+        return "FILE_UPLOAD_INITIALIZE_FAILED";
     }
 
     private static FileBusinessObjectPolicyFact requirePolicy(
