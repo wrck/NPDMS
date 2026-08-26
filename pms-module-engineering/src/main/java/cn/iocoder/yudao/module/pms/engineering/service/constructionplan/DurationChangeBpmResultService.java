@@ -140,8 +140,8 @@ public class DurationChangeBpmResultService {
         detail.put("pendingChangeIdAfter", "NONE");
         detail.put("planRecalculationStatusBefore", recalculationBefore);
         detail.put("planRecalculationStatusAfter", recalculationAfter);
-        detail.put("planRecalculationSourceRevisionIdBefore", recalculationSourceBefore);
-        detail.put("planRecalculationSourceRevisionIdAfter", recalculationSourceAfter);
+        detail.put("planRecalculationSourceRevisionIdBefore", auditValue(recalculationSourceBefore));
+        detail.put("planRecalculationSourceRevisionIdAfter", auditValue(recalculationSourceAfter));
         detail.put("opinion", reason == null ? "NONE" : reason);
         detail.put("decidedAt", decidedAt.toString());
         detail.put("changeVersionAfter", change.getVersion() + 1);
@@ -150,6 +150,10 @@ public class DurationChangeBpmResultService {
                 "bpm:" + processInstanceId + ":" + result.name(), OPERATION,
                 "ConstructionPlanChange", String.valueOf(change.getId()), "SUCCESS",
                 Map.copyOf(detail));
+    }
+
+    private Object auditValue(Object value) {
+        return value == null ? "NONE" : value;
     }
 
     private boolean isTerminal(String status) {
