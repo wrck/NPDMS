@@ -101,6 +101,8 @@
     {"path": "specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-007-physical-contract.json", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-SOL-001-physical-contract.json", "category": "FEATURE_SPEC"},
+    {"path": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/README.md", "category": "FEATURE_SPEC"}
   ]
 }

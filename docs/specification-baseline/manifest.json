@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "2cb73611847aeca25db21313da1e77d4e5394103"
+    "commit": "f2c563df978b7d7b3b1de9ad245b9c485bbdbae8"
   },
   "files": [
     {
@@ -438,7 +438,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "85f89f79db5a48af12f0e875b52b68b1b27349c02cabec1e8e09795c1025dafc"
+      "sha256": "28fffa67adce51fdc3361074170b59c687e63d3cdb9c2bcc4d3963610373f790"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -506,9 +506,19 @@
       "sha256": "f56458fce46f4a2a3c6f39eb6ff08a9c32e7ead2bbff34b42043f29b3611361e"
     },
     {
+      "path": "specs/features/F-SOL-001-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "f132bf0e82be597835e02222bb79da72f6a1a42c8c5dc5c0f1d49bbf6a36f0d3"
+    },
+    {
+      "path": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "af1b654747252a491afa5d995be1ac327b5357d1366ba733dc43ed48b80fa397"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "e08d448757c786af80ea6ee246b9d5e525668cffe24feeed06920121c871a40f"
+      "sha256": "60cd02c649652cb50a03d7af827ed6ba480fb4413a6d6eeda9282ef068a4523a"
     }
   ]
 }
