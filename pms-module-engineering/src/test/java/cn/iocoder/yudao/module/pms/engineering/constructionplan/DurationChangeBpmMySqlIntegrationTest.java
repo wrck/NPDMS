@@ -41,7 +41,12 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
@@ -135,7 +140,7 @@ class DurationChangeBpmMySqlIntegrationTest {
     @Resource JdbcTemplate jdbcTemplate;
     @Resource PermissionApi permissionApi;
     @Resource ProjectScopeApi projectScopeApi;
-    @Resource ProjectParticipantFactApi participantFactApi;
+    @Resource SwitchingProjectParticipantFactApi participantFactApi;
     @Resource DictDataApi dictDataApi;
     @Resource ConfigApi configApi;
     @Resource DurationChangeApplicationService durationChangeService;
@@ -193,7 +198,8 @@ class DurationChangeBpmMySqlIntegrationTest {
                 .tenantId("0")
                 .addBpmnModel(PROCESS_KEY + ".bpmn20.xml", bpmnModel)
                 .deploy().getId();
-        reset(permissionApi, projectScopeApi, participantFactApi, dictDataApi, configApi,
+        participantFactApi.useMock();
+        reset(permissionApi, projectScopeApi, participantFactApi.mock(), dictDataApi, configApi,
                 modelService, processDefinitionService);
         when(modelService.getBpmnModelByDefinitionId(anyString())).thenReturn(bpmnModel);
         when(processDefinitionService.getProcessDefinitionInfo(anyString()))
@@ -223,6 +229,9 @@ class DurationChangeBpmMySqlIntegrationTest {
         jdbcTemplate.update("DELETE FROM sol_construction_plan_change WHERE tenant_id=0 AND plan_id=?", planId);
         jdbcTemplate.update("DELETE FROM sol_construction_plan_revision WHERE tenant_id=0 AND plan_id=?", planId);
         jdbcTemplate.update("DELETE FROM sol_construction_plan WHERE tenant_id=0 AND id=?", planId);
+        jdbcTemplate.update("DELETE FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id=?",
+                projectId);
+        jdbcTemplate.update("DELETE FROM proj_project WHERE tenant_id=0 AND id=?", projectId);
         jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 "
                 + "AND operation_code='DURATION_CHANGE_BPM_RESULT' AND aggregate_key=?", String.valueOf(changeId));
     }
@@ -290,6 +299,43 @@ class DurationChangeBpmMySqlIntegrationTest {
     }
 
     @Test
+    void realProjectFactsRejectStaleVersionThenAllowSubmission() {
+        prepareRealSubmission();
+        insertRealProjectFacts(4);
+        participantFactApi.useReal();
+        login(APPLICANT);
+
+        assertThrows(RuntimeException.class, () -> durationChangeService.submit(
+                new SubmitDurationChangeCommand(planId, changeId, 0, 3,
+                        "task9-real-project-stale-" + changeId, "a".repeat(64)),
+                new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
+                        "task9-real-project-stale-" + changeId)));
+
+        assertEquals(ConstructionPlanChangeDO.STATUS_DRAFT,
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertNull(value("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+        assertEquals(0, runtimeService.createProcessInstanceQuery()
+                .processDefinitionKey(PROCESS_KEY).variableValueEquals("projectId", projectId).count());
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND operation_code='DURATION_CHANGE_SUBMIT' "
+                + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(changeId)));
+
+        jdbcTemplate.update("UPDATE proj_project SET version=3 WHERE tenant_id=0 AND id=?", projectId);
+        var response = durationChangeService.submit(new SubmitDurationChangeCommand(
+                        planId, changeId, 0, 3,
+                        "task9-real-project-success-" + changeId, "b".repeat(64)),
+                new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
+                        "task9-real-project-success-" + changeId));
+        processInstanceId = response.getProcessInstanceId();
+
+        assertNotNull(runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult());
+        assertEquals(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL,
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(changeId, number("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+    }
+
+    @Test
     void concurrentSubmissionsAllowOnlyOnePendingApproval() throws Exception {
         prepareRealSubmission();
 
@@ -348,12 +394,11 @@ class DurationChangeBpmMySqlIntegrationTest {
     private void prepareRealSubmission() {
         resetPendingFactsToDraft();
         stubAuthorization(Failure.NONE, Command.CANCEL);
-        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+        when(participantFactApi.mock().inspect(any())).thenReturn(new ProjectParticipantFact(
                 projectId, APPROVER, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1),
                 "PRIMARY", "ACTIVE", "S1", 3, 3L));
-        when(participantFactApi.lockAndRevalidate(any())).thenAnswer(invocation -> {
-            var query = invocation.getArgument(0,
-                    cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery.class);
+        when(participantFactApi.mock().lockAndRevalidate(any())).thenAnswer(invocation -> {
+            var query = invocation.getArgument(0, ProjectParticipantFactRevalidationQuery.class);
             long userId = query.userId();
             Set<String> roles = userId == APPLICANT
                     ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
@@ -454,7 +499,8 @@ class DurationChangeBpmMySqlIntegrationTest {
     }
 
     private void stubAuthorization(Failure failure, Command command) {
-        reset(permissionApi, projectScopeApi, participantFactApi);
+        participantFactApi.useMock();
+        reset(permissionApi, projectScopeApi, participantFactApi.mock());
         when(permissionApi.hasAnyPermissions(anyLong(), anyString())).thenReturn(failure != Failure.PERMISSION);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(failure == Failure.SCOPE
                 ? new ProjectScopeResult(projectId, 7L, Set.of(), Set.of())
@@ -465,8 +511,8 @@ class DurationChangeBpmMySqlIntegrationTest {
                 : Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
         ProjectParticipantFact fact = new ProjectParticipantFact(projectId, actor, roles, "PRIMARY",
                 "ACTIVE", "S1", 3, 3L);
-        when(participantFactApi.inspect(any())).thenReturn(failure == Failure.ROLE ? null : fact);
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(fact);
+        when(participantFactApi.mock().inspect(any())).thenReturn(failure == Failure.ROLE ? null : fact);
+        when(participantFactApi.mock().lockAndRevalidate(any())).thenReturn(fact);
     }
 
     private void createPendingFacts() {
@@ -517,6 +563,21 @@ class DurationChangeBpmMySqlIntegrationTest {
                         + "approver_user_id=NULL, version=0 WHERE id=?", changeId);
         jdbcTemplate.update("UPDATE sol_construction_plan SET pending_change_id=NULL, version=0 WHERE id=?",
                 planId);
+    }
+
+    private void insertRealProjectFacts(int version) {
+        jdbcTemplate.update("INSERT INTO proj_project "
+                        + "(id,project_code,code_root_id,project_sequence,project_name,manager_id,root_id,tree_path,"
+                        + "tree_depth,tree_sort,status,lifecycle_status,current_stage,assignment_status,"
+                        + "task_tree_version,task_progress_version,version,tenant_id) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?,?,'S0','ACTIVE','S1','ASSIGNED',0,0,?,0)",
+                projectId, "FSOL001-T9-" + projectId, projectId, 0,
+                "F-SOL-001 Task9 " + projectId, APPLICANT, projectId, "/", 0, 0, version);
+        jdbcTemplate.update("INSERT INTO proj_project_member_assignment "
+                        + "(project_id,user_id,member_role,assignment_type,responsibility,effective_from,effective_to,"
+                        + "status,version,tenant_id) VALUES (?,?,?,'PRIMARY',?,NOW(3),NULL,'ACTIVE',0,0)",
+                projectId, APPROVER, ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
+                ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
     }
 
     private Object value(String sql, long id) {
@@ -584,11 +645,44 @@ class DurationChangeBpmMySqlIntegrationTest {
         void run();
     }
 
+    static final class SwitchingProjectParticipantFactApi implements ProjectParticipantFactApi {
+        private final ProjectParticipantFactApi real;
+        private final ProjectParticipantFactApi mock = org.mockito.Mockito.mock(ProjectParticipantFactApi.class);
+        private volatile boolean useReal;
+
+        SwitchingProjectParticipantFactApi(ProjectParticipantFactApi real) {
+            this.real = real;
+        }
+
+        ProjectParticipantFactApi mock() {
+            return mock;
+        }
+
+        void useMock() {
+            useReal = false;
+        }
+
+        void useReal() {
+            useReal = true;
+        }
+
+        @Override
+        public ProjectParticipantFact inspect(ProjectParticipantFactQuery query) {
+            return (useReal ? real : mock).inspect(query);
+        }
+
+        @Override
+        public ProjectParticipantFact lockAndRevalidate(ProjectParticipantFactRevalidationQuery query) {
+            return (useReal ? real : mock).lockAndRevalidate(query);
+        }
+    }
+
     @SpringBootConfiguration
     @ImportAutoConfiguration({ProcessEngineAutoConfiguration.class,
             ProcessEngineServicesAutoConfiguration.class})
     @MapperScan({"cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan",
-            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.command",
+            "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
@@ -602,7 +696,12 @@ class DurationChangeBpmMySqlIntegrationTest {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
-        @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
+        @Bean
+        SwitchingProjectParticipantFactApi participantFactApi(ProjectMasterMapper projectMapper,
+                                                               ProjectMemberAssignmentMapper memberMapper) {
+            return new SwitchingProjectParticipantFactApi(
+                    new ProjectParticipantFactApiImpl(projectMapper, memberMapper));
+        }
         @Bean DictDataApi dictDataApi() { return mock(DictDataApi.class); }
         @Bean ConfigApi configApi() { return mock(ConfigApi.class); }
         @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
