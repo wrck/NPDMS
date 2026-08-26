@@ -6,12 +6,12 @@
 > Implementation Done Gate：`PASS / b559978 / 独立复审GO`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
 > 当前阻断：`无`
-> 当前任务：`已完成；回写规格追溯并同步新基线`
+> 当前任务：`已完成；新基线已同步，按工程链定位下一Feature`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
 > Technical Plan：`docs/superpowers/plans/2026-08-25-f-proj-007-project-task-tree-and-native-workbench.md`
-> 锁定规格提交：`5f37b2d1adf4666ccfc595f0acf1829cd323e44f`
+> 锁定规格提交：`2cb73611847aeca25db21313da1e77d4e5394103`
 
 ## 当前Gate工作单元
 
