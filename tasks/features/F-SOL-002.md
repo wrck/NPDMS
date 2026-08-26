@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
 > Implementation Done Gate：`PENDING`
 > 当前阻断：`无；INT-05未实施时仅OA必需项保持NOT_READY，不阻断无OA正向主线`
-> 当前任务：`Task 2 提供PROJ冻结WorkBinding公共事实`
+> 当前任务：`Task 3 实现SOL六表持久化原语与固定表单规则`
 > Requirement ID：`PRE-02（V1/P0）`
 > Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
 > Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
@@ -24,8 +24,8 @@
 ## 任务跟踪
 
 - [x] Task 1 建立PRE-02六表、字典权限与Feature工作单（PASS / NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1）
-- [ ] Task 2 提供PROJ冻结WorkBinding公共事实（实施中）
-- [ ] Task 3 实现SOL六表持久化原语与固定表单规则
+- [x] Task 2 提供PROJ冻结WorkBinding公共事实（PASS / NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1）
+- [ ] Task 3 实现SOL六表持久化原语与固定表单规则（实施中）
 - [ ] Task 4 实现模板初始化、当前准备查询与历史投影
 - [ ] Task 5 实现逐项指派、填写与精确文件证据
 - [ ] Task 6 实现提交、逐项确认及退回新版本
@@ -43,3 +43,5 @@
 > Task 2候选证据（2026-08-27）：PROJ已在既有ProjectTask ExecutionContract真值上提供窄`ProjectWorkBindingFactApi`；模板发布通过`ConfigApi`读取固定V1目录并校验唯一PRE-02目标四元组、六类冻结项及表单版本；inspect按受信租户、项目和精确目标唯一查询，lockAndRevalidate按Project→ProjectTask→当前ExecutionContract顺序锁定并重验ID、归属及三段版本。聚焦单元27/27 PASS；清洁隔离MySQL从V1迁移至V97后，精确/越租户/多记录查询与锁定当前读2/2 PASS，25模块Reactor BUILD SUCCESS。正式PASS以独立Implementation Done裁决为准。
 
 > Task 2整改记录（2026-08-27）：首次独立复审发现模板校验错误收窄为恰好六类基准项。现已改为发布时通过既有`DictDataApi`读取启用的`pms_preparation_survey_item_code`，要求完整包含六类基准项且全部扩展编码命中启用字典；冻结事实读取与锁定重验不回读可变字典，并接受结构合法的已批准扩展项。整改聚焦测试29/29 PASS，正式结论待独立复审。
+
+> Task 2独立裁决（2026-08-27）：`NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1 / GO`；允许回写PASS并推进Task 3。
