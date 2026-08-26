@@ -130,12 +130,12 @@
 
 `pms-module-platform-api`新增稳定公共契约：
 
-- `FileArtifactApi.inspect(FileArtifactVersionQuery)`：输入artifactId、versionNo、业务对象、用途和requiredAction；按受信租户检查固定版本可引用/可访问事实，返回由`artifactVersion/referenceVersion/availabilityVersion`组成的`fileFactVersion`及业务`scopeVersion`；
-- `FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)`：除inspect稳定键外必须输入`expectedFileFactVersion`和`expectedScopeVersion`。同一事务先调用业务Provider锁定重验scope，再依次锁定Artifact、精确FileVersion、精确FileReference；比较三段文件事实版本、引用目标/状态、版本可用性和scopeVersion，任一变化、缺失或越租户均返回版本冲突且无消费方成功副作用。
+- `FileArtifactApi.inspect(FileArtifactVersionQuery)`：输入artifactId、versionNo、业务对象、用途、非空referenceKey和requiredAction；referenceKey与物理稳定键中的同名字段一致，按受信租户只检查该精确引用槽位，返回同一referenceKey、由`artifactVersion/referenceVersion/availabilityVersion`组成的`fileFactVersion`及业务`scopeVersion`；
+- `FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)`：除inspect稳定键和同一referenceKey外必须输入`expectedFileFactVersion`和`expectedScopeVersion`。同一事务先调用业务Provider锁定重验scope，再依次锁定Artifact、精确FileVersion、按完整稳定键定位的精确FileReference；锁后验证该Reference的artifactId、versionNo、status和referenceVersion，再比较版本可用性、Artifact生命周期及scopeVersion。任一变化、缺失或越租户均返回版本冲突且无消费方成功副作用；referenceKey为空或未命中不得省略条件并扩大查询。
 - `FileBusinessObjectPolicyProvider.inspect(...)`提供读取事实；`lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery)`按expectedScopeVersion锁定业务Owner事实并保持到调用事务结束，返回用途策略、引用可变性和当前scopeVersion；
 - `FileSecurityScanProvider.scan(FileSecurityScanCommand)`：PLT内部技术Provider，返回`PASSED/REJECTED/ERROR`及非敏感扫描版本/原因码；未配置或异常时完成上传失败关闭。
 
-`artifactVersion`随Artifact生命周期变化递增，`referenceVersion`随绑定版本、引用状态或持久化范围事实变化递增，`availabilityVersion`随精确FileVersion的可用/失效/恢复变化递增；内容字段保持不可变。返回事实不包含文件正文、storagePath、INFRA URL或访问token。SOL冻结`artifactId+versionNo+fileFactVersion+scopeVersion`，并在自身事务通过`lockAndRevalidate`重验；PLT不接收SOL审批结论。
+`artifactVersion`随Artifact生命周期变化递增，`referenceVersion`随绑定版本、引用状态或持久化范围事实变化递增，`availabilityVersion`随精确FileVersion的可用/失效/恢复变化递增；内容字段保持不可变。返回事实不包含文件正文、storagePath、INFRA URL或访问token。SOL冻结`artifactId+versionNo+referenceKey+fileFactVersion+scopeVersion`，并在自身事务以同一referenceKey通过`lockAndRevalidate`重验；PLT不接收SOL审批结论。
 
 ### 4.2 模块与依赖方向
 
@@ -180,6 +180,7 @@
 - `AC-FPLT001-014`：不宣称PLT-01、INT-12、业务审核、历史迁移、Deployment、SIT、UAT或Release完成。
 - `AC-FPLT001-015`：四类锁定文件事件与业务事实同事务进入Outbox，eventId重放不重复业务事实；业务失败无成功事件。
 - `AC-FPLT001-016`：SOL冻结fileFactVersion三段及scopeVersion；Artifact生命周期、Reference绑定/状态、Version可用性或业务范围任一变化后锁定重验失败且无SOL/BPM成功副作用。
+- `AC-FPLT001-017`：同一对象和purposeCode存在多个referenceKey时，inspect与lockAndRevalidate只命中请求指定的同一槽位；空referenceKey失败关闭且不返回其他槽位事实。
 
 ## 8. 测试与证据
 

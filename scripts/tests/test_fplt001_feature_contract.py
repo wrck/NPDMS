@@ -58,6 +58,9 @@ class Fplt001FeatureContractTest(unittest.TestCase):
 
     def test_revalidation_freezes_file_and_scope_versions(self) -> None:
         api = self.contract["interfaces"]["fileArtifactApi"]
+        self.assertIn("referenceKey", api["inspectInput"])
+        self.assertIn("referenceKey", api["lockAndRevalidateInput"])
+        self.assertIn("referenceKey", api["response"])
         self.assertIn("expectedFileFactVersion.artifactVersion", api["lockAndRevalidateInput"])
         self.assertIn("expectedFileFactVersion.referenceVersion", api["lockAndRevalidateInput"])
         self.assertIn("expectedFileFactVersion.availabilityVersion", api["lockAndRevalidateInput"])
@@ -72,6 +75,8 @@ class Fplt001FeatureContractTest(unittest.TestCase):
             api["lockOrder"],
         )
         self.assertIn("VERSION_CONFLICT", api["conflictPolicy"])
+        self.assertIn("select exactly one stable reference slot", api["referenceSelection"])
+        self.assertIn("empty referenceKey", api["unknownPolicy"])
 
     def test_locked_file_events_use_transactional_outbox(self) -> None:
         facts = self.contract["platformFacts"]

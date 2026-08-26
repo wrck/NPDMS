@@ -198,15 +198,15 @@
         "FileArtifactApi.inspect(FileArtifactVersionQuery)",
         "FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)"
       ],
-      "inspectInput": ["artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "requiredAction"],
+      "inspectInput": ["artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "referenceKey", "requiredAction"],
       "lockAndRevalidateInput": [
-        "artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "requiredAction",
+        "artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "referenceKey", "requiredAction",
         "expectedFileFactVersion.artifactVersion", "expectedFileFactVersion.referenceVersion",
         "expectedFileFactVersion.availabilityVersion", "expectedScopeVersion"
       ],
       "trustedContext": ["tenantId", "actorUserId"],
       "response": [
-        "artifactId", "versionNo", "categoryCode", "name", "sizeBytes", "mediaType", "sha256",
+        "artifactId", "versionNo", "referenceKey", "categoryCode", "name", "sizeBytes", "mediaType", "sha256",
         "availabilityStatus", "referenceStatus", "fileFactVersion.artifactVersion",
         "fileFactVersion.referenceVersion", "fileFactVersion.availabilityVersion", "scopeVersion"
       ],
@@ -221,8 +221,9 @@
         "PLT_EXACT_FILE_VERSION_FOR_UPDATE",
         "PLT_EXACT_FILE_REFERENCE_FOR_UPDATE"
       ],
-      "conflictPolicy": "scope, artifact lifecycle, exact version availability, reference target/status or any expected version change fails closed with VERSION_CONFLICT and no consumer success side effect",
-      "unknownPolicy": "missing, cross-tenant, unreferenced, invalidated, unavailable, unauthorized or version-changed facts fail closed"
+      "referenceSelection": "non-empty referenceKey is mandatory and combines with trusted tenantId, ownerContext, objectType, objectId and purposeCode to select exactly one stable reference slot; lock revalidates its artifactId, versionNo, status and referenceVersion",
+      "conflictPolicy": "scope, artifact lifecycle, exact version availability, selected reference target/status or any expected version change fails closed with VERSION_CONFLICT and no consumer success side effect",
+      "unknownPolicy": "empty referenceKey, missing, cross-tenant, unreferenced, invalidated, unavailable, unauthorized or version-changed facts fail closed and never widen the query"
     },
     "businessObjectPolicyProvider": {
       "providerModule": "pms-module-platform-api",
