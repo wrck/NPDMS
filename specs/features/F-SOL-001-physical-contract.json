@@ -15,6 +15,7 @@
       "INITIAL_DURATION_BASELINE",
       "VERSIONED_DURATION_CHANGE",
       "SERVICE_MANAGER_APPROVAL",
+      "BPM_WORKFLOW_ASSOCIATION",
       "CURRENT_DURATION_POINTER",
       "PLAN_RECALCULATION_IMPACT",
       "HISTORY_QUERY",
@@ -49,7 +50,7 @@
         "pending_change_id",
         "plan_recalculation_source_revision_id"
       ],
-      "stableKey": ["tenant_id", "project_id", "deleted"],
+      "stableKey": ["tenant_id", "project_id"],
       "referenceKey": ["tenant_id", "id"],
       "indexes": [
         ["tenant_id", "current_duration_revision_id"],
@@ -61,6 +62,7 @@
       "currentPolicy": "current_duration_revision_id is the only current effective duration truth",
       "pendingPolicy": "pending_change_id is the only current pending change truth",
       "pointerPolicy": "pointer columns are physically nullable to avoid a MySQL insert cycle; initialCreate must set current_duration_revision_id and plan_recalculation_source_revision_id before commit, and all non-deleted committed plans must satisfy the post-transaction invariants",
+      "deletionPolicy": "no delete or rebuild command; uk(tenant_id, project_id) remains unique across deleted marker values",
       "recalculationStatusCodes": [
         "PENDING_RECALCULATION",
         "RECALCULATED",
@@ -116,15 +118,22 @@
       "nullableFields": [
         "customer_evidence_file_id",
         "customer_evidence_file_version",
+        "process_definition_key",
+        "process_instance_id",
         "submitted_at",
         "approver_user_id",
         "approved_at",
         "approval_opinion"
       ],
       "stableKey": ["tenant_id", "plan_id", "candidate_revision_id"],
+      "uniqueKeys": [
+        ["tenant_id", "plan_id", "candidate_revision_id"],
+        ["tenant_id", "process_instance_id"]
+      ],
       "referenceKey": ["tenant_id", "id"],
       "indexes": [
         ["tenant_id", "plan_id", "status_code", "id"],
+        ["tenant_id", "process_instance_id"],
         ["tenant_id", "applicant_user_id", "created_at", "id"],
         ["tenant_id", "approver_user_id", "approved_at", "id"]
       ],
@@ -147,7 +156,8 @@
         "(tenant_id, candidate_revision_id) -> sol_construction_plan_revision(tenant_id, id)"
       ],
       "evidencePolicy": "store FileArtifact id and exact version only; never URL or file body",
-      "approvalPolicy": "current primary service manager, not applicant; subject fact comes from PROJ public read-only API"
+      "approvalPolicy": "current primary service manager, not applicant; subject fact comes from PROJ public read-only API",
+      "workflowPolicy": "PENDING_APPROVAL requires a non-null process_definition_key and process_instance_id; APPROVED/REJECTED/WITHDRAWN are written only from the matching BPM terminal result"
     }
   },
   "stateAxes": {
@@ -167,9 +177,8 @@
   ],
   "transactions": {
     "initialCreate": "PLAN_PLUS_REVISION1_PLUS_CURRENT_POINTER_PLUS_PENDING_RECALCULATION_PLUS_IDEMPOTENCY_SUCCESS_PLUS_AUDIT",
-    "submit": "LOCK_PLAN; VALIDATE_BASE_CURRENT_AND_NO_PENDING; FREEZE_REVISION_AND_EVIDENCE; SET_CHANGE_PENDING_AND_PENDING_POINTER; IDEMPOTENCY_SUCCESS; AUDIT",
-    "approve": "LOCK_PLAN_AND_PENDING_CHANGE; REVALIDATE_SCOPE_ROLE_NOT_APPLICANT_AND_FILE_VERSION; SET_CHANGE_APPROVED; SWITCH_CURRENT_POINTER; CLEAR_PENDING; SET_PENDING_RECALCULATION; IDEMPOTENCY_SUCCESS; AUDIT",
-    "rejectOrWithdraw": "LOCK_PLAN_AND_PENDING_CHANGE; VALIDATE_SUBJECT_STATE_VERSION; SET_TERMINAL_CHANGE_STATUS; CLEAR_PENDING; KEEP_CURRENT_AND_RECALCULATION_IMPACT; IDEMPOTENCY_SUCCESS; AUDIT",
+    "submit": "LOCK_AND_REVALIDATE_PROJECT_FACT; LOCK_PLAN; VALIDATE_BASE_CURRENT_AND_NO_PENDING; FREEZE_REVISION_AND_EVIDENCE; CREATE_OR_REPLAY_BPM_WITH_STANDARD_PROJECT_ID; FREEZE_PROCESS_INSTANCE; SET_CHANGE_PENDING_AND_PENDING_POINTER; IDEMPOTENCY_SUCCESS; AUDIT",
+    "approvalResult": "CONSUME_MATCHING_BPM_TERMINAL_EVENT; LOCK_AND_REVALIDATE_PROJECT_FACT; LOCK_PLAN_AND_PENDING_CHANGE; REVALIDATE_ASSOCIATION_AND_FILE_VERSION; APPROVE_SWITCHES_CURRENT_AND_SETS_PENDING_RECALCULATION; REJECT_OR_CANCEL_CLEARS_PENDING_AND_KEEPS_CURRENT; IDEMPOTENT_AUDIT",
     "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_WRITE_REJECTED_OPERATION_AUDIT_WITHOUT_SUCCESS_SIDE_EFFECTS"
   },
   "configuration": {
@@ -183,7 +192,7 @@
     "initialCreate": {
       "route": "POST /api/v1/pms/construction-plans",
       "requiredHeaders": ["Idempotency-Key"],
-      "requiredInputs": ["projectId", "calculationBasis"],
+      "requiredInputs": ["projectId", "calculationBasis", "expectedProjectVersion"],
       "conditionalInputs": ["startDate", "endDate", "durationDays"],
       "trustedContext": ["tenantId", "actorUserId"]
     },
@@ -214,45 +223,68 @@
         "GET|PATCH /api/v1/pms/construction-plans/{id}/changes/{changeId}"
       ],
       "createRequiredHeaders": ["Idempotency-Key", "If-Match"],
+      "createRequiredInputs": ["expectedProjectVersion"],
       "patchRequiredHeaders": ["If-Match"],
+      "patchRequiredInputs": ["expectedProjectVersion"],
       "pagination": "stable cursor createTime,id"
     },
     "actions": {
-      "route": "POST /api/v1/pms/construction-plans/{id}/actions/{submit|approve|reject|withdraw}",
+      "route": "POST /api/v1/pms/construction-plans/{id}/actions/submit",
       "requiredHeaders": ["Idempotency-Key", "If-Match"],
-      "requiredInputs": ["changeId"],
-      "conditionalInputs": ["opinion"],
+      "requiredInputs": ["changeId", "expectedProjectVersion"],
       "forbiddenInputs": ["tenantId", "applicantUserId", "approverUserId"]
+    },
+    "bpmWorkflow": {
+      "processDefinitionConfigKey": "pms.sol.duration-change.process-definition-key",
+      "processShape": "single service-manager approval user task",
+      "standardVariables": {"projectId": "Long"},
+      "businessVariables": ["constructionPlanId", "durationChangeId"],
+      "assigneePolicy": "freeze the current primary service-manager user selected through PROJ fact and bind the single approval task to that non-applicant user",
+      "frozenFields": ["process_definition_key", "process_instance_id"],
+      "userActions": "existing BPM task approve/reject and process cancel-by-start-user endpoints",
+      "resultContract": "SOL listens to BpmProcessInstanceStatusEvent and accepts APPROVE/REJECT/CANCEL only for the frozen process instance",
+      "governanceIntegration": "register this known PMS process definition key in the existing Integration BPM_APPROVAL provider; active instance blocks PM-10, terminal instance is absent from the active blocker set",
+      "forbidden": ["direct SOL approve endpoint", "direct SOL reject endpoint", "direct SOL withdraw terminal write", "BPM framework modification", "SOL governance provider"]
     },
     "projectParticipantFact": {
       "providerModule": "pms-module-project-api",
-      "contract": "ProjectParticipantFactApi.inspect(ProjectParticipantFactQuery)",
-      "query": ["projectId", "userId", "requiredRoleCodes", "checkedAt"],
+      "contract": [
+        "ProjectParticipantFactApi.inspect(ProjectParticipantFactQuery)",
+        "ProjectParticipantFactApi.lockAndRevalidate(ProjectParticipantFactRevalidationQuery)"
+      ],
+      "query": ["projectId", "subjectUserId(optional)", "requiredRoleCodes(non-empty)", "checkedAt"],
+      "revalidationQuery": ["projectId", "userId", "expectedProjectVersion", "requiredLifecycleStatus", "requiredCurrentStage", "requiredRoleCodes"],
       "trustedContext": ["tenantId"],
       "response": [
         "projectId",
         "userId",
         "effectiveRoleCodes",
         "assignmentType",
+        "lifecycleStatus",
+        "currentStage",
+        "projectVersion",
         "factVersion"
       ],
-      "unknownPolicy": "missing, cross-tenant, inconsistent or unknown facts fail closed"
+      "selectionPolicy": "projectId and requiredRoleCodes are mandatory; omit subjectUserId only to select the current eligible project manager or primary service-manager participants for workflow assignment; empty roles never expand to all participants",
+      "commandOrder": "PROJ locked current read and projectVersion revalidation before any SOL business write or SOL row lock",
+      "eligibility": "initial create requires ACTIVE and S1; later changes and BPM terminal handling require ACTIVE",
+      "unknownPolicy": "missing, cross-tenant, inconsistent, unknown or version-changed facts fail closed with no SOL success side effect"
     }
   },
   "permissions": {
     "query": {
       "permissionCode": "pms:construction-plan:query",
-      "projectScopeAction": "VIEW"
+      "projectScopeAction": "PROJECT_VIEW"
     },
     "durationManage": {
       "permissionCode": "pms:construction-plan:duration-manage",
-      "projectScopeAction": "EDIT",
+      "projectScopeAction": "PROJECT_MANAGE",
       "subjectConstraint": "CURRENT_PROJECT_MANAGER"
     },
     "durationApprove": {
       "permissionCode": "pms:construction-plan:duration-approve",
-      "projectScopeAction": "MANAGE",
-      "subjectConstraint": "CURRENT_PRIMARY_SERVICE_MANAGER_AND_NOT_APPLICANT"
+      "projectScopeAction": "PROJECT_MANAGE",
+      "subjectConstraint": "CURRENT_PRIMARY_SERVICE_MANAGER_AND_NOT_APPLICANT_VIA_BPM_TASK"
     },
     "frontendBackendTruth": "same permission codes; server revalidates tenant, function, project scope, current participant fact, change state and version"
   },
@@ -260,7 +292,9 @@
     "idempotencyTable": "plt_idempotency_record",
     "auditTable": "plt_operation_audit",
     "outboxEvents": [],
-    "reason": "Phase 2 locks PRE-01 to SOL internal synchronous contract and event N/A"
+    "bpmProcessInstanceRequired": true,
+    "bpmStandardProjectIdVariable": "projectId(Long)",
+    "reason": "Phase 2 event N/A forbids a new cross-context business event; the existing synchronous BPM status event is the platform workflow result contract"
   },
   "legacy": {
     "tables": ["pms_schedule_backward", "pms_schedule_backward_item", "pms_plan_change_request", "pms_plan_change_phase_snapshot"],
@@ -277,6 +311,12 @@
     "strategy": "NEXT_UNUSED_FLYWAY_AFTER_IMPLEMENTATION_BASELINE",
     "implementationBaseline": "NPDMS_V89_AT_FEATURE_READY_DRAFT_TIME",
     "forwardOnly": true,
+    "rootUniqueAssertion": "uk(tenant_id, project_id) without deleted; no delete or rebuild command",
+    "acceptanceAssertions": [
+      "duplicate root insert for the same tenant and project fails regardless of deleted marker",
+      "no delete or rebuild application command exists",
+      "a PENDING_APPROVAL change has exactly one frozen BPM process instance and the existing BPM_APPROVAL provider blocks PM-10 until the instance becomes terminal"
+    ],
     "forbidden": ["EDIT_V1_TO_V89", "CREATE_SOL_CONSTRUCTION_PLAN_ITEM_EARLY", "LEGACY_DUAL_WRITE", "HISTORICAL_DATA_CUTOVER"]
   },
   "featureReadyDecision": "PENDING_INDEPENDENT_REVIEW"
