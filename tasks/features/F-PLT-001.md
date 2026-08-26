@@ -1,11 +1,11 @@
 # F-PLT-001 统一文件身份与版本管理
 
-> Feature实施状态：`IMPLEMENTING`
+> Feature实施状态：`IMPLEMENTATION_DONE`
 > 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`PASS / NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
 > Technical Plan Gate：`PASS / NPDMS-FPLT001-TECHPLAN-20260826-01-R3`
-> Implementation Done Gate：`PENDING`
-> 当前任务：`Task 10 完成真实MySQL、Quartz、浏览器与独立Feature Done复审`
+> Implementation Done Gate：`PASS / 38f36b1f0d345bc2653207302a37d2792362e58a / 独立裁决GO`
+> 当前任务：`实施完成，待规格仓库追溯回写与基线同步`
 > Requirement ID：`PLT-02（V1/P0，FR-PLT-008）`
 > Feature Spec：`specs/features/F-PLT-001-unified-file-identity-and-version-management.md`
 > Feature物理契约：`specs/features/F-PLT-001-physical-contract.json`
@@ -31,7 +31,7 @@
 - [x] Task 7 实现短时下载/预览访问（PASS / `5b90a16` / 独立裁决GO）
 - [x] Task 8 实现解绑、草稿删除、失效与归档（PASS / `6611d83` + `83ee8b4` / 独立裁决GO）
 - [x] Task 9 建设响应式统一文件界面并接入SOL客户延期依据（PASS / `7e68962` + `75cf9c3` / 独立裁决GO）
-- [ ] Task 10 完成真实MySQL、Quartz、浏览器与独立Feature Done复审
+- [x] Task 10 完成真实MySQL、Quartz、浏览器与独立Feature Done复审（PASS / `5acac64` + `38f36b1` / 独立裁决GO）
 
 ## 上下游解除条件
 
@@ -56,3 +56,5 @@
 > 检查点（2026-08-27）：Task 8实现提交`6611d83`及整改提交`83ee8b4`经独立复审GO；稳定键目标绑定、版本不可用/失效/恢复、跨幂等键归档重放均闭环，隔离MySQL聚焦17/17及模块回归78项零失败，允许推进Task 9。
 
 > 检查点（2026-08-27）：Task 9实现提交`7e68962`及整改提交`75cf9c3`经独立复审GO；响应式共享文件组件、SOL客户依据接入、稳定槽位解绑重绑和PATCH响应丢失恢复闭环，运行时回归7/7、类型检查、定向规范检查与构建通过，允许推进Task 10。
+
+> 检查点（2026-08-27）：Task 10实现提交`5acac6462f86dcd4dd8145c1ad06ab23586d3682`及单租户BPM整改`38f36b1f0d345bc2653207302a37d2792362e58a`经独立复审GO；清洁库V1～V95、真实MySQL/Flowable/Quartz/ClamAV、统一文件浏览器主线和pnpm 9.15.5工具链事实均通过，未直接修改Flowable运行表或基础框架。Task 10 PASS，F-PLT-001达到Implementation Done；本结论不包含Deployment、SIT、UAT或Release。

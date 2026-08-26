@@ -5,8 +5,8 @@
 > Feature Ready Gate：`PASS / NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`
 > Implementation Done Gate：`PENDING`
 > Technical Plan Gate：`PASS / NPDMS-FSOL001-TECHPLAN-20260826-01`
-> 当前阻断：Task 10完整浏览器闭环及Feature Done等待F-PLT-001统一文件界面接入；后端材料主线已解除
-> 当前任务：`等待F-PLT-001 Task 9界面接入后执行Task 10`
+> 当前阻断：`无；F-PLT-001已完成并解除PLT-02客户延期材料分支阻断`
+> 当前任务：`Task 10 完成真实浏览器、独立复审和Feature Done回写`
 > Requirement ID：`PRE-01（V1）`
 > Feature Spec：`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`
 > Feature物理契约：`specs/features/F-SOL-001-physical-contract.json`
@@ -57,3 +57,5 @@
 > 检查点（2026-08-26）：Task 9主实现提交`db394a0`及真实PROJ参与事实整改`7e9d6d351dc405e83340fbef9517d58d108aa16c`经独立复审GO；V1～V91迁移/种子、真实SOL/PLATFORM/Flowable事务链、BPM_APPROVAL守卫及真实`ProjectParticipantFactApiImpl`项目版本重验均通过。仅登记Step 1～3／无材料主线PASS；Task 9整体继续保持`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`，不得推进Task 10。
 
 > 检查点（2026-08-27）：F-PLT-001 Task 6提交`34ce4dff8f380192e96aba679656cf4728527feb`及整改`eb42aa3ae4d1f5a4510e73c824e3cdc4d866b3ef`经独立复审GO；客户依据上传、固定版本冻结、三终态锁定重验和PROJ范围版本并发冲突均由真实MySQL、Flowable、PROJ、PLT、SOL验证通过，Task 6/7材料分支与Task 9材料场景阻断解除。Task 10仍等待F-PLT-001统一文件界面接入。
+
+> 检查点（2026-08-27）：F-PLT-001 Task 10整改提交`38f36b1f0d345bc2653207302a37d2792362e58a`经独立复审GO；统一文件界面、客户延期材料上传冻结、单租户Flowable正向审批和清洁库浏览器链已闭合，`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`正式解除。F-SOL-001现可进入Task 10正式浏览器与独立Feature Done复审，本检查点不提前将Task 10或Implementation Done回写PASS。
