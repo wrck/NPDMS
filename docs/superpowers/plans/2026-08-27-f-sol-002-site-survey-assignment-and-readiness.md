@@ -45,7 +45,7 @@
 - Modify: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/enums/ErrorCodeConstants.java`
 - Test: `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/preparation/PreparationMigrationContractTest.java`
 
-**Interfaces:** Consumes锁定物理契约；produces六表、六类项字典、固定表单/模板示例、四项功能权限和稳定错误码。
+**Interfaces:** Consumes锁定物理契约；produces六表、六类项字典、由既有`infra_config`承载的固定表单目录、模板示例、四项功能权限和稳定错误码。
 
 - [ ] **Step 1: 创建六张前向表**
 
@@ -53,7 +53,7 @@ V96按物理契约创建`sol_preparation`、`sol_preparation_item`、`sol_dynami
 
 - [ ] **Step 2: 创建确定性初始化数据**
 
-V97幂等写六类批准项编码`POWER/NETWORK_PORT/FIBER/CABINET/NETWORK_CABLE/OPTICAL_MODULE`、固定V1表单版本、四项权限。只为现有seed-owned DRAFT模板定义插入`PRE_02_SITE_SURVEY`的BUSINESS_OBJECT示例配置，覆盖必需证据、无来源、OA来源、可豁免和停用项组合；不修改PUBLISHED模板、不自动授权角色、不臆造CRM值。
+V97幂等写六类批准项编码`POWER/NETWORK_PORT/FIBER/CABINET/NETWORK_CABLE/OPTICAL_MODULE`、四项权限，并在既有`infra_config`唯一写入稳定键`pms.sol.preparation.site-survey.form-catalog.v1`。该配置是V1固定表单目录的唯一权威载体，值为封闭JSON：根字段仅允许`schemaVersion=1/catalogCode=PRE_02_SITE_SURVEY/catalogVersion=1/forms`；每个form仅允许`formCode/formVersion=1/fields`；field仅允许`fieldCode/fieldType/required/maxLength/options/sortOrder`，`fieldType`封闭为`TEXT/NUMBER/BOOLEAN/SINGLE_SELECT/MULTI_SELECT`，无脚本、表达式或运行时发布入口。`forms`必须精确覆盖六类基准项且`formCode`唯一；V1扩展项只能引用目录中已存在的固定form，不可动态扩Schema。只为现有seed-owned DRAFT模板定义插入`PRE_02_SITE_SURVEY`的BUSINESS_OBJECT示例配置，覆盖必需证据、无来源、OA来源、可豁免和停用项组合；不修改PUBLISHED模板、不自动授权角色、不臆造CRM值。
 
 - [ ] **Step 3: 建立工作单和错误码**
 
@@ -61,7 +61,7 @@ V97幂等写六类批准项编码`POWER/NETWORK_PORT/FIBER/CABINET/NETWORK_CABLE
 
 - [ ] **Step 4: 实施后验证并提交**
 
-空库V1→V97验证六表、唯一键、复合外键、current唯一、快照不可变、种子幂等及V1～V95未变；运行迁移契约、模块编译和`git diff --check`。
+空库V1→V97验证六表、唯一键、复合外键、current唯一、快照不可变、固定目录配置键唯一且JSON Schema封闭、种子幂等及V1～V95未变；运行迁移契约、模块编译和`git diff --check`。
 
 Expected: 迁移与种子契约PASS。提交：`feat(engineering): 建立工勘准备物理基础`
 
@@ -79,15 +79,16 @@ Expected: 迁移与种子契约PASS。提交：`feat(engineering): 建立工勘�
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/taskworkbench/query/ProjectWorkBindingFactLookupQuery.java`
 - Create: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/taskworkbench/query/ProjectWorkBindingFactLockQuery.java`
 - Create: `pms-module-project/src/main/resources/mapper/taskworkbench/ProjectWorkBindingFactMapper.xml`
+- Modify: `pms-module-project/pom.xml`
 - Modify: `pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/domain/template/TemplatePublishValidator.java`
 - Test: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/api/workbinding/ProjectWorkBindingFactApiImplTest.java`
 - Test: `pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/dal/mysql/taskworkbench/ProjectWorkBindingFactMapperTest.java`
 
-**Interfaces:** Produces `inspect(ProjectWorkBindingFactQuery)` and `lockAndRevalidate(ProjectWorkBindingFactRevalidationQuery)` over existing ProjectTask ExecutionContract.
+**Interfaces:** Consumes既有`ConfigApi.getConfigValueByKey`读取V1固定表单目录；produces `inspect(ProjectWorkBindingFactQuery)` and `lockAndRevalidate(ProjectWorkBindingFactRevalidationQuery)` over existing ProjectTask ExecutionContract.
 
 - [ ] **Step 1: 固化模板生产映射**
 
-发布校验只对目标四元组`BUSINESS_OBJECT/SOL/SITE_SURVEY_PREPARATION/PRE_02_SITE_SURVEY`解析封闭`schemaVersion=1`配置，校验六类/批准扩展项唯一、固定表单版本、证据/来源/豁免策略和审批角色；任意脚本、未知键或重复项拒绝。其他绑定类型沿用既有校验。
+发布校验只对目标四元组`BUSINESS_OBJECT/SOL/SITE_SURVEY_PREPARATION/PRE_02_SITE_SURVEY`解析封闭`schemaVersion=1`配置，并通过`ConfigApi.getConfigValueByKey("pms.sol.preparation.site-survey.form-catalog.v1")`读取唯一目录；每个适用项的`formCode/formVersion`必须精确命中目录中的V1定义，同时校验六类/批准扩展项唯一、证据/来源/豁免策略和审批角色。目录缺失、非法JSON、版本不为1、表单未命中、任意脚本、未知键或重复项均拒绝发布；其他绑定类型沿用既有校验，不新增模板表或通用设计器。
 
 - [ ] **Step 2: 实现精确公开查询**
 
@@ -114,6 +115,8 @@ Expected: PROJ公共契约与模板冻结链PASS。提交：`feat(project): 暴�
 - Create: `pms-module-engineering/src/main/resources/mapper/preparation/*.xml`
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/preparation/PreparationStateRules.java`
 - Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/preparation/FixedSurveyFormRules.java`
+- Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/preparation/FixedSurveyFormCatalogProvider.java`
+- Create: `pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/domain/preparation/FixedSurveyFormCatalog.java`
 - Test: `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/domain/preparation/PreparationRulesTest.java`
 - Test: `pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/preparation/PreparationMapperContractTest.java`
 
@@ -125,7 +128,7 @@ Expected: PROJ公共契约与模板冻结链PASS。提交：`feat(project): 暴�
 
 - [ ] **Step 2: 实现固定表单与状态纯规则**
 
-固定Schema仅接受批准字段类型、必填/枚举/长度规则和排序稳定value snapshot，不执行表达式或脚本。Preparation×Item状态规则精确实现DRAFT/PENDING_CONFIRMATION/CONFIRMED/RETURNED及item适用性/确认分轴。
+`FixedSurveyFormCatalogProvider`只通过既有`ConfigApi`和稳定键`pms.sol.preparation.site-survey.form-catalog.v1`读取Task 1目录，按Task 1封闭Schema解析并返回精确`formCode+formVersion`定义；缺失、非法、未知字段类型、重复字段或版本不匹配均失败关闭。实例化把命中的完整form定义冻结到`sol_dynamic_form_instance.schema_snapshot`，运行期校验只使用该冻结快照，配置后续变化不改写既有实例。固定Schema仅接受批准字段类型、必填/枚举/长度规则和排序稳定value snapshot，不执行表达式或脚本。Preparation×Item状态规则精确实现DRAFT/PENDING_CONFIRMATION/CONFIRMED/RETURNED及item适用性/确认分轴。
 
 - [ ] **Step 3: 实现稳定分页和当前约束**
 
@@ -133,7 +136,7 @@ items按`sort_order,item_code,id`，waiver按`waiver_no,id`，snapshot按`snapsh
 
 - [ ] **Step 4: 实施后验证并提交**
 
-覆盖Mapper方法集合、租户条件、冻结无写入口、状态合法迁移、分页、current唯一、CAS和快照只增。运行聚焦测试和模块编译。
+覆盖Mapper方法集合、租户条件、冻结无写入口、状态合法迁移、分页、current唯一、CAS、快照只增，以及固定目录合法读取、缺失/非法/版本不匹配失败关闭和实例化后配置变化不改写冻结Schema。运行聚焦测试和模块编译。
 
 Expected: 六表原语与规则PASS。提交：`feat(engineering): 持久化工勘准备事实`
 
@@ -163,7 +166,9 @@ Expected: 六表原语与规则PASS。提交：`feat(engineering): 持久化工�
 
 - [ ] **Step 1: 实现幂等初始化主线**
 
-建立窄engineering-api模块，先只放初始化命令。项目创建在ProjectTask与ExecutionContract冻结后同步调用`PreparationInitializationApi.initialize`；服务锁定ProjectWorkBinding及项目资格，并在同一模块化单体事务创建businessVersion 1 current DRAFT、item和固定form实例，冻结task/contract/template标识与配置。相同binding版本重放原preparation，不同事实冲突；初始化失败使项目创建整体回滚。该API也是同一受信内部恢复命令，不新增用户模板写入口。
+建立窄engineering-api模块，先只放初始化命令且不提供HTTP入口。`PreparationInitializationCommand`只含受信`projectId/projectTaskId/executionContractId/expectedProjectVersion/expectedProjectTaskVersion/expectedContractVersion/triggerType/idempotencyKey/operationId/actorUserId`；tenant只取上下文，`triggerType`封闭为`PROJECT_CREATION/AUTHORIZED_RECOVERY`，不接受模板、角色或表单Schema自报。项目创建在ProjectTask与ExecutionContract冻结后同步调用`PreparationInitializationApi.initialize`；服务锁定ProjectWorkBinding及项目资格，并在同一模块化单体事务创建businessVersion 1 current DRAFT、item和Task 3读取的固定form实例，冻结task/contract/template标识与配置。
+
+项目创建外层编排器按冻结标识生成稳定`Idempotency-Key=PRE02_INIT:{projectId}:{executionContractId}:{contractVersion}`，`operationId`单独用于命令与审计关联；平台幂等作用域固定为`tenantId+PREPARATION_INITIALIZE+idempotencyKey`，业务载荷事实固定为上述project/task/contract标识及三个expected版本，`triggerType/actorUserId/operationId`仅作为受信调用与审计事实、不改变同一初始化业务载荷，复用平台既有载荷指纹判定同键同载荷重放与异载荷冲突。`PreparationInitializationApiImpl`和平台幂等/成功审计使用默认`REQUIRED`加入项目创建外层事务，禁止`REQUIRES_NEW`、异常吞并或异步提交；任一初始化失败必须共同回滚项目、任务、ExecutionContract、Preparation、幂等成功记录和成功审计。`AUTHORIZED_RECOVERY`仍使用同一确定性键和原冻结载荷，只允许具备`pms:preparation-survey:manage + PROJECT_MANAGE + 当前PROJECT_MANAGER`的受信操作者从内部运维服务调用；不新增用户初始化HTTP或前端按钮。恢复事实不一致失败关闭并记录既有平台REJECTED审计。
 
 - [ ] **Step 2: 实现只读投影**
 
@@ -175,7 +180,7 @@ Expected: 六表原语与规则PASS。提交：`feat(engineering): 持久化工�
 
 - [ ] **Step 4: 实施后验证并提交**
 
-覆盖合法初始化、同键重放、绑定/项目版本变化、0/多绑定、非经理、单/多租户上下文、失败全回滚和稳定查询。
+覆盖合法初始化、同键同载荷重放、同键异载荷冲突、恢复权限、绑定/项目版本变化、0/多绑定、非经理、单/多租户上下文，以及项目创建外层事务中项目/任务/契约/Preparation/平台幂等与成功审计共同提交或共同回滚和稳定查询。
 
 Expected: 初始化与查询API主线PASS。提交：`feat(engineering): 初始化项目工勘准备`
 
@@ -206,11 +211,11 @@ Expected: 初始化与查询API主线PASS。提交：`feat(engineering): 初始�
 
 - [ ] **Step 3: 接入FileArtifact精确事实**
 
-文件对象稳定键使用`ownerContext=SOL/objectType=SITE_SURVEY_ITEM/objectId=itemId/purposeCode=SITE_SURVEY_EVIDENCE/referenceKey`。保存冻结artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion；Provider按项目范围和当前item主体实现UPLOAD/READ/DETACH重验，不保存URL或正文。
+文件对象稳定键使用`ownerContext=SOL/objectType=SITE_SURVEY_ITEM/objectId=itemId/purposeCode=SITE_SURVEY_EVIDENCE/referenceKey`。保存冻结artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion；Provider按现有PLT调用链实现封闭动作矩阵：`CREATE_ARTIFACT→UPLOAD`、`ADD_VERSION→REPLACE`、SOL保存或提交冻结精确版本→`REFERENCE`、解绑→`DETACH`、元数据读取→`READ`、短时下载→`DOWNLOAD`、短时预览→`PREVIEW`。UPLOAD/REPLACE/REFERENCE/DETACH要求DRAFT、当前item负责人及`fill+PROJECT_VIEW`，READ/DOWNLOAD/PREVIEW要求项目可见范围与对应PLT功能权限；未知动作、动作与调用场景不符、非当前负责人、状态或版本变化均失败关闭。不保存URL或正文，不新增同义文件流程。
 
 - [ ] **Step 4: 实施后验证并提交**
 
-覆盖经理/负责人边界、跨项目/租户、字段存在性/null清空、Schema、多个证据槽位、文件失效/错配/版本冲突、inputVersion和成功/拒绝审计。
+覆盖经理/负责人边界、跨项目/租户、字段存在性/null清空、Schema、多个证据槽位，以及真实PLT `CREATE_ARTIFACT/ADD_VERSION/REFERENCE/DETACH/READ/DOWNLOAD/PREVIEW`逐动作调用、未知动作拒绝、文件失效/错配/版本冲突、inputVersion和成功/拒绝审计。
 
 Expected: 指派、填写和文件主线PASS。提交：`feat(engineering): 完成工勘逐项填写`
 
@@ -339,7 +344,7 @@ Expected: 来源与豁免边界PASS，不宣称INT-05完成。提交：`feat(eng
 
 - [ ] **Step 2: 实现主线交互**
 
-项目经理初始化/指派/确认，负责人填写固定表单和上传证据，项目经理提交/退回/N-A，来源刷新、豁免和显式就绪评估在同一项目面板衔接。来源异常显示last-success但明确“不可用于就绪”。
+项目创建成功后展示已由内部事务自动初始化的Preparation；若历史项目没有冻结绑定或内部恢复被拒绝，只展示稳定阻断原因，不提供初始化按钮。项目经理指派/确认，负责人填写固定表单和上传证据，项目经理提交/退回/N-A，来源刷新、豁免和显式就绪评估在同一项目面板衔接。来源异常显示last-success但明确“不可用于就绪”。
 
 - [ ] **Step 3: 退役旧V1.7写入口**
 
@@ -368,7 +373,7 @@ Expected: UI主线和旧写退役PASS。提交：`feat(ui): 建设工勘准备�
 
 - [ ] **Step 1: 执行空库与应用服务真实验收**
 
-独立Compose空库执行V1→V97，装配真实PROJ/PLT/SOL Mapper及平台幂等审计。通过公开模板保存/发布→建项目冻结ExecutionContract→初始化→指派/填写/文件→提交/确认→evaluate，验证READY与不可变快照；故障点全回滚、并发单胜、跨租户和审计恰一。
+独立Compose空库执行V1→V97，装配真实INFRA ConfigApi、PROJ/PLT/SOL Mapper及平台幂等审计。通过公开模板保存/发布→建项目冻结ExecutionContract并在同一事务自动初始化→指派/填写/文件→提交/确认→evaluate，验证固定目录唯一读取、READY与不可变快照；故障点全回滚、同键重放/异载荷冲突、并发单胜、跨租户和审计恰一。
 
 - [ ] **Step 2: 验证来源、豁免与失效恢复**
 
@@ -376,7 +381,7 @@ Expected: UI主线和旧写退役PASS。提交：`feat(ui): 建设工勘准备�
 
 - [ ] **Step 3: 执行真实浏览器闭环**
 
-优先使用内置浏览器。完成模板发布→新项目→工勘初始化→指派→负责人填写/证据→逐项确认→来源/豁免→READY；再验证退回新版本、文件/来源/豁免失效、权限负向、刷新持久及四档响应式，记录HTTP、console/page error和截图证据。
+优先使用内置浏览器。完成模板发布→新项目自动初始化工勘→指派→负责人填写/证据创建及换版→逐项确认→来源/豁免→READY；再验证解绑重绑同一文件槽位、短时预览/下载、退回新版本、文件/来源/豁免失效、权限负向、刷新持久及四档响应式，记录HTTP、console/page error和截图证据。
 
 - [ ] **Step 4: 完整验证、独立复审和回写**
 
