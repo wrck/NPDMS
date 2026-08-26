@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper">
+
+    <select id="selectCurrentFacts"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactRecord">
+        SELECT p.tenant_id                     AS tenantId,
+               p.id                            AS projectId,
+               p.version                       AS projectVersion,
+               t.id                            AS projectTaskId,
+               t.version                       AS projectTaskVersion,
+               t.source_definition_id          AS sourceDefinitionId,
+               c.id                            AS executionContractId,
+               c.template_task_definition_id   AS templateTaskDefinitionId,
+               c.work_binding_type_code        AS workBindingTypeCode,
+               c.target_context_code            AS targetContextCode,
+               c.target_object_type             AS targetObjectType,
+               c.target_object_key              AS targetObjectKey,
+               c.binding_parameter_snapshot     AS bindingParameterSnapshot,
+               c.source_definition_version      AS sourceDefinitionVersion,
+               c.contract_version               AS contractVersion
+        FROM proj_project p
+        JOIN proj_project_task t
+          ON t.tenant_id = p.tenant_id
+         AND t.project_id = p.id
+         AND t.deleted = b'0'
+        JOIN proj_project_task_execution_contract c
+          ON c.tenant_id = t.tenant_id
+         AND c.project_task_id = t.id
+         AND c.current_marker = 1
+         AND c.effective_to IS NULL
+         AND c.deleted = b'0'
+        WHERE p.tenant_id = #{query.tenantId}
+          AND p.id = #{query.projectId}
+          AND p.deleted = b'0'
+          AND c.work_binding_type_code = #{query.workBindingTypeCode}
+          AND c.target_context_code = #{query.targetContextCode}
+          AND c.target_object_type = #{query.targetObjectType}
+          AND c.target_object_key = #{query.targetObjectKey}
+    </select>
+
+    <select id="selectProjectTaskForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT *
+        FROM proj_project_task
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.projectTaskId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectCurrentContractForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO">
+        SELECT *
+        FROM proj_project_task_execution_contract
+        WHERE tenant_id = #{query.tenantId}
+          AND project_task_id = #{query.projectTaskId}
+          AND current_marker = 1
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+</mapper>

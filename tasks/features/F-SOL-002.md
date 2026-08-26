@@ -39,3 +39,5 @@
 > Task 1候选证据（2026-08-27）：迁移契约6/6 PASS；清洁隔离MySQL从V1成功迁移至V97，六张SOL表、10条SOL域内租户复合外键、6个工勘项字典、4项权限及唯一固定目录均核验通过；固定目录JSON长度445且有效；同稳定键不同ID的存量目录可原位恢复且保持唯一，固定ID被其他配置占用时V97拒绝并保持无关配置不变；仅5份seed-owned DRAFT模板获得PRE-02绑定，PUBLISHED模板未修改。正式PASS以独立Implementation Done裁决为准。
 
 > Task 1独立裁决（2026-08-27）：`NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1 / GO`；允许回写PASS并推进Task 2。
+
+> Task 2候选证据（2026-08-27）：PROJ已在既有ProjectTask ExecutionContract真值上提供窄`ProjectWorkBindingFactApi`；模板发布通过`ConfigApi`读取固定V1目录并校验唯一PRE-02目标四元组、六类冻结项及表单版本；inspect按受信租户、项目和精确目标唯一查询，lockAndRevalidate按Project→ProjectTask→当前ExecutionContract顺序锁定并重验ID、归属及三段版本。聚焦单元27/27 PASS；清洁隔离MySQL从V1迁移至V97后，精确/越租户/多记录查询与锁定当前读2/2 PASS，25模块Reactor BUILD SUCCESS。正式PASS以独立Implementation Done裁决为准。

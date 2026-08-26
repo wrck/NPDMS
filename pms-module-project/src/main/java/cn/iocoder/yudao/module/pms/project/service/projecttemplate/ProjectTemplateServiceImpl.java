@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDeliverableDefinitionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateGateDefinitionDO;
@@ -25,6 +26,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidat
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplatePublishValidator;
+import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
 
     @Resource
     private ProjectTemplateMapper projectTemplateMapper;
+    @Resource
+    private ConfigApi configApi;
     @Resource
     private ProjectTemplateRevisionMapper revisionMapper;
     @Resource
@@ -214,7 +218,9 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         }
         // BR-2 发布校验：失败保持草稿并列出失败项（重试用原版本号）
         TemplateDefinitionContent content = loadContent(draft);
-        List<String> failures = TemplatePublishValidator.validate(content);
+        String fixedFormCatalog = TemplatePublishValidator.requiresPreparationCatalog(content)
+                ? configApi.getConfigValueByKey(PreparationWorkBindingSchema.CONFIG_KEY) : null;
+        List<String> failures = TemplatePublishValidator.validate(content, fixedFormCatalog);
         if (!failures.isEmpty()) {
             String summary = String.join("；", failures);
             // 校验结果留痕到草稿行

@@ -28,6 +28,13 @@ public final class TemplatePublishValidator {
      * 校验模板定义内容完整性；返回失败项清单，空列表表示可发布。
      */
     public static List<String> validate(TemplateDefinitionContent content) {
+        return validate(content, null);
+    }
+
+    /**
+     * 校验模板及PRE-02固定目录引用；fixedFormCatalogJson仅在模板声明PRE-02时使用。
+     */
+    public static List<String> validate(TemplateDefinitionContent content, String fixedFormCatalogJson) {
         List<String> failures = new ArrayList<>();
         if (content == null) {
             failures.add("模板内容为空");
@@ -40,7 +47,14 @@ public final class TemplatePublishValidator {
         Set<String> deliverableCodes = validateDeliverables(content.getDeliverables(), stageCodes, taskCodes, failures);
         validateGates(content.getGates(), stageCodes, taskCodes, deliverableCodes, failures);
         validateTaskGateRefs(content.getTasks(), content.getGates(), failures);
+        validatePreparationBindings(content.getTasks(), fixedFormCatalogJson, failures);
         return failures;
+    }
+
+    public static boolean requiresPreparationCatalog(TemplateDefinitionContent content) {
+        return content != null && content.getTasks() != null && content.getTasks().stream()
+                .anyMatch(task -> task != null
+                        && PreparationWorkBindingSchema.TARGET_OBJECT_KEY.equals(task.getTargetObjectKey()));
     }
 
     private static void validateProcessReference(TemplateDefinitionContent content, List<String> failures) {
@@ -254,6 +268,34 @@ public final class TemplatePublishValidator {
             if (task != null && StringUtils.isNotBlank(task.getGateRef()) && !gateCodes.contains(task.getGateRef())) {
                 failures.add("任务【" + task.getTaskCode() + "】GateRef【" + task.getGateRef() + "】不存在");
             }
+        }
+    }
+
+    private static void validatePreparationBindings(List<TemplateDefinitionContent.TaskDef> tasks,
+                                                    String fixedFormCatalogJson,
+                                                    List<String> failures) {
+        if (tasks == null) {
+            return;
+        }
+        int matches = 0;
+        for (TemplateDefinitionContent.TaskDef task : tasks) {
+            if (task == null
+                    || !PreparationWorkBindingSchema.TARGET_OBJECT_KEY.equals(task.getTargetObjectKey())) {
+                continue;
+            }
+            if (!PreparationWorkBindingSchema.isPreparationBinding(task)) {
+                failures.add("任务【" + task.getTaskCode() + "】PRE-02目标四元组无效");
+                continue;
+            }
+            matches++;
+            try {
+                PreparationWorkBindingSchema.parseAndValidate(task.getBindingConfig(), fixedFormCatalogJson);
+            } catch (IllegalArgumentException ex) {
+                failures.add("任务【" + task.getTaskCode() + "】" + ex.getMessage());
+            }
+        }
+        if (matches > 1) {
+            failures.add("PRE-02 WorkBinding必须在模板版本内唯一");
         }
     }
 }

@@ -154,6 +154,35 @@ class TemplatePublishValidatorTest {
         assertHasFailure(content, "未知类型的引用行");
     }
 
+    @Test
+    void preparationBindingMustMatchTheFixedV1Catalog() {
+        TemplateDefinitionContent content = buildValidContent();
+        setPreparationBinding(content.getTasks().get(1), preparationBinding());
+
+        List<String> failures = TemplatePublishValidator.validate(content, fixedCatalog());
+
+        assertTrue(failures.isEmpty(), () -> "合法PRE-02绑定应通过，实际：" + failures);
+    }
+
+    @Test
+    void preparationBindingRejectsUnknownFieldsMissingFormsAndWrongTargetTuple() {
+        TemplateDefinitionContent content = buildValidContent();
+        setPreparationBinding(content.getTasks().get(1),
+                preparationBinding().replace("\"schemaVersion\":1", "\"schemaVersion\":1,\"script\":\"x\""));
+        assertTrue(TemplatePublishValidator.validate(content, fixedCatalog()).stream()
+                .anyMatch(failure -> failure.contains("字段不符合V1契约")));
+
+        setPreparationBinding(content.getTasks().get(1), preparationBinding());
+        String incompleteCatalog = fixedCatalog().replace(
+                ",{\"formCode\":\"OPTICAL_MODULE\",\"formVersion\":1}", "");
+        assertTrue(TemplatePublishValidator.validate(content, incompleteCatalog).stream()
+                .anyMatch(failure -> failure.contains("六类基准项")));
+
+        content.getTasks().get(1).setTargetContextCode("WRONG");
+        assertTrue(TemplatePublishValidator.validate(content, fixedCatalog()).stream()
+                .anyMatch(failure -> failure.contains("目标四元组无效")));
+    }
+
     private void assertHasFailure(TemplateDefinitionContent content, String keyword) {
         List<String> failures = TemplatePublishValidator.validate(content);
         assertTrue(failures.stream().anyMatch(f -> f.contains(keyword)),
@@ -221,5 +250,45 @@ class TemplatePublishValidatorTest {
         task.setCompletionRuleTypeCode("TASK_NATIVE_STATUS");
         task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
         task.setDefinitionVersion(1);
+    }
+
+    private static void setPreparationBinding(TemplateDefinitionContent.TaskDef task, String binding) {
+        task.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        task.setTargetContextCode("SOL");
+        task.setTargetObjectType("SITE_SURVEY_PREPARATION");
+        task.setTargetObjectKey("PRE_02_SITE_SURVEY");
+        task.setBindingConfig(binding);
+        task.setPermissionPolicyRef("PRE_02_SITE_SURVEY_DEFAULT");
+        task.setCompletionRuleTypeCode("BUSINESS_OBJECT_STATUS");
+        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"DONE\"}");
+        task.setDefinitionVersion(2);
+    }
+
+    private static String fixedCatalog() {
+        return "{\"schemaVersion\":1,\"catalogCode\":\"PRE_02_SITE_SURVEY\",\"catalogVersion\":1,"
+                + "\"commonFields\":[{\"fieldCode\":\"siteCondition\",\"fieldType\":\"TEXT\","
+                + "\"required\":true,\"maxLength\":1000,\"sortOrder\":10}],\"forms\":["
+                + form("POWER") + "," + form("NETWORK_PORT") + "," + form("FIBER") + ","
+                + form("CABINET") + "," + form("NETWORK_CABLE") + "," + form("OPTICAL_MODULE") + "]}";
+    }
+
+    private static String preparationBinding() {
+        return "{\"schemaVersion\":1,\"preparationTemplateCode\":\"PRE_02_SITE_SURVEY\","
+                + "\"preparationTemplateRevision\":1,\"fixedFormCatalogVersion\":1,"
+                + "\"itemConfiguration\":[" + item("POWER", 10) + "," + item("NETWORK_PORT", 20)
+                + "," + item("FIBER", 30) + "," + item("CABINET", 40) + ","
+                + item("NETWORK_CABLE", 50) + "," + item("OPTICAL_MODULE", 60) + "]}";
+    }
+
+    private static String form(String code) {
+        return "{\"formCode\":\"" + code + "\",\"formVersion\":1}";
+    }
+
+    private static String item(String code, int sortOrder) {
+        return "{\"itemCode\":\"" + code + "\",\"itemName\":\"" + code
+                + "\",\"enabled\":true,\"formCode\":\"" + code
+                + "\",\"formVersion\":1,\"evidenceRequired\":false,"
+                + "\"sourceRequirementCode\":\"NONE\",\"waiverAllowed\":false,"
+                + "\"approvalRoleCode\":\"SERVICE_MANAGER_L1\",\"sortOrder\":" + sortOrder + "}";
     }
 }
