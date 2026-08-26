@@ -601,3 +601,19 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | 漂移可前向纠正 | PASS-WITH-IMPLEMENTATION-GATE | 第1.2、12节；包含历史迁移或数据切换的发布须先完成`AI-MIG-000`，普通应用Schema前向迁移不因此转为历史迁移门禁 |
 
 本分册达到 API、事件、集成和并发/幂等设计的数据库前置条件；实际应用Schema变更仍以实现仓库“下一个未占用 Flyway 版本”为准。只有发布包含历史迁移或数据切换时，才须由`AI-MIG-000`在Release前完成真实批次的范围、水位、程序、校验、演练、对账和回退验证，并在批准窗口内执行；普通功能发布不适用。P3-E09不定义迁移批准哈希。
+
+## 11. F-CUS-001与F-AST-001机器物理契约
+
+| 表 | 关键字段 | 核心约束 |
+|---|---|---|
+| `cus_customer` | `customer_code/name/crm_level/crm_status/sales_owner/contact_phone/contact_email`、八个市场属性字段、平台扩展字段、来源元数据 | `uk(tenant_id, customer_code)`不随软删除释放；核心字段分列 |
+| `cus_customer_external_mapping` | `customer_id/source_system/source_key/source_version/event_id/is_current/payload_hash` | 当前CRM主映射按租户、来源和来源键唯一；同版本不同hash进入冲突 |
+| `cus_customer_field_history` | `customer_id/field_code/before_digest/after_digest/source_system/source_version/operation_id/occurred_at` | 追加写，不保存敏感明文 |
+| `cus_customer_location_reference` | `customer_id/location_type/location_id/location_version/reference_type/effective_from/effective_to` | location_type仅ADDRESS/SITE；同类型有效区间不得重叠 |
+| `ast_device` | `serial_number`及AST平台字段 | `uk(tenant_id, serial_number)`不随软删除释放 |
+| `ast_device_mes_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status/payload_hash` | 来源事件幂等；一个有效MES对象映射一个Device |
+| `ast_device_itr_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status` | 按来源版本追加或受控更新当前副本 |
+| `ast_device_current_customer_assignment` | `device_id/customer_id/relationship_version/assigned_at` | `uk(tenant_id, device_id)`；当前直接归属唯一 |
+| `ast_device_customer_relationship` | `device_id/customer_id/relationship_type/effective_from/effective_to/source/operation_id` | 历史/租用/共管区间不得重叠；追加写 |
+
+下载链接不落业务表；由文件能力按用户和文件生成默认5分钟、可配置的短期授权。具体列长、索引名和DDL由Technical Plan按本契约生成前向迁移。

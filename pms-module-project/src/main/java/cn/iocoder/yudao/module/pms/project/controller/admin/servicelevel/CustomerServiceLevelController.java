@@ -3,12 +3,12 @@ package cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.customer.CustomerDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.servicelevel.CustomerServiceLevelDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.customer.CustomerMapper;
 import cn.iocoder.yudao.module.pms.project.service.servicelevel.CustomerServiceLevelService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,7 +35,7 @@ public class CustomerServiceLevelController {
     @Resource
     private CustomerServiceLevelService customerServiceLevelService;
     @Resource
-    private CustomerMapper customerMapper;
+    private CustomerQueryApi customerQueryApi;
 
     @PostMapping("/create")
     @Operation(summary = "创建客户服务等级")
@@ -69,9 +69,9 @@ public class CustomerServiceLevelController {
         CustomerServiceLevelDO serviceLevel = customerServiceLevelService.getCustomerServiceLevel(id);
         CustomerServiceLevelRespVO respVO = BeanUtils.toBean(serviceLevel, CustomerServiceLevelRespVO.class);
         if (respVO != null && respVO.getCustomerId() != null) {
-            CustomerDO customer = customerMapper.selectById(respVO.getCustomerId());
+            CustomerSummaryDTO customer = customerQueryApi.getCustomer(respVO.getCustomerId());
             if (customer != null) {
-                respVO.setCustomerName(customer.getName());
+                respVO.setCustomerName(customer.name());
             }
         }
         return success(respVO);
@@ -91,8 +91,8 @@ public class CustomerServiceLevelController {
                     .filter(java.util.Objects::nonNull)
                     .collect(Collectors.toSet());
             if (!customerIds.isEmpty()) {
-                Map<Long, String> customerNameMap = customerMapper.selectByIds(customerIds).stream()
-                        .collect(Collectors.toMap(CustomerDO::getId, CustomerDO::getName));
+                Map<Long, String> customerNameMap = customerQueryApi.getCustomers(customerIds).stream()
+                        .collect(Collectors.toMap(CustomerSummaryDTO::id, CustomerSummaryDTO::name));
                 respPage.getList().forEach(vo -> vo.setCustomerName(customerNameMap.get(vo.getCustomerId())));
             }
         }

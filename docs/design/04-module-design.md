@@ -28,3 +28,10 @@
 ## 服务边界
 
 所有公共服务必须暴露应用级命令/查询；领域内部规则由聚合或领域服务执行。跨模块写入必须携带 Requirement ID、操作者、数据范围和幂等键。
+
+## CUS与AST主档Feature模块增量契约
+
+- `F-CUS-001`目标载体固定为独立`pms-module-customer`和`pms-module-customer-api`。PROJ、AST与INT-03只依赖API模块；旧project客户实现以前向迁移一次性退出，不设置双写期。
+- `CustomerMasterDataApi`承接CRM权威字段入向写入；集成适配模块不得直接访问CUS Service、Mapper、Repository或业务表。
+- `CustomerReferenceGuardApi`由存在客户有效引用的Owner实现统一批量守卫语义；CUS编排守卫，任一未知、超时或不可用时拒绝删除。
+- AST继续作为设备当前项目/客户直接归属及时态历史的单一Owner。KNO拥有官网公开信息的受控人工维护版本，AST仅通过KNO公开查询契约消费。

@@ -3,6 +3,9 @@ package cn.iocoder.yudao.module.pms.asset.service.equipment;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.equipment.vo.EquipmentPageReqVO;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.equipment.vo.EquipmentSaveReqVO;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.equipment.vo.EquipmentStatusChangeReqVO;
@@ -40,10 +43,13 @@ public class EquipmentServiceImpl implements EquipmentService {
     private EquipmentMapper equipmentMapper;
     @Resource
     private EquipmentVersionMapper equipmentVersionMapper;
+    @Resource
+    private CustomerQueryApi customerQueryApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createEquipment(EquipmentSaveReqVO createReqVO) {
+        validateCustomerAvailable(createReqVO.getCustomerId());
         validateSerialNumberUnique(null, createReqVO.getSerialNumber());
         EquipmentDO entity = BeanUtils.toBean(createReqVO, EquipmentDO.class);
         entity.setStatus(EquipmentStatusEnum.IN_STOCK);
@@ -60,6 +66,9 @@ public class EquipmentServiceImpl implements EquipmentService {
         // 已报废不允许修改
         if (Objects.equals(EquipmentStatusEnum.SCRAPPED, existing.getStatus())) {
             throw exception(AST_EQUIPMENT_SCRAPPED);
+        }
+        if (!Objects.equals(existing.getCustomerId(), updateReqVO.getCustomerId())) {
+            validateCustomerAvailable(updateReqVO.getCustomerId());
         }
         validateSerialNumberUnique(updateReqVO.getId(), updateReqVO.getSerialNumber());
         EquipmentDO update = BeanUtils.toBean(updateReqVO, EquipmentDO.class);
@@ -130,6 +139,16 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public List<EquipmentVersionDO> getEquipmentVersionList(Long equipmentId) {
         return equipmentVersionMapper.selectListByEquipmentId(equipmentId);
+    }
+
+    private void validateCustomerAvailable(Long customerId) {
+        if (customerId == null) {
+            return;
+        }
+        CustomerSummaryDTO customer = customerQueryApi.getCustomer(customerId);
+        if (customer == null || !CustomerLifecycleStatus.ENABLED.name().equals(customer.lifecycleStatus())) {
+            throw exception(AST_EQUIPMENT_CUSTOMER_UNAVAILABLE);
+        }
     }
 
     /**

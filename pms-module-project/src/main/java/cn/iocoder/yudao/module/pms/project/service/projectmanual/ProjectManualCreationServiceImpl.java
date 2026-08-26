@@ -2,6 +2,9 @@ package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectCompanyDepartmentRelationDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
@@ -65,6 +68,7 @@ import java.util.function.Consumer;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_MEMBER_INTERVAL_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_SELECTABLE;
@@ -123,6 +127,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
     private ProjectTreeVersionMapper projectTreeVersionMapper;
     @Resource
     private ProjectTreeScopeService projectTreeScopeService;
+    @Resource
+    private CustomerQueryApi customerQueryApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -166,6 +172,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         TemplateInstantiator.requireSingleS0(content);
         // c) 编码分配（BR-8）+ 树真值（根项目/子项目分支）
         if (draft.getParentId() == null) {
+            validateCustomerAvailable(draft.getCustomerId());
             draft.setProjectCode(projectCodeAllocator.allocateRootCode());
             draft.setCodeRuleVersion(ProjectCodeRules.CODE_RULE_VERSION);
             draft.setProjectSequence(ProjectCodeRules.ROOT_PROJECT_SEQUENCE);
@@ -174,6 +181,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             draft.setTreeSort(0);
         } else {
             ProjectMasterDO parent = validateProjectExists(draft.getParentId());
+            inheritFromParent(draft, parent);
+            validateCustomerAvailable(draft.getCustomerId());
             ProjectCodeAllocator.ChildCodeAllocation allocation =
                     projectCodeAllocator.allocateChildCode(parent.getCodeRootId(), parent.getProjectCode());
             draft.setProjectCode(allocation.projectCode());
@@ -186,7 +195,6 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             if (draft.getTreeSort() == null) {
                 draft.setTreeSort(0);
             }
-            inheritFromParent(draft, parent);
         }
         // d) 冻结模板引用（BR-4：绑定 revision 与流程定义版本写入主档）
         draft.setLifecycleTemplateId(selected.templateId());
@@ -579,6 +587,16 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
             throw exception(PROJECT_NOT_EXISTS);
         }
         return project;
+    }
+
+    private void validateCustomerAvailable(Long customerId) {
+        if (customerId == null) {
+            return;
+        }
+        CustomerSummaryDTO customer = customerQueryApi.getCustomer(customerId);
+        if (customer == null || !CustomerLifecycleStatus.ENABLED.name().equals(customer.lifecycleStatus())) {
+            throw exception(PROJECT_CUSTOMER_UNAVAILABLE);
+        }
     }
 
     private String gateCodeOf(ProjectInstantiation view, Long gateId) {

@@ -2,11 +2,12 @@ package cn.iocoder.yudao.module.pms.project.service.servicelevel;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.servicelevel.vo.CustomerServiceLevelSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.customer.CustomerDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.servicelevel.CustomerServiceLevelDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.customer.CustomerMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.servicelevel.CustomerServiceLevelMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class CustomerServiceLevelServiceImpl implements CustomerServiceLevelServ
     @Resource
     private CustomerServiceLevelMapper customerServiceLevelMapper;
     @Resource
-    private CustomerMapper customerMapper;
+    private CustomerQueryApi customerQueryApi;
 
     @Override
     public Long createCustomerServiceLevel(CustomerServiceLevelSaveReqVO createReqVO) {
@@ -80,8 +81,8 @@ public class CustomerServiceLevelServiceImpl implements CustomerServiceLevelServ
         if (customerId == null) {
             return;
         }
-        CustomerDO customer = customerMapper.selectById(customerId);
-        if (customer == null) {
+        CustomerSummaryDTO customer = customerQueryApi.getCustomer(customerId);
+        if (customer == null || !CustomerLifecycleStatus.ENABLED.name().equals(customer.lifecycleStatus())) {
             throw exception(CUSTOMER_SERVICE_LEVEL_CUSTOMER_NOT_EXISTS);
         }
     }

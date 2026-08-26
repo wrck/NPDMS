@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.customer.dal.mysql.security.CustomerScopeSliceMapper">
+
+    <select id="selectEffective"
+            resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.security.CustomerScopeSliceDO">
+        SELECT *
+        FROM cus_customer_scope_slice
+        WHERE tenant_id = #{query.tenantId}
+          AND status = 'ACTIVE'
+          AND effective_from &lt;= #{query.effectiveAt}
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+          AND (
+            (subject_type = 'USER' AND subject_id = #{query.userId})
+            <if test="query.roleIds != null and !query.roleIds.isEmpty()">
+                OR (subject_type = 'ROLE' AND subject_id IN
+                <foreach collection="query.roleIds" item="roleId" open="(" separator="," close=")">
+                    #{roleId}
+                </foreach>)
+            </if>
+          )
+          AND deleted = b'0'
+        ORDER BY id
+    </select>
+
+</mapper>

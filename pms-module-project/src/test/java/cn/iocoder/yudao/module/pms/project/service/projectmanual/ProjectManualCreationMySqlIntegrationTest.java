@@ -14,6 +14,8 @@ import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
@@ -386,6 +388,17 @@ abstract class ProjectManualCreationMySqlTestSupport {
         @Bean
         AdminUserApi adminUserApi() {
             return mock(AdminUserApi.class);
+        }
+
+        @Bean
+        CustomerQueryApi customerQueryApi() {
+            CustomerQueryApi api = mock(CustomerQueryApi.class);
+            when(api.getCustomer(anyLong())).thenAnswer(invocation -> {
+                Long customerId = invocation.getArgument(0);
+                return new CustomerSummaryDTO(customerId, 0L, "IT-CUSTOMER", "集成测试客户",
+                        "集成测试客户", "ENABLED", "PLATFORM", 1L, null);
+            });
+            return api;
         }
 
         @Bean

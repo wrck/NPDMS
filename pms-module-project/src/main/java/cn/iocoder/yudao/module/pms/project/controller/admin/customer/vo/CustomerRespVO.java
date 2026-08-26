@@ -36,4 +36,8 @@ public class CustomerRespVO {
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime createTime;
 
+    private Boolean legacyReadOnly;
+
+    private String replacementPath;
+
 }

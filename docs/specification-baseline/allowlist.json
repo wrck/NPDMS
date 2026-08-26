@@ -88,6 +88,7 @@
     {"path": "docs/traceability/phase2-contract-map.md", "category": "TRACEABILITY"},
     {"path": "docs/traceability/project-code-contract.json", "category": "TRACEABILITY"},
     {"path": "docs/traceability/requirement-matrix.md", "category": "TRACEABILITY"},
+    {"path": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-002-physical-contract.json", "category": "FEATURE_SPEC"},
     {"path": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md", "category": "FEATURE_SPEC"},

@@ -51,18 +51,19 @@ class SpecificationBaselineTest(unittest.TestCase):
             "specs/features/F-PROJ-004-project-business-attribute-classification.md",
             "specs/features/F-PROJ-005-physical-contract.json",
             "specs/features/F-PROJ-005-service-manager-manual-assignment.md",
+            "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
         }
         self.assertTrue(required <= paths)
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_97_files(self) -> None:
+    def test_allowlist_contains_exactly_100_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(97, len(entries))
-        self.assertEqual(97, len({entry.path for entry in entries}))
+        self.assertEqual(100, len(entries))
+        self.assertEqual(100, len({entry.path for entry in entries}))
 
     def test_accepts_feature_spec_paths(self) -> None:
         feature_spec_paths = (
@@ -74,6 +75,7 @@ class SpecificationBaselinePathTest(unittest.TestCase):
             "specs/features/F-PROJ-004-project-business-attribute-classification.md",
             "specs/features/F-PROJ-005-physical-contract.json",
             "specs/features/F-PROJ-005-service-manager-manual-assignment.md",
+            "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
         )
 
         for path in feature_spec_paths:

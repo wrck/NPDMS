@@ -20,4 +20,6 @@ public interface PermissionApi extends PermissionCommonApi {
      */
     Set<Long> getUserRoleIdListByRoleIds(Collection<Long> roleIds);
 
+    Set<Long> getRoleIdListByUserId(Long userId);
+
 }

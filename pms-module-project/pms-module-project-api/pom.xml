@@ -12,4 +12,12 @@
     <artifactId>pms-module-project-api</artifactId>
     <name>${project.artifactId}</name>
     <description>PMS 项目治理跨模块公开契约</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-customer-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+    </dependencies>
 </project>

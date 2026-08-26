@@ -175,6 +175,14 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
 
         self.assertEqual([], errors)
 
+    def test_customer_master_runtime_is_adapted_and_legacy_customer_is_read_only(self) -> None:
+        items = self._items()
+
+        self.assertEqual("ADAPTED", items["CustomerMasterCurrentRuntime"]["classification"])
+        self.assertEqual("REUSED", items["LegacyCustomerHistoryReadOnly"]["classification"])
+        self.assertIn("CUS-03", items["CustomerMasterCurrentRuntime"]["requirementRefs"])
+        self.assertIn("pms-module-customer/", items["CustomerMasterCurrentRuntime"]["codePaths"])
+
     def test_cut_execution_and_observation_runtime_is_retired(self) -> None:
         items = self._items()
 

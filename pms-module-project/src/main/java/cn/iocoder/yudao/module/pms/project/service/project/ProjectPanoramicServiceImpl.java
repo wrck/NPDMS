@@ -1,16 +1,16 @@
 package cn.iocoder.yudao.module.pms.project.service.project;
 
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectPanoramicRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectProgressRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectteam.vo.ProjectTeamMemberRespVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.customer.CustomerDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.risk.ProjectRiskDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.customer.CustomerMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectteam.ProjectTeamMemberMapper;
@@ -70,7 +70,7 @@ public class ProjectPanoramicServiceImpl implements ProjectPanoramicService {
     @Resource
     private ProjectMapper projectMapper;
     @Resource
-    private CustomerMapper customerMapper;
+    private CustomerQueryApi customerQueryApi;
     @Resource
     private ProjectPhaseMapper projectPhaseMapper;
     @Resource
@@ -101,10 +101,10 @@ public class ProjectPanoramicServiceImpl implements ProjectPanoramicService {
         // 2. 客户信息（客户编号冗余存储在项目上，客户可能为空，做容错）
         respVO.setCustomerId(project.getCustomerId());
         if (project.getCustomerId() != null) {
-            CustomerDO customer = customerMapper.selectById(project.getCustomerId());
+            CustomerSummaryDTO customer = customerQueryApi.getCustomer(project.getCustomerId());
             if (customer != null) {
-                respVO.setCustomerCode(customer.getCode());
-                respVO.setCustomerName(customer.getName());
+                respVO.setCustomerCode(customer.code());
+                respVO.setCustomerName(customer.name());
             }
         }
 

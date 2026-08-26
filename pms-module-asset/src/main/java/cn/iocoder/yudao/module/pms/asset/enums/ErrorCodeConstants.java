@@ -20,6 +20,7 @@ public interface ErrorCodeConstants {
     ErrorCode AST_EQUIPMENT_SCRAPPED = new ErrorCode(1_015_001_003, "设备已报废，不允许修改");
     ErrorCode AST_EQUIPMENT_LOCATION_COMMAND_INVALID = new ErrorCode(1_015_001_004, "设备位置生效命令无效");
     ErrorCode AST_EQUIPMENT_LOCATION_CONFLICT = new ErrorCode(1_015_001_005, "设备当前位置已变更，请刷新后重试");
+    ErrorCode AST_EQUIPMENT_CUSTOMER_UNAVAILABLE = new ErrorCode(1_015_001_006, "所属客户不存在或不可用于新设备关系");
 
     // ========== 设备版本历史 1_015_002_000 ==========
     ErrorCode AST_EQUIPMENT_VERSION_NOT_EXISTS = new ErrorCode(1_015_002_000, "设备版本记录不存在");

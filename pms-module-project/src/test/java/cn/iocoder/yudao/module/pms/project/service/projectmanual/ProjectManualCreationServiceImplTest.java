@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.pms.project.service.projectmanual;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectCompanyDepartmentRelationDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
@@ -68,6 +70,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CREATE_FIELDS_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_AMBIGUOUS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT;
@@ -123,6 +126,8 @@ class ProjectManualCreationServiceImplTest {
     private ProjectTreeVersionMapper projectTreeVersionMapper;
     @Mock
     private ProjectTreeScopeService projectTreeScopeService;
+    @Mock
+    private CustomerQueryApi customerQueryApi;
 
     @InjectMocks
     private ProjectManualCreationServiceImpl service;
@@ -187,6 +192,28 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT.getCode(), exception.getCode());
         verify(projectTemplateService, never()).getRevisionById(anyLong());
         verifyNoInteractions(projectMasterMapper, projectCodeAllocator);
+    }
+
+    @Test
+    void disabledCustomerBlocksCreationBeforeAllocatingProjectCode() {
+        Long templateId = 9L;
+        Long revisionId = 1002L;
+        when(projectAttributeResolutionService.resolveInitial(any(), any(), any()))
+                .thenReturn(decision(templateId, revisionId, TemplateMatchDecisionRules.DECISION_EXPLICIT));
+        when(projectTemplateService.getProjectTemplate(templateId)).thenReturn(activeTemplate(templateId, "TPL-M"));
+        when(projectTemplateService.getRevisionById(revisionId)).thenReturn(
+                revision(templateId, TemplateRules.REVISION_STATUS_PUBLISHED, 2));
+        when(projectTemplateService.getRevisionContent(templateId, 2)).thenReturn(contentWithOneGateAndReference());
+        when(customerQueryApi.getCustomer(1L)).thenReturn(new CustomerSummaryDTO(
+                1L, 1L, "CUST-001", "某客户", null, "DISABLED", "CRM", 1L, LocalDateTime.now()));
+        ProjectMasterDO draft = validDraft();
+        draft.setCustomerId(1L);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.createProject(draft, null, null, revisionId, CANDIDATE_WATERMARK, null));
+
+        assertEquals(PROJECT_CUSTOMER_UNAVAILABLE.getCode(), error.getCode());
+        verifyNoInteractions(projectCodeAllocator, projectMasterMapper);
     }
 
     // ========== 手工选择（MANUAL_SELECTED） ==========
