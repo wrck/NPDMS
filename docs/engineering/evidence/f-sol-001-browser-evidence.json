@@ -4,7 +4,7 @@
   "task": "Task 10",
   "status": "EVIDENCE_SUBMITTED",
   "scope": "Implementation Done only; excludes Deployment, SIT, UAT and Release",
-  "testedCommit": "4e9a0aa",
+  "testedCommit": "85b6d09db65a7b02f4ad291aaafbe5ead4a06eb0",
   "specificationCommit": "f2c563df978b7d7b3b1de9ad245b9c485bbdbae8",
   "project": {
     "projectId": 992201100001,
@@ -23,7 +23,7 @@
     "pnpm": "9.15.5"
   },
   "browserEvidence": {
-    "browser": "external Chrome DevTools browser, previously authorized because the built-in browser was unavailable for automation",
+    "browser": "Codex bundled Playwright driving the authorized external Chromium runtime",
     "positiveFlow": [
       "project manager created the first duration baseline",
       "project manager created a CUSTOMER_DELAY draft and uploaded a real PNG through PLT FileArtifact",
@@ -33,7 +33,8 @@
     ],
     "terminalFlows": [
       "APPROVE completed through the platform BPM task page",
-      "REJECT and applicant CANCEL were covered by the real Flowable and MySQL Task 7 and Task 9 integration chain",
+      "the current primary service manager rejected a submitted CUSTOMER_DELAY change through the public BPM API in the browser context",
+      "the project manager was rejected when attempting the same BPM task action, with SOL remaining PENDING_APPROVAL",
       "a browser withdrawal recovered the pending material branch after a failed approval revalidation"
     ],
     "responsiveWidths": [320, 768, 1024, 1440],
@@ -43,6 +44,49 @@
     "externalIconifyRequestCount": 0,
     "screenshot": "docs/superpowers/evidence/f-plt-001/task10-r1-clean-browser.png",
     "sourceEvidence": "docs/superpowers/evidence/f-plt-001/implementation-evidence.md"
+  },
+  "supplementalBrowserEvidence": {
+    "evidenceId": "FSOL001-T10-BROWSER-NEGATIVE-R1-20260827",
+    "projectVersionConflict": {
+      "request": "POST /admin-api/api/v1/pms/construction-plans/1/changes with stale expectedProjectVersion=2",
+      "httpStatus": 200,
+      "responseCode": 1014024014,
+      "message": "Project版本冲突，请重新加载后重试",
+      "changeCountBefore": 2,
+      "changeCountAfter": 2
+    },
+    "permissionNegative": {
+      "actor": "project manager userId=100",
+      "request": "PUT /admin-api/bpm/task/reject for the service-manager task",
+      "httpStatus": 200,
+      "responseCode": 1009005001,
+      "message": "操作失败，原因：该任务的审批人不是你",
+      "changeStatusAfter": "PENDING_APPROVAL"
+    },
+    "serviceManagerReject": {
+      "actor": "primary service manager userId=1",
+      "request": "PUT /admin-api/bpm/task/reject",
+      "httpStatus": 200,
+      "responseCode": 0,
+      "changeId": 2092700195915853826,
+      "processInstanceId": "d102b0c5-a186-11f1-bcdc-00ff0b78abd7",
+      "finalStatus": "REJECTED",
+      "approvalOpinion": "审批不通过任务，原因：Task 10 service manager browser rejection",
+      "pendingChangeId": null,
+      "currentRevisionNo": 2
+    },
+    "refreshPersistence": {
+      "evidenceId": "FSOL001-T10-REJECT-REFRESH-20260827",
+      "reopenedHistoryDrawer": true,
+      "containsRejected": true,
+      "containsReason": true,
+      "consoleErrorCount": 0,
+      "pageErrorCount": 0
+    },
+    "screenshots": [
+      "docs/engineering/evidence/f-sol-001-task10-reject.png",
+      "docs/engineering/evidence/f-sol-001-task10-reject-history.png"
+    ]
   },
   "pm10GuardEvidence": {
     "active": {
@@ -74,7 +118,8 @@
       "DurationChangeApplicationServiceTest, DurationChangeSubmitServiceTest and BpmGovernanceGuardProviderTest: 19/19 PASS; 27-module Reactor BUILD SUCCESS",
       "final yudao-server package after the PM-10 process-key correction: 35-module Reactor BUILD SUCCESS",
       "clean MySQL and real Flowable material chain: 21/21 PASS",
-      "Task 9 real MySQL and Flowable chain covers APPROVE, REJECT, CANCEL, authorization rollback and project-version conflict"
+      "Task 9 real MySQL and Flowable chain covers APPROVE, REJECT, CANCEL, authorization rollback and project-version conflict",
+      "ConstructionPlanQueryServiceTest and ConstructionPlanMapperContractTest: 7/7 PASS; 26-module Reactor BUILD SUCCESS"
     ],
     "frontend": [
       "component and runtime focused tests: 15/15 PASS",
@@ -95,13 +140,13 @@
     "AC-FSOL001-003": "PASS - draft CAS, frozen candidate/material/BPM facts and single pending approval covered",
     "AC-FSOL001-004": "PASS - CUSTOMER_DELAY real file success and unavailable/unauthorized fail-closed paths covered",
     "AC-FSOL001-005": "PASS - browser approval produced the unique V2 current revision and PENDING_RECALCULATION without PLN-01",
-    "AC-FSOL001-006": "PASS - real BPM reject and applicant cancel preserve the current revision and clear pending",
-    "AC-FSOL001-007": "PASS - project scope, current role and project-version revalidation covered by real PROJ integration",
+    "AC-FSOL001-006": "PASS - browser BPM reject and applicant cancel preserve the current revision and clear pending",
+    "AC-FSOL001-007": "PASS - browser project-version conflict plus real PROJ scope and current-role revalidation reject without success side effects",
     "AC-FSOL001-008": "PASS - submit and terminal idempotency, concurrency and rollback covered by real MySQL/Flowable",
-    "AC-FSOL001-009": "PASS - current and history refresh persistence plus platform audit traceability covered",
+    "AC-FSOL001-009": "PASS - browser refresh reopens history with the rejected change, candidate revision and reason; platform audit traceability covered",
     "AC-FSOL001-010": "PASS - clean V1-V95 migration and seed verification completed without V22/V23 modification or dual write",
     "AC-FSOL001-011": "PASS - active PRE-01 returned ACTIVE_BPM_APPROVAL; real applicant withdrawal cleared the blocker",
-    "AC-FSOL001-012": "PASS - positive browser chain, terminal branches, negative authorization, refresh and four responsive widths covered",
+    "AC-FSOL001-012": "PASS - positive browser chain, approve/reject/cancel branches, permission negative, project-version conflict, refresh and four responsive widths covered",
     "AC-FSOL001-013": "PASS - excluded capabilities and later delivery gates are not claimed"
   },
   "independentReview": {
