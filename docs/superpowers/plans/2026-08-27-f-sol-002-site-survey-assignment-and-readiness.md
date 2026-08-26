@@ -403,4 +403,4 @@ Expected: AC-FSOL002-001～012完整证据与独立GO。提交：`docs(feature):
 
 ## Technical Plan Gate
 
-当前状态：`PENDING_INDEPENDENT_REVIEW`。本计划获独立GO前不得开始Task 1实施。
+当前状态：`GO`。独立裁决：`NPDMS-FSOL002-TECHPLAN-20260827-01-R2`；批准提交：`8e7df1c1695325efae4393bf0e8a27b815df025b`。允许从Task 1开始实施，不重开PRD、SDS或Feature Ready。
