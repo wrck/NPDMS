@@ -1,7 +1,7 @@
 # F-SOL-001 项目工期基线与变更审批 Feature Spec
 
-> 文档状态：`IN_REVIEW`
-> Feature Ready：`PENDING_INDEPENDENT_REVIEW`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`
 > Requirement：`PRE-01（V1/P1）`
 > Owner Context：`SOL（交付准备与方案）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-005`、`F-PROJ-007`
@@ -161,6 +161,6 @@
 | 变更审批与计划影响分轴 | PASS |
 | API、权限、文件、幂等、并发和UI验收 | PASS |
 | 物理契约与老表边界 | PASS |
-| 独立Feature Ready裁决 | PENDING |
+| 独立Feature Ready裁决 | PASS（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） |
 
-结论：`IN_REVIEW`。Feature Ready独立GO前不同步NPDMS、不生成Technical Plan、不开始实现；不重开已通过的PRD/SDS门禁。
+结论：`BASELINE / READY`。原三项NO-GO阻断已闭环，独立Feature Ready裁决已GO；锁定本规格提交并同步NPDMS后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。

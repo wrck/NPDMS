@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-SOL-001",
   "requirementIds": ["PRE-01"],
-  "status": "IN_REVIEW",
+  "status": "BASELINE",
   "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
   "phaseGateImpact": "FEATURE_READY_REVIEW_ONLY_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
   "owner": {
@@ -319,5 +319,5 @@
     ],
     "forbidden": ["EDIT_V1_TO_V89", "CREATE_SOL_CONSTRUCTION_PLAN_ITEM_EARLY", "LEGACY_DUAL_WRITE", "HISTORICAL_DATA_CUTOVER"]
   },
-  "featureReadyDecision": "PENDING_INDEPENDENT_REVIEW"
+  "featureReadyDecision": "GO_NPDMS_FSOL001_FEATURE_READY_20260826_01_R1"
 }

@@ -39,6 +39,14 @@ class Fsol001FeatureContractTest(unittest.TestCase):
         self.assertNotIn("deleted", root["stableKey"])
         self.assertIn("no delete or rebuild", root["deletionPolicy"])
 
+    def test_feature_ready_decision_is_locked(self) -> None:
+        self.assertEqual("BASELINE", self.contract["status"])
+        self.assertEqual(
+            "GO_NPDMS_FSOL001_FEATURE_READY_20260826_01_R1",
+            self.contract["featureReadyDecision"],
+        )
+        self.assertIn("NPDMS-FSOL001-FEATURE-READY-20260826-01-R1", self.feature_spec)
+
 
 if __name__ == "__main__":
     unittest.main()
