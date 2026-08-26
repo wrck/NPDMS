@@ -1,7 +1,7 @@
 # F-PLT-001 统一文件身份与版本管理 Feature Spec
 
-> 文档状态：`IN_REVIEW`
-> Feature Ready：`NOT_READY / PENDING_INDEPENDENT_REVIEW`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
 > Requirement：`PLT-02（V1/P0，FR-PLT-008）`
 > Owner Context：`PLT（基础平台 File Capability）`
 > 前置能力：Yudao INFRA 文件存储配置、FileClient、私有对象存储和平台权限模型
@@ -195,6 +195,6 @@
 | 上传、访问、换版、失效、归档、权限、幂等与补偿 | PASS |
 | 公共业务API、物理契约和首个SOL用途 | PASS |
 | Yudao INFRA技术回执例外 | PASS（ADR-0035；`NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`） |
-| 独立Feature Ready裁决 | PENDING |
+| 独立Feature Ready裁决 | PASS（`NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`） |
 
-结论：`IN_REVIEW / NOT_READY`。当前整改候选仅用于Feature Ready复审；不得创建Technical Plan、同步NPDMS或开始Implementation。Feature Ready仍须独立GO。
+结论：`BASELINE / READY`。允许锁定新的规格提交并同步NPDMS受管基线；同步校验通过后创建全新Technical Plan。该GO不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release通过。

@@ -92,13 +92,14 @@ class Fplt001FeatureContractTest(unittest.TestCase):
         self.assertIn("same PLT transaction", facts["outboxPolicy"])
         self.assertIn("stable eventId", facts["outboxPolicy"])
 
-    def test_feature_remains_in_review_after_exception_approval(self) -> None:
-        self.assertEqual("IN_REVIEW", self.contract["status"])
+    def test_feature_ready_go_is_recorded(self) -> None:
+        self.assertEqual("BASELINE", self.contract["status"])
         self.assertIn("NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1", self.feature_spec)
         self.assertEqual(
-            "PENDING_INDEPENDENT_REVIEW_AFTER_NPDMS_FPLT001_FEATURE_READY_20260826_01_REMEDIATION",
+            "GO_NPDMS_FPLT001_FEATURE_READY_20260826_01_R2",
             self.contract["featureReadyDecision"],
         )
+        self.assertIn("READY / GO NPDMS-FPLT001-FEATURE-READY-20260826-01-R2", self.feature_spec)
 
 
 if __name__ == "__main__":
