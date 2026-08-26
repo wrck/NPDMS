@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuer
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceProviderFact;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.engine.runtime.ProcessInstanceQuery;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -31,15 +32,18 @@ public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProvide
 
     private final RuntimeService runtimeService;
     private final List<String> knownProcessDefinitionKeys;
+    private final boolean tenantEnabled;
 
     public BpmGovernanceGuardProvider(RuntimeService runtimeService,
                                       @Value("${pms.project.progress-policy.process-definition-key:}")
                                       String progressPolicyProcessDefinitionKey,
                                       @Value("${pms.sol.duration-change.process-definition-key:}")
-                                      String durationChangeProcessDefinitionKey) {
+                                      String durationChangeProcessDefinitionKey,
+                                      @Value("${yudao.tenant.enable:true}") boolean tenantEnabled) {
         this.runtimeService = runtimeService;
         this.knownProcessDefinitionKeys = knownKeys(
                 progressPolicyProcessDefinitionKey, durationChangeProcessDefinitionKey);
+        this.tenantEnabled = tenantEnabled;
     }
 
     @Override
@@ -60,16 +64,16 @@ public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProvide
             List<String> facts = new ArrayList<>();
             List<ProjectGovernanceBlocker> blockers = new ArrayList<>();
             for (String processDefinitionKey : knownProcessDefinitionKeys) {
-                List<ProcessInstance> instances = runtimeService.createProcessInstanceQuery()
-                        .processDefinitionKey(processDefinitionKey)
-                        .processInstanceTenantId(String.valueOf(query.tenantId()))
-                        .active()
-                        .includeProcessVariables()
-                        .list();
+                ProcessInstanceQuery instanceQuery = runtimeService.createProcessInstanceQuery()
+                        .processDefinitionKey(processDefinitionKey);
+                instanceQuery = tenantEnabled
+                        ? instanceQuery.processInstanceTenantId(String.valueOf(query.tenantId()))
+                        : instanceQuery.processInstanceWithoutTenantId();
+                List<ProcessInstance> instances = instanceQuery.active().includeProcessVariables().list();
                 if (instances == null) {
                     return unavailable("QUERY_RESULT_UNKNOWN");
                 }
-                inspectInstances(query, processDefinitionKey, instances, facts, blockers);
+                inspectInstances(query, processDefinitionKey, instances, facts, blockers, tenantEnabled);
             }
             blockers.sort(Comparator.comparing(ProjectGovernanceBlocker::objectId)
                     .thenComparing(ProjectGovernanceBlocker::code));
@@ -81,10 +85,13 @@ public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProvide
 
     private static void inspectInstances(ProjectGovernanceGuardQuery query, String processDefinitionKey,
                                          List<ProcessInstance> instances, List<String> facts,
-                                         List<ProjectGovernanceBlocker> blockers) {
+                                         List<ProjectGovernanceBlocker> blockers,
+                                         boolean tenantEnabled) {
         instances.stream().sorted(Comparator.comparing(ProcessInstance::getId)).forEach(instance -> {
             Object rawProjectId = variables(instance).get(PROJECT_ID_VARIABLE);
-            boolean trustedTenant = Objects.equals(instance.getTenantId(), String.valueOf(query.tenantId()));
+            boolean trustedTenant = tenantEnabled
+                    ? Objects.equals(instance.getTenantId(), String.valueOf(query.tenantId()))
+                    : instance.getTenantId() == null || instance.getTenantId().isBlank();
             if (!trustedTenant || !(rawProjectId instanceof Long projectId) || projectId <= 0) {
                 facts.add(canonicalFact(processDefinitionKey, instance, "ASSOCIATION_UNKNOWN"));
                 blockers.add(new ProjectGovernanceBlocker("BPM_APPROVAL", "UNKNOWN", "UNKNOWN",

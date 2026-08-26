@@ -29,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -72,7 +73,7 @@ class DurationChangeApplicationServiceTest {
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
                 commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
                 participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
-                transactionTemplate);
+                transactionTemplate, new MockEnvironment());
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));

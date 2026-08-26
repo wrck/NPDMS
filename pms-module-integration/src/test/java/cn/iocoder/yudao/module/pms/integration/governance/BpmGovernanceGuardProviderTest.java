@@ -99,21 +99,21 @@ class BpmGovernanceGuardProviderTest {
     void shouldShortCircuitEmptyProjectsRejectCrossTenantAndFailClosedWhenUnconfigured() {
         RuntimeService emptyRuntime = mock(RuntimeService.class);
         ProjectGovernanceProviderFact empty = new BpmGovernanceGuardProvider(
-                emptyRuntime, "project-progress-policy", "project-progress-policy").inspect(query(Set.of()));
+                emptyRuntime, "project-progress-policy", "project-progress-policy", true).inspect(query(Set.of()));
         assertEquals("EMPTY", empty.watermark());
         verifyNoInteractions(emptyRuntime);
         assertThrows(IllegalArgumentException.class, () -> provider().inspect(
                 new ProjectGovernanceGuardQuery(8L, Set.of(11L), "REOPEN", CHECKED_AT)));
 
         ProjectGovernanceProviderFact unavailable = new BpmGovernanceGuardProvider(
-                runtimeService, "project-progress-policy", " ")
+                runtimeService, "project-progress-policy", " ", true)
                 .inspect(query(Set.of(11L)));
         assertEquals("PROVIDER_UNAVAILABLE", unavailable.blockers().getFirst().code());
 
         RuntimeService failedRuntime = mock(RuntimeService.class);
         when(failedRuntime.createProcessInstanceQuery()).thenThrow(new IllegalStateException("timeout"));
         ProjectGovernanceProviderFact failed = new BpmGovernanceGuardProvider(
-                failedRuntime, "project-progress-policy", "project-progress-policy")
+                failedRuntime, "project-progress-policy", "project-progress-policy", true)
                 .inspect(query(Set.of(11L)));
         assertEquals("PROVIDER_UNAVAILABLE", failed.blockers().getFirst().code());
     }
@@ -131,16 +131,29 @@ class BpmGovernanceGuardProviderTest {
         when(progressQuery.list()).thenReturn(List.of(progress));
 
         ProjectGovernanceProviderFact fact = new BpmGovernanceGuardProvider(runtimeService,
-                "project-progress-policy", "pms-sol-duration-change").inspect(query(Set.of(11L)));
+                "project-progress-policy", "pms-sol-duration-change", true).inspect(query(Set.of(11L)));
 
         assertEquals(2, fact.blockers().size());
         verify(durationQuery).processDefinitionKey("pms-sol-duration-change");
         verify(progressQuery).processDefinitionKey("project-progress-policy");
     }
 
+    @Test
+    void shouldUseFlowableNoTenantSemanticsWhenTenantFeatureIsDisabled() {
+        ProcessInstance noTenant = instance("duration-1", "", 11L);
+        when(instanceQuery.processInstanceWithoutTenantId()).thenReturn(instanceQuery);
+        when(instanceQuery.list()).thenReturn(List.of(noTenant));
+
+        ProjectGovernanceProviderFact fact = new BpmGovernanceGuardProvider(runtimeService,
+                "project-progress-policy", "project-progress-policy", false).inspect(query(Set.of(11L)));
+
+        assertEquals(1, fact.blockers().size());
+        verify(instanceQuery).processInstanceWithoutTenantId();
+    }
+
     private BpmGovernanceGuardProvider provider() {
         return new BpmGovernanceGuardProvider(
-                runtimeService, "project-progress-policy", "project-progress-policy");
+                runtimeService, "project-progress-policy", "project-progress-policy", true);
     }
 
     private static void stubQuery(ProcessInstanceQuery query, String processDefinitionKey) {

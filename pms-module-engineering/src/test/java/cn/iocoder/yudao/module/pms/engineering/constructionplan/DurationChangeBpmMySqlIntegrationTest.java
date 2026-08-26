@@ -212,7 +212,6 @@ class DurationChangeBpmMySqlIntegrationTest {
         bpmnModel = model();
         deploymentId = repositoryService.createDeployment()
                 .name(PROCESS_KEY)
-                .tenantId("0")
                 .addBpmnModel(PROCESS_KEY + ".bpmn20.xml", bpmnModel)
                 .deploy().getId();
         participantFactApi.useMock();
@@ -405,7 +404,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         jdbcTemplate.update("UPDATE plt_file_reference SET version=version+1 WHERE tenant_id=0 "
                 + "AND object_id=?", String.valueOf(changeId));
 
-        login(APPROVER);
+        loginBpm(APPROVER);
         String taskId = flowableTaskService.createTaskQuery().processInstanceId(processInstanceId)
                 .singleResult().getId();
         assertThrows(RuntimeException.class, () -> bpmTaskService.approveTask(APPROVER,
@@ -574,7 +573,7 @@ class DurationChangeBpmMySqlIntegrationTest {
                 "pms.sol.duration-change.customer-evidence-required-reason-codes"))
                 .thenReturn("CUSTOMER_DELAY");
         ProcessDefinition definition = repositoryService.createProcessDefinitionQuery()
-                .processDefinitionKey(PROCESS_KEY).processDefinitionTenantId("0")
+                .processDefinitionKey(PROCESS_KEY).processDefinitionWithoutTenantId()
                 .latestVersion().singleResult();
         when(processDefinitionService.getActiveProcessDefinition(PROCESS_KEY)).thenReturn(definition);
         when(processDefinitionService.getProcessDefinition(definition.getId())).thenReturn(definition);
@@ -623,7 +622,7 @@ class DurationChangeBpmMySqlIntegrationTest {
     }
 
     private void approve(String taskId) {
-        login(APPROVER);
+        loginBpm(APPROVER);
         try {
             bpmTaskService.approveTask(APPROVER,
                     new BpmTaskApproveReqVO().setId(taskId).setReason("并发同意"));
@@ -679,7 +678,7 @@ class DurationChangeBpmMySqlIntegrationTest {
 
     private void invoke(Command command) {
         long actor = command == Command.CANCEL ? APPLICANT : APPROVER;
-        login(actor);
+        loginBpm(actor);
         String taskId = flowableTaskService.createTaskQuery().processInstanceId(processInstanceId)
                 .singleResult().getId();
         if (command == Command.APPROVE) {
@@ -714,10 +713,10 @@ class DurationChangeBpmMySqlIntegrationTest {
 
     private void createPendingFacts() {
         identityService.setAuthenticatedUserId(String.valueOf(APPLICANT));
-        ProcessInstance instance = runtimeService.startProcessInstanceByKeyAndTenantId(
+        ProcessInstance instance = runtimeService.startProcessInstanceByKey(
                 PROCESS_KEY, "duration:" + changeId,
                 Map.of(BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS, 1,
-                        "projectId", projectId, "approverUserId", APPROVER), "0");
+                        "projectId", projectId, "approverUserId", APPROVER));
         identityService.setAuthenticatedUserId(null);
         processInstanceId = instance.getId();
         LocalDateTime now = LocalDateTime.now();
@@ -827,6 +826,11 @@ class DurationChangeBpmMySqlIntegrationTest {
         SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(userId).setUserType(2),
                 new MockHttpServletRequest());
         TenantContextHolder.setTenantId(0L);
+    }
+
+    private void loginBpm(long userId) {
+        login(userId);
+        TenantContextHolder.clear();
     }
 
     private static BpmnModel model() {

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanChangeRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanRevisionRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangeSubmitRespVO;
@@ -46,6 +47,7 @@ import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -103,6 +105,7 @@ public class DurationChangeApplicationService {
     private final BpmProcessInstanceApi processInstanceApi;
     private final DurationChangeProperties properties;
     private final TransactionTemplate transactionTemplate;
+    private final Environment environment;
 
     public ConstructionPlanChangeRespVO createDraft(
             CreateDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
@@ -196,7 +199,7 @@ public class DurationChangeApplicationService {
                 .setVariables(new LinkedHashMap<>(Map.of("projectId", plan.getProjectId(),
                         "constructionPlanId", plan.getId(), "durationChangeId", change.getId())))
                 .setStartUserSelectAssignees(Map.of(APPROVAL_TASK, List.of(approver.userId())));
-        String processInstanceId = processInstanceApi.createProcessInstance(actor.actorId(), request);
+        String processInstanceId = createProcessInstance(actor.actorId(), request);
         if (processInstanceId == null || processInstanceId.isBlank()) {
             throw exception(DURATION_CHANGE_BPM_CONFIG_INVALID);
         }
@@ -259,6 +262,19 @@ public class DurationChangeApplicationService {
         detail.put("planVersionAfter", response.getPlanVersion());
         auditSnapshot.set(Map.copyOf(detail));
         return response;
+    }
+
+    private String createProcessInstance(Long actorId, BpmProcessInstanceCreateReqDTO request) {
+        if (environment.getProperty("yudao.tenant.enable", Boolean.class, true)) {
+            return processInstanceApi.createProcessInstance(actorId, request);
+        }
+        Long trustedTenantId = TenantContextHolder.getTenantId();
+        try {
+            TenantContextHolder.setTenantId(null);
+            return processInstanceApi.createProcessInstance(actorId, request);
+        } finally {
+            TenantContextHolder.setTenantId(trustedTenantId);
+        }
     }
 
     private ConstructionPlanChangeRespVO createDraftInTransaction(

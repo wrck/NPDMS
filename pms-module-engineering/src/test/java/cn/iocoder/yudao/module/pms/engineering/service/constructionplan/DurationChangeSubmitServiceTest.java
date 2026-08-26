@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.constructionplan;
 
 import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApi;
 import cn.iocoder.yudao.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
 import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
@@ -27,6 +28,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -35,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,6 +49,7 @@ import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -79,11 +83,16 @@ class DurationChangeSubmitServiceTest {
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
                 commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
                 participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
-                transactionTemplate);
+                transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"));
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));
         });
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContextHolder.clear();
     }
 
     @Test
@@ -92,7 +101,11 @@ class DurationChangeSubmitServiceTest {
         stubAuthorizedFacts(10L);
         stubRows(change("INTERNAL_ADJUSTMENT"), plan());
         stubReasonConfiguration();
-        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("bpm-801");
+        TenantContextHolder.setTenantId(0L);
+        when(processInstanceApi.createProcessInstance(any(), any())).thenAnswer(invocation -> {
+            assertNull(TenantContextHolder.getTenantId());
+            return "bpm-801";
+        });
         when(revisionMapper.freezeForSubmitIfMatch(any())).thenReturn(1);
         when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
         when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
@@ -100,6 +113,7 @@ class DurationChangeSubmitServiceTest {
         DurationChangeSubmitRespVO response = service.submit(command(), actor());
 
         assertEquals("bpm-801", response.getProcessInstanceId());
+        assertEquals(0L, TenantContextHolder.getRequiredTenantId());
         assertEquals(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL, response.getStatus());
         ArgumentCaptor<BpmProcessInstanceCreateReqDTO> bpm = ArgumentCaptor.forClass(
                 BpmProcessInstanceCreateReqDTO.class);

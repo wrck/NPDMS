@@ -13,13 +13,13 @@ Task 10 验收期间发现并完成四项正向链路修正：工期详情补齐
 ## 2. 隔离基础设施
 
 - Compose project：`npdms-50eb-fplt001-t10`
-- 数据库：`npdms_fplt001_t10`，MySQL 8.4.10，宿主端口 23319
+- 数据库：`npdms_fplt001_t10`；单租户 BPM 整改复验使用重新创建的清洁库 `npdms_fplt001_t10_r1`，MySQL 8.4.10，宿主端口 23319
 - Redis：7.4.9，宿主端口 26389
 - ClamAV：1.4.6，宿主端口 23311
 - Flyway：全新空库 V1→V95 共 95 条迁移全部成功；六张 PLT 文件表存在
 - Quartz：V93 的 `fileOutboxDeliveryJob` 唯一且启用，cron 为 `0/30 * * * * ?`；最终应用启动后 QRTZ Job/Trigger 自动存在并触发投递
 
-隔离验收使用 INFRA 既有数据库文件客户端作为私有存储配置，避免依赖无效的示例 S3 配置；未修改产品代码。Flowable 流程通过既有模型/部署 API 建立。单租户隔离数据中，将该验收流程实例的 Flowable tenant 标签统一为受信租户 `0`，用于修正模型部署产生的空 tenant 测试夹具；产品、BPM 基础模块和框架代码均未改动。
+隔离验收通过 INFRA 既有文件配置公开管理接口创建并启用数据库文件客户端，避免依赖无效的示例 S3 配置；未直接修改配置或文件表。Flowable 流程通过既有模型创建/部署公开 API 建立。单租户整改复验中，模型、流程定义和流程实例均自然使用 Flowable `NO_TENANT_ID`（数据库 tenant 标签为空），SOL/PLT/PROJ 业务事实继续使用受信 tenant `0`；未直接修改任何 `ACT_`/`FLW_` 表，也未修改 BPM 基础模块或框架代码。
 
 ## 3. 后端全链验证
 
@@ -68,6 +68,13 @@ mvn.cmd -pl pms-module-engineering -am -Dtest=DurationChangeCustomerEvidenceEndT
 3. 提交真实 Flowable 单节点审批；当前主责服务经理在平台 BPM 页面批准并填写意见。
 4. 工期成为唯一当前 V2：2026-09-01 至 2026-10-15，共 45 天；界面显示 `PENDING_RECALCULATION`，历史同时保留 V1/V2。
 
+### 单租户 BPM 整改清洁复验
+
+1. 从空库执行 V1→V95 后启动最终应用，在 `yudao.tenant.enable=false` 下通过 `/admin-api/bpm/model/create` 和 `/admin-api/bpm/model/deploy` 创建、部署 `pms-sol-duration-change`；模型和定义的 Flowable tenant 标签均为空。
+2. 项目经理在真实浏览器为 `projectId=992201100001` 录入 V1（2026-09-01 至 2026-09-30），创建 `CUSTOMER_DELAY` 草稿，上传真实 PNG 并从页面提交审批；运行中流程实例的 tenant 标签为空，SOL/文件业务事实 tenant 为 `0`。
+3. 服务经理从平台 BPM 待办页进入该审批任务，随后通过公开 BPM 审批命令完成终态；未直接改写 Flowable 表。历史流程实例 tenant 标签为空且已结束，运行实例为 0。
+4. 项目经理重新打开项目工期页，唯一当前工期自然成为 V2（2026-09-05 至 2026-10-10，共 36 天），变更为 `APPROVED`，`pending_change_id` 清空，计划重算状态为 `PENDING_RECALCULATION`；页面错误和 `console.error` 为 0。浏览器截图：`task10-r1-clean-browser.png`。
+
 ### 失败关闭与恢复
 
 1. 创建并提交第二笔 `CUSTOMER_DELAY` 变更。
@@ -86,7 +93,7 @@ mvn.cmd -pl pms-module-engineering -am -Dtest=DurationChangeCustomerEvidenceEndT
 ## 5. 前端与治理验证
 
 - Node：v24.11.1
-- pnpm：11.17.0
+- pnpm：9.15.5（前端安装根执行 `corepack pnpm --version`）
 - `pnpm-lock.yaml` SHA-256：`a060b9b0dce5a1ba5b537aa18112bb45693d545a4013ec9bb0f4ff00d23e23f4`
 - 组件/运行时聚焦测试：3 个测试文件，15/15 PASS。
 - `corepack pnpm ts:check`：PASS，0 error。首次运行因当时浏览器和 JVM 共同占用内存而退出；关闭专用验收浏览器后以相同代码重新运行通过。
