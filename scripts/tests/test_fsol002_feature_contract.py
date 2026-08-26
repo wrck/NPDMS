@@ -84,10 +84,13 @@ class Fsol002FeatureContractTest(unittest.TestCase):
         self.assertIn("no current truth", self.contract["legacy"]["policy"])
         self.assertIn("pms_eng_site_survey", self.feature_spec)
 
-    def test_feature_ready_remains_pending_until_independent_review(self) -> None:
-        self.assertEqual("DRAFT", self.contract["status"])
-        self.assertEqual("PENDING_REVIEW", self.contract["featureReadyDecision"])
-        self.assertIn("NPDMS-FSOL002-BOUNDARY-20260827-01", self.feature_spec)
+    def test_feature_ready_decision_is_locked(self) -> None:
+        self.assertEqual("BASELINE", self.contract["status"])
+        self.assertEqual(
+            "GO_NPDMS_FSOL002_FEATURE_READY_20260827_01_R2",
+            self.contract["featureReadyDecision"],
+        )
+        self.assertIn("NPDMS-FSOL002-FEATURE-READY-20260827-01-R2", self.feature_spec)
 
 
 if __name__ == "__main__":

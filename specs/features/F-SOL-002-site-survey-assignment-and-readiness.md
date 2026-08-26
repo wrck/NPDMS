@@ -1,7 +1,7 @@
 # F-SOL-002 工勘分工信息采集与实施就绪 Feature Spec
 
-> 文档状态：`DRAFT`
-> Feature Ready：`PENDING_REVIEW`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`
 > Requirement：`PRE-02（V1/P0）`
 > Owner Context：`SOL（交付准备与方案）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-005`、`F-PROJ-007`、`F-PLT-001`
@@ -188,9 +188,9 @@
 | 项目 | 当前状态 |
 |---|---|
 | PRE-02独立Feature与上下游边界 | PASS（`NPDMS-FSOL002-BOUNDARY-20260827-01`） |
-| 最小完整正向闭环与失效恢复 | PASS（候选） |
-| 六表物理模型、状态轴和稳定键 | PASS（候选） |
-| 权限、公共就绪API、同步契约和无事件边界 | PASS（候选） |
-| 独立Feature Ready裁决 | PENDING |
+| 最小完整正向闭环与失效恢复 | PASS |
+| 六表物理模型、状态轴和稳定键 | PASS |
+| 权限、公共就绪API、同步契约和无事件边界 | PASS |
+| 独立Feature Ready裁决 | PASS（`NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`） |
 
-结论：`DRAFT / PENDING_REVIEW`。完成契约测试与追溯生成后提交独立Feature Ready复审；GO前不得锁定新规格、同步NPDMS、创建Technical Plan或实施。
+结论：`BASELINE / READY`。原Feature Ready阻断已闭环，独立裁决已GO；锁定本规格提交并同步NPDMS后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。
