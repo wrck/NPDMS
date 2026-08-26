@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "2efd8c476430d77ce2003c6e9fe300a335eac6a7"
+    "commit": "e4157d934f7d514de810c762d1410d5b97e2764f"
   },
   "files": [
     {
@@ -443,7 +443,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "b8a8eafb49ea96b56b275cfab3d1187a367687c3fc8893316afd40c01037150c"
+      "sha256": "8cbc4204c2eb0e56fb9e87b179f3514409713d9d1fc227dbcbfa9db5bf71f507"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
@@ -533,7 +533,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "3c53a98228d4278b122f10349a153b96633a712f5efe877f3a9b9887cd10badd"
+      "sha256": "8bc9b98fc4a33336b1f95d1bf26ad8a2b35cd9b65fb3d48ec5e8a86719e8abde"
     }
   ]
 }

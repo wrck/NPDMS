@@ -6,7 +6,7 @@
 > Implementation Done Gate：`PASS / 独立复审GO（2026-08-27）`
 > Technical Plan Gate：`PASS / NPDMS-FSOL001-TECHPLAN-20260826-01`
 > 当前阻断：`无；F-PLT-001已完成并解除PLT-02客户延期材料分支阻断`
-> 当前任务：`Implementation Done追溯回写与规格基线同步`
+> 当前任务：`F-SOL-001已完成；等待下一工程单元`
 > Requirement ID：`PRE-01（V1）`
 > Feature Spec：`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`
 > Feature物理契约：`specs/features/F-SOL-001-physical-contract.json`
@@ -61,3 +61,5 @@
 > 检查点（2026-08-27）：F-PLT-001 Task 10整改提交`38f36b1f0d345bc2653207302a37d2792362e58a`经独立复审GO；统一文件界面、客户延期材料上传冻结、单租户Flowable正向审批和清洁库浏览器链已闭合，`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`正式解除。F-SOL-001现可进入Task 10正式浏览器与独立Feature Done复审，本检查点不提前将Task 10或Implementation Done回写PASS。
 
 > 检查点（2026-08-27）：Task 10实现整改`85b6d09db65a7b02f4ad291aaafbe5ead4a06eb0`及浏览器证据提交`43110a7`经独立复审GO；公开UI/API已覆盖服务经理驳回、项目经理权限拒绝、项目版本冲突、刷新持久化和无成功副作用，变更历史候选版本投影已闭合。Task 10与F-SOL-001 Implementation Done正式PASS；本结论不包含Deployment、SIT、UAT或Release。
+
+> 检查点（2026-08-27）：规格仓库提交`e4157d934f7d514de810c762d1410d5b97e2764f`已回写F-SOL-001 Feature索引和PRE-01实施追溯，并通过受管同步工具更新NPDMS规格基线；F-SOL-001工程单元收口完成。

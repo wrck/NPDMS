@@ -11,7 +11,7 @@
 | [F-PROJ-005](F-PROJ-005-service-manager-manual-assignment.md) | 服务经理人工指派与责任分布 | PM-08（V1） | BASELINE | READY（`NPDMS-FPROJ005-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `25230ce`；整改复审GO） |
 | [F-PROJ-006](F-PROJ-006-project-rollback-exception-close-and-reopen.md) | 项目回退、异常关闭与受控重开 | PM-10（V1） | BASELINE | READY（`NPDMS-FPROJ006-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `fc9f8b1`；独立复审GO） |
 | [F-PROJ-007](F-PROJ-007-project-task-tree-and-native-workbench.md) | 项目任务树与原生任务工作台 | PM-11（V1） | BASELINE | READY（`NPDMS-FPROJ007-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `b559978`；独立复审GO） |
-| [F-SOL-001](F-SOL-001-project-duration-baseline-and-change-approval.md) | 项目工期基线与变更审批 | PRE-01（V1） | BASELINE | READY（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） | NOT_STARTED |
+| [F-SOL-001](F-SOL-001-project-duration-baseline-and-change-approval.md) | 项目工期基线与变更审批 | PRE-01（V1） | BASELINE | READY（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） | IMPLEMENTATION_COMPLETE（NPDMS `c417dee`；独立复审GO） |
 | [F-PLT-001](F-PLT-001-unified-file-identity-and-version-management.md) | 统一文件身份与版本管理 | PLT-02（V1） | BASELINE | READY（`NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`） | NOT_STARTED |
 
 状态和门禁遵循`docs/engineering/00-engineering-chain.md`：只有Requirement追溯、业务规则、状态、权限、API、数据变化、验收标准及相关Open Question全部关闭后，Feature才可进入Implementation。
