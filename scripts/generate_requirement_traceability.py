@@ -428,6 +428,12 @@ IMPLEMENTATION_OVERRIDES = {
         "NPDMS `c417dee` Task 1～10、真实MySQL/Flowable、FileArtifact、真实浏览器与独立复审GO",
         "IMPLEMENTATION_COMPLETE",
     ),
+    "PLT-02": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "Feature Ready GO `NPDMS-FPLT001-FEATURE-READY-20260826-01-R2` / "
+        "NPDMS `6d6c6ea` Task 1～10、真实MySQL/Flowable/Quartz/ClamAV、SOL消费链、真实浏览器与独立复审GO",
+        "IMPLEMENTATION_COMPLETE",
+    ),
 }
 
 
