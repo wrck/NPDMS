@@ -1,15 +1,19 @@
 package cn.iocoder.yudao.module.pms.engineering.constructionplan;
 
 import cn.hutool.extra.spring.SpringUtil;
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
+import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.instance.BpmProcessInstanceCancelReqVO;
+import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApiImpl;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.task.BpmTaskApproveReqVO;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.task.BpmTaskRejectReqVO;
 import cn.iocoder.yudao.module.bpm.dal.dataobject.definition.BpmProcessDefinitionInfoDO;
+import cn.iocoder.yudao.module.bpm.enums.definition.BpmModelTypeEnum;
 import cn.iocoder.yudao.module.bpm.framework.flowable.core.candidate.BpmTaskCandidateInvoker;
 import cn.iocoder.yudao.module.bpm.framework.flowable.core.event.BpmProcessInstanceEventPublisher;
 import cn.iocoder.yudao.module.bpm.framework.flowable.core.listener.BpmProcessInstanceEventListener;
@@ -31,12 +35,18 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.Duration
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeBpmListener;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeBpmResultService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeProperties;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.SubmitDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
+import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
+import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
@@ -54,12 +64,14 @@ import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.spring.SpringProcessEngineConfiguration;
 import org.flowable.spring.boot.EngineConfigurationConfigurer;
 import org.flowable.spring.boot.ProcessEngineAutoConfiguration;
 import org.flowable.spring.boot.ProcessEngineServicesAutoConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -78,12 +90,21 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -97,9 +118,9 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
-@SpringBootTest(classes = DurationChangeBpmAuthorizationIntegrationTest.TestApplication.class,
+@SpringBootTest(classes = DurationChangeBpmMySqlIntegrationTest.TestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
-class DurationChangeBpmAuthorizationIntegrationTest {
+class DurationChangeBpmMySqlIntegrationTest {
 
     private static final String PROCESS_KEY = "pms-sol-duration-change-it";
     private static final long APPLICANT = 9L;
@@ -115,6 +136,9 @@ class DurationChangeBpmAuthorizationIntegrationTest {
     @Resource PermissionApi permissionApi;
     @Resource ProjectScopeApi projectScopeApi;
     @Resource ProjectParticipantFactApi participantFactApi;
+    @Resource DictDataApi dictDataApi;
+    @Resource ConfigApi configApi;
+    @Resource DurationChangeApplicationService durationChangeService;
     @Resource BpmModelService modelService;
     @Resource BpmProcessDefinitionService processDefinitionService;
 
@@ -169,10 +193,14 @@ class DurationChangeBpmAuthorizationIntegrationTest {
                 .tenantId("0")
                 .addBpmnModel(PROCESS_KEY + ".bpmn20.xml", bpmnModel)
                 .deploy().getId();
-        reset(permissionApi, projectScopeApi, participantFactApi, modelService, processDefinitionService);
+        reset(permissionApi, projectScopeApi, participantFactApi, dictDataApi, configApi,
+                modelService, processDefinitionService);
         when(modelService.getBpmnModelByDefinitionId(anyString())).thenReturn(bpmnModel);
         when(processDefinitionService.getProcessDefinitionInfo(anyString()))
-                .thenReturn(new BpmProcessDefinitionInfoDO().setAllowCancelRunningProcess(true));
+                .thenReturn(new BpmProcessDefinitionInfoDO()
+                        .setModelType(BpmModelTypeEnum.BPMN.getType())
+                        .setAllowCancelRunningProcess(true));
+        when(processDefinitionService.canUserStartProcessDefinition(any(), anyLong())).thenReturn(true);
         stubAuthorization(Failure.NONE, Command.APPROVE);
         createPendingFacts();
     }
@@ -236,6 +264,70 @@ class DurationChangeBpmAuthorizationIntegrationTest {
         assertRejectedWithoutSideEffects(command, Failure.ROLE);
     }
 
+    @Test
+    void submitCreatesRealBpmWithStandardProjectVariableAndFrozenPendingFacts() {
+        prepareRealSubmission();
+        login(APPLICANT);
+
+        var response = durationChangeService.submit(new SubmitDurationChangeCommand(
+                        planId, changeId, 0, 3, "task9-submit-" + changeId, "a".repeat(64)),
+                new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
+                        "task9-submit-" + changeId));
+        processInstanceId = response.getProcessInstanceId();
+
+        assertNotNull(runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult());
+        assertEquals(projectId, ((Number) runtimeService.getVariable(
+                processInstanceId, "projectId")).longValue());
+        assertEquals(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL,
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(changeId, number("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+        assertNotNull(value("SELECT frozen_at FROM sol_construction_plan_revision WHERE id=?",
+                candidateRevisionId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND operation_code='DURATION_CHANGE_SUBMIT' "
+                + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(changeId)));
+    }
+
+    @Test
+    void concurrentSubmissionsAllowOnlyOnePendingApproval() throws Exception {
+        prepareRealSubmission();
+
+        List<Boolean> outcomes = runConcurrently(
+                () -> submit("task9-submit-a-" + changeId),
+                () -> submit("task9-submit-b-" + changeId));
+
+        assertEquals(1L, outcomes.stream().filter(Boolean::booleanValue).count());
+        List<ProcessInstance> activeInstances = runtimeService.createProcessInstanceQuery()
+                .processDefinitionKey(PROCESS_KEY).variableValueEquals("projectId", projectId).list();
+        assertEquals(1, activeInstances.size());
+        processInstanceId = activeInstances.getFirst().getId();
+        assertEquals(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL,
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND operation_code='DURATION_CHANGE_SUBMIT' "
+                + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(changeId)));
+    }
+
+    @Test
+    void concurrentTerminalCommandsAllowOnlyOneWinner() throws Exception {
+        stubAuthorization(Failure.NONE, Command.APPROVE);
+        String taskId = flowableTaskService.createTaskQuery().processInstanceId(processInstanceId)
+                .singleResult().getId();
+
+        List<Boolean> outcomes = runConcurrently(
+                () -> approve(taskId),
+                () -> approve(taskId));
+
+        assertEquals(1L, outcomes.stream().filter(Boolean::booleanValue).count());
+        assertNull(runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId).singleResult());
+        assertEquals(ConstructionPlanChangeDO.STATUS_APPROVED,
+                value("SELECT status_code FROM sol_construction_plan_change WHERE id=?", changeId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND operation_code='DURATION_CHANGE_BPM_RESULT' "
+                + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(changeId)));
+    }
+
     private void assertRejectedWithoutSideEffects(Command command, Failure failure) {
         stubAuthorization(failure, command);
 
@@ -251,6 +343,99 @@ class DurationChangeBpmAuthorizationIntegrationTest {
         assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
                 + "WHERE tenant_id=0 AND operation_code='DURATION_CHANGE_BPM_RESULT' "
                 + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(changeId)));
+    }
+
+    private void prepareRealSubmission() {
+        resetPendingFactsToDraft();
+        stubAuthorization(Failure.NONE, Command.CANCEL);
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                projectId, APPROVER, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1),
+                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+        when(participantFactApi.lockAndRevalidate(any())).thenAnswer(invocation -> {
+            var query = invocation.getArgument(0,
+                    cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery.class);
+            long userId = query.userId();
+            Set<String> roles = userId == APPLICANT
+                    ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
+                    : Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
+            return new ProjectParticipantFact(projectId, userId, roles, "PRIMARY",
+                    "ACTIVE", "S1", 3, 3L);
+        });
+        DictDataRespDTO internalReason = new DictDataRespDTO();
+        internalReason.setDictType("pms_duration_change_reason_type");
+        internalReason.setValue("INTERNAL_ADJUSTMENT");
+        internalReason.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        DictDataRespDTO customerReason = new DictDataRespDTO();
+        customerReason.setDictType("pms_duration_change_reason_type");
+        customerReason.setValue("CUSTOMER_DELAY");
+        customerReason.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        when(dictDataApi.getDictDataList("pms_duration_change_reason_type"))
+                .thenReturn(List.of(internalReason, customerReason));
+        when(configApi.getConfigValueByKey(
+                "pms.sol.duration-change.customer-evidence-required-reason-codes"))
+                .thenReturn("CUSTOMER_DELAY");
+        ProcessDefinition definition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(PROCESS_KEY).processDefinitionTenantId("0")
+                .latestVersion().singleResult();
+        when(processDefinitionService.getActiveProcessDefinition(PROCESS_KEY)).thenReturn(definition);
+        when(processDefinitionService.getProcessDefinition(definition.getId())).thenReturn(definition);
+        when(processDefinitionService.getProcessDefinitionBpmnModel(definition.getId())).thenReturn(bpmnModel);
+    }
+
+    private void submit(String key) {
+        login(APPLICANT);
+        try {
+            durationChangeService.submit(new SubmitDurationChangeCommand(
+                            planId, changeId, 0, 3, key, "a".repeat(64)),
+                    new ConstructionPlanApplicationService.Actor(0L, APPLICANT, key));
+        } finally {
+            SecurityContextHolder.clearContext();
+            TenantContextHolder.clear();
+        }
+    }
+
+    private void approve(String taskId) {
+        login(APPROVER);
+        try {
+            bpmTaskService.approveTask(APPROVER,
+                    new BpmTaskApproveReqVO().setId(taskId).setReason("并发同意"));
+        } finally {
+            SecurityContextHolder.clearContext();
+            TenantContextHolder.clear();
+        }
+    }
+
+    private List<Boolean> runConcurrently(CheckedAction first, CheckedAction second) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            Callable<Boolean> firstTask = concurrentTask(ready, start, first);
+            Callable<Boolean> secondTask = concurrentTask(ready, start, second);
+            Future<Boolean> firstResult = executor.submit(firstTask);
+            Future<Boolean> secondResult = executor.submit(secondTask);
+            if (!ready.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("并发任务未就绪");
+            }
+            start.countDown();
+            return List.of(firstResult.get(30, TimeUnit.SECONDS), secondResult.get(30, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private static Callable<Boolean> concurrentTask(CountDownLatch ready, CountDownLatch start,
+                                                     CheckedAction action) {
+        return () -> {
+            ready.countDown();
+            start.await();
+            try {
+                action.run();
+                return true;
+            } catch (RuntimeException exception) {
+                return false;
+            }
+        };
     }
 
     private void invoke(Command command) {
@@ -319,6 +504,21 @@ class DurationChangeBpmAuthorizationIntegrationTest {
                 + "WHERE id=?", baseRevisionId, changeId, planId);
     }
 
+    private void resetPendingFactsToDraft() {
+        runtimeService.setVariable(processInstanceId,
+                BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS, 99);
+        runtimeService.deleteProcessInstance(processInstanceId, "prepare real submit");
+        processInstanceId = null;
+        jdbcTemplate.update("UPDATE sol_construction_plan_revision SET frozen_at=NULL WHERE id=?",
+                candidateRevisionId);
+        jdbcTemplate.update("UPDATE sol_construction_plan_change SET status_code='DRAFT', "
+                        + "reason_type_code='INTERNAL_ADJUSTMENT', customer_evidence_required=b'0', "
+                        + "process_definition_key=NULL, process_instance_id=NULL, submitted_at=NULL, "
+                        + "approver_user_id=NULL, version=0 WHERE id=?", changeId);
+        jdbcTemplate.update("UPDATE sol_construction_plan SET pending_change_id=NULL, version=0 WHERE id=?",
+                planId);
+    }
+
     private Object value(String sql, long id) {
         return jdbcTemplate.queryForObject(sql, Object.class, id);
     }
@@ -379,6 +579,11 @@ class DurationChangeBpmAuthorizationIntegrationTest {
 
     enum Failure { NONE, PERMISSION, SCOPE, ROLE }
 
+    @FunctionalInterface
+    interface CheckedAction {
+        void run();
+    }
+
     @SpringBootConfiguration
     @ImportAutoConfiguration({ProcessEngineAutoConfiguration.class,
             ProcessEngineServicesAutoConfiguration.class})
@@ -388,8 +593,9 @@ class DurationChangeBpmAuthorizationIntegrationTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            BpmTaskServiceImpl.class, BpmProcessInstanceServiceImpl.class,
-            BpmProcessInstanceEventListener.class, OperationAuditApiImpl.class,
+            BpmTaskServiceImpl.class, BpmProcessInstanceServiceImpl.class, BpmProcessInstanceApiImpl.class,
+            BpmProcessInstanceEventListener.class, PlatformCommandExecutionApiImpl.class,
+            OperationAuditApiImpl.class, DurationChangeApplicationService.class,
             DurationChangeProperties.class, DurationChangeBpmListener.class,
             DurationChangeBpmAuthorizationGuard.class, DurationChangeBpmResultService.class})
     static class TestApplication {
@@ -397,6 +603,11 @@ class DurationChangeBpmAuthorizationIntegrationTest {
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
         @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
+        @Bean DictDataApi dictDataApi() { return mock(DictDataApi.class); }
+        @Bean ConfigApi configApi() { return mock(ConfigApi.class); }
+        @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
+            return new TransactionTemplate(transactionManager);
+        }
         @Bean BpmModelService bpmModelService() { return mock(BpmModelService.class); }
         @Bean BpmProcessDefinitionService bpmProcessDefinitionService() {
             return mock(BpmProcessDefinitionService.class);

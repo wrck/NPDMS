@@ -186,8 +186,8 @@ public class DurationChangeApplicationService {
         BpmProcessInstanceCreateReqDTO request = new BpmProcessInstanceCreateReqDTO()
                 .setProcessDefinitionKey(processKey)
                 .setBusinessKey(String.valueOf(change.getId()))
-                .setVariables(Map.of("projectId", plan.getProjectId(),
-                        "constructionPlanId", plan.getId(), "durationChangeId", change.getId()))
+                .setVariables(new LinkedHashMap<>(Map.of("projectId", plan.getProjectId(),
+                        "constructionPlanId", plan.getId(), "durationChangeId", change.getId())))
                 .setStartUserSelectAssignees(Map.of(APPROVAL_TASK, List.of(approver.userId())));
         String processInstanceId = processInstanceApi.createProcessInstance(actor.actorId(), request);
         if (processInstanceId == null || processInstanceId.isBlank()) {

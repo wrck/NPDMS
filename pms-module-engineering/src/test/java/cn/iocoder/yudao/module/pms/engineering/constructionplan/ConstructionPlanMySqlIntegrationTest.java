@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.pms.engineering.service.constructionplan;
+package cn.iocoder.yudao.module.pms.engineering.constructionplan;
 
 import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
@@ -6,6 +6,9 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeProperties;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateInitialDurationCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.PatchDurationChangeCommand;
@@ -16,6 +19,9 @@ import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFac
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApi;
+import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
+import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -56,9 +62,9 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
-@SpringBootTest(classes = ConstructionPlanApplicationMySqlIntegrationTest.TestApplication.class,
+@SpringBootTest(classes = ConstructionPlanMySqlIntegrationTest.TestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
-class ConstructionPlanApplicationMySqlIntegrationTest {
+class ConstructionPlanMySqlIntegrationTest {
 
     @Resource ConstructionPlanApplicationService service;
     @Resource DurationChangeApplicationService changeService;
@@ -94,7 +100,7 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
         TenantContextHolder.setTenantId(0L);
         projectId = 979_000_000_000L
                 + Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
-        keyPrefix = "fsol001-task4-it-" + projectId;
+        keyPrefix = "fsol001-task9-it-" + projectId;
         revisionInsertFault.enabled = false;
         reset(permissionApi, projectScopeApi, participantFactApi);
         when(permissionApi.hasAnyPermissions(9L,
@@ -260,6 +266,30 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND correlation_id=? AND result_code='REJECTED'", Long.class, key));
     }
 
+    @Test
+    void constructionPlanCommandsDoNotDoubleWriteLegacyScheduleOrChangeTables() {
+        long legacyRowsBefore = legacyRowCount();
+        var plan = service.createInitial(command(keyPrefix + "-no-legacy", "a".repeat(64)),
+                actor(keyPrefix + "-no-legacy"));
+        var draft = changeService.createDraft(changeCommand(plan.getPlanId(), plan.getPlanVersion(),
+                keyPrefix + "-no-legacy-draft", "b".repeat(64)),
+                actor(keyPrefix + "-no-legacy-draft"));
+        changeService.patchDraft(new PatchDurationChangeCommand(
+                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3,
+                new DurationChangePatch(null, null, null, 7, null, null, null, null,
+                        Set.of("durationDays"))), actor(keyPrefix + "-no-legacy-patch"));
+
+        assertEquals(legacyRowsBefore, legacyRowCount());
+    }
+
+    private long legacyRowCount() {
+        return jdbcTemplate.queryForObject("SELECT "
+                + "(SELECT COUNT(*) FROM pms_schedule_backward) + "
+                + "(SELECT COUNT(*) FROM pms_schedule_backward_item) + "
+                + "(SELECT COUNT(*) FROM pms_plan_change_request) + "
+                + "(SELECT COUNT(*) FROM pms_plan_change_phase_snapshot)", Long.class);
+    }
+
     private CreateInitialDurationCommand command(String key, String digest) {
         return new CreateInitialDurationCommand(projectId, "DATE_RANGE",
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5, 3, key, digest);
@@ -311,6 +341,10 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
         @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
+        @Bean DictDataApi dictDataApi() { return mock(DictDataApi.class); }
+        @Bean ConfigApi configApi() { return mock(ConfigApi.class); }
+        @Bean BpmProcessInstanceApi bpmProcessInstanceApi() { return mock(BpmProcessInstanceApi.class); }
+        @Bean DurationChangeProperties durationChangeProperties() { return new DurationChangeProperties(); }
         @Bean RevisionInsertFault revisionInsertFault() { return new RevisionInsertFault(); }
 
         @Bean
