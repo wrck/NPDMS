@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "51ff74a5faba4f4f0c8b529b39eb8233959ff390"
+    "commit": "e9e3122b33dbc34179d89326f5caa7972365f074"
   },
   "files": [
     {
@@ -443,7 +443,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "3ac039ed21729f7d5612a27d6919f9e927bb70dc77cee205d8165a25271dc1b6"
+      "sha256": "2d9ce6ae753f3830e5aa27888bbdfcea4b8a3fc60a19f2a904f6ecf78d08decb"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
@@ -531,9 +531,19 @@
       "sha256": "af1b654747252a491afa5d995be1ac327b5357d1366ba733dc43ed48b80fa397"
     },
     {
+      "path": "specs/features/F-SOL-002-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "822358e3b362cef73a175f2cd216c1f117ff15c4dad554e936af592a43a25f87"
+    },
+    {
+      "path": "specs/features/F-SOL-002-site-survey-assignment-and-readiness.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "73cd3164a31a608ff8344969d940ee7d67a862cd36e498c18fffe70a3d3fd655"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "f9448e2e518abd71697883bb78f063d9cd5d7861055bb0f703074b8398eb32f6"
+      "sha256": "58d40a0fbc019590f9aae08fda8c2be1effebb5878641831d536885e0d728f0f"
     }
   ]
 }
