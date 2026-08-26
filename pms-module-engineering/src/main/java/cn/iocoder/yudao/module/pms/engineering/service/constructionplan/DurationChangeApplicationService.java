@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -134,12 +135,13 @@ public class DurationChangeApplicationService {
     private DurationChangeSubmitRespVO submitInTransaction(
             SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
         validateSubmit(command, actor);
+        AtomicReference<Map<String, Object>> auditSnapshot = new AtomicReference<>();
         var execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), SUBMIT_SCOPE, actor.actorId(), command.idempotencyKey()),
                 command.requestDigest(), DurationChangeSubmitRespVO.class,
-                () -> submitOnce(command, actor),
-                response -> submitSuccessFacts(command, response, actor));
+                () -> submitOnce(command, actor, auditSnapshot),
+                response -> submitSuccessFacts(response, actor, auditSnapshot.get()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
             throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
@@ -148,7 +150,8 @@ public class DurationChangeApplicationService {
     }
 
     private DurationChangeSubmitRespVO submitOnce(
-            SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
+            SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor,
+            AtomicReference<Map<String, Object>> auditSnapshot) {
         ProjectParticipantFact applicant = requireManageAndProject(
                 command.planId(), command.expectedProjectVersion(), actor);
         if (applicant == null || applicant.projectId() == null) {
@@ -217,6 +220,31 @@ public class DurationChangeApplicationService {
         response.setProcessInstanceId(processInstanceId);
         response.setChangeVersion(change.getVersion() + 1);
         response.setPlanVersion(plan.getVersion() + 1);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("projectId", plan.getProjectId());
+        detail.put("planId", plan.getId());
+        detail.put("changeId", change.getId());
+        detail.put("baseRevisionId", change.getBaseRevisionId());
+        detail.put("candidateRevisionId", change.getCandidateRevisionId());
+        detail.put("statusBefore", ConstructionPlanChangeDO.STATUS_DRAFT);
+        detail.put("statusAfter", response.getStatus());
+        detail.put("currentRevisionIdBefore", plan.getCurrentDurationRevisionId());
+        detail.put("currentRevisionIdAfter", plan.getCurrentDurationRevisionId());
+        detail.put("pendingChangeIdBefore", auditValue(plan.getPendingChangeId()));
+        detail.put("pendingChangeIdAfter", change.getId());
+        detail.put("reasonType", change.getReasonTypeCode());
+        detail.put("reasonDetail", change.getReasonDetail());
+        detail.put("customerEvidenceRequired", evidenceRequired);
+        detail.put("customerEvidenceFileId", auditValue(frozenEvidence.fileId()));
+        detail.put("customerEvidenceFileVersion", auditValue(frozenEvidence.fileVersion()));
+        detail.put("candidateRevision", Map.copyOf(
+                revisionAuditSnapshot(revisionResponse(candidate))));
+        detail.put("processDefinitionKey", processKey);
+        detail.put("processInstanceId", processInstanceId);
+        detail.put("approverUserId", approver.userId());
+        detail.put("changeVersionAfter", response.getChangeVersion());
+        detail.put("planVersionAfter", response.getPlanVersion());
+        auditSnapshot.set(Map.copyOf(detail));
         return response;
     }
 
@@ -622,16 +650,9 @@ public class DurationChangeApplicationService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts submitSuccessFacts(
-            SubmitDurationChangeCommand command, DurationChangeSubmitRespVO response,
-            ConstructionPlanApplicationService.Actor actor) {
-        Map<String, Object> detail = new LinkedHashMap<>();
-        detail.put("planId", command.planId());
-        detail.put("changeId", command.changeId());
-        detail.put("statusBefore", ConstructionPlanChangeDO.STATUS_DRAFT);
-        detail.put("statusAfter", response.getStatus());
-        detail.put("processInstanceId", response.getProcessInstanceId());
-        detail.put("changeVersionAfter", response.getChangeVersion());
-        detail.put("planVersionAfter", response.getPlanVersion());
+            DurationChangeSubmitRespVO response, ConstructionPlanApplicationService.Actor actor,
+            Map<String, Object> detail) {
+        if (detail == null) throw new IllegalStateException("DURATION_CHANGE_SUBMIT_AUDIT_MISSING");
         return new PlatformCommandExecutionApi.SuccessFacts(SUBMIT_OPERATION, "ConstructionPlanChange",
                 String.valueOf(response.getChangeId()), actor.correlationId(),
                 JsonUtils.toJsonString(detail), null, null);

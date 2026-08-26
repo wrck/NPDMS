@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
@@ -65,6 +66,7 @@ class DurationChangeSubmitServiceTest {
     @Mock TransactionTemplate transactionTemplate;
 
     private DurationChangeApplicationService service;
+    private PlatformCommandExecutionApi.SuccessFacts recordedSuccessFacts;
 
     @BeforeEach
     void setUp() {
@@ -110,6 +112,16 @@ class DurationChangeSubmitServiceTest {
         assertEquals(false, update.getValue().customerEvidenceRequired());
         assertEquals(null, update.getValue().customerEvidenceFileId());
         assertEquals(10L, update.getValue().approverUserId());
+        String audit = recordedSuccessFacts.detailSnapshot();
+        assertEquals("DURATION_CHANGE_SUBMIT", recordedSuccessFacts.operationCode());
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"baseRevisionId\":701"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"candidateRevisionId\":702"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"currentRevisionIdBefore\":701"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"currentRevisionIdAfter\":701"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"pendingChangeIdBefore\":\"NONE\""));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"pendingChangeIdAfter\":801"));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"reasonType\":\"INTERNAL_ADJUSTMENT\""));
+        org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"reasonDetail\":\"reason\""));
     }
 
     @Test
@@ -187,6 +199,9 @@ class DurationChangeSubmitServiceTest {
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<?> operation = invocation.getArgument(3);
             Object response = operation.get();
+            Function<Object, PlatformCommandExecutionApi.SuccessFacts> successFactsFactory =
+                    invocation.getArgument(4);
+            recordedSuccessFacts = successFactsFactory.apply(response);
             return new PlatformCommandExecutionApi.ExecutionResult<>(
                     PlatformCommandExecutionApi.Decision.NEW, response);
         });
