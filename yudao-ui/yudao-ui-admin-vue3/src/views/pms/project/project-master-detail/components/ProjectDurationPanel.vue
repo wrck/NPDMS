@@ -27,7 +27,9 @@
         </div>
         <div class="summary-item">
           <span>工期区间</span>
-          <strong>{{ plan.currentRevision.startDate }} 至 {{ plan.currentRevision.endDate }}</strong>
+          <strong
+            >{{ plan.currentRevision.startDate }} 至 {{ plan.currentRevision.endDate }}</strong
+          >
         </div>
         <div class="summary-item">
           <span>自然日工期</span>
@@ -43,10 +45,26 @@
         <div class="section-heading">
           <div>
             <strong>变更草稿 #{{ draft.changeId }}</strong>
-            <span>{{ draft.candidateRevision.startDate }} 至 {{ draft.candidateRevision.endDate }}，{{ draft.candidateRevision.durationDays }} 天</span>
+            <span
+              >{{ draft.candidateRevision.startDate }} 至 {{ draft.candidateRevision.endDate }}，{{
+                draft.candidateRevision.durationDays
+              }}
+              天</span
+            >
           </div>
           <el-tag type="info">草稿</el-tag>
         </div>
+        <PmsFileReferenceList
+          v-if="draft.customerEvidenceFileId && draft.customerEvidenceReferenceKey"
+          owner-context="SOL"
+          object-type="CONSTRUCTION_PLAN_CHANGE"
+          :object-id="String(draft.changeId)"
+          purpose-code="CUSTOMER_DELAY_EVIDENCE"
+          :reference-key="draft.customerEvidenceReferenceKey"
+          :artifact-id="draft.customerEvidenceFileId"
+          :version-no="draft.customerEvidenceFileVersion"
+          class="evidence-summary"
+        />
         <div class="section-actions" v-hasPermi="['pms:construction-plan:duration-manage']">
           <el-button @click="formRef?.openEdit(plan, draft)">编辑草稿</el-button>
           <el-button type="primary" :loading="submitting" @click="submitDraft">提交审批</el-button>
@@ -64,19 +82,35 @@
           </div>
           <el-tag type="warning">待服务经理审批</el-tag>
         </div>
+        <PmsFileReferenceList
+          v-if="
+            plan.pendingChangeSummary.customerEvidenceFileId &&
+            plan.pendingChangeSummary.customerEvidenceReferenceKey
+          "
+          owner-context="SOL"
+          object-type="CONSTRUCTION_PLAN_CHANGE"
+          :object-id="String(plan.pendingChangeSummary.changeId)"
+          purpose-code="CUSTOMER_DELAY_EVIDENCE"
+          :reference-key="plan.pendingChangeSummary.customerEvidenceReferenceKey"
+          :artifact-id="plan.pendingChangeSummary.customerEvidenceFileId"
+          :version-no="plan.pendingChangeSummary.customerEvidenceFileVersion"
+          class="evidence-summary"
+        />
         <div class="section-actions">
           <el-button
             v-if="plan.pendingChangeSummary.processInstanceId"
             v-hasPermi="['pms:construction-plan:duration-approve']"
             type="primary"
             @click="openBpm(plan.pendingChangeSummary.processInstanceId)"
-          >前往平台审批</el-button>
+            >前往平台审批</el-button
+          >
           <el-button
             v-if="canWithdraw"
             v-hasPermi="['pms:construction-plan:duration-manage']"
             :loading="withdrawing"
             @click="withdraw"
-          >撤回申请</el-button>
+            >撤回申请</el-button
+          >
         </div>
       </section>
 
@@ -85,7 +119,8 @@
           v-if="plan.allowedActions.includes('CREATE_CHANGE')"
           type="primary"
           @click="formRef?.openCreate(plan)"
-        >发起工期变更</el-button>
+          >发起工期变更</el-button
+        >
       </div>
     </template>
     <el-empty v-else description="尚未录入项目工期">
@@ -93,7 +128,8 @@
         type="primary"
         v-hasPermi="['pms:construction-plan:duration-manage']"
         @click="formRef?.openInitial()"
-      >录入首次工期</el-button>
+        >录入首次工期</el-button
+      >
     </el-empty>
   </ContentWrap>
 
@@ -104,6 +140,7 @@
 <script setup lang="ts">
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
+import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
@@ -129,9 +166,10 @@ const historyRef = ref<InstanceType<typeof ProjectDurationHistoryDrawer>>()
 
 const basisLabel = (value: DurationCalculationBasis) =>
   value === 'DATE_RANGE' ? '起止日期' : '起点 + 天数'
-const canWithdraw = computed(() =>
-  plan.value?.pendingChangeSummary?.status === 'PENDING_APPROVAL'
-  && plan.value.pendingChangeSummary.applicantUserId === userStore.getUser.id
+const canWithdraw = computed(
+  () =>
+    plan.value?.pendingChangeSummary?.status === 'PENDING_APPROVAL' &&
+    plan.value.pendingChangeSummary.applicantUserId === userStore.getUser.id
 )
 
 const load = async () => {
@@ -144,20 +182,30 @@ const load = async () => {
       const page = await DurationApi.getChanges(plan.value.planId, { pageSize: 20 })
       draft.value = page.items.find((item) => item.status === 'DRAFT')
     }
-  } finally { loading.value = false }
+  } finally {
+    loading.value = false
+  }
 }
 const submitDraft = async () => {
   if (!plan.value || !draft.value) return
+  if (draft.value.customerEvidenceRequired && !draft.value.customerEvidenceFileId) {
+    return message.warning('请先在编辑草稿中上传客户延期依据')
+  }
   await message.confirm('提交后草稿将冻结，并进入服务经理审批。是否继续？')
   submitting.value = true
   try {
     await DurationApi.submitChange(
-      plan.value.planId, draft.value.changeId, props.project.version || 0,
-      draft.value.version, crypto.randomUUID()
+      plan.value.planId,
+      draft.value.changeId,
+      props.project.version || 0,
+      draft.value.version,
+      crypto.randomUUID()
     )
     message.success('工期变更已提交审批')
     await load()
-  } finally { submitting.value = false }
+  } finally {
+    submitting.value = false
+  }
 }
 const openBpm = (processInstanceId: string) =>
   router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } })
@@ -167,10 +215,15 @@ const withdraw = async () => {
   const prompt = await message.prompt('请输入撤回原因', '撤回工期变更')
   withdrawing.value = true
   try {
-    await ProcessInstanceApi.cancelProcessInstanceByStartUser(instanceId as unknown as number, prompt.value)
+    await ProcessInstanceApi.cancelProcessInstanceByStartUser(
+      instanceId as unknown as number,
+      prompt.value
+    )
     message.success('工期变更已撤回')
     await load()
-  } finally { withdrawing.value = false }
+  } finally {
+    withdrawing.value = false
+  }
 }
 
 watch(() => props.project.id, load, { immediate: true })
@@ -183,6 +236,10 @@ watch(() => props.project.id, load, { immediate: true })
 .section-actions {
   display: flex;
   align-items: center;
+}
+
+.evidence-summary {
+  margin-top: 12px;
 }
 
 .panel-heading {

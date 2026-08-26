@@ -35,6 +35,7 @@ export interface ConstructionPlanChangeVO {
   customerEvidenceRequired: boolean
   customerEvidenceFileId?: number
   customerEvidenceFileVersion?: number
+  customerEvidenceReferenceKey?: string
   processDefinitionKey?: string
   processInstanceId?: string
   submittedAt?: string
@@ -81,6 +82,7 @@ export interface CreateDurationChangeReqVO extends DurationInput {
   reasonDetail?: string
   customerEvidenceFileId?: number
   customerEvidenceFileVersion?: number
+  customerEvidenceReferenceKey?: string
 }
 
 export interface PatchDurationChangeReqVO {
@@ -93,6 +95,7 @@ export interface PatchDurationChangeReqVO {
   reasonDetail?: string | null
   customerEvidenceFileId?: number | null
   customerEvidenceFileVersion?: number | null
+  customerEvidenceReferenceKey?: string | null
 }
 
 export interface SubmitDurationChangeRespVO {

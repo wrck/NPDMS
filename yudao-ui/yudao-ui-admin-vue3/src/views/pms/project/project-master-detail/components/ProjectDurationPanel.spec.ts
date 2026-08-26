@@ -36,7 +36,19 @@ describe('F-SOL-001 project duration panel', () => {
     expect(form).toContain('patch.endDate = form.endDate || null')
     expect(form).toContain('patch.durationDays = form.durationDays || null')
     expect(form).toContain('patch.reasonDetail = form.reasonDetail || null')
-    expect(form).toContain("Object.keys(patch).length === 1")
+    expect(form).toContain(
+      'patch.customerEvidenceReferenceKey = form.customerEvidenceReferenceKey || null'
+    )
+    expect(form).toContain('Object.keys(patch).length === 1')
+  })
+
+  it('connects customer-delay evidence without treating a URL as file identity', () => {
+    expect(form).toContain("form.reasonType === 'CUSTOMER_DELAY'")
+    expect(form).toContain('customerEvidenceFileId')
+    expect(form).toContain('customerEvidenceFileVersion')
+    expect(form).toContain('customerEvidenceReferenceKey')
+    expect(panel).toContain('customerEvidenceRequired && !draft.value.customerEvidenceFileId')
+    expect(form).not.toMatch(/customerEvidenceUrl|storagePath/)
   })
 
   it('uses platform BPM for approval and applicant cancellation without SOL terminal writes', () => {
@@ -69,10 +81,14 @@ describe('F-SOL-001 project duration panel', () => {
   it('retires V1.7 PRE-01 writes while preserving historical reads', () => {
     expect(oldBackwardApi).toContain('getScheduleBackwardPage')
     expect(oldBackwardApi).toContain('getScheduleBackwardItems')
-    expect(oldBackwardApi).not.toMatch(/createScheduleBackward|calculateScheduleBackward|applyScheduleBackward|deleteScheduleBackward/)
+    expect(oldBackwardApi).not.toMatch(
+      /createScheduleBackward|calculateScheduleBackward|applyScheduleBackward|deleteScheduleBackward/
+    )
     expect(oldChangeApi).toContain('getPlanChangePage')
     expect(oldChangeApi).toContain('getPlanChangeSnapshots')
-    expect(oldChangeApi).not.toMatch(/createPlanChange|submitPlanChange|approvePlanChange|withdrawPlanChange|deletePlanChange/)
+    expect(oldChangeApi).not.toMatch(
+      /createPlanChange|submitPlanChange|approvePlanChange|withdrawPlanChange|deletePlanChange/
+    )
     expect(oldBackwardPage).toContain('仅保留历史查询')
     expect(oldChangePage).toContain('仅保留历史查询')
   })
