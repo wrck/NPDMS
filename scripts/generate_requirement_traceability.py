@@ -424,8 +424,9 @@ IMPLEMENTATION_OVERRIDES = {
     ),
     "PRE-01": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "Feature Ready GO `NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`",
-        "BASELINE",
+        "Feature Ready GO `NPDMS-FSOL001-FEATURE-READY-20260826-01-R1` / "
+        "NPDMS `c417dee` Task 1～10、真实MySQL/Flowable、FileArtifact、真实浏览器与独立复审GO",
+        "IMPLEMENTATION_COMPLETE",
     ),
 }
 
