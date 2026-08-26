@@ -4,7 +4,7 @@
 
 **Goal:** 以PLT拥有的FileArtifact、不可变FileVersion和固定版本FileReference建立统一文件业务真值，先闭合F-SOL-001客户延期材料的“上传—冻结—提交审批—终态重验”正向链，再补换版、解绑、失效和归档分支。
 
-**Architecture:** `pms-module-platform`持有六张`plt_file_*`表、HTTP命令、业务API、幂等/审计/Outbox及文件Provider编排；`pms-module-platform-api`只暴露稳定文件事实和业务对象策略SPI；`yudao-module-infra`仅按已批准ADR-0035新增独立`FileStorageReceiptApi`技术回执适配，不改变既有`FileApi`、`FileClient`和`infra_file`语义；`pms-module-engineering`实现首个SOL业务Provider并冻结精确引用事实。模块依赖固定为PLATFORM→INFRA公开API、业务Owner→PLATFORM API契约，禁止跨模块表访问。
+**Architecture:** `pms-module-platform`持有六张`plt_file_*`表、HTTP命令、业务API、幂等/审计/Outbox及文件Provider编排；`pms-module-platform-api`只暴露稳定文件事实和业务对象策略SPI；`yudao-module-infra`按已批准ADR-0035新增独立`FileStorageReceiptApi`，并为本Feature的生产Outbox启动增加窄的`JobApi.syncEnabledJobByHandlerName`公开适配，二者都只复用既有INFRA Service/Quartz，不改变既有`FileApi`、`FileClient`、管理端Job API或表语义；`pms-module-engineering`实现首个SOL业务Provider并冻结精确引用事实。模块依赖固定为PLATFORM→INFRA公开API、业务Owner→PLATFORM API契约，禁止跨模块表访问。
 
 **Tech Stack:** Java 25、Spring Boot、MyBatis/MyBatis-Plus、MySQL 8.4/Flyway、Yudao FileClient、ClamAV INSTREAM安全扫描适配、Vue 3、TypeScript、Element Plus、Vitest、Docker Compose。
 
@@ -15,7 +15,7 @@
 - 受管规格快照只由同步工具维护；实施期间不直接修改`specs/`、`docs/specification-baseline/manifest.json`或已执行的V1～V91迁移。
 - `specs/001-project-delivery-platform/`只作历史证据，不作为实施校验门禁；当前Feature只消费锁定V1.8快照、ADR和当前Task。
 - 当前工作树内完成，不创建第二工作树，不带入其他工作树的Feature、数据库名、端口或计划参数。
-- 不修改`yudao-framework/**`、既有`FileApi`/`FileClient`签名或`infra_file`DDL。ADR-0035例外只允许独立`FileStorageReceiptApi`及其INFRA内部适配实现。
+- 不修改`yudao-framework/**`、既有`FileApi`/`FileClient`签名、管理端Job HTTP或`infra_file/infra_job/QRTZ_*` DDL。INFRA加法只允许独立`FileStorageReceiptApi`和本计划明确的窄`JobApi`；不得从PLATFORM访问INFRA Service/Mapper/DO、直写QRTZ表或建立第二调度器。
 - 现有Spring/Yudao Multipart正向上传继续复用；只把应用级`max-file-size`前向调整为50MB，并给`max-request-size`保留表单开销。PLT在完整分配前以50MB+1有界读取，不使用`MultipartFile.getBytes()`处理未知大小。
 - 新增Mapper查询遵守`docs/coding/database-query-interface.md`：除主键/稳定唯一键外只接收单一场景Query；复杂、批量和锁定读进入XML；禁止长位置参数、Map、SQL注解、`${}`、`.last(...)`及空集合放宽。
 - 受信租户沿用项目已批准的配置感知模式：已有上下文直接使用；仅`yudao.tenant.enable=false`且上下文为空时在HTTP调用范围建立tenantId=0；启用或配置缺失却无上下文时失败关闭。不得修改租户基础框架或接受请求自报tenantId。
@@ -214,6 +214,10 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 - Modify: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/command/PlatformCommandExecutionApi.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/command/PlatformCommandExecutionApiImpl.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImpl.java`
+- Create: `yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/job/JobApi.java`
+- Create: `yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/job/JobApiImpl.java`
+- Modify: `yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/job/JobService.java`
+- Modify: `yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/job/JobServiceImpl.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileUploadApplicationService.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/file/vo/FileUploadCompleteRespVO.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileArtifactApiImpl.java`
@@ -223,9 +227,12 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileReferenceDetachedMessage.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileArchivedMessage.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileOutboxDeliveryJob.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileOutboxQuartzRegistrar.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/command/PlatformCommandMultipleEventsTest.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImplTest.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileOutboxDeliveryJobTest.java`
+- Test: `yudao-module-infra/src/test/java/cn/iocoder/yudao/module/infra/api/job/JobApiImplTest.java`
+- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileOutboxQuartzRegistrarTest.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileUploadMySqlIntegrationTest.java`
 
 **Consumes:** Tasks 2～4；这是首个真实生产者主线。
@@ -246,13 +253,17 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 
 INFRA成功而PLT回滚时保留Session与同一operationId供重试找回回执；仅在Session确认终止且没有任何已提交Version引用时调用delete补偿。不得在事务异常中删除可能已被已提交Version使用的对象。
 
-- [ ] **Step 5: 建立四类文件事件生产投递链**
+- [ ] **Step 5: 建立自动Quartz注册入口**
+
+INFRA新增唯一公开方法`JobApi.syncEnabledJobByHandlerName(String handlerName)`，`JobApiImpl`只委托新增的同名`JobService`场景方法；`JobServiceImpl`按handlerName调用既有`JobMapper.selectByHandlerName`并对0条/多条/非启用/Bean不存在/cron非法失败关闭，然后只把该记录通过既有`SchedulerManager.deleteJob/addJob`同步到Quartz。既有无参`JobService.syncJob()`和`JobController.syncJob()`保持不变。PLATFORM的`FileOutboxQuartzRegistrar`实现`ApplicationRunner`，最终应用完成Flyway和Bean装配后自动调用该公开API同步`fileOutboxDeliveryJob`；异常向上抛出使启动失败，不静默降级为未调度。
+
+- [ ] **Step 6: 建立四类文件事件生产投递链**
 
 把四类锁定文件事件加入`PlatformOutboxDeliveryApiImpl.SUPPORTED_EVENT_TYPES`，不增加第五类。`FileOutboxDeliveryJob`沿用现有`JobHandler + @TenantJob + PlatformOutboxDeliveryApi`机制，并与Task 1 V93注册的稳定handlerName完全一致；Quartz每30秒触发后按封闭集合领取到期事件，逐类反序列化并核验eventId/tenantId/最小载荷，再发布对应本地不可变Message。发布成功才`markDelivered`，异常按现有指数退避调用`scheduleRetry`。Task 8只生产Detached/Archived并复用本链，不另建第二套投递器；本Feature不臆造通知、收件人或业务消费者。
 
-- [ ] **Step 6: 实施后验证并提交**
+- [ ] **Step 7: 实施后验证并提交**
 
-真实MySQL+存储+扫描覆盖首次上传、同键重放、异载荷冲突、并发完成单胜、两个事件恰一、审计恰一、各故障点回滚/重试、master切换找回同一回执，以及inspect/revalidate精确槽位。事件验证至少包含空库迁移后Quartz无需人工调用即触发Job、发布失败→到期重领→使用同一eventId成功、业务文件事实不重复、旧单事件构造/领取/投递兼容和未知第五类仍被拒绝。
+真实MySQL+存储+扫描覆盖首次上传、同键重放、异载荷冲突、并发完成单胜、两个事件恰一、审计恰一、各故障点回滚/重试、master切换找回同一回执，以及inspect/revalidate精确槽位。事件验收从空库启动最终应用，不调用管理端`/infra/job/sync`、`JobService.syncJob()`或`Job.execute`，断言QRTZ Job/Trigger已存在并自动处理到期事件；同时覆盖发布失败→到期重领→同一eventId成功、业务事实不重复、旧单事件兼容、未知第五类拒绝及原管理端全量同步回归。
 
 Expected: 首次上传至可冻结引用主线PASS。提交：`feat(platform): 提交文件版本与精确引用`
 
