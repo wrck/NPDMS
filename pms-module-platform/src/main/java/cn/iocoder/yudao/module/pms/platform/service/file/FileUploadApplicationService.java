@@ -204,7 +204,8 @@ public class FileUploadApplicationService {
                 throw exception(FILE_REFERENCE_NOT_FOUND);
             }
             if (!session.getArtifactId().equals(reference.getArtifactId())
-                    || !"ACTIVE".equals(reference.getStatusCode())
+                    || !("ACTIVE".equals(reference.getStatusCode())
+                    || "DETACHED".equals(reference.getStatusCode()))
                     || !session.getExpectedReferenceVersion().equals(reference.getVersion())) {
                 throw exception(FILE_REFERENCE_VERSION_CONFLICT);
             }

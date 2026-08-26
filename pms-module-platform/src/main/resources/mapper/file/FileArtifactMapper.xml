@@ -48,4 +48,22 @@
           AND version = #{query.expectedVersion}
           AND deleted = b'0'
     </update>
+
+    <update id="updateLifecycleIfMatch">
+        UPDATE plt_file_artifact
+        SET lifecycle_status_code = #{query.targetStatus},
+            invalid_reason_code = #{query.reasonCode},
+            invalid_reason_detail = #{query.reasonDetail},
+            invalidated_at = #{query.occurredAt},
+            invalidated_by = #{query.actorUserId},
+            deleted = CASE WHEN #{query.logicalDelete} THEN b'1' ELSE deleted END,
+            version = version + 1,
+            updater = #{query.actorUserId},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.artifactId}
+          AND lifecycle_status_code = #{query.expectedStatus}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
 </mapper>

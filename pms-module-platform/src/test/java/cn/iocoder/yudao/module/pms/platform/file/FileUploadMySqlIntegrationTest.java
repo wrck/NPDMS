@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -219,6 +220,32 @@ class FileUploadMySqlIntegrationTest {
                         + "AND event_type IN ('FileVersionCommitted','FileReferenceAttached')",
                 Long.class, String.valueOf(artifactId)));
         assertEquals(first.referenceId(), second.referenceId());
+    }
+
+    @Test
+    void rebindsDetachedStableSlotWithoutCreatingAnotherReference() {
+        var initialized = initialize("CREATE_ARTIFACT", null, null, key("detached-initial-init"));
+        artifactId = initialized.artifactId();
+        var first = complete(initialized, key("detached-initial-complete"), PDF);
+        assertEquals(1, jdbcTemplate.update("UPDATE plt_file_reference SET status_code='DETACHED', "
+                        + "detached_at=CURRENT_TIMESTAMP(3), detached_by=9, detached_reason='replace', version=version+1 "
+                        + "WHERE tenant_id=0 AND id=? AND status_code='ACTIVE' AND version=0",
+                first.referenceId()));
+
+        var replacement = initialize("ADD_VERSION", artifactId, 1, key("detached-rebind-init"));
+        var rebound = complete(replacement, key("detached-rebind-complete"), PDF);
+
+        assertEquals(first.referenceId(), rebound.referenceId());
+        assertEquals(1L, count("plt_file_reference", "artifact_id", artifactId));
+        Map<String, Object> reference = jdbcTemplate.queryForMap(
+                "SELECT status_code, file_version_no, version, detached_at, detached_by, detached_reason "
+                        + "FROM plt_file_reference WHERE tenant_id=0 AND id=?", first.referenceId());
+        assertEquals("ACTIVE", reference.get("status_code"));
+        assertEquals(2, ((Number) reference.get("file_version_no")).intValue());
+        assertEquals(2, ((Number) reference.get("version")).intValue());
+        assertNull(reference.get("detached_at"));
+        assertNull(reference.get("detached_by"));
+        assertNull(reference.get("detached_reason"));
     }
 
     private boolean raceComplete(cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitialized initialized,

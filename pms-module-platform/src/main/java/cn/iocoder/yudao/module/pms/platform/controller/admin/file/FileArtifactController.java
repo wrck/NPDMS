@@ -13,11 +13,20 @@ import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileArtifac
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileCursorPageRespVO;
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileReferenceRespVO;
 import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileVersionRespVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileArchiveReqVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileAvailabilityReqVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileDeleteDraftReqVO;
+import cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileDetachReqVO;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileAccessTicketService;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileLifecycleApplicationService;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileQueryService;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadCompleteCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadInitializeCommand;
+import cn.iocoder.yudao.module.pms.platform.service.file.command.ArchiveFileReferenceCommand;
+import cn.iocoder.yudao.module.pms.platform.service.file.command.ChangeFileAvailabilityCommand;
+import cn.iocoder.yudao.module.pms.platform.service.file.command.DeleteDraftFileCommand;
+import cn.iocoder.yudao.module.pms.platform.service.file.command.DetachFileReferenceCommand;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,6 +38,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,6 +66,7 @@ public class FileArtifactController {
     private final FileUploadApplicationService uploadService;
     private final FileQueryService queryService;
     private final FileAccessTicketService accessTicketService;
+    private final FileLifecycleApplicationService lifecycleService;
     private final Environment environment;
 
     @PostMapping("/files:init-upload")
@@ -151,6 +162,65 @@ public class FileArtifactController {
                         SecurityFrameworkUtils.getLoginUserId(), artifactId, request.getVersionNo(),
                         request.getOperationCode(), request.getOwnerContext(), request.getObjectType(),
                         request.getObjectId(), request.getPurposeCode(), request.getReferenceKey()))));
+    }
+
+    @DeleteMapping("/file-references/{referenceId}")
+    @Operation(summary = "解除文件业务引用")
+    @PreAuthorize("@ss.hasPermission('pms:file:manage')")
+    public CommonResult<FileLifecycleApplicationService.LifecycleResult> detachReference(
+            @PathVariable Long referenceId,
+            @RequestHeader("If-Match") Integer expectedVersion,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @Valid @RequestBody FileDetachReqVO request) {
+        return withTrustedTenant(() -> success(lifecycleService.detach(new DetachFileReferenceCommand(
+                TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                idempotencyKey, referenceId, expectedVersion, request.getOwnerContext(), request.getObjectType(),
+                request.getObjectId(), request.getPurposeCode(), request.getReferenceKey(), request.getReason()))));
+    }
+
+    @PostMapping("/files/{artifactId}/actions/delete-draft")
+    @Operation(summary = "删除未引用文件草稿")
+    @PreAuthorize("@ss.hasPermission('pms:file:manage')")
+    public CommonResult<FileLifecycleApplicationService.LifecycleResult> deleteDraft(
+            @PathVariable Long artifactId,
+            @RequestHeader("If-Match") Integer expectedVersion,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @Valid @RequestBody FileDeleteDraftReqVO request) {
+        return withTrustedTenant(() -> success(lifecycleService.deleteDraft(new DeleteDraftFileCommand(
+                TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                idempotencyKey, artifactId, expectedVersion, request.getOwnerContext(), request.getObjectType(),
+                request.getObjectId(), request.getPurposeCode(), request.getReferenceKey(), request.getReason()))));
+    }
+
+    @PostMapping("/files/{artifactId}/actions/invalidate")
+    @Operation(summary = "变更文件版本可用性")
+    @PreAuthorize("@ss.hasPermission('pms:file:archive')")
+    public CommonResult<FileLifecycleApplicationService.LifecycleResult> changeAvailability(
+            @PathVariable Long artifactId,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @Valid @RequestBody FileAvailabilityReqVO request) {
+        return withTrustedTenant(() -> success(lifecycleService.changeAvailability(
+                new ChangeFileAvailabilityCommand(TenantContextHolder.getRequiredTenantId(),
+                        SecurityFrameworkUtils.getLoginUserId(), idempotencyKey, artifactId,
+                        request.getVersionNo(), request.getExpectedAvailabilityVersion(), request.getTargetStatus(),
+                        request.getReasonCode(), request.getReasonDetail(), request.getOwnerContext(),
+                        request.getObjectType(), request.getObjectId(), request.getPurposeCode(),
+                        request.getReferenceKey()))));
+    }
+
+    @PostMapping("/file-references/{referenceId}/actions/archive")
+    @Operation(summary = "归档文件业务引用")
+    @PreAuthorize("@ss.hasPermission('pms:file:archive')")
+    public CommonResult<FileLifecycleApplicationService.LifecycleResult> archiveReference(
+            @PathVariable Long referenceId,
+            @RequestHeader("If-Match") Integer expectedVersion,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @Valid @RequestBody FileArchiveReqVO request) {
+        return withTrustedTenant(() -> success(lifecycleService.archive(new ArchiveFileReferenceCommand(
+                TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
+                idempotencyKey, referenceId, expectedVersion, request.getArchiveBatchId(),
+                request.getBusinessDecisionRef(), request.getArchiveNote(), request.getOwnerContext(),
+                request.getObjectType(), request.getObjectId(), request.getPurposeCode(), request.getReferenceKey()))));
     }
 
     private FileQueryService.ArtifactQuery artifactQuery(Long artifactId, String ownerContext,
