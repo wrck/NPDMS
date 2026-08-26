@@ -50,10 +50,14 @@ class Fsol002FeatureContractTest(unittest.TestCase):
     def test_project_work_binding_has_a_narrow_locking_contract(self) -> None:
         binding = self.contract["dependencies"]["projectWorkBinding"]
         self.assertEqual(
-            ["trustedTenantId", "projectId", "bindingCode=PRE_02_SITE_SURVEY"],
-            binding["stableSelectionKey"],
+            ["tenant_id", "project_task_id", "current_marker"],
+            binding["authoritativeCurrentKey"],
         )
-        self.assertIn("expectedBindingVersion", binding["revalidationQuery"])
+        self.assertEqual("proj_project_task_execution_contract", binding["authoritativeTable"])
+        self.assertIn("executionContractId", binding["revalidationQuery"])
+        self.assertIn("expectedContractVersion", binding["revalidationQuery"])
+        self.assertIn("projectTaskId", binding["response"])
+        self.assertIn("executionContractId", binding["response"])
         self.assertIn("lockAndRevalidate", " ".join(binding["contracts"]))
 
     def test_return_creates_one_next_current_draft(self) -> None:

@@ -41,7 +41,9 @@
 
 ### BR-FSOL002-001 模板冻结与准备版本
 
-- PROJ Owner在现有`pms-module-project-api`前向增加窄`ProjectWorkBindingFactApi`。`inspect`按受信租户、`projectId+bindingCode=PRE_02_SITE_SURVEY`精确返回冻结事实；`lockAndRevalidate`携带`projectId/bindingCode/expectedBindingVersion/expectedProjectVersion`，在调用方事务内锁定项目与该冻结执行契约并持有至提交。响应必须包含`templateId/templateRevisionId/targetContext/objectType/fixedFormCatalogVersion/itemConfigurationSnapshot/bindingVersion/projectVersion`。
+- PROJ Owner在现有`pms-module-project-api`前向增加窄`ProjectWorkBindingFactApi`，公开读取的物理真值仍是既有`proj_project_task_execution_contract`，不新增项目级绑定表。项目模板任务定义在发布时必须唯一生产：`workBindingType=BUSINESS_OBJECT`、`targetContext=SOL`、`targetObjectType=SITE_SURVEY_PREPARATION`、`targetObjectKey=PRE_02_SITE_SURVEY`；其`bindingConfig`使用封闭V1 JSON Schema，包含`preparationTemplateCode/preparationTemplateRevision/fixedFormCatalogVersion/itemConfiguration[]`，项目创建时原样冻结到执行契约`binding_parameter_snapshot`。
+- `inspect`按受信租户、projectId、上述目标四元组并限定执行契约`current_marker=1`精确联结ProjectTask与ExecutionContract；0条或多条均失败关闭。响应冻结`projectTaskId/projectTaskVersion/executionContractId/contractVersion/templateTaskDefinitionId/sourceDefinitionVersion`、目标四元组及解析后的PRE-02配置。
+- `lockAndRevalidate`携带`projectId/projectTaskId/executionContractId/expectedProjectTaskVersion/expectedContractVersion/expectedProjectVersion`，按既有物理键`tenant_id+project_task_id+current_marker`锁定当前执行契约并核验ID、项目归属、目标四元组、合同版本和冻结配置，在调用方事务内持有Project/Task/Contract锁至提交。空、多记录、越租户、版本变化或配置不完整均失败关闭；SOL不读取PROJ表，也不前置`TASK_NATIVE`工作台。
 - 项目创建已冻结的公开WorkBinding事实必须满足`targetContext=SOL`、`objectType=SITE_SURVEY_PREPARATION`并包含PRE-02固定表单版本和工勘项配置。空、多记录、越租户、版本变化或配置不完整均失败关闭；SOL按受信项目事实幂等初始化，不读取PROJ表，也不前置`TASK_NATIVE`工作台。
 - V1表单结构只允许平台发布的PRE-02固定`formCode+formVersion`；SOL冻结该版本及字段定义快照。不存在、未发布、未知字段类型或任意脚本配置均失败关闭。
 - 同一项目、`PRE_02`准备类型和业务版本唯一；同一时点只有一个current版本。退回后原提交版本保持冻结，显式创建下一`DRAFT`版本并复制可编辑事实，不覆盖历史。
@@ -89,7 +91,7 @@
 | 项确认状态 | `sol_preparation_item.confirmation_status_code` | `PENDING/CONFIRMED/RETURNED` |
 | 来源同步 | `sol_preparation_source_reference.sync_status_code` | `SYNCED/ERROR/UNKNOWN` |
 | 豁免审批 | `sol_preparation_item_waiver.status_code` | `DRAFT/PENDING_APPROVAL/APPROVED/REJECTED/WITHDRAWN`；有效性另由有效期派生 |
-| 当前就绪 | `sol_preparation.readiness_status_code` | `NOT_READY/READY`；只由最新不可变快照决定 |
+| 当前就绪 | `sol_preparation.readiness_status_code` | `READY`只能由当前不可变快照决定；SOL输入变更可直接失效为`NOT_READY/snapshot_current=false`，外部变化由纯只读重验判非当前，只有显式evaluate追加新快照 |
 
 禁止用单一状态字段同时表达提交、适用性、来源、豁免和就绪。
 
@@ -166,7 +168,7 @@
 
 - `AC-FSOL002-001`：项目冻结模板可幂等初始化PRE-02 current版本、六类基准项和固定表单版本；前向父Feature数据不存在、模板非法或通用脚本配置均失败关闭。
 - `AC-FSOL002-002`：项目经理指派/适用性、负责人填写/证据、项目经理确认/退回/不适用确认按主体和CAS生效；最后一项确认聚合CONFIRMED；退回按锁定复制/重置矩阵原子切换下一current DRAFT且历史冻结不被覆盖。
-- `AC-FSOL002-003`：证据只冻结精确FileArtifact引用；文件失效或版本/范围变化后旧READY重验失败并追加NOT_READY快照。
+- `AC-FSOL002-003`：证据只冻结精确FileArtifact引用；文件失效或版本/范围变化后，纯只读inspect/revalidate判旧READY快照非当前并失败关闭且不写表；随后显式evaluate才追加NOT_READY快照。
 - `AC-FSOL002-004`：OA引用只保存稳定引用、当前权威结果、last-success、版本/水位和同步状态；首次及后续失败可提交异常事实并保持阻断，最后成功值不伪装完成；无OA要求项可正常闭环。
 - `AC-FSOL002-005`：豁免仅由项目经理申请、冻结角色的当前参与人审批；有效豁免只替代指定阻断，过期/撤回/角色变化后重新阻断。
 - `AC-FSOL002-006`：READY要求所有当前输入满足；仅显式evaluate在事实向量变化时追加不可变快照，同一向量/幂等重放不重复；inspect/revalidate纯只读且旧快照向量不匹配时失败关闭。

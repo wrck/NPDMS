@@ -160,10 +160,19 @@
     "projectWorkBinding": {
       "ownerModule": "pms-module-project-api",
       "contracts": ["ProjectWorkBindingFactApi.inspect(ProjectWorkBindingFactQuery)", "ProjectWorkBindingFactApi.lockAndRevalidate(ProjectWorkBindingFactRevalidationQuery)"],
-      "stableSelectionKey": ["trustedTenantId", "projectId", "bindingCode=PRE_02_SITE_SURVEY"],
-      "revalidationQuery": ["projectId", "bindingCode", "expectedBindingVersion", "expectedProjectVersion"],
-      "response": ["projectId", "bindingCode", "templateId", "templateRevisionId", "targetContext", "objectType", "fixedFormCatalogVersion", "itemConfigurationSnapshot", "bindingVersion", "projectVersion"],
-      "lockPolicy": "lock trusted project and its exact frozen execution contract in the caller transaction; empty, multiple, cross-tenant, incomplete or version-changed facts fail closed",
+      "authoritativeTable": "proj_project_task_execution_contract",
+      "authoritativeCurrentKey": ["tenant_id", "project_task_id", "current_marker"],
+      "templateProductionMapping": {
+        "workBindingTypeCode": "BUSINESS_OBJECT",
+        "targetContextCode": "SOL",
+        "targetObjectType": "SITE_SURVEY_PREPARATION",
+        "targetObjectKey": "PRE_02_SITE_SURVEY",
+        "bindingParameterSnapshot": ["schemaVersion=1", "preparationTemplateCode", "preparationTemplateRevision", "fixedFormCatalogVersion", "itemConfiguration[]"]
+      },
+      "inspectSelectionKey": ["trustedTenantId", "projectId", "workBindingTypeCode=BUSINESS_OBJECT", "targetContextCode=SOL", "targetObjectType=SITE_SURVEY_PREPARATION", "targetObjectKey=PRE_02_SITE_SURVEY", "currentMarker=1"],
+      "revalidationQuery": ["projectId", "projectTaskId", "executionContractId", "expectedProjectTaskVersion", "expectedContractVersion", "expectedProjectVersion"],
+      "response": ["projectId", "projectVersion", "projectTaskId", "projectTaskVersion", "executionContractId", "contractVersion", "templateTaskDefinitionId", "sourceDefinitionVersion", "workBindingTypeCode", "targetContextCode", "targetObjectType", "targetObjectKey", "preparationTemplateCode", "preparationTemplateRevision", "fixedFormCatalogVersion", "itemConfigurationSnapshot"],
+      "lockPolicy": "join by trusted project and exact target tuple; require exactly one current row; lock Project, ProjectTask and the existing current ExecutionContract by tenantId+projectTaskId+currentMarker, then verify executionContractId, ownership, target tuple, versions and frozen JSON in the caller transaction",
       "forbidden": ["SOL access to PROJ table", "generic binding search", "TASK_NATIVE task body", "request-reported tenant or template revision"]
     },
     "fileArtifact": "consume F-PLT-001 exact reference inspect/lockAndRevalidate; SOL stores no body, URL or infra fact",
