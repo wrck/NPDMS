@@ -213,21 +213,30 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 **Files:**
 - Modify: `pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/command/PlatformCommandExecutionApi.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/command/PlatformCommandExecutionApiImpl.java`
+- Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImpl.java`
 - Modify: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileUploadApplicationService.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/file/vo/FileUploadCompleteRespVO.java`
 - Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileArtifactApiImpl.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileEventFactory.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileVersionCommittedMessage.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileReferenceAttachedMessage.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileReferenceDetachedMessage.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileArchivedMessage.java`
+- Create: `pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/event/FileOutboxDeliveryJob.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/command/PlatformCommandMultipleEventsTest.java`
+- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImplTest.java`
+- Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileOutboxDeliveryJobTest.java`
 - Test: `pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/file/FileUploadMySqlIntegrationTest.java`
 
 **Consumes:** Tasks 2～4；这是首个真实生产者主线。
 
 - [ ] **Step 1: 向前兼容平台多事件事实**
 
-为`SuccessFacts`增加不可变`List<BusinessEvent>`，其中新事件显式携带同一事务内预生成的稳定`eventId/eventType/eventPayload`；保留旧七参数构造、`eventType()/eventPayload()`对单事件旧调用的兼容访问，旧调用仍由实现生成单个eventId且无需批量修改。实现按列表写0..N条Outbox，并核验payload中的eventId与Outbox eventId一致；拒绝null、空类型/载荷、重复eventId和不一致载荷。
+为`SuccessFacts`增加不可变`List<BusinessEvent>`。`FileEventFactory`是四类新文件事件eventId的唯一生成方：一次生成稳定eventId，并用同一值构造`BusinessEvent.eventId`与不可变payload；`PlatformCommandExecutionApiImpl`只校验并原样持久化，不为列表事件重新生成。保留旧七参数构造、`eventType()/eventPayload()`访问及旧单事件由实现生成eventId的既有行为，旧调用无需批量修改。实现按列表写0..N条Outbox，拒绝null、空类型/载荷、重复eventId和payload不一致。
 
 - [ ] **Step 2: 实现完成上传同事务提交**
 
-`POST /files/{artifactId}:complete-upload`锁Session并重验业务scope与Reference CAS，完成内容校验后调用`FileStorageReceiptApi.store`，再在PlatformCommand事务中创建/激活Artifact、Version 1、精确Reference、完成Session、幂等成功、完整安全审计和两个Outbox。事件eventId由平台生成并写入最终不可变payload。
+`POST /files/{artifactId}:complete-upload`锁Session并重验业务scope与Reference CAS，完成内容校验后调用`FileStorageReceiptApi.store`，再在PlatformCommand事务中创建/激活Artifact、Version 1、精确Reference、完成Session、幂等成功、完整安全审计和两个Outbox。两个eventId均由`FileEventFactory`生成一次并同时写入BusinessEvent和最终不可变payload。
 
 - [ ] **Step 3: 实现公共inspect/revalidate**
 
@@ -237,9 +246,13 @@ Expected: 会话与内容校验链PASS。提交：`feat(platform): 建立受控�
 
 INFRA成功而PLT回滚时保留Session与同一operationId供重试找回回执；仅在Session确认终止且没有任何已提交Version引用时调用delete补偿。不得在事务异常中删除可能已被已提交Version使用的对象。
 
-- [ ] **Step 5: 实施后验证并提交**
+- [ ] **Step 5: 建立四类文件事件生产投递链**
 
-真实MySQL+存储+扫描覆盖首次上传、同键重放、异载荷冲突、并发完成单胜、两个事件恰一、审计恰一、各故障点回滚/重试、master切换找回同一回执，以及inspect/revalidate精确槽位。
+把四类锁定文件事件加入`PlatformOutboxDeliveryApiImpl.SUPPORTED_EVENT_TYPES`，不增加第五类。`FileOutboxDeliveryJob`沿用现有`JobHandler + @TenantJob + PlatformOutboxDeliveryApi`机制，按封闭集合领取到期事件，逐类反序列化并核验eventId/tenantId/最小载荷后发布对应本地不可变Message；发布成功才`markDelivered`，异常按现有指数退避调用`scheduleRetry`。Task 8只生产Detached/Archived并复用本链，不另建第二套投递器；本Feature不臆造通知、收件人或业务消费者。
+
+- [ ] **Step 6: 实施后验证并提交**
+
+真实MySQL+存储+扫描覆盖首次上传、同键重放、异载荷冲突、并发完成单胜、两个事件恰一、审计恰一、各故障点回滚/重试、master切换找回同一回执，以及inspect/revalidate精确槽位。事件验证至少包含发布失败→到期重领→使用同一eventId成功、业务文件事实不重复、旧单事件构造/领取/投递兼容和未知第五类仍被拒绝。
 
 Expected: 首次上传至可冻结引用主线PASS。提交：`feat(platform): 提交文件版本与精确引用`
 
@@ -331,7 +344,7 @@ INVALIDATE递增artifactVersion或availabilityVersion并阻断新引用/访问�
 
 - [ ] **Step 4: 实施后验证并提交**
 
-覆盖换版并发、不可变引用拒绝、detach/重绑、删除拒绝、失效/恢复、归档幂等、四类事件重试/eventId幂等及失败无重复业务事实。
+覆盖换版并发、不可变引用拒绝、detach/重绑、删除拒绝、失效/恢复和归档幂等；Detached/Archived事件通过Task 5唯一投递链验证失败退避、同一eventId重试成功及失败无重复业务事实，不新增本域投递入口。
 
 Expected: 生命周期分支PASS。提交：`feat(platform): 完成文件版本治理分支`
 
@@ -386,7 +399,7 @@ Expected: 共享UI和工期接入PASS。提交：`feat(ui): 接入统一文件�
 
 - [ ] **Step 2: PLATFORM业务全链验证**
 
-覆盖初始化→完成→Version/Reference→inspect/revalidate→访问，以及换版、detach、重绑、失效/恢复、归档；验证同租户/跨租户、权限负向、scope/CAS并发、幂等重放/冲突、审计、四类Outbox领取重试和eventId幂等。
+覆盖初始化→完成→Version/Reference→inspect/revalidate→访问，以及换版、detach、重绑、失效/恢复、归档；验证同租户/跨租户、权限负向、scope/CAS并发、幂等重放/冲突、审计，以及四类Outbox经`FileOutboxDeliveryJob`领取、发布、成功标记、失败退避、到期重领和同一eventId幂等；确认业务事实不因投递重试重复。
 
 - [ ] **Step 3: SOL正向浏览器闭环**
 
