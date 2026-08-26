@@ -6,7 +6,7 @@
 > Implementation Done Gate：`NOT_STARTED`
 > Technical Plan Gate：`PASS / NPDMS-FPROJ007-TECHPLAN-20260825-01-R1`
 > 当前阻断：`无`
-> 当前任务：`Task 8 生产叶子项目任务进度事实`
+> 当前任务：`Task 9 建设响应式任务工作台并退役旧写入口`
 > Requirement ID：`PM-11（V1）`
 > Feature Spec：`specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md`
 > Feature物理契约：`specs/features/F-PROJ-007-physical-contract.json`
@@ -29,5 +29,6 @@
 - [x] Task 5 Implementation Done（独立裁决GO；`25071a2`、`bba329e`）
 - [x] Task 6 Implementation Done（独立裁决GO；`26cce6b`）
 - [x] Task 7 Implementation Done（独立裁决GO；`687388b`、`4db86ed`）
+- [x] Task 8 Implementation Done（独立裁决GO；`62c496a`）
 
-> 检查点（2026-08-26）：Task 7独立裁决GO，TASK_NATIVE动作、冻结状态机、完成判定、TaskCompleted及治理守卫闭环；锁后以当前读冻结执行契约、后代、依赖和门禁。聚焦测试28/28、真实MySQL 9/9、V89迁移契约10/10 PASS。已推进Task 8，按锁定计划生产叶子项目任务进度事实。
+> 检查点（2026-08-26）：基线`5f37b2d`；Task 8独立裁决GO，提交`62c496a`，聚焦测试49/49、真实MySQL 7/7、空库V1→V89及规格快照PASS；无阻断。当前Gate切换至Task 9 Implementation Done，下一步按锁定计划建设响应式任务工作台并退役V1.7写入口。
