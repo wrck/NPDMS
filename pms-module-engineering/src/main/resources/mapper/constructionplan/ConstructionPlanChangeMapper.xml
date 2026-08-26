@@ -49,6 +49,15 @@
           AND process_instance_id = #{query.processInstanceId}
     </select>
 
+    <select id="selectById"
+            resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
+        SELECT <include refid="columns"/>
+        FROM sol_construction_plan_change
+        WHERE tenant_id = #{query.tenantId}
+          AND plan_id = #{query.planId}
+          AND id = #{query.changeId}
+    </select>
+
     <select id="selectPage"
             resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO">
         SELECT <include refid="columns"/>

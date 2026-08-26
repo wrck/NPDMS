@@ -13,11 +13,11 @@ class ConstructionPlanMapperContractTest {
     @Test
     void shouldExposeOnlyExplicitConstructionPlanPersistenceMethods() {
         assertMapperContract(ConstructionPlanMapper.class,
-                Set.of("insert", "selectByProjectId", "selectForUpdate", "updateVersionIfMatch"));
+                Set.of("insert", "selectByProjectId", "selectById", "selectForUpdate", "updateVersionIfMatch"));
         assertMapperContract(ConstructionPlanRevisionMapper.class,
-                Set.of("insert", "selectForUpdate", "selectLatestForUpdate", "selectPage"));
+                Set.of("insert", "selectById", "selectForUpdate", "selectLatestForUpdate", "selectPage"));
         assertMapperContract(ConstructionPlanChangeMapper.class,
-                Set.of("insert", "selectForUpdate", "selectByProcessInstanceId", "selectPage",
+                Set.of("insert", "selectById", "selectForUpdate", "selectByProcessInstanceId", "selectPage",
                         "updateVersionIfMatch"));
     }
 

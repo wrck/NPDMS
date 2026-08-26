@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationG
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantPageQuery;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
@@ -106,6 +107,21 @@ public class ProjectTreeScopeService {
         placeholders.removeAll(full);
         return new ProjectTreeScope(rootId, query.expectedTreeVersion(), Set.copyOf(full),
                 Set.copyOf(placeholders), Set.of());
+    }
+
+    public ProjectTreeScope resolveCurrent(ProjectCurrentScopeQuery query) {
+        validateCurrent(query);
+        ProjectMasterDO anchor = projectMapper.selectById(query.anchorProjectId());
+        if (anchor == null || !Objects.equals(anchor.getTenantId(), query.tenantId())) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        long rootId = anchor.getRootId() == null ? anchor.getId() : anchor.getRootId();
+        ProjectTreeVersionDO currentVersion = versionMapper.selectLatestActive(rootId);
+        if (currentVersion == null) {
+            throw exception(PROJECT_TREE_VERSION_CONFLICT);
+        }
+        return resolve(new ProjectScopeQuery(query.tenantId(), query.subjectUserId(),
+                query.anchorProjectId(), query.actionCode(), currentVersion.getTreeVersion()));
     }
 
     /**
@@ -218,6 +234,16 @@ public class ProjectTreeScopeService {
                 || contextTenantId != null && !contextTenantId.equals(tenantId)
                 || subjectUserId == null || subjectUserId <= 0
                 || !Set.of(ACTION_VIEW, ACTION_EDIT, ACTION_MANAGE).contains(actionCode)) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+    }
+
+    private void validateCurrent(ProjectCurrentScopeQuery query) {
+        if (query == null) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+        validateActorAction(query.tenantId(), query.subjectUserId(), query.actionCode());
+        if (query.anchorProjectId() == null || query.anchorProjectId() <= 0) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
     }

@@ -14,6 +14,8 @@ public interface ConstructionPlanMapper {
     ConstructionPlanDO selectByProjectId(@Param("tenantId") Long tenantId,
                                          @Param("projectId") Long projectId);
 
+    ConstructionPlanDO selectById(@Param("query") ConstructionPlanLockQuery query);
+
     ConstructionPlanDO selectForUpdate(@Param("query") ConstructionPlanLockQuery query);
 
     int updateVersionIfMatch(@Param("update") ConstructionPlanVersionUpdate update);

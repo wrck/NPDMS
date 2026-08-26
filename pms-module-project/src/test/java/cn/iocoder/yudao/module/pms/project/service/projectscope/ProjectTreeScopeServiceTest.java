@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationG
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantPageResult;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO;
@@ -76,6 +77,21 @@ class ProjectTreeScopeServiceTest {
         assertEquals(ProjectTreeScopeService.Visibility.FULL, scope.visibility(2L));
         assertEquals(ProjectTreeScopeService.Visibility.NONE, scope.visibility(3L));
         assertEquals(ProjectTreeScopeService.Visibility.NONE, scope.visibility(4L));
+    }
+
+    @Test
+    void currentScopeSelectsLatestTreeVersionInsideProj() {
+        stubRootProjection();
+        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+                .thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
+        when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
+                .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
+
+        var scope = service.resolveCurrent(new ProjectCurrentScopeQuery(
+                0L, 9L, 3L, "PROJECT_VIEW"));
+
+        assertEquals(7L, scope.treeVersion());
+        assertEquals(ProjectTreeScopeService.Visibility.FULL, scope.visibility(3L));
     }
 
     @Test

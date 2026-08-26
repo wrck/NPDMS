@@ -17,6 +17,9 @@ public interface ConstructionPlanRevisionMapper {
     ConstructionPlanRevisionDO selectForUpdate(
             @Param("query") ConstructionPlanRevisionLockQuery query);
 
+    ConstructionPlanRevisionDO selectById(
+            @Param("query") ConstructionPlanRevisionLockQuery query);
+
     ConstructionPlanRevisionDO selectLatestForUpdate(
             @Param("query") ConstructionPlanLockQuery query);
 

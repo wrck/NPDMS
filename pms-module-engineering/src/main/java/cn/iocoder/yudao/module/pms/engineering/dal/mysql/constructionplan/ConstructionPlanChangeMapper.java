@@ -17,6 +17,8 @@ public interface ConstructionPlanChangeMapper {
 
     ConstructionPlanChangeDO selectForUpdate(@Param("query") ConstructionPlanChangeLockQuery query);
 
+    ConstructionPlanChangeDO selectById(@Param("query") ConstructionPlanChangeLockQuery query);
+
     ConstructionPlanChangeDO selectByProcessInstanceId(
             @Param("query") ConstructionPlanChangeProcessQuery query);
 
