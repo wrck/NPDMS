@@ -101,6 +101,9 @@ public class PreparationInitializationService {
                 new PreparationBusinessVersionQuery(tenantId, command.projectId(), PREPARATION_TYPE, 1));
         if (existing != null) {
             requireSameInitialization(existing, fact);
+            if (Objects.equals(existing.getCreator(), String.valueOf(command.actorUserId()))) {
+                return executeInitializationCommand(tenantId, command, fact, () -> result(existing));
+            }
             if (!PreparationInitializationApi.TRIGGER_AUTHORIZED_RECOVERY.equals(command.triggerType())) {
                 throw exception(PREPARATION_STATUS_INVALID);
             }
@@ -108,12 +111,17 @@ public class PreparationInitializationService {
             return result(existing);
         }
 
-        String requestDigest = requestDigest(command);
+        return executeInitializationCommand(tenantId, command, fact,
+                () -> createOnce(tenantId, command, fact));
+    }
+
+    private PreparationInitializationResult executeInitializationCommand(
+            Long tenantId, PreparationInitializationCommand command, ProjectWorkBindingFact fact,
+            java.util.function.Supplier<PreparationInitializationResult> operation) {
         var execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(
                         tenantId, IDEMPOTENCY_SCOPE, command.actorUserId(), command.idempotencyKey()),
-                requestDigest, PreparationInitializationResult.class,
-                () -> createOnce(tenantId, command, fact),
+                requestDigest(command), PreparationInitializationResult.class, operation,
                 response -> successFacts(command, fact, response));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {

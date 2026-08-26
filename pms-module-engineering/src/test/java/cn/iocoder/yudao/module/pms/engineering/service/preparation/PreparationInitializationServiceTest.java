@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationCommand;
+import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationResult;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO;
@@ -31,7 +32,9 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -43,6 +46,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,6 +69,8 @@ class PreparationInitializationServiceTest {
     private PreparationInitializationService service;
 
     private final AtomicReference<PreparationDO> persisted = new AtomicReference<>();
+    private final Map<String, String> completedDigests = new HashMap<>();
+    private final Map<String, PreparationInitializationResult> completedResponses = new HashMap<>();
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -93,10 +100,24 @@ class PreparationInitializationServiceTest {
             return 1;
         });
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            PlatformCommandExecutionApi.IdempotencyScope scope = invocation.getArgument(0);
+            String digest = invocation.getArgument(1);
+            String scopeKey = scope.actorId() + ":" + scope.key();
+            if (completedDigests.containsKey(scopeKey)) {
+                if (!completedDigests.get(scopeKey).equals(digest)) {
+                    return new PlatformCommandExecutionApi.ExecutionResult<>(
+                            PlatformCommandExecutionApi.Decision.CONFLICT, null);
+                }
+                return new PlatformCommandExecutionApi.ExecutionResult<>(
+                        PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED,
+                        completedResponses.get(scopeKey));
+            }
             Supplier<Object> operation = invocation.getArgument(3);
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> factsFactory = invocation.getArgument(4);
-            Object response = operation.get();
+            PreparationInitializationResult response = (PreparationInitializationResult) operation.get();
             factsFactory.apply(response);
+            completedDigests.put(scopeKey, digest);
+            completedResponses.put(scopeKey, response);
             return new PlatformCommandExecutionApi.ExecutionResult<>(
                     PlatformCommandExecutionApi.Decision.NEW, response);
         });
@@ -138,6 +159,39 @@ class PreparationInitializationServiceTest {
         verify(operationAuditApi).record(eq(1L), eq(8L), eq("PRE02-OP-8"),
                 eq("PREPARATION_INITIALIZATION_RECOVERY"), eq("Preparation"), eq("1000"),
                 eq("NO_CHANGE"), any());
+    }
+
+    @Test
+    void sameActorProjectCreationRetryReplaysPlatformResult() {
+        PreparationInitializationCommand command = command(
+                7L, PreparationInitializationApi.TRIGGER_PROJECT_CREATION);
+
+        var first = service.initialize(command);
+        var replay = service.initialize(command);
+
+        assertEquals(first, replay);
+        verify(preparationMapper).insert(any());
+        verify(commandExecutionApi, times(2)).execute(any(), any(), any(), any(), any());
+        verifyNoInteractions(operationAuditApi);
+    }
+
+    @Test
+    void sameActorAuthorizedRecoveryRetryReplaysPlatformResult() {
+        when(permissionApi.hasAnyPermissions(8L,
+                PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(100L, 3L, Set.of(100L), Set.of()));
+        PreparationInitializationCommand command = command(
+                8L, PreparationInitializationApi.TRIGGER_AUTHORIZED_RECOVERY);
+
+        var first = service.initialize(command);
+        var replay = service.initialize(command);
+
+        assertEquals(first, replay);
+        verify(preparationMapper).insert(any());
+        verify(commandExecutionApi, times(2)).execute(any(), any(), any(), any(), any());
+        verify(participantFactApi, times(2)).lockAndRevalidate(any());
+        verifyNoInteractions(operationAuditApi);
     }
 
     private PreparationInitializationCommand command(Long actorId, String trigger) {
