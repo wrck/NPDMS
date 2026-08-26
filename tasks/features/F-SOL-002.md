@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
 > Implementation Done Gate：`PENDING`
 > 当前阻断：`无；INT-05未实施时仅OA必需项保持NOT_READY，不阻断无OA正向主线`
-> 当前任务：`Task 3 实现SOL六表持久化原语与固定表单规则`
+> 当前任务：`Task 4 实现模板初始化、当前准备查询与历史投影`
 > Requirement ID：`PRE-02（V1/P0）`
 > Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
 > Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
@@ -25,8 +25,8 @@
 
 - [x] Task 1 建立PRE-02六表、字典权限与Feature工作单（PASS / NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1）
 - [x] Task 2 提供PROJ冻结WorkBinding公共事实（PASS / NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1）
-- [ ] Task 3 实现SOL六表持久化原语与固定表单规则（实施中）
-- [ ] Task 4 实现模板初始化、当前准备查询与历史投影
+- [x] Task 3 实现SOL六表持久化原语与固定表单规则（PASS / 979a0588cae59b90359e7c4aab6f7413f2b64377）
+- [ ] Task 4 实现模板初始化、当前准备查询与历史投影（实施中）
 - [ ] Task 5 实现逐项指派、填写与精确文件证据
 - [ ] Task 6 实现提交、逐项确认及退回新版本
 - [ ] Task 7 实现就绪评估、不可变快照与公共重验API
@@ -47,3 +47,5 @@
 > Task 2独立裁决（2026-08-27）：`NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1 / GO`；允许回写PASS并推进Task 3。
 
 > Task 3候选证据（2026-08-27）：六张SOL表已建立不继承通用CRUD的封闭Mapper与场景Query/XML，只暴露显式insert、租户精确查询、稳定游标、`FOR UPDATE`当前读、生命周期/current/input/readiness版本CAS及不可变快照追加；固定V1目录仅经既有`ConfigApi`读取，封闭校验六类form、五种字段类型与字段规则，并将form身份和唯一`commonFields`确定性冻结，运行期只校验冻结Schema；Preparation与Item适用性/确认状态分轴规则已闭合。聚焦规则/Mapper契约7/7 PASS，`mvn.cmd -pl pms-module-engineering -am test`为26模块Reactor BUILD SUCCESS，engineering 114项中79通过、35项按真实环境条件跳过。正式PASS以独立Implementation Done裁决为准。
+
+> Task 3独立裁决（2026-08-27）：提交`979a0588cae59b90359e7c4aab6f7413f2b64377`闭环必填TEXT空白值和必填MULTI_SELECT空集合校验；聚焦测试7/7 PASS，26模块Reactor BUILD SUCCESS。独立复审GO，允许回写PASS并推进Task 4。
