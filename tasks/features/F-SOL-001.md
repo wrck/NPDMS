@@ -5,8 +5,8 @@
 > Feature Ready Gate：`PASS / NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`
 > Implementation Done Gate：`PENDING`
 > Technical Plan Gate：`PASS / NPDMS-FSOL001-TECHPLAN-20260826-01`
-> 当前阻断：Task 6客户依据成功提交、Task 9对应真实场景、Task 10完整浏览器闭环及Feature Done依赖`PLT-02 / FileArtifact`真实公共事实；不阻断此前独立任务
-> 当前任务：`Task 9 完成真实MySQL、事务并发和BPM集成验证`
+> 当前阻断：Task 6客户依据成功提交、Task 9材料场景、Task 10完整浏览器闭环及Feature Done依赖`PLT-02 / FileArtifact`真实公共事实；Task 9 Step 1～3／无材料主线已PASS
+> 当前任务：`Task 9 等待PLT-02上游实现；不得推进Task 10`
 > Requirement ID：`PRE-01（V1）`
 > Feature Spec：`specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md`
 > Feature物理契约：`specs/features/F-SOL-001-physical-contract.json`
@@ -31,7 +31,7 @@
 - [ ] Task 6 冻结依据并提交平台BPM审批（BPM提交与BPM_APPROVAL守卫子项PASS / `834c182` + `f4d3cca`；FileArtifact成功路径`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`）
 - [x] Task 7 同步消费BPM终态并生效工期结果（无材料终态主线PASS / `d659501` + `b0fdc23` / 独立裁决GO；材料分支`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`）
 - [x] Task 8 建设响应式项目工期界面并冻结旧PRE-01写入口（PASS / `668234d` / `NPDMS-FSOL001-TASK8-20260826-01`）
-- [ ] Task 9 完成真实MySQL、事务并发和BPM集成验证
+- [ ] Task 9 完成真实MySQL、事务并发和BPM集成验证（Step 1～3／无材料主线PASS / `db394a0` + `7e9d6d3` / 独立裁决GO；材料场景`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`）
 - [ ] Task 10 完成真实浏览器、独立复审和Feature Done回写
 
 > 检查点（2026-08-26）：Task 1提交`b2b019d`经独立复审GO；V1～V91隔离MySQL迁移、根唯一键、种子幂等、迁移契约4/4、20模块Reactor编译及规格快照校验均PASS，允许推进Task 2。
@@ -53,3 +53,5 @@
 > 检查点（2026-08-26）：Task 7实现提交`d6595013a22d1242da8ba73fa820aa8ff65beba4`及真实事务回归整改`b0fdc2326ee272bb5f430970c47426325d014acf`经独立复审GO；无材料的APPROVE、REJECT、CANCEL终态主线及三类授权失效共同回滚均由真实Flowable、MySQL、SOL Mapper和同步事务验证通过。仅将无材料终态主线登记PASS，材料分支继续保留`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`，当前推进Task 8。
 
 > 检查点（2026-08-26）：Task 8提交`668234dad63bb017b1a0a7fdffc1087b791639cc`经独立裁决`NPDMS-FSOL001-TASK8-20260826-01`确认GO；响应式项目工期主线、字段存在性PATCH/null清空、平台BPM跳转与申请人撤回、游标历史和旧V1.7写入口退役均通过，允许推进Task 9。Task 9/10、正式浏览器闭环及PLT-02材料分支未提前关闭。
+
+> 检查点（2026-08-26）：Task 9主实现提交`db394a0`及真实PROJ参与事实整改`7e9d6d351dc405e83340fbef9517d58d108aa16c`经独立复审GO；V1～V91迁移/种子、真实SOL/PLATFORM/Flowable事务链、BPM_APPROVAL守卫及真实`ProjectParticipantFactApiImpl`项目版本重验均通过。仅登记Step 1～3／无材料主线PASS；Task 9整体继续保持`BLOCKED_BY_UPSTREAM_IMPLEMENTATION: PLT-02`，不得推进Task 10。
