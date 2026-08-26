@@ -31,6 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,7 +81,12 @@ class DurationChangeApplicationServiceTest {
             Supplier<?> operation = invocation.getArgument(3);
             Object response = operation.get();
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
-            assertNotNull(facts.apply(response).detailSnapshot());
+            String detail = facts.apply(response).detailSnapshot();
+            assertNotNull(detail);
+            assertTrue(detail.contains("\"reasonType\":\"CUSTOMER_DELAY\""));
+            assertTrue(detail.contains("\"reasonDetail\":\"原因\""));
+            assertTrue(detail.contains("\"candidateRevision\""));
+            assertTrue(detail.contains("\"pendingChangeIdAfter\":\"NONE\""));
             return new PlatformCommandExecutionApi.ExecutionResult<>(
                     PlatformCommandExecutionApi.Decision.NEW, response);
         });
@@ -135,6 +142,18 @@ class DurationChangeApplicationServiceTest {
 
         verify(revisionMapper, never()).updateDraftIfMatch(any());
         assertEquals("调整说明", response.getReasonDetail());
+        @SuppressWarnings("rawtypes")
+        ArgumentCaptor<Map> detail = ArgumentCaptor.forClass(Map.class);
+        verify(operationAuditApi).record(any(), any(), any(), any(), any(), any(), any(), detail.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> before = (Map<String, Object>) detail.getValue().get("before");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> after = (Map<String, Object>) detail.getValue().get("after");
+        assertEquals(702L, detail.getValue().get("candidateRevisionId"));
+        assertEquals(Set.of("reasonDetail"), detail.getValue().get("submittedFields"));
+        assertEquals("原说明", before.get("reasonDetail"));
+        assertEquals("调整说明", after.get("reasonDetail"));
+        assertEquals(901L, after.get("customerEvidenceFileId"));
     }
 
     @Test

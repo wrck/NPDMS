@@ -179,6 +179,7 @@ public class DurationChangeApplicationService {
                 || !change.getId().equals(candidate.getSourceChangeId())) {
             throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
         }
+        Map<String, Object> before = auditSnapshot(change, candidate);
 
         DurationChangePatch patch = command.patch();
         boolean durationChanged = patch.submittedFields().stream().anyMatch(DURATION_FIELDS::contains);
@@ -213,7 +214,7 @@ public class DurationChangeApplicationService {
         change.setCustomerEvidenceFileId(evidence.fileId());
         change.setCustomerEvidenceFileVersion(evidence.fileVersion());
         change.setVersion(change.getVersion() + 1);
-        recordPatchSuccess(plan, change, patch, actor);
+        recordPatchSuccess(plan, change, patch, before, auditSnapshot(change, candidate), actor);
         return response(change, candidate);
     }
 
@@ -398,7 +399,17 @@ public class DurationChangeApplicationService {
         detail.put("baseRevisionId", response.getBaseRevisionId());
         detail.put("candidateRevisionId", response.getCandidateRevisionId());
         detail.put("changeId", response.getChangeId());
+        detail.put("statusBefore", "NONE");
         detail.put("statusAfter", response.getStatus());
+        detail.put("currentRevisionIdBefore", plan.getCurrentDurationRevisionId());
+        detail.put("currentRevisionIdAfter", plan.getCurrentDurationRevisionId());
+        detail.put("pendingChangeIdBefore", auditValue(plan.getPendingChangeId()));
+        detail.put("pendingChangeIdAfter", auditValue(plan.getPendingChangeId()));
+        detail.put("reasonType", response.getReasonType());
+        detail.put("reasonDetail", response.getReasonDetail());
+        detail.put("customerEvidenceFileId", auditValue(response.getCustomerEvidenceFileId()));
+        detail.put("customerEvidenceFileVersion", auditValue(response.getCustomerEvidenceFileVersion()));
+        detail.put("candidateRevision", revisionAuditSnapshot(response.getCandidateRevision()));
         detail.put("planVersion", plan.getVersion());
         return new PlatformCommandExecutionApi.SuccessFacts(CREATE_OPERATION, "ConstructionPlanChange",
                 String.valueOf(response.getChangeId()), actor.correlationId(),
@@ -406,13 +417,50 @@ public class DurationChangeApplicationService {
     }
 
     private void recordPatchSuccess(ConstructionPlanDO plan, ConstructionPlanChangeDO change,
-                                    DurationChangePatch patch,
+                                    DurationChangePatch patch, Map<String, Object> before,
+                                    Map<String, Object> after,
                                     ConstructionPlanApplicationService.Actor actor) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("projectId", plan.getProjectId());
+        detail.put("planId", plan.getId());
+        detail.put("changeId", change.getId());
+        detail.put("candidateRevisionId", change.getCandidateRevisionId());
+        detail.put("submittedFields", patch.submittedFields());
+        detail.put("before", before);
+        detail.put("after", after);
+        detail.put("changeVersionAfter", change.getVersion());
         operationAuditApi.record(actor.tenantId(), actor.actorId(), actor.correlationId(),
                 PATCH_OPERATION, "ConstructionPlanChange", String.valueOf(change.getId()), "SUCCESS",
-                Map.of("projectId", plan.getProjectId(), "planId", plan.getId(),
-                        "changeId", change.getId(), "changeVersionAfter", change.getVersion(),
-                        "submittedFields", patch.submittedFields()));
+                detail);
+    }
+
+    private Map<String, Object> auditSnapshot(ConstructionPlanChangeDO change,
+                                               ConstructionPlanRevisionDO candidate) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("status", change.getStatusCode());
+        snapshot.put("reasonType", change.getReasonTypeCode());
+        snapshot.put("reasonDetail", change.getReasonDetail());
+        snapshot.put("customerEvidenceFileId", auditValue(change.getCustomerEvidenceFileId()));
+        snapshot.put("customerEvidenceFileVersion", auditValue(change.getCustomerEvidenceFileVersion()));
+        snapshot.put("candidateRevision", revisionAuditSnapshot(revisionResponse(candidate)));
+        return snapshot;
+    }
+
+    private Object auditValue(Object value) {
+        return value == null ? "NONE" : value;
+    }
+
+    private Map<String, Object> revisionAuditSnapshot(ConstructionPlanRevisionRespVO revision) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("revisionId", revision.getRevisionId());
+        snapshot.put("revisionNo", revision.getRevisionNo());
+        snapshot.put("calculationBasis", revision.getCalculationBasis());
+        snapshot.put("startDate", revision.getStartDate());
+        snapshot.put("endDate", revision.getEndDate());
+        snapshot.put("durationDays", revision.getDurationDays());
+        snapshot.put("sourceChangeId", revision.getSourceChangeId());
+        snapshot.put("version", revision.getVersion());
+        return snapshot;
     }
 
     private void auditRejected(String operation, Long planId, Long changeId, Integer expectedPlanVersion,

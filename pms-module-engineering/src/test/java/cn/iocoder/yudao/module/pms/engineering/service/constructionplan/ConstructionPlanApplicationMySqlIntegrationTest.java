@@ -202,6 +202,10 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND scope_code="
                 + "'POST:/api/v1/pms/construction-plans/{id}/changes' AND actor_id=9 "
                 + "AND idempotency_key=? AND status='COMPLETED'", Long.class, key));
+        assertEquals("CUSTOMER_DELAY", auditJson(key, "$.reasonType"));
+        assertEquals(String.valueOf(first.getCandidateRevisionId()),
+                auditJson(key, "$.candidateRevision.revisionId"));
+        assertEquals("NONE", auditJson(key, "$.pendingChangeIdAfter"));
     }
 
     @Test
@@ -226,6 +230,14 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
         assertEquals(7, durationPatched.getCandidateRevision().getDurationDays());
         assertEquals(2, durationPatched.getVersion());
         assertEquals(1, durationPatched.getCandidateRevision().getVersion());
+        assertEquals("客户延期", auditJson(keyPrefix + "-patch-reason", "$.before.reasonDetail"));
+        assertEquals("", auditJson(keyPrefix + "-patch-reason", "$.after.reasonDetail"));
+        assertEquals(String.valueOf(draft.getCandidateRevisionId()),
+                auditJson(keyPrefix + "-patch-days", "$.candidateRevisionId"));
+        assertEquals("5", auditJson(keyPrefix + "-patch-days",
+                "$.before.candidateRevision.durationDays"));
+        assertEquals("7", auditJson(keyPrefix + "-patch-days",
+                "$.after.candidateRevision.durationDays"));
     }
 
     @Test
@@ -262,6 +274,13 @@ class ConstructionPlanApplicationMySqlIntegrationTest {
 
     private ConstructionPlanApplicationService.Actor actor(String correlationId) {
         return new ConstructionPlanApplicationService.Actor(0L, 9L, correlationId);
+    }
+
+    private String auditJson(String correlationId, String path) {
+        return jdbcTemplate.queryForObject("SELECT COALESCE(JSON_UNQUOTE(JSON_EXTRACT(detail_snapshot, ?)), 'null') "
+                        + "FROM plt_operation_audit WHERE tenant_id=0 AND correlation_id=? "
+                        + "AND result_code='SUCCESS' ORDER BY id DESC LIMIT 1",
+                String.class, path, correlationId);
     }
 
     private long count(String table, String column, Object value) {
