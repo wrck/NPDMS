@@ -87,4 +87,16 @@
           AND frozen_at IS NULL
     </update>
 
+    <update id="freezeForSubmitIfMatch">
+        UPDATE sol_construction_plan_revision
+        SET frozen_at = #{update.frozenAt},
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND plan_id = #{update.planId}
+          AND id = #{update.revisionId}
+          AND version = #{update.expectedVersion}
+          AND source_change_id = #{update.sourceChangeId}
+          AND frozen_at IS NULL
+    </update>
+
 </mapper>

@@ -16,7 +16,7 @@ class ConstructionPlanMapperContractTest {
                 Set.of("insert", "selectByProjectId", "selectById", "selectForUpdate", "updateVersionIfMatch"));
         assertMapperContract(ConstructionPlanRevisionMapper.class,
                 Set.of("insert", "selectById", "selectForUpdate", "selectLatestForUpdate", "selectPage",
-                        "updateDraftIfMatch"));
+                        "updateDraftIfMatch", "freezeForSubmitIfMatch"));
         assertMapperContract(ConstructionPlanChangeMapper.class,
                 Set.of("insert", "selectById", "selectForUpdate", "selectByProcessInstanceId", "selectPage",
                         "updateVersionIfMatch", "updateDraftIfMatch"));

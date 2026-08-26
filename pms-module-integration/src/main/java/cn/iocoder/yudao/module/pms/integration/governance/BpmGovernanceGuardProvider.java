@@ -19,6 +19,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Component
 public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProviderApi {
@@ -29,13 +30,16 @@ public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProvide
     private static final String FACT_VERSION = "BPM_APPROVAL_V1";
 
     private final RuntimeService runtimeService;
-    private final String progressPolicyProcessDefinitionKey;
+    private final List<String> knownProcessDefinitionKeys;
 
     public BpmGovernanceGuardProvider(RuntimeService runtimeService,
                                       @Value("${pms.project.progress-policy.process-definition-key:}")
-                                      String progressPolicyProcessDefinitionKey) {
+                                      String progressPolicyProcessDefinitionKey,
+                                      @Value("${pms.sol.duration-change.process-definition-key:}")
+                                      String durationChangeProcessDefinitionKey) {
         this.runtimeService = runtimeService;
-        this.progressPolicyProcessDefinitionKey = normalize(progressPolicyProcessDefinitionKey);
+        this.knownProcessDefinitionKeys = knownKeys(
+                progressPolicyProcessDefinitionKey, durationChangeProcessDefinitionKey);
     }
 
     @Override
@@ -49,34 +53,40 @@ public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProvide
         if (query.projectIds().isEmpty()) {
             return fact(List.of(), List.of());
         }
-        if (progressPolicyProcessDefinitionKey == null) {
+        if (knownProcessDefinitionKeys == null) {
             return unavailable("PROCESS_DEFINITION_UNCONFIGURED");
         }
         try {
-            List<ProcessInstance> instances = runtimeService.createProcessInstanceQuery()
-                    .processDefinitionKey(progressPolicyProcessDefinitionKey)
-                    .processInstanceTenantId(String.valueOf(query.tenantId()))
-                    .active()
-                    .includeProcessVariables()
-                    .list();
-            if (instances == null) {
-                return unavailable("QUERY_RESULT_UNKNOWN");
+            List<String> facts = new ArrayList<>();
+            List<ProjectGovernanceBlocker> blockers = new ArrayList<>();
+            for (String processDefinitionKey : knownProcessDefinitionKeys) {
+                List<ProcessInstance> instances = runtimeService.createProcessInstanceQuery()
+                        .processDefinitionKey(processDefinitionKey)
+                        .processInstanceTenantId(String.valueOf(query.tenantId()))
+                        .active()
+                        .includeProcessVariables()
+                        .list();
+                if (instances == null) {
+                    return unavailable("QUERY_RESULT_UNKNOWN");
+                }
+                inspectInstances(query, processDefinitionKey, instances, facts, blockers);
             }
-            return inspectInstances(query, instances);
+            blockers.sort(Comparator.comparing(ProjectGovernanceBlocker::objectId)
+                    .thenComparing(ProjectGovernanceBlocker::code));
+            return fact(facts, blockers);
         } catch (RuntimeException ex) {
             return unavailable("QUERY_FAILED");
         }
     }
 
-    private static ProjectGovernanceProviderFact inspectInstances(ProjectGovernanceGuardQuery query,
-                                                                   List<ProcessInstance> instances) {
-        List<String> facts = new ArrayList<>();
-        List<ProjectGovernanceBlocker> blockers = new ArrayList<>();
+    private static void inspectInstances(ProjectGovernanceGuardQuery query, String processDefinitionKey,
+                                         List<ProcessInstance> instances, List<String> facts,
+                                         List<ProjectGovernanceBlocker> blockers) {
         instances.stream().sorted(Comparator.comparing(ProcessInstance::getId)).forEach(instance -> {
             Object rawProjectId = variables(instance).get(PROJECT_ID_VARIABLE);
             boolean trustedTenant = Objects.equals(instance.getTenantId(), String.valueOf(query.tenantId()));
             if (!trustedTenant || !(rawProjectId instanceof Long projectId) || projectId <= 0) {
-                facts.add(canonicalFact(instance, "ASSOCIATION_UNKNOWN"));
+                facts.add(canonicalFact(processDefinitionKey, instance, "ASSOCIATION_UNKNOWN"));
                 blockers.add(new ProjectGovernanceBlocker("BPM_APPROVAL", "UNKNOWN", "UNKNOWN",
                         "BPM_ASSOCIATION_UNKNOWN", "审批关联不完整"));
                 return;
@@ -84,21 +94,19 @@ public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProvide
             if (!query.projectIds().contains(projectId)) {
                 return;
             }
-            facts.add(canonicalFact(instance, String.valueOf(projectId)));
+            facts.add(canonicalFact(processDefinitionKey, instance, String.valueOf(projectId)));
             blockers.add(new ProjectGovernanceBlocker("BPM_APPROVAL", instance.getId(), "RUNNING",
                     "ACTIVE_BPM_APPROVAL", "项目审批进行中"));
         });
-        blockers.sort(Comparator.comparing(ProjectGovernanceBlocker::objectId)
-                .thenComparing(ProjectGovernanceBlocker::code));
-        return fact(facts, blockers);
     }
 
     private static Map<String, Object> variables(ProcessInstance instance) {
         return instance.getProcessVariables() == null ? Map.of() : instance.getProcessVariables();
     }
 
-    private static String canonicalFact(ProcessInstance instance, String association) {
-        return value(instance.getId()) + "|" + value(instance.getProcessDefinitionId())
+    private static String canonicalFact(String processDefinitionKey, ProcessInstance instance,
+                                        String association) {
+        return processDefinitionKey + "|" + value(instance.getId()) + "|" + value(instance.getProcessDefinitionId())
                 + "|" + value(instance.getProcessDefinitionVersion()) + "|"
                 + (instance.getStartTime() == null ? "" : instance.getStartTime().getTime())
                 + "|" + value(instance.getBusinessStatus()) + "|"
@@ -126,6 +134,12 @@ public class BpmGovernanceGuardProvider implements ProjectGovernanceGuardProvide
 
     private static String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static List<String> knownKeys(String... values) {
+        List<String> normalized = java.util.Arrays.stream(values).map(BpmGovernanceGuardProvider::normalize).toList();
+        if (normalized.stream().anyMatch(Objects::isNull)) return null;
+        return Set.copyOf(normalized).stream().sorted().toList();
     }
 
     private static String digest(List<String> facts) {

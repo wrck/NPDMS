@@ -1,9 +1,12 @@
 package cn.iocoder.yudao.module.pms.engineering.service.constructionplan;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
+import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanChangeRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanRevisionRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangeSubmitRespVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanRevisionDO;
@@ -12,28 +15,41 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.Constr
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanRevisionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeDraftUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeLockQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeVersionUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanLockQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionDraftUpdate;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionLockQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionSubmitUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanVersionUpdate;
 import cn.iocoder.yudao.module.pms.engineering.domain.constructionplan.DurationRules;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.PatchDurationChangeCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.SubmitDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.DurationChangePatch;
+import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApi;
+import cn.iocoder.yudao.module.bpm.api.task.dto.BpmProcessInstanceCreateReqDTO;
+import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
@@ -43,6 +59,10 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.C
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.CONSTRUCTION_PLAN_STATUS_INVALID;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.CONSTRUCTION_PLAN_VERSION_NOT_MATCH;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_BPM_CONFIG_INVALID;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_PENDING_CONFLICT;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_REASON_CONFIG_INVALID;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +71,15 @@ public class DurationChangeApplicationService {
     private static final String CREATE_SCOPE = "POST:/api/v1/pms/construction-plans/{id}/changes";
     private static final String CREATE_OPERATION = "DURATION_CHANGE_DRAFT_CREATE";
     private static final String PATCH_OPERATION = "DURATION_CHANGE_DRAFT_PATCH";
+    private static final String SUBMIT_SCOPE = "POST:/api/v1/pms/construction-plans/{id}/actions/submit";
+    private static final String SUBMIT_OPERATION = "DURATION_CHANGE_SUBMIT";
+    private static final String REASON_DICT_TYPE = "pms_duration_change_reason_type";
+    private static final String EVIDENCE_REQUIRED_CONFIG =
+            "pms.sol.duration-change.customer-evidence-required-reason-codes";
+    private static final String APPROVAL_TASK = "serviceManagerApprove";
+    private static final Set<String> SERVICE_MANAGER_ROLES = Set.of(
+            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
+            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2);
     private static final Set<String> DURATION_FIELDS = Set.of(
             "calculationBasis", "startDate", "endDate", "durationDays");
 
@@ -62,6 +91,10 @@ public class DurationChangeApplicationService {
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
+    private final DictDataApi dictDataApi;
+    private final ConfigApi configApi;
+    private final BpmProcessInstanceApi processInstanceApi;
+    private final DurationChangeProperties properties;
     private final TransactionTemplate transactionTemplate;
 
     public ConstructionPlanChangeRespVO createDraft(
@@ -85,6 +118,106 @@ public class DurationChangeApplicationService {
                     null, actor, failure);
             throw failure;
         }
+    }
+
+    public DurationChangeSubmitRespVO submit(
+            SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
+        try {
+            return transactionTemplate.execute(status -> submitInTransaction(command, actor));
+        } catch (RuntimeException failure) {
+            auditRejected(SUBMIT_OPERATION, command == null ? null : command.planId(),
+                    command == null ? null : command.changeId(), null, actor, failure);
+            throw failure;
+        }
+    }
+
+    private DurationChangeSubmitRespVO submitInTransaction(
+            SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
+        validateSubmit(command, actor);
+        var execution = commandExecutionApi.execute(
+                new PlatformCommandExecutionApi.IdempotencyScope(
+                        actor.tenantId(), SUBMIT_SCOPE, actor.actorId(), command.idempotencyKey()),
+                command.requestDigest(), DurationChangeSubmitRespVO.class,
+                () -> submitOnce(command, actor),
+                response -> submitSuccessFacts(command, response, actor));
+        if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
+                || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
+            throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
+        }
+        return execution.response();
+    }
+
+    private DurationChangeSubmitRespVO submitOnce(
+            SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
+        ProjectParticipantFact applicant = requireManageAndProject(
+                command.planId(), command.expectedProjectVersion(), actor);
+        if (applicant == null || applicant.projectId() == null) {
+            throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
+        }
+        ProjectParticipantFact approver = requireUniqueServiceManager(
+                applicant.projectId(), command.expectedProjectVersion(), actor);
+
+        ConstructionPlanDO plan = lockPlan(command.planId(), actor.tenantId());
+        ConstructionPlanChangeDO change = changeMapper.selectForUpdate(new ConstructionPlanChangeLockQuery(
+                actor.tenantId(), plan.getId(), command.changeId()));
+        if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);
+        if (!ConstructionPlanChangeDO.STATUS_DRAFT.equals(change.getStatusCode())
+                || !Objects.equals(change.getVersion(), command.expectedChangeVersion())
+                || !Objects.equals(change.getBaseRevisionId(), plan.getCurrentDurationRevisionId())) {
+            throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
+        }
+        if (plan.getPendingChangeId() != null) throw exception(DURATION_CHANGE_PENDING_CONFLICT);
+        ConstructionPlanRevisionDO candidate = revisionMapper.selectForUpdate(
+                new ConstructionPlanRevisionLockQuery(actor.tenantId(), plan.getId(),
+                        change.getCandidateRevisionId()));
+        if (candidate == null || candidate.getFrozenAt() != null
+                || !Objects.equals(candidate.getSourceChangeId(), change.getId())) {
+            throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
+        }
+
+        boolean evidenceRequired = resolveEvidenceRequired(change.getReasonTypeCode());
+        Evidence frozenEvidence = evidenceRequired
+                ? requireFileArtifact()
+                : new Evidence(null, null);
+        String processKey = normalizeProcessKey();
+        BpmProcessInstanceCreateReqDTO request = new BpmProcessInstanceCreateReqDTO()
+                .setProcessDefinitionKey(processKey)
+                .setBusinessKey(String.valueOf(change.getId()))
+                .setVariables(Map.of("projectId", plan.getProjectId(),
+                        "constructionPlanId", plan.getId(), "durationChangeId", change.getId()))
+                .setStartUserSelectAssignees(Map.of(APPROVAL_TASK, List.of(approver.userId())));
+        String processInstanceId = processInstanceApi.createProcessInstance(actor.actorId(), request);
+        if (processInstanceId == null || processInstanceId.isBlank()) {
+            throw exception(DURATION_CHANGE_BPM_CONFIG_INVALID);
+        }
+
+        LocalDateTime submittedAt = LocalDateTime.now();
+        if (revisionMapper.freezeForSubmitIfMatch(new ConstructionPlanRevisionSubmitUpdate(
+                actor.tenantId(), plan.getId(), candidate.getId(), candidate.getVersion(),
+                change.getId(), submittedAt)) != 1) {
+            throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
+        }
+        if (changeMapper.updateVersionIfMatch(new ConstructionPlanChangeVersionUpdate(
+                actor.tenantId(), plan.getId(), change.getId(), change.getVersion(),
+                ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL, change.getReasonTypeCode(),
+                change.getReasonDetail(), evidenceRequired, frozenEvidence.fileId(),
+                frozenEvidence.fileVersion(), processKey, processInstanceId, submittedAt,
+                approver.userId(), null, null)) != 1) {
+            throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
+        }
+        if (planMapper.updateVersionIfMatch(new ConstructionPlanVersionUpdate(
+                actor.tenantId(), plan.getId(), plan.getVersion(), plan.getCurrentDurationRevisionId(),
+                change.getId(), plan.getPlanRecalculationStatusCode(),
+                plan.getPlanRecalculationSourceRevisionId(), String.valueOf(actor.actorId()))) != 1) {
+            throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
+        }
+        DurationChangeSubmitRespVO response = new DurationChangeSubmitRespVO();
+        response.setChangeId(change.getId());
+        response.setStatus(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL);
+        response.setProcessInstanceId(processInstanceId);
+        response.setChangeVersion(change.getVersion() + 1);
+        response.setPlanVersion(plan.getVersion() + 1);
+        return response;
     }
 
     private ConstructionPlanChangeRespVO createDraftInTransaction(
@@ -230,8 +363,8 @@ public class DurationChangeApplicationService {
         return plan;
     }
 
-    private void requireManageAndProject(Long planId, Integer projectVersion,
-                                         ConstructionPlanApplicationService.Actor actor) {
+    private ProjectParticipantFact requireManageAndProject(Long planId, Integer projectVersion,
+                                                           ConstructionPlanApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), ConstructionPlanApplicationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
@@ -242,9 +375,68 @@ public class DurationChangeApplicationService {
         if (!scope.fullProjectIds().contains(plan.getProjectId())) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }
-        participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
+        return participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
                 plan.getProjectId(), actor.actorId(), projectVersion, "ACTIVE", null,
                 Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+    }
+
+    private ProjectParticipantFact requireUniqueServiceManager(
+            Long projectId, Integer projectVersion, ConstructionPlanApplicationService.Actor actor) {
+        ProjectParticipantFact selected = participantFactApi.inspect(new ProjectParticipantFactQuery(
+                projectId, null, SERVICE_MANAGER_ROLES, LocalDateTime.now()));
+        if (selected == null || selected.userId() == null
+                || Objects.equals(selected.userId(), actor.actorId())) {
+            throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
+        }
+        ProjectParticipantFact revalidated = participantFactApi.lockAndRevalidate(
+                new ProjectParticipantFactRevalidationQuery(
+                projectId, selected.userId(), projectVersion, "ACTIVE", null, SERVICE_MANAGER_ROLES));
+        if (revalidated == null || !Objects.equals(revalidated.userId(), selected.userId())) {
+            throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
+        }
+        return revalidated;
+    }
+
+    private boolean resolveEvidenceRequired(String reasonType) {
+        List<DictDataRespDTO> dictValues = dictDataApi.getDictDataList(REASON_DICT_TYPE);
+        if (dictValues == null) throw exception(DURATION_CHANGE_REASON_CONFIG_INVALID);
+        Set<String> enabledReasons = new HashSet<>();
+        for (DictDataRespDTO item : dictValues) {
+            if (item != null && CommonStatusEnum.ENABLE.getStatus().equals(item.getStatus())
+                    && REASON_DICT_TYPE.equals(item.getDictType())
+                    && item.getValue() != null && !item.getValue().isBlank()) {
+                enabledReasons.add(item.getValue().trim());
+            }
+        }
+        if (!enabledReasons.contains(reasonType)) {
+            throw exception(DURATION_CHANGE_REASON_CONFIG_INVALID);
+        }
+        String configured = configApi.getConfigValueByKey(EVIDENCE_REQUIRED_CONFIG);
+        if (configured == null || configured.isBlank()) {
+            throw exception(DURATION_CHANGE_REASON_CONFIG_INVALID);
+        }
+        Set<String> requiredReasons = new HashSet<>();
+        for (String value : configured.split(",", -1)) {
+            String normalized = value.trim();
+            if (normalized.isEmpty() || !enabledReasons.contains(normalized)) {
+                throw exception(DURATION_CHANGE_REASON_CONFIG_INVALID);
+            }
+            requiredReasons.add(normalized);
+        }
+        return requiredReasons.contains(reasonType);
+    }
+
+    private Evidence requireFileArtifact() {
+        // PLT-02尚未提供稳定FileArtifact公共事实；材料必填路径必须失败关闭。
+        throw exception(DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE);
+    }
+
+    private String normalizeProcessKey() {
+        String processKey = properties.getProcessDefinitionKey();
+        if (processKey == null || processKey.isBlank()) {
+            throw exception(DURATION_CHANGE_BPM_CONFIG_INVALID);
+        }
+        return processKey.trim();
     }
 
     private Evidence mergedEvidence(ConstructionPlanChangeDO change, DurationChangePatch patch) {
@@ -345,6 +537,19 @@ public class DurationChangeApplicationService {
         }
     }
 
+    private void validateSubmit(SubmitDurationChangeCommand command,
+                                ConstructionPlanApplicationService.Actor actor) {
+        validateActor(actor);
+        if (command == null || command.planId() == null || command.planId() <= 0
+                || command.changeId() == null || command.changeId() <= 0
+                || invalidVersion(command.expectedChangeVersion())
+                || invalidVersion(command.expectedProjectVersion())
+                || command.idempotencyKey() == null || command.idempotencyKey().isBlank()
+                || command.requestDigest() == null || !command.requestDigest().matches("[0-9a-f]{64}")) {
+            throw exception(CONSTRUCTION_PLAN_ARGUMENT_INVALID);
+        }
+    }
+
     private void validateActor(ConstructionPlanApplicationService.Actor actor) {
         if (actor == null || actor.tenantId() == null || actor.tenantId() < 0
                 || actor.actorId() == null || actor.actorId() <= 0
@@ -412,6 +617,22 @@ public class DurationChangeApplicationService {
         detail.put("candidateRevision", revisionAuditSnapshot(response.getCandidateRevision()));
         detail.put("planVersion", plan.getVersion());
         return new PlatformCommandExecutionApi.SuccessFacts(CREATE_OPERATION, "ConstructionPlanChange",
+                String.valueOf(response.getChangeId()), actor.correlationId(),
+                JsonUtils.toJsonString(detail), null, null);
+    }
+
+    private PlatformCommandExecutionApi.SuccessFacts submitSuccessFacts(
+            SubmitDurationChangeCommand command, DurationChangeSubmitRespVO response,
+            ConstructionPlanApplicationService.Actor actor) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("planId", command.planId());
+        detail.put("changeId", command.changeId());
+        detail.put("statusBefore", ConstructionPlanChangeDO.STATUS_DRAFT);
+        detail.put("statusAfter", response.getStatus());
+        detail.put("processInstanceId", response.getProcessInstanceId());
+        detail.put("changeVersionAfter", response.getChangeVersion());
+        detail.put("planVersionAfter", response.getPlanVersion());
+        return new PlatformCommandExecutionApi.SuccessFacts(SUBMIT_OPERATION, "ConstructionPlanChange",
                 String.valueOf(response.getChangeId()), actor.correlationId(),
                 JsonUtils.toJsonString(detail), null, null);
     }

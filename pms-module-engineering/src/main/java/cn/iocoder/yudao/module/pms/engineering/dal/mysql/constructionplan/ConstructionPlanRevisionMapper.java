@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionLockQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionDraftUpdate;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionSubmitUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -28,5 +29,7 @@ public interface ConstructionPlanRevisionMapper {
             @Param("query") ConstructionPlanRevisionPageQuery query);
 
     int updateDraftIfMatch(@Param("update") ConstructionPlanRevisionDraftUpdate update);
+
+    int freezeForSubmitIfMatch(@Param("update") ConstructionPlanRevisionSubmitUpdate update);
 
 }

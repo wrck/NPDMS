@@ -57,14 +57,20 @@ class DurationChangeApplicationServiceTest {
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
     @Mock ProjectParticipantFactApi participantFactApi;
+    @Mock cn.iocoder.yudao.module.system.api.dict.DictDataApi dictDataApi;
+    @Mock cn.iocoder.yudao.module.infra.api.config.ConfigApi configApi;
+    @Mock cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApi processInstanceApi;
     @Mock TransactionTemplate transactionTemplate;
+    private DurationChangeProperties properties;
     private DurationChangeApplicationService service;
 
     @BeforeEach
     void setUp() {
+        properties = new DurationChangeProperties();
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
                 commandExecutionApi, operationAuditApi, permissionApi, projectScopeApi,
-                participantFactApi, transactionTemplate);
+                participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
+                transactionTemplate);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));

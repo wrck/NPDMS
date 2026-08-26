@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://iocoder.cn/pms/sol/duration-change">
+    <process id="pms-sol-duration-change" name="项目工期变更审批" isExecutable="true">
+        <startEvent id="start"/>
+        <sequenceFlow id="flow-start-approve" sourceRef="start" targetRef="serviceManagerApprove"/>
+        <userTask id="serviceManagerApprove" name="服务经理审批" flowable:candidateStrategy="35"/>
+        <sequenceFlow id="flow-approve-end" sourceRef="serviceManagerApprove" targetRef="end"/>
+        <endEvent id="end"/>
+    </process>
+</definitions>

@@ -14,12 +14,15 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.ConstructionPlanRevisionRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangeCreateReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangePatchReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangeSubmitReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.constructionplan.vo.DurationChangeSubmitRespVO;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.ConstructionPlanQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.DurationChangeApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateInitialDurationCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.PatchDurationChangeCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.SubmitDurationChangeCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.DurationChangePatch;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -165,6 +168,28 @@ public class ConstructionPlanController {
             var command = new PatchDurationChangeCommand(planId, changeId, parseVersion(ifMatch),
                     request.getExpectedProjectVersion(), patch);
             return success(changeApplicationService.patchDraft(command, commandActor()));
+        });
+    }
+
+    @PostMapping("/{id}/actions/submit")
+    @Operation(summary = "提交工期变更审批")
+    @PreAuthorize("@ss.hasPermission('pms:construction-plan:duration-manage')")
+    public CommonResult<DurationChangeSubmitRespVO> submitChange(
+            @PathVariable("id") @Positive Long planId,
+            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader("If-Match") @NotBlank String ifMatch,
+            @Valid @RequestBody DurationChangeSubmitReqVO request) {
+        return withTrustedTenant(() -> {
+            Integer expectedChangeVersion = parseVersion(ifMatch);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("planId", planId);
+            payload.put("changeId", request.getChangeId());
+            payload.put("expectedChangeVersion", expectedChangeVersion);
+            payload.put("expectedProjectVersion", request.getExpectedProjectVersion());
+            var command = new SubmitDurationChangeCommand(planId, request.getChangeId(),
+                    expectedChangeVersion, request.getExpectedProjectVersion(), idempotencyKey,
+                    digest(JsonUtils.toJsonString(payload)));
+            return success(changeApplicationService.submit(command, commandActor()));
         });
     }
 
