@@ -324,6 +324,13 @@
           <el-empty v-else description="暂无成员" />
         </ContentWrap>
 
+        <ProjectTaskPanel
+          v-if="detail?.id && visitedTabs.has('tasks')"
+          v-show="activeTab === 'tasks'"
+          :project-id="detail.id"
+          @tree-version="treeVersion = $event"
+        />
+
         <ProjectSplitWizard
           v-if="detail?.id && visitedTabs.has('split')"
           v-show="activeTab === 'split'"
@@ -386,6 +393,7 @@ import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
 import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'
 import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
+import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO,
@@ -407,14 +415,16 @@ const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
 
-const activeTab = ref('base')
-const visitedTabs = ref(new Set(['base']))
+const requestedTab = route.query.tab === 'tasks' ? 'tasks' : 'base'
+const activeTab = ref(requestedTab)
+const visitedTabs = ref(new Set([requestedTab]))
 const overviewSteps = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
   { key: 'attributes', label: '属性判定', icon: 'ep:edit' },
   { key: 'match-history', label: '匹配历史', icon: 'ep:clock' },
   { key: 'instances', label: '生命周期实例', icon: 'ep:tickets' },
-  { key: 'members', label: '成员区间', icon: 'ep:user-filled' }
+  { key: 'members', label: '成员区间', icon: 'ep:user-filled' },
+  { key: 'tasks', label: '项目任务', icon: 'ep:list' }
 ]
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>

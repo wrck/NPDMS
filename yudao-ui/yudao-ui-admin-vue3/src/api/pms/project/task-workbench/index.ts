@@ -158,7 +158,7 @@ export const getTaskWorkbench = (taskId: number) =>
   request.get<TaskWorkbench>({ url: `${baseUrl}/project-tasks/${taskId}/workbench` })
 
 export const getTaskAssigneeCandidates = (taskId: number, params: CandidatePageQuery) =>
-  request.get<PageResult<TaskAssigneeCandidate>>({
+  request.get<PageResult<TaskAssigneeCandidate[]>>({
     url: `${baseUrl}/project-tasks/${taskId}/assignee-candidates`,
     params
   })
