@@ -41,18 +41,42 @@ ON DUPLICATE KEY UPDATE `sort` = VALUES(`sort`), `label` = VALUES(`label`),
   `updater` = 'seed', `update_time` = NOW(), `deleted` = b'0';
 
 -- V1固定表单目录只通过既有ConfigApi按稳定键读取；Feature不提供目录编辑入口。
+-- config_key是业务身份但上游表仅有普通索引：先拒绝重复键，再按键恢复既有行。
+CREATE TEMPORARY TABLE `_v97_fixed_form_catalog_key_guard` (
+    `singleton` TINYINT NOT NULL PRIMARY KEY
+);
+
+INSERT INTO `_v97_fixed_form_catalog_key_guard` (`singleton`)
+SELECT 1
+FROM `infra_config`
+WHERE `config_key` = 'pms.sol.preparation.site-survey.form-catalog.v1';
+
 INSERT INTO `infra_config`
 (`id`, `category`, `type`, `name`, `config_key`, `value`, `visible`, `remark`,
  `creator`, `create_time`, `updater`, `update_time`, `deleted`)
-VALUES
-(992102030001, 'pms', 1, 'PRE-02固定V1表单目录',
- 'pms.sol.preparation.site-survey.form-catalog.v1',
- '{"schemaVersion":1,"catalogCode":"PRE_02_SITE_SURVEY","catalogVersion":1,"commonFields":[{"fieldCode":"siteCondition","fieldType":"TEXT","required":true,"maxLength":1000,"sortOrder":10}],"forms":[{"formCode":"POWER","formVersion":1},{"formCode":"NETWORK_PORT","formVersion":1},{"formCode":"FIBER","formVersion":1},{"formCode":"CABINET","formVersion":1},{"formCode":"NETWORK_CABLE","formVersion":1},{"formCode":"OPTICAL_MODULE","formVersion":1}]}',
- b'0', 'F-SOL-002固定V1目录；发布校验和实例化只读并冻结精确Schema',
- 'seed', NOW(), 'seed', NOW(), b'0')
-ON DUPLICATE KEY UPDATE `category` = 'pms', `type` = 1,
-  `name` = VALUES(`name`), `value` = VALUES(`value`), `visible` = b'0',
-  `remark` = VALUES(`remark`), `updater` = 'seed', `update_time` = NOW(), `deleted` = b'0';
+SELECT 992102030001, 'pms', 1, 'PRE-02固定V1表单目录',
+       'pms.sol.preparation.site-survey.form-catalog.v1',
+       '{"schemaVersion":1,"catalogCode":"PRE_02_SITE_SURVEY","catalogVersion":1,"commonFields":[{"fieldCode":"siteCondition","fieldType":"TEXT","required":true,"maxLength":1000,"sortOrder":10}],"forms":[{"formCode":"POWER","formVersion":1},{"formCode":"NETWORK_PORT","formVersion":1},{"formCode":"FIBER","formVersion":1},{"formCode":"CABINET","formVersion":1},{"formCode":"NETWORK_CABLE","formVersion":1},{"formCode":"OPTICAL_MODULE","formVersion":1}]}',
+       b'0', 'F-SOL-002固定V1目录；发布校验和实例化只读并冻结精确Schema',
+       'seed', NOW(), 'seed', NOW(), b'0'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `infra_config`
+    WHERE `config_key` = 'pms.sol.preparation.site-survey.form-catalog.v1'
+);
+
+UPDATE `infra_config`
+SET `category` = 'pms',
+    `type` = 1,
+    `name` = 'PRE-02固定V1表单目录',
+    `value` = '{"schemaVersion":1,"catalogCode":"PRE_02_SITE_SURVEY","catalogVersion":1,"commonFields":[{"fieldCode":"siteCondition","fieldType":"TEXT","required":true,"maxLength":1000,"sortOrder":10}],"forms":[{"formCode":"POWER","formVersion":1},{"formCode":"NETWORK_PORT","formVersion":1},{"formCode":"FIBER","formVersion":1},{"formCode":"CABINET","formVersion":1},{"formCode":"NETWORK_CABLE","formVersion":1},{"formCode":"OPTICAL_MODULE","formVersion":1}]}',
+    `visible` = b'0',
+    `remark` = 'F-SOL-002固定V1目录；发布校验和实例化只读并冻结精确Schema',
+    `updater` = 'seed',
+    `update_time` = NOW(),
+    `deleted` = b'0'
+WHERE `config_key` = 'pms.sol.preparation.site-survey.form-catalog.v1';
+
+DROP TEMPORARY TABLE `_v97_fixed_form_catalog_key_guard`;
 
 -- 示例配置同时覆盖必需证据、无来源、OA来源、可豁免和停用项。
 UPDATE `proj_project_template_task_definition` d

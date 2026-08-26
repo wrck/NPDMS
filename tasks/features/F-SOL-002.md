@@ -36,4 +36,4 @@
 
 > 检查点（2026-08-27）：Feature Ready及Technical Plan均经独立裁决GO；按锁定计划从Task 1开始实施，不重开PRD或SDS。
 
-> Task 1候选证据（2026-08-27）：迁移契约5/5 PASS；清洁隔离MySQL从V1成功迁移至V97，六张SOL表、10条SOL域内租户复合外键、6个工勘项字典、4项权限及唯一固定目录均核验通过；固定目录JSON长度445且有效；仅5份seed-owned DRAFT模板获得PRE-02绑定，PUBLISHED模板未修改。正式PASS以独立Implementation Done裁决为准。
+> Task 1候选证据（2026-08-27）：迁移契约6/6 PASS；清洁隔离MySQL从V1成功迁移至V97，六张SOL表、10条SOL域内租户复合外键、6个工勘项字典、4项权限及唯一固定目录均核验通过；固定目录JSON长度445且有效；同稳定键不同ID的存量目录可原位恢复且保持唯一，固定ID被其他配置占用时V97拒绝并保持无关配置不变；仅5份seed-owned DRAFT模板获得PRE-02绑定，PUBLISHED模板未修改。正式PASS以独立Implementation Done裁决为准。

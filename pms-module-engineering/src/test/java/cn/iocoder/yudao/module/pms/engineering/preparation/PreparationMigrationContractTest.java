@@ -85,6 +85,19 @@ class PreparationMigrationContractTest {
     }
 
     @Test
+    void seedsFixedCatalogByStableConfigKeyWithoutOverwritingAnOccupiedId() {
+        String catalogSeed = seedSql.substring(
+                seedSql.indexOf("-- V1固定表单目录"),
+                seedSql.indexOf("-- 示例配置"));
+        assertTrue(catalogSeed.contains("CREATE TEMPORARY TABLE `_v97_fixed_form_catalog_key_guard`"));
+        assertTrue(catalogSeed.contains("WHERE `config_key` = "
+                + "'pms.sol.preparation.site-survey.form-catalog.v1'"));
+        assertTrue(catalogSeed.contains("WHERE NOT EXISTS"));
+        assertTrue(catalogSeed.contains("UPDATE `infra_config`"));
+        assertFalse(catalogSeed.contains("ON DUPLICATE KEY UPDATE"));
+    }
+
+    @Test
     void seedsOnlyTheFourStablePermissionsAndPreparationErrorRange() {
         assertTrue(seedSql.contains("pms:preparation-survey:query"));
         assertTrue(seedSql.contains("pms:preparation-survey:manage"));
