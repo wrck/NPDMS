@@ -217,6 +217,13 @@ EXACT_PHASE1_DESIGN["PM-07"] = (
     "proj_project既有四属性列、proj_project_template_match_history",
     "模板前判定+原子创建+append-only历史+权限+幂等并发+响应式UI",
 )
+EXACT_PHASE1_DESIGN["PM-10"] = (
+    "项目治理", "Project / ProjectStageSnapshot / ProjectMemberAssignment",
+    "回退保持ACTIVE；异常关闭写EXCEPTION_CLOSED；仅异常关闭可受控重开", "ProjectTreeScope + 状态命令权限",
+    "ProjectGovernanceApplicationService / ProjectGovernanceGuardApi",
+    "proj_project、proj_project_stage_snapshot、proj_project_member_assignment",
+    "状态守卫+完整树+跨域阻断+幂等并发+响应式UI",
+)
 
 
 def domain_owners(requirements: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
@@ -365,6 +372,8 @@ FEATURE_LINK_OVERRIDES = {
     "PM-03": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
     "PM-04": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md) / [F-PROJ-003](../../specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md)",
     "PM-08": "[F-PROJ-005](../../specs/features/F-PROJ-005-service-manager-manual-assignment.md)（仅V1人工指派）",
+    "PM-10": "[F-PROJ-006](../../specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md)",
+    "PM-11": "[F-PROJ-007](../../specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md)",
 }
 
 IMPLEMENTATION_OVERRIDES = {
@@ -393,6 +402,23 @@ IMPLEMENTATION_OVERRIDES = {
         "F-PROJ-004-BASELINE-READY / GO `NPDMS-FPROJ004-IMPLEMENTATION-DONE-20260825-07` / "
         "NPDMS Task 1～6自动化、真实MySQL、真实浏览器与独立复审证据",
         "IMPLEMENTATION_PARTIAL（F-PROJ-004 PROJ子切片完成；INT与CHG保持未完成）",
+    ),
+    "PM-08": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "NPDMS `25230ce` Task 1～6、自动化、全新MySQL、单/多租户运行态、真实浏览器与独立整改复审GO",
+        "IMPLEMENTATION_COMPLETE（仅V1人工指派；V2自动指派未开始）",
+    ),
+    "PM-10": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "GO `NPDMS-FPROJ006-FEATURE-READY-20260825-01` / "
+        "NPDMS `fc9f8b1` Task 1～10、自动化、全新MySQL V87、真实浏览器与独立复审GO",
+        "IMPLEMENTATION_COMPLETE",
+    ),
+    "PM-11": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "Feature Ready GO `NPDMS-FPROJ007-FEATURE-READY-20260825-01` / "
+        "NPDMS `b559978` Task 1～10、自动化、全新MySQL V89、规模性能、Outbox、真实浏览器与独立复审GO",
+        "IMPLEMENTATION_COMPLETE",
     ),
 }
 
