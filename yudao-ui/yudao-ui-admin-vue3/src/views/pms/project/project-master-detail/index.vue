@@ -55,6 +55,18 @@
           </button>
         </div>
         <div class="rail-stage">
+          <div class="rail-stage-title">交付准备</div>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'duration' }"
+            @click="switchTab('duration')"
+            v-hasPermi="['pms:construction-plan:query', 'pms:construction-plan:duration-manage']"
+          >
+            <Icon icon="ep:calendar" class="rail-icon" />
+            <span class="rail-label">项目工期</span>
+          </button>
+        </div>
+        <div class="rail-stage">
           <div class="rail-stage-title">项目拆分</div>
           <button
             class="rail-item"
@@ -331,6 +343,12 @@
           @tree-version="treeVersion = $event"
         />
 
+        <ProjectDurationPanel
+          v-if="detail?.id && visitedTabs.has('duration')"
+          v-show="activeTab === 'duration'"
+          :project="detail"
+        />
+
         <ProjectSplitWizard
           v-if="detail?.id && visitedTabs.has('split')"
           v-show="activeTab === 'split'"
@@ -394,6 +412,7 @@ import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.
 import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
+import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO,
@@ -415,7 +434,9 @@ const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
 
-const requestedTab = route.query.tab === 'tasks' ? 'tasks' : 'base'
+const requestedTab = ['tasks', 'duration'].includes(String(route.query.tab))
+  ? String(route.query.tab)
+  : 'base'
 const activeTab = ref(requestedTab)
 const visitedTabs = ref(new Set([requestedTab]))
 const overviewSteps = [

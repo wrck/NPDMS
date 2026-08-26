@@ -1152,30 +1152,20 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     ]
   },
   'schedule-backward': {
-    key: 'schedule-backward', label: '工期倒排', icon: 'ep:timer', path: '/pms/project-management/schedule/schedule-backward',
+    key: 'schedule-backward', label: '历史工期倒排', icon: 'ep:timer', path: '/pms/project-management/schedule/schedule-backward',
     load: (pid, pageNo, pageSize) => ScheduleBackwardApi.getScheduleBackwardPage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => ScheduleBackwardApi.createScheduleBackward(data),
-    update: (data) => ScheduleBackwardApi.updateScheduleBackward(data),
-    delete: (id) => ScheduleBackwardApi.deleteScheduleBackward(id),
     get: (id) => ScheduleBackwardApi.getScheduleBackward(id),
     columns: [
       { prop: 'targetDate', label: '目标日期', width: 130, type: 'time' },
       { prop: 'projectType', label: '项目类型', width: 100 },
       { prop: 'conflictSummary', label: '冲突摘要', minWidth: 200 },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
-    ],
-    actions: [
-      { label: '计算', type: 'primary', show: (r) => r.status === 0, run: (r) => ScheduleBackwardApi.calculateScheduleBackward(r.id), confirm: '执行工期倒排计算？' },
-      { label: '应用', type: 'success', show: (r) => r.status === 0, run: (r) => ScheduleBackwardApi.applyScheduleBackward(r.id), confirm: '应用该倒排计划？' }
     ]
   },
   // --- 方案计划：并行事项 ---
   'plan-change': {
-    key: 'plan-change', label: '计划变更', icon: 'ep:edit', path: '/pms/project-management/schedule/plan-change',
+    key: 'plan-change', label: '历史计划变更', icon: 'ep:edit', path: '/pms/project-management/schedule/plan-change',
     load: (pid, pageNo, pageSize) => PlanChangeApi.getPlanChangePage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => PlanChangeApi.createPlanChange(data),
-    update: (data) => PlanChangeApi.updatePlanChange(data),
-    delete: (id) => PlanChangeApi.deletePlanChange(id),
     get: (id) => PlanChangeApi.getPlanChange(id),
     columns: [
       { prop: 'changeNo', label: '变更编号', width: 130 },
@@ -1184,11 +1174,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { prop: 'applyTime', label: '申请时间', width: 130, type: 'time' },
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
-    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待审批', tone: 'yellow' }, 2: { label: '已通过', tone: 'blue' }, 3: { label: '已驳回', tone: 'red' }, 4: { label: '已撤回', tone: 'gray' }, 5: { label: '已应用', tone: 'green' } },
-    actions: [
-      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => PlanChangeApi.submitPlanChange(r.id), confirm: '提交该变更申请？' },
-      { label: '审批', type: 'success', show: (r) => r.status === 1, run: (r) => PlanChangeApi.approvePlanChange({ id: r.id, approveAction: 'approve', approverUserId: r.approverUserId }), needOpinion: true }
-    ]
+    statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待审批', tone: 'yellow' }, 2: { label: '已通过', tone: 'blue' }, 3: { label: '已驳回', tone: 'red' }, 4: { label: '已撤回', tone: 'gray' }, 5: { label: '已应用', tone: 'green' } }
   },
   // --- 实施部署：流程步骤 ---
   'arrival': {
