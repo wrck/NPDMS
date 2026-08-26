@@ -12,4 +12,11 @@
     <artifactId>pms-module-platform-api</artifactId>
     <name>${project.artifactId}</name>
     <description>PMS 平台公共能力跨模块公开契约</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>yudao-common</artifactId>
+        </dependency>
+    </dependencies>
 </project>
