@@ -105,8 +105,7 @@ public class PreparationReadinessService {
         Evaluation evaluation = calculate(preparation, locked.items(), locked.forms(), locked.sources(),
                 locked.waivers(), scopeVersion, true, false);
         PreparationReadinessSnapshotDO latest = latestSnapshot(actor.tenantId(), preparation);
-        ReadinessFactVector latestVector = latest == null ? null : vector(latest);
-        if (latest != null && evaluation.vector().equals(latestVector)) {
+        if (matchesSnapshot(latest, evaluation)) {
             SiteSurveyReadinessFact fact = response(preparation, latest, scopeVersion,
                     evaluation, Boolean.TRUE.equals(preparation.getSnapshotCurrent()));
             audit.set(new AuditFacts(preparation.getProjectId(), preparation.getId(), latest.getId(),
@@ -152,8 +151,8 @@ public class PreparationReadinessService {
         Evaluation evaluation = calculate(preparation, facts.items(), facts.forms(), facts.sources(),
                 facts.waivers(), scope.treeVersion(), false, false);
         PreparationReadinessSnapshotDO latest = latestSnapshot(tenantId, preparation);
-        boolean current = latest != null && Boolean.TRUE.equals(preparation.getSnapshotCurrent())
-                && evaluation.vector().equals(vector(latest));
+        boolean current = Boolean.TRUE.equals(preparation.getSnapshotCurrent())
+                && matchesSnapshot(latest, evaluation);
         return response(preparation, latest, scope.treeVersion(), evaluation, current);
     }
 
@@ -182,7 +181,7 @@ public class PreparationReadinessService {
         if (latest == null || !READY.equals(preparation.getReadinessStatusCode())
                 || !Boolean.TRUE.equals(preparation.getSnapshotCurrent()) || !evaluation.blockers().isEmpty()
                 || !evaluation.vector().equals(query.expectedFactVector())
-                || !evaluation.vector().equals(vector(latest))) {
+                || !matchesSnapshot(latest, evaluation)) {
             throw exception(PREPARATION_READINESS_VERSION_CONFLICT);
         }
         return response(preparation, latest, scope.treeVersion(), evaluation, true);
@@ -425,6 +424,17 @@ public class PreparationReadinessService {
                 JsonUtils.parseArray(snapshot.getFileFactsSnapshot(), ReadinessFileFact.class),
                 JsonUtils.parseArray(snapshot.getSourceFactsSnapshot(), ReadinessSourceFact.class),
                 JsonUtils.parseArray(snapshot.getWaiverFactsSnapshot(), ReadinessWaiverFact.class));
+    }
+
+    private boolean matchesSnapshot(PreparationReadinessSnapshotDO snapshot, Evaluation evaluation) {
+        if (snapshot == null || !evaluation.vector().equals(vector(snapshot))) return false;
+        try {
+            List<String> frozenBlockers = JsonUtils.parseArray(snapshot.getBlockersSnapshot(), String.class);
+            String result = evaluation.blockers().isEmpty() ? READY : NOT_READY;
+            return evaluation.blockers().equals(frozenBlockers) && result.equals(snapshot.getResultCode());
+        } catch (RuntimeException invalidSnapshot) {
+            return false;
+        }
     }
 
     private SiteSurveyReadinessFact response(PreparationDO preparation, PreparationReadinessSnapshotDO latest,

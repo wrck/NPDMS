@@ -224,6 +224,58 @@ class PreparationReadinessServiceTest {
     }
 
     @Test
+    void providerUnavailableExpiresCurrentSnapshotAndEvaluateAppendsNotReady() {
+        PreparationDO preparation = currentReadyPreparation();
+        PreparationItemDO item = item(1);
+        item.setSourcePolicySnapshot("{\"requirementCode\":\"OA_REQUIRED\"}");
+        PreparationSourceReferenceDO source = syncedSource();
+        stubCurrentFacts(preparation, item, form(1), List.of(source), List.of());
+        when(snapshotMapper.selectById(any())).thenReturn(snapshotWithSource(preparation, 3L));
+        when(sourceProviderRegistry.inspect(any())).thenThrow(new IllegalStateException("unavailable"));
+        when(sourceProviderRegistry.lockAndRevalidate(any())).thenThrow(new IllegalStateException("unavailable"));
+        when(snapshotMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationReadinessSnapshotDO row = invocation.getArgument(0); row.setId(95L); return 1;
+        });
+        when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
+
+        var inspected = service.inspect(new SiteSurveyReadinessQuery(10L, 1L), 1L, 7L);
+        var evaluated = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "provider-down"), actor());
+
+        assertEquals(vector(snapshotWithSource(preparation, 3L)), inspected.factVector());
+        assertFalse(inspected.snapshotCurrent());
+        assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), inspected.blockerCodes());
+        assertFalse(evaluated.replayed());
+        assertEquals("NOT_READY", evaluated.readiness().readinessStatus());
+        verify(snapshotMapper).insert(argThat(row -> "NOT_READY".equals(row.getResultCode())));
+    }
+
+    @Test
+    void expiredWaiverExpiresCurrentSnapshotAndEvaluateAppendsNotReady() {
+        PreparationDO preparation = currentReadyPreparation();
+        PreparationItemDO item = item(1);
+        item.setItemCode("FIBER");
+        item.setSourcePolicySnapshot("{\"requirementCode\":\"OA_REQUIRED\"}");
+        LocalDateTime now = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+        PreparationItemWaiverDO waiver = waiver(now.minusHours(2), now.minusHours(1));
+        stubCurrentFacts(preparation, item, form(1), List.of(), List.of(waiver));
+        when(snapshotMapper.selectById(any())).thenReturn(snapshotWithWaiver(preparation, 3L, waiver));
+        when(snapshotMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationReadinessSnapshotDO row = invocation.getArgument(0); row.setId(96L); return 1;
+        });
+        when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
+
+        var inspected = service.inspect(new SiteSurveyReadinessQuery(10L, 1L), 1L, 7L);
+        var evaluated = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "waiver-expired"), actor());
+
+        assertEquals(vector(snapshotWithWaiver(preparation, 3L, waiver)), inspected.factVector());
+        assertFalse(inspected.snapshotCurrent());
+        assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), inspected.blockerCodes());
+        assertFalse(evaluated.replayed());
+        assertEquals("NOT_READY", evaluated.readiness().readinessStatus());
+        verify(snapshotMapper).insert(argThat(row -> "NOT_READY".equals(row.getResultCode())));
+    }
+
+    @Test
     void changedFileFactMakesInspectNotReadyAndLockedRevalidationRejectsWithoutWriting() {
         PreparationDO preparation = preparation();
         preparation.setLatestReadinessSnapshotId(91L);
@@ -293,6 +345,42 @@ class PreparationReadinessServiceTest {
         when(waiverMapper.selectListForUpdate(any())).thenReturn(List.of());
     }
 
+    private void stubCurrentFacts(PreparationDO preparation, PreparationItemDO item, DynamicFormInstanceDO form,
+            List<PreparationSourceReferenceDO> sources, List<PreparationItemWaiverDO> waivers) {
+        when(preparationMapper.selectById(any())).thenReturn(preparation);
+        when(preparationMapper.selectForUpdate(any())).thenReturn(preparation);
+        when(itemMapper.selectList(any())).thenReturn(List.of(item));
+        when(itemMapper.selectListForUpdate(any())).thenReturn(List.of(item));
+        when(formMapper.selectList(any())).thenReturn(List.of(form));
+        when(formMapper.selectListForUpdate(any())).thenReturn(List.of(form));
+        when(sourceMapper.selectList(any())).thenReturn(sources);
+        when(sourceMapper.selectListForUpdate(any())).thenReturn(sources);
+        when(waiverMapper.selectBusinessList(any())).thenReturn(waivers);
+        when(waiverMapper.selectBusinessListForUpdate(any())).thenReturn(waivers);
+    }
+
+    private PreparationDO currentReadyPreparation() {
+        PreparationDO row = preparation();
+        row.setLatestReadinessSnapshotId(91L); row.setSnapshotCurrent(true); row.setReadinessStatusCode("READY");
+        return row;
+    }
+
+    private PreparationSourceReferenceDO syncedSource() {
+        PreparationSourceReferenceDO row = new PreparationSourceReferenceDO();
+        row.setId(51L); row.setItemId(11L); row.setSourceTypeCode("OA");
+        row.setSourceObjectType("REQUEST"); row.setSourceObjectId("OA-1"); row.setSourceReferenceKey("REF-1");
+        row.setNormalizedResultCode("APPROVED"); row.setSourceFactVersion("F1"); row.setSourceWatermark("W1");
+        row.setSyncStatusCode("SYNCED"); row.setVersion(1); return row;
+    }
+
+    private PreparationItemWaiverDO waiver(LocalDateTime validFrom, LocalDateTime validUntil) {
+        PreparationItemWaiverDO row = new PreparationItemWaiverDO();
+        row.setId(61L); row.setPreparationId(99L); row.setItemId(98L); row.setItemCode("FIBER");
+        row.setWaiverNo(1); row.setStatusCode("APPROVED"); row.setVersion(2);
+        row.setBlockerCodesSnapshot("[\"SOURCE_PROVIDER_UNAVAILABLE\"]");
+        row.setValidFrom(validFrom); row.setValidUntil(validUntil); return row;
+    }
+
     private PreparationDO preparation() {
         PreparationDO row = new PreparationDO(); row.setId(1L); row.setTenantId(1L); row.setProjectId(10L);
         row.setBusinessVersion(1); row.setCurrentMarker(1); row.setStatusCode("CONFIRMED");
@@ -347,13 +435,37 @@ class PreparationReadinessServiceTest {
         return row;
     }
 
+    private PreparationReadinessSnapshotDO snapshotWithSource(PreparationDO preparation, Long scopeVersion) {
+        PreparationReadinessSnapshotDO row = snapshot(preparation, scopeVersion);
+        row.setSourceFactsSnapshot("[{\"sourceReferenceId\":51,\"itemId\":11,\"sourceTypeCode\":\"OA\"," +
+                "\"sourceReferenceKey\":\"REF-1\",\"normalizedResultCode\":\"APPROVED\"," +
+                "\"sourceFactVersion\":\"F1\",\"sourceWatermark\":\"W1\",\"syncStatusCode\":\"SYNCED\"," +
+                "\"version\":1}]");
+        return row;
+    }
+
+    private PreparationReadinessSnapshotDO snapshotWithWaiver(PreparationDO preparation, Long scopeVersion,
+            PreparationItemWaiverDO waiver) {
+        PreparationReadinessSnapshotDO row = snapshot(preparation, scopeVersion);
+        row.setItemFactsSnapshot(row.getItemFactsSnapshot().replace("\"itemCode\":\"POWER\"",
+                "\"itemCode\":\"FIBER\""));
+        row.setWaiverFactsSnapshot(JsonUtils.toJsonString(List.of(new cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessWaiverFact(
+                waiver.getId(), waiver.getItemId(), waiver.getItemCode(), waiver.getWaiverNo(),
+                waiver.getStatusCode(), waiver.getBlockerCodesSnapshot(), waiver.getValidFrom(),
+                waiver.getValidUntil(), waiver.getVersion()))));
+        return row;
+    }
+
     private ReadinessFactVector vector(PreparationReadinessSnapshotDO snapshot) {
         return new ReadinessFactVector(snapshot.getInputVersion(), snapshot.getProjectScopeVersion(),
                 JsonUtils.parseArray(snapshot.getItemFactsSnapshot(),
                         cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessItemFact.class),
                 JsonUtils.parseArray(snapshot.getFileFactsSnapshot(),
                         cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessFileFact.class),
-                List.of(), List.of());
+                JsonUtils.parseArray(snapshot.getSourceFactsSnapshot(),
+                        cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessSourceFact.class),
+                JsonUtils.parseArray(snapshot.getWaiverFactsSnapshot(),
+                        cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessWaiverFact.class));
     }
 
     private String schema() {

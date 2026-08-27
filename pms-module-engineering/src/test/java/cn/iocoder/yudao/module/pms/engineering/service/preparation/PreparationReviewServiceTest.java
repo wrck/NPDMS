@@ -56,6 +56,7 @@ class PreparationReviewServiceTest {
     @Mock private ProjectScopeApi projectScopeApi;
     @Mock private ProjectParticipantFactApi participantFactApi;
     @Mock private FileArtifactApi fileArtifactApi;
+    @Mock private PreparationSourceProviderRegistry sourceProviderRegistry;
     @Mock private PlatformCommandExecutionApi commandExecutionApi;
     @Mock private OperationAuditApi operationAuditApi;
     @Mock private TransactionTemplate transactionTemplate;
@@ -144,6 +145,45 @@ class PreparationReviewServiceTest {
     }
 
     @Test
+    void staleSyncedSourceRejectsSubmitBeforeFreezingForms() {
+        PreparationDO preparation = preparation("DRAFT", 1, 1);
+        PreparationItemDO required = item(101L, "REQUIRED", "PENDING", 1);
+        required.setAssigneeUserId(9L);
+        required.setSiteResultCode("READY");
+        stubRows(preparation, List.of(required), List.of(form(201L, 101L)));
+        when(sourceMapper.selectListForUpdate(any())).thenReturn(List.of(source(101L)));
+        when(sourceProviderRegistry.lockAndRevalidate(any())).thenThrow(new IllegalStateException("stale"));
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> service.execute(command(PreparationReviewCommand.SUBMIT, null, 1, null, null), actor()));
+
+        verify(formMapper, org.mockito.Mockito.never()).freezeIfMatch(any());
+        verify(preparationMapper, org.mockito.Mockito.never()).updateLifecycleIfMatch(any());
+        ArgumentCaptor<cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery>
+                query = ArgumentCaptor.forClass(
+                cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery.class);
+        verify(sourceProviderRegistry).lockAndRevalidate(query.capture());
+        assertEquals("APPROVED", query.getValue().expectedNormalizedResultCode());
+        assertEquals("F1", query.getValue().expectedSourceFactVersion());
+        assertEquals("W1", query.getValue().expectedSourceWatermark());
+    }
+
+    @Test
+    void staleSyncedSourceRejectsConfirmBeforeReviewCas() {
+        PreparationDO preparation = preparation("PENDING_CONFIRMATION", 4, 2);
+        PreparationItemDO selected = item(101L, "REQUIRED", "PENDING", 3);
+        stubRows(preparation, List.of(selected), List.of(form(201L, 101L)));
+        when(sourceMapper.selectListForUpdate(any())).thenReturn(List.of(source(101L)));
+        when(sourceProviderRegistry.lockAndRevalidate(any())).thenThrow(new IllegalStateException("stale"));
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> service.execute(command(PreparationReviewCommand.CONFIRM, 101L, 4, 3, null), actor()));
+
+        verify(itemMapper, org.mockito.Mockito.never()).updateReviewIfMatch(any());
+        verify(preparationMapper, org.mockito.Mockito.never()).invalidateReadinessIfMatch(any());
+    }
+
+    @Test
     void returnCreatesNewCurrentDraftAndResetsOnlyReturnedItem() {
         PreparationDO preparation = preparation("CONFIRMED", 5, 2);
         preparation.setBusinessVersion(1);
@@ -225,6 +265,15 @@ class PreparationReviewServiceTest {
         row.setPreparationId(1L); row.setItemId(itemId); row.setFormCode("SITE_SURVEY_COMMON");
         row.setFormVersion(1); row.setSchemaSnapshot(schema()); row.setValueSnapshot("{\"siteCondition\":\"正常\"}");
         row.setStatusCode("DRAFT"); row.setVersion(1); return row;
+    }
+
+    private PreparationSourceReferenceDO source(Long itemId) {
+        PreparationSourceReferenceDO row = new PreparationSourceReferenceDO();
+        row.setId(301L); row.setItemId(itemId); row.setSourceTypeCode("OA");
+        row.setSourceObjectType("REQUEST"); row.setSourceObjectId("OA-1");
+        row.setSourceReferenceKey("REF-1"); row.setNormalizedResultCode("APPROVED");
+        row.setSourceFactVersion("F1"); row.setSourceWatermark("W1");
+        row.setSyncStatusCode("SYNCED"); row.setVersion(1); return row;
     }
 
     private String schema() {

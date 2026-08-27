@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.*;
@@ -55,6 +56,7 @@ public class PreparationReviewService {
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
     private final FileArtifactApi fileArtifactApi;
+    private final PreparationSourceProviderRegistry sourceProviderRegistry;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
@@ -127,6 +129,7 @@ public class PreparationReviewService {
             List<PreparationSourceReferenceDO> sources,
             AtomicReference<Map<String, Object>> auditSnapshot) {
         PreparationStateRules.requirePreparationTransition(preparation.getStatusCode(), "PENDING_CONFIRMATION");
+        revalidateSources(preparation, items, sources);
         LocalDateTime now = LocalDateTime.now();
         for (PreparationItemDO item : items) {
             DynamicFormInstanceDO form = forms.get(item.getId());
@@ -170,6 +173,7 @@ public class PreparationReviewService {
         validateEvidence(selected, actor);
         List<PreparationSourceReferenceDO> selectedSources = sources.stream()
                 .filter(source -> Objects.equals(source.getItemId(), selected.getId())).toList();
+        revalidateSources(preparation, List.of(selected), selectedSources);
         String applicability = selected.getApplicabilityCode();
         if (PreparationReviewCommand.CONFIRM.equals(command.action())) {
             if (!"REQUIRED".equals(applicability)) throw exception(PREPARATION_STATUS_INVALID);
@@ -256,6 +260,21 @@ public class PreparationReviewService {
         auditSnapshot.set(returnAudit(command, oldPreparation, next, oldItems, oldForms, sources,
                 selected, itemIds));
         return result(next, "DRAFT", 0, next.getId());
+    }
+
+    private void revalidateSources(PreparationDO preparation, List<PreparationItemDO> items,
+            List<PreparationSourceReferenceDO> sources) {
+        Map<Long, PreparationItemDO> itemsById = new HashMap<>();
+        items.forEach(item -> itemsById.put(item.getId(), item));
+        sources.stream().filter(source -> "SYNCED".equals(source.getSyncStatusCode())).forEach(source -> {
+            PreparationItemDO item = itemsById.get(source.getItemId());
+            if (item == null) throw exception(PREPARATION_SOURCE_UNAVAILABLE);
+            sourceProviderRegistry.lockAndRevalidate(new PreparationSourceFactRevalidationQuery(
+                    preparation.getProjectId(), item.getId(), source.getSourceTypeCode(),
+                    source.getSourceObjectType(), source.getSourceObjectId(), source.getSourceReferenceKey(),
+                    item.getSourcePolicySnapshot(), source.getNormalizedResultCode(),
+                    source.getSourceFactVersion(), source.getSourceWatermark()));
+        });
     }
 
     private PreparationItemDO requireItem(List<PreparationItemDO> items, PreparationReviewCommand command) {
