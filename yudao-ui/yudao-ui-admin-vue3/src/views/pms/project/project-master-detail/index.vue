@@ -65,6 +65,15 @@
             <Icon icon="ep:calendar" class="rail-icon" />
             <span class="rail-label">项目工期</span>
           </button>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'preparation' }"
+            @click="switchTab('preparation')"
+            v-hasPermi="['pms:preparation-survey:query', 'pms:preparation-survey:manage']"
+          >
+            <Icon icon="ep:compass" class="rail-icon" />
+            <span class="rail-label">工勘准备</span>
+          </button>
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">项目拆分</div>
@@ -349,6 +358,12 @@
           :project="detail"
         />
 
+        <ProjectPreparationPanel
+          v-if="detail?.id && visitedTabs.has('preparation')"
+          v-show="activeTab === 'preparation'"
+          :project="detail"
+        />
+
         <ProjectSplitWizard
           v-if="detail?.id && visitedTabs.has('split')"
           v-show="activeTab === 'split'"
@@ -413,6 +428,7 @@ import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
 import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
+import ProjectPreparationPanel from './components/ProjectPreparationPanel.vue'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO,

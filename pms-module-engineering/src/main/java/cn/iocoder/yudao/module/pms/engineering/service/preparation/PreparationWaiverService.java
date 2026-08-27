@@ -8,6 +8,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.*;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
@@ -64,7 +66,12 @@ public class PreparationWaiverService {
                 actor.tenantId(), preparation.getProjectId(), item.getItemCode(), parsed.waiverNo(),
                 parsed.id(), pageSize + 1));
         boolean hasMore = fetched.size() > pageSize;
-        List<WaiverView> rows = fetched.stream().limit(pageSize).map(this::view).toList();
+        boolean manager = canActAs(preparation.getProjectId(), actor,
+                ProjectParticipantFactApi.ROLE_PROJECT_MANAGER,
+                PreparationInitializationService.PERMISSION_MANAGE, ProjectScopeApi.ACTION_MANAGE);
+        Map<String, Boolean> approvalRoles = new HashMap<>();
+        List<WaiverView> rows = fetched.stream().limit(pageSize)
+                .map(row -> view(row, preparation, actor, manager, approvalRoles)).toList();
         WaiverView last = rows.isEmpty() ? null : rows.getLast();
         return new WaiverPage(rows, hasMore && last != null ? last.waiverNo() + ":" + last.waiverId() : null, hasMore);
     }
@@ -267,12 +274,45 @@ public class PreparationWaiverService {
         }
     }
 
-    private WaiverView view(PreparationItemWaiverDO row) {
+    private WaiverView view(PreparationItemWaiverDO row, PreparationDO preparation,
+            PreparationItemApplicationService.Actor actor, boolean manager, Map<String, Boolean> approvalRoles) {
+        List<String> actions = new ArrayList<>();
+        boolean current = Integer.valueOf(1).equals(preparation.getCurrentMarker())
+                && Objects.equals(row.getPreparationId(), preparation.getId());
+        if (current && manager && Objects.equals(row.getApplicantUserId(), actor.actorId())) {
+            if ("DRAFT".equals(row.getStatusCode())) actions.add("SUBMIT");
+            if (Set.of("DRAFT", "PENDING_APPROVAL").contains(row.getStatusCode())) actions.add("WITHDRAW");
+        }
+        boolean approver = current && !Objects.equals(row.getApplicantUserId(), actor.actorId())
+                && !blank(row.getApprovalRoleCode())
+                && approvalRoles.computeIfAbsent(row.getApprovalRoleCode(), role -> canActAs(
+                        preparation.getProjectId(), actor, role, PERMISSION_APPROVE, ProjectScopeApi.ACTION_VIEW));
+        if (approver && "PENDING_APPROVAL".equals(row.getStatusCode())) {
+            actions.add("APPROVE");
+            actions.add("REJECT");
+        }
         return new WaiverView(row.getId(), row.getPreparationId(), row.getItemId(), row.getItemCode(),
                 row.getWaiverNo(), row.getStatusCode(), row.getBlockerCodesSnapshot(), row.getReason(), row.getRisk(),
                 row.getCompensation(), row.getValidFrom(), row.getValidUntil(), row.getApprovalRoleCode(),
                 row.getApplicantUserId(), row.getSubmittedAt(), row.getDecidedBy(), row.getDecidedAt(),
-                row.getDecisionOpinion(), row.getWithdrawnAt(), row.getVersion());
+                row.getDecisionOpinion(), row.getWithdrawnAt(), row.getVersion(), actions);
+    }
+
+    private boolean canActAs(Long projectId, PreparationItemApplicationService.Actor actor, String roleCode,
+            String permission, String scopeAction) {
+        try {
+            if (!permissionApi.hasAnyPermissions(actor.actorId(), permission)) return false;
+            ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
+                    actor.tenantId(), actor.actorId(), projectId, scopeAction));
+            if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) return false;
+            ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
+                    projectId, actor.actorId(), Set.of(roleCode), LocalDateTime.now()));
+            return fact != null && Objects.equals(fact.projectId(), projectId)
+                    && Objects.equals(fact.userId(), actor.actorId()) && "ACTIVE".equals(fact.lifecycleStatus())
+                    && fact.effectiveRoleCodes().contains(roleCode);
+        } catch (RuntimeException unavailable) {
+            return false;
+        }
     }
 
     private WaiverResult result(PreparationItemWaiverDO row, String status, int version, PreparationDO preparation) {
@@ -307,7 +347,9 @@ public class PreparationWaiverService {
             String statusCode, String blockerCodesSnapshot, String reason, String risk, String compensation,
             LocalDateTime validFrom, LocalDateTime validUntil, String approvalRoleCode, Long applicantUserId,
             LocalDateTime submittedAt, Long decidedBy, LocalDateTime decidedAt, String decisionOpinion,
-            LocalDateTime withdrawnAt, Integer version) {}
+            LocalDateTime withdrawnAt, Integer version, List<String> allowedActions) {
+        public WaiverView { allowedActions = allowedActions == null ? List.of() : List.copyOf(allowedActions); }
+    }
     private record WaiverCursor(Integer waiverNo, Long id) {}
     private record WaiverPolicy(boolean allowed, String approvalRoleCode) {}
     private record AuditFacts(Long projectId, Long itemId, Long waiverId, String statusBefore, String statusAfter,

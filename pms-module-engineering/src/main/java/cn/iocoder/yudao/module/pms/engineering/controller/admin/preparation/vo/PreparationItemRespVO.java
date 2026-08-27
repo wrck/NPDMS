@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class PreparationItemRespVO {
@@ -21,6 +22,8 @@ public class PreparationItemRespVO {
     private String evidencePolicySnapshot;
     private String sourcePolicySnapshot;
     private String waiverPolicySnapshot;
+    private List<PreparationSourceRespVO> sources = List.of();
+    private List<String> allowedActions = List.of();
     private Integer version;
     private PreparationFormRespVO form;
 }

@@ -1,35 +1,51 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationCursorPageRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationFormRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationItemRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessSnapshotRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationSourceRespVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemWaiverDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationReadinessSnapshotDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationSourceReferenceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemWaiverMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationReadinessSnapshotMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationSourceReferenceMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationChildrenQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.DynamicFormItemListQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationCurrentQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationRowQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationSnapshotPageQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationWaiverBusinessQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,11 +65,14 @@ public class PreparationQueryService {
 
     private final PreparationMapper preparationMapper;
     private final PreparationItemMapper itemMapper;
+    private final PreparationItemWaiverMapper waiverMapper;
     private final DynamicFormInstanceMapper formMapper;
+    private final PreparationSourceReferenceMapper sourceMapper;
     private final PreparationReadinessSnapshotMapper snapshotMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectWorkBindingFactApi workBindingFactApi;
+    private final ProjectParticipantFactApi participantFactApi;
 
     public PreparationRespVO getCurrent(Long projectId, String type, Actor actor) {
         requireQuery(actor, projectId);
@@ -66,7 +85,7 @@ public class PreparationQueryService {
             requireBinding(projectId);
             return null;
         }
-        return toPreparation(current);
+        return toPreparation(current, actions(current, actor));
     }
 
     public PreparationRespVO getDetail(Long preparationId, Actor actor) {
@@ -74,7 +93,7 @@ public class PreparationQueryService {
         PreparationDO row = preparationMapper.selectById(new PreparationRowQuery(
                 actor.tenantId(), positive(preparationId)));
         requireVisible(row, actor);
-        return toPreparation(row);
+        return toPreparation(row, actions(row, actor));
     }
 
     public PreparationCursorPageRespVO<PreparationItemRespVO> getItems(
@@ -93,7 +112,19 @@ public class PreparationQueryService {
                 : formMapper.selectListByItemIds(new DynamicFormItemListQuery(actor.tenantId(), preparation.getId(),
                         page.stream().map(PreparationItemDO::getId).toList())).stream()
                 .collect(Collectors.toMap(DynamicFormInstanceDO::getItemId, Function.identity()));
-        List<PreparationItemRespVO> items = page.stream().map(item -> toItem(item, forms.get(item.getId()))).toList();
+        Map<Long, List<PreparationSourceReferenceDO>> sources = page.isEmpty() ? Map.of()
+                : sourceMapper.selectList(new PreparationChildrenQuery(actor.tenantId(), preparation.getId())).stream()
+                .collect(Collectors.groupingBy(PreparationSourceReferenceDO::getItemId));
+        Set<String> pendingWaiverItemCodes = page.isEmpty() ? Set.of()
+                : waiverMapper.selectBusinessList(new PreparationWaiverBusinessQuery(actor.tenantId(),
+                        preparation.getProjectId(), page.stream().map(PreparationItemDO::getItemCode)
+                        .collect(Collectors.toSet()))).stream()
+                .filter(row -> "PENDING_APPROVAL".equals(row.getStatusCode()))
+                .map(PreparationItemWaiverDO::getItemCode).collect(Collectors.toSet());
+        ActionContext actionContext = actionContext(preparation, actor);
+        List<PreparationItemRespVO> items = page.stream().map(item -> toItem(item, forms.get(item.getId()),
+                sources.getOrDefault(item.getId(), List.of()), pendingWaiverItemCodes.contains(item.getItemCode()),
+                actionContext, actor)).toList();
         return new PreparationCursorPageRespVO<>(items,
                 hasMore ? itemCursor(page.getLast()) : null, hasMore);
     }
@@ -108,7 +139,7 @@ public class PreparationQueryService {
                 cursor.businessVersion(), cursor.id(), size + 1));
         boolean hasMore = fetched.size() > size;
         List<PreparationDO> page = hasMore ? fetched.subList(0, size) : fetched;
-        return new PreparationCursorPageRespVO<>(page.stream().map(this::toPreparation).toList(),
+        return new PreparationCursorPageRespVO<>(page.stream().map(row -> toPreparation(row, List.of())).toList(),
                 hasMore ? historyCursor(page.getLast()) : null, hasMore);
     }
 
@@ -155,7 +186,7 @@ public class PreparationQueryService {
         }
     }
 
-    private PreparationRespVO toPreparation(PreparationDO row) {
+    private PreparationRespVO toPreparation(PreparationDO row, List<String> allowedActions) {
         PreparationRespVO response = new PreparationRespVO();
         response.setPreparationId(row.getId());
         response.setProjectId(row.getProjectId());
@@ -177,11 +208,13 @@ public class PreparationQueryService {
         response.setReturnReason(row.getReturnReason());
         response.setVersion(row.getVersion());
         response.setCreatedAt(row.getCreateTime());
-        response.setAllowedActions(List.of());
+        response.setAllowedActions(allowedActions);
         return response;
     }
 
-    private PreparationItemRespVO toItem(PreparationItemDO row, DynamicFormInstanceDO form) {
+    private PreparationItemRespVO toItem(PreparationItemDO row, DynamicFormInstanceDO form,
+            List<PreparationSourceReferenceDO> sources, boolean pendingWaiver,
+            ActionContext actions, Actor actor) {
         if (form == null) throw exception(PREPARATION_NOT_EXISTS);
         PreparationItemRespVO response = new PreparationItemRespVO();
         response.setItemId(row.getId());
@@ -199,8 +232,91 @@ public class PreparationQueryService {
         response.setEvidencePolicySnapshot(row.getEvidencePolicySnapshot());
         response.setSourcePolicySnapshot(row.getSourcePolicySnapshot());
         response.setWaiverPolicySnapshot(row.getWaiverPolicySnapshot());
+        response.setSources(sources.stream().map(this::toSource).toList());
+        response.setAllowedActions(itemActions(row, form, pendingWaiver, actions, actor));
         response.setVersion(row.getVersion());
         response.setForm(toForm(form));
+        return response;
+    }
+
+    private List<String> actions(PreparationDO row, Actor actor) {
+        ActionContext context = actionContext(row, actor);
+        if (!context.manager() || !context.current()) return List.of();
+        List<String> actions = new java.util.ArrayList<>();
+        if ("DRAFT".equals(row.getStatusCode())) actions.add("SUBMIT");
+        if ("CONFIRMED".equals(row.getStatusCode())) actions.add("EVALUATE_READINESS");
+        return List.copyOf(actions);
+    }
+
+    private List<String> itemActions(PreparationItemDO item, DynamicFormInstanceDO form,
+            boolean pendingWaiver, ActionContext context, Actor actor) {
+        if (!context.current() || form == null) return List.of();
+        Set<String> actions = new LinkedHashSet<>();
+        boolean draft = "DRAFT".equals(context.status()) && "DRAFT".equals(form.getStatusCode())
+                && form.getFrozenAt() == null;
+        if (draft && context.manager()) actions.add("PATCH_MANAGER_FIELDS");
+        if (draft && context.fill() && Objects.equals(item.getAssigneeUserId(), actor.actorId())
+                && "REQUIRED".equals(item.getApplicabilityCode())) actions.add("PATCH_ASSIGNEE_FIELDS");
+        if (actions.stream().anyMatch(action -> action.startsWith("PATCH_"))) actions.add("PATCH_ITEM");
+        if (context.manager() && "PENDING_CONFIRMATION".equals(context.status())
+                && "PENDING".equals(item.getConfirmationStatusCode())) actions.add("REVIEW_ITEM");
+        Map<?, ?> sourcePolicy = JsonUtils.parseObject(item.getSourcePolicySnapshot(), Map.class);
+        if (context.manager() && "OA_REQUIRED".equals(
+                sourcePolicy == null ? null : sourcePolicy.get("requirementCode"))) {
+            actions.add("REFRESH_SOURCE");
+        }
+        Map<?, ?> waiverPolicy = JsonUtils.parseObject(item.getWaiverPolicySnapshot(), Map.class);
+        if (context.manager() && !pendingWaiver
+                && Boolean.TRUE.equals(waiverPolicy == null ? null : waiverPolicy.get("allowed"))) {
+            actions.add("CREATE_WAIVER");
+        }
+        return List.copyOf(actions);
+    }
+
+    private ActionContext actionContext(PreparationDO preparation, Actor actor) {
+        boolean current = Integer.valueOf(1).equals(preparation.getCurrentMarker());
+        try {
+            boolean fill = permissionApi.hasAnyPermissions(
+                    actor.actorId(), PreparationItemApplicationService.PERMISSION_FILL);
+            boolean manage = permissionApi.hasAnyPermissions(
+                    actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE);
+            if (!current || !manage) return new ActionContext(current, false, fill, preparation.getStatusCode());
+            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
+                    preparation.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
+            if (scope == null || scope.fullProjectIds() == null
+                    || !scope.fullProjectIds().contains(preparation.getProjectId())) {
+                return new ActionContext(true, false, fill, preparation.getStatusCode());
+            }
+            ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
+                    preparation.getProjectId(), actor.actorId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
+                    LocalDateTime.now()));
+            boolean manager = fact != null && Objects.equals(fact.projectId(), preparation.getProjectId())
+                    && Objects.equals(fact.userId(), actor.actorId()) && "ACTIVE".equals(fact.lifecycleStatus())
+                    && fact.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+            return new ActionContext(true, manager, fill, preparation.getStatusCode());
+        } catch (RuntimeException unavailable) {
+            return new ActionContext(current, false, false, preparation.getStatusCode());
+        }
+    }
+
+    private PreparationSourceRespVO toSource(PreparationSourceReferenceDO row) {
+        PreparationSourceRespVO response = new PreparationSourceRespVO();
+        response.setSourceReferenceId(row.getId());
+        response.setSourceTypeCode(row.getSourceTypeCode());
+        response.setSourceObjectType(row.getSourceObjectType());
+        response.setSourceObjectId(row.getSourceObjectId());
+        response.setSourceReferenceKey(row.getSourceReferenceKey());
+        response.setNormalizedResultCode(row.getNormalizedResultCode());
+        response.setSourceFactVersion(row.getSourceFactVersion());
+        response.setSourceWatermark(row.getSourceWatermark());
+        response.setSyncStatusCode(row.getSyncStatusCode());
+        response.setLastSuccessResultCode(row.getLastSuccessResultCode());
+        response.setLastSuccessFactVersion(row.getLastSuccessFactVersion());
+        response.setLastSuccessWatermark(row.getLastSuccessWatermark());
+        response.setLastSuccessAt(row.getLastSuccessAt());
+        response.setLastSyncedAt(row.getLastSyncedAt());
+        response.setLastSyncErrorCode(row.getLastSyncErrorCode());
+        response.setSourceVersion(row.getVersion());
         return response;
     }
 
@@ -315,6 +431,9 @@ public class PreparationQueryService {
     }
 
     private record SnapshotCursor(Integer snapshotNo, Long id) {
+    }
+
+    private record ActionContext(boolean current, boolean manager, boolean fill, String status) {
     }
 
     public record Actor(Long tenantId, Long actorId) {

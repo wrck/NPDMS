@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.*;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -31,6 +32,71 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class PreparationSourceAndWaiverServiceTest {
+
+    @Test
+    void waiverPageProjectsOnlyCurrentlyAuthorizedRowActions() {
+        PreparationMapper preparationMapper = mock(PreparationMapper.class);
+        PreparationItemMapper itemMapper = mock(PreparationItemMapper.class);
+        PreparationItemWaiverMapper waiverMapper = mock(PreparationItemWaiverMapper.class);
+        ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
+        ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
+        PermissionApi permissionApi = mock(PermissionApi.class);
+        PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
+                scopeApi, participantApi, permissionApi, mock(PlatformCommandExecutionApi.class),
+                mock(OperationAuditApi.class), immediateTransaction());
+        PreparationDO preparation = preparation();
+        PreparationItemDO item = item();
+        PreparationItemWaiverDO waiver = waiver();
+        waiver.setStatusCode("DRAFT");
+        waiver.setApplicantUserId(7L);
+        when(preparationMapper.selectById(any())).thenReturn(preparation);
+        when(itemMapper.selectList(any())).thenReturn(List.of(item));
+        when(waiverMapper.selectPage(any())).thenReturn(List.of(waiver));
+        when(permissionApi.hasAnyPermissions(anyLong(), any(String[].class))).thenReturn(true);
+        when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
+        when(participantApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                10L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
+                "ACTIVE", "S1", 3, 4L));
+
+        var page = service.page(1L, 2L, null, 20, actor(7L));
+
+        assertEquals(List.of("SUBMIT", "WITHDRAW"), page.items().getFirst().allowedActions());
+    }
+
+    @Test
+    void waiverPageRequiresCurrentFrozenApprovalRoleAndExcludesApplicant() {
+        PreparationMapper preparationMapper = mock(PreparationMapper.class);
+        PreparationItemMapper itemMapper = mock(PreparationItemMapper.class);
+        PreparationItemWaiverMapper waiverMapper = mock(PreparationItemWaiverMapper.class);
+        ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
+        ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
+        PermissionApi permissionApi = mock(PermissionApi.class);
+        PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
+                scopeApi, participantApi, permissionApi, mock(PlatformCommandExecutionApi.class),
+                mock(OperationAuditApi.class), immediateTransaction());
+        PreparationItemWaiverDO applicant = waiver();
+        applicant.setId(41L);
+        applicant.setApplicantUserId(7L);
+        PreparationItemWaiverDO reviewable = waiver();
+        reviewable.setId(42L);
+        reviewable.setApplicantUserId(8L);
+        when(preparationMapper.selectById(any())).thenReturn(preparation());
+        when(itemMapper.selectList(any())).thenReturn(List.of(item()));
+        when(waiverMapper.selectPage(any())).thenReturn(List.of(applicant, reviewable));
+        when(permissionApi.hasAnyPermissions(anyLong(), any(String[].class))).thenReturn(true);
+        when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
+        when(participantApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                10L, 7L, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1), null,
+                "ACTIVE", "S1", 3, 4L));
+
+        var page = service.page(1L, 2L, null, 20, actor(7L));
+
+        assertTrue(page.items().getFirst().allowedActions().isEmpty());
+        assertEquals(List.of("APPROVE", "REJECT"), page.items().get(1).allowedActions());
+
+        when(participantApi.inspect(any())).thenThrow(new IllegalStateException("participant unavailable"));
+        assertTrue(service.page(1L, 2L, null, 20, actor(7L)).items().get(1).allowedActions().isEmpty());
+    }
 
     @Test
     void registryRejectsMissingProviderAndAcceptsExactFact() {

@@ -984,9 +984,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   'site-survey': {
     key: 'site-survey', label: '现场工勘', icon: 'ep:position', path: '/pms/engineering/preparation/eng-site-survey',
     load: (pid, pageNo, pageSize) => SiteSurveyApi.getSiteSurveyPage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => SiteSurveyApi.createSiteSurvey(data),
-    update: (data) => SiteSurveyApi.updateSiteSurvey(data),
-    delete: (id) => SiteSurveyApi.deleteSiteSurvey(id),
     get: (id) => SiteSurveyApi.getSiteSurvey(id),
     columns: [
       { prop: 'code', label: '编码', width: 130 },
@@ -996,11 +993,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { prop: 'status', label: '状态', width: 90, type: 'status' }
     ],
     statusMap: { 0: { label: '草稿', tone: 'gray' }, 1: { label: '待确认', tone: 'yellow' }, 2: { label: '已确认', tone: 'blue' }, 3: { label: '已归档', tone: 'green' } },
-    actions: [
-      { label: '确认', type: 'success', show: (r) => r.status === 1, run: (r) => SiteSurveyApi.confirmSiteSurvey(r.id), confirm: '确认该工勘记录？' },
-      { label: '驳回', type: 'danger', show: (r) => r.status === 1, run: (r) => SiteSurveyApi.rejectSiteSurvey(r.id), confirm: '驳回该工勘记录？' },
-      { label: '归档', type: 'info', show: (r) => r.status === 2, run: (r) => SiteSurveyApi.archiveSiteSurvey(r.id), confirm: '归档该工勘记录？' }
-    ]
+    actions: []
   },
   'requirement': {
     key: 'requirement', label: '需求分析', icon: 'ep:document-copy', path: '/pms/engineering/preparation/eng-requirement',
