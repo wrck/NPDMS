@@ -1,0 +1,296 @@
+{
+  "capturedAt": "2026-08-27T20:13:15.279Z",
+  "browserVersion": "151.0.7922.174",
+  "candidateRuntime": {
+    "frontend": "http://127.0.0.1:18081",
+    "backend": "http://localhost:58080/admin-api",
+    "fileStorage": "MinIO",
+    "scanMode": "PASSED"
+  },
+  "template": {
+    "templateCode": "FPLT002_BROWSER_1787861558754",
+    "lifecycle": [
+      "DRAFT",
+      "PUBLISHED",
+      "ENABLED",
+      "DISABLED"
+    ]
+  },
+  "instance": {
+    "instanceId": "2093069231167578114",
+    "frozenRevisionId": "2093069199932596225",
+    "ordinaryValues": {
+      "projectName": "F-PLT-002 浏览器项目",
+      "requiresCutover": false,
+      "machineCount": 0
+    },
+    "controlledFileCount": 1,
+    "remainsReadableAfterTemplateDisabled": true
+  },
+  "capabilitiesObserved": [
+    "完整 FormCreate 设计器",
+    "iframe",
+    "接口选择器",
+    "事件",
+    "函数/parseFunc 提示",
+    "PmsFileArtifact"
+  ],
+  "responsiveWidths": [
+    320,
+    768,
+    1024,
+    1440
+  ],
+  "legacyUnchanged": {
+    "apiFacts": [
+      {
+        "name": "BPM表单",
+        "total": 0,
+        "status": 200
+      },
+      {
+        "name": "旧PMS表单模板",
+        "total": 10,
+        "status": 200
+      },
+      {
+        "name": "旧PMS表单实例",
+        "total": 45,
+        "status": 200
+      },
+      {
+        "name": "旧需求分析",
+        "total": 31,
+        "status": 200
+      }
+    ],
+    "pageFacts": [
+      {
+        "name": "BPM表单",
+        "route": "/bpm/manager/form",
+        "title": "项目实施交付管理平台 - 流程表单"
+      },
+      {
+        "name": "旧PMS表单模板",
+        "route": "/pms/engineering/document/eng-form-template",
+        "title": "项目实施交付管理平台 - 表单模板"
+      },
+      {
+        "name": "旧PMS表单实例",
+        "route": "/pms/eng-form-instance",
+        "title": "项目实施交付管理平台 - 表单填报"
+      },
+      {
+        "name": "旧需求分析",
+        "route": "/pms/engineering/preparation/eng-requirement",
+        "title": "项目实施交付管理平台 - 需求与接口"
+      }
+    ]
+  },
+  "expectedNegativeResponses": [
+    {
+      "actor": "admin1",
+      "status": 200,
+      "code": 403,
+      "sideEffect": "NONE"
+    }
+  ],
+  "responseUnknownRecovery": {
+    "serverCommittedBeforeBrowserAbort": true,
+    "authoritativeReadConfirmedSameIntent": true,
+    "retainedIntentReleasedAfterConfirmation": true,
+    "expectedDiagnostics": [
+      "Failed to load resource: net::ERR_FAILED"
+    ]
+  },
+  "relevantHttp": [
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/infra/file-config/page"
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "path": "/admin-api/infra/file-config/update-master"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/infra/file-config/test"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093069199932596225"
+    },
+    {
+      "method": "PATCH",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093069199932596225"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093069199932596225"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093069199932596225/actions/publish"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates/2093069199924207618/actions/enable"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates/selection"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093069199932596225"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093069231167578114"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093069231167578114"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files:init-upload"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093069236280434690:complete-upload"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093069236280434690"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093069236280434690/versions"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093069231167578114"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093069231167578114"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093069236280434690"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates/selection"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "unexpectedResponses": []
+}

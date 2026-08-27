@@ -1,6 +1,7 @@
 import { computed, createRenderer, defineComponent, h, inject, nextTick, provide, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveFileUploadMode, useFileSlotState } from './useFileSlotState'
+import PmsFileReferenceList from './PmsFileReferenceList.vue'
 import PmsFileVersionDrawer from './PmsFileVersionDrawer.vue'
 import * as FileApi from '@/api/pms/platform/file'
 import {
@@ -10,12 +11,23 @@ import {
 import type { ConstructionPlanChangeVO } from '@/api/pms/engineering/construction-plan'
 
 const mediaQuery = vi.hoisted(() => ({ narrow: true }))
+const fileMessage = vi.hoisted(() => ({
+  prompt: vi.fn(),
+  success: vi.fn(),
+  warning: vi.fn()
+}))
 
 vi.mock('@vueuse/core', async () => {
   const { ref: vueRef } = await import('vue')
   return { useMediaQuery: () => vueRef(mediaQuery.narrow) }
 })
-vi.mock('@/api/pms/platform/file', () => ({ getVersions: vi.fn() }))
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => fileMessage }))
+vi.mock('@/api/pms/platform/file', () => ({
+  createAccessTicket: vi.fn(),
+  detachReference: vi.fn(),
+  getArtifact: vi.fn(),
+  getVersions: vi.fn()
+}))
 
 interface TestNode {
   type: string
@@ -31,7 +43,8 @@ const renderer = createRenderer<TestNode, TestNode>({
     parent.children.push(child)
   },
   remove: (child) => {
-    if (child.parent) child.parent.children = child.parent.children.filter((item) => item !== child)
+    if (child?.parent)
+      child.parent.children = child.parent.children.filter((item) => item !== child)
   },
   createElement: (type) => ({ type, children: [] }),
   createText: (text) => ({ type: '#text', text, children: [] }),
@@ -39,7 +52,11 @@ const renderer = createRenderer<TestNode, TestNode>({
   setText: (node, text) => (node.text = text),
   setElementText: (node, text) => (node.children = [{ type: '#text', text, children: [] }]),
   parentNode: (node) => node.parent ?? null,
-  nextSibling: () => null,
+  nextSibling: (node) => {
+    if (!node?.parent) return null
+    const index = node.parent.children.indexOf(node)
+    return index >= 0 ? (node.parent.children[index + 1] ?? null) : null
+  },
   querySelector: () => null,
   setScopeId: () => undefined,
   cloneNode: (node) => ({ ...node, children: [...node.children] }),
@@ -187,6 +204,80 @@ describe('F-PLT-001 file interaction state', () => {
       referenceVersion: 7
     })
     expect(resolveFileUploadMode(slot.state.artifactId)).toBe('ADD_VERSION')
+  })
+
+  it('reuses the detach idempotency key when the first response is unknown', async () => {
+    vi.mocked(FileApi.getArtifact).mockResolvedValue({
+      artifactId: 901,
+      name: '受控附件.pdf',
+      categoryCode: 'DYNAMIC_FORM_ATTACHMENT',
+      ownerContext: 'PLATFORM',
+      lifecycleStatus: 'ACTIVE',
+      artifactVersion: 1,
+      reference: {
+        referenceId: 801,
+        artifactId: 901,
+        versionNo: 2,
+        ownerContext: 'PLATFORM',
+        objectType: 'DYNAMIC_FORM_INSTANCE',
+        objectId: '701',
+        purposeCode: 'FORM_FIELD_ATTACHMENT/evidence',
+        referenceKey: '6dd72f88-9a9c-4ee0-b229-4fb6331f35af',
+        sensitivityCode: 'INTERNAL',
+        status: 'ACTIVE',
+        scopeVersion: 601,
+        referenceVersion: 7,
+        createdAt: '2026-08-28T00:00:00',
+        updatedAt: '2026-08-28T00:00:00'
+      },
+      allowedActions: ['PREVIEW', 'DOWNLOAD'],
+      createdAt: '2026-08-28T00:00:00'
+    })
+    fileMessage.prompt.mockResolvedValue({ value: '材料重复' })
+    vi.mocked(FileApi.detachReference)
+      .mockRejectedValueOnce(new Error('response lost'))
+      .mockResolvedValueOnce({
+        artifactId: 901,
+        versionNo: 2,
+        referenceId: 801,
+        factVersion: 8,
+        status: 'DETACHED'
+      })
+    const root: TestNode = { type: 'root', children: [] }
+    const app = renderer.createApp(PmsFileReferenceList, {
+      ownerContext: 'PLATFORM',
+      objectType: 'DYNAMIC_FORM_INSTANCE',
+      objectId: '701',
+      purposeCode: 'FORM_FIELD_ATTACHMENT/evidence',
+      referenceKey: '6dd72f88-9a9c-4ee0-b229-4fb6331f35af',
+      artifactId: 901,
+      versionNo: 2,
+      editable: true
+    })
+    for (const name of [
+      'el-skeleton',
+      'el-empty',
+      'el-tag',
+      'el-button',
+      'el-alert',
+      'el-drawer',
+      'el-table'
+    ]) {
+      app.component(name, passthrough)
+    }
+    app.component('el-table-column', tableColumn)
+    app.directive('hasPermi', () => undefined)
+    const component = app.mount(root) as unknown as { detach: () => Promise<void> }
+    await Promise.resolve()
+    await nextTick()
+
+    await expect(component.detach()).rejects.toThrow('response lost')
+    await component.detach()
+
+    const calls = vi.mocked(FileApi.detachReference).mock.calls
+    expect(calls).toHaveLength(2)
+    expect(calls[0][4]).toBe(calls[1][4])
+    app.unmount()
   })
 
   it('uses the refreshed change version after a committed PATCH response is lost', () => {

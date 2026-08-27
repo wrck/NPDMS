@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.PlatformDynamicFormInstanceMapper">
+
+    <sql id="InstanceColumns">
+        i.id, i.instance_code, i.instance_name, i.owner_context, i.object_type, i.object_id,
+        i.template_id, i.template_revision_id, i.template_revision_no, i.engine_code,
+        i.designer_version, i.renderer_version, i.value_json, i.created_by, i.version,
+        i.creator, i.create_time, i.updater, i.update_time, i.deleted, i.tenant_id,
+        t.template_code AS template_code, t.template_name AS template_name
+    </sql>
+
+    <insert id="insert">
+        INSERT INTO plt_dynamic_form_instance
+        (id, instance_code, instance_name, owner_context, object_type, object_id,
+         template_id, template_revision_id, template_revision_no, engine_code,
+         designer_version, renderer_version, value_json, created_by, version,
+         creator, create_time, updater, update_time, tenant_id)
+        VALUES
+        (#{row.id}, #{row.instanceCode}, #{row.instanceName}, #{row.ownerContext},
+         #{row.objectType}, #{row.objectId}, #{row.templateId}, #{row.templateRevisionId},
+         #{row.templateRevisionNo}, #{row.engineCode}, #{row.designerVersion},
+         #{row.rendererVersion}, #{row.valueJson}, #{row.createdBy}, #{row.version},
+         #{row.creator}, COALESCE(#{row.createTime}, NOW()), #{row.updater},
+         COALESCE(#{row.updateTime}, NOW()), #{row.tenantId})
+    </insert>
+
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.PlatformDynamicFormInstanceDO">
+        SELECT <include refid="InstanceColumns"/>
+        FROM plt_dynamic_form_instance i
+        JOIN plt_dynamic_form_template t
+          ON t.tenant_id = i.tenant_id AND t.id = i.template_id AND t.deleted = b'0'
+        WHERE i.tenant_id = #{query.tenantId} AND i.deleted = b'0'
+        <if test="query.instanceNameKeyword != null and query.instanceNameKeyword != ''">
+            AND i.instance_name LIKE CONCAT('%', #{query.instanceNameKeyword}, '%')
+        </if>
+        <if test="query.createdBy != null">
+            AND i.created_by = #{query.createdBy}
+        </if>
+        ORDER BY i.update_time DESC, i.id DESC
+        LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+
+    <select id="selectCountPage" resultType="long">
+        SELECT COUNT(*)
+        FROM plt_dynamic_form_instance i
+        WHERE i.tenant_id = #{query.tenantId} AND i.deleted = b'0'
+        <if test="query.instanceNameKeyword != null and query.instanceNameKeyword != ''">
+            AND i.instance_name LIKE CONCAT('%', #{query.instanceNameKeyword}, '%')
+        </if>
+        <if test="query.createdBy != null">
+            AND i.created_by = #{query.createdBy}
+        </if>
+    </select>
+
+    <select id="selectByRow" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.PlatformDynamicFormInstanceDO">
+        SELECT <include refid="InstanceColumns"/>
+        FROM plt_dynamic_form_instance i
+        JOIN plt_dynamic_form_template t
+          ON t.tenant_id = i.tenant_id AND t.id = i.template_id AND t.deleted = b'0'
+        WHERE i.tenant_id = #{query.tenantId} AND i.id = #{query.instanceId}
+          AND i.deleted = b'0'
+    </select>
+
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.PlatformDynamicFormInstanceDO">
+        SELECT i.*
+        FROM plt_dynamic_form_instance i
+        WHERE i.tenant_id = #{query.tenantId} AND i.id = #{query.instanceId}
+          AND i.deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="updateValueIfMatch">
+        UPDATE plt_dynamic_form_instance
+        SET value_json = #{update.valueJson}, version = version + 1,
+            updater = #{update.updater}, update_time = NOW()
+        WHERE tenant_id = #{update.tenantId} AND id = #{update.instanceId}
+          AND version = #{update.expectedVersion} AND deleted = b'0'
+    </update>
+</mapper>

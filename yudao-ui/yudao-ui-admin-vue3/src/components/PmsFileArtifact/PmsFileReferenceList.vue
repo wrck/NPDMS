@@ -77,6 +77,7 @@ const loading = ref(false)
 const artifact = ref<FileArtifactVO>()
 const errorText = ref('')
 const historyRef = ref<InstanceType<typeof PmsFileVersionDrawer>>()
+const detachAttempt = ref<{ signature: string; idempotencyKey: string }>()
 const businessKey = computed<FileBusinessKey>(() => ({
   ownerContext: props.ownerContext,
   objectType: props.objectType,
@@ -120,13 +121,23 @@ const openAccess = async (operation: FileAccessOperation) => {
 const detach = async () => {
   if (!artifact.value) return
   const prompt = await message.prompt('请输入解绑原因', '解除材料引用')
+  const signature = JSON.stringify([
+    artifact.value.reference.referenceId,
+    artifact.value.reference.referenceVersion,
+    businessKey.value,
+    prompt.value
+  ])
+  if (detachAttempt.value?.signature !== signature) {
+    detachAttempt.value = { signature, idempotencyKey: crypto.randomUUID() }
+  }
   const result = await FileApi.detachReference(
     artifact.value.reference.referenceId,
     artifact.value.reference.referenceVersion,
     businessKey.value,
     prompt.value,
-    crypto.randomUUID()
+    detachAttempt.value.idempotencyKey
   )
+  detachAttempt.value = undefined
   message.success('材料引用已解除')
   artifact.value = undefined
   emit('detached', { ...result, referenceKey: businessKey.value.referenceKey })
@@ -134,10 +145,15 @@ const detach = async () => {
 const statusLabel = (status: string) =>
   ({ ACTIVE: '已绑定', DETACHED: '已解绑', ARCHIVED: '已归档' })[status] || status
 
-watch(() => [props.artifactId, props.versionNo, props.objectId, props.referenceKey], load, {
-  immediate: true
-})
-defineExpose({ refresh: load })
+watch(
+  () => [props.artifactId, props.versionNo, props.objectId, props.referenceKey],
+  () => {
+    detachAttempt.value = undefined
+    load()
+  },
+  { immediate: true }
+)
+defineExpose({ refresh: load, detach })
 </script>
 
 <style scoped lang="scss">

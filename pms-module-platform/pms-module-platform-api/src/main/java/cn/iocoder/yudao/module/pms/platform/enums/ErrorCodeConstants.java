@@ -37,4 +37,18 @@ public interface ErrorCodeConstants {
     ErrorCode PLATFORM_COMMAND_IN_PROGRESS = new ErrorCode(1_010_002_001,
             "相同幂等请求正在处理中（PMS-PLATFORM-COMMAND-IN-PROGRESS）");
 
+    ErrorCode DYNAMIC_FORM_TEMPLATE_NOT_FOUND = new ErrorCode(1_010_003_000, "动态表单模板不存在");
+    ErrorCode DYNAMIC_FORM_TEMPLATE_CODE_CONFLICT = new ErrorCode(1_010_003_001, "动态表单模板编码已存在");
+    ErrorCode DYNAMIC_FORM_TEMPLATE_DISABLED = new ErrorCode(1_010_003_002, "动态表单模板已停用");
+    ErrorCode DYNAMIC_FORM_CURRENT_REVISION_CHANGED = new ErrorCode(1_010_003_003, "动态表单当前发布修订已变化");
+    ErrorCode DYNAMIC_FORM_DRAFT_ALREADY_EXISTS = new ErrorCode(1_010_003_004, "动态表单模板已存在草稿修订");
+    ErrorCode DYNAMIC_FORM_REVISION_NOT_DRAFT = new ErrorCode(1_010_003_005, "动态表单修订不是草稿");
+    ErrorCode DYNAMIC_FORM_SCHEMA_INVALID = new ErrorCode(1_010_003_006, "动态表单结构无效");
+    ErrorCode DYNAMIC_FORM_FIELD_KEY_DUPLICATE = new ErrorCode(1_010_003_007, "动态表单字段编码重复");
+    ErrorCode DYNAMIC_FORM_INSTANCE_NOT_FOUND = new ErrorCode(1_010_003_008, "动态表单实例不存在");
+    ErrorCode DYNAMIC_FORM_INSTANCE_FIELD_UNKNOWN = new ErrorCode(1_010_003_009, "动态表单实例包含未知字段");
+    ErrorCode DYNAMIC_FORM_FILE_FIELD_REQUIRES_FILE_API = new ErrorCode(1_010_003_010,
+            "受控文件字段必须通过统一文件接口修改");
+    ErrorCode DYNAMIC_FORM_VERSION_CONFLICT = new ErrorCode(1_010_003_011, "动态表单版本已变化");
+
 }

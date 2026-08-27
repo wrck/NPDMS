@@ -4,7 +4,7 @@
 > 总体工程阶段：`IMPLEMENTATION`
 > 功能就绪门禁：`PASS / NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`
 > 技术计划门禁：`PASS / NPDMS-FPLT002-TECHPLAN-20260828-01-R1`
-> 实施完成门禁：`NOT_STARTED`
+> 实施完成门禁：`IN_REVIEW`
 > 需求ID：`SOL-01（支撑PRE-04、PM-03、PM-11但不完成这些业务需求）`
 > 功能规格：`specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md`
 > 功能物理契约：`specs/features/F-PLT-002-physical-contract.json`
@@ -14,6 +14,6 @@
 
 ## 当前最小工作单元
 
-- 按已批准中文技术计划一次完成共享模板配置、发布、人工选模、冻结实例、动态填写和FileArtifact的整体实施闭环，全部连接完成后再集中执行整体验证并形成一个Implementation候选。
+- 对已完成的共享模板配置、发布、人工选模、冻结实例、动态填写和FileArtifact整体候选执行独立Implementation Done评审。
 
-> 检查点（2026-08-28）：基线`a04aa0fa/af428bab`；当前门禁为Implementation Done；功能就绪及技术计划裁决`NPDMS-FPLT002-TECHPLAN-20260828-01-R1`已PASS；无阻塞；下一步按批准计划完成不拆分的整体实施，全部连接后集中验证并提交单一候选。
+> 检查点（2026-08-28）：基线`a04aa0fa/af428bab`；当前Gate为Implementation Done评审；整体实现、V103迁移、MySQL事务回归、37模块测试、前端构建及真实浏览器MinIO/ClamAV/权限/响应式闭环已通过，旧实现零修改；无阻塞；下一步提交单一候选并接受独立裁决。

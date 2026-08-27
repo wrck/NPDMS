@@ -1,0 +1,247 @@
+{
+  "capturedAt": "2026-08-27T20:05:05.489Z",
+  "browserVersion": "151.0.7922.174",
+  "candidateRuntime": {
+    "frontend": "http://127.0.0.1:18081",
+    "backend": "http://localhost:58080/admin-api",
+    "fileStorage": "MinIO",
+    "scanMode": "SKIPPED"
+  },
+  "template": {
+    "templateCode": "FPLT002_BROWSER_1787861077382",
+    "lifecycle": [
+      "DRAFT",
+      "PUBLISHED",
+      "ENABLED",
+      "DISABLED"
+    ]
+  },
+  "instance": {
+    "instanceId": "2093067210653949954",
+    "frozenRevisionId": "2093067181088301058",
+    "ordinaryValues": {
+      "projectName": "F-PLT-002 浏览器项目",
+      "requiresCutover": false,
+      "machineCount": 0
+    },
+    "controlledFileCount": 1,
+    "remainsReadableAfterTemplateDisabled": true
+  },
+  "capabilitiesObserved": [
+    "完整 FormCreate 设计器",
+    "iframe",
+    "接口选择器",
+    "事件",
+    "函数/parseFunc 提示",
+    "PmsFileArtifact"
+  ],
+  "responsiveWidths": [
+    320,
+    768,
+    1024,
+    1440
+  ],
+  "expectedNegativeResponses": [
+    {
+      "actor": "admin1",
+      "status": 200,
+      "code": 403,
+      "sideEffect": "NONE"
+    }
+  ],
+  "relevantHttp": [
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/infra/file-config/page"
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "path": "/admin-api/infra/file-config/update-master"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/infra/file-config/test"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093067181088301058"
+    },
+    {
+      "method": "PATCH",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093067181088301058"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093067181088301058"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093067181088301058/actions/publish"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates/2093067181075718145/actions/enable"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates/selection"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-template-revisions/2093067181088301058"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093067210653949954"
+    },
+    {
+      "method": "PATCH",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093067210653949954"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093067210653949954"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files:init-upload"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093067216026853377:complete-upload"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093067216026853377"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093067216026853377/versions"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093067210653949954"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances/2093067210653949954"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093067216026853377"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-templates/selection"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/dynamic-form-instances"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "unexpectedResponses": []
+}

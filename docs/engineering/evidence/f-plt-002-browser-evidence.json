@@ -1,0 +1,100 @@
+{
+  "evidenceId": "FPLT002-IMPLEMENTATION-BROWSER-20260828",
+  "featureId": "F-PLT-002",
+  "gate": "Implementation Done candidate",
+  "status": "VERIFIED_PENDING_INDEPENDENT_REVIEW",
+  "scope": "仅限Implementation；不代表Deployment、SIT、UAT或Release",
+  "candidateBaseCommit": "73e3461ff4efb8ef3d69262dcf0bfa394afcbb0e",
+  "specificationCommit": "a04aa0fa25194ca0cd5e157d7c16c3c42a26ff7f",
+  "synchronizedBaselineCommit": "af428bab02ba5b388a71723dba97882ad6a6ddb4",
+  "runtime": {
+    "frontend": "http://127.0.0.1:18081，宿主机Vite",
+    "backend": "http://127.0.0.1:58080，宿主机JDK 25",
+    "database": "隔离MySQL 8.4，npdms_test，端口23316，V1至V103",
+    "redis": "隔离Redis，端口26379",
+    "objectStorage": "真实MinIO，端口9000，bucket yudao",
+    "securityScan": "分别验证默认SKIPPED和可选ClamAV端口33310下PASSED"
+  },
+  "browserEvidence": {
+    "browser": "Playwright 1.58.2驱动本机Chrome 151",
+    "positiveFlow": [
+      "管理员从共享配置页创建模板，完整FormCreate设计器展示内置、增强、iframe、接口、事件、函数和parseFunc高信任能力，并加入文本、开关、计数器及PmsFileArtifact字段",
+      "草稿保存并预览后发布为不可变修订，启用模板；实例页人工选择明确发布修订并创建冻结实例",
+      "实例保存普通字段，其中false和0作为有效值进入权威JSON；浏览器在服务端成功提交后主动丢弃PATCH响应，客户端读取权威实例确认同一意图已提交且不重复写入",
+      "PmsFileArtifact通过真实MinIO上传并绑定；默认关闭扫描时版本历史显示SKIPPED且不作安全承诺，启用真实ClamAV后显示PASSED",
+      "模板停用后不再进入新实例候选，但既有实例仍按冻结修订渲染并保留普通值和文件事实"
+    ],
+    "authorization": {
+      "actor": "租户内无角色用户admin1",
+      "forcedQuery": "动态表单模板分页返回业务code=403",
+      "successSideEffect": "NONE"
+    },
+    "responseUnknownRecovery": {
+      "injection": "PATCH实例已由服务端提交后，浏览器路由主动abort响应",
+      "expectedDiagnostics": [
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "result": "权威GET确认projectName、requiresCutover=false和machineCount=0已保存；保留意图随后释放",
+      "postRecoveryUnexpectedConsoleErrors": 0,
+      "postRecoveryPageErrors": 0,
+      "postRecoveryUnexpectedHttpErrors": 0
+    },
+    "responsive": [
+      320,
+      768,
+      1024,
+      1440
+    ],
+    "legacyUnchanged": {
+      "pages": [
+        "BPM流程表单",
+        "旧PMS表单模板",
+        "旧PMS表单实例",
+        "旧需求分析"
+      ],
+      "apiTotals": {
+        "bpm_form": 0,
+        "pms_eng_form_template": 10,
+        "pms_eng_form_instance": 45,
+        "pms_eng_requirement": 31
+      }
+    },
+    "rawResults": [
+      "docs/engineering/evidence/f-plt-002/browser-run-skipped.json",
+      "docs/engineering/evidence/f-plt-002/browser-run-passed.json"
+    ],
+    "screenshots": [
+      "docs/engineering/evidence/f-plt-002/01-template-designer-preview-1440.png",
+      "docs/engineering/evidence/f-plt-002/02-template-published-enabled-1440.png",
+      "docs/engineering/evidence/f-plt-002/03-instance-minio-skipped-1440.png",
+      "docs/engineering/evidence/f-plt-002/03-instance-minio-passed-1440.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-320.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-768.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-1024.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-1440.png",
+      "docs/engineering/evidence/f-plt-002/05-unprivileged-denied-1024.png",
+      "docs/engineering/evidence/f-plt-002/06-legacy-bpm-form-1440.png",
+      "docs/engineering/evidence/f-plt-002/07-legacy-pms-form-template-1440.png",
+      "docs/engineering/evidence/f-plt-002/08-legacy-pms-form-instance-1440.png",
+      "docs/engineering/evidence/f-plt-002/09-legacy-requirement-1440.png"
+    ]
+  },
+  "acceptanceCriteria": {
+    "AC-FPLT002-001": "PASS - 模板稳定身份、独立可用性和模板元数据CAS已闭合",
+    "AC-FPLT002-002": "PASS - 草稿修订、发布不可变、当前DRAFT/当前PUBLISHED摘要及下一草稿复制已闭合",
+    "AC-FPLT002-003": "PASS - 完整FormCreate设计器与运行时原样保存未知/嵌套配置，不执行服务端代码",
+    "AC-FPLT002-004": "PASS - 管理员可创建、保存、预览、发布、启用和停用",
+    "AC-FPLT002-005": "PASS - 仅已启用的当前发布修订可被人工选择",
+    "AC-FPLT002-006": "PASS - 实例冻结模板修订、引擎和版本，后续停用不改变旧实例",
+    "AC-FPLT002-007": "PASS - 普通值部分PATCH保留false、0、null和空数组，文件字段拒绝走普通值接口",
+    "AC-FPLT002-008": "PASS - PmsFileArtifact按字段稳定用途写入独立Reference；MinIO及SKIPPED/PASSED事实已验证",
+    "AC-FPLT002-009": "PASS - 功能权限、创建人写入、无权主体失败关闭及服务端allowedActions已验证",
+    "AC-FPLT002-010": "PASS - 幂等、同键重放/冲突、CAS、进行中错误和受控审计由聚焦及真实MySQL测试覆盖",
+    "AC-FPLT002-011": "PASS - V102/V103约束、索引、字典、菜单和三类确定性示例从空库前向迁移",
+    "AC-FPLT002-012": "PASS - 真实浏览器正向闭环、响应未知恢复、四视口、旧实现共存与零意外错误已验证"
+  },
+  "independentReview": {
+    "status": "PENDING",
+    "reviewOwner": "NPDMS方案评审角色"
+  }
+}
