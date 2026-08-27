@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "7c482d02154f0f967a4263e9d27fef2c77aa8bff"
+    "commit": "9328c1316655639c100c98f3c16701af10db5fbf"
   },
   "files": [
     {
@@ -448,7 +448,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "3063da1c213786cd3ddccd7f84444963848edbc40c5173986ca92e438621b073"
+      "sha256": "0553bab39c31f4c5a0aa60996d9734ab9ed686c89de3b1b77103189b21451bef"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
@@ -458,7 +458,7 @@
     {
       "path": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
       "category": "FEATURE_SPEC",
-      "sha256": "041db5d5e30731042beece6623ef2e5980becf76fbecf51bd19b1d488504252b"
+      "sha256": "5200e6429d9b30f0d4a94098652398d1809f077c7fcc6fc86c8f8e7270f05ea8"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -548,7 +548,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "caa1f004c8e5e2dca32f2689c5676852570b24077226e5c7145324e61fb6e0b1"
+      "sha256": "8b31b488d71af7ebfa338faeb50cfe8c11a411a5e683be2c40c96c647bca981e"
     }
   ]
 }

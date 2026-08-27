@@ -6,7 +6,7 @@
 > Owner Context：`PLT（基础平台 File Capability）`
 > 前置能力：Yudao INFRA 文件存储配置、FileClient、私有对象存储和平台权限模型
 > 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`；SDS Phase 1/2/3 `BASELINE`
-> 实施增量：原强制扫描实现已完成；`CHG-PRD-2026-08-27-004`可选扫描增量待NPDMS实施复验
+> 实施状态：`IMPLEMENTATION_COMPLETE`；原实现NPDMS `6d6c6ea`及独立复审GO，可选扫描增量NPDMS `890196d2`、`24f3c1a4`及独立复审GO
 > 边界裁决：`GO / NPDMS-FPLT001-BOUNDARY-20260826-01`
 > INFRA架构例外：`GO / NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`；`docs/decisions/0035-file-storage-receipt-adapter-exception.md`
 > Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成

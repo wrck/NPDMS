@@ -1,16 +1,16 @@
 # F-PLT-001 统一文件身份与版本管理
 
 > Feature实施状态：`IMPLEMENTATION_COMPLETE`
-> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`PASS / NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
 > Technical Plan Gate：`PASS / NPDMS-FPLT001-TECHPLAN-20260826-01-R3`
-> Implementation Done Gate：`PASS / 38f36b1f0d345bc2653207302a37d2792362e58a / 独立裁决GO`
+> Implementation Done Gate：`PASS / 38f36b1 + 890196d2 + 24f3c1a4 / 独立裁决GO`
 > 当前任务：`F-PLT-001已完成；等待下一工程单元`
 > Requirement ID：`PLT-02（V1/P0，FR-PLT-008）`
 > Feature Spec：`specs/features/F-PLT-001-unified-file-identity-and-version-management.md`
 > Feature物理契约：`specs/features/F-PLT-001-physical-contract.json`
 > Technical Plan：`docs/superpowers/plans/2026-08-26-f-plt-001-unified-file-identity-and-version-management.md`
-> 锁定规格提交：`2efd8c476430d77ce2003c6e9fe300a335eac6a7`
+> 锁定规格提交：`9328c1316655639c100c98f3c16701af10db5fbf`
 
 ## 实施边界
 
@@ -39,4 +39,4 @@
 - F-SOL-001 Task 9材料场景：Task 9接入SOL用途并完成真实MySQL链路后解除。
 - F-SOL-001 Task 10：上述材料主线闭合后返回其正式浏览器验收。
 
-> 检查点（2026-08-27）：基线规格`51ff74a`；F-PLT-001 Implementation Done独立GO，NPDMS `6d6c6ea`及Task 1～10、真实MySQL/Flowable/Quartz/ClamAV、SOL消费链和浏览器证据通过；无阻塞；规格追溯与受管基线已同步。下一步定位首个未完成Feature，不进入Deployment/SIT/UAT/Release。
+> 检查点（2026-08-27）：基线规格`9328c13`；F-PLT-001 Implementation Done已通过，证据为原实现`6d6c6ea`、可选扫描`890196d2`、展示修复`24f3c1a4`及独立GO；受管基线已同步，无阻塞。下一步定位最近未通过的开发Gate，不进入Deployment/SIT/UAT/Release。
