@@ -9,8 +9,18 @@
         d.id AS current_draft_revision_id,
         d.revision_no AS current_draft_revision_no,
         d.version AS current_draft_version,
+        d.source_revision_id AS current_draft_source_revision_id,
+        d.engine_code AS current_draft_engine_code,
+        d.designer_version AS current_draft_designer_version,
+        d.renderer_version AS current_draft_renderer_version,
         p.revision_no AS current_published_revision_no,
-        p.version AS current_published_revision_version
+        p.version AS current_published_revision_version,
+        p.source_revision_id AS current_published_source_revision_id,
+        p.engine_code AS current_published_engine_code,
+        p.designer_version AS current_published_designer_version,
+        p.renderer_version AS current_published_renderer_version,
+        p.published_by AS current_published_by,
+        p.published_at AS current_published_at
     </sql>
 
     <sql id="TemplateSummaryJoins">

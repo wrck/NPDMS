@@ -16,4 +16,4 @@
 
 - 对已完成的共享模板配置、发布、人工选模、冻结实例、动态填写和FileArtifact整体候选执行独立Implementation Done评审。
 
-> 检查点（2026-08-28）：基线`a04aa0fa/af428bab`；当前Gate为Implementation Done评审；整体实现、V103迁移、MySQL事务回归、37模块测试、前端构建及真实浏览器MinIO/ClamAV/权限/响应式闭环已通过，旧实现零修改；无阻塞；下一步提交单一候选并接受独立裁决。
+> 检查点（2026-08-28）：基线`af428bab`，当前Gate为F-PLT-002 Implementation Done；分页200行固定2次模板查询且零修订回读，真实浏览器已闭合完整FormCreate、文件生命周期、修订冻结、四类权限及双扫描模式，Maven/MySQL/前端/Flyway/基线验证通过；无阻塞；下一步提交整体整改候选并独立复审。

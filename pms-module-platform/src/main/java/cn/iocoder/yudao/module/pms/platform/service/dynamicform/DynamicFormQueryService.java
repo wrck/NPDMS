@@ -117,15 +117,11 @@ public class DynamicFormQueryService {
     }
 
     DynamicFormViews.Template toTemplate(Long actorId, DynamicFormTemplateDO template) {
-        DynamicFormTemplateRevisionDO draft = template.getCurrentDraftRevisionId() == null ? null
-                : revisionMapper.selectByRow(new DynamicFormRevisionRowQuery(
-                template.getTenantId(), template.getCurrentDraftRevisionId()));
-        DynamicFormTemplateRevisionDO published = template.getCurrentPublishedRevisionId() == null ? null
-                : revisionMapper.selectByRow(new DynamicFormRevisionRowQuery(
-                template.getTenantId(), template.getCurrentPublishedRevisionId()));
+        DynamicFormViews.RevisionSummary draft = draftSummary(template);
+        DynamicFormViews.RevisionSummary published = publishedSummary(template);
         return new DynamicFormViews.Template(template.getId(), template.getTemplateCode(), template.getTemplateName(),
                 template.getCategoryCode(), template.getDescription(), template.getAvailabilityCode(),
-                template.getVersion(), template.getCurrentPublishedRevisionId(), summary(draft), summary(published),
+                template.getVersion(), template.getCurrentPublishedRevisionId(), draft, published,
                 actionProjection.templateActions(actorId, template.getAvailabilityCode(), draft != null,
                         published != null), template.getCreateTime(), template.getUpdateTime());
     }
@@ -140,11 +136,10 @@ public class DynamicFormQueryService {
     }
 
     private DynamicFormViews.Selection toSelection(Long actorId, DynamicFormTemplateDO template) {
-        DynamicFormTemplateRevisionDO revision = requireRevision(template.getTenantId(),
-                template.getCurrentPublishedRevisionId());
         return new DynamicFormViews.Selection(template.getId(), template.getTemplateCode(), template.getTemplateName(),
-                template.getCategoryCode(), template.getDescription(), revision.getId(), revision.getRevisionNo(),
-                revision.getEngineCode(), revision.getDesignerVersion(), revision.getRendererVersion(),
+                template.getCategoryCode(), template.getDescription(), template.getCurrentPublishedRevisionId(),
+                template.getCurrentPublishedRevisionNo(), template.getCurrentPublishedEngineCode(),
+                template.getCurrentPublishedDesignerVersion(), template.getCurrentPublishedRendererVersion(),
                 template.getVersion(), actionProjection.selectionActions(actorId,
                 template.getAvailabilityCode(), true));
     }
@@ -193,11 +188,21 @@ public class DynamicFormQueryService {
         return Map.copyOf(byField);
     }
 
-    private DynamicFormViews.RevisionSummary summary(DynamicFormTemplateRevisionDO revision) {
-        return revision == null ? null : new DynamicFormViews.RevisionSummary(revision.getId(),
-                revision.getRevisionNo(), revision.getStatusCode(), revision.getVersion(),
-                revision.getSourceRevisionId(), revision.getEngineCode(), revision.getDesignerVersion(),
-                revision.getRendererVersion(), revision.getPublishedBy(), revision.getPublishedAt());
+    private DynamicFormViews.RevisionSummary draftSummary(DynamicFormTemplateDO template) {
+        if (template.getCurrentDraftRevisionId() == null) return null;
+        return new DynamicFormViews.RevisionSummary(template.getCurrentDraftRevisionId(),
+                template.getCurrentDraftRevisionNo(), "DRAFT", template.getCurrentDraftVersion(),
+                template.getCurrentDraftSourceRevisionId(), template.getCurrentDraftEngineCode(),
+                template.getCurrentDraftDesignerVersion(), template.getCurrentDraftRendererVersion(), null, null);
+    }
+
+    private DynamicFormViews.RevisionSummary publishedSummary(DynamicFormTemplateDO template) {
+        if (template.getCurrentPublishedRevisionId() == null) return null;
+        return new DynamicFormViews.RevisionSummary(template.getCurrentPublishedRevisionId(),
+                template.getCurrentPublishedRevisionNo(), "PUBLISHED", template.getCurrentPublishedRevisionVersion(),
+                template.getCurrentPublishedSourceRevisionId(), template.getCurrentPublishedEngineCode(),
+                template.getCurrentPublishedDesignerVersion(), template.getCurrentPublishedRendererVersion(),
+                template.getCurrentPublishedBy(), template.getCurrentPublishedAt());
     }
 
     private DynamicFormTemplateDO requireTemplate(Long tenantId, Long id) {

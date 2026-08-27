@@ -13,7 +13,6 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFo
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.PlatformDynamicFormInstanceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateRevisionMapper;
-import cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.query.DynamicFormRevisionRowQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.query.DynamicFormTemplatePageQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_PROVIDER_UNAVAILABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,51 +58,54 @@ class DynamicFormQueryServiceTest {
 
     @Test
     void templatePagePreservesStableMapperOrderAndProjectsCurrentDraftAndPublishedSummaries() {
-        DynamicFormTemplateDO alpha = template(11L, "Alpha", 21L, 22L);
-        DynamicFormTemplateDO beta = template(12L, "Beta", null, 23L);
-        when(templateMapper.selectCountPage(any())).thenReturn(2L);
-        when(templateMapper.selectPage(any())).thenReturn(List.of(alpha, beta));
-        when(revisionMapper.selectByRow(any())).thenAnswer(invocation -> {
-            Long id = invocation.<DynamicFormRevisionRowQuery>getArgument(0).revisionId();
-            return revision(id, id.equals(21L) ? "DRAFT" : "PUBLISHED");
-        });
+        List<DynamicFormTemplateDO> templates = IntStream.range(0, 200)
+                .mapToObj(index -> template(11L + index, "Template-" + index,
+                        index == 0 ? 21L : null, 22L + index))
+                .toList();
+        when(templateMapper.selectCountPage(any())).thenReturn(200L);
+        when(templateMapper.selectPage(any())).thenReturn(templates);
         when(actionProjection.templateActions(any(), any(), anyBoolean(), anyBoolean()))
                 .thenReturn(Set.of("PATCH_TEMPLATE"));
 
-        var result = service.pageTemplates(ACTOR, 2, 20);
+        var result = service.pageTemplates(ACTOR, 1, 200);
 
-        assertEquals(2L, result.total());
-        assertEquals(List.of("Alpha", "Beta"), result.list().stream()
-                .map(DynamicFormViews.Template::templateName).toList());
+        assertEquals(200L, result.total());
+        assertEquals("Template-0", result.list().getFirst().templateName());
+        assertEquals("Template-199", result.list().getLast().templateName());
         assertEquals(21L, result.list().getFirst().currentDraft().revisionId());
         assertEquals(22L, result.list().getFirst().currentPublished().revisionId());
         assertEquals("PUBLISHED", result.list().get(1).currentPublished().status());
         ArgumentCaptor<DynamicFormTemplatePageQuery> query = ArgumentCaptor.forClass(DynamicFormTemplatePageQuery.class);
         verify(templateMapper).selectPage(query.capture());
-        assertEquals(20L, query.getValue().offset());
-        assertEquals(20, query.getValue().limit());
+        verify(templateMapper).selectCountPage(any());
+        assertEquals(0L, query.getValue().offset());
+        assertEquals(200, query.getValue().limit());
         assertFalse(query.getValue().selectionOnly());
+        verify(revisionMapper, never()).selectByRow(any());
     }
 
     @Test
     void selectionContainsOnlyEnabledCurrentPublishedTemplatesAndReportsTheSameTotal() {
-        DynamicFormTemplateDO eligible = template(11L, "Eligible", null, 22L);
-        when(templateMapper.selectCountPage(any())).thenReturn(1L);
-        when(templateMapper.selectPage(any())).thenReturn(List.of(eligible));
-        when(revisionMapper.selectByRow(any())).thenReturn(revision(22L, "PUBLISHED"));
+        List<DynamicFormTemplateDO> eligible = IntStream.range(0, 200)
+                .mapToObj(index -> template(11L + index, "Eligible-" + index, null, 22L + index))
+                .toList();
+        when(templateMapper.selectCountPage(any())).thenReturn(200L);
+        when(templateMapper.selectPage(any())).thenReturn(eligible);
         when(actionProjection.selectionActions(9L, "ENABLED", true)).thenReturn(Set.of("CREATE_INSTANCE"));
 
-        var result = service.pageSelection(ACTOR, 1, 20);
+        var result = service.pageSelection(ACTOR, 1, 200);
 
-        assertEquals(1L, result.total());
-        assertEquals(List.of("Eligible"), result.list().stream()
-                .map(DynamicFormViews.Selection::templateName).toList());
+        assertEquals(200L, result.total());
+        assertEquals("Eligible-0", result.list().getFirst().templateName());
+        assertEquals("Eligible-199", result.list().getLast().templateName());
         assertEquals(22L, result.list().getFirst().currentPublishedRevisionId());
         assertEquals(Set.of("CREATE_INSTANCE"), result.list().getFirst().allowedActions());
         ArgumentCaptor<DynamicFormTemplatePageQuery> query = ArgumentCaptor.forClass(DynamicFormTemplatePageQuery.class);
         verify(templateMapper).selectCountPage(query.capture());
+        verify(templateMapper).selectPage(any());
         assertEquals("ENABLED", query.getValue().availabilityCode());
         assertTrue(query.getValue().selectionOnly());
+        verify(revisionMapper, never()).selectByRow(any());
     }
 
     @Test
@@ -175,6 +178,20 @@ class DynamicFormQueryServiceTest {
         row.setAvailabilityCode("ENABLED");
         row.setCurrentDraftRevisionId(draftId);
         row.setCurrentPublishedRevisionId(publishedId);
+        if (draftId != null) {
+            row.setCurrentDraftRevisionNo(1);
+            row.setCurrentDraftVersion(2);
+            row.setCurrentDraftEngineCode(DynamicFormSchemaService.ENGINE_CODE);
+            row.setCurrentDraftDesignerVersion(DynamicFormSchemaService.DESIGNER_VERSION);
+            row.setCurrentDraftRendererVersion(DynamicFormSchemaService.RENDERER_VERSION);
+        }
+        if (publishedId != null) {
+            row.setCurrentPublishedRevisionNo(2);
+            row.setCurrentPublishedRevisionVersion(2);
+            row.setCurrentPublishedEngineCode(DynamicFormSchemaService.ENGINE_CODE);
+            row.setCurrentPublishedDesignerVersion(DynamicFormSchemaService.DESIGNER_VERSION);
+            row.setCurrentPublishedRendererVersion(DynamicFormSchemaService.RENDERER_VERSION);
+        }
         row.setVersion(3);
         return row;
     }

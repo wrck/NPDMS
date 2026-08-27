@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
+
 @TableName("plt_dynamic_form_template")
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -30,7 +32,27 @@ public class DynamicFormTemplateDO extends TenantBaseDO {
     @TableField(exist = false)
     private Integer currentDraftVersion;
     @TableField(exist = false)
+    private Long currentDraftSourceRevisionId;
+    @TableField(exist = false)
+    private String currentDraftEngineCode;
+    @TableField(exist = false)
+    private String currentDraftDesignerVersion;
+    @TableField(exist = false)
+    private String currentDraftRendererVersion;
+    @TableField(exist = false)
     private Integer currentPublishedRevisionNo;
     @TableField(exist = false)
     private Integer currentPublishedRevisionVersion;
+    @TableField(exist = false)
+    private Long currentPublishedSourceRevisionId;
+    @TableField(exist = false)
+    private String currentPublishedEngineCode;
+    @TableField(exist = false)
+    private String currentPublishedDesignerVersion;
+    @TableField(exist = false)
+    private String currentPublishedRendererVersion;
+    @TableField(exist = false)
+    private Long currentPublishedBy;
+    @TableField(exist = false)
+    private LocalDateTime currentPublishedAt;
 }
