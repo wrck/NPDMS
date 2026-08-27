@@ -258,12 +258,12 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | 聚合 | 主表 | 版本/明细表 | 关键约束 |
 |---|---|---|---|
-| Preparation | `sol_preparation` | `sol_preparation_item`、`sol_dynamic_form_instance` | 项目+准备类型+业务版本唯一；提交冻结 formSchemaVersion |
+| Preparation | `sol_preparation` | `sol_preparation_item`及各Feature专用明细 | 项目+准备类型+业务版本唯一；需要动态表单时冻结PLATFORM模板修订标识并由SOL另行保存业务完成事实 |
+| PreparationDynamicFormInstance | `sol_dynamic_form_instance` | 无通用模板表 | 保留已实现Preparation表单事实；与PLT通用实例物理分离，不迁移或双写旧`pms_eng_form_instance` |
 | ConstructionPlan | `sol_construction_plan` | `sol_construction_plan_revision`、`sol_construction_plan_item`、`sol_construction_plan_change` | `uk(tenant_id, plan_id, revision_no)`；批准 revision 只读 |
 | Solution | `sol_solution` | `sol_solution_revision`、`sol_solution_review` | 发布 revision 只读；文件仅保存 FileReference |
-| DynamicFormSchema | `sol_dynamic_form_schema` | `sol_dynamic_form_schema_revision` | V2；schema revision 发布后不可覆盖 |
 
-历史 `pms_eng_site_survey/requirement/resource_ready/briefing/solution/form_*` 可作为迁移来源；新应用服务按 Preparation/Solution Owner 访问，不允许表单引擎直接写 Project 状态。
+历史 `pms_eng_site_survey/requirement/resource_ready/briefing/solution` 只在对应Feature明确批准时作为迁移来源。旧`pms_eng_form_template/pms_eng_form_instance`原样保留，不迁入、不双写新的PLATFORM动态表单真值；新应用服务按各自Owner访问，不允许表单引擎直接写Project或SOL业务状态。
 
 ## 5. Asset 地点、设备归属与维保基本事实
 
@@ -522,6 +522,9 @@ proj_project
 | `plt_file_artifact` | 稳定文件身份 | `uk(tenant_id, artifact_code)` |
 | `plt_file_version` | 内容版本、哈希、存储键、扫描状态 | `uk(tenant_id, artifact_id, version_no)`；`content_hash` 索引 |
 | `plt_file_reference` | 业务对象到文件版本的引用 | `uk(tenant_id, context_code, object_type, object_id, purpose_code, artifact_id, version_no)` |
+| `plt_dynamic_form_template` | 稳定模板身份、元数据、可用性和当前发布修订指针 | `uk(tenant_id, template_code)`；ENABLED供选时必须存在当前PUBLISHED修订；元数据CAS不改revision |
+| `plt_dynamic_form_template_revision` | FormCreate完整配置/规则、引擎版本和发布事实 | `uk(tenant_id, template_id, revision_no)`；`uk(tenant_id, template_id, draft_marker)`保证至多一个草稿；PUBLISHED不可更新/删除 |
+| `plt_dynamic_form_instance` | 手工实例冻结模板修订和普通字段JSON值 | `uk(tenant_id, instance_code)`、`uk(tenant_id, owner_context, object_type, object_id)`；模板修订不可切换，值按version CAS；FileArtifact字段不写入value_json |
 | `plt_state_transition` | 状态前后值、命令、主体、原因和结果 | 追加写；按聚合 ID + 时间索引 |
 | `plt_idempotency_record` | 接口幂等键、请求摘要、处理状态和响应引用 | `uk(tenant_id, scope_code, idempotency_key)` |
 | `plt_outbox_event` | 事务内待发布事件 | `event_id` 全局唯一；按状态/下次重试时间索引 |
@@ -531,6 +534,8 @@ proj_project
 | `plt_authorization_grant` | `subject_type_code/subject_id/resource_context_code/resource_type_code/resource_id/action_code/scope_code/effective_from/effective_to/status_code/source_context_code/source_object_type/source_object_id/granted_by/granted_at/revoked_by/revoked_at/revoke_reason/version/current_marker` | `current_marker=1`占用当前授权键，撤权或已确认到期时置空；查询始终校验有效区间；唯一键为`(tenant_id, subject_type_code, subject_id, resource_context_code, resource_type_code, resource_id, action_code, scope_code, current_marker)`，并为主体、资源、动作、状态和有效区间建立组合索引；不代替DAC凭证授权 |
 | `plt_change_request` | 项目变更申请、差异快照、审批引用和执行结果 | 申请 revision 只追加；变更执行按目标聚合版本幂等 |
 | `ana_metric_definition` | 【建议】指标代码、口径版本、单位、粒度和来源 | 只有口径模型获批后创建；同一指标版本不可覆盖；不得从旧报表名称猜测公式 |
+
+F-PLT-002只新增上述三张动态表单表。用户REST创建的手工实例固定`owner_context=PLATFORM/object_type=MANUAL_DYNAMIC_FORM/object_id=instance_id`，不接受客户端自报跨域绑定；WorkBinding或业务Context形成真实调用方后再通过独立Feature增加窄公共命令。`PmsFileArtifact`字段使用F-PLT-001业务键`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`，普通实例值PATCH不得伪造文件向量。
 | `ana_metric_snapshot` | 指标代码、口径版本、水位、范围和结果快照 | `uk(tenant_id, metric_code, metric_version, scope_hash, snapshot_at)`；不可回写交易状态 |
 | `ana_portfolio_projection` | 组合维度的可重建经营查询投影 | `uk(tenant_id, portfolio_id, metric_version, data_watermark)`；返回权限范围哈希 |
 

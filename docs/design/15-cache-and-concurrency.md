@@ -21,6 +21,7 @@
 | 字典/展示配置 | 类型名称、颜色、排序 | tenant/global、dictType、configVersion | 版本化失效；不控制状态迁移 |
 | 项目/任务树查询 | 完整投影版本的子树页、祖先链 | tenant、root/scope、treeVersion、permissionScopeHash、cursor | 只读投影；树变更后新版本切换 |
 | 项目工作台投影 | 六页签摘要、Stage→ProjectTask导航、WorkBinding显示摘要 | tenant、project、templateRevision、treeVersion、permissionScopeHash、projectionVersion | 不缓存目标业务敏感正文；操作前回源权限与目标状态 |
+| 动态表单发布修订 | 已发布且不可变的FormCreate配置、规则和引擎版本 | tenant、templateId、revisionId、revisionNo | 发布修订可按身份缓存；新建实例必须回源模板可用性、当前发布指针与templateVersion，实例可变值写入不以缓存为真值 |
 | 设备祖先统计 | device/project ancestor projection | tenant、treeVersion、assignmentVersion、scope | 可重建；返回水位 |
 | 主数据查询 | 客户、设备、合同必要副本 | tenant、objectId/sourceVersion、fieldScopeHash | 本地数据库是真值副本，缓存短期加速 |
 | 文件下载授权 | 短时访问令牌 | tenant、subject、artifact/version、operation、scopeHash | 到期/撤销；敏感操作可单次 |
@@ -49,6 +50,8 @@
 | Project/ProjectTask | aggregateVersion + treeVersion（移动时） | 重新加载树和当前版本后由用户重试 |
 | ProjectTask Completion | aggregateVersion + bindingVersion + ruleVersion + businessFactVersion | 任一版本变化即重新读取事实并评估；不得按旧快照完成 |
 | ProjectTemplate/Solution/Rule | draft aggregateVersion；发布 revision 不可变 | 创建新 revision，不修改已发布版本 |
+| DynamicFormTemplate/Revision | templateVersion + draftVersion；发布revision不可变 | 新建模板初始DISABLED；发布、创建下一草稿和启停锁定模板及当前指针，冲突重新读取，不替换请求中的修订 |
+| DynamicFormInstance | instanceVersion + frozen revision identity | 普通字段部分PATCH只按CAS更新请求字段；后到请求不覆盖，模板发布/停用不改既有实例 |
 | Arrival/Installation/Quality | aggregateVersion | 提交/确认/整改复核按状态守卫重试 |
 | DeviceAssignment | device assignmentVersion + project treeVersion | 一次只有一个当前归属；冲突人工核对 |
 | DeliveryScope | orderLineVersion + allocationVersion | 重新计算可分配量，不允许超分配 |
@@ -167,6 +170,7 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - 订单行并发分配、ERP减量后超分配；
 - 同一状态双命令、工作流重复/过期回调；
 - DAC 回调重复、乱序、撤销并发；
+- 动态表单唯一草稿、并发发布/启停、选择后指针变化、实例CAS单胜和已发布修订不可变；
 - 缓存失效丢失、Redis不可用、热点穿透；
 - 权限收缩后缓存不得继续授权敏感访问。
 

@@ -1,0 +1,635 @@
+{
+  "schemaVersion": 1,
+  "feature": "F-PLT-002",
+  "name": "shared-dynamic-form-template-and-instance-foundation",
+  "status": "BASELINE",
+  "featureReadyDecision": "GO_NPDMS_FPLT002_FEATURE_READY_20260828_01_R1",
+  "requirements": {
+    "primary": ["SOL-01"],
+    "supporting": ["PRE-04", "PM-03", "PM-11"],
+    "completionPolicy": "this foundation does not mark PRE-04, PM-03, PM-11 or full SOL-01 complete"
+  },
+  "owner": {
+    "context": "PLATFORM",
+    "module": "pms-module-platform",
+    "apiModulePolicy": "do not create or extend a public module API until WorkBinding or a business Context provides a real caller",
+    "businessBoundary": "PLATFORM owns reusable template revisions and manual form-instance values; consuming Contexts own their business state, validation, approval, completion and history"
+  },
+  "approvedApproach": {
+    "code": "A_SHARED_PLATFORM_DYNAMIC_FORM_MVP",
+    "sequence": [
+      "LEGACY_AND_FRAMEWORK_IMPLEMENTATION_AUDIT_COMPLETE",
+      "BUILD_SHARED_TEMPLATE_CONFIGURATION_AND_MANUAL_INSTANCE_LOOP",
+      "VERIFY_THE_WHOLE_LOOP",
+      "REPLAN_WORK_BINDING_AND_PRE04_VERSIONING_AFTER_IMPLEMENTATION_DONE"
+    ],
+    "firstVersionPolicy": "retain every control and configuration surface currently exposed by the repository FormCreate designer, including iframe, API selector, linkage, events, functions and parse functions",
+    "futureRestrictionPolicy": "a later restriction requires a new forward specification and new template revision; published revisions and existing instances are never rewritten"
+  },
+  "reuse": {
+    "auditStatus": "COMPLETE",
+    "auditEvidence": "specs/features/F-PLT-002-legacy-form-reuse-audit.md",
+    "auditedImplementation": {
+      "repository": "NPDMS",
+      "productCodeCommit": "3adea6121000b5bb55b176d352b5afa94143b7dd",
+      "auditWorktreeCommit": "6a57b616469e8cf18efdc244a78329bf6f51af6d",
+      "auditWorktreeDifference": "governance-only changes; every audited product source remains identical to productCodeCommit"
+    },
+    "decisionVocabulary": ["DIRECT_REUSE", "COPY_THEN_ENHANCE", "DO_NOT_REUSE"],
+    "sourceGroups": [
+      {
+        "group": "BPM_FORM_CREATE",
+        "status": "COMPLETE",
+        "mappings": [
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/views/bpm/form/editor/index.vue",
+            "item": "fc-designer",
+            "decision": "DIRECT_REUSE",
+            "target": "new PLATFORM DynamicFormTemplateEditor imports the existing @form-create/designer engine",
+            "rationale": "retain the complete designer surface without copying the engine",
+            "legacyUnchangedVerification": "BPM editor source and route remain unchanged and its editor open/save regression passes"
+          },
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/components/FormCreate/src/useFormCreateDesigner.ts",
+            "item": "useFormCreateDesigner and current enhanced controls",
+            "decision": "DIRECT_REUSE",
+            "target": "new PLATFORM editor invokes the existing hook and adds PmsFileArtifact only in its new composition layer",
+            "rationale": "reuse the current upload, rich text, dictionary, user, department, area, API and iframe rules plus duplicate-field repair",
+            "legacyUnchangedVerification": "the hook is not edited and BPM retains its existing component menu"
+          },
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/utils/formCreate.ts",
+            "item": "encode/decode and designer/renderer restore helpers",
+            "decision": "DIRECT_REUSE",
+            "target": "DRAFT save/reopen, revision preview and frozen instance rendering",
+            "rationale": "one existing serialization format prevents designer and renderer drift",
+            "legacyUnchangedVerification": "helper source is unchanged and PLT runtime tests cover save, reopen, preview and refresh"
+          },
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/plugins/formCreate/index.ts",
+            "item": "global FormCreate, FcDesigner, Element Plus and custom-control registration",
+            "decision": "DIRECT_REUSE",
+            "target": "PLATFORM pages use the existing setupFormCreate application installation",
+            "rationale": "avoid duplicate registration and preserve every current control",
+            "legacyUnchangedVerification": "plugin source is unchanged and BPM plus PLT pages render without unresolved components"
+          },
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/views/bpm/form/editor/index.vue",
+            "item": "designerConfig and save interaction",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "new PLATFORM editor-local full-surface config and DRAFT revision If-Match save",
+            "rationale": "retain the proven editing experience while separating template metadata from immutable revisions",
+            "legacyUnchangedVerification": "BPM page is unchanged and PLT tests assert all existing configuration panels remain enabled"
+          },
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/views/bpm/form/editor/index.vue",
+            "item": "copy and restore interactions",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "server-side create-next-DRAFT command followed by opening the returned revisionId and restoring it with setConfAndFields",
+            "rationale": "preserve copy-then-edit UX without client-side identity deletion or current-pointer ambiguity",
+            "legacyUnchangedVerification": "BPM type=copy behavior is unchanged and PLT idempotency tests prove one next DRAFT"
+          },
+          {
+            "source": "BPM form tables, Form API and process-binding state",
+            "item": "BPM persistence and lifecycle semantics",
+            "decision": "DO_NOT_REUSE",
+            "target": "none",
+            "rationale": "BPM process forms are not PLATFORM dynamic-form business truth",
+            "legacyUnchangedVerification": "no BPM backend, database, API, route or page enters the implementation diff"
+          }
+        ]
+      },
+      {
+        "group": "LEGACY_PMS_FORM",
+        "status": "COMPLETE",
+        "mappings": [
+          {
+            "source": "pms_eng_form_template.product_type and published-list productType filter",
+            "item": "productType",
+            "decision": "DO_NOT_REUSE",
+            "target": "generic categoryCode and unconditioned manual selection only",
+            "rationale": "productType is an engineering-domain matching condition and WorkBinding is out of scope",
+            "legacyUnchangedVerification": "legacy field and filter remain; new PLATFORM tables contain no product_type"
+          },
+          {
+            "source": "FormTemplateDO and form-template VO",
+            "item": "conf and fields",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "DynamicFormTemplateRevision.form_conf_json and form_rules_json",
+            "rationale": "retain the FormCreate payload intent inside an independent immutable revision",
+            "legacyUnchangedVerification": "legacy columns and APIs remain and new commands write only plt_dynamic_form_template_revision"
+          },
+          {
+            "source": "FormTemplateDO.version and FormInstanceDO.version",
+            "item": "version",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "separate template metadata, DRAFT revision and instance CAS versions",
+            "rationale": "preserve optimistic concurrency while representing the three distinct facts",
+            "legacyUnchangedVerification": "legacy version behavior remains and new MySQL tests independently cover each CAS"
+          },
+          {
+            "source": "FormInstanceDO.templateSnapshot and FormInstanceServiceImpl.buildTemplateSnapshot",
+            "item": "template snapshot",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "DynamicFormInstance frozen template/revision identifiers and engine versions backed by immutable revision",
+            "rationale": "retain create-time freezing without client-supplied or string-concatenated snapshot truth",
+            "legacyUnchangedVerification": "legacy snapshot code remains and new instance never rebinds when the template publishes again"
+          },
+          {
+            "source": "FormInstanceServiceImpl.saveFormInstance and pms_eng_form_instance.form_data",
+            "item": "value save and refresh",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "DynamicFormInstance.value_json partial ordinary-field PATCH with If-Match",
+            "rationale": "retain dynamic-value persistence but preserve missing, null, false, zero, empty string and empty array distinctly without lifecycle transition",
+            "legacyUnchangedVerification": "legacy save behavior remains and new runtime/MySQL tests cover partial values and CAS"
+          },
+          {
+            "source": "views/pms/engineering/form-template/index.vue",
+            "item": "template list, metadata edit and action feedback",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "new PLATFORM template list and metadata dialog using revision-status plus availability and server allowedActions",
+            "rationale": "reuse proven Element Plus management interactions without the old single status axis",
+            "legacyUnchangedVerification": "legacy page remains unchanged and the new page tests both state axes"
+          },
+          {
+            "source": "views/pms/engineering/form-template/index.vue",
+            "item": "raw conf/fields textarea edit and pre-based detail/preview",
+            "decision": "DO_NOT_REUSE",
+            "target": "fc-designer edit and FormCreate renderer preview",
+            "rationale": "raw JSON editing is not a usable dynamic-form configuration surface",
+            "legacyUnchangedVerification": "legacy page stays available but new PLATFORM UI cannot substitute textarea or pre for designer/preview"
+          },
+          {
+            "source": "views/pms/engineering/form-instance/index.vue",
+            "item": "template selection, instance list/edit/detail and refresh interactions",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "new PLATFORM manual selection and instance management pages bound to the exact current published revision",
+            "rationale": "retain the interaction rhythm while removing project, filler and old-state coupling",
+            "legacyUnchangedVerification": "legacy page remains and the new browser loop proves stale selection fails rather than silently switching revision"
+          },
+          {
+            "source": "views/pms/engineering/form-instance/index.vue",
+            "item": "raw formData textarea and pre preview",
+            "decision": "DO_NOT_REUSE",
+            "target": "FormCreate renderer plus controlled PmsFileArtifact field",
+            "rationale": "raw JSON cannot deliver control validation, dynamic interaction or controlled file facts",
+            "legacyUnchangedVerification": "legacy page remains and new browser acceptance fills the rendered controls"
+          },
+          {
+            "source": "FormTemplateServiceImpl and FormInstanceServiceImpl",
+            "item": "legacy publish/enable/disable/delete and submit/approve/reject/delete state machines",
+            "decision": "DO_NOT_REUSE",
+            "target": "F-PLT-002 revision and availability machines only; manual instance has no lifecycle state",
+            "rationale": "legacy content/availability coupling and engineering approval semantics are outside the shared carrier",
+            "legacyUnchangedVerification": "legacy services, controllers and buttons remain; new REST exposes no instance submit, approve or delete"
+          },
+          {
+            "source": "legacy form Controller, Service, Mapper, DO, pages, APIs, tables, data and menus",
+            "item": "legacy implementation and persistence",
+            "decision": "DO_NOT_REUSE",
+            "target": "new pms-module-platform namespace, REST and plt_dynamic_form tables",
+            "rationale": "the legacy engineering implementation cannot become PLATFORM truth",
+            "legacyUnchangedVerification": "implementation diff is zero for legacy paths and there is no migration or dual write"
+          }
+        ]
+      },
+      {
+        "group": "LEGACY_REQUIREMENT_ANALYSIS",
+        "status": "COMPLETE",
+        "mappings": [
+          {
+            "source": "views/pms/engineering/requirement/index.vue",
+            "item": "11 labels: background, topology, transmission, traffic, business, IP plan, redundancy, protection, operations, log retention and interface content",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "PLATFORM revision schema preserves labels/order/types; later re-planned F-SOL-003 copies them into its PRE-04 template configuration",
+            "rationale": "retain proven requirement vocabulary without hard-coding SOL content into the shared PLATFORM model",
+            "legacyUnchangedVerification": "legacy page and columns remain; F-PLT-002 tests only generic schema preservation and later F-SOL-003 asserts all 11 mappings"
+          },
+          {
+            "source": "views/pms/engineering/requirement/index.vue",
+            "item": "Editor v-model interaction for background and interface content",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "existing globally registered Editor rule rendered by the new designer, preview and instance page",
+            "rationale": "reuse the mature rich-text interaction through the shared FormCreate runtime rather than fixed page fields",
+            "legacyUnchangedVerification": "legacy Editor bindings remain and PLT runtime tests cover rich-text design, reopen, fill and refresh"
+          },
+          {
+            "source": "views/pms/engineering/requirement/index.vue",
+            "item": "list, project selector, two-column form and save-refresh interaction",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "new PLATFORM list/selection/dialog feedback and responsive dynamic-form layout",
+            "rationale": "reuse proven interaction structure while replacing fixed VO and client-inferred actions",
+            "legacyUnchangedVerification": "legacy page remains and the new page passes 320/768/1024/1440 browser acceptance"
+          },
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-detail/index.vue",
+            "item": "requirement-analysis manual template selection cards, frozen snapshot intent and dynamic section form",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "new PLATFORM manual template selection cards and exact revision freeze; renderer is FormCreate rather than the legacy hand-built section loop",
+            "rationale": "retain the useful select-preview-fill sequence while removing local snapshot fallback, fixed field switching and business flat-data dual write",
+            "legacyUnchangedVerification": "legacy project-detail selection remains unchanged and the new PLT browser loop selects an exact enabled published revision"
+          },
+          {
+            "source": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-detail/index.vue",
+            "item": "requirement-analysis project entry and project-context interaction",
+            "decision": "COPY_THEN_ENHANCE",
+            "target": "F-PLT-002 supplies only independent PLATFORM pages; later F-SOL-003 copies the entry experience and uses WorkBinding auto-selection through a narrow public API",
+            "rationale": "the project entry belongs to SOL and must follow the shared foundation instead of being embedded before it exists",
+            "legacyUnchangedVerification": "F-PLT-002 does not modify project-detail and a later consumer cannot depend on PLATFORM Service, Mapper or tables"
+          },
+          {
+            "source": "legacy requirement Controller, Service, API, pms_eng_requirement and DRAFT/SUBMITTED/EFFECTIVE/ARCHIVED flow",
+            "item": "legacy CRUD, status, permissions and persistence",
+            "decision": "DO_NOT_REUSE",
+            "target": "none in F-PLT-002",
+            "rationale": "requirement business lifecycle is not a shared dynamic-form save state",
+            "legacyUnchangedVerification": "legacy functionality, data, menu and super-admin access remain unchanged; no migration, dual write or reauthorization"
+          }
+        ]
+      }
+    ],
+    "unchangedLegacy": [
+      "BPM form tables, services, APIs, routes and pages",
+      "pms_eng_form_template",
+      "pms_eng_form_instance",
+      "legacy requirement-analysis classes, APIs, routes, pages, data and behavior"
+    ],
+    "forbidden": [
+      "modify legacy classes or pages to host the new feature",
+      "dual write",
+      "automatic legacy migration",
+      "treat legacy tables as PLATFORM truth",
+      "leave an audited item PENDING, TODO or implementation-owned"
+    ]
+  },
+  "stateMachines": {
+    "templateAvailability": {
+      "states": ["ENABLED", "DISABLED"],
+      "transitions": ["ENABLED_TO_DISABLED", "DISABLED_TO_ENABLED"],
+      "initial": "DISABLED",
+      "semantics": "availability controls only new manual selection and instance creation"
+    },
+    "templateRevision": {
+      "states": ["DRAFT", "PUBLISHED"],
+      "transitions": ["CREATE_AS_DRAFT", "DRAFT_TO_PUBLISHED", "COPY_CURRENT_PUBLISHED_TO_NEXT_DRAFT"],
+      "terminal": ["PUBLISHED"],
+      "immutability": "PUBLISHED configuration, rules, engine versions and publication facts have no update or delete command"
+    },
+    "manualInstance": {
+      "states": [],
+      "semantics": "the foundation instance is a mutable CAS-protected value carrier with no submit, complete, approve, delete or template-switch transition"
+    }
+  },
+  "tables": {
+    "plt_dynamic_form_template": {
+      "owner": "PLATFORM",
+      "stableKey": ["tenant_id", "template_code"],
+      "requiredFields": [
+        "id", "tenant_id", "template_code", "template_name", "category_code",
+        "availability_code", "version", "creator", "create_time", "updater", "update_time"
+      ],
+      "optionalFields": ["description", "current_published_revision_id"],
+      "uniques": [
+        "uk(tenant_id, template_code)",
+        "uk(tenant_id, id)"
+      ],
+      "indexes": [
+        "idx(tenant_id, availability_code, template_name, id)",
+        "idx(tenant_id, current_published_revision_id)"
+      ],
+      "foreignKeys": [
+        "fk(tenant_id, current_published_revision_id, id) -> plt_dynamic_form_template_revision(tenant_id, id, template_id)"
+      ],
+      "rules": [
+        "current_published_revision_id is null until a revision is published",
+        "current_published_revision_id always belongs to this template",
+        "ENABLED manual selection requires a non-null current published revision",
+        "metadata PATCH never mutates a revision"
+      ]
+    },
+    "plt_dynamic_form_template_revision": {
+      "owner": "PLATFORM",
+      "stableKey": ["tenant_id", "template_id", "revision_no"],
+      "requiredFields": [
+        "id", "tenant_id", "template_id", "revision_no", "status_code", "draft_marker",
+        "form_conf_json", "form_rules_json", "engine_code", "designer_version", "renderer_version",
+        "version", "creator", "create_time", "updater", "update_time"
+      ],
+      "optionalFields": ["source_revision_id", "published_by", "published_at"],
+      "uniques": [
+        "uk(tenant_id, template_id, revision_no)",
+        "uk(tenant_id, template_id, draft_marker)",
+        "uk(tenant_id, id, template_id)"
+      ],
+      "foreignKeys": [
+        "fk(tenant_id, template_id) -> plt_dynamic_form_template(tenant_id, id)",
+        "fk(tenant_id, source_revision_id, template_id) -> plt_dynamic_form_template_revision(tenant_id, id, template_id)"
+      ],
+      "rules": [
+        "draft_marker=1 only for DRAFT and null for PUBLISHED",
+        "PUBLISHED rows are immutable and non-deletable",
+        "form_conf_json is a JSON object and form_rules_json is a JSON array",
+        "every fillable field key is non-empty and unique within the revision"
+      ]
+    },
+    "plt_dynamic_form_instance": {
+      "owner": "PLATFORM",
+      "stableKey": ["tenant_id", "instance_code"],
+      "requiredFields": [
+        "id", "tenant_id", "instance_code", "instance_name", "owner_context", "object_type", "object_id",
+        "template_id", "template_revision_id", "template_revision_no", "engine_code", "designer_version",
+        "renderer_version", "value_json", "created_by", "version", "creator", "create_time", "updater", "update_time"
+      ],
+      "uniques": [
+        "uk(tenant_id, instance_code)",
+        "uk(tenant_id, owner_context, object_type, object_id)"
+      ],
+      "foreignKeys": [
+        "fk(tenant_id, template_revision_id, template_id) -> plt_dynamic_form_template_revision(tenant_id, id, template_id)"
+      ],
+      "rules": [
+        "user REST creates only owner_context=PLATFORM and object_type=MANUAL_DYNAMIC_FORM with object_id equal to the preallocated instance id",
+        "template revision identity and engine versions never change after creation",
+        "value_json contains ordinary field values only; PmsFileArtifact facts are projected from F-PLT-001",
+        "false, zero, null, empty string and empty array retain distinct JSON semantics",
+        "ordinary value PATCH uses version CAS"
+      ]
+    }
+  },
+  "formCreateContract": {
+    "engineCode": "FORM_CREATE_ELEMENT_PLUS",
+    "implementationBaseline": {
+      "designer": "@form-create/designer@3.4.0",
+      "renderer": "@form-create/element-ui@3.2.38"
+    },
+    "persistedFacts": [
+      "formConfJson",
+      "formRulesJson",
+      "engineCode",
+      "designerVersion",
+      "rendererVersion"
+    ],
+    "retainedSurfaces": [
+      "all current FormCreate built-in controls",
+      "rich text",
+      "ordinary file upload",
+      "single image upload",
+      "multiple image upload",
+      "dictionary selector",
+      "user selector",
+      "department selector",
+      "area selector",
+      "API selector",
+      "iframe",
+      "linkage and validation",
+      "events, functions and parseFunc"
+    ],
+    "publishValidation": [
+      "configuration parses as a JSON object",
+      "rules parse as a JSON array",
+      "fillable field keys are non-empty and unique",
+      "engine code and pinned versions are supported by the current application"
+    ],
+    "fieldDiscovery": {
+      "walk": "recursively traverse every rule object and its children arrays in stable document order",
+      "valueField": "a rule whose field property is a non-blank string",
+      "uniqueness": "value field keys are unique across the complete revision, including nested layouts",
+      "fileField": "type=PmsFileArtifact classifies a controlled file field; other rule types remain ordinary values",
+      "unknownComponent": "retain the complete rule unchanged; the server does not delete an unknown component merely because it is not a controlled file field"
+    },
+    "notAppliedInVersion1": [
+      "component allowlist",
+      "component property allowlist",
+      "iframe origin allowlist",
+      "API URL or endpoint catalog allowlist",
+      "event, function or parseFunc static analysis",
+      "script sandbox",
+      "template approval workflow"
+    ],
+    "executionBoundary": {
+      "location": "current authenticated user browser only",
+      "apiSelector": "configured GET or POST is issued by the existing frontend request client; PLATFORM provides no server proxy",
+      "iframe": "the configured URL is loaded by the browser and remains subject to real CSP, CORS, frame and target-site policy",
+      "functions": "published administrator-authored event/function/parseFunc strings are evaluated by the existing FormCreate runtime",
+      "serverAuthorization": "every target API still enforces its own tenant, function and data-scope authorization",
+      "businessResult": "script, API or iframe success is never a domain command success fact"
+    }
+  },
+  "manualSelection": {
+    "eligible": "template availability is ENABLED and the requested revision is the template current PUBLISHED revision",
+    "selectionFields": [
+      "templateId", "templateCode", "templateName", "currentPublishedRevisionId",
+      "currentPublishedRevisionNo", "engineCode", "designerVersion", "rendererVersion", "templateVersion"
+    ],
+    "createInput": ["templateRevisionId", "expectedTemplateVersion", "instanceName"],
+    "serverOwnedBinding": ["tenantId", "actorUserId", "ownerContext", "objectType", "objectId", "instanceCode"],
+    "conflictPolicy": "disablement or current revision change between selection and creation returns VERSION_CONFLICT and never substitutes another revision"
+  },
+  "instanceValueContract": {
+    "ordinaryPatch": "partial object; only present ordinary fields change",
+    "unknownField": "reject without changing the instance",
+    "fileFieldInput": "reject PmsFileArtifact keys in ordinary PATCH",
+    "render": "always use the instance frozen revision and engine versions",
+    "templateChange": "never changes an existing instance",
+    "allowedActions": "server derives from trusted tenant, function permissions, instance creator and current versions"
+  },
+  "pmsFileArtifactField": {
+    "componentName": "PmsFileArtifact",
+    "fileOwnerKey": {
+      "ownerContext": "PLATFORM",
+      "objectType": "DYNAMIC_FORM_INSTANCE",
+      "objectId": "instanceId",
+      "purposeCode": "FORM_FIELD_ATTACHMENT/{fieldKey}",
+      "referenceKey": "stable slotKey UUID retained for one user intent"
+    },
+    "fieldKeyPolicy": "the frozen revision must contain the exact fieldKey and componentName; fieldKey is non-empty, unique and cannot contain '/'",
+    "actions": ["UPLOAD", "REFERENCE", "READ", "DOWNLOAD", "PREVIEW", "REPLACE", "DETACH"],
+    "responseFact": [
+      "artifactId", "versionNo", "referenceKey", "fileFactVersion", "scopeVersion", "status"
+    ],
+    "storagePolicy": "instance value_json stores no forged file vector, storage key or permanent URL",
+    "ordinaryUploadPolicy": "ordinary FormCreate upload controls remain available and their URL/JSON values are ordinary values, never controlled FileArtifact evidence",
+    "readPolicy": "one instance detail submits every frozen PmsFileArtifact field purpose as one FileArtifactApi.inspectReferenceSets batch and maps the returned sets by exact fieldKey; never issue one query per field",
+    "dependency": "reuse F-PLT-001 APIs, policy provider, short-lived access tickets, version facts and audit without changing F-PLT-001 state machines"
+  },
+  "interfaces": {
+    "basePath": "/api/v1/pms",
+    "endpoints": {
+      "templatePage": "GET /dynamic-form-templates?pageNo={pageNo}&pageSize={pageSize}",
+      "templateCreate": "POST /dynamic-form-templates",
+      "templateDetail": "GET /dynamic-form-templates/{templateId}",
+      "templateMetadataPatch": "PATCH /dynamic-form-templates/{templateId}",
+      "revisionCreate": "POST /dynamic-form-templates/{templateId}/revisions",
+      "revisionDetail": "GET /dynamic-form-template-revisions/{revisionId}",
+      "revisionPatch": "PATCH /dynamic-form-template-revisions/{revisionId}",
+      "revisionPublish": "POST /dynamic-form-template-revisions/{revisionId}/actions/publish",
+      "templateEnable": "POST /dynamic-form-templates/{templateId}/actions/enable",
+      "templateDisable": "POST /dynamic-form-templates/{templateId}/actions/disable",
+      "selection": "GET /dynamic-form-templates/selection?pageNo={pageNo}&pageSize={pageSize}",
+      "instancePage": "GET /dynamic-form-instances?pageNo={pageNo}&pageSize={pageSize}",
+      "instanceCreate": "POST /dynamic-form-instances",
+      "instanceDetail": "GET /dynamic-form-instances/{instanceId}",
+      "instancePatch": "PATCH /dynamic-form-instances/{instanceId}"
+    },
+    "requiredHeaders": {
+      "templateCreate": ["Idempotency-Key"],
+      "templateMetadataPatch": ["If-Match"],
+      "revisionCreate": ["Idempotency-Key", "If-Match"],
+      "revisionPatch": ["If-Match"],
+      "revisionPublish": ["Idempotency-Key", "If-Match"],
+      "templateEnable": ["Idempotency-Key", "If-Match"],
+      "templateDisable": ["Idempotency-Key", "If-Match"],
+      "instanceCreate": ["Idempotency-Key"],
+      "instancePatch": ["If-Match"]
+    },
+    "forbiddenInputs": [
+      "tenantId", "actorUserId", "actorRoleCode", "ownerContext", "objectType", "objectId",
+      "instanceCode", "revisionNo", "revisionStatus", "currentPublishedRevisionId", "publishedBy", "publishedAt"
+    ],
+    "listOrdering": {
+      "templates": "template_name ASC, id ASC",
+      "selection": "template_name ASC, id ASC",
+      "instances": "update_time DESC, id DESC",
+      "revisions": "revision_no DESC, id DESC"
+    },
+    "payloads": {
+      "templateCreate": {
+        "required": ["templateCode", "templateName", "categoryCode"],
+        "optional": ["description"],
+        "response": ["templateId", "templateVersion", "availability=DISABLED", "draftRevisionId", "draftRevisionNo=1", "draftVersion", "allowedActions"]
+      },
+      "templateMetadataPatch": {
+        "patchFields": ["templateName", "categoryCode", "description"],
+        "rule": "at least one patch field is present; absent and explicit null remain distinct where the field is nullable",
+        "response": ["templateId", "templateVersion", "availability", "currentPublishedRevisionId", "allowedActions"]
+      },
+      "revisionCreate": {
+        "requestBody": "empty",
+        "response": ["revisionId", "revisionNo", "status=DRAFT", "sourceRevisionId", "revisionVersion"]
+      },
+      "revisionPatch": {
+        "required": ["formConfJson", "formRulesJson", "engineCode", "designerVersion", "rendererVersion"],
+        "semantics": "replace the complete DRAFT design payload after validation; never patch or publish a PUBLISHED revision",
+        "response": ["revisionId", "revisionNo", "status", "revisionVersion"]
+      },
+      "revisionPublish": {
+        "requestBody": "empty",
+        "response": ["templateId", "templateVersion", "revisionId", "revisionNo", "status=PUBLISHED", "publishedBy", "publishedAt", "availability"]
+      },
+      "templateAvailability": {
+        "requestBody": "empty",
+        "response": ["templateId", "templateVersion", "availability", "currentPublishedRevisionId", "allowedActions"]
+      },
+      "instanceCreate": {
+        "required": ["templateRevisionId", "expectedTemplateVersion", "instanceName"],
+        "response": ["instanceId", "instanceCode", "templateId", "templateRevisionId", "templateRevisionNo", "instanceVersion", "allowedActions"]
+      },
+      "instancePatch": {
+        "required": ["values"],
+        "semantics": "values is a partial JSON object; only present ordinary keys change and controlled file keys are rejected",
+        "response": ["instanceId", "instanceVersion", "changedFieldKeys", "allowedActions"]
+      },
+      "instanceDetail": {
+        "response": ["instance identity", "frozen template/revision and engine versions", "complete formConfJson/formRulesJson", "ordinary values", "controlled file facts by fieldKey", "instanceVersion", "allowedActions"]
+      }
+    },
+    "publicModuleApi": "NONE_UNTIL_REAL_CROSS_MODULE_CALLER"
+  },
+  "permissions": {
+    "templateQuery": "pms:dynamic-form-template:query",
+    "templateManage": "pms:dynamic-form-template:manage",
+    "templatePublish": "pms:dynamic-form-template:publish",
+    "instanceQuery": "pms:dynamic-form-instance:query",
+    "instanceCreate": "pms:dynamic-form-instance:create",
+    "instanceUpdate": "pms:dynamic-form-instance:update",
+    "instanceUpdateSubject": "CREATED_BY_CURRENT_ACTOR",
+    "fileActions": "instance permission plus the matching F-PLT-001 function permission and DynamicForm FileBusinessObjectPolicyProvider approval",
+    "roleSeedPolicy": "create menu and permission resources only; do not create or grant a new ordinary business role",
+    "frontendBackendTruth": "allowedActions is a conservative server projection and every command revalidates after lock"
+  },
+  "transactions": {
+    "createTemplate": "CLAIM_IDEMPOTENCY; VALIDATE_PERMISSION_AND_CODE; INSERT_DISABLED_TEMPLATE_AND_REVISION_1_DRAFT; WRITE_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT",
+    "createRevision": "CLAIM_IDEMPOTENCY; LOCK_TEMPLATE_CURRENT_PUBLISHED_AND_DRAFT; REQUIRE_NO_DRAFT_AND_EXPECTED_VERSION; COPY_CURRENT_PUBLISHED_TO_NEXT_DRAFT; WRITE_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT",
+    "publishRevision": "CLAIM_IDEMPOTENCY; LOCK_TEMPLATE_AND_EXPECTED_DRAFT; VALIDATE_PERMISSION_VERSION_JSON_AND_FIELD_KEYS; CAS_DRAFT_TO_PUBLISHED_AND_CLEAR_DRAFT_MARKER; SWITCH_CURRENT_PUBLISHED_POINTER; WRITE_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT",
+    "setAvailability": "CLAIM_IDEMPOTENCY; LOCK_TEMPLATE_AND_EXPECTED_VERSION; REQUIRE_CURRENT_PUBLISHED_FOR_ENABLE; CAS_AVAILABILITY; WRITE_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT",
+    "createManualInstance": "CLAIM_IDEMPOTENCY; LOCK_TEMPLATE_AND_REQUESTED_REVISION; REQUIRE_ENABLED_AND_REQUESTED_REVISION_IS_CURRENT_PUBLISHED; INSERT_INSTANCE_WITH_FROZEN_REVISION; WRITE_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT",
+    "patchInstance": "LOCK_INSTANCE; REQUIRE_EXPECTED_VERSION_CREATOR_AND_UPDATE_PERMISSION; REJECT_UNKNOWN_OR_FILE_FIELDS; CAS_PARTIAL_ORDINARY_VALUES; WRITE_SUCCESS_AUDIT; COMMIT",
+    "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_USE_EXISTING_PLATFORM_REJECTED_AUDIT; NO_SUCCESS_IDEMPOTENCY_OR_PARTIAL_POINTER_CHANGE"
+  },
+  "lockOrder": [
+    "PLT_DYNAMIC_FORM_TEMPLATE",
+    "PLT_DYNAMIC_FORM_TEMPLATE_REVISION_CURRENT_DRAFT_OR_PUBLISHED",
+    "PLT_DYNAMIC_FORM_INSTANCE",
+    "F_PLT_001_BUSINESS_NAMESPACE_PROVIDER_WHEN_A_FILE_COMMAND_RUNS",
+    "F_PLT_001_ARTIFACT_VERSION_REFERENCE_LOCKS"
+  ],
+  "platformFacts": {
+    "idempotencyTable": "plt_idempotency_record",
+    "idempotencyPolicy": "same key and canonical payload replays the completed response; different payload conflicts; Decision.IN_PROGRESS returns the existing stable business error with no second side effect",
+    "auditTable": "plt_operation_audit",
+    "auditSummary": [
+      "templateId", "revisionId", "instanceId", "action", "beforeStatusOrVersion",
+      "afterStatusOrVersion", "changedFieldKeys", "engine versions", "operationId", "actor", "occurredAt"
+    ],
+    "auditForbidden": [
+      "complete event or function source",
+      "complete rich text or form values",
+      "API response body",
+      "iframe body",
+      "file body, storage key or permanent URL"
+    ],
+    "outboxEvents": []
+  },
+  "errors": [
+    "DYNAMIC_FORM_TEMPLATE_NOT_FOUND",
+    "DYNAMIC_FORM_TEMPLATE_CODE_CONFLICT",
+    "DYNAMIC_FORM_TEMPLATE_DISABLED",
+    "DYNAMIC_FORM_CURRENT_REVISION_CHANGED",
+    "DYNAMIC_FORM_DRAFT_ALREADY_EXISTS",
+    "DYNAMIC_FORM_REVISION_NOT_DRAFT",
+    "DYNAMIC_FORM_SCHEMA_INVALID",
+    "DYNAMIC_FORM_FIELD_KEY_DUPLICATE",
+    "DYNAMIC_FORM_INSTANCE_NOT_FOUND",
+    "DYNAMIC_FORM_INSTANCE_FIELD_UNKNOWN",
+    "DYNAMIC_FORM_FILE_FIELD_REQUIRES_FILE_API",
+    "VERSION_CONFLICT",
+    "FORBIDDEN",
+    "PMS-PLATFORM-COMMAND-IN-PROGRESS"
+  ],
+  "migration": {
+    "strategy": "NEXT_UNUSED_FLYWAY_AFTER_LOCKED_NPDMS_BASELINE",
+    "forwardOnly": true,
+    "newTables": [
+      "plt_dynamic_form_template",
+      "plt_dynamic_form_template_revision",
+      "plt_dynamic_form_instance"
+    ],
+    "seedRequirements": [
+      "template and instance menus plus six stable permission resources",
+      "one enabled published example template using representative ordinary values and PmsFileArtifact",
+      "one disabled published example template excluded from selection",
+      "one draft-only template excluded from selection",
+      "creator marks and stable high-range or dedicated identifiers"
+    ],
+    "forbidden": [
+      "edit an executed migration",
+      "migrate or dual-write BPM or legacy PMS form data",
+      "modify legacy menu or role associations",
+      "invent WorkBinding, PRE-04, SCH, IMP, ACC or CUT business seed facts"
+    ]
+  },
+  "acceptance": {
+    "wholeLoop": "configure -> preview -> publish -> enable -> manual select -> create frozen instance -> render -> fill ordinary and PmsFileArtifact fields -> save -> refresh",
+    "browserViewports": [320, 768, 1024, 1440],
+    "legacyRegression": "legacy BPM and pms_eng form and requirement-analysis routes, APIs and data remain unchanged",
+    "excludedClaims": [
+      "WorkBinding integration",
+      "PRE-04 versioning",
+      "SCH, IMP, ACC or CUT consumer completion",
+      "Deployment",
+      "SIT",
+      "UAT",
+      "Release"
+    ]
+  }
+}

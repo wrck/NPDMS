@@ -270,25 +270,41 @@
         "sol_solution_review"
       ]
     },
-    "DynamicFormSchema": {
-      "owner": "SOL",
-      "requirementIds": [
-        "SOL-01"
-      ],
-      "targetTables": [
-        "sol_dynamic_form_schema",
-        "sol_dynamic_form_schema_revision"
-      ]
-    },
-    "DynamicFormInstance": {
+    "PreparationDynamicFormInstance": {
       "owner": "SOL",
       "requirementIds": [
         "PRE-02",
-        "PRE-04",
-        "SOL-01"
+        "PRE-04"
       ],
       "targetTables": [
         "sol_dynamic_form_instance"
+      ]
+    },
+    "DynamicFormTemplate": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template"
+      ]
+    },
+    "DynamicFormTemplateRevision": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template_revision"
+      ]
+    },
+    "DynamicFormInstance": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_instance"
       ]
     },
     "ArrivalAcceptance": {
@@ -1565,48 +1581,90 @@
       ]
     },
     {
-      "object": "DynamicFormSchema",
-      "owner": "SOL",
-      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
-      "requirementIds": [
-        "SOL-01"
-      ],
-      "targetTables": [
-        "sol_dynamic_form_schema",
-        "sol_dynamic_form_schema_revision"
-      ],
-      "sources": [
-        {
-          "sourceType": "CURRENT_TABLE",
-          "sourceObject": "pms_eng_form_template",
-          "disposition": "CURRENT_FORWARD",
-          "transform": "convert published template versions into immutable schema revisions",
-          "mappingStatus": "PENDING_FIELD_MAPPING",
-          "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_template"
-        }
-      ]
-    },
-    {
-      "object": "DynamicFormInstance",
+      "object": "PreparationDynamicFormInstance",
       "owner": "SOL",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "PRE-02",
-        "PRE-04",
-        "SOL-01"
+        "PRE-04"
       ],
       "targetTables": [
         "sol_dynamic_form_instance"
       ],
       "sources": [
         {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "PreparationDynamicFormInstance",
+          "disposition": "NEW_ONLY",
+          "transform": "preserve existing new-platform preparation form facts; do not migrate or dual-write legacy pms_eng_form_instance",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=PreparationDynamicFormInstance"
+        }
+      ]
+    },
+    {
+      "object": "DynamicFormTemplate",
+      "owner": "PLT",
+      "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_form_template",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "audit reusable interaction and field semantics only; keep the legacy table and behavior unchanged and create no migration or dual write",
+          "mappingStatus": "NO_MIGRATION",
+          "gate": "F-PLT-002",
+          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_template"
+        }
+      ]
+    },
+    {
+      "object": "DynamicFormTemplateRevision",
+      "owner": "PLT",
+      "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DynamicFormTemplateRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new PLATFORM template commands; never synthesize a revision from legacy rows",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "F-PLT-002",
+          "evidenceRef": "phase2-contract://object=DynamicFormTemplateRevision"
+        }
+      ]
+    },
+    {
+      "object": "DynamicFormInstance",
+      "owner": "PLT",
+      "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_instance"
+      ],
+      "sources": [
+        {
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_eng_form_instance",
-          "disposition": "CURRENT_FORWARD",
-          "transform": "freeze schema version and preserve raw values plus structured query fields",
-          "mappingStatus": "PENDING_FIELD_MAPPING",
-          "gate": "NEXT_FLYWAY",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration or dual write",
+          "mappingStatus": "NO_MIGRATION",
+          "gate": "F-PLT-002",
           "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_instance"
         }
       ]
