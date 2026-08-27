@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
 > Implementation Done Gate：`PENDING`
 > 当前阻断：`无；INT-05未实施时仅OA必需项保持NOT_READY，不阻断无OA正向主线`
-> 当前任务：`Task 7 实现就绪评估、不可变快照与公共重验API`
+> 当前任务：`Task 8 实现来源同步异常、外包引用与逐项豁免`
 > Requirement ID：`PRE-02（V1/P0）`
 > Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
 > Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
@@ -29,7 +29,7 @@
 - [x] Task 4 实现模板初始化、当前准备查询与历史投影（PASS / 7f340ba21a41d6eeb5d798d95b4d7285e23c16a9）
 - [x] Task 5 实现逐项指派、填写与精确文件证据（PASS / b94b037）
 - [x] Task 6 实现提交、逐项确认及退回新版本（PASS / 00d43ae90f5dce6fccdc6222db7280a9a78208b1）
-- [ ] Task 7 实现就绪评估、不可变快照与公共重验API
+- [x] Task 7 实现就绪评估、不可变快照与公共重验API（PASS / 975f1c2291831f8ac8e663d05094c1eedf9eb010）
 - [ ] Task 8 实现来源同步异常、外包引用与逐项豁免
 - [ ] Task 9 建设响应式工勘准备界面并退役旧写入口
 - [ ] Task 10 完成真实MySQL、浏览器、独立复审与Feature回写
@@ -63,3 +63,7 @@
 > Task 6候选与整改证据（2026-08-27）：候选`21496d5`实现提交、确认、不适用确认和退回新版本；整改`00d43ae90f5dce6fccdc6222db7280a9a78208b1`将项目经理提交/确认收敛为对负责人已冻结精确文件槽位执行`READ lockAndRevalidate`，逐项核验文件与范围版本并在同一事务锁定来源事实，同时补齐生命周期、适用性/确认、readiness及退回复制矩阵before/after成功审计。清洁MySQL V1→V97及真实链3/3 PASS，工程模块143项0失败、27模块Reactor BUILD SUCCESS。
 
 > Task 6独立裁决（2026-08-27）：原NO-GO两项经`00d43ae90f5dce6fccdc6222db7280a9a78208b1`闭环；独立复审GO，允许回写PASS并推进Task 7。
+
+> Task 7候选与整改证据（2026-08-27）：提交`5649cba`实现显式就绪评估、不可变READY/NOT_READY快照、稳定历史查询及纯只读`inspect/lockAndRevalidate`公共契约；整改`975f1c2291831f8ac8e663d05094c1eedf9eb010`补齐OA Provider缺失、文件事实变化、跨租户、预期版本与事实向量冲突的失败关闭，以及真实MySQL双事务并发评估单胜证据。聚焦单元6/6、清洁V1→V97真实MySQL 5/5 PASS；工程模块154项0失败、27模块Reactor BUILD SUCCESS。
+
+> Task 7独立裁决（2026-08-27）：原NO-GO唯一证据缺口经`975f1c2291831f8ac8e663d05094c1eedf9eb010`闭环；独立复审GO，允许回写PASS并推进Task 8。
