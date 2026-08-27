@@ -32,6 +32,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -75,11 +76,12 @@ public class PreparationReviewService {
                 new PreparationRowQuery(actor.tenantId(), command.preparationId()));
         if (located == null) throw exception(PREPARATION_NOT_EXISTS);
         authorizeManager(located.getProjectId(), command.expectedProjectVersion(), actor);
+        AtomicReference<Map<String, Object>> auditSnapshot = new AtomicReference<>();
         var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), SCOPE + "_" + command.action(), actor.actorId(), command.idempotencyKey()),
                 digest(command), PreparationReviewResult.class,
-                () -> perform(command, actor, located.getProjectId()),
-                response -> successFacts(command, actor, response));
+                () -> perform(command, actor, located.getProjectId(), auditSnapshot),
+                response -> successFacts(command, actor, response, auditSnapshot.get()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
                 || execution.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS) {
             throw exception(PREPARATION_VERSION_NOT_MATCH);
@@ -88,7 +90,8 @@ public class PreparationReviewService {
     }
 
     private PreparationReviewResult perform(PreparationReviewCommand command,
-            PreparationItemApplicationService.Actor actor, Long projectId) {
+            PreparationItemApplicationService.Actor actor, Long projectId,
+            AtomicReference<Map<String, Object>> auditSnapshot) {
         PreparationDO preparation = preparationMapper.selectForUpdate(
                 new PreparationRowQuery(actor.tenantId(), command.preparationId()));
         if (preparation == null || !Objects.equals(preparation.getProjectId(), projectId)
@@ -100,24 +103,29 @@ public class PreparationReviewService {
                 new PreparationChildrenQuery(actor.tenantId(), preparation.getId()));
         List<DynamicFormInstanceDO> forms = formMapper.selectListForUpdate(
                 new PreparationChildrenQuery(actor.tenantId(), preparation.getId()));
+        List<PreparationSourceReferenceDO> sources = sourceMapper.selectListForUpdate(
+                new PreparationChildrenQuery(actor.tenantId(), preparation.getId()));
         if (items.isEmpty() || forms.size() != items.size()) throw exception(PREPARATION_STATUS_INVALID);
         Map<Long, DynamicFormInstanceDO> formsByItem = new LinkedHashMap<>();
         for (DynamicFormInstanceDO form : forms) {
             if (formsByItem.put(form.getItemId(), form) != null) throw exception(PREPARATION_STATUS_INVALID);
         }
         return switch (command.action()) {
-            case PreparationReviewCommand.SUBMIT -> submit(command, actor, preparation, items, formsByItem);
+            case PreparationReviewCommand.SUBMIT -> submit(command, actor, preparation, items, formsByItem,
+                    sources, auditSnapshot);
             case PreparationReviewCommand.CONFIRM, PreparationReviewCommand.CONFIRM_NOT_APPLICABLE ->
-                    confirm(command, actor, preparation, items);
+                    confirm(command, actor, preparation, items, formsByItem, sources, auditSnapshot);
             case PreparationReviewCommand.RETURN ->
-                    returnToDraft(command, actor, preparation, items, forms);
+                    returnToDraft(command, actor, preparation, items, forms, sources, auditSnapshot);
             default -> throw exception(PREPARATION_COMMAND_INVALID);
         };
     }
 
     private PreparationReviewResult submit(PreparationReviewCommand command,
             PreparationItemApplicationService.Actor actor, PreparationDO preparation,
-            List<PreparationItemDO> items, Map<Long, DynamicFormInstanceDO> forms) {
+            List<PreparationItemDO> items, Map<Long, DynamicFormInstanceDO> forms,
+            List<PreparationSourceReferenceDO> sources,
+            AtomicReference<Map<String, Object>> auditSnapshot) {
         PreparationStateRules.requirePreparationTransition(preparation.getStatusCode(), "PENDING_CONFIRMATION");
         LocalDateTime now = LocalDateTime.now();
         for (PreparationItemDO item : items) {
@@ -146,16 +154,22 @@ public class PreparationReviewService {
                 now, null, null, null, String.valueOf(actor.actorId()))) != 1) {
             throw exception(PREPARATION_VERSION_NOT_MATCH);
         }
+        auditSnapshot.set(submitAudit(command, preparation, items, forms, sources, now));
         return result(preparation, "PENDING_CONFIRMATION", preparation.getVersion() + 1, preparation.getId());
     }
 
     private PreparationReviewResult confirm(PreparationReviewCommand command,
             PreparationItemApplicationService.Actor actor, PreparationDO preparation,
-            List<PreparationItemDO> items) {
+            List<PreparationItemDO> items, Map<Long, DynamicFormInstanceDO> forms,
+            List<PreparationSourceReferenceDO> sources,
+            AtomicReference<Map<String, Object>> auditSnapshot) {
         if (!"PENDING_CONFIRMATION".equals(preparation.getStatusCode())) {
             throw exception(PREPARATION_STATUS_INVALID);
         }
         PreparationItemDO selected = requireItem(items, command);
+        validateEvidence(selected, actor);
+        List<PreparationSourceReferenceDO> selectedSources = sources.stream()
+                .filter(source -> Objects.equals(source.getItemId(), selected.getId())).toList();
         String applicability = selected.getApplicabilityCode();
         if (PreparationReviewCommand.CONFIRM.equals(command.action())) {
             if (!"REQUIRED".equals(applicability)) throw exception(PREPARATION_STATUS_INVALID);
@@ -192,19 +206,21 @@ public class PreparationReviewService {
             version++;
             status = "CONFIRMED";
         }
+        auditSnapshot.set(confirmAudit(command, preparation, selected, forms.get(selected.getId()),
+                selectedSources, applicability, status, version, now));
         return result(preparation, status, version, preparation.getId());
     }
 
     private PreparationReviewResult returnToDraft(PreparationReviewCommand command,
             PreparationItemApplicationService.Actor actor, PreparationDO oldPreparation,
-            List<PreparationItemDO> oldItems, List<DynamicFormInstanceDO> oldForms) {
+            List<PreparationItemDO> oldItems, List<DynamicFormInstanceDO> oldForms,
+            List<PreparationSourceReferenceDO> sources,
+            AtomicReference<Map<String, Object>> auditSnapshot) {
         if (command.reason() == null || command.reason().isBlank()) throw exception(PREPARATION_COMMAND_INVALID);
         PreparationStateRules.requirePreparationTransition(oldPreparation.getStatusCode(), "RETURNED");
         PreparationItemDO selected = requireItem(oldItems, command);
         PreparationStateRules.requireItemConfirmationTransition(oldPreparation.getStatusCode(),
                 selected.getApplicabilityCode(), selected.getConfirmationStatusCode(), "RETURNED");
-        List<PreparationSourceReferenceDO> sources = sourceMapper.selectListForUpdate(
-                new PreparationChildrenQuery(actor.tenantId(), oldPreparation.getId()));
         LocalDateTime now = LocalDateTime.now();
         String actorText = String.valueOf(actor.actorId());
         if (itemMapper.updateReviewIfMatch(new PreparationItemReviewUpdate(actor.tenantId(), oldPreparation.getId(),
@@ -237,6 +253,8 @@ public class PreparationReviewService {
             PreparationSourceReferenceDO copied = copySource(source, next.getId(), itemIds.get(source.getItemId()), actor, now);
             if (sourceMapper.insert(copied) != 1) throw new IllegalStateException("PREPARATION_SOURCE_COPY_FAILED");
         }
+        auditSnapshot.set(returnAudit(command, oldPreparation, next, oldItems, oldForms, sources,
+                selected, itemIds));
         return result(next, "DRAFT", 0, next.getId());
     }
 
@@ -256,8 +274,13 @@ public class PreparationReviewService {
                     new FileArtifactVersionRevalidationQuery(frozen.artifactId(), frozen.versionNo(),
                             PreparationFilePolicyProvider.OWNER_CONTEXT, PreparationFilePolicyProvider.OBJECT_TYPE,
                             String.valueOf(item.getId()), PreparationFilePolicyProvider.PURPOSE_CODE,
-                            frozen.referenceKey(), FileActionCodes.REFERENCE, frozen.fileFactVersion(), frozen.scopeVersion()));
-            if (current == null || !"AVAILABLE".equals(current.availabilityStatus())
+                            frozen.referenceKey(), FileActionCodes.READ, frozen.fileFactVersion(), frozen.scopeVersion()));
+            if (current == null || !Objects.equals(current.artifactId(), frozen.artifactId())
+                    || !Objects.equals(current.versionNo(), frozen.versionNo())
+                    || !Objects.equals(current.referenceKey(), frozen.referenceKey())
+                    || !Objects.equals(current.fileFactVersion(), frozen.fileFactVersion())
+                    || !Objects.equals(current.scopeVersion(), frozen.scopeVersion())
+                    || !"AVAILABLE".equals(current.availabilityStatus())
                     || !"ACTIVE".equals(current.referenceStatus())) throw exception(PREPARATION_FILE_FACT_INVALID);
         }
     }
@@ -343,13 +366,175 @@ public class PreparationReviewService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(PreparationReviewCommand command,
-            PreparationItemApplicationService.Actor actor, PreparationReviewResult response) {
-        Map<String, Object> detail = new LinkedHashMap<>(); detail.put("action", command.action());
-        detail.put("preparationId", command.preparationId()); detail.put("itemId", command.itemId() == null ? "NONE" : command.itemId());
-        detail.put("statusAfter", response.statusCode()); detail.put("businessVersionAfter", response.businessVersion());
-        detail.put("currentPreparationId", response.currentPreparationId()); detail.put("reason", command.reason() == null ? "NONE" : command.reason());
+            PreparationItemApplicationService.Actor actor, PreparationReviewResult response,
+            Map<String, Object> auditSnapshot) {
+        if (auditSnapshot == null || auditSnapshot.isEmpty()) {
+            throw new IllegalStateException("PREPARATION_REVIEW_AUDIT_SNAPSHOT_MISSING");
+        }
+        Map<String, Object> detail = new LinkedHashMap<>(auditSnapshot);
+        detail.put("action", command.action());
+        detail.put("preparationId", command.preparationId());
+        detail.put("itemId", command.itemId() == null ? "NONE" : command.itemId());
+        detail.put("currentPreparationId", response.currentPreparationId());
+        detail.put("reason", value(command.reason()));
         return new PlatformCommandExecutionApi.SuccessFacts("PREPARATION_" + command.action(), "Preparation",
                 String.valueOf(command.preparationId()), actor.correlationId(), JsonUtils.toJsonString(detail), null, null);
+    }
+
+    private Map<String, Object> submitAudit(PreparationReviewCommand command, PreparationDO preparation,
+            List<PreparationItemDO> items, Map<Long, DynamicFormInstanceDO> forms,
+            List<PreparationSourceReferenceDO> sources, LocalDateTime frozenAt) {
+        Map<String, Object> detail = baseAudit(preparation);
+        detail.put("preparationBefore", preparationFact(preparation));
+        detail.put("preparationAfter", preparationFact(preparation, "PENDING_CONFIRMATION",
+                preparation.getVersion() + 1, preparation.getInputVersion(), preparation.getReadinessStatusCode(),
+                preparation.getSnapshotCurrent(), preparation.getBusinessVersion(), preparation.getId()));
+        detail.put("readinessAfter", readinessFact(preparation));
+        detail.put("itemsBefore", items.stream().map(this::itemFact).toList());
+        detail.put("itemsAfter", items.stream().map(this::itemFact).toList());
+        detail.put("formsBefore", forms.values().stream().map(this::formFact).toList());
+        detail.put("formsAfter", forms.values().stream().map(form -> formFact(form, "FROZEN",
+                form.getVersion() + 1, frozenAt)).toList());
+        detail.put("sourcesLocked", sources.stream().map(this::sourceFact).toList());
+        detail.put("copyFacts", List.of());
+        return detail;
+    }
+
+    private Map<String, Object> confirmAudit(PreparationReviewCommand command, PreparationDO preparation,
+            PreparationItemDO item, DynamicFormInstanceDO form, List<PreparationSourceReferenceDO> sources,
+            String applicabilityAfter, String statusAfter, int versionAfter, LocalDateTime confirmedAt) {
+        Map<String, Object> detail = baseAudit(preparation);
+        detail.put("preparationBefore", preparationFact(preparation));
+        detail.put("preparationAfter", preparationFact(preparation, statusAfter, versionAfter,
+                preparation.getInputVersion() + 1, "NOT_READY", false,
+                preparation.getBusinessVersion(), preparation.getId()));
+        detail.put("readinessAfter", Map.of("status", "NOT_READY",
+                "inputVersion", preparation.getInputVersion() + 1,
+                "readinessVersion", preparation.getReadinessVersion(), "snapshotCurrent", false,
+                "latestSnapshotId", value(preparation.getLatestReadinessSnapshotId())));
+        detail.put("itemBefore", itemFact(item));
+        detail.put("itemAfter", itemFact(item, applicabilityAfter, "CONFIRMED", item.getVersion() + 1,
+                confirmedAt, command.reason()));
+        detail.put("form", form == null ? Map.of() : formFact(form));
+        detail.put("sourcesLocked", sources.stream().map(this::sourceFact).toList());
+        detail.put("copyFacts", List.of());
+        return detail;
+    }
+
+    private Map<String, Object> returnAudit(PreparationReviewCommand command, PreparationDO oldPreparation,
+            PreparationDO next, List<PreparationItemDO> oldItems, List<DynamicFormInstanceDO> oldForms,
+            List<PreparationSourceReferenceDO> sources, PreparationItemDO returnedItem,
+            Map<Long, Long> copiedItemIds) {
+        Map<String, Object> detail = baseAudit(oldPreparation);
+        detail.put("preparationBefore", preparationFact(oldPreparation));
+        detail.put("preparationAfter", preparationFact(oldPreparation, "RETURNED",
+                oldPreparation.getVersion() + 2, oldPreparation.getInputVersion(),
+                oldPreparation.getReadinessStatusCode(), false, oldPreparation.getBusinessVersion(), "NONE"));
+        detail.put("nextPreparation", preparationFact(next));
+        detail.put("readinessAfter", readinessFact(next));
+        detail.put("itemBefore", itemFact(returnedItem));
+        detail.put("itemAfter", itemFact(returnedItem, returnedItem.getApplicabilityCode(), "RETURNED",
+                returnedItem.getVersion() + 1, null, command.reason()));
+        detail.put("copyFacts", oldItems.stream().map(item -> copyFact(item, copiedItemIds.get(item.getId()),
+                Objects.equals(item.getId(), returnedItem.getId()), oldForms, sources)).toList());
+        return detail;
+    }
+
+    private Map<String, Object> baseAudit(PreparationDO preparation) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("projectId", preparation.getProjectId());
+        detail.put("readinessBefore", readinessFact(preparation));
+        return detail;
+    }
+
+    private Map<String, Object> preparationFact(PreparationDO row) {
+        return preparationFact(row, row.getStatusCode(), row.getVersion(), row.getInputVersion(),
+                row.getReadinessStatusCode(), row.getSnapshotCurrent(), row.getBusinessVersion(),
+                row.getCurrentMarker() == null ? "NONE" : row.getId());
+    }
+
+    private Map<String, Object> preparationFact(PreparationDO row, String status, Integer version,
+            Integer inputVersion, String readinessStatus, Boolean snapshotCurrent,
+            Integer businessVersion, Object currentPreparationId) {
+        Map<String, Object> fact = new LinkedHashMap<>();
+        fact.put("preparationId", row.getId()); fact.put("businessVersion", businessVersion);
+        fact.put("currentPreparationId", currentPreparationId); fact.put("status", status);
+        fact.put("version", version); fact.put("inputVersion", inputVersion);
+        fact.put("readinessVersion", row.getReadinessVersion()); fact.put("readinessStatus", readinessStatus);
+        fact.put("latestReadinessSnapshotId", value(row.getLatestReadinessSnapshotId()));
+        fact.put("snapshotCurrent", snapshotCurrent); return fact;
+    }
+
+    private Map<String, Object> readinessFact(PreparationDO row) {
+        return Map.of("status", row.getReadinessStatusCode(), "inputVersion", row.getInputVersion(),
+                "readinessVersion", row.getReadinessVersion(), "snapshotCurrent", row.getSnapshotCurrent(),
+                "latestSnapshotId", value(row.getLatestReadinessSnapshotId()));
+    }
+
+    private Map<String, Object> itemFact(PreparationItemDO row) {
+        return itemFact(row, row.getApplicabilityCode(), row.getConfirmationStatusCode(), row.getVersion(),
+                row.getConfirmedAt(), row.getReturnReason());
+    }
+
+    private Map<String, Object> itemFact(PreparationItemDO row, String applicability, String confirmation,
+            Integer version, LocalDateTime confirmedAt, String reason) {
+        Map<String, Object> fact = new LinkedHashMap<>();
+        fact.put("itemId", row.getId()); fact.put("sourceItemId", value(row.getSourceItemId()));
+        fact.put("itemCode", row.getItemCode()); fact.put("applicability", applicability);
+        fact.put("confirmation", confirmation); fact.put("version", version);
+        fact.put("assigneeUserId", value(row.getAssigneeUserId())); fact.put("outsourced", row.getOutsourced());
+        fact.put("evidenceReferenceSnapshot", value(row.getEvidenceReferenceSnapshot()));
+        fact.put("confirmedAt", value(confirmedAt)); fact.put("reason", value(reason)); return fact;
+    }
+
+    private Map<String, Object> formFact(DynamicFormInstanceDO row) {
+        return formFact(row, row.getStatusCode(), row.getVersion(), row.getFrozenAt());
+    }
+
+    private Map<String, Object> formFact(DynamicFormInstanceDO row, String status, Integer version,
+            LocalDateTime frozenAt) {
+        Map<String, Object> fact = new LinkedHashMap<>();
+        fact.put("formId", row.getId()); fact.put("itemId", row.getItemId());
+        fact.put("formCode", row.getFormCode()); fact.put("formVersion", row.getFormVersion());
+        fact.put("status", status); fact.put("version", version);
+        fact.put("valueSnapshot", value(row.getValueSnapshot())); fact.put("frozenAt", value(frozenAt));
+        return fact;
+    }
+
+    private Map<String, Object> sourceFact(PreparationSourceReferenceDO row) {
+        Map<String, Object> fact = new LinkedHashMap<>();
+        fact.put("sourceId", value(row.getId())); fact.put("itemId", row.getItemId());
+        fact.put("sourceType", value(row.getSourceTypeCode())); fact.put("sourceObjectId", value(row.getSourceObjectId()));
+        fact.put("referenceKey", value(row.getSourceReferenceKey())); fact.put("syncStatus", value(row.getSyncStatusCode()));
+        fact.put("sourceFactVersion", value(row.getSourceFactVersion())); fact.put("watermark", value(row.getSourceWatermark()));
+        fact.put("lastSuccessFactVersion", value(row.getLastSuccessFactVersion())); fact.put("version", row.getVersion());
+        return fact;
+    }
+
+    private Map<String, Object> copyFact(PreparationItemDO item, Long copiedItemId, boolean reset,
+            List<DynamicFormInstanceDO> forms, List<PreparationSourceReferenceDO> sources) {
+        Map<String, Object> fact = new LinkedHashMap<>();
+        fact.put("sourceItemId", item.getId()); fact.put("copiedItemId", copiedItemId);
+        fact.put("mode", reset ? "RESET_RETURNED" : "COPY_UNCHANGED");
+        fact.put("applicabilityBefore", item.getApplicabilityCode());
+        fact.put("applicabilityAfter", reset && "NOT_APPLICABLE_CONFIRMED".equals(item.getApplicabilityCode())
+                ? "NOT_APPLICABLE_PENDING" : item.getApplicabilityCode());
+        fact.put("confirmationBefore", item.getConfirmationStatusCode());
+        fact.put("confirmationAfter", reset ? "PENDING" : item.getConfirmationStatusCode());
+        fact.put("evidenceReferenceSnapshot", value(item.getEvidenceReferenceSnapshot()));
+        fact.put("form", forms.stream().filter(form -> Objects.equals(form.getItemId(), item.getId()))
+                .findFirst().map(form -> Map.of("sourceFormId", form.getId(), "statusBefore", form.getStatusCode(),
+                        "statusAfter", reset || !"CONFIRMED".equals(item.getConfirmationStatusCode()) ? "DRAFT" : "FROZEN",
+                        "valueSnapshot", value(form.getValueSnapshot()))).orElse(Map.of()));
+        fact.put("sources", sources.stream().filter(source -> Objects.equals(source.getItemId(), item.getId()))
+                .map(source -> Map.of("sourceId", value(source.getId()), "referenceKey", value(source.getSourceReferenceKey()),
+                        "syncStatusBefore", value(source.getSyncStatusCode()), "syncStatusAfter", "UNKNOWN",
+                        "lastSuccessFactVersion", value(source.getLastSuccessFactVersion()))).toList());
+        return fact;
+    }
+
+    private Object value(Object value) {
+        return value == null ? "NONE" : value;
     }
 
     private void auditRejected(PreparationReviewCommand command, PreparationItemApplicationService.Actor actor,

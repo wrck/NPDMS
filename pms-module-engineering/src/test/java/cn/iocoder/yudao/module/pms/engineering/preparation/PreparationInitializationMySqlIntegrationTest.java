@@ -16,6 +16,9 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationRe
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
@@ -32,6 +35,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mockito.ArgumentCaptor;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
@@ -55,6 +59,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
@@ -68,6 +75,7 @@ class PreparationInitializationMySqlIntegrationTest {
     @Resource TransactionTemplate transactionTemplate;
     @Resource PermissionApi permissionApi;
     @Resource ProjectScopeApi projectScopeApi;
+    @Resource FileArtifactApi fileArtifactApi;
 
     private long projectId;
     private long taskId;
@@ -124,6 +132,11 @@ class PreparationInitializationMySqlIntegrationTest {
                 projectId, 1L, Set.of(projectId), Set.of());
         when(projectScopeApi.resolveCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
         when(projectScopeApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
+        reset(fileArtifactApi);
+        when(fileArtifactApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new FileArtifactVersionFact(301L, 2, "SITE", "SURVEY", "site.pdf", 100L,
+                        "application/pdf", "sha", "AVAILABLE", "ACTIVE",
+                        new FileFactVersion(1, 2, 3), 1L));
     }
 
     @AfterEach
@@ -204,6 +217,15 @@ class PreparationInitializationMySqlIntegrationTest {
         jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
                 + "evidence_policy_snapshot='{\"required\":false}' WHERE tenant_id=0 AND preparation_id=?",
                 preparationId);
+        Long evidenceItemId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id LIMIT 1", Long.class,
+                preparationId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET evidence_policy_snapshot='{\"required\":true}',"
+                        + "evidence_reference_snapshot=? WHERE tenant_id=0 AND preparation_id=? AND id=?",
+                "[{\"artifactId\":301,\"versionNo\":2,\"referenceKey\":\"SITE\","
+                        + "\"fileFactVersion\":{\"artifactVersion\":1,\"referenceVersion\":2,"
+                        + "\"availabilityVersion\":3},\"scopeVersion\":1}]",
+                preparationId, evidenceItemId);
         jdbcTemplate.update("UPDATE sol_dynamic_form_instance SET value_snapshot='{\"siteCondition\":\"正常\"}' "
                 + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
         var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-REVIEW-" + projectId);
@@ -239,6 +261,25 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals((long) itemIds.size() - 1, jdbcTemplate.queryForObject("SELECT COUNT(*) "
                 + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? "
                 + "AND confirmation_status_code='CONFIRMED'", Long.class, returned.currentPreparationId()));
+        ArgumentCaptor<FileArtifactVersionRevalidationQuery> fileQuery =
+                ArgumentCaptor.forClass(FileArtifactVersionRevalidationQuery.class);
+        verify(fileArtifactApi, times(2)).lockAndRevalidate(fileQuery.capture());
+        assertEquals(List.of("READ", "READ"), fileQuery.getAllValues().stream()
+                .map(FileArtifactVersionRevalidationQuery::requiredAction).toList());
+        assertEquals(List.of(String.valueOf(evidenceItemId), String.valueOf(evidenceItemId)),
+                fileQuery.getAllValues().stream().map(FileArtifactVersionRevalidationQuery::objectId).toList());
+        assertEquals("DRAFT", jdbcTemplate.queryForObject("SELECT JSON_UNQUOTE(JSON_EXTRACT(detail_snapshot,"
+                + "'$.preparationBefore.status')) FROM plt_operation_audit WHERE tenant_id=0 "
+                + "AND correlation_id=? AND operation_code='PREPARATION_SUBMIT' AND result_code='SUCCESS'",
+                String.class, actor.correlationId()));
+        assertEquals("PENDING_CONFIRMATION", jdbcTemplate.queryForObject("SELECT JSON_UNQUOTE(JSON_EXTRACT("
+                + "detail_snapshot,'$.preparationAfter.status')) FROM plt_operation_audit WHERE tenant_id=0 "
+                + "AND correlation_id=? AND operation_code='PREPARATION_SUBMIT' AND result_code='SUCCESS'",
+                String.class, actor.correlationId()));
+        assertEquals(5, jdbcTemplate.queryForObject("SELECT JSON_LENGTH(JSON_EXTRACT(detail_snapshot,'$.copyFacts')) "
+                + "FROM plt_operation_audit WHERE tenant_id=0 AND correlation_id=? "
+                + "AND operation_code='PREPARATION_RETURN' AND result_code='SUCCESS'", Integer.class,
+                actor.correlationId()));
     }
 
     private void insertProjectTaskAndContract() {

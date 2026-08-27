@@ -13,6 +13,9 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.Prepa
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -33,8 +36,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -55,6 +60,7 @@ class PreparationReviewServiceTest {
     @Mock private OperationAuditApi operationAuditApi;
     @Mock private TransactionTemplate transactionTemplate;
     @InjectMocks private PreparationReviewService service;
+    private final AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts = new AtomicReference<>();
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -70,7 +76,7 @@ class PreparationReviewServiceTest {
             Supplier<Object> operation = invocation.getArgument(3);
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
             Object response = operation.get();
-            facts.apply(response);
+            successFacts.set(facts.apply(response));
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
         });
     }
@@ -81,12 +87,14 @@ class PreparationReviewServiceTest {
         PreparationItemDO required = item(101L, "REQUIRED", "PENDING", 1);
         required.setAssigneeUserId(9L);
         required.setSiteResultCode("READY");
-        required.setEvidencePolicySnapshot("{\"required\":false}");
+        required.setEvidencePolicySnapshot("{\"required\":true}");
+        required.setEvidenceReferenceSnapshot(evidence());
         PreparationItemDO notApplicable = item(102L, "NOT_APPLICABLE_PENDING", "PENDING", 1);
         notApplicable.setNotApplicableReason("现场不涉及");
         stubRows(preparation, List.of(required, notApplicable), List.of(form(201L, 101L), form(202L, 102L)));
         when(formMapper.freezeIfMatch(any())).thenReturn(1);
         when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fileFact());
 
         var result = service.execute(command(PreparationReviewCommand.SUBMIT, null, 1, null, null), actor());
 
@@ -94,17 +102,29 @@ class PreparationReviewServiceTest {
         assertEquals(2, result.preparationVersion());
         verify(formMapper, org.mockito.Mockito.times(2)).freezeIfMatch(any());
         verify(preparationMapper).updateLifecycleIfMatch(any());
+        ArgumentCaptor<FileArtifactVersionRevalidationQuery> fileQuery =
+                ArgumentCaptor.forClass(FileArtifactVersionRevalidationQuery.class);
+        verify(fileArtifactApi).lockAndRevalidate(fileQuery.capture());
+        assertEquals("READ", fileQuery.getValue().requiredAction());
+        verify(sourceMapper).selectListForUpdate(any());
+        String audit = successFacts.get().detailSnapshot();
+        assertTrue(audit.contains("\"preparationBefore\""));
+        assertTrue(audit.contains("\"preparationAfter\""));
+        assertTrue(audit.contains("\"formsAfter\""));
+        assertTrue(audit.contains("\"sourcesLocked\""));
     }
 
     @Test
     void lastItemConfirmationAggregatesPreparation() {
         PreparationDO preparation = preparation("PENDING_CONFIRMATION", 4, 2);
         PreparationItemDO selected = item(101L, "REQUIRED", "PENDING", 3);
+        selected.setEvidenceReferenceSnapshot(evidence());
         PreparationItemDO confirmed = item(102L, "NOT_APPLICABLE_CONFIRMED", "CONFIRMED", 2);
         stubRows(preparation, List.of(selected, confirmed), List.of(form(201L, 101L), form(202L, 102L)));
         when(itemMapper.updateReviewIfMatch(any())).thenReturn(1);
         when(preparationMapper.invalidateReadinessIfMatch(any())).thenReturn(1);
         when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fileFact());
 
         var result = service.execute(command(PreparationReviewCommand.CONFIRM, 101L, 4, 3, null), actor());
 
@@ -112,6 +132,15 @@ class PreparationReviewServiceTest {
         assertEquals(6, result.preparationVersion());
         verify(preparationMapper).invalidateReadinessIfMatch(any());
         verify(preparationMapper).updateLifecycleIfMatch(any());
+        ArgumentCaptor<FileArtifactVersionRevalidationQuery> fileQuery =
+                ArgumentCaptor.forClass(FileArtifactVersionRevalidationQuery.class);
+        verify(fileArtifactApi).lockAndRevalidate(fileQuery.capture());
+        assertEquals("READ", fileQuery.getValue().requiredAction());
+        verify(sourceMapper).selectListForUpdate(any());
+        String audit = successFacts.get().detailSnapshot();
+        assertTrue(audit.contains("\"itemBefore\""));
+        assertTrue(audit.contains("\"itemAfter\""));
+        assertTrue(audit.contains("\"readinessBefore\""));
     }
 
     @Test
@@ -149,6 +178,10 @@ class PreparationReviewServiceTest {
         ArgumentCaptor<PreparationSourceReferenceDO> copiedSource = ArgumentCaptor.forClass(PreparationSourceReferenceDO.class);
         verify(sourceMapper).insert(copiedSource.capture());
         assertEquals("UNKNOWN", copiedSource.getValue().getSyncStatusCode());
+        String audit = successFacts.get().detailSnapshot();
+        assertTrue(audit.contains("\"copyFacts\""));
+        assertTrue(audit.contains("\"RESET_RETURNED\""));
+        assertTrue(audit.contains("\"COPY_UNCHANGED\""));
     }
 
     private void stubRows(PreparationDO preparation, List<PreparationItemDO> items,
@@ -198,5 +231,16 @@ class PreparationReviewServiceTest {
         return "{\"schemaVersion\":1,\"formCode\":\"SITE_SURVEY_COMMON\",\"formVersion\":1,"
                 + "\"fields\":[{\"fieldCode\":\"siteCondition\",\"fieldType\":\"TEXT\","
                 + "\"required\":true,\"maxLength\":200,\"options\":[],\"sortOrder\":1}]}";
+    }
+
+    private String evidence() {
+        return "[{\"artifactId\":301,\"versionNo\":2,\"referenceKey\":\"SITE\","
+                + "\"fileFactVersion\":{\"artifactVersion\":1,\"referenceVersion\":2,"
+                + "\"availabilityVersion\":3},\"scopeVersion\":3}]";
+    }
+
+    private FileArtifactVersionFact fileFact() {
+        return new FileArtifactVersionFact(301L, 2, "SITE", "SURVEY", "site.pdf", 100L,
+                "application/pdf", "sha", "AVAILABLE", "ACTIVE", new FileFactVersion(1, 2, 3), 3L);
     }
 }
