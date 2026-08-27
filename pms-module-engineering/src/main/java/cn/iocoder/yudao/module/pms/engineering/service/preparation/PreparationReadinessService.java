@@ -323,25 +323,35 @@ public class PreparationReadinessService {
         }
         if (required && frozen.isEmpty()) blockers.add("EVIDENCE_REQUIRED");
         for (EvidenceFact fact : frozen) {
+            FileArtifactVersionFact current;
             try {
-                FileArtifactVersionFact current = locking
-                        ? fileArtifactApi.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
-                        fact.artifactId(), fact.versionNo(), PreparationFilePolicyProvider.OWNER_CONTEXT,
-                        PreparationFilePolicyProvider.OBJECT_TYPE, String.valueOf(item.getId()),
-                        PreparationFilePolicyProvider.PURPOSE_CODE, fact.referenceKey(), FileActionCodes.READ,
-                        fact.fileFactVersion(), fact.scopeVersion()))
-                        : fileArtifactApi.inspect(new FileArtifactVersionQuery(fact.artifactId(), fact.versionNo(),
+                current = fileArtifactApi.inspect(new FileArtifactVersionQuery(fact.artifactId(), fact.versionNo(),
                         PreparationFilePolicyProvider.OWNER_CONTEXT, PreparationFilePolicyProvider.OBJECT_TYPE,
                         String.valueOf(item.getId()), PreparationFilePolicyProvider.PURPOSE_CODE,
                         fact.referenceKey(), FileActionCodes.READ));
-                if (!exact(fact, current)) {
-                    blockers.add("FILE_FACT_CHANGED");
-                }
-                if (current != null) target.add(fileFact(item.getId(), current));
             } catch (RuntimeException failure) {
                 if (failOnExternalError) throw exception(PREPARATION_READINESS_VERSION_CONFLICT);
                 blockers.add("FILE_FACT_UNAVAILABLE");
+                continue;
             }
+            if (locking) {
+                FileFactVersion expectedVersion = failOnExternalError ? fact.fileFactVersion()
+                        : current.fileFactVersion();
+                Long expectedScopeVersion = failOnExternalError ? fact.scopeVersion() : current.scopeVersion();
+                try {
+                    current = fileArtifactApi.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
+                            fact.artifactId(), fact.versionNo(), PreparationFilePolicyProvider.OWNER_CONTEXT,
+                            PreparationFilePolicyProvider.OBJECT_TYPE, String.valueOf(item.getId()),
+                            PreparationFilePolicyProvider.PURPOSE_CODE, fact.referenceKey(), FileActionCodes.READ,
+                            expectedVersion, expectedScopeVersion));
+                } catch (RuntimeException failure) {
+                    throw exception(PREPARATION_READINESS_VERSION_CONFLICT);
+                }
+            }
+            if (!exact(fact, current)) {
+                blockers.add("FILE_FACT_CHANGED");
+            }
+            target.add(fileFact(item.getId(), current));
         }
     }
 

@@ -673,6 +673,35 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), evaluated.readiness().blockerCodes());
     }
 
+    @Test
+    void changedFileFactExpiresReadySnapshotWithoutInspectWritesAndAppendsNotReady() {
+        PreparedReadiness prepared = prepareConfirmedWithFile();
+        var ready = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                prepared.preparationVersion(), 4, "FILE-READY-" + projectId), prepared.actor());
+        assertEquals("READY", ready.readiness().readinessStatus());
+
+        jdbcTemplate.update("UPDATE plt_file_version SET availability_version=4 "
+                + "WHERE tenant_id=0 AND artifact_id=? AND version_no=2", projectId + 3);
+        int readyPreparationVersion = ready.readiness().preparationVersion();
+        long snapshotCount = readinessSnapshotCount(prepared.preparationId());
+        long auditCount = preparationAuditCount(prepared.preparationId());
+
+        var inspected = readinessService.inspect(new SiteSurveyReadinessQuery(projectId,
+                prepared.preparationId()), 0L, 9L);
+        assertEquals("NOT_READY", inspected.readinessStatus());
+        assertEquals(false, inspected.snapshotCurrent());
+        assertEquals(List.of("FILE_FACT_CHANGED"), inspected.blockerCodes());
+        assertEquals(readyPreparationVersion, currentPreparationVersion(prepared.preparationId()));
+        assertEquals(snapshotCount, readinessSnapshotCount(prepared.preparationId()));
+        assertEquals(auditCount, preparationAuditCount(prepared.preparationId()));
+
+        var notReady = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                readyPreparationVersion, 4, "FILE-CHANGED-" + projectId), prepared.actor());
+        assertEquals("NOT_READY", notReady.readiness().readinessStatus());
+        assertEquals(List.of("FILE_FACT_CHANGED"), notReady.readiness().blockerCodes());
+        assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
+    }
+
     private PreparedReadiness prepareConfirmedNoSource() {
         transactionTemplate.executeWithoutResult(status -> {
             insertProjectTaskAndContract();
@@ -700,6 +729,42 @@ class PreparationInitializationMySqlIntegrationTest {
                     "READY-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
         }
         assertSourcePolicies(preparationId, List.of("NONE"));
+        return new PreparedReadiness(preparationId, preparationVersion, actor);
+    }
+
+    private PreparedReadiness prepareConfirmedWithFile() {
+        transactionTemplate.executeWithoutResult(status -> {
+            insertProjectTaskAndContract();
+            service.initialize(command());
+        });
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
+        Long itemId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id LIMIT 1",
+                Long.class, preparationId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
+                + "evidence_policy_snapshot='{\"required\":false}',"
+                + "source_policy_snapshot='{\"requirementCode\":\"NONE\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        insertFileFacts(itemId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET evidence_policy_snapshot='{\"required\":true}',"
+                        + "evidence_reference_snapshot=? WHERE tenant_id=0 AND id=?",
+                "[{\"artifactId\":" + (projectId + 3) + ",\"versionNo\":2,\"referenceKey\":\"SITE\","
+                        + "\"fileFactVersion\":{\"artifactVersion\":1,\"referenceVersion\":2,"
+                        + "\"availabilityVersion\":3},\"scopeVersion\":1}]", itemId);
+        jdbcTemplate.update("UPDATE sol_dynamic_form_instance SET value_snapshot='{\"siteCondition\":\"正常\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-FILE-" + projectId);
+        int preparationVersion = reviewService.execute(new PreparationReviewCommand(
+                PreparationReviewCommand.SUBMIT, preparationId, null, 0,
+                null, 4, null, "FILE-SUBMIT-" + projectId), actor).preparationVersion();
+        List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
+        for (int index = 0; index < itemIds.size(); index++) {
+            preparationVersion = reviewService.execute(new PreparationReviewCommand(
+                    PreparationReviewCommand.CONFIRM, preparationId, itemIds.get(index), preparationVersion,
+                    0, 4, null, "FILE-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
+        }
         return new PreparedReadiness(preparationId, preparationVersion, actor);
     }
 
