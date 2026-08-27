@@ -4,7 +4,7 @@
   "task": "Task 10",
   "status": "CANDIDATE",
   "scope": "Implementation Done only; excludes Deployment, SIT, UAT and Release",
-  "testedCommit": "5bb60a7d597797c5a5effb43e2ba69b7b54881ba",
+  "testedCommit": "062ca38c9250c4a0aa696df8dfd1716feb942e1b",
   "specificationCommit": "9378cbc17b7dbe4ed75c80bee56d21e495623a9b",
   "project": {
     "projectId": 992002000034,
@@ -34,6 +34,17 @@
       "the reference was detached and rebound in the same drawer, saved and retained after page refresh",
       "preview and download tickets returned HTTP 200 and the MinIO object returned HTTP 200 with 18385 bytes"
     ],
+    "negativeFlow": [
+      "a PLT file fact was made unavailable; browser POST evaluate-readiness returned HTTP 200/code 0, appended one NOT_READY snapshot, and same-vector replay appended none",
+      "browser source refresh returned HTTP 200/code 1011024008 for the unavailable OA Provider; the refreshed UI showed NOT_READY and marked last-success as historical only; explicit evaluation appended one NOT_READY snapshot",
+      "a short-lived waiver was created, submitted and approved through browser REST calls, produced READY, then naturally expired; explicit evaluation appended one NOT_READY snapshot and same-vector replay appended none",
+      "a PENDING_APPROVAL waiver was withdrawn through browser REST calls and explicit evaluation remained NOT_READY; APPROVED to WITHDRAWN was never attempted or enabled",
+      "the non-manager frozen-role participant called evaluate-readiness and received HTTP 200/code 1014024033; snapshot count was unchanged"
+    ],
+    "expectedBusinessRejections": [
+      "1011024008 - source Provider unavailable",
+      "1014024033 - project scope access denied"
+    ],
     "responsiveWidths": [
       320,
       768,
@@ -49,11 +60,16 @@
       "docs/engineering/evidence/f-sol-002-task10-ready-768.png",
       "docs/engineering/evidence/f-sol-002-task10-ready-1024.png",
       "docs/engineering/evidence/f-sol-002-task10-ready-1440.png",
-      "docs/engineering/evidence/f-sol-002-task10-return-rebind.png"
+      "docs/engineering/evidence/f-sol-002-task10-return-rebind.png",
+      "docs/engineering/evidence/f-sol-002-task10-file-invalid.png",
+      "docs/engineering/evidence/f-sol-002-task10-source-invalid.png",
+      "docs/engineering/evidence/f-sol-002-task10-waiver-expired.png",
+      "docs/engineering/evidence/f-sol-002-task10-waiver-withdrawn.png",
+      "docs/engineering/evidence/f-sol-002-task10-permission-denied.png"
     ]
   },
   "negativeEvidence": {
-    "coverageMode": "real MySQL integration and service/API automation; these branches are not represented as browser screenshots",
+    "coverageMode": "real browser public UI/REST closure plus real MySQL integration and service/API automation; public Java inspect remains covered by integration tests because the locked REST surface does not expose a separate inspect endpoint",
     "fileInvalidation": {
       "commit": "6cf2c760db62a2b6e67c4e76e507811a86c7ecb6",
       "result": "inspect is read-only and marks the old READY snapshot non-current; explicit evaluate appends the unique NOT_READY snapshot"
@@ -74,13 +90,14 @@
       "result": "project-scope changes make an old READY snapshot non-current, and cross-tenant readiness access is rejected"
     },
     "authorization": {
-      "result": "manager, assignee and frozen waiver-role constraints plus command-side version authorization are covered by focused service tests; unknown facts fail closed"
+      "result": "browser REST rejected the non-manager frozen-role participant with code 1014024033 and no snapshot side effect; manager, assignee, frozen waiver-role and cross-tenant matrices remain covered by focused service and MySQL tests"
     }
   },
   "verification": {
     "backend": [
       "clean focused F-SOL backend suite: 41/41 PASS; 27-module Reactor BUILD SUCCESS",
       "real MySQL PreparationInitializationMySqlIntegrationTest: 14/14 PASS; 27-module Reactor BUILD SUCCESS",
+      "returned-version resubmit regression: PreparationReviewServiceTest 7/7 PASS and focused real MySQL resubmit 1/1 PASS; 27-module Reactor BUILD SUCCESS",
       "workspace mvn -pl pms-module-engineering -am test: BUILD SUCCESS; engineering 187 tests, 0 failures, 0 errors, 52 environment-conditioned skips",
       "clean yudao-server package: 36-module Reactor BUILD SUCCESS"
     ],
@@ -107,7 +124,7 @@
     "AC-FSOL002-008": "PASS - scope, manager/assignee/approver and cross-tenant authorization negatives are covered",
     "AC-FSOL002-009": "PASS - CAS, idempotency digest, replay/conflict, single-winner and audit facts are covered",
     "AC-FSOL002-010": "PASS - clean MySQL migration and real transaction acceptance are covered",
-    "AC-FSOL002-011": "CANDIDATE - real browser covers initialization through READY, return, MinIO file replacement/detach/rebind, preview/download, refresh and four widths; file/source/waiver invalidation and permission negatives are covered by real MySQL and service/API automation rather than browser screenshots",
+    "AC-FSOL002-011": "PASS - real browser covers initialization through READY, return, MinIO file replacement/detach/rebind, preview/download, refresh, four widths, file/source/waiver invalidation and permission denial; pure read-only Java inspect zero-write remains independently covered by real MySQL/service tests",
     "AC-FSOL002-012": "PASS - bounded module ownership and later-gate exclusions are preserved"
   },
   "independentReview": {
