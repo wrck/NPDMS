@@ -241,10 +241,11 @@ const refreshSource = async (item: PreparationItemVO) => {
 }
 
 const SourceFacts = ({ item }: { item: PreparationItemVO }) => {
-  if (!item.sources.length) return <span class="muted">尚无来源事实</span>
+  const sources = item.sources || []
+  if (!sources.length) return <span class="muted">尚无来源事实</span>
   return (
     <div class="source-list">
-      {item.sources.map((source: PreparationSourceVO) => (
+      {sources.map((source: PreparationSourceVO) => (
         <div
           class={['source-row', { 'source-row--error': source.syncStatusCode !== 'SYNCED' }]}
           key={source.sourceReferenceId}
@@ -266,38 +267,41 @@ const SourceFacts = ({ item }: { item: PreparationItemVO }) => {
     </div>
   )
 }
-const ItemActions = ({ item }: { item: PreparationItemVO }) => (
-  <div class="item-actions">
-    <el-button link type="primary" onClick={() => itemRef.value?.open(preparation.value!, item)}>
-      详情
-    </el-button>
-    {item.allowedActions.includes('REFRESH_SOURCE') && (
-      <el-button link onClick={() => refreshSource(item)}>
-        刷新来源
+const ItemActions = ({ item }: { item: PreparationItemVO }) => {
+  const actions = item.allowedActions || []
+  return (
+    <div class="item-actions">
+      <el-button link type="primary" onClick={() => itemRef.value?.open(preparation.value!, item)}>
+        详情
       </el-button>
-    )}
-    {item.allowedActions.includes('CREATE_WAIVER') && (
-      <el-button link onClick={() => waiverRef.value?.open(preparation.value!, item)}>
-        豁免
-      </el-button>
-    )}
-    {item.allowedActions.includes('CONFIRM_ITEM') && (
-      <el-button link type="success" onClick={() => review(item, 'confirm')}>
-        确认
-      </el-button>
-    )}
-    {item.allowedActions.includes('CONFIRM_NOT_APPLICABLE_ITEM') && (
-      <el-button link type="success" onClick={() => review(item, 'confirm-not-applicable')}>
-        确认不适用
-      </el-button>
-    )}
-    {item.allowedActions.includes('RETURN_ITEM') && (
-      <el-button link type="danger" onClick={() => review(item, 'return')}>
-        退回
-      </el-button>
-    )}
-  </div>
-)
+      {actions.includes('REFRESH_SOURCE') && (
+        <el-button link onClick={() => refreshSource(item)}>
+          刷新来源
+        </el-button>
+      )}
+      {actions.includes('CREATE_WAIVER') && (
+        <el-button link onClick={() => waiverRef.value?.open(preparation.value!, item)}>
+          豁免
+        </el-button>
+      )}
+      {actions.includes('CONFIRM_ITEM') && (
+        <el-button link type="success" onClick={() => review(item, 'confirm')}>
+          确认
+        </el-button>
+      )}
+      {actions.includes('CONFIRM_NOT_APPLICABLE_ITEM') && (
+        <el-button link type="success" onClick={() => review(item, 'confirm-not-applicable')}>
+          确认不适用
+        </el-button>
+      )}
+      {actions.includes('RETURN_ITEM') && (
+        <el-button link type="danger" onClick={() => review(item, 'return')}>
+          退回
+        </el-button>
+      )}
+    </div>
+  )
+}
 
 watch(() => props.project.id, load, { immediate: true })
 </script>
