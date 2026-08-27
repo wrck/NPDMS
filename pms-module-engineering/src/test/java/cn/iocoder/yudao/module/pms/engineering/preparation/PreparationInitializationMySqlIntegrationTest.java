@@ -8,6 +8,7 @@ import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationCommand;
+import cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.SiteSurveyReadinessQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalogProvider;
@@ -398,6 +399,39 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND aggregate_type='Preparation' AND aggregate_key=? "
                 + "AND operation_code='PREPARATION_EVALUATE_READINESS' AND result_code='SUCCESS'",
                 Long.class, String.valueOf(prepared.preparationId())));
+    }
+
+    @Test
+    void readinessInspectCannotReadOtherTenantAndRemainsReadOnly() {
+        PreparedReadiness prepared = prepareConfirmedNoSource();
+        long snapshotCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sol_preparation_readiness_snapshot WHERE preparation_id=?",
+                Long.class, prepared.preparationId());
+        long auditCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_operation_audit WHERE aggregate_key=?",
+                Long.class, String.valueOf(prepared.preparationId()));
+        int preparationVersion = jdbcTemplate.queryForObject(
+                "SELECT version FROM sol_preparation WHERE tenant_id=0 AND id=?",
+                Integer.class, prepared.preparationId());
+
+        var failure = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> readinessService.inspect(new SiteSurveyReadinessQuery(projectId, prepared.preparationId()),
+                        1L, 9L));
+
+        assertEquals(cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants
+                .PREPARATION_NOT_EXISTS.getCode(), failure.getCode());
+        assertEquals(preparationVersion, jdbcTemplate.queryForObject(
+                "SELECT version FROM sol_preparation WHERE tenant_id=0 AND id=?",
+                Integer.class, prepared.preparationId()));
+        assertEquals(snapshotCount, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sol_preparation_readiness_snapshot WHERE preparation_id=?",
+                Long.class, prepared.preparationId()));
+        assertEquals(auditCount, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_operation_audit WHERE aggregate_key=?",
+                Long.class, String.valueOf(prepared.preparationId())));
+        assertEquals(0L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sol_preparation WHERE tenant_id=1 AND id=?",
+                Long.class, prepared.preparationId()));
     }
 
     private PreparedReadiness prepareConfirmedNoSource() {
