@@ -429,11 +429,17 @@ IMPLEMENTATION_OVERRIDES = {
         "NPDMS `c417dee` Task 1～10、真实MySQL/Flowable、FileArtifact、真实浏览器与独立复审GO",
         "IMPLEMENTATION_COMPLETE",
     ),
-    "PLT-02": (
+    "PRE-02": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "Feature Ready GO `NPDMS-FPLT001-FEATURE-READY-20260826-01-R2` / "
-        "NPDMS `6d6c6ea` Task 1～10、真实MySQL/Flowable/Quartz/ClamAV、SOL消费链、真实浏览器与独立复审GO",
+        "Feature Ready GO `NPDMS-FSOL002-FEATURE-READY-20260827-01-R2` / "
+        "NPDMS `7243727f` Task 1～10、自动化、真实MySQL、MinIO文件事实、真实浏览器与独立复审GO",
         "IMPLEMENTATION_COMPLETE",
+    ),
+    "PLT-02": (
+        "PRD-V1.8-BASELINE+CHG-PRD-2026-08-27-004/SDS-V1.8-PHASE2-BASELINE / "
+        "原Feature Ready GO `NPDMS-FPLT001-FEATURE-READY-20260826-01-R2` / "
+        "原实现NPDMS `6d6c6ea`及独立复审GO；可选扫描增量待NPDMS实施复验",
+        "IMPLEMENTATION_PARTIAL",
     ),
 }
 
@@ -453,6 +459,7 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "> 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。",
         "> 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。",
         "> 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。",
+        "> 批准增量：`CHG-PRD-2026-08-27-004`（PLT-02文件安全扫描默认关闭；关闭时真实`SKIPPED`，开启时失败关闭）。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
