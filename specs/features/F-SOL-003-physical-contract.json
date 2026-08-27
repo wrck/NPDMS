@@ -51,8 +51,7 @@
       "fieldTypeCode",
       "required",
       "dictionaryType(optional)",
-      "dictionaryVersion(optional)",
-      "optionSnapshot(optional)",
+      "optionSnapshot(code,label; required for selection types)",
       "sortOrder"
     ],
     "allowedFieldTypes": [
@@ -68,7 +67,8 @@
       "make PROJECT_BACKGROUND, PROJECT_OBJECTIVE or NETWORK_TOPOLOGY optional",
       "duplicate core or extension code",
       "script, expression or arbitrary component",
-      "unfrozen dictionary option"
+      "unfrozen or disabled dictionary option",
+      "dictionaryVersion invented outside the public SYSTEM API"
     ]
   },
   "coreSections": [
@@ -143,8 +143,7 @@
       ],
       "nullableFields": [
         "source_section_id",
-        "dictionary_type",
-        "dictionary_version"
+        "dictionary_type"
       ],
       "stableKey": ["tenant_id", "preparation_id", "section_code"],
       "referenceKey": ["tenant_id", "id"],
@@ -164,6 +163,20 @@
         "fileFactVersion",
         "scopeVersion"
       ],
+      "fileBusinessKey": {
+        "ownerContext": "SOL",
+        "objectType": "REQUIREMENT_ANALYSIS_SECTION",
+        "objectId": "sectionId",
+        "purposeCode": "SECTION_ATTACHMENT",
+        "referenceKey": "non-empty UUID slotKey; one stable slot per attachment intent inside one section",
+        "cardinality": "MULTIPLE"
+      },
+      "fileActionMatrix": {
+        "DRAFT_CURRENT_MANAGER": ["UPLOAD", "REFERENCE", "REPLACE", "DETACH", "READ", "DOWNLOAD", "PREVIEW"],
+        "COMPLETED_AUTHORIZED_READER": ["READ", "DOWNLOAD", "PREVIEW"],
+        "FORBIDDEN_BY_SOL": ["ARCHIVE", "INVALIDATE"],
+        "completedMutationPolicy": "UPLOAD, REFERENCE, REPLACE and DETACH fail closed"
+      },
       "immutability": "COMPLETED section content and file facts have stable query only; the root may only clear effective_marker when a later version completes",
       "forbidden": [
         "file body",
@@ -189,7 +202,7 @@
   "transactions": {
     "initialize": "LOCK_AND_REVALIDATE_PROJECT_MANAGER_AND_WORK_BINDING; VALIDATE_CORE_AND_EXTENSION_CONFIGURATION; INSERT_DRAFT_AND_SECTIONS; IDEMPOTENCY_SUCCESS; AUDIT",
     "patchSection": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_DRAFT_AND_SECTION; VALIDATE_IF_MATCH_AND_PRESENT_FIELDS; INSPECT_EXACT_FILE_REFERENCES; CAS_SECTION_ROOT_AND_INCREMENT_CONTENT_VERSION; AUDIT",
-    "createDraft": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_EFFECTIVE_AND_DRAFT_MARKER; VALIDATE_IF_MATCH_AND_NO_EXISTING_DRAFT; COPY_ROOT_AND_SECTIONS_AND_EXACT_FILE_REFERENCES; INSERT_DRAFT_MARKER; IDEMPOTENCY_SUCCESS; AUDIT",
+    "createDraft": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_EFFECTIVE_DRAFT_MARKER_SECTIONS_AND_SOURCE_FILE_FACTS; VALIDATE_IF_MATCH_AND_NO_EXISTING_DRAFT; INSERT_NEW_ROOT_AND_SECTIONS; PLT_ATTACH_EXISTING_VERSIONS_TO_NEW_SECTION_KEYS; INSERT_DRAFT_MARKER; IDEMPOTENCY_SUCCESS; AUDIT; ALL_IN_ONE_TRANSACTION",
     "complete": "LOCK_PROJECT_AND_CURRENT_MANAGER; LOCK_EXPECTED_DRAFT_CURRENT_EFFECTIVE_AND_ALL_SECTIONS; VALIDATE_REQUIRED_AND_FROZEN_SCHEMA; LOCK_AND_REVALIDATE_ALL_EXACT_FILE_FACTS; CLEAR_OLD_EFFECTIVE_MARKER; CAS_DRAFT_TO_COMPLETED_AND_SWITCH_MARKERS; IDEMPOTENCY_SUCCESS; AUDIT",
     "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_WRITE_REJECTED_PLATFORM_AUDIT_WITH_NO_SUCCESS_SIDE_EFFECT"
   },
@@ -259,6 +272,32 @@
     "historicalPolicy": "an explicit historical COMPLETED version remains readable and lockable with isCurrentEffective=false and current effective identifiers; F-SOL-003 does not decide SCH input-difference handling",
     "unknownPolicy": "missing, cross-tenant, DRAFT, non-COMPLETED, invalid file or any expected content/project/template fact change fails closed"
   },
+  "platformFileReferenceCommand": {
+    "providerModule": "pms-module-platform-api",
+    "contract": "FileArtifactApi.attachExistingVersions(AttachExistingFileVersionsCommand)",
+    "purpose": "create independent target FileReferences that reuse already committed immutable FileVersions without re-upload",
+    "sourceInputPerItem": [
+      "artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "referenceKey",
+      "expectedFileFactVersion", "expectedScopeVersion", "requiredAction=READ"
+    ],
+    "targetInputPerItem": [
+      "ownerContext=SOL", "objectType=REQUIREMENT_ANALYSIS_SECTION", "objectId=newSectionId",
+      "purposeCode=SECTION_ATTACHMENT", "referenceKey=newServerGeneratedUuid", "expectedScopeVersion",
+      "requiredAction=REFERENCE"
+    ],
+    "trustedContext": ["tenantId", "actorUserId"],
+    "lockAndWritePolicy": "lock and revalidate every source exact fact; lock target provider and artifact/version; require a distinct target full key; insert an independent ACTIVE FileReference pointing to the same artifactId/versionNo",
+    "replayPolicy": "same target full key already pointing to the same artifact/version returns its current fact; a target key pointing to a different version conflicts",
+    "atomicity": "joins the caller transaction; all target references and the SOL draft/sections commit or roll back together",
+    "events": ["FileReferenceAttached"],
+    "forbidden": [
+      "reuse the source full business key",
+      "mutate or detach the source COMPLETED reference",
+      "create a FileArtifact or FileVersion",
+      "re-upload the same bytes as a substitute",
+      "return file body, storage key or URL"
+    ]
+  },
   "dependencies": {
     "projectWorkBinding": {
       "contracts": [
@@ -278,9 +317,9 @@
       ]
     },
     "projectParticipantAndScope": "consume ProjectParticipantFactApi and ProjectScopeApi; roles do not imply descendant scope",
-    "fileArtifact": "consume F-PLT-001 exact reference inspect/lockAndRevalidate and access-ticket APIs; SOL stores no body, URL or infra fact",
+    "fileArtifact": "consume F-PLT-001 exact reference inspect/lockAndRevalidate, attachExistingVersions and access-ticket APIs; SOL stores no body, URL or infra fact",
     "solution": "future SCH-01 consumes publicRequirementAnalysisApi; F-SOL-003 writes no Solution or reference row",
-    "events": "none; approved SDS boundary is synchronous query or command"
+    "events": "SOL publishes no domain event; the PLT attach command retains its existing FileReferenceAttached event; the approved inter-context call boundary is synchronous"
   },
   "permissions": {
     "query": {
@@ -302,10 +341,18 @@
   },
   "platformFacts": {
     "idempotencyTable": "plt_idempotency_record",
+    "idempotencyPolicy": "COMPLETED plus same digest replays the stored response; same key plus different digest conflicts; Decision.IN_PROGRESS has null response and maps to stable PMS-PLATFORM-COMMAND-IN-PROGRESS with no success side effect",
     "auditTable": "plt_operation_audit",
-    "outboxEvents": [],
+    "outboxEvents": ["FileReferenceAttached (PLT owner only)"],
     "fileFacts": "exact FileArtifact version and reference only",
     "richTextAuditPolicy": "audit controlled before/after summaries and identifiers, never copy sensitive full body or attachment content"
+  },
+  "dictionarySnapshot": {
+    "ownerApi": "SYSTEM DictDataApi",
+    "publishValidation": "selection extension dictionary and every selected option must be enabled",
+    "frozenFacts": ["dictionaryType", "optionSnapshot[].code", "optionSnapshot[].label"],
+    "runtimePolicy": "SOL validates values only against the frozen optionSnapshot",
+    "forbidden": ["dictionaryVersion", "direct SYSTEM table read", "runtime relabel from current dictionary"]
   },
   "legacy": {
     "tables": ["pms_eng_requirement", "pms_eng_form_template", "pms_eng_form_instance"],

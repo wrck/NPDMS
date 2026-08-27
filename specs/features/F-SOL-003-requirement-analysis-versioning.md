@@ -41,7 +41,7 @@
 
 - 项目模板任务定义必须唯一生产`workBindingType=BUSINESS_OBJECT`、`targetContext=SOL`、`targetObjectType=REQUIREMENT_ANALYSIS`、`targetObjectKey=PRE_04_REQUIREMENT_ANALYSIS`。项目创建时将`catalogCode=PRE_04_REQUIREMENT_ANALYSIS/catalogVersion=1`、11项核心目录和`extensionItems[]`原样冻结到现有执行契约`binding_parameter_snapshot`。
 - SOL使用现有`ProjectWorkBindingFactApi.inspect/lockAndRevalidate`按受信租户、projectId和上述目标四元组精确取得当前执行契约；空、多记录、越租户、版本变化或冻结配置非法均失败关闭。SOL不读取PROJ表。
-- 核心项编码、名称、类型和三个必填规则由本Feature固定，模板不得删除、重命名、改义或降低必填。扩展项编码不得与核心项重复，字段类型封闭为`RICH_TEXT/TEXT/NUMBER/BOOLEAN/SINGLE_SELECT/MULTI_SELECT`；选择类必须冻结启用字典类型、字典版本及代码/名称选项快照，其他类型不得携带选项。任意脚本、表达式、未知字段或重复编码均拒绝。
+- 核心项编码、名称、类型和三个必填规则由本Feature固定，模板不得删除、重命名、改义或降低必填。扩展项编码不得与核心项重复，字段类型封闭为`RICH_TEXT/TEXT/NUMBER/BOOLEAN/SINGLE_SELECT/MULTI_SELECT`；选择类在项目模板发布时通过SYSTEM公开`DictDataApi`校验字典及选项均启用，并冻结`dictionaryType`和按code排序的`code/label optionSnapshot`，运行期只认该快照。现有字典API没有版本事实，因此不保存或臆造`dictionaryVersion`；其他类型不得携带字典或选项。任意脚本、表达式、未知字段或重复编码均拒绝，SOL不得直读SYSTEM表。
 - 首次创建要求项目`ACTIVE+S1`、当前项目经理和合法冻结绑定；同一项目最多一个PRE-04草稿。初始化原子创建`businessVersion=1`草稿及全部冻结章节，同键同载荷返回原草稿。
 - 核心富文本与扩展文本按服务端固定安全规则规范化并过滤危险标记；模板或请求不能降低该规则。附件不是富文本内嵌URL，统一使用PLT精确引用。
 
@@ -49,14 +49,15 @@
 
 - 每个草稿精确包含11项核心章节及冻结扩展章节。核心章节字段类型固定为`RICH_TEXT`；每个章节均可保存零到多个附件引用。
 - 项目经理只能修改当前`DRAFT`。章节PATCH按字段存在性更新内容或附件；空PATCH拒绝，未提交字段保持原值，显式空值按字段类型保存为空。完成版本没有更新或删除入口。
-- 草稿附件冻结`artifactId+versionNo+referenceKey+fileFactVersion+scopeVersion`，不得保存URL、正文或INFRA对象键。保存时引用必须属于当前PRE-04章节用途且当前主体有权；上传/绑定失败保留最近一次成功草稿和原附件集合，不产生半更新。
+- PRE-04文件业务键唯一冻结为`ownerContext=SOL/objectType=REQUIREMENT_ANALYSIS_SECTION/objectId={sectionId}/purposeCode=SECTION_ATTACHMENT/referenceKey={slotKey}`。`slotKey`为非空UUID：同一章节新增附件意图创建一个新槽位并在响应未知时保留该键，原位换版沿用该键；同一章节内不得重复。Provider声明`cardinality=MULTIPLE`，未知用途、空键或其他对象类型失败关闭。
+- 草稿附件冻结`artifactId+versionNo+referenceKey+fileFactVersion+scopeVersion`，不得保存URL、正文或INFRA对象键。草稿章节对当前项目经理允许`UPLOAD/REFERENCE/REPLACE/DETACH/READ/DOWNLOAD/PREVIEW`；完成章节仅允许`READ/DOWNLOAD/PREVIEW`，明确拒绝`UPLOAD/REFERENCE/REPLACE/DETACH`；`ARCHIVE/INVALIDATE`不由SOL页面授权。所有写动作要求`manage+PROJECT_MANAGE`和当前项目经理，读动作要求对应SOL/PLT功能权限与`PROJECT_VIEW`。上传/引用/解绑失败保留最近一次成功草稿和原附件集合，不产生半更新。
 - 每次成功PATCH递增章节版本、聚合CAS版本和PRE-04专用`content_version`并记录前后摘要；同一聚合并发保存使用`If-Match`，后提交者冲突而非覆盖。完成后`content_version`永久冻结，不因以后清除`effective_marker`而变化。
 
 ### BR-FSOL003-003 草稿与当前有效版本双轴
 
 - `status_code`只表达`DRAFT/COMPLETED`；`draft_marker`和`effective_marker`是两个独立唯一事实。项目可同时拥有一个当前草稿和一个当前有效已完成版本，历史完成版两个标记均为空。
-- 初次完成时，当前草稿原子转为`COMPLETED`、清除`draft_marker`并取得`effective_marker=1`。已有有效版时，创建新草稿必须以该完成版为`source_preparation_id`，复制冻结模板、正文和附件作为可编辑基线；原有效版继续对外有效。
-- 创建下一草稿使用当前有效版`businessVersion+1`，同一项目不能并行存在两个草稿。模板后续变更不反向覆盖该项目已冻结的PRE-04目录；新草稿沿用来源完成版的冻结目录。
+- 初次完成时，当前草稿原子转为`COMPLETED`、清除`draft_marker`并取得`effective_marker=1`。已有有效版时，创建新草稿必须以该完成版为`source_preparation_id`，复制冻结模板和正文，并通过PLT公共`FileArtifactApi.attachExistingVersions`为每个新章节建立全新的精确FileReference：目标使用新sectionId和服务端生成的新`slotKey`，但指向来源引用已经锁定重验的同一不可变`artifactId+versionNo`。不得复用旧章节完整业务槽位，也不得重新上传同一文件；原有效版及其FileReference保持不变，新草稿可在自己的槽位独立换版或解绑。
+- 创建下一草稿使用当前有效版`businessVersion+1`，同一项目不能并行存在两个草稿。模板后续变更不反向覆盖该项目已冻结的PRE-04目录；新草稿沿用来源完成版的冻结目录。新根行、章节和全部新FileReference在同一事务中成功或回滚，任一来源事实变化、目标策略拒绝或引用冲突均不得留下草稿、章节或新引用。
 - 新草稿完成时按稳定锁序同时锁定草稿与当前有效版，先校验双方仍是期望版本，再清除旧有效标记并把草稿转为新的有效完成版；事务失败时旧有效版和草稿均保持原状。
 - 已完成行的章节、正文、附件和完成元数据不可更新或删除；根行只允许在下一版本完成的原子事务中清除`effective_marker`，不得改变其业务内容。创建草稿、完成或并发失败均不得覆盖历史。
 
@@ -96,8 +97,8 @@
 
 ### BR-FSOL003-008 幂等、并发、审计与失败语义
 
-- 初始化、从有效版创建草稿和完成命令使用`Idempotency-Key`；同键同规范化载荷重放原结果，同键异载荷冲突，进行中重复返回同一operation。PATCH使用`If-Match`且不以新随机键掩盖版本冲突。
-- 稳定锁序为`PROJ项目/参与事实 -> SOL项目+PRE-04根行/草稿/有效版/章节 -> PLT精确文件事实`。创建新草稿与完成均先完成全部外部事实重验，再执行标记切换和业务CAS。
+- 初始化、从有效版创建草稿和完成命令使用`Idempotency-Key`；已完成同键同规范化载荷重放原结果，同键异载荷冲突。既有PLATFORM返回`Decision.IN_PROGRESS`且无响应载荷，因此进行中重复映射为稳定`PMS-PLATFORM-COMMAND-IN-PROGRESS`业务错误并且无成功副作用，不伪造operation响应。PATCH使用`If-Match`且不以新随机键掩盖版本冲突。
+- 稳定锁序为`PROJ项目/参与事实 -> SOL项目+PRE-04根行/草稿/有效版/章节 -> PLT精确文件事实`。创建新草稿先重验全部来源文件事实，再插入同事务的新根行/章节并执行目标`REFERENCE`，任一步失败整体回滚；完成命令在业务CAS前完成全部文件重验。
 - 成功审计记录项目、草稿/有效版、业务版本、章节变化摘要、附件精确引用摘要、动作、前后状态/版本、operationId、主体和时间。正文只记录受控摘要，不把敏感富文本或附件内容复制进审计。
 - 权限、状态、校验、文件或版本失败不得产生完成事实、有效标记切换或成功幂等结果；事务回滚后使用平台公共审计记录稳定拒绝码和必要安全事实。
 
@@ -124,7 +125,13 @@
 - `lockAndRevalidate(RequirementAnalysisFactRevalidationQuery)`输入`projectId/preparationId/expectedBusinessVersion/expectedContentVersion/expectedProjectVersion/expectedTemplateRevision/expectedFactVector`；全部为服务端消费者此前inspect所得事实，不接受调用方自报tenant或角色。
 - 两个接口均只读，不写PRE-04或SCH表。无当前有效版时inspect返回明确空业务结果；锁定重验则失败关闭。
 
-### 4.2 WorkBinding与领域边界
+### 4.2 PLT既有版本附加命令边界
+
+- F-SOL-003在既有`pms-module-platform-api`的`FileArtifactApi`增加窄公共命令`attachExistingVersions(AttachExistingFileVersionsCommand)`，只用于把已存在且可用的不可变FileVersion附加到新的业务对象槽位，不创建Artifact/FileVersion、不读取正文、不重新上传。
+- 每个命令项输入来源完整稳定键、`artifactId/versionNo/expectedFileFactVersion/expectedScopeVersion`，以及目标`SOL/REQUIREMENT_ANALYSIS_SECTION/{newSectionId}/SECTION_ATTACHMENT/{newSlotKey}`和目标`expectedScopeVersion`；tenant/actor来自受信上下文。PLT先按来源`READ`锁定重验，再按目标`REFERENCE`锁定业务Provider、锁定Artifact/FileVersion并确认目标完整键不存在，随后插入独立ACTIVE FileReference并返回目标`fileFactVersion/scopeVersion`。同一目标已指向同一版本可重放，指向不同版本则冲突。
+- 批量命令加入调用方事务，全部目标引用与SOL新草稿/章节原子成功或回滚；每个新引用保留既有`FileReferenceAttached`审计/Outbox事实。来源与目标完整稳定键必须不同，来源完成版Provider为只读且目标草稿Provider可写；后续目标换版/解绑只改变新引用，不得更新或分离来源完成版引用。
+
+### 4.3 WorkBinding与领域边界
 
 - PRE-04是SOL业务事实，不是`TASK_NATIVE`正文。项目工作区可通过F-PROJ-007的`BUSINESS_OBJECT`绑定装载SOL组件，但allowedActions、详情和完成事实必须回源SOL。
 - SOL只消费PROJ `ProjectWorkBindingFactApi/ProjectParticipantFactApi/ProjectScopeApi`和PLT公开文件API，不依赖其Service、Mapper、DO或业务表。
@@ -156,11 +163,12 @@
 - `AC-FSOL003-005`：已有有效版时创建下一草稿不影响旧有效输入；新草稿完成时有效标记原子切换且历史不可变，同项目至多一个草稿和一个有效版。
 - `AC-FSOL003-006`：历史稳定分页和版本对比覆盖内容新增/删除/变化及附件引用变化，不生成第二份差异真值。
 - `AC-FSOL003-007`：当前项目经理写入/完成、授权成员只读、后代范围受PROJ授权、平级/无权/跨租户拒绝；敏感附件下载由SOL+PLT双重授权并留痕。
-- `AC-FSOL003-008`：初始化、创建下一草稿和完成支持同键重放、异载荷冲突、进行中重复及同项目并发单胜；锁序为PROJ→SOL→PLT。
+- `AC-FSOL003-008`：初始化、创建下一草稿和完成支持已完成同键同载荷重放、异载荷冲突、进行中稳定IN_PROGRESS错误且无响应/成功副作用，以及同项目并发单胜；锁序为PROJ→SOL→PLT。
 - `AC-FSOL003-009`：`RequirementAnalysisFactApi`只返回/锁定明确COMPLETED版本及精确附件事实；草稿、旧内容期望、失效文件或事实变化失败关闭且零写入；历史完成版仍可读取/锁定并明确返回`isCurrentEffective=false`及最新有效版本标识。
 - `AC-FSOL003-010`：F-SOL-003不创建SCH引用、预填、差异状态、方案版本或事件；SCH-01未实施不影响PRE-04完成版本成立。
 - `AC-FSOL003-011`：全新MySQL从V1迁移至实施版本，验证条件约束、复合外键、草稿/有效唯一键、历史不可变、CAS、回滚、权限及至少含无扩展/多类型扩展/停用字典拒绝的种子组合。
 - `AC-FSOL003-012`：真实浏览器覆盖初次填写完成、从有效版创建草稿并完成切换、历史对比、无权只读/拒绝、附件失败恢复及320/768/1024/1440响应式状态持久化；console/page error为零。
+- `AC-FSOL003-013`：完成版含多个附件时创建下一草稿，PLT为每个新章节建立新完整稳定键的独立FileReference并复用同一不可变FileVersion；旧完成版引用不可换版/解绑，新草稿引用可独立换版/解绑。来源变化、目标拒绝或批量中任一失败时草稿、章节、新引用、成功审计/事件全部为零；同目标同版本重放不重复创建。
 
 ## 8. Feature Ready检查
 
