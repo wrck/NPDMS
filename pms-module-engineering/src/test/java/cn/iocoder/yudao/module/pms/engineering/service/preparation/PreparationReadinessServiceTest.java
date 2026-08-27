@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessFactVector;
 import cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.SiteSurveyReadinessQuery;
 import cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.SiteSurveyReadinessRevalidationQuery;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFact;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.*;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
@@ -56,6 +57,7 @@ class PreparationReadinessServiceTest {
     @Mock ProjectParticipantFactApi participantFactApi;
     @Mock PermissionApi permissionApi;
     @Mock FileArtifactApi fileArtifactApi;
+    @Mock PreparationSourceProviderRegistry sourceProviderRegistry;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
     @Mock TransactionTemplate transactionTemplate;
@@ -168,6 +170,57 @@ class PreparationReadinessServiceTest {
         assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), result.readiness().blockerCodes());
         verify(snapshotMapper).insert(argThat(row -> "NOT_READY".equals(row.getResultCode())
                 && row.getBlockersSnapshot().contains("SOURCE_PROVIDER_UNAVAILABLE")));
+    }
+
+    @Test
+    void approvedCrossVersionWaiverCanReplaceUnavailableRequiredSource() {
+        PreparationDO preparation = preparation();
+        PreparationItemDO item = item(1);
+        item.setItemCode("FIBER");
+        item.setSourcePolicySnapshot("{\"requirementCode\":\"OA_REQUIRED\"}");
+        stubLocked(preparation, item, form(1));
+        PreparationItemWaiverDO waiver = new PreparationItemWaiverDO();
+        waiver.setId(61L); waiver.setPreparationId(99L); waiver.setItemId(98L); waiver.setItemCode("FIBER");
+        waiver.setWaiverNo(1); waiver.setStatusCode("APPROVED"); waiver.setVersion(2);
+        waiver.setBlockerCodesSnapshot("[\"SOURCE_PROVIDER_UNAVAILABLE\"]");
+        waiver.setValidFrom(LocalDateTime.now().minusHours(1)); waiver.setValidUntil(LocalDateTime.now().plusHours(1));
+        when(waiverMapper.selectBusinessListForUpdate(any())).thenReturn(List.of(waiver));
+        when(snapshotMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationReadinessSnapshotDO row = invocation.getArgument(0); row.setId(93L); return 1;
+        });
+        when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
+
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "waiver-key"), actor());
+
+        assertEquals("READY", result.readiness().readinessStatus());
+        assertTrue(result.readiness().blockerCodes().isEmpty());
+        assertEquals(61L, result.readiness().factVector().waiverFacts().getFirst().waiverId());
+    }
+
+    @Test
+    void syncedSourceProviderFactParticipatesInReadyVector() {
+        PreparationDO preparation = preparation();
+        PreparationItemDO item = item(1);
+        item.setSourcePolicySnapshot("{\"requirementCode\":\"OA_REQUIRED\"}");
+        PreparationSourceReferenceDO source = new PreparationSourceReferenceDO();
+        source.setId(51L); source.setItemId(11L); source.setSourceTypeCode("OA");
+        source.setSourceObjectType("REQUEST"); source.setSourceObjectId("OA-1");
+        source.setSourceReferenceKey("REF-1"); source.setNormalizedResultCode("APPROVED");
+        source.setSourceFactVersion("F1"); source.setSourceWatermark("W1");
+        source.setSyncStatusCode("SYNCED"); source.setVersion(1);
+        stubLocked(preparation, item, form(1));
+        when(sourceMapper.selectListForUpdate(any())).thenReturn(List.of(source));
+        when(sourceProviderRegistry.lockAndRevalidate(any())).thenReturn(new PreparationSourceFact(
+                10L, 11L, "OA", "REQUEST", "OA-1", "REF-1", "APPROVED", "F1", "W1", true));
+        when(snapshotMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationReadinessSnapshotDO row = invocation.getArgument(0); row.setId(94L); return 1;
+        });
+        when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
+
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "source-key"), actor());
+
+        assertEquals("READY", result.readiness().readinessStatus());
+        assertEquals("F1", result.readiness().factVector().sourceFacts().getFirst().sourceFactVersion());
     }
 
     @Test

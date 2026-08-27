@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQu
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationWaiverService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
@@ -55,6 +57,8 @@ class PreparationControllerTest {
                 mock(PreparationItemApplicationService.class),
                 mock(PreparationReviewService.class),
                 mock(PreparationReadinessService.class),
+                mock(PreparationSourceService.class),
+                mock(PreparationWaiverService.class),
                 new MockEnvironment().withProperty("yudao.tenant.enable", "false"));
 
         controller.getCurrent(100L, "PRE_02");
@@ -72,6 +76,8 @@ class PreparationControllerTest {
                 mock(PreparationItemApplicationService.class),
                 mock(PreparationReviewService.class),
                 mock(PreparationReadinessService.class),
+                mock(PreparationSourceService.class),
+                mock(PreparationWaiverService.class),
                 new MockEnvironment().withProperty("yudao.tenant.enable", "true"));
 
         ServiceException error = assertThrows(ServiceException.class,

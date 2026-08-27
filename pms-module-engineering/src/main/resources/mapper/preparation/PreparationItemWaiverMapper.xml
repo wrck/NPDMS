@@ -50,6 +50,33 @@
         ORDER BY item_id ASC, waiver_no ASC, id ASC
     </select>
 
+    <sql id="businessWhere">
+        tenant_id = #{query.tenantId}
+        AND project_id = #{query.projectId}
+        <choose>
+            <when test="query.itemCodes != null and !query.itemCodes.isEmpty()">
+                AND item_code IN
+                <foreach collection="query.itemCodes" item="itemCode" open="(" separator="," close=")">
+                    #{itemCode}
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectBusinessList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemWaiverDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item_waiver
+        WHERE <include refid="businessWhere"/>
+        ORDER BY item_code ASC, waiver_no ASC, id ASC
+    </select>
+
+    <select id="selectBusinessListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemWaiverDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item_waiver
+        WHERE <include refid="businessWhere"/>
+        ORDER BY item_code ASC, waiver_no ASC, id ASC
+        FOR UPDATE
+    </select>
+
     <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemWaiverDO">
         SELECT <include refid="columns"/> FROM sol_preparation_item_waiver
         WHERE tenant_id = #{query.tenantId}

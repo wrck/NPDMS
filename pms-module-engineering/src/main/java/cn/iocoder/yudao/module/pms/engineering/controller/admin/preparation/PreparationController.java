@@ -15,10 +15,14 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.P
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReviewReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessEvaluateReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessSnapshotRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationSourceRefreshReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationWaiverReqVO;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationWaiverService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewResult;
@@ -64,6 +68,8 @@ public class PreparationController {
     private final PreparationItemApplicationService itemApplicationService;
     private final PreparationReviewService reviewService;
     private final PreparationReadinessService readinessService;
+    private final PreparationSourceService sourceService;
+    private final PreparationWaiverService waiverService;
     private final Environment environment;
 
     @GetMapping
@@ -161,6 +167,71 @@ public class PreparationController {
             @Valid @RequestBody PreparationReadinessEvaluateReqVO request) {
         return withTrustedTenant(() -> success(readinessService.evaluate(new PreparationReadinessCommand(
                 id, parseVersion(ifMatch), request.getExpectedProjectVersion(), idempotencyKey), commandActor())));
+    }
+
+    @PostMapping("/{id}/items/{itemId}/sources/actions/refresh")
+    @Operation(summary = "刷新工勘项权威来源事实")
+    @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
+    public CommonResult<PreparationSourceService.SourceRefreshResult> refreshSource(
+            @PathVariable("id") @Positive Long id, @PathVariable("itemId") @Positive Long itemId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PreparationSourceRefreshReqVO request) {
+        return withTrustedTenant(() -> success(sourceService.refresh(new PreparationSourceService.SourceRefreshCommand(
+                id, itemId, request.getExpectedPreparationVersion(), request.getExpectedInputVersion(),
+                request.getExpectedReadinessVersion(), request.getExpectedItemVersion(),
+                request.getExpectedSourceVersion(), request.getExpectedProjectVersion(), request.getSourceTypeCode(),
+                request.getSourceObjectType(), request.getSourceObjectId(), request.getSourceReferenceKey(),
+                idempotencyKey), commandActor())));
+    }
+
+    @PostMapping("/{id}/items/{itemId}/waivers")
+    @Operation(summary = "申请逐项就绪豁免")
+    @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
+    public CommonResult<PreparationWaiverService.WaiverResult> createWaiver(
+            @PathVariable("id") @Positive Long id, @PathVariable("itemId") @Positive Long itemId,
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PreparationWaiverReqVO request) {
+        return waiver(id, itemId, null, "CREATE", ifMatch, idempotencyKey, request);
+    }
+
+    @GetMapping("/{id}/items/{itemId}/waivers")
+    @Operation(summary = "稳定游标查询逐项豁免历史")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:query','pms:preparation-survey:manage','pms:preparation-survey:waiver-approve')")
+    public CommonResult<PreparationWaiverService.WaiverPage> getWaivers(
+            @PathVariable("id") @Positive Long id, @PathVariable("itemId") @Positive Long itemId,
+            @Valid @ModelAttribute PreparationPageReqVO request) {
+        return withTrustedTenant(() -> success(waiverService.page(
+                id, itemId, request.getCursor(), request.getPageSize(), commandActor())));
+    }
+
+    @PostMapping("/{id}/items/{itemId}/waivers/{waiverId}/actions/{action}")
+    @Operation(summary = "提交、批准、驳回或撤回逐项豁免")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:manage','pms:preparation-survey:waiver-approve')")
+    public CommonResult<PreparationWaiverService.WaiverResult> actWaiver(
+            @PathVariable("id") @Positive Long id, @PathVariable("itemId") @Positive Long itemId,
+            @PathVariable("waiverId") @Positive Long waiverId, @PathVariable("action") String action,
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PreparationWaiverReqVO request) {
+        String commandAction = switch (action) {
+            case "submit" -> "SUBMIT";
+            case "approve" -> "APPROVE";
+            case "reject" -> "REJECT";
+            case "withdraw" -> "WITHDRAW";
+            default -> throw exception(PREPARATION_COMMAND_INVALID);
+        };
+        return waiver(id, itemId, waiverId, commandAction, ifMatch, idempotencyKey, request);
+    }
+
+    private CommonResult<PreparationWaiverService.WaiverResult> waiver(Long preparationId, Long itemId,
+            Long waiverId, String action, String ifMatch, String idempotencyKey, PreparationWaiverReqVO request) {
+        return withTrustedTenant(() -> success(waiverService.execute(new PreparationWaiverService.WaiverCommand(
+                action, preparationId, itemId, waiverId, parseVersion(ifMatch), request.getExpectedInputVersion(),
+                request.getExpectedReadinessVersion(), request.getExpectedItemVersion(),
+                request.getExpectedWaiverVersion(), request.getExpectedProjectVersion(), request.getBlockerCodes(),
+                request.getReason(), request.getRisk(), request.getCompensation(), request.getValidFrom(),
+                request.getValidUntil(), request.getOpinion(), idempotencyKey), commandActor())));
     }
 
     @GetMapping("/{id}/readiness-snapshots")

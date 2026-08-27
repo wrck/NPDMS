@@ -3,6 +3,9 @@ package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.*;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFact;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactQuery;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.*;
@@ -54,6 +57,7 @@ public class PreparationReadinessService {
     private final ProjectParticipantFactApi participantFactApi;
     private final PermissionApi permissionApi;
     private final FileArtifactApi fileArtifactApi;
+    private final PreparationSourceProviderRegistry sourceProviderRegistry;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
@@ -213,39 +217,98 @@ public class PreparationReadinessService {
         }
         List<ReadinessItemFact> itemFacts = new ArrayList<>();
         List<ReadinessFileFact> fileFacts = new ArrayList<>();
+        List<ReadinessSourceFact> sourceFacts = new ArrayList<>();
         for (PreparationItemDO item : items) {
+            List<String> itemBlockers = new ArrayList<>();
             DynamicFormInstanceDO form = formByItem.get(item.getId());
             itemFacts.add(itemFact(item, form));
             boolean applicable = "REQUIRED".equals(item.getApplicabilityCode());
             boolean notApplicable = "NOT_APPLICABLE_CONFIRMED".equals(item.getApplicabilityCode());
             if (!"CONFIRMED".equals(item.getConfirmationStatusCode()) || !applicable && !notApplicable) {
-                blockers.add("ITEM_NOT_CONFIRMED");
+                itemBlockers.add("ITEM_NOT_CONFIRMED");
             }
-            if (!applicable) continue;
-            if (item.getAssigneeUserId() == null) blockers.add("ASSIGNEE_REQUIRED");
+            if (!applicable) {
+                blockers.addAll(itemBlockers);
+                continue;
+            }
+            if (item.getAssigneeUserId() == null) itemBlockers.add("ASSIGNEE_REQUIRED");
             if (form == null || !"FROZEN".equals(form.getStatusCode()) || form.getFrozenAt() == null) {
-                blockers.add("FORM_NOT_FROZEN");
+                itemBlockers.add("FORM_NOT_FROZEN");
             } else {
                 try {
                     FixedSurveyFormRules.validateAndNormalizeValue(form.getSchemaSnapshot(), form.getValueSnapshot());
                 } catch (RuntimeException ignored) {
-                    blockers.add("FORM_INVALID");
+                    itemBlockers.add("FORM_INVALID");
                 }
             }
-            inspectFiles(item, fileFacts, blockers, locking, failOnExternalError);
-            if (!"NONE".equals(policyText(item.getSourcePolicySnapshot(), "requirementCode"))) {
-                blockers.add("SOURCE_PROVIDER_UNAVAILABLE");
-            }
+            inspectFiles(item, fileFacts, itemBlockers, locking, failOnExternalError);
+            inspectSource(preparation, item, sources, sourceFacts, itemBlockers, locking, failOnExternalError);
+            applyWaivers(item, waivers, itemBlockers);
+            blockers.addAll(itemBlockers);
         }
         if (items.isEmpty() || forms.size() != items.size()) blockers.add("ITEM_SET_INVALID");
-        List<ReadinessSourceFact> sourceFacts = sources.stream().map(this::sourceFact).toList();
-        if (sources.stream().anyMatch(row -> !"SYNCED".equals(row.getSyncStatusCode())
-                || blank(row.getNormalizedResultCode()) || blank(row.getSourceFactVersion())
-                || blank(row.getSourceWatermark()))) blockers.add("SOURCE_NOT_SYNCED");
         List<ReadinessWaiverFact> waiverFacts = waivers.stream().map(this::waiverFact).toList();
         List<String> stableBlockers = blockers.stream().distinct().sorted().toList();
         return new Evaluation(new ReadinessFactVector(preparation.getInputVersion(), scopeVersion,
                 itemFacts, fileFacts, sourceFacts, waiverFacts), stableBlockers);
+    }
+
+    private void inspectSource(PreparationDO preparation, PreparationItemDO item,
+            List<PreparationSourceReferenceDO> sources, List<ReadinessSourceFact> target,
+            List<String> blockers, boolean locking, boolean failOnExternalError) {
+        String requirement = policyText(item.getSourcePolicySnapshot(), "requirementCode");
+        if ("NONE".equals(requirement)) return;
+        List<PreparationSourceReferenceDO> itemSources = sources.stream()
+                .filter(row -> Objects.equals(row.getItemId(), item.getId())).toList();
+        if (itemSources.size() != 1) {
+            blockers.add("SOURCE_PROVIDER_UNAVAILABLE");
+            itemSources.forEach(row -> target.add(sourceFact(row)));
+            return;
+        }
+        PreparationSourceReferenceDO row = itemSources.getFirst();
+        if (!"SYNCED".equals(row.getSyncStatusCode()) || blank(row.getNormalizedResultCode())
+                || blank(row.getSourceFactVersion()) || blank(row.getSourceWatermark())) {
+            target.add(sourceFact(row));
+            blockers.add("SOURCE_NOT_SYNCED");
+            return;
+        }
+        try {
+            PreparationSourceFact fact = locking
+                    ? sourceProviderRegistry.lockAndRevalidate(new PreparationSourceFactRevalidationQuery(
+                    preparation.getProjectId(), item.getId(), row.getSourceTypeCode(), row.getSourceObjectType(),
+                    row.getSourceObjectId(), row.getSourceReferenceKey(), item.getSourcePolicySnapshot(),
+                    row.getNormalizedResultCode(), row.getSourceFactVersion(), row.getSourceWatermark()))
+                    : sourceProviderRegistry.inspect(new PreparationSourceFactQuery(preparation.getProjectId(),
+                    item.getId(), row.getSourceTypeCode(), row.getSourceObjectType(), row.getSourceObjectId(),
+                    row.getSourceReferenceKey(), item.getSourcePolicySnapshot()));
+            target.add(sourceFact(row, fact));
+            if (!Objects.equals(row.getNormalizedResultCode(), fact.normalizedResultCode())
+                    || !Objects.equals(row.getSourceFactVersion(), fact.sourceFactVersion())
+                    || !Objects.equals(row.getSourceWatermark(), fact.sourceWatermark())) {
+                blockers.add("SOURCE_FACT_CHANGED");
+            }
+            if (!fact.requirementSatisfied()) blockers.add("SOURCE_RESULT_UNSATISFIED");
+        } catch (RuntimeException failure) {
+            if (failOnExternalError) throw exception(PREPARATION_READINESS_VERSION_CONFLICT);
+            target.add(sourceFact(row));
+            blockers.add("SOURCE_PROVIDER_UNAVAILABLE");
+        }
+    }
+
+    private void applyWaivers(PreparationItemDO item, List<PreparationItemWaiverDO> waivers,
+            List<String> blockers) {
+        LocalDateTime now = LocalDateTime.now();
+        waivers.stream().filter(row -> item.getItemCode().equals(row.getItemCode()))
+                .filter(row -> "APPROVED".equals(row.getStatusCode()))
+                .filter(row -> !now.isBefore(row.getValidFrom()) && !now.isAfter(row.getValidUntil()))
+                .forEach(row -> {
+                    try {
+                        List<String> waived = JsonUtils.parseArray(row.getBlockerCodesSnapshot(), String.class);
+                        blockers.removeIf(waived::contains);
+                    } catch (RuntimeException ignored) {
+                        // 非法冻结豁免不产生替代效果。
+                    }
+                });
     }
 
     private void inspectFiles(PreparationItemDO item, List<ReadinessFileFact> target,
@@ -297,15 +360,22 @@ public class PreparationReadinessService {
         PreparationDO preparation = preparationMapper.selectForUpdate(new PreparationRowQuery(tenantId, preparationId));
         if (preparation == null) throw exception(PREPARATION_NOT_EXISTS);
         PreparationChildrenQuery query = new PreparationChildrenQuery(tenantId, preparationId);
-        return new LockedFacts(preparation, itemMapper.selectListForUpdate(query),
-                formMapper.selectListForUpdate(query), sourceMapper.selectListForUpdate(query),
-                waiverMapper.selectListForUpdate(query));
+        List<PreparationItemDO> items = itemMapper.selectListForUpdate(query);
+        Set<String> itemCodes = items.stream().map(PreparationItemDO::getItemCode).collect(java.util.stream.Collectors.toSet());
+        return new LockedFacts(preparation, items, formMapper.selectListForUpdate(query),
+                sourceMapper.selectListForUpdate(query), waiverMapper.selectBusinessListForUpdate(
+                new PreparationWaiverBusinessQuery(tenantId, preparation.getProjectId(), itemCodes)));
     }
 
     private UnlockedFacts loadUnlocked(Long tenantId, Long preparationId) {
         PreparationChildrenQuery query = new PreparationChildrenQuery(tenantId, preparationId);
-        return new UnlockedFacts(itemMapper.selectList(query), formMapper.selectList(query),
-                sourceMapper.selectList(query), waiverMapper.selectList(query));
+        List<PreparationItemDO> items = itemMapper.selectList(query);
+        Set<String> itemCodes = items.stream().map(PreparationItemDO::getItemCode).collect(java.util.stream.Collectors.toSet());
+        PreparationDO preparation = preparationMapper.selectById(new PreparationRowQuery(tenantId, preparationId));
+        if (preparation == null) throw exception(PREPARATION_NOT_EXISTS);
+        return new UnlockedFacts(items, formMapper.selectList(query), sourceMapper.selectList(query),
+                waiverMapper.selectBusinessList(new PreparationWaiverBusinessQuery(
+                        tenantId, preparation.getProjectId(), itemCodes)));
     }
 
     private PreparationDO locate(SiteSurveyReadinessQuery query, Long tenantId, boolean lock) {
@@ -387,6 +457,12 @@ public class PreparationReadinessService {
         return new ReadinessSourceFact(row.getId(), row.getItemId(), row.getSourceTypeCode(),
                 row.getSourceReferenceKey(), row.getNormalizedResultCode(), row.getSourceFactVersion(),
                 row.getSourceWatermark(), row.getSyncStatusCode(), row.getVersion());
+    }
+
+    private ReadinessSourceFact sourceFact(PreparationSourceReferenceDO row, PreparationSourceFact fact) {
+        return new ReadinessSourceFact(row.getId(), row.getItemId(), row.getSourceTypeCode(),
+                row.getSourceReferenceKey(), fact.normalizedResultCode(), fact.sourceFactVersion(),
+                fact.sourceWatermark(), row.getSyncStatusCode(), row.getVersion());
     }
 
     private ReadinessWaiverFact waiverFact(PreparationItemWaiverDO row) {

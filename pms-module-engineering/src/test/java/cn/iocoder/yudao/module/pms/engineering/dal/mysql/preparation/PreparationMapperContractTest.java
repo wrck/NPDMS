@@ -32,7 +32,8 @@ class PreparationMapperContractTest {
         assertMapperContract(PreparationSourceReferenceMapper.class, Set.of(
                 "insert", "selectList", "selectListForUpdate", "updateSyncIfMatch"));
         assertMapperContract(PreparationItemWaiverMapper.class, Set.of(
-                "insert", "selectForUpdate", "selectList", "selectListForUpdate", "selectPage", "updateStatusIfMatch"));
+                "insert", "selectForUpdate", "selectList", "selectListForUpdate", "selectBusinessList",
+                "selectBusinessListForUpdate", "selectPage", "updateStatusIfMatch"));
         assertMapperContract(PreparationReadinessSnapshotMapper.class, Set.of("insert", "selectById", "selectPage"));
     }
 
