@@ -1,17 +1,17 @@
 # F-SOL-002 工勘分工信息采集与实施就绪
 
-> Feature实施状态：`IMPLEMENTING`
-> 总体工程阶段：`IMPLEMENTATION`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
 > Feature Ready Gate：`PASS / NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`
 > Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
-> Implementation Done Gate：`PENDING`
+> Implementation Done Gate：`PASS / 7243727f3e3410bd3b6ca965b1f5759e6ba5872a / 独立复审GO`
 > 当前阻断：`无；INT-05未实施时仅OA必需项保持NOT_READY，不阻断无OA正向主线`
-> 当前任务：`Task 10 完成真实MySQL、浏览器、独立复审与Feature回写`
+> 当前任务：`F-SOL-002实施已完成；下一Gate为Deployment（未开始）`
 > Requirement ID：`PRE-02（V1/P0）`
 > Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
 > Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
 > Technical Plan：`docs/superpowers/plans/2026-08-27-f-sol-002-site-survey-assignment-and-readiness.md`
-> 锁定规格提交：`e9e3122b33dbc34179d89326f5caa7972365f074`
+> 锁定规格提交：`7c482d02154f0f967a4263e9d27fef2c77aa8bff`
 
 ## 实施边界
 
@@ -32,9 +32,9 @@
 - [x] Task 7 实现就绪评估、不可变快照与公共重验API（PASS / 975f1c2291831f8ac8e663d05094c1eedf9eb010）
 - [x] Task 8 实现来源同步异常、外包引用与逐项豁免（PASS / ca985d7c8e22351ee553211901d786ed64f85a96）
 - [x] Task 9 建设响应式工勘准备界面并退役旧写入口（PASS / 3b92cd76e03c4bfec531c6cf4351176a0b5929ee）
-- [ ] Task 10 完成真实MySQL、浏览器、独立复审与Feature回写
+- [x] Task 10 完成真实MySQL、浏览器、独立复审与Feature回写（PASS / `062ca38c` + `7243727f` / 独立复审GO）
 
-> 检查点（2026-08-27）：基线`e9e3122`；当前Gate为Task 10 Implementation Done；Task 9经`3633fdfa`、`3b92cd76`及独立GO通过，工程190项0失败、前端9/9、类型检查/构建、规格快照PASS；阻塞：无；下一步：执行Task 10真实MySQL最小闭环。
+> 检查点（2026-08-27）：基线`7c482d0`；Implementation Done已通过；证据为Task 1～10、真实MySQL、MinIO文件事实、浏览器五类负向闭环及独立GO；阻塞：无；下一步：进入Deployment Gate，SIT/UAT/Release均未开始。
 
 > Task 1候选证据（2026-08-27）：迁移契约6/6 PASS；清洁隔离MySQL从V1成功迁移至V97，六张SOL表、10条SOL域内租户复合外键、6个工勘项字典、4项权限及唯一固定目录均核验通过；固定目录JSON长度445且有效；同稳定键不同ID的存量目录可原位恢复且保持唯一，固定ID被其他配置占用时V97拒绝并保持无关配置不变；仅5份seed-owned DRAFT模板获得PRE-02绑定，PUBLISHED模板未修改。正式PASS以独立Implementation Done裁决为准。
 
