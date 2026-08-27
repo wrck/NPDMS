@@ -8,12 +8,12 @@ import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitia
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationCommand;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
-import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalog;
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalogProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationInitializationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceProviderRegistry;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
@@ -23,6 +23,9 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionReva
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
+import cn.iocoder.yudao.module.infra.api.config.ConfigApiImpl;
+import cn.iocoder.yudao.module.infra.dal.mysql.config.ConfigMapper;
+import cn.iocoder.yudao.module.infra.service.config.ConfigServiceImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApiImpl;
@@ -466,13 +469,14 @@ class PreparationInitializationMySqlIntegrationTest {
     @SpringBootConfiguration(proxyBeanMethods = false)
     @MapperScan(basePackageClasses = {PreparationMapper.class, DynamicFormInstanceMapper.class,
             ProjectMasterMapper.class, ProjectWorkBindingFactMapper.class,
-            PlatformIdempotencyRecordMapper.class})
+            PlatformIdempotencyRecordMapper.class, ConfigMapper.class})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             PreparationInitializationService.class, PreparationReviewService.class,
             PreparationReadinessService.class,
+            FixedSurveyFormCatalogProvider.class, ConfigApiImpl.class, ConfigServiceImpl.class,
             ProjectWorkBindingFactApiImpl.class,
             PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
     static class TestApplication {
@@ -485,13 +489,6 @@ class PreparationInitializationMySqlIntegrationTest {
         @Bean
         TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
             return new TransactionTemplate(transactionManager);
-        }
-
-        @Bean
-        FixedSurveyFormCatalogProvider catalogProvider() {
-            FixedSurveyFormCatalogProvider provider = mock(FixedSurveyFormCatalogProvider.class);
-            when(provider.load()).thenReturn(catalog());
-            return provider;
         }
 
         @Bean ProjectParticipantFactApi participantFactApi() {
@@ -510,13 +507,9 @@ class PreparationInitializationMySqlIntegrationTest {
             return mock(FileArtifactApi.class);
         }
 
-        private static FixedSurveyFormCatalog catalog() {
-            List<String> forms = List.of("POWER", "NETWORK_PORT", "FIBER", "CABINET",
-                    "NETWORK_CABLE", "OPTICAL_MODULE");
-            return new FixedSurveyFormCatalog(1, "PRE_02_SITE_SURVEY", 1,
-                    List.of(new FixedSurveyFormCatalog.FieldDefinition(
-                            "siteCondition", "TEXT", true, 200, List.of(), 1)),
-                    forms.stream().map(code -> new FixedSurveyFormCatalog.FormDefinition(code, 1)).toList());
+        @Bean PreparationSourceProviderRegistry sourceProviderRegistry() {
+            return new PreparationSourceProviderRegistry(List.of());
         }
+
     }
 }
