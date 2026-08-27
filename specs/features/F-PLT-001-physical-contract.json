@@ -75,7 +75,7 @@
         ["tenant_id", "availability_status_code", "id"]
       ],
       "foreignKeys": ["(tenant_id, artifact_id) -> plt_file_artifact(tenant_id, id)"],
-      "scanStatusCodes": ["PASSED"],
+      "scanStatusCodes": ["PASSED", "SKIPPED"],
       "availabilityStatusCodes": ["AVAILABLE", "UNAVAILABLE", "INVALIDATED"],
       "immutability": "no application update or delete entry for content, hash, size, media type, storage receipt or version number",
       "availabilityVersionPolicy": "increment on AVAILABLE, UNAVAILABLE or INVALIDATED transition and recovery; immutable content fields never change",
@@ -123,7 +123,7 @@
       ],
       "modeCodes": ["CREATE_ARTIFACT", "ADD_VERSION"],
       "statusCodes": ["INITIALIZED", "VALIDATING", "COMPLETED", "FAILED_RETRYABLE", "FAILED_FINAL", "EXPIRED"],
-      "successPolicy": "COMPLETED requires a PASSED server scan, registered INFRA receipt, committed FileVersion and committed FileReference create/CAS",
+      "successPolicy": "COMPLETED requires PASSED when security scanning is enabled, otherwise SKIPPED; both require registered INFRA receipt, committed FileVersion and committed FileReference create/CAS",
       "uploadPolicy": "init returns no storage credential; session id is the trusted storageOperationId and multipart content is bounded to 50MB before INFRA store"
     },
     "plt_file_access_grant": {
@@ -241,7 +241,8 @@
       "providerModule": "pms-module-platform",
       "contract": "FileSecurityScanProvider.scan(FileSecurityScanCommand)",
       "resultCodes": ["PASSED", "REJECTED", "ERROR"],
-      "failurePolicy": "missing provider, ERROR or exception prevents FileVersion and FileReference success"
+      "disabledPolicy": "disabled scanning invokes no provider and persists SKIPPED with null provider code/version",
+      "failurePolicy": "when scanning is enabled, missing or multiple providers, REJECTED, ERROR, exception or unknown result prevents FileVersion and FileReference success and never degrades to SKIPPED"
     },
     "infraFileStorageReceiptApi": {
       "providerModule": "yudao-module-infra public FileStorageReceiptApi",
@@ -282,7 +283,7 @@
     "solCustomerDelayCategoryCode": "CUSTOMER_DELAY_EVIDENCE",
     "normalUploadMaxBytes": 52428800,
     "storagePolicy": "private bucket, server encryption and TLS; deployment-specific config is not a Feature Ready blocker",
-    "scanPolicy": "a configured FileSecurityScanProvider is mandatory for successful completion; provider product and environment instance are selected in Technical Plan/Deployment without changing this contract"
+    "scanPolicy": "security scanning is disabled by default; when enabled exactly one configured FileSecurityScanProvider is mandatory for successful completion, while disabled completion invokes no provider and persists SKIPPED; provider product and environment instance are selected in Technical Plan/Deployment without changing this contract"
   },
   "platformFacts": {
     "idempotencyTable": "plt_idempotency_record",

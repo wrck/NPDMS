@@ -5,6 +5,7 @@
     {"path": "docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md", "category": "BASELINE"},
     {"path": "docs/baseline/prd-v1.8-amendment-002-organization-and-asset-location.md", "category": "BASELINE"},
     {"path": "docs/baseline/prd-v1.8-amendment-003-pm07-template-match-decision-history.md", "category": "BASELINE"},
+    {"path": "docs/baseline/prd-v1.8-amendment-004-optional-file-security-scan.md", "category": "BASELINE"},
     {"path": "docs/baseline/prd-v1.8.md", "category": "BASELINE"},
     {"path": "docs/baseline/requirement-baseline.yaml", "category": "BASELINE"},
     {"path": "docs/coding/database-query-interface.md", "category": "ENGINEERING"},

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "e9e3122b33dbc34179d89326f5caa7972365f074"
+    "commit": "9378cbc17b7dbe4ed75c80bee56d21e495623a9b"
   },
   "files": [
     {
@@ -24,6 +24,11 @@
       "path": "docs/baseline/prd-v1.8-amendment-003-pm07-template-match-decision-history.md",
       "category": "BASELINE",
       "sha256": "8375ac37a4d81ad95f362dbc16d99e4db7fc63a455d4ca337b1e0a2e0299c61e"
+    },
+    {
+      "path": "docs/baseline/prd-v1.8-amendment-004-optional-file-security-scan.md",
+      "category": "BASELINE",
+      "sha256": "fa24cd95ca0067069b9593f8fb8222b98c319a35941bf529adf361f22d6204ae"
     },
     {
       "path": "docs/baseline/prd-v1.8.md",
@@ -313,12 +318,12 @@
     {
       "path": "docs/design/13-file-design.md",
       "category": "SDS",
-      "sha256": "45f31a33a9d0df61660e92a53aec895caddd1c795d44079106de6700e9d72353"
+      "sha256": "9872e9fcd43fd3badca3feb700449b8ee96eb6249819cfb5e081502b8f1245d3"
     },
     {
       "path": "docs/design/14-security-design.md",
       "category": "SDS",
-      "sha256": "f622230777c4bbab26e7be6444e9ff82c67c5b3add3c0ffd08485f6e7ac940a6"
+      "sha256": "f3cc8db5e9710491ab878351604962ee68aac9b92858896a9a2ff58a723d8651"
     },
     {
       "path": "docs/design/15-cache-and-concurrency.md",
@@ -363,7 +368,7 @@
     {
       "path": "docs/engineering/00-engineering-chain.md",
       "category": "ENGINEERING",
-      "sha256": "75a6dc1adcaa79838c31500f8d6aba264ca9e60c8c34a644e97970c3670b6670"
+      "sha256": "9980dea171c963773ccbf9eb015135cbc0a1392add2f691f5e9f25570c292c1d"
     },
     {
       "path": "docs/engineering/gates/phase-1/README.md",
@@ -443,17 +448,17 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "2d9ce6ae753f3830e5aa27888bbdfcea4b8a3fc60a19f2a904f6ecf78d08decb"
+      "sha256": "10461cb0c57363b83c792d44795887f50c4a892bf0ba95945afc6fa1291a2591"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "da966ae4ff47ead627d49b133dd503ac141c8655815818aa06cb80b7d9f4aa3f"
+      "sha256": "aaa341ccf55033dbedb798d49c26525b1899be6909be1139679bf8c55f31989e"
     },
     {
       "path": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
       "category": "FEATURE_SPEC",
-      "sha256": "77976a9d1f5d0541cd91a0fb1562bbf7e21b22f6fe5047541c1600dd0f75f1dc"
+      "sha256": "041db5d5e30731042beece6623ef2e5980becf76fbecf51bd19b1d488504252b"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -543,7 +548,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "58d40a0fbc019590f9aae08fda8c2be1effebb5878641831d536885e0d728f0f"
+      "sha256": "71c733f3aaf1b45ace4ab177c58e9086df389226fd98281e3a901c769a912e3b"
     }
   ]
 }
