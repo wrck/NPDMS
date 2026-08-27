@@ -9,6 +9,10 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationCommand;
 import cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.SiteSurveyReadinessQuery;
+import cn.iocoder.yudao.module.pms.engineering.api.source.PreparationSourceFactProvider;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFact;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactQuery;
+import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalogProvider;
@@ -18,6 +22,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationFi
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceProviderRegistry;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
@@ -89,6 +94,8 @@ class PreparationInitializationMySqlIntegrationTest {
     @Resource PreparationItemApplicationService itemService;
     @Resource PreparationReviewService reviewService;
     @Resource PreparationReadinessService readinessService;
+    @Resource PreparationSourceService sourceService;
+    @Resource TestPreparationSourceProvider sourceProvider;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource TransactionTemplate transactionTemplate;
     @Resource PermissionApi permissionApi;
@@ -151,6 +158,7 @@ class PreparationInitializationMySqlIntegrationTest {
                 projectId, 1L, Set.of(projectId), Set.of());
         when(projectScopeApi.resolveCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
         when(projectScopeApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
+        sourceProvider.reset();
     }
 
     @AfterEach
@@ -434,6 +442,77 @@ class PreparationInitializationMySqlIntegrationTest {
                 Long.class, prepared.preparationId()));
     }
 
+    @Test
+    void changedSourceFactExpiresReadySnapshotAndEvaluateAppendsNotReady() {
+        transactionTemplate.executeWithoutResult(status -> {
+            insertProjectTaskAndContract();
+            service.initialize(command());
+        });
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
+        Long oaItemId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id LIMIT 1", Long.class, preparationId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
+                + "evidence_policy_snapshot='{\"required\":false}',"
+                + "source_policy_snapshot='{\"requirementCode\":\"NONE\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET source_policy_snapshot="
+                + "'{\"requirementCode\":\"OA_REQUIRED\"}' WHERE tenant_id=0 AND id=?", oaItemId);
+        jdbcTemplate.update("UPDATE sol_dynamic_form_instance SET value_snapshot="
+                + "'{\"siteCondition\":\"正常\"}' WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-SOURCE-" + projectId);
+        var refreshed = sourceService.refresh(new PreparationSourceService.SourceRefreshCommand(
+                preparationId, oaItemId, 0, 0, 0, 0, null, 4,
+                "OA", "REQUEST", "OA-" + projectId, "REF-" + projectId,
+                "SOURCE-REFRESH-" + projectId), actor);
+        assertEquals("SYNCED", refreshed.syncStatus());
+        assertEquals("F1", refreshed.sourceFactVersion());
+        assertEquals("W1", refreshed.sourceWatermark());
+
+        int preparationVersion = reviewService.execute(new PreparationReviewCommand(
+                PreparationReviewCommand.SUBMIT, preparationId, null, refreshed.preparationVersion(),
+                null, 4, null, "SOURCE-SUBMIT-" + projectId), actor).preparationVersion();
+        List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
+        for (int index = 0; index < itemIds.size(); index++) {
+            preparationVersion = reviewService.execute(new PreparationReviewCommand(
+                    PreparationReviewCommand.CONFIRM, preparationId, itemIds.get(index), preparationVersion,
+                    0, 4, null, "SOURCE-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
+        }
+        var ready = readinessService.evaluate(new PreparationReadinessCommand(
+                preparationId, preparationVersion, 4, "SOURCE-READY-" + projectId), actor);
+        assertEquals("READY", ready.readiness().readinessStatus(),
+                () -> "blockers=" + ready.readiness().blockerCodes());
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) "
+                + "FROM sol_preparation_readiness_snapshot WHERE tenant_id=0 AND preparation_id=?",
+                Long.class, preparationId));
+
+        sourceProvider.changeTo("F2", "W2");
+        int readyVersion = ready.readiness().preparationVersion();
+        long auditCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_key=?", Long.class, String.valueOf(preparationId));
+        var inspected = readinessService.inspect(new SiteSurveyReadinessQuery(projectId, preparationId), 0L, 9L);
+        assertEquals("NOT_READY", inspected.readinessStatus());
+        assertEquals(false, inspected.snapshotCurrent());
+        assertEquals(List.of("SOURCE_FACT_CHANGED"), inspected.blockerCodes());
+        assertEquals(readyVersion, currentPreparationVersion(preparationId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) "
+                + "FROM sol_preparation_readiness_snapshot WHERE tenant_id=0 AND preparation_id=?",
+                Long.class, preparationId));
+        assertEquals(auditCount, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_key=?", Long.class, String.valueOf(preparationId)));
+
+        var notReady = readinessService.evaluate(new PreparationReadinessCommand(
+                preparationId, readyVersion, 4, "SOURCE-CHANGED-" + projectId), actor);
+        assertEquals("NOT_READY", notReady.readiness().readinessStatus());
+        assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) "
+                + "FROM sol_preparation_readiness_snapshot WHERE tenant_id=0 AND preparation_id=?",
+                Long.class, preparationId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) "
+                + "FROM sol_preparation_readiness_snapshot WHERE tenant_id=0 AND preparation_id=? "
+                + "AND result_code='NOT_READY'", Long.class, preparationId));
+    }
+
     private PreparedReadiness prepareConfirmedNoSource() {
         transactionTemplate.executeWithoutResult(status -> {
             insertProjectTaskAndContract();
@@ -479,6 +558,11 @@ class PreparationInitializationMySqlIntegrationTest {
                     .PREPARATION_READINESS_VERSION_CONFLICT.getCode()) return "VERSION_CONFLICT";
             throw failure;
         }
+    }
+
+    private int currentPreparationVersion(Long preparationId) {
+        return jdbcTemplate.queryForObject("SELECT version FROM sol_preparation WHERE tenant_id=0 AND id=?",
+                Integer.class, preparationId);
     }
 
     private void insertProjectTaskAndContract() {
@@ -579,6 +663,7 @@ class PreparationInitializationMySqlIntegrationTest {
             PreparationInitializationService.class, PreparationItemApplicationService.class,
             PreparationReviewService.class,
             PreparationReadinessService.class,
+            PreparationSourceService.class,
             PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
             FileArtifactApiImpl.class,
             FixedSurveyFormCatalogProvider.class, ConfigApiImpl.class, ConfigServiceImpl.class,
@@ -614,9 +699,51 @@ class PreparationInitializationMySqlIntegrationTest {
 
         @Bean OrganizationScopeApi organizationScopeApi() { return mock(OrganizationScopeApi.class); }
 
-        @Bean PreparationSourceProviderRegistry sourceProviderRegistry() {
-            return new PreparationSourceProviderRegistry(List.of());
+        @Bean TestPreparationSourceProvider testPreparationSourceProvider() {
+            return new TestPreparationSourceProvider();
         }
 
+        @Bean PreparationSourceProviderRegistry sourceProviderRegistry(TestPreparationSourceProvider provider) {
+            return new PreparationSourceProviderRegistry(List.of(provider));
+        }
+
+    }
+
+    static class TestPreparationSourceProvider implements PreparationSourceFactProvider {
+        private String factVersion;
+        private String watermark;
+
+        void reset() {
+            factVersion = "F1";
+            watermark = "W1";
+        }
+
+        void changeTo(String nextFactVersion, String nextWatermark) {
+            factVersion = nextFactVersion;
+            watermark = nextWatermark;
+        }
+
+        @Override
+        public String sourceTypeCode() {
+            return "OA";
+        }
+
+        @Override
+        public PreparationSourceFact inspect(PreparationSourceFactQuery query) {
+            return fact(query.projectId(), query.itemId(), query.sourceObjectType(), query.sourceObjectId(),
+                    query.sourceReferenceKey());
+        }
+
+        @Override
+        public PreparationSourceFact lockAndRevalidate(PreparationSourceFactRevalidationQuery query) {
+            return fact(query.projectId(), query.itemId(), query.sourceObjectType(), query.sourceObjectId(),
+                    query.sourceReferenceKey());
+        }
+
+        private PreparationSourceFact fact(Long projectId, Long itemId, String objectType, String objectId,
+                String referenceKey) {
+            return new PreparationSourceFact(projectId, itemId, "OA", objectType, objectId, referenceKey,
+                    "APPROVED", factVersion, watermark, true);
+        }
     }
 }

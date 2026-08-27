@@ -22,6 +22,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -79,7 +82,7 @@ public class PreparationSourceService {
         AtomicReference<PreparationSourceFact> sourceFact = new AtomicReference<>();
         var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), SCOPE, actor.actorId(), command.idempotencyKey()),
-                JsonUtils.toJsonString(command), SourceRefreshResult.class,
+                digest(command), SourceRefreshResult.class,
                 () -> refreshOnce(command, actor, located.getProjectId(), before, sourceFact),
                 response -> successFacts(actor, command, response, before.get(), sourceFact.get()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
@@ -275,6 +278,15 @@ public class PreparationSourceService {
     }
 
     private boolean blank(String value) { return value == null || value.isBlank(); }
+
+    private String digest(SourceRefreshCommand command) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(JsonUtils.toJsonString(command).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException(failure);
+        }
+    }
 
     public record SourceRefreshCommand(Long preparationId, Long itemId, Integer expectedPreparationVersion,
             Integer expectedInputVersion, Integer expectedReadinessVersion, Integer expectedItemVersion,
