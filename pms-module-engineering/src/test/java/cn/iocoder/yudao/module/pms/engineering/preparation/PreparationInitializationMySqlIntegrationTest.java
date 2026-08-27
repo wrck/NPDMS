@@ -344,6 +344,14 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "FROM plt_operation_audit WHERE tenant_id=0 AND correlation_id=? "
                 + "AND operation_code='PREPARATION_RETURN' AND result_code='SUCCESS'", Integer.class,
                 actor.correlationId()));
+
+        var resubmitted = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
+                returned.currentPreparationId(), null, 0, null, 4, null,
+                "REVIEW-RESUBMIT-" + projectId), actor);
+        assertEquals("PENDING_CONFIRMATION", resubmitted.statusCode());
+        assertEquals((long) itemIds.size(), jdbcTemplate.queryForObject("SELECT COUNT(*) "
+                + "FROM sol_dynamic_form_instance WHERE tenant_id=0 AND preparation_id=? "
+                + "AND status_code='FROZEN'", Long.class, returned.currentPreparationId()));
     }
 
     @Test

@@ -116,6 +116,34 @@ class PreparationReviewServiceTest {
     }
 
     @Test
+    void submitReturnedDraftKeepsRetainedConfirmedFormFrozen() {
+        PreparationDO preparation = preparation("DRAFT", 0, 2);
+        PreparationItemDO pending = item(101L, "REQUIRED", "PENDING", 0);
+        pending.setAssigneeUserId(9L);
+        pending.setSiteResultCode("READY");
+        PreparationItemDO retained = item(102L, "REQUIRED", "CONFIRMED", 0);
+        retained.setAssigneeUserId(9L);
+        retained.setSiteResultCode("READY");
+        DynamicFormInstanceDO pendingForm = form(201L, 101L);
+        DynamicFormInstanceDO retainedForm = form(202L, 102L);
+        retainedForm.setStatusCode("FROZEN");
+        retainedForm.setFrozenAt(LocalDateTime.now().minusMinutes(1));
+        retainedForm.setFrozenBy(7L);
+        stubRows(preparation, List.of(pending, retained), List.of(pendingForm, retainedForm));
+        when(formMapper.freezeIfMatch(any())).thenReturn(1);
+        when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        var result = service.execute(command(PreparationReviewCommand.SUBMIT, null, 0, null, null), actor());
+
+        assertEquals("PENDING_CONFIRMATION", result.statusCode());
+        verify(formMapper).freezeIfMatch(any());
+        verify(preparationMapper).updateLifecycleIfMatch(any());
+        String audit = successFacts.get().detailSnapshot();
+        assertTrue(audit.contains("\"formsAfter\""));
+        assertTrue(audit.contains("\"status\":\"FROZEN\""));
+    }
+
+    @Test
     void lastItemConfirmationAggregatesPreparation() {
         PreparationDO preparation = preparation("PENDING_CONFIRMATION", 4, 2);
         PreparationItemDO selected = item(101L, "REQUIRED", "PENDING", 3);

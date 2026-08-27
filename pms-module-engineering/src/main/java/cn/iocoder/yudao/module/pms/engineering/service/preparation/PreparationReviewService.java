@@ -131,7 +131,11 @@ public class PreparationReviewService {
         PreparationStateRules.requirePreparationTransition(preparation.getStatusCode(), "PENDING_CONFIRMATION");
         for (PreparationItemDO item : items) {
             DynamicFormInstanceDO form = forms.get(item.getId());
-            if (form == null || !"DRAFT".equals(form.getStatusCode()) || form.getFrozenAt() != null) {
+            boolean retainedConfirmed = "CONFIRMED".equals(item.getConfirmationStatusCode());
+            if (form == null || (retainedConfirmed
+                    && (!"FROZEN".equals(form.getStatusCode()) || form.getFrozenAt() == null))
+                    || (!retainedConfirmed && (!"PENDING".equals(item.getConfirmationStatusCode())
+                    || !"DRAFT".equals(form.getStatusCode()) || form.getFrozenAt() != null))) {
                 throw exception(PREPARATION_STATUS_INVALID);
             }
             if ("REQUIRED".equals(item.getApplicabilityCode())) {
@@ -139,7 +143,8 @@ public class PreparationReviewService {
                 if (item.getAssigneeUserId() == null || item.getSiteResultCode() == null
                         || item.getSiteResultCode().isBlank()) throw exception(PREPARATION_STATUS_INVALID);
                 validateEvidence(item, actor);
-            } else if ("NOT_APPLICABLE_PENDING".equals(item.getApplicabilityCode())) {
+            } else if ((!retainedConfirmed && "NOT_APPLICABLE_PENDING".equals(item.getApplicabilityCode()))
+                    || (retainedConfirmed && "NOT_APPLICABLE_CONFIRMED".equals(item.getApplicabilityCode()))) {
                 if (item.getNotApplicableReason() == null || item.getNotApplicableReason().isBlank()) {
                     throw exception(PREPARATION_STATUS_INVALID);
                 }
@@ -151,6 +156,7 @@ public class PreparationReviewService {
         LocalDateTime now = LocalDateTime.now();
         for (PreparationItemDO item : items) {
             DynamicFormInstanceDO form = forms.get(item.getId());
+            if ("FROZEN".equals(form.getStatusCode())) continue;
             if (formMapper.freezeIfMatch(new DynamicFormFreezeUpdate(actor.tenantId(), preparation.getId(),
                     item.getId(), form.getId(), form.getVersion(), now, actor.actorId(),
                     String.valueOf(actor.actorId()))) != 1) throw exception(PREPARATION_VERSION_NOT_MATCH);
@@ -420,8 +426,8 @@ public class PreparationReviewService {
         detail.put("itemsBefore", items.stream().map(this::itemFact).toList());
         detail.put("itemsAfter", items.stream().map(this::itemFact).toList());
         detail.put("formsBefore", forms.values().stream().map(this::formFact).toList());
-        detail.put("formsAfter", forms.values().stream().map(form -> formFact(form, "FROZEN",
-                form.getVersion() + 1, frozenAt)).toList());
+        detail.put("formsAfter", forms.values().stream().map(form -> "FROZEN".equals(form.getStatusCode())
+                ? formFact(form) : formFact(form, "FROZEN", form.getVersion() + 1, frozenAt)).toList());
         detail.put("sourcesLocked", sources.stream().map(this::sourceFact).toList());
         detail.put("copyFacts", List.of());
         return detail;
