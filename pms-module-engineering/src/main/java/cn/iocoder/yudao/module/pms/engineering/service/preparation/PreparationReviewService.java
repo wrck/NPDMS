@@ -129,8 +129,6 @@ public class PreparationReviewService {
             List<PreparationSourceReferenceDO> sources,
             AtomicReference<Map<String, Object>> auditSnapshot) {
         PreparationStateRules.requirePreparationTransition(preparation.getStatusCode(), "PENDING_CONFIRMATION");
-        revalidateSources(preparation, items, sources);
-        LocalDateTime now = LocalDateTime.now();
         for (PreparationItemDO item : items) {
             DynamicFormInstanceDO form = forms.get(item.getId());
             if (form == null || !"DRAFT".equals(form.getStatusCode()) || form.getFrozenAt() != null) {
@@ -148,6 +146,11 @@ public class PreparationReviewService {
             } else {
                 throw exception(PREPARATION_STATUS_INVALID);
             }
+        }
+        revalidateSources(preparation, items, sources);
+        LocalDateTime now = LocalDateTime.now();
+        for (PreparationItemDO item : items) {
+            DynamicFormInstanceDO form = forms.get(item.getId());
             if (formMapper.freezeIfMatch(new DynamicFormFreezeUpdate(actor.tenantId(), preparation.getId(),
                     item.getId(), form.getId(), form.getVersion(), now, actor.actorId(),
                     String.valueOf(actor.actorId()))) != 1) throw exception(PREPARATION_VERSION_NOT_MATCH);

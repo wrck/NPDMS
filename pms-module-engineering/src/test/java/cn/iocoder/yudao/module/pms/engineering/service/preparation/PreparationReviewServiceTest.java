@@ -150,8 +150,11 @@ class PreparationReviewServiceTest {
         PreparationItemDO required = item(101L, "REQUIRED", "PENDING", 1);
         required.setAssigneeUserId(9L);
         required.setSiteResultCode("READY");
+        required.setEvidencePolicySnapshot("{\"required\":true}");
+        required.setEvidenceReferenceSnapshot(evidence());
         stubRows(preparation, List.of(required), List.of(form(201L, 101L)));
         when(sourceMapper.selectListForUpdate(any())).thenReturn(List.of(source(101L)));
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fileFact());
         when(sourceProviderRegistry.lockAndRevalidate(any())).thenThrow(new IllegalStateException("stale"));
 
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
@@ -159,6 +162,10 @@ class PreparationReviewServiceTest {
 
         verify(formMapper, org.mockito.Mockito.never()).freezeIfMatch(any());
         verify(preparationMapper, org.mockito.Mockito.never()).updateLifecycleIfMatch(any());
+        org.mockito.InOrder lockOrder = org.mockito.Mockito.inOrder(fileArtifactApi, sourceProviderRegistry);
+        lockOrder.verify(fileArtifactApi).lockAndRevalidate(any());
+        lockOrder.verify(sourceProviderRegistry).lockAndRevalidate(any());
+        org.junit.jupiter.api.Assertions.assertNull(successFacts.get());
         ArgumentCaptor<cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery>
                 query = ArgumentCaptor.forClass(
                 cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery.class);
