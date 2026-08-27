@@ -2,7 +2,7 @@
   "evidenceId": "FPLT002-IMPLEMENTATION-BROWSER-20260828-R3",
   "featureId": "F-PLT-002",
   "gate": "Implementation Done candidate",
-  "status": "VERIFIED_PENDING_INDEPENDENT_REVIEW",
+  "status": "VERIFIED_APPROVED",
   "scope": "仅限Implementation；不代表Deployment、SIT、UAT或Release",
   "candidateBaseCommit": "4f982308c387d0bf50b66f1c2c142813540979b4",
   "candidateScope": "candidateBaseCommit加本证据所在整改提交；审批申请以最终Git提交为不可变候选",
@@ -147,5 +147,10 @@
     "AC-FPLT002-011": "PASS - V102/V103约束、索引、菜单、字典和示例由空库迁移验证",
     "AC-FPLT002-012": "PASS - 320/768/1024/1440公开浏览器闭环、旧实现共存及零意外错误闭合"
   },
-  "independentReview": {"status": "PENDING", "reviewOwner": "NPDMS方案评审角色"}
+  "independentReview": {
+    "status": "GO",
+    "decision": "NPDMS-FPLT002-IMPLEMENTATION-20260827-02-R2",
+    "approvedCandidateCommit": "0ce68d04e49189fc994dc594732ba79f7fc345b3",
+    "reviewOwner": "NPDMS方案评审角色"
+  }
 }
