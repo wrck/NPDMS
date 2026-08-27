@@ -173,19 +173,19 @@ public class PreparationReviewService {
             throw exception(PREPARATION_STATUS_INVALID);
         }
         PreparationItemDO selected = requireItem(items, command);
-        validateEvidence(selected, actor);
-        List<PreparationSourceReferenceDO> selectedSources = sources.stream()
-                .filter(source -> Objects.equals(source.getItemId(), selected.getId())).toList();
-        revalidateSources(preparation, List.of(selected), selectedSources);
         String applicability = selected.getApplicabilityCode();
         if (PreparationReviewCommand.CONFIRM.equals(command.action())) {
             if (!"REQUIRED".equals(applicability)) throw exception(PREPARATION_STATUS_INVALID);
+            validateEvidence(selected, actor);
         } else {
             PreparationStateRules.requireApplicabilityTransition(preparation.getStatusCode(), applicability,
                     "NOT_APPLICABLE_CONFIRMED");
             if (command.reason() == null || command.reason().isBlank()) throw exception(PREPARATION_COMMAND_INVALID);
             applicability = "NOT_APPLICABLE_CONFIRMED";
         }
+        List<PreparationSourceReferenceDO> selectedSources = sources.stream()
+                .filter(source -> Objects.equals(source.getItemId(), selected.getId())).toList();
+        revalidateSources(preparation, List.of(selected), selectedSources);
         PreparationStateRules.requireItemConfirmationTransition(preparation.getStatusCode(),
                 selected.getApplicabilityCode(), selected.getConfirmationStatusCode(), "CONFIRMED");
         LocalDateTime now = LocalDateTime.now();

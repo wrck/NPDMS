@@ -22,7 +22,12 @@ import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFor
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationFilePolicyProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationInitializationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceProviderRegistry;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
@@ -73,6 +78,7 @@ import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -104,6 +110,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -121,6 +128,8 @@ class PreparationMySqlIntegrationTest {
     @Resource ProjectManualCreationApplicationService projectCreationService;
     @Resource ProjectTemplateService projectTemplateService;
     @Resource PreparationItemApplicationService itemService;
+    @Resource PreparationReviewService reviewService;
+    @Resource PreparationReadinessService readinessService;
     @Resource JdbcTemplate jdbcTemplate;
 
     @DynamicPropertySource
@@ -211,7 +220,7 @@ class PreparationMySqlIntegrationTest {
         var assigned = itemService.patch(assignCommand,
                 new PreparationItemApplicationService.Actor(0L, manager.actorId(), manager.correlationId()));
 
-        long artifactId = created.id() + 10;
+        long artifactId = IdWorker.getId();
         insertFileFacts(itemId, artifactId, assigneeId);
         login(assigneeId);
         var filled = itemService.patch(new PatchPreparationItemCommand(preparationId, itemId,
@@ -237,6 +246,81 @@ class PreparationMySqlIntegrationTest {
         assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
                 + "WHERE tenant_id=0 AND operation_code='PREPARATION_ITEM_PATCH' "
                 + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(itemId)));
+    }
+
+    @Test
+    @Transactional
+    void publicPreparationChainSubmitsConfirmsAndEvaluatesReady() {
+        publishPreparationTemplate();
+        var manager = new ProjectManualCreationApplicationService.Actor(
+                0L, 9_900_001L, "PRE02-CHAIN-" + UUID.randomUUID());
+        var created = projectCreationService.create(command(), manager);
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, created.id());
+        long assigneeId = 9_900_002L;
+        List<String> requiredItems = List.of("POWER", "NETWORK_PORT", "CABINET", "NETWORK_CABLE");
+        for (String itemCode : requiredItems) {
+            patchItem(preparationId, itemCode, created.version(), manager.actorId(),
+                    Set.of("assignee"), null, assigneeId, null, null, null, null);
+        }
+        patchItem(preparationId, "FIBER", created.version(), manager.actorId(),
+                Set.of("applicabilityCode", "notApplicableReason"), "NOT_APPLICABLE_PENDING", null,
+                "现场无光纤需求", null, null, null);
+
+        login(assigneeId);
+        for (String itemCode : requiredItems) {
+            List<PatchPreparationItemCommand.EvidenceReference> evidence = null;
+            if (Set.of("POWER", "CABINET").contains(itemCode)) {
+                long artifactId = IdWorker.getId();
+                Long itemId = currentItem(preparationId, itemCode).get("id") instanceof Number id
+                        ? id.longValue() : null;
+                insertFileFacts(itemId, artifactId, assigneeId);
+                evidence = List.of(new PatchPreparationItemCommand.EvidenceReference(
+                        artifactId, 1, "SITE", new FileFactVersion(1, 1, 1), 1L));
+            }
+            Set<String> fields = evidence == null
+                    ? Set.of("siteResultCode", "siteResultDetail", "formValueSnapshot")
+                    : Set.of("siteResultCode", "siteResultDetail", "formValueSnapshot", "evidenceReferences");
+            patchItem(preparationId, itemCode, created.version(), assigneeId, fields, null, null,
+                    null, "READY", "现场条件满足", evidence);
+        }
+
+        login(manager.actorId());
+        int preparationVersion = currentPreparationVersion(preparationId);
+        var submitted = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
+                preparationId, null, preparationVersion, null, created.version(), null,
+                "PRE02-CHAIN-SUBMIT-" + created.id()), reviewActor(manager.actorId(), "SUBMIT", created.id()));
+        preparationVersion = submitted.preparationVersion();
+        List<Map<String, Object>> items = jdbcTemplate.queryForList("SELECT id,item_code,version "
+                + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id",
+                preparationId);
+        for (Map<String, Object> item : items) {
+            String itemCode = String.valueOf(item.get("item_code"));
+            String action = "FIBER".equals(itemCode) ? PreparationReviewCommand.CONFIRM_NOT_APPLICABLE
+                    : PreparationReviewCommand.CONFIRM;
+            String reason = "FIBER".equals(itemCode) ? "确认无光纤需求" : null;
+            preparationVersion = reviewService.execute(new PreparationReviewCommand(action, preparationId,
+                    ((Number) item.get("id")).longValue(), preparationVersion,
+                    ((Number) item.get("version")).intValue(), created.version(), reason,
+                    "PRE02-CHAIN-CONFIRM-" + itemCode + "-" + created.id()),
+                    reviewActor(manager.actorId(), "CONFIRM-" + itemCode, created.id())).preparationVersion();
+        }
+        var evaluated = readinessService.evaluate(new PreparationReadinessCommand(preparationId,
+                preparationVersion, created.version(), "PRE02-CHAIN-EVALUATE-" + created.id()),
+                reviewActor(manager.actorId(), "EVALUATE", created.id()));
+
+        assertEquals("CONFIRMED", evaluated.readiness().status());
+        assertEquals("READY", evaluated.readiness().readinessStatus(),
+                () -> "blockers=" + evaluated.readiness().blockerCodes());
+        assertEquals(true, evaluated.readiness().snapshotCurrent());
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=? AND result_code='READY'", Long.class, preparationId));
+        assertEquals(5L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? AND confirmation_status_code='CONFIRMED'",
+                Long.class, preparationId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_key=? AND operation_code='PREPARATION_EVALUATE_READINESS' "
+                + "AND result_code='SUCCESS'", Long.class, String.valueOf(preparationId)));
     }
 
     private void publishPreparationTemplate() {
@@ -294,12 +378,45 @@ class PreparationMySqlIntegrationTest {
                         + "declared_media_type,detected_media_type,scan_status_code,availability_status_code,"
                         + "created_by,created_at,tenant_id) VALUES (?,?,1,?,1,?,100,'application/pdf',"
                         + "'application/pdf','PASSED','AVAILABLE',?,NOW(3),0)",
-                artifactId + 1, artifactId, artifactId + 2, "a".repeat(64), actorId);
+                IdWorker.getId(), artifactId, IdWorker.getId(), "a".repeat(64), actorId);
         jdbcTemplate.update("INSERT INTO plt_file_reference "
                         + "(id,owner_context,object_type,object_id,purpose_code,reference_key,artifact_id,"
                         + "file_version_no,sensitivity_code,status_code,scope_version,version,tenant_id) "
                         + "VALUES (?,'SOL','SITE_SURVEY_ITEM',?,'SITE_SURVEY_EVIDENCE','SITE',?,1,"
-                        + "'INTERNAL','ACTIVE',1,1,0)", artifactId + 3, String.valueOf(itemId), artifactId);
+                        + "'INTERNAL','ACTIVE',1,1,0)", IdWorker.getId(), String.valueOf(itemId), artifactId);
+    }
+
+    private void patchItem(Long preparationId, String itemCode, Integer projectVersion, long actorId,
+            Set<String> fields, String applicabilityCode, Long assigneeId, String notApplicableReason,
+            String siteResultCode, String siteResultDetail,
+            List<PatchPreparationItemCommand.EvidenceReference> evidence) {
+        Map<String, Object> row = currentItem(preparationId, itemCode);
+        itemService.patch(new PatchPreparationItemCommand(preparationId, ((Number) row.get("id")).longValue(),
+                ((Number) row.get("item_version")).intValue(), ((Number) row.get("preparation_version")).intValue(),
+                ((Number) row.get("input_version")).intValue(), ((Number) row.get("readiness_version")).intValue(),
+                ((Number) row.get("form_version")).intValue(), projectVersion, fields, applicabilityCode, null,
+                assigneeId, notApplicableReason, siteResultCode, siteResultDetail,
+                fields.contains("formValueSnapshot") ? "{\"siteCondition\":\"现场条件满足\"}" : null, evidence),
+                reviewActor(actorId, "PATCH-" + itemCode, preparationId));
+    }
+
+    private Map<String, Object> currentItem(Long preparationId, String itemCode) {
+        return jdbcTemplate.queryForMap("SELECT i.id,i.version item_version,p.version preparation_version,"
+                + "p.input_version,p.readiness_version,f.version form_version FROM sol_preparation_item i "
+                + "JOIN sol_preparation p ON p.tenant_id=i.tenant_id AND p.id=i.preparation_id "
+                + "JOIN sol_dynamic_form_instance f ON f.tenant_id=i.tenant_id AND f.preparation_id=i.preparation_id "
+                + "AND f.item_id=i.id WHERE i.tenant_id=0 AND i.preparation_id=? AND i.item_code=?",
+                preparationId, itemCode);
+    }
+
+    private int currentPreparationVersion(Long preparationId) {
+        return jdbcTemplate.queryForObject("SELECT version FROM sol_preparation WHERE tenant_id=0 AND id=?",
+                Integer.class, preparationId);
+    }
+
+    private PreparationItemApplicationService.Actor reviewActor(long actorId, String action, long aggregateId) {
+        return new PreparationItemApplicationService.Actor(0L, actorId,
+                "PRE02-CHAIN-" + action + "-" + aggregateId);
     }
 
     private void login(long userId) {
@@ -346,6 +463,7 @@ class PreparationMySqlIntegrationTest {
             TaskExecutionContractFactory.class, ProjectDeliverableInitializationApplicationServiceImpl.class,
             ProjectWorkBindingFactApiImpl.class, PreparationInitializationApiImpl.class,
             PreparationInitializationService.class, PreparationItemApplicationService.class,
+            PreparationReviewService.class, PreparationReadinessService.class,
             PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
             FileArtifactApiImpl.class, FixedSurveyFormCatalogProvider.class,
             ConfigApiImpl.class, ConfigServiceImpl.class,
@@ -445,15 +563,19 @@ class PreparationMySqlIntegrationTest {
             return api;
         }
 
+        @Bean PreparationSourceProviderRegistry sourceProviderRegistry() {
+            return new PreparationSourceProviderRegistry(List.of());
+        }
+
         @Bean PermissionCommonApi permissionCommonApi() {
             PermissionCommonApi api = mock(PermissionCommonApi.class);
-            when(api.hasAnyPermissions(anyLong(), any())).thenReturn(true);
+            when(api.hasAnyPermissions(anyLong(), any(String[].class))).thenReturn(true);
             return api;
         }
 
         @Bean PermissionApi permissionApi() {
             PermissionApi api = mock(PermissionApi.class);
-            when(api.hasAnyPermissions(anyLong(), any())).thenReturn(true);
+            when(api.hasAnyPermissions(anyLong(), any(String[].class))).thenReturn(true);
             return api;
         }
 

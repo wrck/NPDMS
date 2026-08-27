@@ -145,6 +145,25 @@ class PreparationReviewServiceTest {
     }
 
     @Test
+    void notApplicableConfirmationDoesNotRequireEvidence() {
+        PreparationDO preparation = preparation("PENDING_CONFIRMATION", 4, 2);
+        PreparationItemDO selected = item(101L, "NOT_APPLICABLE_PENDING", "PENDING", 3);
+        selected.setNotApplicableReason("现场不涉及");
+        selected.setEvidencePolicySnapshot("{\"required\":true}");
+        stubRows(preparation, List.of(selected), List.of(form(201L, 101L)));
+        when(itemMapper.updateReviewIfMatch(any())).thenReturn(1);
+        when(preparationMapper.invalidateReadinessIfMatch(any())).thenReturn(1);
+        when(preparationMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        var result = service.execute(command(PreparationReviewCommand.CONFIRM_NOT_APPLICABLE,
+                101L, 4, 3, "确认现场不涉及"), actor());
+
+        assertEquals("CONFIRMED", result.statusCode());
+        verify(fileArtifactApi, org.mockito.Mockito.never()).lockAndRevalidate(any());
+        verify(itemMapper).updateReviewIfMatch(any());
+    }
+
+    @Test
     void staleSyncedSourceRejectsSubmitBeforeFreezingForms() {
         PreparationDO preparation = preparation("DRAFT", 1, 1);
         PreparationItemDO required = item(101L, "REQUIRED", "PENDING", 1);
