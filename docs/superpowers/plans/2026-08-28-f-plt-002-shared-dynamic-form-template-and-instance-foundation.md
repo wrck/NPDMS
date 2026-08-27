@@ -67,10 +67,10 @@
 在`dal/mysql/dynamicform/`新增`DynamicFormTemplateMapper.java`、`DynamicFormTemplateRevisionMapper.java`、`DynamicFormInstanceMapper.java`，在`src/main/resources/mapper/dynamicform/`新增对应XML，并在`dal/mysql/dynamicform/query/`新增以下单一场景记录：
 
 - `DynamicFormTemplatePageQuery`、`DynamicFormTemplateRowQuery`、`DynamicFormTemplateLockQuery`、`DynamicFormTemplateVersionUpdate`；
-- `DynamicFormRevisionListQuery`、`DynamicFormRevisionRowQuery`、`DynamicFormRevisionLockQuery`、`DynamicFormDraftCreateQuery`、`DynamicFormRevisionPublishUpdate`；
+- `DynamicFormRevisionRowQuery`、`DynamicFormRevisionLockQuery`、`DynamicFormDraftCreateQuery`、`DynamicFormRevisionPublishUpdate`；
 - `DynamicFormInstancePageQuery`、`DynamicFormInstanceRowQuery`、`DynamicFormInstanceLockQuery`、`DynamicFormInstanceValueUpdate`。
 
-分页摘要与稳定排序、修订列表、锁定读取、租户复合身份校验和CAS更新均进入XML。简单主键或稳定复合唯一键读取可使用`LambdaQueryWrapperX`。Mapper方法不得接受长位置参数列表、`Map`或万能查询对象；禁止SQL注解、`${}`、`.last(...)`、Service内拼SQL及跨模块读表。空租户/权限范围必须返回空结果。
+模板/实例分页摘要与稳定排序、当前DRAFT/当前PUBLISHED摘要、明确修订读取、锁定读取、租户复合身份校验和CAS更新均进入XML。简单主键或稳定复合唯一键读取可使用`LambdaQueryWrapperX`。Mapper方法不得接受长位置参数列表、`Map`或万能查询对象；禁止SQL注解、`${}`、`.last(...)`、Service内拼SQL及跨模块读表。空租户/权限范围必须返回空结果。本功能不实现修订列表查询，模板查询不得返回无界修订历史。
 
 新增`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/dynamicform/DynamicFormSchemaService.java`，只负责锁定的结构模型：
 
@@ -123,7 +123,7 @@
 - `DynamicFormTemplateController.java`，配套`DynamicFormTemplatePageReqVO`、`DynamicFormTemplateCreateReqVO`、具备字段存在性语义的`DynamicFormTemplatePatchReqVO`、`DynamicFormTemplateRespVO`、`DynamicFormRevisionPatchReqVO`、`DynamicFormRevisionRespVO`；
 - `DynamicFormInstanceController.java`，配套`DynamicFormInstancePageReqVO`、`DynamicFormInstanceCreateReqVO`、`DynamicFormInstancePatchReqVO`、`DynamicFormInstanceRespVO`、受控`DynamicFormFileFactRespVO`。
 
-只开放锁定的`/api/v1/pms`模板分页/创建/详情/元数据PATCH、修订创建/详情/PATCH/发布、启用/停用、选择、实例分页/创建/详情/PATCH端点。租户和主体来自`TenantContextHolder`、`SecurityFrameworkUtils`；请求VO不定义禁止自报字段。所有锁定CAS端点必须提供整数`If-Match`头，只有锁定的幂等端点要求`Idempotency-Key`。选择GET要求实例查询权限，只有当前具备创建权限时才投影`CREATE_INSTANCE`。模板和实例分页均使用锁定稳定排序。
+只开放锁定的`/api/v1/pms`模板分页/创建/详情/元数据PATCH、修订创建/明确修订详情/PATCH/发布、启用/停用、选择、实例分页/创建/详情/PATCH端点。模板分页和详情只投影锁定的当前DRAFT/当前PUBLISHED摘要，不新增修订列表端点，也不把无界修订历史塞入模板详情。租户和主体来自`TenantContextHolder`、`SecurityFrameworkUtils`；请求VO不定义禁止自报字段。所有锁定CAS端点必须提供整数`If-Match`头，只有锁定的幂等端点要求`Idempotency-Key`。选择GET要求实例查询权限，只有当前具备创建权限时才投影`CREATE_INSTANCE`。模板和实例分页均使用锁定稳定排序。
 
 Controller契约测试必须断言方法、路径、头、权限注解、禁止请求字段、`CommonResult/PageResult`形状，以及元数据字段“未出现”和“显式null”的区别。本功能不向`pms-module-platform-api`新增动态表单公共契约。
 
@@ -133,7 +133,7 @@ Controller契约测试必须断言方法、路径、头、权限注解、禁止�
 
 在`src/views/pms/platform/dynamic-form/`新增以下PLT界面：
 
-- `template/index.vue`：响应式模板列表、元数据创建/编辑、修订状态与可用性双标签、版本历史，以及由服务端动作投影驱动的按钮；
+- `template/index.vue`：响应式模板列表、元数据创建/编辑、当前DRAFT/当前PUBLISHED摘要与可用性双标签，以及由服务端动作投影驱动的按钮；本功能不提供完整修订历史列表；
 - `template/DynamicFormTemplateEditor.vue`：针对明确修订的全屏设计器/预览，使用完整复制的BPM `designerConfig`、`useFormCreateDesigner`及PLT受控字段注册；以`If-Match`保存DRAFT，响应未知时重新读取，PUBLISHED只读预览；
 - `instance/index.vue`：响应式实例列表及启用模板选择/预览；创建始终发送选中的`templateRevisionId`和`expectedTemplateVersion`；
 - `instance/DynamicFormInstanceForm.vue`：用FormCreate渲染冻结修订，把服务端文件事实注入受控字段，只收集真实变化的普通键，通过渲染器校验，以`If-Match`执行PATCH，并在刷新后恢复相同值；
@@ -171,7 +171,7 @@ MySQL应用测试必须证明：模板编码唯一、草稿唯一、已发布修
 1. 运行动态表单后端聚焦测试、Vue运行时测试及受影响的PLATFORM/FileArtifact测试；运行`corepack pnpm ts:check`、目标ESLint/Stylelint/Prettier检查和`corepack pnpm build:local`；最后按仓库规则执行JDK 25完整Maven Reactor测试/构建。
 2. 只启动仓库权威Docker Compose基础设施。重建隔离MySQL数据库并从V1迁移至V103，记录Flyway migrate/info/validate、约束/索引/种子，以及宿主机后端/前端构建身份。浏览器文件存储使用真实MinIO，同时验证默认`scanStatus=SKIPPED`和配置可选ClamAV后的`PASSED`，不改变继承的文件状态机。
 3. 通过公开REST完成正向闭环及MySQL矩阵：创建 → 设计 → 重开 → 预览 → 发布 → 启用 → 选择 → 创建冻结实例 → 保存普通值 → 上传/换版/解绑受控文件 → 刷新 → 发布新修订 → 证明旧实例继续冻结 → 停用/重新启用选择。验证权限、跨租户隔离、陈旧CAS、选择漂移、幂等重试、IN_PROGRESS、回滚及安全审计事实。
-4. 在真实浏览器的320/768/1024/1440视口重复公开闭环，覆盖全部当前内置/增强控件、富文本、普通上传、`PmsFileArtifact`、iframe、API GET/POST、联动、校验、事件/函数/`parseFunc`、响应未知重试、`false/0/null/空数组`值、修订历史、停用/启用及旧实例不可变渲染。故意构造的目标API未授权、CORS/CSP/iframe失败必须保持为浏览器/目标系统失败，不得产生PLT或其他领域成功事实。
+4. 在真实浏览器的320/768/1024/1440视口重复公开闭环，覆盖全部当前内置/增强控件、富文本、普通上传、`PmsFileArtifact`、iframe、API GET/POST、联动、校验、事件/函数/`parseFunc`、响应未知重试、`false/0/null/空数组`值、当前DRAFT/当前PUBLISHED摘要、停用/启用及旧实例不可变渲染。故意构造的目标API未授权、CORS/CSP/iframe失败必须保持为浏览器/目标系统失败，不得产生PLT或其他领域成功事实。
 5. 使用获权只读用户、非创建者更新尝试及第二租户，验证UI动作投影和服务端拒绝均无成功副作用。在`docs/engineering/evidence/f-plt-002-browser-evidence.json`及`docs/engineering/evidence/f-plt-002-browser/`记录HTTP状态、最终刷新状态、意外console/page/request错误数及版本化截图；预期负向请求必须标注，意外错误必须为零。
 6. 在同一浏览器/应用运行中打开并操作既有BPM表单列表/编辑器、旧PMS表单模板/实例页面和API，以及旧需求分析/项目入口，沿用其原权限。记录对已审计旧后端、前端和菜单路径执行`git diff --exit-code af428bab --`的结果，并证明新PLT命令未改变旧表行数和旧API响应。
 7. 运行受管规格基线校验、仓库基线规则、架构/模块边界、迁移检查及`git diff --check`。确认候选中没有WorkBinding/PRE-04消费代码、动态表单公共模块API、旧实现修改、角色授权或部署、系统集成测试、用户验收测试、发布声明。
