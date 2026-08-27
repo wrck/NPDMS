@@ -13,6 +13,7 @@
   "v1Scope": {
     "included": [
       "PRE04_FROZEN_TEMPLATE_CONFIGURATION",
+      "TEMPLATE_DRIVEN_DYNAMIC_FORM_INSTANCE",
       "ELEVEN_CORE_SECTIONS_AND_APPROVED_EXTENSION_ITEMS",
       "DRAFT_AND_EFFECTIVE_COMPLETED_VERSION_AXES",
       "EXACT_FILE_ARTIFACT_ATTACHMENTS",
@@ -20,6 +21,7 @@
       "PROJECT_MANAGER_WRITE_AND_AUTHORIZED_MEMBER_READ",
       "REQUIREMENT_ANALYSIS_INSPECT_AND_REVALIDATE",
       "IDEMPOTENCY_CAS_AUDIT",
+      "QUERY_VISIBLE_COMPLETION_BLOCKERS_AND_PENDING_ATTACHMENT_RECOVERY",
       "RESPONSIVE_UI"
     ],
     "deferred": [
@@ -39,10 +41,13 @@
     "targetObjectKey": "PRE_04_REQUIREMENT_ANALYSIS",
     "catalogCode": "PRE_04_REQUIREMENT_ANALYSIS",
     "catalogVersion": 1,
+    "instanceModel": "TEMPLATE_DRIVEN_DYNAMIC_FORM_INSTANCE",
+    "templatePreset": "ELEVEN_FIXED_CORE_SECTIONS_PLUS_APPROVED_EXTENSION_ITEMS",
     "bindingParameterSnapshot": [
       "schemaVersion=1",
       "catalogCode",
       "catalogVersion",
+      "coreSections[]",
       "extensionItems[]"
     ],
     "extensionItemFields": [
@@ -62,11 +67,23 @@
       "SINGLE_SELECT",
       "MULTI_SELECT"
     ],
+    "draftFrozenStructure": [
+      "sectionCode",
+      "sectionName",
+      "sectionKind",
+      "fieldType",
+      "required",
+      "sortOrder",
+      "dictionaryType(optional)",
+      "optionSnapshot(code,label; required for selection types)"
+    ],
+    "runtimePolicy": "expand core and approved extension items into one frozen section-instance model; render, patch, validate, complete, query and compare through the same model without rereading the current template",
     "forbidden": [
       "remove or rename a core section",
       "make PROJECT_BACKGROUND, PROJECT_OBJECTIVE or NETWORK_TOPOLOGY optional",
       "duplicate core or extension code",
       "script, expression or arbitrary component",
+      "runtime add, delete, reorder, type change or schema designer",
       "unfrozen or disabled dictionary option",
       "dictionaryVersion invented outside the public SYSTEM API"
     ]
@@ -177,6 +194,10 @@
         "FORBIDDEN_BY_SOL": ["ARCHIVE", "INVALIDATE"],
         "completedMutationPolicy": "UPLOAD, REFERENCE, REPLACE and DETACH fail closed"
       },
+      "savedTruth": "SOL value_snapshot and attachment_reference_snapshot are the only saved body and attachment facts for this business version",
+      "currentPltReferenceSet": "only FileReferences in ACTIVE state under the exact section SECTION_ATTACHMENT namespace are current; DETACHED and ARCHIVED are excluded",
+      "pendingAttachmentPolicy": "a difference between the current PLT ACTIVE set and the SOL attachment_reference_snapshot is recoverable pending submission, never an implicitly saved attachment fact",
+      "scopeVersionSource": "PROJ ProjectScope.treeVersion; one locked section set has one common scopeVersion copied into every frozen attachment fact; SOL section/root CAS and contentVersion never create or increment scopeVersion",
       "immutability": "COMPLETED section content and file facts have stable query only; the root may only clear effective_marker when a later version completes",
       "forbidden": [
         "file body",
@@ -199,11 +220,49 @@
     "completeNextDraft": "lock expected draft and current effective; validate and revalidate files; clear old effective marker; change draft to COMPLETED, clear draft marker and set effective marker in one transaction",
     "completedImmutability": "no command updates or deletes COMPLETED section/content/file/completion facts; only the later-completion transaction may clear the old root effective_marker"
   },
+  "dynamicFormValueSemantics": {
+    "unifiedProcessing": "core and extension sections share the same value snapshot, PATCH presence, validation, history and compare pipeline while core invariants remain immutable",
+    "richTextRequired": "sanitize first, then remove markup, decode entities and remove non-visible whitespace including non-breaking and zero-width characters; visible text must remain non-empty",
+    "validFalsyValues": ["BOOLEAN false", "NUMBER 0"],
+    "selectionRequired": "required SINGLE_SELECT must match one frozen option; required MULTI_SELECT must be non-empty and every value must match the frozen optionSnapshot"
+  },
+  "attachmentSynchronization": {
+    "savedTruthOwner": "SOL_ATTACHMENT_REFERENCE_SNAPSHOT",
+    "currentSet": "PLT_ACTIVE_REFERENCES_ONLY",
+    "nonCurrentStates": ["DETACHED", "ARCHIVED"],
+    "patchPolicy": "when the attachment field is present, treat it as the complete intended set; after PROJ and SOL locks, lock the exact current set under the F-PLT-001 batch two-phase contract, normalize by full business key plus artifactId/versionNo/fileFactVersion/scopeVersion, and require equality with the submitted vector before any SOL CAS",
+    "scopeVersionPolicy": "the section Provider obtains collection scopeVersion only from PROJ ProjectScope.treeVersion; PATCH writes that same locked collection scopeVersion into every frozen fact, and later COMPLETE may revalidate it unchanged when no external scope/file fact changed",
+    "completePolicy": "flatten every section attachment snapshot, lock all section current sets under the F-PLT-001 batch two-phase contract, and require every PLT ACTIVE set to equal its SOL snapshot before any completion CAS",
+    "lockOrderReference": "F-PLT-001 batch two-phase contract: lock and revalidate all stably sorted business Providers first; then acquire all stably sorted PLT Artifact -> Version -> Reference locks; no Provider callback after the first PLT lock",
+    "differencePolicy": "set difference, unknown fact or Provider failure blocks PATCH/COMPLETE but leaves the latest SOL snapshot unchanged and exposes a recoverable pending state",
+    "responseUnknownRetry": "retain the original slot keys, intended attachment vector and command intent; reload SOL and PLT, recover success when SOL already equals the intended vector, otherwise retry that same intent after refreshing CAS facts without generating replacement slot keys",
+    "sectionResponse": {
+      "attachmentSyncStatus": ["IN_SYNC", "PENDING", "UNKNOWN"],
+      "statusSemantics": "IN_SYNC means authoritative current ACTIVE facts equal the SOL snapshot; PENDING means known sets differ; UNKNOWN means Provider or scope facts are unavailable",
+      "savedAttachments": "always project only the SOL attachment snapshot as saved attachments",
+      "managerRecoveryFields": "only the current manager viewing the current editable draft receives currentActiveFacts sorted by referenceKey plus stable attachmentSyncErrorCode; IN_SYNC/PENDING returns the complete vector including [] for an empty set, UNKNOWN returns currentActiveFacts=null; error codes are null/ATTACHMENT_SET_PENDING/FACT_PROVIDER_UNAVAILABLE respectively",
+      "readOnlyPolicy": "all other readers receive no currentActiveFacts and no differing PLT set as attachments; raw Provider errors are never exposed"
+    },
+    "navigationPolicy": "a PLT/SOL attachment difference blocks section/version navigation and COMPLETE until the current editable-draft manager submits the returned complete currentActiveFacts vector to the current section and PATCH succeeds; there is no implicit cancel command that rewrites PLT. Local body-only dirty state may be explicitly discarded only while attachments are IN_SYNC; refresh preserves and displays authoritative pending state"
+  },
+  "completionBlockers": {
+    "responseField": "completionBlockers[]",
+    "codes": [
+      "REQUIRED_VALUE_MISSING",
+      "VALUE_INVALID",
+      "ATTACHMENT_SET_PENDING",
+      "ATTACHMENT_FACT_INVALID",
+      "FACT_PROVIDER_UNAVAILABLE"
+    ],
+    "shape": ["code", "sectionCode"],
+    "projectionPolicy": "derive from the current SOL snapshot and read-only authoritative facts; never expose raw Provider exceptions",
+    "allowedActionPolicy": "project COMPLETE only when blockers are empty and every required fact is known"
+  },
   "transactions": {
     "initialize": "LOCK_AND_REVALIDATE_PROJECT_MANAGER_AND_WORK_BINDING; VALIDATE_CORE_AND_EXTENSION_CONFIGURATION; INSERT_DRAFT_AND_SECTIONS; IDEMPOTENCY_SUCCESS; AUDIT",
-    "patchSection": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_DRAFT_AND_SECTION; VALIDATE_IF_MATCH_AND_PRESENT_FIELDS; INSPECT_EXACT_FILE_REFERENCES; CAS_SECTION_ROOT_AND_INCREMENT_CONTENT_VERSION; AUDIT",
+    "patchSection": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_DRAFT_AND_SECTION; VALIDATE_IF_MATCH_AND_PRESENT_FIELDS; WHEN_ATTACHMENT_PRESENT_LOCK_ALL_BUSINESS_PROVIDERS_THEN_ALL_PLT_ARTIFACT_VERSION_REFERENCE_FACTS_PER_F_PLT_001_BATCH_TWO_PHASE_CONTRACT; REQUIRE_LOCKED_ACTIVE_SET_EQUALS_SUBMITTED_COMPLETE_VECTOR; CAS_SECTION_ROOT_AND_INCREMENT_CONTENT_VERSION; AUDIT",
     "createDraft": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_EFFECTIVE_DRAFT_MARKER_AND_SECTIONS; VALIDATE_IF_MATCH_AND_NO_EXISTING_DRAFT; INSERT_NEW_ROOT_AND_SECTIONS; LOCK_ALL_SOURCE_READ_AND_TARGET_REFERENCE_PROVIDERS_IN_STABLE_KEY_ORDER; LOCK_ALL_PLT_ARTIFACT_VERSION_REFERENCE_FACTS_IN_STABLE_ORDER_AND_ATTACH_TARGETS; INSERT_DRAFT_MARKER; IDEMPOTENCY_SUCCESS; AUDIT; ALL_IN_ONE_TRANSACTION",
-    "complete": "LOCK_PROJECT_AND_CURRENT_MANAGER; LOCK_EXPECTED_DRAFT_CURRENT_EFFECTIVE_AND_ALL_SECTIONS; VALIDATE_REQUIRED_AND_FROZEN_SCHEMA; LOCK_AND_REVALIDATE_ALL_EXACT_FILE_FACTS; CLEAR_OLD_EFFECTIVE_MARKER; CAS_DRAFT_TO_COMPLETED_AND_SWITCH_MARKERS; IDEMPOTENCY_SUCCESS; AUDIT",
+    "complete": "LOCK_PROJECT_AND_CURRENT_MANAGER; LOCK_EXPECTED_DRAFT_CURRENT_EFFECTIVE_AND_ALL_SECTIONS; VALIDATE_REQUIRED_AND_FROZEN_SCHEMA; FLATTEN_ALL_SECTION_ATTACHMENT_SETS; LOCK_ALL_BUSINESS_PROVIDERS_THEN_ALL_PLT_ARTIFACT_VERSION_REFERENCE_FACTS_PER_F_PLT_001_BATCH_TWO_PHASE_CONTRACT; REQUIRE_EVERY_ACTIVE_SET_EQUALS_SOL_SNAPSHOT_AND_REVALIDATE_ALL_EXACT_FILE_FACTS; CLEAR_OLD_EFFECTIVE_MARKER; CAS_DRAFT_TO_COMPLETED_AND_SWITCH_MARKERS; IDEMPOTENCY_SUCCESS; AUDIT",
     "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_WRITE_REJECTED_PLATFORM_AUDIT_WITH_NO_SUCCESS_SIDE_EFFECT"
   },
   "interfaces": {
@@ -222,6 +281,14 @@
       "complete": ["Idempotency-Key", "If-Match"],
       "createNextDraft": ["Idempotency-Key", "If-Match"]
     },
+    "queryResponseFields": [
+      "completionBlockers[]",
+      "sections[].attachmentSyncStatus",
+      "sections[].currentActiveFacts[] (current editable draft manager only; sorted by referenceKey)",
+      "sections[].attachmentSyncErrorCode (current editable draft manager only; stable code)",
+      "allowedActions"
+    ],
+    "patchAttachmentVectorPolicy": "when present, attachments are the complete intended set and may be frozen only after equality with the locked PLT ACTIVE set",
     "forbiddenInputs": [
       "tenantId",
       "actorRoleCode",
@@ -266,6 +333,7 @@
       "fileFacts",
       "factVector"
     ],
+    "authorization": "trusted actor must hold pms:requirement-analysis:query and pass PROJ PROJECT_VIEW scope before SOL or PLT facts are returned or locked",
     "lockOrder": "PROJ_PROJECT_SCOPE -> SOL_PRE04_COMPLETED_ROOT_SECTIONS_AND_CURRENT_EFFECTIVE_POINTER -> PLT_EXACT_FILE_FACTS",
     "readOnlyPolicy": "inspect and lockAndRevalidate write no PRE-04, SCH or PLT business facts",
     "consumerPolicy": "future SCH-01 stores the selected preparationId and businessVersion and owns prefill, input-difference and solution-version behavior",
@@ -292,6 +360,7 @@
       "targetSlot": "after its exact reference lock: insert an independent ACTIVE FileReference when absent, replay when the same target key already points to the same artifact/version, conflict when it points elsewhere",
       "sourceFact": "after locks compare every expected artifact/reference/availability/scope version and fail closed on change"
     },
+    "batchContractReuse": "PATCH and COMPLETE attachment-set locking must reuse the same F-PLT-001 two-phase ordering rule: every business Provider lock first, then all Artifact -> Version -> Reference PLT locks, with no Provider callback after the first PLT lock",
     "replayPolicy": "same target full key already pointing to the same artifact/version returns its current fact; a target key pointing to a different version conflicts",
     "atomicity": "joins the caller transaction; all target references and the SOL draft/sections commit or roll back together",
     "events": ["FileReferenceAttached"],
@@ -342,7 +411,7 @@
       "projectScopeAction": "PROJECT_VIEW",
       "subjectConstraint": "SOL_BUSINESS_OBJECT_POLICY_AND_PLT_AUTHORIZATION_BOTH_PASS"
     },
-    "frontendBackendTruth": "server projects allowedActions and revalidates trusted tenant, function, ProjectStageScope, current subject, state and version"
+    "frontendBackendTruth": "server projects allowedActions and revalidates trusted tenant, function, ProjectStageScope, current subject, state, version and completionBlockers; COMPLETE is absent when any blocker exists or an authoritative fact is unknown"
   },
   "platformFacts": {
     "idempotencyTable": "plt_idempotency_record",
@@ -361,7 +430,22 @@
   },
   "legacy": {
     "tables": ["pms_eng_requirement", "pms_eng_form_template", "pms_eng_form_instance"],
-    "policy": "gap and migration-source evidence only; no current truth, no dual write and no inferred completion",
+    "policy": "existing backend, frontend, CRUD, status, menu definitions and data remain unchanged; no PRE-04 current truth, migration, dual write or inferred completion",
+    "permissionRetirement": {
+      "mechanism": "forward initialization configuration deletes system_role_menu associations only",
+      "target": "the complete legacy requirement-analysis menu tree plus every legacy button menu carrying pms:eng-requirement:*",
+      "removeFrom": "all roles except the built-in super_admin role",
+      "preserve": [
+        "legacy menu and button records",
+        "built-in super_admin access",
+        "legacy backend, frontend, CRUD, status and data"
+      ],
+      "forbidden": [
+        "delete role, menu or legacy data",
+        "change legacy code or state machine",
+        "grant PRE-04 permissions through a legacy menu association"
+      ]
+    },
     "reusableSlices": ["field labels that match PRE-04", "Yudao and Element Plus editor patterns"],
     "forbiddenReuse": ["legacy status inference", "generic CRUD", "mutable completed row", "file URL as attachment fact"]
   },
@@ -371,7 +455,8 @@
     "seedRequirements": [
       "two stable permissions",
       "PRE-04 catalogVersion=1 and eleven core section labels",
-      "representative project WorkBinding configurations for no extension, multiple extension field types and disabled dictionary rejection"
+      "representative project WorkBinding configurations for no extension, multiple extension field types and disabled dictionary rejection",
+      "remove system_role_menu associations for every non-built-in-super_admin role and the complete legacy requirement-analysis menu tree including every button carrying pms:eng-requirement:* while preserving menu records and built-in super_admin access"
     ],
     "forbidden": [
       "EDIT_EXECUTED_MIGRATIONS",
@@ -379,6 +464,11 @@
       "HISTORICAL_DATA_CUTOVER",
       "WRITE_PROJ_SCH_PLT_OR_INFRA_BUSINESS_TABLES"
     ]
+  },
+  "acceptanceAddendum": {
+    "AC-FSOL003-014": "PRE-04 is one template-driven dynamic form instance containing the eleven immutable core sections plus approved extensions; the draft freezes full structure, type, required, order and optionSnapshot, uses one processing pipeline, ignores later template changes, and exposes no runtime schema designer or field mutation entry",
+    "AC-FSOL003-015": "SOL remains the only saved body and attachment truth; every section projects IN_SYNC, PENDING or UNKNOWN, only the current editable-draft manager receives referenceKey-sorted complete currentActiveFacts plus a stable error code, DETACHED and ARCHIVED are non-current, retry retains original slots and intent, and a difference can be resolved only by successfully PATCHing that complete ACTIVE vector; there is no undefined cancel command to rewrite PLT",
+    "AC-FSOL003-016": "legacy requirement-analysis backend, frontend, CRUD, status, menus and data remain unchanged and are not PRE-04 truth; forward permission configuration removes every legacy menu and pms:eng-requirement:* button system_role_menu association from all non-built-in-super_admin roles while preserving the menu records and built-in super_admin access"
   },
   "featureReadyDecision": "GO_NPDMS-FSOL003-FEATURE-READY-20260827-01-R2"
 }

@@ -196,7 +196,9 @@
       "providerModule": "pms-module-platform-api",
       "contract": [
         "FileArtifactApi.inspect(FileArtifactVersionQuery)",
-        "FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)"
+        "FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)",
+        "FileArtifactApi.inspectReferenceSets(FileReferenceSetCollectionQuery)",
+        "FileArtifactApi.lockAndRevalidateReferenceSets(FileReferenceSetCollectionRevalidationQuery)"
       ],
       "inspectInput": ["artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "referenceKey", "requiredAction"],
       "lockAndRevalidateInput": [
@@ -210,6 +212,30 @@
         "availabilityStatus", "referenceStatus", "fileFactVersion.artifactVersion",
         "fileFactVersion.referenceVersion", "fileFactVersion.availabilityVersion", "scopeVersion"
       ],
+      "referenceSetContracts": {
+        "collectionKey": ["ownerContext", "objectType", "objectId", "purposeCode"],
+        "requestPolicy": "trusted tenantId and actorUserId only; at least one complete distinct collection key; requiredAction is fixed to READ",
+        "inspectInput": ["collectionKeys[].ownerContext", "collectionKeys[].objectType", "collectionKeys[].objectId", "collectionKeys[].purposeCode", "requiredAction=READ"],
+        "inspectResponse": ["collections[].ownerContext", "collections[].objectType", "collections[].objectId", "collections[].purposeCode", "collections[].scopeVersion", "collections[].activeFacts[] as complete FileArtifactVersionFact ordered by referenceKey"],
+        "revalidationInput": [
+          "collections[].ownerContext", "collections[].objectType", "collections[].objectId", "collections[].purposeCode",
+          "collections[].expectedScopeVersion", "collections[].expectedActiveFacts[] as complete FileArtifactVersionFact ordered by unique referenceKey", "requiredAction=READ"
+        ],
+        "emptySetPolicy": "an empty ACTIVE fact array is explicit and valid; provider READ inspection or lock revalidation still runs for its complete collection key",
+        "membershipPolicy": "only ACTIVE references participate; DETACHED and ARCHIVED references are excluded; current ACTIVE facts must equal the complete expected facts exactly",
+        "scopeVersionPolicy": "each collection has exactly one provider scopeVersion; every complete FileArtifactVersionFact retains the existing scopeVersion field and must equal its collection scopeVersion; SOL uses PROJ treeVersion and SOL content PATCH or reference membership changes do not increment it",
+        "internalPermissionPolicy": "internal reference-set fact methods do not additionally require pms:file:query; the owner provider revalidates the consumer's own functional permission and business scope for READ; user-facing REST metadata queries still require pms:file:query",
+        "inspectWritePolicy": "inspect is read-only, takes no business lock and writes no PLT business fact, audit or other data",
+        "lockOrder": [
+          "ALL_BUSINESS_REFERENCE_SET_PROVIDERS_BY_OWNER_CONTEXT_OBJECT_TYPE_OBJECT_ID_PURPOSE_CODE",
+          "ALL_PLT_FILE_ARTIFACTS_BY_TENANT_ID_ARTIFACT_ID",
+          "ALL_PLT_EXACT_FILE_VERSIONS_BY_TENANT_ID_ARTIFACT_ID_VERSION_NO",
+          "ALL_PLT_FILE_REFERENCE_SETS_BY_FULL_STABLE_KEY_AND_REFERENCE_KEY"
+        ],
+        "providerBoundary": "inspectReferenceSet and lockAndRevalidateReferenceSet receive the complete collection key without referenceKey; empty sets still require authorization and locking; all providers are locked and revalidated before the first PLT lock and no provider callback is allowed after the first PLT lock",
+        "namespaceSerialization": "the owner reference-set lock serializes every PLT membership write in the same ownerContext/objectType/objectId/purposeCode namespace; upload-complete attach, attach-existing-version, replace, detach and archive must acquire it before PLT mutation, preventing concurrent insertion or membership change while a non-empty or empty set is locked",
+        "conflictPolicy": "missing, added, rebound or status-changed ACTIVE membership, any FileArtifactVersionFact field change, unavailable or invalid file fact, scopeVersion change, unauthorized or cross-tenant input fails closed with no consumer success side effect"
+      },
       "fileFactVersionSources": {
         "artifactVersion": "plt_file_artifact.version; changes on artifact lifecycle mutation",
         "referenceVersion": "plt_file_reference.version; changes on bound version, reference status or persisted scope fact mutation",
@@ -229,12 +255,18 @@
       "providerModule": "pms-module-platform-api",
       "contract": [
         "FileBusinessObjectPolicyProvider.inspect(FileBusinessObjectPolicyQuery)",
-        "FileBusinessObjectPolicyProvider.lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery)"
+        "FileBusinessObjectPolicyProvider.lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery)",
+        "FileBusinessObjectPolicyProvider.inspectReferenceSet(FileBusinessObjectReferenceSetQuery)",
+        "FileBusinessObjectPolicyProvider.lockAndRevalidateReferenceSet(FileBusinessObjectReferenceSetRevalidationQuery)"
       ],
       "key": ["ownerContext", "objectType"],
+      "referenceSetKey": ["ownerContext", "objectType", "objectId", "purposeCode"],
       "actionCodes": ["UPLOAD", "REFERENCE", "READ", "DOWNLOAD", "PREVIEW", "REPLACE", "DETACH", "ARCHIVE", "INVALIDATE"],
       "response": ["allowed", "scopeVersion", "referenceMutability", "cardinality", "allowedCategoryCodes", "allowedMediaTypes", "maxSizeBytes", "sensitivityCode"],
       "selectionPolicy": "exactly one provider must support a key; zero, multiple, exception or unknown action fail closed",
+      "referenceSetPolicy": "reference-set methods take the complete referenceSetKey without referenceKey and authorize READ even for an empty ACTIVE set; lockAndRevalidateReferenceSet holds the namespace lock through the caller transaction",
+      "membershipWritePolicy": "all attach, replace, detach and archive paths acquire the same owner reference-set namespace lock before any PLT member mutation",
+      "scopeVersionPolicy": "one owner scopeVersion per reference set; facts in the set repeat only that value; SOL derives it from PROJ treeVersion and does not increment it for SOL PATCH",
       "solFirstConsumer": "SOL/CONSTRUCTION_PLAN_CHANGE/CUSTOMER_DELAY_EVIDENCE; authorizes file actions only and never writes or returns PRE-01 approval status"
     },
     "securityScanProvider": {
