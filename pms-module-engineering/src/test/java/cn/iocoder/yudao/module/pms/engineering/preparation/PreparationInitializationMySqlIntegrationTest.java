@@ -4,6 +4,8 @@ import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.dto.PreparationInitializationCommand;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
@@ -11,27 +13,34 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.Preparation
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalogProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationInitializationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationFilePolicyProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceProviderRegistry;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
-import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
 import cn.iocoder.yudao.module.infra.api.config.ConfigApiImpl;
 import cn.iocoder.yudao.module.infra.dal.mysql.config.ConfigMapper;
 import cn.iocoder.yudao.module.infra.service.config.ConfigServiceImpl;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.organization.ProjectOrganizationFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApiImpl;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -40,7 +49,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.mockito.ArgumentCaptor;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
@@ -50,6 +58,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -67,9 +77,6 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
@@ -78,13 +85,13 @@ import static org.mockito.Mockito.when;
 class PreparationInitializationMySqlIntegrationTest {
 
     @Resource PreparationInitializationService service;
+    @Resource PreparationItemApplicationService itemService;
     @Resource PreparationReviewService reviewService;
     @Resource PreparationReadinessService readinessService;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource TransactionTemplate transactionTemplate;
     @Resource PermissionApi permissionApi;
     @Resource ProjectScopeApi projectScopeApi;
-    @Resource FileArtifactApi fileArtifactApi;
 
     private long projectId;
     private long taskId;
@@ -115,6 +122,8 @@ class PreparationInitializationMySqlIntegrationTest {
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(0L);
+        SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(9L).setUserType(2),
+                new MockHttpServletRequest());
         long seed = Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
         projectId = 978_000_000_000L + seed * 10L;
         taskId = projectId + 1;
@@ -135,21 +144,12 @@ class PreparationInitializationMySqlIntegrationTest {
         templateDefinitionId = ((Number) definition.get("id")).longValue();
         sourceDefinitionVersion = ((Number) definition.get("definition_version")).intValue();
         bindingSnapshot = definition.get("binding_config").toString();
-        when(permissionApi.hasAnyPermissions(9L, PreparationInitializationService.PERMISSION_MANAGE))
-                .thenReturn(true);
+        when(permissionApi.hasAnyPermissions(org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.any(String[].class))).thenReturn(true);
         var scope = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
                 projectId, 1L, Set.of(projectId), Set.of());
         when(projectScopeApi.resolveCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
         when(projectScopeApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
-        reset(fileArtifactApi);
-        when(fileArtifactApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(
-                new FileArtifactVersionFact(301L, 2, "SITE", "SURVEY", "site.pdf", 100L,
-                        "application/pdf", "sha", "AVAILABLE", "ACTIVE",
-                        new FileFactVersion(1, 2, 3), 1L));
-        when(fileArtifactApi.inspect(org.mockito.ArgumentMatchers.any())).thenReturn(
-                new FileArtifactVersionFact(301L, 2, "SITE", "SURVEY", "site.pdf", 100L,
-                        "application/pdf", "sha", "AVAILABLE", "ACTIVE",
-                        new FileFactVersion(1, 2, 3), 1L));
     }
 
     @AfterEach
@@ -172,9 +172,15 @@ class PreparationInitializationMySqlIntegrationTest {
                         + "AND project_task_id=" + taskId);
                 statement.executeUpdate("DELETE FROM proj_project_task WHERE tenant_id=0 AND project_id=" + projectId);
                 statement.executeUpdate("DELETE FROM proj_project WHERE tenant_id=0 AND id=" + projectId);
+                statement.executeUpdate("DELETE FROM plt_file_reference WHERE tenant_id=0 "
+                        + "AND artifact_id=" + (projectId + 3));
+                statement.executeUpdate("DELETE FROM plt_file_version WHERE tenant_id=0 "
+                        + "AND artifact_id=" + (projectId + 3));
+                statement.executeUpdate("DELETE FROM plt_file_artifact WHERE tenant_id=0 "
+                        + "AND id=" + (projectId + 3));
                 statement.executeUpdate("DELETE FROM plt_operation_audit WHERE tenant_id=0 "
                         + "AND correlation_id IN ('PRE02-IT-" + projectId + "','PRE02-REVIEW-" + projectId
-                        + "','PRE02-READY-" + projectId + "')");
+                        + "','PRE02-READY-" + projectId + "','PRE02-PATCH-" + projectId + "')");
                 statement.executeUpdate("DELETE FROM plt_idempotency_record WHERE tenant_id=0 "
                         + "AND actor_id=9 AND (idempotency_key='" + idempotencyKey + "' "
                         + "OR idempotency_key LIKE '%" + projectId + "%')");
@@ -186,6 +192,7 @@ class PreparationInitializationMySqlIntegrationTest {
             return null;
         });
         TenantContextHolder.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -242,9 +249,10 @@ class PreparationInitializationMySqlIntegrationTest {
         Long evidenceItemId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id LIMIT 1", Long.class,
                 preparationId);
+        insertFileFacts(evidenceItemId);
         jdbcTemplate.update("UPDATE sol_preparation_item SET evidence_policy_snapshot='{\"required\":true}',"
                         + "evidence_reference_snapshot=? WHERE tenant_id=0 AND preparation_id=? AND id=?",
-                "[{\"artifactId\":301,\"versionNo\":2,\"referenceKey\":\"SITE\","
+                "[{\"artifactId\":" + (projectId + 3) + ",\"versionNo\":2,\"referenceKey\":\"SITE\","
                         + "\"fileFactVersion\":{\"artifactVersion\":1,\"referenceVersion\":2,"
                         + "\"availabilityVersion\":3},\"scopeVersion\":1}]",
                 preparationId, evidenceItemId);
@@ -283,13 +291,6 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals((long) itemIds.size() - 1, jdbcTemplate.queryForObject("SELECT COUNT(*) "
                 + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? "
                 + "AND confirmation_status_code='CONFIRMED'", Long.class, returned.currentPreparationId()));
-        ArgumentCaptor<FileArtifactVersionRevalidationQuery> fileQuery =
-                ArgumentCaptor.forClass(FileArtifactVersionRevalidationQuery.class);
-        verify(fileArtifactApi, times(2)).lockAndRevalidate(fileQuery.capture());
-        assertEquals(List.of("READ", "READ"), fileQuery.getAllValues().stream()
-                .map(FileArtifactVersionRevalidationQuery::requiredAction).toList());
-        assertEquals(List.of(String.valueOf(evidenceItemId), String.valueOf(evidenceItemId)),
-                fileQuery.getAllValues().stream().map(FileArtifactVersionRevalidationQuery::objectId).toList());
         assertEquals("DRAFT", jdbcTemplate.queryForObject("SELECT JSON_UNQUOTE(JSON_EXTRACT(detail_snapshot,"
                 + "'$.preparationBefore.status')) FROM plt_operation_audit WHERE tenant_id=0 "
                 + "AND correlation_id=? AND operation_code='PREPARATION_SUBMIT' AND result_code='SUCCESS'",
@@ -302,6 +303,54 @@ class PreparationInitializationMySqlIntegrationTest {
                 + "FROM plt_operation_audit WHERE tenant_id=0 AND correlation_id=? "
                 + "AND operation_code='PREPARATION_RETURN' AND result_code='SUCCESS'", Integer.class,
                 actor.correlationId()));
+    }
+
+    @Test
+    void patchFreezesRealPltFileFactAndRejectsStaleVersionWithoutWrites() {
+        transactionTemplate.executeWithoutResult(status -> {
+            insertProjectTaskAndContract();
+            service.initialize(command());
+        });
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
+        Map<String, Object> item = jdbcTemplate.queryForMap("SELECT i.id,i.version item_version,"
+                + "f.version form_version FROM sol_preparation_item i JOIN sol_dynamic_form_instance f "
+                + "ON f.tenant_id=i.tenant_id AND f.preparation_id=i.preparation_id AND f.item_id=i.id "
+                + "WHERE i.tenant_id=0 AND i.preparation_id=? ORDER BY i.sort_order,i.id LIMIT 1", preparationId);
+        Long itemId = ((Number) item.get("id")).longValue();
+        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9 "
+                + "WHERE tenant_id=0 AND preparation_id=? AND id=?", preparationId, itemId);
+        insertFileFacts(itemId);
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-PATCH-" + projectId);
+        PatchPreparationItemCommand command = new PatchPreparationItemCommand(preparationId, itemId,
+                ((Number) item.get("item_version")).intValue(), 0, 0, 0,
+                ((Number) item.get("form_version")).intValue(), 4,
+                Set.of("siteResultCode", "evidenceReferences"), null, null, null, null,
+                "READY", null, null, List.of(new PatchPreparationItemCommand.EvidenceReference(
+                projectId + 3, 2, "SITE", new FileFactVersion(1, 2, 3), 1L)));
+
+        var patched = itemService.patch(command, actor);
+
+        assertEquals(1, patched.getPreparationVersion());
+        assertEquals("READY", jdbcTemplate.queryForObject("SELECT site_result_code "
+                + "FROM sol_preparation_item WHERE tenant_id=0 AND id=?", String.class, itemId));
+        assertEquals(3, jdbcTemplate.queryForObject("SELECT JSON_EXTRACT(evidence_reference_snapshot,"
+                + "'$[0].fileFactVersion.availabilityVersion') FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND id=?", Integer.class, itemId));
+        jdbcTemplate.update("UPDATE plt_file_version SET availability_version=4 "
+                + "WHERE tenant_id=0 AND artifact_id=? AND version_no=2", projectId + 3);
+        PatchPreparationItemCommand stale = new PatchPreparationItemCommand(preparationId, itemId,
+                patched.getItemVersion(), patched.getPreparationVersion(), patched.getInputVersion(), 0,
+                patched.getFormVersion(), 4, Set.of("evidenceReferences"), null, null, null, null,
+                null, null, null, command.evidenceReferences());
+
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> itemService.patch(stale, actor));
+        assertEquals(patched.getPreparationVersion(), jdbcTemplate.queryForObject(
+                "SELECT version FROM sol_preparation WHERE tenant_id=0 AND id=?", Integer.class, preparationId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND correlation_id=? AND operation_code='PREPARATION_ITEM_PATCH' "
+                + "AND result_code='SUCCESS'", Long.class, actor.correlationId()));
     }
 
     @Test
@@ -423,6 +472,24 @@ class PreparationInitializationMySqlIntegrationTest {
                 contractId, taskId, templateDefinitionId, bindingSnapshot, sourceDefinitionVersion);
     }
 
+    private void insertFileFacts(Long itemId) {
+        long artifactId = projectId + 3;
+        jdbcTemplate.update("INSERT INTO plt_file_artifact "
+                        + "(id,name,category_code,owner_context,lifecycle_status_code,version,tenant_id) "
+                        + "VALUES (?,'site.pdf','SITE_SURVEY_EVIDENCE','SOL','ACTIVE',1,0)", artifactId);
+        jdbcTemplate.update("INSERT INTO plt_file_version "
+                        + "(id,artifact_id,version_no,infra_file_id,availability_version,sha256,size_bytes,"
+                        + "declared_media_type,detected_media_type,scan_status_code,availability_status_code,"
+                        + "created_by,created_at,tenant_id) VALUES (?,?,2,?,3,?,100,'application/pdf',"
+                        + "'application/pdf','PASSED','AVAILABLE',9,NOW(3),0)",
+                artifactId + 1, artifactId, artifactId + 2, "a".repeat(64));
+        jdbcTemplate.update("INSERT INTO plt_file_reference "
+                        + "(id,owner_context,object_type,object_id,purpose_code,reference_key,artifact_id,"
+                        + "file_version_no,sensitivity_code,status_code,scope_version,version,tenant_id) "
+                        + "VALUES (?,'SOL','SITE_SURVEY_ITEM',?,'SITE_SURVEY_EVIDENCE','SITE',?,2,"
+                        + "'INTERNAL','ACTIVE',1,2,0)", artifactId + 3, String.valueOf(itemId), artifactId);
+    }
+
     private void assertSourcePolicies(Long preparationId, List<String> expected) {
         assertEquals(expected, jdbcTemplate.queryForList("SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT("
                 + "source_policy_snapshot,'$.requirementCode')) FROM sol_preparation_item "
@@ -469,13 +536,17 @@ class PreparationInitializationMySqlIntegrationTest {
     @SpringBootConfiguration(proxyBeanMethods = false)
     @MapperScan(basePackageClasses = {PreparationMapper.class, DynamicFormInstanceMapper.class,
             ProjectMasterMapper.class, ProjectWorkBindingFactMapper.class,
-            PlatformIdempotencyRecordMapper.class, ConfigMapper.class})
+            PlatformIdempotencyRecordMapper.class, ConfigMapper.class,
+            FileArtifactMapper.class, FileVersionMapper.class, FileReferenceMapper.class})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            PreparationInitializationService.class, PreparationReviewService.class,
+            PreparationInitializationService.class, PreparationItemApplicationService.class,
+            PreparationReviewService.class,
             PreparationReadinessService.class,
+            PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
+            FileArtifactApiImpl.class,
             FixedSurveyFormCatalogProvider.class, ConfigApiImpl.class, ConfigServiceImpl.class,
             ProjectWorkBindingFactApiImpl.class,
             PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
@@ -503,9 +574,11 @@ class PreparationInitializationMySqlIntegrationTest {
             return mock(PermissionApi.class);
         }
 
-        @Bean FileArtifactApi fileArtifactApi() {
-            return mock(FileArtifactApi.class);
-        }
+        @Bean ProjectOrganizationFactApi organizationFactApi() { return mock(ProjectOrganizationFactApi.class); }
+
+        @Bean AdminUserApi adminUserApi() { return mock(AdminUserApi.class); }
+
+        @Bean OrganizationScopeApi organizationScopeApi() { return mock(OrganizationScopeApi.class); }
 
         @Bean PreparationSourceProviderRegistry sourceProviderRegistry() {
             return new PreparationSourceProviderRegistry(List.of());
