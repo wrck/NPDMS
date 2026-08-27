@@ -23,7 +23,7 @@
 - 后端在宿主机使用 JDK 25/Maven 构建和运行；前端在宿主机使用 Node.js/Corepack/pnpm 构建和运行。
 - 宿主机应用与 Docker 基础设施的启动、端口和验证方式以 `docs/development.md` 和 `compose.yaml` 为准。
 - 配置模板不得包含真实凭据；本地默认值只能用于隔离开发环境。
-- 每项自研任务遵循失败测试、最小实现、重构与完整验证顺序。
+- 每项复杂的核心自研任务遵循复用优先、最小实现、失败测试、重构与完整验证顺序，简单任务遵循最小实现、快速验证。
 - 编译、静态页面或 API 单测不能替代业务验收；UI 闭环必须由真实浏览器完成。
 - 功能模块完成后必须补充初始化数据：按SDS落字典、菜单、配置等有明确定义的种子；无明确定义内容的以示例数据迁移补充（前向版本、幂等、creator标识、高段ID或专用前缀），且必须覆盖关键维度的组合情况（含精确命中、部分限定、优先级让位、无匹配与停用不参与等场景）以及对象全环节（如模板须覆盖S0~S6全阶段与阶段、任务、里程碑、交付件、门禁及门禁引用各要素类型）；受权威来源映射约束的值域（如CRM属性映射）不得臆造取值。
 
@@ -112,3 +112,17 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+For long-running asynchronous work:
+
+- Empty `write_stdin` polls MUST use `yield_time_ms >= 180000`;
+  prefer `300000` when intermediate output is not needed.
+- `functions.wait` MUST use `yield_time_ms >= 180000`.
+- `functions.exec` MUST set its outer `@exec yield_time_ms` at least
+  30000 ms longer than the longest nested tool wait, so the outer
+  code cell does not yield first.
+- Do not apply the long wait to non-empty `write_stdin` calls that
+  send interactive input.
+- These tools return early when the process or cell completes.
+
+Do not wake the model merely to report that work is still running.
