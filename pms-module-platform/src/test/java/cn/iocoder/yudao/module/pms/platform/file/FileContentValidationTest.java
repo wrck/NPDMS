@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FileContentValidationTest {
@@ -40,7 +41,7 @@ class FileContentValidationTest {
         FileSecurityScanProvider scanner = ignored ->
                 new FileSecurityScanResult("PASSED", "TEST", "1", null);
         FileContentPolicyService service = new FileContentPolicyService(
-                new BoundedMultipartReader(), List.of(scanner));
+                new BoundedMultipartReader(), List.of(scanner), true);
         String sha256 = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(PDF));
 
         ValidatedFileContent result = service.validate(command(PDF, "evidence.pdf",
@@ -60,7 +61,7 @@ class FileContentValidationTest {
             throw new AssertionError("scanner must not be called");
         };
         FileContentPolicyService service = new FileContentPolicyService(
-                new BoundedMultipartReader(), List.of(scanner));
+                new BoundedMultipartReader(), List.of(scanner), true);
 
         assertThrows(RuntimeException.class, () -> service.validate(command(
                 oversized, "evidence.pdf", "application/pdf", null, policy(52_428_800L))));
@@ -81,7 +82,7 @@ class FileContentValidationTest {
     void rejectsDigestMediaTypeAndScanFailures() {
         FileContentPolicyService passed = new FileContentPolicyService(
                 new BoundedMultipartReader(), List.of(ignored ->
-                new FileSecurityScanResult("PASSED", "TEST", "1", null)));
+                new FileSecurityScanResult("PASSED", "TEST", "1", null)), true);
         assertThrows(RuntimeException.class, () -> passed.validate(command(
                 PDF, "evidence.pdf", "application/pdf", "0".repeat(64), policy(1024L))));
         assertThrows(RuntimeException.class, () -> passed.validate(command(
@@ -89,14 +90,36 @@ class FileContentValidationTest {
 
         FileContentPolicyService rejected = new FileContentPolicyService(
                 new BoundedMultipartReader(), List.of(ignored ->
-                new FileSecurityScanResult("REJECTED", "TEST", "1", "MALWARE_FOUND")));
+                new FileSecurityScanResult("REJECTED", "TEST", "1", "MALWARE_FOUND")), true);
         assertThrows(RuntimeException.class, () -> rejected.validate(command(
                 PDF, "evidence.pdf", "application/pdf", null, policy(1024L))));
 
+        FileContentPolicyService skippedByEnabledProvider = new FileContentPolicyService(
+                new BoundedMultipartReader(), List.of(ignored ->
+                new FileSecurityScanResult("SKIPPED", null, null, null)), true);
+        assertThrows(RuntimeException.class, () -> skippedByEnabledProvider.validate(command(
+                PDF, "evidence.pdf", "application/pdf", null, policy(1024L))));
+
         FileContentPolicyService missing = new FileContentPolicyService(
-                new BoundedMultipartReader(), List.of());
+                new BoundedMultipartReader(), List.of(), true);
         assertThrows(RuntimeException.class, () -> missing.validate(command(
                 PDF, "evidence.pdf", "application/pdf", null, policy(1024L))));
+    }
+
+    @Test
+    void skipsSecurityProviderWhenScanningIsDisabled() {
+        FileSecurityScanProvider scanner = ignored -> {
+            throw new AssertionError("scanner must not be called");
+        };
+        FileContentPolicyService service = new FileContentPolicyService(
+                new BoundedMultipartReader(), List.of(scanner), false);
+
+        ValidatedFileContent result = service.validate(command(
+                PDF, "evidence.pdf", "application/pdf", null, policy(1024L)));
+
+        assertEquals("SKIPPED", result.scanStatusCode());
+        assertNull(result.scanProviderCode());
+        assertNull(result.scanProviderVersion());
     }
 
     @Test

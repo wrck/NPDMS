@@ -21,6 +21,7 @@ class FileArtifactMigrationContractTest {
     private static String seedSql;
     private static String applicationYaml;
     private static String quartzSql;
+    private static String optionalScanSql;
 
     @BeforeAll
     static void loadFiles() throws IOException {
@@ -32,6 +33,8 @@ class FileArtifactMigrationContractTest {
         applicationYaml = Files.readString(root.resolve("yudao-server/src/main/resources/application.yaml"),
                 StandardCharsets.UTF_8);
         quartzSql = Files.readString(root.resolve("sql/migrations/V94__quartz_2_5_2_mysql_schema.sql"),
+                StandardCharsets.UTF_8);
+        optionalScanSql = Files.readString(root.resolve("sql/migrations/V98__fplt001_optional_security_scan.sql"),
                 StandardCharsets.UTF_8);
     }
 
@@ -106,6 +109,14 @@ class FileArtifactMigrationContractTest {
         assertTrue(quartzSql.contains("CREATE TABLE QRTZ_CRON_TRIGGERS"));
         assertFalse(Pattern.compile("(?im)^\\s*DROP\\s+TABLE").matcher(quartzSql).find());
         assertFalse(quartzSql.contains("INSERT INTO QRTZ_"));
+    }
+
+    @Test
+    void allowsOnlyPassedOrSkippedScanFactsByForwardMigration() {
+        assertTrue(optionalScanSql.contains("DROP CHECK `chk_plt_file_version_scan`"));
+        assertTrue(optionalScanSql.contains(
+                "CHECK (`scan_status_code` IN ('PASSED', 'SKIPPED'))"));
+        assertFalse(optionalScanSql.contains("UPDATE `plt_file_version`"));
     }
 
     private static int countMatches(String value, String token) {

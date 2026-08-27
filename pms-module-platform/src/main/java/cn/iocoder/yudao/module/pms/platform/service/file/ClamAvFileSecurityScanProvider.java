@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileSecurityScanProvider;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanResult;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -16,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 @Component
+@ConditionalOnProperty(name = "pms.file.scan.enabled", havingValue = "true")
 public class ClamAvFileSecurityScanProvider implements FileSecurityScanProvider {
 
     private static final String PROVIDER_CODE = "CLAMAV";

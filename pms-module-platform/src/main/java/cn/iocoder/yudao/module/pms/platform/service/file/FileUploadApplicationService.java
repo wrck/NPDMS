@@ -397,9 +397,9 @@ public class FileUploadApplicationService {
         detail.put("sizeBytes", facts.content().sizeBytes());
         detail.put("mediaType", facts.content().mediaType());
         detail.put("sha256", facts.content().sha256());
-        detail.put("scanStatus", "PASSED");
+        detail.put("scanStatus", facts.content().scanStatusCode());
         detail.put("scanProviderCode", facts.content().scanProviderCode());
-        detail.put("scanProviderVersion", auditValue(facts.content().scanProviderVersion()));
+        detail.put("scanProviderVersion", facts.content().scanProviderVersion());
         detail.put("scopeVersion", facts.policy().scopeVersion());
         detail.put("operationId", facts.session().getStorageOperationId());
         detail.put("sessionStatusBefore", "INITIALIZED");
@@ -410,7 +410,7 @@ public class FileUploadApplicationService {
         detail.put("referenceVersionAfter", MODE_CREATE_ARTIFACT.equals(facts.session().getModeCode())
                 ? 0 : facts.session().getExpectedReferenceVersion() + 1);
         var versionEvent = eventFactory.versionCommitted(facts.session().getTenantId(), completed.artifactId(),
-                completed.versionNo(), completed.sha256(), facts.occurredAt(),
+                completed.versionNo(), completed.sha256(), facts.content().scanStatusCode(), facts.occurredAt(),
                 facts.session().getStorageOperationId());
         var referenceEvent = eventFactory.referenceAttached(facts.session().getTenantId(), completed.referenceId(),
                 completed.artifactId(), completed.versionNo(), facts.session().getOwnerContext(),
@@ -491,7 +491,7 @@ public class FileUploadApplicationService {
         version.setSizeBytes(content.sizeBytes());
         version.setDeclaredMediaType(session.getDeclaredMediaType());
         version.setDetectedMediaType(content.mediaType());
-        version.setScanStatusCode("PASSED");
+        version.setScanStatusCode(content.scanStatusCode());
         version.setScanProviderCode(content.scanProviderCode());
         version.setScanProviderVersion(content.scanProviderVersion());
         version.setAvailabilityStatusCode("AVAILABLE");

@@ -48,7 +48,7 @@ class FileOutboxDeliveryJobTest {
     void publishesValidatedFileEventsAndMarksDelivered() {
         LocalDateTime occurredAt = LocalDateTime.of(2026, 8, 26, 10, 0);
         var version = new FileVersionCommittedMessage("evt-v", 7L, 11L, 1,
-                "a".repeat(64), "PASSED", occurredAt, "op-1");
+                "a".repeat(64), "SKIPPED", occurredAt, "op-1");
         var reference = new FileReferenceAttachedMessage("evt-r", 7L, 21L, 11L, 1,
                 "SOL", "CHANGE", "900", "EVIDENCE", occurredAt, "op-1");
         when(outboxApi.claimDue(any())).thenReturn(List.of(

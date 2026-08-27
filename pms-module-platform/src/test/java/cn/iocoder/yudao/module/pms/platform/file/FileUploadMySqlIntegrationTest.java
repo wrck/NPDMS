@@ -32,6 +32,7 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerA
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -110,7 +111,8 @@ class FileUploadMySqlIntegrationTest {
         when(policyRegistry.inspect(any())).thenReturn(policy());
         when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
         when(contentPolicyService.validateBounded(any())).thenReturn(
-                new ValidatedFileContent(PDF, PDF.length, SHA, "application/pdf", ".pdf", "CLAMAV", "1"));
+                new ValidatedFileContent(PDF, PDF.length, SHA, "application/pdf", ".pdf",
+                        "PASSED", "CLAMAV", "1"));
         AtomicLong infraFileId = new AtomicLong(8_900_000L);
         when(storageReceiptApi.store(any())).thenAnswer(invocation -> {
             FileStorageStoreCommand command = invocation.getArgument(0);
@@ -173,6 +175,33 @@ class FileUploadMySqlIntegrationTest {
         assertEquals(2, ids.size());
         ids.forEach(row -> assertEquals(row.get("event_id"), row.get("payload_event_id")));
         assertNotNull(first.referenceId());
+    }
+
+    @Test
+    void persistsSkippedScanFactAndRejectsUnknownStatus() {
+        when(contentPolicyService.validateBounded(any())).thenReturn(
+                new ValidatedFileContent(PDF, PDF.length, SHA, "application/pdf", ".pdf",
+                        "SKIPPED", null, null));
+        var initialized = service.initialize(new FileUploadInitializeCommand(0L, 9L, initKey,
+                "CREATE_ARTIFACT", null, null, "SOL", "DURATION_CHANGE", objectId,
+                "CUSTOMER_EVIDENCE", "slot-a", "evidence.pdf", "CUSTOMER_EVIDENCE",
+                (long) PDF.length, "application/pdf", null));
+        artifactId = initialized.artifactId();
+
+        service.complete(new FileUploadCompleteCommand(
+                0L, 9L, completeKey, artifactId, initialized.sessionId(),
+                new MockMultipartFile("file", "evidence.pdf", "application/pdf", PDF), null));
+
+        Map<String, Object> scanFact = jdbcTemplate.queryForMap(
+                "SELECT scan_status_code, scan_provider_code, scan_provider_version "
+                        + "FROM plt_file_version WHERE tenant_id=0 AND artifact_id=?",
+                artifactId);
+        assertEquals("SKIPPED", scanFact.get("scan_status_code"));
+        assertNull(scanFact.get("scan_provider_code"));
+        assertNull(scanFact.get("scan_provider_version"));
+        assertThrows(DataAccessException.class, () -> jdbcTemplate.update(
+                "UPDATE plt_file_version SET scan_status_code='ERROR' "
+                        + "WHERE tenant_id=0 AND artifact_id=?", artifactId));
     }
 
     @Test

@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileCo
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
@@ -36,11 +37,14 @@ public class FileContentPolicyService {
 
     private final BoundedMultipartReader multipartReader;
     private final List<FileSecurityScanProvider> scanProviders;
+    private final boolean scanEnabled;
 
     public FileContentPolicyService(BoundedMultipartReader multipartReader,
-                                    List<FileSecurityScanProvider> scanProviders) {
+                                    List<FileSecurityScanProvider> scanProviders,
+                                    @Value("${pms.file.scan.enabled:false}") boolean scanEnabled) {
         this.multipartReader = multipartReader;
         this.scanProviders = List.copyOf(scanProviders);
+        this.scanEnabled = scanEnabled;
     }
 
     public ValidatedFileContent validate(FileContentValidationCommand command) {
@@ -94,10 +98,14 @@ public class FileContentPolicyService {
             throw exception(FILE_DIGEST_MISMATCH);
         }
 
+        if (!scanEnabled) {
+            return new ValidatedFileContent(content, content.length, sha256, detectedMediaType,
+                    extension(detectedMediaType), "SKIPPED", null, null);
+        }
         FileSecurityScanResult scan = scan(content, command.expectedFileName(), declaredMediaType,
                 detectedMediaType, sha256);
         return new ValidatedFileContent(content, content.length, sha256, detectedMediaType,
-                extension(detectedMediaType), scan.providerCode(), scan.providerVersion());
+                extension(detectedMediaType), scan.resultCode(), scan.providerCode(), scan.providerVersion());
     }
 
     private FileSecurityScanResult scan(byte[] content, String fileName, String declaredMediaType,

@@ -259,6 +259,7 @@ pms:
     upload:
       session-ttl: PT15M
     scan:
+      enabled: ${NPDMS_FILE_SECURITY_SCAN_ENABLED:false}
       clamav:
         host: ${NPDMS_CLAMAV_HOST:127.0.0.1}
         port: ${NPDMS_CLAMAV_PORT:13310}

@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.infra.api.file.dto.FileStorageReceipt;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
@@ -21,6 +22,7 @@ import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadCompl
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileUploadCompleted;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
 import cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory;
+import cn.iocoder.yudao.module.pms.platform.service.file.event.FileVersionCommittedMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +40,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,7 +81,8 @@ class FileUploadCompletionServiceTest {
         when(sessionMapper.beginValidationIfInitialized(any())).thenReturn(1);
         when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
         when(contentPolicyService.validateBounded(any())).thenReturn(
-                new ValidatedFileContent(bytes, bytes.length, sha, "application/pdf", ".pdf", "CLAMAV", "1"));
+                new ValidatedFileContent(bytes, bytes.length, sha, "application/pdf", ".pdf",
+                        "SKIPPED", null, null));
         when(storageReceiptApi.store(any())).thenReturn(
                 new FileStorageReceipt("op-101", 501L, "evidence.pdf", "application/pdf", bytes.length));
         when(artifactMapper.insert(any())).thenReturn(1);
@@ -107,6 +111,20 @@ class FileUploadCompletionServiceTest {
         assertEquals(Set.of("FileVersionCommitted", "FileReferenceAttached"),
                 successFacts.get().businessEvents().stream()
                         .map(PlatformCommandExecutionApi.BusinessEvent::eventType).collect(java.util.stream.Collectors.toSet()));
+        ArgumentCaptor<FileVersionDO> version = ArgumentCaptor.forClass(FileVersionDO.class);
+        verify(versionMapper).insert(version.capture());
+        assertEquals("SKIPPED", version.getValue().getScanStatusCode());
+        assertNull(version.getValue().getScanProviderCode());
+        PlatformCommandExecutionApi.BusinessEvent versionEvent = successFacts.get().businessEvents().stream()
+                .filter(event -> "FileVersionCommitted".equals(event.eventType()))
+                .findFirst().orElseThrow();
+        assertEquals("SKIPPED", JsonUtils.parseObject(
+                versionEvent.eventPayload(), FileVersionCommittedMessage.class).scanStatus());
+        java.util.Map<?, ?> auditDetail = JsonUtils.parseObject(
+                successFacts.get().detailSnapshot(), java.util.Map.class);
+        assertEquals("SKIPPED", auditDetail.get("scanStatus"));
+        assertNull(auditDetail.get("scanProviderCode"));
+        assertNull(auditDetail.get("scanProviderVersion"));
         ArgumentCaptor<FileArtifactDO> artifact = ArgumentCaptor.forClass(FileArtifactDO.class);
         verify(artifactMapper).insert(artifact.capture());
         assertEquals(101L, artifact.getValue().getId());

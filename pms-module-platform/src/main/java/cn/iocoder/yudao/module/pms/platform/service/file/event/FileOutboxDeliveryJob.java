@@ -27,6 +27,7 @@ public class FileOutboxDeliveryJob implements JobHandler {
     static final Set<String> FILE_EVENT_TYPES = Set.of(FileEventFactory.VERSION_COMMITTED,
             FileEventFactory.REFERENCE_ATTACHED, FileEventFactory.REFERENCE_DETACHED,
             FileEventFactory.FILE_ARCHIVED);
+    static final Set<String> SUCCESSFUL_SCAN_STATUSES = Set.of("PASSED", "SKIPPED");
     static final int BATCH_SIZE = 50;
     static final long MAX_RETRY_DELAY_MINUTES = 60;
 
@@ -88,7 +89,7 @@ public class FileOutboxDeliveryJob implements JobHandler {
         FileVersionCommittedMessage payload = JsonUtils.parseObject(message.payload(), FileVersionCommittedMessage.class);
         requireCommon(message, payload == null ? null : payload.eventId(), payload == null ? null : payload.tenantId());
         if (payload.artifactId() == null || payload.versionNo() == null || payload.versionNo() <= 0
-                || isBlank(payload.sha256()) || !"PASSED".equals(payload.scanStatus())
+                || isBlank(payload.sha256()) || !SUCCESSFUL_SCAN_STATUSES.contains(payload.scanStatus())
                 || payload.occurredAt() == null || isBlank(payload.operationId())) {
             throw new IllegalArgumentException("文件版本提交事件载荷不完整");
         }

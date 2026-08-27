@@ -17,10 +17,10 @@ public class FileEventFactory {
 
     public PlatformCommandExecutionApi.BusinessEvent versionCommitted(
             Long tenantId, Long artifactId, Integer versionNo, String sha256,
-            LocalDateTime occurredAt, String operationId) {
+            String scanStatus, LocalDateTime occurredAt, String operationId) {
         String eventId = UUID.randomUUID().toString();
         var message = new FileVersionCommittedMessage(eventId, tenantId, artifactId, versionNo,
-                sha256, "PASSED", occurredAt, operationId);
+                sha256, scanStatus, occurredAt, operationId);
         return event(eventId, VERSION_COMMITTED, message);
     }
 
