@@ -116,6 +116,7 @@ class PreparationInitializationMySqlIntegrationTest {
     private String bindingSnapshot;
     private String idempotencyKey;
     private boolean approverRoleUnavailable;
+    private long projectScopeVersion;
 
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
@@ -164,10 +165,13 @@ class PreparationInitializationMySqlIntegrationTest {
                 org.mockito.ArgumentMatchers.any(String[].class))).thenReturn(true);
         when(permissionApi.hasAnyPermissions(org.mockito.ArgumentMatchers.eq(8L),
                 org.mockito.ArgumentMatchers.any(String[].class))).thenReturn(true);
-        var scope = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
-                projectId, 1L, Set.of(projectId), Set.of());
-        when(projectScopeApi.resolveCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
-        when(projectScopeApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
+        projectScopeVersion = 1L;
+        when(projectScopeApi.resolveCurrent(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation ->
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
+                        projectId, projectScopeVersion, Set.of(projectId), Set.of()));
+        when(projectScopeApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation ->
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
+                        projectId, projectScopeVersion, Set.of(projectId), Set.of()));
         when(participantFactApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             var query = (cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery)
                     invocation.getArgument(0);
@@ -699,6 +703,37 @@ class PreparationInitializationMySqlIntegrationTest {
                 readyPreparationVersion, 4, "FILE-CHANGED-" + projectId), prepared.actor());
         assertEquals("NOT_READY", notReady.readiness().readinessStatus());
         assertEquals(List.of("FILE_FACT_CHANGED"), notReady.readiness().blockerCodes());
+        assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
+    }
+
+    @Test
+    void changedProjectScopeExpiresReadySnapshotAndExplicitEvaluateFreezesNewScope() {
+        PreparedReadiness prepared = prepareConfirmedNoSource();
+        var ready = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                prepared.preparationVersion(), 4, "SCOPE-READY-" + projectId), prepared.actor());
+        assertEquals("READY", ready.readiness().readinessStatus());
+        assertEquals(1L, ready.readiness().projectScopeVersion());
+
+        projectScopeVersion = 2L;
+        int readyPreparationVersion = ready.readiness().preparationVersion();
+        long snapshotCount = readinessSnapshotCount(prepared.preparationId());
+        long auditCount = preparationAuditCount(prepared.preparationId());
+        var inspected = readinessService.inspect(new SiteSurveyReadinessQuery(projectId,
+                prepared.preparationId()), 0L, 9L);
+        assertEquals("NOT_READY", inspected.readinessStatus());
+        assertEquals(false, inspected.snapshotCurrent());
+        assertEquals(2L, inspected.projectScopeVersion());
+        assertEquals(List.of(), inspected.blockerCodes());
+        assertEquals(readyPreparationVersion, currentPreparationVersion(prepared.preparationId()));
+        assertEquals(snapshotCount, readinessSnapshotCount(prepared.preparationId()));
+        assertEquals(auditCount, preparationAuditCount(prepared.preparationId()));
+
+        var refreshed = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                readyPreparationVersion, 4, "SCOPE-REFRESH-" + projectId), prepared.actor());
+        assertEquals("READY", refreshed.readiness().readinessStatus());
+        assertEquals(true, refreshed.readiness().snapshotCurrent());
+        assertEquals(2L, refreshed.readiness().projectScopeVersion());
+        assertEquals(false, refreshed.replayed());
         assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
     }
 
