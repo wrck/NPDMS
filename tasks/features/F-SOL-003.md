@@ -14,4 +14,4 @@
 
 - 完成F-SOL-003正向闭环Technical Plan候选，独立Technical Plan Gate评审通过后再进入整体实施闭环。
 
-> 检查点（2026-08-27）：基线`31aa9ed4`已同步；当前Gate为Technical Plan；Feature Ready R2已GO，正向闭环计划候选已形成；无阻塞；下一步整体校验计划并独立送审，未进入Implementation Task。
+> 检查点（2026-08-27）：基线`31aa9ed4`；当前Gate为Technical Plan；首审仅阻断PLT附加引用事件责任，现已固定PLT内部同事务写Outbox且重放零新增；无剩余已知阻塞；下一步复验候选并重新送审，未进入Implementation Task。
