@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.asset.service.warranty;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyDO;
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 
@@ -43,6 +46,24 @@ class DeviceWarrantyQueryServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void shouldReadWarrantyWithAuthenticatedTenantWhenTenantContextIsDisabled() {
+        TenantContextHolder.clear();
+        LoginUser user = new LoginUser();
+        user.setId(7L);
+        user.setTenantId(1L);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(user, null));
+        when(deviceMapper.selectByTenantAndId(1L, 8L)).thenReturn(device());
+        when(recordMapper.selectPage(new DeviceWarrantyRecordPageQuery(1L, "SN-8", 1L, 20L)))
+                .thenReturn(PageResult.empty());
+
+        service.get(1L, 8L, 1L, 20L);
+
+        verify(recordMapper).selectPage(new DeviceWarrantyRecordPageQuery(1L, "SN-8", 1L, 20L));
     }
 
     @Test

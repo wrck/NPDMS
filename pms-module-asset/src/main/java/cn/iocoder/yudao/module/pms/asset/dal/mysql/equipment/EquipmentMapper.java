@@ -6,7 +6,6 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.equipment.vo.EquipmentPageReqVO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipment.EquipmentDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.query.CustomerDeviceReferenceQuery;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.query.CustomerDeviceSummaryPageQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
@@ -33,13 +32,6 @@ public interface EquipmentMapper extends BaseMapperX<EquipmentDO> {
         return selectCount(new LambdaQueryWrapperX<EquipmentDO>()
                 .eq(EquipmentDO::getTenantId, query.tenantId())
                 .eq(EquipmentDO::getCustomerId, query.customerId()));
-    }
-
-    default PageResult<EquipmentDO> selectCustomerSummaryPage(CustomerDeviceSummaryPageQuery query) {
-        return selectPage(query, new LambdaQueryWrapperX<EquipmentDO>()
-                .eq(EquipmentDO::getTenantId, query.getTenantId())
-                .eq(EquipmentDO::getCustomerId, query.getCustomerId())
-                .orderByDesc(EquipmentDO::getId));
     }
 
     default EquipmentDO selectBySerialNumber(String serialNumber) {

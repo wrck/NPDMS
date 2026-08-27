@@ -49,6 +49,14 @@ class DeviceControllerContractTest {
     }
 
     @Test
+    void shouldExposeWorkbenchRelationshipEndpoints() throws Exception {
+        assertEndpoint("getAssignmentHistory", "/{id}/assignment-history", "pms:device:query");
+        assertEndpoint("getCustomerRelationships", "/{id}/customer-relationships", "pms:device:query");
+        assertEndpoint("getAssemblyTree", "/{id}/assembly-tree", "pms:device:query");
+        assertEndpoint("getWarrantyRecords", "/{id}/warranty-records", "pms:device:query");
+    }
+
+    @Test
     void shouldKeepAssignmentContextOutOfRequestBodies() throws Exception {
         assertRequestFields("DeviceProjectAssignReqVO", "projectId", "reason");
         assertRequestFields("DeviceCustomerAssignReqVO", "customerId", "relationshipType", "reason");

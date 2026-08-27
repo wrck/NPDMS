@@ -12,10 +12,15 @@ import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceDetail
 import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceListRespVO;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DevicePageReqVO;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceProjectAssignReqVO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.assembly.DeviceAssemblyDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceCustomerRelationshipDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceProjectRelationshipDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
+import cn.iocoder.yudao.module.pms.asset.service.assembly.DeviceAssemblyService;
 import cn.iocoder.yudao.module.pms.asset.service.assignment.DeviceCustomerAssignmentService;
 import cn.iocoder.yudao.module.pms.asset.service.assignment.DeviceProjectAssignmentService;
+import cn.iocoder.yudao.module.pms.asset.service.assignment.DeviceRelationshipQueryService;
 import cn.iocoder.yudao.module.pms.asset.service.assignment.command.AssignDeviceCustomerCommand;
 import cn.iocoder.yudao.module.pms.asset.service.assignment.command.AssignDeviceProjectCommand;
 import cn.iocoder.yudao.module.pms.asset.service.assignment.command.DeviceCustomerAssignmentResult;
@@ -27,6 +32,8 @@ import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigur
 import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogQueryService;
 import cn.iocoder.yudao.module.pms.asset.service.device.DeviceDetailService;
 import cn.iocoder.yudao.module.pms.asset.service.device.DeviceQueryService;
+import cn.iocoder.yudao.module.pms.asset.service.warranty.DeviceWarrantyQueryService;
+import cn.iocoder.yudao.module.pms.asset.service.warranty.DeviceWarrantyResult;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -62,6 +69,9 @@ public class DeviceController {
     private final DeviceDetailService deviceDetailService;
     private final DeviceProjectAssignmentService projectAssignmentService;
     private final DeviceCustomerAssignmentService customerAssignmentService;
+    private final DeviceRelationshipQueryService relationshipQueryService;
+    private final DeviceAssemblyService assemblyService;
+    private final DeviceWarrantyQueryService warrantyQueryService;
     private final DeviceConfigurationLogQueryService configurationLogQueryService;
     private final DeviceConfigurationLogDownloadService configurationLogDownloadService;
 
@@ -80,6 +90,39 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<DeviceDetailRespVO> getDevice(@PathVariable("id") Long id) {
         return success(deviceDetailService.getDetail(id));
+    }
+
+    @GetMapping("/{id}/assignment-history")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<PageResult<DeviceProjectRelationshipDO>> getAssignmentHistory(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "pageNo", required = false) Long pageNo,
+            @RequestParam(value = "pageSize", required = false) Long pageSize) {
+        return success(relationshipQueryService.getProjectHistory(currentTenantId(), id, pageNo, pageSize));
+    }
+
+    @GetMapping("/{id}/customer-relationships")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<PageResult<DeviceCustomerRelationshipDO>> getCustomerRelationships(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "pageNo", required = false) Long pageNo,
+            @RequestParam(value = "pageSize", required = false) Long pageSize) {
+        return success(relationshipQueryService.getCustomerRelationships(currentTenantId(), id, pageNo, pageSize));
+    }
+
+    @GetMapping("/{id}/assembly-tree")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<List<DeviceAssemblyDO>> getAssemblyTree(@PathVariable("id") Long id) {
+        return success(assemblyService.getCurrentTree(currentTenantId(), id));
+    }
+
+    @GetMapping("/{id}/warranty-records")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<DeviceWarrantyResult> getWarrantyRecords(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "pageNo", required = false) Long pageNo,
+            @RequestParam(value = "pageSize", required = false) Long pageSize) {
+        return success(warrantyQueryService.get(currentTenantId(), id, pageNo, pageSize));
     }
 
     @GetMapping("/{id}/configuration-logs")

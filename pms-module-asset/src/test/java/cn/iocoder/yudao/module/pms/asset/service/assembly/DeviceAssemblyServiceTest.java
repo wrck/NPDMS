@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.asset.service.assembly;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.assembly.DeviceAssemblyDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.DeviceAssemblyMapper;
@@ -8,14 +10,19 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceAssembly
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceAssemblySourceQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.service.assembly.command.ApplyDeviceAssemblyCommand;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -32,7 +39,33 @@ class DeviceAssemblyServiceTest {
 
     @BeforeEach
     void setUp() {
+        TenantContextHolder.setTenantId(1L);
         service = new DeviceAssemblyService(deviceMapper, assemblyMapper);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContextHolder.clear();
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void shouldReadCurrentTreeWithAuthenticatedTenantWhenTenantContextIsDisabled() {
+        TenantContextHolder.clear();
+        LoginUser user = new LoginUser();
+        user.setId(7L);
+        user.setTenantId(1L);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(user, null));
+        DeviceDO root = device("SN-P");
+        root.setId(8L);
+        when(deviceMapper.selectByTenantAndId(1L, 8L)).thenReturn(root);
+        when(assemblyMapper.selectCurrentTree(any())).thenReturn(List.of());
+
+        service.getCurrentTree(1L, 8L);
+
+        verify(assemblyMapper).selectCurrentTree(argThat(query ->
+                query.tenantId().equals(1L) && query.rootDeviceSn().equals("SN-P")));
     }
 
     @Test
@@ -76,6 +109,23 @@ class DeviceAssemblyServiceTest {
         assertThrows(ServiceException.class, () -> service.apply(command("SN-C", "SN-A")));
 
         verify(assemblyMapper, never()).insert(any(DeviceAssemblyDO.class));
+    }
+
+    @Test
+    void shouldReadCurrentAssemblyTreeFromDeviceSn() {
+        DeviceDO root = device("SN-P");
+        root.setId(8L);
+        when(deviceMapper.selectByTenantAndId(1L, 8L)).thenReturn(root);
+        DeviceAssemblyDO edge = new DeviceAssemblyDO();
+        edge.setParentDeviceSn("SN-P");
+        edge.setChildDeviceSn("SN-C");
+        when(assemblyMapper.selectCurrentTree(any())).thenReturn(List.of(edge));
+
+        List<DeviceAssemblyDO> result = service.getCurrentTree(1L, 8L);
+
+        assertEquals("SN-C", result.getFirst().getChildDeviceSn());
+        verify(assemblyMapper).selectCurrentTree(argThat(query ->
+                query.tenantId().equals(1L) && query.rootDeviceSn().equals("SN-P")));
     }
 
     private ApplyDeviceAssemblyCommand command(String parentSn, String childSn) {

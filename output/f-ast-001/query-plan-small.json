@@ -1,0 +1,270 @@
+{
+  "database": "npdms",
+  "tenantId": 1,
+  "maxRowsExamined": 200,
+  "queries": [
+    {
+      "name": "snExact",
+      "sql": "SELECT d.id, d.sn, d.project_id, d.customer_id FROM ast_device d WHERE d.tenant_id = 1 AND d.sn = 'FAST001_PERF_SN_0000000001' AND d.deleted = b'0' LIMIT 1",
+      "expectedIndex": "uk_ast_device_tenant_sn",
+      "usedIndexes": [
+        "uk_ast_device_tenant_sn"
+      ],
+      "tableNames": [
+        "d"
+      ],
+      "rowsExaminedPerScan": 1,
+      "tables": [
+        {
+          "tableName": "d",
+          "accessType": "const",
+          "key": "uk_ast_device_tenant_sn",
+          "possibleKeys": [
+            "uk_ast_device_tenant_sn",
+            "idx_ast_device_project",
+            "idx_ast_device_customer",
+            "idx_ast_device_product",
+            "idx_ast_device_warranty",
+            "idx_ast_device_shipment",
+            "idx_ast_device_conp_parse"
+          ],
+          "rowsExaminedPerScan": 1,
+          "rowsProducedPerJoin": 1
+        }
+      ],
+      "errors": [],
+      "pass": true,
+      "plan": {
+        "query_block": {
+          "select_id": 1,
+          "cost_info": {
+            "query_cost": "1.00"
+          },
+          "table": {
+            "table_name": "d",
+            "access_type": "const",
+            "possible_keys": [
+              "uk_ast_device_tenant_sn",
+              "idx_ast_device_project",
+              "idx_ast_device_customer",
+              "idx_ast_device_product",
+              "idx_ast_device_warranty",
+              "idx_ast_device_shipment",
+              "idx_ast_device_conp_parse"
+            ],
+            "key": "uk_ast_device_tenant_sn",
+            "used_key_parts": [
+              "tenant_id",
+              "sn"
+            ],
+            "key_length": "410",
+            "ref": [
+              "const",
+              "const"
+            ],
+            "rows_examined_per_scan": 1,
+            "rows_produced_per_join": 1,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.00",
+              "eval_cost": "0.10",
+              "prefix_cost": "0.00",
+              "data_read_per_join": "9K"
+            },
+            "used_columns": [
+              "id",
+              "sn",
+              "project_id",
+              "customer_id",
+              "deleted",
+              "tenant_id"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "projectPage",
+      "sql": "SELECT d.id, d.sn, d.project_id, d.customer_id, d.shipment_time, d.package_no, d.contract_no, d.warranty_status, d.conp_version FROM ast_device d WHERE d.tenant_id = 1 AND d.project_id = 100001 AND d.deleted = b'0' ORDER BY d.id DESC LIMIT 20",
+      "expectedIndex": "idx_ast_device_project",
+      "usedIndexes": [
+        "idx_ast_device_project"
+      ],
+      "tableNames": [
+        "d"
+      ],
+      "rowsExaminedPerScan": 1,
+      "tables": [
+        {
+          "tableName": "d",
+          "accessType": "ref",
+          "key": "idx_ast_device_project",
+          "possibleKeys": [
+            "uk_ast_device_tenant_sn",
+            "idx_ast_device_project",
+            "idx_ast_device_customer",
+            "idx_ast_device_product",
+            "idx_ast_device_warranty",
+            "idx_ast_device_shipment",
+            "idx_ast_device_conp_parse"
+          ],
+          "rowsExaminedPerScan": 1,
+          "rowsProducedPerJoin": 1
+        }
+      ],
+      "errors": [],
+      "pass": true,
+      "plan": {
+        "query_block": {
+          "select_id": 1,
+          "cost_info": {
+            "query_cost": "0.35"
+          },
+          "ordering_operation": {
+            "using_filesort": false,
+            "table": {
+              "table_name": "d",
+              "access_type": "ref",
+              "possible_keys": [
+                "uk_ast_device_tenant_sn",
+                "idx_ast_device_project",
+                "idx_ast_device_customer",
+                "idx_ast_device_product",
+                "idx_ast_device_warranty",
+                "idx_ast_device_shipment",
+                "idx_ast_device_conp_parse"
+              ],
+              "key": "idx_ast_device_project",
+              "used_key_parts": [
+                "tenant_id",
+                "project_id",
+                "deleted"
+              ],
+              "key_length": "18",
+              "ref": [
+                "const",
+                "const",
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "backward_index_scan": true,
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.35",
+                "data_read_per_join": "9K"
+              },
+              "used_columns": [
+                "id",
+                "sn",
+                "shipment_time",
+                "package_no",
+                "contract_no",
+                "project_id",
+                "customer_id",
+                "warranty_status",
+                "conp_version",
+                "deleted",
+                "tenant_id"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "customerPage",
+      "sql": "SELECT d.id, d.sn, d.project_id, d.customer_id, d.shipment_time, d.package_no, d.contract_no, d.warranty_status, d.conp_version FROM ast_device d WHERE d.tenant_id = 1 AND d.customer_id = 200001 AND d.deleted = b'0' ORDER BY d.id DESC LIMIT 20",
+      "expectedIndex": "idx_ast_device_customer",
+      "usedIndexes": [
+        "idx_ast_device_customer"
+      ],
+      "tableNames": [
+        "d"
+      ],
+      "rowsExaminedPerScan": 1,
+      "tables": [
+        {
+          "tableName": "d",
+          "accessType": "ref",
+          "key": "idx_ast_device_customer",
+          "possibleKeys": [
+            "uk_ast_device_tenant_sn",
+            "idx_ast_device_project",
+            "idx_ast_device_customer",
+            "idx_ast_device_product",
+            "idx_ast_device_warranty",
+            "idx_ast_device_shipment",
+            "idx_ast_device_conp_parse"
+          ],
+          "rowsExaminedPerScan": 1,
+          "rowsProducedPerJoin": 1
+        }
+      ],
+      "errors": [],
+      "pass": true,
+      "plan": {
+        "query_block": {
+          "select_id": 1,
+          "cost_info": {
+            "query_cost": "0.35"
+          },
+          "ordering_operation": {
+            "using_filesort": false,
+            "table": {
+              "table_name": "d",
+              "access_type": "ref",
+              "possible_keys": [
+                "uk_ast_device_tenant_sn",
+                "idx_ast_device_project",
+                "idx_ast_device_customer",
+                "idx_ast_device_product",
+                "idx_ast_device_warranty",
+                "idx_ast_device_shipment",
+                "idx_ast_device_conp_parse"
+              ],
+              "key": "idx_ast_device_customer",
+              "used_key_parts": [
+                "tenant_id",
+                "customer_id",
+                "deleted"
+              ],
+              "key_length": "18",
+              "ref": [
+                "const",
+                "const",
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "backward_index_scan": true,
+              "cost_info": {
+                "read_cost": "0.25",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.35",
+                "data_read_per_join": "9K"
+              },
+              "used_columns": [
+                "id",
+                "sn",
+                "shipment_time",
+                "package_no",
+                "contract_no",
+                "project_id",
+                "customer_id",
+                "warranty_status",
+                "conp_version",
+                "deleted",
+                "tenant_id"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "pass": true
+}

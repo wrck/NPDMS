@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.asset.service.configurationlog;
 
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
@@ -32,8 +33,12 @@ public class DeviceConfigurationLogQueryService {
     }
 
     public List<DeviceConfigurationLogMetadata> getList(Long tenantId, Long userId, Long deviceId) {
-        Long currentTenantId = TenantContextHolder.getRequiredTenantId();
-        if (!currentTenantId.equals(tenantId)) {
+        Long currentTenantId = TenantContextHolder.getTenantId();
+        if (currentTenantId == null) {
+            var loginUser = SecurityFrameworkUtils.getLoginUser();
+            currentTenantId = loginUser == null ? null : loginUser.getTenantId();
+        }
+        if (currentTenantId == null || !currentTenantId.equals(tenantId)) {
             throw exception(AST_EQUIPMENT_NOT_EXISTS);
         }
         DeviceDO device = deviceMapper.selectByTenantAndId(currentTenantId, deviceId);

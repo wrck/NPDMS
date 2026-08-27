@@ -64,6 +64,19 @@ class Fast001OwnerBoundaryTest(unittest.TestCase):
                         violations.append(f"{path.relative_to(ROOT)}: {prefix}")
         self.assertEqual([], violations)
 
+    def test_customer_device_summary_reads_ast_owner_tables(self):
+        implementation = ASSET_ROOT / "src" / "main" / "java" / "cn" / "iocoder" / "yudao" / "module" / "pms" / "asset" / "api" / "customer" / "AssetCustomerDeviceSummaryApiImpl.java"
+        mapper = ASSET_ROOT / "src" / "main" / "resources" / "mapper" / "device" / "DeviceQueryMapper.xml"
+        implementation_text = implementation.read_text(encoding="utf-8")
+        mapper_text = mapper.read_text(encoding="utf-8").lower()
+        self.assertIn("DeviceMapper", implementation_text)
+        self.assertNotIn("EquipmentMapper", implementation_text)
+        self.assertIn("selectcustomersummarylist", mapper_text)
+        self.assertIn("selectcustomersummarycount", mapper_text)
+        self.assertIn("ast_device", mapper_text)
+        self.assertIn("ast_device_customer_relationship", mapper_text)
+        self.assertNotIn("pms_equipment", mapper_text)
+
     def test_project_device_guard_is_exposed_from_project_api(self):
         api = PROJECT_ROOT / "pms-module-project-api" / "src" / "main" / "java" / "cn" / "iocoder" / "yudao" / "module" / "pms" / "project" / "api" / "reference" / "ProjectDeviceAssignmentGuardApi.java"
         self.assertTrue(api.exists())

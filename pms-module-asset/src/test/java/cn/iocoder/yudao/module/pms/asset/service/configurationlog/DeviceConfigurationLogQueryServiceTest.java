@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.asset.service.configurationlog;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipmentconfiglog.EquipmentConfigLogDO;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,6 +48,24 @@ class DeviceConfigurationLogQueryServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void shouldReadMetadataWithAuthenticatedTenantWhenTenantContextIsDisabled() {
+        TenantContextHolder.clear();
+        LoginUser user = new LoginUser();
+        user.setId(7L);
+        user.setTenantId(1L);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(user, null));
+        when(deviceMapper.selectByTenantAndId(1L, 8L)).thenReturn(device());
+        when(configurationLogMapper.selectList(new DeviceConfigurationLogListQuery(1L, 8L)))
+                .thenReturn(List.of());
+
+        service.getList(1L, 7L, 8L);
+
+        verify(configurationLogMapper).selectList(new DeviceConfigurationLogListQuery(1L, 8L));
     }
 
     @Test

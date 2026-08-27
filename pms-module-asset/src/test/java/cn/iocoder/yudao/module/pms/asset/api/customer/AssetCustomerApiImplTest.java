@@ -1,10 +1,11 @@
 package cn.iocoder.yudao.module.pms.asset.api.customer;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipment.EquipmentDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CustomerDeviceSummaryPageQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.query.CustomerDeviceReferenceQuery;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.query.CustomerDeviceSummaryPageQuery;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerReferenceGuardStatus;
 import cn.iocoder.yudao.module.pms.customer.api.guard.dto.CustomerReferenceGuardQuery;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,8 @@ class AssetCustomerApiImplTest {
 
     @Mock
     private EquipmentMapper equipmentMapper;
+    @Mock
+    private DeviceMapper deviceMapper;
     @InjectMocks
     private AssetCustomerReferenceGuardApiImpl guardApi;
     @InjectMocks
@@ -44,21 +47,35 @@ class AssetCustomerApiImplTest {
     }
 
     @Test
-    void returnsDeviceSummaryPage() {
-        EquipmentDO equipment = new EquipmentDO();
-        equipment.setId(20L);
-        equipment.setSerialNumber("SN-20");
-        equipment.setName("设备二十");
-        equipment.setStatus(1);
-        when(equipmentMapper.selectCustomerSummaryPage(
+    void returnsDeviceSummaryPageFromAstDevice() {
+        DeviceDO device = new DeviceDO();
+        device.setId(20L);
+        device.setSn("SN-20");
+        device.setName("设备二十");
+        device.setStatus("ONLINE");
+        when(deviceMapper.selectCustomerSummaryPage(
                 new CustomerDeviceSummaryPageQuery(1L, 100L, 1, 20)))
-                .thenReturn(new PageResult<>(List.of(equipment), 1L));
+                .thenReturn(new PageResult<>(List.of(device), 1L));
 
         var result = summaryApi.query(new CustomerDeviceSummaryQuery(1L, 100L, 1, 20));
 
         assertTrue(result.available());
         assertEquals("AST", result.provider());
         assertEquals(1L, result.total());
-        assertEquals(new CustomerDeviceSummaryItem(20L, "SN-20", "设备二十", "1"), result.items().getFirst());
+        assertEquals(new CustomerDeviceSummaryItem(20L, "SN-20", "设备二十", "ONLINE"), result.items().getFirst());
+    }
+
+    @Test
+    void returnsAvailableEmptyDeviceSummaryPage() {
+        when(deviceMapper.selectCustomerSummaryPage(
+                new CustomerDeviceSummaryPageQuery(1L, 100L, 1, 20)))
+                .thenReturn(PageResult.empty());
+
+        var result = summaryApi.query(new CustomerDeviceSummaryQuery(1L, 100L, 1, 20));
+
+        assertTrue(result.available());
+        assertEquals("AST", result.provider());
+        assertTrue(result.items().isEmpty());
+        assertEquals(0L, result.total());
     }
 }

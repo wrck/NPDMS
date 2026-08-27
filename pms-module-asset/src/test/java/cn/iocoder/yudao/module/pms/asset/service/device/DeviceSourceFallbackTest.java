@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.asset.service.device;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceDetailRespVO;
@@ -45,6 +46,19 @@ class DeviceSourceFallbackTest {
         NetworkSoftwareVersion data = assertInstanceOf(
                 NetworkSoftwareVersion.class, detail.networkVersion().data());
         assertEquals("V3.2.1", data.conpVersion());
+    }
+
+    @Test
+    void shouldSerializeNetworkVersionFieldsForDeviceDetailResponse() {
+        NetworkSoftwareVersion version = new NetworkSoftwareVersion(
+                "V3.2.1", "CONP", "S3", "3.2.1",
+                "B1", "C1", "P1", false,
+                "ITR", "key", "1", null, null, "FRESH", null);
+
+        String json = JsonUtils.toJsonString(version);
+
+        org.junit.jupiter.api.Assertions.assertTrue(json.contains("\"conpVersion\":\"V3.2.1\""));
+        org.junit.jupiter.api.Assertions.assertTrue(json.contains("\"conpType\":\"CONP\""));
     }
 
     private DeviceSummaryDTO summary() {

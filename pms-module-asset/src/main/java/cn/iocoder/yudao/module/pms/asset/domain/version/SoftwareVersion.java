@@ -1,7 +1,10 @@
 package cn.iocoder.yudao.module.pms.asset.domain.version;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+
 import java.time.LocalDateTime;
 
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public abstract class SoftwareVersion {
 
     private final String conpVersion;

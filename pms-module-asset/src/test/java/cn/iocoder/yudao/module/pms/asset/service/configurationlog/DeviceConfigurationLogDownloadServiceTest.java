@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -66,6 +67,14 @@ class DeviceConfigurationLogDownloadServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void shouldDeclareProductionConstructorForSpringInjection() throws NoSuchMethodException {
+        assertTrue(DeviceConfigurationLogDownloadService.class.getConstructor(
+                DeviceMapper.class, EquipmentConfigLogMapper.class, DeviceDownloadGrantMapper.class,
+                PermissionApi.class, FileApi.class, DeviceConfigurationFileContentClient.class)
+                .isAnnotationPresent(Autowired.class));
     }
 
     @Test

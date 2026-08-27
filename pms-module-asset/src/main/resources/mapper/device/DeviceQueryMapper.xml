@@ -26,6 +26,40 @@
         </if>
     </sql>
 
+    <sql id="customerSummaryConditions">
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+          AND (
+              d.customer_id = #{query.customerId}
+              OR EXISTS (
+                  SELECT 1
+                  FROM ast_device_customer_relationship r
+                  WHERE r.tenant_id = d.tenant_id
+                    AND r.device_sn = d.sn
+                    AND r.customer_id = #{query.customerId}
+                    AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
+                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
+                    AND r.deleted = b'0'
+              )
+          )
+    </sql>
+
+    <select id="selectCustomerSummaryList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT d.id,
+               d.sn,
+               d.name,
+               d.status
+        <include refid="customerSummaryConditions"/>
+        ORDER BY d.id DESC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+
+    <select id="selectCustomerSummaryCount" resultType="long">
+        SELECT COUNT(*)
+        <include refid="customerSummaryConditions"/>
+    </select>
+
     <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
         SELECT d.id AS device_id,
                d.sn,

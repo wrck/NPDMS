@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceDownlo
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.EquipmentConfigLogMapper;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,7 @@ public class DeviceConfigurationLogDownloadService {
     private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
 
+    @Autowired
     public DeviceConfigurationLogDownloadService(
             DeviceMapper deviceMapper,
             EquipmentConfigLogMapper configurationLogMapper,

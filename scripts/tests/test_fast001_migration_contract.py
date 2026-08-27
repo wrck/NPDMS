@@ -1,4 +1,8 @@
+import os
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,20 +21,29 @@ FILES = {
         96: "V96__fast001_device_ancestor_projection_operations.sql",
         97: "V97__fast001_device_ancestor_projection_event_watermark.sql",
         98: "V98__fast001_device_ancestor_projection_job.sql",
+        99: "V99__fast001_device_menu_permissions_and_legacy_access.sql",
+        100: "V100__fast001_device_acceptance_seed.sql",
+        101: "V101__fast001_browser_acceptance_users.sql",
+        102: "V102__fast001_browser_acceptance_login_names.sql",
     }.items()
 }
+GENERATOR = ROOT / "scripts" / "generate_fast001_performance_data.py"
+PLAN_VERIFIER = ROOT / "scripts" / "verify_fast001_query_plan.py"
+BROWSER_ACCEPTANCE = ROOT / "scripts" / "tests" / "run_fast001_browser_acceptance.mjs"
 
 
 class Fast001MigrationContractTest(unittest.TestCase):
 
-    def test_reserved_migration_versions_are_available(self):
-        existing = {
-            int(match.group(1))
-            for path in MIGRATIONS.glob("V*__*.sql")
-            if (match := re.match(r"V(\d+)__", path.name))
-            and path not in FILES.values()
-        }
-        self.assertTrue(set(range(90, 99)).isdisjoint(existing))
+    def test_fast001_migration_versions_are_unique_and_seed_follows_current_maximum(self):
+        versions = {}
+        for path in MIGRATIONS.glob("V*__*.sql"):
+            match = re.match(r"V(\d+)__", path.name)
+            if match:
+                versions.setdefault(int(match.group(1)), []).append(path.name)
+        duplicates = {version: names for version, names in versions.items() if len(names) > 1}
+        self.assertEqual({}, duplicates)
+        self.assertEqual(102, max(version for version in versions if version <= 102))
+        self.assertEqual(FILES[102].name, versions[102][0])
 
     def test_v90_and_v91_create_master_and_version_facts(self):
         sql = self._sql(90) + self._sql(91)
@@ -86,7 +99,7 @@ class Fast001MigrationContractTest(unittest.TestCase):
         self.assertIn("'0/30 * * * * ?'", sql)
         self.assertIn("where not exists", sql)
 
-    def test_constraint_names_are_unique_across_fast001_migrations(self):
+    def test_constraint_names_are_unique_across_fast001_schema_migrations(self):
         sql = "\n".join(self._sql(version) for version in range(90, 99))
         names = re.findall(r"constraint `([^`]+)`", sql)
         duplicates = sorted({name for name in names if names.count(name) > 1})
@@ -104,10 +117,153 @@ class Fast001MigrationContractTest(unittest.TestCase):
         self.assertNotIn("conp_version", sql)
         self.assertNotIn("shipment_time", sql)
 
+    def test_v100_contains_controlled_idempotent_acceptance_seed(self):
+        sql = self._sql(100)
+        self.assertIn("fast001_seed", sql)
+        self.assertIn("fast001_test_mes", sql)
+        self.assertIn("fast001_test_itr", sql)
+        self.assertIn("fast001_test_kno", sql)
+        self.assertIn("on duplicate key update", sql)
+        self.assertRegex(sql, r"9700000000000000\d+")
+        for token in (
+            "fast001_cross_tenant_sn", "fast001_shipment_current", "fast001_shipment_late",
+            "fast001_shipment_disabled", "fast001_assignment_mismatch", "fast001_location_resolved",
+            "fast001_location_unresolved", "fast001_warranty", "fast001_conp_exact",
+            "fast001_conp_range", "fast001_conp_unknown", "fast001_assembly_level_1",
+            "fast001_assembly_level_2", "fresh", "stale", "failed", "pending_mapping",
+            "not_available",
+        ):
+            self.assertIn(token, sql)
+        self.assertIn("`deleted` = b'0'", sql)
+        self.assertNotIn("source_system`, `source_key`) values ('mes'", sql)
+        self.assertNotIn("source_system`, `source_key`) values ('itr'", sql)
+        self.assertNotIn("source_system`, `source_key`) values ('kno'", sql)
+
+    def test_v101_contains_fixed_browser_roles_and_users(self):
+        sql = self._sql(101)
+        for token in (
+            "fast001_browser_readonly", "fast001_browser_operator", "fast001_browser_denied",
+            "fast001_readonly", "fast001_operator", "fast001_denied",
+            "pms:device:query", "pms:device:assign", "pms:device-configuration-log:download",
+            "198770", "198771", "198772", "198774", "19001", "19006",
+        ):
+            self.assertIn(token, sql)
+        self.assertIn("on duplicate key update", sql)
+        self.assertIn("where not exists", sql)
+        self.assertNotIn("pms:equipment:create", sql)
+        self.assertNotIn("pms:equipment:update", sql)
+        self.assertNotIn("pms:equipment:delete", sql)
+        self.assertNotIn("pms:equipment:status-change", sql)
+
+    def test_v102_replaces_invalid_login_names_with_alphanumeric_names(self):
+        sql = self._sql(102)
+        for token in ("fast001readonly", "fast001operator", "fast001denied", "fast001_seed"):
+            self.assertIn(token, sql)
+        self.assertNotIn("'fast001_readonly'", sql)
+        self.assertNotIn("'fast001_operator'", sql)
+        self.assertNotIn("'fast001_denied'", sql)
+
+    def test_browser_acceptance_script_contract(self):
+        text = self._script(BROWSER_ACCEPTANCE)
+        for token in (
+            "fast001_browser_operator", "fast001_browser_readonly", "fast001_browser_denied",
+            "fast001readonly", "fast001operator", "fast001denied",
+            "mainid: '970000000000000001'", "configurationlogid: '970000000000071001'",
+            "fast001_sn_main", "fast001_sn_child_1", "fast001_sn_not_available",
+            "出厂信息", "官网信息", "在网版本", "技术公告", "维保信息", "配置log",
+            "stale", "failed", "not_available", "tenant-id", "if-match", "idempotency-key",
+            "320", "768", "1024", "1440", "emulation.setdevicemetricsoverride",
+            "http://127.0.0.1:18083", "http://127.0.0.1:58082/admin-api",
+            "/pms/equipment", "consoleerrors", "failedapiresponses",
+        ):
+            self.assertIn(token, text)
+
+    def test_browser_acceptance_requires_explicit_password_without_creating_evidence(self):
+        env = os.environ.copy()
+        env.pop("FAST001_BROWSER_PASSWORD", None)
+        with tempfile.TemporaryDirectory() as output_dir:
+            result = subprocess.run(
+                [
+                    "node", str(BROWSER_ACCEPTANCE),
+                    "http://127.0.0.1:1", "http://127.0.0.1:1",
+                    "http://127.0.0.1:1/admin-api", output_dir,
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+                env=env,
+            )
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("FAST001_BROWSER_PASSWORD", result.stderr)
+            self.assertEqual([], list(Path(output_dir).iterdir()))
+
+    def test_browser_acceptance_source_and_output_evidence_do_not_expose_password(self):
+        text = BROWSER_ACCEPTANCE.read_text(encoding="utf-8")
+        password = "fast001-sensitive-password"
+        self.assertNotIn("admin123", text)
+        self.assertNotRegex(text, r"FAST001_BROWSER_PASSWORD\s*\|\|")
+        with tempfile.TemporaryDirectory() as output_dir:
+            env = os.environ.copy()
+            env["FAST001_BROWSER_PASSWORD"] = password
+            result = subprocess.run(
+                [
+                    "node", str(BROWSER_ACCEPTANCE),
+                    "http://127.0.0.1:1", "http://127.0.0.1:1",
+                    "http://127.0.0.1:1/admin-api", output_dir,
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+                env=env,
+            )
+            evidence = result.stdout + result.stderr
+            for path in Path(output_dir).rglob("*"):
+                if path.is_file():
+                    evidence += path.read_text(encoding="utf-8", errors="ignore")
+            self.assertNotIn(password, evidence)
+
+    def test_performance_generator_contract(self):
+        text = self._script(GENERATOR)
+        for token in (
+            "--devices", "2000000", "--shipments", "4000000", "--tenant-id",
+            "--batch-size", "10000", "--cleanup", "fast001_perf_",
+        ):
+            self.assertIn(token, text)
+        self.assertIn("insert into `ast_device`", text)
+        self.assertIn("insert into `ast_device_shipment`", text)
+        self.assertIn("delete from `ast_device_shipment`", text)
+        self.assertIn("delete from `ast_device`", text)
+        self.assertEqual(0, self._help(GENERATOR).returncode)
+
+    def test_query_plan_verifier_contract(self):
+        text = self._script(PLAN_VERIFIER)
+        for token in (
+            "explain format=json", "uk_ast_device_tenant_sn", "idx_ast_device_project",
+            "idx_ast_device_customer", "ast_device_shipment", "rows_examined_per_scan",
+            "json.dumps", "--max-rows-examined",
+        ):
+            self.assertIn(token, text)
+        self.assertEqual(0, self._help(PLAN_VERIFIER).returncode)
+
     def _sql(self, version):
         path = FILES[version]
         self.assertTrue(path.exists(), f"缺少迁移文件：{path.name}")
         return path.read_text(encoding="utf-8").lower()
+
+    def _script(self, path):
+        self.assertTrue(path.exists(), f"缺少工具：{path.name}")
+        return path.read_text(encoding="utf-8").lower()
+
+    def _help(self, path):
+        return subprocess.run(
+            [sys.executable, str(path), "--help"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
 
 if __name__ == "__main__":
