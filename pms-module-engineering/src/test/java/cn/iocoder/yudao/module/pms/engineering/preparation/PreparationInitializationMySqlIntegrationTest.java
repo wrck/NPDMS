@@ -57,6 +57,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -300,6 +303,52 @@ class PreparationInitializationMySqlIntegrationTest {
 
     @Test
     void confirmedNoSourcePreparationEvaluatesReadyAndSameVectorReplaysSnapshot() {
+        PreparedReadiness prepared = prepareConfirmedNoSource();
+
+        var first = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                prepared.preparationVersion(), 4, "READY-EVALUATE-" + projectId + "-1"), prepared.actor());
+        var replay = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                first.readiness().preparationVersion(), 4, "READY-EVALUATE-" + projectId + "-2"), prepared.actor());
+
+        assertEquals("READY", first.readiness().readinessStatus(),
+                () -> "blockers=" + first.readiness().blockerCodes());
+        assertEquals(true, first.readiness().snapshotCurrent());
+        assertEquals(false, first.replayed());
+        assertEquals(true, replay.replayed());
+        assertEquals(first.readiness().latestSnapshotId(), replay.readiness().latestSnapshotId());
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=?", Long.class, prepared.preparationId()));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT readiness_version FROM sol_preparation "
+                + "WHERE tenant_id=0 AND id=?", Integer.class, prepared.preparationId()));
+        assertEquals("READY", jdbcTemplate.queryForObject("SELECT result_code FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=?", String.class, prepared.preparationId()));
+    }
+
+    @Test
+    void concurrentEvaluateHasOneWinnerAndOneSnapshot() throws Exception {
+        PreparedReadiness prepared = prepareConfirmedNoSource();
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> evaluateConcurrently(prepared, "A", ready, start));
+            var second = executor.submit(() -> evaluateConcurrently(prepared, "B", ready, start));
+            assertEquals(true, ready.await(10, TimeUnit.SECONDS));
+            start.countDown();
+            List<String> outcomes = List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS));
+            assertEquals(1L, outcomes.stream().filter("READY"::equals).count());
+            assertEquals(1L, outcomes.stream().filter("VERSION_CONFLICT"::equals).count());
+        }
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=?", Long.class, prepared.preparationId()));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT readiness_version FROM sol_preparation "
+                + "WHERE tenant_id=0 AND id=?", Integer.class, prepared.preparationId()));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_type='Preparation' AND aggregate_key=? "
+                + "AND operation_code='PREPARATION_EVALUATE_READINESS' AND result_code='SUCCESS'",
+                Long.class, String.valueOf(prepared.preparationId())));
+    }
+
+    private PreparedReadiness prepareConfirmedNoSource() {
         transactionTemplate.executeWithoutResult(status -> {
             insertProjectTaskAndContract();
             service.initialize(command());
@@ -326,24 +375,24 @@ class PreparationInitializationMySqlIntegrationTest {
                     "READY-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
         }
         assertSourcePolicies(preparationId, List.of("NONE"));
+        return new PreparedReadiness(preparationId, preparationVersion, actor);
+    }
 
-        var first = readinessService.evaluate(new PreparationReadinessCommand(preparationId,
-                preparationVersion, 4, "READY-EVALUATE-" + projectId + "-1"), actor);
-        var replay = readinessService.evaluate(new PreparationReadinessCommand(preparationId,
-                first.readiness().preparationVersion(), 4, "READY-EVALUATE-" + projectId + "-2"), actor);
-
-        assertEquals("READY", first.readiness().readinessStatus(),
-                () -> "blockers=" + first.readiness().blockerCodes());
-        assertEquals(true, first.readiness().snapshotCurrent());
-        assertEquals(false, first.replayed());
-        assertEquals(true, replay.replayed());
-        assertEquals(first.readiness().latestSnapshotId(), replay.readiness().latestSnapshotId());
-        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
-                + "WHERE tenant_id=0 AND preparation_id=?", Long.class, preparationId));
-        assertEquals(1, jdbcTemplate.queryForObject("SELECT readiness_version FROM sol_preparation "
-                + "WHERE tenant_id=0 AND id=?", Integer.class, preparationId));
-        assertEquals("READY", jdbcTemplate.queryForObject("SELECT result_code FROM sol_preparation_readiness_snapshot "
-                + "WHERE tenant_id=0 AND preparation_id=?", String.class, preparationId));
+    private String evaluateConcurrently(PreparedReadiness prepared, String suffix,
+            CountDownLatch ready, CountDownLatch start) throws InterruptedException {
+        ready.countDown();
+        if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("concurrent start timeout");
+        try {
+            var result = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                    prepared.preparationVersion(), 4, "READY-CONCURRENT-" + projectId + "-" + suffix),
+                    new PreparationItemApplicationService.Actor(0L, 9L,
+                            "PRE02-READY-CONCURRENT-" + projectId + "-" + suffix));
+            return result.readiness().readinessStatus();
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException failure) {
+            if (failure.getCode() == cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants
+                    .PREPARATION_READINESS_VERSION_CONFLICT.getCode()) return "VERSION_CONFLICT";
+            throw failure;
+        }
     }
 
     private void insertProjectTaskAndContract() {
@@ -375,6 +424,10 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals(expected, jdbcTemplate.queryForList("SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT("
                 + "source_policy_snapshot,'$.requirementCode')) FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY 1", String.class, preparationId));
+    }
+
+    private record PreparedReadiness(Long preparationId, Integer preparationVersion,
+                                     PreparationItemApplicationService.Actor actor) {
     }
 
     private PreparationInitializationCommand command() {

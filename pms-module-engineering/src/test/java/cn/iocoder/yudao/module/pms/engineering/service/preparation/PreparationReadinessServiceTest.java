@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.Prepa
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -35,6 +37,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.PREPARATION_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.PREPARATION_READINESS_VERSION_CONFLICT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -147,6 +151,86 @@ class PreparationReadinessServiceTest {
         verify(snapshotMapper, never()).insert(any());
     }
 
+    @Test
+    void evaluateFailsClosedWhenOaSourceIsRequired() {
+        PreparationDO preparation = preparation();
+        PreparationItemDO item = item(1);
+        item.setSourcePolicySnapshot("{\"requirementCode\":\"OA_REQUIRED\"}");
+        stubLocked(preparation, item, form(1));
+        when(snapshotMapper.insert(any())).thenAnswer(invocation -> {
+            PreparationReadinessSnapshotDO row = invocation.getArgument(0); row.setId(92L); return 1;
+        });
+        when(preparationMapper.updateReadinessIfMatch(any())).thenReturn(1);
+
+        var result = service.evaluate(new PreparationReadinessCommand(1L, 4, 2, "oa-key"), actor());
+
+        assertEquals("NOT_READY", result.readiness().readinessStatus());
+        assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), result.readiness().blockerCodes());
+        verify(snapshotMapper).insert(argThat(row -> "NOT_READY".equals(row.getResultCode())
+                && row.getBlockersSnapshot().contains("SOURCE_PROVIDER_UNAVAILABLE")));
+    }
+
+    @Test
+    void changedFileFactMakesInspectNotReadyAndLockedRevalidationRejectsWithoutWriting() {
+        PreparationDO preparation = preparation();
+        preparation.setLatestReadinessSnapshotId(91L);
+        preparation.setSnapshotCurrent(true);
+        preparation.setReadinessStatusCode("READY");
+        PreparationItemDO item = itemWithEvidence();
+        DynamicFormInstanceDO form = form(1);
+        when(preparationMapper.selectById(any())).thenReturn(preparation);
+        when(itemMapper.selectList(any())).thenReturn(List.of(item));
+        when(formMapper.selectList(any())).thenReturn(List.of(form));
+        when(sourceMapper.selectList(any())).thenReturn(List.of());
+        when(waiverMapper.selectList(any())).thenReturn(List.of());
+        stubLocked(preparation, item, form);
+        PreparationReadinessSnapshotDO snapshot = snapshotWithFile(preparation, 3L);
+        when(snapshotMapper.selectById(any())).thenReturn(snapshot);
+        FileArtifactVersionFact changed = new FileArtifactVersionFact(301L, 2, "SITE", "SURVEY", "site.pdf",
+                100L, "application/pdf", "sha", "UNAVAILABLE", "ACTIVE",
+                new FileFactVersion(1, 2, 4), 1L);
+        when(fileArtifactApi.inspect(any())).thenReturn(changed);
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(changed);
+
+        var inspected = service.inspect(new SiteSurveyReadinessQuery(10L, 1L), 1L, 7L);
+
+        assertEquals("NOT_READY", inspected.readinessStatus());
+        assertFalse(inspected.snapshotCurrent());
+        assertEquals(List.of("FILE_FACT_CHANGED"), inspected.blockerCodes());
+        ReadinessFactVector frozenVector = vector(snapshot);
+        var error = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.lockAndRevalidate(new SiteSurveyReadinessRevalidationQuery(
+                        10L, 1L, 1, 1, 4, 1, 91L, 3L, frozenVector), 1L, 7L));
+        assertEquals(PREPARATION_READINESS_VERSION_CONFLICT.getCode(), error.getCode());
+        verify(snapshotMapper, never()).insert(any());
+        verify(preparationMapper, never()).updateReadinessIfMatch(any());
+    }
+
+    @Test
+    void crossTenantAndExpectedVersionChangesFailClosed() {
+        when(preparationMapper.selectById(any())).thenReturn(null);
+        var crossTenant = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.inspect(new SiteSurveyReadinessQuery(10L, 1L), 2L, 7L));
+        assertEquals(PREPARATION_NOT_EXISTS.getCode(), crossTenant.getCode());
+
+        PreparationDO preparation = preparation();
+        preparation.setLatestReadinessSnapshotId(91L);
+        preparation.setSnapshotCurrent(true);
+        preparation.setReadinessStatusCode("READY");
+        stubLocked(preparation, item(1), form(1));
+        PreparationReadinessSnapshotDO snapshot = snapshot(preparation, 3L);
+        when(snapshotMapper.selectById(any())).thenReturn(snapshot);
+        var versionConflict = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.lockAndRevalidate(new SiteSurveyReadinessRevalidationQuery(
+                        10L, 1L, 1, 1, 3, 1, 91L, 3L, vector(snapshot)), 1L, 7L));
+        assertEquals(PREPARATION_READINESS_VERSION_CONFLICT.getCode(), versionConflict.getCode());
+        var changedVector = new ReadinessFactVector(2, 3L, vector(snapshot).itemFacts(), List.of(), List.of(), List.of());
+        var vectorConflict = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.lockAndRevalidate(new SiteSurveyReadinessRevalidationQuery(
+                        10L, 1L, 1, 1, 4, 1, 91L, 3L, changedVector), 1L, 7L));
+        assertEquals(PREPARATION_READINESS_VERSION_CONFLICT.getCode(), vectorConflict.getCode());
+    }
+
     private void stubLocked(PreparationDO preparation, PreparationItemDO item, DynamicFormInstanceDO form) {
         when(preparationMapper.selectById(any())).thenReturn(preparation);
         when(preparationMapper.selectForUpdate(any())).thenReturn(preparation);
@@ -171,6 +255,15 @@ class PreparationReadinessServiceTest {
         row.setSourcePolicySnapshot("{\"requirementCode\":\"NONE\"}"); return row;
     }
 
+    private PreparationItemDO itemWithEvidence() {
+        PreparationItemDO row = item(1);
+        row.setEvidencePolicySnapshot("{\"required\":true}");
+        row.setEvidenceReferenceSnapshot("[{\"artifactId\":301,\"versionNo\":2,\"referenceKey\":\"SITE\","
+                + "\"fileFactVersion\":{\"artifactVersion\":1,\"referenceVersion\":2,"
+                + "\"availabilityVersion\":3},\"scopeVersion\":1}]");
+        return row;
+    }
+
     private DynamicFormInstanceDO form(int version) {
         DynamicFormInstanceDO row = new DynamicFormInstanceDO(); row.setId(21L); row.setItemId(11L);
         row.setFormCode("POWER"); row.setFormVersion(1); row.setVersion(version); row.setStatusCode("FROZEN");
@@ -190,6 +283,24 @@ class PreparationReadinessServiceTest {
                 + "\"formStatusCode\":\"FROZEN\"}]");
         row.setFileFactsSnapshot("[]"); row.setSourceFactsSnapshot("[]"); row.setWaiverFactsSnapshot("[]");
         row.setBlockersSnapshot("[]"); return row;
+    }
+
+    private PreparationReadinessSnapshotDO snapshotWithFile(PreparationDO preparation, Long scopeVersion) {
+        PreparationReadinessSnapshotDO row = snapshot(preparation, scopeVersion);
+        row.setFileFactsSnapshot("[{\"itemId\":11,\"artifactId\":301,\"versionNo\":2,"
+                + "\"referenceKey\":\"SITE\",\"artifactVersion\":1,\"referenceVersion\":2,"
+                + "\"availabilityVersion\":3,\"scopeVersion\":1,\"availabilityStatus\":\"AVAILABLE\","
+                + "\"referenceStatus\":\"ACTIVE\"}]");
+        return row;
+    }
+
+    private ReadinessFactVector vector(PreparationReadinessSnapshotDO snapshot) {
+        return new ReadinessFactVector(snapshot.getInputVersion(), snapshot.getProjectScopeVersion(),
+                JsonUtils.parseArray(snapshot.getItemFactsSnapshot(),
+                        cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessItemFact.class),
+                JsonUtils.parseArray(snapshot.getFileFactsSnapshot(),
+                        cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.ReadinessFileFact.class),
+                List.of(), List.of());
     }
 
     private String schema() {
