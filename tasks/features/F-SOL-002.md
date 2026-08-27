@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
 > Implementation Done Gate：`PENDING`
 > 当前阻断：`无；INT-05未实施时仅OA必需项保持NOT_READY，不阻断无OA正向主线`
-> 当前任务：`Task 6 实现提交、逐项确认及退回新版本`
+> 当前任务：`Task 7 实现就绪评估、不可变快照与公共重验API`
 > Requirement ID：`PRE-02（V1/P0）`
 > Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
 > Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
@@ -28,7 +28,7 @@
 - [x] Task 3 实现SOL六表持久化原语与固定表单规则（PASS / 979a0588cae59b90359e7c4aab6f7413f2b64377）
 - [x] Task 4 实现模板初始化、当前准备查询与历史投影（PASS / 7f340ba21a41d6eeb5d798d95b4d7285e23c16a9）
 - [x] Task 5 实现逐项指派、填写与精确文件证据（PASS / b94b037）
-- [ ] Task 6 实现提交、逐项确认及退回新版本（实施中）
+- [x] Task 6 实现提交、逐项确认及退回新版本（PASS / 00d43ae90f5dce6fccdc6222db7280a9a78208b1）
 - [ ] Task 7 实现就绪评估、不可变快照与公共重验API
 - [ ] Task 8 实现来源同步异常、外包引用与逐项豁免
 - [ ] Task 9 建设响应式工勘准备界面并退役旧写入口
@@ -59,3 +59,7 @@
 > Task 5候选证据（2026-08-27）：PROJ通过窄`ProjectOrganizationFactApi`提供受信项目公司/部门事实及项目版本锁定重验；SOL候选查询复用SYSTEM组织分页，指派写链依次重验项目经理、项目组织、用户启用状态和组织范围。item/form PATCH按字段存在性分别收窄项目经理与当前负责人写权限，使用多段CAS使旧就绪事实失效并冻结精确FileArtifact版本；文件Provider封闭支持UPLOAD/REPLACE/REFERENCE/DETACH/READ/DOWNLOAD/PREVIEW。地点按批准边界继续由AST独立维护，不进入PRE-02真值。聚焦测试初始19/19、整改后`PreparationItemApplicationServiceTest`5/5 PASS，27模块Reactor BUILD SUCCESS；相关模块全量测试0 failure/0 error，环境条件用例如实跳过。
 
 > Task 5独立裁决（2026-08-27）：候选`bb88a20`经整改提交`b94b037`补齐负责人启用状态重验；独立复审GO，允许回写PASS并推进Task 6。
+
+> Task 6候选与整改证据（2026-08-27）：候选`21496d5`实现提交、确认、不适用确认和退回新版本；整改`00d43ae90f5dce6fccdc6222db7280a9a78208b1`将项目经理提交/确认收敛为对负责人已冻结精确文件槽位执行`READ lockAndRevalidate`，逐项核验文件与范围版本并在同一事务锁定来源事实，同时补齐生命周期、适用性/确认、readiness及退回复制矩阵before/after成功审计。清洁MySQL V1→V97及真实链3/3 PASS，工程模块143项0失败、27模块Reactor BUILD SUCCESS。
+
+> Task 6独立裁决（2026-08-27）：原NO-GO两项经`00d43ae90f5dce6fccdc6222db7280a9a78208b1`闭环；独立复审GO，允许回写PASS并推进Task 7。
