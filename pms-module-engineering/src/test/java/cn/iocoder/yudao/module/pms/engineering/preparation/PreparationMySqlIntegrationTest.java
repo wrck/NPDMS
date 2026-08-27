@@ -4,6 +4,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.core.util.MyBatisUtils;
@@ -115,6 +116,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -287,9 +289,15 @@ class PreparationMySqlIntegrationTest {
 
         login(manager.actorId());
         int preparationVersion = currentPreparationVersion(preparationId);
-        var submitted = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
+        String submitKey = "PRE02-CHAIN-SUBMIT-" + created.id();
+        var submitCommand = new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
                 preparationId, null, preparationVersion, null, created.version(), null,
-                "PRE02-CHAIN-SUBMIT-" + created.id()), reviewActor(manager.actorId(), "SUBMIT", created.id()));
+                submitKey);
+        var submitted = reviewService.execute(submitCommand,
+                reviewActor(manager.actorId(), "SUBMIT", created.id()));
+        var submitReplay = reviewService.execute(submitCommand,
+                reviewActor(manager.actorId(), "SUBMIT-REPLAY", created.id()));
+        assertEquals(submitted, submitReplay);
         preparationVersion = submitted.preparationVersion();
         List<Map<String, Object>> items = jdbcTemplate.queryForList("SELECT id,item_code,version "
                 + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id",
@@ -320,6 +328,27 @@ class PreparationMySqlIntegrationTest {
                 Long.class, preparationId));
         assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
                 + "WHERE tenant_id=0 AND aggregate_key=? AND operation_code='PREPARATION_EVALUATE_READINESS' "
+                + "AND result_code='SUCCESS'", Long.class, String.valueOf(preparationId)));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record "
+                + "WHERE tenant_id=0 AND scope_code='PREPARATION_REVIEW_SUBMIT' AND actor_id=? "
+                + "AND idempotency_key=? AND status='COMPLETED'", Long.class, manager.actorId(), submitKey));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_key=? AND operation_code='PREPARATION_SUBMIT' "
+                + "AND result_code='SUCCESS'", Long.class, String.valueOf(preparationId)));
+
+        int finalVersion = evaluated.readiness().preparationVersion();
+        assertThrows(ServiceException.class, () -> reviewService.execute(new PreparationReviewCommand(
+                PreparationReviewCommand.SUBMIT, preparationId, null, submitCommand.expectedPreparationVersion(),
+                null, created.version(), "不同载荷", submitKey),
+                reviewActor(manager.actorId(), "SUBMIT-CONFLICT", created.id())));
+        assertEquals(finalVersion, currentPreparationVersion(preparationId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=?", Long.class, preparationId));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record "
+                + "WHERE tenant_id=0 AND scope_code='PREPARATION_REVIEW_SUBMIT' AND actor_id=? "
+                + "AND idempotency_key=? AND status='COMPLETED'", Long.class, manager.actorId(), submitKey));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_key=? AND operation_code='PREPARATION_SUBMIT' "
                 + "AND result_code='SUCCESS'", Long.class, String.valueOf(preparationId)));
     }
 
