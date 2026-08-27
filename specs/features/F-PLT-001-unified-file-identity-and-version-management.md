@@ -73,6 +73,7 @@
 - `pms-module-platform-api`定义`FileBusinessObjectPolicyProvider`，业务Owner按`ownerContext+objectType`实现对象存在、动作权限、用途策略、引用可变性和业务范围事实；PLT仅调用公共Provider，不读异域表。
 - 动作值域封闭为`UPLOAD/REFERENCE/READ/DOWNLOAD/PREVIEW/REPLACE/DETACH/ARCHIVE/INVALIDATE`。空动作、未知动作、无Provider、多个Provider命中、越租户、空业务范围或Provider异常均失败关闭。
 - Provider只返回授权结论、`scopeVersion`和用途策略，不返回业务正文。PLT写命令在提交前用同一受信租户重验`scopeVersion`；范围变化返回版本冲突且无成功文件引用副作用。
+- Provider另提供集合级`inspectReferenceSet/lockAndRevalidateReferenceSet`，输入完整`ownerContext/objectType/objectId/purposeCode`集合键且不含referenceKey；即使集合没有ACTIVE引用，也必须完成`READ`授权或取得该集合namespace的Owner锁。该Owner锁必须序列化同一namespace的全部PLT成员写：创建引用（含上传完成和既有版本attach）、replace、detach、archive均须先经相同集合锁，再写PLT引用；因此锁持有期间不能并发插入、删除或改变成员，空集合也具有同等保护。
 - 首个SOL Provider只支持`CONSTRUCTION_PLAN_CHANGE/CUSTOMER_DELAY_EVIDENCE`，通过现有ProjectScope和SOL对象事实判断当前项目经理、主责服务经理及查询主体；它不写PRE-01状态，不把文件扫描通过解释为工期变更审批通过。
 
 ### BR-FPLT001-005 功能权限与短时访问
@@ -87,6 +88,7 @@
 | 归档/失效 | `pms:file:archive` | `ARCHIVE/INVALIDATE` | 业务Owner授权；追加归档事实 |
 
 - 前端按钮不构成权限真值；服务端依次校验受信租户、功能权限、业务对象Provider、用途策略、版本状态和CAS。
+- 面向用户的REST文件元数据查询仍必须校验`pms:file:query`。模块内批量引用集合事实API不额外要求该用户功能权限；消费方自身功能权限和项目/对象范围由对应业务Owner Provider在集合`READ` inspect或锁定重验中校验，PLT不得据此放宽用户REST入口。
 - 下载/预览生成短时、最小权限的访问授权；PLT持久化授权事实和不可逆token摘要，不持久化短时URL。对象存储桶保持私有，URL过期或撤销后重新授权。
 
 ### BR-FPLT001-006 INFRA复用与已批准例外
@@ -134,7 +136,9 @@
 
 - `FileArtifactApi.inspect(FileArtifactVersionQuery)`：输入artifactId、versionNo、业务对象、用途、非空referenceKey和requiredAction；referenceKey与物理稳定键中的同名字段一致，按受信租户只检查该精确引用槽位，返回同一referenceKey、由`artifactVersion/referenceVersion/availabilityVersion`组成的`fileFactVersion`及业务`scopeVersion`；
 - `FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)`：除inspect稳定键和同一referenceKey外必须输入`expectedFileFactVersion`和`expectedScopeVersion`。同一事务先调用业务Provider锁定重验scope，再依次锁定Artifact、精确FileVersion、按完整稳定键定位的精确FileReference；锁后验证该Reference的artifactId、versionNo、status和referenceVersion，再比较版本可用性、Artifact生命周期及scopeVersion。任一变化、缺失或越租户均返回版本冲突且无消费方成功副作用；referenceKey为空或未命中不得省略条件并扩大查询。
-- `FileBusinessObjectPolicyProvider.inspect(...)`提供读取事实；`lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery)`按expectedScopeVersion锁定业务Owner事实并保持到调用事务结束，返回用途策略、引用可变性和当前scopeVersion；
+- `FileArtifactApi.inspectReferenceSets(FileReferenceSetCollectionQuery)`：以受信tenant和actor读取至少一个互不重复的完整集合键`ownerContext/objectType/objectId/purposeCode`，`requiredAction`固定为`READ`；每个结果返回该集合唯一的Provider `scopeVersion`及仅含`ACTIVE`引用、按`referenceKey`升序排列的完整`FileArtifactVersionFact[]`。每项事实保留既有scopeVersion字段时必须逐项等于集合scopeVersion，不形成第二套范围版本。集合当前没有`ACTIVE`引用时仍先通过集合Provider授权并返回显式空数组；`DETACHED/ARCHIVED`引用不进入集合，inspect不锁表、不写业务事实、审计或其他PLT数据。
+- `FileArtifactApi.lockAndRevalidateReferenceSets(FileReferenceSetCollectionRevalidationQuery)`：每个集合输入同一完整键、`expectedScopeVersion`及按`referenceKey`升序且无重复键的完整期望`FileArtifactVersionFact[]`，空期望数组有效，`requiredAction`只允许`READ`。PLT先按`ownerContext/objectType/objectId/purposeCode`稳定排序，通过集合级Provider `lockAndRevalidateReferenceSet`取得并保持全部namespace锁；随后才进入PLT锁阶段，在全批次内依次按稳定键锁定全部Artifact、精确FileVersion和完整键下的FileReference集合，取得第一个PLT锁后不得再次调用任何业务Provider。集合Owner锁与所有成员写共享同一序列化边界，因此包括空集合在内，锁持有期间不能并发插入或改变成员；锁后仅将当前`ACTIVE`引用组成事实集合并与期望集合严格相等比较。缺少、增加、换版、状态、三段fileFactVersion、集合scopeVersion或文件可用性任一变化均冲突且无消费方成功副作用，`DETACHED/ARCHIVED`始终排除。
+- `FileBusinessObjectPolicyProvider.inspect(...)`提供单槽读取事实；`lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery)`按expectedScopeVersion锁定业务Owner事实并保持到调用事务结束。集合方法`inspectReferenceSet(FileBusinessObjectReferenceSetQuery)`和`lockAndRevalidateReferenceSet(FileBusinessObjectReferenceSetRevalidationQuery)`接收不含referenceKey的完整集合键，分别完成集合READ授权及namespace锁定重验；空集合同样调用。SOL集合scopeVersion唯一取自PROJ `treeVersion`，不因SOL正文PATCH或附件成员变化自行递增；
 - `FileSecurityScanProvider.scan(FileSecurityScanCommand)`：PLT内部技术Provider，只在部署启用扫描时装配和调用，返回`PASSED/REJECTED/ERROR`及非敏感扫描版本/原因码；启用后未配置、重复或异常时完成上传失败关闭。关闭时不调用Provider，由PLT策略层记录`SKIPPED`及空Provider事实。
 
 `artifactVersion`随Artifact生命周期变化递增，`referenceVersion`随绑定版本、引用状态或持久化范围事实变化递增，`availabilityVersion`随精确FileVersion的可用/失效/恢复变化递增；内容字段保持不可变。返回事实不包含文件正文、storagePath、INFRA URL或访问token。SOL冻结`artifactId+versionNo+referenceKey+fileFactVersion+scopeVersion`，并在自身事务以同一referenceKey通过`lockAndRevalidate`重验；PLT不接收SOL审批结论。
@@ -183,6 +187,7 @@
 - `AC-FPLT001-015`：四类锁定文件事件与业务事实同事务进入Outbox，eventId重放不重复业务事实；业务失败无成功事件。
 - `AC-FPLT001-016`：SOL冻结fileFactVersion三段及scopeVersion；Artifact生命周期、Reference绑定/状态、Version可用性或业务范围任一变化后锁定重验失败且无SOL/BPM成功副作用。
 - `AC-FPLT001-017`：同一对象和purposeCode存在多个referenceKey时，inspect与lockAndRevalidate只命中请求指定的同一槽位；空referenceKey失败关闭且不返回其他槽位事实。
+- `AC-FPLT001-018`：批量引用集合inspect以受信主体和`READ`读取多个完整业务集合键，按referenceKey返回全部当前ACTIVE事实且纯只读零写；无ACTIVE引用仍经过Provider授权并返回显式空集合，DETACHED/ARCHIVED不混入。锁定重验先按完整集合键取得全部Provider namespace锁，再按全局稳定Artifact→Version→Reference顺序锁定且不回调Provider；所有attach/replace/detach/archive共享该namespace锁，验证非空集合成员写与空集合并发插入都被序列化。集合唯一scopeVersion与每项事实一致，SOL使用PROJ treeVersion且SOL PATCH不改变它；空集合及ACTIVE集合完全一致才成功，增加、缺少、换版、状态、文件事实、可用性或scopeVersion变化均失败且无消费方成功副作用。内部批量事实调用不要求`pms:file:query`，但Provider必须校验消费方自身权限，用户REST元数据查询仍要求该权限。
 
 ## 8. 测试与证据
 

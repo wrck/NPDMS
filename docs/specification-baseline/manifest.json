@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "31aa9ed4ab2a0898b61bcdfb5d97e4280abfd08e"
+    "commit": "4e2916e4f71cfa64ee158d0f0571be483f8a9753"
   },
   "files": [
     {
@@ -453,12 +453,12 @@
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "aaa341ccf55033dbedb798d49c26525b1899be6909be1139679bf8c55f31989e"
+      "sha256": "300b4325706589ae323b101a35f25a6b7ba045ca35efc2e7a9301947e2b8768e"
     },
     {
       "path": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
       "category": "FEATURE_SPEC",
-      "sha256": "5200e6429d9b30f0d4a94098652398d1809f077c7fcc6fc86c8f8e7270f05ea8"
+      "sha256": "0ff8f9a6f69622160f60d06d079f61f9b534ef7500cd039c6dfab17297b2efa3"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -548,12 +548,12 @@
     {
       "path": "specs/features/F-SOL-003-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "0a08956f02ce0688c12367e5d23353978f21adb440d427ca55f41dabd3495c6a"
+      "sha256": "7a8d100335eaa6c2b469293487a2a58ab5759db388eb9ea748468e5f6568d8b7"
     },
     {
       "path": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
       "category": "FEATURE_SPEC",
-      "sha256": "b31dc1e916d70b7b3b68b7bd6dbb198bc80044f8c5160a00c7c18809e5147bf5"
+      "sha256": "47b695c0b3f4a1a4139c40e80ce8e91ab3a88880110fbee2acb0bd603f70bc38"
     },
     {
       "path": "specs/features/README.md",
