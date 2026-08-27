@@ -54,7 +54,7 @@
           <div class="evidence-heading">
             <div>
               <strong>客户延期依据</strong>
-              <span>文件上传完成后仍需服务端校验与扫描，审批冻结具体版本。</span>
+              <span>文件上传完成后仍需服务端执行适用校验，审批冻结具体版本。</span>
             </div>
             <el-tag v-if="draft?.customerEvidenceRequired" type="danger">必填</el-tag>
           </div>

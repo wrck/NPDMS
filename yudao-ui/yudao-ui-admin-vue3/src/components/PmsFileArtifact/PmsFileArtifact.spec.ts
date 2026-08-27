@@ -33,6 +33,16 @@ describe('F-PLT-001 shared file components', () => {
     expect(uploader).toContain('attempt.value.initKey')
     expect(uploader).toContain('attempt.value.completeKey')
     expect(uploader).toContain("emit('completed', completed)")
+    expect(uploader).toContain('是否执行安全扫描由部署配置决定')
+    expect(uploader).not.toContain('服务端正在校验与扫描')
+    expect(durationForm).not.toContain('服务端校验与扫描')
+  })
+
+  it('shows PASSED and SKIPPED as distinct scan facts in desktop and narrow history', () => {
+    expect(versions).toContain('scanStatusLabel(scope.row.scanStatus)')
+    expect(versions).toContain('scanStatusLabel(item.scanStatus)')
+    expect(versions).toContain('已执行并通过扫描')
+    expect(versions).toContain('未执行安全扫描（不代表安全）')
   })
 
   it('uses server allowed actions for access and short-lived tickets', () => {

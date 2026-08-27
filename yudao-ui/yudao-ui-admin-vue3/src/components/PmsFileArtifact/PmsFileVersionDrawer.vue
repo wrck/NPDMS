@@ -12,6 +12,13 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="安全扫描" min-width="230">
+          <template #default="scope">
+            <el-tag :type="scanStatusTagType(scope.row.scanStatus)">
+              {{ scanStatusLabel(scope.row.scanStatus) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="大小" min-width="110">
           <template #default="scope">{{ formatSize(scope.row.sizeBytes) }}</template>
         </el-table-column>
@@ -24,6 +31,7 @@
             ><el-tag size="small">{{ availabilityLabel(item.availabilityStatus) }}</el-tag></div
           >
           <span>{{ formatSize(item.sizeBytes) }} · {{ item.createdAt }}</span>
+          <span class="scan-fact">{{ scanStatusLabel(item.scanStatus) }}</span>
         </article>
       </div>
       <el-button v-if="hasMore" :loading="loading" class="load-more" @click="loadMore"
@@ -35,6 +43,7 @@
 
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
+import { computed, ref } from 'vue'
 import * as FileApi from '@/api/pms/platform/file'
 import type { FileBusinessKey, FileVersionVO } from '@/api/pms/platform/file'
 
@@ -84,6 +93,13 @@ const availabilityLabel = (status: string) =>
     INVALIDATED: '已失效',
     UNAVAILABLE: '暂不可用'
   })[status] || status
+const scanStatusLabel = (status: string) =>
+  status === 'PASSED'
+    ? '已执行并通过扫描'
+    : status === 'SKIPPED'
+      ? '未执行安全扫描（不代表安全）'
+      : '扫描状态未知'
+const scanStatusTagType = (status: string) => (status === 'PASSED' ? 'success' : 'info')
 
 defineExpose({ open })
 </script>
@@ -111,6 +127,10 @@ defineExpose({ open })
   margin-top: 6px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.version-card .scan-fact {
+  color: var(--el-text-color-regular);
 }
 
 .load-more {

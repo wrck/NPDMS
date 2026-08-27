@@ -15,12 +15,14 @@
       <Icon icon="ep:upload-filled" class="upload-icon" />
       <div class="el-upload__text">拖放文件到这里，或<em>点击选择</em></div>
       <template #tip>
-        <div class="upload-tip">单文件不超过 50MB；上传完成后仍需服务端校验和安全扫描。</div>
+        <div class="upload-tip">
+          单文件不超过 50MB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
+        </div>
       </template>
     </el-upload>
     <el-progress v-if="busy" :percentage="progress" class="upload-progress" />
     <div v-if="busy" class="upload-state" role="status" aria-live="polite">
-      {{ stage === 'UPLOADING' ? '正在上传文件' : '上传完成，服务端正在校验与扫描' }}
+      {{ stage === 'UPLOADING' ? '正在上传文件' : '上传完成，服务端正在执行适用校验' }}
     </div>
     <el-button
       :disabled="!selectedFile || disabled"
