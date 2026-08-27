@@ -1,22 +1,22 @@
-# F-PLT-002 共享动态表单模板与实例基础能力 Feature Spec
+# F-PLT-002 共享动态表单模板与实例基础能力功能规格
 
 > 文档状态：`BASELINE`
-> Feature Ready：`READY / GO NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`
-> Primary Requirement：`SOL-01（V2/P1）`
-> Supporting Requirement：`PRE-04（V1/P0）`、`PM-03（V1/P0）`、`PM-11（V1/P1）`
-> Owner Context：`PLT（基础平台 Dynamic Form Capability）`
-> 前置Feature：`F-PLT-001`
-> 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`及本Feature随附的聚焦前向修订
+> 功能就绪：`READY / GO NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`
+> 主需求：`SOL-01（V2/P1）`
+> 支撑需求：`PRE-04（V1/P0）`、`PM-03（V1/P0）`、`PM-11（V1/P1）`
+> 所有者上下文：`PLT（基础平台动态表单能力）`
+> 前置功能：`F-PLT-001`
+> 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`及本功能随附的聚焦前向修订
 > 需求方决策：先建设不裁剪FormCreate能力的共享模板配置与手工实例闭环，再接入WorkBinding和PRE-04版本化
-> Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成
+> 技术计划：功能就绪独立GO且NPDMS锁定新规格提交后全新生成
 
 ## 1. 目标
 
 在基础平台建立可独立使用、可被后续业务模块复用的动态表单能力：获权管理员使用仓库已经装配的完整FormCreate设计器配置模板，发布不可变模板修订；普通获权用户浏览、预览并手工选择当前可用模板，创建冻结到明确修订的表单实例，动态渲染、填写、保存和刷新恢复。
 
-本Feature先闭合“配置模板 → 发布修订 → 手工选模板 → 创建实例 → 动态填写 → 保存并刷新”的正向链路。WorkBinding自动选模、PRE-04十一项业务语义及其版本化改造在该基础能力完成后重新规划；不得再以单一消费者的冻结配置替代共享模板和动态表单基础能力。
+本功能先闭合“配置模板 → 发布修订 → 手工选模板 → 创建实例 → 动态填写 → 保存并刷新”的正向链路。WorkBinding自动选模、PRE-04十一项业务语义及其版本化改造在该基础能力完成后重新规划；不得再以单一消费者的冻结配置替代共享模板和动态表单基础能力。
 
-## 2. Scope
+## 2. 范围
 
 ### 2.1 包含
 
@@ -38,7 +38,7 @@
 - 服务端执行模板脚本、服务端代理模板配置的接口请求，或把模板事件执行成功解释为业务命令成功；
 - 动态表单实例提交/审批/完成状态机、实例不可变业务版本、实例对比、批量导入导出或模板删除；
 - 修改或迁移BPM表单、旧`pms_eng_form_template/pms_eng_form_instance`、旧需求分析页面、类、接口、数据、菜单和权限；
-- Deployment、SIT、UAT、Release及历史数据迁移。
+- 部署、系统集成测试、用户验收测试、发布及历史数据迁移。
 
 ## 3. 业务与实现规则
 
@@ -65,7 +65,7 @@
 - 模板列表稳定分页并明确显示`DRAFT/PUBLISHED`修订、`ENABLED/DISABLED`可用性、当前发布修订号和允许动作。预览必须使用待预览的明确修订，不以模板当前指针替代请求修订。
 - 手工选择只返回当前`ENABLED`且存在当前`PUBLISHED`修订的模板；返回模板ID、模板编码/名称、当前发布修订ID/号、引擎版本和展示摘要，不返回其他租户模板。
 - 创建实例请求携带选择结果中的明确`templateRevisionId`和模板期望版本。服务端锁定模板及修订，确认仍为该模板当前发布修订且模板仍启用后，创建实例并冻结模板ID、修订ID/号和引擎版本；选择后模板被停用或发布指针变化时返回版本冲突，不静默改用新修订。
-- 本Feature的用户REST只创建`ownerContext=PLATFORM/objectType=MANUAL_DYNAMIC_FORM`的手工实例；owner/object/purpose不允许请求自报。其他Context接入需后续Feature定义Owner Provider和受信内部命令。
+- 本功能的用户REST只创建`ownerContext=PLATFORM/objectType=MANUAL_DYNAMIC_FORM`的手工实例；owner/object/purpose不允许请求自报。其他上下文接入需由后续功能定义所有者Provider和受信内部命令。
 - 同一创建意图在响应未知后必须保留`Idempotency-Key`。同键同规范化载荷重放原实例，同键异载荷冲突，进行中重复返回既有平台稳定`IN_PROGRESS`业务错误且无第二实例。
 
 ### BR-FPLT002-004 实例动态渲染与保存
@@ -74,15 +74,15 @@
 - 普通字段值保存为JSON对象，字段缺失与显式`null/false/0/空字符串/空数组`保持可区分；服务端不把合法假值当作未填写。PATCH只更新请求中出现的普通字段，并拒绝实例没有冻结字段键的值。
 - `PmsFileArtifact`字段不接受通过普通PATCH伪造文件值；它由专用控件调用F-PLT-001上传、换版、解绑和读取接口，实例详情按冻结字段键组装当前`ACTIVE`精确文件事实。
 - 每次成功PATCH以`If-Match`递增实例版本并记录字段键级变化摘要；并发后提交者返回版本冲突，不覆盖先提交值。失败保持最近一次成功值。
-- 本Feature不提供实例提交、完成、删除或模板切换命令。一个实例创建后永久绑定原修订；需要不同模板时创建新实例。
+- 本功能不提供实例提交、完成、删除或模板切换命令。一个实例创建后永久绑定原修订；需要不同模板时创建新实例。
 
 ### BR-FPLT002-005 FileArtifact字段与普通上传控件并存
 
 - `PmsFileArtifact`字段在F-PLT-001中的业务键固定为`ownerContext=PLATFORM/objectType=DYNAMIC_FORM_INSTANCE/objectId={instanceId}/purposeCode=FORM_FIELD_ATTACHMENT/{fieldKey}/referenceKey={slotKey}`；`slotKey`为客户端为同一上传意图稳定保留的UUID。
 - PLT的动态表单文件Provider只对当前租户、存在的实例、冻结修订中真实存在的`PmsFileArtifact`字段和当前主体动作授权。手工实例创建者在具备实例编辑及对应文件权限时可上传、换版和解绑；获权只读用户只能读取、下载或预览。
 - 实例详情中的受控文件值仅投影`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/status`，不返回存储键或永久URL。文件访问、扫描事实、版本、短时票据和审计继续由F-PLT-001负责。
-- 现有FormCreate普通上传、图片上传控件继续保留，其URL/普通JSON值只作为表单普通值，不得被后续业务Feature当作已冻结FileArtifact证据。需要业务附件版本和权限真值时必须选择`PmsFileArtifact`字段。
-- 文件命令成功而普通值PATCH失败不会伪造实例保存；FileArtifact字段直接以当前PLT引用事实展示，响应未知按原slotKey重试。实例没有完成/发布状态，因此本Feature不再复制一套附件快照或PENDING状态机。
+- 现有FormCreate普通上传、图片上传控件继续保留，其URL/普通JSON值只作为表单普通值，不得被后续业务功能当作已冻结FileArtifact证据。需要业务附件版本和权限真值时必须选择`PmsFileArtifact`字段。
+- 文件命令成功而普通值PATCH失败不会伪造实例保存；FileArtifact字段直接以当前PLT引用事实展示，响应未知按原slotKey重试。实例没有完成/发布状态，因此本功能不再复制一套附件快照或PENDING状态机。
 
 ### BR-FPLT002-006 权限与动作投影
 
@@ -97,7 +97,7 @@
 
 - 页面按钮不构成授权。查询返回的`allowedActions`按受信租户、功能权限、模板/修订/实例状态、创建者和版本精确计算；命令端在锁定后重新校验。
 - 模板权限不授予业务Context权限，模板事件/接口选择器也不能获得当前用户原本没有的服务端操作权。请求不得自报tenantId、actorUserId、角色或权限。
-- 不在本Feature创建业务角色或默认授予普通角色；迁移只创建菜单与权限资源，内置超级管理员沿平台既有规则访问，其他角色由现有权限管理显式授权。
+- 不在本功能创建业务角色或默认授予普通角色；迁移只创建菜单与权限资源，内置超级管理员沿平台既有规则访问，其他角色由现有权限管理显式授权。
 
 ### BR-FPLT002-007 幂等、并发、审计与失败语义
 
@@ -111,8 +111,8 @@
 
 - 设计前审计已经完成，唯一实施映射见[`F-PLT-002-legacy-form-reuse-audit.md`](F-PLT-002-legacy-form-reuse-audit.md)：BPM的`fc-designer`、`useFormCreateDesigner`、FormCreate编码/解码与全局运行时装配直接复用；BPM页面级配置及保存/复制/恢复体验、旧PMS表单的FormCreate载荷/冻结意图/CAS与列表交互复制到新的PLT目标后增强；旧工程域状态机、原始JSON编辑、旧CRUD/API/表及业务条件不复用。
 - 旧需求分析11项标签、Editor交互和项目入口的复用决策也已冻结：PLT只负责无损承载动态schema和富文本运行时，PRE-04业务模板与WorkBinding项目入口待F-SOL-003重规划后复制增强；F-PLT-002不提前硬编码业务字段或修改旧入口。
-- 禁止直接改造旧实体、Service、Controller、API文件、路由或页面来承载本Feature，禁止新旧双写、自动迁移或让旧表成为PLT新真值。旧功能、数据、菜单和内置超级管理员访问保持原状。
-- F-PLT-002 Implementation Done后，F-SOL-003必须基于该锁定能力重新修订Feature Spec和生成全新Technical Plan：PRE-04仍由项目WorkBinding自动确定并冻结模板，用户无项目内手工选模步骤；本Feature的手工选择只是基础能力闭环和后续其他场景入口。
+- 禁止直接改造旧实体、Service、Controller、API文件、路由或页面来承载本功能，禁止新旧双写、自动迁移或让旧表成为PLT新真值。旧功能、数据、菜单和内置超级管理员访问保持原状。
+- F-PLT-002实施完成后，F-SOL-003必须基于该锁定能力重新修订功能规格和生成全新技术计划：PRE-04仍由项目WorkBinding自动确定并冻结模板，用户无项目内手工选模步骤；本功能的手工选择只是基础能力闭环和后续其他场景入口。
 - 后续SCH、IMP、ACC、CUT消费者分别拥有自身业务状态、必填、评分、审批、完成和版本语义；共享动态表单只提供模板修订、渲染和值/文件字段载体，不得把通用实例保存解释为领域业务完成。
 
 ## 4. API契约
@@ -132,7 +132,7 @@
 | `/dynamic-form-instances` | `GET/POST` | 分页查询本人可见手工实例；POST按明确当前发布修订幂等创建 |
 | `/dynamic-form-instances/{instanceId}` | `GET/PATCH` | 返回冻结schema和值；PATCH普通字段要求`If-Match`，拒绝文件字段伪造 |
 
-本Feature不新增面向其他Context的空`-api`契约。WorkBinding/PRE-04形成真实调用方时，再基于本Feature物理事实新增最窄`inspect/lockAndRevalidate/create`公共API，不允许消费者依赖PLT Service、Mapper或表。
+本功能不新增面向其他上下文的空`-api`契约。WorkBinding/PRE-04形成真实调用方时，再基于本功能物理事实新增最窄`inspect/lockAndRevalidate/create`公共API，不允许消费者依赖PLT Service、Mapper或表。
 
 ## 5. 数据与物理边界
 
@@ -164,15 +164,15 @@
 - `AC-FPLT002-009`：真实MySQL验证唯一草稿、当前发布指针、不可变revision、模板停用、CAS、幂等、回滚、租户隔离及FileArtifact Provider；空库Flyway migrate/info/validate通过。
 - `AC-FPLT002-010`：真实浏览器在320/768/1024/1440完成模板配置→预览→发布→启用→手工选择→实例填写→FileArtifact→保存→刷新闭环，并记录网络、console/page error和截图；无当前功能意外错误。
 - `AC-FPLT002-011`：BPM、旧`pms_eng_form_*`和旧需求分析类、页面、接口、数据及功能保持不变；新实现位于新的PLT类/页面，代码和测试可逐项追到已完成审计的映射ID，增强只发生在复制的新实现或明确的新PLT组合层上。
-- `AC-FPLT002-012`：不宣称WorkBinding、PRE-04版本化、SCH/IMP/ACC/CUT消费者、Deployment、SIT、UAT或Release完成；旧F-SOL-003 Technical Plan不得继续使用。
+- `AC-FPLT002-012`：不宣称WorkBinding、PRE-04版本化、SCH/IMP/ACC/CUT消费者、部署、系统集成测试、用户验收测试或发布完成；旧F-SOL-003技术计划不得继续使用。
 
 ## 8. 测试与证据
 
-按用户指定方式先完成一个整体正向闭环，再集中执行完整验证，不以每个微步骤单独形成阶段性PASS。Feature Done至少需要：模板/修订/实例应用测试、权限与幂等负向、真实MySQL迁移/事务/并发、FormCreate组件运行时测试、F-PLT-001字段集成、前端类型检查与构建、真实浏览器四视口闭环，以及独立代码复审。
+按用户指定方式先完成一个整体正向闭环，再集中执行完整验证，不以每个微步骤单独形成阶段性PASS。功能完成至少需要：模板/修订/实例应用测试、权限与幂等负向、真实MySQL迁移/事务/并发、FormCreate组件运行时测试、F-PLT-001字段集成、前端类型检查与构建、真实浏览器四视口闭环，以及独立代码复审。
 
-旧实现审计已由[`F-PLT-002-legacy-form-reuse-audit.md`](F-PLT-002-legacy-form-reuse-audit.md)完成并成为锁定实现输入。Implementation Done证据必须证明三组旧路径相对实施基线零修改、旧路由/API/页面仍按原权限工作，并将新实现逐项追到审计映射ID；不得通过修改旧实现来使新测试通过。
+旧实现审计已由[`F-PLT-002-legacy-form-reuse-audit.md`](F-PLT-002-legacy-form-reuse-audit.md)完成并成为锁定实现输入。实施完成证据必须证明三组旧路径相对实施基线零修改、旧路由/API/页面仍按原权限工作，并将新实现逐项追到审计映射ID；不得通过修改旧实现来使新测试通过。
 
-## 9. Definition of Ready
+## 9. 就绪定义
 
 | 项目 | 当前状态 |
 |---|---|
@@ -182,6 +182,6 @@
 | 手工选择与实例保存正向闭环 | PASS（本候选） |
 | WorkBinding/PRE-04及其他消费者排除边界 | PASS（本候选） |
 | 设计前旧实现完整审计及保持不变/复制增强映射 | PASS（本候选审计附件、机器契约及NPDMS根级实施约束） |
-| 独立Feature Ready裁决 | PASS（`NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`） |
+| 独立功能就绪裁决 | PASS（`NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`） |
 
-结论：`BASELINE / READY`。Feature Ready 已由独立裁决 `NPDMS-FPLT002-FEATURE-READY-20260828-01-R1` 批准；须锁定本次规格提交并同步NPDMS后，全新生成并独立评审Technical Plan。本裁决不是Technical Plan、Implementation、Deployment、SIT、UAT或Release授权。
+结论：`BASELINE / READY`。功能就绪已由独立裁决 `NPDMS-FPLT002-FEATURE-READY-20260828-01-R1` 批准；须锁定本次规格提交并同步NPDMS后，全新生成并独立评审技术计划。本裁决不是技术计划、实施、部署、系统集成测试、用户验收测试或发布授权。

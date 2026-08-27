@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "b2da65a0ae01ad5bef079ad7e027423e4b5d57f5"
+    "commit": "a04aa0fa25194ca0cd5e157d7c16c3c42a26ff7f"
   },
   "files": [
     {
@@ -473,7 +473,7 @@
     {
       "path": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
       "category": "FEATURE_SPEC",
-      "sha256": "d212c23a1c0b8b326dde5adf0bbd1f643a5a901016c31ebf8298480b534e5ddd"
+      "sha256": "eb778365bdb561caada1af89a8aa169415c15389bc3e53e166ac453259b60afd"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
