@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -30,6 +31,21 @@ class DeviceControllerContractTest {
     void shouldExposeAssignmentActionEndpoints() {
         assertActionEndpoint("assignProject", "/{id}/actions/assign-project");
         assertActionEndpoint("assignCustomer", "/{id}/actions/assign-customer");
+    }
+
+    @Test
+    void shouldExposeConfigurationLogEndpoints() throws Exception {
+        assertEndpoint("getConfigurationLogs", "/{id}/configuration-logs", "pms:device:query");
+        assertPostEndpoint("createConfigurationLogDownloadUrl",
+                "/{id}/configuration-logs/{logId}/download-url", "pms:device-configuration-log:download");
+        assertEndpoint("downloadConfigurationLog",
+                "/{id}/configuration-logs/download", "pms:device:query");
+        Method download = java.util.Arrays.stream(DeviceController.class.getDeclaredMethods())
+                .filter(candidate -> candidate.getName().equals("downloadConfigurationLog"))
+                .findFirst().orElseThrow();
+        assertTrue(java.util.Arrays.stream(download.getParameters())
+                .anyMatch(parameter -> parameter.isAnnotationPresent(RequestParam.class)
+                        && "token".equals(parameter.getAnnotation(RequestParam.class).value())));
     }
 
     @Test
@@ -63,6 +79,18 @@ class DeviceControllerContractTest {
         assertEquals("@ss.hasPermission('pms:device:assign')", authorize.value());
         assertRequiredHeader(method, "Idempotency-Key");
         assertRequiredHeader(method, "If-Match");
+    }
+
+    private static void assertPostEndpoint(String methodName, String path, String permission) {
+        Method method = java.util.Arrays.stream(DeviceController.class.getDeclaredMethods())
+                .filter(candidate -> candidate.getName().equals(methodName))
+                .findFirst().orElseThrow();
+        PostMapping mapping = method.getAnnotation(PostMapping.class);
+        assertNotNull(mapping);
+        assertArrayEquals(new String[]{path}, mapping.value());
+        PreAuthorize authorize = method.getAnnotation(PreAuthorize.class);
+        assertNotNull(authorize);
+        assertEquals("@ss.hasPermission('" + permission + "')", authorize.value());
     }
 
     private static void assertRequiredHeader(Method method, String headerName) {

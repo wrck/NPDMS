@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.DeviceLocationProjectionUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -25,6 +26,12 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .eq(DeviceDO::getTenantId, tenantId)
                 .eq(DeviceDO::getId, id));
     }
+
+    DeviceDO selectByTenantAndIdForUpdate(
+            @Param("tenantId") Long tenantId,
+            @Param("id") Long id);
+
+    int updateLocationProjection(@Param("update") DeviceLocationProjectionUpdate update);
 
     default PageResult<DeviceListProjection> selectVisibleDevicePage(VisibleDevicePageQuery query) {
         PageResult<DeviceListProjection> empty = emptyWhenInvisible(query);

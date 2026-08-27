@@ -20,8 +20,14 @@ import cn.iocoder.yudao.module.pms.asset.service.assignment.command.AssignDevice
 import cn.iocoder.yudao.module.pms.asset.service.assignment.command.AssignDeviceProjectCommand;
 import cn.iocoder.yudao.module.pms.asset.service.assignment.command.DeviceCustomerAssignmentResult;
 import cn.iocoder.yudao.module.pms.asset.service.assignment.command.DeviceProjectAssignmentResult;
+import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationDownloadGrant;
+import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationFileContent;
+import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogDownloadService;
+import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogMetadata;
+import cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceConfigurationLogQueryService;
 import cn.iocoder.yudao.module.pms.asset.service.device.DeviceDetailService;
 import cn.iocoder.yudao.module.pms.asset.service.device.DeviceQueryService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -33,8 +39,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -54,6 +62,8 @@ public class DeviceController {
     private final DeviceDetailService deviceDetailService;
     private final DeviceProjectAssignmentService projectAssignmentService;
     private final DeviceCustomerAssignmentService customerAssignmentService;
+    private final DeviceConfigurationLogQueryService configurationLogQueryService;
+    private final DeviceConfigurationLogDownloadService configurationLogDownloadService;
 
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
@@ -70,6 +80,37 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<DeviceDetailRespVO> getDevice(@PathVariable("id") Long id) {
         return success(deviceDetailService.getDetail(id));
+    }
+
+    @GetMapping("/{id}/configuration-logs")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<List<DeviceConfigurationLogMetadata>> getConfigurationLogs(@PathVariable("id") Long id) {
+        return success(configurationLogQueryService.getList(
+                currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), id));
+    }
+
+    @PostMapping("/{id}/configuration-logs/{logId}/download-url")
+    @PreAuthorize("@ss.hasPermission('pms:device-configuration-log:download')")
+    public CommonResult<DeviceConfigurationDownloadGrant> createConfigurationLogDownloadUrl(
+            @PathVariable("id") Long id,
+            @PathVariable("logId") Long logId) {
+        return success(configurationLogDownloadService.issueGrant(
+                currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), id, logId));
+    }
+
+    @GetMapping("/{id}/configuration-logs/download")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public void downloadConfigurationLog(
+            @PathVariable("id") Long id,
+            @RequestParam("token") String token,
+            HttpServletResponse response) throws IOException {
+        DeviceConfigurationFileContent file = configurationLogDownloadService.download(
+                currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), id, token);
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + file.fileName() + "\"");
+        try (var inputStream = file.content(); var outputStream = response.getOutputStream()) {
+            inputStream.transferTo(outputStream);
+        }
     }
 
     @PostMapping("/{id}/actions/assign-project")

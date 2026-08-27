@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.DeviceAssemblyMapper">
+
+    <select id="existsBySource" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM ast_device_assembly
+            WHERE tenant_id = #{query.tenantId}
+              AND source_system = #{query.sourceSystem}
+              AND source_key = #{query.sourceKey}
+              AND deleted = b'0'
+        )
+    </select>
+
+    <select id="existsPath" resultType="boolean">
+        WITH RECURSIVE assembly_path AS (
+            SELECT child_device_sn
+            FROM ast_device_assembly
+            WHERE tenant_id = #{query.tenantId}
+              AND parent_device_sn = #{query.ancestorDeviceSn}
+              AND effective_to IS NULL
+              AND deleted = b'0'
+            UNION DISTINCT
+            SELECT relation.child_device_sn
+            FROM ast_device_assembly relation
+            JOIN assembly_path path
+              ON path.child_device_sn = relation.parent_device_sn
+            WHERE relation.tenant_id = #{query.tenantId}
+              AND relation.effective_to IS NULL
+              AND relation.deleted = b'0'
+        )
+        SELECT EXISTS(
+            SELECT 1
+            FROM assembly_path
+            WHERE child_device_sn = #{query.descendantDeviceSn}
+        )
+    </select>
+
+    <update id="closeCurrentByChild">
+        UPDATE ast_device_assembly
+        SET effective_to = #{effectiveAt},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND child_device_sn = #{childDeviceSn}
+          AND effective_to IS NULL
+          AND deleted = b'0'
+    </update>
+
+    <update id="closeCurrentByPosition">
+        UPDATE ast_device_assembly
+        SET effective_to = #{effectiveAt},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND parent_device_sn = #{parentDeviceSn}
+          AND position_code = #{positionCode}
+          AND effective_to IS NULL
+          AND deleted = b'0'
+    </update>
+
+</mapper>

@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentVersionMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper;
+import cn.iocoder.yudao.module.pms.asset.service.location.DeviceLocationEffectiveService;
 import cn.iocoder.yudao.module.pms.asset.service.location.SiteLocationTreeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,13 @@ class EquipmentLocationEffectiveServiceTest {
     @Mock private EquipmentVersionMapper versionMapper;
     @Mock private SiteMapper siteMapper;
     @Mock private SiteLocationTreeService treeService;
+    @Mock private DeviceLocationEffectiveService deviceLocationEffectiveService;
     private EquipmentLocationEffectiveService service;
 
     @BeforeEach
     void setUp() {
-        service = new EquipmentLocationEffectiveService(equipmentMapper, versionMapper, siteMapper, treeService);
+        service = new EquipmentLocationEffectiveService(
+                equipmentMapper, versionMapper, siteMapper, treeService, deviceLocationEffectiveService);
     }
 
     @Test

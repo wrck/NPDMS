@@ -1025,10 +1025,12 @@ ast_device_shipment           400 万以上发货记录
 
 - 新 AST 设备当前写路径为 `/pms/asset/devices`。
 - Business API 为 `/api/v1/pms/devices`。
-- 旧 `/pms/equipment` 只保留历史列表和详情读取。
-- 旧新增、更新、删除、状态、归属、位置、版本、配置 Log、维保和装配写请求返回稳定退役错误。
+- 旧 `/pms/equipment` 写接口代码保持不变，不删除映射、不改为退役错误，也不代理写入 AST；迁移后普通业务角色不再通过旧入口写入，`super_admin` 仍可按保留的旧权限调用旧写接口。
+- 旧写权限调整只撤销普通业务角色对旧新增、更新、删除和状态变更等权限项的分配；`super_admin` 保留旧权限项，旧列表和详情读取继续可用。
+- 客户缺口边界摘要：本次仅补齐 CUS 已有客户详情所需的设备摘要读取链路。`AssetCustomerDeviceSummaryApi` 继续作为 CUS 访问 AST 的公开接口，查询来源前向切换为 `ast_device` 的当前客户投影及必要关系事实，不再读取 `pms_equipment`；按租户和客户稳定 ID 分页，仅返回现有契约定义的轻量字段 `deviceId/deviceCode/deviceName/status`，空范围返回空结果。客户主档、客户写入、CRM 同步、客户权限模型和客户详情其他切片均不属于本次补缺。
 - 不设置双写、反向同步、隐式转发或并行 Owner。
 - PROJ、CUS、CUT、KNO、IMP 和其他模块只能通过 `pms-module-asset-api` 访问 AST，不得直接访问 AST Service、Mapper 或业务表。
+- 对当前代码库尚未实现的外部系统或业务模块，本次只保留已冻结的公开接口、消费端口和 `NOT_AVAILABLE` 降级契约；不创建伪实现、空业务模块、本地替代业务表、模拟同步完成状态或越权直读实现。待对应 Owner 实现后再按独立 Feature 完成接入、同步、重试、补偿和对账闭环。
 - KNO 技术公告、EQP-02 配置 Log 文件、CUT 目标版本和平台 Outbox、幂等、审计表不在本 DDL 中重复建设。
 
 ## 9. 待实施阶段验证

@@ -21,12 +21,19 @@ public interface ErrorCodeConstants {
     ErrorCode AST_EQUIPMENT_LOCATION_COMMAND_INVALID = new ErrorCode(1_015_001_004, "设备位置生效命令无效");
     ErrorCode AST_EQUIPMENT_LOCATION_CONFLICT = new ErrorCode(1_015_001_005, "设备当前位置已变更，请刷新后重试");
     ErrorCode AST_EQUIPMENT_CUSTOMER_UNAVAILABLE = new ErrorCode(1_015_001_006, "所属客户不存在或不可用于新设备关系");
+    ErrorCode AST_DEVICE_ASSEMBLY_COMMAND_INVALID = new ErrorCode(1_015_001_007, "设备装配命令无效");
+    ErrorCode AST_DEVICE_ASSEMBLY_DEVICE_NOT_EXISTS = new ErrorCode(1_015_001_008, "装配设备不存在或不属于当前租户");
+    ErrorCode AST_DEVICE_ASSEMBLY_CYCLE = new ErrorCode(1_015_001_009, "设备装配关系不允许形成循环");
 
     // ========== 设备版本历史 1_015_002_000 ==========
     ErrorCode AST_EQUIPMENT_VERSION_NOT_EXISTS = new ErrorCode(1_015_002_000, "设备版本记录不存在");
 
     // ========== 设备配置日志 1_015_003_000 ==========
     ErrorCode AST_EQUIPMENT_CONFIG_LOG_NOT_EXISTS = new ErrorCode(1_015_003_000, "设备配置日志不存在");
+    ErrorCode AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_FORBIDDEN =
+            new ErrorCode(1_015_003_001, "无配置Log文件下载权限");
+    ErrorCode AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID =
+            new ErrorCode(1_015_003_002, "配置Log下载授权无效或已失效");
 
     // ========== 资产地点 1_015_004_000 ==========
     ErrorCode AST_ADDRESS_NOT_EXISTS = new ErrorCode(1_015_004_000, "地址不存在");
