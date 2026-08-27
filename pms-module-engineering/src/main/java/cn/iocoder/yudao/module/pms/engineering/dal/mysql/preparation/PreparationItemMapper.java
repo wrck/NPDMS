@@ -11,6 +11,7 @@ import java.util.List;
 public interface PreparationItemMapper {
     int insert(@Param("row") PreparationItemDO row);
     PreparationItemDO selectByObjectId(@Param("query") PreparationItemObjectQuery query);
+    PreparationItemDO selectCurrentByEvidenceObjectId(@Param("query") PreparationItemLineageQuery query);
     PreparationItemDO selectForUpdate(@Param("query") PreparationItemRowQuery query);
     List<PreparationItemDO> selectList(@Param("query") PreparationChildrenQuery query);
     List<PreparationItemDO> selectListForUpdate(@Param("query") PreparationChildrenQuery query);

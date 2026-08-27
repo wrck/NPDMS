@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 public class PreparationItemRespVO {
     private Long itemId;
+    private Long sourceItemId;
     private String itemCode;
     private String itemName;
     private Integer sortOrder;

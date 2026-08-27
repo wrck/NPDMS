@@ -29,6 +29,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.Prepa
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
@@ -100,6 +102,7 @@ class PreparationInitializationMySqlIntegrationTest {
     @Resource PreparationReadinessService readinessService;
     @Resource PreparationSourceService sourceService;
     @Resource PreparationWaiverService waiverService;
+    @Resource PreparationFilePolicyProvider filePolicyProvider;
     @Resource TestPreparationSourceProvider sourceProvider;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource TransactionTemplate transactionTemplate;
@@ -322,6 +325,10 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals("PENDING", jdbcTemplate.queryForObject("SELECT confirmation_status_code "
                 + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? AND source_item_id=?",
                 String.class, returned.currentPreparationId(), itemIds.getFirst()));
+        assertEquals(true, filePolicyProvider.inspect(new FileBusinessObjectPolicyQuery(0L, 9L,
+                PreparationFilePolicyProvider.OWNER_CONTEXT, PreparationFilePolicyProvider.OBJECT_TYPE,
+                String.valueOf(itemIds.getFirst()), PreparationFilePolicyProvider.PURPOSE_CODE, "SITE",
+                FileActionCodes.REPLACE)).allowed());
         assertEquals((long) itemIds.size() - 1, jdbcTemplate.queryForObject("SELECT COUNT(*) "
                 + "FROM sol_preparation_item WHERE tenant_id=0 AND preparation_id=? "
                 + "AND confirmation_status_code='CONFIRMED'", Long.class, returned.currentPreparationId()));

@@ -168,7 +168,7 @@ public class PreparationItemApplicationService {
         }
         String evidenceSnapshot = item.getEvidenceReferenceSnapshot();
         if (command.submittedFields().contains("evidenceReferences")) {
-            evidenceSnapshot = revalidateEvidence(command, actor, lockedScope.treeVersion());
+            evidenceSnapshot = revalidateEvidence(command, item, actor, lockedScope.treeVersion());
         }
         if (command.submittedFields().contains("applicabilityCode")
                 && !Objects.equals(item.getApplicabilityCode(), command.applicabilityCode())) {
@@ -244,7 +244,8 @@ public class PreparationItemApplicationService {
         return response;
     }
 
-    private String revalidateEvidence(PatchPreparationItemCommand command, Actor actor, Long scopeVersion) {
+    private String revalidateEvidence(PatchPreparationItemCommand command, PreparationItemDO item,
+            Actor actor, Long scopeVersion) {
         List<PatchPreparationItemCommand.EvidenceReference> references = command.evidenceReferences() == null
                 ? List.of() : command.evidenceReferences();
         Set<String> keys = new LinkedHashSet<>();
@@ -256,7 +257,7 @@ public class PreparationItemApplicationService {
             try {
                 fact = fileArtifactApi.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
                         reference.artifactId(), reference.versionNo(), PreparationFilePolicyProvider.OWNER_CONTEXT,
-                        PreparationFilePolicyProvider.OBJECT_TYPE, String.valueOf(command.itemId()),
+                        PreparationFilePolicyProvider.OBJECT_TYPE, String.valueOf(evidenceObjectItemId(item)),
                         PreparationFilePolicyProvider.PURPOSE_CODE, reference.referenceKey(),
                         FileActionCodes.REFERENCE, reference.fileFactVersion(), reference.scopeVersion()));
             } catch (RuntimeException failure) {
@@ -276,6 +277,10 @@ public class PreparationItemApplicationService {
             frozen.add(Map.copyOf(row));
         }
         return JsonUtils.toJsonString(frozen);
+    }
+
+    private Long evidenceObjectItemId(PreparationItemDO item) {
+        return item.getSourceItemId() == null ? item.getId() : item.getSourceItemId();
     }
 
     private void requireManagerRead(Long projectId, Actor actor) {

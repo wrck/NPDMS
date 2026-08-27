@@ -295,7 +295,7 @@ public class PreparationReviewService {
             FileArtifactVersionFact current = fileArtifactApi.lockAndRevalidate(
                     new FileArtifactVersionRevalidationQuery(frozen.artifactId(), frozen.versionNo(),
                             PreparationFilePolicyProvider.OWNER_CONTEXT, PreparationFilePolicyProvider.OBJECT_TYPE,
-                            String.valueOf(item.getId()), PreparationFilePolicyProvider.PURPOSE_CODE,
+                            String.valueOf(evidenceObjectItemId(item)), PreparationFilePolicyProvider.PURPOSE_CODE,
                             frozen.referenceKey(), FileActionCodes.READ, frozen.fileFactVersion(), frozen.scopeVersion()));
             if (current == null || !Objects.equals(current.artifactId(), frozen.artifactId())
                     || !Objects.equals(current.versionNo(), frozen.versionNo())
@@ -326,6 +326,10 @@ public class PreparationReviewService {
                 Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
     }
 
+    private Long evidenceObjectItemId(PreparationItemDO item) {
+        return item.getSourceItemId() == null ? item.getId() : item.getSourceItemId();
+    }
+
     private PreparationDO copyPreparation(PreparationDO old, PreparationItemApplicationService.Actor actor, LocalDateTime now) {
         PreparationDO row = new PreparationDO();
         row.setTenantId(actor.tenantId()); row.setProjectId(old.getProjectId());
@@ -341,7 +345,8 @@ public class PreparationReviewService {
     private PreparationItemDO copyItem(PreparationItemDO old, Long preparationId, boolean returned,
             PreparationItemApplicationService.Actor actor, LocalDateTime now) {
         PreparationItemDO row = new PreparationItemDO();
-        row.setTenantId(actor.tenantId()); row.setPreparationId(preparationId); row.setSourceItemId(old.getId());
+        row.setTenantId(actor.tenantId()); row.setPreparationId(preparationId);
+        row.setSourceItemId(old.getSourceItemId() == null ? old.getId() : old.getSourceItemId());
         row.setItemCode(old.getItemCode()); row.setItemName(old.getItemName()); row.setSortOrder(old.getSortOrder());
         row.setApplicabilityCode(returned && "NOT_APPLICABLE_CONFIRMED".equals(old.getApplicabilityCode())
                 ? "NOT_APPLICABLE_PENDING" : old.getApplicabilityCode());

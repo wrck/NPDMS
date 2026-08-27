@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.Prepar
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemRowQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemLineageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemObjectQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationRowQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
@@ -91,14 +92,20 @@ public class PreparationFilePolicyProvider implements FileBusinessObjectPolicyPr
         Long itemId;
         try { itemId = Long.valueOf(objectId); } catch (RuntimeException failure) { return null; }
         if (itemId <= 0) return null;
-        PreparationItemDO item = itemMapper.selectByObjectId(new PreparationItemObjectQuery(tenantId, itemId));
-        if (item == null) return null;
+        PreparationItemDO requested = itemMapper.selectByObjectId(new PreparationItemObjectQuery(tenantId, itemId));
+        if (requested == null) return null;
+        Long evidenceObjectItemId = requested.getSourceItemId() == null ? requested.getId() : requested.getSourceItemId();
+        PreparationItemDO current = itemMapper.selectCurrentByEvidenceObjectId(
+                new PreparationItemLineageQuery(tenantId, evidenceObjectItemId));
+        PreparationItemDO item = current == null ? requested : current;
+        Long currentItemId = item.getId();
         PreparationDO preparation = lock
                 ? preparationMapper.selectForUpdate(new PreparationRowQuery(tenantId, item.getPreparationId()))
                 : preparationMapper.selectById(new PreparationRowQuery(tenantId, item.getPreparationId()));
         if (preparation == null) return null;
         if (lock) {
-            item = itemMapper.selectForUpdate(new PreparationItemRowQuery(tenantId, preparation.getId(), itemId));
+            item = itemMapper.selectForUpdate(new PreparationItemRowQuery(
+                    tenantId, preparation.getId(), currentItemId));
         }
         return item == null ? null : new Context(preparation, item);
     }

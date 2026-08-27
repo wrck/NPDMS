@@ -327,7 +327,7 @@ public class PreparationReadinessService {
             try {
                 current = fileArtifactApi.inspect(new FileArtifactVersionQuery(fact.artifactId(), fact.versionNo(),
                         PreparationFilePolicyProvider.OWNER_CONTEXT, PreparationFilePolicyProvider.OBJECT_TYPE,
-                        String.valueOf(item.getId()), PreparationFilePolicyProvider.PURPOSE_CODE,
+                        String.valueOf(evidenceObjectItemId(item)), PreparationFilePolicyProvider.PURPOSE_CODE,
                         fact.referenceKey(), FileActionCodes.READ));
             } catch (RuntimeException failure) {
                 if (failOnExternalError) throw exception(PREPARATION_READINESS_VERSION_CONFLICT);
@@ -341,7 +341,7 @@ public class PreparationReadinessService {
                 try {
                     current = fileArtifactApi.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
                             fact.artifactId(), fact.versionNo(), PreparationFilePolicyProvider.OWNER_CONTEXT,
-                            PreparationFilePolicyProvider.OBJECT_TYPE, String.valueOf(item.getId()),
+                            PreparationFilePolicyProvider.OBJECT_TYPE, String.valueOf(evidenceObjectItemId(item)),
                             PreparationFilePolicyProvider.PURPOSE_CODE, fact.referenceKey(), FileActionCodes.READ,
                             expectedVersion, expectedScopeVersion));
                 } catch (RuntimeException failure) {
@@ -363,6 +363,10 @@ public class PreparationReadinessService {
                 && Objects.equals(current.scopeVersion(), frozen.scopeVersion())
                 && "AVAILABLE".equals(current.availabilityStatus())
                 && "ACTIVE".equals(current.referenceStatus());
+    }
+
+    private Long evidenceObjectItemId(PreparationItemDO item) {
+        return item.getSourceItemId() == null ? item.getId() : item.getSourceItemId();
     }
 
     private LockedFacts loadLocked(Long tenantId, Long preparationId) {

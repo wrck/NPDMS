@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.Prepar
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemRowQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,20 +99,68 @@ class PreparationFilePolicyProviderTest {
         assertEquals(9L, fact.scopeVersion());
     }
 
+    @Test
+    void copiedItemKeepsTheOriginalEvidenceSlotButUsesTheCurrentDraftAuthorization() {
+        PreparationItemDO original = item(1L);
+        PreparationItemDO current = item(20L, 100L);
+        current.setSourceItemId(original.getId());
+        when(itemMapper.selectByObjectId(any())).thenReturn(original);
+        when(itemMapper.selectCurrentByEvidenceObjectId(any())).thenReturn(current);
+        when(preparationMapper.selectById(any())).thenReturn(preparation(20L, "DRAFT"));
+        when(permissionApi.hasAnyPermissions(100L, PreparationItemApplicationService.PERMISSION_FILL))
+                .thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+
+        assertTrue(provider.inspect(new FileBusinessObjectPolicyQuery(0L, 100L, "SOL",
+                "SITE_SURVEY_ITEM", "2", "SITE_SURVEY_EVIDENCE", "site-survey-POWER",
+                FileActionCodes.REPLACE)).allowed());
+    }
+
+    @Test
+    void copiedItemLocksTheCurrentLineageRowWhenRevalidatingTheOriginalEvidenceSlot() {
+        PreparationItemDO original = item(1L);
+        PreparationItemDO current = item(20L, 100L);
+        current.setSourceItemId(original.getId());
+        when(itemMapper.selectByObjectId(any())).thenReturn(original);
+        when(itemMapper.selectCurrentByEvidenceObjectId(any())).thenReturn(current);
+        when(preparationMapper.selectById(any())).thenReturn(preparation(20L, "DRAFT"));
+        when(preparationMapper.selectForUpdate(any())).thenReturn(preparation(20L, "DRAFT"));
+        when(itemMapper.selectForUpdate(any())).thenReturn(current);
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        when(permissionApi.hasAnyPermissions(100L, PreparationItemApplicationService.PERMISSION_FILL))
+                .thenReturn(true);
+
+        var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                0L, 100L, "SOL", "SITE_SURVEY_ITEM", String.valueOf(original.getId()),
+                "SITE_SURVEY_EVIDENCE", "site-survey-POWER", FileActionCodes.REPLACE, 9L));
+
+        assertTrue(fact.allowed());
+        verify(itemMapper).selectForUpdate(new PreparationItemRowQuery(0L, 20L, current.getId()));
+    }
+
     private void stubLocated(String status, Long assigneeId) {
         when(itemMapper.selectByObjectId(any())).thenReturn(item(assigneeId));
         when(preparationMapper.selectById(any())).thenReturn(preparation(status));
     }
 
     private PreparationDO preparation(String status) {
+        return preparation(1L, status);
+    }
+
+    private PreparationDO preparation(Long id, String status) {
         PreparationDO row = new PreparationDO();
-        row.setId(1L); row.setProjectId(10L); row.setStatusCode(status);
+        row.setId(id); row.setProjectId(10L); row.setStatusCode(status);
         return row;
     }
 
     private PreparationItemDO item(Long assigneeId) {
+        return item(1L, assigneeId);
+    }
+
+    private PreparationItemDO item(Long preparationId, Long assigneeId) {
         PreparationItemDO row = new PreparationItemDO();
-        row.setId(2L); row.setPreparationId(1L); row.setApplicabilityCode("REQUIRED");
+        row.setId(preparationId.equals(1L) ? 2L : 96L); row.setPreparationId(preparationId);
+        row.setApplicabilityCode("REQUIRED");
         row.setAssigneeUserId(assigneeId);
         return row;
     }

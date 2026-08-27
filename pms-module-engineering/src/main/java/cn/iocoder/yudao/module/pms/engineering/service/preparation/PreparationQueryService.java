@@ -218,6 +218,7 @@ public class PreparationQueryService {
         if (form == null) throw exception(PREPARATION_NOT_EXISTS);
         PreparationItemRespVO response = new PreparationItemRespVO();
         response.setItemId(row.getId());
+        response.setSourceItemId(row.getSourceItemId());
         response.setItemCode(row.getItemCode());
         response.setItemName(row.getItemName());
         response.setSortOrder(row.getSortOrder());

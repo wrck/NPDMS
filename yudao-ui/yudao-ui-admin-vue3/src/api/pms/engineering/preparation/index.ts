@@ -20,6 +20,7 @@ export interface PreparationFormVO {
 
 export interface PreparationItemVO {
   itemId: number
+  sourceItemId?: number
   itemCode: string
   itemName: string
   sortOrder: number

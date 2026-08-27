@@ -41,6 +41,20 @@
           AND id = #{query.itemId}
     </select>
 
+    <select id="selectCurrentByEvidenceObjectId" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND (id = #{query.evidenceObjectItemId} OR source_item_id = #{query.evidenceObjectItemId})
+          AND EXISTS (
+              SELECT 1 FROM sol_preparation
+              WHERE sol_preparation.tenant_id = sol_preparation_item.tenant_id
+                AND sol_preparation.id = sol_preparation_item.preparation_id
+                AND sol_preparation.current_marker = 1
+          )
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
     <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
         SELECT <include refid="columns"/> FROM sol_preparation_item
         WHERE tenant_id = #{query.tenantId}

@@ -126,17 +126,19 @@
             v-if="evidence?.artifactId"
             owner-context="SOL"
             object-type="SITE_SURVEY_ITEM"
-            :object-id="String(item.itemId)"
+            :object-id="String(item.sourceItemId || item.itemId)"
             purpose-code="SITE_SURVEY_EVIDENCE"
             :reference-key="referenceKey"
             :artifact-id="evidence.artifactId"
             :version-no="evidence.versionNo"
+            :editable="canAssignee"
+            @detached="captureDetachedEvidence"
           />
           <PmsFileUploader
             v-if="canAssignee"
             owner-context="SOL"
             object-type="SITE_SURVEY_ITEM"
-            :object-id="String(item.itemId)"
+            :object-id="String(item.sourceItemId || item.itemId)"
             purpose-code="SITE_SURVEY_EVIDENCE"
             :reference-key="referenceKey"
             category-code="SITE_SURVEY_EVIDENCE"
@@ -158,7 +160,7 @@
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
-import type { FileSelection } from '@/components/PmsFileArtifact'
+import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact'
 import * as FileApi from '@/api/pms/platform/file'
 import * as PreparationApi from '@/api/pms/engineering/preparation'
 import type {
@@ -308,7 +310,7 @@ const captureEvidence = async (selection: FileSelection) => {
   const businessKey = {
     ownerContext: 'SOL',
     objectType: 'SITE_SURVEY_ITEM',
-    objectId: String(item.value.itemId),
+    objectId: String(item.value.sourceItemId || item.value.itemId),
     purposeCode: 'SITE_SURVEY_EVIDENCE',
     referenceKey: selectedReferenceKey
   }
@@ -328,6 +330,18 @@ const captureEvidence = async (selection: FileSelection) => {
   } while (cursor)
   if (!version) throw new Error('FILE_VERSION_NOT_FOUND')
   evidence.value = buildEvidenceReference(selection, artifact, version, frozenReferenceKey)
+}
+
+const captureDetachedEvidence = (detached: DetachedFileSlot) => {
+  if (!evidence.value) return
+  evidence.value = {
+    ...evidence.value,
+    referenceKey: detached.referenceKey,
+    fileFactVersion: {
+      ...evidence.value.fileFactVersion,
+      referenceVersion: detached.factVersion
+    }
+  }
 }
 
 const save = async () => {
