@@ -454,6 +454,9 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             ProjectTemplateTaskDefinitionDO row = BeanUtils.toBean(task, ProjectTemplateTaskDefinitionDO.class);
             row.setId(null);
             row.setTemplateRevisionId(revisionId);
+            row.setStageDefinitionKey(task.getStageCode());
+            row.setTaskDefinitionKey(task.getTaskCode());
+            row.setParentTaskDefinitionKey(task.getParentTaskCode());
             taskDefinitionMapper.insert(row);
         }
         for (TemplateDefinitionContent.MilestoneDef milestone : content.getMilestones()) {
