@@ -267,6 +267,13 @@ const SourceFacts = ({ item }: { item: PreparationItemVO }) => {
     </div>
   )
 }
+const waiverEnabled = (item: PreparationItemVO) => {
+  try {
+    return JSON.parse(item.waiverPolicySnapshot || '{}').allowed === true
+  } catch {
+    return false
+  }
+}
 const ItemActions = ({ item }: { item: PreparationItemVO }) => {
   const actions = item.allowedActions || []
   return (
@@ -279,9 +286,9 @@ const ItemActions = ({ item }: { item: PreparationItemVO }) => {
           刷新来源
         </el-button>
       )}
-      {actions.includes('CREATE_WAIVER') && (
+      {waiverEnabled(item) && (
         <el-button link onClick={() => waiverRef.value?.open(preparation.value!, item)}>
-          豁免
+          {actions.includes('CREATE_WAIVER') ? '豁免' : '豁免记录'}
         </el-button>
       )}
       {actions.includes('CONFIRM_ITEM') && (

@@ -20,20 +20,14 @@
       /></el-form-item>
       <div class="date-grid">
         <el-form-item label="生效时间"
-          ><el-date-picker
-            v-model="form.validFrom"
-            type="datetime"
-            value-format="YYYY-MM-DDTHH:mm:ss"
+          ><el-date-picker v-model="form.validFrom" type="datetime" value-format="x"
         /></el-form-item>
         <el-form-item label="失效时间"
-          ><el-date-picker
-            v-model="form.validUntil"
-            type="datetime"
-            value-format="YYYY-MM-DDTHH:mm:ss"
+          ><el-date-picker v-model="form.validUntil" type="datetime" value-format="x"
         /></el-form-item>
       </div>
       <el-button
-        v-if="item?.allowedActions.includes('CREATE_WAIVER')"
+        v-if="item?.allowedActions?.includes('CREATE_WAIVER')"
         type="primary"
         :loading="saving"
         @click="create"
@@ -50,31 +44,31 @@
           ><span>V{{ row.version }}</span></div
         >
         <p>{{ row.reason || '无申请说明' }}</p>
-        <small>{{ row.validFrom || '-' }} 至 {{ row.validUntil || '-' }}</small>
+        <small>{{ formatDateTime(row.validFrom) }} 至 {{ formatDateTime(row.validUntil) }}</small>
         <div class="row-actions">
           <el-button
-            v-if="row.allowedActions.includes('SUBMIT')"
+            v-if="row.allowedActions?.includes('SUBMIT')"
             link
             type="primary"
             @click="act(row, 'submit')"
             >提交</el-button
           >
           <el-button
-            v-if="row.allowedActions.includes('APPROVE')"
+            v-if="row.allowedActions?.includes('APPROVE')"
             link
             type="success"
             @click="act(row, 'approve')"
             >批准</el-button
           >
           <el-button
-            v-if="row.allowedActions.includes('REJECT')"
+            v-if="row.allowedActions?.includes('REJECT')"
             link
             type="danger"
             @click="act(row, 'reject')"
             >驳回</el-button
           >
           <el-button
-            v-if="row.allowedActions.includes('WITHDRAW')"
+            v-if="row.allowedActions?.includes('WITHDRAW')"
             link
             type="warning"
             @click="act(row, 'withdraw')"
@@ -90,6 +84,7 @@
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
+import { formatDate } from '@/utils/formatTime'
 import * as PreparationApi from '@/api/pms/engineering/preparation'
 import type { PreparationItemVO, PreparationVO, WaiverVO } from '@/api/pms/engineering/preparation'
 import { createIntentKeyStore, intentOf } from './preparationInteraction'
@@ -115,6 +110,7 @@ const form = reactive({
   validUntil: ''
 })
 const intentKeys = createIntentKeyStore()
+const formatDateTime = (value?: string | number) => (value ? formatDate(value) : '-')
 
 const open = async (current: PreparationVO, row: PreparationItemVO) => {
   preparation.value = current

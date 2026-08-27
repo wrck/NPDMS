@@ -152,8 +152,8 @@ export interface WaiverVO {
   reason?: string
   risk?: string
   compensation?: string
-  validFrom?: string
-  validUntil?: string
+  validFrom?: string | number
+  validUntil?: string | number
   approvalRoleCode?: string
   applicantUserId: number
   submittedAt?: string
@@ -175,8 +175,8 @@ export interface WaiverCommandReqVO {
   reason?: string
   risk?: string
   compensation?: string
-  validFrom?: string
-  validUntil?: string
+  validFrom?: string | number
+  validUntil?: string | number
   opinion?: string
 }
 
