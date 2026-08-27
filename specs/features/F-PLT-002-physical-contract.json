@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "feature": "F-PLT-002",
   "name": "shared-dynamic-form-template-and-instance-foundation",
-  "status": "IN_REVIEW",
-  "featureReadyDecision": "PENDING_INDEPENDENT_REVIEW",
+  "status": "BASELINE",
+  "featureReadyDecision": "GO_NPDMS_FPLT002_FEATURE_READY_20260828_01_R1",
   "requirements": {
     "primary": ["SOL-01"],
     "supporting": ["PRE-04", "PM-03", "PM-11"],

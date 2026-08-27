@@ -1,7 +1,7 @@
 # F-PLT-002 共享动态表单模板与实例基础能力 Feature Spec
 
-> 文档状态：`IN_REVIEW`
-> Feature Ready：`PENDING_INDEPENDENT_REVIEW`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`
 > Primary Requirement：`SOL-01（V2/P1）`
 > Supporting Requirement：`PRE-04（V1/P0）`、`PM-03（V1/P0）`、`PM-11（V1/P1）`
 > Owner Context：`PLT（基础平台 Dynamic Form Capability）`
@@ -182,6 +182,6 @@
 | 手工选择与实例保存正向闭环 | PASS（本候选） |
 | WorkBinding/PRE-04及其他消费者排除边界 | PASS（本候选） |
 | 设计前旧实现完整审计及保持不变/复制增强映射 | PASS（本候选审计附件、机器契约及NPDMS根级实施约束） |
-| 独立Feature Ready裁决 | PENDING |
+| 独立Feature Ready裁决 | PASS（`NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`） |
 
-结论：`IN_REVIEW / NOT_YET_READY`。独立评审GO后方可回写`BASELINE / READY`、锁定规格提交并同步NPDMS；本候选不是Technical Plan或Implementation授权。
+结论：`BASELINE / READY`。Feature Ready 已由独立裁决 `NPDMS-FPLT002-FEATURE-READY-20260828-01-R1` 批准；须锁定本次规格提交并同步NPDMS后，全新生成并独立评审Technical Plan。本裁决不是Technical Plan、Implementation、Deployment、SIT、UAT或Release授权。

@@ -23,11 +23,14 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         cls.security_design = SECURITY_DESIGN.read_text(encoding="utf-8")
         cls.test_design = TEST_DESIGN.read_text(encoding="utf-8")
 
-    def test_candidate_is_feature_ready_review_only(self) -> None:
-        self.assertEqual("IN_REVIEW", self.contract["status"])
-        self.assertEqual("PENDING_INDEPENDENT_REVIEW", self.contract["featureReadyDecision"])
-        self.assertIn("IN_REVIEW / NOT_YET_READY", self.feature_spec)
-        self.assertIn("本候选不是Technical Plan或Implementation授权", self.feature_spec)
+    def test_feature_ready_decision_is_locked_without_later_gate_authorization(self) -> None:
+        self.assertEqual("BASELINE", self.contract["status"])
+        self.assertEqual(
+            "GO_NPDMS_FPLT002_FEATURE_READY_20260828_01_R1",
+            self.contract["featureReadyDecision"],
+        )
+        self.assertIn("BASELINE / READY", self.feature_spec)
+        self.assertIn("不是Technical Plan、Implementation、Deployment、SIT、UAT或Release授权", self.feature_spec)
 
     def test_platform_owns_only_the_shared_form_foundation(self) -> None:
         owner = self.contract["owner"]
