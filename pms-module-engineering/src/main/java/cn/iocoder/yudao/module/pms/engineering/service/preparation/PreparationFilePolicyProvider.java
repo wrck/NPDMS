@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyPro
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
@@ -51,28 +53,56 @@ public class PreparationFilePolicyProvider implements FileBusinessObjectPolicyPr
 
     @Override
     public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) {
-        Context context = locate(query.tenantId(), query.objectId(), false);
-        if (context == null || !PURPOSE_CODE.equals(query.purposeCode())) return denied();
+        return inspect(query.tenantId(), query.actorUserId(), query.objectId(), query.purposeCode(),
+                query.requiredAction());
+    }
+
+    @Override
+    public FileBusinessObjectPolicyFact inspectReferenceSet(FileBusinessObjectReferenceSetQuery query) {
+        return inspect(query.tenantId(), query.actorUserId(), query.key().objectId(),
+                query.key().purposeCode(), query.requiredAction());
+    }
+
+    private FileBusinessObjectPolicyFact inspect(Long tenantId, Long actorUserId, String objectId,
+                                                 String purposeCode, String requiredAction) {
+        Context context = locate(tenantId, objectId, false);
+        if (context == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
         ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                query.tenantId(), query.actorUserId(), context.preparation().getProjectId(),
+                tenantId, actorUserId, context.preparation().getProjectId(),
                 ProjectScopeApi.ACTION_VIEW));
         if (!inScope(scope, context.preparation().getProjectId())) return denied();
-        return policy(allowed(query.actorUserId(), query.requiredAction(), context), scope.treeVersion(), context);
+        return policy(allowed(actorUserId, requiredAction, context), scope.treeVersion(), context);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
-        Context located = locate(query.tenantId(), query.objectId(), false);
-        if (located == null || !PURPOSE_CODE.equals(query.purposeCode())) return denied();
+        return lockAndRevalidate(query.tenantId(), query.actorUserId(), query.objectId(), query.purposeCode(),
+                query.requiredAction(), query.expectedScopeVersion());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        return lockAndRevalidate(query.tenantId(), query.actorUserId(), query.key().objectId(),
+                query.key().purposeCode(), query.requiredAction(), query.expectedScopeVersion());
+    }
+
+    private FileBusinessObjectPolicyFact lockAndRevalidate(Long tenantId, Long actorUserId,
+                                                            String objectId, String purposeCode,
+                                                            String requiredAction,
+                                                            Long expectedScopeVersion) {
+        Context located = locate(tenantId, objectId, false);
+        if (located == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
         ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                query.tenantId(), query.actorUserId(), located.preparation().getProjectId(),
-                ProjectScopeApi.ACTION_VIEW, query.expectedScopeVersion()));
+                tenantId, actorUserId, located.preparation().getProjectId(),
+                ProjectScopeApi.ACTION_VIEW, expectedScopeVersion));
         if (!inScope(scope, located.preparation().getProjectId())) return denied();
-        Context locked = locate(query.tenantId(), query.objectId(), true);
+        Context locked = locate(tenantId, objectId, true);
         if (locked == null || !Objects.equals(locked.preparation().getProjectId(),
                 located.preparation().getProjectId())) return denied();
-        return policy(allowed(query.actorUserId(), query.requiredAction(), locked), scope.treeVersion(), locked);
+        return policy(allowed(actorUserId, requiredAction, locked), scope.treeVersion(), locked);
     }
 
     private boolean allowed(Long actorId, String action, Context context) {

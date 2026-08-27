@@ -110,4 +110,30 @@
           AND artifact_id = #{query.artifactId}
         FOR UPDATE
     </select>
+
+    <select id="selectActiveSet"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context = #{query.ownerContext}
+          AND object_type = #{query.objectType}
+          AND object_id = #{query.objectId}
+          AND purpose_code = #{query.purposeCode}
+          AND status_code = 'ACTIVE'
+        ORDER BY reference_key
+    </select>
+
+    <select id="selectSetForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context = #{query.ownerContext}
+          AND object_type = #{query.objectType}
+          AND object_id = #{query.objectId}
+          AND purpose_code = #{query.purposeCode}
+        ORDER BY reference_key
+        FOR UPDATE
+    </select>
 </mapper>

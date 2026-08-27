@@ -31,6 +31,24 @@ export interface RequirementAnalysisAttachmentVO {
   scopeVersion: number
 }
 
+export type RequirementAnalysisAttachmentSyncStatus = 'IN_SYNC' | 'PENDING' | 'UNKNOWN'
+
+export type RequirementAnalysisAttachmentSyncErrorCode =
+  | 'ATTACHMENT_SET_PENDING'
+  | 'FACT_PROVIDER_UNAVAILABLE'
+
+export type RequirementAnalysisCompletionBlockerCode =
+  | 'REQUIRED_VALUE_MISSING'
+  | 'VALUE_INVALID'
+  | 'ATTACHMENT_SET_PENDING'
+  | 'ATTACHMENT_FACT_INVALID'
+  | 'FACT_PROVIDER_UNAVAILABLE'
+
+export interface RequirementAnalysisCompletionBlockerVO {
+  code: RequirementAnalysisCompletionBlockerCode
+  sectionCode: string
+}
+
 export interface RequirementAnalysisVersionSummaryVO {
   preparationId: number
   projectId: number
@@ -45,6 +63,7 @@ export interface RequirementAnalysisVersionSummaryVO {
   templateRevisionId: number
   completedBy?: number
   completedAt?: string
+  completionBlockers: RequirementAnalysisCompletionBlockerVO[]
   allowedActions: string[]
 }
 
@@ -61,6 +80,9 @@ export interface RequirementAnalysisSectionVO {
   schemaSnapshot?: string
   valueSnapshot?: string | null
   attachments: RequirementAnalysisAttachmentVO[]
+  attachmentSyncStatus: RequirementAnalysisAttachmentSyncStatus
+  currentActiveFacts?: RequirementAnalysisAttachmentVO[] | null
+  attachmentSyncErrorCode?: RequirementAnalysisAttachmentSyncErrorCode | null
   version: number
   allowedActions: string[]
 }

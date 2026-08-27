@@ -494,9 +494,14 @@ class PreparationMySqlIntegrationTest {
             PreparationInitializationService.class, PreparationItemApplicationService.class,
             PreparationReviewService.class, PreparationReadinessService.class,
             PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
-            FileArtifactApiImpl.class, FixedSurveyFormCatalogProvider.class,
+            FileArtifactApiImpl.class,
+            cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService.class,
+            cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory.class,
+            FixedSurveyFormCatalogProvider.class,
             ConfigApiImpl.class, ConfigServiceImpl.class,
-            PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
+            PlatformCommandExecutionApiImpl.class,
+            cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter.class,
+            OperationAuditApiImpl.class})
     static class TestApplication {
 
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }

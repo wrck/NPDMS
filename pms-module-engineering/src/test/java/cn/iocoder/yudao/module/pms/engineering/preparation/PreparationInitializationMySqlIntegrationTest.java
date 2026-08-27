@@ -1053,9 +1053,13 @@ class PreparationInitializationMySqlIntegrationTest {
             PreparationWaiverService.class,
             PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
             FileArtifactApiImpl.class,
+            cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService.class,
+            cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory.class,
             FixedSurveyFormCatalogProvider.class, ConfigApiImpl.class, ConfigServiceImpl.class,
             ProjectWorkBindingFactApiImpl.class,
-            PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
+            PlatformCommandExecutionApiImpl.class,
+            cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter.class,
+            OperationAuditApiImpl.class})
     static class TestApplication {
 
         @Bean

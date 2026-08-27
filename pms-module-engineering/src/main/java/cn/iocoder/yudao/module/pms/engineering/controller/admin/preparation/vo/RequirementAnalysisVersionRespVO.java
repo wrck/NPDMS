@@ -22,5 +22,6 @@ public class RequirementAnalysisVersionRespVO {
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
     private List<String> allowedActions;
+    private List<RequirementAnalysisCompletionBlockerRespVO> completionBlockers;
     private List<RequirementAnalysisSectionRespVO> sections;
 }

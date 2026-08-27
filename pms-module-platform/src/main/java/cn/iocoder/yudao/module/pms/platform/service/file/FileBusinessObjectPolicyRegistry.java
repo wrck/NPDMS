@@ -4,6 +4,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyPro
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -41,6 +43,35 @@ public class FileBusinessObjectPolicyRegistry {
         FileBusinessObjectPolicyFact fact;
         try {
             fact = provider.lockAndRevalidate(query);
+        } catch (RuntimeException ex) {
+            throw exception(FILE_PROVIDER_UNAVAILABLE);
+        }
+        fact = requireUsableFact(fact);
+        if (!query.expectedScopeVersion().equals(fact.scopeVersion())) {
+            throw exception(FILE_SCOPE_VERSION_CONFLICT);
+        }
+        return fact;
+    }
+
+    public FileBusinessObjectPolicyFact inspectReferenceSet(FileBusinessObjectReferenceSetQuery query) {
+        FileBusinessObjectPolicyProvider provider = requireUniqueProvider(
+                query.key().ownerContext(), query.key().objectType());
+        FileBusinessObjectPolicyFact fact;
+        try {
+            fact = provider.inspectReferenceSet(query);
+        } catch (RuntimeException ex) {
+            throw exception(FILE_PROVIDER_UNAVAILABLE);
+        }
+        return requireUsableFact(fact);
+    }
+
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        FileBusinessObjectPolicyProvider provider = requireUniqueProvider(
+                query.key().ownerContext(), query.key().objectType());
+        FileBusinessObjectPolicyFact fact;
+        try {
+            fact = provider.lockAndRevalidateReferenceSet(query);
         } catch (RuntimeException ex) {
             throw exception(FILE_PROVIDER_UNAVAILABLE);
         }

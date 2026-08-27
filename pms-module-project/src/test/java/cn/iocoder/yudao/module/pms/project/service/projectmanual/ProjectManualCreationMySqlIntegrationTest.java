@@ -457,6 +457,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
             SpringUtil.class,
             ProjectManualCreationApplicationService.class,
             PlatformCommandExecutionApiImpl.class,
+            cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter.class,
             PlatformOutboxDeliveryApiImpl.class,
             ProjectManualCreationServiceImpl.class,
             ProjectTemplateServiceImpl.class,

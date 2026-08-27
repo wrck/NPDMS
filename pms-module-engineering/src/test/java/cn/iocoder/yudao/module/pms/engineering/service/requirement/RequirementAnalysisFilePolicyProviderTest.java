@@ -7,6 +7,9 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.Requirement
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -103,6 +106,33 @@ class RequirementAnalysisFilePolicyProviderTest {
         assertFalse(provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 0L, 9L, "SOL", "REQUIREMENT_ANALYSIS_SECTION", "701", "SECTION_ATTACHMENT", SLOT,
                 FileActionCodes.INVALIDATE, 7L)).allowed());
+    }
+
+    @Test
+    void namespacePolicyUsesProjectTreeVersionForTheWholeSectionSet() {
+        stubContext("DRAFT");
+        when(permissionApi.hasAnyPermissions(9L, RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
+        when(participantFactApi.inspect(any())).thenReturn(manager());
+        FileReferenceSetKey key = new FileReferenceSetKey("SOL", "REQUIREMENT_ANALYSIS_SECTION",
+                "701", "SECTION_ATTACHMENT");
+
+        var inspected = provider.inspectReferenceSet(new FileBusinessObjectReferenceSetQuery(
+                0L, 9L, key, FileActionCodes.REFERENCE));
+
+        assertTrue(inspected.allowed());
+        assertEquals(7L, inspected.scopeVersion());
+
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        when(rootMapper.selectForUpdate(any())).thenReturn(root("DRAFT"));
+        when(sectionMapper.selectForUpdate(any())).thenReturn(section());
+        var locked = provider.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
+                0L, 9L, key, FileActionCodes.REFERENCE, 7L));
+
+        assertTrue(locked.allowed());
+        assertEquals(7L, locked.scopeVersion());
+        assertEquals("MULTIPLE", locked.cardinality());
     }
 
     private void stubContext(String status) {

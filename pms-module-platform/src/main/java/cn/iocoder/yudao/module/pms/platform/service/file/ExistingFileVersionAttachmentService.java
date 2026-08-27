@@ -9,7 +9,9 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.ExistingFileReferenceTa
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
@@ -88,6 +90,7 @@ public class ExistingFileVersionAttachmentService {
         TrustedActor actor = trustedActor();
         List<AttachExistingFileVersionItem> items = command.items();
         validateDistinctReferences(items);
+        lockNamespaces(actor, items);
 
         FileBusinessObjectPolicyFact[] sourcePolicies = new FileBusinessObjectPolicyFact[items.size()];
         FileBusinessObjectPolicyFact[] targetPolicies = new FileBusinessObjectPolicyFact[items.size()];
@@ -102,7 +105,6 @@ public class ExistingFileVersionAttachmentService {
         for (int index = 0; index < items.size(); index++) {
             requireAttachmentPolicies(sourcePolicies[index], targetPolicies[index]);
         }
-
         Map<Long, FileArtifactDO> artifacts = lockArtifacts(actor.tenantId(), items);
         Map<VersionKey, FileVersionDO> versions = lockVersions(actor.tenantId(), items);
         Map<BusinessKey, FileReferenceDO> references = lockReferences(actor.tenantId(), items);
@@ -146,7 +148,26 @@ public class ExistingFileVersionAttachmentService {
                 policyRegistry.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                         actor.tenantId(), actor.userId(), key.ownerContext(), key.objectType(), key.objectId(),
                         key.purposeCode(), key.referenceKey(), FileActionCodes.REFERENCE,
-                        target.expectedScopeVersion()))));
+                target.expectedScopeVersion()))));
+    }
+
+    private void lockNamespaces(TrustedActor actor, List<AttachExistingFileVersionItem> items) {
+        Map<NamespaceAction, Long> scopes = new HashMap<>();
+        for (AttachExistingFileVersionItem item : items) {
+            putScope(scopes, new NamespaceAction(BusinessKey.source(item).namespace(), FileActionCodes.READ),
+                    item.source().expectedScopeVersion());
+            putScope(scopes, new NamespaceAction(BusinessKey.target(item.target()).namespace(),
+                    FileActionCodes.REFERENCE), item.target().expectedScopeVersion());
+        }
+        scopes.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry ->
+                policyRegistry.lockAndRevalidateReferenceSet(
+                        new FileBusinessObjectReferenceSetRevalidationQuery(actor.tenantId(), actor.userId(),
+                                entry.getKey().key(), entry.getKey().action(), entry.getValue())));
+    }
+
+    private void putScope(Map<NamespaceAction, Long> scopes, NamespaceAction key, Long scopeVersion) {
+        Long existing = scopes.putIfAbsent(key, scopeVersion);
+        if (existing != null && !existing.equals(scopeVersion)) throw exception(FILE_FACT_VERSION_CONFLICT);
     }
 
     private Map<Long, FileArtifactDO> lockArtifacts(Long tenantId, List<AttachExistingFileVersionItem> items) {
@@ -321,6 +342,9 @@ public class ExistingFileVersionAttachmentService {
 
     private record BusinessKey(String ownerContext, String objectType, String objectId,
                                String purposeCode, String referenceKey) {
+        private FileReferenceSetKey namespace() {
+            return new FileReferenceSetKey(ownerContext, objectType, objectId, purposeCode);
+        }
         private static BusinessKey source(AttachExistingFileVersionItem item) {
             var source = item.source();
             return new BusinessKey(source.ownerContext(), source.objectType(), source.objectId(),
@@ -330,6 +354,15 @@ public class ExistingFileVersionAttachmentService {
         private static BusinessKey target(ExistingFileReferenceTarget target) {
             return new BusinessKey(target.ownerContext(), target.objectType(), target.objectId(),
                     target.purposeCode(), target.referenceKey());
+        }
+    }
+
+    private record NamespaceAction(FileReferenceSetKey key, String action)
+            implements Comparable<NamespaceAction> {
+        @Override
+        public int compareTo(NamespaceAction other) {
+            int result = key.compareTo(other.key);
+            return result == 0 ? action.compareTo(other.action) : result;
         }
     }
 

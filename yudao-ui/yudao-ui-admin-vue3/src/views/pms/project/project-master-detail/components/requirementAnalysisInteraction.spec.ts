@@ -6,9 +6,11 @@ import {
   containsEmbeddedMedia,
   createRequirementIntentStore,
   patchRequirementSectionAndReload,
+  parseSectionValue,
   requirementAnalysisLayout,
+  requirementAnalysisTransitionDecision,
   requirementIntentOf,
-  resolvePendingAttachmentSync
+  resolveAttachmentIntentRecovery
 } from './requirementAnalysisInteraction'
 
 const request = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }))
@@ -41,6 +43,40 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
         headers: { 'If-Match': '7' }
       })
     )
+  })
+
+  it('keeps an empty BOOLEAN distinct from a submitted false value', () => {
+    const section = {
+      fieldType: 'BOOLEAN',
+      valueSnapshot: null
+    } as any
+    const baseline = parseSectionValue(section)
+    expect(baseline).toBeNull()
+    expect(buildSectionPatch(7, 8, 9, false, baseline, [], [])).toMatchObject({
+      submittedFields: ['value'],
+      value: false
+    })
+  })
+
+  it('recovers an unknown attachment response without rewriting the retained target', () => {
+    const attachment = (referenceKey: string, versionNo: number) => ({
+      artifactId: 1,
+      versionNo,
+      referenceKey,
+      fileFactVersion: {
+        artifactVersion: 1,
+        referenceVersion: versionNo,
+        availabilityVersion: 1
+      },
+      scopeVersion: 1
+    })
+    const v1 = [attachment('slot', 1)]
+    const v2 = [attachment('slot', 2)]
+    const v3 = [attachment('slot', 3)]
+
+    expect(resolveAttachmentIntentRecovery(v2, v2, v2)).toBe('CONFIRMED')
+    expect(resolveAttachmentIntentRecovery(v1, v2, v2)).toBe('RETRY')
+    expect(resolveAttachmentIntentRecovery(v1, v3, v2)).toBe('CONFLICT')
   })
 
   it('reloads authoritative overview and detail only after PATCH succeeds', async () => {
@@ -127,17 +163,77 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
     )
   })
 
-  it('restores an unsynchronized attachment intent after an unknown PATCH response', () => {
-    const server = [{ referenceKey: 'old', versionNo: 1 }]
-    const pending = [{ referenceKey: 'old', versionNo: 2 }]
-    expect(resolvePendingAttachmentSync(server, pending)).toEqual({
-      attachments: pending,
-      syncPending: true
+  it('submits the complete authoritative attachment vector in stable slot order', () => {
+    const attachment = (referenceKey: string, versionNo: number) => ({
+      artifactId: versionNo,
+      versionNo,
+      referenceKey,
+      fileFactVersion: {
+        artifactVersion: versionNo,
+        referenceVersion: versionNo,
+        availabilityVersion: versionNo
+      },
+      scopeVersion: versionNo
     })
-    expect(resolvePendingAttachmentSync(pending, pending)).toEqual({
-      attachments: pending,
-      syncPending: false
+    const patch = buildSectionPatch(
+      7,
+      8,
+      9,
+      '正文',
+      '正文',
+      [attachment('slot-b', 2), attachment('slot-a', 1)],
+      [attachment('slot-a', 1), attachment('slot-b', 2)],
+      true
+    )
+    expect(patch.submittedFields).toEqual(['attachments'])
+    expect(patch.attachments?.map(({ referenceKey }) => referenceKey)).toEqual([
+      'slot-a',
+      'slot-b'
+    ])
+    expect(patch.attachments?.[0]).toMatchObject({
+      referenceKey: 'slot-a',
+      fileFactVersion: {
+        artifactVersion: 1,
+        referenceVersion: 1,
+        availabilityVersion: 1
+      },
+      scopeVersion: 1
     })
+  })
+
+  it('guards manager attachment recovery while preserving read-only navigation', () => {
+    expect(
+      requirementAnalysisTransitionDecision({
+        sectionId: 1,
+        bodyDirty: true,
+        attachmentSyncStatus: 'IN_SYNC',
+        guardsNavigation: false
+      })
+    ).toBe('CONFIRM_DISCARD_BODY')
+    expect(
+      requirementAnalysisTransitionDecision({
+        sectionId: 1,
+        bodyDirty: true,
+        attachmentSyncStatus: 'PENDING',
+        guardsNavigation: true
+      })
+    ).toBe('SAVE_ATTACHMENT_SET')
+    expect(
+      requirementAnalysisTransitionDecision({
+        sectionId: 1,
+        bodyDirty: false,
+        attachmentSyncStatus: 'UNKNOWN',
+        guardsNavigation: true
+      })
+    ).toBe('BLOCK_UNKNOWN_ATTACHMENT_FACTS')
+    expect(
+      requirementAnalysisTransitionDecision({
+        sectionId: 1,
+        bodyDirty: false,
+        attachmentSyncStatus: 'PENDING',
+        guardsNavigation: false
+      })
+    ).toBe('ALLOW')
   })
 
   it('keeps one idempotency key for an unknown response and rotates on a new intent', () => {

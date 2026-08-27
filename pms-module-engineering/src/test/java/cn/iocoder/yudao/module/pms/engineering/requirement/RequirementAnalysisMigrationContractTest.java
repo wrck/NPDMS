@@ -24,6 +24,7 @@ class RequirementAnalysisMigrationContractTest {
 
     private static String schemaSql;
     private static String seedSql;
+    private static String legacyPermissionSql;
 
     @BeforeAll
     static void loadMigrations() throws IOException {
@@ -32,6 +33,9 @@ class RequirementAnalysisMigrationContractTest {
                 "sql/migrations/V99__fsol003_requirement_analysis.sql"), StandardCharsets.UTF_8));
         seedSql = normalizeLines(Files.readString(root.resolve(
                 "sql/migrations/V100__fsol003_requirement_analysis_seed.sql"), StandardCharsets.UTF_8));
+        legacyPermissionSql = normalizeLines(Files.readString(root.resolve(
+                "sql/migrations/V101__fsol003_retire_legacy_requirement_role_grants.sql"),
+                StandardCharsets.UTF_8));
     }
 
     @Test
@@ -80,7 +84,7 @@ class RequirementAnalysisMigrationContractTest {
 
     @Test
     void remainsForwardOnlyWithoutDroppingTablesColumnsOrBusinessRows() {
-        String combined = schemaSql + "\n" + seedSql;
+        String combined = schemaSql + "\n" + seedSql + "\n" + legacyPermissionSql;
         assertFalse(Pattern.compile("(?im)^\\s*DROP\\s+TABLE(?!\\s+`_v100_)").matcher(combined).find());
         assertFalse(Pattern.compile("(?im)^\\s*ALTER\\s+TABLE[\\s\\S]*?DROP\\s+COLUMN")
                 .matcher(combined).find());
@@ -109,6 +113,18 @@ class RequirementAnalysisMigrationContractTest {
         assertEquals(1, occurrences(seedSql, "'pms:requirement-analysis:query'"));
         assertEquals(1, occurrences(seedSql, "'pms:requirement-analysis:manage'"));
         assertFalse(seedSql.contains("INSERT INTO `system_role_menu`"));
+    }
+
+    @Test
+    void retiresOnlyNonSuperAdminLegacyRequirementRoleMenuRelations() {
+        assertTrue(legacyPermissionSql.contains("UPDATE `system_role_menu` rm"));
+        assertTrue(legacyPermissionSql.contains("r.`code` <> 'super_admin'"));
+        assertTrue(legacyPermissionSql.contains("m.`id` = 19010"));
+        assertTrue(legacyPermissionSql.contains("m.`parent_id` = 19010"));
+        assertTrue(legacyPermissionSql.contains("m.`permission` LIKE 'pms:eng-requirement:%'"));
+        assertFalse(legacyPermissionSql.contains("UPDATE `system_menu`"));
+        assertFalse(legacyPermissionSql.contains("DELETE FROM"));
+        assertFalse(legacyPermissionSql.contains("pms_eng_requirement"));
     }
 
     @Test

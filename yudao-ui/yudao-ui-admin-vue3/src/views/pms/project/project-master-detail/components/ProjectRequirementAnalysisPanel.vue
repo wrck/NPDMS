@@ -8,18 +8,11 @@
       <div class="heading-actions">
         <el-button
           :disabled="!overview?.currentEffective"
-          @click="
-            historyRef?.open(
-              project.id!,
-              selectedPreparationId,
-              detail?.status,
-              detail?.sourcePreparationId
-            )
-          "
+          @click="openHistory"
         >
           完成历史
         </el-button>
-        <el-button :loading="loading" @click="load">刷新</el-button>
+        <el-button :loading="loading" @click="refreshWorkspace">刷新</el-button>
       </div>
     </div>
 
@@ -106,6 +99,18 @@
           :closable="false"
           show-icon
         />
+        <section
+          v-if="detail.completionBlockers.length"
+          class="completion-blockers"
+          aria-label="当前完成阻断"
+        >
+          <strong>当前尚不能完成</strong>
+          <ul>
+            <li v-for="blocker in detail.completionBlockers" :key="blockerKey(blocker)">
+              {{ blockerSectionName(blocker.sectionCode) }}：{{ blockerLabel(blocker.code) }}
+            </li>
+          </ul>
+        </section>
         <div class="version-meta" aria-label="当前查看版本">
           <div
             ><span>业务版本</span><strong>V{{ detail.businessVersion }}</strong></div
@@ -135,18 +140,22 @@
               :key="section.sectionId"
               type="button"
               :class="{ 'section-link--active': selectedSectionId === section.sectionId }"
-              @click="selectedSectionId = section.sectionId"
+              @click="switchSection(section.sectionId)"
             >
               <span>{{ section.sectionName }}</span>
               <small>
                 {{ section.sectionKind === 'CORE' ? '核心' : '扩展' }}
                 <template v-if="section.required"> · 必填</template>
               </small>
+              <small :class="`attachment-status--${section.attachmentSyncStatus.toLowerCase()}`">
+                {{ attachmentStatusLabel(section.attachmentSyncStatus) }}
+              </small>
             </button>
           </nav>
           <main class="section-canvas">
             <RequirementAnalysisSectionCard
               v-if="selectedSection"
+              ref="sectionCardRef"
               :key="`${detail.preparationId}-${selectedSection.sectionId}-${selectedSection.version}`"
               :preparation-id="detail.preparationId"
               :preparation-version="detail.version"
@@ -154,6 +163,7 @@
               :project-version="project.version || 0"
               :section="selectedSection"
               :reload="load"
+              @edit-state-change="sectionEditState = $event"
             />
             <el-empty v-else description="当前版本没有可显示章节" />
           </main>
@@ -176,6 +186,9 @@ import { useWindowSize } from '@vueuse/core'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import type {
+  RequirementAnalysisAttachmentSyncStatus,
+  RequirementAnalysisCompletionBlockerCode,
+  RequirementAnalysisCompletionBlockerVO,
   RequirementAnalysisDetailVO,
   RequirementAnalysisOverviewVO
 } from '@/api/pms/engineering/requirement-analysis'
@@ -186,8 +199,10 @@ import RequirementAnalysisCompareDrawer from './RequirementAnalysisCompareDrawer
 import {
   createRequirementIntentStore,
   requirementAnalysisLayout,
+  requirementAnalysisTransitionDecision,
   requirementIntentOf
 } from './requirementAnalysisInteraction'
+import type { RequirementAnalysisSectionEditState } from './requirementAnalysisInteraction'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const { width } = useWindowSize()
@@ -204,11 +219,33 @@ const selectedPreparationId = ref<number>()
 const selectedSectionId = ref<number>()
 const historyRef = ref<InstanceType<typeof RequirementAnalysisHistoryDrawer>>()
 const compareRef = ref<InstanceType<typeof RequirementAnalysisCompareDrawer>>()
+const sectionCardRef = ref<{
+  save: () => Promise<boolean>
+  discardBodyChanges: () => void
+}>()
+const sectionEditState = ref<RequirementAnalysisSectionEditState>()
 const intentKeys = createRequirementIntentStore()
 
 const selectedSection = computed(() =>
   detail.value?.sections.find((section) => section.sectionId === selectedSectionId.value)
 )
+const hasAction = (actions: string[], candidates: string[]) =>
+  candidates.some((action) => actions.includes(action))
+const effectiveEditState = computed<RequirementAnalysisSectionEditState>(() => {
+  const editState = sectionEditState.value
+  if (editState && editState.sectionId === selectedSection.value?.sectionId) {
+    return editState
+  }
+  const actions = selectedSection.value?.allowedActions || []
+  const editable = actions.includes('EDIT')
+  return {
+    sectionId: selectedSection.value?.sectionId || 0,
+    bodyDirty: false,
+    attachmentSyncStatus: selectedSection.value?.attachmentSyncStatus || 'IN_SYNC',
+    guardsNavigation:
+      editable && selectedSection.value?.attachmentSyncStatus !== 'IN_SYNC'
+  }
+})
 const relationLabel = computed(() => {
   if (detail.value?.currentDraft) return '当前草稿'
   if (detail.value?.currentEffective) return '当前有效'
@@ -216,8 +253,6 @@ const relationLabel = computed(() => {
 })
 const overviewActions = computed(() => overview.value?.allowedActions || [])
 const detailActions = computed(() => detail.value?.allowedActions || [])
-const hasAction = (actions: string[], candidates: string[]) =>
-  candidates.some((action) => actions.includes(action))
 const canCreateInitial = computed(
   () =>
     !overview.value?.draft &&
@@ -241,11 +276,27 @@ const commandErrorText = (error: any) => {
   const code = error?.data?.code || error?.code || error?.message
   return code ? `操作未完成：${String(code)}` : '操作未完成，请刷新权威事实后重试。'
 }
+const attachmentStatusLabel = (status: RequirementAnalysisAttachmentSyncStatus) =>
+  ({ IN_SYNC: '附件已同步', PENDING: '附件待提交', UNKNOWN: '附件事实未知' })[status]
+const blockerLabel = (code: RequirementAnalysisCompletionBlockerCode) =>
+  ({
+    REQUIRED_VALUE_MISSING: '必填内容未填写',
+    VALUE_INVALID: '内容不符合冻结模板约束',
+    ATTACHMENT_SET_PENDING: '附件当前集合尚未保存',
+    ATTACHMENT_FACT_INVALID: '已保存附件事实已失效',
+    FACT_PROVIDER_UNAVAILABLE: '附件事实暂不可确认'
+  })[code]
+const blockerSectionName = (sectionCode: string) =>
+  detail.value?.sections.find((section) => section.sectionCode === sectionCode)?.sectionName ||
+  sectionCode
+const blockerKey = (blocker: RequirementAnalysisCompletionBlockerVO) =>
+  `${blocker.sectionCode}:${blocker.code}`
 
 const loadDetail = async (preparationId: number) => {
   detailLoading.value = true
   try {
     detail.value = await RequirementAnalysisApi.getDetail(preparationId)
+    sectionEditState.value = undefined
     selectedPreparationId.value = preparationId
     const stillVisible = detail.value.sections.some(
       (section) => section.sectionId === selectedSectionId.value
@@ -255,7 +306,36 @@ const loadDetail = async (preparationId: number) => {
     detailLoading.value = false
   }
 }
+const guardCurrentSection = async (target: string) => {
+  const decision = requirementAnalysisTransitionDecision(effectiveEditState.value)
+  if (decision === 'ALLOW') return true
+  if (decision === 'BLOCK_UNKNOWN_ATTACHMENT_FACTS') {
+    message.warning(`附件事实暂不可确认，不能${target}；请刷新后重试`)
+    return false
+  }
+  if (decision === 'SAVE_ATTACHMENT_SET') {
+    try {
+      await message.confirm(`当前章节附件待提交，必须先保存完整附件集合，才能${target}。是否保存？`)
+    } catch {
+      return false
+    }
+    try {
+      return (await sectionCardRef.value?.save()) === true
+    } catch {
+      return false
+    }
+  }
+  try {
+    await message.confirm(`当前章节正文尚未保存，是否放弃这些本地修改并${target}？`)
+    sectionCardRef.value?.discardBodyChanges()
+    return true
+  } catch {
+    return false
+  }
+}
 const selectVersion = async (preparationId: number) => {
+  if (preparationId === selectedPreparationId.value) return
+  if (!(await guardCurrentSection('切换版本'))) return
   errorText.value = ''
   try {
     await loadDetail(preparationId)
@@ -285,6 +365,32 @@ const load = async () => {
     loading.value = false
   }
 }
+const refreshWorkspace = async () => {
+  if (
+    effectiveEditState.value.attachmentSyncStatus === 'UNKNOWN' &&
+    !effectiveEditState.value.bodyDirty
+  ) {
+    await load()
+    return
+  }
+  if (!(await guardCurrentSection('刷新'))) return
+  await load()
+}
+const switchSection = async (sectionId: number) => {
+  if (sectionId === selectedSectionId.value) return
+  if (!(await guardCurrentSection('切换章节'))) return
+  selectedSectionId.value = sectionId
+  sectionEditState.value = undefined
+}
+const openHistory = async () => {
+  if (!props.project.id || !(await guardCurrentSection('查看完成历史'))) return
+  historyRef.value?.open(
+    props.project.id,
+    selectedPreparationId.value,
+    detail.value?.status,
+    detail.value?.sourcePreparationId
+  )
+}
 
 const createInitial = async () => {
   if (!props.project.id) return
@@ -305,6 +411,7 @@ const createInitial = async () => {
 }
 const complete = async () => {
   if (!detail.value) return
+  if (!(await guardCurrentSection('完成草稿'))) return
   await message.confirm('完成后正文与附件将永久冻结，是否继续？')
   const payload = {
     preparationId: detail.value.preparationId,
@@ -446,6 +553,20 @@ watch(() => props.project.id, load, { immediate: true })
   margin: 12px 0;
 }
 
+.completion-blockers {
+  padding: 12px;
+  margin-top: 12px;
+  color: var(--el-color-warning-dark-2);
+  background: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: var(--el-border-radius-base);
+}
+
+.completion-blockers ul {
+  padding-left: 20px;
+  margin: 6px 0 0;
+}
+
 .version-meta > div {
   min-width: 0;
   padding: 10px;
@@ -495,6 +616,18 @@ watch(() => props.project.id, load, { immediate: true })
 
 .section-navigation .section-link--active {
   color: var(--el-color-primary);
+}
+
+.attachment-status--in_sync {
+  color: var(--el-color-success);
+}
+
+.attachment-status--pending {
+  color: var(--el-color-warning);
+}
+
+.attachment-status--unknown {
+  color: var(--el-color-danger);
 }
 
 .section-canvas {

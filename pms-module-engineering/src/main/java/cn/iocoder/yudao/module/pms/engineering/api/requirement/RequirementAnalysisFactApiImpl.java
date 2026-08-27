@@ -30,6 +30,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_FILE_FACT_INVALID;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID;
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 
 @Service
 @RequiredArgsConstructor
@@ -57,6 +59,7 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
 
     private final RequirementAnalysisRootMapper rootMapper;
     private final RequirementAnalysisSectionMapper sectionMapper;
+    private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectOrganizationFactApi organizationFactApi;
     private final FileArtifactApi fileArtifactApi;
@@ -66,6 +69,7 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
     public RequirementAnalysisFact inspect(RequirementAnalysisFactQuery query) {
         requireQuery(query);
         TrustedActor actor = trustedActor();
+        requireQueryPermission(actor);
         requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                 actor.tenantId(), actor.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
         ProjectOrganizationFact project = organizationFactApi.inspect(new ProjectOrganizationFactQuery(query.projectId()));
@@ -87,6 +91,7 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
     public RequirementAnalysisFact lockAndRevalidate(RequirementAnalysisFactRevalidationQuery query) {
         requireQuery(query);
         TrustedActor actor = trustedActor();
+        requireQueryPermission(actor);
 
         ProjectScopeResult inspectedScope = requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                 actor.tenantId(), actor.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
@@ -263,6 +268,12 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
             throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
         }
         return new TrustedActor(tenantId, actorId);
+    }
+
+    private void requireQueryPermission(TrustedActor actor) {
+        if (!permissionApi.hasAnyPermissions(actor.actorId(), "pms:requirement-analysis:query")) {
+            throw exception(FORBIDDEN);
+        }
     }
 
     private record AttachmentSnapshot(Long artifactId, Integer versionNo, String referenceKey,

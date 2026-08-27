@@ -27,8 +27,12 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersi
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.ExistingFileReferenceTarget;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetExpectation;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -42,6 +46,7 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindin
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
@@ -62,6 +67,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
@@ -155,7 +161,7 @@ public class RequirementAnalysisCommandService {
                 () -> createRevisionInTransaction(command, actor));
     }
 
-    private CommandResult createInitialInTransaction(CreateCommand command, Actor actor) {
+    private CommandOutcome createInitialInTransaction(CreateCommand command, Actor actor) {
         Authorization authorization = lockManager(command.projectId(), actor, true, true,
                 command.expectedProjectVersion());
         RequirementAnalysisProjectQuery projectQuery = new RequirementAnalysisProjectQuery(
@@ -168,7 +174,8 @@ public class RequirementAnalysisCommandService {
         PreparationDO root = newRoot(actor, authorization.binding(), command.projectId(), 1, null);
         insertRoot(root);
         insertSections(actor, root, definitions, null);
-        return result(root);
+        return outcome(root, new AuditTransition(null, root.getId(), null, null,
+                AuditState.empty(), AuditState.of(root)));
     }
 
     private CommandResult patchInTransaction(PatchCommand command, Actor actor) {
@@ -192,7 +199,7 @@ public class RequirementAnalysisCommandService {
         }
         String normalizedValue = updateValue ? normalizeValue(section, command.value()) : section.getValueSnapshot();
         String normalizedAttachments = updateAttachments
-                ? inspectAttachments(root, section, command.attachments())
+                ? lockSubmittedAttachmentSet(section, command.attachments())
                 : section.getAttachmentReferenceSnapshot();
         if (Objects.equals(normalizedValue, section.getValueSnapshot())
                 && Objects.equals(normalizedAttachments, section.getAttachmentReferenceSnapshot())) {
@@ -212,7 +219,7 @@ public class RequirementAnalysisCommandService {
         return result(root);
     }
 
-    private CommandResult completeInTransaction(CompleteCommand command, Actor actor) {
+    private CommandOutcome completeInTransaction(CompleteCommand command, Actor actor) {
         PreparationDO inspected = rootMapper.selectById(
                 new RequirementAnalysisRowQuery(actor.tenantId(), command.preparationId()));
         if (inspected == null) throw exception(REQUIREMENT_STATUS_INVALID);
@@ -228,7 +235,9 @@ public class RequirementAnalysisCommandService {
         List<RequirementAnalysisSectionDO> sections = sectionMapper.selectListForUpdate(
                 new RequirementAnalysisSectionListQuery(actor.tenantId(), root.getId()));
         requireCompleteContent(sections);
-        lockAttachments(sections);
+        lockAllAttachmentSets(sections);
+        AuditState before = AuditState.of(root);
+        Long effectiveBefore = effective == null ? null : effective.getId();
         String actorText = String.valueOf(actor.actorId());
         if (effective != null && rootMapper.clearEffectiveIfMatch(new RequirementAnalysisEffectiveClearUpdate(
                 actor.tenantId(), effective.getId(), effective.getVersion(), actorText)) != 1) {
@@ -246,10 +255,11 @@ public class RequirementAnalysisCommandService {
         root.setCompletedAt(completedAt);
         root.setVersion(root.getVersion() + 1);
         requireBindingMatchesRoot(authorization.binding(), root);
-        return result(root);
+        return outcome(root, new AuditTransition(root.getId(), null, effectiveBefore, root.getId(),
+                before, AuditState.of(root)));
     }
 
-    private CommandResult createRevisionInTransaction(CreateRevisionCommand command, Actor actor) {
+    private CommandOutcome createRevisionInTransaction(CreateRevisionCommand command, Actor actor) {
         PreparationDO inspected = rootMapper.selectById(
                 new RequirementAnalysisRowQuery(actor.tenantId(), command.preparationId()));
         if (inspected == null) throw exception(REQUIREMENT_STATUS_INVALID);
@@ -308,7 +318,8 @@ public class RequirementAnalysisCommandService {
                 }
             }
         }
-        return result(draft);
+        return outcome(draft, new AuditTransition(null, draft.getId(), source.getId(), source.getId(),
+                AuditState.of(source), AuditState.of(draft)));
     }
 
     private Authorization lockManager(Long projectId, Actor actor, boolean requireS1, boolean withBinding,
@@ -556,28 +567,27 @@ public class RequirementAnalysisCommandService {
         return Set.copyOf(codes);
     }
 
-    private String inspectAttachments(PreparationDO root, RequirementAnalysisSectionDO section,
-                                      List<RequirementAnalysisAttachmentReqVO> requested) {
+    private String lockSubmittedAttachmentSet(RequirementAnalysisSectionDO section,
+                                              List<RequirementAnalysisAttachmentReqVO> requested) {
         List<RequirementAnalysisAttachmentReqVO> rows = requested == null ? List.of() : requested;
         Set<String> keys = new HashSet<>();
-        List<RequirementAnalysisQueryService.AttachmentFact> facts = new ArrayList<>();
+        List<RequirementAnalysisQueryService.AttachmentFact> submitted = new ArrayList<>();
         for (RequirementAnalysisAttachmentReqVO row : rows) {
-            if (row == null || row.getReferenceKey() == null || !keys.add(row.getReferenceKey())) {
+            if (row == null || row.getArtifactId() == null || row.getVersionNo() == null
+                    || row.getFileFactVersion() == null || row.getScopeVersion() == null
+                    || row.getReferenceKey() == null || !keys.add(row.getReferenceKey())) {
                 throw exception(REQUIREMENT_ANALYSIS_CONTENT_INVALID);
             }
             requireUuid(row.getReferenceKey());
-            FileArtifactVersionFact fact = fileArtifactApi.inspect(new FileArtifactVersionQuery(
-                    row.getArtifactId(), row.getVersionNo(), OWNER_CONTEXT, OBJECT_TYPE,
-                    String.valueOf(section.getId()), PURPOSE, row.getReferenceKey(), FileActionCodes.REFERENCE));
-            if (!Objects.equals(fact.fileFactVersion(), row.getFileFactVersion())
-                    || !Objects.equals(fact.scopeVersion(), row.getScopeVersion())
-                    || !"ACTIVE".equals(fact.referenceStatus())) {
-                throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
-            }
-            facts.add(toSnapshot(fact));
+            submitted.add(new RequirementAnalysisQueryService.AttachmentFact(row.getArtifactId(),
+                    row.getVersionNo(), row.getReferenceKey(), row.getFileFactVersion(), row.getScopeVersion()));
         }
-        facts.sort(Comparator.comparing(RequirementAnalysisQueryService.AttachmentFact::referenceKey));
-        return JsonUtils.toJsonString(facts);
+        submitted.sort(Comparator.comparing(RequirementAnalysisQueryService.AttachmentFact::referenceKey));
+        Map<Long, FileReferenceSetFact> locked = inspectAndLockAttachmentSets(
+                Map.of(section.getId(), List.copyOf(submitted)));
+        FileReferenceSetFact set = locked.get(section.getId());
+        if (set == null) throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
+        return JsonUtils.toJsonString(set.activeFacts().stream().map(this::toSnapshot).toList());
     }
 
     private void requireCompleteContent(List<RequirementAnalysisSectionDO> sections) {
@@ -585,44 +595,111 @@ public class RequirementAnalysisCommandService {
         for (RequirementAnalysisSectionDO section : sections) {
             if (!Boolean.TRUE.equals(section.getRequiredFlag())) continue;
             JsonNode value = JsonUtils.parseTree(section.getValueSnapshot());
-            if (value == null || value.isNull() || value.isTextual() && value.asText().isBlank()
-                    || value.isArray() && value.isEmpty()) {
+            if (requiredValueMissing(section, value)) {
                 throw exception(REQUIREMENT_ANALYSIS_CONTENT_INVALID);
             }
             normalizeValue(section, value);
         }
     }
 
-    private void lockAttachments(List<RequirementAnalysisSectionDO> sections) {
-        List<AttachmentLockTarget> targets = new ArrayList<>();
+    private boolean requiredValueMissing(RequirementAnalysisSectionDO section, JsonNode value) {
+        if (value == null || value.isNull()) return true;
+        return switch (section.getFieldTypeCode()) {
+            case "RICH_TEXT" -> !value.isTextual() || !hasVisibleRichText(value.asText());
+            case "TEXT" -> !value.isTextual() || value.asText().isBlank();
+            case "NUMBER" -> !value.isNumber();
+            case "BOOLEAN" -> !value.isBoolean();
+            case "SINGLE_SELECT" -> !value.isTextual() || value.asText().isBlank();
+            case "MULTI_SELECT" -> !value.isArray() || value.isEmpty();
+            default -> true;
+        };
+    }
+
+    private boolean hasVisibleRichText(String html) {
+        return Jsoup.parseBodyFragment(html).text().codePoints().anyMatch(codePoint ->
+                !Character.isWhitespace(codePoint) && codePoint != 0x00A0 && codePoint != 0x200B
+                        && codePoint != 0x200C && codePoint != 0x200D && codePoint != 0xFEFF);
+    }
+
+    private void lockAllAttachmentSets(List<RequirementAnalysisSectionDO> sections) {
+        Map<Long, List<RequirementAnalysisQueryService.AttachmentFact>> expected = new LinkedHashMap<>();
         for (RequirementAnalysisSectionDO section : sections) {
-            for (RequirementAnalysisQueryService.AttachmentFact fact : parseAttachments(
-                    section.getAttachmentReferenceSnapshot())) {
-                targets.add(new AttachmentLockTarget(section, fact));
-            }
+            expected.put(section.getId(), parseAttachments(section.getAttachmentReferenceSnapshot()));
         }
-        targets.sort(Comparator.comparing((AttachmentLockTarget target) -> target.fact().artifactId())
-                .thenComparing(target -> target.fact().versionNo())
-                .thenComparing(target -> target.section().getId())
-                .thenComparing(target -> target.fact().referenceKey()));
-        for (AttachmentLockTarget target : targets) {
-            RequirementAnalysisSectionDO section = target.section();
-            RequirementAnalysisQueryService.AttachmentFact fact = target.fact();
-            FileArtifactVersionFact locked = fileArtifactApi.lockAndRevalidate(
-                    revalidation(section, fact, FileActionCodes.READ));
-            if (!Objects.equals(locked.fileFactVersion(), fact.fileFactVersion())
-                    || !Objects.equals(locked.scopeVersion(), fact.scopeVersion())) {
+        inspectAndLockAttachmentSets(expected);
+    }
+
+    private Map<Long, FileReferenceSetFact> inspectAndLockAttachmentSets(
+            Map<Long, List<RequirementAnalysisQueryService.AttachmentFact>> expectedBySection) {
+        List<FileReferenceSetKey> setKeys = expectedBySection.keySet().stream()
+                .map(this::referenceSetKey).sorted().toList();
+        List<FileReferenceSetFact> inspected;
+        try {
+            inspected = fileArtifactApi.inspectReferenceSets(
+                    new FileReferenceSetCollectionQuery(setKeys, FileActionCodes.READ));
+        } catch (RuntimeException unavailable) {
+            throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
+        }
+        Map<Long, FileReferenceSetFact> inspectedBySection = requireExactSets(
+                setKeys, inspected, expectedBySection);
+        List<FileReferenceSetExpectation> expectations = setKeys.stream().map(key -> {
+            FileReferenceSetFact fact = inspectedBySection.get(Long.valueOf(key.objectId()));
+            return new FileReferenceSetExpectation(key, fact.scopeVersion(), fact.activeFacts());
+        }).toList();
+        List<FileReferenceSetFact> locked;
+        try {
+            locked = fileArtifactApi.lockAndRevalidateReferenceSets(
+                    new FileReferenceSetCollectionRevalidationQuery(expectations, FileActionCodes.READ));
+        } catch (RuntimeException unavailable) {
+            throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
+        }
+        return requireExactSets(setKeys, locked, expectedBySection);
+    }
+
+    private Map<Long, FileReferenceSetFact> requireExactSets(
+            List<FileReferenceSetKey> keys, List<FileReferenceSetFact> facts,
+            Map<Long, List<RequirementAnalysisQueryService.AttachmentFact>> expectedBySection) {
+        if (facts == null || facts.size() != keys.size()) {
+            throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
+        }
+        Map<Long, FileReferenceSetFact> bySection = new LinkedHashMap<>();
+        for (FileReferenceSetFact fact : facts) {
+            Long sectionId;
+            try {
+                sectionId = Long.valueOf(fact.key().objectId());
+            } catch (RuntimeException invalid) {
+                throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
+            }
+            if (!keys.contains(fact.key()) || bySection.put(sectionId, fact) != null
+                    || !sameAttachmentSet(expectedBySection.get(sectionId), fact.activeFacts())) {
                 throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
             }
         }
+        return Map.copyOf(bySection);
+    }
+
+    private boolean sameAttachmentSet(List<RequirementAnalysisQueryService.AttachmentFact> expected,
+                                      List<FileArtifactVersionFact> current) {
+        if (expected == null || current == null || expected.size() != current.size()) return false;
+        List<RequirementAnalysisQueryService.AttachmentFact> normalizedExpected = expected.stream()
+                .sorted(Comparator.comparing(RequirementAnalysisQueryService.AttachmentFact::referenceKey)).toList();
+        List<RequirementAnalysisQueryService.AttachmentFact> normalizedCurrent = current.stream()
+                .map(this::toSnapshot)
+                .sorted(Comparator.comparing(RequirementAnalysisQueryService.AttachmentFact::referenceKey)).toList();
+        return normalizedExpected.equals(normalizedCurrent);
+    }
+
+    private FileReferenceSetKey referenceSetKey(Long sectionId) {
+        return new FileReferenceSetKey(OWNER_CONTEXT, OBJECT_TYPE, String.valueOf(sectionId), PURPOSE);
     }
 
     private FileArtifactVersionRevalidationQuery revalidation(
-            RequirementAnalysisSectionDO section, RequirementAnalysisQueryService.AttachmentFact fact,
-            String action) {
-        return new FileArtifactVersionRevalidationQuery(fact.artifactId(), fact.versionNo(), OWNER_CONTEXT,
-                OBJECT_TYPE, String.valueOf(section.getId()), PURPOSE, fact.referenceKey(), action,
-                fact.fileFactVersion(), fact.scopeVersion());
+            RequirementAnalysisSectionDO section,
+            RequirementAnalysisQueryService.AttachmentFact fact,
+            String requiredAction) {
+        return new FileArtifactVersionRevalidationQuery(fact.artifactId(), fact.versionNo(),
+                OWNER_CONTEXT, OBJECT_TYPE, String.valueOf(section.getId()), PURPOSE,
+                fact.referenceKey(), requiredAction, fact.fileFactVersion(), fact.scopeVersion());
     }
 
     private List<RequirementAnalysisQueryService.AttachmentFact> parseAttachments(String snapshot) {
@@ -648,13 +725,17 @@ public class RequirementAnalysisCommandService {
 
     private <T> CommandResult executeSafely(Actor actor, String scope, String key, T request,
                                             Long preparationId, Long projectId,
-                                            Supplier<CommandResult> operation) {
+                                            Supplier<CommandOutcome> operation) {
         try {
             return transactionTemplate.execute(status -> {
+                AtomicReference<AuditTransition> transition = new AtomicReference<>();
                 var execution = commandExecutionApi.execute(
                         new PlatformCommandExecutionApi.IdempotencyScope(actor.tenantId(), scope,
-                                actor.actorId(), key), digest(request), CommandResult.class, operation,
-                        result -> successFacts(scope, actor, result));
+                                actor.actorId(), key), digest(request), CommandResult.class, () -> {
+                            CommandOutcome outcome = operation.get();
+                            transition.set(outcome.auditTransition());
+                            return outcome.result();
+                        }, result -> successFacts(scope, key, actor, result, transition.get()));
                 if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT) {
                     throw exception(PLATFORM_COMMAND_KEY_CONFLICT);
                 }
@@ -670,15 +751,15 @@ public class RequirementAnalysisCommandService {
     }
 
     private PlatformCommandExecutionApi.SuccessFacts successFacts(
-            String scope, Actor actor, CommandResult result) {
-        Map<String, Object> detail = new LinkedHashMap<>();
-        detail.put("projectId", result.projectId());
-        detail.put("preparationId", result.preparationId());
-        detail.put("businessVersion", result.businessVersion());
-        detail.put("contentVersion", result.contentVersion());
-        detail.put("version", result.version());
-        detail.put("status", result.status());
-        detail.put("sections", auditSections(actor.tenantId(), result.preparationId()));
+            String scope, String operationId, Actor actor, CommandResult result, AuditTransition transition) {
+        if (transition == null) throw new IllegalStateException("REQUIREMENT_ANALYSIS_AUDIT_TRANSITION_MISSING");
+        CommandAuditDetail detail = new CommandAuditDetail(operationId, result.projectId(), result.preparationId(),
+                transition.draftBefore(), transition.draftAfter(), transition.effectiveBefore(),
+                transition.effectiveAfter(), transition.before().status(), transition.after().status(),
+                transition.before().businessVersion(), transition.after().businessVersion(),
+                transition.before().contentVersion(), transition.after().contentVersion(),
+                transition.before().aggregateVersion(), transition.after().aggregateVersion(),
+                auditSections(actor.tenantId(), result.preparationId()));
         return new PlatformCommandExecutionApi.SuccessFacts(scope, "RequirementAnalysis",
                 String.valueOf(result.preparationId()), actor.correlationId(),
                 JsonUtils.toJsonString(detail), null, null);
@@ -743,6 +824,10 @@ public class RequirementAnalysisCommandService {
     private CommandResult result(PreparationDO root) {
         return new CommandResult(root.getId(), root.getProjectId(), root.getBusinessVersion(),
                 root.getStatusCode(), root.getContentVersion(), root.getVersion());
+    }
+
+    private CommandOutcome outcome(PreparationDO root, AuditTransition transition) {
+        return new CommandOutcome(result(root), transition);
     }
 
     private String digest(Object request) {
@@ -810,8 +895,35 @@ public class RequirementAnalysisCommandService {
     private record Authorization(Integer projectVersion, Long scopeVersion, ProjectWorkBindingFact binding) {
     }
 
-    private record AttachmentLockTarget(RequirementAnalysisSectionDO section,
-                                        RequirementAnalysisQueryService.AttachmentFact fact) {
+    private record CommandOutcome(CommandResult result, AuditTransition auditTransition) {
+    }
+
+    private record AuditTransition(Long draftBefore, Long draftAfter,
+                                   Long effectiveBefore, Long effectiveAfter,
+                                   AuditState before, AuditState after) {
+    }
+
+    private record AuditState(String status, Integer businessVersion,
+                              Integer contentVersion, Integer aggregateVersion) {
+        private static AuditState empty() {
+            return new AuditState(null, null, null, null);
+        }
+
+        private static AuditState of(PreparationDO root) {
+            return new AuditState(root.getStatusCode(), root.getBusinessVersion(),
+                    root.getContentVersion(), root.getVersion());
+        }
+    }
+
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private record CommandAuditDetail(String operationId, Long projectId, Long preparationId,
+                                      Long draftPreparationIdBefore, Long draftPreparationIdAfter,
+                                      Long effectivePreparationIdBefore, Long effectivePreparationIdAfter,
+                                      String statusBefore, String statusAfter,
+                                      Integer businessVersionBefore, Integer businessVersionAfter,
+                                      Integer contentVersionBefore, Integer contentVersionAfter,
+                                      Integer aggregateVersionBefore, Integer aggregateVersionAfter,
+                                      List<Map<String, Object>> sections) {
     }
 
     public record Actor(Long tenantId, Long actorId, String correlationId) {

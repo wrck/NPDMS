@@ -1,10 +1,12 @@
 package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationCursorPageRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisAttachmentRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisCompareRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisCompletionBlockerRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisSectionRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisVersionRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisWorkspaceRespVO;
@@ -17,6 +19,12 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.Requi
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisRowQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisSectionListQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -24,7 +32,9 @@ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
+import org.jsoup.Jsoup;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,6 +64,7 @@ public class RequirementAnalysisQueryService {
 
     private final RequirementAnalysisRootMapper rootMapper;
     private final RequirementAnalysisSectionMapper sectionMapper;
+    private final FileArtifactApi fileArtifactApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
@@ -71,8 +82,8 @@ public class RequirementAnalysisQueryService {
         boolean manager = isCurrentManager(actor, projectId, ProjectScopeApi.ACTION_MANAGE);
         RequirementAnalysisWorkspaceRespVO response = new RequirementAnalysisWorkspaceRespVO();
         response.setProjectId(projectId);
-        response.setCurrentEffective(effective == null ? null : toVersion(effective, false, actor));
-        response.setDraft(draft == null || !manager ? null : toVersion(draft, false, actor));
+        response.setCurrentEffective(effective == null ? null : toVersion(effective, true, actor));
+        response.setDraft(draft == null || !manager ? null : toVersion(draft, true, actor));
         List<String> actions = new ArrayList<>();
         if (manager && draft == null) actions.add(effective == null ? "CREATE_INITIAL_DRAFT" : "CREATE_DRAFT");
         response.setAllowedActions(List.copyOf(actions));
@@ -142,6 +153,13 @@ public class RequirementAnalysisQueryService {
 
     public RequirementAnalysisVersionRespVO toVersion(PreparationDO root, boolean includeSections, Actor actor) {
         boolean manager = isCurrentManager(actor, root.getProjectId(), ProjectScopeApi.ACTION_MANAGE);
+        boolean currentEditableDraft = manager && Integer.valueOf(1).equals(root.getDraftMarker())
+                && "DRAFT".equals(root.getStatusCode());
+        List<RequirementAnalysisSectionDO> sectionRows = includeSections ? sections(root) : List.of();
+        AttachmentProjection attachmentProjection = includeSections
+                ? inspectAttachmentSets(sectionRows) : AttachmentProjection.empty();
+        List<RequirementAnalysisCompletionBlockerRespVO> blockers = currentEditableDraft
+                ? completionBlockers(sectionRows, attachmentProjection) : List.of();
         RequirementAnalysisVersionRespVO response = new RequirementAnalysisVersionRespVO();
         response.setPreparationId(root.getId());
         response.setProjectId(root.getProjectId());
@@ -158,18 +176,21 @@ public class RequirementAnalysisQueryService {
         response.setCompletedAt(root.getCompletedAt());
         response.setCreatedAt(root.getCreateTime());
         List<String> actions = new ArrayList<>();
-        if (manager && Boolean.TRUE.equals(response.getCurrentDraft()) && "DRAFT".equals(root.getStatusCode())) {
+        if (currentEditableDraft) {
             actions.add("EDIT");
-            actions.add("COMPLETE");
+            if (blockers.isEmpty()) actions.add("COMPLETE");
         }
         response.setAllowedActions(List.copyOf(actions));
-        response.setSections(includeSections ? sections(root).stream()
-                .map(section -> toSection(section, manager && Boolean.TRUE.equals(response.getCurrentDraft())))
+        response.setCompletionBlockers(blockers);
+        response.setSections(includeSections ? sectionRows.stream()
+                .map(section -> toSection(section, currentEditableDraft,
+                        attachmentProjection.bySectionId().get(section.getId())))
                 .toList() : List.of());
         return response;
     }
 
-    private RequirementAnalysisSectionRespVO toSection(RequirementAnalysisSectionDO row, boolean editable) {
+    private RequirementAnalysisSectionRespVO toSection(RequirementAnalysisSectionDO row, boolean editable,
+                                                        FileReferenceSetFact currentSet) {
         RequirementAnalysisSectionRespVO response = new RequirementAnalysisSectionRespVO();
         response.setSectionId(row.getId());
         response.setSourceSectionId(row.getSourceSectionId());
@@ -184,6 +205,18 @@ public class RequirementAnalysisQueryService {
         response.setValueSnapshot(row.getValueSnapshot());
         response.setAttachments(parseAttachments(row.getAttachmentReferenceSnapshot()).stream()
                 .map(this::toAttachment).toList());
+        if (currentSet == null) {
+            response.setAttachmentSyncStatus("UNKNOWN");
+            response.setCurrentActiveFacts(null);
+            response.setAttachmentSyncErrorCode(editable ? "FACT_PROVIDER_UNAVAILABLE" : null);
+        } else {
+            boolean inSync = sameAttachmentSet(parseAttachments(row.getAttachmentReferenceSnapshot()),
+                    currentSet.activeFacts());
+            response.setAttachmentSyncStatus(inSync ? "IN_SYNC" : "PENDING");
+            response.setCurrentActiveFacts(editable
+                    ? currentSet.activeFacts().stream().map(this::toAttachment).toList() : null);
+            response.setAttachmentSyncErrorCode(editable && !inSync ? "ATTACHMENT_SET_PENDING" : null);
+        }
         response.setVersion(row.getVersion());
         response.setAllowedActions(editable ? List.of("EDIT", "ATTACH", "REPLACE", "DETACH") : List.of());
         return response;
@@ -199,8 +232,166 @@ public class RequirementAnalysisQueryService {
         return response;
     }
 
+    private RequirementAnalysisAttachmentRespVO toAttachment(FileArtifactVersionFact fact) {
+        RequirementAnalysisAttachmentRespVO response = new RequirementAnalysisAttachmentRespVO();
+        response.setArtifactId(fact.artifactId());
+        response.setVersionNo(fact.versionNo());
+        response.setReferenceKey(fact.referenceKey());
+        response.setName(fact.name());
+        response.setSizeBytes(fact.sizeBytes());
+        response.setMediaType(fact.mediaType());
+        response.setAvailabilityStatus(fact.availabilityStatus());
+        response.setReferenceStatus(fact.referenceStatus());
+        response.setFileFactVersion(fact.fileFactVersion());
+        response.setScopeVersion(fact.scopeVersion());
+        return response;
+    }
+
     private List<RequirementAnalysisSectionDO> sections(PreparationDO root) {
         return sectionMapper.selectList(new RequirementAnalysisSectionListQuery(root.getTenantId(), root.getId()));
+    }
+
+    private AttachmentProjection inspectAttachmentSets(List<RequirementAnalysisSectionDO> sections) {
+        if (sections.isEmpty()) return AttachmentProjection.empty();
+        List<FileReferenceSetKey> keys = sections.stream().map(this::referenceSetKey).sorted().toList();
+        try {
+            List<FileReferenceSetFact> facts = fileArtifactApi.inspectReferenceSets(
+                    new FileReferenceSetCollectionQuery(keys, FileActionCodes.READ));
+            Map<Long, FileReferenceSetFact> bySection = new LinkedHashMap<>();
+            if (facts != null) {
+                for (FileReferenceSetFact fact : facts) {
+                    Long sectionId = Long.valueOf(fact.key().objectId());
+                    if (!keys.contains(fact.key()) || bySection.put(sectionId, fact) != null) {
+                        return AttachmentProjection.empty();
+                    }
+                }
+            }
+            return new AttachmentProjection(Map.copyOf(bySection), "FACT_PROVIDER_UNAVAILABLE");
+        } catch (RuntimeException unavailable) {
+            return AttachmentProjection.failed(attachmentFailureCode(unavailable));
+        }
+    }
+
+    private String attachmentFailureCode(RuntimeException failure) {
+        if (failure instanceof ServiceException serviceException) {
+            int code = serviceException.getCode();
+            if (code == cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_ARTIFACT_NOT_FOUND.getCode()
+                    || code == cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_VERSION_NOT_FOUND.getCode()
+                    || code == cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_VERSION_UNAVAILABLE.getCode()
+                    || code == cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_REFERENCE_NOT_FOUND.getCode()
+                    || code == cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_FACT_VERSION_CONFLICT.getCode()) {
+                return "ATTACHMENT_FACT_INVALID";
+            }
+        }
+        return "FACT_PROVIDER_UNAVAILABLE";
+    }
+
+    private List<RequirementAnalysisCompletionBlockerRespVO> completionBlockers(
+            List<RequirementAnalysisSectionDO> sections, AttachmentProjection attachments) {
+        List<RequirementAnalysisCompletionBlockerRespVO> blockers = new ArrayList<>();
+        if (sections.size() < 11) {
+            blockers.add(new RequirementAnalysisCompletionBlockerRespVO("VALUE_INVALID", null));
+        }
+        for (RequirementAnalysisSectionDO section : sections) {
+            JsonNodeValue value = inspectValue(section);
+            if (value.requiredMissing()) {
+                blockers.add(blocker("REQUIRED_VALUE_MISSING", section));
+            } else if (!value.valid()) {
+                blockers.add(blocker("VALUE_INVALID", section));
+            }
+            FileReferenceSetFact current = attachments.bySectionId().get(section.getId());
+            if (current == null) {
+                blockers.add(blocker(attachments.failureBlockerCode(), section));
+            } else if (!sameAttachmentSet(parseAttachments(section.getAttachmentReferenceSnapshot()),
+                    current.activeFacts())) {
+                blockers.add(blocker("ATTACHMENT_SET_PENDING", section));
+            } else if (current.activeFacts().stream()
+                    .anyMatch(fact -> !"AVAILABLE".equals(fact.availabilityStatus()))) {
+                blockers.add(blocker("ATTACHMENT_FACT_INVALID", section));
+            }
+        }
+        return List.copyOf(blockers);
+    }
+
+    private RequirementAnalysisCompletionBlockerRespVO blocker(String code, RequirementAnalysisSectionDO section) {
+        return new RequirementAnalysisCompletionBlockerRespVO(code, section.getSectionCode());
+    }
+
+    private JsonNodeValue inspectValue(RequirementAnalysisSectionDO section) {
+        try {
+            var value = JsonUtils.parseTree(section.getValueSnapshot());
+            boolean missing = value == null || value.isNull() || switch (section.getFieldTypeCode()) {
+                case "RICH_TEXT" -> !value.isTextual() || !hasVisibleRichText(value.asText());
+                case "TEXT" -> !value.isTextual() || value.asText().isBlank();
+                case "SINGLE_SELECT" -> !value.isTextual() || value.asText().isBlank();
+                case "MULTI_SELECT" -> !value.isArray() || value.isEmpty();
+                case "NUMBER" -> !value.isNumber();
+                case "BOOLEAN" -> !value.isBoolean();
+                default -> true;
+            };
+            if (Boolean.TRUE.equals(section.getRequiredFlag()) && missing) return new JsonNodeValue(true, true);
+            if (value == null || value.isNull()) return new JsonNodeValue(false, true);
+            return new JsonNodeValue(false, validTypedValue(section, value));
+        } catch (RuntimeException invalid) {
+            return new JsonNodeValue(false, false);
+        }
+    }
+
+    private boolean validTypedValue(RequirementAnalysisSectionDO section, JsonNode value) {
+        return switch (section.getFieldTypeCode()) {
+            case "RICH_TEXT", "TEXT" -> value.isTextual();
+            case "NUMBER" -> value.isNumber();
+            case "BOOLEAN" -> value.isBoolean();
+            case "SINGLE_SELECT" -> value.isTextual() && optionCodes(section).contains(value.asText());
+            case "MULTI_SELECT" -> {
+                if (!value.isArray()) yield false;
+                Set<String> allowed = optionCodes(section);
+                Set<String> selected = new java.util.HashSet<>();
+                boolean valid = true;
+                for (var item : value) {
+                    if (!item.isTextual() || !allowed.contains(item.asText()) || !selected.add(item.asText())) {
+                        valid = false;
+                        break;
+                    }
+                }
+                yield valid;
+            }
+            default -> false;
+        };
+    }
+
+    private Set<String> optionCodes(RequirementAnalysisSectionDO section) {
+        Map<?, ?> schema = JsonUtils.parseObject(section.getSchemaSnapshot(), Map.class);
+        Object raw = schema == null ? null : schema.get("optionSnapshot");
+        if (!(raw instanceof List<?> options)) throw new IllegalArgumentException("missing option snapshot");
+        return options.stream().map(option -> {
+            if (!(option instanceof Map<?, ?> row) || !(row.get("code") instanceof String code)) {
+                throw new IllegalArgumentException("invalid option snapshot");
+            }
+            return code;
+        }).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private boolean hasVisibleRichText(String html) {
+        return Jsoup.parseBodyFragment(html).text().codePoints().anyMatch(codePoint ->
+                !Character.isWhitespace(codePoint) && codePoint != 0x00A0 && codePoint != 0x200B
+                        && codePoint != 0x200C && codePoint != 0x200D && codePoint != 0xFEFF);
+    }
+
+    private boolean sameAttachmentSet(List<AttachmentFact> saved, List<FileArtifactVersionFact> current) {
+        if (saved.size() != current.size()) return false;
+        List<AttachmentFact> normalizedCurrent = current.stream()
+                .map(fact -> new AttachmentFact(fact.artifactId(), fact.versionNo(), fact.referenceKey(),
+                        fact.fileFactVersion(), fact.scopeVersion()))
+                .sorted(java.util.Comparator.comparing(AttachmentFact::referenceKey)).toList();
+        List<AttachmentFact> normalizedSaved = saved.stream()
+                .sorted(java.util.Comparator.comparing(AttachmentFact::referenceKey)).toList();
+        return normalizedSaved.equals(normalizedCurrent);
+    }
+
+    private FileReferenceSetKey referenceSetKey(RequirementAnalysisSectionDO section) {
+        return new FileReferenceSetKey("SOL", "REQUIREMENT_ANALYSIS_SECTION",
+                String.valueOf(section.getId()), "SECTION_ATTACHMENT");
     }
 
     private List<AttachmentFact> parseAttachments(String snapshot) {
@@ -285,6 +476,20 @@ public class RequirementAnalysisQueryService {
     }
 
     private record Cursor(Integer businessVersion, Long id) {
+    }
+
+    private record AttachmentProjection(Map<Long, FileReferenceSetFact> bySectionId,
+                                        String failureBlockerCode) {
+        private static AttachmentProjection empty() {
+            return new AttachmentProjection(Map.of(), "FACT_PROVIDER_UNAVAILABLE");
+        }
+
+        private static AttachmentProjection failed(String blockerCode) {
+            return new AttachmentProjection(Map.of(), blockerCode);
+        }
+    }
+
+    private record JsonNodeValue(boolean requiredMissing, boolean valid) {
     }
 
     public record AttachmentFact(Long artifactId, Integer versionNo, String referenceKey,

@@ -17,6 +17,7 @@ import cn.iocoder.yudao.module.pms.project.api.organization.ProjectOrganizationF
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class RequirementAnalysisFactApiImplTest {
 
     @Mock RequirementAnalysisRootMapper rootMapper;
     @Mock RequirementAnalysisSectionMapper sectionMapper;
+    @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
     @Mock ProjectOrganizationFactApi organizationFactApi;
     @Mock FileArtifactApi fileArtifactApi;
@@ -61,7 +63,7 @@ class RequirementAnalysisFactApiImplTest {
     @BeforeEach
     void setUp() {
         api = new RequirementAnalysisFactApiImpl(
-                rootMapper, sectionMapper, projectScopeApi, organizationFactApi, fileArtifactApi);
+                rootMapper, sectionMapper, permissionApi, projectScopeApi, organizationFactApi, fileArtifactApi);
         TenantContextHolder.setTenantId(0L);
         LoginUser loginUser = new LoginUser().setId(9L).setTenantId(0L).setUserType(2);
         SecurityFrameworkUtils.setLoginUser(loginUser, new MockHttpServletRequest());
@@ -103,6 +105,16 @@ class RequirementAnalysisFactApiImplTest {
                 .getAnnotation(Transactional.class);
 
         assertTrue(transactional.readOnly());
+    }
+
+    @Test
+    void queryPermissionIsRequiredBeforeSolOrPltFacts() {
+        when(permissionApi.hasAnyPermissions(9L, "pms:requirement-analysis:query")).thenReturn(false);
+
+        assertThrows(ServiceException.class,
+                () -> api.inspect(new RequirementAnalysisFactQuery(100L, 501L)));
+
+        verifyNoInteractions(projectScopeApi, organizationFactApi, rootMapper, sectionMapper, fileArtifactApi);
     }
 
     @Test
@@ -167,6 +179,7 @@ class RequirementAnalysisFactApiImplTest {
     }
 
     private void stubProject() {
+        when(permissionApi.hasAnyPermissions(9L, "pms:requirement-analysis:query")).thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(organizationFactApi.inspect(any())).thenReturn(project());
     }

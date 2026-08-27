@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.Constr
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -76,6 +78,30 @@ class ConstructionPlanChangeFilePolicyProviderTest {
 
         assertTrue(fact.allowed());
         assertEquals(7L, fact.scopeVersion());
+    }
+
+    @Test
+    void uploadCompletionAndArchiveCanLockTheChangeNamespace() {
+        when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(planMapper.selectById(any())).thenReturn(plan());
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
+                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+        when(planMapper.selectForUpdate(any())).thenReturn(plan());
+        when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
+                new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
+        when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
+                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
+                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+
+        for (String action : java.util.List.of(FileActionCodes.UPLOAD, FileActionCodes.ARCHIVE)) {
+            var fact = provider.lockAndRevalidateReferenceSet(
+                    new FileBusinessObjectReferenceSetRevalidationQuery(0L, 9L,
+                            new FileReferenceSetKey("SOL", "CONSTRUCTION_PLAN_CHANGE", "801",
+                                    "CUSTOMER_DELAY_EVIDENCE"), action, 7L));
+            assertTrue(fact.allowed());
+        }
     }
 
     @Test

@@ -2,6 +2,7 @@ import type { FileArtifactVO, FileVersionVO } from '@/api/pms/platform/file'
 import type {
   PatchRequirementAnalysisSectionReqVO,
   RequirementAnalysisAttachmentVO,
+  RequirementAnalysisAttachmentSyncStatus,
   RequirementAnalysisOptionVO,
   RequirementAnalysisSectionVO
 } from '@/api/pms/engineering/requirement-analysis'
@@ -13,10 +14,30 @@ export const sameRequirementValue = (left: unknown, right: unknown) =>
 export const containsEmbeddedMedia = (html: string) =>
   /<(?:img|video|audio|source|picture|iframe|object|embed)\b/i.test(html)
 
-export const resolvePendingAttachmentSync = <T>(server: T[], pending?: T[]) =>
-  pending && !sameRequirementValue(server, pending)
-    ? { attachments: pending, syncPending: true }
-    : { attachments: server, syncPending: false }
+export interface RequirementAnalysisSectionEditState {
+  sectionId: number
+  bodyDirty: boolean
+  attachmentSyncStatus: RequirementAnalysisAttachmentSyncStatus
+  guardsNavigation: boolean
+}
+
+export type RequirementAnalysisTransitionDecision =
+  | 'ALLOW'
+  | 'SAVE_ATTACHMENT_SET'
+  | 'CONFIRM_DISCARD_BODY'
+  | 'BLOCK_UNKNOWN_ATTACHMENT_FACTS'
+
+export const requirementAnalysisTransitionDecision = (
+  state: RequirementAnalysisSectionEditState
+): RequirementAnalysisTransitionDecision => {
+  if (state.guardsNavigation && state.attachmentSyncStatus === 'UNKNOWN') {
+    return 'BLOCK_UNKNOWN_ATTACHMENT_FACTS'
+  }
+  if (state.guardsNavigation && state.attachmentSyncStatus === 'PENDING') {
+    return 'SAVE_ATTACHMENT_SET'
+  }
+  return state.bodyDirty ? 'CONFIRM_DISCARD_BODY' : 'ALLOW'
+}
 
 export const parseSectionOptions = (section: RequirementAnalysisSectionVO) => {
   try {
@@ -31,8 +52,7 @@ export const parseSectionOptions = (section: RequirementAnalysisSectionVO) => {
 }
 
 export const parseSectionValue = (section: RequirementAnalysisSectionVO): any => {
-  const fallback =
-    section.fieldType === 'MULTI_SELECT' ? [] : section.fieldType === 'BOOLEAN' ? false : null
+  const fallback = section.fieldType === 'MULTI_SELECT' ? [] : null
   if (
     section.valueSnapshot === null ||
     section.valueSnapshot === undefined ||
@@ -47,6 +67,41 @@ export const parseSectionValue = (section: RequirementAnalysisSectionVO): any =>
   }
 }
 
+export type AttachmentIntentRecovery =
+  | 'NONE'
+  | 'CONFIRMED'
+  | 'RETRY'
+  | 'CONFLICT'
+
+const attachmentVector = (attachments: RequirementAnalysisAttachmentVO[]) =>
+  attachments
+    .map(({ artifactId, versionNo, referenceKey, fileFactVersion, scopeVersion }) => ({
+      artifactId,
+      versionNo,
+      referenceKey,
+      fileFactVersion,
+      scopeVersion
+    }))
+    .sort((left, right) => left.referenceKey.localeCompare(right.referenceKey))
+
+export const resolveAttachmentIntentRecovery = (
+  savedSnapshot: RequirementAnalysisAttachmentVO[],
+  currentActiveFacts: RequirementAnalysisAttachmentVO[] | null,
+  retainedTarget: RequirementAnalysisAttachmentVO[] | null
+): AttachmentIntentRecovery => {
+  if (!retainedTarget) return 'NONE'
+  if (sameRequirementValue(attachmentVector(savedSnapshot), attachmentVector(retainedTarget))) {
+    return 'CONFIRMED'
+  }
+  if (
+    currentActiveFacts !== null &&
+    sameRequirementValue(attachmentVector(currentActiveFacts), attachmentVector(retainedTarget))
+  ) {
+    return 'RETRY'
+  }
+  return 'CONFLICT'
+}
+
 export const buildSectionPatch = (
   expectedPreparationVersion: number,
   expectedContentVersion: number,
@@ -54,7 +109,8 @@ export const buildSectionPatch = (
   currentValue: unknown,
   baselineValue: unknown,
   currentAttachments: RequirementAnalysisAttachmentVO[],
-  baselineAttachments: RequirementAnalysisAttachmentVO[]
+  baselineAttachments: RequirementAnalysisAttachmentVO[],
+  forceAttachmentSubmit = false
 ) => {
   const patch: PatchRequirementAnalysisSectionReqVO = {
     submittedFields: [],
@@ -66,17 +122,31 @@ export const buildSectionPatch = (
     patch.submittedFields.push('value')
     patch.value = currentValue
   }
-  if (!sameRequirementValue(currentAttachments, baselineAttachments)) {
+  const toSubmittedAttachment = ({
+    artifactId,
+    versionNo,
+    referenceKey,
+    fileFactVersion,
+    scopeVersion
+  }: RequirementAnalysisAttachmentVO) => ({
+    artifactId,
+    versionNo,
+    referenceKey,
+    fileFactVersion,
+    scopeVersion
+  })
+  const currentAttachmentVector = currentAttachments
+    .map(toSubmittedAttachment)
+    .sort((left, right) => left.referenceKey.localeCompare(right.referenceKey))
+  const baselineAttachmentVector = baselineAttachments
+    .map(toSubmittedAttachment)
+    .sort((left, right) => left.referenceKey.localeCompare(right.referenceKey))
+  if (
+    forceAttachmentSubmit ||
+    !sameRequirementValue(currentAttachmentVector, baselineAttachmentVector)
+  ) {
     patch.submittedFields.push('attachments')
-    patch.attachments = currentAttachments.map(
-      ({ artifactId, versionNo, referenceKey, fileFactVersion, scopeVersion }) => ({
-        artifactId,
-        versionNo,
-        referenceKey,
-        fileFactVersion,
-        scopeVersion
-      })
-    )
+    patch.attachments = currentAttachmentVector
   }
   return patch
 }

@@ -365,7 +365,11 @@ class FileQueryAndAccessMySqlIntegrationTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            FileArtifactApiImpl.class, FileQueryService.class, FileAccessTicketService.class,
+            FileArtifactApiImpl.class,
+            cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService.class,
+            cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory.class,
+            cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter.class,
+            FileQueryService.class, FileAccessTicketService.class,
             OperationAuditApiImpl.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }

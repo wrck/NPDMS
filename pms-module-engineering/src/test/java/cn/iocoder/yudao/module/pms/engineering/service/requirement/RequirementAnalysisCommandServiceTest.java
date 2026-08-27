@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisAttachmentReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
@@ -13,8 +14,10 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -50,7 +53,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.R
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.PLATFORM_COMMAND_IN_PROGRESS;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.PLATFORM_COMMAND_KEY_CONFLICT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -83,6 +88,7 @@ class RequirementAnalysisCommandServiceTest {
 
     private RequirementAnalysisCommandService service;
     private final AtomicLong sectionIds = new AtomicLong(700L);
+    private final List<PlatformCommandExecutionApi.SuccessFacts> recordedSuccessFacts = new ArrayList<>();
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -121,6 +127,21 @@ class RequirementAnalysisCommandServiceTest {
         assertEquals(1, root.getValue().getDraftMarker());
         assertEquals(17L, root.getValue().getTemplateRevisionId());
         verify(sectionMapper, times(11)).insert(any());
+        Map<?, ?> audit = latestSuccessAudit();
+        assertEquals("initial-key", audit.get("operationId"));
+        assertNull(audit.get("draftPreparationIdBefore"));
+        assertEquals(501L, longValue(audit, "draftPreparationIdAfter"));
+        assertNull(audit.get("effectivePreparationIdBefore"));
+        assertNull(audit.get("effectivePreparationIdAfter"));
+        assertNull(audit.get("statusBefore"));
+        assertEquals("DRAFT", audit.get("statusAfter"));
+        assertNull(audit.get("businessVersionBefore"));
+        assertEquals(1, intValue(audit, "businessVersionAfter"));
+        assertNull(audit.get("contentVersionBefore"));
+        assertEquals(0, intValue(audit, "contentVersionAfter"));
+        assertTrue(recordedSuccessFacts.getLast().detailSnapshot().contains("\"statusBefore\":null"));
+        assertTrue(recordedSuccessFacts.getLast().detailSnapshot()
+                .contains("\"effectivePreparationIdAfter\":null"));
     }
 
     @Test
@@ -191,6 +212,45 @@ class RequirementAnalysisCommandServiceTest {
     }
 
     @Test
+    void attachmentPatchLocksCompleteActiveSetBeforeFreezingCommonScopeVersion() {
+        stubManager(false);
+        PreparationDO root = draft();
+        RequirementAnalysisSectionDO section = section(701L, "PROJECT_BACKGROUND", true, "\"old\"");
+        when(rootMapper.selectById(any())).thenReturn(root);
+        when(rootMapper.selectForUpdate(any())).thenReturn(root);
+        when(sectionMapper.selectForUpdate(any())).thenReturn(section);
+        when(sectionMapper.patchIfMatch(any())).thenReturn(1);
+        when(rootMapper.incrementContentIfMatch(any())).thenReturn(1);
+        FileArtifactVersionFact active = fileFact(SLOT);
+        when(fileArtifactApi.inspectReferenceSets(any())).thenAnswer(invocation -> {
+            FileReferenceSetCollectionQuery query = invocation.getArgument(0);
+            return List.of(new FileReferenceSetFact(query.collectionKeys().getFirst(), 7L, List.of(active)));
+        });
+        when(fileArtifactApi.lockAndRevalidateReferenceSets(any())).thenAnswer(invocation -> {
+            FileReferenceSetCollectionRevalidationQuery query = invocation.getArgument(0);
+            return List.of(new FileReferenceSetFact(query.collections().getFirst().key(), 7L, List.of(active)));
+        });
+        var attachment = new RequirementAnalysisAttachmentReqVO();
+        attachment.setArtifactId(801L);
+        attachment.setVersionNo(1);
+        attachment.setReferenceKey(SLOT);
+        attachment.setFileFactVersion(FILE_VERSION);
+        attachment.setScopeVersion(7L);
+
+        service.patch(new RequirementAnalysisCommandService.PatchCommand(501L, 701L,
+                2, 5, 3, Set.of("attachments"), null, List.of(attachment)), actor());
+
+        ArgumentCaptor<RequirementAnalysisSectionPatchUpdate> update =
+                ArgumentCaptor.forClass(RequirementAnalysisSectionPatchUpdate.class);
+        InOrder order = inOrder(fileArtifactApi, sectionMapper, rootMapper);
+        order.verify(fileArtifactApi).inspectReferenceSets(any());
+        order.verify(fileArtifactApi).lockAndRevalidateReferenceSets(any());
+        order.verify(sectionMapper).patchIfMatch(update.capture());
+        order.verify(rootMapper).incrementContentIfMatch(any());
+        assertTrue(update.getValue().attachmentReferenceSnapshot().contains("\"scopeVersion\":7"));
+    }
+
+    @Test
     void completionRejectsMissingMandatoryContentThenRevalidatesEveryFrozenFileBeforeCas() {
         stubManager(true);
         executeNewCommands();
@@ -204,25 +264,53 @@ class RequirementAnalysisCommandServiceTest {
         ServiceException missing = assertThrows(ServiceException.class, () -> service.complete(
                 new RequirementAnalysisCommandService.CompleteCommand(501L, 2, 5, 3, "complete-missing"), actor()));
         assertEquals(REQUIREMENT_ANALYSIS_CONTENT_INVALID.getCode(), missing.getCode());
-        verify(fileArtifactApi, never()).lockAndRevalidate(any());
+        verify(fileArtifactApi, never()).lockAndRevalidateReferenceSets(any());
         verify(rootMapper, never()).completeDraftIfMatch(any());
 
+        List<RequirementAnalysisSectionDO> invisible = elevenSections();
+        invisible.getFirst().setValueSnapshot("\"<p>&nbsp;</p><p>​</p>\"");
+        when(sectionMapper.selectListForUpdate(any())).thenReturn(invisible);
+        ServiceException invisibleText = assertThrows(ServiceException.class, () -> service.complete(
+                new RequirementAnalysisCommandService.CompleteCommand(
+                        501L, 2, 5, 3, "complete-invisible-rich-text"), actor()));
+        assertEquals(REQUIREMENT_ANALYSIS_CONTENT_INVALID.getCode(), invisibleText.getCode());
+
         List<RequirementAnalysisSectionDO> valid = elevenSections();
+        RequirementAnalysisSectionDO requiredFalse = section(750L, "BOOLEAN_EXTENSION", true, "false");
+        requiredFalse.setFieldTypeCode("BOOLEAN");
+        RequirementAnalysisSectionDO requiredZero = section(751L, "NUMBER_EXTENSION", true, "0");
+        requiredZero.setFieldTypeCode("NUMBER");
+        valid.add(requiredFalse);
+        valid.add(requiredZero);
         valid.getFirst().setAttachmentReferenceSnapshot(attachmentSnapshot());
         when(sectionMapper.selectListForUpdate(any())).thenReturn(valid);
-        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fileFact(SLOT));
+        stubReferenceSets(valid);
         when(rootMapper.completeDraftIfMatch(any())).thenReturn(1);
 
         var completed = service.complete(new RequirementAnalysisCommandService.CompleteCommand(
                 501L, 2, 5, 3, "complete-ok"), actor());
 
         assertEquals("COMPLETED", completed.status());
-        verify(fileArtifactApi).lockAndRevalidate(any());
+        verify(fileArtifactApi).lockAndRevalidateReferenceSets(any());
         verify(rootMapper).completeDraftIfMatch(any());
+        Map<?, ?> audit = latestSuccessAudit();
+        assertEquals("complete-ok", audit.get("operationId"));
+        assertEquals(501L, longValue(audit, "draftPreparationIdBefore"));
+        assertNull(audit.get("draftPreparationIdAfter"));
+        assertNull(audit.get("effectivePreparationIdBefore"));
+        assertEquals(501L, longValue(audit, "effectivePreparationIdAfter"));
+        assertEquals("DRAFT", audit.get("statusBefore"));
+        assertEquals("COMPLETED", audit.get("statusAfter"));
+        assertEquals(1, intValue(audit, "businessVersionBefore"));
+        assertEquals(1, intValue(audit, "businessVersionAfter"));
+        assertEquals(5, intValue(audit, "contentVersionBefore"));
+        assertEquals(5, intValue(audit, "contentVersionAfter"));
+        assertEquals(2, intValue(audit, "aggregateVersionBefore"));
+        assertEquals(3, intValue(audit, "aggregateVersionAfter"));
     }
 
     @Test
-    void completionGloballySortsReverseOrderedAttachmentsBeforeCas() {
+    void completionLocksAllSectionReferenceSetsOnceBeforeCas() {
         String secondSlot = "8d900f5b-1f6b-47cd-ab51-74be8b3c6c44";
         stubManager(true);
         executeNewCommands();
@@ -233,28 +321,23 @@ class RequirementAnalysisCommandServiceTest {
         sections.get(0).setAttachmentReferenceSnapshot(attachmentSnapshot(900L, SLOT));
         sections.get(1).setAttachmentReferenceSnapshot(attachmentSnapshot(800L, secondSlot));
         when(sectionMapper.selectListForUpdate(any())).thenReturn(sections);
-        when(fileArtifactApi.lockAndRevalidate(any())).thenAnswer(invocation -> {
-            FileArtifactVersionRevalidationQuery query = invocation.getArgument(0);
-            return new FileArtifactVersionFact(query.artifactId(), query.versionNo(), query.referenceKey(),
-                    "REQUIREMENT_ANALYSIS_ATTACHMENT", "evidence.pdf", 10L, "application/pdf", "sha",
-                    "AVAILABLE", "ACTIVE", query.expectedFileFactVersion(), query.expectedScopeVersion());
-        });
+        stubReferenceSets(sections);
         when(rootMapper.completeDraftIfMatch(any())).thenReturn(1);
 
         service.complete(new RequirementAnalysisCommandService.CompleteCommand(
                 501L, 2, 5, 3, "complete-ordered-files"), actor());
 
-        ArgumentCaptor<FileArtifactVersionRevalidationQuery> locks =
-                ArgumentCaptor.forClass(FileArtifactVersionRevalidationQuery.class);
-        verify(fileArtifactApi, times(2)).lockAndRevalidate(locks.capture());
-        assertEquals(List.of(800L, 900L), locks.getAllValues().stream()
-                .map(FileArtifactVersionRevalidationQuery::artifactId).toList());
+        ArgumentCaptor<FileReferenceSetCollectionRevalidationQuery> locks =
+                ArgumentCaptor.forClass(FileReferenceSetCollectionRevalidationQuery.class);
+        verify(fileArtifactApi).lockAndRevalidateReferenceSets(locks.capture());
+        assertEquals(11, locks.getValue().collections().size());
         InOrder order = inOrder(rootMapper, fileArtifactApi);
         order.verify(rootMapper).selectById(any());
         order.verify(rootMapper).selectEffective(any());
         order.verify(rootMapper).selectForUpdate(any());
         order.verify(rootMapper).selectEffectiveForUpdate(any());
-        order.verify(fileArtifactApi, times(2)).lockAndRevalidate(any());
+        order.verify(fileArtifactApi).inspectReferenceSets(any());
+        order.verify(fileArtifactApi).lockAndRevalidateReferenceSets(any());
         order.verify(rootMapper).completeDraftIfMatch(any());
     }
 
@@ -298,6 +381,19 @@ class RequirementAnalysisCommandServiceTest {
         assertEquals("702", item.target().objectId());
         assertNotEquals(SLOT, item.target().referenceKey());
         verify(sectionMapper).patchIfMatch(any());
+        Map<?, ?> audit = latestSuccessAudit();
+        assertEquals("revision-key", audit.get("operationId"));
+        assertNull(audit.get("draftPreparationIdBefore"));
+        assertEquals(502L, longValue(audit, "draftPreparationIdAfter"));
+        assertEquals(501L, longValue(audit, "effectivePreparationIdBefore"));
+        assertEquals(501L, longValue(audit, "effectivePreparationIdAfter"));
+        assertEquals("COMPLETED", audit.get("statusBefore"));
+        assertEquals("DRAFT", audit.get("statusAfter"));
+        assertEquals(1, intValue(audit, "businessVersionBefore"));
+        assertEquals(2, intValue(audit, "businessVersionAfter"));
+        assertEquals(5, intValue(audit, "contentVersionBefore"));
+        assertEquals(0, intValue(audit, "contentVersionAfter"));
+        assertFalse(recordedSuccessFacts.getLast().detailSnapshot().contains("frozen"));
     }
 
     @Test
@@ -343,9 +439,22 @@ class RequirementAnalysisCommandServiceTest {
             Supplier<Object> operation = invocation.getArgument(3);
             Object response = operation.get();
             Function<Object, PlatformCommandExecutionApi.SuccessFacts> facts = invocation.getArgument(4);
-            facts.apply(response);
+            recordedSuccessFacts.add(facts.apply(response));
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
         });
+    }
+
+    private Map<?, ?> latestSuccessAudit() {
+        PlatformCommandExecutionApi.SuccessFacts facts = recordedSuccessFacts.getLast();
+        return JsonUtils.parseObject(facts.detailSnapshot(), Map.class);
+    }
+
+    private long longValue(Map<?, ?> audit, String key) {
+        return ((Number) audit.get(key)).longValue();
+    }
+
+    private int intValue(Map<?, ?> audit, String key) {
+        return ((Number) audit.get(key)).intValue();
     }
 
     private void stubManager(boolean withBinding) {
@@ -450,6 +559,37 @@ class RequirementAnalysisCommandServiceTest {
         return "[{\"artifactId\":" + artifactId + ",\"versionNo\":1,\"referenceKey\":\"" + referenceKey
                 + "\",\"fileFactVersion\":{\"artifactVersion\":2,\"referenceVersion\":3,"
                 + "\"availabilityVersion\":4},\"scopeVersion\":7}]";
+    }
+
+    private void stubReferenceSets(List<RequirementAnalysisSectionDO> sections) {
+        Map<Long, RequirementAnalysisSectionDO> byId = sections.stream()
+                .collect(java.util.stream.Collectors.toMap(RequirementAnalysisSectionDO::getId,
+                        Function.identity()));
+        when(fileArtifactApi.inspectReferenceSets(any())).thenAnswer(invocation -> {
+            FileReferenceSetCollectionQuery query = invocation.getArgument(0);
+            return query.collectionKeys().stream().map(key -> referenceSet(
+                    key, byId.get(Long.valueOf(key.objectId())))).toList();
+        });
+        when(fileArtifactApi.lockAndRevalidateReferenceSets(any())).thenAnswer(invocation -> {
+            FileReferenceSetCollectionRevalidationQuery query = invocation.getArgument(0);
+            return query.collections().stream().map(expected -> new FileReferenceSetFact(
+                    expected.key(), expected.expectedScopeVersion(), expected.expectedActiveFacts())).toList();
+        });
+    }
+
+    private FileReferenceSetFact referenceSet(
+            cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey key,
+            RequirementAnalysisSectionDO section) {
+        List<RequirementAnalysisQueryService.AttachmentFact> saved = section == null
+                ? List.of() : JsonUtils.parseArray(section.getAttachmentReferenceSnapshot(),
+                RequirementAnalysisQueryService.AttachmentFact.class);
+        List<FileArtifactVersionFact> active = (saved == null ? List
+                .<RequirementAnalysisQueryService.AttachmentFact>of() : saved).stream()
+                .map(fact -> new FileArtifactVersionFact(fact.artifactId(), fact.versionNo(), fact.referenceKey(),
+                        "REQUIREMENT_ANALYSIS_ATTACHMENT", "evidence.pdf", 10L, "application/pdf", "sha",
+                        "AVAILABLE", "ACTIVE", fact.fileFactVersion(), fact.scopeVersion()))
+                .sorted(java.util.Comparator.comparing(FileArtifactVersionFact::referenceKey)).toList();
+        return new FileReferenceSetFact(key, 7L, active);
     }
 
     private FileArtifactVersionFact fileFact(String referenceKey) {

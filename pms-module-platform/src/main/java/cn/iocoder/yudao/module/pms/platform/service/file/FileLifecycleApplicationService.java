@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArchiveRecordDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
@@ -130,7 +132,7 @@ public class FileLifecycleApplicationService {
     private LifecycleFacts detach(DetachFileReferenceCommand command, AtomicReference<LifecycleFacts> ignored) {
         ValidatedKey key = key(command.ownerContext(), command.objectType(), command.objectId(),
                 command.purposeCode(), command.referenceKey());
-        FileBusinessObjectPolicyFact policy = authorize(command.tenantId(), command.actorUserId(), key,
+        FileBusinessObjectPolicyFact policy = authorizeMembership(command.tenantId(), command.actorUserId(), key,
                 FileActionCodes.DETACH);
         requireMutable(policy);
         FileReferenceDO reference = lockReference(command.tenantId(), key);
@@ -226,7 +228,7 @@ public class FileLifecycleApplicationService {
     private LifecycleFacts archive(ArchiveFileReferenceCommand command, AtomicReference<LifecycleFacts> ignored) {
         ValidatedKey key = key(command.ownerContext(), command.objectType(), command.objectId(),
                 command.purposeCode(), command.referenceKey());
-        FileBusinessObjectPolicyFact policy = authorize(command.tenantId(), command.actorUserId(), key,
+        FileBusinessObjectPolicyFact policy = authorizeMembership(command.tenantId(), command.actorUserId(), key,
                 FileActionCodes.ARCHIVE);
         FileReferenceDO reference = lockReference(command.tenantId(), key);
         if (!command.referenceId().equals(reference.getId())) {
@@ -280,6 +282,24 @@ public class FileLifecycleApplicationService {
         return policyRegistry.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 tenantId, actorId, key.ownerContext(), key.objectType(), key.objectId(), key.purposeCode(),
                 key.referenceKey(), action, inspected.scopeVersion()));
+    }
+
+    private FileBusinessObjectPolicyFact authorizeMembership(Long tenantId, Long actorId,
+                                                              ValidatedKey key, String action) {
+        FileBusinessObjectPolicyFact inspected = policyRegistry.inspect(new FileBusinessObjectPolicyQuery(
+                tenantId, actorId, key.ownerContext(), key.objectType(), key.objectId(), key.purposeCode(),
+                key.referenceKey(), action));
+        lockNamespace(tenantId, actorId, key, action, inspected);
+        return policyRegistry.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                tenantId, actorId, key.ownerContext(), key.objectType(), key.objectId(), key.purposeCode(),
+                key.referenceKey(), action, inspected.scopeVersion()));
+    }
+
+    private void lockNamespace(Long tenantId, Long actorId, ValidatedKey key, String action,
+                               FileBusinessObjectPolicyFact policy) {
+        policyRegistry.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
+                tenantId, actorId, new FileReferenceSetKey(key.ownerContext(), key.objectType(),
+                key.objectId(), key.purposeCode()), action, policy.scopeVersion()));
     }
 
     private FileReferenceDO lockReference(Long tenantId, ValidatedKey key) {

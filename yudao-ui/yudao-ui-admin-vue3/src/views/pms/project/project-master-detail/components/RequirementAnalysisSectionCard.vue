@@ -11,9 +11,35 @@
           {{ fieldTypeLabel(section.fieldType) }} · 章节版本 {{ section.version }}
         </p>
       </div>
-      <el-tag v-if="editable" type="warning" size="small">草稿可编辑</el-tag>
-      <el-tag v-else type="info" size="small">只读</el-tag>
+      <div class="section-tags">
+        <el-tag :type="attachmentSyncTagType" size="small">
+          {{ attachmentSyncLabel }}
+        </el-tag>
+        <el-tag v-if="editable" type="warning" size="small">草稿可编辑</el-tag>
+        <el-tag v-else type="info" size="small">只读</el-tag>
+      </div>
     </header>
+
+    <el-alert
+      v-if="attachmentSyncStatus === 'PENDING'"
+      title="附件当前有效集合与本章节已保存快照不一致"
+      :description="
+        editable
+          ? '已载入当前有效附件完整向量；必须保存本章节成功后，才能离开或完成草稿。'
+          : '当前仅展示SOL已保存附件快照；请联系当前项目经理完成附件恢复保存。'
+      "
+      type="warning"
+      show-icon
+      :closable="false"
+    />
+    <el-alert
+      v-else-if="attachmentSyncStatus === 'UNKNOWN'"
+      title="附件当前事实暂不可确认"
+      description="当前仅展示SOL已保存附件快照；事实恢复前不可把附件视为已同步或完成草稿。"
+      type="error"
+      show-icon
+      :closable="false"
+    />
 
     <div class="section-value">
       <Editor
@@ -44,13 +70,17 @@
         controls-position="right"
         :aria-label="section.sectionName"
       />
-      <el-switch
+      <el-select
         v-else-if="section.fieldType === 'BOOLEAN'"
         v-model="draftValue"
         :disabled="!editable"
-        active-text="是"
-        inactive-text="否"
-      />
+        clearable
+        placeholder="请选择"
+        :aria-label="section.sectionName"
+      >
+        <el-option label="是" :value="true" />
+        <el-option label="否" :value="false" />
+      </el-select>
       <el-select
         v-else-if="section.fieldType === 'SINGLE_SELECT'"
         v-model="draftValue"
@@ -90,7 +120,7 @@
     <section class="attachments" aria-label="章节附件">
       <div class="attachments-heading">
         <strong>附件</strong>
-        <el-button v-if="editable" link type="primary" @click="addAttachmentSlot">
+        <el-button v-if="canAttach" link type="primary" @click="addAttachmentSlot">
           新增附件
         </el-button>
       </div>
@@ -112,10 +142,10 @@
           :reference-key="attachment.referenceKey"
           :artifact-id="attachment.artifactId"
           :version-no="attachment.versionNo"
-          :editable="editable"
+          :editable="canDetach"
           @detached="removeAttachment(attachment.referenceKey)"
         />
-        <el-collapse v-if="editable">
+        <el-collapse v-if="canReplace">
           <el-collapse-item title="替换此槽位文件" :name="attachment.referenceKey">
             <PmsFileUploader
               owner-context="SOL"
@@ -149,11 +179,27 @@
     </section>
 
     <footer v-if="editable" class="section-actions">
-      <span v-if="attachmentSyncPending" class="sync-warning" role="alert">
+      <span v-if="attachmentIntentConflict" class="sync-warning" role="alert">
+        原附件保存意图与当前有效集合均不一致，已保留原意图，不能静默改写
+      </span>
+      <el-button
+        v-if="attachmentIntentConflict"
+        type="warning"
+        plain
+        @click="adoptCurrentAttachmentSet"
+      >
+        确认采用当前有效附件作为新意图
+      </el-button>
+      <span v-if="attachmentSyncStatus === 'PENDING'" class="sync-warning" role="alert">
         附件引用已变化，需保存本章节以冻结当前权威文件事实
       </span>
-      <span v-if="changed" class="changed-note" role="status">有未保存修改</span>
-      <el-button :disabled="!changed" :loading="saving" type="primary" @click="save">
+      <span v-if="bodyDirty" class="changed-note" role="status">正文有未保存修改</span>
+      <el-button
+        :disabled="!changed || attachmentIntentConflict"
+        :loading="saving"
+        type="primary"
+        @click="save"
+      >
         保存本章节
       </el-button>
     </footer>
@@ -168,6 +214,7 @@ import * as FileApi from '@/api/pms/platform/file'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import type {
   RequirementAnalysisAttachmentVO,
+  RequirementAnalysisAttachmentSyncStatus,
   RequirementAnalysisFieldType,
   RequirementAnalysisSectionVO
 } from '@/api/pms/engineering/requirement-analysis'
@@ -179,9 +226,10 @@ import {
   patchRequirementSectionAndReload,
   parseSectionOptions,
   parseSectionValue,
-  resolvePendingAttachmentSync,
+  resolveAttachmentIntentRecovery,
   sameRequirementValue
 } from './requirementAnalysisInteraction'
+import type { RequirementAnalysisSectionEditState } from './requirementAnalysisInteraction'
 
 const props = defineProps<{
   preparationId: number
@@ -191,6 +239,9 @@ const props = defineProps<{
   section: RequirementAnalysisSectionVO
   reload: () => Promise<void>
 }>()
+const emit = defineEmits<{
+  editStateChange: [state: RequirementAnalysisSectionEditState]
+}>()
 const message = useMessage()
 const saving = ref(false)
 const draftValue = ref<any>()
@@ -198,17 +249,47 @@ const draftAttachments = ref<RequirementAnalysisAttachmentVO[]>([])
 const baselineValue = ref<RequirementAnalysisSectionVO['valueSnapshot']>()
 const baselineAttachments = ref<RequirementAnalysisAttachmentVO[]>([])
 const pendingSlots = ref<string[]>([])
-const attachmentSyncPending = ref(false)
+const localAttachmentPending = ref(false)
+const attachmentIntentConflict = ref(false)
 const options = computed(() => parseSectionOptions(props.section))
-const editable = computed(() =>
-  (props.section.allowedActions || []).some((action) =>
-    ['PATCH_SECTION', 'PATCH_ITEM', 'EDIT'].includes(action)
-  )
+const sectionActions = computed(() => props.section.allowedActions || [])
+const editable = computed(() => sectionActions.value.includes('EDIT'))
+const bodyDirty = computed(() => !sameRequirementValue(draftValue.value, baselineValue.value))
+const attachmentSyncStatus = computed<RequirementAnalysisAttachmentSyncStatus>(() =>
+  props.section.attachmentSyncStatus === 'UNKNOWN'
+    ? 'UNKNOWN'
+    : localAttachmentPending.value
+      ? 'PENDING'
+      : props.section.attachmentSyncStatus
+)
+const attachmentFactsKnown = computed(() => attachmentSyncStatus.value !== 'UNKNOWN')
+const canAttach = computed(
+  () => attachmentFactsKnown.value && sectionActions.value.includes('ATTACH')
+)
+const canReplace = computed(
+  () => attachmentFactsKnown.value && sectionActions.value.includes('REPLACE')
+)
+const canDetach = computed(
+  () => attachmentFactsKnown.value && sectionActions.value.includes('DETACH')
+)
+const guardsNavigation = computed(
+  () => editable.value && attachmentSyncStatus.value !== 'IN_SYNC'
 )
 const changed = computed(
+  () => bodyDirty.value || (guardsNavigation.value && attachmentSyncStatus.value === 'PENDING')
+)
+const attachmentSyncLabel = computed(
   () =>
-    !sameRequirementValue(draftValue.value, baselineValue.value) ||
-    !sameRequirementValue(draftAttachments.value, baselineAttachments.value)
+    ({ IN_SYNC: '附件已同步', PENDING: '附件待提交', UNKNOWN: '附件事实未知' })[
+      attachmentSyncStatus.value
+    ]
+)
+const attachmentSyncTagType = computed(() =>
+  attachmentSyncStatus.value === 'IN_SYNC'
+    ? 'success'
+    : attachmentSyncStatus.value === 'PENDING'
+      ? 'warning'
+      : 'danger'
 )
 const richTextConfig: any = {
   placeholder: '请输入章节内容；文件请通过下方附件槽位上传，不要嵌入长期文件地址。',
@@ -237,39 +318,97 @@ const cloneAttachments = (value: RequirementAnalysisAttachmentVO[]) =>
 
 const attachmentSyncKey = () =>
   `pms:requirement-analysis:attachment-sync:${props.preparationId}:${props.section.sectionId}`
+const bodyIntentKey = () =>
+  `pms:requirement-analysis:body-intent:${props.preparationId}:${props.section.sectionId}`
 const rememberAttachmentSync = (attachments: RequirementAnalysisAttachmentVO[]) => {
   sessionStorage.setItem(attachmentSyncKey(), JSON.stringify(cloneAttachments(attachments)))
-  attachmentSyncPending.value = true
+  localAttachmentPending.value = true
 }
 const clearAttachmentSync = () => {
   sessionStorage.removeItem(attachmentSyncKey())
-  attachmentSyncPending.value = false
+  localAttachmentPending.value = false
 }
-const pendingAttachmentSync = () => {
+const pendingAttachmentIntent = () => {
   const serialized = sessionStorage.getItem(attachmentSyncKey())
-  if (!serialized) return undefined
+  if (!serialized) return null
   try {
-    return JSON.parse(serialized) as RequirementAnalysisAttachmentVO[]
+    const value = JSON.parse(serialized)
+    return Array.isArray(value) ? cloneAttachments(value) : null
   } catch {
     clearAttachmentSync()
-    return undefined
+    return null
+  }
+}
+const rememberBodyIntent = (value: unknown) => {
+  sessionStorage.setItem(bodyIntentKey(), JSON.stringify({ value }))
+}
+const clearBodyIntent = () => sessionStorage.removeItem(bodyIntentKey())
+const pendingBodyIntent = () => {
+  const serialized = sessionStorage.getItem(bodyIntentKey())
+  if (!serialized) return { exists: false, value: undefined }
+  try {
+    return { exists: true, value: (JSON.parse(serialized) as { value: unknown }).value }
+  } catch {
+    clearBodyIntent()
+    return { exists: false, value: undefined }
   }
 }
 
 const reset = () => {
   const value = parseSectionValue(props.section)
-  draftValue.value = Array.isArray(value) ? [...value] : value
   baselineValue.value = Array.isArray(value) ? [...value] : value
-  baselineAttachments.value = cloneAttachments(props.section.attachments || [])
-  const resolved = resolvePendingAttachmentSync(baselineAttachments.value, pendingAttachmentSync())
-  if (resolved.syncPending) {
-    draftAttachments.value = cloneAttachments(resolved.attachments)
-    attachmentSyncPending.value = resolved.syncPending
+  const bodyIntent = pendingBodyIntent()
+  if (bodyIntent.exists && !sameRequirementValue(bodyIntent.value, baselineValue.value)) {
+    draftValue.value = Array.isArray(bodyIntent.value) ? [...bodyIntent.value] : bodyIntent.value
   } else {
-    draftAttachments.value = cloneAttachments(baselineAttachments.value)
+    draftValue.value = Array.isArray(value) ? [...value] : value
+    clearBodyIntent()
+  }
+  baselineAttachments.value = cloneAttachments(props.section.attachments || [])
+  attachmentIntentConflict.value = false
+  const currentActiveFacts = Array.isArray(props.section.currentActiveFacts)
+    ? cloneAttachments(props.section.currentActiveFacts)
+    : null
+  const retainedTarget = pendingAttachmentIntent()
+  const recovery = resolveAttachmentIntentRecovery(
+    baselineAttachments.value,
+    currentActiveFacts,
+    retainedTarget
+  )
+  if (recovery === 'CONFIRMED') {
     clearAttachmentSync()
   }
+  if (
+    props.section.attachmentSyncStatus === 'PENDING' &&
+    editable.value &&
+    currentActiveFacts
+  ) {
+    if (recovery === 'RETRY') {
+      draftAttachments.value = cloneAttachments(retainedTarget || [])
+      localAttachmentPending.value = true
+    } else if (recovery === 'CONFLICT') {
+      draftAttachments.value = cloneAttachments(retainedTarget || [])
+      localAttachmentPending.value = true
+      attachmentIntentConflict.value = true
+    } else {
+      draftAttachments.value = cloneAttachments(currentActiveFacts)
+      rememberAttachmentSync(draftAttachments.value)
+    }
+  } else {
+    draftAttachments.value = cloneAttachments(baselineAttachments.value)
+    localAttachmentPending.value = false
+    if (props.section.attachmentSyncStatus === 'IN_SYNC') {
+      clearAttachmentSync()
+    }
+  }
   pendingSlots.value = []
+}
+
+const adoptCurrentAttachmentSet = () => {
+  if (!Array.isArray(props.section.currentActiveFacts)) return
+  draftAttachments.value = cloneAttachments(props.section.currentActiveFacts)
+  attachmentIntentConflict.value = false
+  rememberAttachmentSync(draftAttachments.value)
 }
 
 const addAttachmentSlot = () => pendingSlots.value.push(crypto.randomUUID())
@@ -284,34 +423,45 @@ const removeAttachment = (referenceKey: string) => {
 }
 
 const captureAttachment = async (selection: FileSelection, frozenReferenceKey: string) => {
-  const businessKey = {
-    ownerContext: 'SOL',
-    objectType: 'REQUIREMENT_ANALYSIS_SECTION',
-    objectId: String(props.section.sectionId),
-    purposeCode: 'SECTION_ATTACHMENT',
-    referenceKey: frozenReferenceKey
+  localAttachmentPending.value = true
+  try {
+    const businessKey = {
+      ownerContext: 'SOL',
+      objectType: 'REQUIREMENT_ANALYSIS_SECTION',
+      objectId: String(props.section.sectionId),
+      purposeCode: 'SECTION_ATTACHMENT',
+      referenceKey: frozenReferenceKey
+    }
+    const artifact = await FileApi.getArtifact(selection.artifactId, businessKey)
+    let cursor: string | undefined
+    let version: FileApi.FileVersionVO | undefined
+    do {
+      const page = await FileApi.getVersions(selection.artifactId, {
+        ...businessKey,
+        cursor,
+        pageSize: 100
+      })
+      version = page.items.find((row) => row.versionNo === selection.versionNo)
+      cursor = version || !page.hasMore ? undefined : page.nextCursor
+    } while (cursor)
+    if (!version) throw new Error('FILE_VERSION_NOT_FOUND')
+    const frozen = buildRequirementAttachment(selection, artifact, version, frozenReferenceKey)
+    const index = draftAttachments.value.findIndex(
+      (attachment) => attachment.referenceKey === frozenReferenceKey
+    )
+    if (index >= 0) draftAttachments.value.splice(index, 1, frozen)
+    else draftAttachments.value.push(frozen)
+    discardSlot(frozenReferenceKey)
+    rememberAttachmentSync(draftAttachments.value)
+  } catch {
+    message.warning('附件已变化但精确版本事实尚未载入，正在刷新权威待提交集合')
+    if (bodyDirty.value) rememberBodyIntent(draftValue.value)
+    try {
+      await props.reload()
+    } catch {
+      message.warning('权威事实刷新失败；离开本章节前必须重试刷新并完成附件保存')
+    }
   }
-  const artifact = await FileApi.getArtifact(selection.artifactId, businessKey)
-  let cursor: string | undefined
-  let version: FileApi.FileVersionVO | undefined
-  do {
-    const page = await FileApi.getVersions(selection.artifactId, {
-      ...businessKey,
-      cursor,
-      pageSize: 100
-    })
-    version = page.items.find((row) => row.versionNo === selection.versionNo)
-    cursor = version || !page.hasMore ? undefined : page.nextCursor
-  } while (cursor)
-  if (!version) throw new Error('FILE_VERSION_NOT_FOUND')
-  const frozen = buildRequirementAttachment(selection, artifact, version, frozenReferenceKey)
-  const index = draftAttachments.value.findIndex(
-    (attachment) => attachment.referenceKey === frozenReferenceKey
-  )
-  if (index >= 0) draftAttachments.value.splice(index, 1, frozen)
-  else draftAttachments.value.push(frozen)
-  discardSlot(frozenReferenceKey)
-  rememberAttachmentSync(draftAttachments.value)
 }
 
 const save = async () => {
@@ -322,9 +472,14 @@ const save = async () => {
     draftValue.value,
     baselineValue.value,
     draftAttachments.value,
-    baselineAttachments.value
+    baselineAttachments.value,
+    attachmentSyncStatus.value === 'PENDING'
   )
-  if (!patch.submittedFields.length) return message.info('没有需要保存的变化')
+  if (!patch.submittedFields.length) {
+    message.info('没有需要保存的变化')
+    return true
+  }
+  if (patch.submittedFields.includes('value')) rememberBodyIntent(draftValue.value)
   saving.value = true
   try {
     await patchRequirementSectionAndReload(
@@ -333,22 +488,53 @@ const save = async () => {
       props.reload
     )
     clearAttachmentSync()
+    clearBodyIntent()
     message.success(`${props.section.sectionName}已保存`)
-  } catch (error) {
-    await props.reload()
-    await nextTick()
-    if (patch.submittedFields.includes('attachments')) {
-      if (!sessionStorage.getItem(attachmentSyncKey())) {
-        message.success(`${props.section.sectionName}已由权威事实确认保存`)
-        return
-      }
-      message.warning('已刷新权威版本；附件同步意图已保留，请再次保存本章节')
+    return true
+  } catch {
+    try {
+      await props.reload()
+      await nextTick()
+    } catch {
+      message.warning('响应结果未知；正文与附件目标已保留，请恢复连接后以同一意图重试')
+      return false
     }
-    throw error
+    const attachmentIntentPending =
+      patch.submittedFields.includes('attachments') &&
+      Boolean(sessionStorage.getItem(attachmentSyncKey()))
+    const bodyIntentPending =
+      patch.submittedFields.includes('value') && Boolean(sessionStorage.getItem(bodyIntentKey()))
+    if (!attachmentIntentPending && !bodyIntentPending) {
+      message.success(`${props.section.sectionName}已由权威事实确认保存`)
+      return true
+    }
+    message.warning('已刷新权威版本；未确认的正文与附件意图已保留，请再次保存本章节')
+    return false
   } finally {
     saving.value = false
   }
 }
+
+const discardBodyChanges = () => {
+  clearBodyIntent()
+  draftValue.value = Array.isArray(baselineValue.value)
+    ? [...baselineValue.value]
+    : baselineValue.value
+}
+
+watch(
+  [bodyDirty, attachmentSyncStatus, guardsNavigation],
+  () =>
+    emit('editStateChange', {
+      sectionId: props.section.sectionId,
+      bodyDirty: bodyDirty.value,
+      attachmentSyncStatus: attachmentSyncStatus.value,
+      guardsNavigation: guardsNavigation.value
+    }),
+  { immediate: true }
+)
+
+defineExpose({ save, discardBodyChanges })
 
 const fieldTypeLabel = (type: RequirementAnalysisFieldType) =>
   ({
@@ -372,6 +558,7 @@ watch(() => props.section, reset, { immediate: true, deep: true })
 }
 
 .section-heading,
+.section-tags,
 .attachments-heading,
 .pending-heading,
 .section-actions {
@@ -411,6 +598,10 @@ watch(() => props.section, reset, { immediate: true, deep: true })
 .attachments,
 .section-actions {
   margin-top: 16px;
+}
+
+.section-card > :deep(.el-alert) {
+  margin-top: 12px;
 }
 
 .section-value :deep(.el-select),

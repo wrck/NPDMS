@@ -17,6 +17,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileArtifactAct
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileArtifactLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceCursorQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceLockQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceSetQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileReferenceReplaceVersionUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionCompletionUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionLockQuery;
@@ -48,12 +49,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = FileMapperMySqlIntegrationTest.TestApplication.class,
@@ -152,6 +155,14 @@ class FileMapperMySqlIntegrationTest {
         assertNotNull(versionMapper.selectForUpdate(new FileVersionLockQuery(TENANT_ID, artifactId, 1)));
         assertNotNull(referenceMapper.selectForUpdate(new FileReferenceLockQuery(
                 TENANT_ID, "SOL", "DURATION_CHANGE", objectId, "CUSTOMER_EVIDENCE", "slot-a")));
+        FileReferenceSetQuery setQuery = new FileReferenceSetQuery(TENANT_ID, "SOL", "DURATION_CHANGE",
+                objectId, "CUSTOMER_EVIDENCE");
+        assertEquals(List.of("slot-a"), referenceMapper.selectActiveSet(setQuery).stream()
+                .map(FileReferenceDO::getReferenceKey).toList());
+        assertEquals(List.of("slot-a"), referenceMapper.selectSetForUpdate(setQuery).stream()
+                .map(FileReferenceDO::getReferenceKey).toList());
+        assertTrue(referenceMapper.selectSetForUpdate(new FileReferenceSetQuery(TENANT_ID, "SOL",
+                "DURATION_CHANGE", objectId, "EMPTY_PURPOSE")).isEmpty());
         assertNotNull(uploadSessionMapper.selectForUpdate(new FileUploadSessionLockQuery(TENANT_ID, sessionId)));
 
         assertEquals(1, artifactMapper.activateDraftIfMatch(

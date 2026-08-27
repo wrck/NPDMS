@@ -8,6 +8,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.infra.api.file.FileStorageReceiptApi;
 import cn.iocoder.yudao.module.infra.api.file.dto.FileStorageReceipt;
 import cn.iocoder.yudao.module.infra.api.file.dto.FileStorageStoreCommand;
@@ -146,6 +148,10 @@ public class FileUploadApplicationService {
         }
         String action = MODE_CREATE_ARTIFACT.equals(session.getModeCode())
                 ? FileActionCodes.UPLOAD : FileActionCodes.REPLACE;
+        policyRegistry.lockAndRevalidateReferenceSet(new FileBusinessObjectReferenceSetRevalidationQuery(
+                command.tenantId(), command.actorUserId(), new FileReferenceSetKey(session.getOwnerContext(),
+                session.getObjectType(), session.getObjectId(), session.getPurposeCode()), action,
+                session.getScopeVersion()));
         FileBusinessObjectPolicyFact policy = policyRegistry.lockAndRevalidate(
                 new FileBusinessObjectPolicyRevalidationQuery(command.tenantId(), command.actorUserId(),
                         session.getOwnerContext(), session.getObjectType(), session.getObjectId(),

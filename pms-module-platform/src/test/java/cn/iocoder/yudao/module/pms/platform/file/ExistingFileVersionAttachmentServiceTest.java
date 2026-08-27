@@ -102,6 +102,7 @@ class ExistingFileVersionAttachmentServiceTest {
         assertEquals(TARGET_SLOT, result.getFirst().referenceKey());
         assertEquals(new FileFactVersion(3, 0, 5), result.getFirst().fileFactVersion());
         InOrder order = inOrder(policyRegistry, artifactMapper, versionMapper, referenceMapper);
+        order.verify(policyRegistry, times(2)).lockAndRevalidateReferenceSet(any());
         order.verify(policyRegistry, times(2)).lockAndRevalidate(any());
         order.verify(artifactMapper).selectForUpdate(any());
         order.verify(versionMapper).selectForUpdate(any());

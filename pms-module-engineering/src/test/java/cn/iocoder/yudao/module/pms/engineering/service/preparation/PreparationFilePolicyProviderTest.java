@@ -8,6 +8,8 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.Prepa
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -19,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -97,6 +100,25 @@ class PreparationFilePolicyProviderTest {
 
         assertTrue(fact.allowed());
         assertEquals(9L, fact.scopeVersion());
+    }
+
+    @Test
+    void uploadCompletionAndDetachCanLockThePreparationNamespace() {
+        stubLocated("DRAFT", 100L);
+        when(permissionApi.hasAnyPermissions(100L, PreparationItemApplicationService.PERMISSION_FILL))
+                .thenReturn(true);
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
+        when(preparationMapper.selectForUpdate(any())).thenReturn(preparation("DRAFT"));
+        when(itemMapper.selectForUpdate(any())).thenReturn(item(100L));
+
+        for (String action : List.of(FileActionCodes.UPLOAD, FileActionCodes.DETACH)) {
+            var fact = provider.lockAndRevalidateReferenceSet(
+                    new FileBusinessObjectReferenceSetRevalidationQuery(0L, 100L,
+                            new FileReferenceSetKey("SOL", "SITE_SURVEY_ITEM", "2",
+                                    "SITE_SURVEY_EVIDENCE"), action, 9L));
+            assertTrue(fact.allowed());
+        }
+        verify(itemMapper, org.mockito.Mockito.times(2)).selectForUpdate(any());
     }
 
     @Test

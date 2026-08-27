@@ -6,8 +6,13 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetExpectation;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
@@ -34,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class FileArtifactApiImplTest {
@@ -98,9 +105,67 @@ class FileArtifactApiImplTest {
         assertEquals(FILE_FACT_VERSION_CONFLICT.getCode(), failure.getCode());
     }
 
+    @Test
+    void inspectsAndRevalidatesAnAuthorizedEmptyReferenceSet() {
+        FileReferenceSetKey key = setKey();
+        when(policyRegistry.inspectReferenceSet(any())).thenReturn(policy());
+        when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
+        when(referenceMapper.selectActiveSet(any())).thenReturn(List.of());
+        when(referenceMapper.selectSetForUpdate(any())).thenReturn(List.of());
+
+        var inspected = api.inspectReferenceSets(new FileReferenceSetCollectionQuery(
+                List.of(key), FileActionCodes.READ));
+        var revalidated = api.lockAndRevalidateReferenceSets(
+                new FileReferenceSetCollectionRevalidationQuery(List.of(
+                        new FileReferenceSetExpectation(key, 8L, List.of())), FileActionCodes.READ));
+
+        assertEquals(List.of(), inspected.getFirst().activeFacts());
+        assertEquals(List.of(), revalidated.getFirst().activeFacts());
+        verify(artifactMapper, never()).selectForUpdate(any());
+        verify(versionMapper, never()).selectForUpdate(any());
+    }
+
+    @Test
+    void rejectsAnActiveMemberAddedToAnExpectedEmptySet() {
+        FileReferenceSetKey key = setKey();
+        when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
+        when(referenceMapper.selectActiveSet(any())).thenReturn(List.of(reference()));
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact());
+        when(versionMapper.selectForUpdate(any())).thenReturn(version());
+        when(referenceMapper.selectSetForUpdate(any())).thenReturn(List.of(reference()));
+
+        ServiceException failure = assertThrows(ServiceException.class,
+                () -> api.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(
+                        List.of(new FileReferenceSetExpectation(key, 8L, List.of())), FileActionCodes.READ)));
+
+        assertEquals(FILE_FACT_VERSION_CONFLICT.getCode(), failure.getCode());
+    }
+
+    @Test
+    void revalidatesTheCompleteActiveSetInReferenceKeyOrder() {
+        FileReferenceSetKey key = setKey();
+        when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
+        when(referenceMapper.selectActiveSet(any())).thenReturn(List.of(reference()));
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact());
+        when(versionMapper.selectForUpdate(any())).thenReturn(version());
+        when(referenceMapper.selectSetForUpdate(any())).thenReturn(List.of(reference()));
+        FileArtifactVersionFact expected = new FileArtifactVersionFact(11L, 2, "slot-a", "EVIDENCE",
+                "evidence.pdf", 3L, "application/pdf", "a".repeat(64), "AVAILABLE", "ACTIVE",
+                new FileFactVersion(3, 4, 5), 8L);
+
+        var result = api.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(
+                List.of(new FileReferenceSetExpectation(key, 8L, List.of(expected))), FileActionCodes.READ));
+
+        assertEquals(List.of(expected), result.getFirst().activeFacts());
+    }
+
     private FileArtifactVersionQuery query() {
         return new FileArtifactVersionQuery(11L, 2, "SOL", "CHANGE", "900", "EVIDENCE",
                 "slot-a", FileActionCodes.READ);
+    }
+
+    private FileReferenceSetKey setKey() {
+        return new FileReferenceSetKey("SOL", "CHANGE", "900", "EVIDENCE");
     }
 
     private FileBusinessObjectPolicyFact policy() {

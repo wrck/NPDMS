@@ -12,6 +12,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyPro
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -67,51 +69,79 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
 
     @Override
     public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) {
-        Context context = locate(query.tenantId(), query.objectId());
-        if (context == null || !PURPOSE_CODE.equals(query.purposeCode())) {
+        return inspect(query.tenantId(), query.actorUserId(), query.objectId(), query.purposeCode(),
+                query.requiredAction());
+    }
+
+    @Override
+    public FileBusinessObjectPolicyFact inspectReferenceSet(FileBusinessObjectReferenceSetQuery query) {
+        return inspect(query.tenantId(), query.actorUserId(), query.key().objectId(),
+                query.key().purposeCode(), query.requiredAction());
+    }
+
+    private FileBusinessObjectPolicyFact inspect(Long tenantId, Long actorUserId, String objectId,
+                                                 String purposeCode, String requiredAction) {
+        Context context = locate(tenantId, objectId);
+        if (context == null || !PURPOSE_CODE.equals(purposeCode)) {
             return denied();
         }
-        return inspectCurrent(query.actorUserId(), query.requiredAction(), context);
+        return inspectCurrent(actorUserId, requiredAction, context);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FileBusinessObjectPolicyFact lockAndRevalidate(
             FileBusinessObjectPolicyRevalidationQuery query) {
-        Context located = locate(query.tenantId(), query.objectId());
-        if (located == null || !PURPOSE_CODE.equals(query.purposeCode())) {
+        return lockAndRevalidate(query.tenantId(), query.actorUserId(), query.objectId(),
+                query.purposeCode(), query.requiredAction(), query.expectedScopeVersion());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        return lockAndRevalidate(query.tenantId(), query.actorUserId(), query.key().objectId(),
+                query.key().purposeCode(), query.requiredAction(), query.expectedScopeVersion());
+    }
+
+    private FileBusinessObjectPolicyFact lockAndRevalidate(Long tenantId, Long actorUserId,
+                                                            String objectId, String purposeCode,
+                                                            String requiredAction,
+                                                            Long expectedScopeVersion) {
+        Context located = locate(tenantId, objectId);
+        if (located == null || !PURPOSE_CODE.equals(purposeCode)) {
             return denied();
         }
-        boolean mutating = MUTATING_ACTIONS.contains(query.requiredAction());
+        boolean mutating = MUTATING_ACTIONS.contains(requiredAction);
         Set<String> roles = mutating ? PROJECT_MANAGER_ROLE : FILE_READER_ROLES;
         String scopeAction = mutating ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
         ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(
-                new ProjectScopeRevalidationQuery(query.tenantId(), query.actorUserId(),
-                        located.plan().getProjectId(), scopeAction, query.expectedScopeVersion()));
+                new ProjectScopeRevalidationQuery(tenantId, actorUserId,
+                        located.plan().getProjectId(), scopeAction, expectedScopeVersion));
         requireScope(lockedScope, located.plan().getProjectId());
-        if (!Objects.equals(lockedScope.treeVersion(), query.expectedScopeVersion())) {
-            return policy(actionAllowed(query.requiredAction(), located.change()),
+        if (!Objects.equals(lockedScope.treeVersion(), expectedScopeVersion)) {
+            return policy(actionAllowed(requiredAction, located.change()),
                     lockedScope.treeVersion(), located.change());
         }
         ProjectParticipantFact participant = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                located.plan().getProjectId(), query.actorUserId(), roles, LocalDateTime.now()));
-        requireParticipant(participant, located.plan().getProjectId(), query.actorUserId(), roles);
+                located.plan().getProjectId(), actorUserId, roles, LocalDateTime.now()));
+        requireParticipant(participant, located.plan().getProjectId(), actorUserId, roles);
         ProjectParticipantFact lockedParticipant = participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
-                located.plan().getProjectId(), query.actorUserId(), participant.projectVersion(),
+                located.plan().getProjectId(), actorUserId, participant.projectVersion(),
                 "ACTIVE", null, roles));
-        requireParticipant(lockedParticipant, located.plan().getProjectId(), query.actorUserId(), roles);
+        requireParticipant(lockedParticipant, located.plan().getProjectId(), actorUserId, roles);
 
         ConstructionPlanDO lockedPlan = planMapper.selectForUpdate(
-                new ConstructionPlanLockQuery(query.tenantId(), located.plan().getId()));
+                new ConstructionPlanLockQuery(tenantId, located.plan().getId()));
         ConstructionPlanChangeDO lockedChange = lockedPlan == null ? null : changeMapper.selectForUpdate(
-                new ConstructionPlanChangeLockQuery(query.tenantId(), lockedPlan.getId(),
+                new ConstructionPlanChangeLockQuery(tenantId, lockedPlan.getId(),
                         located.change().getId()));
         if (lockedPlan == null || lockedChange == null
                 || !Objects.equals(lockedPlan.getProjectId(), located.plan().getProjectId())) {
             return denied();
         }
-        return policy(actionAllowed(query.requiredAction(), lockedChange),
+        return policy(actionAllowed(requiredAction, lockedChange),
                 lockedScope.treeVersion(), lockedChange);
     }
 

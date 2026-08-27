@@ -18,6 +18,9 @@ public class RequirementAnalysisSectionRespVO {
     private String schemaSnapshot;
     private String valueSnapshot;
     private List<RequirementAnalysisAttachmentRespVO> attachments;
+    private String attachmentSyncStatus;
+    private List<RequirementAnalysisAttachmentRespVO> currentActiveFacts;
+    private String attachmentSyncErrorCode;
     private Integer version;
     private List<String> allowedActions;
 }

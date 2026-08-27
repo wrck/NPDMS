@@ -6,6 +6,9 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.Prepar
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisRootMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisSectionMapper;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -32,12 +35,16 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class RequirementAnalysisQueryServiceTest {
 
     @Mock RequirementAnalysisRootMapper rootMapper;
     @Mock RequirementAnalysisSectionMapper sectionMapper;
+    @Mock FileArtifactApi fileArtifactApi;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
     @Mock ProjectParticipantFactApi participantFactApi;
@@ -47,7 +54,11 @@ class RequirementAnalysisQueryServiceTest {
     @BeforeEach
     void setUp() {
         service = new RequirementAnalysisQueryService(
-                rootMapper, sectionMapper, permissionApi, projectScopeApi, participantFactApi);
+                rootMapper, sectionMapper, fileArtifactApi, permissionApi, projectScopeApi, participantFactApi);
+        lenient().doAnswer(invocation -> {
+            FileReferenceSetCollectionQuery query = invocation.getArgument(0);
+            return query.collectionKeys().stream().map(key -> new FileReferenceSetFact(key, 7L, List.of())).toList();
+        }).when(fileArtifactApi).inspectReferenceSets(any());
     }
 
     @Test
@@ -58,7 +69,7 @@ class RequirementAnalysisQueryServiceTest {
         draft.setDraftMarker(1);
         when(rootMapper.selectDraft(any())).thenReturn(draft);
         when(rootMapper.selectById(any())).thenReturn(draft);
-        when(sectionMapper.selectList(any())).thenReturn(List.of(section("PROJECT_BACKGROUND", "\"draft\"", "[]")));
+        when(sectionMapper.selectList(any())).thenReturn(elevenSections());
 
         var workspace = service.getWorkspace(100L, actor());
         var detail = service.getDetail(501L, actor());
@@ -116,6 +127,59 @@ class RequirementAnalysisQueryServiceTest {
         assertEquals(501L, detail.getPreparationId());
         assertTrue(detail.getAllowedActions().isEmpty());
         assertTrue(detail.getSections().getFirst().getAllowedActions().isEmpty());
+        assertEquals("IN_SYNC", detail.getSections().getFirst().getAttachmentSyncStatus());
+        assertNull(detail.getSections().getFirst().getCurrentActiveFacts());
+    }
+
+    @Test
+    void managerSeesPendingCurrentFactsAndCompleteActionIsWithheld() {
+        stubReader();
+        stubManager();
+        PreparationDO draft = root(501L, 1, "DRAFT");
+        draft.setDraftMarker(1);
+        List<RequirementAnalysisSectionDO> sections = elevenSections();
+        RequirementAnalysisSectionDO section = sections.getFirst();
+        when(rootMapper.selectById(any())).thenReturn(draft);
+        when(sectionMapper.selectList(any())).thenReturn(sections);
+        var active = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact(
+                801L, 1, "2fce3d44-109d-47be-b15a-5ea09fda1a0f", "SECTION_ATTACHMENT",
+                "evidence.pdf", 10L, "application/pdf", "sha", "AVAILABLE", "ACTIVE",
+                new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion(2, 3, 4), 7L);
+        doAnswer(invocation -> {
+            FileReferenceSetCollectionQuery query = invocation.getArgument(0);
+            return query.collectionKeys().stream().map(key -> new FileReferenceSetFact(key, 7L,
+                    key.objectId().equals(String.valueOf(section.getId())) ? List.of(active) : List.of())).toList();
+        }).when(fileArtifactApi).inspectReferenceSets(any());
+
+        var detail = service.getDetail(501L, actor());
+
+        assertEquals("PENDING", detail.getSections().getFirst().getAttachmentSyncStatus());
+        assertEquals("ATTACHMENT_SET_PENDING", detail.getSections().getFirst().getAttachmentSyncErrorCode());
+        assertEquals(1, detail.getSections().getFirst().getCurrentActiveFacts().size());
+        assertEquals(List.of("EDIT"), detail.getAllowedActions());
+        assertTrue(detail.getCompletionBlockers().stream()
+                .anyMatch(blocker -> "ATTACHMENT_SET_PENDING".equals(blocker.getCode())));
+    }
+
+    @Test
+    void providerFailureProjectsUnknownWithoutLeakingOrReplacingSavedAttachments() {
+        stubReader();
+        stubManager();
+        PreparationDO draft = root(501L, 1, "DRAFT");
+        draft.setDraftMarker(1);
+        when(rootMapper.selectById(any())).thenReturn(draft);
+        when(sectionMapper.selectList(any())).thenReturn(elevenSections());
+        doThrow(new IllegalStateException("raw provider failure"))
+                .when(fileArtifactApi).inspectReferenceSets(any());
+
+        var detail = service.getDetail(501L, actor());
+
+        assertTrue(detail.getSections().stream()
+                .allMatch(section -> "UNKNOWN".equals(section.getAttachmentSyncStatus())));
+        assertTrue(detail.getSections().stream().allMatch(section -> section.getCurrentActiveFacts() == null));
+        assertTrue(detail.getSections().stream()
+                .allMatch(section -> "FACT_PROVIDER_UNAVAILABLE".equals(section.getAttachmentSyncErrorCode())));
+        assertEquals(List.of("EDIT"), detail.getAllowedActions());
     }
 
     @Test
@@ -248,5 +312,11 @@ class RequirementAnalysisQueryServiceTest {
         row.setAttachmentReferenceSnapshot(files);
         row.setVersion(1);
         return row;
+    }
+
+    private List<RequirementAnalysisSectionDO> elevenSections() {
+        return java.util.stream.IntStream.range(0, 11)
+                .mapToObj(index -> section("SECTION_" + index, "\"filled\"", "[]"))
+                .toList();
     }
 }

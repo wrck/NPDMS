@@ -12,6 +12,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyPro
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -89,6 +91,44 @@ public class RequirementAnalysisFilePolicyProvider implements FileBusinessObject
             if (!inScope(scope, located.root().getProjectId())) return denied();
             if (action.managerRequired()) lockManager(located.root().getProjectId(), query.actorUserId());
             Context locked = locate(query.tenantId(), query.objectId(), true);
+            if (locked == null || !Objects.equals(locked.root().getProjectId(), located.root().getProjectId())) {
+                return denied();
+            }
+            return policy(hasPermission(query.actorUserId(), action.permission()), scope.treeVersion(), locked.root());
+        } catch (RuntimeException unavailable) {
+            return denied();
+        }
+    }
+
+    @Override
+    public FileBusinessObjectPolicyFact inspectReferenceSet(FileBusinessObjectReferenceSetQuery query) {
+        if (!validNamespace(query.key())) return denied();
+        Context context = locate(query.tenantId(), query.key().objectId(), false);
+        if (context == null) return denied();
+        try {
+            Authorization authorization = authorize(query.actorUserId(), query.requiredAction(), context);
+            return policy(authorization.allowed(), authorization.scopeVersion(), context.root());
+        } catch (RuntimeException unavailable) {
+            return denied();
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(
+            FileBusinessObjectReferenceSetRevalidationQuery query) {
+        if (!validNamespace(query.key())) return denied();
+        Context located = locate(query.tenantId(), query.key().objectId(), false);
+        if (located == null) return denied();
+        try {
+            ActionPolicy action = actionPolicy(query.requiredAction(), located.root());
+            if (action == null) return policy(false, query.expectedScopeVersion(), located.root());
+            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
+                    query.tenantId(), query.actorUserId(), located.root().getProjectId(), action.scopeAction(),
+                    query.expectedScopeVersion()));
+            if (!inScope(scope, located.root().getProjectId())) return denied();
+            if (action.managerRequired()) lockManager(located.root().getProjectId(), query.actorUserId());
+            Context locked = locate(query.tenantId(), query.key().objectId(), true);
             if (locked == null || !Objects.equals(locked.root().getProjectId(), located.root().getProjectId())) {
                 return denied();
             }
@@ -177,6 +217,11 @@ public class RequirementAnalysisFilePolicyProvider implements FileBusinessObject
         } catch (RuntimeException invalid) {
             return false;
         }
+    }
+
+    private boolean validNamespace(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey key) {
+        return key != null && OWNER_CONTEXT.equals(key.ownerContext()) && OBJECT_TYPE.equals(key.objectType())
+                && PURPOSE_CODE.equals(key.purposeCode());
     }
 
     private boolean inScope(ProjectScopeResult scope, Long projectId) {
