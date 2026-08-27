@@ -86,6 +86,7 @@
 
 | Context | 文件用途 | Owner 与状态 |
 |---|---|---|
+| Platform Dynamic Form | `PmsFileArtifact`动态字段的上传、换版、解绑、预览和下载 | PLT动态表单实例Provider校验实例与冻结字段权限；F-PLT-001拥有精确文件事实。普通FormCreate上传控件的URL/JSON值不是受控文件证据 |
 | Preparation/Solution | 工勘照片、需求附件、计划、交底书、方案 revision | SOL 拥有提交/批准状态；文件服务拥有内容版本 |
 | Implementation Execution | 签收证据、安装照片、配置/联调结果、质量安全证据、DeliveryEvidence | IMP 上传和发布证据 revision |
 | Acceptance & Closure | 培训、问卷、验收报告、齐套清单、归档包、交接证据 | ACC 审核、批准和归档引用；不覆盖 IMP 原版本 |

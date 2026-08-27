@@ -22,7 +22,7 @@
 | 资源外包 | 服务商、转包、付款满意度门禁 | Supplier、SubcontractRequest、PaymentGate | OA、Project、SatisfactionCollection | SubcontractApproved | 直接放行付款、修改满意度事实 |
 | 经营分析 | 项目组合、项目状态和经批准指标视图 | PortfolioView、MetricSnapshot | 各域只读事件 | ReportGenerated | 任何交易写操作、以其他事实伪造工时/人效指标 |
 | 设备连接与采集 | 凭证、授权、采集任务、外部状态原值、结果引用和回调证据 | DeviceCredential、CredentialGrant、CollectionTask、CallbackRecord | 外部采集平台、IMP、CUT、Inspection | CollectionTaskAccepted、CollectionResultAvailable | 不重复建设连接和原始采集引擎 |
-| 基础平台能力 | 公司、部门、用户公司—部门范围、待办、文件、授权、变更、字典和审计通用能力 | Company、Department、UserCompanyDepartmentScope、Todo、FileArtifact、Grant、ChangeRequest | LDAP/AD及所有模块 | CompanyApi、DeptApi、OrganizationScopeApi、TodoCreated、AuditRecorded | 由部门推导公司、拥有业务域状态 |
+| 基础平台能力 | 公司、部门、用户公司—部门范围、待办、文件、授权、变更、字典、审计及共享动态表单模板/实例通用能力 | Company、Department、UserCompanyDepartmentScope、Todo、FileArtifact、Grant、ChangeRequest、DynamicFormTemplate、DynamicFormInstance | LDAP/AD及所有模块 | CompanyApi、DeptApi、OrganizationScopeApi、TodoCreated、AuditRecorded；动态表单跨模块API仅在出现真实调用方后按Feature建立 | 由部门推导公司、拥有业务域状态、把通用表单保存解释为业务完成 |
 | 集成适配 | 外部同步、回调、失败补偿和对账 | ExternalMapping、CallbackRecord | 外部系统 | Domain command/event | 直接写业务表或访问业务模块Service/Mapper/Repository |
 
 ## 服务边界

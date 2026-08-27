@@ -43,8 +43,14 @@ MODEL_ENTITY_CONTRACTS = {
     "CutoverSupportArrangement": ("CUT", {"CUT-04"}),
     "CutoverConfigurationRevision": ("CUT", {"CUT-07"}),
     "CustomerServiceLevelRevision": ("CUS", {"CUS-02"}),
+    "DynamicFormTemplate": ("PLT", {"SOL-01"}),
+    "DynamicFormTemplateRevision": ("PLT", {"SOL-01"}),
+    "DynamicFormInstance": ("PLT", {"SOL-01"}),
 }
 MODEL_GOVERNANCE_CONTRACTS = {}
+CROSS_CONTEXT_FOUNDATION_OBJECTS = {
+    "DynamicFormTemplate", "DynamicFormTemplateRevision", "DynamicFormInstance",
+}
 
 
 def load_json(path: Path) -> dict:
@@ -387,7 +393,11 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
         owner = record.get("owner")
         requirement_owner_set = {owners[item] for item in actual_requirements if item in owners}
         expected_owner = expected_object_owner(object_name, requirement_owner_set)
-        if not owner or owner != expected_owner or (requirement_owner_set and owner not in requirement_owner_set):
+        if not owner or owner != expected_owner or (
+            requirement_owner_set
+            and owner not in requirement_owner_set
+            and object_name not in CROSS_CONTEXT_FOUNDATION_OBJECTS
+        ):
             errors.append(f"{object_name} Owner is not backed by its Phase 1 requirement ownership: {owner}")
         governance_contract = MODEL_GOVERNANCE_CONTRACTS.get(object_name)
         if governance_contract and any(

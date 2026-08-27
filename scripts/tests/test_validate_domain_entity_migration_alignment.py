@@ -468,9 +468,12 @@ class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
                 "cut_cutover_checklist_item",
                 "cut_cutover_checklist_item_result",
             ],
+            "DynamicFormTemplate": ["plt_dynamic_form_template"],
+            "DynamicFormTemplateRevision": ["plt_dynamic_form_template_revision"],
+            "DynamicFormInstance": ["plt_dynamic_form_instance"],
         }
 
-        self.assertEqual(87, len(self.records))
+        self.assertEqual(90, len(self.records))
         for object_name, tables in expected.items():
             with self.subTest(object_name=object_name):
                 self.assertEqual(tables, self.records[object_name]["targetTables"])

@@ -170,11 +170,12 @@ SYSTEM公开`OrganizationScopeApi.pageActiveUsers(OrganizationUserCandidatePageR
 
 | 资源 | 路径与命令 | 关键约束 |
 |---|---|---|
-| Preparation | `/preparations`, `/{id}/actions/{submit|confirm|return}` | 冻结表单 schemaVersion；退回生成历史而非覆盖提交证据 |
+| Preparation | `/preparations`, `/{id}/actions/{submit|confirm|return}` | 需要动态表单时冻结PLATFORM模板修订及SOL自身业务事实；退回生成历史而非覆盖提交证据 |
 | ConstructionPlan | `/construction-plans`, `/{id}/revisions`, `/{id}/actions/{submit|approve|reject}` | 批准 revision 不可覆盖；计划变更保存前后差异 |
 | Schedule | `/schedules`, `/{id}/actions/{calculate|apply}` | 计算结果是候选快照，只有 apply 命令改变计划 |
 | Solution | `/solutions`, `/{id}/revisions`, `/{id}/actions/{submit|approve|reject|publish}` | 提交/批准/发布均需 If-Match 和文件引用校验 |
-| Dynamic Form | `/form-schemas`, `/form-instances` | V2；schema 发布后只读，实例不允许任意脚本执行 |
+
+SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Feature以后通过PLATFORM锁定模板修订和通用渲染能力，并继续由SOL API拥有业务提交、完成、审批、历史和下游引用语义。
 
 ## 7. IMP：现场实施 API
 
@@ -279,12 +280,15 @@ AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装
 | ANA | RPT-02、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
 | PLT | PLT-01 | `/todos`、`/{id}/actions/complete` | 待办完成回调业务 Owner；不能自行宣告业务成功 |
 | PLT | PLT-02 | `/files:init-upload`、`/files/{id}:complete-upload`、`/files/{id}/versions`、`/file-references` | 文件 API 详见 13；下载实时校验业务权限 |
+| PLT | SOL-01公共基础切片、PRE-04后续依赖 | `/dynamic-form-templates`、`/dynamic-form-template-revisions/{id}`及publish/enable/disable、`/dynamic-form-templates/selection`、`/dynamic-form-instances` | 模板发布修订不可变；手工选择只命中当前启用发布修订；实例冻结修订并按CAS保存。F-PLT-002首版保留完整FormCreate客户端配置，但不提供服务端脚本执行/URL代理，也不替代目标API授权或领域业务状态 |
 | PLT | AUT-01～AUT-02 | `/authorization-grants`、`/authorization-grants/{id}/actions/revoke`；内部`AuthorizationGrantApi` | 创建需幂等键，查询分页，撤权需期望版本；通用授权不代替DAC凭证授权 |
 | PLT | CHG-01 | `/change-requests`、状态命令 | 低优先级独立能力，按版本范围后置实施 |
 | SYSTEM | INT-09 | `/system/companies`、`/system/departments` | Company与Department独立；Department响应包含统一`code`和`version`；办事处按Department表达 |
 | SYSTEM | INT-09、PM-01 | 内部`CompanyApi/DeptApi/OrganizationScopeApi` | 按稳定ID/编码查询；用户公司—部门范围必须命中同一有效行，不由部门推导公司 |
 
 周报/日报不提供独立 API；周期性展示复用指标快照。
+
+F-PLT-002当前只有用户REST闭环，不为尚无真实调用方的WorkBinding/PRE-04创建空公共API。后续消费方只能新增最窄`inspect/lockAndRevalidate/create`契约并依赖`pms-module-platform-api`，不得访问PLATFORM Service、Mapper或表。
 
 ## 13. Device Access & Collection API
 

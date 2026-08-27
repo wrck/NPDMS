@@ -156,12 +156,11 @@ PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。�
 | 聚合/实体 | Owner 事实 | 版本与证据 |
 |---|---|---|
 | Preparation | 工勘、需求分析、资源就绪、交底和准备结论 | 每次提交冻结表单模板版本、填写值和附件引用 |
+| PreparationDynamicFormInstance | 已有准备项的表单配置和值事实 | `sol_dynamic_form_instance`继续服务已实现的Preparation场景；不与PLT通用实例同表、不迁移或双写旧`pms_eng_form_instance` |
 | ConstructionPlan | 工期、计划项、里程碑、计划变更申请 | 计划基线不可覆盖；变更保存前后差异和审批引用 |
 | Solution | 方案正文元数据、来源、评审状态和适用范围 | 草稿可修改；提交/批准后生成不可变 revision |
-| DynamicFormSchema | 可配置准备表单结构 | 【建议】版本发布后不可改；实例记录 schemaVersion |
-| DynamicFormInstance | 一次业务填写和校验结果 | 业务字段以结构化值保存；大文件使用 FileReference |
 
-Preparation 与 Solution 可以部署在同一物理模块，但各自通过应用服务维护聚合；不得由表单引擎直接更新 Project 状态。
+Preparation 与 Solution 可以部署在同一物理模块，但各自通过应用服务维护聚合；共享动态表单模板和通用实例由基础平台拥有，SOL只引用明确已发布修订并另行保存自身业务状态、完成版本和冻结事实。不得由表单引擎或通用实例保存直接更新 Project 或SOL业务状态。
 
 ## 6. Implementation Execution 数据模型
 
@@ -306,7 +305,7 @@ F-PROJ-002只消费DeliveryScope的版本化查询、预览和分配公开契约
 
 ### 10.2 基础平台公共能力
 
-适用 Requirement：PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10。
+适用 Requirement：PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10，以及SOL-01/PRE-04需要的共享动态表单基础切片。
 
 | 聚合/实体 | Owner 事实 | 规则 |
 |---|---|---|
@@ -317,6 +316,9 @@ F-PROJ-002只消费DeliveryScope的版本化查询、预览和分配公开契约
 | AuthorizationGrant | 主体、资源、动作、范围、生效区间、来源、授予与撤销事实 | PLT拥有授权事实；PM-04使用`CURRENT_PROJECT`和`PROJECT_AND_DESCENDANTS`，由PROJ按当前完整项目树版本展开；不替代DeviceCredential专用授权边界 |
 | ChangeRequest | 变更申请、差异、审批引用和执行结果 | 版本变更作为低优先级独立能力，能后置的后置 |
 | FileArtifact | 文件身份、内容版本、哈希和存储引用 | 详见 13；正文不复制进多个领域表 |
+| DynamicFormTemplate | 稳定模板身份、当前发布修订指针和新实例可用性 | 同一模板至多一个草稿；停用只阻止新实例选择 |
+| DynamicFormTemplateRevision | 完整FormCreate配置、规则和引擎版本 | 发布后不可覆盖；新版本只影响其后创建的实例 |
+| DynamicFormInstance | 手工通用实例冻结修订与普通字段值 | 保存使用CAS；文件字段引用FileArtifact；不拥有消费方业务完成/审批/历史版本 |
 | AuditRecord | 主体、动作、对象、结果和关联 ID | Word 文件本身无需内容审计；业务动作和文件版本操作仍留痕 |
 
 INT-05/INT-09 的人员、公司、部门、岗位使用基础平台主数据；同步批次/水位和稳定来源键分别由已有 `plt_sync_batch`、`plt_external_key_mapping` 承载。`system_dept.code`为统一部门编码，办事处按部门表达；用户公司—部门范围使用独立时态关系，不由部门树推导公司。基础平台主数据的前向实现仍由相应 Feature 管理。

@@ -239,25 +239,41 @@
         "sol_solution_review"
       ]
     },
-    "DynamicFormSchema": {
-      "owner": "SOL",
-      "requirementIds": [
-        "SOL-01"
-      ],
-      "targetTables": [
-        "sol_dynamic_form_schema",
-        "sol_dynamic_form_schema_revision"
-      ]
-    },
-    "DynamicFormInstance": {
+    "PreparationDynamicFormInstance": {
       "owner": "SOL",
       "requirementIds": [
         "PRE-02",
-        "PRE-04",
-        "SOL-01"
+        "PRE-04"
       ],
       "targetTables": [
         "sol_dynamic_form_instance"
+      ]
+    },
+    "DynamicFormTemplate": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template"
+      ]
+    },
+    "DynamicFormTemplateRevision": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template_revision"
+      ]
+    },
+    "DynamicFormInstance": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_instance"
       ]
     },
     "ArrivalAcceptance": {

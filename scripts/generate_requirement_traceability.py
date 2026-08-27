@@ -224,6 +224,15 @@ EXACT_PHASE1_DESIGN["PM-10"] = (
     "proj_project、proj_project_stage_snapshot、proj_project_member_assignment",
     "状态守卫+完整树+跨域阻断+幂等并发+响应式UI",
 )
+EXACT_PHASE1_DESIGN["SOL-01"] = (
+    "交付准备与方案（业务语义）/ PLT共享动态表单基础",
+    "Preparation / ConstructionPlan / Solution / DynamicFormTemplate / DynamicFormTemplateRevision / DynamicFormInstance",
+    "PLT模板修订DRAFT→PUBLISHED且发布版不可变，可用性ENABLED/DISABLED独立；业务提交/完成/审批仍由SOL状态机拥有",
+    "ProjectStageScope + PLT模板/实例功能权限",
+    "PreparationApplicationService / PLT Dynamic Form REST",
+    "Preparation、Plan、Solution、File、DynamicFormTemplate、DynamicFormTemplateRevision、DynamicFormInstance",
+    "业务规则+权限+动态渲染+版本+文件",
+)
 
 
 def domain_owners(requirements: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
@@ -376,6 +385,8 @@ FEATURE_LINK_OVERRIDES = {
     "PM-11": "[F-PROJ-007](../../specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md)",
     "PRE-01": "[F-SOL-001](../../specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md)",
     "PRE-02": "[F-SOL-002](../../specs/features/F-SOL-002-site-survey-assignment-and-readiness.md)",
+    "PRE-04": "[F-PLT-002共享动态表单基础](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003需求分析版本化](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
+    "SOL-01": "[F-PLT-002](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md)",
     "PLT-02": "[F-PLT-001](../../specs/features/F-PLT-001-unified-file-identity-and-version-management.md)",
 }
 
@@ -434,6 +445,14 @@ IMPLEMENTATION_OVERRIDES = {
         "Feature Ready GO `NPDMS-FSOL002-FEATURE-READY-20260827-01-R2` / "
         "NPDMS `7243727f` Task 1～10、自动化、真实MySQL、MinIO文件事实、真实浏览器与独立复审GO",
         "IMPLEMENTATION_COMPLETE",
+    ),
+    "PRE-04": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002 Feature Ready待独立评审；F-SOL-003原Feature Ready留痕保留，旧Technical Plan与Implementation审查已取消，待基础能力完成后前向修订并重规划",
+        "BASELINE",
+    ),
+    "SOL-01": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002 `IN_REVIEW`，只建设共享模板与手工实例基础，不宣称SOL-01或任一消费者完成",
+        "BASELINE",
     ),
     "PLT-02": (
         "PRD-V1.8-BASELINE+CHG-PRD-2026-08-27-004/SDS-V1.8-PHASE2-BASELINE / "

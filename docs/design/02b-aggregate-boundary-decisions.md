@@ -10,6 +10,8 @@
 | 聚合 | Owner Context | 一致性边界 | 关键命令 | 禁止跨聚合事务 |
 |---|---|---|---|---|
 | ProjectTask | Project Delivery | 单个任务身份、树关系、恰好一个当前WorkBinding/PermissionPolicy/CompletionRule/GateRef和完成判定快照；TASK_NATIVE由任务自身承载，其他类型引用Owner业务事实 | CreateTask、MoveTask、AssignTask、EvaluateTaskCompletion | 不复制或直接修改非TASK_NATIVE绑定业务对象，不以通用完成命令绕过目标业务事实 |
+| DynamicFormTemplate | 基础平台能力 | 稳定模板身份、唯一草稿、不可变已发布修订、当前发布指针和新实例可用性 | CreateTemplate、CreateRevision、PublishRevision、EnableTemplate、DisableTemplate | 不修改消费方业务模板选择、状态、审批或完成事实 |
+| DynamicFormInstance | 基础平台能力 | 一个手工实例冻结明确模板修订及其普通字段值；文件字段引用F-PLT-001事实 | CreateManualInstance、PatchInstanceValues | 不切换既有实例模板，不把通用保存解释为业务提交/完成，不直接修改消费方聚合 |
 | ArrivalAcceptance | Implementation Execution | 单次到货批次、序列号和签收证据 | ConfirmArrival、RaiseArrivalDifference | 不同步修改设备主档和验收结论 |
 | InstallationRecord | Implementation Execution | 一次安装记录及设备位置/照片 | RecordInstallation、ConfirmInstallation | 不修改到货签收状态 |
 | ConfigurationCollectionResult | Implementation Execution | 一次配置Log采集业务结果、实施解析状态和结果引用 | ConsumeCollectionCallback、PublishConfigurationLogResult | 不下发设备命令、不持有凭证明文、不拥有ConfigurationLog原始文件和不可变解析版本 |

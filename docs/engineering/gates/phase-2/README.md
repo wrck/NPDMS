@@ -7,6 +7,7 @@ Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存
 > 迁移边界：87对象/98来源绑定/1排除源；`CustomerServiceLevelRevision`和`CutoverConfigurationRevision`均为`NONE_NEW / FEATURE_FORWARD_MIGRATION`，不进入当前核心DDL；P3-E09=`MODEL_BASELINE_READY`仅批准当前冻结模型。仅当发布包含历史迁移或数据切换时，才由`AI-MIG-000`作为Release前置门禁并绑定批准窗口，普通功能发布不适用
 
 > 2026-08-25聚焦增量：F-PROJ-004新增`ProjectTemplateMatchHistory`后，当前迁移契约为88对象/99来源绑定/1排除源；该对象为`NONE_NEW / FEATURE_FORWARD_MIGRATION(PM-07)`，不进入既有核心DDL，Feature Ready独立复审仍须单独GO。
+> 2026-08-28聚焦候选：F-PLT-002把共享动态表单前向归属PLT，并保留Preparation专用实例后，当前生成契约为90对象/101来源绑定/1排除源；三个PLT对象均不迁移、不双写旧`pms_eng_form_*`。该统计只证明候选生成链一致，Feature Ready仍待独立裁决。
 
 ## 当前文件
 

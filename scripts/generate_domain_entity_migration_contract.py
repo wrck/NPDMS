@@ -25,7 +25,10 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CrossPhaseContentReference": ("proj_project_cross_phase_reference",), "Preparation": ("sol_preparation", "sol_preparation_item"),
     "ConstructionPlan": ("sol_construction_plan", "sol_construction_plan_revision", "sol_construction_plan_item", "sol_construction_plan_change"),
     "Solution": ("sol_solution", "sol_solution_revision", "sol_solution_review"),
-    "DynamicFormSchema": ("sol_dynamic_form_schema", "sol_dynamic_form_schema_revision"), "DynamicFormInstance": ("sol_dynamic_form_instance",),
+    "PreparationDynamicFormInstance": ("sol_dynamic_form_instance",),
+    "DynamicFormTemplate": ("plt_dynamic_form_template",),
+    "DynamicFormTemplateRevision": ("plt_dynamic_form_template_revision",),
+    "DynamicFormInstance": ("plt_dynamic_form_instance",),
     "ArrivalAcceptance": ("imp_arrival_acceptance", "imp_arrival_line", "imp_arrival_difference"),
     "InstallationRecord": ("imp_installation_record", "imp_installation_item", "imp_installation_evidence"),
     "ConfigurationCollectionResult": ("imp_configuration_collection_result", "imp_configuration_collection_parse_attempt", "imp_configuration_component_candidate"),
@@ -81,6 +84,9 @@ MODEL_ENTITY_CONTRACTS = {
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
     "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07"]},
     "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
+    "DynamicFormTemplate": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
+    "DynamicFormTemplateRevision": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
+    "DynamicFormInstance": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
 }
 
 EXCLUDED_SOURCES = [{
@@ -133,8 +139,10 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "Preparation": [source("CURRENT_TABLE", "pms_eng_site_survey|pms_eng_requirement|pms_eng_resource_ready|pms_eng_briefing", "CURRENT_FORWARD", "split source type, preserve every submission, map to Preparation revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ConstructionPlan": [source("CURRENT_TABLE", "pms_schedule_backward|pms_plan_change_request|pms_project_task", "CURRENT_FORWARD", "separate plan baseline, items and change revisions; do not infer approval from duration cache", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "Solution": [source("CURRENT_TABLE", "pms_eng_solution", "CURRENT_FORWARD", "create immutable solution revisions and review records", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "DynamicFormSchema": [source("CURRENT_TABLE", "pms_eng_form_template", "CURRENT_FORWARD", "convert published template versions into immutable schema revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "DynamicFormInstance": [source("CURRENT_TABLE", "pms_eng_form_instance", "CURRENT_FORWARD", "freeze schema version and preserve raw values plus structured query fields", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
+    "PreparationDynamicFormInstance": [source("NONE_NEW", "PreparationDynamicFormInstance", "NEW_ONLY", "preserve existing new-platform preparation form facts; do not migrate or dual-write legacy pms_eng_form_instance", "NEW_ONLY", "FEATURE_RELEASE")],
+    "DynamicFormTemplate": [source("CURRENT_TABLE", "pms_eng_form_template", "COMPATIBILITY_ONLY", "audit reusable interaction and field semantics only; keep the legacy table and behavior unchanged and create no migration or dual write", "NO_MIGRATION", "F-PLT-002")],
+    "DynamicFormTemplateRevision": [source("NONE_NEW", "DynamicFormTemplateRevision", "NEW_ONLY", "create only from new PLATFORM template commands; never synthesize a revision from legacy rows", "NEW_ONLY", "F-PLT-002")],
+    "DynamicFormInstance": [source("CURRENT_TABLE", "pms_eng_form_instance", "COMPATIBILITY_ONLY", "audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration or dual write", "NO_MIGRATION", "F-PLT-002")],
     "ArrivalAcceptance": [source("CURRENT_TABLE", "pms_eng_arrival", "CURRENT_FORWARD", "map arrival batch/result; shipment quantity is reconciliation evidence, not acceptance", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InstallationRecord": [source("CURRENT_TABLE", "pms_eng_installation", "CURRENT_FORWARD", "map installation facts and evidence without overwriting history", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ConfigurationCollectionResult": [source("CURRENT_TABLE", "pms_eng_configuration|pms_equipment_config_log", "CURRENT_FORWARD", "map task/device/result versions, immutable raw logs, parse attempts and component candidates; never migrate connection secrets", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
@@ -532,7 +540,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             if len(requirement_owner_set) != 1:
                 raise ValueError(f"{object_name} has conflicting Owners without an explicit Context Owner: {sorted(requirement_owner_set)}")
             owner = next(iter(requirement_owner_set))
-        elif requirement_owner_set and owner not in requirement_owner_set:
+        elif requirement_owner_set and owner not in requirement_owner_set and not (model_contract or {}).get("crossContextFoundation"):
             raise ValueError(f"{object_name} explicit Owner {owner} is not backed by any declaring requirement")
         raw_sources = OVERRIDES.get(object_name)
         if raw_sources is None:
@@ -550,7 +558,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         record = {
             "object": object_name,
             "owner": owner,
-            "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+            "ownerEvidence": (model_contract or {}).get("ownerEvidence", "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md"),
             "requirementIds": sorted(contract["requirements"]),
             "targetTables": list(target_tables),
             "sources": expand_sources(raw_sources, current_catalog, legacy_catalog, commit, target_tables),

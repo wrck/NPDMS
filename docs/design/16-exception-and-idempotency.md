@@ -45,6 +45,7 @@
 | 场景 | 幂等键 | 作用域 | 首次结果重放 |
 |---|---|---|---|
 | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
+| 动态表单模板/实例命令 | `Idempotency-Key` | tenant + command + actor + template/revision/instance intent | 新建模板、下一草稿、发布、启停或手工实例同载荷重放原结果；普通值PATCH使用If-Match而非创建型幂等 |
 | 项目授权创建/撤权 | `Idempotency-Key` | tenant + actor + project/grant + command | 同键同摘要返回原授权或撤权版本；同键不同摘要拒绝 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
 | 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
@@ -60,7 +61,7 @@
 ## 4. 同键重放规则
 
 1. 同键同摘要且首次成功：返回相同业务结果，不再次执行。
-2. 同键同摘要且处理中：返回 202 和同一 operationId，禁止并发执行第二次。
+2. 同键同摘要且处理中：返回平台约定的稳定`IN_PROGRESS`响应或业务错误，并在已有时返回同一operationId；禁止并发执行第二次或伪造成功响应。
 3. 同键同摘要且可重试失败：由服务端状态机决定继续原 operation，不新建业务事实。
 4. 同键不同摘要：返回 `IDEMPOTENCY_CONFLICT`，不使用新请求覆盖旧记录。
 5. 业务要求“失败重试必须新任务”时（如 CollectionTask），retry command 创建新任务ID和新幂等键，并保存 `retryOfTaskId`；临时密码重新输入。
@@ -165,6 +166,17 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 
 上传中断不创建版本；hash/大小/MIME不符或扫描失败进入隔离；对象存储和数据库部分提交按 uploadSession 幂等补偿。预览失败不改变原文件和业务审核状态；归档失败保持待归档。
 
+### 10.1 共享动态表单异常
+
+| 场景 | 错误/失败行为 |
+|---|---|
+| 模板编码重复或已有唯一草稿 | 409；不创建第二模板/草稿，不改变当前发布指针 |
+| 草稿配置JSON无效、字段键缺失或重复、引擎版本不支持 | 400/422；保持草稿最近成功内容，不发布也不静默裁剪配置 |
+| 手工选择后模板停用或当前发布指针变化 | VERSION_CONFLICT；不得改用新修订或创建实例 |
+| 已发布修订更新/删除 | STATE_CONFLICT；修订及既有实例保持不变 |
+| 实例If-Match过期、未知字段或普通PATCH伪造`PmsFileArtifact`值 | VERSION_CONFLICT/VALIDATION；不覆盖普通值或文件事实 |
+| 模板API/iframe被CORS、CSP、frame策略或目标权限拒绝 | 浏览器如实显示失败；PLT不代理、不降级为服务端请求，不形成表单保存或其他业务成功事实 |
+
 ## 11. 重试、熔断和人工接管
 
 重试策略按接口/操作注册，不使用一个全局次数覆盖全部系统。注册项包括 retryable errors、最大尝试、退避、总时间预算、查询结果动作、熔断条件、半开探测和人工接管阈值。
@@ -188,6 +200,7 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 - 事务提交前/后崩溃恢复；
 - Outbox 重复、Inbox 重复、事件乱序；
 - 乐观锁冲突、非法状态、门禁失败；
+- 动态表单唯一草稿、不可变发布修订、停用/指针漂移、实例CAS、受控文件字段伪造及浏览器配置失败；
 - 外部超时但实际成功、部分失败、永久拒绝、恢复后对账；
 - 日志/错误/事件/缓存/数据库敏感字段扫描；
 - 批量逐项结果和人工补偿。

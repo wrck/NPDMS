@@ -20,6 +20,7 @@
 | Preparation & Solution | Implementation Execution | Customer/Supplier | 下发已批准方案、计划和设备范围引用 |
 | Implementation Execution | Acceptance & Closure | Published Language | 发布实施证据、阶段质量检查快照和阶段完成事实 |
 | Implementation Execution | 基础平台能力 | Customer/Supplier | 请求文件、待办、审计、字典和权限校验 |
+| Project Delivery / Preparation & Solution / Implementation Execution / Acceptance & Closure / Cutover | 基础平台能力 | Customer/Supplier | 复用已发布动态表单模板修订、通用渲染和值载体；各业务Context继续拥有自身选模、完成、审批、版本和业务校验 |
 | Implementation Execution | Device Access & Collection | Customer/Supplier | 以任务级授权下发采集请求，接收结果引用；不接管原始执行 |
 | Implementation Execution | Cutover | Open Host Service | 提供割接上线门禁快照，不修改割接内部状态 |
 | Cutover | Device Access & Collection | Customer/Supplier | 复用统一采集任务与回调契约 |
@@ -28,6 +29,6 @@
 | Customer & Relationship | Project Delivery / Asset Management | Published Language | 提供客户关系和资产关系查询 |
 | Asset Management | Service Operations | Published Language | 提供设备服务状态和设备档案查询 |
 
-Context Map 只展示 bounded context 或外部系统，不把 `CollectionTask`、`DeliveryEvidence`、`CutoverTask` 或设备凭证当作 Context 节点。基础平台能力仅作为横向能力集合标注，不拥有业务交易事实；集成适配层不拥有外部系统或业务域事实。
+Context Map 只展示 bounded context 或外部系统，不把 `CollectionTask`、`DeliveryEvidence`、`CutoverTask` 或设备凭证当作 Context 节点。基础平台能力仅作为横向能力集合标注；共享动态表单只拥有模板修订和通用实例值，不拥有消费方业务完成、审批或领域版本事实。集成适配层不拥有外部系统或业务域事实。
 
 V1.8当前不包含`Work Order & Time` Context。历史工单、工时、附件、审批和审计证据通过经批准的迁移契约只读保留，不暴露当前流转能力；ACC-05持续服务跟踪仅作为V3候选，不能回流为当前Context。
