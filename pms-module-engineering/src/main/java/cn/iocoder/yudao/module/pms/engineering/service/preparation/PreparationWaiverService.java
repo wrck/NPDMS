@@ -18,6 +18,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -95,7 +98,7 @@ public class PreparationWaiverService {
         String scope = "PREPARATION_WAIVER_" + command.action();
         var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), scope, actor.actorId(), command.idempotencyKey()),
-                JsonUtils.toJsonString(command), WaiverResult.class,
+                digest(command), WaiverResult.class,
                 () -> executeOnce(command, actor, located.getProjectId(), decision, audit),
                 result -> successFacts(scope, actor, result, audit.get()));
         if (execution.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
@@ -331,6 +334,15 @@ public class PreparationWaiverService {
         }
     }
     private boolean blank(String value) { return value == null || value.isBlank(); }
+
+    private String digest(WaiverCommand command) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(JsonUtils.toJsonString(command).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException(failure);
+        }
+    }
 
     public record WaiverCommand(String action, Long preparationId, Long itemId, Long waiverId,
             Integer expectedPreparationVersion, Integer expectedInputVersion, Integer expectedReadinessVersion,

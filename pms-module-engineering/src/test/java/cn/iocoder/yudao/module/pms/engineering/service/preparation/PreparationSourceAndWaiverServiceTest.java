@@ -341,6 +341,9 @@ class PreparationSourceAndWaiverServiceTest {
         var result = service.execute(command, actor(7L));
 
         assertEquals("APPROVED", result.status());
+        ArgumentCaptor<String> digest = ArgumentCaptor.forClass(String.class);
+        verify(commandApi).execute(any(), digest.capture(), any(), any(), any());
+        assertTrue(digest.getValue().matches("[0-9a-f]{64}"));
         ArgumentCaptor<ProjectParticipantFactRevalidationQuery> participant =
                 ArgumentCaptor.forClass(ProjectParticipantFactRevalidationQuery.class);
         verify(participantApi).lockAndRevalidate(participant.capture());
