@@ -222,6 +222,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
         draft.setLifecycleStatus(ProjectRules.LIFECYCLE_STATUS_ACTIVE);
         draft.setCurrentStage(ProjectRules.STATUS_S0);
         draft.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
+        draft.setVersion(0);
         // e) 主档写入：根项目两段（code_root_id=root_id=id）；子项目单段（继承父）
         if (draft.getParentId() == null) {
             draft.setCodeRootId(0L);

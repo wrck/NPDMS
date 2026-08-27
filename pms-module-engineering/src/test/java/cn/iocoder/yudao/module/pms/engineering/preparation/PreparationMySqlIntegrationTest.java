@@ -7,6 +7,8 @@ import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.core.util.MyBatisUtils;
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.config.TenantProperties;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantDatabaseInterceptor;
@@ -17,13 +19,26 @@ import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApiImpl;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFormCatalogProvider;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationFilePolicyProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationInitializationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
+import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
+import cn.iocoder.yudao.module.pms.project.api.organization.ProjectOrganizationFactApi;
+import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApiImpl;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.TaskExecutionContractFactory;
@@ -74,6 +89,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -103,6 +120,7 @@ class PreparationMySqlIntegrationTest {
 
     @Resource ProjectManualCreationApplicationService projectCreationService;
     @Resource ProjectTemplateService projectTemplateService;
+    @Resource PreparationItemApplicationService itemService;
     @Resource JdbcTemplate jdbcTemplate;
 
     @DynamicPropertySource
@@ -126,10 +144,12 @@ class PreparationMySqlIntegrationTest {
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(0L);
+        login(9_900_001L);
     }
 
     @AfterEach
     void tearDown() {
+        SecurityContextHolder.clearContext();
         TenantContextHolder.clear();
     }
 
@@ -163,6 +183,60 @@ class PreparationMySqlIntegrationTest {
                 + "WHERE tenant_id=0 AND operation_code='PREPARATION_INITIALIZE' "
                 + "AND aggregate_type='Preparation' AND aggregate_key=? AND result_code='SUCCESS'",
                 Long.class, String.valueOf(preparationId)));
+    }
+
+    @Test
+    @Transactional
+    void initializedPreparationSupportsAssignmentFormAndRealFileFactFreeze() {
+        publishPreparationTemplate();
+        ManualProjectCreateCommand createCommand = command();
+        var manager = new ProjectManualCreationApplicationService.Actor(
+                0L, 9_900_001L, "PRE02-PROJECT-" + UUID.randomUUID());
+        var created = projectCreationService.create(createCommand, manager);
+        assertEquals(0, created.version());
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, created.id());
+        Map<String, Object> item = jdbcTemplate.queryForMap("SELECT i.id,i.version item_version,"
+                + "f.version form_version FROM sol_preparation_item i JOIN sol_dynamic_form_instance f "
+                + "ON f.tenant_id=i.tenant_id AND f.preparation_id=i.preparation_id AND f.item_id=i.id "
+                + "WHERE i.tenant_id=0 AND i.preparation_id=? ORDER BY i.sort_order,i.id LIMIT 1", preparationId);
+        Long itemId = ((Number) item.get("id")).longValue();
+        long assigneeId = 9_900_002L;
+
+        var assignCommand = new PatchPreparationItemCommand(preparationId, itemId,
+                ((Number) item.get("item_version")).intValue(), 0, 0, 0,
+                ((Number) item.get("form_version")).intValue(), created.version(),
+                java.util.Set.of("assignee"), null, null, assigneeId, null,
+                null, null, null, null);
+        var assigned = itemService.patch(assignCommand,
+                new PreparationItemApplicationService.Actor(0L, manager.actorId(), manager.correlationId()));
+
+        long artifactId = created.id() + 10;
+        insertFileFacts(itemId, artifactId, assigneeId);
+        login(assigneeId);
+        var filled = itemService.patch(new PatchPreparationItemCommand(preparationId, itemId,
+                assigned.getItemVersion(), assigned.getPreparationVersion(), assigned.getInputVersion(), 0,
+                assigned.getFormVersion(), created.version(),
+                java.util.Set.of("siteResultCode", "siteResultDetail", "formValueSnapshot", "evidenceReferences"),
+                null, null, null, null, "READY", "现场供电条件满足",
+                "{\"siteCondition\":\"供电稳定\"}", List.of(new PatchPreparationItemCommand.EvidenceReference(
+                artifactId, 1, "SITE", new FileFactVersion(1, 1, 1), 1L))),
+                new PreparationItemApplicationService.Actor(0L, assigneeId, "PRE02-FILL-" + created.id()));
+
+        assertEquals(assigneeId, jdbcTemplate.queryForObject("SELECT assignee_user_id "
+                + "FROM sol_preparation_item WHERE tenant_id=0 AND id=?", Long.class, itemId));
+        assertEquals("READY", jdbcTemplate.queryForObject("SELECT site_result_code "
+                + "FROM sol_preparation_item WHERE tenant_id=0 AND id=?", String.class, itemId));
+        assertEquals("供电稳定", jdbcTemplate.queryForObject("SELECT JSON_UNQUOTE(JSON_EXTRACT(value_snapshot,"
+                + "'$.siteCondition')) FROM sol_dynamic_form_instance WHERE tenant_id=0 AND item_id=?",
+                String.class, itemId));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT JSON_EXTRACT(evidence_reference_snapshot,"
+                + "'$[0].fileFactVersion.referenceVersion') FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND id=?", Integer.class, itemId));
+        assertEquals(2, filled.getItemVersion());
+        assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND operation_code='PREPARATION_ITEM_PATCH' "
+                + "AND aggregate_key=? AND result_code='SUCCESS'", Long.class, String.valueOf(itemId)));
     }
 
     private void publishPreparationTemplate() {
@@ -211,6 +285,28 @@ class PreparationMySqlIntegrationTest {
                 key, sha256(key));
     }
 
+    private void insertFileFacts(Long itemId, long artifactId, long actorId) {
+        jdbcTemplate.update("INSERT INTO plt_file_artifact "
+                        + "(id,name,category_code,owner_context,lifecycle_status_code,version,tenant_id) "
+                        + "VALUES (?,'site.pdf','SITE_SURVEY_EVIDENCE','SOL','ACTIVE',1,0)", artifactId);
+        jdbcTemplate.update("INSERT INTO plt_file_version "
+                        + "(id,artifact_id,version_no,infra_file_id,availability_version,sha256,size_bytes,"
+                        + "declared_media_type,detected_media_type,scan_status_code,availability_status_code,"
+                        + "created_by,created_at,tenant_id) VALUES (?,?,1,?,1,?,100,'application/pdf',"
+                        + "'application/pdf','PASSED','AVAILABLE',?,NOW(3),0)",
+                artifactId + 1, artifactId, artifactId + 2, "a".repeat(64), actorId);
+        jdbcTemplate.update("INSERT INTO plt_file_reference "
+                        + "(id,owner_context,object_type,object_id,purpose_code,reference_key,artifact_id,"
+                        + "file_version_no,sensitivity_code,status_code,scope_version,version,tenant_id) "
+                        + "VALUES (?,'SOL','SITE_SURVEY_ITEM',?,'SITE_SURVEY_EVIDENCE','SITE',?,1,"
+                        + "'INTERNAL','ACTIVE',1,1,0)", artifactId + 3, String.valueOf(itemId), artifactId);
+    }
+
+    private void login(long userId) {
+        SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(userId).setUserType(2),
+                new MockHttpServletRequest());
+    }
+
     private long count(String table, String column, long value) {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + table
                 + " WHERE tenant_id=0 AND " + column + "=?", Long.class, value);
@@ -235,6 +331,7 @@ class PreparationMySqlIntegrationTest {
     @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql",
             "cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command",
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.file",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox",
             "cn.iocoder.yudao.module.infra.dal.mysql.config"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
@@ -248,7 +345,9 @@ class PreparationMySqlIntegrationTest {
             ProjectTreeProjectionService.class, ProjectCodeAllocator.class,
             TaskExecutionContractFactory.class, ProjectDeliverableInitializationApplicationServiceImpl.class,
             ProjectWorkBindingFactApiImpl.class, PreparationInitializationApiImpl.class,
-            PreparationInitializationService.class, FixedSurveyFormCatalogProvider.class,
+            PreparationInitializationService.class, PreparationItemApplicationService.class,
+            PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
+            FileArtifactApiImpl.class, FixedSurveyFormCatalogProvider.class,
             ConfigApiImpl.class, ConfigServiceImpl.class,
             PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
     static class TestApplication {
@@ -306,9 +405,45 @@ class PreparationMySqlIntegrationTest {
 
         @Bean ProjectTreeMetrics projectTreeMetrics() { return mock(ProjectTreeMetrics.class); }
 
-        @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
+        @Bean ProjectParticipantFactApi participantFactApi() {
+            ProjectParticipantFactApi api = mock(ProjectParticipantFactApi.class);
+            when(api.lockAndRevalidate(any())).thenAnswer(invocation -> {
+                var query = (cn.iocoder.yudao.module.pms.project.api.participant.dto
+                        .ProjectParticipantFactRevalidationQuery) invocation.getArgument(0);
+                return new ProjectParticipantFact(query.projectId(), query.userId(),
+                        java.util.Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
+                        "ACTIVE", "S0", query.expectedProjectVersion(), query.expectedProjectVersion().longValue());
+            });
+            return api;
+        }
 
-        @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
+        @Bean ProjectScopeApi projectScopeApi() {
+            ProjectScopeApi api = mock(ProjectScopeApi.class);
+            when(api.resolveCurrent(any())).thenAnswer(invocation -> {
+                var query = (cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery)
+                        invocation.getArgument(0);
+                return new ProjectScopeResult(query.anchorProjectId(), 1L,
+                        java.util.Set.of(query.anchorProjectId()), java.util.Set.of());
+            });
+            when(api.lockAndRevalidate(any())).thenAnswer(invocation -> {
+                var query = (cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery)
+                        invocation.getArgument(0);
+                return new ProjectScopeResult(query.anchorProjectId(), query.expectedScopeVersion(),
+                        java.util.Set.of(query.anchorProjectId()), java.util.Set.of());
+            });
+            return api;
+        }
+
+        @Bean ProjectOrganizationFactApi organizationFactApi() {
+            ProjectOrganizationFactApi api = mock(ProjectOrganizationFactApi.class);
+            when(api.lockAndRevalidate(any())).thenAnswer(invocation -> {
+                var query = (cn.iocoder.yudao.module.pms.project.api.organization.dto
+                        .ProjectOrganizationFactRevalidationQuery) invocation.getArgument(0);
+                return new ProjectOrganizationFact(query.projectId(), query.expectedProjectVersion(),
+                        1L, 1L, "IT-DEPT");
+            });
+            return api;
+        }
 
         @Bean PermissionCommonApi permissionCommonApi() {
             PermissionCommonApi api = mock(PermissionCommonApi.class);
