@@ -23,6 +23,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationRe
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceProviderRegistry;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationWaiverService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
@@ -76,6 +77,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -96,11 +99,13 @@ class PreparationInitializationMySqlIntegrationTest {
     @Resource PreparationReviewService reviewService;
     @Resource PreparationReadinessService readinessService;
     @Resource PreparationSourceService sourceService;
+    @Resource PreparationWaiverService waiverService;
     @Resource TestPreparationSourceProvider sourceProvider;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource TransactionTemplate transactionTemplate;
     @Resource PermissionApi permissionApi;
     @Resource ProjectScopeApi projectScopeApi;
+    @Resource ProjectParticipantFactApi participantFactApi;
 
     private long projectId;
     private long taskId;
@@ -110,6 +115,7 @@ class PreparationInitializationMySqlIntegrationTest {
     private int sourceDefinitionVersion;
     private String bindingSnapshot;
     private String idempotencyKey;
+    private boolean approverRoleUnavailable;
 
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
@@ -130,6 +136,7 @@ class PreparationInitializationMySqlIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.reset(permissionApi, projectScopeApi, participantFactApi);
         TenantContextHolder.setTenantId(0L);
         SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(9L).setUserType(2),
                 new MockHttpServletRequest());
@@ -155,10 +162,23 @@ class PreparationInitializationMySqlIntegrationTest {
         bindingSnapshot = definition.get("binding_config").toString();
         when(permissionApi.hasAnyPermissions(org.mockito.ArgumentMatchers.eq(9L),
                 org.mockito.ArgumentMatchers.any(String[].class))).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(org.mockito.ArgumentMatchers.eq(8L),
+                org.mockito.ArgumentMatchers.any(String[].class))).thenReturn(true);
         var scope = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
                 projectId, 1L, Set.of(projectId), Set.of());
         when(projectScopeApi.resolveCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
         when(projectScopeApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenReturn(scope);
+        when(participantFactApi.lockAndRevalidate(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
+            var query = (cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery)
+                    invocation.getArgument(0);
+            if (approverRoleUnavailable && Long.valueOf(8L).equals(query.userId())) {
+                throw new IllegalStateException("APPROVER_ROLE_CHANGED");
+            }
+            return new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact(
+                    query.projectId(), query.userId(), query.requiredRoleCodes(), "PRIMARY", "ACTIVE", "S1",
+                    query.expectedProjectVersion(), 1L);
+        });
+        approverRoleUnavailable = false;
         sourceProvider.reset();
     }
 
@@ -543,6 +563,116 @@ class PreparationInitializationMySqlIntegrationTest {
                 Long.class, String.valueOf(((Number) laterFailure.get("id")).longValue())));
     }
 
+    @Test
+    void approvedWaiverExpiresReadySnapshotWithoutInspectWritesAndAppendsOneNotReadySnapshot() throws Exception {
+        WaiverPreparation prepared = prepareConfirmedOaWithoutSource();
+        var manager = prepared.manager();
+        var initial = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                prepared.preparationVersion(), 4, "WAIVER-INITIAL-" + projectId), manager);
+        assertEquals("NOT_READY", initial.readiness().readinessStatus());
+        assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), initial.readiness().blockerCodes());
+
+        LocalDateTime validUntil = LocalDateTime.now().plusSeconds(4);
+        var created = createWaiver(prepared, validUntil, "WAIVER-CREATE-" + projectId);
+        var submitted = waiverAction("SUBMIT", prepared, created.waiverId(), created.waiverVersion(), manager,
+                "WAIVER-SUBMIT-" + projectId);
+        var approver = new PreparationItemApplicationService.Actor(0L, 8L, "PRE02-WAIVER-APPROVE-" + projectId);
+        waiverAction("APPROVE", prepared, submitted.waiverId(), submitted.waiverVersion(), approver,
+                "WAIVER-APPROVE-" + projectId);
+
+        PreparationVersions approvedVersions = preparationVersions(prepared.preparationId());
+        var ready = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                approvedVersions.preparationVersion(), 4, "WAIVER-READY-" + projectId), manager);
+        assertEquals("READY", ready.readiness().readinessStatus(),
+                () -> "blockers=" + ready.readiness().blockerCodes());
+
+        long waitMillis = Math.max(0L, Duration.between(LocalDateTime.now(),
+                validUntil.plusNanos(200_000_000L)).toMillis());
+        Thread.sleep(waitMillis);
+        int readyPreparationVersion = currentPreparationVersion(prepared.preparationId());
+        long snapshotCount = readinessSnapshotCount(prepared.preparationId());
+        long auditCount = preparationAuditCount(prepared.preparationId());
+
+        var inspected = readinessService.inspect(new SiteSurveyReadinessQuery(projectId,
+                prepared.preparationId()), 0L, 9L);
+        assertEquals("NOT_READY", inspected.readinessStatus());
+        assertEquals(false, inspected.snapshotCurrent());
+        assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), inspected.blockerCodes());
+        assertEquals(readyPreparationVersion, currentPreparationVersion(prepared.preparationId()));
+        assertEquals(snapshotCount, readinessSnapshotCount(prepared.preparationId()));
+        assertEquals(auditCount, preparationAuditCount(prepared.preparationId()));
+
+        var expired = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                readyPreparationVersion, 4, "WAIVER-EXPIRED-" + projectId), manager);
+        assertEquals("NOT_READY", expired.readiness().readinessStatus());
+        assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
+        int expiredVersion = expired.readiness().preparationVersion();
+        int expiredReadinessVersion = expired.readiness().readinessVersion();
+
+        var replay = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                expiredVersion, 4, "WAIVER-EXPIRED-REPLAY-" + projectId), manager);
+        assertEquals("NOT_READY", replay.readiness().readinessStatus());
+        assertEquals(expiredReadinessVersion, replay.readiness().readinessVersion());
+        assertEquals(snapshotCount + 1, readinessSnapshotCount(prepared.preparationId()));
+    }
+
+    @Test
+    void pendingWaiverWithdrawalNeverMakesBlockerReady() {
+        WaiverPreparation prepared = prepareConfirmedOaWithoutSource();
+        var manager = prepared.manager();
+        var initial = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                prepared.preparationVersion(), 4, "WITHDRAW-INITIAL-" + projectId), manager);
+        assertEquals("NOT_READY", initial.readiness().readinessStatus());
+
+        var created = createWaiver(prepared, LocalDateTime.now().plusMinutes(5),
+                "WITHDRAW-CREATE-" + projectId);
+        var submitted = waiverAction("SUBMIT", prepared, created.waiverId(), created.waiverVersion(), manager,
+                "WITHDRAW-SUBMIT-" + projectId);
+        var withdrawn = waiverAction("WITHDRAW", prepared, submitted.waiverId(), submitted.waiverVersion(), manager,
+                "WITHDRAW-ACTION-" + projectId);
+        assertEquals("WITHDRAWN", withdrawn.status());
+
+        PreparationVersions versions = preparationVersions(prepared.preparationId());
+        var evaluated = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                versions.preparationVersion(), 4, "WITHDRAW-EVALUATE-" + projectId), manager);
+        assertEquals("NOT_READY", evaluated.readiness().readinessStatus());
+        assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), evaluated.readiness().blockerCodes());
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=? AND result_code='READY'",
+                Long.class, prepared.preparationId()));
+    }
+
+    @Test
+    void approverRoleChangeBeforeDecisionKeepsWaiverPendingAndBlockerNotReady() {
+        WaiverPreparation prepared = prepareConfirmedOaWithoutSource();
+        var manager = prepared.manager();
+        var initial = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                prepared.preparationVersion(), 4, "ROLE-INITIAL-" + projectId), manager);
+        assertEquals("NOT_READY", initial.readiness().readinessStatus());
+        var created = createWaiver(prepared, LocalDateTime.now().plusMinutes(5),
+                "ROLE-CREATE-" + projectId);
+        var submitted = waiverAction("SUBMIT", prepared, created.waiverId(), created.waiverVersion(), manager,
+                "ROLE-SUBMIT-" + projectId);
+        PreparationVersions beforeDecision = preparationVersions(prepared.preparationId());
+
+        approverRoleUnavailable = true;
+        var approver = new PreparationItemApplicationService.Actor(0L, 8L, "PRE02-ROLE-APPROVE-" + projectId);
+        assertThrows(IllegalStateException.class, () -> waiverAction("APPROVE", prepared,
+                submitted.waiverId(), submitted.waiverVersion(), approver, "ROLE-APPROVE-" + projectId));
+
+        assertEquals("PENDING_APPROVAL", jdbcTemplate.queryForObject("SELECT status_code "
+                + "FROM sol_preparation_item_waiver WHERE tenant_id=0 AND id=?",
+                String.class, submitted.waiverId()));
+        assertEquals(beforeDecision, preparationVersions(prepared.preparationId()));
+        assertEquals(0L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_item_waiver "
+                + "WHERE tenant_id=0 AND id=? AND status_code='APPROVED'", Long.class, submitted.waiverId()));
+
+        var evaluated = readinessService.evaluate(new PreparationReadinessCommand(prepared.preparationId(),
+                beforeDecision.preparationVersion(), 4, "ROLE-EVALUATE-" + projectId), manager);
+        assertEquals("NOT_READY", evaluated.readiness().readinessStatus());
+        assertEquals(List.of("SOURCE_PROVIDER_UNAVAILABLE"), evaluated.readiness().blockerCodes());
+    }
+
     private PreparedReadiness prepareConfirmedNoSource() {
         transactionTemplate.executeWithoutResult(status -> {
             insertProjectTaskAndContract();
@@ -616,6 +746,70 @@ class PreparationInitializationMySqlIntegrationTest {
                 new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-SOURCE-" + projectId));
     }
 
+    private WaiverPreparation prepareConfirmedOaWithoutSource() {
+        OaSourceDraft draft = prepareOaSourceDraft();
+        jdbcTemplate.update("UPDATE sol_preparation_item SET waiver_policy_snapshot="
+                + "'{\"allowed\":true,\"approvalRoleCode\":\"SERVICE_MANAGER_L1\"}' "
+                + "WHERE tenant_id=0 AND id=?", draft.itemId());
+        int preparationVersion = reviewService.execute(new PreparationReviewCommand(
+                PreparationReviewCommand.SUBMIT, draft.preparationId(), null, 0,
+                null, 4, null, "WAIVER-PREPARE-SUBMIT-" + projectId), draft.actor()).preparationVersion();
+        List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class,
+                draft.preparationId());
+        for (int index = 0; index < itemIds.size(); index++) {
+            preparationVersion = reviewService.execute(new PreparationReviewCommand(
+                    PreparationReviewCommand.CONFIRM, draft.preparationId(), itemIds.get(index), preparationVersion,
+                    0, 4, null, "WAIVER-PREPARE-CONFIRM-" + projectId + "-" + index),
+                    draft.actor()).preparationVersion();
+        }
+        return new WaiverPreparation(draft.preparationId(), draft.itemId(), preparationVersion, draft.actor());
+    }
+
+    private PreparationWaiverService.WaiverResult createWaiver(WaiverPreparation prepared,
+            LocalDateTime validUntil, String key) {
+        PreparationVersions versions = preparationVersions(prepared.preparationId());
+        return waiverService.execute(new PreparationWaiverService.WaiverCommand("CREATE",
+                prepared.preparationId(), prepared.itemId(), null, versions.preparationVersion(),
+                versions.inputVersion(), versions.readinessVersion(), currentItemVersion(prepared.itemId()),
+                null, 4, List.of("SOURCE_PROVIDER_UNAVAILABLE"), "OA来源暂不可用", "就绪依据暂缺",
+                "上线前补齐OA事实", LocalDateTime.now().minusMinutes(1), validUntil, null, key),
+                prepared.manager());
+    }
+
+    private PreparationWaiverService.WaiverResult waiverAction(String action, WaiverPreparation prepared,
+            Long waiverId, Integer waiverVersion, PreparationItemApplicationService.Actor actor, String key) {
+        PreparationVersions versions = preparationVersions(prepared.preparationId());
+        return waiverService.execute(new PreparationWaiverService.WaiverCommand(action,
+                prepared.preparationId(), prepared.itemId(), waiverId, versions.preparationVersion(),
+                versions.inputVersion(), versions.readinessVersion(), currentItemVersion(prepared.itemId()),
+                waiverVersion, 4, List.of(), null, null, null, null, null,
+                "APPROVE".equals(action) ? "同意" : null, key), actor);
+    }
+
+    private PreparationVersions preparationVersions(Long preparationId) {
+        Map<String, Object> row = jdbcTemplate.queryForMap("SELECT version,input_version,readiness_version "
+                + "FROM sol_preparation WHERE tenant_id=0 AND id=?", preparationId);
+        return new PreparationVersions(((Number) row.get("version")).intValue(),
+                ((Number) row.get("input_version")).intValue(),
+                ((Number) row.get("readiness_version")).intValue());
+    }
+
+    private int currentItemVersion(Long itemId) {
+        return jdbcTemplate.queryForObject("SELECT version FROM sol_preparation_item WHERE tenant_id=0 AND id=?",
+                Integer.class, itemId);
+    }
+
+    private long readinessSnapshotCount(Long preparationId) {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=?", Long.class, preparationId);
+    }
+
+    private long preparationAuditCount(Long preparationId) {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_key=?", Long.class, String.valueOf(preparationId));
+    }
+
     private PreparationSourceService.SourceRefreshCommand sourceCommand(OaSourceDraft draft,
             int preparationVersion, int inputVersion, Integer sourceVersion, String key) {
         return new PreparationSourceService.SourceRefreshCommand(draft.preparationId(), draft.itemId(),
@@ -687,6 +881,14 @@ class PreparationInitializationMySqlIntegrationTest {
                                  PreparationItemApplicationService.Actor actor) {
     }
 
+    private record WaiverPreparation(Long preparationId, Long itemId, Integer preparationVersion,
+                                     PreparationItemApplicationService.Actor manager) {
+    }
+
+    private record PreparationVersions(Integer preparationVersion, Integer inputVersion,
+                                       Integer readinessVersion) {
+    }
+
     private PreparationInitializationCommand command() {
         return new PreparationInitializationCommand(projectId, taskId, contractId,
                 4, 2, 1, PreparationInitializationApi.TRIGGER_PROJECT_CREATION,
@@ -733,6 +935,7 @@ class PreparationInitializationMySqlIntegrationTest {
             PreparationReviewService.class,
             PreparationReadinessService.class,
             PreparationSourceService.class,
+            PreparationWaiverService.class,
             PreparationFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
             FileArtifactApiImpl.class,
             FixedSurveyFormCatalogProvider.class, ConfigApiImpl.class, ConfigServiceImpl.class,
