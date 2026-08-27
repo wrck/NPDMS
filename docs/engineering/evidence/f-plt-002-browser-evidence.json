@@ -1,5 +1,5 @@
 {
-  "evidenceId": "FPLT002-IMPLEMENTATION-BROWSER-20260828-R2",
+  "evidenceId": "FPLT002-IMPLEMENTATION-BROWSER-20260828-R3",
   "featureId": "F-PLT-002",
   "gate": "Implementation Done candidate",
   "status": "VERIFIED_PENDING_INDEPENDENT_REVIEW",
@@ -22,7 +22,7 @@
     "runs": [
       {
         "scanMode": "PASSED",
-        "capturedAt": "2026-08-27T21:37:57.880Z",
+        "capturedAt": "2026-08-27T22:07:38.588Z",
         "rawResult": "docs/engineering/evidence/f-plt-002/browser-run-passed.json",
         "unexpectedConsoleErrors": 0,
         "unexpectedPageErrors": 0,
@@ -30,7 +30,7 @@
       },
       {
         "scanMode": "SKIPPED",
-        "capturedAt": "2026-08-27T21:42:29.560Z",
+        "capturedAt": "2026-08-27T22:03:44.590Z",
         "rawResult": "docs/engineering/evidence/f-plt-002/browser-run-skipped.json",
         "unexpectedConsoleErrors": 0,
         "unexpectedPageErrors": 0,
@@ -39,7 +39,7 @@
     ],
     "formCreateCapabilities": {
       "roundTrip": "完整规则保存后重新读取、关闭重开、预览、发布、实例选择预览及冻结实例运行均成功",
-      "controls": ["input", "switch", "inputNumber", "select", "Editor", "UploadFile", "ApiSelect", "IframeComponent", "PmsFileArtifact"],
+      "controls": ["input", "switch", "inputNumber", "select", "Editor", "row", "UploadFile", "ApiSelect", "IframeComponent", "PmsFileArtifact"],
       "behavior": [
         "必填校验失败时实例版本保持0且无PATCH",
         "联动选择SHOW后linkedField真实显示",
@@ -48,7 +48,9 @@
         "POST ApiSelect真实调用目标接口并收到业务code=400",
         "跨源ApiSelect被浏览器CORS拒绝",
         "iframe被目标CSP frame-ancestors none拒绝",
-        "false、0、null和空数组刷新后保持"
+        "false、0、null和空数组刷新后保持",
+        "富文本内容与普通选择SHOW经保存、刷新、重开、权威事实和实际渲染保持一致",
+        "row(gutter=24)布局容器、layoutContact子字段及其值经草稿重开、实例刷新与重开保持一致"
       ],
       "targetFailureSideEffect": "目标POST、CORS及iframe失败只形成预期浏览器/目标诊断；PLT模板、修订和实例成功事实仅来自明确PLT命令"
     },
@@ -136,9 +138,9 @@
     "AC-FPLT002-002": "PASS - 草稿保存重开、发布不可变、第二修订和当前DRAFT/PUBLISHED摘要闭合；分页无逐行修订回读",
     "AC-FPLT002-003": "PASS - 完整FormCreate控件、iframe、GET/POST API、联动、校验、事件、函数及parseFunc真实运行",
     "AC-FPLT002-004": "PASS - 管理员公开UI完成创建、设计、预览、发布、停用、下一草稿、再发布及重新启用",
-    "AC-FPLT002-005": "PASS - 人工选择只投影当前启用发布修订，停用与重新启用均验证",
+    "AC-FPLT002-005": "PASS - 人工选择只投影当前启用发布修订；文本、富文本、选择、false、0、null、空数组及row布局经保存、刷新和重开保持一致；停用与重新启用均验证",
     "AC-FPLT002-006": "PASS - 旧实例在第二修订发布后保持初始冻结修订和原字段集合",
-    "AC-FPLT002-007": "PASS - 普通值部分PATCH保留false、0、null、空数组及普通UploadFile值",
+    "AC-FPLT002-007": "PASS - 普通值部分PATCH保留富文本、选择、布局子字段、false、0、null、空数组及普通UploadFile值",
     "AC-FPLT002-008": "PASS - MinIO受控文件上传、换版、解绑、重绑、刷新及SKIPPED/PASSED历史投影闭合",
     "AC-FPLT002-009": "PASS - 获权只读、非创建者、完全无权及第二租户均由UI投影和服务端拒绝闭合，零成功副作用",
     "AC-FPLT002-010": "PASS - 响应未知、幂等/CAS/审计由浏览器恢复与真实MySQL自动化共同覆盖",

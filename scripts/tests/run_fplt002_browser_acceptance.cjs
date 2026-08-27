@@ -303,6 +303,11 @@ const instancePath = '/pms/engineering/document/dynamic-form-instance'
       { type: 'input', field: 'linkedField', title: '联动字段' },
       { type: 'Editor', field: 'richDescription', title: '富文本说明' },
       {
+        type: 'row',
+        props: { gutter: 24 },
+        children: [{ type: 'input', field: 'layoutContact', title: '布局子字段' }]
+      },
+      {
         type: 'UploadFile',
         field: 'ordinaryFiles',
         title: '普通上传',
@@ -434,6 +439,15 @@ const instancePath = '/pms/engineering/document/dynamic-form-instance'
       reopenedDraft.body.data.formRulesJson.some((rule) => Array.isArray(rule.control)),
       '草稿重开丢失联动配置'
     )
+    assert(
+      reopenedDraft.body.data.formRulesJson.some(
+        (rule) =>
+          rule.type === 'row' &&
+          rule.props?.gutter === 24 &&
+          rule.children?.some((child) => child.field === 'layoutContact')
+      ),
+      '草稿重开丢失布局容器或子字段'
+    )
     await drawer.locator('.el-drawer__close-btn').click()
     await drawer.waitFor({ state: 'hidden' })
     await page.reload({ waitUntil: 'networkidle' })
@@ -499,6 +513,13 @@ const instancePath = '/pms/engineering/document/dynamic-form-instance'
     await linkageItem.locator('.el-select').click()
     await page.locator('.el-select-dropdown:visible').getByText('显示', { exact: true }).click()
     await instanceDrawer.locator('.el-form-item').filter({ hasText: '联动字段' }).waitFor()
+    const richDescriptionItem = instanceDrawer.locator('.el-form-item').filter({ hasText: '富文本说明' })
+    const richEditor = richDescriptionItem.locator('[contenteditable="true"]').last()
+    await richEditor.fill('F-PLT-002 富文本浏览器验收')
+    await richEditor.blur()
+    const layoutItem = instanceDrawer.locator('.el-form-item').filter({ hasText: '布局子字段' })
+    await layoutItem.locator('input').fill('布局值已冻结')
+    await layoutItem.locator('input').blur()
     const cutoverItem = instanceDrawer.locator('.el-form-item').filter({ hasText: '是否需要割接' })
     await cutoverItem.locator('.el-switch').click()
     await cutoverItem.locator('.el-switch').click()
@@ -558,6 +579,27 @@ const instancePath = '/pms/engineering/document/dynamic-form-instance'
     assert(falseyPatch.status === 200 && falseyPatch.body?.code === 0, 'null/空数组公开PATCH失败')
     await instanceDrawer.getByRole('button', { name: '刷新权威事实', exact: true }).click()
     await instanceDrawer.locator('.el-loading-mask').waitFor({ state: 'hidden' })
+    await instanceDrawer.getByText('F-PLT-002 富文本浏览器验收', { exact: true }).waitFor()
+    assert(
+      (await instanceDrawer.locator('.el-form-item').filter({ hasText: '联动开关' }).locator('.el-select').innerText())
+        .includes('显示'),
+      '刷新后普通选择值未恢复'
+    )
+    assert(
+      (await instanceDrawer.locator('.el-form-item').filter({ hasText: '布局子字段' }).locator('input').inputValue()) ===
+        '布局值已冻结',
+      '刷新后布局子字段值未恢复'
+    )
+    const refreshedLayoutRow = layoutItem.locator('xpath=ancestor::*[contains(@class,"el-row")][1]')
+    await refreshedLayoutRow.waitFor()
+    const refreshedLayoutMargins = await refreshedLayoutRow.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return { left: style.marginLeft, right: style.marginRight }
+    })
+    assert(
+      refreshedLayoutMargins.left === '-12px' && refreshedLayoutMargins.right === '-12px',
+      `刷新后布局gutter未恢复：${JSON.stringify(refreshedLayoutMargins)}`
+    )
 
     const uploader = instanceDrawer.locator('.pms-file-uploader').last()
     await uploader.locator('input[type="file"]').setInputFiles({
@@ -648,6 +690,12 @@ const instancePath = '/pms/engineering/document/dynamic-form-instance'
     assert(instanceFact.body?.data?.values?.projectName === 'F-PLT-002 浏览器项目', '普通字段未冻结保存')
     assert(instanceFact.body?.data?.values?.requiresCutover === false, '布尔 false 未作为有效值保存')
     assert(instanceFact.body?.data?.values?.machineCount === 0, '数字 0 未作为有效值保存')
+    assert(instanceFact.body?.data?.values?.linkDriver === 'SHOW', '普通选择值未保存')
+    assert(
+      String(instanceFact.body?.data?.values?.richDescription || '').includes('F-PLT-002 富文本浏览器验收'),
+      '富文本值未保存'
+    )
+    assert(instanceFact.body?.data?.values?.layoutContact === '布局值已冻结', '布局子字段值未保存')
     assert(instanceFact.body?.data?.values?.nullableNote === null, 'null 未作为有效值保存')
     assert(Array.isArray(instanceFact.body?.data?.values?.emptyTags) && instanceFact.body.data.values.emptyTags.length === 0,
       '空数组未作为有效值保存')
@@ -669,6 +717,17 @@ const instancePath = '/pms/engineering/document/dynamic-form-instance'
     await page.waitForFunction(
       (value) => [...document.querySelectorAll('input')].some((input) => input.value === value),
       'F-PLT-002 浏览器项目'
+    )
+    await frozenDrawer.getByText('F-PLT-002 富文本浏览器验收', { exact: true }).waitFor()
+    assert(
+      (await frozenDrawer.locator('.el-form-item').filter({ hasText: '布局子字段' }).locator('input').inputValue()) ===
+        '布局值已冻结',
+      '实例重开后布局子字段值未恢复'
+    )
+    assert(
+      (await frozenDrawer.locator('.el-form-item').filter({ hasText: '联动开关' }).locator('.el-select').innerText())
+        .includes('显示'),
+      '实例重开后普通选择值未恢复'
     )
     await frozenDrawer.getByText('fplt002-browser-rebound.txt', { exact: true }).waitFor()
     await page.waitForTimeout(1200)
@@ -1089,9 +1148,18 @@ const instancePath = '/pms/engineering/document/dynamic-form-instance'
           projectName: 'F-PLT-002 浏览器项目',
           requiresCutover: false,
           machineCount: 0,
+          linkDriver: 'SHOW',
+          richDescriptionContains: 'F-PLT-002 富文本浏览器验收',
+          layoutContact: '布局值已冻结',
           nullableNote: null,
           emptyTags: [],
           ordinaryUpload: 'fplt002-ordinary-upload.txt'
+        },
+        layoutRoundTrip: {
+          type: 'row',
+          gutter: 24,
+          childField: 'layoutContact',
+          refreshedAndReopened: true
         },
         controlledFileCount: fileFacts.length,
         controlledFileLifecycle: ['UPLOAD_V1', 'ADD_VERSION_V2', 'DETACH', 'REBIND'],
