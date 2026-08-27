@@ -202,7 +202,7 @@
   "transactions": {
     "initialize": "LOCK_AND_REVALIDATE_PROJECT_MANAGER_AND_WORK_BINDING; VALIDATE_CORE_AND_EXTENSION_CONFIGURATION; INSERT_DRAFT_AND_SECTIONS; IDEMPOTENCY_SUCCESS; AUDIT",
     "patchSection": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_DRAFT_AND_SECTION; VALIDATE_IF_MATCH_AND_PRESENT_FIELDS; INSPECT_EXACT_FILE_REFERENCES; CAS_SECTION_ROOT_AND_INCREMENT_CONTENT_VERSION; AUDIT",
-    "createDraft": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_EFFECTIVE_DRAFT_MARKER_SECTIONS_AND_SOURCE_FILE_FACTS; VALIDATE_IF_MATCH_AND_NO_EXISTING_DRAFT; INSERT_NEW_ROOT_AND_SECTIONS; PLT_ATTACH_EXISTING_VERSIONS_TO_NEW_SECTION_KEYS; INSERT_DRAFT_MARKER; IDEMPOTENCY_SUCCESS; AUDIT; ALL_IN_ONE_TRANSACTION",
+    "createDraft": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_EFFECTIVE_DRAFT_MARKER_AND_SECTIONS; VALIDATE_IF_MATCH_AND_NO_EXISTING_DRAFT; INSERT_NEW_ROOT_AND_SECTIONS; LOCK_ALL_SOURCE_READ_AND_TARGET_REFERENCE_PROVIDERS_IN_STABLE_KEY_ORDER; LOCK_ALL_PLT_ARTIFACT_VERSION_REFERENCE_FACTS_IN_STABLE_ORDER_AND_ATTACH_TARGETS; INSERT_DRAFT_MARKER; IDEMPOTENCY_SUCCESS; AUDIT; ALL_IN_ONE_TRANSACTION",
     "complete": "LOCK_PROJECT_AND_CURRENT_MANAGER; LOCK_EXPECTED_DRAFT_CURRENT_EFFECTIVE_AND_ALL_SECTIONS; VALIDATE_REQUIRED_AND_FROZEN_SCHEMA; LOCK_AND_REVALIDATE_ALL_EXACT_FILE_FACTS; CLEAR_OLD_EFFECTIVE_MARKER; CAS_DRAFT_TO_COMPLETED_AND_SWITCH_MARKERS; IDEMPOTENCY_SUCCESS; AUDIT",
     "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_WRITE_REJECTED_PLATFORM_AUDIT_WITH_NO_SUCCESS_SIDE_EFFECT"
   },
@@ -286,7 +286,12 @@
       "requiredAction=REFERENCE"
     ],
     "trustedContext": ["tenantId", "actorUserId"],
-    "lockAndWritePolicy": "lock and revalidate every source exact fact; lock target provider and artifact/version; require a distinct target full key; insert an independent ACTIVE FileReference pointing to the same artifactId/versionNo",
+    "lockAndWritePolicy": {
+      "phase1BusinessProviders": "sort every source READ and target REFERENCE request by ownerContext,objectType,objectId,purposeCode,referenceKey,action and lockAndRevalidate all providers before any PLT lock",
+      "phase2PlatformLocks": "sort all artifacts by artifactId, versions by artifactId/versionNo and references by full stable key; acquire every PLT lock in Artifact -> Version -> Reference order; never call a business provider after the first PLT lock",
+      "targetSlot": "after its exact reference lock: insert an independent ACTIVE FileReference when absent, replay when the same target key already points to the same artifact/version, conflict when it points elsewhere",
+      "sourceFact": "after locks compare every expected artifact/reference/availability/scope version and fail closed on change"
+    },
     "replayPolicy": "same target full key already pointing to the same artifact/version returns its current fact; a target key pointing to a different version conflicts",
     "atomicity": "joins the caller transaction; all target references and the SOL draft/sections commit or roll back together",
     "events": ["FileReferenceAttached"],

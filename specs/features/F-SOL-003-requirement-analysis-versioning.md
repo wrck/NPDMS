@@ -98,7 +98,7 @@
 ### BR-FSOL003-008 幂等、并发、审计与失败语义
 
 - 初始化、从有效版创建草稿和完成命令使用`Idempotency-Key`；已完成同键同规范化载荷重放原结果，同键异载荷冲突。既有PLATFORM返回`Decision.IN_PROGRESS`且无响应载荷，因此进行中重复映射为稳定`PMS-PLATFORM-COMMAND-IN-PROGRESS`业务错误并且无成功副作用，不伪造operation响应。PATCH使用`If-Match`且不以新随机键掩盖版本冲突。
-- 稳定锁序为`PROJ项目/参与事实 -> SOL项目+PRE-04根行/草稿/有效版/章节 -> PLT精确文件事实`。创建新草稿先重验全部来源文件事实，再插入同事务的新根行/章节并执行目标`REFERENCE`，任一步失败整体回滚；完成命令在业务CAS前完成全部文件重验。
+- 稳定锁序为`PROJ项目/参与事实 -> SOL项目+PRE-04根行/草稿/有效版/章节及全部文件业务Provider -> PLT精确文件事实`。创建新草稿在同一事务插入新根行/章节后，先按稳定键锁定重验全部来源READ与目标REFERENCE Provider，再进入PLT锁阶段并建立目标引用；任一步失败连同新行整体回滚。完成命令在业务CAS前完成全部文件重验。
 - 成功审计记录项目、草稿/有效版、业务版本、章节变化摘要、附件精确引用摘要、动作、前后状态/版本、operationId、主体和时间。正文只记录受控摘要，不把敏感富文本或附件内容复制进审计。
 - 权限、状态、校验、文件或版本失败不得产生完成事实、有效标记切换或成功幂等结果；事务回滚后使用平台公共审计记录稳定拒绝码和必要安全事实。
 
@@ -128,7 +128,7 @@
 ### 4.2 PLT既有版本附加命令边界
 
 - F-SOL-003在既有`pms-module-platform-api`的`FileArtifactApi`增加窄公共命令`attachExistingVersions(AttachExistingFileVersionsCommand)`，只用于把已存在且可用的不可变FileVersion附加到新的业务对象槽位，不创建Artifact/FileVersion、不读取正文、不重新上传。
-- 每个命令项输入来源完整稳定键、`artifactId/versionNo/expectedFileFactVersion/expectedScopeVersion`，以及目标`SOL/REQUIREMENT_ANALYSIS_SECTION/{newSectionId}/SECTION_ATTACHMENT/{newSlotKey}`和目标`expectedScopeVersion`；tenant/actor来自受信上下文。PLT先按来源`READ`锁定重验，再按目标`REFERENCE`锁定业务Provider、锁定Artifact/FileVersion并确认目标完整键不存在，随后插入独立ACTIVE FileReference并返回目标`fileFactVersion/scopeVersion`。同一目标已指向同一版本可重放，指向不同版本则冲突。
+- 每个命令项输入来源完整稳定键、`artifactId/versionNo/expectedFileFactVersion/expectedScopeVersion`，以及目标`SOL/REQUIREMENT_ANALYSIS_SECTION/{newSectionId}/SECTION_ATTACHMENT/{newSlotKey}`和目标`expectedScopeVersion`；tenant/actor来自受信上下文。批量命令严格分两阶段：第一阶段把全部来源`READ`和目标`REFERENCE`业务Provider请求按`ownerContext/objectType/objectId/purposeCode/referenceKey/action`排序并逐一锁定重验；第二阶段才把全部PLT锁按Artifact ID、`artifactId/versionNo`、完整Reference稳定键分别排序，依次取得Artifact→Version→Reference锁并比较来源事实。目标槽位锁后按“不存在则插入、已指向同一artifact/version则重放、指向不同版本则冲突”处理，返回目标`fileFactVersion/scopeVersion`；取得任何PLT锁后不得回调业务Provider。
 - 批量命令加入调用方事务，全部目标引用与SOL新草稿/章节原子成功或回滚；每个新引用保留既有`FileReferenceAttached`审计/Outbox事实。来源与目标完整稳定键必须不同，来源完成版Provider为只读且目标草稿Provider可写；后续目标换版/解绑只改变新引用，不得更新或分离来源完成版引用。
 
 ### 4.3 WorkBinding与领域边界
@@ -168,7 +168,7 @@
 - `AC-FSOL003-010`：F-SOL-003不创建SCH引用、预填、差异状态、方案版本或事件；SCH-01未实施不影响PRE-04完成版本成立。
 - `AC-FSOL003-011`：全新MySQL从V1迁移至实施版本，验证条件约束、复合外键、草稿/有效唯一键、历史不可变、CAS、回滚、权限及至少含无扩展/多类型扩展/停用字典拒绝的种子组合。
 - `AC-FSOL003-012`：真实浏览器覆盖初次填写完成、从有效版创建草稿并完成切换、历史对比、无权只读/拒绝、附件失败恢复及320/768/1024/1440响应式状态持久化；console/page error为零。
-- `AC-FSOL003-013`：完成版含多个附件时创建下一草稿，PLT为每个新章节建立新完整稳定键的独立FileReference并复用同一不可变FileVersion；旧完成版引用不可换版/解绑，新草稿引用可独立换版/解绑。来源变化、目标拒绝或批量中任一失败时草稿、章节、新引用、成功审计/事件全部为零；同目标同版本重放不重复创建。
+- `AC-FSOL003-013`：完成版含多个附件时创建下一草稿，PLT为每个新章节建立新完整稳定键的独立FileReference并复用同一不可变FileVersion；旧完成版引用不可换版/解绑，新草稿引用可独立换版/解绑。并发验收断言全部来源READ/目标REFERENCE Provider先按稳定键锁定，随后全部PLT锁按稳定顺序执行Artifact→Version→Reference，且取得PLT锁后无Provider回调；来源变化、目标拒绝、反序尝试或批量中任一失败时草稿、章节、新引用、成功审计/事件全部为零，同目标同版本重放不重复创建、不同版本冲突。
 
 ## 8. Feature Ready检查
 
