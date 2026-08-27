@@ -1,0 +1,47 @@
+package cn.iocoder.yudao.module.pms.asset.dal.mysql.device;
+
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface DeviceMapper extends BaseMapperX<DeviceDO> {
+
+    default DeviceDO selectByTenantAndSn(Long tenantId, String sn) {
+        return selectOne(new LambdaQueryWrapperX<DeviceDO>()
+                .eq(DeviceDO::getTenantId, tenantId)
+                .eq(DeviceDO::getSn, sn));
+    }
+
+    default DeviceDO selectByTenantAndId(Long tenantId, Long id) {
+        return selectOne(new LambdaQueryWrapperX<DeviceDO>()
+                .eq(DeviceDO::getTenantId, tenantId)
+                .eq(DeviceDO::getId, id));
+    }
+
+    default PageResult<DeviceListProjection> selectVisibleDevicePage(VisibleDevicePageQuery query) {
+        PageResult<DeviceListProjection> empty = emptyWhenInvisible(query);
+        if (empty != null) {
+            return empty;
+        }
+        return new PageResult<>(selectVisibleDeviceList(query), selectVisibleDeviceCount(query));
+    }
+
+    static PageResult<DeviceListProjection> emptyWhenInvisible(VisibleDevicePageQuery query) {
+        if (query.visibleDeviceIds() != null && query.visibleDeviceIds().isEmpty()) {
+            return PageResult.empty();
+        }
+        return null;
+    }
+
+    List<DeviceListProjection> selectVisibleDeviceList(@Param("query") VisibleDevicePageQuery query);
+
+    long selectVisibleDeviceCount(@Param("query") VisibleDevicePageQuery query);
+}

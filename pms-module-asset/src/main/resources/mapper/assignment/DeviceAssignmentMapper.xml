@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper">
+
+    <select id="selectDeviceForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT id,
+               sn,
+               project_id,
+               project_assignment_version,
+               customer_id,
+               customer_assignment_version,
+               tenant_id
+        FROM ast_device
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.deviceId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectCurrentProject"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceProjectRelationshipDO">
+        SELECT id,
+               device_sn,
+               project_id,
+               relationship_type,
+               effective_from,
+               effective_to,
+               assignment_version,
+               reason,
+               operation_id,
+               source_system,
+               source_key,
+               source_version,
+               version,
+               tenant_id
+        FROM ast_device_project_relationship
+        WHERE tenant_id = #{query.tenantId}
+          AND device_sn = (
+              SELECT sn
+              FROM ast_device
+              WHERE tenant_id = #{query.tenantId}
+                AND id = #{query.deviceId}
+                AND deleted = b'0'
+          )
+          AND relationship_type = 'DIRECT'
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        LIMIT 1
+    </select>
+
+    <update id="closeCurrentProject">
+        UPDATE ast_device_project_relationship r
+        JOIN ast_device d
+          ON d.tenant_id = r.tenant_id
+         AND d.sn = r.device_sn
+        SET r.effective_to = #{effectiveTo},
+            r.assignment_version = #{assignmentVersion}
+        WHERE r.tenant_id = #{tenantId}
+          AND d.id = #{deviceId}
+          AND r.relationship_type = 'DIRECT'
+          AND r.effective_to IS NULL
+          AND r.deleted = b'0'
+    </update>
+
+    <insert id="insertProjectRelationship"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO ast_device_project_relationship (
+            device_sn,
+            project_id,
+            relationship_type,
+            effective_from,
+            effective_to,
+            assignment_version,
+            reason,
+            operation_id,
+            source_system,
+            source_key,
+            source_version,
+            version,
+            tenant_id
+        ) VALUES (
+            #{deviceSn},
+            #{projectId},
+            #{relationshipType},
+            #{effectiveFrom},
+            #{effectiveTo},
+            #{assignmentVersion},
+            #{reason},
+            #{operationId},
+            #{sourceSystem},
+            #{sourceKey},
+            #{sourceVersion},
+            #{version},
+            #{tenantId}
+        )
+    </insert>
+
+    <update id="updateDeviceProjectIfMatch">
+        UPDATE ast_device
+        SET project_id = #{update.projectId},
+            project_assignment_version = #{update.newAssignmentVersion}
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.deviceId}
+          AND project_assignment_version = #{update.expectedAssignmentVersion}
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectCurrentCustomer"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceCustomerRelationshipDO">
+        SELECT id,
+               device_sn,
+               customer_id,
+               relationship_type,
+               effective_from,
+               effective_to,
+               assignment_version,
+               reason,
+               operation_id,
+               source_system,
+               source_key,
+               source_version,
+               version,
+               tenant_id
+        FROM ast_device_customer_relationship
+        WHERE tenant_id = #{query.tenantId}
+          AND device_sn = (
+              SELECT sn
+              FROM ast_device
+              WHERE tenant_id = #{query.tenantId}
+                AND id = #{query.deviceId}
+                AND deleted = b'0'
+          )
+          AND relationship_type = 'DIRECT'
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        LIMIT 1
+    </select>
+
+    <update id="closeCurrentCustomer">
+        UPDATE ast_device_customer_relationship r
+        JOIN ast_device d
+          ON d.tenant_id = r.tenant_id
+         AND d.sn = r.device_sn
+        SET r.effective_to = #{effectiveTo},
+            r.assignment_version = #{assignmentVersion}
+        WHERE r.tenant_id = #{tenantId}
+          AND d.id = #{deviceId}
+          AND r.relationship_type = 'DIRECT'
+          AND r.effective_to IS NULL
+          AND r.deleted = b'0'
+    </update>
+
+    <insert id="insertCustomerRelationship"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO ast_device_customer_relationship (
+            device_sn,
+            customer_id,
+            relationship_type,
+            effective_from,
+            effective_to,
+            assignment_version,
+            reason,
+            operation_id,
+            source_system,
+            source_key,
+            source_version,
+            version,
+            tenant_id
+        ) VALUES (
+            #{deviceSn},
+            #{customerId},
+            #{relationshipType},
+            #{effectiveFrom},
+            #{effectiveTo},
+            #{assignmentVersion},
+            #{reason},
+            #{operationId},
+            #{sourceSystem},
+            #{sourceKey},
+            #{sourceVersion},
+            #{version},
+            #{tenantId}
+        )
+    </insert>
+
+    <update id="updateDeviceCustomerIfMatch">
+        UPDATE ast_device
+        SET customer_id = #{update.customerId},
+            customer_assignment_version = #{update.newAssignmentVersion}
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.deviceId}
+          AND customer_assignment_version = #{update.expectedAssignmentVersion}
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectProjectionDeviceForUpdate" resultType="long">
+        SELECT id
+        FROM ast_device
+        WHERE tenant_id = #{tenantId}
+          AND sn = #{deviceSn}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="existsAncestorProjectionOperation" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM ast_device_ancestor_projection_operation
+            WHERE tenant_id = #{tenantId}
+              AND event_id = #{eventId}
+              AND deleted = b'0'
+        )
+    </select>
+
+    <select id="selectLatestAncestorProjectionOperation"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceAncestorProjectionOperationDO">
+        SELECT id,
+               event_id,
+               operation_id,
+               device_sn,
+               project_id,
+               tree_version,
+               assignment_version,
+               tenant_id
+        FROM ast_device_ancestor_projection_operation
+        WHERE tenant_id = #{query.tenantId}
+          AND device_sn = #{query.deviceSn}
+          AND deleted = b'0'
+        ORDER BY assignment_version DESC,
+                 tree_version DESC,
+                 id DESC
+        LIMIT 1
+    </select>
+
+    <delete id="deleteDeviceAncestors">
+        DELETE FROM ast_device_project_ancestor
+        WHERE tenant_id = #{tenantId}
+          AND device_sn = #{deviceSn}
+    </delete>
+
+    <insert id="insertProjectAncestor">
+        INSERT INTO ast_device_project_ancestor (
+            device_sn,
+            project_id,
+            ancestor_project_id,
+            tree_version,
+            assignment_version,
+            tenant_id
+        ) VALUES (
+            #{deviceSn},
+            #{projectId},
+            #{ancestorProjectId},
+            #{treeVersion},
+            #{assignmentVersion},
+            #{tenantId}
+        )
+    </insert>
+
+    <insert id="insertAncestorProjectionOperation"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO ast_device_ancestor_projection_operation (
+            event_id,
+            operation_id,
+            device_sn,
+            project_id,
+            tree_version,
+            assignment_version,
+            tenant_id
+        ) VALUES (
+            #{eventId},
+            #{operationId},
+            #{deviceSn},
+            #{projectId},
+            #{treeVersion},
+            #{assignmentVersion},
+            #{tenantId}
+        )
+    </insert>
+
+    <insert id="insertReconciliation"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO ast_device_assignment_reconciliation (
+            device_sn,
+            project_id,
+            project_customer_id,
+            device_customer_id,
+            status,
+            reason,
+            version,
+            tenant_id
+        ) VALUES (
+            #{deviceSn},
+            #{projectId},
+            #{projectCustomerId},
+            #{deviceCustomerId},
+            #{status},
+            #{reason},
+            #{version},
+            #{tenantId}
+        )
+    </insert>
+
+</mapper>

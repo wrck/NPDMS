@@ -54,7 +54,8 @@ class PlatformOutboxDeliveryApiImplTest {
         row.setOccurredAt(dueAt.minusMinutes(1));
         when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of(row));
 
-        var result = service.claimDue(new PlatformOutboxClaimQuery(dueAt, 20));
+        var result = service.claimDue(new PlatformOutboxClaimQuery(
+                "ProjectServiceManagerAssigned", dueAt, 20));
 
         assertEquals(1, result.size());
         assertEquals("evt-1", result.getFirst().eventId());
@@ -64,6 +65,16 @@ class PlatformOutboxDeliveryApiImplTest {
         assertEquals(7L, captor.getValue().tenantId());
         assertEquals("ProjectServiceManagerAssigned", captor.getValue().eventType());
         assertEquals(20, captor.getValue().limit());
+    }
+
+    @Test
+    void claimDueSupportsDeviceAssignedEventType() {
+        LocalDateTime dueAt = LocalDateTime.of(2026, 8, 27, 12, 0);
+        when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+
+        service.claimDue(new PlatformOutboxClaimQuery("DeviceAssigned", dueAt, 10));
+
+        verify(mapper).selectDueForUpdate(new DueOutboxListQuery(7L, "DeviceAssigned", dueAt, 10));
     }
 
     @Test
@@ -81,7 +92,7 @@ class PlatformOutboxDeliveryApiImplTest {
     void rejectsUnboundedClaimAndInvalidCas() {
         LocalDateTime now = LocalDateTime.of(2026, 8, 25, 9, 0);
         assertThrows(IllegalArgumentException.class,
-                () -> service.claimDue(new PlatformOutboxClaimQuery(now, 101)));
+                () -> service.claimDue(new PlatformOutboxClaimQuery("DeviceAssigned", now, 101)));
         assertThrows(IllegalArgumentException.class, () -> service.markDelivered("", 0));
         assertThrows(IllegalArgumentException.class,
                 () -> service.scheduleRetry("evt-1", -1, now));

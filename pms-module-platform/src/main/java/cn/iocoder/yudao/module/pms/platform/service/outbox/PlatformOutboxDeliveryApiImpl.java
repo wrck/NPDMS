@@ -15,11 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** 服务经理指派事件的Outbox投递状态管理。 */
+/** Outbox投递状态管理。 */
 @Service
 public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi {
 
-    static final String SUPPORTED_EVENT_TYPE = "ProjectServiceManagerAssigned";
     static final int MAX_BATCH_SIZE = 100;
 
     @Resource
@@ -28,13 +27,14 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
     @Override
     @Transactional
     public List<PlatformOutboxMessageDTO> claimDue(PlatformOutboxClaimQuery query) {
-        if (query == null || query.dueAt() == null || query.limit() <= 0 || query.limit() > MAX_BATCH_SIZE) {
+        if (query == null || query.eventType() == null || query.eventType().isBlank()
+                || query.dueAt() == null || query.limit() <= 0 || query.limit() > MAX_BATCH_SIZE) {
             throw new IllegalArgumentException("Outbox领取条件不完整或批次超过上限");
         }
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         DueOutboxListQuery dalQuery = DueOutboxListQuery.builder()
                 .tenantId(tenantId)
-                .eventType(SUPPORTED_EVENT_TYPE)
+                .eventType(query.eventType())
                 .dueAt(query.dueAt())
                 .limit(query.limit())
                 .build();
