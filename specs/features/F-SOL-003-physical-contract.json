@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-SOL-003",
+  "requirementIds": ["PRE-04"],
+  "status": "BASELINE",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "FEATURE_READY_REVIEW_ONLY_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
+  "owner": {
+    "context": "SOL",
+    "implementationModule": "pms-module-engineering",
+    "forbiddenOwners": ["PROJ", "PLATFORM", "SCH", "PLT", "INFRA"]
+  },
+  "v1Scope": {
+    "included": [
+      "PRE04_FROZEN_TEMPLATE_CONFIGURATION",
+      "ELEVEN_CORE_SECTIONS_AND_APPROVED_EXTENSION_ITEMS",
+      "DRAFT_AND_EFFECTIVE_COMPLETED_VERSION_AXES",
+      "EXACT_FILE_ARTIFACT_ATTACHMENTS",
+      "HISTORY_AND_VERSION_COMPARISON",
+      "PROJECT_MANAGER_WRITE_AND_AUTHORIZED_MEMBER_READ",
+      "REQUIREMENT_ANALYSIS_INSPECT_AND_REVALIDATE",
+      "IDEMPOTENCY_CAS_AUDIT",
+      "RESPONSIVE_UI"
+    ],
+    "deferred": [
+      "PRE_03_MATERIAL_REPLACEMENT",
+      "PRE_05_BRIEFING_GENERATION",
+      "SOL_01_GENERAL_DYNAMIC_FORM_PLATFORM",
+      "SCH_01_SOLUTION_PREFILL_REFERENCE_DIFF_OR_APPROVAL",
+      "PLT_01_UNIFIED_TODO",
+      "AI_MIG_000",
+      "DEPLOYMENT_SIT_UAT_RELEASE"
+    ]
+  },
+  "templateContract": {
+    "workBindingTypeCode": "BUSINESS_OBJECT",
+    "targetContextCode": "SOL",
+    "targetObjectType": "REQUIREMENT_ANALYSIS",
+    "targetObjectKey": "PRE_04_REQUIREMENT_ANALYSIS",
+    "catalogCode": "PRE_04_REQUIREMENT_ANALYSIS",
+    "catalogVersion": 1,
+    "bindingParameterSnapshot": [
+      "schemaVersion=1",
+      "catalogCode",
+      "catalogVersion",
+      "extensionItems[]"
+    ],
+    "extensionItemFields": [
+      "fieldCode",
+      "fieldName",
+      "fieldTypeCode",
+      "required",
+      "dictionaryType(optional)",
+      "optionSnapshot(code,label; required for selection types)",
+      "sortOrder"
+    ],
+    "allowedFieldTypes": [
+      "RICH_TEXT",
+      "TEXT",
+      "NUMBER",
+      "BOOLEAN",
+      "SINGLE_SELECT",
+      "MULTI_SELECT"
+    ],
+    "forbidden": [
+      "remove or rename a core section",
+      "make PROJECT_BACKGROUND, PROJECT_OBJECTIVE or NETWORK_TOPOLOGY optional",
+      "duplicate core or extension code",
+      "script, expression or arbitrary component",
+      "unfrozen or disabled dictionary option",
+      "dictionaryVersion invented outside the public SYSTEM API"
+    ]
+  },
+  "coreSections": [
+    {"code": "PROJECT_BACKGROUND", "required": true, "fieldType": "RICH_TEXT", "sortOrder": 10},
+    {"code": "PROJECT_OBJECTIVE", "required": true, "fieldType": "RICH_TEXT", "sortOrder": 20},
+    {"code": "NETWORK_TOPOLOGY", "required": true, "fieldType": "RICH_TEXT", "sortOrder": 30},
+    {"code": "TRANSMISSION_REQUIREMENT", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 40},
+    {"code": "TRAFFIC_REQUIREMENT", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 50},
+    {"code": "BUSINESS_REQUIREMENT", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 60},
+    {"code": "IP_PLANNING", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 70},
+    {"code": "REDUNDANCY_REQUIREMENT", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 80},
+    {"code": "SECURITY_PROTECTION", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 90},
+    {"code": "OPERATIONS_REQUIREMENT", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 100},
+    {"code": "LOGGING_REQUIREMENT", "required": false, "fieldType": "RICH_TEXT", "sortOrder": 110}
+  ],
+  "tables": {
+    "sol_preparation_forward_extension": {
+      "purpose": "reuse the SDS Preparation root for PRE-04 version lifecycle without changing PRE-02 current/readiness semantics",
+      "existingKey": ["tenant_id", "project_id", "preparation_type_code", "business_version"],
+      "newPreparationType": "PRE_04_REQUIREMENT_ANALYSIS",
+      "newNullableFields": [
+        "source_preparation_id",
+        "draft_marker",
+        "effective_marker",
+        "content_version",
+        "completed_by",
+        "completed_at"
+      ],
+      "newForeignKeys": [
+        "(tenant_id, source_preparation_id) -> sol_preparation(tenant_id, id)"
+      ],
+      "newUniqueKeys": [
+        ["tenant_id", "project_id", "preparation_type_code", "draft_marker"],
+        ["tenant_id", "project_id", "preparation_type_code", "effective_marker"]
+      ],
+      "statusCodesByType": {
+        "PRE_02_SITE_SURVEY": ["DRAFT", "PENDING_CONFIRMATION", "CONFIRMED", "RETURNED"],
+        "PRE_04_REQUIREMENT_ANALYSIS": ["DRAFT", "COMPLETED"]
+      },
+      "markerRules": [
+        "PRE_02 uses existing current_marker only and draft_marker/effective_marker are NULL",
+        "PRE_04 uses draft_marker/effective_marker only and current_marker is NULL",
+        "PRE_04 DRAFT has draft_marker=1 and effective_marker=NULL",
+        "PRE_04 current effective COMPLETED has effective_marker=1 and draft_marker=NULL",
+        "PRE_04 historical COMPLETED has both markers NULL"
+      ],
+      "contentVersionPolicy": "PRE_04 starts at 0, increments with each successful draft content/file mutation, freezes at completion and is not changed when effective_marker is later cleared; PRE_02 keeps it NULL",
+      "pre02Compatibility": "existing readiness columns, status codes, indexes and current_marker contract remain unchanged",
+      "pre04ReadinessColumns": "readiness-specific fields are not exposed or consumed for PRE-04 and retain neutral storage defaults; they never define PRE-04 completion or SCH readiness",
+      "concurrency": "ROW_LOCK_PLUS_VERSION_CAS_AND_DRAFT_EFFECTIVE_UNIQUE_MARKERS"
+    },
+    "sol_requirement_analysis_section": {
+      "purpose": "one frozen PRE-04 core or extension section inside one preparation business version",
+      "requiredFields": [
+        "id",
+        "tenant_id",
+        "preparation_id",
+        "section_code",
+        "section_name",
+        "section_kind_code",
+        "field_type_code",
+        "required_flag",
+        "sort_order",
+        "schema_snapshot",
+        "value_snapshot",
+        "attachment_reference_snapshot",
+        "version",
+        "creator",
+        "create_time",
+        "updater",
+        "update_time"
+      ],
+      "nullableFields": [
+        "source_section_id",
+        "dictionary_type"
+      ],
+      "stableKey": ["tenant_id", "preparation_id", "section_code"],
+      "referenceKey": ["tenant_id", "id"],
+      "uniqueKeys": [
+        ["tenant_id", "preparation_id", "section_code"],
+        ["tenant_id", "id"]
+      ],
+      "foreignKeys": [
+        "(tenant_id, preparation_id) -> sol_preparation(tenant_id, id)",
+        "(tenant_id, source_section_id) -> sol_requirement_analysis_section(tenant_id, id)"
+      ],
+      "sectionKindCodes": ["CORE", "EXTENSION"],
+      "attachmentFact": [
+        "artifactId",
+        "versionNo",
+        "referenceKey",
+        "fileFactVersion",
+        "scopeVersion"
+      ],
+      "fileBusinessKey": {
+        "ownerContext": "SOL",
+        "objectType": "REQUIREMENT_ANALYSIS_SECTION",
+        "objectId": "sectionId",
+        "purposeCode": "SECTION_ATTACHMENT",
+        "referenceKey": "non-empty UUID slotKey; one stable slot per attachment intent inside one section",
+        "cardinality": "MULTIPLE"
+      },
+      "fileActionMatrix": {
+        "DRAFT_CURRENT_MANAGER": ["UPLOAD", "REFERENCE", "REPLACE", "DETACH", "READ", "DOWNLOAD", "PREVIEW"],
+        "COMPLETED_AUTHORIZED_READER": ["READ", "DOWNLOAD", "PREVIEW"],
+        "FORBIDDEN_BY_SOL": ["ARCHIVE", "INVALIDATE"],
+        "completedMutationPolicy": "UPLOAD, REFERENCE, REPLACE and DETACH fail closed"
+      },
+      "immutability": "COMPLETED section content and file facts have stable query only; the root may only clear effective_marker when a later version completes",
+      "forbidden": [
+        "file body",
+        "download URL",
+        "infra object key",
+        "script or executable expression"
+      ]
+    }
+  },
+  "stateAxes": {
+    "versionLifecycle": "sol_preparation.status_code DRAFT|COMPLETED for PRE_04",
+    "currentDraft": "sol_preparation.draft_marker",
+    "currentEffectiveCompleted": "sol_preparation.effective_marker",
+    "forbidden": "one current marker that makes a new draft replace the still-effective completed input"
+  },
+  "stateMachine": {
+    "initialize": "no PRE-04 rows -> create businessVersion=1 DRAFT with draft_marker=1",
+    "firstComplete": "DRAFT -> COMPLETED; clear draft_marker and set effective_marker=1 atomically",
+    "createNextDraft": "copy current effective COMPLETED to businessVersion+1 DRAFT with source_preparation_id and draft_marker=1; old effective remains unchanged",
+    "completeNextDraft": "lock expected draft and current effective; validate and revalidate files; clear old effective marker; change draft to COMPLETED, clear draft marker and set effective marker in one transaction",
+    "completedImmutability": "no command updates or deletes COMPLETED section/content/file/completion facts; only the later-completion transaction may clear the old root effective_marker"
+  },
+  "transactions": {
+    "initialize": "LOCK_AND_REVALIDATE_PROJECT_MANAGER_AND_WORK_BINDING; VALIDATE_CORE_AND_EXTENSION_CONFIGURATION; INSERT_DRAFT_AND_SECTIONS; IDEMPOTENCY_SUCCESS; AUDIT",
+    "patchSection": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_DRAFT_AND_SECTION; VALIDATE_IF_MATCH_AND_PRESENT_FIELDS; INSPECT_EXACT_FILE_REFERENCES; CAS_SECTION_ROOT_AND_INCREMENT_CONTENT_VERSION; AUDIT",
+    "createDraft": "LOCK_AND_REVALIDATE_PROJECT_MANAGER; LOCK_CURRENT_EFFECTIVE_DRAFT_MARKER_AND_SECTIONS; VALIDATE_IF_MATCH_AND_NO_EXISTING_DRAFT; INSERT_NEW_ROOT_AND_SECTIONS; LOCK_ALL_SOURCE_READ_AND_TARGET_REFERENCE_PROVIDERS_IN_STABLE_KEY_ORDER; LOCK_ALL_PLT_ARTIFACT_VERSION_REFERENCE_FACTS_IN_STABLE_ORDER_AND_ATTACH_TARGETS; INSERT_DRAFT_MARKER; IDEMPOTENCY_SUCCESS; AUDIT; ALL_IN_ONE_TRANSACTION",
+    "complete": "LOCK_PROJECT_AND_CURRENT_MANAGER; LOCK_EXPECTED_DRAFT_CURRENT_EFFECTIVE_AND_ALL_SECTIONS; VALIDATE_REQUIRED_AND_FROZEN_SCHEMA; LOCK_AND_REVALIDATE_ALL_EXACT_FILE_FACTS; CLEAR_OLD_EFFECTIVE_MARKER; CAS_DRAFT_TO_COMPLETED_AND_SWITCH_MARKERS; IDEMPOTENCY_SUCCESS; AUDIT",
+    "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_WRITE_REJECTED_PLATFORM_AUDIT_WITH_NO_SUCCESS_SIDE_EFFECT"
+  },
+  "interfaces": {
+    "httpBase": "/api/v1/pms/preparations",
+    "currentLookup": "GET /preparations?projectId={projectId}&type=PRE_04",
+    "createInitialDraft": "POST /preparations",
+    "detail": "GET /preparations/{preparationId}",
+    "patchSection": "PATCH /preparations/{preparationId}/items/{sectionId}",
+    "complete": "POST /preparations/{preparationId}/actions/submit",
+    "createNextDraft": "POST /preparations/{preparationId}/actions/create-draft",
+    "history": "GET /preparations?projectId={projectId}&type=PRE_04&history=true",
+    "compare": "GET /preparations/{preparationId}/compare?targetPreparationId={targetPreparationId}",
+    "requiredHeaders": {
+      "createInitialDraft": ["Idempotency-Key"],
+      "patchSection": ["If-Match"],
+      "complete": ["Idempotency-Key", "If-Match"],
+      "createNextDraft": ["Idempotency-Key", "If-Match"]
+    },
+    "forbiddenInputs": [
+      "tenantId",
+      "actorRoleCode",
+      "projectManagerUserId",
+      "businessVersion",
+      "statusCode",
+      "draftMarker",
+      "effectiveMarker",
+      "completedBy"
+    ]
+  },
+  "publicRequirementAnalysisApi": {
+    "providerModule": "pms-module-engineering-api",
+    "contracts": [
+      "RequirementAnalysisFactApi.inspect(RequirementAnalysisFactQuery)",
+      "RequirementAnalysisFactApi.lockAndRevalidate(RequirementAnalysisFactRevalidationQuery)"
+    ],
+    "inspectQuery": ["projectId", "preparationId(optional)"],
+    "revalidationQuery": [
+      "projectId",
+      "preparationId",
+      "expectedBusinessVersion",
+      "expectedContentVersion",
+      "expectedProjectVersion",
+      "expectedTemplateRevision",
+      "expectedFactVector"
+    ],
+    "response": [
+      "projectId",
+      "preparationId",
+      "businessVersion",
+      "status=COMPLETED",
+      "contentVersion",
+      "projectVersion",
+      "templateRevision",
+      "completedBy",
+      "completedAt",
+      "isCurrentEffective",
+      "currentEffectivePreparationId",
+      "currentEffectiveBusinessVersion",
+      "orderedSectionFacts",
+      "fileFacts",
+      "factVector"
+    ],
+    "lockOrder": "PROJ_PROJECT_SCOPE -> SOL_PRE04_COMPLETED_ROOT_SECTIONS_AND_CURRENT_EFFECTIVE_POINTER -> PLT_EXACT_FILE_FACTS",
+    "readOnlyPolicy": "inspect and lockAndRevalidate write no PRE-04, SCH or PLT business facts",
+    "consumerPolicy": "future SCH-01 stores the selected preparationId and businessVersion and owns prefill, input-difference and solution-version behavior",
+    "historicalPolicy": "an explicit historical COMPLETED version remains readable and lockable with isCurrentEffective=false and current effective identifiers; F-SOL-003 does not decide SCH input-difference handling",
+    "unknownPolicy": "missing, cross-tenant, DRAFT, non-COMPLETED, invalid file or any expected content/project/template fact change fails closed"
+  },
+  "platformFileReferenceCommand": {
+    "providerModule": "pms-module-platform-api",
+    "contract": "FileArtifactApi.attachExistingVersions(AttachExistingFileVersionsCommand)",
+    "purpose": "create independent target FileReferences that reuse already committed immutable FileVersions without re-upload",
+    "sourceInputPerItem": [
+      "artifactId", "versionNo", "ownerContext", "objectType", "objectId", "purposeCode", "referenceKey",
+      "expectedFileFactVersion", "expectedScopeVersion", "requiredAction=READ"
+    ],
+    "targetInputPerItem": [
+      "ownerContext=SOL", "objectType=REQUIREMENT_ANALYSIS_SECTION", "objectId=newSectionId",
+      "purposeCode=SECTION_ATTACHMENT", "referenceKey=newServerGeneratedUuid", "expectedScopeVersion",
+      "requiredAction=REFERENCE"
+    ],
+    "trustedContext": ["tenantId", "actorUserId"],
+    "lockAndWritePolicy": {
+      "phase1BusinessProviders": "sort every source READ and target REFERENCE request by ownerContext,objectType,objectId,purposeCode,referenceKey,action and lockAndRevalidate all providers before any PLT lock",
+      "phase2PlatformLocks": "sort all artifacts by artifactId, versions by artifactId/versionNo and references by full stable key; acquire every PLT lock in Artifact -> Version -> Reference order; never call a business provider after the first PLT lock",
+      "targetSlot": "after its exact reference lock: insert an independent ACTIVE FileReference when absent, replay when the same target key already points to the same artifact/version, conflict when it points elsewhere",
+      "sourceFact": "after locks compare every expected artifact/reference/availability/scope version and fail closed on change"
+    },
+    "replayPolicy": "same target full key already pointing to the same artifact/version returns its current fact; a target key pointing to a different version conflicts",
+    "atomicity": "joins the caller transaction; all target references and the SOL draft/sections commit or roll back together",
+    "events": ["FileReferenceAttached"],
+    "forbidden": [
+      "reuse the source full business key",
+      "mutate or detach the source COMPLETED reference",
+      "create a FileArtifact or FileVersion",
+      "re-upload the same bytes as a substitute",
+      "return file body, storage key or URL"
+    ]
+  },
+  "dependencies": {
+    "projectWorkBinding": {
+      "contracts": [
+        "ProjectWorkBindingFactApi.inspect(ProjectWorkBindingFactQuery)",
+        "ProjectWorkBindingFactApi.lockAndRevalidate(ProjectWorkBindingFactRevalidationQuery)"
+      ],
+      "exactTarget": [
+        "workBindingTypeCode=BUSINESS_OBJECT",
+        "targetContextCode=SOL",
+        "targetObjectType=REQUIREMENT_ANALYSIS",
+        "targetObjectKey=PRE_04_REQUIREMENT_ANALYSIS"
+      ],
+      "forbidden": [
+        "SOL table access to PROJ",
+        "generic binding search",
+        "request-reported tenant or template revision"
+      ]
+    },
+    "projectParticipantAndScope": "consume ProjectParticipantFactApi and ProjectScopeApi; roles do not imply descendant scope",
+    "fileArtifact": "consume F-PLT-001 exact reference inspect/lockAndRevalidate, attachExistingVersions and access-ticket APIs; SOL stores no body, URL or infra fact",
+    "solution": "future SCH-01 consumes publicRequirementAnalysisApi; F-SOL-003 writes no Solution or reference row",
+    "events": "SOL publishes no domain event; the PLT attach command retains its existing FileReferenceAttached event; the approved inter-context call boundary is synchronous"
+  },
+  "permissions": {
+    "query": {
+      "permissionCode": "pms:requirement-analysis:query",
+      "projectScopeAction": "PROJECT_VIEW",
+      "subjectConstraint": "AUTHORIZED_PROJECT_MEMBER_OR_EXPLICIT_DESCENDANT_SCOPE"
+    },
+    "manage": {
+      "permissionCode": "pms:requirement-analysis:manage",
+      "projectScopeAction": "PROJECT_MANAGE",
+      "subjectConstraint": "CURRENT_PROJECT_MANAGER"
+    },
+    "fileRead": {
+      "permissionCodes": ["pms:file:download", "pms:file:preview"],
+      "projectScopeAction": "PROJECT_VIEW",
+      "subjectConstraint": "SOL_BUSINESS_OBJECT_POLICY_AND_PLT_AUTHORIZATION_BOTH_PASS"
+    },
+    "frontendBackendTruth": "server projects allowedActions and revalidates trusted tenant, function, ProjectStageScope, current subject, state and version"
+  },
+  "platformFacts": {
+    "idempotencyTable": "plt_idempotency_record",
+    "idempotencyPolicy": "COMPLETED plus same digest replays the stored response; same key plus different digest conflicts; Decision.IN_PROGRESS has null response and maps to stable PMS-PLATFORM-COMMAND-IN-PROGRESS with no success side effect",
+    "auditTable": "plt_operation_audit",
+    "outboxEvents": ["FileReferenceAttached (PLT owner only)"],
+    "fileFacts": "exact FileArtifact version and reference only",
+    "richTextAuditPolicy": "audit controlled before/after summaries and identifiers, never copy sensitive full body or attachment content"
+  },
+  "dictionarySnapshot": {
+    "ownerApi": "SYSTEM DictDataApi",
+    "publishValidation": "selection extension dictionary and every selected option must be enabled",
+    "frozenFacts": ["dictionaryType", "optionSnapshot[].code", "optionSnapshot[].label"],
+    "runtimePolicy": "SOL validates values only against the frozen optionSnapshot",
+    "forbidden": ["dictionaryVersion", "direct SYSTEM table read", "runtime relabel from current dictionary"]
+  },
+  "legacy": {
+    "tables": ["pms_eng_requirement", "pms_eng_form_template", "pms_eng_form_instance"],
+    "policy": "gap and migration-source evidence only; no current truth, no dual write and no inferred completion",
+    "reusableSlices": ["field labels that match PRE-04", "Yudao and Element Plus editor patterns"],
+    "forbiddenReuse": ["legacy status inference", "generic CRUD", "mutable completed row", "file URL as attachment fact"]
+  },
+  "migration": {
+    "strategy": "NEXT_UNUSED_FLYWAY_AFTER_IMPLEMENTATION_BASELINE",
+    "forwardOnly": true,
+    "seedRequirements": [
+      "two stable permissions",
+      "PRE-04 catalogVersion=1 and eleven core section labels",
+      "representative project WorkBinding configurations for no extension, multiple extension field types and disabled dictionary rejection"
+    ],
+    "forbidden": [
+      "EDIT_EXECUTED_MIGRATIONS",
+      "LEGACY_DUAL_WRITE",
+      "HISTORICAL_DATA_CUTOVER",
+      "WRITE_PROJ_SCH_PLT_OR_INFRA_BUSINESS_TABLES"
+    ]
+  },
+  "featureReadyDecision": "GO_NPDMS-FSOL003-FEATURE-READY-20260827-01-R2"
+}

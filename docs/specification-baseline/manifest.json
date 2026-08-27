@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "9328c1316655639c100c98f3c16701af10db5fbf"
+    "commit": "31aa9ed4ab2a0898b61bcdfb5d97e4280abfd08e"
   },
   "files": [
     {
@@ -448,7 +448,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "0553bab39c31f4c5a0aa60996d9734ab9ed686c89de3b1b77103189b21451bef"
+      "sha256": "c08bc0c9d78d3d614cbdd27a2ffd4962be42964de7ee4a3e9abdb3fe66e29491"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
@@ -546,9 +546,19 @@
       "sha256": "73cd3164a31a608ff8344969d940ee7d67a862cd36e498c18fffe70a3d3fd655"
     },
     {
+      "path": "specs/features/F-SOL-003-physical-contract.json",
+      "category": "FEATURE_SPEC",
+      "sha256": "0a08956f02ce0688c12367e5d23353978f21adb440d427ca55f41dabd3495c6a"
+    },
+    {
+      "path": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "b31dc1e916d70b7b3b68b7bd6dbb198bc80044f8c5160a00c7c18809e5147bf5"
+    },
+    {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "8b31b488d71af7ebfa338faeb50cfe8c11a411a5e683be2c40c96c647bca981e"
+      "sha256": "0c8256ca6e91b8b817af84894ce51003960c7242444fd92ccdbe2608f6b9dc40"
     }
   ]
 }
