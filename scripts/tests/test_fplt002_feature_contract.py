@@ -8,6 +8,7 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 FEATURE_SPEC = REPOSITORY_ROOT / "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"
 PHYSICAL_CONTRACT = REPOSITORY_ROOT / "specs/features/F-PLT-002-physical-contract.json"
+REUSE_AUDIT = REPOSITORY_ROOT / "specs/features/F-PLT-002-legacy-form-reuse-audit.md"
 SECURITY_DESIGN = REPOSITORY_ROOT / "docs/design/14-security-design.md"
 TEST_DESIGN = REPOSITORY_ROOT / "docs/design/20-test-design.md"
 
@@ -18,6 +19,7 @@ class Fplt002FeatureContractTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.feature_spec = FEATURE_SPEC.read_text(encoding="utf-8")
         cls.contract = json.loads(PHYSICAL_CONTRACT.read_text(encoding="utf-8"))
+        cls.reuse_audit = REUSE_AUDIT.read_text(encoding="utf-8")
         cls.security_design = SECURITY_DESIGN.read_text(encoding="utf-8")
         cls.test_design = TEST_DESIGN.read_text(encoding="utf-8")
 
@@ -87,8 +89,75 @@ class Fplt002FeatureContractTest(unittest.TestCase):
 
     def test_legacy_is_audited_then_copied_without_mutation_or_dual_write(self) -> None:
         reuse = self.contract["reuse"]
-        self.assertTrue(reuse["requiredAudit"])
-        self.assertIn("copied to new PLATFORM-owned names", reuse["copyThenEnhance"])
+        self.assertEqual("COMPLETE", reuse["auditStatus"])
+        self.assertEqual(
+            "LEGACY_AND_FRAMEWORK_IMPLEMENTATION_AUDIT_COMPLETE",
+            self.contract["approvedApproach"]["sequence"][0],
+        )
+        self.assertEqual(
+            "specs/features/F-PLT-002-legacy-form-reuse-audit.md",
+            reuse["auditEvidence"],
+        )
+        self.assertTrue(REUSE_AUDIT.is_file())
+        self.assertEqual(
+            "3adea6121000b5bb55b176d352b5afa94143b7dd",
+            reuse["auditedImplementation"]["productCodeCommit"],
+        )
+
+        groups = {group["group"]: group for group in reuse["sourceGroups"]}
+        self.assertEqual(
+            {"BPM_FORM_CREATE", "LEGACY_PMS_FORM", "LEGACY_REQUIREMENT_ANALYSIS"},
+            set(groups),
+        )
+        decisions = set(reuse["decisionVocabulary"])
+        self.assertEqual({"DIRECT_REUSE", "COPY_THEN_ENHANCE", "DO_NOT_REUSE"}, decisions)
+        for group in groups.values():
+            self.assertEqual("COMPLETE", group["status"])
+            self.assertTrue(group["mappings"])
+            for mapping in group["mappings"]:
+                self.assertEqual(
+                    {"source", "item", "decision", "target", "rationale", "legacyUnchangedVerification"},
+                    set(mapping),
+                )
+                self.assertIn(mapping["decision"], decisions)
+                for key in ("source", "item", "target", "rationale", "legacyUnchangedVerification"):
+                    self.assertTrue(mapping[key].strip())
+
+        bpm_items = " ".join(mapping["item"] for mapping in groups["BPM_FORM_CREATE"]["mappings"])
+        for required in (
+            "fc-designer",
+            "useFormCreateDesigner",
+            "encode/decode",
+            "global FormCreate",
+            "designerConfig and save interaction",
+            "copy and restore interactions",
+        ):
+            self.assertIn(required, bpm_items)
+
+        legacy_items = " ".join(mapping["item"] for mapping in groups["LEGACY_PMS_FORM"]["mappings"])
+        for required in (
+            "productType",
+            "conf and fields",
+            "version",
+            "template snapshot",
+            "value save and refresh",
+            "template list, metadata edit and action feedback",
+            "detail/preview",
+            "template selection, instance list/edit/detail and refresh interactions",
+            "raw formData textarea and pre preview",
+            "submit/approve/reject/delete",
+        ):
+            self.assertIn(required, legacy_items)
+
+        requirement_items = " ".join(
+            mapping["item"] for mapping in groups["LEGACY_REQUIREMENT_ANALYSIS"]["mappings"]
+        )
+        for required in ("11 labels", "Editor v-model", "manual template selection", "project entry", "legacy CRUD"):
+            self.assertIn(required, requirement_items)
+
+        for audit_id in ("BPM-01", "BPM-09", "PMS-01", "PMS-12", "REQ-01", "REQ-04A", "REQ-06"):
+            self.assertIn(audit_id, self.reuse_audit)
+        self.assertIn("设计前审计已经完成", self.feature_spec)
         self.assertIn("dual write", reuse["forbidden"])
         self.assertIn("automatic legacy migration", reuse["forbidden"])
         self.assertIn("legacy requirement-analysis classes, APIs, routes, pages, data and behavior", reuse["unchangedLegacy"])

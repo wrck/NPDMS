@@ -27,7 +27,7 @@
 - 实例动态渲染、普通JSON值填写、CAS保存、刷新恢复和服务端`allowedActions`；
 - 注册`PmsFileArtifact`受控文件字段，同时保留现有普通上传、图片上传等FormCreate控件；
 - 租户隔离、功能权限、模板发布者高信任边界、幂等、并发、平台审计和响应式页面；
-- 先审计旧实现，再把可复用结构和交互复制到新的PLT类、组件和页面后增强；旧实现保持不变。
+- 设计前旧实现审计已完成并锁定于[`F-PLT-002-legacy-form-reuse-audit.md`](F-PLT-002-legacy-form-reuse-audit.md)；实施逐项按`DIRECT_REUSE / COPY_THEN_ENHANCE / DO_NOT_REUSE`映射执行，旧实现保持不变。
 
 ### 2.2 不包含
 
@@ -109,7 +109,8 @@
 
 ### BR-FPLT002-008 旧实现复用与后续接入边界
 
-- 实施前必须完整审计BPM FormCreate实现、旧`pms_eng_form_template/pms_eng_form_instance`和旧需求分析页面。可复用的字段标签、列表/编辑/预览交互、FormCreate编码解码和Element Plus布局先复制到新的PLT类、组件或页面后再增强；共享且已是公共组件的FormCreate运行时可直接依赖。
+- 设计前审计已经完成，唯一实施映射见[`F-PLT-002-legacy-form-reuse-audit.md`](F-PLT-002-legacy-form-reuse-audit.md)：BPM的`fc-designer`、`useFormCreateDesigner`、FormCreate编码/解码与全局运行时装配直接复用；BPM页面级配置及保存/复制/恢复体验、旧PMS表单的FormCreate载荷/冻结意图/CAS与列表交互复制到新的PLT目标后增强；旧工程域状态机、原始JSON编辑、旧CRUD/API/表及业务条件不复用。
+- 旧需求分析11项标签、Editor交互和项目入口的复用决策也已冻结：PLT只负责无损承载动态schema和富文本运行时，PRE-04业务模板与WorkBinding项目入口待F-SOL-003重规划后复制增强；F-PLT-002不提前硬编码业务字段或修改旧入口。
 - 禁止直接改造旧实体、Service、Controller、API文件、路由或页面来承载本Feature，禁止新旧双写、自动迁移或让旧表成为PLT新真值。旧功能、数据、菜单和内置超级管理员访问保持原状。
 - F-PLT-002 Implementation Done后，F-SOL-003必须基于该锁定能力重新修订Feature Spec和生成全新Technical Plan：PRE-04仍由项目WorkBinding自动确定并冻结模板，用户无项目内手工选模步骤；本Feature的手工选择只是基础能力闭环和后续其他场景入口。
 - 后续SCH、IMP、ACC、CUT消费者分别拥有自身业务状态、必填、评分、审批、完成和版本语义；共享动态表单只提供模板修订、渲染和值/文件字段载体，不得把通用实例保存解释为领域业务完成。
@@ -162,14 +163,14 @@
 - `AC-FPLT002-008`：模板事件/API/iframe不能绕过目标后端鉴权；PLT不执行服务端模板代码、不代理URL，浏览器CORS/CSP/iframe拒绝被如实呈现且不伪造表单保存或其他业务成功。
 - `AC-FPLT002-009`：真实MySQL验证唯一草稿、当前发布指针、不可变revision、模板停用、CAS、幂等、回滚、租户隔离及FileArtifact Provider；空库Flyway migrate/info/validate通过。
 - `AC-FPLT002-010`：真实浏览器在320/768/1024/1440完成模板配置→预览→发布→启用→手工选择→实例填写→FileArtifact→保存→刷新闭环，并记录网络、console/page error和截图；无当前功能意外错误。
-- `AC-FPLT002-011`：BPM、旧`pms_eng_form_*`和旧需求分析类、页面、接口、数据及功能保持不变；新实现位于新的PLT类/页面，复用前有审计证据且增强发生在复制的新实现上。
+- `AC-FPLT002-011`：BPM、旧`pms_eng_form_*`和旧需求分析类、页面、接口、数据及功能保持不变；新实现位于新的PLT类/页面，代码和测试可逐项追到已完成审计的映射ID，增强只发生在复制的新实现或明确的新PLT组合层上。
 - `AC-FPLT002-012`：不宣称WorkBinding、PRE-04版本化、SCH/IMP/ACC/CUT消费者、Deployment、SIT、UAT或Release完成；旧F-SOL-003 Technical Plan不得继续使用。
 
 ## 8. 测试与证据
 
 按用户指定方式先完成一个整体正向闭环，再集中执行完整验证，不以每个微步骤单独形成阶段性PASS。Feature Done至少需要：模板/修订/实例应用测试、权限与幂等负向、真实MySQL迁移/事务/并发、FormCreate组件运行时测试、F-PLT-001字段集成、前端类型检查与构建、真实浏览器四视口闭环，以及独立代码复审。
 
-旧实现审计必须列出复用、不复用及复制后增强映射；测试需要证明旧路由/API/页面仍可按原权限工作，但不得通过修改旧实现来使新测试通过。
+旧实现审计已由[`F-PLT-002-legacy-form-reuse-audit.md`](F-PLT-002-legacy-form-reuse-audit.md)完成并成为锁定实现输入。Implementation Done证据必须证明三组旧路径相对实施基线零修改、旧路由/API/页面仍按原权限工作，并将新实现逐项追到审计映射ID；不得通过修改旧实现来使新测试通过。
 
 ## 9. Definition of Ready
 
@@ -180,7 +181,7 @@
 | 首版完整FormCreate设计器及高信任发布边界 | PASS（需求方已选择A，本候选固化） |
 | 手工选择与实例保存正向闭环 | PASS（本候选） |
 | WorkBinding/PRE-04及其他消费者排除边界 | PASS（本候选） |
-| 旧实现保持不变、复制增强约束 | PASS（本候选及NPDMS根级实施约束） |
+| 设计前旧实现完整审计及保持不变/复制增强映射 | PASS（本候选审计附件、机器契约及NPDMS根级实施约束） |
 | 独立Feature Ready裁决 | PENDING |
 
 结论：`IN_REVIEW / NOT_YET_READY`。独立评审GO后方可回写`BASELINE / READY`、锁定规格提交并同步NPDMS；本候选不是Technical Plan或Implementation授权。
