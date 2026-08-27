@@ -1,0 +1,120 @@
+{
+  "evidenceId": "FSOL003-IMPLEMENTATION-BROWSER-20260827",
+  "featureId": "F-SOL-003",
+  "gate": "Implementation Done candidate",
+  "status": "VERIFIED_PENDING_INDEPENDENT_REVIEW",
+  "scope": "Implementation only; excludes Deployment, SIT, UAT and Release",
+  "candidateBaseCommit": "03c78d29",
+  "specificationCommit": "31aa9ed4ab2a0898b61bcdfb5d97e4280abfd08e",
+  "project": {
+    "projectId": 992103900001,
+    "projectCode": "FSOL003-BROWSER",
+    "tenantId": 0
+  },
+  "runtime": {
+    "frontendUrl": "http://127.0.0.1:18081",
+    "backendUrl": "http://127.0.0.1:58080",
+    "database": "npdms_test on MySQL 8.4 port 23316",
+    "redis": "Redis 7.4 port 26379",
+    "objectStorage": "MinIO port 9000, bucket yudao",
+    "securityScan": "optional scan disabled; FileVersion scanStatus=SKIPPED and no safety claim"
+  },
+  "browserEvidence": {
+    "browser": "Codex bundled Playwright driving Chromium",
+    "positiveFlow": [
+      "manager created V1 from the exact published PRE-04 WorkBinding, saved the three mandatory core sections and frozen required select option, then completed immutable V1",
+      "manager created V2, changed a mandatory section, uploaded a real PNG object to MinIO and recovered after the server accepted the section PATCH while the browser intentionally lost its response",
+      "V2 completion atomically replaced V1 as the unique effective completed version; history and compare showed content and attachment changes without persisting a second diff truth",
+      "V3 creation copied the completed V2 attachment into a new section Reference while reusing the same immutable FileVersion; V3 then persisted RICH_TEXT, TEXT, NUMBER, BOOLEAN, SINGLE_SELECT and MULTI_SELECT field types",
+      "the V3 draft replaced the copied slot with a new file version, detached it, bound a new MinIO file in a new slot, froze the section vector and completed V3",
+      "V4 creation copied the V3 final attachment to another independently keyed Reference, persisted a non-empty two-option MULTI_SELECT and completed V4 as the sole effective version"
+    ],
+    "responseUnknownRecovery": {
+      "injection": "the PATCH reached the server through route.fetch, then the response was deliberately aborted",
+      "expectedDiagnosticsDuringInjection": [
+        "one net::ERR_FAILED resource diagnostic",
+        "one Network Error page diagnostic for the deliberately aborted response"
+      ],
+      "recovery": "authoritative reload found the submitted attachment vector, cleared the retained intent key and showed the frozen attachment with no duplicate business fact",
+      "postRecoveryCleanRefresh": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0
+      }
+    },
+    "authorization": {
+      "actor": "authorized SERVICE_MANAGER_L1 project participant with functional permissions but not current project manager",
+      "ui": "completed V4 was readable and marked read-only; create-draft, complete and save actions were absent",
+      "forcedCommand": "POST create-draft returned HTTP 200/business code 1014024033",
+      "zeroSideEffect": true
+    },
+    "responsive": [
+      { "width": 320, "scrollWidth": 320, "clientWidth": 320 },
+      { "width": 768, "scrollWidth": 768, "clientWidth": 768 },
+      { "width": 1024, "scrollWidth": 1024, "clientWidth": 1024 },
+      { "width": 1440, "scrollWidth": 1440, "clientWidth": 1440 }
+    ],
+    "screenshots": [
+      "docs/superpowers/evidence/f-sol-003/01-draft-complete-ready.png",
+      "docs/superpowers/evidence/f-sol-003/02-v1-completed-readonly.png",
+      "docs/superpowers/evidence/f-sol-003/03-attachment-response-loss-recovered.png",
+      "docs/superpowers/evidence/f-sol-003/04-history-compare.png",
+      "docs/superpowers/evidence/f-sol-003/05-responsive-320.png",
+      "docs/superpowers/evidence/f-sol-003/06-post-recovery-clean-refresh.png",
+      "docs/superpowers/evidence/f-sol-003/07-v3-reused-file-version.png",
+      "docs/superpowers/evidence/f-sol-003/09-v3-completed-frozen.png",
+      "docs/superpowers/evidence/f-sol-003/10-authorized-member-readonly.png",
+      "docs/superpowers/evidence/f-sol-003/12-v4-completed-all-types.png",
+      "docs/superpowers/evidence/f-sol-003/13-v4-effective-file-reused.png"
+    ]
+  },
+  "persistentFacts": {
+    "versionChain": "V1, V2, V3 and V4 are COMPLETED; only V4 has effective_marker=1; no draft remains",
+    "fieldTypes": "V4 freezes rich text, text, number=128, boolean=true, single-select=ENHANCED and multi-select=[ENHANCED,STANDARD]",
+    "referenceReuse": "V3 final Reference 5 and V4 Reference 6 have different section/object/reference keys but both point to artifact 2092954704723812353 version 1",
+    "referenceIndependence": "V3 copied Reference 4 was replaced to version 2 and detached without changing the V2 completed Reference; V3 then bound independent Reference 5",
+    "outbox": "each browser-created/copied Reference has one FileReferenceAttached fact; focused PLT tests additionally assert N inserts to N events, identical replay to zero increment and failed batch to zero events",
+    "minio": "the active FileVersion resolves to an AVAILABLE MinIO-backed infra_file object; MinIO xl.meta exists in the yudao bucket"
+  },
+  "verification": {
+    "backend": [
+      "mvn -pl pms-module-engineering -am test: 27-module Reactor BUILD SUCCESS; engineering 230 tests, 0 failures, 0 errors, 57 environment-conditioned skips",
+      "real MySQL ProjectWorkBindingFactMapperTest: 2/2 PASS",
+      "real MySQL RequirementAnalysisMySqlIntegrationTest: 5/5 PASS covering uniqueness, dual CAS, effective switch, immutable history, rollback and concurrent single winner",
+      "focused F-SOL-003/PROJ/PLT/SOL tests: 32/32 PASS before the full Reactor run"
+    ],
+    "frontend": [
+      "focused component/runtime tests: 16/16 PASS",
+      "vue-tsc, targeted ESLint, Stylelint and Prettier checks: PASS",
+      "build:local: PASS; only the pre-existing LightningCSS *zoom diagnostic was emitted"
+    ],
+    "migration": [
+      "repository-authoritative test infrastructure reset migrated a clean MySQL database from V1 through V100",
+      "Flyway info/validate and 100 applied migration rows: PASS",
+      "V100 seed facts include two instantiable S0-S6 published templates, no-extension and all extension field types, plus a disabled-dictionary rejection fixture"
+    ],
+    "browser": [
+      "public UI/API V1 through V4 lifecycle, refresh persistence, history/compare, response-unknown recovery, attachment reuse/replace/detach/rebind and member authorization negative: PASS",
+      "clean runs at all four widths had zero unexpected console errors, page errors and request failures"
+    ]
+  },
+  "acceptanceCriteria": {
+    "AC-FSOL003-001": "PASS - exact frozen WorkBinding, 11 core sections, valid extensions and fail-closed fixture coverage",
+    "AC-FSOL003-002": "PASS - mandatory core rules, closed field types, frozen options and rich-text normalization",
+    "AC-FSOL003-003": "PASS - manager partial PATCH, If-Match, exact attachments, failure/response-unknown recovery and unauthorized rejection",
+    "AC-FSOL003-004": "PASS - mandatory/template/file revalidation precedes atomic immutable completion",
+    "AC-FSOL003-005": "PASS - independent draft/effective axes, unique markers, atomic V1 through V4 switch and immutable history",
+    "AC-FSOL003-006": "PASS - stable history pagination and live content/attachment comparison",
+    "AC-FSOL003-007": "PASS - server-authoritative manager write, authorized member read-only and forced write rejection",
+    "AC-FSOL003-008": "PASS - platform replay/conflict/IN_PROGRESS, CAS, lock order, audit and concurrent single-winner tests",
+    "AC-FSOL003-009": "PASS - completed fact inspect/revalidate, historical relation and exact file-vector tests",
+    "AC-FSOL003-010": "PASS - no SCH reference, prefill, difference state, solution version or SOL event was introduced",
+    "AC-FSOL003-011": "PASS - clean V1 to V100 migration, constraints, seed combinations and real MySQL transaction tests",
+    "AC-FSOL003-012": "PASS - real browser lifecycle, read-only/negative path, response recovery, persistence, history and four responsive widths",
+    "AC-FSOL003-013": "PASS - distinct target References reuse immutable FileVersions; two-phase order, replay, event cardinality and rollback are covered"
+  },
+  "independentReview": {
+    "status": "PENDING",
+    "reviewOwner": "NPDMS方案评审角色"
+  }
+}

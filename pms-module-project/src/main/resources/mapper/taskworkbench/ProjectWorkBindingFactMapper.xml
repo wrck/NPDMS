@@ -19,7 +19,9 @@
                c.target_object_key              AS targetObjectKey,
                c.binding_parameter_snapshot     AS bindingParameterSnapshot,
                c.source_definition_version      AS sourceDefinitionVersion,
-               c.contract_version               AS contractVersion
+               c.contract_version               AS contractVersion,
+               d.template_revision_id           AS templateRevisionId,
+               r.revision_no                     AS templateRevisionNo
         FROM proj_project p
         JOIN proj_project_task t
           ON t.tenant_id = p.tenant_id
@@ -31,6 +33,14 @@
          AND c.current_marker = 1
          AND c.effective_to IS NULL
          AND c.deleted = b'0'
+        JOIN proj_project_template_task_definition d
+          ON d.tenant_id = c.tenant_id
+         AND d.id = c.template_task_definition_id
+         AND d.deleted = b'0'
+        JOIN proj_project_template_revision r
+         ON r.tenant_id = d.tenant_id
+         AND r.id = d.template_revision_id
+         AND r.deleted = b'0'
         WHERE p.tenant_id = #{query.tenantId}
           AND p.id = #{query.projectId}
           AND p.deleted = b'0'
@@ -61,6 +71,21 @@
           AND effective_to IS NULL
           AND deleted = b'0'
         FOR UPDATE
+    </select>
+
+    <select id="selectTemplateRevisionFact"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord">
+        SELECT d.id                    AS templateTaskDefinitionId,
+               d.template_revision_id  AS templateRevisionId,
+               r.revision_no           AS templateRevisionNo
+        FROM proj_project_template_task_definition d
+        JOIN proj_project_template_revision r
+         ON r.tenant_id = d.tenant_id
+         AND r.id = d.template_revision_id
+         AND r.deleted = b'0'
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.id = #{query.templateTaskDefinitionId}
+          AND d.deleted = b'0'
     </select>
 
 </mapper>

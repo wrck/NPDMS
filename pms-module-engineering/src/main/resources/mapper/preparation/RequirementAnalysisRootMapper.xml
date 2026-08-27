@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisRootMapper">
+    <sql id="columns">
+        id, project_id, preparation_type_code, business_version, current_marker,
+        source_preparation_id, draft_marker, effective_marker,
+        template_id, template_revision_id, template_snapshot, fixed_form_catalog_version,
+        status_code, readiness_status_code, latest_readiness_snapshot_id,
+        input_version, readiness_version, snapshot_current, content_version, completed_by, completed_at,
+        submitted_at, confirmed_at, returned_at, return_reason, version,
+        creator, create_time, updater, update_time, tenant_id
+    </sql>
+
+    <select id="selectDraft" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/> FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS' AND draft_marker = 1
+    </select>
+    <select id="selectDraftForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/> FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS' AND draft_marker = 1 FOR UPDATE
+    </select>
+    <select id="selectEffective" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/> FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS' AND effective_marker = 1
+    </select>
+    <select id="selectEffectiveForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/> FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS' AND effective_marker = 1 FOR UPDATE
+    </select>
+    <select id="selectById" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/> FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.preparationId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
+    </select>
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/> FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.preparationId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS' FOR UPDATE
+    </select>
+    <select id="selectCompletedHistory" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
+        SELECT <include refid="columns"/> FROM sol_preparation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS' AND status_code = 'COMPLETED'
+        <choose>
+            <when test="query.cursorBusinessVersion == null and query.cursorId == null"/>
+            <when test="query.cursorBusinessVersion != null and query.cursorId != null">
+                AND (business_version &lt; #{query.cursorBusinessVersion}
+                    OR (business_version = #{query.cursorBusinessVersion} AND id &lt; #{query.cursorId}))
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY business_version DESC, id DESC LIMIT #{query.limit}
+    </select>
+    <update id="incrementContentIfMatch">
+        UPDATE sol_preparation SET content_version = content_version + 1,
+            version = version + 1, updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{update.tenantId} AND id = #{update.preparationId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
+          AND status_code = 'DRAFT' AND draft_marker = 1
+          AND version = #{update.expectedVersion} AND content_version = #{update.expectedContentVersion}
+    </update>
+    <update id="clearEffectiveIfMatch">
+        UPDATE sol_preparation SET effective_marker = NULL, version = version + 1,
+            updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{update.tenantId} AND id = #{update.preparationId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
+          AND status_code = 'COMPLETED' AND effective_marker = 1
+          AND version = #{update.expectedVersion}
+    </update>
+    <update id="completeDraftIfMatch">
+        UPDATE sol_preparation SET status_code = 'COMPLETED', draft_marker = NULL, effective_marker = 1,
+            completed_by = #{update.completedBy}, completed_at = #{update.completedAt},
+            version = version + 1, updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{update.tenantId} AND id = #{update.preparationId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
+          AND status_code = 'DRAFT' AND draft_marker = 1
+          AND version = #{update.expectedVersion} AND content_version = #{update.expectedContentVersion}
+    </update>
+</mapper>

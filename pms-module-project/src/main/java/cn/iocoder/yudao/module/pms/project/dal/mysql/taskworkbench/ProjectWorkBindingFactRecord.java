@@ -16,5 +16,7 @@ public record ProjectWorkBindingFactRecord(
         String targetObjectKey,
         String bindingParameterSnapshot,
         Integer sourceDefinitionVersion,
-        Integer contractVersion) {
+        Integer contractVersion,
+        Long templateRevisionId,
+        Integer templateRevisionNo) {
 }

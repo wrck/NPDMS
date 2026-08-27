@@ -5,9 +5,10 @@
 
     <sql id="columns">
         id, project_id, preparation_type_code, business_version, current_marker,
+        source_preparation_id, draft_marker, effective_marker,
         template_id, template_revision_id, template_snapshot, fixed_form_catalog_version,
         status_code, readiness_status_code, latest_readiness_snapshot_id,
-        input_version, readiness_version, snapshot_current,
+        input_version, readiness_version, snapshot_current, content_version, completed_by, completed_at,
         submitted_at, confirmed_at, returned_at, return_reason, version,
         creator, create_time, updater, update_time, tenant_id
     </sql>
@@ -15,16 +16,19 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
         INSERT INTO sol_preparation (
             project_id, preparation_type_code, business_version, current_marker,
+            source_preparation_id, draft_marker, effective_marker,
             template_id, template_revision_id, template_snapshot, fixed_form_catalog_version,
             status_code, readiness_status_code, latest_readiness_snapshot_id,
-            input_version, readiness_version, snapshot_current,
+            input_version, readiness_version, snapshot_current, content_version, completed_by, completed_at,
             submitted_at, confirmed_at, returned_at, return_reason, version,
             creator, create_time, updater, update_time, tenant_id
         ) VALUES (
             #{row.projectId}, #{row.preparationTypeCode}, #{row.businessVersion}, #{row.currentMarker},
+            #{row.sourcePreparationId}, #{row.draftMarker}, #{row.effectiveMarker},
             #{row.templateId}, #{row.templateRevisionId}, #{row.templateSnapshot}, #{row.fixedFormCatalogVersion},
             #{row.statusCode}, #{row.readinessStatusCode}, #{row.latestReadinessSnapshotId},
             #{row.inputVersion}, #{row.readinessVersion}, #{row.snapshotCurrent},
+            #{row.contentVersion}, #{row.completedBy}, #{row.completedAt},
             #{row.submittedAt}, #{row.confirmedAt}, #{row.returnedAt}, #{row.returnReason}, #{row.version},
             COALESCE(#{row.creator}, ''), COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)),
             COALESCE(#{row.updater}, ''), COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId}

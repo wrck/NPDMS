@@ -17,6 +17,9 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.P
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessSnapshotRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationSourceRefreshReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationWaiverReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisActionReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisCreateReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.RequirementAnalysisSectionPatchReqVO;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
@@ -28,6 +31,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.Prepa
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewResult;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessResult;
+import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisCommandService;
+import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisQueryService;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -70,22 +75,51 @@ public class PreparationController {
     private final PreparationReadinessService readinessService;
     private final PreparationSourceService sourceService;
     private final PreparationWaiverService waiverService;
+    private final RequirementAnalysisQueryService requirementQueryService;
+    private final RequirementAnalysisCommandService requirementCommandService;
     private final Environment environment;
 
     @GetMapping
     @Operation(summary = "按项目查询当前工勘准备")
-    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:query','pms:preparation-survey:manage')")
-    public CommonResult<PreparationRespVO> getCurrent(
+    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:query','pms:preparation-survey:manage',"
+            + "'pms:requirement-analysis:query')")
+    public CommonResult<?> getCurrent(
             @RequestParam("projectId") @Positive Long projectId,
-            @RequestParam(value = "type", defaultValue = "PRE_02") String type) {
+            @RequestParam(value = "type", defaultValue = "PRE_02") String type,
+            @RequestParam(value = "history", defaultValue = "false") boolean history,
+            @Valid @ModelAttribute PreparationPageReqVO pageRequest) {
+        if (RequirementAnalysisQueryService.TYPE_ALIAS.equals(type)
+                || RequirementAnalysisQueryService.TYPE.equals(type)) {
+            return withTrustedTenant(() -> success(history
+                    ? requirementQueryService.getHistory(projectId, pageRequest, requirementActor())
+                    : requirementQueryService.getWorkspace(projectId, requirementActor())));
+        }
         return withTrustedTenant(() -> success(queryService.getCurrent(projectId, type, actor())));
+    }
+
+    @PostMapping
+    @Operation(summary = "创建首个需求分析草稿")
+    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
+    public CommonResult<RequirementAnalysisCommandService.CommandResult> createRequirementAnalysis(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody RequirementAnalysisCreateReqVO request) {
+        if (!RequirementAnalysisQueryService.TYPE_ALIAS.equals(request.getType())
+                && !RequirementAnalysisQueryService.TYPE.equals(request.getType())) {
+            throw exception(PREPARATION_COMMAND_INVALID);
+        }
+        return withTrustedTenant(() -> success(requirementCommandService.createInitial(
+                new RequirementAnalysisCommandService.CreateCommand(request.getProjectId(),
+                        request.getExpectedProjectVersion(), idempotencyKey), requirementCommandActor())));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "查询工勘准备详情")
-    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:query','pms:preparation-survey:manage')")
-    public CommonResult<PreparationRespVO> getDetail(@PathVariable("id") @Positive Long id) {
-        return withTrustedTenant(() -> success(queryService.getDetail(id, actor())));
+    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:query','pms:preparation-survey:manage','pms:requirement-analysis:query')")
+    public CommonResult<?> getDetail(@PathVariable("id") @Positive Long id) {
+        return withTrustedTenant(() -> requirementQueryService.owns(id,
+                TenantContextHolder.getRequiredTenantId())
+                ? success(requirementQueryService.getDetail(id, requirementActor()))
+                : success(queryService.getDetail(id, actor())));
     }
 
     @GetMapping("/{id}/items")
@@ -106,7 +140,7 @@ public class PreparationController {
         return withTrustedTenant(() -> success(itemApplicationService.getCandidates(id, request, commandActor())));
     }
 
-    @PatchMapping("/{id}/items/{itemId}")
+    @PatchMapping(value = "/{id}/items/{itemId}", params = "!type")
     @Operation(summary = "按字段存在性修改工勘项及固定表单")
     @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:manage','pms:preparation-survey:fill')")
     public CommonResult<PreparationItemPatchRespVO> patchItem(
@@ -130,7 +164,22 @@ public class PreparationController {
         });
     }
 
-    @PostMapping("/{id}/actions/submit")
+    @PatchMapping(value = "/{id}/items/{sectionId}", params = "type=PRE_04")
+    @Operation(summary = "按字段存在性保存需求分析章节")
+    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
+    public CommonResult<RequirementAnalysisCommandService.CommandResult> patchRequirementSection(
+            @PathVariable("id") @Positive Long id,
+            @PathVariable("sectionId") @Positive Long sectionId,
+            @RequestHeader("If-Match") String ifMatch,
+            @Valid @RequestBody RequirementAnalysisSectionPatchReqVO request) {
+        return withTrustedTenant(() -> success(requirementCommandService.patch(
+                new RequirementAnalysisCommandService.PatchCommand(id, sectionId, parseVersion(ifMatch),
+                        request.getExpectedContentVersion(),
+                        request.getExpectedProjectVersion(), request.getSubmittedFields(), request.getValue(),
+                        request.getAttachments()), requirementCommandActor())));
+    }
+
+    @PostMapping(value = "/{id}/actions/submit", params = "!type")
     @Operation(summary = "提交并冻结当前工勘准备版本")
     @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
     public CommonResult<PreparationReviewResult> submit(@PathVariable("id") @Positive Long id,
@@ -138,6 +187,44 @@ public class PreparationController {
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody PreparationReviewReqVO request) {
         return review(id, null, PreparationReviewCommand.SUBMIT, ifMatch, idempotencyKey, request);
+    }
+
+    @PostMapping(value = "/{id}/actions/submit", params = "type=PRE_04")
+    @Operation(summary = "完成并冻结需求分析版本")
+    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
+    public CommonResult<RequirementAnalysisCommandService.CommandResult> completeRequirementAnalysis(
+            @PathVariable("id") @Positive Long id,
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody RequirementAnalysisActionReqVO request) {
+        return withTrustedTenant(() -> success(requirementCommandService.complete(
+                new RequirementAnalysisCommandService.CompleteCommand(id, parseVersion(ifMatch),
+                        request.getExpectedContentVersion(), request.getExpectedProjectVersion(), idempotencyKey),
+                requirementCommandActor())));
+    }
+
+    @PostMapping("/{id}/actions/create-draft")
+    @Operation(summary = "从当前有效完成版创建需求分析修订草稿")
+    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:manage')")
+    public CommonResult<RequirementAnalysisCommandService.CommandResult> createRequirementAnalysisRevision(
+            @PathVariable("id") @Positive Long id,
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody RequirementAnalysisActionReqVO request) {
+        return withTrustedTenant(() -> success(requirementCommandService.createRevision(
+                new RequirementAnalysisCommandService.CreateRevisionCommand(id, parseVersion(ifMatch),
+                        request.getExpectedContentVersion(), request.getExpectedProjectVersion(), idempotencyKey),
+                requirementCommandActor())));
+    }
+
+    @GetMapping("/{id}/compare")
+    @Operation(summary = "对比同项目需求分析版本")
+    @PreAuthorize("@ss.hasPermission('pms:requirement-analysis:query')")
+    public CommonResult<?> compareRequirementAnalysis(
+            @PathVariable("id") @Positive Long id,
+            @RequestParam("targetPreparationId") @Positive Long targetPreparationId) {
+        return withTrustedTenant(() -> success(requirementQueryService.compare(
+                id, targetPreparationId, requirementActor())));
     }
 
     @PostMapping("/{id}/items/{itemId}/actions/{action}")
@@ -271,6 +358,20 @@ public class PreparationController {
         if (actorId == null || actorId <= 0) throw exception(PREPARATION_PROJECT_FACT_INVALID);
         return new PreparationItemApplicationService.Actor(TenantContextHolder.getRequiredTenantId(), actorId,
                 UUID.randomUUID().toString());
+    }
+
+    private RequirementAnalysisQueryService.Actor requirementActor() {
+        Long actorId = SecurityFrameworkUtils.getLoginUserId();
+        if (actorId == null || actorId <= 0) throw exception(PREPARATION_PROJECT_FACT_INVALID);
+        return new RequirementAnalysisQueryService.Actor(
+                TenantContextHolder.getRequiredTenantId(), actorId, UUID.randomUUID().toString());
+    }
+
+    private RequirementAnalysisCommandService.Actor requirementCommandActor() {
+        Long actorId = SecurityFrameworkUtils.getLoginUserId();
+        if (actorId == null || actorId <= 0) throw exception(PREPARATION_PROJECT_FACT_INVALID);
+        return new RequirementAnalysisCommandService.Actor(
+                TenantContextHolder.getRequiredTenantId(), actorId, UUID.randomUUID().toString());
     }
 
     private Integer parseVersion(String value) {

@@ -5,12 +5,14 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactRecord;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
 import org.junit.jupiter.api.AfterEach;
@@ -41,6 +43,9 @@ class ProjectWorkBindingFactApiImplTest {
             + item("OPTICAL_MODULE", 60) + "]}";
     private static final String BINDING_WITH_EXTENSION = BINDING.replace("]}",
             "," + extensionItem() + "]}");
+    private static final String REQUIREMENT_ANALYSIS_BINDING = "{\"schemaVersion\":1,"
+            + "\"catalogCode\":\"PRE_04_REQUIREMENT_ANALYSIS\",\"catalogVersion\":1,"
+            + "\"extensionItems\":[]}";
 
     @Mock
     private ProjectMasterMapper projectMapper;
@@ -86,6 +91,7 @@ class ProjectWorkBindingFactApiImplTest {
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract(0L, 3, BINDING_WITH_EXTENSION));
+        when(factMapper.selectTemplateRevisionFact(any())).thenReturn(templateRevision());
         assertEquals(7, JsonUtils.parseObject(api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
                 100L, 101L, 102L, 7, 3, 11)).itemConfigurationSnapshot(), List.class).size());
     }
@@ -110,6 +116,7 @@ class ProjectWorkBindingFactApiImplTest {
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract(0L, 3, BINDING));
+        when(factMapper.selectTemplateRevisionFact(any())).thenReturn(templateRevision());
 
         var fact = api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
                 100L, 101L, 102L, 7, 3, 11));
@@ -121,6 +128,39 @@ class ProjectWorkBindingFactApiImplTest {
                 ArgumentCaptor.forClass(ProjectWorkBindingFactLockQuery.class);
         verify(factMapper).selectProjectTaskForUpdate(captor.capture());
         verify(factMapper).selectCurrentContractForUpdate(captor.getValue());
+    }
+
+    @Test
+    void requirementAnalysisUsesControlledTupleAndReturnsRawFrozenSnapshot() {
+        when(factMapper.selectCurrentFacts(any())).thenReturn(List.of(requirementAnalysisRecord()));
+
+        var fact = api.inspect(new ProjectWorkBindingFactQuery(
+                100L, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+
+        assertEquals("REQUIREMENT_ANALYSIS", fact.targetObjectType());
+        assertEquals(REQUIREMENT_ANALYSIS_BINDING, fact.bindingParameterSnapshot());
+        assertEquals(900L, fact.templateRevisionId());
+        assertEquals(2, fact.templateRevisionNo());
+        assertEquals(null, fact.preparationTemplateCode());
+
+        ProjectWorkBindingTarget unsupported = new ProjectWorkBindingTarget(
+                "BUSINESS_OBJECT", "SOL", "OTHER", "OTHER");
+        assertThrows(ServiceException.class,
+                () -> api.inspect(new ProjectWorkBindingFactQuery(100L, unsupported)));
+    }
+
+    @Test
+    void requirementAnalysisLockRevalidatesTheSameControlledTuple() {
+        when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
+        when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
+        when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(requirementAnalysisContract());
+        when(factMapper.selectTemplateRevisionFact(any())).thenReturn(templateRevision());
+
+        var fact = api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
+                100L, 101L, 102L, 7, 3, 11, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+
+        assertEquals(REQUIREMENT_ANALYSIS_BINDING, fact.bindingParameterSnapshot());
+        assertEquals("PRE_04_REQUIREMENT_ANALYSIS", fact.targetObjectKey());
     }
 
     @Test
@@ -155,7 +195,13 @@ class ProjectWorkBindingFactApiImplTest {
     private static ProjectWorkBindingFactRecord record(long tenantId, String binding) {
         return new ProjectWorkBindingFactRecord(tenantId, 100L, 11, 101L, 7, 501L,
                 102L, 501L, "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION",
-                "PRE_02_SITE_SURVEY", binding, 2, 3);
+                "PRE_02_SITE_SURVEY", binding, 2, 3, 900L, 2);
+    }
+
+    private static ProjectWorkBindingFactRecord requirementAnalysisRecord() {
+        return new ProjectWorkBindingFactRecord(0L, 100L, 11, 101L, 7, 501L,
+                102L, 501L, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
+                "PRE_04_REQUIREMENT_ANALYSIS", REQUIREMENT_ANALYSIS_BINDING, 2, 3, 900L, 2);
     }
 
     private static ProjectMasterDO project(long tenantId, int version) {
@@ -189,6 +235,17 @@ class ProjectWorkBindingFactApiImplTest {
         contract.setSourceDefinitionVersion(2);
         contract.setContractVersion(version);
         contract.setTenantId(tenantId);
+        return contract;
+    }
+
+    private static ProjectTemplateRevisionFactRecord templateRevision() {
+        return new ProjectTemplateRevisionFactRecord(501L, 900L, 2);
+    }
+
+    private static ProjectTaskExecutionContractDO requirementAnalysisContract() {
+        ProjectTaskExecutionContractDO contract = contract(0L, 3, REQUIREMENT_ANALYSIS_BINDING);
+        contract.setTargetObjectType("REQUIREMENT_ANALYSIS");
+        contract.setTargetObjectKey("PRE_04_REQUIREMENT_ANALYSIS");
         return contract;
     }
 

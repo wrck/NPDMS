@@ -54,6 +54,7 @@ public final class TemplatePublishValidator {
         validateTaskGateRefs(content.getTasks(), content.getGates(), failures);
         validatePreparationBindings(content.getTasks(), fixedFormCatalogJson,
                 approvedPreparationItemCodes, failures);
+        validateRequirementAnalysisBindings(content.getTasks(), failures);
         return failures;
     }
 
@@ -61,6 +62,12 @@ public final class TemplatePublishValidator {
         return content != null && content.getTasks() != null && content.getTasks().stream()
                 .anyMatch(task -> task != null
                         && PreparationWorkBindingSchema.TARGET_OBJECT_KEY.equals(task.getTargetObjectKey()));
+    }
+
+    public static boolean requiresRequirementAnalysisBinding(TemplateDefinitionContent content) {
+        return content != null && content.getTasks() != null && content.getTasks().stream()
+                .anyMatch(task -> task != null
+                        && RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY.equals(task.getTargetObjectKey()));
     }
 
     private static void validateProcessReference(TemplateDefinitionContent content, List<String> failures) {
@@ -308,6 +315,33 @@ public final class TemplatePublishValidator {
         }
         if (matches > 1) {
             failures.add("PRE-02 WorkBinding必须在模板版本内唯一");
+        }
+    }
+
+    private static void validateRequirementAnalysisBindings(List<TemplateDefinitionContent.TaskDef> tasks,
+                                                             List<String> failures) {
+        if (tasks == null) {
+            return;
+        }
+        int matches = 0;
+        for (TemplateDefinitionContent.TaskDef task : tasks) {
+            if (task == null || !RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY.equals(
+                    task.getTargetObjectKey())) {
+                continue;
+            }
+            if (!RequirementAnalysisWorkBindingSchema.isRequirementAnalysisBinding(task)) {
+                failures.add("任务【" + task.getTaskCode() + "】PRE-04目标四元组无效");
+                continue;
+            }
+            matches++;
+            try {
+                RequirementAnalysisWorkBindingSchema.parseFrozen(task.getBindingConfig());
+            } catch (IllegalArgumentException ex) {
+                failures.add("任务【" + task.getTaskCode() + "】" + ex.getMessage());
+            }
+        }
+        if (matches > 1) {
+            failures.add("PRE-04 WorkBinding必须在模板版本内唯一");
         }
     }
 }

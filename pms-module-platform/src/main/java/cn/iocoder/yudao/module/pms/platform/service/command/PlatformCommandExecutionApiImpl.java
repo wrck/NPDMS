@@ -4,10 +4,8 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformIdempotencyRecordDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOperationAuditDO;
-import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOutboxEventDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOperationAuditMapper;
-import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOutboxEventMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.query.IdempotencyScopeQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -22,7 +20,6 @@ import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -32,14 +29,13 @@ public class PlatformCommandExecutionApiImpl implements PlatformCommandExecution
 
     public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
     public static final String STATUS_COMPLETED = "COMPLETED";
-    public static final String OUTBOX_STATUS_PENDING = "PENDING";
 
     @Resource
     private PlatformIdempotencyRecordMapper idempotencyMapper;
     @Resource
     private PlatformOperationAuditMapper auditMapper;
     @Resource
-    private PlatformOutboxEventMapper outboxMapper;
+    private PlatformTransactionalOutboxWriter outboxWriter;
 
     private final Clock clock = Clock.systemDefaultZone();
 
@@ -117,12 +113,11 @@ public class PlatformCommandExecutionApiImpl implements PlatformCommandExecution
         }
 
         if (!isBlank(facts.eventType())) {
-            persistOutbox(scope.tenantId(), UUID.randomUUID().toString(), facts.eventType(),
-                    facts.aggregateType(), facts.resourceKey(), facts.eventPayload(), now);
+            outboxWriter.write(scope.tenantId(), legacyEvent(facts), facts.aggregateType(),
+                    facts.resourceKey(), now);
         }
         for (PlatformCommandExecutionApi.BusinessEvent event : facts.businessEvents()) {
-            persistOutbox(scope.tenantId(), event.eventId(), event.eventType(),
-                    facts.aggregateType(), facts.resourceKey(), event.eventPayload(), now);
+            outboxWriter.write(scope.tenantId(), event, facts.aggregateType(), facts.resourceKey(), now);
         }
     }
 
@@ -143,22 +138,9 @@ public class PlatformCommandExecutionApiImpl implements PlatformCommandExecution
         }
     }
 
-    private void persistOutbox(Long tenantId, String eventId, String eventType,
-                               String aggregateType, String aggregateKey,
-                               String payload, LocalDateTime occurredAt) {
-        PlatformOutboxEventDO outbox = new PlatformOutboxEventDO();
-        outbox.setTenantId(tenantId);
-        outbox.setEventId(eventId);
-        outbox.setEventType(eventType);
-        outbox.setAggregateType(aggregateType);
-        outbox.setAggregateKey(aggregateKey);
-        outbox.setPayload(payload);
-        outbox.setStatus(OUTBOX_STATUS_PENDING);
-        outbox.setOccurredAt(occurredAt);
-        outbox.setRetryCount(0);
-        if (outboxMapper.insert(outbox) != 1) {
-            throw new IllegalStateException("平台Outbox事件写入失败");
-        }
+    private PlatformCommandExecutionApi.BusinessEvent legacyEvent(PlatformCommandExecutionApi.SuccessFacts facts) {
+        return new PlatformCommandExecutionApi.BusinessEvent(
+                java.util.UUID.randomUUID().toString(), facts.eventType(), facts.eventPayload());
     }
 
     private PlatformIdempotencyRecordDO reservation(IdempotencyScope scope, String requestDigest) {

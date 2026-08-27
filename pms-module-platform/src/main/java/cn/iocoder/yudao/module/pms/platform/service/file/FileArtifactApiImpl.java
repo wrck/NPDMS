@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.platform.service.file;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
@@ -23,6 +24,8 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionLock
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_ARTIFACT_NOT_FOUND;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_FACT_VERSION_CONFLICT;
@@ -38,15 +41,18 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     private final FileArtifactMapper artifactMapper;
     private final FileVersionMapper versionMapper;
     private final FileReferenceMapper referenceMapper;
+    private final ExistingFileVersionAttachmentService attachmentService;
 
     public FileArtifactApiImpl(FileBusinessObjectPolicyRegistry policyRegistry,
                                FileArtifactMapper artifactMapper,
                                FileVersionMapper versionMapper,
-                               FileReferenceMapper referenceMapper) {
+                               FileReferenceMapper referenceMapper,
+                               ExistingFileVersionAttachmentService attachmentService) {
         this.policyRegistry = policyRegistry;
         this.artifactMapper = artifactMapper;
         this.versionMapper = versionMapper;
         this.referenceMapper = referenceMapper;
+        this.attachmentService = attachmentService;
     }
 
     @Override
@@ -83,6 +89,11 @@ public class FileArtifactApiImpl implements FileArtifactApi {
             throw exception(FILE_FACT_VERSION_CONFLICT);
         }
         return fact;
+    }
+
+    @Override
+    public List<FileArtifactVersionFact> attachExistingVersions(AttachExistingFileVersionsCommand command) {
+        return attachmentService.attach(command);
     }
 
     private FileBusinessObjectPolicyQuery policyQuery(TrustedActor actor, FileArtifactVersionQuery query) {

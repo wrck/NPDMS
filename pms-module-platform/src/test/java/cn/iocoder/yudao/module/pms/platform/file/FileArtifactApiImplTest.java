@@ -16,6 +16,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
+import cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ class FileArtifactApiImplTest {
     @Mock FileArtifactMapper artifactMapper;
     @Mock FileVersionMapper versionMapper;
     @Mock FileReferenceMapper referenceMapper;
+    @Mock ExistingFileVersionAttachmentService attachmentService;
 
     private FileArtifactApiImpl api;
 
@@ -51,7 +53,8 @@ class FileArtifactApiImplTest {
         user.setId(9L);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(user, null, List.of()));
-        api = new FileArtifactApiImpl(policyRegistry, artifactMapper, versionMapper, referenceMapper);
+        api = new FileArtifactApiImpl(policyRegistry, artifactMapper, versionMapper, referenceMapper,
+                attachmentService);
     }
 
     @AfterEach

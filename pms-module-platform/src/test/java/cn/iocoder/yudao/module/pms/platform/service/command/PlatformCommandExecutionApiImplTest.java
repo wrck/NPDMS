@@ -3,10 +3,8 @@ package cn.iocoder.yudao.module.pms.platform.service.command;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformIdempotencyRecordDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOperationAuditDO;
-import cn.iocoder.yudao.module.pms.platform.dal.dataobject.command.PlatformOutboxEventDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOperationAuditMapper;
-import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformOutboxEventMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.query.IdempotencyScopeQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +37,7 @@ class PlatformCommandExecutionApiImplTest {
     @Mock
     private PlatformOperationAuditMapper auditMapper;
     @Mock
-    private PlatformOutboxEventMapper outboxMapper;
+    private PlatformTransactionalOutboxWriter outboxWriter;
 
     @InjectMocks
     private PlatformCommandExecutionApiImpl service;
@@ -53,7 +51,6 @@ class PlatformCommandExecutionApiImplTest {
         }).when(idempotencyMapper).insertIfAbsent(any(PlatformIdempotencyRecordDO.class));
         when(idempotencyMapper.updateById(any(PlatformIdempotencyRecordDO.class))).thenReturn(1);
         when(auditMapper.insert(any(PlatformOperationAuditDO.class))).thenReturn(1);
-        when(outboxMapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);
         SampleResponse response = response(100L);
 
         var result = service.execute(scope(), DIGEST_A, SampleResponse.class,
@@ -62,7 +59,7 @@ class PlatformCommandExecutionApiImplTest {
         assertEquals(PlatformCommandExecutionApi.Decision.NEW, result.decision());
         assertEquals(100L, result.response().id());
         verify(auditMapper).insert(any(PlatformOperationAuditDO.class));
-        verify(outboxMapper).insert(any(PlatformOutboxEventDO.class));
+        verify(outboxWriter).write(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -82,7 +79,7 @@ class PlatformCommandExecutionApiImplTest {
 
         assertEquals(PlatformCommandExecutionApi.Decision.NEW, result.decision());
         verify(auditMapper).insert(any(PlatformOperationAuditDO.class));
-        verifyNoInteractions(outboxMapper);
+        verifyNoInteractions(outboxWriter);
     }
 
     @Test
@@ -94,7 +91,6 @@ class PlatformCommandExecutionApiImplTest {
         }).when(idempotencyMapper).insertIfAbsent(any(PlatformIdempotencyRecordDO.class));
         when(idempotencyMapper.updateById(any(PlatformIdempotencyRecordDO.class))).thenReturn(1);
         when(auditMapper.insert(any(PlatformOperationAuditDO.class))).thenReturn(1);
-        when(outboxMapper.insert(any(PlatformOutboxEventDO.class))).thenReturn(1);
 
         service.execute(scope(), DIGEST_A, SampleResponse.class, () -> response(102L), ignored ->
                 new PlatformCommandExecutionApi.SuccessFacts("FILE_UPLOAD_COMPLETE", "FileArtifact", "102",
@@ -104,10 +100,10 @@ class PlatformCommandExecutionApiImplTest {
                         new PlatformCommandExecutionApi.BusinessEvent("evt-2", "FileReferenceAttached",
                                 "{\"eventId\":\"evt-2\"}"))));
 
-        var captor = org.mockito.ArgumentCaptor.forClass(PlatformOutboxEventDO.class);
-        verify(outboxMapper, times(2)).insert(captor.capture());
+        var captor = org.mockito.ArgumentCaptor.forClass(PlatformCommandExecutionApi.BusinessEvent.class);
+        verify(outboxWriter, times(2)).write(any(), captor.capture(), any(), any(), any());
         assertEquals(List.of("evt-1", "evt-2"),
-                captor.getAllValues().stream().map(PlatformOutboxEventDO::getEventId).toList());
+                captor.getAllValues().stream().map(PlatformCommandExecutionApi.BusinessEvent::eventId).toList());
     }
 
     @Test
@@ -125,7 +121,7 @@ class PlatformCommandExecutionApiImplTest {
                                 new PlatformCommandExecutionApi.BusinessEvent("evt-1", "A",
                                         "{\"eventId\":\"evt-other\"}")))));
         verify(auditMapper, never()).insert(any(PlatformOperationAuditDO.class));
-        verify(outboxMapper, never()).insert(any(PlatformOutboxEventDO.class));
+        verify(outboxWriter, never()).write(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -181,7 +177,7 @@ class PlatformCommandExecutionApiImplTest {
         assertThrows(IllegalStateException.class, () -> service.execute(scope(), DIGEST_A,
                 SampleResponse.class, () -> response(100L), ignored -> facts("100")));
 
-        verify(outboxMapper, never()).insert(any(PlatformOutboxEventDO.class));
+        verify(outboxWriter, never()).write(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -194,7 +190,7 @@ class PlatformCommandExecutionApiImplTest {
         when(idempotencyMapper.updateById(any(PlatformIdempotencyRecordDO.class))).thenReturn(1);
         when(auditMapper.insert(any(PlatformOperationAuditDO.class))).thenReturn(1);
         doThrow(new IllegalStateException("outbox failed"))
-                .when(outboxMapper).insert(any(PlatformOutboxEventDO.class));
+                .when(outboxWriter).write(any(), any(), any(), any(), any());
 
         assertThrows(IllegalStateException.class, () -> service.execute(scope(), DIGEST_A,
                 SampleResponse.class, () -> response(100L), ignored -> facts("100")));

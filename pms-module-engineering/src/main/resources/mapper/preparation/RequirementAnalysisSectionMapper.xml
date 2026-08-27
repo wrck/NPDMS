@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisSectionMapper">
+    <sql id="columns">
+        id, preparation_id, source_section_id, section_code, section_name, section_kind_code,
+        field_type_code, required_flag, dictionary_type, sort_order, schema_snapshot,
+        value_snapshot, attachment_reference_snapshot, version,
+        creator, create_time, updater, update_time, tenant_id
+    </sql>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_requirement_analysis_section
+        (preparation_id, source_section_id, section_code, section_name, section_kind_code,
+         field_type_code, required_flag, dictionary_type, sort_order, schema_snapshot,
+         value_snapshot, attachment_reference_snapshot, version,
+         creator, create_time, updater, update_time, tenant_id)
+        VALUES
+        (#{row.preparationId}, #{row.sourceSectionId}, #{row.sectionCode}, #{row.sectionName},
+         #{row.sectionKindCode}, #{row.fieldTypeCode}, #{row.requiredFlag}, #{row.dictionaryType},
+         #{row.sortOrder}, #{row.schemaSnapshot}, #{row.valueSnapshot},
+         #{row.attachmentReferenceSnapshot}, #{row.version}, COALESCE(#{row.creator}, ''),
+         COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)), COALESCE(#{row.updater}, ''),
+         COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId})
+    </insert>
+    <select id="selectById" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO">
+        SELECT <include refid="columns"/> FROM sol_requirement_analysis_section
+        WHERE tenant_id = #{query.tenantId} AND preparation_id = #{query.preparationId}
+          AND id = #{query.sectionId}
+    </select>
+    <select id="selectByIdentity" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO">
+        SELECT <include refid="columns"/> FROM sol_requirement_analysis_section
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.sectionId}
+    </select>
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO">
+        SELECT <include refid="columns"/> FROM sol_requirement_analysis_section
+        WHERE tenant_id = #{query.tenantId} AND preparation_id = #{query.preparationId}
+          AND id = #{query.sectionId} FOR UPDATE
+    </select>
+    <select id="selectList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO">
+        SELECT <include refid="columns"/> FROM sol_requirement_analysis_section
+        WHERE tenant_id = #{query.tenantId} AND preparation_id = #{query.preparationId}
+        ORDER BY sort_order, section_code, id
+    </select>
+    <select id="selectListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO">
+        SELECT <include refid="columns"/> FROM sol_requirement_analysis_section
+        WHERE tenant_id = #{query.tenantId} AND preparation_id = #{query.preparationId}
+        ORDER BY sort_order, section_code, id FOR UPDATE
+    </select>
+    <update id="patchIfMatch">
+        UPDATE sol_requirement_analysis_section
+        <set>
+            <if test="update.updateValue">value_snapshot = #{update.valueSnapshot},</if>
+            <if test="update.updateAttachments">attachment_reference_snapshot = #{update.attachmentReferenceSnapshot},</if>
+            version = version + 1,
+            updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3)
+        </set>
+        WHERE tenant_id = #{update.tenantId} AND preparation_id = #{update.preparationId}
+          AND id = #{update.sectionId} AND version = #{update.expectedVersion}
+    </update>
+</mapper>

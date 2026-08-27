@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -123,6 +124,13 @@ class ProjectWorkBindingFactMapperTest {
         assertEquals(taskId, facts.getFirst().projectTaskId());
         assertEquals(contractId, facts.getFirst().executionContractId());
         assertEquals(templateDefinitionId, facts.getFirst().templateTaskDefinitionId());
+        assertNotNull(facts.getFirst().templateRevisionId());
+        assertTrue(facts.getFirst().templateRevisionNo() >= 0);
+
+        var revision = mapper.selectTemplateRevisionFact(
+                new ProjectTemplateRevisionFactQuery(0L, templateDefinitionId));
+        assertNotNull(revision);
+        assertEquals(facts.getFirst().templateRevisionId(), revision.templateRevisionId());
 
         insertTaskAndContract(taskId + 10, contractId + 10, "TASK_NATIVE", null, null, null);
         assertEquals(1, mapper.selectCurrentFacts(lookup(0L)).size());

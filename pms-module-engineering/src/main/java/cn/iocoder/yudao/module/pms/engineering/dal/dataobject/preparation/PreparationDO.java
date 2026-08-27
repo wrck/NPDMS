@@ -15,6 +15,9 @@ public class PreparationDO implements Serializable {
     private String preparationTypeCode;
     private Integer businessVersion;
     private Integer currentMarker;
+    private Long sourcePreparationId;
+    private Integer draftMarker;
+    private Integer effectiveMarker;
     private Long templateId;
     private Long templateRevisionId;
     private String templateSnapshot;
@@ -25,6 +28,9 @@ public class PreparationDO implements Serializable {
     private Integer inputVersion;
     private Integer readinessVersion;
     private Boolean snapshotCurrent;
+    private Integer contentVersion;
+    private Long completedBy;
+    private LocalDateTime completedAt;
     private LocalDateTime submittedAt;
     private LocalDateTime confirmedAt;
     private LocalDateTime returnedAt;

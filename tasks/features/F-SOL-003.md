@@ -14,4 +14,4 @@
 
 - 按已批准Technical Plan完成一个F-SOL-003整体Implementation候选；全部接通后统一执行整体测试和验收。
 
-> 检查点（2026-08-27）：基线`31aa9ed4`；Technical Plan R1已GO；当前Gate为Implementation Done；已通过Feature Ready与Technical Plan，正向闭环边界已锁定；无阻塞；下一步一次性接通V99/V100、PROJ/PLT/SOL/API/UI后统一整体验收，不设中间PASS。
+> 检查点（2026-08-27）：基线`31aa9ed4`；当前Gate为Implementation Done；整体实现已接通，27模块、真实MySQL 7/7、前端16/16及lint/type/build、V1-V100与浏览器V1→V4/MinIO/权限负向通过；无阻塞；下一步提交唯一候选并送独立评审，GO前不回写PASS。

@@ -4,15 +4,19 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectWorkBindingFactRecord;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTemplateRevisionFactRecord;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
+import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +29,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TASK_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_VERSION_CONFLICT;
 
-/** 基于既有ProjectTask ExecutionContract的PRE-02冻结事实实现。 */
+/** 基于既有ProjectTask ExecutionContract的受控目标冻结事实实现。 */
 @Service
 @RequiredArgsConstructor
 public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi {
@@ -36,18 +40,19 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
     @Override
     public ProjectWorkBindingFact inspect(ProjectWorkBindingFactQuery query) {
         Long tenantId = trustedTenantId();
-        if (query == null || query.projectId() == null || query.projectId() <= 0) {
+        if (query == null || query.projectId() == null || query.projectId() <= 0
+                || !supportedTarget(query.target())) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
+        ProjectWorkBindingTarget target = query.target();
         List<ProjectWorkBindingFactRecord> records = factMapper.selectCurrentFacts(new ProjectWorkBindingFactLookupQuery(
-                tenantId, query.projectId(), PreparationWorkBindingSchema.BINDING_TYPE,
-                PreparationWorkBindingSchema.TARGET_CONTEXT, PreparationWorkBindingSchema.TARGET_OBJECT_TYPE,
-                PreparationWorkBindingSchema.TARGET_OBJECT_KEY));
+                tenantId, query.projectId(), target.workBindingTypeCode(), target.targetContextCode(),
+                target.targetObjectType(), target.targetObjectKey()));
         if (records == null || records.size() != 1) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
         ProjectWorkBindingFactRecord record = records.getFirst();
-        requireRecord(record, tenantId, query.projectId());
+        requireRecord(record, tenantId, query.projectId(), target);
         return toFact(record);
     }
 
@@ -76,17 +81,21 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         }
 
         ProjectTaskExecutionContractDO contract = factMapper.selectCurrentContractForUpdate(lockQuery);
-        requireContract(contract, task, tenantId, query.executionContractId());
+        requireContract(contract, task, tenantId, query.executionContractId(), query.target());
         if (!Objects.equals(contract.getContractVersion(), query.expectedContractVersion())) {
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
         }
-        return toFact(project, task, contract);
+        ProjectTemplateRevisionFactRecord revision = factMapper.selectTemplateRevisionFact(
+                new ProjectTemplateRevisionFactQuery(tenantId, contract.getTemplateTaskDefinitionId()));
+        requireTemplateRevision(revision, contract.getTemplateTaskDefinitionId());
+        return toFact(project, task, contract, revision);
     }
 
     private void validateRevalidation(ProjectWorkBindingFactRevalidationQuery query) {
         if (query == null || invalidId(query.projectId()) || invalidId(query.projectTaskId())
                 || invalidId(query.executionContractId()) || invalidVersion(query.expectedProjectTaskVersion())
-                || invalidVersion(query.expectedContractVersion()) || invalidVersion(query.expectedProjectVersion())) {
+                || invalidVersion(query.expectedContractVersion()) || invalidVersion(query.expectedProjectVersion())
+                || !supportedTarget(query.target())) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
     }
@@ -99,7 +108,8 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
         return value == null || value < 0;
     }
 
-    private void requireRecord(ProjectWorkBindingFactRecord record, Long tenantId, Long projectId) {
+    private void requireRecord(ProjectWorkBindingFactRecord record, Long tenantId, Long projectId,
+                               ProjectWorkBindingTarget target) {
         if (record == null || !Objects.equals(record.tenantId(), tenantId)
                 || !Objects.equals(record.projectId(), projectId) || record.projectVersion() == null
                 || invalidId(record.projectTaskId()) || record.projectTaskVersion() == null
@@ -107,14 +117,16 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                 || !Objects.equals(record.sourceDefinitionId(), record.templateTaskDefinitionId())
                 || record.sourceDefinitionVersion() == null || record.sourceDefinitionVersion() <= 0
                 || record.contractVersion() == null || record.contractVersion() <= 0
+                || invalidId(record.templateRevisionId())
+                || record.templateRevisionNo() == null || record.templateRevisionNo() < 0
                 || !exactTarget(record.workBindingTypeCode(), record.targetContextCode(),
-                record.targetObjectType(), record.targetObjectKey())) {
+                record.targetObjectType(), record.targetObjectKey(), target)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
     }
 
     private void requireContract(ProjectTaskExecutionContractDO contract, ProjectTaskInstanceDO task,
-                                 Long tenantId, Long executionContractId) {
+                                 Long tenantId, Long executionContractId, ProjectWorkBindingTarget target) {
         if (contract == null || !Objects.equals(contract.getTenantId(), tenantId)
                 || !Objects.equals(contract.getProjectTaskId(), task.getId())
                 || !Objects.equals(contract.getId(), executionContractId)
@@ -123,45 +135,78 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                 || contract.getSourceDefinitionVersion() == null || contract.getSourceDefinitionVersion() <= 0
                 || contract.getContractVersion() == null || contract.getContractVersion() <= 0
                 || !exactTarget(contract.getWorkBindingTypeCode(), contract.getTargetContextCode(),
-                contract.getTargetObjectType(), contract.getTargetObjectKey())) {
+                contract.getTargetObjectType(), contract.getTargetObjectKey(), target)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
     }
 
-    private boolean exactTarget(String bindingType, String context, String objectType, String objectKey) {
-        return PreparationWorkBindingSchema.BINDING_TYPE.equals(bindingType)
-                && PreparationWorkBindingSchema.TARGET_CONTEXT.equals(context)
-                && PreparationWorkBindingSchema.TARGET_OBJECT_TYPE.equals(objectType)
-                && PreparationWorkBindingSchema.TARGET_OBJECT_KEY.equals(objectKey);
+    private void requireTemplateRevision(ProjectTemplateRevisionFactRecord revision, Long definitionId) {
+        if (revision == null || !Objects.equals(revision.templateTaskDefinitionId(), definitionId)
+                || invalidId(revision.templateRevisionId())
+                || revision.templateRevisionNo() == null || revision.templateRevisionNo() < 0) {
+            throw exception(PROJECT_TASK_QUERY_INVALID);
+        }
+    }
+
+    private boolean exactTarget(String bindingType, String context, String objectType, String objectKey,
+                                ProjectWorkBindingTarget target) {
+        return Objects.equals(target.workBindingTypeCode(), bindingType)
+                && Objects.equals(target.targetContextCode(), context)
+                && Objects.equals(target.targetObjectType(), objectType)
+                && Objects.equals(target.targetObjectKey(), objectKey);
+    }
+
+    private boolean supportedTarget(ProjectWorkBindingTarget target) {
+        return target != null && target.isSupported();
     }
 
     private ProjectWorkBindingFact toFact(ProjectWorkBindingFactRecord record) {
-        PreparationWorkBindingSchema.ParsedBinding binding = parseFrozen(record.bindingParameterSnapshot());
+        BindingProjection binding = parseFrozen(record.targetObjectKey(), record.bindingParameterSnapshot());
         return new ProjectWorkBindingFact(record.projectId(), record.projectVersion(), record.projectTaskId(),
                 record.projectTaskVersion(), record.executionContractId(), record.contractVersion(),
                 record.templateTaskDefinitionId(), record.sourceDefinitionVersion(), record.workBindingTypeCode(),
                 record.targetContextCode(), record.targetObjectType(), record.targetObjectKey(),
                 binding.preparationTemplateCode(), binding.preparationTemplateRevision(),
-                binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot());
+                binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot(),
+                record.templateRevisionId(), record.templateRevisionNo(), record.bindingParameterSnapshot());
     }
 
     private ProjectWorkBindingFact toFact(ProjectMasterDO project, ProjectTaskInstanceDO task,
-                                          ProjectTaskExecutionContractDO contract) {
-        PreparationWorkBindingSchema.ParsedBinding binding = parseFrozen(contract.getBindingParameterSnapshot());
+                                          ProjectTaskExecutionContractDO contract,
+                                          ProjectTemplateRevisionFactRecord revision) {
+        BindingProjection binding = parseFrozen(contract.getTargetObjectKey(), contract.getBindingParameterSnapshot());
         return new ProjectWorkBindingFact(project.getId(), project.getVersion(), task.getId(), task.getVersion(),
                 contract.getId(), contract.getContractVersion(), contract.getTemplateTaskDefinitionId(),
                 contract.getSourceDefinitionVersion(), contract.getWorkBindingTypeCode(),
                 contract.getTargetContextCode(), contract.getTargetObjectType(), contract.getTargetObjectKey(),
                 binding.preparationTemplateCode(), binding.preparationTemplateRevision(),
-                binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot());
+                binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot(),
+                revision.templateRevisionId(), revision.templateRevisionNo(), contract.getBindingParameterSnapshot());
     }
 
-    private PreparationWorkBindingSchema.ParsedBinding parseFrozen(String snapshot) {
+    private BindingProjection parseFrozen(String targetObjectKey, String snapshot) {
         try {
-            return PreparationWorkBindingSchema.parseFrozen(snapshot);
+            if (PreparationWorkBindingSchema.TARGET_OBJECT_KEY.equals(targetObjectKey)) {
+                PreparationWorkBindingSchema.ParsedBinding binding = PreparationWorkBindingSchema.parseFrozen(snapshot);
+                return new BindingProjection(binding.preparationTemplateCode(),
+                        binding.preparationTemplateRevision(), binding.fixedFormCatalogVersion(),
+                        binding.itemConfigurationSnapshot());
+            }
+            if (RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY.equals(targetObjectKey)) {
+                RequirementAnalysisWorkBindingSchema.parseFrozen(snapshot);
+                return new BindingProjection(null, null, null, null);
+            }
+            throw new IllegalArgumentException("unsupported WorkBinding target");
         } catch (IllegalArgumentException ex) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
+    }
+
+    private record BindingProjection(
+            String preparationTemplateCode,
+            Integer preparationTemplateRevision,
+            Integer fixedFormCatalogVersion,
+            String itemConfigurationSnapshot) {
     }
 
     private Long trustedTenantId() {

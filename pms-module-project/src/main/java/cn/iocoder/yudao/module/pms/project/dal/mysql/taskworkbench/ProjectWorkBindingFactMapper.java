@@ -4,12 +4,13 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectT
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectWorkBindingFactLookupQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTemplateRevisionFactQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
-/** 既有ProjectTask ExecutionContract的PRE-02场景化查询。 */
+/** 既有ProjectTask ExecutionContract的受控WorkBinding场景化查询。 */
 @Mapper
 public interface ProjectWorkBindingFactMapper {
 
@@ -21,4 +22,7 @@ public interface ProjectWorkBindingFactMapper {
 
     ProjectTaskExecutionContractDO selectCurrentContractForUpdate(
             @Param("query") ProjectWorkBindingFactLockQuery query);
+
+    ProjectTemplateRevisionFactRecord selectTemplateRevisionFact(
+            @Param("query") ProjectTemplateRevisionFactQuery query);
 }

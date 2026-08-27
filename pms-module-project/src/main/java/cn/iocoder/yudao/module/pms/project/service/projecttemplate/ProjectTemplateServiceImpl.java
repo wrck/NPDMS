@@ -30,6 +30,7 @@ import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplatePublishValidator;
 import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
+import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -230,8 +233,9 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                 ? configApi.getConfigValueByKey(PreparationWorkBindingSchema.CONFIG_KEY) : null;
         Set<String> approvedPreparationItemCodes = requiresPreparationCatalog
                 ? getApprovedPreparationItemCodes() : null;
-        List<String> failures = TemplatePublishValidator.validate(
-                content, fixedFormCatalog, approvedPreparationItemCodes);
+        List<String> failures = freezeRequirementAnalysisBindings(content);
+        failures.addAll(TemplatePublishValidator.validate(
+                content, fixedFormCatalog, approvedPreparationItemCodes));
         if (!failures.isEmpty()) {
             String summary = String.join("；", failures);
             // 校验结果留痕到草稿行
@@ -257,7 +261,7 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         published.setPublishedBy(String.valueOf(SecurityFrameworkUtils.getLoginUserId()));
         published.setPublishedTime(LocalDateTime.now());
         revisionMapper.insert(published);
-        copyDefinitionRows(draft.getId(), published.getId());
+        insertDefinitionRows(published.getId(), content);
         // 模板转 ACTIVE
         ProjectTemplateDO statusUpdate = new ProjectTemplateDO();
         statusUpdate.setId(id);
@@ -279,6 +283,54 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
             }
         }
         return approved;
+    }
+
+    private List<String> freezeRequirementAnalysisBindings(TemplateDefinitionContent content) {
+        List<String> failures = new ArrayList<>();
+        if (!TemplatePublishValidator.requiresRequirementAnalysisBinding(content)) {
+            return failures;
+        }
+        for (TemplateDefinitionContent.TaskDef task : content.getTasks()) {
+            if (task == null || !RequirementAnalysisWorkBindingSchema.isRequirementAnalysisBinding(task)) {
+                continue;
+            }
+            try {
+                task.setBindingConfig(RequirementAnalysisWorkBindingSchema.freezeAndValidate(
+                        task.getBindingConfig(), this::resolveEnabledDictionaryOptions));
+            } catch (RuntimeException ex) {
+                failures.add("任务【" + task.getTaskCode() + "】PRE-04字典或绑定配置无效");
+            }
+        }
+        return failures;
+    }
+
+    List<RequirementAnalysisWorkBindingSchema.OptionSnapshot> resolveEnabledDictionaryOptions(
+            String dictionaryType,
+            List<RequirementAnalysisWorkBindingSchema.OptionSnapshot> requestedOptions) {
+        Set<String> requestedCodes = new HashSet<>();
+        requestedOptions.forEach(option -> requestedCodes.add(option.code()));
+        dictDataApi.validateDictDataList(dictionaryType, requestedCodes);
+        List<DictDataRespDTO> values = dictDataApi.getDictDataList(dictionaryType);
+        Map<String, String> enabledLabels = new LinkedHashMap<>();
+        if (values != null) {
+            for (DictDataRespDTO value : values) {
+                if (value != null && CommonStatusEnum.ENABLE.getStatus().equals(value.getStatus())
+                        && dictionaryType.equals(value.getDictType())
+                        && value.getValue() != null && !value.getValue().isBlank()
+                        && value.getLabel() != null && !value.getLabel().isBlank()) {
+                    enabledLabels.put(value.getValue().trim(), value.getLabel().trim());
+                }
+            }
+        }
+        List<RequirementAnalysisWorkBindingSchema.OptionSnapshot> resolved = new ArrayList<>();
+        for (String code : requestedCodes) {
+            String label = enabledLabels.get(code);
+            if (label == null) {
+                throw new IllegalArgumentException("PRE-04选择项未命中启用字典");
+            }
+            resolved.add(new RequirementAnalysisWorkBindingSchema.OptionSnapshot(code, label));
+        }
+        return resolved;
     }
 
     @Override
@@ -424,23 +476,6 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     private void replaceDefinitionRows(Long revisionId, TemplateDefinitionContent content) {
         physicallyDeleteDefinitionRows(revisionId);
         insertDefinitionRows(revisionId, content);
-    }
-
-    /**
-     * 草稿 → 已发布快照：复制定义行（草稿行保留，继续承载后续编辑）
-     */
-    private void copyDefinitionRows(Long draftRevisionId, Long publishedRevisionId) {
-        TemplateDefinitionContent content = loadContent(newDraftView(draftRevisionId));
-        insertDefinitionRows(publishedRevisionId, content);
-    }
-
-    /**
-     * 构造仅含ID的版本视图，供 loadContent 复用
-     */
-    private ProjectTemplateRevisionDO newDraftView(Long revisionId) {
-        ProjectTemplateRevisionDO view = new ProjectTemplateRevisionDO();
-        view.setId(revisionId);
-        return view;
     }
 
     private void insertDefinitionRows(Long revisionId, TemplateDefinitionContent content) {

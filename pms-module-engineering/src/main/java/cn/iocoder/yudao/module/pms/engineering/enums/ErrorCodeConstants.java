@@ -46,6 +46,13 @@ public interface ErrorCodeConstants {
     ErrorCode REQUIREMENT_CODE_DUPLICATE = new ErrorCode(1_011_002_001, "需求编码已存在");
     ErrorCode REQUIREMENT_STATUS_INVALID = new ErrorCode(1_011_002_002, "需求当前状态不允许该操作");
     ErrorCode REQUIREMENT_VERSION_NOT_MATCH = new ErrorCode(1_011_002_003, "需求版本号已变更，请刷新后重试");
+    ErrorCode REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID = new ErrorCode(1_011_002_004, "需求分析冻结配置无效");
+    ErrorCode REQUIREMENT_ANALYSIS_DRAFT_CONFLICT = new ErrorCode(1_011_002_005, "项目已存在需求分析草稿");
+    ErrorCode REQUIREMENT_ANALYSIS_CONTENT_INVALID = new ErrorCode(1_011_002_006, "需求分析内容或附件事实无效");
+    ErrorCode REQUIREMENT_ANALYSIS_FILE_FACT_INVALID = new ErrorCode(1_011_002_007, "需求分析附件事实已变化");
+    ErrorCode REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID = new ErrorCode(1_011_002_008, "需求分析项目资格或主体事实无效");
+    ErrorCode REQUIREMENT_ANALYSIS_COMMAND_INVALID = new ErrorCode(1_011_002_009, "需求分析命令参数无效");
+    ErrorCode REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE = new ErrorCode(1_011_002_010, "已完成需求分析事实不可用");
 
     // ========== 实施方案 solution 1-011-003-000 ==========
     ErrorCode SOLUTION_NOT_EXISTS = new ErrorCode(1_011_003_000, "实施方案不存在");

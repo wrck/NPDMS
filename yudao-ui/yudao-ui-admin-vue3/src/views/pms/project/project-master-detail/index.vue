@@ -74,6 +74,15 @@
             <Icon icon="ep:compass" class="rail-icon" />
             <span class="rail-label">工勘准备</span>
           </button>
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'requirement-analysis' }"
+            @click="switchTab('requirement-analysis')"
+            v-hasPermi="['pms:requirement-analysis:query', 'pms:requirement-analysis:manage']"
+          >
+            <Icon icon="ep:edit-pen" class="rail-icon" />
+            <span class="rail-label">需求分析</span>
+          </button>
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">项目拆分</div>
@@ -364,6 +373,12 @@
           :project="detail"
         />
 
+        <ProjectRequirementAnalysisPanel
+          v-if="detail?.id && visitedTabs.has('requirement-analysis')"
+          v-show="activeTab === 'requirement-analysis'"
+          :project="detail"
+        />
+
         <ProjectSplitWizard
           v-if="detail?.id && visitedTabs.has('split')"
           v-show="activeTab === 'split'"
@@ -429,6 +444,7 @@ import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchH
 import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
 import ProjectDurationPanel from './components/ProjectDurationPanel.vue'
 import ProjectPreparationPanel from './components/ProjectPreparationPanel.vue'
+import ProjectRequirementAnalysisPanel from './components/ProjectRequirementAnalysisPanel.vue'
 import type {
   ProjectMasterVO,
   ProjectInstancesVO,
@@ -450,7 +466,9 @@ const treeVersion = ref<number>()
 const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
 
-const requestedTab = ['tasks', 'duration'].includes(String(route.query.tab))
+const requestedTab = ['tasks', 'duration', 'preparation', 'requirement-analysis'].includes(
+  String(route.query.tab)
+)
   ? String(route.query.tab)
   : 'base'
 const activeTab = ref(requestedTab)

@@ -32,4 +32,9 @@ public interface ErrorCodeConstants {
     ErrorCode FILE_STORAGE_RECEIPT_CONFLICT = new ErrorCode(1_010_001_022, "文件存储回执存在冲突");
     ErrorCode FILE_STORAGE_COMPENSATION_FAILED = new ErrorCode(1_010_001_023, "文件存储补偿失败，需进入对账");
 
+    ErrorCode PLATFORM_COMMAND_KEY_CONFLICT = new ErrorCode(1_010_002_000,
+            "幂等键已绑定不同请求（PMS-PLATFORM-COMMAND-KEY-CONFLICT）");
+    ErrorCode PLATFORM_COMMAND_IN_PROGRESS = new ErrorCode(1_010_002_001,
+            "相同幂等请求正在处理中（PMS-PLATFORM-COMMAND-IN-PROGRESS）");
+
 }
