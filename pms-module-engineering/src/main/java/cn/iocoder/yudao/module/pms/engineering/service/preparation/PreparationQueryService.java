@@ -226,6 +226,7 @@ public class PreparationQueryService {
         response.setOutsourced(row.getOutsourced());
         response.setAssigneeUserId(row.getAssigneeUserId());
         response.setAssigneeEffectiveFrom(row.getAssigneeEffectiveFrom());
+        response.setNotApplicableReason(row.getNotApplicableReason());
         response.setSiteResultCode(row.getSiteResultCode());
         response.setSiteResultDetail(row.getSiteResultDetail());
         response.setEvidenceReferenceSnapshot(row.getEvidenceReferenceSnapshot());
@@ -259,7 +260,14 @@ public class PreparationQueryService {
                 && "REQUIRED".equals(item.getApplicabilityCode())) actions.add("PATCH_ASSIGNEE_FIELDS");
         if (actions.stream().anyMatch(action -> action.startsWith("PATCH_"))) actions.add("PATCH_ITEM");
         if (context.manager() && "PENDING_CONFIRMATION".equals(context.status())
-                && "PENDING".equals(item.getConfirmationStatusCode())) actions.add("REVIEW_ITEM");
+                && "PENDING".equals(item.getConfirmationStatusCode())) {
+            actions.add("NOT_APPLICABLE_PENDING".equals(item.getApplicabilityCode())
+                    ? "CONFIRM_NOT_APPLICABLE_ITEM" : "CONFIRM_ITEM");
+            actions.add("RETURN_ITEM");
+        } else if (context.manager() && "CONFIRMED".equals(item.getConfirmationStatusCode())
+                && Set.of("PENDING_CONFIRMATION", "CONFIRMED").contains(context.status())) {
+            actions.add("RETURN_ITEM");
+        }
         Map<?, ?> sourcePolicy = JsonUtils.parseObject(item.getSourcePolicySnapshot(), Map.class);
         if (context.manager() && "OA_REQUIRED".equals(
                 sourcePolicy == null ? null : sourcePolicy.get("requirementCode"))) {

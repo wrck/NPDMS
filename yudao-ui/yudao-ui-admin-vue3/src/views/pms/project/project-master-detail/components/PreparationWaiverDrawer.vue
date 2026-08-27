@@ -92,6 +92,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as PreparationApi from '@/api/pms/engineering/preparation'
 import type { PreparationItemVO, PreparationVO, WaiverVO } from '@/api/pms/engineering/preparation'
+import { createIntentKeyStore, intentOf } from './preparationInteraction'
 
 const props = defineProps<{ projectVersion: number }>()
 const emit = defineEmits<{ changed: [] }>()
@@ -113,6 +114,7 @@ const form = reactive({
   validFrom: '',
   validUntil: ''
 })
+const intentKeys = createIntentKeyStore()
 
 const open = async (current: PreparationVO, row: PreparationItemVO) => {
   preparation.value = current
@@ -143,23 +145,33 @@ const create = async () => {
   if (!preparation.value || !item.value) return
   saving.value = true
   try {
+    const payload = {
+      blockerCodes: form.blockerCodes
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean),
+      reason: form.reason,
+      risk: form.risk,
+      compensation: form.compensation,
+      validFrom: form.validFrom,
+      validUntil: form.validUntil
+    }
+    const intent = intentOf('CREATE_WAIVER', {
+      preparationId: preparation.value.preparationId,
+      preparationVersion: preparation.value.version,
+      itemId: item.value.itemId,
+      itemVersion: item.value.version,
+      projectVersion: props.projectVersion,
+      ...payload
+    })
     await PreparationApi.createWaiver(
       preparation.value,
       item.value,
       props.projectVersion,
-      {
-        blockerCodes: form.blockerCodes
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
-        reason: form.reason,
-        risk: form.risk,
-        compensation: form.compensation,
-        validFrom: form.validFrom,
-        validUntil: form.validUntil
-      },
-      crypto.randomUUID()
+      payload,
+      intentKeys.key(intent)
     )
+    intentKeys.complete(intent)
     message.success('豁免申请草稿已创建')
     visible.value = false
     emit('changed')
@@ -172,6 +184,16 @@ const act = async (row: WaiverVO, action: 'submit' | 'approve' | 'reject' | 'wit
   let opinion: string | undefined
   if (action === 'approve' || action === 'reject')
     opinion = (await message.prompt('请输入审批意见', '豁免审批')).value
+  const intent = intentOf(`WAIVER_${action}`, {
+    preparationId: preparation.value.preparationId,
+    preparationVersion: preparation.value.version,
+    itemId: item.value.itemId,
+    itemVersion: item.value.version,
+    waiverId: row.waiverId,
+    waiverVersion: row.version,
+    projectVersion: props.projectVersion,
+    opinion
+  })
   await PreparationApi.actWaiver(
     preparation.value,
     item.value,
@@ -179,8 +201,9 @@ const act = async (row: WaiverVO, action: 'submit' | 'approve' | 'reject' | 'wit
     action,
     props.projectVersion,
     opinion,
-    crypto.randomUUID()
+    intentKeys.key(intent)
   )
+  intentKeys.complete(intent)
   message.success('豁免状态已更新')
   visible.value = false
   emit('changed')

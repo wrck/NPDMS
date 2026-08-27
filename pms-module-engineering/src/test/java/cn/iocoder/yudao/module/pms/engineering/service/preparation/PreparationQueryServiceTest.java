@@ -174,6 +174,40 @@ class PreparationQueryServiceTest {
     }
 
     @Test
+    void managerReceivesExactConfirmAndReturnActionsAndProjectedReason() {
+        when(permissionApi.hasAnyPermissions(7L, PreparationItemApplicationService.PERMISSION_FILL)).thenReturn(false);
+        when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+                100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
+                "ACTIVE", "S1", 4, 9L));
+        PreparationDO preparation = preparation();
+        preparation.setStatusCode("PENDING_CONFIRMATION");
+        when(preparationMapper.selectById(any())).thenReturn(preparation);
+        PreparationItemDO item = item(200L, "POWER", 1);
+        item.setApplicabilityCode("NOT_APPLICABLE_PENDING");
+        item.setNotApplicableReason("现场条件不满足");
+        when(itemMapper.selectPage(any())).thenReturn(List.of(item));
+        DynamicFormInstanceDO form = form(200L, "FROZEN");
+        when(formMapper.selectListByItemIds(any())).thenReturn(List.of(form));
+        when(sourceMapper.selectList(any())).thenReturn(List.of());
+        when(waiverMapper.selectBusinessList(any())).thenReturn(List.of());
+
+        var projected = service.getItems(1000L, new PreparationPageReqVO(), actor).items().getFirst();
+
+        assertEquals("现场条件不满足", projected.getNotApplicableReason());
+        assertTrue(projected.getAllowedActions().contains("CONFIRM_NOT_APPLICABLE_ITEM"));
+        assertTrue(projected.getAllowedActions().contains("RETURN_ITEM"));
+        assertTrue(projected.getAllowedActions().stream().noneMatch("REVIEW_ITEM"::equals));
+
+        preparation.setStatusCode("CONFIRMED");
+        item.setApplicabilityCode("REQUIRED");
+        item.setConfirmationStatusCode("CONFIRMED");
+        assertEquals(List.of("RETURN_ITEM", "REFRESH_SOURCE"),
+                service.getItems(1000L, new PreparationPageReqVO(), actor)
+                        .items().getFirst().getAllowedActions());
+    }
+
+    @Test
     void missingPreparationReturnsEmptyOnlyWhenWorkBindingExists() {
         when(preparationMapper.selectCurrent(any())).thenReturn(null);
         when(workBindingFactApi.inspect(any())).thenReturn(null);
@@ -234,6 +268,19 @@ class PreparationQueryServiceTest {
         row.setOutsourced(false);
         row.setSourcePolicySnapshot("{\"requirementCode\":\"OA_REQUIRED\"}");
         row.setWaiverPolicySnapshot("{\"allowed\":false}");
+        row.setVersion(0);
+        return row;
+    }
+
+    private DynamicFormInstanceDO form(Long itemId, String status) {
+        DynamicFormInstanceDO row = new DynamicFormInstanceDO();
+        row.setId(300L);
+        row.setItemId(itemId);
+        row.setFormCode("POWER");
+        row.setFormVersion(1);
+        row.setSchemaSnapshot("{\"schemaVersion\":1}");
+        row.setValueSnapshot("{}");
+        row.setStatusCode(status);
         row.setVersion(0);
         return row;
     }

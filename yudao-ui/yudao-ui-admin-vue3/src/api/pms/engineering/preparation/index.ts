@@ -28,6 +28,7 @@ export interface PreparationItemVO {
   outsourced: boolean
   assigneeUserId?: number
   assigneeEffectiveFrom?: string
+  notApplicableReason?: string
   siteResultCode?: string
   siteResultDetail?: string
   evidenceReferenceSnapshot?: string
@@ -87,8 +88,23 @@ export interface EvidenceReference {
   artifactId: number
   versionNo: number
   referenceKey: string
-  fileFactVersion: number
+  fileFactVersion: {
+    artifactVersion: number
+    referenceVersion: number
+    availabilityVersion: number
+  }
   scopeVersion: number
+}
+
+export interface AssignmentCandidateVO {
+  userId: number
+  username: string
+  nickname: string
+  employeeNo?: string
+  companyId?: number
+  departmentId?: number
+  departmentCode?: string
+  departmentName?: string
 }
 
 export interface PatchPreparationItemReqVO {
@@ -191,7 +207,11 @@ export const getItems = (preparationId: number, params: { cursor?: string; pageS
 export const getAssignmentCandidates = (
   preparationId: number,
   params: { keyword?: string; pageNo?: number; pageSize?: number }
-) => request.get({ url: `${baseUrl}/${preparationId}/assignment-candidates`, params })
+) =>
+  request.get<PageResult<AssignmentCandidateVO[]>>({
+    url: `${baseUrl}/${preparationId}/assignment-candidates`,
+    params
+  })
 
 export const patchItem = (
   preparationId: number,

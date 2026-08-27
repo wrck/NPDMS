@@ -103,6 +103,7 @@ import type {
 import PreparationItemDrawer from './PreparationItemDrawer.vue'
 import PreparationWaiverDrawer from './PreparationWaiverDrawer.vue'
 import PreparationReadinessDrawer from './PreparationReadinessDrawer.vue'
+import { createIntentKeyStore, intentOf } from './preparationInteraction'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const message = useMessage()
@@ -113,6 +114,7 @@ const items = ref<PreparationItemVO[]>([])
 const itemRef = ref<InstanceType<typeof PreparationItemDrawer>>()
 const waiverRef = ref<InstanceType<typeof PreparationWaiverDrawer>>()
 const readinessRef = ref<InstanceType<typeof PreparationReadinessDrawer>>()
+const intentKeys = createIntentKeyStore()
 
 const load = async () => {
   if (!props.project.id) return
@@ -146,17 +148,29 @@ const load = async () => {
 const submit = async () => {
   if (!preparation.value) return
   await message.confirm('提交后固定表单将冻结并进入逐项确认，是否继续？')
-  await PreparationApi.submit(preparation.value, props.project.version || 0, crypto.randomUUID())
+  const intent = intentOf('SUBMIT', {
+    preparationId: preparation.value.preparationId,
+    preparationVersion: preparation.value.version,
+    projectVersion: props.project.version || 0
+  })
+  await PreparationApi.submit(preparation.value, props.project.version || 0, intentKeys.key(intent))
+  intentKeys.complete(intent)
   message.success('工勘准备已提交确认')
   await load()
 }
 const evaluate = async () => {
   if (!preparation.value) return
+  const intent = intentOf('EVALUATE_READINESS', {
+    preparationId: preparation.value.preparationId,
+    preparationVersion: preparation.value.version,
+    projectVersion: props.project.version || 0
+  })
   await PreparationApi.evaluateReadiness(
     preparation.value,
     props.project.version || 0,
-    crypto.randomUUID()
+    intentKeys.key(intent)
   )
+  intentKeys.complete(intent)
   message.success('已按当前权威事实完成就绪评估')
   await load()
 }
@@ -169,14 +183,23 @@ const review = async (
   if (action !== 'confirm')
     reason = (await message.prompt('请输入原因', action === 'return' ? '退回工勘项' : '确认不适用'))
       .value
+  const intent = intentOf(`REVIEW_${action}`, {
+    preparationId: preparation.value.preparationId,
+    preparationVersion: preparation.value.version,
+    itemId: item.itemId,
+    itemVersion: item.version,
+    projectVersion: props.project.version || 0,
+    reason
+  })
   await PreparationApi.reviewItem(
     preparation.value,
     item,
     action,
     props.project.version || 0,
     reason,
-    crypto.randomUUID()
+    intentKeys.key(intent)
   )
+  intentKeys.complete(intent)
   message.success('工勘项状态已更新')
   await load()
 }
@@ -189,23 +212,30 @@ const refreshSource = async (item: PreparationItemVO) => {
   const objectId =
     current?.sourceObjectId || (await message.prompt('请输入 OA 来源单号', '刷新权威来源')).value
   const referenceKey = current?.sourceReferenceKey || `oa-${objectType}-${objectId}`
+  const payload = {
+    expectedPreparationVersion: preparation.value.version,
+    expectedInputVersion: preparation.value.inputVersion,
+    expectedReadinessVersion: preparation.value.readinessVersion,
+    expectedItemVersion: item.version,
+    expectedSourceVersion: current?.sourceVersion,
+    expectedProjectVersion: props.project.version || 0,
+    sourceTypeCode: current?.sourceTypeCode || 'OA',
+    sourceObjectType: objectType,
+    sourceObjectId: objectId,
+    sourceReferenceKey: referenceKey
+  }
+  const intent = intentOf('REFRESH_SOURCE', {
+    preparationId: preparation.value.preparationId,
+    itemId: item.itemId,
+    ...payload
+  })
   await PreparationApi.refreshSource(
     preparation.value.preparationId,
     item.itemId,
-    {
-      expectedPreparationVersion: preparation.value.version,
-      expectedInputVersion: preparation.value.inputVersion,
-      expectedReadinessVersion: preparation.value.readinessVersion,
-      expectedItemVersion: item.version,
-      expectedSourceVersion: current?.sourceVersion,
-      expectedProjectVersion: props.project.version || 0,
-      sourceTypeCode: current?.sourceTypeCode || 'OA',
-      sourceObjectType: objectType,
-      sourceObjectId: objectId,
-      sourceReferenceKey: referenceKey
-    },
-    crypto.randomUUID()
+    payload,
+    intentKeys.key(intent)
   )
+  intentKeys.complete(intent)
   message.success('来源刷新已完成')
   await load()
 }
@@ -251,21 +281,20 @@ const ItemActions = ({ item }: { item: PreparationItemVO }) => (
         豁免
       </el-button>
     )}
-    {item.allowedActions.includes('REVIEW_ITEM') && (
-      <>
-        <el-button
-          link
-          type="success"
-          onClick={() =>
-            review(item, item.applicability === 'REQUIRED' ? 'confirm' : 'confirm-not-applicable')
-          }
-        >
-          确认
-        </el-button>
-        <el-button link type="danger" onClick={() => review(item, 'return')}>
-          退回
-        </el-button>
-      </>
+    {item.allowedActions.includes('CONFIRM_ITEM') && (
+      <el-button link type="success" onClick={() => review(item, 'confirm')}>
+        确认
+      </el-button>
+    )}
+    {item.allowedActions.includes('CONFIRM_NOT_APPLICABLE_ITEM') && (
+      <el-button link type="success" onClick={() => review(item, 'confirm-not-applicable')}>
+        确认不适用
+      </el-button>
+    )}
+    {item.allowedActions.includes('RETURN_ITEM') && (
+      <el-button link type="danger" onClick={() => review(item, 'return')}>
+        退回
+      </el-button>
     )}
   </div>
 )

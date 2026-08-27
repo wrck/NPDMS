@@ -47,6 +47,7 @@ class PreparationSourceAndWaiverServiceTest {
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         PreparationItemWaiverDO waiver = waiver();
+        waiver.setPreparationId(99L);
         waiver.setStatusCode("DRAFT");
         waiver.setApplicantUserId(7L);
         when(preparationMapper.selectById(any())).thenReturn(preparation);
@@ -60,6 +61,7 @@ class PreparationSourceAndWaiverServiceTest {
 
         var page = service.page(1L, 2L, null, 20, actor(7L));
 
+        assertEquals(99L, page.items().getFirst().preparationId());
         assertEquals(List.of("SUBMIT", "WITHDRAW"), page.items().getFirst().allowedActions());
     }
 
@@ -79,6 +81,7 @@ class PreparationSourceAndWaiverServiceTest {
         applicant.setApplicantUserId(7L);
         PreparationItemWaiverDO reviewable = waiver();
         reviewable.setId(42L);
+        reviewable.setPreparationId(99L);
         reviewable.setApplicantUserId(8L);
         when(preparationMapper.selectById(any())).thenReturn(preparation());
         when(itemMapper.selectList(any())).thenReturn(List.of(item()));

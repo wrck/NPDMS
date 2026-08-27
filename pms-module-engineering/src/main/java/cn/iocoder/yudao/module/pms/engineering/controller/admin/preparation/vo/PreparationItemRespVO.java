@@ -16,6 +16,7 @@ public class PreparationItemRespVO {
     private Boolean outsourced;
     private Long assigneeUserId;
     private LocalDateTime assigneeEffectiveFrom;
+    private String notApplicableReason;
     private String siteResultCode;
     private String siteResultDetail;
     private String evidenceReferenceSnapshot;

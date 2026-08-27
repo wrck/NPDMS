@@ -9,10 +9,13 @@
         <el-form-item label="适用性">
           <el-radio-group v-model="draft.applicabilityCode" :disabled="!canManager">
             <el-radio-button value="REQUIRED">适用</el-radio-button>
-            <el-radio-button value="NOT_APPLICABLE">不适用</el-radio-button>
+            <el-radio-button value="NOT_APPLICABLE_PENDING">不适用</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="draft.applicabilityCode === 'NOT_APPLICABLE'" label="不适用原因">
+        <el-form-item
+          v-if="draft.applicabilityCode === 'NOT_APPLICABLE_PENDING'"
+          label="不适用原因"
+        >
           <el-input
             v-model="draft.notApplicableReason"
             type="textarea"
@@ -20,8 +23,32 @@
             :disabled="!canManager"
           />
         </el-form-item>
-        <el-form-item label="负责人 ID">
-          <el-input-number v-model="draft.assigneeUserId" :min="1" :disabled="!canManager" />
+        <el-form-item label="负责人">
+          <el-select
+            v-model="draft.assigneeUserId"
+            clearable
+            filterable
+            remote
+            :remote-method="searchCandidates"
+            :loading="candidateLoading"
+            :disabled="!canManager"
+            placeholder="按姓名、账号或工号搜索"
+            @visible-change="openCandidateSelect"
+          >
+            <el-option
+              v-for="candidate in candidates"
+              :key="candidate.userId"
+              :value="candidate.userId"
+              :label="candidateLabel(candidate)"
+            />
+          </el-select>
+          <Pagination
+            v-if="canManager && candidateTotal > candidateQuery.pageSize"
+            v-model:page="candidateQuery.pageNo"
+            v-model:limit="candidateQuery.pageSize"
+            :total="candidateTotal"
+            @pagination="loadCandidates"
+          />
         </el-form-item>
         <el-form-item label="上架加电外包">
           <el-switch v-model="draft.outsourced" :disabled="!canManager" />
@@ -114,6 +141,7 @@
             :reference-key="referenceKey"
             category-code="SITE_SURVEY_EVIDENCE"
             :artifact-id="evidence?.artifactId"
+            :expected-reference-version="evidence?.fileFactVersion.referenceVersion"
             @completed="captureEvidence"
           />
         </section>
@@ -134,10 +162,13 @@ import type { FileSelection } from '@/components/PmsFileArtifact'
 import * as FileApi from '@/api/pms/platform/file'
 import * as PreparationApi from '@/api/pms/engineering/preparation'
 import type {
+  AssignmentCandidateVO,
   EvidenceReference,
+  PatchPreparationItemReqVO,
   PreparationItemVO,
   PreparationVO
 } from '@/api/pms/engineering/preparation'
+import { buildEvidenceReference, setChanged } from './preparationInteraction'
 
 const props = defineProps<{ projectVersion: number }>()
 const emit = defineEmits<{ saved: [] }>()
@@ -157,7 +188,23 @@ const canAssignee = computed(
 const editable = computed(() => canManager.value || canAssignee.value)
 const formValues = reactive<Record<string, any>>({})
 const evidence = ref<EvidenceReference>()
-const referenceKey = computed(() => `site-survey-${item.value?.itemCode || 'evidence'}`)
+const baseline = ref<{
+  applicabilityCode: string
+  outsourced: boolean
+  assigneeUserId: number | null
+  notApplicableReason: string | null
+  siteResultCode: string | null
+  siteResultDetail: string | null
+  formValues: Record<string, any>
+  evidence: EvidenceReference[]
+}>()
+const referenceKey = computed(
+  () => evidence.value?.referenceKey || `site-survey-${item.value?.itemCode || 'evidence'}`
+)
+const candidateLoading = ref(false)
+const candidates = ref<AssignmentCandidateVO[]>([])
+const candidateTotal = ref(0)
+const candidateQuery = reactive({ keyword: '', pageNo: 1, pageSize: 10 })
 const draft = reactive({
   applicabilityCode: 'REQUIRED',
   outsourced: false,
@@ -191,7 +238,7 @@ const open = (current: PreparationVO, row: PreparationItemVO) => {
     applicabilityCode: row.applicability,
     outsourced: row.outsourced,
     assigneeUserId: row.assigneeUserId,
-    notApplicableReason: '',
+    notApplicableReason: row.notApplicableReason || '',
     siteResultCode: row.siteResultCode || '',
     siteResultDetail: row.siteResultDetail || ''
   })
@@ -201,58 +248,155 @@ const open = (current: PreparationVO, row: PreparationItemVO) => {
     row.evidenceReferenceSnapshot,
     undefined
   )?.[0]
+  baseline.value = {
+    applicabilityCode: row.applicability,
+    outsourced: row.outsourced,
+    assigneeUserId: row.assigneeUserId ?? null,
+    notApplicableReason: row.notApplicableReason || null,
+    siteResultCode: row.siteResultCode || null,
+    siteResultDetail: row.siteResultDetail || null,
+    formValues: parseJson(JSON.stringify(formValues), {}),
+    evidence: evidence.value ? [parseJson(JSON.stringify(evidence.value), evidence.value)] : []
+  }
+  candidates.value = row.assigneeUserId
+    ? [
+        {
+          userId: row.assigneeUserId,
+          username: String(row.assigneeUserId),
+          nickname: `当前负责人 #${row.assigneeUserId}`
+        }
+      ]
+    : []
+  candidateTotal.value = candidates.value.length
   visible.value = true
+}
+
+const candidateLabel = (candidate: AssignmentCandidateVO) =>
+  [candidate.nickname || candidate.username, candidate.employeeNo, candidate.departmentName]
+    .filter(Boolean)
+    .join(' · ')
+
+const loadCandidates = async () => {
+  if (!preparation.value) return
+  candidateLoading.value = true
+  try {
+    const page = await PreparationApi.getAssignmentCandidates(
+      preparation.value.preparationId,
+      candidateQuery
+    )
+    candidates.value = page.list
+    candidateTotal.value = page.total
+  } finally {
+    candidateLoading.value = false
+  }
+}
+
+const searchCandidates = (keyword: string) => {
+  candidateQuery.keyword = keyword
+  candidateQuery.pageNo = 1
+  void loadCandidates()
+}
+
+const openCandidateSelect = (opened: boolean) => {
+  if (opened && candidates.value.length <= 1) void loadCandidates()
 }
 
 const captureEvidence = async (selection: FileSelection) => {
   if (!item.value) return
-  const artifact = await FileApi.getArtifact(selection.artifactId, {
+  const frozenReferenceKey = evidence.value?.referenceKey
+  const selectedReferenceKey = frozenReferenceKey || selection.referenceKey
+  const businessKey = {
     ownerContext: 'SOL',
     objectType: 'SITE_SURVEY_ITEM',
     objectId: String(item.value.itemId),
     purposeCode: 'SITE_SURVEY_EVIDENCE',
-    referenceKey: selection.referenceKey
-  })
-  evidence.value = {
-    artifactId: selection.artifactId,
-    versionNo: selection.versionNo,
-    referenceKey: selection.referenceKey,
-    fileFactVersion: artifact.artifactVersion,
-    scopeVersion: artifact.reference.scopeVersion
+    referenceKey: selectedReferenceKey
   }
+  const artifact = await FileApi.getArtifact(selection.artifactId, {
+    ...businessKey
+  })
+  let cursor: string | undefined
+  let version: FileApi.FileVersionVO | undefined
+  do {
+    const page = await FileApi.getVersions(selection.artifactId, {
+      ...businessKey,
+      cursor,
+      pageSize: 100
+    })
+    version = page.items.find((row) => row.versionNo === selection.versionNo)
+    cursor = version || !page.hasMore ? undefined : page.nextCursor
+  } while (cursor)
+  if (!version) throw new Error('FILE_VERSION_NOT_FOUND')
+  evidence.value = buildEvidenceReference(selection, artifact, version, frozenReferenceKey)
 }
 
 const save = async () => {
-  if (!preparation.value || !item.value) return
+  if (!preparation.value || !item.value || !baseline.value) return
   saving.value = true
   try {
+    const patch: PatchPreparationItemReqVO = {
+      expectedPreparationVersion: preparation.value.version,
+      expectedInputVersion: preparation.value.inputVersion,
+      expectedReadinessVersion: preparation.value.readinessVersion,
+      expectedFormVersion: item.value.form.version,
+      expectedProjectVersion: props.projectVersion
+    }
+    if (canManager.value) {
+      setChanged(
+        patch,
+        'applicabilityCode',
+        draft.applicabilityCode,
+        baseline.value.applicabilityCode
+      )
+      setChanged(patch, 'outsourced', draft.outsourced, baseline.value.outsourced)
+      setChanged(
+        patch,
+        'assigneeUserId',
+        draft.assigneeUserId ?? null,
+        baseline.value.assigneeUserId
+      )
+      setChanged(
+        patch,
+        'notApplicableReason',
+        draft.notApplicableReason || null,
+        baseline.value.notApplicableReason
+      )
+    }
+    if (canAssignee.value) {
+      setChanged(
+        patch,
+        'siteResultCode',
+        draft.siteResultCode || null,
+        baseline.value.siteResultCode
+      )
+      setChanged(
+        patch,
+        'siteResultDetail',
+        draft.siteResultDetail || null,
+        baseline.value.siteResultDetail
+      )
+      setChanged(
+        patch,
+        'formValueSnapshot',
+        JSON.stringify(formValues),
+        JSON.stringify(baseline.value.formValues)
+      )
+      setChanged(
+        patch,
+        'evidenceReferences',
+        evidence.value ? [evidence.value] : [],
+        baseline.value.evidence
+      )
+    }
+    if (Object.keys(patch).length === 5) {
+      message.info('没有需要保存的变化')
+      return
+    }
     await PreparationApi.patchItem(
       preparation.value.preparationId,
       item.value.itemId,
       item.value.version,
-      {
-        expectedPreparationVersion: preparation.value.version,
-        expectedInputVersion: preparation.value.inputVersion,
-        expectedReadinessVersion: preparation.value.readinessVersion,
-        expectedFormVersion: item.value.form.version,
-        expectedProjectVersion: props.projectVersion,
-        ...(canManager.value
-          ? {
-              applicabilityCode: draft.applicabilityCode,
-              outsourced: draft.outsourced,
-              assigneeUserId: draft.assigneeUserId,
-              notApplicableReason: draft.notApplicableReason
-            }
-          : {}),
-        ...(canAssignee.value
-          ? {
-              siteResultCode: draft.siteResultCode,
-              siteResultDetail: draft.siteResultDetail,
-              formValueSnapshot: JSON.stringify(formValues),
-              evidenceReferences: evidence.value ? [evidence.value] : []
-            }
-          : {})
-      }
+      patch
     )
     message.success('工勘项已保存')
     visible.value = false

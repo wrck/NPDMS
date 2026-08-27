@@ -277,8 +277,7 @@ public class PreparationWaiverService {
     private WaiverView view(PreparationItemWaiverDO row, PreparationDO preparation,
             PreparationItemApplicationService.Actor actor, boolean manager, Map<String, Boolean> approvalRoles) {
         List<String> actions = new ArrayList<>();
-        boolean current = Integer.valueOf(1).equals(preparation.getCurrentMarker())
-                && Objects.equals(row.getPreparationId(), preparation.getId());
+        boolean current = Integer.valueOf(1).equals(preparation.getCurrentMarker());
         if (current && manager && Objects.equals(row.getApplicantUserId(), actor.actorId())) {
             if ("DRAFT".equals(row.getStatusCode())) actions.add("SUBMIT");
             if (Set.of("DRAFT", "PENDING_APPROVAL").contains(row.getStatusCode())) actions.add("WITHDRAW");
