@@ -1,7 +1,7 @@
 ﻿# SDS Phase 2：文件设计
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`
 > Requirement ID：PLT-02，以及 PRE-02/04/05、SOL、EXE-01～04、IMP-01、ACC-01～04、ACC-06、CLO、CUT、INS、RES/SUB、INT-06/07/12 等使用文件和证据的正式需求
 > Owner：基础平台 File Capability；业务含义、审核和归档状态仍由引用该文件的 Owner Context 持有
 > 前置设计：`08-data-model.md`、`09-database-design.md`、`10-api-design.md`
@@ -33,14 +33,14 @@
 → 上传中
 → 已上传待校验
 → 哈希/大小/类型校验
-→ 安全扫描
+→ 按部署配置执行安全扫描或记录SKIPPED
 → 提交为FileVersion
 → 绑定业务引用
 → 业务审核/批准
 → 归档或失效引用
 ```
 
-技术状态和业务状态分离：安全扫描通过只表示内容技术可用，不表示交付件审核通过；ACC 归档不改变历史 FileVersion 内容。
+技术状态和业务状态分离：`PASSED`只表示已执行且通过安全扫描，`SKIPPED`只表示部署未启用扫描；二者均不表示交付件审核通过。扫描开关变更不改写历史FileVersion；ACC归档不改变历史FileVersion内容。
 
 ## 4. 上传契约
 
@@ -50,7 +50,7 @@
 
 ### 4.2 完成
 
-`POST /pms/v1/files/{artifactId}:complete-upload` 需携带 sessionId、服务端对象存储结果和幂等键。服务端校验实际大小、内容哈希、媒体嗅探类型、分片完整性和扫描状态；成功才创建不可变 FileVersion。
+`POST /pms/v1/files/{artifactId}:complete-upload` 需携带 sessionId、服务端对象存储结果和幂等键。服务端校验实际大小、内容哈希、媒体嗅探类型和分片完整性；部署启用安全扫描时必须取得`PASSED`，关闭时不调用Provider并记录`SKIPPED`。满足适用校验后才创建不可变FileVersion。
 
 ### 4.3 限制
 
@@ -58,6 +58,7 @@
 - 文件扩展名、声明 MIME 和内容嗅探必须一致或进入隔离。
 - 压缩包限制层数、展开后总大小和文件数，防止压缩炸弹；可执行内容按白名单策略处理。
 - 前端不能直接指定永久 storageKey、租户目录或可公开访问权限。
+- 安全扫描是平台级部署配置，默认关闭；关闭时Provider编码和版本为空，不得把`SKIPPED`展示或推导为`PASSED`。开启后Provider缺失、重复、异常、`ERROR/REJECTED`或未知结果均不得创建FileVersion。
 
 ## 5. 下载、预览与外发
 
@@ -129,6 +130,8 @@
 | 上传中断/会话过期 | 分片在宽限期清理；不创建 FileVersion |
 | 大小/哈希不符 | 隔离并返回稳定错误码，保留脱敏摘要 |
 | 病毒/不安全类型 | 拒绝业务绑定；仅安全管理员可查看隔离证据 |
+| 扫描关闭 | 继续大小、摘要、类型和策略校验；成功版本记录`SKIPPED`及空Provider事实，不表示扫描安全 |
+| 扫描开启但Provider不可用 | 完成上传失败关闭，不降级为`SKIPPED` |
 | 对象存在、数据库提交失败 | 补偿删除未引用对象或重新提交；按 session 幂等 |
 | 数据库存在、对象丢失 | 标记不可用、告警、从存储版本/备份恢复；不伪造空文件 |
 | 预览转换失败 | 原文件仍可按权限下载；预览显示失败，不改变审核状态 |

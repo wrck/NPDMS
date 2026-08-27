@@ -92,6 +92,20 @@ class Fplt001FeatureContractTest(unittest.TestCase):
         self.assertIn("same PLT transaction", facts["outboxPolicy"])
         self.assertIn("stable eventId", facts["outboxPolicy"])
 
+    def test_optional_security_scan_is_truthful_and_fail_closed_when_enabled(self) -> None:
+        version = self.contract["tables"]["plt_file_version"]
+        self.assertEqual({"PASSED", "SKIPPED"}, set(version["scanStatusCodes"]))
+        session = self.contract["tables"]["plt_file_upload_session"]
+        self.assertIn("PASSED when security scanning is enabled", session["successPolicy"])
+        self.assertIn("otherwise SKIPPED", session["successPolicy"])
+
+        provider = self.contract["interfaces"]["securityScanProvider"]
+        self.assertEqual({"PASSED", "REJECTED", "ERROR"}, set(provider["resultCodes"]))
+        self.assertIn("invokes no provider", provider["disabledPolicy"])
+        self.assertIn("null provider code/version", provider["disabledPolicy"])
+        self.assertIn("never degrades to SKIPPED", provider["failurePolicy"])
+        self.assertIn("CHG-PRD-2026-08-27-004", self.feature_spec)
+
     def test_feature_ready_go_is_recorded(self) -> None:
         self.assertEqual("BASELINE", self.contract["status"])
         self.assertIn("NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1", self.feature_spec)

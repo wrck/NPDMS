@@ -5,7 +5,8 @@
 > Requirement：`PLT-02（V1/P0，FR-PLT-008）`
 > Owner Context：`PLT（基础平台 File Capability）`
 > 前置能力：Yudao INFRA 文件存储配置、FileClient、私有对象存储和平台权限模型
-> 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
+> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`；SDS Phase 1/2/3 `BASELINE`
+> 实施增量：原强制扫描实现已完成；`CHG-PRD-2026-08-27-004`可选扫描增量待NPDMS实施复验
 > 边界裁决：`GO / NPDMS-FPLT001-BOUNDARY-20260826-01`
 > INFRA架构例外：`GO / NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`；`docs/decisions/0035-file-storage-receipt-adapter-exception.md`
 > Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成
@@ -55,8 +56,9 @@
 - `POST /files:init-upload`必须携带`Idempotency-Key`，并提交业务Context、对象类型/ID、用途、引用键、文件类型、文件名、声明大小和媒体类型；tenantId、上传人和存储目录不得由请求自报。
 - PLT先通过业务对象Provider验证对象存在、UPLOAD/REPLACE动作、项目范围、用途基数和允许策略，再提交`UploadSession`。初始化只返回artifactId、sessionId和expiresAt，不返回直传凭据或存储定位；sessionId同时作为受信`storageOperationId`。
 - 完成上传以`sessionId+服务端实际SHA-256`幂等，通过后端`multipart/form-data`接收文件。复用Yudao/Spring现有MultipartFile解析和`MaxUploadSizeExceededException`处理，只把NPDMS应用级单文件配置从当前16MB前向调至50MB、请求上限调至容纳单文件及表单开销；不修改基础框架。PLT再以`50MB+1字节`有界读取，超过上限时在完整载入和调用INFRA前拒绝；不得调用`MultipartFile.getBytes()`读取未知大小对象。
-- PLT校验实际大小、摘要、扩展名/声明MIME/内容嗅探类型、文件策略和安全扫描；客户端摘要只用于比对，不作为权威摘要。只有安全扫描`PASSED`且所有校验通过，才把已验证的有限`byte[]`交给`FileStorageReceiptApi.store(...)`，并在PLT事务中创建FileVersion、创建或CAS切换FileReference、完成UploadSession、写幂等成功、审计和锁定文件事件Outbox。
+- PLT始终校验实际大小、摘要、扩展名/声明MIME/内容嗅探类型和文件策略；客户端摘要只用于比对，不作为权威摘要。部署安全扫描默认关闭：关闭时不调用Provider并生成`SKIPPED`；开启时必须取得唯一Provider的`PASSED`。适用校验全部通过后，才把已验证的有限`byte[]`交给`FileStorageReceiptApi.store(...)`，并在PLT事务中创建FileVersion、创建或CAS切换FileReference、完成UploadSession、写幂等成功、审计和锁定文件事件Outbox。
 - 普通上传单文件不超过50MB；未知大小、超限、可执行白名单外内容、压缩包越界、类型不一致、扫描`REJECTED/ERROR`或技术存储冲突均不得产生可引用FileVersion。
+- `SKIPPED`只允许在部署关闭扫描时产生，Provider编码/版本为空，只表示未执行病毒扫描；开启扫描后Provider缺失、重复、异常、`ERROR/REJECTED`或未知结果均失败关闭，不得降级为`SKIPPED`。扫描开关变化不改写历史FileVersion。
 
 ### BR-FPLT001-003 换版、解绑、删除、失效和归档
 
@@ -133,7 +135,7 @@
 - `FileArtifactApi.inspect(FileArtifactVersionQuery)`：输入artifactId、versionNo、业务对象、用途、非空referenceKey和requiredAction；referenceKey与物理稳定键中的同名字段一致，按受信租户只检查该精确引用槽位，返回同一referenceKey、由`artifactVersion/referenceVersion/availabilityVersion`组成的`fileFactVersion`及业务`scopeVersion`；
 - `FileArtifactApi.lockAndRevalidate(FileArtifactVersionRevalidationQuery)`：除inspect稳定键和同一referenceKey外必须输入`expectedFileFactVersion`和`expectedScopeVersion`。同一事务先调用业务Provider锁定重验scope，再依次锁定Artifact、精确FileVersion、按完整稳定键定位的精确FileReference；锁后验证该Reference的artifactId、versionNo、status和referenceVersion，再比较版本可用性、Artifact生命周期及scopeVersion。任一变化、缺失或越租户均返回版本冲突且无消费方成功副作用；referenceKey为空或未命中不得省略条件并扩大查询。
 - `FileBusinessObjectPolicyProvider.inspect(...)`提供读取事实；`lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery)`按expectedScopeVersion锁定业务Owner事实并保持到调用事务结束，返回用途策略、引用可变性和当前scopeVersion；
-- `FileSecurityScanProvider.scan(FileSecurityScanCommand)`：PLT内部技术Provider，返回`PASSED/REJECTED/ERROR`及非敏感扫描版本/原因码；未配置或异常时完成上传失败关闭。
+- `FileSecurityScanProvider.scan(FileSecurityScanCommand)`：PLT内部技术Provider，只在部署启用扫描时装配和调用，返回`PASSED/REJECTED/ERROR`及非敏感扫描版本/原因码；启用后未配置、重复或异常时完成上传失败关闭。关闭时不调用Provider，由PLT策略层记录`SKIPPED`及空Provider事实。
 
 `artifactVersion`随Artifact生命周期变化递增，`referenceVersion`随绑定版本、引用状态或持久化范围事实变化递增，`availabilityVersion`随精确FileVersion的可用/失效/恢复变化递增；内容字段保持不可变。返回事实不包含文件正文、storagePath、INFRA URL或访问token。SOL冻结`artifactId+versionNo+referenceKey+fileFactVersion+scopeVersion`，并在自身事务以同一referenceKey通过`lockAndRevalidate`重验；PLT不接收SOL审批结论。
 
@@ -160,13 +162,13 @@
 - 提供可复用文件上传/换版、版本历史、引用状态、下载/预览和错误恢复组件，业务页面传入ownerContext、objectType、objectId、purposeCode和referenceKey，不传租户或永久存储定位。
 - 优先复用Yudao Upload、Table、Descriptions、Timeline、Dialog/Drawer和权限组件；无可复用时遵循Element Plus结构、主题变量和响应式断点，避免大量内联样式。
 - 320/768/1024/1440无页面级横向溢出；窄屏使用列表/抽屉，长文件名可换行或省略并提供可访问完整名称。
-- 上传进度不等于FileVersion完成；只有服务端完成校验和扫描后显示“可用”。失败显示稳定原因和重试入口，不伪造成功引用。
+- 上传进度不等于FileVersion完成；只有服务端完成全部适用校验后显示“可用”。UI/API必须区分`PASSED`与`SKIPPED`，不得把未扫描版本显示为扫描安全；失败显示稳定原因和重试入口，不伪造成功引用。
 
 ## 7. 验收标准
 
 - `AC-FPLT001-001`：新文件产生稳定Artifact和Version 1；同Artifact新内容只追加版本，旧内容、摘要和审批冻结引用不变。
 - `AC-FPLT001-002`：UploadSession初始化先校验真实业务对象权限；无Provider、多Provider、越租户、空范围、未知动作和scopeVersion变化失败关闭。
-- `AC-FPLT001-003`：完成上传使用服务端实际大小、SHA-256、MIME嗅探和安全扫描；类型/摘要/大小不符、病毒、扫描错误或对象缺失均不产生可引用Version。
+- `AC-FPLT001-003`：完成上传使用服务端实际大小、SHA-256和MIME嗅探；扫描关闭时不调用Provider且Version/审计/事件真实记录`SKIPPED`及空Provider事实，开启时只有`PASSED`成功。类型/摘要/大小不符、病毒、扫描错误、Provider缺失/重复/异常或对象缺失均不产生可引用Version，开启路径不得降级为`SKIPPED`。
 - `AC-FPLT001-004`：草稿Reference用If-Match切换到新版本；并发只一方成功，旧版本仍可按权限查询；不可变业务引用拒绝换版/解绑。
 - `AC-FPLT001-005`：未引用草稿可逻辑删除；存在活动/归档/业务冻结引用时拒绝，Artifact ID和版本号不重用。
 - `AC-FPLT001-006`：失效/不可用版本不能新引用、下载或预览，已有业务引用和审计仍可追溯；恢复不改变内容摘要。
