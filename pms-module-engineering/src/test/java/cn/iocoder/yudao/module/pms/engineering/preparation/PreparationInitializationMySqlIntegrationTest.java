@@ -81,6 +81,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -444,23 +445,10 @@ class PreparationInitializationMySqlIntegrationTest {
 
     @Test
     void changedSourceFactExpiresReadySnapshotAndEvaluateAppendsNotReady() {
-        transactionTemplate.executeWithoutResult(status -> {
-            insertProjectTaskAndContract();
-            service.initialize(command());
-        });
-        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
-                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
-        Long oaItemId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item "
-                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id LIMIT 1", Long.class, preparationId);
-        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
-                + "evidence_policy_snapshot='{\"required\":false}',"
-                + "source_policy_snapshot='{\"requirementCode\":\"NONE\"}' "
-                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
-        jdbcTemplate.update("UPDATE sol_preparation_item SET source_policy_snapshot="
-                + "'{\"requirementCode\":\"OA_REQUIRED\"}' WHERE tenant_id=0 AND id=?", oaItemId);
-        jdbcTemplate.update("UPDATE sol_dynamic_form_instance SET value_snapshot="
-                + "'{\"siteCondition\":\"正常\"}' WHERE tenant_id=0 AND preparation_id=?", preparationId);
-        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-SOURCE-" + projectId);
+        OaSourceDraft draft = prepareOaSourceDraft();
+        Long preparationId = draft.preparationId();
+        Long oaItemId = draft.itemId();
+        var actor = draft.actor();
         var refreshed = sourceService.refresh(new PreparationSourceService.SourceRefreshCommand(
                 preparationId, oaItemId, 0, 0, 0, 0, null, 4,
                 "OA", "REQUEST", "OA-" + projectId, "REF-" + projectId,
@@ -511,6 +499,48 @@ class PreparationInitializationMySqlIntegrationTest {
         assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) "
                 + "FROM sol_preparation_readiness_snapshot WHERE tenant_id=0 AND preparation_id=? "
                 + "AND result_code='NOT_READY'", Long.class, preparationId));
+    }
+
+    @Test
+    void providerFailuresPersistErrorAndPreserveLastSuccess() {
+        OaSourceDraft draft = prepareOaSourceDraft();
+        sourceProvider.fail();
+
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> sourceService.refresh(sourceCommand(draft, 0, 0, null,
+                        "SOURCE-FIRST-FAIL-" + projectId), draft.actor()));
+        Map<String, Object> firstFailure = sourceRow(draft.preparationId(), draft.itemId());
+        assertEquals("ERROR", firstFailure.get("sync_status_code"));
+        assertNull(firstFailure.get("normalized_result_code"));
+        assertNull(firstFailure.get("last_success_result_code"));
+        assertEquals(0, ((Number) firstFailure.get("version")).intValue());
+        assertEquals(1, currentPreparationVersion(draft.preparationId()));
+
+        sourceProvider.reset();
+        var recovered = sourceService.refresh(sourceCommand(draft, 1, 1, 0,
+                "SOURCE-RECOVER-" + projectId), draft.actor());
+        assertEquals("SYNCED", recovered.syncStatus());
+        assertEquals("F1", recovered.sourceFactVersion());
+        assertEquals("W1", recovered.sourceWatermark());
+
+        sourceProvider.fail();
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> sourceService.refresh(sourceCommand(draft, 2, 2, 1,
+                        "SOURCE-LATER-FAIL-" + projectId), draft.actor()));
+        Map<String, Object> laterFailure = sourceRow(draft.preparationId(), draft.itemId());
+        assertEquals("ERROR", laterFailure.get("sync_status_code"));
+        assertNull(laterFailure.get("normalized_result_code"));
+        assertNull(laterFailure.get("source_fact_version"));
+        assertNull(laterFailure.get("source_watermark"));
+        assertEquals("APPROVED", laterFailure.get("last_success_result_code"));
+        assertEquals("F1", laterFailure.get("last_success_fact_version"));
+        assertEquals("W1", laterFailure.get("last_success_watermark"));
+        assertEquals(2, ((Number) laterFailure.get("version")).intValue());
+        assertEquals(3, currentPreparationVersion(draft.preparationId()));
+        assertEquals(2L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+                + "WHERE tenant_id=0 AND aggregate_type='PreparationSource' AND aggregate_key=? "
+                + "AND operation_code='PREPARATION_SOURCE_REFRESH' AND result_code='REJECTED'",
+                Long.class, String.valueOf(((Number) laterFailure.get("id")).longValue())));
     }
 
     private PreparedReadiness prepareConfirmedNoSource() {
@@ -565,6 +595,41 @@ class PreparationInitializationMySqlIntegrationTest {
                 Integer.class, preparationId);
     }
 
+    private OaSourceDraft prepareOaSourceDraft() {
+        transactionTemplate.executeWithoutResult(status -> {
+            insertProjectTaskAndContract();
+            service.initialize(command());
+        });
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
+        Long itemId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id LIMIT 1", Long.class, preparationId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
+                + "evidence_policy_snapshot='{\"required\":false}',"
+                + "source_policy_snapshot='{\"requirementCode\":\"NONE\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET source_policy_snapshot="
+                + "'{\"requirementCode\":\"OA_REQUIRED\"}' WHERE tenant_id=0 AND id=?", itemId);
+        jdbcTemplate.update("UPDATE sol_dynamic_form_instance SET value_snapshot="
+                + "'{\"siteCondition\":\"正常\"}' WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        return new OaSourceDraft(preparationId, itemId,
+                new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-SOURCE-" + projectId));
+    }
+
+    private PreparationSourceService.SourceRefreshCommand sourceCommand(OaSourceDraft draft,
+            int preparationVersion, int inputVersion, Integer sourceVersion, String key) {
+        return new PreparationSourceService.SourceRefreshCommand(draft.preparationId(), draft.itemId(),
+                preparationVersion, inputVersion, 0, 0, sourceVersion, 4,
+                "OA", "REQUEST", "OA-" + projectId, "REF-" + projectId, key);
+    }
+
+    private Map<String, Object> sourceRow(Long preparationId, Long itemId) {
+        return jdbcTemplate.queryForMap("SELECT id,sync_status_code,normalized_result_code,source_fact_version,"
+                + "source_watermark,last_success_result_code,last_success_fact_version,last_success_watermark,version "
+                + "FROM sol_preparation_source_reference WHERE tenant_id=0 AND preparation_id=? AND item_id=?",
+                preparationId, itemId);
+    }
+
     private void insertProjectTaskAndContract() {
         jdbcTemplate.update("INSERT INTO proj_project "
                         + "(id,project_code,code_root_id,project_sequence,project_name,root_id,tree_path,"
@@ -616,6 +681,10 @@ class PreparationInitializationMySqlIntegrationTest {
 
     private record PreparedReadiness(Long preparationId, Integer preparationVersion,
                                      PreparationItemApplicationService.Actor actor) {
+    }
+
+    private record OaSourceDraft(Long preparationId, Long itemId,
+                                 PreparationItemApplicationService.Actor actor) {
     }
 
     private PreparationInitializationCommand command() {
@@ -712,15 +781,21 @@ class PreparationInitializationMySqlIntegrationTest {
     static class TestPreparationSourceProvider implements PreparationSourceFactProvider {
         private String factVersion;
         private String watermark;
+        private boolean unavailable;
 
         void reset() {
             factVersion = "F1";
             watermark = "W1";
+            unavailable = false;
         }
 
         void changeTo(String nextFactVersion, String nextWatermark) {
             factVersion = nextFactVersion;
             watermark = nextWatermark;
+        }
+
+        void fail() {
+            unavailable = true;
         }
 
         @Override
@@ -742,6 +817,11 @@ class PreparationInitializationMySqlIntegrationTest {
 
         private PreparationSourceFact fact(Long projectId, Long itemId, String objectType, String objectId,
                 String referenceKey) {
+            if (unavailable) {
+                throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
+                        cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants
+                                .PREPARATION_SOURCE_UNAVAILABLE);
+            }
             return new PreparationSourceFact(projectId, itemId, "OA", objectType, objectId, referenceKey,
                     "APPROVED", factVersion, watermark, true);
         }
