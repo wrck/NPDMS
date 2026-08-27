@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAssignManagerRespVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectAttributeClassifyReqVO;
@@ -60,6 +61,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.core.env.Environment;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -76,6 +78,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
@@ -115,6 +119,8 @@ public class ProjectMasterController {
     private ProjectTemplateMatchHistoryQueryService projectTemplateMatchHistoryQueryService;
     @Resource
     private ProjectServiceManagerQueryService projectServiceManagerQueryService;
+    @Resource
+    private Environment environment;
 
     @PostMapping
     @Operation(summary = "手工创建项目（Idempotency-Key 幂等；单事务创建+实例化+可选指派）")
@@ -131,9 +137,10 @@ public class ProjectMasterController {
                                 site.getPrimarySite())).toList(),
                 createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
                 idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
-        ManualProjectCreateResult result = projectManualCreationApplicationService.create(command,
-                new ProjectManualCreationApplicationService.Actor(
-                        currentTenantId(), actorId, UUID.randomUUID().toString()));
+        ManualProjectCreateResult result = withTrustedTenant(() ->
+                projectManualCreationApplicationService.create(command,
+                        new ProjectManualCreationApplicationService.Actor(
+                                currentTenantId(), actorId, UUID.randomUUID().toString())));
         return success(toResponse(result));
     }
 
@@ -385,6 +392,16 @@ public class ProjectMasterController {
     private Long currentTenantId() {
         Long tenantId = TenantContextHolder.getTenantId();
         return tenantId != null ? tenantId : 0L;
+    }
+
+    private <T> T withTrustedTenant(Supplier<T> action) {
+        if (TenantContextHolder.getTenantId() != null
+                || environment.getProperty("yudao.tenant.enable", Boolean.class, true)) {
+            return action.get();
+        }
+        AtomicReference<T> result = new AtomicReference<>();
+        TenantUtils.execute(0L, () -> result.set(action.get()));
+        return result.get();
     }
 
     private String sha256Digest(String content) {
