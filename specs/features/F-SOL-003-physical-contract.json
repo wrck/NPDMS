@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "F-SOL-003",
   "requirementIds": ["PRE-04"],
-  "status": "IN_REVIEW",
+  "status": "BASELINE",
   "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
   "phaseGateImpact": "FEATURE_READY_REVIEW_ONLY_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
   "owner": {
@@ -380,5 +380,5 @@
       "WRITE_PROJ_SCH_PLT_OR_INFRA_BUSINESS_TABLES"
     ]
   },
-  "featureReadyDecision": "PENDING_INDEPENDENT_REVIEW"
+  "featureReadyDecision": "GO_NPDMS-FSOL003-FEATURE-READY-20260827-01-R2"
 }

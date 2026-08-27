@@ -1,13 +1,13 @@
 # F-SOL-003 需求分析在线填写与版本冻结 Feature Spec
 
-> 文档状态：`IN_REVIEW`
-> Feature Ready：`NOT_READY / PENDING_INDEPENDENT_REVIEW`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO / NPDMS-FSOL003-FEATURE-READY-20260827-01-R2`
 > Requirement：`PRE-04（V1/P0）`
 > Owner Context：`SOL（交付准备与方案）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`、`F-PLT-001`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 边界裁决：`GO / NPDMS-FSOL003-BOUNDARY-20260827-01`
-> Technical Plan：Feature Ready独立GO且NPDMS锁定新规格提交后全新生成
+> Technical Plan：NPDMS锁定并同步本规格基线后全新生成
 
 ## 1. 目标
 
@@ -176,9 +176,9 @@
 |---|---|
 | PRE-04目标、11项核心、三个必填与版本规则 | PASS（PRD V1.8 §5.2.4） |
 | 独立Feature与上下游边界 | PASS（`NPDMS-FSOL003-BOUNDARY-20260827-01`） |
-| 草稿/有效双轴、数据和文件冻结 | CANDIDATE |
-| 权限、HTTP与SCH-01公共事实契约 | CANDIDATE |
-| 幂等、并发、审计、负向与响应式验收 | CANDIDATE |
-| 独立Feature Ready裁决 | PENDING |
+| 草稿/有效双轴、数据和文件冻结 | PASS |
+| 权限、HTTP与SCH-01公共事实契约 | PASS |
+| 幂等、并发、审计、负向与响应式验收 | PASS |
+| 独立Feature Ready裁决 | GO（`NPDMS-FSOL003-FEATURE-READY-20260827-01-R2`） |
 
-结论：`IN_REVIEW / NOT_READY`。仅允许提交本Feature Spec、机器物理契约、索引和PRE-04追溯候选进行独立Feature Ready评审；未取得GO前不得生成Technical Plan、Task或实施代码。本候选不重开已通过PRD/SDS门禁，也不代表Implementation、Deployment、SIT、UAT或Release通过。
+结论：`BASELINE / READY`。允许NPDMS锁定并同步本规格提交后全新生成Technical Plan；本裁决不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release通过。
