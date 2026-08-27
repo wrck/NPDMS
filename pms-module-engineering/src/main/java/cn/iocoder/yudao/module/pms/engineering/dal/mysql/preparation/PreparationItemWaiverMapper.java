@@ -11,6 +11,7 @@ import java.util.List;
 public interface PreparationItemWaiverMapper {
     int insert(@Param("row") PreparationItemWaiverDO row);
     PreparationItemWaiverDO selectForUpdate(@Param("query") PreparationWaiverRowQuery query);
+    List<PreparationItemWaiverDO> selectList(@Param("query") PreparationChildrenQuery query);
     List<PreparationItemWaiverDO> selectListForUpdate(@Param("query") PreparationChildrenQuery query);
     List<PreparationItemWaiverDO> selectPage(@Param("query") PreparationWaiverPageQuery query);
     int updateStatusIfMatch(@Param("update") PreparationWaiverStatusUpdate update);

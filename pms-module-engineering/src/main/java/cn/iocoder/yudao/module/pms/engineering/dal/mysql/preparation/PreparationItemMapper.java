@@ -12,6 +12,7 @@ public interface PreparationItemMapper {
     int insert(@Param("row") PreparationItemDO row);
     PreparationItemDO selectByObjectId(@Param("query") PreparationItemObjectQuery query);
     PreparationItemDO selectForUpdate(@Param("query") PreparationItemRowQuery query);
+    List<PreparationItemDO> selectList(@Param("query") PreparationChildrenQuery query);
     List<PreparationItemDO> selectListForUpdate(@Param("query") PreparationChildrenQuery query);
     List<PreparationItemDO> selectPage(@Param("query") PreparationItemPageQuery query);
     int updateDraftIfMatch(@Param("update") PreparationItemDraftUpdate update);

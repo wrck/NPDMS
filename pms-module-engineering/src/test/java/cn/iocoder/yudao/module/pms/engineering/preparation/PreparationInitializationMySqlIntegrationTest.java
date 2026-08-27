@@ -13,7 +13,9 @@ import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFor
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationInitializationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.command.PlatformIdempotencyRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
@@ -71,6 +73,7 @@ class PreparationInitializationMySqlIntegrationTest {
 
     @Resource PreparationInitializationService service;
     @Resource PreparationReviewService reviewService;
+    @Resource PreparationReadinessService readinessService;
     @Resource JdbcTemplate jdbcTemplate;
     @Resource TransactionTemplate transactionTemplate;
     @Resource PermissionApi permissionApi;
@@ -137,6 +140,10 @@ class PreparationInitializationMySqlIntegrationTest {
                 new FileArtifactVersionFact(301L, 2, "SITE", "SURVEY", "site.pdf", 100L,
                         "application/pdf", "sha", "AVAILABLE", "ACTIVE",
                         new FileFactVersion(1, 2, 3), 1L));
+        when(fileArtifactApi.inspect(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new FileArtifactVersionFact(301L, 2, "SITE", "SURVEY", "site.pdf", 100L,
+                        "application/pdf", "sha", "AVAILABLE", "ACTIVE",
+                        new FileFactVersion(1, 2, 3), 1L));
     }
 
     @AfterEach
@@ -144,6 +151,12 @@ class PreparationInitializationMySqlIntegrationTest {
         jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
             try (var statement = connection.createStatement()) {
                 statement.execute("SET FOREIGN_KEY_CHECKS=0");
+                statement.executeUpdate("DELETE FROM sol_preparation_readiness_snapshot WHERE tenant_id=0 "
+                        + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE project_id=" + projectId + ")");
+                statement.executeUpdate("DELETE FROM sol_preparation_item_waiver WHERE tenant_id=0 "
+                        + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE project_id=" + projectId + ")");
+                statement.executeUpdate("DELETE FROM sol_preparation_source_reference WHERE tenant_id=0 "
+                        + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE project_id=" + projectId + ")");
                 statement.executeUpdate("DELETE FROM sol_dynamic_form_instance WHERE tenant_id=0 "
                         + "AND preparation_id IN (SELECT id FROM sol_preparation WHERE project_id=" + projectId + ")");
                 statement.executeUpdate("DELETE FROM sol_preparation_item WHERE tenant_id=0 "
@@ -154,7 +167,8 @@ class PreparationInitializationMySqlIntegrationTest {
                 statement.executeUpdate("DELETE FROM proj_project_task WHERE tenant_id=0 AND project_id=" + projectId);
                 statement.executeUpdate("DELETE FROM proj_project WHERE tenant_id=0 AND id=" + projectId);
                 statement.executeUpdate("DELETE FROM plt_operation_audit WHERE tenant_id=0 "
-                        + "AND correlation_id IN ('PRE02-IT-" + projectId + "','PRE02-REVIEW-" + projectId + "')");
+                        + "AND correlation_id IN ('PRE02-IT-" + projectId + "','PRE02-REVIEW-" + projectId
+                        + "','PRE02-READY-" + projectId + "')");
                 statement.executeUpdate("DELETE FROM plt_idempotency_record WHERE tenant_id=0 "
                         + "AND actor_id=9 AND (idempotency_key='" + idempotencyKey + "' "
                         + "OR idempotency_key LIKE '%" + projectId + "%')");
@@ -215,7 +229,9 @@ class PreparationInitializationMySqlIntegrationTest {
         Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
                 + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
         jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
-                + "evidence_policy_snapshot='{\"required\":false}' WHERE tenant_id=0 AND preparation_id=?",
+                + "evidence_policy_snapshot='{\"required\":false}',"
+                + "source_policy_snapshot='{\"requirementCode\":\"NONE\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?",
                 preparationId);
         Long evidenceItemId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation_item "
                 + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id LIMIT 1", Long.class,
@@ -282,6 +298,54 @@ class PreparationInitializationMySqlIntegrationTest {
                 actor.correlationId()));
     }
 
+    @Test
+    void confirmedNoSourcePreparationEvaluatesReadyAndSameVectorReplaysSnapshot() {
+        transactionTemplate.executeWithoutResult(status -> {
+            insertProjectTaskAndContract();
+            service.initialize(command());
+        });
+        Long preparationId = jdbcTemplate.queryForObject("SELECT id FROM sol_preparation "
+                + "WHERE tenant_id=0 AND project_id=? AND current_marker=1", Long.class, projectId);
+        jdbcTemplate.update("UPDATE sol_preparation_item SET assignee_user_id=9,site_result_code='READY',"
+                + "evidence_policy_snapshot='{\"required\":false}',"
+                + "source_policy_snapshot='{\"requirementCode\":\"NONE\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        jdbcTemplate.update("UPDATE sol_dynamic_form_instance SET value_snapshot='{\"siteCondition\":\"正常\"}' "
+                + "WHERE tenant_id=0 AND preparation_id=?", preparationId);
+        assertSourcePolicies(preparationId, List.of("NONE"));
+        var actor = new PreparationItemApplicationService.Actor(0L, 9L, "PRE02-READY-" + projectId);
+        reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.SUBMIT,
+                preparationId, null, 0, null, 4, null, "READY-SUBMIT-" + projectId), actor);
+        assertSourcePolicies(preparationId, List.of("NONE"));
+        List<Long> itemIds = jdbcTemplate.queryForList("SELECT id FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY sort_order,id", Long.class, preparationId);
+        int preparationVersion = 1;
+        for (int index = 0; index < itemIds.size(); index++) {
+            preparationVersion = reviewService.execute(new PreparationReviewCommand(PreparationReviewCommand.CONFIRM,
+                    preparationId, itemIds.get(index), preparationVersion, 0, 4, null,
+                    "READY-CONFIRM-" + projectId + "-" + index), actor).preparationVersion();
+        }
+        assertSourcePolicies(preparationId, List.of("NONE"));
+
+        var first = readinessService.evaluate(new PreparationReadinessCommand(preparationId,
+                preparationVersion, 4, "READY-EVALUATE-" + projectId + "-1"), actor);
+        var replay = readinessService.evaluate(new PreparationReadinessCommand(preparationId,
+                first.readiness().preparationVersion(), 4, "READY-EVALUATE-" + projectId + "-2"), actor);
+
+        assertEquals("READY", first.readiness().readinessStatus(),
+                () -> "blockers=" + first.readiness().blockerCodes());
+        assertEquals(true, first.readiness().snapshotCurrent());
+        assertEquals(false, first.replayed());
+        assertEquals(true, replay.replayed());
+        assertEquals(first.readiness().latestSnapshotId(), replay.readiness().latestSnapshotId());
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=?", Long.class, preparationId));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT readiness_version FROM sol_preparation "
+                + "WHERE tenant_id=0 AND id=?", Integer.class, preparationId));
+        assertEquals("READY", jdbcTemplate.queryForObject("SELECT result_code FROM sol_preparation_readiness_snapshot "
+                + "WHERE tenant_id=0 AND preparation_id=?", String.class, preparationId));
+    }
+
     private void insertProjectTaskAndContract() {
         jdbcTemplate.update("INSERT INTO proj_project "
                         + "(id,project_code,code_root_id,project_sequence,project_name,root_id,tree_path,"
@@ -305,6 +369,12 @@ class PreparationInitializationMySqlIntegrationTest {
                         + "'PRE_02_SITE_SURVEY',?,'PRE_02_SITE_SURVEY_DEFAULT','BUSINESS_OBJECT_STATUS',"
                         + "'{\"requiredStatus\":\"DONE\"}',?,1,NOW(3),NULL,0,0)",
                 contractId, taskId, templateDefinitionId, bindingSnapshot, sourceDefinitionVersion);
+    }
+
+    private void assertSourcePolicies(Long preparationId, List<String> expected) {
+        assertEquals(expected, jdbcTemplate.queryForList("SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT("
+                + "source_policy_snapshot,'$.requirementCode')) FROM sol_preparation_item "
+                + "WHERE tenant_id=0 AND preparation_id=? ORDER BY 1", String.class, preparationId));
     }
 
     private PreparationInitializationCommand command() {
@@ -349,6 +419,7 @@ class PreparationInitializationMySqlIntegrationTest {
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             PreparationInitializationService.class, PreparationReviewService.class,
+            PreparationReadinessService.class,
             ProjectWorkBindingFactApiImpl.class,
             PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
     static class TestApplication {

@@ -24,16 +24,16 @@ class PreparationMapperContractTest {
                 "selectPage", "selectBusinessVersionForUpdate", "updateLifecycleIfMatch", "clearCurrentMarkerIfMatch",
                 "invalidateReadinessIfMatch", "updateReadinessIfMatch"));
         assertMapperContract(PreparationItemMapper.class, Set.of(
-                "insert", "selectByObjectId", "selectForUpdate", "selectListForUpdate", "selectPage",
+                "insert", "selectByObjectId", "selectForUpdate", "selectList", "selectListForUpdate", "selectPage",
                 "updateDraftIfMatch", "updateReviewIfMatch"));
         assertMapperContract(DynamicFormInstanceMapper.class, Set.of(
-                "insert", "selectForUpdate", "selectByItemForUpdate", "selectListForUpdate", "selectListByItemIds",
+                "insert", "selectForUpdate", "selectByItemForUpdate", "selectList", "selectListForUpdate", "selectListByItemIds",
                 "updateDraftIfMatch", "freezeIfMatch"));
         assertMapperContract(PreparationSourceReferenceMapper.class, Set.of(
-                "insert", "selectListForUpdate", "updateSyncIfMatch"));
+                "insert", "selectList", "selectListForUpdate", "updateSyncIfMatch"));
         assertMapperContract(PreparationItemWaiverMapper.class, Set.of(
-                "insert", "selectForUpdate", "selectListForUpdate", "selectPage", "updateStatusIfMatch"));
-        assertMapperContract(PreparationReadinessSnapshotMapper.class, Set.of("insert", "selectPage"));
+                "insert", "selectForUpdate", "selectList", "selectListForUpdate", "selectPage", "updateStatusIfMatch"));
+        assertMapperContract(PreparationReadinessSnapshotMapper.class, Set.of("insert", "selectById", "selectPage"));
     }
 
     @Test

@@ -13,12 +13,17 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.P
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReviewReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessEvaluateReqVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessSnapshotRespVO;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationItemApplicationService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReviewService;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewCommand;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReviewResult;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessCommand;
+import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PreparationReadinessResult;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,6 +63,7 @@ public class PreparationController {
     private final PreparationQueryService queryService;
     private final PreparationItemApplicationService itemApplicationService;
     private final PreparationReviewService reviewService;
+    private final PreparationReadinessService readinessService;
     private final Environment environment;
 
     @GetMapping
@@ -143,6 +149,27 @@ public class PreparationController {
             default -> throw exception(PREPARATION_COMMAND_INVALID);
         };
         return review(id, itemId, commandAction, ifMatch, idempotencyKey, request);
+    }
+
+    @PostMapping("/{id}/actions/evaluate-readiness")
+    @Operation(summary = "显式评估工勘实施就绪")
+    @PreAuthorize("@ss.hasPermission('pms:preparation-survey:manage')")
+    public CommonResult<PreparationReadinessResult> evaluateReadiness(
+            @PathVariable("id") @Positive Long id,
+            @RequestHeader("If-Match") String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody PreparationReadinessEvaluateReqVO request) {
+        return withTrustedTenant(() -> success(readinessService.evaluate(new PreparationReadinessCommand(
+                id, parseVersion(ifMatch), request.getExpectedProjectVersion(), idempotencyKey), commandActor())));
+    }
+
+    @GetMapping("/{id}/readiness-snapshots")
+    @Operation(summary = "稳定游标查询工勘就绪快照历史")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:preparation-survey:query','pms:preparation-survey:manage')")
+    public CommonResult<PreparationCursorPageRespVO<PreparationReadinessSnapshotRespVO>> getReadinessSnapshots(
+            @PathVariable("id") @Positive Long id,
+            @Valid @ModelAttribute PreparationPageReqVO request) {
+        return withTrustedTenant(() -> success(queryService.getReadinessSnapshots(id, request, actor())));
     }
 
     private CommonResult<PreparationReviewResult> review(Long preparationId, Long itemId, String action,

@@ -25,6 +25,13 @@
         )
     </insert>
 
+    <select id="selectById" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationReadinessSnapshotDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_readiness_snapshot
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+          AND id = #{query.snapshotId}
+    </select>
+
     <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationReadinessSnapshotDO">
         SELECT <include refid="columns"/> FROM sol_preparation_readiness_snapshot
         WHERE tenant_id = #{query.tenantId}

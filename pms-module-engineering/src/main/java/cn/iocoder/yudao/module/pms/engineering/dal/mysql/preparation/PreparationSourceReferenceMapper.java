@@ -11,6 +11,7 @@ import java.util.List;
 @Mapper
 public interface PreparationSourceReferenceMapper {
     int insert(@Param("row") PreparationSourceReferenceDO row);
+    List<PreparationSourceReferenceDO> selectList(@Param("query") PreparationChildrenQuery query);
     List<PreparationSourceReferenceDO> selectListForUpdate(@Param("query") PreparationChildrenQuery query);
     int updateSyncIfMatch(@Param("update") PreparationSourceSyncUpdate update);
 }

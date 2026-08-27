@@ -5,17 +5,21 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.P
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationItemRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationRespVO;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationReadinessSnapshotRespVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationReadinessSnapshotDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationReadinessSnapshotMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.DynamicFormItemListQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationCurrentQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationItemPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationRowQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationSnapshotPageQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
@@ -46,6 +50,7 @@ public class PreparationQueryService {
     private final PreparationMapper preparationMapper;
     private final PreparationItemMapper itemMapper;
     private final DynamicFormInstanceMapper formMapper;
+    private final PreparationReadinessSnapshotMapper snapshotMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectWorkBindingFactApi workBindingFactApi;
@@ -105,6 +110,22 @@ public class PreparationQueryService {
         List<PreparationDO> page = hasMore ? fetched.subList(0, size) : fetched;
         return new PreparationCursorPageRespVO<>(page.stream().map(this::toPreparation).toList(),
                 hasMore ? historyCursor(page.getLast()) : null, hasMore);
+    }
+
+    public PreparationCursorPageRespVO<PreparationReadinessSnapshotRespVO> getReadinessSnapshots(
+            Long preparationId, PreparationPageReqVO request, Actor actor) {
+        requireActor(actor);
+        PreparationDO preparation = preparationMapper.selectById(new PreparationRowQuery(
+                actor.tenantId(), positive(preparationId)));
+        requireVisible(preparation, actor);
+        SnapshotCursor cursor = parseSnapshotCursor(request == null ? null : request.getCursor());
+        int size = pageSize(request == null ? null : request.getPageSize());
+        List<PreparationReadinessSnapshotDO> fetched = snapshotMapper.selectPage(new PreparationSnapshotPageQuery(
+                actor.tenantId(), preparation.getId(), cursor.snapshotNo(), cursor.id(), size + 1));
+        boolean hasMore = fetched.size() > size;
+        List<PreparationReadinessSnapshotDO> page = hasMore ? fetched.subList(0, size) : fetched;
+        return new PreparationCursorPageRespVO<>(page.stream().map(this::toReadinessSnapshot).toList(),
+                hasMore ? snapshotCursor(page.getLast()) : null, hasMore);
     }
 
     private void requireBinding(Long projectId) {
@@ -197,6 +218,26 @@ public class PreparationQueryService {
         return response;
     }
 
+    private PreparationReadinessSnapshotRespVO toReadinessSnapshot(PreparationReadinessSnapshotDO row) {
+        PreparationReadinessSnapshotRespVO response = new PreparationReadinessSnapshotRespVO();
+        response.setSnapshotId(row.getId());
+        response.setSnapshotNo(row.getSnapshotNo());
+        response.setResult(row.getResultCode());
+        response.setRuleVersion(row.getRuleVersion());
+        response.setProjectScopeVersion(row.getProjectScopeVersion());
+        response.setInputVersion(row.getInputVersion());
+        response.setPreparationVersion(row.getPreparationVersion());
+        response.setReadinessVersion(row.getReadinessVersion());
+        response.setItemFacts(row.getItemFactsSnapshot());
+        response.setFileFacts(row.getFileFactsSnapshot());
+        response.setSourceFacts(row.getSourceFactsSnapshot());
+        response.setWaiverFacts(row.getWaiverFactsSnapshot());
+        response.setBlockers(row.getBlockersSnapshot());
+        response.setEvaluatedBy(row.getEvaluatedBy());
+        response.setEvaluatedAt(row.getEvaluatedAt());
+        return response;
+    }
+
     private ItemCursor parseItemCursor(String cursor) {
         if (cursor == null || cursor.isBlank()) return new ItemCursor(null, null, null);
         String[] parts = cursor.split("\\|", -1);
@@ -225,12 +266,30 @@ public class PreparationQueryService {
         }
     }
 
+    private SnapshotCursor parseSnapshotCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) return new SnapshotCursor(null, null);
+        String[] parts = cursor.split(":", -1);
+        try {
+            if (parts.length != 2) throw new IllegalArgumentException();
+            int snapshotNo = Integer.parseInt(parts[0]);
+            long id = Long.parseLong(parts[1]);
+            if (snapshotNo <= 0 || id <= 0) throw new IllegalArgumentException();
+            return new SnapshotCursor(snapshotNo, id);
+        } catch (IllegalArgumentException failure) {
+            throw exception(PREPARATION_COMMAND_INVALID);
+        }
+    }
+
     private String itemCursor(PreparationItemDO row) {
         return row.getSortOrder() + "|" + row.getItemCode() + "|" + row.getId();
     }
 
     private String historyCursor(PreparationDO row) {
         return row.getBusinessVersion() + ":" + row.getId();
+    }
+
+    private String snapshotCursor(PreparationReadinessSnapshotDO row) {
+        return row.getSnapshotNo() + ":" + row.getId();
     }
 
     private int pageSize(Integer requested) {
@@ -253,6 +312,9 @@ public class PreparationQueryService {
     }
 
     private record HistoryCursor(Integer businessVersion, Long id) {
+    }
+
+    private record SnapshotCursor(Integer snapshotNo, Long id) {
     }
 
     public record Actor(Long tenantId, Long actorId) {

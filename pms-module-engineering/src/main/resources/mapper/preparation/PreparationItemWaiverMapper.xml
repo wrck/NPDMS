@@ -43,6 +43,13 @@
         FOR UPDATE
     </select>
 
+    <select id="selectList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemWaiverDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item_waiver
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        ORDER BY item_id ASC, waiver_no ASC, id ASC
+    </select>
+
     <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemWaiverDO">
         SELECT <include refid="columns"/> FROM sol_preparation_item_waiver
         WHERE tenant_id = #{query.tenantId}

@@ -37,6 +37,13 @@
         FOR UPDATE
     </select>
 
+    <select id="selectList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationSourceReferenceDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_source_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        ORDER BY item_id ASC, source_type_code ASC, source_reference_key ASC, id ASC
+    </select>
+
     <update id="updateSyncIfMatch">
         UPDATE sol_preparation_source_reference
         SET sync_status_code = #{update.syncStatusCode},

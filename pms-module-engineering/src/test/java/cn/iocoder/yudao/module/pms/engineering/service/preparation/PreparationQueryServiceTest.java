@@ -5,9 +5,11 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.P
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.DynamicFormInstanceDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationReadinessSnapshotDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.DynamicFormInstanceMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationReadinessSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
@@ -36,6 +38,7 @@ class PreparationQueryServiceTest {
     @Mock private PreparationMapper preparationMapper;
     @Mock private PreparationItemMapper itemMapper;
     @Mock private DynamicFormInstanceMapper formMapper;
+    @Mock private PreparationReadinessSnapshotMapper snapshotMapper;
     @Mock private PermissionApi permissionApi;
     @Mock private ProjectScopeApi projectScopeApi;
     @Mock private ProjectWorkBindingFactApi workBindingFactApi;
@@ -92,6 +95,29 @@ class PreparationQueryServiceTest {
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.getCurrent(100L, "PRE_02", actor));
         assertEquals(PREPARATION_WORK_BINDING_NOT_AVAILABLE.getCode(), error.getCode());
+    }
+
+    @Test
+    void readinessSnapshotsUseStableCursor() {
+        when(preparationMapper.selectById(any())).thenReturn(preparation());
+        PreparationReadinessSnapshotDO first = new PreparationReadinessSnapshotDO();
+        first.setId(901L);
+        first.setSnapshotNo(3);
+        first.setResultCode("READY");
+        PreparationReadinessSnapshotDO second = new PreparationReadinessSnapshotDO();
+        second.setId(902L);
+        second.setSnapshotNo(4);
+        second.setResultCode("NOT_READY");
+        when(snapshotMapper.selectPage(any())).thenReturn(List.of(first, second));
+        PreparationPageReqVO request = new PreparationPageReqVO();
+        request.setPageSize(1);
+
+        var result = service.getReadinessSnapshots(1000L, request, actor);
+
+        assertEquals(1, result.items().size());
+        assertEquals(901L, result.items().getFirst().getSnapshotId());
+        assertEquals("3:901", result.nextCursor());
+        assertTrue(result.hasMore());
     }
 
     private PreparationDO preparation() {
