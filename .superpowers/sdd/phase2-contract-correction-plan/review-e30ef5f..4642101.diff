@@ -1,0 +1,767 @@
+# Review package: e30ef5f53c2fe4282bcec1c3b01fc517a7249cdd..46421013b92644619870395a5dd7a180a0601533
+
+## Commits
+4642101 fix(phase2): 修正核心对象索引回流门禁
+
+## Files changed
+ docs/baseline/baseline-signoff.md                  |   2 +-
+ docs/baseline/prd-v1.7.md                          |   4 +-
+ docs/baseline/requirement-baseline.yaml            |   2 +-
+ docs/engineering/gates/phase-2/self-review.md      |   4 +-
+ .../2026-08-10-PRD与13领域FR差异审查.md     |   2 +-
+ docs/traceability/business-feedback-change-map.md  |   2 +-
+ scripts/tests/test_validate_prd_baseline.py        |  39 ++++++++
+ scripts/tests/test_validate_sds_phase2.py          | 105 ++++++++++++++++++++-
+ scripts/validate_prd_baseline.py                   |  21 +++++
+ scripts/validate_sds_phase2.py                     |  71 ++++++++++----
+ 需求/PRD-项目实施交付管理平台.md       |   4 +-
+ 11 files changed, 229 insertions(+), 27 deletions(-)
+
+## Diff
+diff --git a/docs/baseline/baseline-signoff.md b/docs/baseline/baseline-signoff.md
+index f4d2985..fe02c30 100644
+--- a/docs/baseline/baseline-signoff.md
++++ b/docs/baseline/baseline-signoff.md
+@@ -2,21 +2,21 @@
+ 
+ ## 基线对象
+ 
+ | 项目 | 内容 |
+ |---|---|
+ | 产品 | 项目实施交付管理平台 |
+ | 版本 | V1.7 |
+ | 状态 | 正式基线 |
+ | 源文件 | `需求/PRD-项目实施交付管理平台.md` |
+ | 快照 | `docs/baseline/prd-v1.7.md` |
+-| SHA-256 | `AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C` |
++| SHA-256 | `B326CD56544BD4462B32C897843FDD4437F98F5F2FB021EF6E0C1E9A02B9EA11` |
+ | 生效日期 | 2026-08-14 |
+ 
+ ## 批准范围
+ 
+ - 103项V1/V2正式需求：V1 55项、V2 48项。
+ - 30项V3/跨需求演进追溯：不进入当前开发和验收承诺。
+ - 9项`OUT_OF_SCOPE`追溯：不进入当前开发、测试和版本规划。
+ - 13份领域规格：每项正式需求按唯一Owner归属。
+ 
+ ## 校验记录
+diff --git a/docs/baseline/prd-v1.7.md b/docs/baseline/prd-v1.7.md
+index 472a38e..e282793 100644
+--- a/docs/baseline/prd-v1.7.md
++++ b/docs/baseline/prd-v1.7.md
+@@ -528,21 +528,21 @@ V1.7当前状态为“正式基线”。V1.4历史整改记录仅用于过程追
+ | 5 | 巡检任务 | 售后设备巡检专项 | 新建→准备→执行（在线/离线）→报告→待办→闭环 | 巡检方式、巡检规则、检出问题、待办项 |
+ | 6 | 交付件 | 阶段产出物 | 生成→上传→审核→归档 | 类型（必传/选传）、关联里程碑、文件 |
+ | 7 | 客户/用户资产 | 客户主体及资产视图 | 同步/创建→维护→服务跟踪 | 用户编码、服务等级、联系人、项目/设备/故障/服务记录 |
+ | 8 | 转包申请 | 项目外包交付 | 申请→审批→执行→满意度门禁→付款→完成 | 转包类型、服务商、合同号、付款阶段、流程版本 |
+ | 9 | 项目任务 | 项目阶段或里程碑下的执行单元，支撑项目任务化管理（PM-11） | 待分配→待开始→进行中→待验收→完成/关闭 | 任务名称、任务类型（里程碑/阶段任务/子任务）、所属项目、所属里程碑/阶段、父任务（子任务支持）、责任人/执行人、计划时间、实际时间、进度、状态、跨区域指派标记 |
+ | 10 | 设备凭证 | 设备认证敏感信息及其使用授权 | 创建→启用→授权/撤销→轮换→停用 | 凭证标识、创建人、密文、密钥版本、设备范围、协议范围、命令模板范围、有效期、授权记录 |
+ | 11 | 采集任务 | 实施、割接、巡检或独立中心发起的统一设备采集请求 | 创建→授权校验→下发→执行→回调→业务消费→完成/失败 | 采集任务编号、来源业务、项目、设备、命令模板、认证方式、凭证引用或临时登录用户名、幂等键、外部任务号、外部状态原值、平台状态、结果引用 |
+ 
+ ## 3.4 核心数据模型
+ 
+-平台结合需求说明书、既有数据元和迁移证据设计核心实体及其关联关系；历史工单只读保留，不作为当前领域实体继续流转。
++平台结合需求说明书、既有数据元和迁移证据设计核心实体及其关联关系；历史工单、工时等不可删除事实仅由`AI-MIG-000`在批准的真实批次内保存为不可变来源载荷或受限迁移归档证据，不属于当前领域对象，不建立目标表、API或用户查询入口。
+ 
+ ### 3.4.1 实体关键字段清单
+ 
+ #### 3.4.1.1 项目实体
+ 
+ | 字段类别 | 关键字段 |
+ | ---- | ---- |
+ | 基础信息 | 项目编码、项目名称、合同号、签约方式（直签/非直签）、项目类别（普通/工程）、实施方式（原厂直服/原厂督导/代理商自服）、CRM重大项目级别、阶段（S0~S6） |
+ | 组织与行业 | 所属办事处、市场部、系统部、拓展部、子行业、销售、服务经理（一级/二级）、项目经理、团队成员、外协工程师 |
+ | 时间信息 | 创建时间、工期要求、合同验收时间、各阶段计划时间、各阶段实际时间 |
+@@ -8266,21 +8266,21 @@ V3仅定义未来演进目标，不属于当前V1/V2正式承诺范围。下列
+ 
+ ## 附录C 核心业务对象与数据元索引
+ 
+ 正文3.3和3.4共定义11个核心业务对象；字段详情以各对象正文及对应需求为准。
+ 
+ | 序号 | 核心业务对象 | 业务说明 | 主要来源 |
+ | ---- | ---- | ---- | ---- |
+ | 1 | 项目 | 平台核心数据，承载不限固定层级的项目交付生命周期 | PM-01～11 |
+ | 2 | 项目任务 | 支持不限固定层级的执行事项、责任和进度 | PM-11 |
+ | 3 | 设备 | 以序列号为核心的设备基本、版本、维保和运行档案 | EQP-01～05、EQP-07 |
+-| 4 | 工单 | 工时、实施及保障服务的工作记录 | WO-01～06 |
++| 4 | 满意度任务与问卷 | 项目成员执行的满意度收集、评分、签字和不达标整改重收 | ACC-02 |
+ | 5 | 割接任务 | 承载分级、采集、方案、审批、执行和归档 | CUT-01～10 |
+ | 6 | 巡检任务 | 承载在线/离线巡检、报告、问题和闭环 | INS-01～09 |
+ | 7 | 交付件 | 阶段产出物和准入准出门禁证据 | PM-03、ACC-04 |
+ | 8 | 客户资产 | 客户、联系人、项目、设备、故障和服务关系视图 | CUS-01～04 |
+ | 9 | 转包申请 | 转包申请、审批、执行、满意度门禁和付款载体 | SUB-01～05 |
+ | 10 | 设备凭证 | 长期加密保存并按显式授权受控使用的设备认证信息 | INT-12、NFR-02 |
+ | 11 | 采集任务 | 关联项目、设备、业务上下文、认证方式、命令模板和回调结果 | INT-12 |
+ 
+ ## 附录D 已确认决策索引
+ 
+diff --git a/docs/baseline/requirement-baseline.yaml b/docs/baseline/requirement-baseline.yaml
+index 388f0e6..a41c5dc 100644
+--- a/docs/baseline/requirement-baseline.yaml
++++ b/docs/baseline/requirement-baseline.yaml
+@@ -1,18 +1,18 @@
+ baseline:
+   product: project-delivery-platform
+   version: V1.7
+   status: formal-baseline
+   frozen_at: 2026-08-14
+   source: 需求/PRD-项目实施交付管理平台.md
+   snapshot: docs/baseline/prd-v1.7.md
+-  sha256: AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C
++  sha256: B326CD56544BD4462B32C897843FDD4437F98F5F2FB021EF6E0C1E9A02B9EA11
+ 
+ scope:
+   formal_requirements: 103
+   v1: 55
+   v2: 48
+   v3_evolution_trace: 30
+   out_of_scope_trace: 9
+   v3_implementation: false
+   out_of_scope_implementation: false
+ 
+diff --git a/docs/engineering/gates/phase-2/self-review.md b/docs/engineering/gates/phase-2/self-review.md
+index 11b63b1..775e30c 100644
+--- a/docs/engineering/gates/phase-2/self-review.md
++++ b/docs/engineering/gates/phase-2/self-review.md
+@@ -10,21 +10,21 @@
+ - 过程证据：实现事实盘点、Phase 2 gate status、执行计划。
+ - 追溯资产：103项 `requirement-matrix.md` 与生成器。
+ - 上游：PRD V1.7、SDS Phase 1 `BASELINE`。
+ 
+ ## 2. 已执行校验
+ 
+ | 校验 | 结果 |
+ |---|---|
+ | PRD语义校验 | PASS，0 semantic issues |
+ | 13领域生成校验 | PASS，formal=103、V3=30、OUT_OF_SCOPE=9 |
+-| 脚本单测 | PASS，217/217（含Phase 2、PRD独立白名单、结构化历史排除、历史API/对象/表/文件Context回流负测、免责声明绕过负测、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
++| 脚本单测 | PASS，223/223（含Phase 2、PRD独立白名单、附录C核心对象一致性、结构化历史排除、核心迁移契约全部7张WorkOrder/工时禁表、历史API/对象/表/中英文文件Context回流负测、免责声明绕过负测、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
+ | 业务命名门禁 | PASS |
+ | Phase 2专用校验 | PASS，含08a的9份正式分册元数据、103项显式契约及链接/锚点有效 |
+ | 追溯矩阵 | PASS，103个唯一Requirement，103行均链接逐项 `phase2-contract-map.md` |
+ | `git diff --check` | PASS |
+ 
+ 可重复执行命令：
+ 
+ ```powershell
+ py -3.13 -B scripts\validate_sds_phase2.py
+ py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
+@@ -43,20 +43,22 @@ git diff --check
+ | S2-R03 | `InspectionDispatched`最初把DAC列为Consumer | 与唯一采集请求契约方向冲突 | DAC只消费`CollectionTaskRequested`；Inspection事件仅供Todo/ANA |
+ | S2-R04 | 旧实现的维保/公告/license_key/状态字典语义漂移 | 将过时实现固化为目标能力 | 通过MaintenanceFact、ServiceHandover、ITR只读镜像、DeviceCredential和前向迁移纠正 |
+ | S2-R05 | 外部接口缺少当前环境端点、认证和数值型SLA | 无法直接联调/生产 | 登记为Feature联调前接口配置档案门禁，不虚构业务阈值 |
+ | S2-R06 | 显式保存凭证后本次任务仍被描述为临时模式 | 违反INT-12验收并导致授权快照缺失 | 改为凭证、默认创建人授权和任务原子创建；任务记录新凭证及授权快照，失败不降级 |
+ | S2-R07 | CRM/ERP合同订单Owner混写 | 外部字段相互覆盖 | 按已确认Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付范围与履约事实 |
+ | S2-R08 | PM-05/PM-06只有领域级通用落位 | 转销和多期关系无法实现 | 新增专属聚合、表、API、事件、并发、异常和权限契约 |
+ | S2-R09 | 正式需求仅校验文档链接，无法证明契约覆盖 | 机械追溯掩盖需求空洞 | 新增103项逐项显式契约映射和符号级校验，含缺块/不存在表的负向测试 |
+ | S2-R10 | 外部集成缺请求/响应字段和业务确认 | 无法判定接口成功与业务成功 | 12 §4.1逐系统登记字段、来源/幂等键、业务确认与失败处理 |
+ | S2-R11 | Collection完成可由模糊契约终态触发 | 业务结果未消费即误报完成 | 业务入口必须匹配消费确认；仅PRD独立中心允许成功终态回调完成，失败/取消分离 |
+ | S2-R12 | “历史事实不可删除”被误解为V1/V2历史工单/工时查询、导出和附件入口 | 恢复已后置的WO/工时能力并无端预建对象、表和权限 | Q-P2-001采用方案B：仅`AI-MIG-000`在批准真实批次内保存不可变来源载荷或受限归档证据；删除当前API和WO文件Context，并增加负向校验 |
++| S2-R13 | PRD正文3.3已删除工单核心对象并纳入满意度任务与问卷，但附录C仍列工单/WO-01～06 | 正式基线内部冲突可使下游重新恢复已后置能力 | 两份PRD附录C第4项改为满意度任务与问卷并回指ACC-02；3.4明确历史事实仅由`AI-MIG-000`保存证据；新增附录C负向门禁并同步SHA登记 |
++| S2-R14 | Phase 2校验器只拦两个历史对象和两张历史表 | 可用中文Context、非历史前缀或其他工时表绕过回流门禁 | 从核心迁移Schema契约读取`forbiddenV1V2Tables`，结构化拦截全部7张WorkOrder/工时禁表及对象别名，同时允许EXCLUDED/COMPATIBILITY_ONLY/历史排除证据与未来独立变更说明 |
+ 
+ ## 4. 关键语义核对
+ 
+ | 结论 | 状态 |
+ |---|---|
+ | 项目和任务不固定层级，层级与任务依赖正交 | PASS |
+ | 设备同一时点只有一个最具体项目归属，上级通过祖先投影统计 | PASS |
+ | 必要主数据保存本地同步副本，外部Owner不被平台覆盖 | PASS |
+ | IMP上传，ACC审核齐套与归档 | PASS |
+ | DAC是独立Context/子应用边界，平台不重建采集引擎 | PASS |
+diff --git a/docs/reports/2026-08-10-PRD与13领域FR差异审查.md b/docs/reports/2026-08-10-PRD与13领域FR差异审查.md
+index cb289f5..f85ea98 100644
+--- a/docs/reports/2026-08-10-PRD与13领域FR差异审查.md
++++ b/docs/reports/2026-08-10-PRD与13领域FR差异审查.md
+@@ -1,13 +1,13 @@
+ # PRD 与 13 领域 FR 完整差异审核报告
+ 
+-> 2026-08-14基线增量：当前PRD为V1.7正式基线，SHA-256为`AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C`。按ADR-0026，CUT-01是P1～P6唯一割接核心任务，CUT-11退出V1/V2及CUT领域，WO-06后置为工单领域V3候选；当前正式需求为103项（V1 55、V2 48），V3/跨需求演进追溯30项。13领域已按唯一Owner重新生成并通过103项正式需求、30项V3和9项排除追溯校验；CUT领域仅保留CUT-01～CUT-10，IMP的EXE-06完成条件同步删除稳定观察依赖。本文后续V1.4段落保留为历史差异证据，不得覆盖本增量结论。
++> 2026-08-14基线增量：当前PRD为V1.7正式基线，SHA-256为`B326CD56544BD4462B32C897843FDD4437F98F5F2FB021EF6E0C1E9A02B9EA11`。按ADR-0026，CUT-01是P1～P6唯一割接核心任务，CUT-11退出V1/V2及CUT领域，WO-06后置为工单领域V3候选；当前正式需求为103项（V1 55、V2 48），V3/跨需求演进追溯30项。13领域已按唯一Owner重新生成并通过103项正式需求、30项V3和9项排除追溯校验；CUT领域仅保留CUT-01～CUT-10，IMP的EXE-06完成条件同步删除稳定观察依赖。本文后续V1.4段落保留为历史差异证据，不得覆盖本增量结论。
+ 
+ > 审核日期：2026-08-10；基线化更新日期：2026-08-11<br>
+ > 当前PRD状态：`需求/PRD-项目实施交付管理平台.md`（V1.4，基线整改中）<br>
+ > 领域规格基线：`specs/001-project-delivery-platform/domains/*.md`<br>
+ > 领域规格基线提交：`b583dc0`<br>
+ > 审核对象：100项PRD V1/V2正式需求（主版本V1 52项、V2 48项）、8项PRD V3演进编号、2项PRD V3跨需求P2演进方向、8项OUT_OF_SCOPE追溯编号（2项PRD旧编号与6项领域FR）、145项领域FR来源编号、7项领域V3演进项<br>
+ > 修改边界：本轮按已确认差异结论和语义整改设计同步校准PRD与本报告，不修改领域规格、原始Excel/HTML及追溯矩阵
+ 
+ ## 1. 审核结论
+ 
+diff --git a/docs/traceability/business-feedback-change-map.md b/docs/traceability/business-feedback-change-map.md
+index 802e220..b49ae38 100644
+--- a/docs/traceability/business-feedback-change-map.md
++++ b/docs/traceability/business-feedback-change-map.md
+@@ -1,17 +1,17 @@
+ # V1.6 → V1.7业务反馈变更映射
+ 
+ > 状态：`BASELINE`<br>
+ > 批准依据：`docs/decisions/0024-business-feedback-change-baseline.md`<br>
+ > 源基线：PRD V1.6，115项V1/V2正式需求<br>
+ > 目标基线：PRD V1.7，103项V1/V2正式需求（V1 55、V2 48）
+-> 目标PRD与快照SHA-256：`AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C`
++> 目标PRD与快照SHA-256：`B326CD56544BD4462B32C897843FDD4437F98F5F2FB021EF6E0C1E9A02B9EA11`
+ 
+ 本表只记录业务反馈导致的编号、Owner或版本边界变化。未列需求保持V1.6编号、Owner、优先级和版本语义；2026-08-14割接流程纠偏以ADR-0026为准，覆盖ADR-0024中WO-06迁移为CUT-11的旧结论。
+ 
+ | V1.6编号 | V1.7处置 | 当前Owner/承载 | 当前范围 | 迁移及追溯要求 |
+ |---|---|---|---|---|
+ | CLO-01 | 保留并修订依赖 | ACC / ProjectClosure、ClosureGateSnapshot | V1/P0 | 引用ACC-02有效满意度结果，不引用独立回访任务 |
+ | CLO-02 | 保留并删除回访节点 | ACC / ProjectClosure | V1/P0 | 按项目冻结流程定义审批；不生成回访人员节点 |
+ | CLO-03 | 并入 | ACC-02、PM-03 | 不再独立计数 | 满意度触发时点由冻结模板决定 |
+ | CLO-04 | 并入 | ACC-02 / SatisfactionCollection | 不再独立计数 | 问卷模板、题目、实例和版本按原证据迁移 |
+ | CLO-05 | 并入 | ACC-02 / SatisfactionCollection | 不再独立计数；异常放行为P2演进 | 评分、阈值、不可变判定和整改重收纳入ACC-02 |
+diff --git a/scripts/tests/test_validate_prd_baseline.py b/scripts/tests/test_validate_prd_baseline.py
+index be82bff..32e46c0 100644
+--- a/scripts/tests/test_validate_prd_baseline.py
++++ b/scripts/tests/test_validate_prd_baseline.py
+@@ -10,20 +10,35 @@ from pathlib import Path
+ MODULE_PATH = Path(__file__).resolve().parents[1] / "validate_prd_baseline.py"
+ sys.path.insert(0, str(MODULE_PATH.parent))
+ SPEC = importlib.util.spec_from_file_location("validate_prd_baseline", MODULE_PATH)
+ MODULE = importlib.util.module_from_spec(SPEC)
+ assert SPEC.loader is not None
+ sys.modules[SPEC.name] = MODULE
+ SPEC.loader.exec_module(MODULE)
+ 
+ 
+ class ValidatePrdBaselineTest(unittest.TestCase):
++    def validate_candidate(self, mutate) -> dict[str, object]:
++        root = MODULE_PATH.parents[1]
++        source = root / "docs" / "baseline" / "prd-v1.7.md"
++        report = root / "docs" / "reports" / "2026-08-10-PRD与13领域FR差异审查.md"
++        text = source.read_text(encoding="utf-8-sig")
++        candidate_text = mutate(text)
++
++        with tempfile.TemporaryDirectory() as temporary:
++            candidate = Path(temporary) / "prd.md"
++            candidate.write_text(candidate_text, encoding="utf-8")
++            return {
++                check.name: check
++                for check in MODULE.validate(candidate, report, "V1.7", "正式基线")
++            }
++
+     def test_appendix_a2_statistics_must_match_formal_requirements(self) -> None:
+         root = MODULE_PATH.parents[1]
+         source = root / "docs" / "baseline" / "prd-v1.7.md"
+         report = root / "docs" / "reports" / "2026-08-10-PRD与13领域FR差异审查.md"
+         text = source.read_text(encoding="utf-8-sig")
+         candidate_text = text.replace("| V2主版本需求 | 48条 |", "| V2主版本需求 | 49条 |", 1)
+         self.assertNotEqual(text, candidate_text)
+ 
+         with tempfile.TemporaryDirectory() as temporary:
+             candidate = Path(temporary) / "prd.md"
+@@ -52,20 +67,44 @@ class ValidatePrdBaselineTest(unittest.TestCase):
+ 
+ # 附录
+ """
+         blocks = dict(MODULE.requirement_blocks(text))
+ 
+         self.assertEqual({"PM-01", "CUT-01", "INS-01"}, set(blocks))
+         self.assertIn("| 目标版本 | V1任务闭环；V2增强 |", blocks["CUT-01"])
+         self.assertNotIn("巡检规则", blocks["CUT-01"])
+         self.assertNotIn("# 附录", blocks["INS-01"])
+ 
++    def test_appendix_c_must_not_restore_work_order_core_object(self) -> None:
++        checks = self.validate_candidate(
++            lambda text: text.replace(
++                "| 4 | 满意度任务与问卷 | 项目成员执行的满意度收集、评分、签字和不达标整改重收 | ACC-02 |",
++                "| 4 | 工单 | 工时、实施及保障服务的工作记录 | WO-01～06 |",
++                1,
++            )
++        )
++
++        self.assertIn("附录C不含工单核心对象", checks)
++        self.assertFalse(checks["附录C不含工单核心对象"].passed)
++
++    def test_appendix_c_must_include_satisfaction_core_object_with_acc_02(self) -> None:
++        checks = self.validate_candidate(
++            lambda text: text.replace(
++                "| 4 | 满意度任务与问卷 | 项目成员执行的满意度收集、评分、签字和不达标整改重收 | ACC-02 |",
++                "| 4 | 客户反馈记录 | 项目成员记录客户反馈 | SUB-03 |",
++                1,
++            )
++        )
++
++        self.assertIn("附录C满意度核心对象", checks)
++        self.assertFalse(checks["附录C满意度核心对象"].passed)
++
+     def test_requirement_id_pattern_accepts_domain_addendum_ids(self) -> None:
+         text = """#### 13.5.15 AST-02 设备维保客观状态计算
+ | 需求编号 | AST-02 |
+ | 目标版本 | V1 |
+ """
+ 
+         self.assertEqual(["AST-02"], [identifier for identifier, _ in MODULE.requirement_blocks(text)])
+ 
+     def test_confirmed_cutover_flow_contract_passes(self) -> None:
+         text = """## 第十章 割接管理模块功能需求
+diff --git a/scripts/tests/test_validate_sds_phase2.py b/scripts/tests/test_validate_sds_phase2.py
+index 778b8d7..3f086e8 100644
+--- a/scripts/tests/test_validate_sds_phase2.py
++++ b/scripts/tests/test_validate_sds_phase2.py
+@@ -1,13 +1,14 @@
+ from __future__ import annotations
+ 
+ import importlib.util
++import json
+ import tempfile
+ import unittest
+ from pathlib import Path
+ 
+ 
+ MODULE_PATH = Path(__file__).resolve().parents[1] / "validate_sds_phase2.py"
+ SPEC = importlib.util.spec_from_file_location("validate_sds_phase2", MODULE_PATH)
+ MODULE = importlib.util.module_from_spec(SPEC)
+ assert SPEC.loader is not None
+ SPEC.loader.exec_module(MODULE)
+@@ -26,20 +27,36 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+ 
+         self.assertTrue({"EQP-01", "EQP-06", "EQP-07", "RPT-01", "RPT-02", "RPT-04"} <= identifiers)
+ 
+     def build_fixture(self, root: Path) -> Path:
+         design = root / "docs" / "design"
+         baseline = root / "docs" / "baseline"
+         traceability = root / "docs" / "traceability"
+         design.mkdir(parents=True)
+         baseline.mkdir(parents=True)
+         traceability.mkdir(parents=True)
++        (traceability / "core-migration-schema-contract.json").write_text(
++            json.dumps(
++                {
++                    "forbiddenV1V2Tables": [
++                        "srv_historical_time_record",
++                        "srv_historical_work_order",
++                        "srv_time_adjustment",
++                        "srv_time_claim",
++                        "srv_work_order",
++                        "srv_work_order_handling_record",
++                        "srv_work_order_sla",
++                    ]
++                }
++            ),
++            encoding="utf-8",
++        )
+         metadata = (
+             "# Test\n\n"
+             "> 文档状态：`BASELINE`  \n"
+             "> 适用基线：PRD V1.7  \n"
+             "> Requirement ID：REQ-001  \n"
+             "> Owner：Test  \n\n"
+             "## Scope\n\n"
+             "Thing proj_test /test\n"
+         )
+         for name in MODULE.PHASE2_DOCS:
+@@ -333,38 +350,122 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+                     root = Path(temporary)
+                     self.build_fixture(root)
+                     target = root / "docs" / "design" / name
+                     target.write_text(
+                         target.read_text(encoding="utf-8") + f"\n当前对象：`{token}`。\n",
+                         encoding="utf-8",
+                     )
+ 
+                     errors = MODULE.validate(root)
+ 
+-                    self.assertTrue(any(token in error and "must not return" in error for error in errors), errors)
++                    self.assertTrue(
++                        any(token in error and "forbidden active WorkOrder/time model token" in error for error in errors),
++                        errors,
++                    )
++
++    def test_chinese_current_work_order_inspection_file_context_fails(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "13-file-design.md"
++            target.write_text(
++                target.read_text(encoding="utf-8")
++                + "\n| Context | 文件用途 | 范围状态 |\n"
++                + "|---|---|---|\n"
++                + "| 工单/巡检 | 工单附件和巡检报告 | 当前V1/V2写模型 |\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertTrue(any("Work Order file context" in error for error in errors), errors)
++
++    def test_work_order_current_write_model_disclaimer_cannot_bypass_guard(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "08-data-model.md"
++            target.write_text(
++                target.read_text(encoding="utf-8")
++                + "\n| 数据对象 | 数据表 | 范围状态 |\n"
++                + "|---|---|---|\n"
++                + "| WorkOrder | srv_work_order | 当前V1/V2写模型 |\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertTrue(any("WorkOrder" in error or "srv_work_order" in error for error in errors), errors)
++
++    def test_every_core_contract_work_order_time_table_is_forbidden_in_active_scope(self) -> None:
++        repository_root = MODULE_PATH.parents[1]
++        contract = json.loads(
++            (repository_root / "docs" / "traceability" / "core-migration-schema-contract.json")
++            .read_text(encoding="utf-8")
++        )
++        forbidden = [
++            table
++            for table in contract["forbiddenV1V2Tables"]
++            if "work_order" in table or table.startswith("srv_time_") or "historical_time" in table
++        ]
++        self.assertGreaterEqual(len(forbidden), 7)
++
++        for table in forbidden:
++            with tempfile.TemporaryDirectory() as temporary:
++                with self.subTest(table=table):
++                    root = Path(temporary)
++                    self.build_fixture(root)
++                    target = root / "docs" / "design" / "09-database-design.md"
++                    target.write_text(
++                        target.read_text(encoding="utf-8")
++                        + "\n| 数据对象 | 数据表 | 范围状态 |\n"
++                        + "|---|---|---|\n"
++                        + f"| CurrentServiceFact | {table} | 当前V1/V2写模型 |\n",
++                        encoding="utf-8",
++                    )
++
++                    errors = MODULE.validate(root)
++
++                    self.assertTrue(any(table in error for error in errors), errors)
++
++    def test_future_independent_work_order_change_explanation_is_allowed(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "08-data-model.md"
++            target.write_text(
++                target.read_text(encoding="utf-8")
++                + "\n未来如需WorkOrder或srv_work_order，必须通过独立PRD/Feature变更；"
++                + "该说明不属于当前V1/V2写模型。\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertFalse(any("WorkOrder" in error or "srv_work_order" in error for error in errors), errors)
+ 
+     def test_structured_historical_model_exclusion_evidence_is_allowed(self) -> None:
+         with tempfile.TemporaryDirectory() as temporary:
+             root = Path(temporary)
+             self.build_fixture(root)
+             target = root / "docs" / "design" / "09-database-design.md"
+             target.write_text(
+                 target.read_text(encoding="utf-8")
+                 + "\n| 对象 | 目标表 | status | 说明 |\n"
+                 + "|---|---|---|---|\n"
+                 + "| HistoricalWorkOrder | srv_historical_work_order | EXCLUDED | 不进入当前契约 |\n",
+                 encoding="utf-8",
+             )
+ 
+             errors = MODULE.validate(root)
+ 
+-            self.assertFalse(any("historical model token" in error for error in errors), errors)
++            self.assertEqual([], errors)
+ 
+     def test_prd_immutable_history_governance_is_allowed(self) -> None:
+         with tempfile.TemporaryDirectory() as temporary:
+             root = Path(temporary)
+             self.build_fixture(root)
+             prd = root / "docs" / "baseline" / "prd-v1.7.md"
+             prd.write_text(
+                 prd.read_text(encoding="utf-8")
+                 + "\n已有历史工单、工时、附件、审批和明确要求记录的操作属于不可删除业务事实。\n",
+                 encoding="utf-8",
+diff --git a/scripts/validate_prd_baseline.py b/scripts/validate_prd_baseline.py
+index 071379c..b13d3c4 100644
+--- a/scripts/validate_prd_baseline.py
++++ b/scripts/validate_prd_baseline.py
+@@ -219,20 +219,41 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
+     components = section(appendix_b, "B.2 平台组件") if appendix_b else ""
+     add(checks, "集成清单分层", bool(external) and bool(components), "外部系统与平台组件必须分开计数")
+     add(checks, "CRM统一命名", bool(external) and not re.search(r"(?m)^\|[^\n]*\|\s*SMS\s*\|", external), "SMS不得作为独立外部系统")
+     add(checks, "PMS内部边界", bool(external) and not re.search(r"(?m)^\|[^\n]*\|\s*PMS\s*\|", external), "PMS不得作为外部系统")
+     add(checks, "采集平台组件边界", "现有采集平台" in components, "采集平台作为平台组件/子应用")
+ 
+     appendix_c = section(prd, "附录C 核心业务对象与数据元索引")
+     core_objects = ["项目", "项目任务", "设备", "设备凭证", "采集任务"]
+     missing_objects = [name for name in core_objects if name not in appendix_c]
+     add(checks, "核心对象索引", bool(appendix_c) and not missing_objects, f"缺少={','.join(missing_objects) or '无'}")
++    appendix_c_rows = [
++        tuple(cell.strip() for cell in match.groups())
++        for match in re.finditer(
++            r"(?m)^\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$",
++            appendix_c,
++        )
++    ]
++    appendix_c_names = {row[1] for row in appendix_c_rows}
++    satisfaction_rows = [row for row in appendix_c_rows if row[1] == "满意度任务与问卷"]
++    add(
++        checks,
++        "附录C不含工单核心对象",
++        "工单" not in appendix_c_names and "WorkOrder" not in appendix_c_names,
++        "工单已退出V1/V2核心对象；附录C必须与正文3.3一致",
++    )
++    add(
++        checks,
++        "附录C满意度核心对象",
++        len(satisfaction_rows) == 1 and "ACC-02" in satisfaction_rows[0][3],
++        "必须唯一列出满意度任务与问卷并以正式需求ACC-02为主要来源",
++    )
+ 
+     semantic_issues = validate_semantics(prd)
+     semantic_ids = sorted({issue.req_id for issue in semantic_issues})
+     add(
+         checks,
+         "V1/V2语义质量",
+         not semantic_issues,
+         f"问题{len(semantic_issues)}项；需求={','.join(semantic_ids[:20]) or '无'}",
+     )
+ 
+diff --git a/scripts/validate_sds_phase2.py b/scripts/validate_sds_phase2.py
+index eae0b13..2432689 100644
+--- a/scripts/validate_sds_phase2.py
++++ b/scripts/validate_sds_phase2.py
+@@ -1,16 +1,17 @@
+ #!/usr/bin/env python3
+ """Validate Phase 2 SDS completeness and requirement traceability links."""
+ 
+ from __future__ import annotations
+ 
+ import argparse
++import json
+ import re
+ import sys
+ from pathlib import Path
+ 
+ 
+ PHASE2_DOCS = (
+     "08-data-model.md",
+     "08a-domain-entity-migration-alignment.md",
+     "09-database-design.md",
+     "10-api-design.md",
+@@ -38,26 +39,20 @@ NON_ACTIVE_FIELD_NAMES = {
+     "disposition", "status", "处置", "迁移处置", "范围状态", "契约状态", "证据状态",
+ }
+ NON_ACTIVE_FIELD_VALUES = {
+     "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "PENDING_SOURCE_CONFIRMATION",
+     "历史排除", "不属于当前", "不进入当前",
+ }
+ FORBIDDEN_HISTORICAL_USER_APIS = (
+     "/historical-work-orders",
+     "/historical-time-records",
+ )
+-FORBIDDEN_HISTORICAL_MODEL_TOKENS = (
+-    "HistoricalWorkOrder",
+-    "HistoricalTimeRecord",
+-    "srv_historical_work_order",
+-    "srv_historical_time_record",
+-)
+ 
+ 
+ def read(path: Path) -> str:
+     return path.read_text(encoding="utf-8-sig")
+ 
+ 
+ def github_slug(value: str) -> str:
+     value = re.sub(r"[`*_~]", "", value.strip().lower())
+     value = re.sub(r"[^\w\- ]", "", value, flags=re.UNICODE)
+     return value.replace(" ", "-")
+@@ -149,20 +144,50 @@ def contract_table_rows(text: str):
+             continue
+         cells = markdown_cells(line)
+         if is_separator_row(cells):
+             headers = header_candidate
+             continue
+         yield headers, cells, line
+         if headers is None:
+             header_candidate = cells
+ 
+ 
++def work_order_time_forbidden_tables(root: Path) -> tuple[set[str], list[str]]:
++    path = root / "docs" / "traceability" / "core-migration-schema-contract.json"
++    if not path.is_file():
++        return set(), ["missing core migration schema contract for Phase 2 forbidden-table validation"]
++    try:
++        contract = json.loads(read(path))
++    except (json.JSONDecodeError, OSError) as error:
++        return set(), [f"invalid core migration schema contract: {error}"]
++    forbidden = contract.get("forbiddenV1V2Tables")
++    if not isinstance(forbidden, list) or not all(isinstance(table, str) for table in forbidden):
++        return set(), ["core migration schema contract missing forbiddenV1V2Tables string list"]
++    tables = {
++        table
++        for table in forbidden
++        if table.startswith("srv_")
++        and ("work_order" in table or re.search(r"(?:^|_)time(?:_|$)", table))
++    }
++    if not tables:
++        return set(), ["core migration schema contract has no WorkOrder/time forbidden tables"]
++    return tables, []
++
++
++def forbidden_model_tokens(tables: set[str]) -> set[str]:
++    tokens = set(tables)
++    for table in tables:
++        parts = table.split("_")[1:] if table.startswith("srv_") else table.split("_")
++        tokens.add("".join(part.capitalize() for part in parts))
++    return tokens
++
++
+ def prd_formal_requirement_ids(text: str) -> list[str]:
+     """Read formal V1/V2 IDs directly from PRD requirement blocks."""
+     matches = list(PRD_REQUIREMENT_ROW.finditer(text))
+     result: list[str] = []
+     for index, match in enumerate(matches):
+         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+         block = text[match.end():end]
+         version = re.search(r"^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", block, re.M)
+         if version and version.group(1) in {"V1", "V2"}:
+             result.append(match.group(1))
+@@ -264,46 +289,55 @@ def validate(root: Path) -> list[str]:
+                 f"extra={sorted(set(contracts) - set(prd_identifiers))}"
+             )
+ 
+     combined_design = "\n".join(read(design / name) for name in PHASE2_DOCS if (design / name).is_file())
+     database_design = read(design / "09-database-design.md") if (design / "09-database-design.md").is_file() else ""
+     api_design = read(design / "10-api-design.md") if (design / "10-api-design.md").is_file() else ""
+     event_design = read(design / "11-event-design.md") if (design / "11-event-design.md").is_file() else ""
+     integration_design = read(design / "12-integration-design.md") if (design / "12-integration-design.md").is_file() else ""
+     file_design = read(design / "13-file-design.md") if (design / "13-file-design.md").is_file() else ""
+ 
++    forbidden_tables, forbidden_contract_errors = work_order_time_forbidden_tables(root)
++    errors.extend(forbidden_contract_errors)
++    forbidden_tokens = forbidden_model_tokens(forbidden_tables)
++
+     for api in FORBIDDEN_HISTORICAL_USER_APIS:
+         if api in api_design:
+             errors.append(f"V1/V2 must not expose historical user API: {api}")
+ 
+     for name in PHASE2_DOCS:
+         path = design / name
+         if not path.is_file():
+             continue
+         content = read(path)
+-        excluded_lines = {
+-            line
+-            for headers, cells, line in contract_table_rows(content)
+-            if is_non_active_contract_row(cells, headers)
+-        }
+-        for line in content.splitlines():
+-            if line in excluded_lines:
++        for headers, cells, line in contract_table_rows(content):
++            if is_non_active_contract_row(cells, headers):
+                 continue
+-            for token in FORBIDDEN_HISTORICAL_MODEL_TOKENS:
++            for token in sorted(forbidden_tokens, key=len, reverse=True):
+                 if token in line:
+-                    errors.append(f"{name} historical model token must not return to V1/V2: {token}")
++                    errors.append(f"{name} forbidden active WorkOrder/time model token: {token}")
++                    break
++        for line in content.splitlines():
++            if re.search(r"(?:当前对象|当前数据对象)\s*[:：]", line):
++                for token in sorted(forbidden_tokens, key=len, reverse=True):
++                    if token in line:
++                        errors.append(f"{name} forbidden active WorkOrder/time model token: {token}")
++                        break
+ 
+     for declaration in ACTIVE_REQUIREMENT_LINE.findall(file_design):
+         if re.search(r"(?:^|[、，/\s])WO(?:$|[、，/\s])", declaration):
+             errors.append("13-file-design.md must not declare a current Work Order file context")
+     for headers, cells, line in contract_table_rows(file_design):
+-        if not is_non_active_contract_row(cells, headers) and re.search(r"\bWork\s+Order\b", line, re.I):
++        if not is_non_active_contract_row(cells, headers) and (
++            re.search(r"\bWork\s+Order\b", line, re.I)
++            or (cells and re.search(r"(?:^|[/、])工单(?:$|[/、])", cells[0]))
++        ):
+             errors.append("13-file-design.md must not declare a current Work Order file context")
+ 
+     formal_id_set = set(prd_identifiers)
+     for name in PHASE2_DOCS:
+         path = design / name
+         if not path.is_file():
+             continue
+         for identifier in sorted(active_requirement_ids(read(path)) - formal_id_set):
+             errors.append(f"{name} active scope contains non-formal Requirement: {identifier}")
+ 
+@@ -312,20 +346,25 @@ def validate(root: Path) -> list[str]:
+             errors.append("ProjectConversionCompleted must not declare WO as a V1/V2 consumer")
+     for name in ("12-integration-design.md", "16-exception-and-idempotency.md"):
+         path = design / name
+         if not path.is_file():
+             continue
+         for headers, cells, line in contract_table_rows(read(path)):
+             if not is_non_active_contract_row(cells, headers) and ("打卡原始事实" in line or "钉钉打卡" in line):
+                 errors.append(f"{name} contains active DingTalk clock-in fact contract")
+ 
+     for identifier, contract in contracts.items():
++        for field in ("数据对象", "数据表"):
++            for token in sorted(forbidden_tokens, key=len, reverse=True):
++                if token in contract.get(field, ""):
++                    errors.append(f"{identifier} forbidden active WorkOrder/time model token: {token}")
++                    break
+         for field in CONTRACT_FIELDS:
+             value = contract.get(field, "").strip()
+             if not value:
+                 errors.append(f"{identifier} explicit Phase 2 contract missing field: {field}")
+         for field in ("数据对象", "数据表", "API", "工作流/状态", "授权与数据范围"):
+             value = contract.get(field, "")
+             if value.startswith("N/A") or len(value) < 4:
+                 errors.append(f"{identifier} has non-implementable Phase 2 contract field: {field}")
+         if any(marker in contract.get("工作流/状态", "") for marker in ("通用流程", "按需处理", "同领域")):
+             errors.append(f"{identifier} has generic workflow placeholder")
+diff --git a/需求/PRD-项目实施交付管理平台.md b/需求/PRD-项目实施交付管理平台.md
+index 472a38e..e282793 100644
+--- a/需求/PRD-项目实施交付管理平台.md
++++ b/需求/PRD-项目实施交付管理平台.md
+@@ -528,21 +528,21 @@ V1.7当前状态为“正式基线”。V1.4历史整改记录仅用于过程追
+ | 5 | 巡检任务 | 售后设备巡检专项 | 新建→准备→执行（在线/离线）→报告→待办→闭环 | 巡检方式、巡检规则、检出问题、待办项 |
+ | 6 | 交付件 | 阶段产出物 | 生成→上传→审核→归档 | 类型（必传/选传）、关联里程碑、文件 |
+ | 7 | 客户/用户资产 | 客户主体及资产视图 | 同步/创建→维护→服务跟踪 | 用户编码、服务等级、联系人、项目/设备/故障/服务记录 |
+ | 8 | 转包申请 | 项目外包交付 | 申请→审批→执行→满意度门禁→付款→完成 | 转包类型、服务商、合同号、付款阶段、流程版本 |
+ | 9 | 项目任务 | 项目阶段或里程碑下的执行单元，支撑项目任务化管理（PM-11） | 待分配→待开始→进行中→待验收→完成/关闭 | 任务名称、任务类型（里程碑/阶段任务/子任务）、所属项目、所属里程碑/阶段、父任务（子任务支持）、责任人/执行人、计划时间、实际时间、进度、状态、跨区域指派标记 |
+ | 10 | 设备凭证 | 设备认证敏感信息及其使用授权 | 创建→启用→授权/撤销→轮换→停用 | 凭证标识、创建人、密文、密钥版本、设备范围、协议范围、命令模板范围、有效期、授权记录 |
+ | 11 | 采集任务 | 实施、割接、巡检或独立中心发起的统一设备采集请求 | 创建→授权校验→下发→执行→回调→业务消费→完成/失败 | 采集任务编号、来源业务、项目、设备、命令模板、认证方式、凭证引用或临时登录用户名、幂等键、外部任务号、外部状态原值、平台状态、结果引用 |
+ 
+ ## 3.4 核心数据模型
+ 
+-平台结合需求说明书、既有数据元和迁移证据设计核心实体及其关联关系；历史工单只读保留，不作为当前领域实体继续流转。
++平台结合需求说明书、既有数据元和迁移证据设计核心实体及其关联关系；历史工单、工时等不可删除事实仅由`AI-MIG-000`在批准的真实批次内保存为不可变来源载荷或受限迁移归档证据，不属于当前领域对象，不建立目标表、API或用户查询入口。
+ 
+ ### 3.4.1 实体关键字段清单
+ 
+ #### 3.4.1.1 项目实体
+ 
+ | 字段类别 | 关键字段 |
+ | ---- | ---- |
+ | 基础信息 | 项目编码、项目名称、合同号、签约方式（直签/非直签）、项目类别（普通/工程）、实施方式（原厂直服/原厂督导/代理商自服）、CRM重大项目级别、阶段（S0~S6） |
+ | 组织与行业 | 所属办事处、市场部、系统部、拓展部、子行业、销售、服务经理（一级/二级）、项目经理、团队成员、外协工程师 |
+ | 时间信息 | 创建时间、工期要求、合同验收时间、各阶段计划时间、各阶段实际时间 |
+@@ -8266,21 +8266,21 @@ V3仅定义未来演进目标，不属于当前V1/V2正式承诺范围。下列
+ 
+ ## 附录C 核心业务对象与数据元索引
+ 
+ 正文3.3和3.4共定义11个核心业务对象；字段详情以各对象正文及对应需求为准。
+ 
+ | 序号 | 核心业务对象 | 业务说明 | 主要来源 |
+ | ---- | ---- | ---- | ---- |
+ | 1 | 项目 | 平台核心数据，承载不限固定层级的项目交付生命周期 | PM-01～11 |
+ | 2 | 项目任务 | 支持不限固定层级的执行事项、责任和进度 | PM-11 |
+ | 3 | 设备 | 以序列号为核心的设备基本、版本、维保和运行档案 | EQP-01～05、EQP-07 |
+-| 4 | 工单 | 工时、实施及保障服务的工作记录 | WO-01～06 |
++| 4 | 满意度任务与问卷 | 项目成员执行的满意度收集、评分、签字和不达标整改重收 | ACC-02 |
+ | 5 | 割接任务 | 承载分级、采集、方案、审批、执行和归档 | CUT-01～10 |
+ | 6 | 巡检任务 | 承载在线/离线巡检、报告、问题和闭环 | INS-01～09 |
+ | 7 | 交付件 | 阶段产出物和准入准出门禁证据 | PM-03、ACC-04 |
+ | 8 | 客户资产 | 客户、联系人、项目、设备、故障和服务关系视图 | CUS-01～04 |
+ | 9 | 转包申请 | 转包申请、审批、执行、满意度门禁和付款载体 | SUB-01～05 |
+ | 10 | 设备凭证 | 长期加密保存并按显式授权受控使用的设备认证信息 | INT-12、NFR-02 |
+ | 11 | 采集任务 | 关联项目、设备、业务上下文、认证方式、命令模板和回调结果 | INT-12 |
+ 
+ ## 附录D 已确认决策索引
+ 

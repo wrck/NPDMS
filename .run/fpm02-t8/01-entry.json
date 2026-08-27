@@ -1,0 +1,96 @@
+{
+  "url": "http://localhost:18081/login?redirect=/index",
+  "title": "项目实施交付管理平台 - 登录",
+  "bodyText": "项目实施交付管理平台\n欢迎使用本系统\n开箱即用的中后台管理系统\n登录\n记住我\n忘记密码?\n登录\n手机登录\n二维码登录\n注册\n其他登录方式",
+  "inputs": [
+    {
+      "type": "checkbox",
+      "placeholder": "",
+      "name": ""
+    },
+    {
+      "type": "text",
+      "placeholder": "请输入用户名",
+      "name": ""
+    },
+    {
+      "type": "password",
+      "placeholder": "请输入密码",
+      "name": ""
+    },
+    {
+      "type": "checkbox",
+      "placeholder": "",
+      "name": ""
+    },
+    {
+      "type": "text",
+      "placeholder": "请输入手机号码",
+      "name": ""
+    },
+    {
+      "type": "text",
+      "placeholder": "请输入验证码",
+      "name": ""
+    },
+    {
+      "type": "text",
+      "placeholder": "用户名",
+      "name": ""
+    },
+    {
+      "type": "text",
+      "placeholder": "昵称",
+      "name": ""
+    },
+    {
+      "type": "password",
+      "placeholder": "密码",
+      "name": ""
+    },
+    {
+      "type": "password",
+      "placeholder": "确认密码",
+      "name": ""
+    },
+    {
+      "type": "text",
+      "placeholder": "请输入手机号码",
+      "name": ""
+    },
+    {
+      "type": "text",
+      "placeholder": "请输入验证码",
+      "name": ""
+    },
+    {
+      "type": "password",
+      "placeholder": "请输入密码",
+      "name": ""
+    },
+    {
+      "type": "password",
+      "placeholder": "确认密码",
+      "name": ""
+    }
+  ],
+  "buttons": [
+    "",
+    "登录",
+    "手机登录",
+    "二维码登录",
+    "注册"
+  ],
+  "consoleMessages": [
+    {
+      "type": "warning",
+      "text": "[Vue Router warn]: The `next()` callback in navigation guards is deprecated. Return the value instead of calling `next(value)`."
+    },
+    {
+      "type": "warning",
+      "text": "[Vue Router warn]: The `next()` callback in navigation guards is deprecated. Return the value instead of calling `next(value)`."
+    }
+  ],
+  "failedRequests": [],
+  "errorResponses": []
+}

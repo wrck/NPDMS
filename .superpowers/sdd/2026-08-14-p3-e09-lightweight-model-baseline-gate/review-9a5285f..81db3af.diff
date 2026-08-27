@@ -1,0 +1,1015 @@
+# Review package: 9a5285f07bd447dab27df462085f1794a65c6097..HEAD
+
+## Commits
+81db3af fix(gate): 严格校验独立复审结论
+30b0928 fix(gate): 补全P3-E09轻量门禁校验
+d20d547 refactor(gate): 轻量化P3-E09模型门禁
+
+## Files changed
+ scripts/p3e09_approval_policy.py                   | 232 +++++++--------------
+ scripts/tests/test_p3e09_approval_policy.py        | 170 +++++++--------
+ .../test_validate_ddl_item_decision_register.py    |  54 ++---
+ .../test_validate_phase3_evidence_register.py      |  31 +--
+ .../test_validate_phase3_evidence_submission.py    |   8 +-
+ scripts/tests/test_validate_sds_phase3.py          |   2 +-
+ scripts/validate_ddl_item_decision_register.py     |  30 +--
+ scripts/validate_phase3_evidence_register.py       |  52 ++---
+ scripts/validate_phase3_evidence_submission.py     |  25 +--
+ 9 files changed, 231 insertions(+), 373 deletions(-)
+
+## Diff
+diff --git a/scripts/p3e09_approval_policy.py b/scripts/p3e09_approval_policy.py
+index 1af1c90..54c9c96 100644
+--- a/scripts/p3e09_approval_policy.py
++++ b/scripts/p3e09_approval_policy.py
+@@ -1,180 +1,110 @@
+ #!/usr/bin/env python3
+-"""Shared, evidence-backed approval policy for the P3-E09 data-model gate."""
++"""Model-fact validation for the P3-E09 SDS baseline gate."""
+ 
+ from __future__ import annotations
+ 
+ import hashlib
+ import json
+ from pathlib import Path
++import re
+ 
+ 
+-APPROVAL_SUBMISSION_PREFIX = "docs/engineering/gates/phase-3/submissions/P3-E09/"
+-ATTESTATION_PREFIX = APPROVAL_SUBMISSION_PREFIX + "attestations/"
+-REQUIRED_OWNER_ROLES = {
+-    "DATA_ARCHITECTURE_OWNER",
+-    "BUSINESS_OWNER",
+-    "MIGRATION_OWNER",
+-    "INDEPENDENT_REVIEWER",
+-}
+-OWNER_ROLES = REQUIRED_OWNER_ROLES - {"INDEPENDENT_REVIEWER"}
+-ALLOWED_ATTESTATION_METHODS = {
+-    "APPROVAL_SYSTEM_RECORD",
+-    "GIT_SIGNED_COMMIT",
+-    "MANUAL_SIGNED_RECORD",
++DDL_ARTIFACT_HASH_FIELDS = {
++    "currentDdlSha256",
++    "targetCatalogDdlSha256",
++    "mappingDdlSha256",
++    "validationDdlSha256",
++    "manifestDdlSha256",
+ }
++FORMAL_REVIEW_PREFIXES = ("docs/engineering/gates/", "docs/decisions/")
++INDEPENDENT_REVIEW_MARKER = re.compile(r"(?m)^\s*独立复审(?:\s*结论)?(?:\s*[：:].*)?\s*$")
++FORMAL_GO_CONCLUSION = re.compile(r"(?mi)^\s*(?:独立复审\s*)?结论\s*[：:]\s*GO\s*$")
++FORMAL_NO_GO_TOKEN = re.compile(r"(?i)(?<![A-Z])NO[-_ ]?GO(?![A-Z])")
+ 
+ 
+ def sha256_bytes(data: bytes) -> str:
+     return hashlib.sha256(data).hexdigest().upper()
+ 
+ 
+ def item_ids_sha256(items: list[dict[str, object]]) -> str:
+     identifiers = sorted(str(item.get("itemId")) for item in items)
+     canonical = json.dumps(identifiers, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+     return sha256_bytes(canonical)
+ 
+ 
+-def _nonempty(value: object) -> bool:
+-    return value is not None and value != "" and value != [] and value != {}
+-
+-
+-def _resolve_ref(root: Path, reference: object) -> Path | None:
+-    if not isinstance(reference, str) or not reference:
+-        return None
+-    target = reference.split("#", 1)[0]
+-    path = (root / target).resolve()
+-    try:
+-        path.relative_to(root.resolve())
+-    except ValueError:
+-        return None
+-    return path
+-
+-
+-def validate_approval_submission(
+-    root: Path,
+-    submission_ref: str,
+-    register: dict[str, object],
+-) -> tuple[list[str], dict[str, object] | None]:
+-    """Validate an immutable, versioned four-role sign-off submission."""
+-    errors: list[str] = []
+-    if not submission_ref.startswith(APPROVAL_SUBMISSION_PREFIX) or not submission_ref.endswith(".json"):
+-        return ["final approval requires a versioned P3-E09 approval submission"], None
+-    submission_path = _resolve_ref(root, submission_ref)
+-    if submission_path is None or not submission_path.is_file():
+-        return ["versioned P3-E09 approval submission does not exist"], None
+-    try:
+-        payload = json.loads(submission_path.read_text(encoding="utf-8"))
+-    except (OSError, json.JSONDecodeError) as exc:
+-        return [f"cannot read P3-E09 approval submission: {exc}"], None
+-
+-    if payload.get("schemaVersion") != 2 or payload.get("id") != "P3-E09":
+-        errors.append("P3-E09 approval submission schema/id mismatch")
+-    if payload.get("status") != "VERIFIED" or payload.get("verificationResult") != "PASS":
+-        errors.append("P3-E09 approval submission must be VERIFIED/PASS")
+-    if not _nonempty(payload.get("capturedAt")):
+-        errors.append("P3-E09 approval submission requires capturedAt")
+-
+-    items = register.get("items", [])
+-    binding = payload.get("approvalBinding", {})
+-    expected_binding = {
+-        "currentDdlSha256": register.get("currentDdlSha256"),
+-        "itemsSha256": register.get("itemsSha256"),
+-        "itemCount": len(items),
+-        "itemIdsSha256": item_ids_sha256(items),
+-    }
+-    if binding != expected_binding:
+-        errors.append("P3-E09 approval submission binding mismatch")
+-    facts = payload.get("confirmedFacts", {})
+-    ddl_bound_fields = (
+-        "approvedDdlSha256", "currentDdlSha256", "targetCatalogDdlSha256",
+-        "mappingDdlSha256", "validationDdlSha256", "manifestDdlSha256",
++def has_formal_independent_review_go_conclusion(review_text: str) -> bool:
++    """Accept only an explicit GO conclusion, never a NO-GO substring."""
++    if FORMAL_NO_GO_TOKEN.search(review_text):
++        return False
++    conclusion = FORMAL_GO_CONCLUSION.search(review_text)
++    return bool(
++        conclusion
++        and ("独立复审" in conclusion.group(0) or INDEPENDENT_REVIEW_MARKER.search(review_text))
+     )
+-    if not isinstance(facts, dict) or any(
+-        facts.get(field) != register.get("currentDdlSha256") for field in ddl_bound_fields
+-    ):
+-        errors.append("P3-E09 confirmedFacts must bind every DDL artifact to the approved current DDL")
+-
+-    signoffs = payload.get("signoffs")
+-    if not isinstance(signoffs, dict) or set(signoffs) != REQUIRED_OWNER_ROLES:
+-        errors.append("P3-E09 approval submission requires exact four-role signoffs")
+-        return errors, payload
+ 
+-    signer_ids: dict[str, str] = {}
+-    signoff_evidence_refs: dict[str, str] = {}
+-    signoff_evidence_hashes: dict[str, str] = {}
+-    for role in sorted(REQUIRED_OWNER_ROLES):
+-        signoff = signoffs.get(role, {})
+-        if not isinstance(signoff, dict) or signoff.get("status") != "APPROVED":
+-            errors.append(f"P3-E09 {role} signoff must be APPROVED")
+-            continue
+-        signer_id = signoff.get("signerId")
+-        evidence_ref = signoff.get("evidenceRef")
+-        evidence_path = _resolve_ref(root, evidence_ref)
+-        if not _nonempty(signer_id) or not _nonempty(signoff.get("signedAt")):
+-            errors.append(f"P3-E09 {role} signoff requires signerId and signedAt")
+-        else:
+-            signer_ids[role] = str(signer_id)
+-        if signoff.get("attestationMethod") not in ALLOWED_ATTESTATION_METHODS:
+-            errors.append(f"P3-E09 {role} signoff has invalid attestationMethod")
+-        if (
+-            not isinstance(evidence_ref, str)
+-            or not evidence_ref.startswith(ATTESTATION_PREFIX)
+-            or evidence_path is None
+-            or not evidence_path.is_file()
+-            or evidence_path == submission_path
+-        ):
+-            errors.append(f"P3-E09 {role} signoff evidence must be an independent existing file")
+-        elif signoff.get("evidenceSha256") != sha256_bytes(evidence_path.read_bytes()):
+-            errors.append(f"P3-E09 {role} signoff evidence hash mismatch")
+-        else:
+-            signoff_evidence_refs[role] = str(evidence_ref)
+-            signoff_evidence_hashes[role] = str(signoff.get("evidenceSha256"))
+ 
+-    reviewer = signer_ids.get("INDEPENDENT_REVIEWER")
+-    owner_signers = {signer_ids.get(role) for role in OWNER_ROLES}
+-    if reviewer and reviewer in owner_signers:
+-        errors.append("P3-E09 independent reviewer must be distinct from decision owners")
+-    if len({value for value in signer_ids.values() if value}) != len(signer_ids):
+-        errors.append("P3-E09 signoff roles require distinct signer identities")
+-    if len(set(signoff_evidence_refs.values())) != len(signoff_evidence_refs):
+-        errors.append("P3-E09 signoff roles require distinct attestation evidence files")
+-    if len(set(signoff_evidence_hashes.values())) != len(signoff_evidence_hashes):
+-        errors.append("P3-E09 signoff roles require independently signed attestation contents")
+-    if payload.get("reviewOwner") != reviewer:
+-        errors.append("P3-E09 approval submission reviewOwner mismatch")
+-    return errors, payload
+-
+-
+-def validate_register_approval(
+-    root: Path,
++def validate_model_baseline(
+     register: dict[str, object],
+-    approved_count: int,
++    evidence: dict[str, object],
++    *,
++    root: Path | None = None,
+ ) -> list[str]:
+-    approval = register.get("approval", {})
+-    if not isinstance(approval, dict) or not _nonempty(approval.get("approvedDdlSha256")):
+-        return []
++    """Validate SDS model facts without creating a migration approval path."""
+     errors: list[str] = []
+-    refs = approval.get("evidenceRefs", [])
+-    submission_refs = [ref for ref in refs if isinstance(ref, str) and ref.startswith(APPROVAL_SUBMISSION_PREFIX)]
+-    if len(submission_refs) != 1:
+-        return ["final approval requires exactly one versioned P3-E09 approval submission"]
+-    submission_errors, payload = validate_approval_submission(root, submission_refs[0], register)
+-    errors.extend(submission_errors)
+-    if payload is None:
+-        return errors
+-    signoffs = payload.get("signoffs", {})
+-    reviewer = signoffs.get("INDEPENDENT_REVIEWER", {}).get("signerId")
+-    items = register.get("items", [])
+-    if approved_count != len(items) or any(item.get("reviewOwner") != reviewer for item in items):
+-        errors.append("all DDL decision items must be signed by the registered independent reviewer")
+-    expected_approval = {
+-        "approvedDdlSha256": register.get("currentDdlSha256"),
+-        "itemsSha256": register.get("itemsSha256"),
+-        "decisionOwner": "REQUIREMENT_OWNER",
+-        "reviewOwner": reviewer,
+-        "signedAt": payload.get("capturedAt"),
+-        "evidenceRefs": refs,
+-    }
+-    if approval != expected_approval:
+-        errors.append("DDL register approval must be derived from the P3-E09 approval submission")
++    items = register.get("items")
++    if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
++        return ["P3-E09 model baseline requires DDL decision register items"]
++
++    current_ddl = register.get("currentDdlSha256")
++    items_sha = register.get("itemsSha256")
++    if not current_ddl or not items_sha:
++        errors.append("P3-E09 model baseline requires current DDL and item hashes")
++    if evidence.get("currentDdlSha256") != current_ddl:
++        errors.append("P3-E09 current DDL hash mismatch")
++    for field in sorted(DDL_ARTIFACT_HASH_FIELDS - {"currentDdlSha256"}):
++        if evidence.get(field) != current_ddl:
++            errors.append(f"P3-E09 {field} must bind the current DDL hash")
++    if evidence.get("itemsSha256") != items_sha:
++        errors.append("P3-E09 item hash mismatch")
++    if evidence.get("itemIdsSha256") != item_ids_sha256(items):
++        errors.append("P3-E09 item ID hash mismatch")
++
++    deferred_count = sum(item.get("decision") == "DEFER" for item in items)
++    if deferred_count != 0 or evidence.get("deferredItemCount") != 0:
++        errors.append("P3-E09 model baseline requires DEFER=0")
++    if evidence.get("mysql84DdlSha256") != current_ddl:
++        errors.append("P3-E09 MySQL 8.4 evidence must bind the current DDL hash")
++    if evidence.get("independentReviewResult") != "GO":
++        errors.append("P3-E09 model baseline requires independentReviewResult=GO")
++    decision_owner = evidence.get("decisionOwner")
++    review_owner = evidence.get("reviewOwner")
++    if not decision_owner or not review_owner:
++        errors.append("P3-E09 model baseline requires decisionOwner and reviewOwner")
++    elif decision_owner == review_owner:
++        errors.append("P3-E09 decisionOwner and reviewOwner must differ")
++    review_ref = evidence.get("independentReviewRef")
++    evidence_refs = evidence.get("evidenceRefs")
++    if not isinstance(review_ref, str) or not review_ref:
++        errors.append("P3-E09 model baseline requires an independent review reference")
++    elif not review_ref.startswith(FORMAL_REVIEW_PREFIXES):
++        errors.append("P3-E09 independent review reference must be a formal gate or ADR")
++    elif not isinstance(evidence_refs, list) or review_ref not in evidence_refs:
++        errors.append("P3-E09 independent review reference must be listed in evidenceRefs")
++    elif root is None:
++        errors.append("P3-E09 independent review reference requires a repository root")
++    else:
++        review_path = (root / review_ref.split("#", 1)[0]).resolve()
++        try:
++            review_path.relative_to(root.resolve())
++        except ValueError:
++            errors.append("P3-E09 independent review reference escapes the repository")
++        else:
++            if not review_path.is_file():
++                errors.append("P3-E09 independent review reference does not exist")
++            else:
++                review_text = review_path.read_text(encoding="utf-8")
++                if not has_formal_independent_review_go_conclusion(review_text):
++                    errors.append("P3-E09 independent review reference must record an independent GO conclusion")
++    if evidence.get("approvedDdlSha256") not in (None, ""):
++        errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
+     return errors
+diff --git a/scripts/tests/test_p3e09_approval_policy.py b/scripts/tests/test_p3e09_approval_policy.py
+index db72749..94897ff 100644
+--- a/scripts/tests/test_p3e09_approval_policy.py
++++ b/scripts/tests/test_p3e09_approval_policy.py
+@@ -1,133 +1,103 @@
+ from __future__ import annotations
+ 
+ import importlib.util
+-import json
+ import tempfile
+ import unittest
+ from pathlib import Path
+ 
+ 
+ MODULE_PATH = Path(__file__).parents[1] / "p3e09_approval_policy.py"
+ SPEC = importlib.util.spec_from_file_location("p3e09_approval_policy", MODULE_PATH)
+ POLICY = importlib.util.module_from_spec(SPEC)
+ assert SPEC.loader is not None
+ SPEC.loader.exec_module(POLICY)
+ 
+ 
+ class P3E09ApprovalPolicyTest(unittest.TestCase):
+     def setUp(self) -> None:
+         self.temp = tempfile.TemporaryDirectory()
+         self.root = Path(self.temp.name)
+-        self.submission_ref = "docs/engineering/gates/phase-3/submissions/P3-E09/release-01.json"
+-        self.submission_path = self.root / self.submission_ref
+-        self.submission_path.parent.mkdir(parents=True)
+-        reviewer = "reviewer-01"
++        self.review_ref = "docs/engineering/gates/phase-3/independent-review.md"
++        review_path = self.root / self.review_ref
++        review_path.parent.mkdir(parents=True)
++        review_path.write_text("独立复审结论：GO", encoding="utf-8")
+         self.register = {
+             "currentDdlSha256": "DDL",
++            "itemsSha256": "ITEMS",
+             "items": [
+-                {"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "reviewOwner": reviewer},
+-                {"itemId": "TABLE:a", "decision": "AMEND_CURRENT", "reviewOwner": reviewer},
++                {"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"},
++                {"itemId": "TABLE:a", "decision": "AMEND_CURRENT"},
+             ],
+         }
+-        self.register["itemsSha256"] = "ITEMS"
+-        signoffs = {}
+-        for role, signer in {
+-            "DATA_ARCHITECTURE_OWNER": "data-01",
+-            "BUSINESS_OWNER": "business-01",
+-            "MIGRATION_OWNER": "migration-01",
+-            "INDEPENDENT_REVIEWER": reviewer,
+-        }.items():
+-            evidence_ref = f"docs/engineering/gates/phase-3/submissions/P3-E09/attestations/{role}.txt"
+-            evidence = self.root / evidence_ref
+-            evidence.parent.mkdir(parents=True, exist_ok=True)
+-            evidence.write_text(f"signed by {signer}", encoding="utf-8")
+-            signoffs[role] = {
+-                "status": "APPROVED",
+-                "signerId": signer,
+-                "signedAt": "2026-08-14T12:00:00+08:00",
+-                "attestationMethod": "APPROVAL_SYSTEM_RECORD",
+-                "evidenceRef": evidence_ref,
+-                "evidenceSha256": POLICY.sha256_bytes(evidence.read_bytes()),
+-            }
+-        self.payload = {
+-            "schemaVersion": 2,
+-            "id": "P3-E09",
+-            "status": "VERIFIED",
+-            "reviewOwner": reviewer,
+-            "capturedAt": "2026-08-14T12:00:00+08:00",
+-            "verificationResult": "PASS",
+-            "confirmedFacts": {
+-                field: "DDL" for field in (
+-                    "approvedDdlSha256", "currentDdlSha256", "targetCatalogDdlSha256",
+-                    "mappingDdlSha256", "validationDdlSha256", "manifestDdlSha256",
+-                )
+-            },
+-            "approvalBinding": {
+-                "currentDdlSha256": "DDL",
+-                "itemsSha256": "ITEMS",
+-                "itemCount": 2,
+-                "itemIdsSha256": POLICY.item_ids_sha256(self.register["items"]),
+-            },
+-            "signoffs": signoffs,
++        self.evidence = {
++            "currentDdlSha256": "DDL",
++            "targetCatalogDdlSha256": "DDL",
++            "mappingDdlSha256": "DDL",
++            "validationDdlSha256": "DDL",
++            "manifestDdlSha256": "DDL",
++            "itemsSha256": "ITEMS",
++            "itemIdsSha256": POLICY.item_ids_sha256(self.register["items"]),
++            "deferredItemCount": 0,
++            "mysql84DdlSha256": "DDL",
++            "independentReviewResult": "GO",
++            "independentReviewRef": self.review_ref,
++            "approvedDdlSha256": None,
++            "decisionOwner": "requirement-owner",
++            "reviewOwner": "independent-reviewer",
++            "evidenceRefs": [self.review_ref],
+         }
+-        self.write()
+ 
+     def tearDown(self) -> None:
+         self.temp.cleanup()
+ 
+-    def write(self) -> None:
+-        self.submission_path.write_text(json.dumps(self.payload), encoding="utf-8")
+-
+-    def test_exact_four_role_hashed_submission_is_accepted(self) -> None:
+-        errors, _ = POLICY.validate_approval_submission(self.root, self.submission_ref, self.register)
+-        self.assertEqual([], errors)
+-
+-    def test_requirement_adr_cannot_replace_independent_review_attestation(self) -> None:
+-        adr = self.root / "docs/decisions/0028.md"
+-        adr.parent.mkdir(parents=True)
+-        adr.write_text("requirement decision", encoding="utf-8")
+-        signoff = self.payload["signoffs"]["INDEPENDENT_REVIEWER"]
+-        signoff["evidenceRef"] = "docs/decisions/0028.md"
+-        signoff["evidenceSha256"] = POLICY.sha256_bytes(adr.read_bytes())
+-        self.write()
+-        errors, _ = POLICY.validate_approval_submission(self.root, self.submission_ref, self.register)
+-        self.assertTrue(any("independent existing file" in error for error in errors))
+-
+-    def test_reviewer_cannot_equal_a_decision_owner(self) -> None:
+-        self.payload["signoffs"]["INDEPENDENT_REVIEWER"]["signerId"] = "data-01"
+-        self.payload["reviewOwner"] = "data-01"
+-        self.write()
+-        errors, _ = POLICY.validate_approval_submission(self.root, self.submission_ref, self.register)
+-        self.assertTrue(any("distinct" in error for error in errors))
+-
+-    def test_each_role_requires_a_distinct_attestation_file(self) -> None:
+-        shared = self.payload["signoffs"]["DATA_ARCHITECTURE_OWNER"]
+-        business = self.payload["signoffs"]["BUSINESS_OWNER"]
+-        business["evidenceRef"] = shared["evidenceRef"]
+-        business["evidenceSha256"] = shared["evidenceSha256"]
+-        self.write()
+-        errors, _ = POLICY.validate_approval_submission(self.root, self.submission_ref, self.register)
+-        self.assertTrue(any("distinct attestation" in error for error in errors))
+-
+-    def test_each_role_requires_independently_signed_content(self) -> None:
+-        data = self.payload["signoffs"]["DATA_ARCHITECTURE_OWNER"]
+-        business = self.payload["signoffs"]["BUSINESS_OWNER"]
+-        business_path = self.root / business["evidenceRef"]
+-        data_path = self.root / data["evidenceRef"]
+-        business_path.write_bytes(data_path.read_bytes())
+-        business["evidenceSha256"] = data["evidenceSha256"]
+-        self.write()
+-        errors, _ = POLICY.validate_approval_submission(self.root, self.submission_ref, self.register)
+-        self.assertTrue(any("independently signed" in error for error in errors))
+-
+-    def test_verified_submission_requires_captured_at_and_matching_ddl_facts(self) -> None:
+-        self.payload["capturedAt"] = None
+-        self.payload["confirmedFacts"]["mappingDdlSha256"] = "OTHER"
+-        self.write()
+-        errors, _ = POLICY.validate_approval_submission(self.root, self.submission_ref, self.register)
+-        self.assertTrue(any("capturedAt" in error for error in errors))
+-        self.assertTrue(any("every DDL artifact" in error for error in errors))
++    def test_complete_model_evidence_allows_sds_without_migration_approval(self) -> None:
++        self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
++
++    def test_model_baseline_rejects_each_formal_artifact_hash_drift(self) -> None:
++        for field in POLICY.DDL_ARTIFACT_HASH_FIELDS - {"currentDdlSha256"}:
++            with self.subTest(field=field):
++                self.evidence[field] = "OTHER"
++                errors = POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)
++                self.assertTrue(any(field in error for error in errors))
++                self.evidence[field] = "DDL"
++
++    def test_model_baseline_rejects_deferred_items(self) -> None:
++        self.register["items"][1]["decision"] = "DEFER"
++        self.evidence["deferredItemCount"] = 1
++        self.assertTrue(any("DEFER" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
++
++    def test_model_baseline_rejects_migration_approval_hash(self) -> None:
++        self.evidence["approvedDdlSha256"] = "DDL"
++        self.assertTrue(any("must remain empty" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
++
++    def test_model_baseline_rejects_self_review(self) -> None:
++        self.evidence["reviewOwner"] = self.evidence["decisionOwner"]
++        self.assertTrue(any("must differ" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
++
++    def test_model_baseline_rejects_non_go_review(self) -> None:
++        self.evidence["independentReviewResult"] = "NO_GO"
++        self.assertTrue(any("independentReviewResult=GO" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
++
++    def test_model_baseline_rejects_missing_review_reference(self) -> None:
++        self.evidence.pop("independentReviewRef")
++        self.assertTrue(any("independent review reference" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
++
++    def test_model_baseline_rejects_invalid_review_reference(self) -> None:
++        self.evidence["independentReviewRef"] = "docs/reference/review.md"
++        self.assertTrue(any("formal gate or ADR" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
++
++    def test_model_baseline_accepts_explicit_formal_go_conclusion(self) -> None:
++        (self.root / self.review_ref).write_text("独立复审结论：GO\n", encoding="utf-8")
++        self.assertEqual([], POLICY.validate_model_baseline(self.register, self.evidence, root=self.root))
++
++    def test_model_baseline_rejects_formal_no_go_conclusion(self) -> None:
++        (self.root / self.review_ref).write_text("独立复审结论：NO-GO\n", encoding="utf-8")
++        self.assertTrue(any("independent GO conclusion" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
++
++    def test_model_baseline_rejects_ambiguous_go_text(self) -> None:
++        (self.root / self.review_ref).write_text("独立复审已完成，后续事项为 GO。\n", encoding="utf-8")
++        self.assertTrue(any("independent GO conclusion" in error for error in POLICY.validate_model_baseline(self.register, self.evidence, root=self.root)))
+ 
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/scripts/tests/test_validate_ddl_item_decision_register.py b/scripts/tests/test_validate_ddl_item_decision_register.py
+index b7658c9..1047e21 100644
+--- a/scripts/tests/test_validate_ddl_item_decision_register.py
++++ b/scripts/tests/test_validate_ddl_item_decision_register.py
+@@ -50,62 +50,50 @@ class DdlItemDecisionRegisterValidatorTest(unittest.TestCase):
+ 
+     def test_missing_evidence_file_is_rejected(self) -> None:
+         with tempfile.TemporaryDirectory() as directory:
+             errors = VALIDATOR.evidence_reference_errors(
+                 Path(directory),
+                 [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT", "evidenceRefs": ["missing.md#decision"]}],
+             )
+         self.assertEqual(1, len(errors))
+         self.assertIn("does not exist", errors[0])
+ 
+-    def test_final_approval_binds_current_ddl_items_and_existing_evidence(self) -> None:
++    def test_model_baseline_requires_facts_not_final_approval(self) -> None:
+         with tempfile.TemporaryDirectory() as directory:
+             root = Path(directory)
++            review_ref = "docs/engineering/gates/phase-3/independent-review.md"
++            review_path = root / review_ref
++            review_path.parent.mkdir(parents=True)
++            review_path.write_text("独立复审结论：GO", encoding="utf-8")
+             register = {
+                 "currentDdlSha256": "CURRENT",
+                 "itemsSha256": "ITEMS",
+-                "items": [{"itemId": "COLUMN:a:id"}],
+-                "approval": {
+-                    "approvedDdlSha256": "WRONG",
+-                    "itemsSha256": "WRONG_ITEMS",
+-                    "decisionOwner": "DATA",
+-                    "reviewOwner": "REVIEW",
+-                    "signedAt": "2026-08-14T00:00:00+08:00",
+-                    "evidenceRefs": ["missing-review.md"],
+-                },
++                "items": [{"itemId": "COLUMN:a:id", "decision": "ACCEPT_CURRENT"}],
+             }
+-            errors = VALIDATOR.final_approval_errors(root, register, 1)
+-        self.assertTrue(any("equal currentDdlSha256" in error for error in errors))
+-        self.assertTrue(any("current itemsSha256" in error for error in errors))
+-        self.assertTrue(any("does not exist" in error for error in errors))
+-
+-    def test_final_approval_rejects_fake_reviewer_and_requirement_adr_as_review_evidence(self) -> None:
+-        with tempfile.TemporaryDirectory() as directory:
+-            root = Path(directory)
+-            decision = root / "docs" / "decisions" / "0028.md"
+-            decision.parent.mkdir(parents=True)
+-            decision.write_text("requirement owner decision", encoding="utf-8")
+-            register = {
++            evidence = {
+                 "currentDdlSha256": "CURRENT",
++                "targetCatalogDdlSha256": "CURRENT",
++                "mappingDdlSha256": "CURRENT",
++                "validationDdlSha256": "CURRENT",
++                "manifestDdlSha256": "CURRENT",
+                 "itemsSha256": "ITEMS",
+-                "items": [{"itemId": "COLUMN:a:id", "reviewOwner": "FAKE_REVIEWER"}],
+-                "approval": {
+-                    "approvedDdlSha256": "CURRENT",
+-                    "itemsSha256": "ITEMS",
+-                    "decisionOwner": "REQUIREMENT_OWNER",
+-                    "reviewOwner": "FAKE_REVIEWER",
+-                    "signedAt": "2026-08-14T00:00:00+08:00",
+-                    "evidenceRefs": ["docs/decisions/0028.md"],
+-                },
++                "itemIdsSha256": VALIDATOR.item_ids_sha256(register["items"]),
++                "deferredItemCount": 0,
++                "mysql84DdlSha256": "CURRENT",
++                "independentReviewResult": "GO",
++                "independentReviewRef": review_ref,
++                "decisionOwner": "requirement-owner",
++                "reviewOwner": "independent-reviewer",
++                "evidenceRefs": [review_ref],
++                "approvedDdlSha256": None,
+             }
+-            errors = VALIDATOR.final_approval_errors(root, register, 1)
+-        self.assertTrue(any("versioned P3-E09 approval submission" in error for error in errors))
++            self.assertEqual([], VALIDATOR.model_baseline_errors(register, evidence, root=root))
+ 
+     def test_catalog_baseline_is_loaded_from_historical_hash(self) -> None:
+         generator = Mock()
+         historical_tables = {"pms_project": object()}
+         normalized_tables = {"proj_project": object()}
+         generator.locate_catalog_baseline.return_value = ("abc123", historical_tables)
+         generator.normalize_baseline_names.return_value = normalized_tables
+         report = {
+             "inputs": {
+                 "baselineSource": "TARGET_FIELD_CATALOG",
+diff --git a/scripts/tests/test_validate_phase3_evidence_register.py b/scripts/tests/test_validate_phase3_evidence_register.py
+index 00f0464..0462fb9 100644
+--- a/scripts/tests/test_validate_phase3_evidence_register.py
++++ b/scripts/tests/test_validate_phase3_evidence_register.py
+@@ -75,48 +75,27 @@ class Phase3EvidenceRegisterTest(unittest.TestCase):
+ 
+     def tearDown(self) -> None:
+         self.temp.cleanup()
+ 
+     def write(self) -> None:
+         self.path.write_text(json.dumps(self.payload), encoding="utf-8")
+ 
+     def test_open_register_is_structurally_valid(self) -> None:
+         self.assertEqual([], VALIDATOR.validate(self.path))
+ 
+-    def test_decisions_accepted_review_pending_transition_is_valid(self) -> None:
++    def test_model_readiness_does_not_allow_migration(self) -> None:
+         payload = json.loads(self.path.read_text(encoding="utf-8"))
+         item = next(row for row in payload["items"] if row["id"] == "P3-E09")
+-        facts = item["confirmedFacts"]
+-        facts["deferredItemCount"] = 0
+-        facts["modelDecisionStatus"] = "DECISIONS_ACCEPTED_REVIEW_PENDING"
+-        facts["driftDecision"] = "REVIEW_PENDING"
+-        facts["q07Decision"]["status"] = "ACCEPTED"
+-        facts["q08Decision"]["status"] = "ACCEPTED"
+-        self.path.write_text(json.dumps(payload), encoding="utf-8")
+-        self.assertEqual([], VALIDATOR.validate(self.path))
+-
+-    def test_approved_transition_rejects_unregistered_reviewer_string(self) -> None:
+-        payload = json.loads(self.path.read_text(encoding="utf-8"))
+-        item = next(row for row in payload["items"] if row["id"] == "P3-E09")
+-        item["status"] = "VERIFIED"
+-        item["decisionOwner"] = "REQUIREMENT_OWNER"
+-        item["reviewOwner"] = "INDEPENDENT_REVIEWER"
+-        facts = item["confirmedFacts"]
+-        facts["deferredItemCount"] = 0
+-        facts["modelDecisionStatus"] = "APPROVED"
+-        facts["driftDecision"] = "ACCEPT_CURRENT"
+-        facts["approvedDdlSha256"] = facts["currentDdlSha256"]
+-        facts["q07Decision"]["status"] = "ACCEPTED"
+-        facts["q08Decision"]["status"] = "ACCEPTED"
+-        payload["overallStatus"] = "READY_FOR_SDS_BASELINE"
+-        self.path.write_text(json.dumps(payload), encoding="utf-8")
+-        self.assertTrue(any("approval register" in error for error in VALIDATOR.validate(self.path)))
++        self.assertNotIn("DATA_MODEL_BASELINE", item["blocks"])
++        self.assertNotIn("PHASE_3_BASELINE", item["blocks"])
++        self.assertIn("HISTORICAL_DATA_MIGRATION", item["blocks"])
++        self.assertIn("DATA_CUTOVER", item["blocks"])
+ 
+     def test_only_model_affecting_e09_blocks_sds_readiness(self) -> None:
+         errors = VALIDATOR.validate(self.path, require_ready=True)
+         self.assertTrue(any("P3-E09" in error for error in errors))
+ 
+     def test_gate_scope_drift_is_detected(self) -> None:
+         self.payload["items"][0]["blocks"].append("PHASE_3_BASELINE")
+         self.write()
+         self.assertTrue(any("gate scope mismatch" in error for error in VALIDATOR.validate(self.path)))
+ 
+diff --git a/scripts/tests/test_validate_phase3_evidence_submission.py b/scripts/tests/test_validate_phase3_evidence_submission.py
+index 3328f22..055bb20 100644
+--- a/scripts/tests/test_validate_phase3_evidence_submission.py
++++ b/scripts/tests/test_validate_phase3_evidence_submission.py
+@@ -88,25 +88,25 @@ class Phase3EvidenceSubmissionTest(unittest.TestCase):
+         self.write()
+         self.assertTrue(any("ADR-0014" in item for item in VALIDATOR.validate(self.path)))
+ 
+     def test_verified_e08_rejects_failed_type_check(self) -> None:
+         self.payload.update({"status": "VERIFIED", "decisionOwner": "FE", "reviewOwner": "QA", "verificationResult": "PASS", "evidenceRefs": ["report"]})
+         self.payload["confirmedFacts"] = {key: "x" for key in VALIDATOR.REQUIRED_FACTS["P3-E08"]}
+         self.payload["confirmedFacts"].update({"exitCode": 1, "errorCount": 182})
+         self.write()
+         self.assertTrue(any("exitCode=0" in item for item in VALIDATOR.validate(self.path)))
+ 
+-    def test_verified_e09_requires_same_approved_hash(self) -> None:
+-        self.payload.update({"id": "P3-E09", "status": "VERIFIED", "decisionOwner": "DATA", "reviewOwner": "REVIEW", "verificationResult": "PASS", "evidenceRefs": ["report"]})
++    def test_e09_rejects_migration_approval_hash(self) -> None:
++        self.payload.update({"schemaVersion": 2, "id": "P3-E09", "status": "EVIDENCE_SUBMITTED", "decisionOwner": "DATA", "evidenceRefs": ["report"]})
+         self.payload["confirmedFacts"] = {key: "A" for key in VALIDATOR.REQUIRED_FACTS["P3-E09"]}
+-        self.payload["confirmedFacts"]["mappingDdlSha256"] = "B"
++        self.payload["confirmedFacts"]["approvedDdlSha256"] = "A"
+         self.write()
+-        self.assertTrue(any("approvedDdlSha256" in item for item in VALIDATOR.validate(self.path)))
++        self.assertTrue(any("must remain empty" in item for item in VALIDATOR.validate(self.path)))
+ 
+     def test_secret_value_field_is_rejected(self) -> None:
+         self.payload["confirmedFacts"] = {"password": "unsafe"}
+         self.write()
+         self.assertTrue(any("must not be embedded" in item for item in VALIDATOR.validate(self.path)))
+ 
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/scripts/tests/test_validate_sds_phase3.py b/scripts/tests/test_validate_sds_phase3.py
+index 009992d..0d46f64 100644
+--- a/scripts/tests/test_validate_sds_phase3.py
++++ b/scripts/tests/test_validate_sds_phase3.py
+@@ -154,21 +154,21 @@ class Phase3ValidatorTest(unittest.TestCase):
+                 refs.append("docs/decisions/0016-export-file-expiration.md")
+             evidence_blocks = {
+                 "P3-E01": ["SECURITY_TRUST_BOUNDARY", "PRODUCTION_DEPLOYMENT", "PRODUCTION_RELEASE"],
+                 "P3-E02": ["PRODUCTION_DEPLOYMENT", "PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"],
+                 "P3-E03": ["RECOVERY_ACCEPTANCE", "PRODUCTION_RELEASE"],
+                 "P3-E04": ["NFR_02", "DEVICE_CREDENTIAL_RELEASE", "PRODUCTION_RELEASE"],
+                 "P3-E05": ["OBSERVABILITY_ACCEPTANCE", "HIGH_RISK_AUDIT", "PRODUCTION_RELEASE"],
+                 "P3-E06": ["PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"],
+                 "P3-E07": ["FEATURE_INTEGRATION", "FEATURE_RELEASE"],
+                 "P3-E08": ["FRONTEND_FEATURE_ACCEPTANCE", "FRONTEND_RELEASE"],
+-                "P3-E09": ["PHASE_3_BASELINE", "DATA_MODEL_BASELINE", "HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
++                "P3-E09": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
+             }
+             evidence_items.append({"id": identifier, "status": "OPEN", "decisionOwner": decision_owner, "reviewOwner": None, "confirmedFacts": facts, "evidenceRefs": refs, "blocks": evidence_blocks[identifier]})
+         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "phase3-evidence-register.json").write_text(
+             json.dumps({"schemaVersion": 1, "phase": "SDS_PHASE_3", "baseline": "PRD_V1.7", "decisionBaseline": decision_ref, "overallStatus": "NOT_READY_FOR_SDS_BASELINE", "items": evidence_items}),
+             encoding="utf-8",
+         )
+ 
+     def tearDown(self) -> None:
+         self.temp.cleanup()
+ 
+diff --git a/scripts/validate_ddl_item_decision_register.py b/scripts/validate_ddl_item_decision_register.py
+index 917457e..980cc51 100644
+--- a/scripts/validate_ddl_item_decision_register.py
++++ b/scripts/validate_ddl_item_decision_register.py
+@@ -5,21 +5,21 @@ from __future__ import annotations
+ 
+ import argparse
+ import copy
+ import hashlib
+ import importlib.util
+ import json
+ import sys
+ from pathlib import Path
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+-from p3e09_approval_policy import validate_register_approval
++from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
+ 
+ 
+ ALLOWED_DECISIONS = {"ACCEPT_CURRENT", "RESTORE_APPROVED_BASELINE", "AMEND_CURRENT", "DEFER"}
+ 
+ 
+ def nonempty(value: object) -> bool:
+     return value is not None and value != "" and value != [] and value != {}
+ 
+ 
+ def canonical_sha(items: list[dict[str, object]]) -> str:
+@@ -52,35 +52,25 @@ def evidence_reference_errors(root: Path, items: list[dict[str, object]]) -> lis
+         for reference in item.get("evidenceRefs", []):
+             if not isinstance(reference, str) or not reference:
+                 errors.append(f"{item.get('itemId')} invalid evidence reference")
+                 continue
+             target = reference.split("#", 1)[0]
+             if not (root / target).is_file():
+                 errors.append(f"{item.get('itemId')} evidence reference does not exist: {target}")
+     return errors
+ 
+ 
+-def final_approval_errors(root: Path, register: dict[str, object], approved_count: int) -> list[str]:
+-    approval = register.get("approval", {})
+-    if not isinstance(approval, dict) or not nonempty(approval.get("approvedDdlSha256")):
+-        return []
+-    errors: list[str] = []
+-    if approval.get("approvedDdlSha256") != register.get("currentDdlSha256"):
+-        errors.append("approvedDdlSha256 must equal currentDdlSha256")
+-    if approval.get("itemsSha256") != register.get("itemsSha256"):
+-        errors.append("approval must bind the current itemsSha256")
+-    approval_refs = approval.get("evidenceRefs", [])
+-    errors.extend(evidence_reference_errors(
+-        root, [{"itemId": "APPROVAL", "decision": "ACCEPT_CURRENT", "evidenceRefs": approval_refs}]
+-    ))
+-    errors.extend(validate_register_approval(root, register, approved_count))
+-    return errors
++def model_baseline_errors(
++    register: dict[str, object], evidence: dict[str, object], *, root: Path | None = None,
++) -> list[str]:
++    """Expose the shared SDS model-fact policy without migration approval checks."""
++    return validate_model_baseline(register, evidence, root=root)
+ 
+ 
+ def load_generator(script_dir: Path):
+     path = script_dir / "generate_ddl_drift_review.py"
+     spec = importlib.util.spec_from_file_location("ddl_drift_generator_for_validation", path)
+     module = importlib.util.module_from_spec(spec)
+     assert spec.loader is not None
+     sys.modules[spec.name] = module
+     spec.loader.exec_module(module)
+     return module
+@@ -185,30 +175,30 @@ def validate(root: Path) -> list[str]:
+     if core_contract.get("v17Delta", {}).get("status") == "ACCEPTED":
+         conditional_metadata.append("v17DeltaDecision")
+     if isinstance(confirmation, dict) and confirmation.get("status") == "ACCEPTED":
+         conditional_metadata.append("p3e09RequirementOwnerDecision")
+     for decision_key in conditional_metadata:
+         if register.get(decision_key) != decided_expected.get(decision_key):
+             errors.append(f"DDL decision register {decision_key} metadata mismatch")
+ 
+     counts: dict[str, int] = {}
+     statuses: dict[str, int] = {}
+-    approved_count = 0
+     for item in items:
+         counts[item["itemType"]] = counts.get(item["itemType"], 0) + 1
+         statuses[item["comparisonStatus"]] = statuses.get(item["comparisonStatus"], 0) + 1
+-        if item.get("decision") != "DEFER" and nonempty(item.get("reviewOwner")):
+-            approved_count += 1
++    approved_count = sum(
++        item.get("decision") != "DEFER" and nonempty(item.get("reviewOwner"))
++        for item in items
++    )
+     expected_summary = {"itemCount": len(items), "byType": counts, "byComparisonStatus": statuses, "approvedCount": approved_count}
+     if register.get("summary") != expected_summary:
+         errors.append("DDL item decision summary mismatch")
+-    errors.extend(final_approval_errors(root, register, approved_count))
+     return errors
+ 
+ 
+ def main() -> int:
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--root", type=Path, default=Path.cwd())
+     args = parser.parse_args()
+     errors = validate(args.root.resolve())
+     if errors:
+         for error in errors:
+diff --git a/scripts/validate_phase3_evidence_register.py b/scripts/validate_phase3_evidence_register.py
+index 99e2320..95fce03 100644
+--- a/scripts/validate_phase3_evidence_register.py
++++ b/scripts/validate_phase3_evidence_register.py
+@@ -2,36 +2,36 @@
+ """Validate the machine-readable Phase 3 evidence register."""
+ 
+ from __future__ import annotations
+ 
+ import argparse
+ import json
+ import sys
+ from pathlib import Path
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+-from p3e09_approval_policy import validate_register_approval
++from p3e09_approval_policy import validate_model_baseline
+ 
+ 
+ EXPECTED_IDS = {f"P3-E{index:02d}" for index in range(1, 10)}
+ VALID_STATUS = {"OPEN", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED", "NOT_APPLICABLE"}
+ BASELINE_REQUIRED: set[str] = {"P3-E09"}
+ EXPECTED_BLOCKS = {
+     "P3-E01": {"SECURITY_TRUST_BOUNDARY", "PRODUCTION_DEPLOYMENT", "PRODUCTION_RELEASE"},
+     "P3-E02": {"PRODUCTION_DEPLOYMENT", "PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"},
+     "P3-E03": {"RECOVERY_ACCEPTANCE", "PRODUCTION_RELEASE"},
+     "P3-E04": {"NFR_02", "DEVICE_CREDENTIAL_RELEASE", "PRODUCTION_RELEASE"},
+     "P3-E05": {"OBSERVABILITY_ACCEPTANCE", "HIGH_RISK_AUDIT", "PRODUCTION_RELEASE"},
+     "P3-E06": {"PERFORMANCE_ACCEPTANCE", "PRODUCTION_RELEASE"},
+     "P3-E07": {"FEATURE_INTEGRATION", "FEATURE_RELEASE"},
+     "P3-E08": {"FRONTEND_FEATURE_ACCEPTANCE", "FRONTEND_RELEASE"},
+-    "P3-E09": {"PHASE_3_BASELINE", "DATA_MODEL_BASELINE", "HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
++    "P3-E09": {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
+ }
+ DIRECTION_DECISIONS = {
+     "P3-E01": "A",
+     "P3-E02": "A",
+     "P3-E03": "A",
+     "P3-E04": "A",
+     "P3-E05": "A",
+     "P3-E06": "A",
+     "P3-E07": "B",
+     "P3-E09": "A",
+@@ -258,44 +258,44 @@ def validate(path: Path, *, require_ready: bool = False) -> list[str]:
+     if facts.get("currentDdlSha256") == facts.get("legacyCatalogDdlSha256"):
+         errors.append("P3-E09 current and legacy DDL hashes must differ")
+     q07_fact = facts.get("q07Decision", {})
+     q08_fact = facts.get("q08Decision", {})
+     if {key: value for key, value in q07_fact.items() if key != "status"} != Q07_DECISION or q07_fact.get("status") not in {"RECONFIRMATION_REQUIRED", "ACCEPTED"}:
+         errors.append("P3-E09 Q07 decision fact mismatch")
+     if {key: value for key, value in q08_fact.items() if key != "status"} != Q08_DECISION or q08_fact.get("status") not in {"RECONFIRMATION_REQUIRED", "ACCEPTED"}:
+         errors.append("P3-E09 Q08 decision fact mismatch")
+     deferred_count = facts.get("deferredItemCount")
+     approved_hash = facts.get("approvedDdlSha256")
+-    if approved_hash:
+-        expected_model_status, expected_drift = "APPROVED", "ACCEPT_CURRENT"
+-        if approved_hash != facts.get("currentDdlSha256") or e09.get("status") != "VERIFIED":
+-            errors.append("P3-E09 approved state must bind current DDL and VERIFIED gate status")
+-        root = None
+-        for candidate in (path.resolve().parent, *path.resolve().parents):
+-            if (candidate / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json").is_file():
+-                root = candidate
+-                break
+-        if root is None:
+-            errors.append("P3-E09 approved state requires the repository DDL approval register")
+-        else:
+-            register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
+-            register = json.loads(register_path.read_text(encoding="utf-8"))
+-            approved_count = sum(
+-                item.get("decision") != "DEFER" and bool(item.get("reviewOwner"))
+-                for item in register.get("items", [])
+-            )
+-            errors.extend(validate_register_approval(root, register, approved_count))
+-            approval = register.get("approval", {})
+-            if e09.get("reviewOwner") != approval.get("reviewOwner"):
+-                errors.append("P3-E09 reviewOwner must be derived from the DDL approval register")
+-    elif deferred_count == 0:
+-        expected_model_status, expected_drift = "DECISIONS_ACCEPTED_REVIEW_PENDING", "REVIEW_PENDING"
++    if approved_hash not in (None, ""):
++        errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
++    if deferred_count == 0:
++        expected_model_status, expected_drift = "MODEL_BASELINE_READY", "ACCEPT_CURRENT"
++        if e09.get("status") == "VERIFIED":
++            root = None
++            for candidate in (path.resolve().parent, *path.resolve().parents):
++                if (candidate / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json").is_file():
++                    root = candidate
++                    break
++            if root is None:
++                errors.append("P3-E09 model-ready state requires the repository DDL decision register")
++            else:
++                register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
++                try:
++                    register = json.loads(register_path.read_text(encoding="utf-8"))
++                except (OSError, json.JSONDecodeError) as exc:
++                    errors.append(f"cannot read P3-E09 DDL register: {exc}")
++                else:
++                    errors.extend(validate_model_baseline(
++                        register,
++                        {**facts, "decisionOwner": e09.get("decisionOwner"), "reviewOwner": e09.get("reviewOwner"), "evidenceRefs": e09.get("evidenceRefs")},
++                        root=root,
++                    ))
+     else:
+         expected_model_status, expected_drift = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED", "DEFER"
+     if facts.get("modelDecisionStatus") != expected_model_status or facts.get("driftDecision") != expected_drift:
+         errors.append("P3-E09 model/drift state transition mismatch")
+     if MODEL_DECISION_REF not in e09.get("evidenceRefs", []):
+         errors.append("P3-E09 Q07/Q08 decision reference missing")
+ 
+     ready = all(by_id.get(identifier, {}).get("status") == "VERIFIED" for identifier in BASELINE_REQUIRED)
+     expected_overall = "READY_FOR_SDS_BASELINE" if ready else "NOT_READY_FOR_SDS_BASELINE"
+     if payload.get("overallStatus") != expected_overall:
+diff --git a/scripts/validate_phase3_evidence_submission.py b/scripts/validate_phase3_evidence_submission.py
+index debfab2..1914fa4 100644
+--- a/scripts/validate_phase3_evidence_submission.py
++++ b/scripts/validate_phase3_evidence_submission.py
+@@ -3,34 +3,38 @@
+ 
+ from __future__ import annotations
+ 
+ import argparse
+ import json
+ import re
+ import sys
+ from pathlib import Path
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+-from p3e09_approval_policy import APPROVAL_SUBMISSION_PREFIX, validate_approval_submission
++from p3e09_approval_policy import DDL_ARTIFACT_HASH_FIELDS, validate_model_baseline
+ 
+ 
+ REQUIRED_FACTS = {
+     "P3-E01": {"environmentId", "entryGateway", "domainRef", "tlsTermination", "certificateOwner", "networkZones", "applicationNodes", "dataNodes", "allowedFlows", "objectStorage", "dacExecutionZone", "operationsOwner", "topologyVersion"},
+     "P3-E02": {"serviceMode", "mysqlVersion", "redisVersion", "haMode", "nodeSpecs", "storageCapacity", "connectionLimits", "redisPersistence", "redisEvictionPolicy", "monitoringOwner", "failoverEvidenceId", "capacityEvidenceId"},
+     "P3-E03": {"approvedRpo", "approvedRto", "backupMedia", "backupFrequency", "retention", "encryption", "restoreOrder", "exerciseOwner", "exerciseEvidenceId", "actualRpo", "actualRto", "businessProbeResult"},
+     "P3-E04": {"keyFacility", "algorithmMode", "masterDataKeySeparation", "keyVersioning", "accessIdentities", "auditInterface", "revocationProcedure", "rotationOwner", "incidentOwner", "rotationExerciseId", "secretScanResult"},
+     "P3-E05": {"logBackend", "metricBackend", "traceBackend", "alertBackend", "securityEventBackend", "collectionProtocol", "accessRoles", "redactionPolicy", "retentionPolicy", "samplingPolicy", "dashboardRefs", "alertRefs", "runbookRefs", "timeSync", "telemetryOwner", "testTriggerEvidenceId"},
+     "P3-E06": {"environmentTopology", "nodeSpecs", "productionDifferences", "scalingModel", "networkConditions", "dataSetVersion", "migrationVolume", "accountDistribution", "externalDependencyMode", "loadScriptSha256", "monitoringRefs", "cleanupProcedure", "testOwner"},
+     "P3-E07": {"requirementIds", "featureId", "externalSystem", "systemOwner", "direction", "endpointRef", "authenticationRef", "networkAllowlistRef", "mappingVersion", "sourceKey", "idempotencyKey", "timeoutMs", "retryPolicy", "compensation", "reconciliation", "degradation", "sandboxEvidenceId", "releaseApprovalId"},
+     "P3-E08": {"implementationCommit", "nodeVersion", "pnpmVersion", "lockfileSha256", "command", "exitCode", "errorCount", "remediationOwner", "affectedPages", "lintResult", "buildResult", "browserRegressionEvidenceId"},
+-    "P3-E09": {"dataElementExcelSha256", "sourceSchemaSha256", "sourceWatermark", "currentDdlSha256", "driftDecisionRegister", "approvedDdlSha256", "targetCatalogDdlSha256", "mappingDdlSha256", "validationDdlSha256", "manifestDdlSha256", "generatorVersion", "releaseManifestId", "migrationOwner", "verificationResult"},
+ }
++REQUIRED_P3_E09_FACTS = {
++    "itemsSha256", "itemIdsSha256", "deferredItemCount", "mysql84DdlSha256",
++    "independentReviewResult", "independentReviewRef", *DDL_ARTIFACT_HASH_FIELDS,
++}
++REQUIRED_FACTS["P3-E09"] = REQUIRED_P3_E09_FACTS
+ VALID_STATUS = {"DRAFT", "EVIDENCE_SUBMITTED", "VERIFIED", "REJECTED"}
+ SECRET_NAME = re.compile(r"(?:password|passwd|secretValue|privateKey|tokenValue|connectionString)$", re.I)
+ DIRECTION_DECISIONS = {
+     "P3-E01": "A", "P3-E02": "A", "P3-E03": "A", "P3-E04": "A",
+     "P3-E05": "A", "P3-E06": "A", "P3-E07": "B", "P3-E09": "A",
+ }
+ RECOVERY_OBJECTIVES = {"approvedRpo": "PT1H", "approvedRto": "PT4H"}
+ PERMANENT_AUDIT_POLICY = {
+     "policyCode": "PERMANENT_NON_DELETABLE",
+     "permanentCategories": [
+@@ -146,46 +150,43 @@ def validate(path: Path) -> list[str]:
+         if identifier == "P3-E03" and facts.get("exercisePolicy") != RECOVERY_EXERCISE_POLICY:
+             errors.append("P3-E03 submitted evidence must retain ADR-0015 recovery exercise frequency")
+         if identifier == "P3-E03" and facts.get("switchAuthorization") != RECOVERY_SWITCH_AUTHORIZATION:
+             errors.append("P3-E03 submitted evidence must retain ADR-0017 recovery switch authorization")
+         if identifier == "P3-E05" and facts.get("retentionPolicy") != PERMANENT_AUDIT_POLICY:
+             errors.append("P3-E05 submitted evidence must retain ADR-0006 PERMANENT_NON_DELETABLE audit policy")
+         if identifier == "P3-E05" and facts.get("samplingPolicy") != TRACE_SAMPLING_POLICY:
+             errors.append("P3-E05 submitted evidence must retain ADR-0011 trace sampling policy")
+         if identifier == "P3-E05" and facts.get("exportAuthorizationPolicy") != EXPORT_AUTHORIZATION_POLICY:
+             errors.append("P3-E05 submitted evidence must retain ADR-0014 export authorization policy")
++        if identifier == "P3-E09" and facts.get("approvedDdlSha256") not in (None, ""):
++            errors.append("P3-E09 approvedDdlSha256 must remain empty for the SDS model baseline")
+     if status == "VERIFIED":
+         if not nonempty(payload.get("reviewOwner")) or payload.get("verificationResult") != "PASS":
+             errors.append(f"{identifier} VERIFIED requires reviewOwner and verificationResult=PASS")
+         if identifier == "P3-E08" and (facts.get("exitCode") != 0 or facts.get("errorCount") != 0):
+             errors.append("P3-E08 cannot be VERIFIED until ts:check exitCode=0 and errorCount=0")
+         if identifier == "P3-E09":
+-            approved = facts.get("approvedDdlSha256")
+-            hash_fields = ("currentDdlSha256", "targetCatalogDdlSha256", "mappingDdlSha256", "validationDdlSha256", "manifestDdlSha256")
+-            if not approved or any(facts.get(field) != approved for field in hash_fields):
+-                errors.append("P3-E09 VERIFIED requires all DDL-bound artifacts to reference approvedDdlSha256")
+             root = repository_root(path)
+             if root is None:
+                 errors.append("P3-E09 VERIFIED submission must be stored in the project repository")
+             else:
+-                try:
+-                    submission_ref = path.resolve().relative_to(root.resolve()).as_posix()
+-                except ValueError:
+-                    submission_ref = ""
+                 register_path = root / "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json"
+                 try:
+                     register = json.loads(register_path.read_text(encoding="utf-8"))
+                 except (OSError, json.JSONDecodeError) as exc:
+                     errors.append(f"cannot read P3-E09 DDL register: {exc}")
+                 else:
+-                    approval_errors, _ = validate_approval_submission(root, submission_ref, register)
+-                    errors.extend(approval_errors)
++                    errors.extend(validate_model_baseline(
++                        register,
++                        {**facts, "decisionOwner": payload.get("decisionOwner"), "reviewOwner": payload.get("reviewOwner"), "evidenceRefs": payload.get("evidenceRefs")},
++                        root=root,
++                    ))
+     return errors
+ 
+ 
+ def main() -> int:
+     parser = argparse.ArgumentParser()
+     parser.add_argument("submission", type=Path)
+     args = parser.parse_args()
+     errors = validate(args.submission)
+     if errors:
+         for error in errors:

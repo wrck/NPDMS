@@ -1,0 +1,27 @@
+{
+  "steps": [
+    {
+      "name": "manual-weight-full-replacement",
+      "status": "PASS",
+      "weights": {
+        "acceptance": 20,
+        "shanghai": 50,
+        "jiangsu": 30
+      },
+      "aggregate": "34%"
+    },
+    {
+      "name": "move-restores-seed-aggregate",
+      "status": "PASS",
+      "aggregate": "44%"
+    },
+    {
+      "name": "cycle-rejection-no-unhandled-warning",
+      "status": "PASS",
+      "businessCode": 1014024009
+    }
+  ],
+  "consoleMessages": [],
+  "failedRequests": [],
+  "errorResponses": []
+}

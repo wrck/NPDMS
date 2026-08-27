@@ -1,0 +1,365 @@
+# Review package: 6f748112e34fa526a8914a8346dda3af30f86719..1ecf54893c3f0527850faadd6b74514cd36a50b9
+
+## Commits
+1ecf548 fix(snapshot): 防止替换窗口覆盖本地修改
+
+## Files changed
+ scripts/specification_baseline.py            | 103 +++++++++++++++++++++++----
+ scripts/tests/test_specification_baseline.py |  77 ++++++++++++++++++--
+ 2 files changed, 164 insertions(+), 16 deletions(-)
+
+## Diff
+diff --git a/scripts/specification_baseline.py b/scripts/specification_baseline.py
+index 7833267..029fa2f 100644
+--- a/scripts/specification_baseline.py
++++ b/scripts/specification_baseline.py
+@@ -265,107 +265,186 @@ def plan_snapshot(
+         elif target.exists() and _path_is_dirty(destination_repo, entry.path):
+             action = "CONFLICT"
+         elif target.exists():
+             action = "REPLACE"
+         else:
+             action = "ADD"
+         changes.append(SnapshotChange(entry.path, action))
+     return tuple(changes)
+ 
+ 
+-def _atomic_write(path: Path, content: bytes) -> None:
++def _stage_file(path: Path, content: bytes) -> Path:
+     path.parent.mkdir(parents=True, exist_ok=True)
+     descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+     try:
+         with os.fdopen(descriptor, "wb") as handle:
+             handle.write(content)
+             handle.flush()
+             os.fsync(handle.fileno())
+-        os.replace(temp_name, path)
+     except BaseException:
+         try:
+             os.unlink(temp_name)
+         except FileNotFoundError:
+             pass
+         raise
++    return Path(temp_name)
+ 
+ 
+ def _target_state(path: Path) -> _TargetState:
+     if path.is_file():
+         return _TargetState("FILE", path.read_bytes())
+     if path.exists():
+         return _TargetState("OTHER", None)
+     return _TargetState("MISSING", None)
+ 
+ 
+ def _ensure_target_states(expected_states: Mapping[Path, _TargetState]) -> None:
+     for path, expected in expected_states.items():
+         if _target_state(path) != expected:
+             raise BaselineError(f"managed destination changed after preflight: {path}")
+ 
+ 
+-def _restore_target_state(path: Path, original: _TargetState, applied: bytes) -> None:
+-    if _target_state(path) != _TargetState("FILE", applied):
++def _new_backup_path(path: Path) -> Path:
++    descriptor, backup_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".backup", dir=path.parent)
++    os.close(descriptor)
++    return Path(backup_name)
++
++
++def _restore_moved_target(path: Path, backup: Path) -> None:
++    try:
++        os.link(backup, path)
++    except FileExistsError:
++        pass
++    finally:
++        try:
++            backup.unlink()
++        except FileNotFoundError:
++            pass
++
++
++def _publish_staged_file(path: Path, staged: Path, expected: _TargetState) -> None:
++    if expected.kind == "MISSING":
++        try:
++            os.link(staged, path)
++        except FileExistsError as exc:
++            raise BaselineError(f"managed destination changed during apply: {path}") from exc
++    elif expected.kind == "FILE":
++        backup = _new_backup_path(path)
++        applied = _TargetState("FILE", staged.read_bytes())
++        try:
++            os.replace(path, backup)
++        except FileNotFoundError as exc:
++            backup.unlink(missing_ok=True)
++            raise BaselineError(f"managed destination changed during apply: {path}") from exc
++        if _target_state(backup) != expected:
++            _restore_moved_target(path, backup)
++            raise BaselineError(f"managed destination changed during apply: {path}")
++        try:
++            os.link(staged, path)
++        except FileExistsError as exc:
++            backup.unlink(missing_ok=True)
++            raise BaselineError(f"managed destination changed during apply: {path}") from exc
++        if _target_state(backup) != expected:
++            _publish_staged_file(path, backup, applied)
++            raise BaselineError(f"managed destination changed during apply: {path}")
++        backup.unlink(missing_ok=True)
++    else:
++        raise BaselineError(f"cannot replace non-file managed destination: {path}")
++    staged.unlink(missing_ok=True)
++
++
++def _remove_file_if_unchanged(path: Path, expected: _TargetState) -> None:
++    backup = _new_backup_path(path)
++    try:
++        os.replace(path, backup)
++    except FileNotFoundError as exc:
++        backup.unlink(missing_ok=True)
++        raise BaselineError(f"managed destination changed during apply: {path}") from exc
++    if _target_state(backup) != expected:
++        _restore_moved_target(path, backup)
+         raise BaselineError(f"managed destination changed during apply: {path}")
++    backup.unlink(missing_ok=True)
++
++
++def _restore_target_state(path: Path, original: _TargetState, applied: bytes) -> None:
+     if original.kind == "FILE":
+         assert original.content is not None
+-        _atomic_write(path, original.content)
++        staged = _stage_file(path, original.content)
++        try:
++            _publish_staged_file(path, staged, _TargetState("FILE", applied))
++        finally:
++            staged.unlink(missing_ok=True)
+     elif original.kind == "MISSING":
+-        path.unlink()
++        _remove_file_if_unchanged(path, _TargetState("FILE", applied))
+     else:
+         raise BaselineError(f"cannot restore non-file managed destination: {path}")
+ 
+ 
+ def apply_snapshot(
+     destination_repo: Path,
+     manifest: Mapping[str, object],
+     blobs: Mapping[str, bytes],
+ ) -> None:
+     entries = _manifest_entries(manifest)
+     manifest_path = destination_repo / "docs" / "specification-baseline" / "manifest.json"
+     initial_states = {
+         destination_repo / entry.path: _target_state(destination_repo / entry.path)
+         for entry in entries
+     }
+     initial_states[manifest_path] = _target_state(manifest_path)
+     changes = plan_snapshot(destination_repo, manifest, blobs)
+     conflicts = [change.path for change in changes if change.action == "CONFLICT"]
++    manifest_relative_path = "docs/specification-baseline/manifest.json"
++    manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
++    if (
++        manifest_path.exists()
++        and _path_is_dirty(destination_repo, manifest_relative_path)
++        and _target_state(manifest_path) != _TargetState("FILE", manifest_bytes)
++    ):
++        conflicts.append(manifest_relative_path)
+     if conflicts:
+         raise BaselineError(f"managed destination has local changes: {', '.join(conflicts)}")
+ 
+-    manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+     writes = [
+         (destination_repo / change.path, blobs[change.path])
+         for change in changes
+         if change.action != "KEEP"
+     ]
+     writes.append((manifest_path, manifest_bytes))
+-    expected_states = dict(initial_states)
++    staged_writes: list[tuple[Path, bytes, Path]] = []
+     written: list[tuple[Path, bytes]] = []
+     try:
+         for path, content in writes:
+-            _ensure_target_states(expected_states)
+-            _atomic_write(path, content)
++            staged_writes.append((path, content, _stage_file(path, content)))
++        _ensure_target_states(initial_states)
++        for path, content, staged in staged_writes:
++            _publish_staged_file(path, staged, initial_states[path])
+             written.append((path, content))
+-            expected_states[path] = _TargetState("FILE", content)
+-        _ensure_target_states(expected_states)
++        expected_final_states = dict(initial_states)
++        expected_final_states.update(
++            (path, _TargetState("FILE", content)) for path, content in written
++        )
++        _ensure_target_states(expected_final_states)
+     except BaseException as exc:
+         rollback_errors: list[BaseException] = []
+         for path, content in reversed(written):
+             try:
+                 _restore_target_state(path, initial_states[path], content)
+             except BaseException as rollback_error:
+                 rollback_errors.append(rollback_error)
+         if rollback_errors:
+             detail = "; ".join(str(error) for error in rollback_errors)
+             raise BaselineError(f"snapshot apply failed and rollback failed: {detail}") from exc
+         raise
++    finally:
++        for _, _, staged in staged_writes:
++            staged.unlink(missing_ok=True)
+ 
+ 
+ def validate_snapshot(destination_repo: Path, manifest_path: Path) -> list[str]:
+     errors: list[str] = []
+     try:
+         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+         return [f"cannot read manifest: {exc}"]
+ 
+     if not isinstance(manifest, dict) or set(manifest) != {"schemaVersion", "source", "files"}:
+diff --git a/scripts/tests/test_specification_baseline.py b/scripts/tests/test_specification_baseline.py
+index 7f27745..6762ed1 100644
+--- a/scripts/tests/test_specification_baseline.py
++++ b/scripts/tests/test_specification_baseline.py
+@@ -208,20 +208,22 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
+         }
+         (contract_dir / "allowlist.json").write_text(
+             json.dumps(allowlist, ensure_ascii=False, indent=2) + "\n",
+             encoding="utf-8",
+         )
+         manifest_path = contract_dir / "manifest.json"
+         manifest_path.write_text(
+             json.dumps(self.manifest, ensure_ascii=False, indent=2) + "\n",
+             encoding="utf-8",
+         )
++        self._git("add", "docs/specification-baseline")
++        self._git("commit", "-q", "-m", "snapshot contract")
+         return manifest_path
+ 
+     def test_check_mode_never_writes(self) -> None:
+         changes = plan_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         self.assertEqual(["ADD", "ADD"], [change.action for change in changes])
+         self.assertFalse((self.repo / self.entries[0].path).exists())
+         self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+ 
+     def test_apply_creates_replaces_and_keeps_exact_files(self) -> None:
+@@ -259,31 +261,31 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
+ 
+     def test_apply_rolls_back_when_second_write_fails(self) -> None:
+         original_contents = (b"old prd\n", b"old sds\n")
+         for entry, content in zip(self.entries, original_contents, strict=True):
+             target = self.repo / entry.path
+             target.parent.mkdir(parents=True, exist_ok=True)
+             target.write_bytes(content)
+             self._git("add", entry.path)
+         self._git("commit", "-q", "-m", "managed snapshot")
+ 
+-        original_atomic_write = specification_baseline._atomic_write
++        original_publish = specification_baseline._publish_staged_file
+         write_count = 0
+ 
+-        def fail_second_write(path: Path, content: bytes) -> None:
++        def fail_second_write(path: Path, staged: Path, expected: object) -> None:
+             nonlocal write_count
+             write_count += 1
+             if write_count == 2:
+                 raise OSError("second write failed")
+-            original_atomic_write(path, content)
++            original_publish(path, staged, expected)
+ 
+-        with patch("specification_baseline._atomic_write", side_effect=fail_second_write):
++        with patch("specification_baseline._publish_staged_file", side_effect=fail_second_write):
+             with self.assertRaisesRegex(OSError, "second write failed"):
+                 apply_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         self.assertEqual(original_contents[0], (self.repo / self.entries[0].path).read_bytes())
+         self.assertEqual(original_contents[1], (self.repo / self.entries[1].path).read_bytes())
+         self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+ 
+     def test_apply_refuses_target_drift_after_preflight(self) -> None:
+         target = self.repo / self.entries[0].path
+         target.parent.mkdir(parents=True)
+@@ -300,20 +302,87 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
+         with patch(
+             "specification_baseline.plan_snapshot",
+             side_effect=mutate_target_after_preflight,
+         ):
+             with self.assertRaises(BaselineError):
+                 apply_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         self.assertEqual(b"local edit after preflight\n", target.read_bytes())
+         self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
+ 
++    def test_apply_refuses_drift_immediately_before_replacement(self) -> None:
++        target = self.repo / self.entries[0].path
++        target.parent.mkdir(parents=True)
++        target.write_bytes(b"committed\n")
++        self._git("add", self.entries[0].path)
++        self._git("commit", "-q", "-m", "managed snapshot")
++        original_replace = specification_baseline.os.replace
++        injected = False
++
++        def mutate_before_replacement(source: object, destination: object) -> None:
++            nonlocal injected
++            if not injected and Path(source) == target:
++                injected = True
++                target.write_bytes(b"local edit before replacement\n")
++            original_replace(source, destination)
++
++        with patch("specification_baseline.os.replace", side_effect=mutate_before_replacement):
++            with self.assertRaises(BaselineError):
++                apply_snapshot(self.repo, self.manifest, self.blobs)
++
++        self.assertTrue(injected)
++        self.assertEqual(b"local edit before replacement\n", target.read_bytes())
++        self.assertFalse((self.repo / self.entries[1].path).exists())
++        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
++
++    def test_apply_restores_backup_write_after_initial_backup_check(self) -> None:
++        target = self.repo / self.entries[0].path
++        target.parent.mkdir(parents=True)
++        target.write_bytes(b"committed\n")
++        self._git("add", self.entries[0].path)
++        self._git("commit", "-q", "-m", "managed snapshot")
++        original_link = specification_baseline.os.link
++        injected = False
++
++        def mutate_backup_before_publish(source: object, destination: object) -> None:
++            nonlocal injected
++            if not injected and Path(destination) == target:
++                injected = True
++                backups = list(target.parent.glob(f".{target.name}.*.backup"))
++                self.assertEqual(1, len(backups))
++                backups[0].write_bytes(b"external write through old handle\n")
++            original_link(source, destination)
++
++        with patch("specification_baseline.os.link", side_effect=mutate_backup_before_publish):
++            with self.assertRaises(BaselineError):
++                apply_snapshot(self.repo, self.manifest, self.blobs)
++
++        self.assertTrue(injected)
++        self.assertEqual(b"external write through old handle\n", target.read_bytes())
++        self.assertFalse((self.repo / self.entries[1].path).exists())
++        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
++
++    def test_apply_refuses_dirty_manifest(self) -> None:
++        manifest_path = self.repo / "docs/specification-baseline/manifest.json"
++        manifest_path.parent.mkdir(parents=True)
++        manifest_path.write_bytes(b"committed manifest\n")
++        self._git("add", "docs/specification-baseline/manifest.json")
++        self._git("commit", "-q", "-m", "managed manifest")
++        manifest_path.write_bytes(b"local manifest edit\n")
++
++        with self.assertRaises(BaselineError):
++            apply_snapshot(self.repo, self.manifest, self.blobs)
++
++        self.assertEqual(b"local manifest edit\n", manifest_path.read_bytes())
++        self.assertFalse((self.repo / self.entries[0].path).exists())
++        self.assertFalse((self.repo / self.entries[1].path).exists())
++
+     def test_second_apply_is_idempotent(self) -> None:
+         apply_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         changes = plan_snapshot(self.repo, self.manifest, self.blobs)
+         apply_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         self.assertEqual(["KEEP", "KEEP"], [change.action for change in changes])
+ 
+     def test_validator_rejects_missing_file(self) -> None:
+         self._write_contract_files()

@@ -1,0 +1,1095 @@
+# Review package: b7c9d2a8de04391637aef942bc200ff43aec2122..10cec2cbd1d80adec4a8625e8eec31a27cce0dd5
+
+## Commits
+10cec2c docs(phase2): align current requirement contracts
+
+## Files changed
+ docs/baseline/baseline-signoff.md                  |  2 +-
+ docs/baseline/prd-v1.7.md                          |  2 +-
+ docs/baseline/requirement-baseline.yaml            |  2 +-
+ docs/design/08-data-model.md                       |  4 +-
+ .../08a-domain-entity-migration-alignment.md       |  4 +-
+ docs/design/09-database-design.md                  |  4 +-
+ docs/design/10-api-design.md                       |  4 +-
+ docs/design/11-event-design.md                     |  4 +-
+ docs/design/12-integration-design.md               |  4 +-
+ docs/design/16-exception-and-idempotency.md        |  6 +-
+ docs/engineering/gates/phase-1/gate-status.md      |  4 +-
+ docs/engineering/gates/phase-2/gate-status.md      | 32 ++++++----
+ docs/engineering/gates/phase-2/self-review.md      | 20 +++---
+ .../2026-08-10-PRD与13领域FR差异审查.md     |  2 +-
+ docs/traceability/business-feedback-change-map.md  |  2 +-
+ scripts/tests/test_validate_prd_baseline.py        | 18 ++++++
+ scripts/tests/test_validate_sds_phase2.py          | 67 +++++++++++++++++++-
+ scripts/validate_prd_baseline.py                   | 19 ++++++
+ scripts/validate_sds_phase2.py                     | 74 +++++++++++++++++++++-
+ 需求/PRD-项目实施交付管理平台.md       |  2 +-
+ 20 files changed, 228 insertions(+), 48 deletions(-)
+
+## Diff
+diff --git a/docs/baseline/baseline-signoff.md b/docs/baseline/baseline-signoff.md
+index 699dab4..f4d2985 100644
+--- a/docs/baseline/baseline-signoff.md
++++ b/docs/baseline/baseline-signoff.md
+@@ -2,21 +2,21 @@
+ 
+ ## 基线对象
+ 
+ | 项目 | 内容 |
+ |---|---|
+ | 产品 | 项目实施交付管理平台 |
+ | 版本 | V1.7 |
+ | 状态 | 正式基线 |
+ | 源文件 | `需求/PRD-项目实施交付管理平台.md` |
+ | 快照 | `docs/baseline/prd-v1.7.md` |
+-| SHA-256 | `400EBCD6A33F1066EAF732E4C018AF8050B7A2A34A1462CCA0090B83EFF7E249` |
++| SHA-256 | `AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C` |
+ | 生效日期 | 2026-08-14 |
+ 
+ ## 批准范围
+ 
+ - 103项V1/V2正式需求：V1 55项、V2 48项。
+ - 30项V3/跨需求演进追溯：不进入当前开发和验收承诺。
+ - 9项`OUT_OF_SCOPE`追溯：不进入当前开发、测试和版本规划。
+ - 13份领域规格：每项正式需求按唯一Owner归属。
+ 
+ ## 校验记录
+diff --git a/docs/baseline/prd-v1.7.md b/docs/baseline/prd-v1.7.md
+index 10815b7..472a38e 100644
+--- a/docs/baseline/prd-v1.7.md
++++ b/docs/baseline/prd-v1.7.md
+@@ -8159,21 +8159,21 @@ V3仅定义未来演进目标，不属于当前V1/V2正式承诺范围。下列
+ | SRV-01 | 设备服务状态与停产停维提示 | P1 | V2 | 13.5.13 SRV-01 设备服务状态与停产停维提示 | 已覆盖 |
+ | AST-01 | RMA替换与维保信息衔接 | P1 | V2 | 13.5.14 AST-01 RMA替换与维保信息衔接 | 已覆盖 |
+ | AST-02 | 设备维保客观状态计算 | P0 | V1 | 13.5.15 AST-02 设备维保客观状态计算 | 已覆盖 |
+ 
+ ### A.2 正式需求统计
+ 
+ | 统计维度 | 数值 |
+ | ---- | ---- |
+ | V1/V2正式需求总数 | 103条 |
+ | V1主版本需求 | 55条 |
+-| V2主版本需求 | 49条 |
++| V2主版本需求 | 48条 |
+ | P0需求 | 43条 |
+ | P1需求 | 58条 |
+ | P2需求 | 2条 |
+ | P3需求 | 0条 |
+ | 正式需求模块 | 18个 |
+ | 业务验收条款覆盖 | 103/103，100%；表示每个编号均有需求分析阶段的业务验收条款，不等同于测试用例、接口字段契约或详细设计完成率 |
+ 
+ ### A.3 V3演进索引
+ 
+ #### A.3.1 已编号演进项
+diff --git a/docs/baseline/requirement-baseline.yaml b/docs/baseline/requirement-baseline.yaml
+index b06dba7..388f0e6 100644
+--- a/docs/baseline/requirement-baseline.yaml
++++ b/docs/baseline/requirement-baseline.yaml
+@@ -1,18 +1,18 @@
+ baseline:
+   product: project-delivery-platform
+   version: V1.7
+   status: formal-baseline
+   frozen_at: 2026-08-14
+   source: 需求/PRD-项目实施交付管理平台.md
+   snapshot: docs/baseline/prd-v1.7.md
+-  sha256: 400EBCD6A33F1066EAF732E4C018AF8050B7A2A34A1462CCA0090B83EFF7E249
++  sha256: AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C
+ 
+ scope:
+   formal_requirements: 103
+   v1: 55
+   v2: 48
+   v3_evolution_trace: 30
+   out_of_scope_trace: 9
+   v3_implementation: false
+   out_of_scope_implementation: false
+ 
+diff --git a/docs/design/08-data-model.md b/docs/design/08-data-model.md
+index 2f45416..d2155ee 100644
+--- a/docs/design/08-data-model.md
++++ b/docs/design/08-data-model.md
+@@ -198,21 +198,21 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应
+ |---|---|---|
+ | Customer | External Master Copy / 临时主数据 | CRM 客户以 sourceKey 幂等同步；临时客户显式标记来源，合并不删除历史引用 |
+ | MarketRelation | External Master Copy | CRM同步市场部、系统部、拓展部、子行业的编码与名称组合目录；CUS拥有本地同步副本，不把组合目录解释为组织树 |
+ | CustomerContact | External Master Copy / 平台补充事实 | 权威字段不被平台覆盖；项目联系角色为独立时态关系 |
+ | CustomerRelationshipSnapshot | 不可变快照 | 项目、验收、巡检等业务发生时冻结必要联系信息 |
+ 
+ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/expendCode/expendName/industryCode/industryName`八个业务字段。`MarketRelation`只提供CRM组合目录、同步对账与候选选择，不是客户或项目的持久化外键目标；三者均禁止保存`relationId`。历史变更通过同步证据、审计和业务快照追溯，不依赖可变目录记录ID串联。
+ 
+ ### 9.2 Asset Management
+ 
+-适用 Requirement：EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06。
++适用 Requirement：EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06。
+ 
+ | 聚合/实体 | 类型 | 规则 |
+ |---|---|---|
+ | Device | 聚合根 / External Master Copy | MES/ITR 权威身份字段保留来源；平台拥有项目归属、档案补充和业务关联 |
+ | DeviceArchive | 聚合内实体 | 安装位置、客户关系、配置 Log 引用、项目关联等平台档案信息 |
+ | DeviceComponentRelation | 时态关系 | 机框序列号、槽位、板卡序列号/型号、关系来源、生效区间和解析证据；同一机框槽位同一时点最多一个当前板卡，换板结束旧关系并新增 |
+ | DeviceCurrentAssignment | 当前唯一关系 | 同一 tenant/device 只有一个有效当前项目；指向实际归属项目，不复制到祖先项目 |
+ | DeviceAssignmentHistory | 时态历史 | 每次划转关闭旧区间并新增区间；有效区间不得重叠 |
+ | DeviceAncestorProjection | 可重建投影 | 【建议】将当前归属映射到项目祖先，用于任意上级项目统计；不代表多重归属 |
+ | MaintenanceFact | 客观基本事实 | 起止日期、服务等级、来源和按规则计算的客观状态；不保存续保动作和人工覆盖结果 |
+@@ -246,21 +246,21 @@ Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/ex
+ | Supplier | 服务商档案、资质同步副本和可用状态 | 资质原件用 FileReference；状态来源可追溯 |
+ | SubcontractRequest | 转包范围、责任方、审批引用和生效区间 | 子项目只是可选业务关联，不改变项目树 Owner |
+ | PaymentGate | 付款前置条件快照和财务结果引用 | 平台不拥有付款事实；财务成功需回写/对账确认 |
+ 
+ 备件采购、库存和出入库由外部系统承接，不在本 Context 重建备件业务。
+ 
+ ## 10. Analytics、基础平台与 Knowledge Reference
+ 
+ ### 10.1 Analytics
+ 
+-适用 Requirement：RPT-01、RPT-02、RPT-04、ANA-01。
++适用 Requirement：RPT-02、ANA-01。
+ 
+ | 对象 | 类型 | 规则 |
+ |---|---|---|
+ | MetricDefinition | 口径元数据 | 【建议】保存指标代码、口径版本、单位、粒度和来源，不允许同版本静默改公式 |
+ | MetricSnapshot | 不可变快照 | 保存统计时点、数据水位、项目树版本、范围和结果 |
+ | PortfolioView | 可重建投影 | 组合、组织和项目树范围只读展示；不回写交易表 |
+ 
+ 周报、日报不作为独立需求或数据聚合；需要周期展示时复用指标快照查询。
+ 
+ ### 10.2 基础平台公共能力
+diff --git a/docs/design/08a-domain-entity-migration-alignment.md b/docs/design/08a-domain-entity-migration-alignment.md
+index 43785a9..00c04be 100644
+--- a/docs/design/08a-domain-entity-migration-alignment.md
++++ b/docs/design/08a-domain-entity-migration-alignment.md
+@@ -1,19 +1,19 @@
+ ﻿# SDS Phase 2补充分册：领域实体迁移对齐
+ 
+ > 文档状态：`BASELINE ADDENDUM`
+ > 适用基线：PRD V1.7、SDS Phase 1/2 BASELINE
+ > Requirement ID：附录A.1全部103项V1/V2正式需求
+ > Owner：SDS数据架构与数据迁移架构；业务语义Owner继承`phase-1-domain-ownership.md`
+ > 目标：使每个Phase 2领域数据对象都有明确的历史来源、当前实现来源、迁移策略或“不迁移”结论。
+ 
+-本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖88个领域实体，并将当前实现、旧数据元、外部系统、派生来源、历史只读资料和排除字段拆成100条互斥来源记录。每条记录独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供88个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障、设备框板关系、HR目录同步快照，以及原通用工单/工时的只读历史迁移对象。
++本分册是业务解释和迁移边界摘要，不以对象级复合策略代替实施契约。机器真值为`docs/traceability/domain-entity-migration-contract.json`，其人读版为`docs/traceability/domain-entity-migration-contract.md`：当前共覆盖84个领域实体，通过95条来源绑定描述当前实现、旧数据元、外部系统、派生来源和排除证据，并登记1个明确排除源。每个对象独立声明Owner、Requirement ID、目标表、来源证据、处置、转换、映射状态和Gate；`domain-object-table-map.json`提供84个对象到09目标表的精确机器映射。对象集合包含V1.7新增的满意度收集、割接保障安排和设备框板关系；已删除的HR目录同步快照及历史工单/工时对象不在当前迁移对象集合中。
+ 
+ ## 1. 证据和使用规则
+ 
+ 本分册不重新解析原始Excel，默认按以下顺序读取：
+ 
+ 1. `specs/001-project-delivery-platform/evidence/data-elements/manifest.json`及结构化JSONL；
+ 2. `specs/001-project-delivery-platform/evidence/migration/*mapping*.jsonl`及迁移摘要；
+ 3. `legacy-data-element-business-object-mapping.md`、`project-order-migration-mapping.md`等已整理结论；
+ 4. 实现仓库`E:\AICoding\Projects\NPDMS`提交`856d052`中的现行表和迁移；
+ 5. 只有结构化证据不足、源Excel哈希变化或需核验Excel专有语义时才回查原Excel。
+@@ -195,11 +195,11 @@
+ 
+ 1. `AI-MIG-000`在真实批次中完成范围、水位、程序、校验、演练、对账和回退验证；未经该验证不得执行迁移或切换；
+ 2. 本分册每个数据对象均有策略，所有`PENDING_SOURCE_CONFIRMATION`已关闭或被批准为不迁移；
+ 3. 每条源记录形成目标事实、迁移问题或批准终态之一，不得静默丢失；
+ 4. 每个领域分别校验数量、唯一键、关系孤儿、状态/字典、金额/数量、文件hash和权限范围；
+ 5. 可重建投影在Owner事实迁移完成后生成，并以数据水位验证，不导入旧缓存冒充真值；
+ 6. 旧库保持只读，新旧库物理分离，不执行跨库SQL；失败批次在新库隔离/作废后以新batch重做。
+ 
+ ## 12. 当前结论
+ 
+-Phase 2的全部显式数据对象已获得迁移策略入口；核心链具有结构化证据，当前实现领域实体采用前向迁移，证据不足或新增能力已明确隔离。本文仍为`IN_REVIEW`：实际字段级映射、源表最终水位和DDL发布必须在`AI-MIG-000`及后续领域迁移工作包中逐项验证，不能用本文替代生产迁移放行。
++Phase 2的全部显式数据对象已获得迁移策略入口；核心链具有结构化证据，当前实现领域实体采用前向迁移，证据不足或新增能力已明确隔离。本文保持`BASELINE ADDENDUM`；实际字段级映射、源表最终水位和生产迁移执行`DEFERRED_TO_AI_MIG_000`，应用Schema前向迁移发布`DEFERRED_TO_FEATURE_INTEGRATION`，不能用本文替代生产迁移放行。
+diff --git a/docs/design/09-database-design.md b/docs/design/09-database-design.md
+index db8d39f..4caf433 100644
+--- a/docs/design/09-database-design.md
++++ b/docs/design/09-database-design.md
+@@ -67,21 +67,21 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台
+ 
+ 【建议】新建不可变历史表不使用 `deleted` 作为业务撤销手段；撤销通过新状态历史或反向业务记录表达。为兼容基础平台实体基类必须保留时，固定为 `0` 且不暴露删除 API。
+ 
+ ### 2.2 推荐类型
+ 
+ | 语义 | 类型 | 说明 |
+ |---|---|---|
+ | 状态/类型/方向 | `varchar(32)` | 保存稳定代码，显示值来自字典 |
+ | 外部来源键 | `varchar(128)` | 与 `source_system`、`tenant_id` 组成幂等唯一键 |
+ | 业务编码 | `varchar(64)` | 只有明确业务编码的对象使用 |
+-| 数量/工时/数值 | `decimal(20,6)` | 禁止浮点；动作值同时保存方向和有符号值 |
++| 数量/金额/数值 | `decimal(20,6)` | 禁止浮点；动作值同时保存方向和有符号值 |
+ | 日期 | `date` | 不含时间语义的起止日 |
+ | 时间点 | `datetime(3)` | 存储统一时区约定下的时间点；接口显式带时区 |
+ | 内容哈希 | `char(64)` | SHA-256 十六进制 |
+ | 结构化扩展 | `json` | 仅保存非核心扩展或不可变外部摘要 |
+ | 大文本 | `text` | 禁止存储密码、私钥、Token 或完整外部大结果 |
+ 
+ ## 3. 命名、主键、唯一键和索引
+ 
+ ### 3.1 命名
+ 
+@@ -182,21 +182,21 @@ ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台
+ |---|---|---|---|
+ | Preparation | `sol_preparation` | `sol_preparation_item`、`sol_dynamic_form_instance` | 项目+准备类型+业务版本唯一；提交冻结 formSchemaVersion |
+ | ConstructionPlan | `sol_construction_plan` | `sol_construction_plan_revision`、`sol_construction_plan_item`、`sol_construction_plan_change` | `uk(tenant_id, plan_id, revision_no)`；批准 revision 只读 |
+ | Solution | `sol_solution` | `sol_solution_revision`、`sol_solution_review` | 发布 revision 只读；文件仅保存 FileReference |
+ | DynamicFormSchema | `sol_dynamic_form_schema` | `sol_dynamic_form_schema_revision` | V2；schema revision 发布后不可覆盖 |
+ 
+ 历史 `pms_eng_site_survey/requirement/resource_ready/briefing/solution/form_*` 可作为迁移来源；新应用服务按 Preparation/Solution Owner 访问，不允许表单引擎直接写 Project 状态。
+ 
+ ## 5. Asset 设备归属与维保基本事实
+ 
+-适用 Requirement：EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06。
++适用 Requirement：EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06。
+ 
+ ### 5.1 当前唯一归属与历史
+ 
+ 新增或规范化以下表：
+ 
+ | 表 | 关键字段 | 约束 |
+ |---|---|---|
+ | `ast_device_current_assignment` | `device_id, project_id, assignment_type_code, assigned_at, assignment_version` | `uk(tenant_id, device_id)`，保证一个设备只有一个当前项目 |
+ | `ast_device_assignment_history` | `device_id, project_id, effective_from, effective_to, change_reason_code, change_batch_id` | `idx(tenant_id, device_id, effective_from)`；区间不得重叠 |
+ | `ast_device_project_ancestor` | `device_id, assigned_project_id, ancestor_project_id, distance, tree_version, assignment_version` | `uk(tenant_id, device_id, ancestor_project_id)`；可重建投影 |
+diff --git a/docs/design/10-api-design.md b/docs/design/10-api-design.md
+index 8193e4d..839710a 100644
+--- a/docs/design/10-api-design.md
++++ b/docs/design/10-api-design.md
+@@ -180,32 +180,32 @@
+ | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
+ | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
+ | Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
+ | Historical Service Records | `/historical-work-orders`、`/historical-time-records` | 仅授权查询/导出；无create/update/action接口；保留来源键、原状态、责任、附件、审批和操作证据，导出留痕 |
+ 
+ ## 11. CUS、AST、COM、RES 与 KNO API
+ 
+ | Owner | Requirement | API | 关键边界 |
+ |---|---|---|---|
+ | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM 权威字段只读；临时客户显式标记来源 |
+-| AST | EQP-01～EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/rma-replacements` | 设备归属用 `actions/assign-project`；同一时点唯一；维保为客观基本信息 |
++| AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/rma-replacements` | 设备归属用 `actions/assign-project`；同一时点唯一；维保为客观基本信息 |
+ | COM | COM-01～COM-02 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes`、`/fulfillment-reconciliations` | ERP合同/订单核心字段只读；CRM经营状态/履约回执独立展示；范围分配/释放为受控命令 |
+ | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
+ | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
+ 
+ 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
+ 
+ ## 12. ANA 与公共能力 API
+ 
+ | Owner | Requirement | API | 规则 |
+ |---|---|---|---|
+-| ANA | RPT-01、RPT-02、RPT-04、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
++| ANA | RPT-02、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
+ | PLT | PLT-01 | `/todos`、`/{id}/actions/complete` | 待办完成回调业务 Owner；不能自行宣告业务成功 |
+ | PLT | PLT-02 | `/files:init-upload`、`/files/{id}:complete-upload`、`/files/{id}/versions`、`/file-references` | 文件 API 详见 13；下载实时校验业务权限 |
+ | PLT | AUT-01～AUT-02 | `/authorization-grants` | 通用授权，不代替 DAC 凭证授权 |
+ | PLT | CHG-01 | `/change-requests`、状态命令 | 低优先级独立能力，按版本范围后置实施 |
+ 
+ 周报/日报不提供独立 API；周期性展示复用指标快照。
+ 
+ ## 13. Device Access & Collection API
+ 
+ 适用 Requirement：INT-12、EXE-03～EXE-04、CUT-06、INS-02、INS-04、NFR-02。
+diff --git a/docs/design/11-event-design.md b/docs/design/11-event-design.md
+index f64eec1..7ecacb3 100644
+--- a/docs/design/11-event-design.md
++++ b/docs/design/11-event-design.md
+@@ -71,30 +71,30 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处
+ | 树变更 | changeBatchId、treeVersion、root/affected scope |
+ | 设备归属 | deviceId、old/new projectId、assignmentVersion、effectiveAt |
+ | 状态迁移 | fromStatus、toStatus、commandCode、aggregateVersion |
+ | 文件 | artifactId、fileVersion、contentHash、purposeCode |
+ | 外部同步 | sourceSystem、sourceKey、sourceVersion、syncBatchId、resultCode |
+ | 采集 | collectionTaskId、source business ref、deviceId、externalTaskId、raw/mapped status、resultRef |
+ | 审批/门禁 | snapshotId、ruleVersion、decisionCode、unmet item codes |
+ 
+ ## 5. Project、Asset 与 Analytics 事件
+ 
+-适用 Requirement：PM-01～PM-11、PROJ-12、EQP-01～EQP-07、AST-01～AST-02、RPT-01/02/04、ANA-01、INT-01/02/06。
++适用 Requirement：PM-01～PM-11、PROJ-12、EQP-01～EQP-05、EQP-07、AST-01～AST-02、RPT-02、ANA-01、INT-01/02/06。
+ 
+ | 事件 | Producer | Consumer | 幂等/顺序 | 语义 |
+ |---|---|---|---|---|
+ | `ProjectCreated` | Project Delivery | SOL/IMP/ACC/ANA | aggregateVersion | 项目身份和来源映射已建立 |
+ | `ProjectTreeChanged` | Project Delivery | Authorization/AST/ANA | changeBatchId + treeVersion | 一次无环树变更已提交；投影可据此重建 |
+ | `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移 |
+ | `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion | 项目关闭事实成立 |
+ | `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion | 任务指派/完成事实 |
+-| `ProjectConversionCompleted` | Project Delivery | IMP/CUT/WO/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
++| `ProjectConversionCompleted` | Project Delivery | IMP/CUT/AST/ANA | conversionId + source/targetProjectId + aggregateVersion + item summary ref | PM-05 全部对象与设备处置成功且源项目已只读归档；部分失败不发布完成事件 |
+ | `ProjectConversionPartiallyFailed` | Project Delivery | Todo/运维 | conversionId + aggregateVersion + failedItemRefs | 仅表示原批次仍待处理；成功项不回滚、不重复生成 |
+ | `ProjectPhaseGroupChanged` | Project Delivery | Project Query/ANA | groupId + groupVersion + changedProjectIds | PM-06 多期关系有效版本变化；不改变成员项目自身状态 |
+ | `ProjectPortfolioPublished` | Project Delivery | ANA/Portfolio Query | portfolioId + revision + memberSnapshotRef | PROJ-12组合版本已发布；不改变成员项目树、状态或权限 |
+ | `DeviceOwnershipChanged` | Asset domain | Asset projection / Outbox adapter | deviceId + assignmentVersion | AST 内部归属事实已变化；不作为跨 Context 公共名称 |
+ | `DeviceAssigned` | Asset integration | Project/IMP/CUT/Inspection/ANA | deviceId + assignmentVersion | 对应 `02d` 的稳定跨 Context 契约，由同一归属事务的 Outbox 发布 |
+ | `DeviceAncestorProjectionUpdated` | Asset Projection | Query/ANA | treeVersion + assignmentVersion | 多级统计投影已达到指定水位 |
+ | `DeviceStatusSynchronized` | Asset | Service Operations/ANA | sourceKey + sourceVersion | 外部状态副本已更新 |
+ | `MetricSnapshotPublished` | Analytics | Portfolio UI | metricCode + metricVersion + watermark | 只读指标快照可用 |
+ 
+ `ProjectClosureCompleted` 到达后 Project Delivery 仍需校验事件版本和当前状态，再执行本地关闭命令并发布 `ProjectClosed`；Closure Consumer 不直接写 Project 表。
+diff --git a/docs/design/12-integration-design.md b/docs/design/12-integration-design.md
+index dba184e..525c3cc 100644
+--- a/docs/design/12-integration-design.md
++++ b/docs/design/12-integration-design.md
+@@ -55,21 +55,21 @@
+ - 批量部分失败：成功项提交，失败项保持原批次关联并逐项重试；汇总状态为部分失败。
+ - 人工补录：显式 `sourceSystem=PLATFORM_MANUAL`、原因、证据和待对账标识，不伪造外部标识。
+ 
+ ## 4. 系统集成总表
+ 
+ | 系统 | 版本 | 方向 | 外部 Owner | 平台 Owner | 来源/幂等键 | 降级 |
+ |---|---|---|---|---|---|---|
+ | CRM | V1/V2 | 双向 | 项目、客户、销售执行、商机、产品停产停维和合同经营状态；不拥有 ERP 合同/订单核心来源字段 | PROJ/CUS/COM/AST | CRM对象ID+源版本；回写批次+ERP订单行映射+履约版本 | 最近成功副本；平台扩展字段/人工补缺；可靠队列 |
+ | ERP | V1 | 入向 | 合同/销售订单来源字段 | PROJ/COM | 所属公司+合同编号、订单/行ID+版本 | 手工建项目并待恢复关联 |
+ | ITR | V1/V2 | 双向 | 产品版本、技术公告、外部任务/问题事实 | AST/KNO/CUT | ITR对象ID+源版本/事件ID | 最近副本；业务允许的人工录入/邮件钉钉通知 |
+-| 钉钉 | V1 | 双向 | 打卡原始事实、消息交付 | WO/PLT | 打卡记录ID+打卡人；通知业务键 | 平台记录/人工补录、站内待办 |
++| 钉钉 | V1 | 双向 | 待办/消息受理、送达与阅读回执 | PLT | 通知业务对象+节点+接收人+版本；providerMessageId+状态版本 | 站内待办；恢复后按通知业务键重试并合并回执 |
+ | HR | V1 | 入向 | 组织与人员主数据 | 基础平台身份组织 | 人员/组织来源ID+版本 | 受控临时维护，恢复后校准 |
+ | OA | V2 | 出向/回调 | OA待办/审批实例结果 | PLT/RES/AUT | 平台申请ID+OA实例ID | 平台内审批继续、站内消息/邮件 |
+ | MES | V2 | 入向 | 设备生产、序列号、产品编码 | AST | MES设备/序列号+版本 | 手工录入并标来源待核对 |
+ | 备件系统 | V2 | 双向 | 备件申请、RMA事实 | AST/CUT/RES | 申请/RMA号+版本 | 线下申请后补录与核验 |
+ | UMC | V2 | 双向 | 巡检解析/报告文件执行结果 | Inspection | 报告任务ID+回调版本 | 用 INT-12 结果生成基础报告/人工处理 |
+ | 授权系统 | V2 | 双向 | License与授权结果 | AUT/AST | 申请ID、授权ID+版本 | 受控邮件申请和人工查询后补录 |
+ | 财务系统 | V2 | 出向+结果 | 入账/结算结果 | RES/COM | 费用单ID+批准版本+财务业务单号 | 导出文件人工对账并回填 |
+ | LDAP/AD | V1 | 入向/认证 | 企业账号、目录和认证 | 基础平台身份 | 目录对象ID+版本、认证会话 | 按安全策略启用受控本地账号 |
+ | 短信/邮件 | V2 | 出向+回执 | 渠道受理/送达 | PLT通知 | 业务对象+节点+渠道+接收人+模板版本 | 站内消息+钉钉机器人 |
+ | 现有采集平台子应用 | V1/V2 | 双向 | 设备连接、命令执行、原始采集执行 | Device Access & Collection | 平台任务ID、外部任务ID、callbackId/序号 | 保持任务失败；不得伪造采集结果 |
+@@ -235,13 +235,13 @@ UMC只负责巡检结果解析和报告文件生成；设备连接和原始采
+ 记录接口代码、方向、批次、来源键、版本、请求/响应摘要、状态码、耗时、尝试次数、错误分类、对账结果、操作者/执行身份和 traceId。姓名、电话、邮箱、金额、授权ID按字段权限脱敏；密码、私钥、Token、License全文和认证头永不落入业务日志。
+ 
+ ## 14. 集成门禁结论
+ 
+ | 门禁项 | 结论 | 说明 |
+ |---|---|---|
+ | 系统/字段 Owner 明确 | PASS | 第 4～11 节 |
+ | 来源键、版本和幂等明确 | PASS | 各系统契约与通用处理链 |
+ | 补偿、对账、降级明确 | PASS | 第 3、5～12 节 |
+ | 敏感信息边界明确 | PASS | 第 11、13 节 |
+-| 数值超时/重试及环境端点 | IN_REVIEW | 需各外部技术 Owner 在 Feature 联调前登记接口配置档案 |
++| 数值超时/重试及环境端点 | DEFERRED_TO_FEATURE_INTEGRATION | 由各外部技术 Owner 在对应 Feature 联调前登记接口配置档案，不阻断 Phase 2 结构契约 |
+ 
+ 业务集成结构已经具备进入 Feature 设计的条件；任何具体外部接口在未完成配置档案和联调证据前不得宣称 READY_FOR_PRODUCTION。
+diff --git a/docs/design/16-exception-and-idempotency.md b/docs/design/16-exception-and-idempotency.md
+index c6c8d96..73d5595 100644
+--- a/docs/design/16-exception-and-idempotency.md
++++ b/docs/design/16-exception-and-idempotency.md
+@@ -39,21 +39,21 @@
+ | `PMS-COMMON-PARTIAL-0001` | 批量部分失败 | item results/detailsRef |
+ 
+ 领域实现需扩展具体错误，但不得以一个 `OPERATION_FAILED` 吞掉权限、状态、并发、外部拒绝和数据质量差异。
+ 
+ ## 3. 幂等作用域与记录
+ 
+ | 场景 | 幂等键 | 作用域 | 首次结果重放 |
+ |---|---|---|---|
+ | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
+ | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
+-| 钉钉打卡 | 打卡记录ID+打卡人 | tenant + DingTalk | 更新同一同步事实，不重复工单/工时 |
++| 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
+ | 财务出向 | 费用单ID+批准版本 | tenant + finance interface | 查询/返回原财务业务单 |
+ | CollectionTask | 业务来源+平台任务幂等键 | tenant + sourceContext | 返回原平台任务 |
+ | DAC 下发 | 平台 CollectionTaskId | provider | 返回原外部任务或查询状态 |
+ | DAC 回调 | provider+callbackId；缺失时受控摘要 | tenant + provider | 不重复推进，返回首次处理 |
+ | 文件上传完成 | uploadSessionId+hash | tenant + file service | 返回原 FileVersion |
+ | 事件消费 | consumerCode+eventId | tenant + consumer | 不重复副作用 |
+ 
+ 幂等记录保存请求规范化摘要、状态 `PROCESSING/SUCCEEDED/FAILED_RETRYABLE/FAILED_FINAL`、资源/operation 引用、响应摘要和到期策略。秘密字段在摘要前移除或使用不可逆受控摘要，绝不保存临时密码。
+ 
+ ## 4. 同键重放规则
+@@ -107,21 +107,21 @@
+ - 连接/读取超时、限流和 5xx：可重试；使用退避和熔断，不在用户请求线程无限等待。
+ - 4xx/业务拒绝、Schema错误、未知字典：通常不可自动重试，进入隔离/待映射。
+ - 超时后可能已成功：先调用结果查询/对账；不能确认时保持 `UNKNOWN/PENDING_RECONCILIATION`。
+ - 外部恢复后按原业务键和版本重试；人工补录必须保存来源和待对账标记。
+ 
+ ### 8.2 已确认降级
+ 
+ | 系统 | 降级 |
+ |---|---|
+ | CRM/ERP/ITR/MES | 最近成功本地副本 + 截止时间；允许 PRD 定义的人工补缺，恢复后对账 |
+-| 钉钉 | 平台自主记录/人工补录、站内待办，恢复后受控合并 |
++| 钉钉 | 站内待办兜底；恢复后按通知业务键重试并受控合并送达/阅读回执 |
+ | OA | 平台内可继续流程不阻断；授权申请保持待审批，站内/邮件通知 |
+ | 备件 | 线下申请后补录和核验；平台不重建库存业务 |
+ | 授权系统 | 邮件申请/人工查询后补录，完整授权码不入日志 |
+ | UMC | 以 INT-12 结果生成基础报告或人工报告，不重复采集 |
+ | 财务 | 导出文件人工对账并回填，未经核验不标成功 |
+ | 短信/邮件 | 站内消息+钉钉兜底；不改变业务状态 |
+ | 采集子应用 | 任务失败/待下发，保存实际停止点；不伪造成功结果 |
+ 
+ ## 9. DAC 专项异常
+ 
+@@ -176,13 +176,13 @@
+ 
+ ## 14. 门禁结论
+ 
+ | 门禁项 | 结论 | 落位 |
+ |---|---|---|
+ | 错误可分类、可追踪 | PASS | 第 1、2、12 节 |
+ | 幂等作用域和重放明确 | PASS | 第 3、4 节 |
+ | 部分失败与补偿明确 | PASS | 第 5、8 节 |
+ | 树/设备/状态/DAC异常明确 | PASS | 第 6、7、9 节 |
+ | 敏感数据不进入失败证据 | PASS | 第 9、12 节 |
+-| 重试/熔断数值 | IN_REVIEW | Feature 联调/Phase 3 运行设计按外部 SLA 登记 |
++| 重试/熔断数值 | DEFERRED_TO_FEATURE_INTEGRATION | 对应 Feature 联调按外部 SLA 登记；Phase 3验证运行策略，不阻断 Phase 2 结构契约 |
+ 
+ 本分册满足 Phase 2 异常与幂等结构门禁；任何 Feature 不得通过禁用幂等、吞掉冲突、把未知状态当成功或减少授权校验来实现“流程顺畅”。
+diff --git a/docs/engineering/gates/phase-1/gate-status.md b/docs/engineering/gates/phase-1/gate-status.md
+index 7d89a7b..269b2ca 100644
+--- a/docs/engineering/gates/phase-1/gate-status.md
++++ b/docs/engineering/gates/phase-1/gate-status.md
+@@ -3,35 +3,35 @@
+ > 审查状态：`APPROVED`
+ > 依据：PRD V1.7、基线快照、正式工程链 V1.8
+ > 结论：`READY_FOR_PHASE_2`
+ > Phase 1硬门禁：领域Owner签署、实现工作包登记、采集平台集成形态确认均已通过。
+ > 独立第三方评审：V1.6结论为`GO`，详见`docs/engineering/gates/phase-1/independent-review.md`；V1.7为需求方批准的ADR-0024差量并已通过机器校验与自审，本文件不将其表述为新增独立评审结论。
+ 
+ ## 1. 审查清单
+ 
+ | 检查项 | 结果 | 说明 |
+ |---|---|---|
+-| 104 项正式需求进入追溯 | PASS | 追溯矩阵 104/104，V1 55、V2 49；已按 ADR-0024 完成业务反馈差量重构，并补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别映射 |
++| 103 项正式需求进入追溯 | PASS | 追溯矩阵 103/103，V1 55、V2 48；已按 ADR-0024 完成业务反馈差量重构，并补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别映射 |
+ | V1/V2/V3/OUT_OF_SCOPE 边界 | PASS | V3 和排除项未进入当前实现设计 |
+ | Bounded Context | PASS | 已按 PRD-derived Owner 工作映射拆分，并由需求方确认；细化 Context 与平台能力边界已回写 |
+ | 聚合边界 | PASS-WITH-FOLLOWUP | 项目、设备、采集、割接、巡检已分离；需在 Phase 2 落实表级边界 |
+ | 跨模块 Repository 访问 | PASS | SDS 约束为应用服务/事件，不允许直接访问；`CollectionTaskRequested` 方向已修正为业务 Context 到 Device Access & Collection |
+ | 核心生命周期状态机 | PASS-WITH-FOLLOWUP | 已定义核心状态和门禁；状态字典初始值与扩展映射需形成配置数据设计 |
+ | Workflow 与状态机分离 | PASS | 审批节点不直接替代业务状态 |
+ | 权限覆盖 | PASS | 已按 PRD 将到货/安装确认改为项目经理，删除配置采集结果中未定义的人工审批角色，定点复审通过 |
+ | 外部系统 Owner | PASS | 外部系统只通过适配器/契约提供事实，平台不接管其内部业务 |
+ | 是否发明业务规则 | PASS-WITH-FOLLOWUP | 文档中的架构选择以【建议】或【待确认】标记，未写入 PRD 业务规则 |
+ | BLOCKED_BY_SPEC | ABSENT | 当前未发现需要回到 PRD/决策记录处理的业务语义冲突 |
+ | BLOCKED_BY_EVIDENCE | ABSENT | 实施仓库 `856d052` 已固化当前运行边界与 `q2-evidence-manifest.json`，定点复审通过 |
+ | 是否足以进入 Data/API/Integration 设计 | YES | R-N01～R-N04 全部关闭，独立定点复审给出 GO |
+ 
+-独立评审补充：Implementation Execution bounded context 可保留。命名后的 Context 整改已完成：新增 Device Access & Collection 作为正式采集 Context，并允许现有采集模块/子应用作为实现载体；SRV 内部拆为 Work Order & Time、Inspection、Service Operations；CUS/AST分别拆为 Customer & Relationship、Asset Management；COM保留必要主数据本地同步副本；Closure统一为 ProjectClosure。详见 `docs/engineering/gates/phase-1/context-refinement-review.md`。
++独立评审补充：Implementation Execution bounded context 可保留。命名后的 Context 整改已完成：新增 Device Access & Collection 作为正式采集 Context，并允许现有采集模块/子应用作为实现载体；SRV 当前范围拆为 Inspection、Service Operations，Work Order & Time 已退出 V1/V2；CUS/AST分别拆为 Customer & Relationship、Asset Management；COM保留必要主数据本地同步副本；Closure统一为 ProjectClosure。详见 `docs/engineering/gates/phase-1/context-refinement-review.md`。
+ 
+ 本轮确认记录：Q1 已确认当前 13 个领域 Owner 映射；Q3 已确认 V1 优先采用现有采集平台子应用集成。Q2 已登记实现仓库、锁定基线提交、基础平台来源和 NPDMS 开发数据库目标；需求方已确认统一证据批次号 `NPDMS-SDS-P1-20260812-01`，前端冻结安装与生产构建已在宿主机通过，构建配置已提交。
+ 
+ ## 2. 阻塞项
+ 
+ | 编号 | 当前状态 | 阻塞内容 | 影响 | 解除条件 |
+ |---|---|---|---|---|
+ | BLOCKED-SDS-01 | RESOLVED_BY_REQUESTER | 13 个领域 Owner 已形成 PRD-derived 工作映射，并由需求方确认 | 影响模块归属、数据 Owner、API 责任和权限边界 | 将确认来源纳入责任人名册或签署记录 |
+ | BLOCKED-SDS-02 | RESOLVED_BY_EVIDENCE | 实现工作包证据曾与当前 Compose/宿主机运行边界冲突；实施仓库 `856d052` 已修复并提供机器可读清单 | 影响 Phase 2 技术契约与构建基线复核 | 已由独立复审验证 `q2-evidence-manifest.json`、`baseCommit` 及 `evidenceCommit` |
+ | BLOCKED-SDS-03 | RESOLVED_BY_REQUESTER | V1 优先采用现有采集平台子应用集成；任务授权、执行身份和回调责任已按 PRD/SDS 确认 | 影响部署、鉴权、任务下发和回调边界 | Phase 2 登记具体网络端点、部署清单和接口契约 |
+diff --git a/docs/engineering/gates/phase-2/gate-status.md b/docs/engineering/gates/phase-2/gate-status.md
+index b5ff803..1bb80ba 100644
+--- a/docs/engineering/gates/phase-2/gate-status.md
++++ b/docs/engineering/gates/phase-2/gate-status.md
+@@ -1,63 +1,69 @@
+ # SDS Phase 2 Review
+ 
+-> 审查状态：`APPROVED`
++> 审查状态：`IN_REVIEW`
+ > 依据：PRD V1.7、SDS Phase 1 `BASELINE`、实施仓库证据提交 `856d052`
+-> 结论：`READY_FOR_PHASE_3`
+-> 评审边界：V1.6独立评审结论保留；V1.7为需求方批准的ADR-0024差量并已通过104项契约、88实体/100来源迁移契约及自审校验，不伪造新增独立评审结论。
++> 结论：`NOT_READY_FOR_PHASE_3`
++> 评审边界：V1.6独立评审结论保留；当前按 PRD V1.7 的103项正式契约和84对象/95来源绑定/1排除源机器事实执行纠偏，完成独立复审前不恢复放行。
+ 
+ ## 1. 输出状态
+ 
+ | 输出 | 状态 | 门禁要点 |
+ |---|---|---|
+ | P2-01 实现事实盘点 | PASS | 69 个业务表、59 个 Controller、65 个 DO 已按一致性分类 |
+ | 08 Data Model | BASELINE | Owner、聚合、引用、版本、快照、历史及六项复审修复已通过独立复审 |
+-| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 79个Phase 2对象及9个08内部/迁移实体共88项均有来源级迁移契约；字段级实现与`AI-MIG-000`仍由后续迁移Gate阻断 |
++| 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 84个对象、95条来源绑定和1个排除源均有机器契约；真实批次字段映射与执行仍由`AI-MIG-000`在后续迁移Gate控制 |
+ | 09 Database Design | BASELINE | 表级约束、PM-05/06专表、临时用户名、消费确认和前向迁移已通过独立复审 |
+-| 10 API Design | BASELINE | 104项显式契约、PM-05/06和DAC命令保留原独立复审结论；ADR-0024差量已通过机器校验与自审 |
++| 10 API Design | BASELINE | 103项显式契约、PM-05/06和DAC命令保留原独立复审结论；当前范围纠偏等待本轮独立复审 |
+ | 11 Event Design | BASELINE | producer、consumer、version、顺序、Inbox/Outbox及业务消费完成边界已通过独立复审 |
+ | 12 Integration Design | BASELINE | 字段Owner及全部外部系统操作级请求/响应映射已通过独立复审；环境参数待Feature联调登记 |
+ | 13 File Design | BASELINE | 文件身份、引用、版本、哈希、权限、归档已通过独立复审 |
+ | 15 Cache & Concurrency | BASELINE | 缓存非真值、版本冲突、树/归属并发已通过独立复审 |
+ | 16 Exception & Idempotency | BASELINE | 错误码、重放、超时、部分失败、补偿已通过独立复审 |
+ 
+ ## 2. 硬门禁
+ 
+ | 门禁 | 当前状态 | 通过条件 |
+ |---|---|---|
+ | 数据 Owner 明确 | PASS | 每个业务事实只有一个 Owner，跨域仅引用/快照 |
+ | 版本、快照、历史、审计可实现 | PASS | 数据模型和数据库设计同时落位 |
+-| API 可追溯 | PASS | 104项均有显式数据对象、表、API、事件/集成/文件、工作流和授权契约；校验器检查符号真实存在 |
++| API 可追溯 | PASS | 103项均有显式数据对象、表、API、事件/集成/文件、工作流和授权契约；校验器检查符号真实存在 |
+ | 状态通过 command/transition 改变 | PASS | 无通用状态字段直改 API/仓储绕过 |
+ | 事件契约完整 | PASS | producer/consumer/version/idempotency/order 齐全 |
+ | 外部集成可恢复 | PASS-WITH-FOLLOWUP | 全部外部系统已登记操作级字段映射、业务确认和失败语义；具体 endpoint、认证和数值型 timeout/retry 在Feature联调前登记 |
+ | 实现漂移已识别 | PASS | 现有表/API/模块按与 PRD/SDS 一致性分类 |
+ 
+ ## 3. 已登记漂移
+ 
+ | 编号 | 事项 | 处理状态 |
+ |---|---|---|
+-| P2-DRIFT-01 | 独立维保/续保语义超出范围 | 08/09 已定义 AST MaintenanceFact、ACC ServiceHandover 和前向迁移；待 10/12 校验入口与集成 |
+-| P2-DRIFT-02 | 技术公告被实现为本地发布治理 | 08/09 已限定 V2 ITR 同步、查询和引用；待 10/12 校验接口与集成 |
+-| P2-DRIFT-03 | `license_key` 缺少敏感信息边界 | 08/09 已区分授权材料与 DeviceCredential；待 13/16 校验文件和异常边界 |
+-| P2-DRIFT-04 | 可配置状态字典可能被误作状态机 | 08/09 已固化状态代码与字典边界；待 10/16 校验命令和冲突响应 |
++| P2-DRIFT-01 | 独立维保/续保语义超出范围 | CLOSED：08/09/10/12 已统一为 AST MaintenanceFact、ACC ServiceHandover 和客观状态边界，无续保经营入口 |
++| P2-DRIFT-02 | 技术公告被实现为本地发布治理 | CLOSED：08/09/10/12 已统一为 V2 ITR 同步、查询和引用，本地治理保持 V3 |
++| P2-DRIFT-03 | `license_key` 缺少敏感信息边界 | CLOSED：08/09/13/16 已区分授权材料与 DeviceCredential，并禁止未证明来源和明文迁移 |
++| P2-DRIFT-04 | 可配置状态字典可能被误作状态机 | CLOSED：08/09/10/16 已固化状态代码、受控命令和字典边界 |
+ 
+ ## 4. 独立复审 Required 项
+ 
+ | 编号 | 原问题 | 修复状态 | 证据 |
+ |---|---|---|---|
+ | R-P2-01 | `saveAsCredential` 后本次任务仍错误保留为临时模式 | CLOSED | 08 §11、09 §9.3、10 §13.2、16 §9：同命令创建凭证/默认授权/任务并切换凭证模式，失败则不创建任务 |
+ | R-P2-02 | CRM/ERP合同订单字段Owner冲突 | CLOSED | 08 §9.3、09 §8.2、10 §11、12 §4～5：按Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付事实 |
+ | R-P2-03 | PM-05/PM-06仅机械追溯，无专属实施契约 | CLOSED | 08 §4、09 §4.4、10 §5.1～5.2、11 §5、15 §5.4、16 §7 |
+-| R-P2-04 | 校验器只查链接存在，不查契约覆盖 | CLOSED | `phase2-contract-map.md` 104项显式映射；校验器检查ID集合、必填字段、真实表/API/事件/集成/文件符号和专项令牌 |
++| R-P2-04 | 校验器只查链接存在，不查契约覆盖 | CLOSED | `phase2-contract-map.md` 103项显式映射；校验器检查ID集合、必填字段、真实表/API/事件/集成/文件符号和专项令牌 |
+ | R-P2-05 | 外部集成缺少请求/响应字段映射 | CLOSED | 12 §4.1覆盖CRM、ERP、ITR、MES、钉钉、HR、OA、LDAP/AD、备件、授权、UMC、财务、通知和采集子应用 |
+ | R-P2-06 | `CollectionCompleted` 可被模糊“契约终态”提前触发 | CLOSED | 08/09/10/11/16显式区分BUSINESS_CONSUMPTION和PRD独立中心CALLBACK_TERMINAL；失败/取消不发布完成 |
+ 
+ ## 5. 当前阻塞
+ 
+-暂无 `BLOCKED_BY_SPEC`、Critical 或 Required。定点独立复审已确认六项全部关闭并给出 `GO`，Phase 2 已批准进入 Phase 3。真实接口地址、认证材料、数值型 timeout/retry/limit 仍是 Feature 联调前证据门禁，不构成 Phase 2 阻塞。
++| 编号 | 状态 | 当前阻塞 | 解除条件 |
++|---|---|---|---|
++| P2-CORR-01 | IN_REVIEW | 当前范围、统计和校验器纠偏尚未完成独立复审 | 本轮纠偏任务全部完成并由 fresh-context 评审给出 GO |
++| P2-CORR-02 | OPEN | 迁移契约仍需改为从登记的冻结实现提交读取证据 | 完成冻结提交绑定校验并证明实现 HEAD 前进不影响结果 |
++| P2-CORR-03 | BLOCKED_BY_SPEC | 历史资料的当前承载边界尚待需求方决定 | 仅关闭相关历史资料接口/文件边界；不阻断其他独立纠偏 |
++
++真实接口地址、认证材料、数值型 timeout/retry/limit 仍是 Feature 联调前证据门禁，不构成 Phase 2 当前阻塞。
+ 
+ ## 6. 批准后数据证据对齐说明（2026-08-13）
+ 
+ 用户要求08/09显式参考此前的数据元与数据迁移结论，并要求核心链之外的领域实体同样可迁移。本次新增08a，逐项覆盖全部显式领域数据对象的来源证据、迁移策略、排除项与Gate，同时补充证据层级、项目—合同—订单行—设备主链、来源载荷/结构化字段双层保存、迁移问题和`AI-MIG-000`漂移门禁；未改变已批准的Owner、API、事件、状态机和业务范围，Phase 2 GO不撤销。新增内容已通过领域实体迁移覆盖校验、Phase 2/3校验、PRD/领域校验和脚本单测，但不冒充此前独立复审已覆盖该增量；实际字段映射、DDL和数据迁移仍由`AI-MIG-000`及后续领域迁移工作包单独阻断和放行。
+ 
+-增量独立首审发现R-MIG-01/02；修复后定点复审结论为`GO`，两项均`CLOSED`，无Critical/Required。08a转为`BASELINE ADDENDUM`。这只批准领域实体迁移设计覆盖，Phase 3的数据迁移与切换仍因P3-E09为`OPEN`而保持`NO-GO`。
++增量独立首审发现R-MIG-01/02；修复后定点复审结论为`GO`，两项均`CLOSED`，无Critical/Required。08a转为`BASELINE ADDENDUM`。P3-E09当前为`MODEL_BASELINE_READY`，只证明数据模型基线一致；真实历史迁移与数据切换仍由`AI-MIG-000`保持`OPEN`，不得据此执行。
+diff --git a/docs/engineering/gates/phase-2/self-review.md b/docs/engineering/gates/phase-2/self-review.md
+index f355e5d..04c1423 100644
+--- a/docs/engineering/gates/phase-2/self-review.md
++++ b/docs/engineering/gates/phase-2/self-review.md
+@@ -1,33 +1,33 @@
+ # SDS Phase 2 工程化自审
+ 
+-> 日期：2026-08-13
+-> 状态：`V1.7_DELTA_SELF_REVIEWED`
+-> 结论边界：V1.6独立评审证据保留在`independent-review.md`；本文件同步记录需求方批准的ADR-0024与V1.7差量自审，不伪造独立复审结论
++> 日期：2026-08-15
++> 状态：`PHASE2_CORRECTION_IN_REVIEW`
++> 结论边界：V1.6独立评审证据保留在`independent-review.md`；本文件同步记录当前103项范围纠偏自审，不伪造新的独立复审结论
+ 
+ ## 1. 审查范围
+ 
+ - 正式分册：`docs/design/08`、`09`、`10`、`11`、`12`、`13`、`15`、`16`。
+ - 过程证据：实现事实盘点、Phase 2 gate status、执行计划。
+-- 追溯资产：104项 `requirement-matrix.md` 与生成器。
++- 追溯资产：103项 `requirement-matrix.md` 与生成器。
+ - 上游：PRD V1.7、SDS Phase 1 `BASELINE`。
+ 
+ ## 2. 已执行校验
+ 
+ | 校验 | 结果 |
+ |---|---|
+ | PRD语义校验 | PASS，0 semantic issues |
+-| 13领域生成校验 | PASS，formal=104、V3=29、OUT_OF_SCOPE=9 |
+-| 脚本单测 | PASS，113/113（含Phase 2、PRD混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
++| 13领域生成校验 | PASS，formal=103、V3=30、OUT_OF_SCOPE=9 |
++| 脚本单测 | PASS，198/198（含Phase 2、PRD混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
+ | 业务命名门禁 | PASS |
+-| Phase 2专用校验 | PASS，8份正式分册元数据、104项显式契约及链接/锚点有效 |
+-| 追溯矩阵 | PASS，104个唯一Requirement，104行均链接逐项 `phase2-contract-map.md` |
++| Phase 2专用校验 | PASS，含08a的9份正式分册元数据、103项显式契约及链接/锚点有效 |
++| 追溯矩阵 | PASS，103个唯一Requirement，103行均链接逐项 `phase2-contract-map.md` |
+ | `git diff --check` | PASS |
+ 
+ 可重复执行命令：
+ 
+ ```powershell
+ py -3.13 -B scripts\validate_sds_phase2.py
+ py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
+ py -3.13 -B scripts\validate_prd_domain_generation.py --prd docs\baseline\prd-v1.7.md --domains specs\001-project-delivery-platform\domains
+ py -3.13 -B -m unittest discover -s scripts\tests -p "test_*.py"
+ py -3.13 -B scripts\check_business_naming.py
+@@ -39,21 +39,21 @@ git diff --check
+ | 编号 | 发现 | 风险 | 修正 |
+ |---|---|---|---|
+ | S2-R01 | 08中Preparation/Solution适用Requirement最初概括过宽 | 错误追溯范围 | 修正为PRE-01～05、PLN-01～04、SCH-01～05、SOL-01 |
+ | S2-R02 | Phase 1中`DeviceOwnershipChanged`与`DeviceAssigned`并存 | 公共事件名称不稳定 | 11明确前者为AST域内事件、后者为02d稳定跨Context事件 |
+ | S2-R03 | `InspectionDispatched`最初把DAC列为Consumer | 与唯一采集请求契约方向冲突 | DAC只消费`CollectionTaskRequested`；Inspection事件仅供Todo/ANA |
+ | S2-R04 | 旧实现的维保/公告/license_key/状态字典语义漂移 | 将过时实现固化为目标能力 | 通过MaintenanceFact、ServiceHandover、ITR只读镜像、DeviceCredential和前向迁移纠正 |
+ | S2-R05 | 外部接口缺少当前环境端点、认证和数值型SLA | 无法直接联调/生产 | 登记为Feature联调前接口配置档案门禁，不虚构业务阈值 |
+ | S2-R06 | 显式保存凭证后本次任务仍被描述为临时模式 | 违反INT-12验收并导致授权快照缺失 | 改为凭证、默认创建人授权和任务原子创建；任务记录新凭证及授权快照，失败不降级 |
+ | S2-R07 | CRM/ERP合同订单Owner混写 | 外部字段相互覆盖 | 按已确认Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付范围与履约事实 |
+ | S2-R08 | PM-05/PM-06只有领域级通用落位 | 转销和多期关系无法实现 | 新增专属聚合、表、API、事件、并发、异常和权限契约 |
+-| S2-R09 | 正式需求仅校验文档链接，无法证明契约覆盖 | 机械追溯掩盖需求空洞 | 新增104项逐项显式契约映射和符号级校验，含缺块/不存在表的负向测试 |
++| S2-R09 | 正式需求仅校验文档链接，无法证明契约覆盖 | 机械追溯掩盖需求空洞 | 新增103项逐项显式契约映射和符号级校验，含缺块/不存在表的负向测试 |
+ | S2-R10 | 外部集成缺请求/响应字段和业务确认 | 无法判定接口成功与业务成功 | 12 §4.1逐系统登记字段、来源/幂等键、业务确认与失败处理 |
+ | S2-R11 | Collection完成可由模糊契约终态触发 | 业务结果未消费即误报完成 | 业务入口必须匹配消费确认；仅PRD独立中心允许成功终态回调完成，失败/取消分离 |
+ 
+ ## 4. 关键语义核对
+ 
+ | 结论 | 状态 |
+ |---|---|
+ | 项目和任务不固定层级，层级与任务依赖正交 | PASS |
+ | 设备同一时点只有一个最具体项目归属，上级通过祖先投影统计 | PASS |
+ | 必要主数据保存本地同步副本，外部Owner不被平台覆盖 | PASS |
+@@ -61,11 +61,11 @@ git diff --check
+ | DAC是独立Context/子应用边界，平台不重建采集引擎 | PASS |
+ | 临时密码不持久化；未保存时任务留存临时用户名；显式保存成功后本次任务切换为新凭证及默认授权快照 | PASS |
+ | 凭证默认仅创建人可用，授权按五元组收敛 | PASS |
+ | 业务状态只能通过command/transition改变，字典不产生迁移能力 | PASS |
+ | 外部HTTP、待办、通知和消息投递成功不等于业务完成 | PASS |
+ | 维保经营模块、续保报表、周报日报、工单时效和通用割接时效未进入新契约 | PASS |
+ | 技术公告V2仅ITR同步与引用，本地治理保持V3 | PASS |
+ 
+ ## 5. 自审结论
+ 
+-V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。V1.7按需求方批准的ADR-0024完成104项差量重建、88对象/100来源迁移契约与机器自审；不把本次自审写成新的独立评审。Phase 2 Gate现为`APPROVED / READY_FOR_PHASE_3`。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。
++V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。当前按PRD V1.7重新校准为103项正式需求、84对象/95来源绑定/1排除源，并清除V3 Requirement、WO消费者和钉钉打卡事实的当前范围漂移；不把本次自审写成新的独立评审。Phase 2 Gate保持`IN_REVIEW / NOT_READY_FOR_PHASE_3`，直至本轮纠偏、未决边界和独立复审全部收口。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。
+diff --git a/docs/reports/2026-08-10-PRD与13领域FR差异审查.md b/docs/reports/2026-08-10-PRD与13领域FR差异审查.md
+index 260d8f8..cb289f5 100644
+--- a/docs/reports/2026-08-10-PRD与13领域FR差异审查.md
++++ b/docs/reports/2026-08-10-PRD与13领域FR差异审查.md
+@@ -1,13 +1,13 @@
+ # PRD 与 13 领域 FR 完整差异审核报告
+ 
+-> 2026-08-14基线增量：当前PRD为V1.7正式基线，SHA-256为`400EBCD6A33F1066EAF732E4C018AF8050B7A2A34A1462CCA0090B83EFF7E249`。按ADR-0026，CUT-01是P1～P6唯一割接核心任务，CUT-11退出V1/V2及CUT领域，WO-06后置为工单领域V3候选；当前正式需求为103项（V1 55、V2 48），V3/跨需求演进追溯30项。13领域已按唯一Owner重新生成并通过103项正式需求、30项V3和9项排除追溯校验；CUT领域仅保留CUT-01～CUT-10，IMP的EXE-06完成条件同步删除稳定观察依赖。本文后续V1.4段落保留为历史差异证据，不得覆盖本增量结论。
++> 2026-08-14基线增量：当前PRD为V1.7正式基线，SHA-256为`AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C`。按ADR-0026，CUT-01是P1～P6唯一割接核心任务，CUT-11退出V1/V2及CUT领域，WO-06后置为工单领域V3候选；当前正式需求为103项（V1 55、V2 48），V3/跨需求演进追溯30项。13领域已按唯一Owner重新生成并通过103项正式需求、30项V3和9项排除追溯校验；CUT领域仅保留CUT-01～CUT-10，IMP的EXE-06完成条件同步删除稳定观察依赖。本文后续V1.4段落保留为历史差异证据，不得覆盖本增量结论。
+ 
+ > 审核日期：2026-08-10；基线化更新日期：2026-08-11<br>
+ > 当前PRD状态：`需求/PRD-项目实施交付管理平台.md`（V1.4，基线整改中）<br>
+ > 领域规格基线：`specs/001-project-delivery-platform/domains/*.md`<br>
+ > 领域规格基线提交：`b583dc0`<br>
+ > 审核对象：100项PRD V1/V2正式需求（主版本V1 52项、V2 48项）、8项PRD V3演进编号、2项PRD V3跨需求P2演进方向、8项OUT_OF_SCOPE追溯编号（2项PRD旧编号与6项领域FR）、145项领域FR来源编号、7项领域V3演进项<br>
+ > 修改边界：本轮按已确认差异结论和语义整改设计同步校准PRD与本报告，不修改领域规格、原始Excel/HTML及追溯矩阵
+ 
+ ## 1. 审核结论
+ 
+diff --git a/docs/traceability/business-feedback-change-map.md b/docs/traceability/business-feedback-change-map.md
+index e473e50..802e220 100644
+--- a/docs/traceability/business-feedback-change-map.md
++++ b/docs/traceability/business-feedback-change-map.md
+@@ -1,17 +1,17 @@
+ # V1.6 → V1.7业务反馈变更映射
+ 
+ > 状态：`BASELINE`<br>
+ > 批准依据：`docs/decisions/0024-business-feedback-change-baseline.md`<br>
+ > 源基线：PRD V1.6，115项V1/V2正式需求<br>
+ > 目标基线：PRD V1.7，103项V1/V2正式需求（V1 55、V2 48）
+-> 目标PRD与快照SHA-256：`400EBCD6A33F1066EAF732E4C018AF8050B7A2A34A1462CCA0090B83EFF7E249`
++> 目标PRD与快照SHA-256：`AA2505D48204311FFB37CB9634C0C485A718B6870776A96B4C89BD9B0229858C`
+ 
+ 本表只记录业务反馈导致的编号、Owner或版本边界变化。未列需求保持V1.6编号、Owner、优先级和版本语义；2026-08-14割接流程纠偏以ADR-0026为准，覆盖ADR-0024中WO-06迁移为CUT-11的旧结论。
+ 
+ | V1.6编号 | V1.7处置 | 当前Owner/承载 | 当前范围 | 迁移及追溯要求 |
+ |---|---|---|---|---|
+ | CLO-01 | 保留并修订依赖 | ACC / ProjectClosure、ClosureGateSnapshot | V1/P0 | 引用ACC-02有效满意度结果，不引用独立回访任务 |
+ | CLO-02 | 保留并删除回访节点 | ACC / ProjectClosure | V1/P0 | 按项目冻结流程定义审批；不生成回访人员节点 |
+ | CLO-03 | 并入 | ACC-02、PM-03 | 不再独立计数 | 满意度触发时点由冻结模板决定 |
+ | CLO-04 | 并入 | ACC-02 / SatisfactionCollection | 不再独立计数 | 问卷模板、题目、实例和版本按原证据迁移 |
+ | CLO-05 | 并入 | ACC-02 / SatisfactionCollection | 不再独立计数；异常放行为P2演进 | 评分、阈值、不可变判定和整改重收纳入ACC-02 |
+diff --git a/scripts/tests/test_validate_prd_baseline.py b/scripts/tests/test_validate_prd_baseline.py
+index 20098f5..be82bff 100644
+--- a/scripts/tests/test_validate_prd_baseline.py
++++ b/scripts/tests/test_validate_prd_baseline.py
+@@ -1,28 +1,46 @@
+ from __future__ import annotations
+ 
+ import importlib.util
+ import sys
++import tempfile
+ import unittest
+ from pathlib import Path
+ 
+ 
+ MODULE_PATH = Path(__file__).resolve().parents[1] / "validate_prd_baseline.py"
+ sys.path.insert(0, str(MODULE_PATH.parent))
+ SPEC = importlib.util.spec_from_file_location("validate_prd_baseline", MODULE_PATH)
+ MODULE = importlib.util.module_from_spec(SPEC)
+ assert SPEC.loader is not None
+ sys.modules[SPEC.name] = MODULE
+ SPEC.loader.exec_module(MODULE)
+ 
+ 
+ class ValidatePrdBaselineTest(unittest.TestCase):
++    def test_appendix_a2_statistics_must_match_formal_requirements(self) -> None:
++        root = MODULE_PATH.parents[1]
++        source = root / "docs" / "baseline" / "prd-v1.7.md"
++        report = root / "docs" / "reports" / "2026-08-10-PRD与13领域FR差异审查.md"
++        text = source.read_text(encoding="utf-8-sig")
++        candidate_text = text.replace("| V2主版本需求 | 48条 |", "| V2主版本需求 | 49条 |", 1)
++        self.assertNotEqual(text, candidate_text)
++
++        with tempfile.TemporaryDirectory() as temporary:
++            candidate = Path(temporary) / "prd.md"
++            candidate.write_text(candidate_text, encoding="utf-8")
++            checks = MODULE.validate(candidate, report, "V1.7", "正式基线")
++
++        statistics = {check.name: check for check in checks}
++        self.assertIn("附录A.2正式需求统计一致", statistics)
++        self.assertFalse(statistics["附录A.2正式需求统计一致"].passed)
++
+     def test_requirement_blocks_support_mixed_heading_levels(self) -> None:
+         text = """#### 4.2.1 PM-01 项目创建
+ | 需求编号 | PM-01 |
+ | 目标版本 | V1 |
+ **核心业务规则：**项目规则
+ 
+ ### 10.2 割接任务管理（CUT-01）
+ | 需求编号 | CUT-01 |
+ | 目标版本 | V1任务闭环；V2增强 |
+ **核心业务规则：**割接规则
+diff --git a/scripts/tests/test_validate_sds_phase2.py b/scripts/tests/test_validate_sds_phase2.py
+index e6c2172..5c9087d 100644
+--- a/scripts/tests/test_validate_sds_phase2.py
++++ b/scripts/tests/test_validate_sds_phase2.py
+@@ -8,36 +8,50 @@ from pathlib import Path
+ 
+ MODULE_PATH = Path(__file__).resolve().parents[1] / "validate_sds_phase2.py"
+ SPEC = importlib.util.spec_from_file_location("validate_sds_phase2", MODULE_PATH)
+ MODULE = importlib.util.module_from_spec(SPEC)
+ assert SPEC.loader is not None
+ SPEC.loader.exec_module(MODULE)
+ 
+ 
+ class ValidateSdsPhase2Test(unittest.TestCase):
+ 
++    def test_requirement_table_scope_expands_ranges_and_compact_ids(self) -> None:
++        text = """| Owner | Requirement | API |
++|---|---|---|
++| AST | EQP-01～EQP-07 | /devices |
++| ANA | RPT-01/02/04 | /analytics |
++"""
++
++        identifiers = MODULE.active_requirement_ids(text)
++
++        self.assertTrue({"EQP-01", "EQP-06", "EQP-07", "RPT-01", "RPT-02", "RPT-04"} <= identifiers)
++
+     def build_fixture(self, root: Path) -> Path:
+         design = root / "docs" / "design"
+         traceability = root / "docs" / "traceability"
+         design.mkdir(parents=True)
+         traceability.mkdir(parents=True)
+         metadata = (
+             "# Test\n\n"
+             "> 文档状态：`BASELINE`  \n"
+             "> 适用基线：PRD V1.7  \n"
+             "> Requirement ID：REQ-001  \n"
+             "> Owner：Test  \n\n"
+             "## Scope\n\n"
+             "Thing proj_test /test\n"
+         )
+         for name in MODULE.PHASE2_DOCS:
+-            (design / name).write_text(metadata, encoding="utf-8")
++            content = metadata
++            if name == "08a-domain-entity-migration-alignment.md":
++                content = content.replace("文档状态：`BASELINE`", "文档状态：`BASELINE ADDENDUM`")
++            (design / name).write_text(content, encoding="utf-8")
+ 
+         required = " / ".join(
+             f"[doc](../design/{name})"
+             for name in (
+                 "08-data-model.md",
+                 "09-database-design.md",
+                 "10-api-design.md",
+                 "15-cache-and-concurrency.md",
+                 "16-exception-and-idempotency.md",
+             )
+@@ -97,13 +111,64 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+             contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+             content = contract_path.read_text(encoding="utf-8")
+             content = content.replace("### REQ-103", "### REQ-999", 1)
+             content = content.replace("- 数据表：proj_test", "- 数据表：proj_missing", 1)
+             contract_path.write_text(content, encoding="utf-8")
+ 
+             errors = MODULE.validate(root)
+             self.assertTrue(any("contract IDs must exactly match" in error for error in errors))
+             self.assertTrue(any("undefined table contract: proj_missing" in error for error in errors))
+ 
++    def test_out_of_scope_requirement_in_active_scope_fails(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "08-data-model.md"
++            original = target.read_text(encoding="utf-8")
++            for identifier in ("EQP-06", "RPT-01", "RPT-04"):
++                with self.subTest(identifier=identifier):
++                    target.write_text(
++                        original + f"\n适用 Requirement：{identifier}。\n",
++                        encoding="utf-8",
++                    )
++                    errors = MODULE.validate(root)
++                    self.assertTrue(
++                        any(identifier in error and "active scope" in error for error in errors),
++                        errors,
++                    )
++            target.write_text(original, encoding="utf-8")
++
++    def test_project_conversion_work_order_consumer_fails(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "11-event-design.md"
++            target.write_text(
++                target.read_text(encoding="utf-8")
++                + "\n| `ProjectConversionCompleted` | Project Delivery | IMP/CUT/WO/AST | test | test |\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++            self.assertTrue(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
++
++    def test_dingtalk_clock_in_fact_contract_fails(self) -> None:
++        injections = {
++            "12-integration-design.md": "| 钉钉 | V1 | 双向 | 打卡原始事实、消息交付 | WO/PLT | 打卡记录ID+打卡人 | 平台记录 |",
++            "16-exception-and-idempotency.md": "| 钉钉打卡 | 打卡记录ID+打卡人 | tenant + DingTalk | 更新同步事实 |",
++        }
++        for name, injection in injections.items():
++            with tempfile.TemporaryDirectory() as temporary:
++                with self.subTest(name=name):
++                    root = Path(temporary)
++                    self.build_fixture(root)
++                    target = root / "docs" / "design" / name
++                    target.write_text(
++                        target.read_text(encoding="utf-8") + f"\n{injection}\n",
++                        encoding="utf-8",
++                    )
++                    errors = MODULE.validate(root)
++                    self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/scripts/validate_prd_baseline.py b/scripts/validate_prd_baseline.py
+index 68574b7..071379c 100644
+--- a/scripts/validate_prd_baseline.py
++++ b/scripts/validate_prd_baseline.py
+@@ -173,20 +173,39 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
+     formal_index_ids = re.findall(rf"(?m)^\|\s*({REQ_ID})\s*\|", formal_index)
+     add(checks, "正式索引存在", bool(formal_index_ids), f"索引{len(formal_index_ids)}项")
+     add(checks, "正式索引与正文一致", set(formal_index_ids) == {req_id for req_id, _ in formal}, f"索引{len(set(formal_index_ids))}项/正文{len(formal)}项")
+     formal_versions = {
+         candidate: sum(
+             bool(re.search(rf"(?m)^\|\s*目标版本\s*\|\s*{candidate}(?:[^|]*)\|\s*$", block))
+             for _, block in formal
+         )
+         for candidate in ("V1", "V2")
+     }
++    formal_statistics = section(appendix_a, "A.2 正式需求统计") if appendix_a else ""
++    expected_statistics = {
++        "V1/V2正式需求总数": len(formal),
++        "V1主版本需求": formal_versions["V1"],
++        "V2主版本需求": formal_versions["V2"],
++    }
++    actual_statistics = {
++        label: int(value)
++        for label, value in re.findall(
++            r"(?m)^\|\s*(V1/V2正式需求总数|V1主版本需求|V2主版本需求)\s*\|\s*(\d+)条\s*\|$",
++            formal_statistics,
++        )
++    }
++    add(
++        checks,
++        "附录A.2正式需求统计一致",
++        actual_statistics == expected_statistics,
++        f"期望={expected_statistics}；实际={actual_statistics}",
++    )
+     footer = prd.rsplit("**文档结束**", 1)[-1] if "**文档结束**" in prd else ""
+     add(checks, "文末基线版本一致", f"PRD {version}正式基线" in footer, f"文末应声明PRD {version}正式基线")
+     add(checks, "文末正式需求数一致", f"{len(formal)}项V1/V2正式需求" in footer, f"正文={len(formal)}项")
+     add(
+         checks,
+         "文末主版本统计一致",
+         all(f"{candidate} {count}项" in footer for candidate, count in formal_versions.items()),
+         "、".join(f"{candidate}={count}" for candidate, count in formal_versions.items()),
+     )
+     add(checks, "INT-12进入正式索引", "INT-12" in formal_index_ids, "INT-12必须为V1公共能力")
+diff --git a/scripts/validate_sds_phase2.py b/scripts/validate_sds_phase2.py
+index 869fcde..8294369 100644
+--- a/scripts/validate_sds_phase2.py
++++ b/scripts/validate_sds_phase2.py
+@@ -4,38 +4,41 @@
+ from __future__ import annotations
+ 
+ import argparse
+ import re
+ import sys
+ from pathlib import Path
+ 
+ 
+ PHASE2_DOCS = (
+     "08-data-model.md",
++    "08a-domain-entity-migration-alignment.md",
+     "09-database-design.md",
+     "10-api-design.md",
+     "11-event-design.md",
+     "12-integration-design.md",
+     "13-file-design.md",
+     "15-cache-and-concurrency.md",
+     "16-exception-and-idempotency.md",
+ )
+ EXPECTED_REQUIREMENT_COUNT = 103
+ REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.M)
+ MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+ HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
+ CONTRACT_HEADING = re.compile(r"^###\s+([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*$", re.M)
+ CONTRACT_FIELD = re.compile(r"^-\s+(需求名称|数据对象|数据表|API|事件|外部集成|文件契约|工作流/状态|授权与数据范围)：(.+?)\s*$", re.M)
+ CONTRACT_FIELDS = (
+     "需求名称", "数据对象", "数据表", "API", "事件", "外部集成",
+     "文件契约", "工作流/状态", "授权与数据范围",
+ )
++FULL_REQUIREMENT_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
++ACTIVE_REQUIREMENT_LINE = re.compile(r"^(?:>\s*)?(?:适用\s+)?Requirement(?: ID)?：(.+?)\s*$", re.M)
+ 
+ 
+ def read(path: Path) -> str:
+     return path.read_text(encoding="utf-8-sig")
+ 
+ 
+ def github_slug(value: str) -> str:
+     value = re.sub(r"[`*_~]", "", value.strip().lower())
+     value = re.sub(r"[^\w\- ]", "", value, flags=re.UNICODE)
+     return value.replace(" ", "-")
+@@ -60,33 +63,83 @@ def parse_contract_map(path: Path) -> tuple[dict[str, dict[str, str]], list[str]
+     for index, match in enumerate(matches):
+         identifier = match.group(1)
+         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+         fields = dict(CONTRACT_FIELD.findall(text[match.end():end]))
+         if identifier in result:
+             errors.append(f"duplicate Phase 2 contract block: {identifier}")
+         result[identifier] = fields
+     return result, errors
+ 
+ 
++def requirement_ids(fragment: str) -> set[str]:
++    result: set[str] = set()
++    result.update(
++        identifier
++        for identifier in FULL_REQUIREMENT_ID.findall(fragment)
++        if not identifier.startswith("ADR-")
++    )
++    for match in re.finditer(
++        r"([A-Z]+(?:-[A-Z0-9]+)?-)(\d+)\s*～\s*(?:([A-Z]+(?:-[A-Z0-9]+)?-))?(\d+)",
++        fragment,
++    ):
++        start_prefix, start_value, end_prefix, end_value = match.groups()
++        prefix = end_prefix or start_prefix
++        if prefix != start_prefix:
++            continue
++        width = max(len(start_value), len(end_value))
++        result.update(
++            f"{prefix}{number:0{width}d}"
++            for number in range(int(start_value), int(end_value) + 1)
++        )
++    for match in re.finditer(r"([A-Z]+(?:-[A-Z0-9]+)?-)(\d+(?:\s*/\s*\d+)+)", fragment):
++        prefix, values = match.groups()
++        result.update(f"{prefix}{int(value):02d}" for value in re.findall(r"\d+", values))
++    return result
++
++
++def active_requirement_ids(text: str) -> set[str]:
++    """Extract IDs from formal scope declarations and Requirement table columns."""
++    result: set[str] = set()
++    for declaration in ACTIVE_REQUIREMENT_LINE.findall(text):
++        result.update(requirement_ids(declaration))
++
++    requirement_column: int | None = None
++    for line in text.splitlines():
++        if not line.startswith("|"):
++            requirement_column = None
++            continue
++        cells = [cell.strip() for cell in line.strip("|").split("|")]
++        if "Requirement" in cells:
++            requirement_column = cells.index("Requirement")
++            continue
++        if requirement_column is None or requirement_column >= len(cells):
++            continue
++        if set(cells[requirement_column]) <= {"-", ":"}:
++            continue
++        result.update(requirement_ids(cells[requirement_column]))
++    return result
++
++
+ def validate(root: Path) -> list[str]:
+     errors: list[str] = []
+     design = root / "docs" / "design"
+     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
+     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+ 
+     for name in PHASE2_DOCS:
+         path = design / name
+         if not path.is_file():
+             errors.append(f"missing Phase 2 document: {path.relative_to(root)}")
+             continue
+         text = read(path)
+-        for marker in ("文档状态：`BASELINE`", "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
++        status_marker = "文档状态：`BASELINE ADDENDUM`" if name == "08a-domain-entity-migration-alignment.md" else "文档状态：`BASELINE`"
++        for marker in (status_marker, "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
+             if marker not in text:
+                 errors.append(f"{path.relative_to(root)} missing metadata: {marker}")
+ 
+     if not matrix_path.is_file():
+         return errors + ["missing requirement matrix"]
+ 
+     matrix = read(matrix_path)
+     identifiers = REQUIREMENT_ROW.findall(matrix)
+     if len(identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(identifiers)) != EXPECTED_REQUIREMENT_COUNT:
+         errors.append(
+@@ -109,20 +162,39 @@ def validate(root: Path) -> list[str]:
+                 f"extra={sorted(set(contracts) - set(identifiers))}"
+             )
+ 
+     combined_design = "\n".join(read(design / name) for name in PHASE2_DOCS if (design / name).is_file())
+     database_design = read(design / "09-database-design.md") if (design / "09-database-design.md").is_file() else ""
+     api_design = read(design / "10-api-design.md") if (design / "10-api-design.md").is_file() else ""
+     event_design = read(design / "11-event-design.md") if (design / "11-event-design.md").is_file() else ""
+     integration_design = read(design / "12-integration-design.md") if (design / "12-integration-design.md").is_file() else ""
+     file_design = read(design / "13-file-design.md") if (design / "13-file-design.md").is_file() else ""
+ 
++    formal_id_set = set(identifiers)
++    for name in PHASE2_DOCS:
++        path = design / name
++        if not path.is_file():
++            continue
++        for identifier in sorted(active_requirement_ids(read(path)) - formal_id_set):
++            errors.append(f"{name} active scope contains non-formal Requirement: {identifier}")
++
++    for line in event_design.splitlines():
++        if line.startswith("|") and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
++            errors.append("ProjectConversionCompleted must not declare WO as a V1/V2 consumer")
++    for name in ("12-integration-design.md", "16-exception-and-idempotency.md"):
++        path = design / name
++        if not path.is_file():
++            continue
++        for line in read(path).splitlines():
++            if line.startswith("|") and ("打卡原始事实" in line or "钉钉打卡" in line):
++                errors.append(f"{name} contains active DingTalk clock-in fact contract")
++
+     for identifier, contract in contracts.items():
+         for field in CONTRACT_FIELDS:
+             value = contract.get(field, "").strip()
+             if not value:
+                 errors.append(f"{identifier} explicit Phase 2 contract missing field: {field}")
+         for field in ("数据对象", "数据表", "API", "工作流/状态", "授权与数据范围"):
+             value = contract.get(field, "")
+             if value.startswith("N/A") or len(value) < 4:
+                 errors.append(f"{identifier} has non-implementable Phase 2 contract field: {field}")
+         if any(marker in contract.get("工作流/状态", "") for marker in ("通用流程", "按需处理", "同领域")):
+diff --git a/需求/PRD-项目实施交付管理平台.md b/需求/PRD-项目实施交付管理平台.md
+index 10815b7..472a38e 100644
+--- a/需求/PRD-项目实施交付管理平台.md
++++ b/需求/PRD-项目实施交付管理平台.md
+@@ -8159,21 +8159,21 @@ V3仅定义未来演进目标，不属于当前V1/V2正式承诺范围。下列
+ | SRV-01 | 设备服务状态与停产停维提示 | P1 | V2 | 13.5.13 SRV-01 设备服务状态与停产停维提示 | 已覆盖 |
+ | AST-01 | RMA替换与维保信息衔接 | P1 | V2 | 13.5.14 AST-01 RMA替换与维保信息衔接 | 已覆盖 |
+ | AST-02 | 设备维保客观状态计算 | P0 | V1 | 13.5.15 AST-02 设备维保客观状态计算 | 已覆盖 |
+ 
+ ### A.2 正式需求统计
+ 
+ | 统计维度 | 数值 |
+ | ---- | ---- |
+ | V1/V2正式需求总数 | 103条 |
+ | V1主版本需求 | 55条 |
+-| V2主版本需求 | 49条 |
++| V2主版本需求 | 48条 |
+ | P0需求 | 43条 |
+ | P1需求 | 58条 |
+ | P2需求 | 2条 |
+ | P3需求 | 0条 |
+ | 正式需求模块 | 18个 |
+ | 业务验收条款覆盖 | 103/103，100%；表示每个编号均有需求分析阶段的业务验收条款，不等同于测试用例、接口字段契约或详细设计完成率 |
+ 
+ ### A.3 V3演进索引
+ 
+ #### A.3.1 已编号演进项

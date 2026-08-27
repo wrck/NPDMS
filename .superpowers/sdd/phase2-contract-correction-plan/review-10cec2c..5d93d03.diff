@@ -1,0 +1,433 @@
+# Review package: 10cec2cbd1d80adec4a8625e8eec31a27cce0dd5..5d93d03a9be919bf1962b7ea105769b334a74980
+
+## Commits
+5d93d03 fix(phase2): enforce PRD requirement authority
+
+## Files changed
+ docs/engineering/gates/phase-2/gate-status.md |  2 +-
+ docs/engineering/gates/phase-2/self-review.md |  2 +-
+ scripts/tests/test_validate_sds_phase2.py     | 66 +++++++++++++++++++++++++++
+ scripts/validate_sds_phase2.py                | 57 +++++++++++++++++++++--
+ 4 files changed, 121 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/docs/engineering/gates/phase-2/gate-status.md b/docs/engineering/gates/phase-2/gate-status.md
+index 1bb80ba..9d9cee8 100644
+--- a/docs/engineering/gates/phase-2/gate-status.md
++++ b/docs/engineering/gates/phase-2/gate-status.md
+@@ -57,13 +57,13 @@
+ | 编号 | 状态 | 当前阻塞 | 解除条件 |
+ |---|---|---|---|
+ | P2-CORR-01 | IN_REVIEW | 当前范围、统计和校验器纠偏尚未完成独立复审 | 本轮纠偏任务全部完成并由 fresh-context 评审给出 GO |
+ | P2-CORR-02 | OPEN | 迁移契约仍需改为从登记的冻结实现提交读取证据 | 完成冻结提交绑定校验并证明实现 HEAD 前进不影响结果 |
+ | P2-CORR-03 | BLOCKED_BY_SPEC | 历史资料的当前承载边界尚待需求方决定 | 仅关闭相关历史资料接口/文件边界；不阻断其他独立纠偏 |
+ 
+ 真实接口地址、认证材料、数值型 timeout/retry/limit 仍是 Feature 联调前证据门禁，不构成 Phase 2 当前阻塞。
+ 
+ ## 6. 批准后数据证据对齐说明（2026-08-13）
+ 
+-用户要求08/09显式参考此前的数据元与数据迁移结论，并要求核心链之外的领域实体同样可迁移。本次新增08a，逐项覆盖全部显式领域数据对象的来源证据、迁移策略、排除项与Gate，同时补充证据层级、项目—合同—订单行—设备主链、来源载荷/结构化字段双层保存、迁移问题和`AI-MIG-000`漂移门禁；未改变已批准的Owner、API、事件、状态机和业务范围，Phase 2 GO不撤销。新增内容已通过领域实体迁移覆盖校验、Phase 2/3校验、PRD/领域校验和脚本单测，但不冒充此前独立复审已覆盖该增量；实际字段映射、DDL和数据迁移仍由`AI-MIG-000`及后续领域迁移工作包单独阻断和放行。
++用户要求08/09显式参考此前的数据元与数据迁移结论，并要求核心链之外的领域实体同样可迁移。本次新增08a，逐项覆盖全部显式领域数据对象的来源证据、迁移策略、排除项与Gate，同时补充证据层级、项目—合同—订单行—设备主链、来源载荷/结构化字段双层保存、迁移问题和`AI-MIG-000`漂移门禁。该段仅记录当时增量评审曾保留Phase 2 GO的历史批准证据；其结论已被本轮`IN_REVIEW / NOT_READY_FOR_PHASE_3`状态覆盖，不主张当前GO。新增内容已通过当时的领域实体迁移覆盖校验、Phase 2/3校验、PRD/领域校验和脚本单测，但不冒充此前独立复审已覆盖本轮纠偏；实际字段映射、DDL和数据迁移仍由`AI-MIG-000`及后续领域迁移工作包单独阻断和放行。
+ 
+ 增量独立首审发现R-MIG-01/02；修复后定点复审结论为`GO`，两项均`CLOSED`，无Critical/Required。08a转为`BASELINE ADDENDUM`。P3-E09当前为`MODEL_BASELINE_READY`，只证明数据模型基线一致；真实历史迁移与数据切换仍由`AI-MIG-000`保持`OPEN`，不得据此执行。
+diff --git a/docs/engineering/gates/phase-2/self-review.md b/docs/engineering/gates/phase-2/self-review.md
+index 04c1423..4168162 100644
+--- a/docs/engineering/gates/phase-2/self-review.md
++++ b/docs/engineering/gates/phase-2/self-review.md
+@@ -10,21 +10,21 @@
+ - 过程证据：实现事实盘点、Phase 2 gate status、执行计划。
+ - 追溯资产：103项 `requirement-matrix.md` 与生成器。
+ - 上游：PRD V1.7、SDS Phase 1 `BASELINE`。
+ 
+ ## 2. 已执行校验
+ 
+ | 校验 | 结果 |
+ |---|---|
+ | PRD语义校验 | PASS，0 semantic issues |
+ | 13领域生成校验 | PASS，formal=103、V3=30、OUT_OF_SCOPE=9 |
+-| 脚本单测 | PASS，198/198（含Phase 2、PRD混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
++| 脚本单测 | PASS，201/201（含Phase 2、PRD独立白名单、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
+ | 业务命名门禁 | PASS |
+ | Phase 2专用校验 | PASS，含08a的9份正式分册元数据、103项显式契约及链接/锚点有效 |
+ | 追溯矩阵 | PASS，103个唯一Requirement，103行均链接逐项 `phase2-contract-map.md` |
+ | `git diff --check` | PASS |
+ 
+ 可重复执行命令：
+ 
+ ```powershell
+ py -3.13 -B scripts\validate_sds_phase2.py
+ py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
+diff --git a/scripts/tests/test_validate_sds_phase2.py b/scripts/tests/test_validate_sds_phase2.py
+index 5c9087d..e7a1dd8 100644
+--- a/scripts/tests/test_validate_sds_phase2.py
++++ b/scripts/tests/test_validate_sds_phase2.py
+@@ -21,22 +21,24 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+ | AST | EQP-01～EQP-07 | /devices |
+ | ANA | RPT-01/02/04 | /analytics |
+ """
+ 
+         identifiers = MODULE.active_requirement_ids(text)
+ 
+         self.assertTrue({"EQP-01", "EQP-06", "EQP-07", "RPT-01", "RPT-02", "RPT-04"} <= identifiers)
+ 
+     def build_fixture(self, root: Path) -> Path:
+         design = root / "docs" / "design"
++        baseline = root / "docs" / "baseline"
+         traceability = root / "docs" / "traceability"
+         design.mkdir(parents=True)
++        baseline.mkdir(parents=True)
+         traceability.mkdir(parents=True)
+         metadata = (
+             "# Test\n\n"
+             "> 文档状态：`BASELINE`  \n"
+             "> 适用基线：PRD V1.7  \n"
+             "> Requirement ID：REQ-001  \n"
+             "> Owner：Test  \n\n"
+             "## Scope\n\n"
+             "Thing proj_test /test\n"
+         )
+@@ -51,38 +53,47 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+             for name in (
+                 "08-data-model.md",
+                 "09-database-design.md",
+                 "10-api-design.md",
+                 "15-cache-and-concurrency.md",
+                 "16-exception-and-idempotency.md",
+             )
+         )
+         rows = []
+         contract_blocks = []
++        prd_blocks = []
+         for number in range(1, MODULE.EXPECTED_REQUIREMENT_COUNT + 1):
+             identifier = f"REQ-{number:03d}"
+             rows.append(
+                 f"| {identifier} | {required} / "
+                 f"[P2契约](phase2-contract-map.md#{identifier.lower()}) | SDS-P2-BASELINE |"
+             )
+             contract_blocks.append(
+                 f"### {identifier}\n\n"
+                 "- 需求名称：Test\n"
+                 "- 数据对象：Thing\n"
+                 "- 数据表：proj_test\n"
+                 "- API：/test\n"
+                 "- 事件：N/A（同步命令或查询）\n"
+                 "- 外部集成：N/A（平台内部契约）\n"
+                 "- 文件契约：N/A（无文件）\n"
+                 "- 工作流/状态：测试状态守卫\n"
+                 "- 授权与数据范围：测试数据范围\n"
+             )
++            prd_blocks.append(
++                f"### {identifier} Test\n\n"
++                f"| 需求编号 | {identifier} |\n"
++                "| 目标版本 | V1 |\n"
++            )
++        (baseline / "prd-v1.7.md").write_text(
++            "# PRD V1.7\n\n" + "\n".join(prd_blocks), encoding="utf-8"
++        )
+         matrix = "# Matrix\n\n" + "\n".join(rows) + "\n"
+         matrix_path = traceability / "requirement-matrix.md"
+         matrix_path.write_text(matrix, encoding="utf-8")
+         (traceability / "phase2-contract-map.md").write_text(
+             "# Contracts\n\n" + "\n".join(contract_blocks), encoding="utf-8"
+         )
+         return matrix_path
+ 
+     def test_valid_fixture_passes(self) -> None:
+         with tempfile.TemporaryDirectory() as temporary:
+@@ -111,20 +122,40 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+             contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+             content = contract_path.read_text(encoding="utf-8")
+             content = content.replace("### REQ-103", "### REQ-999", 1)
+             content = content.replace("- 数据表：proj_test", "- 数据表：proj_missing", 1)
+             contract_path.write_text(content, encoding="utf-8")
+ 
+             errors = MODULE.validate(root)
+             self.assertTrue(any("contract IDs must exactly match" in error for error in errors))
+             self.assertTrue(any("undefined table contract: proj_missing" in error for error in errors))
+ 
++    def test_matrix_and_contract_cannot_replace_formal_id_with_v3_id(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            matrix_path = self.build_fixture(root)
++            contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
++            matrix_path.write_text(
++                matrix_path.read_text(encoding="utf-8")
++                .replace("REQ-103", "EQP-06")
++                .replace("req-103", "eqp-06"),
++                encoding="utf-8",
++            )
++            contract_path.write_text(
++                contract_path.read_text(encoding="utf-8").replace("REQ-103", "EQP-06"),
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertTrue(any("PRD formal Requirement IDs" in error for error in errors), errors)
++
+     def test_out_of_scope_requirement_in_active_scope_fails(self) -> None:
+         with tempfile.TemporaryDirectory() as temporary:
+             root = Path(temporary)
+             self.build_fixture(root)
+             target = root / "docs" / "design" / "08-data-model.md"
+             original = target.read_text(encoding="utf-8")
+             for identifier in ("EQP-06", "RPT-01", "RPT-04"):
+                 with self.subTest(identifier=identifier):
+                     target.write_text(
+                         original + f"\n适用 Requirement：{identifier}。\n",
+@@ -144,31 +175,66 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+             target = root / "docs" / "design" / "11-event-design.md"
+             target.write_text(
+                 target.read_text(encoding="utf-8")
+                 + "\n| `ProjectConversionCompleted` | Project Delivery | IMP/CUT/WO/AST | test | test |\n",
+                 encoding="utf-8",
+             )
+ 
+             errors = MODULE.validate(root)
+             self.assertTrue(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
+ 
++    def test_historical_work_order_consumer_exclusion_is_allowed(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "11-event-design.md"
++            target.write_text(
++                target.read_text(encoding="utf-8")
++                + "\n| 历史排除 | `ProjectConversionCompleted` | WO | 不属于当前V1/V2消费者 |\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertFalse(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
++
+     def test_dingtalk_clock_in_fact_contract_fails(self) -> None:
+         injections = {
+             "12-integration-design.md": "| 钉钉 | V1 | 双向 | 打卡原始事实、消息交付 | WO/PLT | 打卡记录ID+打卡人 | 平台记录 |",
+             "16-exception-and-idempotency.md": "| 钉钉打卡 | 打卡记录ID+打卡人 | tenant + DingTalk | 更新同步事实 |",
+         }
+         for name, injection in injections.items():
+             with tempfile.TemporaryDirectory() as temporary:
+                 with self.subTest(name=name):
+                     root = Path(temporary)
+                     self.build_fixture(root)
+                     target = root / "docs" / "design" / name
+                     target.write_text(
+                         target.read_text(encoding="utf-8") + f"\n{injection}\n",
+                         encoding="utf-8",
+                     )
+                     errors = MODULE.validate(root)
+                     self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
+ 
++    def test_historical_and_pending_dingtalk_clock_in_evidence_is_allowed(self) -> None:
++        rows = (
++            "| 历史排除 | 钉钉打卡 | 不属于当前V1/V2契约 |",
++            "| A+B摘要 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 不进入当前契约 |",
++        )
++        for row in rows:
++            with tempfile.TemporaryDirectory() as temporary:
++                with self.subTest(row=row):
++                    root = Path(temporary)
++                    self.build_fixture(root)
++                    target = root / "docs" / "design" / "12-integration-design.md"
++                    target.write_text(
++                        target.read_text(encoding="utf-8") + f"\n{row}\n",
++                        encoding="utf-8",
++                    )
++
++                    errors = MODULE.validate(root)
++
++                    self.assertFalse(any("DingTalk clock-in" in error for error in errors), errors)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/scripts/validate_sds_phase2.py b/scripts/validate_sds_phase2.py
+index 8294369..c310313 100644
+--- a/scripts/validate_sds_phase2.py
++++ b/scripts/validate_sds_phase2.py
+@@ -25,20 +25,25 @@ REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.M)
+ MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+ HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
+ CONTRACT_HEADING = re.compile(r"^###\s+([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*$", re.M)
+ CONTRACT_FIELD = re.compile(r"^-\s+(需求名称|数据对象|数据表|API|事件|外部集成|文件契约|工作流/状态|授权与数据范围)：(.+?)\s*$", re.M)
+ CONTRACT_FIELDS = (
+     "需求名称", "数据对象", "数据表", "API", "事件", "外部集成",
+     "文件契约", "工作流/状态", "授权与数据范围",
+ )
+ FULL_REQUIREMENT_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
+ ACTIVE_REQUIREMENT_LINE = re.compile(r"^(?:>\s*)?(?:适用\s+)?Requirement(?: ID)?：(.+?)\s*$", re.M)
++PRD_REQUIREMENT_ROW = re.compile(r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$", re.M)
++NON_ACTIVE_CONTRACT_MARKERS = (
++    "历史排除", "不属于", "不进入当前", "不接入", "不纳入", "不得进入",
++    "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "A+B", "V3候选", "V3演进", "仅保留", "未来",
++)
+ 
+ 
+ def read(path: Path) -> str:
+     return path.read_text(encoding="utf-8-sig")
+ 
+ 
+ def github_slug(value: str) -> str:
+     value = re.sub(r"[`*_~]", "", value.strip().lower())
+     value = re.sub(r"[^\w\- ]", "", value, flags=re.UNICODE)
+     return value.replace(" ", "-")
+@@ -89,110 +94,154 @@ def requirement_ids(fragment: str) -> set[str]:
+         result.update(
+             f"{prefix}{number:0{width}d}"
+             for number in range(int(start_value), int(end_value) + 1)
+         )
+     for match in re.finditer(r"([A-Z]+(?:-[A-Z0-9]+)?-)(\d+(?:\s*/\s*\d+)+)", fragment):
+         prefix, values = match.groups()
+         result.update(f"{prefix}{int(value):02d}" for value in re.findall(r"\d+", values))
+     return result
+ 
+ 
++def is_active_contract_context(fragment: str) -> bool:
++    return not any(marker in fragment for marker in NON_ACTIVE_CONTRACT_MARKERS)
++
++
++def prd_formal_requirement_ids(text: str) -> list[str]:
++    """Read formal V1/V2 IDs directly from PRD requirement blocks."""
++    matches = list(PRD_REQUIREMENT_ROW.finditer(text))
++    result: list[str] = []
++    for index, match in enumerate(matches):
++        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
++        block = text[match.end():end]
++        version = re.search(r"^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", block, re.M)
++        if version and version.group(1) in {"V1", "V2"}:
++            result.append(match.group(1))
++    return result
++
++
+ def active_requirement_ids(text: str) -> set[str]:
+     """Extract IDs from formal scope declarations and Requirement table columns."""
+     result: set[str] = set()
+     for declaration in ACTIVE_REQUIREMENT_LINE.findall(text):
+-        result.update(requirement_ids(declaration))
++        if is_active_contract_context(declaration):
++            result.update(requirement_ids(declaration))
+ 
+     requirement_column: int | None = None
+     for line in text.splitlines():
+         if not line.startswith("|"):
+             requirement_column = None
+             continue
+         cells = [cell.strip() for cell in line.strip("|").split("|")]
+         if "Requirement" in cells:
+             requirement_column = cells.index("Requirement")
+             continue
+         if requirement_column is None or requirement_column >= len(cells):
+             continue
++        if not is_active_contract_context(line):
++            continue
+         if set(cells[requirement_column]) <= {"-", ":"}:
+             continue
+         result.update(requirement_ids(cells[requirement_column]))
+     return result
+ 
+ 
+ def validate(root: Path) -> list[str]:
+     errors: list[str] = []
+     design = root / "docs" / "design"
++    prd_path = root / "docs" / "baseline" / "prd-v1.7.md"
+     matrix_path = root / "docs" / "traceability" / "requirement-matrix.md"
+     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
+ 
+     for name in PHASE2_DOCS:
+         path = design / name
+         if not path.is_file():
+             errors.append(f"missing Phase 2 document: {path.relative_to(root)}")
+             continue
+         text = read(path)
+         status_marker = "文档状态：`BASELINE ADDENDUM`" if name == "08a-domain-entity-migration-alignment.md" else "文档状态：`BASELINE`"
+         for marker in (status_marker, "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
+             if marker not in text:
+                 errors.append(f"{path.relative_to(root)} missing metadata: {marker}")
+ 
++    if not prd_path.is_file():
++        errors.append("missing PRD V1.7 baseline")
++        prd_identifiers: list[str] = []
++    else:
++        prd_identifiers = prd_formal_requirement_ids(read(prd_path))
++        if len(prd_identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(prd_identifiers)) != EXPECTED_REQUIREMENT_COUNT:
++            errors.append(
++                f"PRD baseline expected {EXPECTED_REQUIREMENT_COUNT} unique formal V1/V2 IDs, "
++                f"got rows={len(prd_identifiers)} unique={len(set(prd_identifiers))}"
++            )
++
+     if not matrix_path.is_file():
+         return errors + ["missing requirement matrix"]
+ 
+     matrix = read(matrix_path)
+     identifiers = REQUIREMENT_ROW.findall(matrix)
+     if len(identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(identifiers)) != EXPECTED_REQUIREMENT_COUNT:
+         errors.append(
+             f"requirement matrix expected {EXPECTED_REQUIREMENT_COUNT} unique rows, "
+             f"got rows={len(identifiers)} unique={len(set(identifiers))}"
+         )
+     if matrix.count("SDS-P2-BASELINE") != EXPECTED_REQUIREMENT_COUNT:
+         errors.append("every requirement row must carry SDS-P2-BASELINE evidence")
++    if set(prd_identifiers) != set(identifiers):
++        errors.append(
++            "PRD formal Requirement IDs must exactly match requirement matrix; "
++            f"missing={sorted(set(prd_identifiers) - set(identifiers))} "
++            f"extra={sorted(set(identifiers) - set(prd_identifiers))}"
++        )
+ 
+     if not contract_path.is_file():
+         errors.append("missing explicit Phase 2 contract map")
+         contracts: dict[str, dict[str, str]] = {}
+     else:
+         contracts, contract_errors = parse_contract_map(contract_path)
+         errors.extend(contract_errors)
+         if set(contracts) != set(identifiers):
+             errors.append(
+                 "explicit Phase 2 contract IDs must exactly match requirement matrix; "
+                 f"missing={sorted(set(identifiers) - set(contracts))} "
+                 f"extra={sorted(set(contracts) - set(identifiers))}"
+             )
++        if set(contracts) != set(prd_identifiers):
++            errors.append(
++                "PRD formal Requirement IDs must exactly match explicit Phase 2 contract IDs; "
++                f"missing={sorted(set(prd_identifiers) - set(contracts))} "
++                f"extra={sorted(set(contracts) - set(prd_identifiers))}"
++            )
+ 
+     combined_design = "\n".join(read(design / name) for name in PHASE2_DOCS if (design / name).is_file())
+     database_design = read(design / "09-database-design.md") if (design / "09-database-design.md").is_file() else ""
+     api_design = read(design / "10-api-design.md") if (design / "10-api-design.md").is_file() else ""
+     event_design = read(design / "11-event-design.md") if (design / "11-event-design.md").is_file() else ""
+     integration_design = read(design / "12-integration-design.md") if (design / "12-integration-design.md").is_file() else ""
+     file_design = read(design / "13-file-design.md") if (design / "13-file-design.md").is_file() else ""
+ 
+-    formal_id_set = set(identifiers)
++    formal_id_set = set(prd_identifiers)
+     for name in PHASE2_DOCS:
+         path = design / name
+         if not path.is_file():
+             continue
+         for identifier in sorted(active_requirement_ids(read(path)) - formal_id_set):
+             errors.append(f"{name} active scope contains non-formal Requirement: {identifier}")
+ 
+     for line in event_design.splitlines():
+-        if line.startswith("|") and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
++        if line.startswith("|") and is_active_contract_context(line) and "ProjectConversionCompleted" in line and re.search(r"(?:^|[/|\s])WO(?:$|[/|\s])", line):
+             errors.append("ProjectConversionCompleted must not declare WO as a V1/V2 consumer")
+     for name in ("12-integration-design.md", "16-exception-and-idempotency.md"):
+         path = design / name
+         if not path.is_file():
+             continue
+         for line in read(path).splitlines():
+-            if line.startswith("|") and ("打卡原始事实" in line or "钉钉打卡" in line):
++            if line.startswith("|") and is_active_contract_context(line) and ("打卡原始事实" in line or "钉钉打卡" in line):
+                 errors.append(f"{name} contains active DingTalk clock-in fact contract")
+ 
+     for identifier, contract in contracts.items():
+         for field in CONTRACT_FIELDS:
+             value = contract.get(field, "").strip()
+             if not value:
+                 errors.append(f"{identifier} explicit Phase 2 contract missing field: {field}")
+         for field in ("数据对象", "数据表", "API", "工作流/状态", "授权与数据范围"):
+             value = contract.get(field, "")
+             if value.startswith("N/A") or len(value) < 4:

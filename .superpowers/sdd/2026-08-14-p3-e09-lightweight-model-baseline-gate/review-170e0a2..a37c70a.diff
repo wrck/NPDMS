@@ -1,0 +1,471 @@
+# Review package: 170e0a2213aaa6ee7558e9a7359c3e32a04d3ff8..HEAD
+
+## Commits
+a37c70a docs(gate): 同步P3-E09模型基线状态
+
+## Files changed
+ .../p3-e09-submission.json                         | 57 +++++-----------------
+ .../gates/phase-3/phase3-evidence-register.json    |  6 +--
+ .../core-migration-schema-contract.json            | 10 ++++
+ scripts/generate_phase3_evidence_packets.py        | 43 ++++++++--------
+ .../sync_phase3_p3e09_requirement_confirmation.py  |  3 +-
+ .../tests/test_generate_phase3_evidence_packets.py |  9 +++-
+ ...t_sync_phase3_p3e09_requirement_confirmation.py |  7 +--
+ .../migration/ddl-item-decision-register.json      | 10 ++++
+ 8 files changed, 68 insertions(+), 77 deletions(-)
+
+## Diff
+diff --git a/docs/engineering/gates/phase-3/evidence-packet-templates/p3-e09-submission.json b/docs/engineering/gates/phase-3/evidence-packet-templates/p3-e09-submission.json
+index 227a4ab..bfa755e 100644
+--- a/docs/engineering/gates/phase-3/evidence-packet-templates/p3-e09-submission.json
++++ b/docs/engineering/gates/phase-3/evidence-packet-templates/p3-e09-submission.json
+@@ -7,42 +7,40 @@
+     "DATA_ARCHITECTURE_OWNER",
+     "BUSINESS_OWNER",
+     "MIGRATION_OWNER"
+   ],
+   "reviewOwner": null,
+   "environmentOrReleaseId": null,
+   "capturedAt": null,
+   "confirmedFacts": {
+     "approvedDdlSha256": null,
+     "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+-    "dataElementExcelSha256": null,
+-    "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+-    "generatorVersion": null,
++    "deferredItemCount": 0,
++    "independentReviewRef": null,
++    "independentReviewResult": null,
++    "itemIdsSha256": null,
++    "itemsSha256": null,
+     "manifestDdlSha256": null,
+     "mappingDdlSha256": null,
+-    "migrationOwner": null,
+-    "releaseManifestId": null,
+-    "sourceSchemaSha256": null,
+-    "sourceWatermark": null,
++    "mysql84DdlSha256": null,
+     "targetCatalogDdlSha256": null,
+     "validationDdlSha256": null,
+-    "verificationResult": null,
+     "directionDecision": "A",
+     "directionStatus": "ACCEPTED",
+     "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
+     "evidenceOwnerRoles": [
+       "DATA_ARCHITECTURE_OWNER",
+       "BUSINESS_OWNER",
+       "MIGRATION_OWNER"
+     ],
+-    "modelDecisionStatus": "DECISIONS_ACCEPTED_REVIEW_PENDING",
+-    "deferredItemCount": 0,
++    "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
++    "modelDecisionStatus": "MODEL_BASELINE_READY",
+     "v17DeltaStatus": "ACCEPTED",
+     "requirementOwnerConfirmation": {
+       "status": "ACCEPTED",
+       "decisionRef": "ADR-0028",
+       "groupCount": 9,
+       "confirmedUniqueItemCount": 695,
+       "reviewStatus": "REVIEW_PENDING"
+     },
+     "q07Decision": {
+       "status": "ACCEPTED",
+@@ -85,51 +83,22 @@
+     "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
+     "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+     "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
+     "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json"
+   ],
+   "verificationResult": null,
+   "unresolvedItems": [
+     "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+   ],
+   "revalidationTriggers": [],
++  "blocks": [
++    "HISTORICAL_DATA_MIGRATION",
++    "DATA_CUTOVER"
++  ],
++  "usageRestriction": "仅用于SDS数据模型基线事实校验；不得用于授权历史数据迁移或数据切换。",
+   "approvalBinding": {
+     "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+     "itemsSha256": null,
+     "itemCount": 1883,
+     "itemIdsSha256": "3C40BB7B02F4DC3B588BF09D32564A6C175098518FC30173D27F15F6810A78F1"
+-  },
+-  "signoffs": {
+-    "DATA_ARCHITECTURE_OWNER": {
+-      "status": "PENDING",
+-      "signerId": null,
+-      "signedAt": null,
+-      "attestationMethod": null,
+-      "evidenceRef": null,
+-      "evidenceSha256": null
+-    },
+-    "BUSINESS_OWNER": {
+-      "status": "PENDING",
+-      "signerId": null,
+-      "signedAt": null,
+-      "attestationMethod": null,
+-      "evidenceRef": null,
+-      "evidenceSha256": null
+-    },
+-    "MIGRATION_OWNER": {
+-      "status": "PENDING",
+-      "signerId": null,
+-      "signedAt": null,
+-      "attestationMethod": null,
+-      "evidenceRef": null,
+-      "evidenceSha256": null
+-    },
+-    "INDEPENDENT_REVIEWER": {
+-      "status": "PENDING",
+-      "signerId": null,
+-      "signedAt": null,
+-      "attestationMethod": null,
+-      "evidenceRef": null,
+-      "evidenceSha256": null
+-    }
+   }
+ }
+diff --git a/docs/engineering/gates/phase-3/phase3-evidence-register.json b/docs/engineering/gates/phase-3/phase3-evidence-register.json
+index 54f2188..5364254 100644
+--- a/docs/engineering/gates/phase-3/phase3-evidence-register.json
++++ b/docs/engineering/gates/phase-3/phase3-evidence-register.json
+@@ -289,23 +289,23 @@
+             "id": "P3-E09",
+             "status": "OPEN",
+             "decisionOwner": "REQUIREMENT_OWNER",
+             "reviewOwner": null,
+             "confirmedFacts": {
+                 "directionDecision": "A",
+                 "directionStatus": "ACCEPTED",
+                 "chosenDirection": "逐表、列、索引和约束生成差异并逐项裁决",
+                 "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+                 "legacyCatalogDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
+-                "driftDecision": "REVIEW_PENDING",
++                "driftDecision": "ACCEPT_CURRENT",
+                 "decisionRegisterItemCount": 1883,
+-                "modelDecisionStatus": "DECISIONS_ACCEPTED_REVIEW_PENDING",
++                "modelDecisionStatus": "MODEL_BASELINE_READY",
+                 "deferredItemCount": 0,
+                 "approvedDdlSha256": null,
+                 "q03DecisionStatus": "ACCEPTED",
+                 "q03CurrentBusinessFacts": {
+                     "deviceProjectAssignment": "ONE_CURRENT_DIRECT_PROJECT_PER_DEVICE",
+                     "customerPrimaryContact": "ONE_CURRENT_PRIMARY_CONTACT_PER_CUSTOMER",
+                     "projectPrimaryCompanyDepartment": "ONE_CURRENT_PRIMARY_RELATION_PER_PROJECT_ROLE",
+                     "deliveryScope": "ONE_CURRENT_HEADER_PER_PROJECT_ORDER_LINE_WITH_DETAILS",
+                     "orderExecution": "MULTIPLE_PRIMARY_EXECUTIONS_ALLOWED"
+                 },
+@@ -357,18 +357,16 @@
+                 "specs/001-project-delivery-platform/evidence/migration/ddl-current-constraint-inventory.json",
+                 "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+                 "specs/001-project-delivery-platform/evidence/migration/ddl-model-decision-catalog.md",
+                 "specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json",
+                 "docs/decisions/0026-cutover-flow-business-baseline-correction.md",
+                 "docs/decisions/0027-cutover-physical-model-correction.md",
+                 "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md",
+                 "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json"
+             ],
+             "blocks": [
+-                "PHASE_3_BASELINE",
+-                "DATA_MODEL_BASELINE",
+                 "HISTORICAL_DATA_MIGRATION",
+                 "DATA_CUTOVER"
+             ]
+         }
+     ]
+ }
+diff --git a/docs/traceability/core-migration-schema-contract.json b/docs/traceability/core-migration-schema-contract.json
+index 4d7a1c6..980fa0e 100644
+--- a/docs/traceability/core-migration-schema-contract.json
++++ b/docs/traceability/core-migration-schema-contract.json
+@@ -1667,20 +1667,30 @@
+     "srv_historical_time_record",
+     "srv_historical_work_order",
+     "srv_renewal",
+     "srv_renewal_operation",
+     "srv_time_adjustment",
+     "srv_time_claim",
+     "srv_work_order",
+     "srv_work_order_handling_record",
+     "srv_work_order_sla"
+   ],
++  "p3e09ModelBaseline": {
++    "status": "MODEL_BASELINE_READY",
++    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
++    "deferredItemCount": 0,
++    "approvedDdlSha256": null,
++    "blocks": [
++      "HISTORICAL_DATA_MIGRATION",
++      "DATA_CUTOVER"
++    ]
++  },
+   "p3e09RequirementOwnerConfirmation": {
+     "decisionRef": "ADR-0028",
+     "status": "ACCEPTED",
+     "confirmedAt": "2026-08-14",
+     "decision": "ALL_RECOMMENDED_A",
+     "ddlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
+     "packetRef": "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json",
+     "decisionEvidenceRef": "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md",
+     "preConfirmationSourceCommit": "b490ed4e9bbd87f25b372fcf3ca6c91b30ee66fa",
+     "preConfirmationItemsSha256": "D383F3F194DB7094BE229B03EB3E5199EC9FD813BDEC6483FB5B853F42760D20",
+diff --git a/scripts/generate_phase3_evidence_packets.py b/scripts/generate_phase3_evidence_packets.py
+index 47a7cab..5d98be7 100644
+--- a/scripts/generate_phase3_evidence_packets.py
++++ b/scripts/generate_phase3_evidence_packets.py
+@@ -32,20 +32,22 @@ PROJECT_CODE_REF = "docs/decisions/0020-project-code-identity-and-namespace.md"
+ MARKET_RELATION_REF = "docs/decisions/0021-customer-market-relation-classification.md"
+ CORE_MIGRATION_SCHEMA_REF = "docs/decisions/0022-core-migration-schema-and-key-policy.md"
+ MODEL_DECISION_REF = "docs/decisions/0023-p3-e09-key-collation-and-state-guard-policy.md"
+ V17_DDL_DELTA_REF = "docs/decisions/0025-v1.7-p3-e09-ddl-delta.md"
+ CURRENT_HASH_REQUIREMENT_CONFIRMATION_REF = "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md"
+ P3E09_CONFIRMATION_PACKET_REF = "specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.json"
+ CORE_SCHEMA_CONTRACT = Path("docs/traceability/core-migration-schema-contract.json")
+ DDL_DECISION_REGISTER = Path("specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json")
+ DDL_PATH = Path("specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql")
+ DDL_EXECUTION_EVIDENCE = Path("specs/001-project-delivery-platform/evidence/migration/ddl-mysql84-execution-evidence.json")
++P3E09_MODEL_BASELINE_BLOCKS = ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"]
++P3E09_USAGE_RESTRICTION = "仅用于SDS数据模型基线事实校验；不得用于授权历史数据迁移或数据切换。"
+ BACKUP_RETENTION_POLICY = {
+     "dailyRetention": "P35D",
+     "monthlyRetention": "P13M",
+     "yearlyRetention": "P7Y",
+     "continuousLogMaxGap": "PT1H",
+ }
+ RECOVERY_TOPOLOGY = {
+     "primary": "METRO_WARM_STANDBY",
+     "fallback": "OFFLINE_COLD_BACKUP_FALLBACK",
+     "approvedRto": "PT4H",
+@@ -147,33 +149,40 @@ def build_packets() -> dict[str, dict[str, object]]:
+         )
+         if identifier == "P3-E09":
+             ddl_sha256 = hashlib.sha256(DDL_PATH.read_bytes()).hexdigest().upper()
+             execution = json.loads(DDL_EXECUTION_EVIDENCE.read_text(encoding="utf-8"))
+             contract = json.loads(CORE_SCHEMA_CONTRACT.read_text(encoding="utf-8"))
+             register = json.loads(DDL_DECISION_REGISTER.read_text(encoding="utf-8"))
+             if execution.get("status") != "PASS" or execution.get("ddlSha256") != ddl_sha256:
+                 raise ValueError("P3-E09 isolated MySQL execution evidence is absent or stale")
+             deferred_count = sum(item.get("decision") == "DEFER" for item in register["items"])
+             approved_hash = register.get("approval", {}).get("approvedDdlSha256")
+-            if approved_hash:
+-                model_status = "APPROVED"
+-            elif deferred_count == 0:
+-                model_status = "DECISIONS_ACCEPTED_REVIEW_PENDING"
+-            else:
+-                model_status = "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED"
++            if approved_hash is not None:
++                raise ValueError("P3-E09 model baseline must keep approvedDdlSha256 explicitly null")
++            model_baseline = {
++                "status": "MODEL_BASELINE_READY" if deferred_count == 0 else "PARTIALLY_ACCEPTED_RECONFIRMATION_REQUIRED",
++                "currentDdlSha256": ddl_sha256,
++                "deferredItemCount": deferred_count,
++                "approvedDdlSha256": None,
++                "blocks": P3E09_MODEL_BASELINE_BLOCKS,
++            }
++            if contract.get("p3e09ModelBaseline") != model_baseline:
++                raise ValueError("P3-E09 core migration schema contract model baseline drift")
++            if register.get("modelBaseline") != model_baseline:
++                raise ValueError("P3-E09 DDL decision register model baseline drift")
+             facts.update(
+                 {
+                     "currentDdlSha256": ddl_sha256,
+                     "driftDecisionRegister": "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+-                    "modelDecisionStatus": model_status,
++                    "modelDecisionStatus": model_baseline["status"],
+                     "deferredItemCount": deferred_count,
+-                    "approvedDdlSha256": approved_hash,
++                    "approvedDdlSha256": None,
+                     "v17DeltaStatus": contract["v17Delta"]["status"],
+                     "requirementOwnerConfirmation": {
+                         "status": contract["p3e09RequirementOwnerConfirmation"]["status"],
+                         "decisionRef": contract["p3e09RequirementOwnerConfirmation"]["decisionRef"],
+                         "groupCount": len(contract["p3e09RequirementOwnerConfirmation"]["groups"]),
+                         "confirmedUniqueItemCount": contract["p3e09RequirementOwnerConfirmation"]["confirmedUniqueItemCount"],
+                         "reviewStatus": contract["p3e09RequirementOwnerConfirmation"]["reviewStatus"],
+                     },
+                     "q07Decision": {
+                         "status": contract["q07TechnicalConstraintPolicy"]["status"],
+@@ -253,42 +262,28 @@ def build_packets() -> dict[str, dict[str, object]]:
+             "reviewOwner": None,
+             "environmentOrReleaseId": None,
+             "capturedAt": None,
+             "confirmedFacts": facts,
+             "evidenceRefs": evidence_refs,
+             "verificationResult": None,
+             "unresolvedItems": ["由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"],
+             "revalidationTriggers": [],
+         }
+         if identifier == "P3-E09":
++            packet["blocks"] = P3E09_MODEL_BASELINE_BLOCKS
++            packet["usageRestriction"] = P3E09_USAGE_RESTRICTION
+             packet["approvalBinding"] = {
+                 "currentDdlSha256": register["currentDdlSha256"],
+                 "itemsSha256": None,
+                 "itemCount": len(register["items"]),
+                 "itemIdsSha256": item_ids_sha256(register["items"]),
+             }
+-            packet["signoffs"] = {
+-                role: {
+-                    "status": "PENDING",
+-                    "signerId": None,
+-                    "signedAt": None,
+-                    "attestationMethod": None,
+-                    "evidenceRef": None,
+-                    "evidenceSha256": None,
+-                }
+-                for role in (
+-                    "DATA_ARCHITECTURE_OWNER",
+-                    "BUSINESS_OWNER",
+-                    "MIGRATION_OWNER",
+-                    "INDEPENDENT_REVIEWER",
+-                )
+-            }
+         packets[identifier] = packet
+     return packets
+ 
+ 
+ def render(payload: object) -> str:
+     return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+ 
+ 
+ def expected_files(output_dir: Path) -> dict[Path, str]:
+     packets = build_packets()
+diff --git a/scripts/sync_phase3_p3e09_requirement_confirmation.py b/scripts/sync_phase3_p3e09_requirement_confirmation.py
+index 4f08dda..f0bb828 100644
+--- a/scripts/sync_phase3_p3e09_requirement_confirmation.py
++++ b/scripts/sync_phase3_p3e09_requirement_confirmation.py
+@@ -29,25 +29,26 @@ def load_generator(root: Path):
+ 
+ 
+ def sync(payload: dict[str, object], generated: dict[str, object]) -> dict[str, object]:
+     item = next((row for row in payload.get("items", []) if row.get("id") == "P3-E09"), None)
+     if item is None:
+         raise ValueError("Phase 3 register has no P3-E09 item")
+     facts = item["confirmedFacts"]
+     generated_facts = generated["confirmedFacts"]
+     for key in SYNC_FACTS:
+         facts[key] = generated_facts[key]
+-    facts["driftDecision"] = "REVIEW_PENDING"
++    facts["driftDecision"] = "ACCEPT_CURRENT"
+     facts["decisionRegisterItemCount"] = 1883
+     item["status"] = "OPEN"
+     item["decisionOwner"] = "REQUIREMENT_OWNER"
+     item["reviewOwner"] = None
++    item["blocks"] = generated["blocks"]
+     for reference in generated["evidenceRefs"]:
+         if reference not in item["evidenceRefs"]:
+             item["evidenceRefs"].append(reference)
+     payload["overallStatus"] = "NOT_READY_FOR_SDS_BASELINE"
+     return payload
+ 
+ 
+ def main() -> int:
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--root", type=Path, default=Path.cwd())
+diff --git a/scripts/tests/test_generate_phase3_evidence_packets.py b/scripts/tests/test_generate_phase3_evidence_packets.py
+index 29b0566..a8fd147 100644
+--- a/scripts/tests/test_generate_phase3_evidence_packets.py
++++ b/scripts/tests/test_generate_phase3_evidence_packets.py
+@@ -26,21 +26,28 @@ class Phase3EvidencePacketTest(unittest.TestCase):
+         self.assertEqual(GENERATOR.RECOVERY_TOPOLOGY, packets["P3-E03"]["confirmedFacts"]["recoveryTopology"])
+         self.assertEqual(GENERATOR.EXPORT_AUTHORIZATION_POLICY, packets["P3-E05"]["confirmedFacts"]["exportAuthorizationPolicy"])
+         self.assertIn(GENERATOR.PERMANENT_AUDIT_REF, packets["P3-E05"]["evidenceRefs"])
+         self.assertIn(GENERATOR.TRACE_SAMPLING_REF, packets["P3-E05"]["evidenceRefs"])
+         self.assertIn(GENERATOR.PROJECT_CODE_REF, packets["P3-E09"]["evidenceRefs"])
+         self.assertIn(GENERATOR.MARKET_RELATION_REF, packets["P3-E09"]["evidenceRefs"])
+         self.assertIn(GENERATOR.CORE_MIGRATION_SCHEMA_REF, packets["P3-E09"]["evidenceRefs"])
+         self.assertIn(GENERATOR.MODEL_DECISION_REF, packets["P3-E09"]["evidenceRefs"])
+         self.assertIn(GENERATOR.V17_DDL_DELTA_REF, packets["P3-E09"]["evidenceRefs"])
+         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["v17DeltaStatus"])
+-        self.assertEqual("DECISIONS_ACCEPTED_REVIEW_PENDING", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
++        self.assertEqual("MODEL_BASELINE_READY", packets["P3-E09"]["confirmedFacts"]["modelDecisionStatus"])
++        self.assertIsNone(packets["P3-E09"]["confirmedFacts"]["approvedDdlSha256"])
++        self.assertEqual(
++            {"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"},
++            set(packets["P3-E09"]["blocks"]),
++        )
++        self.assertNotIn("signoffs", packets["P3-E09"])
++        self.assertIn("不得用于授权历史数据迁移", packets["P3-E09"]["usageRestriction"])
+         self.assertEqual(0, packets["P3-E09"]["confirmedFacts"]["deferredItemCount"])
+         self.assertEqual("ACCEPTED", packets["P3-E09"]["confirmedFacts"]["requirementOwnerConfirmation"]["status"])
+         self.assertEqual(9, packets["P3-E09"]["confirmedFacts"]["requirementOwnerConfirmation"]["groupCount"])
+         self.assertIn(GENERATOR.CURRENT_HASH_REQUIREMENT_CONFIRMATION_REF, packets["P3-E09"]["evidenceRefs"])
+         self.assertEqual(257, packets["P3-E09"]["confirmedFacts"]["q07Decision"]["technicalConstraintCount"])
+         self.assertEqual(122, packets["P3-E09"]["confirmedFacts"]["q08Decision"]["candidateIndexCount"])
+         self.assertTrue(packets["P3-E09"]["confirmedFacts"]["q08Decision"]["p3e06PerformanceValidationRequired"])
+         self.assertEqual("PASS", packets["P3-E09"]["confirmedFacts"]["isolatedMysqlExecution"]["status"])
+         self.assertIn("ddl-mysql84-execution-evidence.json", packets["P3-E09"]["evidenceRefs"][-1])
+         for identifier, packet in packets.items():
+diff --git a/scripts/tests/test_sync_phase3_p3e09_requirement_confirmation.py b/scripts/tests/test_sync_phase3_p3e09_requirement_confirmation.py
+index 0fa0225..5d9321c 100644
+--- a/scripts/tests/test_sync_phase3_p3e09_requirement_confirmation.py
++++ b/scripts/tests/test_sync_phase3_p3e09_requirement_confirmation.py
+@@ -10,27 +10,28 @@ from pathlib import Path
+ ROOT = Path(__file__).resolve().parents[2]
+ MODULE_PATH = ROOT / "scripts" / "sync_phase3_p3e09_requirement_confirmation.py"
+ SPEC = importlib.util.spec_from_file_location("sync_phase3_p3e09_requirement_confirmation", MODULE_PATH)
+ MODULE = importlib.util.module_from_spec(SPEC)
+ assert SPEC.loader is not None
+ sys.modules[SPEC.name] = MODULE
+ SPEC.loader.exec_module(MODULE)
+ 
+ 
+ class Phase3P3E09RequirementConfirmationSyncTest(unittest.TestCase):
+-    def test_sync_preserves_review_gate_and_removes_defer(self) -> None:
++    def test_sync_marks_model_ready_but_keeps_migration_blocks(self) -> None:
+         payload = json.loads((ROOT / MODULE.REGISTER).read_text(encoding="utf-8"))
+         generated = MODULE.load_generator(ROOT).build_packets()["P3-E09"]
+         result = MODULE.sync(payload, generated)
+         item = next(row for row in result["items"] if row["id"] == "P3-E09")
+         facts = item["confirmedFacts"]
+         self.assertEqual(0, facts["deferredItemCount"])
+-        self.assertEqual("DECISIONS_ACCEPTED_REVIEW_PENDING", facts["modelDecisionStatus"])
+-        self.assertEqual("REVIEW_PENDING", facts["driftDecision"])
++        self.assertEqual("MODEL_BASELINE_READY", facts["modelDecisionStatus"])
++        self.assertEqual("ACCEPT_CURRENT", facts["driftDecision"])
+         self.assertEqual("OPEN", item["status"])
+         self.assertIsNone(item["reviewOwner"])
+         self.assertIsNone(facts["approvedDdlSha256"])
++        self.assertEqual({"HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"}, set(item["blocks"]))
+         self.assertEqual("NOT_READY_FOR_SDS_BASELINE", result["overallStatus"])
+ 
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json b/specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json
+index 0dcacc6..3d14148 100644
+--- a/specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json
++++ b/specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json
+@@ -42425,20 +42425,30 @@
+       "baselineValue": null,
+       "currentValue": "ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '故障与受影响设备多对多关系'",
+       "decision": "AMEND_CURRENT",
+       "decisionOwner": "REQUIREMENT_OWNER",
+       "reviewOwner": null,
+       "evidenceRefs": [
+         "docs/decisions/0028-p3-e09-current-hash-requirement-owner-confirmation.md"
+       ]
+     }
+   ],
++  "modelBaseline": {
++    "status": "MODEL_BASELINE_READY",
++    "currentDdlSha256": "5EB9742F84CEF070D79A4DCEC3BB0199ABEBB30B4D9C84F94937F81510EE4249",
++    "deferredItemCount": 0,
++    "approvedDdlSha256": null,
++    "blocks": [
++      "HISTORICAL_DATA_MIGRATION",
++      "DATA_CUTOVER"
++    ]
++  },
+   "approval": {
+     "approvedDdlSha256": null,
+     "decisionOwner": null,
+     "reviewOwner": null,
+     "evidenceRefs": []
+   },
+   "unchangedBaselineColumnDecision": {
+     "decision": "ACCEPT_CURRENT",
+     "decidedItemCount": 1000,
+     "basis": "BASELINE_AND_CURRENT_COLUMN_FACTS_EQUAL",

@@ -1,0 +1,20 @@
+{
+  "bodyText": "项目实施交付管理平台\n首页\n系统管理\n基础设施\n项目交付\n项目管理\n项目列表\n项目团队\n计划进度\n项目风险\n组合与治理\n工程实施\n割接交付\n验收闭环\n巡检维保\n项目模板管理\n支付管理\n客户与资产\n报表管理\n工作流程\n会员中心\n商城系统\n公众号管理\nCRM 系统\nERP 系统\nWMS 系统\nMES 系统\nAI 大模型\nIoT 物联网\nIM 即时通讯\n请输入菜单内容\n管理员\n首页\n项目详情\nPJT-DEMO-920001-SP000006\n浏览器验收子项目\n待开始\n模板 #910001 v2\nF-PM02示例客户\n直签 / 工程类 / 原厂直服\n2026-08-21 17:58:23\n返回列表\n项目概览\n基本信息\n生命周期实例\n成员区间\n项目树\n项目树\n进度汇总\n进度汇总\n项目树（直接下级，按需展开）\n下挂子项目\n子树移动\n项目编码\n\t\n项目名称\n\t\n状态\n\t\n深度\n\t\n业务层级\n暂无直接下级项目\n子树移动\n待移动项目\n目标父项目\n请选择目标父项目\n取消\n保存\nCopyright ©2026 项目实施交付管理平台",
+  "inputs": [
+    {
+      "placeholder": null,
+      "disabled": false,
+      "className": "el-select__input is-default"
+    },
+    {
+      "placeholder": null,
+      "disabled": true,
+      "className": "el-input__inner"
+    },
+    {
+      "placeholder": null,
+      "disabled": false,
+      "className": "el-select__input is-default"
+    }
+  ]
+}

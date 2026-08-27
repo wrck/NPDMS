@@ -1,0 +1,356 @@
+# Review package: b609f6a0c8e72bee17a0269302db791f1175a94a..efec2347be28f1cd3d6344a724378e747216941e
+
+## Commits
+efec234 docs(gate): 对齐 Phase 1 当前门禁快照
+
+## Files changed
+ docs/engineering/gates/phase-1/README.md      |  3 +-
+ docs/engineering/gates/phase-1/gate-status.md | 45 ++++++++++++++-------------
+ docs/specification-baseline/README.md         |  2 +-
+ docs/specification-baseline/allowlist.json    |  2 ++
+ docs/specification-baseline/manifest.json     | 10 ++++++
+ scripts/specification_baseline.py             | 18 +++++++++--
+ scripts/tests/test_specification_baseline.py  | 27 ++++++++++++++--
+ 7 files changed, 78 insertions(+), 29 deletions(-)
+
+## Diff
+diff --git a/docs/engineering/gates/phase-1/README.md b/docs/engineering/gates/phase-1/README.md
+index d54ea37..85e51d3 100644
+--- a/docs/engineering/gates/phase-1/README.md
++++ b/docs/engineering/gates/phase-1/README.md
+@@ -1,18 +1,17 @@
+ # Phase 1 门禁与审查证据
+ 
+ Phase 1 用于确认需求追溯、领域边界、聚合责任、系统架构、状态机、工作流和授权设计是否具备进入实现契约设计的条件。
+ 
+ ## 当前文件
+ 
+-- [`q2-evidence-manifest.json`](q2-evidence-manifest.json)：Q2 实施仓库、锁定提交、数据库目标、运行边界与构建结果的机器可读证据清单。
+-- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总和放行结论。当前仍为 `NOT_READY_FOR_PHASE_2`，以文件中的硬门禁表为准。
++- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总和放行结论。当前为 `APPROVED / READY_FOR_PHASE_2`。
+ - [`independent-review.md`](independent-review.md)：独立第三方评审结果。
+ - [`context-refinement-review.md`](context-refinement-review.md)：领域上下文重构后的复审记录。
+ - [`naming-review.md`](naming-review.md)：业务命名审查结论。
+ - [`naming-inventory.md`](naming-inventory.md)：命名迁移盘点证据。
+ 
+ ## 输入与历史材料
+ 
+ - `input/` 保存收到的外部评审稿，例如 `sds-phase1-domain-model-review-after-field-renaming.md`。输入稿保持原貌，修订意见通过正式审查记录表达。
+ - `archive/` 保存已被当前结论替代的历史审查材料，例如旧版领域模型完整审查稿。
+ 
+diff --git a/docs/engineering/gates/phase-1/gate-status.md b/docs/engineering/gates/phase-1/gate-status.md
+index 3b009fe..7d89a7b 100644
+--- a/docs/engineering/gates/phase-1/gate-status.md
++++ b/docs/engineering/gates/phase-1/gate-status.md
+@@ -1,61 +1,64 @@
+ # SDS Phase 1 Review
+ 
+-> 审查状态：`IN_REVIEW`
+-> 依据：PRD V1.6、基线快照、正式工程链 V1.6
+-> 结论：`NOT_READY_FOR_PHASE_2`
+-> Phase 1硬门禁：领域Owner签署、实现工作包登记、采集平台集成形态确认，三项缺一不可；本轮已确认 Owner 映射和 V1 子应用集成，当前仅实现工作包登记仍阻塞。
+-> 独立第三方评审：`NO-GO`；详见 `docs/engineering/gates/phase-1/independent-review.md`。
++> 审查状态：`APPROVED`
++> 依据：PRD V1.7、基线快照、正式工程链 V1.8
++> 结论：`READY_FOR_PHASE_2`
++> Phase 1硬门禁：领域Owner签署、实现工作包登记、采集平台集成形态确认均已通过。
++> 独立第三方评审：V1.6结论为`GO`，详见`docs/engineering/gates/phase-1/independent-review.md`；V1.7为需求方批准的ADR-0024差量并已通过机器校验与自审，本文件不将其表述为新增独立评审结论。
+ 
+ ## 1. 审查清单
+ 
+ | 检查项 | 结果 | 说明 |
+ |---|---|---|
+-| 115 项正式需求进入追溯 | PASS | 追溯矩阵 115/115，V1 57、V2 58；已补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别工作映射 |
++| 104 项正式需求进入追溯 | PASS | 追溯矩阵 104/104，V1 55、V2 49；已按 ADR-0024 完成业务反馈差量重构，并补齐模块、聚合、状态机/工作流、权限、计划API、数据对象和测试类别映射 |
+ | V1/V2/V3/OUT_OF_SCOPE 边界 | PASS | V3 和排除项未进入当前实现设计 |
+ | Bounded Context | PASS | 已按 PRD-derived Owner 工作映射拆分，并由需求方确认；细化 Context 与平台能力边界已回写 |
+ | 聚合边界 | PASS-WITH-FOLLOWUP | 项目、设备、采集、割接、巡检已分离；需在 Phase 2 落实表级边界 |
+-| 跨模块 Repository 访问 | PASS | SDS 约束为应用服务/事件，不允许直接访问 |
++| 跨模块 Repository 访问 | PASS | SDS 约束为应用服务/事件，不允许直接访问；`CollectionTaskRequested` 方向已修正为业务 Context 到 Device Access & Collection |
+ | 核心生命周期状态机 | PASS-WITH-FOLLOWUP | 已定义核心状态和门禁；状态字典初始值与扩展映射需形成配置数据设计 |
+ | Workflow 与状态机分离 | PASS | 审批节点不直接替代业务状态 |
+-| 权限覆盖 | PASS-WITH-FOLLOWUP | 已覆盖功能、数据、操作、字段和设备临时授权；需 Phase 2 形成策略接口 |
++| 权限覆盖 | PASS | 已按 PRD 将到货/安装确认改为项目经理，删除配置采集结果中未定义的人工审批角色，定点复审通过 |
+ | 外部系统 Owner | PASS | 外部系统只通过适配器/契约提供事实，平台不接管其内部业务 |
+ | 是否发明业务规则 | PASS-WITH-FOLLOWUP | 文档中的架构选择以【建议】或【待确认】标记，未写入 PRD 业务规则 |
+ | BLOCKED_BY_SPEC | ABSENT | 当前未发现需要回到 PRD/决策记录处理的业务语义冲突 |
+-| BLOCKED_BY_EVIDENCE | PRESENT | 实现工作包的仓库、提交和数据库环境仍未登记 |
+-| 是否足以进入 Data/API/Integration 设计 | NO | 需要先登记实现仓库、基础平台锁定提交和数据库目标环境 |
++| BLOCKED_BY_EVIDENCE | ABSENT | 实施仓库 `856d052` 已固化当前运行边界与 `q2-evidence-manifest.json`，定点复审通过 |
++| 是否足以进入 Data/API/Integration 设计 | YES | R-N01～R-N04 全部关闭，独立定点复审给出 GO |
+ 
+ 独立评审补充：Implementation Execution bounded context 可保留。命名后的 Context 整改已完成：新增 Device Access & Collection 作为正式采集 Context，并允许现有采集模块/子应用作为实现载体；SRV 内部拆为 Work Order & Time、Inspection、Service Operations；CUS/AST分别拆为 Customer & Relationship、Asset Management；COM保留必要主数据本地同步副本；Closure统一为 ProjectClosure。详见 `docs/engineering/gates/phase-1/context-refinement-review.md`。
+ 
+-本轮确认记录：Q1 已确认当前 13 个领域 Owner 映射；Q3 已确认 V1 优先采用现有采集平台子应用集成。Q2 仅完成实现工作包建议，实际仓库、提交号和数据库环境仍待登记。
++本轮确认记录：Q1 已确认当前 13 个领域 Owner 映射；Q3 已确认 V1 优先采用现有采集平台子应用集成。Q2 已登记实现仓库、锁定基线提交、基础平台来源和 NPDMS 开发数据库目标；需求方已确认统一证据批次号 `NPDMS-SDS-P1-20260812-01`，前端冻结安装与生产构建已在宿主机通过，构建配置已提交。
+ 
+ ## 2. 阻塞项
+ 
+ | 编号 | 当前状态 | 阻塞内容 | 影响 | 解除条件 |
+ |---|---|---|---|---|
+ | BLOCKED-SDS-01 | RESOLVED_BY_REQUESTER | 13 个领域 Owner 已形成 PRD-derived 工作映射，并由需求方确认 | 影响模块归属、数据 Owner、API 责任和权限边界 | 将确认来源纳入责任人名册或签署记录 |
+-| BLOCKED-SDS-02 | OPEN | 实现工作包尚未登记实现仓库、基础平台锁定提交和数据库目标环境 | 影响 Phase 2 技术契约与迁移设计 | 登记 `implementationRepo`、`platformCommit`、`databaseTarget`、`baseCommit` 和可复现构建入口 |
++| BLOCKED-SDS-02 | RESOLVED_BY_EVIDENCE | 实现工作包证据曾与当前 Compose/宿主机运行边界冲突；实施仓库 `856d052` 已修复并提供机器可读清单 | 影响 Phase 2 技术契约与构建基线复核 | 已由独立复审验证 `q2-evidence-manifest.json`、`baseCommit` 及 `evidenceCommit` |
+ | BLOCKED-SDS-03 | RESOLVED_BY_REQUESTER | V1 优先采用现有采集平台子应用集成；任务授权、执行身份和回调责任已按 PRD/SDS 确认 | 影响部署、鉴权、任务下发和回调边界 | Phase 2 登记具体网络端点、部署清单和接口契约 |
+ 
+ ## 2.1 Q2 实现工作包建议
+ 
+ | 字段 | 建议值 | 当前登记状态 |
+ |---|---|---|
+-| `implementationRepo` | `E:\AICoding\Projects\NPDMS` | 已登记；路径存在，但当前仓库尚无有效 Git 提交 |
+-| `branch/worktree` | `master`（当前目录） | 已核验；尚未形成可锁定的实现基线 |
+-| `baseCommit` | 实现仓库导入基础骨架后形成的锁定起点提交 | 【待登记】 |
+-| `platformCommit` | yudao master-jdk25 对应的实际 SHA，不使用浮动分支名 | 【待登记】 |
+-| `databaseTarget` | 独立 PMS 业务数据库和环境标识；不写入旧库 | 【建议】 |
+-| `buildEntry` | 后端 Maven、前端 pnpm、仓库测试脚本的可复现命令集合 | 【建议】 |
+-| `releaseId` | 与构建、迁移、测试和发布证据关联的唯一批次号 | 【建议】 |
++| `implementationRepo` | `E:\AICoding\Projects\NPDMS` | 已登记并核验 |
++| `branch/worktree` | `master`（基线分支，当前目录） | 已核验；Phase 2 实现切片应从该基线创建独立短期分支/工作树 |
++| `baseCommit` | `3c54ee1bb3c1d2fa4bad958ea6691956a7ac2464` | 已登记；包含根基线 `1a93fad14aa0cadcf9300535aa7b9b6617b9c3aa` 及 pnpm 9 宿主机构建配置，核验时工作树干净 |
++| `evidenceCommit` | `856d052` | 已登记；包含 `docs/engineering/gates/phase-1/q2-evidence-manifest.json` 及与当前 `compose.yaml` 一致的运行边界 |
++| `platformCommit` | mini `e6d814cb59cfc204f02aa2516799073382aba801`；BPM 补充来源 `a6558325b0f09017f531f1e5891613ef9b468132`；前端来源 `2d028c8f7a14dd2e532ac1a76d1fdf58840dc621` | 已按实现仓库 `docs/upstream-sources.md` 登记；基础平台主来源为 yudao-boot-mini `master-jdk25` 锁定提交 |
++| `databaseTarget` | `NPDMS-DEV-LOCAL` / `mysql:8.4` / 数据库 `npdms` / Compose 项目 `npdms` | 已按 `compose.yaml` 与 `.env.example` 核验；凭据仅通过 `NPDMS_*` 环境变量注入，不写入旧库 |
++| `buildEntry` | 后端：JDK 25，`mvn clean verify -B`；前端宿主机：Node 24.11.1、pnpm 9.15.5，`corepack pnpm install --frozen-lockfile --prefer-offline && corepack pnpm build:prod`；基础设施：`.\tests\infrastructure\verify-docker-baseline.ps1` | 后端 30/30 Reactor 模块、基础设施静态基线校验、前端冻结安装和生产构建均已通过；前端 `corepack pnpm ts:check` 暴露首次基线既有类型债务，需在进入前端功能实现前单独治理，不作为 Q2 仓库登记阻塞 |
++| `releaseId` | `NPDMS-SDS-P1-20260812-01` | `RESOLVED_BY_REQUESTER`；作为本轮构建、迁移、测试和门禁证据的统一批次号 |
+ 
+-Q2 路径核验记录：`E:\AICoding\Projects\NPDMS` 当前可访问，但 `HEAD` 不是有效提交，工作树文件均未纳入提交。因此本次仅完成 `implementationRepo` 和 `branch/worktree` 登记；`baseCommit`、平台锁定提交、数据库目标和构建入口仍需基于该仓库的有效提交重新核验，`BLOCKED-SDS-02` 保持 `OPEN`。
++Q2 核验记录：`E:\AICoding\Projects\NPDMS` 当前可访问，锁定可构建业务基线为 `3c54ee1bb3c1d2fa4bad958ea6691956a7ac2464`，证据提交为 `856d052`；后者是前者的后继提交，核验时工作树干净且未配置远端。实现基线统一使用 `NPDMS_*` 环境变量、`npdms` 数据库、`npdms` Compose 项目名和 `npdms-dev` 本地 Profile；本地 `.env` 与本地 Profile 均由 `.gitignore` 排除。前端冻结安装、离线复核和生产构建通过，共享依赖 Store 为 `E:\.pnpm-store\v3`。当前证据清单见实施仓库 `docs/engineering/gates/phase-1/q2-evidence-manifest.json`，`BLOCKED-SDS-02` 已由独立复审确认解除。
++
++前端质量跟进：`corepack pnpm ts:check` 当前失败，错误涉及首次基线已有的 PMS 页面类型契约、组件导入、字典常量和未使用变量等；生产构建成功不等于类型检查通过。该问题应建立独立质量治理任务，在进入前端功能实现前分批修复，不得通过关闭类型检查或放宽 TypeScript 规则规避。
+ 
+ ## 3. 风险
+ 
+ - 直接沿用旧领域规格会把历史边界、旧编号或过时流程带入新设计。
+ - 在未锁定实现仓库前生成数据库或 API 细节，会形成不可验证的伪契约。
+ - 项目、任务无限层级和设备单时点归属必须在 Phase 2 设计索引、约束和并发策略，否则查询和统计可能退化。
+ 
+ ## 4. 阶段结论
+ 
+-Phase 1 的 Owner 映射和 V1 子应用集成已确认，但 `BLOCKED-SDS-02` 尚未关闭；当前不得标记 `APPROVED`，不得进入 Phase 2 数据/API/集成详细设计，也不得开始编码。只有实现工作包完成登记、无 `BLOCKED_BY_SPEC`/`BLOCKED_BY_EVIDENCE`，并重新完成本审查后，才可将状态改为 `APPROVED`。
++Phase 1 的 C-01～C-03、R-01～R-04 和 R-N01～R-N04 已全部关闭。独立定点复审确认无新阻塞，本阶段正式转为 `APPROVED / READY_FOR_PHASE_2`。`corepack pnpm ts:check` 的既有类型债务继续作为任何前端 Feature 实现前的强制门禁，不影响 Phase 1 放行。
+diff --git a/docs/specification-baseline/README.md b/docs/specification-baseline/README.md
+index d19d770..b83303a 100644
+--- a/docs/specification-baseline/README.md
++++ b/docs/specification-baseline/README.md
+@@ -1,17 +1,17 @@
+ # 规格基线快照
+ 
+ 本目录定义NPDMS实现仓库使用的只读规格输入。业务与设计唯一事实源位于规格仓库；本仓库只保存由Git提交和逐文件SHA-256锁定的快照，不在本地直接修订受管规格。
+ 
+ ## 文件
+ 
+-- `allowlist.json`：允许同步的109个正式文件，必须使用排序后的精确相对路径；
++- `allowlist.json`：允许同步的111个正式文件，必须使用排序后的精确相对路径；其中仅纳入Phase 1当前门禁的`README.md`和`gate-status.md`，不纳入过程证据或历史材料；
+ - `manifest.json`：应用同步后生成，记录规格仓库标识、40位源提交和逐文件SHA-256；
+ - `scripts/sync_specification_baseline.py`：默认只预检，显式`--apply`才写入；
+ - `scripts/validate_specification_baseline.py`：不访问源仓库即可校验本地快照。
+ 
+ ## 同步
+ 
+ ```powershell
+ $specRepo = 'M:/AICoding/CodexData/worktrees/09b5/项目交付平台'
+ $specCommit = git -C $specRepo rev-parse HEAD
+ py -3.13 scripts/sync_specification_baseline.py --source-repo $specRepo --revision $specCommit --allowlist docs/specification-baseline/allowlist.json
+diff --git a/docs/specification-baseline/allowlist.json b/docs/specification-baseline/allowlist.json
+index eefce3b..4a6193c 100644
+--- a/docs/specification-baseline/allowlist.json
++++ b/docs/specification-baseline/allowlist.json
+@@ -56,20 +56,22 @@
+     {"path": "docs/design/14-security-design.md", "category": "SDS"},
+     {"path": "docs/design/15-cache-and-concurrency.md", "category": "SDS"},
+     {"path": "docs/design/16-exception-and-idempotency.md", "category": "SDS"},
+     {"path": "docs/design/17-audit-and-observability.md", "category": "SDS"},
+     {"path": "docs/design/18-deployment-design.md", "category": "SDS"},
+     {"path": "docs/design/19-performance-design.md", "category": "SDS"},
+     {"path": "docs/design/20-test-design.md", "category": "SDS"},
+     {"path": "docs/design/README.md", "category": "SDS"},
+     {"path": "docs/design/phase-1-domain-ownership.md", "category": "SDS"},
+     {"path": "docs/engineering/00-engineering-chain.md", "category": "ENGINEERING"},
++    {"path": "docs/engineering/gates/phase-1/README.md", "category": "ENGINEERING"},
++    {"path": "docs/engineering/gates/phase-1/gate-status.md", "category": "ENGINEERING"},
+     {"path": "docs/traceability/business-feedback-change-map.md", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/core-migration-schema-contract.json", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/database-naming-contract.json", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/domain-entity-migration-contract.json", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/domain-entity-migration-contract.md", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/domain-object-table-map.json", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/market-relation-contract.json", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/phase2-contract-map.md", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/project-code-contract.json", "category": "TRACEABILITY"},
+     {"path": "docs/traceability/requirement-matrix.md", "category": "TRACEABILITY"},
+diff --git a/docs/specification-baseline/manifest.json b/docs/specification-baseline/manifest.json
+index 68b391f..74ab821 100644
+--- a/docs/specification-baseline/manifest.json
++++ b/docs/specification-baseline/manifest.json
+@@ -308,20 +308,30 @@
+     {
+       "path": "docs/design/phase-1-domain-ownership.md",
+       "category": "SDS",
+       "sha256": "63bcc1ab168b82b7450bec6534a62033ef69e319b99bb446dc4e3505804a1991"
+     },
+     {
+       "path": "docs/engineering/00-engineering-chain.md",
+       "category": "ENGINEERING",
+       "sha256": "d823de7fc0b1d3565c266f3a1e8685dc8a7c98926e64dba041ff3dc1f26b5770"
+     },
++    {
++      "path": "docs/engineering/gates/phase-1/README.md",
++      "category": "ENGINEERING",
++      "sha256": "b1261d7331c0ccb1b5ad382c9716bd357b5eca71322e205938a0f29cb86cee81"
++    },
++    {
++      "path": "docs/engineering/gates/phase-1/gate-status.md",
++      "category": "ENGINEERING",
++      "sha256": "6e606ce27dd335154fff7abb14cfbbb377f687e4e6caf3b8fe8f8e259f813bec"
++    },
+     {
+       "path": "docs/traceability/business-feedback-change-map.md",
+       "category": "TRACEABILITY",
+       "sha256": "95cbddee6f7682c8894740096fa774674d71ae3e66c664e027449c210cdb934d"
+     },
+     {
+       "path": "docs/traceability/core-migration-schema-contract.json",
+       "category": "TRACEABILITY",
+       "sha256": "b1786bf84e9572f2cbd50ad723e2eab0b92537145ecda6bb3a7859c2673c1787"
+     },
+diff --git a/scripts/specification_baseline.py b/scripts/specification_baseline.py
+index 1391317..86e80f8 100644
+--- a/scripts/specification_baseline.py
++++ b/scripts/specification_baseline.py
+@@ -24,20 +24,26 @@ ALLOWED_CATEGORIES = frozenset(
+         "DOMAIN_SPEC",
+         "MODEL_APPENDIX",
+         "MODEL_EVIDENCE",
+     }
+ )
+ FORBIDDEN_PREFIXES = (
+     "docs/engineering/gates/",
+     "docs/superpowers/",
+     "需求/",
+ )
++CURRENT_GATE_PATHS = frozenset(
++    {
++        "docs/engineering/gates/phase-1/README.md",
++        "docs/engineering/gates/phase-1/gate-status.md",
++    }
++)
+ MODEL_EVIDENCE_PATHS = frozenset(
+     {
+         "specs/001-project-delivery-platform/evidence/migration/ddl-item-decision-register.json",
+         "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
+     }
+ )
+ 
+ 
+ class BaselineError(ValueError):
+     """Raised when a baseline contract or repository fact is invalid."""
+@@ -67,21 +73,25 @@ def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
+         detail = ""
+         if isinstance(exc, subprocess.CalledProcessError):
+             detail = exc.stderr.decode("utf-8", errors="replace").strip()
+         raise BaselineError(detail or f"git command failed: {' '.join(args)}") from exc
+ 
+ 
+ def _category_accepts(path: str, category: str) -> bool:
+     if category == "BASELINE":
+         return path.startswith("docs/baseline/")
+     if category == "ENGINEERING":
+-        return path in {"docs/README.md", "docs/engineering/00-engineering-chain.md"}
++        return path in {
++            "docs/README.md",
++            "docs/engineering/00-engineering-chain.md",
++            *CURRENT_GATE_PATHS,
++        }
+     if category == "SDS":
+         return path.startswith("docs/design/")
+     if category == "DECISION":
+         return path.startswith("docs/decisions/")
+     if category == "TRACEABILITY":
+         return path.startswith("docs/traceability/")
+     if category == "DOMAIN_SPEC":
+         return path == "specs/001-project-delivery-platform/00-master-spec.md" or path.startswith(
+             "specs/001-project-delivery-platform/domains/"
+         )
+@@ -94,21 +104,25 @@ def _category_accepts(path: str, category: str) -> bool:
+ 
+ def validate_relative_path(path: str, category: str) -> None:
+     if category not in ALLOWED_CATEGORIES:
+         raise BaselineError(f"unknown baseline category: {category}")
+     if not path or "\\" in path or re.match(r"^[A-Za-z]:", path) or path.startswith("/"):
+         raise BaselineError(f"baseline path must be a POSIX relative path: {path}")
+ 
+     parts = PurePosixPath(path).parts
+     if any(part in {"", ".", ".."} for part in parts):
+         raise BaselineError(f"baseline path traversal is forbidden: {path}")
+-    if path.startswith(FORBIDDEN_PREFIXES) or "archive" in parts or "input" in parts:
++    if (
++        (path.startswith(FORBIDDEN_PREFIXES) and path not in CURRENT_GATE_PATHS)
++        or "archive" in parts
++        or "input" in parts
++    ):
+         raise BaselineError(f"process or external input material is forbidden: {path}")
+     if not _category_accepts(path, category):
+         raise BaselineError(f"path does not belong to category {category}: {path}")
+ 
+ 
+ def load_allowlist(path: Path) -> tuple[BaselineEntry, ...]:
+     try:
+         payload = json.loads(path.read_text(encoding="utf-8"))
+     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+         raise BaselineError(f"cannot read allowlist: {path}") from exc
+diff --git a/scripts/tests/test_specification_baseline.py b/scripts/tests/test_specification_baseline.py
+index e0f1d85..7a95772 100644
+--- a/scripts/tests/test_specification_baseline.py
++++ b/scripts/tests/test_specification_baseline.py
+@@ -19,27 +19,48 @@ from specification_baseline import (
+     managed_worktree_changes,
+     plan_snapshot,
+     read_git_blob,
+     resolve_full_commit,
+     validate_snapshot,
+     validate_relative_path,
+ )
+ 
+ 
+ class SpecificationBaselinePathTest(unittest.TestCase):
+-    def test_allowlist_contains_exactly_109_files(self) -> None:
++    def test_allowlist_contains_exactly_111_files(self) -> None:
+         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
+ 
+         entries = load_allowlist(allowlist)
+ 
+-        self.assertEqual(109, len(entries))
+-        self.assertEqual(109, len({entry.path for entry in entries}))
++        self.assertEqual(111, len(entries))
++        self.assertEqual(111, len({entry.path for entry in entries}))
++
++    def test_current_phase_1_gate_is_approved_and_ready_for_phase_2(self) -> None:
++        repository = Path(__file__).resolve().parents[2]
++        allowlist = load_allowlist(repository / "docs/specification-baseline/allowlist.json")
++        managed_paths = {entry.path for entry in allowlist}
++        self.assertTrue(
++            {
++                "docs/engineering/gates/phase-1/README.md",
++                "docs/engineering/gates/phase-1/gate-status.md",
++            }.issubset(managed_paths)
++        )
++
++        readme = (repository / "docs/engineering/gates/phase-1/README.md").read_text(
++            encoding="utf-8"
++        )
++        gate_status = (repository / "docs/engineering/gates/phase-1/gate-status.md").read_text(
++            encoding="utf-8"
++        )
++        self.assertIn("审查状态：`APPROVED`", gate_status)
++        self.assertIn("结论：`READY_FOR_PHASE_2`", gate_status)
++        self.assertNotIn("当前仍为 `NOT_READY_FOR_PHASE_2`", readme)
+ 
+     def test_rejects_path_traversal(self) -> None:
+         invalid_paths = (
+             "../docs/baseline/prd-v1.7.md",
+             "docs/../需求/input.md",
+             "/docs/baseline/prd-v1.7.md",
+             "C:/docs/baseline/prd-v1.7.md",
+             "docs\\baseline\\prd-v1.7.md",
+         )
+ 

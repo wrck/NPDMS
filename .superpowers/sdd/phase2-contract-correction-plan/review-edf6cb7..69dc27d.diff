@@ -1,0 +1,199 @@
+# Review package: edf6cb7ff34867ccb3c10fa2a0ab2a4cd81bbcfc..69dc27d999c7d539e4e8c550153ed77cbc5046f0
+
+## Commits
+69dc27d fix(phase2): 规范冻结迁移提交标识
+
+## Files changed
+ .../generate_domain_entity_migration_contract.py   | 34 +++++++++++++++++++---
+ ...t_validate_domain_entity_migration_alignment.py | 23 +++++++++++++++
+ .../validate_domain_entity_migration_alignment.py  |  7 +++--
+ 3 files changed, 58 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/scripts/generate_domain_entity_migration_contract.py b/scripts/generate_domain_entity_migration_contract.py
+index 88e1477..c215159 100644
+--- a/scripts/generate_domain_entity_migration_contract.py
++++ b/scripts/generate_domain_entity_migration_contract.py
+@@ -279,25 +279,50 @@ OWNER_OVERRIDES = {
+     "SatisfactionCollection": "ACC",
+     "MetricSnapshot": "ANA",
+     "InspectionReport": "SRV",
+     "Contract": "COM",
+     "SalesOrder": "COM",
+     "AuthorizationGrant": "PLT",
+     "MaintenanceFact": "AST",
+     "ServiceStatus": "SRV",
+ }
+ 
++CANONICAL_GIT_SHA = re.compile(r"[0-9a-f]{40}")
++
++
++def is_canonical_git_sha(value: object) -> bool:
++    return isinstance(value, str) and CANONICAL_GIT_SHA.fullmatch(value) is not None
++
++
++def resolve_git_commit(repository: Path, ref: str) -> str:
++    """Resolve a caller-friendly ref once, before it can enter persisted evidence."""
++    if not repository.is_dir():
++        raise ValueError(f"implementation repository unavailable: {repository}")
++    try:
++        commit = subprocess.run(
++            ["git", "rev-parse", "--verify", f"{ref}^{{commit}}"], cwd=repository,
++            check=True, text=True, encoding="utf-8",
++            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
++        ).stdout.strip().lower()
++    except (OSError, subprocess.CalledProcessError) as exc:
++        raise ValueError(f"frozen implementation commit does not exist: {ref}") from exc
++    if not is_canonical_git_sha(commit):
++        raise ValueError(f"resolved implementation commit is not a canonical 40-character lowercase SHA: {commit}")
++    return commit
++
+ 
+ def git_sql_blobs(repository: Path, commit: str, migration_root: str = "sql/migrations") -> dict[str, str]:
+     """Read migration SQL from an immutable Git commit, never from HEAD/worktree."""
+     if not repository.is_dir():
+         raise ValueError(f"implementation repository unavailable: {repository}")
++    if not is_canonical_git_sha(commit):
++        raise ValueError("implementationCommit must be a canonical 40-character lowercase SHA")
+     try:
+         subprocess.run(
+             ["git", "cat-file", "-e", f"{commit}^{{commit}}"], cwd=repository,
+             check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+         )
+     except (OSError, subprocess.CalledProcessError) as exc:
+         raise ValueError(f"frozen implementation commit does not exist: {commit}") from exc
+     listing = subprocess.run(
+         ["git", "ls-tree", "-r", "--name-only", commit, "--", migration_root],
+         cwd=repository, check=True, text=True, encoding="utf-8",
+@@ -455,25 +480,26 @@ def build(args: argparse.Namespace) -> dict[str, object]:
+             raise ValueError(f"{object_name} generator target tables differ from the maintained 09 object-table map")
+         expected_policy = TARGET_POLICIES.get(object_name, {"targetTablePolicy": "CURRENT_PHYSICAL_TARGET"})
+         actual_policy = {
+             key: maintained_map[object_name].get(key, "CURRENT_PHYSICAL_TARGET" if key == "targetTablePolicy" else None)
+             for key in expected_policy
+         }
+         if actual_policy != expected_policy:
+             raise ValueError(f"{object_name} generator target policy differs from the maintained 09 object-table map")
+     requirement_owners = parse_requirement_owners(args.requirement_matrix)
+     database_design = args.database_design.read_text(encoding="utf-8")
+-    commit = args.implementation_commit
+-    if not commit and args.json_output.exists():
+-        commit = json.loads(args.json_output.read_text(encoding="utf-8")).get("implementationCommit")
+-    if not commit:
++    commit_ref = args.implementation_commit
++    if not commit_ref and args.json_output.exists():
++        commit_ref = json.loads(args.json_output.read_text(encoding="utf-8")).get("implementationCommit")
++    if not commit_ref:
+         raise ValueError("frozen implementation commit is required; pass --implementation-commit or retain it in the existing contract")
++    commit = resolve_git_commit(args.implementation, commit_ref)
+     current_catalog = git_table_catalog(args.implementation, commit)
+     legacy_catalog = legacy_tables(args.legacy_schema)
+     records = []
+     for object_name, target_tables in TARGETS.items():
+         contract = phase2_contracts.get(object_name)
+         model_contract = MODEL_ENTITY_CONTRACTS.get(object_name)
+         if contract is None:
+             contract = {"requirements": set(model_contract["requirementIds"]), "tables": set()}
+         target_policy = TARGET_POLICIES.get(object_name, {"targetTablePolicy": "CURRENT_PHYSICAL_TARGET"})
+         undeclared_targets = {table for table in target_tables if f"`{table}`" not in database_design}
+diff --git a/scripts/tests/test_validate_domain_entity_migration_alignment.py b/scripts/tests/test_validate_domain_entity_migration_alignment.py
+index 7d98a48..4604ee8 100644
+--- a/scripts/tests/test_validate_domain_entity_migration_alignment.py
++++ b/scripts/tests/test_validate_domain_entity_migration_alignment.py
+@@ -223,20 +223,43 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
+         self.assertEqual([], self._validate())
+ 
+     def test_generator_reads_pinned_commit_instead_of_worktree(self) -> None:
+         (self.impl / "sql/migrations/V1__test.sql").write_text(
+             "CREATE TABLE pms_wrong_worktree_table (id bigint);\n", encoding="utf-8"
+         )
+         catalog = GENERATOR.git_table_catalog(self.impl, self.pinned_commit, "sql/migrations")
+         self.assertIn("pms_eng_arrival", catalog)
+         self.assertNotIn("pms_wrong_worktree_table", catalog)
+ 
++    def test_generator_resolves_head_to_canonical_commit(self) -> None:
++        self.assertEqual(self.pinned_commit, GENERATOR.resolve_git_commit(self.impl, "HEAD"))
++
++    def test_validator_rejects_noncanonical_commit_references(self) -> None:
++        subprocess.run(["git", "branch", "evidence-ref", self.pinned_commit], cwd=self.impl, check=True)
++        for invalid_ref in ("HEAD", "evidence-ref", self.pinned_commit[:8]):
++            with self.subTest(ref=invalid_ref):
++                self.contract["implementationCommit"] = invalid_ref
++                self._save_contract()
++                self.assertTrue(any("canonical 40-character lowercase SHA" in error for error in self._validate()))
++
++    def test_moving_ref_does_not_change_generated_contract_binding(self) -> None:
++        subprocess.run(["git", "branch", "evidence-ref", self.pinned_commit], cwd=self.impl, check=True)
++        resolved_commit = GENERATOR.resolve_git_commit(self.impl, "evidence-ref")
++        self.assertEqual(self.pinned_commit, resolved_commit)
++        (self.impl / "README.md").write_text("advance ref\n", encoding="utf-8")
++        subprocess.run(["git", "add", "README.md"], cwd=self.impl, check=True)
++        subprocess.run(["git", "commit", "-q", "-m", "advance ref target"], cwd=self.impl, check=True)
++        subprocess.run(["git", "branch", "-f", "evidence-ref", "HEAD"], cwd=self.impl, check=True)
++        self.assertNotEqual(resolved_commit, GENERATOR.resolve_git_commit(self.impl, "evidence-ref"))
++        self.assertEqual(resolved_commit, self.contract["implementationCommit"])
++        self.assertEqual([], self._validate())
++
+     def test_incompatible_pinned_commit_fails(self) -> None:
+         (self.impl / "sql/migrations/V1__test.sql").write_text(
+             "CREATE TABLE pms_incompatible (id bigint);\n", encoding="utf-8"
+         )
+         incompatible_commit = self._commit_implementation("incompatible migration")
+         self.contract["implementationCommit"] = incompatible_commit
+         self.contract["records"][1]["sources"][0]["evidenceRef"] = (
+             f"implementation://{incompatible_commit}/sql/migrations/V1__test.sql#table=pms_eng_arrival"
+         )
+         self._save_contract()
+diff --git a/scripts/validate_domain_entity_migration_alignment.py b/scripts/validate_domain_entity_migration_alignment.py
+index a345920..9f1042f 100644
+--- a/scripts/validate_domain_entity_migration_alignment.py
++++ b/scripts/validate_domain_entity_migration_alignment.py
+@@ -6,21 +6,21 @@ from __future__ import annotations
+ import argparse
+ import fnmatch
+ import hashlib
+ import json
+ import re
+ import sys
+ from pathlib import Path
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+ from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
+-from generate_domain_entity_migration_contract import git_sql_blobs
++from generate_domain_entity_migration_contract import git_sql_blobs, is_canonical_git_sha
+ 
+ 
+ ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "LEGACY_TABLE", "LEGACY_FIELD_PATTERN", "EXTERNAL_SYSTEM", "DERIVED_TARGET", "NONE_NEW", "PENDING_SOURCE_IDENTIFICATION"}
+ ALLOWED_DISPOSITIONS = {"STRUCTURED", "RELATION", "SNAPSHOT", "EXTERNAL_SYNC", "CURRENT_FORWARD", "REBUILD", "COMPATIBILITY_ONLY", "NEW_ONLY", "PENDING_SOURCE_CONFIRMATION", "PENDING_SOURCE_IDENTIFICATION", "EXCLUDED"}
+ USER_EXCLUDED_LEGACY_TABLES = {"pm_project_maintenance"}
+ EXTERNAL_MARKERS = {
+     "CRM": ("CRM",), "ITR": ("ITR",), "MES": ("MES",),
+     "HR": ("HR",),
+     "DingTalk": ("钉钉", "DingTalk"),
+     "ExistingCollectionPlatform": ("现有采集平台", "ExistingCollectionPlatform"),
+@@ -277,21 +277,24 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
+     alignment = (root / "docs" / "design" / "08a-domain-entity-migration-alignment.md").read_text(encoding="utf-8")
+     legacy_schema_path = root / "specs" / "001-project-delivery-platform" / "evidence" / "data-elements" / "schema-records.jsonl"
+     legacy = legacy_catalog(legacy_schema_path)
+     legacy_records = legacy_schema_records(legacy_schema_path)
+     ddl_review = load_json(root / "specs" / "001-project-delivery-platform" / "evidence" / "migration" / "ddl-drift-review.json")
+     ddl_path = root / ddl_review["inputs"]["ddlPath"]
+     physical_target_columns = ddl_column_catalog(ddl_path.read_text(encoding="utf-8"))
+     physical_target_tables = set(physical_target_columns)
+     implementation = implementation_override or Path(payload.get("implementationRepo", ""))
+     frozen_commit = payload.get("implementationCommit", "")
+-    if not implementation.is_dir():
++    if not is_canonical_git_sha(frozen_commit):
++        errors.append("implementationCommit must be a canonical 40-character lowercase SHA")
++        current_tables, current_definitions = {}, {}
++    elif not implementation.is_dir():
+         errors.append(f"implementation repository unavailable: {implementation}")
+         current_tables, current_definitions = {}, {}
+     else:
+         try:
+             if payload.get("implementationEvidenceMode") != "PINNED_GIT_COMMIT":
+                 errors.append("implementation evidence mode must be PINNED_GIT_COMMIT")
+             current_tables, current_definitions = git_sql_table_catalog(implementation, frozen_commit)
+         except ValueError as exc:
+             errors.append(str(exc))
+             current_tables, current_definitions = {}, {}

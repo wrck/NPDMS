@@ -1,0 +1,645 @@
+# Review package: 46421013b92644619870395a5dd7a180a0601533..87b40f90424495f0897b1bd8291b0e752786ebe9
+
+## Commits
+87b40f9 fix(phase2): 收紧范围与状态门禁
+
+## Files changed
+ docs/design/01-requirement-traceability.md    |   3 +-
+ docs/design/13-file-design.md                 |   2 +-
+ docs/design/15-cache-and-concurrency.md       |   2 +-
+ docs/engineering/gates/phase-2/gate-status.md |   6 +-
+ docs/engineering/gates/phase-2/self-review.md |   7 +-
+ scripts/tests/test_validate_sds_phase2.py     | 148 ++++++++++++++++++++++++--
+ scripts/validate_sds_phase2.py                |  89 ++++++++++++++--
+ 7 files changed, 235 insertions(+), 22 deletions(-)
+
+## Diff
+diff --git a/docs/design/01-requirement-traceability.md b/docs/design/01-requirement-traceability.md
+index 0591a27..57cb6af 100644
+--- a/docs/design/01-requirement-traceability.md
++++ b/docs/design/01-requirement-traceability.md
+@@ -5,21 +5,22 @@
+ > Requirement ID：PRD V1.7 附录 A.1 的全部 103 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
+ > Owner：SDS Phase 1 架构设计；业务 Owner 已签署，见 `docs/design/phase-1-domain-ownership.md`
+ > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
+ 
+ 
+ ## 1. 依据与边界
+ 
+ - 业务基线：`docs/baseline/prd-v1.7.md`，对应 PRD V1.7。
+ - 追溯主表：`docs/traceability/requirement-matrix.md`，覆盖 103 项 V1/V2 正式需求。
+ - `specs/001-project-delivery-platform/domains/` 为当前PRD派生的13领域规格，不得脱离PRD手工改变业务语义。
+-- V3 29 项与 OUT_OF_SCOPE 9 项仅保留边界追溯，不进入当前实现设计。
++- 范围统计：V1 55 项、V2 48 项、V1/V2 103 项；V3 30 项、OUT_OF_SCOPE 9 项。
++- V3 与 OUT_OF_SCOPE 仅保留边界追溯，不进入当前实现设计。
+ 
+ ## 2. Phase 1 追溯链
+ 
+ 每项正式需求必须沿以下链路落位：
+ 
+ `Requirement ID → PRD业务域 → Phase 1领域 → 模块 → 聚合根 → 状态机/工作流 → 权限模型 → 计划API/事件 → 计划数据对象 → 测试类别`
+ 
+ 本阶段已补齐模块、聚合、状态机/工作流、权限、计划 API、计划数据对象和测试类别的工作映射；下游 API、数据表和测试用例在 Phase 2/3 生成前仍使用 `NOT_STARTED`，不得伪装成已实现资产。
+ 
+ ## 3. 领域重确认工作表
+diff --git a/docs/design/13-file-design.md b/docs/design/13-file-design.md
+index a4cd0e2..0d1ddda 100644
+--- a/docs/design/13-file-design.md
++++ b/docs/design/13-file-design.md
+@@ -142,13 +142,13 @@ Word 文件不要求内容审计；Markdown 作为当前工程开发资料的主
+ 
+ ## 13. 文件门禁结论
+ 
+ | 门禁项 | 结论 | 落位 |
+ |---|---|---|
+ | 文件身份、版本和引用分离 | PASS | 第 2、6 节 |
+ | IMP 上传与 ACC 审核归档边界 | PASS | 第 7 节 |
+ | 权限不依赖可猜 URL | PASS | 第 5 节 |
+ | 外部/采集文件可校验 | PASS | 第 8、9 节 |
+ | 幂等、并发和补偿明确 | PASS | 第 10、11 节 |
+-| 保留期限和灾备数值 | IN_REVIEW | Phase 3 按组织制度与部署方案登记 |
++| 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 | Phase 3 按组织制度与部署方案登记；不构成 Phase 2 未决项 |
+ 
+ 本分册满足 Phase 2 文件契约要求；Feature 实施前需为具体文件用途补充允许格式、敏感等级和存储策略配置清单。
+diff --git a/docs/design/15-cache-and-concurrency.md b/docs/design/15-cache-and-concurrency.md
+index 9713684..c257d64 100644
+--- a/docs/design/15-cache-and-concurrency.md
++++ b/docs/design/15-cache-and-concurrency.md
+@@ -155,13 +155,13 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
+ 
+ ## 13. 门禁结论
+ 
+ | 门禁项 | 结论 | 落位 |
+ |---|---|---|
+ | 缓存不作为业务真值 | PASS | 第 1～3 节 |
+ | 项目/任务任意层级并发安全 | PASS | 第 5 节 |
+ | 设备同一时点唯一归属 | PASS | 第 6 节 |
+ | 数量、状态、回调冲突明确 | PASS | 第 7～9 节 |
+ | 锁与外部调用边界明确 | PASS | 第 10 节 |
+-| 容量和 TTL 数值 | IN_REVIEW | Phase 3 性能验证后登记，不作为业务规则臆造 |
++| 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 | Phase 3 性能验证后登记，不作为业务规则臆造；不构成 Phase 2 未决项 |
+ 
+ 本分册满足 Phase 2 并发契约；实现时不得通过关闭乐观锁、放宽唯一键、共享跨租户缓存或忽略版本冲突来使测试通过。
+diff --git a/docs/engineering/gates/phase-2/gate-status.md b/docs/engineering/gates/phase-2/gate-status.md
+index 08f8fdb..4235974 100644
+--- a/docs/engineering/gates/phase-2/gate-status.md
++++ b/docs/engineering/gates/phase-2/gate-status.md
+@@ -9,22 +9,22 @@
+ 
+ | 输出 | 状态 | 门禁要点 |
+ |---|---|---|
+ | P2-01 实现事实盘点 | PASS | 69 个业务表、59 个 Controller、65 个 DO 已按一致性分类 |
+ | 08 Data Model | BASELINE | Owner、聚合、引用、版本、快照、历史及六项复审修复已通过独立复审 |
+ | 08a Domain Entity Migration Alignment | BASELINE ADDENDUM | 84个对象、95条来源绑定和1个排除源均有机器契约；历史工单/工时仅允许批准批次的不可变来源证据且无用户入口；真实批次字段映射与执行仍由`AI-MIG-000`控制 |
+ | 09 Database Design | BASELINE | 表级约束、PM-05/06专表、临时用户名、消费确认和前向迁移已通过独立复审 |
+ | 10 API Design | BASELINE | 103项显式契约、PM-05/06和DAC命令保留原独立复审结论；历史工单/工时用户API已移除，当前范围纠偏等待本轮独立复审 |
+ | 11 Event Design | BASELINE | producer、consumer、version、顺序、Inbox/Outbox及业务消费完成边界已通过独立复审 |
+ | 12 Integration Design | BASELINE | 字段Owner及全部外部系统操作级请求/响应映射已通过独立复审；环境参数待Feature联调登记 |
+-| 13 File Design | BASELINE | 文件身份、引用、版本、哈希、权限、归档保持原契约；历史工单/工时附件不形成当前文件入口 |
+-| 15 Cache & Concurrency | BASELINE | 缓存非真值、版本冲突、树/归属并发已通过独立复审 |
++| 13 File Design | BASELINE | 文件身份、引用、版本、哈希、权限、归档保持原契约；历史工单/工时附件不形成当前文件入口；保留期限和灾备数值明确后置至Phase 3 |
++| 15 Cache & Concurrency | BASELINE | 缓存非真值、版本冲突、树/归属并发已通过独立复审；容量和TTL数值明确后置至Phase 3 |
+ | 16 Exception & Idempotency | BASELINE | 错误码、重放、超时、部分失败、补偿已通过独立复审 |
+ 
+ ## 2. 硬门禁
+ 
+ | 门禁 | 当前状态 | 通过条件 |
+ |---|---|---|
+ | 数据 Owner 明确 | PASS | 每个业务事实只有一个 Owner，跨域仅引用/快照 |
+ | 版本、快照、历史、审计可实现 | PASS | 数据模型和数据库设计同时落位 |
+ | API 可追溯 | PASS | 103项均有显式数据对象、表、API、事件/集成/文件、工作流和授权契约；校验器检查符号真实存在 |
+ | 状态通过 command/transition 改变 | PASS | 无通用状态字段直改 API/仓储绕过 |
+@@ -49,21 +49,21 @@
+ | R-P2-02 | CRM/ERP合同订单字段Owner冲突 | CLOSED | 08 §9.3、09 §8.2、10 §11、12 §4～5：按Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付事实 |
+ | R-P2-03 | PM-05/PM-06仅机械追溯，无专属实施契约 | CLOSED | 08 §4、09 §4.4、10 §5.1～5.2、11 §5、15 §5.4、16 §7 |
+ | R-P2-04 | 校验器只查链接存在，不查契约覆盖 | CLOSED | `phase2-contract-map.md` 103项显式映射；校验器检查ID集合、必填字段、真实表/API/事件/集成/文件符号和专项令牌 |
+ | R-P2-05 | 外部集成缺少请求/响应字段映射 | CLOSED | 12 §4.1覆盖CRM、ERP、ITR、MES、钉钉、HR、OA、LDAP/AD、备件、授权、UMC、财务、通知和采集子应用 |
+ | R-P2-06 | `CollectionCompleted` 可被模糊“契约终态”提前触发 | CLOSED | 08/09/10/11/16显式区分BUSINESS_CONSUMPTION和PRD独立中心CALLBACK_TERMINAL；失败/取消不发布完成 |
+ 
+ ## 5. 当前阻塞
+ 
+ | 编号 | 状态 | 当前阻塞 | 解除条件 |
+ |---|---|---|---|
+-| P2-CORR-01 | IN_REVIEW | 当前范围、统计和校验器纠偏尚未完成独立复审 | 本轮纠偏任务全部完成并由 fresh-context 评审给出 GO |
++| P2-CORR-01 | IN_REVIEW | 三项独立总审Required已完成修复和230项全量回归，但fresh-context复审尚未关闭 | fresh-context评审确认无Critical/Required并给出GO |
+ | P2-CORR-02 | CLOSED | 迁移契约已改为从登记的冻结实现提交读取证据 | `edf6cb7`、`69dc27d`已证明实现HEAD前进不影响冻结证据，且短/全SHA均按同一提交解析 |
+ | P2-CORR-03 | CLOSED | Q-P2-001采用方案B：V1/V2无历史工单/工时用户入口，仅保留`AI-MIG-000`不可变来源证据边界 | 08a、10、13和校验器已收口；未来查询能力必须独立PRD/Feature变更 |
+ 
+ 真实接口地址、认证材料、数值型 timeout/retry/limit 仍是 Feature 联调前证据门禁，不构成 Phase 2 当前阻塞。
+ 
+ ## 6. 批准后数据证据对齐说明（2026-08-13）
+ 
+ 用户要求08/09显式参考此前的数据元与数据迁移结论，并要求核心链之外的领域实体同样可迁移。本次新增08a，逐项覆盖全部显式领域数据对象的来源证据、迁移策略、排除项与Gate，同时补充证据层级、项目—合同—订单行—设备主链、来源载荷/结构化字段双层保存、迁移问题和`AI-MIG-000`漂移门禁。该段仅记录当时增量评审曾保留Phase 2 GO的历史批准证据；其结论已被本轮`IN_REVIEW / NOT_READY_FOR_PHASE_3`状态覆盖，不主张当前GO。新增内容已通过当时的领域实体迁移覆盖校验、Phase 2/3校验、PRD/领域校验和脚本单测，但不冒充此前独立复审已覆盖本轮纠偏；实际字段映射、DDL和数据迁移仍由`AI-MIG-000`及后续领域迁移工作包单独阻断和放行。
+ 
+ 增量独立首审发现R-MIG-01/02；修复后定点复审结论为`GO`，两项均`CLOSED`，无Critical/Required。08a转为`BASELINE ADDENDUM`。P3-E09当前为`MODEL_BASELINE_READY`，只证明数据模型基线一致；真实历史迁移与数据切换仍由`AI-MIG-000`保持`OPEN`，不得据此执行。
+diff --git a/docs/engineering/gates/phase-2/self-review.md b/docs/engineering/gates/phase-2/self-review.md
+index 775e30c..8f6e01a 100644
+--- a/docs/engineering/gates/phase-2/self-review.md
++++ b/docs/engineering/gates/phase-2/self-review.md
+@@ -10,21 +10,21 @@
+ - 过程证据：实现事实盘点、Phase 2 gate status、执行计划。
+ - 追溯资产：103项 `requirement-matrix.md` 与生成器。
+ - 上游：PRD V1.7、SDS Phase 1 `BASELINE`。
+ 
+ ## 2. 已执行校验
+ 
+ | 校验 | 结果 |
+ |---|---|
+ | PRD语义校验 | PASS，0 semantic issues |
+ | 13领域生成校验 | PASS，formal=103、V3=30、OUT_OF_SCOPE=9 |
+-| 脚本单测 | PASS，223/223（含Phase 2、PRD独立白名单、附录C核心对象一致性、结构化历史排除、核心迁移契约全部7张WorkOrder/工时禁表、历史API/对象/表/中英文文件Context回流负测、免责声明绕过负测、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
++| 脚本单测 | PASS，230/230（含Phase 2、PRD独立白名单、附录C核心对象一致性、结构化历史排除、普通`PENDING`及`PENDING_*`不得排除当前契约、五项范围统计、BASELINE分册状态、核心迁移契约全部7张WorkOrder/工时禁表、历史API/对象/表/中英文文件Context回流负测、免责声明绕过负测、混合标题层级解析、迁移对象表精确映射及门禁正反用例） |
+ | 业务命名门禁 | PASS |
+ | Phase 2专用校验 | PASS，含08a的9份正式分册元数据、103项显式契约及链接/锚点有效 |
+ | 追溯矩阵 | PASS，103个唯一Requirement，103行均链接逐项 `phase2-contract-map.md` |
+ | `git diff --check` | PASS |
+ 
+ 可重复执行命令：
+ 
+ ```powershell
+ py -3.13 -B scripts\validate_sds_phase2.py
+ py -3.13 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.7.md
+@@ -45,31 +45,34 @@ git diff --check
+ | S2-R05 | 外部接口缺少当前环境端点、认证和数值型SLA | 无法直接联调/生产 | 登记为Feature联调前接口配置档案门禁，不虚构业务阈值 |
+ | S2-R06 | 显式保存凭证后本次任务仍被描述为临时模式 | 违反INT-12验收并导致授权快照缺失 | 改为凭证、默认创建人授权和任务原子创建；任务记录新凭证及授权快照，失败不降级 |
+ | S2-R07 | CRM/ERP合同订单Owner混写 | 外部字段相互覆盖 | 按已确认Q-02/INT-01明确ERP核心合同订单、CRM经营状态、平台交付范围与履约事实 |
+ | S2-R08 | PM-05/PM-06只有领域级通用落位 | 转销和多期关系无法实现 | 新增专属聚合、表、API、事件、并发、异常和权限契约 |
+ | S2-R09 | 正式需求仅校验文档链接，无法证明契约覆盖 | 机械追溯掩盖需求空洞 | 新增103项逐项显式契约映射和符号级校验，含缺块/不存在表的负向测试 |
+ | S2-R10 | 外部集成缺请求/响应字段和业务确认 | 无法判定接口成功与业务成功 | 12 §4.1逐系统登记字段、来源/幂等键、业务确认与失败处理 |
+ | S2-R11 | Collection完成可由模糊契约终态触发 | 业务结果未消费即误报完成 | 业务入口必须匹配消费确认；仅PRD独立中心允许成功终态回调完成，失败/取消分离 |
+ | S2-R12 | “历史事实不可删除”被误解为V1/V2历史工单/工时查询、导出和附件入口 | 恢复已后置的WO/工时能力并无端预建对象、表和权限 | Q-P2-001采用方案B：仅`AI-MIG-000`在批准真实批次内保存不可变来源载荷或受限归档证据；删除当前API和WO文件Context，并增加负向校验 |
+ | S2-R13 | PRD正文3.3已删除工单核心对象并纳入满意度任务与问卷，但附录C仍列工单/WO-01～06 | 正式基线内部冲突可使下游重新恢复已后置能力 | 两份PRD附录C第4项改为满意度任务与问卷并回指ACC-02；3.4明确历史事实仅由`AI-MIG-000`保存证据；新增附录C负向门禁并同步SHA登记 |
+ | S2-R14 | Phase 2校验器只拦两个历史对象和两张历史表 | 可用中文Context、非历史前缀或其他工时表绕过回流门禁 | 从核心迁移Schema契约读取`forbiddenV1V2Tables`，结构化拦截全部7张WorkOrder/工时禁表及对象别名，同时允许EXCLUDED/COMPATIBILITY_ONLY/历史排除证据与未来独立变更说明 |
++| S2-R15 | `PENDING`和任意`PENDING_*`曾被当作非当前契约处置 | 当前打卡、WorkOrder或WO消费者可借待定状态绕过V1/V2范围门禁 | 仅允许`EXCLUDED`、`COMPATIBILITY_ONLY`或结构化“历史排除/不进入当前”处置跳过；增加打卡、WorkOrder和WO消费者负测 |
++| S2-R16 | Phase 1追溯分册仍写V3 29项，且Phase 2未复核完整范围统计 | PRD范围变化可在设计文档中静默漂移 | 修正为V1 55、V2 48、当前103、V3 30、OUT_OF_SCOPE 9，并由校验器从PRD附录A.1/A.3.1/A.4重算后核对01分册 |
++| S2-R17 | 文件保留/灾备和缓存容量/TTL使用`IN_REVIEW`表示后续运行参数 | BASELINE设计分册与当前Gate未决状态混淆 | 改为`DEFERRED_TO_PHASE_3`；校验器禁止九份Phase 2 BASELINE分册残留`IN_REVIEW`并要求两项明确后置标记，不扫描Gate和历史评审文件 |
+ 
+ ## 4. 关键语义核对
+ 
+ | 结论 | 状态 |
+ |---|---|
+ | 项目和任务不固定层级，层级与任务依赖正交 | PASS |
+ | 设备同一时点只有一个最具体项目归属，上级通过祖先投影统计 | PASS |
+ | 必要主数据保存本地同步副本，外部Owner不被平台覆盖 | PASS |
+ | IMP上传，ACC审核齐套与归档 | PASS |
+ | DAC是独立Context/子应用边界，平台不重建采集引擎 | PASS |
+ | 临时密码不持久化；未保存时任务留存临时用户名；显式保存成功后本次任务切换为新凭证及默认授权快照 | PASS |
+ | 凭证默认仅创建人可用，授权按五元组收敛 | PASS |
+ | 业务状态只能通过command/transition改变，字典不产生迁移能力 | PASS |
+ | 外部HTTP、待办、通知和消息投递成功不等于业务完成 | PASS |
+ | 维保经营模块、续保报表、周报日报、工单时效和通用割接时效未进入新契约 | PASS |
+ | 技术公告V2仅ITR同步与引用，本地治理保持V3 | PASS |
+ | 历史工单/工时不形成V1/V2对象、表、API、文件入口或权限；不可删除义务由`AI-MIG-000`不可变来源证据承载 | PASS |
+ 
+ ## 5. 自审结论
+ 
+-V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。当前按PRD V1.7重新校准为103项正式需求、84对象/95来源绑定/1排除源，并清除V3 Requirement、WO消费者、钉钉打卡事实及历史工单/工时用户入口的当前范围漂移；不把本次自审写成新的独立评审。Q-P2-001已按方案B收口，不再作为规格阻塞。Phase 2 Gate仍保持`IN_REVIEW / NOT_READY_FOR_PHASE_3`，直至Task 4 fresh-context独立复审给出结论。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。
++V1.6首轮独立复审给出六项 Required 和`NO-GO`，修复后定点独立复审确认全部关闭并给出`GO`。当前按PRD V1.7重新校准为103项正式需求、84对象/95来源绑定/1排除源，并清除V3 Requirement、WO消费者、钉钉打卡事实及历史工单/工时用户入口的当前范围漂移；本轮总审发现的`PENDING`范围绕过、V3统计漂移和后置状态混淆均已完成修复，但本文件不冒充新的独立复审。Q-P2-001已按方案B收口，不再作为规格阻塞。Phase 2 Gate仍保持`IN_REVIEW / NOT_READY_FOR_PHASE_3`，直至Task 4 fresh-context独立复审给出结论。外部接口配置档案、存储保留数值和容量参数分别属于Feature联调/Phase 3运行证据，不得在缺少Owner与SLA时机械填充。
+diff --git a/scripts/tests/test_validate_sds_phase2.py b/scripts/tests/test_validate_sds_phase2.py
+index 3f086e8..1bafbe7 100644
+--- a/scripts/tests/test_validate_sds_phase2.py
++++ b/scripts/tests/test_validate_sds_phase2.py
+@@ -56,21 +56,30 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+             "> 适用基线：PRD V1.7  \n"
+             "> Requirement ID：REQ-001  \n"
+             "> Owner：Test  \n\n"
+             "## Scope\n\n"
+             "Thing proj_test /test\n"
+         )
+         for name in MODULE.PHASE2_DOCS:
+             content = metadata
+             if name == "08a-domain-entity-migration-alignment.md":
+                 content = content.replace("文档状态：`BASELINE`", "文档状态：`BASELINE ADDENDUM`")
++            if name == "13-file-design.md":
++                content += "\n| 门禁项 | 结论 | 落位 |\n|---|---|---|\n| 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 | Phase 3登记 |\n"
++            if name == "15-cache-and-concurrency.md":
++                content += "\n| 门禁项 | 结论 | 落位 |\n|---|---|---|\n| 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 | Phase 3登记 |\n"
+             (design / name).write_text(content, encoding="utf-8")
++        (design / "01-requirement-traceability.md").write_text(
++            "# Traceability\n\n"
++            "- 范围统计：V1 55 项、V2 48 项、V1/V2 103 项；V3 30 项、OUT_OF_SCOPE 9 项。\n",
++            encoding="utf-8",
++        )
+ 
+         required = " / ".join(
+             f"[doc](../design/{name})"
+             for name in (
+                 "08-data-model.md",
+                 "09-database-design.md",
+                 "10-api-design.md",
+                 "15-cache-and-concurrency.md",
+                 "16-exception-and-idempotency.md",
+             )
+@@ -92,24 +101,33 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+                 "- API：/test\n"
+                 "- 事件：N/A（同步命令或查询）\n"
+                 "- 外部集成：N/A（平台内部契约）\n"
+                 "- 文件契约：N/A（无文件）\n"
+                 "- 工作流/状态：测试状态守卫\n"
+                 "- 授权与数据范围：测试数据范围\n"
+             )
+             prd_blocks.append(
+                 f"### {identifier} Test\n\n"
+                 f"| 需求编号 | {identifier} |\n"
+-                "| 目标版本 | V1 |\n"
++                f"| 目标版本 | {'V1' if number <= 55 else 'V2'} |\n"
+             )
+         (baseline / "prd-v1.7.md").write_text(
+-            "# PRD V1.7\n\n" + "\n".join(prd_blocks), encoding="utf-8"
++            "# PRD V1.7\n\n"
++            + "\n".join(prd_blocks)
++            + "\n### A.3 V3演进索引\n\n"
++            + "#### A.3.1 已编号演进项\n\n"
++            + "\n".join(f"| EV-V3-{number:02d} | Future | P3 | Deferred |" for number in range(1, 31))
++            + "\n\n#### A.3.2 跨需求演进方向\n\n"
++            + "### A.4 OUT_OF_SCOPE索引\n\n"
++            + "\n".join(f"| OOS-{number:03d} | Excluded | Reason |" for number in range(1, 10))
++            + "\n\n## 附录B\n",
++            encoding="utf-8",
+         )
+         matrix = "# Matrix\n\n" + "\n".join(rows) + "\n"
+         matrix_path = traceability / "requirement-matrix.md"
+         matrix_path.write_text(matrix, encoding="utf-8")
+         (traceability / "phase2-contract-map.md").write_text(
+             "# Contracts\n\n" + "\n".join(contract_blocks), encoding="utf-8"
+         )
+         return matrix_path
+ 
+     def test_valid_fixture_passes(self) -> None:
+@@ -270,43 +288,161 @@ class ValidateSdsPhase2Test(unittest.TestCase):
+             target.write_text(
+                 target.read_text(encoding="utf-8")
+                 + "\n| 钉钉打卡 | V1 | 双向 | 打卡原始事实 | 当前启用，不属于历史排除 |\n",
+                 encoding="utf-8",
+             )
+ 
+             errors = MODULE.validate(root)
+ 
+             self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
+ 
+-    def test_historical_and_pending_dingtalk_clock_in_evidence_is_allowed(self) -> None:
++    def test_explicit_historical_dingtalk_clock_in_exclusion_is_allowed(self) -> None:
+         fragments = (
+             "| 历史排除 | 钉钉打卡 | 不属于当前V1/V2契约 |",
+-            "| A+B摘要 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 不进入当前契约 |",
+-            "| 类型 | 事实 | status | 说明 |\n"
++            "| 类型 | 事实 | 处置 | 说明 |\n"
+             "|---|---|---|---|\n"
+-            "| 来源候选 | 钉钉打卡候选 | PENDING_SOURCE_CONFIRMATION | 待核验，不进入当前契约 |",
++            "| 历史来源 | 钉钉打卡候选 | 不进入当前 | 仅保留来源证据 |",
+         )
+         for fragment in fragments:
+             with tempfile.TemporaryDirectory() as temporary:
+                 with self.subTest(fragment=fragment):
+                     root = Path(temporary)
+                     self.build_fixture(root)
+                     target = root / "docs" / "design" / "12-integration-design.md"
+                     target.write_text(
+                         target.read_text(encoding="utf-8") + f"\n{fragment}\n",
+                         encoding="utf-8",
+                     )
+ 
+                     errors = MODULE.validate(root)
+ 
+                     self.assertFalse(any("DingTalk clock-in" in error for error in errors), errors)
+ 
++    def test_pending_integration_config_does_not_exclude_dingtalk_clock_in(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "12-integration-design.md"
++            target.write_text(
++                target.read_text(encoding="utf-8")
++                + "\n| 事实 | status | 说明 |\n"
++                + "|---|---|---|\n"
++                + "| 钉钉打卡原始事实 | PENDING_INTEGRATION_CONFIG | 待配置 |\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertTrue(any("DingTalk clock-in" in error for error in errors), errors)
++
++    def test_pending_field_mapping_does_not_exclude_work_order_model(self) -> None:
++        for status in ("PENDING", "PENDING_FIELD_MAPPING"):
++            with tempfile.TemporaryDirectory() as temporary:
++                with self.subTest(status=status):
++                    root = Path(temporary)
++                    self.build_fixture(root)
++                    target = root / "docs" / "design" / "09-database-design.md"
++                    target.write_text(
++                        target.read_text(encoding="utf-8")
++                        + "\n| 数据对象 | 数据表 | status |\n"
++                        + "|---|---|---|\n"
++                        + f"| WorkOrder | srv_work_order | {status} |\n",
++                        encoding="utf-8",
++                    )
++
++                    errors = MODULE.validate(root)
++
++                    self.assertTrue(any("srv_work_order" in error for error in errors), errors)
++
++    def test_pending_review_does_not_exclude_work_order_event_consumer(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "11-event-design.md"
++            target.write_text(
++                target.read_text(encoding="utf-8")
++                + "\n| 事件 | Consumer | status |\n"
++                + "|---|---|---|\n"
++                + "| ProjectConversionCompleted | WO | PENDING_REVIEW |\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertTrue(any("ProjectConversionCompleted" in error and "WO" in error for error in errors), errors)
++
++    def test_scope_statistics_are_validated_from_prd_indexes(self) -> None:
++        mutations = {
++            "V1": ("| 目标版本 | V1 |", "| 目标版本 | V2 |"),
++            "V3": ("| EV-V3-30 | Future | P3 | Deferred |", ""),
++            "OUT_OF_SCOPE": ("| OOS-009 | Excluded | Reason |", ""),
++        }
++        for label, (old, new) in mutations.items():
++            with tempfile.TemporaryDirectory() as temporary:
++                with self.subTest(label=label):
++                    root = Path(temporary)
++                    self.build_fixture(root)
++                    prd = root / "docs" / "baseline" / "prd-v1.7.md"
++                    prd.write_text(prd.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
++
++                    errors = MODULE.validate(root)
++
++                    self.assertTrue(any("scope statistics" in error for error in errors), errors)
++
++    def test_phase1_traceability_scope_statistics_are_machine_checked(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "01-requirement-traceability.md"
++            target.write_text(
++                target.read_text(encoding="utf-8").replace("V3 30 项", "V3 29 项"),
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertTrue(any("scope statistics" in error for error in errors), errors)
++
++    def test_baseline_phase2_design_must_not_retain_in_review_marker(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            self.build_fixture(root)
++            target = root / "docs" / "design" / "13-file-design.md"
++            target.write_text(
++                target.read_text(encoding="utf-8") + "\n| 保留期限和灾备数值 | IN_REVIEW | Phase 3登记 |\n",
++                encoding="utf-8",
++            )
++
++            errors = MODULE.validate(root)
++
++            self.assertTrue(any("unresolved IN_REVIEW" in error for error in errors), errors)
++
++    def test_phase3_deferred_markers_are_required_for_runtime_values(self) -> None:
++        mutations = {
++            "13-file-design.md": "| 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 |",
++            "15-cache-and-concurrency.md": "| 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 |",
++        }
++        for name, marker in mutations.items():
++            with tempfile.TemporaryDirectory() as temporary:
++                with self.subTest(name=name):
++                    root = Path(temporary)
++                    self.build_fixture(root)
++                    target = root / "docs" / "design" / name
++                    target.write_text(
++                        target.read_text(encoding="utf-8").replace(marker, ""),
++                        encoding="utf-8",
++                    )
++
++                    errors = MODULE.validate(root)
++
++                    self.assertTrue(any("missing Phase 3 deferral marker" in error for error in errors), errors)
++
+     def test_historical_work_order_and_time_user_apis_fail(self) -> None:
+         for api in ("/historical-work-orders", "/historical-time-records"):
+             with tempfile.TemporaryDirectory() as temporary:
+                 with self.subTest(api=api):
+                     root = Path(temporary)
+                     self.build_fixture(root)
+                     target = root / "docs" / "design" / "10-api-design.md"
+                     target.write_text(
+                         target.read_text(encoding="utf-8")
+                         + f"\n| Historical Service Records | `{api}` | read/export |\n",
+diff --git a/scripts/validate_sds_phase2.py b/scripts/validate_sds_phase2.py
+index 2432689..3dc75b5 100644
+--- a/scripts/validate_sds_phase2.py
++++ b/scripts/validate_sds_phase2.py
+@@ -15,40 +15,49 @@ PHASE2_DOCS = (
+     "08a-domain-entity-migration-alignment.md",
+     "09-database-design.md",
+     "10-api-design.md",
+     "11-event-design.md",
+     "12-integration-design.md",
+     "13-file-design.md",
+     "15-cache-and-concurrency.md",
+     "16-exception-and-idempotency.md",
+ )
+ EXPECTED_REQUIREMENT_COUNT = 103
++EXPECTED_SCOPE_COUNTS = {"V1": 55, "V2": 48, "V1/V2": 103, "V3": 30, "OUT_OF_SCOPE": 9}
++SCOPE_STATISTICS_MARKER = (
++    "范围统计：V1 55 项、V2 48 项、V1/V2 103 项；"
++    "V3 30 项、OUT_OF_SCOPE 9 项。"
++)
+ REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.M)
+ MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+ HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
+ CONTRACT_HEADING = re.compile(r"^###\s+([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*$", re.M)
+ CONTRACT_FIELD = re.compile(r"^-\s+(需求名称|数据对象|数据表|API|事件|外部集成|文件契约|工作流/状态|授权与数据范围)：(.+?)\s*$", re.M)
+ CONTRACT_FIELDS = (
+     "需求名称", "数据对象", "数据表", "API", "事件", "外部集成",
+     "文件契约", "工作流/状态", "授权与数据范围",
+ )
+ FULL_REQUIREMENT_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
+ ACTIVE_REQUIREMENT_LINE = re.compile(r"^(?:>\s*)?(?:适用\s+)?Requirement(?: ID)?：(.+?)\s*$", re.M)
+ PRD_REQUIREMENT_ROW = re.compile(r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$", re.M)
+-NON_ACTIVE_ROW_LABELS = {"历史排除", "A+B摘要"}
++NON_ACTIVE_ROW_LABELS = {"历史排除"}
+ NON_ACTIVE_FIELD_NAMES = {
+     "disposition", "status", "处置", "迁移处置", "范围状态", "契约状态", "证据状态",
+ }
+ NON_ACTIVE_FIELD_VALUES = {
+-    "EXCLUDED", "COMPATIBILITY_ONLY", "PENDING", "PENDING_SOURCE_CONFIRMATION",
++    "EXCLUDED", "COMPATIBILITY_ONLY",
+     "历史排除", "不属于当前", "不进入当前",
+ }
++DEFERRED_PHASE3_MARKERS = {
++    "13-file-design.md": "| 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 |",
++    "15-cache-and-concurrency.md": "| 容量和 TTL 数值 | DEFERRED_TO_PHASE_3 |",
++}
+ FORBIDDEN_HISTORICAL_USER_APIS = (
+     "/historical-work-orders",
+     "/historical-time-records",
+ )
+ 
+ 
+ def read(path: Path) -> str:
+     return path.read_text(encoding="utf-8-sig")
+ 
+ 
+@@ -121,21 +130,21 @@ def is_separator_row(cells: list[str]) -> bool:
+ def is_non_active_contract_row(cells: list[str], headers: list[str] | None = None) -> bool:
+     """Recognize exclusions only from explicit table structure, never free text."""
+     if cells and cells[0] in NON_ACTIVE_ROW_LABELS:
+         return True
+     if not headers:
+         return False
+     for header, value in zip(headers, cells):
+         if header.strip().lower() not in NON_ACTIVE_FIELD_NAMES:
+             continue
+         normalized_value = value.strip().strip("`")
+-        if normalized_value in NON_ACTIVE_FIELD_VALUES or normalized_value.startswith("PENDING_"):
++        if normalized_value in NON_ACTIVE_FIELD_VALUES:
+             return True
+     return False
+ 
+ 
+ def contract_table_rows(text: str):
+     """Yield Markdown table rows with headers when an explicit separator establishes them."""
+     headers: list[str] | None = None
+     header_candidate: list[str] | None = None
+     for line in text.splitlines():
+         if not line.startswith("|"):
+@@ -174,30 +183,58 @@ def work_order_time_forbidden_tables(root: Path) -> tuple[set[str], list[str]]:
+ 
+ 
+ def forbidden_model_tokens(tables: set[str]) -> set[str]:
+     tokens = set(tables)
+     for table in tables:
+         parts = table.split("_")[1:] if table.startswith("srv_") else table.split("_")
+         tokens.add("".join(part.capitalize() for part in parts))
+     return tokens
+ 
+ 
+-def prd_formal_requirement_ids(text: str) -> list[str]:
+-    """Read formal V1/V2 IDs directly from PRD requirement blocks."""
++def prd_formal_requirement_records(text: str) -> list[tuple[str, str]]:
++    """Read formal V1/V2 IDs and their primary versions from PRD blocks."""
+     matches = list(PRD_REQUIREMENT_ROW.finditer(text))
+-    result: list[str] = []
++    result: list[tuple[str, str]] = []
+     for index, match in enumerate(matches):
+         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+         block = text[match.end():end]
+         version = re.search(r"^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", block, re.M)
+         if version and version.group(1) in {"V1", "V2"}:
+-            result.append(match.group(1))
++            result.append((match.group(1), version.group(1)))
++    return result
++
++
++def prd_formal_requirement_ids(text: str) -> list[str]:
++    return [identifier for identifier, _ in prd_formal_requirement_records(text)]
++
++
++def appendix_fragment(text: str, start: str, end: str | None) -> str:
++    start_match = re.search(start, text, re.M)
++    if not start_match:
++        return ""
++    if end is None:
++        return text[start_match.end():]
++    end_match = re.search(end, text[start_match.end():], re.M)
++    if not end_match:
++        return ""
++    return text[start_match.end():start_match.end() + end_match.start()]
++
++
++def scope_index_ids(fragment: str) -> set[str]:
++    result: set[str] = set()
++    for line in fragment.splitlines():
++        if not line.startswith("|"):
++            continue
++        cells = markdown_cells(line)
++        if not cells or is_separator_row(cells):
++            continue
++        result.update(requirement_ids(cells[0]))
+     return result
+ 
+ 
+ def active_requirement_ids(text: str) -> set[str]:
+     """Extract IDs from formal scope declarations and Requirement table columns."""
+     result: set[str] = set()
+     for declaration in ACTIVE_REQUIREMENT_LINE.findall(text):
+         result.update(requirement_ids(declaration))
+ 
+     headers: list[str] | None = None
+@@ -232,31 +269,67 @@ def validate(root: Path) -> list[str]:
+     for name in PHASE2_DOCS:
+         path = design / name
+         if not path.is_file():
+             errors.append(f"missing Phase 2 document: {path.relative_to(root)}")
+             continue
+         text = read(path)
+         status_marker = "文档状态：`BASELINE ADDENDUM`" if name == "08a-domain-entity-migration-alignment.md" else "文档状态：`BASELINE`"
+         for marker in (status_marker, "适用基线：PRD V1.7", "Requirement ID：", "Owner："):
+             if marker not in text:
+                 errors.append(f"{path.relative_to(root)} missing metadata: {marker}")
++        if "IN_REVIEW" in text:
++            errors.append(f"{path.relative_to(root)} has unresolved IN_REVIEW marker in BASELINE Phase 2 design")
++        deferred_marker = DEFERRED_PHASE3_MARKERS.get(name)
++        if deferred_marker and deferred_marker not in text:
++            errors.append(f"{path.relative_to(root)} missing Phase 3 deferral marker: {deferred_marker}")
+ 
+     if not prd_path.is_file():
+         errors.append("missing PRD V1.7 baseline")
+         prd_identifiers: list[str] = []
+     else:
+-        prd_identifiers = prd_formal_requirement_ids(read(prd_path))
++        prd_text = read(prd_path)
++        prd_records = prd_formal_requirement_records(prd_text)
++        prd_identifiers = [identifier for identifier, _ in prd_records]
+         if len(prd_identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(prd_identifiers)) != EXPECTED_REQUIREMENT_COUNT:
+             errors.append(
+                 f"PRD baseline expected {EXPECTED_REQUIREMENT_COUNT} unique formal V1/V2 IDs, "
+                 f"got rows={len(prd_identifiers)} unique={len(set(prd_identifiers))}"
+             )
++        actual_scope_counts = {
++            "V1": sum(version == "V1" for _, version in prd_records),
++            "V2": sum(version == "V2" for _, version in prd_records),
++            "V1/V2": len(prd_records),
++            "V3": len(scope_index_ids(appendix_fragment(
++                prd_text,
++                r"^####\s+A\.3\.1\b.*$",
++                r"^####\s+A\.3\.2\b.*$",
++            ))),
++            "OUT_OF_SCOPE": len(scope_index_ids(appendix_fragment(
++                prd_text,
++                r"^###\s+A\.4\b.*$",
++                r"^##\s+附录B\b.*$",
++            ))),
++        }
++        if actual_scope_counts != EXPECTED_SCOPE_COUNTS:
++            errors.append(
++                "PRD scope statistics mismatch: "
++                f"expected={EXPECTED_SCOPE_COUNTS} actual={actual_scope_counts}"
++            )
++
++    phase1_traceability_path = design / "01-requirement-traceability.md"
++    if not phase1_traceability_path.is_file():
++        errors.append("missing Phase 1 requirement traceability for scope statistics")
++    elif SCOPE_STATISTICS_MARKER not in read(phase1_traceability_path):
++        errors.append(
++            "Phase 1 scope statistics mismatch: expected marker "
++            f"{SCOPE_STATISTICS_MARKER}"
++        )
+ 
+     if not matrix_path.is_file():
+         return errors + ["missing requirement matrix"]
+ 
+     matrix = read(matrix_path)
+     identifiers = REQUIREMENT_ROW.findall(matrix)
+     if len(identifiers) != EXPECTED_REQUIREMENT_COUNT or len(set(identifiers)) != EXPECTED_REQUIREMENT_COUNT:
+         errors.append(
+             f"requirement matrix expected {EXPECTED_REQUIREMENT_COUNT} unique rows, "
+             f"got rows={len(identifiers)} unique={len(set(identifiers))}"

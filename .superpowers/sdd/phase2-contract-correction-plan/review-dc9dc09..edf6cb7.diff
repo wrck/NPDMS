@@ -1,0 +1,496 @@
+# Review package: dc9dc09ac8a55fbc5bccc1e7c66ddbde3b181d95..edf6cb7ff34867ccb3c10fa2a0ab2a4cd81bbcfc
+
+## Commits
+edf6cb7 fix(phase2): 固定领域迁移证据提交
+
+## Files changed
+ .../domain-entity-migration-contract.json          |  2 +-
+ .../generate_domain_entity_migration_contract.py   | 50 ++++++++++++---
+ ...t_validate_domain_entity_migration_alignment.py | 73 +++++++++++++++++++---
+ .../validate_domain_entity_migration_alignment.py  | 25 ++++----
+ 4 files changed, 118 insertions(+), 32 deletions(-)
+
+## Diff
+diff --git a/docs/traceability/domain-entity-migration-contract.json b/docs/traceability/domain-entity-migration-contract.json
+index 8634d6d..46f9baf 100644
+--- a/docs/traceability/domain-entity-migration-contract.json
++++ b/docs/traceability/domain-entity-migration-contract.json
+@@ -1,17 +1,17 @@
+ {
+   "schemaVersion": 1,
+   "status": "BASELINE_ADDENDUM",
+   "baseline": "PRD_V1.7",
+   "implementationRepo": "E:\\AICoding\\Projects\\NPDMS",
+   "implementationCommit": "856d05264ab4a4fb69b94896c172e4a1c29aae02",
+-  "implementationTreeState": "CLEAN",
++  "implementationEvidenceMode": "PINNED_GIT_COMMIT",
+   "bindingStatistics": {
+     "allBindingCount": 40,
+     "v17BindingCount": 18,
+     "v17LegacyBindingCount": 14,
+     "v17LegacySourceTableCount": 8,
+     "v17LegacySourceFieldCount": 19,
+     "v17LegacyUniqueSourceFieldCount": 19
+   },
+   "excludedSources": [
+     {
+diff --git a/scripts/generate_domain_entity_migration_contract.py b/scripts/generate_domain_entity_migration_contract.py
+index acd71d6..88e1477 100644
+--- a/scripts/generate_domain_entity_migration_contract.py
++++ b/scripts/generate_domain_entity_migration_contract.py
+@@ -280,27 +280,55 @@ OWNER_OVERRIDES = {
+     "MetricSnapshot": "ANA",
+     "InspectionReport": "SRV",
+     "Contract": "COM",
+     "SalesOrder": "COM",
+     "AuthorizationGrant": "PLT",
+     "MaintenanceFact": "AST",
+     "ServiceStatus": "SRV",
+ }
+ 
+ 
+-def table_catalog(sql_root: Path) -> dict[str, str]:
++def git_sql_blobs(repository: Path, commit: str, migration_root: str = "sql/migrations") -> dict[str, str]:
++    """Read migration SQL from an immutable Git commit, never from HEAD/worktree."""
++    if not repository.is_dir():
++        raise ValueError(f"implementation repository unavailable: {repository}")
++    try:
++        subprocess.run(
++            ["git", "cat-file", "-e", f"{commit}^{{commit}}"], cwd=repository,
++            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
++        )
++    except (OSError, subprocess.CalledProcessError) as exc:
++        raise ValueError(f"frozen implementation commit does not exist: {commit}") from exc
++    listing = subprocess.run(
++        ["git", "ls-tree", "-r", "--name-only", commit, "--", migration_root],
++        cwd=repository, check=True, text=True, encoding="utf-8",
++        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
++    ).stdout.splitlines()
++    paths = sorted(path for path in listing if path.endswith(".sql"))
++    if not paths:
++        raise ValueError(f"migration path does not exist at frozen commit: {commit}:{migration_root}")
++    blobs: dict[str, str] = {}
++    for path in paths:
++        result = subprocess.run(
++            ["git", "show", f"{commit}:{path}"], cwd=repository, check=True,
++            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
++        )
++        blobs[path] = result.stdout.decode("utf-8-sig")
++    return blobs
++
++
++def git_table_catalog(repository: Path, commit: str, migration_root: str = "sql/migrations") -> dict[str, str]:
+     catalog: dict[str, str] = {}
+     pattern = re.compile(r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-zA-Z0-9_]+)`?", re.I)
+-    for path in sorted(sql_root.rglob("*.sql")):
+-        text = path.read_text(encoding="utf-8-sig")
++    for path, text in git_sql_blobs(repository, commit, migration_root).items():
+         for table in pattern.findall(text):
+-            catalog[table] = path.relative_to(sql_root.parent.parent).as_posix()
++            catalog[table] = path
+     return catalog
+ 
+ 
+ def legacy_tables(path: Path) -> set[str]:
+     result: set[str] = set()
+     with path.open(encoding="utf-8") as source_file:
+         for line in source_file:
+             item = json.loads(line)
+             if item.get("tableName"):
+                 result.add(item["tableName"])
+@@ -427,26 +455,27 @@ def build(args: argparse.Namespace) -> dict[str, object]:
+             raise ValueError(f"{object_name} generator target tables differ from the maintained 09 object-table map")
+         expected_policy = TARGET_POLICIES.get(object_name, {"targetTablePolicy": "CURRENT_PHYSICAL_TARGET"})
+         actual_policy = {
+             key: maintained_map[object_name].get(key, "CURRENT_PHYSICAL_TARGET" if key == "targetTablePolicy" else None)
+             for key in expected_policy
+         }
+         if actual_policy != expected_policy:
+             raise ValueError(f"{object_name} generator target policy differs from the maintained 09 object-table map")
+     requirement_owners = parse_requirement_owners(args.requirement_matrix)
+     database_design = args.database_design.read_text(encoding="utf-8")
+-    current_catalog = table_catalog(args.implementation / "sql" / "migrations")
++    commit = args.implementation_commit
++    if not commit and args.json_output.exists():
++        commit = json.loads(args.json_output.read_text(encoding="utf-8")).get("implementationCommit")
++    if not commit:
++        raise ValueError("frozen implementation commit is required; pass --implementation-commit or retain it in the existing contract")
++    current_catalog = git_table_catalog(args.implementation, commit)
+     legacy_catalog = legacy_tables(args.legacy_schema)
+-    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=args.implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
+-    tree_state = subprocess.run(["git", "status", "--porcelain"], cwd=args.implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
+-    if tree_state:
+-        raise ValueError("implementation repository must be clean before migration evidence is generated")
+     records = []
+     for object_name, target_tables in TARGETS.items():
+         contract = phase2_contracts.get(object_name)
+         model_contract = MODEL_ENTITY_CONTRACTS.get(object_name)
+         if contract is None:
+             contract = {"requirements": set(model_contract["requirementIds"]), "tables": set()}
+         target_policy = TARGET_POLICIES.get(object_name, {"targetTablePolicy": "CURRENT_PHYSICAL_TARGET"})
+         undeclared_targets = {table for table in target_tables if f"`{table}`" not in database_design}
+         if undeclared_targets:
+             raise ValueError(f"{object_name} target tables are not declared by 09 database design: {sorted(undeclared_targets)}")
+@@ -506,21 +535,21 @@ def build(args: argparse.Namespace) -> dict[str, object]:
+         for record in records
+     }
+     if object_table_map != maintained_map:
+         raise ValueError("generated Owner/Requirement/target table contract differs from the maintained object-table map")
+     return {
+         "schemaVersion": 1,
+         "status": "BASELINE_ADDENDUM",
+         "baseline": "PRD_V1.7",
+         "implementationRepo": str(args.implementation.resolve()),
+         "implementationCommit": commit,
+-        "implementationTreeState": "CLEAN",
++        "implementationEvidenceMode": "PINNED_GIT_COMMIT",
+         "bindingStatistics": binding_statistics(records, v17_target_tables),
+         "excludedSources": EXCLUDED_SOURCES,
+         "objectTableMap": object_table_map,
+         "records": records,
+     }
+ 
+ 
+ def render_markdown(payload: dict[str, object]) -> str:
+     lines = [
+         "# 领域实体迁移显式契约",
+@@ -543,20 +572,21 @@ def render_markdown(payload: dict[str, object]) -> str:
+     return "\n".join(lines) + "\n"
+ 
+ 
+ def main() -> int:
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--phase2-map", type=Path, default=Path("docs/traceability/phase2-contract-map.md"))
+     parser.add_argument("--requirement-matrix", type=Path, default=Path("docs/traceability/requirement-matrix.md"))
+     parser.add_argument("--database-design", type=Path, default=Path("docs/design/09-database-design.md"))
+     parser.add_argument("--legacy-schema", type=Path, default=Path("specs/001-project-delivery-platform/evidence/data-elements/schema-records.jsonl"))
+     parser.add_argument("--implementation", type=Path, default=Path(r"E:\AICoding\Projects\NPDMS"))
++    parser.add_argument("--implementation-commit", help="immutable Git commit containing the registered sql/migrations evidence")
+     parser.add_argument("--json-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.json"))
+     parser.add_argument("--md-output", type=Path, default=Path("docs/traceability/domain-entity-migration-contract.md"))
+     parser.add_argument("--object-table-map", type=Path, default=Path("docs/traceability/domain-object-table-map.json"))
+     parser.add_argument("--core-schema-contract", type=Path, default=Path("docs/traceability/core-migration-schema-contract.json"))
+     parser.add_argument("--check", action="store_true")
+     args = parser.parse_args()
+     payload = build(args)
+     json_content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+     md_content = render_markdown(payload)
+     if args.check:
+diff --git a/scripts/tests/test_validate_domain_entity_migration_alignment.py b/scripts/tests/test_validate_domain_entity_migration_alignment.py
+index c97859c..7d98a48 100644
+--- a/scripts/tests/test_validate_domain_entity_migration_alignment.py
++++ b/scripts/tests/test_validate_domain_entity_migration_alignment.py
+@@ -1,39 +1,49 @@
+ from __future__ import annotations
+ 
+ import hashlib
+ import importlib.util
+ import json
++import subprocess
+ import sys
+ import tempfile
+ import unittest
+ from pathlib import Path
+-from unittest.mock import patch
+ 
+ 
+ MODULE_PATH = Path(__file__).parents[1] / "validate_domain_entity_migration_alignment.py"
+ SPEC = importlib.util.spec_from_file_location("validate_domain_entity_migration_alignment", MODULE_PATH)
+ VALIDATOR = importlib.util.module_from_spec(SPEC)
+ assert SPEC.loader is not None
+ SPEC.loader.exec_module(VALIDATOR)
+ POLICY = sys.modules[VALIDATOR.validate_model_baseline.__module__]
+ 
++GENERATOR_PATH = Path(__file__).parents[1] / "generate_domain_entity_migration_contract.py"
++GENERATOR_SPEC = importlib.util.spec_from_file_location("generate_domain_entity_migration_contract", GENERATOR_PATH)
++GENERATOR = importlib.util.module_from_spec(GENERATOR_SPEC)
++assert GENERATOR_SPEC.loader is not None
++GENERATOR_SPEC.loader.exec_module(GENERATOR)
++
+ 
+ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
+     def setUp(self) -> None:
+         self.temp = tempfile.TemporaryDirectory()
+         self.root = Path(self.temp.name)
+         self.impl = self.root / "implementation"
+         (self.impl / "sql" / "migrations").mkdir(parents=True)
+         (self.impl / "sql" / "migrations" / "V1__test.sql").write_text(
+             "CREATE TABLE pms_eng_arrival (id bigint, renew_status varchar(20));\n", encoding="utf-8"
+         )
++        subprocess.run(["git", "init", "-q"], cwd=self.impl, check=True)
++        subprocess.run(["git", "config", "user.name", "migration-test"], cwd=self.impl, check=True)
++        subprocess.run(["git", "config", "user.email", "migration-test@example.invalid"], cwd=self.impl, check=True)
++        self.pinned_commit = self._commit_implementation("seed migration")
+         for relative in (
+             "docs/traceability", "docs/design", "docs/engineering/gates/phase-3",
+             "specs/001-project-delivery-platform/evidence/data-elements",
+             "specs/001-project-delivery-platform/evidence/migration",
+             "specs/001-project-delivery-platform/appendices",
+         ):
+             (self.root / relative).mkdir(parents=True, exist_ok=True)
+         (self.root / "docs/traceability/phase2-contract-map.md").write_text(
+             "### PM-01\n- 数据对象：Project\n- 数据表：pms_project\n\n"
+             "### EXE-01\n- 数据对象：ArrivalAcceptance\n- 数据表：pms_imp_arrival_acceptance\n",
+@@ -80,55 +90,64 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
+         self.gate = {
+             "overallStatus": "NOT_READY_FOR_SDS_BASELINE",
+             "items": [{
+                 "id": "P3-E09", "status": "OPEN", "decisionOwner": None, "reviewOwner": None,
+                 "confirmedFacts": {}, "evidenceRefs": [],
+                 "blocks": ["HISTORICAL_DATA_MIGRATION", "DATA_CUTOVER"],
+             }],
+         }
+         self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
+         self.contract = {
+-            "implementationRepo": str(self.impl), "implementationCommit": "TEST_COMMIT", "implementationTreeState": "CLEAN",
++            "implementationRepo": str(self.impl), "implementationCommit": self.pinned_commit,
++            "implementationEvidenceMode": "PINNED_GIT_COMMIT",
+             "excludedSources": [{
+                 "sourceType": "LEGACY_TABLE", "sourceObject": "pm_project_maintenance",
+                 "disposition": "EXCLUDED", "mappingStatus": "NO_MIGRATION",
+                 "transform": "NO_MIGRATION: requirement owner confirmation on 2026-08-13",
+                 "gate": "USER_CONFIRMED_EXCLUSION", "targetFieldBindings": [],
+                 "exclusionAudit": {
+                     "decisionDate": "2026-08-13", "decisionSource": "REQUIREMENT_OWNER_CONFIRMATION",
+                     "sourceTable": "pm_project_maintenance", "rowCount": None,
+                     "extractionBatchSha256": None, "auditStatus": "PENDING_EXTRACTION_AUDIT",
+                 },
+             }],
+             "records": [
+                 {
+                     "object": "Project", "owner": "PROJ", "requirementIds": ["PM-01"], "targetTables": ["proj_project"],
+                     "sources": [{"sourceType": "LEGACY_TABLE", "sourceObject": "pm_project", "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project", "disposition": "STRUCTURED", "transform": "map", "mappingStatus": "READY", "gate": "AI-MIG-000", "targetFieldBindings": [{"sourceField": "pm_project.id", "targetField": "proj_project.source_project_id", "transform": "EXTERNAL_KEY_MAPPING source-key preservation; target id is NEW_GENERATED", "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A1"}], "statusMapping": {"policy": "NO_SOURCE_STATUS"}, "terminalDisposition": "MIGRATE_STRUCTURED_AND_PRESERVE_RAW"}],
+                 },
+                 {
+                     "object": "ArrivalAcceptance", "owner": "IMP", "requirementIds": ["EXE-01"], "targetTables": ["imp_arrival_acceptance"],
+-                    "sources": [{"sourceType": "CURRENT_TABLE", "sourceObject": "pms_eng_arrival", "evidenceRef": "implementation://TEST_COMMIT/sql/migrations/V1__test.sql#table=pms_eng_arrival", "disposition": "CURRENT_FORWARD", "transform": "map", "mappingStatus": "READY", "gate": "NEXT_FLYWAY"}],
++                    "sources": [{"sourceType": "CURRENT_TABLE", "sourceObject": "pms_eng_arrival", "evidenceRef": f"implementation://{self.pinned_commit}/sql/migrations/V1__test.sql#table=pms_eng_arrival", "disposition": "CURRENT_FORWARD", "transform": "map", "mappingStatus": "READY", "gate": "NEXT_FLYWAY"}],
+                 },
+             ],
+         }
+         self.contract["objectTableMap"] = {
+             record["object"]: {"owner": record["owner"], "requirementIds": record["requirementIds"], "targetTables": record["targetTables"]}
+             for record in self.contract["records"]
+         }
+         self._save_contract()
+ 
+     def tearDown(self) -> None:
+         self.temp.cleanup()
+ 
+     def _write_json(self, relative: str, value: dict) -> None:
+         (self.root / relative).write_text(json.dumps(value), encoding="utf-8")
+ 
++    def _commit_implementation(self, message: str) -> str:
++        subprocess.run(["git", "add", "sql/migrations"], cwd=self.impl, check=True)
++        subprocess.run(["git", "commit", "-q", "-m", message], cwd=self.impl, check=True)
++        return subprocess.run(
++            ["git", "rev-parse", "HEAD"], cwd=self.impl, check=True,
++            text=True, encoding="utf-8", stdout=subprocess.PIPE,
++        ).stdout.strip()
++
+     def _save_contract(self) -> None:
+         legacy_bindings = [
+             binding
+             for record in self.contract["records"]
+             for source in record["sources"]
+             if source["sourceType"] in {"LEGACY_TABLE", "LEGACY_FIELD_PATTERN"}
+             for binding in source.get("targetFieldBindings", [])
+             if binding["targetField"].split(".", 1)[0] == "proj_project"
+         ]
+         source_fields = [
+@@ -145,24 +164,21 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
+             "v17BindingCount": len(legacy_bindings),
+             "v17LegacyBindingCount": len(legacy_bindings),
+             "v17LegacySourceTableCount": len({field.split(".", 1)[0] for field in source_fields}),
+             "v17LegacySourceFieldCount": len(source_fields),
+             "v17LegacyUniqueSourceFieldCount": len(set(source_fields)),
+         }
+         self._write_json("docs/traceability/domain-entity-migration-contract.json", self.contract)
+         self._write_json("docs/traceability/domain-object-table-map.json", {"schemaVersion": 1, "objects": self.contract["objectTableMap"]})
+ 
+     def _validate(self) -> list[str]:
+-        commit_result = type("Completed", (), {"stdout": "TEST_COMMIT\n"})()
+-        clean_result = type("Completed", (), {"stdout": ""})()
+-        with patch.object(VALIDATOR.subprocess, "run", side_effect=[commit_result, clean_result]):
+-            return VALIDATOR.validate(self.root, self.impl)
++        return VALIDATOR.validate(self.root, self.impl)
+ 
+     def _enable_model_ready_without_migration_approval(self) -> None:
+         ddl_sha = self.ddl_review["inputs"]["currentDdlSha256"]
+         items = [{"itemId": "COLUMN:proj_project:id", "decision": "ACCEPT_CURRENT"}]
+         items_sha = POLICY.canonical_items_sha256(items)
+         register = {
+             "currentDdlSha256": ddl_sha,
+             "itemsSha256": items_sha,
+             "items": items,
+         }
+@@ -193,20 +209,63 @@ class DomainEntityMigrationAlignmentTest(unittest.TestCase):
+         item.update({
+             "status": "VERIFIED", "decisionOwner": "requirement-owner",
+             "reviewOwner": "independent-reviewer", "confirmedFacts": facts,
+             "evidenceRefs": [review_ref],
+         })
+         self._write_json("docs/engineering/gates/phase-3/phase3-evidence-register.json", self.gate)
+ 
+     def test_complete_contract_passes(self) -> None:
+         self.assertEqual([], self._validate())
+ 
++    def test_head_can_advance_without_changing_pinned_migrations(self) -> None:
++        (self.impl / "README.md").write_text("later implementation work\n", encoding="utf-8")
++        subprocess.run(["git", "add", "README.md"], cwd=self.impl, check=True)
++        subprocess.run(["git", "commit", "-q", "-m", "advance head"], cwd=self.impl, check=True)
++        self.assertEqual([], self._validate())
++
++    def test_generator_reads_pinned_commit_instead_of_worktree(self) -> None:
++        (self.impl / "sql/migrations/V1__test.sql").write_text(
++            "CREATE TABLE pms_wrong_worktree_table (id bigint);\n", encoding="utf-8"
++        )
++        catalog = GENERATOR.git_table_catalog(self.impl, self.pinned_commit, "sql/migrations")
++        self.assertIn("pms_eng_arrival", catalog)
++        self.assertNotIn("pms_wrong_worktree_table", catalog)
++
++    def test_incompatible_pinned_commit_fails(self) -> None:
++        (self.impl / "sql/migrations/V1__test.sql").write_text(
++            "CREATE TABLE pms_incompatible (id bigint);\n", encoding="utf-8"
++        )
++        incompatible_commit = self._commit_implementation("incompatible migration")
++        self.contract["implementationCommit"] = incompatible_commit
++        self.contract["records"][1]["sources"][0]["evidenceRef"] = (
++            f"implementation://{incompatible_commit}/sql/migrations/V1__test.sql#table=pms_eng_arrival"
++        )
++        self._save_contract()
++        self.assertTrue(any("current source table not found" in error for error in self._validate()))
++
++    def test_missing_pinned_commit_fails(self) -> None:
++        self.contract["implementationCommit"] = "0" * 40
++        self._save_contract()
++        self.assertTrue(any("frozen implementation commit does not exist" in error for error in self._validate()))
++
++    def test_missing_migration_path_at_pinned_commit_fails(self) -> None:
++        (self.impl / "sql/migrations/V1__test.sql").unlink()
++        subprocess.run(["git", "add", "-u", "sql/migrations"], cwd=self.impl, check=True)
++        subprocess.run(["git", "commit", "-q", "-m", "remove migrations"], cwd=self.impl, check=True)
++        missing_path_commit = subprocess.run(
++            ["git", "rev-parse", "HEAD"], cwd=self.impl, check=True,
++            text=True, encoding="utf-8", stdout=subprocess.PIPE,
++        ).stdout.strip()
++        self.contract["implementationCommit"] = missing_path_commit
++        self._save_contract()
++        self.assertTrue(any("migration path does not exist" in error for error in self._validate()))
++
+     def test_wrong_owner_fails(self) -> None:
+         self.contract["records"][0]["owner"] = "IMP"
+         self._save_contract()
+         self.assertTrue(any("Owner is not backed" in error for error in self._validate()))
+ 
+     def test_cross_domain_reference_does_not_take_object_ownership(self) -> None:
+         self.assertEqual("PLT", VALIDATOR.expected_object_owner("FileArtifact", {"PLT", "SOL"}))
+ 
+     def test_undeclared_target_table_fails(self) -> None:
+         self.contract["records"][0]["targetTables"] = ["proj_unknown"]
+diff --git a/scripts/validate_domain_entity_migration_alignment.py b/scripts/validate_domain_entity_migration_alignment.py
+index 03fe617..a345920 100644
+--- a/scripts/validate_domain_entity_migration_alignment.py
++++ b/scripts/validate_domain_entity_migration_alignment.py
+@@ -1,26 +1,26 @@
+ #!/usr/bin/env python3
+ """Validate the executable, source-specific migration contract for every domain entity."""
+ 
+ from __future__ import annotations
+ 
+ import argparse
+ import fnmatch
+ import hashlib
+ import json
+ import re
+-import subprocess
+ import sys
+ from pathlib import Path
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+ from p3e09_approval_policy import item_ids_sha256, validate_model_baseline
++from generate_domain_entity_migration_contract import git_sql_blobs
+ 
+ 
+ ALLOWED_SOURCE_TYPES = {"CURRENT_TABLE", "CURRENT_FIELD_PATTERN", "LEGACY_TABLE", "LEGACY_FIELD_PATTERN", "EXTERNAL_SYSTEM", "DERIVED_TARGET", "NONE_NEW", "PENDING_SOURCE_IDENTIFICATION"}
+ ALLOWED_DISPOSITIONS = {"STRUCTURED", "RELATION", "SNAPSHOT", "EXTERNAL_SYNC", "CURRENT_FORWARD", "REBUILD", "COMPATIBILITY_ONLY", "NEW_ONLY", "PENDING_SOURCE_CONFIRMATION", "PENDING_SOURCE_IDENTIFICATION", "EXCLUDED"}
+ USER_EXCLUDED_LEGACY_TABLES = {"pm_project_maintenance"}
+ EXTERNAL_MARKERS = {
+     "CRM": ("CRM",), "ITR": ("ITR",), "MES": ("MES",),
+     "HR": ("HR",),
+     "DingTalk": ("钉钉", "DingTalk"),
+     "ExistingCollectionPlatform": ("现有采集平台", "ExistingCollectionPlatform"),
+@@ -68,28 +68,27 @@ def phase2_contracts(path: Path) -> dict[str, dict[str, set[str]]]:
+ 
+ def requirement_owners(path: Path) -> dict[str, str]:
+     result: dict[str, str] = {}
+     for line in path.read_text(encoding="utf-8").splitlines():
+         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+         if len(cells) >= 3 and re.fullmatch(r"[A-Z]+-\d+", cells[0]):
+             result[cells[0]] = cells[2].split("（", 1)[0].strip()
+     return result
+ 
+ 
+-def sql_table_catalog(sql_root: Path) -> tuple[dict[str, str], dict[str, str]]:
++def git_sql_table_catalog(repository: Path, commit: str) -> tuple[dict[str, str], dict[str, str]]:
+     tables: dict[str, str] = {}
+     definitions: dict[str, str] = {}
+     pattern = re.compile(r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-zA-Z0-9_]+)`?", re.I)
+-    for path in sorted(sql_root.rglob("*.sql")):
+-        text = path.read_text(encoding="utf-8-sig")
++    for path, text in git_sql_blobs(repository, commit).items():
+         for table in pattern.findall(text):
+-            tables[table] = path.relative_to(sql_root.parent.parent).as_posix()
++            tables[table] = path
+             definitions[table] = text
+     return tables, definitions
+ 
+ 
+ def legacy_catalog(path: Path) -> dict[str, set[str]]:
+     result: dict[str, set[str]] = {}
+     for line in path.read_text(encoding="utf-8").splitlines():
+         item = json.loads(line)
+         table = item.get("tableName")
+         if table:
+@@ -277,34 +276,32 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
+     integration_design = (root / "docs" / "design" / "12-integration-design.md").read_text(encoding="utf-8")
+     alignment = (root / "docs" / "design" / "08a-domain-entity-migration-alignment.md").read_text(encoding="utf-8")
+     legacy_schema_path = root / "specs" / "001-project-delivery-platform" / "evidence" / "data-elements" / "schema-records.jsonl"
+     legacy = legacy_catalog(legacy_schema_path)
+     legacy_records = legacy_schema_records(legacy_schema_path)
+     ddl_review = load_json(root / "specs" / "001-project-delivery-platform" / "evidence" / "migration" / "ddl-drift-review.json")
+     ddl_path = root / ddl_review["inputs"]["ddlPath"]
+     physical_target_columns = ddl_column_catalog(ddl_path.read_text(encoding="utf-8"))
+     physical_target_tables = set(physical_target_columns)
+     implementation = implementation_override or Path(payload.get("implementationRepo", ""))
++    frozen_commit = payload.get("implementationCommit", "")
+     if not implementation.is_dir():
+         errors.append(f"implementation repository unavailable: {implementation}")
+         current_tables, current_definitions = {}, {}
+     else:
+-        current_tables, current_definitions = sql_table_catalog(implementation / "sql" / "migrations")
+         try:
+-            actual_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
+-            if actual_commit != payload.get("implementationCommit"):
+-                errors.append(f"implementation commit mismatch: contract={payload.get('implementationCommit')} actual={actual_commit}")
+-            tree_state = subprocess.run(["git", "status", "--porcelain"], cwd=implementation, check=True, text=True, encoding="utf-8", stdout=subprocess.PIPE).stdout.strip()
+-            if tree_state or payload.get("implementationTreeState") != "CLEAN":
+-                errors.append("implementation source evidence must be generated from a clean locked tree")
+-        except (OSError, subprocess.CalledProcessError) as exc:
+-            errors.append(f"cannot verify implementation commit: {exc}")
++            if payload.get("implementationEvidenceMode") != "PINNED_GIT_COMMIT":
++                errors.append("implementation evidence mode must be PINNED_GIT_COMMIT")
++            current_tables, current_definitions = git_sql_table_catalog(implementation, frozen_commit)
++        except ValueError as exc:
++            errors.append(str(exc))
++            current_tables, current_definitions = {}, {}
+ 
+     records = payload.get("records", [])
+     excluded_sources = payload.get("excludedSources", [])
+     if not isinstance(excluded_sources, list) or len(excluded_sources) != 1:
+         errors.append("excludedSources must contain exactly the confirmed pm_project_maintenance exclusion")
+         excluded_sources = []
+     for excluded in excluded_sources:
+         audit = excluded.get("exclusionAudit", {}) if isinstance(excluded, dict) else {}
+         if (
+             excluded.get("sourceObject") != "pm_project_maintenance"

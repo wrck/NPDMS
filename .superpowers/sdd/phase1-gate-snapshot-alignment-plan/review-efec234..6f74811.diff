@@ -1,0 +1,241 @@
+# Review package: efec2347be28f1cd3d6344a724378e747216941e..6f748112e34fa526a8914a8346dda3af30f86719
+
+## Commits
+6f74811 fix(snapshot): 保护批次应用原子性
+
+## Files changed
+ scripts/specification_baseline.py            | 72 +++++++++++++++++++++++++---
+ scripts/tests/test_specification_baseline.py | 53 ++++++++++++++++++++
+ 2 files changed, 118 insertions(+), 7 deletions(-)
+
+## Diff
+diff --git a/scripts/specification_baseline.py b/scripts/specification_baseline.py
+index 86e80f8..7833267 100644
+--- a/scripts/specification_baseline.py
++++ b/scripts/specification_baseline.py
+@@ -54,20 +54,26 @@ class BaselineEntry:
+     path: str
+     category: str
+ 
+ 
+ @dataclass(frozen=True)
+ class SnapshotChange:
+     path: str
+     action: str
+ 
+ 
++@dataclass(frozen=True)
++class _TargetState:
++    kind: str
++    content: bytes | None
++
++
+ def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
+     try:
+         return subprocess.run(
+             ["git", *args],
+             cwd=repo,
+             check=True,
+             capture_output=True,
+         )
+     except (OSError, subprocess.CalledProcessError) as exc:
+         detail = ""
+@@ -276,38 +282,90 @@ def _atomic_write(path: Path, content: bytes) -> None:
+             os.fsync(handle.fileno())
+         os.replace(temp_name, path)
+     except BaseException:
+         try:
+             os.unlink(temp_name)
+         except FileNotFoundError:
+             pass
+         raise
+ 
+ 
++def _target_state(path: Path) -> _TargetState:
++    if path.is_file():
++        return _TargetState("FILE", path.read_bytes())
++    if path.exists():
++        return _TargetState("OTHER", None)
++    return _TargetState("MISSING", None)
++
++
++def _ensure_target_states(expected_states: Mapping[Path, _TargetState]) -> None:
++    for path, expected in expected_states.items():
++        if _target_state(path) != expected:
++            raise BaselineError(f"managed destination changed after preflight: {path}")
++
++
++def _restore_target_state(path: Path, original: _TargetState, applied: bytes) -> None:
++    if _target_state(path) != _TargetState("FILE", applied):
++        raise BaselineError(f"managed destination changed during apply: {path}")
++    if original.kind == "FILE":
++        assert original.content is not None
++        _atomic_write(path, original.content)
++    elif original.kind == "MISSING":
++        path.unlink()
++    else:
++        raise BaselineError(f"cannot restore non-file managed destination: {path}")
++
++
+ def apply_snapshot(
+     destination_repo: Path,
+     manifest: Mapping[str, object],
+     blobs: Mapping[str, bytes],
+ ) -> None:
++    entries = _manifest_entries(manifest)
++    manifest_path = destination_repo / "docs" / "specification-baseline" / "manifest.json"
++    initial_states = {
++        destination_repo / entry.path: _target_state(destination_repo / entry.path)
++        for entry in entries
++    }
++    initial_states[manifest_path] = _target_state(manifest_path)
+     changes = plan_snapshot(destination_repo, manifest, blobs)
+     conflicts = [change.path for change in changes if change.action == "CONFLICT"]
+     if conflicts:
+         raise BaselineError(f"managed destination has local changes: {', '.join(conflicts)}")
+ 
+-    for change in changes:
+-        if change.action != "KEEP":
+-            _atomic_write(destination_repo / change.path, blobs[change.path])
+     manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+-    _atomic_write(
+-        destination_repo / "docs" / "specification-baseline" / "manifest.json",
+-        manifest_bytes,
+-    )
++    writes = [
++        (destination_repo / change.path, blobs[change.path])
++        for change in changes
++        if change.action != "KEEP"
++    ]
++    writes.append((manifest_path, manifest_bytes))
++    expected_states = dict(initial_states)
++    written: list[tuple[Path, bytes]] = []
++    try:
++        for path, content in writes:
++            _ensure_target_states(expected_states)
++            _atomic_write(path, content)
++            written.append((path, content))
++            expected_states[path] = _TargetState("FILE", content)
++        _ensure_target_states(expected_states)
++    except BaseException as exc:
++        rollback_errors: list[BaseException] = []
++        for path, content in reversed(written):
++            try:
++                _restore_target_state(path, initial_states[path], content)
++            except BaseException as rollback_error:
++                rollback_errors.append(rollback_error)
++        if rollback_errors:
++            detail = "; ".join(str(error) for error in rollback_errors)
++            raise BaselineError(f"snapshot apply failed and rollback failed: {detail}") from exc
++        raise
+ 
+ 
+ def validate_snapshot(destination_repo: Path, manifest_path: Path) -> list[str]:
+     errors: list[str] = []
+     try:
+         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+         return [f"cannot read manifest: {exc}"]
+ 
+     if not isinstance(manifest, dict) or set(manifest) != {"schemaVersion", "source", "files"}:
+diff --git a/scripts/tests/test_specification_baseline.py b/scripts/tests/test_specification_baseline.py
+index 7a95772..7f27745 100644
+--- a/scripts/tests/test_specification_baseline.py
++++ b/scripts/tests/test_specification_baseline.py
+@@ -1,22 +1,25 @@
+ from __future__ import annotations
+ 
+ import json
+ import subprocess
+ import sys
+ import tempfile
+ import unittest
+ from pathlib import Path
++from unittest.mock import patch
+ 
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ 
++import specification_baseline
++
+ from specification_baseline import (
+     BaselineError,
+     BaselineEntry,
+     apply_snapshot,
+     build_manifest,
+     load_allowlist,
+     managed_worktree_changes,
+     plan_snapshot,
+     read_git_blob,
+     resolve_full_commit,
+@@ -247,20 +250,70 @@ class SpecificationBaselineSnapshotTest(unittest.TestCase):
+         self._git("commit", "-q", "-m", "managed")
+         target.write_bytes(b"local edit\n")
+ 
+         changes = plan_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         self.assertEqual("CONFLICT", changes[0].action)
+         with self.assertRaises(BaselineError):
+             apply_snapshot(self.repo, self.manifest, self.blobs)
+         self.assertEqual(b"local edit\n", target.read_bytes())
+ 
++    def test_apply_rolls_back_when_second_write_fails(self) -> None:
++        original_contents = (b"old prd\n", b"old sds\n")
++        for entry, content in zip(self.entries, original_contents, strict=True):
++            target = self.repo / entry.path
++            target.parent.mkdir(parents=True, exist_ok=True)
++            target.write_bytes(content)
++            self._git("add", entry.path)
++        self._git("commit", "-q", "-m", "managed snapshot")
++
++        original_atomic_write = specification_baseline._atomic_write
++        write_count = 0
++
++        def fail_second_write(path: Path, content: bytes) -> None:
++            nonlocal write_count
++            write_count += 1
++            if write_count == 2:
++                raise OSError("second write failed")
++            original_atomic_write(path, content)
++
++        with patch("specification_baseline._atomic_write", side_effect=fail_second_write):
++            with self.assertRaisesRegex(OSError, "second write failed"):
++                apply_snapshot(self.repo, self.manifest, self.blobs)
++
++        self.assertEqual(original_contents[0], (self.repo / self.entries[0].path).read_bytes())
++        self.assertEqual(original_contents[1], (self.repo / self.entries[1].path).read_bytes())
++        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
++
++    def test_apply_refuses_target_drift_after_preflight(self) -> None:
++        target = self.repo / self.entries[0].path
++        target.parent.mkdir(parents=True)
++        target.write_bytes(b"committed\n")
++        self._git("add", self.entries[0].path)
++        self._git("commit", "-q", "-m", "managed snapshot")
++        original_plan_snapshot = specification_baseline.plan_snapshot
++
++        def mutate_target_after_preflight(*args: object, **kwargs: object) -> object:
++            changes = original_plan_snapshot(*args, **kwargs)
++            target.write_bytes(b"local edit after preflight\n")
++            return changes
++
++        with patch(
++            "specification_baseline.plan_snapshot",
++            side_effect=mutate_target_after_preflight,
++        ):
++            with self.assertRaises(BaselineError):
++                apply_snapshot(self.repo, self.manifest, self.blobs)
++
++        self.assertEqual(b"local edit after preflight\n", target.read_bytes())
++        self.assertFalse((self.repo / "docs/specification-baseline/manifest.json").exists())
++
+     def test_second_apply_is_idempotent(self) -> None:
+         apply_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         changes = plan_snapshot(self.repo, self.manifest, self.blobs)
+         apply_snapshot(self.repo, self.manifest, self.blobs)
+ 
+         self.assertEqual(["KEEP", "KEEP"], [change.action for change in changes])
+ 
+     def test_validator_rejects_missing_file(self) -> None:
+         self._write_contract_files()
