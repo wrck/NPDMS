@@ -283,7 +283,7 @@
     "solCustomerDelayCategoryCode": "CUSTOMER_DELAY_EVIDENCE",
     "normalUploadMaxBytes": 52428800,
     "storagePolicy": "private bucket, server encryption and TLS; deployment-specific config is not a Feature Ready blocker",
-    "scanPolicy": "a configured FileSecurityScanProvider is mandatory for successful completion; provider product and environment instance are selected in Technical Plan/Deployment without changing this contract"
+    "scanPolicy": "security scanning is disabled by default; when enabled exactly one configured FileSecurityScanProvider is mandatory for successful completion, while disabled completion invokes no provider and persists SKIPPED; provider product and environment instance are selected in Technical Plan/Deployment without changing this contract"
   },
   "platformFacts": {
     "idempotencyTable": "plt_idempotency_record",
