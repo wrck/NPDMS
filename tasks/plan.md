@@ -3,7 +3,7 @@
 > **状态：SUPERSEDED**
 >
 > 本文件仅用于历史追溯，不再生成或驱动新开发任务。当前任务必须从
-> `docs/specification-baseline/manifest.json` 锁定的 Feature Spec 重新生成。
+> `specs/features/` 中对应的正式 Feature Spec 重新生成，并在`tasks/features/`维护当前实施状态。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

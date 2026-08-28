@@ -15,13 +15,17 @@ class RepositoryBaselineRulesTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.repo = Path(self.temp_dir.name)
-        (self.repo / "docs/specification-baseline").mkdir(parents=True)
-        (self.repo / "docs/specification-baseline/manifest.json").write_text(
-            '{"schemaVersion":1,"source":{"repositoryId":"project-delivery-platform-spec",'
-            '"commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"files":[]}',
-            encoding="utf-8",
-        )
         (self.repo / "tasks").mkdir()
+        for relative in (
+            "docs/baseline/prd-v1.8.md",
+            "docs/engineering/00-engineering-chain.md",
+            "docs/README.md",
+            "specs/features/README.md",
+        ):
+            path = self.repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture\n", encoding="utf-8")
+        (self.repo / "tasks/features").mkdir()
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
@@ -30,9 +34,10 @@ class RepositoryBaselineRulesTest(unittest.TestCase):
         (self.repo / "AGENTS.md").write_text(
             """# NPDMS工程约束
 
-规格仓库是业务与设计唯一事实源；本地规格快照是锁定实现输入。
-当前输入由 `docs/specification-baseline/manifest.json` 的 `source.commit` 决定。
-禁止在NPDMS直接修改受管快照。修改前读取PRD、工程链、SDS、Feature Spec和Task。
+本仓库是业务、设计、实现、测试与验收证据的唯一事实源，不再维护外部规格快照。
+优先级：PRD > Engineering Constitution > SDS > Feature Spec > Technical Plan > Task > Code > Test / Runtime Evidence。
+修改前读取PRD、工程链、SDS、`specs/features/`中的Feature Spec和`tasks/features/`中的Task。
+业务规则不明确时标记BLOCKED_BY_SPEC。
 基础平台使用JDK 25。前端和后端在宿主机运行。UI闭环必须由真实浏览器完成。
 """,
             encoding="utf-8",
@@ -44,20 +49,44 @@ class RepositoryBaselineRulesTest(unittest.TestCase):
 > **状态：SUPERSEDED**
 >
 > 本文件仅用于历史追溯，不再生成或驱动新开发任务。
-> 当前任务从 `docs/specification-baseline/manifest.json` 锁定的Feature Spec重新生成。
+> 当前任务从 `specs/features/` 中的Feature Spec重新生成，并在`tasks/features/`维护状态。
 
 历史内容。
 """
         (self.repo / "tasks/plan.md").write_text(content, encoding="utf-8")
         (self.repo / "tasks/todo.md").write_text(content, encoding="utf-8")
 
-    def test_agents_uses_manifest_as_locked_input(self) -> None:
+    def test_repository_uses_same_repository_sources(self) -> None:
         self._write_valid_agents()
         self._write_superseded_tasks()
 
         errors = validate_repository_rules(self.repo)
 
         self.assertEqual([], errors)
+
+    def test_required_formal_source_must_exist(self) -> None:
+        self._write_valid_agents()
+        self._write_superseded_tasks()
+        (self.repo / "specs/features/README.md").unlink()
+
+        errors = validate_repository_rules(self.repo)
+
+        self.assertTrue(any("specs/features/README.md" in error for error in errors))
+
+    def test_retired_external_snapshot_paths_are_rejected(self) -> None:
+        self._write_valid_agents()
+        self._write_superseded_tasks()
+        (self.repo / "docs/specification-baseline").mkdir()
+        (self.repo / ".spec-repo-f-ast-001").mkdir()
+        script = self.repo / "scripts/sync_specification_baseline.py"
+        script.parent.mkdir()
+        script.write_text("# retired\n", encoding="utf-8")
+
+        errors = validate_repository_rules(self.repo)
+
+        self.assertTrue(any("docs/specification-baseline" in error for error in errors))
+        self.assertTrue(any(".spec-repo-f-ast-001" in error for error in errors))
+        self.assertTrue(any("sync_specification_baseline.py" in error for error in errors))
 
     def test_agents_preserves_jdk25_host_runtime_and_browser_acceptance(self) -> None:
         self._write_valid_agents()

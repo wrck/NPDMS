@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
-"""Validate that NPDMS reads the locked specification snapshot, not legacy tasks."""
+"""Validate that NPDMS uses one repository for specifications and implementation."""
 
 from __future__ import annotations
 
-import json
-import re
 import sys
 from pathlib import Path
 
 
 AGENTS_MARKERS = (
-    "规格仓库是业务与设计唯一事实源",
-    "本地规格快照是锁定实现输入",
-    "docs/specification-baseline/manifest.json",
-    "source.commit",
-    "禁止在NPDMS直接修改受管快照",
+    "本仓库是业务、设计、实现、测试与验收证据的唯一事实源",
+    "PRD > Engineering Constitution > SDS > Feature Spec > Technical Plan > Task > Code > Test / Runtime Evidence",
+    "specs/features/",
+    "tasks/features/",
+    "BLOCKED_BY_SPEC",
     "JDK 25",
     "宿主机",
     "真实浏览器",
@@ -23,7 +21,22 @@ TASK_MARKERS = (
     "状态：SUPERSEDED",
     "仅用于历史追溯",
     "不再生成或驱动新开发任务",
-    "docs/specification-baseline/manifest.json",
+    "specs/features/",
+    "tasks/features/",
+)
+REQUIRED_PATHS = (
+    "docs/baseline/prd-v1.8.md",
+    "docs/engineering/00-engineering-chain.md",
+    "docs/README.md",
+    "specs/features/README.md",
+    "tasks/features",
+)
+OBSOLETE_PATHS = (
+    "docs/specification-baseline",
+    ".spec-repo-f-ast-001",
+    "scripts/sync_specification_baseline.py",
+    "scripts/specification_baseline.py",
+    "scripts/validate_specification_baseline.py",
 )
 
 
@@ -41,17 +54,15 @@ def validate_repository_rules(repository: Path) -> list[str]:
     for marker in AGENTS_MARKERS:
         if marker not in agents:
             errors.append(f"AGENTS.md missing required rule: {marker}")
-    if "specs/001-project-delivery-platform/` 是需求与接口的唯一事实来源" in agents:
-        errors.append("AGENTS.md still declares the local specs directory as the sole source")
+    if "规格仓库是业务与设计唯一事实源" in agents or "禁止在NPDMS直接修改受管快照" in agents:
+        errors.append("AGENTS.md still declares the retired external specification workflow")
 
-    manifest_path = repository / "docs/specification-baseline/manifest.json"
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        commit = manifest["source"]["commit"]
-        if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
-            errors.append("manifest source.commit must be a lowercase full commit id")
-    except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
-        errors.append(f"invalid specification manifest: {exc}")
+    for relative in REQUIRED_PATHS:
+        if not (repository / relative).exists():
+            errors.append(f"required same-repository source missing: {relative}")
+    for relative in OBSOLETE_PATHS:
+        if (repository / relative).exists():
+            errors.append(f"retired specification synchronization path still exists: {relative}")
 
     for relative in ("tasks/plan.md", "tasks/todo.md"):
         content = _read(repository / relative, errors)
@@ -72,7 +83,7 @@ def main() -> int:
     if errors:
         print(f"SUMMARY FAIL errors={len(errors)}")
         return 1
-    print("SUMMARY PASS repository reads the locked specification baseline")
+    print("SUMMARY PASS repository uses same-repository specification governance")
     return 0
 
 

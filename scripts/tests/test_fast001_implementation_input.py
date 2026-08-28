@@ -1,22 +1,17 @@
-import json
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 FEATURE_SPEC = ROOT / "specs" / "features" / "F-AST-001-device-serial-archive-and-temporal-assignment.md"
-MANIFEST = ROOT / "docs" / "specification-baseline" / "manifest.json"
 DESIGN = ROOT / "docs" / "superpowers" / "specs" / "2026-08-26-f-ast-001-device-master-forward-migration-design.md"
-LOCKED_COMMIT = "18377fd9fc45b54217b21488cfb46a8d320d4bd8"
 
 
 class Fast001ImplementationInputTest(unittest.TestCase):
 
-    def test_feature_spec_repository_is_locked(self):
-        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        self.assertEqual(LOCKED_COMMIT, manifest["source"]["commit"])
-        managed_paths = {entry["path"] for entry in manifest["files"]}
-        self.assertIn(FEATURE_SPEC.relative_to(ROOT).as_posix(), managed_paths)
+    def test_feature_spec_is_read_directly_from_same_repository(self):
+        self.assertTrue(FEATURE_SPEC.is_file())
+        self.assertFalse((ROOT / "docs/specification-baseline/manifest.json").exists())
 
     def test_feature_spec_contains_frozen_implementation_rules(self):
         text = FEATURE_SPEC.read_text(encoding="utf-8")
