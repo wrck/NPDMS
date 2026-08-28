@@ -203,6 +203,42 @@ EXACT_PHASE1_DESIGN["EQP-02"] = (
     "AssetApplicationService", "ConfigurationLog、Device、DeviceArchive、FileReference、ParseVersion",
     "原始文件不可覆盖+解析版本+设备关联+来源追溯",
 )
+EXACT_PHASE1_DESIGN["CUS-03"] = (
+    "Customer & Relationship", "Customer / Contact / AssetRelation / CustomerSyncSnapshot",
+    "Customer本地生命周期命令；CRM来源同步处理流", "OrganizationCustomerScope",
+    "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot",
+    "数据同步+权限+来源版本",
+)
+EXACT_PHASE1_DESIGN["INT-03"] = (
+    "Customer & Relationship", "Customer / Contact / AssetRelation / CustomerSyncSnapshot",
+    "CRM同步批次/单项处理流；不直接改写Customer本地生命周期", "OrganizationCustomerScope",
+    "CustomerApplicationService", "Customer、Contact、AssetRelation、CustomerSyncSnapshot",
+    "数据同步+权限+来源版本",
+)
+EXACT_PHASE1_DESIGN["EQP-01"] = (
+    "Asset Management", "Device / DeviceArchive / RMAReplacement / AssetSyncSnapshot",
+    "Device无独立生命周期状态机；来源同步状态与归属时态命令", "ProjectDeviceScope",
+    "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot",
+    "数据一致性+归属+来源版本",
+)
+EXACT_PHASE1_DESIGN["EQP-04"] = (
+    "Asset Management", "Device / DeviceArchive / RMAReplacement / AssetSyncSnapshot",
+    "MES来源同步批次/映射处理流；不直接改写Device业务状态", "ProjectDeviceScope",
+    "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot",
+    "数据一致性+归属+来源版本",
+)
+EXACT_PHASE1_DESIGN["INT-02"] = (
+    "Asset Management", "Device / DeviceArchive / RMAReplacement / AssetSyncSnapshot",
+    "ITR来源同步批次/映射处理流；不直接改写Device业务状态", "ProjectDeviceScope",
+    "AssetApplicationService", "Device、DeviceArchive、MaintenanceFact、RMAReplacement、AssetSyncSnapshot",
+    "数据一致性+归属+来源版本",
+)
+EXACT_PHASE1_DESIGN["INT-04"] = (
+    "技术知识治理", "TechnicalNoticeReference",
+    "ITR技术公告来源同步批次/版本映射流", "ProductDeviceProjectScope",
+    "KnowledgeApplicationService", "TechnicalNoticeReference、SourceMapping",
+    "来源一致性+版本追溯",
+)
 for _identifier in ("COM-01",):
     EXACT_PHASE1_DESIGN[_identifier] = (
         "Contract & Delivery Scope", "Contract / SalesOrder / OrderLine / DeliveryScope / DeliveryScopeDetail",
@@ -397,9 +433,21 @@ FEATURE_LINK_OVERRIDES = {
     "PRE-04": "[F-PLT-002共享动态表单基础](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003需求分析动态表单与版本冻结](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
     "SOL-01": "[F-PLT-002](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
     "PLT-02": "[F-PLT-001](../../specs/features/F-PLT-001-unified-file-identity-and-version-management.md)",
+    "CUS-03": "[F-CUS-001](../../specs/features/F-CUS-001-customer-master-and-local-lifecycle.md) / [02d契约](../design/02d-cross-context-contracts.md)",
+    "EQP-01": "[F-AST-001](../../specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md)",
 }
 
 IMPLEMENTATION_OVERRIDES = {
+    "CUS-03": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "SPEC-FCUS001-FEATURE-READY-20260825-01",
+        "FEATURE_READY",
+    ),
+    "EQP-01": (
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
+        "SPEC-FAST001-FEATURE-READY-20260825-01",
+        "FEATURE_READY",
+    ),
     "PM-01": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
         "NPDMS `1c76050`任务、自动化、真实MySQL、真实浏览器与独立复审证据",
