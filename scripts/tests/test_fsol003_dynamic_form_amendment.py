@@ -46,8 +46,8 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
             set(binding["bindingConfig"]["forbidden"]),
         )
         self.assertIn("dynamicFormTemplateRevisionId", binding["bindingConfig"]["required"])
-        self.assertIn("BINDING_PUBLISH", binding["publishValidation"])
-        self.assertIn("FROZEN_BINDING_USE", binding["runtimeFreeze"])
+        self.assertIn("REVISION_BINDING_PUBLISH", binding["publishValidation"])
+        self.assertIn("REVISION_FROZEN_USE", binding["runtimeFreeze"])
         self.assertIn("ignores later template disablement", binding["runtimeFreeze"])
         self.assertIn("项目用户无选模步骤", self.feature_spec)
 
@@ -83,6 +83,9 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
     def test_pre04_core_and_version_semantics_are_complete(self) -> None:
         compatibility = self.contract["pre04Compatibility"]
         self.assertEqual(11, len(compatibility["coreRichTextFields"]))
+        self.assertTrue(compatibility["coreFileFieldRequired"])
+        self.assertIn("exactly one", compatibility["coreFileFieldCardinality"])
+        self.assertFalse(compatibility["attachmentValueRequired"])
         self.assertEqual(
             {"PROJECT_BACKGROUND", "PROJECT_OBJECTIVE", "NETWORK_TOPOLOGY"},
             set(compatibility["mandatoryFields"]),
@@ -93,6 +96,27 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
         self.assertIn("completed immutability", " ".join(self.contract["acceptance"]["realMySql"]))
         self.assertIn("declarativeValidationResult=VALID", self.contract["completion"]["platformValidation"])
         self.assertIn("not server completion facts", self.contract["completion"]["platformValidation"])
+
+    def test_actions_mandatory_transactions_dual_versions_and_preallocated_ids_are_locked(self) -> None:
+        api = self.contract["dynamicFormBusinessApi"]
+        self.assertEqual(
+            set(self.platform_contract["interfaces"]["businessActionCodes"]),
+            set(api["businessActionCodes"]),
+        )
+        self.assertIn("use propagation MANDATORY", " ".join(api["transactionRules"]))
+        self.assertNotIn("MANDATORY or REQUIRED", " ".join(api["transactionRules"]))
+        action_policy = self.contract["businessObjectPolicyProvider"]["actionPolicy"]
+        self.assertEqual(set(api["businessActionCodes"]), set(action_policy))
+        self.assertIn("current DRAFT", action_policy["COMPLETE"])
+        self.assertIn("current effective COMPLETED", action_policy["CLONE_SOURCE"])
+        headers = self.contract["http"]["requiredHeaders"]
+        self.assertEqual({"Idempotency-Key", "If-Match", "X-SOL-If-Match"}, set(headers["complete"]))
+        self.assertIn("PLT dynamic-form instanceVersion", self.contract["http"]["versionHeaders"]["complete"])
+        self.assertIn("SOL root", self.contract["http"]["versionHeaders"]["complete"])
+        initial = self.contract["transactions"]["createInitial"]
+        self.assertIn("caller preallocation", initial["idPolicy"])
+        self.assertIn("never committed with null", initial["commitInvariant"])
+        self.assertIn("no post-insert ID backfill", initial["idPolicy"])
 
     def test_clone_and_complete_are_atomic_and_revalidate_complete_facts(self) -> None:
         clone = self.contract["transactions"]["createNextDraft"]

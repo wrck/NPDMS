@@ -65,7 +65,7 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         self.assertIn("never use REQUIRES_NEW", api["transaction"])
         self.assertIn("never create a second idempotency record", api["transaction"])
         revision_use = api["methods"]["inspectRevisionForUsage"]
-        self.assertIn("usagePhase=BINDING_PUBLISH|FROZEN_BINDING_USE", revision_use["input"])
+        self.assertIn("action=REVISION_BINDING_PUBLISH|REVISION_FROZEN_USE", revision_use["input"])
         self.assertIn("ignores later template availability", revision_use["phaseRule"])
         policy = interfaces["businessObjectPolicyProvider"]
         self.assertEqual("SOL/REQUIREMENT_ANALYSIS", policy["firstCaller"])
@@ -77,6 +77,34 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         self.assertEqual("FileReferenceAttached", outbox[0]["eventType"])
         self.assertIn("PlatformTransactionalOutboxWriter", outbox[0]["writer"])
         self.assertIn("replay adds zero", outbox[0]["cardinality"])
+
+    def test_business_actions_and_transaction_propagation_are_closed(self) -> None:
+        interfaces = self.contract["interfaces"]
+        expected_actions = {
+            "REVISION_BINDING_PUBLISH",
+            "REVISION_FROZEN_USE",
+            "CREATE",
+            "READ",
+            "PATCH",
+            "COMPLETE",
+            "CLONE_SOURCE",
+            "CLONE_TARGET",
+            "FILE_READ",
+            "FILE_WRITE",
+        }
+        self.assertEqual(expected_actions, set(interfaces["businessActionCodes"]))
+        mapping = interfaces["businessObjectPolicyProvider"]["apiActionMapping"]
+        self.assertEqual("CREATE", mapping["createBusinessInstance"])
+        self.assertIn("CLONE_SOURCE", mapping["cloneBusinessInstance"])
+        self.assertEqual("FILE_WRITE", mapping["fileProviderUploadReferenceReplaceDetach"])
+        self.assertIn("same action", mapping["lockAndRevalidateInstance"])
+        transaction = " ".join(interfaces["publicModuleApi"]["transaction"])
+        self.assertIn("propagation MANDATORY", transaction)
+        self.assertIn("reject calls without an existing caller transaction", transaction)
+        self.assertNotIn("REQUIRED or MANDATORY", transaction)
+        create_input = interfaces["publicModuleApi"]["methods"]["createBusinessInstance"]["input"]
+        self.assertIn("preallocatedInstanceId", create_input)
+        self.assertIn("exact caller-preallocated instance id", " ".join(self.contract["tables"]["plt_dynamic_form_instance"]["rules"]))
 
     def test_template_revision_and_manual_instance_are_unambiguous(self) -> None:
         machines = self.contract["stateMachines"]

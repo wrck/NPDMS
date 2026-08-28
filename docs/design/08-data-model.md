@@ -157,7 +157,7 @@ PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。�
 |---|---|---|
 | Preparation | 工勘、需求分析、资源就绪、交底和准备结论 | 每次提交冻结表单模板版本、填写值和附件引用 |
 | PreparationDynamicFormInstance | 已完成F-SOL-002工勘项的表单配置和值事实 | 既有`sol_dynamic_form_instance`继续仅服务F-SOL-002并保持原样；不迁移、不双写，不因PRE-04改造而退役 |
-| RequirementAnalysisDynamicFormBinding | PRE-04业务版本对PLT实例的逻辑引用 | `sol_preparation.dynamic_form_instance_id`一对一引用PLT业务实例；SOL不复制schema、值或附件真值，不建立跨Context物理外键 |
+| RequirementAnalysisDynamicFormBinding | PRE-04业务版本对PLT实例的逻辑引用 | SOL外层命令预分配实例ID，`sol_preparation`首次INSERT即以非空`dynamic_form_instance_id`一对一引用PLT业务实例；无回填CAS；SOL不复制schema、值或附件真值，不建立跨Context物理外键 |
 | ConstructionPlan | 工期、计划项、里程碑、计划变更申请 | 计划基线不可覆盖；变更保存前后差异和审批引用 |
 | Solution | 方案正文元数据、来源、评审状态和适用范围 | 草稿可修改；提交/批准后生成不可变 revision |
 

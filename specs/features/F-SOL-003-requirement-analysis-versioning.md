@@ -50,7 +50,7 @@
 
 - 兼容模板必须包含11个稳定核心富文本字段：`PROJECT_BACKGROUND`、`PROJECT_OBJECTIVE`、`NETWORK_TOPOLOGY`、`TRANSMISSION_REQUIREMENT`、`TRAFFIC_REQUIREMENT`、`BUSINESS_REQUIREMENT`、`IP_PLANNING`、`REDUNDANCY_REQUIREMENT`、`SECURITY_PROTECTION`、`OPERATIONS_REQUIREMENT`、`LOGGING_REQUIREMENT`。
 - 三个必填核心字段为`PROJECT_BACKGROUND/PROJECT_OBJECTIVE/NETWORK_TOPOLOGY`；模板不得删除、重命名、改义、改为非富文本或降低必填。
-- 每个核心字段可配置对应`PmsFileArtifact`字段，附件字段编码固定为`{CORE_CODE}__ATTACHMENTS`；附件可为空，模板不得把附件数量定义为PRE-04完成必填。
+- 11个核心字段必须各自存在且仅存在一个对应`PmsFileArtifact`受控字段，编码固定为`{CORE_CODE}__ATTACHMENTS`；缺失、重复、类型错误或改码均不兼容。附件槽位必须存在，但附件值可为空，模板不得把附件数量定义为PRE-04完成必填。
 - 模板可增加其他FormCreate字段、布局、联动、校验、事件、函数、API选择器、iframe、普通上传和受控文件字段。SOL不复制这些定义，只按PLT冻结Schema渲染、保存和比较；普通上传URL/JSON不是受控FileArtifact证据。
 - SOL策略Provider只验证PRE-04固定业务约束和字段稳定性，不重写完整FormCreate配置，也不建立组件、脚本、URL或事件白名单。发布配置仍受F-PLT-002高信任边界约束。
 
@@ -58,7 +58,7 @@
 
 - 每个`sol_preparation` PRE-04版本必须唯一引用一个`plt_dynamic_form_instance`；PLT实例业务键固定为`ownerContext=SOL/objectType=REQUIREMENT_ANALYSIS/objectId={preparationId}`，用户REST不得自报该键。
 - SOL根保存`dynamic_form_instance_id`，并继续保存冻结项目模板修订`template_revision_id`；二者含义不得混用。跨Context只保存稳定ID，不建立物理外键。
-- 首次创建按`PROJ -> SOL -> PLT`顺序，在同一事务原子创建PRE-04根和业务动态表单实例。PLT实例冻结WorkBinding指定的模板修订；任一策略、修订或插入失败时根、实例、成功幂等和审计全部回滚。
+- 首次创建由SOL外层命令预分配`preparationId`和`dynamicFormInstanceId`，首次INSERT根时即写入非空实例ID和version=1；随后PLT在同一事务按`MANDATORY`插入该明确实例ID。不得由PLT另生成ID后回填SOL根，也不得为回填额外递增SOL版本；任一策略、修订或插入失败时根、实例、成功幂等和审计全部回滚。
 - PLT是FormCreate config/rules、值、实例版本及`PmsFileArtifact`引用的唯一真值。SOL不得再把字段定义、正文值或附件向量写入`sol_requirement_analysis_section`、`template_snapshot`或其他副本。
 - 查询由SOL先校验项目范围和业务状态，再通过`DynamicFormBusinessInstanceApi.inspectInstance`装配明确PLT实例事实。PLT接口不自行把实例保存解释为需求分析完成。
 
@@ -74,13 +74,13 @@
 
 - `status_code`只表达`DRAFT/COMPLETED`；`draft_marker/effective_marker`是独立唯一事实。项目可同时拥有一个当前草稿和一个当前有效完成版。
 - 初次完成时当前草稿原子转为`COMPLETED`、清除`draft_marker`并取得`effective_marker=1`。
-- 创建下一草稿必须以当前有效完成版为`source_preparation_id`，创建`businessVersion+1`根，并调用PLT `cloneBusinessInstance`：复制冻结修订和普通值，为每个受控文件槽位生成新实例下的独立FileReference并复用同一不可变FileVersion。旧完成版实例和引用保持不变，新草稿可独立换版或解绑。
+- 创建下一草稿必须以当前有效完成版为`source_preparation_id`，预分配新根和新PLT实例ID并以非空引用创建`businessVersion+1`根，再调用PLT `cloneBusinessInstance`按`MANDATORY`写入该明确实例ID：复制冻结修订和普通值，为每个受控文件槽位生成新实例下的独立FileReference并复用同一不可变FileVersion。旧完成版实例和引用保持不变，新草稿可独立换版或解绑。
 - 新草稿完成时先校验草稿与旧有效版仍为期望版本，再原子清除旧有效标记并把草稿设为新的有效完成版。失败时旧有效版、草稿和两个PLT实例均保持原状。
 - 完成版SOL根和PLT实例不可修改或删除；旧根只允许在下一版本完成事务中清除`effective_marker`。
 
 ### BR-FSOL003-006 完成校验与锁定重验
 
-- 完成要求当前项目经理、项目`ACTIVE`、当前草稿、期望SOL版本、期望PLT实例版本和合法冻结WorkBinding；首次完成另要求S1，已有有效版后的修订允许在ACTIVE项目继续。
+- 完成要求当前项目经理、项目`ACTIVE`、当前草稿、合法冻结WorkBinding，并同时提供`If-Match=期望PLT实例版本`和`X-SOL-If-Match=期望SOL根版本`；任一版本陈旧均在业务写前返回版本冲突。首次完成另要求S1，已有有效版后的修订允许在ACTIVE项目继续。
 - 三个核心富文本字段规范化后必须有可见文本；仅空标签、`&nbsp;`或零宽空白视为空。模板内其他声明式必填、类型、长度/范围、正则和枚举校验由PLT按冻结schema形成服务端校验事实；客户端事件、函数、parseFunc、远程API结果或iframe状态只影响浏览器交互，不成为服务端完成门禁，也不得降低三个核心业务必填。
 - 查询基于SOL根和PLT只读事实返回`completionBlockers[]`，至少区分`REQUIRED_VALUE_MISSING`、`FORM_VALUE_INVALID`、`CONTROLLED_FILE_INVALID`和`FACT_PROVIDER_UNAVAILABLE`；不得暴露Provider原始异常。阻断非空或事实未知时不投影`COMPLETE`。
 - 完成锁序固定为：全部PROJ项目/参与/WorkBinding事实 -> SOL根、当前草稿/有效版及动态表单Owner策略 -> PLT实例/冻结修订 -> F-PLT-001 Artifact→Version→Reference。所有SOL Provider调用必须在首个PLT锁前完成，之后禁止回调SOL。
@@ -110,7 +110,8 @@
 | 下载/预览附件 | SOL查询权限 + PLT文件权限 | `PROJECT_VIEW` | SOL、动态表单和F-PLT-001三重重验 |
 
 - `allowedActions`基于功能权限、PROJ范围/经理事实、SOL状态、PLT实例事实和`completionBlockers`保守投影；命令端锁定重验，前端不得推导角色授权。
-- 初始化、创建下一草稿和完成使用SOL外层`Idempotency-Key`。PLT业务实例API加入调用方事务，不嵌套`PlatformCommandExecutionApi`、不建立第二幂等记录；同键重放、异载荷冲突和`IN_PROGRESS`沿用平台既有语义。
+- 业务实例动作值域封闭为`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`，修订用途为`REVISION_BINDING_PUBLISH/REVISION_FROZEN_USE`。查询/inspect必须冻结实际动作；Owner Provider和PLT持锁重验必须比较同一动作，禁止从READ升级为PATCH/COMPLETE或混用克隆源/目标权限。具体状态/权限映射以机器契约为准。
+- 初始化、创建下一草稿和完成使用SOL外层`Idempotency-Key`。PLT只读inspect不持锁；创建、修改、克隆及两类持锁重验统一使用事务传播`MANDATORY`，无SOL外层事务即拒绝，不嵌套`PlatformCommandExecutionApi`、不建立第二幂等记录；同键重放、异载荷冲突和`IN_PROGRESS`沿用平台既有语义。
 - 普通值PATCH使用PLT实例`If-Match`和SOL根版本；文件命令使用F-PLT-001自身稳定意图键。任一CAS或外部事实失败不得部分覆盖。
 - 成功审计记录项目、需求分析版本、PLT实例/修订、动作、前后状态/版本、变化字段键、文件引用摘要、operationId、主体和时间；不得复制完整富文本、函数源码、接口响应或文件正文。
 
@@ -133,8 +134,8 @@
 | `/preparations` | `POST` | 以冻结WorkBinding自动创建首个SOL草稿和PLT实例；`Idempotency-Key` |
 | `/preparations/{id}` | `GET` | 返回明确业务版本及其完整PLT冻结Schema、值、文件事实和版本 |
 | `/preparations/{id}/form` | `PATCH` | 普通字段部分PATCH；`If-Match`使用PLT实例版本，`X-SOL-If-Match`使用SOL根版本 |
-| `/preparations/{id}/actions/submit` | `POST` | 锁定重验完整PLT实例后完成并切换有效版；`Idempotency-Key + If-Match` |
-| `/preparations/{id}/actions/create-draft` | `POST` | 从当前有效版克隆下一SOL草稿及PLT实例；`Idempotency-Key + If-Match` |
+| `/preparations/{id}/actions/submit` | `POST` | 锁定重验完整PLT实例后完成并切换有效版；`Idempotency-Key`、`If-Match=PLT实例版本`、`X-SOL-If-Match=SOL根版本` |
+| `/preparations/{id}/actions/create-draft` | `POST` | 从当前有效版克隆下一SOL草稿及PLT实例；`Idempotency-Key`、`If-Match=来源PLT实例版本`、`X-SOL-If-Match=来源SOL根版本` |
 | `/preparations?projectId={id}&type=PRE_04&history=true` | `GET` | 完成历史稳定游标分页 |
 | `/preparations/{id}/compare?targetPreparationId={id}` | `GET` | 按字段键和值/文件事实返回差异，不持久化 |
 
@@ -150,7 +151,7 @@ F-PLT-002在`pms-module-platform-api`增加`DynamicFormBusinessInstanceApi`：
 - `patchInstanceValues`：按CAS部分更新普通值，不接受文件字段；
 - `cloneBusinessInstance`：复制冻结修订和值，并为新实例复用不可变FileVersion建立独立引用。
 
-同时增加`DynamicFormBusinessObjectPolicyProvider`，由SOL实现`SOL/REQUIREMENT_ANALYSIS`的修订兼容、Owner读写动作、项目范围、业务状态和scopeVersion策略。所有API使用受信tenant/actor，禁止用户请求自报Owner；加入调用方事务，禁止`REQUIRES_NEW`、嵌套平台幂等和由PLT构造SOL事件。
+同时增加`DynamicFormBusinessObjectPolicyProvider`，由SOL实现`SOL/REQUIREMENT_ANALYSIS`的修订兼容、Owner读写动作、项目范围、业务状态和scopeVersion策略。所有API使用受信tenant/actor，禁止用户请求自报Owner。动作值域与API映射封闭；创建/修改/克隆和持锁重验使用`MANDATORY`，禁止`REQUIRED`自开事务、`REQUIRES_NEW`、嵌套平台幂等和由PLT构造SOL事件。
 
 ### 4.3 领域边界
 
@@ -178,15 +179,15 @@ F-PLT-002在`pms-module-platform-api`增加`DynamicFormBusinessInstanceApi`：
 ## 7. 验收标准
 
 - `AC-FSOL003-001`：项目模板管理员从PLT已启用发布修订中为PRE-04 WorkBinding选定明确修订；发布和项目实例化均冻结同一事实，项目用户无选模步骤。
-- `AC-FSOL003-002`：模板缺任一11项核心、三个必填被降低、核心非富文本或修订非当前启用发布版时项目模板发布失败且零副作用；其他完整FormCreate能力不被SOL静默删除。
-- `AC-FSOL003-003`：首次创建在同一事务生成businessVersion=1 SOL草稿和唯一PLT业务实例；空/多绑定、事实变化、无权或非S1失败时两侧均为零。
+- `AC-FSOL003-002`：模板缺任一11项核心、缺任一对应且唯一的`{CORE_CODE}__ATTACHMENTS`受控字段、三个必填被降低、核心/附件类型错误或修订非当前启用发布版时项目模板发布失败且零副作用；附件值允许为空，其他完整FormCreate能力不被SOL静默删除。
+- `AC-FSOL003-003`：首次创建预分配SOL根ID与PLT实例ID，根首次INSERT即携带非空实例ID且version=1，PLT按`MANDATORY`插入同一ID；无回填CAS/额外版本递增。空/多绑定、无外层事务、事实变化、无权或非S1失败时两侧及成功事实均为零。
 - `AC-FSOL003-004`：普通值部分PATCH保持`null/false/0/空字符串/空数组`语义，未知键和文件字段伪造失败；CAS冲突不覆盖最近成功值。
 - `AC-FSOL003-005`：受控文件上传/换版/解绑以PLT当前引用为唯一真值，响应未知沿用原slot和幂等键恢复；SOL无附件快照或PENDING双写。
-- `AC-FSOL003-006`：完成前重验11项核心、三个必填、完整实例和值/文件事实；任一缺失、失效、未知或变化时不投影/不执行COMPLETE且无成功副作用。
+- `AC-FSOL003-006`：完成请求同时携带期望PLT实例版本与SOL根版本；任一陈旧均冲突且零写。两版本命中后才重验11项核心、11个唯一受控附件槽位、三个必填、完整实例和值/文件事实；任一缺失、失效、未知或变化时不投影/不执行COMPLETE且无成功副作用。
 - `AC-FSOL003-007`：完成形成不可变有效版；创建下一草稿克隆PLT实例并复用不可变FileVersion形成独立引用，旧完成版不可换版/解绑，新草稿可独立修改。
 - `AC-FSOL003-008`：新草稿完成原子切换有效标记；同项目至多一个草稿和一个有效版，历史SOL根及PLT实例不可变。
 - `AC-FSOL003-009`：历史分页和对比按稳定fieldKey覆盖Schema摘要、普通值及受控文件变化，不建立第二差异真值。
-- `AC-FSOL003-010`：权限、项目范围、当前经理、跨租户、同键重放/冲突/IN_PROGRESS及并发单胜均由服务端失败关闭。
+- `AC-FSOL003-010`：权限、项目范围、当前经理、跨租户、同键重放/冲突/IN_PROGRESS及并发单胜均由服务端失败关闭；inspect与持锁重验动作完全相同，READ→PATCH/COMPLETE升级及CLONE_SOURCE/CLONE_TARGET互换均拒绝且零成功副作用。
 - `AC-FSOL003-011`：真实MySQL证明SOL根与PLT实例创建/克隆/完成同事务；批量文件克隆N个新引用产生N个事件，重放不增，任一失败根、实例、引用、成功幂等/审计/Outbox均为零。
 - `AC-FSOL003-012`：锁序证明全部PROJ和SOL Provider/Owner事实先于PLT实例/修订及全部文件锁；取得首个PLT锁后无SOL回调，反序尝试失败关闭。
 - `AC-FSOL003-013`：`RequirementAnalysisFactApi`只返回/锁定明确完成版本和完整PLT事实；草稿、无权、旧期望或失效文件失败且零写，历史完成版明确返回`isCurrentEffective=false`。

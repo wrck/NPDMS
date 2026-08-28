@@ -280,7 +280,7 @@ AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装
 | ANA | RPT-02、ANA-01 | `/analytics/metrics`、`/analytics/portfolios/{id}` | 返回 `metricVersion/dataWatermark/treeVersion`；只读 |
 | PLT | PLT-01 | `/todos`、`/{id}/actions/complete` | 待办完成回调业务 Owner；不能自行宣告业务成功 |
 | PLT | PLT-02 | `/files:init-upload`、`/files/{id}:complete-upload`、`/files/{id}/versions`、`/file-references` | 文件 API 详见 13；下载实时校验业务权限 |
-| PLT | SOL-01公共基础切片、PRE-04组合依赖 | 原动态表单用户REST保持不变；内部`DynamicFormBusinessInstanceApi`提供用途检查/锁定重验、业务实例创建/读取/CAS修改/复制/完整重验 | 模板发布修订不可变；手工REST与业务API分离。业务API参加调用方事务，不建第二幂等记录；Owner Provider先于PLT锁，PLT不拥有消费方状态 |
+| PLT | SOL-01公共基础切片、PRE-04组合依赖 | 原动态表单用户REST保持不变；内部`DynamicFormBusinessInstanceApi`提供用途检查/锁定重验、业务实例创建/读取/CAS修改/复制/完整重验 | 业务动作封闭并由inspect冻结；创建/修改/复制/持锁重验为`MANDATORY`，无外层事务拒绝；调用方预分配实例ID；Owner Provider先于PLT锁，PLT不拥有消费方状态 |
 | PLT | AUT-01～AUT-02 | `/authorization-grants`、`/authorization-grants/{id}/actions/revoke`；内部`AuthorizationGrantApi` | 创建需幂等键，查询分页，撤权需期望版本；通用授权不代替DAC凭证授权 |
 | PLT | CHG-01 | `/change-requests`、状态命令 | 低优先级独立能力，按版本范围后置实施 |
 | SYSTEM | INT-09 | `/system/companies`、`/system/departments` | Company与Department独立；Department响应包含统一`code`和`version`；办事处按Department表达 |
@@ -288,7 +288,7 @@ AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装
 
 周报/日报不提供独立 API；周期性展示复用指标快照。
 
-F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`DynamicFormBusinessInstanceApi`与`DynamicFormBusinessObjectPolicyProvider`。SOL只能经该API创建、读取、修改、复制及锁定重验实例；业务实例无用户REST，SOL不得访问PLATFORM Service、Mapper或表。外层SOL命令拥有幂等和业务审计，PLT只为实际新增FileReference写自身事件。
+F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`DynamicFormBusinessInstanceApi`与`DynamicFormBusinessObjectPolicyProvider`。动作封闭为修订发布/冻结使用及实例CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE，inspect与锁定重验不得换动作。SOL只能经该API组合实例；业务实例无用户REST，不得访问PLATFORM Service、Mapper或表。外层SOL命令拥有唯一幂等和业务审计，PLT写方法/持锁重验必须加入既有事务。
 
 ## 13. Device Access & Collection API
 

@@ -41,8 +41,8 @@
     },
     "selectionActor": "project-template administrator",
     "projectUserSelection": "NONE",
-    "publishValidation": "BINDING_PUBLISH requires the exact enabled current PUBLISHED revision to pass SOL usage policy before the project-template revision is published",
-    "runtimeFreeze": "ProjectTask execution contract freezes the exact dynamic-form revision fact; FROZEN_BINDING_USE revalidates the immutable revision and compatibility but ignores later template disablement or pointer changes"
+    "publishValidation": "REVISION_BINDING_PUBLISH requires the exact enabled current PUBLISHED revision to pass SOL usage policy before the project-template revision is published",
+    "runtimeFreeze": "ProjectTask execution contract freezes the exact dynamic-form revision fact; REVISION_FROZEN_USE revalidates the immutable revision and compatibility but ignores later template disablement or pointer changes"
   },
   "pre04Compatibility": {
     "usageKey": "SOL/REQUIREMENT_ANALYSIS",
@@ -61,7 +61,9 @@
     ],
     "mandatoryFields": ["PROJECT_BACKGROUND", "PROJECT_OBJECTIVE", "NETWORK_TOPOLOGY"],
     "coreFileFieldPattern": "{CORE_CODE}__ATTACHMENTS",
-    "attachmentRequired": false,
+    "coreFileFieldRequired": true,
+    "coreFileFieldCardinality": "exactly one PmsFileArtifact field for every one of the 11 coreRichTextFields",
+    "attachmentValueRequired": false,
     "additionalFormCreateSurface": "retained without SOL rewriting; full F-PLT-002 high-trust boundary applies",
     "ordinaryUpload": "not controlled FileArtifact evidence"
   },
@@ -127,16 +129,29 @@
     "interface": "DynamicFormBusinessInstanceApi",
     "trustedContext": true,
     "methods": {
-      "inspectRevisionForUsage": "read exact published revision, schema descriptors and usage compatibility",
-      "lockAndRevalidateRevisionForUsage": "lock exact revision fact after all consumer-policy calls",
-      "createBusinessInstance": "join caller transaction and create one instance for a trusted owner tuple",
-      "inspectInstance": "read frozen schema, values and all controlled file facts",
-      "patchInstanceValues": "partial ordinary-value CAS; controlled file keys rejected",
-      "cloneBusinessInstance": "copy frozen revision and values; create independent references to existing immutable FileVersions",
-      "lockAndRevalidateInstance": "lock and compare owner, revision, engine, values, instance version and all controlled file facts"
+      "inspectRevisionForUsage": "REVISION_BINDING_PUBLISH or REVISION_FROZEN_USE; read exact revision, schema descriptors and compatibility and freeze the action",
+      "lockAndRevalidateRevisionForUsage": "MANDATORY; lock exact revision fact after all consumer-policy calls and revalidate the same revision action",
+      "createBusinessInstance": "MANDATORY CREATE; insert the caller-preallocated instanceId for a trusted owner tuple",
+      "inspectInstance": "READ, PATCH, COMPLETE, CLONE_SOURCE, FILE_READ or FILE_WRITE; read frozen schema, values and all controlled file facts and freeze the exact action",
+      "patchInstanceValues": "MANDATORY PATCH; partial ordinary-value CAS; controlled file keys rejected",
+      "cloneBusinessInstance": "MANDATORY CLONE_SOURCE plus CLONE_TARGET; use the caller-preallocated target instanceId, copy frozen revision/values and create independent references",
+      "lockAndRevalidateInstance": "MANDATORY; lock and compare the complete instance fact using the same action frozen by inspectInstance"
     },
+    "businessActionCodes": [
+      "REVISION_BINDING_PUBLISH",
+      "REVISION_FROZEN_USE",
+      "CREATE",
+      "READ",
+      "PATCH",
+      "COMPLETE",
+      "CLONE_SOURCE",
+      "CLONE_TARGET",
+      "FILE_READ",
+      "FILE_WRITE"
+    ],
     "transactionRules": [
-      "MANDATORY or REQUIRED participation in the caller transaction",
+      "inspectRevisionForUsage and inspectInstance are read-only",
+      "lockAndRevalidateRevisionForUsage, createBusinessInstance, patchInstanceValues, cloneBusinessInstance and lockAndRevalidateInstance use propagation MANDATORY and reject a call without the SOL outer transaction",
       "no REQUIRES_NEW",
       "no nested PlatformCommandExecutionApi",
       "no second idempotency record",
@@ -147,18 +162,31 @@
     "interface": "DynamicFormBusinessObjectPolicyProvider",
     "implementationOwner": "SOL",
     "providerKey": "SOL/REQUIREMENT_ANALYSIS",
-    "operations": [
-      "inspectRevisionCompatibility",
-      "inspectInstanceOwnerPolicy",
-      "lockAndRevalidateInstanceOwnerPolicy"
-    ],
+    "operations": {
+      "inspectRevisionCompatibility": "input REVISION_BINDING_PUBLISH or REVISION_FROZEN_USE and freeze that same action",
+      "inspectInstanceOwnerPolicy": "input CREATE, READ, PATCH, COMPLETE, CLONE_SOURCE, CLONE_TARGET, FILE_READ or FILE_WRITE with the complete owner key and freeze that same action",
+      "lockAndRevalidateInstanceOwnerPolicy": "MANDATORY; compare the prior action, actor, owner key, scopeVersion and owner state without action substitution"
+    },
+    "actionPolicy": {
+      "REVISION_BINDING_PUBLISH": "schema compatible and exact revision is current ENABLED PUBLISHED; PROJ separately authorizes template administration",
+      "REVISION_FROZEN_USE": "schema compatible immutable PUBLISHED revision; later disablement or current pointer change is ignored",
+      "CREATE": "current project manager may create the first current DRAFT for the frozen WorkBinding",
+      "READ": "PROJECT_VIEW may read current, effective or authorized history",
+      "PATCH": "current project manager may edit only the current DRAFT",
+      "COMPLETE": "current project manager may complete only the current DRAFT when blockers are empty",
+      "CLONE_SOURCE": "current project manager may read and clone only the current effective COMPLETED source",
+      "CLONE_TARGET": "current project manager may create only the unique next current DRAFT target",
+      "FILE_READ": "PROJECT_VIEW may read, download or preview files for a visible DRAFT or COMPLETED version",
+      "FILE_WRITE": "current project manager may upload, reference, replace or detach only on the current DRAFT"
+    },
+    "result": ["action", "allowed", "stableErrorCode", "scopeVersion", "ownerStateSummary"],
     "operationRules": {
       "inspectRevisionCompatibility": "validate only the PRE-04 schema/usage contract; PROJ separately authorizes the project-template administrator",
       "inspectInstanceOwnerPolicy": "validate project scope, functional permission, current manager and SOL owner state without writes",
       "lockAndRevalidateInstanceOwnerPolicy": "lock the SOL owner/root facts and compare the complete frozen owner-policy fact before any PLT lock"
     },
     "responsibilities": [
-      "validate 11 core rich-text fields and three mandatory rules",
+      "validate 11 core rich-text fields, exactly one matching controlled attachment field for each core, and three mandatory value rules",
       "validate PROJECT_VIEW/PROJECT_MANAGE and current project manager facts for instance actions",
       "allow writes only for the current DRAFT",
       "allow read/download/preview for authorized completed history",
@@ -183,8 +211,17 @@
   },
   "transactions": {
     "createInitial": {
-      "order": ["PROJ facts", "insert and lock SOL root", "create PLT business instance", "SOL idempotency/audit"],
-      "atomic": ["SOL root", "PLT instance", "success idempotency", "success audit"]
+      "order": [
+        "PROJ facts",
+        "preallocate preparationId and dynamicFormInstanceId without a business write",
+        "insert SOL root version=1 with the non-null preallocated dynamicFormInstanceId",
+        "lock CREATE owner policy for the exact SOL root",
+        "MANDATORY create PLT business instance using the exact preallocated instanceId",
+        "SOL idempotency/audit"
+      ],
+      "atomic": ["SOL root", "PLT instance", "success idempotency", "success audit"],
+      "idPolicy": "caller preallocation; PLATFORM must not generate a different instance ID and SOL performs no post-insert ID backfill or version increment",
+      "commitInvariant": "a persisted PRE-04 root is never committed with null dynamic_form_instance_id; any failure rolls back both inserts and all success facts"
     },
     "patchValues": {
       "order": ["PROJ/SOL authorization", "lock SOL root", "lock PLT instance", "PLT value CAS", "SOL content/version CAS"],
@@ -194,14 +231,16 @@
       "order": [
         "PROJ facts",
         "lock SOL source/effective/root policy",
-        "insert target SOL root",
+        "preallocate targetPreparationId and targetDynamicFormInstanceId",
+        "insert target SOL root with the non-null preallocated targetDynamicFormInstanceId",
         "validate all source and target owner policies",
         "lock source and target PLT instances/revisions",
         "lock all Artifact->Version->Reference facts in stable global order",
-        "clone values and insert target references",
+        "MANDATORY clone values into the exact preallocated target instance ID and insert target references",
         "SOL success idempotency/audit"
       ],
-      "atomic": ["target SOL root", "target PLT instance", "target references", "outbox", "success idempotency", "success audit"]
+      "atomic": ["target SOL root", "target PLT instance", "target references", "outbox", "success idempotency", "success audit"],
+      "idPolicy": "caller preallocation with no SOL ID backfill or extra version increment"
     },
     "complete": {
       "order": [
@@ -232,8 +271,13 @@
     "requiredHeaders": {
       "createInitial": ["Idempotency-Key"],
       "patchForm": ["If-Match", "X-SOL-If-Match"],
-      "complete": ["Idempotency-Key", "If-Match"],
-      "createNextDraft": ["Idempotency-Key", "If-Match"]
+      "complete": ["Idempotency-Key", "If-Match", "X-SOL-If-Match"],
+      "createNextDraft": ["Idempotency-Key", "If-Match", "X-SOL-If-Match"]
+    },
+    "versionHeaders": {
+      "patchForm": "If-Match=expected PLT dynamic-form instanceVersion; X-SOL-If-Match=expected SOL root content/version",
+      "complete": "If-Match=expected PLT dynamic-form instanceVersion; X-SOL-If-Match=expected SOL root content/version",
+      "createNextDraft": "If-Match=expected source PLT instanceVersion; X-SOL-If-Match=expected source SOL root version"
     },
     "forbiddenInputs": [
       "tenantId",
@@ -259,6 +303,7 @@
       "FACT_PROVIDER_UNAVAILABLE"
     ],
     "allowedAction": "COMPLETE only when blockers are empty and every expected fact is known",
+    "versionConflict": "missing or stale If-Match PLT instanceVersion or X-SOL-If-Match SOL root version returns VERSION_CONFLICT before completion writes",
     "failure": "zero completion/effective/idempotency/audit success side effects"
   },
   "requirementAnalysisFactApi": {
@@ -347,6 +392,10 @@
     "wholeLoop": "project-template admin selects compatible PLT revision -> project freezes WorkBinding -> manager creates PRE-04 without selection -> fills values/files -> completes V1 -> clones V2 -> changes/completes -> history/compare -> fact revalidation",
     "realMySql": [
       "cross-module transaction rollback",
+      "caller-preallocated instance ID is non-null on the first SOL insert, identical in PLATFORM, causes no backfill version increment and rolls both sides back on failure",
+      "all PLATFORM write and lock-holding methods reject execution without an existing caller transaction",
+      "inspect and lock revalidation use the identical closed business action and reject action substitution",
+      "completion and clone require both expected SOL root and PLT instance versions; either stale version causes zero writes",
       "draft/effective uniqueness",
       "instance CAS and completed immutability",
       "N cloned references produce N events, replay zero, batch failure zero",
@@ -354,6 +403,7 @@
     ],
     "realBrowser": [
       "automatic template resolution with no project-user selection",
+      "template compatibility rejects any missing or duplicate core attachment field while allowing every attachment value to remain empty",
       "full FormCreate values and controlled files",
       "unknown-response recovery",
       "V1/V2 history and comparison",

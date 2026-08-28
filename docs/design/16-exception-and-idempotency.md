@@ -45,7 +45,7 @@
 | 场景 | 幂等键 | 作用域 | 首次结果重放 |
 |---|---|---|---|
 | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
-| 动态表单模板/实例命令 | `Idempotency-Key` | tenant + command + actor + template/revision/instance intent | 新建模板、下一草稿、发布、启停或手工实例同载荷重放原结果；业务实例由消费Context外层命令持有唯一幂等记录，PLT API不得嵌套幂等；普通值PATCH使用If-Match |
+| 动态表单模板/实例命令 | `Idempotency-Key` | tenant + command + actor + template/revision/instance intent | 新建模板、下一草稿、发布、启停或手工实例同载荷重放原结果；业务实例由消费Context外层命令持有唯一幂等记录，PLT写/持锁API以`MANDATORY`加入且不得自开事务；完成/克隆同时校验PLT与Owner双版本 |
 | 项目授权创建/撤权 | `Idempotency-Key` | tenant + actor + project/grant + command | 同键同摘要返回原授权或撤权版本；同键不同摘要拒绝 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
 | 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |

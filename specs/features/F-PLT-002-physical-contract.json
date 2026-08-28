@@ -353,6 +353,7 @@
       "rules": [
         "user REST creates only owner_context=PLATFORM and object_type=MANUAL_DYNAMIC_FORM with object_id equal to the preallocated instance id",
         "trusted DynamicFormBusinessInstanceApi creates a business instance with the caller-owned stable owner tuple after owner-provider validation",
+        "trusted business create and clone insert the exact caller-preallocated instance id and never require a consuming-context ID backfill",
         "template revision identity and engine versions never change after creation",
         "value_json contains ordinary field values only; PmsFileArtifact facts are projected from F-PLT-001",
         "false, zero, null, empty string and empty array retain distinct JSON semantics",
@@ -455,7 +456,7 @@
     "storagePolicy": "instance value_json stores no forged file vector, storage key or permanent URL",
     "ordinaryUploadPolicy": "ordinary FormCreate upload controls remain available and their URL/JSON values are ordinary values, never controlled FileArtifact evidence",
     "readPolicy": "one instance detail submits every frozen PmsFileArtifact field purpose as one FileArtifactApi.inspectReferenceSets batch and maps the returned sets by exact fieldKey; never issue one query per field",
-    "businessOwnerPolicy": "for a business instance, DynamicForm FileBusinessObjectPolicyProvider delegates the action and scopeVersion decision to the registered DynamicFormBusinessObjectPolicyProvider before any F-PLT-001 lock; no owner-provider callback occurs after the first PLATFORM lock",
+    "businessOwnerPolicy": "for a business instance, READ/DOWNLOAD/PREVIEW map to FILE_READ and UPLOAD/REFERENCE/REPLACE/DETACH map to FILE_WRITE; DynamicForm FileBusinessObjectPolicyProvider delegates that exact action and scopeVersion to DynamicFormBusinessObjectPolicyProvider before any F-PLT-001 lock and lock-revalidates the same frozen action; no callback occurs after the first PLATFORM lock",
     "dependency": "reuse F-PLT-001 APIs, policy provider, short-lived access tickets, version facts and audit without changing F-PLT-001 state machines"
   },
   "interfaces": {
@@ -539,50 +540,64 @@
         "response": ["instance identity", "frozen template/revision and engine versions", "complete formConfJson/formRulesJson", "ordinary values", "controlled file facts by fieldKey", "instanceVersion", "allowedActions"]
       }
     },
+    "businessActionCodes": [
+      "REVISION_BINDING_PUBLISH",
+      "REVISION_FROZEN_USE",
+      "CREATE",
+      "READ",
+      "PATCH",
+      "COMPLETE",
+      "CLONE_SOURCE",
+      "CLONE_TARGET",
+      "FILE_READ",
+      "FILE_WRITE"
+    ],
     "publicModuleApi": {
       "module": "pms-module-platform-api",
       "interface": "DynamicFormBusinessInstanceApi",
       "trustedOnly": true,
       "methods": {
         "inspectRevisionForUsage": {
-          "input": ["tenantId", "actorUserId", "providerKey", "templateRevisionId", "requiredUsage", "usagePhase=BINDING_PUBLISH|FROZEN_BINDING_USE", "expectedRevisionFactVersion"],
+          "input": ["tenantId", "actorUserId", "providerKey", "templateRevisionId", "requiredUsage", "action=REVISION_BINDING_PUBLISH|REVISION_FROZEN_USE", "expectedRevisionFactVersion"],
           "output": ["template/revision identity", "revisionFactVersion", "schema descriptors", "engine versions", "compatibility result"],
           "writes": false,
-          "phaseRule": "BINDING_PUBLISH requires the enabled current PUBLISHED revision; FROZEN_BINDING_USE requires the exact immutable PUBLISHED revision and compatible fact version but ignores later template availability or current-pointer changes"
+          "phaseRule": "REVISION_BINDING_PUBLISH requires the enabled current PUBLISHED revision; REVISION_FROZEN_USE requires the exact immutable PUBLISHED revision and compatible fact version but ignores later template availability or current-pointer changes"
         },
         "lockAndRevalidateRevisionForUsage": {
-          "input": ["frozen inspectRevisionForUsage fact"],
+          "input": ["frozen inspectRevisionForUsage fact including the same action"],
           "output": ["same frozen revision fact"],
-          "rule": "all owner-provider calls finish before locking the revision"
+          "rule": "MANDATORY transaction; revalidate the same action; all owner-provider calls finish before locking the revision"
         },
         "createBusinessInstance": {
-          "input": ["tenantId", "actorUserId", "providerKey", "owner tuple", "templateRevisionId", "expectedRevisionFactVersion", "initialValues"],
+          "input": ["tenantId", "actorUserId", "providerKey", "action=CREATE", "preallocatedInstanceId", "owner tuple", "templateRevisionId", "expectedRevisionFactVersion", "initialValues"],
           "output": ["instanceId", "instanceVersion", "frozen revision and engine facts"],
-          "rule": "join caller transaction; one instance per exact owner tuple"
+          "rule": "MANDATORY transaction; insert the exact preallocatedInstanceId; one instance per exact owner tuple"
         },
         "inspectInstance": {
-          "input": ["tenantId", "actorUserId", "providerKey", "owner tuple", "instanceId", "requiredAction"],
+          "input": ["tenantId", "actorUserId", "providerKey", "owner tuple", "instanceId", "action=READ|PATCH|COMPLETE|CLONE_SOURCE|FILE_READ|FILE_WRITE"],
           "output": ["owner", "frozen schema", "ordinary values", "declarativeValidationResult", "all controlled ACTIVE file facts", "instanceVersion"],
-          "writes": false
+          "writes": false,
+          "rule": "return an owner-policy fact frozen for the exact requested action"
         },
         "patchInstanceValues": {
-          "input": ["tenantId", "actorUserId", "providerKey", "owner tuple", "instanceId", "expectedInstanceVersion", "partial ordinary values"],
+          "input": ["tenantId", "actorUserId", "providerKey", "action=PATCH", "owner tuple", "instanceId", "expectedInstanceVersion", "partial ordinary values"],
           "output": ["instanceId", "instanceVersion", "changedFieldKeys"],
-          "rule": "reject controlled-file fields and join caller transaction"
+          "rule": "MANDATORY transaction; reject controlled-file fields and revalidate the same PATCH owner-policy fact"
         },
         "cloneBusinessInstance": {
-          "input": ["tenantId", "actorUserId", "providerKey", "source owner/instance frozen fact", "target owner tuple", "target instance identity"],
+          "input": ["tenantId", "actorUserId", "providerKey", "source action=CLONE_SOURCE and frozen fact", "target action=CLONE_TARGET and frozen owner-policy fact", "preallocatedTargetInstanceId", "target owner tuple"],
           "output": ["target instance fact", "insertedReferenceCount"],
-          "rule": "copy frozen revision and values; create independent target references to the same immutable FileVersions"
+          "rule": "MANDATORY transaction; copy frozen revision and values into the exact preallocated target ID; create independent target references to the same immutable FileVersions"
         },
         "lockAndRevalidateInstance": {
-          "input": ["complete frozen inspectInstance fact"],
+          "input": ["complete frozen inspectInstance fact including action=READ|PATCH|COMPLETE|CLONE_SOURCE|FILE_READ|FILE_WRITE"],
           "output": ["same complete instance fact"],
-          "rule": "strictly compare owner, revision, engine versions, normalized values, declarative validation result, instance version and every controlled ACTIVE reference set including explicit empty sets"
+          "rule": "MANDATORY transaction; revalidate the same action and strictly compare owner, revision, engine versions, normalized values, declarative validation result, instance version and every controlled ACTIVE reference set including explicit empty sets"
         }
       },
       "transaction": [
-        "participate in the caller transaction with REQUIRED or MANDATORY semantics",
+        "inspectRevisionForUsage and inspectInstance are read-only and do not acquire held locks",
+        "lockAndRevalidateRevisionForUsage, createBusinessInstance, patchInstanceValues, cloneBusinessInstance and lockAndRevalidateInstance use propagation MANDATORY and reject calls without an existing caller transaction",
         "never use REQUIRES_NEW",
         "never invoke a nested PlatformCommandExecutionApi",
         "never create a second idempotency record",
@@ -592,9 +607,24 @@
     "businessObjectPolicyProvider": {
       "interface": "DynamicFormBusinessObjectPolicyProvider",
       "registryKey": "ownerContext/objectType",
-      "methods": ["inspectRevisionCompatibility", "inspectInstanceOwnerPolicy", "lockAndRevalidateInstanceOwnerPolicy"],
+      "methods": {
+        "inspectRevisionCompatibility": "input action=REVISION_BINDING_PUBLISH|REVISION_FROZEN_USE and revision usage facts; output freezes the same action",
+        "inspectInstanceOwnerPolicy": "input action=CREATE|READ|PATCH|COMPLETE|CLONE_SOURCE|CLONE_TARGET|FILE_READ|FILE_WRITE plus complete owner key; output freezes the same action and owner facts",
+        "lockAndRevalidateInstanceOwnerPolicy": "MANDATORY transaction; input the prior frozen owner-policy fact and revalidate the identical action, actor, owner key, scopeVersion and owner state"
+      },
+      "apiActionMapping": {
+        "inspectRevisionForUsage": "REVISION_BINDING_PUBLISH or REVISION_FROZEN_USE",
+        "lockAndRevalidateRevisionForUsage": "same action as inspectRevisionForUsage",
+        "createBusinessInstance": "CREATE",
+        "inspectInstance": "caller-selected READ, PATCH, COMPLETE, CLONE_SOURCE, FILE_READ or FILE_WRITE",
+        "patchInstanceValues": "PATCH",
+        "cloneBusinessInstance": "CLONE_SOURCE for source and CLONE_TARGET for target",
+        "lockAndRevalidateInstance": "same action as inspectInstance",
+        "fileProviderReadDownloadPreview": "FILE_READ",
+        "fileProviderUploadReferenceReplaceDetach": "FILE_WRITE"
+      },
       "methodBoundary": "revision compatibility is schema/usage validation and does not infer project authorization; instance methods own consuming-context scope, actor and state decisions",
-      "result": ["allowed", "stableErrorCode", "scopeVersion", "ownerStateSummary"],
+      "result": ["action", "allowed", "stableErrorCode", "scopeVersion", "ownerStateSummary"],
       "failurePolicy": "unknown provider, unavailable provider, scope mismatch or denied action fails closed",
       "firstCaller": "SOL/REQUIREMENT_ANALYSIS"
     }
@@ -625,10 +655,10 @@
     "setAvailability": "CLAIM_IDEMPOTENCY; LOCK_TEMPLATE_AND_EXPECTED_VERSION; REQUIRE_CURRENT_PUBLISHED_FOR_ENABLE; CAS_AVAILABILITY; WRITE_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT",
     "createManualInstance": "CLAIM_IDEMPOTENCY; LOCK_TEMPLATE_AND_REQUESTED_REVISION; REQUIRE_ENABLED_AND_REQUESTED_REVISION_IS_CURRENT_PUBLISHED; INSERT_INSTANCE_WITH_FROZEN_REVISION; WRITE_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT",
     "patchInstance": "LOCK_INSTANCE; REQUIRE_EXPECTED_VERSION_CREATOR_AND_UPDATE_PERMISSION; REJECT_UNKNOWN_OR_FILE_FIELDS; CAS_PARTIAL_ORDINARY_VALUES; WRITE_SUCCESS_AUDIT; COMMIT",
-    "createBusinessInstance": "CALLER_CLAIMS_IDEMPOTENCY; VALIDATE_ALL_OWNER_POLICIES_IN_STABLE_ORDER; LOCK_REQUESTED_REVISION; REVALIDATE_FROZEN_REVISION_FACT; INSERT_BUSINESS_INSTANCE; CALLER_WRITES_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT_TOGETHER",
-    "patchBusinessInstance": "VALIDATE_AND_LOCK_OWNER_POLICY; LOCK_INSTANCE_AND_REVISION; REQUIRE_EXPECTED_INSTANCE_VERSION; REJECT_UNKNOWN_OR_FILE_FIELDS; CAS_VALUES; CALLER_WRITES_DOMAIN_VERSION_AND_AUDIT; COMMIT_TOGETHER",
-    "cloneBusinessInstance": "CALLER_CLAIMS_IDEMPOTENCY; VALIDATE_AND_LOCK_ALL_SOURCE_AND_TARGET_OWNER_POLICIES_IN_STABLE_ORDER; LOCK_ALL_SOURCE_AND_TARGET_INSTANCE_REVISION_FACTS; LOCK_ALL_ARTIFACT_VERSION_REFERENCE_FACTS_IN_GLOBAL_STABLE_ORDER; INSERT_TARGET_INSTANCE_AND_NEW_REFERENCES; WRITE_ONE_FILE_REFERENCE_ATTACHED_PER_ACTUAL_INSERT; CALLER_WRITES_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT_TOGETHER",
-    "lockAndRevalidateBusinessInstance": "VALIDATE_AND_LOCK_ALL_OWNER_POLICIES_IN_STABLE_ORDER; LOCK_INSTANCE_AND_REVISION; LOCK_ALL_ARTIFACT_VERSION_REFERENCE_FACTS_IN_GLOBAL_STABLE_ORDER; STRICTLY_COMPARE_COMPLETE_FROZEN_FACT; RETURN_WITHOUT_WRITES",
+    "createBusinessInstance": "REQUIRE_EXISTING_TRANSACTION; CALLER_CLAIMS_IDEMPOTENCY_AND_PREALLOCATES_IDS; VALIDATE_ALL_CREATE_OWNER_POLICIES_IN_STABLE_ORDER; LOCK_REQUESTED_REVISION; REVALIDATE_FROZEN_REVISION_ACTION_AND_FACT; INSERT_EXACT_PREALLOCATED_BUSINESS_INSTANCE_ID; CALLER_WRITES_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT_TOGETHER",
+    "patchBusinessInstance": "REQUIRE_EXISTING_TRANSACTION; VALIDATE_AND_LOCK_PATCH_OWNER_POLICY; LOCK_INSTANCE_AND_REVISION; REQUIRE_EXPECTED_INSTANCE_VERSION; REJECT_UNKNOWN_OR_FILE_FIELDS; CAS_VALUES; CALLER_WRITES_DOMAIN_VERSION_AND_AUDIT; COMMIT_TOGETHER",
+    "cloneBusinessInstance": "REQUIRE_EXISTING_TRANSACTION; CALLER_CLAIMS_IDEMPOTENCY_AND_PREALLOCATES_TARGET_IDS; VALIDATE_AND_LOCK_CLONE_SOURCE_AND_CLONE_TARGET_POLICIES_IN_STABLE_ORDER; LOCK_ALL_SOURCE_INSTANCE_REVISION_FACTS; LOCK_ALL_ARTIFACT_VERSION_REFERENCE_FACTS_IN_GLOBAL_STABLE_ORDER; INSERT_EXACT_PREALLOCATED_TARGET_INSTANCE_AND_NEW_REFERENCES; WRITE_ONE_FILE_REFERENCE_ATTACHED_PER_ACTUAL_INSERT; CALLER_WRITES_SUCCESS_AUDIT_AND_IDEMPOTENCY; COMMIT_TOGETHER",
+    "lockAndRevalidateBusinessInstance": "REQUIRE_EXISTING_TRANSACTION; VALIDATE_AND_LOCK_THE_SAME_FROZEN_ACTION_AND_OWNER_POLICIES_IN_STABLE_ORDER; LOCK_INSTANCE_AND_REVISION; LOCK_ALL_ARTIFACT_VERSION_REFERENCE_FACTS_IN_GLOBAL_STABLE_ORDER; STRICTLY_COMPARE_COMPLETE_FROZEN_FACT; RETURN_WITHOUT_WRITES",
     "failure": "ROLLBACK_BUSINESS_TRANSACTION_THEN_USE_EXISTING_PLATFORM_REJECTED_AUDIT; NO_SUCCESS_IDEMPOTENCY_OR_PARTIAL_POINTER_CHANGE"
   },
   "lockOrder": [
@@ -709,6 +739,8 @@
     "wholeLoop": "configure -> preview -> publish -> enable -> manual select -> create frozen instance -> render -> fill ordinary and PmsFileArtifact fields -> save -> refresh",
     "businessComposition": [
       "F-SOL-003 creates, inspects, patches, clones and lock-revalidates a SOL-owned instance only through DynamicFormBusinessInstanceApi in the caller transaction",
+      "caller preallocates every business instance ID and all write or lock-holding methods require propagation MANDATORY",
+      "inspect and lock revalidation use the same closed business action; action substitution is rejected",
       "N actual cloned FileReferences produce N FileReferenceAttached events; exact replay adds zero; any batch failure leaves target instance, references, outbox and outer success facts at zero",
       "all owner-provider facts are locked in stable complete-owner-key order before the first PLATFORM lock; after that lock no owner-provider callback occurs",
       "complete frozen values and controlled ACTIVE reference sets including explicit empty sets are strictly revalidated"

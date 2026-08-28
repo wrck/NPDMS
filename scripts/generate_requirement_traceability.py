@@ -225,13 +225,22 @@ EXACT_PHASE1_DESIGN["PM-10"] = (
     "状态守卫+完整树+跨域阻断+幂等并发+响应式UI",
 )
 EXACT_PHASE1_DESIGN["SOL-01"] = (
-    "交付准备与方案（业务语义）/ PLT共享动态表单基础",
-    "Preparation / ConstructionPlan / Solution / DynamicFormTemplate / DynamicFormTemplateRevision / DynamicFormInstance",
-    "PLT模板修订DRAFT→PUBLISHED且发布版不可变，可用性ENABLED/DISABLED独立；业务提交/完成/审批仍由SOL状态机拥有",
-    "ProjectStageScope + PLT模板/实例功能权限",
-    "PreparationApplicationService / PLT Dynamic Form REST",
-    "Preparation、Plan、Solution、File、DynamicFormTemplate、DynamicFormTemplateRevision、DynamicFormInstance",
-    "业务规则+权限+动态渲染+版本+文件",
+    "交付准备与方案 / 基础平台",
+    "Preparation / DynamicFormTemplate / DynamicFormTemplateRevision / DynamicFormInstance",
+    "PLT修订DRAFT→PUBLISHED且不可变；实例CAS；消费Context拥有提交/完成/审批/历史",
+    "Owner业务范围 + PLT模板/实例权限",
+    "消费Context应用服务 / DynamicFormBusinessInstanceApi",
+    "Preparation、DynamicFormTemplateRevision、DynamicFormInstance、FileArtifact",
+    "动态schema+值+文件组合+领域状态",
+)
+EXACT_PHASE1_DESIGN["PRE-04"] = (
+    "交付准备与方案 / PLT动态表单组合",
+    "Preparation / DynamicFormInstance",
+    "SOL DRAFT→COMPLETED与草稿/有效版双轴；PLT实例冻结修订且不拥有业务状态",
+    "ProjectStageScope + SOL Owner策略",
+    "PreparationApplicationService / DynamicFormBusinessInstanceApi",
+    "Preparation、DynamicFormInstance、FileArtifact",
+    "业务规则+动态表单+版本+文件",
 )
 
 
@@ -385,8 +394,8 @@ FEATURE_LINK_OVERRIDES = {
     "PM-11": "[F-PROJ-007](../../specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md)",
     "PRE-01": "[F-SOL-001](../../specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md)",
     "PRE-02": "[F-SOL-002](../../specs/features/F-SOL-002-site-survey-assignment-and-readiness.md)",
-    "PRE-04": "[F-PLT-002共享动态表单基础](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003需求分析版本化](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
-    "SOL-01": "[F-PLT-002](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md)",
+    "PRE-04": "[F-PLT-002共享动态表单基础](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003需求分析动态表单与版本冻结](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
+    "SOL-01": "[F-PLT-002](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
     "PLT-02": "[F-PLT-001](../../specs/features/F-PLT-001-unified-file-identity-and-version-management.md)",
 }
 
@@ -447,12 +456,12 @@ IMPLEMENTATION_OVERRIDES = {
         "IMPLEMENTATION_COMPLETE",
     ),
     "PRE-04": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002 Feature Ready待独立评审；F-SOL-003原Feature Ready留痕保留，旧Technical Plan与Implementation审查已取消，待基础能力完成后前向修订并重规划",
-        "BASELINE",
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002 Implementation Complete；方案A聚焦修订与F-SOL-003新Feature Ready共同IN_REVIEW；旧Technical Plan及其Implementation审查已取消",
+        "IN_REVIEW",
     ),
     "SOL-01": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002 `IN_REVIEW`，只建设共享模板与手工实例基础，不宣称SOL-01或任一消费者完成",
-        "BASELINE",
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；首个PRE-04组合边界正在联合Feature Ready复审，不宣称完整SOL-01完成",
+        "IN_REVIEW",
     ),
     "PLT-02": (
         "PRD-V1.8-BASELINE+CHG-PRD-2026-08-27-004/SDS-V1.8-PHASE2-BASELINE / "

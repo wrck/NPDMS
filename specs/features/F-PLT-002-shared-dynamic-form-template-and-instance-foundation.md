@@ -121,11 +121,13 @@
 ### BR-FPLT002-009 业务实例公共边界
 
 - F-SOL-003是首个已确认的跨模块调用方。PLT在`pms-module-platform-api`提供`DynamicFormBusinessInstanceApi`，仅包含：明确发布修订用途检查与锁定重验、业务实例创建、读取、普通值CAS更新、整实例复制及完整实例锁定重验；调用方不得依赖PLT Service、Mapper或表。
-- 用途检查区分`BINDING_PUBLISH`与`FROZEN_BINDING_USE`：项目模板发布时要求修订仍为当前启用发布版；项目已经冻结后只重验明确不可变修订、用途兼容和事实版本，模板后来停用或发布新修订不得破坏既有项目创建业务实例。
+- 用途检查区分`REVISION_BINDING_PUBLISH`与`REVISION_FROZEN_USE`：项目模板发布时要求修订仍为当前启用发布版；项目已经冻结后只重验明确不可变修订、用途兼容和事实版本，模板后来停用或发布新修订不得破坏既有项目创建业务实例。
 - 业务实例继续写入`plt_dynamic_form_instance`，其Owner稳定键为`tenantId/ownerContext/objectType/objectId`。手工实例REST仍只创建`PLATFORM/MANUAL_DYNAMIC_FORM`，不能接收客户端自报Owner；受信业务API才可创建SOL等上下文实例。
 - PLT只拥有冻结模板修订、完整FormCreate schema、普通值和受控文件组合事实。Owner Context拥有查看、编辑、完成、不可变、历史和用途兼容规则；PLT不得增加PRE-04状态或把实例保存解释为业务完成。
 - `inspectInstance/lockAndRevalidateInstance`同时返回基于冻结schema和值计算的声明式校验结果。服务端只执行可稳定解释的必填、JSON类型、长度/数值范围、正则和枚举约束；浏览器事件、函数、parseFunc、远程API结果和iframe状态不作为服务端完成真值。消费Context可在此基础上增加自身业务必填，但不得把仅客户端函数校验宣称为服务端门禁。
-- 业务API必须参与调用方同一事务，不建立第二幂等记录、不嵌套`PlatformCommandExecutionApi`、不使用`REQUIRES_NEW`。SOL外层命令负责业务幂等与业务审计；PLT只写自身实际文件引用产生的PLT事件。
+- 业务实例动作值域封闭为`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`，修订用途动作封闭为`REVISION_BINDING_PUBLISH/REVISION_FROZEN_USE`。每个API及文件Provider按机器契约映射唯一动作，inspect冻结该动作，持锁重验必须使用同一动作、主体、Owner和scopeVersion，禁止调用方在inspect后升级动作。
+- 只读inspect不持锁；`lockAndRevalidateRevisionForUsage/createBusinessInstance/patchInstanceValues/cloneBusinessInstance/lockAndRevalidateInstance`及Owner持锁重验一律使用事务传播`MANDATORY`，无调用方事务必须拒绝。它们不建立第二幂等记录、不嵌套`PlatformCommandExecutionApi`、不使用`REQUIRES_NEW`；SOL外层命令负责业务幂等与业务审计，PLT只写自身实际文件引用产生的PLT事件。
+- 创建与复制由调用方同时预分配SOL业务ID和PLT实例ID，并把非空实例ID随SOL根首次INSERT及业务API命令提交；PLT只插入该明确ID，不生成后回填SOL根、不额外递增SOL版本。任一失败时预分配ID可废弃，但SOL根、PLT实例及成功事实必须全部回滚。
 - `cloneBusinessInstance`复制冻结修订和普通值，并为目标Owner创建独立FileReference指向来源不可变FileVersion。PLT内部复用F-PLT-001 `FileEventFactory.referenceAttached`并通过事务参与型`PlatformTransactionalOutboxWriter`写事件：每个实际新增引用恰一`FileReferenceAttached`，同目标同版本重放不新增，任一项失败时目标实例、引用、事件及外层成功事实共同回滚；禁止`REQUIRES_NEW`。
 
 ### BR-FPLT002-010 Owner策略、文件组合与锁序
@@ -186,9 +188,9 @@
 - `AC-FPLT002-010`：真实浏览器在320/768/1024/1440完成模板配置→预览→发布→启用→手工选择→实例填写→FileArtifact→保存→刷新闭环，并记录网络、console/page error和截图；无当前功能意外错误。
 - `AC-FPLT002-011`：BPM、旧`pms_eng_form_*`和旧需求分析类、页面、接口、数据及功能保持不变；新实现位于新的PLT类/页面，代码和测试可逐项追到已完成审计的映射ID，增强只发生在复制的新实现或明确的新PLT组合层上。
 - `AC-FPLT002-012`：不宣称WorkBinding、PRE-04版本化、SCH/IMP/ACC/CUT消费者、部署、系统集成测试、用户验收测试或发布完成；旧F-SOL-003技术计划不得继续使用。
-- `AC-FPLT002-013`：F-SOL-003通过`DynamicFormBusinessInstanceApi`在同一外层事务创建、读取、CAS修改并锁定重验业务实例；用户REST和手工实例语义零变化，SOL不直读PLT表。
+- `AC-FPLT002-013`：F-SOL-003预分配PLT实例ID，通过`DynamicFormBusinessInstanceApi`在同一外层事务以`MANDATORY`创建、CAS修改、复制并锁定重验业务实例；无外层事务拒绝，用户REST和手工实例语义零变化，SOL不直读PLT表。
 - `AC-FPLT002-014`：复制业务实例时，N个实际新FileReference产生N个`FileReferenceAttached`；同目标同版本重放事件不增；批量中途失败时目标实例、FileReference、Outbox及外层成功幂等/审计均为零。
-- `AC-FPLT002-015`：跨Context命令先全量完成按Owner稳定键排序的Provider锁定重验，再统一获取PLT实例/修订与Artifact→Version→Reference锁；首个PLT锁后无Provider回调。Provider未知、完整值或文件集合漂移均失败且零成功副作用。
+- `AC-FPLT002-015`：跨Context命令按封闭动作映射冻结Owner策略，持锁阶段重验同一动作；先全量完成按Owner稳定键排序的Provider锁定重验，再统一获取PLT实例/修订与Artifact→Version→Reference锁，首个PLT锁后无Provider回调。动作升级、Provider未知、完整值或文件集合漂移均失败且零成功副作用。
 
 ## 8. 测试与证据
 

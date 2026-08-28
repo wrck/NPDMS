@@ -260,7 +260,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 |---|---|---|---|
 | Preparation | `sol_preparation` | `sol_preparation_item`及各Feature专用明细 | 项目+准备类型+业务版本唯一；PRE-04以`dynamic_form_instance_id`逻辑引用唯一PLT业务实例，SOL只保存业务生命周期/版本/有效指针 |
 | PreparationDynamicFormInstance | `sol_dynamic_form_instance` | F-SOL-002既有明细 | 继续服务已完成工勘能力，表、读写和数据原样保留；PRE-04不得复用或改写它 |
-| RequirementAnalysisDynamicFormBinding | `sol_preparation.dynamic_form_instance_id` | PLT `plt_dynamic_form_instance` | 不建立跨Context物理外键；SOL不复制schema、值或附件真值；旧候选`sol_requirement_analysis_section`不再作为当前读写真值且不自动迁移 |
+| RequirementAnalysisDynamicFormBinding | `sol_preparation.dynamic_form_instance_id` | PLT `plt_dynamic_form_instance` | SOL预分配两侧ID，根首次INSERT即写非空实例ID，PLT按同一外层事务插入该ID，无回填或额外版本递增；不建跨Context物理外键，不复制schema/值/附件；旧候选章节表不再作为当前真值 |
 | ConstructionPlan | `sol_construction_plan` | `sol_construction_plan_revision`、`sol_construction_plan_item`、`sol_construction_plan_change` | `uk(tenant_id, plan_id, revision_no)`；批准 revision 只读 |
 | Solution | `sol_solution` | `sol_solution_revision`、`sol_solution_review` | 发布 revision 只读；文件仅保存 FileReference |
 
