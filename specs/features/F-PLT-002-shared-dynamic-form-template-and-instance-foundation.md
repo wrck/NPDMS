@@ -1,7 +1,8 @@
 # F-PLT-002 共享动态表单模板与实例基础能力功能规格
 
-> 文档状态：`IN_REVIEW（F-SOL-003真实调用方聚焦前向修订）`
+> 文档状态：`BASELINE（F-SOL-003真实调用方聚焦前向修订已就绪）`
 > 原功能就绪：`READY / GO NPDMS-FPLT002-FEATURE-READY-20260828-01-R1`
+> 聚焦修订就绪：`READY / GO（整改提交 4d04dbd63bbd01683416563bece31da6cd53f849）`
 > 原基础闭环实施：`IMPLEMENTATION_COMPLETE / NPDMS-FPLT002-IMPLEMENTATION-20260827-02-R2`
 > 本次修订门禁：`PENDING`；仅新增业务实例公共边界，不重开已完成的手工动态表单闭环
 > 主需求：`SOL-01（V2/P1）`

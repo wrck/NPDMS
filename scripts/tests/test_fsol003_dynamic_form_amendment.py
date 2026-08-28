@@ -22,8 +22,11 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
         cls.feature_index = FEATURE_INDEX.read_text(encoding="utf-8")
 
     def test_candidate_is_a_new_feature_ready_amendment_not_an_old_plan_reuse(self) -> None:
-        self.assertEqual("IN_REVIEW", self.contract["status"])
-        self.assertEqual("PENDING", self.contract["featureReadyDecision"])
+        self.assertEqual("BASELINE_READY", self.contract["status"])
+        self.assertEqual(
+            "GO_REMEDIATION_COMMIT_4D04DBD63BBD01683416563BECE31DA6CD53F849",
+            self.contract["featureReadyDecision"],
+        )
         self.assertEqual("FORWARD_AMENDMENT_AFTER_F_PLT_002", self.contract["contractType"])
         self.assertIn("2026-08-27 F-SOL-003 Technical Plan", self.contract["canceledInputs"])
         self.assertIn("旧Technical Plan和旧Implementation审查不能驱动实施", self.feature_spec)

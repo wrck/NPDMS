@@ -456,12 +456,12 @@ IMPLEMENTATION_OVERRIDES = {
         "IMPLEMENTATION_COMPLETE",
     ),
     "PRE-04": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002 Implementation Complete；方案A聚焦修订与F-SOL-003新Feature Ready共同IN_REVIEW；旧Technical Plan及其Implementation审查已取消",
-        "IN_REVIEW",
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；方案A聚焦修订与F-SOL-003 Feature Ready GO（规格整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`）；旧Technical Plan及其Implementation审查已取消",
+        "READY",
     ),
     "SOL-01": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；首个PRE-04组合边界正在联合Feature Ready复审，不宣称完整SOL-01完成",
-        "IN_REVIEW",
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；首个PRE-04组合边界Feature Ready GO（规格整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`），不宣称完整SOL-01完成",
+        "READY",
     ),
     "PLT-02": (
         "PRD-V1.8-BASELINE+CHG-PRD-2026-08-27-004/SDS-V1.8-PHASE2-BASELINE / "

@@ -1,7 +1,7 @@
 # F-SOL-003 需求分析动态表单与版本冻结功能规格
 
-> 文档状态：`IN_REVIEW`
-> Feature Ready：`PENDING`（共享动态表单基础完成后的前向重审）
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO（整改提交 4d04dbd63bbd01683416563bece31da6cd53f849）`
 > Requirement：`PRE-04（V1/P0）`
 > Owner Context：`SOL（交付准备与方案）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`、`F-PLT-001`、`F-PLT-002`
@@ -204,6 +204,6 @@ F-PLT-002在`pms-module-platform-api`增加`DynamicFormBusinessInstanceApi`：
 | PLT表单真值与SOL业务真值唯一分工 | PASS（本候选） |
 | 跨模块API、Owner策略、事务和锁序 | PASS（本候选） |
 | 现有版本化成果吸收与旧实现保持不变 | PASS（本候选） |
-| 独立Feature Ready裁决 | PENDING |
+| 独立Feature Ready裁决 | PASS（GO；整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`） |
 
-结论：`IN_REVIEW`。只有独立Feature Ready GO并回写`BASELINE/READY`后，才能锁定新规格、同步NPDMS并生成全新的中文Technical Plan；本候选不授权产品实施、部署、系统集成测试、用户验收测试或发布。
+结论：`BASELINE / READY`。独立Feature Ready已批准本次F-PLT-002跨Context聚焦修订及F-SOL-003组合边界；锁定本次规格提交并同步NPDMS后，基于该新基线生成全新的中文Technical Plan并独立送审。本裁决不授权沿用旧计划、产品实施、部署、系统集成测试、用户验收测试或发布。

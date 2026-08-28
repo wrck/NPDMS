@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "feature": "F-PLT-002",
   "name": "shared-dynamic-form-template-and-instance-foundation",
-  "status": "IN_REVIEW_FORWARD_AMENDMENT",
-  "featureReadyDecision": "PENDING_FPLT002_FSOL003_JOINT_AMENDMENT",
+  "status": "BASELINE_READY_FORWARD_AMENDMENT",
+  "featureReadyDecision": "GO_REMEDIATION_COMMIT_4D04DBD63BBD01683416563BECE31DA6CD53F849",
   "priorFeatureReadyDecision": "GO_NPDMS_FPLT002_FEATURE_READY_20260828_01_R1",
   "priorImplementationDecision": "IMPLEMENTATION_COMPLETE_NPDMS_FPLT002_IMPLEMENTATION_20260827_02_R2",
   "requirements": {

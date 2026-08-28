@@ -24,12 +24,15 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         cls.test_design = TEST_DESIGN.read_text(encoding="utf-8")
 
     def test_forward_amendment_preserves_prior_go_without_authorizing_implementation(self) -> None:
-        self.assertEqual("IN_REVIEW_FORWARD_AMENDMENT", self.contract["status"])
+        self.assertEqual("BASELINE_READY_FORWARD_AMENDMENT", self.contract["status"])
         self.assertEqual(
             "GO_NPDMS_FPLT002_FEATURE_READY_20260828_01_R1",
             self.contract["priorFeatureReadyDecision"],
         )
-        self.assertEqual("PENDING_FPLT002_FSOL003_JOINT_AMENDMENT", self.contract["featureReadyDecision"])
+        self.assertEqual(
+            "GO_REMEDIATION_COMMIT_4D04DBD63BBD01683416563BECE31DA6CD53F849",
+            self.contract["featureReadyDecision"],
+        )
         self.assertIn("本次修订门禁：`PENDING`", self.feature_spec)
         self.assertIn("共享动态表单模板与实例基础能力功能规格", self.feature_spec)
         self.assertIn("不重开已完成的手工动态表单闭环", self.feature_spec)

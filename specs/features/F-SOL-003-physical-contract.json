@@ -3,9 +3,9 @@
   "featureId": "F-SOL-003",
   "name": "需求分析动态表单与版本冻结",
   "requirementIds": ["PRE-04"],
-  "status": "IN_REVIEW",
+  "status": "BASELINE_READY",
   "contractType": "FORWARD_AMENDMENT_AFTER_F_PLT_002",
-  "featureReadyDecision": "PENDING",
+  "featureReadyDecision": "GO_REMEDIATION_COMMIT_4D04DBD63BBD01683416563BECE31DA6CD53F849",
   "canceledInputs": [
     "2026-08-27 F-SOL-003 Technical Plan",
     "all Implementation review conclusions derived from that plan"
