@@ -410,3 +410,19 @@ CollectionTask 必须在创建时冻结完成模式：
 | 历史实现漂移有目标落位 | PASS | MaintenanceFact、ServiceHandover、TechnicalNoticeReference、DeviceCredential |
 
 本分册可进入数据库物理化设计评审；最终 `BASELINE` 仍依赖 09～16 分册一致性校验和 Phase 2 独立复审。
+
+## F-CUS-001与F-AST-001数据模型增量
+
+### 客户主档
+
+- `Customer`主表分列保存PRD明确的CRM权威字段、平台扩展字段和当前来源元数据；客户编码在租户内永久唯一，软删除不释放。
+- `CustomerExternalMapping`保存CRM客户ID、当前主映射、来源版本和eventId；同一CRM客户最多一个当前平台客户，一个客户最多一个当前CRM主映射。
+- `CustomerFieldHistory`与`CustomerSyncSnapshot`追加保存字段前后值摘要、来源、版本、水位和冲突；不得用万能JSON替代核心字段。
+- `CustomerLocationReference`只引用Address/Site，保存类型、来源版本和有效区间。
+
+### 设备主档
+
+- `Device`保存稳定deviceId、租户内永久唯一serialNumber和AST平台字段；软删除不释放序列号。
+- MES、ITR和KNO来源副本分别保存来源键、来源版本、`dataAsOf`和统一同步状态；来源状态为`FRESH/STALE/FAILED/PENDING_MAPPING/NOT_AVAILABLE`。
+- `DeviceCurrentCustomerAssignment`表达当前唯一客户直接归属；`DeviceCustomerRelationship`表达历史、租用、共管等带类型有效区间关系，区间不得重叠。
+- KNO拥有官网信息版本，保存来源URL、核验时间、摘要和发布版本；AST不复制为第二Owner。

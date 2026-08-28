@@ -44,6 +44,8 @@ class SpecificationBaselineTest(unittest.TestCase):
             "docs/decisions/0030-project-task-execution-contract-and-cutover-checklist-carriers.md",
             "docs/decisions/0032-manual-project-creation-cross-context-atomicity.md",
             "specs/features/README.md",
+            "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
+            "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
             "specs/features/F-PLT-002-legacy-form-reuse-audit.md",
             "specs/features/F-PLT-002-physical-contract.json",
             "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
@@ -63,17 +65,19 @@ class SpecificationBaselineTest(unittest.TestCase):
 
 
 class SpecificationBaselinePathTest(unittest.TestCase):
-    def test_allowlist_contains_exactly_114_files(self) -> None:
+    def test_allowlist_contains_exactly_116_files(self) -> None:
         allowlist = Path(__file__).resolve().parents[2] / "docs/specification-baseline/allowlist.json"
 
         entries = load_allowlist(allowlist)
 
-        self.assertEqual(114, len(entries))
-        self.assertEqual(114, len({entry.path for entry in entries}))
+        self.assertEqual(116, len(entries))
+        self.assertEqual(116, len({entry.path for entry in entries}))
 
     def test_accepts_feature_spec_paths(self) -> None:
         feature_spec_paths = (
             "specs/features/README.md",
+            "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
+            "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
             "specs/features/F-PLT-002-legacy-form-reuse-audit.md",
             "specs/features/F-PLT-002-physical-contract.json",
             "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "9417079eda9e64ca5ecc23373c86431434800f83"
+    "commit": "ef8169a7fc452e1006e3a1cf8454b5533798ca34"
   },
   "files": [
     {
@@ -223,7 +223,7 @@
     {
       "path": "docs/decisions/open-questions.md",
       "category": "DECISION",
-      "sha256": "352e896305b7b1e1d8c8a601c5586cf112d840cda008ac77b1dce2690f21673b"
+      "sha256": "45b7973a8e91318527b5636aff6d11ac77a45bd05bbc5dbf672fb41674257f98"
     },
     {
       "path": "docs/design/01-requirement-traceability.md",
@@ -253,7 +253,7 @@
     {
       "path": "docs/design/02d-cross-context-contracts.md",
       "category": "SDS",
-      "sha256": "63bd0436eea773dd14cab3b7616ef2d721d75246ef7fa997f56d7ded0b227d00"
+      "sha256": "9ab6504b2e6e139d1e9a43c2f0b8aa67a0ebf089d06fec44d452267563ab5d62"
     },
     {
       "path": "docs/design/02e-version-scope-matrix.md",
@@ -268,7 +268,7 @@
     {
       "path": "docs/design/04-module-design.md",
       "category": "SDS",
-      "sha256": "803ed1aefcc58e66d285579422e30031bf234f16407ea09cb9d0acf2aacf1700"
+      "sha256": "f38d790ed835b51087cbcc0771ae44e5b1affef4e1952935b25dfc7bf0cbe2e2"
     },
     {
       "path": "docs/design/05-state-machine.md",
@@ -283,12 +283,12 @@
     {
       "path": "docs/design/07-authorization-design.md",
       "category": "SDS",
-      "sha256": "7ec0b8242030d8feb124bbbbdd7971a6a0acce55715cee7cf29bf4d599e2168d"
+      "sha256": "0ccdc3f0b238d5923cf8e6ea0839723de30add4fa5145f3ae687bb1357b2f616"
     },
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "b8c7c100fea13c6741937134839975b72df1c11d9d14cb67104ffe3f7851ce58"
+      "sha256": "ace15bdf396bd9a330b3e62edee59bf6c05f7828f8242a85b43b74d001feb63d"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
@@ -298,12 +298,12 @@
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "c4a63147aa492c8a59e740dcc7aca2c825f1e01d26038ef0f3d5970d3f9acbd9"
+      "sha256": "19e95ea91b02db6857fda9eae6753831198f8f390f0cfe2cbcebf3082065990d"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "6877c481b641afb3d64022a3d9117502e7389f9841cc94ee8c0e035d34093c64"
+      "sha256": "2ff9cb2861673d023f29ca2c419dd5eb227a46809a0674aae63771097e9e7d67"
     },
     {
       "path": "docs/design/11-event-design.md",
@@ -448,7 +448,17 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "e8810def8e7c6846162cc10f593e14c4747b514986486d4bdfc5584cd63dcc12"
+      "sha256": "54632714d5eb0a953fa28283c4294a91d1263a986a163cb6aa898b6f8e79bbdb"
+    },
+    {
+      "path": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "ba0f1efaeaa214a47a28d303f16d45bfceedb8c220e8412b9f3b533c1969a089"
+    },
+    {
+      "path": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "69262ac88761e4439c09c5ee492ebbd5e5d78719e2dcd8725d77f35fa4a81c8f"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
@@ -573,7 +583,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "249d073a58d872d3928903d0f64a36da16434a1210d823dd45a0e1aea8acb493"
+      "sha256": "a17e0f02089b30d9d52382b85081a721290889a0a784622f8f37051ddbf4fe91"
     }
   ]
 }
