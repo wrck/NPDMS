@@ -41,6 +41,8 @@ DMavenRepository/
 
 # Local test database artifacts
 *.h2.*
+device-ops-platform/data/
+device-ops-platform/device-ops-web/.tmp-mock/
 DMavenRepository
 DMavenRepository
 .m2

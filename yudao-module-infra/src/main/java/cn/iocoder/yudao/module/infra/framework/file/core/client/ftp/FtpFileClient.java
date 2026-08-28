@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.infra.framework.file.core.client.AbstractFileClie
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 
 /**
  * Ftp 文件客户端
@@ -56,6 +57,19 @@ public class FtpFileClient extends AbstractFileClient<FtpFileClientConfig> {
             throw new FtpException(StrUtil.format("上传文件到目标目录 ({}) 失败", filePath));
         }
         // 拼接返回路径
+        return super.formatFileUrl(config.getDomain(), path);
+    }
+
+    @Override
+    public String upload(InputStream content, long contentLength, String path, String type) {
+        String filePath = getFilePath(path);
+        String fileName = FileUtil.getName(filePath);
+        String dir = StrUtil.removeSuffix(filePath, fileName);
+        reconnectIfTimeout();
+        boolean success = ftp.upload(dir, fileName, content);
+        if (!success) {
+            throw new FtpException(StrUtil.format("上传文件到目标目录 ({}) 失败", filePath));
+        }
         return super.formatFileUrl(config.getDomain(), path);
     }
 
