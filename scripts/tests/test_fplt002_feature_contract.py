@@ -82,6 +82,10 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         self.assertIn("replay adds zero", outbox[0]["cardinality"])
 
     def test_business_actions_and_transaction_propagation_are_closed(self) -> None:
+        self.assertEqual(
+            "GO_NPDMS_FSOL003_FILE_LIFECYCLE_ACTION_MAPPING_20260828_01",
+            self.contract["fileLifecycleActionBoundaryDecision"],
+        )
         interfaces = self.contract["interfaces"]
         expected_actions = {
             "REVISION_BINDING_PUBLISH",
@@ -100,6 +104,20 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         self.assertEqual("CREATE", mapping["createBusinessInstance"])
         self.assertIn("CLONE_SOURCE", mapping["cloneBusinessInstance"])
         self.assertEqual("FILE_WRITE", mapping["fileProviderUploadReferenceReplaceDetach"])
+        lifecycle_mapping = mapping["businessFileProviderArchiveInvalidate"]
+        self.assertEqual("FILE_WRITE", lifecycle_mapping["businessAction"])
+        self.assertEqual("BUSINESS_INSTANCE_ONLY", lifecycle_mapping["scope"])
+        self.assertIn("F-PLT-001 file-management command", lifecycle_mapping["entry"])
+        self.assertIn("independent pms:file:archive", lifecycle_mapping["entry"])
+        self.assertEqual("DENY", lifecycle_mapping["manualInstance"])
+        self.assertEqual("NONE", lifecycle_mapping["uiProjection"])
+        self.assertNotIn("ARCHIVE", self.contract["pmsFileArtifactField"]["manualInstanceActions"])
+        self.assertNotIn("INVALIDATE", self.contract["pmsFileArtifactField"]["manualInstanceActions"])
+        self.assertIn("ARCHIVE", self.contract["pmsFileArtifactField"]["businessInstanceActions"])
+        self.assertIn("INVALIDATE", self.contract["pmsFileArtifactField"]["businessInstanceActions"])
+        self.assertIn("pms:file:archive", self.contract["pmsFileArtifactField"]["businessOwnerPolicy"])
+        self.assertIn("independently requires", self.contract["pmsFileArtifactField"]["businessOwnerPolicy"])
+        self.assertIn("manual instances", self.contract["pmsFileArtifactField"]["businessOwnerPolicy"])
         self.assertIn("same action", mapping["lockAndRevalidateInstance"])
         transaction = " ".join(interfaces["publicModuleApi"]["transaction"])
         self.assertIn("propagation MANDATORY", transaction)
