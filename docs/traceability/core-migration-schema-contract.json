@@ -1317,16 +1317,37 @@
   "migrationIssueTable": "plt_migration_issue",
   "sourceEvidenceTable": "plt_migration_source_record",
   "currentTableScope": {
-    "cus_customer": {
+    "cus_customer_master": {
       "requirementRefs": [
         "CUS-03",
         "INT-03"
+      ]
+    },
+    "cus_customer_external_mapping": {
+      "requirementRefs": [
+        "CUS-03",
+        "INT-03"
+      ]
+    },
+    "cus_customer_field_history": {
+      "requirementRefs": [
+        "CUS-03"
+      ]
+    },
+    "cus_customer_location_reference": {
+      "requirementRefs": [
+        "CUS-03"
       ]
     },
     "cus_market_relation": {
       "requirementRefs": [
         "CUS-03",
         "INT-03"
+      ]
+    },
+    "cus_customer_scope_slice": {
+      "requirementRefs": [
+        "CUS-03"
       ]
     },
     "cus_customer_contact": {
