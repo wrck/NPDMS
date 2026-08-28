@@ -12,6 +12,13 @@
       <el-form-item label="子行业"
         ><el-input v-model="query.industryCode" clearable
       /></el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.lifecycleStatus" clearable style="width: 140px">
+          <el-option label="启用" value="ENABLED" />
+          <el-option label="停用" value="DISABLED" />
+          <el-option label="已删除" value="DELETED" />
+        </el-select>
+      </el-form-item>
       <el-form-item
         ><el-button @click="load"><Icon icon="ep:search" />查询</el-button
         ><el-button type="primary" v-hasPermi="['pms:customer:create']" @click="formDrawer?.open()"
@@ -39,8 +46,13 @@
       />
       <el-table-column label="操作" width="260"
         ><template #default="{ row }"
-          ><el-button link @click="openDetail(row.id)">详情</el-button
-          ><el-button link v-hasPermi="['pms:customer:update']" @click="editCustomer(row.id)"
+          ><el-button v-if="row.lifecycleStatus !== 'DELETED'" link @click="openDetail(row.id)"
+            >详情</el-button
+          ><el-button
+            v-if="row.lifecycleStatus !== 'DELETED'"
+            link
+            v-hasPermi="['pms:customer:update']"
+            @click="editCustomer(row.id)"
             >编辑</el-button
           ><el-button
             v-if="row.lifecycleStatus === 'ENABLED'"
@@ -100,6 +112,7 @@ import CustomerSourcePanel from './components/CustomerSourcePanel.vue'
 import CustomerLocationPanel from './components/CustomerLocationPanel.vue'
 import CustomerRelationSummaryPanel from './components/CustomerRelationSummaryPanel.vue'
 import CustomerHistoryPanel from './components/CustomerHistoryPanel.vue'
+import { createCustomerIntentStore, customerIntentOf } from './customerInteraction'
 defineOptions({ name: 'PmsCustomerWorkbench' })
 const message = useMessage()
 const loading = ref(false)
@@ -107,6 +120,7 @@ const rows = ref<CustomerRespVO[]>([])
 const total = ref(0)
 const detail = ref<CustomerDetailRespVO>()
 const formDrawer = ref<InstanceType<typeof CustomerFormDrawer>>()
+const intentKeys = createCustomerIntentStore()
 const query = reactive<CustomerPageReqVO>({ pageNo: 1, pageSize: 10 })
 const load = async () => {
   loading.value = true
@@ -123,7 +137,8 @@ const openDetail = async (id: number) => {
 }
 const editCustomer = async (id: number) => formDrawer.value?.open(await CustomerApi.getCustomer(id))
 const selectCustomer = (row?: CustomerRespVO) => {
-  if (row) openDetail(row.id)
+  if (row && row.lifecycleStatus !== 'DELETED') openDetail(row.id)
+  else detail.value = undefined
 }
 const runLifecycle = async (row: CustomerRespVO, action: 'disable' | 'delete' | 'restore') => {
   const { value } = await ElMessageBox.prompt('请输入操作原因', '客户生命周期操作', {
@@ -131,12 +146,15 @@ const runLifecycle = async (row: CustomerRespVO, action: 'disable' | 'delete' | 
     inputErrorMessage: '原因不能为空'
   })
   const data = { reason: value }
+  const intent = customerIntentOf(action, { id: row.id, version: row.version, data })
+  const idempotencyKey = intentKeys.key(intent)
   if (action === 'disable')
-    await CustomerApi.disableCustomer(row.id, data, row.version, crypto.randomUUID())
+    await CustomerApi.disableCustomer(row.id, data, row.version, idempotencyKey)
   if (action === 'delete')
-    await CustomerApi.deleteCustomer(row.id, data, row.version, crypto.randomUUID())
+    await CustomerApi.deleteCustomer(row.id, data, row.version, idempotencyKey)
   if (action === 'restore')
-    await CustomerApi.restoreCustomer(row.id, data, row.version, crypto.randomUUID())
+    await CustomerApi.restoreCustomer(row.id, data, row.version, idempotencyKey)
+  intentKeys.complete(intent)
   message.success('操作成功')
   await load()
   if (detail.value?.id === row.id) await openDetail(row.id)

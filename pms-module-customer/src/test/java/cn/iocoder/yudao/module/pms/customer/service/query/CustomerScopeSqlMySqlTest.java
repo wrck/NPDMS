@@ -136,6 +136,20 @@ class CustomerScopeSqlMySqlTest {
         assertEquals(1, ((Number) row.get("version")).intValue());
     }
 
+    @Test
+    void deletedFilterReturnsOnlyAuthorizedDeletedCustomers() {
+        jdbcTemplate.update("UPDATE cus_customer_master SET lifecycle_status = 'DELETED', deleted = b'1' WHERE id = ?",
+                baseId);
+        var query = new VisibleCustomerPageQuery(
+                1L, null, null, null, null, null, null, null, "DELETED", null, false,
+                List.of(slice("D-A", "M-A", "S-A", "E-A", "I-A")), new PageParam());
+
+        var result = customerMasterMapper.selectVisiblePage(query);
+
+        assertEquals(1L, result.getTotal());
+        assertEquals(baseId, result.getList().getFirst().getId());
+    }
+
     private CustomerScopeSlice slice(
             String departmentCode,
             String marketCode,

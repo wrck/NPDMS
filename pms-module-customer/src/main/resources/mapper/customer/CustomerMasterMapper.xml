@@ -59,7 +59,14 @@
 
     <sql id="visibleConditions">
         tenant_id = #{query.tenantId}
-        AND deleted = b'0'
+        <choose>
+            <when test='"DELETED".equals(query.lifecycleStatus)'>
+                AND deleted = b'1'
+            </when>
+            <otherwise>
+                AND deleted = b'0'
+            </otherwise>
+        </choose>
         <if test="query.code != null and query.code != ''">
             AND code LIKE CONCAT(#{query.code}, '%')
         </if>

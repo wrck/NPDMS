@@ -15,6 +15,8 @@ public class CustomerRespVO {
     private String sourceType;
     private String syncStatus;
     private LocalDateTime dataAsOf;
+    private Boolean reconciliationPending;
+    private String temporaryReason;
     private String contactPhone;
     private String contactEmail;
     private String departmentCode;

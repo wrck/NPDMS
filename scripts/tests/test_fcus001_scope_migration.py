@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATION = ROOT / "sql" / "migrations" / "V107__fcus001_customer_classification_scope.sql"
+ACCEPTANCE_SEED = ROOT / "sql" / "migrations" / "V123__fcus001_acceptance_seed.sql"
 
 
 class CustomerScopeMigrationContractTest(unittest.TestCase):
@@ -44,6 +45,16 @@ class CustomerScopeMigrationContractTest(unittest.TestCase):
             "`industry_codes`",
         ):
             self.assertIn(column, self.sql)
+
+    def test_acceptance_seed_is_transparent_and_does_not_insert_customer_facts(self):
+        self.assertTrue(ACCEPTANCE_SEED.exists())
+        sql = ACCEPTANCE_SEED.read_text(encoding="utf-8").lower()
+        self.assertIn("fcus001_acceptance_seed_v1", sql)
+        self.assertIn("creator", sql)
+        self.assertIn("'seed'", sql)
+        self.assertIn("insert into `cus_market_relation`", sql)
+        self.assertNotIn("insert into `cus_customer_master`", sql)
+        self.assertNotIn("insert into `cus_customer_external_mapping`", sql)
         for column in (
             "`department_mode`",
             "`market_mode`",

@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class CustomerMasterDO extends TenantBaseDO {
 
-    @TableId
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private String code;
     private String name;

@@ -57,6 +57,8 @@ export interface CustomerRespVO {
   sourceType: CustomerSourceType
   syncStatus?: string
   dataAsOf?: string
+  reconciliationPending: boolean
+  temporaryReason?: string
   contactPhone?: string
   contactEmail?: string
   departmentCode: string

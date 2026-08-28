@@ -1,0 +1,34 @@
+{
+  "evidenceId": "NPDMS-FCUS001-BROWSER-20260828-01",
+  "generatedAt": "2026-08-28T11:32:18.522Z",
+  "environment": {
+    "backend": "isolated-host-runtime:59280",
+    "frontend": "isolated-vite-runtime:19081",
+    "mysql": "isolated-compose-runtime:23316",
+    "browser": "real-chrome-cdp"
+  },
+  "result": "PASS",
+  "coverage": {
+    "platformCustomerCreate": true,
+    "stableIdempotentReplay": true,
+    "singleCustomerFact": true,
+    "temporaryCustomerReasonAndReconciliation": true,
+    "deletedFilterAndStableIdentityRestore": true,
+    "readonlyMutationDenied": true,
+    "emptyScopeDenied": true,
+    "crossTenantIsolation": true,
+    "referencedDeleteBlocked": true,
+    "superAdminPreserved": true,
+    "crmSourceRemovedFromBusinessCreateUi": true,
+    "responsive320": true,
+    "responsive768": true,
+    "responsive1024": true,
+    "responsive1440": true
+  },
+  "runtimeErrors": {
+    "console": [],
+    "page": [],
+    "failedResponses": []
+  },
+  "rawEvidence": "output/f-cus-001-v18/browser-current/result.json"
+}
