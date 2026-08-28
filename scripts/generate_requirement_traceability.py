@@ -437,7 +437,14 @@ FEATURE_LINK_OVERRIDES = {
     "EQP-01": "[F-AST-001](../../specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md)",
 }
 
-IMPLEMENTATION_OVERRIDES = {
+VERSION_SLICE_OVERRIDES = {
+    "PM-08": "V1（人工指派） / V2（自动指派）",
+}
+
+# Transitional projections for the current matrix. They are not a Capability
+# state source and must be replaced by Requirement-version coverage derivation
+# once the complete coverage input is available.
+TRANSITIONAL_STATUS_PROJECTIONS = {
     "CUS-03": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
         "SPEC-FCUS001-FEATURE-READY-20260825-01 / "
@@ -467,8 +474,9 @@ IMPLEMENTATION_OVERRIDES = {
     ),
     "PM-04": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "NPDMS `9ab894f` Task、自动化、真实MySQL、真实浏览器与Implementation Done证据",
-        "IMPLEMENTATION_COMPLETE",
+        "F-PROJ-002/F-PROJ-003子闭环已完成；NPDMS `9ab894f` Task、自动化、真实MySQL、真实浏览器与Implementation Done证据；"
+        "任务、设备、交付件、割接和巡检等业务对象仍须在各消费者Feature接入统一ProjectScopeApi",
+        "IMPLEMENTATION_PARTIAL（F-PROJ-002/F-PROJ-003子闭环完成；其余业务对象接入未完成）",
     ),
     "PM-07": (
         "PRD-V1.8-BASELINE+CHG-PRD-2026-08-25-003/SDS-V1.8-PHASE2-BASELINE / "
@@ -479,7 +487,7 @@ IMPLEMENTATION_OVERRIDES = {
     "PM-08": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
         "NPDMS `25230ce` Task 1～6、自动化、全新MySQL、单/多租户运行态、真实浏览器与独立整改复审GO",
-        "IMPLEMENTATION_COMPLETE（仅V1人工指派；V2自动指派未开始）",
+        "V1：IMPLEMENTATION_COMPLETE（人工指派）；V2：NOT_STARTED（自动指派）",
     ),
     "PM-10": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
@@ -506,12 +514,14 @@ IMPLEMENTATION_OVERRIDES = {
         "IMPLEMENTATION_COMPLETE",
     ),
     "PRE-04": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；方案A聚焦修订与F-SOL-003 Feature Ready GO（规格整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`）；旧Technical Plan及其Implementation审查已取消",
-        "READY",
+        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；"
+        "F-SOL-003为Feature Ready且实施仍为NOT_STARTED；SCH-01稳定版本引用、预填和跨Feature贯通未完成；"
+        "规格整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`，旧Technical Plan及其Implementation审查已取消",
+        "IMPLEMENTATION_PARTIAL（共享表单基础完成；F-SOL-003与SCH-01贯通未完成）",
     ),
     "SOL-01": (
         "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；首个PRE-04组合边界Feature Ready GO（规格整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`），不宣称完整SOL-01完成",
-        "READY",
+        "IMPLEMENTATION_PARTIAL（F-PLT-002共享基础完成；完整SOL-01未完成）",
     ),
     "PLT-02": (
         "PRD-V1.8-BASELINE+CHG-PRD-2026-08-27-004/SDS-V1.8-PHASE2-BASELINE / "
@@ -539,6 +549,7 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "> 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。",
         "> 批准增量：`CHG-PRD-2026-08-27-004`（PLT-02文件安全扫描默认关闭；关闭时真实`SKIPPED`，开启时失败关闭）。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
+        "> Feature、Evidence和状态列是当前过渡投影，不是Capability状态或Requirement完成权威；完整自动派生启用前不得据此直接关闭Requirement。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
@@ -550,7 +561,8 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "| 状态 | 含义 |",
         "|---|---|",
         "| `BASELINE` | 已纳入PRD V1.8正式基线 |",
-        "| `IMPLEMENTATION_COMPLETE` | Feature实现、适用验证与代码评审已完成；不代表Deployment、SIT、UAT或Release通过 |",
+        "| `IMPLEMENTATION_COMPLETE` | 当前Requirement目标版本切片的已知业务义务均已映射，且全部必需Feature已完成；不代表Deployment、SIT、UAT或Release通过 |",
+        "| `IMPLEMENTATION_PARTIAL` | 至少一个合法Feature子闭环已完成，但该Requirement目标版本切片仍有未完成或未映射业务义务 |",
         "| `NOT_STARTED` | 下游工程资产尚未生成，不代表需求缺失 |",
         "| `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |",
         "| `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |",
@@ -566,21 +578,22 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "",
         "## 正式需求追溯",
         "",
-        "| Requirement | 名称 | Owner | 业务模块 | 聚合 | 状态机/工作流 | 权限模型 | 计划API | 计划数据对象 | 测试类别 | 所属阶段 | 版本 | 优先级 | 来源追溯 | SDS | Feature | Evidence | Release | 状态 |",
+        "| Requirement | 名称 | Owner | 业务模块 | 聚合 | 状态机/工作流 | 权限模型 | 计划API | 计划数据对象 | 测试类别 | 所属阶段 | 版本 | 优先级 | 来源追溯 | SDS | Feature | Evidence | Release | 过渡状态投影 |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for item in requirements:
         domain, owner = owners[item["id"]]
         module, aggregate, lifecycle, permission, api, data, test_category = phase1_design(item["id"], domain)
         feature = FEATURE_LINK_OVERRIDES.get(item["id"], (feature_links or {}).get(item["id"], "NOT_STARTED"))
-        evidence, status = IMPLEMENTATION_OVERRIDES.get(
+        evidence, status = TRANSITIONAL_STATUS_PROJECTIONS.get(
             item["id"],
             ("PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE", "BASELINE"),
         )
+        version_slice = VERSION_SLICE_OVERRIDES.get(item["id"], item["version"])
         owner_label = "PROJ（项目治理；INT传输后置）" if item["id"] == "PM-07" else f"{domain}（{owner}）"
         values = [
             item["id"], item["name"], owner_label, module, aggregate, lifecycle,
-            permission, api, data, test_category, item["stage"], item["version"], item["priority"],
+            permission, api, data, test_category, item["stage"], version_slice, item["priority"],
             item["source"], sds_reference(item["id"]), feature, evidence, "NOT_STARTED", status,
         ]
         lines.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
