@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "71834e061c5f97aa3c1ba8df91938e4f284e3579"
+    "commit": "63878cd2dc6b925442e7ffa455f70213556d1cb6"
   },
   "files": [
     {
@@ -283,7 +283,7 @@
     {
       "path": "docs/design/07-authorization-design.md",
       "category": "SDS",
-      "sha256": "47dff6e18ea38ce61589eba506fd8aa581489a62495f04c2ef5373f927d02945"
+      "sha256": "0089e02d0226679a80363113825274c9ac3783bd4216da5cf336d3071e8d2809"
     },
     {
       "path": "docs/design/08-data-model.md",
@@ -303,7 +303,7 @@
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "23da579be4ed68ec91c4a1f6ec1e141413ec8fae2225735c9be105e63f36eed4"
+      "sha256": "6df1d52461ba5ca37aa122faec83818277cae01d3ac8c3d577eeab1f7427e083"
     },
     {
       "path": "docs/design/11-event-design.md",
@@ -318,7 +318,7 @@
     {
       "path": "docs/design/13-file-design.md",
       "category": "SDS",
-      "sha256": "4e829fc59fb226ca0d256c9a105e246be858939d1011e1c54a9bccb94a53e2f6"
+      "sha256": "8726191c67b0f376ce1033cc1dd87b6d6638238a8cb7d98ae65bf25f1451d056"
     },
     {
       "path": "docs/design/14-security-design.md",
@@ -478,12 +478,12 @@
     {
       "path": "specs/features/F-PLT-002-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "259cbce3a1feabf18a6e9d5b68992eca03bcedca359d91bd5fb899e58c3c4455"
+      "sha256": "428733fcf2b0fa4e59c0805b78b990817fe91a7395c0d29b6293719790d7b6dd"
     },
     {
       "path": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
       "category": "FEATURE_SPEC",
-      "sha256": "e992bc8a446dea9e4268d6c1bc8996b3ec1316447b18f591acd81933dbce8325"
+      "sha256": "e547b1efde3d8bb878947136f26f45033b2a5eeaa7f10469356401ec34f1f685"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -573,12 +573,12 @@
     {
       "path": "specs/features/F-SOL-003-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "084a6f7bfa7029523017457923c6cb35224675e10e0d3097d9b8fa2994e9ad04"
+      "sha256": "05536f7b3701ab974ee844d9783522aae725d79b7a99132f001f59a1ef426a49"
     },
     {
       "path": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
       "category": "FEATURE_SPEC",
-      "sha256": "2e0848f7dc153c39a65993cfdc4ab6a04728ae4009d63ceac752b64b475871ed"
+      "sha256": "965c39c45e54b2a0d368b3a16462f452f3de9340003f5efc3b32267f512aec8d"
     },
     {
       "path": "specs/features/README.md",

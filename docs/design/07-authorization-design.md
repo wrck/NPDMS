@@ -54,7 +54,7 @@
 
 WorkBinding不授予新权限。`TASK_NATIVE`的授权目标就是当前ProjectTask；其他类型必须合并任务范围与目标业务范围。工作台响应只返回受信任绑定类型、必要的目标稳定引用、允许操作码和必要展示数据；除明确引用PLATFORM已发布动态表单修订外，不得返回任意脚本、未授权对象详情或凭证明文。已发布动态表单中的客户端函数仍以当前用户权限调用Owner API，不能扩权。`VIEW/EDIT/CREATE/FILL/APPROVE`等模式是服务端权限和业务状态的结果，不是前端可切换参数。
 
-动态表单业务实例Owner策略使用封闭动作：`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`及两项修订用途动作。只读inspect冻结动作、主体、Owner与scopeVersion，持锁重验必须完全一致；不得以READ事实执行PATCH/COMPLETE，也不得互换克隆源与目标权限。
+动态表单业务实例Owner策略使用封闭动作：`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`及两项修订用途动作。文件`READ/DOWNLOAD/PREVIEW`映射`FILE_READ`；业务Owner实例的`UPLOAD/REFERENCE/REPLACE/DETACH/ARCHIVE/INVALIDATE`映射`FILE_WRITE`，其中归档/失效仅由F-PLT-001文件管理入口委托且仍独立要求`pms:file:archive`；手工动态表单实例不允许该两动作。只读inspect冻结动作、主体、Owner与scopeVersion，持锁重验必须完全一致；不得以READ事实执行PATCH/COMPLETE，也不得互换克隆源与目标权限。PRE-04只在当前项目经理、当前草稿和自身管理权限全部成立时返回`FILE_WRITE`，页面不投影归档/失效按钮。
 
 `Device Access & Collection` 的子应用或模块不得扩大调用方权限；任务下发前重新校验用户、租户、项目树、设备当前归属、订单交付范围、现场批次和凭证/临时登录方式。临时用户名密码可以用于单次连接但不落库；只有用户明确执行“保存为凭证”才创建 `DeviceCredential`。
 

@@ -6,6 +6,7 @@
   "status": "BASELINE_READY",
   "contractType": "FORWARD_AMENDMENT_AFTER_F_PLT_002",
   "featureReadyDecision": "GO_REMEDIATION_COMMIT_4D04DBD63BBD01683416563BECE31DA6CD53F849",
+  "fileLifecycleActionBoundaryDecision": "GO_NPDMS_FSOL003_FILE_LIFECYCLE_ACTION_MAPPING_20260828_01",
   "canceledInputs": [
     "2026-08-27 F-SOL-003 Technical Plan",
     "all Implementation review conclusions derived from that plan"
@@ -177,7 +178,7 @@
       "CLONE_SOURCE": "current project manager may read and clone only the current effective COMPLETED source",
       "CLONE_TARGET": "current project manager may create only the unique next current DRAFT target",
       "FILE_READ": "PROJECT_VIEW may read, download or preview files for a visible DRAFT or COMPLETED version",
-      "FILE_WRITE": "current project manager may upload, reference, replace or detach only on the current DRAFT"
+      "FILE_WRITE": "current project manager with PROJECT_MANAGE and pms:requirement-analysis:manage may upload, reference, replace, detach, archive or invalidate only on the current DRAFT with draft_marker=1; archive or invalidate is delegated only from an F-PLT-001 file-management command that independently requires pms:file:archive and is never a PRE-04 page allowedAction"
     },
     "result": ["action", "allowed", "stableErrorCode", "scopeVersion", "ownerStateSummary"],
     "operationRules": {
@@ -206,6 +207,14 @@
     "solSnapshot": "NONE",
     "unknownResponse": "reuse the same slotKey and file-command Idempotency-Key, then refresh PLT facts",
     "completedPolicy": "READ/DOWNLOAD/PREVIEW only",
+    "lifecycleActionMapping": {
+      "ARCHIVE": "FILE_WRITE",
+      "INVALIDATE": "FILE_WRITE",
+      "scope": "trusted business Owner instance only; current DRAFT with draft_marker=1 and current project manager",
+      "functionalPermissions": ["pms:requirement-analysis:manage", "pms:file:archive"],
+      "manualDynamicFormInstance": "DENY",
+      "uiProjection": "PRE-04 page exposes no archive/invalidate button or allowedAction"
+    },
     "clonePolicy": "new instance references reuse immutable source FileVersions but use new owner slots",
     "events": "PLATFORM reuses F-PLT-001 FileEventFactory.referenceAttached and PlatformTransactionalOutboxWriter; exactly one FileReferenceAttached for each actually inserted target reference, replay adds zero and batch failure rolls back all events"
   },
@@ -406,6 +415,7 @@
       "template compatibility rejects any missing or duplicate core attachment field while allowing every attachment value to remain empty",
       "full FormCreate values and controlled files",
       "unknown-response recovery",
+      "public invalidation refreshes the authoritative file fact, produces CONTROLLED_FILE_INVALID and removes COMPLETE without a SOL attachment copy",
       "V1/V2 history and comparison",
       "unauthorized read-only/rejection",
       "320/768/1024/1440 and zero unexpected console/page/request errors"

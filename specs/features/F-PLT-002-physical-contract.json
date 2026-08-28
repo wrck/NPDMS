@@ -6,6 +6,7 @@
   "featureReadyDecision": "GO_REMEDIATION_COMMIT_4D04DBD63BBD01683416563BECE31DA6CD53F849",
   "priorFeatureReadyDecision": "GO_NPDMS_FPLT002_FEATURE_READY_20260828_01_R1",
   "priorImplementationDecision": "IMPLEMENTATION_COMPLETE_NPDMS_FPLT002_IMPLEMENTATION_20260827_02_R2",
+  "fileLifecycleActionBoundaryDecision": "GO_NPDMS_FSOL003_FILE_LIFECYCLE_ACTION_MAPPING_20260828_01",
   "requirements": {
     "primary": ["SOL-01"],
     "supporting": ["PRE-04", "PM-03", "PM-11"],
@@ -449,14 +450,15 @@
       "referenceKey": "stable slotKey UUID retained for one user intent"
     },
     "fieldKeyPolicy": "the frozen revision must contain the exact fieldKey and componentName; fieldKey is non-empty, unique and cannot contain '/'",
-    "actions": ["UPLOAD", "REFERENCE", "READ", "DOWNLOAD", "PREVIEW", "REPLACE", "DETACH"],
+    "manualInstanceActions": ["UPLOAD", "REFERENCE", "READ", "DOWNLOAD", "PREVIEW", "REPLACE", "DETACH"],
+    "businessInstanceActions": ["UPLOAD", "REFERENCE", "READ", "DOWNLOAD", "PREVIEW", "REPLACE", "DETACH", "ARCHIVE", "INVALIDATE"],
     "responseFact": [
       "artifactId", "versionNo", "referenceKey", "fileFactVersion", "scopeVersion", "status"
     ],
     "storagePolicy": "instance value_json stores no forged file vector, storage key or permanent URL",
     "ordinaryUploadPolicy": "ordinary FormCreate upload controls remain available and their URL/JSON values are ordinary values, never controlled FileArtifact evidence",
     "readPolicy": "one instance detail submits every frozen PmsFileArtifact field purpose as one FileArtifactApi.inspectReferenceSets batch and maps the returned sets by exact fieldKey; never issue one query per field",
-    "businessOwnerPolicy": "for a business instance, READ/DOWNLOAD/PREVIEW map to FILE_READ and UPLOAD/REFERENCE/REPLACE/DETACH map to FILE_WRITE; DynamicForm FileBusinessObjectPolicyProvider delegates that exact action and scopeVersion to DynamicFormBusinessObjectPolicyProvider before any F-PLT-001 lock and lock-revalidates the same frozen action; no callback occurs after the first PLATFORM lock",
+    "businessOwnerPolicy": "for a business instance, READ/DOWNLOAD/PREVIEW map to FILE_READ and UPLOAD/REFERENCE/REPLACE/DETACH/ARCHIVE/INVALIDATE map to FILE_WRITE; ARCHIVE/INVALIDATE are delegated only from F-PLT-001 file-management commands, never from a dynamic-form page allowedAction, and F-PLT-001 independently requires pms:file:archive; manual instances keep their existing action set and deny ARCHIVE/INVALIDATE; DynamicForm FileBusinessObjectPolicyProvider delegates that exact action and scopeVersion to DynamicFormBusinessObjectPolicyProvider before any F-PLT-001 lock and lock-revalidates the same frozen action; no callback occurs after the first PLATFORM lock",
     "dependency": "reuse F-PLT-001 APIs, policy provider, short-lived access tickets, version facts and audit without changing F-PLT-001 state machines"
   },
   "interfaces": {
@@ -621,7 +623,14 @@
         "cloneBusinessInstance": "CLONE_SOURCE for source and CLONE_TARGET for target",
         "lockAndRevalidateInstance": "same action as inspectInstance",
         "fileProviderReadDownloadPreview": "FILE_READ",
-        "fileProviderUploadReferenceReplaceDetach": "FILE_WRITE"
+        "fileProviderUploadReferenceReplaceDetach": "FILE_WRITE",
+        "businessFileProviderArchiveInvalidate": {
+          "businessAction": "FILE_WRITE",
+          "scope": "BUSINESS_INSTANCE_ONLY",
+          "entry": "F-PLT-001 file-management command with independent pms:file:archive permission",
+          "manualInstance": "DENY",
+          "uiProjection": "NONE"
+        }
       },
       "methodBoundary": "revision compatibility is schema/usage validation and does not infer project authorization; instance methods own consuming-context scope, actor and state decisions",
       "result": ["action", "allowed", "stableErrorCode", "scopeVersion", "ownerStateSummary"],
@@ -743,7 +752,8 @@
       "inspect and lock revalidation use the same closed business action; action substitution is rejected",
       "N actual cloned FileReferences produce N FileReferenceAttached events; exact replay adds zero; any batch failure leaves target instance, references, outbox and outer success facts at zero",
       "all owner-provider facts are locked in stable complete-owner-key order before the first PLATFORM lock; after that lock no owner-provider callback occurs",
-      "complete frozen values and controlled ACTIVE reference sets including explicit empty sets are strictly revalidated"
+      "complete frozen values and controlled ACTIVE reference sets including explicit empty sets are strictly revalidated",
+      "business-instance ARCHIVE/INVALIDATE reuse FILE_WRITE owner revalidation while manual instances remain denied and F-PLT-001 independently enforces pms:file:archive"
     ],
     "browserViewports": [320, 768, 1024, 1440],
     "legacyRegression": "legacy BPM and pms_eng form and requirement-analysis routes, APIs and data remain unchanged",
