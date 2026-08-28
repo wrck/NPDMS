@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY / GO（整改提交 4d04dbd63bbd01683416563bece31da6cd53f849）`
 > Requirement：`PRE-04（V1/P0）`
+> Requirement切片覆盖：`PRE-04@V1=PARTIAL`
 > Owner Context：`SOL（交付准备与方案）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`、`F-PLT-001`、`F-PLT-002`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`

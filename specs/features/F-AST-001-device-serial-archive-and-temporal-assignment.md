@@ -4,6 +4,7 @@
 > Feature Ready：`READY`
 > 实施状态：`IMPLEMENTATION_COMPLETE / PASS`（NPDMS `a9f8b7c5`；2026-08-28合并后复审通过）
 > Requirement：`EQP-01（V1）`
+> Requirement切片覆盖：`EQP-01@V1=PARTIAL`
 > 关联Requirement：`EQP-02`、`EQP-03`、`EQP-04`、`CUS-03`、`INT-02`、`INT-04`；不宣称关联Requirement完成
 > Owner Context：`AST（资产管理）`
 > 外部协作Context：`CUS（客户与服务关系）`、`PROJ（项目治理）`、`KNO（技术知识治理）`、`IMP（现场实施）`、`PLT（基础平台能力）`

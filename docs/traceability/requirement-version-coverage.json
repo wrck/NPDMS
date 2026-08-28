@@ -1,0 +1,1674 @@
+{
+  "schemaVersion": 1,
+  "baseline": "PRD V1.8 / CHG-PRD-2026-08-29-007",
+  "sources": {
+    "prd": "需求/PRD-项目实施交付管理平台.md",
+    "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
+    "taskStatus": "tasks/features/F-*.md#Feature实施状态"
+  },
+  "counts": {
+    "requirements": 100,
+    "mainVersions": {
+      "V1": 53,
+      "V2": 47
+    },
+    "versionSlices": 111,
+    "slicesByVersion": {
+      "V1": 53,
+      "V2": 58
+    },
+    "slicesByImplementationStatus": {
+      "IMPLEMENTATION_COMPLETE": 5,
+      "IMPLEMENTATION_PARTIAL": 9,
+      "NOT_STARTED": 97
+    }
+  },
+  "derivationRules": [
+    "Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
+    "Feature Spec PARTIAL + authoritative completed task => IMPLEMENTATION_PARTIAL",
+    "No completed authoritative task mapping => NOT_STARTED",
+    "Feature association, dependency and support text do not create coverage"
+  ],
+  "features": [
+    {
+      "featureId": "F-AST-001",
+      "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
+      "taskPath": null,
+      "taskStatus": "NO_TASK",
+      "taskStatusRaw": null,
+      "mappings": [
+        {
+          "sliceKey": "EQP-01@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUS-001",
+      "featurePath": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
+      "taskPath": "tasks/features/F-CUS-001.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "CUS-03@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PLT-001",
+      "featurePath": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
+      "taskPath": "tasks/features/F-PLT-001.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PLT-02@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PLT-002",
+      "featurePath": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "taskPath": "tasks/features/F-PLT-002.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "SOL-01@V2",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PROJ-001",
+      "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+      "taskPath": "tasks/features/F-PROJ-001.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PM-01@V1",
+          "coverage": "PARTIAL"
+        },
+        {
+          "sliceKey": "PM-03@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PROJ-002",
+      "featurePath": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
+      "taskPath": "tasks/features/F-PROJ-002.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PM-02@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PROJ-003",
+      "featurePath": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md",
+      "taskPath": "tasks/features/F-PROJ-003.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_DONE",
+      "mappings": [
+        {
+          "sliceKey": "PM-04@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PROJ-004",
+      "featurePath": "specs/features/F-PROJ-004-project-business-attribute-classification.md",
+      "taskPath": "tasks/features/F-PROJ-004.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PM-07@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PROJ-005",
+      "featurePath": "specs/features/F-PROJ-005-service-manager-manual-assignment.md",
+      "taskPath": "tasks/features/F-PROJ-005.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PM-08@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PROJ-006",
+      "featurePath": "specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md",
+      "taskPath": "tasks/features/F-PROJ-006.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PM-10@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-PROJ-007",
+      "featurePath": "specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md",
+      "taskPath": "tasks/features/F-PROJ-007.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PM-11@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-SOL-001",
+      "featurePath": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md",
+      "taskPath": "tasks/features/F-SOL-001.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PRE-01@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-SOL-002",
+      "featurePath": "specs/features/F-SOL-002-site-survey-assignment-and-readiness.md",
+      "taskPath": "tasks/features/F-SOL-002.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PRE-02@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-SOL-003",
+      "featurePath": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
+      "taskPath": "tasks/features/F-SOL-003.md",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
+      "mappings": [
+        {
+          "sliceKey": "PRE-04@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    }
+  ],
+  "slices": [
+    {
+      "sliceKey": "COM-01@V1",
+      "requirementId": "COM-01",
+      "requirementName": "合同订单关联与范围分配",
+      "version": "V1",
+      "owner": "COM",
+      "ownerName": "合同订单履约",
+      "businessResult": "合同订单关联与范围分配的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PM-01@V1",
+      "requirementId": "PM-01",
+      "requirementName": "项目创建与指派",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "项目创建与指派的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-PROJ-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+          "taskPath": "tasks/features/F-PROJ-001.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-07@V1",
+      "requirementId": "PM-07",
+      "requirementName": "项目业务属性识别与分类",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "项目业务属性识别与分类的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-PROJ-004",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-004-project-business-attribute-classification.md",
+          "taskPath": "tasks/features/F-PROJ-004.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-03@V1",
+      "requirementId": "PM-03",
+      "requirementName": "项目模板与阶段门禁",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "项目模板与阶段门禁的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-PROJ-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
+          "taskPath": "tasks/features/F-PROJ-001.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-08@V1",
+      "requirementId": "PM-08",
+      "requirementName": "服务经理自动指派",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "服务经理自动指派的V1主交付业务结果",
+      "versionBoundary": "V1映射配置/候选过滤/人工指派；V2唯一匹配自动生效、异常转人工",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-PROJ-005",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-005-service-manager-manual-assignment.md",
+          "taskPath": "tasks/features/F-PROJ-005.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-09@V2",
+      "requirementId": "PM-09",
+      "requirementName": "人员批量变更",
+      "version": "V2",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "人员批量变更的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PM-02@V1",
+      "requirementId": "PM-02",
+      "requirementName": "主子项目管理与进度汇总",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "主子项目管理与进度汇总的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "features": [
+        {
+          "featureId": "F-PROJ-002",
+          "coverage": "FULL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md",
+          "taskPath": "tasks/features/F-PROJ-002.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-04@V1",
+      "requirementId": "PM-04",
+      "requirementName": "多级项目权限与拆分",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "多级项目权限与拆分的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-PROJ-003",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md",
+          "taskPath": "tasks/features/F-PROJ-003.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-11@V1",
+      "requirementId": "PM-11",
+      "requirementName": "项目任务管理",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "项目任务管理的V1主交付业务结果",
+      "versionBoundary": "V1层级模型/WorkBinding配置/基础查询；V2甘特展示与受控依赖维护",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-PROJ-007",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md",
+          "taskPath": "tasks/features/F-PROJ-007.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-10@V1",
+      "requirementId": "PM-10",
+      "requirementName": "项目回退与关闭",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "项目回退与关闭的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "features": [
+        {
+          "featureId": "F-PROJ-006",
+          "coverage": "FULL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md",
+          "taskPath": "tasks/features/F-PROJ-006.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PROJ-12@V2",
+      "requirementId": "PROJ-12",
+      "requirementName": "项目组合管理",
+      "version": "V2",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "项目组合管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PM-05@V2",
+      "requirementId": "PM-05",
+      "requirementName": "借货项目转销管理",
+      "version": "V2",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "借货项目转销管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PM-06@V2",
+      "requirementId": "PM-06",
+      "requirementName": "多期项目合并管理",
+      "version": "V2",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "多期项目合并管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PRE-01@V1",
+      "requirementId": "PRE-01",
+      "requirementName": "工期管理与变更审批",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "工期管理与变更审批的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "features": [
+        {
+          "featureId": "F-SOL-001",
+          "coverage": "FULL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md",
+          "taskPath": "tasks/features/F-SOL-001.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PRE-02@V1",
+      "requirementId": "PRE-02",
+      "requirementName": "工勘分工信息采集",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "工勘分工信息采集的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "features": [
+        {
+          "featureId": "F-SOL-002",
+          "coverage": "FULL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-SOL-002-site-survey-assignment-and-readiness.md",
+          "taskPath": "tasks/features/F-SOL-002.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "SOL-01@V2",
+      "requirementId": "SOL-01",
+      "requirementName": "准备数据动态表单",
+      "version": "V2",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "准备数据动态表单的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-PLT-002",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+          "taskPath": "tasks/features/F-PLT-002.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PRE-04@V1",
+      "requirementId": "PRE-04",
+      "requirementName": "需求分析在线填写",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "需求分析在线填写的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-SOL-003",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
+          "taskPath": "tasks/features/F-SOL-003.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PRE-05@V2",
+      "requirementId": "PRE-05",
+      "requirementName": "工程交底书自动生成",
+      "version": "V2",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "工程交底书自动生成的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PRE-03@V2",
+      "requirementId": "PRE-03",
+      "requirementName": "物料换货流程",
+      "version": "V2",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "物料换货流程的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PLN-01@V1",
+      "requirementId": "PLN-01",
+      "requirementName": "施工计划自动推算",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "施工计划自动推算的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PLN-02@V1",
+      "requirementId": "PLN-02",
+      "requirementName": "工期紧张预警",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "工期紧张预警的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PLN-03@V1",
+      "requirementId": "PLN-03",
+      "requirementName": "超期标红与统计",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "超期标红与统计的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PLN-04@V1",
+      "requirementId": "PLN-04",
+      "requirementName": "施工计划审批",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "施工计划审批的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SCH-01@V1",
+      "requirementId": "SCH-01",
+      "requirementName": "实施方案在线编审",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "实施方案在线编审的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SCH-02@V2",
+      "requirementId": "SCH-02",
+      "requirementName": "客户方案导入识别",
+      "version": "V2",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "客户方案导入识别的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SCH-03@V2",
+      "requirementId": "SCH-03",
+      "requirementName": "配置脚本上传解析",
+      "version": "V2",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "配置脚本上传解析的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SCH-04@V2",
+      "requirementId": "SCH-04",
+      "requirementName": "标准化模板管理",
+      "version": "V2",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "标准化模板管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SCH-05@V1",
+      "requirementId": "SCH-05",
+      "requirementName": "方案审核与重大复审",
+      "version": "V1",
+      "owner": "SOL",
+      "ownerName": "交付准备与方案",
+      "businessResult": "方案审核与重大复审的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EXE-01@V1",
+      "requirementId": "EXE-01",
+      "requirementName": "到货签收",
+      "version": "V1",
+      "owner": "IMP",
+      "ownerName": "现场实施",
+      "businessResult": "到货签收的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EXE-02@V1",
+      "requirementId": "EXE-02",
+      "requirementName": "硬件安装记录",
+      "version": "V1",
+      "owner": "IMP",
+      "ownerName": "现场实施",
+      "businessResult": "硬件安装记录的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EXE-03@V1",
+      "requirementId": "EXE-03",
+      "requirementName": "配置Log采集解析",
+      "version": "V1",
+      "owner": "IMP",
+      "ownerName": "现场实施",
+      "businessResult": "配置Log采集解析的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EXE-04@V1",
+      "requirementId": "EXE-04",
+      "requirementName": "业务联调配置收集",
+      "version": "V1",
+      "owner": "IMP",
+      "ownerName": "现场实施",
+      "businessResult": "业务联调配置收集的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EXE-05@V1",
+      "requirementId": "EXE-05",
+      "requirementName": "单机风险标记",
+      "version": "V1",
+      "owner": "IMP",
+      "ownerName": "现场实施",
+      "businessResult": "单机风险标记的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EXE-06@V1",
+      "requirementId": "EXE-06",
+      "requirementName": "割接上线门禁",
+      "version": "V1",
+      "owner": "IMP",
+      "ownerName": "现场实施",
+      "businessResult": "割接上线门禁的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "IMP-01@V2",
+      "requirementId": "IMP-01",
+      "requirementName": "阶段质量检查表",
+      "version": "V2",
+      "owner": "IMP",
+      "ownerName": "现场实施",
+      "businessResult": "阶段质量检查表的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ACC-01@V1",
+      "requirementId": "ACC-01",
+      "requirementName": "现场培训电子化",
+      "version": "V1",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "现场培训电子化的V1主交付业务结果",
+      "versionBoundary": "V1培训记录与客户确认；V2自动推送",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ACC-02@V1",
+      "requirementId": "ACC-02",
+      "requirementName": "满意度收集与结果管理",
+      "version": "V1",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "满意度收集与结果管理的V1主交付业务结果",
+      "versionBoundary": "V1问卷与结果闭环；V2自动触达",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ACC-03@V1",
+      "requirementId": "ACC-03",
+      "requirementName": "验收报告管理",
+      "version": "V1",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "验收报告管理的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ACC-04@V1",
+      "requirementId": "ACC-04",
+      "requirementName": "交付件归档管理",
+      "version": "V1",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "交付件归档管理的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CLO-01@V1",
+      "requirementId": "CLO-01",
+      "requirementName": "闭环条件校验",
+      "version": "V1",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "闭环条件校验的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CLO-02@V1",
+      "requirementId": "CLO-02",
+      "requirementName": "项目闭环审批",
+      "version": "V1",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "项目闭环审批的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ACC-06@V2",
+      "requirementId": "ACC-06",
+      "requirementName": "项目闭环与服务交接",
+      "version": "V2",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "项目闭环与服务交接的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "RES-01@V2",
+      "requirementId": "RES-01",
+      "requirementName": "服务商档案与资质权限",
+      "version": "V2",
+      "owner": "RES",
+      "ownerName": "资源与外包",
+      "businessResult": "服务商档案与资质权限的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SUB-01@V2",
+      "requirementId": "SUB-01",
+      "requirementName": "转包申请管理",
+      "version": "V2",
+      "owner": "RES",
+      "ownerName": "资源与外包",
+      "businessResult": "转包申请管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SUB-02@V2",
+      "requirementId": "SUB-02",
+      "requirementName": "转包流程配置",
+      "version": "V2",
+      "owner": "RES",
+      "ownerName": "资源与外包",
+      "businessResult": "转包流程配置的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SUB-03@V2",
+      "requirementId": "SUB-03",
+      "requirementName": "转包付款满意度门禁",
+      "version": "V2",
+      "owner": "RES",
+      "ownerName": "资源与外包",
+      "businessResult": "转包付款满意度门禁的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SUB-04@V2",
+      "requirementId": "SUB-04",
+      "requirementName": "付款信息管理",
+      "version": "V2",
+      "owner": "RES",
+      "ownerName": "资源与外包",
+      "businessResult": "付款信息管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SUB-05@V2",
+      "requirementId": "SUB-05",
+      "requirementName": "转包价格审批",
+      "version": "V2",
+      "owner": "RES",
+      "ownerName": "资源与外包",
+      "businessResult": "转包价格审批的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUS-03@V1",
+      "requirementId": "CUS-03",
+      "requirementName": "客户信息管理CURD",
+      "version": "V1",
+      "owner": "CUS",
+      "ownerName": "客户与服务关系",
+      "businessResult": "客户信息管理CURD的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
+      "features": [
+        {
+          "featureId": "F-CUS-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
+          "taskPath": "tasks/features/F-CUS-001.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "CUS-04@V1",
+      "requirementId": "CUS-04",
+      "requirementName": "项目联系人管理",
+      "version": "V1",
+      "owner": "CUS",
+      "ownerName": "客户与服务关系",
+      "businessResult": "项目联系人管理的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUS-01@V2",
+      "requirementId": "CUS-01",
+      "requirementName": "用户资产库",
+      "version": "V2",
+      "owner": "CUS",
+      "ownerName": "客户与服务关系",
+      "businessResult": "用户资产库的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUS-02@V2",
+      "requirementId": "CUS-02",
+      "requirementName": "服务等级管理",
+      "version": "V2",
+      "owner": "CUS",
+      "ownerName": "客户与服务关系",
+      "businessResult": "服务等级管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EQP-01@V1",
+      "requirementId": "EQP-01",
+      "requirementName": "设备序列号档案",
+      "version": "V1",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "设备序列号档案的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": [
+        {
+          "featureId": "F-AST-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "NO_TASK",
+          "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
+          "taskPath": null
+        }
+      ]
+    },
+    {
+      "sliceKey": "EQP-03@V2",
+      "requirementId": "EQP-03",
+      "requirementName": "设备档案库",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "设备档案库的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EQP-04@V2",
+      "requirementId": "EQP-04",
+      "requirementName": "设备信息MES同步",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "设备信息MES同步的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EQP-02@V1",
+      "requirementId": "EQP-02",
+      "requirementName": "配置Log管理",
+      "version": "V1",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "配置Log管理的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EQP-05@V2",
+      "requirementId": "EQP-05",
+      "requirementName": "一码通扫码",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "一码通扫码的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "EQP-07@V2",
+      "requirementId": "EQP-07",
+      "requirementName": "项目问题单页面",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "项目问题单页面的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "SRV-01@V2",
+      "requirementId": "SRV-01",
+      "requirementName": "设备服务状态与停产停维提示",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "设备服务状态与停产停维提示的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "AST-01@V2",
+      "requirementId": "AST-01",
+      "requirementName": "RMA替换与维保信息衔接",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "RMA替换与维保信息衔接的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "AST-02@V2",
+      "requirementId": "AST-02",
+      "requirementName": "设备维保客观状态计算",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "设备维保客观状态计算的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "RPT-02@V2",
+      "requirementId": "RPT-02",
+      "requirementName": "项目状态统计",
+      "version": "V2",
+      "owner": "ANA",
+      "ownerName": "经营分析",
+      "businessResult": "项目状态统计的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ANA-01@V2",
+      "requirementId": "ANA-01",
+      "requirementName": "项目组合经营看板",
+      "version": "V2",
+      "owner": "ANA",
+      "ownerName": "经营分析",
+      "businessResult": "项目组合经营看板的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-01@V1",
+      "requirementId": "CUT-01",
+      "requirementName": "割接任务管理",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接任务管理的V1主交付业务结果",
+      "versionBoundary": "V1任务闭环；V2首页KPI",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-02@V1",
+      "requirementId": "CUT-02",
+      "requirementName": "割接分级评估",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接分级评估的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-03@V1",
+      "requirementId": "CUT-03",
+      "requirementName": "割接采集清单动态多维绑定生成",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接采集清单动态多维绑定生成的V1主交付业务结果",
+      "versionBoundary": "V1清单管理；V2导出与流程跳转",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-04@V1",
+      "requirementId": "CUT-04",
+      "requirementName": "割接方案编审",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接方案编审的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-05@V1",
+      "requirementId": "CUT-05",
+      "requirementName": "割接分级审批",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接分级审批的V1主交付业务结果",
+      "versionBoundary": "V1分级审批；V2 A/B级专项提前时间判断（含原10.12提前时间合规判断）",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-06@V1",
+      "requirementId": "CUT-06",
+      "requirementName": "割接跟踪与闭环",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接跟踪与闭环的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-07@V1",
+      "requirementId": "CUT-07",
+      "requirementName": "割接后台配置",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接后台配置的V1主交付业务结果",
+      "versionBoundary": "V1（首批配置基础）",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-08@V2",
+      "requirementId": "CUT-08",
+      "requirementName": "割接备件系统集成",
+      "version": "V2",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接备件系统集成的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-09@V1",
+      "requirementId": "CUT-09",
+      "requirementName": "割接风险项关联矩阵",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接风险项关联矩阵的V1主交付业务结果",
+      "versionBoundary": "V1（首批配置基础）",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-10@V1",
+      "requirementId": "CUT-10",
+      "requirementName": "割接调研项关联矩阵",
+      "version": "V1",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "割接调研项关联矩阵的V1主交付业务结果",
+      "versionBoundary": "V1（首批配置基础）",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-01@V2",
+      "requirementId": "INS-01",
+      "requirementName": "巡检任务管理",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "巡检任务管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-02@V2",
+      "requirementId": "INS-02",
+      "requirementName": "双巡检方式选择与执行",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "双巡检方式选择与执行的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-03@V2",
+      "requirementId": "INS-03",
+      "requirementName": "巡检规则管理",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "巡检规则管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-04@V2",
+      "requirementId": "INS-04",
+      "requirementName": "巡检连通性预检",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "巡检连通性预检的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-05@V2",
+      "requirementId": "INS-05",
+      "requirementName": "巡检报告生成",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "巡检报告生成的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-06@V2",
+      "requirementId": "INS-06",
+      "requirementName": "巡检问题标注",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "巡检问题标注的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-07@V2",
+      "requirementId": "INS-07",
+      "requirementName": "巡检闭环归档",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "巡检闭环归档的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-08@V2",
+      "requirementId": "INS-08",
+      "requirementName": "误报反馈机制",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "误报反馈机制的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INS-09@V2",
+      "requirementId": "INS-09",
+      "requirementName": "巡检规则配置字段",
+      "version": "V2",
+      "owner": "SRV",
+      "ownerName": "服务运营",
+      "businessResult": "巡检规则配置字段的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-01@V1",
+      "requirementId": "INT-01",
+      "requirementName": "CRM/ERP项目同步",
+      "version": "V1",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "CRM/ERP项目同步的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-02@V1",
+      "requirementId": "INT-02",
+      "requirementName": "ITR版本同步",
+      "version": "V1",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "ITR版本同步的V1主交付业务结果",
+      "versionBoundary": "V1设备版本/割接任务入向；V2故障入向/CUT结果出向",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-03@V1",
+      "requirementId": "INT-03",
+      "requirementName": "CRM客户同步",
+      "version": "V1",
+      "owner": "CUS",
+      "ownerName": "客户与服务关系",
+      "businessResult": "CRM客户同步的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-04@V2",
+      "requirementId": "INT-04",
+      "requirementName": "ITR技术公告同步",
+      "version": "V2",
+      "owner": "KNO",
+      "ownerName": "技术知识治理",
+      "businessResult": "ITR技术公告同步的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-05@V1",
+      "requirementId": "INT-05",
+      "requirementName": "钉钉/HR/OA集成",
+      "version": "V1",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "钉钉/HR/OA集成的V1主交付业务结果",
+      "versionBoundary": "V1钉钉/HR核心协作；V2 OA扩展",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-06@V2",
+      "requirementId": "INT-06",
+      "requirementName": "备件/授权/UMC集成",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "备件/授权/UMC集成的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-07@V2",
+      "requirementId": "INT-07",
+      "requirementName": "财务集成",
+      "version": "V2",
+      "owner": "RES",
+      "ownerName": "资源与外包",
+      "businessResult": "财务集成的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-09@V1",
+      "requirementId": "INT-09",
+      "requirementName": "LDAP/AD集成",
+      "version": "V1",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "LDAP/AD集成的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-10@V2",
+      "requirementId": "INT-10",
+      "requirementName": "短信/邮件平台集成",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "短信/邮件平台集成的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-12@V1",
+      "requirementId": "INT-12",
+      "requirementName": "设备连接与采集平台集成",
+      "version": "V1",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "设备连接与采集平台集成的V1主交付业务结果",
+      "versionBoundary": "V1实施/割接公共能力；V2巡检入口",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "NFR-01@V1",
+      "requirementId": "NFR-01",
+      "requirementName": "平台性能、安全与兼容基线",
+      "version": "V1",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "平台性能、安全与兼容基线的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "NFR-02@V1",
+      "requirementId": "NFR-02",
+      "requirementName": "设备凭证及巡检非功能需求",
+      "version": "V1",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "设备凭证及巡检非功能需求的V1主交付业务结果",
+      "versionBoundary": "V1设备凭证与采集安全基线；V2巡检专项",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "NFR-03@V2",
+      "requirementId": "NFR-03",
+      "requirementName": "割接/巡检推送节点",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "割接/巡检推送节点的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "AUT-01@V2",
+      "requirementId": "AUT-01",
+      "requirementName": "授权申请管理",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "授权申请管理的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "AUT-02@V2",
+      "requirementId": "AUT-02",
+      "requirementName": "授权信息查询",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "授权信息查询的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CHG-01@V2",
+      "requirementId": "CHG-01",
+      "requirementName": "项目变更申请电子流",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "项目变更申请电子流的V2主交付业务结果",
+      "versionBoundary": "V2",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PLT-01@V1",
+      "requirementId": "PLT-01",
+      "requirementName": "统一待办接入与状态一致性",
+      "version": "V1",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "统一待办接入与状态一致性的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PLT-02@V1",
+      "requirementId": "PLT-02",
+      "requirementName": "统一文件身份与版本管理",
+      "version": "V1",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "统一文件身份与版本管理的V1主交付业务结果",
+      "versionBoundary": "V1",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
+      "features": [
+        {
+          "featureId": "F-PLT-001",
+          "coverage": "FULL",
+          "taskStatus": "COMPLETE",
+          "featurePath": "specs/features/F-PLT-001-unified-file-identity-and-version-management.md",
+          "taskPath": "tasks/features/F-PLT-001.md"
+        }
+      ]
+    },
+    {
+      "sliceKey": "PM-08@V2",
+      "requirementId": "PM-08",
+      "requirementName": "服务经理自动指派",
+      "version": "V2",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "按冻结规则唯一匹配时自动形成并生效主责指派",
+      "versionBoundary": "无匹配或多匹配保持待指派并转V1人工流程",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "PM-11@V2",
+      "requirementId": "PM-11",
+      "requirementName": "项目任务管理",
+      "version": "V2",
+      "owner": "PROJ",
+      "ownerName": "项目治理",
+      "businessResult": "甘特展示及受控依赖新增、更新、删除",
+      "versionBoundary": "不含其他未定义高级编排；不建立第二套任务事实",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ACC-01@V2",
+      "requirementId": "ACC-01",
+      "requirementName": "现场培训电子化",
+      "version": "V2",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "培训记录短信/邮件和钉钉自动推送",
+      "versionBoundary": "送达不等于客户确认；失败回退V1链接/扫码",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "ACC-02@V2",
+      "requirementId": "ACC-02",
+      "requirementName": "满意度收集与结果管理",
+      "version": "V2",
+      "owner": "ACC",
+      "ownerName": "验收与项目闭环",
+      "businessResult": "满意度问卷短信/邮件和钉钉自动触达",
+      "versionBoundary": "不重复V1问卷、评分、整改重收、签字和导出事实",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-01@V2",
+      "requirementId": "CUT-01",
+      "requirementName": "割接任务管理",
+      "version": "V2",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "按授权范围展示割接首页KPI",
+      "versionBoundary": "不改变CUT任务状态和P1～P6流程",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-03@V2",
+      "requirementId": "CUT-03",
+      "requirementName": "割接采集清单动态多维绑定生成",
+      "version": "V2",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "授权清单导出与流程跳转配置优化",
+      "versionBoundary": "V1生成、填写、暂存、提交及基础跳转保持不变",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "CUT-05@V2",
+      "requirementId": "CUT-05",
+      "requirementName": "割接分级审批",
+      "version": "V2",
+      "owner": "CUT",
+      "ownerName": "变更切换与稳定治理",
+      "businessResult": "A/B级专项提前时间判断及经定义的外部提醒",
+      "versionBoundary": "不新增平台通用SLA；短信/邮件走INT-10、钉钉走INT-05",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-02@V2",
+      "requirementId": "INT-02",
+      "requirementName": "ITR版本同步",
+      "version": "V2",
+      "owner": "AST",
+      "ownerName": "资产管理",
+      "businessResult": "ITR故障入向及ITR来源CUT归档结果出向",
+      "versionBoundary": "INT-04唯一拥有公告；出向失败不回滚本地归档",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-05@V2",
+      "requirementId": "INT-05",
+      "requirementName": "钉钉/HR/OA集成",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "OA领料/外采流程及转包待办链接协作",
+      "versionBoundary": "OA/钉钉不拥有平台审批与业务状态",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "INT-12@V2",
+      "requirementId": "INT-12",
+      "requirementName": "设备连接与采集平台集成",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "在线巡检复用统一设备连接与采集契约",
+      "versionBoundary": "不重复建设凭证、任务或采集执行引擎",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    },
+    {
+      "sliceKey": "NFR-02@V2",
+      "requirementId": "NFR-02",
+      "requirementName": "设备凭证及巡检非功能需求",
+      "version": "V2",
+      "owner": "PLT",
+      "ownerName": "平台公共能力",
+      "businessResult": "在线巡检命令超时与规则化后续命令处理",
+      "versionBoundary": "当前命令终止失败；后续按冻结的已发布规则决定并留痕",
+      "implementationStatus": "NOT_STARTED",
+      "features": []
+    }
+  ]
+}

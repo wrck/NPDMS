@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
 > Requirement：`PM-04`
+> Requirement切片覆盖：`PM-04@V1=PARTIAL`
 > 关联契约：`AUT-01`、`AUT-02`的`AuthorizationGrant`最小公开载体；本Feature不宣称完整实现AUT审批和外部授权流程
 > Owner Context：`PROJ（项目治理）`；授权事实Owner为`PLT（平台公共能力）`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`

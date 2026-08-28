@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import re
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -248,6 +249,48 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
         actual_statistics == expected_statistics,
         f"期望={expected_statistics}；实际={actual_statistics}",
     )
+    slice_index = section(appendix_a, "A.1.1 Requirement目标版本切片") if appendix_a else ""
+    primary_slice_keys = {
+        f"{req_id}@{version_match.group(1)}"
+        for req_id, block in formal
+        if (version_match := re.search(r"(?m)^\|\s*目标版本\s*\|\s*(V[12])(?:[^|]*)\|\s*$", block))
+    }
+    supplemental_slice_keys = re.findall(
+        rf"(?m)^\|\s*({REQ_ID})@(V[12])\s*\|\s*\1\s*\|\s*\2\s*\|",
+        slice_index,
+    )
+    all_slice_keys = list(primary_slice_keys) + [f"{req_id}@{version}" for req_id, version in supplemental_slice_keys]
+    duplicate_slice_keys = sorted(key for key in set(all_slice_keys) if all_slice_keys.count(key) > 1)
+    slice_versions = Counter(key.rsplit("@", 1)[1] for key in all_slice_keys)
+    add(
+        checks,
+        "Requirement目标版本切片完整",
+        len(primary_slice_keys) == 100
+        and len(supplemental_slice_keys) == 11
+        and len(all_slice_keys) == 111
+        and not duplicate_slice_keys
+        and slice_versions == Counter({"V1": 53, "V2": 58}),
+        f"主切片={len(primary_slice_keys)}；补充={len(supplemental_slice_keys)}；总计={len(all_slice_keys)}；"
+        f"V1={slice_versions['V1']}；V2={slice_versions['V2']}；重复={','.join(duplicate_slice_keys) or '无'}",
+    )
+    expected_slice_statistics = {
+        "Requirement目标版本切片总数": 111,
+        "V1目标版本切片": 53,
+        "V2目标版本切片": 58,
+    }
+    actual_slice_statistics = {
+        label: int(value)
+        for label, value in re.findall(
+            r"(?m)^\|\s*(Requirement目标版本切片总数|V1目标版本切片|V2目标版本切片)\s*\|\s*(\d+)个\s*\|$",
+            formal_statistics,
+        )
+    }
+    add(
+        checks,
+        "附录A.2目标版本切片统计一致",
+        actual_slice_statistics == expected_slice_statistics,
+        f"期望={expected_slice_statistics}；实际={actual_slice_statistics}",
+    )
     footer = prd.rsplit("**文档结束**", 1)[-1] if "**文档结束**" in prd else ""
     add(checks, "文末基线版本一致", f"PRD {version}正式基线" in footer, f"文末应声明PRD {version}正式基线")
     add(checks, "文末正式需求数一致", f"{len(formal)}项V1/V2正式需求" in footer, f"正文={len(formal)}项")
@@ -257,13 +300,42 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
         all(f"{candidate} {count}项" in footer for candidate, count in formal_versions.items()),
         "、".join(f"{candidate}={count}" for candidate, count in formal_versions.items()),
     )
+    add(
+        checks,
+        "文末目标版本切片统计一致",
+        "111个正式目标版本切片" in footer and "V1 53个" in footer and "V2 58个" in footer,
+        "期望总计111、V1 53、V2 58",
+    )
     add(checks, "INT-12进入正式索引", "INT-12" in formal_index_ids, "INT-12必须为V1公共能力")
     add(checks, "排除编号未进正式索引", not ({"WO-07", "WO-11"} & set(formal_index_ids)), "WO-07/WO-11仅用于排除追溯")
     v3_numbered = section(appendix_a, "A.3.1 已编号演进项") if appendix_a else ""
     v3_numbered_ids = set(re.findall(r"(?m)^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", v3_numbered))
     cross_evolution = section(appendix_a, "A.3.2 跨需求演进方向") if appendix_a else ""
-    cross_evolution_count = len(re.findall(r"(?m)^\|\s*(?:CLO-05→ACC-02|SUB-03)\s*\|", cross_evolution))
-    add(checks, "V1.8演进统计", len(v3_numbered_ids) == 31 and cross_evolution_count == 2, f"编号V3={len(v3_numbered_ids)}；跨需求={cross_evolution_count}")
+    expected_cross_evolution = {"CLO-05→ACC-02", "SUB-03", "EXE-05", "CUT-06", "INT-03"}
+    cross_evolution_ids = set(
+        re.findall(r"(?m)^\|\s*(CLO-05→ACC-02|SUB-03|EXE-05|CUT-06|INT-03)\s*\|", cross_evolution)
+    )
+    add(
+        checks,
+        "V1.8演进统计",
+        len(v3_numbered_ids) == 31 and cross_evolution_ids == expected_cross_evolution,
+        f"编号V3={len(v3_numbered_ids)}；跨需求={len(cross_evolution_ids)}；"
+        f"缺少={','.join(sorted(expected_cross_evolution - cross_evolution_ids)) or '无'}",
+    )
+    add(
+        checks,
+        "配置基础前置与明确延期例外",
+        all(
+            marker in prd
+            for marker in (
+                "未明确后置的配置能力必须不晚于首个消费业务结果",
+                "PRD或需求方已经明确标为V2、V3或后置的内容保持既定版本",
+                "CUT-07、CUT-09、CUT-10共同构成CUT-03动态匹配",
+            )
+        )
+        and "规则配置与使用效率增强" not in prd,
+        "动态模板/表单/匹配配置须前置；正文明确延期保持原版本；不得保留未定义V2效率增强",
+    )
     add(
         checks,
         "V1.8退出需求边界",

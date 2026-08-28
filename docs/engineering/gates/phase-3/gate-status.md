@@ -1,17 +1,18 @@
 # SDS Phase 3 Review
 
-> 审查状态：`APPROVED`<br>
+> 审查状态：`REVALIDATION_REQUIRED`<br>
 > 依据：PRD V1.8正式基线、SDS Phase 1/2 V1.8正式基线<br>
-> 结论：`READY_FOR_SDS_BASELINE_V1.8`
+> 结论：`NOT_READY_FOR_SDS_BASELINE_REVISION_007`
 
 ## 1. 当前结论
 
-V1.7 Phase 3的`APPROVED / READY_FOR_SDS_BASELINE`保留为历史证据。V1.8安全、审计、部署、性能和测试设计已完成业务对象、状态、API、数据模型及追溯契约的差量独立复审，当前可作为Feature Spec的SDS基线输入。
+修订007前的`APPROVED / READY_FOR_SDS_BASELINE_V1.8`保留为历史证据。修订007的111个目标版本切片及配置基础能力边界尚未完成Phase 1/2/3差量复核，当前不得把旧结论作为新Feature Spec的SDS基线批准。
 
 ## 2. 差量门禁
 
-| 门禁 | 当前状态 | 说明 |
+| 门禁 | 修订007前状态 | 修订007说明 |
 |---|---|---|
+| 修订007差量 | REVALIDATION_REQUIRED | Phase 1/2差量关闭后，按受影响切片复核安全、审计、部署、性能、测试断言和证据类型，并重新独立评审 |
 | Phase 1/2前置 | PASS | 两阶段已完成V1.8差量复审并发布BASELINE；CUS-02/CUT-07差量载体已完成87对象/98来源绑定/1排除源定点复核 |
 | 测试追溯 | PASS | 100/100均已登记测试类别、按Requirement绑定的验收断言和证据类型，并通过整体独立复审 |
 | 设计分册口径 | PASS | 14、17、18、19、20分册已通过V1.8内容、边界和追溯复核并晋级BASELINE |
@@ -22,4 +23,4 @@ V1.7 Phase 3的`APPROVED / READY_FOR_SDS_BASELINE`保留为历史证据。V1.8�
 
 ## 3. 放行原则
 
-Phase 1/2、P3-E09及Phase 3整体独立复审均已GO；五份正式分册和100项测试追溯现已纳入SDS V1.8基线。本结论只表示设计契约足以进入Feature Ready评估，不提前要求部署时才存在的参数，也不关闭P3-E01～E08、Q08、适用Release的`AI-MIG-000`、UAT、生产部署、切换或Release门禁。
+修订007前的Phase 1/2、P3-E09及Phase 3复审证据继续保留，但不自动批准修订007。当前状态为`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_REVISION_007`；完成差量复核前不得据旧结论进入新的Feature Ready评估，也不关闭P3-E01～E08、Q08、适用Release的`AI-MIG-000`、UAT、生产部署、切换或Release门禁。

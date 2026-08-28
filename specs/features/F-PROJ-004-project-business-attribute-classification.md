@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY / GO NPDMS-FPROJ004-FEATURE-READY-20260825-06`
 > Requirement：`PM-07`
+> Requirement切片覆盖：`PM-07@V1=PARTIAL`
 > 关联契约：`PM-01`、`PM-03`、`INT-01/INT-03`、`CHG-01`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`及本Feature聚焦修正

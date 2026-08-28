@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY / GO NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`
 > Requirement：`PLT-02（V1/P0，FR-PLT-008）`
+> Requirement切片覆盖：`PLT-02@V1=FULL`
 > Owner Context：`PLT（基础平台 File Capability）`
 > 前置能力：Yudao INFRA 文件存储配置、FileClient、私有对象存储和平台权限模型
 > 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`；SDS Phase 1/2/3 `BASELINE`

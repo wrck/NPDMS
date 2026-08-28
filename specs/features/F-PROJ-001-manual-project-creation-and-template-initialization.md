@@ -7,6 +7,7 @@
 > Implementation Done：`PASS`（NPDMS `1c76050`；2026-08-25 创建人详情访问集成回归已完成独立 `GO`）
 > 已关闭问题：`Q-FPROJ-001`（方案B：创建失败不持久化草稿）、`Q-FPROJ-002`（跨Context同步同事务、全有或全无）
 > Requirement：`PM-01`、`PM-03`
+> Requirement切片覆盖：`PM-01@V1=PARTIAL；PM-03@V1=PARTIAL`
 > 关联边界：`PM-08`仅引用V1人工确认服务经理的边界，不覆盖V2自动指派
 > Owner Context：`PROJ（项目治理）`
 > Gate Owner：需求方关闭业务语义问题；项目治理Feature负责人关闭其余DoR并在实施启动前登记具体责任人

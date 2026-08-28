@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -12,6 +13,12 @@ from pathlib import Path
 REQ_ID = re.compile(r"^[A-Z]+(?:-[A-Z0-9]+)?-\d+$")
 REQ_HEADER = re.compile(r"^#{3,4}\s+(?:\d+(?:\.\d+)*\s+)?([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s+(.+?)\s*$")
 INDEX_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|", re.M)
+SUPPLEMENTAL_SLICE_ROW = re.compile(
+    r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)@(V[12])\s*\|\s*"
+    r"([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*(V[12])\s*\|\s*"
+    r"([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$",
+    re.M,
+)
 REQUIREMENT_BODY_ROW = re.compile(
     r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$",
     re.M,
@@ -19,6 +26,15 @@ REQUIREMENT_BODY_ROW = re.compile(
 ACCEPTANCE_HEADING = re.compile(r"^\*\*(?:业务)?验收标准：\*\*\s*$", re.M)
 POST_ACCEPTANCE_HEADING = re.compile(
     r"^\*\*(?:涉及数据字段|权限与数据范围|异常、降级及留痕要求|依赖关系)：\*\*",
+    re.M,
+)
+FEATURE_ID = re.compile(r"^(F-[A-Z]+-\d+)")
+FEATURE_COVERAGE_LINE = re.compile(r"^>\s*Requirement切片覆盖：`([^`]+)`\s*$", re.M)
+FEATURE_COVERAGE_ITEM = re.compile(
+    r"^([A-Z]+(?:-[A-Z0-9]+)?-\d+)@(V[12])=(FULL|PARTIAL)$"
+)
+TASK_STATUS_LINE = re.compile(
+    r"^>\s*(?:Feature\s*实施状态|功能实施状态)：`([^`]+)`",
     re.M,
 )
 
@@ -88,10 +104,11 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
     for match in index_rows:
         identifier = match.group(1).strip()
         name = match.group(2).strip()
-        version = match.group(4).strip()
-        if version not in {"V1", "V2"}:
-            # A.1 may use a compound target version such as “V1手动指派；V2...”.
-            version = "V1" if version.startswith("V1") else "V2" if version.startswith("V2") else ""
+        target_version = match.group(4).strip()
+        version_match = re.search(r"V1|V2", target_version)
+        version = version_match.group(0) if version_match else ""
+        if not version:
+            raise SystemExit(f"formal requirement target version is invalid: {identifier}: {target_version}")
         body_position = body_row_positions.get(identifier)
         if body_position is None:
             raise SystemExit(f"formal requirement body not found: {identifier}")
@@ -113,6 +130,7 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
                 "stage": value.get("所属阶段", ""),
                 "priority": value.get("优先级", ""),
                 "version": version,
+                "target_version": target_version,
                 "roles": value.get("用户角色", ""),
                 "source": value.get("来源追溯", ""),
                 "acceptance": acceptance_section(block, identifier),
@@ -120,7 +138,62 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
         )
     if len(requirements) != 100:
         raise SystemExit(f"Appendix A.1 formal requirement count is {len(requirements)}, expected 100")
+    counts = Counter(item["version"] for item in requirements)
+    if counts != Counter({"V1": 53, "V2": 47}):
+        raise SystemExit(f"Appendix A.1 main version counts are {dict(counts)}, expected V1=53/V2=47")
     return requirements
+
+
+def extract_version_slices(text: str, requirements: list[dict[str, str]]) -> list[dict[str, str]]:
+    requirement_by_id = {item["id"]: item for item in requirements}
+    slices: list[dict[str, str]] = [
+        {
+            "key": f"{item['id']}@{item['version']}",
+            "requirement_id": item["id"],
+            "version": item["version"],
+            "business_result": f"{item['name']}的{item['version']}主交付业务结果",
+            "boundary": item["target_version"],
+        }
+        for item in requirements
+    ]
+
+    slice_start = re.search(r"(?m)^####\s+A\.1\.1\b.*$", text)
+    slice_end = re.search(r"(?m)^###\s+A\.2\b.*$", text)
+    if not slice_start or not slice_end or slice_end.start() <= slice_start.end():
+        raise SystemExit("cannot locate Appendix A.1.1/A.2 Requirement version slices")
+    supplemental_text = text[slice_start.end():slice_end.start()]
+    for match in SUPPLEMENTAL_SLICE_ROW.finditer(supplemental_text):
+        key_requirement, key_version, column_requirement, column_version, result, boundary = (
+            value.strip() for value in match.groups()
+        )
+        if key_requirement != column_requirement or key_version != column_version:
+            raise SystemExit(
+                f"Requirement slice row is inconsistent: {key_requirement}@{key_version} / "
+                f"{column_requirement}@{column_version}"
+            )
+        if key_requirement not in requirement_by_id:
+            raise SystemExit(f"Requirement slice references unknown requirement: {key_requirement}@{key_version}")
+        slices.append(
+            {
+                "key": f"{key_requirement}@{key_version}",
+                "requirement_id": key_requirement,
+                "version": key_version,
+                "business_result": result,
+                "boundary": boundary,
+            }
+        )
+
+    keys = [item["key"] for item in slices]
+    duplicates = sorted(key for key, count in Counter(keys).items() if count > 1)
+    if duplicates:
+        raise SystemExit(f"duplicate Requirement version slices: {', '.join(duplicates)}")
+    counts = Counter(item["version"] for item in slices)
+    if len(slices) != 111 or counts != Counter({"V1": 53, "V2": 58}):
+        raise SystemExit(
+            f"Requirement version slices are total={len(slices)}, counts={dict(counts)}; "
+            "expected total=111, V1=53, V2=58"
+        )
+    return slices
 
 
 DOMAIN_NAMES = {
@@ -420,165 +493,235 @@ def sds_reference(identifier: str) -> str:
     return " / ".join(references)
 
 
-def existing_feature_links(output: Path) -> dict[str, str]:
-    if not output.exists():
-        return {}
-    result: dict[str, str] = {}
-    for line in read(output).splitlines():
-        identifier = re.match(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", line)
-        tail = re.search(r"\|\s*([^|]+?)\s*\|\s*[^|]+\s*\|\s*[^|]+\s*\|\s*[^|]+\s*\|$", line)
-        if identifier and tail and tail.group(1).strip() != "NOT_STARTED":
-            result[identifier.group(1)] = tail.group(1).strip()
+def task_states(task_root: Path) -> dict[str, dict[str, str]]:
+    result: dict[str, dict[str, str]] = {}
+    for path in sorted(task_root.glob("F-*.md")):
+        feature_match = FEATURE_ID.match(path.stem)
+        if not feature_match:
+            continue
+        feature_id = feature_match.group(1)
+        if feature_id in result:
+            raise SystemExit(f"duplicate Feature task record: {feature_id}")
+        status_match = TASK_STATUS_LINE.search(read(path))
+        if not status_match:
+            raise SystemExit(f"Feature task has no machine-readable implementation status: {path}")
+        raw_status = status_match.group(1).strip()
+        if "IMPLEMENTATION_COMPLETE" in raw_status or "IMPLEMENTATION_DONE" in raw_status:
+            status = "COMPLETE"
+        elif "NOT_STARTED" in raw_status:
+            status = "NOT_STARTED"
+        else:
+            status = "IN_PROGRESS"
+        result[feature_id] = {
+            "status": status,
+            "raw_status": raw_status,
+            "path": path.as_posix(),
+        }
     return result
 
 
-FEATURE_LINK_OVERRIDES = {
-    "PM-01": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
-    "PM-02": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md)",
-    "PM-03": "[F-PROJ-001](../../specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md)",
-    "PM-04": "[F-PROJ-002](../../specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md) / [F-PROJ-003](../../specs/features/F-PROJ-003-project-subtree-authorization-and-unified-scope.md)",
-    "PM-08": "[F-PROJ-005](../../specs/features/F-PROJ-005-service-manager-manual-assignment.md)（仅V1人工指派）",
-    "PM-10": "[F-PROJ-006](../../specs/features/F-PROJ-006-project-rollback-exception-close-and-reopen.md)",
-    "PM-11": "[F-PROJ-007](../../specs/features/F-PROJ-007-project-task-tree-and-native-workbench.md)",
-    "PRE-01": "[F-SOL-001](../../specs/features/F-SOL-001-project-duration-baseline-and-change-approval.md)",
-    "PRE-02": "[F-SOL-002](../../specs/features/F-SOL-002-site-survey-assignment-and-readiness.md)",
-    "PRE-04": "[F-PLT-002共享动态表单基础](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003需求分析动态表单与版本冻结](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
-    "SOL-01": "[F-PLT-002](../../specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) / [F-SOL-003](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)",
-    "PLT-02": "[F-PLT-001](../../specs/features/F-PLT-001-unified-file-identity-and-version-management.md)",
-    "CUS-03": "[F-CUS-001](../../specs/features/F-CUS-001-customer-master-and-local-lifecycle.md) / [02d契约](../design/02d-cross-context-contracts.md)",
-    "EQP-01": "[F-AST-001](../../specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md)",
-}
-
-VERSION_SLICE_OVERRIDES = {
-    "PM-08": "V1（人工指派） / V2（自动指派）",
-}
-
-# Transitional projections for the current matrix. They are not a Capability
-# state source and must be replaced by Requirement-version coverage derivation
-# once the complete coverage input is available.
-TRANSITIONAL_STATUS_PROJECTIONS = {
-    "CUS-03": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "SPEC-FCUS001-FEATURE-READY-20260825-01 / "
-        "NPDMS `31834bc6`受控验收种子、真实MySQL、稳定幂等、权限负向、删除恢复、真实浏览器与合并后代码审查证据",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "EQP-01": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "SPEC-FAST001-FEATURE-READY-20260825-01 / "
-        "NPDMS `a9f8b7c5`自动化、真实MySQL、查询计划、真实浏览器与合并后复审证据",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PM-01": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "NPDMS `1c76050`任务、自动化、真实MySQL、真实浏览器与独立复审证据",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PM-02": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "NPDMS `57923b1`任务、自动化、真实MySQL、规模性能与真实浏览器证据",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PM-03": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "NPDMS `1c76050`任务、自动化、真实MySQL、真实浏览器与独立复审证据",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PM-04": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "F-PROJ-002/F-PROJ-003子闭环已完成；NPDMS `9ab894f` Task、自动化、真实MySQL、真实浏览器与Implementation Done证据；"
-        "任务、设备、交付件、割接和巡检等业务对象仍须在各消费者Feature接入统一ProjectScopeApi",
-        "IMPLEMENTATION_PARTIAL（F-PROJ-002/F-PROJ-003子闭环完成；其余业务对象接入未完成）",
-    ),
-    "PM-07": (
-        "PRD-V1.8-BASELINE+CHG-PRD-2026-08-25-003/SDS-V1.8-PHASE2-BASELINE / "
-        "F-PROJ-004-BASELINE-READY / GO `NPDMS-FPROJ004-IMPLEMENTATION-DONE-20260825-07` / "
-        "NPDMS Task 1～6自动化、真实MySQL、真实浏览器与独立复审证据",
-        "IMPLEMENTATION_PARTIAL（F-PROJ-004 PROJ子切片完成；INT与CHG保持未完成）",
-    ),
-    "PM-08": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "NPDMS `25230ce` Task 1～6、自动化、全新MySQL、单/多租户运行态、真实浏览器与独立整改复审GO",
-        "V1：IMPLEMENTATION_COMPLETE（人工指派）；V2：NOT_STARTED（自动指派）",
-    ),
-    "PM-10": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "GO `NPDMS-FPROJ006-FEATURE-READY-20260825-01` / "
-        "NPDMS `fc9f8b1` Task 1～10、自动化、全新MySQL V87、真实浏览器与独立复审GO",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PM-11": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "Feature Ready GO `NPDMS-FPROJ007-FEATURE-READY-20260825-01` / "
-        "NPDMS `b559978` Task 1～10、自动化、全新MySQL V89、规模性能、Outbox、真实浏览器与独立复审GO",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PRE-01": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "Feature Ready GO `NPDMS-FSOL001-FEATURE-READY-20260826-01-R1` / "
-        "NPDMS `c417dee` Task 1～10、真实MySQL/Flowable、FileArtifact、真实浏览器与独立复审GO",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PRE-02": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / "
-        "Feature Ready GO `NPDMS-FSOL002-FEATURE-READY-20260827-01-R2` / "
-        "NPDMS `7243727f` Task 1～10、自动化、真实MySQL、MinIO文件事实、真实浏览器与独立复审GO",
-        "IMPLEMENTATION_COMPLETE",
-    ),
-    "PRE-04": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；"
-        "F-SOL-003为Feature Ready且实施仍为NOT_STARTED；SCH-01稳定版本引用、预填和跨Feature贯通未完成；"
-        "规格整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`，旧Technical Plan及其Implementation审查已取消",
-        "IMPLEMENTATION_PARTIAL（共享表单基础完成；F-SOL-003与SCH-01贯通未完成）",
-    ),
-    "SOL-01": (
-        "PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE / F-PLT-002共享基础已IMPLEMENTATION_COMPLETE；首个PRE-04组合边界Feature Ready GO（规格整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`），不宣称完整SOL-01完成",
-        "IMPLEMENTATION_PARTIAL（F-PLT-002共享基础完成；完整SOL-01未完成）",
-    ),
-    "PLT-02": (
-        "PRD-V1.8-BASELINE+CHG-PRD-2026-08-27-004/SDS-V1.8-PHASE2-BASELINE / "
-        "原Feature Ready GO `NPDMS-FPLT001-FEATURE-READY-20260826-01-R2` / "
-        "原实现NPDMS `6d6c6ea`及独立复审GO；可选扫描增量待NPDMS实施复验",
-        "IMPLEMENTATION_PARTIAL",
-    ),
-}
+def feature_coverages(
+    feature_root: Path,
+    task_root: Path,
+    valid_slice_keys: set[str],
+) -> tuple[dict[str, list[dict[str, str]]], list[dict[str, object]]]:
+    tasks = task_states(task_root)
+    by_slice: dict[str, list[dict[str, str]]] = {key: [] for key in valid_slice_keys}
+    features: list[dict[str, object]] = []
+    seen_features: set[str] = set()
+    for path in sorted(feature_root.glob("F-*.md")):
+        coverage_match = FEATURE_COVERAGE_LINE.search(read(path))
+        if not coverage_match:
+            continue
+        feature_match = FEATURE_ID.match(path.stem)
+        if not feature_match:
+            raise SystemExit(f"cannot derive Feature ID from coverage declaration: {path}")
+        feature_id = feature_match.group(1)
+        if feature_id in seen_features:
+            raise SystemExit(f"duplicate Feature coverage declaration: {feature_id}")
+        seen_features.add(feature_id)
+        task = tasks.get(feature_id)
+        mappings: list[dict[str, str]] = []
+        for raw_item in re.split(r"[；;]", coverage_match.group(1)):
+            value = raw_item.strip()
+            if not value:
+                continue
+            item_match = FEATURE_COVERAGE_ITEM.fullmatch(value)
+            if not item_match:
+                raise SystemExit(f"invalid Feature coverage item in {path}: {value}")
+            requirement_id, version, coverage = item_match.groups()
+            slice_key = f"{requirement_id}@{version}"
+            if slice_key not in valid_slice_keys:
+                raise SystemExit(f"Feature coverage references unknown Requirement slice: {feature_id}: {slice_key}")
+            if any(item["slice_key"] == slice_key for item in mappings):
+                raise SystemExit(f"duplicate Feature coverage item: {feature_id}: {slice_key}")
+            mapping = {
+                "feature_id": feature_id,
+                "slice_key": slice_key,
+                "coverage": coverage,
+                "feature_path": path.as_posix(),
+                "task_path": task["path"] if task else "",
+                "task_status": task["status"] if task else "NO_TASK",
+                "task_status_raw": task["raw_status"] if task else "",
+            }
+            mappings.append(mapping)
+            by_slice[slice_key].append(mapping)
+        features.append(
+            {
+                "featureId": feature_id,
+                "featurePath": path.as_posix(),
+                "taskPath": task["path"] if task else None,
+                "taskStatus": task["status"] if task else "NO_TASK",
+                "taskStatusRaw": task["raw_status"] if task else None,
+                "mappings": [
+                    {"sliceKey": item["slice_key"], "coverage": item["coverage"]}
+                    for item in mappings
+                ],
+            }
+        )
+    return by_slice, features
 
 
-def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = None) -> str:
-    requirements = extract_requirements(read(prd))
+def derived_status(mappings: list[dict[str, str]]) -> str:
+    completed = [item for item in mappings if item["task_status"] == "COMPLETE"]
+    if any(item["coverage"] == "FULL" for item in completed):
+        return "IMPLEMENTATION_COMPLETE"
+    if completed:
+        return "IMPLEMENTATION_PARTIAL"
+    return "NOT_STARTED"
+
+
+def feature_links(mappings: list[dict[str, str]]) -> str:
+    if not mappings:
+        return "NOT_STARTED"
+    return " / ".join(
+        f"[{item['feature_id']}](../../specs/features/{Path(item['feature_path']).name})"
+        f"（{item['coverage']}）"
+        for item in mappings
+    )
+
+
+def evidence_links(mappings: list[dict[str, str]]) -> str:
+    if not mappings:
+        return "NOT_STARTED"
+    values: list[str] = []
+    for item in mappings:
+        if item["task_path"]:
+            values.append(
+                f"[{item['feature_id']} Task](../../tasks/features/{Path(item['task_path']).name})"
+                f"（{item['task_status']}）"
+            )
+        else:
+            values.append(f"{item['feature_id']}（NO_TASK，不派生完成）")
+    return " / ".join(values)
+
+
+def render(
+    prd: Path,
+    domain_root: Path,
+    feature_root: Path,
+    task_root: Path,
+) -> tuple[str, str]:
+    if not domain_root.is_dir():
+        raise SystemExit(f"domain specification root not found: {domain_root}")
+    prd_text = read(prd)
+    requirements = extract_requirements(prd_text)
+    requirement_by_id = {item["id"]: item for item in requirements}
+    slices = extract_version_slices(prd_text, requirements)
     owners = domain_owners(requirements)
     missing = [item["id"] for item in requirements if item["id"] not in owners]
     if missing:
         raise SystemExit(f"missing domain owner: {', '.join(missing)}")
-    counts = Counter(item["version"] for item in requirements)
+    coverage_by_slice, feature_records = feature_coverages(
+        feature_root,
+        task_root,
+        {item["key"] for item in slices},
+    )
+    requirement_counts = Counter(item["version"] for item in requirements)
+    slice_counts = Counter(item["version"] for item in slices)
+    status_counts: Counter[str] = Counter()
+    coverage_slices: list[dict[str, object]] = []
+    for slice_item in slices:
+        requirement = requirement_by_id[slice_item["requirement_id"]]
+        domain, owner = owners[requirement["id"]]
+        mappings = coverage_by_slice[slice_item["key"]]
+        status = derived_status(mappings)
+        status_counts[status] += 1
+        coverage_slices.append(
+            {
+                "sliceKey": slice_item["key"],
+                "requirementId": requirement["id"],
+                "requirementName": requirement["name"],
+                "version": slice_item["version"],
+                "owner": domain,
+                "ownerName": owner,
+                "businessResult": slice_item["business_result"],
+                "versionBoundary": slice_item["boundary"],
+                "implementationStatus": status,
+                "features": [
+                    {
+                        "featureId": item["feature_id"],
+                        "coverage": item["coverage"],
+                        "taskStatus": item["task_status"],
+                        "featurePath": item["feature_path"],
+                        "taskPath": item["task_path"] or None,
+                    }
+                    for item in mappings
+                ],
+            }
+        )
+    coverage_document = {
+        "schemaVersion": 1,
+        "baseline": "PRD V1.8 / CHG-PRD-2026-08-29-007",
+        "sources": {
+            "prd": "需求/PRD-项目实施交付管理平台.md",
+            "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
+            "taskStatus": "tasks/features/F-*.md#Feature实施状态",
+        },
+        "counts": {
+            "requirements": len(requirements),
+            "mainVersions": {"V1": requirement_counts["V1"], "V2": requirement_counts["V2"]},
+            "versionSlices": len(slices),
+            "slicesByVersion": {"V1": slice_counts["V1"], "V2": slice_counts["V2"]},
+            "slicesByImplementationStatus": dict(sorted(status_counts.items())),
+        },
+        "derivationRules": [
+            "Feature Spec FULL + authoritative completed task => IMPLEMENTATION_COMPLETE",
+            "Feature Spec PARTIAL + authoritative completed task => IMPLEMENTATION_PARTIAL",
+            "No completed authoritative task mapping => NOT_STARTED",
+            "Feature association, dependency and support text do not create coverage",
+        ],
+        "features": feature_records,
+        "slices": coverage_slices,
+    }
     lines = [
         "# V1.8需求追溯矩阵",
         "",
-        "> 本文件是需求到工程资产的索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与生成。SDS、Feature、API、数据和测试列在对应阶段生成后更新。",
-        "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8；领域决策：`docs/design/phase-1-domain-ownership.md`。",
+        "> 本文件是111个正式Requirement目标版本切片到工程资产的自动派生索引，不复制PRD正文。Owner按PRD V1.8业务事实和数据责任推导；旧specs不参与Owner生成。",
+        "> 源基线：`需求/PRD-项目实施交付管理平台.md` V1.8修订007；领域决策：`docs/design/phase-1-domain-ownership.md`；结构化同源投影：`docs/traceability/requirement-version-coverage.json`。",
         "> 批准增量：`CHG-PRD-2026-08-21-001`（PM-01、PM-03手动创建失败不持久化Project或创建草稿）。",
         "> 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。",
         "> 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。",
         "> 批准增量：`CHG-PRD-2026-08-27-004`（PLT-02文件安全扫描默认关闭；关闭时真实`SKIPPED`，开启时失败关闭）。",
         "> 批准修订：`CHG-PRD-2026-08-28-005`（59项需求方裁决正式入稿，统一角色权限、数据状态、引用追溯与表达边界）。",
         "> 批准修订：`CHG-PRD-2026-08-29-006`（关闭PRE-04选择性映射歧义，完整回写修订004扫描规则，并恢复完整目录及清理已解决重复说明）。",
+        "> 批准修订：`CHG-PRD-2026-08-29-007`（完成100项Requirement版本复核，建立111个正式目标版本切片及Feature/Task自动派生边界）。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
-        "> Feature、Evidence和状态列是当前过渡投影，不是Capability状态或Requirement完成权威；完整自动派生启用前不得据此直接关闭Requirement。",
+        "> Feature覆盖只读取Feature Spec的`Requirement切片覆盖`声明；实施状态只读取对应Feature任务记录。关联、支撑、依赖、历史说明和脚本人工例外均不产生完成状态。",
         "",
-        f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
+        f"- 正式需求：{len(requirements)}项（主版本V1 {requirement_counts['V1']}项，V2 {requirement_counts['V2']}项）",
+        f"- 正式目标版本切片：{len(slices)}个（V1 {slice_counts['V1']}个，V2 {slice_counts['V2']}个）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：PRD V1.8修订006已发布为正式基线；既有SDS Phase 1/2/3及Feature结论不因本次PRD重基线自动继承，受裁决影响的契约须完成差量复核后再恢复相应放行结论",
-        "- 当前规格阻断：无；`Q-PRD-005-01`已由需求方裁决关闭，四类字段仅按实施方案模板显式关系选择性预填，未映射字段保留在PRE-04版本",
-        "- PM-07完成口径：F-PROJ-004只关闭PROJ子切片；INT来源定位/自动建项/重试/对账及CHG分派/处理/关闭保持未完成，不得把Feature完成登记为PM-07全部验收完成。",
+        "- 当前状态：PRD V1.8修订007重新基线化；既有Feature实施结论只关闭其机器可读声明覆盖的切片或子闭环，不因Feature完成自动关闭整个Requirement",
+        "- 当前规格阻断：无；VS-001～VS-011均已裁决关闭，配置基础前置原则适用，但正文明确V2、V3或延后的内容保持原版本",
         "",
         "## 字段状态约定",
         "",
         "| 状态 | 含义 |",
         "|---|---|",
-        "| `BASELINE` | 已纳入PRD V1.8正式基线 |",
         "| `IMPLEMENTATION_COMPLETE` | 当前Requirement目标版本切片的已知业务义务均已映射，且全部必需Feature已完成；不代表Deployment、SIT、UAT或Release通过 |",
         "| `IMPLEMENTATION_PARTIAL` | 至少一个合法Feature子闭环已完成，但该Requirement目标版本切片仍有未完成或未映射业务义务 |",
-        "| `NOT_STARTED` | 下游工程资产尚未生成，不代表需求缺失 |",
+        "| `NOT_STARTED` | 没有已完成的权威Feature任务覆盖；可包含未启动Feature、缺任务记录的Feature或尚未声明覆盖的切片，不代表需求缺失 |",
         "| `BLOCKED_BY_SPEC` | 存在业务语义冲突，必须回到CHG-01或决策记录 |",
         "| `BLOCKED_BY_EVIDENCE` | 缺少数据、接口、迁移或测试证据 |",
         "",
@@ -593,52 +736,68 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "",
         "## 正式需求追溯",
         "",
-        "| Requirement | 名称 | Owner | 业务模块 | 聚合 | 状态机/工作流 | 权限模型 | 计划API | 计划数据对象 | 测试类别 | 所属阶段 | 版本 | 优先级 | 来源追溯 | SDS | Feature | Evidence | Release | 过渡状态投影 |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| Requirement切片 | 名称 | 切片业务结果 | 版本边界 | Owner | 业务模块 | 聚合 | 状态机/工作流 | 权限模型 | 计划API | 计划数据对象 | 测试类别 | 所属阶段 | 版本 | 优先级 | 来源追溯 | SDS | Feature覆盖 | Task证据 | Release | 自动派生实施状态 |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
-    for item in requirements:
+    for slice_item in slices:
+        item = requirement_by_id[slice_item["requirement_id"]]
         domain, owner = owners[item["id"]]
         module, aggregate, lifecycle, permission, api, data, test_category = phase1_design(item["id"], domain)
-        feature = FEATURE_LINK_OVERRIDES.get(item["id"], (feature_links or {}).get(item["id"], "NOT_STARTED"))
-        evidence, status = TRANSITIONAL_STATUS_PROJECTIONS.get(
-            item["id"],
-            ("PRD-V1.8-BASELINE/SDS-V1.8-PHASE2-BASELINE", "BASELINE"),
-        )
-        version_slice = VERSION_SLICE_OVERRIDES.get(item["id"], item["version"])
+        mappings = coverage_by_slice[slice_item["key"]]
+        status = derived_status(mappings)
         owner_label = "PROJ（项目治理；INT传输后置）" if item["id"] == "PM-07" else f"{domain}（{owner}）"
         values = [
-            item["id"], item["name"], owner_label, module, aggregate, lifecycle,
-            permission, api, data, test_category, item["stage"], version_slice, item["priority"],
-            item["source"], sds_reference(item["id"]), feature, evidence, "NOT_STARTED", status,
+            slice_item["key"], item["name"], slice_item["business_result"], slice_item["boundary"],
+            owner_label, module, aggregate, lifecycle, permission, api, data, test_category,
+            item["stage"], slice_item["version"], item["priority"], item["source"],
+            sds_reference(item["id"]), feature_links(mappings), evidence_links(mappings),
+            "NOT_STARTED", status,
         ]
         lines.append("| " + " | ".join(value.replace("|", "\\|") for value in values) + " |")
-    return "\n".join(lines) + "\n"
+    return (
+        "\n".join(lines) + "\n",
+        json.dumps(coverage_document, ensure_ascii=False, indent=2) + "\n",
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--prd", type=Path, required=True)
     parser.add_argument("--domains", type=Path, required=True)
+    parser.add_argument("--features", type=Path, default=Path("specs/features"))
+    parser.add_argument("--tasks", type=Path, default=Path("tasks/features"))
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--coverage-output", type=Path)
     parser.add_argument("--check", action="store_true", help="compare generated content without writing")
     args = parser.parse_args()
-    generated = render(args.prd, args.domains, existing_feature_links(args.output))
+    coverage_output = args.coverage_output or args.output.with_name("requirement-version-coverage.json")
+    generated_matrix, generated_coverage = render(
+        args.prd,
+        args.domains,
+        args.features,
+        args.tasks,
+    )
     if args.check:
         if not args.output.is_file():
             print(f"[FAIL] DRIFT: missing generated output {args.output}")
             return 1
-        if read(args.output) != generated:
+        if not coverage_output.is_file():
+            print(f"[FAIL] DRIFT: missing generated output {coverage_output}")
+            return 1
+        if read(args.output) != generated_matrix:
             print(f"[FAIL] DRIFT: {args.output} does not match generator-owned content")
             return 1
-        print(f"[PASS] requirement traceability is current: {args.output}")
+        if read(coverage_output) != generated_coverage:
+            print(f"[FAIL] DRIFT: {coverage_output} does not match generator-owned content")
+            return 1
+        print(f"[PASS] requirement traceability is current: {args.output} / {coverage_output}")
         return 0
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        generated,
-        encoding="utf-8",
-        newline="\n",
-    )
+    coverage_output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(generated_matrix, encoding="utf-8", newline="\n")
+    coverage_output.write_text(generated_coverage, encoding="utf-8", newline="\n")
     print(f"WROTE {args.output}")
+    print(f"WROTE {coverage_output}")
     return 0
 
 

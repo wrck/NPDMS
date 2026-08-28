@@ -8,7 +8,6 @@ from pathlib import Path
 
 FORMAL_ROW_RE = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|")
 STANDARD_HEADING_RE = re.compile(r"^(#{3,4})\s+\d+\.\d+(?:\.\d+)?\s+([A-Z]+-\d+)\s+(.+?)\s*$")
-PAREN_HEADING_RE = re.compile(r"^(#{3})\s+\d+\.\d+\s+(.+?)[（(]([A-Z]+-\d+)[）)]\s*$")
 ANY_HEADING_RE = re.compile(r"^(#{3,4})\s+")
 
 
@@ -152,11 +151,8 @@ def _extract_requirements(text: str, formal_ids: set[str]) -> dict[str, Requirem
     matches: list[tuple[int, int, str, str, str]] = []
     for index, line in enumerate(lines):
         standard = STANDARD_HEADING_RE.match(line)
-        paren = PAREN_HEADING_RE.match(line)
         if standard:
             level, identifier, name = len(standard.group(1)), standard.group(2), standard.group(3)
-        elif paren and paren.group(3).split("-", 1)[0] in {"CUT", "INS"}:
-            level, name, identifier = len(paren.group(1)), paren.group(2), paren.group(3)
         else:
             continue
         if identifier not in formal_ids:
@@ -167,10 +163,6 @@ def _extract_requirements(text: str, formal_ids: set[str]) -> dict[str, Requirem
         for candidate in range(index + 1, len(lines)):
             if (
                 STANDARD_HEADING_RE.match(lines[candidate])
-                or (
-                    PAREN_HEADING_RE.match(lines[candidate])
-                    and PAREN_HEADING_RE.match(lines[candidate]).group(3).split("-", 1)[0] in {"CUT", "INS"}
-                )
                 or lines[candidate].startswith("### ")
             ):
                 end = candidate

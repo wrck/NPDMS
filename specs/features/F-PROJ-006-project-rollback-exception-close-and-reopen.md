@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY / GO NPDMS-FPROJ006-FEATURE-READY-20260825-01`
 > Requirement：`PM-10（V1）`
+> Requirement切片覆盖：`PM-10@V1=FULL`
 > 关联Requirement：`PM-01`、`PM-02`、`PM-04`、`PM-08`、`PM-11`、`CLO-02`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
 > 前置Feature：`F-PROJ-001`～`F-PROJ-005`均已完成

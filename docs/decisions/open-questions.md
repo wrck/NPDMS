@@ -310,3 +310,119 @@
 - Blocking scope: 已解除。
 - Decision owner: 需求方；PRE/SOL领域负责人参与影响分析
 - Decision date: 2026-08-29
+
+## PRD V1.8 Requirement版本切片裁决记录
+
+> 来源：`docs/reports/2026-08-29-PRD-V1.8-Requirement版本切片需求方裁决清单.md`。原8项阻断对应VS-001、VS-002、VS-003、VS-005、VS-006、VS-007、VS-008、VS-009，均已由需求方于2026-08-29裁决；本节按实际VS编号保留问题、选项和最终Resolution。VS-004、VS-010、VS-011属于审查中的补充边界确认，不曾作为规格阻断，完整结论保留在裁决清单和PRD修订007中。
+
+### Q-PRD-VS-001
+
+- Status: RESOLVED
+- Requirement IDs: PM-08
+- Area: V2服务经理自动指派
+- Question: V2应直接生成并生效唯一主责指派，还是仅生成候选建议并继续由授权人员确认？
+- Why it blocks design/implementation: 两种结果的责任生效时间、权限、异常状态和验收完全不同，现有“建议或结果”不能派生唯一Feature。
+- Options: A. 唯一匹配自动生效，异常转人工；B. 只生成建议，始终人工确认；C. V2方向移至V3。
+- Recommended technical default: A；符合“自动指派”名称，同时对无唯一结果保持失败关闭。
+- Business decision required: 是，对应裁决VS-001。
+- Resolution: 采用A。V2按已冻结并生效的匹配规则自动形成唯一主责指派；仅在唯一候选匹配时指派自动生效。无匹配或多匹配时不得自动选定，项目保持“待指派”，转由有权人员人工处理。
+- Decision owner: 需求方；PROJ与组织权限Owner参与影响分析
+- Decision date: 2026-08-29
+
+### Q-PRD-VS-002
+
+- Status: RESOLVED
+- Requirement IDs: PM-11
+- Area: V2甘特图与高级编排
+- Question: “高级编排”具体包含哪些业务动作、依赖规则、状态影响、权限和验收？
+- Why it blocks design/implementation: 当前只有方向性名称，无法判断甘特展示、依赖维护与其他编排能力是否属于同一可验收结果。
+- Options: A. V2仅甘特展示和受控依赖维护；B. 补齐完整高级编排规格；C. 整体移至V3。
+- Recommended technical default: A；先形成最小可验收业务结果，其余能力另行评审。
+- Business decision required: 是，对应裁决VS-002。
+- Resolution: 采用A。PM-11 V2仅交付甘特展示和受控依赖维护；依赖新增、更新、删除必须校验循环引用、跨项目非法关系和版本冲突。其他“高级编排”不属于当前V2承诺，须以明确Requirement重新评审。
+- Decision owner: 需求方；PROJ Owner参与影响分析
+- Decision date: 2026-08-29
+
+### Q-PRD-VS-003
+
+- Status: RESOLVED
+- Requirement IDs: EXE-05
+- Area: 单机风险V2自动识别、升级和分析
+- Question: Q-15中的V2方向是否仍为当前正式承诺；若保留，其触发、规则、状态、权限和验收是什么？
+- Why it blocks design/implementation: EXE-05正文和A.1只定义V1台账，无法为V2派生合法Feature与完成条件。
+- Options: A. 转V3；B. 本次补齐V2规格；C. 删除该方向。
+- Recommended technical default: A；避免未定义自动化进入V2承诺。
+- Business decision required: 是，对应裁决VS-003。
+- Resolution: 采用A。EXE-05保留V1风险台账与现有协同闭环；自动识别、自动升级和分析不进入V2，作为V3跨Requirement演进方向，重新启动前须补齐规则、权限和验收。
+- Decision owner: 需求方；IMP与CRM集成Owner参与影响分析
+- Decision date: 2026-08-29
+
+### Q-PRD-VS-005
+
+- Status: RESOLVED
+- Requirement IDs: ACC-02、INT-05、INT-10
+- Area: 满意度V1核心与V2增强边界
+- Question: ACC-02的V2结果是否仅为自动触达，还是另有问卷、评分、整改重收或导出差量？
+- Why it blocks design/implementation: 现有V1已完整包含后四类能力，§13.2的同名V2“增强”没有差量，机械拆分会重复完成事实。
+- Options: A. V2仅自动触达；B. 补齐其他真实差量；C. 删除ACC-02 V2描述。
+- Recommended technical default: A；保留V1完整业务事实，V2只增加可降级通道。
+- Business decision required: 是，对应裁决VS-005。
+- Resolution: 采用A。ACC-02 V1保留问卷模板、实例、评分判定、整改重收、客户签字和授权导出的完整核心闭环；ACC-02 V2只增加短信/邮件和钉钉自动触达，失败时回退二维码、外发链接或现场协助，不重复定义核心问卷事实。
+- Decision owner: 需求方；ACC与通知集成Owner参与影响分析
+- Decision date: 2026-08-29
+
+### Q-PRD-VS-006
+
+- Status: RESOLVED
+- Requirement IDs: CUT-06
+- Area: V2割接多角色填写
+- Question: V2要由哪些角色分别填写哪些字段，字段Owner、提交顺序、冲突规则和最终归档权限是什么？
+- Why it blocks design/implementation: PRD明确要求另行确认，当前无法建立字段、权限、状态和验收契约。
+- Options: A. 转V3；B. 本次补齐并保留V2；C. 删除多角色方向。
+- Recommended technical default: A；V1一线统一填写已形成完整闭环。
+- Business decision required: 是，对应裁决VS-006。
+- Resolution: 采用A。CUT-06仅保留V1一线统一填写、闭环、归档和经定义的ITR结果出向；多角色分工填写不进入V2，转为V3跨Requirement演进方向，重新启动前须明确字段Owner、角色权限、提交顺序和冲突规则。
+- Decision owner: 需求方；CUT与权限Owner参与影响分析
+- Decision date: 2026-08-29
+
+### Q-PRD-VS-007
+
+- Status: RESOLVED
+- Requirement IDs: INT-02、INT-04、EQP-07、CUT-06
+- Area: ITR入向/出向与跨版本Owner
+- Question: INT-02@V1、INT-04@V2、EQP-07@V2和CUT-06的公告、故障、割接触发及结果回传责任应如何唯一分配？
+- Why it blocks design/implementation: 当前INT-02@V1验收V2公告和问题单结果，并混入未定义出向，造成版本倒挂和重复Owner。
+- Options: A. INT-02@V1保留版本/割接入向，INT-04@V2拥有公告，INT-02@V2拥有故障入向及定义后的CUT出向；B. INT-02仅V1，其余归消费需求；C. INT-02整体移V2。
+- Recommended technical default: A；按事件类型和消费版本形成可独立验收结果。
+- Business decision required: 是，对应裁决VS-007。
+- Resolution: 采用A。INT-02@V1只承接设备版本历史和ITR割接任务入向；INT-04@V2唯一拥有技术公告完整同步；INT-02@V2承接故障入向供EQP-07消费，并承接PRD已定义的CUT结果出向。出向失败不回滚本地CUT归档，进入重试与对账。
+- Decision owner: 需求方；AST、KNO、CUT与集成Owner共同裁决
+- Decision date: 2026-08-29
+
+### Q-PRD-VS-008
+
+- Status: RESOLVED
+- Requirement IDs: INT-03、CUS-03
+- Area: CRM客户同步V2治理
+- Question: INT-03 V2“扩展同步治理、对账和冲突处理工作台”相对V1已有幂等、冲突、重试和对账具体新增什么？
+- Why it blocks design/implementation: 没有新增动作和验收，无法判断是否存在独立V2业务结果。
+- Options: A. 只保留V1，工作台转V3；B. 本次补齐V2批量治理规则；C. 将V1部分治理义务后移V2。
+- Recommended technical default: A；不因页面形态重复创建业务切片。
+- Business decision required: 是，对应裁决VS-008。
+- Resolution: 采用A。INT-03只保留V1客户同步、幂等、冲突、重试和对账；未定义的同步治理工作台不形成V2切片，作为V3跨Requirement演进方向重新评审。
+- Decision owner: 需求方；CUS与CRM集成Owner参与影响分析
+- Decision date: 2026-08-29
+
+### Q-PRD-VS-009
+
+- Status: RESOLVED
+- Requirement IDs: NFR-02、INS-02、INS-03
+- Area: 巡检命令超时后的后续命令策略
+- Question: 当前命令超时后，剩余命令应一律继续、一律停止，还是按已发布巡检规则决定？
+- Why it blocks design/implementation: NFR-02规则与验收互相冲突，会产生不同设备动作、安全结果和测试判定。
+- Options: A. 按已发布巡检规则决定；B. 一律继续；C. 一律停止。
+- Recommended technical default: A；与规则Owner和不同设备场景相符。
+- Business decision required: 是，对应裁决VS-009。
+- Resolution: 采用A。巡检命令超时后，当前命令必须终止并标记失败；剩余命令是否继续严格按任务冻结的已发布巡检规则决定，并记录采用的规则版本、决定和执行结果。
+- Decision owner: 需求方；SRV、PLT采集与安全Owner共同裁决
+- Decision date: 2026-08-29

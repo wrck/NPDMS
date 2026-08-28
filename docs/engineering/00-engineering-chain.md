@@ -2,9 +2,10 @@
 
 > 文档状态：`BASELINE`<br>
 > 唯一正式入口：`docs/engineering/00-engineering-chain.md`<br>
-> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—005）；批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-005-audit-decisions-and-formal-consolidation.md`<br>
+> 适用基线：`docs/baseline/prd-v1.8.md`（已合并修订001—007）；批准依据与审计追溯见`docs/baseline/prd-v1.8-amendment-001-no-manual-project-draft.md`至`docs/baseline/prd-v1.8-amendment-007-requirement-version-slicing-and-derived-coverage.md`<br>
 > 基线快照：`docs/baseline/prd-v1.8.md`<br>
 > 需求追溯：`docs/traceability/requirement-matrix.md`<br>
+> 结构化覆盖：`docs/traceability/requirement-version-coverage.json`<br>
 > 替代版本：V1.7（归档于`docs/engineering/archive/00-engineering-chain-v1.7.md`）<br>
 > 文档治理：遵循[`docs/README.md`](../README.md)
 
@@ -12,7 +13,7 @@
 
 将PRD转换为可设计、可实现、可测试、可验证、可发布的工程资产，并让项目在明确但不过度的Gate下推进。
 
-当前工程范围为PRD V1.8附录A.1的100项V1/V2正式需求（V1 53项、V2 47项）；31项已编号V3、2项跨需求演进方向与9项`OUT_OF_SCOPE`仅保留演进或排除追溯，不得进入当前实现。需求基线、领域归属和下游资产状态以冻结快照及追溯矩阵为准；V1.7形成的SDS和阶段门禁必须完成V1.8差量重验证后才能恢复放行状态。
+当前工程范围为PRD V1.8附录A.1的100项V1/V2正式需求（主版本V1 53项、V2 47项），按附录A.1.1派生111个正式目标版本切片（V1 53个、V2 58个）；31项已编号V3、5项跨需求演进方向与9项`OUT_OF_SCOPE`仅保留演进或排除追溯，不得进入当前实现。需求基线、领域归属和下游资产状态以冻结快照、结构化覆盖和追溯矩阵为准；V1.7形成的SDS和阶段门禁必须完成V1.8差量重验证后才能恢复放行状态。
 
 本工程链统一遵循：
 
@@ -55,6 +56,8 @@
 Requirement覆盖使用`Requirement ID + 目标版本切片`作为最小键，映射对应Capability分组、纵向业务Feature、Feature依赖、Domain Owner和物理Owner。Capability只用于把同一Requirement切片内的业务义务组织成可检查的覆盖关系，不拥有Ready、Done、Gate、实施证据或独立生命周期，也不得成为Task、代码或发布的完成单元。
 
 Feature是唯一实施和Implementation Done单元。一个Requirement切片可以由多个Feature共同覆盖，一个Feature也可以覆盖多个Requirement切片；Feature完成只关闭自身Scope，不能复制为Requirement完成。Requirement实施覆盖必须从覆盖映射和所需Feature的Implementation Done事实派生：全部业务义务均已映射且全部必需Feature完成时为`COMPLETE`，部分完成或仍有未覆盖义务时为`PARTIAL`，尚无覆盖Feature完成时为`NOT_STARTED`。Deployment、SIT、UAT和Release按发布范围分别记录，不并入Requirement Implementation Coverage。
+
+覆盖映射的机器可读权威位于对应Feature Spec的`Requirement切片覆盖`行，格式为`Requirement@V1|V2=FULL|PARTIAL`；多项使用中文分号分隔。`FULL`表示该Feature完整覆盖该切片，`PARTIAL`表示只覆盖合法子闭环。关联Requirement、支撑需求、依赖和历史说明均不自动产生覆盖。Implementation Done只从`tasks/features/F-*.md`的Feature实施状态读取；缺少对应任务记录时不得仅凭Feature Spec中的实施说明派生完成。`scripts/generate_requirement_traceability.py`据此生成结构化覆盖JSON和Markdown矩阵，禁止再维护脚本人工完成覆盖值。
 
 状态权威按维度唯一：Feature Spec记录Feature Ready；当前实施任务记录Feature Implementation Done并引用Git、CI、测试和运行证据；Technical Plan或其当前任务记录保存Task认领与交接事实。Feature索引、追溯矩阵、CI结果和浏览器证据只作投影或证据，不得成为同一状态的第二来源。
 
@@ -410,4 +413,4 @@ V1.8不自动关闭任何当前Gate。现有Phase 3文档、生成器、validato
 - 能独立使用、独立验收且拥有明确公共业务结果的公共能力可以保留为Feature；其消费者接入仍由消费者Feature负责；
 - “双轨”等术语只允许描述存量收口期，存量完成后必须删除，不能形成长期并行状态体系。
 
-当前追溯矩阵和生成器在具备完整的Requirement版本切片覆盖输入、派生规则和回归校验前，只能作为索引与过渡投影，不得作为Capability状态底座或直接关闭Requirement。过渡期先修正已确认的误闭合项；后续自动化只能读取Feature Ready、Implementation Done和覆盖映射的权威事实，不得继续维护人工完成覆盖值。
+修订007已建立完整的111个Requirement目标版本切片输入、Feature Spec覆盖声明、Feature Task状态读取、结构化JSON投影和回归校验。追溯矩阵仍是生成投影，不是新的状态权威；任何覆盖调整必须先修改对应Feature Spec，任何实施状态调整必须先修改对应Feature任务记录，再由生成器重建，禁止直接编辑矩阵或JSON晋级状态。

@@ -153,9 +153,18 @@ def main() -> int:
         errors.append("excluded service requirements leaked into formal index")
     if {"COM-02", "IMP-02"} & (formal | v3 | out_scope):
         errors.append("removed V1.8 requirements COM-02/IMP-02 leaked into active or deferred indexes")
-    for code, marker in (("ACC", "CLO-05→ACC-02（跨需求方向）"), ("RES", "SUB-03（跨需求方向）")):
+    for code, marker in (
+        ("ACC", "CLO-05→ACC-02（跨需求方向）"),
+        ("RES", "SUB-03（跨需求方向）"),
+        ("IMP", "EXE-05（跨需求方向）"),
+        ("CUT", "CUT-06（跨需求方向）"),
+        ("CUS", "INT-03（跨需求方向）"),
+    ):
         if marker not in texts.get(code, ""):
             errors.append(f"missing cross-demand V3 direction in {code}: {marker}")
+    for identifier in ("CUT-07", "CUT-09", "CUT-10"):
+        if identifier not in formal or identifier in v3:
+            errors.append(f"{identifier} must remain a V1 formal requirement and must not be projected to V3")
     for required in (
         "初始化可扩展状态定义+受控状态机",
         "项目经理完成整改后生成新任务和新问卷版本重新收集",

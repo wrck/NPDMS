@@ -1,18 +1,18 @@
 ﻿# SDS Phase 1：需求追溯
 
-> 文档状态：`BASELINE`
+> 文档状态：`REVIEW_REQUIRED_BY_PRD_REVISION_007`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
-> Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；V1.8独立复审GO，当前分册已纳入正式基线
+> Requirement ID：PRD V1.8 附录 A.1 的全部100项V1/V2正式Requirement，以及附录A.1.1派生的111个目标版本切片；逐项范围见 `docs/traceability/requirement-matrix.md`
+> Owner：SDS Phase 1 架构设计；既有独立复审结论仅覆盖修订007前的输入，修订007差量复核待完成
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
 ## 1. 依据与边界
 
 - 业务基线：`docs/baseline/prd-v1.8.md`，对应 PRD V1.8。
-- 追溯主表：`docs/traceability/requirement-matrix.md`，覆盖 100 项 V1/V2 正式需求。
+- 追溯主表：`docs/traceability/requirement-matrix.md`，覆盖100项V1/V2正式Requirement及111个目标版本切片。
 - `specs/001-project-delivery-platform/domains/` 为当前PRD派生的13领域规格，不得脱离PRD手工改变业务语义。
-- 范围统计：V1 53 项、V2 47 项、V1/V2 100 项；已编号V3 31 项、跨需求演进方向2项、OUT_OF_SCOPE 9 项。
+- 范围统计：主版本V1 53项、V2 47项、正式Requirement 100项；目标版本切片V1 53个、V2 58个、合计111个；已编号V3 31项、跨需求演进方向5项、OUT_OF_SCOPE 9项。
 - V3 与 OUT_OF_SCOPE 仅保留边界追溯，不进入当前实现设计。
 
 ## 2. Phase 1 追溯链
@@ -21,7 +21,7 @@
 
 `Requirement ID → PRD业务域 → Phase 1领域 → 模块 → 聚合根 → 状态机/工作流 → 权限模型 → 计划API/事件 → 计划数据对象 → 测试类别`
 
-V1.8已重建100项工作追溯索引；V1.7的模块、聚合、状态机/工作流、权限、计划API和数据对象映射须按差量重验证。PM-01、PM-03既有Feature链接保留为实施事实，但不代表其已通过V1.8影响审查。
+V1.8修订007已重建111个目标版本切片追溯索引；既有模块、聚合、状态机/工作流、权限、计划API和数据对象映射须按修订007差量重验证。既有Feature链接和任务状态保留为实施事实，但只关闭其机器可读声明覆盖的切片，不代表整个Requirement或SDS已通过修订007影响审查。
 
 ## 3. 领域重确认工作表
 
@@ -45,7 +45,7 @@ V1.8已重建100项工作追溯索引；V1.7的模块、聚合、状态机/工�
 
 ## 4. 覆盖结论
 
-- 正式需求索引覆盖：100/100；13个Owner唯一映射和Phase 1核心边界通过机器校验及fresh-context独立复审。
+- 正式需求索引覆盖：100/100；目标版本切片索引覆盖：111/111；13个Owner唯一映射未漂移。
 - 需求缺失：0。
-- 设计资产完成度：V1.7正式分册保留为历史输入；V1.8 Phase 1/2/3均为`BASELINE`，可进入Feature Ready评估；生产、性能、集成、迁移、切换和Release仍受各自下游门禁约束。
+- 设计资产完成度：既有正式分册和评审证据保留为差量复核输入；修订007受影响的Phase 1/2/3契约尚未重新批准，不得据旧结论自动进入Feature Ready评估。
 - 不能从旧规格直接推导的内容：数据库字段、接口契约、事件名称、组件拆分、性能实现和测试脚本。

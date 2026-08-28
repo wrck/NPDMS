@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
 > Requirement：`PM-02`
+> Requirement切片覆盖：`PM-02@V1=FULL`
 > 关联契约：`PM-04`项目树数据范围、`COM-01`交付范围、`CLO-02`闭环守卫；本Feature不宣称完整实现这些关联Requirement
 > Owner Context：`PROJ（项目治理）`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`

@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY / GO NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`
 > Requirement：`PRE-01（V1/P1）`
+> Requirement切片覆盖：`PRE-01@V1=FULL`
 > Owner Context：`SOL（交付准备与方案）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-005`、`F-PROJ-007`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`

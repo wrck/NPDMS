@@ -1,17 +1,20 @@
 # SDS Phase 1 Review
 
-> 审查状态：`APPROVED`<br>
+> 审查状态：`REVALIDATION_REQUIRED`<br>
 > 依据：PRD V1.8正式基线、正式工程链V1.8、ADR-0029<br>
-> 结论：`READY_FOR_PHASE_2_V1.8`<br>
-> 机器门禁：`PASS`<br>
-> 独立复审：`GO`<br>
-> 已评审候选：`4792f11`（`GO`）<br>
+> 结论：`NOT_READY_FOR_PHASE_2_REVISION_007`<br>
+> 机器门禁：`NOT_RUN_FOR_REVISION_007`<br>
+> 独立复审：`REQUIRED_AFTER_DELTA_REVIEW`<br>
+> 前次已评审候选：`4792f11`（`GO`，仅作修订007前历史证据）<br>
 > 核心修复：`537ab5a`（`VERIFIED`）
 
 ## 1. V1.8差量结果
 
-| 检查项 | 当前状态 | 关闭证据 |
+修订007新增11个补充V2切片，并明确配置能力首个消费者前置原则。下表既有PASS结论仅作修订007前的复核输入；在受影响的领域、聚合、状态、流程、权限和追溯完成差量复核并重新独立评审前，不构成当前放行。
+
+| 检查项 | 修订007前状态 | 关闭证据/当前动作 |
 |---|---|---|
+| 修订007差量 | REVALIDATION_REQUIRED | 按111个目标版本切片复核受影响的领域边界、聚合、状态/流程、权限和追溯；完成后重新运行机器门禁及独立复审 |
 | 正式范围 | PASS | PRD、追溯矩阵与Owner映射均为100项，V1 53、V2 47 |
 | 领域与聚合 | PASS_AFTER_SECOND_REPAIR | 13个Owner唯一覆盖；EQP-02拥有ConfigurationLog；SRV-01只保存ServiceHandoverReference，不拥有ACC-06交接事实 |
 | 版本范围 | PASS_AFTER_REPAIR | PM-10、CLO-02归V1，INT-04归V2；负向门禁阻止再次错位 |
@@ -43,6 +46,6 @@
 
 ## 4. 放行结论
 
-固定候选`4792f11`已完成fresh-context独立复审并给出GO。Phase 1正式状态为`APPROVED / READY_FOR_PHASE_2_V1.8`。
+固定候选`4792f11`的fresh-context独立复审结论保留为修订007前历史证据。当前Phase 1状态为`REVALIDATION_REQUIRED / NOT_READY_FOR_PHASE_2_REVISION_007`。
 
-本结论仅批准进入Phase 2设计，不批准数据库迁移、历史数据迁移、数据切换或生产发布。
+当前状态不批准修订007进入新的Phase 2设计，也不批准数据库迁移、历史数据迁移、数据切换或生产发布。

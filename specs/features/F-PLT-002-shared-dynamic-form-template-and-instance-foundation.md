@@ -7,6 +7,7 @@
 > 本次修订门禁：`PENDING`；仅新增业务实例公共边界，不重开已完成的手工动态表单闭环
 > 文件生命周期动作边界：`GO / NPDMS-FSOL003-FILE-LIFECYCLE-ACTION-MAPPING-20260828-01`；本聚焦规格修订仍须独立锁定
 > 主需求：`SOL-01（V2/P1）`
+> Requirement切片覆盖：`SOL-01@V2=PARTIAL`
 > 支撑需求：`PRE-04（V1/P0）`、`PM-03（V1/P0）`、`PM-11（V1/P1）`
 > 所有者上下文：`PLT（基础平台动态表单能力）`
 > 前置功能：`F-PLT-001`

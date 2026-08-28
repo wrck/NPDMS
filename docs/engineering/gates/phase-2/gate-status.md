@@ -1,18 +1,19 @@
 # SDS Phase 2 Review
 
-> 审查状态：`APPROVED`<br>
+> 审查状态：`REVALIDATION_REQUIRED`<br>
 > 依据：PRD V1.8正式基线、SDS Phase 1 V1.8正式基线、ADR-0029/ADR-0030、fresh-context独立复审<br>
-> 结论：`READY_FOR_PHASE_3_V1.8`<br>
-> 当前范围：V1 53项、V2 47项、V1/V2正式需求100项；已编号V3 31项、跨需求演进方向2项；`OUT_OF_SCOPE` 9项
+> 结论：`NOT_READY_FOR_PHASE_3_REVISION_007`<br>
+> 当前范围：主版本V1 53项、V2 47项、正式Requirement 100项；目标版本切片V1 53个、V2 58个、合计111个；已编号V3 31项、跨需求演进方向5项；`OUT_OF_SCOPE` 9项
 
 ## 1. 当前结论
 
-V1.7 Phase 2的`APPROVED / READY_FOR_PHASE_3`只保留为历史审查结果。V1.8已按100项正式范围重建08～16分册、实现契约、迁移契约和物理承载差量，并通过fresh-context独立复审。
+修订007前的`APPROVED / READY_FOR_PHASE_3_V1.8`保留为历史审查结果。修订007新增11个补充V2切片并明确配置基础能力边界；08～16分册及相关实现、迁移和物理承载契约须按差量复核后重新独立评审。
 
 ## 2. 必须重验证的契约
 
-| 范围 | 当前状态 | 关闭条件 |
+| 范围 | 修订007前状态 | 修订007关闭条件 |
 |---|---|---|
+| 修订007差量 | REVALIDATION_REQUIRED | 按111个目标版本切片复核受影响的数据、API、事件、集成、权限、异常和迁移契约，并重新执行机器门禁及独立复审 |
 | 数据与数据库 | PASS | 已清理ACC-05、COM-02、IMP-02活动对象/迁移目标；已校准项目状态、闭环字段及新增六表物理设计 |
 | API与命令 | PASS | 100项正式需求已逐项落位；已移除退出需求API并补齐执行契约、事实版本和幂等边界 |
 | 事件与集成 | PASS | 已校准ERP/CRM权威事实、质量事件、非阻断依赖及CUT结果引用语义 |
@@ -32,4 +33,4 @@ V1.7 Phase 2的`APPROVED / READY_FOR_PHASE_3`只保留为历史审查结果。V1
 - 环境参数、生产拓扑、KMS、SIT/UAT和真实迁移/切换证据继续在各自最晚安全门禁关闭。
 - 本次新增逻辑事实影响当前物理模型时，P3-E09必须对差量DDL重新执行；在此之前旧DDL哈希只作历史模型证据，不能放行相关Feature实现。
 
-Phase 2结论为`APPROVED / READY_FOR_PHASE_3_V1.8`。该结论只允许进入Phase 3形成Feature和前向DDL设计，不批准DDL执行、历史迁移、数据切换或Release。
+当前Phase 2结论为`REVALIDATION_REQUIRED / NOT_READY_FOR_PHASE_3_REVISION_007`。修订007差量未关闭前，不得以修订前结论批准新的Phase 3或Feature Ready；既有证据不批准DDL执行、历史迁移、数据切换或Release。

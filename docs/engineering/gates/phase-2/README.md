@@ -2,8 +2,9 @@
 
 Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存、并发、异常、幂等契约是否足以进入 Phase 3。
 
-> 当前门禁：`APPROVED / READY_FOR_PHASE_3_V1.8`<br>
-> 当前范围：V1 53项、V2 47项、V1/V2正式需求100项；已编号V3 31项、跨需求演进方向2项；`OUT_OF_SCOPE` 9项<br>
+> 当前门禁：`REVALIDATION_REQUIRED / NOT_READY_FOR_PHASE_3_REVISION_007`<br>
+> 当前范围：主版本V1 53项、V2 47项、正式Requirement 100项；目标版本切片V1 53个、V2 58个、合计111个；已编号V3 31项、跨需求演进方向5项；`OUT_OF_SCOPE` 9项<br>
+> 当前原因：修订007新增11个补充V2切片并调整配置基础能力边界；既有批准结论保留为差量复核输入，不自动覆盖当前基线<br>
 > 迁移边界：87对象/98来源绑定/1排除源；`CustomerServiceLevelRevision`和`CutoverConfigurationRevision`均为`NONE_NEW / FEATURE_FORWARD_MIGRATION`，不进入当前核心DDL；P3-E09=`MODEL_BASELINE_READY`仅批准当前冻结模型。仅当发布包含历史迁移或数据切换时，才由`AI-MIG-000`作为Release前置门禁并绑定批准窗口，普通功能发布不适用
 
 > 2026-08-25聚焦增量：F-PROJ-004新增`ProjectTemplateMatchHistory`后，当前迁移契约为88对象/99来源绑定/1排除源；该对象为`NONE_NEW / FEATURE_FORWARD_MIGRATION(PM-07)`，不进入既有核心DDL，Feature Ready独立复审仍须单独GO。
@@ -14,8 +15,8 @@ Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存
 
 - [`gate-status.md`](gate-status.md)：Phase 2 当前门禁状态。
 - [`implementation-fact-inventory.md`](implementation-fact-inventory.md)：实现仓库事实、漂移分类和前向纠正约束。
-- [`self-review.md`](self-review.md)：本轮V1.8 Phase 2 差量自审与回归证据。
-- [`independent-review.md`](independent-review.md)：本轮V1.8 fresh-context独立复审与最终GO结论；旧V1.7结论不作为放行依据。
+- [`self-review.md`](self-review.md)：修订007前的V1.8 Phase 2差量自审与回归证据，作为当前复核输入。
+- [`independent-review.md`](independent-review.md)：修订007前的V1.8 fresh-context独立复审与GO结论；该结论不自动批准修订007。
 
 ## 归档规则
 

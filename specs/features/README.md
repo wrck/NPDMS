@@ -4,6 +4,8 @@
 
 本索引是投影视图，不是独立状态源。`规格状态`、`Feature Ready`和`实施状态`是三个不同维度：规格状态与Feature Ready以对应Feature Spec为权威，实施状态以当前Feature实施任务记录为权威；Git、CI、测试、真实浏览器和评审结论只作为证据引用。索引与权威来源冲突时必须纠正本索引，不得反向修改权威事实或再建立Capability状态。
 
+每个参与Requirement覆盖计算的Feature Spec必须声明一行机器可读的`Requirement切片覆盖`，格式为`Requirement@V1|V2=FULL|PARTIAL`，多项使用中文分号分隔。`FULL`表示该Feature完整覆盖该目标版本切片，`PARTIAL`表示只覆盖其中一个合法子闭环；关联、支撑或依赖关系不得自动视为覆盖。`scripts/generate_requirement_traceability.py`把该声明与`tasks/features/F-*.md`中的实施状态合并，派生111个正式目标版本切片的覆盖状态。Feature实施完成只会使声明的子闭环生效，不会自动关闭未映射义务；不存在权威任务记录时也不得仅凭Feature Spec中的历史说明宣布切片完成。
+
 | Feature | 名称 | Requirement | 规格状态 | Feature Ready | 实施状态 |
 |---|---|---|---|---|---|
 | [F-PROJ-001](F-PROJ-001-manual-project-creation-and-template-initialization.md) | 手动项目创建与模板初始化 | PM-01、PM-03 | BASELINE | READY | IMPLEMENTATION_COMPLETE（NPDMS `1c76050`） |

@@ -3,6 +3,7 @@
 > 文档状态：`BASELINE`
 > Feature Ready：`READY / GO NPDMS-FPROJ005-FEATURE-READY-20260825-01`
 > Requirement：`PM-08（V1）`
+> Requirement切片覆盖：`PM-08@V1=PARTIAL`
 > 关联Requirement：`PM-01`、`PM-04`、`PM-11`；不宣称关联Requirement完成
 > Owner Context：`PROJ（项目治理）`
 > 前置Feature：`F-PROJ-001`、`F-PROJ-002`、`F-PROJ-003`、`F-PROJ-004`均已完成

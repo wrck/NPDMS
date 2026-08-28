@@ -4,6 +4,7 @@
 > Feature Ready：`READY`
 > 实施状态：`IMPLEMENTATION_COMPLETE / PASS`（NPDMS `31834bc6`；2026-08-28合并后审查通过）
 > Requirement：`CUS-03（V1）`
+> Requirement切片覆盖：`CUS-03@V1=PARTIAL`
 > 关联Requirement：`CUS-01`、`CUS-02`、`CUS-04`、`EQP-01`、`INT-03`；不宣称关联Requirement完成
 > Owner Context：`CUS（客户与服务关系）`
 > 目标实现载体：独立`pms-module-customer`与稳定`pms-module-customer-api`
