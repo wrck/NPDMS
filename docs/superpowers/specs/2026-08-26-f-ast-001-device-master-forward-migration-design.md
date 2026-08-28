@@ -8,7 +8,7 @@ F-AST-001 建立 AST 设备当前事实的唯一写 Owner。现有 `pms_equipmen
 
 - 保留现有 `pms-module-asset-api` 与 `pms-module-asset`，不新增独立 Device 模块。
 - 新管理端资源使用 `/pms/asset/devices`，Business API 使用 `/api/v1/pms/devices`。
-- 旧 `/pms/equipment` 只保留历史列表和详情读取，停止全部写操作。
+- 旧 `/pms/equipment` 保留历史列表和详情读取；普通角色停止全部写操作，`super_admin`继续对旧设备模型执行受控写入，且不得代理或双写AST。
 - `id` 与 `sn` 均为不可变量，关系、迁移、对账和公开业务契约优先按 SN 组织。
 - 设备主档采用“稳定主档 + 高频当前事实投影”，避免约 200 万设备和 400 万以上发货记录下的高频联表。
 - 完整发货、归属、位置、装配、版本和维保记录独立落表，主档投影必须可对账和重建。

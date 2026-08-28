@@ -236,6 +236,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | CustomerRelationshipSnapshot | 不可变快照 | 项目、验收、巡检等业务发生时冻结必要联系信息 |
 | CustomerServiceLevelRevision | 时态版本聚合 | CUS-02保存等级字典代码、策略快照和有效区间；同一客户同一时点仅一个有效版本，历史业务快照不回写 |
 | CustomerLocationReference | 时态关系 | 客户对AST Address/Site的稳定引用、类型、来源版本和有效区间；CUS不拥有地点实体或位置树 |
+| CustomerScopeSlice | 授权切片 | 保存用户或角色主体的五维复选条件；同维度OR、不同维度AND、多切片OR，普通角色无有效切片时为空 |
 
 Customer与Project均直接保存`marketCode/marketName/systemCode/systemName/expendCode/expendName/industryCode/industryName`八个业务字段。`MarketRelation`只提供CRM组合目录、同步对账与候选选择，不是客户或项目的持久化外键目标；三者均禁止保存`relationId`。历史变更通过同步证据、审计和业务快照追溯，不依赖可变目录记录ID串联。
 
@@ -419,6 +420,7 @@ CollectionTask 必须在创建时冻结完成模式：
 - `CustomerExternalMapping`保存CRM客户ID、当前主映射、来源版本和eventId；同一CRM客户最多一个当前平台客户，一个客户最多一个当前CRM主映射。
 - `CustomerFieldHistory`与`CustomerSyncSnapshot`追加保存字段前后值摘要、来源、版本、水位和冲突；不得用万能JSON替代核心字段。
 - `CustomerLocationReference`只引用Address/Site，保存类型、来源版本和有效区间。
+- `CustomerScopeSlice`保存主体类型、主体ID及五维授权条件；管理员无显式切片时全量，有显式切片时同样按切片降权。
 
 ### 设备主档
 

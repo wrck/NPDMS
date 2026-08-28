@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "ef8169a7fc452e1006e3a1cf8454b5533798ca34"
+    "commit": "71834e061c5f97aa3c1ba8df91938e4f284e3579"
   },
   "files": [
     {
@@ -283,12 +283,12 @@
     {
       "path": "docs/design/07-authorization-design.md",
       "category": "SDS",
-      "sha256": "0ccdc3f0b238d5923cf8e6ea0839723de30add4fa5145f3ae687bb1357b2f616"
+      "sha256": "47dff6e18ea38ce61589eba506fd8aa581489a62495f04c2ef5373f927d02945"
     },
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "ace15bdf396bd9a330b3e62edee59bf6c05f7828f8242a85b43b74d001feb63d"
+      "sha256": "e5187c5d149103134398c2b8dd72fc89af0477f2e8d4e972b47b4f01472a6c40"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
@@ -298,12 +298,12 @@
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "19e95ea91b02db6857fda9eae6753831198f8f390f0cfe2cbcebf3082065990d"
+      "sha256": "44b97329aa5c258245315a4c8af342cb67dc738717c87438b865e98be0bd3dc0"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "2ff9cb2861673d023f29ca2c419dd5eb227a46809a0674aae63771097e9e7d67"
+      "sha256": "23da579be4ed68ec91c4a1f6ec1e141413ec8fae2225735c9be105e63f36eed4"
     },
     {
       "path": "docs/design/11-event-design.md",
@@ -383,12 +383,12 @@
     {
       "path": "docs/engineering/gates/phase-2/README.md",
       "category": "ENGINEERING",
-      "sha256": "f98cd3cbf670b5365ffb5f51158810bedb30430775ca75249821929032cfec8c"
+      "sha256": "358d1010d31b7a99273fdf59bae462e526c3b5025fcf7725c63d27c525a49e04"
     },
     {
       "path": "docs/engineering/gates/phase-2/gate-status.md",
       "category": "ENGINEERING",
-      "sha256": "691e699e3cba92718a414b4e8f17644933196e0e4104063d05093b33c8590784"
+      "sha256": "ddefd6568818ada58cbc34ada91de9406c5019530f090c741db991fae0bfa0a5"
     },
     {
       "path": "docs/engineering/gates/phase-3/README.md",
@@ -418,17 +418,17 @@
     {
       "path": "docs/traceability/domain-entity-migration-contract.json",
       "category": "TRACEABILITY",
-      "sha256": "7f2c063a430de497eeaf34ecccf3e4b886b674dc426dfeeccea8b7480c8f6feb"
+      "sha256": "e69bc50039a68e54f69bc3b39368e61fcf32c6918080dcdd291265d58993da18"
     },
     {
       "path": "docs/traceability/domain-entity-migration-contract.md",
       "category": "TRACEABILITY",
-      "sha256": "a92d664384271512483ce4aeaf0fa6ea10d5a991ba2e8ebda1cc8a25b8ab4cca"
+      "sha256": "a49d61cd21d8fde5c536586bbeccf0ead750140ba64d280f326df6378b61772c"
     },
     {
       "path": "docs/traceability/domain-object-table-map.json",
       "category": "TRACEABILITY",
-      "sha256": "7c056dcaa533abae3f554bf4b26ece031828e825445d550d7f4e8fd16c9d6eeb"
+      "sha256": "3f26dc0b3461856f48071c2d5d4482d0c327eb9051dc864085a3f516aa019a34"
     },
     {
       "path": "docs/traceability/market-relation-contract.json",
@@ -438,7 +438,7 @@
     {
       "path": "docs/traceability/phase2-contract-map.md",
       "category": "TRACEABILITY",
-      "sha256": "f35481d5fbf3909bec5bcbf8e1b7780c0a7fc75686689e34fa14fadf7aa6eb66"
+      "sha256": "068de62198f0f83ad13b6308aee3b368358bde28e5b92cc5ac6f6ad991be195d"
     },
     {
       "path": "docs/traceability/project-code-contract.json",
@@ -453,7 +453,7 @@
     {
       "path": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
       "category": "FEATURE_SPEC",
-      "sha256": "ba0f1efaeaa214a47a28d303f16d45bfceedb8c220e8412b9f3b533c1969a089"
+      "sha256": "0f56a683a56bc389e2c9c397bae11499f66178e331644d9450fb327b7be02af5"
     },
     {
       "path": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",

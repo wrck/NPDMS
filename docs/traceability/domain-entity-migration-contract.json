@@ -3,7 +3,7 @@
   "status": "BASELINE",
   "baseline": "PRD_V1.8",
   "implementationRepo": "E:\\AICoding\\Projects\\NPDMS",
-  "implementationCommit": "856d05264ab4a4fb69b94896c172e4a1c29aae02",
+  "implementationCommit": "a9f8b7c568546839d3d641531f8036bb75889a82",
   "implementationEvidenceMode": "PINNED_GIT_COMMIT",
   "bindingStatistics": {
     "allBindingCount": 40,
@@ -606,14 +606,43 @@
         "INT-03"
       ],
       "targetTables": [
-        "cus_customer"
+        "cus_customer_master",
+        "cus_customer_external_mapping",
+        "cus_customer_field_history"
+      ]
+    },
+    "MarketRelation": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_market_relation"
+      ]
+    },
+    "CustomerLocationReference": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_location_reference"
+      ]
+    },
+    "CustomerScopeSlice": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_scope_slice"
       ]
     },
     "CustomerContact": {
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-03",
         "CUS-04"
       ],
       "targetTables": [
@@ -625,9 +654,7 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-03",
-        "CUS-04",
-        "INT-03"
+        "CUS-04"
       ],
       "targetTables": [
         "cus_customer_relationship_snapshot"
@@ -1119,13 +1146,13 @@
       ],
       "sources": [
         {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "ProjectTemplate",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=ProjectTemplate"
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_template_revision",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V52__proj_project_template_foundation.sql#table=proj_project_template_revision"
         }
       ]
     },
@@ -1141,13 +1168,13 @@
       ],
       "sources": [
         {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "ProjectTemplateMatchHistory",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=ProjectTemplateMatchHistory"
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_template_match_history",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V80__fproj004_template_match_history.sql#table=proj_project_template_match_history"
         }
       ],
       "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
@@ -1275,13 +1302,13 @@
       ],
       "sources": [
         {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "TaskDependency",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=TaskDependency"
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_task_dependency",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V88__fproj007_project_task_runtime.sql#table=proj_task_dependency"
         }
       ]
     },
@@ -1299,13 +1326,13 @@
       ],
       "sources": [
         {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "ProjectMemberAssignment",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=ProjectMemberAssignment"
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_member_assignment",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V57__proj_project_manual_creation.sql#table=proj_project_member_assignment"
         }
       ]
     },
@@ -1329,7 +1356,7 @@
           "transform": "preserve portfolio identity and active members",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V21__pms_portfolio_and_service_level.sql#table=pms_project_portfolio"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V21__pms_portfolio_and_service_level.sql#table=pms_project_portfolio"
         },
         {
           "sourceType": "CURRENT_TABLE",
@@ -1338,7 +1365,7 @@
           "transform": "convert mutable rule rows into immutable portfolio revisions and freeze referenced member/rule version",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V21__pms_portfolio_and_service_level.sql#table=pms_project_portfolio_rule"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V21__pms_portfolio_and_service_level.sql#table=pms_project_portfolio_rule"
         }
       ]
     },
@@ -1355,13 +1382,13 @@
       ],
       "sources": [
         {
-          "sourceType": "NONE_NEW",
-          "sourceObject": "ProjectStageSnapshot",
-          "disposition": "NEW_ONLY",
-          "transform": "create only from new-platform business commands; no proven historical source",
-          "mappingStatus": "NEW_ONLY",
-          "gate": "FEATURE_RELEASE",
-          "evidenceRef": "phase2-contract://object=ProjectStageSnapshot"
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_stage_snapshot",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V86__fproj006_project_governance_foundation.sql#table=proj_project_stage_snapshot"
         }
       ]
     },
@@ -1519,7 +1546,7 @@
           "transform": "split source type, preserve every submission, map to Preparation revisions",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_site_survey;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_requirement;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_resource_ready;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_briefing"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_site_survey;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_requirement;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_resource_ready;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_briefing"
         }
       ]
     },
@@ -1548,7 +1575,7 @@
           "transform": "separate plan baseline, items and change revisions; do not infer approval from duration cache",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V22__pms_batch_change_and_schedule.sql#table=pms_schedule_backward;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V23__pms_plan_change_and_governance.sql#table=pms_plan_change_request;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V8__pms_project_wbs_phase_risk.sql#table=pms_project_task"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V22__pms_batch_change_and_schedule.sql#table=pms_schedule_backward;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V23__pms_plan_change_and_governance.sql#table=pms_plan_change_request;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V8__pms_project_wbs_phase_risk.sql#table=pms_project_task"
         }
       ]
     },
@@ -1576,7 +1603,7 @@
           "transform": "create immutable solution revisions and review records",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_solution"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_solution"
         }
       ]
     },
@@ -1620,7 +1647,7 @@
           "transform": "audit reusable interaction and field semantics only; keep the legacy table and behavior unchanged and create no migration or dual write",
           "mappingStatus": "NO_MIGRATION",
           "gate": "F-PLT-002",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_template"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_template"
         }
       ]
     },
@@ -1665,7 +1692,7 @@
           "transform": "create new PLATFORM manual and trusted business-owner instances; audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration, dual write or automatic PRE-04 candidate-data conversion",
           "mappingStatus": "NO_MIGRATION",
           "gate": "F-PLT-002/F-SOL-003",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_instance"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_instance"
         }
       ]
     },
@@ -1689,7 +1716,7 @@
           "transform": "map arrival batch/result; shipment quantity is reconciliation evidence, not acceptance",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_arrival"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_arrival"
         }
       ]
     },
@@ -1713,7 +1740,7 @@
           "transform": "map installation facts and evidence without overwriting history",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_installation"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_installation"
         }
       ]
     },
@@ -1737,7 +1764,7 @@
           "transform": "map task/device/result versions, immutable raw logs, parse attempts and component candidates; never migrate connection secrets",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_configuration;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_config_log"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_configuration;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_config_log"
         }
       ]
     },
@@ -1760,7 +1787,7 @@
           "transform": "map per-task result revision and issue references",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_joint_test"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_joint_test"
         }
       ]
     },
@@ -1783,7 +1810,7 @@
           "transform": "map implementation risk and append-only treatments; keep separate from cutover risk",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_risk"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_risk"
         }
       ]
     },
@@ -1831,7 +1858,7 @@
           "transform": "map implementation-stage evidence identity, immutable revisions, file references and upload results",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_deliverable"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_deliverable"
         }
       ]
     },
@@ -1878,7 +1905,7 @@
           "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_acceptance"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_acceptance"
         }
       ]
     },
@@ -2048,7 +2075,7 @@
           "transform": "separate artifact identity, checklist, review and archive records",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_deliverable_checklist;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_archive_document;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_completion_certificate"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_deliverable_checklist;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_archive_document;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_completion_certificate"
         }
       ]
     },
@@ -2073,7 +2100,7 @@
           "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_project_closure"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_project_closure"
         }
       ]
     },
@@ -2120,7 +2147,7 @@
           "transform": "map only provable leftover/service handover fields to ServiceHandover",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_maintenance_transition"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_maintenance_transition"
         },
         {
           "sourceType": "CURRENT_FIELD_PATTERN",
@@ -2129,7 +2156,7 @@
           "transform": "retain as compatibility evidence; never expose in new handover writes",
           "mappingStatus": "CONFIRMED_EXCLUDED",
           "gate": "SCOPE_EXCLUSION",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#field-pattern=pms_acc_maintenance_transition.renew*"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#field-pattern=pms_acc_maintenance_transition.renew*"
         }
       ]
     },
@@ -2156,7 +2183,7 @@
           "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_task"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_task"
         }
       ]
     },
@@ -2205,7 +2232,7 @@
           "transform": "map only provable task reference, original item code/name/type, description and answer facts; never infer item definition version, UI schema, binding rule, required flag, CollectionTask, automatic result, business pass or configuration gap",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_risk"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_risk"
         }
       ]
     },
@@ -2229,7 +2256,7 @@
           "transform": "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
         }
       ]
     },
@@ -2277,7 +2304,7 @@
           "transform": "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
         }
       ]
     },
@@ -2299,7 +2326,7 @@
           "transform": "map only provable P6 result, rollback description, attachment, legacy-item text and final result fields; exclude step and observation lifecycle fields",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
         }
       ]
     },
@@ -2325,7 +2352,7 @@
           "transform": "map only records classified as inspection and freeze rule snapshot",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_task;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_execution;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_offline_file"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_task;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_execution;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_offline_file"
         }
       ]
     },
@@ -2349,7 +2376,7 @@
           "transform": "convert published rules into immutable revisions",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_rule"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_rule"
         }
       ]
     },
@@ -2372,7 +2399,7 @@
           "transform": "map immutable report revisions and external result references",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_report"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_report"
         }
       ]
     },
@@ -2396,7 +2423,7 @@
           "transform": "map inspection issues only; ITR issues remain external Owner copies",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_issue"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_issue"
         }
       ]
     },
@@ -2443,17 +2470,20 @@
         "INT-03"
       ],
       "targetTables": [
-        "cus_customer"
+        "cus_customer_master",
+        "cus_customer_external_mapping",
+        "cus_customer_field_history"
       ],
       "sources": [
         {
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_customer",
           "disposition": "CURRENT_FORWARD",
-          "transform": "align local customer model and preserve source mapping",
-          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
-          "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V3__pms_customer_and_contact.sql#table=pms_customer"
+          "transform": "preserve customer id; map code/name/status/source/audit fields into the CUS-owned master and retain immutable field history",
+          "mappingStatus": "IMPLEMENTED_FORWARD_MIGRATION",
+          "gate": "F_CUS_001_V106",
+          "implementationEvidenceTable": "cus_customer_master",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V106__fcus001_customer_master.sql#table=pms_customer"
         },
         {
           "sourceType": "EXTERNAL_SYSTEM",
@@ -2467,12 +2497,80 @@
       ]
     },
     {
+      "object": "MarketRelation",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-03",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_market_relation"
+      ],
+      "sources": [
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "CRM",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "synchronize the exact MarketRelation market/system/expend/industry code and name tuple without persisting relationId",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "INT-03",
+          "evidenceRef": "design://12-integration-design.md#systems=CRM"
+        }
+      ]
+    },
+    {
+      "object": "CustomerLocationReference",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_location_reference"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CustomerLocationReference",
+          "disposition": "NEW_ONLY",
+          "transform": "create temporal references only after AST validates an Address or Site stable identity",
+          "mappingStatus": "IMPLEMENTED_NEW_ONLY",
+          "gate": "F_CUS_001_V106",
+          "implementationEvidenceTable": "cus_customer_location_reference",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V106__fcus001_customer_master.sql#table=cus_customer_location_reference"
+        }
+      ]
+    },
+    {
+      "object": "CustomerScopeSlice",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_scope_slice"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CustomerScopeSlice",
+          "disposition": "NEW_ONLY",
+          "transform": "create explicit user or role slices; OR values within a dimension, AND dimensions within a slice, and OR independent slices",
+          "mappingStatus": "IMPLEMENTED_NEW_ONLY",
+          "gate": "F_CUS_001_V107",
+          "implementationEvidenceTable": "cus_customer_scope_slice",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V107__fcus001_customer_classification_scope.sql#table=cus_customer_scope_slice"
+        }
+      ]
+    },
+    {
       "object": "CustomerContact",
       "owner": "CUS",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUS-01",
-        "CUS-03",
         "CUS-04"
       ],
       "targetTables": [
@@ -2487,7 +2585,7 @@
           "transform": "align contact fields and temporal project relation",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V3__pms_customer_and_contact.sql#table=pms_customer_contact"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V3__pms_customer_and_contact.sql#table=pms_customer_contact"
         },
         {
           "sourceType": "EXTERNAL_SYSTEM",
@@ -2506,9 +2604,7 @@
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUS-01",
-        "CUS-03",
-        "CUS-04",
-        "INT-03"
+        "CUS-04"
       ],
       "targetTables": [
         "cus_customer_relationship_snapshot"
@@ -2609,7 +2705,7 @@
           "transform": "map version/config history with effective time and source",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_version;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_config_log"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_version;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_config_log"
         },
         {
           "sourceType": "LEGACY_TABLE",
@@ -3276,7 +3372,7 @@
           "transform": "map only provable resource/action/scope/effective interval; never import full authorization code",
           "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_authorization"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_authorization"
         }
       ]
     },
@@ -3298,7 +3394,7 @@
           "transform": "map only requests with resolvable target object/version/approval; do not generalize unrelated changes",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V23__pms_plan_change_and_governance.sql#table=pms_plan_change_request"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V23__pms_plan_change_and_governance.sql#table=pms_plan_change_request"
         }
       ]
     },
@@ -3324,7 +3420,7 @@
           "transform": "deduplicate file identity; map content hash/version/business references separately",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_archive_document;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_deliverable_checklist;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_deliverable"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_archive_document;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_deliverable_checklist;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_deliverable"
         }
       ]
     },
@@ -3378,7 +3474,7 @@
           "transform": "migrate only if proven to be a connection credential and safely re-encrypted; otherwise isolate",
           "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
           "gate": "P3-E04",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#field-pattern=pms_eng_authorization.license_key"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#field-pattern=pms_eng_authorization.license_key"
         }
       ]
     },
@@ -3499,7 +3595,7 @@
           "transform": "map external object key, file/hash and consumed result version",
           "mappingStatus": "PENDING_FIELD_MAPPING",
           "gate": "NEXT_FLYWAY",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_configuration;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_report;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_configuration;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_report;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
         }
       ]
     },
@@ -3528,7 +3624,7 @@
           "transform": "retain local legacy notices read-only; do not expose local publish/disable governance",
           "mappingStatus": "CONFIRMED_COMPATIBILITY",
           "gate": "SCOPE_EXCLUSION",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement;implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
         }
       ],
       "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
@@ -3550,7 +3646,7 @@
           "transform": "retain only resolvable legacy notice-business references and never infer local publication authority",
           "mappingStatus": "CONFIRMED_COMPATIBILITY",
           "gate": "SCOPE_EXCLUSION",
-          "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
         }
       ],
       "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",

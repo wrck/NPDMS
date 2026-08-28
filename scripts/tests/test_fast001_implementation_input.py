@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 FEATURE_SPEC = ROOT / "specs" / "features" / "F-AST-001-device-serial-archive-and-temporal-assignment.md"
 MANIFEST = ROOT / "docs" / "specification-baseline" / "manifest.json"
 DESIGN = ROOT / "docs" / "superpowers" / "specs" / "2026-08-26-f-ast-001-device-master-forward-migration-design.md"
-LOCKED_COMMIT = "ef8169a7fc452e1006e3a1cf8454b5533798ca34"
+LOCKED_COMMIT = "71834e061c5f97aa3c1ba8df91938e4f284e3579"
 
 
 class Fast001ImplementationInputTest(unittest.TestCase):
@@ -27,13 +27,14 @@ class Fast001ImplementationInputTest(unittest.TestCase):
             "conp_version/conp_type/conp_series/conp_mark",
             "约200万唯一设备和400万以上发货记录",
             "续保客观记录",
-            "旧`/pms/equipment`入口只保留历史列表和详情读取并停止全部写操作",
+            "普通角色停止全部写操作，`super_admin`仅保留对旧设备模型的创建、更新、删除和状态变更能力",
         ):
             self.assertIn(value, text)
         self.assertIn(
             "不得使用`ast_device_current_assignment`或`ast_device_assignment_history`",
             text,
         )
+        self.assertIn("不得代理或双写AST", text)
 
     def test_design_contains_seventeen_target_tables(self):
         text = DESIGN.read_text(encoding="utf-8")

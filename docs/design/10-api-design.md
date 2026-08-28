@@ -402,6 +402,7 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 ## 11.1 F-CUS-001与F-AST-001稳定API增量
 
 - CUS业务API固定使用`/api/v1/pms/customers`。旧project客户API立即退出，不保留转发或双写实现。
+- AST当前设备业务API固定使用`/api/v1/pms/devices`；旧`/pms/equipment`继续提供历史查询。普通角色的旧写入口退役，`super_admin`可对旧设备模型执行创建、更新、删除和状态变更，但不得代理或双写AST。
 - 客户动作路径为`/{id}/actions/{disable|delete|restore}`；删除必须完成全部`CustomerReferenceGuardApi`检查。
 - 客户地点路径为`/{id}/locations`，仅维护CUS对Address/Site的引用，写入前调用AST校验。
 - 设备客户归属命令固定为`POST /api/v1/pms/devices/{id}/actions/assign-customer`，携带目标客户、关系类型、原因、`If-Match`和幂等键。
