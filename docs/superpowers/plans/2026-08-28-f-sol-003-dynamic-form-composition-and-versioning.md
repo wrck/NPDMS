@@ -167,13 +167,24 @@ V104 增加 `dynamic_form_instance_id`，确保所有持久化 PRE-04 版本（�
 - [ ] **Step 1：一次运行后端聚焦与真实 MySQL 应用事务矩阵**
 
 ```powershell
-docker compose up -d mysql redis migrate
+.\scripts\test-infrastructure.ps1 reset
+.\scripts\test-infrastructure.ps1 status
+$localTestEnv = Get-Content -Raw .env | ConvertFrom-StringData
+if ([string]::IsNullOrWhiteSpace($localTestEnv.NPDMS_DB_USER) -or
+    [string]::IsNullOrWhiteSpace($localTestEnv.NPDMS_DB_PASSWORD)) {
+  throw '本地 .env 缺少隔离测试数据库凭据'
+}
+$env:NPDMS_DB_NAME = 'npdms_test'
+$env:NPDMS_MYSQL_PORT = '23316'
+$env:NPDMS_REDIS_PORT = '26379'
+$env:NPDMS_DB_USER = $localTestEnv.NPDMS_DB_USER
+$env:NPDMS_DB_PASSWORD = $localTestEnv.NPDMS_DB_PASSWORD
 mvn.cmd -pl pms-module-platform,pms-module-project,pms-module-engineering -am `
   "-Dtest=DynamicFormBusinessInstanceServiceTest,RequirementAnalysisWorkBindingSchemaTest,RequirementAnalysisDynamicFormCommandServiceTest,RequirementAnalysisDynamicFormQueryServiceTest,RequirementAnalysisFactApiImplTest,RequirementAnalysisControllerContractTest,RequirementAnalysisMigrationContractTest,RequirementAnalysisApplicationMySqlIntegrationTest" `
   "-DskipITs=false" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-使用 `docs/development.md` 的隔离 Compose MySQL 和本地 `.env` 凭据，测试前执行迁移、测试后由 `@AfterEach` 清除本用例高段数据并核对无残留。`-DskipITs=false` 必须使受 `@EnabledIfSystemProperty` 控制的真实 MySQL 测试实际执行而非 SKIPPED。真实 MySQL 直接断言：首次/克隆预分配 ID；所有持久化 PRE-04（含 DRAFT）实例 ID 非空；无外层事务失败；双版本任一陈旧零写；并发完成单胜；N 个新引用=N 个事件、重放事件不增、批量中途失败所有成功事实为零；动作替换、Provider 不可用、锁序反序、跨租户/无权均失败关闭。
+固定复用 `docs/development.md` 规定的 Compose 项目 `npdms-50eb-test`；需要从空库验证 V1→V105 时使用 `reset`，普通重跑只使用 `start`，不得执行 `docker compose down` 或新建项目。Maven 是宿主进程，必须像上面一样显式导出 `npdms_test/23316/26379` 及本地 `.env` 测试凭据，不能假设 Compose 自动传递环境变量。测试后由 `@AfterEach` 清除本用例高段数据并核对固定测试库无残留；`-DskipITs=false` 必须使受 `@EnabledIfSystemProperty` 控制的目标 IT 实际执行且报告中非 SKIPPED。真实 MySQL 直接断言：首次/克隆预分配 ID；所有持久化 PRE-04（含 DRAFT）实例 ID 非空；无外层事务失败；双版本任一陈旧零写；并发完成单胜；N 个新引用=N 个事件、重放事件不增、批量中途失败所有成功事实为零；动作替换、Provider 不可用、锁序反序、跨租户/无权均失败关闭。
 
 - [ ] **Step 2：一次运行前端、类型和构建矩阵**
 
@@ -198,7 +209,7 @@ python scripts/validate_repository_baseline_rules.py
 git diff --check
 ```
 
-第一条命令必须实际执行 PLATFORM、PROJ、ENGINEERING 及其依赖模块的全部非环境测试，不得用 package 代替测试；第二条保留全仓打包证明。用 Docker Compose 权威 MySQL 从 V1 迁移到 V105，执行 Flyway `info/validate`，再由宿主机 JDK 25 应用运行聚焦验收；MinIO 为文件存储，分别保留 ClamAV PASSED 与扫描关闭 SKIPPED 两轮文件事实。
+第一条命令必须实际执行 PLATFORM、PROJ、ENGINEERING 及其依赖模块的全部非环境测试，不得用 package 代替测试；第二条保留全仓打包证明。使用固定 `npdms-50eb-test` Compose 项目的 MySQL 从 V1 迁移到 V105，执行 Flyway `info/validate`，再由宿主机 JDK 25 应用运行聚焦验收；MinIO 为文件存储，分别保留 ClamAV PASSED 与扫描关闭 SKIPPED 两轮文件事实。
 
 - [ ] **Step 4：运行真实 Chromium 公开 UI/REST 闭环**
 
