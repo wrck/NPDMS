@@ -1,17 +1,17 @@
 # F-CUS-001 客户主档与本地生命周期
 
-> Feature实施状态：`IMPLEMENTATION_PARTIAL_ACCEPTANCE`
-> 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
 > Feature Ready Gate：`PASS`
-> Technical Plan Gate：`PENDING_REVIEW`
-> Implementation Done Gate：`NOT_READY`
-> 当前阻断：新整体收口计划尚未取得独立 Technical Plan GO
-> 当前任务：`基于合并后基线重建中文整体收口计划并送审`
+> Technical Plan Gate：`EXECUTED / 用户确认六项闭环决策`
+> Implementation Done Gate：`PASS / NPDMS-FCUS001-IMPLEMENTATION-DONE-20260828-01`
+> 当前阻断：`无`
+> 当前任务：`F-CUS-001已完成；按工程链定位下一Feature`
 > Requirement ID：`CUS-03`（V1）
 > 关联 Requirement：`CUS-01`、`CUS-02`、`CUS-04`、`INT-03`，均不宣称完成
 > Feature Spec：`specs/features/F-CUS-001-customer-master-and-local-lifecycle.md`
 > Technical Plan：`docs/superpowers/plans/2026-08-28-f-cus-001-customer-master-implementation-closure.md`
-> 锁定规格提交：`8e84ea2ce6750f824973f788237f4790961e59c4`
+> 锁定规格提交：`18377fd9fc45b54217b21488cfb46a8d320d4bd8`
 
 ## 已完成范围
 
@@ -23,15 +23,22 @@
 - 实现五维权限切片、Department code、CRM 四级分类精确校验、联系方式三态裁剪、CAS、幂等、软删除和恢复能力。
 - 真实浏览器完成简称更新、停用、删除守卫、旧页只读、刷新持久化及 320/768/1024/1440 响应式验证。
 - 真实 MySQL 完成唯一性、CAS、删除/恢复身份保持和未展平权限切片验证。
+- V123受控验收种子补齐透明目录、权限负向、跨租户、删除守卫及正向验收前提，不预置客户主档事实。
+- 业务创建入口移除`CRM_SYNC`；平台临时客户强制填写原因并持久化待对账状态。
+- 已删除客户可显式筛选和恢复；创建、更新及生命周期命令按用户意图稳定复用幂等键。
 
 ## 验证证据
 
 - `output/f-cus-001-v18/browser-acceptance.md`
 - `output/f-cus-001-v18/database-evidence.md`
 - `output/f-cus-001-v18/regression-summary.md`
+- `docs/engineering/evidence/f-cus-001-browser-evidence.json`
+- `output/f-cus-001-v18/browser-current/result.json`
 - Java 定向测试：25/25 通过。
 - 真实 MySQL 测试：10/10 通过。
 - F-CUS-001 Python 契约：16/16 通过。
+- 合并后回归：38模块Reactor测试、隔离MySQL定向测试、前端Vitest、`ts:check`及生产构建通过。
+- 真实浏览器：平台/临时客户创建、稳定幂等重放、删除/恢复、只读与空范围拒绝、跨租户隔离、引用守卫、`super_admin`保留及四档响应式全部PASS，控制台、页面及网络错误为0。
 
 ## 未完成边界
 
@@ -39,19 +46,18 @@
 - `CUS-01` 用户资产库全景未实现。
 - `CUS-02` 客户服务等级时态版本未实现。
 - `CUS-04` 项目联系人管理未实现。
-- 当前 `cus_market_relation=0`，不得猜测或伪造 CRM 权威编码，因此平台客户和临时客户创建浏览器闭环未完成。
-- 当前真实客户存在 PROJ/AST 引用，没有合法无引用客户或已删除客户，删除成功与恢复浏览器闭环未完成。
 - Deployment、SIT、UAT、Release 均未完成。
-- 规格仓库提交 `8e84ea2` 已同步 Feature Spec、相关 SDS 和 requirement matrix；当前代码工作树已生成 `output/f-cus-001-v18/f-cus-001-spec-repo-writeback.patch`，记录 F-CUS-001 对 `domain-object-table-map`、`domain-entity-migration-contract`、`core-migration-schema-contract` 和 `phase2-contract-map` 的待回写增量。合并时先将补丁应用到规格仓库、替换 `<NPDMS_MERGE_COMMIT>`，完成规格仓库校验与提交，再由官方同步工具更新 NPDMS 受管快照。
-- Task 15 定向后端测试、后端编译、Python 契约、CUS 前端范围 lint/format/style 和非压缩前端构建已通过；仓库完整 Maven 测试仍被既有 PROJ MySQL 基线数据与触发器权限阻断，完整 `ts:check` 仍被既有 Iconify 类型和缺失 Vitest 类型阻断，完整 lint 仍有 389 个既有非 CUS 样式错误，标准压缩构建在当前 Windows 环境异常退出。
+- 正式规格仓库提交`18377fd9`已将F-CUS-001、CUS-03与F-AST-001标记为`IMPLEMENTATION_COMPLETE`，并由官方同步工具锁定到本地快照。
+- 完整Python契约套件仍报告P3-E09冻结工件、V1.8载体计数和既有追踪材料漂移；这些既有规格治理问题不属于F-CUS-001完成声明，已保留原始失败，不以本Feature修改掩盖。
+- 用户现有后端进程占用`yudao-server.jar`，Spring Boot repackage无法重命名该文件；不停止用户进程。38模块Reactor测试、编译和前端生产构建均已通过。
 
 ## 任务跟踪
 
 - [x] Task 1～12：模块、迁移、领域规则、命令、生命周期、查询、跨域 API、旧写退役和工作台实施
 - [x] Task 13：当前可执行 MySQL 与浏览器验收证据
-- [x] Task 14：规格快照同步、实现基线登记与校验完成；规格机器契约回写仍由规格仓库阻断
-- [x] Task 15：最终验证已执行并记录通过项与既有仓库阻断；Implementation Done Gate 保持 `NOT_READY`
+- [x] Task 14：规格仓库回写、提交及官方快照同步完成
+- [x] Task 15：最终验证、合并后代码审查和Implementation Done回写完成
 
-本记录不将部分验收解释为完整 Feature Done，不构成 UAT、发布 Gate 或 Release GO。
+本记录确认F-CUS-001本地客户主档Feature已完成，但不构成关联Requirement、UAT、发布Gate或Release GO。
 
-> 检查点（2026-08-28）：当前开发基线已合并客户/设备实现；F-CUS-001最近Gate为Technical Plan，Feature Ready已PASS。现有部分MySQL/浏览器证据可复用，但临时客户、恢复入口、稳定幂等键及完整浏览器链尚未闭合；新中文整体收口计划待独立评审，GO后一次接通正向闭环并集中全量验证。
+> 检查点（2026-08-28）：六项用户确认决策已落实，CUS阻断全部消除；代码审查未发现Required/Critical问题，F-CUS-001与F-AST-001在正式规格仓库及锁定快照中均为`IMPLEMENTATION_COMPLETE`。

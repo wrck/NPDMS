@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "15a547abb1ef736ab173932188d30bd1e4fbdf3f"
+    "commit": "18377fd9fc45b54217b21488cfb46a8d320d4bd8"
   },
   "files": [
     {
@@ -448,17 +448,17 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "20f92db1d4171aecc2e6100c54440348907e57a182930272e6832dec7421e55a"
+      "sha256": "dadd1636ad2ff091e83b8e31e233d34a4a5b335709a32edb55b05c384fcbe94b"
     },
     {
       "path": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
       "category": "FEATURE_SPEC",
-      "sha256": "0f56a683a56bc389e2c9c397bae11499f66178e331644d9450fb327b7be02af5"
+      "sha256": "d7cde4271d0c6455989c9e575ecc2c31eafaa9af0bd3c4b3298886e8c8091abb"
     },
     {
       "path": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
       "category": "FEATURE_SPEC",
-      "sha256": "69262ac88761e4439c09c5ee492ebbd5e5d78719e2dcd8725d77f35fa4a81c8f"
+      "sha256": "263f7b93159512f92fce743a6b89d9e154230e05842f11b944f529fc5328142c"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
@@ -583,7 +583,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "30d20abe5f81b95e6f94e1729c8a01f66cc356bec511e9636eaac404e4a8b01b"
+      "sha256": "f1388f617ca96bc42468f3574200c29130af76ab7ac582269644eb0000586ee1"
     }
   ]
 }

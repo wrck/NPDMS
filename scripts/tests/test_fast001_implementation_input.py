@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 FEATURE_SPEC = ROOT / "specs" / "features" / "F-AST-001-device-serial-archive-and-temporal-assignment.md"
 MANIFEST = ROOT / "docs" / "specification-baseline" / "manifest.json"
 DESIGN = ROOT / "docs" / "superpowers" / "specs" / "2026-08-26-f-ast-001-device-master-forward-migration-design.md"
-LOCKED_COMMIT = "15a547abb1ef736ab173932188d30bd1e4fbdf3f"
+LOCKED_COMMIT = "18377fd9fc45b54217b21488cfb46a8d320d4bd8"
 
 
 class Fast001ImplementationInputTest(unittest.TestCase):

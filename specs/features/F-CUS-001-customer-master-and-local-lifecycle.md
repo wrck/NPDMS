@@ -2,6 +2,7 @@
 
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
+> 实施状态：`IMPLEMENTATION_COMPLETE / PASS`（NPDMS `31834bc6`；2026-08-28合并后审查通过）
 > Requirement：`CUS-03（V1）`
 > 关联Requirement：`CUS-01`、`CUS-02`、`CUS-04`、`EQP-01`、`INT-03`；不宣称关联Requirement完成
 > Owner Context：`CUS（客户与服务关系）`
@@ -200,4 +201,4 @@ F-CUS-001定义CRM权威字段的本地承载、只读规则和稳定写入边�
 | 相关Open Question全部关闭 | PASS |
 | 独立Feature Ready裁决 | READY |
 
-结论：`BASELINE / READY`。CUS-03的客户主档、字段Owner、CRM写入边界、引用守卫、地点引用、独立模块切换、权限脱敏和机器物理契约均已冻结。Technical Plan可在实现仓库锁定包含本Feature及SDS增量的规格提交后生成；本结论不代表Implementation、INT-03、Deployment、SIT、UAT或Release完成。
+结论：`IMPLEMENTATION_COMPLETE / PASS`。CUS-03客户主档本地生命周期已通过受控验收种子、真实MySQL、稳定幂等、权限负向、删除恢复、真实浏览器与合并后代码审查完成收口；本结论不代表`INT-03`、`CUS-01`、`CUS-02`、`CUS-04`、Deployment、SIT、UAT或Release完成。
