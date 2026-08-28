@@ -33,7 +33,7 @@ public class CredentialTokenService {
         String token = UUID.randomUUID() + "." + UUID.randomUUID();
         char[] storedSecret = Arrays.copyOf(secret, secret.length);
         try {
-            store.put(new TokenRecord(hash(token), jti, binding, username,
+            store.put(new TokenRecord(hashToken(token), jti, binding, username,
                     storedSecret, issuedAt, issuedAt.plus(lifetime), TokenStatus.ACTIVE));
         } catch (RuntimeException ex) {
             Arrays.fill(storedSecret, '\0');
@@ -47,7 +47,7 @@ public class CredentialTokenService {
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("取密令牌不能为空");
         }
-        TokenRecord record = store.consume(hash(token), expectedBinding, clock.instant());
+        TokenRecord record = store.consume(hashToken(token), expectedBinding, clock.instant());
         return new TransientCredential(record.username(), record.secret());
     }
 
@@ -70,7 +70,7 @@ public class CredentialTokenService {
         }
     }
 
-    private static String hash(String value) {
+    static String hashToken(String value) {
         try {
             return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                     .digest(value.getBytes(StandardCharsets.UTF_8)));
@@ -90,6 +90,18 @@ public class CredentialTokenService {
             String templateId,
             String templateVersion,
             String audience) {
+
+        public String canonicalValue() {
+            return String.join("\n", platformTaskId, deviceId, protocol, templateId, templateVersion, audience);
+        }
+
+        public static TokenBinding fromCanonicalValue(String value) {
+            String[] parts = value.split("\\n", -1);
+            if (parts.length != 6) {
+                throw new IllegalStateException("CREDENTIAL_TOKEN_BINDING_INVALID");
+            }
+            return new TokenBinding(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+        }
     }
 
     public record IssuedToken(String token, String jti, Instant expiresAt) {

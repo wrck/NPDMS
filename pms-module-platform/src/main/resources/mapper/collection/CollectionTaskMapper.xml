@@ -12,6 +12,19 @@
           AND deleted = b'0'
     </select>
 
+    <update id="updateDispatchState">
+        UPDATE plt_collection_task
+        SET status = #{update.status},
+            technical_stage = #{update.technicalStage},
+            external_task_id = #{update.externalTaskId},
+            external_status = #{update.externalStatus},
+            failure_category = #{update.failureCategory}
+        WHERE tenant_id = #{update.tenantId}
+          AND platform_task_id = #{update.platformTaskId}
+          AND technical_stage = #{update.expectedTechnicalStage}
+          AND deleted = b'0'
+    </update>
+
     <select id="selectListByBatchId"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO">
         SELECT *

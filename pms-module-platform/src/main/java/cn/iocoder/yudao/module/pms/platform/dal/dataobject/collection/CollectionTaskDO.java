@@ -31,6 +31,7 @@ public class CollectionTaskDO extends TenantBaseDO {
     private String credentialMode;
     private Long credentialId;
     private Long grantSnapshotId;
+    private String temporaryUsername;
     private String idempotencyKey;
     private String completionMode;
     private String status;
