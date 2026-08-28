@@ -2,10 +2,10 @@ baseline:
   product: project-delivery-platform
   version: V1.8
   status: formal-baseline
-  frozen_at: 2026-08-20
+  frozen_at: 2026-08-29
   source: 需求/PRD-项目实施交付管理平台.md
   snapshot: docs/baseline/prd-v1.8.md
-  sha256: 2BE5DAE7CC90ED41272A2AE0109ED6C7DC5DD40F9A784900735D0B3088946462
+  sha256: 9E221209843AD3D98A50A9D18BC7D6713C16889669125AC33B7C7972ED634322
 
 scope:
   formal_requirements: 100
