@@ -323,3 +323,25 @@ python -B scripts/validate_repository_baseline_rules.py
 ```
 
 Expected: `master` clean, specification history reachable, single-repository governance PASS.
+
+## 执行记录
+
+状态：`IMPLEMENTATION_COMPLETE`
+
+| 切片 | 提交 | 结果 |
+|---|---|---|
+| 设计与计划 | `0e8bda30`、`31e3c215` | 固化单一事实源、双父历史和回滚边界 |
+| 正式规格历史 | `344ae9f8` | 第二父为`02f6360735980c4bbd9947844917feb0d4b4aecf`，相对第一父零树变化 |
+| 正式资产导入 | `6a75889b` | 补入V1.8修订、Phase 2证据、PLT契约、追溯生成器和Feature契约测试；保留较新的P3-E08运行证据 |
+| 同库治理切换 | `56801b2f`、`f4d8f949` | 退役manifest/allowlist/sync链，统一根规则、当前SDS和Feature入口 |
+| P3-E09物理字节 | `e76277e5` | 正式DDL blob与登记证据一致；41项P3-E09聚焦回归通过 |
+| 原规格仓归档 | 规格仓`e44d48ef`、NPDMS`f9babf12` | 原入口标记ARCHIVED并接入NPDMS历史；未提交用户文件未带入 |
+
+验证结果：
+
+- 同库治理校验：PASS；
+- Requirement追溯及新增Feature契约聚焦测试：43项PASS；
+- Phase 1与Feature契约回归：91项PASS；
+- P3-E09物理字节、证据包和核心契约回归：41项PASS；
+- 全量规格测试：555项中552项PASS，3项FAIL；失败均位于本分支相对`master`零变更路径，分别为F-PROJ-006/F-PROJ-007旧迁移区间摘要和动态表单存量清单16个未登记实现资产，未在本次同库治理中扩修；
+- 业务模块、Flyway迁移和运行配置变更数：0。
