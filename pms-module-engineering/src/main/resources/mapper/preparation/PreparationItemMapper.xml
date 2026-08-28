@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.PreparationItemMapper">
+
+    <sql id="columns">
+        id, preparation_id, source_item_id, item_code, item_name, sort_order,
+        applicability_code, confirmation_status_code, form_code, form_version,
+        form_schema_snapshot, evidence_policy_snapshot, source_policy_snapshot, waiver_policy_snapshot,
+        outsourced, assignee_user_id, assignee_effective_from, site_result_code, site_result_detail,
+        evidence_reference_snapshot, not_applicable_reason, not_applicable_confirmed_by,
+        not_applicable_confirmed_at, confirmed_by, confirmed_at, returned_by, returned_at,
+        return_reason, version, creator, create_time, updater, update_time, tenant_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id" keyColumn="id">
+        INSERT INTO sol_preparation_item (
+            preparation_id, source_item_id, item_code, item_name, sort_order,
+            applicability_code, confirmation_status_code, form_code, form_version,
+            form_schema_snapshot, evidence_policy_snapshot, source_policy_snapshot, waiver_policy_snapshot,
+            outsourced, assignee_user_id, assignee_effective_from, site_result_code, site_result_detail,
+            evidence_reference_snapshot, not_applicable_reason, not_applicable_confirmed_by,
+            not_applicable_confirmed_at, confirmed_by, confirmed_at, returned_by, returned_at,
+            return_reason, version, creator, create_time, updater, update_time, tenant_id
+        ) VALUES (
+            #{row.preparationId}, #{row.sourceItemId}, #{row.itemCode}, #{row.itemName}, #{row.sortOrder},
+            #{row.applicabilityCode}, #{row.confirmationStatusCode}, #{row.formCode}, #{row.formVersion},
+            #{row.formSchemaSnapshot}, #{row.evidencePolicySnapshot}, #{row.sourcePolicySnapshot}, #{row.waiverPolicySnapshot},
+            #{row.outsourced}, #{row.assigneeUserId}, #{row.assigneeEffectiveFrom}, #{row.siteResultCode}, #{row.siteResultDetail},
+            #{row.evidenceReferenceSnapshot}, #{row.notApplicableReason}, #{row.notApplicableConfirmedBy},
+            #{row.notApplicableConfirmedAt}, #{row.confirmedBy}, #{row.confirmedAt}, #{row.returnedBy}, #{row.returnedAt},
+            #{row.returnReason}, #{row.version}, COALESCE(#{row.creator}, ''),
+            COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)), COALESCE(#{row.updater}, ''),
+            COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId}
+        )
+    </insert>
+
+    <select id="selectByObjectId" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.itemId}
+    </select>
+
+    <select id="selectCurrentByEvidenceObjectId" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND (id = #{query.evidenceObjectItemId} OR source_item_id = #{query.evidenceObjectItemId})
+          AND EXISTS (
+              SELECT 1 FROM sol_preparation
+              WHERE sol_preparation.tenant_id = sol_preparation_item.tenant_id
+                AND sol_preparation.id = sol_preparation_item.preparation_id
+                AND sol_preparation.current_marker = 1
+          )
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+          AND id = #{query.itemId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        ORDER BY sort_order ASC, item_code ASC, id ASC
+        FOR UPDATE
+    </select>
+
+    <select id="selectList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        ORDER BY sort_order ASC, item_code ASC, id ASC
+    </select>
+
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationItemDO">
+        SELECT <include refid="columns"/> FROM sol_preparation_item
+        WHERE tenant_id = #{query.tenantId}
+          AND preparation_id = #{query.preparationId}
+        <choose>
+            <when test="query.cursorSortOrder == null and query.cursorItemCode == null and query.cursorId == null"/>
+            <when test="query.cursorSortOrder != null and query.cursorItemCode != null and query.cursorId != null">
+                AND (sort_order &gt; #{query.cursorSortOrder}
+                    OR (sort_order = #{query.cursorSortOrder} AND item_code &gt; #{query.cursorItemCode})
+                    OR (sort_order = #{query.cursorSortOrder} AND item_code = #{query.cursorItemCode} AND id &gt; #{query.cursorId}))
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY sort_order ASC, item_code ASC, id ASC
+        LIMIT #{query.limit}
+    </select>
+
+    <update id="updateDraftIfMatch">
+        UPDATE sol_preparation_item
+        <set>
+            <if test="update.submittedFields.contains('applicabilityCode')">applicability_code = #{update.applicabilityCode},</if>
+            <if test="update.submittedFields.contains('outsourced')">outsourced = #{update.outsourced},</if>
+            <if test="update.submittedFields.contains('assignee')">
+                assignee_user_id = #{update.assigneeUserId},
+                assignee_effective_from = #{update.assigneeEffectiveFrom},
+            </if>
+            <if test="update.submittedFields.contains('siteResultCode')">site_result_code = #{update.siteResultCode},</if>
+            <if test="update.submittedFields.contains('siteResultDetail')">site_result_detail = #{update.siteResultDetail},</if>
+            <if test="update.submittedFields.contains('evidenceReferenceSnapshot')">evidence_reference_snapshot = #{update.evidenceReferenceSnapshot},</if>
+            <if test="update.submittedFields.contains('notApplicableReason')">not_applicable_reason = #{update.notApplicableReason},</if>
+            updater = #{update.updater},
+            update_time = CURRENT_TIMESTAMP(3),
+            version = version + 1
+        </set>
+        WHERE tenant_id = #{update.tenantId}
+          AND preparation_id = #{update.preparationId}
+          AND id = #{update.itemId}
+          AND version = #{update.expectedVersion}
+          AND confirmation_status_code IN ('PENDING', 'RETURNED')
+    </update>
+
+    <update id="updateReviewIfMatch">
+        UPDATE sol_preparation_item
+        SET applicability_code = #{update.applicabilityCode},
+            confirmation_status_code = #{update.confirmationStatusCode},
+            not_applicable_reason = CASE WHEN #{update.applicabilityCode} = 'NOT_APPLICABLE_CONFIRMED'
+                THEN #{update.notApplicableReason} ELSE not_applicable_reason END,
+            not_applicable_confirmed_by = CASE WHEN #{update.applicabilityCode} = 'NOT_APPLICABLE_CONFIRMED'
+                THEN #{update.actorUserId} ELSE not_applicable_confirmed_by END,
+            not_applicable_confirmed_at = CASE WHEN #{update.applicabilityCode} = 'NOT_APPLICABLE_CONFIRMED'
+                THEN #{update.decidedAt} ELSE not_applicable_confirmed_at END,
+            confirmed_by = CASE WHEN #{update.confirmationStatusCode} = 'CONFIRMED'
+                THEN #{update.actorUserId} ELSE confirmed_by END,
+            confirmed_at = CASE WHEN #{update.confirmationStatusCode} = 'CONFIRMED'
+                THEN #{update.decidedAt} ELSE confirmed_at END,
+            returned_by = CASE WHEN #{update.confirmationStatusCode} = 'RETURNED'
+                THEN #{update.actorUserId} ELSE returned_by END,
+            returned_at = CASE WHEN #{update.confirmationStatusCode} = 'RETURNED'
+                THEN #{update.decidedAt} ELSE returned_at END,
+            return_reason = CASE WHEN #{update.confirmationStatusCode} = 'RETURNED'
+                THEN #{update.returnReason} ELSE return_reason END,
+            updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3), version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND preparation_id = #{update.preparationId}
+          AND id = #{update.itemId}
+          AND version = #{update.expectedVersion}
+          AND confirmation_status_code = #{update.expectedConfirmationStatus}
+    </update>
+
+</mapper>

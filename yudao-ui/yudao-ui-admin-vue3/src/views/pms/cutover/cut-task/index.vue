@@ -95,54 +95,6 @@
             v-hasPermi="['pms:cut-task:audit']"
             >评审驳回</el-button
           >
-          <el-button
-            link
-            type="primary"
-            v-if="row.status === 3"
-            @click="handleSimpleAction(row, 'startExecution', '开始执行')"
-            v-hasPermi="['pms:cut-task:update']"
-            >开始执行</el-button
-          >
-          <el-button
-            link
-            type="success"
-            v-if="row.status === 4"
-            @click="handleSimpleAction(row, 'completeExecution', '完成执行')"
-            v-hasPermi="['pms:cut-task:update']"
-            >完成执行</el-button
-          >
-          <el-button
-            link
-            type="info"
-            v-if="row.status === 4"
-            @click="handleSimpleAction(row, 'startObservation', '开始观察')"
-            v-hasPermi="['pms:cut-task:update']"
-            >开始观察</el-button
-          >
-          <el-button
-            link
-            type="success"
-            v-if="row.status === 5"
-            @click="handleSimpleAction(row, 'completeObservation', '完成观察')"
-            v-hasPermi="['pms:cut-task:update']"
-            >完成观察</el-button
-          >
-          <el-button
-            link
-            type="danger"
-            v-if="row.status === 4"
-            @click="handleSimpleAction(row, 'rollback', '回退')"
-            v-hasPermi="['pms:cut-task:update']"
-            >回退</el-button
-          >
-          <el-button
-            link
-            type="danger"
-            v-if="![6, 7, 8].includes(row.status)"
-            @click="handleSimpleAction(row, 'terminateCutTask', '终止')"
-            v-hasPermi="['pms:cut-task:update']"
-            >终止</el-button
-          >
           <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:cut-task:delete']"
             >删除</el-button
           >
@@ -280,7 +232,7 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', name: '', status: undefined, riskLevel: undefined })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<CutTaskVO>({ projectId: 0, code: '' })
+const form = reactive<CutTaskVO>({ projectId: 0, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请输入项目编号' }],
   code: [{ required: true, message: '请输入任务编码' }],

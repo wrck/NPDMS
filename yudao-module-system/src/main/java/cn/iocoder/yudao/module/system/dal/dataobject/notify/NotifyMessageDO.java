@@ -44,6 +44,10 @@ public class NotifyMessageDO extends BaseDO {
      * 枚举 {@link UserTypeEnum}
      */
     private Integer userType;
+    /**
+     * 业务投递幂等键
+     */
+    private String deliveryKey;
 
     // ========= 模板相关字段 =========
 

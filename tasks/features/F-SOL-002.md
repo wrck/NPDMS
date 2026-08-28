@@ -1,0 +1,72 @@
+# F-SOL-002 工勘分工信息采集与实施就绪
+
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
+> Feature Ready Gate：`PASS / NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`
+> Technical Plan Gate：`PASS / NPDMS-FSOL002-TECHPLAN-20260827-01-R2`
+> Implementation Done Gate：`PASS / 7243727f3e3410bd3b6ca965b1f5759e6ba5872a / 独立复审GO`
+> Deployment Gate：`BLOCKED / NPDMS-FSOL002-DEPLOYMENT-20260827-01 / BLOCKED_BY_EXTERNAL_INPUT`
+> 当前阻断：`缺目标环境、Deployment Owner/复核人、releaseId/buildId、环境准备及实际部署/探针记录`
+> 当前任务：`等待Deployment外部输入；不得进入SIT`
+> Requirement ID：`PRE-02（V1/P0）`
+> Feature Spec：`specs/features/F-SOL-002-site-survey-assignment-and-readiness.md`
+> Feature物理契约：`specs/features/F-SOL-002-physical-contract.json`
+> Technical Plan：`docs/superpowers/plans/2026-08-27-f-sol-002-site-survey-assignment-and-readiness.md`
+> 锁定规格提交：`7c482d02154f0f967a4263e9d27fef2c77aa8bff`
+
+## 实施边界
+
+- 本Feature只实现PRE-02，不建设通用Schema设计器、INT-05 OA流程、第二任务树、S4命令或跨Context事件。
+- SOL以六张`sol_*`表承载当前及历史事实；旧`pms_eng_site_survey`只作V1.7差距证据，不迁移、不双写。
+- 固定V1表单目录由既有`infra_config`稳定键承载，项目模板仅冻结精确目录版本和Schema快照。
+- 文件只冻结PLT FileArtifact精确版本；来源只保存稳定引用及归一事实；SOL不保存文件正文、URL或OA原单据。
+- 每个Task实现、验证、提交后均须取得独立Implementation Done GO，才回写PASS并推进下一Task。
+
+## 任务跟踪
+
+- [x] Task 1 建立PRE-02六表、字典权限与Feature工作单（PASS / NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1）
+- [x] Task 2 提供PROJ冻结WorkBinding公共事实（PASS / NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1）
+- [x] Task 3 实现SOL六表持久化原语与固定表单规则（PASS / 979a0588cae59b90359e7c4aab6f7413f2b64377）
+- [x] Task 4 实现模板初始化、当前准备查询与历史投影（PASS / 7f340ba21a41d6eeb5d798d95b4d7285e23c16a9）
+- [x] Task 5 实现逐项指派、填写与精确文件证据（PASS / b94b037）
+- [x] Task 6 实现提交、逐项确认及退回新版本（PASS / 00d43ae90f5dce6fccdc6222db7280a9a78208b1）
+- [x] Task 7 实现就绪评估、不可变快照与公共重验API（PASS / 975f1c2291831f8ac8e663d05094c1eedf9eb010）
+- [x] Task 8 实现来源同步异常、外包引用与逐项豁免（PASS / ca985d7c8e22351ee553211901d786ed64f85a96）
+- [x] Task 9 建设响应式工勘准备界面并退役旧写入口（PASS / 3b92cd76e03c4bfec531c6cf4351176a0b5929ee）
+- [x] Task 10 完成真实MySQL、浏览器、独立复审与Feature回写（PASS / `062ca38c` + `7243727f` / 独立复审GO）
+
+> 检查点（2026-08-27）：基线`993f59bb`/规格`7c482d0`；Deployment Gate为`BLOCKED_BY_EXTERNAL_INPUT`；Implementation Done与候选材料已具备；阻塞为目标环境、Owner、releaseId/buildId及部署/探针记录；下一步：外部输入到位后执行目标环境部署验收，未进入SIT。
+
+> Task 1候选证据（2026-08-27）：迁移契约6/6 PASS；清洁隔离MySQL从V1成功迁移至V97，六张SOL表、10条SOL域内租户复合外键、6个工勘项字典、4项权限及唯一固定目录均核验通过；固定目录JSON长度445且有效；同稳定键不同ID的存量目录可原位恢复且保持唯一，固定ID被其他配置占用时V97拒绝并保持无关配置不变；仅5份seed-owned DRAFT模板获得PRE-02绑定，PUBLISHED模板未修改。正式PASS以独立Implementation Done裁决为准。
+
+> Task 1独立裁决（2026-08-27）：`NPDMS-FSOL002-TASK1-IMPLEMENTATION-20260827-01-R1 / GO`；允许回写PASS并推进Task 2。
+
+> Task 2候选证据（2026-08-27）：PROJ已在既有ProjectTask ExecutionContract真值上提供窄`ProjectWorkBindingFactApi`；模板发布通过`ConfigApi`读取固定V1目录并校验唯一PRE-02目标四元组、六类冻结项及表单版本；inspect按受信租户、项目和精确目标唯一查询，lockAndRevalidate按Project→ProjectTask→当前ExecutionContract顺序锁定并重验ID、归属及三段版本。聚焦单元27/27 PASS；清洁隔离MySQL从V1迁移至V97后，精确/越租户/多记录查询与锁定当前读2/2 PASS，25模块Reactor BUILD SUCCESS。正式PASS以独立Implementation Done裁决为准。
+
+> Task 2整改记录（2026-08-27）：首次独立复审发现模板校验错误收窄为恰好六类基准项。现已改为发布时通过既有`DictDataApi`读取启用的`pms_preparation_survey_item_code`，要求完整包含六类基准项且全部扩展编码命中启用字典；冻结事实读取与锁定重验不回读可变字典，并接受结构合法的已批准扩展项。整改聚焦测试29/29 PASS，正式结论待独立复审。
+
+> Task 2独立裁决（2026-08-27）：`NPDMS-FSOL002-TASK2-IMPLEMENTATION-20260827-01-R1 / GO`；允许回写PASS并推进Task 3。
+
+> Task 3候选证据（2026-08-27）：六张SOL表已建立不继承通用CRUD的封闭Mapper与场景Query/XML，只暴露显式insert、租户精确查询、稳定游标、`FOR UPDATE`当前读、生命周期/current/input/readiness版本CAS及不可变快照追加；固定V1目录仅经既有`ConfigApi`读取，封闭校验六类form、五种字段类型与字段规则，并将form身份和唯一`commonFields`确定性冻结，运行期只校验冻结Schema；Preparation与Item适用性/确认状态分轴规则已闭合。聚焦规则/Mapper契约7/7 PASS，`mvn.cmd -pl pms-module-engineering -am test`为26模块Reactor BUILD SUCCESS，engineering 114项中79通过、35项按真实环境条件跳过。正式PASS以独立Implementation Done裁决为准。
+
+> Task 3独立裁决（2026-08-27）：提交`979a0588cae59b90359e7c4aab6f7413f2b64377`闭环必填TEXT空白值和必填MULTI_SELECT空集合校验；聚焦测试7/7 PASS，26模块Reactor BUILD SUCCESS。独立复审GO，允许回写PASS并推进Task 4。
+
+> Task 4候选证据（2026-08-27）：新增窄`pms-module-engineering-api`初始化契约；项目创建仅在冻结模板声明PRE-02时，按冻结ProjectTask/ExecutionContract事实生成稳定初始化键并在外层事务同步调用SOL。SOL初始化使用受信租户、PROJ WorkBinding锁定重验及平台四段幂等，原子创建businessVersion 1 current DRAFT、启用工勘项与固定Schema表单；跨actor授权恢复按稳定业务键返回既有事实且只追加真实actor的NO_CHANGE审计。当前/详情/items/版本历史查询使用PROJECT_VIEW、稳定游标和批量表单投影，无用户初始化HTTP。聚焦回归20/20 PASS；`mvn.cmd -pl pms-module-engineering -am test`为27模块Reactor BUILD SUCCESS，其中PROJECT 446项0失败、ENGINEERING 119项0失败，真实环境条件用例按既有开关跳过。正式PASS以独立Implementation Done裁决为准。
+
+> Task 4整改证据（2026-08-27）：同actor遇到既有businessVersion 1时仍进入原四段平台幂等作用域，由平台对同key同digest返回原结果、异digest拒绝；跨actor授权恢复继续按稳定业务键返回既有事实并只记录真实actor的`PREPARATION_INITIALIZATION_RECOVERY/NO_CHANGE`。新增隔离MySQL真实装配回归，使用真实PROJ项目/任务/ExecutionContract、SOL Preparation/item/form Mapper和平台幂等/审计实现；成功路径证明三域事实在项目创建外层事务共同提交，SOL写入后强制异常证明三域事实共同回滚。聚焦单元与真实MySQL共5/5 PASS。正式PASS以独立Implementation Done复审为准。
+
+> Task 4独立裁决（2026-08-27）：提交`7f340ba21a41d6eeb5d798d95b4d7285e23c16a9`闭环同actor平台幂等重放及PROJ/SOL/平台真实外层事务共同提交与共同回滚；独立复审GO，允许回写PASS并推进Task 5。
+
+> Task 5候选证据（2026-08-27）：PROJ通过窄`ProjectOrganizationFactApi`提供受信项目公司/部门事实及项目版本锁定重验；SOL候选查询复用SYSTEM组织分页，指派写链依次重验项目经理、项目组织、用户启用状态和组织范围。item/form PATCH按字段存在性分别收窄项目经理与当前负责人写权限，使用多段CAS使旧就绪事实失效并冻结精确FileArtifact版本；文件Provider封闭支持UPLOAD/REPLACE/REFERENCE/DETACH/READ/DOWNLOAD/PREVIEW。地点按批准边界继续由AST独立维护，不进入PRE-02真值。聚焦测试初始19/19、整改后`PreparationItemApplicationServiceTest`5/5 PASS，27模块Reactor BUILD SUCCESS；相关模块全量测试0 failure/0 error，环境条件用例如实跳过。
+
+> Task 5独立裁决（2026-08-27）：候选`bb88a20`经整改提交`b94b037`补齐负责人启用状态重验；独立复审GO，允许回写PASS并推进Task 6。
+
+> Task 6候选与整改证据（2026-08-27）：候选`21496d5`实现提交、确认、不适用确认和退回新版本；整改`00d43ae90f5dce6fccdc6222db7280a9a78208b1`将项目经理提交/确认收敛为对负责人已冻结精确文件槽位执行`READ lockAndRevalidate`，逐项核验文件与范围版本并在同一事务锁定来源事实，同时补齐生命周期、适用性/确认、readiness及退回复制矩阵before/after成功审计。清洁MySQL V1→V97及真实链3/3 PASS，工程模块143项0失败、27模块Reactor BUILD SUCCESS。
+
+> Task 6独立裁决（2026-08-27）：原NO-GO两项经`00d43ae90f5dce6fccdc6222db7280a9a78208b1`闭环；独立复审GO，允许回写PASS并推进Task 7。
+
+> Task 7候选与整改证据（2026-08-27）：提交`5649cba`实现显式就绪评估、不可变READY/NOT_READY快照、稳定历史查询及纯只读`inspect/lockAndRevalidate`公共契约；整改`975f1c2291831f8ac8e663d05094c1eedf9eb010`补齐OA Provider缺失、文件事实变化、跨租户、预期版本与事实向量冲突的失败关闭，以及真实MySQL双事务并发评估单胜证据。聚焦单元6/6、清洁V1→V97真实MySQL 5/5 PASS；工程模块154项0失败、27模块Reactor BUILD SUCCESS。
+
+> Task 7独立裁决（2026-08-27）：原NO-GO唯一证据缺口经`975f1c2291831f8ac8e663d05094c1eedf9eb010`闭环；独立复审GO，允许回写PASS并推进Task 8。
+
+> Task 8独立裁决（2026-08-27）：来源同步异常、外包引用与逐项豁免实现及两轮最小整改经`ca985d7c8e22351ee553211901d786ed64f85a96`闭环；独立复审GO，允许回写PASS并推进Task 9。

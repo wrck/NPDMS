@@ -1,0 +1,135 @@
+{
+  "evidenceId": "FSOL002-T10-BROWSER-20260827",
+  "featureId": "F-SOL-002",
+  "task": "Task 10",
+  "status": "VERIFIED",
+  "scope": "Implementation Done only; excludes Deployment, SIT, UAT and Release",
+  "testedCommit": "062ca38c9250c4a0aa696df8dfd1716feb942e1b",
+  "specificationCommit": "7c482d02154f0f967a4263e9d27fef2c77aa8bff",
+  "project": {
+    "projectId": 992002000034,
+    "tenantMode": "single tenant",
+    "tenantId": 0
+  },
+  "runtime": {
+    "frontendUrl": "http://127.0.0.1:18081",
+    "backendUrl": "http://127.0.0.1:58080",
+    "database": "npdms on MySQL port 23320",
+    "redis": "port 26380",
+    "objectStorage": "MinIO on port 9000",
+    "securityScan": "isolated ClamAV 1.4 on port 33310; scan only, not file storage"
+  },
+  "browserEvidence": {
+    "browser": "Codex bundled Playwright driving Chromium",
+    "positiveFlow": [
+      "published template created a new project and automatically initialized PRE-02",
+      "project manager assigned items and the assignee filled the frozen form and created exact PLT file evidence",
+      "project manager submitted and confirmed all applicable items",
+      "a project-manager waiver was approved by the frozen-role participant and explicit evaluation produced READY",
+      "the READY preparation was returned atomically to a new current DRAFT business version"
+    ],
+    "fileFlow": [
+      "the returned business version displayed the inherited physical file slot",
+      "a real replacement object was uploaded to MinIO and passed the real ClamAV scan",
+      "the reference was detached and rebound in the same drawer, saved and retained after page refresh",
+      "preview and download tickets returned HTTP 200 and the MinIO object returned HTTP 200 with 18385 bytes"
+    ],
+    "negativeFlow": [
+      "a PLT file fact was made unavailable; browser POST evaluate-readiness returned HTTP 200/code 0, appended one NOT_READY snapshot, and same-vector replay appended none",
+      "browser source refresh returned HTTP 200/code 1011024008 for the unavailable OA Provider; the refreshed UI showed NOT_READY and marked last-success as historical only; explicit evaluation appended one NOT_READY snapshot",
+      "a short-lived waiver was created, submitted and approved through browser REST calls, produced READY, then naturally expired; explicit evaluation appended one NOT_READY snapshot and same-vector replay appended none",
+      "a PENDING_APPROVAL waiver was withdrawn through browser REST calls and explicit evaluation remained NOT_READY; APPROVED to WITHDRAWN was never attempted or enabled",
+      "the non-manager frozen-role participant called evaluate-readiness and received HTTP 200/code 1014024033; snapshot count was unchanged"
+    ],
+    "expectedBusinessRejections": [
+      "1011024008 - source Provider unavailable",
+      "1014024033 - project scope access denied"
+    ],
+    "responsiveWidths": [
+      320,
+      768,
+      1024,
+      1440
+    ],
+    "pageLevelHorizontalOverflow": 0,
+    "consoleErrorCount": 0,
+    "pageErrorCount": 0,
+    "httpErrorCount": 0,
+    "screenshots": [
+      "docs/engineering/evidence/f-sol-002-task10-ready-320.png",
+      "docs/engineering/evidence/f-sol-002-task10-ready-768.png",
+      "docs/engineering/evidence/f-sol-002-task10-ready-1024.png",
+      "docs/engineering/evidence/f-sol-002-task10-ready-1440.png",
+      "docs/engineering/evidence/f-sol-002-task10-return-rebind.png",
+      "docs/engineering/evidence/f-sol-002-task10-file-invalid.png",
+      "docs/engineering/evidence/f-sol-002-task10-source-invalid.png",
+      "docs/engineering/evidence/f-sol-002-task10-waiver-expired.png",
+      "docs/engineering/evidence/f-sol-002-task10-waiver-withdrawn.png",
+      "docs/engineering/evidence/f-sol-002-task10-permission-denied.png"
+    ]
+  },
+  "negativeEvidence": {
+    "coverageMode": "real browser public UI/REST closure plus real MySQL integration and service/API automation; public Java inspect remains covered by integration tests because the locked REST surface does not expose a separate inspect endpoint",
+    "fileInvalidation": {
+      "commit": "6cf2c760db62a2b6e67c4e76e507811a86c7ecb6",
+      "result": "inspect is read-only and marks the old READY snapshot non-current; explicit evaluate appends the unique NOT_READY snapshot"
+    },
+    "sourceFailureAndRecovery": {
+      "commit": "9f03f66a7531e3faf85545d1b7b0285e599ec68a",
+      "result": "provider failure blocks readiness without using last-success as current; recovery creates the current authoritative fact"
+    },
+    "waiverExpiryAndWithdrawal": {
+      "commit": "47db2f5acbd1ae108e6896fbb5e38c764e198703",
+      "result": "approved waiver expiry invalidates READY; withdrawal is limited to DRAFT or PENDING_APPROVAL and never creates READY"
+    },
+    "scopeAndTenant": {
+      "commits": [
+        "26d7a6e05e9bbc9d5a682669df9e6034f4f5c639",
+        "de27f9707b6689fb303f64004fdebd59956a9331"
+      ],
+      "result": "project-scope changes make an old READY snapshot non-current, and cross-tenant readiness access is rejected"
+    },
+    "authorization": {
+      "result": "browser REST rejected the non-manager frozen-role participant with code 1014024033 and no snapshot side effect; manager, assignee, frozen waiver-role and cross-tenant matrices remain covered by focused service and MySQL tests"
+    }
+  },
+  "verification": {
+    "backend": [
+      "clean focused F-SOL backend suite: 41/41 PASS; 27-module Reactor BUILD SUCCESS",
+      "real MySQL PreparationInitializationMySqlIntegrationTest: 14/14 PASS; 27-module Reactor BUILD SUCCESS",
+      "returned-version resubmit regression: PreparationReviewServiceTest 7/7 PASS and focused real MySQL resubmit 1/1 PASS; 27-module Reactor BUILD SUCCESS",
+      "workspace mvn -pl pms-module-engineering -am test: BUILD SUCCESS; engineering 187 tests, 0 failures, 0 errors, 52 environment-conditioned skips",
+      "clean yudao-server package: 36-module Reactor BUILD SUCCESS"
+    ],
+    "frontend": [
+      "focused runtime and component tests: 9/9 PASS",
+      "corepack pnpm ts:check: PASS",
+      "corepack pnpm build:local: PASS with only the pre-existing LightningCSS *zoom warning"
+    ],
+    "governance": [
+      "managed specification baseline validation: PASS",
+      "git diff --check: PASS",
+      "MinIO is the file object store; ClamAV is only an optional content scanner",
+      "no PROJ, IMP, OA or PLT business-table write and no Deployment, SIT, UAT or Release claim"
+    ]
+  },
+  "acceptanceCriteria": {
+    "AC-FSOL002-001": "PASS - frozen template, automatic initialization, fixed catalog and fail-closed invalid inputs are covered",
+    "AC-FSOL002-002": "PASS - assignment, partial PATCH, evidence, confirmation, return-copy matrix and current-version switch are covered",
+    "AC-FSOL002-003": "PASS - exact FileArtifact facts, read-only invalidation and explicit unique NOT_READY evaluation are covered",
+    "AC-FSOL002-004": "PASS - source current/last-success semantics, provider failure and recovery are covered",
+    "AC-FSOL002-005": "PASS - applicant, frozen-role approval, valid substitution, expiry and legal withdrawal semantics are covered",
+    "AC-FSOL002-006": "PASS - READY vector, immutable snapshots, replay and read-only inspect/revalidate are covered",
+    "AC-FSOL002-007": "PASS - public readiness contract revalidates current preparation, scope, file, source and waiver facts before success",
+    "AC-FSOL002-008": "PASS - scope, manager/assignee/approver and cross-tenant authorization negatives are covered",
+    "AC-FSOL002-009": "PASS - CAS, idempotency digest, replay/conflict, single-winner and audit facts are covered",
+    "AC-FSOL002-010": "PASS - clean MySQL migration and real transaction acceptance are covered",
+    "AC-FSOL002-011": "PASS - real browser covers initialization through READY, return, MinIO file replacement/detach/rebind, preview/download, refresh, four widths, file/source/waiver invalidation and permission denial; pure read-only Java inspect zero-write remains independently covered by real MySQL/service tests",
+    "AC-FSOL002-012": "PASS - bounded module ownership and later-gate exclusions are preserved"
+  },
+  "independentReview": {
+    "status": "GO",
+    "reviewOwner": "NPDMS方案评审角色",
+    "decision": "7243727f browser evidence and 062ca38c returned-version resubmit fix independently accepted; Task 10 PASS and F-SOL-002 Implementation Done approved"
+  }
+}

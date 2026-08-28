@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper">
+
+    <update id="updatePlatformFieldsByVersion">
+        UPDATE cus_customer_master
+        <set>
+            <if test="query.updateName">
+                name = #{query.name},
+            </if>
+            <if test="query.updateShortName">
+                short_name = #{query.shortName},
+            </if>
+            <if test="query.updateRemark">
+                remark = #{query.remark},
+            </if>
+            <if test="query.updateClassification">
+                department_code = #{query.departmentCode},
+                department_name = #{query.departmentName},
+                market_code = #{query.marketCode},
+                market_name = #{query.marketName},
+                system_code = #{query.systemCode},
+                system_name = #{query.systemName},
+                expend_code = #{query.expendCode},
+                expend_name = #{query.expendName},
+                industry_code = #{query.industryCode},
+                industry_name = #{query.industryName},
+            </if>
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{query.customerId}
+          AND tenant_id = #{query.tenantId}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectIncludingDeleted"
+            resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO">
+        SELECT *
+        FROM cus_customer_master
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+    </select>
+
+    <update id="updateLifecycleByVersion">
+        UPDATE cus_customer_master
+        SET lifecycle_status = #{query.targetStatus},
+            deleted = #{query.targetDeleted},
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.customerId}
+          AND lifecycle_status = #{query.expectedStatus}
+          AND version = #{query.expectedVersion}
+          AND deleted = #{query.expectedDeleted}
+    </update>
+
+    <sql id="visibleConditions">
+        tenant_id = #{query.tenantId}
+        <choose>
+            <when test='"DELETED".equals(query.lifecycleStatus)'>
+                AND deleted = b'1'
+            </when>
+            <otherwise>
+                AND deleted = b'0'
+            </otherwise>
+        </choose>
+        <if test="query.code != null and query.code != ''">
+            AND code LIKE CONCAT(#{query.code}, '%')
+        </if>
+        <if test="query.name != null and query.name != ''">
+            AND name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.departmentCode != null and query.departmentCode != ''">
+            AND department_code = #{query.departmentCode}
+        </if>
+        <if test="query.marketCode != null and query.marketCode != ''">
+            AND market_code = #{query.marketCode}
+        </if>
+        <if test="query.systemCode != null and query.systemCode != ''">
+            AND system_code = #{query.systemCode}
+        </if>
+        <if test="query.expendCode != null and query.expendCode != ''">
+            AND expend_code = #{query.expendCode}
+        </if>
+        <if test="query.industryCode != null and query.industryCode != ''">
+            AND industry_code = #{query.industryCode}
+        </if>
+        <if test="query.lifecycleStatus != null and query.lifecycleStatus != ''">
+            AND lifecycle_status = #{query.lifecycleStatus}
+        </if>
+        <if test="query.sourceType != null and query.sourceType != ''">
+            AND source_type = #{query.sourceType}
+        </if>
+        <if test="!query.allScope">
+            AND (
+            <foreach collection="query.scopeSlices" item="slice" separator=" OR ">
+                (
+                1 = 1
+                <if test="!slice.departmentCodes.isEmpty()">
+                    AND department_code IN
+                    <foreach collection="slice.departmentCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.marketCodes.isEmpty()">
+                    AND market_code IN
+                    <foreach collection="slice.marketCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.systemCodes.isEmpty()">
+                    AND system_code IN
+                    <foreach collection="slice.systemCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.expendCodes.isEmpty()">
+                    AND expend_code IN
+                    <foreach collection="slice.expendCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.industryCodes.isEmpty()">
+                    AND industry_code IN
+                    <foreach collection="slice.industryCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                )
+            </foreach>
+            )
+        </if>
+    </sql>
+
+    <select id="selectVisibleById"
+            resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO">
+        SELECT *
+        FROM cus_customer_master
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.customerId}
+          AND deleted = b'0'
+        <if test="!query.allScope">
+            AND (
+            <foreach collection="query.scopeSlices" item="slice" separator=" OR ">
+                (
+                1 = 1
+                <if test="!slice.departmentCodes.isEmpty()">
+                    AND department_code IN
+                    <foreach collection="slice.departmentCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.marketCodes.isEmpty()">
+                    AND market_code IN
+                    <foreach collection="slice.marketCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.systemCodes.isEmpty()">
+                    AND system_code IN
+                    <foreach collection="slice.systemCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.expendCodes.isEmpty()">
+                    AND expend_code IN
+                    <foreach collection="slice.expendCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                <if test="!slice.industryCodes.isEmpty()">
+                    AND industry_code IN
+                    <foreach collection="slice.industryCodes" item="code" open="(" separator="," close=")">
+                        #{code}
+                    </foreach>
+                </if>
+                )
+            </foreach>
+            )
+        </if>
+    </select>
+
+    <select id="selectVisibleCount" resultType="long">
+        SELECT COUNT(*)
+        FROM cus_customer_master
+        WHERE <include refid="visibleConditions"/>
+    </select>
+
+    <select id="selectVisibleList"
+            resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO">
+        <bind name="pageOffset" value="(query.pageParam.pageNo - 1) * query.pageParam.pageSize"/>
+        SELECT *
+        FROM cus_customer_master
+        WHERE <include refid="visibleConditions"/>
+        ORDER BY id DESC
+        LIMIT #{pageOffset}, #{query.pageParam.pageSize}
+    </select>
+
+</mapper>

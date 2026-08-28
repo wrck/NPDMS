@@ -5,6 +5,8 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.controller.admin.project.vo.ProjectPageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectReferenceQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectSummaryPageQuery;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -27,6 +29,23 @@ public interface ProjectMapper extends BaseMapperX<ProjectDO> {
                 .eqIfPresent(ProjectDO::getManagerUserId, reqVO.getManagerUserId())
                 .eqIfPresent(ProjectDO::getParentId, reqVO.getParentId())
                 .eqIfPresent(ProjectDO::getRootId, reqVO.getRootId())
+                .orderByDesc(ProjectDO::getId));
+    }
+
+    default Long selectCountByCustomer(CustomerProjectReferenceQuery query) {
+        return selectCount(new LambdaQueryWrapperX<ProjectDO>()
+                .eq(ProjectDO::getTenantId, query.tenantId())
+                .eq(ProjectDO::getCustomerId, query.customerId()));
+    }
+
+    default PageResult<ProjectDO> selectCustomerSummaryPage(CustomerProjectSummaryPageQuery query) {
+        if (query.getVisibleProjectIds().isEmpty()) {
+            return PageResult.empty();
+        }
+        return selectPage(query, new LambdaQueryWrapperX<ProjectDO>()
+                .eq(ProjectDO::getTenantId, query.getTenantId())
+                .eq(ProjectDO::getCustomerId, query.getCustomerId())
+                .in(ProjectDO::getId, query.getVisibleProjectIds())
                 .orderByDesc(ProjectDO::getId));
     }
 

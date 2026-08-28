@@ -129,7 +129,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="配置日志" prop="configLogUrl"><UploadFile v-model="form.configLogUrl" /></el-form-item>
+          <el-form-item label="配置日志" prop="configLogUrl"><UploadFile v-model="form.configLogUrl!" /></el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="调试结果" prop="debugResult">
@@ -158,7 +158,6 @@ import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
 
 defineOptions({ name: 'PmsEngConfiguration' })
 const message = useMessage()

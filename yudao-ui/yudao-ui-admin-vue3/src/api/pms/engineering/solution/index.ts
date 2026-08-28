@@ -44,7 +44,7 @@ export interface SolutionGenerateDraftVO {
 
 const baseUrl = '/pms/eng-solution'
 
-export const getSolutionPage = (params: PageParam) =>
+export const getSolutionPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getSolution = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

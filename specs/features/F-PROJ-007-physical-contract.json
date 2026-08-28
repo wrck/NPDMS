@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-PROJ-007",
+  "requirementIds": ["PM-11"],
+  "relatedRequirementSlices": ["PM-02", "PM-03", "PM-04", "PM-08"],
+  "status": "BASELINE_READY",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "NPDMS_FPROJ007_FEATURE_READY_20260825_01_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
+  "v1Scope": {
+    "included": ["UNBOUNDED_TASK_TREE", "BASIC_DEPENDENCIES", "TEMPORAL_ASSIGNMENT", "VERSIONED_STATE_MACHINE", "TASK_NATIVE_WORKBENCH", "TASK_PROGRESS_FACT", "BINDING_HOST_FAIL_CLOSED"],
+    "deferred": ["V2_GANTT", "ADVANCED_ORCHESTRATION", "RESOURCE_LEVELING", "OWNER_FEATURE_NON_NATIVE_ADAPTERS", "AI_MIG_000"]
+  },
+  "objects": {
+    "ProjectTask": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_task"],
+      "currentTruth": true,
+      "requiredFields": ["tenant_id", "project_id", "task_code", "name", "stage_code", "status", "state_machine_revision_id", "version"],
+      "forwardAdditiveFields": ["parent_task_id", "root_task_id", "tree_depth", "business_level_code", "milestone_id", "plan_start_time", "plan_end_time", "actual_start_time", "actual_end_time", "progress", "state_machine_revision_id"],
+      "preservedCompatibilityFields": ["parent_task_code", "source_definition_id"],
+      "relationshipTruth": "parent_task_id; parent_task_code is frozen source snapshot only",
+      "stableKey": ["tenant_id", "project_id", "task_code"],
+      "initialStatus": "PENDING_ASSIGN",
+      "concurrency": "TASK_VERSION_CAS"
+    },
+    "ProjectTaskTree": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project", "proj_task_tree_path"],
+      "projectForwardField": "task_tree_version",
+      "pathFields": ["tenant_id", "project_id", "ancestor_task_id", "descendant_task_id", "distance"],
+      "pathKey": ["tenant_id", "project_id", "ancestor_task_id", "descendant_task_id"],
+      "pathIndexes": [["tenant_id", "project_id", "ancestor_task_id", "distance", "descendant_task_id"], ["tenant_id", "project_id", "descendant_task_id", "ancestor_task_id"]],
+      "moveTransaction": "LOCK_SOURCE_TARGET_AND_PROJECT; VALIDATE_CYCLE_SCOPE_STATE_AND_BASE_VERSION; UPDATE_ADJACENCY_AND_AFFECTED_CLOSURE; INCREMENT_PROJECT_TASK_TREE_VERSION; AUDIT",
+      "forbidden": ["FIXED_DEPTH", "HTTP_RECURSIVE_NODE_UPDATES", "SECOND_NAVIGATION_TREE"]
+    },
+    "TaskDependency": {
+      "owner": "PROJ",
+      "targetTables": ["proj_task_dependency"],
+      "requiredFields": ["tenant_id", "project_id", "predecessor_task_id", "successor_task_id", "dependency_type_code", "version"],
+      "stableKey": ["tenant_id", "predecessor_task_id", "successor_task_id", "dependency_type_code"],
+      "allowedTypes": ["FINISH_TO_START", "START_TO_START", "FINISH_TO_FINISH", "START_TO_FINISH"],
+      "guards": ["NO_SELF", "SAME_PROJECT", "NO_DEPENDENCY_CYCLE"]
+    },
+    "TaskAssignment": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_task_assignment"],
+      "requiredFields": ["tenant_id", "project_task_id", "assignee_user_id", "effective_from", "assigned_by", "reason", "version"],
+      "temporalFields": ["effective_from", "effective_to", "current_marker"],
+      "currentKey": ["tenant_id", "project_task_id", "current_marker"],
+      "policy": "AT_MOST_ONE_CURRENT_INTERVAL; TRANSFER_CLOSES_OLD_AND_INSERTS_NEW_AT_SAME_SERVER_TRANSACTION_TIME; NEVER_REACTIVATE_HISTORY"
+    },
+    "TaskStateMachine": {
+      "owner": "PROJ",
+      "targetTables": ["proj_task_state_machine_revision", "proj_task_state_transition"],
+      "coreStatusCodes": ["PENDING_ASSIGN", "PENDING_START", "IN_PROGRESS", "PENDING_ACCEPT", "DONE", "CLOSED"],
+      "revisionFields": ["tenant_id", "revision_no", "status", "effective_from", "published_by", "published_at", "version"],
+      "transitionFields": ["revision_id", "from_status_code", "action_code", "to_status_code", "standard_status_mapping", "allowed_role_code", "entry_condition", "exit_condition"],
+      "publishPolicy": "APPEND_ONLY_REVISION; CORE_CODES_IMMUTABLE; NEW_TASK_FREEZES_CURRENT_PUBLISHED_REVISION; EXISTING_TASK_NOT_AUTO_UPGRADED"
+    },
+    "TaskExecutionContract": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_template_task_definition", "proj_project_task_execution_contract"],
+      "bindingTypes": ["TASK_NATIVE", "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE"],
+      "currentContractKey": ["tenant_id", "project_task_id", "current_marker"],
+      "taskNativeTargetPolicy": "ALL_EXTERNAL_TARGET_FIELDS_NULL",
+      "nonNativeEnablement": "ONLY_AFTER_OWNER_FEATURE_HAS_PUBLIC_CONTRACT_REAL_PRODUCER_AND_ACCEPTANCE; OTHERWISE UNREGISTERED_FAIL_CLOSED",
+      "canonicalTaskNativeCompletion": {"ruleType": "TASK_NATIVE_STATUS", "requiredStatus": "DONE"},
+      "forwardCorrection": "NEW_FLYWAY_UPDATES_V63_TASK_NATIVE requiredStatus FROM COMPLETED TO DONE; NEVER_EDIT_V63"
+    },
+    "TaskCompletionEvaluation": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_task_completion_evaluation"],
+      "writePolicy": "APPEND_ONLY",
+      "requiredFields": ["tenant_id", "project_task_id", "execution_contract_id", "task_version", "contract_version", "evaluation_result_code", "command_id", "idempotency_key", "evaluated_by", "evaluated_at"],
+      "optionalFactFields": ["fact_context_code", "fact_object_type", "fact_object_key", "fact_version", "gate_snapshot_ref"],
+      "stableKey": ["tenant_id", "project_task_id", "idempotency_key"],
+      "successTransaction": "EVALUATION_PLUS_TASK_STATE_PLUS_AUDIT_PLUS_TASK_COMPLETED_OUTBOX"
+    },
+    "TaskProgressFact": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project", "proj_project_progress_fact"],
+      "projectForwardField": "task_progress_version",
+      "sourceType": "PROJECT_TASK",
+      "sourceId": "projectId",
+      "participants": "CURRENT_APPLICABLE_LEAF_TASKS_ONLY; PARENT_TASKS_NOT_DOUBLE_COUNTED",
+      "weighting": "POSITIVE_ESTIMATED_HOURS; TASKS_WITHOUT_POSITIVE_HOURS_USE_WEIGHT_1; IF_ALL_MISSING_USE_EQUAL_WEIGHT",
+      "statusProgress": {"PENDING_ASSIGN": 0, "PENDING_START": 0, "IN_PROGRESS": "0..99", "PENDING_ACCEPT": 99, "DONE": 100, "CLOSED": "PRESERVE_PRE_CLOSE_PROGRESS_NOT_100"},
+      "emptyPolicy": "NO_FACT_NOT_ZERO",
+      "writePolicy": "APPEND_NEW_PROJECT_PROGRESS_FACT_IN_SAME_TRANSACTION_AS_TASK_PROGRESS_OR_TERMINAL_CHANGE",
+      "sourceWatermark": ["taskTreeVersion", "taskProgressVersion", "participantCount"]
+    },
+    "PlatformFacts": {
+      "owner": "PLATFORM",
+      "targetTables": ["plt_idempotency_record", "plt_operation_audit", "plt_outbox_event"],
+      "events": ["TaskAssigned", "TaskCompleted"]
+    },
+    "LegacyTaskRuntime": {
+      "owner": "PROJ_LEGACY",
+      "targetTables": ["pms_project_task", "pms_project_task_dependency"],
+      "policy": "NO_NEW_WRITES; RETIRE CONTROLLER SERVICE MAPPER AND UI WRITE SURFACES; NO DUAL_WRITE; NO NAME_URL_OR_STATUS_BASED BINDING INFERENCE",
+      "externalHistoryMigration": "AI_MIG_000_ONLY"
+    }
+  },
+  "stateMachine": {
+    "coreTransitions": {
+      "ASSIGN": "PENDING_ASSIGN->PENDING_START",
+      "START": "PENDING_START->IN_PROGRESS",
+      "SUBMIT": "IN_PROGRESS->PENDING_ACCEPT",
+      "COMPLETE": "PENDING_ACCEPT->DONE",
+      "CANCEL": "NON_TERMINAL->CLOSED"
+    },
+    "unknownPolicy": "UNKNOWN_STATUS_ACTION_MAPPING_OR_CONDITION_FAILS_CLOSED",
+    "terminalStatuses": ["DONE", "CLOSED"]
+  },
+  "interfaces": {
+    "ProjectWorkspaceQuery": {
+      "route": "GET /projects/{id}/workspace",
+      "response": ["overviewTabs", "stageTaskNavigation", "taskTreeVersion", "projectionWatermark", "allowedActions"]
+    },
+    "ProjectTaskCreate": {
+      "route": "POST /projects/{id}/tasks",
+      "requiredHeaders": ["Idempotency-Key"],
+      "requiredInputs": ["taskCode", "name", "stageCode"],
+      "optionalInputs": ["parentTaskId", "businessLevelCode", "planStartTime", "planEndTime", "description"],
+      "defaultBinding": "TASK_NATIVE"
+    },
+    "ProjectTaskTreeQuery": {
+      "route": "GET /projects/{id}/tasks",
+      "modes": ["DIRECT_CHILDREN", "ALL_DESCENDANTS", "ANCESTOR_CHAIN", "BUSINESS_LEVEL", "LOCATE"],
+      "pagination": "STABLE_CURSOR_SORT_ORDER_THEN_ID",
+      "responseWatermarks": ["taskTreeVersion", "projectionWatermark"]
+    },
+    "ProjectTaskDetail": {
+      "route": "GET|PATCH /project-tasks/{id}",
+      "patchRequiredHeaders": ["If-Match"],
+      "patchForbiddenFields": ["status", "parentTaskId", "assigneeUserId", "executionContract", "sourceDefinitionId"]
+    },
+    "ProjectTaskWorkbench": {
+      "route": "GET /project-tasks/{id}/workbench",
+      "response": ["task", "executionContractId", "contractVersion", "bindingType", "trustedTargetRef", "allowedActions", "factVersion", "recoverableError"],
+      "failurePolicy": "UNREGISTERED_UNAVAILABLE_UNAUTHORIZED_INVALID_OR_UNKNOWN_FACT_FAILS_CLOSED"
+    },
+    "ProjectTaskMove": {
+      "route": "POST /project-tasks/{id}/actions/move",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "requiredInputs": ["expectedTaskTreeVersion", "reason"],
+      "optionalInputs": ["targetParentTaskId"]
+    },
+    "ProjectTaskAssign": {
+      "route": "POST /project-tasks/{id}/actions/assign",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "requiredInputs": ["assigneeUserId", "reason"],
+      "trustedContext": ["tenantId"]
+    },
+    "ProjectTaskDependency": {
+      "route": "POST|GET /project-tasks/{id}/dependencies",
+      "writeRequiredHeaders": ["Idempotency-Key", "If-Match"]
+    },
+    "ProjectTaskAction": {
+      "route": "POST /project-tasks/{id}/actions/{start|submit|complete|cancel}",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "completeRequiredInputs": ["executionContractId", "contractVersion"],
+      "completeConditionalInputs": ["factObjectKey", "factVersion"]
+    },
+    "TaskStateMachineAdmin": {
+      "routes": ["GET|POST /project-task-state-machines", "POST /project-task-state-machines/{id}/actions/publish"],
+      "publishRequiredHeaders": ["Idempotency-Key", "If-Match"]
+    },
+    "BindingHostProvider": {
+      "direction": "PROJ_HOST_CALLS_OWNER_PUBLIC_READ_ONLY_OR_COMMAND_CONTRACTS",
+      "request": ["projectTaskId", "executionContractId", "contractVersion", "operation", "targetRef", "checkedAt"],
+      "trustedContext": ["tenantId", "operatorUserId"],
+      "response": ["bindingType", "targetRef", "allowedActions", "factVersion", "presentationDescriptor", "completionFacts"],
+      "forbiddenDependencies": ["OWNER_BIZ", "OWNER_SERVICE", "OWNER_MAPPER", "OWNER_REPOSITORY", "OWNER_TABLE", "ARBITRARY_FRONTEND_PATH", "ARBITRARY_SCRIPT"]
+    }
+  },
+  "permissions": {
+    "TaskQuery": {"permissionCode": "pms:project-task:query", "projectTreeScopeAction": "VIEW"},
+    "TaskCreate": {"permissionCode": "pms:project-task:create", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "CURRENT_PROJECT_MANAGER"},
+    "TaskUpdate": {"permissionCode": "pms:project-task:update", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "CURRENT_PROJECT_MANAGER"},
+    "TaskMove": {"permissionCode": "pms:project-task:move", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "CURRENT_PROJECT_MANAGER"},
+    "TaskAssign": {"permissionCode": "pms:project-task:assign", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_SERVICE_MANAGER_FOR_CROSS_REGION"},
+    "TaskExecute": {"permissionCode": "pms:project-task:execute", "projectTreeScopeAction": "EDIT", "subjectConstraint": "CURRENT_EFFECTIVE_ASSIGNEE"},
+    "TaskComplete": {"permissionCode": "pms:project-task:complete", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER"},
+    "TaskStateMachineAdmin": {"permissionCode": "pms:project-task-state:manage", "scope": "TENANT_PLATFORM_CONFIGURATION_ONLY"},
+    "retiredPermission": "pms:project-task:delete",
+    "frontendBackendTruth": "SAME_PERMISSION_CODES; SERVER_REVALIDATES TENANT FUNCTION PROJECT_SCOPE TASK_SUBJECT STATE VERSION AND BUSINESS_FACT"
+  },
+  "events": {
+    "TaskAssigned": {
+      "payload": ["eventId", "tenantId", "projectId", "projectTaskId", "assigneeUserId", "assignmentId", "taskVersion", "assignedBy", "occurredAt"]
+    },
+    "TaskCompleted": {
+      "payload": ["eventId", "tenantId", "projectId", "projectTaskId", "completionEvaluationId", "taskVersion", "executionContractId", "contractVersion", "factVersion", "completedBy", "occurredAt"]
+    }
+  },
+  "featureReadyDecision": "GO_NPDMS_FPROJ007_FEATURE_READY_20260825_01_TASK_PROGRESS_FACT_FORMULA_APPROVED",
+  "forbiddenCapabilities": [
+    "V2_GANTT_OR_ADVANCED_ORCHESTRATION",
+    "LEGACY_AND_V18_DUAL_WRITE",
+    "DELETE_CURRENT_TASK_FACT",
+    "FIXED_TASK_DEPTH",
+    "FRONTEND_VISIBILITY_AS_AUTHORIZATION",
+    "GENERIC_COMPLETE_FOR_NON_NATIVE_BINDING",
+    "FAKE_OR_UNCONSUMED_NON_NATIVE_PROVIDER",
+    "DIRECT_CROSS_MODULE_TABLE_ACCESS",
+    "EDIT_EXECUTED_FLYWAY_MIGRATION"
+  ]
+}

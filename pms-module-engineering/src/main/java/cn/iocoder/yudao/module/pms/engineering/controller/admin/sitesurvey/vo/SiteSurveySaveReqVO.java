@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo;
 
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -41,6 +42,9 @@ public class SiteSurveySaveReqVO {
 
     @Schema(description = "工勘地点", example = "北京核心机房")
     private String location;
+
+    @Schema(description = "地点维护命令；提供时创建或修订结构化地址、站点和站点位置")
+    private LocationMaintenanceCommand locationMaintenance;
 
     @Schema(description = "供电条件")
     private String powerSupply;

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateRevisionMapper">
+
+    <sql id="RevisionColumns">
+        r.id, r.template_id, r.revision_no, r.status_code, r.draft_marker,
+        r.source_revision_id, r.form_conf_json, r.form_rules_json, r.engine_code,
+        r.designer_version, r.renderer_version, r.published_by, r.published_at,
+        r.version, r.creator, r.create_time, r.updater, r.update_time, r.deleted, r.tenant_id
+    </sql>
+
+    <insert id="insert">
+        INSERT INTO plt_dynamic_form_template_revision
+        (id, template_id, revision_no, status_code, draft_marker, source_revision_id,
+         form_conf_json, form_rules_json, engine_code, designer_version, renderer_version,
+         published_by, published_at, version, creator, create_time, updater, update_time,
+         tenant_id)
+        VALUES
+        (#{row.id}, #{row.templateId}, #{row.revisionNo}, #{row.statusCode}, #{row.draftMarker},
+         #{row.sourceRevisionId}, #{row.formConfJson}, #{row.formRulesJson}, #{row.engineCode},
+         #{row.designerVersion}, #{row.rendererVersion}, #{row.publishedBy}, #{row.publishedAt},
+         #{row.version}, #{row.creator}, COALESCE(#{row.createTime}, NOW()), #{row.updater},
+         COALESCE(#{row.updateTime}, NOW()), #{row.tenantId})
+    </insert>
+
+    <select id="selectByRow" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFormTemplateRevisionDO">
+        SELECT <include refid="RevisionColumns"/>
+        FROM plt_dynamic_form_template_revision r
+        WHERE r.tenant_id = #{query.tenantId} AND r.id = #{query.revisionId}
+          AND r.deleted = b'0'
+    </select>
+
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFormTemplateRevisionDO">
+        SELECT <include refid="RevisionColumns"/>
+        FROM plt_dynamic_form_template_revision r
+        WHERE r.tenant_id = #{query.tenantId} AND r.template_id = #{query.templateId}
+          AND r.id = #{query.revisionId} AND r.deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectDraftForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFormTemplateRevisionDO">
+        SELECT <include refid="RevisionColumns"/>
+        FROM plt_dynamic_form_template_revision r
+        WHERE r.tenant_id = #{query.tenantId} AND r.template_id = #{query.templateId}
+          AND r.status_code = 'DRAFT' AND r.draft_marker = 1 AND r.deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectCurrentPublishedForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFormTemplateRevisionDO">
+        SELECT <include refid="RevisionColumns"/>
+        FROM plt_dynamic_form_template t
+        JOIN plt_dynamic_form_template_revision r
+          ON r.tenant_id = t.tenant_id AND r.template_id = t.id
+         AND r.id = t.current_published_revision_id
+        WHERE t.tenant_id = #{query.tenantId} AND t.id = #{query.templateId}
+          AND t.deleted = b'0' AND r.deleted = b'0' AND r.status_code = 'PUBLISHED'
+        FOR UPDATE
+    </select>
+
+    <update id="updateDraftIfMatch">
+        UPDATE plt_dynamic_form_template_revision
+        SET form_conf_json = #{row.formConfJson}, form_rules_json = #{row.formRulesJson},
+            engine_code = #{row.engineCode}, designer_version = #{row.designerVersion},
+            renderer_version = #{row.rendererVersion}, version = version + 1,
+            updater = #{row.updater}, update_time = NOW()
+        WHERE tenant_id = #{row.tenantId} AND template_id = #{row.templateId}
+          AND id = #{row.id} AND status_code = 'DRAFT' AND draft_marker = 1
+          AND version = #{row.version} AND deleted = b'0'
+    </update>
+
+    <update id="publishIfMatch">
+        UPDATE plt_dynamic_form_template_revision
+        SET status_code = 'PUBLISHED', draft_marker = NULL,
+            published_by = #{update.publishedBy}, published_at = #{update.publishedAt},
+            version = version + 1, updater = #{update.updater}, update_time = NOW()
+        WHERE tenant_id = #{update.tenantId} AND template_id = #{update.templateId}
+          AND id = #{update.revisionId} AND status_code = 'DRAFT' AND draft_marker = 1
+          AND version = #{update.expectedVersion} AND deleted = b'0'
+    </update>
+</mapper>

@@ -5,7 +5,9 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.task.vo.CutTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverGovernanceGuardQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -35,4 +37,13 @@ public interface CutTaskMapper extends BaseMapperX<CutTaskDO> {
                 .eq(CutTaskDO::getProjectId, projectId)
                 .orderByDesc(CutTaskDO::getId));
     }
+
+    default List<CutTaskDO> selectListForGovernanceGuard(CutoverGovernanceGuardQuery query) {
+        if (query.projectIds().isEmpty()) {
+            return List.of();
+        }
+        return selectListForGovernanceGuard0(query);
+    }
+
+    List<CutTaskDO> selectListForGovernanceGuard0(@Param("query") CutoverGovernanceGuardQuery query);
 }

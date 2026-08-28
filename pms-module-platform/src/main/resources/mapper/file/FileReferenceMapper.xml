@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper">
+
+    <sql id="columns">
+        id, owner_context, object_type, object_id, purpose_code, reference_key,
+        artifact_id, file_version_no, sensitivity_code, status_code, scope_version, version,
+        detached_at, detached_by, detached_reason, archived_at,
+        creator, create_time, updater, update_time, tenant_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id">
+        INSERT INTO plt_file_reference
+            (owner_context, object_type, object_id, purpose_code, reference_key,
+             artifact_id, file_version_no, sensitivity_code, status_code, scope_version, version,
+             detached_at, detached_by, detached_reason, archived_at,
+             creator, create_time, updater, update_time, tenant_id)
+        VALUES
+            (#{row.ownerContext}, #{row.objectType}, #{row.objectId}, #{row.purposeCode}, #{row.referenceKey},
+             #{row.artifactId}, #{row.fileVersionNo}, #{row.sensitivityCode}, #{row.statusCode},
+             #{row.scopeVersion}, #{row.version}, #{row.detachedAt}, #{row.detachedBy},
+             #{row.detachedReason}, #{row.archivedAt}, #{row.creator},
+             COALESCE(#{row.createTime}, CURRENT_TIMESTAMP(3)), #{row.updater},
+             COALESCE(#{row.updateTime}, CURRENT_TIMESTAMP(3)), #{row.tenantId})
+    </insert>
+
+    <select id="selectExact"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context = #{query.ownerContext}
+          AND object_type = #{query.objectType}
+          AND object_id = #{query.objectId}
+          AND purpose_code = #{query.purposeCode}
+          AND reference_key = #{query.referenceKey}
+    </select>
+
+    <select id="selectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context = #{query.ownerContext}
+          AND object_type = #{query.objectType}
+          AND object_id = #{query.objectId}
+          AND purpose_code = #{query.purposeCode}
+          AND reference_key = #{query.referenceKey}
+        FOR UPDATE
+    </select>
+
+    <select id="selectCursor"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context = #{query.ownerContext}
+          AND object_type = #{query.objectType}
+          AND object_id = #{query.objectId}
+        <if test="query.afterCreateTime != null and query.afterId != null">
+          AND (create_time &lt; #{query.afterCreateTime}
+               OR (create_time = #{query.afterCreateTime} AND id &lt; #{query.afterId}))
+        </if>
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{query.limit}
+    </select>
+
+    <update id="replaceVersionIfMatch">
+        UPDATE plt_file_reference
+        SET file_version_no = #{query.fileVersionNo},
+            scope_version = #{query.scopeVersion},
+            sensitivity_code = #{query.sensitivityCode},
+            status_code = 'ACTIVE',
+            detached_at = NULL,
+            detached_by = NULL,
+            detached_reason = NULL,
+            archived_at = NULL,
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.referenceId}
+          AND artifact_id = #{query.artifactId}
+          AND status_code IN ('ACTIVE', 'DETACHED')
+          AND version = #{query.expectedVersion}
+    </update>
+
+    <update id="updateStateIfMatch">
+        UPDATE plt_file_reference
+        SET status_code = #{query.targetStatus},
+            scope_version = #{query.scopeVersion},
+            detached_at = CASE WHEN #{query.targetStatus} = 'DETACHED' THEN #{query.occurredAt} ELSE detached_at END,
+            detached_by = CASE WHEN #{query.targetStatus} = 'DETACHED' THEN #{query.actorUserId} ELSE detached_by END,
+            detached_reason = CASE WHEN #{query.targetStatus} = 'DETACHED' THEN #{query.reason} ELSE detached_reason END,
+            archived_at = CASE WHEN #{query.targetStatus} = 'ARCHIVED' THEN #{query.occurredAt} ELSE archived_at END,
+            version = version + 1,
+            updater = #{query.actorUserId},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.referenceId}
+          AND status_code = #{query.expectedStatus}
+          AND version = #{query.expectedVersion}
+    </update>
+
+    <select id="selectByArtifactForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND artifact_id = #{query.artifactId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectActiveSet"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context = #{query.ownerContext}
+          AND object_type = #{query.objectType}
+          AND object_id = #{query.objectId}
+          AND purpose_code = #{query.purposeCode}
+          AND status_code = 'ACTIVE'
+        ORDER BY reference_key
+    </select>
+
+    <select id="selectSetForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO">
+        SELECT <include refid="columns"/>
+        FROM plt_file_reference
+        WHERE tenant_id = #{query.tenantId}
+          AND owner_context = #{query.ownerContext}
+          AND object_type = #{query.objectType}
+          AND object_id = #{query.objectId}
+          AND purpose_code = #{query.purposeCode}
+        ORDER BY reference_key
+        FOR UPDATE
+    </select>
+</mapper>

@@ -1,0 +1,157 @@
+{
+  "evidenceId": "FSOL001-T10-BROWSER-20260827",
+  "featureId": "F-SOL-001",
+  "task": "Task 10",
+  "status": "VERIFIED",
+  "scope": "Implementation Done only; excludes Deployment, SIT, UAT and Release",
+  "testedCommit": "85b6d09db65a7b02f4ad291aaafbe5ead4a06eb0",
+  "specificationCommit": "f2c563df978b7d7b3b1de9ad245b9c485bbdbae8",
+  "project": {
+    "projectId": 992201100001,
+    "projectCode": "FPLT001-T10-BROWSER",
+    "tenantMode": "single tenant",
+    "tenantId": 0
+  },
+  "runtime": {
+    "frontendUrl": "http://127.0.0.1:18082",
+    "backendUrl": "http://127.0.0.1:58080",
+    "composeProject": "npdms-50eb-fplt001-t10",
+    "database": "npdms_fplt001_t10_r1",
+    "migrationRange": "V1-V95",
+    "java": "25.0.1",
+    "node": "24.11.1",
+    "pnpm": "9.15.5"
+  },
+  "browserEvidence": {
+    "browser": "Codex bundled Playwright driving the authorized external Chromium runtime",
+    "positiveFlow": [
+      "project manager created the first duration baseline",
+      "project manager created a CUSTOMER_DELAY draft and uploaded a real PNG through PLT FileArtifact",
+      "the change was submitted through the public SOL and BPM entry points",
+      "the current primary service manager approved it from the platform BPM task page",
+      "the project page refreshed to the unique current revision V2 and PENDING_RECALCULATION"
+    ],
+    "terminalFlows": [
+      "APPROVE completed through the platform BPM task page",
+      "the current primary service manager rejected a submitted CUSTOMER_DELAY change through the public BPM API in the browser context",
+      "the project manager was rejected when attempting the same BPM task action, with SOL remaining PENDING_APPROVAL",
+      "a browser withdrawal recovered the pending material branch after a failed approval revalidation"
+    ],
+    "responsiveWidths": [320, 768, 1024, 1440],
+    "pageLevelHorizontalOverflow": 0,
+    "consoleErrorCount": 0,
+    "pageErrorCount": 0,
+    "externalIconifyRequestCount": 0,
+    "screenshot": "docs/superpowers/evidence/f-plt-001/task10-r1-clean-browser.png",
+    "sourceEvidence": "docs/superpowers/evidence/f-plt-001/implementation-evidence.md"
+  },
+  "supplementalBrowserEvidence": {
+    "evidenceId": "FSOL001-T10-BROWSER-NEGATIVE-R1-20260827",
+    "projectVersionConflict": {
+      "request": "POST /admin-api/api/v1/pms/construction-plans/1/changes with stale expectedProjectVersion=2",
+      "httpStatus": 200,
+      "responseCode": 1014024014,
+      "message": "Project版本冲突，请重新加载后重试",
+      "changeCountBefore": 2,
+      "changeCountAfter": 2
+    },
+    "permissionNegative": {
+      "actor": "project manager userId=100",
+      "request": "PUT /admin-api/bpm/task/reject for the service-manager task",
+      "httpStatus": 200,
+      "responseCode": 1009005001,
+      "message": "操作失败，原因：该任务的审批人不是你",
+      "changeStatusAfter": "PENDING_APPROVAL"
+    },
+    "serviceManagerReject": {
+      "actor": "primary service manager userId=1",
+      "request": "PUT /admin-api/bpm/task/reject",
+      "httpStatus": 200,
+      "responseCode": 0,
+      "changeId": 2092700195915853826,
+      "processInstanceId": "d102b0c5-a186-11f1-bcdc-00ff0b78abd7",
+      "finalStatus": "REJECTED",
+      "approvalOpinion": "审批不通过任务，原因：Task 10 service manager browser rejection",
+      "pendingChangeId": null,
+      "currentRevisionNo": 2
+    },
+    "refreshPersistence": {
+      "evidenceId": "FSOL001-T10-REJECT-REFRESH-20260827",
+      "reopenedHistoryDrawer": true,
+      "containsRejected": true,
+      "containsReason": true,
+      "consoleErrorCount": 0,
+      "pageErrorCount": 0
+    },
+    "screenshots": [
+      "docs/engineering/evidence/f-sol-001-task10-reject.png",
+      "docs/engineering/evidence/f-sol-001-task10-reject-history.png"
+    ]
+  },
+  "pm10GuardEvidence": {
+    "active": {
+      "evidenceId": "FSOL001-T10-PM10-ACTIVE-20260827",
+      "changeId": 2092693038185136129,
+      "processInstanceId": "dcee701f-a182-11f1-b3fe-00ff0b78abd7",
+      "request": "GET /admin-api/pms/projects/992201100001/governance-guard?action=EXCEPTION_CLOSE&pageNo=1&pageSize=10",
+      "responseCode": 0,
+      "allowed": false,
+      "blockerTotal": 1,
+      "blockerCode": "ACTIVE_BPM_APPROVAL",
+      "blockerStatus": "RUNNING"
+    },
+    "terminal": {
+      "evidenceId": "FSOL001-T10-PM10-CLEARED-20260827",
+      "command": "DELETE /admin-api/bpm/process-instance/cancel-by-start-user by the real applicant",
+      "commandResult": true,
+      "changeStatus": "WITHDRAWN",
+      "flowableRuntimeInstanceCount": 0,
+      "pendingChangeId": null,
+      "currentDurationRevisionId": 2092690148376788994,
+      "planRecalculationStatus": "PENDING_RECALCULATION",
+      "guardAllowed": true,
+      "guardBlockerTotal": 0
+    }
+  },
+  "verification": {
+    "backend": [
+      "DurationChangeApplicationServiceTest, DurationChangeSubmitServiceTest and BpmGovernanceGuardProviderTest: 19/19 PASS; 27-module Reactor BUILD SUCCESS",
+      "final yudao-server package after the PM-10 process-key correction: 35-module Reactor BUILD SUCCESS",
+      "clean MySQL and real Flowable material chain: 21/21 PASS",
+      "Task 9 real MySQL and Flowable chain covers APPROVE, REJECT, CANCEL, authorization rollback and project-version conflict",
+      "ConstructionPlanQueryServiceTest and ConstructionPlanMapperContractTest: 7/7 PASS; 26-module Reactor BUILD SUCCESS"
+    ],
+    "frontend": [
+      "component and runtime focused tests: 15/15 PASS",
+      "corepack pnpm ts:check: PASS with pnpm 9.15.5",
+      "targeted ESLint and Stylelint: PASS",
+      "corepack pnpm build:local: PASS"
+    ],
+    "governance": [
+      "managed specification baseline validation: PASS",
+      "git diff --check: PASS",
+      "no yudao-framework or yudao-module-bpm change",
+      "no SOL direct approval terminal endpoint, PRE-02, PLN-01/02/03/04, INT-05, Deployment, SIT, UAT or Release claim"
+    ]
+  },
+  "acceptanceCriteria": {
+    "AC-FSOL001-001": "PASS - duration rules and invalid combinations covered by domain and application tests",
+    "AC-FSOL001-002": "PASS - first baseline, unique plan root, idempotency, audit and rollback covered by real MySQL",
+    "AC-FSOL001-003": "PASS - draft CAS, frozen candidate/material/BPM facts and single pending approval covered",
+    "AC-FSOL001-004": "PASS - CUSTOMER_DELAY real file success and unavailable/unauthorized fail-closed paths covered",
+    "AC-FSOL001-005": "PASS - browser approval produced the unique V2 current revision and PENDING_RECALCULATION without PLN-01",
+    "AC-FSOL001-006": "PASS - browser BPM reject and applicant cancel preserve the current revision and clear pending",
+    "AC-FSOL001-007": "PASS - browser project-version conflict plus real PROJ scope and current-role revalidation reject without success side effects",
+    "AC-FSOL001-008": "PASS - submit and terminal idempotency, concurrency and rollback covered by real MySQL/Flowable",
+    "AC-FSOL001-009": "PASS - browser refresh reopens history with the rejected change, candidate revision and reason; platform audit traceability covered",
+    "AC-FSOL001-010": "PASS - clean V1-V95 migration and seed verification completed without V22/V23 modification or dual write",
+    "AC-FSOL001-011": "PASS - active PRE-01 returned ACTIVE_BPM_APPROVAL; real applicant withdrawal cleared the blocker",
+    "AC-FSOL001-012": "PASS - positive browser chain, approve/reject/cancel branches, permission negative, project-version conflict, refresh and four responsive widths covered",
+    "AC-FSOL001-013": "PASS - excluded capabilities and later delivery gates are not claimed"
+  },
+  "independentReview": {
+    "status": "COMPLETE",
+    "reviewOwner": "independent reviewer",
+    "decision": "GO - F-SOL-001 Task 10 browser Gate closed; Implementation Done approved on 2026-08-27"
+  }
+}

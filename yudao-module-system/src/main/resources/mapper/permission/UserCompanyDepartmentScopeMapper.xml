@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.system.dal.mysql.permission.UserCompanyDepartmentScopeMapper">
+
+    <sql id="activeCandidateWhere">
+        FROM system_user_company_department_scope s
+        INNER JOIN system_users u
+            ON u.id = s.user_id
+           AND u.tenant_id = s.tenant_id
+           AND u.status = #{query.enabledStatus}
+           AND u.deleted = FALSE
+        INNER JOIN system_company c
+            ON c.id = s.company_id
+           AND c.tenant_id = s.tenant_id
+           AND c.status = #{query.enabledStatus}
+           AND c.deleted = FALSE
+        INNER JOIN system_dept d
+            ON d.id = s.department_id
+           AND d.tenant_id = s.tenant_id
+           AND d.code = s.department_code
+           AND d.status = #{query.enabledStatus}
+           AND d.deleted = FALSE
+        WHERE s.company_id = #{query.companyId}
+          AND s.department_id = #{query.departmentId}
+          AND s.department_code = #{query.departmentCode}
+          AND s.status = #{query.enabledStatus}
+          AND s.deleted = FALSE
+          AND s.effective_from &lt;= #{query.currentTime}
+          AND (s.effective_to IS NULL OR s.effective_to &gt; #{query.currentTime})
+        <if test="query.keyword != null and query.keyword != ''">
+          AND (u.username LIKE CONCAT('%', #{query.keyword}, '%')
+               OR u.nickname LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+    </sql>
+
+    <select id="selectActiveUserCandidateCount" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT u.id)
+        <include refid="activeCandidateWhere"/>
+    </select>
+
+    <select id="selectActiveUserCandidatePage"
+            resultType="cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO">
+        SELECT DISTINCT
+            u.id AS user_id,
+            u.username,
+            u.nickname,
+            NULL AS employee_no,
+            s.company_id,
+            s.department_id,
+            s.department_code,
+            d.name AS department_name
+        <include refid="activeCandidateWhere"/>
+        ORDER BY u.id
+        LIMIT #{query.offset}, #{query.limit}
+    </select>
+
+</mapper>

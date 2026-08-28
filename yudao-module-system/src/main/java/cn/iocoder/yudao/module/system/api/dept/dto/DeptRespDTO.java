@@ -16,6 +16,10 @@ public class DeptRespDTO {
      */
     private Long id;
     /**
+     * 统一部门编码
+     */
+    private String code;
+    /**
      * 部门名称
      */
     private String name;
@@ -33,5 +37,9 @@ public class DeptRespDTO {
      * 枚举 {@link CommonStatusEnum}
      */
     private Integer status;
+    /**
+     * 乐观锁版本
+     */
+    private Integer version;
 
 }

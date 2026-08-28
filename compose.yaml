@@ -42,6 +42,21 @@ services:
       retries: 30
       start_period: 5s
 
+  clamav:
+    image: clamav/clamav:1.4
+    profiles: ["security-scan"]
+    restart: unless-stopped
+    ports:
+      - "${NPDMS_CLAMAV_PORT:-13310}:3310"
+    volumes:
+      - npdms-clamav-data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
   migrate:
     image: flyway/flyway:11.10.5-alpine
     restart: "no"
@@ -61,9 +76,10 @@ services:
       - ./sql/migrations:/flyway/sql:ro
 
 # 注意：前端（yudao-ui-admin-vue3）与后端（yudao-server）服务禁止运行在 Docker 中，
-# 必须在宿主机上分别通过 pnpm dev 与 java -jar 启动。Docker 仅承载 MySQL、Redis
-# 与 Flyway 迁移等基础设施。固化端口：后端 58080、前端 18081。
+# 必须在宿主机上分别通过 pnpm dev 与 java -jar 启动。Docker 默认承载 MySQL、Redis、
+# Flyway 迁移；ClamAV 仅在 security-scan profile 中承载。固化端口：后端 58080、前端 18081。
 
 volumes:
   npdms-mysql-data:
   npdms-redis-data:
+  npdms-clamav-data:

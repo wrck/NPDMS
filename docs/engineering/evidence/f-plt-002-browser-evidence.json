@@ -1,0 +1,156 @@
+{
+  "evidenceId": "FPLT002-IMPLEMENTATION-BROWSER-20260828-R3",
+  "featureId": "F-PLT-002",
+  "gate": "Implementation Done candidate",
+  "status": "VERIFIED_APPROVED",
+  "scope": "仅限Implementation；不代表Deployment、SIT、UAT或Release",
+  "candidateBaseCommit": "4f982308c387d0bf50b66f1c2c142813540979b4",
+  "candidateScope": "candidateBaseCommit加本证据所在整改提交；审批申请以最终Git提交为不可变候选",
+  "specificationCommit": "a04aa0fa25194ca0cd5e157d7c16c3c42a26ff7f",
+  "synchronizedBaselineCommit": "af428bab02ba5b388a71723dba97882ad6a6ddb4",
+  "runtime": {
+    "frontend": "http://127.0.0.1:18081，宿主机Vite",
+    "backend": "http://127.0.0.1:58080，宿主机JDK 25；分别以扫描开启和关闭运行",
+    "tenantEnabledNegativeBackend": "http://127.0.0.1:58082，宿主机JDK 25，启用租户隔离",
+    "database": "隔离MySQL 8.4，npdms_test，端口23316，V1至V103",
+    "redis": "隔离Redis，端口26379",
+    "objectStorage": "真实MinIO，端口9000，bucket yudao",
+    "securityScan": "默认关闭返回SKIPPED；可选ClamAV端口33310返回PASSED",
+    "browser": "Playwright 1.62.0驱动Chromium 151.0.7922.34"
+  },
+  "browserEvidence": {
+    "runs": [
+      {
+        "scanMode": "PASSED",
+        "capturedAt": "2026-08-27T22:07:38.588Z",
+        "rawResult": "docs/engineering/evidence/f-plt-002/browser-run-passed.json",
+        "unexpectedConsoleErrors": 0,
+        "unexpectedPageErrors": 0,
+        "unexpectedHttpErrors": 0
+      },
+      {
+        "scanMode": "SKIPPED",
+        "capturedAt": "2026-08-27T22:03:44.590Z",
+        "rawResult": "docs/engineering/evidence/f-plt-002/browser-run-skipped.json",
+        "unexpectedConsoleErrors": 0,
+        "unexpectedPageErrors": 0,
+        "unexpectedHttpErrors": 0
+      }
+    ],
+    "formCreateCapabilities": {
+      "roundTrip": "完整规则保存后重新读取、关闭重开、预览、发布、实例选择预览及冻结实例运行均成功",
+      "controls": ["input", "switch", "inputNumber", "select", "Editor", "row", "UploadFile", "ApiSelect", "IframeComponent", "PmsFileArtifact"],
+      "behavior": [
+        "必填校验失败时实例版本保持0且无PATCH",
+        "联动选择SHOW后linkedField真实显示",
+        "事件函数实际递增浏览器计数",
+        "GET ApiSelect实际加载并由parseFunc转换选项",
+        "POST ApiSelect真实调用目标接口并收到业务code=400",
+        "跨源ApiSelect被浏览器CORS拒绝",
+        "iframe被目标CSP frame-ancestors none拒绝",
+        "false、0、null和空数组刷新后保持",
+        "富文本内容与普通选择SHOW经保存、刷新、重开、权威事实和实际渲染保持一致",
+        "row(gutter=24)布局容器、layoutContact子字段及其值经草稿重开、实例刷新与重开保持一致"
+      ],
+      "targetFailureSideEffect": "目标POST、CORS及iframe失败只形成预期浏览器/目标诊断；PLT模板、修订和实例成功事实仅来自明确PLT命令"
+    },
+    "fileLifecycle": {
+      "ordinaryUpload": "UploadFile通过既有/infra/file/upload成功，URL仅作为普通JSON值保存",
+      "controlledFile": "PmsFileArtifact经MinIO完成首次上传、V2换版、解绑后ACTIVE集合为空、使用新slot重绑并刷新",
+      "scanProjection": "版本历史分别明确显示PASSED=已执行并通过扫描、SKIPPED=未执行安全扫描（不代表安全）",
+      "noSecondTruth": "普通值JSON不保存受控FileArtifact引用；详情由当前ACTIVE文件事实投影"
+    },
+    "revisionAndAvailability": {
+      "lifecycle": ["DRAFT", "PUBLISHED", "ENABLED", "DISABLED", "DRAFT_2", "PUBLISHED_2", "REENABLED"],
+      "frozenInstance": "停用后旧实例仍可读；发布第二修订并重新启用后，旧实例仍冻结初始修订且不出现revision2Only字段",
+      "selection": "停用时不进入新实例候选；重新启用后第二发布修订重新进入候选"
+    },
+    "authorization": [
+      {
+        "scenario": "AUTHORIZED_READ_ONLY_CREATE_DENIED",
+        "result": "获权只读主体可查询模板/实例，allowedActions无写动作，UI无新建模板，强制创建返回code=403且模板总数不变"
+      },
+      {
+        "scenario": "NON_CREATOR_UPDATE_DENIED",
+        "result": "具备实例更新功能权限但不是创建者时，allowedActions无PATCH_INSTANCE，UI仅查看且无保存，强制PATCH返回code=403且值不变"
+      },
+      {
+        "scenario": "SECOND_TENANT_FOREIGN_INSTANCE_DENIED",
+        "result": "tenant 1管理员经启用租户隔离的公开REST读取tenant 0实例返回实例不存在，源实例值不变"
+      },
+      {
+        "scenario": "NO_PERMISSION_DENIED",
+        "result": "无角色主体查询返回code=403且无成功副作用"
+      }
+    ],
+    "responseUnknownRecovery": {
+      "injection": "服务端完成实例PATCH后浏览器主动丢弃响应",
+      "result": "客户端读取权威实例确认原意图已提交，保留并释放同一意图，不产生第二次PATCH",
+      "expectedDiagnostic": "net::ERR_FAILED",
+      "unexpectedErrorsAfterRecovery": 0
+    },
+    "responsiveWidths": [320, 768, 1024, 1440],
+    "legacyUnchanged": {
+      "pages": ["BPM流程表单", "旧PMS表单模板", "旧PMS表单实例", "旧需求分析"],
+      "apiTotals": {"bpm_form": 0, "pms_eng_form_template": 10, "pms_eng_form_instance": 45, "pms_eng_requirement": 31}
+    },
+    "screenshots": [
+      "docs/engineering/evidence/f-plt-002/01-template-designer-preview-1440.png",
+      "docs/engineering/evidence/f-plt-002/02-template-published-enabled-1440.png",
+      "docs/engineering/evidence/f-plt-002/03-instance-minio-skipped-1440.png",
+      "docs/engineering/evidence/f-plt-002/03-instance-minio-passed-1440.png",
+      "docs/engineering/evidence/f-plt-002/03a-controlled-file-version-changed-1440.png",
+      "docs/engineering/evidence/f-plt-002/03b-controlled-file-detached-1440.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-320.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-768.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-1024.png",
+      "docs/engineering/evidence/f-plt-002/04-instance-list-1440.png",
+      "docs/engineering/evidence/f-plt-002/05a-authorized-readonly-1024.png",
+      "docs/engineering/evidence/f-plt-002/05b-non-creator-denied-1024.png",
+      "docs/engineering/evidence/f-plt-002/05-unprivileged-denied-1024.png",
+      "docs/engineering/evidence/f-plt-002/06-legacy-bpm-form-1440.png",
+      "docs/engineering/evidence/f-plt-002/07-legacy-pms-form-template-1440.png",
+      "docs/engineering/evidence/f-plt-002/08-legacy-pms-form-instance-1440.png",
+      "docs/engineering/evidence/f-plt-002/09-legacy-requirement-1440.png"
+    ]
+  },
+  "performanceEvidence": {
+    "test": "DynamicFormQueryServiceTest",
+    "templatePageSize": 200,
+    "selectionPageSize": 200,
+    "templateMapperCallsPerPage": "1 count + 1 joined-summary page query",
+    "revisionMapperCallsPerPage": 0,
+    "fullRevisionPayloadReadPerRow": false
+  },
+  "overallVerification": {
+    "backendReactor": "JDK 25，37模块Maven测试BUILD SUCCESS",
+    "mysqlApplicationIntegration": "DynamicFormApplicationMySqlIntegrationTest 4/4 PASS",
+    "frontendRuntime": "Vitest 7个文件、22/22 PASS",
+    "frontendTypeCheck": "pnpm ts:check PASS",
+    "frontendBuild": "pnpm build:local PASS",
+    "focusedLint": "ESLint 0 error（1条既有测试组件命名warning）、Prettier PASS、Stylelint PASS",
+    "migration": "Flyway 11.10.5成功校验V1至V103共103条迁移，schema为V103且无需迁移",
+    "baseline": "规格快照、仓库基线规则、SDS Phase 3与git diff check均PASS",
+    "legacyBoundary": "相对af428bab，BPM表单、旧PMS模板/实例、旧需求分析、旧项目入口均零差异；无WorkBinding/PRE-04实现泄漏"
+  },
+  "acceptanceCriteria": {
+    "AC-FPLT002-001": "PASS - 模板稳定身份、元数据、独立可用性及CAS闭合",
+    "AC-FPLT002-002": "PASS - 草稿保存重开、发布不可变、第二修订和当前DRAFT/PUBLISHED摘要闭合；分页无逐行修订回读",
+    "AC-FPLT002-003": "PASS - 完整FormCreate控件、iframe、GET/POST API、联动、校验、事件、函数及parseFunc真实运行",
+    "AC-FPLT002-004": "PASS - 管理员公开UI完成创建、设计、预览、发布、停用、下一草稿、再发布及重新启用",
+    "AC-FPLT002-005": "PASS - 人工选择只投影当前启用发布修订；文本、富文本、选择、false、0、null、空数组及row布局经保存、刷新和重开保持一致；停用与重新启用均验证",
+    "AC-FPLT002-006": "PASS - 旧实例在第二修订发布后保持初始冻结修订和原字段集合",
+    "AC-FPLT002-007": "PASS - 普通值部分PATCH保留富文本、选择、布局子字段、false、0、null、空数组及普通UploadFile值",
+    "AC-FPLT002-008": "PASS - MinIO受控文件上传、换版、解绑、重绑、刷新及SKIPPED/PASSED历史投影闭合",
+    "AC-FPLT002-009": "PASS - 获权只读、非创建者、完全无权及第二租户均由UI投影和服务端拒绝闭合，零成功副作用",
+    "AC-FPLT002-010": "PASS - 响应未知、幂等/CAS/审计由浏览器恢复与真实MySQL自动化共同覆盖",
+    "AC-FPLT002-011": "PASS - V102/V103约束、索引、菜单、字典和示例由空库迁移验证",
+    "AC-FPLT002-012": "PASS - 320/768/1024/1440公开浏览器闭环、旧实现共存及零意外错误闭合"
+  },
+  "independentReview": {
+    "status": "GO",
+    "decision": "NPDMS-FPLT002-IMPLEMENTATION-20260827-02-R2",
+    "approvedCandidateCommit": "0ce68d04e49189fc994dc594732ba79f7fc345b3",
+    "reviewOwner": "NPDMS方案评审角色"
+  }
+}

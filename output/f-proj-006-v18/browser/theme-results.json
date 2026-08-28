@@ -1,0 +1,24 @@
+{
+  "viewport": {
+    "width": 320,
+    "height": 720
+  },
+  "drawerMeasure": {
+    "width": 350,
+    "left": -29.14299964904785,
+    "right": 320.85700035095215,
+    "viewportWidth": 320,
+    "horizontalOverflow": false
+  },
+  "menuThemeBeforeReload": "#273352",
+  "darkBeforeReload": true,
+  "persisted": {
+    "isDark": true,
+    "menuTheme": "#273352",
+    "horizontalOverflow": false
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedResponses": [],
+  "screenshot": "M:/AICoding/CodexData/worktrees/50eb/NPDMS/output/f-proj-006-v18/browser/theme-320.png"
+}

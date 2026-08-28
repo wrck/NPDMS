@@ -25,6 +25,11 @@ public class PermissionApiImpl implements PermissionApi {
     }
 
     @Override
+    public Set<Long> getRoleIdListByUserId(Long userId) {
+        return permissionService.getUserRoleIdListByUserIdFromCache(userId);
+    }
+
+    @Override
     public boolean hasAnyPermissions(Long userId, String... permissions) {
         return permissionService.hasAnyPermissions(userId, permissions);
     }

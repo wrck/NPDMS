@@ -30,6 +30,7 @@
 </template>
 
 <script lang="ts" setup>
+import defaultMusic from '@/assets/svgs/default-music.svg'
 import songCard from './songCard/index.vue'
 import songInfo from './songInfo/index.vue'
 import audioBar from './audioBar/index.vue'
@@ -63,8 +64,7 @@ function generateMusic(formData: Recordable) {
         audioUrl: '',
         videoUrl: '',
         title: '我走后' + index,
-        imageUrl:
-          'https://www.carsmp3.com/data/attachment/forum/201909/19/091020q5kgre20fidreqyt.jpg',
+        imageUrl: defaultMusic,
         desc: 'Metal, symphony, film soundtrack, grand, majesticMetal, dtrack, grand, majestic',
         date: '2024年04月30日 14:02:57',
         lyric: `<div class="_words_17xen_66"><div>大江东去，浪淘尽，千古风流人物。

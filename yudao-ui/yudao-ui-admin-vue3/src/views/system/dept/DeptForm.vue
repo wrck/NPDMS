@@ -21,6 +21,9 @@
       <el-form-item label="部门名称" prop="name">
         <el-input v-model="formData.name" placeholder="请输入部门名称" />
       </el-form-item>
+      <el-form-item label="部门编码" prop="code">
+        <el-input v-model="formData.code" placeholder="请输入统一部门编码" />
+      </el-form-item>
       <el-form-item label="显示排序" prop="sort">
         <el-input-number v-model="formData.sort" :min="0" controls-position="right" />
       </el-form-item>
@@ -79,6 +82,7 @@ const formData = ref({
   title: '',
   parentId: undefined,
   name: undefined,
+  code: undefined,
   sort: undefined,
   leaderUserId: undefined,
   phone: undefined,
@@ -88,6 +92,7 @@ const formData = ref({
 const formRules = reactive<FormRules>({
   parentId: [{ required: true, message: '上级部门不能为空', trigger: 'blur' }],
   name: [{ required: true, message: '部门名称不能为空', trigger: 'blur' }],
+  code: [{ required: true, message: '部门编码不能为空', trigger: 'blur' }],
   sort: [{ required: true, message: '显示排序不能为空', trigger: 'blur' }],
   email: [{ type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }],
   phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }],
@@ -152,6 +157,7 @@ const resetForm = () => {
     title: '',
     parentId: undefined,
     name: undefined,
+    code: undefined,
     sort: undefined,
     leaderUserId: undefined,
     phone: undefined,

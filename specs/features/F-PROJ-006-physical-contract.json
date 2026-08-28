@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-PROJ-006",
+  "requirementIds": ["PM-10"],
+  "relatedRequirementSlices": ["PM-01", "PM-02", "PM-04", "PM-08", "PM-11", "CLO-02"],
+  "status": "BASELINE_READY",
+  "contractType": "FEATURE_FORWARD_PHYSICAL_CONTRACT",
+  "phaseGateImpact": "NPDMS_FPROJ006_FEATURE_READY_20260825_01_DO_NOT_REOPEN_APPROVED_PRD_OR_SDS",
+  "objects": {
+    "Project": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project"],
+      "reusedFields": ["current_stage", "lifecycle_status", "assignment_status", "version"],
+      "allowedTransitions": {
+        "ROLLBACK": "ACTIVE/*/* -> ACTIVE/S0/UNASSIGNED",
+        "EXCEPTION_CLOSE": "ACTIVE/*/* -> EXCEPTION_CLOSED/SAME_STAGE/UNASSIGNED",
+        "REOPEN": "EXCEPTION_CLOSED/*/* -> ACTIVE/CLOSE_SNAPSHOT_BEFORE_STAGE/UNASSIGNED"
+      },
+      "forbiddenTransitions": ["PM10_TO_NORMAL_CLOSED", "PM10_REOPEN_NORMAL_CLOSED"],
+      "archiveProjection": "lifecycle_status != ACTIVE",
+      "concurrency": "PROJECT_VERSION_CAS_PLUS_GUARD_TOKEN_REVALIDATION"
+    },
+    "ProjectStageSnapshot": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_stage_snapshot"],
+      "sharedByRequirements": ["PM-03", "PM-10", "EXE-06"],
+      "sharedContractPolicy": "PRESERVE_APPROVED_SHARED_FIELDS_AND_KEY; PM10_IS_FORWARD_NULLABLE_ADDITION_ONLY",
+      "sharedRowRequiredFields": ["tenant_id", "project_id", "stage_code", "snapshot_no"],
+      "preservedSharedKey": ["tenant_id", "project_id", "stage_code", "snapshot_no"],
+      "writePolicy": "APPEND_ONLY",
+      "pm10AdditiveNullableFields": ["operation_type", "before_stage", "after_stage", "before_lifecycle_status", "after_lifecycle_status", "before_assignment_status", "after_assignment_status", "reason_code", "reason_detail", "reassignment_requirement", "business_basis", "legacy_items_json", "guard_snapshot_json", "tree_version", "provider_facts_json", "related_snapshot_id", "operation_id", "operator_user_id", "operated_at"],
+      "pm10ApplicationRequiredFields": {
+        "ROLLBACK": ["operation_type", "before_stage", "after_stage", "before_lifecycle_status", "after_lifecycle_status", "before_assignment_status", "after_assignment_status", "reason_code", "reason_detail", "reassignment_requirement", "guard_snapshot_json", "tree_version", "provider_facts_json", "operation_id", "operator_user_id", "operated_at"],
+        "EXCEPTION_CLOSE": ["operation_type", "before_stage", "after_stage", "before_lifecycle_status", "after_lifecycle_status", "before_assignment_status", "after_assignment_status", "reason_code", "reason_detail", "business_basis", "legacy_items_json", "guard_snapshot_json", "tree_version", "provider_facts_json", "operation_id", "operator_user_id", "operated_at"],
+        "REOPEN": ["operation_type", "before_stage", "after_stage", "before_lifecycle_status", "after_lifecycle_status", "before_assignment_status", "after_assignment_status", "reason_code", "reason_detail", "related_snapshot_id", "operation_id", "operator_user_id", "operated_at"]
+      },
+      "apiFieldMappings": {
+        "ROLLBACK": {"guardToken": "guard_snapshot_json", "reasonCode": "reason_code", "reasonDetail": "reason_detail", "reassignmentRequirement": "reassignment_requirement", "guardToken.treeVersion": "tree_version", "guardToken.providerFacts": "provider_facts_json"},
+        "EXCEPTION_CLOSE": {"guardToken": "guard_snapshot_json", "reasonCode": "reason_code", "reasonDetail": "reason_detail", "businessBasis": "business_basis", "legacyItems": "legacy_items_json", "guardToken.treeVersion": "tree_version", "guardToken.providerFacts": "provider_facts_json"},
+        "REOPEN": {"reasonCode": "reason_code", "reasonDetail": "reason_detail", "exceptionCloseSnapshotId": "related_snapshot_id"}
+      },
+      "stageCodeMapping": "stage_code = after_stage; DOES_NOT_CHANGE_SHARED_KEY_SEMANTICS",
+      "additiveUniqueKey": ["tenant_id", "operation_id"],
+      "reopenInvariant": "ONE_EXCEPTION_CLOSE_SNAPSHOT_CAN_BE_CONSUMED_BY_AT_MOST_ONE_SUCCESSFUL_REOPEN"
+    },
+    "ProjectMemberAssignment": {
+      "owner": "PROJ",
+      "targetTables": ["proj_project_member_assignment"],
+      "rollbackOrCloseMutation": "CLOSE_ALL_EFFECTIVE_SERVICE_MANAGER_PRIMARY_AND_COLLABORATOR_INTERVALS_AT_SERVER_TRANSACTION_TIME",
+      "reopenMutation": "NONE",
+      "historyPolicy": "NEVER_DELETE_OR_REACTIVATE_CLOSED_INTERVALS"
+    },
+    "PlatformFacts": {
+      "owner": "PLATFORM",
+      "targetTables": ["plt_idempotency_record", "plt_operation_audit", "plt_outbox_event"],
+      "transactionPolicy": "SAME_TRANSACTION_AS_PROJECT_AND_STAGE_SNAPSHOT",
+      "events": ["ProjectStageChanged", "ProjectClosed"]
+    },
+    "LegacyProjectGovernanceAction": {
+      "owner": "PROJ_LEGACY",
+      "targetTables": ["pms_project_governance_action"],
+      "policy": "AUDIT_INPUT_ONLY; NO_NEW_WRITES; NO_AUTOMATIC_CONVERSION_TO_V18_CURRENT_FACT"
+    }
+  },
+  "guardToken": {
+    "transport": "OPAQUE_SERVER_SIGNED_TOKEN_RETURNED_BY_GUARD_QUERY_AND_SUBMITTED_BY_ROLLBACK_OR_CLOSE_COMMAND",
+    "frozenClaims": ["tenantId", "projectId", "action", "projectVersion", "treeRootProjectId", "treeVersion", "providerFacts", "checkedAt"],
+    "providerFactShape": ["provider", "factVersion", "watermark", "factDigest"],
+    "commitRevalidation": "READ_LATEST_COMPLETE_TREE_AND_ALL_REQUIRED_PROVIDER_FACTS_BEFORE_STATE_WRITE; COMPARE_EVERY_FROZEN_CLAIM",
+    "conflictResult": "VERSION_CONFLICT_WITH_NO_SUCCESS_SNAPSHOT_IDEMPOTENCY_OR_EVENT; REJECTION_AUDIT_ALLOWED",
+    "projectCasStillRequired": true
+  },
+  "interfaces": {
+    "GovernanceGuardQuery": {
+      "owner": "PROJ",
+      "route": "GET /projects/{id}/governance-guard",
+      "actions": ["ROLLBACK", "EXCEPTION_CLOSE", "REOPEN"],
+      "response": ["projectVersion", "treeVersion", "providerFacts", "guardToken", "allowed", "blockers", "checkedAt"],
+      "failurePolicy": "REQUIRED_PROVIDER_MISSING_ERROR_TIMEOUT_OR_UNKNOWN_IS_BLOCKING"
+    },
+    "RollbackCommand": {
+      "route": "POST /projects/{id}/actions/rollback",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "requiredInputs": ["guardToken", "reasonCode", "reasonDetail", "reassignmentRequirement"]
+    },
+    "ExceptionCloseCommand": {
+      "route": "POST /projects/{id}/actions/close",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "requiredInputs": ["guardToken", "reasonCode", "reasonDetail", "businessBasis", "legacyItems"]
+    },
+    "ReopenCommand": {
+      "route": "POST /projects/{id}/actions/reopen",
+      "requiredHeaders": ["Idempotency-Key", "If-Match"],
+      "requiredInputs": ["reasonCode", "reasonDetail", "exceptionCloseSnapshotId"]
+    },
+    "GovernanceHistoryQuery": {
+      "route": "GET /projects/{id}/governance-history",
+      "pagination": true,
+      "scope": "PROJECT_TREE_SCOPE_VIEW"
+    },
+    "ProjectGovernanceGuardApi": {
+      "direction": "PROJ_CONSUMES_PROVIDER_OWNED_PUBLIC_READ_ONLY_APIS",
+      "request": ["projectIds", "action", "checkedAt"],
+      "trustedContext": ["tenantId"],
+      "response": ["provider", "factVersion", "watermark", "factDigest", "blockers"],
+      "blockerItem": ["objectType", "objectId", "status", "code", "summary"],
+      "requiredProviders": ["PROJECT_TREE", "BPM_APPROVAL", "PROJECT_TASK", "CUTOVER", "INSPECTION"],
+      "reservedProviders": ["COLLECTION"],
+      "forbiddenDependencies": ["PROVIDER_BIZ", "PROVIDER_SERVICE", "PROVIDER_MAPPER", "PROVIDER_REPOSITORY", "PROVIDER_TABLE"]
+    }
+  },
+  "permissions": {
+    "GovernanceGuardQuery": {"permissionCode": "pms:project:governance:query", "projectTreeScopeAction": "VIEW"},
+    "GovernanceHistoryQuery": {"permissionCode": "pms:project:governance:query", "projectTreeScopeAction": "VIEW"},
+    "RollbackCommand": {"permissionCode": "pms:project:rollback", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "CURRENT_EFFECTIVE_PRIMARY_SERVICE_MANAGER"},
+    "ExceptionCloseCommand": {"permissionCode": "pms:project:close", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "ENGINEERING_MANAGEMENT_CLOSE_PERMISSION"},
+    "ReopenCommand": {"permissionCode": "pms:project:reopen", "projectTreeScopeAction": "MANAGE", "subjectConstraint": "ENGINEERING_MANAGEMENT_CLOSE_PERMISSION"},
+    "frontendBackendTruth": "SAME_PERMISSION_CODES; SERVER_REVALIDATES_ALL_FUNCTION_SCOPE_SUBJECT_STATE_VERSION_AND_GUARD_CONDITIONS"
+  },
+  "events": {
+    "ProjectStageChanged": {
+      "actions": ["ROLLBACK", "REOPEN"],
+      "payload": ["eventId", "tenantId", "projectId", "action", "beforeState", "afterState", "projectVersion", "stageSnapshotId", "operatorUserId", "occurredAt"]
+    },
+    "ProjectClosed": {
+      "lifecycleStatus": "EXCEPTION_CLOSED",
+      "payload": ["eventId", "tenantId", "projectId", "lifecycleStatus", "closeReasonCode", "projectVersion", "stageSnapshotId", "operatorUserId", "occurredAt"]
+    }
+  },
+  "forbiddenCapabilities": [
+    "NORMAL_CLOSURE_OR_CLO02_IMPLEMENTATION",
+    "REOPEN_NORMAL_CLOSED",
+    "AUTOMATIC_EXTERNAL_TASK_TERMINATION_OR_RESTART",
+    "NEW_RESPONSIBILITY_WORK_ORDER_TABLE",
+    "NEW_PROJECT_STATUS_AXIS",
+    "REPLACE_SHARED_STAGE_SNAPSHOT_KEY_OR_REQUIRE_PM10_FIELDS_FOR_NON_PM10_ROWS",
+    "DIRECT_CROSS_MODULE_TABLE_ACCESS",
+    "EDIT_EXECUTED_FLYWAY_MIGRATION"
+  ]
+}

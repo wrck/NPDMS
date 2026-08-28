@@ -36,34 +36,12 @@ export interface PlanChangeVO {
   phaseSnapshots: PlanChangePhaseSnapshotVO[]
 }
 
-export interface PlanChangeApproveReqVO {
-  id: number
-  approveAction: string
-  approveOpinion?: string
-  approverUserId: number
-}
-
 const baseUrl = '/pms/plan-change'
 
-export const getPlanChangePage = (params: PageParam) =>
+/** V1.7历史只读证据；PRE-01写入统一使用construction-plan API。 */
+export const getPlanChangePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getPlanChange = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
-export const createPlanChange = (data: PlanChangeVO) =>
-  request.post({ url: `${baseUrl}/create`, data })
-export const updatePlanChange = (data: PlanChangeVO) =>
-  request.put({ url: `${baseUrl}/update`, data })
-export const deletePlanChange = (id: number) =>
-  request.delete({ url: `${baseUrl}/delete`, params: { id } })
 export const getPlanChangeSnapshots = (changeRequestId: number) =>
   request.get({ url: `${baseUrl}/snapshots`, params: { changeRequestId } })
-export const submitPlanChange = (id: number) =>
-  request.put({ url: `${baseUrl}/submit`, params: { id } })
-export const approvePlanChange = (data: PlanChangeApproveReqVO) =>
-  request.put({ url: `${baseUrl}/approve`, data })
-export const withdrawPlanChange = (id: number) =>
-  request.put({ url: `${baseUrl}/withdraw`, params: { id } })
-export const terminatePlanChange = (id: number) =>
-  request.put({ url: `${baseUrl}/terminate`, params: { id } })
-export const applyPlanChange = (id: number) =>
-  request.put({ url: `${baseUrl}/apply`, params: { id } })

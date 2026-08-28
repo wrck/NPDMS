@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E08",
+  "status": "VERIFIED",
+  "decisionOwner": "FRONTEND_OWNER",
+  "evidenceOwnerRoles": [
+    "FRONTEND_OWNER"
+  ],
+  "reviewOwner": "INDEPENDENT_REVIEWER",
+  "environmentOrReleaseId": "NPDMS-LOCAL-P3-E08-20260825",
+  "capturedAt": "2026-08-25T18:35:25+08:00",
+  "confirmedFacts": {
+    "implementationCommit": "726bf4f067d4ad33356627c9ad66fc45dd8d4dfa",
+    "nodeVersion": "v24.11.1",
+    "pnpmVersion": "9.15.5",
+    "lockfileSha256": "A060B9B0DCE5A1BA5B537AA18112BB45693D545A4013EC9BB0F4FF00D23E23F4",
+    "command": "corepack pnpm ts:check",
+    "exitCode": 0,
+    "errorCount": 0,
+    "remediationOwner": "FRONTEND_OWNER",
+    "affectedPages": [
+      "共享 svgIcon 启动路径",
+      "使用离线生成 Iconify 集合的前端页面"
+    ],
+    "lintResult": "本提交文件定向 ESLint/Prettier PASS；全量 ESLint 0 error/7 warning，既有页面全量 Stylelint 389 error，已登记为综合前端质量债",
+    "buildResult": "pnpm.cmd build:local PASS；保留既有 *zoom Lightning CSS warning",
+    "browserRegressionEvidenceId": "P3-E08-BROWSER-20260825-726BF4F"
+  },
+  "evidenceRefs": [
+    "docs/engineering/gates/phase-3/submissions/p3-e08-726bf4f-browser-smoke.json",
+    "docs/engineering/gates/phase-3/submissions/p3-e08-726bf4f-browser-smoke.png",
+    "docs/engineering/gates/phase-3/frontend-ts-check-evidence.md"
+  ],
+  "verificationResult": "PASS",
+  "unresolvedItems": [
+    "全量 Stylelint 既有 389 项错误继续作为综合前端质量债治理"
+  ],
+  "revalidationTriggers": [
+    "TypeScript 或 lint 规则变更",
+    "离线 Iconify 生成或注册链路变更",
+    "Node、pnpm 或 lockfile 变更"
+  ]
+}

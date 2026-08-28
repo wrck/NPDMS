@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectattribute.ProjectTemplateMatchHistoryMapper">
+
+    <sql id="pageConditions">
+        tenant_id = #{query.tenantId}
+        AND project_id = #{query.projectId}
+        AND deleted = b'0'
+        <if test="query.triggerType != null and query.triggerType != ''">
+            AND trigger_type = #{query.triggerType}
+        </if>
+        <if test="query.matchResult != null and query.matchResult != ''">
+            AND match_result = #{query.matchResult}
+        </if>
+        <if test="query.impactResult != null and query.impactResult != ''">
+            AND impact_result = #{query.impactResult}
+        </if>
+        <if test="query.occurredAtBegin != null">
+            AND occurred_at &gt;= #{query.occurredAtBegin}
+        </if>
+        <if test="query.occurredAtEnd != null">
+            AND occurred_at &lt; #{query.occurredAtEnd}
+        </if>
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id">
+        INSERT INTO proj_project_template_match_history (
+            project_id, trigger_type, record_purpose, input_origin, snapshot_schema_version,
+            before_attribute_snapshot, attribute_snapshot, attribute_owner_snapshot,
+            source_owner, source_system, source_key, source_event_id, source_version,
+            source_occurred_at, source_value_digest, mapping_version, matcher_version,
+            match_result, candidate_digest, decision_mode, matched_template_id,
+            matched_template_revision_id, frozen_template_revision_id, impact_result,
+            operator_id, change_reason, occurred_at, recorded_at, idempotency_key,
+            request_digest, operation_id, trace_id, audit_log_id, tenant_id
+        ) VALUES (
+            #{row.projectId}, #{row.triggerType}, #{row.recordPurpose}, #{row.inputOrigin},
+            #{row.snapshotSchemaVersion}, #{row.beforeAttributeSnapshot}, #{row.attributeSnapshot},
+            #{row.attributeOwnerSnapshot}, #{row.sourceOwner}, #{row.sourceSystem}, #{row.sourceKey},
+            #{row.sourceEventId}, #{row.sourceVersion}, #{row.sourceOccurredAt},
+            #{row.sourceValueDigest}, #{row.mappingVersion}, #{row.matcherVersion},
+            #{row.matchResult}, #{row.candidateDigest}, #{row.decisionMode},
+            #{row.matchedTemplateId}, #{row.matchedTemplateRevisionId},
+            #{row.frozenTemplateRevisionId}, #{row.impactResult}, #{row.operatorId},
+            #{row.changeReason}, #{row.occurredAt}, #{row.recordedAt}, #{row.idempotencyKey},
+            #{row.requestDigest}, #{row.operationId}, #{row.traceId}, #{row.auditLogId}, #{row.tenantId}
+        )
+    </insert>
+
+    <select id="selectCountPage" resultType="long">
+        SELECT COUNT(*)
+        FROM proj_project_template_match_history
+        WHERE <include refid="pageConditions"/>
+    </select>
+
+    <select id="selectListPage"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectattribute.ProjectTemplateMatchHistoryDO">
+        <bind name="pageOffset"
+              value="(query.pageParam.pageNo - 1) * query.pageParam.pageSize"/>
+        SELECT *
+        FROM proj_project_template_match_history
+        WHERE <include refid="pageConditions"/>
+        ORDER BY
+        <choose>
+            <when test="query.orderBy == 'recordedAt'">recorded_at</when>
+            <when test="query.orderBy == 'id'">id</when>
+            <otherwise>occurred_at</otherwise>
+        </choose>
+        <choose>
+            <when test="query.ascending">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+        <if test="query.orderBy != 'id'">
+            , id
+            <choose>
+                <when test="query.ascending">ASC</when>
+                <otherwise>DESC</otherwise>
+            </choose>
+        </if>
+        LIMIT #{pageOffset}, #{query.pageParam.pageSize}
+    </select>
+
+</mapper>

@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo.Si
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.vo.SiteSurveySaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.SiteSurveyDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.SiteSurveyMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService;
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,8 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
 
     @Resource
     private SiteSurveyMapper siteSurveyMapper;
+    @Resource
+    private EngineeringLocationFactService locationFactService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -40,6 +44,8 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
             survey.setVersion(0);
         }
         siteSurveyMapper.insert(survey);
+        applyLocation(survey, createReqVO.getLocation(), createReqVO.getLocationMaintenance(), 0);
+        siteSurveyMapper.updateById(survey);
         return survey.getId();
     }
 
@@ -50,6 +56,8 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
         validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
         validateVersion(existing, updateReqVO.getVersion());
         SiteSurveyDO update = BeanUtils.toBean(updateReqVO, SiteSurveyDO.class);
+        applyLocation(update, updateReqVO.getLocation(), updateReqVO.getLocationMaintenance(),
+                existing.getVersion() + 1);
         siteSurveyMapper.updateById(update);
     }
 
@@ -130,5 +138,31 @@ public class SiteSurveyServiceImpl implements SiteSurveyService {
         survey.setStatus(newStatus);
         survey.setVersion(survey.getVersion() + 1);
         siteSurveyMapper.updateById(survey);
+    }
+
+    private void applyLocation(SiteSurveyDO survey, String fallbackLocation,
+                               LocationMaintenanceCommand command,
+                               Integer sourceVersion) {
+        if (command == null) {
+            if (fallbackLocation == null || fallbackLocation.isBlank()) {
+                throw exception(SITE_SURVEY_LOCATION_REQUIRED);
+            }
+            survey.setLocationResolutionStatus("UNRESOLVED");
+            return;
+        }
+        EngineeringLocationFactService.LocationFact fact = locationFactService.maintain(survey.getProjectId(),
+                "SITE_SURVEY", survey.getId(), sourceVersion, fallbackLocation, command);
+        if (!"RESOLVED".equals(fact.resolutionStatus())) {
+            throw exception(SITE_SURVEY_LOCATION_INVALID);
+        }
+        survey.setAddressId(fact.addressId());
+        survey.setAddressVersion(fact.addressVersion());
+        survey.setSiteId(fact.siteId());
+        survey.setSiteVersion(fact.siteVersion());
+        survey.setSiteLocationId(fact.siteLocationId());
+        survey.setSiteLocationVersion(fact.siteLocationVersion());
+        survey.setLocationResolutionStatus(fact.resolutionStatus());
+        survey.setAddressSnapshot(fact.addressSnapshot());
+        survey.setLocationSnapshot(fact.locationSnapshot());
     }
 }

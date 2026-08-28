@@ -1,0 +1,1004 @@
+{
+  "schemaVersion": 1,
+  "status": "BASELINE",
+  "objects": {
+    "Project": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "INT-01",
+        "PM-01",
+        "PM-07",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project"
+      ]
+    },
+    "ProjectTemplateMatchHistory": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-07"
+      ],
+      "targetTables": [
+        "proj_project_template_match_history"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-07"
+    },
+    "ProjectHierarchy": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "proj_project"
+      ]
+    },
+    "ProjectAncestorProjection": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "proj_project_tree_path"
+      ]
+    },
+    "ProjectTemplate": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_template_revision",
+        "proj_project_template_task_definition"
+      ]
+    },
+    "ProjectTask": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task"
+      ]
+    },
+    "TaskWorkBinding": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionRule": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionEvaluation": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_completion_evaluation"
+      ]
+    },
+    "TaskAncestorProjection": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_task_tree_path"
+      ]
+    },
+    "TaskDependency": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_task_dependency"
+      ]
+    },
+    "ProjectMemberAssignment": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-01",
+        "PM-08",
+        "PM-09"
+      ],
+      "targetTables": [
+        "proj_project_member_assignment"
+      ]
+    },
+    "ProjectPortfolio": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PROJ-12"
+      ],
+      "targetTables": [
+        "proj_project_portfolio",
+        "proj_project_portfolio_member",
+        "proj_project_portfolio_revision"
+      ]
+    },
+    "ProjectStageSnapshot": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project_stage_snapshot"
+      ]
+    },
+    "BorrowedProjectConversion": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion"
+      ]
+    },
+    "ConversionItem": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion_item"
+      ]
+    },
+    "ConversionDeviceDisposition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion_device"
+      ]
+    },
+    "MultiPhaseProjectGroup": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_multi_phase_project_group"
+      ]
+    },
+    "MultiPhaseProjectMember": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_multi_phase_project_member"
+      ]
+    },
+    "CrossPhaseContentReference": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_project_cross_phase_reference"
+      ]
+    },
+    "Preparation": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PRE-02",
+        "PRE-03",
+        "PRE-04",
+        "PRE-05"
+      ],
+      "targetTables": [
+        "sol_preparation",
+        "sol_preparation_item"
+      ]
+    },
+    "ConstructionPlan": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PLN-01",
+        "PLN-02",
+        "PLN-03",
+        "PLN-04",
+        "PRE-01"
+      ],
+      "targetTables": [
+        "sol_construction_plan",
+        "sol_construction_plan_revision",
+        "sol_construction_plan_item",
+        "sol_construction_plan_change"
+      ]
+    },
+    "Solution": {
+      "owner": "SOL",
+      "requirementIds": [
+        "SCH-01",
+        "SCH-02",
+        "SCH-03",
+        "SCH-04",
+        "SCH-05"
+      ],
+      "targetTables": [
+        "sol_solution",
+        "sol_solution_revision",
+        "sol_solution_review"
+      ]
+    },
+    "PreparationDynamicFormInstance": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PRE-02"
+      ],
+      "targetTables": [
+        "sol_dynamic_form_instance"
+      ]
+    },
+    "DynamicFormTemplate": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template"
+      ]
+    },
+    "DynamicFormTemplateRevision": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template_revision"
+      ]
+    },
+    "DynamicFormInstance": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PRE-04",
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_instance"
+      ]
+    },
+    "ArrivalAcceptance": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-01"
+      ],
+      "targetTables": [
+        "imp_arrival_acceptance",
+        "imp_arrival_line",
+        "imp_arrival_difference"
+      ]
+    },
+    "InstallationRecord": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-02"
+      ],
+      "targetTables": [
+        "imp_installation_record",
+        "imp_installation_item",
+        "imp_installation_evidence"
+      ]
+    },
+    "ConfigurationCollectionResult": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-03"
+      ],
+      "targetTables": [
+        "imp_configuration_collection_result",
+        "imp_configuration_collection_parse_attempt",
+        "imp_configuration_component_candidate"
+      ]
+    },
+    "JointDebuggingResult": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-04"
+      ],
+      "targetTables": [
+        "imp_joint_debugging_result",
+        "imp_joint_debugging_item"
+      ]
+    },
+    "ImplementationRisk": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-05"
+      ],
+      "targetTables": [
+        "imp_risk",
+        "imp_risk_treatment"
+      ]
+    },
+    "ImplementationQualityCheck": {
+      "owner": "IMP",
+      "requirementIds": [
+        "IMP-01"
+      ],
+      "targetTables": [
+        "imp_quality_check",
+        "imp_quality_item",
+        "imp_quality_remediation",
+        "imp_quality_review"
+      ]
+    },
+    "DeliveryEvidence": {
+      "owner": "IMP",
+      "requirementIds": [
+        "IMP-01"
+      ],
+      "targetTables": [
+        "imp_delivery_evidence",
+        "imp_delivery_evidence_revision"
+      ]
+    },
+    "ImplementationReadinessSnapshot": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-06"
+      ],
+      "targetTables": [
+        "imp_implementation_readiness_snapshot"
+      ]
+    },
+    "Acceptance": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-01",
+        "ACC-03"
+      ],
+      "targetTables": [
+        "acc_acceptance",
+        "acc_acceptance_item",
+        "acc_confirmation"
+      ]
+    },
+    "SatisfactionCollection": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "acc_satisfaction_collection_task",
+        "acc_satisfaction_questionnaire",
+        "acc_satisfaction_response",
+        "acc_satisfaction_result"
+      ]
+    },
+    "DeliveryArtifact": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-04"
+      ],
+      "targetTables": [
+        "acc_delivery_artifact",
+        "acc_artifact_review",
+        "acc_archive_record"
+      ]
+    },
+    "ProjectClosure": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-06",
+        "CLO-01",
+        "CLO-02"
+      ],
+      "targetTables": [
+        "acc_project_closure",
+        "acc_closure_review"
+      ]
+    },
+    "ClosureGateSnapshot": {
+      "owner": "ACC",
+      "requirementIds": [
+        "CLO-01",
+        "CLO-02"
+      ],
+      "targetTables": [
+        "acc_closure_gate_snapshot"
+      ]
+    },
+    "ServiceHandover": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-06"
+      ],
+      "targetTables": [
+        "acc_service_handover",
+        "acc_handover_item",
+        "acc_handover_result"
+      ]
+    },
+    "CutoverTask": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-03",
+        "CUT-08",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "cut_task"
+      ]
+    },
+    "CutoverAssessment": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "cut_assessment"
+      ]
+    },
+    "CutoverChecklist": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-03"
+      ],
+      "targetTables": [
+        "cut_cutover_checklist",
+        "cut_cutover_checklist_item",
+        "cut_cutover_checklist_item_result"
+      ]
+    },
+    "CutoverConfigurationRevision": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-07"
+      ],
+      "targetTables": [
+        "cut_cutover_configuration_revision",
+        "cut_cutover_checklist_item_definition_revision",
+        "cut_cutover_checklist_binding_rule_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-07"
+    },
+    "CutoverPlan": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-04",
+        "CUT-05"
+      ],
+      "targetTables": [
+        "cut_plan_revision",
+        "cut_step"
+      ]
+    },
+    "CutoverSupportArrangement": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-04"
+      ],
+      "targetTables": [
+        "cut_cutover_support_arrangement"
+      ]
+    },
+    "CutoverClosure": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-06"
+      ],
+      "targetTables": [
+        "cut_cutover_closure"
+      ]
+    },
+    "InspectionTask": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07"
+      ],
+      "targetTables": [
+        "srv_inspection_task",
+        "srv_inspection_task_rule_snapshot"
+      ]
+    },
+    "InspectionRule": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-03",
+        "INS-09"
+      ],
+      "targetTables": [
+        "srv_inspection_rule",
+        "srv_inspection_rule_revision"
+      ]
+    },
+    "InspectionReport": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-05",
+        "INT-06"
+      ],
+      "targetTables": [
+        "srv_inspection_report_revision"
+      ]
+    },
+    "ServiceIssue": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-06",
+        "INS-08"
+      ],
+      "targetTables": [
+        "srv_service_issue",
+        "srv_service_issue_remediation"
+      ]
+    },
+    "ServiceStatus": {
+      "owner": "SRV",
+      "requirementIds": [
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "srv_service_status"
+      ]
+    },
+    "Customer": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-03",
+        "CUS-04",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_customer_master",
+        "cus_customer_external_mapping",
+        "cus_customer_field_history"
+      ]
+    },
+    "MarketRelation": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_market_relation"
+      ]
+    },
+    "CustomerLocationReference": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_location_reference"
+      ]
+    },
+    "CustomerScopeSlice": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_scope_slice"
+      ]
+    },
+    "CustomerContact": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-04"
+      ],
+      "targetTables": [
+        "cus_customer_contact",
+        "cus_project_customer_contact_relation"
+      ]
+    },
+    "CustomerRelationshipSnapshot": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-04"
+      ],
+      "targetTables": [
+        "cus_customer_relationship_snapshot"
+      ]
+    },
+    "CustomerServiceLevelRevision": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-02"
+      ],
+      "targetTables": [
+        "cus_customer_service_level_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUS-02"
+    },
+    "Device": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-04",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device"
+      ]
+    },
+    "DeviceArchive": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device",
+        "ast_device_version",
+        "ast_device_config_log"
+      ]
+    },
+    "DeviceComponentRelation": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07",
+        "EXE-03"
+      ],
+      "targetTables": [
+        "ast_device_component_relation"
+      ]
+    },
+    "DeviceCurrentAssignment": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device_current_assignment",
+        "ast_device_assignment_history"
+      ]
+    },
+    "DeviceAssignmentHistory": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device_assignment_history"
+      ]
+    },
+    "DeviceAncestorProjection": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-03"
+      ],
+      "targetTables": [
+        "ast_device_project_ancestor"
+      ]
+    },
+    "AssetSyncSnapshot": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-04",
+        "INT-02"
+      ],
+      "targetTables": [
+        "ast_asset_sync_batch",
+        "ast_asset_sync_item",
+        "ast_device"
+      ]
+    },
+    "MaintenanceFact": {
+      "owner": "AST",
+      "requirementIds": [
+        "AST-01",
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "ast_maintenance_fact"
+      ]
+    },
+    "RMAReplacement": {
+      "owner": "AST",
+      "requirementIds": [
+        "AST-01",
+        "INT-06"
+      ],
+      "targetTables": [
+        "ast_rma_replacement"
+      ]
+    },
+    "Contract": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "com_contract"
+      ]
+    },
+    "SalesOrder": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "com_sales_order"
+      ]
+    },
+    "OrderLine": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_order_line"
+      ]
+    },
+    "DeliveryScope": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope"
+      ]
+    },
+    "DeliveryScopeDetail": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope_detail"
+      ]
+    },
+    "Supplier": {
+      "owner": "RES",
+      "requirementIds": [
+        "RES-01"
+      ],
+      "targetTables": [
+        "res_supplier",
+        "res_qualification"
+      ]
+    },
+    "SubcontractRequest": {
+      "owner": "RES",
+      "requirementIds": [
+        "SUB-01",
+        "SUB-02",
+        "SUB-05"
+      ],
+      "targetTables": [
+        "res_subcontract_request"
+      ]
+    },
+    "PaymentGate": {
+      "owner": "RES",
+      "requirementIds": [
+        "INT-07",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "res_payment_gate"
+      ]
+    },
+    "MetricDefinition": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "ana_metric_definition"
+      ]
+    },
+    "MetricSnapshot": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01",
+        "NFR-01",
+        "RPT-02"
+      ],
+      "targetTables": [
+        "ana_metric_snapshot"
+      ]
+    },
+    "PortfolioView": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "ana_portfolio_projection"
+      ]
+    },
+    "Todo": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-05",
+        "INT-10",
+        "NFR-03",
+        "PLT-01"
+      ],
+      "targetTables": [
+        "plt_todo"
+      ]
+    },
+    "AuthorizationGrant": {
+      "owner": "PLT",
+      "requirementIds": [
+        "AUT-01",
+        "AUT-02",
+        "INT-06",
+        "INT-09"
+      ],
+      "targetTables": [
+        "plt_authorization_grant"
+      ]
+    },
+    "ChangeRequest": {
+      "owner": "PLT",
+      "requirementIds": [
+        "CHG-01"
+      ],
+      "targetTables": [
+        "plt_change_request"
+      ]
+    },
+    "FileArtifact": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PLT-02",
+        "PRE-05",
+        "SCH-03"
+      ],
+      "targetTables": [
+        "plt_file_artifact",
+        "plt_file_version",
+        "plt_file_reference"
+      ]
+    },
+    "AuditRecord": {
+      "owner": "PLT",
+      "requirementIds": [
+        "NFR-01"
+      ],
+      "targetTables": [
+        "plt_operation_audit"
+      ]
+    },
+    "DeviceCredential": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_device_credential"
+      ]
+    },
+    "CredentialGrant": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_credential_grant"
+      ]
+    },
+    "CollectionTask": {
+      "owner": "PLT",
+      "requirementIds": [
+        "CUT-03",
+        "CUT-06",
+        "EXE-03",
+        "EXE-04",
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07",
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_collection_task"
+      ]
+    },
+    "DispatchAttempt": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "plt_dispatch_attempt"
+      ]
+    },
+    "CallbackRecord": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "plt_callback_record"
+      ]
+    },
+    "CollectionResultReference": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_collection_result_reference"
+      ]
+    },
+    "TechnicalNoticeReference": {
+      "owner": "KNO",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
+    },
+    "NoticeBusinessReference": {
+      "owner": "KNO",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
+    }
+  }
+}

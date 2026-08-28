@@ -1,4 +1,5 @@
 import { DiyComponent } from '@/components/DiyEditor/util'
+import defaultImage from '@/assets/svgs/default-image.svg'
 
 /** 底部导航菜单属性 */
 export interface TabBarProperty {
@@ -53,26 +54,26 @@ export const component = {
       {
         text: '首页',
         url: '/pages/index/index',
-        iconUrl: 'https://example.com/static/images/1-001.png',
-        activeIconUrl: 'https://example.com/static/images/1-002.png'
+        iconUrl: defaultImage,
+        activeIconUrl: defaultImage
       },
       {
         text: '分类',
         url: '/pages/index/category?id=3',
-        iconUrl: 'https://example.com/static/images/2-001.png',
-        activeIconUrl: 'https://example.com/static/images/2-002.png'
+        iconUrl: defaultImage,
+        activeIconUrl: defaultImage
       },
       {
         text: '购物车',
         url: '/pages/index/cart',
-        iconUrl: 'https://example.com/static/images/3-001.png',
-        activeIconUrl: 'https://example.com/static/images/3-002.png'
+        iconUrl: defaultImage,
+        activeIconUrl: defaultImage
       },
       {
         text: '我的',
         url: '/pages/index/user',
-        iconUrl: 'https://example.com/static/images/4-001.png',
-        activeIconUrl: 'https://example.com/static/images/4-002.png'
+        iconUrl: defaultImage,
+        activeIconUrl: defaultImage
       }
     ]
   }

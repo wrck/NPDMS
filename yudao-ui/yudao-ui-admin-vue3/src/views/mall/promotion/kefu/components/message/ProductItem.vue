@@ -29,6 +29,7 @@
 
 <script lang="ts" setup>
 import { fenToYuan } from '@/utils'
+import defaultImage from '@/assets/svgs/default-image.svg'
 
 const { push } = useRouter()
 
@@ -40,7 +41,7 @@ defineProps({
   },
   picUrl: {
     type: String,
-    default: 'https://img1.baidu.com/it/u=1601695551,235775011&fm=26&fmt=auto'
+    default: defaultImage
   },
   title: {
     type: String,

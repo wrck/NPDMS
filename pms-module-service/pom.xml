@@ -10,9 +10,14 @@
     </parent>
     <artifactId>pms-module-service</artifactId>
     <name>${project.artifactId}</name>
-    <description>PMS 巡检、工单、维保与续保</description>
+    <description>PMS 巡检、工单与服务问题处理</description>
 
     <dependencies>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-platform-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>yudao-module-system</artifactId>

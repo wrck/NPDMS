@@ -48,6 +48,7 @@ public class DeptServiceImpl implements DeptService {
         validateParentDept(null, createReqVO.getParentId());
         // 校验部门名的唯一性
         validateDeptNameUnique(null, createReqVO.getParentId(), createReqVO.getName());
+        validateDeptCodeUnique(null, createReqVO.getCode());
 
         // 插入部门
         DeptDO dept = BeanUtils.toBean(createReqVO, DeptDO.class);
@@ -68,6 +69,7 @@ public class DeptServiceImpl implements DeptService {
         validateParentDept(updateReqVO.getId(), updateReqVO.getParentId());
         // 校验部门名的唯一性
         validateDeptNameUnique(updateReqVO.getId(), updateReqVO.getParentId(), updateReqVO.getName());
+        validateDeptCodeUnique(updateReqVO.getId(), updateReqVO.getCode());
 
         // 更新部门
         DeptDO updateObj = BeanUtils.toBean(updateReqVO, DeptDO.class);
@@ -164,9 +166,29 @@ public class DeptServiceImpl implements DeptService {
         }
     }
 
+    @VisibleForTesting
+    void validateDeptCodeUnique(Long id, String code) {
+        DeptDO dept = deptMapper.selectByCode(code);
+        if (dept != null && ObjectUtil.notEqual(dept.getId(), id)) {
+            throw exception(DEPT_CODE_DUPLICATE);
+        }
+    }
+
     @Override
     public DeptDO getDept(Long id) {
         return deptMapper.selectById(id);
+    }
+
+    @Override
+    public DeptDO getDeptByCode(String code) {
+        DeptDO dept = deptMapper.selectByCode(code);
+        if (dept == null) {
+            throw exception(DEPT_NOT_FOUND);
+        }
+        if (!CommonStatusEnum.ENABLE.getStatus().equals(dept.getStatus())) {
+            throw exception(DEPT_NOT_ENABLE, dept.getName());
+        }
+        return dept;
     }
 
     @Override

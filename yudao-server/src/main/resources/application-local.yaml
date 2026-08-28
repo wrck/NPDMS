@@ -254,6 +254,25 @@ yudao:
     miniprogram-state: developer # 跳转小程序类型：开发版为 “developer”；体验版为 “trial”为；正式版为 “formal”
   tencent-lbs-key: ${NPDMS_TENCENT_LBS_KEY:disabled} # QQ 地图的密钥
 
+pms:
+  file:
+    upload:
+      session-ttl: PT15M
+    scan:
+      enabled: ${NPDMS_FILE_SECURITY_SCAN_ENABLED:false}
+      clamav:
+        host: ${NPDMS_CLAMAV_HOST:127.0.0.1}
+        port: ${NPDMS_CLAMAV_PORT:13310}
+        connect-timeout-ms: 3000
+        read-timeout-ms: 30000
+  integration:
+    collection-guard:
+      base-url: ${NPDMS_COLLECTION_GUARD_BASE_URL:}
+  project:
+    governance:
+      guard:
+        signing-key: ${NPDMS_PROJECT_GOVERNANCE_GUARD_SIGNING_KEY:}
+
 justauth:
   enabled: true
   type:

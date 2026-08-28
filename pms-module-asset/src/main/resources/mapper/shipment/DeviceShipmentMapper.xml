@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.shipment.DeviceShipmentMapper">
+
+    <select id="selectLatest"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.shipment.DeviceShipmentDO">
+        SELECT id,
+               device_sn,
+               shipment_time,
+               package_no,
+               contract_no,
+               event_type,
+               warranty_start_date,
+               warranty_months,
+               rma_no,
+               related_device_sn,
+               source_system,
+               source_key,
+               source_version,
+               source_updated_at,
+               synced_at,
+               sync_status,
+               version,
+               creator,
+               create_time,
+               updater,
+               update_time,
+               deleted,
+               tenant_id
+        FROM ast_device_shipment
+        WHERE tenant_id = #{query.tenantId}
+          AND device_sn = #{query.deviceSn}
+          AND deleted = b'0'
+        ORDER BY shipment_time DESC, id DESC
+        LIMIT 1
+    </select>
+
+</mapper>

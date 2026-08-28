@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { propTypes } from '@/utils/propTypes'
-import { Icon as IconifyIcon } from '@iconify/vue'
+import { Icon as IconifyIcon } from '@iconify/vue/offline'
 import { useDesign } from '@/hooks/web/useDesign'
 
 defineOptions({ name: 'Icon' })

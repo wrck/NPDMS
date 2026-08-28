@@ -41,9 +41,4 @@ public interface ErrorCodeConstants {
     ErrorCode SRV_ISSUE_STATUS_INVALID = new ErrorCode(1_013_006_002, "巡检问题当前状态不允许该操作");
     ErrorCode SRV_ISSUE_CLOSURE_VALIDATION_FAILED = new ErrorCode(1_013_006_003, "巡检闭环校验失败：存在未关闭的问题");
 
-    // ========== 维保状态 1-013-007-000 ==========
-    ErrorCode SRV_MAINTENANCE_NOT_EXISTS = new ErrorCode(1_013_007_000, "维保记录不存在");
-    ErrorCode SRV_MAINTENANCE_CODE_DUPLICATE = new ErrorCode(1_013_007_001, "维保记录编码已存在：{}");
-    ErrorCode SRV_MAINTENANCE_DATE_INVALID = new ErrorCode(1_013_007_002, "维保开始日期不能晚于结束日期");
-
 }

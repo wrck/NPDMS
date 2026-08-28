@@ -51,12 +51,12 @@ def main() -> int:
 
     errors: list[str] = []
     expected_new_formal = {
-        "PLT-01", "PLT-02", "PROJ-12", "ANA-01", "COM-01", "COM-02",
-        "SOL-01", "IMP-01", "IMP-02", "RES-01", "ACC-05", "ACC-06",
+        "PLT-01", "PLT-02", "PROJ-12", "ANA-01", "COM-01",
+        "SOL-01", "IMP-01", "RES-01", "ACC-06",
         "SRV-01", "AST-01", "AST-02",
     }
-    if len(formal) != 115:
-        errors.append(f"PRD formal count={len(formal)}, expected=115")
+    if len(formal) != 100:
+        errors.append(f"PRD formal count={len(formal)}, expected=100")
     if not expected_new_formal.issubset(formal):
         errors.append(f"missing confirmed formal requirements: {sorted(expected_new_formal - formal)}")
     generated_domain_codes = {path.name.split("-", 1)[0] for path in args.domains.glob("*") if path.name.endswith("需求规格.md")}
@@ -105,14 +105,11 @@ def main() -> int:
         "PLT-02": ("文件版本", "审批引用", "逻辑删除"),
         "PROJ-12": ("主组合", "循环关系", "统计规则"),
         "ANA-01": ("统计时点", "下钻", "数据完整性"),
-        "COM-01": ("订单行", "已分配数量", "来源编号"),
-        "COM-02": ("回写", "对账", "CRM"),
+        "COM-01": ("订单行", "已分配数量", "ERP权威"),
         "SOL-01": ("模板版本", "条件字段", "提交"),
         "IMP-01": ("不合格", "整改", "阶段门禁"),
-        "IMP-02": ("高风险", "阻断", "安全员"),
         "RES-01": ("资质", "有效期", "新分派"),
-        "ACC-05": ("转持续服务", "遗留问题", "关闭证据"),
-        "ACC-06": ("关闭门禁", "交接单", "待关闭"),
+        "ACC-06": ("交接门禁", "交接单", "NORMAL_CLOSED"),
         "SRV-01": ("停产", "停止服务", "权威来源"),
         "AST-01": ("RMA", "替换关系", "不删除"),
         "AST-02": ("维保客观状态", "计算时点", "不依赖独立维保"),
@@ -147,17 +144,23 @@ def main() -> int:
         errors.append(f"missing V3 trace: {sorted(v3 - v3_seen)}")
     if not out_scope.issubset(out_seen):
         errors.append(f"missing OUT_OF_SCOPE trace: {sorted(out_scope - out_seen)}")
-    expected_v3 = {f"KNO-V3-{i:02d}" for i in range(1, 9)} | {f"ANA-V3-{i:02d}" for i in range(1, 6)} | {"SRV-V3-01"}
+    expected_v3 = {f"KNO-V3-{i:02d}" for i in range(1, 9)} | {f"ANA-V3-{i:02d}" for i in range(1, 6)} | {"SRV-V3-01", "ACC-05"}
     if not expected_v3.issubset(v3):
         errors.append(f"missing confirmed V3 rows: {sorted(expected_v3 - v3)}")
     if "FR-SRV-014" not in out_scope:
         errors.append("FR-SRV-014 must remain OUT_OF_SCOPE")
     if any(identifier in formal for identifier in ("FR-SRV-014", "FR-SRV-019", "FR-SRV-020", "FR-SRV-021", "FR-SRV-022", "FR-SRV-023")):
         errors.append("excluded service requirements leaked into formal index")
-    for code, marker in (("ACC", "CLO-05（跨需求方向）"), ("RES", "SUB-03（跨需求方向）")):
+    if {"COM-02", "IMP-02"} & (formal | v3 | out_scope):
+        errors.append("removed V1.8 requirements COM-02/IMP-02 leaked into active or deferred indexes")
+    for code, marker in (("ACC", "CLO-05→ACC-02（跨需求方向）"), ("RES", "SUB-03（跨需求方向）")):
         if marker not in texts.get(code, ""):
             errors.append(f"missing cross-demand V3 direction in {code}: {marker}")
-    for required in ("初始化可扩展状态定义+受控状态机", "项目经理完成整改，平台重新生成回访任务", "V1/V2关闭后只读"):
+    for required in (
+        "初始化可扩展状态定义+受控状态机",
+        "项目经理完成整改后生成新任务和新问卷版本重新收集",
+        "不建立派单、接管、转单、挂起、责任区间等通用工单状态",
+    ):
         if not any(required in text for text in texts.values()):
             errors.append(f"missing confirmed rule: {required}")
 

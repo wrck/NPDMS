@@ -1,46 +1,77 @@
 package cn.iocoder.yudao.module.pms.project.service.projecttemplate;
 
+import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
+import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectCreateFromTemplateReqVO;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
-import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.customer.CustomerDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery;
+import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.TemplateSnapshot;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectteam.ProjectTeamMemberDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.customer.CustomerMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttask.ProjectTaskMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectteam.ProjectTeamMemberMapper;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDeliverableDefinitionDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateGateDefinitionDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateGateReferenceDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateMilestoneDefinitionDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateStageDefinitionDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateTaskDefinitionDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateDeliverableDefinitionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateGateDefinitionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateGateReferenceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateMilestoneDefinitionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateRevisionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateStageDefinitionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.ProjectTemplateTaskDefinitionMapper;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplatePublishValidator;
+import cn.iocoder.yudao.module.pms.project.domain.template.PreparationWorkBindingSchema;
+import cn.iocoder.yudao.module.pms.project.domain.template.RequirementAnalysisWorkBindingSchema;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRules;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CODE_DUPLICATE;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_NOT_EXISTS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_SOURCE_KEY_DUPLICATE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_CODE_DUPLICATE;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_IN_USE;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_ENABLED;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_DELETE_FORBIDDEN;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NO_DRAFT_REVISION;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_NOT_EXISTS;
-import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_SNAPSHOT_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_PUBLISH_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_STATUS_INVALID;
 
 /**
- * PMS 项目模板 Service 实现类
+ * 项目模板基座 Service 实现（F-PM03 / PM-03）
+ * <p>
+ * 草稿即版本：revision_no=0 为草稿工作副本；发布校验通过后递增版本号冻结为
+ * PUBLISHED 只读行，模板转 ACTIVE（BR-2/BR-3）。发布失败不落任何发布痕迹，
+ * 重试沿用原版本号（BR-5）。
  */
 @Service
 @Validated
@@ -49,48 +80,110 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     @Resource
     private ProjectTemplateMapper projectTemplateMapper;
     @Resource
-    private ProjectMapper projectMapper;
+    private ConfigApi configApi;
     @Resource
-    private CustomerMapper customerMapper;
+    private DictDataApi dictDataApi;
     @Resource
-    private ProjectPhaseMapper projectPhaseMapper;
+    private DynamicFormBusinessInstanceApi dynamicFormBusinessInstanceApi;
     @Resource
-    private ProjectTaskMapper projectTaskMapper;
+    private ProjectTemplateRevisionMapper revisionMapper;
     @Resource
-    private ProjectTeamMemberMapper projectTeamMemberMapper;
+    private ProjectTemplateStageDefinitionMapper stageDefinitionMapper;
+    @Resource
+    private ProjectTemplateTaskDefinitionMapper taskDefinitionMapper;
+    @Resource
+    private ProjectTemplateMilestoneDefinitionMapper milestoneDefinitionMapper;
+    @Resource
+    private ProjectTemplateDeliverableDefinitionMapper deliverableDefinitionMapper;
+    @Resource
+    private ProjectTemplateGateDefinitionMapper gateDefinitionMapper;
+    @Resource
+    private ProjectTemplateGateReferenceMapper gateReferenceMapper;
 
     @Override
-    public Long createProjectTemplate(ProjectTemplateSaveReqVO reqVO) {
-        // 校验编码唯一
-        validateCodeUnique(null, reqVO.getCode());
-        ProjectTemplateDO template = BeanUtils.toBean(reqVO, ProjectTemplateDO.class);
-        if (template.getStatus() == null) {
-            template.setStatus(0);
+    @Transactional(rollbackFor = Exception.class)
+    public Long createProjectTemplate(ProjectTemplateDO template) {
+        // BR-1 编码租户内唯一
+        if (projectTemplateMapper.selectByCode(template.getCode()) != null) {
+            throw exception(PROJECT_TEMPLATE_CODE_DUPLICATE);
         }
-        if (template.getSort() == null) {
-            template.setSort(0);
+        template.setId(null);
+        template.setStatus(TemplateRules.STATUS_DRAFT);
+        template.setSystemReserved(Boolean.FALSE);
+        if (template.getMatchPriority() == null) {
+            template.setMatchPriority(100);
         }
         projectTemplateMapper.insert(template);
+        // 草稿即版本：创建即生成 DRAFT 工作副本（revision_no=0）
+        ProjectTemplateRevisionDO draft = new ProjectTemplateRevisionDO();
+        draft.setTemplateId(template.getId());
+        draft.setRevisionNo(TemplateRules.DRAFT_REVISION_NO);
+        draft.setStatus(TemplateRules.REVISION_STATUS_DRAFT);
+        revisionMapper.insert(draft);
         return template.getId();
     }
 
     @Override
-    public void updateProjectTemplate(ProjectTemplateSaveReqVO reqVO) {
-        validateExists(reqVO.getId());
-        validateCodeUnique(reqVO.getId(), reqVO.getCode());
-        ProjectTemplateDO updateObj = BeanUtils.toBean(reqVO, ProjectTemplateDO.class);
+    public void updateProjectTemplateIdentity(Long id, String name, Integer matchPriority, String description) {
+        ProjectTemplateDO template = validateTemplateExists(id);
+        // RETIRED 模板身份冻结；重新供给需新建模板
+        if (!TemplateRules.canEditDraft(template.getStatus(), TemplateRules.REVISION_STATUS_DRAFT)) {
+            throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
+        }
+        ProjectTemplateDO updateObj = new ProjectTemplateDO();
+        updateObj.setId(id);
+        updateObj.setName(name);
+        updateObj.setMatchPriority(matchPriority);
+        updateObj.setDescription(description);
         projectTemplateMapper.updateById(updateObj);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateProjectTemplateDraftContent(Long templateId, TemplateDefinitionContent content) {
+        ProjectTemplateDO template = validateTemplateExists(templateId);
+        ProjectTemplateRevisionDO draft = revisionMapper.selectDraftByTemplateId(templateId);
+        if (draft == null) {
+            throw exception(PROJECT_TEMPLATE_NO_DRAFT_REVISION);
+        }
+        // BR-3 已发布版本只读，仅草稿工作副本可编辑
+        if (!TemplateRules.canEditDraft(template.getStatus(), draft.getStatus())) {
+            throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
+        }
+        // 四维条件与流程引用（草稿行原地更新）
+        ProjectTemplateRevisionDO updateObj = new ProjectTemplateRevisionDO();
+        updateObj.setId(draft.getId());
+        updateObj.setSigningMethod(content.getSigningMethod());
+        updateObj.setProjectCategory(content.getProjectCategory());
+        updateObj.setImplementationMethod(content.getImplementationMethod());
+        updateObj.setMajorProjectLevel(content.getMajorProjectLevel());
+        updateObj.setProcessDefinitionKey(content.getProcessDefinitionKey());
+        updateObj.setProcessDefinitionVersion(content.getProcessDefinitionVersion());
+        revisionMapper.updateById(updateObj);
+        // 定义行整体替换（物理删除+重插，规避 uk 与逻辑删除冲突）
+        replaceDefinitionRows(draft.getId(), content);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteProjectTemplate(Long id) {
-        validateExists(id);
-        // 校验未被项目引用
-        Long projectCount = projectMapper.selectCount(ProjectDO::getTemplateId, id);
-        if (projectCount != null && projectCount > 0) {
-            throw exception(PROJECT_TEMPLATE_IN_USE);
+        ProjectTemplateDO template = validateTemplateExists(id);
+        boolean hasPublished = !revisionMapper.selectPublishedListByTemplateId(id).isEmpty();
+        // BR-8 系统保留不得删除；留痕：已发布版本不得物理删除
+        if (!TemplateRules.canDelete(Boolean.TRUE.equals(template.getSystemReserved()), hasPublished)) {
+            throw exception(PROJECT_TEMPLATE_DELETE_FORBIDDEN);
+        }
+        ProjectTemplateRevisionDO draft = revisionMapper.selectDraftByTemplateId(id);
+        if (draft != null) {
+            physicallyDeleteDefinitionRows(draft.getId());
+            revisionMapper.deleteById(draft.getId());
         }
         projectTemplateMapper.deleteById(id);
+    }
+
+    @Override
+    public PageResult<ProjectTemplateDO> getProjectTemplatePage(ProjectTemplatePageReqVO pageReqVO) {
+        return projectTemplateMapper.selectPage(pageReqVO);
     }
 
     @Override
@@ -99,232 +192,384 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     }
 
     @Override
-    public PageResult<ProjectTemplateDO> getProjectTemplatePage(ProjectTemplatePageReqVO reqVO) {
-        return projectTemplateMapper.selectPage(reqVO);
+    public List<ProjectTemplateRevisionDO> getRevisionList(Long templateId) {
+        return revisionMapper.selectListByTemplateId(templateId);
     }
 
     @Override
-    public List<ProjectTemplateDO> getEnabledProjectTemplateList() {
-        return projectTemplateMapper.selectEnabledList();
+    public ProjectTemplateRevisionDO getRevision(Long templateId, Integer revisionNo) {
+        return revisionMapper.selectByTemplateIdAndRevisionNo(templateId, revisionNo);
     }
 
     @Override
-    public List<ProjectTemplateDO> getEnabledProjectTemplateListByType(String projectType) {
-        return projectTemplateMapper.selectEnabledListByType(projectType);
+    public ProjectTemplateRevisionDO getRevisionById(Long revisionId) {
+        return revisionMapper.selectById(revisionId);
+    }
+
+    @Override
+    public TemplateDefinitionContent getDraftContent(Long templateId) {
+        ProjectTemplateRevisionDO draft = revisionMapper.selectDraftByTemplateId(templateId);
+        if (draft == null) {
+            throw exception(PROJECT_TEMPLATE_NO_DRAFT_REVISION);
+        }
+        return loadContent(draft);
+    }
+
+    @Override
+    public TemplateDefinitionContent getRevisionContent(Long templateId, Integer revisionNo) {
+        ProjectTemplateRevisionDO revision = revisionMapper.selectByTemplateIdAndRevisionNo(templateId, revisionNo);
+        if (revision == null) {
+            throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
+        }
+        return loadContent(revision);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createProjectFromTemplate(ProjectCreateFromTemplateReqVO reqVO) {
-        // 1. 校验模板存在且启用
-        ProjectTemplateDO template = projectTemplateMapper.selectById(reqVO.getTemplateId());
+    public void publishProjectTemplate(Long id) {
+        ProjectTemplateDO template = validateTemplateExists(id);
+        ProjectTemplateRevisionDO draft = revisionMapper.selectDraftByTemplateId(id);
+        if (draft == null) {
+            throw exception(PROJECT_TEMPLATE_NO_DRAFT_REVISION);
+        }
+        // BR-3/BR-5 发布前置（RETIRED 不可再发布）
+        if (!TemplateRules.canPublish(template.getStatus(), true)) {
+            throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
+        }
+        // BR-2 发布校验：失败保持草稿并列出失败项（重试用原版本号）
+        TemplateDefinitionContent content = loadContent(draft);
+        boolean requiresPreparationCatalog = TemplatePublishValidator.requiresPreparationCatalog(content);
+        String fixedFormCatalog = requiresPreparationCatalog
+                ? configApi.getConfigValueByKey(PreparationWorkBindingSchema.CONFIG_KEY) : null;
+        Set<String> approvedPreparationItemCodes = requiresPreparationCatalog
+                ? getApprovedPreparationItemCodes() : null;
+        List<String> failures = freezeRequirementAnalysisBindings(content,
+                TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId());
+        failures.addAll(TemplatePublishValidator.validate(
+                content, fixedFormCatalog, approvedPreparationItemCodes));
+        if (!failures.isEmpty()) {
+            String summary = String.join("；", failures);
+            // 校验结果留痕到草稿行
+            ProjectTemplateRevisionDO summaryUpdate = new ProjectTemplateRevisionDO();
+            summaryUpdate.setId(draft.getId());
+            summaryUpdate.setValidationSummary(summary.length() > 1000 ? summary.substring(0, 1000) : summary);
+            revisionMapper.updateById(summaryUpdate);
+            throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, summary);
+        }
+        // 版本冻结：递增版本号生成 PUBLISHED 只读行
+        int nextRevisionNo = nextPublishedRevisionNo(id);
+        ProjectTemplateRevisionDO published = new ProjectTemplateRevisionDO();
+        published.setTemplateId(id);
+        published.setRevisionNo(nextRevisionNo);
+        published.setStatus(TemplateRules.REVISION_STATUS_PUBLISHED);
+        published.setSigningMethod(draft.getSigningMethod());
+        published.setProjectCategory(draft.getProjectCategory());
+        published.setImplementationMethod(draft.getImplementationMethod());
+        published.setMajorProjectLevel(draft.getMajorProjectLevel());
+        published.setProcessDefinitionKey(draft.getProcessDefinitionKey());
+        published.setProcessDefinitionVersion(draft.getProcessDefinitionVersion());
+        published.setValidationSummary("发布校验通过");
+        published.setPublishedBy(String.valueOf(SecurityFrameworkUtils.getLoginUserId()));
+        published.setPublishedTime(LocalDateTime.now());
+        revisionMapper.insert(published);
+        insertDefinitionRows(published.getId(), content);
+        // 模板转 ACTIVE
+        ProjectTemplateDO statusUpdate = new ProjectTemplateDO();
+        statusUpdate.setId(id);
+        statusUpdate.setStatus(TemplateRules.STATUS_ACTIVE);
+        projectTemplateMapper.updateById(statusUpdate);
+    }
+
+    private Set<String> getApprovedPreparationItemCodes() {
+        List<DictDataRespDTO> values = dictDataApi.getDictDataList(PreparationWorkBindingSchema.ITEM_CODE_DICT_TYPE);
+        Set<String> approved = new HashSet<>();
+        if (values == null) {
+            return approved;
+        }
+        for (DictDataRespDTO value : values) {
+            if (value != null && CommonStatusEnum.ENABLE.getStatus().equals(value.getStatus())
+                    && PreparationWorkBindingSchema.ITEM_CODE_DICT_TYPE.equals(value.getDictType())
+                    && value.getValue() != null && !value.getValue().isBlank()) {
+                approved.add(value.getValue().trim());
+            }
+        }
+        return approved;
+    }
+
+    List<String> freezeRequirementAnalysisBindings(TemplateDefinitionContent content,
+                                                     Long tenantId, Long actorUserId) {
+        List<String> failures = new ArrayList<>();
+        List<RequirementAnalysisRevisionCandidate> candidates = new ArrayList<>();
+        if (!TemplatePublishValidator.requiresRequirementAnalysisBinding(content)) {
+            return failures;
+        }
+        for (TemplateDefinitionContent.TaskDef task : content.getTasks()) {
+            if (task == null || !RequirementAnalysisWorkBindingSchema.isRequirementAnalysisBinding(task)) {
+                continue;
+            }
+            try {
+                if (task.getDynamicFormRevisionId() != null) {
+                    throw new IllegalArgumentException("PRE-04仅允许WorkBinding V2冻结动态表单修订");
+                }
+                RequirementAnalysisWorkBindingSchema.ParsedBinding selected =
+                        RequirementAnalysisWorkBindingSchema.parseForPublication(task.getBindingConfig());
+                DynamicFormRevisionFact fact = dynamicFormBusinessInstanceApi.inspectRevisionForUsage(
+                        new DynamicFormRevisionUsageQuery(tenantId, actorUserId,
+                                new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS"),
+                                selected.dynamicFormTemplateRevisionId(),
+                                RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY,
+                                DynamicFormBusinessAction.REVISION_BINDING_PUBLISH,
+                                selected.dynamicFormRevisionFactVersion()));
+                requireExactPublishedRevision(selected, tenantId, fact);
+                candidates.add(new RequirementAnalysisRevisionCandidate(task, selected, fact));
+            } catch (RuntimeException ex) {
+                failures.add("任务【" + task.getTaskCode() + "】PRE-04动态表单修订无效");
+            }
+        }
+        if (!failures.isEmpty()) return failures;
+        candidates.sort(Comparator
+                .comparing((RequirementAnalysisRevisionCandidate candidate) ->
+                        candidate.inspected().providerKey().ownerContext())
+                .thenComparing(candidate -> candidate.inspected().providerKey().objectType())
+                .thenComparing(candidate -> candidate.inspected().templateId())
+                .thenComparing(candidate -> candidate.inspected().templateRevisionId())
+                .thenComparing(candidate -> candidate.task().getTaskCode()));
+        List<RequirementAnalysisRevisionCandidate> locked = new ArrayList<>();
+        for (RequirementAnalysisRevisionCandidate candidate : candidates) {
+            try {
+                DynamicFormRevisionFact fact = dynamicFormBusinessInstanceApi.lockAndRevalidateRevisionForUsage(
+                        new DynamicFormRevisionRevalidationQuery(actorUserId, candidate.inspected()));
+                requireExactPublishedRevision(candidate.selected(), tenantId, fact);
+                locked.add(new RequirementAnalysisRevisionCandidate(candidate.task(), candidate.selected(), fact));
+            } catch (RuntimeException ex) {
+                failures.add("任务【" + candidate.task().getTaskCode() + "】PRE-04动态表单修订无效");
+            }
+        }
+        if (!failures.isEmpty()) return failures;
+        for (RequirementAnalysisRevisionCandidate candidate : locked) {
+            DynamicFormRevisionFact fact = candidate.inspected();
+            candidate.task().setBindingConfig(RequirementAnalysisWorkBindingSchema.toSnapshot(
+                    new RequirementAnalysisWorkBindingSchema.ParsedBinding(fact.templateId(),
+                            fact.templateRevisionId(), fact.revisionNo(), fact.revisionFactVersion())));
+        }
+        return failures;
+    }
+
+    private record RequirementAnalysisRevisionCandidate(TemplateDefinitionContent.TaskDef task,
+                                                          RequirementAnalysisWorkBindingSchema.ParsedBinding selected,
+                                                          DynamicFormRevisionFact inspected) {
+    }
+
+    private void requireExactPublishedRevision(RequirementAnalysisWorkBindingSchema.ParsedBinding selected,
+                                               Long tenantId, DynamicFormRevisionFact fact) {
+        if (fact == null || !Objects.equals(tenantId, fact.tenantId())
+                || !Objects.equals(new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS"), fact.providerKey())
+                || !Objects.equals(RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY, fact.requiredUsage())
+                || fact.action() != DynamicFormBusinessAction.REVISION_BINDING_PUBLISH
+                || !Objects.equals(selected.dynamicFormTemplateId(), fact.templateId())
+                || !Objects.equals(selected.dynamicFormTemplateRevisionId(), fact.templateRevisionId())
+                || !Objects.equals(selected.dynamicFormRevisionNo(), fact.revisionNo())
+                || !Objects.equals(selected.dynamicFormRevisionFactVersion(), fact.revisionFactVersion())) {
+            throw new IllegalArgumentException("PRE-04动态表单修订事实已变化");
+        }
+    }
+
+    @Override
+    public void disableProjectTemplate(Long id) {
+        ProjectTemplateDO template = validateTemplateExists(id);
+        // BR-5 仅 ACTIVE 可停用；停用只阻新项目匹配
+        if (!TemplateRules.canDisable(template.getStatus())) {
+            throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
+        }
+        ProjectTemplateDO updateObj = new ProjectTemplateDO();
+        updateObj.setId(id);
+        updateObj.setStatus(TemplateRules.STATUS_RETIRED);
+        projectTemplateMapper.updateById(updateObj);
+    }
+
+    @Override
+    public TemplateMatchResult matchPreview(String signingMethod, String projectCategory,
+                                             String implementationMethod, String majorProjectLevel) {
+        // BR-4 基于 ACTIVE 模板最新 PUBLISHED 版本条件 + 模板优先级
+        List<ProjectTemplateDO> activeTemplates =
+                projectTemplateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE);
+        List<TemplateMatchCandidate> candidates = new ArrayList<>();
+        for (ProjectTemplateDO activeTemplate : activeTemplates) {
+            List<ProjectTemplateRevisionDO> publishedList =
+                    revisionMapper.selectPublishedListByTemplateId(activeTemplate.getId());
+            if (publishedList.isEmpty()) {
+                continue;
+            }
+            ProjectTemplateRevisionDO latest = publishedList.get(0);
+            TemplateMatchCandidate candidate = new TemplateMatchCandidate();
+            candidate.setTemplateId(activeTemplate.getId());
+            candidate.setCode(activeTemplate.getCode());
+            candidate.setName(activeTemplate.getName());
+            candidate.setMatchPriority(activeTemplate.getMatchPriority());
+            candidate.setLatestRevisionNo(latest.getRevisionNo());
+            candidate.setTemplateRevisionId(latest.getId());
+            candidate.setSigningMethod(latest.getSigningMethod());
+            candidate.setProjectCategory(latest.getProjectCategory());
+            candidate.setImplementationMethod(latest.getImplementationMethod());
+            candidate.setMajorProjectLevel(latest.getMajorProjectLevel());
+            candidates.add(candidate);
+        }
+        TemplateMatchResult result = TemplateMatcher.match(candidates, signingMethod, projectCategory,
+                implementationMethod, majorProjectLevel);
+        result.setCandidateWatermark(candidateWatermark(candidates, signingMethod, projectCategory,
+                implementationMethod, majorProjectLevel));
+        return result;
+    }
+
+    private String candidateWatermark(List<TemplateMatchCandidate> candidates, String signingMethod,
+                                      String projectCategory, String implementationMethod,
+                                      String majorProjectLevel) {
+        StringBuilder canonical = new StringBuilder();
+        appendToken(canonical, signingMethod);
+        appendToken(canonical, projectCategory);
+        appendToken(canonical, implementationMethod);
+        appendToken(canonical, majorProjectLevel);
+        candidates.stream()
+                .sorted(Comparator.comparing(TemplateMatchCandidate::getTemplateId))
+                .forEach(candidate -> {
+                    appendToken(canonical, candidate.getTemplateId());
+                    appendToken(canonical, candidate.getTemplateRevisionId());
+                    appendToken(canonical, candidate.getLatestRevisionNo());
+                    appendToken(canonical, candidate.getMatchPriority());
+                    appendToken(canonical, candidate.getSigningMethod());
+                    appendToken(canonical, candidate.getProjectCategory());
+                    appendToken(canonical, candidate.getImplementationMethod());
+                    appendToken(canonical, candidate.getMajorProjectLevel());
+                });
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256摘要算法不可用", ex);
+        }
+    }
+
+    private void appendToken(StringBuilder target, Object value) {
+        String token = value == null ? "" : String.valueOf(value);
+        target.append(token.length()).append(':').append(token).append(';');
+    }
+
+    // ========== 内部方法 ==========
+
+    private ProjectTemplateDO validateTemplateExists(Long id) {
+        ProjectTemplateDO template = projectTemplateMapper.selectById(id);
         if (template == null) {
             throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
         }
-        if (!Integer.valueOf(0).equals(template.getStatus())) {
-            throw exception(PROJECT_TEMPLATE_NOT_ENABLED);
-        }
-        // 2. 校验项目编码唯一、来源业务键唯一、客户存在
-        if (projectMapper.selectByCode(reqVO.getCode()) != null) {
-            throw exception(PROJECT_CODE_DUPLICATE);
-        }
-        if (projectMapper.selectBySourceSystemAndBusinessKey(
-                reqVO.getSourceSystem(), reqVO.getSourceBusinessKey()) != null) {
-            throw exception(PROJECT_SOURCE_KEY_DUPLICATE);
-        }
-        CustomerDO customer = customerMapper.selectById(reqVO.getCustomerId());
-        if (customer == null) {
-            throw exception(PROJECT_CUSTOMER_NOT_EXISTS);
-        }
+        return template;
+    }
 
-        // 3. 校验快照
-        TemplateSnapshot snapshot = template.getSnapshotJson();
-        validateSnapshot(snapshot);
+    private int nextPublishedRevisionNo(Long templateId) {
+        List<ProjectTemplateRevisionDO> publishedList =
+                revisionMapper.selectPublishedListByTemplateId(templateId);
+        // 发布失败重试用原版本号：始终基于已发布最大版本号+1
+        return publishedList.stream()
+                .map(ProjectTemplateRevisionDO::getRevisionNo)
+                .filter(no -> no != null && no > 0)
+                .max(Integer::compareTo)
+                .map(no -> no + 1)
+                .orElse(1);
+    }
 
-        // 4. 创建项目主记录
-        ProjectDO project = new ProjectDO();
-        project.setCode(reqVO.getCode());
-        project.setName(reqVO.getName());
-        project.setCustomerId(reqVO.getCustomerId());
-        project.setContractCode(reqVO.getContractCode());
-        project.setProjectType(template.getProjectType());
-        project.setSourceSystem(reqVO.getSourceSystem());
-        project.setSourceBusinessKey(reqVO.getSourceBusinessKey());
-        project.setStatus(0); // 待指派
-        project.setTemplateId(template.getId());
-        project.setManagerUserId(reqVO.getManagerUserId());
-        project.setParentId(null);
-        project.setDepth(0);
-        project.setSort(0);
-        projectMapper.insert(project);
-        // 回填树字段
-        ProjectDO treeUpdate = new ProjectDO();
-        treeUpdate.setId(project.getId());
-        treeUpdate.setRootId(project.getId());
-        treeUpdate.setPath("/" + project.getId() + "/");
-        projectMapper.updateById(treeUpdate);
-
-        // 5. 批量创建阶段
-        Map<String, Long> phaseCodeToIdMap = new LinkedHashMap<>();
-        if (snapshot.getPhases() != null) {
-            for (TemplateSnapshot.PhaseDef phaseDef : snapshot.getPhases()) {
-                ProjectPhaseDO phase = new ProjectPhaseDO();
-                phase.setProjectId(project.getId());
-                phase.setTemplateId(null);
-                phase.setName(phaseDef.getPhaseName());
-                phase.setCode(phaseDef.getPhaseCode());
-                phase.setSort(phaseDef.getSortOrder() != null ? phaseDef.getSortOrder() : 0);
-                phase.setStatus(0); // 未开始
-                phase.setEntryCriteria(phaseDef.getEntryCriteria());
-                phase.setExitCriteria(phaseDef.getExitCriteria());
-                projectPhaseMapper.insert(phase);
-                phaseCodeToIdMap.put(phaseDef.getPhaseCode(), phase.getId());
-            }
-        }
-
-        // 6. 批量创建任务（两阶段：先插入，再回填 parent/root/path/depth）
-        Map<String, Long> taskCodeToIdMap = new LinkedHashMap<>();
-        if (snapshot.getTasks() != null) {
-            // 6.1 第一遍：插入全部任务
-            for (TemplateSnapshot.TaskDef taskDef : snapshot.getTasks()) {
-                ProjectTaskDO task = new ProjectTaskDO();
-                task.setProjectId(project.getId());
-                task.setName(taskDef.getTaskName());
-                task.setCode(taskDef.getTaskCode());
-                task.setDescription(taskDef.getDescription());
-                task.setPriority(taskDef.getPriority());
-                task.setSort(taskDef.getSortOrder() != null ? taskDef.getSortOrder() : 0);
-                task.setEstimatedHours(taskDef.getEstimatedHours());
-                task.setStatus(0); // 草稿
-                task.setParentId(null);
-                task.setDepth(0);
-                projectTaskMapper.insert(task);
-                taskCodeToIdMap.put(taskDef.getTaskCode(), task.getId());
-            }
-            // 6.2 第二遍：回填 parentId/rootId/path/depth
-            for (TemplateSnapshot.TaskDef taskDef : snapshot.getTasks()) {
-                Long taskId = taskCodeToIdMap.get(taskDef.getTaskCode());
-                ProjectTaskDO updateTask = new ProjectTaskDO();
-                updateTask.setId(taskId);
-                if (taskDef.getParentTaskCode() == null || taskDef.getParentTaskCode().isEmpty()) {
-                    // 顶层任务
-                    updateTask.setParentId(null);
-                    updateTask.setRootId(taskId);
-                    updateTask.setPath("/" + taskId + "/");
-                    updateTask.setDepth(0);
-                } else {
-                    Long parentId = taskCodeToIdMap.get(taskDef.getParentTaskCode());
-                    if (parentId == null) {
-                        throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID,
-                                "任务【" + taskDef.getTaskCode() + "】的父任务编码【" + taskDef.getParentTaskCode() + "】不存在");
-                    }
-                    // 查询父任务获取 rootId/path/depth
-                    ProjectTaskDO parentTask = projectTaskMapper.selectById(parentId);
-                    updateTask.setParentId(parentId);
-                    updateTask.setRootId(parentTask.getRootId());
-                    updateTask.setPath(parentTask.getPath() + taskId + "/");
-                    updateTask.setDepth(parentTask.getDepth() + 1);
+    private TemplateDefinitionContent loadContent(ProjectTemplateRevisionDO revision) {
+        TemplateDefinitionContent content = new TemplateDefinitionContent();
+        content.setSigningMethod(revision.getSigningMethod());
+        content.setProjectCategory(revision.getProjectCategory());
+        content.setImplementationMethod(revision.getImplementationMethod());
+        content.setMajorProjectLevel(revision.getMajorProjectLevel());
+        content.setProcessDefinitionKey(revision.getProcessDefinitionKey());
+        content.setProcessDefinitionVersion(revision.getProcessDefinitionVersion());
+        content.setStages(BeanUtils.toBean(stageDefinitionMapper.selectListByRevisionId(revision.getId()),
+                TemplateDefinitionContent.StageDef.class));
+        content.setTasks(BeanUtils.toBean(taskDefinitionMapper.selectListByRevisionId(revision.getId()),
+                TemplateDefinitionContent.TaskDef.class));
+        content.setMilestones(BeanUtils.toBean(milestoneDefinitionMapper.selectListByRevisionId(revision.getId()),
+                TemplateDefinitionContent.MilestoneDef.class));
+        List<TemplateDefinitionContent.DeliverableDef> deliverables = BeanUtils.toBean(
+                deliverableDefinitionMapper.selectListByRevisionId(revision.getId()),
+                TemplateDefinitionContent.DeliverableDef.class);
+        content.setDeliverables(deliverables);
+        List<ProjectTemplateGateDefinitionDO> gateRows = gateDefinitionMapper.selectListByRevisionId(revision.getId());
+        List<ProjectTemplateGateReferenceDO> refRows = gateReferenceMapper.selectListByRevisionId(revision.getId());
+        List<TemplateDefinitionContent.GateDef> gates = new ArrayList<>();
+        for (ProjectTemplateGateDefinitionDO gateRow : gateRows) {
+            TemplateDefinitionContent.GateDef gate = BeanUtils.toBean(gateRow, TemplateDefinitionContent.GateDef.class);
+            gate.setReferences(new ArrayList<>());
+            for (ProjectTemplateGateReferenceDO refRow : refRows) {
+                if (refRow.getGateCode().equals(gateRow.getGateCode())) {
+                    gate.getReferences().add(BeanUtils.toBean(refRow, TemplateDefinitionContent.GateRef.class));
                 }
-                projectTaskMapper.updateById(updateTask);
             }
+            gates.add(gate);
         }
-
-        // 7. 批量创建团队角色（待分配人员）
-        if (snapshot.getTeamRoles() != null) {
-            for (TemplateSnapshot.TeamRoleDef roleDef : snapshot.getTeamRoles()) {
-                ProjectTeamMemberDO member = new ProjectTeamMemberDO();
-                member.setProjectId(project.getId());
-                member.setUserId(null); // 待分配
-                member.setRoleCode(roleDef.getRoleCode());
-                member.setRoleName(roleDef.getRoleName());
-                member.setStatus(0); // 启用
-                projectTeamMemberMapper.insert(member);
-            }
-        }
-
-        return project.getId();
-    }
-
-    private void validateExists(Long id) {
-        if (id == null || projectTemplateMapper.selectById(id) == null) {
-            throw exception(PROJECT_TEMPLATE_NOT_EXISTS);
-        }
-    }
-
-    private void validateCodeUnique(Long id, String code) {
-        ProjectTemplateDO existing = projectTemplateMapper.selectByCode(code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !existing.getId().equals(id)) {
-            throw exception(PROJECT_TEMPLATE_CODE_DUPLICATE);
-        }
+        content.setGates(gates);
+        return content;
     }
 
     /**
-     * 校验快照完整性
+     * 定义行整体替换：草稿编辑语义（旧行物理删除后重插）
      */
-    private void validateSnapshot(TemplateSnapshot snapshot) {
-        if (snapshot == null) {
-            throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID, "快照内容为空");
+    private void replaceDefinitionRows(Long revisionId, TemplateDefinitionContent content) {
+        physicallyDeleteDefinitionRows(revisionId);
+        insertDefinitionRows(revisionId, content);
+    }
+
+    private void insertDefinitionRows(Long revisionId, TemplateDefinitionContent content) {
+        for (TemplateDefinitionContent.StageDef stage : content.getStages()) {
+            ProjectTemplateStageDefinitionDO row = BeanUtils.toBean(stage, ProjectTemplateStageDefinitionDO.class);
+            row.setId(null);
+            row.setTemplateRevisionId(revisionId);
+            stageDefinitionMapper.insert(row);
         }
-        if (snapshot.getPhases() == null || snapshot.getPhases().isEmpty()) {
-            throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID, "阶段定义不能为空");
+        for (TemplateDefinitionContent.TaskDef task : content.getTasks()) {
+            ProjectTemplateTaskDefinitionDO row = BeanUtils.toBean(task, ProjectTemplateTaskDefinitionDO.class);
+            row.setId(null);
+            row.setTemplateRevisionId(revisionId);
+            row.setStageDefinitionKey(task.getStageCode());
+            row.setTaskDefinitionKey(task.getTaskCode());
+            row.setParentTaskDefinitionKey(task.getParentTaskCode());
+            taskDefinitionMapper.insert(row);
         }
-        // 校验阶段编码唯一
-        Set<String> phaseCodes = new HashSet<>();
-        for (TemplateSnapshot.PhaseDef phase : snapshot.getPhases()) {
-            if (phase.getPhaseCode() == null || phase.getPhaseCode().isEmpty()) {
-                throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID, "阶段编码不能为空");
-            }
-            if (!phaseCodes.add(phase.getPhaseCode())) {
-                throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID,
-                        "阶段编码【" + phase.getPhaseCode() + "】重复");
-            }
+        for (TemplateDefinitionContent.MilestoneDef milestone : content.getMilestones()) {
+            ProjectTemplateMilestoneDefinitionDO row = BeanUtils.toBean(milestone, ProjectTemplateMilestoneDefinitionDO.class);
+            row.setId(null);
+            row.setTemplateRevisionId(revisionId);
+            milestoneDefinitionMapper.insert(row);
         }
-        // 校验任务编码唯一与引用完整性
-        if (snapshot.getTasks() != null) {
-            Set<String> taskCodes = new HashSet<>();
-            for (TemplateSnapshot.TaskDef task : snapshot.getTasks()) {
-                if (task.getTaskCode() == null || task.getTaskCode().isEmpty()) {
-                    throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID, "任务编码不能为空");
-                }
-                if (!taskCodes.add(task.getTaskCode())) {
-                    throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID,
-                            "任务编码【" + task.getTaskCode() + "】重复");
-                }
-                if (task.getPhaseCode() != null && !task.getPhaseCode().isEmpty()
-                        && !phaseCodes.contains(task.getPhaseCode())) {
-                    throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID,
-                            "任务【" + task.getTaskCode() + "】引用的阶段编码【" + task.getPhaseCode() + "】不存在");
-                }
-                if (task.getParentTaskCode() != null && !task.getParentTaskCode().isEmpty()
-                        && task.getParentTaskCode().equals(task.getTaskCode())) {
-                    throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID,
-                            "任务【" + task.getTaskCode() + "】不能以自身为父任务");
-                }
-            }
-            // 二次遍历校验 parentTaskCode 引用存在
-            for (TemplateSnapshot.TaskDef task : snapshot.getTasks()) {
-                if (task.getParentTaskCode() != null && !task.getParentTaskCode().isEmpty()
-                        && !taskCodes.contains(task.getParentTaskCode())) {
-                    throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID,
-                            "任务【" + task.getTaskCode() + "】的父任务编码【" + task.getParentTaskCode() + "】不存在");
-                }
-            }
+        for (TemplateDefinitionContent.DeliverableDef deliverable : content.getDeliverables()) {
+            ProjectTemplateDeliverableDefinitionDO row = BeanUtils.toBean(deliverable, ProjectTemplateDeliverableDefinitionDO.class);
+            row.setId(null);
+            row.setTemplateRevisionId(revisionId);
+            deliverableDefinitionMapper.insert(row);
         }
-        // 校验团队角色编码唯一
-        if (snapshot.getTeamRoles() != null) {
-            Set<String> roleCodes = new HashSet<>();
-            for (TemplateSnapshot.TeamRoleDef role : snapshot.getTeamRoles()) {
-                if (role.getRoleCode() == null || role.getRoleCode().isEmpty()) {
-                    throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID, "团队角色编码不能为空");
-                }
-                if (!roleCodes.add(role.getRoleCode())) {
-                    throw exception(PROJECT_TEMPLATE_SNAPSHOT_INVALID,
-                            "团队角色编码【" + role.getRoleCode() + "】重复");
+        for (TemplateDefinitionContent.GateDef gate : content.getGates()) {
+            ProjectTemplateGateDefinitionDO row = BeanUtils.toBean(gate, ProjectTemplateGateDefinitionDO.class);
+            row.setId(null);
+            row.setTemplateRevisionId(revisionId);
+            gateDefinitionMapper.insert(row);
+            if (gate.getReferences() != null) {
+                for (TemplateDefinitionContent.GateRef ref : gate.getReferences()) {
+                    ProjectTemplateGateReferenceDO refRow = BeanUtils.toBean(ref, ProjectTemplateGateReferenceDO.class);
+                    refRow.setId(null);
+                    refRow.setTemplateRevisionId(revisionId);
+                    refRow.setGateCode(gate.getGateCode());
+                    gateReferenceMapper.insert(refRow);
                 }
             }
         }
+    }
+
+    private void physicallyDeleteDefinitionRows(Long revisionId) {
+        stageDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
+        taskDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
+        milestoneDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
+        deliverableDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
+        gateDefinitionMapper.physicallyDeleteByRevisionId(revisionId);
+        gateReferenceMapper.physicallyDeleteByRevisionId(revisionId);
     }
 }

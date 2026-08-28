@@ -2,7 +2,8 @@
 
 ## 架构边界
 
-Docker Compose 仅承载基础设施服务（MySQL、Redis、Flyway 迁移）。
+Docker Compose 默认仅承载基础设施服务（MySQL、Redis、Flyway 迁移）；
+ClamAV 只在显式启用 `security-scan` profile 时加载。
 **前端（yudao-ui-admin-vue3）与后端（yudao-server）服务禁止运行在 Docker 中**，
 必须在宿主机上分别通过 `pnpm dev` 与 `java -jar` 启动。
 
@@ -14,10 +15,11 @@ Docker Compose 仅承载基础设施服务（MySQL、Redis、Flyway 迁移）。
 | 前端     | 18081  | 宿主机 `pnpm dev`（Vite）                 |
 | MySQL    | 13306  | Docker                                    |
 | Redis    | 16379  | Docker                                    |
+| ClamAV   | 13310  | Docker（可选 `security-scan` profile）    |
 
 ## 前置条件
 
-- Docker Desktop（含 Docker Compose）——用于 MySQL、Redis 与 Flyway 迁移
+- Docker Desktop（含 Docker Compose）——用于 MySQL、Redis、Flyway 迁移及可选ClamAV
 - 宿主机 JDK 25（后端构建与运行）
 - 宿主机 Node 20.19.6 + pnpm 9.15.5（前端构建与运行）
 
@@ -60,6 +62,17 @@ docker compose ps
 脚本只在本地生成被 Git 忽略的 `.env`，并拒绝覆盖已有文件。
 `.env.example` 中的敏感项保持为空，不能直接用于启动。
 
+默认 `NPDMS_FILE_SECURITY_SCAN_ENABLED=false`，后端不装配ClamAV Provider，
+文件仍执行大小、摘要、扩展名、MIME、内容嗅探和策略校验，并以
+`scanStatus=SKIPPED`记录未执行病毒扫描。启用病毒扫描时同时启动ClamAV并设置：
+
+```powershell
+$env:NPDMS_FILE_SECURITY_SCAN_ENABLED='true'
+docker compose --profile security-scan up -d clamav
+```
+
+只开启后端扫描配置但ClamAV不可用时，上传严格失败关闭，不会降级为`SKIPPED`。
+
 ### 2. 启动后端（宿主机）
 
 后端连接 Docker 中的 MySQL（`localhost:13306`）与 Redis（`localhost:16379`）。
@@ -101,6 +114,35 @@ docker compose ps
 `sql/mysql/ruoyi-vue-pro.sql` 字节一致。Flyway 将版本、执行状态与校验和
 写入 `flyway_schema_history`。修改已执行迁移会使 `validate` 失败；后续数据库
 变更必须增加新的 `V<版本>__<说明>.sql`，不得修改历史文件或手工改库。
+
+## 固定测试验证环境
+
+日常 MySQL/Redis/Flyway 集成验证固定复用 Compose 项目
+`npdms-50eb-test`，数据库为 `npdms_test`，宿主机端口为 MySQL `23316`、
+Redis `26379`。该环境与本地开发环境及按 Task 创建的临时环境隔离。
+真实浏览器或宿主机应用验收固定使用独立端口组：主后端 `59280`、
+跨租户负向后端 `59282`、Vite `19081`。开发环境的 `58080` 和 `18081`
+不得被验收进程占用或停止；Compose 仍只承载 MySQL、Redis 和 Flyway。
+
+```powershell
+# 首次创建；后续调用只启动并复用原容器和卷
+.\scripts\test-infrastructure.ps1 start
+
+# 查看包含已退出 Flyway 容器在内的完整状态
+.\scripts\test-infrastructure.ps1 status
+```
+
+普通测试不得执行 `docker compose down`、`down --volumes`，也不得为每轮测试
+创建新的 Compose 项目。只有明确需要从空数据状态重新验收迁移时，才执行：
+
+```powershell
+.\scripts\test-infrastructure.ps1 reset
+```
+
+`reset` 保留并复用原容器和卷，只删除并重建 `npdms_test` 数据库、清空测试
+Redis，再重新启动原 Flyway 容器执行迁移。运行宿主机集成测试时，应将
+`NPDMS_DB_NAME`、`NPDMS_MYSQL_PORT`、`NPDMS_REDIS_PORT` 分别设为
+`npdms_test`、`23316`、`26379`；数据库用户和密码继续使用本地 `.env` 中的值。
 
 ## 验证
 

@@ -20,6 +20,10 @@ public interface EquipmentChangeTypeEnum {
      */
     String DEPLOY = "DEPLOY";
     /**
+     * 已确认安装、迁移或拆除使当前位置生效。
+     */
+    String LOCATION_EFFECTIVE = "LOCATION_EFFECTIVE";
+    /**
      * 报障（在用 → 故障）
      */
     String REPORT_FAULT = "REPORT_FAULT";

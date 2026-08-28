@@ -28,6 +28,11 @@ public class DeptApiImpl implements DeptApi {
     }
 
     @Override
+    public DeptRespDTO getDeptByCode(String code) {
+        return BeanUtils.toBean(deptService.getDeptByCode(code), DeptRespDTO.class);
+    }
+
+    @Override
     public List<DeptRespDTO> getDeptList(Collection<Long> ids) {
         List<DeptDO> depts = deptService.getDeptList(ids);
         return BeanUtils.toBean(depts, DeptRespDTO.class);

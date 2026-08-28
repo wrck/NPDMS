@@ -12,8 +12,8 @@ spring:
   servlet:
     # 文件上传相关配置项
     multipart:
-      max-file-size: 16MB # 单个文件大小
-      max-request-size: 32MB # 设置总上传的文件大小
+      max-file-size: 50MB # 单个文件大小
+      max-request-size: 52MB # 包含 multipart 表单开销的请求大小
     encoding:
       enabled: true
       charset: UTF-8 # 必须设置 UTF-8，避免 WebFlux 流式返回（AI 场景）会乱码问题
@@ -350,5 +350,13 @@ yudao:
   iot:
     message-bus:
       type: redis # 消息总线的类型
+
+pms:
+  sol:
+    duration-change:
+      process-definition-key: ${PMS_SOL_DURATION_CHANGE_PROCESS_KEY:pms-sol-duration-change}
+  project:
+    progress-policy:
+      process-definition-key: ${PMS_PROGRESS_POLICY_PROCESS_KEY:project-progress-policy}
 
 debug: false

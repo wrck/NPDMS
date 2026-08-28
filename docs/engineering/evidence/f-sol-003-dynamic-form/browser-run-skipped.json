@@ -1,0 +1,688 @@
+{
+  "capturedAt": "2026-08-28T07:28:23.576Z",
+  "status": "PASSED",
+  "browserVersion": "151.0.7922.34",
+  "baseUrl": "http://127.0.0.1:19081",
+  "apiUrl": "http://127.0.0.1:59280/admin-api",
+  "scanMode": "SKIPPED",
+  "projectId": 992203060001,
+  "projectTemplateId": 992203040002,
+  "compatibleTemplateId": 992203010001,
+  "compatibleRevisionId": 992203020001,
+  "assertions": [
+    "INCOMPATIBLE_SCHEMA_PUBLICATION_REJECTED",
+    "COMPATIBLE_WORK_BINDING_PUBLISHED",
+    "PROJECT_USER_HAS_NO_TEMPLATE_SELECTION",
+    "REQUIRED_VALUE_BLOCKS_COMPLETION",
+    "FILE_ACTIVE_FACTS_IMMEDIATE_AND_UNKNOWN_RETRY_RECOVERED",
+    "V1_COMPLETED_WITH_FILE_LIFECYCLE",
+    "DIRTY_CONTENT_BLOCKS_HISTORY_NAVIGATION",
+    "RESPONSE_UNKNOWN_SAME_INTENT_RECOVERED",
+    "INVALID_FILE_BLOCKS_COMPLETION",
+    "V2_RECOVERED_COMPLETED_AND_REPLACED_EFFECTIVE",
+    "READONLY_NON_MANAGER_SECOND_TENANT_DENIED"
+  ],
+  "responsive": [
+    {
+      "width": 320,
+      "scrollWidth": 320,
+      "clientWidth": 320
+    },
+    {
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    {
+      "width": 1024,
+      "scrollWidth": 1024,
+      "clientWidth": 1024
+    },
+    {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    }
+  ],
+  "screenshots": [
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-01-v1-filled-file-lifecycle-1440.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-02-v2-file-invalid-blocked-1440.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-03-history-1440.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-05-responsive-320.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-05-responsive-768.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-05-responsive-1024.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-05-responsive-1440.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-06-readonly_member-readonly-1024.png",
+    "docs/engineering/evidence/f-sol-003-dynamic-form/skipped-06-non_manager-readonly-1024.png"
+  ],
+  "expectedNegativeResponses": [
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/pms/project-templates/992203040002/actions/publish"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274/actions/submit"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274/actions/submit"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897/actions/create-draft"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897/actions/create-draft"
+    },
+    {
+      "actor": "SECOND_TENANT",
+      "method": "GET",
+      "status": 200,
+      "path": "/api/v1/pms/preparations/2093239044758224897",
+      "code": 403
+    }
+  ],
+  "expectedDiagnostics": [
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "message": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "message": "Network Error"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "url": "http://127.0.0.1:59280/admin-api/api/v1/pms/files/2093239022138343426:complete-upload",
+      "error": "net::ERR_FAILED"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "message": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "PATCH",
+      "url": "http://127.0.0.1:59280/admin-api/api/v1/pms/preparations/2093239044758224897/form",
+      "error": "net::ERR_FAILED"
+    }
+  ],
+  "relevantHttp": [
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/project-templates/992203040001/revisions/2"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/pms/project-templates"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "PUT",
+      "status": 200,
+      "path": "/admin-api/pms/project-templates/992203040002"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/pms/project-templates/992203040002/actions/publish"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "PUT",
+      "status": 200,
+      "path": "/admin-api/pms/project-templates/992203040002"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/pms/project-templates/992203040002/actions/publish"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274/actions/submit"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "PATCH",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274/form"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files:init-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093238987338203138:complete-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093238987338203138"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093238987338203138"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files:init-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093238987338203138:complete-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093238987338203138"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "DELETE",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/file-references/1"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files:init-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426:complete-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426/versions"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274/actions/submit"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093238971542454274/actions/create-draft"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426/actions/invalidate"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files:init-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426:complete-upload"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897/actions/submit"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "MANAGER_TEMPLATE_ADMIN",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "READONLY_MEMBER",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "READONLY_MEMBER",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "READONLY_MEMBER",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897/actions/create-draft"
+    },
+    {
+      "actor": "NON_MANAGER",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations"
+    },
+    {
+      "actor": "NON_MANAGER",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    },
+    {
+      "actor": "NON_MANAGER",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/files/2093239022138343426"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897/actions/create-draft"
+    },
+    {
+      "actor": "PUBLIC_REST",
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/api/v1/pms/preparations/2093239044758224897"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": [],
+  "unexpectedResponses": [],
+  "pass": true
+}

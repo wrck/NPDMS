@@ -1,8 +1,10 @@
-# SDS 工作目录
+﻿# SDS 工作目录
 
 > 目录治理总则：见 [`docs/README.md`](../README.md)。本文件只补充 SDS 专属规则；任何评审稿、门禁证据、计划稿和临时分析必须按总则归档，禁止混入本目录。
 
 本目录用于沉淀《项目实施交付管理平台 系统详细设计说明书（SDS）》。
+
+> 当前基线提示：PRD V1.8已于2026-08-19发布，2026-08-21批准修订001明确手动项目创建失败不持久化草稿且不改变SDS状态/数据模型。Phase 1/2/3分册均已通过独立复审并晋级`BASELINE`，可作为Feature Spec输入；这不替代Feature Ready、实现、专项验收、迁移、切换、UAT或Release门禁。V1.7审查材料只作为历史证据。
 
 ## 目标文件
 
@@ -44,6 +46,10 @@ Codex 按顺序维护：
 - `02d-cross-context-contracts.md`
 - `02e-version-scope-matrix.md`
 
+当前已启用的 Phase 2 补充分册：
+
+- `08a-domain-entity-migration-alignment.md`：覆盖全部显式领域数据对象的旧数据元/旧库/当前实现来源、迁移策略、排除项与迁移Gate。
+
 ## SDS 文件准入规则
 
 - 一个主题只允许一个当前正式分册；不同方案、评审意见和中间版本不在本目录复制。
@@ -59,4 +65,4 @@ Codex 按顺序维护：
 - 不确定的业务问题进入 `docs/decisions/open-questions.md`。
 - 每一阶段先 Review，再继续下一阶段。
 - SDS 通过后才进入 Feature Spec 和编码。
-- `specs/001-project-delivery-platform/domains/` 为历史参考资料；本目录的 SDS 必须直接以 PRD V1.6 和基线快照为准，并记录与旧规格的差异。
+- `specs/001-project-delivery-platform/domains/` 为PRD V1.8直接派生的领域需求输入；本目录的 SDS 必须直接以 PRD V1.8 和当前基线快照为准，并记录与V1.7设计的差异。

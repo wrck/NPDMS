@@ -28,6 +28,8 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
  * - ann-check:      1-011-020-000 (V2 FR-ENG-009)
  * - authorization:  1-011-021-000 (V2 FR-ENG-010)
  * - doc-template:   1-011-022-000 (V36 结构化文档模板)
+ * - construction-plan: 1-011-023-000 (F-SOL-001 PRE-01)
+ * - preparation:      1-011-024-000 (F-SOL-002 PRE-02)
  */
 public interface ErrorCodeConstants {
 
@@ -36,12 +38,21 @@ public interface ErrorCodeConstants {
     ErrorCode SITE_SURVEY_CODE_DUPLICATE = new ErrorCode(1_011_001_001, "工勘编码已存在");
     ErrorCode SITE_SURVEY_STATUS_INVALID = new ErrorCode(1_011_001_002, "工勘当前状态不允许该操作");
     ErrorCode SITE_SURVEY_VERSION_NOT_MATCH = new ErrorCode(1_011_001_003, "工勘版本号已变更，请刷新后重试");
+    ErrorCode SITE_SURVEY_LOCATION_REQUIRED = new ErrorCode(1_011_001_004, "工勘地点不能为空");
+    ErrorCode SITE_SURVEY_LOCATION_INVALID = new ErrorCode(1_011_001_005, "工勘地点结构化维护结果无效");
 
     // ========== 需求分析 requirement 1-011-002-000 ==========
     ErrorCode REQUIREMENT_NOT_EXISTS = new ErrorCode(1_011_002_000, "需求分析不存在");
     ErrorCode REQUIREMENT_CODE_DUPLICATE = new ErrorCode(1_011_002_001, "需求编码已存在");
     ErrorCode REQUIREMENT_STATUS_INVALID = new ErrorCode(1_011_002_002, "需求当前状态不允许该操作");
     ErrorCode REQUIREMENT_VERSION_NOT_MATCH = new ErrorCode(1_011_002_003, "需求版本号已变更，请刷新后重试");
+    ErrorCode REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID = new ErrorCode(1_011_002_004, "需求分析冻结配置无效");
+    ErrorCode REQUIREMENT_ANALYSIS_DRAFT_CONFLICT = new ErrorCode(1_011_002_005, "项目已存在需求分析草稿");
+    ErrorCode REQUIREMENT_ANALYSIS_CONTENT_INVALID = new ErrorCode(1_011_002_006, "需求分析内容或附件事实无效");
+    ErrorCode REQUIREMENT_ANALYSIS_FILE_FACT_INVALID = new ErrorCode(1_011_002_007, "需求分析附件事实已变化");
+    ErrorCode REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID = new ErrorCode(1_011_002_008, "需求分析项目资格或主体事实无效");
+    ErrorCode REQUIREMENT_ANALYSIS_COMMAND_INVALID = new ErrorCode(1_011_002_009, "需求分析命令参数无效");
+    ErrorCode REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE = new ErrorCode(1_011_002_010, "已完成需求分析事实不可用");
 
     // ========== 实施方案 solution 1-011-003-000 ==========
     ErrorCode SOLUTION_NOT_EXISTS = new ErrorCode(1_011_003_000, "实施方案不存在");
@@ -61,6 +72,9 @@ public interface ErrorCodeConstants {
     ErrorCode INSTALLATION_CODE_DUPLICATE = new ErrorCode(1_011_005_001, "安装编码已存在");
     ErrorCode INSTALLATION_STATUS_INVALID = new ErrorCode(1_011_005_002, "安装当前状态不允许该操作");
     ErrorCode INSTALLATION_VERSION_NOT_MATCH = new ErrorCode(1_011_005_003, "安装版本号已变更，请刷新后重试");
+    ErrorCode INSTALLATION_LOCATION_REQUIRED = new ErrorCode(1_011_005_004, "安装位置不能为空");
+    ErrorCode INSTALLATION_LOCATION_INVALID = new ErrorCode(1_011_005_005, "安装地点结构化引用无效");
+    ErrorCode INSTALLATION_EFFECTIVE_TIME_INVALID = new ErrorCode(1_011_005_006, "安装位置生效时间必须晚于设备当前位置");
 
     // ========== 配置调试 configuration 1-011-006-000 ==========
     ErrorCode CONFIGURATION_NOT_EXISTS = new ErrorCode(1_011_006_000, "配置调试记录不存在");
@@ -183,5 +197,35 @@ public interface ErrorCodeConstants {
     ErrorCode DOC_TEMPLATE_VERSION_PUBLISHED = new ErrorCode(1_011_022_006, "已发布版本不可修改");
     ErrorCode DOC_TEMPLATE_PARENT_NOT_EXISTS = new ErrorCode(1_011_022_007, "父模板不存在");
     ErrorCode DOC_TEMPLATE_NO_PUBLISHED_VERSION = new ErrorCode(1_011_022_008, "模板尚无已发布版本，无法使用");
+
+    // ========== 项目工期 construction-plan 1-011-023-000 ==========
+    ErrorCode CONSTRUCTION_PLAN_NOT_EXISTS = new ErrorCode(1_011_023_000, "项目工期不存在");
+    ErrorCode CONSTRUCTION_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_023_001, "项目工期参数无效");
+    ErrorCode CONSTRUCTION_PLAN_STATUS_INVALID = new ErrorCode(1_011_023_002, "项目工期当前状态不允许该操作");
+    ErrorCode CONSTRUCTION_PLAN_VERSION_NOT_MATCH = new ErrorCode(1_011_023_003, "项目工期版本号已变更，请刷新后重试");
+    ErrorCode CONSTRUCTION_PLAN_PROJECT_FACT_INVALID = new ErrorCode(1_011_023_004, "项目资格或当前参与人事实无效");
+    ErrorCode DURATION_CHANGE_NOT_EXISTS = new ErrorCode(1_011_023_005, "工期变更不存在");
+    ErrorCode DURATION_CHANGE_PENDING_CONFLICT = new ErrorCode(1_011_023_006, "项目已存在待审批的工期变更");
+    ErrorCode DURATION_CHANGE_BPM_CONFIG_INVALID = new ErrorCode(1_011_023_007, "工期变更审批流程配置无效");
+    ErrorCode DURATION_CHANGE_BPM_ASSOCIATION_INVALID = new ErrorCode(1_011_023_008, "工期变更审批流程关联无效");
+    ErrorCode DURATION_CHANGE_REASON_CONFIG_INVALID = new ErrorCode(1_011_023_009, "工期变更原因或客户依据配置无效");
+    ErrorCode DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE = new ErrorCode(1_011_023_010, "客户依据文件事实暂不可用");
+    ErrorCode DURATION_CHANGE_FILE_ARTIFACT_FORBIDDEN = new ErrorCode(1_011_023_011, "无权使用客户依据文件");
+
+    // ========== 工勘准备 preparation 1-011-024-000 ==========
+    ErrorCode PREPARATION_NOT_EXISTS = new ErrorCode(1_011_024_000, "工勘准备不存在");
+    ErrorCode PREPARATION_WORK_BINDING_NOT_AVAILABLE = new ErrorCode(1_011_024_001, "工勘准备绑定不存在");
+    ErrorCode PREPARATION_WORK_BINDING_AMBIGUOUS = new ErrorCode(1_011_024_002, "工勘准备绑定不唯一");
+    ErrorCode PREPARATION_FIXED_FORM_CATALOG_INVALID = new ErrorCode(1_011_024_003, "工勘固定表单目录无效");
+    ErrorCode PREPARATION_STATUS_INVALID = new ErrorCode(1_011_024_004, "工勘准备当前状态不允许该操作");
+    ErrorCode PREPARATION_VERSION_NOT_MATCH = new ErrorCode(1_011_024_005, "工勘准备版本已变更，请刷新后重试");
+    ErrorCode PREPARATION_ASSIGNEE_FORBIDDEN = new ErrorCode(1_011_024_006, "当前用户不是该工勘项负责人");
+    ErrorCode PREPARATION_FILE_FACT_INVALID = new ErrorCode(1_011_024_007, "工勘证据文件事实无效");
+    ErrorCode PREPARATION_SOURCE_UNAVAILABLE = new ErrorCode(1_011_024_008, "工勘权威来源暂不可用");
+    ErrorCode PREPARATION_WAIVER_INVALID = new ErrorCode(1_011_024_009, "工勘项豁免事实无效");
+    ErrorCode PREPARATION_READINESS_NOT_READY = new ErrorCode(1_011_024_010, "工勘准备尚未达到实施就绪");
+    ErrorCode PREPARATION_READINESS_VERSION_CONFLICT = new ErrorCode(1_011_024_011, "工勘就绪事实已变更，请刷新后重试");
+    ErrorCode PREPARATION_COMMAND_INVALID = new ErrorCode(1_011_024_012, "工勘准备命令参数无效");
+    ErrorCode PREPARATION_PROJECT_FACT_INVALID = new ErrorCode(1_011_024_013, "工勘准备项目资格或主体事实无效");
 
 }

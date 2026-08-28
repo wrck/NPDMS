@@ -1,0 +1,19 @@
+package cn.iocoder.yudao.module.pms.platform.service.file.event;
+
+import java.time.LocalDateTime;
+
+public record FileArchivedMessage(
+        String eventId,
+        Long tenantId,
+        Long referenceId,
+        Long artifactId,
+        Integer versionNo,
+        String ownerContext,
+        String objectType,
+        String objectId,
+        String purposeCode,
+        String archiveBatchId,
+        String businessDecisionRef,
+        LocalDateTime occurredAt,
+        String operationId) {
+}

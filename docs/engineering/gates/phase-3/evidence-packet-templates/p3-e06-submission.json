@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E06",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "TEST_OWNER",
+    "OPERATIONS_OWNER",
+    "DATA_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "accountDistribution": null,
+    "cleanupProcedure": null,
+    "dataSetVersion": null,
+    "environmentTopology": null,
+    "externalDependencyMode": null,
+    "loadScriptSha256": null,
+    "migrationVolume": null,
+    "monitoringRefs": null,
+    "networkConditions": null,
+    "nodeSpecs": null,
+    "productionDifferences": null,
+    "scalingModel": null,
+    "testOwner": null,
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "建设独立近生产性能环境",
+    "evidenceOwnerRoles": [
+      "TEST_OWNER",
+      "OPERATIONS_OWNER",
+      "DATA_OWNER"
+    ]
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

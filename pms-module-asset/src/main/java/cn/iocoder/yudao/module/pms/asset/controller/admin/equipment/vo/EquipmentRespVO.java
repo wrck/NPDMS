@@ -37,6 +37,24 @@ public class EquipmentRespVO {
     @Schema(description = "设备位置", example = "机房A-机柜03-U12")
     private String location;
 
+    @Schema(description = "当前站点编号")
+    private Long siteId;
+
+    @Schema(description = "当前站点位置编号")
+    private Long siteLocationId;
+
+    @Schema(description = "地点解析状态：UNRESOLVED/RESOLVED")
+    private String locationResolutionStatus;
+
+    @Schema(description = "当前位置发生时快照")
+    private String locationSnapshot;
+
+    @Schema(description = "当前位置生效时间")
+    private LocalDateTime locationEffectiveFrom;
+
+    @Schema(description = "当前位置来源安装记录")
+    private Long locationSourceInstallationId;
+
     @Schema(description = "保修开始日期", example = "2026-01-01")
     private LocalDate warrantyStartDate;
 

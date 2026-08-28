@@ -201,6 +201,12 @@ public class OAuth2TokenServiceImpl implements OAuth2TokenService {
                 .setUserId(userId).setUserType(userType)
                 .setClientId(clientDO.getClientId()).setScopes(scopes)
                 .setExpiresTime(LocalDateTime.now().plusSeconds(clientDO.getRefreshTokenValiditySeconds()));
+        Long tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null && userType.equals(UserTypeEnum.ADMIN.getValue())) {
+            AdminUserDO user = adminUserService.getUser(userId);
+            tenantId = user == null ? null : user.getTenantId();
+        }
+        refreshToken.setTenantId(tenantId);
         oauth2RefreshTokenMapper.insert(refreshToken);
         return refreshToken;
     }

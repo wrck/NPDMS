@@ -11,8 +11,11 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AcceptanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.ProjectClosureMapper;
+import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardResult;
+import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
@@ -96,6 +99,8 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     private ProjectPhaseMapper projectPhaseMapper;
     @Resource
     private AcceptanceMapper acceptanceMapper;
+    @Resource
+    private ProjectClosureGuardService projectClosureGuardService;
 
     @Override
     public Long createProjectClosure(ProjectClosureSaveReqVO createReqVO) {
@@ -150,10 +155,18 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
-    public void submitProjectClosure(Long id) {
+    @Transactional(rollbackFor = Exception.class)
+    public void submitProjectClosure(Long id, long expectedTreeVersion, ProjectClosureGuardService.Actor actor) {
         ProjectClosureDO entity = validateExists(id);
         if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
+        }
+        ProjectClosureGuardResult guard = projectClosureGuardService.evaluate(
+                entity.getProjectId(), expectedTreeVersion, actor);
+        if (!guard.allowed()) {
+            throw exception(ACC_PROJECT_CLOSURE_VALIDATION_FAILED,
+                    "存在未闭环后代或待计算进度，未闭环=" + guard.blockers().size()
+                            + "，待计算=" + guard.pendingProgressProjects().size());
         }
         ProjectClosureDO updateObj = new ProjectClosureDO();
         updateObj.setId(id);

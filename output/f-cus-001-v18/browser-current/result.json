@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-08-28T11:32:18.522Z",
+  "ports": {
+    "chrome": 9224,
+    "backend": 59280,
+    "frontend": 19081,
+    "mysql": 23316,
+    "redis": 26379
+  },
+  "users": {
+    "operator": {
+      "username": "fcus001operator",
+      "tenantId": 1
+    },
+    "readonly": {
+      "username": "fcus001readonly",
+      "tenantId": 1
+    },
+    "denied": {
+      "username": "fcus001denied",
+      "tenantId": 1
+    },
+    "crossTenant": {
+      "username": "fcus001tenant121",
+      "tenantId": 970000000000090000
+    }
+  },
+  "created": {
+    "platformId": "2093300449653977090",
+    "platformCode": "FCUS001_BROWSER_1787916693339",
+    "temporaryId": "2093300497687146497",
+    "temporaryCode": "FCUS001_TEMP_1787916693339"
+  },
+  "lifecycle": {
+    "deleteVersion": 1,
+    "restoreVersion": 2
+  },
+  "apiChecks": {
+    "platformCreated": true,
+    "idempotentReplay": true,
+    "idempotentSingleFact": true,
+    "temporaryPersisted": true,
+    "deletedFilter": true,
+    "restoredIdentity": true,
+    "readonlyDenied": true,
+    "deniedQuery": true,
+    "crossTenantIsolated": true,
+    "referencedDeleteBlocked": true,
+    "superAdminPreserved": true
+  },
+  "uiChecks": {
+    "routeLoaded": true,
+    "createDrawerOpened": true,
+    "crmSourceHidden": true,
+    "sourceSelectOpened": true,
+    "temporaryOptionClicked": true,
+    "temporarySelected": true,
+    "temporaryFormFilled": true,
+    "temporarySaved": true,
+    "temporaryPersisted": true,
+    "temporaryVisible": true,
+    "temporaryReasonVisible": true,
+    "readonlyRouteLoaded": true,
+    "readonlyCreateHidden": true,
+    "readonlyMutationHidden": true
+  },
+  "responsive": {
+    "320": {
+      "viewport": [
+        320,
+        740
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "detailVisible": true
+    },
+    "768": {
+      "viewport": [
+        768,
+        900
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "detailVisible": true
+    },
+    "1024": {
+      "viewport": [
+        1024,
+        800
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "detailVisible": true
+    },
+    "1440": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "detailVisible": true
+    }
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedResponses": [],
+  "guardedDelete": {
+    "status": 200,
+    "body": {
+      "code": 1014001004,
+      "data": null,
+      "msg": "客户删除被引用守卫阻止"
+    }
+  },
+  "unexpectedResponses": [],
+  "pass": true
+}

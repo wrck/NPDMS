@@ -52,6 +52,11 @@ public interface DeptService {
     DeptDO getDept(Long id);
 
     /**
+     * 按统一部门编码获得启用部门。
+     */
+    DeptDO getDeptByCode(String code);
+
+    /**
      * 获得部门信息数组
      *
      * @param ids 部门编号数组

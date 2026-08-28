@@ -1,4 +1,5 @@
 const { chromium } = require("playwright");
+const fs = require("fs");
 
 const baseUrl = process.env.NPDMS_E2E_BASE_URL || "http://localhost:18081";
 const username = process.env.NPDMS_E2E_USERNAME;
@@ -37,7 +38,7 @@ if (!username || !password || !executablePath) {
   const passwordInput = page.locator('input[type="password"]').first();
   await userInput.fill(username);
   await passwordInput.fill(password);
-  await page.getByRole("button", { name: /登录/ }).click();
+  await page.getByRole("button", { name: "登录", exact: true }).click();
   await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 30_000 });
   await page.waitForLoadState("networkidle");
 
@@ -53,7 +54,8 @@ if (!username || !password || !executablePath) {
     await page.waitForTimeout(500);
   }
 
-  await page.screenshot({ path: "tests/e2e/platform-smoke.png", fullPage: true });
+  fs.mkdirSync(".run", { recursive: true });
+  await page.screenshot({ path: ".run/platform-smoke.png", fullPage: true });
   if (consoleErrors.length) {
     throw new Error(`console errors: ${JSON.stringify(consoleErrors)}`);
   }

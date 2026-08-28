@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosurePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosureSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO;
+import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardService;
 
 /**
  * 项目闭环审批 Service 接口
@@ -53,7 +54,7 @@ public interface ProjectClosureService {
      *
      * @param id 编号
      */
-    void submitProjectClosure(Long id);
+    void submitProjectClosure(Long id, long expectedTreeVersion, ProjectClosureGuardService.Actor actor);
 
     /**
      * 开始审批（1待审批 → 2审批中）

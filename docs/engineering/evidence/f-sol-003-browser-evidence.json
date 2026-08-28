@@ -1,0 +1,133 @@
+{
+  "evidenceId": "FSOL003-DYNAMIC-FORM-IMPLEMENTATION-BROWSER-20260828",
+  "featureId": "F-SOL-003",
+  "gate": "Implementation Done candidate",
+  "status": "PASSED",
+  "executionStatus": "PASSED",
+  "capturedAt": "2026-08-28T07:31:47.753Z",
+  "scope": "仅限F-SOL-003动态表单组合Implementation验收；不代表Deployment、SIT、UAT或Release",
+  "candidateBaseCommit": "a1d773574c3a0118447a11e3f28629a1871c5e86",
+  "candidateScope": "candidateBaseCommit加当前未提交整体Implementation工作树；SKIPPED与PASSED均在同一最终候选JAR和前端工作树执行",
+  "specificationCommit": "44d172b31de089d96d172f82368f1467bf059259",
+  "synchronizedBaselineCommit": "a1d773574c3a0118447a11e3f28629a1871c5e86",
+  "supersededEvidence": {
+    "evidenceId": "FSOL003-IMPLEMENTATION-BROWSER-20260827",
+    "reason": "旧证据基于已取消的SOL章节写真值与附件集合双真值候选，不适用于当前PLT动态表单组合实现"
+  },
+  "runner": {
+    "script": "scripts/tests/run_fsol003_dynamic_form_browser_acceptance.cjs",
+    "rawResultTargets": [
+      "docs/engineering/evidence/f-sol-003-dynamic-form/browser-run-skipped.json",
+      "docs/engineering/evidence/f-sol-003-dynamic-form/browser-run-passed.json"
+    ],
+    "failureResultTargets": [
+      "docs/engineering/evidence/f-sol-003-dynamic-form/browser-run-skipped-failed.json",
+      "docs/engineering/evidence/f-sol-003-dynamic-form/browser-run-passed-failed.json"
+    ],
+    "command": "NPDMS_BROWSER_BASE_URL=http://127.0.0.1:19081 NPDMS_BROWSER_API_URL=http://127.0.0.1:59280/admin-api NPDMS_CROSS_TENANT_API_URL=http://127.0.0.1:59282/admin-api node scripts/tests/run_fsol003_dynamic_form_browser_acceptance.cjs docs/engineering/evidence/f-sol-003-dynamic-form"
+  },
+  "requiredRuntime": {
+    "frontend": "宿主机验收Vite，固定http://127.0.0.1:19081，不占用开发端口18081",
+    "backend": "宿主机验收JDK 25，主后端http://127.0.0.1:59280/admin-api，跨租户后端http://127.0.0.1:59282/admin-api，不占用开发端口58080",
+    "database": "固定隔离Compose项目npdms-50eb-test，npdms_test，MySQL端口23316，V1至V105",
+    "redis": "固定隔离Redis端口26379",
+    "objectStorage": "真实MinIO宿主端口19000，bucket npdms",
+    "securityScan": "SKIPPED轮关闭；PASSED轮连接真实ClamAV端口33310",
+    "browser": "Playwright驱动真实Chromium",
+    "browserDependency": "运行进程需能require('playwright')；Codex桌面可设置NODE_PATH为工作区Node packages，或显式设置NPDMS_PLAYWRIGHT_MODULE",
+    "fixtures": [
+      "V105固定高段ACTIVE/S1浏览器项目；项目manager_id=1，冻结完整S0至S6项目模板发布修订及兼容WorkBinding",
+      "脚本读取项目冻结发布修订，通过公开REST创建隔离项目模板DRAFT，先验证不兼容发布失败、再验证兼容发布成功，结束时停用",
+      "脚本通过公开REST创建只读/非经理用户与角色、分配菜单和PROJECT_VIEW，结束时撤销授权并删除用户角色",
+      "脚本通过公开REST创建临时租户套餐及第二租户，使用公开/system/auth/login取得访问令牌，结束时删除租户与套餐"
+    ],
+    "requiredEnvironmentVariables": [
+      "NPDMS_MINIO_ACCESS_KEY",
+      "NPDMS_MINIO_ACCESS_SECRET",
+      "NPDMS_EXPECTED_SCAN=SKIPPED或PASSED"
+    ],
+    "optionalOverrides": [
+      "NPDMS_FSOL003_PROJECT_ID（默认992203060001）",
+      "NPDMS_BROWSER_BASE_URL（默认http://127.0.0.1:19081）",
+      "NPDMS_BROWSER_API_URL（默认http://127.0.0.1:59280/admin-api）",
+      "NPDMS_CROSS_TENANT_API_URL（默认http://127.0.0.1:59282/admin-api）"
+    ]
+  },
+  "plannedBrowserMatrix": {
+    "workBinding": [
+      "模板管理员通过公开REST把缺核心字段修订绑定到PRE-04时发布失败且零发布成功事实",
+      "同一DRAFT改为11个核心富文本及11个唯一附件槽位的兼容修订后发布成功",
+      "项目实例冻结明确发布修订，项目用户工作区不存在模板选择或切换入口"
+    ],
+    "v1Positive": [
+      "经理通过项目工作区创建V1草稿",
+      "三个必填富文本为空时UI不投影COMPLETE，强制完成由服务端拒绝",
+      "填写三个必填字段并保存，刷新权威普通值保持",
+      "真实MinIO受控文件完成首次上传、换版、解绑和新槽位重绑；PLT当前ACTIVE引用立即作为唯一文件真值，刷新保持",
+      "V1完成后正文、Schema及普通值冻结；PLT当前ACTIVE文件引用继续作为文件真值"
+    ],
+    "v2RevisionAndRecovery": [
+      "从V1创建V2，SOL根和PLT业务实例均为新身份，V1保持不可变",
+      "未保存正文阻止打开历史/切换版本，取消导航后保留当前编辑值",
+      "PATCH到达服务端后浏览器主动丢弃响应，客户端沿用原Idempotency-Key读取权威事实恢复，不产生第二次成功事实",
+      "V1/V2历史和基于稳定fieldKey的即时对比可见",
+      "V2完成后原子替换V1成为唯一当前有效版本"
+    ],
+    "negativeFacts": [
+      "缺必填值形成REQUIRED_VALUE_MISSING并阻断完成",
+      "不兼容Schema绑定发布失败",
+      "通过公开文件invalidate命令使冻结FileVersion失效，形成CONTROLLED_FILE_INVALID且COMPLETE不投影",
+      "上传新版本恢复有效文件事实后阻断解除并允许完成"
+    ],
+    "authorization": [
+      "获权只读成员可查看完成版本但无保存、完成或创建修订动作，强制创建修订被服务端拒绝",
+      "非当前经理成员同样由服务端拒绝且SOL/PLT版本均不变化",
+      "第二租户无法读取源租户Preparation事实"
+    ],
+    "responsiveAndDiagnostics": {
+      "widths": [320, 768, 1024, 1440],
+      "assertions": [
+        "document scrollWidth不大于clientWidth",
+        "每个宽度保存完整页面截图",
+        "意外console error为零",
+        "意外page error为零",
+        "意外request failure为零",
+        "意外HTTP错误为零",
+        "响应未知注入和授权拒绝单独记录为预期诊断"
+      ]
+    }
+  },
+  "acceptanceCriteria": {
+    "AC-FSOL003-001": "PASS - 公开REST完成兼容WorkBinding发布，项目工作区无模板选择",
+    "AC-FSOL003-002": "PASS - 不兼容Schema发布失败，兼容11核心及11附件槽位修订发布成功，必填值失败关闭",
+    "AC-FSOL003-003": "PASS - 双版本部分PATCH、文件上传换版解绑及两类响应未知恢复",
+    "AC-FSOL003-004": "PASS - 公开INVALIDATE后刷新投影不可用文件事实与CONTROLLED_FILE_INVALID，COMPLETE不投影",
+    "AC-FSOL003-005": "PASS - V1完成、V2新草稿及完成后替换当前有效版本，V1保持不可变",
+    "AC-FSOL003-006": "PASS - 历史抽屉及稳定fieldKey即时对比可见",
+    "AC-FSOL003-007": "PASS - 获权只读、非经理和第二租户负向均由服务端拒绝且无成功副作用",
+    "AC-FSOL003-012": "PASS - SKIPPED与PASSED真实Chromium完整UI/REST闭环，320/768/1024/1440无横向溢出",
+    "AC-FSOL003-014": "PASS - WorkBinding自动选模后完成V1填写与文件生命周期、V2修订、历史对比、dirty阻断、响应未知恢复及权限负向；两轮意外console/page/request/response均为零",
+    "AC-FSOL003-017": "PASS - 当前经理通过公开INVALIDATE使受控文件权威事实变为不可用，刷新后CONTROLLED_FILE_INVALID阻断完成；只读、非经理与第二租户未获得管理成功事实"
+  },
+  "runs": {
+    "SKIPPED": {
+      "rawResult": "docs/engineering/evidence/f-sol-003-dynamic-form/browser-run-skipped.json",
+      "capturedAt": "2026-08-28T07:28:23.576Z",
+      "status": "PASSED",
+      "pass": true,
+      "unexpectedDiagnostics": 0
+    },
+    "PASSED": {
+      "rawResult": "docs/engineering/evidence/f-sol-003-dynamic-form/browser-run-passed.json",
+      "capturedAt": "2026-08-28T07:31:47.753Z",
+      "status": "PASSED",
+      "pass": true,
+      "unexpectedDiagnostics": 0
+    }
+  },
+  "currentBlockers": [],
+  "independentReview": {
+    "status": "NOT_REQUESTED",
+    "reviewOwner": "NPDMS方案评审角色"
+  }
+}

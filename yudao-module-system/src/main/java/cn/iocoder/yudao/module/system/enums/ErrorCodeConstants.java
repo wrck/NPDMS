@@ -55,6 +55,14 @@ public interface ErrorCodeConstants {
     ErrorCode DEPT_PARENT_ERROR = new ErrorCode(1_002_004_004, "不能设置自己为父部门");
     ErrorCode DEPT_NOT_ENABLE = new ErrorCode(1_002_004_006, "部门({})不处于开启状态，不允许选择");
     ErrorCode DEPT_PARENT_IS_CHILD = new ErrorCode(1_002_004_007, "不能设置自己的子部门为父部门");
+    ErrorCode DEPT_CODE_DUPLICATE = new ErrorCode(1_002_004_008, "已经存在该编码的部门");
+
+    // ========== 公司模块 1-002-029-000 ==========
+    ErrorCode COMPANY_NOT_FOUND = new ErrorCode(1_002_029_000, "当前公司不存在");
+    ErrorCode COMPANY_NOT_ENABLE = new ErrorCode(1_002_029_001, "公司({})不处于开启状态，不允许选择");
+    ErrorCode COMPANY_CODE_DUPLICATE = new ErrorCode(1_002_029_002, "已经存在该编码的公司");
+    ErrorCode COMPANY_VERSION_CONFLICT = new ErrorCode(1_002_029_003, "公司数据已变更，请刷新后重试");
+    ErrorCode COMPANY_STATUS_INVALID = new ErrorCode(1_002_029_004, "公司状态不合法");
 
     // ========== 岗位模块 1-002-005-000 ==========
     ErrorCode POST_NOT_FOUND = new ErrorCode(1_002_005_000, "当前岗位不存在");
@@ -167,5 +175,11 @@ public interface ErrorCodeConstants {
 
     // ========== 站内信发送 1-002-028-000 ==========
     ErrorCode NOTIFY_SEND_TEMPLATE_PARAM_MISS = new ErrorCode(1_002_028_000, "模板参数({})缺失");
+    ErrorCode NOTIFY_DELIVERY_KEY_INVALID = new ErrorCode(1_002_028_001, "站内信投递键不合法");
+    ErrorCode NOTIFY_DELIVERY_KEY_CONFLICT = new ErrorCode(1_002_028_002, "站内信投递键对应的消息事实不一致");
+
+    // ========== 组织范围 1-002-029-100 ==========
+    ErrorCode ORGANIZATION_SCOPE_INVALID_ARGUMENT = new ErrorCode(1_002_029_100, "组织候选查询参数不合法");
+    ErrorCode ORGANIZATION_SCOPE_INVALID = new ErrorCode(1_002_029_101, "组织范围不存在、已停用或编码不一致");
 
 }

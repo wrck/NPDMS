@@ -193,7 +193,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="fileUrl">
-            <UploadFile v-model="form.fileUrl" />
+            <UploadFile v-model="form.fileUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -218,10 +218,10 @@
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
       </el-descriptions-item>
       <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_TYPE" :value="current.briefingType" />
+        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_TYPE" :value="current.briefingType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_BRIEFING_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="编制人">
         <UserTag v-if="current.creatorUserId" :user-id="current.creatorUserId" />
@@ -248,7 +248,7 @@
 
   <!-- 生成对话框 -->
   <Dialog v-model="generateVisible" title="生成交底书" width="560px">
-    <el-form ref="generateFormRef" :model="generateForm" label-width="120px">
+    <el-form :model="generateForm" label-width="120px">
       <el-form-item label="交底书">{{ generateForm.code }}</el-form-item>
       <el-form-item label="模板ID" prop="templateId">
         <el-input-number v-model="generateForm.templateId" :min="0" class="!w-full" placeholder="可选，关联交底书模板ID" />
@@ -336,7 +336,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<BriefingVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   briefingType: 'STANDARD',
@@ -392,7 +392,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<BriefingVO>({})
+const current = ref<Partial<BriefingVO>>({})
 const openDetail = async (row: BriefingVO) => {
   current.value = await BriefingApi.getBriefing(row.id!)
   detailVisible.value = true
@@ -400,7 +400,6 @@ const openDetail = async (row: BriefingVO) => {
 
 // 生成
 const generateVisible = ref(false)
-const generateFormRef = ref()
 const generateForm = reactive({
   id: undefined as number | undefined,
   code: '',

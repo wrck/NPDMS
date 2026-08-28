@@ -90,16 +90,6 @@
           placeholder="请选择项目"
         />
       </el-form-item>
-      <el-form-item label="阶段模板">
-        <PmsEntitySelect
-          v-model="form.templateId"
-          :api="PhaseTemplateApi.getProjectPhaseTemplatePage"
-          label-field="name"
-          value-field="id"
-          query-field="name"
-          placeholder="请选择阶段模板"
-        />
-      </el-form-item>
       <el-form-item label="阶段名称" prop="name"><el-input v-model="form.name" /></el-form-item>
       <el-form-item label="阶段编码" prop="code"><el-input v-model="form.code" /></el-form-item>
       <el-form-item label="排序号">
@@ -180,7 +170,6 @@ import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectPhaseApi from '@/api/pms/project/project-phase'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as UserApi from '@/api/system/user'
-import * as PhaseTemplateApi from '@/api/pms/project/project-phase-template'
 import type { ProjectPhaseVO, ProjectPhaseCompleteReqVO } from '@/api/pms/project/project-phase'
 
 defineOptions({ name: 'PmsProjectPhase' })
@@ -212,7 +201,7 @@ const rules = {
 const completeVisible = ref(false)
 const completeFormRef = ref()
 const completeForm = reactive<ProjectPhaseCompleteReqVO>({
-  phaseId: undefined,
+  phaseId: undefined!,
   gateEvidence: '',
   version: 0
 })

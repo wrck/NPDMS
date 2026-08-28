@@ -133,7 +133,7 @@
     <el-descriptions :column="3" border class="mb-15px">
       <el-descriptions-item label="批次编号">{{ current.batchNo }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_BATCH_CHANGE_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_BATCH_CHANGE_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="总数/成功/失败">
         {{ current.totalCount }} / {{ current.successCount }} / {{ current.failureCount }}
@@ -164,7 +164,6 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as BatchChangeApi from '@/api/pms/project/batch-change'
 import * as ProjectApi from '@/api/pms/project/project'
 import * as UserApi from '@/api/system/user'
-import UserTag from '@/components/UserTag/index.vue'
 import type { TeamBatchChangeItemVO, TeamBatchChangeVO } from '@/api/pms/project/batch-change'
 
 defineOptions({ name: 'PmsTeamBatchChange' })
@@ -183,8 +182,8 @@ const query = reactive({
 const createVisible = ref(false)
 const formRef = ref()
 const form = reactive<TeamBatchChangeVO>({
-  sourceUserId: undefined,
-  targetUserId: undefined,
+  sourceUserId: undefined!,
+  targetUserId: undefined!,
   scopeType: 'SELECTED',
   projectIds: [],
   reason: '',
@@ -196,7 +195,7 @@ const rules = {
   scopeType: [{ required: true, message: '请选择范围' }]
 }
 const detailVisible = ref(false)
-const current = ref<TeamBatchChangeVO>({})
+const current = ref<Partial<TeamBatchChangeVO>>({})
 const detailItems = ref<TeamBatchChangeItemVO[]>([])
 
 const load = async () => {

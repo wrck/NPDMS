@@ -20,7 +20,7 @@ export interface CompletionCertificateVO {
 
 const baseUrl = '/pms/acc-completion-certificate'
 
-export const getCompletionCertificatePage = (params: PageParam) =>
+export const getCompletionCertificatePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getCompletionCertificate = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

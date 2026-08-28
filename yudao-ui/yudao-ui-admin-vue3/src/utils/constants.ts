@@ -4,6 +4,9 @@
  * 枚举类
  */
 
+import dingtalkLogo from '@/assets/svgs/dingtalk.svg'
+import wecomLogo from '@/assets/svgs/wecom.svg'
+
 // ========== COMMON 模块 ==========
 // 全局通用状态枚举
 export const CommonStatusEnum = {
@@ -54,13 +57,13 @@ export const SystemUserSocialTypeEnum = {
     title: '钉钉',
     type: 20,
     source: 'dingtalk',
-    img: 'https://s1.ax1x.com/2022/05/22/OzMDRs.png'
+    img: dingtalkLogo
   },
   WECHAT_ENTERPRISE: {
     title: '企业微信',
     type: 30,
     source: 'wechat_enterprise',
-    img: 'https://s1.ax1x.com/2022/05/22/OzMrzn.png'
+    img: wecomLogo
   }
 }
 

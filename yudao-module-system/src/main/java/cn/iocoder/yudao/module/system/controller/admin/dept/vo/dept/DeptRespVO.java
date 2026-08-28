@@ -12,6 +12,9 @@ public class DeptRespVO {
     @Schema(description = "部门编号", example = "1024")
     private Long id;
 
+    @Schema(description = "统一部门编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "DEPT-HZ-01")
+    private String code;
+
     @Schema(description = "部门名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "NPMS")
     private String name;
 
@@ -32,6 +35,9 @@ public class DeptRespVO {
 
     @Schema(description = "状态,见 CommonStatusEnum 枚举", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Integer status;
+
+    @Schema(description = "乐观锁版本", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
+    private Integer version;
 
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED, example = "时间戳格式")
     private LocalDateTime createTime;

@@ -5,7 +5,11 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosurePageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.query.ProjectClosureGuardListQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 @Mapper
 public interface ProjectClosureMapper extends BaseMapperX<ProjectClosureDO> {
@@ -15,6 +19,9 @@ public interface ProjectClosureMapper extends BaseMapperX<ProjectClosureDO> {
                 .eq(ProjectClosureDO::getProjectId, projectId)
                 .eq(ProjectClosureDO::getCode, code));
     }
+
+    List<ProjectClosureDO> selectListForClosureGuard(
+            @Param("query") ProjectClosureGuardListQuery query);
 
     default PageResult<ProjectClosureDO> selectPage(ProjectClosurePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ProjectClosureDO>()

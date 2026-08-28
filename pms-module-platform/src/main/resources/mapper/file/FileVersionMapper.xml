@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id">
+        INSERT INTO plt_file_version
+            (artifact_id, version_no, infra_file_id, availability_version, sha256, size_bytes,
+             declared_media_type, detected_media_type, scan_status_code, scan_provider_code,
+             scan_provider_version, availability_status_code, unavailable_reason_code,
+             unavailable_at, version_note, created_by, created_at, tenant_id)
+        VALUES
+            (#{row.artifactId}, #{row.versionNo}, #{row.infraFileId}, #{row.availabilityVersion},
+             #{row.sha256}, #{row.sizeBytes}, #{row.declaredMediaType}, #{row.detectedMediaType},
+             #{row.scanStatusCode}, #{row.scanProviderCode}, #{row.scanProviderVersion},
+             #{row.availabilityStatusCode}, #{row.unavailableReasonCode}, #{row.unavailableAt},
+             #{row.versionNote}, #{row.createdBy}, #{row.createdAt}, #{row.tenantId})
+    </insert>
+
+    <select id="selectOne"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO">
+        SELECT id, artifact_id, version_no, infra_file_id, availability_version, sha256, size_bytes,
+               declared_media_type, detected_media_type, scan_status_code, scan_provider_code,
+               scan_provider_version, availability_status_code, unavailable_reason_code,
+               unavailable_at, version_note, created_by, created_at, tenant_id
+        FROM plt_file_version
+        WHERE tenant_id = #{query.tenantId}
+          AND artifact_id = #{query.artifactId}
+          AND version_no = #{query.versionNo}
+    </select>
+
+    <select id="selectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO">
+        SELECT id, artifact_id, version_no, infra_file_id, availability_version, sha256, size_bytes,
+               declared_media_type, detected_media_type, scan_status_code, scan_provider_code,
+               scan_provider_version, availability_status_code, unavailable_reason_code,
+               unavailable_at, version_note, created_by, created_at, tenant_id
+        FROM plt_file_version
+        WHERE tenant_id = #{query.tenantId}
+          AND artifact_id = #{query.artifactId}
+          AND version_no = #{query.versionNo}
+        FOR UPDATE
+    </select>
+
+    <select id="selectCursor"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO">
+        SELECT id, artifact_id, version_no, infra_file_id, availability_version, sha256, size_bytes,
+               declared_media_type, detected_media_type, scan_status_code, scan_provider_code,
+               scan_provider_version, availability_status_code, unavailable_reason_code,
+               unavailable_at, version_note, created_by, created_at, tenant_id
+        FROM plt_file_version
+        WHERE tenant_id = #{query.tenantId}
+          AND artifact_id = #{query.artifactId}
+        <if test="query.afterVersionNo != null and query.afterId != null">
+          AND (version_no &lt; #{query.afterVersionNo}
+               OR (version_no = #{query.afterVersionNo} AND id &lt; #{query.afterId}))
+        </if>
+        ORDER BY version_no DESC, id DESC
+        LIMIT #{query.limit}
+    </select>
+
+    <select id="selectByInfraFileIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO">
+        SELECT id, artifact_id, version_no, infra_file_id, availability_version, sha256, size_bytes,
+               declared_media_type, detected_media_type, scan_status_code, scan_provider_code,
+               scan_provider_version, availability_status_code, unavailable_reason_code,
+               unavailable_at, version_note, created_by, created_at, tenant_id
+        FROM plt_file_version
+        WHERE tenant_id = #{query.tenantId}
+          AND infra_file_id = #{query.infraFileId}
+        FOR UPDATE
+    </select>
+
+    <update id="updateAvailabilityIfMatch">
+        UPDATE plt_file_version
+        SET availability_status_code = #{query.targetStatus},
+            unavailable_reason_code = #{query.reasonCode},
+            unavailable_at = CASE WHEN #{query.targetStatus} = 'AVAILABLE' THEN NULL ELSE #{query.occurredAt} END,
+            availability_version = availability_version + 1
+        WHERE tenant_id = #{query.tenantId}
+          AND artifact_id = #{query.artifactId}
+          AND version_no = #{query.versionNo}
+          AND availability_version = #{query.expectedAvailabilityVersion}
+          AND availability_status_code = #{query.expectedStatus}
+    </update>
+</mapper>

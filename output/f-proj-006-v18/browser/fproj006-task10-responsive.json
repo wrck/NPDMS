@@ -1,0 +1,200 @@
+{
+  "capturedAt": "2026-08-25T11:11:33.045Z",
+  "chromeVersion": "151.0.7922.173",
+  "baseUrl": "http://127.0.0.1:18083",
+  "projectId": 992002000000,
+  "results": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:18083/pms/project-management/project-master-detail?projectId=992002000000",
+      "title": "项目实施交付管理平台 - 项目详情",
+      "panelMeasure": {
+        "viewportWidth": 1440,
+        "documentClientWidth": 1440,
+        "documentScrollWidth": 1440,
+        "bodyClientWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflow": false
+      },
+      "refreshMeasure": {
+        "viewportWidth": 1440,
+        "documentClientWidth": 1440,
+        "documentScrollWidth": 1440,
+        "bodyClientWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflow": false
+      },
+      "actionButtons": {
+        "rollback": 1,
+        "exceptionClose": 1,
+        "reopen": 0
+      },
+      "rollback": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "exceptionClose": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "historyEmptyAfterRefresh": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": [],
+      "screenshot": "M:/AICoding/CodexData/worktrees/50eb/NPDMS/output/f-proj-006-v18/browser/fproj006-task10-1440.png"
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "url": "http://127.0.0.1:18083/pms/project-management/project-master-detail?projectId=992002000000",
+      "title": "项目实施交付管理平台 - 项目详情",
+      "panelMeasure": {
+        "viewportWidth": 1024,
+        "documentClientWidth": 1024,
+        "documentScrollWidth": 1024,
+        "bodyClientWidth": 1024,
+        "bodyScrollWidth": 1024,
+        "horizontalOverflow": false
+      },
+      "refreshMeasure": {
+        "viewportWidth": 1024,
+        "documentClientWidth": 1024,
+        "documentScrollWidth": 1024,
+        "bodyClientWidth": 1024,
+        "bodyScrollWidth": 1024,
+        "horizontalOverflow": false
+      },
+      "actionButtons": {
+        "rollback": 1,
+        "exceptionClose": 1,
+        "reopen": 0
+      },
+      "rollback": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "exceptionClose": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "historyEmptyAfterRefresh": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": [],
+      "screenshot": "M:/AICoding/CodexData/worktrees/50eb/NPDMS/output/f-proj-006-v18/browser/fproj006-task10-1024.png"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:18083/pms/project-management/project-master-detail?projectId=992002000000",
+      "title": "项目实施交付管理平台 - 项目详情",
+      "panelMeasure": {
+        "viewportWidth": 768,
+        "documentClientWidth": 768,
+        "documentScrollWidth": 768,
+        "bodyClientWidth": 768,
+        "bodyScrollWidth": 768,
+        "horizontalOverflow": false
+      },
+      "refreshMeasure": {
+        "viewportWidth": 768,
+        "documentClientWidth": 768,
+        "documentScrollWidth": 768,
+        "bodyClientWidth": 768,
+        "bodyScrollWidth": 768,
+        "horizontalOverflow": false
+      },
+      "actionButtons": {
+        "rollback": 1,
+        "exceptionClose": 1,
+        "reopen": 0
+      },
+      "rollback": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "exceptionClose": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "historyEmptyAfterRefresh": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": [],
+      "screenshot": "M:/AICoding/CodexData/worktrees/50eb/NPDMS/output/f-proj-006-v18/browser/fproj006-task10-768.png"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:18083/pms/project-management/project-master-detail?projectId=992002000000",
+      "title": "项目实施交付管理平台 - 项目详情",
+      "panelMeasure": {
+        "viewportWidth": 320,
+        "documentClientWidth": 320,
+        "documentScrollWidth": 320,
+        "bodyClientWidth": 320,
+        "bodyScrollWidth": 320,
+        "horizontalOverflow": false
+      },
+      "refreshMeasure": {
+        "viewportWidth": 320,
+        "documentClientWidth": 320,
+        "documentScrollWidth": 320,
+        "bodyClientWidth": 320,
+        "bodyScrollWidth": 320,
+        "horizontalOverflow": false
+      },
+      "actionButtons": {
+        "rollback": 1,
+        "exceptionClose": 1,
+        "reopen": 0
+      },
+      "rollback": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "exceptionClose": {
+        "blockerCount": 32,
+        "collectionUnavailable": true,
+        "bpmUnavailable": false,
+        "confirmActionVisible": 0,
+        "dialogOverflow": false
+      },
+      "historyEmptyAfterRefresh": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedResponses": [],
+      "screenshot": "M:/AICoding/CodexData/worktrees/50eb/NPDMS/output/f-proj-006-v18/browser/fproj006-task10-320.png"
+    }
+  ]
+}

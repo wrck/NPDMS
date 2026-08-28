@@ -108,6 +108,13 @@
             <artifactId>tika-core</artifactId> <!-- 文件客户端：文件类型的识别 -->
         </dependency>
 
+        <!-- Test 测试相关 -->
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>yudao-spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>

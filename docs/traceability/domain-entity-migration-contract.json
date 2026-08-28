@@ -1,0 +1,3656 @@
+{
+  "schemaVersion": 1,
+  "status": "BASELINE",
+  "baseline": "PRD_V1.8",
+  "implementationRepo": "E:\\AICoding\\Projects\\NPDMS",
+  "implementationCommit": "a9f8b7c568546839d3d641531f8036bb75889a82",
+  "implementationEvidenceMode": "PINNED_GIT_COMMIT",
+  "bindingStatistics": {
+    "allBindingCount": 40,
+    "v17BindingCount": 18,
+    "v17LegacyBindingCount": 14,
+    "v17LegacySourceTableCount": 8,
+    "v17LegacySourceFieldCount": 19,
+    "v17LegacyUniqueSourceFieldCount": 19
+  },
+  "excludedSources": [
+    {
+      "sourceType": "LEGACY_TABLE",
+      "sourceObject": "pm_project_maintenance",
+      "disposition": "EXCLUDED",
+      "mappingStatus": "NO_MIGRATION",
+      "gate": "USER_CONFIRMED_EXCLUSION",
+      "transform": "NO_MIGRATION: requirement owner confirmed on 2026-08-13 that the complete table is excluded; retain table-level extraction audit metadata only",
+      "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_maintenance",
+      "exclusionAudit": {
+        "decisionDate": "2026-08-13",
+        "decisionSource": "REQUIREMENT_OWNER_CONFIRMATION",
+        "sourceTable": "pm_project_maintenance",
+        "rowCount": null,
+        "extractionBatchSha256": null,
+        "auditStatus": "PENDING_EXTRACTION_AUDIT"
+      }
+    }
+  ],
+  "objectTableMap": {
+    "Project": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "INT-01",
+        "PM-01",
+        "PM-07",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project"
+      ]
+    },
+    "ProjectHierarchy": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "proj_project"
+      ]
+    },
+    "ProjectAncestorProjection": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "proj_project_tree_path"
+      ]
+    },
+    "ProjectTemplate": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_template_revision",
+        "proj_project_template_task_definition"
+      ]
+    },
+    "ProjectTemplateMatchHistory": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-07"
+      ],
+      "targetTables": [
+        "proj_project_template_match_history"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-07"
+    },
+    "ProjectTask": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task"
+      ]
+    },
+    "TaskWorkBinding": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionRule": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ]
+    },
+    "TaskCompletionEvaluation": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_completion_evaluation"
+      ]
+    },
+    "TaskAncestorProjection": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_task_tree_path"
+      ]
+    },
+    "TaskDependency": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_task_dependency"
+      ]
+    },
+    "ProjectMemberAssignment": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-01",
+        "PM-08",
+        "PM-09"
+      ],
+      "targetTables": [
+        "proj_project_member_assignment"
+      ]
+    },
+    "ProjectPortfolio": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PROJ-12"
+      ],
+      "targetTables": [
+        "proj_project_portfolio",
+        "proj_project_portfolio_member",
+        "proj_project_portfolio_revision"
+      ]
+    },
+    "ProjectStageSnapshot": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-03",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project_stage_snapshot"
+      ]
+    },
+    "BorrowedProjectConversion": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion"
+      ]
+    },
+    "ConversionItem": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion_item"
+      ]
+    },
+    "ConversionDeviceDisposition": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion_device"
+      ]
+    },
+    "MultiPhaseProjectGroup": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_multi_phase_project_group"
+      ]
+    },
+    "MultiPhaseProjectMember": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_multi_phase_project_member"
+      ]
+    },
+    "CrossPhaseContentReference": {
+      "owner": "PROJ",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_project_cross_phase_reference"
+      ]
+    },
+    "Preparation": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PRE-02",
+        "PRE-03",
+        "PRE-04",
+        "PRE-05"
+      ],
+      "targetTables": [
+        "sol_preparation",
+        "sol_preparation_item"
+      ]
+    },
+    "ConstructionPlan": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PLN-01",
+        "PLN-02",
+        "PLN-03",
+        "PLN-04",
+        "PRE-01"
+      ],
+      "targetTables": [
+        "sol_construction_plan",
+        "sol_construction_plan_revision",
+        "sol_construction_plan_item",
+        "sol_construction_plan_change"
+      ]
+    },
+    "Solution": {
+      "owner": "SOL",
+      "requirementIds": [
+        "SCH-01",
+        "SCH-02",
+        "SCH-03",
+        "SCH-04",
+        "SCH-05"
+      ],
+      "targetTables": [
+        "sol_solution",
+        "sol_solution_revision",
+        "sol_solution_review"
+      ]
+    },
+    "PreparationDynamicFormInstance": {
+      "owner": "SOL",
+      "requirementIds": [
+        "PRE-02"
+      ],
+      "targetTables": [
+        "sol_dynamic_form_instance"
+      ]
+    },
+    "DynamicFormTemplate": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template"
+      ]
+    },
+    "DynamicFormTemplateRevision": {
+      "owner": "PLT",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template_revision"
+      ]
+    },
+    "DynamicFormInstance": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PRE-04",
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_instance"
+      ]
+    },
+    "ArrivalAcceptance": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-01"
+      ],
+      "targetTables": [
+        "imp_arrival_acceptance",
+        "imp_arrival_line",
+        "imp_arrival_difference"
+      ]
+    },
+    "InstallationRecord": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-02"
+      ],
+      "targetTables": [
+        "imp_installation_record",
+        "imp_installation_item",
+        "imp_installation_evidence"
+      ]
+    },
+    "ConfigurationCollectionResult": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-03"
+      ],
+      "targetTables": [
+        "imp_configuration_collection_result",
+        "imp_configuration_collection_parse_attempt",
+        "imp_configuration_component_candidate"
+      ]
+    },
+    "JointDebuggingResult": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-04"
+      ],
+      "targetTables": [
+        "imp_joint_debugging_result",
+        "imp_joint_debugging_item"
+      ]
+    },
+    "ImplementationRisk": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-05"
+      ],
+      "targetTables": [
+        "imp_risk",
+        "imp_risk_treatment"
+      ]
+    },
+    "ImplementationQualityCheck": {
+      "owner": "IMP",
+      "requirementIds": [
+        "IMP-01"
+      ],
+      "targetTables": [
+        "imp_quality_check",
+        "imp_quality_item",
+        "imp_quality_remediation",
+        "imp_quality_review"
+      ]
+    },
+    "DeliveryEvidence": {
+      "owner": "IMP",
+      "requirementIds": [
+        "IMP-01"
+      ],
+      "targetTables": [
+        "imp_delivery_evidence",
+        "imp_delivery_evidence_revision"
+      ]
+    },
+    "ImplementationReadinessSnapshot": {
+      "owner": "IMP",
+      "requirementIds": [
+        "EXE-06"
+      ],
+      "targetTables": [
+        "imp_implementation_readiness_snapshot"
+      ]
+    },
+    "Acceptance": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-01",
+        "ACC-03"
+      ],
+      "targetTables": [
+        "acc_acceptance",
+        "acc_acceptance_item",
+        "acc_confirmation"
+      ]
+    },
+    "SatisfactionCollection": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "acc_satisfaction_collection_task",
+        "acc_satisfaction_questionnaire",
+        "acc_satisfaction_response",
+        "acc_satisfaction_result"
+      ]
+    },
+    "DeliveryArtifact": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-04"
+      ],
+      "targetTables": [
+        "acc_delivery_artifact",
+        "acc_artifact_review",
+        "acc_archive_record"
+      ]
+    },
+    "ProjectClosure": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-06",
+        "CLO-01",
+        "CLO-02"
+      ],
+      "targetTables": [
+        "acc_project_closure",
+        "acc_closure_review"
+      ]
+    },
+    "ClosureGateSnapshot": {
+      "owner": "ACC",
+      "requirementIds": [
+        "CLO-01",
+        "CLO-02"
+      ],
+      "targetTables": [
+        "acc_closure_gate_snapshot"
+      ]
+    },
+    "ServiceHandover": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-06"
+      ],
+      "targetTables": [
+        "acc_service_handover",
+        "acc_handover_item",
+        "acc_handover_result"
+      ]
+    },
+    "CutoverTask": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-03",
+        "CUT-08",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "cut_task"
+      ]
+    },
+    "CutoverAssessment": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "cut_assessment"
+      ]
+    },
+    "CutoverChecklist": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-03"
+      ],
+      "targetTables": [
+        "cut_cutover_checklist",
+        "cut_cutover_checklist_item",
+        "cut_cutover_checklist_item_result"
+      ]
+    },
+    "CutoverPlan": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-04",
+        "CUT-05"
+      ],
+      "targetTables": [
+        "cut_plan_revision",
+        "cut_step"
+      ]
+    },
+    "CutoverConfigurationRevision": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-07"
+      ],
+      "targetTables": [
+        "cut_cutover_configuration_revision",
+        "cut_cutover_checklist_item_definition_revision",
+        "cut_cutover_checklist_binding_rule_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-07"
+    },
+    "CutoverSupportArrangement": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-04"
+      ],
+      "targetTables": [
+        "cut_cutover_support_arrangement"
+      ]
+    },
+    "CutoverClosure": {
+      "owner": "CUT",
+      "requirementIds": [
+        "CUT-06"
+      ],
+      "targetTables": [
+        "cut_cutover_closure"
+      ]
+    },
+    "InspectionTask": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07"
+      ],
+      "targetTables": [
+        "srv_inspection_task",
+        "srv_inspection_task_rule_snapshot"
+      ]
+    },
+    "InspectionRule": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-03",
+        "INS-09"
+      ],
+      "targetTables": [
+        "srv_inspection_rule",
+        "srv_inspection_rule_revision"
+      ]
+    },
+    "InspectionReport": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-05",
+        "INT-06"
+      ],
+      "targetTables": [
+        "srv_inspection_report_revision"
+      ]
+    },
+    "ServiceIssue": {
+      "owner": "SRV",
+      "requirementIds": [
+        "INS-06",
+        "INS-08"
+      ],
+      "targetTables": [
+        "srv_service_issue",
+        "srv_service_issue_remediation"
+      ]
+    },
+    "ServiceStatus": {
+      "owner": "SRV",
+      "requirementIds": [
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "srv_service_status"
+      ]
+    },
+    "Customer": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-03",
+        "CUS-04",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_customer_master",
+        "cus_customer_external_mapping",
+        "cus_customer_field_history"
+      ]
+    },
+    "MarketRelation": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_market_relation"
+      ]
+    },
+    "CustomerLocationReference": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_location_reference"
+      ]
+    },
+    "CustomerScopeSlice": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_scope_slice"
+      ]
+    },
+    "CustomerContact": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-04"
+      ],
+      "targetTables": [
+        "cus_customer_contact",
+        "cus_project_customer_contact_relation"
+      ]
+    },
+    "CustomerRelationshipSnapshot": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-04"
+      ],
+      "targetTables": [
+        "cus_customer_relationship_snapshot"
+      ]
+    },
+    "CustomerServiceLevelRevision": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-02"
+      ],
+      "targetTables": [
+        "cus_customer_service_level_revision"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUS-02"
+    },
+    "Device": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-04",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device"
+      ]
+    },
+    "DeviceArchive": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device",
+        "ast_device_version",
+        "ast_device_config_log"
+      ]
+    },
+    "DeviceComponentRelation": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07",
+        "EXE-03"
+      ],
+      "targetTables": [
+        "ast_device_component_relation"
+      ]
+    },
+    "DeviceCurrentAssignment": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device_current_assignment",
+        "ast_device_assignment_history"
+      ]
+    },
+    "DeviceAssignmentHistory": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device_assignment_history"
+      ]
+    },
+    "DeviceAncestorProjection": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-03"
+      ],
+      "targetTables": [
+        "ast_device_project_ancestor"
+      ]
+    },
+    "AssetSyncSnapshot": {
+      "owner": "AST",
+      "requirementIds": [
+        "EQP-04",
+        "INT-02"
+      ],
+      "targetTables": [
+        "ast_asset_sync_batch",
+        "ast_asset_sync_item",
+        "ast_device"
+      ]
+    },
+    "MaintenanceFact": {
+      "owner": "AST",
+      "requirementIds": [
+        "AST-01",
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "ast_maintenance_fact"
+      ]
+    },
+    "RMAReplacement": {
+      "owner": "AST",
+      "requirementIds": [
+        "AST-01",
+        "INT-06"
+      ],
+      "targetTables": [
+        "ast_rma_replacement"
+      ]
+    },
+    "Contract": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "com_contract"
+      ]
+    },
+    "SalesOrder": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "com_sales_order"
+      ]
+    },
+    "OrderLine": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_order_line"
+      ]
+    },
+    "DeliveryScope": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope"
+      ]
+    },
+    "DeliveryScopeDetail": {
+      "owner": "COM",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope_detail"
+      ]
+    },
+    "Supplier": {
+      "owner": "RES",
+      "requirementIds": [
+        "RES-01"
+      ],
+      "targetTables": [
+        "res_supplier",
+        "res_qualification"
+      ]
+    },
+    "SubcontractRequest": {
+      "owner": "RES",
+      "requirementIds": [
+        "SUB-01",
+        "SUB-02",
+        "SUB-05"
+      ],
+      "targetTables": [
+        "res_subcontract_request"
+      ]
+    },
+    "PaymentGate": {
+      "owner": "RES",
+      "requirementIds": [
+        "INT-07",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "res_payment_gate"
+      ]
+    },
+    "MetricDefinition": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "ana_metric_definition"
+      ]
+    },
+    "MetricSnapshot": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01",
+        "NFR-01",
+        "RPT-02"
+      ],
+      "targetTables": [
+        "ana_metric_snapshot"
+      ]
+    },
+    "PortfolioView": {
+      "owner": "ANA",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "ana_portfolio_projection"
+      ]
+    },
+    "Todo": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-05",
+        "INT-10",
+        "NFR-03",
+        "PLT-01"
+      ],
+      "targetTables": [
+        "plt_todo"
+      ]
+    },
+    "AuthorizationGrant": {
+      "owner": "PLT",
+      "requirementIds": [
+        "AUT-01",
+        "AUT-02",
+        "INT-06",
+        "INT-09"
+      ],
+      "targetTables": [
+        "plt_authorization_grant"
+      ]
+    },
+    "ChangeRequest": {
+      "owner": "PLT",
+      "requirementIds": [
+        "CHG-01"
+      ],
+      "targetTables": [
+        "plt_change_request"
+      ]
+    },
+    "FileArtifact": {
+      "owner": "PLT",
+      "requirementIds": [
+        "PLT-02",
+        "PRE-05",
+        "SCH-03"
+      ],
+      "targetTables": [
+        "plt_file_artifact",
+        "plt_file_version",
+        "plt_file_reference"
+      ]
+    },
+    "AuditRecord": {
+      "owner": "PLT",
+      "requirementIds": [
+        "NFR-01"
+      ],
+      "targetTables": [
+        "plt_operation_audit"
+      ]
+    },
+    "DeviceCredential": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_device_credential"
+      ]
+    },
+    "CredentialGrant": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_credential_grant"
+      ]
+    },
+    "CollectionTask": {
+      "owner": "PLT",
+      "requirementIds": [
+        "CUT-03",
+        "CUT-06",
+        "EXE-03",
+        "EXE-04",
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07",
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_collection_task"
+      ]
+    },
+    "DispatchAttempt": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "plt_dispatch_attempt"
+      ]
+    },
+    "CallbackRecord": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "plt_callback_record"
+      ]
+    },
+    "CollectionResultReference": {
+      "owner": "PLT",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_collection_result_reference"
+      ]
+    },
+    "TechnicalNoticeReference": {
+      "owner": "KNO",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
+    },
+    "NoticeBusinessReference": {
+      "owner": "KNO",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
+    }
+  },
+  "records": [
+    {
+      "object": "Project",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-01",
+        "PM-01",
+        "PM-07",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project",
+          "disposition": "STRUCTURED",
+          "transform": "map stable project fields; empty names become migration issues; legacy ID becomes external key",
+          "mappingStatus": "READY_FOR_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pm_project.projectCode",
+              "targetField": "proj_project.project_code",
+              "transform": "direct after normalization and permanent-key conflict check",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A20"
+            },
+            {
+              "sourceField": "pm_project.projectName",
+              "targetField": "proj_project.project_name",
+              "transform": "direct; empty value becomes migration issue",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A21"
+            },
+            {
+              "sourceField": "pm_project.projectType",
+              "targetField": "proj_project.project_type",
+              "transform": "direct with source value preserved",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A19"
+            }
+          ],
+          "statusMapping": {
+            "policy": "AI_MIG_000_EXPLICIT_VALUE_MAP",
+            "sourceFields": [
+              "pm_project.projectState",
+              "pm_project.disabled"
+            ],
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "CREATE_PROJECT_ONLY_AFTER_PERMANENT_KEY_AND_REQUIRED_NAME_VALIDATE;PRESERVE_RAW_AND_EXTERNAL_KEY_MAPPING",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project"
+        }
+      ]
+    },
+    {
+      "object": "ProjectHierarchy",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "proj_project"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_group*",
+          "disposition": "EXCLUDED",
+          "transform": "technical project-contract bridge only; migrate legacy projects as roots",
+          "mappingStatus": "CONFIRMED_EXCLUDED",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_group*"
+        }
+      ]
+    },
+    {
+      "object": "ProjectAncestorProjection",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-02",
+        "PM-04"
+      ],
+      "targetTables": [
+        "proj_project_tree_path"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "ProjectHierarchy",
+          "disposition": "REBUILD",
+          "transform": "rebuild complete ancestor projection after adjacency import",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "PROJECT_TREE_VERIFY",
+          "evidenceRef": "phase2-contract://objects=ProjectHierarchy"
+        }
+      ]
+    },
+    {
+      "object": "ProjectTemplate",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-03"
+      ],
+      "targetTables": [
+        "proj_project_template_revision",
+        "proj_project_template_task_definition"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_template_revision",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V52__proj_project_template_foundation.sql#table=proj_project_template_revision"
+        }
+      ]
+    },
+    {
+      "object": "ProjectTemplateMatchHistory",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-07"
+      ],
+      "targetTables": [
+        "proj_project_template_match_history"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_template_match_history",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V80__fproj004_template_match_history.sql#table=proj_project_template_match_history"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "PM-07"
+    },
+    {
+      "object": "ProjectTask",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_task",
+          "disposition": "STRUCTURED",
+          "transform": "map task facts; hierarchy and dependency remain separate",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_task"
+        }
+      ]
+    },
+    {
+      "object": "TaskWorkBinding",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "TaskWorkBinding",
+          "disposition": "NEW_ONLY",
+          "transform": "forward-initialize existing ProjectTask rows with explicit TASK_NATIVE contract version 1; create non-native bindings only from a published template or approved rebinding command; never infer from names, menus, URLs or modules",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "phase2-contract://object=TaskWorkBinding"
+        }
+      ]
+    },
+    {
+      "object": "TaskCompletionRule",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_execution_contract"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "TaskCompletionRule",
+          "disposition": "NEW_ONLY",
+          "transform": "create atomically with the WorkBinding contract version; do not infer target facts or rule versions from legacy completed status",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "phase2-contract://object=TaskCompletionRule"
+        }
+      ]
+    },
+    {
+      "object": "TaskCompletionEvaluation",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_project_task_completion_evaluation"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "TaskCompletionEvaluation",
+          "disposition": "NEW_ONLY",
+          "transform": "append only for new-platform completion commands after task, contract, rule and fact version validation; never fabricate historical evaluations",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=TaskCompletionEvaluation"
+        }
+      ]
+    },
+    {
+      "object": "TaskAncestorProjection",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_task_tree_path"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "ProjectTask",
+          "disposition": "REBUILD",
+          "transform": "rebuild from imported task adjacency",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "TASK_TREE_VERIFY",
+          "evidenceRef": "phase2-contract://objects=ProjectTask"
+        }
+      ]
+    },
+    {
+      "object": "TaskDependency",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-11"
+      ],
+      "targetTables": [
+        "proj_task_dependency"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_task_dependency",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V88__fproj007_project_task_runtime.sql#table=proj_task_dependency"
+        }
+      ]
+    },
+    {
+      "object": "ProjectMemberAssignment",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-01",
+        "PM-08",
+        "PM-09"
+      ],
+      "targetTables": [
+        "proj_project_member_assignment"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_member_assignment",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V57__proj_project_manual_creation.sql#table=proj_project_member_assignment"
+        }
+      ]
+    },
+    {
+      "object": "ProjectPortfolio",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PROJ-12"
+      ],
+      "targetTables": [
+        "proj_project_portfolio",
+        "proj_project_portfolio_member",
+        "proj_project_portfolio_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_project_portfolio",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve portfolio identity and active members",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V21__pms_portfolio_and_service_level.sql#table=pms_project_portfolio"
+        },
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_project_portfolio_rule",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "convert mutable rule rows into immutable portfolio revisions and freeze referenced member/rule version",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V21__pms_portfolio_and_service_level.sql#table=pms_project_portfolio_rule"
+        }
+      ]
+    },
+    {
+      "object": "ProjectStageSnapshot",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-03",
+        "PM-10"
+      ],
+      "targetTables": [
+        "proj_project_stage_snapshot"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "proj_project_stage_snapshot",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V86__fproj006_project_governance_foundation.sql#table=proj_project_stage_snapshot"
+        }
+      ]
+    },
+    {
+      "object": "BorrowedProjectConversion",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_presales_lend_2_delivery_off_from_sap",
+          "disposition": "PENDING_SOURCE_CONFIRMATION",
+          "transform": "create conversion only after source project and formal sales business resolve",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_presales_lend_2_delivery_off_from_sap"
+        }
+      ]
+    },
+    {
+      "object": "ConversionItem",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion_item"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_presales_project_product_line",
+          "disposition": "PENDING_SOURCE_CONFIRMATION",
+          "transform": "map each source object to read-only reference or derived copy with source version",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_presales_project_product_line"
+        }
+      ]
+    },
+    {
+      "object": "ConversionDeviceDisposition",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-05"
+      ],
+      "targetTables": [
+        "proj_project_conversion_device"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "fb_shipment_barcode",
+          "disposition": "RELATION",
+          "transform": "derive per-device disposition only from complete shipment/RMA/assignment event chain",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=fb_shipment_barcode"
+        }
+      ]
+    },
+    {
+      "object": "MultiPhaseProjectGroup",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_multi_phase_project_group"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "MultiPhaseProjectGroup",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=MultiPhaseProjectGroup"
+        }
+      ]
+    },
+    {
+      "object": "MultiPhaseProjectMember",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_multi_phase_project_member"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "MultiPhaseProjectMember",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=MultiPhaseProjectMember"
+        }
+      ]
+    },
+    {
+      "object": "CrossPhaseContentReference",
+      "owner": "PROJ",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PM-06"
+      ],
+      "targetTables": [
+        "proj_project_cross_phase_reference"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CrossPhaseContentReference",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CrossPhaseContentReference"
+        }
+      ]
+    },
+    {
+      "object": "Preparation",
+      "owner": "SOL",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PRE-02",
+        "PRE-03",
+        "PRE-04",
+        "PRE-05"
+      ],
+      "targetTables": [
+        "sol_preparation",
+        "sol_preparation_item"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_site_survey|pms_eng_requirement|pms_eng_resource_ready|pms_eng_briefing",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "split source type, preserve every submission, map to Preparation revisions",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_site_survey;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_requirement;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_resource_ready;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_briefing"
+        }
+      ]
+    },
+    {
+      "object": "ConstructionPlan",
+      "owner": "SOL",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PLN-01",
+        "PLN-02",
+        "PLN-03",
+        "PLN-04",
+        "PRE-01"
+      ],
+      "targetTables": [
+        "sol_construction_plan",
+        "sol_construction_plan_revision",
+        "sol_construction_plan_item",
+        "sol_construction_plan_change"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_schedule_backward|pms_plan_change_request|pms_project_task",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "separate plan baseline, items and change revisions; do not infer approval from duration cache",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V22__pms_batch_change_and_schedule.sql#table=pms_schedule_backward;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V23__pms_plan_change_and_governance.sql#table=pms_plan_change_request;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V8__pms_project_wbs_phase_risk.sql#table=pms_project_task"
+        }
+      ]
+    },
+    {
+      "object": "Solution",
+      "owner": "SOL",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "SCH-01",
+        "SCH-02",
+        "SCH-03",
+        "SCH-04",
+        "SCH-05"
+      ],
+      "targetTables": [
+        "sol_solution",
+        "sol_solution_revision",
+        "sol_solution_review"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_solution",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "create immutable solution revisions and review records",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_solution"
+        }
+      ]
+    },
+    {
+      "object": "PreparationDynamicFormInstance",
+      "owner": "SOL",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PRE-02"
+      ],
+      "targetTables": [
+        "sol_dynamic_form_instance"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "PreparationDynamicFormInstance",
+          "disposition": "NEW_ONLY",
+          "transform": "preserve existing F-SOL-002 site-survey form facts only; PRE-04 does not reuse this table; do not migrate or dual-write legacy pms_eng_form_instance",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=PreparationDynamicFormInstance"
+        }
+      ]
+    },
+    {
+      "object": "DynamicFormTemplate",
+      "owner": "PLT",
+      "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_form_template",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "audit reusable interaction and field semantics only; keep the legacy table and behavior unchanged and create no migration or dual write",
+          "mappingStatus": "NO_MIGRATION",
+          "gate": "F-PLT-002",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_template"
+        }
+      ]
+    },
+    {
+      "object": "DynamicFormTemplateRevision",
+      "owner": "PLT",
+      "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "requirementIds": [
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_template_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DynamicFormTemplateRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new PLATFORM template commands; never synthesize a revision from legacy rows",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "F-PLT-002",
+          "evidenceRef": "phase2-contract://object=DynamicFormTemplateRevision"
+        }
+      ]
+    },
+    {
+      "object": "DynamicFormInstance",
+      "owner": "PLT",
+      "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
+      "requirementIds": [
+        "PRE-04",
+        "SOL-01"
+      ],
+      "targetTables": [
+        "plt_dynamic_form_instance"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_form_instance",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "create new PLATFORM manual and trusted business-owner instances; audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration, dual write or automatic PRE-04 candidate-data conversion",
+          "mappingStatus": "NO_MIGRATION",
+          "gate": "F-PLT-002/F-SOL-003",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_instance"
+        }
+      ]
+    },
+    {
+      "object": "ArrivalAcceptance",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EXE-01"
+      ],
+      "targetTables": [
+        "imp_arrival_acceptance",
+        "imp_arrival_line",
+        "imp_arrival_difference"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_arrival",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map arrival batch/result; shipment quantity is reconciliation evidence, not acceptance",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_arrival"
+        }
+      ]
+    },
+    {
+      "object": "InstallationRecord",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EXE-02"
+      ],
+      "targetTables": [
+        "imp_installation_record",
+        "imp_installation_item",
+        "imp_installation_evidence"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_installation",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map installation facts and evidence without overwriting history",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_installation"
+        }
+      ]
+    },
+    {
+      "object": "ConfigurationCollectionResult",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EXE-03"
+      ],
+      "targetTables": [
+        "imp_configuration_collection_result",
+        "imp_configuration_collection_parse_attempt",
+        "imp_configuration_component_candidate"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_configuration|pms_equipment_config_log",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map task/device/result versions, immutable raw logs, parse attempts and component candidates; never migrate connection secrets",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_configuration;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_config_log"
+        }
+      ]
+    },
+    {
+      "object": "JointDebuggingResult",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EXE-04"
+      ],
+      "targetTables": [
+        "imp_joint_debugging_result",
+        "imp_joint_debugging_item"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_joint_test",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map per-task result revision and issue references",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_joint_test"
+        }
+      ]
+    },
+    {
+      "object": "ImplementationRisk",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EXE-05"
+      ],
+      "targetTables": [
+        "imp_risk",
+        "imp_risk_treatment"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_risk",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map implementation risk and append-only treatments; keep separate from cutover risk",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_risk"
+        }
+      ]
+    },
+    {
+      "object": "ImplementationQualityCheck",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "IMP-01"
+      ],
+      "targetTables": [
+        "imp_quality_check",
+        "imp_quality_item",
+        "imp_quality_remediation",
+        "imp_quality_review"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "ImplementationQualityCheck",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=ImplementationQualityCheck"
+        }
+      ]
+    },
+    {
+      "object": "DeliveryEvidence",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "IMP-01"
+      ],
+      "targetTables": [
+        "imp_delivery_evidence",
+        "imp_delivery_evidence_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_deliverable",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map implementation-stage evidence identity, immutable revisions, file references and upload results",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_deliverable"
+        }
+      ]
+    },
+    {
+      "object": "ImplementationReadinessSnapshot",
+      "owner": "IMP",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EXE-06"
+      ],
+      "targetTables": [
+        "imp_implementation_readiness_snapshot"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck",
+          "disposition": "REBUILD",
+          "transform": "rebuild from Owner facts at a declared watermark",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "READINESS_REBUILD",
+          "evidenceRef": "phase2-contract://objects=ArrivalAcceptance|InstallationRecord|Solution|ImplementationRisk|ImplementationQualityCheck"
+        }
+      ]
+    },
+    {
+      "object": "Acceptance",
+      "owner": "ACC",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ACC-01",
+        "ACC-03"
+      ],
+      "targetTables": [
+        "acc_acceptance",
+        "acc_acceptance_item",
+        "acc_confirmation"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_acc_acceptance",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_acceptance"
+        }
+      ]
+    },
+    {
+      "object": "SatisfactionCollection",
+      "owner": "ACC",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ACC-02",
+        "CLO-01",
+        "CLO-02",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "acc_satisfaction_collection_task",
+        "acc_satisfaction_questionnaire",
+        "acc_satisfaction_response",
+        "acc_satisfaction_result"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_cl_quesnaire_template_header|pm_cl_quesnaire_template_line|pm_cl_quesnaire_template_options|pm_cl_quesnaire_result_header|pm_cl_quesnaire_result_line",
+          "disposition": "STRUCTURED",
+          "transform": "map template, question, option, response and score versions; retain original identifiers and never overwrite submitted answers",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pm_cl_quesnaire_template_header.id",
+              "targetField": "acc_satisfaction_questionnaire.template_id",
+              "transform": "TARGET_KEY_LOOKUP resolves legacy template identity; never reuse the raw ID",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A595"
+            },
+            {
+              "sourceField": "pm_cl_quesnaire_template_header.questionnairePassScore",
+              "targetField": "acc_satisfaction_questionnaire.frozen_threshold",
+              "transform": "decimal conversion; invalid values become migration issues",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A599"
+            },
+            {
+              "sourceField": "pm_cl_quesnaire_template_line.questionContent|questionType|questionScore",
+              "targetField": "acc_satisfaction_questionnaire.frozen_question_json",
+              "transform": "assemble ordered immutable question snapshot; no legacy required flag exists, so required semantics remain unresolved",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A611:A625"
+            },
+            {
+              "sourceField": "pm_cl_quesnaire_template_options.questionOptionNum|questionOptionsContent|questionOptionScore",
+              "targetField": "acc_satisfaction_questionnaire.frozen_question_json",
+              "transform": "nest options under resolved question identity",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A628:A640"
+            },
+            {
+              "sourceField": "pm_cl_quesnaire_result_line.questionAnswer|questionScore",
+              "targetField": "acc_satisfaction_response.answer_json",
+              "transform": "assemble immutable answers by resolved template line",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A580:A592"
+            },
+            {
+              "sourceField": "pm_cl_quesnaire_result_header.quesMarkScore",
+              "targetField": "acc_satisfaction_result.score",
+              "transform": "decimal conversion with source value preserved",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A568:A577"
+            },
+            {
+              "sourceField": "pm_cl_quesnaire_result_header.quesMarkResult",
+              "targetField": "acc_satisfaction_result.passed",
+              "transform": "map only through approved AI-MIG-000 status/value mapping",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A576"
+            }
+          ],
+          "statusMapping": {
+            "policy": "AI_MIG_000_EXPLICIT_VALUE_MAP",
+            "sourceFields": [
+              "pm_cl_quesnaire_template_header.questionnaireStatus",
+              "pm_cl_quesnaire_result_header.status",
+              "pm_cl_quesnaire_result_header.quesMarkResult"
+            ],
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "CREATE_IMMUTABLE_QUESTIONNAIRE_RESPONSE_RESULT_WHEN_IDENTITY_AND_VALIDITY_RESOLVE;OTHERWISE_PRESERVE_RAW_AND_BLOCK_GATE",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_cl_quesnaire_template_header;data-elements://schema-records.jsonl#table=pm_cl_quesnaire_template_line;data-elements://schema-records.jsonl#table=pm_cl_quesnaire_template_options;data-elements://schema-records.jsonl#table=pm_cl_quesnaire_result_header;data-elements://schema-records.jsonl#table=pm_cl_quesnaire_result_line"
+        },
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_cl_callback|pm_cl_callback_quesnaire|pm_subcontract_project_callback",
+          "disposition": "RELATION",
+          "transform": "link only provable project/subcontract business objects, responsible users and questionnaire results; never infer customer answers from callback or approval status",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pm_cl_callback.projectId",
+              "targetField": "acc_satisfaction_collection_task.project_id",
+              "transform": "EXTERNAL_KEY_MAPPING lookup resolves the stable target project key",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A519"
+            },
+            {
+              "sourceField": "pm_cl_callback.id",
+              "targetField": "acc_satisfaction_collection_task.source_object_id",
+              "transform": "EXTERNAL_KEY_MAPPING preserves callback source identity; do not infer approval",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A518"
+            },
+            {
+              "sourceField": "pm_cl_callback_quesnaire.quesnaireId",
+              "targetField": "acc_satisfaction_questionnaire.source_questionnaire_key",
+              "transform": "store the source questionnaire key; target id remains NEW_GENERATED",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A536"
+            },
+            {
+              "sourceField": "pm_cl_callback_quesnaire.quesnaireVersion",
+              "targetField": "acc_satisfaction_questionnaire.source_questionnaire_version",
+              "transform": "store the source questionnaire version independently from its key",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A537"
+            },
+            {
+              "sourceField": "pm_subcontract_project_callback.subcontractId",
+              "targetField": "acc_satisfaction_collection_task.source_object_id",
+              "transform": "TARGET_KEY_LOOKUP resolves the subcontract request and its version before binding",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A850"
+            },
+            {
+              "sourceField": "pm_subcontract_project_callback.quesnaireId",
+              "targetField": "acc_satisfaction_questionnaire.source_questionnaire_key",
+              "transform": "store the source questionnaire key; target id remains NEW_GENERATED",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A853"
+            },
+            {
+              "sourceField": "pm_subcontract_project_callback.quesnaireVersion",
+              "targetField": "acc_satisfaction_questionnaire.source_questionnaire_version",
+              "transform": "store the source questionnaire version independently from its key",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A854"
+            }
+          ],
+          "statusMapping": {
+            "policy": "AI_MIG_000_EXPLICIT_VALUE_MAP",
+            "sourceFields": [
+              "pm_cl_callback.applyState",
+              "pm_cl_callback_quesnaire.state",
+              "pm_subcontract_project_callback.state"
+            ],
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "LINK_ONLY_PROVABLE_PROJECT_OR_SUBCONTRACT_VERSION_AND_QUESTIONNAIRE;NEVER_DERIVE_CUSTOMER_ANSWER_SIGNATURE_OR_PASS_FROM_CALLBACK_STATUS",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_cl_callback;data-elements://schema-records.jsonl#table=pm_cl_callback_quesnaire;data-elements://schema-records.jsonl#table=pm_subcontract_project_callback"
+        }
+      ]
+    },
+    {
+      "object": "DeliveryArtifact",
+      "owner": "ACC",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ACC-04"
+      ],
+      "targetTables": [
+        "acc_delivery_artifact",
+        "acc_artifact_review",
+        "acc_archive_record"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "separate artifact identity, checklist, review and archive records",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_deliverable_checklist;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_archive_document;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_completion_certificate"
+        }
+      ]
+    },
+    {
+      "object": "ProjectClosure",
+      "owner": "ACC",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ACC-06",
+        "CLO-01",
+        "CLO-02"
+      ],
+      "targetTables": [
+        "acc_project_closure",
+        "acc_closure_review"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_acc_project_closure",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_project_closure"
+        }
+      ]
+    },
+    {
+      "object": "ClosureGateSnapshot",
+      "owner": "ACC",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CLO-01",
+        "CLO-02"
+      ],
+      "targetTables": [
+        "acc_closure_gate_snapshot"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "Acceptance|DeliveryArtifact|ServiceIssue",
+          "disposition": "REBUILD",
+          "transform": "rebuild current gate; historical snapshot contains only provable inputs",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "CLOSURE_REBUILD",
+          "evidenceRef": "phase2-contract://objects=Acceptance|DeliveryArtifact|ServiceIssue"
+        }
+      ]
+    },
+    {
+      "object": "ServiceHandover",
+      "owner": "ACC",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ACC-06"
+      ],
+      "targetTables": [
+        "acc_service_handover",
+        "acc_handover_item",
+        "acc_handover_result"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_acc_maintenance_transition",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map only provable leftover/service handover fields to ServiceHandover",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_maintenance_transition"
+        },
+        {
+          "sourceType": "CURRENT_FIELD_PATTERN",
+          "sourceObject": "pms_acc_maintenance_transition.renew*",
+          "disposition": "EXCLUDED",
+          "transform": "retain as compatibility evidence; never expose in new handover writes",
+          "mappingStatus": "CONFIRMED_EXCLUDED",
+          "gate": "SCOPE_EXCLUSION",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#field-pattern=pms_acc_maintenance_transition.renew*"
+        }
+      ]
+    },
+    {
+      "object": "CutoverTask",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-03",
+        "CUT-08",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "cut_task"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_cut_task",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_task"
+        }
+      ]
+    },
+    {
+      "object": "CutoverAssessment",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-01",
+        "CUT-02",
+        "CUT-09",
+        "CUT-10"
+      ],
+      "targetTables": [
+        "cut_assessment"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CutoverAssessment",
+          "disposition": "NEW_ONLY",
+          "transform": "create only from new-platform business commands; no proven historical source",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CutoverAssessment"
+        }
+      ]
+    },
+    {
+      "object": "CutoverChecklist",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-03"
+      ],
+      "targetTables": [
+        "cut_cutover_checklist",
+        "cut_cutover_checklist_item",
+        "cut_cutover_checklist_item_result"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_cut_risk",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map only provable task reference, original item code/name/type, description and answer facts; never infer item definition version, UI schema, binding rule, required flag, CollectionTask, automatic result, business pass or configuration gap",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_risk"
+        }
+      ]
+    },
+    {
+      "object": "CutoverPlan",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-04",
+        "CUT-05"
+      ],
+      "targetTables": [
+        "cut_plan_revision",
+        "cut_step"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_cut_plan",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
+        }
+      ]
+    },
+    {
+      "object": "CutoverConfigurationRevision",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-07"
+      ],
+      "targetTables": [
+        "cut_cutover_configuration_revision",
+        "cut_cutover_checklist_item_definition_revision",
+        "cut_cutover_checklist_binding_rule_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CutoverConfigurationRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create CUT-07 configuration, checklist item definition and binding rule revisions only from new-platform commands; reuse base-platform dictionaries and never infer configuration master data from plans or legacy risk items",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CutoverConfigurationRevision"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUT-07"
+    },
+    {
+      "object": "CutoverSupportArrangement",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-04"
+      ],
+      "targetTables": [
+        "cut_cutover_support_arrangement"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_cut_plan",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_plan"
+        }
+      ]
+    },
+    {
+      "object": "CutoverClosure",
+      "owner": "CUT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-06"
+      ],
+      "targetTables": [
+        "cut_cutover_closure"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_cut_execution",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map only provable P6 result, rollback description, attachment, legacy-item text and final result fields; exclude step and observation lifecycle fields",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
+        }
+      ]
+    },
+    {
+      "object": "InspectionTask",
+      "owner": "SRV",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07"
+      ],
+      "targetTables": [
+        "srv_inspection_task",
+        "srv_inspection_task_rule_snapshot"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_srv_task|pms_srv_execution|pms_srv_offline_file",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map only records classified as inspection and freeze rule snapshot",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_task;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_execution;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_offline_file"
+        }
+      ]
+    },
+    {
+      "object": "InspectionRule",
+      "owner": "SRV",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INS-03",
+        "INS-09"
+      ],
+      "targetTables": [
+        "srv_inspection_rule",
+        "srv_inspection_rule_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_srv_rule",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "convert published rules into immutable revisions",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_rule"
+        }
+      ]
+    },
+    {
+      "object": "InspectionReport",
+      "owner": "SRV",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INS-05",
+        "INT-06"
+      ],
+      "targetTables": [
+        "srv_inspection_report_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_srv_report",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map immutable report revisions and external result references",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_report"
+        }
+      ]
+    },
+    {
+      "object": "ServiceIssue",
+      "owner": "SRV",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INS-06",
+        "INS-08"
+      ],
+      "targetTables": [
+        "srv_service_issue",
+        "srv_service_issue_remediation"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_srv_issue",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map inspection issues only; ITR issues remain external Owner copies",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_issue"
+        }
+      ]
+    },
+    {
+      "object": "ServiceStatus",
+      "owner": "SRV",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "srv_service_status"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "fb_service|view_warranty*|warranty_info|warranty_change_logs",
+          "disposition": "STRUCTURED",
+          "transform": "map objective service dates/levels/source facts only",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=fb_service;data-elements://schema-records.jsonl#table=view_warranty*;data-elements://schema-records.jsonl#table=warranty_info;data-elements://schema-records.jsonl#table=warranty_change_logs"
+        },
+        {
+          "sourceType": "LEGACY_FIELD_PATTERN",
+          "sourceObject": "view_warranty*.renew*",
+          "disposition": "EXCLUDED",
+          "transform": "retain compatibility evidence; exclude renewal actions/spaces/reports",
+          "mappingStatus": "CONFIRMED_EXCLUDED",
+          "gate": "SCOPE_EXCLUSION",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=view_warranty*"
+        }
+      ]
+    },
+    {
+      "object": "Customer",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-03",
+        "CUS-04",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_customer_master",
+        "cus_customer_external_mapping",
+        "cus_customer_field_history"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_customer",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "preserve customer id; map code/name/status/source/audit fields into the CUS-owned master and retain immutable field history",
+          "mappingStatus": "IMPLEMENTED_FORWARD_MIGRATION",
+          "gate": "F_CUS_001_V106",
+          "implementationEvidenceTable": "cus_customer_master",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V106__fcus001_customer_master.sql#table=pms_customer"
+        },
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "CRM",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "CRM authority fields synchronize by source key/version",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "P3-E07",
+          "evidenceRef": "design://12-integration-design.md#systems=CRM"
+        }
+      ]
+    },
+    {
+      "object": "MarketRelation",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-03",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_market_relation"
+      ],
+      "sources": [
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "CRM",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "synchronize the exact MarketRelation market/system/expend/industry code and name tuple without persisting relationId",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "INT-03",
+          "evidenceRef": "design://12-integration-design.md#systems=CRM"
+        }
+      ]
+    },
+    {
+      "object": "CustomerLocationReference",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_location_reference"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CustomerLocationReference",
+          "disposition": "NEW_ONLY",
+          "transform": "create temporal references only after AST validates an Address or Site stable identity",
+          "mappingStatus": "IMPLEMENTED_NEW_ONLY",
+          "gate": "F_CUS_001_V106",
+          "implementationEvidenceTable": "cus_customer_location_reference",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V106__fcus001_customer_master.sql#table=cus_customer_location_reference"
+        }
+      ]
+    },
+    {
+      "object": "CustomerScopeSlice",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_scope_slice"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CustomerScopeSlice",
+          "disposition": "NEW_ONLY",
+          "transform": "create explicit user or role slices; OR values within a dimension, AND dimensions within a slice, and OR independent slices",
+          "mappingStatus": "IMPLEMENTED_NEW_ONLY",
+          "gate": "F_CUS_001_V107",
+          "implementationEvidenceTable": "cus_customer_scope_slice",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V107__fcus001_customer_classification_scope.sql#table=cus_customer_scope_slice"
+        }
+      ]
+    },
+    {
+      "object": "CustomerContact",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-04"
+      ],
+      "targetTables": [
+        "cus_customer_contact",
+        "cus_project_customer_contact_relation"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_customer_contact",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "align contact fields and temporal project relation",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V3__pms_customer_and_contact.sql#table=pms_customer_contact"
+        },
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "CRM",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "synchronize CRM-owned contact fields",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "P3-E07",
+          "evidenceRef": "design://12-integration-design.md#systems=CRM"
+        }
+      ]
+    },
+    {
+      "object": "CustomerRelationshipSnapshot",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-01",
+        "CUS-04"
+      ],
+      "targetTables": [
+        "cus_customer_relationship_snapshot"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "Customer|CustomerContact|Project",
+          "disposition": "REBUILD",
+          "transform": "freeze minimum relationship data at business event time",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "RELATIONSHIP_REBUILD",
+          "evidenceRef": "phase2-contract://objects=Customer|CustomerContact|Project"
+        }
+      ]
+    },
+    {
+      "object": "CustomerServiceLevelRevision",
+      "owner": "CUS",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUS-02"
+      ],
+      "targetTables": [
+        "cus_customer_service_level_revision"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CustomerServiceLevelRevision",
+          "disposition": "NEW_ONLY",
+          "transform": "create temporal customer service-level and policy revisions only from CUS-02 commands; never infer historical levels from customer, contact or relationship snapshots",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CustomerServiceLevelRevision"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "CUS-02"
+    },
+    {
+      "object": "Device",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-04",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "fb_shipment_barcode",
+          "disposition": "STRUCTURED",
+          "transform": "deduplicate SN master while preserving every shipment lifecycle source row",
+          "mappingStatus": "READY_FOR_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=fb_shipment_barcode"
+        },
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "MES|ITR",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "synchronize authoritative identity fields by source key/version",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "P3-E07",
+          "evidenceRef": "design://12-integration-design.md#systems=MES|ITR"
+        }
+      ]
+    },
+    {
+      "object": "DeviceArchive",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device",
+        "ast_device_version",
+        "ast_device_config_log"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_equipment_version|pms_equipment_config_log",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map version/config history with effective time and source",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_version;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V6__pms_asset_equipment.sql#table=pms_equipment_config_log"
+        },
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_soft_version*",
+          "disposition": "STRUCTURED",
+          "transform": "map provable software version history; conflicts become migration issues",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pm_project_soft_version*.projectId",
+              "targetField": "ast_device_version.project_id",
+              "transform": "EXTERNAL_KEY_MAPPING lookup resolves the target project key",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A378"
+            },
+            {
+              "sourceField": "pm_project_soft_version*.barCode",
+              "targetField": "ast_device_version.device_id",
+              "transform": "TARGET_KEY_LOOKUP resolves the device by exact SN; never copy the source ID",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A382"
+            },
+            {
+              "sourceField": "pm_project_soft_version*.conp|cpld|boot",
+              "targetField": "ast_device_version.version_value",
+              "transform": "expand each populated component into its own version row",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A383:A392"
+            }
+          ],
+          "statusMapping": {
+            "policy": "AI_MIG_000_EXPLICIT_VALUE_MAP",
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "CREATE_VERSION_ROWS_ONLY_FOR_RESOLVED_PROJECT_DEVICE_COMPONENT;CONFLICTS_REMAIN_MIGRATION_ISSUES",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_soft_version*"
+        }
+      ]
+    },
+    {
+      "object": "DeviceComponentRelation",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07",
+        "EXE-03"
+      ],
+      "targetTables": [
+        "ast_device_component_relation"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "ConfigurationCollectionResult|DeviceArchive",
+          "disposition": "RELATION",
+          "transform": "create effective chassis-slot-card intervals only from parsed or manually verified evidence; ambiguous candidates remain pending",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "ConfigurationCollectionResult.chassis_sn",
+              "targetField": "ast_device_component_relation.chassis_sn",
+              "transform": "direct from verified parse candidate",
+              "evidenceRef": "design://08-data-model.md#ConfigurationCollectionResult"
+            },
+            {
+              "sourceField": "ConfigurationCollectionResult.slot_code",
+              "targetField": "ast_device_component_relation.slot_code",
+              "transform": "direct from verified parse candidate",
+              "evidenceRef": "design://08-data-model.md#ConfigurationCollectionResult"
+            },
+            {
+              "sourceField": "ConfigurationCollectionResult.card_sn|card_model_code",
+              "targetField": "ast_device_component_relation.card_sn",
+              "transform": "bind only verified card identity; preserve model in relation",
+              "evidenceRef": "design://08-data-model.md#ConfigurationCollectionResult"
+            },
+            {
+              "sourceField": "ConfigurationCollectionResult.evidence_ref",
+              "targetField": "ast_device_component_relation.evidence_ref",
+              "transform": "preserve immutable raw-log and parse evidence reference",
+              "evidenceRef": "design://08-data-model.md#ConfigurationCollectionResult"
+            }
+          ],
+          "statusMapping": {
+            "policy": "MATCH_STATUS_TO_RELATION_CREATION",
+            "unknown": "KEEP_CANDIDATE_PENDING"
+          },
+          "terminalDisposition": "CREATE_EFFECTIVE_INTERVAL_ONLY_AFTER_VERIFIED_IDENTITY;AMBIGUOUS_CANDIDATE_REMAINS_PENDING",
+          "evidenceRef": "phase2-contract://objects=ConfigurationCollectionResult|DeviceArchive"
+        }
+      ]
+    },
+    {
+      "object": "DeviceCurrentAssignment",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device_current_assignment",
+        "ast_device_assignment_history"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_shipment",
+          "disposition": "RELATION",
+          "transform": "create assignment only when project/SN/time/transfer evidence resolves; otherwise issue",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_shipment"
+        }
+      ]
+    },
+    {
+      "object": "DeviceAssignmentHistory",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-02",
+        "EQP-03",
+        "EQP-05",
+        "EQP-07"
+      ],
+      "targetTables": [
+        "ast_device_assignment_history"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_shipment",
+          "disposition": "RELATION",
+          "transform": "build non-overlapping assignment intervals only from resolvable device/project/time evidence",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_shipment"
+        }
+      ]
+    },
+    {
+      "object": "DeviceAncestorProjection",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-01",
+        "EQP-03"
+      ],
+      "targetTables": [
+        "ast_device_project_ancestor"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "DeviceCurrentAssignment|ProjectHierarchy",
+          "disposition": "REBUILD",
+          "transform": "rebuild ancestor statistics projection at tree and assignment watermarks",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "DEVICE_ANCESTOR_REBUILD",
+          "evidenceRef": "phase2-contract://objects=DeviceCurrentAssignment|ProjectHierarchy"
+        }
+      ]
+    },
+    {
+      "object": "AssetSyncSnapshot",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "EQP-04",
+        "INT-02"
+      ],
+      "targetTables": [
+        "ast_asset_sync_batch",
+        "ast_asset_sync_item",
+        "ast_device"
+      ],
+      "sources": [
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "MES|ITR",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "record source watermarks, versions and field differences",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "P3-E07",
+          "evidenceRef": "design://12-integration-design.md#systems=MES|ITR"
+        }
+      ]
+    },
+    {
+      "object": "MaintenanceFact",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "AST-01",
+        "AST-02",
+        "SRV-01"
+      ],
+      "targetTables": [
+        "ast_maintenance_fact"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "fb_shipment_barcode|fb_service|view_warranty*",
+          "disposition": "STRUCTURED",
+          "transform": "map objective warranty/service facts with source and rule version",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=fb_shipment_barcode;data-elements://schema-records.jsonl#table=fb_service;data-elements://schema-records.jsonl#table=view_warranty*"
+        }
+      ]
+    },
+    {
+      "object": "RMAReplacement",
+      "owner": "AST",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "AST-01",
+        "INT-06"
+      ],
+      "targetTables": [
+        "ast_rma_replacement"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "rma_app_info|rma_applicant|fb_shipment_barcode",
+          "disposition": "RELATION",
+          "transform": "separate RMA replacement from secondary-SN relations; unknown behavior codes remain issues",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=rma_app_info;data-elements://schema-records.jsonl#table=rma_applicant;data-elements://schema-records.jsonl#table=fb_shipment_barcode"
+        }
+      ]
+    },
+    {
+      "object": "Contract",
+      "owner": "COM",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "com_contract"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "sms_ofst_contract_head_sap|pm_order_data_from_erp",
+          "disposition": "STRUCTURED",
+          "transform": "resolve contract by tenant/company/contract number; fb_contract never creates master",
+          "mappingStatus": "READY_FOR_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "sms_ofst_contract_head_sap.contract_num",
+              "targetField": "com_contract.contract_no",
+              "transform": "direct after company ownership resolution",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A1446"
+            },
+            {
+              "sourceField": "sms_ofst_contract_head_sap.dataSource",
+              "targetField": "com_contract.master_source_system",
+              "transform": "direct authority marker",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A1483"
+            },
+            {
+              "sourceField": "sms_ofst_contract_head_sap.client_supplier_code",
+              "targetField": "com_contract.customer_code",
+              "transform": "copy the customer code independently from the name snapshot",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A1450"
+            },
+            {
+              "sourceField": "sms_ofst_contract_head_sap.client_supplier_name",
+              "targetField": "com_contract.customer_name",
+              "transform": "copy the customer name snapshot independently from its code",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A1451"
+            },
+            {
+              "sourceField": "pm_order_data_from_erp.contractNo",
+              "targetField": "com_contract.contract_no",
+              "transform": "relation evidence only; cannot create master without company evidence",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A706"
+            },
+            {
+              "sourceField": "pm_order_data_from_erp.customerCode",
+              "targetField": "com_contract.customer_code",
+              "transform": "reconciliation code evidence; conflicting customer blocks merge",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A710"
+            },
+            {
+              "sourceField": "pm_order_data_from_erp.customerName",
+              "targetField": "com_contract.customer_name",
+              "transform": "reconciliation name snapshot; never treat it as a customer code",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A711"
+            }
+          ],
+          "statusMapping": {
+            "policy": "AI_MIG_000_EXPLICIT_VALUE_MAP",
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "CREATE_MASTER_ONLY_FROM_AUTHORITATIVE_COMPANY_AND_CONTRACT_NUMBER;ORDER_SOURCE_IS_RECONCILIATION_ONLY",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=sms_ofst_contract_head_sap;data-elements://schema-records.jsonl#table=pm_order_data_from_erp"
+        }
+      ]
+    },
+    {
+      "object": "SalesOrder",
+      "owner": "COM",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "COM-01",
+        "INT-01"
+      ],
+      "targetTables": [
+        "com_sales_order"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_order_data_from_erp",
+          "disposition": "STRUCTURED",
+          "transform": "merge deterministic business key; conflicting groups become issues, never choose max ID",
+          "mappingStatus": "READY_FOR_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pm_order_data_from_erp.orderNumber",
+              "targetField": "com_sales_order.order_no",
+              "transform": "direct within source/company/order-type business key",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A705"
+            },
+            {
+              "sourceField": "pm_order_data_from_erp.orderCreateTime",
+              "targetField": "com_sales_order.order_create_time",
+              "transform": "direct",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A708"
+            },
+            {
+              "sourceField": "pm_order_data_from_erp.customerCode",
+              "targetField": "com_sales_order.customer_code",
+              "transform": "copy the source customer code without choosing an ambiguous master",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A710"
+            },
+            {
+              "sourceField": "pm_order_data_from_erp.customerName",
+              "targetField": "com_sales_order.customer_name",
+              "transform": "copy the source customer name snapshot independently from its code",
+              "evidenceRef": "data-elements://schema-records.jsonl#系统支撑!A711"
+            }
+          ],
+          "statusMapping": {
+            "policy": "AI_MIG_000_EXPLICIT_VALUE_MAP",
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "MERGE_ONLY_DETERMINISTIC_BUSINESS_KEY_GROUPS;CONFLICTING_GROUPS_REMAIN_MIGRATION_ISSUES",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_order_data_from_erp"
+        }
+      ]
+    },
+    {
+      "object": "OrderLine",
+      "owner": "COM",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_order_line"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_order_line_from_erp",
+          "disposition": "STRUCTURED",
+          "transform": "map stable order-line key and signed quantities; empty/ambiguous keys become issues",
+          "mappingStatus": "READY_FOR_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_order_line_from_erp"
+        }
+      ]
+    },
+    {
+      "object": "DeliveryScope",
+      "owner": "COM",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_product_line",
+          "disposition": "RELATION",
+          "transform": "map project/order-line/allocation; missing allocation remains pending and excluded from metrics",
+          "mappingStatus": "READY_FOR_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "targetFieldBindings": [
+            {
+              "sourceField": "pm_project_product_line.projectId",
+              "targetField": "com_delivery_scope.project_id",
+              "transform": "EXTERNAL_KEY_MAPPING lookup resolves the target project key",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A166"
+            },
+            {
+              "sourceField": "pm_project_product_line.itemCode",
+              "targetField": "com_delivery_scope.item_code",
+              "transform": "copy the product code independently from its name",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A168"
+            },
+            {
+              "sourceField": "pm_project_product_line.itemName",
+              "targetField": "com_delivery_scope.item_desc",
+              "transform": "copy the product name as the item description snapshot; never treat it as an item code",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A169"
+            },
+            {
+              "sourceField": "pm_project_product_line.projectQuantity",
+              "targetField": "com_delivery_scope.allocated_qty",
+              "transform": "verified project implementation quantity",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A170"
+            },
+            {
+              "sourceField": "pm_project_product_line.orderNumber|lineNum",
+              "targetField": "com_delivery_scope.order_line_id",
+              "transform": "TARGET_KEY_LOOKUP resolves the order line using the full approved business key",
+              "evidenceRef": "data-elements://schema-records.jsonl#项目管理!A174:A175"
+            }
+          ],
+          "statusMapping": {
+            "policy": "AI_MIG_000_EXPLICIT_VALUE_MAP",
+            "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"
+          },
+          "terminalDisposition": "CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_product_line"
+        }
+      ]
+    },
+    {
+      "object": "DeliveryScopeDetail",
+      "owner": "COM",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "COM-01"
+      ],
+      "targetTables": [
+        "com_delivery_scope_detail"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DeliveryScopeDetail",
+          "disposition": "NEW_ONLY",
+          "transform": "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=DeliveryScopeDetail"
+        }
+      ]
+    },
+    {
+      "object": "Supplier",
+      "owner": "RES",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "RES-01"
+      ],
+      "targetTables": [
+        "res_supplier",
+        "res_qualification"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_subcontract_facilitator",
+          "disposition": "STRUCTURED",
+          "transform": "map supplier identity and qualification evidence",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_subcontract_facilitator"
+        }
+      ]
+    },
+    {
+      "object": "SubcontractRequest",
+      "owner": "RES",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "SUB-01",
+        "SUB-02",
+        "SUB-05"
+      ],
+      "targetTables": [
+        "res_subcontract_request"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_subcontract_project_header|pm_subcontract_project_line|pm_subcontract_project_price|pm_subcontract_project_callback",
+          "disposition": "STRUCTURED",
+          "transform": "map request scope, price revision and approval/callback evidence",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_subcontract_project_header;data-elements://schema-records.jsonl#table=pm_subcontract_project_line;data-elements://schema-records.jsonl#table=pm_subcontract_project_price;data-elements://schema-records.jsonl#table=pm_subcontract_project_callback"
+        }
+      ]
+    },
+    {
+      "object": "PaymentGate",
+      "owner": "RES",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-07",
+        "SUB-03",
+        "SUB-04"
+      ],
+      "targetTables": [
+        "res_payment_gate"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_subcontract_project_payment|pm_subcontract_project_payment_sse",
+          "disposition": "STRUCTURED",
+          "transform": "map approved prerequisites and external finance result reference",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_subcontract_project_payment;data-elements://schema-records.jsonl#table=pm_subcontract_project_payment_sse"
+        }
+      ]
+    },
+    {
+      "object": "MetricDefinition",
+      "owner": "ANA",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "ana_metric_definition"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "MetricDefinition",
+          "disposition": "NEW_ONLY",
+          "transform": "create versioned metric definitions only after the suggested model is approved; do not migrate report formulas by name",
+          "mappingStatus": "NEW_ONLY_SUGGESTED",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=MetricDefinition"
+        }
+      ]
+    },
+    {
+      "object": "MetricSnapshot",
+      "owner": "ANA",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ANA-01",
+        "NFR-01",
+        "RPT-02"
+      ],
+      "targetTables": [
+        "ana_metric_snapshot"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "Project|ProjectTask|DeliveryScope",
+          "disposition": "REBUILD",
+          "transform": "recalculate by metric version and watermark",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "METRIC_REBUILD",
+          "evidenceRef": "phase2-contract://objects=Project|ProjectTask|DeliveryScope"
+        },
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_weekly*",
+          "disposition": "EXCLUDED",
+          "transform": "retain historical document only; never import as metric truth",
+          "mappingStatus": "CONFIRMED_EXCLUDED",
+          "gate": "SCOPE_EXCLUSION",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_weekly*"
+        }
+      ]
+    },
+    {
+      "object": "PortfolioView",
+      "owner": "ANA",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "ANA-01"
+      ],
+      "targetTables": [
+        "ana_portfolio_projection"
+      ],
+      "sources": [
+        {
+          "sourceType": "DERIVED_TARGET",
+          "sourceObject": "ProjectPortfolio|MetricSnapshot",
+          "disposition": "REBUILD",
+          "transform": "rebuild authorized read projection",
+          "mappingStatus": "REBUILD_AFTER_OWNERS",
+          "gate": "PORTFOLIO_REBUILD",
+          "evidenceRef": "phase2-contract://objects=ProjectPortfolio|MetricSnapshot"
+        }
+      ]
+    },
+    {
+      "object": "Todo",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-05",
+        "INT-10",
+        "NFR-03",
+        "PLT-01"
+      ],
+      "targetTables": [
+        "plt_todo"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "dp_act_unify_task|act_ru_task|act_hi_taskinst",
+          "disposition": "PENDING_SOURCE_CONFIRMATION",
+          "transform": "import only active tasks that resolve to an Owner business node; completion is not business completion",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=dp_act_unify_task;data-elements://schema-records.jsonl#table=act_ru_task;data-elements://schema-records.jsonl#table=act_hi_taskinst"
+        }
+      ]
+    },
+    {
+      "object": "AuthorizationGrant",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "AUT-01",
+        "AUT-02",
+        "INT-06",
+        "INT-09"
+      ],
+      "targetTables": [
+        "plt_authorization_grant"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_authorization",
+          "disposition": "PENDING_SOURCE_CONFIRMATION",
+          "transform": "map only provable resource/action/scope/effective interval; never import full authorization code",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_authorization"
+        }
+      ]
+    },
+    {
+      "object": "ChangeRequest",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CHG-01"
+      ],
+      "targetTables": [
+        "plt_change_request"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_plan_change_request",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "map only requests with resolvable target object/version/approval; do not generalize unrelated changes",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V23__pms_plan_change_and_governance.sql#table=pms_plan_change_request"
+        }
+      ]
+    },
+    {
+      "object": "FileArtifact",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "PLT-02",
+        "PRE-05",
+        "SCH-03"
+      ],
+      "targetTables": [
+        "plt_file_artifact",
+        "plt_file_version",
+        "plt_file_reference"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_acc_archive_document|pms_acc_deliverable_checklist|pms_eng_deliverable",
+          "disposition": "CURRENT_FORWARD",
+          "transform": "deduplicate file identity; map content hash/version/business references separately",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_archive_document;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_deliverable_checklist;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_deliverable"
+        }
+      ]
+    },
+    {
+      "object": "AuditRecord",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "NFR-01"
+      ],
+      "targetTables": [
+        "plt_operation_audit"
+      ],
+      "sources": [
+        {
+          "sourceType": "LEGACY_TABLE",
+          "sourceObject": "pm_project_log|act_hi_comment",
+          "disposition": "SNAPSHOT",
+          "transform": "import as LEGACY audit evidence; never impersonate new-platform actor or transition",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "AI-MIG-000",
+          "evidenceRef": "data-elements://schema-records.jsonl#table=pm_project_log;data-elements://schema-records.jsonl#table=act_hi_comment"
+        }
+      ]
+    },
+    {
+      "object": "DeviceCredential",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_device_credential"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DeviceCredential",
+          "disposition": "NEW_ONLY",
+          "transform": "new credentials are encrypted and created under the new five-tuple authorization model",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "P3-E04",
+          "evidenceRef": "phase2-contract://object=DeviceCredential"
+        },
+        {
+          "sourceType": "CURRENT_FIELD_PATTERN",
+          "sourceObject": "pms_eng_authorization.license_key",
+          "disposition": "PENDING_SOURCE_CONFIRMATION",
+          "transform": "migrate only if proven to be a connection credential and safely re-encrypted; otherwise isolate",
+          "mappingStatus": "PENDING_SOURCE_CONFIRMATION",
+          "gate": "P3-E04",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#field-pattern=pms_eng_authorization.license_key"
+        }
+      ]
+    },
+    {
+      "object": "CredentialGrant",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_credential_grant"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CredentialGrant",
+          "disposition": "NEW_ONLY",
+          "transform": "create creator-default and explicit five-tuple grants only in new platform",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "P3-E04",
+          "evidenceRef": "phase2-contract://object=CredentialGrant"
+        }
+      ]
+    },
+    {
+      "object": "CollectionTask",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "CUT-03",
+        "CUT-06",
+        "EXE-03",
+        "EXE-04",
+        "INS-01",
+        "INS-02",
+        "INS-04",
+        "INS-07",
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_collection_task"
+      ],
+      "sources": [
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "ExistingCollectionPlatform",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "import only stable external task/result references; temporary passwords never migrate",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "P3-E07",
+          "evidenceRef": "design://12-integration-design.md#systems=ExistingCollectionPlatform"
+        }
+      ]
+    },
+    {
+      "object": "DispatchAttempt",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "plt_dispatch_attempt"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "DispatchAttempt",
+          "disposition": "NEW_ONLY",
+          "transform": "record new-platform dispatch attempts; historical external logs remain outside unless a stable task key is proven",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=DispatchAttempt"
+        }
+      ]
+    },
+    {
+      "object": "CallbackRecord",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-12"
+      ],
+      "targetTables": [
+        "plt_callback_record"
+      ],
+      "sources": [
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "CallbackRecord",
+          "disposition": "NEW_ONLY",
+          "transform": "record callbacks received by the new platform; do not fabricate callback history from business result rows",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "FEATURE_RELEASE",
+          "evidenceRef": "phase2-contract://object=CallbackRecord"
+        }
+      ]
+    },
+    {
+      "object": "CollectionResultReference",
+      "owner": "PLT",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-12",
+        "NFR-02"
+      ],
+      "targetTables": [
+        "plt_collection_result_reference"
+      ],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_configuration|pms_srv_report|pms_cut_execution",
+          "disposition": "RELATION",
+          "transform": "map external object key, file/hash and consumed result version",
+          "mappingStatus": "PENDING_FIELD_MAPPING",
+          "gate": "NEXT_FLYWAY",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_configuration;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V14__pms_service_tables.sql#table=pms_srv_report;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V12__pms_cutover_tables.sql#table=pms_cut_execution"
+        }
+      ]
+    },
+    {
+      "object": "TechnicalNoticeReference",
+      "owner": "KNO",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [],
+      "sources": [
+        {
+          "sourceType": "EXTERNAL_SYSTEM",
+          "sourceObject": "ITR",
+          "disposition": "EXTERNAL_SYNC",
+          "transform": "synchronize notice/version and business references as V2 authority",
+          "mappingStatus": "PENDING_INTEGRATION_CONFIG",
+          "gate": "P3-E07",
+          "evidenceRef": "design://12-integration-design.md#systems=ITR"
+        },
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_announcement|pms_eng_announcement_check",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "retain local legacy notices read-only; do not expose local publish/disable governance",
+          "mappingStatus": "CONFIRMED_COMPATIBILITY",
+          "gate": "SCOPE_EXCLUSION",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
+    },
+    {
+      "object": "NoticeBusinessReference",
+      "owner": "KNO",
+      "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+      "requirementIds": [
+        "INT-04"
+      ],
+      "targetTables": [],
+      "sources": [
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_eng_announcement_check",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "retain only resolvable legacy notice-business references and never infer local publication authority",
+          "mappingStatus": "CONFIRMED_COMPATIBILITY",
+          "gate": "SCOPE_EXCLUSION",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V30__pms_eng_risk_announcement_authorization.sql#table=pms_eng_announcement_check"
+        }
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "INT-04"
+    }
+  ]
+}

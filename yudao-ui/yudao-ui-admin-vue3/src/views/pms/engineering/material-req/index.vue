@@ -273,7 +273,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="attachmentFiles">
-            <UploadFile v-model="form.attachmentFiles" />
+            <UploadFile v-model="form.attachmentFiles!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -308,7 +308,7 @@
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目"><ProjectTag :project-id="current.projectId" /></el-descriptions-item>
       <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_REQ_TYPE" :value="current.requisitionType" />
+        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_REQ_TYPE" :value="current.requisitionType ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="关联设备">{{ current.equipmentId }}</el-descriptions-item>
       <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
@@ -319,10 +319,10 @@
       <el-descriptions-item label="备件库编号">{{ current.warehouseId }}</el-descriptions-item>
       <el-descriptions-item label="备件库名称">{{ current.warehouseName }}</el-descriptions-item>
       <el-descriptions-item label="库存状态">
-        <dict-tag :type="DICT_TYPE.PMS_STOCK_STATUS" :value="current.stockStatus" />
+        <dict-tag :type="DICT_TYPE.PMS_STOCK_STATUS" :value="current.stockStatus ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
       <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
@@ -378,7 +378,6 @@ import * as UserApi from '@/api/system/user'
 import type { MaterialRequisitionVO } from '@/api/pms/engineering/material-req'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
 
 defineOptions({ name: 'PmsEngMaterialReq' })
 const message = useMessage()
@@ -412,7 +411,7 @@ const load = async () => {
 const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<MaterialRequisitionVO>({
-  projectId: undefined,
+  projectId: undefined!,
   code: '',
   name: '',
   requisitionType: 'SPARE',
@@ -420,7 +419,7 @@ const form = reactive<MaterialRequisitionVO>({
   materialName: '',
   materialCode: '',
   specification: '',
-  quantity: undefined,
+  quantity: undefined!,
   unit: '个',
   neededDate: '',
   warehouseId: undefined,
@@ -428,7 +427,7 @@ const form = reactive<MaterialRequisitionVO>({
   stockStatus: 'IN_STOCK',
   attachmentFiles: '',
   triggerSource: 'MANUAL',
-  applicantUserId: undefined,
+  applicantUserId: undefined!,
   applyTime: '',
   remark: ''
 })
@@ -493,7 +492,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<MaterialRequisitionVO>({})
+const current = ref<Partial<MaterialRequisitionVO>>({})
 const openDetail = async (row: MaterialRequisitionVO) => {
   current.value = await MaterialReqApi.getMaterialRequisition(row.id!)
   detailVisible.value = true

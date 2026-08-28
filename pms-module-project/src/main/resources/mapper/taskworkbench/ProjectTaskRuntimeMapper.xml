@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper">
+
+    <sql id="taskColumns">
+        task.id, task.project_id, task.task_code, task.name, task.parent_task_code,
+        task.parent_task_id, task.root_task_id, task.tree_depth, task.business_level_code,
+        task.milestone_id, task.plan_start_time, task.plan_end_time, task.actual_start_time,
+        task.actual_end_time, task.progress, task.state_machine_revision_id, task.stage_code,
+        task.priority, task.sort_order, task.estimated_hours, task.satisfaction_timing,
+        task.description, task.source_definition_id, task.status, task.version,
+        task.creator, task.create_time, task.updater, task.update_time, task.deleted, task.tenant_id
+    </sql>
+
+    <select id="selectTreeQuery"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        <if test="query.mode.name() == 'ALL_DESCENDANTS'">
+            JOIN proj_task_tree_path path
+              ON path.tenant_id = task.tenant_id
+             AND path.project_id = task.project_id
+             AND path.descendant_task_id = task.id
+             AND path.ancestor_task_id = #{query.targetTaskId}
+             AND path.distance &gt; 0
+             AND path.deleted = b'0'
+        </if>
+        <if test="query.mode.name() == 'ANCESTOR_CHAIN'">
+            JOIN proj_task_tree_path path
+              ON path.tenant_id = task.tenant_id
+             AND path.project_id = task.project_id
+             AND path.ancestor_task_id = task.id
+             AND path.descendant_task_id = #{query.targetTaskId}
+             AND path.distance &gt; 0
+             AND path.deleted = b'0'
+        </if>
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.deleted = b'0'
+          AND task.project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        <choose>
+            <when test="query.visibilityQuery != null">
+                <choose>
+                    <when test="query.visibilityQuery.fullProjectAccess">
+                        AND TRUE
+                    </when>
+                    <otherwise>
+                        AND EXISTS (
+                            SELECT 1
+                            FROM proj_task_tree_path visible_path
+                            JOIN proj_project_task_assignment assignment
+                              ON assignment.tenant_id = visible_path.tenant_id
+                             AND assignment.project_task_id = visible_path.descendant_task_id
+                             AND assignment.current_marker = 1
+                             AND assignment.effective_to IS NULL
+                             AND assignment.deleted = b'0'
+                            WHERE visible_path.tenant_id = task.tenant_id
+                              AND visible_path.project_id = task.project_id
+                              AND visible_path.ancestor_task_id = task.id
+                              AND visible_path.deleted = b'0'
+                              AND assignment.assignee_user_id = #{query.visibilityQuery.actorId}
+                        )
+                    </otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                AND task.id IN
+                <foreach collection="query.visibleTaskIds" item="taskId" open="(" separator="," close=")">
+                    #{taskId}
+                </foreach>
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="query.mode.name() == 'DIRECT_CHILDREN'">
+                <choose>
+                    <when test="query.parentTaskId != null">
+                        AND task.parent_task_id = #{query.parentTaskId}
+                    </when>
+                    <when test="query.stageCode != null">
+                        AND (task.parent_task_id IS NULL OR NOT EXISTS (
+                            SELECT 1
+                            FROM proj_project_task stage_parent
+                            WHERE stage_parent.tenant_id = task.tenant_id
+                              AND stage_parent.project_id = task.project_id
+                              AND stage_parent.id = task.parent_task_id
+                              AND stage_parent.stage_code = #{query.stageCode}
+                              AND stage_parent.deleted = b'0'
+                        ))
+                    </when>
+                    <otherwise>
+                        AND task.parent_task_id IS NULL
+                    </otherwise>
+                </choose>
+            </when>
+            <when test="query.mode.name() == 'BUSINESS_LEVEL'">
+                AND task.business_level_code = #{query.businessLevelCode}
+                <if test="query.visibilityQuery != null and !query.visibilityQuery.fullProjectAccess">
+                    AND <include refid="nestedTaskFullVisibilityPredicate"/>
+                </if>
+            </when>
+            <when test="query.mode.name() == 'LOCATE'">
+                <choose>
+                    <when test="query.targetTaskId != null">
+                        AND task.id = #{query.targetTaskId}
+                    </when>
+                    <otherwise>
+                        AND (task.task_code LIKE CONCAT('%', #{query.keyword}, '%')
+                            OR task.name LIKE CONCAT('%', #{query.keyword}, '%'))
+                    </otherwise>
+                </choose>
+                <if test="query.keyword != null and query.visibilityQuery != null
+                        and !query.visibilityQuery.fullProjectAccess">
+                    AND <include refid="nestedTaskFullVisibilityPredicate"/>
+                </if>
+            </when>
+        </choose>
+        <if test="query.stageCode != null">
+            AND task.stage_code = #{query.stageCode}
+        </if>
+        <if test="query.cursorSortOrder != null and query.cursorTaskId != null">
+            AND (task.sort_order &gt; #{query.cursorSortOrder}
+                OR (task.sort_order = #{query.cursorSortOrder}
+                    AND task.id &gt; #{query.cursorTaskId}))
+        </if>
+        ORDER BY task.sort_order, task.id
+        LIMIT #{query.pageSize}
+    </select>
+
+    <select id="selectAncestorQuery"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT DISTINCT <include refid="taskColumns"/>
+        FROM proj_task_tree_path path
+        JOIN proj_project_task task
+          ON task.tenant_id = path.tenant_id
+         AND task.project_id = path.project_id
+         AND task.id = path.ancestor_task_id
+         AND task.deleted = b'0'
+        WHERE path.tenant_id = #{query.tenantId}
+          AND path.project_id = #{query.projectId}
+          AND path.descendant_task_id IN
+        <foreach collection="query.descendantTaskIds" item="taskId" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+          AND path.distance &gt; 0
+          AND path.deleted = b'0'
+          AND <include refid="taskVisibilityPredicate"/>
+        ORDER BY task.tree_depth, COALESCE(task.sort_order, 0), task.id
+    </select>
+
+    <select id="selectTask"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.id = #{query.taskId}
+          AND task.deleted = b'0'
+    </select>
+
+    <select id="selectListForGovernanceGuard"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+          AND task.deleted = b'0'
+        ORDER BY task.project_id, task.id
+    </select>
+
+    <sql id="taskVisibilityPredicate">
+        <choose>
+            <when test="query.fullProjectAccess">
+                TRUE
+            </when>
+            <otherwise>
+                EXISTS (
+                    SELECT 1
+                    FROM proj_task_tree_path visible_path
+                    JOIN proj_project_task_assignment assignment
+                      ON assignment.tenant_id = visible_path.tenant_id
+                     AND assignment.project_task_id = visible_path.descendant_task_id
+                     AND assignment.current_marker = 1
+                     AND assignment.effective_to IS NULL
+                     AND assignment.deleted = b'0'
+                    WHERE visible_path.tenant_id = task.tenant_id
+                      AND visible_path.project_id = task.project_id
+                      AND visible_path.ancestor_task_id = task.id
+                      AND visible_path.deleted = b'0'
+                      AND assignment.assignee_user_id = #{query.actorId}
+                )
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="taskFullVisibilityPredicate">
+        <choose>
+            <when test="query.fullProjectAccess">
+                TRUE
+            </when>
+            <otherwise>
+                EXISTS (
+                    SELECT 1
+                    FROM proj_project_task_assignment assignment
+                    WHERE assignment.tenant_id = task.tenant_id
+                      AND assignment.project_task_id = task.id
+                      AND assignment.assignee_user_id = #{query.actorId}
+                      AND assignment.current_marker = 1
+                      AND assignment.effective_to IS NULL
+                      AND assignment.deleted = b'0'
+                )
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="nestedTaskFullVisibilityPredicate">
+        EXISTS (
+            SELECT 1
+            FROM proj_project_task_assignment assignment
+            WHERE assignment.tenant_id = task.tenant_id
+              AND assignment.project_task_id = task.id
+              AND assignment.assignee_user_id = #{query.visibilityQuery.actorId}
+              AND assignment.current_marker = 1
+              AND assignment.effective_to IS NULL
+              AND assignment.deleted = b'0'
+        )
+    </sql>
+
+    <select id="selectVisibleTaskIds" resultType="java.lang.Long">
+        SELECT task.id
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND <include refid="taskVisibilityPredicate"/>
+        ORDER BY task.id
+    </select>
+
+    <select id="selectFullTaskIds" resultType="java.lang.Long">
+        SELECT task.id
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND <include refid="taskFullVisibilityPredicate"/>
+        ORDER BY task.id
+    </select>
+
+    <select id="selectStageCounts"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStageCount">
+        SELECT task.stage_code AS stageCode, COUNT(*) AS taskCount
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND <include refid="taskFullVisibilityPredicate"/>
+        GROUP BY task.stage_code
+        ORDER BY task.stage_code
+    </select>
+
+    <select id="selectProjectForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT *
+        FROM proj_project
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectProjectForCommandForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT *
+        FROM proj_project
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectTaskForAssignmentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT <include refid="taskColumns"/>
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.id = #{query.projectTaskId}
+          AND task.deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectSourceTaskForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT *
+        FROM proj_project_task
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.sourceTaskId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectTargetParentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT *
+        FROM proj_project_task
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.targetParentTaskId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectMovedSubtreeForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO">
+        SELECT task.*
+        FROM proj_task_tree_path path
+        JOIN proj_project_task task
+          ON task.tenant_id = path.tenant_id
+         AND task.project_id = path.project_id
+         AND task.id = path.descendant_task_id
+         AND task.deleted = b'0'
+        WHERE path.tenant_id = #{query.tenantId}
+          AND path.project_id = #{query.projectId}
+          AND path.ancestor_task_id = #{query.sourceTaskId}
+          AND path.descendant_task_id &lt;&gt; #{query.sourceTaskId}
+          AND path.deleted = b'0'
+        ORDER BY task.id
+        FOR UPDATE
+    </select>
+
+    <update id="updateStructureIfMatch">
+        UPDATE proj_project_task
+        SET parent_task_id = #{query.targetParentTaskId},
+            root_task_id = #{query.newRootTaskId},
+            tree_depth = #{query.newTreeDepth},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedTaskVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="incrementTaskTreeVersion">
+        UPDATE proj_project
+        SET task_tree_version = task_tree_version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND task_tree_version = #{query.expectedTaskTreeVersion}
+          AND deleted = b'0'
+    </update>
+
+    <insert id="insertNewTaskPaths">
+        INSERT INTO proj_task_tree_path
+            (project_id, ancestor_task_id, descendant_task_id, distance,
+             version, creator, updater, tenant_id)
+        SELECT #{query.projectId}, ancestor_task_id, #{query.taskId}, distance + 1,
+               0, #{query.creator}, #{query.creator}, #{query.tenantId}
+        FROM proj_task_tree_path
+        WHERE #{query.parentTaskId} IS NOT NULL
+          AND tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND descendant_task_id = #{query.parentTaskId}
+          AND deleted = b'0'
+        UNION ALL
+        SELECT #{query.projectId}, #{query.taskId}, #{query.taskId}, 0,
+               0, #{query.creator}, #{query.creator}, #{query.tenantId}
+    </insert>
+
+    <update id="updateBasicIfMatch">
+        UPDATE proj_project_task
+        SET
+        <if test="query.submittedFields.contains('name')">name = #{query.name},</if>
+        <if test="query.submittedFields.contains('businessLevelCode')">
+            business_level_code = #{query.businessLevelCode},
+        </if>
+        <if test="query.submittedFields.contains('planStartTime')">plan_start_time = #{query.planStartTime},</if>
+        <if test="query.submittedFields.contains('planEndTime')">plan_end_time = #{query.planEndTime},</if>
+        <if test="query.submittedFields.contains('priority')">priority = #{query.priority},</if>
+        <if test="query.submittedFields.contains('sortOrder')">sort_order = #{query.sortOrder},</if>
+        <if test="query.submittedFields.contains('description')">description = #{query.description},</if>
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="incrementTaskVersionIfMatch">
+        UPDATE proj_project_task
+        SET version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.taskId}
+          AND version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <update id="assignTaskIfMatch">
+        UPDATE proj_project_task
+        SET status = #{query.nextStatus},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.projectTaskId}
+          AND version = #{query.expectedVersion}
+          AND status = #{query.expectedStatus}
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectNonTerminalDescendantIdsForUpdate" resultType="long">
+        SELECT task.id
+        FROM proj_task_tree_path path
+        JOIN proj_project_task task
+          ON task.tenant_id = path.tenant_id
+         AND task.project_id = path.project_id
+         AND task.id = path.descendant_task_id
+         AND task.deleted = b'0'
+        WHERE path.tenant_id = #{query.tenantId}
+          AND path.project_id = #{query.projectId}
+          AND path.ancestor_task_id = #{query.projectTaskId}
+          AND path.distance &gt; 0
+          AND path.deleted = b'0'
+          AND (task.status IS NULL OR task.status NOT IN ('DONE', 'CLOSED'))
+        ORDER BY task.id
+        FOR UPDATE
+    </select>
+
+    <select id="selectNonTerminalPredecessorIdsForUpdate" resultType="long">
+        SELECT dependency.predecessor_task_id
+        FROM proj_task_dependency dependency
+        LEFT JOIN proj_project_task predecessor
+          ON predecessor.tenant_id = dependency.tenant_id
+         AND predecessor.project_id = dependency.project_id
+         AND predecessor.id = dependency.predecessor_task_id
+         AND predecessor.deleted = b'0'
+        WHERE dependency.tenant_id = #{query.tenantId}
+          AND dependency.project_id = #{query.projectId}
+          AND dependency.successor_task_id = #{query.projectTaskId}
+          AND dependency.deleted = b'0'
+          AND (predecessor.id IS NULL OR predecessor.status IS NULL
+               OR predecessor.status NOT IN ('DONE', 'CLOSED'))
+        ORDER BY dependency.predecessor_task_id
+        FOR UPDATE
+    </select>
+
+    <update id="updateLifecycleIfMatch">
+        UPDATE proj_project_task
+        SET status = #{query.nextStatus},
+        <if test="query.initializeActualStartTime">
+            actual_start_time = COALESCE(actual_start_time, #{query.occurredAt}),
+        </if>
+        <if test="query.setActualEndTime">
+            actual_end_time = #{query.occurredAt},
+        </if>
+        <if test="query.progress != null">
+            progress = #{query.progress},
+        </if>
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = #{query.occurredAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.projectTaskId}
+          AND version = #{query.expectedVersion}
+          AND status = #{query.expectedStatus}
+          AND deleted = b'0'
+    </update>
+
+    <select id="selectApplicableLeaves"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ApplicableLeafTaskProgress">
+        SELECT task.id AS task_id,
+               task.progress,
+               task.estimated_hours,
+               task.status
+        FROM proj_project_task task
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.deleted = b'0'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM proj_project_task child
+              WHERE child.tenant_id = task.tenant_id
+                AND child.project_id = task.project_id
+                AND child.parent_task_id = task.id
+                AND child.deleted = b'0'
+          )
+        ORDER BY task.id
+        FOR UPDATE
+    </select>
+
+    <update id="updateProgressIfMatch">
+        UPDATE proj_project_task
+        SET progress = #{query.progress},
+            version = version + 1,
+            updater = #{query.updater},
+            update_time = #{query.occurredAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND id = #{query.projectTaskId}
+          AND version = #{query.expectedVersion}
+          AND status = 'IN_PROGRESS'
+          AND deleted = b'0'
+    </update>
+
+    <update id="incrementTaskProgressVersion">
+        UPDATE proj_project
+        SET task_progress_version = task_progress_version + 1,
+            updater = #{query.updater},
+            update_time = #{query.occurredAt}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.projectId}
+          AND task_progress_version = #{query.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+    <delete id="deleteOldExternalPaths">
+        DELETE external_path
+        FROM proj_task_tree_path external_path
+        JOIN proj_task_tree_path subtree
+          ON subtree.tenant_id = external_path.tenant_id
+         AND subtree.project_id = external_path.project_id
+         AND subtree.ancestor_task_id = #{query.taskId}
+         AND subtree.descendant_task_id = external_path.descendant_task_id
+         AND subtree.deleted = b'0'
+        LEFT JOIN proj_task_tree_path internal_ancestor
+          ON internal_ancestor.tenant_id = external_path.tenant_id
+         AND internal_ancestor.project_id = external_path.project_id
+         AND internal_ancestor.ancestor_task_id = #{query.taskId}
+         AND internal_ancestor.descendant_task_id = external_path.ancestor_task_id
+         AND internal_ancestor.deleted = b'0'
+        WHERE external_path.tenant_id = #{query.tenantId}
+          AND external_path.project_id = #{query.projectId}
+          AND external_path.deleted = b'0'
+          AND internal_ancestor.id IS NULL
+    </delete>
+
+    <insert id="insertNewExternalPaths">
+        INSERT INTO proj_task_tree_path
+            (project_id, ancestor_task_id, descendant_task_id, distance,
+             version, creator, updater, tenant_id)
+        SELECT #{query.projectId}, parent_path.ancestor_task_id, subtree.descendant_task_id,
+               parent_path.distance + subtree.distance + 1,
+               0, #{query.updater}, #{query.updater}, #{query.tenantId}
+        FROM proj_task_tree_path parent_path
+        JOIN proj_task_tree_path subtree
+          ON subtree.tenant_id = parent_path.tenant_id
+         AND subtree.project_id = parent_path.project_id
+         AND subtree.ancestor_task_id = #{query.taskId}
+         AND subtree.deleted = b'0'
+        WHERE #{query.targetParentTaskId} IS NOT NULL
+          AND parent_path.tenant_id = #{query.tenantId}
+          AND parent_path.project_id = #{query.projectId}
+          AND parent_path.descendant_task_id = #{query.targetParentTaskId}
+          AND parent_path.deleted = b'0'
+    </insert>
+
+    <update id="updateMovedSubtreeShape">
+        UPDATE proj_project_task task
+        JOIN proj_task_tree_path subtree
+          ON subtree.tenant_id = task.tenant_id
+         AND subtree.project_id = task.project_id
+         AND subtree.descendant_task_id = task.id
+         AND subtree.ancestor_task_id = #{query.taskId}
+         AND subtree.deleted = b'0'
+        SET task.root_task_id = #{query.newRootTaskId},
+            task.tree_depth = task.tree_depth + #{query.depthDelta},
+            task.updater = #{query.updater},
+            task.update_time = CURRENT_TIMESTAMP(3)
+        WHERE task.tenant_id = #{query.tenantId}
+          AND task.project_id = #{query.projectId}
+          AND task.id &lt;&gt; #{query.taskId}
+          AND task.deleted = b'0'
+    </update>
+
+</mapper>

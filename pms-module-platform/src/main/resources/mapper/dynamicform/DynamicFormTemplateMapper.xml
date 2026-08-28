@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform.DynamicFormTemplateMapper">
+
+    <sql id="TemplateSummaryColumns">
+        t.id, t.template_code, t.template_name, t.category_code, t.description,
+        t.availability_code, t.current_published_revision_id, t.version,
+        t.creator, t.create_time, t.updater, t.update_time, t.deleted, t.tenant_id,
+        d.id AS current_draft_revision_id,
+        d.revision_no AS current_draft_revision_no,
+        d.version AS current_draft_version,
+        d.source_revision_id AS current_draft_source_revision_id,
+        d.engine_code AS current_draft_engine_code,
+        d.designer_version AS current_draft_designer_version,
+        d.renderer_version AS current_draft_renderer_version,
+        p.revision_no AS current_published_revision_no,
+        p.version AS current_published_revision_version,
+        p.source_revision_id AS current_published_source_revision_id,
+        p.engine_code AS current_published_engine_code,
+        p.designer_version AS current_published_designer_version,
+        p.renderer_version AS current_published_renderer_version,
+        p.published_by AS current_published_by,
+        p.published_at AS current_published_at
+    </sql>
+
+    <sql id="TemplateSummaryJoins">
+        LEFT JOIN plt_dynamic_form_template_revision d
+          ON d.tenant_id = t.tenant_id AND d.template_id = t.id
+         AND d.status_code = 'DRAFT' AND d.draft_marker = 1 AND d.deleted = b'0'
+        LEFT JOIN plt_dynamic_form_template_revision p
+          ON p.tenant_id = t.tenant_id AND p.template_id = t.id
+         AND p.id = t.current_published_revision_id AND p.status_code = 'PUBLISHED'
+         AND p.deleted = b'0'
+    </sql>
+
+    <insert id="insert">
+        INSERT INTO plt_dynamic_form_template
+        (id, template_code, template_name, category_code, description, availability_code,
+         current_published_revision_id, version, creator, create_time, updater, update_time,
+         tenant_id)
+        VALUES
+        (#{row.id}, #{row.templateCode}, #{row.templateName}, #{row.categoryCode},
+         #{row.description}, #{row.availabilityCode}, #{row.currentPublishedRevisionId},
+         #{row.version}, #{row.creator}, COALESCE(#{row.createTime}, NOW()), #{row.updater},
+         COALESCE(#{row.updateTime}, NOW()), #{row.tenantId})
+    </insert>
+
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFormTemplateDO">
+        SELECT <include refid="TemplateSummaryColumns"/>
+        FROM plt_dynamic_form_template t
+        <include refid="TemplateSummaryJoins"/>
+        WHERE t.tenant_id = #{query.tenantId} AND t.deleted = b'0'
+        <if test="query.templateNameKeyword != null and query.templateNameKeyword != ''">
+            AND t.template_name LIKE CONCAT('%', #{query.templateNameKeyword}, '%')
+        </if>
+        <if test="query.categoryCode != null and query.categoryCode != ''">
+            AND t.category_code = #{query.categoryCode}
+        </if>
+        <if test="query.availabilityCode != null and query.availabilityCode != ''">
+            AND t.availability_code = #{query.availabilityCode}
+        </if>
+        <if test="query.selectionOnly">
+            AND t.current_published_revision_id IS NOT NULL
+        </if>
+        ORDER BY t.template_name ASC, t.id ASC
+        LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+
+    <select id="selectCountPage" resultType="long">
+        SELECT COUNT(*)
+        FROM plt_dynamic_form_template t
+        WHERE t.tenant_id = #{query.tenantId} AND t.deleted = b'0'
+        <if test="query.templateNameKeyword != null and query.templateNameKeyword != ''">
+            AND t.template_name LIKE CONCAT('%', #{query.templateNameKeyword}, '%')
+        </if>
+        <if test="query.categoryCode != null and query.categoryCode != ''">
+            AND t.category_code = #{query.categoryCode}
+        </if>
+        <if test="query.availabilityCode != null and query.availabilityCode != ''">
+            AND t.availability_code = #{query.availabilityCode}
+        </if>
+        <if test="query.selectionOnly">
+            AND t.current_published_revision_id IS NOT NULL
+        </if>
+    </select>
+
+    <select id="selectByRow" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFormTemplateDO">
+        SELECT <include refid="TemplateSummaryColumns"/>
+        FROM plt_dynamic_form_template t
+        <include refid="TemplateSummaryJoins"/>
+        WHERE t.tenant_id = #{query.tenantId} AND t.id = #{query.templateId}
+          AND t.deleted = b'0'
+    </select>
+
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.DynamicFormTemplateDO">
+        SELECT t.*
+        FROM plt_dynamic_form_template t
+        WHERE t.tenant_id = #{query.tenantId} AND t.id = #{query.templateId}
+          AND t.deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="updateIfMatch">
+        UPDATE plt_dynamic_form_template
+        <set>
+            <if test="update.updateTemplateName">template_name = #{update.templateName},</if>
+            <if test="update.updateCategoryCode">category_code = #{update.categoryCode},</if>
+            <if test="update.updateDescription">description = #{update.description},</if>
+            <if test="update.updateAvailabilityCode">availability_code = #{update.availabilityCode},</if>
+            <if test="update.updateCurrentPublishedRevisionId">
+                current_published_revision_id = #{update.currentPublishedRevisionId},
+            </if>
+            version = version + 1,
+            updater = #{update.updater},
+            update_time = NOW()
+        </set>
+        WHERE tenant_id = #{update.tenantId} AND id = #{update.templateId}
+          AND version = #{update.expectedVersion} AND deleted = b'0'
+    </update>
+</mapper>

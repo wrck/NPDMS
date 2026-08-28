@@ -323,7 +323,7 @@
           </el-col>
           <el-col :span="24">
             <el-form-item label="证据附件" prop="evidenceUrl">
-              <UploadFile v-model="executionForm.evidenceUrl" />
+              <UploadFile v-model="executionForm.evidenceUrl!" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -406,7 +406,7 @@
           </el-col>
           <el-col :span="24">
             <el-form-item label="文件地址" prop="fileUrl">
-              <UploadFile v-model="offlineFileForm.fileUrl" />
+              <UploadFile v-model="offlineFileForm.fileUrl!" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -448,7 +448,6 @@ import * as ProjectApi from '@/api/pms/project/project'
 import * as EquipmentApi from '@/api/pms/asset/equipment'
 import * as SrvRuleApi from '@/api/pms/service/srv-rule'
 import type { SrvTaskVO, SrvExecutionVO, SrvOfflineFileVO } from '@/api/pms/service/srv-task'
-import UserTag from '@/components/UserTag/index.vue'
 
 defineOptions({ name: 'PmsSrvTask' })
 const message = useMessage()
@@ -553,7 +552,8 @@ const executionStatusOptions = [
 ]
 const executionStatusLabel = (status: number) =>
   executionStatusOptions.find((i) => i.value === status)?.label || '未知'
-const executionStatusTagType = (status: number) => {
+type ElTagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
+const executionStatusTagType = (status: number): ElTagType => {
   switch (status) {
     case 2:
       return 'success'
@@ -562,7 +562,7 @@ const executionStatusTagType = (status: number) => {
     case 1:
       return 'warning'
     default:
-      return ''
+      return undefined
   }
 }
 const openExecutionDlg = async (row: SrvTaskVO) => {
@@ -655,7 +655,7 @@ const parseStatusOptions = [
 ]
 const parseStatusLabel = (status: number) =>
   parseStatusOptions.find((i) => i.value === status)?.label || '未知'
-const parseStatusTagType = (status: number) => {
+const parseStatusTagType = (status: number): ElTagType => {
   switch (status) {
     case 2:
       return 'success'
@@ -664,7 +664,7 @@ const parseStatusTagType = (status: number) => {
     case 1:
       return 'warning'
     default:
-      return ''
+      return undefined
   }
 }
 const openOfflineFileDlg = async (row: SrvTaskVO) => {

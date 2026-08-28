@@ -236,13 +236,13 @@
         <AnnouncementTag v-if="current.announcementId" :announcement-id="current.announcementId" />
       </el-descriptions-item>
       <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_STATUS" :value="current.status" />
+        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="设备型号">{{ current.deviceModel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备序列号">{{ current.deviceSerial || '-' }}</el-descriptions-item>
       <el-descriptions-item label="设备版本">{{ current.deviceVersion || '-' }}</el-descriptions-item>
       <el-descriptions-item label="匹配结果">
-        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_MATCH" :value="current.matchResult" />
+        <dict-tag :type="DICT_TYPE.PMS_ANN_CHECK_MATCH" :value="current.matchResult ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="EOS/EOM">{{ current.eomStatus || '-' }}</el-descriptions-item>
       <el-descriptions-item label="检查人">
@@ -258,7 +258,7 @@
 
   <!-- 处置对话框 -->
   <Dialog v-model="handleVisible" :title="handleTitle" width="560px">
-    <el-form ref="handleFormRef" :model="handleForm" label-width="100px">
+    <el-form :model="handleForm" label-width="100px">
       <el-form-item label="检查编号">{{ handleForm.code }}</el-form-item>
       <el-form-item label="处理意见" prop="handleOpinion">
         <el-input v-model="handleForm.handleOpinion" type="textarea" :rows="3" />
@@ -326,8 +326,8 @@ const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<AnnouncementCheckVO>({
   code: '',
-  projectId: undefined,
-  announcementId: undefined,
+  projectId: undefined!,
+  announcementId: undefined!,
   deviceModel: '',
   deviceSerial: '',
   deviceVersion: '',
@@ -382,7 +382,7 @@ const save = async () => {
 
 // 明细
 const detailVisible = ref(false)
-const current = ref<AnnouncementCheckVO>({})
+const current = ref<Partial<AnnouncementCheckVO>>({})
 const openDetail = async (row: AnnouncementCheckVO) => {
   current.value = await AnnouncementCheckApi.getAnnouncementCheck(row.id!)
   detailVisible.value = true
@@ -398,7 +398,6 @@ const handlePerformCheck = async (row: AnnouncementCheckVO) => {
 
 // 处置对话框
 const handleVisible = ref(false)
-const handleFormRef = ref()
 const handleTitle = ref('')
 const handleForm = reactive({
   id: undefined as number | undefined,

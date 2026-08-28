@@ -28,7 +28,7 @@ export interface CutPlanApproveVO {
 
 const baseUrl = '/pms/cut-plan'
 
-export const getCutPlanPage = (params: PageParam) =>
+export const getCutPlanPage = (params: PmsTaskPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getCutPlan = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

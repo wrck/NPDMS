@@ -17,6 +17,11 @@ public class DeptSaveReqVO {
     @Schema(description = "部门编号", example = "1024")
     private Long id;
 
+    @Schema(description = "统一部门编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "DEPT-HZ-01")
+    @NotBlank(message = "部门编码不能为空")
+    @Size(max = 64, message = "部门编码长度不能超过 64 个字符")
+    private String code;
+
     @Schema(description = "部门名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "NPMS")
     @NotBlank(message = "部门名称不能为空")
     @Size(max = 30, message = "部门名称长度不能超过 30 个字符")
@@ -45,5 +50,8 @@ public class DeptSaveReqVO {
     @NotNull(message = "状态不能为空")
     @InEnum(value = CommonStatusEnum.class, message = "修改状态必须是 {value}")
     private Integer status;
+
+    @Schema(description = "乐观锁版本", example = "0")
+    private Integer version;
 
 }

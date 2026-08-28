@@ -12,6 +12,10 @@ public interface ErrorCodeConstants {
     // ========== 客户模块 1-014-001-000 ==========
     ErrorCode CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_001_000, "客户不存在");
     ErrorCode CUSTOMER_CODE_DUPLICATE = new ErrorCode(1_014_001_001, "客户编码已存在");
+    ErrorCode CUSTOMER_LEGACY_ROUTE_READ_ONLY = new ErrorCode(1_014_001_002,
+            "CUSTOMER_LEGACY_ROUTE_READ_ONLY：旧客户入口已退役为历史只读，请改用 /pms/customers");
+    ErrorCode PROJECT_CUSTOMER_UNAVAILABLE = new ErrorCode(1_014_001_003,
+            "所属客户不存在或不可用于新项目关系");
 
     // ========== 客户联系人模块 1-014-002-000 ==========
     ErrorCode CUSTOMER_CONTACT_NOT_EXISTS = new ErrorCode(1_014_002_000, "客户联系人不存在");
@@ -21,7 +25,6 @@ public interface ErrorCodeConstants {
     // ========== 项目主表模块 1-014-003-000 ==========
     ErrorCode PROJECT_NOT_EXISTS = new ErrorCode(1_014_003_000, "项目不存在");
     ErrorCode PROJECT_CODE_DUPLICATE = new ErrorCode(1_014_003_001, "项目编码已存在");
-    ErrorCode PROJECT_SOURCE_KEY_DUPLICATE = new ErrorCode(1_014_003_002, "项目来源业务键已存在");
     ErrorCode PROJECT_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_003_003, "项目客户不存在");
 
     // ========== 项目树模块 1-014-004-000 ==========
@@ -46,16 +49,10 @@ public interface ErrorCodeConstants {
     // ========== 项目阶段模块 1-014-007-000 ==========
     ErrorCode PROJECT_PHASE_NOT_EXISTS = new ErrorCode(1_014_007_000, "项目阶段不存在");
     ErrorCode PROJECT_PHASE_CODE_DUPLICATE = new ErrorCode(1_014_007_001, "项目内阶段编码已存在");
-    ErrorCode PROJECT_PHASE_TEMPLATE_NOT_EXISTS = new ErrorCode(1_014_007_002, "阶段模板不存在");
     ErrorCode PROJECT_PHASE_GATE_NOT_PASSED = new ErrorCode(1_014_007_003, "阶段【{}】门禁校验未通过：{}");
     ErrorCode PROJECT_PHASE_ALREADY_COMPLETED = new ErrorCode(1_014_007_004, "阶段已完成，无法再次完成");
     ErrorCode PROJECT_PHASE_PROJECT_NOT_EXISTS = new ErrorCode(1_014_007_005, "所属项目不存在");
     ErrorCode PROJECT_PHASE_SEQUENCE_INVALID = new ErrorCode(1_014_007_006, "阶段顺序校验未通过：前序阶段尚未完成或跳过");
-
-    // ========== 阶段模板模块 1-014-008-000 ==========
-    ErrorCode PHASE_TEMPLATE_NOT_EXISTS = new ErrorCode(1_014_008_000, "阶段模板不存在");
-    ErrorCode PHASE_TEMPLATE_CODE_DUPLICATE = new ErrorCode(1_014_008_001, "阶段模板编码已存在");
-    ErrorCode PHASE_TEMPLATE_IN_USE = new ErrorCode(1_014_008_002, "阶段模板已被项目阶段引用，无法删除");
 
     // ========== 项目风险模块 1-014-009-000 ==========
     ErrorCode PROJECT_RISK_NOT_EXISTS = new ErrorCode(1_014_009_000, "项目风险不存在");
@@ -96,11 +93,6 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_ARCHIVE_DOCUMENT_CODE_DUPLICATE = new ErrorCode(1_014_015_001, "项目内归档文档编码已存在");
     ErrorCode ACC_ARCHIVE_DOCUMENT_STATUS_INVALID = new ErrorCode(1_014_015_002, "归档文档状态流转不合法");
 
-    // ========== 转维保 1-014-016-000 ==========
-    ErrorCode ACC_MAINTENANCE_TRANSITION_NOT_EXISTS = new ErrorCode(1_014_016_000, "转维保记录不存在");
-    ErrorCode ACC_MAINTENANCE_TRANSITION_CODE_DUPLICATE = new ErrorCode(1_014_016_001, "项目内转维保编码已存在");
-    ErrorCode ACC_MAINTENANCE_TRANSITION_STATUS_INVALID = new ErrorCode(1_014_016_002, "转维保状态流转不合法");
-
     // ========== 项目组合模块 1-014-017-000 ==========
     ErrorCode PORTFOLIO_NOT_EXISTS = new ErrorCode(1_014_017_000, "项目组合不存在");
     ErrorCode PORTFOLIO_CODE_DUPLICATE = new ErrorCode(1_014_017_001, "项目组合编码已存在");
@@ -140,11 +132,78 @@ public interface ErrorCodeConstants {
     ErrorCode GOVERNANCE_ACTION_PROJECT_NOT_EXISTS = new ErrorCode(1_014_022_003, "所属项目不存在");
     ErrorCode GOVERNANCE_ACTION_TYPE_INVALID = new ErrorCode(1_014_022_004, "项目治理动作类型不合法");
 
-    // ========== 项目模板模块 1-014-023-000 ==========
+    // ========== 项目模板模块（F-PM03 模板基座）1-014-023-000 ==========
     ErrorCode PROJECT_TEMPLATE_NOT_EXISTS = new ErrorCode(1_014_023_000, "项目模板不存在");
     ErrorCode PROJECT_TEMPLATE_CODE_DUPLICATE = new ErrorCode(1_014_023_001, "项目模板编码已存在");
-    ErrorCode PROJECT_TEMPLATE_IN_USE = new ErrorCode(1_014_023_002, "项目模板已被项目引用，无法删除");
-    ErrorCode PROJECT_TEMPLATE_NOT_ENABLED = new ErrorCode(1_014_023_003, "项目模板未启用");
-    ErrorCode PROJECT_TEMPLATE_SNAPSHOT_INVALID = new ErrorCode(1_014_023_004, "项目模板快照校验未通过：{}");
+    ErrorCode PROJECT_TEMPLATE_CODE_IMMUTABLE = new ErrorCode(1_014_023_002, "模板编码不可修改");
+    ErrorCode PROJECT_TEMPLATE_DELETE_FORBIDDEN = new ErrorCode(1_014_023_003, "模板存在已发布版本或为系统保留，禁止删除");
+    ErrorCode PROJECT_TEMPLATE_NO_DRAFT_REVISION = new ErrorCode(1_014_023_004, "模板草稿版本不存在");
+    ErrorCode PROJECT_TEMPLATE_PUBLISH_INVALID = new ErrorCode(1_014_023_005, "模板发布校验未通过：{}");
+    ErrorCode PROJECT_TEMPLATE_STATUS_INVALID = new ErrorCode(1_014_023_006, "模板状态流转不合法");
+
+    // ========== 项目手工创建模块（F-PM01 / PM-01）1-014-024-000 ==========
+    // 注：PROJECT_NOT_EXISTS 复用 1-014-003-000（项目主表段，新旧链同语义）。
+    ErrorCode PROJECT_CREATE_FIELDS_INVALID = new ErrorCode(1_014_024_000, "手工创建必填项缺失：{}");
+    ErrorCode PROJECT_TEMPLATE_NO_MATCH = new ErrorCode(1_014_024_001, "无匹配的生效模板：{}");
+    ErrorCode PROJECT_TEMPLATE_AMBIGUOUS = new ErrorCode(1_014_024_002, "模板同优先级多命中，需人工选择：{}");
+    ErrorCode PROJECT_CODE_EXHAUSTED = new ErrorCode(1_014_024_003, "项目编码流水已耗尽（PJT 规则 V1 上限 999999）");
+    ErrorCode PROJECT_FIELD_IMMUTABLE = new ErrorCode(1_014_024_004, "项目字段不可经更新接口修改：{}");
+    ErrorCode PROJECT_MEMBER_ROLE_INVALID = new ErrorCode(1_014_024_005, "项目成员角色不合法");
+    ErrorCode PROJECT_MEMBER_INTERVAL_CONFLICT = new ErrorCode(1_014_024_006, "项目成员指派区间冲突");
+    ErrorCode PROJECT_TEMPLATE_NOT_SELECTABLE = new ErrorCode(1_014_024_007, "手工选择的模板不可用（非生效状态或无已发布版本）");
+    ErrorCode PMS_IDEMPOTENCY_KEY_CONFLICT = new ErrorCode(1_014_024_008, "幂等键冲突：同一 Idempotency-Key 已绑定不同请求体（PMS-COMMON-IDEMPOTENCY-0001）");
+    ErrorCode PMS_IDEMPOTENCY_IN_PROGRESS = new ErrorCode(1_014_024_012, "相同幂等请求正在处理中，请稍后重试");
+    ErrorCode PROJECT_TEMPLATE_CANDIDATE_VERSION_CONFLICT = new ErrorCode(1_014_024_013,
+            "模板候选已变化，请重新查询候选并确认版本");
+    ErrorCode PROJECT_VERSION_CONFLICT = new ErrorCode(1_014_024_014,
+            "Project版本冲突，请重新加载后重试");
+    ErrorCode PROJECT_ASSIGNMENT_REQUEST_INVALID = new ErrorCode(1_014_024_015,
+            "服务经理确认请求不合法：{}");
+    ErrorCode PROJECT_ORGANIZATION_SCOPE_INVALID = new ErrorCode(1_014_024_016,
+            "公司与部门不在同一有效授权范围：{}");
+    ErrorCode PROJECT_LOCATION_SCOPE_INVALID = new ErrorCode(1_014_024_017,
+            "项目实施地点范围不合法：{}");
+
+    // ========== 项目树与进度汇总（F-PM02 / PM-02）1-014-024-009 ==========
+    ErrorCode PROJECT_MOVE_CYCLE = new ErrorCode(1_014_024_009, "子树移动会形成循环引用（目标父项目为自身或自身后代）");
+    ErrorCode PROJECT_MOVE_INVALID_PARENT = new ErrorCode(1_014_024_010, "移动目标父项目不存在或跨租户");
+    ErrorCode PROJECT_TREE_VERSION_CONFLICT = new ErrorCode(1_014_024_030, "项目树版本冲突");
+    ErrorCode PROJECT_TREE_PROJECTION_UNAVAILABLE = new ErrorCode(1_014_024_031, "项目树完整投影暂不可用");
+    ErrorCode PROJECT_TREE_QUERY_INVALID = new ErrorCode(1_014_024_032, "项目树查询参数或游标无效");
+    ErrorCode PROJECT_TREE_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_033, "无权访问该项目树范围");
+    ErrorCode PROJECT_WEIGHT_SUM_INVALID = new ErrorCode(1_014_024_011, "直接子项目权重合计必须为100%：{}");
+    ErrorCode PROJECT_SPLIT_REQUEST_NOT_EXISTS = new ErrorCode(1_014_024_018, "项目拆分草稿不存在");
+    ErrorCode PROJECT_SPLIT_DRAFT_INVALID = new ErrorCode(1_014_024_019, "项目拆分草稿不合法：{}");
+    ErrorCode PROJECT_SPLIT_DRAFT_VERSION_CONFLICT = new ErrorCode(1_014_024_020, "项目拆分草稿版本冲突，请重新加载");
+    ErrorCode PROJECT_SPLIT_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_021, "无权访问该项目拆分范围");
+    ErrorCode PROJECT_SPLIT_APPLY_INVALID = new ErrorCode(1_014_024_022, "项目拆分方案不可应用：{}");
+    ErrorCode PROJECT_SPLIT_APPLY_VERSION_CONFLICT = new ErrorCode(1_014_024_023, "项目拆分权威版本已变化，请重新预览");
+    ErrorCode PROJECT_PROGRESS_POLICY_INVALID = new ErrorCode(1_014_024_024, "项目进度策略不合法：{}");
+    ErrorCode PROJECT_PROGRESS_POLICY_NOT_EXISTS = new ErrorCode(1_014_024_025, "项目进度策略版本不存在");
+    ErrorCode PROJECT_PROGRESS_POLICY_VERSION_CONFLICT = new ErrorCode(1_014_024_026, "项目进度策略版本冲突");
+    ErrorCode PROJECT_PROGRESS_POLICY_STATUS_INVALID = new ErrorCode(1_014_024_027, "项目进度策略状态不允许当前操作");
+    ErrorCode PROJECT_PROGRESS_APPROVAL_NOT_CONFIGURED = new ErrorCode(1_014_024_028, "项目进度策略审批流程未配置");
+    ErrorCode PROJECT_PROGRESS_PENDING = new ErrorCode(1_014_024_029, "项目进度待计算");
+
+    // ========== 项目子树授权（F-PROJ-003 / PM-04）1-014-024-034 ==========
+    ErrorCode PROJECT_AUTHORIZATION_FORBIDDEN = new ErrorCode(1_014_024_034, "无权管理该项目授权");
+    ErrorCode PROJECT_AUTHORIZATION_NOT_FOUND = new ErrorCode(1_014_024_035, "项目授权不存在");
+    ErrorCode PROJECT_AUTHORIZATION_INVALID = new ErrorCode(1_014_024_036, "项目授权请求不合法");
+    ErrorCode PROJECT_AUTHORIZATION_VERSION_CONFLICT = new ErrorCode(1_014_024_037, "项目授权版本冲突");
+    ErrorCode PROJECT_AUTHORIZATION_CONFLICT = new ErrorCode(1_014_024_038, "项目当前授权发生并发冲突");
+    ErrorCode PROJECT_GOVERNANCE_GUARD_TOKEN_INVALID = new ErrorCode(1_014_024_039,
+            "项目治理守卫令牌无效");
+    ErrorCode PROJECT_GOVERNANCE_VERSION_CONFLICT = new ErrorCode(1_014_024_040,
+            "项目治理事实版本冲突，请重新检查守卫");
+    ErrorCode PROJECT_GOVERNANCE_ACTION_FORBIDDEN = new ErrorCode(1_014_024_041,
+            "无权执行该项目治理动作");
+    ErrorCode PROJECT_GOVERNANCE_STATE_INVALID = new ErrorCode(1_014_024_042,
+            "项目当前状态不允许执行该治理动作");
+    ErrorCode PROJECT_GOVERNANCE_PERSISTENCE_FAILED = new ErrorCode(1_014_024_043,
+            "项目治理动作写入失败");
+    ErrorCode PROJECT_TASK_QUERY_INVALID = new ErrorCode(1_014_024_044, "项目任务查询参数无效");
+    ErrorCode PROJECT_TASK_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_045, "无权访问该项目任务");
+    ErrorCode PROJECT_TASK_COMMAND_INVALID = new ErrorCode(1_014_024_046, "项目任务命令不符合当前规则");
+    ErrorCode PROJECT_TASK_VERSION_CONFLICT = new ErrorCode(1_014_024_047, "项目任务版本冲突");
 
 }

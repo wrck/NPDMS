@@ -5,7 +5,11 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.service.controller.admin.srvtask.vo.SrvTaskPageReqVO;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.srvtask.SrvTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.srvtask.query.InspectionGovernanceGuardQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 @Mapper
 public interface SrvTaskMapper extends BaseMapperX<SrvTaskDO> {
@@ -29,5 +33,14 @@ public interface SrvTaskMapper extends BaseMapperX<SrvTaskDO> {
                 .betweenIfPresent(SrvTaskDO::getActualTime, reqVO.getActualTime())
                 .orderByDesc(SrvTaskDO::getId));
     }
+
+    default List<SrvTaskDO> selectListForGovernanceGuard(InspectionGovernanceGuardQuery query) {
+        if (query.projectIds().isEmpty()) {
+            return List.of();
+        }
+        return selectListForGovernanceGuard0(query);
+    }
+
+    List<SrvTaskDO> selectListForGovernanceGuard0(@Param("query") InspectionGovernanceGuardQuery query);
 
 }

@@ -191,7 +191,7 @@ if ($equipId) {
 
 # 13. Project Tree List (FR-PROJ-002)
 Write-Output "`n=== 13. Project Tree Descendants ==="
-$r = Get-Api "$api/pms/project-tree/descendants?projectId=$projId"
+$r = Get-Api "$api/pms/projects/$projId/tree?queryType=DESCENDANTS&pageSize=500"
 Write-Output $r
 $results['project_tree_list'] = ParseCode $r
 

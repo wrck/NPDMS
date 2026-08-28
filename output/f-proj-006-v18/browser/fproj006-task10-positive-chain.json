@@ -1,0 +1,85 @@
+{
+  "capturedAt": "2026-08-25T12:24:38.318Z",
+  "browserVersion": "151.0.7922.34",
+  "baseUrl": "http://127.0.0.1:18082",
+  "apiUpstream": "http://127.0.0.1:58081",
+  "projectId": 992002000030,
+  "before": {
+    "lifecycleActive": true,
+    "historyEmpty": true
+  },
+  "actions": [
+    "ROLLBACK",
+    "EXCEPTION_CLOSE",
+    "REOPEN"
+  ],
+  "finalLifecycleActive": true,
+  "historyCount": 3,
+  "historyRows": [
+    "3\n\t\n受控重开\n\t\nEXCEPTION_CLOSED/S0/UNASSIGNED → ACTIVE/S0/UNASSIGNED\n\t\nBROWSER_ACCEPTANCE\n\t\nTask 10真实浏览器受控重开验收\n\t\n1\n\t\n2026-08-25 20:24:35\n\t\n查看",
+    "2\n\t\n异常关闭\n\t\nACTIVE/S0/UNASSIGNED → EXCEPTION_CLOSED/S0/UNASSIGNED\n\t\nBROWSER_ACCEPTANCE\n\t\nTask 10真实浏览器异常关闭验收\n\t\n1\n\t\n2026-08-25 20:24:32\n\t\n查看",
+    "1\n\t\n回退\n\t\nACTIVE/S0/UNASSIGNED → ACTIVE/S0/UNASSIGNED\n\t\nBROWSER_ACCEPTANCE\n\t\nTask 10真实浏览器回退验收\n\t\n1\n\t\n2026-08-25 20:24:30\n\t\n查看"
+  ],
+  "governanceResponses": [
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-history"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-guard"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/actions/rollback"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-history"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-guard"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/actions/close"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-history"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-guard"
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/actions/reopen"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-history"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "path": "/admin-api/pms/projects/992002000030/governance-history"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedResponses": [],
+  "screenshot": "M:\\AICoding\\CodexData\\worktrees\\50eb\\NPDMS\\output\\f-proj-006-v18\\browser\\fproj006-task10-positive-chain.png",
+  "pass": true
+}

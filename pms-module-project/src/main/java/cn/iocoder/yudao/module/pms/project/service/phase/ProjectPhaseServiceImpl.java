@@ -5,10 +5,8 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhasePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.phase.vo.ProjectPhaseSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phasetemplate.ProjectPhaseTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttask.ProjectTaskDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.phasetemplate.ProjectPhaseTemplateMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttask.ProjectTaskMapper;
 import cn.iocoder.yudao.module.pms.project.domain.task.TaskStatusRules;
@@ -50,8 +48,6 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
     @Resource
     private ProjectPhaseMapper projectPhaseMapper;
     @Resource
-    private ProjectPhaseTemplateMapper projectPhaseTemplateMapper;
-    @Resource
     private ProjectMapper projectMapper;
     @Resource
     private ProjectTaskMapper projectTaskMapper;
@@ -64,14 +60,7 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
         }
         // 2. 校验阶段编码项目内唯一
         validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 3. 校验模板存在（如指定）
-        if (createReqVO.getTemplateId() != null) {
-            ProjectPhaseTemplateDO template = projectPhaseTemplateMapper.selectById(createReqVO.getTemplateId());
-            if (template == null || !Integer.valueOf(0).equals(template.getStatus())) {
-                throw exception(PROJECT_PHASE_TEMPLATE_NOT_EXISTS);
-            }
-        }
-        // 4. 写入
+        // 3. 写入
         ProjectPhaseDO phase = BeanUtils.toBean(createReqVO, ProjectPhaseDO.class);
         if (phase.getSort() == null) {
             phase.setSort(0);
@@ -135,39 +124,6 @@ public class ProjectPhaseServiceImpl implements ProjectPhaseService {
     @Override
     public List<ProjectPhaseDO> getPhaseListByProjectId(Long projectId) {
         return projectPhaseMapper.selectListByProjectId(projectId);
-    }
-
-    @Override
-    @Transactional
-    public Long instantiateFromTemplate(Long projectId, Long templateId) {
-        // 1. 校验项目存在
-        if (projectMapper.selectById(projectId) == null) {
-            throw exception(PROJECT_NOT_EXISTS);
-        }
-        // 2. 校验模板存在并启用
-        ProjectPhaseTemplateDO template = projectPhaseTemplateMapper.selectById(templateId);
-        if (template == null || !Integer.valueOf(0).equals(template.getStatus())) {
-            throw exception(PROJECT_PHASE_TEMPLATE_NOT_EXISTS);
-        }
-        // 3. 校验项目内无重复 code
-        ProjectPhaseDO existing = projectPhaseMapper.selectByProjectAndCode(projectId, template.getCode());
-        if (existing != null) {
-            throw exception(PROJECT_PHASE_GATE_NOT_PASSED, template.getCode(),
-                    "项目内已存在相同编码的阶段【" + template.getCode() + "】");
-        }
-        // 4. 实例化
-        ProjectPhaseDO phase = new ProjectPhaseDO();
-        phase.setProjectId(projectId);
-        phase.setTemplateId(template.getId());
-        phase.setName(template.getName());
-        phase.setCode(template.getCode());
-        phase.setSort(template.getSort() != null ? template.getSort() : 0);
-        phase.setStatus(PHASE_NOT_STARTED);
-        phase.setEntryCriteria(template.getEntryCriteria());
-        phase.setExitCriteria(template.getExitCriteria());
-        phase.setResponsibleRole(template.getResponsibleRole());
-        projectPhaseMapper.insert(phase);
-        return phase.getId();
     }
 
     @Override

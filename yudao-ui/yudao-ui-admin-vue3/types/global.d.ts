@@ -56,6 +56,14 @@ declare global {
     pageNo?: number
   }
 
+  interface PmsProjectPageParam extends PageParam {
+    projectId?: number | string
+  }
+
+  interface PmsTaskPageParam extends PageParam {
+    taskId?: number | string
+  }
+
   interface Tree {
     id: number
     name: string

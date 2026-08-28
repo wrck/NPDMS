@@ -1,0 +1,27 @@
+package cn.iocoder.yudao.module.pms.platform.dal.mysql.file;
+
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionCursorQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionLockQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionStorageReferenceQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionAvailabilityUpdate;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface FileVersionMapper {
+
+    int insert(@Param("row") FileVersionDO row);
+
+    FileVersionDO selectOne(@Param("query") FileVersionLockQuery query);
+
+    FileVersionDO selectForUpdate(@Param("query") FileVersionLockQuery query);
+
+    List<FileVersionDO> selectCursor(@Param("query") FileVersionCursorQuery query);
+
+    FileVersionDO selectByInfraFileIdForUpdate(@Param("query") FileVersionStorageReferenceQuery query);
+
+    int updateAvailabilityIfMatch(@Param("query") FileVersionAvailabilityUpdate query);
+}

@@ -40,7 +40,7 @@
 
 | 编号 | 主题 | 约束 |
 | --- | --- | --- |
-| DEC-001 | 规格体系 | 采用“总体规格总册 + 8个领域分册 + 7个公共附录”。 |
+| DEC-001 | 规格体系 | 采用“总体规格总册 + 13个领域分册 + 公共附录”；正式 FR 在唯一 Owner 领域完整定义。 |
 | DEC-002 | 版本范围 | V1、V2逐项详细规格；V3仅定义能力边界、数据前提和演进方向。 |
 | DEC-003 | 基础平台 | 以`yudao-boot-mini`的`master-jdk25`为最简集成基线；当前核验版本为JDK 25、Spring Boot 4.1.0、revision `2026.06-jdk25-SNAPSHOT`。 |
 | DEC-004 | 部署形态 | 首期模块化单体，由yudao-server统一部署；保留未来微服务拆分边界。 |
@@ -52,9 +52,13 @@
 | DEC-010 | 项目层级 | 项目支持非固定层级树，项目组合与项目父子层级分离。 |
 | DEC-011 | 任务层级 | 任务使用非固定层级WBS，不设置固定业务深度。 |
 | DEC-012 | 容量基线 | 10万级项目、500万级任务、500人级同时在线。 |
-| DEC-013 | 模块边界与命名 | Yudao只承载平台能力；PMS业务模块统一使用`pms-module-*`命名，通过`-api`契约或领域事件协作。 |
-| DEC-014 | API设计 | Yudao平台接口定义完全以上游平台为准；新增`pms-module-*`业务模块统一执行PMS业务、内部、集成和事件API规范，接口必须版本化并具备稳定契约编号。 |
-| DEC-015 | 双上游集成策略 | 以`yudao-boot-mini`保持最简根工程；mini缺失但PMS需要的Yudao模块从`YunaiV/ruoyi-vue-pro`同名版本分支获取。共享文件以mini为基线，扩展模块及其配套资产以完整仓库为来源，PMS模块在根级增量加入。 |
+| DEC-013 | 模块边界与命名 | 基础平台只承载平台能力；项目交付业务模块统一使用`pms-module-*`命名，通过`-api`契约或领域事件协作。 |
+| DEC-014 | API设计 | 基础平台接口定义以上游平台为准；项目交付目标契约通过适配层把公司和部门统一为`company_*`与`department_*`，不得向新业务契约暴露`org_*`或`organization*`；新增`pms-module-*`业务模块统一执行项目交付业务、内部、集成和事件API规范，接口必须版本化并具备稳定契约编号。 |
+| DEC-015 | 双上游集成策略 | 以`yudao-boot-mini`保持最简根工程；mini缺失但项目交付需要的基础平台模块从`YunaiV/ruoyi-vue-pro`同名版本分支获取。共享文件以mini为基线，扩展模块及其配套资产以完整仓库为来源，项目交付业务模块在根级增量加入。 |
+| DEC-016 | 数据库与旧库边界 | 新平台使用独立MySQL 8.x数据库；旧`dppms`只读访问且不得跨库SQL；业务数据一次性迁移，后续辅助关联数据只读同步。 |
+| DEC-017 | 身份与项目授权 | 公司是统一业务主体，租户与公司分离；部门主数据共享，公司—部门配对在具体业务关系中保存；员工目录与系统账号分离；外部账号按项目转派获得期限受控的菜单、操作、数据和字段权限。 |
+| DEC-018 | 附加SN关系 | `fb_shipment_barcode_relation`按合同保存主SN—附加SN权威历史；设备主档只缓存该SN最新发货合同对应的`secondary_sn/secondary_item`，不重复保存合同、关系和生效时间。 |
+| DEC-019 | 历史字段完整迁移 | 核心迁移同时保存完整来源载荷和正式业务列/关系；查询、关联、统计、同步和来源审计字段不得只存JSON，旧主键不得复用为目标主键，未映射字段阻断切换。 |
 
 ### 5.1 上游基线来源
 
@@ -101,27 +105,81 @@
 
 ## 8. 领域架构
 
-| 领域代码 | 领域分册 | 实现模块 | 需求数 | 版本分布 |
-| --- | --- | --- | --- | --- |
-| PLT | 平台基础与权限 | yudao-dependencies / yudao-framework / yudao-module-system / yudao-module-infra / yudao-server；yudao-module-bpm为PMS扩展 | 11 | V1 11 / V2 0 / V3 0 |
-| PROJ | 项目承接、组合与组织 | pms-module-project | 22 | V1 14 / V2 8 / V3 0 |
-| ENG | 计划、方案与现场实施 | pms-module-engineering | 29 | V1 13 / V2 16 / V3 0 |
-| CUT | 联调、割接与稳定观察 | pms-module-cutover | 15 | V1 12 / V2 3 / V3 0 |
-| ACC | 验收、移交与项目闭环 | pms-module-project | 10 | V1 6 / V2 4 / V3 0 |
-| SRV | 巡检、维保与持续服务 | pms-module-service | 24 | V1 11 / V2 13 / V3 0 |
-| RES | 设备、备件、公告与外协 | pms-module-asset / pms-module-outsourcing | 29 | V1 3 / V2 25 / V3 1 |
-| ANA | 数据分析与系统集成 | pms-module-analytics / pms-module-integration | 8 | V1 0 / V2 2 / V3 6 |
+| 领域代码 | 领域名称 | Owner责任 | 正式FR数 |
+| --- | --- | --- | --- |
+| PLT | 平台公共能力 | 身份、权限、流程、文件、通知、审计、字典和通用集成治理 | 12 |
+| CUS | 客户与服务关系 | 客户交付上下文、联系人和服务等级 | 5 |
+| PROJ | 项目治理 | 项目主档、组合、非固定层级项目树与任务WBS、团队、计划、风险和关闭控制 | 13 |
+| COM | 合同订单履约 | 合同、订单、交付范围及履约回写 | 2 |
+| SOL | 交付准备与方案 | 工勘、需求分析、交底、准备数据、实施方案、资源就绪和方案基线 | 15 |
+| IMP | 现场实施 | 实施变更、到货签收、安装、配置、联调、现场问题、质量与安全 | 8 |
+| CUT | 变更切换与稳定治理 | 割接准备、评估、方案、审批、执行、回退、观察和闭环 | 10 |
+| ACC | 验收与项目闭环 | 培训、满意度、验收、交付件、关闭审批和持续服务交接 | 12 |
+| AST | 资产管理 | 设备身份与档案、配置记录、RMA衔接及维保客观信息 | 10 |
+| RES | 资源与外包 | 服务商、外包申请审批、付款条件和资源协作 | 7 |
+| SRV | 服务运营 | 服务工单、割接保障工单、巡检任务及服务状态提示 | 16 |
+| KNO | 技术知识治理 | 当前承接技术公告同步；公告治理闭环保留为V3演进 | 1 |
+| ANA | 经营分析 | 项目组合经营、工时人效和跨领域只读分析 | 4 |
+
+正式需求逐项Owner以`需求/PRD-项目实施交付管理平台.md`及`domains/`下13份领域规格为准，当前共115项；FR、BR、DR、AC的历史编号保持不变，编号前缀仅用于追溯，不再等同于当前Owner领域代码。
 
 ### 8.1 模块边界
 
-- `yudao-framework`提供公共框架和技术Starter，`yudao-module-system`、`yudao-module-infra`提供mini默认平台能力；`yudao-module-bpm`从完整仓库同版本分支获取并作为PMS工作流扩展，以上模块均不得承载PMS业务规则。
-- `yudao-boot-mini`根工程结构作为物理集成基线，不额外创建`yudao-platform/`或`pms-platform/`父目录。
-- mini默认包含dependencies、framework、system、infra和server；BPM不是mini默认目录，必须从`YunaiV/ruoyi-vue-pro`的`master-jdk25`获取，并同步装配根POM、`yudao-server`、数据库脚本和管理端增量。
-- PMS业务模块统一采用`pms-module-{domain}`命名，并通过`-api`子模块暴露稳定契约。
-- 业务模块拥有自己的表前缀、权限标识、错误码段、应用服务和接口路径。
-- 模块间通过Internal API或领域事件协作，禁止直接依赖其他模块`-biz`、Service、Mapper或业务表。
-- 首期由`yudao-server`统一部署，拆分服务后保持接口契约和数据所有权不变。
-- 完整规则见`appendices/module-boundary-and-naming.md`。
+- 领域是业务责任边界，不直接等同于物理部署模块。
+- 每项 FR、BR、DR、AC 和核心业务对象只有一个 Owner；Consumer 领域只记录依赖对象、输入、输出和事件。
+- 页面允许聚合多个领域的只读或操作视图，任何聚合页面不得改变源对象 Owner。
+- 领域间通过稳定契约或领域事件协作，禁止直接操作其他领域业务表。
+- 具体模块命名、依赖和技术选型见 `appendices/module-boundary-and-naming.md` 及本规格技术选型章节。
+
+### 8.2 项目交付生命周期界面编排
+
+```mermaid
+flowchart LR
+    A[基本信息<br/>PROJ] --> B[工前准备<br/>SOL]
+    B --> C[施工计划<br/>PROJ]
+    C --> D[实施方案<br/>SOL]
+    D --> E[实施部署<br/>IMP]
+    E --> F[割接上线<br/>CUT]
+    F --> G[验收交维<br/>ACC]
+    G --> H[持续服务<br/>SRV]
+```
+
+客户信息由 CUS 提供，合同范围由 COM 提供，设备清单由 AST 提供，资源投入由 RES 提供，技术风险由 KNO 提供，经营视图由 ANA 聚合。项目详情页属于应用层编排，不构成新的业务领域。
+
+### 8.3 割接与服务工作台
+
+- 割接工作台由 CUT 拥有，可由项目、故障、运维变更或主动服务触发；依次编排任务、风险评估、方案评审、执行窗口、回退、稳定观察和归档。
+- 服务工作台由 SRV 拥有，编排巡检计划、任务、在线或离线采集、问题确认、整改跟踪、服务报告、服务工单和维保活动。
+
+### 8.4 跨领域页面—Owner—数据来源
+
+| 页面区域 | 展示内容 | Owner | 数据来源 |
+| --- | --- | --- | --- |
+| 项目基本信息 | 项目名称、阶段、项目树 | PROJ | Project |
+| 客户信息 | 客户单位、联系人、服务等级 | CUS | CustomerContext |
+| 合同信息 | 合同号、订单行、交付范围 | COM | OrderLine |
+| 设备清单 | SN、型号、位置、资产状态 | AST | Asset |
+| 实施状态 | 到货签收、安装、调试、联调 | IMP | Implementation |
+| 割接状态 | 窗口、审批、执行和观察结果 | CUT | Cutover |
+| 验收状态 | 初验、终验、关闭和转维 | ACC | Acceptance |
+| 服务状态 | 巡检、工单、维保和续保 | SRV | Service |
+
+### 8.5 生命周期事件与依赖
+
+```mermaid
+flowchart LR
+    COM[COM 交付范围确认] --> PROJ[PROJ 项目计划]
+    PROJ --> SOL[SOL 方案定稿与就绪]
+    SOL --> IMP[IMP 到货签收与现场实施]
+    IMP --> CUT[CUT 割接完成]
+    CUT --> ACC[ACC 验收完成]
+    ACC --> SRV[SRV 服务转接]
+    IMP --> AST[AST 更新设备资产]
+    KNO --> SOL
+    RES --> SOL
+```
+
+建议事件包括 `SolutionFinalized`、`ImplementationCompleted`、`AssetInstalled`、`CutoverCompleted`、`AcceptanceCompleted` 和 `ServiceTransitionCreated`；事件字段、失败补偿及幂等规则【待确认】，不得在领域 SRS 之外提前固化。
 
 ## 9. 项目组合、项目层级与任务WBS
 
@@ -185,6 +243,11 @@
 - 文件下载、批量导出、权限变更和敏感数据访问必须记录审计。
 - 通知和待办由业务事件触发，需具备模板、接收人规则、去重、重试和已读状态。
 - 导入和接口请求必须使用业务唯一键或幂等键，重复请求不得生成重复业务对象。
+- 【建议】跨系统业务对象的唯一身份可由多个业务属性共同确定，不得默认把合同号、订单号或名称等单一字段作为全局唯一键。
+- 【建议】发生拆分、合并、转移、替换或归属变化的关系，应保存来源、生效区间和变更原因，不通过覆盖当前值丢失历史。
+- 无法唯一映射、数量未知或来源冲突的数据必须保留原始证据并进入明确的待处理状态；未经确认不得猜测、丢弃或计入完成结果。
+- 订单数量、ERP已发货数量、项目已确认分配数量和设备SN数量属于不同业务口径，必须分别定义、展示和追溯。
+- 【建议】看板汇总和查询快照是可重建的分析结果，不作为项目、订单行、设备或业务事件的权威数据源。
 
 ## 13. 非功能需求
 
@@ -210,7 +273,7 @@
 - 后端：以`yudao-boot-mini master-jdk25`为骨架，mini外模块从`YunaiV/ruoyi-vue-pro master-jdk25`按需获取；revision `2026.06-jdk25-SNAPSHOT`、JDK 25、Spring Boot 4.1.0、`yudao-framework`、MyBatis Plus、Spring Security、Flowable/BPM。
 - 前端：官方`yudao-ui-admin-vue3`、Vue3、TypeScript、Element Plus，响应式Web；前后端同库或独立仓库方式【待确认】。
 - 数据：关系型数据库【待确认具体产品】、Redis；文件服务复用Yudao Infra并支持对象存储。
-- API：Yudao平台接口保持上游定义；新增PMS模块采用RESTful JSON，业务、内部、集成和事件契约分别治理并统一版本化，详见`appendices/api-design-specification.md`。
+- API：基础平台接口保持上游定义；新增项目交付业务模块采用RESTful JSON，业务、内部、集成和事件契约分别治理并统一版本化，详见`appendices/api-design-specification.md`。
 - 部署：首期模块化单体，预留模块级独立部署能力。
 
 ## 15. 开发命令
@@ -271,7 +334,7 @@ public Long createProject(ProjectCreateReqVO request) {
 - DTO/VO、DO、枚举、权限标识和错误码遵循Yudao现有命名方式。
 - 跨模块只能依赖目标`pms-module-*-api`或版本化事件，不直接引用对方`-biz`、DAL和数据库表。
 - 所有写接口必须明确幂等、并发控制、权限和审计策略。
-- Yudao平台接口沿用上游路径、请求响应和错误语义；新增PMS业务接口使用`/api/v1/pms/...`及`{DOMAIN}-{RESOURCE}-{TYPE}-{SEQ}`契约编号。
+- 基础平台接口沿用上游路径、请求响应和错误语义；新增项目交付业务接口使用`/api/v1/pms/...`及`{DOMAIN}-{RESOURCE}-{TYPE}-{SEQ}`契约编号。
 
 ## 18. 测试策略
 
@@ -313,7 +376,7 @@ public Long createProject(ProjectCreateReqVO request) {
 | 哪些项目类型必须执行割接，哪些仅做业务联调？ | 项目模板和阶段门禁 | 工程管理部/技术支持中心 |
 | D级简易割接具体允许跳过哪些采集、方案和审批节点？ | 割接流程与合规 | 技术支持中心/风险负责人 |
 | 巡检存在未完成待办时，默认禁止闭环还是转后续任务后允许闭环？ | 巡检闭环与风险 | 售后服务负责人 |
-| CRM、SMS、ITR、MES、供应链等外部系统分别是哪类数据的权威源？PMS内部各领域的数据所有权如何落表？ | 主数据与集成 | IT架构/各系统Owner |
+| CRM、SMS、ITR、MES、供应链等外部系统分别是哪类数据的权威源？平台内部各领域的数据所有权如何落表？ | 主数据与集成 | IT架构/各系统Owner |
 | 直签、非直签、工程类、普通类、售前测试的判定规则能否固化？ | 项目分类和模板 | 工程管理部/财务/销售运营 |
 | 重大项目识别规则与人工覆盖权限如何定义？ | 项目分级和总部复审 | 工程管理部 |
 | 项目允许带遗留问题闭环吗？允许时需要哪一级审批？ | 验收、闭环、维保移交 | 工程管理部/质量负责人 |

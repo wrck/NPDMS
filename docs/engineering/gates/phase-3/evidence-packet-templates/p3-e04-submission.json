@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "P3-E04",
+  "status": "DRAFT",
+  "decisionOwner": "REQUIREMENT_OWNER",
+  "evidenceOwnerRoles": [
+    "SECURITY_OWNER",
+    "OPERATIONS_OWNER"
+  ],
+  "reviewOwner": null,
+  "environmentOrReleaseId": null,
+  "capturedAt": null,
+  "confirmedFacts": {
+    "accessIdentities": null,
+    "algorithmMode": null,
+    "auditInterface": null,
+    "incidentOwner": null,
+    "keyFacility": null,
+    "keyVersioning": null,
+    "masterDataKeySeparation": null,
+    "revocationProcedure": null,
+    "rotationExerciseId": null,
+    "rotationOwner": null,
+    "secretScanResult": null,
+    "directionDecision": "A",
+    "directionStatus": "ACCEPTED",
+    "chosenDirection": "使用企业KMS/Secrets Manager",
+    "evidenceOwnerRoles": [
+      "SECURITY_OWNER",
+      "OPERATIONS_OWNER"
+    ],
+    "evidenceStage": "DEPLOYMENT_TIME"
+  },
+  "evidenceRefs": [
+    "docs/decisions/0004-phase3-production-assurance-directions.md",
+    "docs/decisions/0018-deployment-time-environment-and-kms-selection.md"
+  ],
+  "verificationResult": null,
+  "unresolvedItems": [
+    "由evidenceOwnerRoles对应Owner填写全部空值并附受控证据引用"
+  ],
+  "revalidationTriggers": []
+}

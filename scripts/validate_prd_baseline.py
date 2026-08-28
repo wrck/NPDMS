@@ -13,7 +13,7 @@ from pathlib import Path
 from validate_prd_semantics import validate_text as validate_semantics
 
 
-REQ_ID = r"(?:PM|PRE|PLN|SCH|EXE|ACC|CLO|WO|SUB|CUS|EQP|RPT|CUT|INS|INT|AUT|CHG|NFR)-\d{2}"
+REQ_ID = r"[A-Z]+-\d{2}"
 FORMAL_REQUIRED_MARKERS = {
     "用户角色": r"\|\s*用户角色\s*\|",
     "目标版本": r"\|\s*目标版本\s*\|\s*V[12][^|]*\|",
@@ -52,14 +52,91 @@ def section(text: str, heading: str) -> str:
 def requirement_blocks(text: str) -> list[tuple[str, str]]:
     matches = list(re.finditer(rf"(?m)^\|\s*需求编号\s*\|\s*({REQ_ID})\s*\|\s*$", text))
     blocks: list[tuple[str, str]] = []
-    for index, match in enumerate(matches):
-        start = text.rfind("\n#### ", 0, match.start())
+    for match in matches:
+        heading_candidates = [text.rfind(f"\n{'#' * level} ", 0, match.start()) for level in (3, 4)]
+        start = max(heading_candidates)
         start = 0 if start < 0 else start + 1
-        next_start = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        major = re.search(r"(?m)^#{1,3}\s+", text[match.end() : next_start])
-        end = match.end() + major.start() if major else next_start
+        heading = re.match(r"(#{3,4})\s+", text[start:])
+        level = len(heading.group(1)) if heading else 4
+        next_heading = re.search(rf"(?m)^#{{1,{level}}}\s+", text[match.end() :])
+        end = match.end() + next_heading.start() if next_heading else len(text)
         blocks.append((match.group(1), text[start:end]))
     return blocks
+
+
+def cutover_flow_contract(text: str) -> dict[str, bool]:
+    """Validate the confirmed CUT P1-P6 business-flow boundary."""
+    cutover = section(text, "第十章 割接管理模块功能需求")
+    formal_ids = {
+        req_id
+        for req_id, block in requirement_blocks(text)
+        if re.search(r"(?m)^\|\s*目标版本\s*\|\s*V[12](?:[^|]*)\|\s*$", block)
+    }
+    return {
+        "CUT-01核心任务保留": "CUT-01" in formal_ids
+        and ("P1首页任务接入" in cutover or "P1是任务接入入口" in cutover)
+        and "P6割接跟踪与闭环" in cutover,
+        "CUT-11退出当前范围": "CUT-11" not in formal_ids and "割接保障任务（CUT-11）" not in cutover,
+        "问卷人工判级": "一线工程师提交问卷和人工等级" in cutover and "用服经理在P5审批中复核" in cutover,
+        "P3配置缺口不阻断": "允许一线补充自定义项并标记配置缺口" in cutover and "不直接阻断割接主流程" in cutover,
+        "完整方案轻量校验": "文件有效性、安全性、方案归属和人工确认" in cutover and "不强制解析或补齐在线模板字段" in cutover,
+        "P5否项驳回": "任一项为“否”必须填写不合理原因并驳回" in cutover,
+        "专项提前时间自然日": "按自然日计算" in cutover and "不新增平台通用时效" in cutover,
+        "保障人员受控修改": "审批通过后仍允许修改保障人员安排" in cutover and "角色或任务职责变化必须创建新方案版本" in cutover,
+        "P6提交即归档": "提交即形成归档闭环事实并结束本次割接流程" in cutover,
+        "无步骤观察扩张": not re.search(
+            r"(?<!不)建立逐步骤执行状态机|进入稳定观察|满足稳定观察要求|稳定观察(?:通过|未通过)",
+            cutover,
+        ),
+        "无遗留项归档阻断": "全部遗留项闭环后方可归档" not in cutover and "遗留项进入待办跟踪" not in cutover,
+    }
+
+
+def project_workbench_contract(text: str) -> dict[str, bool]:
+    """Validate the confirmed Stage -> ProjectTask business-workbench boundary."""
+    blocks = dict(requirement_blocks(text))
+    pm03 = blocks.get("PM-03", "")
+    pm11 = blocks.get("PM-11", "")
+    cut01 = blocks.get("CUT-01", "")
+    cut03 = blocks.get("CUT-03", "")
+    overview_tabs = ("基本信息", "项目树", "团队成员", "项目任务", "设备清单", "实施范围")
+    binding_kinds = ("TASK_NATIVE", "业务对象", "业务组件", "动态表单", "审批", "组合")
+    return {
+        "模板定义StageTask绑定": all(
+            marker in pm03
+            for marker in (
+                "StageDefinition → TaskDefinition",
+                "WorkBinding",
+                "PermissionPolicy",
+                "CompletionRule",
+                "GateRef",
+            )
+        ),
+        "不重复配置业务导航": "不再维护一套与ProjectTask重复的“业务导航配置”" in pm03,
+        "WorkBinding类型完整": all(kind in pm03 for kind in binding_kinds),
+        "WorkBinding统一必填": "每个ProjectTask必须且只能有一个当前有效`WorkBinding`" in pm03
+        and "默认`TASK_NATIVE`" in pm03
+        and "通用任务必须显式使用TASK_NATIVE" in pm03,
+        "StageTask导航不限制树深": "阶段作为一级导航、ProjectTask作为二级业务导航" in pm11
+        and "不把业务任务限制为固定两层" in pm11,
+        "通用任务详情基础能力": "`TASK_NATIVE`直接使用ProjectTask通用详情执行" in pm11
+        and "ProjectTask既是执行编排节点，也是`TASK_NATIVE`默认业务实体" in pm11,
+        "绑定任务按关系执行": "其他`WorkBinding`类型" in pm11
+        and all(marker in pm11 for marker in ("业务对象", "业务组件", "动态表单", "审批", "组合视图")),
+        "通用详情不替代绑定业务": "通用基础信息不得替代非`TASK_NATIVE`绑定的业务执行" in pm11,
+        "项目概览六页签": all(tab in pm11 for tab in overview_tabs),
+        "任务完成按绑定类型判定": "CompletionRule" in pm11
+        and "`TASK_NATIVE`校验ProjectTask自身必填信息与合法状态" in pm11
+        and "其他类型校验绑定业务事实" in pm11
+        and "非`TASK_NATIVE`任务不得通过通用“完成任务”动作绕过目标业务事实" in pm11,
+        "割接入口与五步工作台": "P1是任务接入入口" in cut01
+        and "五步工作台按P2～P6展示" in cut01,
+        "CUT03同一P3工作台": "同一个P3任务工作台" in cut03
+        and "不新增采集阶段" in cut03
+        and "CollectionTask" in cut03,
+        "采集结果不等于业务通过": "不把技术回调成功直接解释为风险项通过" in cut03
+        and "任何回调不得直接把采集项判定为通过" in cut03,
+    }
 
 
 def add(checks: list[Check], name: str, passed: bool, detail: str) -> None:
@@ -110,13 +187,18 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     bad_acceptance: list[str] = []
     banned_formal: list[str] = []
     forbidden_terms = re.compile(r"日报|周报|续保空间|续保率|过保空间|维保机会|平台通用割接时效")
+    exclusion_terms = re.compile(r"不依赖|不提供|不得|排除|不建设|不包含|不产生|不作为|已移出|不恢复")
     for req_id, block in formal:
         for name, pattern in FORMAL_REQUIRED_MARKERS.items():
             if not re.search(pattern, block):
                 missing_by_field[name].append(req_id)
         if not (re.search(r"(?m)^- \*\*WHEN\*\*", block) and re.search(r"(?m)^- \*\*THEN\*\*", block)):
             bad_acceptance.append(req_id)
-        if forbidden_terms.search(block) or req_id in {"WO-07", "WO-11"}:
+        active_forbidden = any(
+            forbidden_terms.search(line) and not exclusion_terms.search(line)
+            for line in block.splitlines()
+        )
+        if active_forbidden or req_id in {"WO-07", "WO-11"}:
             banned_formal.append(req_id)
 
     for name, missing in missing_by_field.items():
@@ -140,8 +222,64 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     formal_index_ids = re.findall(rf"(?m)^\|\s*({REQ_ID})\s*\|", formal_index)
     add(checks, "正式索引存在", bool(formal_index_ids), f"索引{len(formal_index_ids)}项")
     add(checks, "正式索引与正文一致", set(formal_index_ids) == {req_id for req_id, _ in formal}, f"索引{len(set(formal_index_ids))}项/正文{len(formal)}项")
+    formal_versions = {
+        candidate: sum(
+            bool(re.search(rf"(?m)^\|\s*目标版本\s*\|\s*{candidate}(?:[^|]*)\|\s*$", block))
+            for _, block in formal
+        )
+        for candidate in ("V1", "V2")
+    }
+    formal_statistics = section(appendix_a, "A.2 正式需求统计") if appendix_a else ""
+    expected_statistics = {
+        "V1/V2正式需求总数": len(formal),
+        "V1主版本需求": formal_versions["V1"],
+        "V2主版本需求": formal_versions["V2"],
+    }
+    actual_statistics = {
+        label: int(value)
+        for label, value in re.findall(
+            r"(?m)^\|\s*(V1/V2正式需求总数|V1主版本需求|V2主版本需求)\s*\|\s*(\d+)条\s*\|$",
+            formal_statistics,
+        )
+    }
+    add(
+        checks,
+        "附录A.2正式需求统计一致",
+        actual_statistics == expected_statistics,
+        f"期望={expected_statistics}；实际={actual_statistics}",
+    )
+    footer = prd.rsplit("**文档结束**", 1)[-1] if "**文档结束**" in prd else ""
+    add(checks, "文末基线版本一致", f"PRD {version}正式基线" in footer, f"文末应声明PRD {version}正式基线")
+    add(checks, "文末正式需求数一致", f"{len(formal)}项V1/V2正式需求" in footer, f"正文={len(formal)}项")
+    add(
+        checks,
+        "文末主版本统计一致",
+        all(f"{candidate} {count}项" in footer for candidate, count in formal_versions.items()),
+        "、".join(f"{candidate}={count}" for candidate, count in formal_versions.items()),
+    )
     add(checks, "INT-12进入正式索引", "INT-12" in formal_index_ids, "INT-12必须为V1公共能力")
     add(checks, "排除编号未进正式索引", not ({"WO-07", "WO-11"} & set(formal_index_ids)), "WO-07/WO-11仅用于排除追溯")
+    v3_numbered = section(appendix_a, "A.3.1 已编号演进项") if appendix_a else ""
+    v3_numbered_ids = set(re.findall(r"(?m)^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", v3_numbered))
+    cross_evolution = section(appendix_a, "A.3.2 跨需求演进方向") if appendix_a else ""
+    cross_evolution_count = len(re.findall(r"(?m)^\|\s*(?:CLO-05→ACC-02|SUB-03)\s*\|", cross_evolution))
+    add(checks, "V1.8演进统计", len(v3_numbered_ids) == 31 and cross_evolution_count == 2, f"编号V3={len(v3_numbered_ids)}；跨需求={cross_evolution_count}")
+    add(
+        checks,
+        "V1.8退出需求边界",
+        not ({"COM-02", "IMP-02", "ACC-05"} & set(formal_index_ids))
+        and "ACC-05" in v3_numbered_ids
+        and not ({"COM-02", "IMP-02"} & v3_numbered_ids),
+        "ACC-05仅进入V3；COM-02/IMP-02不得进入正式或V3索引",
+    )
+    state_markers = ("current_stage", "lifecycle_status", "NORMAL_CLOSED", "EXCEPTION_CLOSED", "派生展示状态")
+    add(checks, "V1.8项目状态分层", all(marker in prd for marker in state_markers), f"必需标记={','.join(state_markers)}")
+
+    for name, passed in cutover_flow_contract(prd).items():
+        add(checks, f"CUT流程-{name}", passed, "割接流程必须符合0807流程设计及已确认业务决策")
+
+    for name, passed in project_workbench_contract(prd).items():
+        add(checks, f"工作台-{name}", passed, "项目工作区与割接工作台必须符合已确认线框设计")
 
     appendix_b = section(prd, "附录B 集成系统与平台组件清单")
     external = section(appendix_b, "B.1 外部系统") if appendix_b else ""
@@ -155,6 +293,27 @@ def validate(prd_path: Path, report_path: Path, version: str, status: str) -> li
     core_objects = ["项目", "项目任务", "设备", "设备凭证", "采集任务"]
     missing_objects = [name for name in core_objects if name not in appendix_c]
     add(checks, "核心对象索引", bool(appendix_c) and not missing_objects, f"缺少={','.join(missing_objects) or '无'}")
+    appendix_c_rows = [
+        tuple(cell.strip() for cell in match.groups())
+        for match in re.finditer(
+            r"(?m)^\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$",
+            appendix_c,
+        )
+    ]
+    appendix_c_names = {row[1] for row in appendix_c_rows}
+    satisfaction_rows = [row for row in appendix_c_rows if row[1] == "满意度任务与问卷"]
+    add(
+        checks,
+        "附录C不含工单核心对象",
+        "工单" not in appendix_c_names and "WorkOrder" not in appendix_c_names,
+        "工单已退出V1/V2核心对象；附录C必须与正文3.3一致",
+    )
+    add(
+        checks,
+        "附录C满意度核心对象",
+        len(satisfaction_rows) == 1 and "ACC-02" in satisfaction_rows[0][3],
+        "必须唯一列出满意度任务与问卷并以正式需求ACC-02为主要来源",
+    )
 
     semantic_issues = validate_semantics(prd)
     semantic_ids = sorted({issue.req_id for issue in semantic_issues})

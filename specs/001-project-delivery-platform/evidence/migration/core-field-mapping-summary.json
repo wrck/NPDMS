@@ -6,7 +6,7 @@
   "populationProfileStartedAt": "2026-08-05T00:58:22.284079600+08:00",
   "populationProfileFinishedAt": "2026-08-05T00:58:55.586141+08:00",
   "targetDdl": "appendices/project-order-physical-schema.mysql.sql",
-  "targetDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
+  "targetDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
   "sourceTableCount": 18,
   "sourceColumnCount": 326,
   "mappedColumnCount": 326,
@@ -23,7 +23,7 @@
       "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 8,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_contract",
@@ -35,7 +35,7 @@
       "RELATION": 2,
       "LINEAGE": 1,
       "PAYLOAD": 0,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_group",
@@ -47,7 +47,7 @@
       "RELATION": 0,
       "LINEAGE": 2,
       "PAYLOAD": 6,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_group_relationship",
@@ -59,7 +59,7 @@
       "RELATION": 3,
       "LINEAGE": 1,
       "PAYLOAD": 1,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_property_from_sms",
@@ -71,7 +71,7 @@
       "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 0,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_property_af_from_sms",
@@ -83,7 +83,7 @@
       "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 1,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_product_af_from_sms",
@@ -95,7 +95,7 @@
       "RELATION": 1,
       "LINEAGE": 1,
       "PAYLOAD": 1,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_real_product_line_from_sms",
@@ -107,7 +107,7 @@
       "RELATION": 1,
       "LINEAGE": 0,
       "PAYLOAD": 0,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_soleagent_lend_from_sms",
@@ -119,7 +119,7 @@
       "RELATION": 1,
       "LINEAGE": 2,
       "PAYLOAD": 0,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_order_data_from_erp",
@@ -131,7 +131,7 @@
       "RELATION": 2,
       "LINEAGE": 1,
       "PAYLOAD": 1,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_order_line_from_erp",
@@ -143,7 +143,7 @@
       "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 1,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_product_line",
@@ -155,7 +155,7 @@
       "RELATION": 1,
       "LINEAGE": 1,
       "PAYLOAD": 4,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "sms_ofst_contract_head_sap",
@@ -167,7 +167,7 @@
       "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 0,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "fb_contract",
@@ -179,7 +179,7 @@
       "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 0,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "fb_shipment",
@@ -191,7 +191,7 @@
       "RELATION": 1,
       "LINEAGE": 0,
       "PAYLOAD": 0,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "fb_shipment_barcode",
@@ -203,7 +203,7 @@
       "RELATION": 1,
       "LINEAGE": 1,
       "PAYLOAD": 6,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "fb_shipment_barcode_relation",
@@ -215,7 +215,7 @@
       "RELATION": 3,
       "LINEAGE": 1,
       "PAYLOAD": 2,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     },
     {
       "sourceTable": "pm_project_shipment",
@@ -227,7 +227,7 @@
       "RELATION": 0,
       "LINEAGE": 1,
       "PAYLOAD": 11,
-      "rawPreservedBy": "pms_migration_source_record.source_payload"
+      "rawPreservedBy": "plt_migration_source_record.source_payload"
     }
   ]
 }

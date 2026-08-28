@@ -1,12 +1,17 @@
 # 项目实施交付管理平台 Implementation Plan
 
+> **状态：SUPERSEDED**
+>
+> 本文件仅用于历史追溯，不再生成或驱动新开发任务。当前任务必须从
+> `docs/specification-baseline/manifest.json` 锁定的 Feature Spec 重新生成。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在已确认需求规格基础上，建设以Yudao为技术底座、PMS为核心业务域的项目实施交付管理平台，先完成V1业务闭环，再交付V2效率能力，并为V3智能化演进保留数据和契约基础。
 
 **Architecture:** 首期采用模块化单体，由`yudao-server`统一装配。基础骨架来自`yudao-boot-mini master-jdk25`，mini缺失的Yudao模块从`YunaiV/ruoyi-vue-pro master-jdk25`按需引入；新增业务能力归属`pms-module-*`模块。实施采用纵向切片，每个切片同时完成数据迁移、后端规则、API、权限、前端交互、自动化测试和真实浏览器验收。
 
-**Tech Stack:** JDK 25、Spring Boot 4.1.0、Yudao revision `2026.06-jdk25-SNAPSHOT`、MyBatis Plus、Spring Security、Flowable/BPM、Redis、Vue 3、TypeScript、Element Plus、关系型数据库【待确认具体产品】。
+**Tech Stack:** JDK 25、Spring Boot 4.1.0、Yudao revision `2026.06-jdk25-SNAPSHOT`、MyBatis Plus、Spring Security、Flowable/BPM、Redis、Vue 3、TypeScript、Element Plus、独立MySQL 8.x数据库。
 
 ## Global Constraints
 
@@ -34,7 +39,7 @@
 | SPECIFY | 已确认，规格基线位于`specs/001-project-delivery-platform/` |
 | PLAN | 已确认，确认日期为2026-07-28 |
 | TASKS | 已确认，确认日期为2026-07-28；任务清单位于`tasks/todo.md` |
-| IMPLEMENT | 已开始，开始日期为2026-07-28；当前执行Phase 0基础工程，必须按`tasks/todo.md`的依赖顺序和检查点推进 |
+| IMPLEMENT | 尚未开始；可按`tasks/todo.md`的依赖顺序和检查点进入实现 |
 
 规格覆盖：
 
@@ -81,14 +86,14 @@ tasks/
 
 以下决策不改变已确认业务规格，但会影响工程初始化方式。批准本计划前应逐项确认。
 
-| 编号 | 决策 | 决策结果 | 实施约束 |
+| 编号 | 决策 | 推荐方案 | 未确认时的限制 |
 | --- | --- | --- | --- |
-| PD-001 | 上游代码导入方式 | 已确认：以当前仓库为主仓，按锁定提交导入mini源码快照；扩展模块按文件级来源清单导入，不合并完整仓库历史 | 见`docs/upstream-sources.md` |
-| PD-002 | 前端仓库形态 | 已确认：首期与后端同仓管理，目录为`yudao-ui/yudao-ui-admin-vue3`；官方Gitee前端提交已锁定 | 见`docs/upstream-sources.md` |
-| PD-003 | 关系型数据库 | 已确认：MySQL 8.4 LTS | mini默认配置、SQL和Docker编排均以MySQL 8为主 |
-| PD-004 | 数据库版本管理工具 | 已确认：Docker中的Flyway Open Source CLI；应用不增加Flyway运行时依赖 | T-CP-006建立空库迁移、历史和校验和门禁 |
-| PD-005 | 浏览器自动化框架 | 已确认：Playwright，依赖与官方容器镜像精确同版 | T-CP-009建立真实浏览器测试骨架 |
-| PD-006 | 本地基础设施 | 已确认：Docker Compose统一构建、迁移、运行和验收 | 数据库、Redis、迁移、后端、前端和E2E全部容器化 |
+| PD-001 | 上游代码导入方式 | 以当前仓库为主仓，按已锁定提交导入mini源码快照；扩展模块按文件级来源清单导入，不合并完整仓库历史 | 不执行CP-01 |
+| PD-002 | 前端仓库形态 | 首期与后端同仓管理，目录为`yudao-ui/yudao-ui-admin-vue3` | 不创建前端工程和CI命令 |
+| PD-003 | 关系型数据库 | **已确认：** 新平台使用独立MySQL 8.x数据库；旧`dppms`只读访问，不使用跨库SQL | 具体小版本、字符集和迁移工具完成验证前，只形成评审DDL，不进入共享环境 |
+| PD-004 | 数据库版本管理工具 | 采用可在启动和CI中自动校验的版本化迁移机制 | 不允许业务表进入共享环境 |
+| PD-005 | 浏览器自动化框架 | 【建议】采用Playwright覆盖真实登录、按钮、保存、刷新和状态流转 | 不建立UI自动化门禁 |
+| PD-006 | 本地基础设施 | 【建议】提供数据库、Redis和对象存储的一键本地编排 | 不建立统一的本地/E2E环境 |
 
 业务待确认事项不阻塞CP-01基础工程，但会阻塞对应业务切片：
 
@@ -98,7 +103,7 @@ tasks/
 - 项目带遗留问题闭环规则：阻塞IU-07闭环审批。
 - 客户签字和问卷法律效力：阻塞IU-07客户确认方式。
 - 外部系统权威源和同步边界：阻塞V2-IU-08。
-- V1试点组织、项目类型和上线指标：阻塞V1发布验收。
+- V1试点公司、项目类型和上线指标：阻塞V1发布验收。
 
 ## 4. 架构与依赖图
 
@@ -140,7 +145,7 @@ V1稳定契约
 | `docs/upstream-sources.md` | 两个上游仓库、分支、提交、导入范围和兼容补丁来源 |
 | `yudao-dependencies/` | 上游依赖版本管理；PMS不得在业务模块私自覆盖公共版本 |
 | `yudao-framework/` | 上游公共技术Starter；不得加入PMS业务模型 |
-| `yudao-module-system/` | 用户、组织、角色、菜单、权限和租户能力 |
+| `yudao-module-system/` | 用户、公司、部门、角色、菜单、权限和租户能力 |
 | `yudao-module-infra/` | 文件、配置、日志、任务和基础设施能力 |
 | `yudao-module-bpm/` | 流程定义、实例、任务和审批平台能力 |
 | `pms-module-project/` | 客户、项目、项目树、任务WBS、阶段、风险、验收和闭环 |
@@ -224,7 +229,7 @@ pnpm build:prod
 **纵向结果：**
 
 - 用户使用Yudao本地账号登录。
-- 角色、组织、菜单、按钮、API和数据权限可以配置。
+- 角色、公司、部门、菜单、按钮、API和数据权限可以配置。
 - BPM、待办、通知、文件、字典、审计和事件能力可由PMS模块复用。
 - PMS公共对象具备租户、版本、逻辑删除和审计字段。
 
@@ -377,7 +382,7 @@ pnpm build:prod
 - 浏览器控制台无未处理错误；关键HTTP请求和业务响应成功。
 - 单元、集成、契约、E2E、安全和性能测试全部通过。
 - 数据库迁移可从空库完整执行并通过结构校验。
-- V1试点组织、项目类型和业务验收人已经确认。
+- V1试点公司、项目类型和业务验收人已经确认。
 
 ## 8. V2：效率提升与扩展能力
 
@@ -510,9 +515,9 @@ V3不生成当前实现任务，只维护以下前提：
 | --- | --- | --- |
 | 双上游提交虽版本号相同但文件存在差异 | 构建失败或运行时不兼容 | 共享文件以mini为准；扩展依赖只提取最小兼容补丁并记录来源 |
 | 当前仓库无代码基础 | 计划中的文件和命令无法立即验证 | CP-01、CP-02先建立可运行基线，业务任务不得提前 |
-| MySQL 8.4与上游脚本存在兼容性差异 | 初始化、SQL模式或索引行为可能失败 | CP-02在空库和重复迁移中验证；差异必须形成显式迁移，不手工改库 |
+| MySQL 8.x具体小版本、字符集和排序规则尚未固化 | CHECK约束、索引长度、排序和测试结果可能偏差 | CP-01在目标版本空库验证DDL、索引、树查询和回退策略 |
 | 项目与任务非固定层级且数据量大 | 查询、移动和权限继承性能风险 | IU-02优先实现并进行容量测试，失败则在后续模块前调整模型 |
-| 权限同时涉及组织、区域、项目树和成员 | 越权和缓存失效风险 | 权限策略服务端集中校验，子树移动触发继承重算和缓存清理 |
+| 权限同时涉及公司、区域、项目树和成员 | 越权和缓存失效风险 | 权限策略服务端集中校验，子树移动触发继承重算和缓存清理 |
 | BPM与业务状态机双重状态 | 状态不一致和重复审批 | 业务状态为领域权威，流程实例保存关联键，通过动作服务统一提交 |
 | 145项V1/V2 FR范围较大 | 水平铺开后无法形成可验收闭环 | 按IU纵向交付，每个检查点要求可运行旅程 |
 | 外部系统边界未确认 | V2集成返工 | 先稳定内部数据所有权，集成任务在权威源确认后启动 |

@@ -20,7 +20,7 @@ export interface JointTestVO {
 
 const baseUrl = '/pms/eng-joint-test'
 
-export const getJointTestPage = (params: PageParam) =>
+export const getJointTestPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getJointTest = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

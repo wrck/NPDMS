@@ -1,0 +1,604 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-20T16:45:09.052593+00:00",
+  "status": "DEFER",
+  "purpose": "AI-MIG-000_READ_ONLY_DDL_DRIFT_FACTS",
+  "inputs": {
+    "ddlPath": "specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql",
+    "baselineSource": "TARGET_FIELD_CATALOG",
+    "baselineCommit": null,
+    "baselineCatalogCommit": "22a57530ea3c0dee3e988ecdfbdacee83b52cd35",
+    "baselineDdlSha256": "2B206992BA5580E776060F9D4ED177A7BD8C34DB614FD65EC9560DAF38F8BF33",
+    "baselineCatalogPath": "specs/001-project-delivery-platform/evidence/migration/target-field-catalog.jsonl",
+    "currentDdlSha256": "6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B",
+    "baselineNameNormalization": "ADR-0019"
+  },
+  "summary": {
+    "baselineTableCount": 52,
+    "currentTableCount": 66,
+    "baselineColumnCount": 1076,
+    "currentColumnCount": 1382,
+    "tableDiff": 22,
+    "columnDiff": 28,
+    "constraintDiff": 0,
+    "tableOptionDiff": 0,
+    "allDifferencesDecision": "DEFER",
+    "constraintsComparable": false,
+    "tableOptionsComparable": false
+  },
+  "tableDiff": [
+    {
+      "table": "acc_satisfaction_collection_task",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "acc_satisfaction_questionnaire",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "acc_satisfaction_response",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "acc_satisfaction_result",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_component_relation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_market_relation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist_item",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_checklist_item_result",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_closure",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "cut_cutover_support_arrangement",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "imp_configuration_collection_parse_attempt",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "imp_configuration_collection_result",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "imp_configuration_component_candidate",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_device_technical_advisory_match",
+      "change": "REMOVED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_technical_advisory",
+      "change": "REMOVED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_technical_advisory_product_relation",
+      "change": "REMOVED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "kno_technical_advisory_read_record",
+      "change": "REMOVED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_task_completion_evaluation",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_task_execution_contract",
+      "change": "ADDED",
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_template_task_definition",
+      "change": "ADDED",
+      "decision": "DEFER"
+    }
+  ],
+  "columnDiff": [
+    {
+      "table": "ast_device_project_assignment",
+      "column": "current_device_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前设备记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前设备记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND effective_to IS NULL THEN device_id ELSE NULL END"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "ast_device_shipment_event",
+      "column": "rma_marked",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "由RMA编号计算的标志：0非RMA类事件，1为RMA或借转类事件"
+      },
+      "after": {
+        "dataType": "TINYINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "由RMA编号计算的标志：0非RMA类事件，1为RMA或借转类事件",
+        "generatedExpression": "CASE WHEN rma_no IS NULL OR TRIM(rma_no) = '' OR LOWER(TRIM(rma_no)) = 'null' THEN 0 ELSE 1 END"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "current_order_line_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前订单行记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联当前订单行记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND effective_to IS NULL THEN order_line_id ELSE NULL END"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_order_execution_relation",
+      "column": "is_primary",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "TINYINT",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "同一业务范围内是否为主记录：0否，1是"
+      },
+      "after": {
+        "dataType": "TINYINT",
+        "nullable": false,
+        "defaultValue": "1",
+        "generated": false,
+        "description": "来源是否标记为主执行单：默认执行单关系即主执行单，允许同一订单存在多个主执行单关系"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "com_order_execution_relation",
+      "column": "primary_order_id",
+      "change": "REMOVED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主订单记录的全局唯一ID"
+      },
+      "after": null,
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "expend_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的拓展部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "expend_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的拓展部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "industry_code",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户主档的行业编码"
+      },
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的行业编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "industry_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的行业名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "market_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的市场部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "market_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的市场部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "system_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的系统部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer",
+      "column": "system_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "客户市场行业划分的系统部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "cus_customer_contact",
+      "column": "primary_customer_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主客户记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主客户记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND is_primary = 1 THEN customer_id ELSE NULL END"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_external_key_mapping",
+      "column": "target_role",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": "'PRIMARY'",
+        "generated": false,
+        "description": "同一来源映射目标的业务角色，默认PRIMARY"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "plt_external_key_mapping",
+      "column": "target_sequence",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "同一来源和角色下稳定且不可重排的目标顺序，从0开始"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "code_root_id",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "创建时冻结的项目编码命名空间根项目ID，项目移动时不变"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "code_rule_version",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(32)",
+        "nullable": false,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目编码生成规则版本，创建后冻结"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "expend_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的拓展部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "expend_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的拓展部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "industry_code",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目主档的行业编码"
+      },
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的行业编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "industry_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的行业名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "market_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的市场部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "market_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的市场部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_sequence",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "INT UNSIGNED",
+        "nullable": false,
+        "defaultValue": "0",
+        "generated": false,
+        "description": "编码命名空间内永久流水号，0表示自身建立独立命名空间"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "system_code",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(64)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的系统部编码"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project",
+      "column": "system_name",
+      "change": "ADDED",
+      "before": null,
+      "after": {
+        "dataType": "VARCHAR(255)",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": false,
+        "description": "项目市场行业划分的系统部名称"
+      },
+      "decision": "DEFER"
+    },
+    {
+      "table": "proj_project_company_department_relation",
+      "column": "primary_project_id",
+      "change": "MODIFIED",
+      "before": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主项目记录的全局唯一ID"
+      },
+      "after": {
+        "dataType": "BIGINT",
+        "nullable": true,
+        "defaultValue": null,
+        "generated": true,
+        "description": "关联主项目记录的全局唯一ID",
+        "generatedExpression": "CASE WHEN deleted = 0 AND effective_to IS NULL AND is_primary = 1 THEN project_id ELSE NULL END"
+      },
+      "decision": "DEFER"
+    }
+  ],
+  "constraintDiff": [],
+  "tableOptionDiff": [],
+  "decisionPolicy": {
+    "allowed": [
+      "ACCEPT_CURRENT",
+      "RESTORE_APPROVED_BASELINE",
+      "AMEND_CURRENT",
+      "DEFER"
+    ],
+    "current": "DEFER",
+    "approvalEvidence": []
+  },
+  "limitations": [
+    "No committed DDL blob matches the historical catalog hash; column facts are compared against target-field-catalog.jsonl.",
+    "The catalog has no index, foreign-key, CHECK-expression or table-option definitions; those differences remain UNVERIFIED and cannot be approved from this report."
+  ]
+}

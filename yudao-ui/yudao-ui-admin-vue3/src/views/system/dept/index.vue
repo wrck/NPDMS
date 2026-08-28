@@ -8,6 +8,14 @@
       :inline="true"
       label-width="68px"
     >
+      <el-form-item label="部门编码" prop="code">
+        <el-input
+          v-model="queryParams.code"
+          placeholder="请输入统一部门编码"
+          clearable
+          class="!w-240px"
+        />
+      </el-form-item>
       <el-form-item label="部门名称" prop="name">
         <el-input
           v-model="queryParams.name"
@@ -70,6 +78,7 @@
       @selection-change="handleRowCheckboxChange"
     >
       <el-table-column type="selection" width="55" />
+      <el-table-column prop="code" label="部门编码" min-width="150" />
       <el-table-column prop="name" label="部门名称" />
       <el-table-column prop="leader" label="负责人">
         <template #default="scope">
@@ -133,6 +142,7 @@ const list = ref() // 列表的数据
 const queryParams = reactive({
   pageNo: 1,
   pageSize: 100,
+  code: undefined,
   name: undefined,
   status: undefined
 })

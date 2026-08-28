@@ -27,7 +27,7 @@ public class CutTaskPageReqVO extends PageParam {
     @Schema(description = "割接任务名称，模糊匹配", example = "核心交换")
     private String name;
 
-    @Schema(description = "状态：0草稿 1准备中 2待评审 3待执行 4执行中 5稳定观察 6已完成 7已回退 8已终止", example = "0")
+    @Schema(description = "当前状态：0草稿 1准备中 2待评审 3闭环中；旧值4至8仅兼容读取", example = "0")
     private Integer status;
 
     @Schema(description = "割接等级 A/B/C/D", example = "C")

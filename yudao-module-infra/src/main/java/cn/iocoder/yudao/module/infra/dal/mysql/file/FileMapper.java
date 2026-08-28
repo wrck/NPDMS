@@ -5,7 +5,11 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.infra.controller.admin.file.vo.file.FilePageReqVO;
 import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
+import cn.iocoder.yudao.module.infra.dal.mysql.file.query.FileStorageOperationLookupQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 文件操作 Mapper
@@ -29,5 +33,8 @@ public interface FileMapper extends BaseMapperX<FileDO> {
                 .eq(FileDO::getPath, path)
                 .orderByAsc(FileDO::getId));
     }
+
+    List<FileDO> selectListByStorageOperation(
+            @Param("query") FileStorageOperationLookupQuery query);
 
 }

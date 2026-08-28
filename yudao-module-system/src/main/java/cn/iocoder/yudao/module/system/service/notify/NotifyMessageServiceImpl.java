@@ -6,13 +6,20 @@ import cn.iocoder.yudao.module.system.controller.admin.notify.vo.message.NotifyM
 import cn.iocoder.yudao.module.system.dal.dataobject.notify.NotifyMessageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.notify.NotifyTemplateDO;
 import cn.iocoder.yudao.module.system.dal.mysql.notify.NotifyMessageMapper;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.annotation.Resource;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.NOTIFY_DELIVERY_KEY_CONFLICT;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.NOTIFY_DELIVERY_KEY_INVALID;
 
 /**
  * 站内信 Service 实现类
@@ -29,12 +36,36 @@ public class NotifyMessageServiceImpl implements NotifyMessageService {
     @Override
     public Long createNotifyMessage(Long userId, Integer userType,
                                     NotifyTemplateDO template, String templateContent, Map<String, Object> templateParams) {
+        return createNotifyMessage(userId, userType, template, templateContent, templateParams, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long createNotifyMessage(Long userId, Integer userType, NotifyTemplateDO template,
+                                    String templateContent, Map<String, Object> templateParams, String deliveryKey) {
+        if (deliveryKey != null && (deliveryKey.isBlank() || deliveryKey.length() > 128)) {
+            throw exception(NOTIFY_DELIVERY_KEY_INVALID);
+        }
         NotifyMessageDO message = new NotifyMessageDO().setUserId(userId).setUserType(userType)
+                .setDeliveryKey(deliveryKey)
                 .setTemplateId(template.getId()).setTemplateCode(template.getCode())
                 .setTemplateType(template.getType()).setTemplateNickname(template.getNickname())
                 .setTemplateContent(templateContent).setTemplateParams(templateParams).setReadStatus(false);
-        notifyMessageMapper.insert(message);
-        return message.getId();
+        try {
+            notifyMessageMapper.insert(message);
+            return message.getId();
+        } catch (DuplicateKeyException ex) {
+            if (deliveryKey == null) {
+                throw ex;
+            }
+            NotifyMessageDO existing = notifyMessageMapper.selectByUserTypeAndDeliveryKey(userType, deliveryKey);
+            if (existing != null && Objects.equals(existing.getUserId(), userId)
+                    && Objects.equals(existing.getTemplateCode(), template.getCode())
+                    && Objects.equals(existing.getTemplateParams(), templateParams)) {
+                return existing.getId();
+            }
+            throw exception(NOTIFY_DELIVERY_KEY_CONFLICT);
+        }
     }
 
     @Override

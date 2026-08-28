@@ -25,7 +25,7 @@ export interface RiskVO {
 
 const baseUrl = '/pms/eng-risk'
 
-export const getRiskPage = (params: PageParam) => request.get({ url: `${baseUrl}/page`, params })
+export const getRiskPage = (params: PmsProjectPageParam) => request.get({ url: `${baseUrl}/page`, params })
 export const getRisk = (id: number) => request.get({ url: `${baseUrl}/get`, params: { id } })
 export const createRisk = (data: RiskVO) => request.post({ url: `${baseUrl}/create`, data })
 export const updateRisk = (data: RiskVO) => request.put({ url: `${baseUrl}/update`, data })

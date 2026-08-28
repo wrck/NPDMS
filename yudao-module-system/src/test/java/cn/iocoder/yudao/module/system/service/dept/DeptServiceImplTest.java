@@ -154,6 +154,23 @@ public class DeptServiceImplTest extends BaseDbUnitTest {
     }
 
     @Test
+    public void testGetDeptByCode() {
+        DeptDO dept = randomPojo(DeptDO.class, o -> {
+            o.setCode("DEPT-HZ-01");
+            o.setParentId(DeptDO.PARENT_ID_ROOT);
+            o.setStatus(CommonStatusEnum.ENABLE.getStatus());
+            o.setVersion(0);
+        });
+        deptMapper.insert(dept);
+
+        DeptDO result = deptService.getDeptByCode("DEPT-HZ-01");
+
+        assertEquals(dept.getId(), result.getId());
+        assertEquals("DEPT-HZ-01", result.getCode());
+        assertEquals(0, result.getVersion());
+    }
+
+    @Test
     public void testGetChildDeptList() {
         // mock 数据：父部门
         DeptDO parentDept = randomPojo(DeptDO.class, o -> {

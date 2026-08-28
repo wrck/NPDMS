@@ -18,7 +18,7 @@ export interface CutRiskVO {
 
 const baseUrl = '/pms/cut-risk'
 
-export const getCutRiskPage = (params: PageParam) =>
+export const getCutRiskPage = (params: PmsTaskPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getCutRisk = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

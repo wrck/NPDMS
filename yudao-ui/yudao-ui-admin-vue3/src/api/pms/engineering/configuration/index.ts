@@ -18,7 +18,7 @@ export interface ConfigurationVO {
 
 const baseUrl = '/pms/eng-configuration'
 
-export const getConfigurationPage = (params: PageParam) =>
+export const getConfigurationPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getConfiguration = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

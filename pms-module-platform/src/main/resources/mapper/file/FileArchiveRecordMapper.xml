@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArchiveRecordMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="row.id">
+        INSERT INTO plt_file_archive_record
+            (artifact_id, file_version_no, archive_batch_id, business_decision_ref,
+             archived_by, archived_at, archive_note, created_at, tenant_id)
+        VALUES
+            (#{row.artifactId}, #{row.fileVersionNo}, #{row.archiveBatchId},
+             #{row.businessDecisionRef}, #{row.archivedBy}, #{row.archivedAt},
+             #{row.archiveNote}, #{row.createdAt}, #{row.tenantId})
+    </insert>
+
+    <select id="selectOne"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArchiveRecordDO">
+        SELECT id, artifact_id, file_version_no, archive_batch_id, business_decision_ref,
+               archived_by, archived_at, archive_note, created_at, tenant_id
+        FROM plt_file_archive_record
+        WHERE tenant_id = #{query.tenantId}
+          AND archive_batch_id = #{query.archiveBatchId}
+          AND artifact_id = #{query.artifactId}
+          AND file_version_no = #{query.versionNo}
+    </select>
+</mapper>

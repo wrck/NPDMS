@@ -18,7 +18,7 @@ export interface AcceptanceVO {
 
 const baseUrl = '/pms/acc-acceptance'
 
-export const getAcceptancePage = (params: PageParam) =>
+export const getAcceptancePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getAcceptance = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })

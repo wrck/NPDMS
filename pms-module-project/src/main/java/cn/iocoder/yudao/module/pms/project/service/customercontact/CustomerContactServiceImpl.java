@@ -2,11 +2,12 @@ package cn.iocoder.yudao.module.pms.project.service.customercontact;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerLifecycleStatus;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.customercontact.vo.CustomerContactPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.customercontact.vo.CustomerContactSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.customer.CustomerDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.customercontact.CustomerContactDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.customer.CustomerMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.customercontact.CustomerContactMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class CustomerContactServiceImpl implements CustomerContactService {
     private CustomerContactMapper customerContactMapper;
 
     @Resource
-    private CustomerMapper customerMapper;
+    private CustomerQueryApi customerQueryApi;
 
     @Override
     public Long createCustomerContact(CustomerContactSaveReqVO createReqVO) {
@@ -95,8 +96,8 @@ public class CustomerContactServiceImpl implements CustomerContactService {
         if (customerId == null) {
             return;
         }
-        CustomerDO customer = customerMapper.selectById(customerId);
-        if (customer == null) {
+        CustomerSummaryDTO customer = customerQueryApi.getCustomer(customerId);
+        if (customer == null || !CustomerLifecycleStatus.ENABLED.name().equals(customer.lifecycleStatus())) {
             throw exception(CUSTOMER_CONTACT_CUSTOMER_NOT_EXISTS);
         }
     }
