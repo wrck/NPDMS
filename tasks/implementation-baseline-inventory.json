@@ -21,6 +21,20 @@
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
     {
+      "objectKey": "CustomerMasterCurrentRuntime",
+      "classification": "ADAPTED",
+      "requirementRefs": ["CUS-03"],
+      "codePaths": [
+        "pms-module-customer/",
+        "sql/migrations/V87__fcus001_customer_master.sql",
+        "sql/migrations/V88__fcus001_customer_classification_scope.sql",
+        "sql/migrations/V89__fcus001_customer_menu_and_permissions.sql",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/customer/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/"
+      ],
+      "requiredAction": "F_CUS_001_CURRENT_OWNER_IMPLEMENTED_WITH_PARTIAL_BROWSER_ACCEPTANCE"
+    },
+    {
       "objectKey": "CutExecution",
       "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["CUT-01", "CUT-06"],
@@ -80,6 +94,19 @@
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
     {
+      "objectKey": "LegacyCustomerHistoryReadOnly",
+      "classification": "REUSED",
+      "requirementRefs": ["CUS-03"],
+      "codePaths": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/customer/CustomerController.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/customer/CustomerService.java",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/customer/CustomerServiceImpl.java",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/customer/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/customer/"
+      ],
+      "requiredAction": "PRESERVE_HISTORY_LIST_AND_DETAIL_ONLY_WITHOUT_WRITE_DELEGATION"
+    },
+    {
       "objectKey": "LegacyPmsMigrations",
       "classification": "BLOCKED_BY_SPEC",
       "requirementRefs": ["NFR-01"],
@@ -116,6 +143,26 @@
       "requirementRefs": ["SUB-01", "SUB-02", "SUB-03", "SUB-04", "SUB-05"],
       "codePaths": ["pms-module-outsourcing/"],
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "PlatformAuthorizationGrant",
+      "classification": "ADAPTED",
+      "requirementRefs": ["AUT-01", "AUT-02", "INT-06", "INT-09"],
+      "codePaths": [
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/authorization/AuthorizationGrantDO.java"
+      ],
+      "requiredAction": "PRESERVE_F_PROJ_003_AUTHORIZATION_GRANT_RUNTIME"
+    },
+    {
+      "objectKey": "PlatformCommandFacts",
+      "classification": "ADAPTED",
+      "requirementRefs": ["NFR-01", "PM-01"],
+      "codePaths": [
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/command/PlatformIdempotencyRecordDO.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/command/PlatformOperationAuditDO.java",
+        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/command/PlatformOutboxEventDO.java"
+      ],
+      "requiredAction": "PRESERVE_SHARED_IDEMPOTENCY_AUDIT_AND_OUTBOX_FACTS"
     },
     {
       "objectKey": "ProjectManualCreation",

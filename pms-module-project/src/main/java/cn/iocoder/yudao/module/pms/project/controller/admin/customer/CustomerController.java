@@ -17,7 +17,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.CUSTOMER_LEGACY_ROUTE_READ_ONLY;
 
 @Tag(name = "管理后台 - PMS 客户")
 @RestController
@@ -32,15 +34,14 @@ public class CustomerController {
     @Operation(summary = "创建客户")
     @PreAuthorize("@ss.hasPermission('pms:customer:create')")
     public CommonResult<Long> createCustomer(@Valid @RequestBody CustomerSaveReqVO createReqVO) {
-        return success(customerService.createCustomer(createReqVO));
+        throw exception(CUSTOMER_LEGACY_ROUTE_READ_ONLY);
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新客户")
     @PreAuthorize("@ss.hasPermission('pms:customer:update')")
     public CommonResult<Boolean> updateCustomer(@Valid @RequestBody CustomerSaveReqVO updateReqVO) {
-        customerService.updateCustomer(updateReqVO);
-        return success(true);
+        throw exception(CUSTOMER_LEGACY_ROUTE_READ_ONLY);
     }
 
     @DeleteMapping("/delete")
@@ -48,8 +49,7 @@ public class CustomerController {
     @Parameter(name = "id", description = "客户编号", required = true, example = "1024")
     @PreAuthorize("@ss.hasPermission('pms:customer:delete')")
     public CommonResult<Boolean> deleteCustomer(@RequestParam("id") Long id) {
-        customerService.deleteCustomer(id);
-        return success(true);
+        throw exception(CUSTOMER_LEGACY_ROUTE_READ_ONLY);
     }
 
     @GetMapping("/get")
@@ -58,7 +58,7 @@ public class CustomerController {
     @PreAuthorize("@ss.hasPermission('pms:customer:query')")
     public CommonResult<CustomerRespVO> getCustomer(@RequestParam("id") Long id) {
         CustomerDO customer = customerService.getCustomer(id);
-        return success(BeanUtils.toBean(customer, CustomerRespVO.class));
+        return success(legacy(BeanUtils.toBean(customer, CustomerRespVO.class)));
     }
 
     @GetMapping("/page")
@@ -66,7 +66,18 @@ public class CustomerController {
     @PreAuthorize("@ss.hasPermission('pms:customer:query')")
     public CommonResult<PageResult<CustomerRespVO>> getCustomerPage(@Validated CustomerPageReqVO pageReqVO) {
         PageResult<CustomerDO> pageResult = customerService.getCustomerPage(pageReqVO);
-        return success(BeanUtils.toBean(pageResult, CustomerRespVO.class));
+        PageResult<CustomerRespVO> response = BeanUtils.toBean(pageResult, CustomerRespVO.class);
+        response.getList().forEach(this::legacy);
+        return success(response);
+    }
+
+    private CustomerRespVO legacy(CustomerRespVO response) {
+        if (response == null) {
+            return null;
+        }
+        response.setLegacyReadOnly(true);
+        response.setReplacementPath("/pms/customers");
+        return response;
     }
 
 }

@@ -11,6 +11,10 @@
 
 | 对象 | 分类 | 当前结论 | Requirement |
 |---|---|---|---|
+| `CustomerMasterCurrentRuntime` | `ADAPTED` | F-CUS-001 已建立独立 CUS 当前写 Owner、V87～V89 前向迁移、新客户工作台、跨域摘要与删除守卫；创建、删除成功和恢复浏览器闭环仍受权威分类与真实数据阻断 | `CUS-03` |
+| `LegacyCustomerHistoryReadOnly` | `REUSED` | 旧 project 客户入口只保留历史列表和详情，禁止创建、更新、删除、停用、恢复及地点写入，也不代理新 Owner 写操作 | `CUS-03` |
+| `PlatformAuthorizationGrant` | `ADAPTED` | F-PROJ-003 已建立平台授权事实运行时，保留 `AuthorizationGrant` 当前实现及其正式授权边界 | `AUT-01`、`AUT-02`、`INT-06`、`INT-09` |
+| `PlatformCommandFacts` | `ADAPTED` | 平台共享命令设施保留幂等、操作审计和 Outbox 事实，作为已实现命令链的基础能力 | `NFR-01`、`PM-01` |
 | `CutExecution` | `RUNTIME_RETIRED_DATA_PENDING_EVIDENCE` | 已退出当前构建、菜单、API和前端入口；旧表不删除，只有后续逐字段证明的P6闭环事实才可迁入闭环记录 | `CUT-01`、`CUT-06` |
 | `CutObservation` | `RUNTIME_RETIRED_DATA_PENDING_EVIDENCE` | 稳定观察状态机和运行入口已退役；旧表仅保留待判定数据，不进入当前写模型或迁移 | `CUT-01`、`CUT-06` |
 | `SrvReport` | `VALID_V2_POSTPONED` | 是有效巡检报告能力，保留代码但不进入九月Feature和UAT | `INS-05` |

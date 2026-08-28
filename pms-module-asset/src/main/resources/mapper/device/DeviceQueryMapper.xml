@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper">
+
+    <sql id="visibleDeviceConditions">
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+        <if test="query.visibleDeviceIds != null">
+          AND d.id IN
+          <foreach collection="query.visibleDeviceIds" item="deviceId" open="(" separator="," close=")">
+            #{deviceId}
+          </foreach>
+        </if>
+        <if test="query.sn != null and query.sn != ''">
+          AND d.sn = #{query.sn}
+        </if>
+        <if test="query.productCode != null and query.productCode != ''">
+          AND d.product_code = #{query.productCode}
+        </if>
+        <if test="query.projectId != null">
+          AND d.project_id = #{query.projectId}
+        </if>
+        <if test="query.customerId != null">
+          AND d.customer_id = #{query.customerId}
+        </if>
+    </sql>
+
+    <sql id="customerSummaryConditions">
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+          AND (
+              d.customer_id = #{query.customerId}
+              OR EXISTS (
+                  SELECT 1
+                  FROM ast_device_customer_relationship r
+                  WHERE r.tenant_id = d.tenant_id
+                    AND r.device_sn = d.sn
+                    AND r.customer_id = #{query.customerId}
+                    AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
+                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
+                    AND r.deleted = b'0'
+              )
+          )
+    </sql>
+
+    <select id="selectCustomerSummaryList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT d.id,
+               d.sn,
+               d.name,
+               d.status
+        <include refid="customerSummaryConditions"/>
+        ORDER BY d.id DESC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+
+    <select id="selectCustomerSummaryCount" resultType="long">
+        SELECT COUNT(*)
+        <include refid="customerSummaryConditions"/>
+    </select>
+
+    <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
+        SELECT d.id AS device_id,
+               d.sn,
+               d.product_code,
+               d.product_model,
+               d.product_name,
+               d.shipment_time,
+               d.package_no,
+               d.contract_no,
+               d.shipment_record_id,
+               d.project_id,
+               d.customer_id,
+               d.warranty_start_date,
+               d.warranty_end_date,
+               d.warranty_status,
+               d.conp_version,
+               d.conp_type,
+               d.conp_series,
+               d.conp_mark,
+               d.sync_status
+        <include refid="visibleDeviceConditions"/>
+        ORDER BY d.id DESC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+
+    <select id="selectVisibleDeviceCount" resultType="long">
+        SELECT COUNT(*)
+        <include refid="visibleDeviceConditions"/>
+    </select>
+
+</mapper>

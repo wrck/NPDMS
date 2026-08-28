@@ -1,0 +1,103 @@
+{
+  "fixtures": {
+    "mainId": "970000000000000001",
+    "configurationLogId": "970000000000071001",
+    "mainSn": "FAST001_SN_MAIN",
+    "staleSn": "FAST001_SN_CHILD_1",
+    "failedSn": "FAST001_SN_CHILD_2",
+    "unavailableSn": "FAST001_SN_NOT_AVAILABLE"
+  },
+  "roles": [
+    "fast001_browser_operator",
+    "fast001_browser_readonly",
+    "fast001_browser_denied"
+  ],
+  "users": {
+    "operator": "fast001operator",
+    "readonly": "fast001readonly",
+    "denied": "fast001denied"
+  },
+  "apiChecks": {
+    "snExact": true,
+    "thinList": true,
+    "sourceStatuses": true,
+    "conpCombination": true,
+    "notAvailableSlices": true,
+    "relationships": true,
+    "assemblyDepth": true,
+    "warranty": true,
+    "readonlyAssignDenied": true,
+    "staleVersionRejected": true,
+    "deniedQuery": true,
+    "readonlyDownloadHidden": true,
+    "downloadGrantDenied": true,
+    "legacyReadonly": true,
+    "superAdminLegacyWrite": true
+  },
+  "uiChecks": {
+    "routeLoaded": true,
+    "queryInput": true,
+    "queryAction": true,
+    "queryResult": true,
+    "detailAction": true,
+    "detailLoaded": true,
+    "sixTabs": true,
+    "tabsClickable": true,
+    "conpVisible": true,
+    "warrantyLoad": true,
+    "warrantyVisible": true,
+    "assemblyDrawer": true,
+    "assemblyVisible": true,
+    "assignmentDrawer": true,
+    "assignmentVisible": true,
+    "customerDrawer": true,
+    "customerVisible": true,
+    "refreshPersistent": true
+  },
+  "tabChecks": {
+    "出厂信息": true,
+    "官网信息": true,
+    "在网版本": true,
+    "技术公告": true,
+    "维保信息": true,
+    "配置Log": true
+  },
+  "responsive": {
+    "320": {
+      "viewport": [
+        320,
+        740
+      ],
+      "overflow": false,
+      "pageVisible": true
+    },
+    "768": {
+      "viewport": [
+        768,
+        900
+      ],
+      "overflow": false,
+      "pageVisible": true
+    },
+    "1024": {
+      "viewport": [
+        1024,
+        800
+      ],
+      "overflow": false,
+      "pageVisible": true
+    },
+    "1440": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "overflow": false,
+      "pageVisible": true
+    }
+  },
+  "consoleErrors": [],
+  "failedApiResponses": [],
+  "unexplainedFailedApiResponses": [],
+  "pass": true
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper">
+
+    <select id="selectByTenantAndIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT id,
+               sn,
+               version,
+               tenant_id
+        FROM ast_device
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="updateLocationProjection">
+        UPDATE ast_device
+        SET site_id = #{update.siteId},
+            site_location_id = #{update.siteLocationId},
+            location_resolution_status = #{update.resolutionStatus},
+            location_snapshot = #{update.locationSnapshot},
+            location_effective_from = #{update.effectiveFrom},
+            location_record_id = #{update.locationRecordId},
+            version = version + 1
+        WHERE tenant_id = #{update.tenantId}
+          AND id = #{update.deviceId}
+          AND version = #{update.expectedVersion}
+          AND deleted = b'0'
+    </update>
+
+</mapper>

@@ -22,7 +22,8 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
 
     static final Set<String> SUPPORTED_EVENT_TYPES = Set.of(
             "ProjectServiceManagerAssigned", "TaskAssigned", "TaskCompleted",
-            "FileVersionCommitted", "FileReferenceAttached", "FileReferenceDetached", "FileArchived");
+            "FileVersionCommitted", "FileReferenceAttached", "FileReferenceDetached", "FileArchived",
+            "DeviceAssigned");
     static final int MAX_BATCH_SIZE = 100;
 
     @Resource

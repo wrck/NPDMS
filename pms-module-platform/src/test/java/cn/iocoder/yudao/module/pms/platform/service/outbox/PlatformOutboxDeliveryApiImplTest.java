@@ -70,6 +70,16 @@ class PlatformOutboxDeliveryApiImplTest {
     }
 
     @Test
+    void claimDueSupportsDeviceAssignedEventType() {
+        LocalDateTime dueAt = LocalDateTime.of(2026, 8, 27, 12, 0);
+        when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+
+        service.claimDue(new PlatformOutboxClaimQuery("DeviceAssigned", dueAt, 10));
+
+        verify(mapper).selectDueForUpdate(new DueOutboxListQuery(7L, Set.of("DeviceAssigned"), dueAt, 10));
+    }
+
+    @Test
     void completionAndRetryUseTenantRetryCountCas() {
         LocalDateTime next = LocalDateTime.of(2026, 8, 25, 9, 5);
         when(mapper.markDeliveredIfPending(new OutboxDeliveryUpdateQuery(7L, "evt-2", 3))).thenReturn(1);
@@ -100,6 +110,8 @@ class PlatformOutboxDeliveryApiImplTest {
                 () -> service.claimDue(new PlatformOutboxClaimQuery(now, 10, Set.of())));
         assertThrows(IllegalArgumentException.class,
                 () -> service.claimDue(new PlatformOutboxClaimQuery(now, 10, Set.of("UNKNOWN"))));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.claimDue(new PlatformOutboxClaimQuery("DeviceAssigned", now, 101)));
         assertThrows(IllegalArgumentException.class, () -> service.markDelivered("", 0));
         assertThrows(IllegalArgumentException.class,
                 () -> service.scheduleRetry("evt-1", -1, now));

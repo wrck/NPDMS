@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.equipment.vo.EquipmentPageReqVO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipment.EquipmentDO;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.query.CustomerDeviceReferenceQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
@@ -25,6 +26,12 @@ public interface EquipmentMapper extends BaseMapperX<EquipmentDO> {
                 .eqIfPresent(EquipmentDO::getStatus, reqVO.getStatus())
                 .betweenIfPresent(EquipmentDO::getCreateTime, reqVO.getCreateTime())
                 .orderByDesc(EquipmentDO::getId));
+    }
+
+    default Long selectCountByCustomer(CustomerDeviceReferenceQuery query) {
+        return selectCount(new LambdaQueryWrapperX<EquipmentDO>()
+                .eq(EquipmentDO::getTenantId, query.tenantId())
+                .eq(EquipmentDO::getCustomerId, query.customerId()));
     }
 
     default EquipmentDO selectBySerialNumber(String serialNumber) {

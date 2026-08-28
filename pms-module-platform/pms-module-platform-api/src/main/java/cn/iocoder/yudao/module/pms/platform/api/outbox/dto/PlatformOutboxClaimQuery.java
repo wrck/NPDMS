@@ -9,4 +9,8 @@ public record PlatformOutboxClaimQuery(LocalDateTime dueAt, int limit, Set<Strin
     public PlatformOutboxClaimQuery {
         eventTypes = eventTypes == null ? null : Set.copyOf(eventTypes);
     }
+
+    public PlatformOutboxClaimQuery(String eventType, LocalDateTime dueAt, int limit) {
+        this(dueAt, limit, eventType == null ? null : Set.of(eventType));
+    }
 }

@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentVersionMap
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper;
 import cn.iocoder.yudao.module.pms.asset.enums.EquipmentChangeTypeEnum;
 import cn.iocoder.yudao.module.pms.asset.enums.LocationResolutionStatus;
+import cn.iocoder.yudao.module.pms.asset.service.location.DeviceLocationEffectiveService;
 import cn.iocoder.yudao.module.pms.asset.service.location.SiteLocationTreeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,10 +34,15 @@ public class EquipmentLocationEffectiveService {
     private final EquipmentVersionMapper equipmentVersionMapper;
     private final SiteMapper siteMapper;
     private final SiteLocationTreeService siteLocationTreeService;
+    private final DeviceLocationEffectiveService deviceLocationEffectiveService;
 
     @Transactional(rollbackFor = Exception.class)
     public void effect(EquipmentLocationEffectiveCommand command) {
         validateCommand(command);
+        validateLocation(command);
+        if (deviceLocationEffectiveService.effect(command)) {
+            return;
+        }
         EquipmentDO before = equipmentMapper.selectById(command.equipmentId());
         if (before == null) {
             throw exception(AST_EQUIPMENT_NOT_EXISTS);
@@ -44,7 +50,6 @@ public class EquipmentLocationEffectiveService {
         if (Objects.equals(before.getLocationSourceInstallationId(), command.installationId())) {
             return;
         }
-        validateLocation(command);
 
         EquipmentDO update = new EquipmentDO();
         update.setId(before.getId());
