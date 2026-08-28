@@ -7,6 +7,7 @@
 > 前置Feature：`F-PROJ-001`、`F-PROJ-003`、`F-PROJ-007`、`F-PLT-001`、`F-PLT-002`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 已取消输入：2026-08-27旧Technical Plan及其Implementation审查
+> 文件生命周期动作边界：`GO / NPDMS-FSOL003-FILE-LIFECYCLE-ACTION-MAPPING-20260828-01`；本聚焦规格修订仍须独立锁定
 
 ## 1. 目标
 
@@ -68,7 +69,7 @@
 - 字段缺失与显式`null/false/0/空字符串/空数组`保持可区分；未知字段和`PmsFileArtifact`字段伪造由PLT拒绝。完整FormCreate客户端校验不能替代服务端PRE-04完成校验。
 - `PmsFileArtifact`继续使用`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`。文件命令由F-PLT-001执行；动态表单文件Provider必须先通过SOL业务Owner策略，再锁定PLT实例/修订及文件事实。
 - 当前草稿文件上传、换版或解绑一旦由F-PLT-001成功提交即成为该PLT实例当前值，不再要求SOL保存第二份附件快照，也不引入`IN_SYNC/PENDING/UNKNOWN`双真值状态机。响应未知沿用原`slotKey`和Idempotency-Key，刷新后以PLT权威引用事实恢复。
-- 完成版Owner策略只允许`READ/DOWNLOAD/PREVIEW`，拒绝`UPLOAD/REFERENCE/REPLACE/DETACH`；`ARCHIVE/INVALIDATE`不由PRE-04页面授权。模板事件、函数和接口仍以当前用户浏览器权限运行，不能绕过SOL/PLT命令授权。
+- 完成版Owner策略只允许`READ/DOWNLOAD/PREVIEW`，拒绝`UPLOAD/REFERENCE/REPLACE/DETACH/ARCHIVE/INVALIDATE`。当前草稿的`ARCHIVE/INVALIDATE`仅由F-PLT-001公开文件管理入口发起，业务Owner侧复用`FILE_WRITE`并仍要求当前项目经理、`PROJECT_MANAGE`、`pms:requirement-analysis:manage`与当前`DRAFT/draft_marker=1`；F-PLT-001命令端另行校验`pms:file:archive`。PRE-04页面不授权、不投影失效/归档按钮或`allowedAction`。模板事件、函数和接口仍以当前用户浏览器权限运行，不能绕过SOL/PLT命令授权。
 
 ### BR-FSOL003-005 草稿与当前有效版本双轴
 
@@ -194,6 +195,7 @@ F-PLT-002在`pms-module-platform-api`增加`DynamicFormBusinessInstanceApi`：
 - `AC-FSOL003-014`：真实浏览器完成“WorkBinding自动选模后的初次填写→文件→完成V1→克隆V2→修改完成→历史对比”，并覆盖未保存值阻断、文件响应未知、无权只读/拒绝和四视口，console/page/request意外错误为零。
 - `AC-FSOL003-015`：旧需求分析、旧工程表单和BPM实现相对基线零修改；新SOL组件复用共享运行时，当前候选版本化/权限/历史能力有逐项吸收证据。
 - `AC-FSOL003-016`：不宣称SCH-01、Deployment、SIT、UAT或Release完成；旧Technical Plan和旧Implementation审查不能驱动实施。
+- `AC-FSOL003-017`：当前项目经理在当前草稿上同时具备SOL管理权限与F-PLT-001 `pms:file:archive`时，公开文件管理命令可归档/失效受控文件；非经理、非当前草稿、完成版、跨租户、Owner/scopeVersion陈旧、缺任一功能权限及手工动态表单实例均失败关闭。失效后刷新返回权威文件失效事实，`completionBlockers`含`CONTROLLED_FILE_INVALID`且不投影`COMPLETE`，SOL不新增附件副本或状态轴。
 
 ## 8. Feature Ready检查
 

@@ -86,7 +86,7 @@
 
 | Context | 文件用途 | Owner 与状态 |
 |---|---|---|
-| Platform Dynamic Form | `PmsFileArtifact`动态字段的上传、换版、解绑、预览和下载 | 手工实例由PLT校验创建者与功能权限；业务实例先委托消费Context的`DynamicFormBusinessObjectPolicyProvider`校验Owner动作/scopeVersion，再进入F-PLT-001锁。F-PLT-001拥有精确文件事实；普通上传URL/JSON不是受控证据 |
+| Platform Dynamic Form | `PmsFileArtifact`动态字段的上传、换版、解绑、预览和下载；业务Owner实例的归档/失效由F-PLT-001文件管理入口发起 | 手工实例由PLT校验创建者与功能权限，且不允许`ARCHIVE/INVALIDATE`；业务实例先委托消费Context的`DynamicFormBusinessObjectPolicyProvider`按`FILE_WRITE`校验Owner动作/scopeVersion，再进入F-PLT-001锁，F-PLT-001仍独立要求`pms:file:archive`。F-PLT-001拥有精确文件事实；普通上传URL/JSON不是受控证据 |
 | Preparation/Solution | 工勘照片、需求附件、计划、交底书、方案 revision | SOL 拥有提交/批准状态；文件服务拥有内容版本 |
 | Implementation Execution | 签收证据、安装照片、配置/联调结果、质量安全证据、DeliveryEvidence | IMP 上传和发布证据 revision |
 | Acceptance & Closure | 培训、问卷、验收报告、齐套清单、归档包、交接证据 | ACC 审核、批准和归档引用；不覆盖 IMP 原版本 |

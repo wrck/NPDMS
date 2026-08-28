@@ -5,6 +5,7 @@
 > 聚焦修订就绪：`READY / GO（整改提交 4d04dbd63bbd01683416563bece31da6cd53f849）`
 > 原基础闭环实施：`IMPLEMENTATION_COMPLETE / NPDMS-FPLT002-IMPLEMENTATION-20260827-02-R2`
 > 本次修订门禁：`PENDING`；仅新增业务实例公共边界，不重开已完成的手工动态表单闭环
+> 文件生命周期动作边界：`GO / NPDMS-FSOL003-FILE-LIFECYCLE-ACTION-MAPPING-20260828-01`；本聚焦规格修订仍须独立锁定
 > 主需求：`SOL-01（V2/P1）`
 > 支撑需求：`PRE-04（V1/P0）`、`PM-03（V1/P0）`、`PM-11（V1/P1）`
 > 所有者上下文：`PLT（基础平台动态表单能力）`
@@ -76,14 +77,14 @@
 
 - 实例详情始终读取自身冻结修订并返回完整FormCreate config/rules、普通字段值、FileArtifact字段当前事实、实例版本和`allowedActions`；不回读模板当前发布指针解释既有实例。一个实例的全部`PmsFileArtifact`字段必须组装为一次F-PLT-001 `inspectReferenceSets`批量读取并按fieldKey映射，禁止逐字段查询。
 - 普通字段值保存为JSON对象，字段缺失与显式`null/false/0/空字符串/空数组`保持可区分；服务端不把合法假值当作未填写。PATCH只更新请求中出现的普通字段，并拒绝实例没有冻结字段键的值。
-- `PmsFileArtifact`字段不接受通过普通PATCH伪造文件值；它由专用控件调用F-PLT-001上传、换版、解绑和读取接口，实例详情按冻结字段键组装当前`ACTIVE`精确文件事实。
+- `PmsFileArtifact`字段不接受通过普通PATCH伪造文件值；它由专用控件调用F-PLT-001上传、换版、解绑和读取接口，实例详情按冻结字段键组装当前`ACTIVE`精确文件事实。手工实例动作范围不变，不允许归档或失效；受信业务Owner实例的归档/失效只能由F-PLT-001公开文件管理命令发起，不在动态表单页面增加按钮或`allowedActions`。
 - 每次成功PATCH以`If-Match`递增实例版本并记录字段键级变化摘要；并发后提交者返回版本冲突，不覆盖先提交值。失败保持最近一次成功值。
 - 本功能不提供实例提交、完成、删除或模板切换命令。一个实例创建后永久绑定原修订；需要不同模板时创建新实例。
 
 ### BR-FPLT002-005 FileArtifact字段与普通上传控件并存
 
 - `PmsFileArtifact`字段在F-PLT-001中的业务键固定为`ownerContext=PLATFORM/objectType=DYNAMIC_FORM_INSTANCE/objectId={instanceId}/purposeCode=FORM_FIELD_ATTACHMENT/{fieldKey}/referenceKey={slotKey}`；`slotKey`为客户端为同一上传意图稳定保留的UUID。
-- PLT的动态表单文件Provider只对当前租户、存在的实例、冻结修订中真实存在的`PmsFileArtifact`字段和当前主体动作授权。手工实例创建者在具备实例编辑及对应文件权限时可上传、换版和解绑；获权只读用户只能读取、下载或预览。
+- PLT的动态表单文件Provider只对当前租户、存在的实例、冻结修订中真实存在的`PmsFileArtifact`字段和当前主体动作授权。手工实例创建者在具备实例编辑及对应文件权限时可上传、换版和解绑；获权只读用户只能读取、下载或预览；手工实例的`ARCHIVE/INVALIDATE`始终失败关闭。业务Owner实例的`ARCHIVE/INVALIDATE`映射到既有`FILE_WRITE`，必须先由消费Context按同一动作和scopeVersion授权；F-PLT-001命令端仍独立校验`pms:file:archive`，Owner结论不授予该功能权限。
 - 实例详情中的受控文件值仅投影`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/status`，不返回存储键或永久URL。文件访问、扫描事实、版本、短时票据和审计继续由F-PLT-001负责。
 - 现有FormCreate普通上传、图片上传控件继续保留，其URL/普通JSON值只作为表单普通值，不得被后续业务功能当作已冻结FileArtifact证据。需要业务附件版本和权限真值时必须选择`PmsFileArtifact`字段。
 - 文件命令成功而普通值PATCH失败不会伪造实例保存；FileArtifact字段直接以当前PLT引用事实展示，响应未知按原slotKey重试。实例没有完成/发布状态，因此本功能不再复制一套附件快照或PENDING状态机。
@@ -126,7 +127,7 @@
 - 业务实例继续写入`plt_dynamic_form_instance`，其Owner稳定键为`tenantId/ownerContext/objectType/objectId`。手工实例REST仍只创建`PLATFORM/MANUAL_DYNAMIC_FORM`，不能接收客户端自报Owner；受信业务API才可创建SOL等上下文实例。
 - PLT只拥有冻结模板修订、完整FormCreate schema、普通值和受控文件组合事实。Owner Context拥有查看、编辑、完成、不可变、历史和用途兼容规则；PLT不得增加PRE-04状态或把实例保存解释为业务完成。
 - `inspectInstance/lockAndRevalidateInstance`同时返回基于冻结schema和值计算的声明式校验结果。服务端只执行可稳定解释的必填、JSON类型、长度/数值范围、正则和枚举约束；浏览器事件、函数、parseFunc、远程API结果和iframe状态不作为服务端完成真值。消费Context可在此基础上增加自身业务必填，但不得把仅客户端函数校验宣称为服务端门禁。
-- 业务实例动作值域封闭为`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`，修订用途动作封闭为`REVISION_BINDING_PUBLISH/REVISION_FROZEN_USE`。每个API及文件Provider按机器契约映射唯一动作，inspect冻结该动作，持锁重验必须使用同一动作、主体、Owner和scopeVersion，禁止调用方在inspect后升级动作。
+- 业务实例动作值域封闭为`CREATE/READ/PATCH/COMPLETE/CLONE_SOURCE/CLONE_TARGET/FILE_READ/FILE_WRITE`，修订用途动作封闭为`REVISION_BINDING_PUBLISH/REVISION_FROZEN_USE`。每个API及文件Provider按机器契约映射唯一动作：业务实例的`READ/DOWNLOAD/PREVIEW`映射`FILE_READ`，`UPLOAD/REFERENCE/REPLACE/DETACH/ARCHIVE/INVALIDATE`映射`FILE_WRITE`；后两项仅从F-PLT-001文件管理入口委托，不改变手工实例动作范围。inspect冻结该动作，持锁重验必须使用同一动作、主体、Owner和scopeVersion，禁止调用方在inspect后升级动作。
 - 只读inspect不持锁；`lockAndRevalidateRevisionForUsage/createBusinessInstance/patchInstanceValues/cloneBusinessInstance/lockAndRevalidateInstance`及Owner持锁重验一律使用事务传播`MANDATORY`，无调用方事务必须拒绝。它们不建立第二幂等记录、不嵌套`PlatformCommandExecutionApi`、不使用`REQUIRES_NEW`；SOL外层命令负责业务幂等与业务审计，PLT只写自身实际文件引用产生的PLT事件。
 - 创建与复制由调用方同时预分配SOL业务ID和PLT实例ID，并把非空实例ID随SOL根首次INSERT及业务API命令提交；PLT只插入该明确ID，不生成后回填SOL根、不额外递增SOL版本。任一失败时预分配ID可废弃，但SOL根、PLT实例及成功事实必须全部回滚。
 - `cloneBusinessInstance`复制冻结修订和普通值，并为目标Owner创建独立FileReference指向来源不可变FileVersion。PLT内部复用F-PLT-001 `FileEventFactory.referenceAttached`并通过事务参与型`PlatformTransactionalOutboxWriter`写事件：每个实际新增引用恰一`FileReferenceAttached`，同目标同版本重放不新增，任一项失败时目标实例、引用、事件及外层成功事实共同回滚；禁止`REQUIRES_NEW`。
@@ -192,6 +193,7 @@
 - `AC-FPLT002-013`：F-SOL-003预分配PLT实例ID，通过`DynamicFormBusinessInstanceApi`在同一外层事务以`MANDATORY`创建、CAS修改、复制并锁定重验业务实例；无外层事务拒绝，用户REST和手工实例语义零变化，SOL不直读PLT表。
 - `AC-FPLT002-014`：复制业务实例时，N个实际新FileReference产生N个`FileReferenceAttached`；同目标同版本重放事件不增；批量中途失败时目标实例、FileReference、Outbox及外层成功幂等/审计均为零。
 - `AC-FPLT002-015`：跨Context命令按封闭动作映射冻结Owner策略，持锁阶段重验同一动作；先全量完成按Owner稳定键排序的Provider锁定重验，再统一获取PLT实例/修订与Artifact→Version→Reference锁，首个PLT锁后无Provider回调。动作升级、Provider未知、完整值或文件集合漂移均失败且零成功副作用。
+- `AC-FPLT002-016`：业务Owner实例的`ARCHIVE/INVALIDATE`仅委托既有`FILE_WRITE`并重验同一Owner/scopeVersion，F-PLT-001仍独立要求`pms:file:archive`；手工实例、Owner拒绝、权限缺失、跨租户和陈旧事实均失败且零成功副作用，动态表单页面不新增失效/归档动作。
 
 ## 8. 测试与证据
 

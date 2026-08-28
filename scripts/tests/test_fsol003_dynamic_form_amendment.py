@@ -101,6 +101,10 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
         self.assertIn("not server completion facts", self.contract["completion"]["platformValidation"])
 
     def test_actions_mandatory_transactions_dual_versions_and_preallocated_ids_are_locked(self) -> None:
+        self.assertEqual(
+            "GO_NPDMS_FSOL003_FILE_LIFECYCLE_ACTION_MAPPING_20260828_01",
+            self.contract["fileLifecycleActionBoundaryDecision"],
+        )
         api = self.contract["dynamicFormBusinessApi"]
         self.assertEqual(
             set(self.platform_contract["interfaces"]["businessActionCodes"]),
@@ -112,6 +116,23 @@ class Fsol003DynamicFormAmendmentTest(unittest.TestCase):
         self.assertEqual(set(api["businessActionCodes"]), set(action_policy))
         self.assertIn("current DRAFT", action_policy["COMPLETE"])
         self.assertIn("current effective COMPLETED", action_policy["CLONE_SOURCE"])
+        self.assertIn("archive or invalidate", action_policy["FILE_WRITE"])
+        self.assertIn("current project manager", action_policy["FILE_WRITE"])
+        self.assertIn("PROJECT_MANAGE", action_policy["FILE_WRITE"])
+        self.assertIn("pms:requirement-analysis:manage", action_policy["FILE_WRITE"])
+        self.assertIn("current DRAFT with draft_marker=1", action_policy["FILE_WRITE"])
+        self.assertIn("independently requires pms:file:archive", action_policy["FILE_WRITE"])
+        self.assertIn("pms:file:archive", action_policy["FILE_WRITE"])
+        lifecycle_mapping = self.contract["fileComposition"]["lifecycleActionMapping"]
+        self.assertEqual("FILE_WRITE", lifecycle_mapping["ARCHIVE"])
+        self.assertEqual("FILE_WRITE", lifecycle_mapping["INVALIDATE"])
+        self.assertEqual(
+            "PRE-04 page exposes no archive/invalidate button or allowedAction",
+            lifecycle_mapping["uiProjection"],
+        )
+        self.assertEqual("DENY", lifecycle_mapping["manualDynamicFormInstance"])
+        self.assertIn("pms:requirement-analysis:manage", lifecycle_mapping["functionalPermissions"])
+        self.assertIn("pms:file:archive", lifecycle_mapping["functionalPermissions"])
         headers = self.contract["http"]["requiredHeaders"]
         self.assertEqual({"Idempotency-Key", "If-Match", "X-SOL-If-Match"}, set(headers["complete"]))
         self.assertIn("PLT dynamic-form instanceVersion", self.contract["http"]["versionHeaders"]["complete"])
