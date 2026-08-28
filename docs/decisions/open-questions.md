@@ -293,3 +293,19 @@
 - Resolution: 设备详情采用固定摘要外壳和分Tab DTO，各切片统一返回`sourceSystem/sourceVersion/dataAsOf/syncStatus`。沿用现有资产查询/维护权限，仅新增项目归属、客户归属、冲突处置和配置Log下载高风险权限；Log查看同时校验设备查询和文件查看权限。下载链接默认5分钟、可配置并绑定用户。来源状态统一为`FRESH/STALE/FAILED/PENDING_MAPPING/NOT_AVAILABLE`。物理模型采用Device主表加MES/ITR/KNO等分来源表；序列号软删除后仍占用并沿用原deviceId恢复。
 - Decision owner: 需求方；AST、KNO、权限与数据架构负责人
 - Decision date: 2026-08-25
+
+## PRD V1.8修订005待裁决项
+
+### Q-PRD-005-01
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: PRE-04、SCH-01
+- Area: 需求分析到实施方案的字段级章节映射
+- Question: PRE-04的冗余需求、安全防护需求、运维需求和日志需求，应分别自动预填到SCH-01哪一个正式章节或结构化字段？
+- Why it blocks design/implementation: SCH-01现有11项模板章节没有为上述四类输入给出唯一、可追溯的目标映射；直接实现会替需求方新增方案结构或把不同业务含义混入同一字段。
+- Options: A. 需求方指定四类字段到现有SCH-01章节的逐项映射；B. 批准SCH-01新增明确章节/字段并定义版本、展示和验收规则；C. 明确四类字段只作为PRE-04版本附件/引用展示，不自动预填正文。
+- Recommended technical default: 在需求方裁决前不执行这四类字段的自动章节映射；项目背景、项目目标、网络拓扑和IP规划继续按PRD已明确规则引用。
+- Business decision required: 四类字段各自的目标章节或明确的不自动预填结论。
+- Blocking scope: 仅PRE-04到SCH-01的上述四类字段自动映射及其设计、实现、验收；不阻断PRE-04版本提交、SCH-01其他内容或已明确字段引用。
+- Decision owner: 需求方；PRE/SOL领域负责人参与影响分析
+- Decision date: 待确认

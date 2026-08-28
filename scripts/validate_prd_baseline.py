@@ -77,7 +77,7 @@ def cutover_flow_contract(text: str) -> dict[str, bool]:
         and ("P1首页任务接入" in cutover or "P1是任务接入入口" in cutover)
         and "P6割接跟踪与闭环" in cutover,
         "CUT-11退出当前范围": "CUT-11" not in formal_ids and "割接保障任务（CUT-11）" not in cutover,
-        "问卷人工判级": "一线工程师提交问卷和人工等级" in cutover and "用服经理在P5审批中复核" in cutover,
+        "问卷人工判级": "一线工程师提交问卷和人工等级" in cutover and "服务经理在P5审批中复核" in cutover,
         "P3配置缺口不阻断": "允许一线补充自定义项并标记配置缺口" in cutover and "不直接阻断割接主流程" in cutover,
         "完整方案轻量校验": "文件有效性、安全性、方案归属和人工确认" in cutover and "不强制解析或补齐在线模板字段" in cutover,
         "P5否项驳回": "任一项为“否”必须填写不合理原因并驳回" in cutover,
