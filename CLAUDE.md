@@ -1,5 +1,10 @@
 # CLAUDE.md
 
+> **状态：ARCHIVED（2026-08-28）**
+>
+> 本独立规格仓已合并到 `E:\AICoding\Projects\NPDMS`，不再接受新的正式变更。
+> 请在NPDMS主仓读取并遵守其根`AGENTS.md`；以下内容仅用于历史追溯。
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.

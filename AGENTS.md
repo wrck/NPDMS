@@ -1,5 +1,13 @@
 # AGENTS.md
 
+> **状态：ARCHIVED（2026-08-28）**
+>
+> 本独立规格仓已合并到 `E:\AICoding\Projects\NPDMS`。提交
+> `02f6360735980c4bbd9947844917feb0d4b4aecf` 及其祖先仅作历史追溯；
+> 后续PRD、SDS、Feature Spec、追溯、实现和证据变更必须进入NPDMS同一仓库。
+> 禁止在本仓继续形成新的正式规格、状态或实施结论。下方规则仅用于解释历史内容，
+> 不再授权写入。
+
 ## 1. Highest-priority source of truth
 
 For business semantics, the approved PRD baseline is the highest-priority source of truth.
