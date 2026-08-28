@@ -481,10 +481,14 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
                 if not source.get("terminalDisposition"):
                     errors.append(f"{object_name} source {source_object} lacks terminal disposition")
             if source_type == "CURRENT_TABLE":
+                implementation_evidence_table = source.get("implementationEvidenceTable")
+                if implementation_evidence_table and implementation_evidence_table not in current_tables:
+                    errors.append(f"{object_name} implementation evidence table not found: {implementation_evidence_table}")
                 for table in source_parts:
                     if table not in current_tables:
                         errors.append(f"{object_name} current source table not found: {table}")
-                    expected_ref = f"implementation://{payload.get('implementationCommit', '')}/{current_tables.get(table, '')}#table={table}"
+                    evidence_table = implementation_evidence_table or table
+                    expected_ref = f"implementation://{payload.get('implementationCommit', '')}/{current_tables.get(evidence_table, '')}#table={table}"
                     if expected_ref not in evidence:
                         errors.append(f"{object_name} current source evidence is unstable: {table}")
             elif source_type == "CURRENT_FIELD_PATTERN":
@@ -522,6 +526,13 @@ def validate(root: Path, implementation_override: Path | None = None) -> list[st
             elif source_type == "NONE_NEW":
                 if source_object != object_name or disposition != "NEW_ONLY":
                     errors.append(f"{object_name} NONE_NEW must be an object-local NEW_ONLY source")
+                implementation_evidence_table = source.get("implementationEvidenceTable")
+                if implementation_evidence_table:
+                    if implementation_evidence_table not in current_tables:
+                        errors.append(f"{object_name} implementation evidence table not found: {implementation_evidence_table}")
+                    expected_ref = f"implementation://{payload.get('implementationCommit', '')}/{current_tables.get(implementation_evidence_table, '')}#table={implementation_evidence_table}"
+                    if evidence != expected_ref:
+                        errors.append(f"{object_name} implementation evidence is unstable: {implementation_evidence_table}")
             elif source_type == "PENDING_SOURCE_IDENTIFICATION":
                 if disposition != "PENDING_SOURCE_IDENTIFICATION" or bindings:
                     errors.append(f"{object_name} unidentified source must remain pending with zero target bindings")

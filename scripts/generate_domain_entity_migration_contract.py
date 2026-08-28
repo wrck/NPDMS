@@ -46,7 +46,9 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CutoverClosure": ("cut_cutover_closure",),
     "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
     "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
-    "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
+    "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer_master", "cus_customer_external_mapping", "cus_customer_field_history"),
+    "MarketRelation": ("cus_market_relation",), "CustomerLocationReference": ("cus_customer_location_reference",),
+    "CustomerScopeSlice": ("cus_customer_scope_slice",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
     "CustomerRelationshipSnapshot": ("cus_customer_relationship_snapshot",), "CustomerServiceLevelRevision": ("cus_customer_service_level_revision",), "Device": ("ast_device",), "DeviceArchive": ("ast_device", "ast_device_version", "ast_device_config_log"),
     "DeviceComponentRelation": ("ast_device_component_relation",),
     "DeviceCurrentAssignment": ("ast_device_current_assignment", "ast_device_assignment_history"),
@@ -198,7 +200,10 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("LEGACY_TABLE", "fb_service|view_warranty*|warranty_info|warranty_change_logs", "STRUCTURED", "map objective service dates/levels/source facts only", "PENDING_FIELD_MAPPING", "AI-MIG-000"),
         source("LEGACY_FIELD_PATTERN", "view_warranty*.renew*", "EXCLUDED", "retain compatibility evidence; exclude renewal actions/spaces/reports", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
     ],
-    "Customer": [source("CURRENT_TABLE", "pms_customer", "CURRENT_FORWARD", "align local customer model and preserve source mapping", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "CRM authority fields synchronize by source key/version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
+    "Customer": [source("CURRENT_TABLE", "pms_customer", "CURRENT_FORWARD", "preserve customer id; map code/name/status/source/audit fields into the CUS-owned master and retain immutable field history", "IMPLEMENTED_FORWARD_MIGRATION", "F_CUS_001_V106", implementationEvidenceTable="cus_customer_master"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "CRM authority fields synchronize by source key/version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
+    "MarketRelation": [source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "synchronize the exact MarketRelation market/system/expend/industry code and name tuple without persisting relationId", "PENDING_INTEGRATION_CONFIG", "INT-03")],
+    "CustomerLocationReference": [source("NONE_NEW", "CustomerLocationReference", "NEW_ONLY", "create temporal references only after AST validates an Address or Site stable identity", "IMPLEMENTED_NEW_ONLY", "F_CUS_001_V106", implementationEvidenceTable="cus_customer_location_reference")],
+    "CustomerScopeSlice": [source("NONE_NEW", "CustomerScopeSlice", "NEW_ONLY", "create explicit user or role slices; OR values within a dimension, AND dimensions within a slice, and OR independent slices", "IMPLEMENTED_NEW_ONLY", "F_CUS_001_V107", implementationEvidenceTable="cus_customer_scope_slice")],
     "CustomerContact": [source("CURRENT_TABLE", "pms_customer_contact", "CURRENT_FORWARD", "align contact fields and temporal project relation", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "synchronize CRM-owned contact fields", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "CustomerRelationshipSnapshot": [source("DERIVED_TARGET", "Customer|CustomerContact|Project", "REBUILD", "freeze minimum relationship data at business event time", "REBUILD_AFTER_OWNERS", "RELATIONSHIP_REBUILD")],
     "CustomerServiceLevelRevision": [source("NONE_NEW", "CustomerServiceLevelRevision", "NEW_ONLY", "create temporal customer service-level and policy revisions only from CUS-02 commands; never infer historical levels from customer, contact or relationship snapshots", "NEW_ONLY", "FEATURE_RELEASE")],
@@ -422,13 +427,19 @@ def expand_sources(raw_sources: list[dict[str, object]], current_catalog: dict[s
     result: list[dict[str, object]] = []
     for item in raw_sources:
         entry = dict(item)
+        implementation_evidence_table = entry.get("implementationEvidenceTable")
         source_type = entry["sourceType"]
         source_objects = entry["sourceObject"].split("|")
         if source_type == "CURRENT_TABLE":
             missing = [name for name in source_objects if name not in current_catalog]
             if missing:
                 raise ValueError(f"current implementation source table not found: {missing}")
-            entry["evidenceRef"] = ";".join(f"implementation://{commit}/{current_catalog[name]}#table={name}" for name in source_objects)
+            if implementation_evidence_table:
+                if implementation_evidence_table not in current_catalog:
+                    raise ValueError(f"implementation evidence table not found: {implementation_evidence_table}")
+                entry["evidenceRef"] = f"implementation://{commit}/{current_catalog[implementation_evidence_table]}#table={entry['sourceObject']}"
+            else:
+                entry["evidenceRef"] = ";".join(f"implementation://{commit}/{current_catalog[name]}#table={name}" for name in source_objects)
         elif source_type == "CURRENT_FIELD_PATTERN":
             table = source_objects[0].split(".", 1)[0]
             if table not in current_catalog:
@@ -445,7 +456,12 @@ def expand_sources(raw_sources: list[dict[str, object]], current_catalog: dict[s
         elif source_type == "DERIVED_TARGET":
             entry["evidenceRef"] = f"phase2-contract://objects={entry['sourceObject']}"
         elif source_type == "NONE_NEW":
-            entry["evidenceRef"] = f"phase2-contract://object={entry['sourceObject']}"
+            if implementation_evidence_table:
+                if implementation_evidence_table not in current_catalog:
+                    raise ValueError(f"implementation evidence table not found: {implementation_evidence_table}")
+                entry["evidenceRef"] = f"implementation://{commit}/{current_catalog[implementation_evidence_table]}#table={implementation_evidence_table}"
+            else:
+                entry["evidenceRef"] = f"phase2-contract://object={entry['sourceObject']}"
         else:
             raise ValueError(f"unsupported source type: {source_type}")
         result.append(entry)

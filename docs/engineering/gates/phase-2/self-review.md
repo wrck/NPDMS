@@ -19,6 +19,7 @@
 | S2-V18-08 | CUS-02和CUT-07分别使用`CustomerServiceLevelRevision`、`CutoverConfigurationRevision`承载时态等级与后台配置版本 | 当前契约更新为87对象/98来源绑定/1排除源；两对象均为NONE_NEW/FEATURE_FORWARD_MIGRATION，不改当前核心DDL或P3-E09哈希 |
 | S2-V18-09 | F-PROJ-004以`ProjectTemplateMatchHistory`承载单一权威匹配决策历史 | 当前契约更新为88对象/99来源绑定/1排除源；对象已登记FeatureRequirementId=PM-07并通过专用迁移对齐校验，等待Feature Ready独立复审 |
 | S2-V18-10 | F-PLT-002将共享动态表单基础归PLT并保持旧实现不变 | 当前候选生成契约为90对象/101来源绑定/1排除源；PLT三对象为新真值，旧`pms_eng_form_*`仅COMPATIBILITY_ONLY且零迁移/双写；等待Feature Ready独立复审 |
+| S2-V18-11 | F-CUS-001客户主档、地点引用和五维权限切片按实现补丁回写 | 当前契约为93对象/104来源绑定/1排除源；V106～V108证据已锁定，前向表不进入当前核心DDL精确表集 |
 
 ## 2. 可复现校验
 
@@ -28,7 +29,7 @@
 | Phase 2范围门禁 | PASS，100项，V1=53、V2=47；正式分册均为BASELINE |
 | Phase 3前置门禁 | PASS，100项映射；当前已通过整体独立复审并发布为SDS V1.8基线 |
 | 核心迁移Schema契约 | PASS |
-| 领域实体迁移对齐 | PASS，87对象/98来源绑定/1排除源 |
+| 领域实体迁移对齐 | PASS，93对象/104来源绑定/1排除源 |
 | Phase 2契约映射生成器 | PASS，无漂移 |
 | 领域迁移契约生成器 | PASS，无漂移 |
 | V1.8物理承载负向门禁 | PASS，缺少执行契约表、缺少清单表、复制DAC技术状态均被拒绝 |

@@ -771,7 +771,7 @@
 
 - 需求名称：用户资产库
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
+- 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
 - API：/customers/{id}/panorama
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：CRM及平台内项目/设备/服务事实
@@ -782,7 +782,7 @@
 - Phase 3 PRD验收基线：WHEN 有权用户打开客户资产库；THEN 平台按CRM客户ID返回权限过滤后的单位、联系人、项目、设备、故障和服务记录，展示各卡片数量、来源和截止时间；WHEN 同一设备被父子项目引用、部分来源异常或用户无某项目/敏感字段权限；THEN 平台按序列号去重，异常卡片标记数据延迟，无权数据不参与数量且不显示明细
 - Phase 3授权拒绝断言：越权按“OrganizationCustomerScope；敏感联系人、故障、配置和维保字段专项权限”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“按授权聚合客户全景；单卡片失败保留其他卡片并显示最近成功截止时间，不以0替代未知”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、CustomerContact、CustomerRelationshipSnapshot”及数据表“cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM及平台内项目/设备/服务事实”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、CustomerContact、CustomerRelationshipSnapshot”及数据表“cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM及平台内项目/设备/服务事实”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### CUS-02
@@ -806,26 +806,27 @@
 ### CUS-03
 
 - 需求名称：客户信息管理CURD
-- 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
-- API：/customers
-- 事件：CustomerMerged、MasterDataSynchronized
-- 外部集成：CRM
+- 数据对象：Customer、MarketRelation、CustomerLocationReference、CustomerScopeSlice
+- 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_location_reference、cus_market_relation、cus_customer_scope_slice
+- API：/api/v1/pms/customers、/api/v1/pms/customers/{id}/locations、/api/v1/pms/customers/{id}/projects、/api/v1/pms/customers/{id}/devices
+- 事件：CustomerUpdated
+- 外部集成：CRM（由INT-03负责连接、认证、同步、重试和对账）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：CRM客户同步、临时客户受控创建与合并；权威字段不可被平台覆盖
-- 授权与数据范围：OrganizationCustomerScope；CRM权威字段只读
+- 工作流/状态：CUS作为唯一当前写Owner；CRM客户同步和平台临时客户受控创建；ENABLED/DISABLED/DELETED本地生命周期；旧project客户入口只保留历史列表和详情读取，不双写、不代理新Owner写操作
+- 授权与数据范围：五维复选权限切片；同维度OR、不同维度AND、多切片OR；管理员无显式切片时全量、显式切片时按切片降权；普通角色无有效切片时为空；联系方式RAW/MASKED/HIDDEN服务端裁剪
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3 PRD验收基线：WHEN 服务经理在平台客户管理页面点击"创建客户"按钮，录入客户基本信息（客户编码、客户名称、行业、级别、联系方式、所属办事处等），客户编码已存在；THEN 平台校验客户编码唯一性失败，提示"客户编码已存在"，禁止创建；AND 客户编码校验通过后，平台保存客户档案，客户状态为"启用"，同时记录创建人、创建时间；WHEN 平台通过CRM接口（INT-03）执行客户信息同步任务且未发生来源键冲突；THEN 平台按客户编码匹配CRM客户数据：已存在则更新CRM字段（客户名称、行业、级别、联系方式等以CRM为准），不存在则创建新客户档案；AND 平台扩展字段（如自定义标签、服务等级）保持平台本地值不变，CRM同步数据与本地数据并存，同步任务执行结果（成功/失败/新增/更新数量）记录至同步日志；WHEN 服务经理在客户档案页面查看客户详情；THEN 页面展示客户基本信息、关联项目列表（项目编码/项目名称/派生展示状态/当前阶段/负责人）、关联设备列表（设备序列号/设备型号/在网状态），列表支持分页与排序；AND 在项目档案页面可查看所属客户信息，在设备序列号档案（EQP-01）页面可查看所属客户信息，实现客户与项目、客户与设备的双向映射；WHEN 服务经理对客户档案执行删除操作，且该客户存在关联项目、设备、联系人、领域任务或外部问题记录等业务数据；THEN 平台校验存在关联业务数据，提示"客户存在关联业务数据，禁止删除"，删除操作被拦截；AND 若客户无关联业务数据，平台执行软删除（标记为"已删除"状态），客户在客户列表中不再展示，但数据保留备查，支持有权限角色恢复
-- Phase 3授权拒绝断言：越权按“OrganizationCustomerScope；CRM权威字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“CRM客户同步、临时客户受控创建与合并；权威字段不可被平台覆盖”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、CustomerContact、CustomerRelationshipSnapshot”及数据表“cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot”；事件边界为“CustomerMerged、MasterDataSynchronized”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- F-CUS-001实现证据：NPDMS `a9f8b7c568546839d3d641531f8036bb75889a82`；前向Flyway按合并后序号登记为`V106__fcus001_customer_master.sql`、`V107__fcus001_customer_classification_scope.sql`、`V108__fcus001_seed_data.sql`，不得回写为暂存补丁中的V87～V89。
+- Phase 3授权拒绝断言：越权按“五维复选权限切片；同维度OR、不同维度AND、多切片OR；管理员无显式切片时全量、显式切片时按切片降权；普通角色无有效切片时为空；联系方式RAW/MASKED/HIDDEN服务端裁剪”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“CUS作为唯一当前写Owner；CRM客户同步和平台临时客户受控创建；ENABLED/DISABLED/DELETED本地生命周期；旧project客户入口只保留历史列表和详情读取，不双写、不代理新Owner写操作”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、MarketRelation、CustomerLocationReference、CustomerScopeSlice”及数据表“cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_location_reference、cus_market_relation、cus_customer_scope_slice”；事件边界为“CustomerUpdated”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM（由INT-03负责连接、认证、同步、重试和对账）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### CUS-04
 
 - 需求名称：项目联系人管理
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
-- 数据表：cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
+- 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
 - API：/customer-contacts、/projects/{id}/customer-contacts
 - 事件：CustomerContactChanged
 - 外部集成：CRM
@@ -836,7 +837,7 @@
 - Phase 3 PRD验收基线：WHEN 项目经理在项目档案页面点击"新增联系人"按钮，录入联系人信息（姓名、职务、联系电话、邮箱、所属客户单位等），并勾选"设为主联系人"，而该项目已存在主联系人；THEN 平台校验主联系人唯一性失败，提示"项目已存在主联系人，请先取消原主联系人主标识"，新增操作被拦截；AND 项目经理取消原主联系人主标识后，可设置新联系人为项目主联系人，主联系人字段同步至项目档案首页以显著标识展示；WHEN 项目经理对项目其他联系人执行修改或删除操作；THEN 平台保存修改或执行删除（联系人状态变更为"已删除"，数据保留备查），变更操作留存变更历史（含变更人、变更时间、变更字段、变更前值、变更后值）；AND 主联系人不受批量删除影响，删除主联系人时需先指定其他联系人为主联系人或确认项目暂无主联系人；WHEN 两名项目经理并发设置主联系人发生数据版本冲突；THEN 平台保留先成功的唯一主联系人并拒绝后提交操作，提示后提交者刷新联系人列表后重试
 - Phase 3授权拒绝断言：越权按“OrganizationCustomerScope、ProjectTreeScope；联系人字段专项权限”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“联系人维护、项目角色时态关系和业务发生时联系信息快照”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、CustomerContact、CustomerRelationshipSnapshot”及数据表“cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot”；事件边界为“CustomerContactChanged”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、CustomerContact、CustomerRelationshipSnapshot”及数据表“cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot”；事件边界为“CustomerContactChanged”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### EQP-01
@@ -1400,19 +1401,19 @@
 ### INT-03
 
 - 需求名称：CRM客户同步
-- 数据对象：Customer、CustomerRelationshipSnapshot
-- 数据表：cus_customer、ast_asset_sync_batch、ast_asset_sync_item
-- API：/customers
-- 事件：MasterDataSynchronized、CustomerMerged
+- 数据对象：Customer、MarketRelation
+- 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_market_relation、ast_asset_sync_batch、ast_asset_sync_item
+- API：/api/v1/pms/customers
+- 事件：CustomerUpdated、MasterDataSynchronized
 - 外部集成：CRM
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：客户同步、临时客户合并与字典映射
-- 授权与数据范围：OrganizationCustomerScope；CRM字段只读
+- 工作流/状态：CRM客户、四维组合目录、来源版本和字段历史同步；平台本地生命周期不被外部同步直接改写
+- 授权与数据范围：五维CustomerScope；CRM权威字段只读
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3 PRD验收基线：WHEN 平台收到包含CRM客户ID、数据版本和核心字段的新增或更新事件；THEN 平台按CRM客户ID新增或更新只读权威字段，保存来源版本、同步时间和映射状态，同时保留平台交付扩展字段不变；WHEN 客户管理员维护交付联系人、服务偏好或交付标签；THEN 平台只更新扩展字段及其版本，不生成CRM客户主数据更新请求，也不修改CRM同步字段；WHEN 收到重复/旧版本事件、未知字典值、CRM客户合并停用，或T+1批次部分记录失败；THEN 平台分别执行幂等忽略、进入待映射、保留旧ID历史映射，或把批次标记为“部分成功”；不得覆盖新值、删除历史项目或宣称全量成功；WHEN CRM接口不可用且业务人员查看客户资料；THEN 平台展示最近一次成功值、数据截止时间和“同步异常”标识，允许维护平台扩展字段但禁止编辑CRM权威字段；涉及数据：；CRM客户ID、原CRM客户ID、客户编码、客户名称、客户等级、客户状态、归属销售、CRM产品编码/名称、源数据版本、源更新时间、来源事件ID、平台交付联系人、服务偏好、交付标签、项目服务备注、字典映射状态、同步状态、同步批次号、数据截止时间、失败原因、创建/更新时间
-- Phase 3授权拒绝断言：越权按“OrganizationCustomerScope；CRM字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“客户同步、临时客户合并与字典映射”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、CustomerRelationshipSnapshot”及数据表“cus_customer、ast_asset_sync_batch、ast_asset_sync_item”；事件边界为“MasterDataSynchronized、CustomerMerged”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3授权拒绝断言：越权按“五维CustomerScope；CRM权威字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“CRM客户、四维组合目录、来源版本和字段历史同步；平台本地生命周期不被外部同步直接改写”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Customer、MarketRelation”及数据表“cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_market_relation、ast_asset_sync_batch、ast_asset_sync_item”；事件边界为“CustomerUpdated、MasterDataSynchronized”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“CRM”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### INT-04

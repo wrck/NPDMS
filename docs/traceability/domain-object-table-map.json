@@ -575,14 +575,43 @@
         "INT-03"
       ],
       "targetTables": [
-        "cus_customer"
+        "cus_customer_master",
+        "cus_customer_external_mapping",
+        "cus_customer_field_history"
+      ]
+    },
+    "MarketRelation": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03",
+        "INT-03"
+      ],
+      "targetTables": [
+        "cus_market_relation"
+      ]
+    },
+    "CustomerLocationReference": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_location_reference"
+      ]
+    },
+    "CustomerScopeSlice": {
+      "owner": "CUS",
+      "requirementIds": [
+        "CUS-03"
+      ],
+      "targetTables": [
+        "cus_customer_scope_slice"
       ]
     },
     "CustomerContact": {
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-03",
         "CUS-04"
       ],
       "targetTables": [
@@ -594,9 +623,7 @@
       "owner": "CUS",
       "requirementIds": [
         "CUS-01",
-        "CUS-03",
-        "CUS-04",
-        "INT-03"
+        "CUS-04"
       ],
       "targetTables": [
         "cus_customer_relationship_snapshot"

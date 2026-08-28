@@ -42,7 +42,7 @@ ADR-0004已确认P3-E09采用只读生成逐表、逐列、逐索引/约束差�
 
 ADR-0019已确认物理表按13领域编码划分，删除业务系统名称前缀`pms_`，并采用`<domain_code>_<full_domain_object_name>`；表名必须保留全部领域对象语义组件，默认使用完整英文词，仅允许ADR登记的`config`、`sn`两个表名标准缩写。字段可以在不产生业务歧义的前提下使用ADR登记的受控缩写、统一同义词并保持简洁。ADR-0019列出了当前52张物理表的逐表目标名称和首批同义字段裁决。该命名决策属于P3-E09模型输入，不等于批准旧DDL：本分册后续仍出现的`pms_*`仅表示尚待AI-MIG-000统一重建的当前证据名称，不再是目标命名。
 
-ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；`cus_customer`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
+ADR-0021在ADR-0019的52表命名基线上增加`cus_market_relation`。该表是CRM四维组合目录的CUS同步副本；F-CUS-001前向表`cus_customer_master`与`proj_project`直接保存市场部、系统部、拓展部、子行业各自编码和名称，不保存`relation_id`，也不以目录记录ID建立外键或历史链。
 
 ADR-0022确认ADR-0019的52表是历史命名裁决范围，不是当前平台全量实施表清单。V1.8只保留PRD正式V1/V2需求映射出的目标表；COM-02、IMP-02和ACC-05（V3）不得通过数据库设计回流。机器禁止清单中的V3/OUT_OF_SCOPE表继续退出V1/V2核心DDL，跨领域引用不建立物理外键。INT-04的最小同步副本由对应Feature以前向迁移单独评审。
 
@@ -416,7 +416,7 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 
 | Context | 目标表组 | 关键约束 |
 |---|---|---|
-| Customer | `cus_customer`、`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot`；CUS-02 Feature前向表见8.2.1 | CRM 对象按 `source_system+source_key` 唯一；临时客户另有 `origin_code`；四维组合目录与客户/项目八字段快照分离 |
+| Customer | F-CUS-001前向表`cus_customer_master`、`cus_customer_external_mapping`、`cus_customer_field_history`、`cus_customer_location_reference`、`cus_customer_scope_slice`，以及`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot`；CUS-02 Feature前向表见8.2.1 | CRM对象按`source_system+source_key`唯一；临时客户另有`origin_code`；四维组合目录与客户/项目八字段快照分离；五维权限切片显式保存且空范围不放大 |
 | Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围主记录至少含订单行、项目、`allocated_qty`、`scope_status`及来源证据，范围明细保存地点、产品/设备类型、数量和可选批次 |
 | Resource | `res_supplier`、`res_qualification`、`res_subcontract_request`、`res_payment_gate` | 资质版本追加；财务结果只保存引用和回写状态 |
 | Knowledge | `TechnicalNoticeReference`逻辑对象；物理表由INT-04 Feature前向迁移确定 | V2公告按ITR来源键+版本唯一，只保存同步副本和业务引用；4张V3治理表不进入核心迁移DDL |
@@ -612,10 +612,11 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 
 | 表 | 关键字段 | 核心约束 |
 |---|---|---|
-| `cus_customer` | `customer_code/name/crm_level/crm_status/sales_owner/contact_phone/contact_email`、八个市场属性字段、平台扩展字段、来源元数据 | `uk(tenant_id, customer_code)`不随软删除释放；核心字段分列 |
+| `cus_customer_master` | `customer_code/name/crm_level/crm_status/sales_owner/contact_phone/contact_email`、八个市场属性字段、平台扩展字段、来源元数据 | `uk(tenant_id, customer_code)`不随软删除释放；核心字段分列；旧`pms_customer`按原ID前向迁入 |
 | `cus_customer_external_mapping` | `customer_id/source_system/source_key/source_version/event_id/is_current/payload_hash` | 当前CRM主映射按租户、来源和来源键唯一；同版本不同hash进入冲突 |
 | `cus_customer_field_history` | `customer_id/field_code/before_digest/after_digest/source_system/source_version/operation_id/occurred_at` | 追加写，不保存敏感明文 |
 | `cus_customer_location_reference` | `customer_id/location_type/location_id/location_version/reference_type/effective_from/effective_to` | location_type仅ADDRESS/SITE；同类型有效区间不得重叠 |
+| `cus_customer_scope_slice` | `subject_type/subject_id/slice_no/market_codes/system_codes/expend_codes/industry_codes/office_codes/effective_from/effective_to` | 主体切片唯一；同维度OR、不同维度AND、多切片OR；普通角色无有效切片时查询为空 |
 | `ast_device` | `serial_number`及AST平台字段 | `uk(tenant_id, serial_number)`不随软删除释放 |
 | `ast_device_mes_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status/payload_hash` | 来源事件幂等；一个有效MES对象映射一个Device |
 | `ast_device_itr_snapshot` | `device_id/source_key/source_version/event_id/data_as_of/sync_status` | 按来源版本追加或受控更新当前副本 |
