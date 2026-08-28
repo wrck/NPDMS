@@ -3,13 +3,14 @@
 > Feature实施状态：`IMPLEMENTATION_PARTIAL_ACCEPTANCE`
 > 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`
 > Feature Ready Gate：`PASS`
+> Technical Plan Gate：`PENDING_REVIEW`
 > Implementation Done Gate：`NOT_READY`
-> 当前阻断：CRM 权威四级分类目录为空；平台/临时客户创建、删除成功、恢复和完整截图证据未完成
-> 当前任务：`Task 15 已执行，完整门禁仍受仓库既有测试与静态检查失败阻断`
+> 当前阻断：新整体收口计划尚未取得独立 Technical Plan GO
+> 当前任务：`基于合并后基线重建中文整体收口计划并送审`
 > Requirement ID：`CUS-03`（V1）
 > 关联 Requirement：`CUS-01`、`CUS-02`、`CUS-04`、`INT-03`，均不宣称完成
 > Feature Spec：`specs/features/F-CUS-001-customer-master-and-local-lifecycle.md`
-> Technical Plan：`docs/superpowers/plans/2026-08-25-f-cus-001-customer-master-forward-migration.md`
+> Technical Plan：`docs/superpowers/plans/2026-08-28-f-cus-001-customer-master-implementation-closure.md`
 > 锁定规格提交：`8e84ea2ce6750f824973f788237f4790961e59c4`
 
 ## 已完成范围
@@ -52,3 +53,5 @@
 - [x] Task 15：最终验证已执行并记录通过项与既有仓库阻断；Implementation Done Gate 保持 `NOT_READY`
 
 本记录不将部分验收解释为完整 Feature Done，不构成 UAT、发布 Gate 或 Release GO。
+
+> 检查点（2026-08-28）：当前开发基线已合并客户/设备实现；F-CUS-001最近Gate为Technical Plan，Feature Ready已PASS。现有部分MySQL/浏览器证据可复用，但临时客户、恢复入口、稳定幂等键及完整浏览器链尚未闭合；新中文整体收口计划待独立评审，GO后一次接通正向闭环并集中全量验证。
