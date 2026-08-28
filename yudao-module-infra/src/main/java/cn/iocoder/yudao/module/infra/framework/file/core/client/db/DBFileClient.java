@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileContentDO;
 import cn.iocoder.yudao.module.infra.dal.mysql.file.FileContentMapper;
 import cn.iocoder.yudao.module.infra.framework.file.core.client.AbstractFileClient;
 
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
 
@@ -34,6 +35,11 @@ public class DBFileClient extends AbstractFileClient<DBFileClientConfig> {
         fileContentMapper.insert(contentDO);
         // 拼接返回路径
         return super.formatFileUrl(config.getDomain(), path);
+    }
+
+    @Override
+    public String upload(InputStream content, long contentLength, String path, String type) throws Exception {
+        return upload(content.readAllBytes(), path, type);
     }
 
     @Override
