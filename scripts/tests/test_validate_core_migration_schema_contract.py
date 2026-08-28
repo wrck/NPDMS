@@ -259,7 +259,10 @@ CREATE TABLE ast_device_component_relation (
             "forbiddenV1V2Tables": sorted(MODULE.EXPECTED_FORBIDDEN_V1V2_TABLES),
             "currentTableScope": {
                 table: MODULE.EXPECTED_CURRENT_TABLE_SCOPE[table]
-                for table in MODULE.parse_tables(self.valid_ddl())
+                for table in (
+                    (set(MODULE.parse_tables(self.valid_ddl())) - MODULE.EXPECTED_REPLACED_CURRENT_SCOPE_TABLES)
+                    | MODULE.EXPECTED_FEATURE_FORWARD_TABLES
+                )
             },
             "externalKeyMapping": {
                 "table": "plt_external_key_mapping",
@@ -483,7 +486,7 @@ CREATE TABLE plt_external_key_mapping (
         assert isinstance(scope, dict)
         scope.pop("proj_project")
         errors = MODULE.validate_contract(contract, self.valid_ddl())
-        self.assertTrue(any("exact table set" in error for error in errors))
+        self.assertTrue(any("exact registered set" in error for error in errors))
 
         contract = self.valid_contract()
         scope = contract["currentTableScope"]
@@ -492,6 +495,13 @@ CREATE TABLE plt_external_key_mapping (
         errors = MODULE.validate_contract(contract, self.valid_ddl())
         self.assertTrue(any("scope mapping mismatch: proj_project" in error for error in errors))
         self.assertTrue(any("no V1/V2 scope evidence: proj_project" in error for error in errors))
+
+    def test_rejects_feature_forward_table_in_current_core_ddl(self) -> None:
+        ddl = self.valid_ddl() + "\nCREATE TABLE cus_customer_master (id BIGINT) ENGINE = InnoDB;"
+
+        errors = MODULE.validate_contract(self.valid_contract(), ddl)
+
+        self.assertTrue(any("must not enter current core DDL" in error for error in errors), errors)
 
     def test_rejects_cross_domain_foreign_key(self) -> None:
         ddl = self.valid_ddl().replace(

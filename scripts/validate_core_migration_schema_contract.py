@@ -172,12 +172,24 @@ EXPECTED_FORBIDDEN_V1V2_TABLES = V3_DESIGN_ONLY_TABLES | {
     "cut_execution_step", "cut_observation",
 }
 
-# Every current table must have an explicit V1/V2 business scope or an accepted
-# common migration rule.  The values below are deliberately table-grained so a
-# broad domain prefix cannot hide a deferred or excluded table.
+# Every current table and explicitly registered Feature-forward table must have
+# a V1/V2 business scope or an accepted common migration rule. The Feature set
+# is kept explicit so current core DDL coverage cannot expand accidentally.
+EXPECTED_FEATURE_FORWARD_TABLES = {
+    "cus_customer_master",
+    "cus_customer_external_mapping",
+    "cus_customer_field_history",
+    "cus_customer_location_reference",
+    "cus_customer_scope_slice",
+}
+EXPECTED_REPLACED_CURRENT_SCOPE_TABLES = {"cus_customer"}
 EXPECTED_CURRENT_TABLE_SCOPE = {
-    "cus_customer": {"requirementRefs": ["CUS-03", "INT-03"]},
+    "cus_customer_master": {"requirementRefs": ["CUS-03", "INT-03"]},
+    "cus_customer_external_mapping": {"requirementRefs": ["CUS-03", "INT-03"]},
+    "cus_customer_field_history": {"requirementRefs": ["CUS-03"]},
+    "cus_customer_location_reference": {"requirementRefs": ["CUS-03"]},
     "cus_market_relation": {"requirementRefs": ["CUS-03", "INT-03"]},
+    "cus_customer_scope_slice": {"requirementRefs": ["CUS-03"]},
     "cus_customer_contact": {"requirementRefs": ["CUS-04"]},
     "ast_product": {"requirementRefs": ["EQP-01", "EQP-03"]},
     "proj_project": {"requirementRefs": ["INT-01", "PM-01", "PM-07", "PM-10"]},
@@ -812,15 +824,19 @@ def validate_contract(contract: dict[str, object], ddl: str) -> list[str]:
         errors.append("V1/V2 forbidden table machine list mismatch")
     current_scope = contract.get("currentTableScope", {})
     if isinstance(current_scope, dict):
-        if set(current_scope) != set(tables):
-            errors.append("current DDL table scope must cover the exact table set")
+        expected_scope_tables = (set(tables) - EXPECTED_REPLACED_CURRENT_SCOPE_TABLES) | EXPECTED_FEATURE_FORWARD_TABLES
+        if set(current_scope) != expected_scope_tables:
+            errors.append("current and Feature-forward table scope must cover the exact registered set")
+        leaked_forward_tables = EXPECTED_FEATURE_FORWARD_TABLES & set(tables)
+        if leaked_forward_tables:
+            errors.append(f"Feature-forward tables must not enter current core DDL: {sorted(leaked_forward_tables)}")
         for table, scope in current_scope.items():
             if scope != EXPECTED_CURRENT_TABLE_SCOPE.get(table):
-                errors.append(f"current DDL table scope mapping mismatch: {table}")
+                errors.append(f"current or Feature-forward table scope mapping mismatch: {table}")
             if not isinstance(scope, dict) or not (
                 scope.get("requirementRefs") or scope.get("technicalRuleRefs")
             ):
-                errors.append(f"current DDL table has no V1/V2 scope evidence: {table}")
+                errors.append(f"current or Feature-forward table has no V1/V2 scope evidence: {table}")
     if set(contract.get("acceptedDdlItems", [])) != EXPECTED_ACCEPTED_DDL_ITEMS:
         errors.append("ADR-0022 accepted DDL item set mismatch")
     if contract.get("q03CurrentBusinessFacts") != EXPECTED_Q03_FACTS:

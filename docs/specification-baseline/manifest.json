@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "63878cd2dc6b925442e7ffa455f70213556d1cb6"
+    "commit": "44d172b31de089d96d172f82368f1467bf059259"
   },
   "files": [
     {
@@ -408,7 +408,7 @@
     {
       "path": "docs/traceability/core-migration-schema-contract.json",
       "category": "TRACEABILITY",
-      "sha256": "10af8e3ca1ac37e0bdb0fd88263fe1060bc0a3f77e4232135c669c2c554a9b10"
+      "sha256": "3bae63d6da84a215041fbaccc4cea823f2942d89f4e5b53799c737effc15ca2f"
     },
     {
       "path": "docs/traceability/database-naming-contract.json",
