@@ -23,6 +23,11 @@ class DeviceListQueryContractTest {
     }
 
     @Test
+    void visibilityScopeRepresentsProjectsRatherThanCallerSuppliedDeviceIds() {
+        assertEquals("visibleProjectIds", VisibleDevicePageQuery.class.getRecordComponents()[1].getName());
+    }
+
+    @Test
     void mapperUsesSingleScenarioQueryObject() throws Exception {
         Method method = DeviceMapper.class.getMethod("selectVisibleDevicePage", VisibleDevicePageQuery.class);
         assertEquals(1, method.getParameterCount());

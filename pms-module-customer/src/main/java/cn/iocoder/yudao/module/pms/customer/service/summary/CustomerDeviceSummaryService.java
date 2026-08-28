@@ -27,6 +27,7 @@ public class CustomerDeviceSummaryService {
 
     private void validate(CustomerDeviceSummaryQuery query) {
         if (query == null || query.tenantId() == null || query.customerId() == null
+                || query.subjectUserId() == null
                 || query.pageNo() == null || query.pageNo() < 1
                 || query.pageSize() == null || query.pageSize() < 1) {
             throw new IllegalArgumentException("客户设备摘要查询不完整");

@@ -39,9 +39,13 @@ public interface ProjectMapper extends BaseMapperX<ProjectDO> {
     }
 
     default PageResult<ProjectDO> selectCustomerSummaryPage(CustomerProjectSummaryPageQuery query) {
+        if (query.getVisibleProjectIds().isEmpty()) {
+            return PageResult.empty();
+        }
         return selectPage(query, new LambdaQueryWrapperX<ProjectDO>()
                 .eq(ProjectDO::getTenantId, query.getTenantId())
                 .eq(ProjectDO::getCustomerId, query.getCustomerId())
+                .in(ProjectDO::getId, query.getVisibleProjectIds())
                 .orderByDesc(ProjectDO::getId));
     }
 

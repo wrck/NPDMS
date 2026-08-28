@@ -34,6 +34,7 @@ import cn.iocoder.yudao.module.pms.asset.service.device.DeviceDetailService;
 import cn.iocoder.yudao.module.pms.asset.service.device.DeviceQueryService;
 import cn.iocoder.yudao.module.pms.asset.service.warranty.DeviceWarrantyQueryService;
 import cn.iocoder.yudao.module.pms.asset.service.warranty.DeviceWarrantyResult;
+import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -74,6 +75,7 @@ public class DeviceController {
     private final DeviceWarrantyQueryService warrantyQueryService;
     private final DeviceConfigurationLogQueryService configurationLogQueryService;
     private final DeviceConfigurationLogDownloadService configurationLogDownloadService;
+    private final DeviceAccessScopeService accessScopeService;
 
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
@@ -92,12 +94,19 @@ public class DeviceController {
         return success(deviceDetailService.getDetail(id));
     }
 
+    @GetMapping("/{id}/archive")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<DeviceDetailRespVO> getDeviceArchive(@PathVariable("id") Long id) {
+        return success(deviceDetailService.getDetail(id));
+    }
+
     @GetMapping("/{id}/assignment-history")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<PageResult<DeviceProjectRelationshipDO>> getAssignmentHistory(
             @PathVariable("id") Long id,
             @RequestParam(value = "pageNo", required = false) Long pageNo,
             @RequestParam(value = "pageSize", required = false) Long pageSize) {
+        assertDeviceVisible(id);
         return success(relationshipQueryService.getProjectHistory(currentTenantId(), id, pageNo, pageSize));
     }
 
@@ -107,12 +116,14 @@ public class DeviceController {
             @PathVariable("id") Long id,
             @RequestParam(value = "pageNo", required = false) Long pageNo,
             @RequestParam(value = "pageSize", required = false) Long pageSize) {
+        assertDeviceVisible(id);
         return success(relationshipQueryService.getCustomerRelationships(currentTenantId(), id, pageNo, pageSize));
     }
 
     @GetMapping("/{id}/assembly-tree")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<List<DeviceAssemblyDO>> getAssemblyTree(@PathVariable("id") Long id) {
+        assertDeviceVisible(id);
         return success(assemblyService.getCurrentTree(currentTenantId(), id));
     }
 
@@ -122,12 +133,14 @@ public class DeviceController {
             @PathVariable("id") Long id,
             @RequestParam(value = "pageNo", required = false) Long pageNo,
             @RequestParam(value = "pageSize", required = false) Long pageSize) {
+        assertDeviceVisible(id);
         return success(warrantyQueryService.get(currentTenantId(), id, pageNo, pageSize));
     }
 
     @GetMapping("/{id}/configuration-logs")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<List<DeviceConfigurationLogMetadata>> getConfigurationLogs(@PathVariable("id") Long id) {
+        assertDeviceVisible(id);
         return success(configurationLogQueryService.getList(
                 currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), id));
     }
@@ -208,6 +221,11 @@ public class DeviceController {
             return TenantContextHolder.getRequiredTenantId();
         }
         return loginUser.getTenantId();
+    }
+
+    private void assertDeviceVisible(Long deviceId) {
+        accessScopeService.assertVisible(
+                currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), deviceId);
     }
 
     private String requestDigest(Long id, Long expectedVersion, Object reqVO) {

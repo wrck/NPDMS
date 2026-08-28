@@ -4,7 +4,7 @@ import java.util.Set;
 
 public record VisibleDevicePageQuery(
         Long tenantId,
-        Set<Long> visibleDeviceIds,
+        Set<Long> visibleProjectIds,
         String sn,
         String productCode,
         Long projectId,

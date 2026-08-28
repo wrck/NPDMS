@@ -53,13 +53,13 @@ class CustomerDetailServiceTest {
         var devices = new CustomerDeviceSummarySlice("AST", true, LocalDateTime.now(), List.of(), 0L);
         when(responseService.detail(customer, MASKED)).thenReturn(base);
         when(locationService.listCurrent(1L, 100L)).thenReturn(List.of(location));
-        when(projectSummaryService.query(new CustomerProjectSummaryQuery(1L, 100L, 1, 20)))
+        when(projectSummaryService.query(new CustomerProjectSummaryQuery(1L, 100L, 7L, 1, 20)))
                 .thenReturn(projects);
-        when(deviceSummaryService.query(new CustomerDeviceSummaryQuery(1L, 100L, 1, 20)))
+        when(deviceSummaryService.query(new CustomerDeviceSummaryQuery(1L, 100L, 7L, 1, 20)))
                 .thenReturn(devices);
         when(historyService.list(1L, 100L)).thenReturn(List.of(history));
 
-        CustomerDetailRespVO result = service.get(customer, MASKED);
+        CustomerDetailRespVO result = service.get(customer, MASKED, 7L);
 
         assertEquals(100L, result.getId());
         assertEquals("ADDRESS", result.getLocations().get(0).getLocationType());
@@ -83,13 +83,13 @@ class CustomerDetailServiceTest {
         var unavailableDevices = new CustomerDeviceSummarySlice("AST", false, LocalDateTime.now(), List.of(), 0L);
         when(responseService.detail(customer, MASKED)).thenReturn(base);
         when(locationService.listCurrent(1L, 100L)).thenReturn(List.of(location));
-        when(projectSummaryService.query(new CustomerProjectSummaryQuery(1L, 100L, 1, 20)))
+        when(projectSummaryService.query(new CustomerProjectSummaryQuery(1L, 100L, 7L, 1, 20)))
                 .thenReturn(projects);
-        when(deviceSummaryService.query(new CustomerDeviceSummaryQuery(1L, 100L, 1, 20)))
+        when(deviceSummaryService.query(new CustomerDeviceSummaryQuery(1L, 100L, 7L, 1, 20)))
                 .thenReturn(unavailableDevices);
         when(historyService.list(1L, 100L)).thenReturn(List.of(history));
 
-        CustomerDetailRespVO result = service.get(customer, MASKED);
+        CustomerDetailRespVO result = service.get(customer, MASKED, 7L);
 
         assertEquals(100L, result.getId());
         assertTrue(result.getProjects().available());

@@ -6,11 +6,26 @@
         FROM ast_device d
         WHERE d.tenant_id = #{query.tenantId}
           AND d.deleted = b'0'
-        <if test="query.visibleDeviceIds != null">
-          AND d.id IN
-          <foreach collection="query.visibleDeviceIds" item="deviceId" open="(" separator="," close=")">
-            #{deviceId}
-          </foreach>
+        <if test="query.visibleProjectIds != null">
+          AND (
+            d.project_id IN
+            <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+              #{projectId}
+            </foreach>
+            OR EXISTS (
+              SELECT 1
+              FROM ast_device_project_relationship r
+              WHERE r.tenant_id = d.tenant_id
+                AND r.device_sn = d.sn
+                AND r.project_id IN
+                <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+                  #{projectId}
+                </foreach>
+                AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
+                AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
+                AND r.deleted = b'0'
+            )
+          )
         </if>
         <if test="query.sn != null and query.sn != ''">
           AND d.sn = #{query.sn}
@@ -30,6 +45,25 @@
         FROM ast_device d
         WHERE d.tenant_id = #{query.tenantId}
           AND d.deleted = b'0'
+          AND (
+              d.project_id IN
+              <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+                #{projectId}
+              </foreach>
+              OR EXISTS (
+                  SELECT 1
+                  FROM ast_device_project_relationship pr
+                  WHERE pr.tenant_id = d.tenant_id
+                    AND pr.device_sn = d.sn
+                    AND pr.project_id IN
+                    <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+                      #{projectId}
+                    </foreach>
+                    AND pr.effective_from &lt;= CURRENT_TIMESTAMP(3)
+                    AND (pr.effective_to IS NULL OR pr.effective_to &gt; CURRENT_TIMESTAMP(3))
+                    AND pr.deleted = b'0'
+              )
+          )
           AND (
               d.customer_id = #{query.customerId}
               OR EXISTS (
@@ -88,6 +122,35 @@
     <select id="selectVisibleDeviceCount" resultType="long">
         SELECT COUNT(*)
         <include refid="visibleDeviceConditions"/>
+    </select>
+
+    <select id="existsVisibleDevice" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM ast_device d
+            WHERE d.tenant_id = #{query.tenantId}
+              AND d.id = #{query.deviceId}
+              AND d.deleted = b'0'
+              AND (
+                d.project_id IN
+                <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+                  #{projectId}
+                </foreach>
+                OR EXISTS (
+                  SELECT 1
+                  FROM ast_device_project_relationship r
+                  WHERE r.tenant_id = d.tenant_id
+                    AND r.device_sn = d.sn
+                    AND r.project_id IN
+                    <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+                      #{projectId}
+                    </foreach>
+                    AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
+                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
+                    AND r.deleted = b'0'
+                )
+              )
+        )
     </select>
 
 </mapper>

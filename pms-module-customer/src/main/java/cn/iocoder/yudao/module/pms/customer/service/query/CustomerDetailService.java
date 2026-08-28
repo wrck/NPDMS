@@ -40,7 +40,8 @@ public class CustomerDetailService {
 
     public CustomerDetailRespVO get(
             CustomerMasterDO customer,
-            CustomerFieldMaskingService.ContactAccess access) {
+            CustomerFieldMaskingService.ContactAccess access,
+            Long subjectUserId) {
         if (customer == null || customer.getTenantId() == null || customer.getId() == null) {
             throw new IllegalArgumentException("客户详情查询不完整");
         }
@@ -53,10 +54,10 @@ public class CustomerDetailService {
                 CustomerDetailRespVO.Location.class));
         response.setProjects(projectSummaryService.query(
                 new CustomerProjectSummaryQuery(
-                        tenantId, customerId, SUMMARY_PAGE_NO, SUMMARY_PAGE_SIZE)));
+                        tenantId, customerId, subjectUserId, SUMMARY_PAGE_NO, SUMMARY_PAGE_SIZE)));
         response.setDevices(deviceSummaryService.query(
                 new CustomerDeviceSummaryQuery(
-                        tenantId, customerId, SUMMARY_PAGE_NO, SUMMARY_PAGE_SIZE)));
+                        tenantId, customerId, subjectUserId, SUMMARY_PAGE_NO, SUMMARY_PAGE_SIZE)));
         response.setHistory(BeanUtils.toBean(
                 historyService.list(tenantId, customerId),
                 CustomerDetailRespVO.History.class));

@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceDownlo
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.EquipmentConfigLogMapper;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,7 @@ class DeviceConfigurationLogDownloadServiceTest {
     @Mock private PermissionApi permissionApi;
     @Mock private FileApi fileApi;
     @Mock private DeviceConfigurationFileContentClient contentClient;
+    @Mock private DeviceAccessScopeService accessScopeService;
     private DeviceConfigurationLogDownloadService service;
 
     @BeforeEach
@@ -61,6 +63,7 @@ class DeviceConfigurationLogDownloadServiceTest {
         TenantContextHolder.setTenantId(1L);
         service = new DeviceConfigurationLogDownloadService(
                 deviceMapper, configurationLogMapper, grantMapper, permissionApi, fileApi, contentClient,
+                accessScopeService,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -73,7 +76,8 @@ class DeviceConfigurationLogDownloadServiceTest {
     void shouldDeclareProductionConstructorForSpringInjection() throws NoSuchMethodException {
         assertTrue(DeviceConfigurationLogDownloadService.class.getConstructor(
                 DeviceMapper.class, EquipmentConfigLogMapper.class, DeviceDownloadGrantMapper.class,
-                PermissionApi.class, FileApi.class, DeviceConfigurationFileContentClient.class)
+                PermissionApi.class, FileApi.class, DeviceConfigurationFileContentClient.class,
+                DeviceAccessScopeService.class)
                 .isAnnotationPresent(Autowired.class));
     }
 

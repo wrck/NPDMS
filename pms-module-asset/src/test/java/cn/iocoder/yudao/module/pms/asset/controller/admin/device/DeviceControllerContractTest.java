@@ -25,6 +25,7 @@ class DeviceControllerContractTest {
         assertArrayEquals(new String[]{"/pms/asset/devices"}, mapping.value());
         assertEndpoint("getDevicePage", "/page", "pms:device:query");
         assertEndpoint("getDevice", "/{id}", "pms:device:query");
+        assertEndpoint("getDeviceArchive", "/{id}/archive", "pms:device:query");
     }
 
     @Test

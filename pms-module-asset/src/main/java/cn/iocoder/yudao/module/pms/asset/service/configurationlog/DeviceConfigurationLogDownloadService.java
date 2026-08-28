@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceDownlo
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.EquipmentConfigLogMapper;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ public class DeviceConfigurationLogDownloadService {
     private final PermissionApi permissionApi;
     private final FileApi fileApi;
     private final DeviceConfigurationFileContentClient contentClient;
+    private final DeviceAccessScopeService accessScopeService;
     private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -51,8 +53,10 @@ public class DeviceConfigurationLogDownloadService {
             DeviceDownloadGrantMapper grantMapper,
             PermissionApi permissionApi,
             FileApi fileApi,
-            DeviceConfigurationFileContentClient contentClient) {
-        this(deviceMapper, configurationLogMapper, grantMapper, permissionApi, fileApi, contentClient, Clock.systemUTC());
+            DeviceConfigurationFileContentClient contentClient,
+            DeviceAccessScopeService accessScopeService) {
+        this(deviceMapper, configurationLogMapper, grantMapper, permissionApi, fileApi, contentClient,
+                accessScopeService, Clock.systemUTC());
     }
 
     DeviceConfigurationLogDownloadService(
@@ -62,6 +66,7 @@ public class DeviceConfigurationLogDownloadService {
             PermissionApi permissionApi,
             FileApi fileApi,
             DeviceConfigurationFileContentClient contentClient,
+            DeviceAccessScopeService accessScopeService,
             Clock clock) {
         this.deviceMapper = deviceMapper;
         this.configurationLogMapper = configurationLogMapper;
@@ -69,6 +74,7 @@ public class DeviceConfigurationLogDownloadService {
         this.permissionApi = permissionApi;
         this.fileApi = fileApi;
         this.contentClient = contentClient;
+        this.accessScopeService = accessScopeService;
         this.clock = clock;
     }
 
@@ -76,6 +82,7 @@ public class DeviceConfigurationLogDownloadService {
     public DeviceConfigurationDownloadGrant issueGrant(Long tenantId, Long userId, Long deviceId, Long logId) {
         assertTenant(tenantId);
         assertDownloadPermission(userId);
+        accessScopeService.assertVisible(tenantId, userId, deviceId);
         DeviceDO device = requireDevice(tenantId, deviceId);
         EquipmentConfigLogDO log = requireLog(tenantId, deviceId, logId);
         requireFile(log);
@@ -105,6 +112,7 @@ public class DeviceConfigurationLogDownloadService {
             throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
         }
         assertDownloadPermission(userId);
+        accessScopeService.assertVisible(tenantId, userId, deviceId);
         DeviceDO device = requireDevice(tenantId, deviceId);
         if (!device.getSn().equals(grant.getDeviceSn())) {
             throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);

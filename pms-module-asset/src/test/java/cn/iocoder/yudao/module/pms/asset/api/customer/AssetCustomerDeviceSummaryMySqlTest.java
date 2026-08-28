@@ -4,6 +4,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -32,9 +33,12 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = AssetCustomerDeviceSummaryMySqlTest.TestApplication.class,
@@ -98,7 +102,7 @@ class AssetCustomerDeviceSummaryMySqlTest {
     @Test
     void mergesCurrentProjectionAndEffectiveRelationshipsWithoutDuplicates() {
         CustomerDeviceSummarySlice result = summaryApi.query(
-                new CustomerDeviceSummaryQuery(1L, customerId, 1, 20));
+                new CustomerDeviceSummaryQuery(1L, customerId, 7L, 1, 20));
 
         assertTrue(result.available());
         assertEquals(4L, result.total());
@@ -112,7 +116,7 @@ class AssetCustomerDeviceSummaryMySqlTest {
     @Test
     void returnsAvailableEmptyPageWhenCustomerHasNoCurrentOrEffectiveRelationship() {
         CustomerDeviceSummarySlice result = summaryApi.query(
-                new CustomerDeviceSummaryQuery(1L, customerId + 1, 1, 20));
+                new CustomerDeviceSummaryQuery(1L, customerId + 1, 7L, 1, 20));
 
         assertTrue(result.available());
         assertEquals(0L, result.total());
@@ -121,9 +125,9 @@ class AssetCustomerDeviceSummaryMySqlTest {
 
     private void insertDevice(long id, String suffix, Long currentCustomerId) {
         jdbcTemplate.update("INSERT INTO ast_device "
-                        + "(id,sn,name,project_assignment_version,customer_id,customer_assignment_version,"
+                        + "(id,sn,name,project_id,project_assignment_version,customer_id,customer_assignment_version,"
                         + "status,source_system,source_key,sync_status,version,creator,updater,deleted,tenant_id) "
-                        + "VALUES (?,?,?,0,?,0,'ACTIVE','PMS',?,'FRESH',0,'mysql-it','mysql-it',b'0',1)",
+                        + "VALUES (?,?,?,42,0,?,0,'ACTIVE','PMS',?,'FRESH',0,'mysql-it','mysql-it',b'0',1)",
                 id, "IT-TASK16-" + idBase + "-" + suffix, "Task16 " + suffix, currentCustomerId,
                 "it-task16-device-" + id);
     }
@@ -197,6 +201,13 @@ class AssetCustomerDeviceSummaryMySqlTest {
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        DeviceAccessScopeService deviceAccessScopeService() {
+            DeviceAccessScopeService service = mock(DeviceAccessScopeService.class);
+            when(service.visibleProjectIds(1L, 7L)).thenReturn(Set.of(42L));
+            return service;
         }
     }
 }

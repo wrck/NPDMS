@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CustomerDeviceSummaryPageQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceVisibilityQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.DeviceLocationProjectionUpdate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -43,13 +44,16 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     }
 
     static PageResult<DeviceListProjection> emptyWhenInvisible(VisibleDevicePageQuery query) {
-        if (query.visibleDeviceIds() != null && query.visibleDeviceIds().isEmpty()) {
+        if (query.visibleProjectIds() != null && query.visibleProjectIds().isEmpty()) {
             return PageResult.empty();
         }
         return null;
     }
 
     default PageResult<DeviceDO> selectCustomerSummaryPage(CustomerDeviceSummaryPageQuery query) {
+        if (query.visibleProjectIds().isEmpty()) {
+            return PageResult.empty();
+        }
         long total = selectCustomerSummaryCount(query);
         return total == 0 ? PageResult.empty() : new PageResult<>(selectCustomerSummaryList(query), total);
     }
@@ -61,4 +65,6 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     List<DeviceListProjection> selectVisibleDeviceList(@Param("query") VisibleDevicePageQuery query);
 
     long selectVisibleDeviceCount(@Param("query") VisibleDevicePageQuery query);
+
+    boolean existsVisibleDevice(@Param("query") DeviceVisibilityQuery query);
 }

@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectReferenceQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectSummaryPageQuery;
+import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,6 +26,8 @@ class ProjectCustomerApiImplTest {
 
     @Mock
     private ProjectMapper projectMapper;
+    @Mock
+    private ProjectTreeScopeService projectTreeScopeService;
     @InjectMocks
     private ProjectCustomerReferenceGuardApiImpl guardApi;
     @InjectMocks
@@ -50,11 +54,13 @@ class ProjectCustomerApiImplTest {
         project.setCode("P-10");
         project.setName("项目十");
         project.setStatus(1);
+        when(projectTreeScopeService.resolveAllFullProjectIds(1L, 7L, "PROJECT_VIEW"))
+                .thenReturn(Set.of(10L));
         when(projectMapper.selectCustomerSummaryPage(
-                new CustomerProjectSummaryPageQuery(1L, 100L, 1, 20)))
+                new CustomerProjectSummaryPageQuery(1L, 100L, Set.of(10L), 1, 20)))
                 .thenReturn(new PageResult<>(List.of(project), 1L));
 
-        var result = summaryApi.query(new CustomerProjectSummaryQuery(1L, 100L, 1, 20));
+        var result = summaryApi.query(new CustomerProjectSummaryQuery(1L, 100L, 7L, 1, 20));
 
         assertTrue(result.available());
         assertEquals("PROJ", result.provider());

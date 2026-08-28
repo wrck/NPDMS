@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
+import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 public class DeviceQueryService {
 
     private final DeviceMapper deviceMapper;
+    private final DeviceAccessScopeService accessScopeService;
 
     public PageResult<DeviceListProjection> getPage(VisibleDevicePageQuery query) {
         Long tenantId = currentTenantId();
@@ -22,14 +24,16 @@ public class DeviceQueryService {
             return PageResult.empty();
         }
         VisibleDevicePageQuery scopedQuery = new VisibleDevicePageQuery(
-                tenantId, query.visibleDeviceIds(), query.sn(), query.productCode(), query.projectId(),
+                tenantId, accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()),
+                query.sn(), query.productCode(), query.projectId(),
                 query.customerId(), query.pageNo(), query.pageSize());
         return deviceMapper.selectVisibleDevicePage(scopedQuery);
     }
 
     public DeviceDO getDevice(Long deviceId) {
-        DeviceDO device = deviceMapper.selectById(deviceId);
         Long tenantId = currentTenantId();
+        accessScopeService.assertVisible(tenantId, SecurityFrameworkUtils.getLoginUserId(), deviceId);
+        DeviceDO device = deviceMapper.selectById(deviceId);
         if (device == null || tenantId == null || !tenantId.equals(device.getTenantId())) {
             return null;
         }

@@ -4,10 +4,13 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +30,12 @@ public class ProjectScopeApiImpl implements ProjectScopeApi {
         ProjectTreeScopeService.ProjectTreeScope scope = scopeService.resolveCurrent(query);
         return new ProjectScopeResult(scope.rootProjectId(), scope.treeVersion(),
                 scope.fullProjectIds(), scope.placeholderProjectIds());
+    }
+
+    @Override
+    public Set<Long> resolveAllCurrent(ProjectAllScopeQuery query) {
+        return scopeService.resolveAllFullProjectIds(
+                query.tenantId(), query.subjectUserId(), query.actionCode());
     }
 
     @Override

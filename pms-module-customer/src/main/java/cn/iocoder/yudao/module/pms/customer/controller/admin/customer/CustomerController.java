@@ -2,11 +2,15 @@ package cn.iocoder.yudao.module.pms.customer.controller.admin.customer;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.asset.api.customer.CustomerDeviceSummaryQuery;
+import cn.iocoder.yudao.module.pms.asset.api.customer.CustomerDeviceSummarySlice;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerCreateReqVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerDetailRespVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerLifecycleReqVO;
+import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerLocationReqVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerPageReqVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerRespVO;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerUpdateReqVO;
@@ -16,12 +20,18 @@ import cn.iocoder.yudao.module.pms.customer.service.customer.command.CreateCusto
 import cn.iocoder.yudao.module.pms.customer.service.customer.command.CustomerCommandResult;
 import cn.iocoder.yudao.module.pms.customer.service.customer.command.CustomerLifecycleCommand;
 import cn.iocoder.yudao.module.pms.customer.service.customer.command.UpdateCustomerCommand;
+import cn.iocoder.yudao.module.pms.customer.service.location.CustomerLocationReferenceService;
+import cn.iocoder.yudao.module.pms.customer.service.location.command.CustomerLocationCommand;
 import cn.iocoder.yudao.module.pms.customer.service.query.CustomerDetailService;
 import cn.iocoder.yudao.module.pms.customer.service.query.CustomerPageCriteria;
 import cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService;
 import cn.iocoder.yudao.module.pms.customer.service.query.CustomerResponseService;
 import cn.iocoder.yudao.module.pms.customer.service.security.CustomerContactAccessService;
 import cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService;
+import cn.iocoder.yudao.module.pms.customer.service.summary.CustomerDeviceSummaryService;
+import cn.iocoder.yudao.module.pms.customer.service.summary.CustomerProjectSummaryService;
+import cn.iocoder.yudao.module.pms.project.api.customer.CustomerProjectSummaryQuery;
+import cn.iocoder.yudao.module.pms.project.api.customer.CustomerProjectSummarySlice;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,6 +44,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
@@ -56,6 +69,12 @@ public class CustomerController {
     private CustomerScopeContextService scopeContextService;
     @Resource
     private CustomerContactAccessService contactAccessService;
+    @Resource
+    private CustomerLocationReferenceService locationReferenceService;
+    @Resource
+    private CustomerProjectSummaryService projectSummaryService;
+    @Resource
+    private CustomerDeviceSummaryService deviceSummaryService;
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:customer:query')")
@@ -81,7 +100,56 @@ public class CustomerController {
             throw exception(CUSTOMER_NOT_EXISTS);
         }
         var contactAccess = contactAccessService.resolve(userId(), true);
-        return success(customerDetailService.get(customer, contactAccess));
+        return success(customerDetailService.get(customer, contactAccess, userId()));
+    }
+
+    @GetMapping("/{id}/locations")
+    @PreAuthorize("@ss.hasPermission('pms:customer:query')")
+    public CommonResult<List<CustomerDetailRespVO.Location>> getLocations(@PathVariable("id") Long id) {
+        CustomerMasterDO customer = requireCustomer(id);
+        return success(BeanUtils.toBean(
+                locationReferenceService.listCurrent(customer.getTenantId(), customer.getId()),
+                CustomerDetailRespVO.Location.class));
+    }
+
+    @PostMapping("/{id}/locations")
+    @PreAuthorize("@ss.hasPermission('pms:customer:update')")
+    public CommonResult<CustomerDetailRespVO.Location> createLocation(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody CustomerLocationReqVO request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return maintainLocation(id, request, idempotencyKey);
+    }
+
+    @PutMapping("/{id}/locations")
+    @PreAuthorize("@ss.hasPermission('pms:customer:update')")
+    public CommonResult<CustomerDetailRespVO.Location> updateLocation(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody CustomerLocationReqVO request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return maintainLocation(id, request, idempotencyKey);
+    }
+
+    @GetMapping("/{id}/projects")
+    @PreAuthorize("@ss.hasPermission('pms:customer:query')")
+    public CommonResult<CustomerProjectSummarySlice> getProjects(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "20") Integer pageSize) {
+        CustomerMasterDO customer = requireCustomer(id);
+        return success(projectSummaryService.query(new CustomerProjectSummaryQuery(
+                customer.getTenantId(), customer.getId(), userId(), pageNo, pageSize)));
+    }
+
+    @GetMapping("/{id}/devices")
+    @PreAuthorize("@ss.hasPermission('pms:customer:query')")
+    public CommonResult<CustomerDeviceSummarySlice> getDevices(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "20") Integer pageSize) {
+        CustomerMasterDO customer = requireCustomer(id);
+        return success(deviceSummaryService.query(new CustomerDeviceSummaryQuery(
+                customer.getTenantId(), customer.getId(), userId(), pageNo, pageSize)));
     }
 
     @PostMapping
@@ -137,6 +205,25 @@ public class CustomerController {
     private CustomerLifecycleCommand lifecycle(Long id, CustomerLifecycleReqVO request,
                                                Long expectedVersion, String idempotencyKey) {
         return new CustomerLifecycleCommand(tenantId(), id, request.getReason(), expectedVersion, idempotencyKey);
+    }
+
+    private CommonResult<CustomerDetailRespVO.Location> maintainLocation(
+            Long id, CustomerLocationReqVO request, String idempotencyKey) {
+        CustomerMasterDO customer = requireCustomer(id);
+        var reference = locationReferenceService.maintain(new CustomerLocationCommand(
+                customer.getTenantId(), customer.getId(), request.getLocationType(), request.getLocationId(),
+                request.getSourceVersion(), idempotencyKey));
+        return success(BeanUtils.toBean(reference, CustomerDetailRespVO.Location.class));
+    }
+
+    private CustomerMasterDO requireCustomer(Long id) {
+        Long tenantId = tenantId();
+        CustomerMasterDO customer = customerQueryService.get(
+                tenantId, id, scopeContextService.resolve(tenantId, userId()));
+        if (customer == null) {
+            throw exception(CUSTOMER_NOT_EXISTS);
+        }
+        return customer;
     }
 
     private Long tenantId() {

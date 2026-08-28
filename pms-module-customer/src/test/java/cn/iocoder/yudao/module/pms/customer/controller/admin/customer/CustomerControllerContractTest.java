@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.reflect.Method;
@@ -87,6 +88,29 @@ class CustomerControllerContractTest {
         assertHeader(update, 3, "Idempotency-Key");
     }
 
+    @Test
+    void exposesRequiredCustomerRelationshipResources() throws Exception {
+        assertEndpoint("getLocations", GetMapping.class, "pms:customer:query",
+                Long.class);
+        assertEndpoint("createLocation", PostMapping.class, "pms:customer:update",
+                Long.class,
+                cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerLocationReqVO.class,
+                String.class);
+        assertEndpoint("updateLocation", PutMapping.class, "pms:customer:update",
+                Long.class,
+                cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerLocationReqVO.class,
+                String.class);
+        assertEndpoint("getProjects", GetMapping.class, "pms:customer:query",
+                Long.class, Integer.class, Integer.class);
+        assertEndpoint("getDevices", GetMapping.class, "pms:customer:query",
+                Long.class, Integer.class, Integer.class);
+
+        Method projects = CustomerController.class.getDeclaredMethod(
+                "getProjects", Long.class, Integer.class, Integer.class);
+        assertRequestParam(projects, 1, "pageNo");
+        assertRequestParam(projects, 2, "pageSize");
+    }
+
     private void assertEndpoint(String name, Class<?> mappingType, String permission, Class<?>... parameterTypes)
             throws Exception {
         Method method = CustomerController.class.getDeclaredMethod(name, parameterTypes);
@@ -100,5 +124,11 @@ class CustomerControllerContractTest {
         RequestHeader header = method.getParameters()[parameterIndex].getAnnotation(RequestHeader.class);
         assertNotNull(header);
         assertEquals(name, header.value());
+    }
+
+    private void assertRequestParam(Method method, int parameterIndex, String name) {
+        RequestParam parameter = method.getParameters()[parameterIndex].getAnnotation(RequestParam.class);
+        assertNotNull(parameter);
+        assertEquals(name, parameter.value());
     }
 }

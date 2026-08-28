@@ -31,7 +31,7 @@ class CustomerSummarySliceServiceTest {
     @Test
     void preservesProjectOwnerSliceMetadata() {
         LocalDateTime dataAsOf = LocalDateTime.now();
-        CustomerProjectSummaryQuery query = new CustomerProjectSummaryQuery(1L, 100L, 1, 20);
+        CustomerProjectSummaryQuery query = new CustomerProjectSummaryQuery(1L, 100L, 7L, 1, 20);
         CustomerProjectSummarySlice ownerSlice = new CustomerProjectSummarySlice(
                 "PROJ", true, dataAsOf, List.of(), 0L);
         when(projectSummaryApi.query(query)).thenReturn(ownerSlice);
@@ -45,7 +45,7 @@ class CustomerSummarySliceServiceTest {
 
     @Test
     void projectOwnerFailureReturnsUnavailableWithoutFabricatedTotal() {
-        CustomerProjectSummaryQuery query = new CustomerProjectSummaryQuery(1L, 100L, 1, 20);
+        CustomerProjectSummaryQuery query = new CustomerProjectSummaryQuery(1L, 100L, 7L, 1, 20);
         when(projectSummaryApi.query(query)).thenThrow(new IllegalStateException("PROJ unavailable"));
 
         CustomerProjectSummarySlice result = projectService.query(query);
@@ -57,7 +57,7 @@ class CustomerSummarySliceServiceTest {
 
     @Test
     void deviceOwnerNullReturnsUnavailable() {
-        CustomerDeviceSummaryQuery query = new CustomerDeviceSummaryQuery(1L, 100L, 1, 20);
+        CustomerDeviceSummaryQuery query = new CustomerDeviceSummaryQuery(1L, 100L, 7L, 1, 20);
         when(deviceSummaryApi.query(query)).thenReturn(null);
 
         CustomerDeviceSummarySlice result = deviceService.query(query);
