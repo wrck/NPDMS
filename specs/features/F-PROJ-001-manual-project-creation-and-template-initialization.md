@@ -2,8 +2,8 @@
 
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
-> Technical Plan：由目标实现仓库基于当前正式规格重新生成；禁止使用2026-08-21旧计划
-> Implementation Start：`SATISFIED`（NPDMS 已锁定包含`CHG-PRD-2026-08-23-002`的规格提交）
+> Technical Plan：在本仓目标分支基于当前正式规格重新生成；禁止使用2026-08-21旧计划
+> Implementation Start：`SATISFIED`（本仓目标分支已包含`CHG-PRD-2026-08-23-002`）
 > Implementation Done：`PASS`（NPDMS `1c76050`；2026-08-25 创建人详情访问集成回归已完成独立 `GO`）
 > 已关闭问题：`Q-FPROJ-001`（方案B：创建失败不持久化草稿）、`Q-FPROJ-002`（跨Context同步同事务、全有或全无）
 > Requirement：`PM-01`、`PM-03`
@@ -80,7 +80,7 @@
 | 资产地点主数据 | AST可查询Address/Site/SiteLocation并校验版本；未维护站点允许显式`UNRESOLVED`文本降级 | 结构化引用无效时拒绝；未解析文本不得参与自动指派或结构化权限判断 |
 | 项目模板 | 至少一个完整、已发布且适用的revision | 拒绝创建，不持久化Project或创建草稿 |
 | 编码、审计、幂等 | 服务端编码、审计、`plt_idempotency_record`能力可用 | Feature不得标记READY |
-| 实现仓库 | 可构建的后端、前端、迁移与测试工程存在 | 当前规格仓库无业务源码；实施启动前另行验证 |
+| 本仓实现工程 | 可构建的后端、前端、迁移与测试工程存在 | 实施启动前在目标分支验证构建与测试入口 |
 
 ## 5. 业务规则
 
@@ -349,7 +349,7 @@ F-PROJ-004生效后继续保留授权用户从本次合法候选中显式选择`
 | 相关Open Question | Q-FPROJ-001、Q-FPROJ-002均已关闭 | PASS |
 | 实现基线 | 当前仓库无业务源码；由Technical Plan登记目标工程和启动前检查 | PLAN_INPUT |
 
-结论：`BASELINE / READY`。方案B、跨Context同步全有或全无语义以及组织/AST地点契约均已关闭。目标实现仓库必须重新生成Technical Plan，并在规格快照锁定包含`CHG-PRD-2026-08-23-002`的提交后进入Implementation；不得沿用2026-08-21旧计划判断完成度。
+结论：`BASELINE / READY`。方案B、跨Context同步全有或全无语义以及组织/AST地点契约均已关闭。本仓目标分支必须基于当前正式规格重新生成Technical Plan，并在包含`CHG-PRD-2026-08-23-002`后进入Implementation；不得沿用2026-08-21旧计划判断完成度。
 
 ## 15. 追溯
 

@@ -163,4 +163,4 @@
 | 物理契约与老表边界 | PASS |
 | 独立Feature Ready裁决 | PASS（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） |
 
-结论：`BASELINE / READY`。原三项NO-GO阻断已闭环，独立Feature Ready裁决已GO；锁定本规格提交并同步NPDMS后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。
+结论：`BASELINE / READY`。原三项NO-GO阻断已闭环，独立Feature Ready裁决已GO；本规格修订合入目标分支后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。

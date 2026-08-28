@@ -208,4 +208,4 @@ F-PLT-002在`pms-module-platform-api`增加`DynamicFormBusinessInstanceApi`：
 | 现有版本化成果吸收与旧实现保持不变 | PASS（本候选） |
 | 独立Feature Ready裁决 | PASS（GO；整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`） |
 
-结论：`BASELINE / READY`。独立Feature Ready已批准本次F-PLT-002跨Context聚焦修订及F-SOL-003组合边界；锁定本次规格提交并同步NPDMS后，基于该新基线生成全新的中文Technical Plan并独立送审。本裁决不授权沿用旧计划、产品实施、部署、系统集成测试、用户验收测试或发布。
+结论：`BASELINE / READY`。独立Feature Ready已批准本次F-PLT-002跨Context聚焦修订及F-SOL-003组合边界；本规格修订合入目标分支后，基于该新基线生成全新的中文Technical Plan并独立送审。本裁决不授权沿用旧计划、产品实施、部署、系统集成测试、用户验收测试或发布。

@@ -334,7 +334,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("PM-10 authorization" in error for error in errors), errors)
 
     def test_runtime_evidence_append_is_rejected(self) -> None:
-        marker = "- Phase 1只确认逻辑架构、Context、依赖和安全边界，不批准实现工作包、数据库迁移或生产发布。本规格仓库不承载正式实现或迁移代码。"
+        marker = "- Phase 1只确认逻辑架构、Context、依赖和安全边界，不批准实现工作包、数据库迁移或生产发布。Phase 1正式文档不嵌入实现或迁移代码；同仓模块与迁移目录中的实现仍须经过后续Gate。"
         errors = self.validate_mutation(
             "docs/design/03-system-architecture.md",
             marker,
@@ -388,7 +388,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("PM-10 authorization" in error for error in errors), errors)
 
     def test_runtime_fact_sentence_without_colons_is_rejected(self) -> None:
-        marker = "- Phase 1只确认逻辑架构、Context、依赖和安全边界，不批准实现工作包、数据库迁移或生产发布。本规格仓库不承载正式实现或迁移代码。"
+        marker = "- Phase 1只确认逻辑架构、Context、依赖和安全边界，不批准实现工作包、数据库迁移或生产发布。Phase 1正式文档不嵌入实现或迁移代码；同仓模块与迁移目录中的实现仍须经过后续Gate。"
         errors = self.validate_mutation(
             "docs/design/03-system-architecture.md",
             marker,
@@ -611,7 +611,7 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("PM-10 authorization" in error for error in errors), errors)
 
     def test_runtime_release_facts_split_across_lines_are_rejected(self) -> None:
-        marker = "- Phase 1只确认逻辑架构、Context、依赖和安全边界，不批准实现工作包、数据库迁移或生产发布。本规格仓库不承载正式实现或迁移代码。"
+        marker = "- Phase 1只确认逻辑架构、Context、依赖和安全边界，不批准实现工作包、数据库迁移或生产发布。Phase 1正式文档不嵌入实现或迁移代码；同仓模块与迁移目录中的实现仍须经过后续Gate。"
         errors = self.validate_mutation(
             "docs/design/03-system-architecture.md",
             marker,

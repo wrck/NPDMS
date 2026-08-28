@@ -313,7 +313,7 @@ F-PROJ-002前向物理契约锁定如下：
 | NFR与真实浏览器 | 本文第11～13节 | PASS |
 | 相关Open Question | `open-questions.md`无PM-02未关闭业务决策 | PASS |
 | 前置Feature | F-PROJ-001 `IMPLEMENTATION_COMPLETE / PASS` | PASS |
-| 目标实现仓库 | NPDMS当前分支存在可审计V1.7存量实现 | PLAN_INPUT |
+| 本仓目标分支 | 当前分支存在可审计V1.7存量实现 | PLAN_INPUT |
 
 结论：`BASELINE / READY`。下一步由NPDMS锁定包含本Feature的规格提交，重新生成V1.8 Technical Plan，并将每项V1.7存量实现分类为复用、改造、退役或缺失；不得直接勾选任何AC。
 
