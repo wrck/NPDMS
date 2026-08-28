@@ -468,13 +468,33 @@ class CurrentV18PhysicalCarrierMigrationContractTest(unittest.TestCase):
                 "cut_cutover_checklist_item",
                 "cut_cutover_checklist_item_result",
             ],
+            "DynamicFormTemplate": ["plt_dynamic_form_template"],
+            "DynamicFormTemplateRevision": ["plt_dynamic_form_template_revision"],
+            "DynamicFormInstance": ["plt_dynamic_form_instance"],
+            "Customer": [
+                "cus_customer_master",
+                "cus_customer_external_mapping",
+                "cus_customer_field_history",
+            ],
+            "MarketRelation": ["cus_market_relation"],
+            "CustomerLocationReference": ["cus_customer_location_reference"],
+            "CustomerScopeSlice": ["cus_customer_scope_slice"],
         }
 
-        self.assertEqual(87, len(self.records))
+        self.assertEqual(93, len(self.records))
         for object_name, tables in expected.items():
             with self.subTest(object_name=object_name):
                 self.assertEqual(tables, self.records[object_name]["targetTables"])
                 self.assertEqual(tables, self.contract["objectTableMap"][object_name]["targetTables"])
+
+    def test_fcus001_forward_migration_evidence_uses_merged_flyway_versions(self) -> None:
+        customer = self.records["Customer"]["sources"][0]
+        location = self.records["CustomerLocationReference"]["sources"][0]
+        scope = self.records["CustomerScopeSlice"]["sources"][0]
+
+        self.assertIn("V106__fcus001_customer_master.sql", customer["evidenceRef"])
+        self.assertIn("V106__fcus001_customer_master.sql", location["evidenceRef"])
+        self.assertIn("V107__fcus001_customer_classification_scope.sql", scope["evidenceRef"])
 
     def test_v18_forward_initialization_does_not_infer_business_binding_or_cutover_results(self) -> None:
         binding_source = self.records["TaskWorkBinding"]["sources"][0]

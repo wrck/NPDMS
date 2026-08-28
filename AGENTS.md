@@ -2,12 +2,37 @@
 
 ## 事实来源
 
-- 规格仓库是业务与设计唯一事实源；本地规格快照是锁定实现输入，不是独立事实源。
-- 当前实现输入由 `docs/specification-baseline/manifest.json` 的 `source.commit` 决定；受管文件必须通过同步工具校验。
-- 禁止在NPDMS直接修改受管快照；规格变更必须先进入规格仓库，再锁定新提交并重新同步。
-- 修改设计或代码前，必须从当前快照依次读取PRD、工程链、相关SDS、Feature Spec和当前Task。
+- 本仓库是业务、设计、实现、测试与验收证据的唯一事实源，不再维护外部规格仓快照或第二套Feature状态源。
+- 权威优先级固定为：`PRD > Engineering Constitution > SDS > Feature Spec > Technical Plan > Task > Code > Test / Runtime Evidence`。下游可以细化上游，但不得静默改变业务语义。
+- 修改设计或代码前，必须依次读取 `docs/baseline/prd-v1.8.md`、`docs/engineering/00-engineering-chain.md`、`docs/README.md`、相关SDS、`specs/features/`中的相关Feature Spec和`tasks/features/`中的当前Task。
+- 规格与实现变更在同一分支内按上游到下游推进：先修订正式规格，再修改代码、迁移和测试，最后更新追溯投影与证据引用。禁止以代码、测试、浏览器证据或索引投影反向覆盖正式规格。
 - `tasks/plan.md` 和 `tasks/todo.md` 已标记为历史材料，不再生成或驱动新开发任务。
 - 本项目禁止使用项目记忆补全需求、设计或验收结论；不确定事项必须回到仓库文档或标记为【待确认】。
+
+## 规格与实现硬规则
+
+- 未经批准的变更请求，不得修改PRD业务语义。
+- V1/V2实现不得夹带V3或`OUT_OF_SCOPE`事项。
+- 不得臆造业务角色、审批节点、状态转换、阈值、Gate或数据Owner。
+- 不得直接写生命周期状态绕过状态机，也不得绕过服务端授权与数据范围。
+- 不得暴露或持久化明文设备密码、私钥、Token或其他Secret。
+- 不得覆盖不可变历史、快照、批准版本、审计记录或来源证据。
+- 通知送达和外部HTTP成功不等于业务完成，除非正式契约明确如此定义。
+- 不得为了使测试通过而降低校验、授权、状态机或业务规则。
+- 评审草稿、门禁证据、计划、外部输入、生成报告和临时副本必须按`docs/README.md`分类；不得在正式目录创建并行的`*-draft.md`、`*-review.md`或`*-final2.md`。
+
+## 缺失、歧义与追溯
+
+- 业务规则缺失、歧义或冲突时不得猜测：标记`BLOCKED_BY_SPEC`，登记到`docs/decisions/open-questions.md`，只继续不依赖该问题的独立工作。
+- 每个Feature、API、数据库变更、事件、工作流和测试必须引用一个或多个Requirement ID，并维护`Requirement -> SDS -> Feature -> Code -> Test`链路。
+- Feature Ready只由Feature Spec维护；Implementation Status只由当前Feature任务记录维护；索引、追溯矩阵、Git、CI和浏览器结果只作投影或证据。
+- 外部集成必须定义系统Owner、方向、权威字段、映射、来源键、幂等键、超时、重试、补偿、对账、降级和审计。
+
+## 任务执行协议
+
+- 每项任务遵循`READ -> PLAN -> IMPLEMENT -> TEST -> SELF-REVIEW -> REPORT`。
+- 实施前报告修改文件、Requirement ID、领域/API/数据库/权限/状态机影响、测试和风险。
+- 实施后报告完成范围、变更文件、需求覆盖、测试及结果、已知限制和后续事项。
 
 ## 技术基线
 

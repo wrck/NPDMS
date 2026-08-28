@@ -9,7 +9,7 @@
 > 目标实现载体：独立`pms-module-customer`与稳定`pms-module-customer-api`
 > 外部协作Context：`PROJ（项目治理）`、`AST（资产管理）`、`PLT（基础平台能力）`、CRM Integration ACL
 > 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-23-002`；SDS Phase 1/2/3 `BASELINE`
-> Technical Plan：仅在本Feature晋级`BASELINE / READY`且实现仓库锁定新规格提交后生成
+> Technical Plan：仅在本Feature晋级`BASELINE / READY`且同一目标分支已包含本规格修订后生成
 
 ## 1. 目标
 

@@ -204,4 +204,4 @@
 | Yudao INFRA技术回执例外 | PASS（ADR-0035；`NPDMS-FPLT001-INFRA-EXCEPTION-20260826-01-R1`） |
 | 独立Feature Ready裁决 | PASS（`NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`） |
 
-结论：`BASELINE / READY`。允许锁定新的规格提交并同步NPDMS受管基线；同步校验通过后创建全新Technical Plan。该GO不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release通过。
+结论：`BASELINE / READY`。本规格修订合入目标分支后创建全新Technical Plan。该GO不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release通过。

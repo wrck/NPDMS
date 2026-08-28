@@ -2,6 +2,7 @@
 
 ## 规格文件
 
+- `../features/README.md`（SDS基线派生的正式Feature Spec索引）
 - `00-master-spec.md`
 - `domains/PLT-平台公共能力需求规格.md`
 - `domains/CUS-客户与服务关系需求规格.md`
@@ -51,6 +52,7 @@
 - TASKS已经确认，任务清单为`tasks/todo.md`。
 - IMPLEMENT尚未开始；进入实现后必须按任务依赖、测试和检查点执行。
 - 规格变更必须同步更新追溯矩阵。
+- Feature研发从`specs/features/`中的独立Feature Spec开始；旧`tasks/plan.md`和`tasks/todo.md`不替代当前Feature的Technical Plan与Task。
 
 ## 开发资料使用约定
 

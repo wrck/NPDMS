@@ -13,7 +13,8 @@ from pathlib import Path
 
 TARGETS: dict[str, tuple[str, ...]] = {
     "Project": ("proj_project",), "ProjectHierarchy": ("proj_project",), "ProjectAncestorProjection": ("proj_project_tree_path",),
-    "ProjectTemplate": ("proj_project_template_revision", "proj_project_template_task_definition"), "ProjectTask": ("proj_project_task",),
+    "ProjectTemplate": ("proj_project_template_revision", "proj_project_template_task_definition"),
+    "ProjectTemplateMatchHistory": ("proj_project_template_match_history",), "ProjectTask": ("proj_project_task",),
     "TaskWorkBinding": ("proj_project_task_execution_contract",), "TaskCompletionRule": ("proj_project_task_execution_contract",),
     "TaskCompletionEvaluation": ("proj_project_task_completion_evaluation",), "TaskAncestorProjection": ("proj_task_tree_path",),
     "TaskDependency": ("proj_task_dependency",), "ProjectMemberAssignment": ("proj_project_member_assignment",),
@@ -24,7 +25,10 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CrossPhaseContentReference": ("proj_project_cross_phase_reference",), "Preparation": ("sol_preparation", "sol_preparation_item"),
     "ConstructionPlan": ("sol_construction_plan", "sol_construction_plan_revision", "sol_construction_plan_item", "sol_construction_plan_change"),
     "Solution": ("sol_solution", "sol_solution_revision", "sol_solution_review"),
-    "DynamicFormSchema": ("sol_dynamic_form_schema", "sol_dynamic_form_schema_revision"), "DynamicFormInstance": ("sol_dynamic_form_instance",),
+    "PreparationDynamicFormInstance": ("sol_dynamic_form_instance",),
+    "DynamicFormTemplate": ("plt_dynamic_form_template",),
+    "DynamicFormTemplateRevision": ("plt_dynamic_form_template_revision",),
+    "DynamicFormInstance": ("plt_dynamic_form_instance",),
     "ArrivalAcceptance": ("imp_arrival_acceptance", "imp_arrival_line", "imp_arrival_difference"),
     "InstallationRecord": ("imp_installation_record", "imp_installation_item", "imp_installation_evidence"),
     "ConfigurationCollectionResult": ("imp_configuration_collection_result", "imp_configuration_collection_parse_attempt", "imp_configuration_component_candidate"),
@@ -42,7 +46,9 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "CutoverClosure": ("cut_cutover_closure",),
     "InspectionTask": ("srv_inspection_task", "srv_inspection_task_rule_snapshot"), "InspectionRule": ("srv_inspection_rule", "srv_inspection_rule_revision"),
     "InspectionReport": ("srv_inspection_report_revision",), "ServiceIssue": ("srv_service_issue", "srv_service_issue_remediation"),
-    "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
+    "ServiceStatus": ("srv_service_status",), "Customer": ("cus_customer_master", "cus_customer_external_mapping", "cus_customer_field_history"),
+    "MarketRelation": ("cus_market_relation",), "CustomerLocationReference": ("cus_customer_location_reference",),
+    "CustomerScopeSlice": ("cus_customer_scope_slice",), "CustomerContact": ("cus_customer_contact", "cus_project_customer_contact_relation"),
     "CustomerRelationshipSnapshot": ("cus_customer_relationship_snapshot",), "CustomerServiceLevelRevision": ("cus_customer_service_level_revision",), "Device": ("ast_device",), "DeviceArchive": ("ast_device", "ast_device_version", "ast_device_config_log"),
     "DeviceComponentRelation": ("ast_device_component_relation",),
     "DeviceCurrentAssignment": ("ast_device_current_assignment", "ast_device_assignment_history"),
@@ -61,6 +67,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
 }
 
 TARGET_POLICIES = {
+    "ProjectTemplateMatchHistory": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "PM-07"},
     "TechnicalNoticeReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
@@ -79,6 +86,9 @@ MODEL_ENTITY_CONTRACTS = {
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
     "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07"]},
     "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
+    "DynamicFormTemplate": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
+    "DynamicFormTemplateRevision": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
+    "DynamicFormInstance": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
 }
 
 EXCLUDED_SOURCES = [{
@@ -131,8 +141,10 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "Preparation": [source("CURRENT_TABLE", "pms_eng_site_survey|pms_eng_requirement|pms_eng_resource_ready|pms_eng_briefing", "CURRENT_FORWARD", "split source type, preserve every submission, map to Preparation revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ConstructionPlan": [source("CURRENT_TABLE", "pms_schedule_backward|pms_plan_change_request|pms_project_task", "CURRENT_FORWARD", "separate plan baseline, items and change revisions; do not infer approval from duration cache", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "Solution": [source("CURRENT_TABLE", "pms_eng_solution", "CURRENT_FORWARD", "create immutable solution revisions and review records", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "DynamicFormSchema": [source("CURRENT_TABLE", "pms_eng_form_template", "CURRENT_FORWARD", "convert published template versions into immutable schema revisions", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "DynamicFormInstance": [source("CURRENT_TABLE", "pms_eng_form_instance", "CURRENT_FORWARD", "freeze schema version and preserve raw values plus structured query fields", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
+    "PreparationDynamicFormInstance": [source("NONE_NEW", "PreparationDynamicFormInstance", "NEW_ONLY", "preserve existing F-SOL-002 site-survey form facts only; PRE-04 does not reuse this table; do not migrate or dual-write legacy pms_eng_form_instance", "NEW_ONLY", "FEATURE_RELEASE")],
+    "DynamicFormTemplate": [source("CURRENT_TABLE", "pms_eng_form_template", "COMPATIBILITY_ONLY", "audit reusable interaction and field semantics only; keep the legacy table and behavior unchanged and create no migration or dual write", "NO_MIGRATION", "F-PLT-002")],
+    "DynamicFormTemplateRevision": [source("NONE_NEW", "DynamicFormTemplateRevision", "NEW_ONLY", "create only from new PLATFORM template commands; never synthesize a revision from legacy rows", "NEW_ONLY", "F-PLT-002")],
+    "DynamicFormInstance": [source("CURRENT_TABLE", "pms_eng_form_instance", "COMPATIBILITY_ONLY", "create new PLATFORM manual and trusted business-owner instances; audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration, dual write or automatic PRE-04 candidate-data conversion", "NO_MIGRATION", "F-PLT-002/F-SOL-003")],
     "ArrivalAcceptance": [source("CURRENT_TABLE", "pms_eng_arrival", "CURRENT_FORWARD", "map arrival batch/result; shipment quantity is reconciliation evidence, not acceptance", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "InstallationRecord": [source("CURRENT_TABLE", "pms_eng_installation", "CURRENT_FORWARD", "map installation facts and evidence without overwriting history", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "ConfigurationCollectionResult": [source("CURRENT_TABLE", "pms_eng_configuration|pms_equipment_config_log", "CURRENT_FORWARD", "map task/device/result versions, immutable raw logs, parse attempts and component candidates; never migrate connection secrets", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
@@ -188,7 +200,10 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("LEGACY_TABLE", "fb_service|view_warranty*|warranty_info|warranty_change_logs", "STRUCTURED", "map objective service dates/levels/source facts only", "PENDING_FIELD_MAPPING", "AI-MIG-000"),
         source("LEGACY_FIELD_PATTERN", "view_warranty*.renew*", "EXCLUDED", "retain compatibility evidence; exclude renewal actions/spaces/reports", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
     ],
-    "Customer": [source("CURRENT_TABLE", "pms_customer", "CURRENT_FORWARD", "align local customer model and preserve source mapping", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "CRM authority fields synchronize by source key/version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
+    "Customer": [source("CURRENT_TABLE", "pms_customer", "CURRENT_FORWARD", "preserve customer id; map code/name/status/source/audit fields into the CUS-owned master and retain immutable field history", "IMPLEMENTED_FORWARD_MIGRATION", "F_CUS_001_V106", implementationEvidenceTable="cus_customer_master"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "CRM authority fields synchronize by source key/version", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
+    "MarketRelation": [source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "synchronize the exact MarketRelation market/system/expend/industry code and name tuple without persisting relationId", "PENDING_INTEGRATION_CONFIG", "INT-03")],
+    "CustomerLocationReference": [source("NONE_NEW", "CustomerLocationReference", "NEW_ONLY", "create temporal references only after AST validates an Address or Site stable identity", "IMPLEMENTED_NEW_ONLY", "F_CUS_001_V106", implementationEvidenceTable="cus_customer_location_reference")],
+    "CustomerScopeSlice": [source("NONE_NEW", "CustomerScopeSlice", "NEW_ONLY", "create explicit user or role slices; OR values within a dimension, AND dimensions within a slice, and OR independent slices", "IMPLEMENTED_NEW_ONLY", "F_CUS_001_V107", implementationEvidenceTable="cus_customer_scope_slice")],
     "CustomerContact": [source("CURRENT_TABLE", "pms_customer_contact", "CURRENT_FORWARD", "align contact fields and temporal project relation", "CURRENT_FORWARD_REQUIRED", "NEXT_FLYWAY"), source("EXTERNAL_SYSTEM", "CRM", "EXTERNAL_SYNC", "synchronize CRM-owned contact fields", "PENDING_INTEGRATION_CONFIG", "P3-E07")],
     "CustomerRelationshipSnapshot": [source("DERIVED_TARGET", "Customer|CustomerContact|Project", "REBUILD", "freeze minimum relationship data at business event time", "REBUILD_AFTER_OWNERS", "RELATIONSHIP_REBUILD")],
     "CustomerServiceLevelRevision": [source("NONE_NEW", "CustomerServiceLevelRevision", "NEW_ONLY", "create temporal customer service-level and policy revisions only from CUS-02 commands; never infer historical levels from customer, contact or relationship snapshots", "NEW_ONLY", "FEATURE_RELEASE")],
@@ -412,13 +427,19 @@ def expand_sources(raw_sources: list[dict[str, object]], current_catalog: dict[s
     result: list[dict[str, object]] = []
     for item in raw_sources:
         entry = dict(item)
+        implementation_evidence_table = entry.get("implementationEvidenceTable")
         source_type = entry["sourceType"]
         source_objects = entry["sourceObject"].split("|")
         if source_type == "CURRENT_TABLE":
             missing = [name for name in source_objects if name not in current_catalog]
             if missing:
                 raise ValueError(f"current implementation source table not found: {missing}")
-            entry["evidenceRef"] = ";".join(f"implementation://{commit}/{current_catalog[name]}#table={name}" for name in source_objects)
+            if implementation_evidence_table:
+                if implementation_evidence_table not in current_catalog:
+                    raise ValueError(f"implementation evidence table not found: {implementation_evidence_table}")
+                entry["evidenceRef"] = f"implementation://{commit}/{current_catalog[implementation_evidence_table]}#table={entry['sourceObject']}"
+            else:
+                entry["evidenceRef"] = ";".join(f"implementation://{commit}/{current_catalog[name]}#table={name}" for name in source_objects)
         elif source_type == "CURRENT_FIELD_PATTERN":
             table = source_objects[0].split(".", 1)[0]
             if table not in current_catalog:
@@ -435,7 +456,12 @@ def expand_sources(raw_sources: list[dict[str, object]], current_catalog: dict[s
         elif source_type == "DERIVED_TARGET":
             entry["evidenceRef"] = f"phase2-contract://objects={entry['sourceObject']}"
         elif source_type == "NONE_NEW":
-            entry["evidenceRef"] = f"phase2-contract://object={entry['sourceObject']}"
+            if implementation_evidence_table:
+                if implementation_evidence_table not in current_catalog:
+                    raise ValueError(f"implementation evidence table not found: {implementation_evidence_table}")
+                entry["evidenceRef"] = f"implementation://{commit}/{current_catalog[implementation_evidence_table]}#table={implementation_evidence_table}"
+            else:
+                entry["evidenceRef"] = f"phase2-contract://object={entry['sourceObject']}"
         else:
             raise ValueError(f"unsupported source type: {source_type}")
         result.append(entry)
@@ -530,7 +556,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
             if len(requirement_owner_set) != 1:
                 raise ValueError(f"{object_name} has conflicting Owners without an explicit Context Owner: {sorted(requirement_owner_set)}")
             owner = next(iter(requirement_owner_set))
-        elif requirement_owner_set and owner not in requirement_owner_set:
+        elif requirement_owner_set and owner not in requirement_owner_set and not (model_contract or {}).get("crossContextFoundation"):
             raise ValueError(f"{object_name} explicit Owner {owner} is not backed by any declaring requirement")
         raw_sources = OVERRIDES.get(object_name)
         if raw_sources is None:
@@ -548,7 +574,7 @@ def build(args: argparse.Namespace) -> dict[str, object]:
         record = {
             "object": object_name,
             "owner": owner,
-            "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
+            "ownerEvidence": (model_contract or {}).get("ownerEvidence", "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md"),
             "requirementIds": sorted(contract["requirements"]),
             "targetTables": list(target_tables),
             "sources": expand_sources(raw_sources, current_catalog, legacy_catalog, commit, target_tables),

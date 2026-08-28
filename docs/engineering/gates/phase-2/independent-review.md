@@ -10,6 +10,14 @@
 
 Phase 2 V1.8的08、08a、09、10、11、12、13、15、16分册，100项显式契约映射及87对象/98来源绑定/1排除源的迁移契约已通过独立复审。ADR-0030的六张物理设计表能够最小承载ProjectTask执行契约、完成判定和CUT-03版本化清单；ADR-0031补充的两个逻辑对象均采用NONE_NEW/FEATURE_FORWARD_MIGRATION，不改变当前核心DDL或P3-E09哈希。两项决策均不复制目标业务正文或DAC技术状态，不新增PRD外角色、审批、割接阶段或通用工单。
 
+2026-08-25 F-PROJ-004首次Feature Ready复审为NO-GO；整改后当前迁移契约为88对象/99来源绑定/1排除源，新增`ProjectTemplateMatchHistory`已进入受管生成链。此统计只证明机器契约已同步，不替代待执行的第二次Feature Ready独立裁决。
+
+2026-08-25最终聚焦裁决`NPDMS-FPROJ004-FEATURE-READY-20260825-06`为`GO`：PRD修订、显式选模、属性写入旁路、权威历史字段矩阵、审计主体/原因来源及迁移受管链均已闭合。该GO只放行Feature Ready与后续快照锁定/Technical Plan，不代表实现、迁移、SIT/UAT或发布完成。
+
+2026-08-28 F-PLT-002聚焦候选把共享模板、不可变修订和通用实例归PLT，Preparation专用实例继续物理分离，旧`pms_eng_form_*`保持不迁移不双写；当前生成契约为90对象/101来源绑定/1排除源。此段只登记待审候选，不改变既有Phase 2历史裁决，也不代表F-PLT-002 Feature Ready通过。
+
+2026-08-28 F-CUS-001实现补丁完成正式回写后，客户主档目标表、MarketRelation、地点引用和五维权限切片进入受管生成链，当前契约为93对象/104来源绑定/1排除源；实现证据锁定NPDMS `a9f8b7c568546839d3d641531f8036bb75889a82`及V106～V108。该回写不改变当前核心DDL精确表集。
+
 允许将ADR-0030标记为`ACCEPTED`、Phase 2分册标记为`BASELINE`，并进入Phase 3形成Feature和前向DDL设计。
 
 ## 2. 复审发现与关闭
@@ -40,7 +48,7 @@ Phase 2 V1.8的08、08a、09、10、11、12、13、15、16分册，100项显式�
 | 13领域生成 | PASS，formal=100、V3=31、OUT_OF_SCOPE=9 |
 | Phase 1 / Phase 2 / Phase 3状态校验 | PASS；Phase 1/2基线有效，Phase 3仍须V1.8差量验证 |
 | Phase 2契约映射 | PASS，100项；生成器无漂移 |
-| 领域实体迁移 | PASS，87对象/98来源绑定/1排除源；生成器无漂移 |
+| 领域实体迁移 | PASS，93对象/104来源绑定/1排除源；生成器无漂移 |
 | 物理承载负向门禁 | PASS，缺表、提前接受ADR、DAC状态及改名dispatch状态、BLOCKED_BY_DESIGN回流、缺选择区间均被拒绝 |
 | 脚本单元测试 | PASS，349/349 |
 | `git diff --check` | PASS |

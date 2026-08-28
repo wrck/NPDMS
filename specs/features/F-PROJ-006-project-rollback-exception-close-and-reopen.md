@@ -154,4 +154,4 @@
 | API、权限、幂等、事件与UI验收 | PASS |
 | 独立Feature Ready裁决 | PASS（`NPDMS-FPROJ006-FEATURE-READY-20260825-01`） |
 
-结论：`BASELINE / READY`。三项原NO-GO阻断均已闭环，独立Feature Ready裁决已GO；锁定新规格提交并同步NPDMS后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，不得根据V1.7现有实现直接勾选任何AC。
+结论：`BASELINE / READY`。三项原NO-GO阻断均已闭环，独立Feature Ready裁决已GO；本规格修订合入目标分支后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，不得根据V1.7现有实现直接勾选任何AC。

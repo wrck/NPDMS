@@ -1,8 +1,8 @@
-# NPDMS Feature 切分方案
+# NPDMS 历史 Feature 切分方案
 
-> 状态：`ACTIVE`
-> 依据：工程链第6/7/10节、PRD V1.7 S0阶段、SDS Baseline（规格快照`b71b5e3`）
-> 定位：实现侧拆解资产；业务语义以PRD为准，设计契约以SDS为准，本方案只做切分与排序。
+> 状态：`SUPERSEDED`
+> 当前入口：`specs/features/README.md`（Feature Spec投影）与`tasks/features/`（当前实施状态）
+> 定位：仅保留V1.7时期的实现侧拆解历史，不再新增Feature、维护状态或驱动开发。
 
 ## 1. 切分原则
 
@@ -51,5 +51,5 @@
 
 ## 5. 修订规则
 
-- Feature 状态变化或新增 Feature 时更新本文件；
-- 需求矩阵（`docs/traceability/requirement-matrix.md`）为规格仓库受管快照，Feature 状态回写必须先改规格仓库再同步，禁止本地直改。
+- 本目录不再维护当前Feature状态；新Feature和规格变化进入`specs/features/`。
+- 实施状态只在`tasks/features/`中的当前Feature任务记录维护；`docs/traceability/requirement-matrix.md`和Feature索引仅作投影。

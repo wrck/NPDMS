@@ -193,4 +193,4 @@
 | 权限、公共就绪API、同步契约和无事件边界 | PASS |
 | 独立Feature Ready裁决 | PASS（`NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`） |
 
-结论：`BASELINE / READY`。原Feature Ready阻断已闭环，独立裁决已GO；锁定本规格提交并同步NPDMS后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。
+结论：`BASELINE / READY`。原Feature Ready阻断已闭环，独立裁决已GO；本规格修订合入目标分支后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。

@@ -161,7 +161,7 @@ F-PLT-002必须在当前候选上以真实浏览器完成“新建模板与草�
 最低自动命令：
 
 ```powershell
-# 规格仓库
+# 同库规格治理
 py -3 -B scripts\validate_prd_semantics.py --prd docs\baseline\prd-v1.8.md
 py -3 -B scripts\validate_sds_phase2.py
 py -3 -B scripts\validate_domain_entity_migration_alignment.py
@@ -169,10 +169,10 @@ py -3 -B scripts\validate_phase3_evidence_register.py
 py -3 -B scripts\validate_sds_phase3.py
 py -3 -B -m unittest discover -s scripts\tests -p "test_*.py"
 
-# 实现仓库后端（显式JDK25）
+# 同库后端（显式JDK25）
 mvn clean verify
 
-# 实现仓库前端安装根
+# 同库前端安装根
 corepack pnpm install --frozen-lockfile
 corepack pnpm ts:check
 corepack pnpm lint
@@ -184,7 +184,7 @@ docker compose run --rm migrate info
 docker compose run --rm migrate validate
 ```
 
-任何失败必须登记原命令、环境、exit code和日志引用；生产build通过不能覆盖`ts:check`/lint失败。当前实现仓库的真实结果在每个release重新执行，不沿用旧报告中的PASS标记。
+任何失败必须登记原命令、环境、exit code和日志引用；生产build通过不能覆盖`ts:check`/lint失败。本仓实现的真实结果在每个release重新执行，不沿用旧报告中的PASS标记。
 
 ## 13. 100项覆盖方式
 

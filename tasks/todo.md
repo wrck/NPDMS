@@ -3,7 +3,7 @@
 > **状态：SUPERSEDED**
 >
 > 本文件仅用于历史追溯，不再生成或驱动新开发任务。当前任务必须从
-> `docs/specification-baseline/manifest.json` 锁定的 Feature Spec 重新生成。
+> `specs/features/` 中对应的正式 Feature Spec 重新生成，并在`tasks/features/`维护当前实施状态。
 
 > 阶段：TASKS（已确认，确认日期为2026-07-28）
 > 上游计划：`tasks/plan.md`
