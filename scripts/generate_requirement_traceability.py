@@ -12,6 +12,10 @@ from pathlib import Path
 REQ_ID = re.compile(r"^[A-Z]+(?:-[A-Z0-9]+)?-\d+$")
 REQ_HEADER = re.compile(r"^#{3,4}\s+(?:\d+(?:\.\d+)*\s+)?([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s+(.+?)\s*$")
 INDEX_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|", re.M)
+REQUIREMENT_BODY_ROW = re.compile(
+    r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$",
+    re.M,
+)
 ACCEPTANCE_HEADING = re.compile(r"^\*\*(?:业务)?验收标准：\*\*\s*$", re.M)
 POST_ACCEPTANCE_HEADING = re.compile(
     r"^\*\*(?:涉及数据字段|权限与数据范围|异常、降级及留痕要求|依赖关系)：\*\*",
@@ -72,6 +76,14 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
     if not index_rows:
         raise SystemExit("Appendix A.1 contains no formal requirement rows")
 
+    body_rows = list(REQUIREMENT_BODY_ROW.finditer(text, 0, index_start.start()))
+    body_row_positions: dict[str, int] = {}
+    for position, body_row in enumerate(body_rows):
+        identifier = body_row.group(1)
+        if identifier in body_row_positions:
+            raise SystemExit(f"duplicate formal requirement body: {identifier}")
+        body_row_positions[identifier] = position
+
     requirements: list[dict[str, str]] = []
     for match in index_rows:
         identifier = match.group(1).strip()
@@ -80,18 +92,18 @@ def extract_requirements(text: str) -> list[dict[str, str]]:
         if version not in {"V1", "V2"}:
             # A.1 may use a compound target version such as “V1手动指派；V2...”.
             version = "V1" if version.startswith("V1") else "V2" if version.startswith("V2") else ""
-        marker = f"| 需求编号 | {identifier} |"
-        marker_index = text.find(marker)
-        if marker_index < 0:
+        body_position = body_row_positions.get(identifier)
+        if body_position is None:
             raise SystemExit(f"formal requirement body not found: {identifier}")
-        previous_marker = text.rfind("\n| 需求编号 | ", 0, marker_index)
+        body_row = body_rows[body_position]
+        marker_index = body_row.start()
+        previous_marker = body_rows[body_position - 1].start() if body_position > 0 else -1
         # Include the nearest requirement heading, when present, for source context.
         heading_index = text.rfind("\n#### ", 0, marker_index)
         if heading_index < previous_marker:
             heading_index = text.rfind("\n### ", 0, marker_index)
         start = heading_index + 1 if heading_index >= 0 else marker_index
-        next_marker = text.find("\n| 需求编号 | ", marker_index + len(marker))
-        end = next_marker if next_marker >= 0 else len(text)
+        end = body_rows[body_position + 1].start() if body_position + 1 < len(body_rows) else index_start.start()
         block = text[start:end]
         value = fields(block)
         requirements.append(
@@ -548,12 +560,15 @@ def render(prd: Path, domain_root: Path, feature_links: dict[str, str] | None = 
         "> 批准增量：`CHG-PRD-2026-08-23-002`（PM-01、PM-08、EXE-02、EQP-01、CUS-01、INT-09组织主数据与AST地点所有权）。",
         "> 批准增量：`CHG-PRD-2026-08-25-003`（PM-07模板匹配决策历史与影响识别最小边界）。",
         "> 批准增量：`CHG-PRD-2026-08-27-004`（PLT-02文件安全扫描默认关闭；关闭时真实`SKIPPED`，开启时失败关闭）。",
+        "> 批准修订：`CHG-PRD-2026-08-28-005`（59项需求方裁决正式入稿，统一角色权限、数据状态、引用追溯与表达边界）。",
+        "> 批准修订：`CHG-PRD-2026-08-29-006`（关闭PRE-04选择性映射歧义，完整回写修订004扫描规则，并恢复完整目录及清理已解决重复说明）。",
         "> V1.6旧编号、并入、后置和重编号关系：`docs/traceability/business-feedback-change-map.md`。",
         "> Feature、Evidence和状态列是当前过渡投影，不是Capability状态或Requirement完成权威；完整自动派生启用前不得据此直接关闭Requirement。",
         "",
         f"- 正式需求：{len(requirements)}项（V1 {counts['V1']}项，V2 {counts['V2']}项）",
         "- 领域Owner：13个PRD-derived映射，一项正式需求唯一归属一个Owner",
-        "- 当前状态：PRD V1.8与SDS Phase 1/2/3均已发布为正式基线；旧V1.7门禁结论只保留为历史证据",
+        "- 当前状态：PRD V1.8修订006已发布为正式基线；既有SDS Phase 1/2/3及Feature结论不因本次PRD重基线自动继承，受裁决影响的契约须完成差量复核后再恢复相应放行结论",
+        "- 当前规格阻断：无；`Q-PRD-005-01`已由需求方裁决关闭，四类字段仅按实施方案模板显式关系选择性预填，未映射字段保留在PRE-04版本",
         "- PM-07完成口径：F-PROJ-004只关闭PROJ子切片；INT来源定位/自动建项/重试/对账及CHG分派/处理/关闭保持未完成，不得把Feature完成登记为PM-07全部验收完成。",
         "",
         "## 字段状态约定",

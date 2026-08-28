@@ -63,6 +63,29 @@ class GenerateRequirementTraceabilityTest(unittest.TestCase):
             self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertFalse(output.exists())
 
+    def test_aligned_requirement_attribute_tables_are_parsed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "requirement-matrix.md"
+
+            result = self.run_generator(output, check=False)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            cut01_row = self.requirement_row(output.read_text(encoding="utf-8"), "CUT-01")
+            self.assertIn("割接专项P1～P6", cut01_row)
+
+    def test_current_prd_rebaseline_status_is_generator_owned(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "requirement-matrix.md"
+
+            result = self.run_generator(output, check=False)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            content = output.read_text(encoding="utf-8")
+            self.assertIn("CHG-PRD-2026-08-28-005", content)
+            self.assertIn("CHG-PRD-2026-08-29-006", content)
+            self.assertIn("受裁决影响的契约须完成差量复核后再恢复相应放行结论", content)
+            self.assertIn("Q-PRD-005-01", content)
+
     def test_customer_and_asset_feature_contracts_are_generator_owned(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "requirement-matrix.md"
