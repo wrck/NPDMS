@@ -423,3 +423,13 @@ CollectionTask 必须在创建时冻结完成模式：
 - MES、ITR和KNO来源副本分别保存来源键、来源版本、`dataAsOf`和统一同步状态；来源状态为`FRESH/STALE/FAILED/PENDING_MAPPING/NOT_AVAILABLE`。
 - `DeviceCurrentCustomerAssignment`表达当前唯一客户直接归属；`DeviceCustomerRelationship`表达历史、租用、共管等带类型有效区间关系，区间不得重叠。
 - KNO拥有官网信息版本，保存来源URL、核验时间、摘要和发布版本；AST不复制为第二Owner。
+
+## INT-12 数据模型增量
+
+| Owner | 实体 | 关键唯一键与约束 |
+|---|---|---|
+| PLT | CollectionBatch、CollectionTask、CollectionCallbackRecord | 任务按 tenantId+idempotencyKey 幂等；回调按 platformTaskId+callbackId 唯一；只保存 fileVersionId、结果版本和业务状态 |
+| INT | DispatchAttempt、IntegrationCallbackReceipt、ReconcileBatch | DispatchAttempt 按 platformTaskId+operationType+attemptNo 唯一；Receipt 按 providerCode+callbackId 唯一 |
+| INFRA | FileArtifact、FileVersion | FileArtifact 按 sourceSystem+sourceArtifactKey 稳定标识；FileVersion 为不可变内容版本并保存哈希、大小、MIME、扫描状态和 storageKey |
+
+所有正常终态回调必须携带完整脱敏日志并形成 fileVersionId；扫描隔离只形成 quarantineEvidenceId。业务表不得保存 stdout、stderr、文件二进制、storageKey 或通用文件元数据。

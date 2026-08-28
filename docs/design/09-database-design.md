@@ -617,3 +617,7 @@ Word 文档正文不做内容级审计，但文件身份、版本替换、下载
 | `ast_device_customer_relationship` | `device_id/customer_id/relationship_type/effective_from/effective_to/source/operation_id` | 历史/租用/共管区间不得重叠；追加写 |
 
 下载链接不落业务表；由文件能力按用户和文件生成默认5分钟、可配置的短期授权。具体列长、索引名和DDL由Technical Plan按本契约生成前向迁移。
+
+## INT-12 数据库增量
+
+新增 `infra_file_artifact`、`infra_file_version`、`plt_device_credential`、`plt_credential_grant`、`plt_collection_batch`、`plt_collection_task`、`plt_collection_callback_record`、`int_device_ops_dispatch_attempt`、`int_device_ops_callback_receipt`、`int_device_ops_reconcile_batch`。PLT、INT 与 INFRA 分表持有各自事实；任何模块不得跨 Owner 直接写表。完整日志仅进入基础平台对象存储，数据库只保存文件记录和引用。

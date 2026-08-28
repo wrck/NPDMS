@@ -403,3 +403,12 @@ AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装
 - 设备客户归属命令固定为`POST /api/v1/pms/devices/{id}/actions/assign-customer`，携带目标客户、关系类型、原因、`If-Match`和幂等键。
 - 设备详情采用固定摘要外壳和分Tab DTO；每个Tab统一返回`sourceSystem/sourceVersion/dataAsOf/syncStatus`。官网信息通过`KnowledgePublicProductInfoQueryApi`查询KNO已发布版本。
 - 配置Log下载链接默认5分钟、可配置、绑定当前用户和文件；每次生成前重新校验设备查询与文件下载权限。
+
+## INT-12 API 增量
+
+- Platform API：创建批次、查询任务、取消、显式重试、消费确认、接收已验证回调事实。
+- Integration API：下发、查询、取消 Device Ops 任务；查询 IntegrationCallbackReceipt。
+- 基础平台内部文件 API：流式保存文件、幂等创建 FileArtifact/FileVersion、查询文件版本元数据。
+- Device Ops 回调：签名 `multipart/form-data`，一个 canonical manifest 加 1..N 个日志 part；正常结果返回 fileVersionId，隔离结果返回 quarantineEvidenceId。
+
+跨模块命令只传稳定 DTO 和引用，不传 DO、Mapper、Repository、文件二进制或凭证明文。

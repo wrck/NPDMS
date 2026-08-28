@@ -152,3 +152,9 @@ Word 文件不要求内容审计；Markdown 作为当前工程开发资料的主
 | 保留期限和灾备数值 | DEFERRED_TO_PHASE_3 | Phase 3 按组织制度与部署方案登记；不构成 Phase 2 未决项 |
 
 本分册满足 Phase 2 文件契约要求；Feature 实施前需为具体文件用途补充允许格式、敏感等级和存储策略配置清单。
+
+## INT-12 完整日志文件增量
+
+基础平台负责底层对象存储、扫描和 FileArtifact/FileVersion 记录保存，是正式文件记录的唯一写入方。INT 只流式转交日志并保存 fileVersionId；PLT、IMP、AST、CUT、Inspection 只保存 fileVersionId 与本域对象关系。
+
+每个设备任务的成功、失败、超时、取消和安全异常终态均必须回传非空、完整、不可变且已脱敏的日志。单次请求和组合文件不得超过 50MB；禁止静默截断。扫描失败的对象保持隔离并返回 quarantineEvidenceId，不得伪造 FileVersion。

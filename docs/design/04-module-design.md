@@ -35,3 +35,12 @@
 - `CustomerMasterDataApi`承接CRM权威字段入向写入；集成适配模块不得直接访问CUS Service、Mapper、Repository或业务表。
 - `CustomerReferenceGuardApi`由存在客户有效引用的Owner实现统一批量守卫语义；CUS编排守卫，任一未知、超时或不可用时拒绝删除。
 - AST继续作为设备当前项目/客户直接归属及时态历史的单一Owner。KNO拥有官网公开信息的受控人工维护版本，AST仅通过KNO公开查询契约消费。
+
+## INT-12 模块职责增量
+
+| 模块 | 增量职责 | 唯一写入事实 | 禁止事项 |
+|---|---|---|---|
+| Device Access & Collection（PLT） | 凭证、授权、批次、设备任务、业务状态、完成模式、消费确认 | CollectionBatch、CollectionTask、CollectionCallbackRecord | 调用 Device Ops 内部代码、写 INT 或文件表 |
+| 集成适配（INT） | Device Ops 协议适配、DispatchAttempt、IntegrationCallbackReceipt、技术重试、对账 | INT 技术接入记录 | 直接写 PLT 表、长期保存正式文件二进制 |
+| Device Ops 独立子应用 | SSH/Telnet 执行、命令块、完整脱敏日志制品、可靠回调 Outbox | 原始执行事实 | 成为 NPDMS 凭证或业务状态 Owner |
+| 基础平台能力 | 底层文件存储、扫描、FileArtifact/FileVersion 记录 | 正式文件与通用文件元数据 | 持有任务、设备、结果判定等业务关系 |

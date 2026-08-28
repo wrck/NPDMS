@@ -26,3 +26,12 @@
 `CollectionTask` 不属于 Implementation Execution；实施执行域只拥有业务结果解释和证据关联。日常业务查询优先读取本地同步副本；同步失败时展示最近成功版本、截止时间和同步状态。
 
 历史工单、工时、附件、审批和明确要求留存的操作由迁移资料库只读持有，保留来源键和原始状态，不属于当前业务Context的数据Owner范围。
+
+## INT-12 Device Ops 集成增量 Owner 裁决
+
+- PLT / Device Access & Collection 拥有 DeviceCredential、CredentialGrant、CollectionBatch、CollectionTask、CollectionCallbackRecord、业务主状态、完成模式和消费确认。
+- INT 维护 Device Ops 产品与工程，并拥有 NPDMS 侧 provider 配置、DispatchAttempt、IntegrationCallbackReceipt、技术重试和对账事实；不得直接写 PLT 业务表。
+- Device Ops 保持独立进程、数据库和运行时数据边界，拥有 target、execution attempt、lease、命令块、流式输出和执行侧解析事实。
+- 基础平台负责底层文件存储及 FileArtifact、FileVersion 文件记录，是正式文件记录的唯一写入方。
+- IMP、AST、CUT、Inspection 只保存 fileVersionId 与本域业务对象的关系，不复制文件二进制，也不另建文件记录。
+- 本裁决只关闭 INT-12 此前未明确的数据归属，不重定义其他已明确业务结果 Owner。

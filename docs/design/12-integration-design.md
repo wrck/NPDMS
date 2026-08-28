@@ -254,3 +254,9 @@ UMC只负责巡检结果解析和报告文件生成；设备连接和原始采�
 | 数值超时/重试及环境端点 | DEFERRED_TO_FEATURE_INTEGRATION | 由各外部技术 Owner 在对应 Feature 联调前登记接口配置档案，不阻断 Phase 2 结构契约 |
 
 业务集成结构已经具备进入 Feature 设计的条件；任何具体外部接口在未完成配置档案和联调证据前不得宣称 READY_FOR_PRODUCTION。
+
+## INT-12 Device Ops 集成契约
+
+INT 负责 Device Ops HTTP Client、签名回调、DispatchAttempt、IntegrationCallbackReceipt、技术重试和对账。回调使用 HMAC-SHA256；`CONTENT_SHA256 = SHA256(canonicalManifestBytes || part1Bytes || ... || partNBytes)`，manifest 使用 UTF-8 RFC 8785 JCS，part 按 partNumber 升序。单次请求与组合日志上限 50MB，partCount 上限 16，不支持断点续传。
+
+Receipt 按 providerCode+callbackId 幂等：相同摘要可整包重传，不同摘要冲突隔离；只有基础平台已保存 FileVersion 且 PLT 已接受回调事实后才返回完成 ACK。INT 不直接写 PLT 表，也不创建 FileArtifact/FileVersion。

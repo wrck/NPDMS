@@ -45,3 +45,9 @@
 状态字典、迁移定义和门禁规则均带版本；任务实例保存绑定版本。已发布版本不可原地修改，只能新建版本并通过配置审批。
 
 ProjectTask的WorkBinding和CompletionRule版本与任务状态机版本分别冻结，且每个任务必须且只能有一个当前绑定。`TASK_NATIVE`按ProjectTask自身状态机和任务事实执行受控迁移；其他绑定的业务对象状态变化只触发重新评估，不允许业务Context直接写ProjectTask状态。Project Delivery在校验任务版本、绑定版本、事实版本和规则版本后执行受控迁移并记录完成判定快照。
+
+## CollectionTask INT-12 冻结状态
+
+CollectionTask 主状态冻结为 `CREATED`、`AUTHORIZED`、`DISPATCHED`、`EXECUTING`、`CALLBACK_PROCESSING`、`RESULT_AVAILABLE`、`CONSUMED`、`COMPLETED`、`FAILED`、`CANCELLED`、`SECURITY_EXCEPTION`。技术阶段独立保存为 `PENDING_DISPATCH`、`DISPATCHING`、`ACCEPTED`、`RUNNING`、`TIMED_OUT`、`DISPATCH_FAILED`、`RECONCILING`、`RESULT_FILE_QUARANTINED`。
+
+外部 `PARTIAL_SUCCESS` 映射为主状态 `RESULT_AVAILABLE` 并保留技术结果分类；失败、取消、安全异常和文件隔离均为原任务终态，只能创建引用原任务的新任务重试。`BUSINESS_CONSUMPTION` 必须由冻结消费者按 resultVersion 确认后完成；`CALLBACK_TERMINAL` 仅允许有效成功回调直接完成。
