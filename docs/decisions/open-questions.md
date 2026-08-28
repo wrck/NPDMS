@@ -298,14 +298,15 @@
 
 ### Q-PRD-005-01
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Requirement IDs: PRE-04、SCH-01
 - Area: 需求分析到实施方案的字段级章节映射
 - Question: PRE-04的冗余需求、安全防护需求、运维需求和日志需求，应分别自动预填到SCH-01哪一个正式章节或结构化字段？
-- Why it blocks design/implementation: SCH-01现有11项模板章节没有为上述四类输入给出唯一、可追溯的目标映射；直接实现会替需求方新增方案结构或把不同业务含义混入同一字段。
+- Why it blocks design/implementation: 已由需求方裁决关闭，不再阻断设计与实现。
 - Options: A. 需求方指定四类字段到现有SCH-01章节的逐项映射；B. 批准SCH-01新增明确章节/字段并定义版本、展示和验收规则；C. 明确四类字段只作为PRE-04版本附件/引用展示，不自动预填正文。
 - Recommended technical default: 在需求方裁决前不执行这四类字段的自动章节映射；项目背景、项目目标、网络拓扑和IP规划继续按PRD已明确规则引用。
-- Business decision required: 四类字段各自的目标章节或明确的不自动预填结论。
-- Blocking scope: 仅PRE-04到SCH-01的上述四类字段自动映射及其设计、实现、验收；不阻断PRE-04版本提交、SCH-01其他内容或已明确字段引用。
+- Business decision required: 已完成。
+- Resolution: 冗余、安全防护、运维、日志四类字段不要求全部映射到实施方案；仅按实施方案模板中已建立的字段级显式对应关系选择性预填，未映射字段不写入SCH-01，也不作为方案缺失项，继续保留在PRE-04版本中查询与追溯。
+- Blocking scope: 已解除。
 - Decision owner: 需求方；PRE/SOL领域负责人参与影响分析
-- Decision date: 待确认
+- Decision date: 2026-08-29
