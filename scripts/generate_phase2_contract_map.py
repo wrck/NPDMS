@@ -38,21 +38,22 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("PM-03",), contract("ProjectTemplate、ProjectStageSnapshot", "proj_project_template_revision、proj_project_template_task_definition、proj_project_stage_snapshot", "/project-templates", workflow="模板内StageDefinition/TaskDefinition发布、实例冻结、必填WorkBinding（默认TASK_NATIVE）/PermissionPolicy/CompletionRule/GateRef校验和阶段门禁", authorization="项目模板维护权限；项目阶段范围；非TASK_NATIVE绑定目标权限不得越权")),
     (("PM-05",), contract("BorrowedProjectConversion、ConversionItem、ConversionDeviceDisposition", "proj_project_conversion、proj_project_conversion_item、proj_project_conversion_device", "/project-conversions、/project-conversions/{id}/actions/retry-failed", events="ProjectConversionCompleted、ProjectConversionPartiallyFailed", integration="CRM、ERP", files="FileArtifact", workflow="处理中→部分失败/待处理→已完成；全部成功后源项目只读归档", authorization="同时具备源/目标项目管理权限；原敏感对象权限继续生效")),
     (("PM-06",), contract("MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference", "proj_multi_phase_project_group、proj_multi_phase_project_member、proj_project_cross_phase_reference", "/project-phase-groups、/project-phase-groups/{id}/actions/add-phase、/project-phase-groups/{id}/actions/derive-content", events="ProjectPhaseGroupChanged", workflow="群组成员增删、唯一期次、无环和派生版本", authorization="同时有权的期次可维护；查询按各期权限裁剪")),
-    (("PM-07",), contract("Project", "proj_project", "/projects/{id}/actions/classify", workflow="自动识别结果确认与留痕", authorization="项目管理范围；来源证据只读")),
-    (("PM-08",), contract("ProjectMemberAssignment", "proj_project_member_assignment", "/projects/{id}/actions/assign-manager", workflow="V1手动指派、V2规则候选确认", authorization="项目管理范围；仅PRD角色")),
+    (("PM-07",), contract("Project、ProjectTemplateMatchHistory", "proj_project、proj_project_template_match_history", "复用POST /projects与/projects/{id}当前四属性；/projects/{id}/template-match-history；/projects/{id}/actions/classify；内部ProjectAttributeResolutionService与ProjectAttributeSourceCorrectionCommand", events="N/A（当前只保存影响识别历史，不发布CHG事件）", integration="N/A（INT自动建项、来源定位和重试不在本Feature完成范围）", workflow="模板匹配前形成确定输入；正式Project不新增待分类/待选模状态；创建后只追加影响识别历史", authorization="项目管理范围；手工创建不得写CRM重大级别；工程管理部受控修正允许维度；来源证据只读")),
+    (("PM-08",), contract("ProjectMemberAssignment", "proj_project_member_assignment", "/projects/{id}/service-manager-candidates、/projects/{id}/actions/assign-manager、/projects/{rootId}/service-manager-responsibilities；SYSTEM OrganizationScopeApi.pageActiveUsers、NotifyMessageSendApi(deliveryKey)", events="ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）", workflow="V1手动且服务端即时生效、V2规则候选确认；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立", authorization="项目管理范围；仅PRD角色")),
     (("PM-09",), contract("ProjectMemberAssignment", "proj_project_member_assignment", "/projects/{id}/members:batch-change", workflow="批量逐项变更并保留有效区间", authorization="项目管理范围；逐项目校验")),
     (("PM-10",), contract("Project、ProjectStageSnapshot", "proj_project、proj_project_stage_snapshot", "/projects/{id}/actions/rollback、/projects/{id}/actions/close", events="ProjectStageChanged、ProjectClosed(lifecycleStatus=EXCEPTION_CLOSED)", workflow="受控回退保持ACTIVE；异常关闭置EXCEPTION_CLOSED；正常闭环仅由CLO-02产生NORMAL_CLOSED", authorization="ProjectTreeScope；状态命令权限与门禁")),
     (("PM-11",), contract("ProjectTask、TaskWorkBinding、TaskCompletionRule、TaskCompletionEvaluation、TaskAncestorProjection、TaskDependency", "proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency", "/projects/{id}/workspace、/projects/{id}/tasks、/project-tasks/{id}/workbench、/project-tasks/{id}/actions/move、/project-tasks/{id}/actions/{submit|start|complete|cancel}", events="TaskAssigned、TaskCompleted", workflow="ProjectTask内必填WorkBinding/CompletionRule与Stage→ProjectTask工作台投影、任务任意层级移动；TASK_NATIVE按任务自身事实执行，其他类型回源绑定事实并追加完成判定后完成", authorization="ProjectTreeScope；TASK_NATIVE任务范围；其他类型由服务端合并目标业务对象权限")),
 
     (("PRE-01",), contract("ConstructionPlan", "sol_construction_plan、sol_construction_plan_revision、sol_construction_plan_change", "/construction-plans、/{id}/actions/{submit|approve|reject}", files="FileArtifact", workflow="工期基线、变更申请与审批", authorization="ProjectStageScope；计划审批节点")),
-    (("PRE-02", "PRE-04"), contract("Preparation、DynamicFormInstance", "sol_preparation、sol_dynamic_form_instance", "/preparations、/{id}/actions/{submit|confirm|return}", files="FileArtifact", workflow="工勘/需求填写、提交、确认和退回", authorization="ProjectStageScope；字段与文件权限")),
+    (("PRE-02",), contract("Preparation、PreparationDynamicFormInstance", "sol_preparation、sol_dynamic_form_instance", "/preparations、/{id}/actions/{submit|confirm|return}", files="FileArtifact", workflow="工勘填写、提交、确认和退回；既有F-SOL-002表单事实保持不变", authorization="ProjectStageScope；字段与文件权限")),
+    (("PRE-04",), contract("Preparation、DynamicFormInstance", "sol_preparation、plt_dynamic_form_instance", "/preparations、/{id}/form、/{id}/actions/{submit|create-draft}；内部DynamicFormBusinessInstanceApi", files="FileArtifact", workflow="WorkBinding自动冻结PLT修订；SOL草稿/完成及有效版切换；PLT实例值/文件组合与版本克隆", authorization="ProjectStageScope、当前项目经理、SOL Owner策略及PLT文件权限")),
     (("PRE-03",), contract("Preparation", "sol_preparation、ast_asset_sync_item", "/preparations", integration="ERP", files="FileArtifact", workflow="换货申请、外部处理映射与恢复对账", authorization="ProjectStageScope；物料范围")),
     (("PRE-05",), contract("Preparation、FileArtifact", "sol_preparation、plt_file_artifact、plt_file_version", "/preparations、/files:init-upload", files="FileArtifact", workflow="交底书生成、版本提交和确认", authorization="ProjectStageScope、FileBusinessScope")),
     (("PLN-01", "PLN-02", "PLN-03"), contract("ConstructionPlan", "sol_construction_plan、sol_construction_plan_revision", "/schedules、/{id}/actions/{calculate|apply}", workflow="计划计算候选、预警和显式应用", authorization="ProjectStageScope；计划只读/维护分离")),
     (("PLN-04",), contract("ConstructionPlan", "sol_construction_plan、sol_construction_plan_revision", "/construction-plans、/{id}/actions/{submit|approve|reject}", files="FileArtifact", workflow="施工计划提交、审批、驳回与换版", authorization="ProjectStageScope；审批人按PRD")),
     (("SCH-01", "SCH-02", "SCH-04", "SCH-05"), contract("Solution", "sol_solution、sol_solution_revision、sol_solution_review", "/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}", files="FileArtifact", workflow="方案导入/编审、重大复审和发布版本", authorization="ProjectStageScope；方案审批与文件权限")),
     (("SCH-03",), contract("Solution、FileArtifact", "sol_solution_revision、plt_file_artifact、plt_file_version", "/solutions、/files:init-upload", files="FileArtifact", workflow="配置脚本上传、解析、发布和版本冻结", authorization="ProjectStageScope、FileBusinessScope；已发布模板使用权限")),
-    (("SOL-01",), contract("DynamicFormSchema、DynamicFormInstance", "sol_dynamic_form_schema、sol_dynamic_form_schema_revision、sol_dynamic_form_instance", "/form-schemas、/form-instances", workflow="Schema发布后只读、实例按版本校验", authorization="ProjectStageScope；Schema维护与实例填写分离")),
+    (("SOL-01",), contract("DynamicFormTemplate、DynamicFormTemplateRevision、DynamicFormInstance", "plt_dynamic_form_template、plt_dynamic_form_template_revision、plt_dynamic_form_instance", "/dynamic-form-templates、/dynamic-form-template-revisions、/dynamic-form-instances；内部DynamicFormBusinessInstanceApi", files="FileArtifact", workflow="模板唯一草稿、发布修订不可变、启停独立；手工与受信业务实例冻结修订并按CAS保存，消费方业务状态另行拥有", authorization="PLT模板/实例功能权限；业务实例叠加Owner Provider；发布者为高信任配置主体；目标API继续独立鉴权")),
 
     (("EXE-01",), contract("ArrivalAcceptance", "imp_arrival_acceptance、imp_arrival_line、imp_arrival_difference", "/arrival-acceptances", events="ArrivalAccepted", files="FileArtifact", workflow="草稿、差异处理、项目经理最终确认", authorization="ImplementationProjectBatchScope；项目经理确认")),
     (("EXE-02",), contract("InstallationRecord", "imp_installation_record、imp_installation_item、imp_installation_evidence", "/installation-records", events="InstallationConfirmed", files="FileArtifact", workflow="提交、项目经理确认/退回和整改", authorization="ImplementationProjectDeviceScope；设备归属与项目权限")),
@@ -71,10 +72,10 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
     (("SUB-01", "SUB-02", "SUB-05"), contract("SubcontractRequest", "res_subcontract_request", "/subcontract-requests", events="SubcontractApproved", integration="OA", files="FileArtifact", workflow="平台内转包审批、价格审批与版本冻结", authorization="OrganizationSupplierScope；项目/供应商范围")),
     (("SUB-03", "SUB-04"), contract("PaymentGate、SatisfactionCollection", "res_payment_gate、acc_satisfaction_result", "/payment-gates", events="PaymentGateChanged", integration="财务系统", files="FileArtifact", workflow="付款前置满意度事实、批准版本和财务确认", authorization="OrganizationSupplierScope；付款门禁权限；满意度只读引用")),
 
-    (("CUS-01",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customers/{id}/panorama", integration="CRM及平台内项目/设备/服务事实", workflow="按授权聚合客户全景；单卡片失败保留其他卡片并显示最近成功截止时间，不以0替代未知", authorization="OrganizationCustomerScope；敏感联系人、故障、配置和维保字段专项权限")),
+    (("CUS-01",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customers/{id}/panorama", integration="CRM及平台内项目/设备/服务事实", workflow="按授权聚合客户全景；单卡片失败保留其他卡片并显示最近成功截止时间，不以0替代未知", authorization="OrganizationCustomerScope；敏感联系人、故障、配置和维保字段专项权限")),
     (("CUS-02",), contract("CustomerServiceLevelRevision", "cus_customer_service_level_revision", "/customers/{id}/service-level-revisions", events="CustomerServiceLevelChanged", workflow="结束原有效区间并生成新等级版本；新业务动作冻结等级与策略版本，历史业务快照不回写", authorization="OrganizationCustomerScope；服务经理或管理层客户等级维护权限")),
-    (("CUS-03",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customers", events="CustomerMerged、MasterDataSynchronized", integration="CRM", workflow="CRM客户同步、临时客户受控创建与合并；权威字段不可被平台覆盖", authorization="OrganizationCustomerScope；CRM权威字段只读")),
-    (("CUS-04",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customer-contacts、/projects/{id}/customer-contacts", events="CustomerContactChanged", integration="CRM", workflow="联系人维护、项目角色时态关系和业务发生时联系信息快照", authorization="OrganizationCustomerScope、ProjectTreeScope；联系人字段专项权限")),
+    (("CUS-03",), contract("Customer、MarketRelation、CustomerLocationReference、CustomerScopeSlice", "cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_location_reference、cus_market_relation、cus_customer_scope_slice", "/api/v1/pms/customers、/api/v1/pms/customers/{id}/locations、/api/v1/pms/customers/{id}/projects、/api/v1/pms/customers/{id}/devices", events="CustomerUpdated", integration="CRM（由INT-03负责连接、认证、同步、重试和对账）", workflow="CUS作为唯一当前写Owner；CRM客户同步和平台临时客户受控创建；ENABLED/DISABLED/DELETED本地生命周期；旧project客户入口只保留历史列表和详情读取，不双写、不代理新Owner写操作", authorization="五维复选权限切片；同维度OR、不同维度AND、多切片OR；管理员无显式切片时全量、显式切片时按切片降权；普通角色无有效切片时为空；联系方式RAW/MASKED/HIDDEN服务端裁剪")),
+    (("CUS-04",), contract("Customer、CustomerContact、CustomerRelationshipSnapshot", "cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot", "/customer-contacts、/projects/{id}/customer-contacts", events="CustomerContactChanged", integration="CRM", workflow="联系人维护、项目角色时态关系和业务发生时联系信息快照", authorization="OrganizationCustomerScope、ProjectTreeScope；联系人字段专项权限")),
     (("EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"), contract("Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment", "ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history", "/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history", events="DeviceAssigned、DeviceComponentRelationChanged", files="FileArtifact", workflow="设备档案、配置Log引用、框板关系、扫码和唯一归属", authorization="ProjectDeviceScope；当前归属、框板关系维护与祖先范围")),
     (("EQP-04",), contract("AssetSyncSnapshot、Device", "ast_asset_sync_batch、ast_asset_sync_item、ast_device", "/devices", events="MasterDataSynchronized", integration="MES", workflow="MES来源版本幂等同步与冲突隔离", authorization="ProjectDeviceScope；MES字段只读")),
     (("AST-01",), contract("RMAReplacement、MaintenanceFact", "ast_rma_replacement、ast_maintenance_fact", "/rma-replacements、/devices/{deviceId}/service-status", events="DeviceStatusSynchronized", integration="备件系统", files="FileArtifact", workflow="RMA替换、设备归属校验和维保事实衔接", authorization="ProjectDeviceScope；设备与来源范围")),
@@ -98,7 +99,7 @@ GROUPS: list[tuple[tuple[str, ...], Contract]] = [
 
     (("INT-01",), contract("Project、Contract、SalesOrder", "ast_asset_sync_batch、ast_asset_sync_item、com_contract、com_sales_order", "/projects、/contracts、/sales-orders", events="MasterDataSynchronized", integration="CRM、ERP", workflow="双源同步、待映射、字段Owner裁决和对账", authorization="集成服务账号限Owner字段；工程管理部映射权限")),
     (("INT-02",), contract("AssetSyncSnapshot", "ast_asset_sync_batch、ast_asset_sync_item、ast_device", "/devices", events="MasterDataSynchronized", integration="ITR", workflow="版本同步、来源冲突隔离和对账", authorization="集成账号限ITR字段；ProjectDeviceScope查询")),
-    (("INT-03",), contract("Customer、CustomerRelationshipSnapshot", "cus_customer、ast_asset_sync_batch、ast_asset_sync_item", "/customers", events="MasterDataSynchronized、CustomerMerged", integration="CRM", workflow="客户同步、临时客户合并与字典映射", authorization="OrganizationCustomerScope；CRM字段只读")),
+    (("INT-03",), contract("Customer、MarketRelation", "cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_market_relation、ast_asset_sync_batch、ast_asset_sync_item", "/api/v1/pms/customers", events="CustomerUpdated、MasterDataSynchronized", integration="CRM", workflow="CRM客户、四维组合目录、来源版本和字段历史同步；平台本地生命周期不被外部同步直接改写", authorization="五维CustomerScope；CRM权威字段只读")),
     (("INT-04",), contract("TechnicalNoticeReference", "FEATURE_FORWARD_MIGRATION(INT-04)：逻辑对象`TechnicalNoticeReference`；物理表由INT-04 Feature前向迁移确定", "/technical-notices、/technical-notices/{id}/references", events="TechnicalNoticeSynchronized", integration="ITR", workflow="公告镜像、版本同步和业务引用", authorization="ProductDeviceProjectScope；V2只读")),
     (("INT-05",), contract("Todo", "plt_todo、plt_sync_batch、plt_external_key_mapping", "/todos、/integration/hr/directory", events="MasterDataSynchronized、TodoRequested、TodoCompleted", integration="钉钉、HR、OA", workflow="必要人员组织同步复用基础平台主数据、已有同步批次和来源键映射；待办链接和通知回执不接入打卡/工时", authorization="TenantOrganizationProjectScope；目录身份不直接等于项目角色")),
     (("INT-06",), contract("RMAReplacement、AuthorizationGrant、InspectionReport", "ast_rma_replacement、plt_authorization_grant、srv_inspection_report_revision", "/rma-replacements、/authorization-grants、/inspection-reports/{id}/versions", events="MasterDataSynchronized", integration="备件系统、授权系统、UMC", files="FileArtifact", workflow="外部申请/结果映射、回调和对账", authorization="业务对象范围；完整授权码不可见")),
@@ -159,10 +160,10 @@ def phase3_verification(identifier: str, spec: Contract) -> tuple[str, str]:
     ]
     evidence = ["自动化测试报告（用例ID、业务对象ID、断言与结果）", "数据库迁移/约束验证记录"]
 
-    if spec.events != NA_EVENT:
+    if not spec.events.startswith("N/A"):
         tests.append("事件Outbox/Inbox、重复/乱序/重放测试")
         evidence.append("事件消息ID、Outbox/Inbox及消费水位证据")
-    if spec.integration != NA_INTEGRATION:
+    if not spec.integration.startswith("N/A"):
         tests.append("外部集成映射、超时/重试/对账/降级测试")
         evidence.append("脱敏请求响应、幂等键、重试/对账与降级记录")
     if spec.files != NA_FILE:
@@ -170,6 +171,7 @@ def phase3_verification(identifier: str, spec: Contract) -> tuple[str, str]:
         evidence.append("文件哈希、版本、扫描、引用与权限拒绝记录")
 
     exact: dict[str, tuple[list[str], list[str]]] = {
+        "PM-07": (["append-only匹配历史与真实浏览器响应式闭环"], ["真实MySQL原子性与append-only历史、真实浏览器响应式闭环、值域清查和独立评审"]),
         "PM-05": (["转换部分失败、逐项重试、源项目只读归档测试"], ["转换批次、逐项结果及源/目标一致性清单"]),
         "PM-06": (["多期群组无环、唯一期次、跨期派生版本测试"], ["群组树快照、派生来源与无环校验记录"]),
         "PM-11": (["5万节点、2000直接子节点、深度30任务树查询/移动测试"], ["任务树数据集版本与性能报告"]),
@@ -194,6 +196,32 @@ def phase3_side_effect(spec: Contract) -> str:
     )
 
 
+ACCEPTANCE_OVERRIDES: dict[str, str] = {}
+
+DECISION_NOTES = {
+    "CUS-03": "F-CUS-001实现证据：NPDMS `a9f8b7c568546839d3d641531f8036bb75889a82`；前向Flyway按合并后序号登记为`V106__fcus001_customer_master.sql`、`V107__fcus001_customer_classification_scope.sql`、`V108__fcus001_seed_data.sql`，不得回写为暂存补丁中的V87～V89。",
+    "PM-07": "F-PROJ-004聚焦裁决（`CHG-PRD-2026-08-25-003`）：本Feature仅实现PM-07的PROJ子切片，包括四属性复用、INITIAL_CREATE决策历史、SOURCE_CORRECTION/MANUAL_ADJUSTMENT影响识别；无匹配拒绝，多匹配仅在显式选择本次合法候选时创建。不新增待分类/待选模状态、独立属性历史、分类案例、影响处理表、重新实例化或CHG事件。INT来源定位/自动建项/重试/对账及CHG分派/处理/关闭保持未完成，不计入本Feature完成度。",
+    "PM-08": "F-PROJ-005聚焦裁决：PM-08局部验收中的服务经理指派后ASSIGNED，解释为该操作使有效主责服务经理和有效项目经理两项条件全部满足时ASSIGNED；仅服务经理有效时仍为UNASSIGNED。V1只支持服务端即时生效，不实现PM-11项目经理指派或预约生效。",
+}
+
+FEATURE_LINES = {
+    "PM-07": "Feature：F-PROJ-004（项目业务属性判定、模板匹配历史与影响识别）",
+}
+
+BUSINESS_GUARD_OVERRIDES = {
+    "PM-07": "按“模板匹配前确定输入、首次创建原子记录、创建后只读影响评估”执行；非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变",
+}
+
+AUTHORIZATION_ASSERTION_OVERRIDES = {
+    "PM-07": "项目管理范围、属性Owner和手工重大级别禁写边界",
+}
+
+SIDE_EFFECT_OVERRIDES = {
+    "PM-07": "成功仅按契约写入/引用数据对象“Project、ProjectTemplateMatchHistory”及数据表“proj_project、proj_project_template_match_history”；事件边界为“N/A（不发布CHG事件）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（INT自动建项与重试不在本Feature）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝审计和已有事实不变的结果。",
+    "PM-08": "成功仅按契约写入/引用数据对象“ProjectMemberAssignment”及数据表“proj_project_member_assignment”；事件边界为“ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。同时写入Project版本/状态、幂等/审计及一个Outbox；处理器以eventId调用SYSTEM幂等站内信接口。通知失败不回滚指派，只更新Outbox重试事实；授权拒绝或业务守卫失败不得新增有效业务版本、事件、站内信或外部完成事实，一致重放不得新增成员区间、事件或站内信。",
+}
+
+
 def render(prd: Path) -> str:
     requirements = load_requirements(prd)
     catalog = build_catalog(requirements)
@@ -213,10 +241,12 @@ def render(prd: Path) -> str:
         identifier = item["id"]
         spec = catalog[identifier]
         phase3_tests, phase3_evidence = phase3_verification(identifier, spec)
+        acceptance = ACCEPTANCE_OVERRIDES.get(identifier, item["acceptance"])
         lines.extend([
             f"### {identifier}",
             "",
             f"- 需求名称：{item['name']}",
+            *([f"- {FEATURE_LINES[identifier]}"] if identifier in FEATURE_LINES else []),
             f"- 数据对象：{spec.data}",
             f"- 数据表：{spec.tables}",
             f"- API：{spec.apis}",
@@ -226,10 +256,11 @@ def render(prd: Path) -> str:
             f"- 工作流/状态：{spec.workflow}",
             f"- 授权与数据范围：{spec.authorization}",
             f"- Phase 3测试类别：{phase3_tests}",
-            f"- Phase 3 PRD验收基线：{item['acceptance']}",
-            f"- Phase 3授权拒绝断言：越权按“{spec.authorization}”拒绝，不返回未授权业务事实且不产生业务副作用",
-            f"- Phase 3业务守卫断言：按“{spec.workflow}”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变",
-            f"- Phase 3副作用断言：{phase3_side_effect(spec)}",
+            f"- Phase 3 PRD验收基线：{acceptance}",
+            *([f"- {DECISION_NOTES[identifier]}"] if identifier in DECISION_NOTES else []),
+            f"- Phase 3授权拒绝断言：越权按“{AUTHORIZATION_ASSERTION_OVERRIDES.get(identifier, spec.authorization)}”拒绝，不返回未授权业务事实且不产生业务副作用",
+            f"- Phase 3业务守卫断言：{BUSINESS_GUARD_OVERRIDES.get(identifier, f'按“{spec.workflow}”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变')}",
+            f"- Phase 3副作用断言：{SIDE_EFFECT_OVERRIDES.get(identifier, phase3_side_effect(spec))}",
             f"- Phase 3证据类型：{phase3_evidence}",
             "",
         ])
