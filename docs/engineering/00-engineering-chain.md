@@ -36,11 +36,6 @@
 5. Feature Spec、Technical Plan和Task：拆解正式设计，不得重新定义领域、权限或核心状态语义；
 6. 代码、数据库迁移、API Schema与测试：实现资产，必须追溯到上层正式设计。
 
-独立裁决的从属规则为[`独立裁决官角色定义与审核规则`](independent-adjudicator-role-and-review-rules.md)：
-
-- **适用范围**：仅限工程链中的Feature Boundary边界裁决，以及Feature Ready、Technical Plan、Task Implementation Done、Feature Implementation Done、Deployment、SIT、UAT、Migration与Release等Gate的只读独立审查；不适用于编写或修改需求、设计、代码、任务状态和证据，也不授权提交、推送、部署或状态晋级。
-- **优先级**：业务与实现事实仍严格按本节第1—6项裁决；该规则从属于PRD、本工程链及各审批对象适用的正式上层资产，与其冲突时以上述权威为准。仅在不改变上位事实的独立审批角色、范围、方法和结论格式上，该规则优先于单次审批申请、实施者说明、临时检查清单及会话约定。
-
 冻结快照用于证明PRD未漂移，追溯矩阵用于定位`Requirement -> SDS -> Feature -> Code -> Test`关系；二者均不得产生新业务规则。13份领域需求规格由PRD派生，与PRD冲突时必须重新生成，不允许直接改写派生文件掩盖差异。
 
 ### 2.2 文档分类
