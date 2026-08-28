@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "18377fd9fc45b54217b21488cfb46a8d320d4bd8"
+    "commit": "02f6360735980c4bbd9947844917feb0d4b4aecf"
   },
   "files": [
     {
@@ -368,7 +368,7 @@
     {
       "path": "docs/engineering/00-engineering-chain.md",
       "category": "ENGINEERING",
-      "sha256": "9980dea171c963773ccbf9eb015135cbc0a1392add2f691f5e9f25570c292c1d"
+      "sha256": "ac21a7cbdd1efaefb82acf75ea6de8589691294a9b9ee176af8f37fb41b7321b"
     },
     {
       "path": "docs/engineering/gates/phase-1/README.md",
@@ -448,7 +448,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "dadd1636ad2ff091e83b8e31e233d34a4a5b335709a32edb55b05c384fcbe94b"
+      "sha256": "157c5721ef56117489810b4ac85d3e512059b46fe215b7c0b89bc2b47849c25e"
     },
     {
       "path": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
@@ -583,7 +583,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "f1388f617ca96bc42468f3574200c29130af76ab7ac582269644eb0000586ee1"
+      "sha256": "aae0ef5ebe7eb3dd7fcd72bd8be399dc33d8a39bed118e53021b57cd71b52668"
     }
   ]
 }
