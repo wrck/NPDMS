@@ -46,4 +46,5 @@ public class CollectionTaskDO extends TenantBaseDO {
     private String consumerObjectType;
     private String consumerObjectId;
     private Long consumedResultVersion;
+    private Long lastCallbackSequence;
 }

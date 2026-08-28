@@ -4,7 +4,7 @@
 
 ## 文件
 
-- `allowlist.json`：允许同步的89个正式文件，必须使用排序后的精确相对路径；其中仅纳入Phase 1、Phase 2和Phase 3当前门禁的`README.md`与`gate-status.md`，不纳入独立复审、自审、evidence等过程证据或历史材料；
+- `allowlist.json`：允许同步的101个正式文件，必须使用排序后的精确相对路径；其中仅纳入Phase 1、Phase 2和Phase 3当前门禁的`README.md`与`gate-status.md`，不纳入独立复审、自审、evidence等过程证据或历史材料；
 - `manifest.json`：应用同步后生成，记录规格仓库标识、40位源提交和逐文件SHA-256；
 - `scripts/sync_specification_baseline.py`：默认只预检，显式`--apply`才写入；
 - `scripts/validate_specification_baseline.py`：不访问源仓库即可校验本地快照。

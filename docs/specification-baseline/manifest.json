@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "8e84ea2ce6750f824973f788237f4790961e59c4"
+    "commit": "06b3073dc677466a3f3ba2f35bc1407451886a58"
   },
   "files": [
     {
@@ -238,7 +238,7 @@
     {
       "path": "docs/design/02c-data-ownership-matrix.md",
       "category": "SDS",
-      "sha256": "f35331f2beae99a3b14c524aebe31677290a1308225962ab031cc23156c193de"
+      "sha256": "c919ea6668faadb3e8c06acafcb5782e7ba1e3c164b3a752136a5a76a3916d2a"
     },
     {
       "path": "docs/design/02d-cross-context-contracts.md",
@@ -253,17 +253,17 @@
     {
       "path": "docs/design/03-system-architecture.md",
       "category": "SDS",
-      "sha256": "7ff2b394375f1fc38d46d65a9f687183051a0f088c7a8b97e4583a346f341696"
+      "sha256": "db06dccad73b69bf9faa6320267f17979b53fa1e1367ac850b08b6e77d5a341a"
     },
     {
       "path": "docs/design/04-module-design.md",
       "category": "SDS",
-      "sha256": "ddb366effbf773a7b19a6f9fbfc1ef833482f8e51dc653f710b255e58098cdcd"
+      "sha256": "ecc6e88554337db2e3030fabadf51b6578550053781c012508935db4e08cd486"
     },
     {
       "path": "docs/design/05-state-machine.md",
       "category": "SDS",
-      "sha256": "922b6d5ecdbbca1f3936a583751c6f084e5825d42e357df7f4ce7dd91bd0565c"
+      "sha256": "cafca439864a27fb9d0e5dc1d5d42b268df3f78c10c620506d4209fa04c72177"
     },
     {
       "path": "docs/design/06-workflow-design.md",
@@ -278,7 +278,7 @@
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "6f0676e9ba81018a23b46da27c4253b08be6abd86d89d11098debb5f37f7d9f4"
+      "sha256": "b7ce122e55cad40eac145c1cc61efb59b336e88813470ab60e58d748932dee95"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
@@ -288,27 +288,27 @@
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "8bfeb9c6adcf4895ce3eab9027f892c5f78e3c00f4dcb0169d659b5fae41ba30"
+      "sha256": "d6cd67d1ea327d8f8096867687a660ff7df30d64e6550aad0f349f426576b85d"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "2be261fa0b0386a594300a0c58a7b835c70729eb779ba2701b1441688dd12801"
+      "sha256": "f14bde45edad70957d63a9c721b153f41bffcb529f9f7b3e557c8df55620bca0"
     },
     {
       "path": "docs/design/11-event-design.md",
       "category": "SDS",
-      "sha256": "5aa16c4060749c21549c180d106a81a6ca5dac1334c901c28eb45f28c0c826e7"
+      "sha256": "ddce553f863d0e28631dd4782fb72ea33fb7b7f7f3d708bc5ee614850366ed2e"
     },
     {
       "path": "docs/design/12-integration-design.md",
       "category": "SDS",
-      "sha256": "b48443485702b1f30807f33159210a29434b8d778a67accb5b49776716011e78"
+      "sha256": "5d32bcdc49c4898a6b3200f0d5e205a00c2872846766f2d0e16cc0ce81e371e9"
     },
     {
       "path": "docs/design/13-file-design.md",
       "category": "SDS",
-      "sha256": "45f31a33a9d0df61660e92a53aec895caddd1c795d44079106de6700e9d72353"
+      "sha256": "92404629b61e9f96a9abf11c937053acd40e4f08e14df8abcdac200ca82d34bb"
     },
     {
       "path": "docs/design/14-security-design.md",
@@ -438,12 +438,17 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "e331da5342bb0238c291047c30ae9bf7e1d800ae615ea80da83040444e05eba0"
+      "sha256": "99d45681ab540cf3de3b38b02340087e2b67605a20ebd413fa56b379eaf4c20c"
     },
     {
       "path": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
       "category": "FEATURE_SPEC",
       "sha256": "69262ac88761e4439c09c5ee492ebbd5e5d78719e2dcd8725d77f35fa4a81c8f"
+    },
+    {
+      "path": "specs/features/F-INT-012-device-ops-collection-integration.md",
+      "category": "FEATURE_SPEC",
+      "sha256": "83432241a7451dead09fad8ae6946647b9895026853d58acfbf82e24be5179fd"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -503,7 +508,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "778cae9f877b674e145ab35b53a7c221595a2df38aa1e94e47ce92d27a86a0ad"
+      "sha256": "481a7b81bad521c8dcc082b9cabf231c927974d9c7ac3194f986468a2ddeb142"
     }
   ]
 }
