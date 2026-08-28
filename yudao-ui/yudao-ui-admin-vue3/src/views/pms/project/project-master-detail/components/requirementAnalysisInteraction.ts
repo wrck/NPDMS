@@ -7,6 +7,12 @@ import type {
   RequirementAnalysisSectionVO
 } from '@/api/pms/engineering/requirement-analysis'
 import type { FileSelection } from '@/components/PmsFileArtifact'
+import type { JsonObject } from '@/api/pms/platform/dynamic-form'
+import {
+  changedOrdinaryValues,
+  reconcileInstancePatch,
+  stableCommandIntent
+} from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
 
 export const sameRequirementValue = (left: unknown, right: unknown) =>
   JSON.stringify(left) === JSON.stringify(right)
@@ -67,11 +73,7 @@ export const parseSectionValue = (section: RequirementAnalysisSectionVO): any =>
   }
 }
 
-export type AttachmentIntentRecovery =
-  | 'NONE'
-  | 'CONFIRMED'
-  | 'RETRY'
-  | 'CONFLICT'
+export type AttachmentIntentRecovery = 'NONE' | 'CONFIRMED' | 'RETRY' | 'CONFLICT'
 
 const attachmentVector = (attachments: RequirementAnalysisAttachmentVO[]) =>
   attachments
@@ -202,3 +204,21 @@ export const patchRequirementSectionAndReload = async (
   await patch()
   await reload()
 }
+
+export const buildRequirementFormPatch = (
+  current: JsonObject,
+  baseline: JsonObject,
+  ordinaryFields: Set<string>
+) => ({ values: changedOrdinaryValues(current, baseline, ordinaryFields) })
+
+export const requirementFormHasChanges = (
+  current: JsonObject,
+  baseline: JsonObject,
+  ordinaryFields: Set<string>
+) => Object.keys(buildRequirementFormPatch(current, baseline, ordinaryFields).values).length > 0
+
+export const reconcileRequirementFormPatch = (authoritative: JsonObject, intended: JsonObject) =>
+  reconcileInstancePatch(authoritative, intended)
+
+export const stableRequirementFormIntent = (preparationId: number, values: JsonObject) =>
+  stableCommandIntent(`requirement-form-patch:${preparationId}`, values)

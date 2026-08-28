@@ -50,5 +50,9 @@ public interface ErrorCodeConstants {
     ErrorCode DYNAMIC_FORM_FILE_FIELD_REQUIRES_FILE_API = new ErrorCode(1_010_003_010,
             "受控文件字段必须通过统一文件接口修改");
     ErrorCode DYNAMIC_FORM_VERSION_CONFLICT = new ErrorCode(1_010_003_011, "动态表单版本已变化");
+    ErrorCode DYNAMIC_FORM_PROVIDER_UNAVAILABLE = new ErrorCode(1_010_003_012, "动态表单业务策略Provider不可用");
+    ErrorCode DYNAMIC_FORM_SCOPE_FORBIDDEN = new ErrorCode(1_010_003_013, "无权访问该动态表单业务范围");
+    ErrorCode DYNAMIC_FORM_SCOPE_VERSION_CONFLICT = new ErrorCode(1_010_003_014, "动态表单业务范围版本已变化");
+    ErrorCode DYNAMIC_FORM_OWNER_CONFLICT = new ErrorCode(1_010_003_015, "动态表单业务Owner已绑定其他实例");
 
 }

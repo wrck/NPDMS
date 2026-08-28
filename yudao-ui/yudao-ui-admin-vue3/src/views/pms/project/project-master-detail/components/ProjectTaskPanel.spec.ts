@@ -3,25 +3,16 @@ import { describe, expect, it } from 'vitest'
 import type { TaskDetail } from '@/api/pms/project/task-workbench'
 import { buildTaskUpdatePayload, snapshotTaskEdit } from './project-task-update'
 
-const panel = readFileSync(new URL('./ProjectTaskPanel.vue', import.meta.url), 'utf8')
-const tree = readFileSync(new URL('./ProjectTaskTree.vue', import.meta.url), 'utf8')
-const drawer = readFileSync(new URL('./ProjectTaskWorkbenchDrawer.vue', import.meta.url), 'utf8')
-const detail = readFileSync(new URL('../index.vue', import.meta.url), 'utf8')
-const legacy = readFileSync(new URL('../../project-task/index.vue', import.meta.url), 'utf8')
-const api = readFileSync(
-  new URL('../../../../../api/pms/project/task-workbench/index.ts', import.meta.url),
-  'utf8'
-)
-const legacyApi = readFileSync(
-  new URL('../../../../../api/pms/project/project-task/index.ts', import.meta.url),
-  'utf8'
-)
-const legacyController = readFileSync(
-  new URL(
-    '../../../../../../../../pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projecttask/ProjectTaskController.java',
-    import.meta.url
-  ),
-  'utf8'
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const panel = read('./ProjectTaskPanel.vue')
+const tree = read('./ProjectTaskTree.vue')
+const drawer = read('./ProjectTaskWorkbenchDrawer.vue')
+const detail = read('../index.vue')
+const legacy = read('../../project-task/index.vue')
+const api = read('../../../../../api/pms/project/task-workbench/index.ts')
+const legacyApi = read('../../../../../api/pms/project/project-task/index.ts')
+const legacyController = read(
+  '../../../../../../../../pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projecttask/ProjectTaskController.java'
 )
 
 describe('F-PROJ-007 project task workbench', () => {

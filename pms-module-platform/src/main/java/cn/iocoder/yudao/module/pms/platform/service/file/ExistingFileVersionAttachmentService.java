@@ -25,6 +25,7 @@ import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactiona
 import cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -82,7 +83,7 @@ public class ExistingFileVersionAttachmentService {
         this.outboxWriter = outboxWriter;
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public List<FileArtifactVersionFact> attach(AttachExistingFileVersionsCommand command) {
         if (command == null) {
             throw exception(FILE_COMMAND_INVALID);

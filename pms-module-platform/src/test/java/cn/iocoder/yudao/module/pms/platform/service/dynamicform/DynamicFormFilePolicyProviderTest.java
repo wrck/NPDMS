@@ -1,5 +1,8 @@
 package cn.iocoder.yudao.module.pms.platform.service.dynamicform;
 
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstancePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
@@ -15,17 +18,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.InOrder;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Set;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,13 +45,14 @@ class DynamicFormFilePolicyProviderTest {
     @Mock PlatformDynamicFormInstanceMapper instanceMapper;
     @Mock DynamicFormTemplateRevisionMapper revisionMapper;
     @Mock PermissionApi permissionApi;
+    @Mock DynamicFormBusinessObjectPolicyProviderRegistry businessPolicyRegistry;
 
     private DynamicFormFilePolicyProvider provider;
 
     @BeforeEach
     void setUp() {
         provider = new DynamicFormFilePolicyProvider(instanceMapper, revisionMapper,
-                new DynamicFormSchemaService(), permissionApi);
+                new DynamicFormSchemaService(), permissionApi, businessPolicyRegistry);
     }
 
     @Test
@@ -95,7 +104,7 @@ class DynamicFormFilePolicyProviderTest {
 
     @Test
     void lockUsesFrozenRevisionAsScopeAndRejectsStaleExpectationBeforePermission() {
-        when(instanceMapper.selectForUpdate(any())).thenReturn(instance());
+        when(instanceMapper.selectByRow(any())).thenReturn(instance());
 
         var stale = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 0L, 9L, "PLATFORM", "DYNAMIC_FORM_INSTANCE", "31", PURPOSE, SLOT,
@@ -106,12 +115,13 @@ class DynamicFormFilePolicyProviderTest {
 
         when(permissionApi.hasAnyPermissions(9L, DynamicFormActionProjection.INSTANCE_UPDATE)).thenReturn(true);
         when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(instanceMapper.selectForUpdate(any())).thenReturn(instance());
         var current = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 0L, 9L, "PLATFORM", "DYNAMIC_FORM_INSTANCE", "31", PURPOSE, SLOT,
                 FileActionCodes.UPLOAD, 21L));
 
         assertTrue(current.allowed());
-        verify(instanceMapper, never()).selectByRow(any());
+        verify(instanceMapper).selectForUpdate(any());
     }
 
     @Test
@@ -131,6 +141,135 @@ class DynamicFormFilePolicyProviderTest {
                 0L, 9L, key, FileActionCodes.READ, 21L));
 
         assertTrue(locked.allowed());
+    }
+
+    @Test
+    void businessInstanceDelegatesFileActionToOwnerProvider() {
+        PlatformDynamicFormInstanceDO row = instance();
+        row.setOwnerContext("SOL");
+        row.setObjectType("REQUIREMENT_ANALYSIS");
+        row.setObjectId("77");
+        when(instanceMapper.selectByRow(any())).thenReturn(row);
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(businessPolicyRegistry.inspectInstance(any())).thenReturn(new DynamicFormPolicyFact(
+                DynamicFormBusinessAction.FILE_READ, true, null, 12L, "77:COMPLETED:12"));
+
+        var fact = provider.inspect(query(9L, FileActionCodes.READ, PURPOSE, SLOT));
+
+        assertTrue(fact.allowed());
+        assertEquals(12L, fact.scopeVersion());
+        assertEquals("IMMUTABLE", fact.referenceMutability());
+        verifyNoInteractions(permissionApi);
+    }
+
+    @Test
+    void businessInstanceDelegatesArchiveAndInvalidateToOwnerFileWrite() {
+        PlatformDynamicFormInstanceDO row = businessInstance();
+        when(instanceMapper.selectByRow(any())).thenReturn(row);
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(businessPolicyRegistry.inspectInstance(any())).thenReturn(new DynamicFormPolicyFact(
+                DynamicFormBusinessAction.FILE_WRITE, true, null, 12L, "77:DRAFT:12"));
+
+        assertTrue(provider.inspect(query(9L, FileActionCodes.ARCHIVE, PURPOSE, SLOT)).allowed());
+        assertTrue(provider.inspect(query(9L, FileActionCodes.INVALIDATE, PURPOSE, SLOT)).allowed());
+
+        ArgumentCaptor<DynamicFormInstancePolicyQuery> policies =
+                ArgumentCaptor.forClass(DynamicFormInstancePolicyQuery.class);
+        verify(businessPolicyRegistry, times(2)).inspectInstance(policies.capture());
+        assertEquals(java.util.List.of(DynamicFormBusinessAction.FILE_WRITE,
+                        DynamicFormBusinessAction.FILE_WRITE),
+                policies.getAllValues().stream().map(DynamicFormInstancePolicyQuery::action).toList());
+        verifyNoInteractions(permissionApi);
+    }
+
+    @Test
+    void manualInstanceStillDeniesArchiveAndInvalidateWithoutOwnerDelegation() {
+        when(instanceMapper.selectByRow(any())).thenReturn(instance());
+
+        assertFalse(provider.inspect(query(9L, FileActionCodes.ARCHIVE, PURPOSE, SLOT)).allowed());
+        assertFalse(provider.inspect(query(9L, FileActionCodes.INVALIDATE, PURPOSE, SLOT)).allowed());
+
+        verifyNoInteractions(revisionMapper, businessPolicyRegistry);
+    }
+
+    @Test
+    void businessLifecycleActionFailsClosedWhenOwnerRejects() {
+        when(instanceMapper.selectByRow(any())).thenReturn(businessInstance());
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(businessPolicyRegistry.inspectInstance(any())).thenReturn(new DynamicFormPolicyFact(
+                DynamicFormBusinessAction.FILE_WRITE, false, "FORBIDDEN", 12L, "77:DRAFT:12"));
+
+        assertFalse(provider.inspect(query(9L, FileActionCodes.ARCHIVE, PURPOSE, SLOT)).allowed());
+    }
+
+    @Test
+    void businessLifecycleLockRejectsStaleOwnerScopeBeforePlatformLock() {
+        when(instanceMapper.selectByRow(any())).thenReturn(businessInstance());
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(businessPolicyRegistry.prevalidatedFilePolicy(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.empty());
+        when(businessPolicyRegistry.inspectInstance(any())).thenReturn(new DynamicFormPolicyFact(
+                DynamicFormBusinessAction.FILE_WRITE, true, null, 13L, "77:DRAFT:13"));
+
+        var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                0L, 9L, "PLATFORM", "DYNAMIC_FORM_INSTANCE", "31", PURPOSE, SLOT,
+                FileActionCodes.INVALIDATE, 12L));
+
+        assertFalse(fact.allowed());
+        verify(businessPolicyRegistry, never()).lockAndRevalidate(any());
+        verify(instanceMapper, never()).selectForUpdate(any());
+    }
+
+    @Test
+    void businessFileLockConsumesProviderFactValidatedBeforePlatformLocks() {
+        PlatformDynamicFormInstanceDO row = instance();
+        row.setOwnerContext("SOL");
+        row.setObjectType("REQUIREMENT_ANALYSIS");
+        row.setObjectId("77");
+        when(instanceMapper.selectByRow(any())).thenReturn(row);
+        when(instanceMapper.selectForUpdate(any())).thenReturn(row);
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(businessPolicyRegistry.prevalidatedFilePolicy(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.of(new DynamicFormPolicyFact(
+                        DynamicFormBusinessAction.FILE_READ, true, null, 12L, "77:DRAFT:12")));
+
+        var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                0L, 9L, "PLATFORM", "DYNAMIC_FORM_INSTANCE", "31", PURPOSE, SLOT,
+                FileActionCodes.READ, 12L));
+
+        assertTrue(fact.allowed());
+        assertEquals(12L, fact.scopeVersion());
+        verify(businessPolicyRegistry, never()).inspectInstance(any());
+        verify(businessPolicyRegistry, never()).lockAndRevalidate(any());
+    }
+
+    @Test
+    void businessFileLockValidatesOwnerProviderBeforeFirstPlatformLockWithoutPrecache() {
+        PlatformDynamicFormInstanceDO row = instance();
+        row.setOwnerContext("SOL");
+        row.setObjectType("REQUIREMENT_ANALYSIS");
+        row.setObjectId("77");
+        DynamicFormPolicyFact inspected = new DynamicFormPolicyFact(
+                DynamicFormBusinessAction.FILE_READ, true, null, 12L, "77:DRAFT:12");
+        when(instanceMapper.selectByRow(any())).thenReturn(row);
+        when(revisionMapper.selectByRow(any())).thenReturn(revision());
+        when(businessPolicyRegistry.prevalidatedFilePolicy(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.empty());
+        when(businessPolicyRegistry.inspectInstance(any())).thenReturn(inspected);
+        when(businessPolicyRegistry.lockAndRevalidate(any())).thenReturn(inspected);
+        when(instanceMapper.selectForUpdate(any())).thenReturn(row);
+
+        var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
+                0L, 9L, "PLATFORM", "DYNAMIC_FORM_INSTANCE", "31", PURPOSE, SLOT,
+                FileActionCodes.READ, 12L));
+
+        assertTrue(fact.allowed());
+        InOrder order = inOrder(instanceMapper, businessPolicyRegistry);
+        order.verify(instanceMapper).selectByRow(any());
+        order.verify(businessPolicyRegistry).prevalidatedFilePolicy(any(), any(), any(), any(), any(), any());
+        order.verify(businessPolicyRegistry).inspectInstance(any());
+        order.verify(businessPolicyRegistry).lockAndRevalidate(any());
+        order.verify(instanceMapper).selectForUpdate(any());
     }
 
     private void stubRows(boolean lock) {
@@ -165,6 +304,15 @@ class DynamicFormFilePolicyProviderTest {
         row.setDesignerVersion(DynamicFormSchemaService.DESIGNER_VERSION);
         row.setRendererVersion(DynamicFormSchemaService.RENDERER_VERSION);
         row.setCreatedBy(9L);
+        row.setVersion(4);
+        return row;
+    }
+
+    private PlatformDynamicFormInstanceDO businessInstance() {
+        PlatformDynamicFormInstanceDO row = instance();
+        row.setOwnerContext("SOL");
+        row.setObjectType("REQUIREMENT_ANALYSIS");
+        row.setObjectId("77");
         return row;
     }
 

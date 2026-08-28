@@ -1,15 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const panel = readFileSync(
-  new URL('./ProjectTemplateMatchHistoryPanel.vue', import.meta.url),
-  'utf8'
-)
-const detail = readFileSync(new URL('../index.vue', import.meta.url), 'utf8')
-const api = readFileSync(
-  new URL('../../../../../api/pms/project/projects/index.ts', import.meta.url),
-  'utf8'
-)
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const panel = read('./ProjectTemplateMatchHistoryPanel.vue')
+const detail = read('../index.vue')
+const api = read('../../../../../api/pms/project/projects/index.ts')
 
 describe('F-PROJ-004 template match history panel', () => {
   it('queries project-scoped history with bounded paging and stable sorting', () => {

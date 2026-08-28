@@ -245,7 +245,11 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                     : versionMapper.selectOne(new FileVersionLockQuery(
                     tenantId, reference.getArtifactId(), reference.getFileVersionNo()));
             requireSetArtifact(artifact, key, policy);
-            requireVersion(version);
+            if (locked) {
+                requireVersion(version);
+            } else if (version == null) {
+                throw exception(FILE_VERSION_NOT_FOUND);
+            }
             facts.add(toFact(artifact, version, reference, policy.scopeVersion()));
         }
         return facts.stream().sorted(Comparator.comparing(FileArtifactVersionFact::referenceKey)).toList();

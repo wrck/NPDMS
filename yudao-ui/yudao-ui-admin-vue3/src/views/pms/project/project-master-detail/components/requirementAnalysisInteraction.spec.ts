@@ -186,10 +186,7 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
       true
     )
     expect(patch.submittedFields).toEqual(['attachments'])
-    expect(patch.attachments?.map(({ referenceKey }) => referenceKey)).toEqual([
-      'slot-a',
-      'slot-b'
-    ])
+    expect(patch.attachments?.map(({ referenceKey }) => referenceKey)).toEqual(['slot-a', 'slot-b'])
     expect(patch.attachments?.[0]).toMatchObject({
       referenceKey: 'slot-a',
       fileFactVersion: {
@@ -249,16 +246,22 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
     expect(keys.key(same)).toBe('key-3')
   })
 
-  it('keeps create, complete and revise commands on distinct stable intents', () => {
+  it('keeps create, complete and revise commands on distinct stable intents with dual CAS', () => {
     RequirementAnalysisApi.createInitialDraft(1, 'create-key')
-    RequirementAnalysisApi.completeDraft(3, 4, 5, 2, 'complete-key')
-    RequirementAnalysisApi.createNextDraft(3, 4, 5, 2, 'revise-key')
+    RequirementAnalysisApi.completeDraft(3, 8, 4, 'complete-key')
+    RequirementAnalysisApi.createNextDraft(3, 8, 4, 'revise-key')
 
     expect(
       request.post.mock.calls.map(([argument]) => argument.headers['Idempotency-Key'])
     ).toEqual(['create-key', 'complete-key', 'revise-key'])
-    expect(request.post.mock.calls[1][0].headers['If-Match']).toBe('4')
-    expect(request.post.mock.calls[2][0].headers['If-Match']).toBe('4')
+    expect(request.post.mock.calls[1][0].headers).toMatchObject({
+      'If-Match': '8',
+      'X-SOL-If-Match': '4'
+    })
+    expect(request.post.mock.calls[2][0].headers).toMatchObject({
+      'If-Match': '8',
+      'X-SOL-If-Match': '4'
+    })
   })
 
   it.each([

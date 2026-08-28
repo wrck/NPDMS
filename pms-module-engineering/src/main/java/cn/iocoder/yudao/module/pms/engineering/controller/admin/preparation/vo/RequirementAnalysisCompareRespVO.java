@@ -12,6 +12,7 @@ public class RequirementAnalysisCompareRespVO {
     private Long targetPreparationId;
     private Integer targetBusinessVersion;
     private List<SectionDifference> sections;
+    private List<FieldDifference> fields;
 
     @Data
     @AllArgsConstructor
@@ -20,5 +21,16 @@ public class RequirementAnalysisCompareRespVO {
         private String changeType;
         private Boolean contentChanged;
         private Boolean attachmentsChanged;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class FieldDifference {
+        private String fieldKey;
+        private String fieldLabel;
+        private String changeType;
+        private Object sourceValue;
+        private Object targetValue;
+        private Boolean controlledFilesChanged;
     }
 }

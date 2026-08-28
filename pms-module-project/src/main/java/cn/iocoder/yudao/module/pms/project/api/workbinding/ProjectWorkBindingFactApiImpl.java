@@ -168,7 +168,9 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                 record.targetContextCode(), record.targetObjectType(), record.targetObjectKey(),
                 binding.preparationTemplateCode(), binding.preparationTemplateRevision(),
                 binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot(),
-                record.templateRevisionId(), record.templateRevisionNo(), record.bindingParameterSnapshot());
+                record.templateRevisionId(), record.templateRevisionNo(), record.bindingParameterSnapshot(),
+                binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
+                binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion());
     }
 
     private ProjectWorkBindingFact toFact(ProjectMasterDO project, ProjectTaskInstanceDO task,
@@ -181,7 +183,9 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                 contract.getTargetContextCode(), contract.getTargetObjectType(), contract.getTargetObjectKey(),
                 binding.preparationTemplateCode(), binding.preparationTemplateRevision(),
                 binding.fixedFormCatalogVersion(), binding.itemConfigurationSnapshot(),
-                revision.templateRevisionId(), revision.templateRevisionNo(), contract.getBindingParameterSnapshot());
+                revision.templateRevisionId(), revision.templateRevisionNo(), contract.getBindingParameterSnapshot(),
+                binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
+                binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion());
     }
 
     private BindingProjection parseFrozen(String targetObjectKey, String snapshot) {
@@ -190,11 +194,14 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
                 PreparationWorkBindingSchema.ParsedBinding binding = PreparationWorkBindingSchema.parseFrozen(snapshot);
                 return new BindingProjection(binding.preparationTemplateCode(),
                         binding.preparationTemplateRevision(), binding.fixedFormCatalogVersion(),
-                        binding.itemConfigurationSnapshot());
+                        binding.itemConfigurationSnapshot(), null, null, null, null);
             }
             if (RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY.equals(targetObjectKey)) {
-                RequirementAnalysisWorkBindingSchema.parseFrozen(snapshot);
-                return new BindingProjection(null, null, null, null);
+                RequirementAnalysisWorkBindingSchema.ParsedBinding binding =
+                        RequirementAnalysisWorkBindingSchema.parseFrozen(snapshot);
+                return new BindingProjection(null, null, null, null,
+                        binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
+                        binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion());
             }
             throw new IllegalArgumentException("unsupported WorkBinding target");
         } catch (IllegalArgumentException ex) {
@@ -206,7 +213,11 @@ public class ProjectWorkBindingFactApiImpl implements ProjectWorkBindingFactApi 
             String preparationTemplateCode,
             Integer preparationTemplateRevision,
             Integer fixedFormCatalogVersion,
-            String itemConfigurationSnapshot) {
+            String itemConfigurationSnapshot,
+            Long dynamicFormTemplateId,
+            Long dynamicFormTemplateRevisionId,
+            Integer dynamicFormRevisionNo,
+            Integer dynamicFormRevisionFactVersion) {
     }
 
     private Long trustedTenantId() {

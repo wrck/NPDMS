@@ -200,6 +200,21 @@ class TemplatePublishValidatorTest {
         assertTrue(rejected.stream().anyMatch(failure -> failure.contains("未命中启用字典")));
     }
 
+    @Test
+    void requirementAnalysisBindingAcceptsOnlyTheFrozenV2DynamicFormRevision() {
+        TemplateDefinitionContent content = buildValidContent();
+        setRequirementAnalysisBinding(content.getTasks().get(1), requirementAnalysisBinding());
+
+        List<String> failures = TemplatePublishValidator.validate(content);
+
+        assertTrue(failures.isEmpty(), () -> "合法PRE-04 v2绑定应通过，实际：" + failures);
+
+        setRequirementAnalysisBinding(content.getTasks().get(1), requirementAnalysisBinding()
+                .replace("\"schemaVersion\":2", "\"schemaVersion\":2,\"catalogCode\":\"legacy\""));
+        assertTrue(TemplatePublishValidator.validate(content).stream()
+                .anyMatch(failure -> failure.contains("V2契约")));
+    }
+
     private void assertHasFailure(TemplateDefinitionContent content, String keyword) {
         List<String> failures = TemplatePublishValidator.validate(content);
         assertTrue(failures.stream().anyMatch(f -> f.contains(keyword)),
@@ -279,6 +294,24 @@ class TemplatePublishValidatorTest {
         task.setCompletionRuleTypeCode("BUSINESS_OBJECT_STATUS");
         task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"DONE\"}");
         task.setDefinitionVersion(2);
+    }
+
+    private static void setRequirementAnalysisBinding(TemplateDefinitionContent.TaskDef task, String binding) {
+        task.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        task.setTargetContextCode("SOL");
+        task.setTargetObjectType("REQUIREMENT_ANALYSIS");
+        task.setTargetObjectKey("PRE_04_REQUIREMENT_ANALYSIS");
+        task.setBindingConfig(binding);
+        task.setPermissionPolicyRef("PRE_04_REQUIREMENT_ANALYSIS_DEFAULT");
+        task.setCompletionRuleTypeCode("BUSINESS_OBJECT_STATUS");
+        task.setCompletionRuleConfig("{\"schemaVersion\":1,\"requiredStatus\":\"COMPLETED\"}");
+        task.setDefinitionVersion(2);
+    }
+
+    private static String requirementAnalysisBinding() {
+        return "{\"schemaVersion\":2,\"dynamicFormTemplateId\":700,"
+                + "\"dynamicFormTemplateRevisionId\":701,\"dynamicFormRevisionNo\":3,"
+                + "\"dynamicFormRevisionFactVersion\":9}";
     }
 
     private static String fixedCatalog() {

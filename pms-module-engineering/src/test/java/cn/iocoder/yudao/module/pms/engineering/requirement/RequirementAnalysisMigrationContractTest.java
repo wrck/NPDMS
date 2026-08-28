@@ -25,6 +25,8 @@ class RequirementAnalysisMigrationContractTest {
     private static String schemaSql;
     private static String seedSql;
     private static String legacyPermissionSql;
+    private static String compositionSql;
+    private static String compositionSeedSql;
 
     @BeforeAll
     static void loadMigrations() throws IOException {
@@ -36,6 +38,10 @@ class RequirementAnalysisMigrationContractTest {
         legacyPermissionSql = normalizeLines(Files.readString(root.resolve(
                 "sql/migrations/V101__fsol003_retire_legacy_requirement_role_grants.sql"),
                 StandardCharsets.UTF_8));
+        compositionSql = normalizeLines(Files.readString(root.resolve(
+                "sql/migrations/V104__fsol003_dynamic_form_composition.sql"), StandardCharsets.UTF_8));
+        compositionSeedSql = normalizeLines(Files.readString(root.resolve(
+                "sql/migrations/V105__fsol003_dynamic_form_composition_seed.sql"), StandardCharsets.UTF_8));
     }
 
     @Test
@@ -184,6 +190,78 @@ class RequirementAnalysisMigrationContractTest {
                 seedSql.indexOf("INSERT INTO `system_menu`"));
         assertFalse(workBindingSeed.contains("UPDATE `proj_project_template_task_definition`"));
         assertFalse(workBindingSeed.contains("WHERE r.`status` = 'PUBLISHED'"));
+    }
+
+    @Test
+    void requiresEveryPersistedPre04RootToReferenceExactlyOneDynamicFormInstance() {
+        assertTrue(compositionSql.contains("ADD COLUMN `dynamic_form_instance_id` BIGINT NULL"));
+        assertTrue(compositionSql.contains("UNIQUE KEY `uk_sol_preparation_dynamic_form_instance`"));
+        assertTrue(compositionSql.contains("`preparation_type_code` = 'PRE_04_REQUIREMENT_ANALYSIS'"
+                + " AND `dynamic_form_instance_id` IS NOT NULL"));
+        assertTrue(compositionSql.contains("`preparation_type_code` = 'PRE_02_SITE_SURVEY'"
+                + " AND `dynamic_form_instance_id` IS NULL"));
+        assertFalse(compositionSql.contains("REFERENCES `plt_"));
+    }
+
+    @Test
+    void seedsPublishedPre04DynamicFormAndWorkBindingV2WithoutRoleGrant() {
+        assertTrue(compositionSeedSql.contains("WHERE `tenant_id` = 1 AND (`id` = 992203010001"));
+        assertTrue(compositionSeedSql.contains("PROJECT_BACKGROUND__ATTACHMENTS"));
+        for (String code : CORE_SECTION_CODES) {
+            assertTrue(compositionSeedSql.contains("\"field\":\"" + code + "\""), code);
+            assertTrue(compositionSeedSql.contains("\"field\":\"" + code
+                    + "__ATTACHMENTS\""), code + " attachments");
+        }
+        assertTrue(compositionSeedSql.contains("\"schemaVersion\":2"));
+        assertTrue(compositionSeedSql.contains("\"dynamicFormTemplateId\":"));
+        assertTrue(compositionSeedSql.contains("\"dynamicFormTemplateRevisionId\":"));
+        assertTrue(compositionSeedSql.contains("SELECT 992203040001, sourceTemplate.`code`"));
+        assertTrue(compositionSeedSql.contains("targetTemplate.`tenant_id` = 1"));
+        assertFalse(compositionSeedSql.contains("INSERT INTO `system_role_menu`"));
+    }
+
+    @Test
+    void seedsPre04CompatibilityAndSelectionNegativeCombinations() {
+        assertTrue(compositionSeedSql.contains("SOL_PRE04_MISSING_CORE_EXAMPLE"));
+        assertTrue(compositionSeedSql.contains("缺少LOGGING_REQUIREMENT及其附件槽位"));
+        assertTrue(compositionSeedSql.contains("SOL_PRE04_DUPLICATE_CORE_EXAMPLE"));
+        assertTrue(compositionSeedSql.contains("重复项目背景"));
+        assertTrue(compositionSeedSql.contains("SOL_PRE04_DISABLED_COMPATIBLE"));
+        assertTrue(compositionSeedSql.contains("'DISABLED', NULL, 1, 'seed'"));
+        assertTrue(compositionSeedSql.contains("PUBLIC_TENDER/ENGINEERING/REMOTE/NATIONAL"));
+        assertFalse(compositionSeedSql.contains("PLT_NO_PRE04_USAGE_EXAMPLE"));
+        assertTrue(compositionSeedSql.contains("THEN NULL ELSE `dynamic_form_revision_id` END"));
+    }
+
+    @Test
+    void seedsCompleteBrowserAcceptanceProjectAggregateWithoutPrecreatingRequirementFacts() {
+        assertTrue(compositionSeedSql.contains("FSOL003-DYNAMIC-FORM-ACCEPTANCE"));
+        assertTrue(compositionSeedSql.contains("F-SOL-003动态表单浏览器验收项目"));
+        for (String id : new String[]{"992203060001", "992203061001", "992203062001",
+                "992203063001", "992203063002", "992203070001", "992203071001", "992203080001"}) {
+            assertTrue(compositionSeedSql.contains(id), id);
+        }
+        assertTrue(compositionSeedSql.contains("'ACTIVE', 'S1', 'ASSIGNED'"));
+        assertTrue(compositionSeedSql.contains("'PROJECT_MANAGER', 'PRIMARY'"));
+        assertEquals(1, occurrences(compositionSeedSql, "'PROJECT_MANAGER', 'PRIMARY'"));
+        assertEquals(1, occurrences(compositionSeedSql, "'SERVICE_MANAGER_L1', 'PRIMARY'"));
+        assertTrue(compositionSeedSql.contains("'F-SOL-003验收一级服务经理'"));
+        assertTrue(compositionSeedSql.contains("assignment.`member_role` = 'SERVICE_MANAGER_L1'"));
+        assertTrue(compositionSeedSql.contains("assignment.`assignment_type` = 'PRIMARY'"));
+        assertTrue(compositionSeedSql.contains("project.`manager_id` = 1"));
+        assertTrue(compositionSeedSql.contains("revision.`tenant_id` = 1 AND revision.`id` = 992203050001"));
+        assertTrue(compositionSeedSql.contains("SELECT 992203080001, 1, task.`id`"));
+        assertTrue(compositionSeedSql.contains("revision.`id` = 992203050001"));
+        assertTrue(compositionSeedSql.contains("definition.`task_definition_key` = 'T-REQ-ANALYSIS'"));
+        assertTrue(compositionSeedSql.contains("definition.`binding_config`"));
+        assertTrue(compositionSeedSql.contains("'BUSINESS_OBJECT', 'SOL', 'REQUIREMENT_ANALYSIS'"));
+        assertTrue(compositionSeedSql.contains("'PRE_04_REQUIREMENT_ANALYSIS'"));
+        for (String forbidden : new String[]{"INSERT INTO `sol_preparation`",
+                "INSERT INTO `plt_dynamic_form_instance`", "INSERT INTO `plt_file_reference`",
+                "INSERT INTO `plt_idempotency_record`", "INSERT INTO `plt_operation_audit`",
+                "INSERT INTO `plt_outbox_event`"}) {
+            assertFalse(compositionSeedSql.contains(forbidden), forbidden);
+        }
     }
 
     @Test

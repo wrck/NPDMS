@@ -4,9 +4,16 @@ import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplatePageReqVO;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.infra.api.config.ConfigApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormProviderKey;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionFact;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormRevisionUsageQuery;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDeliverableDefinitionDO;
@@ -48,6 +55,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -75,6 +83,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
     private ConfigApi configApi;
     @Resource
     private DictDataApi dictDataApi;
+    @Resource
+    private DynamicFormBusinessInstanceApi dynamicFormBusinessInstanceApi;
     @Resource
     private ProjectTemplateRevisionMapper revisionMapper;
     @Resource
@@ -233,7 +243,8 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                 ? configApi.getConfigValueByKey(PreparationWorkBindingSchema.CONFIG_KEY) : null;
         Set<String> approvedPreparationItemCodes = requiresPreparationCatalog
                 ? getApprovedPreparationItemCodes() : null;
-        List<String> failures = freezeRequirementAnalysisBindings(content);
+        List<String> failures = freezeRequirementAnalysisBindings(content,
+                TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId());
         failures.addAll(TemplatePublishValidator.validate(
                 content, fixedFormCatalog, approvedPreparationItemCodes));
         if (!failures.isEmpty()) {
@@ -285,8 +296,10 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
         return approved;
     }
 
-    private List<String> freezeRequirementAnalysisBindings(TemplateDefinitionContent content) {
+    List<String> freezeRequirementAnalysisBindings(TemplateDefinitionContent content,
+                                                     Long tenantId, Long actorUserId) {
         List<String> failures = new ArrayList<>();
+        List<RequirementAnalysisRevisionCandidate> candidates = new ArrayList<>();
         if (!TemplatePublishValidator.requiresRequirementAnalysisBinding(content)) {
             return failures;
         }
@@ -295,42 +308,70 @@ public class ProjectTemplateServiceImpl implements ProjectTemplateService {
                 continue;
             }
             try {
-                task.setBindingConfig(RequirementAnalysisWorkBindingSchema.freezeAndValidate(
-                        task.getBindingConfig(), this::resolveEnabledDictionaryOptions));
+                if (task.getDynamicFormRevisionId() != null) {
+                    throw new IllegalArgumentException("PRE-04仅允许WorkBinding V2冻结动态表单修订");
+                }
+                RequirementAnalysisWorkBindingSchema.ParsedBinding selected =
+                        RequirementAnalysisWorkBindingSchema.parseForPublication(task.getBindingConfig());
+                DynamicFormRevisionFact fact = dynamicFormBusinessInstanceApi.inspectRevisionForUsage(
+                        new DynamicFormRevisionUsageQuery(tenantId, actorUserId,
+                                new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS"),
+                                selected.dynamicFormTemplateRevisionId(),
+                                RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY,
+                                DynamicFormBusinessAction.REVISION_BINDING_PUBLISH,
+                                selected.dynamicFormRevisionFactVersion()));
+                requireExactPublishedRevision(selected, tenantId, fact);
+                candidates.add(new RequirementAnalysisRevisionCandidate(task, selected, fact));
             } catch (RuntimeException ex) {
-                failures.add("任务【" + task.getTaskCode() + "】PRE-04字典或绑定配置无效");
+                failures.add("任务【" + task.getTaskCode() + "】PRE-04动态表单修订无效");
             }
+        }
+        if (!failures.isEmpty()) return failures;
+        candidates.sort(Comparator
+                .comparing((RequirementAnalysisRevisionCandidate candidate) ->
+                        candidate.inspected().providerKey().ownerContext())
+                .thenComparing(candidate -> candidate.inspected().providerKey().objectType())
+                .thenComparing(candidate -> candidate.inspected().templateId())
+                .thenComparing(candidate -> candidate.inspected().templateRevisionId())
+                .thenComparing(candidate -> candidate.task().getTaskCode()));
+        List<RequirementAnalysisRevisionCandidate> locked = new ArrayList<>();
+        for (RequirementAnalysisRevisionCandidate candidate : candidates) {
+            try {
+                DynamicFormRevisionFact fact = dynamicFormBusinessInstanceApi.lockAndRevalidateRevisionForUsage(
+                        new DynamicFormRevisionRevalidationQuery(actorUserId, candidate.inspected()));
+                requireExactPublishedRevision(candidate.selected(), tenantId, fact);
+                locked.add(new RequirementAnalysisRevisionCandidate(candidate.task(), candidate.selected(), fact));
+            } catch (RuntimeException ex) {
+                failures.add("任务【" + candidate.task().getTaskCode() + "】PRE-04动态表单修订无效");
+            }
+        }
+        if (!failures.isEmpty()) return failures;
+        for (RequirementAnalysisRevisionCandidate candidate : locked) {
+            DynamicFormRevisionFact fact = candidate.inspected();
+            candidate.task().setBindingConfig(RequirementAnalysisWorkBindingSchema.toSnapshot(
+                    new RequirementAnalysisWorkBindingSchema.ParsedBinding(fact.templateId(),
+                            fact.templateRevisionId(), fact.revisionNo(), fact.revisionFactVersion())));
         }
         return failures;
     }
 
-    List<RequirementAnalysisWorkBindingSchema.OptionSnapshot> resolveEnabledDictionaryOptions(
-            String dictionaryType,
-            List<RequirementAnalysisWorkBindingSchema.OptionSnapshot> requestedOptions) {
-        Set<String> requestedCodes = new HashSet<>();
-        requestedOptions.forEach(option -> requestedCodes.add(option.code()));
-        dictDataApi.validateDictDataList(dictionaryType, requestedCodes);
-        List<DictDataRespDTO> values = dictDataApi.getDictDataList(dictionaryType);
-        Map<String, String> enabledLabels = new LinkedHashMap<>();
-        if (values != null) {
-            for (DictDataRespDTO value : values) {
-                if (value != null && CommonStatusEnum.ENABLE.getStatus().equals(value.getStatus())
-                        && dictionaryType.equals(value.getDictType())
-                        && value.getValue() != null && !value.getValue().isBlank()
-                        && value.getLabel() != null && !value.getLabel().isBlank()) {
-                    enabledLabels.put(value.getValue().trim(), value.getLabel().trim());
-                }
-            }
+    private record RequirementAnalysisRevisionCandidate(TemplateDefinitionContent.TaskDef task,
+                                                          RequirementAnalysisWorkBindingSchema.ParsedBinding selected,
+                                                          DynamicFormRevisionFact inspected) {
+    }
+
+    private void requireExactPublishedRevision(RequirementAnalysisWorkBindingSchema.ParsedBinding selected,
+                                               Long tenantId, DynamicFormRevisionFact fact) {
+        if (fact == null || !Objects.equals(tenantId, fact.tenantId())
+                || !Objects.equals(new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS"), fact.providerKey())
+                || !Objects.equals(RequirementAnalysisWorkBindingSchema.TARGET_OBJECT_KEY, fact.requiredUsage())
+                || fact.action() != DynamicFormBusinessAction.REVISION_BINDING_PUBLISH
+                || !Objects.equals(selected.dynamicFormTemplateId(), fact.templateId())
+                || !Objects.equals(selected.dynamicFormTemplateRevisionId(), fact.templateRevisionId())
+                || !Objects.equals(selected.dynamicFormRevisionNo(), fact.revisionNo())
+                || !Objects.equals(selected.dynamicFormRevisionFactVersion(), fact.revisionFactVersion())) {
+            throw new IllegalArgumentException("PRE-04动态表单修订事实已变化");
         }
-        List<RequirementAnalysisWorkBindingSchema.OptionSnapshot> resolved = new ArrayList<>();
-        for (String code : requestedCodes) {
-            String label = enabledLabels.get(code);
-            if (label == null) {
-                throw new IllegalArgumentException("PRE-04选择项未命中启用字典");
-            }
-            resolved.add(new RequirementAnalysisWorkBindingSchema.OptionSnapshot(code, label));
-        }
-        return resolved;
     }
 
     @Override

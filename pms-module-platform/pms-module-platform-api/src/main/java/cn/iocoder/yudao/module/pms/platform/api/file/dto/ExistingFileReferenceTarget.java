@@ -19,10 +19,14 @@ public record ExistingFileReferenceTarget(
         if (expectedScopeVersion == null || expectedScopeVersion < 0) {
             throw new IllegalArgumentException("invalid target file policy version");
         }
-        if (!"SOL".equals(ownerContext)
-                || !"REQUIREMENT_ANALYSIS_SECTION".equals(objectType)
-                || !"SECTION_ATTACHMENT".equals(purposeCode)
-                || !objectId.matches("[1-9][0-9]*")) {
+        boolean requirementSection = "SOL".equals(ownerContext)
+                && "REQUIREMENT_ANALYSIS_SECTION".equals(objectType)
+                && "SECTION_ATTACHMENT".equals(purposeCode);
+        boolean dynamicFormField = "PLATFORM".equals(ownerContext)
+                && "DYNAMIC_FORM_INSTANCE".equals(objectType)
+                && purposeCode.startsWith("FORM_FIELD_ATTACHMENT/")
+                && purposeCode.length() > "FORM_FIELD_ATTACHMENT/".length();
+        if ((!requirementSection && !dynamicFormField) || !objectId.matches("[1-9][0-9]*")) {
             throw new IllegalArgumentException("unsupported existing file attachment target");
         }
         try {

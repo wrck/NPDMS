@@ -120,6 +120,9 @@ docker compose ps
 日常 MySQL/Redis/Flyway 集成验证固定复用 Compose 项目
 `npdms-50eb-test`，数据库为 `npdms_test`，宿主机端口为 MySQL `23316`、
 Redis `26379`。该环境与本地开发环境及按 Task 创建的临时环境隔离。
+真实浏览器或宿主机应用验收固定使用独立端口组：主后端 `59280`、
+跨租户负向后端 `59282`、Vite `19081`。开发环境的 `58080` 和 `18081`
+不得被验收进程占用或停止；Compose 仍只承载 MySQL、Redis 和 Flyway。
 
 ```powershell
 # 首次创建；后续调用只启动并复用原容器和卷

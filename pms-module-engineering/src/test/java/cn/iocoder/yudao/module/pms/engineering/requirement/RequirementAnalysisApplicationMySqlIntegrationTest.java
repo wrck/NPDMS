@@ -11,40 +11,26 @@ import cn.iocoder.yudao.framework.tenant.config.TenantProperties;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantDatabaseInterceptor;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisRootMapper;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisSectionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisProjectQuery;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisSectionListQuery;
-import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisCommandService;
-import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisFilePolicyProvider;
+import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDynamicFormCommandService;
+import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDynamicFormPolicyProvider;
 import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisQueryService;
-import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionItem;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.ExistingFileReferenceTarget;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
-import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
-import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
-import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
-import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
-import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
-import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
-import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
-import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
-import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
-import cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService;
-import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
-import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.*;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.*;
+import cn.iocoder.yudao.module.pms.platform.service.command.*;
+import cn.iocoder.yudao.module.pms.platform.service.dynamicform.*;
+import cn.iocoder.yudao.module.pms.platform.service.file.*;
 import cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingTarget;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchCandidate;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatchResult;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateMatcher;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -52,105 +38,68 @@ import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
 import jakarta.annotation.Resource;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.*;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.*;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.*;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
 @SpringBootTest(classes = RequirementAnalysisApplicationMySqlIntegrationTest.TestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class RequirementAnalysisApplicationMySqlIntegrationTest {
 
-    private static final long TENANT_ID = 0L;
-    private static final long ACTOR_ID = 9_900_013L;
-    private static final AtomicLong PROJECT_SEQUENCE = new AtomicLong(8_330_000_000L);
-    @Resource RequirementAnalysisCommandService commandService;
-    @Resource FileArtifactApi fileArtifactApi;
-    @Resource RequirementAnalysisRootMapper rootMapper;
-    @Resource RequirementAnalysisSectionMapper sectionMapper;
-    @Resource FileArtifactMapper artifactMapper;
-    @Resource FileVersionMapper versionMapper;
-    @Resource FileReferenceMapper referenceMapper;
-    @Resource JdbcTemplate jdbcTemplate;
-    @Resource TransactionTemplate transactionTemplate;
-    @Resource PermissionApi permissionApi;
-    @Resource ProjectScopeApi projectScopeApi;
-    @Resource ProjectParticipantFactApi participantFactApi;
-    @Resource ProjectWorkBindingFactApi workBindingFactApi;
-    @MockitoSpyBean FileEventFactory fileEventFactory;
+    private static final long TENANT = 1L;
+    private static final long ACTOR = 9_900_013L;
+    private static final long TEMPLATE = 992_203_010_001L;
+    private static final long REVISION = 992_203_020_001L;
+    private static final AtomicLong PROJECTS = new AtomicLong(8_340_000_000L);
+
+    @Resource RequirementAnalysisDynamicFormCommandService commands;
+    @Resource RequirementAnalysisRootMapper roots;
+    @Resource FileArtifactMapper artifacts;
+    @Resource FileVersionMapper versions;
+    @Resource FileReferenceMapper references;
+    @Resource JdbcTemplate jdbc;
+    @Resource PermissionApi permissions;
+    @Resource ProjectScopeApi scopes;
+    @Resource ProjectParticipantFactApi participants;
+    @Resource ProjectWorkBindingFactApi bindings;
+    @MockitoSpyBean FileEventFactory events;
 
     private final List<Long> artifactIds = new ArrayList<>();
     private long projectId;
 
-    @Test
-    void v101KeepsLegacyMenusButRemovesEveryNonSuperAdminGrant() {
-        Long menuCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM system_menu "
-                + "WHERE deleted=b'0' AND (id=19010 OR parent_id=19010 "
-                + "OR permission LIKE 'pms:eng-requirement:%')", Long.class);
-        Long nonSuperAdminGrantCount = jdbcTemplate.queryForObject("SELECT COUNT(*) "
-                + "FROM system_role_menu rm JOIN system_role r ON r.id=rm.role_id "
-                + "AND r.tenant_id=rm.tenant_id AND r.deleted=b'0' "
-                + "JOIN system_menu m ON m.id=rm.menu_id AND m.deleted=b'0' "
-                + "WHERE rm.deleted=b'0' AND r.code<>'super_admin' "
-                + "AND (m.id=19010 OR m.parent_id=19010 "
-                + "OR m.permission LIKE 'pms:eng-requirement:%')", Long.class);
-
-        assertEquals(4L, menuCount);
-        assertEquals(0L, nonSuperAdminGrantCount);
-    }
-
     @DynamicPropertySource
-    static void mysqlProperties(DynamicPropertyRegistry registry) {
-        Map<String, String> environment = System.getenv();
-        String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
-        String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
+    static void properties(DynamicPropertyRegistry registry) {
+        Map<String, String> env = System.getenv();
+        String database = env.getOrDefault("NPDMS_DB_NAME", "npdms");
+        String port = env.getOrDefault("NPDMS_MYSQL_PORT", "13306");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
                 + "&characterEncoding=UTF-8&nullCatalogMeansCurrent=true");
-        registry.add("spring.datasource.username", () -> required(environment, "NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required(environment, "NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required(env, "NPDMS_DB_USER"));
+        registry.add("spring.datasource.password", () -> required(env, "NPDMS_DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");
@@ -161,51 +110,43 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        projectId = PROJECT_SEQUENCE.incrementAndGet();
-        TenantContextHolder.setTenantId(TENANT_ID);
+        projectId = PROJECTS.incrementAndGet();
+        TenantContextHolder.setTenantId(TENANT);
         login();
-        reset(permissionApi, projectScopeApi, participantFactApi, workBindingFactApi, fileEventFactory);
-        when(permissionApi.hasAnyPermissions(ACTOR_ID, RequirementAnalysisQueryService.PERMISSION_MANAGE))
-                .thenReturn(true);
-        when(permissionApi.hasAnyPermissions(ACTOR_ID, RequirementAnalysisQueryService.PERMISSION_QUERY))
-                .thenReturn(true);
-        when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
-        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
-        when(participantFactApi.inspect(any())).thenReturn(manager());
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
-        when(workBindingFactApi.inspect(any())).thenReturn(binding());
-        when(workBindingFactApi.lockAndRevalidate(any())).thenReturn(binding());
+        reset(permissions, scopes, participants, bindings, events);
+        when(permissions.hasAnyPermissions(ACTOR, RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(permissions.hasAnyPermissions(ACTOR, RequirementAnalysisQueryService.PERMISSION_QUERY,
+                RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
+        when(scopes.resolveCurrent(any())).thenReturn(scope());
+        when(scopes.lockAndRevalidate(any())).thenReturn(scope());
+        when(participants.inspect(any())).thenReturn(manager());
+        when(participants.lockAndRevalidate(any())).thenReturn(manager());
+        when(bindings.inspect(any())).thenReturn(binding());
+        when(bindings.lockAndRevalidate(any())).thenReturn(binding());
     }
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE r FROM plt_file_reference r JOIN sol_requirement_analysis_section s "
-                + "ON r.tenant_id=s.tenant_id AND CAST(r.object_id AS UNSIGNED)=s.id "
-                + "JOIN sol_preparation p ON p.tenant_id=s.tenant_id AND p.id=s.preparation_id "
-                + "WHERE p.tenant_id=? AND p.project_id=? AND r.object_type='REQUIREMENT_ANALYSIS_SECTION'",
-                TENANT_ID, projectId);
-        jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=? AND actor_id=? "
-                + "AND correlation_id LIKE ?", TENANT_ID, ACTOR_ID, correlationPrefix() + "%");
-        jdbcTemplate.update("DELETE FROM plt_idempotency_record WHERE tenant_id=? AND actor_id=? "
-                + "AND scope_code LIKE 'REQUIREMENT_ANALYSIS_%'", TENANT_ID, ACTOR_ID);
-        jdbcTemplate.update("DELETE FROM sol_requirement_analysis_section WHERE tenant_id=? "
-                + "AND source_section_id IS NOT NULL AND preparation_id IN "
-                + "(SELECT id FROM sol_preparation WHERE tenant_id=? AND project_id=?)",
-                TENANT_ID, TENANT_ID, projectId);
-        jdbcTemplate.update("DELETE FROM sol_requirement_analysis_section WHERE tenant_id=? AND preparation_id IN "
-                        + "(SELECT id FROM sol_preparation WHERE tenant_id=? AND project_id=?)",
-                TENANT_ID, TENANT_ID, projectId);
-        jdbcTemplate.update("DELETE FROM sol_preparation WHERE tenant_id=? AND project_id=? "
-                + "AND source_preparation_id IS NOT NULL", TENANT_ID, projectId);
-        jdbcTemplate.update("DELETE FROM sol_preparation WHERE tenant_id=? AND project_id=?", TENANT_ID, projectId);
+        jdbc.update("DELETE r FROM plt_file_reference r JOIN plt_dynamic_form_instance i "
+                + "ON r.tenant_id=i.tenant_id AND CAST(r.object_id AS UNSIGNED)=i.id "
+                + "JOIN sol_preparation p ON p.tenant_id=i.tenant_id AND p.dynamic_form_instance_id=i.id "
+                + "WHERE p.tenant_id=? AND p.project_id=? AND r.object_type='DYNAMIC_FORM_INSTANCE'", TENANT, projectId);
+        jdbc.update("DELETE i FROM plt_dynamic_form_instance i JOIN sol_preparation p "
+                + "ON p.tenant_id=i.tenant_id AND p.dynamic_form_instance_id=i.id "
+                + "WHERE p.tenant_id=? AND p.project_id=?", TENANT, projectId);
+        jdbc.update("UPDATE sol_preparation SET source_preparation_id=NULL "
+                + "WHERE tenant_id=? AND project_id=?", TENANT, projectId);
+        jdbc.update("DELETE FROM sol_preparation WHERE tenant_id=? AND project_id=?", TENANT, projectId);
+        jdbc.update("DELETE FROM plt_operation_audit WHERE tenant_id=? AND actor_id=? AND correlation_id LIKE ?",
+                TENANT, ACTOR, correlationPrefix() + "%");
+        jdbc.update("DELETE FROM plt_idempotency_record WHERE tenant_id=? AND actor_id=? "
+                + "AND scope_code LIKE 'REQUIREMENT_ANALYSIS_%'", TENANT, ACTOR);
         for (Long artifactId : artifactIds) {
-            jdbcTemplate.update("DELETE FROM plt_outbox_event WHERE tenant_id=? AND aggregate_type='FileArtifact' "
-                    + "AND aggregate_key=?", TENANT_ID, String.valueOf(artifactId));
-            jdbcTemplate.update("DELETE FROM plt_file_reference WHERE tenant_id=? AND artifact_id=?",
-                    TENANT_ID, artifactId);
-            jdbcTemplate.update("DELETE FROM plt_file_version WHERE tenant_id=? AND artifact_id=?",
-                    TENANT_ID, artifactId);
-            jdbcTemplate.update("DELETE FROM plt_file_artifact WHERE tenant_id=? AND id=?", TENANT_ID, artifactId);
+            jdbc.update("DELETE FROM plt_outbox_event WHERE tenant_id=? AND aggregate_type='FileArtifact' "
+                    + "AND aggregate_key=?", TENANT, String.valueOf(artifactId));
+            jdbc.update("DELETE FROM plt_file_reference WHERE tenant_id=? AND artifact_id=?", TENANT, artifactId);
+            jdbc.update("DELETE FROM plt_file_version WHERE tenant_id=? AND artifact_id=?", TENANT, artifactId);
+            jdbc.update("DELETE FROM plt_file_artifact WHERE tenant_id=? AND id=?", TENANT, artifactId);
         }
         artifactIds.clear();
         SecurityContextHolder.clearContext();
@@ -213,134 +154,160 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
     }
 
     @Test
-    void applicationLifecyclePersistsAuditAndExactlyOnceAttachmentEvents() {
-        String initialKey = operationKey("initial");
-        RequirementAnalysisCommandService.CommandResult initial = commandService.createInitial(
-                new RequirementAnalysisCommandService.CreateCommand(projectId, 3, initialKey),
-                actor("initial"));
-        List<RequirementAnalysisSectionDO> sourceSections = sections(initial.preparationId());
-        fillRequiredValues(sourceSections);
-        List<SourceAttachment> sources = List.of(
-                attachSource(sourceSections.get(0)),
-                attachSource(sourceSections.get(1)));
+    void cloneCreatesNEventsAndSameIntentReplayAddsNothing() {
+        var completed = completedWithTwoAttachments("success");
+        long before = attachedEvents();
+        String key = operationKey("clone");
+        var command = new RequirementAnalysisDynamicFormCommandService.CreateRevisionCommand(
+                completed.preparationId(), completed.dynamicFormInstanceId(), completed.solVersion(),
+                completed.dynamicFormInstanceVersion(), key);
 
-        String completeKey = operationKey("complete");
-        RequirementAnalysisCommandService.CommandResult completed = commandService.complete(
-                new RequirementAnalysisCommandService.CompleteCommand(
-                        initial.preparationId(), 0, 0, 3, completeKey), actor("complete"));
-        String revisionKey = operationKey("revision");
-        long eventsBefore = attachedEvents();
-        RequirementAnalysisCommandService.CreateRevisionCommand revisionCommand =
-                new RequirementAnalysisCommandService.CreateRevisionCommand(
-                        completed.preparationId(), completed.version(), completed.contentVersion(), 3, revisionKey);
-        RequirementAnalysisCommandService.CommandResult draft = commandService.createRevision(
-                revisionCommand, actor("revision"));
+        var draft = commands.createRevision(command, actor("clone"));
+        assertEquals(before + 2, attachedEvents());
+        assertEquals(2L, activeReferences(draft.dynamicFormInstanceId()));
+        assertEquals(1L, successAudits(key));
+        assertCreateDraftAudit(key, completed, draft);
 
-        assertEquals(eventsBefore + 2, attachedEvents());
-        assertEquals(2, referenceCount(draft.preparationId()));
-        assertAudit(initialKey, "REQUIREMENT_ANALYSIS_INITIALIZE", null, initial.preparationId(), null, null,
-                null, "DRAFT", null, 1, null, 0, null, 0);
-        assertAudit(completeKey, "REQUIREMENT_ANALYSIS_COMPLETE", completed.preparationId(), null,
-                null, completed.preparationId(), "DRAFT", "COMPLETED", 1, 1, 0, 0, 0, 1);
-        assertAudit(revisionKey, "REQUIREMENT_ANALYSIS_CREATE_DRAFT", null, draft.preparationId(),
-                completed.preparationId(), completed.preparationId(), "COMPLETED", "DRAFT",
-                1, 2, 0, 0, 1, 0);
-
-        RequirementAnalysisCommandService.CommandResult replay = commandService.createRevision(
-                revisionCommand, actor("revision-replay"));
-        assertEquals(draft, replay);
-        assertEquals(eventsBefore + 2, attachedEvents());
-        assertEquals(1L, successAuditCount(revisionKey));
-
-        List<AttachExistingFileVersionItem> replayItems = exactReplayItems(sources, draft.preparationId());
-        transactionTemplate.executeWithoutResult(ignored -> fileArtifactApi.attachExistingVersions(
-                new AttachExistingFileVersionsCommand(operationKey("plt-replay"), replayItems)));
-        assertEquals(eventsBefore + 2, attachedEvents());
-        assertEquals(2, referenceCount(draft.preparationId()));
+        assertEquals(draft, commands.createRevision(command, actor("clone-replay")));
+        assertEquals(before + 2, attachedEvents());
+        assertEquals(2L, activeReferences(draft.dynamicFormInstanceId()));
+        assertEquals(1L, successAudits(key));
     }
 
     @Test
-    void failedSecondAttachmentRollsBackSolReferencesSuccessFactsAndOutbox() {
-        RequirementAnalysisCommandService.CommandResult initial = commandService.createInitial(
-                new RequirementAnalysisCommandService.CreateCommand(projectId, 3, operationKey("failure-initial")),
-                actor("failure-initial"));
-        List<RequirementAnalysisSectionDO> sourceSections = sections(initial.preparationId());
-        fillRequiredValues(sourceSections);
-        attachSource(sourceSections.get(0));
-        attachSource(sourceSections.get(1));
-        RequirementAnalysisCommandService.CommandResult completed = commandService.complete(
-                new RequirementAnalysisCommandService.CompleteCommand(
-                        initial.preparationId(), 0, 0, 3, operationKey("failure-complete")),
-                actor("failure-complete"));
-        long rootsBefore = rootCount();
-        long sectionsBefore = sectionCount();
-        long referencesBefore = referenceCountForProject();
-        long eventsBefore = attachedEvents();
-        String failedKey = operationKey("failure-revision");
-        AtomicLong eventSequence = new AtomicLong();
+    void secondEventFailureRollsBackSolInstanceReferencesIdempotencyAuditAndOutbox() {
+        var completed = completedWithTwoAttachments("failure");
+        long rootsBefore = rootCount(), instancesBefore = instanceCount();
+        long referencesBefore = referenceCount(), eventsBefore = attachedEvents();
+        String key = operationKey("failed-clone");
+        AtomicLong sequence = new AtomicLong();
         doAnswer(invocation -> {
-            if (eventSequence.incrementAndGet() == 2) {
-                throw new IllegalStateException("TEST_SECOND_ATTACHMENT_EVENT_FAILURE");
-            }
+            if (sequence.incrementAndGet() == 2) throw new IllegalStateException("TEST_SECOND_EVENT_FAILURE");
             return invocation.callRealMethod();
-        }).when(fileEventFactory).referenceAttached(any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any());
+        }).when(events).referenceAttached(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
 
-        assertThrows(RuntimeException.class, () -> commandService.createRevision(
-                new RequirementAnalysisCommandService.CreateRevisionCommand(
-                        completed.preparationId(), completed.version(), completed.contentVersion(), 3, failedKey),
-                actor("failure-revision")));
+        assertThrows(RuntimeException.class, () -> commands.createRevision(
+                new RequirementAnalysisDynamicFormCommandService.CreateRevisionCommand(
+                        completed.preparationId(), completed.dynamicFormInstanceId(), completed.solVersion(),
+                        completed.dynamicFormInstanceVersion(), key), actor("failed-clone")));
 
         assertEquals(rootsBefore, rootCount());
-        assertEquals(sectionsBefore, sectionCount());
-        assertEquals(referencesBefore, referenceCountForProject());
+        assertEquals(instancesBefore, instanceCount());
+        assertEquals(referencesBefore, referenceCount());
         assertEquals(eventsBefore, attachedEvents());
-        assertNull(rootMapper.selectDraft(new RequirementAnalysisProjectQuery(TENANT_ID, projectId)));
-        assertEquals(0L, idempotencyCount(failedKey));
-        assertEquals(0L, successAuditCount(failedKey));
+        assertNull(roots.selectDraft(new RequirementAnalysisProjectQuery(TENANT, projectId)));
+        assertEquals(0L, idempotencies(key));
+        assertEquals(0L, successAudits(key));
     }
 
     @Test
-    void concurrentApplicationCompletionHasSingleWinner() throws Exception {
-        RequirementAnalysisCommandService.CommandResult initial = commandService.createInitial(
-                new RequirementAnalysisCommandService.CreateCommand(projectId, 3, operationKey("race-initial")),
-                actor("race-initial"));
-        fillRequiredValues(sections(initial.preparationId()));
+    void concurrentApplicationCompletionHasOneWinner() throws Exception {
+        var draft = initializedAndPatched("race");
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             List<Future<Boolean>> attempts = List.of(
-                    pool.submit(() -> completeAfter(start, initial, "race-a")),
-                    pool.submit(() -> completeAfter(start, initial, "race-b")));
+                    pool.submit(() -> completeAfter(start, draft, "race-a")),
+                    pool.submit(() -> completeAfter(start, draft, "race-b")));
             start.countDown();
             int winners = (attempts.get(0).get(20, TimeUnit.SECONDS) ? 1 : 0)
                     + (attempts.get(1).get(20, TimeUnit.SECONDS) ? 1 : 0);
-
             assertEquals(1, winners);
-            PreparationDO effective = rootMapper.selectEffective(
-                    new RequirementAnalysisProjectQuery(TENANT_ID, projectId));
+            PreparationDO effective = roots.selectEffective(new RequirementAnalysisProjectQuery(TENANT, projectId));
             assertNotNull(effective);
-            assertEquals(initial.preparationId(), effective.getId());
+            assertEquals(draft.preparationId(), effective.getId());
             assertEquals("COMPLETED", effective.getStatusCode());
-            assertNull(rootMapper.selectDraft(new RequirementAnalysisProjectQuery(TENANT_ID, projectId)));
-            assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
+            assertEquals(1L, jdbc.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
                     + "WHERE tenant_id=? AND actor_id=? AND operation_code='REQUIREMENT_ANALYSIS_COMPLETE' "
                     + "AND result_code='SUCCESS' AND correlation_id LIKE ?", Long.class,
-                    TENANT_ID, ACTOR_ID, correlationPrefix() + "race-%"));
+                    TENANT, ACTOR, correlationPrefix() + "race-%"));
         } finally {
             pool.shutdownNow();
             assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
         }
     }
 
-    private boolean completeAfter(CountDownLatch start, RequirementAnalysisCommandService.CommandResult initial,
+    @Test
+    void v104RejectsNullInstanceIdForDraftPre04Root() {
+        var draft = commands.createInitial(
+                new RequirementAnalysisDynamicFormCommandService.CreateCommand(projectId, operationKey("v104")),
+                actor("v104"));
+        assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM sol_preparation WHERE tenant_id=? "
+                + "AND preparation_type_code='PRE_04_REQUIREMENT_ANALYSIS' "
+                + "AND dynamic_form_instance_id IS NULL", Long.class, TENANT));
+        DataAccessException failure = assertThrows(DataAccessException.class, () -> jdbc.update(
+                "UPDATE sol_preparation SET dynamic_form_instance_id=NULL WHERE tenant_id=? AND id=?",
+                TENANT, draft.preparationId()));
+        assertTrue(failure.getMostSpecificCause().getMessage().contains("chk_sol_preparation_pre04_markers"));
+        assertNotNull(jdbc.queryForObject("SELECT dynamic_form_instance_id FROM sol_preparation "
+                + "WHERE tenant_id=? AND id=?", Long.class, TENANT, draft.preparationId()));
+    }
+
+    @Test
+    void v105KeepsFixedFourDimensionNoMatchBehavior() {
+        List<TemplateMatchCandidate> candidates = jdbc.query("SELECT t.id, t.code, t.name, t.match_priority, "
+                        + "r.id revision_id, r.revision_no, r.signing_method, r.project_category, "
+                        + "r.implementation_method, r.major_project_level FROM proj_project_template t "
+                        + "JOIN proj_project_template_revision r ON r.tenant_id=t.tenant_id "
+                        + "AND r.template_id=t.id AND r.status='PUBLISHED' AND r.deleted=b'0' "
+                        + "WHERE t.tenant_id=? AND t.status='ACTIVE' AND t.deleted=b'0' "
+                        + "AND r.revision_no=(SELECT MAX(latest.revision_no) "
+                        + "FROM proj_project_template_revision latest WHERE latest.tenant_id=r.tenant_id "
+                        + "AND latest.template_id=r.template_id AND latest.status='PUBLISHED' "
+                        + "AND latest.deleted=b'0') ORDER BY t.match_priority, t.id",
+                (rs, rowNum) -> {
+                    TemplateMatchCandidate candidate = new TemplateMatchCandidate();
+                    candidate.setTemplateId(rs.getLong("id"));
+                    candidate.setCode(rs.getString("code"));
+                    candidate.setName(rs.getString("name"));
+                    candidate.setMatchPriority(rs.getInt("match_priority"));
+                    candidate.setTemplateRevisionId(rs.getLong("revision_id"));
+                    candidate.setLatestRevisionNo(rs.getInt("revision_no"));
+                    candidate.setSigningMethod(rs.getString("signing_method"));
+                    candidate.setProjectCategory(rs.getString("project_category"));
+                    candidate.setImplementationMethod(rs.getString("implementation_method"));
+                    candidate.setMajorProjectLevel(rs.getString("major_project_level"));
+                    return candidate;
+                }, TENANT);
+
+        TemplateMatchResult result = TemplateMatcher.match(candidates,
+                "PUBLIC_TENDER", "ENGINEERING", "REMOTE", "NATIONAL");
+        assertEquals(TemplateMatchResult.Outcome.NO_MATCH, result.getOutcome());
+        assertEquals(0, result.getCandidates().size());
+        assertNull(result.getMatched());
+    }
+
+    private RequirementAnalysisDynamicFormCommandService.CommandResult initializedAndPatched(String suffix) {
+        var initial = commands.createInitial(new RequirementAnalysisDynamicFormCommandService.CreateCommand(
+                projectId, operationKey(suffix + "-initial")), actor(suffix + "-initial"));
+        Map<String, Object> values = Map.of("PROJECT_BACKGROUND", "<p>项目背景</p>",
+                "PROJECT_OBJECTIVE", "<p>项目目标</p>", "NETWORK_TOPOLOGY", "<p>网络拓扑</p>");
+        return commands.patch(new RequirementAnalysisDynamicFormCommandService.PatchCommand(
+                initial.preparationId(), initial.solVersion(), initial.dynamicFormInstanceVersion(), values,
+                operationKey(suffix + "-patch")), actor(suffix + "-patch"));
+    }
+
+    private RequirementAnalysisDynamicFormCommandService.CommandResult completedWithTwoAttachments(String suffix) {
+        var draft = initializedAndPatched(suffix);
+        attach(draft.dynamicFormInstanceId(), "PROJECT_BACKGROUND__ATTACHMENTS");
+        attach(draft.dynamicFormInstanceId(), "PROJECT_OBJECTIVE__ATTACHMENTS");
+        var completed = commands.complete(new RequirementAnalysisDynamicFormCommandService.CompleteCommand(
+                draft.preparationId(), draft.solVersion(), draft.dynamicFormInstanceVersion(),
+                operationKey(suffix + "-complete")), actor(suffix + "-complete"));
+        verify(participants, atLeast(2)).lockAndRevalidate(argThat(query -> "S1".equals(query.requiredCurrentStage())));
+        return completed;
+    }
+
+    private boolean completeAfter(CountDownLatch start,
+                                  RequirementAnalysisDynamicFormCommandService.CommandResult draft,
                                   String suffix) throws InterruptedException {
         start.await(5, TimeUnit.SECONDS);
-        TenantContextHolder.setTenantId(TENANT_ID);
+        TenantContextHolder.setTenantId(TENANT);
         login();
         try {
-            commandService.complete(new RequirementAnalysisCommandService.CompleteCommand(
-                    initial.preparationId(), 0, 0, 3, operationKey(suffix)), actor(suffix));
+            commands.complete(new RequirementAnalysisDynamicFormCommandService.CompleteCommand(
+                    draft.preparationId(), draft.solVersion(), draft.dynamicFormInstanceVersion(),
+                    operationKey(suffix)), actor(suffix));
             return true;
         } catch (RuntimeException failure) {
             return false;
@@ -350,275 +317,155 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
         }
     }
 
-    private void assertAudit(String operationId, String operationCode,
-                             Long draftBefore, Long draftAfter, Long effectiveBefore, Long effectiveAfter,
-                             String statusBefore, String statusAfter,
-                             Integer businessBefore, Integer businessAfter,
-                             Integer contentBefore, Integer contentAfter,
-                             Integer aggregateBefore, Integer aggregateAfter) {
-        String snapshot = jdbcTemplate.queryForObject("SELECT detail_snapshot FROM plt_operation_audit "
-                + "WHERE tenant_id=? AND actor_id=? AND operation_code=? AND result_code='SUCCESS' "
-                + "AND idempotency_key_digest=SHA2(?,256)", String.class,
-                TENANT_ID, ACTOR_ID, operationCode, operationId);
-        Map<?, ?> detail = JsonUtils.parseObject(snapshot, Map.class);
-        assertNotNull(detail);
-        assertEquals(operationId, detail.get("operationId"));
-        assertEquals(draftBefore, number(detail.get("draftPreparationIdBefore")));
-        assertEquals(draftAfter, number(detail.get("draftPreparationIdAfter")));
-        assertEquals(effectiveBefore, number(detail.get("effectivePreparationIdBefore")));
-        assertEquals(effectiveAfter, number(detail.get("effectivePreparationIdAfter")));
-        assertEquals(statusBefore, detail.get("statusBefore"));
-        assertEquals(statusAfter, detail.get("statusAfter"));
-        assertEquals(businessBefore, integer(detail.get("businessVersionBefore")));
-        assertEquals(businessAfter, integer(detail.get("businessVersionAfter")));
-        assertEquals(contentBefore, integer(detail.get("contentVersionBefore")));
-        assertEquals(contentAfter, integer(detail.get("contentVersionAfter")));
-        assertEquals(aggregateBefore, integer(detail.get("aggregateVersionBefore")));
-        assertEquals(aggregateAfter, integer(detail.get("aggregateVersionAfter")));
-        assertTrue(detail.containsKey("sections"));
-        assertFalse(snapshot.contains("filled requirement content"));
-    }
-
-    private List<AttachExistingFileVersionItem> exactReplayItems(
-            List<SourceAttachment> sources, Long draftPreparationId) {
-        Map<String, RequirementAnalysisSectionDO> targets = sections(draftPreparationId).stream()
-                .collect(java.util.stream.Collectors.toMap(RequirementAnalysisSectionDO::getSectionCode, row -> row));
-        List<AttachExistingFileVersionItem> items = new ArrayList<>();
-        for (SourceAttachment source : sources) {
-            RequirementAnalysisSectionDO target = targets.get(source.section().getSectionCode());
-            List<RequirementAnalysisQueryService.AttachmentFact> targetFacts = JsonUtils.parseArray(
-                    target.getAttachmentReferenceSnapshot(), RequirementAnalysisQueryService.AttachmentFact.class);
-            RequirementAnalysisQueryService.AttachmentFact targetFact = targetFacts.stream()
-                    .filter(fact -> fact.artifactId().equals(source.artifactId())).findFirst().orElseThrow();
-            items.add(new AttachExistingFileVersionItem(
-                    new FileArtifactVersionRevalidationQuery(source.artifactId(), 1, "SOL",
-                            "REQUIREMENT_ANALYSIS_SECTION", String.valueOf(source.section().getId()),
-                            "SECTION_ATTACHMENT", source.referenceKey(), "READ",
-                            new FileFactVersion(1, 0, 0), 7L),
-                    new ExistingFileReferenceTarget("SOL", "REQUIREMENT_ANALYSIS_SECTION",
-                            String.valueOf(target.getId()), "SECTION_ATTACHMENT", targetFact.referenceKey(), 7L)));
-        }
-        return items;
-    }
-
-    private SourceAttachment attachSource(RequirementAnalysisSectionDO section) {
+    private void attach(Long instanceId, String field) {
         LocalDateTime now = LocalDateTime.now();
         FileArtifactDO artifact = new FileArtifactDO();
-        artifact.setName("requirement-" + section.getSectionCode() + ".png");
-        artifact.setCategoryCode("REQUIREMENT_ANALYSIS_ATTACHMENT");
-        artifact.setOwnerContext("SOL");
-        artifact.setLifecycleStatusCode("ACTIVE");
-        artifact.setVersion(1);
-        artifact.setCreator(String.valueOf(ACTOR_ID));
-        artifact.setUpdater(String.valueOf(ACTOR_ID));
-        artifact.setCreateTime(now);
-        artifact.setUpdateTime(now);
-        artifact.setTenantId(TENANT_ID);
-        assertEquals(1, artifactMapper.insert(artifact));
-        artifactIds.add(artifact.getId());
+        artifact.setName(field + ".png"); artifact.setCategoryCode("DYNAMIC_FORM_ATTACHMENT");
+        artifact.setOwnerContext("PLATFORM"); artifact.setLifecycleStatusCode("ACTIVE"); artifact.setVersion(1);
+        artifact.setCreator(String.valueOf(ACTOR)); artifact.setUpdater(String.valueOf(ACTOR));
+        artifact.setCreateTime(now); artifact.setUpdateTime(now); artifact.setTenantId(TENANT);
+        assertEquals(1, artifacts.insert(artifact)); artifactIds.add(artifact.getId());
 
         FileVersionDO version = new FileVersionDO();
-        version.setTenantId(TENANT_ID);
-        version.setArtifactId(artifact.getId());
-        version.setVersionNo(1);
-        version.setInfraFileId(artifact.getId() + 9_000_000L);
-        version.setAvailabilityVersion(0);
-        version.setSha256("a".repeat(64));
-        version.setSizeBytes(128L);
-        version.setDeclaredMediaType("image/png");
-        version.setDetectedMediaType("image/png");
-        version.setScanStatusCode("SKIPPED");
-        version.setAvailabilityStatusCode("AVAILABLE");
-        version.setCreatedBy(ACTOR_ID);
-        version.setCreatedAt(now);
-        assertEquals(1, versionMapper.insert(version));
+        version.setTenantId(TENANT); version.setArtifactId(artifact.getId()); version.setVersionNo(1);
+        version.setInfraFileId(artifact.getId() + 9_000_000L); version.setAvailabilityVersion(0);
+        version.setSha256("a".repeat(64)); version.setSizeBytes(128L); version.setDeclaredMediaType("image/png");
+        version.setDetectedMediaType("image/png"); version.setScanStatusCode("SKIPPED");
+        version.setAvailabilityStatusCode("AVAILABLE"); version.setCreatedBy(ACTOR); version.setCreatedAt(now);
+        assertEquals(1, versions.insert(version));
 
-        String referenceKey = UUID.randomUUID().toString();
         FileReferenceDO reference = new FileReferenceDO();
-        reference.setTenantId(TENANT_ID);
-        reference.setOwnerContext("SOL");
-        reference.setObjectType("REQUIREMENT_ANALYSIS_SECTION");
-        reference.setObjectId(String.valueOf(section.getId()));
-        reference.setPurposeCode("SECTION_ATTACHMENT");
-        reference.setReferenceKey(referenceKey);
-        reference.setArtifactId(artifact.getId());
-        reference.setFileVersionNo(1);
-        reference.setSensitivityCode("INTERNAL");
-        reference.setStatusCode("ACTIVE");
-        reference.setScopeVersion(7L);
-        reference.setVersion(0);
-        reference.setCreator(String.valueOf(ACTOR_ID));
-        reference.setUpdater(String.valueOf(ACTOR_ID));
-        reference.setCreateTime(now);
-        reference.setUpdateTime(now);
-        assertEquals(1, referenceMapper.insert(reference));
-
-        var fact = new RequirementAnalysisQueryService.AttachmentFact(artifact.getId(), 1, referenceKey,
-                new FileFactVersion(1, 0, 0), 7L);
-        jdbcTemplate.update("UPDATE sol_requirement_analysis_section SET attachment_reference_snapshot=? "
-                        + "WHERE tenant_id=? AND id=?", JsonUtils.toJsonString(List.of(fact)), TENANT_ID,
-                section.getId());
-        section.setAttachmentReferenceSnapshot(JsonUtils.toJsonString(List.of(fact)));
-        return new SourceAttachment(section, artifact.getId(), referenceKey);
+        reference.setTenantId(TENANT); reference.setOwnerContext("PLATFORM");
+        reference.setObjectType("DYNAMIC_FORM_INSTANCE"); reference.setObjectId(String.valueOf(instanceId));
+        reference.setPurposeCode("FORM_FIELD_ATTACHMENT/" + field);
+        reference.setReferenceKey(UUID.randomUUID().toString()); reference.setArtifactId(artifact.getId());
+        reference.setFileVersionNo(1); reference.setSensitivityCode("INTERNAL"); reference.setStatusCode("ACTIVE");
+        reference.setScopeVersion(7L); reference.setVersion(0); reference.setCreator(String.valueOf(ACTOR));
+        reference.setUpdater(String.valueOf(ACTOR)); reference.setCreateTime(now); reference.setUpdateTime(now);
+        assertEquals(1, references.insert(reference));
     }
 
-    private void fillRequiredValues(List<RequirementAnalysisSectionDO> rows) {
-        rows.stream().filter(RequirementAnalysisSectionDO::getRequiredFlag).forEach(row ->
-                jdbcTemplate.update("UPDATE sol_requirement_analysis_section SET value_snapshot=? "
-                                + "WHERE tenant_id=? AND id=?", "\"filled requirement content\"", TENANT_ID,
-                        row.getId()));
-    }
-
-    private List<RequirementAnalysisSectionDO> sections(Long preparationId) {
-        return sectionMapper.selectList(new RequirementAnalysisSectionListQuery(TENANT_ID, preparationId));
-    }
-
-    private long referenceCount(Long preparationId) {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_file_reference r "
-                + "JOIN sol_requirement_analysis_section s ON r.tenant_id=s.tenant_id "
-                + "AND CAST(r.object_id AS UNSIGNED)=s.id WHERE s.tenant_id=? AND s.preparation_id=? "
-                + "AND r.object_type='REQUIREMENT_ANALYSIS_SECTION' AND r.status_code='ACTIVE'",
-                Long.class, TENANT_ID, preparationId);
-    }
-
-    private long referenceCountForProject() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_file_reference r "
-                + "JOIN sol_requirement_analysis_section s ON r.tenant_id=s.tenant_id "
-                + "AND CAST(r.object_id AS UNSIGNED)=s.id JOIN sol_preparation p "
-                + "ON p.tenant_id=s.tenant_id AND p.id=s.preparation_id "
-                + "WHERE p.tenant_id=? AND p.project_id=? AND r.object_type='REQUIREMENT_ANALYSIS_SECTION'",
-                Long.class, TENANT_ID, projectId);
-    }
-
+    private long rootCount() { return count("SELECT COUNT(*) FROM sol_preparation WHERE tenant_id=? "
+            + "AND project_id=? AND preparation_type_code='PRE_04_REQUIREMENT_ANALYSIS'"); }
+    private long instanceCount() { return count("SELECT COUNT(*) FROM plt_dynamic_form_instance i "
+            + "JOIN sol_preparation p ON p.tenant_id=i.tenant_id AND p.dynamic_form_instance_id=i.id "
+            + "WHERE p.tenant_id=? AND p.project_id=?"); }
+    private long referenceCount() { return count("SELECT COUNT(*) FROM plt_file_reference r "
+            + "JOIN plt_dynamic_form_instance i ON i.tenant_id=r.tenant_id AND CAST(r.object_id AS UNSIGNED)=i.id "
+            + "JOIN sol_preparation p ON p.tenant_id=i.tenant_id AND p.dynamic_form_instance_id=i.id "
+            + "WHERE p.tenant_id=? AND p.project_id=? AND r.object_type='DYNAMIC_FORM_INSTANCE'"); }
+    private long count(String sql) { return jdbc.queryForObject(sql, Long.class, TENANT, projectId); }
+    private long activeReferences(Long instanceId) { return jdbc.queryForObject("SELECT COUNT(*) "
+            + "FROM plt_file_reference WHERE tenant_id=? AND object_type='DYNAMIC_FORM_INSTANCE' "
+            + "AND object_id=? AND status_code='ACTIVE'", Long.class, TENANT, String.valueOf(instanceId)); }
     private long attachedEvents() {
-        if (artifactIds.isEmpty()) return 0L;
-        String placeholders = String.join(",", java.util.Collections.nCopies(artifactIds.size(), "?"));
-        List<Object> arguments = new ArrayList<>();
-        arguments.add(TENANT_ID);
-        arguments.addAll(artifactIds.stream().map(String::valueOf).toList());
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=? "
-                + "AND event_type='FileReferenceAttached' AND aggregate_key IN (" + placeholders + ")",
-                Long.class, arguments.toArray());
+        if (artifactIds.isEmpty()) return 0;
+        String marks = String.join(",", Collections.nCopies(artifactIds.size(), "?"));
+        List<Object> args = new ArrayList<>(); args.add(TENANT);
+        args.addAll(artifactIds.stream().map(String::valueOf).toList());
+        return jdbc.queryForObject("SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=? "
+                + "AND event_type='FileReferenceAttached' AND aggregate_key IN (" + marks + ")",
+                Long.class, args.toArray());
+    }
+    private long idempotencies(String key) { return jdbc.queryForObject("SELECT COUNT(*) FROM "
+            + "plt_idempotency_record WHERE tenant_id=? AND actor_id=? AND idempotency_key=?",
+            Long.class, TENANT, ACTOR, key); }
+    private long successAudits(String key) { return jdbc.queryForObject("SELECT COUNT(*) FROM "
+            + "plt_operation_audit WHERE tenant_id=? AND actor_id=? AND result_code='SUCCESS' "
+            + "AND idempotency_key_digest=SHA2(?,256)", Long.class, TENANT, ACTOR, key); }
+
+    @SuppressWarnings("unchecked")
+    private void assertCreateDraftAudit(String key,
+                                        RequirementAnalysisDynamicFormCommandService.CommandResult source,
+                                        RequirementAnalysisDynamicFormCommandService.CommandResult draft) {
+        String snapshot = jdbc.queryForObject("SELECT detail_snapshot FROM plt_operation_audit "
+                        + "WHERE tenant_id=? AND actor_id=? AND result_code='SUCCESS' "
+                        + "AND idempotency_key_digest=SHA2(?,256)", String.class, TENANT, ACTOR, key);
+        Map<String, Object> detail = JsonUtils.parseObject(snapshot, Map.class);
+        assertEquals(key, detail.get("operationId"));
+        assertEquals("CREATE_DRAFT", detail.get("action"));
+        assertEquals(projectId, number(detail.get("projectId")));
+        assertEquals(draft.preparationId(), number(detail.get("preparationId")));
+        assertEquals(draft.businessVersion().longValue(), number(detail.get("businessVersion")));
+        assertEquals(draft.dynamicFormInstanceId(), number(detail.get("dynamicFormInstanceId")));
+        assertEquals(TEMPLATE, number(detail.get("dynamicFormTemplateId")));
+        assertEquals(REVISION, number(detail.get("dynamicFormTemplateRevisionId")));
+        assertNull(detail.get("draftPreparationIdBefore"));
+        assertEquals(draft.preparationId(), number(detail.get("draftPreparationIdAfter")));
+        assertEquals(source.preparationId(), number(detail.get("effectivePreparationIdBefore")));
+        assertEquals(source.preparationId(), number(detail.get("effectivePreparationIdAfter")));
+        assertNull(detail.get("statusBefore"));
+        assertEquals("DRAFT", detail.get("statusAfter"));
+        assertNull(detail.get("solVersionBefore"));
+        assertEquals(draft.solVersion().longValue(), number(detail.get("solVersionAfter")));
+        assertNull(detail.get("contentVersionBefore"));
+        assertEquals(draft.contentVersion().longValue(), number(detail.get("contentVersionAfter")));
+        assertNull(detail.get("instanceVersionBefore"));
+        assertEquals(draft.dynamicFormInstanceVersion().longValue(), number(detail.get("instanceVersionAfter")));
+        assertFalse(((List<?>) detail.get("changedFieldKeys")).isEmpty());
+        assertEquals(2, ((List<?>) detail.get("controlledFileSummary")).size());
+        assertEquals(ACTOR, number(detail.get("actorId")));
+        assertNotNull(detail.get("occurredAt"));
+        assertFalse(snapshot.contains("<p>项目背景</p>"));
+        assertFalse(snapshot.contains("<p>项目目标</p>"));
     }
 
-    private long rootCount() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_preparation WHERE tenant_id=? "
-                + "AND project_id=? AND preparation_type_code='PRE_04_REQUIREMENT_ANALYSIS'",
-                Long.class, TENANT_ID, projectId);
+    private static long number(Object value) {
+        return ((Number) value).longValue();
     }
 
-    private long sectionCount() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sol_requirement_analysis_section s "
-                + "JOIN sol_preparation p ON p.tenant_id=s.tenant_id AND p.id=s.preparation_id "
-                + "WHERE p.tenant_id=? AND p.project_id=?", Long.class, TENANT_ID, projectId);
+    private RequirementAnalysisDynamicFormCommandService.Actor actor(String suffix) {
+        return new RequirementAnalysisDynamicFormCommandService.Actor(TENANT, ACTOR, correlationPrefix() + suffix);
     }
-
-    private long idempotencyCount(String key) {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? "
-                + "AND actor_id=? AND idempotency_key=?", Long.class, TENANT_ID, ACTOR_ID, key);
-    }
-
-    private long successAuditCount(String operationId) {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit WHERE tenant_id=? "
-                + "AND actor_id=? AND result_code='SUCCESS' AND idempotency_key_digest=SHA2(?,256)",
-                Long.class, TENANT_ID, ACTOR_ID, operationId);
-    }
-
-    private RequirementAnalysisCommandService.Actor actor(String suffix) {
-        return new RequirementAnalysisCommandService.Actor(TENANT_ID, ACTOR_ID,
-                correlationPrefix() + suffix);
-    }
-
-    private String operationKey(String suffix) {
-        return "fsol003-it-" + projectId + "-" + suffix;
-    }
-
-    private String correlationPrefix() {
-        return "F-SOL003-IT-" + projectId + "-";
-    }
-
-    private ProjectScopeResult scope() {
-        return new ProjectScopeResult(projectId, 7L, Set.of(projectId), Set.of());
-    }
-
-    private ProjectParticipantFact manager() {
-        return new ProjectParticipantFact(projectId, ACTOR_ID,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 11L);
-    }
-
+    private String operationKey(String suffix) { return "fsol003-dynamic-it-" + projectId + "-" + suffix; }
+    private String correlationPrefix() { return "F-SOL003-DYNAMIC-IT-" + projectId + "-"; }
+    private ProjectScopeResult scope() { return new ProjectScopeResult(projectId, 7L, Set.of(projectId), Set.of()); }
+    private ProjectParticipantFact manager() { return new ProjectParticipantFact(projectId, ACTOR,
+            Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY", "ACTIVE", "S1", 3, 11L); }
     private ProjectWorkBindingFact binding() {
+        String snapshot = "{\"schemaVersion\":2,\"dynamicFormTemplateId\":" + TEMPLATE
+                + ",\"dynamicFormTemplateRevisionId\":" + REVISION
+                + ",\"dynamicFormRevisionNo\":1,\"dynamicFormRevisionFactVersion\":1}";
         return new ProjectWorkBindingFact(projectId, 3, 201L, 1, 301L, 1, 401L, 1,
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.workBindingTypeCode(),
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.targetContextCode(),
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.targetObjectType(),
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.targetObjectKey(),
-                null, null, null, null, 17L, 1,
-                "{\"schemaVersion\":1,\"catalogCode\":\"PRE_04_REQUIREMENT_ANALYSIS\","
-                        + "\"catalogVersion\":1,\"extensionItems\":[]}");
+                null, null, null, null, 17L, 1, snapshot, TEMPLATE, REVISION, 1, 1);
     }
-
-    private static Long number(Object value) {
-        return value == null ? null : ((Number) value).longValue();
-    }
-
-    private static Integer integer(Object value) {
-        return value == null ? null : ((Number) value).intValue();
-    }
-
-    private static void login() {
-        SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(ACTOR_ID).setUserType(2),
-                new MockHttpServletRequest());
-    }
-
-    private static String required(Map<String, String> environment, String name) {
-        String value = environment.get(name);
+    private static void login() { SecurityFrameworkUtils.setLoginUser(
+            new LoginUser().setId(ACTOR).setUserType(2), new MockHttpServletRequest()); }
+    private static String required(Map<String, String> env, String name) {
+        String value = env.get(name);
         if (value == null || value.isBlank()) throw new IllegalStateException("missing environment variable: " + name);
         return value;
-    }
-
-    private record SourceAttachment(RequirementAnalysisSectionDO section, Long artifactId, String referenceKey) {
     }
 
     @SpringBootConfiguration(proxyBeanMethods = false)
     @MapperScan({"cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.file",
-            "cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox"})
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox",
+            "cn.iocoder.yudao.module.pms.platform.dal.mysql.dynamicform"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            RequirementAnalysisCommandService.class, RequirementAnalysisFilePolicyProvider.class,
-            FileBusinessObjectPolicyRegistry.class, ExistingFileVersionAttachmentService.class,
-            FileArtifactApiImpl.class, FileEventFactory.class, PlatformTransactionalOutboxWriter.class,
-            PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
+            RequirementAnalysisDynamicFormCommandService.class, RequirementAnalysisDynamicFormPolicyProvider.class,
+            DynamicFormBusinessInstanceApiImpl.class, DynamicFormBusinessInstanceService.class,
+            DynamicFormBusinessObjectPolicyProviderRegistry.class, DynamicFormSchemaService.class,
+            DynamicFormFilePolicyProvider.class, FileBusinessObjectPolicyRegistry.class,
+            ExistingFileVersionAttachmentService.class, FileArtifactApiImpl.class, FileEventFactory.class,
+            PlatformTransactionalOutboxWriter.class, PlatformCommandExecutionApiImpl.class, OperationAuditApiImpl.class})
     static class TestApplication {
-
-        @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) {
-            return new JdbcTemplate(dataSource);
-        }
-
+        @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean TransactionTemplate transactionTemplate(PlatformTransactionManager manager) {
             return new TransactionTemplate(manager);
         }
-
-        @Bean PermissionApi permissionApi() {
-            return mock(PermissionApi.class);
-        }
-
-        @Bean ProjectScopeApi projectScopeApi() {
-            return mock(ProjectScopeApi.class);
-        }
-
-        @Bean ProjectParticipantFactApi participantFactApi() {
-            return mock(ProjectParticipantFactApi.class);
-        }
-
-        @Bean ProjectWorkBindingFactApi projectWorkBindingFactApi() {
-            return mock(ProjectWorkBindingFactApi.class);
-        }
-
+        @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
+        @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
+        @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
+        @Bean ProjectWorkBindingFactApi workBindingFactApi() { return mock(ProjectWorkBindingFactApi.class); }
         @Bean TenantLineInnerInterceptor tenantLineInnerInterceptor(MybatisPlusInterceptor interceptor) {
             TenantLineInnerInterceptor inner = new TenantLineInnerInterceptor(
                     new TenantDatabaseInterceptor(new TenantProperties()));

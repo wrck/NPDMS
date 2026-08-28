@@ -43,9 +43,9 @@ class ProjectWorkBindingFactApiImplTest {
             + item("OPTICAL_MODULE", 60) + "]}";
     private static final String BINDING_WITH_EXTENSION = BINDING.replace("]}",
             "," + extensionItem() + "]}");
-    private static final String REQUIREMENT_ANALYSIS_BINDING = "{\"schemaVersion\":1,"
-            + "\"catalogCode\":\"PRE_04_REQUIREMENT_ANALYSIS\",\"catalogVersion\":1,"
-            + "\"extensionItems\":[]}";
+    private static final String REQUIREMENT_ANALYSIS_BINDING = "{\"schemaVersion\":2,"
+            + "\"dynamicFormTemplateId\":700,\"dynamicFormTemplateRevisionId\":701,"
+            + "\"dynamicFormRevisionNo\":3,\"dynamicFormRevisionFactVersion\":9}";
 
     @Mock
     private ProjectMasterMapper projectMapper;
@@ -142,6 +142,10 @@ class ProjectWorkBindingFactApiImplTest {
         assertEquals(900L, fact.templateRevisionId());
         assertEquals(2, fact.templateRevisionNo());
         assertEquals(null, fact.preparationTemplateCode());
+        assertEquals(700L, fact.dynamicFormTemplateId());
+        assertEquals(701L, fact.dynamicFormTemplateRevisionId());
+        assertEquals(3, fact.dynamicFormRevisionNo());
+        assertEquals(9, fact.dynamicFormRevisionFactVersion());
 
         ProjectWorkBindingTarget unsupported = new ProjectWorkBindingTarget(
                 "BUSINESS_OBJECT", "SOL", "OTHER", "OTHER");
@@ -161,6 +165,7 @@ class ProjectWorkBindingFactApiImplTest {
 
         assertEquals(REQUIREMENT_ANALYSIS_BINDING, fact.bindingParameterSnapshot());
         assertEquals("PRE_04_REQUIREMENT_ANALYSIS", fact.targetObjectKey());
+        assertEquals(701L, fact.dynamicFormTemplateRevisionId());
     }
 
     @Test

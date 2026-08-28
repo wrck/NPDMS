@@ -6,10 +6,7 @@
         <p>在线填写、完成版本冻结与历史对比</p>
       </div>
       <div class="heading-actions">
-        <el-button
-          :disabled="!overview?.currentEffective"
-          @click="openHistory"
-        >
+        <el-button :disabled="!overview?.currentEffective" @click="openHistory">
           完成历史
         </el-button>
         <el-button :loading="loading" @click="refreshWorkspace">刷新</el-button>
@@ -107,7 +104,7 @@
           <strong>当前尚不能完成</strong>
           <ul>
             <li v-for="blocker in detail.completionBlockers" :key="blockerKey(blocker)">
-              {{ blockerSectionName(blocker.sectionCode) }}：{{ blockerLabel(blocker.code) }}
+              {{ blocker.fieldKey || '表单' }}：{{ blocker.message || blockerLabel(blocker.code) }}
             </li>
           </ul>
         </section>
@@ -119,55 +116,27 @@
             ><span>状态</span><strong>{{ statusLabel(detail.status) }}</strong></div
           >
           <div
-            ><span>内容版本</span><strong>{{ detail.contentVersion }}</strong></div
+            ><span>表单实例版本</span><strong>{{ detail.dynamicFormInstanceVersion }}</strong></div
           >
           <div>
             <span>版本关系</span>
             <strong>{{ relationLabel }}</strong>
           </div>
           <div
-            ><span>模板修订</span><strong>#{{ detail.templateRevisionId }}</strong></div
+            ><span>模板修订</span><strong>R{{ detail.dynamicFormRevisionNo }}</strong></div
           >
           <div>
             <span>完成时间</span><strong>{{ formatDateTime(detail.completedAt) }}</strong>
           </div>
         </div>
 
-        <div class="workspace">
-          <nav class="section-navigation" aria-label="需求分析章节">
-            <button
-              v-for="section in detail.sections"
-              :key="section.sectionId"
-              type="button"
-              :class="{ 'section-link--active': selectedSectionId === section.sectionId }"
-              @click="switchSection(section.sectionId)"
-            >
-              <span>{{ section.sectionName }}</span>
-              <small>
-                {{ section.sectionKind === 'CORE' ? '核心' : '扩展' }}
-                <template v-if="section.required"> · 必填</template>
-              </small>
-              <small :class="`attachment-status--${section.attachmentSyncStatus.toLowerCase()}`">
-                {{ attachmentStatusLabel(section.attachmentSyncStatus) }}
-              </small>
-            </button>
-          </nav>
-          <main class="section-canvas">
-            <RequirementAnalysisSectionCard
-              v-if="selectedSection"
-              ref="sectionCardRef"
-              :key="`${detail.preparationId}-${selectedSection.sectionId}-${selectedSection.version}`"
-              :preparation-id="detail.preparationId"
-              :preparation-version="detail.version"
-              :content-version="detail.contentVersion"
-              :project-version="project.version || 0"
-              :section="selectedSection"
-              :reload="load"
-              @edit-state-change="sectionEditState = $event"
-            />
-            <el-empty v-else description="当前版本没有可显示章节" />
-          </main>
-        </div>
+        <RequirementAnalysisDynamicForm
+          ref="dynamicFormRef"
+          :key="`${detail.preparationId}-${detail.dynamicFormInstanceVersion}`"
+          :detail="detail"
+          :reload="reloadSelectedDetail"
+          @dirty-change="formDirty = $event"
+        />
       </template>
     </template>
   </ContentWrap>
@@ -186,23 +155,21 @@ import { useWindowSize } from '@vueuse/core'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
 import type {
-  RequirementAnalysisAttachmentSyncStatus,
   RequirementAnalysisCompletionBlockerCode,
   RequirementAnalysisCompletionBlockerVO,
   RequirementAnalysisDetailVO,
   RequirementAnalysisOverviewVO
 } from '@/api/pms/engineering/requirement-analysis'
 import { useMessage } from '@/hooks/web/useMessage'
-import RequirementAnalysisSectionCard from './RequirementAnalysisSectionCard.vue'
+import { onBeforeRouteLeave } from 'vue-router'
+import RequirementAnalysisDynamicForm from './RequirementAnalysisDynamicForm.vue'
 import RequirementAnalysisHistoryDrawer from './RequirementAnalysisHistoryDrawer.vue'
 import RequirementAnalysisCompareDrawer from './RequirementAnalysisCompareDrawer.vue'
 import {
   createRequirementIntentStore,
   requirementAnalysisLayout,
-  requirementAnalysisTransitionDecision,
   requirementIntentOf
 } from './requirementAnalysisInteraction'
-import type { RequirementAnalysisSectionEditState } from './requirementAnalysisInteraction'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const { width } = useWindowSize()
@@ -216,36 +183,17 @@ const commandError = ref('')
 const overview = ref<RequirementAnalysisOverviewVO>()
 const detail = ref<RequirementAnalysisDetailVO>()
 const selectedPreparationId = ref<number>()
-const selectedSectionId = ref<number>()
 const historyRef = ref<InstanceType<typeof RequirementAnalysisHistoryDrawer>>()
 const compareRef = ref<InstanceType<typeof RequirementAnalysisCompareDrawer>>()
-const sectionCardRef = ref<{
+const dynamicFormRef = ref<{
   save: () => Promise<boolean>
-  discardBodyChanges: () => void
+  discardChanges: () => void
 }>()
-const sectionEditState = ref<RequirementAnalysisSectionEditState>()
+const formDirty = ref(false)
 const intentKeys = createRequirementIntentStore()
 
-const selectedSection = computed(() =>
-  detail.value?.sections.find((section) => section.sectionId === selectedSectionId.value)
-)
 const hasAction = (actions: string[], candidates: string[]) =>
   candidates.some((action) => actions.includes(action))
-const effectiveEditState = computed<RequirementAnalysisSectionEditState>(() => {
-  const editState = sectionEditState.value
-  if (editState && editState.sectionId === selectedSection.value?.sectionId) {
-    return editState
-  }
-  const actions = selectedSection.value?.allowedActions || []
-  const editable = actions.includes('EDIT')
-  return {
-    sectionId: selectedSection.value?.sectionId || 0,
-    bodyDirty: false,
-    attachmentSyncStatus: selectedSection.value?.attachmentSyncStatus || 'IN_SYNC',
-    guardsNavigation:
-      editable && selectedSection.value?.attachmentSyncStatus !== 'IN_SYNC'
-  }
-})
 const relationLabel = computed(() => {
   if (detail.value?.currentDraft) return '当前草稿'
   if (detail.value?.currentEffective) return '当前有效'
@@ -276,58 +224,32 @@ const commandErrorText = (error: any) => {
   const code = error?.data?.code || error?.code || error?.message
   return code ? `操作未完成：${String(code)}` : '操作未完成，请刷新权威事实后重试。'
 }
-const attachmentStatusLabel = (status: RequirementAnalysisAttachmentSyncStatus) =>
-  ({ IN_SYNC: '附件已同步', PENDING: '附件待提交', UNKNOWN: '附件事实未知' })[status]
 const blockerLabel = (code: RequirementAnalysisCompletionBlockerCode) =>
   ({
     REQUIRED_VALUE_MISSING: '必填内容未填写',
-    VALUE_INVALID: '内容不符合冻结模板约束',
-    ATTACHMENT_SET_PENDING: '附件当前集合尚未保存',
-    ATTACHMENT_FACT_INVALID: '已保存附件事实已失效',
-    FACT_PROVIDER_UNAVAILABLE: '附件事实暂不可确认'
+    FORM_VALUE_INVALID: '内容不符合冻结模板约束',
+    CONTROLLED_FILE_INVALID: '受控文件事实已失效',
+    FACT_PROVIDER_UNAVAILABLE: '表单或文件事实暂不可确认'
   })[code]
-const blockerSectionName = (sectionCode: string) =>
-  detail.value?.sections.find((section) => section.sectionCode === sectionCode)?.sectionName ||
-  sectionCode
 const blockerKey = (blocker: RequirementAnalysisCompletionBlockerVO) =>
-  `${blocker.sectionCode}:${blocker.code}`
+  `${blocker.fieldKey || 'FORM'}:${blocker.code}`
 
 const loadDetail = async (preparationId: number) => {
   detailLoading.value = true
   try {
     detail.value = await RequirementAnalysisApi.getDetail(preparationId)
-    sectionEditState.value = undefined
+    formDirty.value = false
     selectedPreparationId.value = preparationId
-    const stillVisible = detail.value.sections.some(
-      (section) => section.sectionId === selectedSectionId.value
-    )
-    if (!stillVisible) selectedSectionId.value = detail.value.sections[0]?.sectionId
+    return detail.value
   } finally {
     detailLoading.value = false
   }
 }
-const guardCurrentSection = async (target: string) => {
-  const decision = requirementAnalysisTransitionDecision(effectiveEditState.value)
-  if (decision === 'ALLOW') return true
-  if (decision === 'BLOCK_UNKNOWN_ATTACHMENT_FACTS') {
-    message.warning(`附件事实暂不可确认，不能${target}；请刷新后重试`)
-    return false
-  }
-  if (decision === 'SAVE_ATTACHMENT_SET') {
-    try {
-      await message.confirm(`当前章节附件待提交，必须先保存完整附件集合，才能${target}。是否保存？`)
-    } catch {
-      return false
-    }
-    try {
-      return (await sectionCardRef.value?.save()) === true
-    } catch {
-      return false
-    }
-  }
+const guardCurrentForm = async (target: string) => {
+  if (!formDirty.value) return true
   try {
-    await message.confirm(`当前章节正文尚未保存，是否放弃这些本地修改并${target}？`)
-    sectionCardRef.value?.discardBodyChanges()
+    await message.confirm(`当前表单尚未保存，是否放弃这些本地修改并${target}？`)
+    dynamicFormRef.value?.discardChanges()
     return true
   } catch {
     return false
@@ -335,7 +257,7 @@ const guardCurrentSection = async (target: string) => {
 }
 const selectVersion = async (preparationId: number) => {
   if (preparationId === selectedPreparationId.value) return
-  if (!(await guardCurrentSection('切换版本'))) return
+  if (!(await guardCurrentForm('切换版本'))) return
   errorText.value = ''
   try {
     await loadDetail(preparationId)
@@ -355,7 +277,6 @@ const load = async () => {
     else {
       detail.value = undefined
       selectedPreparationId.value = undefined
-      selectedSectionId.value = undefined
     }
   } catch {
     overview.value = undefined
@@ -366,24 +287,11 @@ const load = async () => {
   }
 }
 const refreshWorkspace = async () => {
-  if (
-    effectiveEditState.value.attachmentSyncStatus === 'UNKNOWN' &&
-    !effectiveEditState.value.bodyDirty
-  ) {
-    await load()
-    return
-  }
-  if (!(await guardCurrentSection('刷新'))) return
+  if (!(await guardCurrentForm('刷新'))) return
   await load()
 }
-const switchSection = async (sectionId: number) => {
-  if (sectionId === selectedSectionId.value) return
-  if (!(await guardCurrentSection('切换章节'))) return
-  selectedSectionId.value = sectionId
-  sectionEditState.value = undefined
-}
 const openHistory = async () => {
-  if (!props.project.id || !(await guardCurrentSection('查看完成历史'))) return
+  if (!props.project.id || !(await guardCurrentForm('查看完成历史'))) return
   historyRef.value?.open(
     props.project.id,
     selectedPreparationId.value,
@@ -411,13 +319,12 @@ const createInitial = async () => {
 }
 const complete = async () => {
   if (!detail.value) return
-  if (!(await guardCurrentSection('完成草稿'))) return
+  if (!(await guardCurrentForm('完成草稿'))) return
   await message.confirm('完成后正文与附件将永久冻结，是否继续？')
   const payload = {
     preparationId: detail.value.preparationId,
-    preparationVersion: detail.value.version,
-    contentVersion: detail.value.contentVersion,
-    projectVersion: props.project.version || 0
+    instanceVersion: detail.value.dynamicFormInstanceVersion,
+    solVersion: detail.value.version
   }
   const intent = requirementIntentOf('COMPLETE', payload)
   commandLoading.value = true
@@ -425,9 +332,8 @@ const complete = async () => {
   try {
     await RequirementAnalysisApi.completeDraft(
       payload.preparationId,
-      payload.preparationVersion,
-      payload.contentVersion,
-      payload.projectVersion,
+      payload.instanceVersion,
+      payload.solVersion,
       intentKeys.key(intent)
     )
     intentKeys.complete(intent)
@@ -444,9 +350,8 @@ const createRevision = async () => {
   await message.confirm('将复制当前有效版本的冻结目录、正文和附件，是否创建修订草稿？')
   const payload = {
     preparationId: detail.value.preparationId,
-    preparationVersion: detail.value.version,
-    contentVersion: detail.value.contentVersion,
-    projectVersion: props.project.version || 0
+    instanceVersion: detail.value.dynamicFormInstanceVersion,
+    solVersion: detail.value.version
   }
   const intent = requirementIntentOf('CREATE_REVISION', payload)
   commandLoading.value = true
@@ -454,9 +359,8 @@ const createRevision = async () => {
   try {
     await RequirementAnalysisApi.createNextDraft(
       payload.preparationId,
-      payload.preparationVersion,
-      payload.contentVersion,
-      payload.projectVersion,
+      payload.instanceVersion,
+      payload.solVersion,
       intentKeys.key(intent)
     )
     intentKeys.complete(intent)
@@ -475,7 +379,20 @@ const openCompare = (preparationId: number, targetPreparationId: number) => {
   compareRef.value?.open(preparationId, targetPreparationId)
 }
 
+const reloadSelectedDetail = async () => {
+  if (!selectedPreparationId.value) throw new Error('没有选中的需求分析版本')
+  return await loadDetail(selectedPreparationId.value)
+}
+const beforeUnload = (event: BeforeUnloadEvent) => {
+  if (!formDirty.value) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
 watch(() => props.project.id, load, { immediate: true })
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+onBeforeRouteLeave(async () => await guardCurrentForm('离开当前页面'))
 </script>
 
 <style scoped lang="scss">

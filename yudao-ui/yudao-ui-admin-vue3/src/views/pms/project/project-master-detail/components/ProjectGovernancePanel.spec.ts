@@ -1,13 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const panel = readFileSync(new URL('./ProjectGovernancePanel.vue', import.meta.url), 'utf8')
-const detail = readFileSync(new URL('../index.vue', import.meta.url), 'utf8')
-const legacy = readFileSync(new URL('../../project-governance/index.vue', import.meta.url), 'utf8')
-const api = readFileSync(
-  new URL('../../../../../api/pms/project/projects/index.ts', import.meta.url),
-  'utf8'
-)
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const panel = read('./ProjectGovernancePanel.vue')
+const detail = read('../index.vue')
+const legacy = read('../../project-governance/index.vue')
+const api = read('../../../../../api/pms/project/projects/index.ts')
 
 describe('F-PROJ-006 project governance panel', () => {
   it('uses the locked guard, action and history APIs with concurrency headers', () => {

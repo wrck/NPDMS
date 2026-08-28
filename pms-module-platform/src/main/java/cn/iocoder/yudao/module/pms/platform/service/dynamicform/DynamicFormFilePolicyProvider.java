@@ -1,5 +1,10 @@
 package cn.iocoder.yudao.module.pms.platform.service.dynamicform;
 
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormInstancePolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormOwnerKey;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileBusinessObjectPolicyProvider;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
@@ -43,6 +48,8 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
             "application/vnd.openxmlformats-officedocument.presentationml.presentation");
     private static final Set<String> WRITE_ACTIONS = Set.of(FileActionCodes.UPLOAD, FileActionCodes.REFERENCE,
             FileActionCodes.REPLACE, FileActionCodes.DETACH);
+    private static final Set<String> BUSINESS_LIFECYCLE_ACTIONS = Set.of(
+            FileActionCodes.ARCHIVE, FileActionCodes.INVALIDATE);
     private static final Set<String> READ_ACTIONS = Set.of(
             FileActionCodes.READ, FileActionCodes.DOWNLOAD, FileActionCodes.PREVIEW);
 
@@ -50,6 +57,7 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
     private final DynamicFormTemplateRevisionMapper revisionMapper;
     private final DynamicFormSchemaService schemaService;
     private final PermissionApi permissionApi;
+    private final DynamicFormBusinessObjectPolicyProviderRegistry businessPolicyRegistry;
 
     @Override
     public String ownerContext() {
@@ -101,21 +109,62 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         Long instanceId = parseInstanceId(objectId);
         if (instanceId == null) return denied();
         try {
-            PlatformDynamicFormInstanceDO instance = lock
-                    ? instanceMapper.selectForUpdate(new DynamicFormInstanceLockQuery(tenantId, instanceId))
-                    : instanceMapper.selectByRow(new DynamicFormInstanceRowQuery(tenantId, instanceId));
-            if (!validInstanceBinding(tenantId, instanceId, instance)
-                    || (lock && !Objects.equals(instance.getTemplateRevisionId(), expectedScopeVersion))) {
+            PlatformDynamicFormInstanceDO instance = instanceMapper.selectByRow(
+                    new DynamicFormInstanceRowQuery(tenantId, instanceId));
+            if (!validInstanceBinding(tenantId, instanceId, instance)) {
                 return denied();
             }
-            if (!authorized(actorUserId, action, instance)) return policy(false, instance.getTemplateRevisionId());
+            if (isManual(instance)) {
+                if (lock && !Objects.equals(instance.getTemplateRevisionId(), expectedScopeVersion)) return denied();
+                if (!authorized(actorUserId, action, instance)) {
+                    return policy(false, instance.getTemplateRevisionId(), "MUTABLE");
+                }
+            }
             DynamicFormTemplateRevisionDO revision = revisionMapper.selectByRow(
                     new DynamicFormRevisionRowQuery(tenantId, instance.getTemplateRevisionId()));
             if (!validFrozenRevision(instance, revision)) return denied();
             DynamicFormSchemaService.SchemaFields fields = schemaService.parseAndValidate(
                     revision.getFormConfJson(), revision.getFormRulesJson(), revision.getEngineCode(),
                     revision.getDesignerVersion(), revision.getRendererVersion());
-            return policy(fields.isFileField(fieldKey), instance.getTemplateRevisionId());
+            if (!fields.isFileField(fieldKey)) return denied();
+            DynamicFormBusinessAction businessAction = READ_ACTIONS.contains(action)
+                    ? DynamicFormBusinessAction.FILE_READ
+                    : WRITE_ACTIONS.contains(action) || BUSINESS_LIFECYCLE_ACTIONS.contains(action)
+                    ? DynamicFormBusinessAction.FILE_WRITE : null;
+            DynamicFormPolicyFact businessPolicy = null;
+            if (!isManual(instance)) {
+                if (businessAction == null) return denied();
+                DynamicFormOwnerKey owner = new DynamicFormOwnerKey(instance.getOwnerContext(), instance.getObjectType(),
+                        instance.getObjectId());
+                java.util.Optional<DynamicFormPolicyFact> prevalidated = businessPolicyRegistry.prevalidatedFilePolicy(
+                        tenantId, actorUserId, owner, instanceId, businessAction,
+                        lock ? expectedScopeVersion : null);
+                if (prevalidated.isPresent()) {
+                    businessPolicy = prevalidated.get();
+                } else if (lock) {
+                    DynamicFormPolicyFact inspected = businessPolicyRegistry.inspectInstance(
+                            new DynamicFormInstancePolicyQuery(tenantId, actorUserId, owner.providerKey(), owner,
+                                    instanceId, businessAction));
+                    if (!Objects.equals(inspected.scopeVersion(), expectedScopeVersion)) return denied();
+                    businessPolicy = businessPolicyRegistry.lockAndRevalidate(new DynamicFormPolicyRevalidationQuery(
+                            tenantId, actorUserId, owner.providerKey(), owner, instanceId, inspected));
+                } else {
+                    businessPolicy = businessPolicyRegistry.inspectInstance(new DynamicFormInstancePolicyQuery(
+                            tenantId, actorUserId, owner.providerKey(), owner, instanceId, businessAction));
+                }
+                if (lock && !Objects.equals(businessPolicy.scopeVersion(), expectedScopeVersion)) return denied();
+                if (!businessPolicy.allowed()) return denied();
+            }
+            if (lock) {
+                PlatformDynamicFormInstanceDO locked = instanceMapper.selectForUpdate(
+                        new DynamicFormInstanceLockQuery(tenantId, instanceId));
+                if (!sameFrozenInstance(instance, locked)) return denied();
+                instance = locked;
+            }
+            if (isManual(instance)) return policy(true, instance.getTemplateRevisionId(), "MUTABLE");
+            String mutability = businessPolicy.ownerStateSummary().contains("COMPLETED")
+                    ? "IMMUTABLE" : "MUTABLE";
+            return policy(true, businessPolicy.scopeVersion(), mutability);
         } catch (RuntimeException unavailable) {
             return denied();
         }
@@ -142,12 +191,37 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
                 && Objects.equals(revision.getRendererVersion(), instance.getRendererVersion());
     }
 
+    private boolean sameFrozenInstance(PlatformDynamicFormInstanceDO inspected,
+                                       PlatformDynamicFormInstanceDO locked) {
+        return locked != null
+                && Objects.equals(inspected.getTenantId(), locked.getTenantId())
+                && Objects.equals(inspected.getId(), locked.getId())
+                && Objects.equals(inspected.getOwnerContext(), locked.getOwnerContext())
+                && Objects.equals(inspected.getObjectType(), locked.getObjectType())
+                && Objects.equals(inspected.getObjectId(), locked.getObjectId())
+                && Objects.equals(inspected.getTemplateId(), locked.getTemplateId())
+                && Objects.equals(inspected.getTemplateRevisionId(), locked.getTemplateRevisionId())
+                && Objects.equals(inspected.getTemplateRevisionNo(), locked.getTemplateRevisionNo())
+                && Objects.equals(inspected.getEngineCode(), locked.getEngineCode())
+                && Objects.equals(inspected.getDesignerVersion(), locked.getDesignerVersion())
+                && Objects.equals(inspected.getRendererVersion(), locked.getRendererVersion())
+                && Objects.equals(inspected.getVersion(), locked.getVersion());
+    }
+
     private boolean validInstanceBinding(Long tenantId, Long instanceId, PlatformDynamicFormInstanceDO instance) {
         return instance != null && Objects.equals(instance.getTenantId(), tenantId)
-                && Objects.equals(instance.getId(), instanceId) && OWNER_CONTEXT.equals(instance.getOwnerContext())
+                && Objects.equals(instance.getId(), instanceId)
+                && ((OWNER_CONTEXT.equals(instance.getOwnerContext())
                 && INSTANCE_OBJECT_TYPE.equals(instance.getObjectType())
-                && String.valueOf(instanceId).equals(instance.getObjectId())
+                && String.valueOf(instanceId).equals(instance.getObjectId()))
+                || (!OWNER_CONTEXT.equals(instance.getOwnerContext())
+                && instance.getObjectType() != null && !instance.getObjectType().isBlank()
+                && instance.getObjectId() != null && !instance.getObjectId().isBlank()))
                 && instance.getTemplateRevisionId() != null;
+    }
+
+    private boolean isManual(PlatformDynamicFormInstanceDO instance) {
+        return OWNER_CONTEXT.equals(instance.getOwnerContext()) && INSTANCE_OBJECT_TYPE.equals(instance.getObjectType());
     }
 
     private String parsePurpose(FileReferenceSetKey key) {
@@ -185,8 +259,8 @@ public class DynamicFormFilePolicyProvider implements FileBusinessObjectPolicyPr
         }
     }
 
-    private FileBusinessObjectPolicyFact policy(boolean allowed, Long scopeVersion) {
-        return new FileBusinessObjectPolicyFact(allowed, scopeVersion, "MUTABLE", "MULTIPLE",
+    private FileBusinessObjectPolicyFact policy(boolean allowed, Long scopeVersion, String mutability) {
+        return new FileBusinessObjectPolicyFact(allowed, scopeVersion, mutability, "MULTIPLE",
                 CATEGORIES, MEDIA_TYPES, MAX_SIZE_BYTES, "INTERNAL");
     }
 

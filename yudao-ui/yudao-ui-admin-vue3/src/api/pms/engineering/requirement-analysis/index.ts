@@ -1,4 +1,11 @@
 import request from '@/config/axios'
+import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
+
+export type RequirementAnalysisAction =
+  | 'CREATE_INITIAL_DRAFT'
+  | 'PATCH_FORM'
+  | 'COMPLETE'
+  | 'CREATE_DRAFT'
 
 export type RequirementAnalysisFieldType =
   | 'RICH_TEXT'
@@ -39,14 +46,14 @@ export type RequirementAnalysisAttachmentSyncErrorCode =
 
 export type RequirementAnalysisCompletionBlockerCode =
   | 'REQUIRED_VALUE_MISSING'
-  | 'VALUE_INVALID'
-  | 'ATTACHMENT_SET_PENDING'
-  | 'ATTACHMENT_FACT_INVALID'
+  | 'FORM_VALUE_INVALID'
+  | 'CONTROLLED_FILE_INVALID'
   | 'FACT_PROVIDER_UNAVAILABLE'
 
 export interface RequirementAnalysisCompletionBlockerVO {
   code: RequirementAnalysisCompletionBlockerCode
-  sectionCode: string
+  fieldKey?: string
+  message?: string
 }
 
 export interface RequirementAnalysisVersionSummaryVO {
@@ -61,10 +68,13 @@ export interface RequirementAnalysisVersionSummaryVO {
   version: number
   templateId: number
   templateRevisionId: number
+  dynamicFormInstanceId: number
+  dynamicFormInstanceVersion: number
+  dynamicFormRevisionNo: number
   completedBy?: number
   completedAt?: string
   completionBlockers: RequirementAnalysisCompletionBlockerVO[]
-  allowedActions: string[]
+  allowedActions: RequirementAnalysisAction[]
 }
 
 export interface RequirementAnalysisSectionVO {
@@ -88,14 +98,23 @@ export interface RequirementAnalysisSectionVO {
 }
 
 export interface RequirementAnalysisDetailVO extends RequirementAnalysisVersionSummaryVO {
-  sections: RequirementAnalysisSectionVO[]
+  engineCode: string
+  designerVersion: string
+  rendererVersion: string
+  formConfJson: JsonObject
+  formRulesJson: JsonObject[]
+  values: JsonObject
+  controlledFiles: Record<string, DynamicFormFileFactVO[]>
+  declarativeValidationResult: 'VALID' | 'INVALID' | 'UNKNOWN'
+  /** 已取消章节候选的只读兼容字段；新工作区不读取。 */
+  sections?: RequirementAnalysisSectionVO[]
 }
 
 export interface RequirementAnalysisOverviewVO {
   projectId: number
   currentEffective: RequirementAnalysisVersionSummaryVO | null
   draft: RequirementAnalysisVersionSummaryVO | null
-  allowedActions: string[]
+  allowedActions: RequirementAnalysisAction[]
 }
 
 export interface RequirementAnalysisCommandResultVO {
@@ -117,12 +136,27 @@ export interface RequirementAnalysisSectionDiffVO {
   attachmentsChanged: boolean
 }
 
+export interface RequirementAnalysisFieldDiffVO {
+  fieldKey: string
+  fieldLabel?: string
+  changeType: 'ADDED' | 'REMOVED' | 'CHANGED' | 'UNCHANGED'
+  sourceValue?: unknown
+  targetValue?: unknown
+  controlledFilesChanged: boolean
+}
+
 export interface RequirementAnalysisCompareVO {
   sourcePreparationId: number
   sourceBusinessVersion: number
   targetPreparationId: number
   targetBusinessVersion: number
-  sections: RequirementAnalysisSectionDiffVO[]
+  fields: RequirementAnalysisFieldDiffVO[]
+  /** 已取消章节候选的兼容返回；新对比抽屉不读取。 */
+  sections?: RequirementAnalysisSectionDiffVO[]
+}
+
+export interface PatchRequirementAnalysisFormReqVO {
+  values: JsonObject
 }
 
 export interface PatchRequirementAnalysisSectionReqVO {
@@ -173,35 +207,49 @@ export const patchSection = (
     headers: { 'If-Match': String(data.expectedPreparationVersion) }
   })
 
+export const patchForm = (
+  preparationId: number,
+  expectedInstanceVersion: number,
+  expectedSolVersion: number,
+  data: PatchRequirementAnalysisFormReqVO
+) =>
+  request.put<RequirementAnalysisCommandResultVO>({
+    method: 'PATCH',
+    url: `${baseUrl}/${preparationId}/form`,
+    data,
+    headers: {
+      'If-Match': String(expectedInstanceVersion),
+      'X-SOL-If-Match': String(expectedSolVersion)
+    }
+  })
+
 export const completeDraft = (
   preparationId: number,
-  expectedPreparationVersion: number,
-  expectedContentVersion: number,
-  expectedProjectVersion: number,
+  expectedInstanceVersion: number,
+  expectedSolVersion: number,
   idempotencyKey: string
 ) =>
   request.post<RequirementAnalysisCommandResultVO>({
     url: `${baseUrl}/${preparationId}/actions/submit`,
     params: { type: 'PRE_04' },
-    data: { expectedContentVersion, expectedProjectVersion },
     headers: {
-      'If-Match': String(expectedPreparationVersion),
+      'If-Match': String(expectedInstanceVersion),
+      'X-SOL-If-Match': String(expectedSolVersion),
       'Idempotency-Key': idempotencyKey
     }
   })
 
 export const createNextDraft = (
   preparationId: number,
-  expectedPreparationVersion: number,
-  expectedContentVersion: number,
-  expectedProjectVersion: number,
+  expectedInstanceVersion: number,
+  expectedSolVersion: number,
   idempotencyKey: string
 ) =>
   request.post<RequirementAnalysisCommandResultVO>({
     url: `${baseUrl}/${preparationId}/actions/create-draft`,
-    data: { expectedContentVersion, expectedProjectVersion },
     headers: {
-      'If-Match': String(expectedPreparationVersion),
+      'If-Match': String(expectedInstanceVersion),
+      'X-SOL-If-Match': String(expectedSolVersion),
       'Idempotency-Key': idempotencyKey
     }
   })

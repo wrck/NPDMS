@@ -3,66 +3,49 @@ package cn.iocoder.yudao.module.pms.engineering.api.requirement;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.engineering.api.requirement.dto.RequirementAnalysisFact;
-import cn.iocoder.yudao.module.pms.engineering.api.requirement.dto.RequirementAnalysisFactQuery;
-import cn.iocoder.yudao.module.pms.engineering.api.requirement.dto.RequirementAnalysisFactRevalidationQuery;
-import cn.iocoder.yudao.module.pms.engineering.api.requirement.dto.RequirementAnalysisFactVector;
-import cn.iocoder.yudao.module.pms.engineering.api.requirement.dto.RequirementAnalysisFileFact;
-import cn.iocoder.yudao.module.pms.engineering.api.requirement.dto.RequirementAnalysisSectionFact;
+import cn.iocoder.yudao.module.pms.engineering.api.requirement.dto.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.RequirementAnalysisSectionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisRootMapper;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisSectionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisProjectQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisRowQuery;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.RequirementAnalysisSectionListQuery;
-import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
-import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessAction;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.DynamicFormBusinessInstanceApi;
+import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
-import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.project.api.organization.ProjectOrganizationFactApi;
-import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFact;
-import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFactQuery;
-import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFactRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.organization.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
-import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
-import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
-import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE;
-import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_FILE_FACT_INVALID;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID;
-import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 
+/** 向SCH-01公开明确完成PRE-04及其冻结PLATFORM实例事实。 */
 @Service
 @RequiredArgsConstructor
 public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactApi {
-
-    private static final String OWNER_CONTEXT = "SOL";
-    private static final String OBJECT_TYPE = "REQUIREMENT_ANALYSIS_SECTION";
-    private static final String PURPOSE_CODE = "SECTION_ATTACHMENT";
-    private static final String COMPLETED = "COMPLETED";
+    private static final DynamicFormProviderKey PROVIDER = new DynamicFormProviderKey("SOL", "REQUIREMENT_ANALYSIS");
+    private static final String FILE_PURPOSE_PREFIX = "FORM_FIELD_ATTACHMENT/";
+    private static final ProjectWorkBindingTarget WORK_BINDING_TARGET =
+            ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
 
     private final RequirementAnalysisRootMapper rootMapper;
-    private final RequirementAnalysisSectionMapper sectionMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectOrganizationFactApi organizationFactApi;
-    private final FileArtifactApi fileArtifactApi;
+    private final ProjectWorkBindingFactApi workBindingFactApi;
+    private final DynamicFormBusinessInstanceApi dynamicFormApi;
 
     @Override
     @Transactional(readOnly = true)
@@ -70,10 +53,12 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         requireQuery(query);
         TrustedActor actor = trustedActor();
         requireQueryPermission(actor);
-        requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
+        requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
+                query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
         ProjectOrganizationFact project = organizationFactApi.inspect(new ProjectOrganizationFactQuery(query.projectId()));
         requireProject(project, query.projectId());
+        ProjectWorkBindingFact binding = requireBinding(workBindingFactApi.inspect(
+                new ProjectWorkBindingFactQuery(query.projectId(), WORK_BINDING_TARGET)), project);
         PreparationDO selected = query.preparationId() == null
                 ? rootMapper.selectEffective(new RequirementAnalysisProjectQuery(actor.tenantId(), query.projectId()))
                 : rootMapper.selectById(new RequirementAnalysisRowQuery(actor.tenantId(), query.preparationId()));
@@ -81,9 +66,10 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         requireCompleted(selected, query.projectId());
         PreparationDO effective = rootMapper.selectEffective(
                 new RequirementAnalysisProjectQuery(actor.tenantId(), query.projectId()));
-        List<RequirementAnalysisSectionDO> sections = orderedSections(sectionMapper.selectList(
-                new RequirementAnalysisSectionListQuery(actor.tenantId(), selected.getId())));
-        return fact(selected, effective, project.projectVersion(), sections, inspectFiles(sections));
+        DynamicFormInstanceFact form = inspectForm(selected, actor);
+        requireComposition(selected, binding, form,
+                effective != null && Objects.equals(selected.getId(), effective.getId()));
+        return fact(selected, effective, project, binding, form);
     }
 
     @Override
@@ -92,7 +78,6 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         requireQuery(query);
         TrustedActor actor = trustedActor();
         requireQueryPermission(actor);
-
         ProjectScopeResult inspectedScope = requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                 actor.tenantId(), actor.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
         requireScope(projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(),
@@ -101,122 +86,84 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         ProjectOrganizationFact project = organizationFactApi.lockAndRevalidate(
                 new ProjectOrganizationFactRevalidationQuery(query.projectId(), query.expectedProjectVersion()));
         requireProject(project, query.projectId());
-
+        requireExpectedQuery(query);
+        RequirementAnalysisWorkBindingFact expectedBinding = query.expectedFactVector().workBindingFact();
+        ProjectWorkBindingFact binding = requireBinding(workBindingFactApi.lockAndRevalidate(
+                new ProjectWorkBindingFactRevalidationQuery(query.projectId(), expectedBinding.projectTaskId(),
+                        expectedBinding.executionContractId(), expectedBinding.projectTaskVersion(),
+                        expectedBinding.executionContractVersion(), query.expectedProjectVersion(),
+                        WORK_BINDING_TARGET)), project);
         PreparationDO selected = rootMapper.selectForUpdate(
                 new RequirementAnalysisRowQuery(actor.tenantId(), query.preparationId()));
         requireCompleted(selected, query.projectId());
-        List<RequirementAnalysisSectionDO> sections = orderedSections(sectionMapper.selectListForUpdate(
-                new RequirementAnalysisSectionListQuery(actor.tenantId(), selected.getId())));
+        requireExpectedRoot(query, selected, project);
         PreparationDO effective = rootMapper.selectEffectiveForUpdate(
                 new RequirementAnalysisProjectQuery(actor.tenantId(), query.projectId()));
-        requireExpectedRoot(query, selected, project);
-
-        RequirementAnalysisFact current = fact(selected, effective, project.projectVersion(), sections,
-                revalidateFiles(sections));
+        DynamicFormInstanceFact inspected = inspectForm(selected, actor);
+        DynamicFormInstanceFact locked = dynamicFormApi.lockAndRevalidateInstance(
+                new DynamicFormInstanceRevalidationQuery(actor.actorId(), inspected));
+        requireComposition(selected, binding, locked,
+                effective != null && Objects.equals(selected.getId(), effective.getId()));
+        RequirementAnalysisFact current = fact(selected, effective, project, binding, locked);
         if (!Objects.equals(query.expectedFactVector(), current.factVector())) {
             throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
         }
         return current;
     }
 
-    private Map<FileKey, RequirementAnalysisFileFact> inspectFiles(List<RequirementAnalysisSectionDO> sections) {
-        List<AttachmentTarget> targets = attachmentTargets(sections);
-        Map<FileKey, RequirementAnalysisFileFact> facts = new HashMap<>();
-        for (AttachmentTarget target : targets) {
-            FileArtifactVersionFact inspected = fileArtifactApi.inspect(fileQuery(target));
-            facts.put(target.key(), requireExact(target, inspected));
-        }
-        return facts;
+    private DynamicFormInstanceFact inspectForm(PreparationDO root, TrustedActor actor) {
+        return dynamicFormApi.inspectInstance(new DynamicFormInstanceQuery(actor.tenantId(), actor.actorId(),
+                PROVIDER, new DynamicFormOwnerKey(PROVIDER.ownerContext(), PROVIDER.objectType(),
+                String.valueOf(root.getId())), root.getDynamicFormInstanceId(), DynamicFormBusinessAction.READ));
     }
 
-    private Map<FileKey, RequirementAnalysisFileFact> revalidateFiles(List<RequirementAnalysisSectionDO> sections) {
-        List<AttachmentTarget> targets = attachmentTargets(sections);
-        Map<FileKey, RequirementAnalysisFileFact> facts = new HashMap<>();
-        for (AttachmentTarget target : targets) {
-            AttachmentSnapshot frozen = target.snapshot();
-            FileArtifactVersionFact locked = fileArtifactApi.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
-                    frozen.artifactId(), frozen.versionNo(), OWNER_CONTEXT, OBJECT_TYPE,
-                    String.valueOf(target.sectionId()), PURPOSE_CODE, frozen.referenceKey(), FileActionCodes.READ,
-                    frozen.fileFactVersion(), frozen.scopeVersion()));
-            facts.put(target.key(), requireExact(target, locked));
-        }
-        return facts;
-    }
-
-    private List<AttachmentTarget> attachmentTargets(List<RequirementAnalysisSectionDO> sections) {
-        List<AttachmentTarget> targets = new ArrayList<>();
-        for (RequirementAnalysisSectionDO section : sections) {
-            for (AttachmentSnapshot snapshot : parseAttachments(section.getAttachmentReferenceSnapshot())) {
-                targets.add(new AttachmentTarget(section.getId(), snapshot));
-            }
-        }
-        targets.sort(Comparator.comparing((AttachmentTarget target) -> target.snapshot().artifactId())
-                .thenComparing(target -> target.snapshot().versionNo())
-                .thenComparing(AttachmentTarget::sectionId)
-                .thenComparing(target -> target.snapshot().referenceKey()));
-        return targets;
-    }
-
-    private FileArtifactVersionQuery fileQuery(AttachmentTarget target) {
-        AttachmentSnapshot frozen = target.snapshot();
-        return new FileArtifactVersionQuery(frozen.artifactId(), frozen.versionNo(), OWNER_CONTEXT, OBJECT_TYPE,
-                String.valueOf(target.sectionId()), PURPOSE_CODE, frozen.referenceKey(), FileActionCodes.READ);
-    }
-
-    private RequirementAnalysisFileFact requireExact(AttachmentTarget target, FileArtifactVersionFact current) {
-        AttachmentSnapshot frozen = target.snapshot();
-        if (current == null || !Objects.equals(current.artifactId(), frozen.artifactId())
-                || !Objects.equals(current.versionNo(), frozen.versionNo())
-                || !Objects.equals(current.referenceKey(), frozen.referenceKey())
-                || !Objects.equals(current.fileFactVersion(), frozen.fileFactVersion())
-                || !Objects.equals(current.scopeVersion(), frozen.scopeVersion())) {
-            throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
-        }
-        return new RequirementAnalysisFileFact(current.artifactId(), current.versionNo(), current.referenceKey(),
-                current.fileFactVersion().artifactVersion(), current.fileFactVersion().referenceVersion(),
-                current.fileFactVersion().availabilityVersion(), current.scopeVersion());
-    }
-
-    private RequirementAnalysisFact fact(PreparationDO selected, PreparationDO effective, Integer projectVersion,
-                                         List<RequirementAnalysisSectionDO> sections,
-                                         Map<FileKey, RequirementAnalysisFileFact> filesByKey) {
-        List<RequirementAnalysisSectionFact> sectionFacts = sections.stream()
-                .map(section -> sectionFact(section, filesByKey)).toList();
-        List<RequirementAnalysisFileFact> fileFacts = sectionFacts.stream()
-                .flatMap(section -> section.fileFacts().stream()).toList();
-        RequirementAnalysisFactVector vector = new RequirementAnalysisFactVector(selected.getId(),
-                selected.getBusinessVersion(), selected.getContentVersion(), selected.getTemplateRevisionId(), sectionFacts);
-        boolean currentEffective = effective != null && Objects.equals(effective.getId(), selected.getId());
-        return new RequirementAnalysisFact(selected.getProjectId(), selected.getId(), selected.getBusinessVersion(),
-                selected.getStatusCode(), selected.getContentVersion(), projectVersion,
-                selected.getTemplateRevisionId(), selected.getCompletedBy(), selected.getCompletedAt(), currentEffective,
-                effective == null ? null : effective.getId(), effective == null ? null : effective.getBusinessVersion(),
-                sectionFacts, fileFacts, vector);
-    }
-
-    private RequirementAnalysisSectionFact sectionFact(RequirementAnalysisSectionDO section,
-                                                        Map<FileKey, RequirementAnalysisFileFact> filesByKey) {
-        List<RequirementAnalysisFileFact> files = parseAttachments(section.getAttachmentReferenceSnapshot()).stream()
-                .sorted(Comparator.comparing(AttachmentSnapshot::referenceKey))
-                .map(snapshot -> filesByKey.get(new FileKey(section.getId(), snapshot.referenceKey())))
+    private RequirementAnalysisFact fact(PreparationDO selected, PreparationDO effective,
+                                         ProjectOrganizationFact project, ProjectWorkBindingFact binding,
+                                         DynamicFormInstanceFact form) {
+        Map<String, List<RequirementAnalysisFileFact>> filesByField = fileFacts(form);
+        List<RequirementAnalysisSectionFact> fields = form.fields().stream()
+                .sorted(Comparator.comparing(DynamicFormFieldDescriptor::fieldKey))
+                .map(field -> new RequirementAnalysisSectionFact(field.fieldKey(), field.fieldKey(),
+                        "DYNAMIC_FORM", field.componentType(), field.required(), 0,
+                        JsonUtils.toJsonString(field), JsonUtils.toJsonString(form.ordinaryValues().get(field.fieldKey())),
+                        form.instanceVersion(), filesByField.getOrDefault(field.fieldKey(), List.of())))
                 .toList();
-        if (files.stream().anyMatch(Objects::isNull)) throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
-        return new RequirementAnalysisSectionFact(section.getSectionCode(), section.getSectionName(),
-                section.getSectionKindCode(), section.getFieldTypeCode(), Boolean.TRUE.equals(section.getRequiredFlag()),
-                section.getSortOrder(), section.getSchemaSnapshot(), section.getValueSnapshot(), section.getVersion(), files);
+        List<RequirementAnalysisFileFact> allFiles = fields.stream().flatMap(field -> field.fileFacts().stream()).toList();
+        boolean currentEffective = effective != null && Objects.equals(effective.getId(), selected.getId());
+        RequirementAnalysisWorkBindingFact workBinding = workBindingFact(binding);
+        RequirementAnalysisFactVector vector = new RequirementAnalysisFactVector(selected.getProjectId(),
+                project.projectVersion(), workBinding, selected.getId(), selected.getBusinessVersion(),
+                selected.getContentVersion(), selected.getTemplateRevisionId(), form.templateId(),
+                form.templateRevisionId(), form.templateRevisionNo(), form.revisionFactVersion(),
+                form.instanceId(), form.instanceVersion(), form.engineCode(), form.designerVersion(),
+                form.rendererVersion(), selected.getCompletedAt(), currentEffective,
+                effective == null ? null : effective.getId(),
+                effective == null ? null : effective.getBusinessVersion(), fields);
+        return new RequirementAnalysisFact(selected.getProjectId(), selected.getId(), selected.getBusinessVersion(),
+                selected.getStatusCode(), selected.getContentVersion(), project.projectVersion(),
+                selected.getTemplateRevisionId(), workBinding, form.templateId(), form.instanceId(),
+                form.instanceVersion(), form.templateRevisionNo(), form.revisionFactVersion(), form.engineCode(),
+                form.designerVersion(), form.rendererVersion(),
+                selected.getCompletedBy(), selected.getCompletedAt(), currentEffective,
+                effective == null ? null : effective.getId(), effective == null ? null : effective.getBusinessVersion(),
+                fields, allFiles, vector);
     }
 
-    private List<RequirementAnalysisSectionDO> orderedSections(List<RequirementAnalysisSectionDO> sections) {
-        if (sections == null) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
-        return sections.stream().sorted(Comparator.comparing(RequirementAnalysisSectionDO::getSectionCode)
-                .thenComparing(RequirementAnalysisSectionDO::getId)).toList();
+    private Map<String, List<RequirementAnalysisFileFact>> fileFacts(DynamicFormInstanceFact form) {
+        Map<String, List<RequirementAnalysisFileFact>> result = new LinkedHashMap<>();
+        for (FileReferenceSetFact set : form.controlledFileFacts()) {
+            String purpose = set.key().purposeCode();
+            String field = purpose.startsWith(FILE_PURPOSE_PREFIX)
+                    ? purpose.substring(FILE_PURPOSE_PREFIX.length()) : purpose;
+            result.put(field, set.activeFacts().stream().map(this::fileFact).toList());
+        }
+        return result;
     }
 
-    private List<AttachmentSnapshot> parseAttachments(String snapshot) {
-        if (snapshot == null || snapshot.isBlank()) return List.of();
-        List<AttachmentSnapshot> parsed = JsonUtils.parseArray(snapshot, AttachmentSnapshot.class);
-        if (parsed == null) throw exception(REQUIREMENT_ANALYSIS_FILE_FACT_INVALID);
-        return parsed;
+    private RequirementAnalysisFileFact fileFact(FileArtifactVersionFact fact) {
+        return new RequirementAnalysisFileFact(fact.artifactId(), fact.versionNo(), fact.referenceKey(),
+                fact.fileFactVersion().artifactVersion(), fact.fileFactVersion().referenceVersion(),
+                fact.fileFactVersion().availabilityVersion(), fact.scopeVersion());
     }
 
     private void requireExpectedRoot(RequirementAnalysisFactRevalidationQuery query, PreparationDO selected,
@@ -229,42 +176,87 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         }
     }
 
-    private void requireCompleted(PreparationDO selected, Long projectId) {
-        if (selected == null || !Objects.equals(selected.getProjectId(), projectId)
-                || !COMPLETED.equals(selected.getStatusCode()) || selected.getBusinessVersion() == null
-                || selected.getContentVersion() == null || selected.getTemplateRevisionId() == null
-                || selected.getCompletedBy() == null || selected.getCompletedAt() == null) {
+    private void requireExpectedQuery(RequirementAnalysisFactRevalidationQuery query) {
+        RequirementAnalysisFactVector vector = query.expectedFactVector();
+        if (!Objects.equals(vector.projectId(), query.projectId())
+                || !Objects.equals(vector.preparationId(), query.preparationId())
+                || !Objects.equals(vector.businessVersion(), query.expectedBusinessVersion())
+                || !Objects.equals(vector.contentVersion(), query.expectedContentVersion())
+                || !Objects.equals(vector.projectVersion(), query.expectedProjectVersion())
+                || !Objects.equals(vector.templateRevision(), query.expectedTemplateRevision())
+                || vector.workBindingFact() == null) {
             throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
         }
     }
 
-    private ProjectScopeResult requireScope(ProjectScopeResult scope, Long projectId) {
-        if (scope == null || scope.treeVersion() == null || scope.treeVersion() < 0
-                || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
+    private ProjectWorkBindingFact requireBinding(ProjectWorkBindingFact binding, ProjectOrganizationFact project) {
+        if (binding == null || !Objects.equals(binding.projectId(), project.projectId())
+                || !Objects.equals(binding.projectVersion(), project.projectVersion())
+                || binding.projectTaskId() == null || binding.projectTaskVersion() == null
+                || binding.executionContractId() == null || binding.contractVersion() == null
+                || binding.templateTaskDefinitionId() == null || binding.sourceDefinitionVersion() == null
+                || !Objects.equals(binding.workBindingTypeCode(), WORK_BINDING_TARGET.workBindingTypeCode())
+                || !Objects.equals(binding.targetContextCode(), WORK_BINDING_TARGET.targetContextCode())
+                || !Objects.equals(binding.targetObjectType(), WORK_BINDING_TARGET.targetObjectType())
+                || !Objects.equals(binding.targetObjectKey(), WORK_BINDING_TARGET.targetObjectKey())
+                || binding.dynamicFormTemplateId() == null || binding.dynamicFormTemplateRevisionId() == null
+                || binding.dynamicFormRevisionNo() == null || binding.dynamicFormRevisionFactVersion() == null) {
             throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
         }
+        return binding;
+    }
+
+    private void requireComposition(PreparationDO root, ProjectWorkBindingFact binding,
+                                    DynamicFormInstanceFact form, boolean currentEffective) {
+        if (form == null || !Objects.equals(root.getDynamicFormInstanceId(), form.instanceId())
+                || !Objects.equals(root.getTemplateId(), binding.templateTaskDefinitionId())
+                || !Objects.equals(root.getTemplateRevisionId(), binding.templateRevisionId())
+                || currentEffective && (!Objects.equals(form.templateId(), binding.dynamicFormTemplateId())
+                || !Objects.equals(form.templateRevisionId(), binding.dynamicFormTemplateRevisionId())
+                || !Objects.equals(form.templateRevisionNo(), binding.dynamicFormRevisionNo())
+                || !Objects.equals(form.revisionFactVersion(), binding.dynamicFormRevisionFactVersion()))
+                || form.engineCode() == null || form.designerVersion() == null || form.rendererVersion() == null) {
+            throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        }
+    }
+
+    private RequirementAnalysisWorkBindingFact workBindingFact(ProjectWorkBindingFact binding) {
+        return new RequirementAnalysisWorkBindingFact(binding.projectTaskId(), binding.projectTaskVersion(),
+                binding.executionContractId(), binding.contractVersion(), binding.templateTaskDefinitionId(),
+                binding.sourceDefinitionVersion(), binding.templateRevisionId(), binding.templateRevisionNo(),
+                binding.dynamicFormTemplateId(), binding.dynamicFormTemplateRevisionId(),
+                binding.dynamicFormRevisionNo(), binding.dynamicFormRevisionFactVersion(),
+                binding.workBindingTypeCode(), binding.targetContextCode(), binding.targetObjectType(), binding.targetObjectKey());
+    }
+
+    private void requireCompleted(PreparationDO selected, Long projectId) {
+        if (selected == null || !Objects.equals(selected.getProjectId(), projectId)
+                || !"COMPLETED".equals(selected.getStatusCode()) || selected.getBusinessVersion() == null
+                || selected.getContentVersion() == null || selected.getTemplateRevisionId() == null
+                || selected.getDynamicFormInstanceId() == null || selected.getCompletedBy() == null
+                || selected.getCompletedAt() == null) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+    }
+
+    private ProjectScopeResult requireScope(ProjectScopeResult scope, Long projectId) {
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(projectId)) throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
         return scope;
     }
 
     private void requireProject(ProjectOrganizationFact project, Long projectId) {
-        if (project == null || !Objects.equals(project.projectId(), projectId)
-                || project.projectVersion() == null || project.projectVersion() < 0) {
+        if (project == null || !Objects.equals(project.projectId(), projectId) || project.projectVersion() == null) {
             throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
         }
     }
 
-    private void requireQuery(RequirementAnalysisFactQuery query) {
-        if (query == null) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
-    }
-
-    private void requireQuery(RequirementAnalysisFactRevalidationQuery query) {
+    private void requireQuery(Object query) {
         if (query == null) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
     }
 
     private TrustedActor trustedActor() {
         Long tenantId = TenantContextHolder.getTenantId();
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
-        if (tenantId == null || tenantId < 0 || actorId == null || actorId <= 0) {
+        if (tenantId == null || actorId == null || actorId <= 0) {
             throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
         }
         return new TrustedActor(tenantId, actorId);
@@ -276,19 +268,5 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         }
     }
 
-    private record AttachmentSnapshot(Long artifactId, Integer versionNo, String referenceKey,
-                                      FileFactVersion fileFactVersion, Long scopeVersion) {
-    }
-
-    private record AttachmentTarget(Long sectionId, AttachmentSnapshot snapshot) {
-        private FileKey key() {
-            return new FileKey(sectionId, snapshot.referenceKey());
-        }
-    }
-
-    private record FileKey(Long sectionId, String referenceKey) {
-    }
-
-    private record TrustedActor(Long tenantId, Long actorId) {
-    }
+    private record TrustedActor(Long tenantId, Long actorId) {}
 }

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.DYNAMIC_FORM_INSTANCE_NOT_FOUND;
@@ -171,7 +172,10 @@ public class DynamicFormQueryService {
         Map<String, List<DynamicFormViews.FileFact>> byField = new LinkedHashMap<>();
         for (FileReferenceSetFact set : result) {
             if (set == null || !keys.contains(set.key())
-                    || !Long.valueOf(instance.getTemplateRevisionId()).equals(set.scopeVersion())) {
+                    || set.scopeVersion() == null || set.activeFacts() == null
+                    || set.activeFacts().stream().anyMatch(fact -> fact == null
+                    || !Objects.equals(set.scopeVersion(), fact.scopeVersion())
+                    || !"ACTIVE".equals(fact.referenceStatus()))) {
                 throw exception(FILE_PROVIDER_UNAVAILABLE);
             }
             String purpose = set.key().purposeCode();

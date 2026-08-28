@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.List;
 
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_FACT_VERSION_CONFLICT;
+import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_VERSION_UNAVAILABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -126,6 +127,25 @@ class FileArtifactApiImplTest {
     }
 
     @Test
+    void inspectReferenceSetsProjectsAnInvalidatedActiveReferenceFact() {
+        FileReferenceSetKey key = setKey();
+        FileVersionDO invalidated = version();
+        invalidated.setAvailabilityStatusCode("INVALIDATED");
+        invalidated.setAvailabilityVersion(6);
+        when(policyRegistry.inspectReferenceSet(any())).thenReturn(policy());
+        when(referenceMapper.selectActiveSet(any())).thenReturn(List.of(reference()));
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(invalidated);
+
+        var inspected = api.inspectReferenceSets(new FileReferenceSetCollectionQuery(
+                List.of(key), FileActionCodes.READ));
+
+        assertEquals("INVALIDATED", inspected.getFirst().activeFacts().getFirst().availabilityStatus());
+        assertEquals(new FileFactVersion(3, 4, 6),
+                inspected.getFirst().activeFacts().getFirst().fileFactVersion());
+    }
+
+    @Test
     void rejectsAnActiveMemberAddedToAnExpectedEmptySet() {
         FileReferenceSetKey key = setKey();
         when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
@@ -139,6 +159,25 @@ class FileArtifactApiImplTest {
                         List.of(new FileReferenceSetExpectation(key, 8L, List.of())), FileActionCodes.READ)));
 
         assertEquals(FILE_FACT_VERSION_CONFLICT.getCode(), failure.getCode());
+    }
+
+    @Test
+    void lockAndRevalidateReferenceSetsStillRejectsAnInvalidatedVersion() {
+        FileReferenceSetKey key = setKey();
+        FileVersionDO invalidated = version();
+        invalidated.setAvailabilityStatusCode("INVALIDATED");
+        invalidated.setAvailabilityVersion(6);
+        when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
+        when(referenceMapper.selectActiveSet(any())).thenReturn(List.of(reference()));
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact());
+        when(versionMapper.selectForUpdate(any())).thenReturn(invalidated);
+        when(referenceMapper.selectSetForUpdate(any())).thenReturn(List.of(reference()));
+
+        ServiceException failure = assertThrows(ServiceException.class,
+                () -> api.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(
+                        List.of(new FileReferenceSetExpectation(key, 8L, List.of())), FileActionCodes.READ)));
+
+        assertEquals(FILE_VERSION_UNAVAILABLE.getCode(), failure.getCode());
     }
 
     @Test

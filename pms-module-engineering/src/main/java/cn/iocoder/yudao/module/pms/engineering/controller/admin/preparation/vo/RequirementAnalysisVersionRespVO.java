@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class RequirementAnalysisVersionRespVO {
@@ -18,6 +19,17 @@ public class RequirementAnalysisVersionRespVO {
     private Integer version;
     private Long templateId;
     private Long templateRevisionId;
+    private Long dynamicFormInstanceId;
+    private Integer dynamicFormInstanceVersion;
+    private Integer dynamicFormRevisionNo;
+    private String engineCode;
+    private String designerVersion;
+    private String rendererVersion;
+    private Object formConfJson;
+    private Object formRulesJson;
+    private Map<String, Object> values;
+    private Map<String, ?> controlledFiles;
+    private String declarativeValidationResult;
     private Long completedBy;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;

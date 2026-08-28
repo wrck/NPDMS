@@ -1,10 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.domain.template;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,42 +8,43 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class RequirementAnalysisWorkBindingSchemaTest {
 
     @Test
-    void publicationFreezesEnabledDictionaryLabelsInCodeOrder() {
-        String frozen = RequirementAnalysisWorkBindingSchema.freezeAndValidate(binding(),
-                (dictionaryType, requested) -> List.of(
-                        new RequirementAnalysisWorkBindingSchema.OptionSnapshot("B", "乙-权威"),
-                        new RequirementAnalysisWorkBindingSchema.OptionSnapshot("A", "甲-权威")));
+    void publicationAcceptsOnlyTheExactV2DynamicFormRevisionSnapshot() {
+        RequirementAnalysisWorkBindingSchema.ParsedBinding binding =
+                RequirementAnalysisWorkBindingSchema.parseForPublication(binding());
 
-        Map<?, ?> root = JsonUtils.parseObject(frozen, Map.class);
-        List<?> extensions = (List<?>) root.get("extensionItems");
-        Map<?, ?> selection = (Map<?, ?>) extensions.getFirst();
-        List<?> options = (List<?>) selection.get("optionSnapshot");
-        assertEquals("A", ((Map<?, ?>) options.get(0)).get("code"));
-        assertEquals("甲-权威", ((Map<?, ?>) options.get(0)).get("label"));
-        assertEquals("B", ((Map<?, ?>) options.get(1)).get("code"));
-        assertEquals(1, RequirementAnalysisWorkBindingSchema.parseFrozen(frozen).catalogVersion());
+        assertEquals(700L, binding.dynamicFormTemplateId());
+        assertEquals(701L, binding.dynamicFormTemplateRevisionId());
+        assertEquals(3, binding.dynamicFormRevisionNo());
+        assertEquals(9, binding.dynamicFormRevisionFactVersion());
+        assertEquals(binding(), RequirementAnalysisWorkBindingSchema.toSnapshot(binding));
     }
 
     @Test
-    void publicationRejectsCoreCollisionUnknownFieldsAndUnavailableDictionaryOption() {
-        assertThrows(IllegalArgumentException.class,
-                () -> RequirementAnalysisWorkBindingSchema.freezeAndValidate(
-                        binding().replace("EXT_LEVEL", "PROJECT_BACKGROUND"), (type, options) -> options));
-        assertThrows(IllegalArgumentException.class,
-                () -> RequirementAnalysisWorkBindingSchema.freezeAndValidate(
-                        binding().replace("\"sortOrder\":120", "\"script\":\"x\",\"sortOrder\":120"),
-                        (type, options) -> options));
-        assertThrows(IllegalArgumentException.class,
-                () -> RequirementAnalysisWorkBindingSchema.freezeAndValidate(binding(),
-                        (type, options) -> List.of(options.getFirst())));
+    void runtimeParsesTheSameFrozenRevisionWithoutLegacyCatalogFields() {
+        RequirementAnalysisWorkBindingSchema.ParsedBinding binding =
+                RequirementAnalysisWorkBindingSchema.parseFrozen(binding());
+
+        assertEquals(701L, binding.dynamicFormTemplateRevisionId());
+        assertThrows(IllegalArgumentException.class, () -> RequirementAnalysisWorkBindingSchema.parseFrozen(
+                "{\"schemaVersion\":1,\"catalogCode\":\"PRE_04_REQUIREMENT_ANALYSIS\","
+                        + "\"catalogVersion\":1,\"extensionItems\":[]}"));
+    }
+
+    @Test
+    void rejectsMissingUnknownAndNonPositiveRevisionFacts() {
+        assertThrows(IllegalArgumentException.class, () -> RequirementAnalysisWorkBindingSchema.parseForPublication(
+                binding().replace(",\"dynamicFormRevisionFactVersion\":9", "")));
+        assertThrows(IllegalArgumentException.class, () -> RequirementAnalysisWorkBindingSchema.parseForPublication(
+                binding().replace("\"schemaVersion\":2", "\"schemaVersion\":2,\"catalogCode\":\"legacy\"")));
+        assertThrows(IllegalArgumentException.class, () -> RequirementAnalysisWorkBindingSchema.parseForPublication(
+                binding().replace("\"dynamicFormRevisionNo\":3", "\"dynamicFormRevisionNo\":0")));
+        assertThrows(IllegalArgumentException.class, () -> RequirementAnalysisWorkBindingSchema.parseForPublication(
+                binding().replace("\"dynamicFormTemplateRevisionId\":701", "\"dynamicFormTemplateRevisionId\":-1")));
     }
 
     private static String binding() {
-        return "{\"schemaVersion\":1,\"catalogCode\":\"PRE_04_REQUIREMENT_ANALYSIS\","
-                + "\"catalogVersion\":1,\"extensionItems\":[{\"fieldCode\":\"EXT_LEVEL\","
-                + "\"fieldName\":\"扩展级别\",\"fieldTypeCode\":\"SINGLE_SELECT\","
-                + "\"required\":true,\"dictionaryType\":\"pms_requirement_level\","
-                + "\"optionSnapshot\":[{\"code\":\"B\",\"label\":\"旧乙\"},"
-                + "{\"code\":\"A\",\"label\":\"旧甲\"}],\"sortOrder\":120}]}";
+        return "{\"schemaVersion\":2,\"dynamicFormTemplateId\":700,"
+                + "\"dynamicFormTemplateRevisionId\":701,\"dynamicFormRevisionNo\":3,"
+                + "\"dynamicFormRevisionFactVersion\":9}";
     }
 }

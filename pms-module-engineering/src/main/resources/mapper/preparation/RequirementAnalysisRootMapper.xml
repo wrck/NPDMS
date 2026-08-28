@@ -4,13 +4,32 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.RequirementAnalysisRootMapper">
     <sql id="columns">
         id, project_id, preparation_type_code, business_version, current_marker,
-        source_preparation_id, draft_marker, effective_marker,
+        source_preparation_id, dynamic_form_instance_id, draft_marker, effective_marker,
         template_id, template_revision_id, template_snapshot, fixed_form_catalog_version,
         status_code, readiness_status_code, latest_readiness_snapshot_id,
         input_version, readiness_version, snapshot_current, content_version, completed_by, completed_at,
         submitted_at, confirmed_at, returned_at, return_reason, version,
         creator, create_time, updater, update_time, tenant_id
     </sql>
+
+    <insert id="insertDynamicRoot">
+        INSERT INTO sol_preparation (
+            id, project_id, preparation_type_code, business_version, current_marker,
+            source_preparation_id, dynamic_form_instance_id, draft_marker, effective_marker,
+            template_id, template_revision_id, template_snapshot, fixed_form_catalog_version,
+            status_code, readiness_status_code, latest_readiness_snapshot_id,
+            input_version, readiness_version, snapshot_current, content_version, completed_by, completed_at,
+            submitted_at, confirmed_at, returned_at, return_reason, version,
+            creator, create_time, updater, update_time, tenant_id
+        ) VALUES (
+            #{row.id}, #{row.projectId}, 'PRE_04_REQUIREMENT_ANALYSIS', #{row.businessVersion}, NULL,
+            #{row.sourcePreparationId}, #{row.dynamicFormInstanceId}, 1, NULL,
+            #{row.templateId}, #{row.templateRevisionId}, #{row.templateSnapshot}, 1,
+            'DRAFT', 'NOT_READY', NULL, 0, 0, 0, 1, NULL, NULL,
+            NULL, NULL, NULL, NULL, 1,
+            #{row.creator}, CURRENT_TIMESTAMP(3), #{row.updater}, CURRENT_TIMESTAMP(3), #{row.tenantId}
+        )
+    </insert>
 
     <select id="selectDraft" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.PreparationDO">
         SELECT <include refid="columns"/> FROM sol_preparation
@@ -63,6 +82,14 @@
           AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
           AND status_code = 'DRAFT' AND draft_marker = 1
           AND version = #{update.expectedVersion} AND content_version = #{update.expectedContentVersion}
+    </update>
+    <update id="incrementDynamicContentIfMatch">
+        UPDATE sol_preparation SET content_version = content_version + 1,
+            version = version + 1, updater = #{update.updater}, update_time = CURRENT_TIMESTAMP(3)
+        WHERE tenant_id = #{update.tenantId} AND id = #{update.preparationId}
+          AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
+          AND status_code = 'DRAFT' AND draft_marker = 1
+          AND version = #{update.expectedVersion}
     </update>
     <update id="clearEffectiveIfMatch">
         UPDATE sol_preparation SET effective_marker = NULL, version = version + 1,

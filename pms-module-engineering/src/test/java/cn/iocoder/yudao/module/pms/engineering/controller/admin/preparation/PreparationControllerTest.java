@@ -13,7 +13,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationRe
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationReadinessService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationSourceService;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.PreparationWaiverService;
-import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisCommandService;
+import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDynamicFormCommandService;
+import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisDynamicFormQueryService;
 import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisQueryService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +67,8 @@ class PreparationControllerTest {
                 mock(PreparationSourceService.class),
                 mock(PreparationWaiverService.class),
                 mock(RequirementAnalysisQueryService.class),
-                mock(RequirementAnalysisCommandService.class),
+                mock(RequirementAnalysisDynamicFormQueryService.class),
+                mock(RequirementAnalysisDynamicFormCommandService.class),
                 new MockEnvironment().withProperty("yudao.tenant.enable", "false"));
 
         controller.getCurrent(100L, "PRE_02", false, new PreparationPageReqVO());
@@ -87,7 +89,8 @@ class PreparationControllerTest {
                 mock(PreparationSourceService.class),
                 mock(PreparationWaiverService.class),
                 mock(RequirementAnalysisQueryService.class),
-                mock(RequirementAnalysisCommandService.class),
+                mock(RequirementAnalysisDynamicFormQueryService.class),
+                mock(RequirementAnalysisDynamicFormCommandService.class),
                 new MockEnvironment().withProperty("yudao.tenant.enable", "true"));
 
         ServiceException error = assertThrows(ServiceException.class,

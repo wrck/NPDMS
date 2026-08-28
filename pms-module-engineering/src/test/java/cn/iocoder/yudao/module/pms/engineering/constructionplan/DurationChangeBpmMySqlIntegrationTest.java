@@ -53,6 +53,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMaster
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApiImpl;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
@@ -905,6 +906,11 @@ class DurationChangeBpmMySqlIntegrationTest {
         @Override
         public ProjectScopeResult resolveCurrent(ProjectCurrentScopeQuery query) {
             return (useReal ? real : mock).resolveCurrent(query);
+        }
+
+        @Override
+        public Set<Long> resolveAllCurrent(ProjectAllScopeQuery query) {
+            return (useReal ? real : mock).resolveAllCurrent(query);
         }
 
         @Override

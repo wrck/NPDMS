@@ -16,6 +16,7 @@ public class PreparationDO implements Serializable {
     private Integer businessVersion;
     private Integer currentMarker;
     private Long sourcePreparationId;
+    private Long dynamicFormInstanceId;
     private Integer draftMarker;
     private Integer effectiveMarker;
     private Long templateId;

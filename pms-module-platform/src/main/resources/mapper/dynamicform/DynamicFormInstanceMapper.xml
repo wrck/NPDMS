@@ -70,6 +70,18 @@
         FOR UPDATE
     </select>
 
+    <select id="selectByOwner" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.dynamicform.PlatformDynamicFormInstanceDO">
+        SELECT <include refid="InstanceColumns"/>
+        FROM plt_dynamic_form_instance i
+        JOIN plt_dynamic_form_template t
+          ON t.tenant_id = i.tenant_id AND t.id = i.template_id AND t.deleted = b'0'
+        WHERE i.tenant_id = #{query.tenantId}
+          AND i.owner_context = #{query.ownerContext}
+          AND i.object_type = #{query.objectType}
+          AND i.object_id = #{query.objectId}
+          AND i.deleted = b'0'
+    </select>
+
     <update id="updateValueIfMatch">
         UPDATE plt_dynamic_form_instance
         SET value_json = #{update.valueJson}, version = version + 1,
