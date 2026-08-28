@@ -258,8 +258,9 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | 聚合 | 主表 | 版本/明细表 | 关键约束 |
 |---|---|---|---|
-| Preparation | `sol_preparation` | `sol_preparation_item`及各Feature专用明细 | 项目+准备类型+业务版本唯一；需要动态表单时冻结PLATFORM模板修订标识并由SOL另行保存业务完成事实 |
-| PreparationDynamicFormInstance | `sol_dynamic_form_instance` | 无通用模板表 | 保留已实现Preparation表单事实；与PLT通用实例物理分离，不迁移或双写旧`pms_eng_form_instance` |
+| Preparation | `sol_preparation` | `sol_preparation_item`及各Feature专用明细 | 项目+准备类型+业务版本唯一；PRE-04以`dynamic_form_instance_id`逻辑引用唯一PLT业务实例，SOL只保存业务生命周期/版本/有效指针 |
+| PreparationDynamicFormInstance | `sol_dynamic_form_instance` | F-SOL-002既有明细 | 继续服务已完成工勘能力，表、读写和数据原样保留；PRE-04不得复用或改写它 |
+| RequirementAnalysisDynamicFormBinding | `sol_preparation.dynamic_form_instance_id` | PLT `plt_dynamic_form_instance` | 不建立跨Context物理外键；SOL不复制schema、值或附件真值；旧候选`sol_requirement_analysis_section`不再作为当前读写真值且不自动迁移 |
 | ConstructionPlan | `sol_construction_plan` | `sol_construction_plan_revision`、`sol_construction_plan_item`、`sol_construction_plan_change` | `uk(tenant_id, plan_id, revision_no)`；批准 revision 只读 |
 | Solution | `sol_solution` | `sol_solution_revision`、`sol_solution_review` | 发布 revision 只读；文件仅保存 FileReference |
 
@@ -535,7 +536,7 @@ proj_project
 | `plt_change_request` | 项目变更申请、差异快照、审批引用和执行结果 | 申请 revision 只追加；变更执行按目标聚合版本幂等 |
 | `ana_metric_definition` | 【建议】指标代码、口径版本、单位、粒度和来源 | 只有口径模型获批后创建；同一指标版本不可覆盖；不得从旧报表名称猜测公式 |
 
-F-PLT-002只新增上述三张动态表单表。用户REST创建的手工实例固定`owner_context=PLATFORM/object_type=MANUAL_DYNAMIC_FORM/object_id=instance_id`，不接受客户端自报跨域绑定；WorkBinding或业务Context形成真实调用方后再通过独立Feature增加窄公共命令。`PmsFileArtifact`字段使用F-PLT-001业务键`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`，普通实例值PATCH不得伪造文件向量。
+F-PLT-002只拥有上述三张动态表单表。用户REST创建的手工实例固定`owner_context=PLATFORM/object_type=MANUAL_DYNAMIC_FORM/object_id=instance_id`；F-SOL-003作为首个真实调用方，通过受信公共API以`SOL/REQUIREMENT_ANALYSIS/{preparationId}`创建业务实例。两类实例共用同一PLT真值，消费方不直读表。`PmsFileArtifact`业务键始终为`PLATFORM/DYNAMIC_FORM_INSTANCE/{instanceId}/FORM_FIELD_ATTACHMENT/{fieldKey}/{slotKey}`，普通值PATCH不得伪造文件向量。
 | `ana_metric_snapshot` | 指标代码、口径版本、水位、范围和结果快照 | `uk(tenant_id, metric_code, metric_version, scope_hash, snapshot_at)`；不可回写交易状态 |
 | `ana_portfolio_projection` | 组合维度的可重建经营查询投影 | `uk(tenant_id, portfolio_id, metric_version, data_watermark)`；返回权限范围哈希 |
 

@@ -71,10 +71,10 @@
 | `Preparation` | 当前`pms_eng_site_survey/requirement/resource_ready/briefing` | CURRENT_FORWARD+STRUCTURED | 按准备类型归入统一聚合但保留来源类型、ID、状态原值和附件引用；不得合并覆盖多次提交 |
 | `ConstructionPlan` | 旧/当前项目任务计划、当前计划变更与倒排表 | STRUCTURED+CURRENT_FORWARD | 可证明的基线、计划项和变更分别迁移；统计耗时表不反推计划审批 |
 | `Solution` | 当前`pms_eng_solution`及来源表 | CURRENT_FORWARD+STRUCTURED | 草稿/提交/批准/发布状态版本化映射；文件转FileArtifact引用 |
-| `PreparationDynamicFormInstance` | 已有新平台`sol_dynamic_form_instance` | NEW_ONLY | 保留已经由新平台命令形成的准备表单事实；不迁移或双写旧`pms_eng_form_instance` |
+| `PreparationDynamicFormInstance` | 已有新平台`sol_dynamic_form_instance` | NEW_ONLY | 仅保留F-SOL-002已经形成的工勘表单事实；PRE-04不复用或改写该表，不迁移或双写旧`pms_eng_form_instance` |
 | `DynamicFormTemplate` | 旧`pms_eng_form_template`仅作实现审计证据 | NEW_ONLY+COMPATIBILITY_ONLY | PLT新模板由新命令创建；可复制旧交互优点，但旧表、接口、页面和数据原样保留，不迁移、不双写 |
 | `DynamicFormTemplateRevision` | 无可靠可迁移来源 | NEW_ONLY | 只由PLT草稿/发布命令形成，不从旧模板臆造发布修订 |
-| `DynamicFormInstance` | 旧`pms_eng_form_instance`仅作实现审计证据 | NEW_ONLY+COMPATIBILITY_ONLY | PLT手工实例由新命令创建；旧实例原样保留且不成为PLT真值 |
+| `DynamicFormInstance` | 旧`pms_eng_form_instance`仅作实现审计证据 | NEW_ONLY+COMPATIBILITY_ONLY | PLT手工实例及受信业务Owner实例由新命令/API创建；旧实例原样保留且不成为PLT真值，不自动迁移现有候选PRE-04数据 |
 
 ## 5. Implementation Execution
 

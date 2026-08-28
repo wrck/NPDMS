@@ -45,7 +45,7 @@ MODEL_ENTITY_CONTRACTS = {
     "CustomerServiceLevelRevision": ("CUS", {"CUS-02"}),
     "DynamicFormTemplate": ("PLT", {"SOL-01"}),
     "DynamicFormTemplateRevision": ("PLT", {"SOL-01"}),
-    "DynamicFormInstance": ("PLT", {"SOL-01"}),
+    "DynamicFormInstance": ("PLT", {"PRE-04", "SOL-01"}),
 }
 MODEL_GOVERNANCE_CONTRACTS = {}
 CROSS_CONTEXT_FOUNDATION_OBJECTS = {

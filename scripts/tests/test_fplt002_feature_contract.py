@@ -23,24 +23,60 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         cls.security_design = SECURITY_DESIGN.read_text(encoding="utf-8")
         cls.test_design = TEST_DESIGN.read_text(encoding="utf-8")
 
-    def test_feature_ready_decision_is_locked_without_later_gate_authorization(self) -> None:
-        self.assertEqual("BASELINE", self.contract["status"])
+    def test_forward_amendment_preserves_prior_go_without_authorizing_implementation(self) -> None:
+        self.assertEqual("IN_REVIEW_FORWARD_AMENDMENT", self.contract["status"])
         self.assertEqual(
             "GO_NPDMS_FPLT002_FEATURE_READY_20260828_01_R1",
-            self.contract["featureReadyDecision"],
+            self.contract["priorFeatureReadyDecision"],
         )
-        self.assertIn("BASELINE / READY", self.feature_spec)
+        self.assertEqual("PENDING_FPLT002_FSOL003_JOINT_AMENDMENT", self.contract["featureReadyDecision"])
+        self.assertIn("本次修订门禁：`PENDING`", self.feature_spec)
         self.assertIn("共享动态表单模板与实例基础能力功能规格", self.feature_spec)
-        self.assertIn("不是技术计划、实施、部署、系统集成测试、用户验收测试或发布授权", self.feature_spec)
+        self.assertIn("不重开已完成的手工动态表单闭环", self.feature_spec)
 
     def test_platform_owns_only_the_shared_form_foundation(self) -> None:
         owner = self.contract["owner"]
         self.assertEqual("PLATFORM", owner["context"])
         self.assertEqual("pms-module-platform", owner["module"])
         self.assertIn("consuming Contexts own", owner["businessBoundary"])
-        self.assertEqual("NONE_UNTIL_REAL_CROSS_MODULE_CALLER", self.contract["interfaces"]["publicModuleApi"])
+        self.assertEqual(
+            "DynamicFormBusinessInstanceApi",
+            self.contract["interfaces"]["publicModuleApi"]["interface"],
+        )
         self.assertIn("WorkBinding自动匹配", self.feature_spec)
         self.assertIn("实例提交/审批/完成状态机", self.feature_spec)
+
+    def test_real_fsol_caller_has_one_narrow_transactional_api_and_owner_policy(self) -> None:
+        interfaces = self.contract["interfaces"]
+        api = interfaces["publicModuleApi"]
+        self.assertEqual("pms-module-platform-api", api["module"])
+        self.assertEqual(
+            {
+                "inspectRevisionForUsage",
+                "lockAndRevalidateRevisionForUsage",
+                "createBusinessInstance",
+                "inspectInstance",
+                "patchInstanceValues",
+                "cloneBusinessInstance",
+                "lockAndRevalidateInstance",
+            },
+            set(api["methods"]),
+        )
+        self.assertIn("never use REQUIRES_NEW", api["transaction"])
+        self.assertIn("never create a second idempotency record", api["transaction"])
+        revision_use = api["methods"]["inspectRevisionForUsage"]
+        self.assertIn("usagePhase=BINDING_PUBLISH|FROZEN_BINDING_USE", revision_use["input"])
+        self.assertIn("ignores later template availability", revision_use["phaseRule"])
+        policy = interfaces["businessObjectPolicyProvider"]
+        self.assertEqual("SOL/REQUIREMENT_ANALYSIS", policy["firstCaller"])
+        self.assertIn("fails closed", policy["failurePolicy"])
+        self.assertIn("NO_CONSUMER_PROVIDER_CALLBACK_AFTER_THE_FIRST_PLT_LOCK", self.contract["lockOrder"])
+        self.assertIn("FileReferenceAttached", " ".join(self.contract["acceptance"]["businessComposition"]))
+        outbox = self.contract["platformFacts"]["outboxEvents"]
+        self.assertEqual(1, len(outbox))
+        self.assertEqual("FileReferenceAttached", outbox[0]["eventType"])
+        self.assertIn("PlatformTransactionalOutboxWriter", outbox[0]["writer"])
+        self.assertIn("replay adds zero", outbox[0]["cardinality"])
 
     def test_template_revision_and_manual_instance_are_unambiguous(self) -> None:
         machines = self.contract["stateMachines"]
@@ -90,6 +126,15 @@ class Fplt002FeatureContractTest(unittest.TestCase):
         self.assertIn("value_json stores no forged file vector", field["storagePolicy"])
         self.assertIn("inspectReferenceSets", field["readPolicy"])
         self.assertIn("never issue one query per field", field["readPolicy"])
+
+    def test_server_validation_does_not_execute_client_code(self) -> None:
+        validation = self.contract["serverValidation"]
+        self.assertIn("required", validation["authoritativeDeclarativeRules"])
+        self.assertIn("enumerated option", validation["authoritativeDeclarativeRules"])
+        self.assertIn("functions", validation["clientOnlyNonAuthoritativeRules"])
+        self.assertIn("cannot be claimed as a server completion guard", validation["failure"])
+        inspect_output = self.contract["interfaces"]["publicModuleApi"]["methods"]["inspectInstance"]["output"]
+        self.assertIn("declarativeValidationResult", inspect_output)
 
     def test_legacy_is_audited_then_copied_without_mutation_or_dual_write(self) -> None:
         reuse = self.contract["reuse"]
