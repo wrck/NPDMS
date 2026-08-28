@@ -16,9 +16,9 @@
 | [F-SOL-003](F-SOL-003-requirement-analysis-versioning.md) | 需求分析动态表单与版本冻结 | PRE-04（V1） | BASELINE | READY（GO；整改提交`4d04dbd63bbd01683416563bece31da6cd53f849`） | REPLAN_REQUIRED（保留现有代码；基于新锁定基线生成全新中文Technical Plan） |
 | [F-PLT-001](F-PLT-001-unified-file-identity-and-version-management.md) | 统一文件身份与版本管理 | PLT-02（V1） | BASELINE（含`CHG-PRD-2026-08-27-004`） | READY（`NPDMS-FPLT001-FEATURE-READY-20260826-01-R2`） | IMPLEMENTATION_COMPLETE（原实现NPDMS `6d6c6ea`独立复审GO；可选扫描增量NPDMS `890196d2`、`24f3c1a4`独立复审GO） |
 | [F-PLT-002](F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md) | 共享动态表单模板与实例基础能力 | SOL-01（主）、PRE-04/PM-03/PM-11（支撑） | BASELINE（业务实例API聚焦修订） | READY（原基础闭环GO保留；聚焦修订GO见`4d04dbd63bbd01683416563bece31da6cd53f849`） | IMPLEMENTATION_COMPLETE（基础闭环NPDMS `0ce68d04`；跨Context增量待F-SOL-003整体实施） |
-| [F-CUS-001](F-CUS-001-customer-master-and-local-lifecycle.md) | 客户主档与本地生命周期 | CUS-03（V1） | BASELINE | READY（`SPEC-FCUS001-FEATURE-READY-20260825-01`） | NOT_STARTED |
-| [F-AST-001](F-AST-001-device-serial-archive-and-temporal-assignment.md) | 设备序列号档案与时态归属 | EQP-01（V1） | BASELINE | READY（`SPEC-FAST001-FEATURE-READY-20260825-01`） | NOT_STARTED |
+| [F-CUS-001](F-CUS-001-customer-master-and-local-lifecycle.md) | 客户主档与本地生命周期 | CUS-03（V1） | BASELINE | READY（`SPEC-FCUS001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_PARTIAL（NPDMS `a9f8b7c5`；正向创建、删除成功/恢复与稳定幂等浏览器闭环待收口） |
+| [F-AST-001](F-AST-001-device-serial-archive-and-temporal-assignment.md) | 设备序列号档案与时态归属 | EQP-01（V1） | BASELINE | READY（`SPEC-FAST001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `a9f8b7c5`；自动化、真实MySQL、查询计划、真实浏览器与合并后复审通过） |
 
-与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；当前Feature状态为`NOT_STARTED`。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
+与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-AST-001完成不代表这些同步Feature完成，F-CUS-001仍按上述缺口保持部分完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 
 状态和门禁遵循`docs/engineering/00-engineering-chain.md`：只有Requirement追溯、业务规则、状态、权限、API、数据变化、验收标准及相关Open Question全部关闭后，Feature才可进入Implementation。

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "44d172b31de089d96d172f82368f1467bf059259"
+    "commit": "15a547abb1ef736ab173932188d30bd1e4fbdf3f"
   },
   "files": [
     {
@@ -448,7 +448,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "54632714d5eb0a953fa28283c4294a91d1263a986a163cb6aa898b6f8e79bbdb"
+      "sha256": "20f92db1d4171aecc2e6100c54440348907e57a182930272e6832dec7421e55a"
     },
     {
       "path": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
@@ -583,7 +583,7 @@
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "a17e0f02089b30d9d52382b85081a721290889a0a784622f8f37051ddbf4fe91"
+      "sha256": "30d20abe5f81b95e6f94e1729c8a01f66cc356bec511e9636eaac404e4a8b01b"
     }
   ]
 }
