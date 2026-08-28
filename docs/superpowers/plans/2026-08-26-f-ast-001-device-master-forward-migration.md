@@ -182,8 +182,8 @@ Expected：PASS。
 
 **Files:**
 
-- Create: `sql/migrations/V90__fast001_device_master_and_source_facts.sql`
-- Create: `sql/migrations/V91__fast001_device_shipments_and_software_versions.sql`
+- Create: `sql/migrations/V109__fast001_device_master_and_source_facts.sql`
+- Create: `sql/migrations/V110__fast001_device_shipments_and_software_versions.sql`
 - Create: `scripts/tests/test_fast001_migration_contract.py`
 - Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/DeviceSchemaContractTest.java`
 
@@ -244,9 +244,9 @@ Expected：PASS。
 
 **Files:**
 
-- Create: `sql/migrations/V92__fast001_device_temporal_assignments.sql`
-- Create: `sql/migrations/V93__fast001_device_relationship_location_warranty.sql`
-- Create: `sql/migrations/V94__fast001_device_download_grant.sql`
+- Create: `sql/migrations/V111__fast001_device_temporal_assignments.sql`
+- Create: `sql/migrations/V112__fast001_device_relationship_location_warranty.sql`
+- Create: `sql/migrations/V113__fast001_device_download_grant.sql`
 - Modify: `scripts/tests/test_fast001_migration_contract.py`
 
 **V92 tables:**
@@ -312,7 +312,7 @@ Expected：PASS。
 
 **Files:**
 
-- Create: `sql/migrations/V95__fast001_legacy_equipment_forward_migration.sql`
+- Create: `sql/migrations/V114__fast001_legacy_equipment_forward_migration.sql`
 - Modify: `scripts/tests/test_fast001_migration_contract.py`
 - Create: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/migration/DeviceForwardMigrationMySqlTest.java`
 
@@ -737,7 +737,7 @@ Expected：PASS。
 
 **Files:**
 
-- Create: `sql/migrations/V96__fast001_device_menu_permissions_and_legacy_access.sql`
+- Create: `sql/migrations/V118__fast001_device_menu_permissions_and_legacy_access.sql`
 - Create: `scripts/tests/test_fast001_legacy_write_permissions.py`
 - Test: `pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/controller/admin/equipment/EquipmentControllerContractTest.java`
 
@@ -789,7 +789,7 @@ Expected：PASS；普通业务角色不再获得旧写权限，`super_admin` 仍
 
 **Files:**
 
-- Create: `sql/migrations/V97__fast001_device_acceptance_seed.sql`
+- Create: `sql/migrations/V119__fast001_device_acceptance_seed.sql`
 - Create: `scripts/generate_fast001_performance_data.py`
 - Create: `scripts/verify_fast001_query_plan.py`
 - Modify: `scripts/tests/test_fast001_migration_contract.py`
@@ -840,7 +840,7 @@ Expected：PASS。
 **Files:**
 
 - Create: `scripts/tests/run_fast001_browser_acceptance.mjs`
-- Create: `sql/migrations/V98__fast001_browser_acceptance_users.sql`
+- Create: `sql/migrations/V120__fast001_browser_acceptance_users.sql`
 - [ ] **Step 1: 建立固定浏览器夹具**
 
 V98 建立明确测试角色和权限组合，使用现有本地测试账号模式；固定新设备菜单、测试 SN、项目、客户、配置 Log、无权限用户和只读用户。不得包含真实凭据。

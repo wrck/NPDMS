@@ -16,7 +16,7 @@
 
 - 建立独立 `pms-module-customer-api` 与 `pms-module-customer`，由 CUS 持有当前客户写 Owner。
 - 新管理端资源使用 `/pms/customers`，对外规范语义为 `/api/v1/pms/customers`。
-- V87～V89 前向迁移客户主档、分类权限、菜单权限，并保留旧客户 ID。
+- V106～V108 前向迁移客户主档、分类权限、菜单权限，并保留旧客户 ID。
 - PROJ、AST 通过公开 API 提供客户摘要和删除引用守卫，不访问 CUS 业务表或实现层。
 - 旧 project 客户页面只保留历史列表与详情，禁止全部旧写操作和写代理。
 - 实现五维权限切片、Department code、CRM 四级分类精确校验、联系方式三态裁剪、CAS、幂等、软删除和恢复能力。

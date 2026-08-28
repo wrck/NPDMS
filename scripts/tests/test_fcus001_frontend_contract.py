@@ -11,7 +11,7 @@ LEGACY_API = (
     ROOT / "yudao-ui" / "yudao-ui-admin-vue3" / "src" / "api" / "pms"
     / "project" / "customer" / "index.ts"
 )
-MIGRATION = ROOT / "sql" / "migrations" / "V89__fcus001_customer_menu_and_permissions.sql"
+MIGRATION = ROOT / "sql" / "migrations" / "V108__fcus001_customer_menu_and_permissions.sql"
 LEGACY_VIEW = (
     ROOT / "yudao-ui" / "yudao-ui-admin-vue3" / "src" / "views" / "pms"
     / "project" / "customer" / "index.vue"

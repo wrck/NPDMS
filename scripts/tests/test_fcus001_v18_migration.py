@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "sql" / "migrations" / "V87__fcus001_customer_master.sql"
+MIGRATION = ROOT / "sql" / "migrations" / "V106__fcus001_customer_master.sql"
 
 
 class CustomerMigrationContractTest(unittest.TestCase):

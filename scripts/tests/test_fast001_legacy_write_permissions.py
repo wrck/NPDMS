@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = ROOT / "sql/migrations/V99__fast001_device_menu_permissions_and_legacy_access.sql"
+MIGRATION = ROOT / "sql/migrations/V118__fast001_device_menu_permissions_and_legacy_access.sql"
 EQUIPMENT_CONTROLLER = ROOT / "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/controller/admin/equipment/EquipmentController.java"
 EQUIPMENT_API = ROOT / "yudao-ui/yudao-ui-admin-vue3/src/api/pms/asset/equipment/index.ts"
 EQUIPMENT_VIEW = ROOT / "yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/equipment/index.vue"
@@ -17,7 +17,7 @@ class Fast001LegacyWritePermissionsTest(unittest.TestCase):
         self.assertTrue(path.is_file(), f"missing file: {path.relative_to(ROOT)}")
         return path.read_text(encoding="utf-8")
 
-    def test_v99_adds_device_workbench_permissions(self):
+    def test_v118_adds_device_workbench_permissions(self):
         sql = self.read(MIGRATION).lower()
         for value in (
             "设备工作台",
@@ -30,7 +30,7 @@ class Fast001LegacyWritePermissionsTest(unittest.TestCase):
             self.assertIn(value.lower(), sql)
         self.assertIn("on duplicate key update", sql)
 
-    def test_v99_revokes_only_non_super_admin_legacy_write_grants(self):
+    def test_v118_revokes_only_non_super_admin_legacy_write_grants(self):
         sql = self.read(MIGRATION).lower()
         self.assertIn("update `system_role_menu`", sql)
         self.assertRegex(sql, r"menu_id`?\s+in\s*\(19002,\s*19003,\s*19004,\s*19005\)")

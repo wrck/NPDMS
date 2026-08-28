@@ -34,8 +34,8 @@
 |---|---|
 | `pms-module-customer/pms-module-customer-api` | 稳定跨上下文 API、命令和 DTO，不暴露数据库实体 |
 | `pms-module-customer` | 客户聚合、生命周期、权限、地点引用、守卫、历史和持久化 |
-| `sql/migrations/V87__fcus001_customer_master.sql` | 新 CUS 表、约束及原 ID 存量迁移 |
-| `sql/migrations/V88__fcus001_customer_menu_and_permissions.sql` | 新路径菜单权限和旧入口只读化种子 |
+| `sql/migrations/V106__fcus001_customer_master.sql` | 新 CUS 表、约束及原 ID 存量迁移 |
+| `sql/migrations/V108__fcus001_customer_menu_and_permissions.sql` | 新路径菜单权限和旧入口只读化种子 |
 | `pms-module-project/.../customer` | 旧历史读取兼容层，移除写能力 |
 | `yudao-ui/.../api/pms/customer` | 新 `/pms/customers` API 客户端 |
 | `yudao-ui/.../views/pms/customer` | 新客户主档工作台 |
@@ -157,7 +157,7 @@ Expected: PASS。
 ### Task 3: 建立 CUS 物理模型并迁移存量客户
 
 **Files:**
-- Create: `sql/migrations/V87__fcus001_customer_master.sql`
+- Create: `sql/migrations/V106__fcus001_customer_master.sql`
 - Create: `pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/customer/CustomerMasterDO.java`
 - Create: `pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/customer/CustomerExternalMappingDO.java`
 - Create: `pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/customer/CustomerFieldHistoryDO.java`
@@ -394,7 +394,7 @@ Expected: PASS。
 ### Task 8: 实现新 `/pms/customers` 控制器与权限裁剪
 
 **Files:**
-- Create: `sql/migrations/V88__fcus001_customer_classification_scope.sql`
+- Create: `sql/migrations/V107__fcus001_customer_classification_scope.sql`
 - Modify: `pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/customer/CustomerMasterDO.java`
 - Create: `pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/classification/CustomerMarketRelationDO.java`
 - Create: `pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/security/CustomerScopeSliceDO.java`
@@ -560,7 +560,7 @@ Expected: PASS。
 ### Task 11: 新增菜单权限并迁移前端 API
 
 **Files:**
-- Create: `sql/migrations/V89__fcus001_customer_menu_and_permissions.sql`
+- Create: `sql/migrations/V108__fcus001_customer_menu_and_permissions.sql`
 - Create: `yudao-ui/yudao-ui-admin-vue3/src/api/pms/customer/index.ts`
 - Modify: `yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/customer/index.ts`
 - Create: `yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/customer-contract.spec.ts`

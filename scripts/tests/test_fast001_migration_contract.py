@@ -12,19 +12,20 @@ MIGRATIONS = ROOT / "sql" / "migrations"
 FILES = {
     version: MIGRATIONS / name
     for version, name in {
-        90: "V90__fast001_device_master_and_source_facts.sql",
-        91: "V91__fast001_device_shipments_and_software_versions.sql",
-        92: "V92__fast001_device_temporal_assignments.sql",
-        93: "V93__fast001_device_relationship_location_warranty.sql",
-        94: "V94__fast001_device_download_grant.sql",
-        95: "V95__fast001_legacy_equipment_forward_migration.sql",
-        96: "V96__fast001_device_ancestor_projection_operations.sql",
-        97: "V97__fast001_device_ancestor_projection_event_watermark.sql",
-        98: "V98__fast001_device_ancestor_projection_job.sql",
-        99: "V99__fast001_device_menu_permissions_and_legacy_access.sql",
-        100: "V100__fast001_device_acceptance_seed.sql",
-        101: "V101__fast001_browser_acceptance_users.sql",
-        102: "V102__fast001_browser_acceptance_login_names.sql",
+        109: "V109__fast001_device_master_and_source_facts.sql",
+        110: "V110__fast001_device_shipments_and_software_versions.sql",
+        111: "V111__fast001_device_temporal_assignments.sql",
+        112: "V112__fast001_device_relationship_location_warranty.sql",
+        113: "V113__fast001_device_download_grant.sql",
+        114: "V114__fast001_legacy_equipment_forward_migration.sql",
+        115: "V115__fast001_device_ancestor_projection_operations.sql",
+        116: "V116__fast001_device_ancestor_projection_event_watermark.sql",
+        117: "V117__fast001_device_ancestor_projection_job.sql",
+        118: "V118__fast001_device_menu_permissions_and_legacy_access.sql",
+        119: "V119__fast001_device_acceptance_seed.sql",
+        120: "V120__fast001_browser_acceptance_users.sql",
+        121: "V121__fast001_browser_acceptance_login_names.sql",
+        122: "V122__fast001_customer_summary_acceptance_seed.sql",
     }.items()
 }
 GENERATOR = ROOT / "scripts" / "generate_fast001_performance_data.py"
@@ -42,11 +43,11 @@ class Fast001MigrationContractTest(unittest.TestCase):
                 versions.setdefault(int(match.group(1)), []).append(path.name)
         duplicates = {version: names for version, names in versions.items() if len(names) > 1}
         self.assertEqual({}, duplicates)
-        self.assertEqual(102, max(version for version in versions if version <= 102))
-        self.assertEqual(FILES[102].name, versions[102][0])
+        self.assertEqual(122, max(version for version in versions if version <= 122))
+        self.assertEqual(FILES[122].name, versions[122][0])
 
-    def test_v90_and_v91_create_master_and_version_facts(self):
-        sql = self._sql(90) + self._sql(91)
+    def test_v109_and_v110_create_master_and_version_facts(self):
+        sql = self._sql(109) + self._sql(110)
         for table in (
             "ast_device", "ast_device_factory_info", "ast_device_shipment",
             "ast_device_factory_version", "ast_product_official_info",
@@ -64,8 +65,8 @@ class Fast001MigrationContractTest(unittest.TestCase):
             self.assertIn(f"`{column}`", sql)
         self.assertNotIn("conboot_version", sql)
 
-    def test_v92_to_v94_create_temporal_and_download_facts(self):
-        sql = self._sql(92) + self._sql(93) + self._sql(94)
+    def test_v111_to_v113_create_temporal_and_download_facts(self):
+        sql = self._sql(111) + self._sql(112) + self._sql(113)
         for table in (
             "ast_device_project_relationship", "ast_device_project_ancestor",
             "ast_device_customer_relationship", "ast_device_assignment_reconciliation",
@@ -82,8 +83,8 @@ class Fast001MigrationContractTest(unittest.TestCase):
             self.assertIn(f"`{column}`", sql)
         self.assertNotIn("`token` varchar", sql)
 
-    def test_v96_and_v97_separate_event_and_operation_watermarks(self):
-        sql = self._sql(96) + self._sql(97)
+    def test_v115_and_v116_separate_event_and_operation_watermarks(self):
+        sql = self._sql(115) + self._sql(116)
         self.assertIn("create table `ast_device_ancestor_projection_operation`", sql)
         self.assertIn("add column `event_id` varchar(128)", sql)
         self.assertIn("set `event_id` = `operation_id`", sql)
@@ -92,21 +93,21 @@ class Fast001MigrationContractTest(unittest.TestCase):
         for column in ("operation_id", "tree_version", "assignment_version"):
             self.assertIn(f"`{column}`", sql)
 
-    def test_v98_registers_device_ancestor_projection_job(self):
-        sql = self._sql(98)
+    def test_v117_registers_device_ancestor_projection_job(self):
+        sql = self._sql(117)
         self.assertIn("insert into infra_job", sql)
         self.assertIn("deviceassignedprojectionjob", sql)
         self.assertIn("'0/30 * * * * ?'", sql)
         self.assertIn("where not exists", sql)
 
     def test_constraint_names_are_unique_across_fast001_schema_migrations(self):
-        sql = "\n".join(self._sql(version) for version in range(90, 99))
+        sql = "\n".join(self._sql(version) for version in range(109, 118))
         names = re.findall(r"constraint `([^`]+)`", sql)
         duplicates = sorted({name for name in names if names.count(name) > 1})
         self.assertEqual([], duplicates)
 
-    def test_v95_migrates_only_explicit_legacy_fields(self):
-        sql = self._sql(95)
+    def test_v114_migrates_only_explicit_legacy_fields(self):
+        sql = self._sql(114)
         self.assertIn("insert into `ast_device`", sql)
         self.assertIn("legacy.`id`", sql)
         self.assertIn("legacy.`serial_number`", sql)
@@ -117,8 +118,8 @@ class Fast001MigrationContractTest(unittest.TestCase):
         self.assertNotIn("conp_version", sql)
         self.assertNotIn("shipment_time", sql)
 
-    def test_v100_contains_controlled_idempotent_acceptance_seed(self):
-        sql = self._sql(100)
+    def test_v119_contains_controlled_idempotent_acceptance_seed(self):
+        sql = self._sql(119)
         self.assertIn("fast001_seed", sql)
         self.assertIn("fast001_test_mes", sql)
         self.assertIn("fast001_test_itr", sql)
@@ -139,8 +140,8 @@ class Fast001MigrationContractTest(unittest.TestCase):
         self.assertNotIn("source_system`, `source_key`) values ('itr'", sql)
         self.assertNotIn("source_system`, `source_key`) values ('kno'", sql)
 
-    def test_v101_contains_fixed_browser_roles_and_users(self):
-        sql = self._sql(101)
+    def test_v120_contains_fixed_browser_roles_and_users(self):
+        sql = self._sql(120)
         for token in (
             "fast001_browser_readonly", "fast001_browser_operator", "fast001_browser_denied",
             "fast001_readonly", "fast001_operator", "fast001_denied",
@@ -155,8 +156,8 @@ class Fast001MigrationContractTest(unittest.TestCase):
         self.assertNotIn("pms:equipment:delete", sql)
         self.assertNotIn("pms:equipment:status-change", sql)
 
-    def test_v102_replaces_invalid_login_names_with_alphanumeric_names(self):
-        sql = self._sql(102)
+    def test_v121_replaces_invalid_login_names_with_alphanumeric_names(self):
+        sql = self._sql(121)
         for token in ("fast001readonly", "fast001operator", "fast001denied", "fast001_seed"):
             self.assertIn(token, sql)
         self.assertNotIn("'fast001_readonly'", sql)
@@ -191,6 +192,8 @@ class Fast001MigrationContractTest(unittest.TestCase):
                 cwd=ROOT,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=False,
                 env=env,
             )

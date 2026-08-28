@@ -1,26 +1,22 @@
-import subprocess
+import json
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC_REPO = ROOT / ".spec-repo-f-ast-001"
-FEATURE_SPEC = SPEC_REPO / "specs" / "features" / "F-AST-001-device-serial-archive-and-temporal-assignment.md"
+FEATURE_SPEC = ROOT / "specs" / "features" / "F-AST-001-device-serial-archive-and-temporal-assignment.md"
+MANIFEST = ROOT / "docs" / "specification-baseline" / "manifest.json"
 DESIGN = ROOT / "docs" / "superpowers" / "specs" / "2026-08-26-f-ast-001-device-master-forward-migration-design.md"
-LOCKED_COMMIT = "92726b8c60c48a5c4923b6d5addeb5314a94bb97"
+LOCKED_COMMIT = "ef8169a7fc452e1006e3a1cf8454b5533798ca34"
 
 
 class Fast001ImplementationInputTest(unittest.TestCase):
 
     def test_feature_spec_repository_is_locked(self):
-        head = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=SPEC_REPO,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        self.assertEqual(LOCKED_COMMIT, head)
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        self.assertEqual(LOCKED_COMMIT, manifest["source"]["commit"])
+        managed_paths = {entry["path"] for entry in manifest["files"]}
+        self.assertIn(FEATURE_SPEC.relative_to(ROOT).as_posix(), managed_paths)
 
     def test_feature_spec_contains_frozen_implementation_rules(self):
         text = FEATURE_SPEC.read_text(encoding="utf-8")

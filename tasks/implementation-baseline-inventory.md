@@ -11,7 +11,7 @@
 
 | 对象 | 分类 | 当前结论 | Requirement |
 |---|---|---|---|
-| `CustomerMasterCurrentRuntime` | `ADAPTED` | F-CUS-001 已建立独立 CUS 当前写 Owner、V87～V89 前向迁移、新客户工作台、跨域摘要与删除守卫；创建、删除成功和恢复浏览器闭环仍受权威分类与真实数据阻断 | `CUS-03` |
+| `CustomerMasterCurrentRuntime` | `ADAPTED` | F-CUS-001 已建立独立 CUS 当前写 Owner、V106～V108 前向迁移、新客户工作台、跨域摘要与删除守卫；创建、删除成功和恢复浏览器闭环仍受权威分类与真实数据阻断 | `CUS-03` |
 | `LegacyCustomerHistoryReadOnly` | `REUSED` | 旧 project 客户入口只保留历史列表和详情，禁止创建、更新、删除、停用、恢复及地点写入，也不代理新 Owner 写操作 | `CUS-03` |
 | `PlatformAuthorizationGrant` | `ADAPTED` | F-PROJ-003 已建立平台授权事实运行时，保留 `AuthorizationGrant` 当前实现及其正式授权边界 | `AUT-01`、`AUT-02`、`INT-06`、`INT-09` |
 | `PlatformCommandFacts` | `ADAPTED` | 平台共享命令设施保留幂等、操作审计和 Outbox 事实，作为已实现命令链的基础能力 | `NFR-01`、`PM-01` |
