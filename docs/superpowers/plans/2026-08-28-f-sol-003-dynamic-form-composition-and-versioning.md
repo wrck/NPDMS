@@ -22,7 +22,7 @@
 - 所有新增或改造查询遵守 `docs/coding/database-query-interface.md`；跨模块只依赖公开 API，不依赖对方 Service、Mapper、DO 或业务表。
 - 使用下一未占用 Flyway 版本 `V104/V105`；不得修改已执行的 `V1～V103`，不得自动迁移或双写旧候选/旧需求分析数据。
 - 文件对象存储继续使用 MinIO；可选 ClamAV 只影响文件扫描事实，不改变 PRE-04 状态机。
-- 实施期间只形成一个整体候选；正向闭环完成前不逐步跑测试或提交，完成后一次执行完整验证并提交。
+- 实施期间只形成一个整体候选且不拆分 Gate、不提前提交；复杂核心能力先实际运行对应失败测试，确认因目标行为缺失而失败，再完成实现和重构，正向闭环接通后复跑受影响测试并进入集中整体验证。
 
 ## 设计前现有实现吸收映射
 
@@ -116,9 +116,19 @@ public interface DynamicFormBusinessObjectPolicyProvider {
 - `DynamicFormInstanceFact` 必须包含 Owner、冻结模板/修订/引擎、完整 Schema、普通值、声明式校验、全部 ACTIVE 受控文件事实、实例版本和冻结动作。
 - 所有写与持锁方法标注 `@Transactional(propagation = Propagation.MANDATORY)`；只读 inspect 不持锁、不写入。
 
-- [ ] **Step 1：先写完整失败测试集合，但不逐项执行**
+- [ ] **Step 1：写完整失败测试集合并实际确认 RED**
 
-新增/改造聚焦测试，测试名称直接对应 AC-FSOL003-001～015：PLT API/Provider 动作封闭与 MANDATORY、PROJ WorkBinding v2 发布冻结、SOL 原子初始化/PATCH/完成/克隆/历史/对比/Fact、文件事件和回滚、Controller 双请求头、前端 runtime/dirty/响应未知。测试使用最终接口签名，避免实现期间再猜 DTO。
+新增/改造聚焦测试，测试名称直接对应 AC-FSOL003-001～015：PLT API/Provider 动作封闭与 MANDATORY、PROJ WorkBinding v2 发布冻结、SOL 原子初始化/PATCH/完成/克隆/历史/对比/Fact、文件事件和回滚、Controller 双请求头、前端 runtime/dirty/响应未知。测试使用最终接口签名，避免实现期间再猜 DTO；随后立即运行下列聚焦集合，逐项确认失败原因是目标接口/行为尚未实现，而不是测试装配、数据库或语法错误：
+
+```powershell
+mvn.cmd -pl pms-module-platform,pms-module-project,pms-module-engineering -am `
+  "-Dtest=DynamicFormBusinessInstanceServiceTest,RequirementAnalysisWorkBindingSchemaTest,RequirementAnalysisDynamicFormCommandServiceTest,RequirementAnalysisDynamicFormQueryServiceTest,RequirementAnalysisFactApiImplTest,RequirementAnalysisControllerContractTest,RequirementAnalysisMigrationContractTest" `
+  "-Dsurefire.failIfNoSpecifiedTests=false" test
+corepack pnpm vitest run --config vitest.pms-file.config.ts `
+  src/views/pms/project/project-master-detail/components/RequirementAnalysisDynamicForm.runtime.spec.ts
+```
+
+Expected：至少一项以缺失目标类型、接口或断言行为失败；若测试因环境或装配失败，先修正测试再重新确认 RED，不得把环境错误当作失败测试证据。
 
 - [ ] **Step 2：实现 PLT 跨 Context 业务实例边界**
 
@@ -130,7 +140,7 @@ public interface DynamicFormBusinessObjectPolicyProvider {
 
 - [ ] **Step 4：以前向迁移建立 SOL→PLT 组合关系与验收种子**
 
-V104 增加 `dynamic_form_instance_id`，确保提交态 PRE-04 根非空且 `(tenant_id,dynamic_form_instance_id)` 唯一，不修改 V99/V100/V101。V105 使用已经发布的 PLT 动态表单结构建立 11 个核心富文本、11 个对应 `PmsFileArtifact` 字段及合法/缺字段/重复字段/停用/无匹配组合；不臆造普通业务角色授权。
+V104 增加 `dynamic_form_instance_id`，确保所有持久化 PRE-04 版本（包括首次及后续 `DRAFT` 根和 `COMPLETED` 根）均非空且 `(tenant_id,dynamic_form_instance_id)` 唯一；迁移契约和真实 MySQL 必须直接拒绝任一 PRE-04 空值行，同时保持 PRE-02 语义不变，不修改 V99/V100/V101。V105 使用已经发布的 PLT 动态表单结构建立 11 个核心富文本、11 个对应 `PmsFileArtifact` 字段及合法/缺字段/重复字段/停用/无匹配组合；不臆造普通业务角色授权。
 
 - [ ] **Step 5：实现 SOL 唯一外层命令与查询编排**
 
@@ -144,9 +154,9 @@ V104 增加 `dynamic_form_instance_id`，确保提交态 PRE-04 根非空且 `(t
 
 新包装组件直接复用 PLT codec/renderer 和 `PmsFileArtifactField`；显示冻结模板/修订、三个核心及声明式阻断、当前有效版、草稿、历史和对比。项目用户不显示模板选择；未保存普通值阻止版本/路由切换；文件响应未知沿用原 slot/Idempotency-Key 并刷新权威事实；服务端 `allowedActions` 决定编辑/完成/创建草稿。
 
-- [ ] **Step 8：完成初始化数据、接口说明与整体候选自检**
+- [ ] **Step 8：完成初始化数据、接口说明并复跑受影响测试至 GREEN**
 
-确认菜单/权限、配置和示例组合覆盖精确命中、不兼容、停用、无匹配；确认旧 `pms_eng_requirement`、旧 BPM、旧工程表单及 V99 章节路径没有产品 diff。至此才进入 Task 2，不在本 Task 中形成提交或阶段性 PASS。
+确认菜单/权限、配置和示例组合覆盖精确命中、不兼容、停用、无匹配；确认旧 `pms_eng_requirement`、旧 BPM、旧工程表单及 V99 章节路径没有产品 diff。复跑 Step 1 的后端和前端聚焦集合，全部通过后完成必要重构并再复跑受影响测试；这些结果只是 TDD 反馈，不形成阶段性 PASS、独立 Gate 或提交。至此才进入 Task 2。
 
 ### Task 2：集中执行整体测试、真实验收、复审与提交
 
@@ -157,12 +167,13 @@ V104 增加 `dynamic_form_instance_id`，确保提交态 PRE-04 根非空且 `(t
 - [ ] **Step 1：一次运行后端聚焦与真实 MySQL 应用事务矩阵**
 
 ```powershell
+docker compose up -d mysql redis migrate
 mvn.cmd -pl pms-module-platform,pms-module-project,pms-module-engineering -am `
   "-Dtest=DynamicFormBusinessInstanceServiceTest,RequirementAnalysisWorkBindingSchemaTest,RequirementAnalysisDynamicFormCommandServiceTest,RequirementAnalysisDynamicFormQueryServiceTest,RequirementAnalysisFactApiImplTest,RequirementAnalysisControllerContractTest,RequirementAnalysisMigrationContractTest,RequirementAnalysisApplicationMySqlIntegrationTest" `
-  "-Dsurefire.failIfNoSpecifiedTests=false" test
+  "-DskipITs=false" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-真实 MySQL 必须直接断言：首次/克隆预分配 ID；无外层事务失败；双版本任一陈旧零写；并发完成单胜；N 个新引用=N 个事件、重放事件不增、批量中途失败所有成功事实为零；动作替换、Provider 不可用、锁序反序、跨租户/无权均失败关闭。
+使用 `docs/development.md` 的隔离 Compose MySQL 和本地 `.env` 凭据，测试前执行迁移、测试后由 `@AfterEach` 清除本用例高段数据并核对无残留。`-DskipITs=false` 必须使受 `@EnabledIfSystemProperty` 控制的真实 MySQL 测试实际执行而非 SKIPPED。真实 MySQL 直接断言：首次/克隆预分配 ID；所有持久化 PRE-04（含 DRAFT）实例 ID 非空；无外层事务失败；双版本任一陈旧零写；并发完成单胜；N 个新引用=N 个事件、重放事件不增、批量中途失败所有成功事实为零；动作替换、Provider 不可用、锁序反序、跨租户/无权均失败关闭。
 
 - [ ] **Step 2：一次运行前端、类型和构建矩阵**
 
@@ -179,13 +190,15 @@ corepack pnpm build:local
 - [ ] **Step 3：运行全仓、Flyway 与规格基线检查**
 
 ```powershell
+mvn.cmd -pl pms-module-platform,pms-module-project,pms-module-engineering -am `
+  "-DskipITs=true" test
 mvn.cmd -DskipTests package
 python scripts/validate_specification_baseline.py
 python scripts/validate_repository_baseline_rules.py
 git diff --check
 ```
 
-用 Docker Compose 权威 MySQL 从 V1 迁移到 V105，执行 Flyway `info/validate`，再由宿主机 JDK 25 应用运行聚焦验收；MinIO 为文件存储，分别保留 ClamAV PASSED 与扫描关闭 SKIPPED 两轮文件事实。
+第一条命令必须实际执行 PLATFORM、PROJ、ENGINEERING 及其依赖模块的全部非环境测试，不得用 package 代替测试；第二条保留全仓打包证明。用 Docker Compose 权威 MySQL 从 V1 迁移到 V105，执行 Flyway `info/validate`，再由宿主机 JDK 25 应用运行聚焦验收；MinIO 为文件存储，分别保留 ClamAV PASSED 与扫描关闭 SKIPPED 两轮文件事实。
 
 - [ ] **Step 4：运行真实 Chromium 公开 UI/REST 闭环**
 
