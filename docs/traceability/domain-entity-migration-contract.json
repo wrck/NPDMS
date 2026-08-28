@@ -273,8 +273,7 @@
     "PreparationDynamicFormInstance": {
       "owner": "SOL",
       "requirementIds": [
-        "PRE-02",
-        "PRE-04"
+        "PRE-02"
       ],
       "targetTables": [
         "sol_dynamic_form_instance"
@@ -301,6 +300,7 @@
     "DynamicFormInstance": {
       "owner": "PLT",
       "requirementIds": [
+        "PRE-04",
         "SOL-01"
       ],
       "targetTables": [
@@ -1585,8 +1585,7 @@
       "owner": "SOL",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
-        "PRE-02",
-        "PRE-04"
+        "PRE-02"
       ],
       "targetTables": [
         "sol_dynamic_form_instance"
@@ -1596,7 +1595,7 @@
           "sourceType": "NONE_NEW",
           "sourceObject": "PreparationDynamicFormInstance",
           "disposition": "NEW_ONLY",
-          "transform": "preserve existing new-platform preparation form facts; do not migrate or dual-write legacy pms_eng_form_instance",
+          "transform": "preserve existing F-SOL-002 site-survey form facts only; PRE-04 does not reuse this table; do not migrate or dual-write legacy pms_eng_form_instance",
           "mappingStatus": "NEW_ONLY",
           "gate": "FEATURE_RELEASE",
           "evidenceRef": "phase2-contract://object=PreparationDynamicFormInstance"
@@ -1652,6 +1651,7 @@
       "owner": "PLT",
       "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
       "requirementIds": [
+        "PRE-04",
         "SOL-01"
       ],
       "targetTables": [
@@ -1662,9 +1662,9 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_eng_form_instance",
           "disposition": "COMPATIBILITY_ONLY",
-          "transform": "audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration or dual write",
+          "transform": "create new PLATFORM manual and trusted business-owner instances; audit reusable interaction only; keep the legacy table and behavior unchanged and create no migration, dual write or automatic PRE-04 candidate-data conversion",
           "mappingStatus": "NO_MIGRATION",
-          "gate": "F-PLT-002",
+          "gate": "F-PLT-002/F-SOL-003",
           "evidenceRef": "implementation://856d05264ab4a4fb69b94896c172e4a1c29aae02/sql/migrations/V27__pms_engineering_briefing_and_form.sql#table=pms_eng_form_instance"
         }
       ]

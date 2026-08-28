@@ -236,12 +236,12 @@
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：工勘/需求填写、提交、确认和退回；PRE-04在共享基础完成后前向重规划
+- 工作流/状态：工勘填写、提交、确认和退回；既有F-SOL-002表单事实保持不变
 - 授权与数据范围：ProjectStageScope；字段与文件权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目经理在S1工前准备阶段发起工勘分工信息采集；THEN 系统提供标准化工勘分工信息采集表单，包含供电、网口、光纤、机柜、网线、光模块等工勘项；AND 每个工勘项可填写确认状态（待确认/已确认/不适用）、负责人、确认结果、附件（照片/文档）；AND 工勘项支持标记为"上架加电外包"，并记录外包方信息与联系方式；WHEN 工勘项涉及领料或外采；THEN 系统支持发起OA领料/外采流程，流程单号回传至工勘记录；AND 工勘详情页展示OA流程状态（待审批/已审批/已发货/已到货），状态变更时同步更新；WHEN 全部适用工勘项已有确认结果和规定证据，人员、领料/外采、备件及批准材料均达到模板要求或已取得有效豁免；THEN 系统将实施就绪状态标记为“已就绪”，生成就绪快照并把工勘数据作为S4实施部署阶段的现场作业输入；AND 工勘数据、来源流程结果和豁免记录归档至项目档案，支持后续阶段查询与引用；WHEN 任一适用项仍为“待确认”、来源流程被驳回、规定证据缺失或豁免已过期；THEN 实施就绪状态保持“未就绪”，系统列出阻断项且不允许项目通过对应的S4准入门禁
 - Phase 3授权拒绝断言：越权按“ProjectStageScope；字段与文件权限”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“工勘/需求填写、提交、确认和退回；PRE-04在共享基础完成后前向重规划”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3业务守卫断言：按“工勘填写、提交、确认和退回；既有F-SOL-002表单事实保持不变”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“Preparation、PreparationDynamicFormInstance”及数据表“sol_preparation、sol_dynamic_form_instance”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
@@ -266,19 +266,19 @@
 ### PRE-04
 
 - 需求名称：需求分析在线填写
-- 数据对象：Preparation、PreparationDynamicFormInstance
-- 数据表：sol_preparation、sol_dynamic_form_instance
-- API：/preparations、/{id}/actions/{submit|confirm|return}
+- 数据对象：Preparation、DynamicFormInstance
+- 数据表：sol_preparation、plt_dynamic_form_instance
+- API：/preparations、/{id}/form、/{id}/actions/{submit|create-draft}；内部DynamicFormBusinessInstanceApi
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：工勘/需求填写、提交、确认和退回；PRE-04在共享基础完成后前向重规划
-- 授权与数据范围：ProjectStageScope；字段与文件权限
+- 工作流/状态：WorkBinding自动冻结PLT修订；SOL草稿/完成及有效版切换；PLT实例值/文件组合与版本克隆
+- 授权与数据范围：ProjectStageScope、当前项目经理、SOL Owner策略及PLT文件权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目经理在S1工前准备阶段进入需求分析填写页面；THEN 系统提供标准化需求分析模板，包含项目背景、项目目标、网络拓扑、传输需求、流量需求、业务需求、IP规划、冗余需求、安全防护、运维需求、日志需求共11项内容；AND 每项内容支持富文本填写与附件上传（拓扑图、网络图等）；AND 必填项校验（项目背景、项目目标、网络拓扑为必填）；WHEN 项目经理完成需求分析填写并提交；THEN 系统校验必填项完整性，校验通过后保存需求分析数据并标记为"已完成"；AND 需求分析数据自动流转至S3方案阶段，SCH-01实施方案模板填写时自动引用需求分析数据预填对应字段；AND 需求分析数据归档至项目档案，支持后续阶段查询与版本对比；WHEN 项目背景、项目目标或网络拓扑缺失，拓扑附件上传失败，或项目经理无该项目编辑权限；THEN 需求分析保持草稿状态，不生成已完成版本，也不向SCH-01提供新的有效输入，并记录未通过项
-- Phase 3授权拒绝断言：越权按“ProjectStageScope；字段与文件权限”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“工勘/需求填写、提交、确认和退回；PRE-04在共享基础完成后前向重规划”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Preparation、PreparationDynamicFormInstance”及数据表“sol_preparation、sol_dynamic_form_instance”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3授权拒绝断言：越权按“ProjectStageScope、当前项目经理、SOL Owner策略及PLT文件权限”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“WorkBinding自动冻结PLT修订；SOL草稿/完成及有效版切换；PLT实例值/文件组合与版本克隆”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Preparation、DynamicFormInstance”及数据表“sol_preparation、plt_dynamic_form_instance”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### PRE-05
@@ -1690,16 +1690,16 @@
 - 需求名称：准备数据动态表单
 - 数据对象：DynamicFormTemplate、DynamicFormTemplateRevision、DynamicFormInstance
 - 数据表：plt_dynamic_form_template、plt_dynamic_form_template_revision、plt_dynamic_form_instance
-- API：/dynamic-form-templates、/dynamic-form-template-revisions、/dynamic-form-instances
+- API：/dynamic-form-templates、/dynamic-form-template-revisions、/dynamic-form-instances；内部DynamicFormBusinessInstanceApi
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：模板唯一草稿、发布修订不可变、启停独立、手工实例冻结修订并按CAS保存；消费方业务状态另行拥有
-- 授权与数据范围：PLT模板/实例功能权限；发布者为高信任配置主体；目标API继续独立鉴权
+- 工作流/状态：模板唯一草稿、发布修订不可变、启停独立；手工与受信业务实例冻结修订并按CAS保存，消费方业务状态另行拥有
+- 授权与数据范围：PLT模板/实例功能权限；业务实例叠加Owner Provider；发布者为高信任配置主体；目标API继续独立鉴权
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目进入准备阶段；THEN 系统按项目冻结模板加载生效表单模板版本并生成实例；WHEN 用户填写条件字段并提交；THEN 系统执行字段校验、保存版本并进入配置的评审状态；WHEN 模板被更新；THEN 已提交实例继续引用旧版本，新项目使用新版本
-- Phase 3授权拒绝断言：越权按“PLT模板/实例功能权限；发布者为高信任配置主体；目标API继续独立鉴权”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“模板唯一草稿、发布修订不可变、启停独立、手工实例冻结修订并按CAS保存；消费方业务状态另行拥有”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3授权拒绝断言：越权按“PLT模板/实例功能权限；业务实例叠加Owner Provider；发布者为高信任配置主体；目标API继续独立鉴权”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“模板唯一草稿、发布修订不可变、启停独立；手工与受信业务实例冻结修订并按CAS保存，消费方业务状态另行拥有”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“DynamicFormTemplate、DynamicFormTemplateRevision、DynamicFormInstance”及数据表“plt_dynamic_form_template、plt_dynamic_form_template_revision、plt_dynamic_form_instance”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 

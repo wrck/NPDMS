@@ -45,7 +45,7 @@
 | 场景 | 幂等键 | 作用域 | 首次结果重放 |
 |---|---|---|---|
 | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
-| 动态表单模板/实例命令 | `Idempotency-Key` | tenant + command + actor + template/revision/instance intent | 新建模板、下一草稿、发布、启停或手工实例同载荷重放原结果；普通值PATCH使用If-Match而非创建型幂等 |
+| 动态表单模板/实例命令 | `Idempotency-Key` | tenant + command + actor + template/revision/instance intent | 新建模板、下一草稿、发布、启停或手工实例同载荷重放原结果；业务实例由消费Context外层命令持有唯一幂等记录，PLT写/持锁API以`MANDATORY`加入且不得自开事务；完成/克隆同时校验PLT与Owner双版本 |
 | 项目授权创建/撤权 | `Idempotency-Key` | tenant + actor + project/grant + command | 同键同摘要返回原授权或撤权版本；同键不同摘要拒绝 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
 | 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
@@ -175,6 +175,8 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 | 手工选择后模板停用或当前发布指针变化 | VERSION_CONFLICT；不得改用新修订或创建实例 |
 | 已发布修订更新/删除 | STATE_CONFLICT；修订及既有实例保持不变 |
 | 实例If-Match过期、未知字段或普通PATCH伪造`PmsFileArtifact`值 | VERSION_CONFLICT/VALIDATION；不覆盖普通值或文件事实 |
+| 业务Owner Provider未知、不可用、scopeVersion漂移或拒绝动作 | 失败关闭；PLT实例/值/文件、SOL版本及成功审计均不改变 |
+| 业务实例复制中任一FileReference失败 | 同一外层事务回滚目标实例、全部新引用、Outbox与消费方成功幂等/审计；同目标同版本重放不新增事件 |
 | 模板API/iframe被CORS、CSP、frame策略或目标权限拒绝 | 浏览器如实显示失败；PLT不代理、不降级为服务端请求，不形成表单保存或其他业务成功事实 |
 
 ## 11. 重试、熔断和人工接管

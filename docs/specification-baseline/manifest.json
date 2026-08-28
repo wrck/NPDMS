@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repositoryId": "project-delivery-platform-spec",
-    "commit": "a04aa0fa25194ca0cd5e157d7c16c3c42a26ff7f"
+    "commit": "9417079eda9e64ca5ecc23373c86431434800f83"
   },
   "files": [
     {
@@ -268,7 +268,7 @@
     {
       "path": "docs/design/04-module-design.md",
       "category": "SDS",
-      "sha256": "de54ed92e273a54bcd6e17ba04a5243611f7b7870baf0408c111a737dfda6137"
+      "sha256": "803ed1aefcc58e66d285579422e30031bf234f16407ea09cb9d0acf2aacf1700"
     },
     {
       "path": "docs/design/05-state-machine.md",
@@ -283,27 +283,27 @@
     {
       "path": "docs/design/07-authorization-design.md",
       "category": "SDS",
-      "sha256": "85a9d81b05d4b0ff77bfb8fcef67349400bbaa36c568562ff2b8ce538976699e"
+      "sha256": "7ec0b8242030d8feb124bbbbdd7971a6a0acce55715cee7cf29bf4d599e2168d"
     },
     {
       "path": "docs/design/08-data-model.md",
       "category": "SDS",
-      "sha256": "1be7560fb7db752a5a45db8955117b012e0741676f2c92ed4d53bcf57ffbd4b0"
+      "sha256": "b8c7c100fea13c6741937134839975b72df1c11d9d14cb67104ffe3f7851ce58"
     },
     {
       "path": "docs/design/08a-domain-entity-migration-alignment.md",
       "category": "SDS",
-      "sha256": "f256ff7cc808a1cb4e5c2b1593b8934c1da0ce906186173ff0f1262a441088fb"
+      "sha256": "595cbcee062fb84b5bf72875637198be64b480e0a651cd340f2190c98dcd4243"
     },
     {
       "path": "docs/design/09-database-design.md",
       "category": "SDS",
-      "sha256": "c293db2d00ac1920e477c351ef98343da75f86ed68cbcdb37c9f4f695d2d44b3"
+      "sha256": "c4a63147aa492c8a59e740dcc7aca2c825f1e01d26038ef0f3d5970d3f9acbd9"
     },
     {
       "path": "docs/design/10-api-design.md",
       "category": "SDS",
-      "sha256": "ee957bca1d2909112658f658d8b477a2d9214638ce1709dba040d4bd6a086d37"
+      "sha256": "6877c481b641afb3d64022a3d9117502e7389f9841cc94ee8c0e035d34093c64"
     },
     {
       "path": "docs/design/11-event-design.md",
@@ -318,27 +318,27 @@
     {
       "path": "docs/design/13-file-design.md",
       "category": "SDS",
-      "sha256": "6c786f150bb516877a63892273ba4b2f9083fdbd6c084fe4f560fc826f247cb3"
+      "sha256": "4e829fc59fb226ca0d256c9a105e246be858939d1011e1c54a9bccb94a53e2f6"
     },
     {
       "path": "docs/design/14-security-design.md",
       "category": "SDS",
-      "sha256": "11da3e756dc612b54466fa8a3443243097d51980a7a8b97af800a9a0da6f4eb7"
+      "sha256": "e19df49652b962f6632f8f0af108d1e78d23428520c0f7978e58c4c9c2b25e2e"
     },
     {
       "path": "docs/design/15-cache-and-concurrency.md",
       "category": "SDS",
-      "sha256": "1aa06512ad987da842455c6dfe5a84bdee70d952ad7d53be42a1acb74671f6a9"
+      "sha256": "99f9f22c4fb28a590ccb614265b6414672a1466eef4653555778f1bd06d9a077"
     },
     {
       "path": "docs/design/16-exception-and-idempotency.md",
       "category": "SDS",
-      "sha256": "5bb83b4174d9f144e40d1d0cfca0fc6f0831fd00bfb89ba1e777117fee884da3"
+      "sha256": "e25bd67b2d9f682a6655913a3461115a1cc07c82c9b8183f95a4e7d5312c2259"
     },
     {
       "path": "docs/design/17-audit-and-observability.md",
       "category": "SDS",
-      "sha256": "2c31c94da45ea03e8aad65c76af24be7dc547ac0a75da0503ec985b90b7504c8"
+      "sha256": "a09f6850a70a8cb77b2bd86a4ad2fa56b4509ffa22418774ab72a1bc2236e4b3"
     },
     {
       "path": "docs/design/18-deployment-design.md",
@@ -353,7 +353,7 @@
     {
       "path": "docs/design/20-test-design.md",
       "category": "SDS",
-      "sha256": "104dae7c1b743f2842fbbd8c2715d93951998dbe50eb65d365507c18f58575eb"
+      "sha256": "f66e67b4a54d4a6ff25e2cc4d782f8f0ff5a2335aa5bd647a28dcf6046bf8666"
     },
     {
       "path": "docs/design/README.md",
@@ -418,17 +418,17 @@
     {
       "path": "docs/traceability/domain-entity-migration-contract.json",
       "category": "TRACEABILITY",
-      "sha256": "ede57bb1528249f3535a2837a80e146074590fb8c52dc3c540491cd67095ef56"
+      "sha256": "7f2c063a430de497eeaf34ecccf3e4b886b674dc426dfeeccea8b7480c8f6feb"
     },
     {
       "path": "docs/traceability/domain-entity-migration-contract.md",
       "category": "TRACEABILITY",
-      "sha256": "cc0b4f8638e1b76b494e4bb8dcaeaee83ed4db9812314894dc46af76b023e96c"
+      "sha256": "a92d664384271512483ce4aeaf0fa6ea10d5a991ba2e8ebda1cc8a25b8ab4cca"
     },
     {
       "path": "docs/traceability/domain-object-table-map.json",
       "category": "TRACEABILITY",
-      "sha256": "c1df760d55b29a86c9a3aa22153fe548cdfde7c07b505f5df104a36f3cb0ef21"
+      "sha256": "7c056dcaa533abae3f554bf4b26ece031828e825445d550d7f4e8fd16c9d6eeb"
     },
     {
       "path": "docs/traceability/market-relation-contract.json",
@@ -438,7 +438,7 @@
     {
       "path": "docs/traceability/phase2-contract-map.md",
       "category": "TRACEABILITY",
-      "sha256": "3ed701c280b6c87b0ede8fa8317277d48d309ae17ceb08261c5c90ba65b5e1b9"
+      "sha256": "f35481d5fbf3909bec5bcbf8e1b7780c0a7fc75686689e34fa14fadf7aa6eb66"
     },
     {
       "path": "docs/traceability/project-code-contract.json",
@@ -448,7 +448,7 @@
     {
       "path": "docs/traceability/requirement-matrix.md",
       "category": "TRACEABILITY",
-      "sha256": "201866ac20b076e32dc878d6dc47d45ba9303d2679453fed14397313bfa2772d"
+      "sha256": "e8810def8e7c6846162cc10f593e14c4747b514986486d4bdfc5584cd63dcc12"
     },
     {
       "path": "specs/features/F-PLT-001-physical-contract.json",
@@ -468,12 +468,12 @@
     {
       "path": "specs/features/F-PLT-002-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "1288e581a7b3a7f91c509dc0f1ee71eac4b3c7f14f67d1acedf28a6659a034fd"
+      "sha256": "259cbce3a1feabf18a6e9d5b68992eca03bcedca359d91bd5fb899e58c3c4455"
     },
     {
       "path": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md",
       "category": "FEATURE_SPEC",
-      "sha256": "eb778365bdb561caada1af89a8aa169415c15389bc3e53e166ac453259b60afd"
+      "sha256": "e992bc8a446dea9e4268d6c1bc8996b3ec1316447b18f591acd81933dbce8325"
     },
     {
       "path": "specs/features/F-PROJ-001-manual-project-creation-and-template-initialization.md",
@@ -563,17 +563,17 @@
     {
       "path": "specs/features/F-SOL-003-physical-contract.json",
       "category": "FEATURE_SPEC",
-      "sha256": "7a8d100335eaa6c2b469293487a2a58ab5759db388eb9ea748468e5f6568d8b7"
+      "sha256": "084a6f7bfa7029523017457923c6cb35224675e10e0d3097d9b8fa2994e9ad04"
     },
     {
       "path": "specs/features/F-SOL-003-requirement-analysis-versioning.md",
       "category": "FEATURE_SPEC",
-      "sha256": "47b695c0b3f4a1a4139c40e80ce8e91ab3a88880110fbee2acb0bd603f70bc38"
+      "sha256": "2e0848f7dc153c39a65993cfdc4ab6a04728ae4009d63ceac752b64b475871ed"
     },
     {
       "path": "specs/features/README.md",
       "category": "FEATURE_SPEC",
-      "sha256": "d36b5bd4d0459c3976fb7545abc9ce7b0c6f8cab0ba3022943398f8e022726b8"
+      "sha256": "249d073a58d872d3928903d0f64a36da16434a1210d823dd45a0e1aea8acb493"
     }
   ]
 }
