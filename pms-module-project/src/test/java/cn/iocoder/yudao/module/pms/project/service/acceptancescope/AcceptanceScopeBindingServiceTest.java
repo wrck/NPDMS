@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceSta
 import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.EffectiveScopeBindingCommand;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancescope.AcceptanceScopeBindingDO;
 import cn.iocoder.yudao.module.pms.project.dal.repository.acceptancescope.AcceptanceScopeBindingRepository;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -152,6 +154,12 @@ class AcceptanceScopeBindingServiceTest {
                     .getMethod(method, argumentType).getAnnotation(Transactional.class);
             assertEquals(Propagation.MANDATORY, transactional.propagation());
         }
+    }
+
+    @Test
+    void shouldGenerateStableBindingIdBeforeInsert() throws Exception {
+        TableId tableId = AcceptanceScopeBindingDO.class.getDeclaredField("id").getAnnotation(TableId.class);
+        assertEquals(IdType.ASSIGN_ID, tableId.type());
     }
 
     private AcceptanceScopeBindingDO binding(Long scopeId, Long allocationVersion, String trigger) {
