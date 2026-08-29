@@ -48,6 +48,16 @@ class PrdComAcceptanceScopeTriggerTest(unittest.TestCase):
         self.assertIn("不得从既有项目级验收状态或报告状态反推历史事实", acc)
         self.assertIn("不留下部分绑定", acc)
 
+    def test_project_stage_entry_precedes_acceptance_report_completeness(self) -> None:
+        com = requirement_block(self.prd, "COM-01")
+        acc = requirement_block(self.prd, "ACC-03")
+        for block in (com, acc, self.amendment):
+            self.assertIn("项目阶段进入", block)
+            self.assertIn("不要求创建或补齐初验/终验", block)
+        self.assertIn("报告尚未形成不得阻断已满足其他门禁的阶段进入", acc)
+        self.assertIn("验收时间、结论、验收人和附件完备", acc)
+        self.assertIn("对应验收活动不得标记完成", acc)
+
     def test_unapproved_exit_semantics_fail_closed(self) -> None:
         com = requirement_block(self.prd, "COM-01")
         acc = requirement_block(self.prd, "ACC-03")
