@@ -13,6 +13,36 @@ REUSE_AUDIT = ROOT / "specs/features/F-COM-001-legacy-reuse-audit.md"
 FEATURE_INDEX = ROOT / "specs/features/README.md"
 
 
+REQUIRED_PROVIDER_REUSE_AUDIT = {
+    "ProjectOrganizationFactApi": "COPY_THEN_ENHANCE",
+    "ProjectMasterDO/Mapper": "DIRECT_REUSE",
+    "ProjectStageSnapshotDO/Mapper/Repository": "DIRECT_REUSE",
+    "ProjectGovernanceApplicationService": "COPY_THEN_ENHANCE",
+    "AcceptanceController": "DO_NOT_REUSE",
+    "ProjectClosureServiceImpl": "DO_NOT_REUSE",
+}
+
+
+def provider_reuse_audit_errors(audit: str) -> list[str]:
+    rows = [line for line in audit.splitlines() if line.startswith("| REUSE-")]
+    errors = []
+    for asset, decision in REQUIRED_PROVIDER_REUSE_AUDIT.items():
+        matching = [row for row in rows if asset in row]
+        if not matching:
+            errors.append(f"missing carrier audit: {asset}")
+        elif not any(f"`{decision}`" in row for row in matching):
+            errors.append(f"wrong carrier decision: {asset} must be {decision}")
+    required_boundaries = (
+        "不得承接`AcceptanceScopeBinding`身份、触发、表或Provider",
+        "独立新建ACC事实、`acc_acceptance_scope_binding`表",
+        "不得复用`pms_acc_acceptance`主键、表、状态、Controller、Service或Mapper",
+    )
+    for boundary in required_boundaries:
+        if boundary not in audit:
+            errors.append(f"missing report/binding separation: {boundary}")
+    return errors
+
+
 class Fcom001FeatureContractTest(unittest.TestCase):
 
     @classmethod
@@ -84,6 +114,29 @@ class Fcom001FeatureContractTest(unittest.TestCase):
         self.assertIn("PROJECT_STAGE_ENTRY", self.contract["acceptanceBinding"]["triggers"])
         self.assertIn("SCOPE_VERSION_EFFECTIVE", self.contract["acceptanceBinding"]["triggers"])
         self.assertFalse(self.contract["acceptanceBinding"]["reportTriggersBinding"])
+
+    def test_real_provider_carriers_are_audited_and_reports_cannot_become_bindings(self) -> None:
+        self.assertEqual([], provider_reuse_audit_errors(self.reuse_audit))
+        for evidence in (
+            "ProjectOrganizationFactApiImplTest",
+            "ProjectStageSnapshotRulesTest",
+            "ProjectGovernanceApplicationServiceTest",
+            "ProjectClosureStateAdapterTest",
+            "V17__pms_acceptance_tables.sql",
+        ):
+            with self.subTest(evidence=evidence):
+                self.assertIn(evidence, self.reuse_audit)
+
+    def test_reuse_audit_guard_rejects_missing_carriers_or_report_binding_reuse(self) -> None:
+        missing_provider = self.reuse_audit.replace("ProjectMasterDO/Mapper", "ProjectMasterCarrier")
+        self.assertTrue(provider_reuse_audit_errors(missing_provider))
+
+        report_reused = self.reuse_audit.replace(
+            "`AcceptanceController`、`AcceptanceService/Impl`、`AcceptanceDO/Mapper`与`pms_acc_acceptance`（`V17__pms_acceptance_tables.sql`） | `DO_NOT_REUSE`",
+            "`AcceptanceController`、`AcceptanceService/Impl`、`AcceptanceDO/Mapper`与`pms_acc_acceptance`（`V17__pms_acceptance_tables.sql`） | `DIRECT_REUSE`",
+            1,
+        )
+        self.assertTrue(provider_reuse_audit_errors(report_reused))
 
     def test_v70_required_targets_and_deterministic_detail_sequence_are_frozen(self) -> None:
         mappings = self.contract["v70Conversion"]["requiredTargetMappings"]

@@ -9,6 +9,9 @@
 - `pms-module-commerce`全部API、DTO、Service、DO、Mapper和测试；
 - `sql/migrations/V70__commerce_delivery_scope_slice.sql`；
 - F-PROJ-002对`DeliveryScopeApi`的消费与回归契约；
+- `pms-module-project-api`的`ProjectOrganizationFactApi`、DTO及其现有调用契约；
+- `pms-module-project`的`ProjectOrganizationFactApiImpl`、`ProjectMasterDO/Mapper`、`ProjectStageSnapshotDO/Mapper/Repository`、`ProjectGovernanceApplicationService`及对应测试；
+- `AcceptanceController`、`AcceptanceService/Impl`、`AcceptanceDO/Mapper`、`sql/migrations/V17__pms_acceptance_tables.sql`，以及`ProjectClosureServiceImpl`、`ProjectClosureStateAdapter`和对应测试；
 - Yudao CRM合同API、列表、表单、详情、审批和权限组件；
 - 已批准COM物理DDL、ADR-0023当前范围粒度及ADR-0036/0037的Feature-forward差量。
 
@@ -28,13 +31,20 @@
 | REUSE-08 | Yudao CRM合同API、CRUD表单、列表、详情、BPM审批和CRM权限 | `DO_NOT_REUSE` | 保持零修改；新建PMS Commerce API、页面、路由和权限 | CRM拥有销售上下文而非ERP商务事实；可编辑CRM合同及审批状态与COM-01只读Owner冲突；用户禁止未授权修改Yudao基础平台 |
 | REUSE-09 | Yudao/Element Plus通用前端组件和主题变量 | `DIRECT_REUSE` | 通过现有公共import用于新PMS页面 | 只复用通用表现组件，不复制CRM业务状态、权限或API |
 | REUSE-10 | 当前仓库ERP网络连接实现 | `DO_NOT_REUSE` | 无资产；只定义`CommerceAuthorityWriteApi`和受控本地Provider边界 | 第三方平台功能只预留接口，不实现连接器 |
+| REUSE-11 | `ProjectOrganizationFactApi`、DTO、`ProjectOrganizationFactApiImpl`及`ProjectOrganizationFactApiImplTest` | `COPY_THEN_ENHANCE` | 保持现有组织事实API不变；复制其可信租户、项目版本和项目行锁校验模式，新建窄`ProjectOfficeFactApi`真实Provider | 现接口只有项目组织部门ID/编码，缺SYSTEM办事处名称、部门版本和显式结果枚举；不得把项目缓存名称或实施地点当权威事实 |
+| REUSE-12 | `ProjectMasterDO/Mapper`及`selectByIdForUpdate`项目当前行锁 | `DIRECT_REUSE` | `ProjectOfficeFactApi`与`ProjectAcceptanceStageFactApi`Provider复用项目当前行、租户、版本、当前阶段和统一首锁；组织引用仍须向SYSTEM部门事实精确校验 | 已有锁原语符合ADR-0037锁序；`implementationLocation/locationResolutionStatus`及项目缓存部门名称不得用于生成办事处快照 |
+| REUSE-13 | `ProjectStageSnapshotDO/Mapper/Repository`、`ProjectStageSnapshotRulesTest` | `DIRECT_REUSE` | 复用只追加阶段快照、稳定`snapshotId`和统一追加入口，作为`ProjectAcceptanceStageFactApi`返回的不可变阶段身份 | Mapper不暴露更新/删除，Repository执行可信租户校验；只允许引用真实阶段进入快照，不得从报告状态反推 |
+| REUSE-14 | `ProjectGovernanceApplicationService`及`ProjectGovernanceApplicationServiceTest` | `COPY_THEN_ENHANCE` | 保持现有回退/异常关闭/重开路径不变；在批准的阶段进入命令边界复制其项目锁、幂等、快照追加和提交后事件模式，并接入窄PROJ Provider | 当前服务只实现治理动作且Q-FCOM-002禁止本Feature决定回退关闭；不得直接修改现有治理动作来夹带范围解锁或补建绑定 |
+| REUSE-15 | `AcceptanceController`、`AcceptanceService/Impl`、`AcceptanceDO/Mapper`与`pms_acc_acceptance`（`V17__pms_acceptance_tables.sql`） | `DO_NOT_REUSE` | 初验/终验报告CRUD、审批状态机、交付件门禁及现有表保持不变；不得承接`AcceptanceScopeBinding`身份、触发、表或Provider | 该栈的身份是报告`acceptance_id`，而ADR-0037已冻结范围绑定身份为项目阶段快照与精确范围版本；报告上传、提交、审批或状态不得触发或反推绑定 |
+| REUSE-16 | `ProjectClosureServiceImpl`对终验报告的消费、`ProjectClosureStateAdapter`及`ProjectClosureStateAdapterTest` | `DO_NOT_REUSE` | 保持关项对终验完成结果和项目生命周期的既有消费；不得作为范围绑定创建、关闭、解锁或存在性来源 | 关项是报告完成后的下游门禁，不是项目进入验收阶段或新范围版本生效的Owner事实 |
 
 ## 3. 实施约束
 
-1. Technical Plan必须把REUSE-01～10逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
+1. Technical Plan必须把REUSE-01～16逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
 2. 增强服务、DO、Mapper和页面先复制到新类/新页面后再改造；旧公开API在切换前后保持兼容，旧Yudao CRM资产零修改。
 3. V70转换必须使用合入时的下一个Flyway编号，验证空库、当前基线升级、重复迁移和转换前后数量/范围/事件对账；不修改V70。
 4. 新增查询遵守场景Query对象、`LambdaQueryWrapperX`和Mapper XML规则；不得新增SQL注解、`${}`、`.last(...)`、`Map`或长位置参数。
 5. Implementation Done候选必须证明：F-PROJ-002回归通过、Yudao CRM路径零修改、新PMS Commerce真实浏览器闭环、ERP适配器不存在、无COM双Owner或长期双写。
+6. `AcceptanceScopeBinding`在现有仓库中没有可直接复用的物理事实；后续仅可按ADR-0037独立新建ACC事实、`acc_acceptance_scope_binding`表和`AcceptanceScopeGuardApi/AcceptanceScopeBindingApi`真实Provider。它不得复用`pms_acc_acceptance`主键、表、状态、Controller、Service或Mapper，也不得由`ProjectClosure`消费反向补建。
 
 结论：对应旧实现已全部完成三类判定，无`PENDING/TODO/待确认`项。本审计只锁定Feature Ready输入，不代表Technical Plan或Implementation通过。
