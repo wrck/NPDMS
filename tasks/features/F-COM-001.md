@@ -49,4 +49,4 @@
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=a57c23c8；当前Gate=Implementation Done整改复审；已通过=公开查询筛选/详情聚合、公司与项目范围独立路径、稳定业务错误码及Chromium/MySQL闭环PASS；阻塞=无；下一步=提交并申请同一Gate独立复审。
+> 检查点：基线=5e567281；当前Gate=Implementation Done整改复审；已通过=公司范围与零公司范围+项目授权分离身份Chromium/MySQL闭环PASS，ACC LOCKED/UNKNOWN/null/身份不一致分类及零写入定点测试12/12 PASS；阻塞=无；下一步=提交并申请同一Gate复审。

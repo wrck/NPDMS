@@ -13,6 +13,7 @@ if (!adminPassword) throw new Error('必须通过 FCOM001_ADMIN_PASSWORD 环境�
 
 const tenantId = 0
 const managedUser = { id: 992002800002, username: 'fcom001acceptance' }
+const projectManagerUser = { id: 100, username: 'yudao', projectId: 992002000000 }
 const managedRoleId = 992002800001
 const managedMenus = [19260, 930900, 930901, 930902, 930903, 930904, 930905, 930906, 930907, 18069]
 const rootProject = { id: 992002000000, version: 0, scopeVersion: 1 }
@@ -165,6 +166,7 @@ const viewports = [
   await navigate(appUrl)
 
   const adminToken = await login('admin', adminPassword)
+  const projectManagerToken = await login(projectManagerUser.username, adminPassword)
   await api('PUT', '/system/user/update-password', { id: managedUser.id, password }, {}, adminToken)
   const fullToken = await login(managedUser.username, password)
   const marker = Date.now()
@@ -186,9 +188,14 @@ const viewports = [
   const sourceTime = Date.parse('2026-08-29T22:00:00+08:00')
   const importPayload = {
     sourceBatchId: `FCOM001-BATCH-${marker}`,
-    contracts: [{ sourceRecordKey: contractKey, sourceVersion: '1', companyCode: 'DPTECH-DEMO',
-      contractNo: `FCOM-${suffix}`, contractName: `F-COM-001 浏览器合同 ${suffix}`,
-      status: 'ENABLED', sourceUpdatedAt: sourceTime }],
+    contracts: [
+      { sourceRecordKey: contractKey, sourceVersion: '1', companyCode: 'DPTECH-DEMO',
+        contractNo: `FCOM-${suffix}`, contractName: `F-COM-001 浏览器合同 ${suffix}`,
+        status: 'ENABLED', sourceUpdatedAt: sourceTime },
+      { sourceRecordKey: `${contractKey}-UNRELATED`, sourceVersion: '1', companyCode: 'DPTECH-DEMO',
+        contractNo: `UNRELATED-${suffix}`, contractName: `F-COM-001 无关合同 ${suffix}`,
+        status: 'ENABLED', sourceUpdatedAt: sourceTime }
+    ],
     salesOrders: [{ sourceRecordKey: orderKey, sourceVersion: '1', companyCode: 'DPTECH-DEMO',
       orderType: 'NORMAL', orderNo: `SO-FCOM-${suffix}`, status: 'ENABLED', sourceUpdatedAt: sourceTime }],
     salesOrderLines: [
@@ -235,6 +242,14 @@ const viewports = [
     projectId: rootProject.id, relationRole: 'RELATED', reason: 'F-COM-001 detail aggregate acceptance'
   }, { 'Idempotency-Key': crypto.randomUUID() }, fullToken)
   const seedDetail = await api('GET', '/api/v1/pms/contracts/992002390001', undefined, {}, fullToken)
+  const projectOnlyContracts = await api('GET', '/api/v1/pms/contracts?pageNo=1&pageSize=200',
+    undefined, {}, projectManagerToken)
+  const projectOnlyDetail = await api('GET', '/api/v1/pms/contracts/992002390001',
+    undefined, {}, projectManagerToken)
+  const projectOnlyOrders = await api('GET', '/api/v1/pms/sales-orders?pageNo=1&pageSize=200',
+    undefined, {}, projectManagerToken)
+  const projectOnlyLines = await api('GET', '/api/v1/pms/order-lines?orderId=992002399001&pageNo=1&pageSize=200',
+    undefined, {}, projectManagerToken)
   const orders = await api('GET', `/api/v1/pms/sales-orders?companyCode=DPTECH-DEMO&orderNo=SO-FCOM-${suffix}&orderType=NORMAL&status=ENABLED&pageNo=1&pageSize=20`,
     undefined, {}, fullToken)
   const order = orders.list[0]
@@ -346,6 +361,9 @@ const viewports = [
   const stageSnapshotRows = mysql(`SELECT id,project_id,stage_code,operation_type FROM proj_project_stage_snapshot WHERE tenant_id=0 AND project_id=${stageProject.id} AND operation_type='STAGE_ENTRY' ORDER BY id`)
   const bindingRows = mysql(`SELECT project_id,delivery_scope_id,scope_allocation_version,binding_trigger,binding_status FROM acc_acceptance_scope_binding WHERE tenant_id=0 AND project_id=${stageProject.id} ORDER BY delivery_scope_id,scope_allocation_version`)
   const invalidSerialRows = mysql(`SELECT COUNT(*) FROM com_delivery_scope WHERE tenant_id=0 AND order_line_id=${lineC.id}`)
+  const projectOnlyIdentityFacts = mysql(`SELECT
+    (SELECT COUNT(*) FROM system_user_company_department_scope WHERE user_id=${projectManagerUser.id} AND deleted=0 AND status='ENABLED' AND effective_from<=NOW() AND (effective_to IS NULL OR effective_to>NOW())),
+    (SELECT COUNT(*) FROM plt_authorization_grant WHERE tenant_id=0 AND subject_type_code='USER' AND subject_id=${projectManagerUser.id} AND resource_context_code='PROJ' AND resource_type_code='PROJECT' AND resource_id=${projectManagerUser.projectId} AND action_code='PROJECT_VIEW' AND scope_code IN ('CURRENT_PROJECT','PROJECT_AND_DESCENDANTS') AND status_code='ACTIVE' AND deleted=0 AND effective_from<=NOW() AND (effective_to IS NULL OR effective_to>NOW()))`)
 
   const negatives = [importConflict, noAuthority, invalidSerial, frozenAssign]
   const unexpectedNetworkFailures = networkFailures.filter((item) => item.errorText !== 'net::ERR_ABORTED')
@@ -361,6 +379,14 @@ const viewports = [
       && seedDetail.projectRelations.some((item) => item.projectId === rootProject.id)
       && contractDetail.sourceSystem === 'ERP' && contractDetail.sourceVersion === '1'
       && Boolean(contractDetail.sourceUpdatedAt),
+    projectManagerOnlyRead: projectOnlyIdentityFacts === '0\t1'
+      && projectOnlyContracts.list.some((item) => String(item.id) === '992002390001')
+      && !projectOnlyContracts.list.some((item) => item.contractNo === `UNRELATED-${suffix}`)
+      && projectOnlyDetail.contract.id === 992002390001
+      && projectOnlyOrders.list.some((item) => String(item.id) === '992002399001')
+      && !projectOnlyOrders.list.some((item) => String(item.id) === String(order.id))
+      && projectOnlyLines.list.length > 0
+      && projectOnlyLines.list.every((item) => String(item.orderId) === '992002399001'),
     previewAllowed: previewA.allowed === true,
     adjustmentVersioned: adjustedA.allocationVersion > assignedA.allocationVersion,
     releaseClosedCurrent: releasedA.deliveryScopeId === adjustedA.deliveryScopeId
@@ -387,11 +413,12 @@ const viewports = [
     generatedAt: new Date().toISOString(),
     feature: 'F-COM-001', requirementIds: ['COM-01@V1', 'PM-03', 'PM-10', 'ACC-03'],
     ports: { chrome: 9224, backend: 59280, frontend: 19081, mysql: 23316, redis: 26379 },
-    users: { managed: managedUser.username },
+    users: { companyScoped: managedUser.username, projectManagerOnly: projectManagerUser.username },
     created: { contractId: contract.id, orderId: order.id, orderLineIds: [lineA.id, lineB.id, lineC.id],
       adjustedScopeId: adjustedA.deliveryScopeId, stageScopeId: stageScope.deliveryScopeId },
     negatives, contractUi, rootScopeUi, responsive,
-    databaseEvidence: { scopeHistoryRows, outboxRows, stageSnapshotRows, bindingRows, invalidSerialRows },
+    databaseEvidence: { scopeHistoryRows, outboxRows, stageSnapshotRows, bindingRows, invalidSerialRows,
+      projectOnlyIdentityFacts },
     consoleErrors, pageErrors, networkFailures, unexpectedNetworkFailures, checks,
     pass: Object.values(checks).every(Boolean)
   }

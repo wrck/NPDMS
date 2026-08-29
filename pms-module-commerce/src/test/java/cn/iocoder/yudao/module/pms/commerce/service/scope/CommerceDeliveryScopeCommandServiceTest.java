@@ -157,6 +157,69 @@ class CommerceDeliveryScopeCommandServiceTest {
     }
 
     @Test
+    void shouldRejectUnknownAcceptanceScopeAsDependencyWithoutWrites() {
+        DeliveryScopeDO current = currentScope();
+        allowProject();
+        when(scopeMapper.selectCurrentById(any())).thenReturn(current);
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(current));
+        when(scopeMapper.selectCurrentByIdForUpdate(any())).thenReturn(current);
+        when(acceptanceScopeGuardApi.checkReduction(any())).thenReturn(new AcceptanceScopeGuardResult(
+                AcceptanceScopeGuardOutcome.UNKNOWN, null, null, current.getId(), current.getAllocationVersion()));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.adjust(changeCommand(new BigDecimal("5"), "op-unknown")));
+
+        assertEquals(COMMERCE_SCOPE_DEPENDENCY_UNAVAILABLE.getCode(), error.getCode());
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verifyNoInteractions(detailMapper, operationAuditApi);
+        verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
+    void shouldRejectNullAcceptanceScopeAsDependencyWithoutWrites() {
+        DeliveryScopeDO current = currentScope();
+        allowProject();
+        when(scopeMapper.selectCurrentById(any())).thenReturn(current);
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(current));
+        when(scopeMapper.selectCurrentByIdForUpdate(any())).thenReturn(current);
+        when(acceptanceScopeGuardApi.checkReduction(any())).thenReturn(null);
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.adjust(changeCommand(new BigDecimal("5"), "op-null-guard")));
+
+        assertEquals(COMMERCE_SCOPE_DEPENDENCY_UNAVAILABLE.getCode(), error.getCode());
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verifyNoInteractions(detailMapper, operationAuditApi);
+        verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
+    void shouldRejectMismatchedAcceptanceScopeAsDependencyWithoutWrites() {
+        DeliveryScopeDO current = currentScope();
+        allowProject();
+        when(scopeMapper.selectCurrentById(any())).thenReturn(current);
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(current));
+        when(scopeMapper.selectCurrentByIdForUpdate(any())).thenReturn(current);
+        when(acceptanceScopeGuardApi.checkReduction(any())).thenReturn(new AcceptanceScopeGuardResult(
+                AcceptanceScopeGuardOutcome.UNLOCKED, null, null, current.getId() + 1,
+                current.getAllocationVersion()));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.adjust(changeCommand(new BigDecimal("5"), "op-mismatched-guard")));
+
+        assertEquals(COMMERCE_SCOPE_DEPENDENCY_UNAVAILABLE.getCode(), error.getCode());
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verifyNoInteractions(detailMapper, operationAuditApi);
+        verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
     void shouldReleaseUnlockedScopeByClosingCurrentInterval() {
         DeliveryScopeDO current = currentScope();
         allowProject();
