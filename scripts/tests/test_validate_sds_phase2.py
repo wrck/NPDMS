@@ -638,6 +638,53 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
         self.assertEqual([], MODULE.validate_fcom001_v70_required_mappings(repository_root))
 
+    def test_current_fcom001_acceptance_stage_binding_contract_is_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_fcom001_acceptance_stage_binding(repository_root))
+
+    def test_fcom001_acceptance_stage_binding_rejects_each_missing_rule(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        for relative, snippets in MODULE.FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in MODULE.FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS:
+                        source = repository_root / source_relative
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source, target)
+                    target = root / relative
+                    target.write_text(
+                        target.read_text(encoding="utf-8").replace(snippet, "REMOVED_RULE"),
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate_fcom001_acceptance_stage_binding(root)
+
+                    self.assertTrue(any(snippet in error for error in errors), errors)
+
+    def test_fcom001_acceptance_stage_binding_rejects_superseded_rules(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        for relative, snippets in MODULE.FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS.items():
+            for snippet in snippets:
+                with self.subTest(relative=relative, snippet=snippet), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    for source_relative in MODULE.FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS:
+                        source = repository_root / source_relative
+                        target = root / source_relative
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source, target)
+                    target = root / relative
+                    target.write_text(
+                        target.read_text(encoding="utf-8") + f"\n{snippet}\n",
+                        encoding="utf-8",
+                    )
+
+                    errors = MODULE.validate_fcom001_acceptance_stage_binding(root)
+
+                    self.assertTrue(any(snippet in error for error in errors), errors)
+
     def test_fcom001_v70_required_target_mapping_rejects_each_missing_field(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         contract_text = (
