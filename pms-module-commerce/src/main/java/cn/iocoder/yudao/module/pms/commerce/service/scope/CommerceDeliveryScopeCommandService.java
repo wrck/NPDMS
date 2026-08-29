@@ -99,6 +99,42 @@ public class CommerceDeliveryScopeCommandService {
     }
 
     @Transactional(rollbackFor = Exception.class)
+    public DeliveryScopePreviewResult preview(DeliveryScopePreviewCommand command) {
+        validatePreview(command);
+        ProjectOfficeFact project = lockProject(command.tenantId(), command.subjectUserId(), command.projectId(),
+                command.expectedProjectVersion(), command.expectedProjectScopeVersion());
+        SalesOrderLineDO line = lockLine(command.tenantId(), command.orderLineId(),
+                command.expectedOrderLineSourceVersion());
+        List<DeliveryScopeDO> current = lockCurrentByLine(command.tenantId(), line.getId());
+        BigDecimal allocated = current.stream().map(DeliveryScopeDO::getAllocatedQty)
+                .filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal available = line.getOrderQty().subtract(allocated);
+        List<String> errors = new ArrayList<>();
+        if (current.stream().anyMatch(scope -> "CONFLICT_FROZEN".equals(scope.getScopeStatus()))) {
+            errors.add("DELIVERY_SCOPE_CONFLICT_FROZEN");
+        }
+        if (current.stream().anyMatch(scope -> Objects.equals(scope.getProjectId(), command.projectId()))) {
+            errors.add("DELIVERY_SCOPE_CURRENT_CONFLICT");
+        }
+        if (command.proposedQuantity().scale() > 6
+                || command.proposedQuantity().stripTrailingZeros().scale() > line.getUnitScale()) {
+            errors.add("UNIT_PRECISION_INVALID");
+        }
+        if (command.proposedQuantity().compareTo(available) > 0) {
+            errors.add("OVER_ALLOCATION");
+        }
+        validatePreviewSubject(command, line, errors);
+        List<DeliveryScopePreviewResult.OccupiedScope> occupied = current.stream()
+                .map(scope -> new DeliveryScopePreviewResult.OccupiedScope(scope.getId(), scope.getProjectId(),
+                        scope.getAllocatedQty(), scope.getAllocationVersion(), scope.getScopeStatus()))
+                .toList();
+        return new DeliveryScopePreviewResult(project.projectId(), project.projectVersion(), project.projectCode(),
+                project.officeDepartmentId(), project.officeDepartmentCode(), project.officeDepartmentName(),
+                project.officeDepartmentVersion(), line.getId(), line.getSourceVersion(), line.getOrderQty(),
+                allocated, available, command.proposedQuantity(), errors.isEmpty(), List.copyOf(errors), occupied);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     public DeliveryScopeCommandResult assign(DeliveryScopeAssignCommand command) {
         validateAssign(command);
         String requestKey = assignRequestKey(command);
