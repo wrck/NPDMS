@@ -473,3 +473,18 @@
 - Blocking scope: 已解除。
 - Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
 - Decision date: 2026-08-30
+
+### Q-FCUT001-004
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: CUT-07、CUT-09
+- Area: 五类双机部署规范性检查正式初始化名称与说明
+- Question: 正式发布数量已固定为VSM双机17项、静默双机25项、DRP双机23项、普通双机24项、集群8项，合计97项；但当前本地参考材料仅有15/24/21/23/8项具名明细，缺少`VSM 016-017`、`SILENT_DUAL 025`、`DRP_DUAL 022-023`、`NORMAL_DUAL 024`六项的正式业务名称与说明。完整正式初始化应采用哪六项名称与说明？
+- Why it blocks design/implementation: `CHG-PRD-2026-08-30-008`和F-CUT-001正式规格已经固定17/25/23/24/8=97的发布及验收数量，本问题不重新裁决数量；但正式种子不得使用序号、占位名或从参考附件数量反推业务语义，因此当前无法形成可发布的97项完整初始化。
+- Options: A. 需求方提供六项正式业务名称与说明（推荐）；B. 批准明确的新初始化策略及业务名称，并通过规格变更回写PRD/SDS/Feature Spec后再实施。
+- Recommended technical default: A；保持既定97项数量与现有91项具名参考不变，只补齐六项正式名称与说明，不引入占位项或第二数量口径。
+- Business decision required: 是；需需求方确认六项正式名称与说明，或批准并完成方案B对应的规格变更。
+- Resolution: 【待确认】。确认前禁止创建或发布包含占位名称的`V133__fcut001_risk_survey_matrix_seed.sql`。
+- Blocking scope: 仅阻断F-CUT-001完整正式矩阵种子及依赖该种子的最终全量运行验收；不阻断统一配置通用CRUD、发布规则、风险/调研领域校验和管理UI的独立实施与验证。
+- Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
+- Decision date: 【待确认】
