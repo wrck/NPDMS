@@ -37,7 +37,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "DeliveryEvidence": ("imp_delivery_evidence", "imp_delivery_evidence_revision"),
     "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_report_version", "acc_acceptance_report_attachment", "acc_confirmation"),
     "AcceptanceScopeBinding": ("acc_acceptance_scope_binding",),
-    "SatisfactionCollection": ("acc_satisfaction_collection_task", "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result"),
+    "SatisfactionCollection": ("acc_satisfaction_questionnaire_template", "acc_satisfaction_questionnaire_template_revision", "acc_satisfaction_collection_task", "acc_satisfaction_questionnaire", "acc_satisfaction_access_grant", "acc_satisfaction_response", "acc_satisfaction_response_file", "acc_satisfaction_result", "acc_satisfaction_result_file"),
     "DeliveryArtifact": ("acc_project_deliverable", "acc_project_deliverable_source_version", "acc_project_deliverable_source_attachment", "acc_artifact_review", "acc_archive_record"),
     "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
     "ServiceHandover": ("acc_service_handover", "acc_handover_item", "acc_handover_result"),
@@ -168,7 +168,8 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("CURRENT_TABLE", "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate", "COMPATIBILITY_ONLY", "keep the V17 checklist, archive and completion stacks unchanged; do not use them as the F-ACC-001 deliverable identity, source index, archive truth or compensation state", "NO_MIGRATION", "F-ACC-001-LEGACY"),
     ],
     "SatisfactionCollection": [
-        source("LEGACY_TABLE", "pm_cl_quesnaire_template_header|pm_cl_quesnaire_template_line|pm_cl_quesnaire_template_options|pm_cl_quesnaire_result_header|pm_cl_quesnaire_result_line", "STRUCTURED", "map template, question, option, response and score versions; retain original identifiers and never overwrite submitted answers", "PENDING_FIELD_MAPPING", "AI-MIG-000",
+        source("NONE_NEW", "SatisfactionCollection", "NEW_ONLY", "F-ACC-002 creates template revisions, controlled grants, immutable questionnaire/response/result facts and result files only from approved new-platform commands; reuse PROJ satisfaction timing and ACC deliverable source tables without inferring legacy answers", "NEW_ONLY", "F-ACC-002"),
+        source("LEGACY_TABLE", "pm_cl_quesnaire_template_header|pm_cl_quesnaire_template_line|pm_cl_quesnaire_template_options|pm_cl_quesnaire_result_header|pm_cl_quesnaire_result_line", "PRESERVE_RAW", "preserve template, question, option, response and score evidence for AI-MIG-000; do not migrate into F-ACC-002 current facts until field and value mappings prove required items, customer identity, signature and pass semantics", "PENDING_FIELD_MAPPING", "AI-MIG-000",
             targetFieldBindings=[
                 binding("pm_cl_quesnaire_template_header.id", "acc_satisfaction_questionnaire.template_id", "TARGET_KEY_LOOKUP resolves legacy template identity; never reuse the raw ID", "data-elements://schema-records.jsonl#项目管理!A595"),
                 binding("pm_cl_quesnaire_template_header.questionnairePassScore", "acc_satisfaction_questionnaire.frozen_threshold", "decimal conversion; invalid values become migration issues", "data-elements://schema-records.jsonl#项目管理!A599"),
@@ -179,8 +180,8 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
                 binding("pm_cl_quesnaire_result_header.quesMarkResult", "acc_satisfaction_result.passed", "map only through approved AI-MIG-000 status/value mapping", "data-elements://schema-records.jsonl#项目管理!A576"),
             ],
             statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "sourceFields": ["pm_cl_quesnaire_template_header.questionnaireStatus", "pm_cl_quesnaire_result_header.status", "pm_cl_quesnaire_result_header.quesMarkResult"], "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
-            terminalDisposition="CREATE_IMMUTABLE_QUESTIONNAIRE_RESPONSE_RESULT_WHEN_IDENTITY_AND_VALIDITY_RESOLVE;OTHERWISE_PRESERVE_RAW_AND_BLOCK_GATE"),
-        source("LEGACY_TABLE", "pm_cl_callback|pm_cl_callback_quesnaire|pm_subcontract_project_callback", "RELATION", "link only provable project/subcontract business objects, responsible users and questionnaire results; never infer customer answers from callback or approval status", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000",
+            terminalDisposition="PRESERVE_RAW_AND_EXCLUDE_FROM_F_ACC_002;CREATE_IMMUTABLE_FACTS_ONLY_IN_A_SEPARATELY_APPROVED_AI_MIG_000_BATCH"),
+        source("LEGACY_TABLE", "pm_cl_callback|pm_cl_callback_quesnaire|pm_subcontract_project_callback", "PRESERVE_RAW", "retain only provable relation evidence for AI-MIG-000; never infer business timing, customer answers, signature, remediation or pass from callback or approval status", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000",
             targetFieldBindings=[
                 binding("pm_cl_callback.projectId", "acc_satisfaction_collection_task.project_id", "EXTERNAL_KEY_MAPPING lookup resolves the stable target project key", "data-elements://schema-records.jsonl#项目管理!A519"),
                 binding("pm_cl_callback.id", "acc_satisfaction_collection_task.source_object_id", "EXTERNAL_KEY_MAPPING preserves callback source identity; do not infer approval", "data-elements://schema-records.jsonl#项目管理!A518"),
@@ -191,7 +192,8 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
                 binding("pm_subcontract_project_callback.quesnaireVersion", "acc_satisfaction_questionnaire.source_questionnaire_version", "store the source questionnaire version independently from its key", "data-elements://schema-records.jsonl#项目管理!A854"),
             ],
             statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "sourceFields": ["pm_cl_callback.applyState", "pm_cl_callback_quesnaire.state", "pm_subcontract_project_callback.state"], "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
-            terminalDisposition="LINK_ONLY_PROVABLE_PROJECT_OR_SUBCONTRACT_VERSION_AND_QUESTIONNAIRE;NEVER_DERIVE_CUSTOMER_ANSWER_SIGNATURE_OR_PASS_FROM_CALLBACK_STATUS"),
+            terminalDisposition="PRESERVE_RAW_AND_EXCLUDE_FROM_F_ACC_002;NEVER_DERIVE_TRIGGER_ANSWER_SIGNATURE_REMEDIATION_OR_PASS_FROM_CALLBACK_STATUS"),
+        source("LEGACY_TABLE", "pm_presales_project_callback|pm_project_warranty_callback|pm_project_maintenance|pm_project_maintenance_view|pm_project_supervision|pm_daily_report", "PRESERVE_RAW", "retain questionnaire references, cached scores and visit/maintenance summaries only as migration evidence; never use them as SatisfactionCollection trigger, response, signature, score or pass truth", "PENDING_SOURCE_CONFIRMATION", "AI-MIG-000"),
     ],
     "ClosureGateSnapshot": [source("DERIVED_TARGET", "Acceptance|DeliveryArtifact|ServiceIssue", "REBUILD", "rebuild current gate; historical snapshot contains only provable inputs", "REBUILD_AFTER_OWNERS", "CLOSURE_REBUILD")],
     "ServiceHandover": [

@@ -17,6 +17,28 @@ SPEC.loader.exec_module(MODULE)
 
 class ValidateSdsPhase2Test(unittest.TestCase):
 
+    def test_facc002_rejects_missing_external_file_contract(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "02d-cross-context-contracts.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload", "missing", 1
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("external" in error.lower() or "BusinessGrantUpload" in error for error in errors), errors)
+
+    def test_facc002_rejects_legacy_pass_inference_boundary_removal(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "08a-domain-entity-migration-alignment.md"
+            path.write_text(path.read_text(encoding="utf-8").replace("不得从回访/审批状态推断", "允许按旧状态转换", 1), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("legacy satisfaction boundary" in error for error in errors), errors)
+
     def test_requirement_table_scope_expands_ranges_and_compact_ids(self) -> None:
         text = """| Owner | Requirement | API |
 |---|---|---|
@@ -800,8 +822,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace(
-                    "94对象/109来源绑定/1排除源",
-                    "93对象/108来源绑定/1排除源",
+                    "94对象/111来源绑定/1排除源",
+                    "93对象/110来源绑定/1排除源",
                     1,
                 ),
                 encoding="utf-8",
