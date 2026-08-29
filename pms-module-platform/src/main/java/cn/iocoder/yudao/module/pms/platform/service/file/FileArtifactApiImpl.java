@@ -222,7 +222,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                         tenantId, key.artifactId(), key.versionNo()))));
         List<FileArtifactVersionFact> actual = facts(tenantId, command.attachmentSetKey(), attachmentPolicy,
                 attachmentRows, true, artifacts, versions);
-        if (!sortedFacts(expected).equals(sortedFacts(actual))) {
+        if (!archiveKeys(expected).equals(archiveKeys(actual))) {
             throw exception(FILE_FACT_VERSION_CONFLICT);
         }
 
@@ -257,8 +257,10 @@ public class FileArtifactApiImpl implements FileArtifactApi {
         return new FileArchiveReferenceSetFact(command.archiveBatchId(), command.archiveSetKey(), archived);
     }
 
-    private List<FileArtifactVersionFact> sortedFacts(List<FileArtifactVersionFact> facts) {
-        return facts.stream().sorted(Comparator.comparing(FileArtifactVersionFact::referenceKey)).toList();
+    private List<ArchiveFactKey> archiveKeys(List<FileArtifactVersionFact> facts) {
+        return facts.stream().map(fact -> new ArchiveFactKey(fact.artifactId(), fact.versionNo(),
+                        fact.referenceKey(), fact.fileFactVersion(), fact.scopeVersion(), fact.sha256()))
+                .sorted(Comparator.comparing(ArchiveFactKey::referenceKey)).toList();
     }
 
     private FileReferenceDO archiveReference(ArchiveFileReferenceSetsCommand command, Long tenantId,
@@ -427,5 +429,9 @@ public class FileArtifactApiImpl implements FileArtifactApi {
             int result = artifactId.compareTo(other.artifactId);
             return result == 0 ? versionNo.compareTo(other.versionNo) : result;
         }
+    }
+
+    private record ArchiveFactKey(Long artifactId, Integer versionNo, String referenceKey,
+                                  FileFactVersion fileFactVersion, Long scopeVersion, String sha256) {
     }
 }

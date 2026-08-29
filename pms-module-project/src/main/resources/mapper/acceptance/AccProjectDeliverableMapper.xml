@@ -14,4 +14,13 @@
           AND deleted = 0
         FOR UPDATE
     </select>
+    <select id="selectByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AccProjectDeliverableDO">
+        SELECT *
+        FROM acc_project_deliverable
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.deliverableId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
 </mapper>
