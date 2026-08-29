@@ -21,6 +21,27 @@
           {{ contract.sourceUpdatedAt || '—' }}
         </el-descriptions-item>
       </el-descriptions>
+      <template v-if="detail">
+        <el-divider content-position="left">关联订单</el-divider>
+        <el-table :data="detail.relatedOrders" empty-text="暂无关联订单">
+          <el-table-column prop="orderNo" label="订单号" min-width="150" />
+          <el-table-column prop="orderType" label="类型" min-width="100" />
+          <el-table-column prop="status" label="状态" min-width="100" />
+        </el-table>
+        <el-divider content-position="left">项目关系</el-divider>
+        <el-table :data="detail.projectRelations" empty-text="暂无项目关系">
+          <el-table-column prop="projectId" label="项目 ID" min-width="130" />
+          <el-table-column prop="relationRole" label="关系角色" min-width="120" />
+          <el-table-column prop="status" label="状态" min-width="100" />
+        </el-table>
+        <el-divider content-position="left">来源截止</el-divider>
+        <el-descriptions :column="narrow ? 1 : 2" border>
+          <el-descriptions-item label="来源系统">{{ detail.sourceSystem }}</el-descriptions-item>
+          <el-descriptions-item label="来源版本">{{ detail.sourceVersion }}</el-descriptions-item>
+          <el-descriptions-item label="同步截止">{{ detail.sourceSyncTime || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="来源更新时间">{{ detail.sourceUpdatedAt || '—' }}</el-descriptions-item>
+        </el-descriptions>
+      </template>
     </el-skeleton>
 
     <el-divider content-position="left">建立项目关系</el-divider>
@@ -62,7 +83,7 @@ import { computed, reactive, ref } from 'vue'
 import { useWindowSize } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CommerceApi from '@/api/pms/commerce'
-import type { ContractRespVO } from '@/api/pms/commerce'
+import type { ContractDetailRespVO, ContractRespVO } from '@/api/pms/commerce'
 import { commerceIntentOf, createCommerceIntentStore } from '../commerceInteraction'
 
 defineOptions({ name: 'PmsCommerceContractDetail' })
@@ -74,6 +95,7 @@ const visible = ref(false)
 const loading = ref(false)
 const submitting = ref(false)
 const contract = ref<ContractRespVO>()
+const detail = ref<ContractDetailRespVO>()
 const formRef = ref<FormInstance>()
 const intents = createCommerceIntentStore()
 const form = reactive({ projectId: undefined as number | undefined, relationRole: '', reason: '' })
@@ -89,7 +111,8 @@ const open = async (contractId: number, projectId?: number) => {
   form.relationRole = ''
   form.reason = ''
   try {
-    contract.value = await CommerceApi.getContract(contractId)
+    detail.value = await CommerceApi.getContract(contractId)
+    contract.value = detail.value.contract
   } finally {
     loading.value = false
   }

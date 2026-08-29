@@ -117,10 +117,10 @@ const viewports = [
     }
     return response.body.data
   }
-  const expectDenied = async (name, method, url, data, headers, token) => {
+  const expectDenied = async (name, method, url, data, headers, token, expectedCode) => {
     const response = await rawApi(method, url, data, headers, token)
     return { name, status: response.status, code: response.body?.code, message: response.body?.msg,
-      denied: response.status >= 400 || response.body?.code !== 0 }
+      expectedCode, denied: response.body?.code === expectedCode }
   }
   const login = async (username, loginPassword) => {
     const response = await rawApi('POST', '/system/auth/login', {
@@ -132,6 +132,10 @@ const viewports = [
     return response.body.data.accessToken
   }
   const uiLogin = async (username) => {
+    await send('Storage.clearDataForOrigin', {
+      origin: new URL(appUrl).origin,
+      storageTypes: 'all'
+    })
     await navigate(`${appUrl}/login`)
     const filled = await evaluate(`(() => {
       const inputs = [...document.querySelectorAll('input')];
@@ -166,11 +170,14 @@ const viewports = [
   const marker = Date.now()
   const suffix = String(marker).slice(-9)
 
-  const seedSensitive = await api('GET', '/api/v1/pms/contracts/992002390001', undefined, {}, fullToken)
+  const seedSensitive = (await api('GET', '/api/v1/pms/contracts/992002390001', undefined, {}, fullToken)).contract
+  const seededFiltered = await api('GET',
+    '/api/v1/pms/contracts?companyCode=DPTECH-DEMO&contractType=SALES&sourceSystem=SEED&status=ENABLED&pageNo=1&pageSize=20',
+    undefined, {}, fullToken)
   await api('POST', '/system/permission/assign-role-menu', {
     roleId: managedRoleId, menuIds: managedMenus.filter((id) => id !== 930902)
   }, {}, adminToken)
-  const seedMasked = await api('GET', '/api/v1/pms/contracts/992002390001', undefined, {}, fullToken)
+  const seedMasked = (await api('GET', '/api/v1/pms/contracts/992002390001', undefined, {}, fullToken)).contract
   await api('POST', '/system/permission/assign-role-menu', { roleId: managedRoleId, menuIds: managedMenus }, {}, adminToken)
 
   const contractKey = `FCOM001-CONTRACT-${marker}`
@@ -180,7 +187,8 @@ const viewports = [
   const importPayload = {
     sourceBatchId: `FCOM001-BATCH-${marker}`,
     contracts: [{ sourceRecordKey: contractKey, sourceVersion: '1', companyCode: 'DPTECH-DEMO',
-      contractNo: `FCOM-${suffix}`, contractName: `F-COM-001 浏览器合同 ${suffix}`, status: 'ENABLED', sourceUpdatedAt: sourceTime }],
+      contractNo: `FCOM-${suffix}`, contractName: `F-COM-001 浏览器合同 ${suffix}`,
+      status: 'ENABLED', sourceUpdatedAt: sourceTime }],
     salesOrders: [{ sourceRecordKey: orderKey, sourceVersion: '1', companyCode: 'DPTECH-DEMO',
       orderType: 'NORMAL', orderNo: `SO-FCOM-${suffix}`, status: 'ENABLED', sourceUpdatedAt: sourceTime }],
     salesOrderLines: [
@@ -203,7 +211,7 @@ const viewports = [
   }, {}, adminToken)
   const noAuthority = await expectDenied('无Authority写权限', 'POST',
     '/api/v1/pms/commerce-authority/import-batches', importPayload,
-    { 'Idempotency-Key': crypto.randomUUID(), 'X-Source-System': 'ERP' }, fullToken)
+    { 'Idempotency-Key': crypto.randomUUID(), 'X-Source-System': 'ERP' }, fullToken, 403)
   await api('POST', '/system/permission/assign-role-menu', { roleId: managedRoleId, menuIds: managedMenus }, {}, adminToken)
   const importKey = crypto.randomUUID()
   const imported = await api('POST', '/api/v1/pms/commerce-authority/import-batches', importPayload,
@@ -214,18 +222,23 @@ const viewports = [
   changedImport.contracts[0].contractName += ' changed'
   const importConflict = await expectDenied('同幂等键异载荷', 'POST',
     '/api/v1/pms/commerce-authority/import-batches', changedImport,
-    { 'Idempotency-Key': importKey, 'X-Source-System': 'ERP' }, fullToken)
-  const contracts = await api('GET', `/api/v1/pms/contracts?contractNo=FCOM-${suffix}&pageNo=1&pageSize=20`,
+    { 'Idempotency-Key': importKey, 'X-Source-System': 'ERP' }, fullToken, 1010002000)
+  const contracts = await api('GET', `/api/v1/pms/contracts?companyCode=DPTECH-DEMO&contractNo=FCOM-${suffix}&sourceSystem=ERP&status=ENABLED&pageNo=1&pageSize=20`,
     undefined, {}, fullToken)
   const contract = contracts.list[0]
   if (!contract) throw new Error('受控导入合同未出现在公开查询')
   await api('POST', `/api/v1/pms/contracts/${contract.id}/project-relations`, {
     projectId: rootProject.id, relationRole: 'RELATED', reason: 'F-COM-001 Chromium acceptance'
   }, { 'Idempotency-Key': crypto.randomUUID() }, fullToken)
-  const orders = await api('GET', `/api/v1/pms/sales-orders?orderNo=SO-FCOM-${suffix}&pageNo=1&pageSize=20`,
+  const contractDetail = await api('GET', `/api/v1/pms/contracts/${contract.id}`, undefined, {}, fullToken)
+  await api('POST', '/api/v1/pms/contracts/992002390001/project-relations', {
+    projectId: rootProject.id, relationRole: 'RELATED', reason: 'F-COM-001 detail aggregate acceptance'
+  }, { 'Idempotency-Key': crypto.randomUUID() }, fullToken)
+  const seedDetail = await api('GET', '/api/v1/pms/contracts/992002390001', undefined, {}, fullToken)
+  const orders = await api('GET', `/api/v1/pms/sales-orders?companyCode=DPTECH-DEMO&orderNo=SO-FCOM-${suffix}&orderType=NORMAL&status=ENABLED&pageNo=1&pageSize=20`,
     undefined, {}, fullToken)
   const order = orders.list[0]
-  const lines = await api('GET', `/api/v1/pms/order-lines?orderId=${order.id}&pageNo=1&pageSize=20`,
+  const lines = await api('GET', `/api/v1/pms/order-lines?companyCode=DPTECH-DEMO&orderType=NORMAL&orderNo=${encodeURIComponent(order.orderNo)}&quantityStatus=CONFIRMED&status=ENABLED&pageNo=1&pageSize=20`,
     undefined, {}, fullToken)
   const lineA = lines.list.find((line) => line.lineNo === '10')
   const lineB = lines.list.find((line) => line.lineNo === '20')
@@ -256,7 +269,7 @@ const viewports = [
     projectId: stageProject.id, expectedProjectScopeVersion: stageProject.scopeVersion, orderLineId: lineC.id,
     expectedOrderLineSourceVersion: lineC.sourceVersion, allocatedQuantity: 1,
     serialNumbers: ['SN-FCOM001-INVALID-001'], reason: 'F-COM-001 Chromium invalid AST'
-  }, { 'If-Match': String(stageProject.version), 'Idempotency-Key': crypto.randomUUID() }, fullToken)
+  }, { 'If-Match': String(stageProject.version), 'Idempotency-Key': crypto.randomUUID() }, fullToken, 1016001000)
 
   const stageKey = crypto.randomUUID()
   const stageEntry = await api('POST', `/api/v1/pms/projects/${stageProject.id}/actions/enter-acceptance-stage`,
@@ -287,9 +300,12 @@ const viewports = [
     '/api/v1/pms/delivery-scopes/actions/assign', {
       projectId: stageProject.id, expectedProjectScopeVersion: stageProject.scopeVersion, orderLineId: lineB.id,
       expectedOrderLineSourceVersion: '2', allocatedQuantity: 1, serialNumbers: [], reason: 'frozen negative'
-    }, { 'If-Match': String(stageEntry.projectVersion), 'Idempotency-Key': crypto.randomUUID() }, fullToken)
+    }, { 'If-Match': String(stageEntry.projectVersion), 'Idempotency-Key': crypto.randomUUID() }, fullToken, 1016001001)
 
   await uiLogin(managedUser.username)
+  consoleErrors.length = 0
+  pageErrors.length = 0
+  networkFailures.length = 0
   await navigate(`${appUrl}/customer-asset/commerce-contracts`)
   const contractUi = {
     routeLoaded: await bodyIncludes('合同与订单'),
@@ -339,6 +355,12 @@ const viewports = [
       && seedMasked.customerName == null && seedMasked.currencyCode == null,
     importAndReplay: imported.replayed === false && importReplay.replayed === true,
     contractOrderLineVisible: Boolean(contract && order && lineA && lineB && lineC),
+    lockedFiltersEffective: seededFiltered.list.some((item) => item.id === 992002390001),
+    contractDetailComplete: contractDetail.contract.id === contract.id
+      && seedDetail.relatedOrders.some((item) => item.id === 992002399001)
+      && seedDetail.projectRelations.some((item) => item.projectId === rootProject.id)
+      && contractDetail.sourceSystem === 'ERP' && contractDetail.sourceVersion === '1'
+      && Boolean(contractDetail.sourceUpdatedAt),
     previewAllowed: previewA.allowed === true,
     adjustmentVersioned: adjustedA.allocationVersion > assignedA.allocationVersion,
     releaseClosedCurrent: releasedA.deliveryScopeId === adjustedA.deliveryScopeId

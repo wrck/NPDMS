@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / GO`（`c33b0836f71e0875008a084ff360e7027d276ec9`）  
 > Implementation Done Gate：`NOT_REVIEWED`  
 > 当前阻断：`无`<br>
-> 当前任务：`Task 2 / Step 4：完成真实Chromium公开UI/REST闭环`
+> 当前任务：`Task 2 / Step 5：申请Implementation Done整改复审`
 > Requirement ID：`COM-01@V1`；协作`PM-03`、`PM-10`、`ACC-03`  
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`  
 > Technical Plan：`docs/superpowers/plans/2026-08-29-f-com-001-contract-order-and-delivery-scope.md`  
@@ -45,8 +45,8 @@
 - [x] Step 2：完成前端测试、类型检查和生产构建。
 - [x] Step 3：完成全仓、Flyway、规格及V124失败恢复验证。
 - [x] Step 4：完成真实Chromium公开UI/REST闭环。
-- [ ] Step 5：整理证据、自审、提交并申请Implementation Done独立评审。
+- [x] Step 5：整理证据、自审、提交并申请Implementation Done独立评审。
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=3a78e2be；当前Gate=Task2/Step5；已通过=Chromium公开登录、合同/订单/范围、版本历史、验收绑定、ERP减量冻结通知及四档视口，证据PASS；阻塞=无；下一步=最小自审、提交并申请Implementation Done独立评审。
+> 检查点：基线=a57c23c8；当前Gate=Implementation Done整改复审；已通过=公开查询筛选/详情聚合、公司与项目范围独立路径、稳定业务错误码及Chromium/MySQL闭环PASS；阻塞=无；下一步=提交并申请同一Gate独立复审。

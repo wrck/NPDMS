@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.commerce.service.scope;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.device.AssetDeviceScopeApi;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
@@ -34,6 +35,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static cn.iocoder.yudao.module.pms.commerce.enums.ErrorCodeConstants.*;
 
 @ExtendWith(MockitoExtension.class)
 class CommerceDeliveryScopeCommandServiceTest {
@@ -144,10 +146,10 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(acceptanceScopeGuardApi.checkReduction(any())).thenReturn(new AcceptanceScopeGuardResult(
                 AcceptanceScopeGuardOutcome.LOCKED, 1, 700L, current.getId(), current.getAllocationVersion()));
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
+        ServiceException error = assertThrows(ServiceException.class,
                 () -> service.adjust(changeCommand(new BigDecimal("5"), "op-adjust")));
 
-        assertEquals("ACCEPTANCE_SCOPE_LOCKED_OR_UNKNOWN", error.getMessage());
+        assertEquals(COMMERCE_SCOPE_BUSINESS_GATE_REJECTED.getCode(), error.getCode());
         verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
         verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
         verifyNoInteractions(detailMapper, operationAuditApi);
@@ -215,10 +217,10 @@ class CommerceDeliveryScopeCommandServiceTest {
         event.setPayload("{\"requestKey\":\"different\"}");
         when(outboxMapper.selectByEventId(any())).thenReturn(event);
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
+        ServiceException error = assertThrows(ServiceException.class,
                 () -> service.assign(assignCommand()));
 
-        assertEquals("IDEMPOTENCY_PAYLOAD_CONFLICT", error.getMessage());
+        assertEquals(COMMERCE_SCOPE_STATE_CONFLICT.getCode(), error.getCode());
         verifyNoInteractions(projectScopeApi, projectOfficeFactApi, orderLineMapper, scopeMapper, detailMapper);
     }
 
@@ -235,13 +237,31 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(current, frozen));
         when(scopeMapper.selectCurrentByIdForUpdate(any())).thenReturn(current);
 
-        IllegalStateException error = assertThrows(IllegalStateException.class,
+        ServiceException error = assertThrows(ServiceException.class,
                 () -> service.adjust(changeCommand(new BigDecimal("12"), "op-adjust")));
 
-        assertEquals("DELIVERY_SCOPE_CONFLICT_FROZEN", error.getMessage());
+        assertEquals(COMMERCE_SCOPE_STATE_CONFLICT.getCode(), error.getCode());
         verifyNoInteractions(acceptanceScopeGuardApi, detailMapper, operationAuditApi);
         verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
         verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
+    void shouldExposeInvalidSerialAsBusinessGateWithoutWrites() {
+        allowProject();
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        when(assetDeviceScopeApi.validateAssignableSerials(any(), any(), any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.SerialScopeValidationResult(
+                        false, List.of("SN-NOT-FOUND"), List.of(), List.of()));
+
+        DeliveryScopeAssignCommand command = new DeliveryScopeAssignCommand(1L, 99L, 501L, 3, 12L, 301L,
+                "erp-v2", BigDecimal.ONE, List.of("SN-NOT-FOUND"), "序列号校验", "op-invalid-sn");
+        ServiceException error = assertThrows(ServiceException.class, () -> service.assign(command));
+
+        assertEquals(COMMERCE_SCOPE_BUSINESS_GATE_REJECTED.getCode(), error.getCode());
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verifyNoInteractions(detailMapper, operationAuditApi);
         verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
     }
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T15:08:44.934Z",
+  "generatedAt": "2026-08-29T15:52:12.496Z",
   "feature": "F-COM-001",
   "requirementIds": [
     "COM-01@V1",
@@ -18,15 +18,15 @@
     "managed": "fcom001acceptance"
   },
   "created": {
-    "contractId": "2093717421608906753",
-    "orderId": "2093717421638266882",
+    "contractId": "2093728355152756737",
+    "orderId": "2093728355182116865",
     "orderLineIds": [
-      "2093717421663432706",
-      "2093717421684404225",
-      "2093717421705375745"
+      "2093728355207282689",
+      "2093728355228254210",
+      "2093728355257614338"
     ],
-    "adjustedScopeId": "2093717424582668289",
-    "stageScopeId": "2093717426398801921"
+    "adjustedScopeId": "2093728360827650050",
+    "stageScopeId": "2093728362719281153"
   },
   "negatives": [
     {
@@ -34,6 +34,7 @@
       "status": 200,
       "code": 1010002000,
       "message": "幂等键已绑定不同请求（PMS-PLATFORM-COMMAND-KEY-CONFLICT）",
+      "expectedCode": 1010002000,
       "denied": true
     },
     {
@@ -41,20 +42,23 @@
       "status": 200,
       "code": 403,
       "message": "没有该操作权限",
+      "expectedCode": 403,
       "denied": true
     },
     {
       "name": "AST无效SN",
       "status": 200,
-      "code": 500,
-      "message": "系统异常",
+      "code": 1016001000,
+      "message": "BUSINESS_GATE：交付范围业务门禁未通过（AST_SERIAL_NOT_ASSIGNABLE）",
+      "expectedCode": 1016001000,
       "denied": true
     },
     {
       "name": "冲突冻结后禁止新分配",
       "status": 200,
-      "code": 500,
-      "message": "系统异常",
+      "code": 1016001001,
+      "message": "STATE_CONFLICT：交付范围状态已变化（DELIVERY_SCOPE_CURRENT_CONFLICT）",
+      "expectedCode": 1016001001,
       "denied": true
     }
   ],
@@ -110,10 +114,10 @@
     }
   },
   "databaseEvidence": {
-    "scopeHistoryRows": "2093717421663432706\t2093717424075157506\tRELEASED\t1\tHISTORY\n2093717421663432706\t2093717424582668289\tRELEASED\t2\tHISTORY\n2093717421684404225\t2093717426398801921\tCONFLICT_FROZEN\t1\tCURRENT",
-    "outboxRows": "NotificationRequested\t2093717426398801921\t1\tPENDING",
+    "scopeHistoryRows": "2093728355207282689\t2093728360169144322\tRELEASED\t1\tHISTORY\n2093728355207282689\t2093728360827650050\tRELEASED\t2\tHISTORY\n2093728355228254210\t2093728362719281153\tCONFLICT_FROZEN\t1\tCURRENT",
+    "outboxRows": "NotificationRequested\t2093728362719281153\t1\tPENDING",
     "stageSnapshotRows": "992002700007\t992002900001\tS5\tSTAGE_ENTRY",
-    "bindingRows": "992002900001\t992002900008\t1\tPROJECT_STAGE_ENTRY\tLOCKED\n992002900001\t2093717426398801921\t1\tSCOPE_VERSION_EFFECTIVE\tLOCKED",
+    "bindingRows": "992002900001\t992002900008\t1\tPROJECT_STAGE_ENTRY\tLOCKED\n992002900001\t2093728362719281153\t1\tSCOPE_VERSION_EFFECTIVE\tLOCKED",
     "invalidSerialRows": "0"
   },
   "consoleErrors": [],
@@ -125,6 +129,8 @@
     "sensitivePermissionNegative": true,
     "importAndReplay": true,
     "contractOrderLineVisible": true,
+    "lockedFiltersEffective": true,
+    "contractDetailComplete": true,
     "previewAllowed": true,
     "adjustmentVersioned": true,
     "releaseClosedCurrent": true,

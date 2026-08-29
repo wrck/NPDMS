@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractRespVO;
+import cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractDetailRespVO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessService;
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractRelationCommandService;
@@ -20,7 +21,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -57,10 +58,11 @@ class ContractControllerTest {
     void shouldMaskSensitiveFieldsInPageWithoutIndependentPermission() {
         ContractDO contract = contract();
         when(permissionApi.hasAnyPermissions(USER_ID, "pms:commerce:contract:sensitive-read")).thenReturn(false);
-        when(accessService.pageContracts(eq(TENANT_ID), eq(USER_ID), anyString(), nullable(String.class),
-                nullable(String.class), eq(0), eq(20))).thenReturn(new PageResult<>(List.of(contract), 1L));
+        when(accessService.pageContracts(eq(TENANT_ID), eq(USER_ID), anyString(), any()))
+                .thenReturn(new PageResult<>(List.of(contract), 1L));
 
-        ContractRespVO response = controller.page(null, null, 1, 20).getData().getList().getFirst();
+        ContractRespVO response = controller.page(null, null, null, null, null, null,
+                1, 20).getData().getList().getFirst();
 
         assertEquals("CT-001", response.contractNo());
         assertEquals("合同一", response.contractName());
@@ -75,10 +77,11 @@ class ContractControllerTest {
     void shouldExposeSensitiveFieldsInDetailWithIndependentPermission() {
         ContractDO contract = contract();
         when(permissionApi.hasAnyPermissions(USER_ID, "pms:commerce:contract:sensitive-read")).thenReturn(true);
-        when(accessService.getContract(eq(TENANT_ID), eq(USER_ID), anyString(), eq(contract.getId())))
-                .thenReturn(contract);
+        when(accessService.getContractDetail(eq(TENANT_ID), eq(USER_ID), anyString(), eq(contract.getId())))
+                .thenReturn(new ContractAccessService.ContractDetail(contract, List.of(), List.of()));
 
-        ContractRespVO response = controller.get(contract.getId()).getData();
+        ContractDetailRespVO detail = controller.get(contract.getId()).getData();
+        ContractRespVO response = detail.contract();
 
         assertEquals("SALES", response.contractType());
         assertEquals("CUSTOMER-001", response.customerCode());

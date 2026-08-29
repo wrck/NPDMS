@@ -5,7 +5,27 @@ export interface CommercePageReqVO extends PageParam {
 }
 
 export interface ContractPageReqVO extends CommercePageReqVO {
+  companyCode?: string
   contractNo?: string
+  contractType?: string
+  customer?: string
+  sourceSystem?: string
+}
+
+export interface ContractDetailRespVO {
+  contract: ContractRespVO
+  relatedOrders: SalesOrderRespVO[]
+  projectRelations: Array<{
+    id: number
+    projectId: number
+    relationRole: string
+    status: string
+    version: number
+  }>
+  sourceSystem: string
+  sourceVersion: string
+  sourceSyncTime?: string
+  sourceUpdatedAt?: string
 }
 
 export interface ContractRespVO {
@@ -31,7 +51,10 @@ export interface ContractRelationReqVO {
 }
 
 export interface SalesOrderPageReqVO extends CommercePageReqVO {
+  companyCode?: string
   orderNo?: string
+  orderType?: string
+  customer?: string
 }
 
 export interface SalesOrderRespVO {
@@ -50,7 +73,14 @@ export interface SalesOrderRespVO {
 
 export interface SalesOrderLinePageReqVO extends PageParam {
   orderId?: number
+  companyCode?: string
+  orderType?: string
+  orderNo?: string
   lineNo?: string
+  itemCode?: string
+  productCode?: string
+  quantityStatus?: string
+  status?: string
 }
 
 export interface SalesOrderLineRespVO {
@@ -181,7 +211,8 @@ const baseUrl = '/api/v1/pms'
 export const getContractPage = (params: ContractPageReqVO) =>
   request.get({ url: `${baseUrl}/contracts`, params })
 
-export const getContract = (id: number) => request.get({ url: `${baseUrl}/contracts/${id}` })
+export const getContract = (id: number) =>
+  request.get<ContractDetailRespVO>({ url: `${baseUrl}/contracts/${id}` })
 
 export const relateContractProject = (
   contractId: number,
