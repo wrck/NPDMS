@@ -1,13 +1,13 @@
 # F-CUT-001 割接统一配置版本与采集项基础 Feature Spec
 
-> 规格状态：`IN_REVIEW / SCOPE_REOPENED_20260830`
-> Feature Ready：`NOT_READY / REVALIDATION_REQUIRED`
+> 规格状态：`BASELINE / SCOPE_REOPENED_APPROVED_20260830`
+> Feature Ready：`READY / GO NPDMS-FCUT001-FEATURE-READY-20260830-02`
 > Requirement ID：`CUT-07（V1/P0）`、`CUT-09（V1/P0）`、`CUT-10（V1/P1）`
 > Requirement切片覆盖：`CUT-07@V1=FULL；CUT-09@V1=FULL；CUT-10@V1=FULL`
 > 前置Feature：无
 > 后续Feature：CUT-01～CUT-04运行时消费
 > Open Questions：`Q-FCUT001-001`、`Q-FCUT001-002`、`Q-FCUT001-003`均已关闭
-> Technical Plan：原CUT-07计划已完成并因Scope重开而被替代；新计划须在本规格复审通过后生成
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-cut-001-risk-survey-matrices.md`
 
 ## 1. 目标与业务结果
 
@@ -22,8 +22,8 @@
 - 配置根版本：稳定配置编码、修订号、状态、生效区间、变更说明、字典及维度快照、发布与停用事实、乐观锁版本。
 - 基础维度：割接类型、组网模式、设备类型、割接等级四个V1维度；类型、模式和设备值复用基础平台字典，不新增业务字典表。
 - 扩展维度定义：维度编码、名称、数据类型、允许值来源、业务Owner、任务上下文取值路径和启用状态。
-- 统一采集项：业务调研项、风险考察项、双机部署检查项共用一个版本模型，维护稳定项键、类型、名称、含义、界面格式、反馈格式、必填性、外部数据源配置、所属子表、状态和排序。
-- 动态多维绑定：采集项版本与维度条件快照、优先级、规则版本和状态。
+- 统一采集项：业务调研项、风险考察项、双机部署检查项共用一个版本模型，维护稳定项键、类型、业务分类码、名称、含义、界面格式、反馈格式、默认必填性、外部数据源配置、所属子表、状态和排序。
+- 动态多维绑定：采集项版本与维度条件快照、绑定级必填/选填结果、优先级、规则版本和状态。
 - 双机部署检查项：提供统一CRUD、所属子表约束和动态绑定能力；XLSX/HTML可作名称、字段与界面参考，但不参与业务裁决或发布数量门禁，不从旧表反推配置主数据。
 - 风险矩阵视图：过滤风险考察项与双机部署检查项，支持批量多维绑定、必选覆盖校验、专属条件校验和逐项错误定位；五类双机检查基准为17/25/23/24/8，合计97项。
 - 调研矩阵视图：过滤业务调研项，覆盖12类核心调研内容、绑定级必填性、割接背景条件显示Schema和批量多维绑定。
@@ -137,6 +137,6 @@ DRAFT --publish--> PUBLISHED --disable--> DISABLED
 
 ## 10. Feature Ready Gate
 
-当前结论：`NOT_READY / REVALIDATION_REQUIRED`。
+当前结论：`READY / GO NPDMS-FCUT001-FEATURE-READY-20260830-02`。
 
-原CUT-07基础实现和证据继续有效，但正式SDS要求同一Feature承接CUT-09/10首批配置基础，因此原Feature Ready只适用于已完成的CUT-07子范围。`CHG-PRD-2026-08-30-008`已关闭97项数量口径；本次扩展规格经用户书面复审后，方可重新形成Feature Ready结论并生成唯一新Technical Plan。
+原CUT-07基础实现和证据继续有效，但正式SDS要求同一Feature承接CUT-09/10首批配置基础，因此原Feature Ready只适用于已完成的CUT-07子范围。`CHG-PRD-2026-08-30-008`已关闭97项数量口径，扩展规格已于2026-08-30取得需求方书面确认；Requirement切片、Owner、状态、权限、API、数据边界、参考资料边界和验收标准已冻结，可以按唯一新Technical Plan实施。本结论不表示扩展代码、迁移、测试、浏览器验收或Implementation Done已通过。

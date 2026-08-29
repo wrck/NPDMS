@@ -61,7 +61,7 @@
       "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
       "taskPath": "tasks/features/F-CUT-001.md",
       "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "REOPENED_SPEC_REVIEW",
+      "taskStatusRaw": "TECHNICAL_PLAN_READY",
       "mappings": [
         {
           "sliceKey": "CUT-07@V1",

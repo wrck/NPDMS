@@ -41,9 +41,17 @@
     "risk": ["RISK", "DUAL_MACHINE_CHECK"],
     "survey": ["BUSINESS_SURVEY"]
   },
+  "matrixFields": {
+    "cut_cutover_checklist_item_definition_revision": {
+      "business_category_code": "varchar(64), nullable only for pre-matrix historical revisions"
+    },
+    "cut_cutover_checklist_binding_rule_revision": {
+      "required_result": "bit(1), nullable only for pre-matrix historical revisions"
+    }
+  },
   "publicationBaselines": {
     "dualMachineChecklistCounts": {
-      "VSM_DUAL": 17,
+      "VSM": 17,
       "SILENT_DUAL": 25,
       "DRP_DUAL": 23,
       "NORMAL_DUAL": 24,

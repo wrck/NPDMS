@@ -1,6 +1,6 @@
 # F-CUT-001风险与调研关联矩阵补全设计
 
-> 状态：`IN_REVIEW`
+> 状态：`APPROVED / 2026-08-30需求方确认`
 > Requirement ID：`CUT-07@V1`、`CUT-09@V1`、`CUT-10@V1`
 > 上游修订：`CHG-PRD-2026-08-30-008`
 > 正式Feature Spec：`specs/features/F-CUT-001-cutover-unified-configuration-foundation.md`

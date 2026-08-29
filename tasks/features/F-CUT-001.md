@@ -1,20 +1,20 @@
 # F-CUT-001 割接统一配置版本与采集项基础
 
-> Feature实施状态：`REOPENED_SPEC_REVIEW`
+> Feature实施状态：`TECHNICAL_PLAN_READY`
 > 总体工程阶段：`IMPLEMENTATION`
-> Feature Ready Gate：`REVALIDATION_REQUIRED`
-> Technical Plan Gate：`NOT_STARTED_FOR_REOPENED_SCOPE`
+> Feature Ready Gate：`PASS / NPDMS-FCUT001-FEATURE-READY-20260830-02`
+> Technical Plan Gate：`PASS / NPDMS-FCUT001-TECHPLAN-20260830-02`
 > Implementation Done Gate：`REOPENED / 原CUT-07证据保留但不再代表扩展Scope完成`
 > Requirement ID：`CUT-07（V1/P0）`、`CUT-09（V1/P0）`、`CUT-10（V1/P1）`
 > Feature Spec：`specs/features/F-CUT-001-cutover-unified-configuration-foundation.md`
 > 复用审计：`specs/features/F-CUT-001-legacy-reuse-audit.md`
 > Feature物理契约：`specs/features/F-CUT-001-physical-contract.json`
-> Technical Plan：原计划已完成CUT-07子范围并被Scope重开替代；新计划待规格复审
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-cut-001-risk-survey-matrices.md`
 > Open Questions：`Q-FCUT001-001`、`Q-FCUT001-002`、`Q-FCUT001-003`均已关闭
 
 ## 当前最小工作单元
 
-- 完成扩展Feature Spec书面复审，重新关闭Feature Ready后生成唯一新Technical Plan；未完成CUT-09/10前不得恢复Implementation Done。
+- 按唯一新Technical Plan实施Task 1领域校验；未完成CUT-09/10全部计划任务前不得恢复Implementation Done。
 
 ## 已完成
 
@@ -33,7 +33,7 @@
 
 ## 阻断
 
-当前无业务语义阻断；`CHG-PRD-2026-08-30-008`已确认双机检查合计97项。当前停在扩展Feature Spec书面复审Gate。
+当前无业务语义阻断；`CHG-PRD-2026-08-30-008`已确认双机检查合计97项，扩展Feature Spec已于2026-08-30取得需求方确认，Technical Plan Gate已通过。
 
 ## 已知边界
 
