@@ -53,6 +53,17 @@ class ProjectStageSnapshotRulesTest {
         assertDoesNotThrow(() -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
     }
 
+    @Test
+    void stageEntryRequiresFrozenTreeAndStageFacts() {
+        ProjectStageSnapshotDO snapshot = common(ProjectStageSnapshotRules.STAGE_ENTRY);
+        assertThrows(IllegalArgumentException.class,
+                () -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
+
+        snapshot.setTreeVersion(3L);
+        snapshot.setProviderFactsJson("{\"currentStageStatus\":\"DONE\"}");
+        assertDoesNotThrow(() -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
+    }
+
     private static ProjectStageSnapshotDO common(String operationType) {
         ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
         snapshot.setOperationType(operationType);
