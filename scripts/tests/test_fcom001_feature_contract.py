@@ -521,6 +521,51 @@ def product_code_compatibility_errors(contract: dict, feature_spec: str) -> list
     return errors
 
 
+def authority_import_rest_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    candidates = [api for api in contract.get("restApis", [])
+                  if api.get("path") == "/api/v1/pms/commerce-authority/import-batches"]
+    if len(candidates) != 1:
+        return ["controlled authority import REST must be unique"]
+    api = candidates[0]
+    expected = {
+        "method": "POST",
+        "permission": "pms:commerce:authority:write",
+        "idempotencyHeader": "Idempotency-Key",
+        "sourceHeader": "X-Source-System",
+        "recordSourceSystemInput": "FORBIDDEN",
+        "applicationService": "CommerceAuthorityImportApplicationService",
+        "ownerApi": "CommerceAuthorityWriteApi.apply",
+        "audit": "SAFE_SUMMARY_OPERATION_SOURCE_BATCH_AND_RECORD_COUNTS_ONLY",
+        "thirdPartyAdapter": "OUT_OF_SCOPE",
+    }
+    for field, expected_value in expected.items():
+        if api.get(field) != expected_value:
+            errors.append(f"invalid controlled authority import {field}")
+    if api.get("serverContextFacts") != ["tenantId", "actorUserId"]:
+        errors.append("tenant and actor must come from server authentication context")
+    execution = api.get("platformCommandExecution", {})
+    if execution.get("identity") != ["tenantId", "scope", "actorUserId", "Idempotency-Key"]:
+        errors.append("platform idempotency scope is incomplete")
+    for field, expected_value in {
+        "sameKeySamePayload": "REPLAY_COMPLETED_WITHOUT_OWNER_REEXECUTION",
+        "sameKeyDifferentPayload": "STABLE_CONFLICT",
+        "inProgress": "STABLE_CONFLICT_WITHOUT_SECOND_EXECUTION",
+        "transaction": "OWNER_OUTBOX_IDEMPOTENCY_COMPLETION_AND_SUCCESS_AUDIT_COMMIT_OR_ROLLBACK_TOGETHER",
+    }.items():
+        if execution.get(field) != expected_value:
+            errors.append(f"invalid platform command behavior {field}")
+    for required_text in (
+        "`POST /commerce-authority/import-batches`是唯一公开受控导入适配层",
+        "请求不得携带或覆盖租户、操作人及记录级来源系统",
+        "同键同载荷返回原结果且不再次调用Owner",
+        "不实现第三方适配器",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing controlled import Feature rule: {required_text}")
+    return errors
+
+
 class Fcom001FeatureContractTest(unittest.TestCase):
 
     @classmethod
