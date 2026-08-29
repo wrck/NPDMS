@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeAcceptanceLockQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderLineQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeVersionLockRow;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -40,6 +41,9 @@ public interface DeliveryScopeMapper extends BaseMapperX<DeliveryScopeDO> {
     }
 
     List<DeliveryScopeDO> selectActiveByProjectIdForUpdate(@Param("query") DeliveryScopeProjectQuery query);
+
+    List<DeliveryScopeDO> selectActiveByOrderLineIdsForUpdate(
+            @Param("query") DeliveryScopeOrderLineQuery query);
 
     List<DeliveryScopeVersionLockRow> selectCurrentVersionsForAcceptanceLock(
             @Param("query") DeliveryScopeAcceptanceLockQuery query);

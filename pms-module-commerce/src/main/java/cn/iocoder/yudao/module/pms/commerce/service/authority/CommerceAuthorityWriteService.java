@@ -1,32 +1,52 @@
 package cn.iocoder.yudao.module.pms.commerce.service.authority;
 
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityWriteApi;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.AuthorityWriteResult;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.CommerceAuthorityWriteCommand;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
+import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.common.query.AuthoritySourceLockQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderLineQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CommerceAuthorityWriteService implements CommerceAuthorityWriteApi {
 
+    private static final String CONFLICT_FROZEN = "CONFLICT_FROZEN";
+    private static final String NOTIFICATION_TYPE = "DELIVERY_SCOPE_CONFLICT_FROZEN";
+
     private final ContractMapper contractMapper;
     private final SalesOrderMapper orderMapper;
     private final SalesOrderLineMapper lineMapper;
+    private final DeliveryScopeMapper scopeMapper;
+    private final CommerceOutboxEventMapper outboxMapper;
+    private final ProjectParticipantFactApi participantFactApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -169,8 +189,98 @@ public class CommerceAuthorityWriteService implements CommerceAuthorityWriteApi 
             lineMapper.insert(target);
         } else {
             lineMapper.updateById(target);
+            freezeConflictingScopes(tenantId, target, source.sourceVersion());
         }
         return true;
+    }
+
+    private void freezeConflictingScopes(Long tenantId, SalesOrderLineDO line, String erpSourceVersion) {
+        List<DeliveryScopeDO> scopes = scopeMapper.selectActiveByOrderLineIdsForUpdate(
+                new DeliveryScopeOrderLineQuery(tenantId, List.of(line.getId())));
+        BigDecimal allocated = scopes.stream().map(DeliveryScopeDO::getAllocatedQty)
+                .filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal effectiveQuantity = "ENABLED".equals(line.getStatus())
+                && "CONFIRMED".equals(line.getQuantityStatus()) && line.getOrderQty() != null
+                ? line.getOrderQty() : BigDecimal.ZERO;
+        if (allocated.compareTo(effectiveQuantity) <= 0) {
+            return;
+        }
+        LocalDateTime requestedAt = LocalDateTime.now();
+        Map<Long, NotificationRecipient> recipients = new HashMap<>();
+        for (DeliveryScopeDO scope : scopes) {
+            scope.setScopeStatus(CONFLICT_FROZEN);
+            scopeMapper.updateById(scope);
+            NotificationRecipient recipient = recipients.computeIfAbsent(scope.getProjectId(),
+                    projectId -> resolveProjectManager(projectId, requestedAt));
+            insertConflictNotification(tenantId, scope, erpSourceVersion, allocated,
+                    effectiveQuantity, recipient, requestedAt);
+        }
+    }
+
+    private NotificationRecipient resolveProjectManager(Long projectId, LocalDateTime requestedAt) {
+        try {
+            ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
+                    projectId, null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), requestedAt));
+            if (fact != null && Objects.equals(projectId, fact.projectId()) && fact.userId() != null
+                    && fact.userId() > 0 && fact.projectVersion() != null && fact.factVersion() != null
+                    && fact.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
+                return new NotificationRecipient(fact.userId(), fact.projectVersion(), fact.factVersion());
+            }
+        } catch (RuntimeException ignored) {
+            // 收件人事实不可用时保留可重试逻辑角色，不能回滚已冻结的业务事实。
+        }
+        return new NotificationRecipient(null, null, null);
+    }
+
+    private void insertConflictNotification(Long tenantId, DeliveryScopeDO scope, String erpSourceVersion,
+                                            BigDecimal allocatedQuantity, BigDecimal effectiveQuantity,
+                                            NotificationRecipient recipient, LocalDateTime requestedAt) {
+        CommerceOutboxEventDO event = new CommerceOutboxEventDO();
+        event.setTenantId(tenantId);
+        event.setEventId(notificationEventId(scope, erpSourceVersion));
+        event.setEventType("NotificationRequested");
+        event.setAggregateType("DeliveryScope");
+        event.setAggregateKey(String.valueOf(scope.getId()));
+        event.setScopeVersion(scope.getAllocationVersion());
+        event.setPayload(JsonUtils.toJsonString(notificationPayload(
+                tenantId, scope, erpSourceVersion, allocatedQuantity, effectiveQuantity, recipient)));
+        event.setStatus("PENDING");
+        event.setOccurredAt(requestedAt);
+        event.setRetryCount(0);
+        outboxMapper.insert(event);
+    }
+
+    private Map<String, Object> notificationPayload(Long tenantId, DeliveryScopeDO scope,
+                                                    String erpSourceVersion,
+                                                    BigDecimal allocatedQuantity,
+                                                    BigDecimal effectiveQuantity,
+                                                    NotificationRecipient recipient) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("notificationType", NOTIFICATION_TYPE);
+        payload.put("tenantId", tenantId);
+        payload.put("projectId", scope.getProjectId());
+        payload.put("orderLineId", scope.getOrderLineId());
+        payload.put("deliveryScopeId", scope.getId());
+        payload.put("allocationVersion", scope.getAllocationVersion());
+        payload.put("erpSourceVersion", erpSourceVersion);
+        payload.put("allocatedQuantity", allocatedQuantity);
+        payload.put("effectiveQuantity", effectiveQuantity);
+        payload.put("conflictReason", "ERP_EFFECTIVE_QUANTITY_BELOW_CURRENT_ALLOCATION");
+        payload.put("recipientRole", ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+        if (recipient.userId() != null) {
+            payload.put("recipientUserId", recipient.userId());
+            payload.put("recipientProjectVersion", recipient.projectVersion());
+            payload.put("recipientFactVersion", recipient.factVersion());
+        } else {
+            payload.put("recipientResolution", "RETRYABLE_ROLE");
+        }
+        return payload;
+    }
+
+    private String notificationEventId(DeliveryScopeDO scope, String erpSourceVersion) {
+        String key = NOTIFICATION_TYPE + ':' + scope.getId() + ':' + scope.getAllocationVersion()
+                + ':' + erpSourceVersion;
+        return UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
     }
 
     private boolean shouldApply(String currentVersion, LocalDateTime currentTime,
@@ -268,5 +378,8 @@ public class CommerceAuthorityWriteService implements CommerceAuthorityWriteApi 
     }
 
     private record WriteResult(SalesOrderDO order, boolean changed) {
+    }
+
+    private record NotificationRecipient(Long userId, Integer projectVersion, Long factVersion) {
     }
 }
