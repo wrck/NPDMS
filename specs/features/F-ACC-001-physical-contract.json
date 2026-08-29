@@ -2,6 +2,7 @@
   "featureId": "F-ACC-001",
   "status": "BASELINE_READY",
   "featureReadyDecision": "GO_BDE0FEAC019BAF820634ECC6A0E88272672B601D",
+  "technicalPlanPrerequisiteAmendment":"GO_701BDF701539A0D65F3C67EB10AA0605DE58C4A7",
   "requirements": {"ACC-03@V1": "FULL", "ACC-04@V1": "PARTIAL_REPORT_SOURCES_ONLY"},
   "ownerContext": "ACC",
   "implementationCarriers": ["pms-module-project/pms-module-project-api", "pms-module-project"],
@@ -57,8 +58,10 @@
       "existingTargetsPreserved":true,
       "reusedMethods":["attachExistingVersions","lockAndRevalidateReferenceSets","inspectReferenceSets"],
       "archiveMethod":"archiveReferenceSets",
-      "archiveInputs":["operationId","archiveBatchId","businessDecisionRef","attachmentSetKey","archiveSetKey","expectedScopeVersion","orderedExpectedPublicFileFacts"],
+      "archiveInputs":["operationId","archiveBatchId","businessDecisionRef","actorUserId","attachmentSetKey","archiveSetKey","expectedScopeVersion","orderedExpectedPublicFileFacts"],
+      "archiveActorSource":"ACC_REPORT_VERSION_PUBLISHER_USER_ID",
       "archivePermission":"pms:file:archive",
+      "archivePermissionCheck":"SYSTEM_PERMISSION_API_CURRENT_ACTOR_AND_FILE_BUSINESS_SCOPE",
       "tenantIsolation":"REQUIRED",
       "archiveModel":"ACTIVE_ATTACHMENT_REFERENCE_PLUS_SEPARATE_ARCHIVED_REFERENCE",
       "archiveFailure":"ROLLBACK_ARCHIVE_REFERENCES_AND_RECORDS_KEEP_ATTACHMENT_ACTIVE"
@@ -74,13 +77,19 @@
     "reportLockOrder":["ACC_ACTIVITY","OLD_CURRENT_IF_ANY","TARGET_DRAFT_IF_ANY","ATTACHMENTS","INITIAL_REPORT_IF_FINAL"],
     "completionLockOrder":["PROJ_TASK_AND_EXECUTION_CONTRACT","ACC_ACTIVITY","CURRENT_REPORT"],
     "reportAndOutboxAtomic":true,
+    "outboxWriteApi":"PlatformCommandExecutionApi",
+    "outboxDeliveryApi":"PlatformOutboxDeliveryApi",
+    "reportEventDeliveryJob":"AcceptanceReportOutboxDeliveryJob_ONLY_ACCEPTANCE_REPORT_VERSION_CHANGED",
+    "closureRecheckDelivery":"NOT_CLAIMED_BY_THIS_FEATURE",
     "taskActivityCompletionAtomic":true,
+    "accCompletionPermissionCheck":"AFTER_ACC_EXECUTION_CONTRACT_RESOLUTION_BEFORE_PROVIDER_OR_STATE_WRITE_REQUIRE_BOTH",
     "archiveFailureRollsBackReport":false
   },
   "events": {
     "AcceptanceReportVersionChanged": {
       "changeTypes":["EFFECTIVE","REPLACED","REVOKED"],
-      "facts":["acceptanceId","projectId","reportType","currentReportVersionId","previousReportVersionId","attachments[{sequence,fileArtifactId,fileVersionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,fileHash}]"],
+      "facts":["acceptanceId","projectId","reportType","publisherActorUserId","currentReportVersionId","previousReportVersionId","attachments[{sequence,fileArtifactId,fileVersionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,fileHash}]"],
+      "delivery":"CLAIM_ONLY_THIS_TYPE_MARK_AFTER_PROJECTION_COMMIT_RETRY_ON_FAILURE",
       "idempotency":"SOURCE_REPORT_VERSION"
     },
     "ClosureGateRecheckRequested": {"resultMeaning":"REQUEST_ONLY_NOT_CLOSURE_PASS"}
@@ -94,7 +103,8 @@
       },
       "acc_acceptance_report_version": {
         "mode":"CREATE",
-        "fields":["acceptance_id","report_version_no","report_status","acceptance_time","conclusion_code","conclusion_text","acceptor_name","previous_version_id","effective_from","effective_to","current_marker","uploader_user_id","upload_time","tenant_and_audit_fields"],
+        "fields":["acceptance_id","report_version_no","report_status","acceptance_time","conclusion_code","conclusion_text","acceptor_name","previous_version_id","effective_from","effective_to","current_marker","uploader_user_id","upload_time","publisher_user_id","tenant_and_audit_fields"],
+        "publisherRule":"DRAFT_NULL_EFFECTIVE_AND_HISTORY_IMMUTABLE_SERVER_AUTHENTICATED_USER",
         "currentMarker":"case when report_status='EFFECTIVE' and effective_to is null then 1 else null end",
         "uniqueKeys":["tenant_id+acceptance_id+report_version_no","tenant_id+acceptance_id+current_marker"]
       },

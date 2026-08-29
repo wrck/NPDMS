@@ -17,6 +17,9 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     report = contract.get("physicalDelta", {}).get("tables", {}).get("acc_acceptance_report_version", {})
     if report.get("currentMarker") != "case when report_status='EFFECTIVE' and effective_to is null then 1 else null end":
         errors.append("report-current")
+    if "publisher_user_id" not in report.get("fields", []) or \
+            report.get("publisherRule") != "DRAFT_NULL_EFFECTIVE_AND_HISTORY_IMMUTABLE_SERVER_AUTHENTICATED_USER":
+        errors.append("publisher")
     source = contract.get("physicalDelta", {}).get("tables", {}).get("acc_project_deliverable_source_version", {})
     if source.get("currentMarker") != "case when relation_status='CURRENT' then 1 else null end":
         errors.append("source-current")
@@ -26,6 +29,8 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     if not any("attachments[{sequence,fileArtifactId,fileVersionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,fileHash}]" == fact
                for fact in events.get("facts", [])):
         errors.append("attachments")
+    if "publisherActorUserId" not in events.get("facts", []):
+        errors.append("event-publisher")
     if contract.get("transactionBoundary", {}).get("archiveFailureRollsBackReport") is not False:
         errors.append("compensation")
     if contract.get("moduleApis", {}).get("AcceptanceScopeBindingApi", {}).get("reportTrigger") != "FORBIDDEN":
@@ -42,8 +47,18 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
             "ACC/ACCEPTANCE_REPORT_VERSION/*/ACCEPTANCE_REPORT_ATTACHMENT_ADDITIVE_ONLY" or \
             file_api.get("archiveModel") != "ACTIVE_ATTACHMENT_REFERENCE_PLUS_SEPARATE_ARCHIVED_REFERENCE" or \
             file_api.get("archivePermission") != "pms:file:archive" or \
-            file_api.get("tenantIsolation") != "REQUIRED":
+            file_api.get("tenantIsolation") != "REQUIRED" or \
+            "actorUserId" not in file_api.get("archiveInputs", []) or \
+            file_api.get("archiveActorSource") != "ACC_REPORT_VERSION_PUBLISHER_USER_ID":
         errors.append("file-api")
+    transaction = contract.get("transactionBoundary", {})
+    if transaction.get("outboxWriteApi") != "PlatformCommandExecutionApi" or \
+            transaction.get("outboxDeliveryApi") != "PlatformOutboxDeliveryApi" or \
+            transaction.get("closureRecheckDelivery") != "NOT_CLAIMED_BY_THIS_FEATURE":
+        errors.append("outbox-delivery")
+    if transaction.get("accCompletionPermissionCheck") != \
+            "AFTER_ACC_EXECUTION_CONTRACT_RESOLUTION_BEFORE_PROVIDER_OR_STATE_WRITE_REQUIRE_BOTH":
+        errors.append("completion-permissions")
     if module_apis.get("FileBusinessObjectPolicyProvider", {}).get("scopeVersionSource") != \
             "ProjectScopeApi.treeVersion":
         errors.append("file-policy")
@@ -84,6 +99,8 @@ class Facc001FeatureContractTest(unittest.TestCase):
         self.assertEqual("BASELINE_READY", self.contract["status"])
         self.assertEqual("GO_BDE0FEAC019BAF820634ECC6A0E88272672B601D",
                          self.contract["featureReadyDecision"])
+        self.assertEqual("GO_701BDF701539A0D65F3C67EB10AA0605DE58C4A7",
+                         self.contract["technicalPlanPrerequisiteAmendment"])
 
     def test_gate_rejects_draft_as_current(self) -> None:
         mutated = deepcopy(self.contract)
@@ -98,6 +115,17 @@ class Facc001FeatureContractTest(unittest.TestCase):
         mutated = deepcopy(self.contract)
         mutated["events"]["AcceptanceReportVersionChanged"]["facts"][-1] = "fileArtifactId"
         self.assertIn("attachments", contract_errors(mutated, self.spec, self.audit))
+
+    def test_gate_rejects_missing_archive_actor_or_outbox_delivery_boundary(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["FileArtifactApi"]["archiveInputs"].remove("actorUserId")
+        self.assertIn("file-api", contract_errors(mutated, self.spec, self.audit))
+        mutated = deepcopy(self.contract)
+        mutated["events"]["AcceptanceReportVersionChanged"]["facts"].remove("publisherActorUserId")
+        self.assertIn("event-publisher", contract_errors(mutated, self.spec, self.audit))
+        mutated = deepcopy(self.contract)
+        mutated["transactionBoundary"]["closureRecheckDelivery"] = "MARKED_DELIVERED"
+        self.assertIn("outbox-delivery", contract_errors(mutated, self.spec, self.audit))
 
     def test_gate_rejects_internal_file_ids_or_single_reference_archive(self) -> None:
         mutated = deepcopy(self.contract)

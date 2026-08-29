@@ -10,7 +10,7 @@
 
 **架构：** ACC语义实现在`pms-module-project`的全新`acceptancereport`子包，旧V17验收栈保持不变；PROJ仍拥有项目任务与执行契约，PLT仍拥有文件引用和归档事实。报告事务通过Platform Outbox发布版本变更，ACC消费者只追加应交来源历史，归档失败保持报告有效并由同一来源版本幂等补偿。
 
-**技术栈：** JDK 25、Spring Boot、MyBatis/MySQL 8、Flyway、PlatformCommandExecutionApi、PlatformOutboxApi、Vue 3、Element Plus、pnpm 9.15.5、Vitest、Chromium。
+**技术栈：** JDK 25、Spring Boot、MyBatis/MySQL 8、Flyway、PlatformCommandExecutionApi、PlatformOutboxDeliveryApi、Vue 3、Element Plus、pnpm 9.15.5、Vitest、Chromium。
 
 **规格：**
 
@@ -19,7 +19,7 @@
 - `specs/features/F-ACC-001-legacy-reuse-audit.md`；
 - `docs/decisions/0039-acceptance-report-version-and-deliverable-index.md`、`0040-acceptance-file-fact-and-activity-initialization.md`；
 - `docs/design/09-database-design.md`、`10-api-design.md`、`13-file-design.md`、`15-cache-and-concurrency.md`、`16-exception-and-idempotency.md`；
-- Feature Ready独立复审GO提交`bde0feac019baf820634ecc6a0e88272672b601d`，状态回写提交`9f3d3110`。
+- Feature Ready独立复审GO提交`bde0feac019baf820634ecc6a0e88272672b601d`，状态回写提交`9f3d3110`；归档操作者与Outbox投递SDS补充GO提交`701bdf701539a0d65f3c67eb10aa0605de58c4a7`，状态回写提交`7f4cfa7a`。
 
 ## 一、全局约束与端口
 
@@ -94,6 +94,7 @@ public record AcceptanceActivityCompletionFact(
 ```java
 public record ArchiveFileReferenceSetsCommand(
         String operationId, String archiveBatchId, String businessDecisionRef,
+        Long actorUserId,
         FileReferenceSetKey attachmentSetKey, FileReferenceSetKey archiveSetKey,
         Long expectedScopeVersion,
         List<FileArtifactVersionFact> orderedExpectedPublicFileFacts) {}
@@ -108,14 +109,15 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 
 - `ExistingFileReferenceTarget`只加性接受`ACC/ACCEPTANCE_REPORT_VERSION/*/ACCEPTANCE_REPORT_ATTACHMENT`；请求仍不得指定租户或操作者。
 - ACC `FileBusinessObjectPolicyProvider`从报告版本取得不可变`projectId/projectTaskId`，把文件查询中的`subjectUserId`原值传给`ProjectScopeApi`：READ/DOWNLOAD使用PROJECT_VIEW，UPLOAD/REFERENCE/REPLACE/DETACH使用PROJECT_EDIT，scopeVersion只取返回`treeVersion`。
-- `archiveReferenceSets`先执行既有`pms:file:archive`和租户校验，锁定完整ACTIVE附件集合；再按相同`artifactId/versionNo/referenceKey`在`ACCEPTANCE_REPORT_ARCHIVE`创建独立引用、置ARCHIVED并追加`FileArchiveRecord`。附件引用不得变化；任一步失败归档引用和记录整组回滚。
+- 报告首次发布或替换时只从服务端认证上下文取用户并写不可变`publisher_user_id`；DRAFT为空，撤销沿用原发布人。归档补偿把该值原样作为`actorUserId`，不得接收客户端覆盖、借用Job用户或伪造Web登录上下文。
+- `archiveReferenceSets`通过SYSTEM `PermissionApi.hasAnyPermissions(actorUserId, "pms:file:archive")`重验当前功能权限，并以同一tenant和actor重验FileBusinessScope；随后锁定完整ACTIVE附件集合，再按相同`artifactId/versionNo/referenceKey`在`ACCEPTANCE_REPORT_ARCHIVE`创建独立引用、置ARCHIVED并追加`FileArchiveRecord.archivedBy=actorUserId`。附件引用不得变化；任一步失败归档引用和记录整组回滚，ACC保持`PENDING_COMPENSATION`。
 
 ### 3.3 报告、交付件与Outbox事务
 
 1. 草稿创建/修改锁活动和草稿，只允许DRAFT；绑定附件后逐项冻结PLT公共事实，不保存内部ID。
-2. 首次发布/替换/撤销锁序固定`ACC活动→旧当前（适用）→目标草稿（适用）→附件ACTIVE集合→初验当前（终验适用）`。版本状态、活动指针和`AcceptanceReportVersionChanged` Outbox同事务。
-3. 本地Outbox消费者以`reportVersionId`幂等更新既有应交根、来源版本和完整附件集合；失败不回滚报告。归档补偿按来源版本稳定顺序调用PLT，成功后才把ACC投影置ARCHIVED。
-4. `ClosureGateRecheckRequested`只通过Platform Outbox发布请求，不写CLO表、不解释为闭环通过。
+2. 首次发布/替换/撤销锁序固定`ACC活动→旧当前（适用）→目标草稿（适用）→附件ACTIVE集合→初验当前（终验适用）`。版本状态、发布人、活动指针和`AcceptanceReportVersionChanged`通过现有`PlatformCommandExecutionApi`同事务写Outbox。
+3. 在`PlatformOutboxDeliveryApiImpl.SUPPORTED_EVENT_TYPES`只加性登记`AcceptanceReportVersionChanged`，不登记`ClosureGateRecheckRequested`。新增`AcceptanceReportOutboxDeliveryJob`，以`PlatformOutboxClaimQuery(..., Set.of("AcceptanceReportVersionChanged"))`领取；反序列化并校验tenant、发布人、版本及完整附件后调用来源投影事务，事务返回成功才把`message.retryCount()`作为`expectedRetryCount`调用`markDelivered`，异常按同一计数调用`scheduleRetry`且不得先标成功。
+4. 来源投影以`reportVersionId`幂等更新既有应交根、来源版本和完整附件集合；失败不回滚报告。归档补偿按来源版本稳定顺序、使用事件冻结`publisherActorUserId`调用PLT，成功后才把ACC投影置ARCHIVED。`ClosureGateRecheckRequested`只由报告事务写Outbox，本Feature不领取、不标记已投递、不写CLO表或解释为闭环通过。
 5. 报告、来源索引、归档任务均禁止调用AcceptanceScopeBinding API；F-COM两条绑定路径只作回归。
 
 ## 四、文件与数据落位
@@ -124,10 +126,11 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 
 - 新增：`pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/acceptanceactivity/`及`dto/`，承载上述两个API和命令/结果。
 - 修改：`pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/FileArtifactApi.java`及同目录`dto/ExistingFileReferenceTarget.java`；新增同DTO目录`ArchiveFileReferenceSetsCommand.java`、`FileArchiveReferenceSetFact.java`。
-- 修改：`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileArtifactApiImpl.java`、`FileQueryService.java`，以及`dal/mysql/file`和`src/main/resources/mapper/file`中的FileReference/FileArchive Mapper；只增加ACC目标与整组归档，不改变既有目标语义。
+- 修改：`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileArtifactApiImpl.java`、`FileQueryService.java`，以及`dal/mysql/file`和`src/main/resources/mapper/file`中的FileReference/FileArchive Mapper；整组归档显式使用`actorUserId`和SYSTEM `PermissionApi`，只增加ACC目标与整组归档，不改变既有目标语义。
+- 修改：`pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/outbox/PlatformOutboxDeliveryApiImpl.java`，仅在现有受控事件白名单加`AcceptanceReportVersionChanged`；公开API签名和其他事件不变。
 - 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/acceptanceactivity/AcceptanceActivityInitializationApiImpl.java`、`AcceptanceActivityCompletionFactApiImpl.java`、`AcceptanceReportFileBusinessObjectPolicyProvider.java`。
 - 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/acceptancereport/`、`dal/mysql/acceptancereport/`和`src/main/resources/mapper/acceptancereport/`，分别承载活动、报告版本、报告附件、来源版本和来源附件；现有`AcceptanceDO/Mapper`保持不变。
-- 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancereport/`中的`AcceptanceReportCommandService`、`AcceptanceReportQueryService`、`AcceptanceReportSourceProjectionService`、`AcceptanceReportArchiveCompensationJob`及事件DTO。
+- 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/acceptancereport/`中的`AcceptanceReportCommandService`、`AcceptanceReportQueryService`、`AcceptanceReportSourceProjectionService`、`AcceptanceReportOutboxDeliveryJob`、`AcceptanceReportArchiveCompensationJob`及事件DTO。
 - 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/acceptancereport/`及VO，实现Feature Spec锁定的查询、草稿、发布、撤销和下载REST；服务端读取租户/操作者、`If-Match`和`Idempotency-Key`。
 - 修改：`ProjectManualCreationServiceImpl.java`和`ProjectTaskLifecycleService.java`，只接入批准的initializer/completion Provider，不复制ACC规则或直接访问ACC表。
 
@@ -135,12 +138,12 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 
 新增`sql/migrations/V128__facc001_acceptance_report_version_forward.sql`，顺序固定：
 
-1. 在任何DDL前预检V63应交根、精确任务对、当前执行契约和状态分区；部分/重复/非TASK_NATIVE/终态混合/未知状态直接`SIGNAL`，两项均终态或均不存在记录为保持集合。
-2. 创建`acc_acceptance`、`acc_acceptance_report_version`、`acc_acceptance_report_attachment`、`acc_project_deliverable_source_version`、`acc_project_deliverable_source_attachment`；字段、生成列、唯一键和公共文件事实逐项等于机器契约，不建PROJ/PLT外键。
-3. 对`acc_project_deliverable`加性增加`current_source_version_id/archive_status`；两列初始可空，不把旧行解释为当前来源或已归档。
-4. 仅为“两项均非终态且当前契约均为精确V63 TASK_NATIVE”的项目成对创建PENDING活动、关闭旧契约有效区间并追加ACC当前契约；两项均终态和两项均不存在不写。转换前后逐项目校验活动数、当前契约唯一和终态零修改。
-5. 写入四个ACC最小权限键及菜单`930920～930924`；受管验收身份固定用户`992004800001/facc001acceptance`、角色`992004800001/facc001_acceptance_full`、项目`992004000001`、初验/终验任务`992004100001/992004100002`、应交根`992004200001/992004200002`，全部使用`creator=facc001_seed`。角色同时取得ACC四键、`pms:project-task:execute`、所需文件键与项目范围；该关系只服务正式验收配置，不定义业务角色模板。
-6. Flyway失败重试仅接受“V128未开始”或“全部目标结构与受管转换完整”两种状态；任何部分表、部分列、部分任务对切换或非受管占用失败关闭并从迁移前数据库快照恢复，不在脚本中猜测修补历史。
+1. 在任何DDL/DML前同时预检存量V63应交根、精确任务对、当前执行契约和状态分区，以及下列全部受管固定ID/编码无人占用；部分/重复/非TASK_NATIVE/终态混合/未知状态或任一受管身份冲突直接`SIGNAL`，两项均终态或均不存在记录为保持集合。
+2. 创建`acc_acceptance`、`acc_acceptance_report_version`（含`publisher_user_id`）、`acc_acceptance_report_attachment`、`acc_project_deliverable_source_version`、`acc_project_deliverable_source_attachment`；字段、生成列、唯一键和公共文件事实逐项等于机器契约，不建PROJ/PLT外键。对`acc_project_deliverable`加性增加`current_source_version_id/archive_status`，两列初始可空。
+3. 在统一转换前建立一组完整受管输入：用户/角色`992004800001`，项目`992004000001`（`projectCode=FACC001-ACCEPTANCE-001`，独立`rootId/codeRootId`均指向自身，生命周期有效且当前阶段S5），树版本/自身路径/项目经理成员`992004300001/992004300002/992004300003`，初验/终验任务`992004100001/992004100002`，应交根`992004200001/992004200002`，V63 `TASK_NATIVE`当前执行契约`992004400001/992004400002`；项目树仅含自身深度0且pathCount=1，成员以当前有效`PROJECT_MANAGER`关联受管用户，两个任务均为`PENDING_ACCEPT`并分别精确使用`T-INITIAL-ACCEPT/T-FINAL-ACCEPT`，应交根分别为`D-INITIAL-REPORT/D-FINAL-REPORT`。初始必须无报告、无活动、无ACC契约；所有行使用`creator=facc001_seed`并形成可由`ProjectScopeApi`解析的完整PROJ范围事实。
+4. 使用同一存量转换算法处理普通合格项目与上述受管输入：只为“两项均非终态且当前契约均为精确V63 TASK_NATIVE”的项目成对创建PENDING活动、关闭旧契约有效区间并追加ACC当前契约。受管活动固定`992004500001/992004500002`，新ACC契约固定`992004400003/992004400004`，分别与任务、应交根、`PRELIMINARY/FINAL`精确一一对应；两项均终态和两项均不存在不写。转换后逐项目断言活动数、任务/应交/活动/契约父子关系、当前契约唯一、终态零修改，以及受管项目恰有两个PENDING活动、两个ACC当前契约且仍无报告。
+5. 写入四个ACC最小权限键及菜单`930920～930924`；受管用户名`facc001acceptance`、角色码`facc001_acceptance_full`。角色取得ACC四键、`pms:project-task:execute`、所需文件键与项目范围；该关系只服务正式验收配置，不定义业务角色模板。
+6. Flyway失败重试仅接受“V128未开始”或“全部目标结构、受管输入及统一转换完整”两种状态；任何部分表、部分列、部分受管父子关系、部分任务对切换或非受管占用失败关闭并从迁移前数据库快照恢复，不在脚本中临时补写、推断或修补历史。
 
 ### 4.3 前端
 
@@ -161,7 +164,7 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 
 - [ ] **Step 1：写聚焦失败测试并确认RED**
 
-  新增`AcceptanceActivityInitializationApiImplTest`、`AcceptanceActivityCompletionFactApiImplTest`、`AcceptanceReportCommandServiceTest`、`AcceptanceReportSourceProjectionServiceTest`、`AcceptanceReportFileBusinessObjectPolicyProviderTest`、`Facc001MigrationContractTest`；扩展`FileArtifactApiImplTest`、`ProjectManualCreationServiceImplTest`、`ProjectTaskLifecycleServiceTest`。RED必须来自目标API/状态/表缺失，不把装配错误当业务RED。
+  新增`AcceptanceActivityInitializationApiImplTest`、`AcceptanceActivityCompletionFactApiImplTest`、`AcceptanceReportCommandServiceTest`、`AcceptanceReportSourceProjectionServiceTest`、`AcceptanceReportOutboxDeliveryJobTest`、`AcceptanceReportFileBusinessObjectPolicyProviderTest`、`Facc001MigrationContractTest`；扩展`PlatformOutboxDeliveryApiImplTest`、`FileArtifactApiImplTest`、`ProjectManualCreationServiceImplTest`、`ProjectTaskLifecycleServiceTest`。RED必须来自目标API/状态/表缺失，不把装配错误当业务RED。聚焦断言必须覆盖归档actor重验、Job只领报告事件、成功后mark/失败retry、CLO事件不被领取，以及ACC任务分别缺少两个权限中的任一项均零写入。
 
 - [ ] **Step 2：实现PLT加性文件契约**
 
@@ -169,22 +172,23 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 
 - [ ] **Step 3：实现ACC活动、报告和应交来源**
 
-  按第3.3节实现草稿、发布、替换、撤销、终验守卫、事件投影与补偿；稳定错误分类固定BUSINESS_GATE、VERSION_CONFLICT、DEPENDENCY_UNAVAILABLE，所有拒绝零报告/来源/Outbox写入。
+  按第3.3节实现草稿、发布、替换、撤销、终验守卫、专用Outbox投递、事件投影与补偿；稳定错误分类固定BUSINESS_GATE、VERSION_CONFLICT、DEPENDENCY_UNAVAILABLE，所有拒绝零报告/来源/Outbox写入。`ClosureGateRecheckRequested`只保留待消费Outbox事实。
 
 - [ ] **Step 4：接入PROJ创建与任务完成**
 
-  项目创建严格按“任务/非ACC契约/里程碑→应交根→活动→ACC契约”；任务完成严格按“PROJ任务/契约→ACC活动→当前报告”。缺报告或四项不全不完成任务；进入验收阶段仍不要求报告。
+  项目创建严格按“任务/非ACC契约/里程碑→应交根→活动→ACC契约”。任务完成先锁定PROJ任务和当前执行契约；若契约目标为`ACC/AcceptanceActivity`，则在调用ACC Provider或写TaskCompletionEvaluation/任务状态前，使用当前认证用户分别校验`pms:project-task:execute`和`pms:acceptance:report:complete`且两者必须都通过。缺任一权限时任务、判定和活动零写入；`TASK_NATIVE`保持现有Controller OR及Service行为。随后才按“PROJ任务/契约→ACC活动→当前报告”完成；缺报告或四项不全不完成任务，进入验收阶段仍不要求报告。
 
 - [ ] **Step 5：实现并验证V128**
 
-  先在当前V127备份上验证预检和两类保持集合，再执行结构/切换/种子；覆盖空库V1→V128、既有V127→V128、终态混合失败、两项均终态零修改、两项均非终态成对切换及`migrate/info/validate`。
+  先在当前V127备份上验证预检和两类保持集合，再按“目标结构→完整受管PROJ/V63输入→统一成对转换→权限配置”执行；覆盖空库V1→V128、既有V127→V128、终态混合失败、两项均终态零修改、两项均非终态成对切换、受管两活动/两ACC契约/零报告及`migrate/info/validate`。
 
 - [ ] **Step 6：运行Task 1聚焦集合并提交**
 
 ```powershell
 mvn.cmd -pl pms-module-platform,pms-module-project -am `
-  "-Dtest=FileArtifactApiImplTest,AcceptanceActivityInitializationApiImplTest,AcceptanceActivityCompletionFactApiImplTest,AcceptanceReportCommandServiceTest,AcceptanceReportSourceProjectionServiceTest,AcceptanceReportFileBusinessObjectPolicyProviderTest,ProjectManualCreationServiceImplTest,ProjectTaskLifecycleServiceTest,Facc001MigrationContractTest" `
+  "-Dtest=PlatformOutboxDeliveryApiImplTest,FileArtifactApiImplTest,AcceptanceActivityInitializationApiImplTest,AcceptanceActivityCompletionFactApiImplTest,AcceptanceReportCommandServiceTest,AcceptanceReportSourceProjectionServiceTest,AcceptanceReportOutboxDeliveryJobTest,AcceptanceReportFileBusinessObjectPolicyProviderTest,ProjectManualCreationServiceImplTest,ProjectTaskLifecycleServiceTest,Facc001MigrationContractTest" `
   "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn.cmd -pl pms-module-platform,pms-module-project -am -DskipTests package
 ```
 
   只暂存Task 1文件并形成单一实现提交；不得更新Implementation Done。
@@ -212,6 +216,7 @@ Push-Location yudao-ui/yudao-ui-admin-vue3
 corepack pnpm vitest run --config vitest.pms-file.config.ts `
   src/views/pms/project/acceptance-report src/components/PmsFileArtifact
 corepack pnpm ts:check
+corepack pnpm build:local
 Pop-Location
 ```
 
@@ -249,11 +254,12 @@ git diff --check
 
 ## 六、计划自检
 
-- **规格覆盖：** 报告四状态、当前唯一、替换/撤销、终验守卫、PROJ任务完成、应交来源、归档补偿、下载、权限和F-COM绑定回归均有实施及验收步骤。
+- **规格覆盖：** 报告四状态、当前唯一、替换/撤销、终验守卫、PROJ任务完成、应交来源、专用Outbox投递、归档补偿、下载、权限和F-COM绑定回归均有实施及验收步骤。
 - **Owner：** ACC不读PROJ/PLT表；PROJ不写ACC表；PLT不判定报告状态；报告不触发范围绑定。
 - **历史：** 有效报告和来源只追加；撤销不恢复旧版；归档不改变ACTIVE附件；终态任务不切换。
-- **迁移：** V17/V63及已执行迁移不改；V128只做前向结构、确定性存量分区和受管验收配置。
-- **权限：** 最小键与服务端控制点准确，角色映射保持配置化，全权限身份仍经过租户/项目/文件范围。
+- **迁移：** V17/V63及已执行迁移不改；V128先建完整受管PROJ/V63输入，再与普通合格输入使用同一确定性转换生成PENDING活动和ACC契约。
+- **权限：** ACC任务完成在识别执行契约后强制两个最小键同时具备；归档显式actor仍重验功能/租户/文件范围；角色映射保持配置化。
+- **验证：** 后端聚焦测试后执行受影响reactor `package`，前端Vitest/类型检查后执行`build:local`；不重复Phase 1/2/3或全仓回归。
 - **收益：** 两个完整Task；无全仓重复测试、无第三方连接器、无低收益异常枚举、无第二验收或应交真值。
 
 ## 七、Technical Plan Gate

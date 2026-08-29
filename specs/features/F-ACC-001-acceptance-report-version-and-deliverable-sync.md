@@ -79,7 +79,8 @@ PROJ初验/终验任务与执行契约
 - 首次生效创建CURRENT来源关系及完整附件；替换保留旧关系/归档结果并创建新CURRENT；撤销把当前关系置REVOKED/INVALID并清空根指针，不恢复旧版。
 - 索引、文件归档或CLO重校验失败不回滚报告，不删除历史，不误标ARCHIVED；保存`PENDING_COMPENSATION`及失败/重试水位。
 - 报告附件键固定`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`且引用持续`ACTIVE`；归档只在同对象`ACCEPTANCE_REPORT_ARCHIVE`集合创建独立`ARCHIVED`引用及`FileArchiveRecord`，不得改变历史附件引用或下载链。
-- `AcceptanceReportVersionChanged`按来源版本幂等消费；`ClosureGateRecheckRequested`只是请求CLO重新读取Owner事实。
+- 报告首次发布或替换时把服务端认证用户冻结为不可变`publisherUserId`；归档补偿显式以该用户调用PLT，PLT重验当前`pms:file:archive`、租户和FileBusinessScope并记录`archivedBy`。撤权或范围变化保持`PENDING_COMPENSATION`，不得借用Job用户、伪造登录上下文或取消鉴权。
+- 报告命令通过`PlatformCommandExecutionApi`同事务写Outbox；`AcceptanceReportOutboxDeliveryJob`经`PlatformOutboxDeliveryApi`只领取`AcceptanceReportVersionChanged`，来源投影提交后才标记成功，失败安排重试。`ClosureGateRecheckRequested`只是请求CLO重新读取Owner事实，本Feature不得领取或标记其已投递。
 
 ### BR-FACC001-005 范围绑定回归
 
@@ -104,11 +105,11 @@ PROJ初验/终验任务与执行契约
 | `POST /acceptances/{id}/report-versions/{versionId}/actions/publish` | `pms:acceptance:report:write` | 首次发布或替换；终验先锁定有效初验；与变更Outbox同事务 |
 | `POST /acceptances/{id}/actions/revoke-current-version` | `pms:acceptance:report:write` | 撤销期望当前版本，不恢复旧版；与变更Outbox同事务 |
 | `GET /acceptances/{id}/report-versions/{versionId}/attachments/{sequence}/download` | `pms:acceptance:report:download` | 每次重验项目范围、FileBusinessScope、租户并记录下载审计 |
-| `POST /project-tasks/{id}/actions/complete` | `pms:project-task:execute` + `pms:acceptance:report:complete` | 复用PROJ现有任务命令；ACC Provider只返回完成事实，不建立第二完成入口 |
+| `POST /project-tasks/{id}/actions/complete` | `pms:project-task:execute` + `pms:acceptance:report:complete` | 复用PROJ现有任务命令；服务识别当前执行契约为ACC活动后、调用ACC Provider或写任务/判定前必须同时校验两个权限，缺一即任务、判定和活动零写入；`TASK_NATIVE`保持既有行为 |
 
 角色—权限映射保持配置化；验收身份可通过正式授权配置取得全部相关键，不删除服务端鉴权或租户隔离。
 
-稳定模块契约锁定如下：`AcceptanceActivityInitializationApi.initialize`与`AcceptanceActivityCompletionFactApi.lockAndComplete`位于`pms-module-project-api`的ACC契约包并由真实ACC Provider以`MANDATORY`加入现有事务；ACC文件策略Provider使用`ProjectScopeApi.treeVersion`作为唯一`scopeVersion`。`ExistingFileReferenceTarget`仅加性放行ACC报告附件目标并保留既有目标；绑定、重验、下载复用PLT现有接口，`FileArtifactApi.archiveReferenceSets`只为完整ACTIVE附件集合建立独立ARCHIVED归档集合。ACC不得访问PLT或PROJ表。
+稳定模块契约锁定如下：`AcceptanceActivityInitializationApi.initialize`与`AcceptanceActivityCompletionFactApi.lockAndComplete`位于`pms-module-project-api`的ACC契约包并由真实ACC Provider以`MANDATORY`加入现有事务；ACC文件策略Provider使用`ProjectScopeApi.treeVersion`作为唯一`scopeVersion`。`ExistingFileReferenceTarget`仅加性放行ACC报告附件目标并保留既有目标；绑定、重验、下载复用PLT现有接口，`FileArtifactApi.archiveReferenceSets`只为完整ACTIVE附件集合建立独立ARCHIVED归档集合，其命令显式携带报告版本`publisherUserId`。ACC不得访问PLT或PROJ表。
 
 ## 5. 状态、事件与异常
 
@@ -119,12 +120,12 @@ PROJ初验/终验任务与执行契约
 | DeliverableSourceVersion | `CURRENT/SUPERSEDED/REVOKED` | 与归档状态分离；当前唯一 |
 | Archive | `PENDING_COMPENSATION/ARCHIVED/INVALID` | 失败不得覆盖报告或伪报已归档 |
 
-- `AcceptanceReportVersionChanged`载荷含`EFFECTIVE/REPLACED/REVOKED`、当前/前一版本和完整有序公共附件事实集合，不含PLT内部主键。
+- `AcceptanceReportVersionChanged`载荷含`EFFECTIVE/REPLACED/REVOKED`、`publisherActorUserId`、当前/前一版本和完整有序公共附件事实集合，不含PLT内部主键。
 - 业务缺项与状态门禁返回稳定业务拒绝；版本/当前冲突返回VERSION_CONFLICT；PLT/PROJ Owner未知或不可用返回DEPENDENCY_UNAVAILABLE；所有拒绝路径保持报告、活动、任务、索引和Outbox零写入。
 
 ## 6. 数据与迁移
 
-物理字段、生成列、唯一键及前向表精确以`F-ACC-001-physical-contract.json`和已批准P3-E09差量为准；附件两张表只保存PLT公共版本事实。不修改V17/V63；Technical Plan只能新增前向Flyway。跨Context只保存稳定逻辑引用，不建PROJ/PLT物理外键。
+物理字段、生成列、唯一键及前向表精确以`F-ACC-001-physical-contract.json`和已批准P3-E09差量为准；报告版本以可空`publisher_user_id`保存发布时认证用户（DRAFT为空，EFFECTIVE及历史状态非空且不可改），附件两张表只保存PLT公共版本事实。不修改V17/V63；Technical Plan只能新增前向Flyway。跨Context只保存稳定逻辑引用，不建PROJ/PLT物理外键。
 
 ## 7. 验收标准
 
@@ -150,4 +151,4 @@ PROJ初验/终验任务与执行契约
 | Open Question | Q-FCOM-002仅阻断Out of Scope退出/回退关闭路径 |
 | 独立Feature Ready裁决 | PASS（整改提交`bde0feac019baf820634ecc6a0e88272672b601d`独立复审GO） |
 
-检查点：基线=`9f3d3110`；当前Gate=Technical Plan待独立评审；已通过=Feature Ready GO；阻塞=计划独立裁决未完成；下一步=仅提交唯一计划候选送审，不创建Task、不改产品代码或Flyway。
+检查点：基线=`7f4cfa7a`；当前Gate=Technical Plan整改复审；已通过=Feature Ready及归档actor/Outbox SDS补充GO；阻塞=计划仍待独立GO；下一步=同步机器契约并提交同一计划整改，不创建Task或改代码/Flyway。
