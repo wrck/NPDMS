@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / GO`（`c33b0836f71e0875008a084ff360e7027d276ec9`）  
 > Implementation Done Gate：`NOT_REVIEWED`  
 > 当前阻断：`无`  
-> 当前任务：`Task 2 / Step 3：完成全仓、Flyway、规格及V124失败恢复验证`
+> 当前任务：`Task 2 / Step 4：完成真实Chromium公开UI/REST闭环`
 > Requirement ID：`COM-01@V1`；协作`PM-03`、`PM-10`、`ACC-03`  
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`  
 > Technical Plan：`docs/superpowers/plans/2026-08-29-f-com-001-contract-order-and-delivery-scope.md`  
@@ -43,10 +43,10 @@
 
 - [x] Step 1：完成真实MySQL与后端事务矩阵。
 - [x] Step 2：完成前端测试、类型检查和生产构建。
-- [ ] Step 3：完成全仓、Flyway、规格及V124失败恢复验证。
+- [x] Step 3：完成全仓、Flyway、规格及V124失败恢复验证。
 - [ ] Step 4：完成真实Chromium公开UI/REST闭环。
 - [ ] Step 5：整理证据、自审、提交并申请Implementation Done独立评审。
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=8c2feeff；当前Gate=Task2/Step3；已通过=前端聚焦7项、全仓类型检查、生产构建PASS；阻塞=无；下一步=全仓、Flyway、规格及V124失败恢复验证。
+> 检查点：基线=9d01d953；当前Gate=Task2/Step4；已通过=目标模块556项、全仓打包、Phase2/3/追溯、Flyway125及V124双恢复PASS；阻塞=无（共享平台既有CRLF断言1项非阻断）；下一步=真实Chromium公开UI/REST闭环。
