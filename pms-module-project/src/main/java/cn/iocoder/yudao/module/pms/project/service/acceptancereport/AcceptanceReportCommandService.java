@@ -38,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -295,13 +296,18 @@ public class AcceptanceReportCommandService {
                 "REVOKED".equals(result.changeType()) ? null : report.getId(),
                 "REVOKED".equals(result.changeType()) ? report.getId() : report.getPreviousVersionId(),
                 report.getReportVersionNo(), files);
+        String closureEventId = UUID.randomUUID().toString();
         return new PlatformCommandExecutionApi.SuccessFacts("ACCEPTANCE_REPORT_" + result.changeType(),
                 "AcceptanceActivity", String.valueOf(activity.getId()), actor.correlationId(),
                 JsonUtils.toJsonString(result), List.of(
                 new PlatformCommandExecutionApi.BusinessEvent(eventId, "AcceptanceReportVersionChanged",
                         JsonUtils.toJsonString(message)),
-                new PlatformCommandExecutionApi.BusinessEvent(UUID.randomUUID().toString(),
-                        "ClosureGateRecheckRequested", JsonUtils.toJsonString(result))));
+                new PlatformCommandExecutionApi.BusinessEvent(closureEventId,
+                        "ClosureGateRecheckRequested", JsonUtils.toJsonString(Map.of(
+                        "eventId", closureEventId,
+                        "acceptanceId", result.acceptanceId(),
+                        "reportVersionId", result.reportVersionId(),
+                        "changeType", result.changeType())))));
     }
 
     private FileArtifactVersionFact toFact(AcceptanceReportAttachmentDO row) {

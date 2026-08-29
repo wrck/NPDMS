@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -23,5 +25,6 @@ public class ProjectDeliverableSourceVersionDO extends TenantBaseDO {
     private String archiveFailureCode;
     private Integer archiveRetryCount;
     private LocalDateTime archiveTime;
+    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private Integer currentMarker;
 }

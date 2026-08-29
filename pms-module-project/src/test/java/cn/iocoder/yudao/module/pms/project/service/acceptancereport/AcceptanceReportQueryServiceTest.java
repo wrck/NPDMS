@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.Accep
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceReportAttachmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceReportVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -32,6 +33,7 @@ class AcceptanceReportQueryServiceTest {
     @Mock AcceptanceReportAttachmentMapper attachmentMapper;
     @Mock ProjectScopeApi projectScopeApi;
     @Mock FileArtifactApi fileArtifactApi;
+    @Mock ProjectDeliverableSourceVersionMapper sourceVersionMapper;
 
     @Test
     void emptyProjectScopeReturnsEmptyActivityList() {
@@ -64,7 +66,7 @@ class AcceptanceReportQueryServiceTest {
 
     private AcceptanceReportQueryService service() {
         return new AcceptanceReportQueryService(activityMapper, reportMapper, attachmentMapper,
-                projectScopeApi, fileArtifactApi);
+                projectScopeApi, fileArtifactApi, sourceVersionMapper);
     }
 
     private AcceptanceReportQueryService.Actor actor() {

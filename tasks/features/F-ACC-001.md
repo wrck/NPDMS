@@ -5,8 +5,8 @@
 > Feature Ready Gate：`PASS / GO`（`bde0feac`）<br>
 > Technical Plan Gate：`PASS / GO`（`fca9626c`）<br>
 > Implementation Done Gate：`NOT_SUBMITTED`<br>
-> 当前阻断：`无`<br>
-> 当前任务：`Task 2 Step 1：以前端失败测试锁定页面行为`<br>
+> 当前阻断：`BLOCKED_BY_EXTERNAL_INPUT：缺少FACC001_BROWSER_PASSWORD`<br>
+> 当前任务：`Task 2 Step 5：真实Chromium闭环`<br>
 > Requirement ID：`ACC-03@V1=FULL`；`ACC-04@V1=PARTIAL`<br>
 > Feature Spec：`specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md`<br>
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-acc-001-acceptance-report-version-deliverable-sync.md`<br>
@@ -31,13 +31,13 @@
 
 ## Task 2：公开UI、真实验收与Implementation Done候选
 
-- [ ] Step 1：以前端失败测试锁定页面行为。
-- [ ] Step 2：实现新API客户端和页面。
-- [ ] Step 3：运行目标前端验证。
-- [ ] Step 4：运行真实MySQL与F-COM直接回归。
+- [x] Step 1：以前端失败测试锁定页面行为。
+- [x] Step 2：实现新API客户端和页面。
+- [x] Step 3：运行目标前端验证。
+- [x] Step 4：运行真实MySQL与F-COM直接回归。
 - [ ] Step 5：使用本分支独占端口完成一次Chromium闭环。
 - [ ] Step 6：规格检查、证据、提交并送Implementation Done独立审核。
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；两个Task全部完成并通过验证后，只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`229e9f4b`；当前Gate=Implementation Task 2 Step 1；已通过=报告REST、项目范围与文件事实重验完成，Task 1聚焦42/42、受影响后端package、V128双路径迁移均PASS；阻塞=无；下一步=写前端聚焦失败测试并实现报告页面，不提前送Implementation Done。
+> 检查点：基线=`ba8a4def`；当前Gate=Implementation Task 2 Step 5；已通过=前端13/13、ts:check、build及跨模块MySQL聚焦回归PASS；阻塞=BLOCKED_BY_EXTERNAL_INPUT，缺FACC001_BROWSER_PASSWORD；下一步=受权操作者配置仅驻内存密码后运行59330/19330真实Chromium闭环。

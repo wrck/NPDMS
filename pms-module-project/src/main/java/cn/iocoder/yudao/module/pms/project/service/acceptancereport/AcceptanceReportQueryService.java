@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.Accep
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceReportAttachmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceReportVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.AcceptanceActivityScopeQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class AcceptanceReportQueryService {
     private final AcceptanceReportAttachmentMapper attachmentMapper;
     private final ProjectScopeApi projectScopeApi;
     private final FileArtifactApi fileArtifactApi;
+    private final ProjectDeliverableSourceVersionMapper sourceVersionMapper;
 
     public List<ActivityView> list(Long projectId, Actor actor) {
         Set<Long> projectIds = projectId == null
@@ -118,10 +120,13 @@ public class AcceptanceReportQueryService {
 
     private ReportVersionView toReportView(AcceptanceReportVersionDO row,
                                            List<AcceptanceReportAttachmentDO> attachments) {
+        var source = sourceVersionMapper.selectByReportVersionId(row.getId());
         return new ReportVersionView(row.getId(), row.getAcceptanceId(), row.getReportVersionNo(),
                 row.getReportStatus(), row.getAcceptanceTime(), row.getConclusionCode(), row.getConclusionText(),
                 row.getAcceptorName(), row.getPreviousVersionId(), row.getEffectiveFrom(), row.getEffectiveTo(),
-                row.getUploaderUserId(), row.getPublisherUserId(),
+                row.getUploaderUserId(), row.getPublisherUserId(), source == null ? null : source.getArchiveStatus(),
+                source == null ? null : source.getArchiveFailureCode(),
+                source == null ? null : source.getArchiveRetryCount(),
                 attachments.stream().map(this::toAttachmentView).toList());
     }
 
@@ -156,6 +161,7 @@ public class AcceptanceReportQueryService {
                                     LocalDateTime acceptanceTime, String conclusionCode, String conclusionText,
                                     String acceptorName, Long previousVersionId, LocalDateTime effectiveFrom,
                                     LocalDateTime effectiveTo, Long uploaderUserId, Long publisherUserId,
+                                    String archiveStatus, String archiveFailureCode, Integer archiveRetryCount,
                                     List<AttachmentView> attachments) {
     }
 
