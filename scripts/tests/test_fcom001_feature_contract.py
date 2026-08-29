@@ -250,6 +250,13 @@ def product_code_compatibility_errors(contract: dict, feature_spec: str) -> list
     if forbidden != {"itemCode", "itemDescription", "productId", "clientField", "deliveryScopeHistory"}:
         errors.append("forbidden runtime productCode substitutes are incomplete")
     delivery = contract.get("moduleApis", {}).get("DeliveryScopeApi", {})
+    if delivery.get("applyCommandAdditiveInputs") != [
+            "expectedParentProjectVersion", "projectVersionsByClientItemKey"]:
+        errors.append("Apply Command parent and child project version inputs are incomplete")
+    if delivery.get("projectOfficeLockOrder") != "ALL_PARENT_AND_CHILD_PROJECT_IDS_ASC_BEFORE_ANY_COM_WRITE":
+        errors.append("parent and child ProjectOffice facts must lock in stable order before COM writes")
+    if delivery.get("remainderOfficeFact") != "EXPECTED_PARENT_PROJECT_VERSION":
+        errors.append("REMAINDER must reuse the locked parent project version fact")
     if delivery.get("noSerialSubjectRule") != (
             "LOCKED_CONFIRMED_SALES_ORDER_LINE_NONBLANK_PRODUCT_CODE_CREATES_ONE_DETAIL_WITH_SCOPE_QUANTITY"):
         errors.append("no-SN compatibility detail subject is not deterministic")
@@ -268,7 +275,7 @@ def product_code_compatibility_errors(contract: dict, feature_spec: str) -> list
     if legacy.get("runtimeUse") != "FORBIDDEN_IN_F_COM_001" or legacy.get("futureMigrationGate") != "AI-MIG-000":
         errors.append("legacy order tables must remain migration references only")
     for required_text in (
-        "既有DTO签名不变",
+        "原子应用方法及`Allocation`语义不变",
         "不得使用`itemCode`、`productId`、客户端值、历史明细或普通业务种子常量替代",
         "`pm_order_data_from_erp`订单头",
         "`pm_project_product_line`项目订单仅作为历史来源及原始子单参照",
@@ -372,6 +379,11 @@ class Fcom001FeatureContractTest(unittest.TestCase):
         runtime_legacy = deepcopy(self.contract)
         runtime_legacy["legacySourceReference"]["runtimeUse"] = "DIRECT_TABLE_READ"
         self.assertTrue(product_code_compatibility_errors(runtime_legacy, self.feature_spec))
+
+        missing_parent_version = deepcopy(self.contract)
+        missing_parent_version["moduleApis"]["DeliveryScopeApi"]["applyCommandAdditiveInputs"].remove(
+            "expectedParentProjectVersion")
+        self.assertTrue(product_code_compatibility_errors(missing_parent_version, self.feature_spec))
 
     def test_office_snapshot_replaces_ast_location_without_inference(self) -> None:
         self.assertNotIn("AssetLocationApi", self.contract["moduleApis"])

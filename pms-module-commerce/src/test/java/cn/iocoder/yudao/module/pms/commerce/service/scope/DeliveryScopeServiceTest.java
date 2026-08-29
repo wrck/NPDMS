@@ -104,15 +104,15 @@ class DeliveryScopeServiceTest {
         parentScope.setId(400L);
         parentScope.setProjectId(100L);
         parentScope.setScopeStatus("ACTIVE");
-        when(deliveryScopeMapper.selectActiveByProjectIdForUpdate(1L, 100L)).thenReturn(List.of(parentScope));
+        when(deliveryScopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(parentScope));
         doAnswer(invocation -> {
             DeliveryScopeDO scope = invocation.getArgument(0);
             scope.setId(500L);
             return 1;
         }).when(deliveryScopeMapper).insert(any(DeliveryScopeDO.class));
 
-        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 0L, "idem-1",
-                Map.of("A", 101L), List.of(new SplitScopeApplyCommand.Allocation(
+        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 0, 0L, "idem-1",
+                Map.of("A", 101L), Map.of("A", 0), List.of(new SplitScopeApplyCommand.Allocation(
                 "A", 10L, new BigDecimal("2"), "OFF-01", List.of("SN-1", "SN-2"))));
         SplitScopeApplyResult result = service.applySplit(command);
 
@@ -133,15 +133,15 @@ class DeliveryScopeServiceTest {
         parentScope.setId(400L);
         parentScope.setProjectId(100L);
         parentScope.setScopeStatus("ACTIVE");
-        when(deliveryScopeMapper.selectActiveByProjectIdForUpdate(1L, 100L)).thenReturn(List.of(parentScope));
+        when(deliveryScopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(parentScope));
         AtomicLong ids = new AtomicLong(500L);
         doAnswer(invocation -> {
             ((DeliveryScopeDO) invocation.getArgument(0)).setId(ids.getAndIncrement());
             return 1;
         }).when(deliveryScopeMapper).insert(any(DeliveryScopeDO.class));
 
-        SplitScopeApplyResult result = service.applySplit(new SplitScopeApplyCommand(1L, 100L, 4L, "idem-2",
-                Map.of("A", 101L), List.of(new SplitScopeApplyCommand.Allocation(
+        SplitScopeApplyResult result = service.applySplit(new SplitScopeApplyCommand(1L, 100L, 0, 4L, "idem-2",
+                Map.of("A", 101L), Map.of("A", 0), List.of(new SplitScopeApplyCommand.Allocation(
                 "A", 10L, new BigDecimal("2"), null, List.of()))));
 
         assertTrue(result.valid());
@@ -166,8 +166,8 @@ class DeliveryScopeServiceTest {
         replayedScope.setSourceEvidence("F-PROJ-002:idem-1:A");
         when(deliveryScopeMapper.selectBySourceEvidencePrefix(1L, "F-PROJ-002:idem-1:"))
                 .thenReturn(List.of(replayedScope));
-        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 0L, "idem-1",
-                Map.of("A", 101L), List.of(new SplitScopeApplyCommand.Allocation(
+        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 0, 0L, "idem-1",
+                Map.of("A", 101L), Map.of("A", 0), List.of(new SplitScopeApplyCommand.Allocation(
                 "A", 10L, BigDecimal.ONE, null, List.of())));
 
         SplitScopeApplyResult result = service.applySplit(command);
@@ -190,10 +190,10 @@ class DeliveryScopeServiceTest {
         parentScope.setId(400L);
         parentScope.setProjectId(100L);
         parentScope.setScopeStatus("ACTIVE");
-        when(deliveryScopeMapper.selectActiveByProjectIdForUpdate(1L, 100L)).thenReturn(List.of(parentScope));
+        when(deliveryScopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(parentScope));
 
-        SplitScopeApplyResult result = service.applySplit(new SplitScopeApplyCommand(1L, 100L, 2L, "idem-3",
-                Map.of("A", 101L), List.of(new SplitScopeApplyCommand.Allocation(
+        SplitScopeApplyResult result = service.applySplit(new SplitScopeApplyCommand(1L, 100L, 0, 2L, "idem-3",
+                Map.of("A", 101L), Map.of("A", 0), List.of(new SplitScopeApplyCommand.Allocation(
                 "A", 10L, BigDecimal.ONE, null, List.of()))));
 
         assertFalse(result.valid());

@@ -75,7 +75,7 @@ class ProjectSplitApplicationServiceTest {
                         3, 5L, 7L, List.of(), List.of(
                         new ProjectSplitPreviewService.ItemResult("A", true, List.of()))));
         ProjectMasterDO child = new ProjectMasterDO();
-        child.setId(200L); child.setProjectCode("P-001-001"); child.setParentId(100L);
+        child.setId(200L); child.setProjectCode("P-001-001"); child.setVersion(0); child.setParentId(100L);
         child.setRootId(100L); child.setTreeDepth(1); child.setTreeSort(0);
         when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L)).thenReturn(child);
         when(deliveryScopeApi.applySplit(any())).thenReturn(
@@ -92,7 +92,9 @@ class ProjectSplitApplicationServiceTest {
         assertEquals(8L, result.treeVersion());
         verify(treeScopeService).assertFullAccess(
                 new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
-        verify(deliveryScopeApi).applySplit(argThat(value -> value.projectIdsByClientItemKey().get("A") == 200L));
+        verify(deliveryScopeApi).applySplit(argThat(value -> value.expectedParentProjectVersion() == 3
+                && value.projectIdsByClientItemKey().get("A") == 200L
+                && value.projectVersionsByClientItemKey().get("A") == 0));
         verify(treeProjectionService).publish(eq(100L), eq(8L), anyString());
         verify(treeChangeMapper).insert(any(ProjectTreeChangeDO.class));
     }
@@ -114,6 +116,7 @@ class ProjectSplitApplicationServiceTest {
                         3, 5L, 7L, List.of(), List.of(
                         new ProjectSplitPreviewService.ItemResult("A", true, List.of()))));
         ProjectMasterDO child = new ProjectMasterDO(); child.setId(200L); child.setProjectCode("P-001-001");
+        child.setVersion(0);
         when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L)).thenReturn(child);
         when(deliveryScopeApi.applySplit(any())).thenReturn(
                 new SplitScopeApplyResult(false, false, null, List.of(), List.of("OVER_ALLOCATION:10")));

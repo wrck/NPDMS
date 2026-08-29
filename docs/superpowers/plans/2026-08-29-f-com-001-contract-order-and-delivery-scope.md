@@ -96,7 +96,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 
 - `CommerceAuthorityWriteCommand`承载受控本地来源批次、来源记录键/版本、合同/订单/行字段（含ERP订单行`productCode`）和operationId；`productCode`按原值保存并参与同版本异载荷冲突判断，不由`itemCode/productId`补齐；命令不包含ERP认证、HTTP、调度或游标。
 - `DeliveryScopeAcceptanceLockApi`按`deliveryScopeId ASC`锁定项目全部当前范围并返回精确`deliveryScopeId/allocationVersion`；空集合成功返回空列表；写/锁方法必须加入已有外层事务。
-- 既有`DeliveryScopeApi`签名不变，`DeliveryScopeApiImpl`改委托新的兼容适配服务；PROJ不依赖COM实现或表。
+- 既有`DeliveryScopeApi.applySplit`方法与`Allocation` DTO/语义不变；`SplitScopeApplyCommand`仅加性增加`expectedParentProjectVersion`和`projectVersionsByClientItemKey`。PROJ从同一事务已锁父项目及刚创建子项目的`ProjectMasterDO.version`原值形成不可变版本映射；COM在任何写入前校验三个clientItemKey集合完全一致，并按projectId升序以精确版本调用`ProjectOfficeFactApi.lockAndRevalidate`。部分拆分REMAINDER使用父项目同版本事实。`DeliveryScopeApiImpl`改委托新的兼容适配服务；PROJ不依赖COM实现或表。
 - 旧系统`pm_order_data_from_erp`、`pm_order_line_from_erp`和`pm_project_product_line`只作为订单头、订单行及原始子单的历史参照；当前实现不读取旧库、不实现连接器，也不以旧字段名补运行时Owner事实。其正式迁移另受`AI-MIG-000`约束。
 
 ### 3.2 事务与锁序
@@ -173,7 +173,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 
 - [ ] **Step 5：实现DeliveryScope命令、历史、AST和冲突通知**
 
-  复制增强旧算法到新服务，保持既有DTO签名、主明细合计、单位精度、当前唯一、关闭旧区间追加新版本、幂等/CAS和占用明细。无SN及REMAINDER从同一租户、已锁定、来源版本有效且已确认的订单行读取非空ERP `productCode`并生成一条等量产品主体明细；缺失、空白、待确认或版本冲突时在范围、历史和Outbox零写入，禁止`itemCode/productId`、客户端、历史明细或种子常量回退。含SN的预览可显示结果，但每个写命令必须重新调用AST。ERP冲突冻结与NotificationRequested同事务，投递失败不改变冻结。
+  复制增强旧算法到新服务，保持既有方法和`Allocation`语义、主明细合计、单位精度、当前唯一、关闭旧区间追加新版本、幂等/CAS和占用明细；Apply Command仅加性传入父/子项目版本。写前校验父版本、子版本和三个clientItemKey集合，并按projectId升序重验父子ProjectOfficeFact，REMAINDER使用父项目同版本事实。无SN及REMAINDER从同一租户、已锁定、来源版本有效且已确认的订单行读取非空ERP `productCode`并生成一条等量产品主体明细；缺失、空白、待确认或版本冲突时在范围、历史和Outbox零写入，禁止`itemCode/productId`、客户端、历史明细或种子常量回退。含SN的预览可显示结果，但每个写命令必须重新调用AST。ERP冲突冻结与NotificationRequested同事务，投递失败不改变冻结。
 
 - [ ] **Step 6：接通项目阶段进入和验收阶段内新版本绑定**
 

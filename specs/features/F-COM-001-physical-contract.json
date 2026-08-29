@@ -348,6 +348,13 @@
       "direction": "PROJ -> COM",
       "provider": "REAL_PROVIDER_REQUIRED",
       "compatibility": "PRESERVE_F_PROJ_002_BEHAVIOR",
+      "applyCommandAdditiveInputs": ["expectedParentProjectVersion", "projectVersionsByClientItemKey"],
+      "unchangedContract": ["DeliveryScopeApi.applySplit_METHOD", "Allocation_DTO_AND_SEMANTICS"],
+      "projectVersionSource": "LOCKED_PARENT_AND_CREATED_CHILD_PROJECT_MASTER_DO_VERSION_IN_SAME_TRANSACTION",
+      "projectVersionShape": "PARENT_NON_NEGATIVE_AND_ALLOCATION_PROJECT_ID_VERSION_KEYSETS_EXACTLY_EQUAL",
+      "projectOfficeLockOrder": "ALL_PARENT_AND_CHILD_PROJECT_IDS_ASC_BEFORE_ANY_COM_WRITE",
+      "projectOfficeSuccessRule": "FOUND_ID_VERSION_PROJECT_CODE_AND_OFFICE_FACT_EXACT_OR_ZERO_WRITES",
+      "remainderOfficeFact": "EXPECTED_PARENT_PROJECT_VERSION",
       "noSerialSubjectRule": "LOCKED_CONFIRMED_SALES_ORDER_LINE_NONBLANK_PRODUCT_CODE_CREATES_ONE_DETAIL_WITH_SCOPE_QUANTITY",
       "noSerialFailureMode": "ZERO_SCOPE_HISTORY_OUTBOX_WRITES_ON_MISSING_BLANK_PENDING_AUTHORITY_OR_VERSION_CONFLICT",
       "ordinaryBusinessForbiddenFallbacks": ["itemCode", "productId", "clientValue", "historicalDetail", "managedSeedConstant"]
