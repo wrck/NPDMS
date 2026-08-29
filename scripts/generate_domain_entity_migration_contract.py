@@ -35,10 +35,10 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "JointDebuggingResult": ("imp_joint_debugging_result", "imp_joint_debugging_item"), "ImplementationRisk": ("imp_risk", "imp_risk_treatment"),
     "ImplementationQualityCheck": ("imp_quality_check", "imp_quality_item", "imp_quality_remediation", "imp_quality_review"),
     "DeliveryEvidence": ("imp_delivery_evidence", "imp_delivery_evidence_revision"),
-    "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_item", "acc_confirmation"),
+    "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_report_version", "acc_acceptance_report_attachment", "acc_confirmation"),
     "AcceptanceScopeBinding": ("acc_acceptance_scope_binding",),
     "SatisfactionCollection": ("acc_satisfaction_collection_task", "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result"),
-    "DeliveryArtifact": ("acc_delivery_artifact", "acc_artifact_review", "acc_archive_record"),
+    "DeliveryArtifact": ("acc_project_deliverable", "acc_artifact_review", "acc_archive_record"),
     "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
     "ServiceHandover": ("acc_service_handover", "acc_handover_item", "acc_handover_result"),
     "CutoverTask": ("cut_task",), "CutoverAssessment": ("cut_assessment",),
@@ -159,7 +159,14 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
     "TaskCompletionRule": [source("NONE_NEW", "TaskCompletionRule", "NEW_ONLY", "create atomically with the WorkBinding contract version; do not infer target facts or rule versions from legacy completed status", "NEW_ONLY", "NEXT_FLYWAY")],
     "TaskCompletionEvaluation": [source("NONE_NEW", "TaskCompletionEvaluation", "NEW_ONLY", "append only for new-platform completion commands after task, contract, rule and fact version validation; never fabricate historical evaluations", "NEW_ONLY", "FEATURE_RELEASE")],
     "DeliveryEvidence": [source("CURRENT_TABLE", "pms_eng_deliverable", "CURRENT_FORWARD", "map implementation-stage evidence identity, immutable revisions, file references and upload results", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "DeliveryArtifact": [source("CURRENT_TABLE", "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate", "CURRENT_FORWARD", "separate artifact identity, checklist, review and archive records", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
+    "Acceptance": [
+        source("CURRENT_TABLE", "pms_acc_acceptance", "COMPATIBILITY_ONLY", "keep the mutable V17 acceptance row, service, controller and UI unchanged; do not infer a current preliminary/final report, acceptor, fixed file version, ProjectTask binding or activity completion from legacy approval fields", "NO_MIGRATION", "F-ACC-001-LEGACY"),
+        source("NONE_NEW", "Acceptance", "NEW_ONLY", "create ACC preliminary/final activities and immutable effective report versions only from explicit new-platform commands; bind the approved ProjectTask/WorkBinding identity and never infer report type or completion from names or legacy status", "NEW_ONLY", "F-ACC-001"),
+    ],
+    "DeliveryArtifact": [
+        source("CURRENT_TABLE", "acc_project_deliverable", "CURRENT_FORWARD", "reuse the F-PROJ-001 ACC-owned project deliverable identity; for exact D-INITIAL-REPORT or D-FINAL-REPORT only, add the immutable report source/version, fixed file version, archive status and compensation watermark; never infer type from name, task or D-ACCEPT-REPORT", "CURRENT_FORWARD_REQUIRED", "F-ACC-001"),
+        source("CURRENT_TABLE", "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate", "COMPATIBILITY_ONLY", "keep the V17 checklist, archive and completion stacks unchanged; do not use them as the F-ACC-001 deliverable identity, source index, archive truth or compensation state", "NO_MIGRATION", "F-ACC-001-LEGACY"),
+    ],
     "SatisfactionCollection": [
         source("LEGACY_TABLE", "pm_cl_quesnaire_template_header|pm_cl_quesnaire_template_line|pm_cl_quesnaire_template_options|pm_cl_quesnaire_result_header|pm_cl_quesnaire_result_line", "STRUCTURED", "map template, question, option, response and score versions; retain original identifiers and never overwrite submitted answers", "PENDING_FIELD_MAPPING", "AI-MIG-000",
             targetFieldBindings=[

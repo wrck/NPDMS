@@ -194,6 +194,66 @@ FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS = {
         "统一锁顺序为COM范围→ACC绑定",
     ),
 }
+FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
+    "docs/design/08-data-model.md": (
+        "活动根以PROJ ProjectTask/WorkBinding为唯一外部身份",
+        "`acc_project_deliverable`应交实例",
+        "归档失败保留有效报告且标记待补偿",
+    ),
+    "docs/design/08a-domain-entity-migration-alignment.md": (
+        "COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION",
+        "不得由名称、任务名或`D-ACCEPT-REPORT`推断类型",
+    ),
+    "docs/design/09-database-design.md": (
+        "F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`",
+        "`acc_acceptance_report_version`",
+        "`acc_acceptance_report_attachment`",
+        "`D-INITIAL-REPORT/D-FINAL-REPORT`",
+    ),
+    "docs/design/10-api-design.md": (
+        "AcceptanceActivityCompletionFactApi.lockAndComplete",
+        "pms:acceptance:report:query/write/complete/download",
+        "交付件保持`PENDING_COMPENSATION`并重试",
+    ),
+    "docs/design/11-event-design.md": (
+        "AcceptanceReportVersionEffective",
+        "ClosureGateRecheckRequested",
+        "不触发范围绑定",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "PROJ项目任务/执行契约→ACC活动根→当前报告版本",
+        "报告事务不等待归档成功",
+    ),
+    "docs/design/16-exception-and-idempotency.md": (
+        "ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入",
+        "有效报告不回滚、不删除",
+    ),
+    "docs/decisions/0039-acceptance-report-version-and-deliverable-index.md": (
+        "`PROPOSED_FOR_INDEPENDENT_REVIEW`",
+        "`DO_NOT_REUSE`",
+        "`DIRECT_REUSE` + `COPY_THEN_ENHANCE`",
+        "F-COM-001 AcceptanceScopeBinding真实Provider",
+    ),
+    "docs/traceability/phase2-contract-map.md": (
+        "内部AcceptanceActivityCompletionFactApi",
+        "精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有acc_project_deliverable来源索引",
+        "F-ACC-001只实现初验/终验报告来源切片",
+    ),
+    "docs/traceability/domain-entity-migration-contract.json": (
+        '"gate": "F-ACC-001-LEGACY"',
+        '"sourceObject": "acc_project_deliverable"',
+        "never infer type from name, task or D-ACCEPT-REPORT",
+    ),
+}
+FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS = {
+    "docs/design/09-database-design.md": (
+        "| Acceptance | `acc_acceptance` | `acc_acceptance_item`",
+        "| DeliveryArtifact | `acc_delivery_artifact`",
+    ),
+    "docs/traceability/phase2-contract-map.md": (
+        "- 数据表：acc_delivery_artifact、acc_artifact_review、acc_archive_record",
+    ),
+}
 
 
 def read(path: Path) -> str:
@@ -642,6 +702,29 @@ def validate_fcom001_contract_admin_scope(root: Path) -> list[str]:
     return errors
 
 
+def validate_facc001_report_contract(root: Path) -> list[str]:
+    """Keep the ACC report/version/deliverable delta Owner-safe and compensation-safe."""
+    errors: list[str] = []
+    for relative, snippets in FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"missing F-ACC-001 report contract: {relative}")
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet not in content:
+                errors.append(f"F-ACC-001 report contract missing: {relative}: {snippet}")
+    for relative, snippets in FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet in content:
+                errors.append(f"F-ACC-001 report contract retains parallel or legacy truth: {relative}: {snippet}")
+    return errors
+
+
 def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
     """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
@@ -751,6 +834,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     errors.extend(validate_fcom001_v70_required_mappings(root))
     errors.extend(validate_fcom001_acceptance_stage_binding(root))
     errors.extend(validate_fcom001_contract_admin_scope(root))
+    errors.extend(validate_facc001_report_contract(root))
     errors.extend(validate_v18_physical_carriers(root))
     return errors
 

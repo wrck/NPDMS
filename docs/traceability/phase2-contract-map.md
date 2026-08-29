@@ -950,20 +950,20 @@
 |---|---|---|---|
 | ACC-03@V1 | V1 | 验收报告管理的V1主交付业务结果 | V1 |
 
-- 数据对象：Acceptance、AcceptanceScopeBinding、ProjectStageSnapshot
-- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation、acc_acceptance_scope_binding、proj_project_stage_snapshot
-- API：/acceptances；内部AcceptanceScopeBindingApi、AcceptanceScopeGuardApi、DeliveryScopeAcceptanceLockApi
-- 事件：N/A（同步命令或查询，无跨 Context 业务事件）
+- 数据对象：Acceptance、AcceptanceScopeBinding、ProjectStageSnapshot、DeliveryArtifact
+- 数据表：acc_acceptance、acc_acceptance_report_version、acc_acceptance_report_attachment、acc_project_deliverable、acc_acceptance_scope_binding、proj_project_stage_snapshot
+- API：/acceptances、/acceptances/{id}/report-versions；内部AcceptanceActivityCompletionFactApi、AcceptanceScopeBindingApi、AcceptanceScopeGuardApi、DeliveryScopeAcceptanceLockApi
+- 事件：AcceptanceReportVersionEffective、ClosureGateRecheckRequested；报告事件不触发或反推AcceptanceScopeBinding
 - 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：项目阶段进入先同步绑定全部当前范围且不创建报告；验收阶段内新范围生效同步绑定；初验/终验活动完成才要求对应当前报告四项完备；报告状态不触发或反推绑定，Q-FCOM-002关闭前不自动关闭/解锁
-- 授权与数据范围：ProjectStageScope、FileBusinessScope
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
+- 文件契约：FileArtifact/FileVersion固定引用
+- 工作流/状态：项目阶段进入/验收阶段内新范围生效继续直接复用F-COM-001范围绑定原子路径；PROJ拥有ProjectTask/WorkBinding并以MANDATORY调用ACC完成活动；报告四项完备后形成不可变当前有效版本，终验受当前有效初验守卫；精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有acc_project_deliverable来源索引，索引/归档失败保留报告并待补偿；Q-FCOM-002关闭前不自动关闭/解锁绑定
+- 授权与数据范围：pms:acceptance:report:query/write/complete/download；ProjectTreeScope、ProjectTaskScope、FileBusinessScope、TenantScope
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目经理在S5验收阶段进入初验环节并完成初验；THEN 系统提供初验报告上传页面，支持上传初验报告附件（Word/PDF等格式）并填写初验时间、初验结论、初验人等关键信息；AND 初验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为初验交付件；WHEN 项目经理在S5验收阶段进入终验环节并完成终验；THEN 系统提供终验报告上传页面，支持上传终验报告附件并填写终验时间、终验结论、终验人等关键信息；AND 终验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为终验交付件，初验/终验报告均保留历史版本支持版本管理；WHEN 初验报告不存在却提交终验、报告附件上传失败或验收时间/结论/验收人缺失；THEN 报告保持草稿或上传失败状态，不生成当前有效版本，也不计入ACC-04和CLO-01齐套结果；WHEN 项目进入其设定的验收阶段，或项目已在验收阶段时有新DeliveryScope分配版本生效；THEN ACC同步追加对应分配版本的验收范围绑定；锁定、版本校验或绑定任一失败时整体失败，不留下部分绑定，也不把旧验收单状态当作绑定证据；AND 项目进入验收阶段时不要求创建或补齐初验/终验报告，报告尚未形成不得阻断已满足其他门禁的阶段进入；WHEN 初验或终验活动申请标记完成；THEN 对应验收报告必须已形成验收时间、结论、验收人和附件完备的当前有效版本；任一缺失时不得把对应验收活动标记完成；WHEN 项目退出或回退验收阶段，但Q-FCOM-002尚未关闭；THEN ACC保持既有绑定不变，不自动解锁或关闭；只阻断退出/回退关闭路径，不影响进入验收范围的已确认规则
-- Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“项目阶段进入先同步绑定全部当前范围且不创建报告；验收阶段内新范围生效同步绑定；初验/终验活动完成才要求对应当前报告四项完备；报告状态不触发或反推绑定，Q-FCOM-002关闭前不自动关闭/解锁”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance、AcceptanceScopeBinding、ProjectStageSnapshot”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation、acc_acceptance_scope_binding、proj_project_stage_snapshot”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
+- Phase 3授权拒绝断言：越权按“pms:acceptance:report:query/write/complete/download；ProjectTreeScope、ProjectTaskScope、FileBusinessScope、TenantScope”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“项目阶段进入/验收阶段内新范围生效继续直接复用F-COM-001范围绑定原子路径；PROJ拥有ProjectTask/WorkBinding并以MANDATORY调用ACC完成活动；报告四项完备后形成不可变当前有效版本，终验受当前有效初验守卫；精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有acc_project_deliverable来源索引，索引/归档失败保留报告并待补偿；Q-FCOM-002关闭前不自动关闭/解锁绑定”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance、AcceptanceScopeBinding、ProjectStageSnapshot、DeliveryArtifact”及数据表“acc_acceptance、acc_acceptance_report_version、acc_acceptance_report_attachment、acc_project_deliverable、acc_acceptance_scope_binding、proj_project_stage_snapshot”；事件边界为“AcceptanceReportVersionEffective、ClosureGateRecheckRequested；报告事件不触发或反推AcceptanceScopeBinding”，文件边界为“FileArtifact/FileVersion固定引用”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-04
 
@@ -976,18 +976,18 @@
 | ACC-04@V1 | V1 | 交付件归档管理的V1主交付业务结果 | V1 |
 
 - 数据对象：DeliveryArtifact
-- 数据表：acc_delivery_artifact、acc_artifact_review、acc_archive_record
+- 数据表：acc_project_deliverable、acc_artifact_review、acc_archive_record
 - API：/delivery-artifacts
-- 事件：ArtifactAccepted/Archived
+- 事件：ArtifactAccepted/Archived、ClosureGateRecheckRequested
 - 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：齐套检查、审核和归档分离
+- 文件契约：FileArtifact/FileVersion
+- 工作流/状态：以acc_project_deliverable为项目应交实例和唯一来源索引根；来源版本新增、替换、撤销或归档失败保留历史并重校验CLO；F-ACC-001只实现初验/终验报告来源切片，其余来源与统一批量下载留待ACC-04完整Feature
 - 授权与数据范围：ProjectStageScope、FileBusinessScope；ACC归档
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目进入S5验收阶段且各业务环节产生对应交付件；THEN 系统自动汇总6类交付件至ACC-04交付件归档管理页面：到货签收单（EXE-01）、实施方案（SCH-01/05）、初验报告（ACC-03）、终验报告（ACC-03）、培训记录（ACC-01）、满意度调查（ACC-02）；AND 交付件归档页面支持按类别分类展示、按上传时间/项目编码查询、按类别批量下载；WHEN 项目经理/服务经理在交付件归档页面查看交付件；THEN 系统展示每类交付件的归档状态（已归档/未归档）、归档时间、归档来源业务环节、附件下载链接；AND 任一类别交付件未归档时系统给出提示，便于项目经理跟进归档进度，归档完成后作为CLO-01闭环条件校验的必传交付件数据来源；WHEN 来源记录未批准/未确认、来源版本失效、文件哈希校验失败或用户无下载权限；THEN 对应交付件保持未归档/失效或不可下载状态，不计入CLO-01齐套结果，并展示来源记录和失败原因
 - Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope；ACC归档”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“齐套检查、审核和归档分离”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeliveryArtifact”及数据表“acc_delivery_artifact、acc_artifact_review、acc_archive_record”；事件边界为“ArtifactAccepted/Archived”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3业务守卫断言：按“以acc_project_deliverable为项目应交实例和唯一来源索引根；来源版本新增、替换、撤销或归档失败保留历史并重校验CLO；F-ACC-001只实现初验/终验报告来源切片，其余来源与统一批量下载留待ACC-04完整Feature”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeliveryArtifact”及数据表“acc_project_deliverable、acc_artifact_review、acc_archive_record”；事件边界为“ArtifactAccepted/Archived、ClosureGateRecheckRequested”，文件边界为“FileArtifact/FileVersion”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CLO-01

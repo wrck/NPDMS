@@ -30,6 +30,7 @@
 | ImplementationRisk | 已标记、评估中、处置中、已关闭 | 风险等级、责任人和处置证据完整；高风险不得绕过门禁 | ImplementationRiskRaised、ImplementationRiskClosed |
 | ImplementationQualityCheck | 草稿、待复核、整改中、复核通过、复核不通过、阻断 | 不合格必须整改后再复核；豁免需有权角色、依据、范围、有效期和审计 | ImplementationQualityChecked、ImplementationQualityBlocked |
 | SatisfactionCollection | 待生成、待发送、收集中、待判定、未通过、已通过、归档待重试、已归档 | 冻结模板/题目/阈值；客户有效答案和签字不可覆盖；未通过须整改后创建新任务和问卷版本，不允许人工改分或异常放行 | SatisfactionTaskCreated、SatisfactionSubmitted、SatisfactionResultRecorded |
+| AcceptanceActivity / AcceptanceReportVersion | 活动：`PENDING/COMPLETED`；报告版本：草稿、当前有效、历史有效区间已关闭 | 报告草稿只有在验收时间、结论、验收人和固定文件版本附件完备时才能生效；终验生效须锁定同项目当前有效初验；换版或撤销关闭旧区间而不覆盖历史；PROJ通过冻结的ProjectTask/WorkBinding完成命令以MANDATORY调用ACC，任一版本或身份不一致时任务与活动均不完成 | AcceptanceReportVersionEffective、ClosureGateRecheckRequested |
 | ProjectClosure | 草稿、待审核、材料审核、已完成、驳回整改 | 项目冻结模板要求的交付件和有效满意度等门禁满足；CLO-02完成后形成不可变NORMAL_CLOSED闭环事实；不创建回访节点；驳回后重新校验并新建申请 | ClosureSubmitted、ProjectClosureCompleted |
 | DeviceCredential | 创建、启用、授权、撤销、轮换、停用 | 仅授权范围内任务可引用；撤销影响后续任务，不改历史快照 | CredentialGranted、CredentialRevoked |
 
@@ -40,7 +41,7 @@
 3. PM-10“回退”保持`lifecycle_status=ACTIVE`，将`current_stage`回到S0并按规则置为待指派；PM-10“异常关闭”才写入`EXCEPTION_CLOSED`并保存关闭依据。
 4. CLO-02审批全部通过后才写入`NORMAL_CLOSED`并形成不可变闭环事实；任何其他接口、同步回调或通知不得产生该终态。
 5. 仅允许对`EXCEPTION_CLOSED`项目执行受控重开并恢复为`ACTIVE`；重开必须记录重开原因，恢复关闭前最后一个可恢复阶段并创建新的责任处理事项，不得自动恢复已终止的外部任务。`NORMAL_CLOSED`不得通过PM-10直接重开。正常闭环后的巡检、割接保障和其他售后活动使用独立领域任务，不新增项目维护阶段。
-6. 初验/终验报告不是进入项目设定验收阶段的门禁；初验或终验活动申请标记完成时，ACC才校验对应当前有效报告的验收时间、结论、验收人和附件，任一缺失时只拒绝该验收活动完成，不回退已成功的阶段进入与范围绑定。
+6. 初验/终验报告不是进入项目设定验收阶段的门禁；PROJ申请完成冻结的初验或终验ProjectTask时，以同一事务调用ACC完成对应活动，ACC校验当前有效报告的验收时间、结论、验收人和附件，任一缺失时任务和活动均不完成；ACC不直接改PROJ任务。交付件索引或归档结果不是第五项完成字段，其失败保留有效报告并进入补偿，不回退已成功的阶段进入与范围绑定。
 7. `Q-FCOM-002`关闭前，退出或PM-10回退不自动关闭、解锁或改写既有`AcceptanceScopeBinding`；该问题不阻断合法阶段回退本身，也不改变COM减量继续读取既有锁定事实。
 
 ## 3. 版本化

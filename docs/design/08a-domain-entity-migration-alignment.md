@@ -92,10 +92,10 @@
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
-| `Acceptance` | 当前`acc_acceptance`初验/终验报告 | CURRENT_FORWARD+STRUCTURED | 按报告类型、版本、结论、验收人、附件和确认迁移；不把报告记录迁成项目阶段或范围绑定，原实施证据仅引用 |
+| `Acceptance` | V17 `pms_acc_acceptance`；当前无符合ACC-03四项完备和不可变版本要求的正式活动根/报告版本 | COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION | V17行缺验收人、固定附件版本和可证明活动绑定，保持旧表/旧接口只读兼容，不迁成当前有效报告、不推断缺失事实；新`acc_acceptance/acc_acceptance_report_version/acc_acceptance_report_attachment`只由显式ACC命令创建 |
 | `AcceptanceScopeBinding` | 当前验收表没有可证明的DeliveryScope版本绑定事实 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅由新平台项目进入验收阶段或验收阶段内新范围版本生效命令追加；保存ProjectStageSnapshot、DeliveryScope及分配版本；不从既有项目级验收状态、初验/终验报告或审批状态反推历史绑定，`Q-FCOM-002`关闭前不生成关闭事实 |
 | `SatisfactionCollection` | `pm_cl_quesnaire_template_*`、`pm_cl_quesnaire_result_*`、`pm_cl_callback*`、`pm_subcontract_project_callback` | STRUCTURED+RELATION+PENDING_SOURCE_CONFIRMATION | 模板、题目、选项、答卷和评分按原版本迁移；业务对象关系只有证据完整时建立；不从回访/审批状态反推客户答案或通过结果 |
-| `DeliveryArtifact` | 当前交付清单/归档/完工证明、旧基础交付模板和转包交付件 | CURRENT_FORWARD+RELATION | 文件身份、清单项、审核与归档分离；不能只迁URL而丢业务类型/版本 |
+| `DeliveryArtifact` | F-PROJ-001正式`acc_project_deliverable`；V17旧交付清单/归档/完工证明 | CURRENT_FORWARD+RELATION | 直接复用`acc_project_deliverable`应交实例身份并加性增加来源/文件版本/补偿字段；F-ACC-001只精确处理`D-INITIAL-REPORT/D-FINAL-REPORT`，不得由名称、任务名或`D-ACCEPT-REPORT`推断类型；V17旧栈不迁成新来源索引 |
 | `ProjectClosure` | 当前`acc_project_closure` | CURRENT_FORWARD | 迁已有申请/结论/时间；无法重建原门禁输入时标记历史快照不完整 |
 | `ClosureGateSnapshot` | 当前闭环/交付清单/问题事实 | REBUILD+SNAPSHOT | 当前状态按新事实重建；历史只冻结可证明输入，不补造通过项 |
 | `ServiceHandover` | 当前`pms_acc_maintenance_transition`中的可证明交接事实 | CURRENT_FORWARD+COMPATIBILITY_ONLY | 只迁遗留问题/持续服务交接；续保年限、续保动作和续保状态不进入新写模型 |

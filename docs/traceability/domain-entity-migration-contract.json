@@ -401,7 +401,8 @@
       ],
       "targetTables": [
         "acc_acceptance",
-        "acc_acceptance_item",
+        "acc_acceptance_report_version",
+        "acc_acceptance_report_attachment",
         "acc_confirmation"
       ]
     },
@@ -436,10 +437,11 @@
     "DeliveryArtifact": {
       "owner": "ACC",
       "requirementIds": [
+        "ACC-03",
         "ACC-04"
       ],
       "targetTables": [
-        "acc_delivery_artifact",
+        "acc_project_deliverable",
         "acc_artifact_review",
         "acc_archive_record"
       ]
@@ -1908,18 +1910,28 @@
       ],
       "targetTables": [
         "acc_acceptance",
-        "acc_acceptance_item",
+        "acc_acceptance_report_version",
+        "acc_acceptance_report_attachment",
         "acc_confirmation"
       ],
       "sources": [
         {
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_acc_acceptance",
-          "disposition": "CURRENT_FORWARD",
-          "transform": "preserve valid facts and adapt to the Phase 2 target contract with a new Flyway migration",
-          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
-          "gate": "NEXT_FLYWAY",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "keep the mutable V17 acceptance row, service, controller and UI unchanged; do not infer a current preliminary/final report, acceptor, fixed file version, ProjectTask binding or activity completion from legacy approval fields",
+          "mappingStatus": "NO_MIGRATION",
+          "gate": "F-ACC-001-LEGACY",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_acceptance"
+        },
+        {
+          "sourceType": "NONE_NEW",
+          "sourceObject": "Acceptance",
+          "disposition": "NEW_ONLY",
+          "transform": "create ACC preliminary/final activities and immutable effective report versions only from explicit new-platform commands; bind the approved ProjectTask/WorkBinding identity and never infer report type or completion from names or legacy status",
+          "mappingStatus": "NEW_ONLY",
+          "gate": "F-ACC-001",
+          "evidenceRef": "phase2-contract://object=Acceptance"
         }
       ]
     },
@@ -2099,21 +2111,31 @@
       "owner": "ACC",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
+        "ACC-03",
         "ACC-04"
       ],
       "targetTables": [
-        "acc_delivery_artifact",
+        "acc_project_deliverable",
         "acc_artifact_review",
         "acc_archive_record"
       ],
       "sources": [
         {
           "sourceType": "CURRENT_TABLE",
-          "sourceObject": "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate",
+          "sourceObject": "acc_project_deliverable",
           "disposition": "CURRENT_FORWARD",
-          "transform": "separate artifact identity, checklist, review and archive records",
-          "mappingStatus": "PENDING_FIELD_MAPPING",
-          "gate": "NEXT_FLYWAY",
+          "transform": "reuse the F-PROJ-001 ACC-owned project deliverable identity; for exact D-INITIAL-REPORT or D-FINAL-REPORT only, add the immutable report source/version, fixed file version, archive status and compensation watermark; never infer type from name, task or D-ACCEPT-REPORT",
+          "mappingStatus": "CURRENT_FORWARD_REQUIRED",
+          "gate": "F-ACC-001",
+          "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V63__fproj001_v18_atomic_project_creation.sql#table=acc_project_deliverable"
+        },
+        {
+          "sourceType": "CURRENT_TABLE",
+          "sourceObject": "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate",
+          "disposition": "COMPATIBILITY_ONLY",
+          "transform": "keep the V17 checklist, archive and completion stacks unchanged; do not use them as the F-ACC-001 deliverable identity, source index, archive truth or compensation state",
+          "mappingStatus": "NO_MIGRATION",
+          "gate": "F-ACC-001-LEGACY",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_deliverable_checklist;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_archive_document;implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V17__pms_acceptance_tables.sql#table=pms_acc_completion_certificate"
         }
       ]

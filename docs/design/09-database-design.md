@@ -339,10 +339,10 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | 聚合 | 主表 | 支撑表 | 关键约束 |
 |---|---|---|---|
-| Acceptance | `acc_acceptance` | `acc_acceptance_item`、`acc_confirmation` | 验收 revision/客户确认追加；原始实施证据只引用 |
+| Acceptance | `acc_acceptance` | `acc_acceptance_report_version`、`acc_acceptance_report_attachment`；`acc_confirmation`仅供其他已批准验收类型使用 | 活动根按项目/类型及ProjectTask唯一；报告版本生效后不可更新/删除，同一活动仅一个当前有效版本；固定FileArtifact/FileVersion且四项完备；原始实施证据只引用 |
 | AcceptanceScopeBinding | `acc_acceptance_scope_binding` | 无 | `project_id/project_stage_snapshot_id/delivery_scope_id/scope_allocation_version/binding_trigger/binding_status/effective_from/effective_to/acceptance_fact_version/version`；同一项目阶段快照、范围和分配版本唯一；当前锁定按`delivery_scope_id + effective_to is null`查询；独立于`Acceptance`报告，跨Context只保存逻辑引用，不建PROJ/COM外键 |
 | SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
-| DeliveryArtifact | `acc_delivery_artifact` | `acc_artifact_review`、`acc_archive_record` | 文件 revision + 清单项唯一；归档记录不可覆盖 |
+| DeliveryArtifact | `acc_project_deliverable` | `acc_artifact_review`、`acc_archive_record` | 复用F-PROJ-001已创建的唯一应交实例；来源对象/版本和文件版本固定，归档失败标记待补偿；审核/归档记录追加且不覆盖来源报告 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
 | ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | V2静态交接快照；不含续保年限、续保结束日期、续保状态或持续跟踪对象 |
 
@@ -458,6 +458,17 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 | `acc_acceptance_scope_binding` | `id bigint NOT NULL`、`tenant_id bigint NOT NULL`、`project_id bigint NOT NULL`、`project_stage_snapshot_id bigint NOT NULL`、`delivery_scope_id bigint NOT NULL`、`scope_allocation_version bigint NOT NULL`、`binding_trigger varchar(32) NOT NULL`、`binding_status varchar(32) NOT NULL`、`effective_from datetime(3) NOT NULL`、`effective_to datetime(3) NULL`、`acceptance_fact_version int unsigned NOT NULL DEFAULT 1`、`version int unsigned NOT NULL DEFAULT 0`、`creator/updater varchar(64) NOT NULL DEFAULT ''`、`create_time/update_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)`、`deleted tinyint NOT NULL DEFAULT 0` | ACC Owner；新增时`binding_trigger`仅为`PROJECT_STAGE_ENTRY/SCOPE_VERSION_EFFECTIVE`、`binding_status=LOCKED`、`effective_to=NULL`；`uk(tenant_id, project_id, project_stage_snapshot_id, delivery_scope_id, scope_allocation_version)`；`idx(tenant_id, delivery_scope_id, effective_to, binding_status)`；不含`acceptance_id`，不建跨Context PROJ/COM外键；`Q-FCOM-002`关闭前禁止写`effective_to`或解锁状态 |
 
 `AcceptanceScopeBinding`物理表由COM-01 Feature前向迁移确定；它仍由ACC拥有并由ACC Provider写入，F-COM-001不得把该表或验收状态转为COM所有。`project_stage_snapshot_id`只引用PROJ不可变阶段快照；初验/终验`Acceptance`报告不参与绑定身份、唯一键或触发条件。
+
+F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`，不修改已执行V17、V63或当前核心DDL：
+
+| 目标表 | 字段差量 | 约束与迁移边界 |
+|---|---|---|
+| `acc_acceptance` | `project_id/project_task_id/execution_contract_id/acceptance_type/activity_status/current_report_version_id/version`及标准租户审计字段 | `uk(tenant_id, project_id, acceptance_type)`、`uk(tenant_id, project_task_id)`；仅`PRELIMINARY/FINAL`与`PENDING/COMPLETED`；跨Context只存逻辑引用，不建PROJ外键 |
+| `acc_acceptance_report_version` | `acceptance_id/report_version_no/acceptance_time/conclusion_code/conclusion_text/acceptor_name/previous_version_id/effective_from/effective_to/current_marker/uploader_user_id/upload_time`及标准租户审计字段 | `uk(tenant_id, acceptance_id, report_version_no)`、`uk(tenant_id, acceptance_id, current_marker)`；有效版本的验收时间、结论、验收人非空且至少一条有效附件；生效后不可更新或删除 |
+| `acc_acceptance_report_attachment` | `report_version_id/file_artifact_id/file_version_id/file_hash`及标准租户审计字段 | `uk(tenant_id, report_version_id, file_artifact_id, file_version_id)`；只保存PLT固定文件版本引用和PRD要求的哈希，不保存正文 |
+| `acc_project_deliverable` | 加性新增`source_requirement_id/source_object_type/source_object_id/source_version/file_artifact_id/file_version_id/file_hash/archive_status/archive_failure_code/archive_retry_count/archive_time` | 保持V63 `uk(tenant_id, project_id, deliverable_code)`；F-ACC-001只允许`D-INITIAL-REPORT/D-FINAL-REPORT`，来源身份幂等；归档失败只能写`PENDING_COMPENSATION/INVALID`，不得写`ARCHIVED` |
+
+V17 `pms_acc_acceptance`及旧交付清单/归档/完工证明缺少可证明的验收人、固定文件版本、活动绑定或当前版本关系，保持旧表和旧功能不变，不进入新当前真值。未来前向迁移不得从名称、审批状态、`approve_opinion`、URL、`D-ACCEPT-REPORT`或旧关项结果补造这些事实。
 
 已形成的V124不得修改。`com_sales_order_line.product_code`由V125在权限、菜单和验收种子之前以加性`ALTER TABLE`增加。既有`DeliveryScopeApi`的无SN分配及REMAINDER路径，必须从同一租户、已锁定、来源版本有效且`quantity_status=CONFIRMED`的目标订单行读取非空`product_code`，生成一条`serial_no=NULL/product_code=ERP原值/device_type_code=NULL/allocated_qty=范围数量`的明细；缺失、空白、待权威确认或版本冲突时在范围、历史和Outbox零写入。`item_code`、`product_id`、客户端值、历史范围明细和受管种子常量均不得作为普通业务替代来源。
 

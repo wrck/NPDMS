@@ -370,7 +370,8 @@
       ],
       "targetTables": [
         "acc_acceptance",
-        "acc_acceptance_item",
+        "acc_acceptance_report_version",
+        "acc_acceptance_report_attachment",
         "acc_confirmation"
       ]
     },
@@ -405,10 +406,11 @@
     "DeliveryArtifact": {
       "owner": "ACC",
       "requirementIds": [
+        "ACC-03",
         "ACC-04"
       ],
       "targetTables": [
-        "acc_delivery_artifact",
+        "acc_project_deliverable",
         "acc_artifact_review",
         "acc_archive_record"
       ]

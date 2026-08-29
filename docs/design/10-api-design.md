@@ -202,7 +202,7 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 | 路径 | 命令 | 约束 |
 |---|---|---|
-| `/acceptances` | create/update draft、`submit`、`confirm`、`return`、`complete-activity` | 客户确认和项目审核分别留痕；初验/终验活动完成要求对应当前有效报告的验收时间、结论、验收人和附件完备；报告不触发范围绑定且不覆盖IMP证据 |
+| `/acceptances`、`/acceptances/{id}/report-versions` | 查询活动/版本、create/update draft、`publish-version`、`complete-activity` | 初验/终验活动根绑定PROJ ProjectTask/WorkBinding；报告版本生效后不可改，终验生效前要求当前有效初验；活动完成要求当前报告验收时间、结论、验收人和附件完备；报告不触发范围绑定且不覆盖IMP证据 |
 | `/acceptances/{id}/actions/send-confirmation` | `POST` | ACC-01 V2按短信/邮件和钉钉推送培训确认链接；分别记录受理/送达，送达不等于客户确认，失败保留V1链接/扫码入口 |
 | `/delivery-artifacts` | `check-completeness`、`review`、`archive` | 齐套、审核、归档是不同命令；文件版本固定 |
 | `/closure-gates/{projectId}` | `GET` | 返回所有后代项目的门禁快照和水位 |
@@ -211,6 +211,12 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 | `/satisfaction-tasks` | create、assign、send、recollect、list/detail | 创建时冻结问卷模板/阈值；未达标只能整改后新建任务和问卷版本；V2 `send`复用短信/邮件和钉钉通知，只增加自动触达，不复制问卷、评分、整改、签字或导出事实 |
 | `/satisfaction-questionnaires/{token}/responses` | submit | 一次性实例、必答/签字校验和幂等提交；客户答案不可由内部用户修改 |
 | `/satisfaction-results` | GET、export | 只读判定；导出按数据/字段/文件权限裁剪并生成导出审计 |
+
+F-ACC-001仅冻结`pms:acceptance:report:query/write/complete/download`四个最小权限键。写入/换版只允许项目经理项目范围，完成命令同时校验ProjectTask范围与活动版本；查询、历史版本和单文件下载分别执行项目树范围、FileBusinessScope和租户隔离。角色—权限映射保持正式授权配置，不以“全权限”删除服务端鉴权。
+
+PROJ继续拥有任务命令。非`TASK_NATIVE`初验/终验任务的执行契约固定`targetContextCode=ACC/targetObjectType=AcceptanceActivity/targetObjectKey=acceptanceId`；PROJ锁定任务和当前执行契约后调用`AcceptanceActivityCompletionFactApi.lockAndComplete(tenantId, projectId, projectTaskId, executionContractId, acceptanceId, expectedActivityVersion, expectedReportVersion, operationId)`。ACC仅返回`COMPLETED/REPORT_INCOMPLETE/IDENTITY_MISMATCH/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE`及活动/报告事实版本；只有`COMPLETED`允许PROJ追加TaskCompletionEvaluation并把任务置为DONE。ACC不得直接更新PROJ任务、阶段或WorkBinding。
+
+报告版本`publish-version`与`AcceptanceReportVersionEffective` Outbox同事务提交；归档消费者按来源对象与版本幂等更新既有`acc_project_deliverable`。索引、文件归档或CLO消费者失败不回滚有效报告，交付件保持`PENDING_COMPENSATION`并重试；活动完成只以当前报告四项完备为门禁，不把`ARCHIVED`作为第五项。报告换版、撤销或归档状态变化请求`ClosureGateRecheckRequested`，但本Feature不实现CLO判定。
 
 历史 `/pms/acc-maintenance-transition/*` 的 create/renew/activate 等入口必须在兼容切换后冻结，不映射为新 ServiceHandover 命令。
 
