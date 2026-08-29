@@ -52,6 +52,7 @@ public class DeliveryScopeCompatibilityService {
     private final DeliveryScopeDetailMapper detailMapper;
     private final CommerceOutboxEventMapper outboxMapper;
     private final ProjectOfficeFactApi projectOfficeFactApi;
+    private final AcceptanceStageBindingCoordinator acceptanceBindingCoordinator;
     private final AssetDeviceScopeApi assetDeviceScopeApi;
 
     public List<DeliveryScopeSliceDTO> getAvailableSlices(Long parentProjectId, Long expectedScopeVersion) {
@@ -116,6 +117,8 @@ public class DeliveryScopeCompatibilityService {
         }
 
         Map<Long, ProjectOfficeFact> projectFacts = lockProjectFacts(command, errors);
+        Map<Long, AcceptanceStageBindingCoordinator.StageContext> acceptanceStages =
+                lockAcceptanceStageFacts(command, projectFacts, errors);
         validateWriteSerials(command, errors);
         if (!errors.isEmpty()) {
             return invalid(errors);
@@ -167,6 +170,8 @@ public class DeliveryScopeCompatibilityService {
                         remaining, newScopeVersion, "REMAINDER", now);
                 insertProductDetail(command.tenantId(), remainder.getId(), line.getProductCode(), remaining,
                         "REMAINDER");
+                acceptanceBindingCoordinator.bindIfRequired(acceptanceStages.get(command.parentProjectId()),
+                        remainder.getId(), remainder.getAllocationVersion(), command.idempotencyKey());
             }
         }
         List<SplitScopeApplyResult.AppliedScope> applied = new ArrayList<>();
@@ -177,6 +182,8 @@ public class DeliveryScopeCompatibilityService {
                     newScopeVersion, item.clientItemKey(), now);
             insertDetails(command.tenantId(), scope.getId(), item, line.getProductCode());
             insertAssignedOutbox(command, item, scope, newScopeVersion, eventIndex++, now);
+            acceptanceBindingCoordinator.bindIfRequired(acceptanceStages.get(projectId), scope.getId(),
+                    scope.getAllocationVersion(), command.idempotencyKey());
             applied.add(new SplitScopeApplyResult.AppliedScope(item.clientItemKey(), projectId, scope.getId()));
         }
         return new SplitScopeApplyResult(true, false, newScopeVersion, List.copyOf(applied), List.of());
@@ -207,6 +214,20 @@ public class DeliveryScopeCompatibilityService {
                 && notBlank(fact.projectCode()) && fact.officeDepartmentId() != null
                 && notBlank(fact.officeDepartmentCode()) && notBlank(fact.officeDepartmentName())
                 && fact.officeDepartmentVersion() != null && fact.officeDepartmentVersion() >= 0;
+    }
+
+    private Map<Long, AcceptanceStageBindingCoordinator.StageContext> lockAcceptanceStageFacts(
+            SplitScopeApplyCommand command, Map<Long, ProjectOfficeFact> projectFacts, List<String> errors) {
+        Map<Long, AcceptanceStageBindingCoordinator.StageContext> facts = new LinkedHashMap<>();
+        projectFacts.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            try {
+                facts.put(entry.getKey(), acceptanceBindingCoordinator.lockAndRead(command.tenantId(),
+                        entry.getKey(), entry.getValue().projectVersion(), command.idempotencyKey()));
+            } catch (RuntimeException exception) {
+                errors.add("PROJECT_ACCEPTANCE_STAGE_FACT_INVALID:" + entry.getKey());
+            }
+        });
+        return facts;
     }
 
     private void validatePreviewSerials(SplitScopePreviewCommand command, List<String> errors) {

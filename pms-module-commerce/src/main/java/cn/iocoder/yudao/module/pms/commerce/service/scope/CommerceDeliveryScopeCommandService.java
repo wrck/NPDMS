@@ -46,6 +46,7 @@ public class CommerceDeliveryScopeCommandService {
 
     private final ProjectScopeApi projectScopeApi;
     private final ProjectOfficeFactApi projectOfficeFactApi;
+    private final AcceptanceStageBindingCoordinator acceptanceBindingCoordinator;
     private final AssetDeviceScopeApi assetDeviceScopeApi;
     private final AcceptanceScopeGuardApi acceptanceScopeGuardApi;
     private final SalesOrderLineMapper orderLineMapper;
@@ -64,6 +65,8 @@ public class CommerceDeliveryScopeCommandService {
         }
         ProjectOfficeFact project = lockProject(command.tenantId(), command.subjectUserId(), command.projectId(),
                 command.expectedProjectVersion(), command.expectedProjectScopeVersion());
+        AcceptanceStageBindingCoordinator.StageContext acceptanceStage = acceptanceBindingCoordinator.lockAndRead(
+                command.tenantId(), command.projectId(), command.expectedProjectVersion(), command.operationId());
         SalesOrderLineDO line = lockLine(command.tenantId(), command.orderLineId(),
                 command.expectedOrderLineSourceVersion());
         validateSubject(command.tenantId(), command.projectId(), command.allocatedQuantity(),
@@ -83,6 +86,8 @@ public class CommerceDeliveryScopeCommandService {
                 command.serialNumbers(), line.getProductCode(), command.operationId());
         insertEvent(command.tenantId(), command.operationId(), "ASSIGN", "DeliveryScopeAssigned",
                 created, requestKey, now);
+        acceptanceBindingCoordinator.bindIfRequired(acceptanceStage, created.getId(),
+                created.getAllocationVersion(), command.operationId());
         audit(command.tenantId(), command.subjectUserId(), command.operationId(), "COM_SCOPE_ASSIGN",
                 created, BigDecimal.ZERO, command.allocatedQuantity(), command.reason());
         return new DeliveryScopeCommandResult(created.getId(), created.getAllocationVersion(), false);
@@ -114,6 +119,8 @@ public class CommerceDeliveryScopeCommandService {
         }
         ProjectOfficeFact project = lockProject(command.tenantId(), command.subjectUserId(), command.projectId(),
                 command.expectedProjectVersion(), command.expectedProjectScopeVersion());
+        AcceptanceStageBindingCoordinator.StageContext acceptanceStage = acceptanceBindingCoordinator.lockAndRead(
+                command.tenantId(), command.projectId(), command.expectedProjectVersion(), command.operationId());
         SalesOrderLineDO line = lockLine(command.tenantId(), observed.getOrderLineId(),
                 command.expectedOrderLineSourceVersion());
         List<DeliveryScopeDO> currentByLine = lockCurrentByLine(command.tenantId(), line.getId());
@@ -153,6 +160,8 @@ public class CommerceDeliveryScopeCommandService {
                 current, requestKey, now);
         insertEvent(command.tenantId(), command.operationId(), operation, "DeliveryScopeAssigned",
                 replacement, requestKey, now);
+        acceptanceBindingCoordinator.bindIfRequired(acceptanceStage, replacement.getId(),
+                replacement.getAllocationVersion(), command.operationId());
         audit(command.tenantId(), command.subjectUserId(), command.operationId(), "COM_SCOPE_ADJUST",
                 replacement, current.getAllocatedQty(), proposed, command.reason());
         return new DeliveryScopeCommandResult(replacement.getId(), replacement.getAllocationVersion(), false);
