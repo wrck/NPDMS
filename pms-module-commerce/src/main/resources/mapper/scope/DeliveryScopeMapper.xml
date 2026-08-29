@@ -44,4 +44,30 @@
         FOR UPDATE
     </select>
 
+    <select id="selectCurrentByOrderLineIdsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
+        SELECT *
+        FROM com_delivery_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND order_line_id IN
+          <foreach collection="query.orderLineIds" item="orderLineId" open="(" separator="," close=")">
+              #{orderLineId}
+          </foreach>
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        ORDER BY order_line_id, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectCurrentByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
+        SELECT *
+        FROM com_delivery_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.deliveryScopeId}
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
 </mapper>

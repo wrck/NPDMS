@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeAcceptanceLockQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeIdQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderLineQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeVersionLockRow;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
@@ -40,10 +41,22 @@ public interface DeliveryScopeMapper extends BaseMapperX<DeliveryScopeDO> {
                 .orderByAsc(DeliveryScopeDO::getId));
     }
 
+    default DeliveryScopeDO selectCurrentById(DeliveryScopeIdQuery query) {
+        return selectOne(new LambdaQueryWrapperX<DeliveryScopeDO>()
+                .eq(DeliveryScopeDO::getTenantId, query.tenantId())
+                .eq(DeliveryScopeDO::getId, query.deliveryScopeId())
+                .isNull(DeliveryScopeDO::getEffectiveTo));
+    }
+
     List<DeliveryScopeDO> selectActiveByProjectIdForUpdate(@Param("query") DeliveryScopeProjectQuery query);
 
     List<DeliveryScopeDO> selectActiveByOrderLineIdsForUpdate(
             @Param("query") DeliveryScopeOrderLineQuery query);
+
+    List<DeliveryScopeDO> selectCurrentByOrderLineIdsForUpdate(
+            @Param("query") DeliveryScopeOrderLineQuery query);
+
+    DeliveryScopeDO selectCurrentByIdForUpdate(@Param("query") DeliveryScopeIdQuery query);
 
     List<DeliveryScopeVersionLockRow> selectCurrentVersionsForAcceptanceLock(
             @Param("query") DeliveryScopeAcceptanceLockQuery query);
