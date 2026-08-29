@@ -10,6 +10,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CutoverConfigurationValidationRespVO {
+
+    public static final String BASE_LOCATION_PREFIX = "base";
+    public static final String RISK_LOCATION_PREFIX = "risk";
+    public static final String SURVEY_LOCATION_PREFIX = "survey";
+
     private boolean valid;
     private List<ValidationErrorVO> errors;
 
