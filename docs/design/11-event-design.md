@@ -84,7 +84,7 @@ Consumer 在同一事务中插入 Inbox 去重记录并执行本地业务。处�
 |---|---|---|---|---|
 | `ProjectCreated` | Project Delivery | SOL/IMP/ACC/ANA | aggregateVersion | 项目身份和来源映射已建立 |
 | `ProjectTreeChanged` | Project Delivery | Authorization/AST/ANA | changeBatchId + treeVersion | 一次无环树变更已提交；投影可据此重建 |
-| `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁已通过并迁移 |
+| `ProjectStageChanged` | Project Delivery | SOL/IMP/ACC/ANA | projectId + stageSnapshotId | 阶段门禁及进入项目设定验收阶段所需的验收范围绑定已在同一事务提交；事件只作提交后通知/投影，不触发、不补建也不反推`AcceptanceScopeBinding` |
 | `ProjectClosed` | Project Delivery | Service Operations/ANA | aggregateVersion + lifecycleStatus + closeReason | 项目关闭事实成立；NORMAL_CLOSED仅来自CLO-02，EXCEPTION_CLOSED来自PM-10，消费方不得据此新增维护阶段 |
 | `TaskAssigned` / `TaskCompleted` | Project Delivery | Todo/ANA | task aggregateVersion + executionContractId/contractVersion + completionEvaluationId + factVersion | 任务指派/完成事实；完成事件仅在CompletionRule回源校验绑定事实和版本、追加判定事实并完成状态迁移后发布 |
 | `ProjectServiceManagerAssigned` | Project Delivery | PMS Notification Delivery | eventId + project aggregateVersion | PM-08 V1主责/协同服务经理关系及Project状态已提交；payload冻结assignmentId、projectId、recipientUserId、templateCode、templateParamsSnapshot、assignmentType、levelCode、effectiveFrom；处理器以eventId作为SYSTEM站内信deliveryKey，通知失败不回滚指派 |

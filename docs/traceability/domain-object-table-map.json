@@ -134,6 +134,8 @@
     "ProjectStageSnapshot": {
       "owner": "PROJ",
       "requirementIds": [
+        "ACC-03",
+        "COM-01",
         "PM-03",
         "PM-10"
       ],

@@ -77,6 +77,8 @@
 
 ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一MySQL本地事务中同步调用ACC公开内部应用接口，ACC以`Propagation.MANDATORY`加入该事务；正式Project、ProjectTask执行契约、ACC交付件实例、幂等成功结果、成功审计和Outbox必须共同提交或共同回滚。失败不得形成Project草稿、初始化operation、`INITIALIZING`状态、Saga或异步补建任务。该例外不授权跨Context Repository访问；部署不再共享事务资源时必须阻断Feature并先完成批准的语义变更。
 
+ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进入验收阶段时同步调用ACC，ACC经COM公开接口锁定当前全部范围并追加绑定；COM在验收阶段内使新范围版本生效时同步调用ACC追加绑定。所有Provider以`Propagation.MANDATORY`加入发起方事务，阶段进入或范围版本生效与绑定共同提交/回滚；禁止用`ProjectStageChanged`、报告状态、Saga或异步补建替代。该候选不授权跨Context Repository访问，也不批准拆库后的分布式一致性方案。
+
 ## 6. 状态机异常
 
 | 异常 | 处理 |
@@ -102,6 +104,10 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 | 目标项目办事处缺失、停用或版本冲突 | BUSINESS_GATE/VERSION_CONFLICT；不创建范围，不回退AST地点、地址或名称推断 |
 | 范围减量遇到ACC锁定 | BUSINESS_GATE；保持当前范围和历史不变，返回最小锁定引用 |
 | ACC守卫未知、超时或Provider不可用 | DEPENDENCY_UNAVAILABLE；减量失败关闭，不把未知解释为未进入验收 |
+| 进入验收阶段时任一范围锁定、版本校验或绑定失败 | BUSINESS_GATE/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE；阶段快照、绑定和`current_stage`整体回滚，不留部分绑定，不发布成功`ProjectStageChanged` |
+| 验收阶段内新范围版本绑定失败 | BUSINESS_GATE/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE；新范围版本、历史切换、Outbox和绑定整体回滚，不把范围标记生效 |
+| 初验/终验报告尚未形成或四项字段/附件不完备 | 不阻断已满足其他门禁的阶段进入；对应验收活动完成命令返回BUSINESS_GATE，报告草稿、已成功范围绑定和项目阶段保持不变 |
+| Q-FCOM-002关闭前退出或回退验收阶段 | 不自动关闭、解锁或改写既有绑定；COM守卫继续按当前绑定失败关闭减量，最终关闭/再次进入语义待业务裁决 |
 | 数值调整 | 新增 adjustment，保存动作类型、方向和正负值，不覆盖原值 |
 | PM-05 正式项目/销售业务无效 | BUSINESS_GATE；不创建转销批次、不归档临时项目 |
 | PM-05 对象或设备部分失败 | 保持原 conversion 为部分失败/待处理，返回逐项结果；成功项不回滚，失败项按原批次幂等重试 |

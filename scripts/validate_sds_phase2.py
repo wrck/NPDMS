@@ -90,6 +90,61 @@ FCOM001_V70_REQUIRED_TARGET_MAPPINGS = {
         "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE",
     },
 }
+FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS = {
+    "docs/design/08-data-model.md": (
+        "项目验收阶段快照对DeliveryScope及其分配版本的锁定事实",
+        "独立于初验/终验报告",
+        "Q-FCOM-002`关闭前不自动关闭或解锁",
+    ),
+    "docs/design/09-database-design.md": (
+        "project_stage_snapshot_id bigint NOT NULL",
+        "binding_trigger varchar(32) NOT NULL",
+        "uk(tenant_id, project_id, project_stage_snapshot_id, delivery_scope_id, scope_allocation_version)",
+        "不含`acceptance_id`",
+    ),
+    "docs/design/10-api-design.md": (
+        "ProjectAcceptanceStageFactApi.lockAndRead(query)",
+        "DeliveryScopeAcceptanceLockApi.lockCurrentByProject(command)",
+        "AcceptanceScopeBindingApi.bindForStageEntry(command)",
+        "AcceptanceScopeBindingApi.bindEffectiveScope(command)",
+        "PROJ项目当前行→COM订单行（适用时）→COM `DeliveryScope`当前行（按稳定ID）→ACC `AcceptanceScopeBinding`",
+    ),
+    "docs/design/11-event-design.md": (
+        "事件只作提交后通知/投影，不触发、不补建也不反推`AcceptanceScopeBinding`",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "统一锁顺序为PROJ项目当前行→COM订单行（适用时）→COM范围当前行（稳定ID）→ACC绑定",
+        "初验/终验报告行不进入该锁链",
+    ),
+    "docs/design/16-exception-and-idempotency.md": (
+        "阶段快照、绑定和`current_stage`整体回滚",
+        "新范围版本、历史切换、Outbox和绑定整体回滚",
+        "对应验收活动完成命令返回BUSINESS_GATE",
+    ),
+    "docs/traceability/phase2-contract-map.md": (
+        "ProjectAcceptanceStageFactApi",
+        "AcceptanceScopeBindingApi",
+        "ProjectStageChanged仅作提交后通知，不触发绑定",
+    ),
+    "docs/traceability/domain-entity-migration-contract.json": (
+        "bind ProjectStageSnapshot plus exact DeliveryScope allocation version",
+        "never create or infer bindings from preliminary/final Acceptance reports",
+        "Q-FCOM-002 forbids automatic close or unlock",
+    ),
+}
+FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS = {
+    "docs/design/08-data-model.md": (
+        "验收单对DeliveryScope及其分配版本的锁定事实",
+        "退出或作废时关闭区间",
+    ),
+    "docs/design/09-database-design.md": (
+        "`acceptance_id bigint NOT NULL`、`project_id bigint NOT NULL`、`delivery_scope_id bigint NOT NULL`",
+        "uk(tenant_id, acceptance_id, delivery_scope_id, scope_allocation_version)",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "统一锁顺序为COM范围→ACC绑定",
+    ),
+}
 
 
 def read(path: Path) -> str:
@@ -492,6 +547,29 @@ def validate_fcom001_v70_required_mappings(root: Path) -> list[str]:
     return errors
 
 
+def validate_fcom001_acceptance_stage_binding(root: Path) -> list[str]:
+    """Keep revision-009 stage-driven acceptance binding complete and report-independent."""
+    errors: list[str] = []
+    for relative, snippets in FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"missing F-COM-001 acceptance-stage contract: {relative}")
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet not in content:
+                errors.append(f"F-COM-001 acceptance-stage contract missing: {relative}: {snippet}")
+    for relative, snippets in FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet in content:
+                errors.append(f"F-COM-001 acceptance-stage contract retains superseded rule: {relative}: {snippet}")
+    return errors
+
+
 def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
     """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
@@ -599,6 +677,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
         errors.append(f"V1.8 removed/deferred requirements leaked into formal contracts: {sorted(leaked)}")
     errors.extend(validate_v18_migration_gate_evidence(root))
     errors.extend(validate_fcom001_v70_required_mappings(root))
+    errors.extend(validate_fcom001_acceptance_stage_binding(root))
     errors.extend(validate_v18_physical_carriers(root))
     return errors
 

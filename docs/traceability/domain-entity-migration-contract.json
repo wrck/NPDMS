@@ -165,6 +165,8 @@
     "ProjectStageSnapshot": {
       "owner": "PROJ",
       "requirementIds": [
+        "ACC-03",
+        "COM-01",
         "PM-03",
         "PM-10"
       ],
@@ -1384,6 +1386,8 @@
       "owner": "PROJ",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
+        "ACC-03",
+        "COM-01",
         "PM-03",
         "PM-10"
       ],
@@ -1935,7 +1939,7 @@
           "sourceType": "NONE_NEW",
           "sourceObject": "AcceptanceScopeBinding",
           "disposition": "NEW_ONLY",
-          "transform": "append only from new ACC enter-scope commands after locking the current DeliveryScope allocation version; never infer historical bindings from project-level acceptance status",
+          "transform": "append only from project acceptance-stage entry or a new scope version becoming effective while the project is in that stage; bind ProjectStageSnapshot plus exact DeliveryScope allocation version; never create or infer bindings from preliminary/final Acceptance reports; Q-FCOM-002 forbids automatic close or unlock",
           "mappingStatus": "NEW_ONLY",
           "gate": "F-COM-001",
           "evidenceRef": "phase2-contract://object=AcceptanceScopeBinding"

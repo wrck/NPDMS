@@ -202,7 +202,7 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 | 路径 | 命令 | 约束 |
 |---|---|---|
-| `/acceptances` | create/update draft、`submit`、`confirm`、`return` | 客户确认和项目审核分别留痕；不覆盖 IMP 证据 |
+| `/acceptances` | create/update draft、`submit`、`confirm`、`return`、`complete-activity` | 客户确认和项目审核分别留痕；初验/终验活动完成要求对应当前有效报告的验收时间、结论、验收人和附件完备；报告不触发范围绑定且不覆盖IMP证据 |
 | `/acceptances/{id}/actions/send-confirmation` | `POST` | ACC-01 V2按短信/邮件和钉钉推送培训确认链接；分别记录受理/送达，送达不等于客户确认，失败保留V1链接/扫码入口 |
 | `/delivery-artifacts` | `check-completeness`、`review`、`archive` | 齐套、审核、归档是不同命令；文件版本固定 |
 | `/closure-gates/{projectId}` | `GET` | 返回所有后代项目的门禁快照和水位 |
@@ -277,13 +277,16 @@ F-PROJ-002另使用以下Owner公开契约：
 
 PROJ只能依赖上述API及DTO，COM/AST实现不得回调PROJ Mapper、Repository或业务表。公开契约不可用时可继续保存/修正拆分草稿，但禁止确认应用，不把待核对数量视为可分配量。
 
-F-COM-001还必须交付以下窄Owner契约及真实Provider，不允许只以测试桩证明生产成功路径：
+F-COM-001修订009差量必须锁定以下窄Owner契约及真实Provider，不允许只以测试桩证明生产成功路径：
 
 - `ProjectOfficeFactApi.resolve(query)`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion`，由PROJ返回`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`及项目ID/版本、SYSTEM办事处部门稳定ID/编码/名称/版本。COM仅在`FOUND`时冻结发生时快照；未知、缺失或版本冲突失败关闭，不回退AST、地址、名称或订单字段。
+- `ProjectAcceptanceStageFactApi.lockAndRead(query)`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion/operationId`，由PROJ锁定项目当前行并返回`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`、项目版本、当前阶段、项目设定的验收阶段以及当前验收阶段`projectStageSnapshotId`；只有当前阶段等于验收阶段时才返回该不可变快照ID。COM不得从S5字符串、报告或ACC表自行推断阶段事实。
 - `AcceptanceScopeGuardApi.checkReduction(query)`（COM→ACC）：输入`tenantId/projectId/deliveryScopeId/currentAllocationVersion/proposedAllocatedQty/operationId`，由ACC返回`UNLOCKED/LOCKED/UNKNOWN`、`acceptanceFactVersion`及最小锁定引用；`LOCKED`拒绝普通减量，`UNKNOWN`、超时或Provider不可用失败关闭。
-- `DeliveryScopeAcceptanceLockApi.lockAndRead(command)`（ACC→COM）：ACC在范围进入验收的同一事务内按`deliveryScopeId`锁定COM当前范围并校验`expectedAllocationVersion`，随后追加`AcceptanceScopeBinding`。COM减量先锁相同范围行再调用ACC守卫；两条路径统一锁顺序为COM范围→ACC绑定，防止“守卫返回未锁定后并发进入验收”。
+- `DeliveryScopeAcceptanceLockApi.lockCurrentByProject(command)`（ACC→COM）：输入`tenantId/projectId/projectStageSnapshotId/operationId`；ACC在PROJ已锁项目行的同一事务内调用，COM按`deliveryScopeId`稳定顺序锁定并返回该项目全部当前有效`deliveryScopeId/allocationVersion`。空集合返回成功空列表；版本变化、项目不一致或部分锁定失败整体失败。
+- `AcceptanceScopeBindingApi.bindForStageEntry(command)`（PROJ→ACC）：输入`tenantId/projectId/projectVersion/projectStageSnapshotId/fromStageCode/acceptanceStageCode/operationId`；ACC调用上项锁定当前范围并以`PROJECT_STAGE_ENTRY`追加绑定。相同快照、范围和版本重放返回原结果，同键异请求或任一写入失败整体失败；不创建`Acceptance`报告。
+- `AcceptanceScopeBindingApi.bindEffectiveScope(command)`（COM→ACC）：输入`tenantId/projectId/projectStageSnapshotId/deliveryScopeId/scopeAllocationVersion/operationId`；仅当COM已通过`ProjectAcceptanceStageFactApi`锁定并确认项目处于验收阶段时，以`SCOPE_VERSION_EFFECTIVE`追加绑定。绑定失败使新范围版本生效整体回滚。
 
-上述三个Provider在当前模块化单体中使用同一MySQL事务资源和`MANDATORY`传播；任一调用不得跨模块访问Service、Mapper、Repository或表。未来拆库/拆服务时该原子语义不可直接沿用，必须先阻断Feature并批准新的业务一致性方案。
+上述Provider在当前模块化单体中使用同一MySQL事务资源和`MANDATORY`传播；统一锁顺序为PROJ项目当前行→COM订单行（适用时）→COM `DeliveryScope`当前行（按稳定ID）→ACC `AcceptanceScopeBinding`。任一调用不得跨模块访问Service、Mapper、Repository或表。未来拆库/拆服务时该原子语义不可直接沿用，必须先阻断Feature并批准新的业务一致性方案。
 
 AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装事实和位置快照，AST只消费公开命令参数。
 

@@ -36,10 +36,12 @@
 ### 2.1 Project状态分层守卫
 
 1. PM-01创建项目时写入`lifecycle_status=ACTIVE`、`current_stage=S0`；未完成主责指派时`assignment_status=UNASSIGNED`。
-2. 阶段推进只允许在当前阶段门禁满足且操作者有权时修改`current_stage`；`display_status`只读派生，不得反写任何生命周期字段。
+2. 阶段推进只允许在当前阶段门禁满足且操作者有权时修改`current_stage`；进入项目设定的验收阶段时，PROJ必须先以同一事务调用ACC完成全部当前有效DeliveryScope分配版本绑定，任一失败时阶段快照、绑定和`current_stage`整体不成功；`display_status`只读派生，不得反写任何生命周期字段。
 3. PM-10“回退”保持`lifecycle_status=ACTIVE`，将`current_stage`回到S0并按规则置为待指派；PM-10“异常关闭”才写入`EXCEPTION_CLOSED`并保存关闭依据。
 4. CLO-02审批全部通过后才写入`NORMAL_CLOSED`并形成不可变闭环事实；任何其他接口、同步回调或通知不得产生该终态。
 5. 仅允许对`EXCEPTION_CLOSED`项目执行受控重开并恢复为`ACTIVE`；重开必须记录重开原因，恢复关闭前最后一个可恢复阶段并创建新的责任处理事项，不得自动恢复已终止的外部任务。`NORMAL_CLOSED`不得通过PM-10直接重开。正常闭环后的巡检、割接保障和其他售后活动使用独立领域任务，不新增项目维护阶段。
+6. 初验/终验报告不是进入项目设定验收阶段的门禁；初验或终验活动申请标记完成时，ACC才校验对应当前有效报告的验收时间、结论、验收人和附件，任一缺失时只拒绝该验收活动完成，不回退已成功的阶段进入与范围绑定。
+7. `Q-FCOM-002`关闭前，退出或PM-10回退不自动关闭、解锁或改写既有`AcceptanceScopeBinding`；该问题不阻断合法阶段回退本身，也不改变COM减量继续读取既有锁定事实。
 
 ## 3. 版本化
 

@@ -77,6 +77,7 @@ TARGET_POLICIES = {
 }
 
 MODEL_ENTITY_CONTRACTS = {
+    "ProjectStageSnapshot": {"owner": "PROJ", "requirementIds": ["PM-03", "PM-10"]},
     "DeliveryEvidence": {"owner": "IMP", "requirementIds": ["IMP-01"]},
     "DeviceAssignmentHistory": {"owner": "AST", "requirementIds": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
     "DeviceAncestorProjection": {"owner": "AST", "requirementIds": ["EQP-01", "EQP-03"]},
@@ -289,7 +290,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         requiredTargetMappings={
             "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE",
         })],
-    "AcceptanceScopeBinding": [source("NONE_NEW", "AcceptanceScopeBinding", "NEW_ONLY", "append only from new ACC enter-scope commands after locking the current DeliveryScope allocation version; never infer historical bindings from project-level acceptance status", "NEW_ONLY", "F-COM-001")],
+    "AcceptanceScopeBinding": [source("NONE_NEW", "AcceptanceScopeBinding", "NEW_ONLY", "append only from project acceptance-stage entry or a new scope version becoming effective while the project is in that stage; bind ProjectStageSnapshot plus exact DeliveryScope allocation version; never create or infer bindings from preliminary/final Acceptance reports; Q-FCOM-002 forbids automatic close or unlock", "NEW_ONLY", "F-COM-001")],
     "Supplier": [source("LEGACY_TABLE", "pm_subcontract_facilitator", "STRUCTURED", "map supplier identity and qualification evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "SubcontractRequest": [source("LEGACY_TABLE", "pm_subcontract_project_header|pm_subcontract_project_line|pm_subcontract_project_price|pm_subcontract_project_callback", "STRUCTURED", "map request scope, price revision and approval/callback evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "PaymentGate": [source("LEGACY_TABLE", "pm_subcontract_project_payment|pm_subcontract_project_payment_sse", "STRUCTURED", "map approved prerequisites and external finance result reference", "PENDING_FIELD_MAPPING", "AI-MIG-000")],

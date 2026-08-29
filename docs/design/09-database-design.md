@@ -340,7 +340,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | 聚合 | 主表 | 支撑表 | 关键约束 |
 |---|---|---|---|
 | Acceptance | `acc_acceptance` | `acc_acceptance_item`、`acc_confirmation` | 验收 revision/客户确认追加；原始实施证据只引用 |
-| AcceptanceScopeBinding | `acc_acceptance_scope_binding` | 无 | `acceptance_id/project_id/delivery_scope_id/scope_allocation_version/binding_status/effective_from/effective_to/acceptance_fact_version/version`；同一验收、范围和分配版本唯一；当前锁定按`delivery_scope_id + effective_to is null`查询；跨Context只保存逻辑引用，不建COM外键 |
+| AcceptanceScopeBinding | `acc_acceptance_scope_binding` | 无 | `project_id/project_stage_snapshot_id/delivery_scope_id/scope_allocation_version/binding_trigger/binding_status/effective_from/effective_to/acceptance_fact_version/version`；同一项目阶段快照、范围和分配版本唯一；当前锁定按`delivery_scope_id + effective_to is null`查询；独立于`Acceptance`报告，跨Context只保存逻辑引用，不建PROJ/COM外键 |
 | SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
 | DeliveryArtifact | `acc_delivery_artifact` | `acc_artifact_review`、`acc_archive_record` | 文件 revision + 清单项唯一；归档记录不可覆盖 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
@@ -446,7 +446,7 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 
 ### 8.2.3 F-COM-001 Feature-forward物理差量
 
-本差量受PRD修订008和ADR-0036约束，属于`FEATURE_FORWARD_MIGRATION(COM-01)`；它不修改当前核心DDL文件，不批准Flyway执行或历史生产迁移。F-COM-001的机器物理契约和未来迁移必须逐项等于以下差量，不得由Technical Plan补字段：
+本差量受PRD修订008/009、ADR-0036及ADR-0037候选约束，属于`FEATURE_FORWARD_MIGRATION(COM-01)`；它不修改当前核心DDL文件，不批准Flyway执行或历史生产迁移。F-COM-001的机器物理契约和未来迁移必须逐项等于以下差量，不得由Technical Plan补字段：
 
 | 目标表 | 新增/变更字段（MySQL 8.4） | 空值与约束 |
 |---|---|---|
@@ -455,9 +455,9 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 | `com_sales_order_line` | `source_record_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`、`source_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`、`unit_code varchar(32) NOT NULL`、`unit_scale tinyint unsigned NOT NULL`、`quantity_status varchar(32) NOT NULL`、`source_updated_at datetime(3) NULL`；`order_qty/open_qty/delivered_qty`统一为`decimal(18,6) NULL` | 新增`uk(tenant_id, source_system, source_record_key)`；`unit_scale between 0 and 6`；数量为空只允许待权威确认，确认数量按`unit_scale`校验，状态码不以DDL CHECK封死 |
 | `com_delivery_scope` | `allocated_qty decimal(18,6) NOT NULL`、`allocation_version bigint NOT NULL`、`office_department_id bigint NOT NULL`、`office_department_code varchar(64) NOT NULL`、`office_department_name varchar(255) NOT NULL`、`office_department_version int unsigned NOT NULL`、`source_evidence varchar(255) NULL`、`effective_from datetime(3) NOT NULL`、`effective_to datetime(3) NULL` | 新增`uk(tenant_id, order_line_id, project_id, allocation_version)`；保留`uk(tenant_id, project_id, current_order_line_id)`当前唯一；`allocated_qty > 0`；调整在同一事务关闭旧区间并追加新版本 |
 | `com_delivery_scope_detail` | 删除`implementation_location`；新增`serial_no varchar(128) NULL`、`detail_status varchar(32) NOT NULL`、`source_snapshot json NULL`、`version int unsigned NOT NULL DEFAULT 0`；`allocated_qty`改为`decimal(18,6) NOT NULL`，既有`product_code/device_type_code/delivery_batch_no/source_record_key`保持可空 | `uk(tenant_id, delivery_scope_id, detail_sequence)`；`allocated_qty > 0`；`serial_no/product_code/device_type_code`至少一个非空；不含`site_id/site_location_id/location_resolution_status` |
-| `acc_acceptance_scope_binding` | `id bigint NOT NULL`、`tenant_id bigint NOT NULL`、`acceptance_id bigint NOT NULL`、`project_id bigint NOT NULL`、`delivery_scope_id bigint NOT NULL`、`scope_allocation_version bigint NOT NULL`、`binding_status varchar(32) NOT NULL`、`effective_from datetime(3) NOT NULL`、`effective_to datetime(3) NULL`、`acceptance_fact_version int unsigned NOT NULL`、`version int unsigned NOT NULL DEFAULT 0`、`creator/updater varchar(64) NOT NULL DEFAULT ''`、`create_time/update_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)`、`deleted tinyint NOT NULL DEFAULT 0` | ACC Owner；`uk(tenant_id, acceptance_id, delivery_scope_id, scope_allocation_version)`；`idx(tenant_id, delivery_scope_id, effective_to, binding_status)`；区间合法；不建跨Context COM外键 |
+| `acc_acceptance_scope_binding` | `id bigint NOT NULL`、`tenant_id bigint NOT NULL`、`project_id bigint NOT NULL`、`project_stage_snapshot_id bigint NOT NULL`、`delivery_scope_id bigint NOT NULL`、`scope_allocation_version bigint NOT NULL`、`binding_trigger varchar(32) NOT NULL`、`binding_status varchar(32) NOT NULL`、`effective_from datetime(3) NOT NULL`、`effective_to datetime(3) NULL`、`acceptance_fact_version int unsigned NOT NULL DEFAULT 1`、`version int unsigned NOT NULL DEFAULT 0`、`creator/updater varchar(64) NOT NULL DEFAULT ''`、`create_time/update_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)`、`deleted tinyint NOT NULL DEFAULT 0` | ACC Owner；新增时`binding_trigger`仅为`PROJECT_STAGE_ENTRY/SCOPE_VERSION_EFFECTIVE`、`binding_status=LOCKED`、`effective_to=NULL`；`uk(tenant_id, project_id, project_stage_snapshot_id, delivery_scope_id, scope_allocation_version)`；`idx(tenant_id, delivery_scope_id, effective_to, binding_status)`；不含`acceptance_id`，不建跨Context PROJ/COM外键；`Q-FCOM-002`关闭前禁止写`effective_to`或解锁状态 |
 
-`AcceptanceScopeBinding`物理表由COM-01 Feature前向迁移确定；它仍由ACC拥有并由ACC Provider写入，F-COM-001不得把该表或验收状态转为COM所有。
+`AcceptanceScopeBinding`物理表由COM-01 Feature前向迁移确定；它仍由ACC拥有并由ACC Provider写入，F-COM-001不得把该表或验收状态转为COM所有。`project_stage_snapshot_id`只引用PROJ不可变阶段快照；初验/终验`Acceptance`报告不参与绑定身份、唯一键或触发条件。
 
 V70转换只允许在同一只读快照/停写窗口内执行，输入集以V70主键冻结；重试必须复用同一输入水位。以下规则逐字段固定，未列出的目标可空业务快照只能从表中指定的同一已解析Owner记录复制，否则保持`NULL`，不得由名称或内容推断。
 
