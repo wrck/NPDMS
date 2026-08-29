@@ -1,7 +1,7 @@
 # F-COM-001 合同订单关联与交付范围分配 Feature Spec
 
-> 文档状态：`CANDIDATE`
-> Feature Ready：`READY_FOR_INDEPENDENT_REVIEW`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY`
 > 实施状态：`NOT_STARTED`
 > Requirement：`COM-01（V1）`
 > Requirement切片覆盖：`COM-01@V1=FULL`
@@ -225,11 +225,11 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 | 数据变化、物理Owner和存量转换 | 第6～7节及机器契约/复用审计 | PASS |
 | 验收、验证与真实浏览器 | 第8～10节 | PASS |
 | 相关Open Question | `Q-FCOM-001`已按SYSTEM当前公司授权事实关闭；`Q-FCOM-002`只阻断本Feature Out of Scope的退出/回退关闭或解锁，不阻断已确认进入与新范围路径 | PASS_WITH_NARROW_OUT_OF_SCOPE_BLOCK |
-| 独立Feature Ready裁决 | 本候选已完成规格、机器契约、复用审计和聚焦门禁，等待独立裁决 | PENDING_INDEPENDENT_REVIEW |
+| 独立Feature Ready裁决 | 完整全新审核已批准候选`c57ee7b5f5226f5dc902d817c034ff1a8f6618c3` | GO |
 
-结论：`CANDIDATE / READY_FOR_INDEPENDENT_REVIEW`。修订008/009的办事处、物理差量、V70转换、ACC Owner、验收阶段绑定及合同管理员SYSTEM当前公司范围均已闭合；Q-FCOM-002仅保留Out of Scope的退出/回退关闭或解锁窄阻断。独立GO前不得回写`BASELINE / READY`或生成Technical Plan；第三方平台仍只冻结接口边界。
+结论：`BASELINE / READY`。完整全新Feature Ready审核已批准提交`c57ee7b5f5226f5dc902d817c034ff1a8f6618c3`；修订008/009的办事处、物理差量、V70转换、ACC Owner、验收阶段绑定及合同管理员SYSTEM当前公司范围均已闭合。Q-FCOM-002仅保留Out of Scope的退出/回退关闭或解锁窄阻断；第三方平台仍只冻结接口边界。允许进入本Feature唯一Technical Plan，但不代表计划或实现已获批准。
 
-检查点：基线=518ef2f7；当前Gate=Feature Ready候选；已通过=PRD009、ADR0036/37/38及三项SDS差量GO；本轮闭合=SYSTEM公司范围、通知、AST序列号与复用门禁；阻塞=仅待独立审核；下一步=完整Feature Ready送审，GO前不生成Technical Plan。
+检查点：基线=c57ee7b5；当前Gate=Feature Ready GO；已通过=PRD009、ADR0036/37/38、三项SDS差量及完整独立审核；阻塞=无；下一步=形成唯一Technical Plan候选，不开始产品实现。
 
 ## 12. 追溯
 

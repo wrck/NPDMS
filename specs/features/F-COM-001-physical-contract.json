@@ -1,7 +1,7 @@
 {
   "featureId": "F-COM-001",
-  "status": "CANDIDATE_READY_FOR_INDEPENDENT_REVIEW",
-  "featureReadyDecision": "PENDING_INDEPENDENT_FEATURE_READY_REVIEW",
+  "status": "BASELINE_READY",
+  "featureReadyDecision": "GO_C57EE7B5F5226F5DC902D817C034FF1A8F6618C3",
   "requirementSlices": ["COM-01@V1"],
   "supportingRequirementSlices": ["PM-03@V1", "PM-10@V1", "ACC-03@V1"],
   "ownerContext": "COM",

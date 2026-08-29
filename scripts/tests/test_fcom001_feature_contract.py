@@ -142,13 +142,13 @@ class Fcom001FeatureContractTest(unittest.TestCase):
         cls.reuse_audit = REUSE_AUDIT.read_text(encoding="utf-8")
         cls.feature_index = FEATURE_INDEX.read_text(encoding="utf-8")
 
-    def test_candidate_is_ready_for_independent_review_after_contract_scope_resolution(self) -> None:
-        self.assertEqual("CANDIDATE_READY_FOR_INDEPENDENT_REVIEW", self.contract["status"])
-        self.assertEqual("PENDING_INDEPENDENT_FEATURE_READY_REVIEW", self.contract["featureReadyDecision"])
+    def test_feature_ready_go_is_recorded_after_contract_scope_resolution(self) -> None:
+        self.assertEqual("BASELINE_READY", self.contract["status"])
+        self.assertEqual("GO_C57EE7B5F5226F5DC902D817C034FF1A8F6618C3", self.contract["featureReadyDecision"])
         self.assertEqual([], contract_administrator_scope_errors(self.contract, self.feature_spec))
         self.assertIn("不得由Technical Plan发明", self.feature_spec)
-        self.assertIn("CANDIDATE", self.feature_index)
-        self.assertIn("READY_FOR_INDEPENDENT_REVIEW", self.feature_index)
+        self.assertIn("BASELINE", self.feature_index)
+        self.assertIn("完整全新审核GO", self.feature_index)
 
     def test_contract_scope_gate_rejects_missing_owner_provider_or_sensitive_permission(self) -> None:
         missing_provider = deepcopy(self.contract)
