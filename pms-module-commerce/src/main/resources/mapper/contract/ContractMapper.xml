@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper">
+
+    <select id="selectBySourceForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
+        SELECT *
+        FROM com_contract
+        WHERE tenant_id = #{query.tenantId}
+          AND master_source_system = #{query.sourceSystem}
+          AND master_source_record_key = #{query.sourceRecordKey}
+          AND deleted = 0
+        FOR UPDATE
+    </select>
+
+    <select id="selectByCompanyScope"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
+        SELECT *
+        FROM com_contract
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = 0
+          AND CAST(company_code AS BINARY) IN
+          <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">
+              CAST(#{companyCode} AS BINARY)
+          </foreach>
+        <if test="query.contractNo != null and query.contractNo != ''">
+          AND contract_no LIKE CONCAT('%', #{query.contractNo}, '%')
+        </if>
+        <if test="query.status != null and query.status != ''">
+          AND status = #{query.status}
+        </if>
+        ORDER BY contract_no, id
+        LIMIT #{query.offset}, #{query.limit}
+    </select>
+
+    <select id="selectDetailByCompanyScope"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
+        SELECT *
+        FROM com_contract
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.contractId}
+          AND deleted = 0
+          AND CAST(company_code AS BINARY) IN
+          <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">
+              CAST(#{companyCode} AS BINARY)
+          </foreach>
+        LIMIT 1
+    </select>
+
+    <select id="selectByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
+        SELECT *
+        FROM com_contract
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.contractId}
+          AND deleted = 0
+        FOR UPDATE
+    </select>
+</mapper>

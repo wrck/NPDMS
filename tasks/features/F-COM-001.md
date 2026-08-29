@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / GO`（`c33b0836f71e0875008a084ff360e7027d276ec9`）  
 > Implementation Done Gate：`NOT_REVIEWED`  
 > 当前阻断：`无`  
-> 当前任务：`Task 1 / Step 4：实现COM权威副本与合同管理员公司范围`
+> 当前任务：`Task 1 / Step 5：实现DeliveryScope命令、历史、AST校验和冲突通知`
 > Requirement ID：`COM-01@V1`；协作`PM-03`、`PM-10`、`ACC-03`  
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`  
 > Technical Plan：`docs/superpowers/plans/2026-08-29-f-com-001-contract-order-and-delivery-scope.md`  
@@ -33,7 +33,7 @@
 - [x] Step 1：以最终接口签名补齐聚焦失败测试并确认RED。
 - [x] Step 2：实现公开Owner契约和PROJ/ACC真实Provider。
 - [x] Step 3：实现V124目标模型、影子转换、切换前对账和单条多表原子换名。
-- [ ] Step 4：实现COM权威副本与合同管理员公司范围。
+- [x] Step 4：实现COM权威副本与合同管理员公司范围。
 - [ ] Step 5：实现DeliveryScope命令、历史、AST校验和冲突通知。
 - [ ] Step 6：接通项目阶段进入和验收阶段内新版本绑定。
 - [ ] Step 7：完成REST、前端和V125正式配置。
@@ -49,4 +49,4 @@
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=c33b0836；当前Gate=Implementation/Step4；已通过=公开契约与真实Provider，V124完成八影装载/对账/原子换名，真实MySQL验证对账失败保留V123、影子清理重试、发布后幂等重放及Flyway校验；阻塞=无；下一步=实现COM权威副本与合同管理员公司范围。
+> 检查点：基线=c33b0836；当前Gate=Implementation/Step5；已通过=V124原子切换、COM权威副本乱序/身份守卫、SYSTEM公司编码精确范围、写前重验与授权快照审计，COM聚焦回归29项PASS；阻塞=无；下一步=实现DeliveryScope命令、不可变历史、AST写前校验及冲突通知。
