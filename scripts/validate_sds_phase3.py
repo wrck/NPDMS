@@ -71,7 +71,7 @@ CROSS_CONTEXT_TABLE_REFERENCES = {
     "PM-02": {"proj_project_tree_change"},
     "PM-04": {"proj_project_tree_change"},
     "PRE-03": {"ast_asset_sync_item"},
-    "EXE-06": {"proj_project_stage_snapshot"},
+    "EXE-06": {"imp_implementation_readiness_snapshot"},
     "CUT-03": {"cut_cutover_configuration_revision"},
     "CUT-05": {"plt_todo"},
     "CUT-08": {"ast_asset_sync_item"},
