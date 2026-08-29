@@ -19,12 +19,12 @@
 - COM、PROJ、ACC、AST、SYSTEM只通过已批准公开契约协作；不直接访问其他Context业务表，不把验收报告、AST站点或技术默认值当作Owner事实。
 - 只实现最小权限键和服务端控制点；实施与验收身份通过正式授权配置取得闭环所需权限，不固定角色映射，不删除鉴权或租户隔离。
 - 不修改PRD/SDS、V70/V72、Yudao CRM或SYSTEM Provider；不实现第三方ERP/CRM连接器、COM-02、历史生产迁移或Q-FCOM-002退出/回退关闭规则。
-- V124必须先在八张固定影子表装载和对账，再用一条多表`RENAME TABLE`同时归档V70的`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`并发布目标表；V125只在V124完整成功后执行。
+- V124必须先在八张固定影子表装载和对账，再用一条多表`RENAME TABLE`同时归档V70的`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`并发布目标表；V125只在V124完整成功后执行，V126只在V125完整成功后增加独立验收阶段进入正向夹具。
 
 ## 修改与验证范围
 
 - 后端：`pms-module-commerce-api`、`pms-module-commerce`、`pms-module-project-api`、`pms-module-project`及其聚焦测试。
-- 数据：新增V124/V125；V124包含影子装载、切换前对账、原子换名、失败恢复和幂等重放，V125包含权限、菜单与受控验收种子。
+- 数据：新增V124/V125/V126；V124包含影子装载、切换前对账、原子换名、失败恢复和幂等重放，V125包含权限、菜单与受控验收种子，V126只增加公开REST进入验收阶段所需的独立S4 Owner事实及未绑定当前范围。
 - 前端：`yudao-ui/yudao-ui-admin-vue3`下PMS Commerce API、合同/订单/范围页面与测试。
 - 验证：聚焦单测、真实MySQL事务与迁移矩阵、前端类型/构建、全仓适用回归及真实Chromium公开UI/REST闭环。
 
@@ -49,4 +49,4 @@
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=9d01d953；当前Gate=Task2/Step4；已通过=目标模块556项、全仓打包、Phase2/3/追溯、Flyway125及V124双恢复PASS；阻塞=无（共享平台既有CRLF断言1项非阻断）；下一步=真实Chromium公开UI/REST闭环。
+> 检查点：基线=0eb01df1；当前Gate=Task2/Step4；已通过=V125→V126与空库V1→V126、夹具幂等复核、静态契约23/23 PASS；阻塞=无；下一步=以独立S4夹具完成真实Chromium公开UI/REST闭环。
