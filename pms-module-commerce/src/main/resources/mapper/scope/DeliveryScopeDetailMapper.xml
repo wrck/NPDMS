@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper">
+    <select id="selectByScopeIds"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO">
+        SELECT *
+        FROM com_delivery_scope_detail
+        WHERE tenant_id = #{query.tenantId}
+          AND delivery_scope_id IN
+          <foreach collection="query.deliveryScopeIds" item="deliveryScopeId" open="(" separator="," close=")">
+              #{deliveryScopeId}
+          </foreach>
+          AND deleted = b'0'
+        ORDER BY delivery_scope_id, detail_sequence, id
+    </select>
+</mapper>
