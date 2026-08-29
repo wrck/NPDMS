@@ -62,7 +62,7 @@
 
 ### BR-FPROJ006-004 快照、并发与幂等
 
-- `proj_project_stage_snapshot`是PM-03、PM-10与EXE-06共享表，继续使用既有`uk(tenant_id, project_id, stage_code, snapshot_no)`。PM-10只以前向可空字段加法保存`ROLLBACK/EXCEPTION_CLOSE/REOPEN`动作；非PM-10快照不要求填写动作字段。
+- `proj_project_stage_snapshot`只承载PROJ拥有的PM-03、PM-10阶段快照，继续使用既有`uk(tenant_id, project_id, stage_code, snapshot_no)`。PM-10只以前向可空字段加法保存`ROLLBACK/EXCEPTION_CLOSE/REOPEN`动作；非PM-10快照不要求填写动作字段。EXE-06由IMP拥有并使用`imp_implementation_readiness_snapshot`，不写入本表。
 - PM-10通用动作字段为前后阶段、生命周期、指派状态、`reason_code/reason_detail`、操作者、操作时间和稳定`operation_id`；回退另填重新指派要求，异常关闭另填业务依据和遗留事项，回退/关闭另填守卫、完整树版本及提供方事实版本，重开另填被消费关闭快照ID。每个动作的API到字段映射以机器契约为准。
 - 快照只追加不覆盖。重开通过`related_snapshot_id`关联被重开的异常关闭快照；一个异常关闭快照最多成功重开一次。
 - 写命令必须提供`Idempotency-Key`和`If-Match`。回退/关闭还必须提交最近一次守卫查询返回的`guardToken`；同键同请求返回首次结果，同键异请求冲突。
@@ -114,7 +114,7 @@
 机器契约：`specs/features/F-PROJ-006-physical-contract.json`。
 
 - 复用`proj_project.current_stage/lifecycle_status/assignment_status/version`，不新增统一`status_code`或`archive_status`；只读归档由生命周期状态派生。
-- 前向创建共享`proj_project_stage_snapshot`时保持已批准公共字段和`uk(tenant_id, project_id, stage_code, snapshot_no)`；PM-10新增列物理上均可空，只对PM-10动作按机器契约校验必填。另加`uk(tenant_id, operation_id)`，不得替换共享唯一键。
+- 前向创建PROJ内部共享的`proj_project_stage_snapshot`时保持已批准公共字段和`uk(tenant_id, project_id, stage_code, snapshot_no)`；PM-10新增列物理上均可空，只对PM-10动作按机器契约校验必填。另加`uk(tenant_id, operation_id)`，不得替换共享唯一键；IMP的EXE-06快照不进入本表。
 - 回退和异常关闭均结束`proj_project_member_assignment`当前服务经理区间，不删除历史，不清空项目经理事实。
 - V1.7 `pms_project_governance_action`的状态轴、审批草稿和整数Project状态与V1.8不兼容，只作存量审计输入；不得据此勾选AC，不自动转换为当前快照。
 - 所有迁移使用新Flyway版本，不修改已执行SQL。新增查询遵守场景Query、LambdaQueryWrapperX/XML及空范围返回空结果规则。

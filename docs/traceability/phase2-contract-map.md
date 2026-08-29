@@ -849,7 +849,7 @@
 | EXE-06@V1 | V1 | 割接上线门禁的V1主交付业务结果 | V1 |
 
 - 数据对象：ImplementationReadinessSnapshot
-- 数据表：proj_project_stage_snapshot
+- 数据表：imp_implementation_readiness_snapshot
 - API：/implementation-readiness/{projectId}
 - 事件：ImplementationReadinessSnapshotPublished
 - 外部集成：N/A（平台内部契约）
@@ -860,7 +860,7 @@
 - Phase 3 PRD验收基线：WHEN 项目经理在S4阶段进入EXE-06割接上线环节；THEN 系统对前序里程碑节点进行门禁校验：EXE-01到货签收"已签收"、EXE-02硬件安装"已完成"、EXE-03配置调试"已完成"、EXE-04业务联调"已完成"四项全部满足；AND 门禁校验通过后允许发起割接流程；任一前序里程碑未完成则禁止发起割接，并提示未完成节点；WHEN 门禁校验通过且项目经理发起割接；THEN 系统在统一平台内调起内嵌割接管理模块（CUT），通过界面接口深度集成方式衔接，非独立部署、非简单跳转；AND 割接流程直接引用平台项目编码、设备清单、配置Log和方案信息，无需跨系统传递或重复录入；WHEN 割接流程完成（割接验证通过）；THEN 割接结果通过内部业务事件更新项目档案，S4实施部署阶段标记为"已完成"；AND S4阶段完成后准入S5验收交维阶段，割接记录归档至交付件页面（ACC-04）；WHEN 任一前序里程碑未完成、批准方案或设备范围在校验后变化，或同一范围已有进行中的割接任务；THEN 系统阻止创建或继续割接任务，项目S4保持原状态，并返回未通过门禁和冲突任务编号；WHEN P6提交的最终结果为失败，或发生回退后未形成成功的最终结果；THEN 项目记录对应CUT闭环事实但S4不标记完成，不准入S5；后续处理须创建或继续受控的CUT任务，不得手工改写项目阶段结果
 - Phase 3授权拒绝断言：越权按“ImplementationProjectCutoverScope”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“就绪门禁汇总、快照发布与CUT消费”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ImplementationReadinessSnapshot”及数据表“proj_project_stage_snapshot”；事件边界为“ImplementationReadinessSnapshotPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ImplementationReadinessSnapshot”及数据表“imp_implementation_readiness_snapshot”；事件边界为“ImplementationReadinessSnapshotPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
 
 ### IMP-01
