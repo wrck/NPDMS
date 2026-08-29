@@ -1,7 +1,7 @@
 {
   "featureId": "F-COM-001",
-  "status": "CANDIDATE_NOT_READY",
-  "featureReadyDecision": "BLOCKED_BY_SPEC_Q_FCOM_001",
+  "status": "CANDIDATE_READY_FOR_INDEPENDENT_REVIEW",
+  "featureReadyDecision": "PENDING_INDEPENDENT_FEATURE_READY_REVIEW",
   "requirementSlices": ["COM-01@V1"],
   "supportingRequirementSlices": ["PM-03@V1", "PM-10@V1", "ACC-03@V1"],
   "ownerContext": "COM",
@@ -10,22 +10,26 @@
     "PROJ": ["pms-module-project-api", "pms-module-project"],
     "ACC": ["pms-module-project-api", "pms-module-project"],
     "AST": ["pms-module-asset-api", "pms-module-asset"],
+    "SYSTEM": ["yudao-module-system"],
     "physicalModuleMapping": "PMS-PROJ_CURRENTLY_CARRIES_PROJECT_ACCEPTANCE_AND_CLOSURE_WITHOUT_CHANGING_SEMANTIC_OWNER"
   },
   "prdBaseline": "V1.8_REVISION_009",
   "sdsGateDecisions": {
     "officeAndV70Delta": "GO_20F03BA316CA431A55F96AA9C3C97BE54D08B4E0",
     "acceptanceStageDelta": "GO_B17AE89F92B01488378AEB8C36A77A5B2D46AD29",
+    "contractAdministratorAuthorizationDelta": "GO_2CF427D6CCB6E0CEF0CEF3B1460EEAA95DDCED53",
     "adr0036": "ACCEPTED",
-    "adr0037": "ACCEPTED"
+    "adr0037": "ACCEPTED",
+    "adr0038": "ACCEPTED"
   },
   "phaseGateImpact": "P3_E09_FEATURE_FORWARD_DELTAS_008_009_REVIEWED_GO",
   "externalImplementation": "INTERFACES_ONLY",
   "openQuestions": {
     "Q-FCOM-001": {
-      "status": "BLOCKED_BY_SPEC",
-      "blockingScope": "FEATURE_READY_AND_CONTRACT_ADMINISTRATOR_FIRST_CONTRACT_VISIBILITY",
-      "requiredDecision": "approved authority fact for grant, revoke, expiry, version, sensitive fields and empty scope",
+      "status": "RESOLVED",
+      "blockingScope": "NONE",
+      "decision": "SYSTEM_CURRENT_USER_COMPANY_DEPARTMENT_SCOPE_OPTION_B",
+      "authorityFact": "OrganizationScopeApi.getActiveScopes(subjectUserId)",
       "technicalDefault": "NONE",
       "technicalPlanMayChoose": false
     },
@@ -35,6 +39,22 @@
       "confirmedEntryAndNewVersionPathsRemainImplementable": true,
       "failureClosedRule": "DO_NOT_WRITE_EFFECTIVE_TO_UNLOCK_OR_REWRITE_BINDING"
     }
+  },
+  "contractAdministratorScope": {
+    "owner": "SYSTEM",
+    "authorityFact": "CURRENT_ACTIVE_USER_COMPANY_DEPARTMENT_SCOPE",
+    "provider": "OrganizationScopeApi.getActiveScopes(subjectUserId)",
+    "trustedContext": ["tenantId", "subjectUserId", "currentTime"],
+    "companyMatch": "EXACT_NON_EMPTY_COMPANY_CODE_DISTINCT_UNION",
+    "departmentSemantics": "AUTHORIZATION_CONTEXT_ONLY_NO_COMPANY_SCOPE_INFERENCE",
+    "appliesTo": ["CONTRACT_LIST", "CONTRACT_DETAIL", "SALES_ORDER_LIST", "ORDER_LINE_LIST", "PROJECT_CONTRACT_RELATION_WRITE"],
+    "emptyOrUnavailable": "LIST_EMPTY_DETAIL_AND_WRITE_DENIED",
+    "missingContractCompanyCode": "DENY_WITHOUT_INFERENCE",
+    "writeRevalidation": "REFETCH_OWNER_FACT_BEFORE_RELATION_WRITE",
+    "authorizationSnapshot": "MATCHING_SCOPE_ID_VERSION_SORTED_BY_SCOPE_ID_TO_EXISTING_AUDIT_RECORD",
+    "revocationOrExpiry": "DENY_SUBSEQUENT_QUERY_AND_WRITE_WITHOUT_DELETING_HISTORY",
+    "positiveAuthorizationCache": "NONE",
+    "sensitiveFieldPermission": "pms:commerce:contract:sensitive-read"
   },
   "aggregates": {
     "Contract": {
@@ -210,12 +230,12 @@
     }
   },
   "restApis": [
-    {"method": "GET", "path": "/api/v1/pms/contracts", "requirementIds": ["COM-01"], "dataScope": "BLOCKED_BY_Q_FCOM_001"},
-    {"method": "GET", "path": "/api/v1/pms/contracts/{id}", "requirementIds": ["COM-01"], "dataScope": "BLOCKED_BY_Q_FCOM_001"},
-    {"method": "POST", "path": "/api/v1/pms/contracts/{id}/project-relations", "requirementIds": ["COM-01"], "dataScope": "BLOCKED_BY_Q_FCOM_001"},
-    {"method": "GET", "path": "/api/v1/pms/sales-orders", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_BLOCKED_BY_Q_FCOM_001;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
-    {"method": "GET", "path": "/api/v1/pms/order-lines", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_BLOCKED_BY_Q_FCOM_001;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
-    {"method": "GET", "path": "/api/v1/pms/delivery-scopes", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_BLOCKED_BY_Q_FCOM_001;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
+    {"method": "GET", "path": "/api/v1/pms/contracts", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_SYSTEM_CURRENT_COMPANY_SCOPE"},
+    {"method": "GET", "path": "/api/v1/pms/contracts/{id}", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_SYSTEM_CURRENT_COMPANY_SCOPE"},
+    {"method": "POST", "path": "/api/v1/pms/contracts/{id}/project-relations", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_SYSTEM_CURRENT_COMPANY_SCOPE_REVALIDATED_BEFORE_WRITE"},
+    {"method": "GET", "path": "/api/v1/pms/sales-orders", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_SYSTEM_CURRENT_COMPANY_SCOPE;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
+    {"method": "GET", "path": "/api/v1/pms/order-lines", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_SYSTEM_CURRENT_COMPANY_SCOPE;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
+    {"method": "GET", "path": "/api/v1/pms/delivery-scopes", "requirementIds": ["COM-01"], "dataScope": "PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
     {"method": "POST", "path": "/api/v1/pms/delivery-scopes/actions/preview", "requirementIds": ["COM-01"]},
     {"method": "POST", "path": "/api/v1/pms/delivery-scopes/actions/assign", "requirementIds": ["COM-01"]},
     {"method": "POST", "path": "/api/v1/pms/delivery-scopes/{id}/actions/adjust", "requirementIds": ["COM-01"]},
@@ -232,6 +252,16 @@
       "direction": "PROJ -> COM",
       "provider": "REAL_PROVIDER_REQUIRED",
       "compatibility": "PRESERVE_F_PROJ_002_BEHAVIOR"
+    },
+    "OrganizationScopeApi": {
+      "direction": "COM -> SYSTEM",
+      "provider": "EXISTING_UNMODIFIED_REAL_PROVIDER",
+      "method": "getActiveScopes",
+      "input": ["subjectUserId"],
+      "trustedContext": ["tenantId", "currentTime"],
+      "successFacts": ["id", "companyCode", "version"],
+      "failureMode": "LIST_EMPTY_DETAIL_AND_WRITE_DENIED",
+      "implementationChange": "NONE_IN_YUDAO_PLATFORM"
     },
     "AssetDeviceScopeApi": {
       "direction": "COM -> AST",
@@ -330,13 +360,16 @@
     "functional": [
       "pms:commerce:contract:query",
       "pms:commerce:contract:relate",
+      "pms:commerce:contract:sensitive-read",
       "pms:commerce:scope:query",
       "pms:commerce:scope:assign",
       "pms:commerce:scope:adjust",
       "pms:commerce:scope:release",
       "pms:commerce:authority:write"
     ],
-    "contractAdministratorDataScope": "BLOCKED_BY_Q_FCOM_001",
+    "contractAdministratorDataScope": "SYSTEM_CURRENT_ACTIVE_COMPANY_CODE_EXACT_SCOPE",
+    "contractAdministratorScopeProvider": "OrganizationScopeApi.getActiveScopes",
+    "rolePermissionMapping": "CONFIGURABLE_NOT_FROZEN_BY_FEATURE",
     "projectManagerDataScope": "APPROVED_PROJECT_SCOPE_ONLY",
     "emptyScope": "RETURN_EMPTY_NEVER_OMIT_FILTER"
   },

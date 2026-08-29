@@ -24,6 +24,7 @@ REQUIRED_PROVIDER_REUSE_AUDIT = {
     "ProjectParticipantFactApi.inspect": "DIRECT_REUSE",
     "AssetDeviceScopeApi.validateAssignableSerials": "DIRECT_REUSE",
     "NotificationRequested": "DIRECT_REUSE",
+    "OrganizationScopeApi.getActiveScopes": "DIRECT_REUSE",
 }
 
 
@@ -89,6 +90,46 @@ def conflict_notification_and_serial_guard_errors(contract: dict, feature_spec: 
     return errors
 
 
+def contract_administrator_scope_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    question = contract.get("openQuestions", {}).get("Q-FCOM-001", {})
+    if question.get("status") != "RESOLVED" or question.get("blockingScope") != "NONE":
+        errors.append("Q-FCOM-001 must be resolved without a remaining blocking scope")
+
+    scope = contract.get("contractAdministratorScope", {})
+    expected_scope = {
+        "owner": "SYSTEM",
+        "authorityFact": "CURRENT_ACTIVE_USER_COMPANY_DEPARTMENT_SCOPE",
+        "companyMatch": "EXACT_NON_EMPTY_COMPANY_CODE_DISTINCT_UNION",
+        "emptyOrUnavailable": "LIST_EMPTY_DETAIL_AND_WRITE_DENIED",
+        "positiveAuthorizationCache": "NONE",
+        "sensitiveFieldPermission": "pms:commerce:contract:sensitive-read",
+    }
+    for field, expected in expected_scope.items():
+        if scope.get(field) != expected:
+            errors.append(f"invalid contract-administrator scope {field}")
+    if scope.get("departmentSemantics") != "AUTHORIZATION_CONTEXT_ONLY_NO_COMPANY_SCOPE_INFERENCE":
+        errors.append("department facts must not infer company scope")
+    if scope.get("writeRevalidation") != "REFETCH_OWNER_FACT_BEFORE_RELATION_WRITE":
+        errors.append("relation writes must revalidate the current Owner fact")
+
+    api = contract.get("moduleApis", {}).get("OrganizationScopeApi", {})
+    if api.get("provider") != "EXISTING_UNMODIFIED_REAL_PROVIDER" or api.get("method") != "getActiveScopes":
+        errors.append("contract scope must reuse OrganizationScopeApi.getActiveScopes")
+    if "pms:commerce:contract:sensitive-read" not in contract.get("permissions", {}).get("functional", []):
+        errors.append("sensitive contract fields need an independent permission key")
+
+    for required_text in (
+        "OrganizationScopeApi.getActiveScopes",
+        "部门、主范围标记、scopeRole和项目关系均不得扩大或缩小该公司集合",
+        "写入前重新读取当前scope",
+        "pms:commerce:contract:sensitive-read",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing Feature rule: {required_text}")
+    return errors
+
+
 class Fcom001FeatureContractTest(unittest.TestCase):
 
     @classmethod
@@ -101,13 +142,24 @@ class Fcom001FeatureContractTest(unittest.TestCase):
         cls.reuse_audit = REUSE_AUDIT.read_text(encoding="utf-8")
         cls.feature_index = FEATURE_INDEX.read_text(encoding="utf-8")
 
-    def test_candidate_remains_blocked_only_by_the_unresolved_contract_scope_fact(self) -> None:
-        self.assertEqual("CANDIDATE_NOT_READY", self.contract["status"])
-        self.assertEqual("BLOCKED_BY_SPEC_Q_FCOM_001", self.contract["featureReadyDecision"])
-        self.assertEqual("BLOCKED_BY_SPEC", self.contract["openQuestions"]["Q-FCOM-001"]["status"])
-        self.assertIn("不得由Technical Plan", self.feature_spec)
+    def test_candidate_is_ready_for_independent_review_after_contract_scope_resolution(self) -> None:
+        self.assertEqual("CANDIDATE_READY_FOR_INDEPENDENT_REVIEW", self.contract["status"])
+        self.assertEqual("PENDING_INDEPENDENT_FEATURE_READY_REVIEW", self.contract["featureReadyDecision"])
+        self.assertEqual([], contract_administrator_scope_errors(self.contract, self.feature_spec))
+        self.assertIn("不得由Technical Plan发明", self.feature_spec)
         self.assertIn("CANDIDATE", self.feature_index)
-        self.assertIn("NOT_READY", self.feature_index)
+        self.assertIn("READY_FOR_INDEPENDENT_REVIEW", self.feature_index)
+
+    def test_contract_scope_gate_rejects_missing_owner_provider_or_sensitive_permission(self) -> None:
+        missing_provider = deepcopy(self.contract)
+        del missing_provider["moduleApis"]["OrganizationScopeApi"]
+        self.assertTrue(contract_administrator_scope_errors(missing_provider, self.feature_spec))
+
+        missing_sensitive_permission = deepcopy(self.contract)
+        missing_sensitive_permission["permissions"]["functional"].remove(
+            "pms:commerce:contract:sensitive-read")
+        self.assertTrue(contract_administrator_scope_errors(
+            missing_sensitive_permission, self.feature_spec))
 
     def test_office_snapshot_replaces_ast_location_without_inference(self) -> None:
         self.assertNotIn("AssetLocationApi", self.contract["moduleApis"])
@@ -169,6 +221,7 @@ class Fcom001FeatureContractTest(unittest.TestCase):
             "ProjectGovernanceApplicationServiceTest",
             "ProjectClosureStateAdapterTest",
             "V17__pms_acceptance_tables.sql",
+            "OrganizationScopeApiImplTest",
         ):
             with self.subTest(evidence=evidence):
                 self.assertIn(evidence, self.reuse_audit)
