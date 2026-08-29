@@ -208,11 +208,22 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 | `/closure-gates/{projectId}` | `GET` | 返回所有后代项目的门禁快照和水位 |
 | `/project-closures` | `create`、`submit`、`review`、`complete` | complete 发布事件请求 Project 关闭，不直写 Project 表 |
 | `/service-handovers` | create、`submit`、`accept` | 只做持续服务交接，不提供 renew/续保接口 |
-| `/satisfaction-tasks` | create、assign、send、recollect、list/detail | 创建时冻结问卷模板/阈值；未达标只能整改后新建任务和问卷版本；V2 `send`复用短信/邮件和钉钉通知，只增加自动触达，不复制问卷、评分、整改、签字或导出事实 |
-| `/satisfaction-questionnaires/{token}/responses` | submit | 一次性实例、必答/签字校验和幂等提交；客户答案不可由内部用户修改 |
-| `/satisfaction-results` | GET、export | 只读判定；导出按数据/字段/文件权限裁剪并生成导出审计 |
+| `/satisfaction-tasks` | list/detail | 按租户、项目范围和责任人范围读取；领域任务只由受信业务时点初始化，不提供任意公共create |
+| `/satisfaction-tasks/{id}/actions/{assign|recollect}` | POST | 指派只接受获授权项目成员；recollect要求前一失败/失效Result及整改事实，创建新Task/Questionnaire/Result链，不回退旧状态 |
+| `/satisfaction-tasks/{id}/access-grants` | POST | 创建V1受控链接；二维码仅表示同一链接；令牌只返回一次，库内仅存摘要，V2自动发送不在本Feature实现 |
+| `/satisfaction-questionnaires/{token}` | GET | 令牌只读返回唯一ACTIVE问卷的冻结题目和必要展示事实，不返回项目其他数据或内部规则实现 |
+| `/satisfaction-questionnaires/{token}/files` | init-upload、complete-upload | ACC先验证ACTIVE grant及版本，再调用PLT受信业务授权上传；只允许签字/附件目标和安全元数据 |
+| `/satisfaction-questionnaires/{token}/responses` | POST | 按问卷+requestId幂等提交；必答、签字、文件范围和阈值服务端判定，客户不能覆盖旧答案 |
+| `/satisfaction-tasks/{id}/assisted-responses` | POST | 已认证项目成员现场协助，仍保存客户联系人和签字事实；不得把协助人冒充客户 |
+| `/satisfaction-results` | GET、export | 只读Result；导出按项目、字段、文件与租户裁剪并保存条件/范围/文件/下载审计 |
 
 F-ACC-001仅冻结`pms:acceptance:report:query/write/complete/download`四个最小权限键。写入/换版只允许项目经理项目范围，完成命令同时校验ProjectTask范围与活动版本；查询、历史版本和单文件下载分别执行项目树范围、FileBusinessScope和租户隔离。角色—权限映射保持正式授权配置，不以“全权限”删除服务端鉴权。
+
+F-ACC-002冻结`pms:acceptance:satisfaction:query/manage/collect/export/download`五个最小权限键。`manage`控制指派、访问授权和整改重收，`collect`只控制已认证现场协助；客户令牌不取得后台权限，只能访问唯一问卷的GET/文件上传/提交。所有后台路径保留ProjectScope、责任人、字段、FileBusinessScope和租户控制点；角色映射保持可配置。
+
+ACC模块API固定为：`SatisfactionQuestionnaireTemplateApi.resolvePublished`在项目创建时唯一返回模板修订Fact；`SatisfactionTaskInitializationApi.initialize`以MANDATORY加入触发事务并回查`ProjectWorkBindingFactApi`；`SatisfactionResultFactApi.inspect/lockAndRevalidate`向未来CLO/SUB返回不可变结果和版本。未交付来源Owner只能预留调用接口，不能由ACC推断业务时点。
+
+满意度文件策略键为`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE|SATISFACTION_ATTACHMENT`、`ACC/SATISFACTION_RESULT/{resultId}/SATISFACTION_RESULT_DOCUMENT|SATISFACTION_ARCHIVE`。外部受控上传由PLT加性`FileArtifactApi.initializeBusinessGrantUpload/completeBusinessGrantUpload`承接，输入必须含ACC验证的grantId/version、预分配对象、策略键和幂等键；内部上传、集合重验、Access Ticket下载和归档继续复用现有接口。ACC不保存PLT内部主键、不建设第二文件真值。
 
 ACC报告附件的文件策略键固定为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`，归档键固定为同对象下的`ACCEPTANCE_REPORT_ARCHIVE`。ACC `FileBusinessObjectPolicyProvider`把报告版本解析为不可变`projectId/projectTaskId`，使用PROJ `ProjectScopeApi`执行`PROJECT_VIEW`或`PROJECT_EDIT`并把返回`treeVersion`作为唯一`scopeVersion`；归档集合的`ARCHIVE`只接受ACC受信补偿消费者。新上传继续走PLT现有`init-upload/complete-upload`；`ExistingFileReferenceTarget`加性支持唯一ACC目标`ACC/ACCEPTANCE_REPORT_VERSION/*/ACCEPTANCE_REPORT_ATTACHMENT`并保留现有SOL/动态表单目标，绑定既有文件仍调用`attachExistingVersions`。发布/完成调用`lockAndRevalidateReferenceSets`，查询/下载调用`inspectReferenceSets`和现有Access Ticket REST。ACC不持有PLT内部ID，不建设文件代理。
 

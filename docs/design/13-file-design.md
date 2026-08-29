@@ -142,6 +142,14 @@ F-ACC-001报告附件集合固定键为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVer
 | 预览转换失败 | 原文件仍可按权限下载；预览显示失败，不改变审核状态 |
 | 归档失败 | 业务保持待归档；已审核结论不伪装为已归档 |
 
+### 11.1 F-ACC-002满意度文件边界
+
+满意度Response使用两个持续ACTIVE集合：`ACC/SATISFACTION_RESPONSE/{responseId}/SATISFACTION_SIGNATURE`与`SATISFACTION_ATTACHMENT`；Result使用持续ACTIVE的`SATISFACTION_RESULT_DOCUMENT`和独立ARCHIVED的`SATISFACTION_ARCHIVE`。ACC只保存`artifactId/versionNo/referenceKey/artifactVersion/referenceVersion/availabilityVersion/scopeVersion/sha256`公共事实，历史下载始终重验ACTIVE集合并走Access Ticket。
+
+客户受控链接上传不伪造用户。ACC验证`accessGrantId/grantVersion`、唯一Questionnaire、预分配Response、有效期和租户后调用PLT受信业务授权上传；PLT仍执行内容大小、类型、扫描、版本、引用和审计，ACC策略Provider把grant范围限制到签字或附件用途。现场协助使用现有认证上传。完整访问令牌、签字内容和文件正文不得进入日志。
+
+Result归档复用F-ACC-001的双集合模型：结果文档、签字和附件ACTIVE引用保持可下载，归档集合创建同一公共文件事实的ARCHIVED引用和`FileArchiveRecord`。归档actor为Result形成时冻结并在执行时重验权限/范围的责任人；失败保持`PENDING_COMPENSATION`，不回滚或覆盖Result。
+
 ## 12. 审计、隐私和保留
 
 审计上传初始化/完成、版本创建、替换、引用/解绑、下载/预览、分享、审核、归档、失效和管理操作；记录主体、对象、版本、业务上下文、结果、IP/客户端、requestId，不记录文件正文。

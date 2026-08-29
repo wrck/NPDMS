@@ -213,6 +213,19 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | 业务实例复制中任一FileReference失败 | 同一外层事务回滚目标实例、全部新引用、Outbox与消费方成功幂等/审计；同目标同版本重放不新增事件 |
 | 模板API/iframe被CORS、CSP、frame策略或目标权限拒绝 | 浏览器如实显示失败；PLT不代理、不降级为服务端请求，不形成表单保存或其他业务成功事实 |
 
+### 10.2 F-ACC-002满意度异常
+
+| 场景 | 分类与失败行为 |
+|---|---|
+| ACC模板解析零匹配、并列最高优先级或发布版本漂移 | BUSINESS_GATE / VERSION_CONFLICT；项目创建或任务触发整体失败，不选默认模板 |
+| 业务时点Owner未知、ProjectTask/WorkBinding身份或触发版本不一致 | DEPENDENCY_UNAVAILABLE / VERSION_CONFLICT；Task、Questionnaire和Todo零写入 |
+| 访问令牌缺失、过期、撤销、已消费或Questionnaire不匹配 | BUSINESS_GATE；不泄露问卷/项目存在性，不写文件、答卷或结果 |
+| 同questionnaire+requestId同载荷重放/异载荷 | 返回首次Result / IDEMPOTENCY_CONFLICT；不得追加第二Response或Result |
+| 必答缺失、签字无效、附件范围不一致或评分未达阈值 | 追加不可变失败Result并保持旧事实；不得人工改分或将Todo完成当通过 |
+| Result文档、来源投影或归档失败 | Result保持已形成，来源为PENDING_COMPENSATION；不误写ARCHIVED，不删除ACTIVE历史下载引用 |
+| 整改缺前序失败/失效Result或整改事实 | BUSINESS_GATE；不创建新Task/Questionnaire |
+| 旧问卷/回访/转包字段缺映射或值域未确认 | AI-MIG-000迁移问题并保留原始证据；F-ACC-002正向实现不得推断答案、签字或通过 |
+
 ## 11. 重试、熔断和人工接管
 
 重试策略按接口/操作注册，不使用一个全局次数覆盖全部系统。注册项包括 retryable errors、最大尝试、退避、总时间预算、查询结果动作、熔断条件、半开探测和人工接管阈值。
@@ -237,6 +250,7 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 - Outbox 重复、Inbox 重复、事件乱序；
 - 乐观锁冲突、非法状态、门禁失败；
 - 动态表单唯一草稿、不可变发布修订、停用/指针漂移、实例CAS、受控文件字段伪造及浏览器配置失败；
+- 满意度模板歧义、重复触发、令牌生命周期、客户提交幂等、签字/附件范围、失败判定、整改新版本、Result当前唯一和归档补偿；
 - 外部超时但实际成功、部分失败、永久拒绝、恢复后对账；
 - 日志/错误/事件/缓存/数据库敏感字段扫描；
 - 批量逐项结果和人工补偿。

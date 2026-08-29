@@ -926,18 +926,18 @@
 | ACC-02@V2 | V2 | 满意度问卷短信/邮件和钉钉自动触达 | 不重复V1问卷、评分、整改重收、签字和导出事实 |
 
 - 数据对象：SatisfactionCollection
-- 数据表：acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result
-- API：/satisfaction-tasks、/satisfaction-questionnaires/{token}/responses、/satisfaction-results
-- 事件：SatisfactionTaskCreated、SatisfactionResultRecorded、NotificationRequested
-- 外部集成：短信/邮件、钉钉
-- 文件契约：FileArtifact
-- 工作流/状态：V1冻结模板→指派→客户提交→判定→整改后新版本重收→归档；V2仅增加自动触达并记录受理/送达，不重复问卷、评分、整改重收、签字或导出事实
-- 授权与数据范围：ProjectStageScope；客户一次性实例范围；答案/签字不可改写；接收人按业务范围裁剪
+- 数据表：acc_satisfaction_questionnaire_template、acc_satisfaction_questionnaire_template_revision、acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_access_grant、acc_satisfaction_response、acc_satisfaction_response_file、acc_satisfaction_result、acc_satisfaction_result_file、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment
+- API：/satisfaction-tasks、/satisfaction-tasks/{id}/actions/{assign|recollect}、/satisfaction-tasks/{id}/access-grants、/satisfaction-questionnaires/{token}、/satisfaction-questionnaires/{token}/files、/satisfaction-questionnaires/{token}/responses、/satisfaction-tasks/{id}/assisted-responses、/satisfaction-results；内部SatisfactionQuestionnaireTemplateApi、SatisfactionTaskInitializationApi、SatisfactionResultFactApi
+- 事件：SatisfactionTaskCreated、SatisfactionResultVersionChanged、ClosureGateRecheckRequested
+- 外部集成：V1受控链接/二维码/现场协助；V2仅增加自动触达，INT-10短信/邮件、INT-05钉钉仅保留接口边界
+- 文件契约：PLT公共文件事实；SATISFACTION_SIGNATURE/ATTACHMENT/RESULT_DOCUMENT/ARCHIVE
+- 工作流/状态：PROJ冻结模板Fact和业务时点→MANDATORY初始化→指派→受控客户提交→不可变判定→未达标/失效以整改事实新建版本→仅有效达标Result进入ACC-04满意度来源→归档失败补偿；Todo或送达不替代提交/通过
+- 授权与数据范围：pms:acceptance:satisfaction:query/manage/collect/export/download；ProjectScope/责任人/字段/FileBusinessScope/TenantScope；客户grant仅限唯一问卷
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目到达冻结模板配置的满意度收集时点；THEN 平台生成唯一领域任务和问卷实例，冻结模板、阈值、项目、业务对象及责任人；未指派时责任人为项目经理；WHEN 客户完成全部必答项、有效签字且评分达到冻结阈值；THEN 平台形成不可变的"满意度通过"结果，按来源归档至ACC-04，并可被CLO-01或SUB-03按规则引用；WHEN 答卷缺少必答项、签字无效、评分未达标或来源业务范围不一致；THEN 平台记录失败判定并保持满意度状态为"未通过"，阻断闭环及付款门禁，保存答卷、判定和阻断原因；WHEN 项目完成整改并重新收集；THEN 平台创建新的任务、问卷及判定版本，旧答卷和旧判定仍可追溯且不能被修改；WHEN 有数据权限但无敏感字段、文件或下载权限的用户申请导出；THEN 平台生成仅包含授权字段和记录的导出文件及导出审计记录，拒绝超范围内容并保存拒绝原因；WHEN V2责任人对当前有效问卷实例发起自动触达；THEN 平台按短信/邮件INT-10、钉钉INT-05的正式契约发送受控链接，保存通道、接收人、实例版本、送达状态和重试记录；WHEN V2自动触达失败、超时或未确认送达；THEN 任务保持待收集且不生成客户答案或通过结果，责任人可继续使用V1二维码、手工链接或现场协助完成收集
-- Phase 3授权拒绝断言：越权按“ProjectStageScope；客户一次性实例范围；答案/签字不可改写；接收人按业务范围裁剪”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“V1冻结模板→指派→客户提交→判定→整改后新版本重收→归档；V2仅增加自动触达并记录受理/送达，不重复问卷、评分、整改重收、签字或导出事实”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“SatisfactionCollection”及数据表“acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result”；事件边界为“SatisfactionTaskCreated、SatisfactionResultRecorded、NotificationRequested”，文件边界为“FileArtifact”，外部集成为“短信/邮件、钉钉”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3授权拒绝断言：越权按“pms:acceptance:satisfaction:query/manage/collect/export/download；ProjectScope/责任人/字段/FileBusinessScope/TenantScope；客户grant仅限唯一问卷”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“PROJ冻结模板Fact和业务时点→MANDATORY初始化→指派→受控客户提交→不可变判定→未达标/失效以整改事实新建版本→仅有效达标Result进入ACC-04满意度来源→归档失败补偿；Todo或送达不替代提交/通过”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“SatisfactionCollection”及数据表“acc_satisfaction_questionnaire_template、acc_satisfaction_questionnaire_template_revision、acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_access_grant、acc_satisfaction_response、acc_satisfaction_response_file、acc_satisfaction_result、acc_satisfaction_result_file、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment”；事件边界为“SatisfactionTaskCreated、SatisfactionResultVersionChanged、ClosureGateRecheckRequested”，文件边界为“PLT公共文件事实；SATISFACTION_SIGNATURE/ATTACHMENT/RESULT_DOCUMENT/ARCHIVE”，外部集成为“V1受控链接/二维码/现场协助；V2仅增加自动触达，INT-10短信/邮件、INT-05钉钉仅保留接口边界”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-03
@@ -978,16 +978,16 @@
 - 数据对象：DeliveryArtifact
 - 数据表：acc_project_deliverable、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment、acc_artifact_review、acc_archive_record
 - API：/delivery-artifacts
-- 事件：ArtifactAccepted/Archived、ClosureGateRecheckRequested
+- 事件：AcceptanceReportVersionChanged、SatisfactionResultVersionChanged、ArtifactAccepted/Archived、ClosureGateRecheckRequested
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact/FileVersion完整有序集合
-- 工作流/状态：以acc_project_deliverable为唯一应交根；来源版本/附件关系只追加，替换保留旧关系，撤销使当前失效且不恢复旧版；归档失败保留历史并重校验CLO；F-ACC-001只实现初验/终验来源切片，其余来源与统一批量下载留待完整Feature
+- 工作流/状态：以acc_project_deliverable为唯一应交根；来源版本/附件关系只追加，替换/失效保留旧关系且不恢复旧版；F-ACC-001只实现初验/终验来源切片，F-ACC-002仅增加有效达标SatisfactionResult来源及归档补偿；其余来源与统一批量下载留待完整Feature
 - 授权与数据范围：ProjectStageScope、FileBusinessScope；ACC归档
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目进入S5验收阶段且各业务环节产生对应交付件；THEN 系统自动汇总6类交付件至ACC-04交付件归档管理页面：到货签收单（EXE-01）、实施方案（SCH-01/05）、初验报告（ACC-03）、终验报告（ACC-03）、培训记录（ACC-01）、满意度调查（ACC-02）；AND 交付件归档页面支持按类别分类展示、按上传时间/项目编码查询、按类别批量下载；WHEN 项目经理/服务经理在交付件归档页面查看交付件；THEN 系统展示每类交付件的归档状态（已归档/未归档）、归档时间、归档来源业务环节、附件下载链接；AND 任一类别交付件未归档时系统给出提示，便于项目经理跟进归档进度，归档完成后作为CLO-01闭环条件校验的必传交付件数据来源；WHEN 来源记录未批准/未确认、来源版本失效、文件哈希校验失败或用户无下载权限；THEN 对应交付件保持未归档/失效或不可下载状态，不计入CLO-01齐套结果，并展示来源记录和失败原因
 - Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope；ACC归档”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“以acc_project_deliverable为唯一应交根；来源版本/附件关系只追加，替换保留旧关系，撤销使当前失效且不恢复旧版；归档失败保留历史并重校验CLO；F-ACC-001只实现初验/终验来源切片，其余来源与统一批量下载留待完整Feature”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeliveryArtifact”及数据表“acc_project_deliverable、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment、acc_artifact_review、acc_archive_record”；事件边界为“ArtifactAccepted/Archived、ClosureGateRecheckRequested”，文件边界为“FileArtifact/FileVersion完整有序集合”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3业务守卫断言：按“以acc_project_deliverable为唯一应交根；来源版本/附件关系只追加，替换/失效保留旧关系且不恢复旧版；F-ACC-001只实现初验/终验来源切片，F-ACC-002仅增加有效达标SatisfactionResult来源及归档补偿；其余来源与统一批量下载留待完整Feature”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeliveryArtifact”及数据表“acc_project_deliverable、acc_project_deliverable_source_version、acc_project_deliverable_source_attachment、acc_artifact_review、acc_archive_record”；事件边界为“AcceptanceReportVersionChanged、SatisfactionResultVersionChanged、ArtifactAccepted/Archived、ClosureGateRecheckRequested”，文件边界为“FileArtifact/FileVersion完整有序集合”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CLO-01

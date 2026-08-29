@@ -122,10 +122,12 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 | `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | artifactId、fileVersion、review/archive record | 归档不改变 FileArtifact 内容历史 |
 | `AcceptanceReportVersionChanged` | ACC | ACC交付件索引 | acceptanceId、projectId、reportType、changeType(`EFFECTIVE/REPLACED/REVOKED`)、publisherActorUserId、currentReportVersionId（撤销为空）、previousReportVersionId、attachments[{sequence,artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion,sha256}] | 与发布/替换/撤销通过`PlatformCommandExecutionApi`同事务写Outbox；`publisherActorUserId`取首次生效/替换时服务端认证用户，撤销沿用被撤销版本发布人；附件逐项来自PLT公共事实，不携带内部FileVersion/FileReference ID；完整附件集合不得缩成单文件；按来源版本幂等维护应交根及来源历史，失败保留报告并进入补偿，不触发范围绑定 |
 | `ClosureGateRecheckRequested` | ACC | CLO | projectId、sourceRequirementId、sourceObjectId、sourceVersion、reasonCode | 只请求后续CLO重新读取Owner事实；不表示闭环门禁已通过，CLO Feature未交付时允许Outbox保留待消费 |
-| `SatisfactionTaskCreated` | ACC | Todo/Project | taskId、projectId、businessRef、questionnaireRevision、assignee | 创建待办，不表示客户已提交或满意度通过 |
-| `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
+| `SatisfactionTaskCreated` | ACC | Todo/Project | taskId/projectTaskId、projectId、triggerFactId/version、source business object/version、questionnaireId/revision、template/rule/threshold版本、assignee | 创建待办投影，不表示客户已提交或满意度通过；Todo完成不反向推进ACC |
+| `SatisfactionResultVersionChanged` | ACC | ACC满意度来源投影；未来CLO/SUB | changeType(`RECORDED/INVALIDATED`)、task/questionnaire/response/result及版本、template/rule/threshold、sourceContext/object/type/id/version、passed/resultStatus/archiveActorUserId、files[{role,sequence,artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion,sha256}] | 与Result事务同提交Outbox；只有EFFECTIVE且passed结果可成为当前满意度交付件，失败/失效不得被消费者解释为通过 |
 
 F-ACC-001的`AcceptanceReportOutboxDeliveryJob`通过`PlatformOutboxDeliveryApi`只领取`AcceptanceReportVersionChanged`。它先把事件交给来源投影事务；事务成功后调用`markDelivered`，反序列化、身份校验或投影失败则调用`scheduleRetry`且不得标成功。该Job不得领取或标记`ClosureGateRecheckRequested`已投递；CLO消费者不在本Feature内实现。
+
+F-ACC-002的`SatisfactionResultOutboxDeliveryJob`只领取`SatisfactionResultVersionChanged`。它先维护ACC-04满意度来源版本及完整文件集合，投影事务成功后才按消息retryCount调用`markDelivered`，失败使用同一expectedRetryCount调用`scheduleRetry`。`ClosureGateRecheckRequested`及未来SUB重校验事件不由该Job领取或误标成功。
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |
 | `CutoverApproved` | CUT | Todo/DAC | taskId、planRevision、approval snapshot | 不自动下发采集任务 |
 | `CutoverCompleted` | CUT | Project/ACC/ANA | taskId、closureRevision、resultRef、archivedAt | 仅P6提交归档且最终成功时发布；失败、回退未成功或仅采集完成不得发布 |

@@ -397,10 +397,15 @@
         "SUB-04"
       ],
       "targetTables": [
+        "acc_satisfaction_questionnaire_template",
+        "acc_satisfaction_questionnaire_template_revision",
         "acc_satisfaction_collection_task",
         "acc_satisfaction_questionnaire",
+        "acc_satisfaction_access_grant",
         "acc_satisfaction_response",
-        "acc_satisfaction_result"
+        "acc_satisfaction_response_file",
+        "acc_satisfaction_result",
+        "acc_satisfaction_result_file"
       ]
     },
     "DeliveryArtifact": {
