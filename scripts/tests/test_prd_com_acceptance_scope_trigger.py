@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PRD = ROOT / "需求/PRD-项目实施交付管理平台.md"
 BASELINE_PRD = ROOT / "docs/baseline/prd-v1.8.md"
 AMENDMENT = ROOT / "docs/baseline/prd-v1.8-amendment-009-acceptance-scope-stage-trigger.md"
+OPEN_QUESTIONS = ROOT / "docs/decisions/open-questions.md"
 
 
 def requirement_block(text: str, requirement_id: str) -> str:
@@ -26,6 +27,7 @@ class PrdComAcceptanceScopeTriggerTest(unittest.TestCase):
         cls.baseline_bytes = BASELINE_PRD.read_bytes()
         cls.prd = cls.source_bytes.decode("utf-8")
         cls.amendment = AMENDMENT.read_text(encoding="utf-8")
+        cls.open_questions = OPEN_QUESTIONS.read_text(encoding="utf-8")
 
     def test_source_and_frozen_baseline_are_byte_identical(self) -> None:
         self.assertEqual(self.source_bytes, self.baseline_bytes)
@@ -47,8 +49,20 @@ class PrdComAcceptanceScopeTriggerTest(unittest.TestCase):
         self.assertIn("不留下部分绑定", acc)
 
     def test_unapproved_exit_semantics_fail_closed(self) -> None:
-        self.assertIn("项目退出或回退验收阶段时是否关闭既有绑定，不在本次确认范围", self.amendment)
-        self.assertIn("不得自动解锁或关闭绑定", self.amendment)
+        com = requirement_block(self.prd, "COM-01")
+        acc = requirement_block(self.prd, "ACC-03")
+        for block in (com, acc, self.amendment):
+            self.assertIn("Q-FCOM-002", block)
+            self.assertIn("不得自动解锁或关闭", block)
+
+    def test_exit_semantics_are_registered_as_a_narrow_blocker(self) -> None:
+        start = self.open_questions.index("### Q-FCOM-002")
+        end = self.open_questions.index("\n### ", start + 1)
+        question = self.open_questions[start:end]
+        self.assertIn("Status: BLOCKED_BY_SPEC", question)
+        self.assertIn("Requirement IDs: COM-01、ACC-03、PM-10", question)
+        self.assertIn("仅退出/回退时的绑定关闭或解锁设计", question)
+        self.assertIn("阶段进入绑定与验收阶段内新版本绑定规则继续有效", question)
 
 
 if __name__ == "__main__":
