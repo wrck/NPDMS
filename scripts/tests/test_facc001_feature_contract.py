@@ -23,7 +23,8 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     events = contract.get("events", {}).get("AcceptanceReportVersionChanged", {})
     if events.get("changeTypes") != ["EFFECTIVE", "REPLACED", "REVOKED"]:
         errors.append("event-types")
-    if not any("attachments[{sequence" in fact for fact in events.get("facts", [])):
+    if not any("attachments[{sequence,fileArtifactId,fileVersionNo,referenceKey,artifactVersion,referenceVersion,availabilityVersion,scopeVersion,fileHash}]" == fact
+               for fact in events.get("facts", [])):
         errors.append("attachments")
     if contract.get("transactionBoundary", {}).get("archiveFailureRollsBackReport") is not False:
         errors.append("compensation")
@@ -31,14 +32,41 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
         errors.append("binding")
     if "V17_UNCHANGED_EXACT_FORWARD_BINDING_ONLY" not in contract.get("acceptance", []):
         errors.append("legacy")
+    module_apis = contract.get("moduleApis", {})
+    initializer = module_apis.get("AcceptanceActivityInitializationApi", {})
+    if initializer.get("transactionPropagation") != "MANDATORY" or \
+            initializer.get("newProjectOrder") != "TASKS_NON_ACC_CONTRACTS_MILESTONES_DELIVERABLE_ROOT_ACTIVITY_ACC_CONTRACT":
+        errors.append("initializer")
+    file_api = module_apis.get("FileArtifactApi", {})
+    if file_api.get("attachExistingVersionsTarget") != \
+            "ACC/ACCEPTANCE_REPORT_VERSION/*/ACCEPTANCE_REPORT_ATTACHMENT_ADDITIVE_ONLY" or \
+            file_api.get("archiveModel") != "ACTIVE_ATTACHMENT_REFERENCE_PLUS_SEPARATE_ARCHIVED_REFERENCE" or \
+            file_api.get("archivePermission") != "pms:file:archive" or \
+            file_api.get("tenantIsolation") != "REQUIRED":
+        errors.append("file-api")
+    if module_apis.get("FileBusinessObjectPolicyProvider", {}).get("scopeVersionSource") != \
+            "ProjectScopeApi.treeVersion":
+        errors.append("file-policy")
+    required_public_fields = {"file_artifact_id", "file_version_no", "reference_key", "artifact_version",
+                              "reference_version", "availability_version", "scope_version", "file_hash"}
+    for table_name in ("acc_acceptance_report_attachment", "acc_project_deliverable_source_attachment"):
+        attachment = contract.get("physicalDelta", {}).get("tables", {}).get(table_name, {})
+        if not required_public_fields.issubset(set(attachment.get("fields", []))) or \
+                "file_version_id" in attachment.get("fields", []):
+            errors.append(f"public-file-facts:{table_name}")
     provisioning = contract.get("activityProvisioning", {})
     if provisioning.get("existingProjectNoMatchingTask") != "UNCHANGED_NOT_INFERRED" or \
             provisioning.get("partialDuplicateOrAmbiguous") != "FAIL_BATCH":
         errors.append("provisioning")
-    for marker in ("Feature Ready：`NOT_READY", "ACC-03@V1=FULL", "ACC-04@V1=PARTIAL", "Q-FCOM-002"):
+    if provisioning.get("bothTerminal") != "UNCHANGED_PRESERVE_HISTORY" or \
+            provisioning.get("mixedTerminalNonTerminal") != "FAIL_BATCH":
+        errors.append("terminal-partition")
+    for marker in ("Feature Ready：`NOT_READY", "ACC-03@V1=FULL", "ACC-04@V1=PARTIAL", "Q-FCOM-002",
+                   "ADR-0040", "ACCEPTANCE_REPORT_ARCHIVE", "AcceptanceActivityInitializationApi"):
         if marker not in spec:
             errors.append(f"spec:{marker}")
-    for marker in ("REUSE-01", "REUSE-11", "DO_NOT_REUSE_NEW_ONLY", "T-INITIAL-ACCEPT", "D-FINAL-REPORT"):
+    for marker in ("REUSE-01", "REUSE-14", "DO_NOT_REUSE_NEW_ONLY", "T-INITIAL-ACCEPT", "D-FINAL-REPORT",
+                   "ExistingFileReferenceTarget", "FileQueryService"):
         if marker not in audit and marker not in json.dumps(contract, ensure_ascii=False):
             errors.append(f"audit:{marker}")
     return errors
@@ -68,6 +96,19 @@ class Facc001FeatureContractTest(unittest.TestCase):
         mutated = deepcopy(self.contract)
         mutated["events"]["AcceptanceReportVersionChanged"]["facts"][-1] = "fileArtifactId"
         self.assertIn("attachments", contract_errors(mutated, self.spec, self.audit))
+
+    def test_gate_rejects_internal_file_ids_or_single_reference_archive(self) -> None:
+        mutated = deepcopy(self.contract)
+        fields = mutated["physicalDelta"]["tables"]["acc_acceptance_report_attachment"]["fields"]
+        if "file_version_no" in fields:
+            fields[fields.index("file_version_no")] = "file_version_id"
+        elif "file_version_id" not in fields:
+            fields.append("file_version_id")
+        self.assertTrue(any(error.startswith("public-file-facts")
+                            for error in contract_errors(mutated, self.spec, self.audit)))
+        mutated = deepcopy(self.contract)
+        mutated["moduleApis"]["FileArtifactApi"]["archiveModel"] = "ARCHIVE_ATTACHMENT_REFERENCE_IN_PLACE"
+        self.assertIn("file-api", contract_errors(mutated, self.spec, self.audit))
 
     def test_gate_rejects_report_triggered_scope_binding(self) -> None:
         mutated = deepcopy(self.contract)
@@ -101,6 +142,11 @@ class Facc001FeatureContractTest(unittest.TestCase):
         self.assertIn("APPEND_ACC_CURRENT_CONTRACT", provisioning["existingProjectAction"])
         self.assertEqual("PROJECT_TASK_CONTRACT_ACTIVITY_AND_DELIVERABLE_ALL_OR_NOTHING",
                          provisioning["atomicity"])
+
+    def test_activity_provisioning_rejects_mixed_terminal_cutover(self) -> None:
+        mutated = deepcopy(self.contract)
+        mutated["activityProvisioning"]["mixedTerminalNonTerminal"] = "UNCHANGED"
+        self.assertIn("terminal-partition", contract_errors(mutated, self.spec, self.audit))
 
     def test_q_fcom002_only_blocks_out_of_scope_path(self) -> None:
         question = self.contract["openQuestions"]["Q-FCOM-002"]
