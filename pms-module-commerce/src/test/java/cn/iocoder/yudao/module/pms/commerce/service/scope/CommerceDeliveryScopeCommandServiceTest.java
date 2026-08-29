@@ -92,6 +92,31 @@ class CommerceDeliveryScopeCommandServiceTest {
     }
 
     @Test
+    void shouldPreviewAvailableQuantityAndOwnerSnapshotWithoutWrites() {
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
+                new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
+        when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
+                ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        DeliveryScopeDO occupied = currentScope();
+        occupied.setProjectId(502L);
+        when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(occupied));
+
+        DeliveryScopePreviewResult result = service.preview(new DeliveryScopePreviewCommand(
+                1L, 99L, 501L, 3, 12L, 301L, "erp-v2", new BigDecimal("15"), List.of()));
+
+        assertTrue(result.allowed());
+        assertEquals(new BigDecimal("90"), result.availableQuantity());
+        assertEquals("OFF-1", result.officeDepartmentCode());
+        assertEquals(List.of(401L), result.occupiedScopes().stream()
+                .map(DeliveryScopePreviewResult.OccupiedScope::deliveryScopeId).toList());
+        verifyNoInteractions(detailMapper, acceptanceScopeGuardApi, operationAuditApi);
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+        verify(outboxMapper, never()).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
     void shouldBindNewScopeWhenOwnerReportsAcceptanceStage() {
         allowProject();
         var stage = new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3, 701L, true);

@@ -34,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,42 @@ public class CommerceDeliveryScopeCommandService {
     private final DeliveryScopeDetailMapper detailMapper;
     private final CommerceOutboxEventMapper outboxMapper;
     private final OperationAuditApi operationAuditApi;
+
+    @Transactional(rollbackFor = Exception.class)
+    public DeliveryScopePreviewResult preview(DeliveryScopePreviewCommand command) {
+        validatePreview(command);
+        ProjectOfficeFact project = lockProject(command.tenantId(), command.subjectUserId(), command.projectId(),
+                command.expectedProjectVersion(), command.expectedProjectScopeVersion());
+        SalesOrderLineDO line = lockLine(command.tenantId(), command.orderLineId(),
+                command.expectedOrderLineSourceVersion());
+        List<DeliveryScopeDO> current = lockCurrentByLine(command.tenantId(), line.getId());
+        BigDecimal allocated = current.stream().map(DeliveryScopeDO::getAllocatedQty)
+                .filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal available = line.getOrderQty().subtract(allocated);
+        List<String> errors = new ArrayList<>();
+        if (current.stream().anyMatch(scope -> "CONFLICT_FROZEN".equals(scope.getScopeStatus()))) {
+            errors.add("DELIVERY_SCOPE_CONFLICT_FROZEN");
+        }
+        if (current.stream().anyMatch(scope -> Objects.equals(scope.getProjectId(), command.projectId()))) {
+            errors.add("DELIVERY_SCOPE_CURRENT_CONFLICT");
+        }
+        if (command.proposedQuantity().scale() > 6
+                || command.proposedQuantity().stripTrailingZeros().scale() > line.getUnitScale()) {
+            errors.add("UNIT_PRECISION_INVALID");
+        }
+        if (command.proposedQuantity().compareTo(available) > 0) {
+            errors.add("OVER_ALLOCATION");
+        }
+        validatePreviewSubject(command, line, errors);
+        List<DeliveryScopePreviewResult.OccupiedScope> occupied = current.stream()
+                .map(scope -> new DeliveryScopePreviewResult.OccupiedScope(scope.getId(), scope.getProjectId(),
+                        scope.getAllocatedQty(), scope.getAllocationVersion(), scope.getScopeStatus()))
+                .toList();
+        return new DeliveryScopePreviewResult(project.projectId(), project.projectVersion(), project.projectCode(),
+                project.officeDepartmentId(), project.officeDepartmentCode(), project.officeDepartmentName(),
+                project.officeDepartmentVersion(), line.getId(), line.getSourceVersion(), line.getOrderQty(),
+                allocated, available, command.proposedQuantity(), errors.isEmpty(), List.copyOf(errors), occupied);
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public DeliveryScopeCommandResult assign(DeliveryScopeAssignCommand command) {
@@ -229,6 +266,40 @@ public class CommerceDeliveryScopeCommandService {
         }
     }
 
+    private void validatePreviewSubject(DeliveryScopePreviewCommand command, SalesOrderLineDO line,
+                                        List<String> errors) {
+        List<String> serials;
+        try {
+            serials = normalizeSerials(command.serialNumbers());
+        } catch (RuntimeException exception) {
+            errors.add("SERIAL_LIST_INVALID");
+            return;
+        }
+        if (serials.isEmpty()) {
+            if (blank(line.getProductCode())) {
+                errors.add("ERP_PRODUCT_CODE_REQUIRED");
+            }
+            return;
+        }
+        if (command.proposedQuantity().compareTo(BigDecimal.valueOf(serials.size())) != 0) {
+            errors.add("SERIAL_QUANTITY_MISMATCH");
+        }
+        SerialScopeValidationResult result;
+        try {
+            result = assetDeviceScopeApi.validateAssignableSerials(
+                    command.tenantId(), command.projectId(), serials);
+        } catch (RuntimeException exception) {
+            errors.add("AST_PROVIDER_UNAVAILABLE");
+            return;
+        }
+        if (result == null || !result.valid() || result.missingSerialNumbers() == null
+                || !result.missingSerialNumbers().isEmpty() || result.unavailableSerialNumbers() == null
+                || !result.unavailableSerialNumbers().isEmpty() || result.duplicateSerialNumbers() == null
+                || !result.duplicateSerialNumbers().isEmpty()) {
+            errors.add("AST_SERIAL_NOT_ASSIGNABLE");
+        }
+    }
+
     private void validateTotal(SalesOrderLineDO line, List<DeliveryScopeDO> current,
                                DeliveryScopeDO replaced, BigDecimal proposed) {
         if (proposed.scale() > 6 || proposed.stripTrailingZeros().scale() > line.getUnitScale()) {
@@ -381,6 +452,16 @@ public class CommerceDeliveryScopeCommandService {
                 || command.allocatedQuantity().signum() <= 0 || blank(command.reason())
                 || blank(command.operationId()) || command.operationId().length() > 128) {
             throw conflict("DELIVERY_SCOPE_COMMAND_INVALID");
+        }
+    }
+
+    private void validatePreview(DeliveryScopePreviewCommand command) {
+        if (command == null || invalidIdentity(command.tenantId(), command.subjectUserId(), command.projectId(),
+                command.expectedProjectVersion(), command.expectedProjectScopeVersion())
+                || command.orderLineId() == null || command.orderLineId() <= 0
+                || blank(command.expectedOrderLineSourceVersion()) || command.proposedQuantity() == null
+                || command.proposedQuantity().signum() <= 0) {
+            throw conflict("DELIVERY_SCOPE_PREVIEW_INVALID");
         }
     }
 
