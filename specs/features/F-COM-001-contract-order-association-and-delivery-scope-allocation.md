@@ -240,7 +240,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 结论：Feature继续保持`BASELINE / READY`，已通过的Feature Ready业务语义不撤销。V72受管种子处置已由独立整改复审批准，允许形成唯一Technical Plan候选。Q-FCOM-002仍仅保留Out of Scope的退出/回退关闭或解锁窄阻断；第三方平台仍只冻结接口边界。
 
-检查点：基线=3412e383；当前Gate=Technical Plan形成；已通过=Feature Ready及V72种子补充GO；阻塞=无；下一步=形成唯一Technical Plan候选，不开始产品实现。
+检查点：基线=8e6db2d3；当前Gate=Technical Plan独立审核；已通过=Feature Ready及V72种子补充GO；阻塞=唯一计划候选待裁决；下一步=GO后创建当前Feature Task并进入Implementation。
 
 ## 12. 追溯
 
