@@ -1,10 +1,10 @@
 # F-IMP-002 到货签收与里程碑事实
 
-> Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`IMPLEMENTATION_PENDING`
+> Feature实施状态：`IN_PROGRESS`
+> 总体工程阶段：`IMPLEMENTATION`
 > Feature Ready Gate：`READY / GO`（锁定提交`4b5a2ac9`）
 > Technical Plan Gate：`PASS / GO`（锁定提交`e0184ac4`）
-> Implementation Done Gate：`NOT_STARTED`
+> Implementation Done Gate：`NOT_READY`
 > Requirement：`EXE-01@V1=FULL`
 > Feature Spec：`specs/features/F-IMP-002-arrival-acceptance.md`
 > 复用审计：`specs/features/F-IMP-002-legacy-reuse-audit.md`
@@ -14,7 +14,8 @@
 
 ## 当前最小工作单元
 
-- 按唯一当前有效的F-IMP-002 Technical Plan进入Task排他认领；先实施Task 1公共事实契约与生产依赖适配，不提前执行功能验收。
+- Task 1A公共事实契约已完成：新增`ArrivalAcceptanceFactApi`、查询/锁定重验DTO、结构化范围水位及设备/数量结果契约，定向契约测试4项通过。
+- 当前继续Task 1B的PROJ/PLT生产依赖适配；COM `getAssignedScope`、AST `DeviceScopeFactApi`和ACC生产契约未形成的工作保持`BLOCKED_BY_DEPENDENCY`，不注册fallback或Fake Bean。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
@@ -37,5 +38,5 @@
 
 ## 未授权事项
 
-- Technical Plan通过评审前不得生成DDL、Flyway、后端、前端或测试实现。
+- 只执行Technical Plan已授权且依赖已满足的最小工作单元；公共API、Flyway、菜单/Job种子、错误码和事件契约继续串行合入。
 - 生产依赖未形成前不得声明Implementation Done、真实MySQL生产闭环或真实浏览器正向验收。
