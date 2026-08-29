@@ -60,7 +60,7 @@
 |---|---|---|
 | ProjectTreeScope | 项目、任务、组合和阶段 | 当前项目树版本、主体项目角色和后代范围 |
 | ProjectDeviceScope | 设备、实施、割接、巡检 | DeviceCurrentAssignment + 项目祖先投影水位 |
-| ContractProjectScope | 合同订单范围 | 【BLOCKED_BY_SPEC：Q-FCOM-001】合同管理员的权威授权事实尚未由业务确认；DeliveryScope只能裁剪已有项目关系，不能替代首次合同授权 |
+| ContractProjectScope | 合同订单范围 | 合同管理员：SYSTEM `OrganizationScopeApi.getActiveScopes(subjectUserId)`返回的当前有效`UserCompanyDepartmentScope.companyCode`精确去重集合；项目经理：批准的ProjectScope。DeliveryScope只能裁剪已有项目关系，不能替代首次合同公司范围 |
 | BusinessObjectDeviceCredentialScope | 采集任务 | 来源业务对象、设备、协议、命令模板、用户和有效期五元组 |
 | FileBusinessScope | 下载、预览、替换、归档 | FileReference 所指业务对象的实时权限 |
 
@@ -254,9 +254,17 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 |---|---|---|---|
 | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM权威字段只读；临时客户显式标记来源；客户地址/站点只保存AST稳定引用 |
 | AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/asset-locations/addresses`、`/asset-locations/sites`、`/asset-locations/sites/{id}/tree`、`/asset-locations/area-department-mappings`、`/rma-replacements` | 设备归属用`actions/assign-project`；地点由AST拥有；站点不绑定公司/部门；设备当前位置由已确认安装/迁移/拆除事实生效 |
-| COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；平台仅维护项目交付范围分配/释放；范围办事处来自目标项目发生时部门快照，不调用AST地点契约；合同管理员查询与关联写入在Q-FCOM-001关闭前不可实施 |
+| COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；平台仅维护项目交付范围分配/释放；范围办事处来自目标项目发生时部门快照，不调用AST地点契约；合同管理员按SYSTEM当前有效公司编码范围查询和关联，敏感字段另需字段权限 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
+
+COM-01合同管理员消费现有SYSTEM契约，不新增合同专用SYSTEM接口：
+
+- 调用：`OrganizationScopeApi.getActiveScopes(subjectUserId)`；租户只能取服务端受信上下文，禁止由请求体或查询参数指定。返回行使用`id/companyId/companyCode/departmentId/departmentCode/effectiveFrom/effectiveTo/status/version`，其中合同范围只消费`id/companyCode/version`，其余字段不得参与公司推导。
+- 列表：每次请求先取当前有效scope，将非空`companyCode`按原值精确去重，作为合同/订单场景Query的必选集合条件；SQL必须保持精确字符串相等，空集合直接返回空，不得通过省略条件扩大查询。Owner调用异常或不可用时对外仍返回空页，并写失败授权审计。
+- 详情：先取当前scope再按目标合同当前ERP `companyCode`精确校验；无匹配、公司编码不可核实或Owner不可用统一按无权/不可用处理，不返回对象存在性、订单摘要或项目关系。
+- `POST /contracts/{id}/project-relations`：要求`pms:commerce:contract:relate`、幂等键和业务依据；执行业务写入前重新取当前scope并要求至少一行精确命中合同公司编码。成功审计记录按scope ID排序的全部命中`id/version`；重验失败不写关系、成功幂等、Outbox或成功审计。
+- 字段：合同金额及已定义商务敏感字段的明文要求`pms:commerce:contract:sensitive-read`，且必须先通过公司范围；否则脱敏或不返回。该权限不扩大合同集合，合同查询权限也不授予明文金额。
 
 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
 

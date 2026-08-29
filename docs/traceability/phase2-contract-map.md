@@ -20,15 +20,15 @@
 
 - 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、AcceptanceScopeBinding、ProjectStageSnapshot
 - 数据表：com_contract、com_sales_order、com_sales_order_line、com_delivery_scope、com_delivery_scope_detail、acc_acceptance_scope_binding、proj_project_stage_snapshot
-- API：/contracts、/sales-orders、/order-lines、/delivery-scopes；内部ProjectOfficeFactApi、ProjectAcceptanceStageFactApi、AcceptanceScopeBindingApi、AcceptanceScopeGuardApi、DeliveryScopeAcceptanceLockApi
+- API：/contracts、/sales-orders、/order-lines、/delivery-scopes；内部OrganizationScopeApi、ProjectOfficeFactApi、ProjectAcceptanceStageFactApi、AcceptanceScopeBindingApi、AcceptanceScopeGuardApi、DeliveryScopeAcceptanceLockApi
 - 事件：DeliveryScopeAssigned/Released；ProjectStageChanged仅作提交后通知，不触发绑定
 - 外部集成：ERP（合同订单权威）；CRM仅提供项目/客户上下文
 - 文件契约：N/A（不产生或不持有文件正文）
 - 工作流/状态：ERP来源版本与单位精度守卫、项目办事处发生时快照、范围追加版本、V70必填快照与明细序号确定性转换、PROJ→COM→ACC统一锁序、阶段进入/新范围生效与绑定原子提交、报告与绑定解耦、超分配及验收减量守卫
-- 授权与数据范围：ContractProjectScope（Q-FCOM-001关闭前BLOCKED_BY_SPEC）；ERP核心字段只读
+- 授权与数据范围：ContractProjectScope：合同管理员按SYSTEM当前有效UserCompanyDepartmentScope.companyCode精确范围，空/不可用失败关闭；敏感字段另需pms:commerce:contract:sensitive-read；ERP核心字段只读
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
-- Phase 3 PRD验收基线：WHEN ERP合同、销售订单或订单行数据可用（接口同步或经授权人工补录待核对）；THEN 平台按ERP来源业务键关联项目并展示权威字段及来源状态；AND 接口不可用不阻断项目内部流程，但未取得ERP权威数量前不得将待核对数量视为最终可分配量；WHEN 项目经理分配订单行到项目；THEN 系统校验数量、目标项目所属办事处部门事实和权限，生成包含发生时办事处快照的可追溯范围分配记录；WHEN 分配数量超过可用数量；THEN 系统拒绝保存并提示已分配明细；WHEN 项目进入其设定的验收阶段，或项目已在验收阶段时有新范围版本生效；THEN 系统把相应当前有效分配版本同步纳入验收范围；任一绑定失败时阶段进入或范围生效整体不成功，不留下部分绑定；WHEN 项目退出或回退验收阶段，但Q-FCOM-002尚未关闭；THEN 系统不得自动解锁或关闭既有验收范围绑定，退出/回退的绑定关闭设计保持`BLOCKED_BY_SPEC`
-- Phase 3授权拒绝断言：越权按“ContractProjectScope（Q-FCOM-001关闭前BLOCKED_BY_SPEC）；ERP核心字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3 PRD验收基线：WHEN ERP合同、销售订单或订单行数据可用（接口同步或经授权人工补录待核对）；THEN 平台按ERP来源业务键关联项目并展示权威字段及来源状态；AND 接口不可用不阻断项目内部流程，但未取得ERP权威数量前不得将待核对数量视为最终可分配量；WHEN 项目经理分配订单行到项目；THEN 系统校验数量、目标项目所属办事处部门事实和权限，生成包含发生时办事处快照的可追溯范围分配记录；WHEN 分配数量超过可用数量；THEN 系统拒绝保存并提示已分配明细；WHEN 合同管理员首次查询合同、订单或订单行，或者维护项目—合同关系；THEN 系统仅允许访问ERP所属公司编码精确命中其SYSTEM当前有效公司—部门授权事实的记录；空范围或授权事实未知、不可用时列表为空，详情和写操作拒绝；AND 关系维护写入前重新校验并留痕授权事实ID和版本；授权撤销或到期后禁止后续查询和维护，不删除既有业务历史；AND 合同金额等商务敏感字段仍须独立字段权限，未授权时脱敏或不返回；WHEN 项目进入其设定的验收阶段，或项目已在验收阶段时有新范围版本生效；THEN 系统把相应当前有效分配版本同步纳入验收范围；任一绑定失败时阶段进入或范围生效整体不成功，不留下部分绑定；WHEN 项目退出或回退验收阶段，但Q-FCOM-002尚未关闭；THEN 系统不得自动解锁或关闭既有验收范围绑定，退出/回退的绑定关闭设计保持`BLOCKED_BY_SPEC`
+- Phase 3授权拒绝断言：越权按“ContractProjectScope：合同管理员按SYSTEM当前有效UserCompanyDepartmentScope.companyCode精确范围，空/不可用失败关闭；敏感字段另需pms:commerce:contract:sensitive-read；ERP核心字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
 - Phase 3业务守卫断言：按“ERP来源版本与单位精度守卫、项目办事处发生时快照、范围追加版本、V70必填快照与明细序号确定性转换、PROJ→COM→ACC统一锁序、阶段进入/新范围生效与绑定原子提交、报告与绑定解耦、超分配及验收减量守卫”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、AcceptanceScopeBinding、ProjectStageSnapshot”及数据表“com_contract、com_sales_order、com_sales_order_line、com_delivery_scope、com_delivery_scope_detail、acc_acceptance_scope_binding、proj_project_stage_snapshot”；事件边界为“DeliveryScopeAssigned/Released；ProjectStageChanged仅作提交后通知，不触发绑定”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ERP（合同订单权威）；CRM仅提供项目/客户上下文”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录

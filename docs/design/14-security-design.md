@@ -92,11 +92,13 @@ Browser
 | 项目/任务树 | ProjectTreeScope、treeVersion、主体项目角色 | 平级默认不可见；父级只查看明确授权后代；错误不泄露敏感子节点 |
 | ProjectTask业务工作台 | TaskWorkBinding版本、ProjectTreeScope、绑定类型、适用的目标对象权限与业务状态 | TASK_NATIVE按任务范围返回通用详情操作；其他类型的VIEW/EDIT/APPROVE/CREATE由服务端合并授权，目标对象无权时拒绝，不回退为通用任务编辑权限 |
 | 设备/实施/割接/巡检 | DeviceCurrentAssignment、祖先投影水位、业务对象范围 | 越级设备不可查、不可操作；投影延迟时写操作回源真值 |
-| 合同订单 | ERP来源映射、ContractProjectScope、DeliveryScope | 不得因项目权限自动获取全部合同金额/订单范围；Q-FCOM-001关闭前合同管理员查询和关联写入保持`BLOCKED_BY_SPEC`，不得临时采用租户全量或组织范围 |
+| 合同订单 | ERP来源映射、SYSTEM当前有效UserCompanyDepartmentScope、ContractProjectScope、DeliveryScope、字段权限 | 合同管理员只命中授权`companyCode`精确集合；空范围/Owner不可用时列表空、详情和写拒绝；项目范围、部门树和功能权限不得扩张合同集合；无`pms:commerce:contract:sensitive-read`时金额等敏感字段脱敏或不返回 |
 | 文件 | FileReference业务对象、文件版本、操作类型 | 下载/预览/替换/归档分别校验；签名URL短期且绑定主体/操作 |
 | 设备凭证 | 用户、凭证、设备、协议、命令模板、有效期五元组及任务 | 创建人默认可用；扩大范围显式授权；管理员身份不隐式取密 |
 
 权限收缩、凭证撤销、文件失效和成员移除先更新真值并推进权限版本；敏感读/写必须回源，不能继续信任旧缓存。
+
+COM合同目录、详情和关系维护每次调用SYSTEM现有`OrganizationScopeApi.getActiveScopes`；关系写在提交前再次回源并审计命中scope ID/version。不得在浏览器、通用缓存、COM关系表或错误载荷保存可替代SYSTEM的授权真值；Owner失败审计中的scope ID及合同金额按敏感字段处理。
 
 ## 6. Device Access & Collection秘密安全
 

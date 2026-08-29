@@ -495,6 +495,12 @@ V70转换只允许在同一只读快照/停写窗口内执行，输入集以V70�
 
 转换前后必须按租户对账订单行数、范围主/明细数、`detail_sequence`分组连续性、各订单行当前有效分配量、历史区间、分配版本和Outbox事件；任一不一致整体回滚。旧表只在同次切换成功后退出写入，不建立长期双写或第二Owner。
 
+### 8.2.4 F-COM-001合同管理员授权物理结论
+
+修订009的方案B不新增合同授权表、关系表字段或SYSTEM物理变更。`UserCompanyDepartmentScope`继续由SYSTEM现有表和`OrganizationScopeApi`拥有；COM以`com_contract.company_code`、`com_sales_order.company_code`和`com_sales_order_line.company_code`作为查询过滤字段，比较必须保持公司编码原值精确相等，不进行大小写折叠、名称映射或部门推导。
+
+项目—合同关系写入采用既有关系表；本次命中的SYSTEM scope ID/version只进入既有`AuditRecord.authorizationSnapshot`，按scope ID稳定排序保存，不复制到关系表或COM授权表。Owner调用失败、空范围、公司编码缺失或不匹配时零业务写入。因此本差量对P3-E09为`NO_PHYSICAL_DELTA`，不改当前核心DDL、Feature-forward字段表或全局哈希。
+
 ### 8.3 项目—合同—订单行—设备迁移主链
 
 历史数据结论对应到当前 Context 命名如下；Feature DDL 必须保存显式映射，不能因表名前缀调整丢失语义：

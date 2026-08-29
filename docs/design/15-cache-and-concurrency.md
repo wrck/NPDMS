@@ -26,6 +26,7 @@
 | 主数据查询 | 客户、设备、合同必要副本 | tenant、objectId/sourceVersion、fieldScopeHash | 本地数据库是真值副本，缓存短期加速 |
 | 文件下载授权 | 短时访问令牌 | tenant、subject、artifact/version、operation、scopeHash | 到期/撤销；敏感操作可单次 |
 | 权限辅助 | 功能权限、项目成员快照 | tenant、subject、policyVersion、projectTreeVersion | 拒绝优先；写操作回源关键事实 |
+| 合同管理员公司范围 | 不缓存正向授权；每次请求回源SYSTEM当前有效scope | tenant、subject、scopeId/version（仅审计，不作缓存授权） | 空/异常失败关闭；撤权、到期或版本变化后的下一请求立即按新事实判定 |
 | 看板 | MetricSnapshot/PortfolioView | tenant、metricVersion、watermark、scopeHash | 不回写业务；展示截止时间 |
 
 凭证明文、临时密码、私钥、Token、完整授权码、未脱敏外部报文和待提交业务命令不得进入通用缓存。
@@ -126,6 +127,7 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - PROJ进入验收阶段时已持有项目当前行锁，ACC经`DeliveryScopeAcceptanceLockApi`按稳定范围ID锁定该项目全部当前有效范围，再追加绑定；任一失败使阶段快照、绑定和阶段进入整体回滚。
 - 项目已处验收阶段时，COM在同一项目锁下写入新范围版本并同步调用`AcceptanceScopeBindingApi.bindEffectiveScope`；绑定失败使范围版本生效整体回滚。减量在同一锁序下调用`AcceptanceScopeGuardApi`，已有绑定、未知、超时或版本变化均失败关闭。
 - 统一锁顺序为PROJ项目当前行→COM订单行（适用时）→COM范围当前行（稳定ID）→ACC绑定。初验/终验报告行不进入该锁链，报告状态不得用于判断绑定。
+- 合同列表、详情和项目—合同关系维护不使用正向公司范围缓存。关系写在任何COM业务锁和写入前调用`OrganizationScopeApi.getActiveScopes`，按`companyCode`精确校验并冻结本次授权快照；调用后若进入COM事务，只把scope ID/version写审计，不反向锁SYSTEM或把授权结果持久化为第二真值。并发撤权以写前最后一次Owner读取为本次判定，后续请求必须读取新当前事实。
 
 到货数量、工时和动作数值使用相同原则：保留原值和调整记录，不通过并发最后写覆盖。
 
@@ -178,6 +180,7 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - 跨Context动态表单命令先冻结封闭业务动作，再按完整Owner稳定键全量锁定并以同一动作重验Provider事实，之后锁PLT实例/修订，最后按全局稳定顺序锁Artifact→Version→Reference；首个PLT锁后禁止回调Owner Provider。写入和持锁方法传播`MANDATORY`；完整重验比较双版本、规范化值和所有ACTIVE引用集合，显式空集合也必须相等；
 - 缓存失效丢失、Redis不可用、热点穿透；
 - 权限收缩后缓存不得继续授权敏感访问。
+- 合同公司scope撤权/到期、同公司多scope去重、Owner不可用及关系写前版本重验；任何场景不得因缓存继续返回合同或写关系。
 
 监控 cache hit/miss/latency、DB fallback、lock wait/deadlock、optimistic conflict、tree projection lag、assignment projection lag、outbox lag 和 callback disorder。
 
