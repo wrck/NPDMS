@@ -18,6 +18,9 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.TaskStateMach
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskLifecycleStateUpdate;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.ProjectTaskCommands.TaskActionCommand;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.command.TaskCommandResult;
+import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.dto.AcceptanceActivityCompletionFact;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +56,8 @@ class ProjectTaskLifecycleServiceTest {
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock OperationAuditApi operationAuditApi;
     @Mock ProjectTaskProgressService progressService;
+    @Mock PermissionApi permissionApi;
+    @Mock AcceptanceActivityCompletionFactApi acceptanceActivityCompletionFactApi;
 
     private ProjectTaskLifecycleService service;
     private PlatformCommandExecutionApi.SuccessFacts successFacts;
@@ -61,7 +66,8 @@ class ProjectTaskLifecycleServiceTest {
     void setUp() {
         service = new ProjectTaskLifecycleService(taskMapper, contractMapper, assignmentMapper, memberMapper,
                 evaluationMapper, gateMapper,
-                stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService);
+                stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
+                permissionApi, acceptanceActivityCompletionFactApi);
     }
 
     @Test
@@ -159,6 +165,46 @@ class ProjectTaskLifecycleServiceTest {
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
     }
 
+    @Test
+    void acceptanceCompletionRejectsBeforeProviderWhenExecutePermissionMissing() {
+        allowAcceptanceAction();
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(false);
+
+        assertThrows(RuntimeException.class, () -> service.act(acceptanceCommand(), actor()));
+
+        verify(acceptanceActivityCompletionFactApi, never()).lockAndComplete(any());
+        verify(evaluationMapper, never()).insertEvaluation(any());
+    }
+
+    @Test
+    void acceptanceCompletionRejectsBeforeProviderWhenReportPermissionMissing() {
+        allowAcceptanceAction();
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:acceptance:report:complete")).thenReturn(false);
+
+        assertThrows(RuntimeException.class, () -> service.act(acceptanceCommand(), actor()));
+
+        verify(acceptanceActivityCompletionFactApi, never()).lockAndComplete(any());
+        verify(evaluationMapper, never()).insertEvaluation(any());
+    }
+
+    @Test
+    void acceptanceCompletionUsesOwnerFactAfterBothPermissionsPass() {
+        allowAcceptanceAction();
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:execute")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:acceptance:report:complete")).thenReturn(true);
+        when(acceptanceActivityCompletionFactApi.lockAndComplete(any())).thenReturn(
+                new AcceptanceActivityCompletionFact("COMPLETED", 51L, 1, 61L, 1));
+        when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+
+        TaskCommandResult result = service.act(acceptanceCommand(), actor());
+
+        assertEquals("DONE", result.status());
+        verify(acceptanceActivityCompletionFactApi).lockAndComplete(any());
+        verify(evaluationMapper).insertEvaluation(any());
+    }
+
     @SuppressWarnings("unchecked")
     private void allowAction(String status, String action, String target) {
         ProjectTaskInstanceDO task = new ProjectTaskInstanceDO();
@@ -184,7 +230,7 @@ class ProjectTaskLifecycleServiceTest {
         transition.setActionCode(action);
         transition.setToStatusCode(target);
         when(stateMachineMapper.requireTransition(any())).thenReturn(transition);
-        when(nativeProvider.inspect(any())).thenReturn(new TaskBindingInspection(
+        lenient().when(nativeProvider.inspect(any())).thenReturn(new TaskBindingInspection(
                 "TASK_NATIVE", Set.of(action), "3:2:1", null));
         ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
         contract.setId(91L);
@@ -207,7 +253,7 @@ class ProjectTaskLifecycleServiceTest {
         } else {
             ProjectMemberAssignmentDO member = new ProjectMemberAssignmentDO();
             member.setMemberRole("PROJECT_MANAGER");
-            when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of(member));
+            lenient().when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of(member));
         }
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<TaskCommandResult> operation = invocation.getArgument(3);
@@ -223,6 +269,25 @@ class ProjectTaskLifecycleServiceTest {
     private TaskActionCommand command(String action, int version, Long contractId, Integer contractVersion) {
         return new TaskActionCommand(11L, version, action, action.equals("cancel") ? "取消" : null,
                 contractId, contractVersion, null, null, "key-" + action, "a".repeat(64));
+    }
+
+    private void allowAcceptanceAction() {
+        allowAction("PENDING_ACCEPT", "COMPLETE", "DONE");
+        ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L);
+        contract.setTenantId(0L);
+        contract.setProjectTaskId(11L);
+        contract.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        contract.setTargetContextCode("ACC");
+        contract.setTargetObjectType("AcceptanceActivity");
+        contract.setTargetObjectKey("51");
+        contract.setContractVersion(2);
+        when(contractMapper.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
+    }
+
+    private TaskActionCommand acceptanceCommand() {
+        return new TaskActionCommand(11L, 3, "complete", null, 91L, 2,
+                "51", null, 0, 1, "key-acceptance", "b".repeat(64));
     }
 
     private TaskWorkbenchActor actor() {

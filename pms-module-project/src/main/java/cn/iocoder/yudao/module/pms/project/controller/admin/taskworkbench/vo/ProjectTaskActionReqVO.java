@@ -15,4 +15,6 @@ public class ProjectTaskActionReqVO {
     @Size(max = 128, message = "事实对象键不能超过128个字符")
     private String factObjectKey;
     private Long factVersion;
+    private Integer expectedActivityVersion;
+    private Integer expectedReportVersion;
 }

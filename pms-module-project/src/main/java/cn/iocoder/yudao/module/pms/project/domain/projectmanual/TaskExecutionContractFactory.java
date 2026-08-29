@@ -59,6 +59,30 @@ public class TaskExecutionContractFactory {
         return contract;
     }
 
+    public ProjectTaskExecutionContractDO createAcceptanceActivity(Long contractId, Long projectTaskId,
+                                                                    Long templateTaskDefinitionId,
+                                                                    Long acceptanceId,
+                                                                    Integer sourceDefinitionVersion,
+                                                                    LocalDateTime effectiveFrom) {
+        ProjectTaskExecutionContractDO contract = new ProjectTaskExecutionContractDO();
+        contract.setId(contractId);
+        contract.setProjectTaskId(projectTaskId);
+        contract.setTemplateTaskDefinitionId(templateTaskDefinitionId);
+        contract.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        contract.setTargetContextCode("ACC");
+        contract.setTargetObjectType("AcceptanceActivity");
+        contract.setTargetObjectKey(String.valueOf(acceptanceId));
+        contract.setBindingParameterSnapshot("{}");
+        contract.setPermissionPolicyRef("ACC_ACCEPTANCE_ACTIVITY");
+        contract.setCompletionRuleTypeCode("ACC_REPORT_COMPLETE");
+        contract.setCompletionRuleSnapshot("{\"requiredStatus\":\"COMPLETED\"}");
+        contract.setSourceDefinitionVersion(sourceDefinitionVersion);
+        contract.setContractVersion(1);
+        contract.setEffectiveFrom(effectiveFrom);
+        contract.setVersion(0);
+        return contract;
+    }
+
     public void validateDefinition(TemplateDefinitionContent.TaskDef definition) {
         if (definition == null || StringUtils.isBlank(definition.getWorkBindingTypeCode())
                 || !SUPPORTED_TYPES.contains(definition.getWorkBindingTypeCode())) {
