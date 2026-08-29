@@ -134,7 +134,7 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 - 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/acceptancereport/`及VO，实现Feature Spec锁定的查询、草稿、发布、撤销和下载REST；服务端读取租户/操作者、`If-Match`和`Idempotency-Key`。
 - 修改：`ProjectManualCreationServiceImpl.java`和`ProjectTaskLifecycleService.java`，只接入批准的initializer/completion Provider，不复制ACC规则或直接访问ACC表。
 
-### 4.2 V128前向迁移
+### 4.2 V128/V129/V130/V131前向迁移
 
 新增`sql/migrations/V128__facc001_acceptance_report_version_forward.sql`，顺序固定：
 
@@ -144,6 +144,9 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 4. 使用同一存量转换算法处理普通合格项目与上述受管输入：只为“两项均非终态且当前契约均为精确V63 TASK_NATIVE”的项目成对创建PENDING活动、关闭旧契约有效区间并追加ACC当前契约。受管活动固定`992004500001/992004500002`，新ACC契约固定`992004400003/992004400004`，分别与任务、应交根、`PRELIMINARY/FINAL`精确一一对应；两项均终态和两项均不存在不写。转换后逐项目断言活动数、任务/应交/活动/契约父子关系、当前契约唯一、终态零修改，以及受管项目恰有两个PENDING活动、两个ACC当前契约且仍无报告。
 5. 写入四个ACC最小权限键及菜单`930920～930924`；受管用户名`facc001acceptance`、角色码`facc001_acceptance_full`。角色取得ACC四键、`pms:project-task:execute`、所需文件键与项目范围；该关系只服务正式验收配置，不定义业务角色模板。
 6. Flyway失败重试仅接受“V128未开始”或“全部目标结构、受管输入及统一转换完整”两种状态；任何部分表、部分列、部分受管父子关系、部分任务对切换或非受管占用失败关闭并从迁移前数据库快照恢复，不在脚本中临时补写、推断或修补历史。
+7. 真实认证复核发现Yudao会递归过滤父级未授权的菜单；V128已执行且保持不可变。新增`V129__facc001_acceptance_role_menu_ancestor_fix.sql`，仅为受管角色补齐ACC入口、项目任务链和文件链所需的6个既有父级菜单`19260/19266/19261/18000/1243/2`。迁移精确校验受管角色、菜单父子关系和启用状态；仅接受“6条均不存在”后原子插入或“6条均已存在”幂等复核，部分状态失败关闭，不新增权限键、菜单、角色或业务角色模板。
+8. 真实完成链复核发现V128活动仍持有已关闭的旧`TASK_NATIVE`契约ID；V128/V129保持不可变。新增`V130__facc001_acceptance_activity_contract_identity_fix.sql`，仅处理`creator=v128-facc001`且同租户、同项目、同任务、`targetObjectKey=acceptanceId`精确匹配的活动。只接受“已指向唯一当前ACC契约”或“仍指向同任务已关闭旧TASK_NATIVE契约”两种状态，后者原子纠正`execution_contract_id`；部分、重复、错身份或未知来源在更新前整批失败。
+9. 真实Outbox链复核发现两个ACC `JobHandler`缺少正式调度配置和启动同步。新增`V131__facc001_acceptance_report_jobs.sql`，以固定高段ID配置`acceptanceReportOutboxDeliveryJob`和`acceptanceReportArchiveCompensationJob`两条启用任务，30秒周期、空参数、Quartz重试为0；仅接受全无后成对插入或完整一致幂等复核。新增`AcceptanceReportQuartzRegistrar`，Quartz存在时按“事件投递→归档补偿”固定顺序复用`JobApi.syncEnabledJobByHandlerName`同步，任一同步失败直接使启动失败；Quartz未装配时不调用。两个Handler保持`@TenantJob`多租户路径，并与现有File Outbox一致，在正式单租户配置下显式进入tenant 0后执行，禁止无租户上下文访问业务表。
 
 ### 4.3 前端
 
@@ -154,13 +157,13 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 
 ## 五、实施任务
 
-### Task 1：共享契约、V128与后端正向闭环
+### Task 1：共享契约、V128/V129与后端正向闭环
 
 **Files：** 第4.1和4.2节后端/API/迁移文件，以及对应聚焦测试。
 
 **Consumes：** 已有`ProjectScopeApi`、Platform命令幂等/Outbox、V63应交根和执行契约、PLT文件上传/查询/归档载体。
 
-**Produces：** 两个ACC活动Provider、PLT整组归档API、报告REST、不可变报告/来源历史、V128可执行前向结构与受管验收事实。
+**Produces：** 两个ACC活动Provider、PLT整组归档API、报告REST、不可变报告/来源历史、V128可执行前向结构与受管验收事实，以及V129受管身份父级菜单授权闭包。
 
 - [ ] **Step 1：写聚焦失败测试并确认RED**
 
@@ -178,9 +181,9 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 
   项目创建严格按“任务/非ACC契约/里程碑→应交根→活动→ACC契约”。任务完成先锁定PROJ任务和当前执行契约；若契约目标为`ACC/AcceptanceActivity`，则在调用ACC Provider或写TaskCompletionEvaluation/任务状态前，使用当前认证用户分别校验`pms:project-task:execute`和`pms:acceptance:report:complete`且两者必须都通过。缺任一权限时任务、判定和活动零写入；`TASK_NATIVE`保持现有Controller OR及Service行为。随后才按“PROJ任务/契约→ACC活动→当前报告”完成；缺报告或四项不全不完成任务，进入验收阶段仍不要求报告。
 
-- [ ] **Step 5：实现并验证V128**
+- [ ] **Step 5：实现并验证V128/V129/V130/V131**
 
-  先在当前V127备份上验证预检和两类保持集合，再按“目标结构→完整受管PROJ/V63输入→统一成对转换→权限配置”执行；覆盖空库V1→V128、既有V127→V128、终态混合失败、两项均终态零修改、两项均非终态成对切换、受管两活动/两ACC契约/零报告及`migrate/info/validate`。
+  先在当前V127备份上验证预检和两类保持集合，再按“目标结构→完整受管PROJ/V63输入→统一成对转换→权限配置→父菜单授权闭包→活动当前契约身份纠偏→正式Job配置”执行；覆盖空库V1→V131、既有V130→V131、终态混合失败、两项均终态零修改、两项均非终态成对切换、V128活动只指向当前ACC契约、两个Quartz任务启动同步及`migrate/info/validate`。
 
 - [ ] **Step 6：运行Task 1聚焦集合并提交**
 
@@ -257,7 +260,7 @@ git diff --check
 - **规格覆盖：** 报告四状态、当前唯一、替换/撤销、终验守卫、PROJ任务完成、应交来源、专用Outbox投递、归档补偿、下载、权限和F-COM绑定回归均有实施及验收步骤。
 - **Owner：** ACC不读PROJ/PLT表；PROJ不写ACC表；PLT不判定报告状态；报告不触发范围绑定。
 - **历史：** 有效报告和来源只追加；撤销不恢复旧版；归档不改变ACTIVE附件；终态任务不切换。
-- **迁移：** V17/V63及已执行迁移不改；V128先建完整受管PROJ/V63输入，再与普通合格输入使用同一确定性转换生成PENDING活动和ACC契约。
+- **迁移：** V17/V63及已执行迁移不改；V128生成活动/契约，V129补父菜单授权闭包，V130纠正活动当前契约，V131成对配置并启动同步两个ACC任务。
 - **权限：** ACC任务完成在识别执行契约后强制两个最小键同时具备；归档显式actor仍重验功能/租户/文件范围；角色映射保持配置化。
 - **验证：** 后端聚焦测试后执行受影响reactor `package`，前端Vitest/类型检查后执行`build:local`；不重复Phase 1/2/3或全仓回归。
 - **收益：** 两个完整Task；无全仓重复测试、无第三方连接器、无低收益异常枚举、无第二验收或应交真值。

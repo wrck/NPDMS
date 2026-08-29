@@ -1,0 +1,44 @@
+{
+  "featureId": "F-ACC-001",
+  "requirementIds": [
+    "ACC-03@V1",
+    "ACC-04@V1"
+  ],
+  "pass": true,
+  "identity": {
+    "userId": 992004800001,
+    "username": "facc001acceptance",
+    "tenantId": 0
+  },
+  "project": {
+    "projectId": 992004000001,
+    "projectCode": "FACC001-ACCEPTANCE-001"
+  },
+  "assertions": [
+    "PRELIMINARY_V1_PUBLISHED",
+    "V2_REPLACES_V1",
+    "HISTORICAL_V1_DOWNLOADABLE_AFTER_ARCHIVE",
+    "FINAL_REPORT_TASK_COMPLETED",
+    "CURRENT_VERSION_REVOKED_NO_RESTORE",
+    "QUARTZ_JOBS_AND_TRIGGERS_REGISTERED",
+    "REPORT_EVENTS_DELIVERED_BY_QUARTZ",
+    "DATABASE_FACTS_CONFIRMED"
+  ],
+  "dbFacts": {
+    "projectCode": "FACC001-ACCEPTANCE-001",
+    "reportVersions": 3,
+    "sourceVersions": 3,
+    "archiveRecords": 1,
+    "reportEvents": 4,
+    "deliveredReportEvents": 4,
+    "quartzJobs": 2,
+    "quartzTriggers": 2,
+    "finalTaskStatus": "DONE"
+  },
+  "diagnostics": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "requestFailures": []
+  },
+  "generatedAt": "2026-08-30T06:00:00+08:00"
+}

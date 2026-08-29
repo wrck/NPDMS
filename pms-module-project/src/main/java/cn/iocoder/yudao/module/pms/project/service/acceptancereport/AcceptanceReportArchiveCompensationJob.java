@@ -3,12 +3,14 @@ package cn.iocoder.yudao.module.pms.project.service.acceptancereport;
 import cn.iocoder.yudao.framework.quartz.core.handler.JobHandler;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.job.TenantJob;
+import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.core.env.Environment;
 
 import java.util.List;
 
@@ -20,10 +22,23 @@ public class AcceptanceReportArchiveCompensationJob implements JobHandler {
     private static final int BATCH_SIZE = 20;
     private final ProjectDeliverableSourceVersionMapper sourceMapper;
     private final AcceptanceReportArchiveCompensationService compensationService;
+    private final Environment environment;
 
     @Override
     @TenantJob
     public String execute(String param) {
+        if (TenantContextHolder.getTenantId() != null) {
+            return archivePendingSources();
+        }
+        if (environment.getProperty("yudao.tenant.enable", Boolean.class, true)) {
+            TenantContextHolder.getRequiredTenantId();
+        }
+        String[] result = new String[1];
+        TenantUtils.execute(0L, () -> result[0] = archivePendingSources());
+        return result[0];
+    }
+
+    private String archivePendingSources() {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         List<ProjectDeliverableSourceVersionDO> sources = sourceMapper.selectPendingArchive(
                 new PendingArchiveSourceQuery(tenantId, BATCH_SIZE));

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.quartz.core.handler.JobHandler;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.job.TenantJob;
+import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformOutboxDeliveryApi;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxClaimQuery;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.dto.PlatformOutboxMessageDTO;
@@ -11,6 +12,7 @@ import cn.iocoder.yudao.module.pms.project.service.acceptancereport.event.Accept
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.core.env.Environment;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,10 +28,23 @@ public class AcceptanceReportOutboxDeliveryJob implements JobHandler {
     private static final long MAX_RETRY_DELAY_MINUTES = 60;
     private final PlatformOutboxDeliveryApi outboxDeliveryApi;
     private final AcceptanceReportSourceProjectionService projectionService;
+    private final Environment environment;
 
     @Override
     @TenantJob
     public String execute(String param) {
+        if (TenantContextHolder.getTenantId() != null) {
+            return deliverDueEvents();
+        }
+        if (environment.getProperty("yudao.tenant.enable", Boolean.class, true)) {
+            TenantContextHolder.getRequiredTenantId();
+        }
+        String[] result = new String[1];
+        TenantUtils.execute(0L, () -> result[0] = deliverDueEvents());
+        return result[0];
+    }
+
+    private String deliverDueEvents() {
         LocalDateTime dueAt = LocalDateTime.now();
         List<PlatformOutboxMessageDTO> messages = outboxDeliveryApi.claimDue(new PlatformOutboxClaimQuery(
                 dueAt, BATCH_SIZE, Set.of("AcceptanceReportVersionChanged")));

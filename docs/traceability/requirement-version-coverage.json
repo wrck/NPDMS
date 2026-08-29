@@ -33,9 +33,9 @@
     {
       "featureId": "F-ACC-001",
       "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
-      "taskPath": null,
-      "taskStatus": "NO_TASK",
-      "taskStatusRaw": null,
+      "taskPath": "tasks/features/F-ACC-001.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "ACC-03@V1",
@@ -810,9 +810,9 @@
         {
           "featureId": "F-ACC-001",
           "coverage": "FULL",
-          "taskStatus": "NO_TASK",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
-          "taskPath": null
+          "taskPath": "tasks/features/F-ACC-001.md"
         }
       ]
     },
@@ -830,9 +830,9 @@
         {
           "featureId": "F-ACC-001",
           "coverage": "PARTIAL",
-          "taskStatus": "NO_TASK",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
-          "taskPath": null
+          "taskPath": "tasks/features/F-ACC-001.md"
         }
       ]
     },

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,7 @@ class AcceptanceReportOutboxDeliveryJobTest {
 
     @Mock PlatformOutboxDeliveryApi outboxDeliveryApi;
     @Mock AcceptanceReportSourceProjectionService projectionService;
+    @Mock Environment environment;
 
     @BeforeEach
     void setTenant() {
@@ -45,7 +47,7 @@ class AcceptanceReportOutboxDeliveryJobTest {
                 JsonUtils.toJsonString(event), 2, 7L, LocalDateTime.now());
         when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(message));
         doThrow(new IllegalStateException("projection failed")).when(projectionService).project(any());
-        var job = new AcceptanceReportOutboxDeliveryJob(outboxDeliveryApi, projectionService);
+        var job = new AcceptanceReportOutboxDeliveryJob(outboxDeliveryApi, projectionService, environment);
 
         job.execute("");
 
