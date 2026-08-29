@@ -127,9 +127,9 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - PROJ进入验收阶段时已持有项目当前行锁，ACC经`DeliveryScopeAcceptanceLockApi`按稳定范围ID锁定该项目全部当前有效范围，再追加绑定；任一失败使阶段快照、绑定和阶段进入整体回滚。
 - 项目已处验收阶段时，COM在同一项目锁下写入新范围版本并同步调用`AcceptanceScopeBindingApi.bindEffectiveScope`；绑定失败使范围版本生效整体回滚。减量在同一锁序下调用`AcceptanceScopeGuardApi`，已有绑定、未知、超时或版本变化均失败关闭。
 - 统一锁顺序为PROJ项目当前行→COM订单行（适用时）→COM范围当前行（稳定ID）→ACC绑定。初验/终验报告行不进入该锁链，报告状态不得用于判断绑定。
-- F-ACC-001报告换版按ACC活动根→当前报告版本→附件引用锁定；通过`uk(tenant_id, acceptance_id, current_marker)`保证每个活动至多一个当前有效版本。终验发布再按稳定活动ID锁定初验活动及其当前报告，版本变化返回冲突，不自动重试成另一业务结果。
+- F-ACC-001首次发布、替换、撤销均按ACC活动根→旧当前版本（适用时）→目标草稿（适用时）→附件集合锁定。DRAFT的生成`current_marker=NULL`，仅未关闭EFFECTIVE生成1；替换原子关闭旧版再生效草稿，撤销原子关闭当前并清空指针，失败整体回滚。终验发布再按稳定活动ID锁定初验当前报告，版本变化返回冲突。
 - 初验/终验任务完成按PROJ项目任务/执行契约→ACC活动根→当前报告版本锁定，ACC Provider以`MANDATORY`加入同一MySQL事务；任一身份、活动版本、报告版本或四项完备校验失败时，ACC活动、TaskCompletionEvaluation和PROJ任务状态均不变化。不得反向从ACC先锁任务或直接写PROJ表。
-- `AcceptanceReportVersionEffective`消费只锁对应`acc_project_deliverable`应交实例；按来源对象与版本幂等推进。报告事务不等待归档成功，归档失败记录补偿水位，避免用交付件锁反向阻塞报告历史。
+- `AcceptanceReportVersionChanged`消费锁对应`acc_project_deliverable`根和当前来源关系；按变更类型及来源版本幂等追加/切换`source_version`与完整附件集合。替换/撤销保留旧关系，撤销不恢复旧版。报告事务不等待归档成功，归档失败记录补偿水位。
 - 合同列表、详情和项目—合同关系维护不使用正向公司范围缓存。关系写在任何COM业务锁和写入前调用`OrganizationScopeApi.getActiveScopes`，按`companyCode`精确校验并冻结本次授权快照；调用后若进入COM事务，只把scope ID/version写审计，不反向锁SYSTEM或把授权结果持久化为第二真值。并发撤权以写前最后一次Owner读取为本次判定，后续请求必须读取新当前事实。
 
 到货数量、工时和动作数值使用相同原则：保留原值和调整记录，不通过并发最后写覆盖。

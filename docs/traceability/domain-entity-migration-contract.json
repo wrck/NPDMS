@@ -442,6 +442,8 @@
       ],
       "targetTables": [
         "acc_project_deliverable",
+        "acc_project_deliverable_source_version",
+        "acc_project_deliverable_source_attachment",
         "acc_artifact_review",
         "acc_archive_record"
       ]
@@ -2116,6 +2118,8 @@
       ],
       "targetTables": [
         "acc_project_deliverable",
+        "acc_project_deliverable_source_version",
+        "acc_project_deliverable_source_attachment",
         "acc_artifact_review",
         "acc_archive_record"
       ],
@@ -2124,7 +2128,7 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "acc_project_deliverable",
           "disposition": "CURRENT_FORWARD",
-          "transform": "reuse the F-PROJ-001 ACC-owned project deliverable identity; for exact D-INITIAL-REPORT or D-FINAL-REPORT only, add the immutable report source/version, fixed file version, archive status and compensation watermark; never infer type from name, task or D-ACCEPT-REPORT",
+          "transform": "reuse the F-PROJ-001 ACC-owned project deliverable root; for exact D-INITIAL-REPORT or D-FINAL-REPORT only, append every report source version and its complete ordered file-version set, switch a nullable current pointer, and preserve replaced or revoked relations plus archive compensation history; never infer type or a primary file",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "F-ACC-001",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V63__fproj001_v18_atomic_project_creation.sql#table=acc_project_deliverable"

@@ -411,6 +411,8 @@
       ],
       "targetTables": [
         "acc_project_deliverable",
+        "acc_project_deliverable_source_version",
+        "acc_project_deliverable_source_attachment",
         "acc_artifact_review",
         "acc_archive_record"
       ]

@@ -110,8 +110,10 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | 验收阶段内新范围版本绑定失败 | BUSINESS_GATE/VERSION_CONFLICT/DEPENDENCY_UNAVAILABLE；新范围版本、历史切换、Outbox和绑定整体回滚，不把范围标记生效 |
 | 初验/终验报告尚未形成或四项字段/附件不完备 | 不阻断已满足其他门禁的阶段进入；对应验收活动完成命令返回BUSINESS_GATE，报告草稿、已成功范围绑定和项目阶段保持不变 |
 | 报告发布缺验收时间/结论/验收人/有效附件，或终验缺当前有效初验 | BUSINESS_GATE；不生成当前有效版本，不写交付件索引请求、CLO重校验请求或成功审计，草稿和旧当前版本保持不变 |
+| 报告发布/替换/撤销的期望当前版本不一致，或当前唯一键冲突 | VERSION_CONFLICT；草稿、旧EFFECTIVE、活动当前指针和Outbox全部保持原样，不形成部分切换 |
+| 撤销后查询或完成活动 | 当前报告为空；查询保留全部历史并标明REVOKED，完成活动返回BUSINESS_GATE；不得自动恢复SUPERSEDED版本 |
 | 报告当前版本、活动或ProjectTask执行契约版本冲突 | VERSION_CONFLICT；ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入，调用方携带新版本重新确认 |
-| 报告已有效但交付件索引、文件归档或CLO消费者失败 | 有效报告不回滚、不删除；`acc_project_deliverable.archive_status=PENDING_COMPENSATION/INVALID`并保存失败原因与重试水位，未成功前不得计入CLO齐套 |
+| 报告已有效但交付件索引、附件集合归档或CLO消费者失败 | 报告状态/历史不回滚、不删除；Outbox重试，已建立的来源版本关系保持`PENDING_COMPENSATION/INVALID`并保存失败原因与水位，未成功前不得计入CLO齐套；不得降级为单附件 |
 | V17旧验收或旧交付件记录缺新模型必填事实 | 保持旧表和旧功能不变；不得从名称、审批状态、意见、URL或关项结果推断当前有效报告、活动完成或新交付件来源 |
 | Q-FCOM-002关闭前退出或回退验收阶段 | 不自动关闭、解锁或改写既有绑定；COM守卫继续按当前绑定失败关闭减量，最终关闭/再次进入语义待业务裁决 |
 | 数值调整 | 新增 adjustment，保存动作类型、方向和正负值，不覆盖原值 |

@@ -198,7 +198,7 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
     "docs/design/08-data-model.md": (
         "活动根以PROJ ProjectTask/WorkBinding为唯一外部身份",
         "`acc_project_deliverable`应交实例",
-        "归档失败保留有效报告且标记待补偿",
+        "归档失败保留报告版本且标记待补偿",
     ),
     "docs/design/08a-domain-entity-migration-alignment.md": (
         "COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION",
@@ -208,25 +208,33 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`",
         "`acc_acceptance_report_version`",
         "`acc_acceptance_report_attachment`",
+        "report_status='EFFECTIVE' and effective_to is null",
+        "relation_status='CURRENT' then 1 else null",
+        "`acc_project_deliverable_source_version`",
+        "`acc_project_deliverable_source_attachment`",
         "`D-INITIAL-REPORT/D-FINAL-REPORT`",
     ),
     "docs/design/10-api-design.md": (
         "AcceptanceActivityCompletionFactApi.lockAndComplete",
+        "`revoke-current-version`",
         "pms:acceptance:report:query/write/complete/download",
-        "交付件保持`PENDING_COMPENSATION`并重试",
+        "当前来源保持`PENDING_COMPENSATION`并重试",
     ),
     "docs/design/11-event-design.md": (
-        "AcceptanceReportVersionEffective",
+        "AcceptanceReportVersionChanged",
+        "changeType(`EFFECTIVE/REPLACED/REVOKED`)",
+        "attachments[{sequence,fileArtifactId,fileVersionId,fileHash}]",
         "ClosureGateRecheckRequested",
         "不触发范围绑定",
     ),
     "docs/design/15-cache-and-concurrency.md": (
         "PROJ项目任务/执行契约→ACC活动根→当前报告版本",
-        "报告事务不等待归档成功",
+        "DRAFT的生成`current_marker=NULL`",
+        "撤销不恢复旧版",
     ),
     "docs/design/16-exception-and-idempotency.md": (
         "ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入",
-        "有效报告不回滚、不删除",
+        "报告状态/历史不回滚、不删除",
     ),
     "docs/decisions/0039-acceptance-report-version-and-deliverable-index.md": (
         "`PROPOSED_FOR_INDEPENDENT_REVIEW`",
@@ -236,13 +244,13 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
     ),
     "docs/traceability/phase2-contract-map.md": (
         "内部AcceptanceActivityCompletionFactApi",
-        "精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有acc_project_deliverable来源索引",
-        "F-ACC-001只实现初验/终验报告来源切片",
+        "精确D-INITIAL-REPORT/D-FINAL-REPORT更新既有应交根及只追加来源版本/附件集合",
+        "F-ACC-001只实现初验/终验来源切片",
     ),
     "docs/traceability/domain-entity-migration-contract.json": (
         '"gate": "F-ACC-001-LEGACY"',
         '"sourceObject": "acc_project_deliverable"',
-        "never infer type from name, task or D-ACCEPT-REPORT",
+        "never infer type or a primary file",
     ),
 }
 FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS = {

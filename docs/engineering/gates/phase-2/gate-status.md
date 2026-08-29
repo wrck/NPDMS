@@ -28,7 +28,7 @@
 | F-COM-001修订008聚焦差量 | READY / GO | 当前受管生成契约为94对象/107来源绑定/1排除源；办事处发生时快照、单位精度、来源版本、范围历史、ACC Owner守卫及V70的10项必填目标映射（含明细序号唯一键规则）/逐项缺失负向门禁已由整改提交`20f03ba316ca431a55f96aa9c3c97be54d08b4e0`通过独立复审；只放行Feature Spec/机器物理契约整改，Q-FCOM-001仍BLOCKED_BY_SPEC，Feature继续CANDIDATE / NOT_READY |
 | F-COM-001修订009状态SDS差量 | READY / GO | ADR-0037、项目阶段快照驱动的ACC范围绑定、报告解耦、进入/新范围两条原子路径、PROJ→COM→ACC统一锁序及聚焦物理差量已由提交`b17ae89f92b01488378aeb8c36a77a5b2d46ad29`通过独立复审；只放行同一Feature的Feature Spec与机器物理契约整改，Q-FCOM-002仍只阻断退出/回退关闭或解锁，Feature继续CANDIDATE / NOT_READY |
 | F-COM-001修订009合同授权SDS差量 | READY / GO | ADR-0038已由独立裁决批准为`ACCEPTED`：直接复用SYSTEM现有`OrganizationScopeApi.getActiveScopes`，按当前有效`UserCompanyDepartmentScope.companyCode`形成合同管理员公司范围；空/不可用失败关闭、写前重验并审计scope ID/version、敏感字段独立权限、不缓存正向授权；P3-E09为`NO_PHYSICAL_DELTA`。裁决对象`2cf427d6ccb6e0cef0cef3b1460eeaa95ddced53`；本GO不放行Feature Ready |
-| F-ACC-001 ACC-03/04报告与交付件SDS聚焦差量 | IN_REVIEW | 当前受管生成契约为94对象/109来源绑定/1排除源；ADR-0039、报告活动/不可变版本、PROJ任务完成Owner、既有`acc_project_deliverable`来源索引、归档补偿、F-COM范围绑定直接复用及V17旧载体不复用边界已形成候选；只申请本聚焦差量独立复审，不放行Feature Spec、代码或Flyway |
+| F-ACC-001 ACC-03/04报告与交付件SDS聚焦差量 | IN_REVIEW | 当前受管生成契约为94对象/109来源绑定/1排除源；ADR-0039锁定DRAFT/EFFECTIVE/SUPERSEDED/REVOKED、发布替换撤销原子切换、完整附件集合事件、既有`acc_project_deliverable`根及只追加来源版本/附件从表、归档补偿、PROJ任务Owner、F-COM范围绑定复用与V17不复用边界；同一Gate整改复审中，不放行Feature Spec、代码或Flyway |
 | 追溯 | PASS | `phase2-contract-map.md`保留100个稳定Requirement锚点并显式登记111个切片键；迁移对象和目标表映射精确同步 |
 | 工作绑定、P3采集结果与CUS-02/CUT-07承载 | PASS | ADR-0030六表已由P3-E09纳入当前冻结模型；ADR-0031仅批准两个逻辑对象及Feature前向表名，实际物理表须由对应Feature以前向迁移审批创建 |
 | F-PROJ-003 PM-04角色与项目子树授权精化 | PASS | ADR-0034已接受，角色与范围分离、PLT授权事实、PROJ范围计算、API、物理字段及幂等边界已落位；属于Feature级差量精化，不重新打开Phase 2总体门禁 |

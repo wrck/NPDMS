@@ -339,10 +339,10 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | 聚合 | 主表 | 支撑表 | 关键约束 |
 |---|---|---|---|
-| Acceptance | `acc_acceptance` | `acc_acceptance_report_version`、`acc_acceptance_report_attachment`；`acc_confirmation`仅供其他已批准验收类型使用 | 活动根按项目/类型及ProjectTask唯一；报告版本生效后不可更新/删除，同一活动仅一个当前有效版本；固定FileArtifact/FileVersion且四项完备；原始实施证据只引用 |
+| Acceptance | `acc_acceptance` | `acc_acceptance_report_version`、`acc_acceptance_report_attachment`；`acc_confirmation`仅供其他已批准验收类型使用 | 活动根按项目/类型及ProjectTask唯一；报告状态固定DRAFT/EFFECTIVE/SUPERSEDED/REVOKED，生成列只把未关闭EFFECTIVE标为当前；生效后不可更新/删除；附件按顺序冻结完整FileArtifact/FileVersion集合 |
 | AcceptanceScopeBinding | `acc_acceptance_scope_binding` | 无 | `project_id/project_stage_snapshot_id/delivery_scope_id/scope_allocation_version/binding_trigger/binding_status/effective_from/effective_to/acceptance_fact_version/version`；同一项目阶段快照、范围和分配版本唯一；当前锁定按`delivery_scope_id + effective_to is null`查询；独立于`Acceptance`报告，跨Context只保存逻辑引用，不建PROJ/COM外键 |
 | SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
-| DeliveryArtifact | `acc_project_deliverable` | `acc_artifact_review`、`acc_archive_record` | 复用F-PROJ-001已创建的唯一应交实例；来源对象/版本和文件版本固定，归档失败标记待补偿；审核/归档记录追加且不覆盖来源报告 |
+| DeliveryArtifact | `acc_project_deliverable` | `acc_project_deliverable_source_version`、`acc_project_deliverable_source_attachment`；后续ACC-04完整Feature的`acc_artifact_review`、`acc_archive_record` | 复用F-PROJ-001唯一应交根；当前来源指针与只追加来源版本/有序附件集合分离，替换/撤销不删除旧关系，归档失败标记待补偿且不覆盖来源报告 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
 | ServiceHandover | `acc_service_handover` | `acc_handover_item`、`acc_handover_result` | V2静态交接快照；不含续保年限、续保结束日期、续保状态或持续跟踪对象 |
 
@@ -464,9 +464,15 @@ F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`，不修改已
 | 目标表 | 字段差量 | 约束与迁移边界 |
 |---|---|---|
 | `acc_acceptance` | `project_id/project_task_id/execution_contract_id/acceptance_type/activity_status/current_report_version_id/version`及标准租户审计字段 | `uk(tenant_id, project_id, acceptance_type)`、`uk(tenant_id, project_task_id)`；仅`PRELIMINARY/FINAL`与`PENDING/COMPLETED`；跨Context只存逻辑引用，不建PROJ外键 |
-| `acc_acceptance_report_version` | `acceptance_id/report_version_no/acceptance_time/conclusion_code/conclusion_text/acceptor_name/previous_version_id/effective_from/effective_to/current_marker/uploader_user_id/upload_time`及标准租户审计字段 | `uk(tenant_id, acceptance_id, report_version_no)`、`uk(tenant_id, acceptance_id, current_marker)`；有效版本的验收时间、结论、验收人非空且至少一条有效附件；生效后不可更新或删除 |
-| `acc_acceptance_report_attachment` | `report_version_id/file_artifact_id/file_version_id/file_hash`及标准租户审计字段 | `uk(tenant_id, report_version_id, file_artifact_id, file_version_id)`；只保存PLT固定文件版本引用和PRD要求的哈希，不保存正文 |
-| `acc_project_deliverable` | 加性新增`source_requirement_id/source_object_type/source_object_id/source_version/file_artifact_id/file_version_id/file_hash/archive_status/archive_failure_code/archive_retry_count/archive_time` | 保持V63 `uk(tenant_id, project_id, deliverable_code)`；F-ACC-001只允许`D-INITIAL-REPORT/D-FINAL-REPORT`，来源身份幂等；归档失败只能写`PENDING_COMPENSATION/INVALID`，不得写`ARCHIVED` |
+| `acc_acceptance_report_version` | `acceptance_id/report_version_no/report_status/acceptance_time/conclusion_code/conclusion_text/acceptor_name/previous_version_id/effective_from/effective_to/current_marker/uploader_user_id/upload_time`及标准租户审计字段 | `report_status`仅`DRAFT/EFFECTIVE/SUPERSEDED/REVOKED`；`current_marker`生成表达式为`case when report_status='EFFECTIVE' and effective_to is null then 1 else null end`；`uk(tenant_id, acceptance_id, report_version_no)`、`uk(tenant_id, acceptance_id, current_marker)`；DRAFT三时间/marker为空，有效版本四项非空且生效后不可更新/删除 |
+| `acc_acceptance_report_attachment` | `report_version_id/attachment_sequence/file_artifact_id/file_version_id/file_hash`及标准租户审计字段 | `uk(tenant_id, report_version_id, attachment_sequence)`、`uk(tenant_id, report_version_id, file_artifact_id, file_version_id)`；只保存PLT有序固定文件版本集合和哈希，不保存正文、不推断主附件 |
+| `acc_project_deliverable` | 加性新增`current_source_version_id/archive_status` | 保持V63 `uk(tenant_id, project_id, deliverable_code)`；F-ACC-001只允许`D-INITIAL-REPORT/D-FINAL-REPORT`；当前来源指针可空，未完成归档不得写`ARCHIVED` |
+| `acc_project_deliverable_source_version` | `deliverable_id/source_requirement_id/source_object_type/source_object_id/source_version/relation_status/archive_status/archive_failure_code/archive_retry_count/archive_time/current_marker`及标准租户审计字段 | `relation_status`仅`CURRENT/SUPERSEDED/REVOKED`；`current_marker`生成表达式为`case when relation_status='CURRENT' then 1 else null end`；`uk(tenant_id, deliverable_id, source_object_type, source_object_id, source_version)`、`uk(tenant_id, deliverable_id, current_marker)`；替换/撤销保留旧行 |
+| `acc_project_deliverable_source_attachment` | `deliverable_source_version_id/attachment_sequence/file_artifact_id/file_version_id/file_hash`及标准租户审计字段 | `uk(tenant_id, deliverable_source_version_id, attachment_sequence)`、文件版本复合唯一；逐项等于Owner事件附件集合，不选择或推断主附件 |
+
+已有当前V1时可以并存任意数量DRAFT，因为其生成`current_marker=NULL`。发布V2在单一ACC事务中按活动根→V1→V2锁定，先把V1置`SUPERSEDED/effective_to=now`，再把V2置`EFFECTIVE/effective_from=now`并更新活动当前指针；任一步失败整体回滚。撤销锁定活动和当前版本后置`REVOKED/effective_to=now`并把活动当前指针清空，不提升旧版本。首次发布、替换和撤销都在唯一键检查与Outbox写入成功后提交。
+
+交付件事件消费在单一ACC事务中处理根、来源关系和附件集合：首次生效创建CURRENT/PENDING_COMPENSATION关系并设置根指针；替换先把旧关系置SUPERSEDED并保留其归档结果，再创建新CURRENT关系与完整附件集合并切换根；撤销把旧关系置REVOKED/INVALID、清空根指针并把根归档摘要置INVALID。事件重放只能返回上述既有结果，不重复关系或附件。
 
 V17 `pms_acc_acceptance`及旧交付清单/归档/完工证明缺少可证明的验收人、固定文件版本、活动绑定或当前版本关系，保持旧表和旧功能不变，不进入新当前真值。未来前向迁移不得从名称、审批状态、`approve_opinion`、URL、`D-ACCEPT-REPORT`或旧关项结果补造这些事实。
 

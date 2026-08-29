@@ -30,7 +30,7 @@
 | ImplementationRisk | 已标记、评估中、处置中、已关闭 | 风险等级、责任人和处置证据完整；高风险不得绕过门禁 | ImplementationRiskRaised、ImplementationRiskClosed |
 | ImplementationQualityCheck | 草稿、待复核、整改中、复核通过、复核不通过、阻断 | 不合格必须整改后再复核；豁免需有权角色、依据、范围、有效期和审计 | ImplementationQualityChecked、ImplementationQualityBlocked |
 | SatisfactionCollection | 待生成、待发送、收集中、待判定、未通过、已通过、归档待重试、已归档 | 冻结模板/题目/阈值；客户有效答案和签字不可覆盖；未通过须整改后创建新任务和问卷版本，不允许人工改分或异常放行 | SatisfactionTaskCreated、SatisfactionSubmitted、SatisfactionResultRecorded |
-| AcceptanceActivity / AcceptanceReportVersion | 活动：`PENDING/COMPLETED`；报告版本：草稿、当前有效、历史有效区间已关闭 | 报告草稿只有在验收时间、结论、验收人和固定文件版本附件完备时才能生效；终验生效须锁定同项目当前有效初验；换版或撤销关闭旧区间而不覆盖历史；PROJ通过冻结的ProjectTask/WorkBinding完成命令以MANDATORY调用ACC，任一版本或身份不一致时任务与活动均不完成 | AcceptanceReportVersionEffective、ClosureGateRecheckRequested |
+| AcceptanceActivity / AcceptanceReportVersion | 活动：`PENDING/COMPLETED`；报告：`DRAFT/EFFECTIVE/SUPERSEDED/REVOKED` | 草稿四项完备后才可发布；首次发布原子转EFFECTIVE，替换在同一事务关闭旧EFFECTIVE为SUPERSEDED并发布新版本，撤销关闭当前为REVOKED、清空活动当前指针且不恢复旧版；终验发布须锁定同项目当前有效初验；PROJ通过冻结ProjectTask/WorkBinding以MANDATORY调用ACC完成活动 | AcceptanceReportVersionChanged、ClosureGateRecheckRequested |
 | ProjectClosure | 草稿、待审核、材料审核、已完成、驳回整改 | 项目冻结模板要求的交付件和有效满意度等门禁满足；CLO-02完成后形成不可变NORMAL_CLOSED闭环事实；不创建回访节点；驳回后重新校验并新建申请 | ClosureSubmitted、ProjectClosureCompleted |
 | DeviceCredential | 创建、启用、授权、撤销、轮换、停用 | 仅授权范围内任务可引用；撤销影响后续任务，不改历史快照 | CredentialGranted、CredentialRevoked |
 

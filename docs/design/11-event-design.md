@@ -120,7 +120,7 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 | `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、hash、source snapshot | ACC 审核引用，不覆盖 IMP revision |
 | `ImplementationReadinessSnapshotPublished` | IMP | CUT | snapshotId、version、decision、unmetCodes | CUT 执行冻结所校验快照 |
 | `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | artifactId、fileVersion、review/archive record | 归档不改变 FileArtifact 内容历史 |
-| `AcceptanceReportVersionEffective` | ACC | ACC交付件索引 | acceptanceId、reportVersionId、reportType、projectId、fileArtifactId/fileVersionId | 与有效报告同事务Outbox；按来源对象/版本幂等维护`acc_project_deliverable`，失败保留报告并进入补偿，不触发范围绑定 |
+| `AcceptanceReportVersionChanged` | ACC | ACC交付件索引 | acceptanceId、projectId、reportType、changeType(`EFFECTIVE/REPLACED/REVOKED`)、currentReportVersionId（撤销为空）、previousReportVersionId、attachments[{sequence,fileArtifactId,fileVersionId,fileHash}] | 与发布/替换/撤销同事务Outbox；完整附件集合不得缩成单文件；按来源版本幂等维护应交根及来源历史，失败保留报告并进入补偿，不触发范围绑定 |
 | `ClosureGateRecheckRequested` | ACC | CLO | projectId、sourceRequirementId、sourceObjectId、sourceVersion、reasonCode | 只请求后续CLO重新读取Owner事实；不表示闭环门禁已通过，CLO Feature未交付时允许Outbox保留待消费 |
 | `SatisfactionTaskCreated` | ACC | Todo/Project | taskId、projectId、businessRef、questionnaireRevision、assignee | 创建待办，不表示客户已提交或满意度通过 |
 | `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
