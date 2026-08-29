@@ -367,6 +367,111 @@ def contract_administrator_scope_errors(contract: dict, feature_spec: str) -> li
     return errors
 
 
+def managed_v72_seed_disposition_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    seed = contract.get("managedV72SeedDisposition", {})
+    identity = seed.get("exactIdentity", {})
+    expected_identity = {
+        "sourceMigration": "V72__fproj002_v18_seed_and_menu.sql",
+        "tenantId": 0,
+        "creator": "seed",
+        "updater": "seed",
+        "sourceSystem": "SEED",
+        "sourceKeyPrefix": "FPROJ002-V18-",
+        "sourceEvidencePrefix": "FPROJ002-V18-",
+        "projectId": 992002000000,
+        "orderId": 992002399001,
+    }
+    for field, expected in expected_identity.items():
+        if identity.get(field) != expected:
+            errors.append(f"invalid managed V72 seed identity {field}")
+    expected_ids = {
+        "orderLineIds": [992002300001, 992002300002, 992002300003, 992002300004],
+        "deliveryScopeIds": [992002310001, 992002310004],
+        "detailIds": [992002320001, 992002320002, 992002320003, 992002320004],
+    }
+    for field, expected in expected_ids.items():
+        if identity.get(field) != expected:
+            errors.append(f"invalid managed V72 seed relation closure {field}")
+    expected_relations = {
+        "orderLineToOrder": {
+            "992002300001": 992002399001,
+            "992002300002": 992002399001,
+            "992002300003": 992002399001,
+            "992002300004": 992002399001,
+        },
+        "deliveryScopeToOrderLineAndProject": {
+            "992002310001": [992002300001, 992002000000],
+            "992002310004": [992002300004, 992002000000],
+        },
+        "detailToDeliveryScope": {
+            "992002320001": 992002310001,
+            "992002320002": 992002310001,
+            "992002320003": 992002310001,
+            "992002320004": 992002310004,
+        },
+    }
+    if identity.get("relations") != expected_relations:
+        errors.append("managed seed relation references are incomplete")
+    if identity.get("matchPolicy") != "ALL_PREDICATES_AND_COMPLETE_RELATION_CLOSURE_OR_FAIL":
+        errors.append("managed seed matching must fail on every partial identity")
+    if seed.get("businessConversionParticipation") != "EXCLUDED_ONLY_AFTER_EXACT_IDENTITY_MATCH":
+        errors.append("ordinary V70 rows must remain in strict business conversion")
+    if seed.get("disposition") != "REBUILD_EXPLICIT_TARGET_FIXTURE_IN_SAME_FORWARD_MIGRATION":
+        errors.append("managed seed fixture disposition is not explicit")
+    if seed.get("ordinaryV70Policy") != "UNCHANGED_STRICT_OWNER_MAPPING_FAIL_BATCH":
+        errors.append("ordinary V70 conversion was weakened")
+    forbidden = set(seed.get("forbidden", []))
+    for rule in (
+        "ITEM_CODE_AS_PRODUCT_CODE",
+        "PARTIAL_IDENTITY_SEED_BRANCH",
+        "UNBOUNDED_SKIP_OR_DELETE",
+        "SEED_CONSTANTS_IN_ORDINARY_V70_CONVERSION",
+    ):
+        if rule not in forbidden:
+            errors.append(f"missing managed seed negative rule: {rule}")
+    fixture = seed.get("seedOnlyTargetFixture", {})
+    expected_fixture = {
+        "preserveSourceIds": True,
+        "orderId": 992002399001,
+        "sourceSystem": "SEED",
+        "sourceRecordKey": "FPROJ002-V18-ORDER",
+        "sourceVersion": "1",
+        "companyCode": "DPTECH-DEMO",
+        "orderType": "SEED_FIXTURE",
+        "orderNo": "FPROJ002-V18-ORDER",
+        "status": "ENABLED",
+        "creator": "seed",
+        "updater": "seed",
+        "projectId": 992002000000,
+        "officeDepartmentCode": "OFFICE-HZ-DEMO",
+        "officeDepartmentOwnerResolution": "EXACT_ENABLED_SYSTEM_DEPARTMENT_BY_CODE_AND_PROJECT_VERSION",
+    }
+    for field, expected in expected_fixture.items():
+        if fixture.get(field) != expected:
+            errors.append(f"invalid seed-only target fixture {field}")
+    if set(fixture.get("detailSubjects", {})) != {
+        "992002320001", "992002320002", "992002320003", "992002320004"
+    }:
+        errors.append("seed-only detail subjects are incomplete")
+    if fixture.get("constantSemantics") != (
+            "MANAGED_ACCEPTANCE_FIXTURE_ONLY_NOT_ERP_PRODUCT_DEVICE_OR_OFFICE_BUSINESS_FACT"):
+        errors.append("seed constants are not isolated from business facts")
+
+    ordinary = contract.get("v70Conversion", {})
+    if "seedOnlyTargetFixture" in ordinary or "DPTECH-DEMO" in json.dumps(ordinary):
+        errors.append("seed constants leaked into ordinary V70 conversion")
+    for required_text in (
+        "全部身份谓词及关系闭包同时命中",
+        "部分命中或关系不完整时整批失败",
+        "非种子V70行继续执行既有逐字段Owner解析",
+        "不得用`item_code`推断产品编码",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing managed seed Feature rule: {required_text}")
+    return errors
+
+
 class Fcom001FeatureContractTest(unittest.TestCase):
 
     @classmethod
