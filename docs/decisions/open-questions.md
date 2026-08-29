@@ -458,3 +458,18 @@
 - Blocking scope: 已解除。
 - Decision owner: 需求方；CUT领域负责人、数据架构负责人
 - Decision date: 2026-08-29
+
+### Q-FCUT001-003
+
+- Status: RESOLVED
+- Requirement IDs: CUT-03、CUT-07、CUT-09
+- Area: 五类双机部署规范性检查发布与验收数量
+- Question: PRD原“5类124行”与逐类17/25/23/24/8合计97项不一致时，当前正式发布基准是什么？
+- Why it blocks design/implementation: CUT-09要求逐类精确数量校验，两个数值不能同时成立，且参考附件不得参与裁决。
+- Options: A. 逐类合计97项；B. 总数124项并补充缺失27项；C. 取消数量校验。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: 采用A。VSM双机17项、静默双机25项、DRP双机23项、普通双机24项、集群8项，合计97项；原124不再作为CUT-07/CUT-09发布或验收数量。关于124历史组成的推测不产生业务规则。已形成`CHG-PRD-2026-08-30-008`。
+- Blocking scope: 已解除。
+- Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
+- Decision date: 2026-08-30

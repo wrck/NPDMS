@@ -1,20 +1,20 @@
 # F-CUT-001 割接统一配置版本与采集项基础
 
-> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> Feature实施状态：`REOPENED_SPEC_REVIEW`
 > 总体工程阶段：`IMPLEMENTATION`
-> Feature Ready Gate：`PASS / NPDMS-FCUT001-FEATURE-READY-20260829-01`
-> Technical Plan Gate：`PASS / NPDMS-FCUT001-TECHPLAN-20260829-01`
-> Implementation Done Gate：`PASS / NPDMS-FCUT001-IMPLEMENTATION-DONE-20260830-01`
-> Requirement ID：`CUT-07（V1/P0）`
+> Feature Ready Gate：`REVALIDATION_REQUIRED`
+> Technical Plan Gate：`NOT_STARTED_FOR_REOPENED_SCOPE`
+> Implementation Done Gate：`REOPENED / 原CUT-07证据保留但不再代表扩展Scope完成`
+> Requirement ID：`CUT-07（V1/P0）`、`CUT-09（V1/P0）`、`CUT-10（V1/P1）`
 > Feature Spec：`specs/features/F-CUT-001-cutover-unified-configuration-foundation.md`
 > 复用审计：`specs/features/F-CUT-001-legacy-reuse-audit.md`
 > Feature物理契约：`specs/features/F-CUT-001-physical-contract.json`
-> Technical Plan：`docs/superpowers/plans/2026-08-29-f-cut-001-cutover-unified-configuration-foundation.md`
-> Open Questions：`Q-FCUT001-001`、`Q-FCUT001-002`均已关闭
+> Technical Plan：原计划已完成CUT-07子范围并被Scope重开替代；新计划待规格复审
+> Open Questions：`Q-FCUT001-001`、`Q-FCUT001-002`、`Q-FCUT001-003`均已关闭
 
 ## 当前最小工作单元
 
-- F-CUT-001已完成规格、实现、迁移、自动化测试、真实MySQL和真实浏览器闭环；后续Feature不得把本Feature完成解释为CUT-01～06运行态、CUT-08或V2自动指派已实现。
+- 完成扩展Feature Spec书面复审，重新关闭Feature Ready后生成唯一新Technical Plan；未完成CUT-09/10前不得恢复Implementation Done。
 
 ## 已完成
 
@@ -33,7 +33,7 @@
 
 ## 阻断
 
-当前无规格或实现阻断。
+当前无业务语义阻断；`CHG-PRD-2026-08-30-008`已确认双机检查合计97项。当前停在扩展Feature Spec书面复审Gate。
 
 ## 已知边界
 

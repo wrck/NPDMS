@@ -1,6 +1,6 @@
 {
   "featureId": "F-CUT-001",
-  "requirementSlices": ["CUT-07@V1"],
+  "requirementSlices": ["CUT-07@V1", "CUT-09@V1", "CUT-10@V1"],
   "owner": "CUT",
   "aggregate": "CutoverConfigurationRevision",
   "lifecycle": ["DRAFT", "PUBLISHED", "DISABLED"],
@@ -37,10 +37,25 @@
     "pms:cutover-config:disable"
   ],
   "apiPrefix": "/api/v1/pms/cutover-config",
+  "matrixProjections": {
+    "risk": ["RISK", "DUAL_MACHINE_CHECK"],
+    "survey": ["BUSINESS_SURVEY"]
+  },
+  "publicationBaselines": {
+    "dualMachineChecklistCounts": {
+      "VSM_DUAL": 17,
+      "SILENT_DUAL": 25,
+      "DRP_DUAL": 23,
+      "NORMAL_DUAL": 24,
+      "CLUSTER": 8,
+      "total": 97
+    },
+    "surveyCoreCategoryCount": 12
+  },
   "migration": {
     "strategy": "NONE_NEW/FEATURE_FORWARD_MIGRATION",
     "legacySources": [],
     "forbiddenSources": ["pms_cut_task", "pms_cut_risk", "pms_cut_plan"]
   },
-  "referencePolicy": "XLSX/HTML may inform names, fields and UI only; they never override PRD/SDS/Feature Spec or create publication gates"
+  "referencePolicy": "XLSX/HTML may inform names, fields, UI and ordering only; counts, rules, inconsistencies and completion are decided only by PRD/SDS/Feature Spec"
 }

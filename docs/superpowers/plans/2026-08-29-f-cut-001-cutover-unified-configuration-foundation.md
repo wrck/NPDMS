@@ -4,7 +4,8 @@
 > Feature Ready：`PASS / NPDMS-FCUT001-FEATURE-READY-20260829-01`
 > Feature Spec：`specs/features/F-CUT-001-cutover-unified-configuration-foundation.md`
 > Physical Contract：`specs/features/F-CUT-001-physical-contract.json`
-> 实施状态：`COMPLETE / NPDMS-FCUT001-IMPLEMENTATION-DONE-20260830-01`
+> 实施状态：`SUPERSEDED_FOR_REOPENED_SCOPE / CUT-07子范围已完成`
+> 替代关系：F-CUT-001因正式SDS同一Feature承接CUT-09/10而重新打开；扩展规格复审后生成新的唯一Technical Plan。
 
 ## 边界
 

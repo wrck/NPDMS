@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "baseline": "PRD V1.8 / CHG-PRD-2026-08-29-007",
+  "baseline": "PRD V1.8 / CHG-PRD-2026-08-30-008",
   "sources": {
     "prd": "需求/PRD-项目实施交付管理平台.md",
     "featureCoverage": "specs/features/F-*.md#Requirement切片覆盖",
@@ -53,6 +53,27 @@
         {
           "sliceKey": "CUS-03@V1",
           "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "featureId": "F-CUT-001",
+      "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
+      "taskPath": "tasks/features/F-CUT-001.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "REOPENED_SPEC_REVIEW",
+      "mappings": [
+        {
+          "sliceKey": "CUT-07@V1",
+          "coverage": "FULL"
+        },
+        {
+          "sliceKey": "CUT-09@V1",
+          "coverage": "FULL"
+        },
+        {
+          "sliceKey": "CUT-10@V1",
+          "coverage": "FULL"
         }
       ]
     },
@@ -1168,7 +1189,15 @@
       "businessResult": "割接后台配置的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-001",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
+          "taskPath": "tasks/features/F-CUT-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-08@V2",
@@ -1192,7 +1221,15 @@
       "businessResult": "割接风险项关联矩阵的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-001",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
+          "taskPath": "tasks/features/F-CUT-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "CUT-10@V1",
@@ -1204,7 +1241,15 @@
       "businessResult": "割接调研项关联矩阵的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-CUT-001",
+          "coverage": "FULL",
+          "taskStatus": "IN_PROGRESS",
+          "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
+          "taskPath": "tasks/features/F-CUT-001.md"
+        }
+      ]
     },
     {
       "sliceKey": "INS-01@V2",
