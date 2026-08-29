@@ -22,10 +22,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProjectQualificationApiAdapter implements ProjectQualificationPort {
 
-    static final Set<String> SUPPORTED_PROJECT_ROLES = Set.of(
-            ProjectParticipantFactApi.ROLE_PROJECT_MANAGER,
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1,
-            ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L2);
+    static final Set<String> REQUIRED_PROJECT_ROLES = Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
     private static final String ACTIVE = "ACTIVE";
     private static final String ARRIVAL_STAGE = "S4";
 
@@ -37,8 +34,9 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
     public ProjectQualificationFact inspect(Long tenantId, Long projectId, Long actorUserId) {
         requireIdentity(tenantId, projectId, actorUserId);
         ProjectParticipantFact participant = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                projectId, actorUserId, SUPPORTED_PROJECT_ROLES, LocalDateTime.now()));
-        requireParticipantIdentity(participant, projectId, actorUserId);
+                projectId, null, REQUIRED_PROJECT_ROLES, LocalDateTime.now()));
+        requireParticipantIdentity(participant, projectId, null);
+        requireEligibleArrivalProject(participant, null, null);
         ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                 tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_EDIT));
         requireEditableScope(scope, projectId, null);
@@ -49,20 +47,16 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
     @Transactional(rollbackFor = Exception.class)
     public ProjectQualificationFact lockAndRevalidate(RevalidationCommand command) {
         Objects.requireNonNull(command, "project qualification revalidation command is required");
-        Set<String> requiredRoles = command.requireProjectManager()
-                ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER) : SUPPORTED_PROJECT_ROLES;
+        if (command.requireActorAsProjectManager()
+                && !Objects.equals(command.actorUserId(), command.subjectUserId())) {
+            throw new IllegalStateException("actor is not the frozen project manager");
+        }
         ProjectParticipantFact participant = participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
-                        command.projectId(), command.actorUserId(), command.expectedProjectVersion(),
-                        ACTIVE, null, requiredRoles));
-        requireParticipantIdentity(participant, command.projectId(), command.actorUserId());
-        if (!ACTIVE.equals(participant.lifecycleStatus()) || !ARRIVAL_STAGE.equals(participant.currentStage())
-                || !Objects.equals(command.expectedProjectVersion(), participant.projectVersion())
-                || !Objects.equals(command.expectedFactVersion(), participant.factVersion())
-                || command.requireProjectManager()
-                && !participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
-            throw new IllegalStateException("project qualification fact is stale or ineligible");
-        }
+                        command.projectId(), command.subjectUserId(), command.expectedProjectVersion(),
+                        ACTIVE, null, REQUIRED_PROJECT_ROLES));
+        requireParticipantIdentity(participant, command.projectId(), command.subjectUserId());
+        requireEligibleArrivalProject(participant, command.expectedProjectVersion(), command.expectedFactVersion());
         ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
                 command.tenantId(), command.actorUserId(), command.projectId(),
                 ProjectScopeApi.ACTION_EDIT, command.expectedScopeVersion()));
@@ -85,11 +79,24 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
     }
 
     private static void requireParticipantIdentity(ProjectParticipantFact participant,
-                                                   Long projectId, Long actorUserId) {
+                                                   Long projectId, Long subjectUserId) {
         if (participant == null || !Objects.equals(projectId, participant.projectId())
-                || !Objects.equals(actorUserId, participant.userId())
+                || subjectUserId != null && !Objects.equals(subjectUserId, participant.userId())
+                || participant.userId() == null || participant.userId() <= 0
                 || participant.effectiveRoleCodes() == null || participant.effectiveRoleCodes().isEmpty()) {
             throw new IllegalStateException("project participant fact is unavailable or mismatched");
+        }
+    }
+
+    private static void requireEligibleArrivalProject(ProjectParticipantFact participant,
+                                                      Integer expectedProjectVersion,
+                                                      Long expectedFactVersion) {
+        if (!ACTIVE.equals(participant.lifecycleStatus()) || !ARRIVAL_STAGE.equals(participant.currentStage())
+                || !participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
+                || expectedProjectVersion != null
+                && !Objects.equals(expectedProjectVersion, participant.projectVersion())
+                || expectedFactVersion != null && !Objects.equals(expectedFactVersion, participant.factVersion())) {
+            throw new IllegalStateException("project qualification fact is stale or ineligible");
         }
     }
 

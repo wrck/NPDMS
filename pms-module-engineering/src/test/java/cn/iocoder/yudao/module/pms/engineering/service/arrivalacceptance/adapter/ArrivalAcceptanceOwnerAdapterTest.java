@@ -41,7 +41,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
         when(scopeApi.resolveCurrent(any())).thenReturn(scope(9L, Set.of(100L)));
         ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(participantApi, scopeApi);
 
-        ProjectQualificationPort.ProjectQualificationFact fact = adapter.inspect(1L, 100L, 7L);
+        ProjectQualificationPort.ProjectQualificationFact fact = adapter.inspect(1L, 100L, 8L);
 
         assertEquals("S4", fact.currentStage());
         assertEquals(Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), fact.effectiveRoleCodes());
@@ -50,12 +50,13 @@ class ArrivalAcceptanceOwnerAdapterTest {
                 ArgumentCaptor.forClass(ProjectParticipantFactQuery.class);
         verify(participantApi).inspect(participantQuery.capture());
         assertEquals(100L, participantQuery.getValue().projectId());
-        assertEquals(7L, participantQuery.getValue().subjectUserId());
-        assertEquals(ProjectQualificationApiAdapter.SUPPORTED_PROJECT_ROLES,
+        assertEquals(null, participantQuery.getValue().subjectUserId());
+        assertEquals(ProjectQualificationApiAdapter.REQUIRED_PROJECT_ROLES,
                 participantQuery.getValue().requiredRoleCodes());
         ArgumentCaptor<ProjectCurrentScopeQuery> scopeQuery =
                 ArgumentCaptor.forClass(ProjectCurrentScopeQuery.class);
         verify(scopeApi).resolveCurrent(scopeQuery.capture());
+        assertEquals(8L, scopeQuery.getValue().subjectUserId());
         assertEquals(ProjectScopeApi.ACTION_EDIT, scopeQuery.getValue().actionCode());
     }
 
@@ -69,7 +70,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
 
         ProjectQualificationPort.ProjectQualificationFact fact = adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
-                        1L, 100L, 7L, 5, 5L, 9L, true));
+                        1L, 100L, 7L, 7L, 5, 5L, 9L, true));
 
         assertEquals(5L, fact.factVersion());
         ArgumentCaptor<ProjectParticipantFactRevalidationQuery> participantQuery =
@@ -77,6 +78,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
         verify(participantApi).lockAndRevalidate(participantQuery.capture());
         assertEquals("ACTIVE", participantQuery.getValue().requiredLifecycleStatus());
         assertEquals(null, participantQuery.getValue().requiredCurrentStage());
+        assertEquals(7L, participantQuery.getValue().userId());
         assertEquals(Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
                 participantQuery.getValue().requiredRoleCodes());
         ArgumentCaptor<ProjectScopeRevalidationQuery> scopeQuery =
@@ -95,7 +97,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
 
         assertThrows(IllegalStateException.class, () -> adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
-                        1L, 100L, 7L, 5, 5L, 9L, true)));
+                        1L, 100L, 7L, 8L, 5, 5L, 9L, false)));
 
         verify(scopeApi, never()).lockAndRevalidate(any());
     }
