@@ -10,7 +10,7 @@
 | 契约 | Requirement ID | Producer | Consumer | 语义 |
 |---|---|---|---|---|
 | ImplementationEvidencePublished | EXE-01～EXE-06、IMP-01、ACC-04 | Implementation Execution | Acceptance & Closure | IMP出向事件；实施`evidenceId/revision`、来源需求/记录/版本、FileReference、哈希和检查快照已发布，ACC按该不可变revision建立审核/归档引用，不覆盖IMP事实 |
-| ArtifactAccepted / ArtifactArchived | EXE-01～EXE-06、IMP-01、ACC-04 | Acceptance & Closure | Implementation Execution | ACC入向回执；回显`evidenceId/evidenceRevision/artifactId/fileVersion/reviewOrArchiveRecordId`，IMP按eventId Inbox和`evidenceId+revision`幂等推进同步投影；旧序、错配或重复回执不得覆盖当前revision，回执失败不回滚来源业务事实 |
+| ArtifactAccepted / ArtifactArchived | EXE-01～EXE-06、IMP-01、ACC-04 | Acceptance & Closure | Implementation Execution | ACC入向回执；回显`evidenceId/evidenceRevision/artifactId/fileVersion/reviewOrArchiveRecordId`，IMP按eventId Inbox和`evidenceId+revision`幂等推进同步投影；Accepted后Archived超时保留已接受事实并以独立归档回执重试态重发同revision，匹配Archived可恢复至已归档；旧序、错配或重复回执不得覆盖当前revision，回执失败不回滚来源业务事实 |
 | ImplementationReadinessSnapshot | EXE-06、CUT-01 | Implementation Execution | Cutover | 割接前实施门禁快照，仅供 CUT 校验 |
 | `ArrivalAcceptanceFactApi` | EXE-01、EXE-02、EXE-06 | Implementation Execution / F-IMP-002 | F-IMP-003、F-IMP-001 | 按项目、设备/订单数量范围返回`ACCEPTED/NOT_ACCEPTED/STALE`、稳定有序`sourceAcceptanceIds`、项目级单调`factVersion`、由DeliveryScope版本和设备归属版本组成的`scopeWatermark`、已签/豁免/未满足范围与`reopened`；提供无副作用`inspect/lockAndRevalidate`，不返回DO、文件正文或签收人隐私 |
 | `InstallationCompletionFactApi` | EXE-02、EXE-06 | Implementation Execution / F-IMP-003 | F-IMP-001 | 按稳定设备范围返回`COMPLETED/NOT_COMPLETED/STALE`、安装来源对象、业务版本、范围水位及`reopened`，并按期望版本锁定重验；不以位置投影或附件替代安装完成事实 |

@@ -119,7 +119,7 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 | `ImplementationQualityGateChanged` | IMP | Project/ACC/CUT | project/batch、gateCode、decision、snapshotId | 仅表示IMP-01质量检查结论；不承载IMP-02安全检查或额外安全豁免语义 |
 | `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、sourceRequirement、sourceRecordId/sourceVersion、fileReference、hash、source snapshot | IMP出向；ACC审核引用，不覆盖IMP revision；同一evidenceId+revision重复发布幂等 |
 | `ImplementationReadinessSnapshotPublished` | IMP | CUT | snapshotId、version、decision、unmetCodes | CUT 执行冻结所校验快照 |
-| `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | eventId、evidenceId、evidenceRevision、artifactId、fileVersion、review/archive record | ACC入向；IMP按eventId Inbox和evidenceId+revision幂等推进同步投影，旧序/错配回执只审计；归档不改变FileArtifact内容历史或来源业务事实 |
+| `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | eventId、evidenceId、evidenceRevision、artifactId、fileVersion、review/archive record | ACC入向；IMP按eventId Inbox和evidenceId+revision幂等推进同步投影；Accepted后Archived超时进入独立归档回执重试态并重发同revision，匹配Archived仍可恢复；旧序/错配只审计，归档不改变FileArtifact内容历史或来源业务事实 |
 | `SatisfactionTaskCreated` | ACC | Todo/Project | taskId、projectId、businessRef、questionnaireRevision、assignee | 创建待办，不表示客户已提交或满意度通过 |
 | `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |

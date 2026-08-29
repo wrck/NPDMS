@@ -56,7 +56,7 @@
 - F-IMP-002在EXE-01支撑范围内拥有`imp_delivery_evidence/imp_delivery_evidence_revision`，只创建`sourceRequirement=EXE-01`且`sourceObjectType=ARRIVAL_ACCEPTANCE`的签收单证据；不宣称覆盖IMP-01其他实施交付件义务。签收证据通过PLT `FileArtifactApi`引用稳定`FileReference`，数据库不得保存或返回原始附件URL充当权威引用，也不得重复下载或复制二进制。
 - `DeliveryEvidence`根保存证据身份、来源到货批次和当前ACC同步投影；上传或替换草稿时追加revision并冻结`evidenceId/revision/fileReference/hash/sourceRecordId/sourceVersion`，旧revision不可覆盖。项目经理确认批次时，在同一事务冻结当前revision引用并发布出向`ImplementationEvidencePublished`；ACC只建立索引、审核和归档引用，不复制或修改到货事实。
 - 出向事件成功进入发送队列后，当前revision投影为`PUBLISHED_PENDING_ACC`。`ArtifactAccepted`和`ArtifactArchived`是ACC→IMP入向回执，必须回显`evidenceId/evidenceRevision/artifactId/fileVersion/reviewOrArchiveRecordId`。IMP按`eventId` Inbox幂等并按`evidenceId + evidenceRevision`拒绝旧序/错配回执：Accepted把当前revision推进为`ACCEPTED_PENDING_ARCHIVE`，Archived只允许从对应已接受revision推进为`ARCHIVED`。
-- 发布失败、ACC暂不可用、回执超时或版本不匹配时，IMP转为`ARCHIVE_PENDING_RETRY`并按同一`evidenceId + revision`重发；签收真值不回滚，但不得返回“已归档”。旧revision的迟到回执只记审计，不覆盖当前revision。
+- 发布失败、ACC暂不可用或Accepted回执超时/错配时，IMP转为`ARCHIVE_PENDING_RETRY`并按同一`evidenceId + revision`重发。已收到匹配Accepted后若Archived回执超时/丢失，则从`ACCEPTED_PENDING_ARCHIVE`转为`ARCHIVE_ACK_PENDING_RETRY`，保留已接受事实并重发同一revision；匹配Archived可从上述等待态或归档回执重试态进入ARCHIVED，重复Accepted只作幂等确认且不退回发布重试。任何重试均不回滚签收真值、不重复revision，也不得提前返回“已归档”；旧revision迟到回执只记审计。
 - 附件上传、格式/病毒校验或FileReference创建失败时禁止最终确认；该失败与最终确认后ACC索引失败严格区分。
 
 ## 5. API与公开事实契约
@@ -91,7 +91,7 @@
 - `AC-FIMP002-002`：超量、重复设备、跨租户、非本项目、范围版本过期、空范围、Owner不可用和无有效证据均失败关闭且不产生已确认事实。
 - `AC-FIMP002-003`：DRAFT提交按差异和累计范围进入DIFFERENCE_PENDING/PARTIALLY_ACCEPTED/ACCEPTED，只有项目经理可转CONFIRMED；差异、拒收、补签和豁免形成不可覆盖链，未知或过期豁免不满足范围，更正/重开递增事实版本并使旧消费者水位失效。
 - `AC-FIMP002-004`：现场成员只能编辑本人草稿；项目经理最终确认本人负责项目；越权、旧If-Match和同键异请求均无业务副作用。
-- `AC-FIMP002-005`：文件上传失败阻止确认；上传/替换草稿追加EXE-01 DeliveryEvidenceRevision，确认事务冻结并发布当前revision；ACC失败不回滚签收且仅显示`ARCHIVE_PENDING_RETRY`，Accepted/Archived回执按eventId和evidence revision幂等、拒绝旧序/错配且不重复证据revision。
+- `AC-FIMP002-005`：文件上传失败阻止确认；上传/替换草稿追加EXE-01 DeliveryEvidenceRevision，确认事务冻结并发布当前revision；Accepted前失败进入`ARCHIVE_PENDING_RETRY`，Accepted成功但Archived回执丢失/超时进入`ARCHIVE_ACK_PENDING_RETRY`并可按同一revision幂等恢复至ARCHIVED；全程不重复revision、不回滚签收事实，旧序/错配回执无业务副作用。
 - `AC-FIMP002-006`：旧状态1/2记录在缺少应到范围、设备映射或有效证据时不能迁为ACCEPTED；旧表、旧页面和旧接口保持不变。
 - `AC-FIMP002-007`：真实MySQL验证数量/当前版本唯一性、追加历史、并发确认和事务回滚；真实浏览器验证批次、部分签收、差异/补签/豁免、权限和ACC待重试。受控替身不能替代生产Owner正向验收。
 

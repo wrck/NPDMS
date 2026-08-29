@@ -41,6 +41,8 @@
 - 项目经理最终确认只允许`PARTIALLY_ACCEPTED -> CONFIRMED`或`ACCEPTED -> CONFIRMED`。CONFIRMED仅表示本批最终确认；只有确认批次中的ACCEPTED明细及有效具体豁免参与项目事实计算，项目仍有未到/拒收/过期豁免时返回NOT_ACCEPTED。
 - CONFIRMED批次不回退、不覆盖。补签、更正、差异关闭或豁免失效创建关联原批次的后续DRAFT；新记录确认或豁免到期递增项目到货`factVersion`并使旧事实`reopened=true`。
 
+DeliveryEvidence的ACC同步投影区分两类重试：Accepted前发布/回执失败使用`ARCHIVE_PENDING_RETRY`；已收到匹配Accepted后等待Archived超时使用`ARCHIVE_ACK_PENDING_RETRY`，不得丢失已接受事实。两类重试均重发同一`evidenceId+revision`；匹配Archived只允许从`ACCEPTED_PENDING_ARCHIVE`或`ARCHIVE_ACK_PENDING_RETRY`进入ARCHIVED，重复Accepted幂等且不创建新revision。
+
 ### 2.1 Project状态分层守卫
 
 1. PM-01创建项目时写入`lifecycle_status=ACTIVE`、`current_stage=S0`；未完成主责指派时`assignment_status=UNASSIGNED`。
