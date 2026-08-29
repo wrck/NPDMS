@@ -649,8 +649,8 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             gate = root / "docs" / "engineering" / "gates" / "phase-2" / "gate-status.md"
             gate.write_text(
                 gate.read_text(encoding="utf-8").replace(
-                    "93对象/104来源绑定/1排除源",
-                    "92对象/103来源绑定/1排除源",
+                    "94对象/107来源绑定/1排除源",
+                    "93对象/106来源绑定/1排除源",
                     1,
                 ),
                 encoding="utf-8",

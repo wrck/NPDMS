@@ -36,6 +36,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ImplementationQualityCheck": ("imp_quality_check", "imp_quality_item", "imp_quality_remediation", "imp_quality_review"),
     "DeliveryEvidence": ("imp_delivery_evidence", "imp_delivery_evidence_revision"),
     "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_item", "acc_confirmation"),
+    "AcceptanceScopeBinding": ("acc_acceptance_scope_binding",),
     "SatisfactionCollection": ("acc_satisfaction_collection_task", "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result"),
     "DeliveryArtifact": ("acc_delivery_artifact", "acc_artifact_review", "acc_archive_record"),
     "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
@@ -72,6 +73,7 @@ TARGET_POLICIES = {
     "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
     "CutoverConfigurationRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-07"},
+    "AcceptanceScopeBinding": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "COM-01"},
 }
 
 MODEL_ENTITY_CONTRACTS = {
@@ -86,6 +88,7 @@ MODEL_ENTITY_CONTRACTS = {
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
     "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07", "CUT-09", "CUT-10"]},
     "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
+    "AcceptanceScopeBinding": {"owner": "ACC", "requirementIds": ["COM-01", "ACC-03"]},
     "DynamicFormTemplate": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
     "DynamicFormTemplateRevision": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
     "DynamicFormInstance": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
