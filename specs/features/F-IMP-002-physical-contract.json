@@ -52,7 +52,18 @@
     {
       "name": "imp_delivery_evidence_revision",
       "purpose": "EXE-01签收单不可变FileReference、哈希与来源版本",
-      "requiredFields": ["tenant_id", "evidence_id", "revision_no", "file_reference_id", "file_version_no", "file_hash", "source_record_id", "source_version"],
+      "requiredFields": ["tenant_id", "evidence_id", "revision_no", "file_artifact_id", "file_reference_id", "file_version_no", "file_scope_version", "file_fact_version", "file_hash", "source_record_id", "source_version"],
+      "fileReferenceContract": {
+        "file_artifact_id": "PLT:FileArtifactVersionFact.artifactId",
+        "file_reference_id": "PLT:FileArtifactVersionFact.referenceKey",
+        "file_version_no": "PLT:FileArtifactVersionFact.versionNo",
+        "file_scope_version": "PLT:FileArtifactVersionFact.scopeVersion",
+        "file_fact_version": {
+          "source": "PLT:FileArtifactVersionFact.fileFactVersion",
+          "exactNonNegativeIntegerKeys": ["artifactVersion", "referenceVersion", "availabilityVersion"]
+        },
+        "fixedPolicy": {"ownerContext": "IMP", "objectType": "ARRIVAL_ACCEPTANCE", "purposeCode": "RECEIPT", "requiredAction": "READ", "objectId": "source_record_id"}
+      },
       "uniqueKeys": [["tenant_id", "evidence_id", "revision_no"]],
       "immutability": "INSERT_ONLY; NEVER_REDOWNLOAD_OR_COPY_BINARY; REFERENCE_PLT_FILE_VERSION",
       "publicationPolicy": "UPLOAD_OR_DRAFT_REPLACEMENT_APPENDS_REVISION; BATCH_CONFIRM_FREEZES_AND_PUBLISHES_CURRENT_REVISION"

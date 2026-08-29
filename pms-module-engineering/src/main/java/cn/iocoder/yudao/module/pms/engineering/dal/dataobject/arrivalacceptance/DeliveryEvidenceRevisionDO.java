@@ -15,8 +15,11 @@ public class DeliveryEvidenceRevisionDO implements Serializable {
     private Long id;
     private Long evidenceId;
     private Integer revisionNo;
+    private Long fileArtifactId;
     private String fileReferenceId;
     private Integer fileVersionNo;
+    private Long fileScopeVersion;
+    private String fileFactVersion;
     private String fileHash;
     private Long sourceRecordId;
     private Long sourceVersion;
