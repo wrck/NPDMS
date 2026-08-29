@@ -38,7 +38,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_report_version", "acc_acceptance_report_attachment", "acc_confirmation"),
     "AcceptanceScopeBinding": ("acc_acceptance_scope_binding",),
     "SatisfactionCollection": ("acc_satisfaction_collection_task", "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result"),
-    "DeliveryArtifact": ("acc_project_deliverable", "acc_artifact_review", "acc_archive_record"),
+    "DeliveryArtifact": ("acc_project_deliverable", "acc_project_deliverable_source_version", "acc_project_deliverable_source_attachment", "acc_artifact_review", "acc_archive_record"),
     "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
     "ServiceHandover": ("acc_service_handover", "acc_handover_item", "acc_handover_result"),
     "CutoverTask": ("cut_task",), "CutoverAssessment": ("cut_assessment",),
@@ -164,7 +164,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("NONE_NEW", "Acceptance", "NEW_ONLY", "create ACC preliminary/final activities and immutable effective report versions only from explicit new-platform commands; bind the approved ProjectTask/WorkBinding identity and never infer report type or completion from names or legacy status", "NEW_ONLY", "F-ACC-001"),
     ],
     "DeliveryArtifact": [
-        source("CURRENT_TABLE", "acc_project_deliverable", "CURRENT_FORWARD", "reuse the F-PROJ-001 ACC-owned project deliverable identity; for exact D-INITIAL-REPORT or D-FINAL-REPORT only, add the immutable report source/version, fixed file version, archive status and compensation watermark; never infer type from name, task or D-ACCEPT-REPORT", "CURRENT_FORWARD_REQUIRED", "F-ACC-001"),
+        source("CURRENT_TABLE", "acc_project_deliverable", "CURRENT_FORWARD", "reuse the F-PROJ-001 ACC-owned project deliverable root; for exact D-INITIAL-REPORT or D-FINAL-REPORT only, append every report source version and its complete ordered file-version set, switch a nullable current pointer, and preserve replaced or revoked relations plus archive compensation history; never infer type or a primary file", "CURRENT_FORWARD_REQUIRED", "F-ACC-001"),
         source("CURRENT_TABLE", "pms_acc_deliverable_checklist|pms_acc_archive_document|pms_acc_completion_certificate", "COMPATIBILITY_ONLY", "keep the V17 checklist, archive and completion stacks unchanged; do not use them as the F-ACC-001 deliverable identity, source index, archive truth or compensation state", "NO_MIGRATION", "F-ACC-001-LEGACY"),
     ],
     "SatisfactionCollection": [
