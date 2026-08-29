@@ -1,0 +1,62 @@
+{
+  "featureId": "F-COM-001",
+  "requirementSlices": ["COM-01@V1"],
+  "ownerContext": "COM",
+  "phaseGateImpact": "NONE",
+  "externalImplementation": "INTERFACES_ONLY",
+  "aggregates": {
+    "Contract": {"owner": "COM", "authority": "ERP_READ_ONLY_COPY", "businessKey": ["tenantId", "companyCode", "contractNo"]},
+    "SalesOrder": {"owner": "COM", "authority": "ERP_READ_ONLY_COPY", "businessKey": ["tenantId", "sourceSystem", "companyCode", "orderType", "orderNo"]},
+    "SalesOrderLine": {"owner": "COM", "authority": "ERP_READ_ONLY_COPY", "businessKey": ["tenantId", "orderId", "lineNo"]},
+    "DeliveryScope": {"owner": "COM", "currentKey": ["tenantId", "projectId", "orderLineId"], "currentPredicate": "deleted = 0 AND effective_to IS NULL"}
+  },
+  "tables": {
+    "com_contract": {"owner": "COM", "source": "approved SDS physical schema"},
+    "com_sales_order": {"owner": "COM", "source": "approved SDS physical schema"},
+    "com_sales_order_line": {"owner": "COM", "source": "approved SDS physical schema"},
+    "com_order_contract_relation": {"owner": "COM", "cardinality": "N:N"},
+    "com_project_contract_relation": {"owner": "COM", "cardinality": "N:N"},
+    "com_delivery_scope": {"owner": "COM", "history": "effective interval; no overwrite"},
+    "com_delivery_scope_detail": {"owner": "COM", "invariant": "detail allocated quantity sum equals scope allocated quantity"},
+    "com_outbox_event": {"owner": "COM", "reuse": "existing module technical contract"}
+  },
+  "restApis": [
+    {"method": "GET", "path": "/api/v1/pms/contracts", "requirementIds": ["COM-01"]},
+    {"method": "GET", "path": "/api/v1/pms/contracts/{id}", "requirementIds": ["COM-01"]},
+    {"method": "POST", "path": "/api/v1/pms/contracts/{id}/project-relations", "requirementIds": ["COM-01"]},
+    {"method": "GET", "path": "/api/v1/pms/sales-orders", "requirementIds": ["COM-01"]},
+    {"method": "GET", "path": "/api/v1/pms/order-lines", "requirementIds": ["COM-01"]},
+    {"method": "GET", "path": "/api/v1/pms/delivery-scopes", "requirementIds": ["COM-01"]},
+    {"method": "POST", "path": "/api/v1/pms/delivery-scopes/actions/preview", "requirementIds": ["COM-01"]},
+    {"method": "POST", "path": "/api/v1/pms/delivery-scopes/actions/assign", "requirementIds": ["COM-01"]},
+    {"method": "POST", "path": "/api/v1/pms/delivery-scopes/{id}/actions/adjust", "requirementIds": ["COM-01"]},
+    {"method": "POST", "path": "/api/v1/pms/delivery-scopes/{id}/actions/release", "requirementIds": ["COM-01"]}
+  ],
+  "moduleApis": {
+    "CommerceAuthorityWriteApi": {"direction": "Integration ACL -> COM", "implementation": "interface and controlled local provider only", "thirdPartyAdapter": "OUT_OF_SCOPE"},
+    "DeliveryScopeApi": {"direction": "PROJ -> COM", "compatibility": "preserve F-PROJ-002 behavior"},
+    "AssetLocationApi": {"direction": "COM -> AST", "failureMode": "FAIL_CLOSED_FOR_STRUCTURED_LOCATION_WRITE"},
+    "AcceptanceScopeGuardApi": {"direction": "COM -> ACC", "failureMode": "FAIL_CLOSED_FOR_SCOPE_REDUCTION"}
+  },
+  "events": {
+    "DeliveryScopeAssigned": {"owner": "COM", "idempotency": ["eventId", "scopeVersion"]},
+    "DeliveryScopeReleased": {"owner": "COM", "idempotency": ["eventId", "scopeVersion"]}
+  },
+  "permissions": [
+    "pms:commerce:contract:query",
+    "pms:commerce:contract:relate",
+    "pms:commerce:scope:query",
+    "pms:commerce:scope:assign",
+    "pms:commerce:scope:adjust",
+    "pms:commerce:scope:release",
+    "pms:commerce:authority:write"
+  ],
+  "migration": {
+    "strategy": "forward-only single cutover",
+    "legacyTables": ["com_order_line", "com_delivery_scope", "com_delivery_scope_detail", "com_outbox_event"],
+    "targetTables": ["com_sales_order_line", "com_delivery_scope", "com_delivery_scope_detail", "com_outbox_event"],
+    "longTermDualWrite": false,
+    "historicalSourceMigration": "OUT_OF_SCOPE"
+  },
+  "outOfScope": ["ERP network adapter", "CRM contract implementation", "Yudao platform changes", "historical production migration", "Deployment", "SIT", "UAT", "Release"]
+}

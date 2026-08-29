@@ -44,6 +44,19 @@
       ]
     },
     {
+      "featureId": "F-COM-001",
+      "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
+      "taskPath": null,
+      "taskStatus": "NO_TASK",
+      "taskStatusRaw": null,
+      "mappings": [
+        {
+          "sliceKey": "COM-01@V1",
+          "coverage": "FULL"
+        }
+      ]
+    },
+    {
       "featureId": "F-CUS-001",
       "featurePath": "specs/features/F-CUS-001-customer-master-and-local-lifecycle.md",
       "taskPath": "tasks/features/F-CUS-001.md",
@@ -228,7 +241,15 @@
       "businessResult": "合同订单关联与范围分配的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-COM-001",
+          "coverage": "FULL",
+          "taskStatus": "NO_TASK",
+          "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
+          "taskPath": null
+        }
+      ]
     },
     {
       "sliceKey": "PM-01@V1",
