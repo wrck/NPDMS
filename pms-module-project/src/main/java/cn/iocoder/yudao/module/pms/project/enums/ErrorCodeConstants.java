@@ -76,6 +76,8 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_ACCEPTANCE_CODE_DUPLICATE = new ErrorCode(1_014_012_001, "项目内验收编码已存在");
     ErrorCode ACC_ACCEPTANCE_STATUS_INVALID = new ErrorCode(1_014_012_002, "验收状态流转不合法");
     ErrorCode ACC_ACCEPTANCE_DELIVERABLE_INCOMPLETE = new ErrorCode(1_014_012_003, "交付件完整性校验未通过，存在未通过的必交交付件");
+    ErrorCode ACC_ACCEPTANCE_SCOPE_REQUEST_INVALID = new ErrorCode(1_014_012_004, "验收范围绑定请求不合法");
+    ErrorCode ACC_ACCEPTANCE_SCOPE_BINDING_CONFLICT = new ErrorCode(1_014_012_005, "验收范围绑定身份或状态冲突");
 
     // ========== 交付件检查 1-014-013-000 ==========
     ErrorCode ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS = new ErrorCode(1_014_013_000, "交付件检查记录不存在");
