@@ -40,7 +40,7 @@
       "failureClosedRule": "DO_NOT_WRITE_EFFECTIVE_TO_UNLOCK_OR_REWRITE_BINDING"
     }
   },
-  "technicalPlanPrerequisiteAmendment": "PENDING_INDEPENDENT_REVIEW_MANAGED_V72_SEED_DISPOSITION",
+  "technicalPlanPrerequisiteAmendment": "GO_3412E38397776D471C6EA3867DEF2001609D5B46",
   "managedV72SeedDisposition": {
     "exactIdentity": {
       "sourceMigration": "V72__fproj002_v18_seed_and_menu.sql",

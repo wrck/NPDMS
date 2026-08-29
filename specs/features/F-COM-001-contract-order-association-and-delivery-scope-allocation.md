@@ -10,7 +10,7 @@
 > 目标实现载体：COM主体为`pms-module-commerce`与`pms-module-commerce-api`；按批准物理模块映射，PROJ及ACC Owner的窄API/真实Provider增量位于`pms-module-project-api`与`pms-module-project`，语义Owner仍分别为PROJ/ACC；合同公司范围只消费现有`yudao-module-system`公开Provider且不修改Yudao基础平台
 > 适用基线：PRD V1.8修订009；SDS Phase 1/2/3 `BASELINE`；ADR-0036/0037/0038 `ACCEPTED`
 > Technical Plan：仅在本Feature达到`BASELINE / READY`后生成
-> Technical Plan前置补充：V72受管F-PROJ-002验收夹具处置为`PENDING_INDEPENDENT_REVIEW`；补充获GO前不得形成Technical Plan候选
+> Technical Plan前置补充：V72受管F-PROJ-002验收夹具处置已由独立整改复审批准（`GO_3412E38397776D471C6EA3867DEF2001609D5B46`）
 
 ## 1. 业务目标
 
@@ -236,11 +236,11 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 | 验收、验证与真实浏览器 | 第8～10节 | PASS |
 | 相关Open Question | `Q-FCOM-001`已按SYSTEM当前公司授权事实关闭；`Q-FCOM-002`只阻断本Feature Out of Scope的退出/回退关闭或解锁，不阻断已确认进入与新范围路径 | PASS_WITH_NARROW_OUT_OF_SCOPE_BLOCK |
 | 独立Feature Ready裁决 | 完整全新审核已批准候选`c57ee7b5f5226f5dc902d817c034ff1a8f6618c3` | GO |
-| Technical Plan前置V72受管种子补充 | 第6.1节、机器契约、复用审计与聚焦负向门禁 | PENDING_INDEPENDENT_REVIEW |
+| Technical Plan前置V72受管种子补充 | 第6.1节、机器契约、复用审计与聚焦负向门禁；独立整改复审批准`3412e383` | GO |
 
-结论：Feature继续保持`BASELINE / READY`，已通过的Feature Ready业务语义不撤销。V72受管种子处置是唯一Technical Plan形成前补充；独立复审GO前不得形成Technical Plan候选。Q-FCOM-002仍仅保留Out of Scope的退出/回退关闭或解锁窄阻断；第三方平台仍只冻结接口边界。
+结论：Feature继续保持`BASELINE / READY`，已通过的Feature Ready业务语义不撤销。V72受管种子处置已由独立整改复审批准，允许形成唯一Technical Plan候选。Q-FCOM-002仍仅保留Out of Scope的退出/回退关闭或解锁窄阻断；第三方平台仍只冻结接口边界。
 
-检查点：基线=ead6c8bf；当前Gate=Technical Plan前置V72种子契约补充；已通过=Feature Ready GO及状态回写；阻塞=补充待独立复审；下一步=四文件最小候选送审，GO前不形成Technical Plan。
+检查点：基线=3412e383；当前Gate=Technical Plan形成；已通过=Feature Ready及V72种子补充GO；阻塞=无；下一步=形成唯一Technical Plan候选，不开始产品实现。
 
 ## 12. 追溯
 
