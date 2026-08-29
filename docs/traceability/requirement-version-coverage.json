@@ -18,9 +18,9 @@
       "V2": 58
     },
     "slicesByImplementationStatus": {
-      "IMPLEMENTATION_COMPLETE": 5,
+      "IMPLEMENTATION_COMPLETE": 6,
       "IMPLEMENTATION_PARTIAL": 9,
-      "NOT_STARTED": 97
+      "NOT_STARTED": 96
     }
   },
   "derivationRules": [
@@ -47,8 +47,8 @@
       "featureId": "F-COM-001",
       "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
       "taskPath": "tasks/features/F-COM-001.md",
-      "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IMPLEMENTATION_IN_PROGRESS",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
       "mappings": [
         {
           "sliceKey": "COM-01@V1",
@@ -240,12 +240,12 @@
       "ownerName": "合同订单履约",
       "businessResult": "合同订单关联与范围分配的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
       "features": [
         {
           "featureId": "F-COM-001",
           "coverage": "FULL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
           "taskPath": "tasks/features/F-COM-001.md"
         }
