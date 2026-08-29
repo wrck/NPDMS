@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper">
+    <select id="selectLatestByCode"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
+        SELECT *
+        FROM cut_cutover_configuration_revision
+        WHERE configuration_code = #{configurationCode}
+          AND deleted = b'0'
+        <if test="statusCode != null and statusCode != ''">
+          AND status_code = #{statusCode}
+        </if>
+        ORDER BY revision_no DESC
+        LIMIT 1
+    </select>
+</mapper>

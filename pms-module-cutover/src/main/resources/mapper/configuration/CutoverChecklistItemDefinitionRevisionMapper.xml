@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverChecklistItemDefinitionRevisionMapper">
+    <delete id="hardDeleteByRevisionId">
+        DELETE FROM cut_cutover_checklist_item_definition_revision
+        WHERE configuration_revision_id = #{query.configurationRevisionId}
+    </delete>
+    <select id="selectHistoryByStableKeys"
+            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO">
+        SELECT i.stable_item_key,
+               i.item_type_code
+        FROM cut_cutover_checklist_item_definition_revision i
+        INNER JOIN cut_cutover_configuration_revision r
+                ON r.id = i.configuration_revision_id
+               AND r.deleted = 0
+        WHERE r.configuration_code = #{query.configurationCode}
+          AND i.configuration_revision_id != #{query.excludedRevisionId}
+          AND i.deleted = 0
+          AND i.stable_item_key IN
+          <foreach collection="query.stableItemKeys" item="stableItemKey" open="(" separator="," close=")">
+              #{stableItemKey}
+          </foreach>
+    </select>
+</mapper>

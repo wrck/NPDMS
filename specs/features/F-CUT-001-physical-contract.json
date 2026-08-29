@@ -1,0 +1,46 @@
+{
+  "featureId": "F-CUT-001",
+  "requirementSlices": ["CUT-07@V1"],
+  "owner": "CUT",
+  "aggregate": "CutoverConfigurationRevision",
+  "lifecycle": ["DRAFT", "PUBLISHED", "DISABLED"],
+  "tables": [
+    {
+      "name": "cut_cutover_configuration_revision",
+      "purpose": "配置根、维度和方案模板章节版本事实",
+      "uniqueKeys": [
+        ["tenant_id", "configuration_code", "revision_no"],
+        ["tenant_id", "configuration_code", "published_marker"]
+      ],
+      "jsonColumns": [
+        "dictionary_snapshot",
+        "dimension_definition_snapshot",
+        "plan_template_section_snapshot",
+        "validation_result_snapshot"
+      ]
+    },
+    {
+      "name": "cut_cutover_checklist_item_definition_revision",
+      "purpose": "三类统一采集项定义版本",
+      "uniqueKeys": [["tenant_id", "configuration_revision_id", "stable_item_key"]]
+    },
+    {
+      "name": "cut_cutover_checklist_binding_rule_revision",
+      "purpose": "采集项动态多维绑定规则版本",
+      "uniqueKeys": [["tenant_id", "configuration_revision_id", "stable_rule_key"]]
+    }
+  ],
+  "permissions": [
+    "pms:cutover-config:query",
+    "pms:cutover-config:manage",
+    "pms:cutover-config:publish",
+    "pms:cutover-config:disable"
+  ],
+  "apiPrefix": "/api/v1/pms/cutover-config",
+  "migration": {
+    "strategy": "NONE_NEW/FEATURE_FORWARD_MIGRATION",
+    "legacySources": [],
+    "forbiddenSources": ["pms_cut_task", "pms_cut_risk", "pms_cut_plan"]
+  },
+  "referencePolicy": "XLSX/HTML may inform names, fields and UI only; they never override PRD/SDS/Feature Spec or create publication gates"
+}

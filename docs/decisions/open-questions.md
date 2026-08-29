@@ -426,3 +426,35 @@
 - Resolution: 采用A。巡检命令超时后，当前命令必须终止并标记失败；剩余命令是否继续严格按任务冻结的已发布巡检规则决定，并记录采用的规则版本、决定和执行结果。
 - Decision owner: 需求方；SRV、PLT采集与安全Owner共同裁决
 - Decision date: 2026-08-29
+
+## F-CUT-001 Feature Ready 待裁决项
+
+### Q-FCUT001-001
+
+- Status: RESOLVED
+- Requirement IDs: CUT-07、CUT-09
+- Area: 双机部署规范性检查项权威清单与发布数量校验
+- Question: 参考附件中的双机检查项内容和行数是否参与业务口径裁决或Feature Ready判断？
+- Why it blocks design/implementation: 已由需求方明确关闭；参考附件只辅助理解名称、字段与界面，不拥有业务语义或验收口径。
+- Options: A. 仅作参考；B. 作为第二事实源参与裁决；C. 以附件覆盖正式需求。
+- Recommended technical default: A。
+- Business decision required: 已完成。
+- Resolution: 采用A。PRD、SDS和Feature Spec决定业务语义与验收；XLSX/HTML可以查看和引用为实现参考，但其内容、数量或相互差异不形成需求裁决、不建立新的发布门禁，也不阻断Feature。CUT-07实现通用CRUD、版本和发布校验能力，初始化只落正式需求明确定义的字典及示例组合，不把附件行数硬编码为业务规则。
+- Blocking scope: 已解除。
+- Decision owner: 需求方；CUT领域负责人、测试负责人参与影响分析
+- Decision date: 2026-08-29
+
+### Q-FCUT001-002
+
+- Status: RESOLVED
+- Requirement IDs: CUT-07、CUT-04
+- Area: 割接方案模板章节配置的领域与物理载体
+- Question: CUT-07要求“按割接类型/级别配置方案模板章节”，应由哪个版本化对象和物理表承载？
+- Why it blocks design/implementation: 已通过不增加Owner表的物理细化关闭，不改变PRD业务语义或ADR三表边界。
+- Options: A. 扩展ADR/SDS，为CUT-07增加版本化方案模板章节子对象和独立物理表；B. 明确方案模板章节配置不属于CUT-07当前V1切片并修订PRD，由后续CUT-04 Feature单独拥有；C. 批准将章节Schema作为`CutoverConfigurationRevision`根内的结构化版本快照，并补齐字段、校验和消费契约。
+- Recommended technical default: C。
+- Business decision required: 已完成。
+- Resolution: 采用C。方案模板章节以`CutoverConfigurationRevision.plan_template_section_snapshot`结构化JSON承载，随配置根统一草稿、发布、复制修订和停用；每章包含稳定章节键、标题、排序、适用割接类型代码、适用等级代码和必填标识。CUT-04只冻结所消费配置revision及章节快照，不把运行方案写回配置根。保持ADR-0031批准的三表模型，不新增第四张Owner表。
+- Blocking scope: 已解除。
+- Decision owner: 需求方；CUT领域负责人、数据架构负责人
+- Decision date: 2026-08-29
