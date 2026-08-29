@@ -5,7 +5,8 @@
 
     <sql id="columns">
         id, project_id, batch_code, logistics_no, arrived_at, signer_snapshot,
-        status, delivery_scope_version, expected_scope_snapshot, scope_watermark,
+        status, project_version, project_participant_fact_version, project_scope_version,
+        delivery_scope_version, expected_scope_snapshot, scope_watermark,
         migration_resolution_status, migration_reason_code, legacy_source_id,
         project_fact_version, evidence_id, evidence_revision, predecessor_acceptance_id,
         submitted_by, submitted_at, confirmed_by, confirmed_at, version,

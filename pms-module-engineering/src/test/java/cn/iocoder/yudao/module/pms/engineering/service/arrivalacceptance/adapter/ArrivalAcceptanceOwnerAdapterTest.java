@@ -97,7 +97,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
 
         assertThrows(IllegalStateException.class, () -> adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
-                        1L, 100L, 7L, 8L, 5, 5L, 9L, false)));
+                        1L, 100L, null, 8L, 5, 5L, 9L, false)));
 
         verify(scopeApi, never()).lockAndRevalidate(any());
     }

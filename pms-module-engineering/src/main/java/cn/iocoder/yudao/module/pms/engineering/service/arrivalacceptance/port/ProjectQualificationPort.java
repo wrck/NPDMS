@@ -21,11 +21,12 @@ public interface ProjectQualificationPort {
 
         public RevalidationCommand {
             if (tenantId == null || tenantId < 0 || projectId == null || projectId <= 0
-                    || subjectUserId == null || subjectUserId <= 0
+                    || subjectUserId != null && subjectUserId <= 0
                     || actorUserId == null || actorUserId <= 0
                     || expectedProjectVersion == null || expectedProjectVersion < 0
                     || expectedFactVersion == null || expectedFactVersion < 0
-                    || expectedScopeVersion == null || expectedScopeVersion < 0) {
+                    || expectedScopeVersion == null || expectedScopeVersion < 0
+                    || requireActorAsProjectManager && subjectUserId == null) {
                 throw new IllegalArgumentException("invalid project qualification revalidation command");
             }
         }
