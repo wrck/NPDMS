@@ -1,6 +1,6 @@
 # ADR-0040：验收附件公共事实与活动初始化
 
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`<br>
 > 日期：2026-08-30<br>
 > Requirement：`ACC-03@V1`、`ACC-04@V1`<br>
 > 触发：F-ACC-001 Feature Ready独立审核NO-GO；本ADR只细化ADR-0039的文件边界和活动初始化，不改变PRD业务语义
