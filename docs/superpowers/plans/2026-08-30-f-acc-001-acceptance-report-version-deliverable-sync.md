@@ -4,7 +4,7 @@
 
 **计划ID：** `NPDMS-FACC001-TECHPLAN-20260830-01`
 
-**当前状态：** `CANDIDATE / INDEPENDENT_REVIEW_REQUIRED`
+**当前状态：** `BASELINE / PASS / GO`（独立整改复审 `fca9626c4fce4ccf4b03efdebe997343ce7b5a42`）
 
 **目标：** 实现初验/终验活动、草稿与不可变报告版本、终验前初验守卫、PROJ任务同事务完成、既有应交根来源同步、PLT独立归档补偿和历史附件下载的完整纵向闭环。
 
@@ -264,4 +264,4 @@ git diff --check
 
 ## 七、Technical Plan Gate
 
-当前状态：`CANDIDATE / INDEPENDENT_REVIEW_REQUIRED`。本状态只允许独立审核计划；不创建Task，不修改产品代码、V128或实施状态。
+当前状态：`BASELINE / PASS / GO`。独立整改复审已批准创建唯一`tasks/features/F-ACC-001.md`，并按本计划两个串行Task进入Implementation；本结论不代表产品代码、V128、Task完成或Implementation Done已获批准。

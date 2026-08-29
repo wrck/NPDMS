@@ -2,13 +2,13 @@
 
 > 文档状态：`BASELINE`
 > Feature Ready：`READY`
-> 实施状态：`NOT_STARTED`
+> 实施状态：`IN_PROGRESS`
 > Requirement：`ACC-03（V1）`、`ACC-04（V1局部）`
 > Requirement切片覆盖：`ACC-03@V1=FULL；ACC-04@V1=PARTIAL`
 > Owner Context：`ACC（验收与闭环）`
 > 目标实现载体：`pms-module-project`及其内嵌`pms-module-project-api`；ACC与PROJ语义Owner保持分离，不新增第二套项目任务或应交清单真值
 > 适用基线：PRD V1.8修订009；SDS Phase 2/P3-E09聚焦差量及文件事实/活动初始化补充均`READY / GO`；ADR-0039、ADR-0040 `ACCEPTED`
-> Technical Plan：下一阶段仅形成本Feature唯一Technical Plan候选；本GO不预先批准计划内容或实施
+> Technical Plan：`NPDMS-FACC001-TECHPLAN-20260830-01`，`PASS / GO`（独立整改复审`fca9626c4fce4ccf4b03efdebe997343ce7b5a42`）
 
 ## 1. 业务目标
 
@@ -151,4 +151,4 @@ PROJ初验/终验任务与执行契约
 | Open Question | Q-FCOM-002仅阻断Out of Scope退出/回退关闭路径 |
 | 独立Feature Ready裁决 | PASS（整改提交`bde0feac019baf820634ecc6a0e88272672b601d`独立复审GO） |
 
-检查点：基线=`7f4cfa7a`；当前Gate=Technical Plan整改复审；已通过=Feature Ready及归档actor/Outbox SDS补充GO；阻塞=计划仍待独立GO；下一步=同步机器契约并提交同一计划整改，不创建Task或改代码/Flyway。
+检查点：基线=`fca9626c`；当前Gate=Implementation Task 1；已通过=Technical Plan独立整改复审GO；阻塞=无；下一步=按计划串行实施共享契约、V128与后端正向闭环并做聚焦验证，不提前进入Task 2或宣称Implementation Done。
