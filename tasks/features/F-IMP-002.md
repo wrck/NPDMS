@@ -15,7 +15,8 @@
 ## 当前最小工作单元
 
 - Task 1A公共事实契约已完成：新增`ArrivalAcceptanceFactApi`、查询/锁定重验DTO、结构化范围水位及设备/数量结果契约，定向契约测试4项通过。
-- 当前继续Task 1B的PROJ/PLT生产依赖适配；COM `getAssignedScope`、AST `DeviceScopeFactApi`和ACC生产契约未形成的工作保持`BLOCKED_BY_DEPENDENCY`，不注册fallback或Fake Bean。
+- Task 1B生产依赖适配已完成：PROJ按参与者事实锁定后校验`ACTIVE/S4`、项目/事实版本与项目经理角色，`ACTION_EDIT`仅作独立数据范围校验；PLT只读引用集合适配及5项测试通过。
+- Task 1C的COM `getAssignedScope`与AST `DeviceScopeFactApi`生产适配保持`BLOCKED_BY_DEPENDENCY`，不注册fallback或Fake Bean；当前转入不依赖这些Provider的Task 2 Schema串行单元。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
