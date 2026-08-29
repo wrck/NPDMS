@@ -129,7 +129,7 @@ COM-01 的可分配量按有效订单量减去其他有效分配量。分配/释
 - 统一锁顺序为PROJ项目当前行→COM订单行（适用时）→COM范围当前行（稳定ID）→ACC绑定。初验/终验报告行不进入该锁链，报告状态不得用于判断绑定。
 - F-ACC-001首次发布、替换、撤销均按ACC活动根→旧当前版本（适用时）→目标草稿（适用时）→附件集合锁定。DRAFT的生成`current_marker=NULL`，仅未关闭EFFECTIVE生成1；替换原子关闭旧版再生效草稿，撤销原子关闭当前并清空指针，失败整体回滚。终验发布再按稳定活动ID锁定初验当前报告，版本变化返回冲突。
 - 初验/终验任务完成按PROJ项目任务/执行契约→ACC活动根→当前报告版本锁定，ACC Provider以`MANDATORY`加入同一MySQL事务；任一身份、活动版本、报告版本或四项完备校验失败时，ACC活动、TaskCompletionEvaluation和PROJ任务状态均不变化。不得反向从ACC先锁任务或直接写PROJ表。
-- `AcceptanceReportVersionChanged`消费锁对应`acc_project_deliverable`根和当前来源关系；按变更类型及来源版本幂等追加/切换`source_version`与完整附件集合。替换/撤销保留旧关系，撤销不恢复旧版。报告事务不等待归档成功，归档失败记录补偿水位。
+- 报告命令通过`PlatformCommandExecutionApi`写Outbox；`AcceptanceReportOutboxDeliveryJob`经`PlatformOutboxDeliveryApi`只领取`AcceptanceReportVersionChanged`。消费锁对应`acc_project_deliverable`根和当前来源关系；按变更类型及来源版本幂等追加/切换`source_version`与完整附件集合。投影事务成功后才`markDelivered`，异常则`scheduleRetry`；不得领取`ClosureGateRecheckRequested`。替换/撤销保留旧关系，撤销不恢复旧版。报告事务不等待归档成功，归档失败记录补偿水位。
 - 报告文件策略由ACC Provider以`reportVersionId`解析项目范围，`scopeVersion`唯一取PROJ当前`treeVersion`。发布/完成按ACC活动根→报告版本→PLT附件ACTIVE集合重验；归档补偿锁定附件集合后，在独立`ACCEPTANCE_REPORT_ARCHIVE`集合按`FileArtifact→FileVersion→FileReference`稳定顺序整组创建ARCHIVED引用和记录，附件引用不变。PLT成功后ACC才把投影置`ARCHIVED`。
 - 新项目创建中，PROJ先生成任务/非ACC契约/里程碑，调用既有ACC initializer形成应交根，再通过`MANDATORY` activity initializer创建ACC活动，最后追加引用返回`acceptanceId`的ACC执行契约；全部共用同一MySQL事务，PROJ不直接写ACC表。存量切换按项目和初验/终验任务对加锁，只有两项均非终态且当前契约均为V63 `TASK_NATIVE`才原子换绑；两项均终态整项目保持不变，终态/非终态混合整批失败。
 - 合同列表、详情和项目—合同关系维护不使用正向公司范围缓存。关系写在任何COM业务锁和写入前调用`OrganizationScopeApi.getActiveScopes`，按`companyCode`精确校验并冻结本次授权快照；调用后若进入COM事务，只把scope ID/version写审计，不反向锁SYSTEM或把授权结果持久化为第二真值。并发撤权以写前最后一次Owner读取为本次判定，后续请求必须读取新当前事实。

@@ -26,6 +26,7 @@
 | S2-V18-15 | PRD修订009关闭Q-FCOM-001并指定SYSTEM当前公司授权事实 | ADR-0038及02d/04/07/09/10/14/15/16聚焦差量已获独立GO：复用现有OrganizationScopeApi，公司编码精确集合、空/不可用失败关闭、写前重验与AuditRecord授权快照、敏感字段独立权限、不缓存正向授权；不修改Yudao，P3-E09为NO_PHYSICAL_DELTA；裁决对象2cf427d6ccb6e0cef0cef3b1460eeaa95ddced53 |
 | S2-V18-16 | F-ACC-001形成ACC-03完整报告闭环与ACC-04初验/终验来源切片 | 94对象/109来源绑定/1排除源；整改已闭合DRAFT/EFFECTIVE/SUPERSEDED/REVOKED、current_marker、发布/替换/撤销原子转换、完整附件集合及只追加来源历史，提交`5c1e1ff2`经独立复审GO |
 | S2-V18-17 | F-ACC-001补齐PLT稳定公共文件事实、ACC文件策略/归档Owner接口及活动初始化/存量切换 | ADR-0040与02d/04/08/08a/09/10/11/13/15/16整改提交`6b51d9af`经独立复审GO；附件ACTIVE引用与独立ARCHIVED归档引用分离，attach目标加性支持ACC；存量两项均终态保持、混合状态失败 |
+| S2-V18-18 | F-ACC-001补齐后台归档操作者与报告事件投递 | ADR-0040补充、02d/04/08/09/10/11/13/15/16已锁定发布时认证用户、显式actor权限重验、`PlatformCommandExecutionApi`写入和`PlatformOutboxDeliveryApi`专用领取/成功标记/失败重试；候选待独立复审 |
 
 ## 2. 可复现校验
 

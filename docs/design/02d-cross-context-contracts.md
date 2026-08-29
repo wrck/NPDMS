@@ -33,7 +33,7 @@
 | `KnowledgePublicProductInfoQueryApi` | EQP-01 | KNO | AST | 按产品/设备映射查询已发布官网信息版本、来源URL、核验时间和摘要；无记录返回NOT_AVAILABLE |
 | `OrganizationScopeApi.getActiveScopes(userId)` | COM-01 | SYSTEM | COM | 在受信租户上下文返回用户当前有效`UserCompanyDepartmentScope`的稳定ID、公司ID/编码、可选部门上下文、生效区间和版本；COM只按`companyCode`与ERP合同所属公司编码精确匹配，部门、项目关系和功能权限不得产生额外合同范围 |
 | `AcceptanceActivityInitializationApi.initialize` | ACC-03 | ACC | PROJ | 以`MANDATORY`加入项目创建事务；PROJ预分配执行契约ID并传精确初验/终验任务与应交码，ACC创建PENDING活动并返回`acceptanceId/activityVersion`，PROJ随后追加ACC执行契约；任一步失败整体回滚 |
-| `FileArtifactApi.archiveReferenceSets` | ACC-03、ACC-04、PLT-02 | PLT | ACC | 持锁重验ACC报告附件ACTIVE集合，在独立`ACCEPTANCE_REPORT_ARCHIVE`集合按相同公共文件事实创建ARCHIVED引用并整组追加FileArchiveRecord；附件引用保持ACTIVE供历史下载，不暴露PLT内部主键，ACC只保存归档补偿投影 |
+| `FileArtifactApi.archiveReferenceSets` | ACC-03、ACC-04、PLT-02 | PLT | ACC | 受信命令显式携带报告发布时冻结的`actorUserId`；PLT按该用户重验既有`pms:file:archive`权限和租户/文件范围，持锁重验ACC报告附件ACTIVE集合，在独立`ACCEPTANCE_REPORT_ARCHIVE`集合按相同公共文件事实创建ARCHIVED引用并整组追加记录且写`archivedBy=actorUserId`；附件引用保持ACTIVE供历史下载，不暴露PLT内部主键，ACC只保存归档补偿投影 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 

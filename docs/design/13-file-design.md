@@ -99,7 +99,7 @@
 
 F-ACC-001报告附件集合固定键为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`，归档集合固定使用`ACCEPTANCE_REPORT_ARCHIVE`；同一附件在两集合使用同一服务端UUID `referenceKey`。ACC Provider通过报告版本取得项目并调用`ProjectScopeApi`，把当前`treeVersion`作为`scopeVersion`：附件读/下载使用`PROJECT_VIEW`，上传/引用/替换/解绑使用`PROJECT_EDIT`，归档集合只允许ACC补偿消费者。报告表和事件仅保存附件ACTIVE公共事实。
 
-上传、集合重验和下载复用PLT现有上传REST、`inspectReferenceSets/lockAndRevalidateReferenceSets`和Access Ticket REST；`attachExistingVersions`的目标白名单加性支持上述唯一ACC附件键并保留既有目标。归档由`archiveReferenceSets`先重验完整附件ACTIVE集合，再在独立归档集合创建ARCHIVED引用并追加记录；报告附件引用持续保持`ACTIVE`供历史下载。PLT `FileArchiveRecord`是文件归档真值，ACC `archive_status`只是来源索引补偿投影。
+上传、集合重验和下载复用PLT现有上传REST、`inspectReferenceSets/lockAndRevalidateReferenceSets`和Access Ticket REST；`attachExistingVersions`的目标白名单加性支持上述唯一ACC附件键并保留既有目标。归档由`archiveReferenceSets`显式携带发布时冻结的`publisherActorUserId`，PLT按该用户重验`pms:file:archive`及同租户FileBusinessScope，再重验完整附件ACTIVE集合，在独立归档集合创建ARCHIVED引用并追加`archivedBy`记录；报告附件引用持续保持`ACTIVE`供历史下载。后台不得伪造登录上下文或借用调度线程用户。PLT `FileArchiveRecord`是文件归档真值，ACC `archive_status`只是来源索引补偿投影。
 
 ## 8. 采集与巡检文件
 
