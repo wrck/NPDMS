@@ -8,6 +8,7 @@
 > 前置Feature：`F-CUT-001`、`F-PROJ-003`、`F-PROJ-007`、`F-IMP-001`、AST设备范围事实Feature
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
+> 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
 
 ## 1. 业务目标
 
@@ -40,7 +41,7 @@
 ### BR-FCUT002-001 P1自建与来源幂等
 
 - 用户自建请求只提交项目ID、设备序列号、任务名称、割接类型、组网模式、计划时间和背景；任务编号、来源主体、项目/客户/设备引用与快照由服务端生成。
-- 创建前重新校验当前租户、项目管理范围、工程师主体、全部设备存在且属于目标项目，并锁定IMP明确`READY`快照。
+- 创建前重新校验当前租户、工程师主体、PROJ公开scope action返回的“本人参与、负责或明确授权项目”范围、AST公开契约返回的全部设备当前项目归属及版本，并锁定IMP明确`READY`快照。不得以“可管理项目”替代或收窄PRD授权语义。
 - 用户命令的幂等作用域为`CUTOVER_SELF_CREATE:{tenantId}:{actorId}:{Idempotency-Key}`；同键同规范化请求返回原任务，同键异请求冲突。可信内部来源分别以`sourceSystem+sourceBusinessNo`和`businessEventId`唯一。
 - 复用平台既有命令幂等摘要，不新增第二套哈希、指纹或幂等表。
 - ITR、项目事件重复请求只返回既有任务，不覆盖来源、上下文、阶段或历史。
@@ -92,15 +93,17 @@ GRADE_CONFIRMING --submit D--> PLAN_DRAFTING
 
 内部`CutoverTaskIntakeApi`只接受受信租户与来源主体，提供ITR/项目事件创建契约；本Feature不实现任何Producer或第三方客户端。
 
-CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过PROJ/AST/CUS公开API消费项目、设备和客户事实。禁止依赖其他Context的Service、Mapper、DO或业务表。
+CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过PROJ正式scope action消费“本人参与、负责或明确授权项目”范围，通过AST稳定设备范围契约消费`deviceId/currentProjectId/assignmentVersion`，通过CUS公开API消费客户事实。正式契约名与scope action须在前置Feature Ready前锁定；禁止依赖其他Context的Service、Mapper、DO或业务表。
 
 ## 5. 数据与迁移边界
 
-- 新建CUT Owner前向表：`cut_cutover_task`、`cut_cutover_task_device_scope`、`cut_cutover_task_stage_history`、`cut_cutover_assessment`。
+- 新建CUT Owner前向表：`cut_task`、`cut_task_device_scope`、`cut_task_stage_history`、`cut_assessment`。其中聚合根和评估表名严格沿用正式SDS，不另建同义表。
 - 已提交评估和阶段历史只追加；当前任务根保存阶段、状态、人工等级、当前评估ID、IMP快照ID/版本和乐观锁版本。
 - 活动设备范围使用`uk(tenant_id, project_id, device_id, active_marker)`控制并发；任务终态由后续Feature在同事务清除活动标记。
 - 来源唯一键分别约束`tenant_id/source_system/source_business_no`和`tenant_id/business_event_id`；用户自建幂等复用平台命令事实。
-- 不迁移、改写或双写旧`pms_cut_task/risk/plan`；Flyway使用实施时下一未占用版本。
+- `CutoverTask`严格执行正式迁移契约`pms_cut_task -> cut_task / CURRENT_FORWARD`：只前向迁移经字段、状态和完整性映射证明有效的任务事实，不改写、双写或逆向同步旧表；无法无损映射的旧行不得猜测补齐。
+- `CutoverAssessment`严格执行`cut_assessment / NEW_ONLY`：旧`pms_cut_risk`不是P2问卷与人工等级的权威来源，不迁入`cut_assessment`；旧`pms_cut_risk/plan`保持不变。
+- Flyway使用实施时下一未占用版本；具体字段/状态映射必须在Feature Ready前形成可评审迁移契约，不以测试种子作为生产迁移事实。
 
 ## 6. UI
 
@@ -125,4 +128,4 @@ CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通�
 
 当前结论：`NOT_READY / NO-GO`。
 
-Feature Ready前必须满足：F-IMP-001和EXE-01～04 Owner Feature Spec、公开事实契约及合入顺序已锁定；AST已锁定SN→稳定设备ID/当前项目归属/归属版本的公开事实契约；F-CUT-002的硬依赖和物理Owner已登记。完成这些设计输入后，本Feature可先实施CUT侧代码并使用受控替身验证；F-IMP-001和AST生产事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
+Feature Ready前必须满足：F-IMP-001和EXE-01～04 Owner Feature Spec、公开事实契约及合入顺序已锁定；PROJ已锁定不收窄PRD的项目scope action；AST已锁定SN→稳定设备ID/当前项目归属/归属版本的公开事实契约；F-CUT-002旧实现复用审计和`pms_cut_task -> cut_task`前向映射契约通过评审。只有相关Feature通过Feature Ready后，才可实施不依赖生产Provider的CUT侧代码并在单元/集成测试中使用受控替身；替身不进生产装配、不产生正式就绪事实、不支撑真实浏览器验收。F-IMP-001和AST生产事实未形成、合入并通过契约验证前，不得声明Implementation Done或真实浏览器正向闭环。
