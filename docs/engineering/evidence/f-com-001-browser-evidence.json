@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T15:52:12.496Z",
+  "generatedAt": "2026-08-29T16:30:17.280Z",
   "feature": "F-COM-001",
   "requirementIds": [
     "COM-01@V1",
@@ -15,18 +15,19 @@
     "redis": 26379
   },
   "users": {
-    "managed": "fcom001acceptance"
+    "companyScoped": "fcom001acceptance",
+    "projectManagerOnly": "yudao"
   },
   "created": {
-    "contractId": "2093728355152756737",
-    "orderId": "2093728355182116865",
+    "contractId": "2093737933684817922",
+    "orderId": "2093737933747732482",
     "orderLineIds": [
-      "2093728355207282689",
-      "2093728355228254210",
-      "2093728355257614338"
+      "2093737933785481217",
+      "2093737933814841345",
+      "2093737933840007170"
     ],
-    "adjustedScopeId": "2093728360827650050",
-    "stageScopeId": "2093728362719281153"
+    "adjustedScopeId": "2093737942459301890",
+    "stageScopeId": "2093737944569036801"
   },
   "negatives": [
     {
@@ -114,11 +115,12 @@
     }
   },
   "databaseEvidence": {
-    "scopeHistoryRows": "2093728355207282689\t2093728360169144322\tRELEASED\t1\tHISTORY\n2093728355207282689\t2093728360827650050\tRELEASED\t2\tHISTORY\n2093728355228254210\t2093728362719281153\tCONFLICT_FROZEN\t1\tCURRENT",
-    "outboxRows": "NotificationRequested\t2093728362719281153\t1\tPENDING",
+    "scopeHistoryRows": "2093737933785481217\t2093737941960179713\tRELEASED\t1\tHISTORY\n2093737933785481217\t2093737942459301890\tRELEASED\t2\tHISTORY\n2093737933814841345\t2093737944569036801\tCONFLICT_FROZEN\t1\tCURRENT",
+    "outboxRows": "NotificationRequested\t2093737944569036801\t1\tPENDING",
     "stageSnapshotRows": "992002700007\t992002900001\tS5\tSTAGE_ENTRY",
-    "bindingRows": "992002900001\t992002900008\t1\tPROJECT_STAGE_ENTRY\tLOCKED\n992002900001\t2093728362719281153\t1\tSCOPE_VERSION_EFFECTIVE\tLOCKED",
-    "invalidSerialRows": "0"
+    "bindingRows": "992002900001\t992002900008\t1\tPROJECT_STAGE_ENTRY\tLOCKED\n992002900001\t2093737944569036801\t1\tSCOPE_VERSION_EFFECTIVE\tLOCKED",
+    "invalidSerialRows": "0",
+    "projectOnlyIdentityFacts": "0\t1"
   },
   "consoleErrors": [],
   "pageErrors": [],
@@ -131,6 +133,7 @@
     "contractOrderLineVisible": true,
     "lockedFiltersEffective": true,
     "contractDetailComplete": true,
+    "projectManagerOnlyRead": true,
     "previewAllowed": true,
     "adjustmentVersioned": true,
     "releaseClosedCurrent": true,

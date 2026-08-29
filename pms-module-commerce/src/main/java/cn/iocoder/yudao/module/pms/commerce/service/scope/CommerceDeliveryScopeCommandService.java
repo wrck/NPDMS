@@ -332,10 +332,16 @@ public class CommerceDeliveryScopeCommandService {
         } catch (RuntimeException exception) {
             throw conflict("ACCEPTANCE_SCOPE_UNKNOWN");
         }
-        if (guard == null || guard.outcome() != AcceptanceScopeGuardOutcome.UNLOCKED
+        if (guard == null || guard.outcome() == null
                 || !Objects.equals(guard.deliveryScopeId(), current.getId())
                 || !Objects.equals(guard.scopeAllocationVersion(), current.getAllocationVersion())) {
-            throw conflict("ACCEPTANCE_SCOPE_LOCKED_OR_UNKNOWN");
+            throw conflict("ACCEPTANCE_SCOPE_UNKNOWN");
+        }
+        if (guard.outcome() == AcceptanceScopeGuardOutcome.LOCKED) {
+            throw conflict("ACCEPTANCE_SCOPE_LOCKED");
+        }
+        if (guard.outcome() != AcceptanceScopeGuardOutcome.UNLOCKED) {
+            throw conflict("ACCEPTANCE_SCOPE_UNKNOWN");
         }
     }
 
