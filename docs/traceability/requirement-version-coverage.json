@@ -46,9 +46,9 @@
     {
       "featureId": "F-COM-001",
       "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
-      "taskPath": null,
-      "taskStatus": "NO_TASK",
-      "taskStatusRaw": null,
+      "taskPath": "tasks/features/F-COM-001.md",
+      "taskStatus": "IN_PROGRESS",
+      "taskStatusRaw": "IMPLEMENTATION_IN_PROGRESS",
       "mappings": [
         {
           "sliceKey": "COM-01@V1",
@@ -245,9 +245,9 @@
         {
           "featureId": "F-COM-001",
           "coverage": "FULL",
-          "taskStatus": "NO_TASK",
+          "taskStatus": "IN_PROGRESS",
           "featurePath": "specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md",
-          "taskPath": null
+          "taskPath": "tasks/features/F-COM-001.md"
         }
       ]
     },

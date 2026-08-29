@@ -4,7 +4,7 @@
 
 **计划ID：** `NPDMS-FCOM001-TECHPLAN-20260829-01`
 
-**当前状态：** `CANDIDATE / REMEDIATION_REVIEW_PENDING`
+**当前状态：** `APPROVED / PASS / GO`
 
 **目标：** 实现ERP合同/销售订单/订单行受控只读副本、合同管理员SYSTEM当前公司范围、项目—合同关系、项目交付范围预览/分配/调整/释放、办事处发生时快照、ERP冲突冻结通知，以及项目进入验收阶段和验收阶段内新范围版本的ACC精确绑定完整闭环。
 
@@ -248,4 +248,4 @@ git diff --check
 
 ## 七、Technical Plan Gate
 
-当前状态：`CANDIDATE / REMEDIATION_REVIEW_PENDING`。本轮只整改原Technical Plan NO-GO的V124切换与恢复闭环；其余已核验计划项不重开。本计划获GO后才允许创建`tasks/features/F-COM-001.md`并进入Implementation；当前不批准产品代码、V124/V125、权限种子、运行迁移、SIT、UAT、Deployment或Release。
+当前状态：`APPROVED / PASS / GO`。独立裁决已批准候选`c33b0836f71e0875008a084ff360e7027d276ec9`，允许创建`tasks/features/F-COM-001.md`并按本计划进入Implementation。该GO不批准产品代码、V124/V125或迁移执行结果，不等于Implementation Done、SIT、UAT、Deployment、Migration或Release通过。
