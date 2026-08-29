@@ -32,10 +32,12 @@
 | `DeviceCustomerAssigned` | EQP-01、CUS-03 | AST | CUS/PROJ | 设备当前客户直接归属及版本已生效；租用/共管不形成第二个当前直接归属 |
 | `KnowledgePublicProductInfoQueryApi` | EQP-01 | KNO | AST | 按产品/设备映射查询已发布官网信息版本、来源URL、核验时间和摘要；无记录返回NOT_AVAILABLE |
 | `OrganizationScopeApi.getActiveScopes(userId)` | COM-01 | SYSTEM | COM | 在受信租户上下文返回用户当前有效`UserCompanyDepartmentScope`的稳定ID、公司ID/编码、可选部门上下文、生效区间和版本；COM只按`companyCode`与ERP合同所属公司编码精确匹配，部门、项目关系和功能权限不得产生额外合同范围 |
+| `AcceptanceActivityInitializationApi.initialize` | ACC-03 | ACC | PROJ | 以`MANDATORY`加入项目创建事务；PROJ预分配执行契约ID并传精确初验/终验任务与应交码，ACC创建PENDING活动并返回`acceptanceId/activityVersion`，PROJ随后追加ACC执行契约；任一步失败整体回滚 |
+| `FileArtifactApi.archiveReferenceSets` | ACC-03、ACC-04、PLT-02 | PLT | ACC | 按稳定业务集合键、scopeVersion及完整公共文件事实持锁重验并整组追加FileArchiveRecord；不暴露PLT内部FileVersion/FileReference主键，ACC只保存归档补偿投影 |
 
 契约只传稳定标识、版本和快照，不允许消费者直接写 Producer 的 Repository。跨域契约统一保留 eventId、eventType、eventVersion、aggregateId、aggregateVersion、actor、tenant、authorizationSnapshot、traceId、sourceContext、occurredAt；默认最终一致，使用 Outbox、Inbox、幂等、补偿和对账。
 
-F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调用ACC公开内部应用接口，ACC加入调用方同一MySQL事务；正式Project、ProjectTask执行契约和ACC交付件实例必须全有或全无，不产生初始化中间状态。该例外不允许PROJ直接访问ACC Repository，也不改变其他跨Context契约的默认最终一致性。若部署边界不再共享同一事务资源，必须先批准创建完成语义变更，不得自行降级为Saga、异步补建或部分成功。
+F-PROJ-001手动项目创建是经ADR-0032批准的限定例外：PROJ同步调用ACC公开内部应用接口，ACC加入调用方同一MySQL事务；F-ACC-001进一步由`AcceptanceActivityInitializationApi`在该事务内返回精确活动ID后再形成ACC执行契约。正式Project、ProjectTask执行契约、ACC交付件实例和验收活动必须全有或全无，不产生初始化中间状态。该例外不允许PROJ直接访问ACC Repository，也不改变其他跨Context契约的默认最终一致性。若部署边界不再共享同一事务资源，必须先批准创建完成语义变更，不得自行降级为Saga、异步补建或部分成功。
 
 组织与地点遵循ADR-0033：SYSTEM通过`CompanyApi/DeptApi/OrganizationScopeApi`提供稳定主数据和同一行公司—部门范围；AST通过`AssetLocationApi`提供Address/Site/SiteLocation维护、版本校验、精确区划映射和设备位置生效命令。CUS、PROJ、IMP、COM不得直接访问SYSTEM或AST的DO、Mapper、Repository或业务表。COM-01只复用现有`getActiveScopes`查询，不要求SYSTEM新增合同专用授权表、接口或Provider。
 

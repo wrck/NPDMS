@@ -89,13 +89,17 @@
 | Platform Dynamic Form | `PmsFileArtifact`动态字段的上传、换版、解绑、预览和下载；业务Owner实例的归档/失效由F-PLT-001文件管理入口发起 | 手工实例由PLT校验创建者与功能权限，且不允许`ARCHIVE/INVALIDATE`；业务实例先委托消费Context的`DynamicFormBusinessObjectPolicyProvider`按`FILE_WRITE`校验Owner动作/scopeVersion，再进入F-PLT-001锁，F-PLT-001仍独立要求`pms:file:archive`。F-PLT-001拥有精确文件事实；普通上传URL/JSON不是受控证据 |
 | Preparation/Solution | 工勘照片、需求附件、计划、交底书、方案 revision | SOL 拥有提交/批准状态；文件服务拥有内容版本 |
 | Implementation Execution | 签收证据、安装照片、配置/联调结果、质量安全证据、DeliveryEvidence | IMP 上传和发布证据 revision |
-| Acceptance & Closure | 培训、问卷、验收报告、齐套清单、归档包、交接证据 | ACC 审核、批准和归档引用；不覆盖 IMP 原版本 |
+| Acceptance & Closure | 培训、问卷、验收报告、齐套清单、归档包、交接证据 | ACC 审核、批准和归档引用；不覆盖 IMP 原版本；验收报告附件只冻结PLT稳定公共文件事实，不保存PLT内部主键 |
 | Cutover | 方案、脚本引用、执行输出、验证和回退证据 | CUT 冻结批准方案版本和执行证据 |
 | Inspection | 离线脚本/结果、报告和整改附件 | Inspection 规则/报告版本不可覆盖；外部结果保留来源 |
 | Asset/Resource | 厂商凭证、RMA、服务商资质、转包/付款证据 | 业务 Owner 保存用途和有效期；敏感字段受控 |
 | Integration | 对账导出、人工回填、UMC报告、采集结果 | 保存接口批次、来源键、哈希和回调证据 |
 
 实施交付件链：`IMP DeliveryEvidenceRevision → FileVersion → ACC DeliveryArtifactReview → FileArchiveRecord`。任何环节都不复制二进制形成不可追溯副本。
+
+F-ACC-001报告附件集合固定键为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`，每个附件槽的`referenceKey`由服务端生成。ACC Provider通过报告版本取得项目并调用`ProjectScopeApi`，把当前`treeVersion`作为`scopeVersion`：读/下载使用`PROJECT_VIEW`，上传/引用/替换/解绑使用`PROJECT_EDIT`，归档只允许ACC补偿消费者。报告表和事件仅保存`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`。
+
+上传、绑定、集合重验和下载分别复用PLT现有上传REST、`attachExistingVersions`、`inspectReferenceSets/lockAndRevalidateReferenceSets`和Access Ticket REST。归档由PLT加性`archiveReferenceSets`按完整期望集合追加记录；PLT `FileArchiveRecord`是文件归档真值，ACC `archive_status`只是来源索引补偿投影，整组未成功时必须保持`PENDING_COMPENSATION`。
 
 ## 8. 采集与巡检文件
 

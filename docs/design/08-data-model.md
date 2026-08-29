@@ -193,10 +193,10 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 | 聚合/实体 | Owner 事实 | 不变量 |
 |---|---|---|
-| Acceptance | 初验/终验活动根、DRAFT/EFFECTIVE/SUPERSEDED/REVOKED报告版本、验收时间、结论、验收人和有序固定附件版本集合 | 活动根以PROJ ProjectTask/WorkBinding为唯一外部身份，ACC不写PROJ任务；只有EFFECTIVE且未关闭区间的版本可作当前，替换/撤销不覆盖历史且撤销不恢复旧版；进入验收阶段不创建报告，活动完成时当前报告必须四项完备；报告不拥有项目阶段或验收范围 |
+| Acceptance | 初验/终验活动根、DRAFT/EFFECTIVE/SUPERSEDED/REVOKED报告版本、验收时间、结论、验收人和有序固定PLT公共文件事实集合 | 活动根以PROJ ProjectTask/WorkBinding为唯一外部身份，通过`AcceptanceActivityInitializationApi`与项目创建同事务生成，ACC不写PROJ任务；附件只保存`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`，不保存PLT内部ID；只有EFFECTIVE且未关闭区间的版本可作当前，替换/撤销不覆盖历史且撤销不恢复旧版；进入验收阶段不创建报告，活动完成时当前报告必须四项完备；报告不拥有项目阶段或验收范围 |
 | AcceptanceScopeBinding | 项目验收阶段快照对DeliveryScope及其分配版本的锁定事实 | 由ACC拥有，独立于初验/终验报告；阶段进入或验收阶段内新范围生效时追加；`Q-FCOM-002`关闭前不自动关闭或解锁；COM只通过公开守卫读取，不直接访问ACC表 |
 | SatisfactionCollection | 满意度任务、冻结问卷、客户答卷、签字、评分判定和整改重收版本 | 答案、签字、评分及历史版本不可覆盖；未达标新建任务和问卷版本 |
-| DeliveryArtifact | `acc_project_deliverable`应交实例、来源版本关系、有序附件集合、齐套结果、审核、归档和补偿状态 | F-ACC-001只维护初验/终验来源；根只保存当前来源指针，来源版本与附件子记录只追加；替换保留旧归档关系，撤销使当前关系失效并清空指针；归档失败保留报告版本且标记待补偿，不形成第二应交清单 |
+| DeliveryArtifact | `acc_project_deliverable`应交实例、来源版本关系、有序附件公共事实集合、齐套结果、审核、归档和补偿状态 | F-ACC-001只维护初验/终验来源；根只保存当前来源指针，来源版本与附件子记录只追加；PLT `FileArchiveRecord`是文件归档真值，ACC `archive_status`仅为来源索引/补偿投影；替换保留旧归档关系，撤销使当前关系失效并清空指针；归档失败保留报告版本且标记待补偿，不形成第二应交清单 |
 | ProjectClosure | 闭环申请、门禁快照、审核结论和完成事件 | 全部后代项目按既定门禁满足后才能完成闭环 |
 | ClosureGateSnapshot | 闭环时交付件、问题、有效满意度结果和材料状态快照 | 不可变；重新提交生成新快照；不保存回访审批节点 |
 | ServiceHandover | 遗留问题、设备、客户、责任方和一次性交接结果 | V2静态交接快照；不创建持续跟踪对象，不包含续保年限、续保动作或续保报表 |

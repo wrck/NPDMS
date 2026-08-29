@@ -92,7 +92,7 @@
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
-| `Acceptance` | V17 `pms_acc_acceptance`；当前无符合ACC-03四项完备和不可变版本要求的正式活动根/报告版本 | COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION | V17行缺验收人、固定附件版本和可证明活动绑定，保持旧表/旧接口只读兼容，不迁成当前有效报告、不推断缺失事实；新`acc_acceptance/acc_acceptance_report_version/acc_acceptance_report_attachment`只由显式ACC命令创建 |
+| `Acceptance` | V17 `pms_acc_acceptance`；V63为存量ProjectTask初始化的当前`TASK_NATIVE`执行契约；当前无符合ACC-03四项完备和不可变版本要求的正式活动根/报告版本 | COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION | V17行缺验收人、稳定PLT公共文件事实和可证明活动绑定，保持旧表/旧接口只读兼容，不迁成当前有效报告、不推断缺失事实；新项目由`AcceptanceActivityInitializationApi`在项目创建事务内生成精确活动与ACC执行契约；存量只对初验/终验精确任务对且两项均非终态、当前契约均为V63 `TASK_NATIVE`时原子切换，任一`DONE/CLOSED`项目保持不变，部分/重复/混合状态整批失败 |
 | `AcceptanceScopeBinding` | 当前验收表没有可证明的DeliveryScope版本绑定事实 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅由新平台项目进入验收阶段或验收阶段内新范围版本生效命令追加；保存ProjectStageSnapshot、DeliveryScope及分配版本；不从既有项目级验收状态、初验/终验报告或审批状态反推历史绑定，`Q-FCOM-002`关闭前不生成关闭事实 |
 | `SatisfactionCollection` | `pm_cl_quesnaire_template_*`、`pm_cl_quesnaire_result_*`、`pm_cl_callback*`、`pm_subcontract_project_callback` | STRUCTURED+RELATION+PENDING_SOURCE_CONFIRMATION | 模板、题目、选项、答卷和评分按原版本迁移；业务对象关系只有证据完整时建立；不从回访/审批状态反推客户答案或通过结果 |
 | `DeliveryArtifact` | F-PROJ-001正式`acc_project_deliverable`；V17旧交付清单/归档/完工证明 | CURRENT_FORWARD+RELATION | 直接复用`acc_project_deliverable`应交实例身份，新增只追加来源版本与有序附件集合从表；F-ACC-001只精确处理`D-INITIAL-REPORT/D-FINAL-REPORT`，不得由名称、任务名或`D-ACCEPT-REPORT`推断类型；V17旧栈不迁成新来源索引 |

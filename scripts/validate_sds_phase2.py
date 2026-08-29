@@ -199,6 +199,7 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "活动根以PROJ ProjectTask/WorkBinding为唯一外部身份",
         "`acc_project_deliverable`应交实例",
         "归档失败保留报告版本且标记待补偿",
+        "artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256",
     ),
     "docs/design/08a-domain-entity-migration-alignment.md": (
         "COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION",
@@ -213,28 +214,51 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "`acc_project_deliverable_source_version`",
         "`acc_project_deliverable_source_attachment`",
         "`D-INITIAL-REPORT/D-FINAL-REPORT`",
+        "不保存PLT内部`FileVersion.id/FileReference.id`",
+        "任一任务处`DONE/CLOSED`则该项目全部保持旧契约和历史且不创建活动",
     ),
     "docs/design/10-api-design.md": (
         "AcceptanceActivityCompletionFactApi.lockAndComplete",
+        "AcceptanceActivityInitializationApi.initialize",
+        "FileArtifactApi.archiveReferenceSets",
+        "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT",
+        "`pms-module-project-api`的ACC契约包",
+        "既有`pms:file:archive`服务端权限和租户校验",
         "`revoke-current-version`",
         "pms:acceptance:report:query/write/complete/download",
         "当前来源保持`PENDING_COMPENSATION`并重试",
+        "任一`DONE/CLOSED`项目保持旧契约和历史且不创建活动",
     ),
     "docs/design/11-event-design.md": (
         "AcceptanceReportVersionChanged",
         "changeType(`EFFECTIVE/REPLACED/REVOKED`)",
-        "attachments[{sequence,fileArtifactId,fileVersionId,fileHash}]",
+        "attachments[{sequence,artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion,sha256}]",
         "ClosureGateRecheckRequested",
         "不触发范围绑定",
+    ),
+    "docs/design/13-file-design.md": (
+        "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT",
+        "archiveReferenceSets",
+        "PLT `FileArchiveRecord`是文件归档真值",
     ),
     "docs/design/15-cache-and-concurrency.md": (
         "PROJ项目任务/执行契约→ACC活动根→当前报告版本",
         "DRAFT的生成`current_marker=NULL`",
         "撤销不恢复旧版",
+        "只有两项均非终态且当前契约均为V63 `TASK_NATIVE`才原子换绑",
     ),
     "docs/design/16-exception-and-idempotency.md": (
         "ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入",
         "报告状态/历史不回滚、不删除",
+        "两项均不存在保持不变",
+        "任一DONE/CLOSED项目保持历史不变且不创建活动",
+    ),
+    "docs/decisions/0040-acceptance-file-fact-and-activity-initialization.md": (
+        "`PROPOSED_FOR_INDEPENDENT_REVIEW`",
+        "FileBusinessObjectPolicyProvider",
+        "AcceptanceActivityInitializationApi.initialize",
+        "两项均为`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT`",
+        "任一精确任务为`DONE/CLOSED`时整项目保持旧契约和历史不变且不创建活动",
     ),
     "docs/decisions/0039-acceptance-report-version-and-deliverable-index.md": (
         "`ACCEPTED`",
@@ -257,6 +281,14 @@ FACC001_REPORT_CONTRACT_FORBIDDEN_SNIPPETS = {
     "docs/design/09-database-design.md": (
         "| Acceptance | `acc_acceptance` | `acc_acceptance_item`",
         "| DeliveryArtifact | `acc_delivery_artifact`",
+        "file_artifact_id/file_version_id/file_hash",
+    ),
+    "docs/design/11-event-design.md": (
+        "attachments[{sequence,fileArtifactId,fileVersionId,fileHash}]",
+    ),
+    "docs/decisions/0040-acceptance-file-fact-and-activity-initialization.md": (
+        "仅creator",
+        "终态任务原子创建PENDING活动",
     ),
     "docs/traceability/phase2-contract-map.md": (
         "- 数据表：acc_delivery_artifact、acc_artifact_review、acc_archive_record",
