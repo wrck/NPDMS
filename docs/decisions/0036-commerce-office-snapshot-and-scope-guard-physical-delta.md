@@ -1,6 +1,6 @@
 # ADR-0036：COM办事处快照、验收守卫与Feature-forward物理差量
 
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`<br>
 > 日期：2026-08-29<br>
 > Requirement：`COM-01@V1`<br>
 > 前置批准：`CHG-PRD-2026-08-29-008`
@@ -23,7 +23,7 @@ F-COM-001首轮Feature Ready复审确认三项阻断：物理差量未锁定且�
 
 - 受影响对象：Contract、SalesOrder、SalesOrderLine、DeliveryScope、DeliveryScopeDetail、AcceptanceScopeBinding。
 - 处置：`FEATURE_FORWARD_MIGRATION(COM-01)`；精确字段、类型、空值、唯一键、历史区间和转换规则已进入SDS，不修改当前核心DDL或P3-E09全局哈希。
-- 当前Gate影响：`P3_E09_FEATURE_FORWARD_DELTA_REVIEW_REQUIRED`。独立复审GO前不得把F-COM-001机器契约标为无影响；GO后仍只允许回写Feature候选，不批准Flyway或实现。
+- 当前Gate影响：`P3_E09_FEATURE_FORWARD_DELTA_READY`。整改提交`20f03ba316ca431a55f96aa9c3c97be54d08b4e0`已获独立复审GO；仍只允许回写Feature候选，不批准Flyway或实现。
 
 ## 明确排除
 
