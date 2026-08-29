@@ -262,7 +262,7 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "终态/非终态混合整批失败",
     ),
     "docs/decisions/0040-acceptance-file-fact-and-activity-initialization.md": (
-        "`PROPOSED_FOR_INDEPENDENT_REVIEW`",
+        "`ACCEPTED`",
         "FileBusinessObjectPolicyProvider",
         "AcceptanceActivityInitializationApi.initialize",
         "两项均为`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT`",
