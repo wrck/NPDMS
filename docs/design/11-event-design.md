@@ -110,16 +110,16 @@ F-PROJ-002的`ProjectTreeChanged`载荷至少包含`eventId/tenantId/changeBatch
 
 | 事件 | Producer | Consumer | Payload 核心 | 注意 |
 |---|---|---|---|---|
-| `ArrivalAccepted` | IMP | COM/ACC/ANA | arrivalId、projectId、accepted quantities、version | 差异未处理时不得表达齐套完成 |
+| `ArrivalAccepted` | IMP | COM/ACC/ANA | projectId、sourceAcceptanceIds、accepted quantities、factVersion、scopeWatermark | 只在项目当前全部应到范围由已确认签收或有效具体豁免满足时发布；批次候选ACCEPTED、差异未处理、拒收或部分签收不得表达项目齐套完成 |
 | `InstallationConfirmed` | IMP | ACC/AST/ANA | installationId、deviceId、location snapshot ref | 不修改设备外部身份 |
 | `ConfigurationParsed` | IMP | CUT/ACC/ANA | resultId、collectionTaskId、parserVersion、resultRef | 解析成功不等于业务联调完成 |
 | `DeviceComponentRelationChanged` | AST | IMP/CUT/Asset Query | chassisDeviceId、slotCode、cardDeviceId、effective interval、sourceRef、version | 仅在解析候选或人工绑定经校验后发布；原始Log和旧关系不覆盖 |
 | `JointDebuggingCompleted` | IMP | CUT/ACC | resultId、issueRefs、decision | 未完成问题需显式列出 |
 | `ImplementationRiskRaised/Closed` | IMP | Project/CUT Read Model | riskId、level、deviceId、evidenceRef | CUT 只消费引用，不共享风险状态表 |
 | `ImplementationQualityGateChanged` | IMP | Project/ACC/CUT | project/batch、gateCode、decision、snapshotId | 仅表示IMP-01质量检查结论；不承载IMP-02安全检查或额外安全豁免语义 |
-| `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、hash、source snapshot | ACC 审核引用，不覆盖 IMP revision |
+| `ImplementationEvidencePublished` | IMP | ACC | evidenceId、revision、sourceRequirement、sourceRecordId/sourceVersion、fileReference、hash、source snapshot | IMP出向；ACC审核引用，不覆盖IMP revision；同一evidenceId+revision重复发布幂等 |
 | `ImplementationReadinessSnapshotPublished` | IMP | CUT | snapshotId、version、decision、unmetCodes | CUT 执行冻结所校验快照 |
-| `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | artifactId、fileVersion、review/archive record | 归档不改变 FileArtifact 内容历史 |
+| `ArtifactAccepted/Archived` | ACC | IMP/Project/ANA | eventId、evidenceId、evidenceRevision、artifactId、fileVersion、review/archive record | ACC入向；IMP按eventId Inbox和evidenceId+revision幂等推进同步投影，旧序/错配回执只审计；归档不改变FileArtifact内容历史或来源业务事实 |
 | `SatisfactionTaskCreated` | ACC | Todo/Project | taskId、projectId、businessRef、questionnaireRevision、assignee | 创建待办，不表示客户已提交或满意度通过 |
 | `SatisfactionResultRecorded` | ACC | ProjectClosure/Resource/ANA | resultId、taskId、decision、score、thresholdRevision、signatureRef | 只发布不可变判定引用；未通过结果不得被下游当作门禁通过 |
 | `ProjectClosureCompleted` | ACC | Project/Service Operations | closureId、gateSnapshotId、handoverRefs | 只表示 ACC 闭环完成 |

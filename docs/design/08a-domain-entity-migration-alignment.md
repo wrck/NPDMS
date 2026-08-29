@@ -164,7 +164,7 @@
 
 | 数据对象 | 来源摘要 | 迁移边界 |
 |---|---|---|
-| `DeliveryEvidence` | 当前实施交付件 | 前向迁移证据身份、不可变版本、文件引用和上传结果；ACC只消费引用 |
+| `DeliveryEvidence` | 当前`pms_eng_deliverable`及各实施业务证据 | 前向迁移证据身份、不可变版本、文件引用和上传结果；F-IMP-002只锁定RECEIPT且来源可解析到到货记录的EXE-01切片，复用已映射PLT FileReference而不重复下载；旧归集状态不推导ACC accepted/archived，其他类型留待IMP-01 Owner Feature |
 | `DeviceAssignmentHistory` | 旧项目设备关系 | 仅从可解析的设备、项目、时间和转移证据构造不重叠区间 |
 | `DeviceAncestorProjection` | 归属历史+项目树 | `REBUILD`；按树版本和归属版本重建，不形成多重归属 |
 | `MetricDefinition` | 【建议】无批准历史口径来源 | `NEW_ONLY`；不得按旧报表名猜测公式，建议模型获批后才创建版本 |

@@ -33,6 +33,14 @@
 | ProjectClosure | 草稿、待审核、材料审核、已完成、驳回整改 | 项目冻结模板要求的交付件和有效满意度等门禁满足；CLO-02完成后形成不可变NORMAL_CLOSED闭环事实；不创建回访节点；驳回后重新校验并新建申请 | ClosureSubmitted、ProjectClosureCompleted |
 | DeviceCredential | 创建、启用、授权、撤销、轮换、停用 | 仅授权范围内任务可引用；撤销影响后续任务，不改历史快照 | CredentialGranted、CredentialRevoked |
 
+### ArrivalAcceptance转换细化
+
+- `DRAFT/PARTIALLY_ACCEPTED/DIFFERENCE_PENDING/ACCEPTED/CONFIRMED`均为到货批次状态；项目级里程碑由`ArrivalAcceptanceFactApi`独立返回`ACCEPTED/NOT_ACCEPTED/STALE`，不把任一批次状态直接当作项目完成。
+- 授权现场成员提交DRAFT时：有未解决差异进入DIFFERENCE_PENDING；无未解决差异但累计候选范围未覆盖全部当前应到范围进入PARTIALLY_ACCEPTED；累计候选范围全部满足进入ACCEPTED。数量、SN、DeliveryScope/设备水位或证据无效时拒绝提交并保持DRAFT。
+- DIFFERENCE_PENDING只有在全部差异追加明确处置后，按重算结果进入PARTIALLY_ACCEPTED或ACCEPTED；拒收保持对应范围未满足，补签形成ACCEPTED明细，具体豁免仅在有效期内满足其明确范围。
+- 项目经理最终确认只允许`PARTIALLY_ACCEPTED -> CONFIRMED`或`ACCEPTED -> CONFIRMED`。CONFIRMED仅表示本批最终确认；只有确认批次中的ACCEPTED明细及有效具体豁免参与项目事实计算，项目仍有未到/拒收/过期豁免时返回NOT_ACCEPTED。
+- CONFIRMED批次不回退、不覆盖。补签、更正、差异关闭或豁免失效创建关联原批次的后续DRAFT；新记录确认或豁免到期递增项目到货`factVersion`并使旧事实`reopened=true`。
+
 ### 2.1 Project状态分层守卫
 
 1. PM-01创建项目时写入`lifecycle_status=ACTIVE`、`current_stage=S0`；未完成主责指派时`assignment_status=UNASSIGNED`。

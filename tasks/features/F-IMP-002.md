@@ -22,7 +22,8 @@
 - 定义`pms_eng_arrival -> imp_arrival_*`字段、状态、完整性与不可迁行处置；旧tinyint不得直接产生ACCEPTED。
 - 锁定COM DeliveryScope与AST Device事实组成的应到范围、水位和失效语义。
 - 锁定ACC-04不可变证据事件、归档待重试和不回滚签收边界。
-- 形成ArrivalAcceptanceFactApi及三张Owner表机器契约。
+- 形成ArrivalAcceptanceFactApi、三张到货Owner表和EXE-01最窄DeliveryEvidence两表机器契约。
+- 明确批次DRAFT/PARTIALLY_ACCEPTED/DIFFERENCE_PENDING/ACCEPTED/CONFIRMED转换、项目里程碑独立判定，以及IMP出向/ACC入向事件幂等边界。
 
 ## 未授权事项
 

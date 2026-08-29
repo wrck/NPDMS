@@ -202,6 +202,8 @@ EXE-01～04 Owner分别公开`ArrivalAcceptanceFactApi`、`InstallationCompletio
 
 `ArrivalAcceptanceFactApi`的应到范围由COM `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`与AST `DeviceScopeFactApi`共同提供：COM返回当前有效订单行、分配数量、单位、产品/型号维度、明确SN和`scopeVersion`，AST把SN解析为稳定设备及当前项目归属版本。IMP保存二者的结构化版本向量，不得把发货、装箱、设备归属或旧到货状态单独解释为`ACCEPTED`。项目最终ACCEPTED要求全部当前应到设备/数量已确认签收或被仍有效的明确豁免覆盖。
 
+F-IMP-002只在`/implementation-evidence`中创建`sourceRequirement=EXE-01/sourceObjectType=ARRIVAL_ACCEPTANCE`的签收单证据revision；IMP发布`ImplementationEvidencePublished`，ACC以`ArtifactAccepted/ArtifactArchived`回显同一`evidenceId/evidenceRevision`。IMP按eventId和证据revision幂等推进同步投影，不能调用ACC归档命令、重复下载文件或把事件发送成功解释为已归档。
+
 ## 8. ACC：验收与项目闭环 API
 
 适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。

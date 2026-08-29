@@ -5,16 +5,20 @@
   "coverage": "FULL",
   "owner": "IMP",
   "aggregate": "ArrivalAcceptance",
-  "hardDependencies": ["COM:DeliveryScopeApi", "T-FIMP001-AST-01", "PROJ:ProjectScopeApi", "PLT:FileArtifactApi", "ACC:ImplementationEvidencePublished"],
+  "hardDependencies": ["COM:DeliveryScopeApi", "T-FIMP001-AST-01", "PROJ:ProjectScopeApi", "PLT:FileArtifactApi"],
   "tables": [
     {
       "name": "imp_arrival_acceptance",
-      "purpose": "到货批次根、应到范围快照、里程碑事实版本和ACC引用状态",
-      "requiredFields": ["tenant_id", "project_id", "batch_code", "logistics_no", "arrived_at", "status", "delivery_scope_version", "scope_watermark", "project_fact_version", "migration_resolution_status", "archive_status", "version"],
+      "purpose": "到货批次根、应到范围快照、里程碑事实版本和证据revision引用",
+      "requiredFields": ["tenant_id", "project_id", "batch_code", "logistics_no", "arrived_at", "status", "delivery_scope_version", "scope_watermark", "migration_resolution_status", "version"],
+      "nullableUntilSubmit": ["evidence_id", "evidence_revision"],
+      "submitRequiredReferences": ["evidence_id", "evidence_revision"],
+      "nullableUntilConfirm": ["project_fact_version"],
+      "confirmRequiredReferences": ["project_fact_version", "evidence_id", "evidence_revision"],
       "uniqueKeys": [["tenant_id", "project_id", "batch_code"], ["tenant_id", "project_id", "project_fact_version"]],
-      "projectFactVersionPolicy": "ALLOCATE_MONOTONIC_VERSION_FOR_EACH_MILESTONE_AFFECTING_SUBMISSION; NULL_ONLY_WHILE_DRAFT",
+      "projectFactVersionPolicy": "ALLOCATE_MONOTONIC_VERSION_FOR_EACH_PROJECT_FACT_AFFECTING_CONFIRMATION_OR_INVALIDATION; NULL_BEFORE_CONFIRM",
       "migrationResolutionStatuses": ["NOT_APPLICABLE", "PENDING_RECONCILIATION", "RECONCILED"],
-      "immutability": "SUBMITTED_BUSINESS_FIELDS_ARE_IMMUTABLE; ARCHIVE_RETRY_PROJECTION_MAY_ADVANCE_WITH_AUDIT"
+      "immutability": "SUBMITTED_BUSINESS_FIELDS_ARE_IMMUTABLE; CORRECTIONS_CREATE_LINKED_SUCCESSOR_DRAFTS"
     },
     {
       "name": "imp_arrival_line",
@@ -31,14 +35,55 @@
       "resolutionStatuses": ["OPEN", "SUPPLEMENTED", "REJECTED", "EXEMPTED", "CLOSED"],
       "uniqueKeys": [["tenant_id", "arrival_acceptance_id", "difference_no", "revision_no"], ["tenant_id", "arrival_acceptance_id", "difference_no", "current_marker"]],
       "exemptionGuards": ["EXPLICIT_DEVICE_OR_ORDER_MODEL_QUANTITY_SCOPE", "APPROVER_AND_APPROVED_AT_REQUIRED", "EVIDENCE_REQUIRED", "EXPIRY_REVALIDATED"]
+    },
+    {
+      "name": "imp_delivery_evidence",
+      "purpose": "EXE-01签收单证据身份、来源批次和ACC同步当前投影",
+      "requiredFields": ["tenant_id", "project_id", "source_requirement", "source_object_type", "source_object_id", "current_revision_no", "acc_sync_status", "version"],
+      "scopeGuard": "SOURCE_REQUIREMENT_EXE_01_AND_SOURCE_OBJECT_TYPE_ARRIVAL_ACCEPTANCE_ONLY",
+      "uniqueKeys": [["tenant_id", "source_requirement", "source_object_type", "source_object_id"]]
+    },
+    {
+      "name": "imp_delivery_evidence_revision",
+      "purpose": "EXE-01签收单不可变FileReference、哈希与来源版本",
+      "requiredFields": ["tenant_id", "evidence_id", "revision_no", "file_reference_id", "file_version_no", "file_hash", "source_record_id", "source_version"],
+      "uniqueKeys": [["tenant_id", "evidence_id", "revision_no"]],
+      "immutability": "INSERT_ONLY; NEVER_REDOWNLOAD_OR_COPY_BINARY; REFERENCE_PLT_FILE_VERSION",
+      "publicationPolicy": "UPLOAD_OR_DRAFT_REPLACEMENT_APPENDS_REVISION; BATCH_CONFIRM_FREEZES_AND_PUBLISHES_CURRENT_REVISION"
     }
   ],
   "evidence": {
-    "ownerObject": "DeliveryEvidenceRevision",
+    "ownerObject": "DeliveryEvidence",
+    "featureScope": "EXE_01_ARRIVAL_RECEIPT_SLICE_ONLY; DOES_NOT_COVER_OTHER_IMP_01_OBLIGATIONS",
     "fileReference": "PLT:FileArtifactApi",
-    "event": "ImplementationEvidencePublished",
-    "archiveStatuses": ["NOT_PUBLISHED", "ARCHIVE_PENDING_RETRY", "ARCHIVED", "ARCHIVE_REJECTED"],
-    "archiveFailurePolicy": "DO_NOT_ROLL_BACK_CONFIRMED_ACCEPTANCE_AND_DO_NOT_REPORT_ARCHIVED"
+    "outboundEvent": "ImplementationEvidencePublished",
+    "inboundEvents": ["ArtifactAccepted", "ArtifactArchived"],
+    "inboxIdempotencyKey": "eventId",
+    "correlationKey": ["tenantId", "evidenceId", "evidenceRevision"],
+    "archiveStatuses": ["NOT_PUBLISHED", "PUBLISHED_PENDING_ACC", "ARCHIVE_PENDING_RETRY", "ACCEPTED_PENDING_ARCHIVE", "ARCHIVED"],
+    "statusTransitions": {
+      "OUTBOX_QUEUED": "NOT_PUBLISHED->PUBLISHED_PENDING_ACC",
+      "PUBLISH_OR_CALLBACK_TIMEOUT": "PUBLISHED_PENDING_ACC->ARCHIVE_PENDING_RETRY",
+      "RETRY_QUEUED": "ARCHIVE_PENDING_RETRY->PUBLISHED_PENDING_ACC",
+      "ARTIFACT_ACCEPTED": "PUBLISHED_PENDING_ACC|ARCHIVE_PENDING_RETRY->ACCEPTED_PENDING_ARCHIVE",
+      "ARTIFACT_ARCHIVED": "ACCEPTED_PENDING_ARCHIVE->ARCHIVED"
+    },
+    "transitionGuards": ["ACCEPTED_CALLBACK_MUST_MATCH_CURRENT_EVIDENCE_REVISION", "ARCHIVED_CALLBACK_REQUIRES_MATCHING_ACCEPTED_REVISION", "LATE_OR_MISMATCHED_CALLBACK_AUDIT_ONLY"],
+    "archiveFailurePolicy": "RETRY_SAME_EVIDENCE_ID_AND_REVISION; DO_NOT_ROLL_BACK_CONFIRMED_ACCEPTANCE_AND_DO_NOT_REPORT_ARCHIVED"
+  },
+  "batchStateMachine": {
+    "states": ["DRAFT", "PARTIALLY_ACCEPTED", "DIFFERENCE_PENDING", "ACCEPTED", "CONFIRMED"],
+    "transitions": {
+      "SUBMIT_WITH_OPEN_DIFFERENCE": "DRAFT->DIFFERENCE_PENDING",
+      "SUBMIT_WITH_REMAINING_PROJECT_SCOPE": "DRAFT->PARTIALLY_ACCEPTED",
+      "SUBMIT_WITH_FULL_CANDIDATE_PROJECT_SCOPE": "DRAFT->ACCEPTED",
+      "RESOLVE_ALL_DIFFERENCES_PARTIAL": "DIFFERENCE_PENDING->PARTIALLY_ACCEPTED",
+      "RESOLVE_ALL_DIFFERENCES_FULL": "DIFFERENCE_PENDING->ACCEPTED",
+      "PROJECT_MANAGER_CONFIRM_PARTIAL": "PARTIALLY_ACCEPTED->CONFIRMED",
+      "PROJECT_MANAGER_CONFIRM_FULL": "ACCEPTED->CONFIRMED"
+    },
+    "confirmedMeaning": "BATCH_FINAL_CONFIRMATION_ONLY; PROJECT_FACT_IS_COMPUTED_SEPARATELY",
+    "reopenPolicy": "CREATE_LINKED_SUCCESSOR_DRAFT; NEVER_MOVE_CONFIRMED_BATCH_BACKWARD; INCREMENT_PROJECT_FACT_VERSION"
   },
   "expectedScope": {
     "orderScopeOwner": "COM:DeliveryScopeApi.getAssignedScope",
@@ -48,7 +93,7 @@
   },
   "migration": {
     "strategy": "CURRENT_FORWARD",
-    "legacySource": "pms_eng_arrival",
+    "legacySources": ["pms_eng_arrival", "pms_eng_deliverable:RECEIPT_ONLY"],
     "mappingAudit": "specs/features/F-IMP-002-legacy-reuse-audit.md",
     "unmappableDisposition": "PRESERVE_LEGACY; WHEN_ROOT_IDENTITY_IS_VALID_RECORD_PENDING_RECONCILIATION_ON_TARGET, OTHERWISE_RECORD_MIGRATION_REJECTION_EVIDENCE; NEVER_CREATE_ACCEPTED_FACT",
     "forbiddenInferences": ["LEGACY_TINYINT_TO_ACCEPTED", "SHIPMENT_TO_ACCEPTED", "RAW_ATTACHMENT_URL_TO_EVIDENCE", "TEST_SEED_TO_PRODUCTION_FACT"]

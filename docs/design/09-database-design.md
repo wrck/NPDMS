@@ -332,7 +332,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | ImplementationReadinessSnapshot | `imp_implementation_readiness_snapshot` | 设备范围、EXE-01～04来源事实向量和未满足项使用结构化JSON快照 | `uk(tenant_id, project_id, readiness_type, snapshot_no)`；保存项目/设备归属/批准方案/来源版本及`READY/NOT_READY`；只追加且不从旧`pms_eng_*`或PROJ阶段快照重建READY |
 | ImplementationRisk | `imp_risk` | `imp_risk_treatment` | 状态迁移另记历史；不与 CUT risk 共表 |
 | ImplementationQualityCheck | `imp_quality_check` | `imp_quality_item`、`imp_quality_remediation`、`imp_quality_review` | 整改与复核追加；当前状态由聚合根维护 |
-| DeliveryEvidence | `imp_delivery_evidence` | `imp_delivery_evidence_revision` | `uk(tenant_id, evidence_id, revision_no)`；文件引用+哈希 |
+| DeliveryEvidence | `imp_delivery_evidence` | `imp_delivery_evidence_revision` | `uk(tenant_id, evidence_id, revision_no)`；revision只追加并引用PLT FileVersion+哈希，不复制二进制。F-IMP-002承接`source_requirement=EXE-01/source_object_type=ARRIVAL_ACCEPTANCE`的签收单最窄切片；其他IMP-01义务仍由后续Owner Feature承接 |
 
 旧 `pms_eng_*` 表按字段语义映射到新 Owner；物理模块无需立即拆库，但新 Repository 必须按 Context 包隔离。复用旧表时以兼容视图/适配器映射稳定状态代码，不直接重解释历史 tinyint。
 

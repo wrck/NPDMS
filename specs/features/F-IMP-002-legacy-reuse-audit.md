@@ -6,8 +6,8 @@
 
 ## 1. 审计范围
 
-- 后端：`pms-module-engineering` arrival Controller、Service、Mapper、DO/VO及状态命令。
-- 前端：`views/pms/engineering/arrival`、对应API、项目详情内旧arrival入口和上传组件。
+- 后端：`pms-module-engineering` arrival与deliverable Controller、Service、Mapper、DO/VO及状态命令。
+- 前端：`views/pms/engineering/arrival`、`views/pms/engineering/deliverable`、对应API、项目详情内旧入口和上传组件。
 - 数据/配置：`V10__pms_engineering_tables.sql`、V11/V16菜单权限、V19/V20/V35样例数据、领域迁移契约。
 - 状态/权限：旧tinyint状态、通用CRUD、项目/设备范围、服务端主体守卫和附件引用。
 - 测试：工程模块现有后端/前端测试目录及arrival专属覆盖。
@@ -22,6 +22,8 @@
 | 旧页面/API | 可增删改、选择旧设备、录数量、富文本检查/异常、上传原始附件URL、执行签收/异常 | 不可原页增强 | 新建F-IMP-002页面/API；旧页面、路由和行为保持不变 |
 | `attachment_url` | 单字符串URL，无FileArtifact/FileVersion/不可变revision语义 | 不可直接作为权威证据 | 仅可在文件真实存在、可读取且成功建立FileReference后迁移；否则待核对 |
 | 旧设备引用 | `equipment_id`指向旧设备模型，可空 | 不能直接充当AST稳定deviceId | 先按批准的旧设备→AST映射校验租户、SN、当前项目和版本；失败不推导签收 |
+| `pms_eng_deliverable` | 通用阶段交付件，含RECEIPT类型、来源引用、URL、大小、checksum和0/1/2归集状态 | 仅RECEIPT且来源可解析到旧到货记录的身份/文件元数据可候选迁移 | 映射到EXE-01 `imp_delivery_evidence*`；其余类型继续属于IMP-01后续范围，不由本Feature承接 |
+| 旧deliverable CRUD/归档 | 客户端可改通用字段、删除、归集和作废；旧归集由IMP自行执行 | 不符合ACC审核/归档Owner及不可变revision | 不复用命令和状态；新证据只发IMP出向事件并消费ACC回执 |
 | 菜单/权限 | `pms:eng-arrival:query/create/update/delete`按钮权限，无项目范围和主体最终确认守卫 | 不可直接作为新授权 | 新权限叠加ProjectScope与项目经理/本人草稿守卫；按钮只消费allowedActions |
 | V19/V20/V35样例 | 为演示页面预置状态与附件 | 不是生产证据 | 不用于证明映射、应到范围、签收完成或浏览器正向闭环 |
 | 专属测试 | 未发现arrival专属后端或前端业务测试 | 无可复用业务验收 | 新增聚合、权限、迁移、并发、真实MySQL和浏览器测试；保留其他旧回归 |
@@ -46,10 +48,20 @@
 | `version/creator/time/updater/time` | 来源版本与审计 | 原值原样保存 | 不用最后更新时间充当业务确认时间 |
 | `deleted` | 迁移排除/历史审计 | 删除行默认不生成新当前事实 | 不恢复软删除数据为有效签收 |
 
+### 3.1 EXE-01 DeliveryEvidence最窄映射
+
+| 旧字段/状态 | 目标候选 | 映射条件 | 禁止推断/不可迁处置 |
+|---|---|---|---|
+| `pms_eng_deliverable.id/code/name` | `legacy_source_id/evidence_code/name` | `deliverable_type=RECEIPT`且项目/编码有效 | 其他类型不进入F-IMP-002 |
+| `source_type/source_id` | `source_object_type/source_object_id` | 明确指向同租户旧到货记录 | 无来源或错配仅保留旧记录待核对 |
+| `file_url/file_size/file_checksum` | `FileReference/fileVersion/hash`候选 | 已存在可复用PLT FileArtifact映射且实际FileVersion/哈希一致 | 不重复下载或复制文件；原URL/checksum不能单独成为权威revision |
+| `status=0/1/2`、`archived_time/by` | 旧来源状态和审计 | 原样保存来源证据 | 旧“已归集”不等于ACC accepted/archived，旧作废不覆盖已发布revision |
+| `version/creator/time/updater/time/deleted` | 来源版本与审计/排除 | 原值可证明 | 不补造ACC回执、发布事件或当前证据状态 |
+
 ## 4. 复用结论
 
 - 直接复用：Yudao租户、通用返回、校验注解、乐观锁、审计和场景化Query编码方式。
 - 复制增强：新聚合Controller/Service/VO和新页面从技术结构起步，随后实现PRD状态、权限、范围和证据语义。
-- 不可复用：通用删除、客户端状态输入、旧0/1/2状态机、旧设备直接引用、URL附件、按钮权限即授权、样例数据即完成事实。
+- 不可复用：arrival/deliverable通用删除、客户端状态输入、旧0/1/2状态机、IMP自行归集、旧设备直接引用、URL附件、按钮权限即授权、样例数据即完成事实。
 
 结论：F-IMP-002执行CURRENT_FORWARD，但迁移的是可证明的来源事实，不是旧业务结论。任何缺少项目、应到范围、稳定设备/数量、有效证据或差异完整性的旧行均不得生成`ACCEPTED`，只保留旧记录和待核对处置。

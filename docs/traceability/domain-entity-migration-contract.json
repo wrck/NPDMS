@@ -1711,9 +1711,9 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_eng_arrival",
           "disposition": "CURRENT_FORWARD",
-          "transform": "map arrival batch/result; shipment quantity is reconciliation evidence, not acceptance",
-          "mappingStatus": "PENDING_FIELD_MAPPING",
-          "gate": "NEXT_FLYWAY",
+          "transform": "map only provable batch identity, project, occurred time, actor reference and source notes; equipment must resolve to AST stable device and URL must become valid FileReference; legacy status/quantity/shipment/seed never directly produces ACCEPTED; incomplete rows remain legacy plus PENDING_RECONCILIATION",
+          "mappingStatus": "FEATURE_MAPPING_DEFINED",
+          "gate": "F-IMP-002_FEATURE_READY_REVIEW",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_arrival"
         }
       ]
@@ -1853,9 +1853,9 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "pms_eng_deliverable",
           "disposition": "CURRENT_FORWARD",
-          "transform": "map implementation-stage evidence identity, immutable revisions, file references and upload results",
-          "mappingStatus": "PENDING_FIELD_MAPPING",
-          "gate": "NEXT_FLYWAY",
+          "transform": "F-IMP-002 maps only RECEIPT rows whose source resolves to ArrivalAcceptance and whose file already resolves to a valid PLT FileReference; legacy collected/void status never infers ACC accepted/archived and binary is not redownloaded or copied; other deliverable types remain pending for the IMP-01 Owner Feature",
+          "mappingStatus": "PARTIAL_FEATURE_MAPPING_DEFINED",
+          "gate": "F-IMP-002_FEATURE_READY_REVIEW / IMP-01_OWNER_FEATURE",
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V10__pms_engineering_tables.sql#table=pms_eng_deliverable"
         }
       ]
