@@ -40,6 +40,7 @@ class CommerceDeliveryScopeCommandServiceTest {
 
     @Mock private ProjectScopeApi projectScopeApi;
     @Mock private ProjectOfficeFactApi projectOfficeFactApi;
+    @Mock private AcceptanceStageBindingCoordinator acceptanceBindingCoordinator;
     @Mock private AssetDeviceScopeApi assetDeviceScopeApi;
     @Mock private AcceptanceScopeGuardApi acceptanceScopeGuardApi;
     @Mock private SalesOrderLineMapper orderLineMapper;
@@ -53,8 +54,8 @@ class CommerceDeliveryScopeCommandServiceTest {
     void setUp() {
         TenantContextHolder.setTenantId(1L);
         service = new CommerceDeliveryScopeCommandService(projectScopeApi, projectOfficeFactApi,
-                assetDeviceScopeApi, acceptanceScopeGuardApi, orderLineMapper, scopeMapper, detailMapper,
-                outboxMapper, operationAuditApi);
+                acceptanceBindingCoordinator, assetDeviceScopeApi, acceptanceScopeGuardApi, orderLineMapper,
+                scopeMapper, detailMapper, outboxMapper, operationAuditApi);
     }
 
     @AfterEach
@@ -88,6 +89,23 @@ class CommerceDeliveryScopeCommandServiceTest {
                 "DeliveryScopeAssigned".equals(event.getEventType())));
         verify(operationAuditApi).record(eq(1L), eq(99L), eq("op-assign"), eq("COM_SCOPE_ASSIGN"),
                 eq("DeliveryScope"), eq("401"), eq("SUCCESS"), any());
+    }
+
+    @Test
+    void shouldBindNewScopeWhenOwnerReportsAcceptanceStage() {
+        allowProject();
+        var stage = new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3, 701L, true);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 501L, 3, "op-assign")).thenReturn(stage);
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
+        when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            invocation.<DeliveryScopeDO>getArgument(0).setId(401L);
+            return 1;
+        }).when(scopeMapper).insert(any(DeliveryScopeDO.class));
+
+        service.assign(assignCommand());
+
+        verify(acceptanceBindingCoordinator).bindIfRequired(stage, 401L, 1L, "op-assign");
     }
 
     @Test
@@ -207,6 +225,8 @@ class CommerceDeliveryScopeCommandServiceTest {
                 new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
                 ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
+        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), eq(501L), eq(3), any())).thenReturn(
+                new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3, null, false));
     }
 
     private DeliveryScopeAssignCommand assignCommand() {

@@ -40,13 +40,14 @@ class DeliveryScopeCompatibilityServiceTest {
     @Mock private DeliveryScopeDetailMapper detailMapper;
     @Mock private CommerceOutboxEventMapper outboxMapper;
     @Mock private ProjectOfficeFactApi projectOfficeFactApi;
+    @Mock private AcceptanceStageBindingCoordinator acceptanceBindingCoordinator;
     @Mock private AssetDeviceScopeApi assetDeviceScopeApi;
     private DeliveryScopeCompatibilityService service;
 
     @BeforeEach
     void setUp() {
         service = new DeliveryScopeCompatibilityService(orderLineMapper, scopeMapper, detailMapper,
-                outboxMapper, projectOfficeFactApi, assetDeviceScopeApi);
+                outboxMapper, projectOfficeFactApi, acceptanceBindingCoordinator, assetDeviceScopeApi);
     }
 
     @Test
@@ -102,6 +103,28 @@ class DeliveryScopeCompatibilityServiceTest {
                         && detail.getSerialNo() == null && detail.getDetailSequence() == 1));
         assertEquals(new BigDecimal("3"), detailCaptor.getAllValues().get(0).getAllocatedQty());
         assertEquals(new BigDecimal("2"), detailCaptor.getAllValues().get(1).getAllocatedQty());
+    }
+
+    @Test
+    void shouldBindEachNewVersionReportedInAcceptanceStage() {
+        stubProjectFacts();
+        var parentStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 100L, 3, 700L, true);
+        var childStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 101L, 0, 701L, true);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 100L, 3, "idem")).thenReturn(parentStage);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 101L, 0, "idem")).thenReturn(childStage);
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line("ERP-PRODUCT-1")));
+        when(scopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(parentScope("5", 4L)));
+        AtomicLong ids = new AtomicLong(500L);
+        doAnswer(invocation -> {
+            invocation.<DeliveryScopeDO>getArgument(0).setId(ids.getAndIncrement());
+            return 1;
+        }).when(scopeMapper).insert(any(DeliveryScopeDO.class));
+
+        SplitScopeApplyResult result = service.applySplit(command("2", List.of()));
+
+        assertTrue(result.valid());
+        verify(acceptanceBindingCoordinator).bindIfRequired(parentStage, 500L, 5L, "idem");
+        verify(acceptanceBindingCoordinator).bindIfRequired(childStage, 501L, 5L, "idem");
     }
 
     @Test
@@ -180,6 +203,9 @@ class DeliveryScopeCompatibilityServiceTest {
             return fact(query.projectId(), query.expectedProjectVersion(),
                     query.projectId().equals(100L) ? "PARENT" : "CHILD");
         });
+        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), anyLong(), anyInt(), eq("idem")))
+                .thenAnswer(invocation -> new AcceptanceStageBindingCoordinator.StageContext(1L,
+                        invocation.getArgument(1), invocation.getArgument(2), null, false));
     }
 
     private ProjectOfficeFact fact(Long projectId, Integer version, String projectCode) {
