@@ -83,6 +83,7 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_REPORT_VERSION_CONFLICT = new ErrorCode(1_014_012_008, "验收报告或活动版本冲突");
     ErrorCode ACC_REPORT_INCOMPLETE = new ErrorCode(1_014_012_009, "验收报告时间、结论、验收人或附件不完整");
     ErrorCode ACC_REPORT_DEPENDENCY_UNAVAILABLE = new ErrorCode(1_014_012_010, "验收报告Owner事实暂不可用");
+    ErrorCode ACC_REPORT_SCOPE_FORBIDDEN = new ErrorCode(1_014_012_011, "无权访问该项目验收报告");
 
     // ========== 交付件检查 1-014-013-000 ==========
     ErrorCode ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS = new ErrorCode(1_014_013_000, "交付件检查记录不存在");

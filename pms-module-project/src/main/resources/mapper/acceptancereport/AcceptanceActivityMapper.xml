@@ -24,7 +24,22 @@
           AND id = #{query.acceptanceId}
           AND deleted = 0
         FOR UPDATE
-</select>
+    </select>
+
+    <select id="selectByProjectScope"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO">
+        SELECT id, project_id, project_task_id, execution_contract_id, acceptance_type,
+               activity_status, current_report_version_id, version,
+               creator, create_time, updater, update_time, deleted, tenant_id
+        FROM acc_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND deleted = 0
+          AND project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        ORDER BY project_id, FIELD(acceptance_type, 'PRELIMINARY', 'FINAL'), id
+    </select>
 
     <update id="completeIfPending">
         UPDATE acc_acceptance

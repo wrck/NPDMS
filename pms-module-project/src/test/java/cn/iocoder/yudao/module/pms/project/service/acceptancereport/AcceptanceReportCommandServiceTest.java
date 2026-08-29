@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportAttachmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportVersionDO;
@@ -22,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -39,10 +42,13 @@ class AcceptanceReportCommandServiceTest {
     @Mock AcceptanceReportAttachmentMapper attachmentMapper;
     @Mock FileArtifactApi fileArtifactApi;
     @Mock PlatformCommandExecutionApi commandExecutionApi;
+    @Mock ProjectScopeApi projectScopeApi;
 
     @BeforeEach
     void setTenant() {
         TenantContextHolder.setTenantId(7L);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(
+                80L, 1L, Set.of(80L), Set.of()));
     }
 
     @AfterEach
@@ -119,7 +125,7 @@ class AcceptanceReportCommandServiceTest {
 
     private AcceptanceReportCommandService service() {
         return new AcceptanceReportCommandService(activityMapper, reportMapper, attachmentMapper,
-                fileArtifactApi, commandExecutionApi);
+                fileArtifactApi, commandExecutionApi, projectScopeApi);
     }
 
     private AcceptanceReportCommands.Actor actor() {

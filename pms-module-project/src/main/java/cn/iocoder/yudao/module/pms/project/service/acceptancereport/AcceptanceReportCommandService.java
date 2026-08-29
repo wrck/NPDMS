@@ -12,6 +12,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetExpecta
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceActivityDO;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportAttachmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.AcceptanceReportVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.AcceptanceActivityMapper;
@@ -44,6 +46,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_R
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_INCOMPLETE;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_STATE_INVALID;
+import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_REPORT_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_IN_PROGRESS;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
@@ -61,6 +64,7 @@ public class AcceptanceReportCommandService {
     private final AcceptanceReportAttachmentMapper attachmentMapper;
     private final FileArtifactApi fileArtifactApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    private final ProjectScopeApi projectScopeApi;
 
     @Transactional(rollbackFor = Exception.class)
     public ReportResult createDraft(CreateDraftCommand command, Actor actor) {
@@ -240,6 +244,17 @@ public class AcceptanceReportCommandService {
         if (row == null) throw exception(ACC_REPORT_NOT_EXISTS);
         if (!Objects.equals(row.getVersion(), expectedVersion) || !"PENDING".equals(row.getActivityStatus())) {
             throw exception(ACC_REPORT_VERSION_CONFLICT);
+        }
+        try {
+            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
+                    actor.tenantId(), actor.userId(), row.getProjectId(), ProjectScopeApi.ACTION_EDIT));
+            if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(row.getProjectId())) {
+                throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
+            }
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException business) {
+            throw business;
+        } catch (RuntimeException unavailable) {
+            throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
         }
         return row;
     }
