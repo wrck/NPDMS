@@ -77,6 +77,7 @@ TARGET_POLICIES = {
 }
 
 MODEL_ENTITY_CONTRACTS = {
+    "ProjectStageSnapshot": {"owner": "PROJ", "requirementIds": ["PM-03", "PM-10"]},
     "DeliveryEvidence": {"owner": "IMP", "requirementIds": ["IMP-01"]},
     "DeviceAssignmentHistory": {"owner": "AST", "requirementIds": ["EQP-01", "EQP-02", "EQP-03", "EQP-05", "EQP-07"]},
     "DeviceAncestorProjection": {"owner": "AST", "requirementIds": ["EQP-01", "EQP-03"]},
