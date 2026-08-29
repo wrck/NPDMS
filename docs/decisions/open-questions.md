@@ -182,17 +182,17 @@
 
 ### Q-FCOM-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Requirement IDs: COM-01
 - Area: F-COM-001合同管理员的合同订单数据范围
 - Question: 合同管理员首次查询合同并建立项目—合同关系时，权威数据范围来自显式合同授权、公司/组织范围、项目专项授权，还是其他已批准业务事实？
 - Why it blocks design/implementation: `ProjectScopeApi + DeliveryScope`只能裁剪已有项目关系，无法证明首次可见合同集合；功能权限码本身也不产生数据范围。实施者若自行选择租户全量、组织范围或既有项目关系，会分别造成商务明细越权、业务范围漂移或合同管理员无法建立首个关系。
 - Options: A. 新增显式合同授权事实并锁定Owner、授予/撤销/到期、版本和查询API；B. 需求方指定一个已有且可查询的公司/组织授权事实作为合同范围；C. 只允许由上游受信流程按精确合同业务键建立关系，合同管理员不提供合同目录查询，并明确其授权来源。
-- Recommended technical default: A；合同范围与项目范围职责不同，显式授权最可审计，但在需求方批准前不创建表、API、权限或状态。
+- Recommended technical default: 已由需求方选择B，不再采用技术默认。
 - Business decision required: 是。须明确首次合同可见性、金额等敏感字段范围、授权授予/撤销/到期语义及空范围行为。
-- Resolution: 【待确认】。关闭前F-COM-001保持`CANDIDATE / NOT_READY`，不得由Technical Plan选取默认口径。
+- Resolution: 方案B。合同管理员以SYSTEM现有当前有效`UserCompanyDepartmentScope`为权威合同数据范围，仅按授权行`companyCode`精确匹配ERP合同所属公司编码；部门只作授权上下文，不推导或扩大公司范围。空范围或Owner事实未知、不可用时列表返回空，详情和写操作拒绝；关系维护写入前重新校验并记录授权事实稳定ID和版本；撤权或到期立即禁止后续查询和维护但不删除历史。公司范围不授予合同金额等商务敏感字段明文权限，仍须独立字段权限。依据`CHG-PRD-2026-08-29-009`同一修订补充，不新增合同授权表，不修改Yudao基础平台。
 - Decision owner: 需求方；COM、权限与数据架构负责人参与影响分析
-- Decision date: -
+- Decision date: 2026-08-29
 
 ### Q-FCOM-002
 
