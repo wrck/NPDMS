@@ -11,7 +11,7 @@ Phase 2 用于审查数据、数据库、API、事件、集成、文件、缓存
 > 2026-08-28聚焦候选：F-PLT-002把共享动态表单前向归属PLT，并保留Preparation专用实例后，该候选形成时的生成契约为90对象/101来源绑定/1排除源；三个PLT对象均不迁移、不双写旧`pms_eng_form_*`。该历史统计只证明候选生成链一致；修订007当前总体统计见上方迁移边界，Feature Ready仍待独立裁决。
 > 2026-08-28 F-CUS-001回写：新增`MarketRelation`、`CustomerLocationReference`、`CustomerScopeSlice`并将`Customer`映射到F-CUS前向表后，当前迁移契约为93对象/104来源绑定/1排除源；V106～V108属于Feature前向迁移，不进入当前核心DDL精确表集。
 > 2026-08-29 F-COM-001修订008候选：新增`AcceptanceScopeBinding`并补齐V70订单行、范围主记录与明细来源后，受管生成契约为94对象/107来源绑定/1排除源；该统计只证明候选生成链一致，P3-E09差量及Feature Ready仍须分别裁决。
-> 2026-08-30 F-ACC-001聚焦候选：ACC-03报告活动/不可变版本与ACC-04初验终验来源切片复用`acc_project_deliverable`后，受管生成契约为94对象/109来源绑定/1排除源；该统计只证明候选生成链一致，ADR-0039与SDS/P3-E09差量仍待独立复审。
+> 2026-08-30 F-ACC-001聚焦差量：ACC-03报告活动/不可变版本与ACC-04初验终验来源切片复用`acc_project_deliverable`，受管生成契约为94对象/109来源绑定/1排除源；ADR-0039与SDS/P3-E09差量已由提交`5c1e1ff2`经独立复审GO，仅放行Feature Spec Gate。
 
 ## 当前文件
 

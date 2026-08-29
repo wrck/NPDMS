@@ -20,7 +20,7 @@ Phase 2 V1.8的08、08a、09、10、11、12、13、15、16分册，100项显式�
 
 2026-08-29 F-COM-001修订008差量送审前，`AcceptanceScopeBinding`及V70三类来源进入受管候选，生成统计为94对象/107来源绑定/1排除源。本段只登记待审候选，不改写本文件既有独立裁决；P3-E09差量和Feature Ready均未据此通过。
 
-2026-08-30 F-ACC-001送审前，ACC-03活动/报告新真值与ACC-04初验终验来源切片进入受管候选，生成统计为94对象/109来源绑定/1排除源。ADR-0039仍为`PROPOSED_FOR_INDEPENDENT_REVIEW`，本段只登记待审对象，不预写GO或改变既有Phase 2总体裁决。
+2026-08-30 F-ACC-001同一Gate整改提交`5c1e1ff2498abf838310da607ae5d1426953b3ad`经独立复审GO：94对象/109来源绑定/1排除源，ADR-0039、报告草稿/当前唯一、原子发布替换撤销、变更事件及完整附件来源索引闭环；仅放行进入Feature Spec Gate，不批准Feature Ready、Technical Plan、代码或Flyway。
 
 允许将ADR-0030标记为`ACCEPTED`、Phase 2分册标记为`BASELINE`，并进入Phase 3形成Feature和前向DDL设计。
 

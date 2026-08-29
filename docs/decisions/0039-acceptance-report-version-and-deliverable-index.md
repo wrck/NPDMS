@@ -1,6 +1,6 @@
 # ADR-0039：初验终验报告版本与交付件来源索引
 
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`<br>
 > 日期：2026-08-30<br>
 > Requirement：`ACC-03@V1`、`ACC-04@V1`<br>
 > 前置批准：下一Feature与最近Gate定位独立裁决GO（基线`21423d9c`）
