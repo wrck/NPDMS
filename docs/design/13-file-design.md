@@ -97,9 +97,9 @@
 
 实施交付件链：`IMP DeliveryEvidenceRevision → FileVersion → ACC DeliveryArtifactReview → FileArchiveRecord`。任何环节都不复制二进制形成不可追溯副本。
 
-F-ACC-001报告附件集合固定键为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`，每个附件槽的`referenceKey`由服务端生成。ACC Provider通过报告版本取得项目并调用`ProjectScopeApi`，把当前`treeVersion`作为`scopeVersion`：读/下载使用`PROJECT_VIEW`，上传/引用/替换/解绑使用`PROJECT_EDIT`，归档只允许ACC补偿消费者。报告表和事件仅保存`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`。
+F-ACC-001报告附件集合固定键为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`，归档集合固定使用`ACCEPTANCE_REPORT_ARCHIVE`；同一附件在两集合使用同一服务端UUID `referenceKey`。ACC Provider通过报告版本取得项目并调用`ProjectScopeApi`，把当前`treeVersion`作为`scopeVersion`：附件读/下载使用`PROJECT_VIEW`，上传/引用/替换/解绑使用`PROJECT_EDIT`，归档集合只允许ACC补偿消费者。报告表和事件仅保存附件ACTIVE公共事实。
 
-上传、绑定、集合重验和下载分别复用PLT现有上传REST、`attachExistingVersions`、`inspectReferenceSets/lockAndRevalidateReferenceSets`和Access Ticket REST。归档由PLT加性`archiveReferenceSets`按完整期望集合追加记录；PLT `FileArchiveRecord`是文件归档真值，ACC `archive_status`只是来源索引补偿投影，整组未成功时必须保持`PENDING_COMPENSATION`。
+上传、集合重验和下载复用PLT现有上传REST、`inspectReferenceSets/lockAndRevalidateReferenceSets`和Access Ticket REST；`attachExistingVersions`的目标白名单加性支持上述唯一ACC附件键并保留既有目标。归档由`archiveReferenceSets`先重验完整附件ACTIVE集合，再在独立归档集合创建ARCHIVED引用并追加记录；报告附件引用持续保持`ACTIVE`供历史下载。PLT `FileArchiveRecord`是文件归档真值，ACC `archive_status`只是来源索引补偿投影。
 
 ## 8. 采集与巡检文件
 

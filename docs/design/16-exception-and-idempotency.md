@@ -115,9 +115,9 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 | 报告当前版本、活动或ProjectTask执行契约版本冲突 | VERSION_CONFLICT；ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入，调用方携带新版本重新确认 |
 | 报告已有效但交付件索引、附件集合归档或CLO消费者失败 | 报告状态/历史不回滚、不删除；Outbox重试，已建立的来源版本关系保持`PENDING_COMPENSATION/INVALID`并保存失败原因与水位，未成功前不得计入CLO齐套；不得降级为单附件 |
 | ACC附件Provider未知/不可用、公共文件事实或scopeVersion漂移 | DEPENDENCY_UNAVAILABLE/VERSION_CONFLICT；报告发布、完成或下载拒绝，ACC不得读取PLT表或改用内部ID/URL；既有有效报告和文件历史不变 |
-| PLT完整附件集合归档部分失败 | PLT不返回成功且不形成整组归档完成事实；ACC来源索引保持`PENDING_COMPENSATION`并按同一archiveBatch幂等重试，不误写`ARCHIVED` |
+| PLT完整附件集合归档部分失败 | PLT不返回成功且不改变附件ACTIVE引用；独立归档集合和FileArchiveRecord整组回滚，ACC来源索引保持`PENDING_COMPENSATION`并按同一archiveBatch幂等重试 |
 | 项目创建的ACC活动初始化缺失、部分、重复或身份不一致 | BUSINESS_GATE/DEPENDENCY_UNAVAILABLE；项目、任务、应交根、活动和执行契约同事务零写入，不异步补建或回退到TASK_NATIVE |
-| 存量初验/终验任务切换遇到部分/重复/混合状态 | 整批失败；两项均不存在保持不变，两项均非终态且为V63 TASK_NATIVE才原子切换；任一DONE/CLOSED项目保持历史不变且不创建活动 |
+| 存量初验/终验任务切换遇到部分/重复/混合状态 | 整批失败；两项均不存在保持不变，两项均非终态且为V63 TASK_NATIVE才原子切换；两项均DONE/CLOSED时保持历史不变且不创建活动；终态/非终态混合整批失败 |
 | V17旧验收或旧交付件记录缺新模型必填事实 | 保持旧表和旧功能不变；不得从名称、审批状态、意见、URL或关项结果推断当前有效报告、活动完成或新交付件来源 |
 | Q-FCOM-002关闭前退出或回退验收阶段 | 不自动关闭、解锁或改写既有绑定；COM守卫继续按当前绑定失败关闭减量，最终关闭/再次进入语义待业务裁决 |
 | 数值调整 | 新增 adjustment，保存动作类型、方向和正负值，不覆盖原值 |

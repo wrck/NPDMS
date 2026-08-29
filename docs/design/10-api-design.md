@@ -214,9 +214,9 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 
 F-ACC-001仅冻结`pms:acceptance:report:query/write/complete/download`四个最小权限键。写入/换版只允许项目经理项目范围，完成命令同时校验ProjectTask范围与活动版本；查询、历史版本和单文件下载分别执行项目树范围、FileBusinessScope和租户隔离。角色—权限映射保持正式授权配置，不以“全权限”删除服务端鉴权。
 
-ACC报告附件的文件策略键固定为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`。ACC `FileBusinessObjectPolicyProvider`把报告版本解析为不可变`projectId/projectTaskId`，使用PROJ `ProjectScopeApi`执行`PROJECT_VIEW`或`PROJECT_EDIT`并把返回`treeVersion`作为唯一`scopeVersion`；`ARCHIVE`只接受ACC受信补偿消费者。新上传继续走PLT现有`init-upload/complete-upload`，绑定既有文件调用`FileArtifactApi.attachExistingVersions`，发布/完成调用`lockAndRevalidateReferenceSets`，查询/下载调用`inspectReferenceSets`并由PLT现有Access Ticket REST生成下载凭据。ACC不接收或持有PLT内部`fileVersionId/referenceId`，不建设文件代理。
+ACC报告附件的文件策略键固定为`ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT`，归档键固定为同对象下的`ACCEPTANCE_REPORT_ARCHIVE`。ACC `FileBusinessObjectPolicyProvider`把报告版本解析为不可变`projectId/projectTaskId`，使用PROJ `ProjectScopeApi`执行`PROJECT_VIEW`或`PROJECT_EDIT`并把返回`treeVersion`作为唯一`scopeVersion`；归档集合的`ARCHIVE`只接受ACC受信补偿消费者。新上传继续走PLT现有`init-upload/complete-upload`；`ExistingFileReferenceTarget`加性支持唯一ACC目标`ACC/ACCEPTANCE_REPORT_VERSION/*/ACCEPTANCE_REPORT_ATTACHMENT`并保留现有SOL/动态表单目标，绑定既有文件仍调用`attachExistingVersions`。发布/完成调用`lockAndRevalidateReferenceSets`，查询/下载调用`inspectReferenceSets`和现有Access Ticket REST。ACC不持有PLT内部ID，不建设文件代理。
 
-PLT加性公开`FileArtifactApi.archiveReferenceSets(ArchiveFileReferenceSetsCommand)`，输入为`operationId/archiveBatchId/businessDecisionRef`、完整`FileReferenceSetKey`、期望`scopeVersion`和按`referenceKey`稳定排序的期望公共文件事实集合；返回整组公共归档事实。PLT先执行既有`pms:file:archive`服务端权限和租户校验，再调用ACC Provider持锁重验并追加不可变`FileArchiveRecord`；同批同摘要返回原结果，集合不完整、版本漂移、Provider未知/不可用或归档部分失败均不返回成功。ACC只在整组成功后把来源索引投影写为`ARCHIVED`，否则保持`PENDING_COMPENSATION`。
+PLT加性公开`FileArtifactApi.archiveReferenceSets(ArchiveFileReferenceSetsCommand)`，输入为`operationId/archiveBatchId/businessDecisionRef`、附件/归档两个完整集合键、期望`scopeVersion`和按`referenceKey`稳定排序的附件公共事实集合。PLT先执行既有`pms:file:archive`服务端权限和租户校验，持锁确认附件集合仍全为ACTIVE；随后在`ACCEPTANCE_REPORT_ARCHIVE`集合按相同artifactId/versionNo/referenceKey创建独立引用，将这些目标引用置ARCHIVED并追加`FileArchiveRecord`，报告附件ACTIVE引用保持不变。整组同事务且同批同摘要幂等；ACC只在整组成功后写`ARCHIVED`，否则保持`PENDING_COMPENSATION`。
 
 物理模块固定：`FileArtifactApi.archiveReferenceSets`声明在现有`pms-module-platform-api`、Provider在`pms-module-platform`；`AcceptanceActivityInitializationApi`与`AcceptanceActivityCompletionFactApi`声明在现有`pms-module-project-api`的ACC契约包，真实Provider、ACC文件策略Provider及活动/报告实现位于`pms-module-project`的ACC子包。该物理合置不改变ACC业务Owner，PROJ编排不得调用其Service/Mapper或直接访问ACC表。
 
@@ -224,7 +224,7 @@ PROJ继续拥有任务命令。非`TASK_NATIVE`初验/终验任务的执行契�
 
 PROJ项目创建使用ACC公开`AcceptanceActivityInitializationApi.initialize`，ACC以`MANDATORY`加入同一事务。PROJ先持久化全部任务、非ACC执行契约和里程碑，再调用既有ACC `ProjectDeliverableInitializationApplicationService`形成精确`D-INITIAL-REPORT/D-FINAL-REPORT`应交根，并为验收任务预分配`executionContractId`；activity initializer逐项接收`projectId/projectTaskId/taskDefinitionKey/executionContractId/acceptanceType/deliverableCode/templateRevision`，只接受`T-INITIAL-ACCEPT→PRELIMINARY→D-INITIAL-REPORT`和`T-FINAL-ACCEPT→FINAL→D-FINAL-REPORT`，校验ACC应交根后创建PENDING活动并返回`acceptanceId/activityVersion`；PROJ随后才追加ACC当前执行契约且不得直接写ACC表。缺失、部分、重复、身份不一致或任一步失败使整个项目创建回滚。
 
-存量切换使用同一initializer的受管批次入口并按项目成对处理：无两项精确任务保持不变；部分/重复/缺应交根或当前契约非V63 `TASK_NATIVE`整批失败；两项均非终态时原子关闭旧契约并创建两个活动及ACC当前契约；任一`DONE/CLOSED`项目保持旧契约和历史且不创建活动，终态/非终态混合或未知状态失败关闭。无匹配“保持不变”不得解释为精确任务缺件时跳过。
+存量切换使用同一initializer的受管批次入口并按项目成对处理：无两项精确任务保持不变；部分/重复/缺应交根或当前契约非V63 `TASK_NATIVE`整批失败；两项均非终态时原子关闭旧契约并创建两个活动及ACC当前契约；两项均为`DONE/CLOSED`时整项目保持旧契约和历史且不创建活动；终态/非终态混合时整批失败，未知状态同样失败关闭。无匹配“保持不变”不得解释为精确任务缺件时跳过。
 
 `publish-version`要求草稿版本与期望当前版本，首次生效或替换时原子切换状态/区间和活动当前指针；`revoke-current-version`要求期望当前版本，原子置REVOKED并清空指针，不自动恢复旧版。两命令均与`AcceptanceReportVersionChanged` Outbox同事务提交；事件明确`EFFECTIVE/REPLACED/REVOKED`、当前/前一版本及完整有序附件集合。消费者只追加`acc_project_deliverable_source_version/source_attachment`并切换既有根指针，替换保留旧关系，撤销使旧关系失效。索引、文件归档或CLO消费者失败不回滚报告版本，当前来源保持`PENDING_COMPENSATION`并重试；活动完成不把`ARCHIVED`作为第五项。
 

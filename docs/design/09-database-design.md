@@ -474,11 +474,11 @@ F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`，不修改已
 
 交付件事件消费在单一ACC事务中处理根、来源关系和附件集合：首次生效创建CURRENT/PENDING_COMPENSATION关系并设置根指针；替换先把旧关系置SUPERSEDED并保留其归档结果，再创建新CURRENT关系与完整附件集合并切换根；撤销把旧关系置REVOKED/INVALID、清空根指针并把根归档摘要置INVALID。事件重放只能返回上述既有结果，不重复关系或附件。
 
-ACC报告附件集合固定使用`ownerContext=ACC/objectType=ACCEPTANCE_REPORT_VERSION/objectId=reportVersionId十进制字符串/purposeCode=ACCEPTANCE_REPORT_ATTACHMENT`；`reference_key`由服务端逐附件生成并持久化，`scope_version`精确等于ACC Provider通过PROJ `ProjectScopeApi`取得的当前`treeVersion`。报告发布、活动完成与下载分别经PLT公共`lockAndRevalidateReferenceSets/inspectReferenceSets`重验，禁止从PLT内部主键、URL或客户端载荷补造文件事实。PLT `FileArchiveRecord`是文件归档真值；ACC根及来源行的归档字段只保存索引/补偿投影，整组`archiveReferenceSets`成功后方可写`ARCHIVED`。
+ACC报告附件集合固定使用`ownerContext=ACC/objectType=ACCEPTANCE_REPORT_VERSION/objectId=reportVersionId十进制字符串/purposeCode=ACCEPTANCE_REPORT_ATTACHMENT`；归档集合只把purpose改为`ACCEPTANCE_REPORT_ARCHIVE`，同一文件复用服务端UUID `reference_key`。`scope_version`精确等于ACC Provider通过PROJ `ProjectScopeApi`取得的当前`treeVersion`。报告发布、活动完成与下载只重验附件ACTIVE集合；PLT归档在独立集合创建ARCHIVED引用并追加`FileArchiveRecord`，报告附件ACTIVE引用保持不变。ACC归档字段只保存索引/补偿投影，整组成功后方可写`ARCHIVED`。
 
 新项目创建按“全部ProjectTask→非ACC执行契约→里程碑→既有ACC `ProjectDeliverableInitializationApplicationService`形成`acc_project_deliverable`应交根→`AcceptanceActivityInitializationApi.initialize`→ACC当前执行契约”的顺序在同一MySQL事务完成。PROJ为精确初验/终验任务预分配`execution_contract_id`，ACC校验自身应交根并返回`acceptance_id/activity_version`后，PROJ才插入`targetContextCode=ACC/targetObjectType=AcceptanceActivity/targetObjectKey=acceptanceId`的当前契约；PROJ不直接写ACC表，任一步失败整体回滚。
 
-存量切换以同项目的`T-INITIAL-ACCEPT/T-FINAL-ACCEPT`精确任务对为最小单元：两项均不存在保持不变；部分、重复、缺精确应交根或当前契约非V63 `TASK_NATIVE`整批失败；两项均处`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT`时原子创建两个PENDING活动、关闭两条旧契约区间并追加ACC当前契约；任一任务处`DONE/CLOSED`则该项目全部保持旧契约和历史且不创建活动，终态/非终态混合或未知状态整批失败。不得覆盖终态历史或为不可再次完成任务创建孤立活动。
+存量切换以同项目的`T-INITIAL-ACCEPT/T-FINAL-ACCEPT`精确任务对为最小单元：两项均不存在保持不变；部分、重复、缺精确应交根或当前契约非V63 `TASK_NATIVE`整批失败；两项均处`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT`时原子创建两个PENDING活动、关闭两条旧契约区间并追加ACC当前契约；两项均处`DONE/CLOSED`时该项目全部保持旧契约和历史且不创建活动；终态/非终态混合或未知状态整批失败。不得覆盖终态历史或为不可再次完成任务创建孤立活动。
 
 V17 `pms_acc_acceptance`及旧交付清单/归档/完工证明缺少可证明的验收人、固定文件版本、活动绑定或当前版本关系，保持旧表和旧功能不变，不进入新当前真值。未来前向迁移不得从名称、审批状态、`approve_opinion`、URL、`D-ACCEPT-REPORT`或旧关项结果补造这些事实。
 
