@@ -72,6 +72,17 @@ class ArrivalAcceptanceMapperContractTest {
         assertFalse(mapperJava.contains("Map<"));
     }
 
+    @Test
+    void projectFactQueriesUseOnlyConfirmedAcceptedAndEffectiveExplicitExemptions() {
+        assertTrue(mapperXml.contains("id=\"selectConfirmedByProject\""));
+        assertTrue(mapperXml.contains("id=\"selectConfirmedAcceptedByProject\""));
+        assertTrue(mapperXml.contains("id=\"selectEffectiveExemptionsByProject\""));
+        assertTrue(mapperXml.contains("a.status = 'CONFIRMED'"));
+        assertTrue(mapperXml.contains("l.status = 'ACCEPTED'"));
+        assertTrue(mapperXml.contains("d.resolution_status = 'EXEMPTED'"));
+        assertTrue(mapperXml.contains("d.exemption_expires_at &gt; #{query.checkedAt}"));
+    }
+
     private static String tableName(Class<?> type) {
         return type.getAnnotation(TableName.class).value();
     }

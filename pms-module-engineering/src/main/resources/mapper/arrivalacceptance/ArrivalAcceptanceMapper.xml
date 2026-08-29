@@ -38,6 +38,16 @@
         FOR UPDATE
     </select>
 
+    <select id="selectConfirmedByProject" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
+        SELECT <include refid="columns"/>
+        FROM imp_arrival_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND status = 'CONFIRMED'
+          AND deleted = b'0'
+        ORDER BY project_fact_version, id
+    </select>
+
     <sql id="pageWhere">
         tenant_id = #{query.tenantId}
         AND deleted = b'0'
