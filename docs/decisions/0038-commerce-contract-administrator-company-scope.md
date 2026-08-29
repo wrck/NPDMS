@@ -1,6 +1,6 @@
 # ADR-0038：合同管理员按SYSTEM当前公司范围访问合同订单
 
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`<br>
 > 日期：2026-08-29<br>
 > Requirement：`COM-01@V1`<br>
 > 前置批准：`CHG-PRD-2026-08-29-009`补充候选`1a9ca704422b275be9d19629d2d61af1782138c4`
