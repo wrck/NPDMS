@@ -61,7 +61,7 @@ def contract_errors(contract: dict, spec: str, audit: str) -> list[str]:
     if provisioning.get("bothTerminal") != "UNCHANGED_PRESERVE_HISTORY" or \
             provisioning.get("mixedTerminalNonTerminal") != "FAIL_BATCH":
         errors.append("terminal-partition")
-    for marker in ("Feature Ready：`NOT_READY", "ACC-03@V1=FULL", "ACC-04@V1=PARTIAL", "Q-FCOM-002",
+    for marker in ("Feature Ready：`READY`", "ACC-03@V1=FULL", "ACC-04@V1=PARTIAL", "Q-FCOM-002",
                    "ADR-0040", "ACCEPTANCE_REPORT_ARCHIVE", "AcceptanceActivityInitializationApi"):
         if marker not in spec:
             errors.append(f"spec:{marker}")
@@ -79,9 +79,11 @@ class Facc001FeatureContractTest(unittest.TestCase):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.audit = AUDIT.read_text(encoding="utf-8")
 
-    def test_candidate_is_complete_but_not_preapproved(self) -> None:
+    def test_feature_ready_go_is_recorded(self) -> None:
         self.assertEqual([], contract_errors(self.contract, self.spec, self.audit))
-        self.assertEqual("CANDIDATE_NOT_READY", self.contract["status"])
+        self.assertEqual("BASELINE_READY", self.contract["status"])
+        self.assertEqual("GO_BDE0FEAC019BAF820634ECC6A0E88272672B601D",
+                         self.contract["featureReadyDecision"])
 
     def test_gate_rejects_draft_as_current(self) -> None:
         mutated = deepcopy(self.contract)
