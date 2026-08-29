@@ -51,6 +51,19 @@ class ContractAccessServiceTest {
     }
 
     @Test
+    void shouldReturnExactContractPageTotalWithSingleOwnerRead() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "C01", 2)));
+        when(contractMapper.selectCountByCompanyScope(any())).thenReturn(23L);
+        when(contractMapper.selectByCompanyScope(any())).thenReturn(List.of(new ContractDO()));
+
+        var page = service.pageContracts(1L, 7L, "trace-page", null, null, 20, 20);
+
+        assertEquals(23L, page.getTotal());
+        assertEquals(1, page.getList().size());
+        verify(organizationScopeApi, times(1)).getActiveScopes(7L);
+    }
+
+    @Test
     void shouldReturnEmptyWithoutCallingMapperWhenScopeIsEmptyOrOwnerUnavailable() {
         when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of());
         assertTrue(service.listContracts(1L, 7L, "trace-1", null, null, 0, 20).isEmpty());

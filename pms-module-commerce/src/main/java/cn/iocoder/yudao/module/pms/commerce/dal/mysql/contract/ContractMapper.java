@@ -15,6 +15,7 @@ import java.util.List;
 public interface ContractMapper extends BaseMapperX<ContractDO> {
     ContractDO selectBySourceForUpdate(@Param("query") AuthoritySourceLockQuery query);
     List<ContractDO> selectByCompanyScope(@Param("query") ContractCompanyScopeQuery query);
+    Long selectCountByCompanyScope(@Param("query") ContractCompanyScopeQuery query);
     ContractDO selectDetailByCompanyScope(@Param("query") ContractDetailScopeQuery query);
     ContractDO selectByIdForUpdate(@Param("query") ContractIdLockQuery query);
 }
