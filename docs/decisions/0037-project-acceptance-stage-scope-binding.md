@@ -1,6 +1,6 @@
 # ADR-0037：项目验收阶段驱动范围绑定
 
-> 状态：`PROPOSED_FOR_INDEPENDENT_REVIEW`<br>
+> 状态：`ACCEPTED`<br>
 > 日期：2026-08-29<br>
 > Requirement：`COM-01@V1`、`ACC-03@V1`<br>
 > 前置批准：`CHG-PRD-2026-08-29-009`
