@@ -70,4 +70,37 @@
         FOR UPDATE
     </select>
 
+    <sql id="projectScopeFilters">
+        tenant_id = #{query.tenantId}
+        AND project_id IN
+        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        AND deleted = b'0'
+        <if test="query.projectId != null">
+          AND project_id = #{query.projectId}
+        </if>
+        <if test="query.orderLineId != null">
+          AND order_line_id = #{query.orderLineId}
+        </if>
+        <if test="!query.includeHistory">
+          AND effective_to IS NULL
+        </if>
+    </sql>
+
+    <select id="selectCountByProjectScope" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM com_delivery_scope
+        WHERE <include refid="projectScopeFilters"/>
+    </select>
+
+    <select id="selectPageByProjectScope"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
+        SELECT *
+        FROM com_delivery_scope
+        WHERE <include refid="projectScopeFilters"/>
+        ORDER BY project_id, order_line_id, effective_from DESC, allocation_version DESC, id DESC
+        LIMIT #{query.offset}, #{query.limit}
+    </select>
+
 </mapper>
