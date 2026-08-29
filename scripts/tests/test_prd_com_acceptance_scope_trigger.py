@@ -74,6 +74,34 @@ class PrdComAcceptanceScopeTriggerTest(unittest.TestCase):
         self.assertIn("仅退出/回退时的绑定关闭或解锁设计", question)
         self.assertIn("阶段进入绑定与验收阶段内新版本绑定规则继续有效", question)
 
+    def test_contract_admin_scope_uses_current_system_company_fact(self) -> None:
+        com = requirement_block(self.prd, "COM-01")
+        for text in (com, self.amendment):
+            self.assertIn("SYSTEM", text)
+            self.assertIn("当前有效", text)
+            self.assertIn("公司编码", text)
+            self.assertIn("精确匹配", text)
+            self.assertIn("授权事实", text)
+        self.assertIn("部门信息只作为该授权事实的上下文", com)
+        self.assertNotIn("新增显式合同授权", com)
+
+    def test_contract_admin_scope_fails_closed_and_keeps_field_permission_separate(self) -> None:
+        com = requirement_block(self.prd, "COM-01")
+        self.assertIn("列表返回空，详情和写操作拒绝", com)
+        self.assertIn("撤销或到期后立即禁止后续查询和关系维护", com)
+        self.assertIn("独立字段权限", com)
+        self.assertIn("脱敏或不返回", com)
+
+    def test_q_fcom001_is_resolved_by_option_b_without_new_contract_grant(self) -> None:
+        start = self.open_questions.index("### Q-FCOM-001")
+        end = self.open_questions.index("\n### ", start + 1)
+        question = self.open_questions[start:end]
+        self.assertIn("Status: RESOLVED", question)
+        self.assertIn("Resolution: 方案B", question)
+        self.assertIn("UserCompanyDepartmentScope", question)
+        self.assertIn("不新增合同授权表", question)
+        self.assertIn("不修改Yudao基础平台", question)
+
 
 if __name__ == "__main__":
     unittest.main()
