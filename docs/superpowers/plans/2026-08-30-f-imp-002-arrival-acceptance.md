@@ -57,9 +57,10 @@
 
 - [ ] 先写机器契约测试，固定 `inspect/lockAndRevalidate` 输入、三种 decision、稳定升序 `sourceAcceptanceIds`、单调 `factVersion`、结构化 watermark、范围结果和禁止字段。
 - [ ] 新增最窄 API DTO；不暴露 DO、签收人隐私、文件正文或持久下载地址。
-- [ ] 四个生产 Adapter 分别只调用 COM `DeliveryScopeApi`、AST `DeviceScopeFactApi`、PLT `FileArtifactApi`、PROJ `ProjectParticipantFactApi/ProjectScopeApi`。COM现有接口可直接适配；AST Adapter 必须等 `T-FIMP001-AST-01` 公共 API 合入后编译接通，不复制旧 `AssetDeviceScopeApi`。生产装配不存在 fallback、空集合放行或 Fake Bean。
+- [ ] 四个生产 Adapter 分别只调用 COM `DeliveryScopeApi`、AST `DeviceScopeFactApi`、PLT `FileArtifactApi`、PROJ `ProjectParticipantFactApi/ProjectScopeApi`。`DeliveryScopeApiAdapter`必须等待 COM 物理 Owner 的正式 `getAssignedScope(projectId, expectedScopeVersion)`合入后接通；当前 `getAvailableSlices/previewSplit/applySplit`只表达父项目可分割余量，不含项目当前已分配范围、产品/型号和明确SN，禁止作为替代或降级来源。AST Adapter 同样必须等 `T-FIMP001-AST-01` 公共 API 合入，不复制旧 `AssetDeviceScopeApi`。生产装配不存在 fallback、空集合放行或 Fake Bean。
 - [ ] `ProjectQualificationPort.inspect`返回 lifecycle/currentStage/effectiveRoleCodes/projectVersion/factVersion。现有 `ProjectParticipantFactApiImpl` 的 `requiredCurrentStage`校验只接受S1，因此适配器不得错误传S4：写事务调用 `lockAndRevalidate(requiredLifecycleStatus=ACTIVE, requiredCurrentStage=null, expectedProjectVersion=冻结值)`，在同一外层事务和PROJ锁仍持有时立即比较返回的 `currentStage=S4`、`factVersion=冻结值`，不匹配则在任何业务写前回滚。最终确认额外要求 actor 本人的 `PROJECT_MANAGER`；`ACTION_EDIT`只证明数据范围。
 - [ ] 测试 Fake 只放 `src/test`。任一公共 API 缺失、未知、过期或不可用均失败关闭；缺生产 Provider 时相关 Task 标记 `BLOCKED_BY_DEPENDENCY`，不注册替代实现。
+- [ ] `ArrivalAcceptanceOwnerAdapterTest`固定 COM 正式契约：返回项目当前有效已分配订单行、数量、单位、产品/型号、明确SN及scopeVersion；待权威确认、取消、退货和已释放量必须排除，expectedScopeVersion过期失败关闭。另断言当前 `getAvailableSlices/previewSplit/applySplit`没有任何到 `DeliveryScopePort` 的生产适配路径。
 - [ ] 验证：`mvn -pl pms-module-engineering-api,pms-module-engineering -am -Dtest=ArrivalAcceptanceFactContractTest test`。
 
 ### Task 2：五表 Schema 与应用级 CURRENT_FORWARD 核对
