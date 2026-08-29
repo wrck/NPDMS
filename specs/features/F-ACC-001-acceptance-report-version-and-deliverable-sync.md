@@ -150,4 +150,4 @@ PROJ初验/终验任务与执行契约
 | Open Question | Q-FCOM-002仅阻断Out of Scope退出/回退关闭路径 |
 | 独立Feature Ready裁决 | PASS（整改提交`bde0feac019baf820634ecc6a0e88272672b601d`独立复审GO） |
 
-检查点：基线=`bde0feac`；当前Gate=Feature Ready GO；已通过=SDS/P3-E09、ADR-0039/0040及Feature契约独立复审；阻塞=无；下一步=仅形成唯一Technical Plan候选，实施保持NOT_STARTED。
+检查点：基线=`9f3d3110`；当前Gate=Technical Plan待独立评审；已通过=Feature Ready GO；阻塞=计划独立裁决未完成；下一步=仅提交唯一计划候选送审，不创建Task、不改产品代码或Flyway。
