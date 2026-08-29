@@ -71,7 +71,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 ### BR-FCOM001-001 权威身份与字段Owner
 
 - 合同业务身份为`tenantId + companyCode + contractNo`；销售订单为`tenantId + sourceSystem + companyCode + orderType + orderNo`；订单行为`tenantId + orderId + lineNo`。逻辑删除、关闭或归档不释放身份键。
-- ERP拥有合同、订单、订单行、产品、数量和金额；COM本地仅保存只读副本及来源元数据。业务角色、CRM上下文和范围命令均不能修改ERP Owner字段。
+- ERP拥有合同、订单、订单行、订单行`productCode`、产品、数量和金额；COM本地仅按来源键/版本保存只读副本及来源元数据。`productCode`参与同版本异载荷冲突判断，不得由`itemCode`、名称、`productId`、客户端字段或既有范围明细补齐；业务角色、CRM上下文和范围命令均不能修改ERP Owner字段。
 - 同一来源键的旧版本、重复版本幂等返回当前事实；同版本异内容或乱序冲突不覆盖当前副本，并记录待处理证据。
 - ERP不可用时展示最近成功副本及截止时间；没有已确认数量时显示待核对，不把人工数量或空值作为最终可分配量。
 
@@ -151,9 +151,9 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 稳定内部契约：
 
-- `CommerceAuthorityWriteApi`：仅供受信集成ACL或受控导入入口写ERP副本；调用者提供来源系统、来源键、来源版本和发生时间，COM执行Owner及乱序守卫。只预留接口和受控本地Provider，不实现第三方适配器。
+- `CommerceAuthorityWriteApi`：仅供受信集成ACL或受控导入入口写ERP副本；订单行来源记录提供来源系统、来源键、来源版本、发生时间和ERP `productCode`，COM原值保存并将其纳入同版本异载荷冲突守卫。只预留接口和受控本地Provider，不实现第三方适配器，也不从其他字段推断产品编码。
 - 既有`OrganizationScopeApi.getActiveScopes`（COM→SYSTEM）：输入当前`subjectUserId`，租户和当前时点只取服务端受信上下文；COM只消费返回行的`id/companyCode/version`，按非空公司编码精确去重。空、未知、超时或不可用时列表为空、详情和写操作拒绝；写入前重新回源，不复制SYSTEM有效期算法、不缓存正向授权、不修改Yudao Provider。
-- 既有`DeliveryScopeApi`：保持F-PROJ-002的可用切片查询、拆分预览和原子应用语义；实现迁移到目标模型后返回结构与错误兼容，不要求PROJ访问COM表。
+- 既有`DeliveryScopeApi`：保持F-PROJ-002的可用切片查询、拆分预览和原子应用语义，既有DTO签名不变；无SN分配及REMAINDER从同一租户、已锁定、来源版本有效且已确认的订单行取得非空ERP `productCode`，生成一条数量等于范围数量的产品主体明细。缺失、空白、待权威确认或版本冲突时在范围、历史和Outbox零写入；不得使用`itemCode`、`productId`、客户端值、历史明细或普通业务种子常量替代。
 - 既有`AssetDeviceScopeApi.validateAssignableSerials`（COM→AST）：当预览、分配或调整请求含序列号明细时，输入可信`tenantId`、目标承接`projectId`和去空白后的完整序列号集合；仅`valid=true`且缺失、不可分配、重复列表全空时通过。设备不存在、跨租户、状态不可分配、已归属其他项目、重复、Provider异常/超时/不可用均失败关闭并保持COM零写入。该接口不返回设备版本令牌，因此预览结果不得缓存或用于授权写入；每个写命令必须在写入前重新调用，后续调整再次重验，Technical Plan不得自行引入跳过或“沿用上次成功”策略。
 - 既有`ProjectParticipantFactApi.inspect`（COM通知→PROJ）：以目标项目、空`subjectUserId`、`PROJECT_MANAGER`和请求时间读取唯一当前项目经理`userId/projectVersion/factVersion`；用于填充冲突通知收件人。无唯一事实或Provider不可用时使用可重试逻辑角色收件人，不伪造用户、不回滚冲突冻结。
 - `ProjectOfficeFactApi.resolve/lockAndRevalidate`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion`，仅`FOUND`返回同一次读取或锁定且通过期望版本校验的非空`projectCode`与SYSTEM办事处稳定ID/编码/名称/版本；项目编码空白或其他结果均失败关闭。COM以该`projectCode`写`DeliveryScope.projectCode`，不得信任外部命令或访问PROJ表补齐。
@@ -174,6 +174,8 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 `com_contract_receivable`、发货包、设备物流、CRM执行单合并和历史生产迁移不属于本Feature闭环。机器契约已逐字段冻结修订008/009的Feature-forward差量及V70必填目标映射；未来实施只能使用新的前向Flyway，不修改已执行迁移、核心DDL或P3-E09全局哈希。V70输入在同一只读快照/停写窗口按主键冻结，缺失、冲突、溢出或输入水位变化整批失败，禁止长期双写或建立第二Owner。
 
+V124保持不变；V125必须先以加性列增加`com_sales_order_line.product_code varchar(64) NULL`，再写权限、菜单和受管验收种子。该字段只承载ERP订单行Owner原值；精确V72受管夹具可按机器契约列举订单行写测试专用值，但该常量不是ERP事实且不得进入任何普通业务行。
+
 ### 6.1 V72受管验收夹具处置
 
 - 仅当来源迁移为`V72__fproj002_v18_seed_and_menu.sql`，且`tenant_id=0`、`creator/updater=seed`、`source_system=SEED`、来源键/证据为`FPROJ002-V18-`前缀、项目`992002000000`、订单`992002399001`以及机器契约列出的4条订单行、2条范围、4条明细全部身份谓词及关系闭包同时命中时，才认定为受管夹具；部分命中或关系不完整时整批失败，不得进入种子分支。
@@ -189,6 +191,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - 既有范围服务、DO、Mapper、V70表和前端缺失部分按新包/类及前向迁移`COPY_THEN_ENHANCE`；
 - Yudao CRM合同CRUD、CRM审批、权限模型和页面`DO_NOT_REUSE`，全部保持不变；
 - 当前不存在可直接复用的合同/销售订单/订单行COM管理页面或ERP适配器。
+- 旧系统`pm_order_data_from_erp`订单头、`pm_order_line_from_erp`订单行和`pm_project_product_line`项目订单仅作为历史来源及原始子单参照；当前Feature不运行时读取旧表，正式历史迁移仍受`AI-MIG-000`约束，且不得从旧字段名或多义关系覆盖当前ERP Owner事实。
 
 ## 8. UI
 
@@ -203,7 +206,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - `AC-FCOM001-001`：合同、订单、订单行按批准业务键幂等；旧版本、同版本冲突和跨租户写入不覆盖当前权威副本。
 - `AC-FCOM001-002`：ERP字段对合同管理员、项目经理和CRM上下文只读；人工依据明确待核对，不能成为正式可分配量。
 - `AC-FCOM001-003`：一个项目可关联多个订单，同一订单行可分配多个项目；当前总分配不超过ERP有效数量，超量返回占用明细且零副作用。
-- `AC-FCOM001-004`：主范围与明细合计一致；范围冻结目标项目同版本SYSTEM办事处ID/编码/名称/版本，项目或组织后续变化不覆盖历史，不存在AST站点或文本地点降级；含序列号时写命令重新通过AST Owner校验，设备缺失、不可分配、重复或Provider不可用均零写入。
+- `AC-FCOM001-004`：主范围与明细合计一致；范围冻结目标项目同版本SYSTEM办事处ID/编码/名称/版本，项目或组织后续变化不覆盖历史，不存在AST站点或文本地点降级；含序列号时写命令重新通过AST Owner校验，设备缺失、不可分配、重复或Provider不可用均零写入；无SN及REMAINDER使用已锁订单行非空ERP `productCode`形成唯一产品主体明细，Owner事实缺失、待确认或版本冲突时零写入。
 - `AC-FCOM001-005`：合同管理员仅能查询当前SYSTEM公司范围内的合同、订单和订单行，并在写前重验后维护项目—合同关系；空范围或Owner不可用时列表为空、详情/写拒绝，撤权或到期阻止后续请求但不删历史。合同金额明文另需`pms:commerce:contract:sensitive-read`；项目经理仅维护授权项目，跨租户和无权请求不泄露商务明细。
 - `AC-FCOM001-006`：同幂等键同请求重放不重复范围、历史、审计或事件；同键异请求、旧版本和并发超分配只有合法请求成功。
 - `AC-FCOM001-007`：调整或释放关闭原有效区间并追加新事实；项目阶段进入和验收阶段内新范围分别与精确版本绑定原子提交；已绑定、ACC未知或不可用时减量拒绝，历史不变。

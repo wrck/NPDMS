@@ -41,6 +41,14 @@
     }
   },
   "technicalPlanPrerequisiteAmendment": "GO_3412E38397776D471C6EA3867DEF2001609D5B46",
+  "legacySourceReference": {
+    "salesOrderHeader": "pm_order_data_from_erp",
+    "salesOrderLine": "pm_order_line_from_erp",
+    "originalProjectSubOrderReference": "pm_project_product_line",
+    "runtimeUse": "FORBIDDEN_IN_F_COM_001",
+    "futureMigrationGate": "AI-MIG-000",
+    "resolutionRule": "EXACT_STABLE_BUSINESS_KEY_AND_SOURCE_VERSION_OR_MIGRATION_ISSUE_NO_FIELD_NAME_INFERENCE"
+  },
   "managedV72SeedDisposition": {
     "exactIdentity": {
       "sourceMigration": "V72__fproj002_v18_seed_and_menu.sql",
@@ -99,6 +107,12 @@
         "992002320003": {"productCode": "FPROJ002-V18-NO-MATCH", "scenario": "FALLBACK"},
         "992002320004": {"productCode": "FPROJ002-V18-INACTIVE", "scenario": "INACTIVE_NOT_PARTICIPATING"}
       },
+      "salesOrderLineCompatibilityProductCodes": {
+        "992002300001": "FPROJ002-V18-COMPAT-001",
+        "992002300002": "FPROJ002-V18-COMPAT-002",
+        "992002300003": "FPROJ002-V18-COMPAT-003",
+        "992002300004": "FPROJ002-V18-COMPAT-004"
+      },
       "preservedScenarios": [
         "CONFIRMED",
         "PENDING_AUTHORITY",
@@ -147,7 +161,8 @@
       "owner": "COM",
       "authority": "ERP_READ_ONLY_COPY",
       "businessKey": ["tenantId", "orderId", "lineNo"],
-      "quantityScale": "0_TO_6_FROM_APPROVED_SOURCE_UNIT_METADATA"
+      "quantityScale": "0_TO_6_FROM_APPROVED_SOURCE_UNIT_METADATA",
+      "productCodeOwner": "ERP_SOURCE_VALUE_ONLY_NO_ITEM_CODE_PRODUCT_ID_CLIENT_OR_HISTORY_INFERENCE"
     },
     "DeliveryScope": {
       "owner": "COM",
@@ -213,6 +228,7 @@
           "unit_scale": "tinyint unsigned NOT NULL",
           "quantity_status": "varchar(32) NOT NULL",
           "source_updated_at": "datetime(3) NULL",
+          "product_code": "varchar(64) NULL",
           "order_qty": "decimal(18,6) NULL",
           "open_qty": "decimal(18,6) NULL",
           "delivered_qty": "decimal(18,6) NULL"
@@ -221,7 +237,8 @@
         "constraints": [
           "unit_scale BETWEEN 0 AND 6",
           "CONFIRMED_QUANTITY_MATCHES_UNIT_SCALE",
-          "NULL_QUANTITY_ONLY_WHILE_AUTHORITY_PENDING"
+          "NULL_QUANTITY_ONLY_WHILE_AUTHORITY_PENDING",
+          "PRODUCT_CODE_IS_ERP_SOURCE_VALUE_AND_PART_OF_SAME_VERSION_PAYLOAD"
         ]
       },
       "com_delivery_scope": {
@@ -322,12 +339,18 @@
       "direction": "Integration ACL -> COM",
       "provider": "REAL_PROVIDER_REQUIRED",
       "implementation": "INTERFACE_AND_CONTROLLED_LOCAL_PROVIDER_ONLY",
-      "thirdPartyAdapter": "OUT_OF_SCOPE"
+      "thirdPartyAdapter": "OUT_OF_SCOPE",
+      "salesOrderLineInputFacts": ["sourceSystem", "sourceRecordKey", "sourceVersion", "productCode"],
+      "successFacts": ["ERP_PRODUCT_CODE_PRESERVED_AS_IS", "SAME_VERSION_DIFFERENT_PRODUCT_CODE_REJECTED"],
+      "forbiddenProductCodeSources": ["itemCode", "itemDescription", "productId", "clientField", "deliveryScopeHistory"]
     },
     "DeliveryScopeApi": {
       "direction": "PROJ -> COM",
       "provider": "REAL_PROVIDER_REQUIRED",
-      "compatibility": "PRESERVE_F_PROJ_002_BEHAVIOR"
+      "compatibility": "PRESERVE_F_PROJ_002_BEHAVIOR",
+      "noSerialSubjectRule": "LOCKED_CONFIRMED_SALES_ORDER_LINE_NONBLANK_PRODUCT_CODE_CREATES_ONE_DETAIL_WITH_SCOPE_QUANTITY",
+      "noSerialFailureMode": "ZERO_SCOPE_HISTORY_OUTBOX_WRITES_ON_MISSING_BLANK_PENDING_AUTHORITY_OR_VERSION_CONFLICT",
+      "ordinaryBusinessForbiddenFallbacks": ["itemCode", "productId", "clientValue", "historicalDetail", "managedSeedConstant"]
     },
     "OrganizationScopeApi": {
       "direction": "COM -> SYSTEM",

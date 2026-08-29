@@ -149,6 +149,7 @@ public class CommerceAuthorityWriteService implements CommerceAuthorityWriteApi 
         target.setLineNo(required(source.lineNo()));
         target.setItemCode(source.itemCode());
         target.setItemDesc(source.itemDescription());
+        target.setProductCode(source.productCode());
         target.setOrderQty(source.orderQuantity());
         target.setOpenQty(source.openQuantity());
         target.setDeliveredQty(source.deliveredQuantity());
@@ -209,6 +210,7 @@ public class CommerceAuthorityWriteService implements CommerceAuthorityWriteApi 
                 && Objects.equals(current.getLineNo(), source.lineNo())
                 && Objects.equals(current.getItemCode(), source.itemCode())
                 && Objects.equals(current.getItemDesc(), source.itemDescription())
+                && Objects.equals(current.getProductCode(), source.productCode())
                 && decimalEquals(current.getOrderQty(), source.orderQuantity())
                 && decimalEquals(current.getOpenQty(), source.openQuantity())
                 && decimalEquals(current.getDeliveredQty(), source.deliveredQuantity())

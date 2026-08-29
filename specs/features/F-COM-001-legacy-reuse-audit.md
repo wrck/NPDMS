@@ -16,6 +16,7 @@
 - `ProjectParticipantFactApi/Impl/Test`当前项目经理事实、`AssetDeviceScopeApi/Impl/Test`序列号可分配校验，以及通用`NotificationRequested`事件契约；
 - `yudao-module-system`现有`OrganizationScopeApi.getActiveScopes`、`OrganizationScopeApiImpl`、`UserCompanyDepartmentScopeRespDTO/DO/Mapper`及`OrganizationScopeApiImplTest`；
 - Yudao CRM合同API、列表、表单、详情、审批和权限组件；
+- 旧系统`pm_order_data_from_erp`订单头、`pm_order_line_from_erp`订单行及`pm_project_product_line`项目订单/原始子单参照证据；
 - 已批准COM物理DDL、ADR-0023当前范围粒度及ADR-0036/0037的Feature-forward差量。
 
 仓库中不存在其他COM合同、销售订单、订单行管理后端或PMS Commerce页面；不存在ERP网络适配器。旧源库及迁移证据仅用于批准物理模型，不授权本Feature执行历史数据迁移。
@@ -45,10 +46,11 @@
 | REUSE-19 | COM `com_outbox_event`与SDS通用`NotificationRequested`契约 | `DIRECT_REUSE` | 冲突冻结事务内追加`DELIVERY_SCOPE_CONFLICT_FROZEN`请求；按范围、分配版本和ERP来源版本幂等，投递失败独立重试 | 通知请求/送达均不表示冲突处置完成；无唯一经理时保留逻辑角色收件人并经PROJ事实重试，不伪造用户、不回滚冻结 |
 | REUSE-20 | SYSTEM `OrganizationScopeApi.getActiveScopes`、`OrganizationScopeApiImpl`、`UserCompanyDepartmentScopeRespDTO/DO/Mapper`及`OrganizationScopeApiImplTest` | `DIRECT_REUSE` | COM只调用现有公开API取得当前有效scope，以非空`companyCode`精确去重形成合同管理员公司范围，并在关系写入前重新读取；成功审计记录命中`id/version` | 现Provider已由SYSTEM按可信租户、当前时点、启用状态和有效期查询；不得修改Yudao实现、访问SYSTEM表、复制有效期算法、从部门推导公司或缓存正向授权 |
 | REUSE-21 | V72高段ID、`creator=seed`、`source_system=SEED`及`FPROJ002-V18-`证据闭包 | `COPY_THEN_ENHANCE` | 不修改V72；仅在全部身份谓词和4订单行/2范围/4明细关系闭包精确命中后，从普通V70转换输入中隔离，并在同一Feature前向迁移按机器契约重建稳定目标种子 | V72是F-PROJ-002受管验收夹具而非ERP业务数据；部分命中或被改写时整批失败。种子专用订单、产品主体和场景常量不得用于普通业务行，不得以`item_code`推断或无边界跳过/删除 |
+| REUSE-22 | 旧系统`pm_order_data_from_erp`、`pm_order_line_from_erp`、`pm_project_product_line`及结构化迁移证据 | `DO_NOT_REUSE`（当前运行时）；`COPY_THEN_ENHANCE`（未来正式迁移） | 订单头/订单行作为ERP历史来源，项目订单按项目、订单号和行号作为原始子单参照；本Feature仅保留映射与原始载荷证据，不建立运行时表访问、适配器或第二Owner | 现证据仍存在增加产品编码后的多义关系及跨项目分配量缺失；需在`AI-MIG-000`正式迁移Gate按稳定业务键、来源版本和问题单解析。旧字段名或`pm_project_product_line.itemCode`不得静默覆盖当前`CommerceAuthorityWriteApi.productCode`，也不得改变V124/V125前向基线 |
 
 ## 3. 实施约束
 
-1. Technical Plan必须把REUSE-01～21逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
+1. Technical Plan必须把REUSE-01～22逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
 2. 增强服务、DO、Mapper和页面先复制到新类/新页面后再改造；旧公开API在切换前后保持兼容，旧Yudao CRM资产零修改。
 3. V70转换必须使用合入时的下一个Flyway编号，验证空库、当前基线升级、重复迁移和转换前后数量/范围/事件对账；不修改V70/V72。精确V72夹具只按REUSE-21隔离重建，普通V70行继续执行严格Owner解析与整批失败规则。
 4. 新增查询遵守场景Query对象、`LambdaQueryWrapperX`和Mapper XML规则；不得新增SQL注解、`${}`、`.last(...)`、`Map`或长位置参数。

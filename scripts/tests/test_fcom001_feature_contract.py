@@ -12,6 +12,7 @@ DATABASE_DESIGN = ROOT / "docs/design/09-database-design.md"
 MODULE_MAPPING = ROOT / "specs/001-project-delivery-platform/appendices/module-boundary-and-naming.md"
 REUSE_AUDIT = ROOT / "specs/features/F-COM-001-legacy-reuse-audit.md"
 FEATURE_INDEX = ROOT / "specs/features/README.md"
+V125_MIGRATION = ROOT / "sql/migrations/V125__fcom001_permissions_menu_and_acceptance_seed.sql"
 
 
 REQUIRED_PROVIDER_REUSE_AUDIT = {
@@ -235,6 +236,48 @@ def managed_v72_seed_disposition_errors(contract: dict, feature_spec: str) -> li
     return errors
 
 
+def product_code_compatibility_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    line = contract.get("physicalDelta", {}).get("tables", {}).get("com_sales_order_line", {})
+    if line.get("fields", {}).get("product_code") != "varchar(64) NULL":
+        errors.append("SalesOrderLine ERP product_code physical field is missing")
+    authority = contract.get("moduleApis", {}).get("CommerceAuthorityWriteApi", {})
+    if "productCode" not in authority.get("salesOrderLineInputFacts", []):
+        errors.append("Authority input must carry ERP productCode")
+    if "SAME_VERSION_DIFFERENT_PRODUCT_CODE_REJECTED" not in authority.get("successFacts", []):
+        errors.append("productCode must participate in same-version payload conflict detection")
+    forbidden = set(authority.get("forbiddenProductCodeSources", []))
+    if forbidden != {"itemCode", "itemDescription", "productId", "clientField", "deliveryScopeHistory"}:
+        errors.append("forbidden runtime productCode substitutes are incomplete")
+    delivery = contract.get("moduleApis", {}).get("DeliveryScopeApi", {})
+    if delivery.get("noSerialSubjectRule") != (
+            "LOCKED_CONFIRMED_SALES_ORDER_LINE_NONBLANK_PRODUCT_CODE_CREATES_ONE_DETAIL_WITH_SCOPE_QUANTITY"):
+        errors.append("no-SN compatibility detail subject is not deterministic")
+    if delivery.get("noSerialFailureMode") != (
+            "ZERO_SCOPE_HISTORY_OUTBOX_WRITES_ON_MISSING_BLANK_PENDING_AUTHORITY_OR_VERSION_CONFLICT"):
+        errors.append("no-SN Owner failures must leave zero writes")
+    fixture = contract.get("managedV72SeedDisposition", {}).get("seedOnlyTargetFixture", {})
+    if fixture.get("salesOrderLineCompatibilityProductCodes") != {
+        "992002300001": "FPROJ002-V18-COMPAT-001",
+        "992002300002": "FPROJ002-V18-COMPAT-002",
+        "992002300003": "FPROJ002-V18-COMPAT-003",
+        "992002300004": "FPROJ002-V18-COMPAT-004",
+    }:
+        errors.append("managed compatibility productCode constants are not exact")
+    legacy = contract.get("legacySourceReference", {})
+    if legacy.get("runtimeUse") != "FORBIDDEN_IN_F_COM_001" or legacy.get("futureMigrationGate") != "AI-MIG-000":
+        errors.append("legacy order tables must remain migration references only")
+    for required_text in (
+        "既有DTO签名不变",
+        "不得使用`itemCode`、`productId`、客户端值、历史明细或普通业务种子常量替代",
+        "`pm_order_data_from_erp`订单头",
+        "`pm_project_product_line`项目订单仅作为历史来源及原始子单参照",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing productCode compatibility Feature rule: {required_text}")
+    return errors
+
+
 class Fcom001FeatureContractTest(unittest.TestCase):
 
     @classmethod
@@ -246,6 +289,7 @@ class Fcom001FeatureContractTest(unittest.TestCase):
         cls.module_mapping = MODULE_MAPPING.read_text(encoding="utf-8")
         cls.reuse_audit = REUSE_AUDIT.read_text(encoding="utf-8")
         cls.feature_index = FEATURE_INDEX.read_text(encoding="utf-8")
+        cls.v125_migration = V125_MIGRATION.read_text(encoding="utf-8")
 
     def test_feature_ready_go_is_recorded_after_contract_scope_resolution(self) -> None:
         self.assertEqual("BASELINE_READY", self.contract["status"])
@@ -299,6 +343,35 @@ class Fcom001FeatureContractTest(unittest.TestCase):
         for label, candidate in mutations:
             with self.subTest(label=label):
                 self.assertTrue(managed_v72_seed_disposition_errors(candidate, self.feature_spec))
+
+    def test_no_serial_compatibility_uses_only_locked_erp_product_code(self) -> None:
+        self.assertEqual([], product_code_compatibility_errors(self.contract, self.feature_spec))
+        self.assertIn("ADD COLUMN `product_code` varchar(64) NULL", self.v125_migration)
+        for order_line_id in (992002300001, 992002300002, 992002300003, 992002300004):
+            self.assertIn(str(order_line_id), self.v125_migration)
+        self.assertIn("fcom001_verify_v125_managed_product_codes", self.v125_migration)
+        self.assertIn("pm_order_line_from_erp", self.reuse_audit)
+        self.assertIn("pm_project_product_line", self.reuse_audit)
+
+    def test_product_code_gate_rejects_inference_or_unbounded_seed_fallback(self) -> None:
+        missing_owner_input = deepcopy(self.contract)
+        missing_owner_input["moduleApis"]["CommerceAuthorityWriteApi"]["salesOrderLineInputFacts"].remove(
+            "productCode")
+        self.assertTrue(product_code_compatibility_errors(missing_owner_input, self.feature_spec))
+
+        inferred_item = deepcopy(self.contract)
+        inferred_item["moduleApis"]["CommerceAuthorityWriteApi"]["forbiddenProductCodeSources"].remove(
+            "itemCode")
+        self.assertTrue(product_code_compatibility_errors(inferred_item, self.feature_spec))
+
+        unbounded_seed = deepcopy(self.contract)
+        unbounded_seed["managedV72SeedDisposition"]["seedOnlyTargetFixture"][
+            "salesOrderLineCompatibilityProductCodes"] = {"*": "SEED-PRODUCT"}
+        self.assertTrue(product_code_compatibility_errors(unbounded_seed, self.feature_spec))
+
+        runtime_legacy = deepcopy(self.contract)
+        runtime_legacy["legacySourceReference"]["runtimeUse"] = "DIRECT_TABLE_READ"
+        self.assertTrue(product_code_compatibility_errors(runtime_legacy, self.feature_spec))
 
     def test_office_snapshot_replaces_ast_location_without_inference(self) -> None:
         self.assertNotIn("AssetLocationApi", self.contract["moduleApis"])

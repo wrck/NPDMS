@@ -280,13 +280,14 @@ F-PROJ-002另使用以下Owner公开契约：
 
 - `AssetDeviceScopeApi.validateAssignableSerials(tenantId, parentProjectId, serialNumbers)`：AST返回SN存在性、租户和当前可分配结论及失败SN；不返回凭证明文或敏感设备详情；
 - `DeliveryScopeApi.getAvailableSlices(parentProjectId, expectedScopeVersion)`：COM返回当前可分配订单行、数量、维度和权威版本；`PENDING_AUTHORITY`数量不进入结果；
-- `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；
-- `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。
+- `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；无SN组合仅在同一租户、订单行来源版本有效且具有非空ERP `productCode`时可通过；
+- `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。无SN及REMAINDER路径从该已锁订单行的ERP `productCode`生成唯一产品主体明细，缺失、空白、`PENDING_AUTHORITY`或版本冲突时在任何范围写入前失败关闭；不接受`itemCode/productId`、客户端或历史明细替代。
 
 PROJ只能依赖上述API及DTO，COM/AST实现不得回调PROJ Mapper、Repository或业务表。公开契约不可用时可继续保存/修正拆分草稿，但禁止确认应用，不把待核对数量视为可分配量。
 
 F-COM-001修订009差量必须锁定以下窄Owner契约及真实Provider，不允许只以测试桩证明生产成功路径：
 
+- `CommerceAuthorityWriteApi.apply(command)`（受信集成ACL/受控导入→COM）：订单行来源记录携带ERP `productCode`，COM按来源键和来源版本幂等保存原值并将其纳入同版本异载荷冲突判断；不得由`itemCode`、名称、`productId`或调用方兼容字段补齐。只交付接口和受控本地Provider，不实现ERP第三方适配器。
 - `ProjectOfficeFactApi.resolve(query)`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion`，由PROJ返回`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`及项目ID/版本、SYSTEM办事处部门稳定ID/编码/名称/版本。COM仅在`FOUND`时冻结发生时快照；未知、缺失或版本冲突失败关闭，不回退AST、地址、名称或订单字段。
 - `ProjectAcceptanceStageFactApi.lockAndRead(query)`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion/operationId`，由PROJ锁定项目当前行并返回`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`、项目版本、当前阶段、项目设定的验收阶段以及当前验收阶段`projectStageSnapshotId`；只有当前阶段等于验收阶段时才返回该不可变快照ID。COM不得从S5字符串、报告或ACC表自行推断阶段事实。
 - `AcceptanceScopeGuardApi.checkReduction(query)`（COM→ACC）：输入`tenantId/projectId/deliveryScopeId/currentAllocationVersion/proposedAllocatedQty/operationId`，由ACC返回`UNLOCKED/LOCKED/UNKNOWN`、`acceptanceFactVersion`及最小锁定引用；`LOCKED`拒绝普通减量，`UNKNOWN`、超时或Provider不可用失败关闭。

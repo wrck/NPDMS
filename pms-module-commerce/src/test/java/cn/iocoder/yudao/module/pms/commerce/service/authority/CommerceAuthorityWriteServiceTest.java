@@ -49,6 +49,7 @@ class CommerceAuthorityWriteServiceTest {
         assertEquals(1, result.salesOrderCount());
         assertEquals(1, result.salesOrderLineCount());
         verify(lineMapper).insert(argThat((SalesOrderLineDO line) -> line.getOrderId().equals(21L)
+                && line.getProductCode().equals("ERP-PRODUCT-1")
                 && line.getOrderQty().compareTo(new BigDecimal("100")) == 0));
     }
 
@@ -111,6 +112,7 @@ class CommerceAuthorityWriteServiceTest {
         line.setLineNo("10");
         line.setItemCode("ITEM-1");
         line.setItemDesc("设备");
+        line.setProductCode("ERP-PRODUCT-1");
         line.setOrderQty(new BigDecimal("100.000000"));
         line.setOpenQty(new BigDecimal("100.000000"));
         line.setDeliveredQty(new BigDecimal("0.000000"));
@@ -126,6 +128,42 @@ class CommerceAuthorityWriteServiceTest {
                 source.salesOrders(), source.salesOrderLines()));
 
         assertTrue(result.replayed());
+        verify(lineMapper, never()).updateById(any(SalesOrderLineDO.class));
+    }
+
+    @Test
+    void shouldRejectSameVersionWithDifferentProductCode() {
+        SalesOrderDO order = new SalesOrderDO();
+        order.setId(21L);
+        order.setSourceVersion("v1");
+        order.setSourceUpdatedAt(time(10));
+        order.setCompanyCode("C01");
+        order.setOrderType("NORMAL");
+        order.setOrderNo("SO-1");
+        order.setStatus("ENABLED");
+        when(orderMapper.selectBySourceForUpdate(any())).thenReturn(order);
+        SalesOrderLineDO line = new SalesOrderLineDO();
+        line.setId(31L);
+        line.setOrderId(21L);
+        line.setSourceVersion("v1");
+        line.setSourceUpdatedAt(time(10));
+        line.setLineNo("10");
+        line.setItemCode("ITEM-1");
+        line.setItemDesc("设备");
+        line.setProductCode("ERP-PRODUCT-OTHER");
+        line.setOrderQty(new BigDecimal("100"));
+        line.setOpenQty(new BigDecimal("100"));
+        line.setDeliveredQty(BigDecimal.ZERO);
+        line.setUnitCode("EA");
+        line.setUnitScale(0);
+        line.setQuantityStatus("CONFIRMED");
+        line.setStatus("ENABLED");
+        when(lineMapper.selectBySourceForUpdate(any())).thenReturn(line);
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> service.apply(command("v1", time(10), "100")));
+
+        assertEquals("COMMERCE_AUTHORITY_SAME_VERSION_CONFLICT", error.getMessage());
         verify(lineMapper, never()).updateById(any(SalesOrderLineDO.class));
     }
 
@@ -157,6 +195,7 @@ class CommerceAuthorityWriteServiceTest {
                         "ERP", "ORDER-1", version, "C01", "NORMAL", "SO-1", "ENABLED", updatedAt)),
                 List.of(new CommerceAuthorityWriteCommand.SalesOrderLineSourceRecord(
                         "ERP", "LINE-1", version, "ORDER-1", "10", "ITEM-1", "设备",
+                        "ERP-PRODUCT-1",
                         new BigDecimal(quantity), new BigDecimal(quantity), BigDecimal.ZERO,
                         "EA", 0, "CONFIRMED", "ENABLED", updatedAt)));
     }

@@ -94,9 +94,10 @@ public interface DeliveryScopeAcceptanceLockApi {
 }
 ```
 
-- `CommerceAuthorityWriteCommand`承载受控本地来源批次、来源记录键/版本、合同/订单/行字段和operationId；不包含ERP认证、HTTP、调度或游标。
+- `CommerceAuthorityWriteCommand`承载受控本地来源批次、来源记录键/版本、合同/订单/行字段（含ERP订单行`productCode`）和operationId；`productCode`按原值保存并参与同版本异载荷冲突判断，不由`itemCode/productId`补齐；命令不包含ERP认证、HTTP、调度或游标。
 - `DeliveryScopeAcceptanceLockApi`按`deliveryScopeId ASC`锁定项目全部当前范围并返回精确`deliveryScopeId/allocationVersion`；空集合成功返回空列表；写/锁方法必须加入已有外层事务。
 - 既有`DeliveryScopeApi`签名不变，`DeliveryScopeApiImpl`改委托新的兼容适配服务；PROJ不依赖COM实现或表。
+- 旧系统`pm_order_data_from_erp`、`pm_order_line_from_erp`和`pm_project_product_line`只作为订单头、订单行及原始子单的历史参照；当前实现不读取旧库、不实现连接器，也不以旧字段名补运行时Owner事实。其正式迁移另受`AI-MIG-000`约束。
 
 ### 3.2 事务与锁序
 
@@ -138,7 +139,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 - 唯一切换语句必须是一条多表`RENAME TABLE`：把`com_order_line/com_delivery_scope/com_delivery_scope_detail`分别改名为`fcom001_v70_com_order_line/fcom001_v70_com_delivery_scope/fcom001_v70_com_delivery_scope_detail`，同时把八张`fcom001_shadow_*`改为各自目标正式名。MySQL多表RENAME要么全部生效要么全部不生效；该语句是V124最后一个可改变业务表的步骤，换名后不得再执行建索引、补数据、删旧表或其他可能使业务真值部分完成的DDL/DML。
 - 换名前任一步失败时，旧V123正式表名称和内容保持可用；保持应用停写，执行Flyway repair后由V124开头按固定顺序清理影子并重试。换名成功后，三张`fcom001_v70_*`只作只读迁移证据，产品Mapper、Provider、菜单和后续种子均不得引用或写入，不构成第二业务真值；不得启动旧V123应用写该归档名。归档表删除另需后续明确批准，不放入V124/V125。
 - V124转换保持ID、审计、来源版本、数量、区间和事件；V125只有在Flyway确认V124成功后才可执行。若V124原子换名已生效而Flyway元数据写入失败，应用仍保持停止；清除失败元数据后重跑V124，必须命中“全部正式+全部归档+零影子”的幂等复核分支，不重复装载或换名。
-- `V125__fcom001_permissions_menu_and_acceptance_seed.sql`：写入八个最小权限键、PMS Commerce菜单和受控验收数据。验收身份通过正式用户—角色—权限配置获得全部八键；不固化业务角色映射，不修改SYSTEM Provider源码。
+- `V125__fcom001_permissions_menu_and_acceptance_seed.sql`：第一步以加性`ALTER TABLE`增加`com_sales_order_line.product_code varchar(64) NULL`，随后写入八个最小权限键、PMS Commerce菜单和受控验收数据。精确V72夹具的四个固定SEED订单行只按机器契约列举值写测试专用`productCode`，不得宣称ERP事实、由V72 `item_code`推断或覆盖普通业务行。验收身份通过正式用户—角色—权限配置获得全部八键；不固化业务角色映射，不修改SYSTEM Provider源码。
 - V125数据覆盖：合同公司精确命中/空范围、敏感字段有无权限、订单行CONFIRMED/PENDING、精确/部分/无匹配、RELEASED不参与、超量、AST SN有效/无效、验收阶段内外和ACC锁定/未锁定；使用高段ID与`creator=seed`。
 
 ### 4.4 前端
@@ -172,7 +173,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 
 - [ ] **Step 5：实现DeliveryScope命令、历史、AST和冲突通知**
 
-  复制增强旧算法到新服务，保持主明细合计、单位精度、当前唯一、关闭旧区间追加新版本、幂等/CAS和占用明细。含SN的预览可显示结果，但每个写命令必须重新调用AST。ERP冲突冻结与NotificationRequested同事务，投递失败不改变冻结。
+  复制增强旧算法到新服务，保持既有DTO签名、主明细合计、单位精度、当前唯一、关闭旧区间追加新版本、幂等/CAS和占用明细。无SN及REMAINDER从同一租户、已锁定、来源版本有效且已确认的订单行读取非空ERP `productCode`并生成一条等量产品主体明细；缺失、空白、待确认或版本冲突时在范围、历史和Outbox零写入，禁止`itemCode/productId`、客户端、历史明细或种子常量回退。含SN的预览可显示结果，但每个写命令必须重新调用AST。ERP冲突冻结与NotificationRequested同事务，投递失败不改变冻结。
 
 - [ ] **Step 6：接通项目阶段进入和验收阶段内新版本绑定**
 
