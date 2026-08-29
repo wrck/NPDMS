@@ -1,0 +1,147 @@
+{
+  "generatedAt": "2026-08-29T15:08:44.934Z",
+  "feature": "F-COM-001",
+  "requirementIds": [
+    "COM-01@V1",
+    "PM-03",
+    "PM-10",
+    "ACC-03"
+  ],
+  "ports": {
+    "chrome": 9224,
+    "backend": 59280,
+    "frontend": 19081,
+    "mysql": 23316,
+    "redis": 26379
+  },
+  "users": {
+    "managed": "fcom001acceptance"
+  },
+  "created": {
+    "contractId": "2093717421608906753",
+    "orderId": "2093717421638266882",
+    "orderLineIds": [
+      "2093717421663432706",
+      "2093717421684404225",
+      "2093717421705375745"
+    ],
+    "adjustedScopeId": "2093717424582668289",
+    "stageScopeId": "2093717426398801921"
+  },
+  "negatives": [
+    {
+      "name": "同幂等键异载荷",
+      "status": 200,
+      "code": 1010002000,
+      "message": "幂等键已绑定不同请求（PMS-PLATFORM-COMMAND-KEY-CONFLICT）",
+      "denied": true
+    },
+    {
+      "name": "无Authority写权限",
+      "status": 200,
+      "code": 403,
+      "message": "没有该操作权限",
+      "denied": true
+    },
+    {
+      "name": "AST无效SN",
+      "status": 200,
+      "code": 500,
+      "message": "系统异常",
+      "denied": true
+    },
+    {
+      "name": "冲突冻结后禁止新分配",
+      "status": 200,
+      "code": 500,
+      "message": "系统异常",
+      "denied": true
+    }
+  ],
+  "contractUi": {
+    "routeLoaded": true,
+    "inputSet": true,
+    "searchClicked": true,
+    "contractVisible": true,
+    "orderVisible": true
+  },
+  "rootScopeUi": {
+    "routeLoaded": true,
+    "frozenVisible": true,
+    "historyOpened": true,
+    "historyVisible": true
+  },
+  "responsive": {
+    "320": {
+      "viewport": [
+        320,
+        740
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "frozenVisible": true
+    },
+    "768": {
+      "viewport": [
+        768,
+        900
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "frozenVisible": true
+    },
+    "1024": {
+      "viewport": [
+        1024,
+        800
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "frozenVisible": true
+    },
+    "1440": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "overflow": false,
+      "pageVisible": true,
+      "frozenVisible": true
+    }
+  },
+  "databaseEvidence": {
+    "scopeHistoryRows": "2093717421663432706\t2093717424075157506\tRELEASED\t1\tHISTORY\n2093717421663432706\t2093717424582668289\tRELEASED\t2\tHISTORY\n2093717421684404225\t2093717426398801921\tCONFLICT_FROZEN\t1\tCURRENT",
+    "outboxRows": "NotificationRequested\t2093717426398801921\t1\tPENDING",
+    "stageSnapshotRows": "992002700007\t992002900001\tS5\tSTAGE_ENTRY",
+    "bindingRows": "992002900001\t992002900008\t1\tPROJECT_STAGE_ENTRY\tLOCKED\n992002900001\t2093717426398801921\t1\tSCOPE_VERSION_EFFECTIVE\tLOCKED",
+    "invalidSerialRows": "0"
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "networkFailures": [],
+  "unexpectedNetworkFailures": [],
+  "checks": {
+    "sensitivePermissionPositive": true,
+    "sensitivePermissionNegative": true,
+    "importAndReplay": true,
+    "contractOrderLineVisible": true,
+    "previewAllowed": true,
+    "adjustmentVersioned": true,
+    "releaseClosedCurrent": true,
+    "allNegativesDenied": true,
+    "reductionReplay": true,
+    "stageEntryReplay": true,
+    "stageActiveScopeCreated": true,
+    "historyPreserved": true,
+    "singleNotification": true,
+    "singleStageSnapshot": true,
+    "stageBindingsPresent": true,
+    "invalidSerialZeroWrite": true,
+    "contractUi": true,
+    "rootScopeUi": true,
+    "stageScopeUi": true,
+    "responsive": true,
+    "browserErrorsAbsent": true
+  },
+  "pass": true
+}
