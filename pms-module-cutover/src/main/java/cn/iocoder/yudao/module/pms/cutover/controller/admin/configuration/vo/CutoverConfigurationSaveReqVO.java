@@ -61,6 +61,7 @@ public class CutoverConfigurationSaveReqVO {
     public static class ItemVO {
         @NotBlank private String stableItemKey;
         @NotBlank private String itemType;
+        private String businessCategoryCode;
         @NotBlank private String itemName;
         private String itemDescription;
         @NotBlank private String interfaceFormat;
@@ -80,6 +81,7 @@ public class CutoverConfigurationSaveReqVO {
         @NotBlank private String stableItemKey;
         @NotNull private Map<String, Object> dimensionConditions;
         private Integer priority = 0;
+        private Boolean requiredResult;
         private Boolean enabled = true;
     }
 }

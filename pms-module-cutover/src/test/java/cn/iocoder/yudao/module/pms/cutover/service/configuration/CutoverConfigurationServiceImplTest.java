@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationValidationRespVO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistBindingRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
@@ -46,6 +47,50 @@ class CutoverConfigurationServiceImplTest {
     private DictDataApi dictDataApi;
     @InjectMocks
     private CutoverConfigurationServiceImpl service;
+
+    @Test
+    void copyShouldPreserveCategoryAndBindingRequiredResult() {
+        when(revisionMapper.selectById(10L)).thenReturn(draft(10L));
+        CutoverChecklistItemDefinitionRevisionDO item = new CutoverChecklistItemDefinitionRevisionDO();
+        item.setId(20L);
+        item.setStableItemKey("RISK-SYSTEM-LOG");
+        item.setItemDefinitionVersion(1);
+        item.setItemTypeCode("RISK");
+        item.setBusinessCategoryCode("SYSTEM_LOG");
+        item.setItemName("系统日志检查");
+        item.setInterfaceFormatCode("TEXT");
+        item.setInterfaceSchema("{}");
+        item.setFeedbackFormatCode("TEXT");
+        item.setRequiredFlag(false);
+        item.setWorkModeCode("MANUAL");
+        item.setStatusCode("ENABLED");
+        item.setSortOrder(10);
+        when(itemMapper.selectListByRevision(any())).thenReturn(List.of(item));
+        CutoverChecklistBindingRuleRevisionDO rule = new CutoverChecklistBindingRuleRevisionDO();
+        rule.setStableRuleKey("RULE-RISK-SYSTEM-LOG");
+        rule.setItemDefinitionId(20L);
+        rule.setDimensionConditionSnapshot("{}");
+        rule.setPriority(10);
+        rule.setRequiredResult(true);
+        rule.setStatusCode("ENABLED");
+        when(ruleMapper.selectListByRevision(any())).thenReturn(List.of(rule));
+        when(revisionMapper.selectLatestByCode(any())).thenReturn(draft(10L));
+        when(revisionMapper.insert(any(CutoverConfigurationRevisionDO.class))).thenAnswer(invocation -> {
+            invocation.<CutoverConfigurationRevisionDO>getArgument(0).setId(11L);
+            return 1;
+        });
+
+        service.copyRevision(10L, 0);
+
+        ArgumentCaptor<CutoverChecklistItemDefinitionRevisionDO> copiedItem =
+                ArgumentCaptor.forClass(CutoverChecklistItemDefinitionRevisionDO.class);
+        verify(itemMapper).insert(copiedItem.capture());
+        org.junit.jupiter.api.Assertions.assertEquals("SYSTEM_LOG", copiedItem.getValue().getBusinessCategoryCode());
+        ArgumentCaptor<CutoverChecklistBindingRuleRevisionDO> copiedRule =
+                ArgumentCaptor.forClass(CutoverChecklistBindingRuleRevisionDO.class);
+        verify(ruleMapper).insert(copiedRule.capture());
+        org.junit.jupiter.api.Assertions.assertTrue(Boolean.TRUE.equals(copiedRule.getValue().getRequiredResult()));
+    }
 
     @Test
     void validateShouldReturnLocationWhenSectionReferencesInvalidDictValue() {

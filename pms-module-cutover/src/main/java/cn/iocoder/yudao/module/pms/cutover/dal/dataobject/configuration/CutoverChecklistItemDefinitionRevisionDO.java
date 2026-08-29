@@ -18,6 +18,7 @@ public class CutoverChecklistItemDefinitionRevisionDO extends TenantBaseDO {
     private String stableItemKey;
     private Integer itemDefinitionVersion;
     private String itemTypeCode;
+    private String businessCategoryCode;
     private String itemName;
     private String itemDescription;
     private String interfaceFormatCode;

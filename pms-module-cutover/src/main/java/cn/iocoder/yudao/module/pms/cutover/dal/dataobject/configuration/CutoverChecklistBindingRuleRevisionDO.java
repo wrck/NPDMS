@@ -20,6 +20,7 @@ public class CutoverChecklistBindingRuleRevisionDO extends TenantBaseDO {
     private Integer itemDefinitionVersion;
     private String dimensionConditionSnapshot;
     private Integer priority;
+    private Boolean requiredResult;
     private String statusCode;
     @Version
     private Integer version;

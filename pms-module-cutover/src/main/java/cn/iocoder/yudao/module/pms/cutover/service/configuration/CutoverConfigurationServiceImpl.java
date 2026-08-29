@@ -343,6 +343,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             item.setStableItemKey(value.getStableItemKey());
             item.setItemDefinitionVersion(1);
             item.setItemTypeCode(value.getItemType());
+            item.setBusinessCategoryCode(value.getBusinessCategoryCode());
             item.setItemName(value.getItemName());
             item.setItemDescription(value.getItemDescription());
             item.setInterfaceFormatCode(value.getInterfaceFormat());
@@ -371,6 +372,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             rule.setItemDefinitionVersion(item.getItemDefinitionVersion());
             rule.setDimensionConditionSnapshot(JsonUtils.toJsonString(value.getDimensionConditions()));
             rule.setPriority(value.getPriority());
+            rule.setRequiredResult(value.getRequiredResult());
             rule.setStatusCode(Boolean.FALSE.equals(value.getEnabled()) ? "DISABLED" : "ENABLED");
             ruleMapper.insert(rule);
         }
@@ -458,6 +460,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             CutoverConfigurationSaveReqVO.ItemVO view = new CutoverConfigurationSaveReqVO.ItemVO();
             view.setStableItemKey(item.getStableItemKey());
             view.setItemType(item.getItemTypeCode());
+            view.setBusinessCategoryCode(item.getBusinessCategoryCode());
             view.setItemName(item.getItemName());
             view.setItemDescription(item.getItemDescription());
             view.setInterfaceFormat(item.getInterfaceFormatCode());
@@ -480,6 +483,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
                     view.setStableItemKey(itemKeys.get(rule.getItemDefinitionId()));
                     view.setDimensionConditions(JsonUtils.parseObject(rule.getDimensionConditionSnapshot(), Map.class));
                     view.setPriority(rule.getPriority());
+                    view.setRequiredResult(rule.getRequiredResult());
                     view.setEnabled("ENABLED".equals(rule.getStatusCode()));
                     return view;
                 }).toList();
@@ -513,8 +517,9 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
     private List<CutoverConfigurationRules.ItemDefinition> toDomainItems(
             List<CutoverConfigurationSaveReqVO.ItemVO> values) {
         return values.stream().map(value -> new CutoverConfigurationRules.ItemDefinition(value.getStableItemKey(),
-                value.getItemType(), value.getItemName(), value.getInterfaceFormat(), value.getFeedbackFormat(),
-                Boolean.TRUE.equals(value.getRequired()), value.getWorkMode(),
+                value.getItemType(), value.getBusinessCategoryCode(), value.getItemName(), value.getInterfaceFormat(),
+                value.getInterfaceSchema(), value.getFeedbackFormat(), Boolean.TRUE.equals(value.getRequired()),
+                value.getWorkMode(),
                 value.getExternalSourceConfig() == null ? null : JsonUtils.toJsonString(value.getExternalSourceConfig()),
                 value.getSubtableCode(), Boolean.TRUE.equals(value.getEnabled()))).toList();
     }
@@ -523,7 +528,7 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             List<CutoverConfigurationSaveReqVO.BindingRuleVO> values) {
         return values.stream().map(value -> new CutoverConfigurationRules.BindingRule(value.getStableRuleKey(),
                 value.getStableItemKey(), canonicalJson(value.getDimensionConditions()),
-                value.getPriority(), Boolean.TRUE.equals(value.getEnabled()))).toList();
+                value.getPriority(), value.getRequiredResult(), Boolean.TRUE.equals(value.getEnabled()))).toList();
     }
 
     private String canonicalJson(Object value) {
