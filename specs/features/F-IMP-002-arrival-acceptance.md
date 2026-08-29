@@ -1,7 +1,7 @@
 # F-IMP-002 到货签收与里程碑事实 Feature Spec
 
-> 文档状态：`DRAFT / READY_REVIEW_CANDIDATE`
-> Feature Ready：`REVIEW_REQUIRED`
+> 文档状态：`BASELINE`
+> Feature Ready：`READY / GO`（独立整改复审；锁定提交`4b5a2ac9`）
 > Requirement：`EXE-01（V1/P0）`
 > Requirement切片覆盖：`EXE-01@V1=FULL`
 > Owner Context：`IMP（现场实施）`
@@ -97,8 +97,8 @@
 
 ## 8. Feature Ready Gate
 
-当前结论：`REVIEW_REQUIRED`，不得生成Technical Plan或实施。
+当前结论：`READY / GO`。独立整改复审已确认旧实现映射、应到范围、ArrivalAcceptanceFactApi、五表物理边界、ACC双向事件及批次/项目两层状态全部锁定，无剩余Feature Ready整改项。
 
 已形成候选锁定输入：完整旧实现复用审计；逐字段、旧状态和不可迁行处置；COM应到范围与AST稳定设备组合水位；EXE-01最窄DeliveryEvidence两表及ACC-04双向事件；`ArrivalAcceptanceFactApi`机器契约；批次状态转换、项目里程碑判定；权限、并发、迁移和验收边界。
 
-最近Gate为F-IMP-002 Feature Ready独立复审。复审GO前，Feature和Task继续保持DRAFT/NOT_STARTED；GO后才可生成Technical Plan并使用受控依赖替身，COM/AST/PLT/ACC生产契约未形成仍阻断Implementation Done和真实浏览器正向闭环。
+最近Gate转为F-IMP-002 Technical Plan。只允许生成一个当前有效计划；计划通过评审后才可实施。COM/AST/PLT/ACC生产契约未形成仍阻断Implementation Done和真实浏览器正向闭环，受控替身不得进入生产装配。

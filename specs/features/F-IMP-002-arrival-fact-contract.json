@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "featureId": "F-IMP-002",
+  "status": "BASELINE_READY",
   "requirementSlice": "EXE-01@V1",
   "owner": "IMP",
   "contract": "ArrivalAcceptanceFactApi",
@@ -27,5 +28,6 @@
   "validAcceptance": "ALL_CURRENT_EXPECTED_DEVICES_AND_QUANTITIES_ARE_ACCEPTED_OR_COVERED_BY_UNEXPIRED_EXPLICIT_EXEMPTIONS",
   "staleWhen": ["DELIVERY_SCOPE_VERSION_CHANGED", "DEVICE_ASSIGNMENT_VERSION_CHANGED", "FACT_VERSION_CHANGED", "FACT_REOPENED"],
   "failurePolicy": "MISSING_UNKNOWN_UNAVAILABLE_UNAUTHORIZED_OR_VERSION_CONFLICT_FAILS_CLOSED",
-  "consumerFeatures": ["F-IMP-003", "F-IMP-001"]
+  "consumerFeatures": ["F-IMP-003", "F-IMP-001"],
+  "featureReadyDecision": "GO_FIMP002_FEATURE_READY_4B5A2AC9"
 }

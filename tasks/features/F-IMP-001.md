@@ -28,7 +28,7 @@
 
 ## 阻断
 
-- F-IMP-002为`DRAFT / REVIEW_REQUIRED / NOT_STARTED`，F-IMP-003～005为`DRAFT / NOT_READY / NOT_STARTED`；公开事实契约尚未通过独立评审。
+- F-IMP-002已为`BASELINE / READY / NOT_STARTED`并冻结到货公开事实；F-IMP-003～005仍为`DRAFT / NOT_READY / NOT_STARTED`，其公开事实契约尚未通过独立评审。
 - `ImplementationReadinessSnapshot`迁移策略为`REBUILD_AFTER_OWNERS`，旧`pms_eng_*`状态不能直接升级。
 - AST现有Device聚合已有稳定设备ID与归属版本，但公开接口缺少批量解析和锁定重验；`T-FIMP001-AST-01`机器契约与生产实现仍是Implementation Done硬依赖。
 

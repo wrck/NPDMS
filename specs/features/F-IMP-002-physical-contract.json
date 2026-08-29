@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "featureId": "F-IMP-002",
+  "status": "BASELINE_READY",
   "requirementSlices": ["EXE-01@V1"],
   "coverage": "FULL",
   "owner": "IMP",
@@ -104,5 +105,6 @@
   },
   "apiPrefix": "/api/v1/pms/arrival-acceptances",
   "internalApi": "ArrivalAcceptanceFactApi",
-  "permissions": ["pms:arrival-acceptance:query", "pms:arrival-acceptance:create", "pms:arrival-acceptance:edit-own-draft", "pms:arrival-acceptance:confirm", "pms:arrival-acceptance:resolve-difference"]
+  "permissions": ["pms:arrival-acceptance:query", "pms:arrival-acceptance:create", "pms:arrival-acceptance:edit-own-draft", "pms:arrival-acceptance:confirm", "pms:arrival-acceptance:resolve-difference"],
+  "featureReadyDecision": "GO_FIMP002_FEATURE_READY_4B5A2AC9"
 }

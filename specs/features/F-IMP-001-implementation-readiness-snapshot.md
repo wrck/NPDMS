@@ -114,4 +114,4 @@
 
 已完成：SDS物理Owner冲突已纠正为`imp_implementation_readiness_snapshot`，生成投影和Phase 3验证通过。
 
-F-IMP-002～005仍须分别通过Feature Ready；旧`pms_eng_*`映射须按各Feature锁定。F-AST-001现有`ast_device`已核验具备稳定设备ID、当前项目和归属版本，`DeviceScopeFactApi`改由`T-FIMP001-AST-01`承接，机器契约仍须通过评审并由AST Owner实现。上述设计输入通过独立评审后，才可重审F-IMP-001 Feature Ready；相关Feature Ready通过后可使用受控替身实施不依赖生产事实的部分，EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。
+F-IMP-002已通过Feature Ready并冻结ArrivalAcceptanceFactApi；F-IMP-003～005仍须分别通过Feature Ready，旧`pms_eng_*`映射须按各Feature锁定。F-AST-001现有`ast_device`已核验具备稳定设备ID、当前项目和归属版本，`DeviceScopeFactApi`改由`T-FIMP001-AST-01`承接，机器契约仍须通过评审并由AST Owner实现。其余设计输入通过独立评审后，才可重审F-IMP-001 Feature Ready；相关Feature Ready通过后可使用受控替身实施不依赖生产事实的部分，EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。

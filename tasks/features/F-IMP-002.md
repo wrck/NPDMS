@@ -1,8 +1,8 @@
 # F-IMP-002 到货签收与里程碑事实
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`FEATURE_READY_REVIEW`
-> Feature Ready Gate：`REVIEW_REQUIRED`
+> 总体工程阶段：`TECHNICAL_PLAN_PENDING`
+> Feature Ready Gate：`READY / GO`（锁定提交`4b5a2ac9`）
 > Technical Plan Gate：`NOT_STARTED`
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`EXE-01@V1=FULL`
@@ -13,8 +13,8 @@
 
 ## 当前最小工作单元
 
-- 提交F-IMP-002 Feature Ready独立复审；复审前不生成Technical Plan、不实施、不执行功能验收。
-- 复审输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
+- 生成并评审一个当前有效的F-IMP-002 Technical Plan；计划评审前不实施、不执行功能验收。
+- 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## 已完成的Ready候选输入
 
@@ -27,5 +27,5 @@
 
 ## 未授权事项
 
-- Feature Ready GO前不得生成Technical Plan、DDL、Flyway、后端、前端或测试实现。
+- Technical Plan通过评审前不得生成DDL、Flyway、后端、前端或测试实现。
 - 生产依赖未形成前不得声明Implementation Done、真实MySQL生产闭环或真实浏览器正向验收。
