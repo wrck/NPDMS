@@ -4,6 +4,7 @@ public record ProjectOfficeFact(
         ProjectFactOutcome outcome,
         Long projectId,
         Integer projectVersion,
+        String projectCode,
         Long officeDepartmentId,
         String officeDepartmentCode,
         String officeDepartmentName,
