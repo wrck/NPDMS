@@ -1,4 +1,4 @@
--- Chronological code-fact replay update from 65639c9c913cf506430fb74fec88ba59be0c2501 (codex/f-acc-001-sds).
+-- Chronological code-fact replay update from ac8a6c9a39ed6abd35b3885fbaddd601ba26868c (codex/f-acc-001-sds).
 -- Feature remains governed separately from code reception.
 
 -- F-COM-001 / COM-01：ERP订单行产品编码、八个最小权限键、菜单与受控验收种子。
@@ -64,7 +64,7 @@ INSERT INTO `system_menu`
  `creator`, `create_time`, `updater`, `update_time`, `deleted`)
 VALUES
 (930900, '合同订单工作台', 'pms:commerce:contract:query', 2, 5, 19260, 'commerce-contracts',
- 'ep:document', 'pms/commerce/contracts/index', 'PmsCommerceContracts', 0, b'1', b'1', b'1,
+ 'ep:document', 'pms/commerce/contracts/index', 'PmsCommerceContracts', 0, b'1', b'1', b'1',
  'fcom001_seed', NOW(), 'fcom001_seed', NOW(), b'0'),
 (930901, '项目合同关联', 'pms:commerce:contract:relate', 3, 10, 930900, '', '', NULL, NULL,
  0, b'1', b'1', b'1', 'fcom001_seed', NOW(), 'fcom001_seed', NOW(), b'0'),
