@@ -51,7 +51,7 @@ describe('F-COM-001 commerce workbench contracts', () => {
 
   it('contains responsive narrow-screen layouts without fixed page width', () => {
     for (const source of [read('./contracts/index.vue'), read('./delivery-scope/index.vue')]) {
-      expect(source).toContain('@media (max-width: 767px)')
+      expect(source).toMatch(/@media \((?:max-width: 767px|width <= 767px)\)/)
       expect(source).toContain('min-width: 0')
       expect(source).not.toMatch(/min-width:\s*[1-9]\d{2,}px/)
     }
