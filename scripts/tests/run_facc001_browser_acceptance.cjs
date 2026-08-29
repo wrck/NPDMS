@@ -259,8 +259,7 @@ const runArchiveRetryIntegration = () => {
   assert(unrelatedProjectExists === 1 && unrelatedProjectMembership === 0,
     '无权项目夹具不存在或验收身份意外取得该项目范围')
   const unrelated = await rawApi('GET', `/api/v1/pms/acceptances?projectId=${unrelatedExistingProjectId}`, undefined, {}, token)
-  assert(unrelated.body?.code !== 0 || (Array.isArray(unrelated.body?.data) && unrelated.body.data.length === 0),
-    '真实存在的无权项目错误返回验收活动')
+  assertDeniedWithoutLeak(unrelated, [unrelatedExistingProjectId], '真实存在的无权项目验收活动查询')
   const tenantOneAuth = await login('admin', 1)
   const crossTenant = await rawApi('GET', `/api/v1/pms/acceptances?projectId=${projectId}`,
     undefined, {}, tenantOneAuth.accessToken, 1)
@@ -303,6 +302,7 @@ const runArchiveRetryIntegration = () => {
     unrelatedExistingProjectId,
     unrelatedProjectExists,
     unrelatedProjectMembership,
+    unrelatedProjectQueryDenied: unrelated.status >= 400 || unrelated.body?.code !== 0,
     crossTenantDownloadDenied: crossTenantDownload.status >= 400 || crossTenantDownload.body?.code !== 0,
     crossTenantTicketDenied: crossTenantTicket.status >= 400 || crossTenantTicket.body?.code !== 0,
     archiveFailureRetryTest,
@@ -311,7 +311,8 @@ const runArchiveRetryIntegration = () => {
   assert(dbFacts.reportVersions === 3 && dbFacts.sourceVersions === 3 && dbFacts.archiveRecords === 3
     && dbFacts.reportEvents === 4 && dbFacts.deliveredReportEvents === 4 && dbFacts.quartzJobs === 2
     && dbFacts.quartzTriggers === 2 && dbFacts.unrelatedProjectExists === 1
-    && dbFacts.unrelatedProjectMembership === 0 && dbFacts.crossTenantDownloadDenied
+    && dbFacts.unrelatedProjectMembership === 0 && dbFacts.unrelatedProjectQueryDenied
+    && dbFacts.crossTenantDownloadDenied
     && dbFacts.crossTenantTicketDenied && dbFacts.archiveFailureRetryTest && dbFacts.finalTaskStatus === 'DONE',
   `真实数据库与Quartz验收事实不完整：${JSON.stringify(dbFacts)}`)
   assert(consoleErrors.length === 0 && pageErrors.length === 0 && requestFailures.length === 0,

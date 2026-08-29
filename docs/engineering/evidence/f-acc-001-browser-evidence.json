@@ -43,6 +43,7 @@
     "unrelatedExistingProjectId": 992002000000,
     "unrelatedProjectExists": 1,
     "unrelatedProjectMembership": 0,
+    "unrelatedProjectQueryDenied": true,
     "crossTenantDownloadDenied": true,
     "crossTenantTicketDenied": true,
     "archiveFailureRetryTest": true,
@@ -55,5 +56,5 @@
     "businessErrors": [],
     "visibleBusinessErrors": []
   },
-  "generatedAt": "2026-08-29T23:09:40.663Z"
+  "generatedAt": "2026-08-29T23:17:10.178Z"
 }
