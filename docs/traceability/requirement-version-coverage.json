@@ -18,9 +18,9 @@
       "V2": 58
     },
     "slicesByImplementationStatus": {
-      "IMPLEMENTATION_COMPLETE": 6,
-      "IMPLEMENTATION_PARTIAL": 9,
-      "NOT_STARTED": 96
+      "IMPLEMENTATION_COMPLETE": 7,
+      "IMPLEMENTATION_PARTIAL": 10,
+      "NOT_STARTED": 94
     }
   },
   "derivationRules": [
@@ -34,8 +34,8 @@
       "featureId": "F-ACC-001",
       "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
       "taskPath": "tasks/features/F-ACC-001.md",
-      "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "IN_PROGRESS",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
       "mappings": [
         {
           "sliceKey": "ACC-03@V1",
@@ -805,12 +805,12 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "验收报告管理的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
       "features": [
         {
           "featureId": "F-ACC-001",
           "coverage": "FULL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
           "taskPath": "tasks/features/F-ACC-001.md"
         }
@@ -825,12 +825,12 @@
       "ownerName": "验收与项目闭环",
       "businessResult": "交付件归档管理的V1主交付业务结果",
       "versionBoundary": "V1",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_PARTIAL",
       "features": [
         {
           "featureId": "F-ACC-001",
           "coverage": "PARTIAL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
           "taskPath": "tasks/features/F-ACC-001.md"
         }

@@ -1,12 +1,12 @@
 # F-ACC-001 初验/终验报告版本与交付件同步
 
-> Feature实施状态：`IN_PROGRESS`<br>
-> 总体工程阶段：`IMPLEMENTATION`<br>
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`<br>
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`<br>
 > Feature Ready Gate：`PASS / GO`（`bde0feac`）<br>
 > Technical Plan Gate：`PASS / GO`（`fca9626c`）<br>
-> Implementation Done Gate：`NOT_SUBMITTED`<br>
-> 当前阻断：`无；待Implementation Done整改复审`<br>
-> 当前任务：`Task 2 Step 6：证据、提交与整改复审`<br>
+> Implementation Done Gate：`PASS / ad5b401f / 独立复审GO`<br>
+> 当前阻断：`无`<br>
+> 当前任务：`无；Implementation Done已完成`<br>
 > Requirement ID：`ACC-03@V1=FULL`；`ACC-04@V1=PARTIAL`<br>
 > Feature Spec：`specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md`<br>
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-acc-001-acceptance-report-version-deliverable-sync.md`<br>
@@ -40,4 +40,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；两个Task全部完成并通过验证后，只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`3a27eeff`；当前Gate=Implementation Done整改复审；已通过=SUPERSEDED补偿、V132权限、单脚本Chromium与3来源归档/4事件投递；阻塞=无；下一步=提交候选并复审。
+> 检查点：基线=`ad5b401f`；当前Gate=Implementation Done GO；已通过=独立复审确认历史归档补偿、正式页面权限及单脚本跨项目/跨租户查询下载证据闭环；阻塞=无；下一步=等待后续Gate授权，不进入Deployment、SIT、UAT、Migration或Release。
