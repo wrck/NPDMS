@@ -73,4 +73,18 @@
         FOR UPDATE
     </select>
 
+    <select id="selectLatestStageEntry"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO">
+        SELECT *
+        FROM proj_project_stage_snapshot
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND stage_code = #{query.stageCode}
+          AND operation_type = 'STAGE_ENTRY'
+          AND after_stage = #{query.stageCode}
+          AND deleted = b'0'
+        ORDER BY operated_at DESC, id DESC
+        LIMIT 1
+    </select>
+
 </mapper>

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectExceptionCloseSnapshotQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectGovernanceHistoryPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectStageEntrySnapshotQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectStageSnapshotSequenceQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -32,4 +33,7 @@ public interface ProjectStageSnapshotMapper {
 
     ProjectStageSnapshotDO selectLatestReusableExceptionClose(
             @Param("query") ProjectExceptionCloseSnapshotQuery query);
+
+    ProjectStageSnapshotDO selectLatestStageEntry(
+            @Param("query") ProjectStageEntrySnapshotQuery query);
 }

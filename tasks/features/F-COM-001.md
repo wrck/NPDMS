@@ -11,7 +11,7 @@
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`  
 > Technical Plan：`docs/superpowers/plans/2026-08-29-f-com-001-contract-order-and-delivery-scope.md`  
 > 主要执行会话：`01a04bfb-568d-7d42-a38f-7b45e1767ebb`  
-> 分支/工作树：`codex/f-com-001-feature-ready` / `E:\AICoding\Projects\NPDMS`
+> 分支/工作树：`codex/f-com-001-feature-ready` / `M:\AICoding\CodexData\worktrees\fcom\NPDMS`
 
 ## 实施边界
 
