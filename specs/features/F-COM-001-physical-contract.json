@@ -1,62 +1,367 @@
 {
   "featureId": "F-COM-001",
+  "status": "CANDIDATE_NOT_READY",
+  "featureReadyDecision": "BLOCKED_BY_SPEC_Q_FCOM_001",
   "requirementSlices": ["COM-01@V1"],
+  "supportingRequirementSlices": ["PM-03@V1", "PM-10@V1", "ACC-03@V1"],
   "ownerContext": "COM",
-  "phaseGateImpact": "NONE",
-  "externalImplementation": "INTERFACES_ONLY",
-  "aggregates": {
-    "Contract": {"owner": "COM", "authority": "ERP_READ_ONLY_COPY", "businessKey": ["tenantId", "companyCode", "contractNo"]},
-    "SalesOrder": {"owner": "COM", "authority": "ERP_READ_ONLY_COPY", "businessKey": ["tenantId", "sourceSystem", "companyCode", "orderType", "orderNo"]},
-    "SalesOrderLine": {"owner": "COM", "authority": "ERP_READ_ONLY_COPY", "businessKey": ["tenantId", "orderId", "lineNo"]},
-    "DeliveryScope": {"owner": "COM", "currentKey": ["tenantId", "projectId", "orderLineId"], "currentPredicate": "deleted = 0 AND effective_to IS NULL"}
+  "implementationCarriers": {
+    "COM": ["pms-module-commerce-api", "pms-module-commerce"],
+    "PROJ": ["pms-module-project-api", "pms-module-project"],
+    "ACC": ["pms-module-project-api", "pms-module-project"],
+    "physicalModuleMapping": "PMS-PROJ_CURRENTLY_CARRIES_PROJECT_ACCEPTANCE_AND_CLOSURE_WITHOUT_CHANGING_SEMANTIC_OWNER"
   },
-  "tables": {
-    "com_contract": {"owner": "COM", "source": "approved SDS physical schema"},
-    "com_sales_order": {"owner": "COM", "source": "approved SDS physical schema"},
-    "com_sales_order_line": {"owner": "COM", "source": "approved SDS physical schema"},
-    "com_order_contract_relation": {"owner": "COM", "cardinality": "N:N"},
-    "com_project_contract_relation": {"owner": "COM", "cardinality": "N:N"},
-    "com_delivery_scope": {"owner": "COM", "history": "effective interval; no overwrite"},
-    "com_delivery_scope_detail": {"owner": "COM", "invariant": "detail allocated quantity sum equals scope allocated quantity"},
-    "com_outbox_event": {"owner": "COM", "reuse": "existing module technical contract"}
+  "prdBaseline": "V1.8_REVISION_009",
+  "sdsGateDecisions": {
+    "officeAndV70Delta": "GO_20F03BA316CA431A55F96AA9C3C97BE54D08B4E0",
+    "acceptanceStageDelta": "GO_B17AE89F92B01488378AEB8C36A77A5B2D46AD29",
+    "adr0036": "ACCEPTED",
+    "adr0037": "ACCEPTED"
+  },
+  "phaseGateImpact": "P3_E09_FEATURE_FORWARD_DELTAS_008_009_REVIEWED_GO",
+  "externalImplementation": "INTERFACES_ONLY",
+  "openQuestions": {
+    "Q-FCOM-001": {
+      "status": "BLOCKED_BY_SPEC",
+      "blockingScope": "FEATURE_READY_AND_CONTRACT_ADMINISTRATOR_FIRST_CONTRACT_VISIBILITY",
+      "requiredDecision": "approved authority fact for grant, revoke, expiry, version, sensitive fields and empty scope",
+      "technicalDefault": "NONE",
+      "technicalPlanMayChoose": false
+    },
+    "Q-FCOM-002": {
+      "status": "BLOCKED_BY_SPEC",
+      "blockingScope": "EXIT_ROLLBACK_BINDING_CLOSE_OR_UNLOCK_ONLY",
+      "confirmedEntryAndNewVersionPathsRemainImplementable": true,
+      "failureClosedRule": "DO_NOT_WRITE_EFFECTIVE_TO_UNLOCK_OR_REWRITE_BINDING"
+    }
+  },
+  "aggregates": {
+    "Contract": {
+      "owner": "COM",
+      "authority": "ERP_READ_ONLY_COPY",
+      "businessKey": ["tenantId", "companyCode", "contractNo"]
+    },
+    "SalesOrder": {
+      "owner": "COM",
+      "authority": "ERP_READ_ONLY_COPY",
+      "businessKey": ["tenantId", "sourceSystem", "companyCode", "orderType", "orderNo"]
+    },
+    "SalesOrderLine": {
+      "owner": "COM",
+      "authority": "ERP_READ_ONLY_COPY",
+      "businessKey": ["tenantId", "orderId", "lineNo"],
+      "quantityScale": "0_TO_6_FROM_APPROVED_SOURCE_UNIT_METADATA"
+    },
+    "DeliveryScope": {
+      "owner": "COM",
+      "currentKey": ["tenantId", "projectId", "orderLineId"],
+      "currentPredicate": "deleted = 0 AND effective_to IS NULL",
+      "historyPolicy": "CLOSE_CURRENT_INTERVAL_AND_APPEND_NEW_VERSION"
+    },
+    "AcceptanceScopeBinding": {
+      "owner": "ACC",
+      "identity": ["tenantId", "projectId", "projectStageSnapshotId", "deliveryScopeId", "scopeAllocationVersion"],
+      "reportIndependent": true
+    },
+    "ProjectStageSnapshot": {
+      "owner": "PROJ",
+      "usage": "IMMUTABLE_LOGICAL_REFERENCE_ONLY"
+    }
+  },
+  "officeSnapshot": {
+    "owner": "PROJ",
+    "source": "target project SYSTEM office department at split or allocation time",
+    "frozenFields": [
+      "projectId",
+      "officeDepartmentId",
+      "officeDepartmentCode",
+      "officeDepartmentName",
+      "officeDepartmentVersion"
+    ],
+    "historyPolicy": "NEVER_OVERWRITE_AFTER_PROJECT_OR_ORGANIZATION_CHANGE",
+    "inferencePolicy": "NO_AST_ADDRESS_NAME_OR_ORDER_INFERENCE"
+  },
+  "physicalDelta": {
+    "policy": "FEATURE_FORWARD_MIGRATION_COM_01",
+    "coreDdlChange": false,
+    "flywayApproved": false,
+    "tables": {
+      "com_contract": {
+        "owner": "COM",
+        "fields": {
+          "master_source_version": "varchar(64) COLLATE utf8mb4_0900_bin NULL",
+          "source_updated_at": "datetime(3) NULL"
+        },
+        "constraints": [
+          "ERP_CONFIRMED_REQUIRES_MASTER_SOURCE_RECORD_KEY_AND_VERSION",
+          "OLDER_OR_SAME_VERSION_DIFFERENT_CONTENT_NEVER_OVERWRITES_CURRENT"
+        ]
+      },
+      "com_sales_order": {
+        "owner": "COM",
+        "fields": {
+          "source_record_key": "varchar(128) COLLATE utf8mb4_0900_bin NULL",
+          "source_version": "varchar(64) COLLATE utf8mb4_0900_bin NULL",
+          "source_updated_at": "datetime(3) NULL"
+        },
+        "uniqueKeys": ["tenant_id,source_system,source_record_key"],
+        "constraints": ["ERP_CONFIRMED_REQUIRES_ALL_SOURCE_FIELDS"]
+      },
+      "com_sales_order_line": {
+        "owner": "COM",
+        "fields": {
+          "source_record_key": "varchar(128) COLLATE utf8mb4_0900_bin NOT NULL",
+          "source_version": "varchar(64) COLLATE utf8mb4_0900_bin NOT NULL",
+          "unit_code": "varchar(32) NOT NULL",
+          "unit_scale": "tinyint unsigned NOT NULL",
+          "quantity_status": "varchar(32) NOT NULL",
+          "source_updated_at": "datetime(3) NULL",
+          "order_qty": "decimal(18,6) NULL",
+          "open_qty": "decimal(18,6) NULL",
+          "delivered_qty": "decimal(18,6) NULL"
+        },
+        "uniqueKeys": ["tenant_id,source_system,source_record_key"],
+        "constraints": [
+          "unit_scale BETWEEN 0 AND 6",
+          "CONFIRMED_QUANTITY_MATCHES_UNIT_SCALE",
+          "NULL_QUANTITY_ONLY_WHILE_AUTHORITY_PENDING"
+        ]
+      },
+      "com_delivery_scope": {
+        "owner": "COM",
+        "fields": {
+          "allocated_qty": "decimal(18,6) NOT NULL",
+          "allocation_version": "bigint NOT NULL",
+          "office_department_id": "bigint NOT NULL",
+          "office_department_code": "varchar(64) NOT NULL",
+          "office_department_name": "varchar(255) NOT NULL",
+          "office_department_version": "int unsigned NOT NULL",
+          "source_evidence": "varchar(255) NULL",
+          "effective_from": "datetime(3) NOT NULL",
+          "effective_to": "datetime(3) NULL"
+        },
+        "uniqueKeys": [
+          "tenant_id,order_line_id,project_id,allocation_version",
+          "tenant_id,project_id,current_order_line_id"
+        ],
+        "constraints": [
+          "allocated_qty > 0",
+          "ADJUSTMENT_CLOSES_OLD_INTERVAL_AND_APPENDS_NEW_VERSION"
+        ]
+      },
+      "com_delivery_scope_detail": {
+        "owner": "COM",
+        "removedFields": ["implementation_location"],
+        "forbiddenFields": ["site_id", "site_location_id", "location_resolution_status"],
+        "fields": {
+          "serial_no": "varchar(128) NULL",
+          "detail_status": "varchar(32) NOT NULL",
+          "source_snapshot": "json NULL",
+          "version": "int unsigned NOT NULL DEFAULT 0",
+          "allocated_qty": "decimal(18,6) NOT NULL"
+        },
+        "preservedNullableFields": [
+          "product_code",
+          "device_type_code",
+          "delivery_batch_no",
+          "source_record_key"
+        ],
+        "uniqueKeys": ["tenant_id,delivery_scope_id,detail_sequence"],
+        "constraints": [
+          "allocated_qty > 0",
+          "AT_LEAST_ONE_OF_SERIAL_NO_PRODUCT_CODE_DEVICE_TYPE_CODE"
+        ]
+      },
+      "acc_acceptance_scope_binding": {
+        "owner": "ACC",
+        "fields": {
+          "id": "bigint NOT NULL",
+          "tenant_id": "bigint NOT NULL",
+          "project_id": "bigint NOT NULL",
+          "project_stage_snapshot_id": "bigint NOT NULL",
+          "delivery_scope_id": "bigint NOT NULL",
+          "scope_allocation_version": "bigint NOT NULL",
+          "binding_trigger": "varchar(32) NOT NULL",
+          "binding_status": "varchar(32) NOT NULL",
+          "effective_from": "datetime(3) NOT NULL",
+          "effective_to": "datetime(3) NULL",
+          "acceptance_fact_version": "int unsigned NOT NULL DEFAULT 1",
+          "version": "int unsigned NOT NULL DEFAULT 0",
+          "creator": "varchar(64) NOT NULL DEFAULT ''",
+          "updater": "varchar(64) NOT NULL DEFAULT ''",
+          "create_time": "datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)",
+          "update_time": "datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)",
+          "deleted": "tinyint NOT NULL DEFAULT 0"
+        },
+        "uniqueKeys": [
+          "tenant_id,project_id,project_stage_snapshot_id,delivery_scope_id,scope_allocation_version"
+        ],
+        "indexes": ["tenant_id,delivery_scope_id,effective_to,binding_status"],
+        "constraints": [
+          "binding_trigger IN PROJECT_STAGE_ENTRY,SCOPE_VERSION_EFFECTIVE",
+          "NEW_BINDING_STATUS_LOCKED",
+          "NEW_BINDING_EFFECTIVE_TO_NULL",
+          "NO_CROSS_CONTEXT_FOREIGN_KEY",
+          "NO_ACCEPTANCE_ID"
+        ]
+      }
+    }
   },
   "restApis": [
-    {"method": "GET", "path": "/api/v1/pms/contracts", "requirementIds": ["COM-01"]},
-    {"method": "GET", "path": "/api/v1/pms/contracts/{id}", "requirementIds": ["COM-01"]},
-    {"method": "POST", "path": "/api/v1/pms/contracts/{id}/project-relations", "requirementIds": ["COM-01"]},
-    {"method": "GET", "path": "/api/v1/pms/sales-orders", "requirementIds": ["COM-01"]},
-    {"method": "GET", "path": "/api/v1/pms/order-lines", "requirementIds": ["COM-01"]},
-    {"method": "GET", "path": "/api/v1/pms/delivery-scopes", "requirementIds": ["COM-01"]},
+    {"method": "GET", "path": "/api/v1/pms/contracts", "requirementIds": ["COM-01"], "dataScope": "BLOCKED_BY_Q_FCOM_001"},
+    {"method": "GET", "path": "/api/v1/pms/contracts/{id}", "requirementIds": ["COM-01"], "dataScope": "BLOCKED_BY_Q_FCOM_001"},
+    {"method": "POST", "path": "/api/v1/pms/contracts/{id}/project-relations", "requirementIds": ["COM-01"], "dataScope": "BLOCKED_BY_Q_FCOM_001"},
+    {"method": "GET", "path": "/api/v1/pms/sales-orders", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_BLOCKED_BY_Q_FCOM_001;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
+    {"method": "GET", "path": "/api/v1/pms/order-lines", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_BLOCKED_BY_Q_FCOM_001;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
+    {"method": "GET", "path": "/api/v1/pms/delivery-scopes", "requirementIds": ["COM-01"], "dataScope": "CONTRACT_ADMIN_BLOCKED_BY_Q_FCOM_001;PROJECT_MANAGER_APPROVED_PROJECT_SCOPE"},
     {"method": "POST", "path": "/api/v1/pms/delivery-scopes/actions/preview", "requirementIds": ["COM-01"]},
     {"method": "POST", "path": "/api/v1/pms/delivery-scopes/actions/assign", "requirementIds": ["COM-01"]},
     {"method": "POST", "path": "/api/v1/pms/delivery-scopes/{id}/actions/adjust", "requirementIds": ["COM-01"]},
     {"method": "POST", "path": "/api/v1/pms/delivery-scopes/{id}/actions/release", "requirementIds": ["COM-01"]}
   ],
   "moduleApis": {
-    "CommerceAuthorityWriteApi": {"direction": "Integration ACL -> COM", "implementation": "interface and controlled local provider only", "thirdPartyAdapter": "OUT_OF_SCOPE"},
-    "DeliveryScopeApi": {"direction": "PROJ -> COM", "compatibility": "preserve F-PROJ-002 behavior"},
-    "AssetLocationApi": {"direction": "COM -> AST", "failureMode": "FAIL_CLOSED_FOR_STRUCTURED_LOCATION_WRITE"},
-    "AcceptanceScopeGuardApi": {"direction": "COM -> ACC", "failureMode": "FAIL_CLOSED_FOR_SCOPE_REDUCTION"}
+    "CommerceAuthorityWriteApi": {
+      "direction": "Integration ACL -> COM",
+      "provider": "REAL_PROVIDER_REQUIRED",
+      "implementation": "INTERFACE_AND_CONTROLLED_LOCAL_PROVIDER_ONLY",
+      "thirdPartyAdapter": "OUT_OF_SCOPE"
+    },
+    "DeliveryScopeApi": {
+      "direction": "PROJ -> COM",
+      "provider": "REAL_PROVIDER_REQUIRED",
+      "compatibility": "PRESERVE_F_PROJ_002_BEHAVIOR"
+    },
+    "ProjectOfficeFactApi": {
+      "direction": "COM -> PROJ",
+      "provider": "REAL_PROVIDER_REQUIRED",
+      "input": ["tenantId", "projectId", "expectedProjectVersion"],
+      "outcomes": ["FOUND", "NOT_FOUND", "INACTIVE", "VERSION_CONFLICT"],
+      "unknownPolicy": "FAIL_CLOSED"
+    },
+    "ProjectAcceptanceStageFactApi": {
+      "direction": "COM -> PROJ",
+      "provider": "REAL_PROVIDER_REQUIRED",
+      "input": ["tenantId", "projectId", "expectedProjectVersion", "operationId"],
+      "outcomes": ["FOUND", "NOT_FOUND", "INACTIVE", "VERSION_CONFLICT"],
+      "successFacts": ["projectVersion", "currentStage", "acceptanceStage", "projectStageSnapshotId"]
+    },
+    "AcceptanceScopeGuardApi": {
+      "direction": "COM -> ACC",
+      "provider": "REAL_PROVIDER_REQUIRED",
+      "input": ["tenantId", "projectId", "deliveryScopeId", "currentAllocationVersion", "proposedAllocatedQty", "operationId"],
+      "outcomes": ["UNLOCKED", "LOCKED", "UNKNOWN"],
+      "failureMode": "FAIL_CLOSED_FOR_SCOPE_REDUCTION"
+    },
+    "DeliveryScopeAcceptanceLockApi": {
+      "direction": "ACC -> COM",
+      "provider": "REAL_PROVIDER_REQUIRED",
+      "method": "lockCurrentByProject",
+      "input": ["tenantId", "projectId", "projectStageSnapshotId", "operationId"],
+      "successFacts": ["deliveryScopeId", "allocationVersion"],
+      "ordering": "DELIVERY_SCOPE_ID_ASC"
+    },
+    "AcceptanceScopeBindingApi": {
+      "direction": "PROJ_OR_COM -> ACC",
+      "provider": "REAL_PROVIDER_REQUIRED",
+      "methods": {
+        "bindForStageEntry": ["tenantId", "projectId", "projectVersion", "projectStageSnapshotId", "fromStageCode", "acceptanceStageCode", "operationId"],
+        "bindEffectiveScope": ["tenantId", "projectId", "projectStageSnapshotId", "deliveryScopeId", "scopeAllocationVersion", "operationId"]
+      },
+      "sameIdentityReplay": "RETURN_ORIGINAL_RESULT",
+      "sameIdentityDifferentRequest": "REJECT"
+    }
+  },
+  "transactionBoundary": {
+    "resource": "SAME_MYSQL_TRANSACTION",
+    "providerPropagation": "MANDATORY",
+    "lockOrder": [
+      "PROJ_PROJECT",
+      "COM_ORDER_LINE_IF_APPLICABLE",
+      "COM_DELIVERY_SCOPE_BY_STABLE_ID",
+      "ACC_SCOPE_BINDING"
+    ],
+    "stageEntry": "PROJECT_STAGE_SNAPSHOT_BINDINGS_AND_CURRENT_STAGE_COMMIT_OR_ROLLBACK_TOGETHER",
+    "scopeEffective": "NEW_SCOPE_VERSION_HISTORY_SWITCH_OUTBOX_AND_BINDING_COMMIT_OR_ROLLBACK_TOGETHER"
+  },
+  "acceptanceBinding": {
+    "triggers": ["PROJECT_STAGE_ENTRY", "SCOPE_VERSION_EFFECTIVE"],
+    "reportTriggersBinding": false,
+    "projectStageChangedEventTriggersBinding": false,
+    "reportRequiredAtStageEntry": false,
+    "reportCompletenessRequiredAtActivityCompletion": ["acceptanceTime", "conclusion", "acceptancePerson", "attachments"]
   },
   "events": {
     "DeliveryScopeAssigned": {"owner": "COM", "idempotency": ["eventId", "scopeVersion"]},
-    "DeliveryScopeReleased": {"owner": "COM", "idempotency": ["eventId", "scopeVersion"]}
+    "DeliveryScopeReleased": {"owner": "COM", "idempotency": ["eventId", "scopeVersion"]},
+    "ProjectStageChanged": {"owner": "PROJ", "usage": "POST_COMMIT_NOTIFICATION_OR_PROJECTION_ONLY"}
   },
-  "permissions": [
-    "pms:commerce:contract:query",
-    "pms:commerce:contract:relate",
-    "pms:commerce:scope:query",
-    "pms:commerce:scope:assign",
-    "pms:commerce:scope:adjust",
-    "pms:commerce:scope:release",
-    "pms:commerce:authority:write"
-  ],
+  "permissions": {
+    "functional": [
+      "pms:commerce:contract:query",
+      "pms:commerce:contract:relate",
+      "pms:commerce:scope:query",
+      "pms:commerce:scope:assign",
+      "pms:commerce:scope:adjust",
+      "pms:commerce:scope:release",
+      "pms:commerce:authority:write"
+    ],
+    "contractAdministratorDataScope": "BLOCKED_BY_Q_FCOM_001",
+    "projectManagerDataScope": "APPROVED_PROJECT_SCOPE_ONLY",
+    "emptyScope": "RETURN_EMPTY_NEVER_OMIT_FILTER"
+  },
+  "v70Conversion": {
+    "strategy": "FROZEN_READ_SNAPSHOT_OR_WRITE_STOP_SINGLE_BATCH",
+    "retry": "REUSE_SAME_INPUT_WATERMARK",
+    "missingOrConflict": "FAIL_BATCH",
+    "legacyTables": ["com_order_line", "com_delivery_scope", "com_delivery_scope_detail"],
+    "requiredTargetMappings": {
+      "com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.order_company_code": "com_sales_order_line.company_code:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.order_type": "com_sales_order_line.order_type:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.order_no": "com_sales_order_line.order_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.line_no": "com_sales_order_line.line_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.allocation_source": "APPROVED_CONSTANT:LEGACY;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+      "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE"
+    },
+    "orderLineRules": [
+      "PRESERVE_ID_TENANT_ORDER_ID_LINE_SOURCE_VERSION_QUANTITY_UNIT_AUDIT",
+      "RESOLVE_EXACT_PARENT_ORDER_IN_SAME_TENANT",
+      "UNIT_SCALE_FROM_APPROVED_SOURCE_SYSTEM_AND_UNIT_CODE_METADATA",
+      "OPEN_AND_DELIVERED_QUANTITY_REMAIN_NULL_WITHOUT_AUTHORITY"
+    ],
+    "scopeRules": [
+      "PRESERVE_ID_RELATION_QUANTITY_STATUS_VERSION_EVIDENCE_INTERVAL_AND_AUDIT",
+      "COPY_PROJECT_AND_ORDER_SNAPSHOTS_ONLY_FROM_EXACT_OWNER_ROWS",
+      "OFFICE_FACT_MUST_MATCH_PROJECT_VERSION_AND_ALL_V70_OFFICE_DEPARTMENT_CODES",
+      "NEVER_INFER_OFFICE_FROM_AST_ADDRESS_NAME_OR_ORDER"
+    ],
+    "detailRules": [
+      "PRESERVE_ID_SCOPE_ID_SERIAL_QUANTITY_STATUS_SOURCE_SNAPSHOT_AND_AUDIT",
+      "REQUIRE_VERIFIED_SERIAL_PRODUCT_OR_DEVICE_TYPE",
+      "V70_OFFICE_DEPARTMENT_CODE_IS_SOURCE_EVIDENCE_NOT_DETAIL_LOCATION_TRUTH"
+    ]
+  },
   "migration": {
-    "strategy": "forward-only single cutover",
-    "legacyTables": ["com_order_line", "com_delivery_scope", "com_delivery_scope_detail", "com_outbox_event"],
-    "targetTables": ["com_sales_order_line", "com_delivery_scope", "com_delivery_scope_detail", "com_outbox_event"],
+    "strategy": "FORWARD_ONLY_SINGLE_CUTOVER",
     "longTermDualWrite": false,
-    "historicalSourceMigration": "OUT_OF_SCOPE"
+    "historicalProductionMigration": "OUT_OF_SCOPE",
+    "flyway": "NOT_APPROVED_AT_FEATURE_READY",
+    "coreDdl": "UNCHANGED"
   },
-  "outOfScope": ["ERP network adapter", "CRM contract implementation", "Yudao platform changes", "historical production migration", "Deployment", "SIT", "UAT", "Release"]
+  "outOfScope": [
+    "ERP network adapter",
+    "CRM contract implementation",
+    "AST site or location model",
+    "Yudao platform changes",
+    "historical production migration",
+    "Q-FCOM-002 exit rollback or re-entry resolution",
+    "Technical Plan before Feature Ready",
+    "Deployment",
+    "SIT",
+    "UAT",
+    "Release"
+  ]
 }

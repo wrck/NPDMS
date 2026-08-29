@@ -10,7 +10,7 @@
 - `sql/migrations/V70__commerce_delivery_scope_slice.sql`；
 - F-PROJ-002对`DeliveryScopeApi`的消费与回归契约；
 - Yudao CRM合同API、列表、表单、详情、审批和权限组件；
-- 已批准COM物理DDL与ADR-0023当前范围粒度。
+- 已批准COM物理DDL、ADR-0023当前范围粒度及ADR-0036/0037的Feature-forward差量。
 
 仓库中不存在其他COM合同、销售订单、订单行管理后端或PMS Commerce页面；不存在ERP网络适配器。旧源库及迁移证据仅用于批准物理模型，不授权本Feature执行历史数据迁移。
 
@@ -19,9 +19,9 @@
 | ID | 旧资产 | 判定 | 新目标/使用方式 | 依据与约束 |
 |---|---|---|---|---|
 | REUSE-01 | `DeliveryScopeApi`及DTO：可用切片、预览、应用 | `DIRECT_REUSE` | 保持公开方法与F-PROJ-002错误/原子语义；目标实现适配完整COM模型 | 已有稳定跨Context调用方；PROJ不得依赖COM实现或表 |
-| REUSE-02 | `DeliveryScopeService`数量、版本、锁、幂等和Outbox算法 | `COPY_THEN_ENHANCE` | 复制到新的完整COM应用服务后补Owner、地点、验收及冲突守卫 | 现服务只处理父项目拆分，直接修改会把完整COM倒置为单一消费者切片 |
-| REUSE-03 | `OrderLineDO/Mapper`与`com_order_line` | `COPY_THEN_ENHANCE` | 新建`SalesOrderLine`模型并迁入批准的`com_sales_order_line`；旧表仅作一次性转换输入 | V70缺合同/订单业务身份、字段和批准表名，固定`CONFIRMED/PENDING_AUTHORITY` CHECK不符合ADR-0023 |
-| REUSE-04 | `DeliveryScopeDO/DetailDO`及Mapper | `COPY_THEN_ENHANCE` | 新类绑定批准字段、主明细粒度、地点模型和有效区间；复杂锁查询进入Mapper XML | V70明细使用办事处/SN，目标要求产品/设备类型、地点、批次；现Mapper含SQL注解和位置参数，不能扩散 |
+| REUSE-02 | `DeliveryScopeService`数量、版本、锁、幂等和Outbox算法 | `COPY_THEN_ENHANCE` | 复制到新的完整COM应用服务后补Owner、办事处发生时快照、验收绑定及冲突守卫 | 现服务只处理父项目拆分，直接修改会把完整COM倒置为单一消费者切片 |
+| REUSE-03 | `OrderLineDO/Mapper`与`com_order_line` | `COPY_THEN_ENHANCE` | 新建`SalesOrderLine`模型并迁入批准的`com_sales_order_line`；旧表仅作一次性转换输入 | V70缺合同/订单完整业务身份及部分必填目标字段；来源版本、单位精度、状态和必填快照必须按ADR-0036确定性转换 |
+| REUSE-04 | `DeliveryScopeDO/DetailDO`及Mapper | `COPY_THEN_ENHANCE` | 新类绑定批准字段、主明细粒度、办事处发生时快照和有效区间；复杂锁查询进入Mapper XML | V70明细办事处编码只作来源证据，目标在范围主记录保存PROJ部门快照并要求产品/设备类型/序列号主体；现Mapper含SQL注解和位置参数，不能扩散 |
 | REUSE-05 | `com_delivery_scope*` V70结构 | `COPY_THEN_ENHANCE` | 前向迁移执行受控结构转换，保留历史与当前范围，最终单Owner | 已执行迁移不得修改；目标DDL同名表语义不同，禁止长期双写或并行真值 |
 | REUSE-06 | `com_outbox_event`与Assigned/Released事件 | `DIRECT_REUSE` | 复用事务Outbox和事件名；载荷按SDS补齐但不携带商务正文 | 事件设计已冻结Producer、Consumer和幂等语义 |
 | REUSE-07 | `DeliveryScopeServiceTest`八类拆分测试 | `DIRECT_REUSE` | 作为兼容回归继续执行，并新增完整COM测试 | 现测试只证明F-PROJ-002切片，不证明COM-01完整完成 |
