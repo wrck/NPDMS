@@ -41,7 +41,7 @@ MODEL_ENTITY_CONTRACTS = {
     "DispatchAttempt": ("PLT", {"INT-12"}),
     "CallbackRecord": ("PLT", {"INT-12"}),
     "CutoverSupportArrangement": ("CUT", {"CUT-04"}),
-    "CutoverConfigurationRevision": ("CUT", {"CUT-07"}),
+    "CutoverConfigurationRevision": ("CUT", {"CUT-07", "CUT-09", "CUT-10"}),
     "CustomerServiceLevelRevision": ("CUS", {"CUS-02"}),
     "DynamicFormTemplate": ("PLT", {"SOL-01"}),
     "DynamicFormTemplateRevision": ("PLT", {"SOL-01"}),

@@ -143,11 +143,13 @@ PM-06 是多期关系聚合，不复用父子项目树或项目组合冒充。�
 
 无匹配，或多匹配但未显式选择本次合法候选的首次创建，在Project产生前失败，只保留通用请求/审计证据；唯一候选自动决定或多候选显式选择时，决策历史与Project原子提交。创建后属性变化更新既有当前列并追加匹配决策历史；后续CHG可从历史派生工单，但本Feature不产生CHG状态或事件。
 
-### 4.2 PM-08服务经理人工指派
+### 4.2 PM-08服务经理指派
 
 `ProjectMemberAssignment`继续使用同一时态关系承载当前与历史。V1显式保存`PRIMARY/COLLABORATOR`、L1统筹/L2属地责任、可选站点、公司及`department_id/department_code/department_name`快照、服务端即时生效时间和原因；L1/L2不是项目树深度。主责改派以同一事务时间结束旧区间并新增关系，不覆盖快照，不预约未来生效。
 
 `assignment_status=ASSIGNED`当且仅当当前项目节点同时存在有效主责服务经理和有效项目经理；协同不参与，任一主责缺失均为`UNASSIGNED`。成员关系只授予当前节点角色动作，不自动产生子孙关系或ProjectTreeScope。候选由SYSTEM公开组织范围API返回，PROJ提交时重新校验用户、项目公司和部门有效范围。
+
+V2不增加第二套指派对象：项目创建或受控重算只读取冻结的区域—部门映射与候选过滤规则；唯一匹配时在同一`ProjectMemberAssignment`事务内自动形成并生效主责关系，无匹配或多匹配保持`UNASSIGNED`并回到V1人工指派。
 
 ## 5. Preparation & Solution 数据模型
 
@@ -211,7 +213,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | Cutover | CutoverChecklistItem（版本内实体） | 稳定项键、采集项定义/界面/条件/工作方式快照、必填性、设备/命令模板引用、自定义来源和当前适用性 | 系统必填项不可删除；重匹配按稳定项键保留或移出，前端不按名称硬编码 |
 | Cutover | CutoverChecklistItemResult（追加事实） | 直接填写、自动采集、外部加载或人工降级结果，CollectionTask/结果版本、失败与人工证据引用、选择有效区间 | 结果正文不可覆盖；每项只允许一个未结束的当前选择区间；DAC技术状态不复制为CUT状态；回调成功不直接产生业务通过 |
 | Cutover | CutoverAssessment | 问卷版本、项目输入上下文、人工选择、人工等级和P5复核引用 | 自动建议等级仅V3；P2不增加审批节点 |
-| Cutover | CutoverConfigurationRevision | CUT-07后台配置版本、统一采集项定义版本、动态绑定规则版本及基础平台字典维度快照 | 草稿发布后不可覆盖；类型/组网/设备使用基础平台字典；不归入CutoverPlan |
+| Cutover | CutoverConfigurationRevision | CUT-07/09/10的V1后台配置版本、统一采集项定义版本、风险/调研匹配规则及基础平台字典维度快照；CUT-03 V2可追加受控流程跳转规则 | 首批配置基础先于或不晚于首个消费能力交付；草稿发布后不可覆盖；类型/组网/设备使用基础平台字典；不归入CutoverPlan |
 | Cutover | CutoverPlan | 调研项、风险项、操作/验证/回退清单、附件、保障人员安排和批准版本 | 清单是方案内容而非执行状态；职责变化新建revision，联系人类变化留前后审计 |
 | Cutover | CutoverSupportArrangement | 方案版本下的保障人员、联系信息、到位时间、角色和任务职责 | `CutoverPlan`从属明细，不是独立任务或状态机；联系人类变化留前后审计，职责变化随新方案revision重审 |
 | Cutover | CutoverClosure | 割接前/执行/测试结果、回退说明、附件、遗留项文本、INT-12结果引用和最终成功/失败 | P6提交即归档；遗留项无独立状态/责任/门禁；不保存逐步骤执行或稳定观察 |

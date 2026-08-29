@@ -1,12 +1,12 @@
 ﻿# SDS Phase 3：测试设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8、SDS Phase 1/2/3 BASELINE
-> Requirement ID：附录A.1全部100项V1/V2正式需求；重点NFR-01～03
+> 文档状态：`IN_REVIEW`
+> 适用基线：PRD V1.8修订007、SDS Phase 1/2 BASELINE、Phase 3 IN_REVIEW
+> Requirement ID：附录A.1全部100项正式Requirement及附录A.1.1的111个目标版本切片；重点NFR-01～03
 > Owner：SDS Phase 3质量架构；具体Feature测试由Requirement Owner负责
 > 前置设计：01～19正式分册
 
-Phase 1/2 V1.8基线和P3-E09模型输入已就绪；本分册定义测试设计和证据结构，不构成当前发布验收通过。V3、OUT_OF_SCOPE及后置工单/历史迁移内容只能作为边界负向测试或后续门禁输入。
+Phase 1/2 V1.8修订007基线已就绪；本分册正在按111个目标版本切片复核测试设计和证据结构，不构成SDS基线或发布验收通过。V3、OUT_OF_SCOPE及后置工单/历史迁移内容只能作为边界负向测试或后续门禁输入。
 
 ## 1. 测试原则
 

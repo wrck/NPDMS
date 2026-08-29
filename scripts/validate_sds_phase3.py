@@ -25,6 +25,7 @@ P3E09_STATE_ASSETS = (
     "specs/001-project-delivery-platform/appendices/core-field-migration-completeness.md",
 )
 REQUIREMENT_HEADING = re.compile(r"^###\s+([A-Z]+-\d+)\s*$", re.M)
+VERSION_SLICE_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+@V[12])\s*\|", re.M)
 PRD_REQUIREMENT_ROW = re.compile(r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$", re.M)
 PRD_TARGET_VERSION = re.compile(r"^\|\s*目标版本\s*\|\s*(V[123])(?:[^|]*)\|\s*$", re.M)
 PHASE3_TEST = re.compile(r"^- Phase 3测试类别：(.+?)\s*$", re.M)
@@ -53,12 +54,16 @@ STALE_V18_DESIGN_TEXT = (
     "未形成可复核证据前本分册不能基线化",
 )
 CROSS_CONTEXT_TABLE_REFERENCES = {
+    "PM-08": {"ast_area_department_mapping"},
     "PM-02": {"proj_project_tree_change"},
     "PM-04": {"proj_project_tree_change"},
     "PRE-03": {"ast_asset_sync_item"},
     "EXE-06": {"proj_project_stage_snapshot"},
+    "CUT-03": {"cut_cutover_configuration_revision"},
+    "CUT-05": {"plt_todo"},
     "CUT-08": {"ast_asset_sync_item"},
     "INT-01": {"ast_asset_sync_batch", "ast_asset_sync_item"},
+    "INT-02": {"cut_task", "cut_cutover_closure"},
     "INT-03": {"ast_asset_sync_batch", "ast_asset_sync_item"},
     "INT-05": {"plt_sync_batch", "plt_external_key_mapping"},
     "INT-07": {"plt_integration_reconciliation"},
@@ -119,6 +124,26 @@ def prd_formal_requirement_ids(text: str) -> list[str]:
     return identifiers
 
 
+def prd_version_slice_keys(root: Path) -> list[str]:
+    prd_text = (root / "docs" / "baseline" / "prd-v1.8.md").read_text(encoding="utf-8-sig")
+    matches = list(PRD_REQUIREMENT_ROW.finditer(prd_text))
+    result: list[str] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(prd_text)
+        version = PRD_TARGET_VERSION.search(prd_text[match.end():end])
+        if version and version.group(1) in {"V1", "V2"}:
+            result.append(f"{match.group(1)}@{version.group(1)}")
+    result.extend(
+        match.group(1)
+        for match in re.finditer(
+            r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+@V[12])\s*\|\s*[A-Z]+(?:-[A-Z0-9]+)?-\d+\s*\|\s*V[12]\s*\|",
+            prd_text,
+            re.M,
+        )
+    )
+    return result
+
+
 def normalize_acceptance(text: str) -> str:
     parts: list[str] = []
     for raw_line in text.splitlines():
@@ -161,10 +186,10 @@ def validate_v18_in_review(root: Path, gate: str) -> list[str]:
     conclusion = GATE_CONCLUSION.search(gate)
     if not state or state.group(1) != "IN_REVIEW":
         errors.append("Phase 3 V1.8 gate review state must be IN_REVIEW")
-    if not conclusion or conclusion.group(1) != "NOT_READY_FOR_SDS_BASELINE_V1.8":
-        errors.append("Phase 3 V1.8 gate conclusion must be NOT_READY_FOR_SDS_BASELINE_V1.8")
+    if not conclusion or conclusion.group(1) != "NOT_READY_FOR_SDS_BASELINE_REVISION_007":
+        errors.append("Phase 3 V1.8 gate conclusion must be NOT_READY_FOR_SDS_BASELINE_REVISION_007")
     require_tokens(errors, "Phase 3 V1.8 gate", gate, (
-        "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE_V1.8",
+        "IN_REVIEW", "NOT_READY_FOR_SDS_BASELINE_REVISION_007", "111个目标版本切片",
         "P3-E09", "AI-MIG-000", "Q08候选索引", "| Phase 1/2前置 | PASS |",
     ))
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
@@ -177,6 +202,10 @@ def validate_v18_in_review(root: Path, gate: str) -> list[str]:
     blocks = parse_contract_blocks(contract_text)
     if len(blocks) != 100:
         errors.append(f"expected 100 V1.8 Phase 3 verification mappings, got {len(blocks)}")
+    expected_slices = prd_version_slice_keys(root)
+    actual_slices = VERSION_SLICE_ROW.findall(contract_text)
+    if len(actual_slices) != 111 or len(set(actual_slices)) != 111 or set(actual_slices) != set(expected_slices):
+        errors.append("Phase 3 input must contain all 111 PRD-derived version slices exactly once")
     if {"ACC-05", "COM-02", "IMP-02"} & set(blocks):
         errors.append("removed/deferred V1.8 requirements leaked into Phase 3 mappings")
     return errors
@@ -197,7 +226,7 @@ def validate(root: Path) -> list[str]:
             errors.append(f"Phase 3 gate has invalid review state: {review_state}")
         revalidation = review_state == "IN_REVIEW"
         expected_conclusion = (
-            "NOT_READY_FOR_SDS_BASELINE_V1.8" if revalidation else "READY_FOR_SDS_BASELINE_V1.8"
+            "NOT_READY_FOR_SDS_BASELINE_REVISION_007" if revalidation else "READY_FOR_SDS_BASELINE_V1.8"
         )
         if gate_conclusion != expected_conclusion:
             errors.append(
@@ -501,7 +530,7 @@ def main() -> int:
         (match := GATE_REVIEW_STATE.search(gate_path.read_text(encoding="utf-8")))
         and match.group(1) == "IN_REVIEW"
     ):
-        print("[PASS] PRD V1.8 Phase 3 in-review gate: 100 mappings; not released as SDS baseline")
+        print("[PASS] PRD V1.8 revision 007 Phase 3 in-review gate: 100 mappings, 111 version slices; not released as SDS baseline")
         return 0
     print(f"[PASS] SDS Phase 3 documents, NFR controls and {EXPECTED_REQUIREMENT_COUNT} verification mappings")
     return 0

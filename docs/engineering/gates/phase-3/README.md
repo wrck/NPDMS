@@ -2,7 +2,7 @@
 
 Phase 3审查安全、审计可观测、部署、性能和测试设计是否足以形成完整SDS基线。
 
-当前结论为`REVALIDATION_REQUIRED / NOT_READY_FOR_SDS_BASELINE_REVISION_007`。修订007重新基线化为100项正式Requirement、111个目标版本切片；修订前的Phase 1/2、P3-E09及Phase 3评审保留为差量复核输入，但不自动批准当前基线。部署、联调、专项验收、历史迁移、切换、UAT和生产发布门禁继续有效。
+当前结论为`IN_REVIEW / NOT_READY_FOR_SDS_BASELINE_REVISION_007`。修订007的Phase 1/2已按100项正式Requirement、111个目标版本切片重新基线化，Phase 3正式进入差量评审；修订前P3-E09及Phase 3评审仅作输入，不自动批准当前基线。部署、联调、专项验收、历史迁移、切换、UAT和生产发布门禁继续有效。
 
 ## 当前文件
 
@@ -17,19 +17,15 @@ Phase 3审查安全、审计可观测、部署、性能和测试设计是否足�
 - [`self-review.md`](self-review.md)：当前自审结论和阻塞影响。
 - [`P3-E09当前哈希完整确认清单`](../../../../specs/001-project-delivery-platform/evidence/migration/p3-e09-confirmation-packet.md)：ADR-0028已接受的需求方九组决策证据，覆盖确认时全部692项`DEFER`，并绑定寄存器Items哈希及文件哈希；当前DDL、`DEFER=0`和MySQL 8.4隔离执行已通过独立复审并形成可用模型基线，但不构成迁移批准。
 
-修订007前的自审和独立复审分别登记为`self-review.md`和`independent-review.md`，仅作当前差量复核输入。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
+修订007前的自审和独立复审分别登记为`self-review.md`和`independent-review.md`，仅作当前差量复核输入，不构成当前独立裁决角色。正式14/17/18/19/20分册只放入`docs/design/`，评审过程不得混入正式设计目录。
 
-## 必跑校验
+## 按差量选择校验
 
 ```powershell
-py -3 -B scripts/generate_p3e09_confirmation_packet.py --check
-py -3 -B scripts/generate_phase3_evidence_packets.py --check
-py -3 -B scripts/validate_ddl_item_decision_register.py
-py -3 -B scripts/validate_phase3_evidence_register.py
 py -3 -B scripts/validate_sds_phase3.py
 ```
 
-上述校验用于证明修订007前的结构和事实绑定。ADR-0030差量后的独立复审与P3-E09 `MODEL_BASELINE_READY`保留为差量输入；在修订007影响复核完成前，不得据此批准新的SDS/Feature数据模型。`AI-MIG-000`按Release范围条件适用：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前达到`VERIFIED`，并只在批准窗口内执行。其他生产证据仍须在各自下游门禁以当时事实关闭。
+当前进入Phase 3只运行会决定阶段状态的SDS定点校验。仅当本轮实际修改P3-E09确认包、证据模板、DDL寄存器或证据寄存器时，才运行各自生成/校验脚本；结果不改变后续行动的重复校验不执行。修订前P3-E09 `MODEL_BASELINE_READY`保留为历史输入；在修订007影响复核完成前，不得据此批准新的SDS/Feature数据模型。`AI-MIG-000`按Release范围条件适用：不含历史迁移和数据切换时为`NOT_APPLICABLE`；包含任一项时须在Release前达到`VERIFIED`，并只在批准窗口内执行。
 
 ## 放行原则
 

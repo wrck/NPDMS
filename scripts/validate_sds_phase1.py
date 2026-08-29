@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the independently approved PRD V1.8 Phase 1 SDS gate."""
+"""Validate the PRD V1.8 revision 007 Phase 1 SDS gate."""
 
 from __future__ import annotations
 
@@ -45,12 +45,9 @@ OWNER_CODES = {
 MARKDOWN_PARSER = MarkdownIt("commonmark").enable("table")
 REMOVED_OR_DEFERRED = {"ACC-05", "COM-02", "IMP-02"}
 REQ_ID = re.compile(r"[A-Z]+(?:-[A-Z0-9]+)?-\d+")
+SLICE_KEY = re.compile(r"([A-Z]+(?:-[A-Z0-9]+)?-\d+)@(V[12])")
 PRD_REQUIREMENT_ROW = re.compile(
     r"^\|\s*需求编号\s*\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|\s*$",
-    re.M,
-)
-MATRIX_ROW = re.compile(
-    r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|[^|]*\|\s*([A-Z]+)",
     re.M,
 )
 OWNER_ROW = re.compile(r"^\|\s*([A-Z]{3,4})\s*\|\s*([^|]+?)\s*\|", re.M)
@@ -90,6 +87,27 @@ def formal_prd_ids(text: str) -> list[str]:
     return result
 
 
+def formal_prd_slice_keys(text: str) -> set[str]:
+    """Derive the 100 primary slices plus the approved supplemental slices."""
+    matches = list(PRD_REQUIREMENT_ROW.finditer(text))
+    result: set[str] = set()
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        block = text[match.end():end]
+        version = re.search(r"^\|\s*目标版本\s*\|\s*(V[12])(?:[^|]*)\|\s*$", block, re.M)
+        if version:
+            result.add(f"{match.group(1)}@{version.group(1)}")
+    result.update(
+        match.group(1)
+        for match in re.finditer(
+            r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+@V[12])\s*\|\s*[A-Z]+(?:-[A-Z0-9]+)?-\d+\s*\|\s*V[12]\s*\|",
+            text,
+            re.M,
+        )
+    )
+    return result
+
+
 def owner_mapping(text: str) -> tuple[dict[str, str], list[str]]:
     mapping: dict[str, str] = {}
     duplicates: list[str] = []
@@ -106,13 +124,31 @@ def owner_mapping(text: str) -> tuple[dict[str, str], list[str]]:
 
 def matrix_mapping(text: str) -> tuple[dict[str, str], list[str]]:
     mapping: dict[str, str] = {}
-    duplicates: list[str] = []
-    for identifier, owner in MATRIX_ROW.findall(text):
-        if identifier in mapping:
-            duplicates.append(identifier)
-        else:
-            mapping[identifier] = owner
-    return mapping, duplicates
+    conflicts: list[str] = []
+    for block in markdown_table_blocks(text):
+        for cells in block:
+            if len(cells) < 5:
+                continue
+            slice_match = SLICE_KEY.fullmatch(cells[0])
+            owner_match = re.match(r"([A-Z]{3,4})(?:\b|（)", cells[4])
+            if not slice_match or not owner_match:
+                continue
+            identifier = slice_match.group(1)
+            owner = owner_match.group(1)
+            if identifier in mapping and mapping[identifier] != owner:
+                conflicts.append(identifier)
+            else:
+                mapping[identifier] = owner
+    return mapping, conflicts
+
+
+def matrix_slice_keys(text: str) -> list[str]:
+    return [
+        cells[0]
+        for block in markdown_table_blocks(text)
+        for cells in block
+        if cells and SLICE_KEY.fullmatch(cells[0])
+    ]
 
 
 def markdown_row(text: str, key: str) -> list[str]:
@@ -176,9 +212,16 @@ def markdown_table_blocks(text: str) -> tuple[tuple[tuple[str, ...], ...], ...]:
 def markdown_rows(text: str, key: str) -> list[list[str]]:
     result: list[list[str]] = []
     normalized_key = normalize_markdown_cell(key)
+    requirement_key = REQ_ID.fullmatch(normalized_key)
     for block in markdown_table_blocks(text):
         for cells in block:
-            if cells and cells[0] == normalized_key:
+            if cells and (
+                cells[0] == normalized_key
+                or (
+                    requirement_key
+                    and re.fullmatch(rf"{re.escape(normalized_key)}@V[12]", cells[0])
+                )
+            ):
                 result.append(list(cells))
     return result
 
@@ -308,10 +351,11 @@ def validate(root: Path) -> list[str]:
         errors,
         "Phase 1 gate README",
         gate_readme,
-        ("APPROVED / READY_FOR_PHASE_2_V1.8", "4792f11", "537ab5a"),
+        ("APPROVED / READY_FOR_PHASE_2_V1.8", "修订007", "111个目标版本切片"),
     )
 
-    prd_ids = formal_prd_ids(read(root / "docs/baseline/prd-v1.8.md"))
+    prd_text = read(root / "docs/baseline/prd-v1.8.md")
+    prd_ids = formal_prd_ids(prd_text)
     prd_counts = Counter(prd_ids)
     if len(prd_ids) != 100 or len(prd_counts) != 100 or any(count != 1 for count in prd_counts.values()):
         errors.append(f"PRD V1.8 formal scope must be 100 unique requirements; got rows={len(prd_ids)} unique={len(prd_counts)}")
@@ -339,31 +383,67 @@ def validate(root: Path) -> list[str]:
             f"duplicates={sorted(set(matrix_duplicates))} mismatched="
             f"{sorted(identifier for identifier in set(matrix) | set(owners) if matrix.get(identifier) != owners.get(identifier))}"
         )
+    expected_slices = formal_prd_slice_keys(prd_text)
+    actual_slices = matrix_slice_keys(matrix_text)
+    actual_slice_counts = Counter(actual_slices)
+    if (
+        len(expected_slices) != 111
+        or len(actual_slices) != 111
+        or set(actual_slices) != expected_slices
+        or any(count != 1 for count in actual_slice_counts.values())
+        or sum(key.endswith("@V1") for key in actual_slices) != 53
+        or sum(key.endswith("@V2") for key in actual_slices) != 58
+    ):
+        errors.append(
+            "requirement matrix must exactly cover the 111 approved version slices "
+            f"(V1=53, V2=58); expected={len(expected_slices)} rows={len(actual_slices)} "
+            f"missing={sorted(expected_slices - set(actual_slices))} "
+            f"extra={sorted(set(actual_slices) - expected_slices)}"
+        )
 
     version_scope = read(root / "docs/design/02e-version-scope-matrix.md")
     project_scope_row = markdown_row(version_scope, "项目状态分层")
-    notice_scope_row = markdown_row(version_scope, "技术公告治理")
+    notice_scope_row = markdown_row(version_scope, "技术公告治理（INT-04）")
     if (
         len(project_scope_row) < 4
         or "PM-10异常关闭和受控重开、CLO-02正常闭环" not in project_scope_row[1]
         or "PM-10" in project_scope_row[2]
         or "CLO-02" in project_scope_row[2]
         or len(notice_scope_row) < 4
-        or "INT-04基础同步" not in notice_scope_row[2]
+        or "ITR技术公告基础同步" not in notice_scope_row[2]
         or "INT-04" in notice_scope_row[1]
     ):
         errors.append("version scope must keep PM-10/CLO-02 in V1 and INT-04 in V2")
+    require_markers(
+        errors,
+        "revision 007 version scope",
+        version_scope,
+        (
+            "冻结规则唯一匹配时自动形成并生效主责指派",
+            "甘特展示及受控依赖新增、更新、删除",
+            "短信/邮件和钉钉自动推送",
+            "短信/邮件和钉钉自动触达",
+            "按授权范围展示割接首页KPI",
+            "授权清单导出与流程跳转配置优化",
+            "A/B级专项提前时间判断及经定义的外部提醒",
+            "动态模板、表单和匹配的首批配置基础",
+            "接收ITR故障来源并回传ITR来源CUT归档结果",
+            "OA领料/外采流程及转包待办链接协作",
+            "在线巡检复用同一契约",
+            "后续命令按冻结的已发布规则决定并留痕",
+        ),
+    )
 
     eqp02_row = markdown_row(matrix_text, "EQP-02")
-    if len(eqp02_row) < 9 or "ConfigurationLog" not in eqp02_row[4] or "ConfigurationLog" not in eqp02_row[8]:
+    if len(eqp02_row) < 11 or "ConfigurationLog" not in eqp02_row[6] or "ConfigurationLog" not in eqp02_row[10]:
         errors.append("EQP-02 traceability must assign ConfigurationLog aggregate and data ownership")
     srv01_row = markdown_row(matrix_text, "SRV-01")
     if (
-        len(srv01_row) < 9
-        or "ServiceHandoverReference" not in {item.strip() for item in srv01_row[4].split("/")}
-        or "ServiceHandoverReference" not in {item.strip() for item in srv01_row[8].split("、")}
-        or "ServiceHandover" in {item.strip() for item in srv01_row[4].split("/")}
-        or "ServiceHandover" in {item.strip() for item in srv01_row[8].split("、")}
+        len(srv01_row) < 11
+        or "ServiceHandoverReference" not in {item.strip() for item in srv01_row[6].split("/")}
+        or "ServiceHandoverReference" not in {item.strip() for item in srv01_row[10].split("、")}
+        or "ServiceHandover" in {item.strip() for item in srv01_row[6].split("/")}
+        or "ServiceHandover" in {item.strip() for item in srv01_row[10].split("、")}
     ):
         errors.append("SRV-01 traceability must use read-only ServiceHandoverReference, not own ServiceHandover")
 
@@ -584,7 +664,7 @@ def validate(root: Path) -> list[str]:
         (
             "审查状态：`APPROVED`",
             "结论：`READY_FOR_PHASE_2_V1.8`",
-            "独立复审：`GO`",
+            "需求方批准：`GO`",
             "机器门禁：`PASS`",
         ),
     )
@@ -592,29 +672,28 @@ def validate(root: Path) -> list[str]:
         "审查状态": "APPROVED",
         "结论": "READY_FOR_PHASE_2_V1.8",
         "机器门禁": "PASS",
-        "独立复审": "GO",
-        "已评审候选": "4792f11",
-        "核心修复": "537ab5a",
+        "需求方批准": "GO",
+        "适用修订": "PRD_V1.8_REVISION_007",
     }
     if (
         any(metadata_values(gate, label) != [value] for label, value in expected_gate_metadata.items())
         or has_conflicting_gate_pending_claim(gate)
     ):
-        errors.append("fresh-context Phase 1 gate must keep one exact APPROVED/READY/GO metadata set without pending claims")
+        errors.append("Phase 1 gate must keep one exact revision 007 APPROVED/READY/GO metadata set without pending claims")
 
     self_review = read(root / "docs/engineering/gates/phase-1/self-review.md")
     require_markers(
         errors,
         "Phase 1 self-review",
         self_review,
-        ("MACHINE_PASS_AFTER_REPAIR", "APPROVED", "READY_FOR_PHASE_2_V1.8", "100/100", "13 个 Owner"),
+        ("MACHINE_PASS_AFTER_REPAIR", "APPROVED", "READY_FOR_PHASE_2_V1.8", "100/100", "111/111", "13 个 Owner", "修订007差量复核"),
     )
     independent = read(root / "docs/engineering/gates/phase-1/independent-review.md")
     require_markers(
         errors,
-        "fresh-context independent review record",
+        "historical independent review record",
         independent,
-        ("当前状态：`APPROVED`", "当前结论：`GO`", "已评审候选：`4792f11`", "核心修复：`537ab5a`", "APPROVED / READY_FOR_PHASE_2_V1.8"),
+        ("当前状态：`APPROVED`", "当前结论：`GO`", "APPROVED / READY_FOR_PHASE_2_V1.8"),
     )
     return errors
 
@@ -628,7 +707,7 @@ def main() -> int:
         for error in errors:
             print(f"[FAIL] {error}")
         return 1
-    print("[PASS] PRD V1.8 Phase 1 gate: 100 requirements, 13 unique Owners; independent review GO")
+    print("[PASS] PRD V1.8 revision 007 Phase 1 gate: 100 requirements, 111 version slices, 13 unique Owners")
     return 0
 
 

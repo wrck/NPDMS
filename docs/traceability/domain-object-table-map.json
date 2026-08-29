@@ -438,9 +438,7 @@
         "CUT-01",
         "CUT-02",
         "CUT-03",
-        "CUT-08",
-        "CUT-09",
-        "CUT-10"
+        "CUT-08"
       ],
       "targetTables": [
         "cut_task"
@@ -450,9 +448,7 @@
       "owner": "CUT",
       "requirementIds": [
         "CUT-01",
-        "CUT-02",
-        "CUT-09",
-        "CUT-10"
+        "CUT-02"
       ],
       "targetTables": [
         "cut_assessment"
@@ -472,7 +468,9 @@
     "CutoverConfigurationRevision": {
       "owner": "CUT",
       "requirementIds": [
-        "CUT-07"
+        "CUT-07",
+        "CUT-09",
+        "CUT-10"
       ],
       "targetTables": [
         "cut_cutover_configuration_revision",

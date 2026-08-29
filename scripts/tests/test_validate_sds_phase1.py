@@ -67,11 +67,11 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         )
         self.assertTrue(any("SDS master Phase 1 summary" in error for error in errors), errors)
 
-    def test_gate_readme_must_bind_reviewed_candidate_and_core_fix(self) -> None:
+    def test_gate_readme_must_declare_revision_007_slice_scope(self) -> None:
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/README.md",
-            "核心修复`537ab5a`已验证",
-            "核心修复尚未登记",
+            "111个目标版本切片",
+            "110个目标版本切片",
         )
         self.assertTrue(any("Phase 1 gate README" in error for error in errors), errors)
 
@@ -126,10 +126,10 @@ class ValidateSdsPhase1Test(unittest.TestCase):
     def test_approved_gate_cannot_reintroduce_pending_review(self) -> None:
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
-            "> 独立复审：`GO`<br>",
-            "> 独立复审：`GO`<br>\n> 重新复审：`RE_REVIEW_REQUIRED`<br>",
+            "> 需求方批准：`GO`<br>",
+            "> 需求方批准：`GO`<br>\n> 重新复审：`RE_REVIEW_REQUIRED`<br>",
         )
-        self.assertTrue(any("fresh-context" in error for error in errors), errors)
+        self.assertTrue(any("Phase 1 gate" in error for error in errors), errors)
 
     def test_version_scope_must_keep_v1_closure_and_v2_technical_notice(self) -> None:
         errors = self.validate_mutation(
@@ -190,9 +190,9 @@ class ValidateSdsPhase1Test(unittest.TestCase):
     def test_srv01_traceability_uses_read_only_handover_reference(self) -> None:
         matrix = (REPOSITORY_ROOT / "docs/traceability/requirement-matrix.md").read_text(encoding="utf-8-sig")
         row = MODULE.markdown_row(matrix, "SRV-01")
-        self.assertIn("ServiceHandoverReference", row[4])
-        self.assertIn("ServiceHandoverReference", row[8])
-        self.assertNotIn("ServiceHandover、", row[8])
+        self.assertIn("ServiceHandoverReference", row[6])
+        self.assertIn("ServiceHandoverReference", row[10])
+        self.assertNotIn("ServiceHandover、", row[10])
 
     def test_cross_context_contracts_have_requirement_traceability(self) -> None:
         contract = (REPOSITORY_ROOT / "docs/design/02d-cross-context-contracts.md").read_text(encoding="utf-8-sig")
@@ -343,13 +343,13 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_gate_cannot_mix_not_ready_with_approved_ready(self) -> None:
-        marker = "> 核心修复：`537ab5a`（`VERIFIED`）"
+        marker = "> 适用修订：`PRD_V1.8_REVISION_007`"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
             marker + "\n> 审查状态：`IN_REVIEW`<br>\n> 结论：`NOT_READY_FOR_PHASE_2_V1.8`",
         )
-        self.assertTrue(any("fresh-context" in error for error in errors), errors)
+        self.assertTrue(any("Phase 1 gate" in error for error in errors), errors)
 
     def test_contract_with_extra_column_cannot_hide_second_producer(self) -> None:
         marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
@@ -397,13 +397,13 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_gate_status_table_cannot_override_pending_metadata(self) -> None:
-        marker = "> 核心修复：`537ab5a`（`VERIFIED`）"
+        marker = "> 适用修订：`PRD_V1.8_REVISION_007`"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
             marker + "\n\n| 当前状态 | 结论 |\n|---|---|\n| Phase 1 | IN_REVIEW / NOT_READY_FOR_PHASE_2_V1.8 |",
         )
-        self.assertTrue(any("fresh-context" in error for error in errors), errors)
+        self.assertTrue(any("Phase 1 gate" in error for error in errors), errors)
 
     def test_html_entity_cannot_hide_second_service_handover_producer(self) -> None:
         marker = "| ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |"
@@ -620,13 +620,13 @@ class ValidateSdsPhase1Test(unittest.TestCase):
         self.assertTrue(any("runtime evidence" in error for error in errors), errors)
 
     def test_conditional_prefix_cannot_hide_current_gate_pending_claim(self) -> None:
-        marker = "> 核心修复：`537ab5a`（`VERIFIED`）"
+        marker = "> 适用修订：`PRD_V1.8_REVISION_007`"
         errors = self.validate_mutation(
             "docs/engineering/gates/phase-1/gate-status.md",
             marker,
             marker + "\n如果后续通过则放行；当前状态 IN_REVIEW / NOT_READY_FOR_PHASE_2_V1.8。",
         )
-        self.assertTrue(any("fresh-context" in error for error in errors), errors)
+        self.assertTrue(any("Phase 1 gate" in error for error in errors), errors)
 
     def test_project_manager_may_query_closed_projects(self) -> None:
         marker = "| Project/PM-10 | 服务经理对本人主责且满足条件的项目发起回退 | 服务经理填写回退原因并结束当前责任区间，无关闭或重开权限 | 工程管理部关闭岗 | 关闭、重开仅限授权项目；关闭前校验后代、在途审批和领域任务，重开仅限EXCEPTION_CLOSED；项目经理和普通成员只读状态及原因摘要 |"

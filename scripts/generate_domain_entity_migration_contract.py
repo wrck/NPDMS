@@ -84,7 +84,7 @@ MODEL_ENTITY_CONTRACTS = {
     "CallbackRecord": {"owner": "PLT", "requirementIds": ["INT-12"]},
     "CutoverSupportArrangement": {"owner": "CUT", "requirementIds": ["CUT-04"]},
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
-    "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07"]},
+    "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07", "CUT-09", "CUT-10"]},
     "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
     "DynamicFormTemplate": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
     "DynamicFormTemplateRevision": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
@@ -188,7 +188,7 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         source("CURRENT_FIELD_PATTERN", "pms_acc_maintenance_transition.renew*", "EXCLUDED", "retain as compatibility evidence; never expose in new handover writes", "CONFIRMED_EXCLUDED", "SCOPE_EXCLUSION"),
     ],
     "CutoverPlan": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "convert plans and operation/validation/rollback content into immutable plan revisions; do not create execution-step state", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
-    "CutoverConfigurationRevision": [source("NONE_NEW", "CutoverConfigurationRevision", "NEW_ONLY", "create CUT-07 configuration, checklist item definition and binding rule revisions only from new-platform commands; reuse base-platform dictionaries and never infer configuration master data from plans or legacy risk items", "NEW_ONLY", "FEATURE_RELEASE")],
+    "CutoverConfigurationRevision": [source("NONE_NEW", "CutoverConfigurationRevision", "NEW_ONLY", "create CUT-07/CUT-09/CUT-10 configuration, checklist item definition and binding rule revisions only from new-platform commands; reuse base-platform dictionaries and never infer configuration master data from plans or legacy risk items", "NEW_ONLY", "FEATURE_RELEASE")],
     "CutoverChecklist": [source("CURRENT_TABLE", "pms_cut_risk", "CURRENT_FORWARD", "map only provable task reference, original item code/name/type, description and answer facts; never infer item definition version, UI schema, binding rule, required flag, CollectionTask, automatic result, business pass or configuration gap", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "CutoverSupportArrangement": [source("CURRENT_TABLE", "pms_cut_plan", "CURRENT_FORWARD", "map only provable support contact, contact information, arrival time, role and duty fields as plan-owned details; never infer work-order status or responsibility intervals", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
     "CutoverClosure": [source("CURRENT_TABLE", "pms_cut_execution", "CURRENT_FORWARD", "map only provable P6 result, rollback description, attachment, legacy-item text and final result fields; exclude step and observation lifecycle fields", "PENDING_FIELD_MAPPING", "NEXT_FLYWAY")],
@@ -489,9 +489,17 @@ def parse_requirement_owners(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) < 3 or not re.fullmatch(r"[A-Z]+-\d+", cells[0]):
+        match = re.fullmatch(r"([A-Z]+(?:-[A-Z0-9]+)?-\d+)(?:@V[12])?", cells[0]) if cells else None
+        if not match:
             continue
-        result[cells[0]] = cells[2].split("（", 1)[0].strip()
+        owner_index = 4 if "@V" in cells[0] else 2
+        if len(cells) <= owner_index:
+            continue
+        identifier = match.group(1)
+        owner = cells[owner_index].split("（", 1)[0].strip()
+        if identifier in result and result[identifier] != owner:
+            raise ValueError(f"requirement has conflicting slice Owners: {identifier}")
+        result[identifier] = owner
     return result
 
 

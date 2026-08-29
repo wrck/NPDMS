@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import sys
@@ -27,7 +28,8 @@ SCOPE_STATISTICS_MARKER = (
     "范围统计：V1 55 项、V2 48 项、V1/V2 103 项；"
     "V3 30 项、OUT_OF_SCOPE 9 项。"
 )
-REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*\|", re.M)
+REQUIREMENT_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+)(?:@V[12])?\s*\|", re.M)
+VERSION_SLICE_ROW = re.compile(r"^\|\s*([A-Z]+(?:-[A-Z0-9]+)?-\d+@V[12])\s*\|", re.M)
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.M)
 CONTRACT_HEADING = re.compile(r"^###\s+([A-Z]+(?:-[A-Z0-9]+)?-\d+)\s*$", re.M)
@@ -222,6 +224,17 @@ def prd_formal_requirement_ids(text: str) -> list[str]:
     return [identifier for identifier, _ in prd_formal_requirement_records(text)]
 
 
+def prd_version_slice_keys(root: Path) -> list[str]:
+    generator = root / "scripts" / "generate_requirement_traceability.py"
+    spec = importlib.util.spec_from_file_location("requirement_generator", generator)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    prd_text = module.read(root / "docs" / "baseline" / "prd-v1.8.md")
+    requirements = module.extract_requirements(prd_text)
+    return [item["key"] for item in module.extract_version_slices(prd_text, requirements)]
+
+
 def appendix_fragment(text: str, start: str, end: str | None) -> str:
     start_match = re.search(start, text, re.M)
     if not start_match:
@@ -342,12 +355,9 @@ def validate_v18_physical_carriers(root: Path) -> list[str]:
             errors.append(f"V1.8 physical carrier decision missing marker: {marker}")
     gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", texts["gate"], re.MULTILINE)
     gate_state = gate_state_match.group(1) if gate_state_match else None
-    if gate_state == "REVALIDATION_REQUIRED":
-        if "`PROPOSED_FOR_REVIEW`" not in texts["decision"] or "`ACCEPTED`" in texts["decision"]:
-            errors.append("ADR-0030 must remain PROPOSED_FOR_REVIEW while Phase 2 is REVALIDATION_REQUIRED")
-    elif gate_state == "APPROVED":
+    if gate_state in {"REVALIDATION_REQUIRED", "APPROVED"}:
         if "`ACCEPTED`" not in texts["decision"]:
-            errors.append("ADR-0030 must be ACCEPTED after the Phase 2 gate is approved")
+            errors.append("ADR-0030 must remain ACCEPTED; PRD delta review does not reverse an accepted carrier decision")
     else:
         errors.append("V1.8 physical carrier gate state is not recognized")
     if "ADR-0030" not in texts["database"]:
@@ -440,12 +450,12 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     gate_state_match = re.search(r"^> 审查状态：`([^`]+)`", gate, re.MULTILINE)
     gate_conclusion_match = re.search(r"^> 结论：`([^`]+)`", gate, re.MULTILINE)
     expected_gate_state = "APPROVED" if approved else "REVALIDATION_REQUIRED"
-    expected_gate_conclusion = "READY_FOR_PHASE_3_V1.8" if approved else "NOT_READY_FOR_PHASE_3_V1.8"
+    expected_gate_conclusion = "READY_FOR_PHASE_3_V1.8" if approved else "NOT_READY_FOR_PHASE_3_REVISION_007"
     if not gate_state_match or gate_state_match.group(1) != expected_gate_state:
         errors.append(f"V1.8 Phase 2 gate state must be: {expected_gate_state}")
     if not gate_conclusion_match or gate_conclusion_match.group(1) != expected_gate_conclusion:
         errors.append(f"V1.8 Phase 2 gate conclusion must be: {expected_gate_conclusion}")
-    required_gate_tokens = ("100项", "V1 53项", "V2 47项", "AI-MIG-000")
+    required_gate_tokens = ("100项", "111个目标版本切片", "V1 53个", "V2 58个", "AI-MIG-000")
     for token in required_gate_tokens:
         if token not in gate:
             errors.append(f"V1.8 Phase 2 gate missing token: {token}")
@@ -454,6 +464,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
         return errors + ["missing PRD V1.8 baseline"]
     records = prd_formal_requirement_records(read(prd_path))
     prd_ids = [identifier for identifier, _ in records]
+    expected_slice_keys = prd_version_slice_keys(root)
     expected_counts = {"V1": 53, "V2": 47}
     actual_counts = {version: sum(item_version == version for _, item_version in records) for version in expected_counts}
     if len(prd_ids) != 100 or len(set(prd_ids)) != 100 or actual_counts != expected_counts:
@@ -462,14 +473,18 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     if not matrix_path.is_file():
         errors.append("missing V1.8 requirement matrix")
         matrix_ids: list[str] = []
+        matrix_slice_keys: list[str] = []
     else:
         matrix = read(matrix_path)
-        matrix_ids = REQUIREMENT_ROW.findall(matrix)
-        expected_sds_marker = "SDS-V1.8-PHASE2-BASELINE" if approved else "SDS-V1.8-REVALIDATION_REQUIRED"
-        if matrix.count(expected_sds_marker) != 100:
-            errors.append(f"every V1.8 requirement row must carry SDS evidence: {expected_sds_marker}")
-    if set(matrix_ids) != set(prd_ids) or len(matrix_ids) != 100:
-        errors.append("V1.8 PRD and requirement matrix must contain the same 100 IDs")
+        matrix_slice_keys = VERSION_SLICE_ROW.findall(matrix)
+        matrix_ids = [key.split("@", 1)[0] for key in matrix_slice_keys]
+    if (
+        set(matrix_ids) != set(prd_ids)
+        or len(matrix_slice_keys) != 111
+        or len(set(matrix_slice_keys)) != 111
+        or set(matrix_slice_keys) != set(expected_slice_keys)
+    ):
+        errors.append("V1.8 requirement matrix must exactly contain the PRD-derived 100 Requirements and 111 version slices")
 
     if not contract_path.is_file():
         errors.append("missing V1.8 Phase 2 contract map")
@@ -479,6 +494,13 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
         errors.extend(contract_errors)
         if set(contracts) != set(prd_ids) or len(contracts) != 100:
             errors.append("V1.8 Phase 2 contract map must contain the same 100 IDs")
+        contract_slice_keys = VERSION_SLICE_ROW.findall(contract_text)
+        if (
+            len(contract_slice_keys) != 111
+            or len(set(contract_slice_keys)) != 111
+            or set(contract_slice_keys) != set(expected_slice_keys)
+        ):
+            errors.append("V1.8 Phase 2 contract map must exactly declare all 111 PRD-derived version slices")
         contract_markers = (
             ("文档状态：`BASELINE`", "适用基线：PRD V1.8", "Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`")
             if approved
@@ -487,6 +509,26 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
         for marker in contract_markers:
             if marker not in contract_text:
                 errors.append(f"V1.8 Phase 2 contract map missing marker: {marker}")
+        required_contract_semantics = (
+            "V2仅在冻结规则唯一匹配时自动形成并生效主责指派",
+            "甘特展示和受控依赖新增、更新、删除",
+            "送达不等于确认，渠道失败回退V1链接/扫码",
+            "V2仅增加自动触达",
+            "V2按授权范围聚合首页KPI",
+            "V2增加授权清单导出及受控流程跳转配置优化",
+            "V2校验A/B级专项提前时间",
+            "V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则",
+            "技术公告唯一归INT-04",
+            "V2创建OA领料/外采流程引用",
+            "V2在线巡检复用同一凭证、任务和采集执行引擎",
+            "后续命令是否继续由任务冻结的已发布规则决定并留痕",
+        )
+        for marker in required_contract_semantics:
+            if marker not in contract_text:
+                errors.append(f"V1.8 Phase 2 contract map missing revision 007 semantics: {marker}")
+        for stale_marker in ("V2规则候选确认", "不影响后续命令执行"):
+            if stale_marker in contract_text:
+                errors.append(f"V1.8 Phase 2 contract map retains superseded semantics: {stale_marker}")
 
     if approved:
         for name in PHASE2_DOCS:

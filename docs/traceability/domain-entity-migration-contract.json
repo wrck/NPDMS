@@ -469,9 +469,7 @@
         "CUT-01",
         "CUT-02",
         "CUT-03",
-        "CUT-08",
-        "CUT-09",
-        "CUT-10"
+        "CUT-08"
       ],
       "targetTables": [
         "cut_task"
@@ -481,9 +479,7 @@
       "owner": "CUT",
       "requirementIds": [
         "CUT-01",
-        "CUT-02",
-        "CUT-09",
-        "CUT-10"
+        "CUT-02"
       ],
       "targetTables": [
         "cut_assessment"
@@ -514,7 +510,9 @@
     "CutoverConfigurationRevision": {
       "owner": "CUT",
       "requirementIds": [
-        "CUT-07"
+        "CUT-07",
+        "CUT-09",
+        "CUT-10"
       ],
       "targetTables": [
         "cut_cutover_configuration_revision",
@@ -2168,9 +2166,7 @@
         "CUT-01",
         "CUT-02",
         "CUT-03",
-        "CUT-08",
-        "CUT-09",
-        "CUT-10"
+        "CUT-08"
       ],
       "targetTables": [
         "cut_task"
@@ -2193,9 +2189,7 @@
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
         "CUT-01",
-        "CUT-02",
-        "CUT-09",
-        "CUT-10"
+        "CUT-02"
       ],
       "targetTables": [
         "cut_assessment"
@@ -2265,7 +2259,9 @@
       "owner": "CUT",
       "ownerEvidence": "docs/design/phase-1-domain-ownership.md;docs/design/02-domain-model.md",
       "requirementIds": [
-        "CUT-07"
+        "CUT-07",
+        "CUT-09",
+        "CUT-10"
       ],
       "targetTables": [
         "cut_cutover_configuration_revision",
@@ -2277,7 +2273,7 @@
           "sourceType": "NONE_NEW",
           "sourceObject": "CutoverConfigurationRevision",
           "disposition": "NEW_ONLY",
-          "transform": "create CUT-07 configuration, checklist item definition and binding rule revisions only from new-platform commands; reuse base-platform dictionaries and never infer configuration master data from plans or legacy risk items",
+          "transform": "create CUT-07/CUT-09/CUT-10 configuration, checklist item definition and binding rule revisions only from new-platform commands; reuse base-platform dictionaries and never infer configuration master data from plans or legacy risk items",
           "mappingStatus": "NEW_ONLY",
           "gate": "FEATURE_RELEASE",
           "evidenceRef": "phase2-contract://object=CutoverConfigurationRevision"

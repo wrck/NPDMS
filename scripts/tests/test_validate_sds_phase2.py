@@ -737,7 +737,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             self.assertTrue(any("DAC technical status" in error for error in errors), errors)
 
-    def test_v18_revalidation_rejects_prematurely_accepted_adr(self) -> None:
+    def test_v18_revalidation_keeps_previously_accepted_adr(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -757,7 +757,7 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
             errors = MODULE.validate_v18_physical_carriers(root)
 
-            self.assertTrue(any("must remain PROPOSED_FOR_REVIEW" in error for error in errors), errors)
+            self.assertEqual([], errors)
 
     def test_v18_revalidation_rejects_blocked_by_design_in_alignment(self) -> None:
         repository_root = MODULE_PATH.parents[1]

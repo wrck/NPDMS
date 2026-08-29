@@ -1,8 +1,8 @@
 ﻿# SDS Phase 3：安全设计
 
-> 文档状态：`BASELINE`
-> 适用基线：PRD V1.8及批准增量`CHG-PRD-2026-08-27-004`
-> Requirement ID：NFR-01、NFR-02、INT-09、INT-12、PLT-02，以及全部100项V1/V2需求的认证、授权、数据隔离、文件、集成和审计安全
+> 文档状态：`IN_REVIEW`
+> 适用基线：PRD V1.8修订007及批准增量`CHG-PRD-2026-08-27-004`
+> Requirement ID：NFR-01、NFR-02、INT-09、INT-12、PLT-02，以及全部100项正式Requirement、111个目标版本切片的认证、授权、数据隔离、文件、集成和审计安全
 > Owner：SDS Phase 3安全架构；业务授权Owner继承07，凭证Owner继承Device Access & Collection
 > 前置设计：07、10、12、13、15、16分册
 

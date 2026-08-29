@@ -4,9 +4,9 @@ Phase 1 用于确认需求追溯、领域边界、聚合责任、系统架构、
 
 ## 当前文件
 
-- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总。PRD修订007重新基线化后为`REVALIDATION_REQUIRED / NOT_READY_FOR_PHASE_2_REVISION_007`；前次固定候选结论只作差量复核输入。
-- [`self-review.md`](self-review.md)：修订007前的V1.8自审与机器门禁结果，作为当前差量复核输入。
-- [`independent-review.md`](independent-review.md)：修订007前的fresh-context独立复审记录；固定候选`4792f11`结论为GO，核心修复`537ab5a`已验证，但不自动批准修订007。
+- [`gate-status.md`](gate-status.md)：当前阶段门禁汇总。PRD修订007按100项Requirement、111个目标版本切片完成复核，当前为`APPROVED / READY_FOR_PHASE_2_V1.8`。
+- [`self-review.md`](self-review.md)：修订007差量自审与机器门禁结果。
+- [`independent-review.md`](independent-review.md)：修订007前的历史独立复审记录，仅用于追溯，不构成当前独立裁决角色。
 - [`context-refinement-review.md`](context-refinement-review.md)：领域上下文重构后的复审记录。
 - [`naming-review.md`](naming-review.md)：业务命名审查结论。
 - [`naming-inventory.md`](naming-inventory.md)：命名迁移盘点证据。

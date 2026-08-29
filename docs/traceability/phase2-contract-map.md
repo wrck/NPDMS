@@ -1,16 +1,23 @@
 # SDS Phase 2 显式需求契约映射
 
 > 文档状态：`BASELINE`
-> 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
-> Requirement ID：附录 A.1 全部 100 项 V1/V2 正式需求
+> 适用基线：PRD V1.8 修订007（`docs/baseline/prd-v1.8.md`）
+> Requirement ID：附录 A.1 的100项正式Requirement及附录A.1.1派生的111个目标版本切片（V1 53个、V2 58个）
 > Owner：SDS Phase 2 追溯治理；具体业务 Owner 以 `requirement-matrix.md` 为准
 > Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`（仅表示SDS设计可进入Phase 3，不批准DDL、Feature或Release）
 
-本文件逐项声明可实施的数据对象、表、API、事件/集成/文件、工作流和授权落点。相同基础契约可被多个相关 Requirement 复用，但每个 Requirement 必须显式登记；`N/A` 必须说明为何该类契约不适用。
+本文件按100项Requirement声明共享的数据对象、表、API、事件/集成/文件、工作流和授权落点，并在每项下逐一登记正式版本切片的独立业务结果与边界。相同基础契约可被多个相关Requirement复用，但111个切片键必须精确同源；`N/A` 必须说明为何该类契约不适用。
 
 ### COM-01
 
 - 需求名称：合同订单关联与范围分配
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| COM-01@V1 | V1 | 合同订单关联与范围分配的V1主交付业务结果 | V1 |
+
 - 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail
 - 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail
 - API：/contracts、/sales-orders、/order-lines、/delivery-scopes
@@ -29,6 +36,13 @@
 ### PM-01
 
 - 需求名称：项目创建与指派
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-01@V1 | V1 | 项目创建与指派的V1主交付业务结果 | V1 |
+
 - 数据对象：Project、ProjectMemberAssignment
 - 数据表：proj_project、proj_project_member_assignment
 - API：/projects、/projects/{id}/actions/assign-manager
@@ -48,6 +62,13 @@
 
 - 需求名称：项目业务属性识别与分类
 - Feature：F-PROJ-004（项目业务属性判定、模板匹配历史与影响识别）
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-07@V1 | V1 | 项目业务属性识别与分类的V1主交付业务结果 | V1 |
+
 - 数据对象：Project、ProjectTemplateMatchHistory
 - 数据表：proj_project、proj_project_template_match_history
 - API：复用POST /projects与/projects/{id}当前四属性；/projects/{id}/template-match-history；/projects/{id}/actions/classify；内部ProjectAttributeResolutionService与ProjectAttributeSourceCorrectionCommand
@@ -67,6 +88,13 @@
 ### PM-03
 
 - 需求名称：项目模板与阶段门禁
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-03@V1 | V1 | 项目模板与阶段门禁的V1主交付业务结果 | V1 |
+
 - 数据对象：ProjectTemplate、ProjectStageSnapshot
 - 数据表：proj_project_template_revision、proj_project_template_task_definition、proj_project_stage_snapshot
 - API：/project-templates
@@ -85,25 +113,40 @@
 ### PM-08
 
 - 需求名称：服务经理自动指派
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-08@V1 | V1 | 服务经理自动指派的V1主交付业务结果 | V1映射配置/候选过滤/人工指派；V2唯一匹配自动生效、异常转人工 |
+| PM-08@V2 | V2 | 按冻结规则唯一匹配时自动形成并生效主责指派 | 无匹配或多匹配保持待指派并转V1人工流程 |
+
 - 数据对象：ProjectMemberAssignment
-- 数据表：proj_project_member_assignment
+- 数据表：proj_project_member_assignment、ast_area_department_mapping
 - API：/projects/{id}/service-manager-candidates、/projects/{id}/actions/assign-manager、/projects/{rootId}/service-manager-responsibilities；SYSTEM OrganizationScopeApi.pageActiveUsers、NotifyMessageSendApi(deliveryKey)
 - 事件：ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：V1手动且服务端即时生效、V2规则候选确认；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立
+- 工作流/状态：V1按区域—部门映射过滤候选并人工指派；V2仅在冻结规则唯一匹配时自动形成并生效主责指派，无匹配或多匹配保持待指派并回到V1人工流程；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立
 - 授权与数据范围：项目管理范围；仅PRD角色
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试
-- Phase 3 PRD验收基线：WHEN V1工程管理部为项目节点选择在职且属于适用办事处的服务经理；THEN 平台保存主责服务经理、责任项目节点和生效时间，将项目`assignment_status`从"待指派"更新为"已指派"；`current_stage`和`lifecycle_status`保持不变，并向被指派人发送通知；WHEN 项目涉及多个省份和多个实际项目节点；THEN 平台允许分别为统筹节点和实施节点人工指派主责人，不要求节点位于固定结构深度，并可从根项目查看各节点责任分布；WHEN 候选人已离职、办事处不匹配、实施地点缺失或项目节点已有生效中的主责人；THEN 平台拒绝直接覆盖，保持原责任关系或"待指派"状态，并提示补齐地点或执行改派流程
+- Phase 3 PRD验收基线：WHEN V1工程管理部为项目节点选择在职且属于适用办事处的服务经理；THEN 平台保存主责服务经理、责任项目节点和生效时间，将项目`assignment_status`从"待指派"更新为"已指派"；`current_stage`和`lifecycle_status`保持不变，并向被指派人发送通知；WHEN 项目涉及多个省份和多个实际项目节点；THEN 平台允许分别为统筹节点和实施节点人工指派主责人，不要求节点位于固定结构深度，并可从根项目查看各节点责任分布；WHEN 候选人已离职、办事处不匹配、实施地点缺失或项目节点已有生效中的主责人；THEN 平台拒绝直接覆盖，保持原责任关系或"待指派"状态，并提示补齐地点或执行改派流程；WHEN V1有权管理员新增、调整、启停行政区划—部门映射并发布新版本；THEN 新的候选查询使用当前已发布映射版本，既有指派责任区间不被追溯改写；缺失或冲突映射显示配置缺口并保持人工处理；WHEN V2项目节点按冻结的已发布规则只能匹配一名合法候选服务经理；THEN 平台自动建立主责责任区间并把`assignment_status`更新为“已指派”，保存规则版本、输入快照和唯一候选依据；WHEN V2匹配结果为0名或多名候选，或地点、组织、人员事实无法唯一确认；THEN 平台不得静默选择人员，项目保持“待指派”并生成可处理的匹配缺口，由有权人员按V1人工指派流程处理
 - F-PROJ-005聚焦裁决：PM-08局部验收中的服务经理指派后ASSIGNED，解释为该操作使有效主责服务经理和有效项目经理两项条件全部满足时ASSIGNED；仅服务经理有效时仍为UNASSIGNED。V1只支持服务端即时生效，不实现PM-11项目经理指派或预约生效。
 - Phase 3授权拒绝断言：越权按“项目管理范围；仅PRD角色”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“V1手动且服务端即时生效、V2规则候选确认；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectMemberAssignment”及数据表“proj_project_member_assignment”；事件边界为“ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。同时写入Project版本/状态、幂等/审计及一个Outbox；处理器以eventId调用SYSTEM幂等站内信接口。通知失败不回滚指派，只更新Outbox重试事实；授权拒绝或业务守卫失败不得新增有效业务版本、事件、站内信或外部完成事实，一致重放不得新增成员区间、事件或站内信。
+- Phase 3业务守卫断言：按“V1按区域—部门映射过滤候选并人工指派；V2仅在冻结规则唯一匹配时自动形成并生效主责指派，无匹配或多匹配保持待指派并回到V1人工流程；ASSIGNED仅在有效主责服务经理和有效项目经理同时存在时成立”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectMemberAssignment”及数据表“proj_project_member_assignment、ast_area_department_mapping”；事件边界为“ProjectServiceManagerAssigned（仅通知投递；不派生权限、成员或状态事实）”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。区域—部门映射表只读；同时写入Project版本/状态、幂等/审计及一个Outbox。处理器以eventId调用SYSTEM幂等站内信接口；通知失败不回滚指派，只更新Outbox重试事实；授权拒绝或业务守卫失败不得新增有效业务版本、事件、站内信或外部完成事实，一致重放不得新增成员区间、事件或站内信。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据
 
 ### PM-09
 
 - 需求名称：人员批量变更
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-09@V2 | V2 | 人员批量变更的V2主交付业务结果 | V2 |
+
 - 数据对象：ProjectMemberAssignment
 - 数据表：proj_project_member_assignment
 - API：/projects/{id}/members:batch-change
@@ -122,6 +165,13 @@
 ### PM-02
 
 - 需求名称：主子项目管理与进度汇总
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-02@V1 | V1 | 主子项目管理与进度汇总的V1主交付业务结果 | V1 |
+
 - 数据对象：ProjectHierarchy、ProjectAncestorProjection
 - 数据表：proj_project、proj_project_tree_path、proj_project_tree_change
 - API：/projects/{id}/tree、/projects/{id}/actions/move
@@ -140,6 +190,13 @@
 ### PM-04
 
 - 需求名称：多级项目权限与拆分
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-04@V1 | V1 | 多级项目权限与拆分的V1主交付业务结果 | V1 |
+
 - 数据对象：ProjectHierarchy、ProjectAncestorProjection
 - 数据表：proj_project、proj_project_tree_path、proj_project_tree_change
 - API：/projects/{id}/tree、/projects/{id}/actions/move
@@ -158,24 +215,39 @@
 ### PM-11
 
 - 需求名称：项目任务管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-11@V1 | V1 | 项目任务管理的V1主交付业务结果 | V1层级模型/WorkBinding配置/基础查询；V2甘特展示与受控依赖维护 |
+| PM-11@V2 | V2 | 甘特展示及受控依赖新增、更新、删除 | 不含其他未定义高级编排；不建立第二套任务事实 |
+
 - 数据对象：ProjectTask、TaskWorkBinding、TaskCompletionRule、TaskCompletionEvaluation、TaskAncestorProjection、TaskDependency
 - 数据表：proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency
-- API：/projects/{id}/workspace、/projects/{id}/tasks、/project-tasks/{id}/workbench、/project-tasks/{id}/actions/move、/project-tasks/{id}/actions/{submit|start|complete|cancel}
+- API：/projects/{id}/workspace、/projects/{id}/gantt、/projects/{id}/tasks、/project-tasks/{id}/workbench、/project-tasks/{id}/dependencies、/project-tasks/{id}/actions/move、/project-tasks/{id}/actions/{submit|start|complete|cancel}
 - 事件：TaskAssigned、TaskCompleted
 - 外部集成：N/A（平台内部契约）
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：ProjectTask内必填WorkBinding/CompletionRule与Stage→ProjectTask工作台投影、任务任意层级移动；TASK_NATIVE按任务自身事实执行，其他类型回源绑定事实并追加完成判定后完成
+- 工作流/状态：V1完成ProjectTask层级、WorkBinding/CompletionRule、基础查询与Stage→ProjectTask工作台投影；V2只增加甘特展示和受控依赖新增、更新、删除，依赖与层级正交且不建立第二套任务事实；TASK_NATIVE按任务自身事实执行，其他类型回源绑定事实并追加完成判定后完成
 - 授权与数据范围：ProjectTreeScope；TASK_NATIVE任务范围；其他类型由服务端合并目标业务对象权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；5万节点、2000直接子节点、深度30任务树查询/移动测试
-- Phase 3 PRD验收基线：WHEN 用户创建或移动任务节点；THEN 可指定直接父任务和业务层级标签，系统自动计算结构层级深度，并拒绝循环引用及跨项目非法挂接；WHEN 用户查看或搜索任务树；THEN 支持直接下级、全部后代、完整上级链和指定业务层级查询，树形界面默认按需加载直接下级；AND 通过任务名称或编码定位节点时，返回目标任务并展示其完整层级路径；AND 上述任务层级查询在权限过滤后仍满足平台页面响应时间≤2秒（P95）；AND 性能验收按实际迁移任务量两倍与200万任务取较大值，并覆盖单任务树5万个节点、直接子任务2000个和测试深度30；AND 测试深度30不限制继续创建更深任务层级；超过测试深度时仍须保证父子关系、路径和权限结果正确并采用按需加载；WHEN 用户无权访问目标任务、尝试形成循环引用或把任务非法挂接到其他项目；THEN 平台拒绝查看或移动，保持原任务父子关系和路径不变，且不返回未授权任务业务明细；WHEN 授权管理员新增或调整任务扩展状态并提交发布；THEN 平台要求该状态配置标准状态映射、允许迁移、适用角色、进入/退出条件和状态机版本；发布后新建任务使用新版本，已创建任务继续使用创建时冻结的状态机版本；WHEN 状态配置缺少标准映射或合法迁移、尝试删除或改义核心状态，或者允许绕过完成/关闭门禁；THEN 平台拒绝发布并继续使用当前生效版本，不改变任何既有任务状态；WHEN 用户进入项目工作区；THEN 项目概览独立展示基本信息、项目树、团队成员、项目任务、设备清单、实施范围六个页签；业务导航按Stage→ProjectTask生成，深层任务按需展开且不受固定层级限制；WHEN 用户点击WorkBinding为TASK_NATIVE的ProjectTask；THEN 右侧任务详情工作台展示通用基础信息和本人获权的任务操作，按ProjectTask自身状态机及完成规则执行；WHEN 用户点击一个绑定业务对象、业务组件、动态表单、审批或组合视图的ProjectTask；THEN 右侧在保留通用任务基础信息的同时按绑定关系加载相应真实业务界面，并按服务端权限与对象状态返回查看、编辑、创建、填写或审批模式，不要求用户离开当前任务上下文再次查找入口；WHEN TASK_NATIVE任务自身事实或其他绑定任务的目标业务事实达到完成规则，或者用户尝试在规则未满足时完成任务；THEN 平台按任务版本、绑定版本、规则版本及适用的事实版本派生完成结果；满足时受控推进任务，不满足时返回具体未满足项，非TASK_NATIVE任务不能由通用完成操作直接绕过
+- Phase 3 PRD验收基线：WHEN 用户创建或移动任务节点；THEN 可指定直接父任务和业务层级标签，系统自动计算结构层级深度，并拒绝循环引用及跨项目非法挂接；WHEN 用户查看或搜索任务树；THEN 支持直接下级、全部后代、完整上级链和指定业务层级查询，树形界面默认按需加载直接下级；AND 通过任务名称或编码定位节点时，返回目标任务并展示其完整层级路径；AND 上述任务层级查询在权限过滤后仍满足平台页面响应时间≤2秒（P95）；AND 性能验收按实际迁移任务量两倍与200万任务取较大值，并覆盖单任务树5万个节点、直接子任务2000个和测试深度30；AND 测试深度30不限制继续创建更深任务层级；超过测试深度时仍须保证父子关系、路径和权限结果正确并采用按需加载；WHEN 用户无权访问目标任务、尝试形成循环引用或把任务非法挂接到其他项目；THEN 平台拒绝查看或移动，保持原任务父子关系和路径不变，且不返回未授权任务业务明细；WHEN 授权管理员新增或调整任务扩展状态并提交发布；THEN 平台要求该状态配置标准状态映射、允许迁移、适用角色、进入/退出条件和状态机版本；发布后新建任务使用新版本，已创建任务继续使用创建时冻结的状态机版本；WHEN 状态配置缺少标准映射或合法迁移、尝试删除或改义核心状态，或者允许绕过完成/关闭门禁；THEN 平台拒绝发布并继续使用当前生效版本，不改变任何既有任务状态；WHEN 用户进入项目工作区；THEN 项目概览独立展示基本信息、项目树、团队成员、项目任务、设备清单、实施范围六个页签；业务导航按Stage→ProjectTask生成，深层任务按需展开且不受固定层级限制；WHEN 用户点击WorkBinding为TASK_NATIVE的ProjectTask；THEN 右侧任务详情工作台展示通用基础信息和本人获权的任务操作，按ProjectTask自身状态机及完成规则执行；WHEN 用户点击一个绑定业务对象、业务组件、动态表单、审批或组合视图的ProjectTask；THEN 右侧在保留通用任务基础信息的同时按绑定关系加载相应真实业务界面，并按服务端权限与对象状态返回查看、编辑、创建、填写或审批模式，不要求用户离开当前任务上下文再次查找入口；WHEN TASK_NATIVE任务自身事实或其他绑定任务的目标业务事实达到完成规则，或者用户尝试在规则未满足时完成任务；THEN 平台按任务版本、绑定版本、规则版本及适用的事实版本派生完成结果；满足时受控推进任务，不满足时返回具体未满足项，非TASK_NATIVE任务不能由通用完成操作直接绕过；WHEN V2用户查看授权项目的甘特图；THEN 平台按V1同一任务、计划时间、实际时间、进度和依赖事实展示甘特结果，不复制或另行维护任务状态；WHEN V2有权项目经理新增、更新或删除任务依赖；THEN 平台校验源/目标任务、项目范围、依赖版本和无环约束后原子保存；循环引用、非法跨项目关系、越权对象或版本冲突均被拒绝且原依赖不变
 - Phase 3授权拒绝断言：越权按“ProjectTreeScope；TASK_NATIVE任务范围；其他类型由服务端合并目标业务对象权限”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“ProjectTask内必填WorkBinding/CompletionRule与Stage→ProjectTask工作台投影、任务任意层级移动；TASK_NATIVE按任务自身事实执行，其他类型回源绑定事实并追加完成判定后完成”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3业务守卫断言：按“V1完成ProjectTask层级、WorkBinding/CompletionRule、基础查询与Stage→ProjectTask工作台投影；V2只增加甘特展示和受控依赖新增、更新、删除，依赖与层级正交且不建立第二套任务事实；TASK_NATIVE按任务自身事实执行，其他类型回源绑定事实并追加完成判定后完成”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“ProjectTask、TaskWorkBinding、TaskCompletionRule、TaskCompletionEvaluation、TaskAncestorProjection、TaskDependency”及数据表“proj_project_task、proj_project_task_execution_contract、proj_project_task_completion_evaluation、proj_task_tree_path、proj_task_dependency”；事件边界为“TaskAssigned、TaskCompleted”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；任务树数据集版本与性能报告
 
 ### PM-10
 
 - 需求名称：项目回退与关闭
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-10@V1 | V1 | 项目回退与关闭的V1主交付业务结果 | V1 |
+
 - 数据对象：Project、ProjectStageSnapshot
 - 数据表：proj_project、proj_project_stage_snapshot
 - API：/projects/{id}/actions/rollback、/projects/{id}/actions/close
@@ -194,6 +266,13 @@
 ### PROJ-12
 
 - 需求名称：项目组合管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PROJ-12@V2 | V2 | 项目组合管理的V2主交付业务结果 | V2 |
+
 - 数据对象：ProjectPortfolio
 - 数据表：proj_project_portfolio、proj_project_portfolio_member、proj_project_portfolio_revision
 - API：/project-portfolios
@@ -212,6 +291,13 @@
 ### PM-05
 
 - 需求名称：借货项目转销管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-05@V2 | V2 | 借货项目转销管理的V2主交付业务结果 | V2 |
+
 - 数据对象：BorrowedProjectConversion、ConversionItem、ConversionDeviceDisposition
 - 数据表：proj_project_conversion、proj_project_conversion_item、proj_project_conversion_device
 - API：/project-conversions、/project-conversions/{id}/actions/retry-failed
@@ -230,6 +316,13 @@
 ### PM-06
 
 - 需求名称：多期项目合并管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PM-06@V2 | V2 | 多期项目合并管理的V2主交付业务结果 | V2 |
+
 - 数据对象：MultiPhaseProjectGroup、MultiPhaseProjectMember、CrossPhaseContentReference
 - 数据表：proj_multi_phase_project_group、proj_multi_phase_project_member、proj_project_cross_phase_reference
 - API：/project-phase-groups、/project-phase-groups/{id}/actions/add-phase、/project-phase-groups/{id}/actions/derive-content
@@ -248,6 +341,13 @@
 ### PRE-01
 
 - 需求名称：工期管理与变更审批
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PRE-01@V1 | V1 | 工期管理与变更审批的V1主交付业务结果 | V1 |
+
 - 数据对象：ConstructionPlan
 - 数据表：sol_construction_plan、sol_construction_plan_revision、sol_construction_plan_change
 - API：/construction-plans、/{id}/actions/{submit|approve|reject}
@@ -266,6 +366,13 @@
 ### PRE-02
 
 - 需求名称：工勘分工信息采集
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PRE-02@V1 | V1 | 工勘分工信息采集的V1主交付业务结果 | V1 |
+
 - 数据对象：Preparation、PreparationDynamicFormInstance
 - 数据表：sol_preparation、sol_dynamic_form_instance
 - API：/preparations、/{id}/actions/{submit|confirm|return}
@@ -284,6 +391,13 @@
 ### SOL-01
 
 - 需求名称：准备数据动态表单
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SOL-01@V2 | V2 | 准备数据动态表单的V2主交付业务结果 | V2 |
+
 - 数据对象：DynamicFormTemplate、DynamicFormTemplateRevision、DynamicFormInstance
 - 数据表：plt_dynamic_form_template、plt_dynamic_form_template_revision、plt_dynamic_form_instance
 - API：/dynamic-form-templates、/dynamic-form-template-revisions、/dynamic-form-instances；内部DynamicFormBusinessInstanceApi
@@ -302,6 +416,13 @@
 ### PRE-04
 
 - 需求名称：需求分析在线填写
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PRE-04@V1 | V1 | 需求分析在线填写的V1主交付业务结果 | V1 |
+
 - 数据对象：Preparation、DynamicFormInstance
 - 数据表：sol_preparation、plt_dynamic_form_instance
 - API：/preparations、/{id}/form、/{id}/actions/{submit|create-draft}；内部DynamicFormBusinessInstanceApi
@@ -320,6 +441,13 @@
 ### PRE-05
 
 - 需求名称：工程交底书自动生成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PRE-05@V2 | V2 | 工程交底书自动生成的V2主交付业务结果 | V2 |
+
 - 数据对象：Preparation、FileArtifact
 - 数据表：sol_preparation、plt_file_artifact、plt_file_version
 - API：/preparations、/files:init-upload
@@ -338,6 +466,13 @@
 ### PRE-03
 
 - 需求名称：物料换货流程
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PRE-03@V2 | V2 | 物料换货流程的V2主交付业务结果 | V2 |
+
 - 数据对象：Preparation
 - 数据表：sol_preparation、ast_asset_sync_item
 - API：/preparations
@@ -356,6 +491,13 @@
 ### PLN-01
 
 - 需求名称：施工计划自动推算
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PLN-01@V1 | V1 | 施工计划自动推算的V1主交付业务结果 | V1 |
+
 - 数据对象：ConstructionPlan
 - 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/schedules、/{id}/actions/{calculate|apply}
@@ -374,6 +516,13 @@
 ### PLN-02
 
 - 需求名称：工期紧张预警
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PLN-02@V1 | V1 | 工期紧张预警的V1主交付业务结果 | V1 |
+
 - 数据对象：ConstructionPlan
 - 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/schedules、/{id}/actions/{calculate|apply}
@@ -392,6 +541,13 @@
 ### PLN-03
 
 - 需求名称：超期标红与统计
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PLN-03@V1 | V1 | 超期标红与统计的V1主交付业务结果 | V1 |
+
 - 数据对象：ConstructionPlan
 - 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/schedules、/{id}/actions/{calculate|apply}
@@ -410,6 +566,13 @@
 ### PLN-04
 
 - 需求名称：施工计划审批
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PLN-04@V1 | V1 | 施工计划审批的V1主交付业务结果 | V1 |
+
 - 数据对象：ConstructionPlan
 - 数据表：sol_construction_plan、sol_construction_plan_revision
 - API：/construction-plans、/{id}/actions/{submit|approve|reject}
@@ -428,6 +591,13 @@
 ### SCH-01
 
 - 需求名称：实施方案在线编审
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SCH-01@V1 | V1 | 实施方案在线编审的V1主交付业务结果 | V1 |
+
 - 数据对象：Solution
 - 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
@@ -446,6 +616,13 @@
 ### SCH-02
 
 - 需求名称：客户方案导入识别
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SCH-02@V2 | V2 | 客户方案导入识别的V2主交付业务结果 | V2 |
+
 - 数据对象：Solution
 - 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
@@ -464,6 +641,13 @@
 ### SCH-03
 
 - 需求名称：配置脚本上传解析
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SCH-03@V2 | V2 | 配置脚本上传解析的V2主交付业务结果 | V2 |
+
 - 数据对象：Solution、FileArtifact
 - 数据表：sol_solution_revision、plt_file_artifact、plt_file_version
 - API：/solutions、/files:init-upload
@@ -482,6 +666,13 @@
 ### SCH-04
 
 - 需求名称：标准化模板管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SCH-04@V2 | V2 | 标准化模板管理的V2主交付业务结果 | V2 |
+
 - 数据对象：Solution
 - 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
@@ -500,6 +691,13 @@
 ### SCH-05
 
 - 需求名称：方案审核与重大复审
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SCH-05@V1 | V1 | 方案审核与重大复审的V1主交付业务结果 | V1 |
+
 - 数据对象：Solution
 - 数据表：sol_solution、sol_solution_revision、sol_solution_review
 - API：/solutions、/{id}/revisions、/{id}/actions/{submit|approve|reject|publish}
@@ -518,6 +716,13 @@
 ### EXE-01
 
 - 需求名称：到货签收
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EXE-01@V1 | V1 | 到货签收的V1主交付业务结果 | V1 |
+
 - 数据对象：ArrivalAcceptance
 - 数据表：imp_arrival_acceptance、imp_arrival_line、imp_arrival_difference
 - API：/arrival-acceptances
@@ -536,6 +741,13 @@
 ### EXE-02
 
 - 需求名称：硬件安装记录
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EXE-02@V1 | V1 | 硬件安装记录的V1主交付业务结果 | V1 |
+
 - 数据对象：InstallationRecord
 - 数据表：imp_installation_record、imp_installation_item、imp_installation_evidence
 - API：/installation-records
@@ -554,6 +766,13 @@
 ### EXE-03
 
 - 需求名称：配置Log采集解析
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EXE-03@V1 | V1 | 配置Log采集解析的V1主交付业务结果 | V1 |
+
 - 数据对象：ConfigurationCollectionResult、DeviceComponentRelation、CollectionTask
 - 数据表：imp_configuration_collection_result、imp_configuration_collection_parse_attempt、imp_configuration_component_candidate、ast_device_component_relation、plt_collection_task
 - API：/configuration-results、/devices/{id}/component-relations、/collection-tasks
@@ -572,6 +791,13 @@
 ### EXE-04
 
 - 需求名称：业务联调配置收集
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EXE-04@V1 | V1 | 业务联调配置收集的V1主交付业务结果 | V1 |
+
 - 数据对象：JointDebuggingResult、CollectionTask
 - 数据表：imp_joint_debugging_result、imp_joint_debugging_item、plt_collection_task
 - API：/debugging-results、/collection-tasks
@@ -590,6 +816,13 @@
 ### EXE-05
 
 - 需求名称：单机风险标记
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EXE-05@V1 | V1 | 单机风险标记的V1主交付业务结果 | V1 |
+
 - 数据对象：ImplementationRisk
 - 数据表：imp_risk、imp_risk_treatment
 - API：/implementation-risks
@@ -608,6 +841,13 @@
 ### EXE-06
 
 - 需求名称：割接上线门禁
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EXE-06@V1 | V1 | 割接上线门禁的V1主交付业务结果 | V1 |
+
 - 数据对象：ImplementationReadinessSnapshot
 - 数据表：proj_project_stage_snapshot
 - API：/implementation-readiness/{projectId}
@@ -626,6 +866,13 @@
 ### IMP-01
 
 - 需求名称：阶段质量检查表
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| IMP-01@V2 | V2 | 阶段质量检查表的V2主交付业务结果 | V2 |
+
 - 数据对象：ImplementationQualityCheck
 - 数据表：imp_quality_check、imp_quality_item、imp_quality_remediation、imp_quality_review
 - API：/quality-checks
@@ -644,60 +891,90 @@
 ### ACC-01
 
 - 需求名称：现场培训电子化
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| ACC-01@V1 | V1 | 现场培训电子化的V1主交付业务结果 | V1培训记录与客户确认；V2自动推送 |
+| ACC-01@V2 | V2 | 培训记录短信/邮件和钉钉自动推送 | 送达不等于客户确认；失败回退V1链接/扫码 |
+
 - 数据对象：Acceptance
 - 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
-- API：/acceptances
-- 事件：N/A（同步命令或查询，无跨 Context 业务事件）
-- 外部集成：N/A（平台内部契约）
+- API：/acceptances、/acceptances/{id}/actions/send-confirmation
+- 事件：NotificationRequested
+- 外部集成：短信/邮件、钉钉
 - 文件契约：FileArtifact
-- 工作流/状态：培训/报告提交、确认和问题留痕
-- 授权与数据范围：ProjectStageScope、FileBusinessScope
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3 PRD验收基线：WHEN 项目经理在S5验收阶段完成现场培训并进入ACC-01现场培训电子化环节；THEN 系统提供培训记录表单填写页面，包含培训主题、培训时间、培训地点、培训内容、参训人员清单、培训人等字段；AND 项目经理填写完成并提交后，系统自动生成培训记录的二维码图片与外发链接（V1基础能力），外发链接携带项目上下文与权限令牌；WHEN 项目经理将二维码或外发链接推送至客户（V1手动复制/扫码；V2短信/邮件自动推送并可复用钉钉通知）；THEN 客户通过手机访问外发链接进入培训记录详情页，可查看培训主题、培训时间、培训地点、培训内容、参训人员清单、培训人等完整培训信息；AND 客户可在移动端完成电子签字（支持手写签名或确认按钮签字两种方式），系统记录签字时间、签字设备信息、签字IP等元数据；WHEN 客户完成签字并提交回传；THEN 系统将签字数据回传至平台，培训记录状态变更为"客户已确认"；AND 培训记录数据（含培训内容、参训人员、客户签字）自动同步至ACC-04交付件归档管理页面归档为培训交付件，支持后续查看与下载；WHEN 外发链接已过期、令牌校验失败、记录版本已被替换或客户重复提交已确认版本；THEN 系统拒绝产生新的签字结果，保持原培训记录状态，并提示重新获取有效链接或返回首次确认结果
-- Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“培训/报告提交、确认和问题留痕”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
+- 工作流/状态：V1培训记录与链接/扫码客户确认；V2自动推送并分别记录受理/送达，送达不等于确认，渠道失败回退V1链接/扫码
+- 授权与数据范围：ProjectStageScope、FileBusinessScope；接收人和联系方式按业务范围裁剪
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
+- Phase 3 PRD验收基线：WHEN 项目经理在S5验收阶段完成现场培训并进入ACC-01现场培训电子化环节；THEN 系统提供培训记录表单填写页面，包含培训主题、培训时间、培训地点、培训内容、参训人员清单、培训人等字段；AND 项目经理填写完成并提交后，系统自动生成培训记录的二维码图片与外发链接（V1基础能力），外发链接携带项目上下文与权限令牌；WHEN 项目经理将二维码或外发链接推送至客户（V1手动复制/扫码；V2短信/邮件自动推送并可复用钉钉通知）；THEN 客户通过手机访问外发链接进入培训记录详情页，可查看培训主题、培训时间、培训地点、培训内容、参训人员清单、培训人等完整培训信息；AND 客户可在移动端完成电子签字（支持手写签名或确认按钮签字两种方式），系统记录签字时间、签字设备信息、签字IP等元数据；WHEN V2项目经理选择自动触达当前有效培训记录；THEN 短信/邮件通过INT-10发送，钉钉通过INT-05发送，并分别保存通道、接收人、记录版本、送达状态和重试结果；WHEN V2外部通道不可用、发送失败或未取得送达结果；THEN 培训记录仍保持“待客户确认”，项目经理可回退V1二维码、手工复制链接或现场扫码；不得把发送成功或送达成功解释为客户确认；WHEN 客户完成签字并提交回传；THEN 系统将签字数据回传至平台，培训记录状态变更为"客户已确认"；AND 培训记录数据（含培训内容、参训人员、客户签字）自动同步至ACC-04交付件归档管理页面归档为培训交付件，支持后续查看与下载；WHEN 外发链接已过期、令牌校验失败、记录版本已被替换或客户重复提交已确认版本；THEN 系统拒绝产生新的签字结果，保持原培训记录状态，并提示重新获取有效链接或返回首次确认结果
+- Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope；接收人和联系方式按业务范围裁剪”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1培训记录与链接/扫码客户确认；V2自动推送并分别记录受理/送达，送达不等于确认，渠道失败回退V1链接/扫码”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation”；事件边界为“NotificationRequested”，文件边界为“FileArtifact”，外部集成为“短信/邮件、钉钉”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-02
 
 - 需求名称：满意度收集与结果管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| ACC-02@V1 | V1 | 满意度收集与结果管理的V1主交付业务结果 | V1问卷与结果闭环；V2自动触达 |
+| ACC-02@V2 | V2 | 满意度问卷短信/邮件和钉钉自动触达 | 不重复V1问卷、评分、整改重收、签字和导出事实 |
+
 - 数据对象：SatisfactionCollection
 - 数据表：acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result
 - API：/satisfaction-tasks、/satisfaction-questionnaires/{token}/responses、/satisfaction-results
-- 事件：SatisfactionTaskCreated、SatisfactionResultRecorded
-- 外部集成：N/A（平台内部契约）
+- 事件：SatisfactionTaskCreated、SatisfactionResultRecorded、NotificationRequested
+- 外部集成：短信/邮件、钉钉
 - 文件契约：FileArtifact
-- 工作流/状态：冻结模板→指派→客户提交→判定→整改后新版本重收→归档
-- 授权与数据范围：ProjectStageScope；客户一次性实例范围；答案/签字不可改写
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3 PRD验收基线：WHEN 项目到达冻结模板配置的满意度收集时点；THEN 平台生成唯一领域任务和问卷实例，冻结模板、阈值、项目、业务对象及责任人；未指派时责任人为项目经理；WHEN 客户完成全部必答项、有效签字且评分达到冻结阈值；THEN 平台形成不可变的"满意度通过"结果，按来源归档至ACC-04，并可被CLO-01或SUB-03按规则引用；WHEN 答卷缺少必答项、签字无效、评分未达标或来源业务范围不一致；THEN 平台记录失败判定并保持满意度状态为"未通过"，阻断闭环及付款门禁，保存答卷、判定和阻断原因；WHEN 项目完成整改并重新收集；THEN 平台创建新的任务、问卷及判定版本，旧答卷和旧判定仍可追溯且不能被修改；WHEN 有数据权限但无敏感字段、文件或下载权限的用户申请导出；THEN 平台生成仅包含授权字段和记录的导出文件及导出审计记录，拒绝超范围内容并保存拒绝原因
-- Phase 3授权拒绝断言：越权按“ProjectStageScope；客户一次性实例范围；答案/签字不可改写”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“冻结模板→指派→客户提交→判定→整改后新版本重收→归档”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“SatisfactionCollection”及数据表“acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result”；事件边界为“SatisfactionTaskCreated、SatisfactionResultRecorded”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
+- 工作流/状态：V1冻结模板→指派→客户提交→判定→整改后新版本重收→归档；V2仅增加自动触达并记录受理/送达，不重复问卷、评分、整改重收、签字或导出事实
+- 授权与数据范围：ProjectStageScope；客户一次性实例范围；答案/签字不可改写；接收人按业务范围裁剪
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
+- Phase 3 PRD验收基线：WHEN 项目到达冻结模板配置的满意度收集时点；THEN 平台生成唯一领域任务和问卷实例，冻结模板、阈值、项目、业务对象及责任人；未指派时责任人为项目经理；WHEN 客户完成全部必答项、有效签字且评分达到冻结阈值；THEN 平台形成不可变的"满意度通过"结果，按来源归档至ACC-04，并可被CLO-01或SUB-03按规则引用；WHEN 答卷缺少必答项、签字无效、评分未达标或来源业务范围不一致；THEN 平台记录失败判定并保持满意度状态为"未通过"，阻断闭环及付款门禁，保存答卷、判定和阻断原因；WHEN 项目完成整改并重新收集；THEN 平台创建新的任务、问卷及判定版本，旧答卷和旧判定仍可追溯且不能被修改；WHEN 有数据权限但无敏感字段、文件或下载权限的用户申请导出；THEN 平台生成仅包含授权字段和记录的导出文件及导出审计记录，拒绝超范围内容并保存拒绝原因；WHEN V2责任人对当前有效问卷实例发起自动触达；THEN 平台按短信/邮件INT-10、钉钉INT-05的正式契约发送受控链接，保存通道、接收人、实例版本、送达状态和重试记录；WHEN V2自动触达失败、超时或未确认送达；THEN 任务保持待收集且不生成客户答案或通过结果，责任人可继续使用V1二维码、手工链接或现场协助完成收集
+- Phase 3授权拒绝断言：越权按“ProjectStageScope；客户一次性实例范围；答案/签字不可改写；接收人按业务范围裁剪”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1冻结模板→指派→客户提交→判定→整改后新版本重收→归档；V2仅增加自动触达并记录受理/送达，不重复问卷、评分、整改重收、签字或导出事实”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“SatisfactionCollection”及数据表“acc_satisfaction_collection_task、acc_satisfaction_questionnaire、acc_satisfaction_response、acc_satisfaction_result”；事件边界为“SatisfactionTaskCreated、SatisfactionResultRecorded、NotificationRequested”，文件边界为“FileArtifact”，外部集成为“短信/邮件、钉钉”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-03
 
 - 需求名称：验收报告管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| ACC-03@V1 | V1 | 验收报告管理的V1主交付业务结果 | V1 |
+
 - 数据对象：Acceptance
 - 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
 - API：/acceptances
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：培训/报告提交、确认和问题留痕
+- 工作流/状态：报告提交、确认和问题留痕
 - 授权与数据范围：ProjectStageScope、FileBusinessScope
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目经理在S5验收阶段进入初验环节并完成初验；THEN 系统提供初验报告上传页面，支持上传初验报告附件（Word/PDF等格式）并填写初验时间、初验结论、初验人等关键信息；AND 初验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为初验交付件；WHEN 项目经理在S5验收阶段进入终验环节并完成终验；THEN 系统提供终验报告上传页面，支持上传终验报告附件并填写终验时间、终验结论、终验人等关键信息；AND 终验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为终验交付件，初验/终验报告均保留历史版本支持版本管理；WHEN 初验报告不存在却提交终验、报告附件上传失败或验收时间/结论/验收人缺失；THEN 报告保持草稿或上传失败状态，不生成当前有效版本，也不计入ACC-04和CLO-01齐套结果
 - Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“培训/报告提交、确认和问题留痕”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3业务守卫断言：按“报告提交、确认和问题留痕”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-04
 
 - 需求名称：交付件归档管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| ACC-04@V1 | V1 | 交付件归档管理的V1主交付业务结果 | V1 |
+
 - 数据对象：DeliveryArtifact
 - 数据表：acc_delivery_artifact、acc_artifact_review、acc_archive_record
 - API：/delivery-artifacts
@@ -716,6 +993,13 @@
 ### CLO-01
 
 - 需求名称：闭环条件校验
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CLO-01@V1 | V1 | 闭环条件校验的V1主交付业务结果 | V1 |
+
 - 数据对象：ProjectClosure、ClosureGateSnapshot、SatisfactionCollection
 - 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review、acc_satisfaction_result
 - API：/closure-gates/{projectId}、/project-closures
@@ -734,6 +1018,13 @@
 ### CLO-02
 
 - 需求名称：项目闭环审批
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CLO-02@V1 | V1 | 项目闭环审批的V1主交付业务结果 | V1 |
+
 - 数据对象：ProjectClosure、ClosureGateSnapshot、SatisfactionCollection
 - 数据表：acc_project_closure、acc_closure_gate_snapshot、acc_closure_review、acc_satisfaction_result
 - API：/closure-gates/{projectId}、/project-closures
@@ -752,6 +1043,13 @@
 ### ACC-06
 
 - 需求名称：项目闭环与服务交接
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| ACC-06@V2 | V2 | 项目闭环与服务交接的V2主交付业务结果 | V2 |
+
 - 数据对象：ServiceHandover、ProjectClosure
 - 数据表：acc_service_handover、acc_handover_item、acc_handover_result
 - API：/service-handovers
@@ -770,6 +1068,13 @@
 ### RES-01
 
 - 需求名称：服务商档案与资质权限
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| RES-01@V2 | V2 | 服务商档案与资质权限的V2主交付业务结果 | V2 |
+
 - 数据对象：Supplier
 - 数据表：res_supplier、res_qualification
 - API：/suppliers
@@ -788,6 +1093,13 @@
 ### SUB-01
 
 - 需求名称：转包申请管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SUB-01@V2 | V2 | 转包申请管理的V2主交付业务结果 | V2 |
+
 - 数据对象：SubcontractRequest
 - 数据表：res_subcontract_request
 - API：/subcontract-requests
@@ -806,6 +1118,13 @@
 ### SUB-02
 
 - 需求名称：转包流程配置
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SUB-02@V2 | V2 | 转包流程配置的V2主交付业务结果 | V2 |
+
 - 数据对象：SubcontractRequest
 - 数据表：res_subcontract_request
 - API：/subcontract-requests
@@ -824,6 +1143,13 @@
 ### SUB-03
 
 - 需求名称：转包付款满意度门禁
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SUB-03@V2 | V2 | 转包付款满意度门禁的V2主交付业务结果 | V2 |
+
 - 数据对象：PaymentGate、SatisfactionCollection
 - 数据表：res_payment_gate、acc_satisfaction_result
 - API：/payment-gates
@@ -842,6 +1168,13 @@
 ### SUB-04
 
 - 需求名称：付款信息管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SUB-04@V2 | V2 | 付款信息管理的V2主交付业务结果 | V2 |
+
 - 数据对象：PaymentGate、SatisfactionCollection
 - 数据表：res_payment_gate、acc_satisfaction_result
 - API：/payment-gates
@@ -860,6 +1193,13 @@
 ### SUB-05
 
 - 需求名称：转包价格审批
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SUB-05@V2 | V2 | 转包价格审批的V2主交付业务结果 | V2 |
+
 - 数据对象：SubcontractRequest
 - 数据表：res_subcontract_request
 - API：/subcontract-requests
@@ -878,6 +1218,13 @@
 ### CUS-03
 
 - 需求名称：客户信息管理CURD
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUS-03@V1 | V1 | 客户信息管理CURD的V1主交付业务结果 | V1 |
+
 - 数据对象：Customer、MarketRelation、CustomerLocationReference、CustomerScopeSlice
 - 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_location_reference、cus_market_relation、cus_customer_scope_slice
 - API：/api/v1/pms/customers、/api/v1/pms/customers/{id}/locations、/api/v1/pms/customers/{id}/projects、/api/v1/pms/customers/{id}/devices
@@ -897,6 +1244,13 @@
 ### CUS-04
 
 - 需求名称：项目联系人管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUS-04@V1 | V1 | 项目联系人管理的V1主交付业务结果 | V1 |
+
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
 - 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
 - API：/customer-contacts、/projects/{id}/customer-contacts
@@ -915,6 +1269,13 @@
 ### CUS-01
 
 - 需求名称：用户资产库
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUS-01@V2 | V2 | 用户资产库的V2主交付业务结果 | V2 |
+
 - 数据对象：Customer、CustomerContact、CustomerRelationshipSnapshot
 - 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_customer_contact、cus_project_customer_contact_relation、cus_customer_relationship_snapshot
 - API：/customers/{id}/panorama
@@ -933,6 +1294,13 @@
 ### CUS-02
 
 - 需求名称：服务等级管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUS-02@V2 | V2 | 服务等级管理的V2主交付业务结果 | V2 |
+
 - 数据对象：CustomerServiceLevelRevision
 - 数据表：cus_customer_service_level_revision
 - API：/customers/{id}/service-level-revisions
@@ -951,6 +1319,13 @@
 ### EQP-01
 
 - 需求名称：设备序列号档案
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EQP-01@V1 | V1 | 设备序列号档案的V1主交付业务结果 | V1 |
+
 - 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
 - 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
@@ -969,6 +1344,13 @@
 ### EQP-03
 
 - 需求名称：设备档案库
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EQP-03@V2 | V2 | 设备档案库的V2主交付业务结果 | V2 |
+
 - 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
 - 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
@@ -987,6 +1369,13 @@
 ### EQP-04
 
 - 需求名称：设备信息MES同步
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EQP-04@V2 | V2 | 设备信息MES同步的V2主交付业务结果 | V2 |
+
 - 数据对象：AssetSyncSnapshot、Device
 - 数据表：ast_asset_sync_batch、ast_asset_sync_item、ast_device
 - API：/devices
@@ -1005,6 +1394,13 @@
 ### EQP-02
 
 - 需求名称：配置Log管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EQP-02@V1 | V1 | 配置Log管理的V1主交付业务结果 | V1 |
+
 - 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
 - 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
@@ -1023,6 +1419,13 @@
 ### EQP-05
 
 - 需求名称：一码通扫码
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EQP-05@V2 | V2 | 一码通扫码的V2主交付业务结果 | V2 |
+
 - 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
 - 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
@@ -1041,6 +1444,13 @@
 ### EQP-07
 
 - 需求名称：项目问题单页面
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| EQP-07@V2 | V2 | 项目问题单页面的V2主交付业务结果 | V2 |
+
 - 数据对象：Device、DeviceArchive、DeviceComponentRelation、DeviceCurrentAssignment
 - 数据表：ast_device、ast_device_component_relation、ast_device_current_assignment、ast_device_assignment_history
 - API：/devices、/devices/{id}/archive、/devices/{id}/component-relations、/devices/{id}/assignment-history
@@ -1059,6 +1469,13 @@
 ### SRV-01
 
 - 需求名称：设备服务状态与停产停维提示
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| SRV-01@V2 | V2 | 设备服务状态与停产停维提示的V2主交付业务结果 | V2 |
+
 - 数据对象：MaintenanceFact、ServiceStatus
 - 数据表：ast_maintenance_fact、srv_service_status
 - API：/devices/{deviceId}/service-status
@@ -1077,6 +1494,13 @@
 ### AST-01
 
 - 需求名称：RMA替换与维保信息衔接
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| AST-01@V2 | V2 | RMA替换与维保信息衔接的V2主交付业务结果 | V2 |
+
 - 数据对象：RMAReplacement、MaintenanceFact
 - 数据表：ast_rma_replacement、ast_maintenance_fact
 - API：/rma-replacements、/devices/{deviceId}/service-status
@@ -1095,6 +1519,13 @@
 ### AST-02
 
 - 需求名称：设备维保客观状态计算
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| AST-02@V2 | V2 | 设备维保客观状态计算的V2主交付业务结果 | V2 |
+
 - 数据对象：MaintenanceFact、ServiceStatus
 - 数据表：ast_maintenance_fact、srv_service_status
 - API：/devices/{deviceId}/service-status
@@ -1113,6 +1544,13 @@
 ### RPT-02
 
 - 需求名称：项目状态统计
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| RPT-02@V2 | V2 | 项目状态统计的V2主交付业务结果 | V2 |
+
 - 数据对象：MetricSnapshot
 - 数据表：ana_metric_snapshot
 - API：/analytics/metrics
@@ -1131,6 +1569,13 @@
 ### ANA-01
 
 - 需求名称：项目组合经营看板
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| ANA-01@V2 | V2 | 项目组合经营看板的V2主交付业务结果 | V2 |
+
 - 数据对象：PortfolioView、MetricSnapshot
 - 数据表：ana_portfolio_projection、ana_metric_snapshot
 - API：/analytics/portfolios/{id}、/analytics/metrics
@@ -1149,96 +1594,141 @@
 ### CUT-01
 
 - 需求名称：割接任务管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-01@V1 | V1 | 割接任务管理的V1主交付业务结果 | V1任务闭环；V2首页KPI |
+| CUT-01@V2 | V2 | 按授权范围展示割接首页KPI | 不改变CUT任务状态和P1～P6流程 |
+
 - 数据对象：CutoverTask、CutoverAssessment
 - 数据表：cut_task、cut_assessment
-- API：/cutover-tasks、/cutover-tasks/{id}/assessment
+- API：/cutover-tasks、/cutover-dashboard/kpis、/cutover-tasks/{id}/assessment
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：任务创建、分级评估、风险/调研矩阵
-- 授权与数据范围：CutoverTaskScope；项目/设备范围
+- 工作流/状态：V1任务创建、分级评估及P1～P6闭环；V2按授权范围聚合首页KPI，不改变CUT任务状态和流程
+- 授权与数据范围：CutoverTaskScope；项目/设备范围；KPI按可见任务服务端聚合
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 割接-一线工程师进入割接首页并办理ITR或平台项目来源任务；THEN 平台展示来源、项目、设备和负责人上下文，进入P2等级确认，并保存来源业务键和创建留痕；WHEN 割接-一线工程师输入设备序列号创建自建割接任务；THEN 平台只展示本人有权项目和设备，确认后生成唯一CutoverTask并进入P2，不创建通用工单；WHEN D级任务完成P2，或A/B/C级任务完成P2；THEN D级直接进入P4，A/B/C级进入P3；任务详情五步工作台展示P2～P6当前步骤及历史完成步骤，P1接入事实在任务上下文中只读展示；WHEN 相同来源业务键被重复提交、用户无项目权限或设备上下文无法确认；THEN 重复请求返回既有任务；无权或上下文不完整的请求不创建任务，并记录拒绝原因和操作时间
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；项目/设备范围”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“任务创建、分级评估、风险/调研矩阵”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3授权拒绝断言：越权按“CutoverTaskScope；项目/设备范围；KPI按可见任务服务端聚合”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1任务创建、分级评估及P1～P6闭环；V2按授权范围聚合首页KPI，不改变CUT任务状态和流程”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverAssessment”及数据表“cut_task、cut_assessment”；事件边界为“CutoverApproved”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-02
 
 - 需求名称：割接分级评估
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-02@V1 | V1 | 割接分级评估的V1主交付业务结果 | V1 |
+
 - 数据对象：CutoverTask、CutoverAssessment
 - 数据表：cut_task、cut_assessment
-- API：/cutover-tasks、/cutover-tasks/{id}/assessment
+- API：/cutover-tasks/{id}/assessment
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：任务创建、分级评估、风险/调研矩阵
+- 工作流/状态：分级评估与风险/调研矩阵
 - 授权与数据范围：CutoverTaskScope；项目/设备范围
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 割接-一线工程师打开处于P2的割接任务；THEN 平台展示项目上下文和等级问卷，允许填写问卷答案并选择最终割接等级（A/B/C/D级）；WHEN 割接-一线工程师提交完整问卷和人工等级；THEN 平台保存答案、上下文快照、最终等级和提交留痕；A/B/C级进入P3，D级直接进入P4；WHEN 服务经理在P5发现问卷或最终等级不合理并将相应评审项判定为不通过；THEN 当前审批节点驳回并填写原因，任务按驳回流程返回修改，不在P2生成第二个审批节点；WHEN 问卷必填项、最终等级缺失，用户无权，或项目设备上下文版本已失效；THEN 平台阻止提交并保持P2状态，展示缺失或失效原因，不生成自动建议等级作为替代
 - Phase 3授权拒绝断言：越权按“CutoverTaskScope；项目/设备范围”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“任务创建、分级评估、风险/调研矩阵”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3业务守卫断言：按“分级评估与风险/调研矩阵”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverAssessment”及数据表“cut_task、cut_assessment”；事件边界为“CutoverApproved”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-03
 
 - 需求名称：割接采集清单动态多维绑定生成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-03@V1 | V1 | 割接采集清单动态多维绑定生成的V1主交付业务结果 | V1清单管理；V2导出与流程跳转 |
+| CUT-03@V2 | V2 | 授权清单导出与流程跳转配置优化 | V1生成、填写、暂存、提交及基础跳转保持不变 |
+
 - 数据对象：CutoverTask、CutoverChecklist、CollectionTask
-- 数据表：cut_task、cut_cutover_checklist、cut_cutover_checklist_item、cut_cutover_checklist_item_result、plt_collection_task
-- API：/cutover-tasks/{id}/checklist、/cutover-tasks/{id}/checklist/actions/rematch、/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection
+- 数据表：cut_task、cut_cutover_checklist、cut_cutover_checklist_item、cut_cutover_checklist_item_result、cut_cutover_configuration_revision、plt_collection_task
+- API：/cutover-tasks/{id}/checklist、/cutover-tasks/{id}/checklist/actions/{rematch|export}、/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection、/cutover-config/navigation-rules
 - 事件：CollectionTaskRequested、CollectionResultAvailable、CutoverChecklistItemResultLinked
 - 外部集成：现有采集平台子应用
 - 文件契约：FileArtifact
-- 工作流/状态：CutoverTask内P3清单版本在同一工作台动态匹配、人工填写/上传、采集任务下发、结果版本选择和配置缺口留痕；不复制DAC技术状态
-- 授权与数据范围：CutoverTaskScope、BusinessObjectDeviceCredentialScope；服务端按清单项和设备范围裁剪
+- 工作流/状态：V1在P3同一工作台完成动态匹配、填写、暂存、提交、采集回填和基础跳转；V2增加授权清单导出及受控流程跳转配置优化；不复制DAC技术状态
+- 授权与数据范围：CutoverTaskScope、BusinessObjectDeviceCredentialScope；导出和跳转均按清单项、流程状态和设备范围服务端裁剪
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 割接任务等级为A/B/C级（非简易流程），割接-一线工程师进入P3调研及风险考察页面；THEN 页面展示割接信息采集表（含割接类型、组网模式、设备类型、当前版本、升级后版本字段），项目信息表和割接等级表在当前页面固定展示；AND 升级后版本字段仅当割接类型为"版本升级"时显示；WHEN 割接-一线工程师在割接信息采集表中选择割接类型、组网模式、设备类型；THEN 系统根据动态多维绑定（割接类型×组网模式×设备类型×割接等级，可扩展）从统一采集项主数据（按采集项类型区分）中匹配并动态渲染对应的采集清单，界面按采集项类型分块显示（业务调研项区块/风险考察项区块/双机部署检查项区块）；AND 清单中每项展示采集项名称、描述、检查结果/反馈结果、是否必填等字段，必填项以标识区分；AND 文本、选择、表格、文件、业务引用和设备采集项在同一P3工作台按已发布界面格式显示；条件变化时自动重新匹配并显示项目差异，不跳转独立采集阶段；WHEN 割接-一线工程师选择组网模式为5类高可靠性组网模式之一（VSM双机/静默双机/DRP双机/普通双机/集群）；THEN 系统按所选组网模式动态展示对应的双机部署规范性检查表（VSM双机17项/静默双机25项/DRP双机23项/普通双机24项/集群8项）；AND 每项检查结果反馈"是否已执行"（下拉）+特殊情况备注；WHEN 统一采集项中风险考察项配置了外部数据源接口（如技术公告检查项）；THEN 所有情况必选加载当前版本外部数据（如技术公告列表，每条数据项显示编号/主题/描述/解决方案，补充本次是否涉及+采取措施）；AND 若割接类型为版本升级，同时加载当前版本和升级后版本外部数据；WHEN 割接-一线工程师在已生成清单基础上自定义新增或删除调研项和风险项；THEN 系统允许新增自定义项（标记来源），禁止删除系统预置必选项；WHEN 割接-一线工程师点击保存按钮；THEN 系统保存清单草稿、当前已填内容和填写进度，清单保持未提交状态（V1能力）；AND V1不支持导出清单（导出为V2子功能，来源R013），V2实现下载按钮导出清单（风险考察项+业务调研项）；AND V1内置基础跳转能力（采集清单保存后通过任务状态流转自动进入P4），独立流程跳转优化为V2子功能（来源R015）；WHEN A/B/C级任务没有命中适用规则，或命中规则存在定义冲突；THEN 平台展示配置缺口或冲突：没有命中适用规则时允许一线补充任务级自定义项并标记配置缺口后继续，命中规则存在定义冲突时平台列出冲突规则并由人工选择有效配置；系统预置必填项缺失时仍阻止提交，D级任务按CUT-02直接进入P4；WHEN 外部数据源加载失败或超时；THEN 平台标记对应采集项"外部数据加载失败"，保存失败记录，并允许工程师上传人工查询证据后以"人工"来源填写结果；WHEN 割接-一线工程师在设备采集项发起采集，或DAC返回执行结果；THEN 平台创建并展示与任务、清单版本、采集项和设备绑定的CollectionTask；回调结果在原采集项位置回填状态、摘要和证据引用，仍由CUT规则判断是否满足该项；WHEN 采集平台不可用、授权失败或回调超时；THEN 原项目保留下发失败状态和证据，允许重试或按权限采用手工填写/上传证据，不新增独立采集页面、不将失败任务改写为成功
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope、BusinessObjectDeviceCredentialScope；服务端按清单项和设备范围裁剪”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“CutoverTask内P3清单版本在同一工作台动态匹配、人工填写/上传、采集任务下发、结果版本选择和配置缺口留痕；不复制DAC技术状态”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverChecklist、CollectionTask”及数据表“cut_task、cut_cutover_checklist、cut_cutover_checklist_item、cut_cutover_checklist_item_result、plt_collection_task”；事件边界为“CollectionTaskRequested、CollectionResultAvailable、CutoverChecklistItemResultLinked”，文件边界为“FileArtifact”，外部集成为“现有采集平台子应用”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3授权拒绝断言：越权按“CutoverTaskScope、BusinessObjectDeviceCredentialScope；导出和跳转均按清单项、流程状态和设备范围服务端裁剪”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1在P3同一工作台完成动态匹配、填写、暂存、提交、采集回填和基础跳转；V2增加授权清单导出及受控流程跳转配置优化；不复制DAC技术状态”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverChecklist、CollectionTask”及数据表“cut_task、cut_cutover_checklist、cut_cutover_checklist_item、cut_cutover_checklist_item_result、cut_cutover_configuration_revision、plt_collection_task”；事件边界为“CollectionTaskRequested、CollectionResultAvailable、CutoverChecklistItemResultLinked”，文件边界为“FileArtifact”，外部集成为“现有采集平台子应用”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-04
 
 - 需求名称：割接方案编审
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-04@V1 | V1 | 割接方案编审的V1主交付业务结果 | V1 |
+
 - 数据对象：CutoverPlan
 - 数据表：cut_plan_revision、cut_step
 - API：/cutover-tasks/{id}/plan-revisions
 - 事件：CutoverApproved
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：方案编审、分级审批和版本冻结
-- 授权与数据范围：CutoverTaskScope；分级审批权限
+- 工作流/状态：方案编审和版本冻结
+- 授权与数据范围：CutoverTaskScope；方案编审权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 割接-一线工程师在割接任务中发起方案编审；THEN 页面展示"是否已有割接方案"选项，风险考察结果从上一步P3流程带入展示，业务调研录入结果+风险考察录入结果+割接项目+用户资产库等信息字段可被引用和带入；WHEN 割接-一线工程师选择"是否已有割接方案"为"是"；THEN 系统提供"上传完整方案"按钮，直接上传完整方案文件，跳过模板填写环节；AND 平台校验文件有效性、安全性、方案归属和人工确认，不强制解析或补齐在线模板字段；校验通过后形成方案版本并流转至CUT-05；WHEN 割接-一线工程师选择"是否已有割接方案"为"否"；THEN 系统展示方案模板，方案分为割接概述和执行操作两大章节；AND 割接概述含项目割接描述（带入）、计划表、割接前拓扑上传、割接后拓扑上传、设备清单（带入）、组网配置上传、割接保障人员安排表等子章节；AND 执行操作含预估风险及应对措施、割接前操作清单、执行操作清单、收尾收集清单、后业务测试表、回退方案说明、回退步骤、割接后保障等子章节；WHEN 割接-一线工程师填写割接保障人员安排表；THEN 系统展示客户/迪普一线工程师/迪普二线工程师/迪普研发四类角色，并保存每类角色的姓名、任务描述、联系电话和到位时间；WHEN 割接-一线工程师填写预估风险及应对措施；THEN 系统加载CUT-03中所有结果为"否"的风险项，保存每个风险项与应对措施的一一关联及未填写状态；WHEN 割接-一线工程师点击"下载割接初稿"按钮；THEN 系统生成并返回当前方案版本的初稿文件，记录下载人、下载时间和方案版本；WHEN 割接任务等级为D级（简易流程）；THEN 系统仅展示割接各阶段操作步骤与回退步骤填写窗口，不加载A/B/C级完整方案章节；AND 割接-一线工程师填写完毕提交后，方案按D级简易审批层级（发起人→服务经理）流转至CUT-05分级审批；WHEN 割接-一线工程师填写完毕点击"下一步"；THEN 系统将方案状态更新为"待审批"，保存提交版本并创建CUT-05分级审批实例；WHEN A/B/C级方案缺少必需章节、存在未填写应对措施的风险项、上传文件校验失败或引用的采集清单版本已失效；THEN 平台阻止提交并保持方案草稿状态，展示缺失章节、未处置风险、文件错误或失效来源，不创建CUT-05审批实例
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；分级审批权限”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“方案编审、分级审批和版本冻结”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3授权拒绝断言：越权按“CutoverTaskScope；方案编审权限”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“方案编审和版本冻结”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan”及数据表“cut_plan_revision、cut_step”；事件边界为“CutoverApproved”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-05
 
 - 需求名称：割接分级审批
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-05@V1 | V1 | 割接分级审批的V1主交付业务结果 | V1分级审批；V2 A/B级专项提前时间判断（含原10.12提前时间合规判断） |
+| CUT-05@V2 | V2 | A/B级专项提前时间判断及经定义的外部提醒 | 不新增平台通用SLA；短信/邮件走INT-10、钉钉走INT-05 |
+
 - 数据对象：CutoverPlan
-- 数据表：cut_plan_revision、cut_step
-- API：/cutover-tasks/{id}/plan-revisions
-- 事件：CutoverApproved
-- 外部集成：N/A（平台内部契约）
+- 数据表：cut_plan_revision、cut_step、plt_todo
+- API：/cutover-tasks/{id}/plan-revisions、/cutover-tasks/{id}/approval-actions/{approve|reject}
+- 事件：CutoverApproved、NotificationRequested
+- 外部集成：短信/邮件（INT-10）、钉钉（INT-05）
 - 文件契约：FileArtifact
-- 工作流/状态：方案编审、分级审批和版本冻结
-- 授权与数据范围：CutoverTaskScope；分级审批权限
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
-- Phase 3 PRD验收基线：WHEN 割接-一线工程师提交割接方案（含采集清单）至审批环节；THEN 系统按割接等级自动生成对应审批节点（A级4级串行：发起人→服务经理→二线→研发；B级3级串行：发起人→服务经理→二线；C/D级2级串行：发起人→服务经理）；AND 审批页面汇总引用项目信息（11字段）、采集信息分析、风险考察项（风险项1-4）、业务调研项（调研项1-4）、割接等级（5个评估维度）、割接方案等前序页面数据；AND 首节点审批人收到审批待办，并通过推送通知收到提醒（V1通过站内消息通知；V2实现短信/邮件/IM多通道推送，接口预留INT-10，实现优先级最低，不可用时通过站内消息替代）；WHEN 割接等级为A/B级；THEN V1审批页面采集信息分析中展示割接操作时间字段，但不启用提前时间自动合规判断（提前时间合规判断为V2子功能，来源R034）；AND V2系统启用提前时间合规判断，按割接类型匹配提前时间阈值（10类规则表），计算割接操作时间与方案提交时间差，自动判断"是否未按规定提前时间提交"并在采集信息分析中带出结果（是/否）；WHEN 割接等级为C/D级；THEN 系统不启用提前时间合规判断，"是否未按规定提前时间提交"字段不展示或置空（V1/V2均不启用）；WHEN 当前审批节点审批人查看评审表单；THEN 页面展示5项合理性评审项（割接前准备工作是否合理/业务测试内容是否合理/割接执行步骤是否合理/割接回退步骤是否合理/其他是否合理），每项单选是/否，选"否"时展示不合理原因输入框；WHEN 当前审批节点审批人执行通过操作并填写反馈意见；THEN 流转至下一审批节点（若有），全部节点通过后方案状态变更为"已锁定"，跳转至P6割接跟踪与闭环（CUT-06执行闭环）；AND 审批意见、审批人、审批时间完整记录，审批历史可追溯；WHEN 当前审批节点审批人执行驳回操作并填写反馈意见（必填）；THEN 方案退回割接-一线工程师修改，方案状态变更为"已驳回"，跳转至P4割接方案修改；AND 割接-一线工程师修改后重新提交，从首节点开始重新审批；WHEN 审批人无当前节点权限、方案或采集清单版本已失效、评审项缺失，或任一合理性评审为"否"却选择通过；THEN 平台阻止审批并保持当前节点状态，展示权限、版本或评审校验失败原因，不锁定方案且不创建下一节点待办
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；分级审批权限”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“方案编审、分级审批和版本冻结”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan”及数据表“cut_plan_revision、cut_step”；事件边界为“CutoverApproved”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
+- 工作流/状态：V1按冻结等级完成分级审批；V2校验A/B级专项提前时间并发送经定义的外部提醒，提醒失败不改变审批状态且不新增平台通用SLA
+- 授权与数据范围：CutoverTaskScope；分级审批权限；提醒接收人按冻结审批路由
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试
+- Phase 3 PRD验收基线：WHEN 割接-一线工程师提交割接方案（含采集清单）至审批环节；THEN 系统按割接等级自动生成对应审批节点（A级4级串行：发起人→服务经理→二线→研发；B级3级串行：发起人→服务经理→二线；C/D级2级串行：发起人→服务经理）；AND 审批页面汇总引用项目信息（11字段）、采集信息分析、风险考察项（风险项1-4）、业务调研项（调研项1-4）、割接等级（5个评估维度）、割接方案等前序页面数据；AND 首节点审批人收到审批待办，并通过推送通知收到提醒（V1通过站内消息；V2短信/邮件通过INT-10、钉钉通过INT-05发送，不包含其他IM，外部通道不可用时回退站内消息）；WHEN 割接等级为A/B级；THEN V1审批页面采集信息分析中展示割接操作时间字段，但不启用提前时间自动合规判断（提前时间合规判断为V2子功能，来源R034）；AND V2系统启用提前时间合规判断，按割接类型匹配提前时间阈值（10类规则表），计算割接操作时间与方案提交时间差，自动判断"是否未按规定提前时间提交"并在采集信息分析中带出结果（是/否）；WHEN 割接等级为C/D级；THEN 系统不启用提前时间合规判断，"是否未按规定提前时间提交"字段不展示或置空（V1/V2均不启用）；WHEN 当前审批节点审批人查看评审表单；THEN 页面展示5项合理性评审项（割接前准备工作是否合理/业务测试内容是否合理/割接执行步骤是否合理/割接回退步骤是否合理/其他是否合理），每项单选是/否，选"否"时展示不合理原因输入框；WHEN 当前审批节点审批人执行通过操作并填写反馈意见；THEN 流转至下一审批节点（若有），全部节点通过后方案状态变更为"已锁定"，跳转至P6割接跟踪与闭环（CUT-06执行闭环）；AND 审批意见、审批人、审批时间完整记录，审批历史可追溯；WHEN 当前审批节点审批人执行驳回操作并填写反馈意见（必填）；THEN 方案退回割接-一线工程师修改，方案状态变更为"已驳回"，跳转至P4割接方案修改；AND 割接-一线工程师修改后重新提交，从首节点开始重新审批；WHEN 审批人无当前节点权限、方案或采集清单版本已失效、评审项缺失，或任一合理性评审为"否"却选择通过；THEN 平台阻止审批并保持当前节点状态，展示权限、版本或评审校验失败原因，不锁定方案且不创建下一节点待办
+- Phase 3授权拒绝断言：越权按“CutoverTaskScope；分级审批权限；提醒接收人按冻结审批路由”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1按冻结等级完成分级审批；V2校验A/B级专项提前时间并发送经定义的外部提醒，提醒失败不改变审批状态且不新增平台通用SLA”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverPlan”及数据表“cut_plan_revision、cut_step、plt_todo”；事件边界为“CutoverApproved、NotificationRequested”，文件边界为“FileArtifact”，外部集成为“短信/邮件（INT-10）、钉钉（INT-05）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### CUT-06
 
 - 需求名称：割接跟踪与闭环
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-06@V1 | V1 | 割接跟踪与闭环的V1主交付业务结果 | V1 |
+
 - 数据对象：CutoverClosure、CollectionTask
 - 数据表：cut_cutover_closure、plt_collection_task
 - API：/cutover-tasks/{id}/closure
@@ -1257,24 +1747,38 @@
 ### CUT-07
 
 - 需求名称：割接后台配置
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-07@V1 | V1 | 割接后台配置的V1主交付业务结果 | V1（首批配置基础） |
+
 - 数据对象：CutoverConfigurationRevision
 - 数据表：cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision
 - API：/cutover-config/types、/cutover-config/network-modes、/cutover-config/checklist-items、/cutover-config/binding-rules
 - 事件：CutoverConfigurationPublished
 - 外部集成：基础平台字典、可选外部动态数据源
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：草稿→已发布→已停用；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，已生成实例继续按消费版本解释
+- 工作流/状态：V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则按草稿→已发布→已停用管理；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，且先于或不晚于首个消费能力交付；已生成实例继续按消费版本解释
 - 授权与数据范围：系统管理员配置权限；已发布版本和历史业务实例不可覆盖
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3 PRD验收基线：WHEN 割接-管理员在后台维护割接类型（10类）和组网模式（5类）；THEN 系统支持新增/编辑/启用/停用/排序割接类型与组网模式，配置项包含编码、名称、描述、启用状态；AND 配置发布后仅对生效时间后的新任务可选，已创建任务继续显示其原配置版本；WHEN 割接-管理员在后台维护设备类型（主字典数据）；THEN 系统支持新增/编辑/启用/停用设备类型（已知示例FW/SW/ADX，非穷举，支持扩展新增）；AND 设备类型由系统管理员维护，作为CUT-03动态多维绑定的维度之一；WHEN 割接-管理员在后台维护统一采集项配置（合并原三个独立配置模块为1个统一采集项配置模块）；THEN 系统支持通过"采集项类型"字段区分业务调研项/风险考察项/双机部署检查项，三类共用相同的配置字段结构：采集项ID（主键）、采集项类型（枚举）、项命名（文本）、项含义（文本）、界面格式（单选项/多选框/下拉框/输入框/表格/表单/文件上传按钮等）、界面格式动态数据查询（传入上下文信息调接口获取数据）、反馈结果内容（如：是/否+特殊情况备注；自定义文本；文件上传等）、数据关联关系（动态多维绑定，已知4维可扩展）、外部数据源接入（可选，配置外部数据来源接口）、所属子表（可选，双机部署检查项关联5类组网模式检查表）、启用状态、排序、操作（新增/编辑/保存/删除）；AND 此表格支持后台维护编辑，各字段的界面格式与内容用于采集信息分析与结果页面的填写说明；WHEN 割接-管理员在后台为统一采集项配置外部数据源接入能力（所有采集项类型均可配置，实际应用中风险考察项使用较多）；THEN 系统支持配置数据来源接口（传入上下文信息调接口获取数据），支持动态数据查询；AND 接口加载的数据项显示编号/主题/描述/解决方案，补充本次是否涉及+采取措施；WHEN 割接-管理员在后台配置动态多维绑定关系；THEN 系统支持配置"割接类型×组网模式×设备类型×割接等级"（已知4维）的动态多维绑定关系，并支持扩展新增维度；AND 绑定关系新版本发布后由新生成清单使用，已生成清单继续按原绑定版本解释；WHEN 割接-管理员在后台维护双机部署检查项的"所属子表"关联（采集项类型=双机部署检查项）；THEN 系统支持5类组网模式共124行检查项的CRUD（VSM双机17项/静默双机25项/DRP双机23项/普通双机24项/集群8项），通过"所属子表"字段关联对应组网模式检查表；AND 各类检查表主数据按5类分别维护；WHEN 配置存在重复编码、无效引用、互斥绑定，或动态维度没有取值来源；THEN 平台阻止发布并保持配置草稿状态，逐项展示校验失败位置，不生成可被CUT-01～04消费的新版本
 - Phase 3授权拒绝断言：越权按“系统管理员配置权限；已发布版本和历史业务实例不可覆盖”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“草稿→已发布→已停用；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，已生成实例继续按消费版本解释”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3业务守卫断言：按“V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则按草稿→已发布→已停用管理；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，且先于或不晚于首个消费能力交付；已生成实例继续按消费版本解释”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverConfigurationRevision”及数据表“cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision”；事件边界为“CutoverConfigurationPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“基础平台字典、可选外部动态数据源”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### CUT-08
 
 - 需求名称：割接备件系统集成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-08@V2 | V2 | 割接备件系统集成的V2主交付业务结果 | V2 |
+
 - 数据对象：CutoverTask
 - 数据表：cut_task、ast_asset_sync_item
 - API：/cutover-tasks
@@ -1293,42 +1797,63 @@
 ### CUT-09
 
 - 需求名称：割接风险项关联矩阵
-- 数据对象：CutoverTask、CutoverAssessment
-- 数据表：cut_task、cut_assessment
-- API：/cutover-tasks、/cutover-tasks/{id}/assessment
-- 事件：CutoverApproved
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：任务创建、分级评估、风险/调研矩阵
-- 授权与数据范围：CutoverTaskScope；项目/设备范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-09@V1 | V1 | 割接风险项关联矩阵的V1主交付业务结果 | V1（首批配置基础） |
+
+- 数据对象：CutoverConfigurationRevision
+- 数据表：cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision
+- API：/cutover-config/types、/cutover-config/network-modes、/cutover-config/checklist-items、/cutover-config/binding-rules
+- 事件：CutoverConfigurationPublished
+- 外部集成：基础平台字典、可选外部动态数据源
+- 文件契约：N/A（不产生或不持有文件正文）
+- 工作流/状态：V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则按草稿→已发布→已停用管理；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，且先于或不晚于首个消费能力交付；已生成实例继续按消费版本解释
+- 授权与数据范围：系统管理员配置权限；已发布版本和历史业务实例不可覆盖
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3 PRD验收基线：WHEN 割接-管理员在后台维护25+项风险考察项的内容定义；THEN 系统支持配置风险项ID、风险项名称（项命名-风险项）、风险含义（项含义）、界面格式（检查结果支持多种数据类型）、界面格式动态数据查询、反馈结果内容、外部数据源接入配置、操作（新增/编辑/保存/删除）；AND 此表格支持后台维护编辑，各字段的界面格式与内容用于采集信息分析与结果页面的填写说明；WHEN 割接-管理员在后台配置风险考察项的动态多维绑定关系；THEN 系统支持为每项风险项配置"割接类型×组网模式×设备类型×割接等级"（已知4维，可扩展）的绑定关系，配置界面以矩阵形式展示；AND 矩阵新版本发布后由新生成的CUT-03清单使用，已生成清单继续按原矩阵版本展示；WHEN 割接-管理员在后台配置双机部署规范性检查表（5类组网模式124行）；THEN 系统分别保存VSM双机17项、静默双机25项、DRP双机23项、普通双机24项和集群8项检查表版本，并展示各表当前项目数量；AND 各类检查表主数据按5类分别维护；WHEN 割接-管理员在后台配置风险考察项的外部数据源接入能力（如技术公告检查项）；THEN 系统支持配置数据来源接口（传入上下文信息调接口获取数据），支持动态数据查询；AND 接口加载的数据项显示编号/主题/描述/解决方案，补充本次是否涉及+采取措施；WHEN 同一维度组合出现重复或互斥绑定、必选风险项存在覆盖缺口，或绑定引用已停用的割接类型/组网模式/设备类型；THEN 平台阻止矩阵发布并保持草稿状态，展示冲突行、缺口组合和无效引用，不影响当前已发布矩阵版本
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；项目/设备范围”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“任务创建、分级评估、风险/调研矩阵”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverAssessment”及数据表“cut_task、cut_assessment”；事件边界为“CutoverApproved”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
+- Phase 3授权拒绝断言：越权按“系统管理员配置权限；已发布版本和历史业务实例不可覆盖”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则按草稿→已发布→已停用管理；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，且先于或不晚于首个消费能力交付；已生成实例继续按消费版本解释”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverConfigurationRevision”及数据表“cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision”；事件边界为“CutoverConfigurationPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“基础平台字典、可选外部动态数据源”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### CUT-10
 
 - 需求名称：割接调研项关联矩阵
-- 数据对象：CutoverTask、CutoverAssessment
-- 数据表：cut_task、cut_assessment
-- API：/cutover-tasks、/cutover-tasks/{id}/assessment
-- 事件：CutoverApproved
-- 外部集成：N/A（平台内部契约）
-- 文件契约：FileArtifact
-- 工作流/状态：任务创建、分级评估、风险/调研矩阵
-- 授权与数据范围：CutoverTaskScope；项目/设备范围
-- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；文件上传/下载/版本/恶意内容与权限回源测试
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CUT-10@V1 | V1 | 割接调研项关联矩阵的V1主交付业务结果 | V1（首批配置基础） |
+
+- 数据对象：CutoverConfigurationRevision
+- 数据表：cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision
+- API：/cutover-config/types、/cutover-config/network-modes、/cutover-config/checklist-items、/cutover-config/binding-rules
+- 事件：CutoverConfigurationPublished
+- 外部集成：基础平台字典、可选外部动态数据源
+- 文件契约：N/A（不产生或不持有文件正文）
+- 工作流/状态：V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则按草稿→已发布→已停用管理；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，且先于或不晚于首个消费能力交付；已生成实例继续按消费版本解释
+- 授权与数据范围：系统管理员配置权限；已发布版本和历史业务实例不可覆盖
+- Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3 PRD验收基线：WHEN 割接-管理员在后台维护业务调研项的内容定义；THEN 系统支持配置调研项ID、调研项名称（项命名-调研项）、调研含义（项含义）、界面格式（支持多种数据类型）、界面格式动态数据查询、反馈结果内容、操作（新增/编辑/保存/删除）；AND 此表格支持后台维护编辑，各字段的界面格式与内容用于采集信息分析与结果页面的填写说明；WHEN 割接-管理员在后台配置业务调研项的动态多维绑定关系；THEN 系统支持为每项调研项配置"割接类型×组网模式×设备类型×割接等级"（已知4维，可扩展）的绑定关系，配置界面以矩阵形式展示；AND 绑定关系新版本发布后由新生成的CUT-03清单使用，已生成清单继续按原绑定版本展示（原文"绑定关系配置变更实时生效"与核心业务规则4冲突，已按规则4口径统一）；WHEN 割接-管理员在后台配置调研项的必填项标识；THEN 平台保存每项调研项在特定绑定关系下的必填/选填标识，并在生成清单时展示和校验该标识；WHEN 割接-管理员在后台配置割接背景子表；THEN 系统支持配置割接背景子表字段（是否解决网上问题/问题工单号/工单处理人/是否二次割接/首次割接保障人/割接背景表述）及条件显示逻辑；AND "是否解决网上问题"选"是"时展示问题工单号/工单处理人，"是否二次割接"选"是"时展示首次割接保障人；WHEN 相同调研项和有效期存在重复绑定、同优先级规则冲突或外部动态数据查询失败；THEN 平台拒绝发布冲突矩阵；运行时同优先级规则冲突时列出冲突规则并由人工选择有效配置，外部动态数据查询失败时把清单标记为"生成失败/待处理"，不生成缺少必填项的正式割接清单；WHEN 割接-管理员发布新矩阵版本而已有割接清单正在执行；THEN 既有清单继续关联原配置快照；重新生成时平台展示新增、删除、必填变化差异并由有权人员确认
-- Phase 3授权拒绝断言：越权按“CutoverTaskScope；项目/设备范围”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“任务创建、分级评估、风险/调研矩阵”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverTask、CutoverAssessment”及数据表“cut_task、cut_assessment”；事件边界为“CutoverApproved”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
-- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；文件哈希、版本、扫描、引用与权限拒绝记录
+- Phase 3授权拒绝断言：越权按“系统管理员配置权限；已发布版本和历史业务实例不可覆盖”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1首批配置基础：动态模板、表单、风险/调研矩阵和匹配规则按草稿→已发布→已停用管理；发布前校验稳定编码、版本、动态维度、引用启用状态和条件可判定性，且先于或不晚于首个消费能力交付；已生成实例继续按消费版本解释”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“CutoverConfigurationRevision”及数据表“cut_cutover_configuration_revision、cut_cutover_checklist_item_definition_revision、cut_cutover_checklist_binding_rule_revision”；事件边界为“CutoverConfigurationPublished”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“基础平台字典、可选外部动态数据源”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### INS-01
 
 - 需求名称：巡检任务管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-01@V2 | V2 | 巡检任务管理的V2主交付业务结果 | V2 |
+
 - 数据对象：InspectionTask、CollectionTask
 - 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
@@ -1347,6 +1872,13 @@
 ### INS-02
 
 - 需求名称：双巡检方式选择与执行
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-02@V2 | V2 | 双巡检方式选择与执行的V2主交付业务结果 | V2 |
+
 - 数据对象：InspectionTask、CollectionTask
 - 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
@@ -1365,6 +1897,13 @@
 ### INS-03
 
 - 需求名称：巡检规则管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-03@V2 | V2 | 巡检规则管理的V2主交付业务结果 | V2 |
+
 - 数据对象：InspectionRule
 - 数据表：srv_inspection_rule、srv_inspection_rule_revision
 - API：/inspection-rules、/{id}/revisions
@@ -1383,6 +1922,13 @@
 ### INS-04
 
 - 需求名称：巡检连通性预检
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-04@V2 | V2 | 巡检连通性预检的V2主交付业务结果 | V2 |
+
 - 数据对象：InspectionTask、CollectionTask
 - 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
@@ -1401,6 +1947,13 @@
 ### INS-05
 
 - 需求名称：巡检报告生成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-05@V2 | V2 | 巡检报告生成的V2主交付业务结果 | V2 |
+
 - 数据对象：InspectionReport
 - 数据表：srv_inspection_report_revision
 - API：/inspection-reports/{id}/versions
@@ -1419,6 +1972,13 @@
 ### INS-06
 
 - 需求名称：巡检问题标注
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-06@V2 | V2 | 巡检问题标注的V2主交付业务结果 | V2 |
+
 - 数据对象：ServiceIssue
 - 数据表：srv_service_issue、srv_service_issue_remediation
 - API：/service-issues
@@ -1437,6 +1997,13 @@
 ### INS-07
 
 - 需求名称：巡检闭环归档
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-07@V2 | V2 | 巡检闭环归档的V2主交付业务结果 | V2 |
+
 - 数据对象：InspectionTask、CollectionTask
 - 数据表：srv_inspection_task、srv_inspection_task_rule_snapshot、plt_collection_task
 - API：/inspection-tasks、/collection-tasks
@@ -1455,6 +2022,13 @@
 ### INS-08
 
 - 需求名称：误报反馈机制
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-08@V2 | V2 | 误报反馈机制的V2主交付业务结果 | V2 |
+
 - 数据对象：ServiceIssue
 - 数据表：srv_service_issue、srv_service_issue_remediation
 - API：/service-issues
@@ -1473,6 +2047,13 @@
 ### INS-09
 
 - 需求名称：巡检规则配置字段
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INS-09@V2 | V2 | 巡检规则配置字段的V2主交付业务结果 | V2 |
+
 - 数据对象：InspectionRule
 - 数据表：srv_inspection_rule、srv_inspection_rule_revision
 - API：/inspection-rules、/{id}/revisions
@@ -1491,6 +2072,13 @@
 ### INT-01
 
 - 需求名称：CRM/ERP项目同步
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-01@V1 | V1 | CRM/ERP项目同步的V1主交付业务结果 | V1 |
+
 - 数据对象：Project、Contract、SalesOrder
 - 数据表：ast_asset_sync_batch、ast_asset_sync_item、com_contract、com_sales_order
 - API：/projects、/contracts、/sales-orders
@@ -1509,24 +2097,39 @@
 ### INT-02
 
 - 需求名称：ITR版本同步
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-02@V1 | V1 | ITR版本同步的V1主交付业务结果 | V1设备版本/割接任务入向；V2故障入向/CUT结果出向 |
+| INT-02@V2 | V2 | ITR故障入向及ITR来源CUT归档结果出向 | INT-04唯一拥有公告；出向失败不回滚本地归档 |
+
 - 数据对象：AssetSyncSnapshot
-- 数据表：ast_asset_sync_batch、ast_asset_sync_item、ast_device
-- API：/devices
-- 事件：MasterDataSynchronized
+- 数据表：ast_asset_sync_batch、ast_asset_sync_item、ast_device、cut_task、cut_cutover_closure
+- API：/devices、/internal/integrations/itr/versions:sync、/internal/integrations/itr/faults:sync、/internal/integrations/itr/cutover-results:push
+- 事件：MasterDataSynchronized、CutoverCompleted
 - 外部集成：ITR
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：版本同步、来源冲突隔离和对账
-- 授权与数据范围：集成账号限ITR字段；ProjectDeviceScope查询
+- 工作流/状态：V1同步设备版本并接收割接任务；V2接收故障来源并回传ITR来源CUT归档结果，出向失败不回滚本地归档；技术公告唯一归INT-04
+- 授权与数据范围：集成账号限ITR字段；ProjectDeviceScope/CutoverTaskScope查询
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
-- Phase 3 PRD验收基线：WHEN ITR系统中设备版本发生变更；THEN 平台通过ITR接口实时接收版本信息，按设备序列号写入设备档案并保留来源；AND 历史版本记录完整保留（含版本号、变更时间、变更原因、变更人），不覆盖历史数据；WHEN ITR系统中产生技术公告；THEN 平台知识域接收并展示ITR公告，平台产生的受控反馈按接口契约回传ITR；WHEN ITR系统中产生设备故障记录；THEN 平台同步故障记录并关联设备序列号与项目，故障记录在EQP-07项目问题单页面可见；WHEN ITR系统中产生与割接相关的故障/变更工单且满足割接触发条件；THEN 平台自动生成割接任务（关联CUT-01），预填客户信息、设备序列号、故障/变更背景等字段；WHEN ITR接口不可用；THEN 版本信息/技术公告降级为手工录入，故障记录与割接触发降级为人工创建任务；AND 接口恢复后自动批量补录同步；WHEN ITR版本事件重复到达、事件迟到，或设备序列号缺失/重复导致映射冲突；THEN 平台对重复事件返回既有处理结果；迟到事件追加历史并按发生时间重算当前版本；映射冲突事件保持"待设备映射"且不写入其他设备档案
-- Phase 3授权拒绝断言：越权按“集成账号限ITR字段；ProjectDeviceScope查询”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“版本同步、来源冲突隔离和对账”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“AssetSyncSnapshot”及数据表“ast_asset_sync_batch、ast_asset_sync_item、ast_device”；事件边界为“MasterDataSynchronized”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ITR”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3 PRD验收基线：WHEN ITR系统中设备版本发生变更；THEN 平台通过ITR接口实时接收版本信息，按设备序列号写入设备档案并保留来源；AND 历史版本记录完整保留（含版本号、变更时间、变更原因、变更人），不覆盖历史数据；WHEN V1 ITR系统中产生与割接相关的故障/变更工单且满足割接触发条件；THEN 平台自动生成割接任务（关联CUT-01），预填客户信息、设备序列号、故障/变更背景等字段；WHEN V2 ITR系统中产生普通设备故障记录；THEN 平台按问题单号和事件版本幂等接收，关联唯一设备与项目后供EQP-07展示；映射不唯一时进入待映射且不得生成割接任务；WHEN V2 ITR来源割接任务已经由CUT-06提交并形成成功或失败归档；THEN 平台按归档ID和版本向ITR回传已定义结果或失败建单请求，并保存受理状态、外部业务键和对账结果；WHEN V2结果回传HTTP失败、ITR拒绝或回执超时；THEN 平台保留本地CUT归档不变，把出向标记为待重试/待对账并支持人工补偿，不把外部HTTP成功当作本地业务完成；WHEN ITR接口不可用；THEN V1版本信息可录入待核验证据、割接触发降级为人工创建；V2故障可保留人工来源证据、出向进入待重试，接口恢复后按来源业务键补录和对账；WHEN ITR版本事件重复到达、事件迟到，或设备序列号缺失/重复导致映射冲突；THEN 平台对重复事件返回既有处理结果；迟到事件追加历史并按发生时间重算当前版本；映射冲突事件保持"待设备映射"且不写入其他设备档案
+- Phase 3授权拒绝断言：越权按“集成账号限ITR字段；ProjectDeviceScope/CutoverTaskScope查询”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1同步设备版本并接收割接任务；V2接收故障来源并回传ITR来源CUT归档结果，出向失败不回滚本地归档；技术公告唯一归INT-04”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“AssetSyncSnapshot”及数据表“ast_asset_sync_batch、ast_asset_sync_item、ast_device、cut_task、cut_cutover_closure”；事件边界为“MasterDataSynchronized、CutoverCompleted”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ITR”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### INT-03
 
 - 需求名称：CRM客户同步
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-03@V1 | V1 | CRM客户同步的V1主交付业务结果 | V1 |
+
 - 数据对象：Customer、MarketRelation
 - 数据表：cus_customer_master、cus_customer_external_mapping、cus_customer_field_history、cus_market_relation、ast_asset_sync_batch、ast_asset_sync_item
 - API：/api/v1/pms/customers
@@ -1545,6 +2148,13 @@
 ### INT-04
 
 - 需求名称：ITR技术公告同步
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-04@V2 | V2 | ITR技术公告同步的V2主交付业务结果 | V2 |
+
 - 数据对象：TechnicalNoticeReference
 - 数据表：FEATURE_FORWARD_MIGRATION(INT-04)：逻辑对象`TechnicalNoticeReference`；物理表由INT-04 Feature前向迁移确定
 - API：/technical-notices、/technical-notices/{id}/references
@@ -1563,24 +2173,39 @@
 ### INT-05
 
 - 需求名称：钉钉/HR/OA集成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-05@V1 | V1 | 钉钉/HR/OA集成的V1主交付业务结果 | V1钉钉/HR核心协作；V2 OA扩展 |
+| INT-05@V2 | V2 | OA领料/外采流程及转包待办链接协作 | OA/钉钉不拥有平台审批与业务状态 |
+
 - 数据对象：Todo
 - 数据表：plt_todo、plt_sync_batch、plt_external_key_mapping
-- API：/todos、/integration/hr/directory
+- API：/todos、/integration/hr/directory、/internal/integrations/oa/material-requests、/internal/integrations/oa/purchase-requests
 - 事件：MasterDataSynchronized、TodoRequested、TodoCompleted
 - 外部集成：钉钉、HR、OA
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：必要人员组织同步复用基础平台主数据、已有同步批次和来源键映射；待办链接和通知回执不接入打卡/工时
-- 授权与数据范围：TenantOrganizationProjectScope；目录身份不直接等于项目角色
+- 工作流/状态：V1同步必要人员组织并承接钉钉待办/通知；V2创建OA领料/外采流程引用并同步结果，转包仅发送平台待办链接；OA/钉钉不拥有平台审批与业务状态，且不接入打卡/工时
+- 授权与数据范围：TenantOrganizationProjectScope；目录身份不直接等于项目角色；外部流程按来源业务对象权限
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
 - Phase 3 PRD验收基线：WHEN HR人员、组织、岗位或在离职状态发生变化；THEN 平台按来源业务键幂等同步必要主数据并更新身份映射；既有审批和操作历史保持可追溯；WHEN V2工程师/服务经理在平台发起领料或外采事前审批；THEN 平台调用OA接口创建对应流程并保存OA流程实例ID，平台页面展示OA办理链接；AND OA流程状态实时同步，流程完成后结果回填对应物料申请；WHEN 平台审批节点触发（割接审批/变更审批/转包审批等）；THEN 平台通过钉钉推送审批通知，通知含审批标题、申请人、审批人、审批链接、截止时间；AND 审批人在平台链接内完成审批，钉钉只回传通知送达/阅读状态，不得更新平台审批结果；WHEN 转包流程（SUB-01~05）发起；THEN 平台在平台内独立审批，OA仅接收待办链接通知（不在OA内审批）；WHEN 钉钉/HR/OA接口不可用；THEN 平台继续使用最近一次成功同步的人员组织快照，OA流程降级为线下审批后补录，审批通知降级为站内消息；不得把通知失败判为业务失败或审批成功；WHEN 同一人员事件或通知请求重复到达、HR人员无法唯一匹配，或钉钉回调试图携带审批结果；THEN 平台对重复请求返回既有记录；人员保持待映射且不进入候选人列表；忽略外部审批结果字段并记录协议异常，不改变平台审批状态
-- Phase 3授权拒绝断言：越权按“TenantOrganizationProjectScope；目录身份不直接等于项目角色”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“必要人员组织同步复用基础平台主数据、已有同步批次和来源键映射；待办链接和通知回执不接入打卡/工时”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3授权拒绝断言：越权按“TenantOrganizationProjectScope；目录身份不直接等于项目角色；外部流程按来源业务对象权限”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“V1同步必要人员组织并承接钉钉待办/通知；V2创建OA领料/外采流程引用并同步结果，转包仅发送平台待办链接；OA/钉钉不拥有平台审批与业务状态，且不接入打卡/工时”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“Todo”及数据表“plt_todo、plt_sync_batch、plt_external_key_mapping”；事件边界为“MasterDataSynchronized、TodoRequested、TodoCompleted”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“钉钉、HR、OA”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### INT-06
 
 - 需求名称：备件/授权/UMC集成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-06@V2 | V2 | 备件/授权/UMC集成的V2主交付业务结果 | V2 |
+
 - 数据对象：RMAReplacement、AuthorizationGrant、InspectionReport
 - 数据表：ast_rma_replacement、plt_authorization_grant、srv_inspection_report_revision
 - API：/rma-replacements、/authorization-grants、/inspection-reports/{id}/versions
@@ -1599,6 +2224,13 @@
 ### INT-07
 
 - 需求名称：财务集成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-07@V2 | V2 | 财务集成的V2主交付业务结果 | V2 |
+
 - 数据对象：PaymentGate
 - 数据表：res_payment_gate、plt_integration_reconciliation
 - API：/payment-gates
@@ -1617,6 +2249,13 @@
 ### INT-09
 
 - 需求名称：LDAP/AD集成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-09@V1 | V1 | LDAP/AD集成的V1主交付业务结果 | V1 |
+
 - 数据对象：AuthorizationGrant
 - 数据表：plt_authorization_grant、ast_asset_sync_item
 - API：/authorization-grants
@@ -1635,6 +2274,13 @@
 ### INT-10
 
 - 需求名称：短信/邮件平台集成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-10@V2 | V2 | 短信/邮件平台集成的V2主交付业务结果 | V2 |
+
 - 数据对象：Todo
 - 数据表：plt_todo、ast_asset_sync_item
 - API：/todos
@@ -1653,24 +2299,39 @@
 ### INT-12
 
 - 需求名称：设备连接与采集平台集成
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| INT-12@V1 | V1 | 设备连接与采集平台集成的V1主交付业务结果 | V1实施/割接公共能力；V2巡检入口 |
+| INT-12@V2 | V2 | 在线巡检复用统一设备连接与采集契约 | 不重复建设凭证、任务或采集执行引擎 |
+
 - 数据对象：DeviceCredential、CredentialGrant、CollectionTask、CollectionResultReference
 - 数据表：plt_device_credential、plt_credential_grant、plt_collection_task、plt_collection_result_consumption
 - API：/device-credentials、/collection-tasks、/internal/collection-tasks/{id}/actions/confirm-consumption
 - 事件：CollectionTaskRequested、CollectionResultAvailable、CollectionResultConsumed、CollectionCompleted
 - 外部集成：现有采集平台子应用
 - 文件契约：FileArtifact
-- 工作流/状态：授权校验→下发→回调→业务消费→完成/失败；独立中心按成功回调终态
+- 工作流/状态：V1供实施/割接复用授权→下发→回调→业务消费契约；V2在线巡检复用同一凭证、任务和采集执行引擎；独立中心按成功回调终态
 - 授权与数据范围：BusinessObjectDeviceCredentialScope；创建人默认权限和五元组授权
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试；凭证五元组、创建人默认授权、临时明文不落库、保存为凭证原子切换测试
 - Phase 3 PRD验收基线：WHEN 用户从EXE-03/04、CUT-06或独立中心发起V1采集任务；THEN 系统自动或人工确定项目、设备、用途和业务上下文，展示用户有权使用的凭证、临时连接信息输入方式和已发布命令模板；AND 权限校验通过后创建统一采集任务，向现有采集平台下发并保存外部任务号和受理结果；WHEN V2用户从INS-02/04发起在线巡检或预检；THEN 系统复用同一认证方式、任务下发和回调契约，不新增巡检专用凭证副本或采集执行引擎；WHEN 用户选择"临时连接信息"并直接发起任务；THEN 采集任务保存认证方式和登录用户名用于审计，密码仅经受保护同步链路传至已认证采集执行进程，不写入任何持久化介质；AND 页面刷新、任务重试或再次执行时，系统不得自动回填原密码，必须要求用户重新输入；WHEN 用户在临时输入模式显式选择"保存为设备凭证"；THEN 系统按凭证规则保存用户名并加密保存密码，创建默认仅当前用户可用的新凭证，本次任务记录该凭证ID及授权快照；AND 未选择"保存为设备凭证"时，系统不得自动创建凭证或以缓存、草稿、历史参数等形式保留密码；WHEN 非创建人未获得显式凭证授权，或用户缺少业务、设备、模板任一权限；THEN 对已保存凭证禁止下发任务；临时输入模式仍须校验业务、设备和模板权限，并记录不含密码/密钥明文的拒绝原因和审计记录；WHEN 现有采集平台返回任务状态、日志文件或结果引用；THEN 系统完成调用方认证、验签、幂等和顺序校验，保留外部状态原值和原始证据，并按业务上下文通知IMP/CUT/SRV消费；AND 重复回调不得生成重复业务结果，乱序回调不得使已完成任务回退到非终态；WHEN 独立中心任务未关联具体IMP/CUT/SRV业务单据且收到有效终态回调；THEN PLT按状态映射将通用任务更新为相应终态，保存设备级结果、结果文件引用和原始证据，并在独立中心按项目、设备、创建人、时间和状态可查询；WHEN 用户通过页面、查询接口、导出、审计日志或异常信息访问设备凭证；THEN 系统仅返回凭证ID、账号脱敏值和授权状态，阻止查看、复制或导出密码/密钥明文并记录访问结果；WHEN 现有采集接口必须接收已保存凭证解密值或临时输入密码字段；THEN 明文仅通过受保护同步链路进入已认证采集执行进程，相关请求体不记录正文日志，执行结束后清除内存中的密码或密钥；WHEN 凭证授权在任务执行前或执行中撤销；THEN 系统按本需求第7项规则终止或收敛执行，记录实际停止点，撤销后不得发起新连接、重试或继续剩余命令；WHEN 子应用不可用、下发超时、设备级部分失败或回调异常；THEN 系统保留原任务和原始证据，展示设备级结果并允许基于原任务创建新的受控重试任务；AND 实施场景可按EXE-03/04手动上传Log，割接场景可按CUT-06关联原失败任务人工上传结果，巡检场景可按INS-02切换离线方式；任何降级结果均不得覆盖原任务失败证据
 - Phase 3授权拒绝断言：越权按“BusinessObjectDeviceCredentialScope；创建人默认权限和五元组授权”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“授权校验→下发→回调→业务消费→完成/失败；独立中心按成功回调终态”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3业务守卫断言：按“V1供实施/割接复用授权→下发→回调→业务消费契约；V2在线巡检复用同一凭证、任务和采集执行引擎；独立中心按成功回调终态”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeviceCredential、CredentialGrant、CollectionTask、CollectionResultReference”及数据表“plt_device_credential、plt_credential_grant、plt_collection_task、plt_collection_result_consumption”；事件边界为“CollectionTaskRequested、CollectionResultAvailable、CollectionResultConsumed、CollectionCompleted”，文件边界为“FileArtifact”，外部集成为“现有采集平台子应用”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录；密文/密钥版本抽查、秘密扫描零命中和DAC任务回调链证据
 
 ### NFR-01
 
 - 需求名称：平台性能、安全与兼容基线
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| NFR-01@V1 | V1 | 平台性能、安全与兼容基线的V1主交付业务结果 | V1 |
+
 - 数据对象：AuditRecord、MetricSnapshot
 - 数据表：plt_operation_audit、ana_metric_snapshot
 - API：/analytics/metrics
@@ -1689,24 +2350,39 @@
 ### NFR-02
 
 - 需求名称：设备凭证及巡检非功能需求
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| NFR-02@V1 | V1 | 设备凭证及巡检非功能需求的V1主交付业务结果 | V1设备凭证与采集安全基线；V2巡检专项 |
+| NFR-02@V2 | V2 | 在线巡检命令超时与规则化后续命令处理 | 当前命令终止失败；后续按冻结的已发布规则决定并留痕 |
+
 - 数据对象：DeviceCredential、CredentialGrant、CollectionTask、CollectionResultReference
 - 数据表：plt_device_credential、plt_credential_grant、plt_collection_task、plt_collection_result_consumption
 - API：/device-credentials、/collection-tasks、/internal/collection-tasks/{id}/actions/confirm-consumption
 - 事件：CollectionTaskRequested、CollectionResultAvailable、CollectionResultConsumed、CollectionCompleted
 - 外部集成：现有采集平台子应用
 - 文件契约：FileArtifact
-- 工作流/状态：授权校验→下发→回调→业务消费→完成/失败；独立中心按成功回调终态
+- 工作流/状态：V1设备凭证与采集安全基线；V2在线巡检当前命令超时即终止并失败，后续命令是否继续由任务冻结的已发布规则决定并留痕
 - 授权与数据范围：BusinessObjectDeviceCredentialScope；创建人默认权限和五元组授权
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试；文件上传/下载/版本/恶意内容与权限回源测试；AES-256或同等强度、任务级短期取密、撤销与泄露处置测试
-- Phase 3 PRD验收基线：V1发布门禁（设备凭证安全与采集公共基线）：；WHEN 用户在Chrome/Edge/Firefox浏览器中访问设备连接与采集公共页面；THEN 平台记录50并发场景的页面响应统计，P95≤2秒且错误率满足NFR-01基线；AND 单点登录、RBAC权限、数据隔离、审计日志、浏览器兼容均满足NFR-01同等标准；WHEN 用户创建或更新设备凭证；THEN 系统以AES-256或不低于同等强度的算法保存密文和密钥版本，不保存可查询的明文副本；WHEN 非创建人未获得显式授权，或授权超出设备、协议、命令模板或有效期范围；THEN 系统拒绝使用凭证；管理员、项目成员和任务参与人身份均不得绕过该校验；WHEN 授权用户通过页面、接口、导出或审计查询设备凭证；THEN 系统仅返回凭证标识、账号脱敏信息和授权状态，不返回密码或密钥明文；WHEN 现有采集平台执行已授权设备任务；THEN 明文仅在受保护同步链路和已认证采集执行进程内存中短暂使用，请求体不记录正文日志，执行完成、失败、超时或会话关闭后清除内存凭证；AND 数据库、异步消息、持久化队列、日志、回调、异常堆栈和导出文件中扫描不到凭证明文；WHEN 用户选择临时账号密码方式发起设备连接；THEN 系统保存认证方式、登录用户名和任务审计信息，并在持久化及浏览器存储检查中保持密码记录数为0；AND 页面刷新、任务重试或再次执行时必须重新输入密码；原密码不得从缓存、草稿或历史参数恢复；WHEN 用户显式选择将临时输入保存为设备凭证；THEN 系统按凭证安全规则加密保存密码、记录密钥版本和创建审计，新凭证默认仅创建人可使用；未显式选择时不得创建凭证；WHEN 使用唯一标记测试密码/密钥完成成功、失败、超时、重试和撤销场景后执行全链路扫描；THEN 浏览器存储、数据库、缓存、消息/持久队列、网关/应用/采集日志、回调、异常堆栈、导出和任务结果中的明文命中数为0，并保存扫描范围与结果报告；WHEN 任务结束、失败、超时、撤销或执行授权到期后再次请求取用同一凭证；THEN 系统拒绝取密并记录授权失效原因，不创建新连接或继续剩余命令；V2巡检启用门禁（不作为V1发布条件）：；WHEN 一线工程师执行在线巡检命令；THEN 巡检命令执行超时≤30秒（超时时间可由管理员后台配置）；AND 超时后自动终止该命令并标记执行失败，不影响后续命令执行
+- Phase 3 PRD验收基线：V1发布门禁（设备凭证安全与采集公共基线）：；WHEN 用户在Chrome/Edge/Firefox浏览器中访问设备连接与采集公共页面；THEN 平台记录50并发场景的页面响应统计，P95≤2秒且错误率满足NFR-01基线；AND 单点登录、RBAC权限、数据隔离、审计日志、浏览器兼容均满足NFR-01同等标准；WHEN 用户创建或更新设备凭证；THEN 系统以AES-256或不低于同等强度的算法保存密文和密钥版本，不保存可查询的明文副本；WHEN 非创建人未获得显式授权，或授权超出设备、协议、命令模板或有效期范围；THEN 系统拒绝使用凭证；管理员、项目成员和任务参与人身份均不得绕过该校验；WHEN 授权用户通过页面、接口、导出或审计查询设备凭证；THEN 系统仅返回凭证标识、账号脱敏信息和授权状态，不返回密码或密钥明文；WHEN 现有采集平台执行已授权设备任务；THEN 明文仅在受保护同步链路和已认证采集执行进程内存中短暂使用，请求体不记录正文日志，执行完成、失败、超时或会话关闭后清除内存凭证；AND 数据库、异步消息、持久化队列、日志、回调、异常堆栈和导出文件中扫描不到凭证明文；WHEN 用户选择临时账号密码方式发起设备连接；THEN 系统保存认证方式、登录用户名和任务审计信息，并在持久化及浏览器存储检查中保持密码记录数为0；AND 页面刷新、任务重试或再次执行时必须重新输入密码；原密码不得从缓存、草稿或历史参数恢复；WHEN 用户显式选择将临时输入保存为设备凭证；THEN 系统按凭证安全规则加密保存密码、记录密钥版本和创建审计，新凭证默认仅创建人可使用；未显式选择时不得创建凭证；WHEN 使用唯一标记测试密码/密钥完成成功、失败、超时、重试和撤销场景后执行全链路扫描；THEN 浏览器存储、数据库、缓存、消息/持久队列、网关/应用/采集日志、回调、异常堆栈、导出和任务结果中的明文命中数为0，并保存扫描范围与结果报告；WHEN 任务结束、失败、超时、撤销或执行授权到期后再次请求取用同一凭证；THEN 系统拒绝取密并记录授权失效原因，不创建新连接或继续剩余命令；V2巡检启用门禁（不作为V1发布条件）：；WHEN 一线工程师执行在线巡检命令；THEN 巡检命令执行超时≤30秒（超时时间可由管理员后台配置）；AND 超时后自动终止当前命令并标记执行失败；后续命令是否继续严格按任务冻结的已发布巡检规则决定，平台记录规则版本、继续/停止决定及实际执行结果，不固定假设全部继续
 - Phase 3授权拒绝断言：越权按“BusinessObjectDeviceCredentialScope；创建人默认权限和五元组授权”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“授权校验→下发→回调→业务消费→完成/失败；独立中心按成功回调终态”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3业务守卫断言：按“V1设备凭证与采集安全基线；V2在线巡检当前命令超时即终止并失败，后续命令是否继续由任务冻结的已发布规则决定并留痕”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
 - Phase 3副作用断言：成功仅按契约写入/引用数据对象“DeviceCredential、CredentialGrant、CollectionTask、CollectionResultReference”及数据表“plt_device_credential、plt_credential_grant、plt_collection_task、plt_collection_result_consumption”；事件边界为“CollectionTaskRequested、CollectionResultAvailable、CollectionResultConsumed、CollectionCompleted”，文件边界为“FileArtifact”，外部集成为“现有采集平台子应用”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录；文件哈希、版本、扫描、引用与权限拒绝记录；密码学配置、密钥轮换演练、秘密扫描及授权拒绝报告
 
 ### NFR-03
 
 - 需求名称：割接/巡检推送节点
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| NFR-03@V2 | V2 | 割接/巡检推送节点的V2主交付业务结果 | V2 |
+
 - 数据对象：Todo
 - 数据表：plt_todo、ast_asset_sync_item
 - API：/todos
@@ -1725,6 +2401,13 @@
 ### AUT-01
 
 - 需求名称：授权申请管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| AUT-01@V2 | V2 | 授权申请管理的V2主交付业务结果 | V2 |
+
 - 数据对象：AuthorizationGrant
 - 数据表：plt_authorization_grant
 - API：/authorization-grants
@@ -1743,6 +2426,13 @@
 ### AUT-02
 
 - 需求名称：授权信息查询
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| AUT-02@V2 | V2 | 授权信息查询的V2主交付业务结果 | V2 |
+
 - 数据对象：AuthorizationGrant
 - 数据表：plt_authorization_grant
 - API：/authorization-grants
@@ -1761,6 +2451,13 @@
 ### CHG-01
 
 - 需求名称：项目变更申请电子流
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| CHG-01@V2 | V2 | 项目变更申请电子流的V2主交付业务结果 | V2 |
+
 - 数据对象：ChangeRequest
 - 数据表：plt_change_request
 - API：/change-requests
@@ -1779,6 +2476,13 @@
 ### PLT-01
 
 - 需求名称：统一待办接入与状态一致性
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PLT-01@V1 | V1 | 统一待办接入与状态一致性的V1主交付业务结果 | V1 |
+
 - 数据对象：Todo
 - 数据表：plt_todo
 - API：/todos、/{id}/actions/complete
@@ -1797,6 +2501,13 @@
 ### PLT-02
 
 - 需求名称：统一文件身份与版本管理
+
+#### Requirement版本切片
+
+| 切片键 | 目标版本 | 独立业务结果 | 版本边界 |
+|---|---|---|---|
+| PLT-02@V1 | V1 | 统一文件身份与版本管理的V1主交付业务结果 | V1 |
+
 - 数据对象：FileArtifact
 - 数据表：plt_file_artifact、plt_file_version、plt_file_reference
 - API：/files:init-upload、/files/{id}:complete-upload、/file-references

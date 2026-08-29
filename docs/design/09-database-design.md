@@ -186,6 +186,8 @@ V1.7已有`proj_project.progress/aggregation_weight/weight_source`仅保留为�
 
 【建议】新增 `proj_task_tree_path`，结构和索引与项目路径表相同，并增加 `project_id` 作为高频过滤列。任务移动只修改任务父关系和路径投影，不自动创建/删除依赖。
 
+`proj_task_dependency`保存`project_id/predecessor_task_id/successor_task_id/dependency_type/version`及通用审计字段；同项目同方向同类型唯一，禁止自依赖。V2新增、更新、删除均锁定关系版本并在应用服务校验两端任务范围及受控无环规则；甘特查询只读取ProjectTask与该关系，不生成第二套计划或任务表。
+
 ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义、实例冻结、判定追加”三层最小物理模型；不把可执行绑定只塞入模板JSON，也不把目标业务正文复制到ProjectTask：
 
 | 目标表 | 关键字段 | 约束与索引 |
@@ -249,6 +251,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 - `proj_project_member_assignment`复用`employee_no/member_name/company_id/company_code/company_name/department_code/department_name/member_role/effective_from/effective_to`，前向新增`department_id/assignment_type/site_id/change_reason`；必填组织快照为`company_id + department_id + department_code + department_name`。
 - V1仅支持服务端事务时间立即生效。同一项目节点的所有写入口先以`proj_project.version` CAS锁定，再在事务内检查同角色/站点范围重叠；不增加会破坏时间历史的“当前主责”物理唯一键，真实MySQL竞态测试证明同版本只有一个成功。
+- V2唯一匹配自动指派复用相同成员表、版本锁和有效区间事务；冻结规则返回零个或多个候选时不写成员关系，项目保持待指派并进入V1人工流程，不新增候选确认状态或第二套指派表。
 - `system_notify_message`前向新增可空`delivery_key varchar(128)`及`uk(tenant_id,user_type,delivery_key)`；既有调用留空不受影响。PM-08以Outbox `event_id`填入，重复一致请求返回首次消息ID，重复键但收件人、模板或参数摘要不一致时冲突。
 - 不新增成员历史、通知历史或重试表；成员区间、`system_notify_message`和`plt_outbox_event`分别是责任历史、幂等投递和重试事实。
 
@@ -372,17 +375,17 @@ CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_re
 
 `result_source_code`只表达CUT选择的直接填写、自动采集、外部加载或人工降级来源；本表不保存DAC的`mapped_status_code`、`external_status_raw`或调度状态副本。技术状态始终从`plt_collection_task`及结果引用读取，CUT只在验签、任务/清单/采集项/设备/结果版本匹配后选择一个结果版本，并按采集项规则解释是否满足。结果创建时写`selection_started_at`并成为当前选择；切换结果时在同一事务中锁定当前行、写旧行`selection_ended_at`并插入新结果版本。结果载荷、来源与证据字段不可更新，只有受控切换命令可以关闭选择区间。
 
-### 7.2 CUT-07后台配置前向表
+### 7.2 CUT-07/09/10后台配置前向表
 
-以下表名是ADR-0031批准的Feature目标，不属于当前核心DDL；物理表由CUT-07 Feature前向迁移确定。
+以下表名是ADR-0031批准的Feature目标，不属于当前核心DDL；物理表由CUT-07 Feature前向迁移确定，并由同一Feature承接CUT-09/10首批配置基础，必须先于或不晚于首个消费能力交付。
 
 | 目标表 | 关键字段 | 约束与索引 |
 |---|---|---|
-| `cut_cutover_configuration_revision` | `configuration_code/revision_no/status_code/effective_from/effective_to/published_by/published_at/disabled_at/dictionary_snapshot/version` | `uk(tenant_id, configuration_code, revision_no)`；发布版本不可覆盖；消费实例冻结revision和字典代码/名称快照 |
+| `cut_cutover_configuration_revision` | `configuration_code/revision_no/status_code/effective_from/effective_to/published_by/published_at/disabled_at/dictionary_snapshot/navigation_rule_snapshot/version` | `uk(tenant_id, configuration_code, revision_no)`；V1承载动态模板/表单/风险调研匹配基础，CUT-03 V2才使用受控跳转规则；发布版本不可覆盖；消费实例冻结revision和字典代码/名称快照 |
 | `cut_cutover_checklist_item_definition_revision` | `configuration_revision_id/stable_item_key/item_definition_version/item_type_code/item_name/interface_format_code/interface_schema/work_mode_code/required_flag/external_source_ref/status_code/sort_order/version` | `uk(tenant_id, configuration_revision_id, stable_item_key, item_definition_version)`；稳定项键不可复用为不同含义 |
 | `cut_cutover_checklist_binding_rule_revision` | `configuration_revision_id/item_definition_id/item_definition_version/rule_version/dimension_condition_snapshot/priority/status_code/version` | `uk(tenant_id, configuration_revision_id, item_definition_id, rule_version)`；维度条件必须可判定且引用启用的基础平台字典值 |
 
-割接类型、组网模式、设备类型使用基础平台可配置字典，不另建业务主表。新表只能由CUT-07 Feature创建；不从`pms_cut_plan`、`pms_cut_risk`或旧清单推断历史配置版本。
+割接类型、组网模式、设备类型使用基础平台可配置字典，不另建业务主表。新表只能由承接CUT-07/09/10配置基础的Feature创建；不从`pms_cut_plan`、`pms_cut_risk`或旧清单推断历史配置版本。
 
 草稿重匹配使用`checklist_version + input_snapshot_hash`。稳定`stable_item_key`继续适用时可保留当前答案；移出适用范围的项把`applicable_flag`置为0并留审计，不进入提交；新增项写入同一草稿。已提交清单不可原位重匹配，输入发生受控变化时创建新版本并将旧版标记失效。D级任务禁止创建这三类记录。
 

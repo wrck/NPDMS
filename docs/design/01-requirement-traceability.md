@@ -1,9 +1,9 @@
 ﻿# SDS Phase 1：需求追溯
 
-> 文档状态：`REVIEW_REQUIRED_BY_PRD_REVISION_007`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8 附录 A.1 的全部100项V1/V2正式Requirement，以及附录A.1.1派生的111个目标版本切片；逐项范围见 `docs/traceability/requirement-matrix.md`
-> Owner：SDS Phase 1 架构设计；既有独立复审结论仅覆盖修订007前的输入，修订007差量复核待完成
+> Owner：SDS Phase 1 架构设计；修订007差量复核已完成并重新基线化
 > 适用规则：上述 Requirement 范围适用于本分册全部章节；章节或表格明确缩小范围时，以其明示范围为准
 
 
@@ -21,7 +21,7 @@
 
 `Requirement ID → PRD业务域 → Phase 1领域 → 模块 → 聚合根 → 状态机/工作流 → 权限模型 → 计划API/事件 → 计划数据对象 → 测试类别`
 
-V1.8修订007已重建111个目标版本切片追溯索引；既有模块、聚合、状态机/工作流、权限、计划API和数据对象映射须按修订007差量重验证。既有Feature链接和任务状态保留为实施事实，但只关闭其机器可读声明覆盖的切片，不代表整个Requirement或SDS已通过修订007影响审查。
+V1.8修订007已重建111个目标版本切片追溯索引，并完成模块、聚合、状态机/工作流、权限、计划API和数据对象映射的Phase 1差量复核。既有Feature链接和任务状态保留为实施事实，但只关闭其机器可读声明覆盖的切片，不代表整个Requirement已完成。
 
 ## 3. 领域重确认工作表
 
@@ -41,11 +41,11 @@ V1.8修订007已重建111个目标版本切片追溯索引；既有模块、聚�
 | PLT 平台公共能力 | 待办、文件身份版本、变更、授权、NFR公共约束及 Device Access & Collection 采集编排 | PLT-01～PLT-02、AUT-01～AUT-02、CHG-01、NFR-01～NFR-03、INT-05、INT-09、INT-10、INT-12 | Todo、FileArtifact、AuthorizationGrant、ChangeRequest、DeviceCredential、CredentialGrant、CollectionTask | OWNER_CONFIRMED / BASELINE |
 | KNO 技术知识治理 | 当前仅承接已确认的技术公告同步边界 | INT-04 | TechnicalNoticeReference | OWNER_CONFIRMED / BASELINE |
 
-上表已按PRD V1.8正式范围和`phase-1-domain-ownership.md`完成100项唯一Owner机器对齐；发生跨域需求时只保留一个数据Owner，其余领域以引用关系记录。当前结论已经fresh-context独立复审确认，旧规格不得覆盖V1.8业务语义。
+上表已按PRD V1.8正式范围和`phase-1-domain-ownership.md`完成100项唯一Owner机器对齐；发生跨域需求时只保留一个数据Owner，其余领域以引用关系记录。修订007差量已由需求方批准推进，旧规格不得覆盖V1.8业务语义。
 
 ## 4. 覆盖结论
 
 - 正式需求索引覆盖：100/100；目标版本切片索引覆盖：111/111；13个Owner唯一映射未漂移。
 - 需求缺失：0。
-- 设计资产完成度：既有正式分册和评审证据保留为差量复核输入；修订007受影响的Phase 1/2/3契约尚未重新批准，不得据旧结论自动进入Feature Ready评估。
+- 设计资产完成度：Phase 1已按修订007重新基线化；Phase 2契约通过后方可进入Phase 3，Phase 3通过前不得进入Feature Ready评估。
 - 不能从旧规格直接推导的内容：数据库字段、接口契约、事件名称、组件拆分、性能实现和测试脚本。
