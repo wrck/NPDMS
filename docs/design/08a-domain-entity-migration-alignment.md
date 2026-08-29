@@ -93,6 +93,7 @@
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
 | `Acceptance` | 当前`acc_acceptance` | CURRENT_FORWARD+STRUCTURED | 按验收范围、版本、结论和确认迁移；原实施证据仅引用 |
+| `AcceptanceScopeBinding` | 当前验收表没有可证明的DeliveryScope版本绑定事实 | NONE_NEW+FEATURE_FORWARD_MIGRATION | 仅从新平台ACC进入验收范围命令追加；保存DeliveryScope及分配版本，不用既有项目级验收状态反推历史锁定范围 |
 | `SatisfactionCollection` | `pm_cl_quesnaire_template_*`、`pm_cl_quesnaire_result_*`、`pm_cl_callback*`、`pm_subcontract_project_callback` | STRUCTURED+RELATION+PENDING_SOURCE_CONFIRMATION | 模板、题目、选项、答卷和评分按原版本迁移；业务对象关系只有证据完整时建立；不从回访/审批状态反推客户答案或通过结果 |
 | `DeliveryArtifact` | 当前交付清单/归档/完工证明、旧基础交付模板和转包交付件 | CURRENT_FORWARD+RELATION | 文件身份、清单项、审核与归档分离；不能只迁URL而丢业务类型/版本 |
 | `ProjectClosure` | 当前`acc_project_closure` | CURRENT_FORWARD | 迁已有申请/结论/时间；无法重建原门禁输入时标记历史快照不完整 |
@@ -136,7 +137,7 @@
 | `Contract` | SAP回款、ERP订单合同关系；`fb_contract`仅发货归属 | STRUCTURED+RELATION+EXTERNAL_SYNC | 业务键为租户+公司+合同号；发货合同不得生成主档 |
 | `SalesOrder` | `pm_order_data_from_erp` | STRUCTURED+EXTERNAL_SYNC | 按来源+公司+订单类型+订单号归并；冲突不取最大ID |
 | `OrderLine` | `pm_order_line_from_erp` | STRUCTURED+EXTERNAL_SYNC | 订单行稳定键、数量和正负方向保留；空键/多义进入问题 |
-| `DeliveryScope` | `pm_project_product_line`及明确订单行/项目关系 | STRUCTURED+RELATION | 必须保存项目、订单行、分配量和状态；缺量待补且不计统计，多项目分配防超配 |
+| `DeliveryScope` | `pm_project_product_line`及明确订单行/项目关系；当前V70 `com_delivery_scope*`切片 | STRUCTURED+RELATION+CURRENT_FORWARD | 必须保存项目、订单行、分配量、状态、分配版本、生效区间和发生时项目办事处快照；V70的`office_department_code`只作来源证据，须与项目及SYSTEM部门稳定事实核验，不得推断AST站点或伪造部门ID/版本；缺少订单、单位精度、项目办事处或产品/设备/SN必要证据时阻断转换 |
 | `Supplier` | 旧`pm_subcontract_facilitator`、当前外协/供应商候选 | STRUCTURED+CURRENT_FORWARD | 迁服务商主档和资质版本；备件供应商业务仍由外部系统承接 |
 | `SubcontractRequest` | 旧`pm_subcontract_project_header/line/price/callback`、当前外协申请 | STRUCTURED+CURRENT_FORWARD | 迁申请、范围、价格版本和审批引用；不改变项目树 |
 | `PaymentGate` | 旧转包付款及财务同步表 | STRUCTURED+EXTERNAL_SYNC | 迁已批准前置证据和外部结果引用；HTTP/同步成功不等于付款确认 |

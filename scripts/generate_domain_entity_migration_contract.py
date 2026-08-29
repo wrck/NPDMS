@@ -36,6 +36,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "ImplementationQualityCheck": ("imp_quality_check", "imp_quality_item", "imp_quality_remediation", "imp_quality_review"),
     "DeliveryEvidence": ("imp_delivery_evidence", "imp_delivery_evidence_revision"),
     "ImplementationReadinessSnapshot": ("imp_implementation_readiness_snapshot",), "Acceptance": ("acc_acceptance", "acc_acceptance_item", "acc_confirmation"),
+    "AcceptanceScopeBinding": ("acc_acceptance_scope_binding",),
     "SatisfactionCollection": ("acc_satisfaction_collection_task", "acc_satisfaction_questionnaire", "acc_satisfaction_response", "acc_satisfaction_result"),
     "DeliveryArtifact": ("acc_delivery_artifact", "acc_artifact_review", "acc_archive_record"),
     "ProjectClosure": ("acc_project_closure", "acc_closure_review"), "ClosureGateSnapshot": ("acc_closure_gate_snapshot",),
@@ -55,7 +56,7 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "DeviceAssignmentHistory": ("ast_device_assignment_history",), "DeviceAncestorProjection": ("ast_device_project_ancestor",),
     "AssetSyncSnapshot": ("ast_asset_sync_batch", "ast_asset_sync_item", "ast_device"), "MaintenanceFact": ("ast_maintenance_fact",),
     "RMAReplacement": ("ast_rma_replacement",), "Contract": ("com_contract",), "SalesOrder": ("com_sales_order",),
-    "OrderLine": ("com_order_line",), "DeliveryScope": ("com_delivery_scope",), "DeliveryScopeDetail": ("com_delivery_scope_detail",), "Supplier": ("res_supplier", "res_qualification"),
+    "OrderLine": ("com_sales_order_line",), "DeliveryScope": ("com_delivery_scope",), "DeliveryScopeDetail": ("com_delivery_scope_detail",), "Supplier": ("res_supplier", "res_qualification"),
     "SubcontractRequest": ("res_subcontract_request",), "PaymentGate": ("res_payment_gate",), "MetricDefinition": ("ana_metric_definition",), "MetricSnapshot": ("ana_metric_snapshot",),
     "PortfolioView": ("ana_portfolio_projection",), "Todo": ("plt_todo",), "AuthorizationGrant": ("plt_authorization_grant",),
     "ChangeRequest": ("plt_change_request",), "FileArtifact": ("plt_file_artifact", "plt_file_version", "plt_file_reference"),
@@ -72,6 +73,7 @@ TARGET_POLICIES = {
     "NoticeBusinessReference": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "INT-04"},
     "CustomerServiceLevelRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUS-02"},
     "CutoverConfigurationRevision": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "CUT-07"},
+    "AcceptanceScopeBinding": {"targetTablePolicy": "FEATURE_FORWARD_MIGRATION", "featureRequirementId": "COM-01"},
 }
 
 MODEL_ENTITY_CONTRACTS = {
@@ -86,6 +88,7 @@ MODEL_ENTITY_CONTRACTS = {
     "CutoverClosure": {"owner": "CUT", "requirementIds": ["CUT-06"]},
     "CutoverConfigurationRevision": {"owner": "CUT", "requirementIds": ["CUT-07", "CUT-09", "CUT-10"]},
     "CustomerServiceLevelRevision": {"owner": "CUS", "requirementIds": ["CUS-02"]},
+    "AcceptanceScopeBinding": {"owner": "ACC", "requirementIds": ["COM-01", "ACC-03"]},
     "DynamicFormTemplate": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
     "DynamicFormTemplateRevision": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
     "DynamicFormInstance": {"owner": "PLT", "requirementIds": ["SOL-01"], "crossContextFoundation": True, "ownerEvidence": "specs/features/F-PLT-002-shared-dynamic-form-template-and-instance-foundation.md"},
@@ -252,8 +255,13 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         ],
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
         terminalDisposition="MERGE_ONLY_DETERMINISTIC_BUSINESS_KEY_GROUPS;CONFLICTING_GROUPS_REMAIN_MIGRATION_ISSUES")],
-    "OrderLine": [source("LEGACY_TABLE", "pm_order_line_from_erp", "STRUCTURED", "map stable order-line key and signed quantities; empty/ambiguous keys become issues", "READY_FOR_FIELD_MAPPING", "AI-MIG-000")],
-    "DeliveryScope": [source("LEGACY_TABLE", "pm_project_product_line", "RELATION", "map project/order-line/allocation; missing allocation remains pending and excluded from metrics", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
+    "OrderLine": [
+        source("CURRENT_TABLE", "com_order_line", "CURRENT_FORWARD", "map source key/version, order, line code, item, quantity, unit and authority status to com_sales_order_line only when parent order and explicit unit scale resolve; never infer unit scale", "CURRENT_FORWARD_REQUIRED", "F-COM-001"),
+        source("LEGACY_TABLE", "pm_order_line_from_erp", "STRUCTURED", "map stable order-line key and signed quantities; empty/ambiguous keys become issues", "READY_FOR_FIELD_MAPPING", "AI-MIG-000"),
+    ],
+    "DeliveryScope": [
+        source("CURRENT_TABLE", "com_delivery_scope", "CURRENT_FORWARD", "preserve IDs, order-line/project relation, quantity, allocation version and effective interval; freeze project office only after PROJ and SYSTEM facts verify", "CURRENT_FORWARD_REQUIRED", "F-COM-001"),
+        source("LEGACY_TABLE", "pm_project_product_line", "RELATION", "map project/order-line/allocation; missing allocation remains pending and excluded from metrics", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
         targetFieldBindings=[
             binding("pm_project_product_line.projectId", "com_delivery_scope.project_id", "EXTERNAL_KEY_MAPPING lookup resolves the target project key", "data-elements://schema-records.jsonl#项目管理!A166"),
             binding("pm_project_product_line.itemCode", "com_delivery_scope.item_code", "copy the product code independently from its name", "data-elements://schema-records.jsonl#项目管理!A168"),
@@ -262,8 +270,10 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
             binding("pm_project_product_line.orderNumber|lineNum", "com_delivery_scope.order_line_id", "TARGET_KEY_LOOKUP resolves the order line using the full approved business key", "data-elements://schema-records.jsonl#项目管理!A174:A175"),
         ],
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
-        terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS")],
-    "DeliveryScopeDetail": [source("NONE_NEW", "DeliveryScopeDetail", "NEW_ONLY", "create details only for explicit location/product/device-type/batch allocations; never synthesize historical detail quantity or location from the legacy header", "NEW_ONLY", "FEATURE_RELEASE")],
+        terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS"),
+    ],
+    "DeliveryScopeDetail": [source("CURRENT_TABLE", "com_delivery_scope_detail", "CURRENT_FORWARD", "preserve quantity, status, serial number and office code evidence; require verified product/device/SN subject and move verified office snapshot to DeliveryScope without AST inference", "CURRENT_FORWARD_REQUIRED", "F-COM-001")],
+    "AcceptanceScopeBinding": [source("NONE_NEW", "AcceptanceScopeBinding", "NEW_ONLY", "append only from new ACC enter-scope commands after locking the current DeliveryScope allocation version; never infer historical bindings from project-level acceptance status", "NEW_ONLY", "F-COM-001")],
     "Supplier": [source("LEGACY_TABLE", "pm_subcontract_facilitator", "STRUCTURED", "map supplier identity and qualification evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "SubcontractRequest": [source("LEGACY_TABLE", "pm_subcontract_project_header|pm_subcontract_project_line|pm_subcontract_project_price|pm_subcontract_project_callback", "STRUCTURED", "map request scope, price revision and approval/callback evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "PaymentGate": [source("LEGACY_TABLE", "pm_subcontract_project_payment|pm_subcontract_project_payment_sse", "STRUCTURED", "map approved prerequisites and external finance result reference", "PENDING_FIELD_MAPPING", "AI-MIG-000")],

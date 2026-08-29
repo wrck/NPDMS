@@ -18,19 +18,19 @@
 |---|---|---|---|
 | COM-01@V1 | V1 | 合同订单关联与范围分配的V1主交付业务结果 | V1 |
 
-- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail
-- 数据表：com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail
-- API：/contracts、/sales-orders、/order-lines、/delivery-scopes
+- 数据对象：Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、AcceptanceScopeBinding
+- 数据表：com_contract、com_sales_order、com_sales_order_line、com_delivery_scope、com_delivery_scope_detail、acc_acceptance_scope_binding
+- API：/contracts、/sales-orders、/order-lines、/delivery-scopes；内部ProjectOfficeFactApi、AcceptanceScopeGuardApi、DeliveryScopeAcceptanceLockApi
 - 事件：DeliveryScopeAssigned/Released
 - 外部集成：ERP（合同订单权威）；CRM仅提供项目/客户上下文
 - 文件契约：N/A（不产生或不持有文件正文）
-- 工作流/状态：ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁
-- 授权与数据范围：ContractProjectScope；ERP核心字段只读
+- 工作流/状态：ERP来源版本与单位精度守卫、项目办事处发生时快照、范围追加版本、明细合计、超分配及验收减量守卫
+- 授权与数据范围：ContractProjectScope（Q-FCOM-001关闭前BLOCKED_BY_SPEC）；ERP核心字段只读
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；事件Outbox/Inbox、重复/乱序/重放测试；外部集成映射、超时/重试/对账/降级测试
-- Phase 3 PRD验收基线：WHEN ERP合同、销售订单或订单行数据可用（接口同步或经授权人工补录待核对）；THEN 平台按ERP来源业务键关联项目并展示权威字段及来源状态；AND 接口不可用不阻断项目内部流程，但未取得ERP权威数量前不得将待核对数量视为最终可分配量；WHEN 项目经理分配订单行到项目；THEN 系统校验数量、地点和权限，生成可追溯的范围分配记录；WHEN 分配数量超过可用数量；THEN 系统拒绝保存并提示已分配明细
-- Phase 3授权拒绝断言：越权按“ContractProjectScope；ERP核心字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“ERP订单行同步、范围主记录及明细分配/释放、明细合计一致性和超分配门禁”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail”及数据表“com_contract、com_sales_order、com_order_line、com_delivery_scope、com_delivery_scope_detail”；事件边界为“DeliveryScopeAssigned/Released”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ERP（合同订单权威）；CRM仅提供项目/客户上下文”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3 PRD验收基线：WHEN ERP合同、销售订单或订单行数据可用（接口同步或经授权人工补录待核对）；THEN 平台按ERP来源业务键关联项目并展示权威字段及来源状态；AND 接口不可用不阻断项目内部流程，但未取得ERP权威数量前不得将待核对数量视为最终可分配量；WHEN 项目经理分配订单行到项目；THEN 系统校验数量、目标项目所属办事处部门事实和权限，生成包含发生时办事处快照的可追溯范围分配记录；WHEN 分配数量超过可用数量；THEN 系统拒绝保存并提示已分配明细
+- Phase 3授权拒绝断言：越权按“ContractProjectScope（Q-FCOM-001关闭前BLOCKED_BY_SPEC）；ERP核心字段只读”拒绝，不返回未授权业务事实且不产生业务副作用
+- Phase 3业务守卫断言：按“ERP来源版本与单位精度守卫、项目办事处发生时快照、范围追加版本、明细合计、超分配及验收减量守卫”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Contract、SalesOrder、OrderLine、DeliveryScope、DeliveryScopeDetail、AcceptanceScopeBinding”及数据表“com_contract、com_sales_order、com_sales_order_line、com_delivery_scope、com_delivery_scope_detail、acc_acceptance_scope_binding”；事件边界为“DeliveryScopeAssigned/Released”，文件边界为“N/A（不产生或不持有文件正文）”，外部集成为“ERP（合同订单权威）；CRM仅提供项目/客户上下文”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；事件消息ID、Outbox/Inbox及消费水位证据；脱敏请求响应、幂等键、重试/对账与降级记录
 
 ### PM-01
@@ -950,19 +950,19 @@
 |---|---|---|---|
 | ACC-03@V1 | V1 | 验收报告管理的V1主交付业务结果 | V1 |
 
-- 数据对象：Acceptance
-- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation
-- API：/acceptances
+- 数据对象：Acceptance、AcceptanceScopeBinding
+- 数据表：acc_acceptance、acc_acceptance_item、acc_confirmation、acc_acceptance_scope_binding
+- API：/acceptances；内部AcceptanceScopeGuardApi
 - 事件：N/A（同步命令或查询，无跨 Context 业务事件）
 - 外部集成：N/A（平台内部契约）
 - 文件契约：FileArtifact
-- 工作流/状态：报告提交、确认和问题留痕
+- 工作流/状态：报告提交、确认和问题留痕；进入验收范围时冻结DeliveryScope分配版本
 - 授权与数据范围：ProjectStageScope、FileBusinessScope
 - Phase 3测试类别：业务规则/聚合单元测试；API契约与输入边界测试；服务端授权拒绝测试；状态/异常恢复测试；幂等与并发冲突测试；数据库约束与迁移测试；文件上传/下载/版本/恶意内容与权限回源测试
 - Phase 3 PRD验收基线：WHEN 项目经理在S5验收阶段进入初验环节并完成初验；THEN 系统提供初验报告上传页面，支持上传初验报告附件（Word/PDF等格式）并填写初验时间、初验结论、初验人等关键信息；AND 初验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为初验交付件；WHEN 项目经理在S5验收阶段进入终验环节并完成终验；THEN 系统提供终验报告上传页面，支持上传终验报告附件并填写终验时间、终验结论、终验人等关键信息；AND 终验报告上传完成后数据自动同步至ACC-04交付件归档管理页面归档为终验交付件，初验/终验报告均保留历史版本支持版本管理；WHEN 初验报告不存在却提交终验、报告附件上传失败或验收时间/结论/验收人缺失；THEN 报告保持草稿或上传失败状态，不生成当前有效版本，也不计入ACC-04和CLO-01齐套结果
 - Phase 3授权拒绝断言：越权按“ProjectStageScope、FileBusinessScope”拒绝，不返回未授权业务事实且不产生业务副作用
-- Phase 3业务守卫断言：按“报告提交、确认和问题留痕”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
-- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
+- Phase 3业务守卫断言：按“报告提交、确认和问题留痕；进入验收范围时冻结DeliveryScope分配版本”执行；PRD验收基线中的非法状态、版本冲突、重复请求或无效输入由对应业务守卫拒绝，原有效业务事实保持不变
+- Phase 3副作用断言：成功仅按契约写入/引用数据对象“Acceptance、AcceptanceScopeBinding”及数据表“acc_acceptance、acc_acceptance_item、acc_confirmation、acc_acceptance_scope_binding”；事件边界为“N/A（同步命令或查询，无跨 Context 业务事件）”，文件边界为“FileArtifact”，外部集成为“N/A（平台内部契约）”。授权拒绝、业务守卫失败或幂等重放不得新增有效业务版本、事件、文件引用或外部完成事实；仅允许保存拒绝/失败审计和已有事实不变的结果。
 - Phase 3证据类型：自动化测试报告（用例ID、业务对象ID、断言与结果）；数据库迁移/约束验证记录；文件哈希、版本、扫描、引用与权限拒绝记录
 
 ### ACC-04

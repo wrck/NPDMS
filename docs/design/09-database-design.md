@@ -340,6 +340,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | 聚合 | 主表 | 支撑表 | 关键约束 |
 |---|---|---|---|
 | Acceptance | `acc_acceptance` | `acc_acceptance_item`、`acc_confirmation` | 验收 revision/客户确认追加；原始实施证据只引用 |
+| AcceptanceScopeBinding | `acc_acceptance_scope_binding` | 无 | `acceptance_id/project_id/delivery_scope_id/scope_allocation_version/binding_status/effective_from/effective_to/acceptance_fact_version/version`；同一验收、范围和分配版本唯一；当前锁定按`delivery_scope_id + effective_to is null`查询；跨Context只保存逻辑引用，不建COM外键 |
 | SatisfactionCollection | `acc_satisfaction_collection_task` | `acc_satisfaction_questionnaire`、`acc_satisfaction_response`、`acc_satisfaction_result` | 任务冻结模板/阈值；答卷、签字和判定只追加；整改重收使用新任务和新问卷版本 |
 | DeliveryArtifact | `acc_delivery_artifact` | `acc_artifact_review`、`acc_archive_record` | 文件 revision + 清单项唯一；归档记录不可覆盖 |
 | ProjectClosure | `acc_project_closure` | `acc_closure_gate_snapshot`、`acc_closure_review` | 快照号唯一；完成后不提供更新接口 |
@@ -420,7 +421,7 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 | Context | 目标表组 | 关键约束 |
 |---|---|---|
 | Customer | F-CUS-001前向表`cus_customer_master`、`cus_customer_external_mapping`、`cus_customer_field_history`、`cus_customer_location_reference`、`cus_customer_scope_slice`，以及`cus_market_relation`、`cus_customer_contact`、`cus_project_customer_contact_relation`、`cus_customer_relationship_snapshot`；CUS-02 Feature前向表见8.2.1 | CRM对象按`source_system+source_key`唯一；临时客户另有`origin_code`；四维组合目录与客户/项目八字段快照分离；五维权限切片显式保存且空范围不放大 |
-| Commerce | `com_contract`、`com_sales_order`、`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围主记录至少含订单行、项目、`allocated_qty`、`scope_status`及来源证据，范围明细保存地点、产品/设备类型、数量和可选批次 |
+| Commerce | `com_contract`、`com_sales_order`、`com_sales_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`、`com_fulfillment_snapshot`、`com_reconciliation_record` | ERP合同按所属公司+合同编号；订单头与合同为关系表语义，不能固化唯一合同；ERP订单/行按稳定业务键+来源版本唯一；CRM经营引用与履约回执单独存 source mapping；范围主记录保存订单行、项目、数量、状态、分配版本、生效区间及项目办事处发生时快照，明细只保存产品/设备类型/SN、数量和可选批次 |
 | Resource | `res_supplier`、`res_qualification`、`res_subcontract_request`、`res_payment_gate` | 资质版本追加；财务结果只保存引用和回写状态 |
 | Knowledge | `TechnicalNoticeReference`逻辑对象；物理表由INT-04 Feature前向迁移确定 | V2公告按ITR来源键+版本唯一，只保存同步副本和业务引用；4张V3治理表不进入核心迁移DDL |
 
@@ -436,12 +437,34 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 
 | 表 | 关键字段 | 约束/索引与语义 |
 |---|---|---|
-| `com_order_line` | `source_system/source_key/source_version/order_id/line_code/item_code/quantity/unit_code/quantity_status/source_updated_at/synced_at/version` | `uk(tenant_id, source_system, source_key)`；ERP字段只读；quantity_status为CONFIRMED/PENDING_AUTHORITY，后者不计入可分配量 |
-| `com_delivery_scope` | `order_line_id/project_id/allocated_qty/scope_status/allocation_version/source_evidence/effective_from/effective_to/version` | `uk(tenant_id, order_line_id, project_id, allocation_version)`；当前有效量不得使订单行超配；取消、退货和ERP减量必须产生受控冲突或释放事实 |
-| `com_delivery_scope_detail` | `delivery_scope_id/office_department_code/serial_no/allocated_qty/detail_status/source_snapshot/version` | `uk(tenant_id, delivery_scope_id, office_department_code, serial_no)`；明细数量合计等于主记录；办事处只用部门稳定编码，不以地址ID推导 |
+| `com_order_line` | `source_system/source_key/source_version/order_id/line_code/item_code/quantity/unit_code/unit_scale/quantity_status/source_updated_at/synced_at/version` | `uk(tenant_id, source_system, source_key)`；ERP字段只读；数量为`decimal(18,6)`，`unit_scale`为0～6且写入数量不得超过该精度；quantity_status为CONFIRMED/PENDING_AUTHORITY，后者不计入可分配量 |
+| `com_delivery_scope` | `order_line_id/project_id/allocated_qty/scope_status/allocation_version/office_department_id/office_department_code/office_department_name/office_department_version/source_evidence/effective_from/effective_to/version` | `uk(tenant_id, order_line_id, project_id, allocation_version)`；当前唯一仍由`project_id + current_order_line_id`保证；数量为`decimal(18,6)`；办事处四字段为发生时非空快照，后续组织变化不覆盖；取消、退货和ERP减量必须产生受控冲突或释放事实 |
+| `com_delivery_scope_detail` | `delivery_scope_id/serial_no/product_code/device_type_code/delivery_batch_no/allocated_qty/detail_status/source_snapshot/version` | `uk(tenant_id, delivery_scope_id, detail_sequence)`；数量为`decimal(18,6)`且明细合计等于主记录；`serial_no/product_code/device_type_code`至少一个非空；不保存AST站点、地点文本或办事处第二真值 |
 | `com_outbox_event` | `event_id/event_type/aggregate_type/aggregate_key/scope_version/payload/status/occurred_at/retry_count` | `uk(tenant_id, event_id)`；`idx(tenant_id, status, occurred_at, id)`；仅由COM事务发布DeliveryScopeAssigned/Released |
 
-预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量和SN/办事处组合后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
+预览接口只加锁读取并返回权威`scopeVersion`，不写范围事实。确认接口按稳定订单行ID顺序锁定，校验期望版本、单位精度、总量、SN及目标项目办事处事实后一次写入全部分配及COM Outbox；任何一项失败整体回滚。PROJ只保存返回的稳定引用、版本和发生时摘要，不建立跨Context物理外键。
+
+### 8.2.3 F-COM-001 Feature-forward物理差量
+
+本差量受PRD修订008和ADR-0036约束，属于`FEATURE_FORWARD_MIGRATION(COM-01)`；它不修改当前核心DDL文件，不批准Flyway执行或历史生产迁移。F-COM-001的机器物理契约和未来迁移必须逐项等于以下差量，不得由Technical Plan补字段：
+
+| 目标表 | 新增/变更字段（MySQL 8.4） | 空值与约束 |
+|---|---|---|
+| `com_contract` | `master_source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`、`source_updated_at datetime(3) NULL` | 人工待核对记录可空；进入ERP确认态时`master_source_record_key/master_source_version`均非空；同来源旧版或同版异内容不覆盖当前事实 |
+| `com_sales_order` | `source_record_key varchar(128) COLLATE utf8mb4_0900_bin NULL`、`source_version varchar(64) COLLATE utf8mb4_0900_bin NULL`、`source_updated_at datetime(3) NULL` | ERP确认态三字段非空；新增`uk(tenant_id, source_system, source_record_key)`，原业务唯一键保留；MySQL多NULL只承载待核对记录，不作为幂等键 |
+| `com_sales_order_line` | `source_record_key varchar(128) COLLATE utf8mb4_0900_bin NOT NULL`、`source_version varchar(64) COLLATE utf8mb4_0900_bin NOT NULL`、`unit_code varchar(32) NOT NULL`、`unit_scale tinyint unsigned NOT NULL`、`quantity_status varchar(32) NOT NULL`、`source_updated_at datetime(3) NULL`；`order_qty/open_qty/delivered_qty`统一为`decimal(18,6) NULL` | 新增`uk(tenant_id, source_system, source_record_key)`；`unit_scale between 0 and 6`；数量为空只允许待权威确认，确认数量按`unit_scale`校验，状态码不以DDL CHECK封死 |
+| `com_delivery_scope` | `allocated_qty decimal(18,6) NOT NULL`、`allocation_version bigint NOT NULL`、`office_department_id bigint NOT NULL`、`office_department_code varchar(64) NOT NULL`、`office_department_name varchar(255) NOT NULL`、`office_department_version int unsigned NOT NULL`、`source_evidence varchar(255) NULL`、`effective_from datetime(3) NOT NULL`、`effective_to datetime(3) NULL` | 新增`uk(tenant_id, order_line_id, project_id, allocation_version)`；保留`uk(tenant_id, project_id, current_order_line_id)`当前唯一；`allocated_qty > 0`；调整在同一事务关闭旧区间并追加新版本 |
+| `com_delivery_scope_detail` | 删除`implementation_location`；新增`serial_no varchar(128) NULL`、`detail_status varchar(32) NOT NULL`、`source_snapshot json NULL`、`version int unsigned NOT NULL DEFAULT 0`；`allocated_qty`改为`decimal(18,6) NOT NULL`，既有`product_code/device_type_code/delivery_batch_no/source_record_key`保持可空 | `uk(tenant_id, delivery_scope_id, detail_sequence)`；`allocated_qty > 0`；`serial_no/product_code/device_type_code`至少一个非空；不含`site_id/site_location_id/location_resolution_status` |
+| `acc_acceptance_scope_binding` | `id bigint NOT NULL`、`tenant_id bigint NOT NULL`、`acceptance_id bigint NOT NULL`、`project_id bigint NOT NULL`、`delivery_scope_id bigint NOT NULL`、`scope_allocation_version bigint NOT NULL`、`binding_status varchar(32) NOT NULL`、`effective_from datetime(3) NOT NULL`、`effective_to datetime(3) NULL`、`acceptance_fact_version int unsigned NOT NULL`、`version int unsigned NOT NULL DEFAULT 0`、`creator/updater varchar(64) NOT NULL DEFAULT ''`、`create_time/update_time datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)`、`deleted tinyint NOT NULL DEFAULT 0` | ACC Owner；`uk(tenant_id, acceptance_id, delivery_scope_id, scope_allocation_version)`；`idx(tenant_id, delivery_scope_id, effective_to, binding_status)`；区间合法；不建跨Context COM外键 |
+
+`AcceptanceScopeBinding`物理表由COM-01 Feature前向迁移确定；它仍由ACC拥有并由ACC Provider写入，F-COM-001不得把该表或验收状态转为COM所有。
+
+V70转换规则固定如下：
+
+1. `com_order_line.source_system/source_key/source_version/line_code/item_code/quantity/unit_code/quantity_status/source_updated_at/synced_at`逐字段迁入`com_sales_order_line`；`line_code -> line_no`、`quantity -> order_qty`。父`com_sales_order`及`unit_scale`必须已由受控权威导入或批准映射提供；缺失时整次转换失败，不以`order_id`、小数位观察或默认单位推断。
+2. `com_delivery_scope`保留ID、订单行、项目、数量、状态、`allocation_version`、证据和生效区间。每条记录必须命中同租户`proj_project.department_id/department_code`及同一SYSTEM部门的名称和版本；所有V70明细的非空`office_department_code`必须与该项目办事处编码一致。缺失、多值、停用或不一致时转换失败，不从AST、地址或名称补齐。
+3. `com_delivery_scope_detail.office_department_code`仅写入`source_snapshot`作为来源证据，办事处真值只落主记录快照；`serial_no`直接保留。若`serial_no`为空，则必须存在经Owner确认的产品或设备类型映射后才能迁入；不得把`item_code`自动冒充产品编码。明细数量和状态逐字段保留。
+4. 转换前后必须按租户对账订单行数、范围主/明细数、各订单行当前有效分配量、历史区间、分配版本和Outbox事件；任一不一致整体回滚。旧表只在同次切换成功后退出写入，不建立长期双写或第二Owner。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
 
@@ -450,7 +473,7 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 ```text
 proj_project
   -> com_delivery_scope(project_id, order_line_id, allocated_qty, scope_status)
-       -> com_delivery_scope_detail(location, product/device type, allocated_qty, delivery_batch_no)
+       -> com_delivery_scope_detail(product/device type/SN, allocated_qty, delivery_batch_no)
   -> com_order_line
   -> com_sales_order
   -> order-contract relation

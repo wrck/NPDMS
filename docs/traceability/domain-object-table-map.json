@@ -372,6 +372,18 @@
         "acc_confirmation"
       ]
     },
+    "AcceptanceScopeBinding": {
+      "owner": "ACC",
+      "requirementIds": [
+        "ACC-03",
+        "COM-01"
+      ],
+      "targetTables": [
+        "acc_acceptance_scope_binding"
+      ],
+      "targetTablePolicy": "FEATURE_FORWARD_MIGRATION",
+      "featureRequirementId": "COM-01"
+    },
     "SatisfactionCollection": {
       "owner": "ACC",
       "requirementIds": [
@@ -777,7 +789,7 @@
         "COM-01"
       ],
       "targetTables": [
-        "com_order_line"
+        "com_sales_order_line"
       ]
     },
     "DeliveryScope": {

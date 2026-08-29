@@ -99,6 +99,9 @@ ADR-0032为F-PROJ-001建立限定的跨Context同步原子例外：PROJ在同一
 | 同一设备并发归属 | VERSION_CONFLICT，返回当前最具体项目和 assignmentVersion |
 | 归属投影延迟 | 详情使用当前真值；统计带旧水位和“更新中” |
 | 订单行超分配 | BUSINESS_GATE；ERP减量造成存量冲突进入待调整，不删历史 |
+| 目标项目办事处缺失、停用或版本冲突 | BUSINESS_GATE/VERSION_CONFLICT；不创建范围，不回退AST地点、地址或名称推断 |
+| 范围减量遇到ACC锁定 | BUSINESS_GATE；保持当前范围和历史不变，返回最小锁定引用 |
+| ACC守卫未知、超时或Provider不可用 | DEPENDENCY_UNAVAILABLE；减量失败关闭，不把未知解释为未进入验收 |
 | 数值调整 | 新增 adjustment，保存动作类型、方向和正负值，不覆盖原值 |
 | PM-05 正式项目/销售业务无效 | BUSINESS_GATE；不创建转销批次、不归档临时项目 |
 | PM-05 对象或设备部分失败 | 保持原 conversion 为部分失败/待处理，返回逐项结果；成功项不回滚，失败项按原批次幂等重试 |

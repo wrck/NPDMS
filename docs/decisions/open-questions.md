@@ -180,6 +180,20 @@
 
 ## Feature Ready问题
 
+### Q-FCOM-001
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: COM-01
+- Area: F-COM-001合同管理员的合同订单数据范围
+- Question: 合同管理员首次查询合同并建立项目—合同关系时，权威数据范围来自显式合同授权、公司/组织范围、项目专项授权，还是其他已批准业务事实？
+- Why it blocks design/implementation: `ProjectScopeApi + DeliveryScope`只能裁剪已有项目关系，无法证明首次可见合同集合；功能权限码本身也不产生数据范围。实施者若自行选择租户全量、组织范围或既有项目关系，会分别造成商务明细越权、业务范围漂移或合同管理员无法建立首个关系。
+- Options: A. 新增显式合同授权事实并锁定Owner、授予/撤销/到期、版本和查询API；B. 需求方指定一个已有且可查询的公司/组织授权事实作为合同范围；C. 只允许由上游受信流程按精确合同业务键建立关系，合同管理员不提供合同目录查询，并明确其授权来源。
+- Recommended technical default: A；合同范围与项目范围职责不同，显式授权最可审计，但在需求方批准前不创建表、API、权限或状态。
+- Business decision required: 是。须明确首次合同可见性、金额等敏感字段范围、授权授予/撤销/到期语义及空范围行为。
+- Resolution: 【待确认】。关闭前F-COM-001保持`CANDIDATE / NOT_READY`，不得由Technical Plan选取默认口径。
+- Decision owner: 需求方；COM、权限与数据架构负责人参与影响分析
+- Decision date: -
+
 ### Q-FPROJ-001
 
 - Status: RESOLVED

@@ -60,7 +60,7 @@
 |---|---|---|
 | ProjectTreeScope | 项目、任务、组合和阶段 | 当前项目树版本、主体项目角色和后代范围 |
 | ProjectDeviceScope | 设备、实施、割接、巡检 | DeviceCurrentAssignment + 项目祖先投影水位 |
-| ContractProjectScope | 合同订单范围 | 合同/订单授权 + DeliveryScope |
+| ContractProjectScope | 合同订单范围 | 【BLOCKED_BY_SPEC：Q-FCOM-001】合同管理员的权威授权事实尚未由业务确认；DeliveryScope只能裁剪已有项目关系，不能替代首次合同授权 |
 | BusinessObjectDeviceCredentialScope | 采集任务 | 来源业务对象、设备、协议、命令模板、用户和有效期五元组 |
 | FileBusinessScope | 下载、预览、替换、归档 | FileReference 所指业务对象的实时权限 |
 
@@ -254,13 +254,13 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 |---|---|---|---|
 | CUS | CUS-01～CUS-04、INT-03 | `/customers`、`/customer-contacts`、`/customer-relationships` | CRM权威字段只读；临时客户显式标记来源；客户地址/站点只保存AST稳定引用 |
 | AST | EQP-01～EQP-05、EQP-07、AST-01～AST-02、INT-02、INT-06 | `/devices`、`/devices/{id}/archive`、`/devices/{id}/assignment-history`、`/asset-locations/addresses`、`/asset-locations/sites`、`/asset-locations/sites/{id}/tree`、`/asset-locations/area-department-mappings`、`/rma-replacements` | 设备归属用`actions/assign-project`；地点由AST拥有；站点不绑定公司/部门；设备当前位置由已确认安装/迁移/拆除事实生效 |
-| COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；平台仅维护项目交付范围分配/释放；F-PROJ-002先落查询、预览和分配公开契约切片，不宣称合同/订单全量同步、人工补录、对账或管理页面完成 |
+| COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；平台仅维护项目交付范围分配/释放；范围办事处来自目标项目发生时部门快照，不调用AST地点契约；合同管理员查询与关联写入在Q-FCOM-001关闭前不可实施 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
 
 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
 
-跨模块只调用`AssetLocationApi`：
+需要AST地点事实的CUS/IMP等模块调用`AssetLocationApi`；COM订单范围不调用该接口：
 
 - `maintain(command)`：在授权项目的工勘/安装中维护Address/Site/SiteLocation，返回稳定ID和版本；
 - `getAddress/getSite/getSiteLocation/getLocationTree`：按租户、状态、版本和调用方业务范围查询；
@@ -276,6 +276,14 @@ F-PROJ-002另使用以下Owner公开契约：
 - `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。
 
 PROJ只能依赖上述API及DTO，COM/AST实现不得回调PROJ Mapper、Repository或业务表。公开契约不可用时可继续保存/修正拆分草稿，但禁止确认应用，不把待核对数量视为可分配量。
+
+F-COM-001还必须交付以下窄Owner契约及真实Provider，不允许只以测试桩证明生产成功路径：
+
+- `ProjectOfficeFactApi.resolve(query)`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion`，由PROJ返回`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`及项目ID/版本、SYSTEM办事处部门稳定ID/编码/名称/版本。COM仅在`FOUND`时冻结发生时快照；未知、缺失或版本冲突失败关闭，不回退AST、地址、名称或订单字段。
+- `AcceptanceScopeGuardApi.checkReduction(query)`（COM→ACC）：输入`tenantId/projectId/deliveryScopeId/currentAllocationVersion/proposedAllocatedQty/operationId`，由ACC返回`UNLOCKED/LOCKED/UNKNOWN`、`acceptanceFactVersion`及最小锁定引用；`LOCKED`拒绝普通减量，`UNKNOWN`、超时或Provider不可用失败关闭。
+- `DeliveryScopeAcceptanceLockApi.lockAndRead(command)`（ACC→COM）：ACC在范围进入验收的同一事务内按`deliveryScopeId`锁定COM当前范围并校验`expectedAllocationVersion`，随后追加`AcceptanceScopeBinding`。COM减量先锁相同范围行再调用ACC守卫；两条路径统一锁顺序为COM范围→ACC绑定，防止“守卫返回未锁定后并发进入验收”。
+
+上述三个Provider在当前模块化单体中使用同一MySQL事务资源和`MANDATORY`传播；任一调用不得跨模块访问Service、Mapper、Repository或表。未来拆库/拆服务时该原子语义不可直接沿用，必须先阻断Feature并批准新的业务一致性方案。
 
 AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装事实和位置快照，AST只消费公开命令参数。
 
