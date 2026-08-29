@@ -10,6 +10,7 @@ if (!password) throw new Error('必须通过FACC001_BROWSER_PASSWORD提供正式
 
 const projectId = 992004000001
 const projectCode = 'FACC001-ACCEPTANCE-001'
+const unrelatedExistingProjectId = 992002000000
 const username = 'facc001acceptance'
 const evidenceFile = path.resolve('docs/engineering/evidence/f-acc-001-browser-evidence.json')
 const screenshotDir = path.resolve('docs/engineering/evidence/f-acc-001-browser')
@@ -103,6 +104,12 @@ const runArchiveRetryIntegration = () => {
     const response = await rawApi(...args)
     assert(response.status < 400 && response.body?.code === 0, `公开API失败：HTTP ${response.status}, code=${response.body?.code}, msg=${response.body?.msg}`)
     return response.body.data
+  }
+  const assertDeniedWithoutLeak = (response, protectedIds, message) => {
+    assert(response.status >= 400 || response.body?.code !== 0, `${message}：请求未被拒绝`)
+    assert(response.body?.data == null, `${message}：拒绝响应错误返回业务数据`)
+    const responseText = JSON.stringify(response.body)
+    assert(protectedIds.every((id) => !responseText.includes(String(id))), `${message}：拒绝响应泄露对象身份`)
   }
   const key = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
   const login = async (loginUsername = username, tenantId = 0) => {
@@ -247,12 +254,29 @@ const runArchiveRetryIntegration = () => {
   await waitUntil(() => Number(mysql(`SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=0 AND event_type='AcceptanceReportVersionChanged' AND status='DELIVERED' AND aggregate_key IN ('${preliminary.id}','${finalActivity.id}')`)) === 4,
     '撤销事件未由正式Quartz投递')
 
-  const unrelated = await rawApi('GET', '/api/v1/pms/acceptances?projectId=992004000099', undefined, {}, token)
-  assert(unrelated.body?.code !== 0 || unrelated.body?.data?.length === 0, '无权项目错误返回验收活动')
+  const unrelatedProjectExists = Number(mysql(`SELECT COUNT(*) FROM proj_project WHERE tenant_id=0 AND id=${unrelatedExistingProjectId} AND deleted=0`))
+  const unrelatedProjectMembership = Number(mysql(`SELECT COUNT(*) FROM proj_project_member_assignment WHERE tenant_id=0 AND project_id=${unrelatedExistingProjectId} AND user_id=992004800001 AND status='ACTIVE' AND effective_to IS NULL AND deleted=0`))
+  assert(unrelatedProjectExists === 1 && unrelatedProjectMembership === 0,
+    '无权项目夹具不存在或验收身份意外取得该项目范围')
+  const unrelated = await rawApi('GET', `/api/v1/pms/acceptances?projectId=${unrelatedExistingProjectId}`, undefined, {}, token)
+  assert(unrelated.body?.code !== 0 || (Array.isArray(unrelated.body?.data) && unrelated.body.data.length === 0),
+    '真实存在的无权项目错误返回验收活动')
   const tenantOneAuth = await login('admin', 1)
   const crossTenant = await rawApi('GET', `/api/v1/pms/acceptances?projectId=${projectId}`,
     undefined, {}, tenantOneAuth.accessToken, 1)
   assert(crossTenant.body?.code !== 0 || crossTenant.body?.data?.length === 0, '跨租户错误返回验收活动')
+  const crossTenantDownload = await rawApi('GET',
+    `/api/v1/pms/acceptances/${preliminary.id}/report-versions/${v1.reportVersionId}/attachments/1/download`,
+    undefined, {}, tenantOneAuth.accessToken, 1)
+  assertDeniedWithoutLeak(crossTenantDownload, [preliminary.id, v1.reportVersionId, downloadFact.artifactId],
+    '跨租户报告附件下载事实')
+  const crossTenantTicket = await rawApi('POST', `/api/v1/pms/files/${downloadFact.artifactId}/access-tickets`, {
+    versionNo: downloadFact.versionNo, operationCode: 'DOWNLOAD', ownerContext: 'ACC',
+    objectType: 'ACCEPTANCE_REPORT_VERSION', objectId: String(v1.reportVersionId),
+    purposeCode: 'ACCEPTANCE_REPORT_ATTACHMENT', referenceKey: downloadFact.referenceKey
+  }, {}, tenantOneAuth.accessToken, 1)
+  assertDeniedWithoutLeak(crossTenantTicket, [preliminary.id, v1.reportVersionId, downloadFact.artifactId],
+    '跨租户文件Access Ticket')
 
   consoleErrors.length = 0
   pageErrors.length = 0
@@ -276,12 +300,19 @@ const runArchiveRetryIntegration = () => {
     deliveredReportEvents: Number(mysql(`SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=0 AND event_type='AcceptanceReportVersionChanged' AND status='DELIVERED' AND aggregate_key IN ('${preliminary.id}','${finalActivity.id}')`)),
     quartzJobs: Number(mysql(`SELECT COUNT(*) FROM QRTZ_JOB_DETAILS WHERE JOB_NAME IN ('acceptanceReportOutboxDeliveryJob','acceptanceReportArchiveCompensationJob')`)),
     quartzTriggers: Number(mysql(`SELECT COUNT(*) FROM QRTZ_TRIGGERS WHERE JOB_NAME IN ('acceptanceReportOutboxDeliveryJob','acceptanceReportArchiveCompensationJob')`)),
+    unrelatedExistingProjectId,
+    unrelatedProjectExists,
+    unrelatedProjectMembership,
+    crossTenantDownloadDenied: crossTenantDownload.status >= 400 || crossTenantDownload.body?.code !== 0,
+    crossTenantTicketDenied: crossTenantTicket.status >= 400 || crossTenantTicket.body?.code !== 0,
     archiveFailureRetryTest,
     finalTaskStatus: mysql(`SELECT status FROM proj_project_task WHERE tenant_id=0 AND id=${finalActivity.projectTaskId}`)
   }
   assert(dbFacts.reportVersions === 3 && dbFacts.sourceVersions === 3 && dbFacts.archiveRecords === 3
     && dbFacts.reportEvents === 4 && dbFacts.deliveredReportEvents === 4 && dbFacts.quartzJobs === 2
-    && dbFacts.quartzTriggers === 2 && dbFacts.archiveFailureRetryTest && dbFacts.finalTaskStatus === 'DONE',
+    && dbFacts.quartzTriggers === 2 && dbFacts.unrelatedProjectExists === 1
+    && dbFacts.unrelatedProjectMembership === 0 && dbFacts.crossTenantDownloadDenied
+    && dbFacts.crossTenantTicketDenied && dbFacts.archiveFailureRetryTest && dbFacts.finalTaskStatus === 'DONE',
   `真实数据库与Quartz验收事实不完整：${JSON.stringify(dbFacts)}`)
   assert(consoleErrors.length === 0 && pageErrors.length === 0 && requestFailures.length === 0,
     `浏览器存在意外错误：${JSON.stringify({ consoleErrors, pageErrors, requestFailures })}`)
@@ -292,7 +323,8 @@ const runArchiveRetryIntegration = () => {
     assertions: ['MISSING_REPORT_BLOCKS_TASK', 'PRELIMINARY_V1_PUBLISHED', 'V2_REPLACES_V1',
       'ALL_REPORT_SOURCES_ARCHIVED_BY_QUARTZ', 'HISTORICAL_V1_DOWNLOADABLE_AFTER_ARCHIVE',
       'FINAL_REPORT_TASK_COMPLETED', 'CURRENT_VERSION_REVOKED_NO_RESTORE',
-      'PROJECT_AND_TENANT_SCOPE_ENFORCED', 'ARCHIVE_PROVIDER_FAILURE_RETRIES',
+      'EXISTING_UNAUTHORIZED_PROJECT_QUERY_DENIED', 'CROSS_TENANT_ATTACHMENT_DOWNLOAD_DENIED',
+      'CROSS_TENANT_ACCESS_TICKET_DENIED_WITHOUT_EXISTENCE_LEAK', 'ARCHIVE_PROVIDER_FAILURE_RETRIES',
       'QUARTZ_JOBS_AND_TRIGGERS_REGISTERED', 'REPORT_EVENTS_DELIVERED_BY_QUARTZ',
       'REPORT_ACTIVITY_CARDS_RENDERED_WITHOUT_BUSINESS_ERRORS', 'DATABASE_FACTS_CONFIRMED'],
     dbFacts, diagnostics: { consoleErrors, pageErrors, requestFailures,

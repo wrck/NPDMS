@@ -22,7 +22,9 @@
     "HISTORICAL_V1_DOWNLOADABLE_AFTER_ARCHIVE",
     "FINAL_REPORT_TASK_COMPLETED",
     "CURRENT_VERSION_REVOKED_NO_RESTORE",
-    "PROJECT_AND_TENANT_SCOPE_ENFORCED",
+    "EXISTING_UNAUTHORIZED_PROJECT_QUERY_DENIED",
+    "CROSS_TENANT_ATTACHMENT_DOWNLOAD_DENIED",
+    "CROSS_TENANT_ACCESS_TICKET_DENIED_WITHOUT_EXISTENCE_LEAK",
     "ARCHIVE_PROVIDER_FAILURE_RETRIES",
     "QUARTZ_JOBS_AND_TRIGGERS_REGISTERED",
     "REPORT_EVENTS_DELIVERED_BY_QUARTZ",
@@ -38,6 +40,11 @@
     "deliveredReportEvents": 4,
     "quartzJobs": 2,
     "quartzTriggers": 2,
+    "unrelatedExistingProjectId": 992002000000,
+    "unrelatedProjectExists": 1,
+    "unrelatedProjectMembership": 0,
+    "crossTenantDownloadDenied": true,
+    "crossTenantTicketDenied": true,
     "archiveFailureRetryTest": true,
     "finalTaskStatus": "DONE"
   },
@@ -48,5 +55,5 @@
     "businessErrors": [],
     "visibleBusinessErrors": []
   },
-  "generatedAt": "2026-08-29T22:53:09.443Z"
+  "generatedAt": "2026-08-29T23:09:40.663Z"
 }
