@@ -61,7 +61,7 @@ INSERT INTO `system_menu`
  `creator`, `create_time`, `updater`, `update_time`, `deleted`)
 VALUES
 (930900, '合同订单工作台', 'pms:commerce:contract:query', 2, 5, 19260, 'commerce-contracts',
- 'ep:document', 'pms/commerce/contracts/index', 'PmsCommerceContracts', 0, b'1', b'1', b'1,
+ 'ep:document', 'pms/commerce/contracts/index', 'PmsCommerceContracts', 0, b'1', b'1', b'1',
  'fcom001_seed', NOW(), 'fcom001_seed', NOW(), b'0'),
 (930901, '项目合同关联', 'pms:commerce:contract:relate', 3, 10, 930900, '', '', NULL, NULL,
  0, b'1', b'1', b'1', 'fcom001_seed', NOW(), 'fcom001_seed', NOW(), b'0'),
