@@ -5,7 +5,7 @@
 > Feature Ready Gate：`PASS`  
 > Technical Plan Gate：`PASS / GO`（`c33b0836f71e0875008a084ff360e7027d276ec9`）  
 > Implementation Done Gate：`NOT_REVIEWED`  
-> 当前阻断：`无`  
+> 当前阻断：`无`<br>
 > 当前任务：`Task 2 / Step 4：完成真实Chromium公开UI/REST闭环`
 > Requirement ID：`COM-01@V1`；协作`PM-03`、`PM-10`、`ACC-03`  
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`  
@@ -19,12 +19,12 @@
 - COM、PROJ、ACC、AST、SYSTEM只通过已批准公开契约协作；不直接访问其他Context业务表，不把验收报告、AST站点或技术默认值当作Owner事实。
 - 只实现最小权限键和服务端控制点；实施与验收身份通过正式授权配置取得闭环所需权限，不固定角色映射，不删除鉴权或租户隔离。
 - 不修改PRD/SDS、V70/V72、Yudao CRM或SYSTEM Provider；不实现第三方ERP/CRM连接器、COM-02、历史生产迁移或Q-FCOM-002退出/回退关闭规则。
-- V124必须先在八张固定影子表装载和对账，再用一条多表`RENAME TABLE`同时归档V70的`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`并发布目标表；V125只在V124完整成功后执行，V126只在V125完整成功后增加独立验收阶段进入正向夹具。
+- V124必须先在八张固定影子表装载和对账，再用一条多表`RENAME TABLE`同时归档V70的`com_order_line`、`com_delivery_scope`、`com_delivery_scope_detail`并发布目标表；V125只在V124完整成功后执行，V126只在V125完整成功后增加独立验收阶段进入正向夹具，V127保持V125/V126不可变并原子纠正受管验收用户名及项目更新授权。
 
 ## 修改与验证范围
 
 - 后端：`pms-module-commerce-api`、`pms-module-commerce`、`pms-module-project-api`、`pms-module-project`及其聚焦测试。
-- 数据：新增V124/V125/V126；V124包含影子装载、切换前对账、原子换名、失败恢复和幂等重放，V125包含权限、菜单与受控验收种子，V126只增加公开REST进入验收阶段所需的独立S4 Owner事实及未绑定当前范围。
+- 数据：新增V124/V125/V126/V127；V124包含影子装载、切换前对账、原子换名、失败恢复和幂等重放，V125包含权限、菜单与受控验收种子，V126只增加公开REST进入验收阶段所需的独立S4 Owner事实及未绑定当前范围，V127只纠正同一稳定验收身份的公开登录名并补现役`pms:project:update`菜单授权。
 - 前端：`yudao-ui/yudao-ui-admin-vue3`下PMS Commerce API、合同/订单/范围页面与测试。
 - 验证：聚焦单测、真实MySQL事务与迁移矩阵、前端类型/构建、全仓适用回归及真实Chromium公开UI/REST闭环。
 
@@ -49,4 +49,4 @@
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=0eb01df1；当前Gate=Task2/Step4；已通过=V125→V126与空库V1→V126、夹具幂等复核、静态契约23/23 PASS；阻塞=无；下一步=以独立S4夹具完成真实Chromium公开UI/REST闭环。
+> 检查点：基线=7d578e37；当前Gate=Task2/Step4；已通过=V126→V127与空库V1→V127、登录更名、9键授权、阶段进入及幂等绑定真实REST；阻塞=无；下一步=重置受管夹具并完成完整Chromium UI/REST矩阵及证据。

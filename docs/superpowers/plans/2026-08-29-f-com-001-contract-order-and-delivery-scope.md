@@ -139,11 +139,12 @@ public interface DeliveryScopeAcceptanceLockApi {
 - V124在影子表内完成普通V70转换和精确V72夹具重建。预检/装载逐项验证冻结水位、普通V70父订单/单位/产品或设备类型/项目办事处Owner映射、十项必填目标映射、detail_sequence稳定生成、唯一键/数值/区间冲突，以及V72全部身份和关系闭包；普通明细不得用item_code补产品。精确V72夹具按机器契约创建稳定SEED父订单、V74公司/办事处和四条种子专用明细。
 - 原子换名前必须在影子表完成并保存一次只读对账结果：普通输入与精确夹具分类行数、全部保留ID集合、订单→订单行→范围→明细父子闭包、每订单行和每范围数量合计、有效区间、来源/分配版本、当前唯一和全部目标唯一键。对账只比较业务列和确定性集合，不新增哈希；任一不一致`SIGNAL`，V123正式表保持原样。
 - 唯一切换语句必须是一条多表`RENAME TABLE`：把`com_order_line/com_delivery_scope/com_delivery_scope_detail`分别改名为`fcom001_v70_com_order_line/fcom001_v70_com_delivery_scope/fcom001_v70_com_delivery_scope_detail`，同时把八张`fcom001_shadow_*`改为各自目标正式名。MySQL多表RENAME要么全部生效要么全部不生效；该语句是V124最后一个可改变业务表的步骤，换名后不得再执行建索引、补数据、删旧表或其他可能使业务真值部分完成的DDL/DML。
-- 换名前任一步失败时，旧V123正式表名称和内容保持可用；保持应用停写，执行Flyway repair后由V124开头按固定顺序清理影子并重试。换名成功后，三张`fcom001_v70_*`只作只读迁移证据，产品Mapper、Provider、菜单和后续种子均不得引用或写入，不构成第二业务真值；不得启动旧V123应用写该归档名。归档表删除另需后续明确批准，不放入V124/V125/V126。
+- 换名前任一步失败时，旧V123正式表名称和内容保持可用；保持应用停写，执行Flyway repair后由V124开头按固定顺序清理影子并重试。换名成功后，三张`fcom001_v70_*`只作只读迁移证据，产品Mapper、Provider、菜单和后续种子均不得引用或写入，不构成第二业务真值；不得启动旧V123应用写该归档名。归档表删除另需后续明确批准，不放入V124/V125/V126/V127。
 - V124转换保持ID、审计、来源版本、数量、区间和事件；V125只有在Flyway确认V124成功后才可执行，V126只有在V125成功后才可执行。若V124原子换名已生效而Flyway元数据写入失败，应用仍保持停止；清除失败元数据后重跑V124，必须命中“全部正式+全部归档+零影子”的幂等复核分支，不重复装载或换名。
 - `V125__fcom001_permissions_menu_and_acceptance_seed.sql`：第一步以加性`ALTER TABLE`增加`com_sales_order_line.product_code varchar(64) NULL`，随后写入八个最小权限键、PMS Commerce菜单和受控验收数据。精确V72夹具的四个固定SEED订单行只按机器契约列举值写测试专用`productCode`，不得宣称ERP事实、由V72 `item_code`推断或覆盖普通业务行。验收身份通过正式用户—角色—权限配置获得全部八键；不固化业务角色映射，不修改SYSTEM Provider源码。
 - V125数据覆盖：合同公司精确命中/空范围、敏感字段有无权限、订单行CONFIRMED/PENDING、精确/部分/无匹配、RELEASED不参与、超量、AST SN有效/无效、验收阶段内外和ACC锁定/未锁定；使用高段ID与`creator=seed`。
 - `V126__fcom001_stage_entry_acceptance_seed.sql`：新增一个独立高段项目、独立树版本/自身路径、S4 DONE与紧邻S5 PENDING、验收用户PROJECT_MANAGER，以及专用CONFIRMED订单行和未绑定的当前DeliveryScope；固定身份以`creator/updater=fcom001_seed`隔离，任一ID、项目编码、来源键或关系被普通数据占用即整批失败，完整受管身份仅作幂等复核。它只为公开REST真实进入验收阶段提供初始Owner事实，不预建S5快照、ACC绑定或验收报告，不挂入既有F-PROJ-002树。
+- `V127__fcom001_acceptance_identity_authorization_fix.sql`：V125/V126保持不可变；在同一事务中把稳定用户`992002800002`从不符合公开登录格式的`fcom001_acceptance`更名为`fcom001acceptance`，并只为稳定角色`992002800001 / fcom001_acceptance_full`增加现役项目更新菜单`18069`。迁移按固定用户、角色、既有角色关系、菜单父级/权限/状态和租户精确预检，只接受完整迁移前或完整迁移后状态；密码、公司范围、项目成员及其他角色权限均不修改。
 
 ### 4.4 前端
 
@@ -156,7 +157,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 
 ### Task 1：一次完成F-COM-001正向业务闭环
 
-**Files：** 第四节列出的COM、PROJ/ACC、V124/V125/V126、前端和测试文件；不修改PRD/SDS、V70/V72、Yudao CRM或SYSTEM Provider。
+**Files：** 第四节列出的COM、PROJ/ACC、V124/V125/V126/V127、前端和测试文件；不修改PRD/SDS、V70/V72、Yudao CRM或SYSTEM Provider。
 
 - [ ] **Step 1：以最终接口签名补齐聚焦失败测试并确认RED**
 
@@ -232,11 +233,11 @@ py -3.13 -B scripts/generate_requirement_traceability.py --prd docs/baseline/prd
 git diff --check
 ```
 
-  使用仓库权威Compose对空库和V123基线分别执行Flyway migrate/info/validate；确认V124/V125/V126约束、索引、种子和转换对账，并证明V70/V72字节未改。至少保留一轮“影子装载后、原子换名前失败”的真实MySQL证据：旧正式表可查询、无目标正式表部分出现、影子清理后同一基线重试成功；V125/V126在失败轮不得出现任何记录。另验证空库V1→V126与既有V125→V126，并在进入前断言V126独立树、S4 DONE、S5 PENDING、PROJECT_MANAGER、专用当前范围完整且无S5 STAGE_ENTRY快照、ACC绑定和验收报告。
+  使用仓库权威Compose对空库和V123基线分别执行Flyway migrate/info/validate；确认V124/V125/V126/V127约束、索引、种子和转换对账，并证明V70/V72字节未改。至少保留一轮“影子装载后、原子换名前失败”的真实MySQL证据：旧正式表可查询、无目标正式表部分出现、影子清理后同一基线重试成功；V125/V126/V127在失败轮不得出现任何记录。另验证空库V1→V127与既有V126→V127；V127前下划线用户名由正式登录格式校验拒绝，V127后稳定用户ID、角色、公司范围和项目成员不变，权限为原八个COM键加`pms:project:update`，且密码只由正式管理员API按运行时环境变量配置。进入前仍须断言V126独立树、S4 DONE、S5 PENDING、PROJECT_MANAGER、专用当前范围完整且无S5 STAGE_ENTRY快照、ACC绑定和验收报告。
 
 - [ ] **Step 4：真实Chromium公开UI/REST闭环**
 
-  新建`scripts/tests/run_fcom001_browser_acceptance.cjs`，使用正式授权配置的全权限验收身份完成合同查询→关系维护→订单行→范围预览→分配→调整/释放→历史→受控导入REST触发ERP减量冲突冻结→以V126独立S4项目及权威projectVersion/treeVersion调用公开REST进入验收阶段→阶段内新版本绑定；阶段进入同键重放不得新增第二快照或绑定，且只绑定进入前专用当前范围的精确allocationVersion。同批次权威导入幂等重放不重复调用Owner或通知，同键异载荷拒绝。另用空公司范围、无敏感字段权限、无项目范围、无Authority写权限、AST无效SN和ACC锁定身份验证服务端拒绝。四档视口意外console/page/request错误为零。
+  新建`scripts/tests/run_fcom001_browser_acceptance.cjs`，密码只从`FCOM001_BROWSER_PASSWORD`读取，并由正式管理员API为稳定用户ID配置；使用V127正式用户名`fcom001acceptance`及授权配置完成合同查询→关系维护→订单行→范围预览→分配→调整/释放→历史→受控导入REST触发ERP减量冲突冻结→以V126独立S4项目及权威projectVersion/treeVersion调用公开REST进入验收阶段→阶段内新版本绑定；阶段进入同键重放不得新增第二快照或绑定，且只绑定进入前专用当前范围的精确allocationVersion。同批次权威导入幂等重放不重复调用Owner或通知，同键异载荷拒绝。另用空公司范围、无敏感字段权限、无项目范围、无Authority写权限、AST无效SN和ACC锁定身份验证服务端拒绝。四档视口意外console/page/request错误为零；日志和证据不得包含验收密码明文。
 
 - [ ] **Step 5：证据、自审、提交与独立评审**
 
