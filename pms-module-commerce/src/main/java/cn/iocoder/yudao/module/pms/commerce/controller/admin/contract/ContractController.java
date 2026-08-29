@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessServi
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractRelationCommand;
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractRelationCommandService;
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractRelationResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -39,6 +40,7 @@ public class ContractController {
 
     private final ContractAccessService accessService;
     private final ContractRelationCommandService relationService;
+    private final PermissionApi permissionApi;
     private final Environment environment;
 
     @GetMapping
@@ -48,15 +50,23 @@ public class ContractController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") @Min(1) int pageNo,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int pageSize) {
-        return withTenant(() -> success(toPage(accessService.pageContracts(currentTenantId(), currentUserId(),
-                UUID.randomUUID().toString(), contractNo, status, (pageNo - 1) * pageSize, pageSize))));
+        return withTenant(() -> {
+            Long userId = currentUserId();
+            boolean sensitiveReadable = canReadSensitive(userId);
+            return success(toPage(accessService.pageContracts(currentTenantId(), userId,
+                    UUID.randomUUID().toString(), contractNo, status, (pageNo - 1) * pageSize, pageSize),
+                    sensitiveReadable));
+        });
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
     public CommonResult<ContractRespVO> get(@PathVariable Long id) {
-        return withTenant(() -> success(toResponse(accessService.getContract(currentTenantId(), currentUserId(),
-                UUID.randomUUID().toString(), id))));
+        return withTenant(() -> {
+            Long userId = currentUserId();
+            return success(toResponse(accessService.getContract(currentTenantId(), userId,
+                    UUID.randomUUID().toString(), id), canReadSensitive(userId)));
+        });
     }
 
     @PostMapping("/{id}/project-relations")
@@ -70,15 +80,22 @@ public class ContractController {
                 idempotencyKey, request.reason()))));
     }
 
-    private PageResult<ContractRespVO> toPage(PageResult<ContractDO> page) {
-        return new PageResult<>(page.getList().stream().map(this::toResponse).toList(), page.getTotal());
+    PageResult<ContractRespVO> toPage(PageResult<ContractDO> page, boolean sensitiveReadable) {
+        return new PageResult<>(page.getList().stream()
+                .map(value -> toResponse(value, sensitiveReadable)).toList(), page.getTotal());
     }
 
-    private ContractRespVO toResponse(ContractDO value) {
+    ContractRespVO toResponse(ContractDO value, boolean sensitiveReadable) {
         return new ContractRespVO(value.getId(), value.getCompanyCode(), value.getCompanyName(),
-                value.getContractNo(), value.getContractType(), value.getCustomerCode(), value.getCustomerName(),
-                value.getContractName(), value.getCurrencyCode(), value.getSourceVersion(),
+                value.getContractNo(), sensitiveReadable ? value.getContractType() : null,
+                sensitiveReadable ? value.getCustomerCode() : null,
+                sensitiveReadable ? value.getCustomerName() : null,
+                value.getContractName(), sensitiveReadable ? value.getCurrencyCode() : null, value.getSourceVersion(),
                 value.getSourceUpdatedAt(), value.getStatus(), value.getVersion());
+    }
+
+    private boolean canReadSensitive(Long userId) {
+        return permissionApi.hasAnyPermissions(userId, "pms:commerce:contract:sensitive-read");
     }
 
     private Long currentTenantId() {
