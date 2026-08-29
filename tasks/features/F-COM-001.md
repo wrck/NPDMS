@@ -35,7 +35,7 @@
 - [x] Step 3：实现V124目标模型、影子转换、切换前对账和单条多表原子换名。
 - [x] Step 4：实现COM权威副本与合同管理员公司范围。
 - [x] Step 5：实现DeliveryScope命令、历史、AST校验和冲突通知。
-- [ ] Step 6：接通项目阶段进入和验收阶段内新版本绑定。
+- [x] Step 6：接通项目阶段进入和验收阶段内新版本绑定。
 - [ ] Step 7：完成REST、前端和V125正式配置。
 - [ ] Step 8：复跑聚焦集合至GREEN并完成必要重构。
 
@@ -49,4 +49,4 @@
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=b6c0176c；当前Gate=Implementation/Step6；已通过=范围兼容及直接分配/调整/释放、历史追加、AST写前重验、ERP冲突冻结通知，后端聚焦42项及机器契约16项PASS；阻塞=无；下一步=接通项目阶段进入及验收阶段内新范围版本的ACC原子绑定。
+> 检查点：基线=21c07181；当前Gate=Implementation/Step7；已通过=项目阶段进入先绑定当前范围、验收阶段内新范围原子绑定，跨模块聚焦50项及机器契约16项PASS；阻塞=无；下一步=完成REST、前端及V125正式配置。
