@@ -200,6 +200,7 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "`acc_project_deliverable`应交实例",
         "归档失败保留报告版本且标记待补偿",
         "artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256",
+        "发布时认证用户作为不可变归档操作者",
     ),
     "docs/design/08a-domain-entity-migration-alignment.md": (
         "COMPATIBILITY_ONLY+NONE_NEW+FEATURE_FORWARD_MIGRATION",
@@ -208,6 +209,7 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
     "docs/design/09-database-design.md": (
         "F-ACC-001的P3-E09聚焦差量为`FEATURE_FORWARD_DELTA_REQUIRED`",
         "`acc_acceptance_report_version`",
+        "`publisher_user_id bigint NULL`",
         "`acc_acceptance_report_attachment`",
         "report_status='EFFECTIVE' and effective_to is null",
         "relation_status='CURRENT' then 1 else null",
@@ -222,6 +224,8 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "AcceptanceActivityCompletionFactApi.lockAndComplete",
         "AcceptanceActivityInitializationApi.initialize",
         "FileArtifactApi.archiveReferenceSets",
+        "ArchiveFileReferenceSetsCommand",
+        "PermissionApi.hasAnyPermissions(actorUserId, \"pms:file:archive\")",
         "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT",
         "ExistingFileReferenceTarget`加性支持唯一ACC目标",
         "ACCEPTANCE_REPORT_ARCHIVE",
@@ -236,6 +240,12 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
     ),
     "docs/design/11-event-design.md": (
         "AcceptanceReportVersionChanged",
+        "publisherActorUserId",
+        "AcceptanceReportOutboxDeliveryJob",
+        "PlatformCommandExecutionApi",
+        "PlatformOutboxDeliveryApi",
+        "只领取`AcceptanceReportVersionChanged`",
+        "不得领取或标记`ClosureGateRecheckRequested`已投递",
         "changeType(`EFFECTIVE/REPLACED/REVOKED`)",
         "attachments[{sequence,artifactId,versionNo,referenceKey,fileFactVersion,scopeVersion,sha256}]",
         "ClosureGateRecheckRequested",
@@ -244,6 +254,7 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
     "docs/design/13-file-design.md": (
         "ACC/ACCEPTANCE_REPORT_VERSION/{reportVersionId}/ACCEPTANCE_REPORT_ATTACHMENT",
         "archiveReferenceSets",
+        "发布时冻结的`publisherActorUserId`",
         "PLT `FileArchiveRecord`是文件归档真值",
         "报告附件引用持续保持`ACTIVE`",
         "ACCEPTANCE_REPORT_ARCHIVE",
@@ -253,10 +264,13 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
         "DRAFT的生成`current_marker=NULL`",
         "撤销不恢复旧版",
         "只有两项均非终态且当前契约均为V63 `TASK_NATIVE`才原子换绑",
+        "markDelivered",
+        "scheduleRetry",
     ),
     "docs/design/16-exception-and-idempotency.md": (
         "ACC活动、报告历史、TaskCompletionEvaluation和PROJ任务状态零写入",
         "报告状态/历史不回滚、不删除",
+        "不得伪造Web登录上下文",
         "两项均不存在保持不变",
         "两项均DONE/CLOSED时保持历史不变且不创建活动",
         "终态/非终态混合整批失败",
@@ -264,6 +278,8 @@ FACC001_REPORT_CONTRACT_REQUIRED_SNIPPETS = {
     "docs/decisions/0040-acceptance-file-fact-and-activity-initialization.md": (
         "`ACCEPTED`",
         "FileBusinessObjectPolicyProvider",
+        "publisherActorUserId",
+        "PlatformOutboxDeliveryApi",
         "AcceptanceActivityInitializationApi.initialize",
         "两项均为`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT`",
         "两项精确任务均为`DONE/CLOSED`时整项目保持旧契约和历史不变且不创建活动",
