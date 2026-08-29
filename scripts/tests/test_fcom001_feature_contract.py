@@ -385,6 +385,18 @@ class Fcom001FeatureContractTest(unittest.TestCase):
             "expectedParentProjectVersion")
         self.assertTrue(product_code_compatibility_errors(missing_parent_version, self.feature_spec))
 
+    def test_v125_registers_exact_permissions_and_controlled_acceptance_identity(self) -> None:
+        permissions = set(self.contract["permissions"]["functional"])
+        self.assertEqual(8, len(permissions))
+        for permission in permissions:
+            with self.subTest(permission=permission):
+                self.assertIn(f"'{permission}'", self.v125_migration)
+        self.assertIn("fcom001_acceptance_full", self.v125_migration)
+        self.assertIn("仅用于F-COM-001本地真实浏览器正向闭环", self.v125_migration)
+        self.assertNotIn("pm_order_data_from_erp", self.v125_migration)
+        self.assertNotIn("pm_order_line_from_erp", self.v125_migration)
+        self.assertNotIn("pm_project_product_line", self.v125_migration)
+
     def test_office_snapshot_replaces_ast_location_without_inference(self) -> None:
         self.assertNotIn("AssetLocationApi", self.contract["moduleApis"])
         self.assertNotIn("siteId", self.feature_spec)
