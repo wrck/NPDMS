@@ -100,6 +100,8 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - 项目进入其设定的验收阶段时，PROJ以不可变`ProjectStageSnapshot`调用ACC绑定该项目全部当前有效范围；项目已在验收阶段时，新范围版本必须与`SCOPE_VERSION_EFFECTIVE`绑定原子生效。报告或`ProjectStageChanged`事件不得触发、补建或反推绑定。
 - `Q-FCOM-002`关闭前不得自动写绑定`effective_to`、解锁或改写既有绑定；该问题只阻断退出/回退关闭路径，不阻断上述进入和新版本路径。
 - ERP取消、退货、减量或改单使现有总分配超过有效数量时，保留既有历史并将受影响当前范围投影为冲突冻结，阻止新分配；不得自动删除、按比例削减或把通知送达视为处置完成。
+- 每条范围首次因新的ERP权威来源版本进入`CONFLICT_FROZEN`时，COM按项目调用既有`ProjectParticipantFactApi.inspect`读取当前`PROJECT_MANAGER`收件人事实，并以`DELIVERY_SCOPE_CONFLICT_FROZEN`类型持久化`NotificationRequested`到COM Outbox。业务对象至少包含项目、订单行、范围及分配版本，修订/幂等身份包含通知类型、范围、分配版本和ERP来源版本；同一修订重放不重复请求。
+- 项目经理事实暂时不可用或无唯一收件人时，不得伪造用户，也不得回滚冲突冻结；Outbox保留以`projectId + PROJECT_MANAGER`表示的可重试逻辑收件人，消费者经同一PROJ公开事实补充精确用户。通知投递失败只记录`NotificationDeliveryFailed`并重试，不解冻范围、不覆盖历史，也不把送达视为冲突处置完成。
 - 冲突解除只能基于新的ERP权威版本和授权范围调整命令，记录来源版本、调整前后数量、原因和意见。
 
 ### BR-FCOM001-006 人工降级、审计与事件
@@ -107,7 +109,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - 经授权人工补充至少记录业务键、输入值、依据、原因、操作者和时间，并明确标记`PENDING_AUTHORITY`；不能伪造ERP来源事件、版本或确认状态。
 - ERP事实到达后按业务键对账：一致则由ERP事实建立确认副本，不一致则保留人工依据和差异，不静默覆盖历史。
 - 创建关联、预览失败、分配、调整、释放、来源变更和冲突处置均记录操作者、来源版本、前后数量、意见、operationId和traceId。
-- 成功分配或释放与`DeliveryScopeAssigned/Released`同事务进入COM Outbox；投递失败不回滚已提交范围，消费者按`eventId + scopeVersion`幂等。
+- 成功分配或释放与`DeliveryScopeAssigned/Released`同事务进入COM Outbox；冲突冻结与对应`NotificationRequested`同事务进入COM Outbox。投递失败不回滚已提交范围或冲突状态；范围事件按`eventId + scopeVersion`幂等，通知按通知类型、范围、分配版本和ERP来源版本幂等。
 
 ## 4. 状态语义
 
@@ -144,6 +146,8 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 - `CommerceAuthorityWriteApi`：仅供受信集成ACL或受控导入入口写ERP副本；调用者提供来源系统、来源键、来源版本和发生时间，COM执行Owner及乱序守卫。只预留接口和受控本地Provider，不实现第三方适配器。
 - 既有`DeliveryScopeApi`：保持F-PROJ-002的可用切片查询、拆分预览和原子应用语义；实现迁移到目标模型后返回结构与错误兼容，不要求PROJ访问COM表。
+- 既有`AssetDeviceScopeApi.validateAssignableSerials`（COM→AST）：当预览、分配或调整请求含序列号明细时，输入可信`tenantId`、目标承接`projectId`和去空白后的完整序列号集合；仅`valid=true`且缺失、不可分配、重复列表全空时通过。设备不存在、跨租户、状态不可分配、已归属其他项目、重复、Provider异常/超时/不可用均失败关闭并保持COM零写入。该接口不返回设备版本令牌，因此预览结果不得缓存或用于授权写入；每个写命令必须在写入前重新调用，后续调整再次重验，Technical Plan不得自行引入跳过或“沿用上次成功”策略。
+- 既有`ProjectParticipantFactApi.inspect`（COM通知→PROJ）：以目标项目、空`subjectUserId`、`PROJECT_MANAGER`和请求时间读取唯一当前项目经理`userId/projectVersion/factVersion`；用于填充冲突通知收件人。无唯一事实或Provider不可用时使用可重试逻辑角色收件人，不伪造用户、不回滚冲突冻结。
 - `ProjectOfficeFactApi.resolve`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion`，仅`FOUND`返回同版本SYSTEM办事处稳定ID/编码/名称/版本；其他结果失败关闭。
 - `ProjectAcceptanceStageFactApi.lockAndRead`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion/operationId`，锁项目当前行并返回当前阶段、项目设定验收阶段及适用`projectStageSnapshotId`。
 - `AcceptanceScopeGuardApi.checkReduction`（COM→ACC）：输入项目、范围、当前分配版本、拟调整数量及operationId，返回`UNLOCKED/LOCKED/UNKNOWN`；后两者及不可用均禁止普通减量。
@@ -176,6 +180,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - 新增PMS合同订单列表/详情和项目交付范围工作台，不复用或修改Yudao CRM合同路由、权限码、表单和审批页面。
 - 列表与详情明确区分ERP权威字段、平台范围字段、来源状态和截止时间；权威字段只读，待核对/冲突冻结有显著状态提示。
 - 分配工作台展示订单行数量、已分配、可分配、占用项目明细、目标项目办事处发生时快照和预览版本；服务端拒绝时刷新权威结果。
+- 序列号明细在预览与写命令分别显示AST当前校验结果；缺失、不可分配、重复或Provider不可用不得降级为仅格式校验，也不得提交写入。
 - 320/768/1024/1440宽度无页面级横向溢出；真实浏览器覆盖查询、关联、预览、分配、超量拒绝、减量守卫、冲突冻结和权限负向。
 
 ## 9. 验收标准
@@ -183,11 +188,11 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - `AC-FCOM001-001`：合同、订单、订单行按批准业务键幂等；旧版本、同版本冲突和跨租户写入不覆盖当前权威副本。
 - `AC-FCOM001-002`：ERP字段对合同管理员、项目经理和CRM上下文只读；人工依据明确待核对，不能成为正式可分配量。
 - `AC-FCOM001-003`：一个项目可关联多个订单，同一订单行可分配多个项目；当前总分配不超过ERP有效数量，超量返回占用明细且零副作用。
-- `AC-FCOM001-004`：主范围与明细合计一致；范围冻结目标项目同版本SYSTEM办事处ID/编码/名称/版本，项目或组织后续变化不覆盖历史，不存在AST站点或文本地点降级。
+- `AC-FCOM001-004`：主范围与明细合计一致；范围冻结目标项目同版本SYSTEM办事处ID/编码/名称/版本，项目或组织后续变化不覆盖历史，不存在AST站点或文本地点降级；含序列号时写命令重新通过AST Owner校验，设备缺失、不可分配、重复或Provider不可用均零写入。
 - `AC-FCOM001-005`：`Q-FCOM-001`关闭前不实现合同管理员首次合同目录或关系维护成功路径；项目经理仅维护授权项目，空范围、跨租户和无权请求返回空或拒绝且不泄露商务明细。
 - `AC-FCOM001-006`：同幂等键同请求重放不重复范围、历史、审计或事件；同键异请求、旧版本和并发超分配只有合法请求成功。
 - `AC-FCOM001-007`：调整或释放关闭原有效区间并追加新事实；项目阶段进入和验收阶段内新范围分别与精确版本绑定原子提交；已绑定、ACC未知或不可用时减量拒绝，历史不变。
-- `AC-FCOM001-008`：ERP取消/减量/变更造成超分配时范围进入冲突冻结，新分配被阻止；通知结果不改变冲突业务状态。
+- `AC-FCOM001-008`：ERP取消/减量/变更造成超分配时范围进入冲突冻结，新分配被阻止；同一事务持久化发给PROJ当前项目经理的`DELIVERY_SCOPE_CONFLICT_FROZEN`通知请求。同一来源修订不重复请求，收件人解析或投递失败可重试且不回滚、解冻或改变冲突业务状态。
 - `AC-FCOM001-009`：F-PROJ-002既有`DeliveryScopeApi`全部回归通过；V70转换到目标模型前后可用数量、项目范围和事件语义一致且无长期双写。
 - `AC-FCOM001-010`：真实MySQL验证身份唯一、当前唯一、明细合计事务守卫、锁竞争和前向升级；查询计划绑定批准候选索引并满足SDS性能基线。
 - `AC-FCOM001-011`：真实浏览器完成完整闭环和四档响应式；刷新后事实保持，控制台和网络无未解释错误。
@@ -196,10 +201,10 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 ## 10. 验证与证据计划
 
 - 业务规则单元测试：身份、字段Owner、状态守卫、可分配量、办事处快照、验收绑定和冲突冻结；
-- API契约测试：REST、`CommerceAuthorityWriteApi`、兼容`DeliveryScopeApi`及外部Provider失败；
+- API契约测试：REST、`CommerceAuthorityWriteApi`、兼容`DeliveryScopeApi`、`AssetDeviceScopeApi`、`ProjectParticipantFactApi`及外部Provider失败；
 - 真实MySQL：空库迁移、从当前基线升级、重复迁移、唯一约束、锁、幂等、审计/Outbox事务和V70转换对账；
 - 权限负向：合同关联、项目范围、空范围、跨租户、敏感商务字段和错误泄露；
-- Owner Provider：PROJ项目/办事处FOUND、缺失、停用、版本冲突；ACC绑定、未锁定、已锁定、未知和不可用；ERP新旧/乱序/取消/减量版本；
+- Owner Provider：PROJ项目/办事处FOUND、缺失、停用、版本冲突及项目经理唯一/缺失/不可用；AST序列号有效、缺失、不可分配、重复及Provider不可用；ACC绑定、未锁定、已锁定、未知和不可用；ERP新旧/乱序/取消/减量版本；
 - 回归：F-PROJ-002项目拆分与既有Commerce测试保持通过，Yudao CRM合同页面/API零修改回归；
 - 真实浏览器：第8节完整闭环及四档视口；
 - 最终代码质量复审和独立Implementation Done裁决。
@@ -218,7 +223,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 结论：`CANDIDATE / NOT_READY`。修订008/009的办事处、物理差量、V70转换、ACC Owner与验收阶段绑定已闭合；当前最近阻断仅为`Q-FCOM-001`。业务裁决前不得由Technical Plan发明合同管理员首次合同可见范围，不得生成Technical Plan。第三方平台仍只冻结接口边界。
 
-检查点：基线=54b7af0d，修订008/009 SDS差量GO；当前Gate=F-COM-001 Feature Ready前置规格整改；已通过=办事处/V70/验收绑定SDS；阻塞=Q-FCOM-001合同管理员首次合同可见范围；下一步=完成Feature/机器契约校验后提交阻断复核，等待业务裁决。
+检查点：基线=7ed8801a；当前Gate=Feature Ready整改；已通过=SDS物理差量、ACC/PROJ真实Provider审计；本轮闭合=冲突通知、AST序列号校验；阻塞=Q-FCOM-001合同管理员首次合同范围；下一步=取得业务裁决后复审，不生成Technical Plan。
 
 ## 12. 追溯
 

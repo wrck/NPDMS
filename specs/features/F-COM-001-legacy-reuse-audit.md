@@ -12,6 +12,7 @@
 - `pms-module-project-api`的`ProjectOrganizationFactApi`、DTO及其现有调用契约；
 - `pms-module-project`的`ProjectOrganizationFactApiImpl`、`ProjectMasterDO/Mapper`、`ProjectStageSnapshotDO/Mapper/Repository`、`ProjectGovernanceApplicationService`及对应测试；
 - `AcceptanceController`、`AcceptanceService/Impl`、`AcceptanceDO/Mapper`、`sql/migrations/V17__pms_acceptance_tables.sql`，以及`ProjectClosureServiceImpl`、`ProjectClosureStateAdapter`和对应测试；
+- `ProjectParticipantFactApi/Impl/Test`当前项目经理事实、`AssetDeviceScopeApi/Impl/Test`序列号可分配校验，以及通用`NotificationRequested`事件契约；
 - Yudao CRM合同API、列表、表单、详情、审批和权限组件；
 - 已批准COM物理DDL、ADR-0023当前范围粒度及ADR-0036/0037的Feature-forward差量。
 
@@ -37,10 +38,13 @@
 | REUSE-14 | `ProjectGovernanceApplicationService`及`ProjectGovernanceApplicationServiceTest` | `COPY_THEN_ENHANCE` | 保持现有回退/异常关闭/重开路径不变；在批准的阶段进入命令边界复制其项目锁、幂等、快照追加和提交后事件模式，并接入窄PROJ Provider | 当前服务只实现治理动作且Q-FCOM-002禁止本Feature决定回退关闭；不得直接修改现有治理动作来夹带范围解锁或补建绑定 |
 | REUSE-15 | `AcceptanceController`、`AcceptanceService/Impl`、`AcceptanceDO/Mapper`与`pms_acc_acceptance`（`V17__pms_acceptance_tables.sql`） | `DO_NOT_REUSE` | 初验/终验报告CRUD、审批状态机、交付件门禁及现有表保持不变；不得承接`AcceptanceScopeBinding`身份、触发、表或Provider | 该栈的身份是报告`acceptance_id`，而ADR-0037已冻结范围绑定身份为项目阶段快照与精确范围版本；报告上传、提交、审批或状态不得触发或反推绑定 |
 | REUSE-16 | `ProjectClosureServiceImpl`对终验报告的消费、`ProjectClosureStateAdapter`及`ProjectClosureStateAdapterTest` | `DO_NOT_REUSE` | 保持关项对终验完成结果和项目生命周期的既有消费；不得作为范围绑定创建、关闭、解锁或存在性来源 | 关项是报告完成后的下游门禁，不是项目进入验收阶段或新范围版本生效的Owner事实 |
+| REUSE-17 | `ProjectParticipantFactApi.inspect`、DTO、真实Provider及`ProjectParticipantFactApiImplTest` | `DIRECT_REUSE` | COM以空subject、`PROJECT_MANAGER`和请求时间读取唯一当前项目经理及`projectVersion/factVersion`，填充冲突通知收件人 | 现接口已有PROJ Owner、可信租户和唯一参与人失败关闭；不得读取PROJ Mapper或把合同管理员当通知收件人 |
+| REUSE-18 | `AssetDeviceScopeApi.validateAssignableSerials`、`SerialScopeValidationResult`、真实Provider及`AssetDeviceScopeApiImplTest` | `DIRECT_REUSE` | F-COM直达预览和每个含SN的写命令均传目标承接项目与完整SN集合；仅valid且三类失败列表全空时通过 | 现接口已校验存在性、租户、可分配状态、其他项目归属和重复；无版本令牌，故预览结果不得复用为写授权，写前必须实时重验，异常/不可用失败关闭 |
+| REUSE-19 | COM `com_outbox_event`与SDS通用`NotificationRequested`契约 | `DIRECT_REUSE` | 冲突冻结事务内追加`DELIVERY_SCOPE_CONFLICT_FROZEN`请求；按范围、分配版本和ERP来源版本幂等，投递失败独立重试 | 通知请求/送达均不表示冲突处置完成；无唯一经理时保留逻辑角色收件人并经PROJ事实重试，不伪造用户、不回滚冻结 |
 
 ## 3. 实施约束
 
-1. Technical Plan必须把REUSE-01～16逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
+1. Technical Plan必须把REUSE-01～19逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
 2. 增强服务、DO、Mapper和页面先复制到新类/新页面后再改造；旧公开API在切换前后保持兼容，旧Yudao CRM资产零修改。
 3. V70转换必须使用合入时的下一个Flyway编号，验证空库、当前基线升级、重复迁移和转换前后数量/范围/事件对账；不修改V70。
 4. 新增查询遵守场景Query对象、`LambdaQueryWrapperX`和Mapper XML规则；不得新增SQL注解、`${}`、`.last(...)`、`Map`或长位置参数。

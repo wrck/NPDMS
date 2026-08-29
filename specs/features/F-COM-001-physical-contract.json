@@ -9,6 +9,7 @@
     "COM": ["pms-module-commerce-api", "pms-module-commerce"],
     "PROJ": ["pms-module-project-api", "pms-module-project"],
     "ACC": ["pms-module-project-api", "pms-module-project"],
+    "AST": ["pms-module-asset-api", "pms-module-asset"],
     "physicalModuleMapping": "PMS-PROJ_CURRENTLY_CARRIES_PROJECT_ACCEPTANCE_AND_CLOSURE_WITHOUT_CHANGING_SEMANTIC_OWNER"
   },
   "prdBaseline": "V1.8_REVISION_009",
@@ -169,7 +170,8 @@
         "uniqueKeys": ["tenant_id,delivery_scope_id,detail_sequence"],
         "constraints": [
           "allocated_qty > 0",
-          "AT_LEAST_ONE_OF_SERIAL_NO_PRODUCT_CODE_DEVICE_TYPE_CODE"
+          "AT_LEAST_ONE_OF_SERIAL_NO_PRODUCT_CODE_DEVICE_TYPE_CODE",
+          "SERIAL_NO_REQUIRES_FRESH_AST_OWNER_VALIDATION_ON_EVERY_WRITE"
         ]
       },
       "acc_acceptance_scope_binding": {
@@ -230,6 +232,24 @@
       "direction": "PROJ -> COM",
       "provider": "REAL_PROVIDER_REQUIRED",
       "compatibility": "PRESERVE_F_PROJ_002_BEHAVIOR"
+    },
+    "AssetDeviceScopeApi": {
+      "direction": "COM -> AST",
+      "provider": "EXISTING_REAL_PROVIDER",
+      "method": "validateAssignableSerials",
+      "input": ["trustedTenantId", "targetProjectIdAsParentProjectId", "completeNormalizedSerialNumbers"],
+      "success": "valid=true AND missingSerialNumbers=[] AND unavailableSerialNumbers=[] AND duplicateSerialNumbers=[]",
+      "failures": ["DEVICE_NOT_FOUND", "CROSS_TENANT", "NOT_ASSIGNABLE", "ASSIGNED_TO_OTHER_PROJECT", "DUPLICATE", "PROVIDER_UNAVAILABLE"],
+      "failureMode": "FAIL_CLOSED_WITH_ZERO_COM_WRITES",
+      "versionBehavior": "NO_VERSION_TOKEN;PREVIEW_RESULT_NOT_REUSABLE;FRESH_REVALIDATION_REQUIRED_BEFORE_EVERY_WRITE"
+    },
+    "ProjectParticipantFactApi": {
+      "direction": "COM_NOTIFICATION -> PROJ",
+      "provider": "EXISTING_REAL_PROVIDER",
+      "method": "inspect",
+      "input": ["projectId", "subjectUserId=null", "requiredRoleCodes=PROJECT_MANAGER", "checkedAt=requestedAt"],
+      "successFacts": ["userId", "projectVersion", "factVersion"],
+      "failureMode": "KEEP_CONFLICT_FROZEN_AND_PERSIST_RETRYABLE_PROJECT_MANAGER_ROLE_RECIPIENT_WITHOUT_FABRICATED_USER"
     },
     "ProjectOfficeFactApi": {
       "direction": "COM -> PROJ",
@@ -293,6 +313,17 @@
   "events": {
     "DeliveryScopeAssigned": {"owner": "COM", "idempotency": ["eventId", "scopeVersion"]},
     "DeliveryScopeReleased": {"owner": "COM", "idempotency": ["eventId", "scopeVersion"]},
+    "NotificationRequested": {
+      "owner": "COM",
+      "trigger": "NEW_ERP_AUTHORITY_VERSION_TRANSITIONS_CURRENT_SCOPE_TO_CONFLICT_FROZEN",
+      "notificationType": "DELIVERY_SCOPE_CONFLICT_FROZEN",
+      "businessObject": ["tenantId", "projectId", "orderLineId", "deliveryScopeId", "allocationVersion", "erpSourceVersion"],
+      "recipientFact": "ProjectParticipantFactApi.inspect(PROJECT_MANAGER)",
+      "recipientFallback": "RETRYABLE_PROJECT_MANAGER_ROLE_RECIPIENT_WITH_PROJECT_ID_NO_FABRICATED_USER",
+      "idempotency": ["notificationType", "deliveryScopeId", "allocationVersion", "erpSourceVersion"],
+      "persistence": "SAME_COM_TRANSACTION_AS_CONFLICT_FREEZE_TO_COM_OUTBOX",
+      "deliveryFailure": "RETRY_WITHOUT_ROLLBACK_UNLOCK_OR_CONFLICT_STATE_CHANGE"
+    },
     "ProjectStageChanged": {"owner": "PROJ", "usage": "POST_COMMIT_NOTIFICATION_OR_PROJECTION_ONLY"}
   },
   "permissions": {

@@ -1,5 +1,6 @@
 import json
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -20,6 +21,9 @@ REQUIRED_PROVIDER_REUSE_AUDIT = {
     "ProjectGovernanceApplicationService": "COPY_THEN_ENHANCE",
     "AcceptanceController": "DO_NOT_REUSE",
     "ProjectClosureServiceImpl": "DO_NOT_REUSE",
+    "ProjectParticipantFactApi.inspect": "DIRECT_REUSE",
+    "AssetDeviceScopeApi.validateAssignableSerials": "DIRECT_REUSE",
+    "NotificationRequested": "DIRECT_REUSE",
 }
 
 
@@ -40,6 +44,48 @@ def provider_reuse_audit_errors(audit: str) -> list[str]:
     for boundary in required_boundaries:
         if boundary not in audit:
             errors.append(f"missing report/binding separation: {boundary}")
+    return errors
+
+
+def conflict_notification_and_serial_guard_errors(contract: dict, feature_spec: str) -> list[str]:
+    errors = []
+    asset = contract.get("moduleApis", {}).get("AssetDeviceScopeApi", {})
+    if asset.get("provider") != "EXISTING_REAL_PROVIDER":
+        errors.append("AST serial validation must use the existing real Provider")
+    if asset.get("failureMode") != "FAIL_CLOSED_WITH_ZERO_COM_WRITES":
+        errors.append("AST Provider failures must fail closed with zero COM writes")
+    version_behavior = asset.get("versionBehavior", "")
+    for rule in ("NO_VERSION_TOKEN", "PREVIEW_RESULT_NOT_REUSABLE", "FRESH_REVALIDATION_REQUIRED_BEFORE_EVERY_WRITE"):
+        if rule not in version_behavior:
+            errors.append(f"missing AST version behavior: {rule}")
+
+    recipient = contract.get("moduleApis", {}).get("ProjectParticipantFactApi", {})
+    if recipient.get("provider") != "EXISTING_REAL_PROVIDER" or recipient.get("method") != "inspect":
+        errors.append("project-manager recipient must use ProjectParticipantFactApi.inspect")
+    if not any("PROJECT_MANAGER" in value for value in recipient.get("input", [])):
+        errors.append("project-manager recipient role is not frozen")
+
+    notification = contract.get("events", {}).get("NotificationRequested", {})
+    required_notification = {
+        "notificationType": "DELIVERY_SCOPE_CONFLICT_FROZEN",
+        "recipientFact": "ProjectParticipantFactApi.inspect(PROJECT_MANAGER)",
+        "persistence": "SAME_COM_TRANSACTION_AS_CONFLICT_FREEZE_TO_COM_OUTBOX",
+        "deliveryFailure": "RETRY_WITHOUT_ROLLBACK_UNLOCK_OR_CONFLICT_STATE_CHANGE",
+    }
+    for field, expected in required_notification.items():
+        if notification.get(field) != expected:
+            errors.append(f"invalid conflict notification {field}")
+    if set(notification.get("idempotency", [])) != {
+        "notificationType", "deliveryScopeId", "allocationVersion", "erpSourceVersion"
+    }:
+        errors.append("conflict notification idempotency is incomplete")
+    for required_text in (
+        "Provider异常/超时/不可用均失败关闭并保持COM零写入",
+        "DELIVERY_SCOPE_CONFLICT_FROZEN",
+        "不得回滚冲突冻结",
+    ):
+        if required_text not in feature_spec:
+            errors.append(f"missing Feature rule: {required_text}")
     return errors
 
 
@@ -137,6 +183,23 @@ class Fcom001FeatureContractTest(unittest.TestCase):
             1,
         )
         self.assertTrue(provider_reuse_audit_errors(report_reused))
+
+    def test_conflict_notification_and_direct_serial_owner_guard_are_complete(self) -> None:
+        self.assertEqual([], conflict_notification_and_serial_guard_errors(self.contract, self.feature_spec))
+        self.assertEqual(["pms-module-asset-api", "pms-module-asset"],
+                         self.contract["implementationCarriers"]["AST"])
+        self.assertEqual([], provider_reuse_audit_errors(self.reuse_audit))
+
+    def test_feature_gate_rejects_missing_notification_or_reusable_preview_validation(self) -> None:
+        missing_notification = deepcopy(self.contract)
+        del missing_notification["events"]["NotificationRequested"]
+        self.assertTrue(conflict_notification_and_serial_guard_errors(
+            missing_notification, self.feature_spec))
+
+        reusable_preview = deepcopy(self.contract)
+        reusable_preview["moduleApis"]["AssetDeviceScopeApi"]["versionBehavior"] = "CACHE_PREVIEW_RESULT"
+        self.assertTrue(conflict_notification_and_serial_guard_errors(
+            reusable_preview, self.feature_spec))
 
     def test_v70_required_targets_and_deterministic_detail_sequence_are_frozen(self) -> None:
         mappings = self.contract["v70Conversion"]["requiredTargetMappings"]
