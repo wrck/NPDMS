@@ -19,8 +19,22 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 let acceptanceSocket
 const mysql = (sql) => execFileSync('docker', [
   'exec', 'npdms-50eb-test-mysql-1', 'sh', '-c',
-  'exec mysql -N -B -uroot -p"$MYSQL_ROOT_PASSWORD" npdms_test -e "$1"', '_', sql
+  'exec mysql -N -B -uroot -p"$MYSQL_ROOT_PASSWORD" npdms_test -e "$1" 2>/dev/null', '_', sql
 ], { encoding: 'utf8' }).trim()
+const runArchiveRetryIntegration = () => {
+  const inspect = execFileSync('docker', ['inspect', 'npdms-50eb-test-mysql-1',
+    '--format', '{{range .Config.Env}}{{println .}}{{end}}'], { encoding: 'utf8' })
+  const passwordLine = inspect.split(/\r?\n/).find((line) => line.startsWith('MYSQL_ROOT_PASSWORD='))
+  assert(passwordLine, '无法取得正式MySQL测试实例凭据')
+  execFileSync('mvn.cmd', ['-pl', 'pms-module-project', '-am',
+    '-Dtest=Facc001ApplicationMySqlIntegrationTest', '-Dsurefire.failIfNoSpecifiedTests=false',
+    '-DskipITs=false', 'test'], {
+    cwd: path.resolve('.'), stdio: 'pipe', shell: true,
+    env: { ...process.env, NPDMS_DB_NAME: 'npdms_test', NPDMS_MYSQL_PORT: '23316',
+      NPDMS_DB_USER: 'root', NPDMS_DB_PASSWORD: passwordLine.slice('MYSQL_ROOT_PASSWORD='.length) }
+  })
+  return true
+}
 
 ;(async () => {
   const target = await fetch(`${endpoint}/json/new?about:blank`, { method: 'PUT' }).then((r) => r.json())
@@ -43,7 +57,9 @@ const mysql = (sql) => execFileSync('docker', [
       pending.delete(message.id)
       return message.error ? callback.reject(new Error(message.error.message)) : callback.resolve(message.result)
     }
-    if (message.method === 'Runtime.exceptionThrown') pageErrors.push(message.params.exceptionDetails.text)
+    if (message.method === 'Runtime.exceptionThrown') {
+      pageErrors.push(message.params.exceptionDetails.exception?.description || message.params.exceptionDetails.text)
+    }
     if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') consoleErrors.push(message.params.entry.text)
     if (message.method === 'Network.loadingFailed' && !message.params.canceled) requestFailures.push(message.params.errorText)
   })
@@ -58,6 +74,14 @@ const mysql = (sql) => execFileSync('docker', [
     return result.result.value
   }
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  const waitUntil = async (probe, message, timeoutMs = 90000) => {
+    const deadline = Date.now() + timeoutMs
+    while (Date.now() < deadline) {
+      if (probe()) return
+      await wait(1000)
+    }
+    throw new Error(message)
+  }
   const navigate = async (url) => { await send('Page.navigate', { url }); await wait(2500) }
   const screenshot = async (name) => {
     const image = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
@@ -81,8 +105,9 @@ const mysql = (sql) => execFileSync('docker', [
     return response.body.data
   }
   const key = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  const login = async () => {
-    const response = await rawApi('POST', '/system/auth/login', { username, password, captchaVerification: '' })
+  const login = async (loginUsername = username, tenantId = 0) => {
+    const response = await rawApi('POST', '/system/auth/login',
+      { username: loginUsername, password, captchaVerification: '' }, {}, undefined, tenantId)
     assert(response.status === 200 && response.body?.code === 0 && response.body?.data?.accessToken,
       `正式身份登录失败：HTTP ${response.status}, code=${response.body?.code}, msg=${response.body?.msg}`)
     return response.body.data
@@ -107,7 +132,19 @@ const mysql = (sql) => execFileSync('docker', [
   })()`.replace('TOKEN_PLACEHOLDER', token))
 
   await Promise.all([send('Page.enable'), send('Runtime.enable'), send('Network.enable'), send('Log.enable')])
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    window.__faccBusinessErrors = [];
+    addEventListener('DOMContentLoaded', () => new MutationObserver((mutations) => {
+      for (const mutation of mutations) for (const node of mutation.addedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        const candidates = node.matches?.('.el-message--error') ? [node]
+          : [...(node.querySelectorAll?.('.el-message--error') || [])];
+        for (const item of candidates) window.__faccBusinessErrors.push(item.innerText || item.textContent || '业务错误');
+      }
+    }).observe(document.body, { childList: true, subtree: true }));
+  ` })
   await navigate(appUrl)
+  const archiveFailureRetryTest = runArchiveRetryIntegration()
   const auth = await login()
   const token = auth.accessToken
   await evaluate(`(() => {
@@ -121,13 +158,26 @@ const mysql = (sql) => execFileSync('docker', [
   const permissions = await api('GET', '/system/auth/get-permission-info', undefined, {}, token)
   for (const permission of ['pms:acceptance:report:query', 'pms:acceptance:report:write',
     'pms:acceptance:report:complete', 'pms:acceptance:report:download', 'pms:project-task:execute',
-    'pms:file:upload', 'pms:file:download', 'pms:file:archive']) {
+    'pms:file:upload', 'pms:file:download', 'pms:file:archive', 'pms:project:query']) {
     assert(permissions.permissions.includes(permission), `正式身份缺少权限：${permission}`)
   }
   let activities = await api('GET', `/api/v1/pms/acceptances?projectId=${projectId}`, undefined, {}, token)
   const preliminary = activities.find((item) => item.acceptanceType === 'PRELIMINARY')
   const finalActivity = activities.find((item) => item.acceptanceType === 'FINAL')
   assert(preliminary && finalActivity, '受管项目未形成初验/终验活动')
+
+  const preliminaryWorkbench = await api('GET',
+    `/api/v1/pms/project-tasks/${preliminary.projectTaskId}/workbench`, undefined, {}, token)
+  const preliminaryCurrent = await api('GET', `/api/v1/pms/acceptances/${preliminary.id}`, undefined, {}, token)
+  const incomplete = await rawApi('POST',
+    `/api/v1/pms/project-tasks/${preliminary.projectTaskId}/actions/complete`, {
+      reason: 'F-ACC-001 missing report guard', executionContractId: preliminaryWorkbench.executionContractId,
+      contractVersion: preliminaryWorkbench.contractVersion, factObjectKey: String(preliminary.id),
+      expectedActivityVersion: preliminaryCurrent.version, expectedReportVersion: 1
+    }, { 'If-Match': String(preliminaryWorkbench.task.version), 'Idempotency-Key': key('missing-report') }, token)
+  assert(incomplete.body?.code !== 0, '缺报告时错误完成了验收任务')
+
+  while (new Date().getSeconds() % 30 > 5) await wait(1000)
 
   const preliminaryVersionsBefore = await api('GET',
     `/api/v1/pms/acceptances/${preliminary.id}/report-versions`, undefined, {}, token)
@@ -154,6 +204,19 @@ const mysql = (sql) => execFileSync('docker', [
     expectedReportVersionNo: draftV2.reportVersionNo, expectedCurrentReportVersionId: v1.reportVersionId
   }, { 'If-Match': String(preliminaryAfterV1.version), 'Idempotency-Key': key('publish-v2') }, token)
 
+  const finalDraft = await api('POST', `/api/v1/pms/acceptances/${finalActivity.id}/report-versions`, {
+    acceptanceTime: '2026-08-30T12:00:00', conclusionCode: 'PASS', conclusionText: '终验V1', acceptorName: '正式验收人'
+  }, { 'If-Match': String(finalActivity.version) }, token)
+  const finalUpload = await upload(token, finalDraft.reportVersionId, 'facc001-final-v1.pdf')
+  assert(finalUpload.code === 0, `终验附件上传失败：${finalUpload.msg}`)
+  await api('POST', `/api/v1/pms/acceptances/${finalActivity.id}/report-versions/${finalDraft.reportVersionId}/actions/publish`, {
+    expectedReportVersionNo: finalDraft.reportVersionNo, expectedCurrentReportVersionId: null
+  }, { 'If-Match': String(finalActivity.version), 'Idempotency-Key': key('publish-final') }, token)
+  await waitUntil(() => Number(mysql(`SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=0 AND event_type='AcceptanceReportVersionChanged' AND status='DELIVERED' AND aggregate_key IN ('${preliminary.id}','${finalActivity.id}')`)) >= 3
+    && Number(mysql(`SELECT COUNT(*) FROM acc_project_deliverable_source_version WHERE tenant_id=0 AND source_object_id IN (${v1.reportVersionId},${draftV2.reportVersionId},${finalDraft.reportVersionId}) AND archive_status='ARCHIVED'`)) === 3
+    && Number(mysql(`SELECT COUNT(*) FROM plt_file_archive_record WHERE tenant_id=0 AND artifact_id IN (SELECT file_artifact_id FROM acc_acceptance_report_attachment WHERE tenant_id=0 AND report_version_id IN (${v1.reportVersionId},${draftV2.reportVersionId},${finalDraft.reportVersionId}))`)) === 3,
+  '正式Quartz未完成三份报告来源的独立归档')
+
   const history = await api('GET', `/api/v1/pms/acceptances/${preliminary.id}/report-versions`, undefined, {}, token)
   const historicalV1 = history.find((item) => item.id === v1.reportVersionId)
   assert(historicalV1?.reportStatus === 'SUPERSEDED' && historicalV1.attachments.length === 1, 'V1历史未保留')
@@ -163,16 +226,8 @@ const mysql = (sql) => execFileSync('docker', [
     objectType: 'ACCEPTANCE_REPORT_VERSION', objectId: String(v1.reportVersionId),
     purposeCode: 'ACCEPTANCE_REPORT_ATTACHMENT', referenceKey: downloadFact.referenceKey
   }, {}, token)
-  assert(ticket.shortLivedUrl && !ticket.shortLivedUrl.includes('token='), '历史下载未返回受控短时票据')
+  assert(ticket.shortLivedUrl && !ticket.shortLivedUrl.includes('token='), '归档后历史下载未返回受控短时票据')
 
-  const finalDraft = await api('POST', `/api/v1/pms/acceptances/${finalActivity.id}/report-versions`, {
-    acceptanceTime: '2026-08-30T12:00:00', conclusionCode: 'PASS', conclusionText: '终验V1', acceptorName: '正式验收人'
-  }, { 'If-Match': String(finalActivity.version) }, token)
-  const finalUpload = await upload(token, finalDraft.reportVersionId, 'facc001-final-v1.pdf')
-  assert(finalUpload.code === 0, `终验附件上传失败：${finalUpload.msg}`)
-  await api('POST', `/api/v1/pms/acceptances/${finalActivity.id}/report-versions/${finalDraft.reportVersionId}/actions/publish`, {
-    expectedReportVersionNo: finalDraft.reportVersionNo, expectedCurrentReportVersionId: null
-  }, { 'If-Match': String(finalActivity.version), 'Idempotency-Key': key('publish-final') }, token)
   const finalWorkbench = await api('GET',
     `/api/v1/pms/project-tasks/${finalActivity.projectTaskId}/workbench`, undefined, {}, token)
   const finalActivityCurrent = await api('GET', `/api/v1/pms/acceptances/${finalActivity.id}`, undefined, {}, token)
@@ -189,31 +244,60 @@ const mysql = (sql) => execFileSync('docker', [
   await api('POST', `/api/v1/pms/acceptances/${preliminary.id}/actions/revoke-current-version`, {
     expectedCurrentReportVersionId: effectivePreliminary.id, expectedCurrentReportVersionNo: effectivePreliminary.reportVersionNo
   }, { 'If-Match': String(currentPreliminary.version), 'Idempotency-Key': key('revoke') }, token)
+  await waitUntil(() => Number(mysql(`SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=0 AND event_type='AcceptanceReportVersionChanged' AND status='DELIVERED' AND aggregate_key IN ('${preliminary.id}','${finalActivity.id}')`)) === 4,
+    '撤销事件未由正式Quartz投递')
 
+  const unrelated = await rawApi('GET', '/api/v1/pms/acceptances?projectId=992004000099', undefined, {}, token)
+  assert(unrelated.body?.code !== 0 || unrelated.body?.data?.length === 0, '无权项目错误返回验收活动')
+  const tenantOneAuth = await login('admin', 1)
+  const crossTenant = await rawApi('GET', `/api/v1/pms/acceptances?projectId=${projectId}`,
+    undefined, {}, tenantOneAuth.accessToken, 1)
+  assert(crossTenant.body?.code !== 0 || crossTenant.body?.data?.length === 0, '跨租户错误返回验收活动')
+
+  consoleErrors.length = 0
+  pageErrors.length = 0
+  requestFailures.length = 0
   await navigate(`${appUrl}/customer-asset/acceptance-reports?projectId=${projectId}`)
-  assert(await evaluate(`document.body.innerText.includes('初验 / 终验报告')`), '公开报告页面未渲染')
+  await wait(5000)
+  const pageState = await evaluate(`({ text: document.body.innerText,
+    businessErrors: window.__faccBusinessErrors || [],
+    visibleErrors: [...document.querySelectorAll('.el-message--error')].map((item) => item.innerText) })`)
+  assert(pageState.text.includes('初验报告') && pageState.text.includes('终验报告'), '公开报告活动卡片未完整渲染')
+  assert(pageState.businessErrors.length === 0 && pageState.visibleErrors.length === 0,
+    `公开报告页面存在业务错误：${JSON.stringify(pageState)}`)
   await screenshot('01-facc001-report-history.png')
 
   const dbFacts = {
     projectCode,
     reportVersions: Number(mysql(`SELECT COUNT(*) FROM acc_acceptance_report_version WHERE tenant_id=0 AND acceptance_id IN (${preliminary.id},${finalActivity.id})`)),
-    sourceVersions: Number(mysql(`SELECT COUNT(*) FROM acc_project_deliverable_source_version WHERE tenant_id=0 AND source_object_type='ACCEPTANCE_REPORT_VERSION' AND source_object_id IN (${v1.reportVersionId},${draftV2.reportVersionId},${finalDraft.reportVersionId})`)),
+    sourceVersions: Number(mysql(`SELECT COUNT(*) FROM acc_project_deliverable_source_version WHERE tenant_id=0 AND source_object_type='AcceptanceReportVersion' AND source_object_id IN (${v1.reportVersionId},${draftV2.reportVersionId},${finalDraft.reportVersionId})`)),
     archiveRecords: Number(mysql(`SELECT COUNT(*) FROM plt_file_archive_record WHERE tenant_id=0 AND artifact_id IN (SELECT file_artifact_id FROM acc_acceptance_report_attachment WHERE tenant_id=0 AND report_version_id IN (${v1.reportVersionId},${draftV2.reportVersionId},${finalDraft.reportVersionId}))`)),
     reportEvents: Number(mysql(`SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=0 AND event_type='AcceptanceReportVersionChanged' AND aggregate_key IN ('${preliminary.id}','${finalActivity.id}')`)),
+    deliveredReportEvents: Number(mysql(`SELECT COUNT(*) FROM plt_outbox_event WHERE tenant_id=0 AND event_type='AcceptanceReportVersionChanged' AND status='DELIVERED' AND aggregate_key IN ('${preliminary.id}','${finalActivity.id}')`)),
+    quartzJobs: Number(mysql(`SELECT COUNT(*) FROM QRTZ_JOB_DETAILS WHERE JOB_NAME IN ('acceptanceReportOutboxDeliveryJob','acceptanceReportArchiveCompensationJob')`)),
+    quartzTriggers: Number(mysql(`SELECT COUNT(*) FROM QRTZ_TRIGGERS WHERE JOB_NAME IN ('acceptanceReportOutboxDeliveryJob','acceptanceReportArchiveCompensationJob')`)),
+    archiveFailureRetryTest,
     finalTaskStatus: mysql(`SELECT status FROM proj_project_task WHERE tenant_id=0 AND id=${finalActivity.projectTaskId}`)
   }
-  assert(dbFacts.reportVersions >= 3 && dbFacts.sourceVersions >= 3 && dbFacts.archiveRecords >= 1
-    && dbFacts.reportEvents >= 4 && dbFacts.finalTaskStatus === 'DONE', '真实数据库验收事实不完整')
+  assert(dbFacts.reportVersions === 3 && dbFacts.sourceVersions === 3 && dbFacts.archiveRecords === 3
+    && dbFacts.reportEvents === 4 && dbFacts.deliveredReportEvents === 4 && dbFacts.quartzJobs === 2
+    && dbFacts.quartzTriggers === 2 && dbFacts.archiveFailureRetryTest && dbFacts.finalTaskStatus === 'DONE',
+  `真实数据库与Quartz验收事实不完整：${JSON.stringify(dbFacts)}`)
   assert(consoleErrors.length === 0 && pageErrors.length === 0 && requestFailures.length === 0,
     `浏览器存在意外错误：${JSON.stringify({ consoleErrors, pageErrors, requestFailures })}`)
 
   const evidence = {
     featureId: 'F-ACC-001', requirementIds: ['ACC-03@V1', 'ACC-04@V1'], pass: true,
     identity: { userId: 992004800001, username, tenantId: 0 }, project: { projectId, projectCode },
-    assertions: ['PRELIMINARY_V1_EFFECTIVE', 'V2_REPLACES_V1',
-      'HISTORICAL_V1_DOWNLOADABLE', 'FINAL_REPORT_TASK_COMPLETED', 'CURRENT_VERSION_REVOKED_NO_RESTORE',
-      'DATABASE_FACTS_CONFIRMED'],
-    dbFacts, diagnostics: { consoleErrors, pageErrors, requestFailures }, generatedAt: new Date().toISOString()
+    assertions: ['MISSING_REPORT_BLOCKS_TASK', 'PRELIMINARY_V1_PUBLISHED', 'V2_REPLACES_V1',
+      'ALL_REPORT_SOURCES_ARCHIVED_BY_QUARTZ', 'HISTORICAL_V1_DOWNLOADABLE_AFTER_ARCHIVE',
+      'FINAL_REPORT_TASK_COMPLETED', 'CURRENT_VERSION_REVOKED_NO_RESTORE',
+      'PROJECT_AND_TENANT_SCOPE_ENFORCED', 'ARCHIVE_PROVIDER_FAILURE_RETRIES',
+      'QUARTZ_JOBS_AND_TRIGGERS_REGISTERED', 'REPORT_EVENTS_DELIVERED_BY_QUARTZ',
+      'REPORT_ACTIVITY_CARDS_RENDERED_WITHOUT_BUSINESS_ERRORS', 'DATABASE_FACTS_CONFIRMED'],
+    dbFacts, diagnostics: { consoleErrors, pageErrors, requestFailures,
+      businessErrors: pageState.businessErrors, visibleBusinessErrors: pageState.visibleErrors },
+    generatedAt: new Date().toISOString()
   }
   fs.mkdirSync(path.dirname(evidenceFile), { recursive: true })
   fs.writeFileSync(evidenceFile, JSON.stringify(evidence, null, 2) + '\n')

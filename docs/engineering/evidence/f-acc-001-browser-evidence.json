@@ -15,30 +15,38 @@
     "projectCode": "FACC001-ACCEPTANCE-001"
   },
   "assertions": [
+    "MISSING_REPORT_BLOCKS_TASK",
     "PRELIMINARY_V1_PUBLISHED",
     "V2_REPLACES_V1",
+    "ALL_REPORT_SOURCES_ARCHIVED_BY_QUARTZ",
     "HISTORICAL_V1_DOWNLOADABLE_AFTER_ARCHIVE",
     "FINAL_REPORT_TASK_COMPLETED",
     "CURRENT_VERSION_REVOKED_NO_RESTORE",
+    "PROJECT_AND_TENANT_SCOPE_ENFORCED",
+    "ARCHIVE_PROVIDER_FAILURE_RETRIES",
     "QUARTZ_JOBS_AND_TRIGGERS_REGISTERED",
     "REPORT_EVENTS_DELIVERED_BY_QUARTZ",
+    "REPORT_ACTIVITY_CARDS_RENDERED_WITHOUT_BUSINESS_ERRORS",
     "DATABASE_FACTS_CONFIRMED"
   ],
   "dbFacts": {
     "projectCode": "FACC001-ACCEPTANCE-001",
     "reportVersions": 3,
     "sourceVersions": 3,
-    "archiveRecords": 1,
+    "archiveRecords": 3,
     "reportEvents": 4,
     "deliveredReportEvents": 4,
     "quartzJobs": 2,
     "quartzTriggers": 2,
+    "archiveFailureRetryTest": true,
     "finalTaskStatus": "DONE"
   },
   "diagnostics": {
     "consoleErrors": [],
     "pageErrors": [],
-    "requestFailures": []
+    "requestFailures": [],
+    "businessErrors": [],
+    "visibleBusinessErrors": []
   },
-  "generatedAt": "2026-08-30T06:00:00+08:00"
+  "generatedAt": "2026-08-29T22:53:09.443Z"
 }

@@ -134,7 +134,7 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 - 新增：`pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/acceptancereport/`及VO，实现Feature Spec锁定的查询、草稿、发布、撤销和下载REST；服务端读取租户/操作者、`If-Match`和`Idempotency-Key`。
 - 修改：`ProjectManualCreationServiceImpl.java`和`ProjectTaskLifecycleService.java`，只接入批准的initializer/completion Provider，不复制ACC规则或直接访问ACC表。
 
-### 4.2 V128/V129/V130/V131前向迁移
+### 4.2 V128/V129/V130/V131/V132前向迁移
 
 新增`sql/migrations/V128__facc001_acceptance_report_version_forward.sql`，顺序固定：
 
@@ -147,6 +147,7 @@ FileArchiveReferenceSetFact archiveReferenceSets(
 7. 真实认证复核发现Yudao会递归过滤父级未授权的菜单；V128已执行且保持不可变。新增`V129__facc001_acceptance_role_menu_ancestor_fix.sql`，仅为受管角色补齐ACC入口、项目任务链和文件链所需的6个既有父级菜单`19260/19266/19261/18000/1243/2`。迁移精确校验受管角色、菜单父子关系和启用状态；仅接受“6条均不存在”后原子插入或“6条均已存在”幂等复核，部分状态失败关闭，不新增权限键、菜单、角色或业务角色模板。
 8. 真实完成链复核发现V128活动仍持有已关闭的旧`TASK_NATIVE`契约ID；V128/V129保持不可变。新增`V130__facc001_acceptance_activity_contract_identity_fix.sql`，仅处理`creator=v128-facc001`且同租户、同项目、同任务、`targetObjectKey=acceptanceId`精确匹配的活动。只接受“已指向唯一当前ACC契约”或“仍指向同任务已关闭旧TASK_NATIVE契约”两种状态，后者原子纠正`execution_contract_id`；部分、重复、错身份或未知来源在更新前整批失败。
 9. 真实Outbox链复核发现两个ACC `JobHandler`缺少正式调度配置和启动同步。新增`V131__facc001_acceptance_report_jobs.sql`，以固定高段ID配置`acceptanceReportOutboxDeliveryJob`和`acceptanceReportArchiveCompensationJob`两条启用任务，30秒周期、空参数、Quartz重试为0；仅接受全无后成对插入或完整一致幂等复核。新增`AcceptanceReportQuartzRegistrar`，Quartz存在时按“事件投递→归档补偿”固定顺序复用`JobApi.syncEnabledJobByHandlerName`同步，任一同步失败直接使启动失败；Quartz未装配时不调用。两个Handler保持`@TenantJob`多租户路径，并与现有File Outbox一致，在正式单租户配置下显式进入tenant 0后执行，禁止无租户上下文访问业务表。
+10. 真实UI复核发现报告页项目选择器使用既有项目分页接口。V128～V131保持不可变；新增`V132__facc001_acceptance_project_query_permission.sql`，仅为受管角色授权V57现役菜单`18067`及既有`pms:project:query`，精确校验角色、菜单、父菜单和启用状态，不新增权限键、菜单、角色或业务角色模板。
 
 ### 4.3 前端
 

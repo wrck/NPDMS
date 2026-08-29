@@ -81,4 +81,18 @@ class Facc001MigrationContractTest {
         assertTrue(sql.contains("involved_row_count = 2 AND exact_row_count = 2"));
         assertTrue(sql.contains("partial or conflicting"));
     }
+
+    @Test
+    void v132MustGrantOnlyTheExistingProjectQueryMenuToTheManagedRole() throws Exception {
+        String sql = Files.readString(Path.of("..", "sql", "migrations",
+                "V132__facc001_acceptance_project_query_permission.sql"));
+
+        assertTrue(sql.contains("992004800002"));
+        assertTrue(sql.contains("18067"));
+        assertTrue(sql.contains("pms:project:query"));
+        assertTrue(sql.contains("parent_id` = 19261"));
+        assertTrue(sql.contains("involved_grant_count = 0"));
+        assertFalse(sql.contains("INSERT INTO `system_menu`"));
+        assertFalse(sql.contains("INSERT INTO `system_role`"));
+    }
 }

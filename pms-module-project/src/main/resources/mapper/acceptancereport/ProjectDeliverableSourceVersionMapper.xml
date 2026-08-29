@@ -41,7 +41,7 @@
         SELECT *
         FROM acc_project_deliverable_source_version
         WHERE tenant_id = #{query.tenantId}
-          AND relation_status = 'CURRENT'
+          AND relation_status IN ('CURRENT', 'SUPERSEDED')
           AND archive_status = 'PENDING_COMPENSATION'
           AND deleted = b'0'
         ORDER BY id

@@ -47,7 +47,8 @@ public class AcceptanceReportArchiveCompensationService {
             throw new IllegalStateException("archive source identity conflict");
         }
         if ("ARCHIVED".equals(source.getArchiveStatus())) return;
-        if (!"CURRENT".equals(source.getRelationStatus()) || !"PENDING_COMPENSATION".equals(source.getArchiveStatus())) {
+        if (!("CURRENT".equals(source.getRelationStatus()) || "SUPERSEDED".equals(source.getRelationStatus()))
+                || !"PENDING_COMPENSATION".equals(source.getArchiveStatus())) {
             throw new IllegalStateException("archive source state conflict");
         }
         AcceptanceReportVersionDO report = reportMapper.selectById(source.getSourceObjectId());

@@ -8,10 +8,14 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
+import cn.iocoder.yudao.module.pms.project.service.acceptancereport.event.AcceptanceReportVersionChangedMessage;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptancereport.ProjectDeliverableSourceVersionDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.ProjectDeliverableSourceVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport.query.PendingArchiveSourceQuery;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -31,6 +35,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
@@ -43,7 +48,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @EnabledIfSystemProperty(named = "skipITs", matches = "false")
@@ -56,9 +64,13 @@ class Facc001ApplicationMySqlIntegrationTest {
     private static final String KEY_PREFIX = "facc001-it-";
 
     @Resource AcceptanceReportCommandService service;
+    @Resource AcceptanceReportSourceProjectionService projectionService;
+    @Resource AcceptanceReportArchiveCompensationService archiveService;
+    @Resource AcceptanceReportArchiveCompensationJob archiveJob;
     @Resource JdbcTemplate jdbcTemplate;
     @MockitoBean FileArtifactApi fileArtifactApi;
     @MockitoBean ProjectScopeApi projectScopeApi;
+    @MockitoSpyBean ProjectDeliverableSourceVersionMapper sourceMapper;
 
     private long projectId;
     private long activityId;
@@ -92,6 +104,11 @@ class Facc001ApplicationMySqlIntegrationTest {
                         + "current_report_version_id,version,creator,updater,deleted,tenant_id) "
                         + "VALUES (?,?,?,?, 'PRELIMINARY','PENDING',NULL,0,'facc001_it','facc001_it',b'0',?)",
                 activityId, projectId, projectId + 2, projectId + 3, TENANT_ID);
+        jdbcTemplate.update("INSERT INTO acc_project_deliverable "
+                        + "(id,project_id,deliverable_code,name,stage_code,required,status,current_source_version_id,archive_status,"
+                        + "version,creator,updater,deleted,tenant_id) "
+                        + "VALUES (?,?, 'D-INITIAL-REPORT','初验报告','S5',b'1','PENDING',NULL,NULL,0,'facc001_it','facc001_it',b'0',?)",
+                projectId + 4, projectId, TENANT_ID);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(projectId, 1L, Set.of(projectId), Set.of()));
     }
@@ -105,6 +122,10 @@ class Facc001ApplicationMySqlIntegrationTest {
                     KEY_PREFIX + activityId + "%");
             jdbcTemplate.update("DELETE FROM acc_acceptance_report_attachment WHERE report_version_id IN "
                     + "(SELECT id FROM acc_acceptance_report_version WHERE acceptance_id=?)", activityId);
+            jdbcTemplate.update("DELETE FROM acc_project_deliverable_source_attachment WHERE deliverable_source_version_id IN "
+                    + "(SELECT id FROM acc_project_deliverable_source_version WHERE deliverable_id=?)", projectId + 4);
+            jdbcTemplate.update("DELETE FROM acc_project_deliverable_source_version WHERE deliverable_id=?", projectId + 4);
+            jdbcTemplate.update("DELETE FROM acc_project_deliverable WHERE id=?", projectId + 4);
             jdbcTemplate.update("DELETE FROM acc_acceptance_report_version WHERE acceptance_id=?", activityId);
             jdbcTemplate.update("DELETE FROM acc_acceptance WHERE id=?", activityId);
         } finally {
@@ -165,6 +186,72 @@ class Facc001ApplicationMySqlIntegrationTest {
                 String.valueOf(activityId)));
     }
 
+    @Test
+    void supersededPendingSourceRemainsArchivableWithoutOverwritingCurrentRootSummary() {
+        var first = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
+                activityId, 0, completeContent("初验V1")), actor);
+        FileArtifactVersionFact firstFile = stubAttachment(first.reportVersionId());
+        service.publish(publish(first, null, 0, "-archive-v1", "f"), actor);
+        projectionService.project(versionEvent("EFFECTIVE", first.reportVersionId(), null, 1, firstFile));
+
+        var second = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
+                activityId, 1, completeContent("初验V2")), actor);
+        FileArtifactVersionFact secondFile = stubAttachment(second.reportVersionId());
+        service.publish(publish(second, first.reportVersionId(), 1, "-archive-v2", "a"), actor);
+        projectionService.project(versionEvent("REPLACED", second.reportVersionId(),
+                first.reportVersionId(), 2, secondFile));
+
+        Long firstSourceId = jdbcTemplate.queryForObject(
+                "SELECT id FROM acc_project_deliverable_source_version WHERE deliverable_id=? AND source_object_id=?",
+                Long.class, projectId + 4, first.reportVersionId());
+        assertEquals("SUPERSEDED/PENDING_COMPENSATION", jdbcTemplate.queryForObject(
+                "SELECT CONCAT(relation_status,'/',archive_status) FROM acc_project_deliverable_source_version WHERE id=?",
+                String.class, firstSourceId));
+        assertTrue(sourceMapper.selectPendingArchive(new PendingArchiveSourceQuery(TENANT_ID, 1000)).stream()
+                .anyMatch(source -> firstSourceId.equals(source.getId())));
+
+        archiveService.archive(TENANT_ID, firstSourceId);
+
+        assertEquals("SUPERSEDED/ARCHIVED", jdbcTemplate.queryForObject(
+                "SELECT CONCAT(relation_status,'/',archive_status) FROM acc_project_deliverable_source_version WHERE id=?",
+                String.class, firstSourceId));
+        assertEquals("PENDING_COMPENSATION", jdbcTemplate.queryForObject(
+                "SELECT archive_status FROM acc_project_deliverable WHERE id=?", String.class, projectId + 4));
+        assertEquals(second.reportVersionId(), jdbcTemplate.queryForObject(
+                "SELECT source_object_id FROM acc_project_deliverable_source_version WHERE id=(SELECT current_source_version_id FROM acc_project_deliverable WHERE id=?)",
+                Long.class, projectId + 4));
+        var commandCaptor = forClass(cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSetsCommand.class);
+        verify(fileArtifactApi).archiveReferenceSets(commandCaptor.capture());
+        assertEquals(String.valueOf(first.reportVersionId()), commandCaptor.getValue().archiveSetKey().objectId());
+    }
+
+    @Test
+    void archiveProviderFailureKeepsSourcePendingAndNextJobRunRetriesSuccessfully() {
+        var report = service.createDraft(new AcceptanceReportCommands.CreateDraftCommand(
+                activityId, 0, completeContent("初验重试")), actor);
+        FileArtifactVersionFact file = stubAttachment(report.reportVersionId());
+        service.publish(publish(report, null, 0, "-archive-retry", "b"), actor);
+        projectionService.project(versionEvent("EFFECTIVE", report.reportVersionId(), null, 1, file));
+        Long sourceId = jdbcTemplate.queryForObject(
+                "SELECT id FROM acc_project_deliverable_source_version WHERE source_object_id=?",
+                Long.class, report.reportVersionId());
+        ProjectDeliverableSourceVersionDO source = sourceMapper.selectById(sourceId);
+        doReturn(List.of(source)).when(sourceMapper).selectPendingArchive(any());
+        when(fileArtifactApi.archiveReferenceSets(any()))
+                .thenThrow(new IllegalStateException("provider unavailable"))
+                .thenReturn(null);
+
+        archiveJob.execute("");
+        assertEquals("PENDING_COMPENSATION/1", jdbcTemplate.queryForObject(
+                "SELECT CONCAT(archive_status,'/',archive_retry_count) FROM acc_project_deliverable_source_version WHERE source_object_id=?",
+                String.class, report.reportVersionId()));
+
+        archiveJob.execute("");
+        assertEquals("ARCHIVED/1", jdbcTemplate.queryForObject(
+                "SELECT CONCAT(archive_status,'/',archive_retry_count) FROM acc_project_deliverable_source_version WHERE source_object_id=?",
+                String.class, report.reportVersionId()));
+    }
+
     private AcceptanceReportCommands.PublishCommand publish(AcceptanceReportCommands.ReportResult report,
                                                               Long currentId, int activityVersion,
                                                               String keySuffix, String digestSeed) {
@@ -177,7 +264,7 @@ class Facc001ApplicationMySqlIntegrationTest {
                 "PASS", text, "验收人");
     }
 
-    private void stubAttachment(Long reportVersionId) {
+    private FileArtifactVersionFact stubAttachment(Long reportVersionId) {
         String referenceKey = UUID.nameUUIDFromBytes(String.valueOf(reportVersionId).getBytes()).toString();
         FileArtifactVersionFact file = new FileArtifactVersionFact(reportVersionId + 100, 1, referenceKey,
                 "ACCEPTANCE_REPORT_ATTACHMENT", "report.pdf", 1024L, "application/pdf", "e".repeat(64),
@@ -194,6 +281,14 @@ class Facc001ApplicationMySqlIntegrationTest {
             return List.of(new FileReferenceSetFact(expected.key(), expected.expectedScopeVersion(),
                     expected.expectedActiveFacts()));
         }).when(fileArtifactApi).lockAndRevalidateReferenceSets(any());
+        return file;
+    }
+
+    private AcceptanceReportVersionChangedMessage versionEvent(String changeType, Long currentId,
+                                                                 Long previousId, int versionNo,
+                                                                 FileArtifactVersionFact file) {
+        return new AcceptanceReportVersionChangedMessage(UUID.randomUUID().toString(), TENANT_ID, changeType,
+                activityId, projectId, "PRELIMINARY", USER_ID, currentId, previousId, versionNo, List.of(file));
     }
 
     private long eventCount(String eventType) {
@@ -213,13 +308,16 @@ class Facc001ApplicationMySqlIntegrationTest {
     }
 
     @SpringBootConfiguration
-    @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport",
+    @MapperScan({"cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance",
+            "cn.iocoder.yudao.module.pms.project.dal.mysql.acceptancereport",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class, PlatformCommandExecutionApiImpl.class,
-            PlatformTransactionalOutboxWriter.class, AcceptanceReportCommandService.class})
+            PlatformTransactionalOutboxWriter.class, AcceptanceReportCommandService.class,
+            AcceptanceReportSourceProjectionService.class, AcceptanceReportArchiveCompensationService.class,
+            AcceptanceReportArchiveCompensationJob.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
     }
