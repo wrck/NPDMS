@@ -4,7 +4,7 @@
 
 **计划ID：** `NPDMS-FCOM001-TECHPLAN-20260829-01`
 
-**当前状态：** `CANDIDATE / PENDING_INDEPENDENT_REVIEW`
+**当前状态：** `CANDIDATE / REMEDIATION_REVIEW_PENDING`
 
 **目标：** 实现ERP合同/销售订单/订单行受控只读副本、合同管理员SYSTEM当前公司范围、项目—合同关系、项目交付范围预览/分配/调整/释放、办事处发生时快照、ERP冲突冻结通知，以及项目进入验收阶段和验收阶段内新范围版本的ACC精确绑定完整闭环。
 
@@ -128,9 +128,14 @@ public interface DeliveryScopeAcceptanceLockApi {
 
 ### 4.3 数据库与种子
 
-- `V124__fcom001_contract_order_scope_forward_migration.sql`：先在任何DDL前用受控过程完成全量预检；随后创建COM目标表/字段/唯一键/索引与独立`acc_acceptance_scope_binding`，一次性转换V70并重建精确V72夹具。
-- V124预检必须逐项验证：冻结输入水位、普通V70父订单/单位/产品或设备类型/项目办事处Owner映射、十项必填目标映射、detail_sequence稳定生成、唯一键/数值/区间冲突，以及V72全部身份和关系闭包。任一失败先`SIGNAL`，不得开始重命名或写目标事实。
-- V124转换保持ID、审计、来源版本、数量、区间和事件；普通明细不得用item_code补产品。精确V72夹具按机器契约创建稳定SEED父订单、V74公司/办事处和四条种子专用明细；成功后旧三表不作为第二业务真值，不长期双写。
+- `V124__fcom001_contract_order_scope_forward_migration.sql`使用“停写冻结→影子装载→切换前对账→单条多表原子换名”算法。整个V124窗口必须停止宿主机前后端写流量并保持Flyway独占；开始时记录V70三表的`count/min(id)/max(id)/max(version)/max(update_time)`输入水位，换名前再次比较，任一变化`SIGNAL`。不得仅依赖Flyway锁代替应用停写。
+- V124重试首先检查正式/归档/影子名称组合：若V123三张正式表仍存在且归档表不存在，则按“子表→父表”顺序删除上次失败遗留的影子表后重新开始；若全部目标正式表和三张归档表已存在、所有影子表均不存在，则执行只读结构/对账复核并把本次视为原子换名已完成的幂等重放；任何混合名称组合立即失败并要求从迁移前数据库快照恢复，不猜测补表或继续换名。
+- 所有目标表先使用以下固定影子名称创建，字段、约束、索引和外键一次建全：`fcom001_shadow_com_contract`、`fcom001_shadow_com_sales_order`、`fcom001_shadow_com_sales_order_line`、`fcom001_shadow_com_order_contract_relation`、`fcom001_shadow_com_project_contract_relation`、`fcom001_shadow_com_delivery_scope`、`fcom001_shadow_com_delivery_scope_detail`、`fcom001_shadow_acc_acceptance_scope_binding`。影子外键只引用对应影子表或既有Owner稳定表，不引用待退出的V70正式表。
+- V124在影子表内完成普通V70转换和精确V72夹具重建。预检/装载逐项验证冻结水位、普通V70父订单/单位/产品或设备类型/项目办事处Owner映射、十项必填目标映射、detail_sequence稳定生成、唯一键/数值/区间冲突，以及V72全部身份和关系闭包；普通明细不得用item_code补产品。精确V72夹具按机器契约创建稳定SEED父订单、V74公司/办事处和四条种子专用明细。
+- 原子换名前必须在影子表完成并保存一次只读对账结果：普通输入与精确夹具分类行数、全部保留ID集合、订单→订单行→范围→明细父子闭包、每订单行和每范围数量合计、有效区间、来源/分配版本、当前唯一和全部目标唯一键。对账只比较业务列和确定性集合，不新增哈希；任一不一致`SIGNAL`，V123正式表保持原样。
+- 唯一切换语句必须是一条多表`RENAME TABLE`：把`com_order_line/com_delivery_scope/com_delivery_scope_detail`分别改名为`fcom001_v70_com_order_line/fcom001_v70_com_delivery_scope/fcom001_v70_com_delivery_scope_detail`，同时把八张`fcom001_shadow_*`改为各自目标正式名。MySQL多表RENAME要么全部生效要么全部不生效；该语句是V124最后一个可改变业务表的步骤，换名后不得再执行建索引、补数据、删旧表或其他可能使业务真值部分完成的DDL/DML。
+- 换名前任一步失败时，旧V123正式表名称和内容保持可用；保持应用停写，执行Flyway repair后由V124开头按固定顺序清理影子并重试。换名成功后，三张`fcom001_v70_*`只作只读迁移证据，产品Mapper、Provider、菜单和后续种子均不得引用或写入，不构成第二业务真值；不得启动旧V123应用写该归档名。归档表删除另需后续明确批准，不放入V124/V125。
+- V124转换保持ID、审计、来源版本、数量、区间和事件；V125只有在Flyway确认V124成功后才可执行。若V124原子换名已生效而Flyway元数据写入失败，应用仍保持停止；清除失败元数据后重跑V124，必须命中“全部正式+全部归档+零影子”的幂等复核分支，不重复装载或换名。
 - `V125__fcom001_permissions_menu_and_acceptance_seed.sql`：写入八个最小权限键、PMS Commerce菜单和受控验收数据。验收身份通过正式用户—角色—权限配置获得全部八键；不固化业务角色映射，不修改SYSTEM Provider源码。
 - V125数据覆盖：合同公司精确命中/空范围、敏感字段有无权限、订单行CONFIRMED/PENDING、精确/部分/无匹配、RELEASED不参与、超量、AST SN有效/无效、验收阶段内外和ACC锁定/未锁定；使用高段ID与`creator=seed`。
 
@@ -157,7 +162,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 
 - [ ] **Step 3：实现V124目标模型和确定性前向转换**
 
-  先执行SQL静态契约与真实MySQL失败预检，再完成目标DDL、普通V70转换、V72夹具隔离重建和旧真值收口。验证空库V1→V125、当前V123→V125、重复校验、部分身份整批失败、普通行缺Owner整批失败，以及转换前后数量/范围/事件对账。
+  先执行SQL静态契约与真实MySQL失败预检，再按第4.3节固定名称创建八张影子表、装载普通V70与精确V72夹具、完成切换前全量对账，并以唯一一条多表RENAME切换。测试须在影子已装载但换名前注入父子关系或唯一键不一致，使对账`SIGNAL`；断言三张V123正式表名称、行数、查询和既有DeliveryScopeApi仍可用。随后执行Flyway repair，验证影子按固定顺序清理并可重试成功；另覆盖原子换名已成功但Flyway元数据失败后的幂等复核分支。最后验证空库V1→V125、当前V123→V125、部分身份整批失败、普通行缺Owner整批失败，以及转换前后数量/范围/事件对账。
 
 - [ ] **Step 4：实现COM权威副本与合同管理员公司范围**
 
@@ -221,7 +226,7 @@ py -3.13 -B scripts/generate_requirement_traceability.py --prd docs/baseline/prd
 git diff --check
 ```
 
-  使用仓库权威Compose对空库和V123基线分别执行Flyway migrate/info/validate；确认V124/V125约束、索引、种子和转换对账，并证明V70/V72字节未改。
+  使用仓库权威Compose对空库和V123基线分别执行Flyway migrate/info/validate；确认V124/V125约束、索引、种子和转换对账，并证明V70/V72字节未改。至少保留一轮“影子装载后、原子换名前失败”的真实MySQL证据：旧正式表可查询、无目标正式表部分出现、影子清理后同一基线重试成功；V125在失败轮不得出现任何记录。
 
 - [ ] **Step 4：真实Chromium公开UI/REST闭环**
 
@@ -243,4 +248,4 @@ git diff --check
 
 ## 七、Technical Plan Gate
 
-当前状态：`CANDIDATE / PENDING_INDEPENDENT_REVIEW`。本计划获GO后才允许创建`tasks/features/F-COM-001.md`并进入Implementation；当前不批准产品代码、V124/V125、权限种子、运行迁移、SIT、UAT、Deployment或Release。
+当前状态：`CANDIDATE / REMEDIATION_REVIEW_PENDING`。本轮只整改原Technical Plan NO-GO的V124切换与恢复闭环；其余已核验计划项不重开。本计划获GO后才允许创建`tasks/features/F-COM-001.md`并进入Implementation；当前不批准产品代码、V124/V125、权限种子、运行迁移、SIT、UAT、Deployment或Release。
