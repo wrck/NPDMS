@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / GO`（`fca9626c`）<br>
 > Implementation Done Gate：`NOT_SUBMITTED`<br>
 > 当前阻断：`无`<br>
-> 当前任务：`Task 1 Step 1：写聚焦失败测试并确认RED`<br>
+> 当前任务：`Task 1 Step 6：补齐报告REST并运行聚焦集合`<br>
 > Requirement ID：`ACC-03@V1=FULL`；`ACC-04@V1=PARTIAL`<br>
 > Feature Spec：`specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md`<br>
 > Technical Plan：`docs/superpowers/plans/2026-08-30-f-acc-001-acceptance-report-version-deliverable-sync.md`<br>
@@ -22,11 +22,11 @@
 
 ## Task 1：共享契约、V128与后端正向闭环
 
-- [ ] Step 1：写聚焦失败测试并确认RED。
-- [ ] Step 2：实现PLT加性文件契约。
-- [ ] Step 3：实现ACC活动、报告和应交来源。
-- [ ] Step 4：接入PROJ创建与任务完成。
-- [ ] Step 5：实现并验证V128。
+- [x] Step 1：写聚焦失败测试并确认RED。
+- [x] Step 2：实现PLT加性文件契约。
+- [x] Step 3：实现ACC活动、报告和应交来源。
+- [x] Step 4：接入PROJ创建与任务完成。
+- [x] Step 5：实现并验证V128。
 - [ ] Step 6：运行Task 1聚焦集合并提交。
 
 ## Task 2：公开UI、真实验收与Implementation Done候选
@@ -40,4 +40,4 @@
 
 Task精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；两个Task全部完成并通过验证后，只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=`fca9626c`；当前Gate=Implementation Task 1；已通过=Technical Plan独立整改复审GO；阻塞=无；下一步=执行Step 1聚焦RED测试，不提前进入Task 2或宣称Implementation Done。
+> 检查点：基线=`e31f08b3`；当前Gate=Implementation Task 1 Step 6；已通过=V128在MySQL 8.4完成V127→V128及空库V1→V128，受管两活动/两ACC契约/零报告、权限事实、Flyway info/validate与迁移契约测试PASS；阻塞=无；下一步=补齐公开报告REST并运行Task 1聚焦集合，不提前进入Task 2。
