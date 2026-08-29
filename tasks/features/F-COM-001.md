@@ -44,9 +44,9 @@
 - [x] Step 1：完成真实MySQL与后端事务矩阵。
 - [x] Step 2：完成前端测试、类型检查和生产构建。
 - [x] Step 3：完成全仓、Flyway、规格及V124失败恢复验证。
-- [ ] Step 4：完成真实Chromium公开UI/REST闭环。
+- [x] Step 4：完成真实Chromium公开UI/REST闭环。
 - [ ] Step 5：整理证据、自审、提交并申请Implementation Done独立评审。
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=7d578e37；当前Gate=Task2/Step4；已通过=V126→V127与空库V1→V127、登录更名、9键授权、阶段进入及幂等绑定真实REST；阻塞=无；下一步=重置受管夹具并完成完整Chromium UI/REST矩阵及证据。
+> 检查点：基线=3a78e2be；当前Gate=Task2/Step5；已通过=Chromium公开登录、合同/订单/范围、版本历史、验收绑定、ERP减量冻结通知及四档视口，证据PASS；阻塞=无；下一步=最小自审、提交并申请Implementation Done独立评审。
