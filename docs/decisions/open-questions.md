@@ -194,6 +194,20 @@
 - Decision owner: 需求方；COM、权限与数据架构负责人参与影响分析
 - Decision date: -
 
+### Q-FCOM-002
+
+- Status: BLOCKED_BY_SPEC
+- Requirement IDs: COM-01、ACC-03、PM-10
+- Area: 项目退出或回退验收阶段时的AcceptanceScopeBinding关闭与解锁语义
+- Question: 项目退出或回退其设定的验收阶段时，既有验收范围绑定应继续保持、按哪些业务条件关闭，还是禁止项目阶段回退？若允许关闭，哪些验收事实、分配版本和审计证据必须保留？
+- Why it blocks design/implementation: PRD已确认进入验收阶段时绑定全部当前有效范围、验收阶段内新范围版本同步绑定，但未确认退出或PM-10回退是否产生解锁事实。现有SDS写有“退出或作废时关闭区间”，若直接实施会用下游设计替代业务裁决，并可能让已进入验收的范围重新可减量。
+- Options: A. 退出/回退不关闭既有绑定，只有经批准的ACC作废事实可关闭；B. 经批准的项目阶段回退命令原子关闭满足明确条件的绑定；C. 存在有效验收范围绑定时禁止项目退出/回退验收阶段；D. 需求方指定其他可审计规则。
+- Recommended technical default: 在业务裁决前不得自动解锁或关闭既有绑定，所有退出/回退关闭路径失败关闭；不得据此反向阻断已确认的阶段进入绑定、验收阶段内新版本绑定和失败整体不成功语义。
+- Business decision required: 是。须明确允许的退出/回退场景、绑定关闭条件、历史保留、权限、原子性及再次进入验收阶段的版本语义。
+- Resolution: 【待确认】。仅退出/回退时的绑定关闭或解锁设计保持`BLOCKED_BY_SPEC`；阶段进入绑定与验收阶段内新版本绑定规则继续有效。
+- Decision owner: 需求方；PROJ、ACC、COM与状态机负责人参与影响分析
+- Decision date: -
+
 ### Q-FPROJ-001
 
 - Status: RESOLVED
