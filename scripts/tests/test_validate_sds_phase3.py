@@ -36,7 +36,14 @@ class Phase3ValidatorTest(unittest.TestCase):
             "17-audit-and-observability.md": "operationId correlationId traceId Outbox P95 ≤0.5% ≥99% ≤60秒 runbook 高风险",
             "18-deployment-design.md": "JDK 25 pnpm 9.15.5 Expand -> Backfill -> Verify -> Switch -> Contract --frozen-lockfile 前向迁移 上一JAR 制品hash releaseId 不得修改已执行迁移 恢复 AI-MIG-000 不定义迁移批准哈希",
             "19-performance-design.md": "P95≤2秒 ≤0.5% 50个并发登录用户 持续30分钟 ≥10000 50MB 20万 200万 1万 5万 2000 深度30 ≤30秒 ≥99% ≤60秒 dataSetVersion",
-            "20-test-design.md": "正常 异常 权限拒绝 幂等 并发 Chrome Edge Firefox 1920×1080 1440×900 1366×768 1024×768 Playwright trace 秘密扫描0命中 ≥10000 ≤0.5% P95≤2秒 ≥99% ≤60秒",
+            "20-test-design.md": (
+                "正常 异常 权限拒绝 幂等 并发 Chrome Edge Firefox 1920×1080 1440×900 "
+                "1366×768 1024×768 Playwright trace 秘密扫描0命中 ≥10000 ≤0.5% P95≤2秒 ≥99% ≤60秒\n"
+                + "\n".join(
+                    f"| {slice_key} | {'；'.join(tokens)} |"
+                    for slice_key, tokens in VALIDATOR.REVISION_007_DELTA_SLICE_TOKENS.items()
+                )
+            ),
         }
         for name, body in contents.items():
             (self.root / "docs" / "design" / name).write_text(common + body, encoding="utf-8")
@@ -54,6 +61,8 @@ class Phase3ValidatorTest(unittest.TestCase):
             "NFR-03": "99% 60秒",
             "PLT-02": "50MB 恶意内容 权限",
         }
+        for slice_key in VALIDATOR.REVISION_007_DELTA_SLICE_TOKENS:
+            exact.setdefault(slice_key.split("@", 1)[0], "修订007业务规则")
         synthetic_count = 100 - len(exact)
         identifiers = list(exact) + [f"REQ-{index:03d}" for index in range(1, synthetic_count + 1)]
         object_table_map = {
@@ -102,7 +111,13 @@ class Phase3ValidatorTest(unittest.TestCase):
             for identifier in identifiers
         ]
         (self.root / "docs" / "baseline" / "prd-v1.8.md").write_text(
-            "\n".join(prd_blocks), encoding="utf-8"
+            "\n".join(prd_blocks)
+            + "\n"
+            + "\n".join(
+                f"| {slice_key} | {slice_key.split('@', 1)[0]} | V2 | 补充业务结果 | 版本边界 |"
+                for slice_key in VALIDATOR.REVISION_007_DELTA_SLICE_TOKENS
+            ),
+            encoding="utf-8",
         )
         for identifier in identifiers:
             detail = exact.get(identifier, "业务规则")
@@ -127,10 +142,17 @@ class Phase3ValidatorTest(unittest.TestCase):
                 f"数据库迁移/约束验证记录；{detail}\n"
             )
         (self.root / "docs" / "traceability" / "phase2-contract-map.md").write_text(
-            "> Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`\n\n" + "\n".join(blocks), encoding="utf-8"
+            "> Phase 3验证注记状态：`READY_FOR_PHASE_3_V1.8`\n\n"
+            + "\n".join(f"| {identifier}@V1 | V1 |" for identifier in identifiers)
+            + "\n"
+            + "\n".join(f"| {slice_key} | V2 |" for slice_key in VALIDATOR.REVISION_007_DELTA_SLICE_TOKENS)
+            + "\n\n"
+            + "\n".join(blocks),
+            encoding="utf-8",
         )
         (self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md").write_text(
             "> 审查状态：`APPROVED`\n> 结论：`READY_FOR_SDS_BASELINE_V1.8`\n"
+            "修订007 111个目标版本切片 "
             "DOWNSTREAM-GATED MODEL_BASELINE_READY "
             "P3-E01 P3-E02 P3-E03 P3-E04 P3-E05 P3-E06 P3-E08 P3-E09 AI-MIG-000",
             encoding="utf-8",
@@ -416,14 +438,24 @@ class Phase3ValidatorTest(unittest.TestCase):
         gate.write_text(gate.read_text(encoding="utf-8").replace("MODEL_BASELINE_READY", "MODEL_BASELINE_REVIEW_PENDING"), encoding="utf-8")
         self.assertTrue(any("pending state" in item for item in VALIDATOR.validate(self.root)))
 
-    def test_current_v18_revision_007_state_is_coherent_and_in_review(self) -> None:
+    def test_current_v18_revision_007_state_is_coherent_and_ready(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         gate_path = repository_root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"
         gate = gate_path.read_text(encoding="utf-8")
 
         self.assertEqual([], VALIDATOR.validate(repository_root))
-        self.assertIn("> 审查状态：`IN_REVIEW`", gate)
-        self.assertIn("> 结论：`NOT_READY_FOR_SDS_BASELINE_REVISION_007`", gate)
+        self.assertIn("> 审查状态：`APPROVED`", gate)
+        self.assertIn("> 结论：`READY_FOR_SDS_BASELINE_V1.8`", gate)
+
+    def test_missing_revision_007_delta_slice_assertion_fails(self) -> None:
+        path = self.root / "docs" / "design" / "20-test-design.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("| PM-08@V2 |", "| PM-08-DELETED@V2 |", 1),
+            encoding="utf-8",
+        )
+
+        errors = VALIDATOR.validate(self.root)
+        self.assertTrue(any("missing revision 007 delta slice: PM-08@V2" in error for error in errors), errors)
 
     def test_v18_revalidation_gate_does_not_bypass_design_validation(self) -> None:
         gate = self.root / "docs" / "engineering" / "gates" / "phase-3" / "gate-status.md"

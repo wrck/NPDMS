@@ -18,6 +18,19 @@ DESIGN_FILES = (
     "20-test-design.md",
 )
 EXPECTED_REQUIREMENT_COUNT = 100
+REVISION_007_DELTA_SLICE_TOKENS = {
+    "PM-08@V2": ("唯一匹配自动生效", "无匹配或多匹配转人工", "冻结规则版本"),
+    "PM-11@V2": ("甘特与依赖CRUD共用同一任务事实", "数据库约束记录"),
+    "ACC-01@V2": ("送达不等于客户确认", "失败回退V1链接/扫码"),
+    "ACC-02@V2": ("自动触达不重复V1问卷事实", "问卷实例与结果对象前后对照"),
+    "CUT-01@V2": ("KPI按授权范围聚合且只读", "任务状态前后对照"),
+    "CUT-03@V2": ("导出与流程跳转按授权及已发布配置执行", "清单事实前后对照"),
+    "CUT-05@V2": ("A/B级专项提前时间按边界判断", "提醒失败不改变审批"),
+    "INT-02@V2": ("ITR故障入向幂等", "出向失败不回滚本地归档", "技术公告仍归INT-04"),
+    "INT-05@V2": ("OA领料/外采流程引用", "OA/钉钉完成不改写平台审批与业务状态"),
+    "INT-12@V2": ("复用统一设备连接、凭证、任务和采集契约", "不得形成第二套凭证或采集引擎"),
+    "NFR-02@V2": ("当前命令超时终止并失败", "冻结的已发布规则决定并留痕"),
+}
 P3E09_STATE_ASSETS = (
     "docs/decisions/0022-core-migration-schema-and-key-policy.md",
     "specs/001-project-delivery-platform/appendices/project-order-migration-mapping.md",
@@ -202,10 +215,6 @@ def validate_v18_in_review(root: Path, gate: str) -> list[str]:
     blocks = parse_contract_blocks(contract_text)
     if len(blocks) != 100:
         errors.append(f"expected 100 V1.8 Phase 3 verification mappings, got {len(blocks)}")
-    expected_slices = prd_version_slice_keys(root)
-    actual_slices = VERSION_SLICE_ROW.findall(contract_text)
-    if len(actual_slices) != 111 or len(set(actual_slices)) != 111 or set(actual_slices) != set(expected_slices):
-        errors.append("Phase 3 input must contain all 111 PRD-derived version slices exactly once")
     if {"ACC-05", "COM-02", "IMP-02"} & set(blocks):
         errors.append("removed/deferred V1.8 requirements leaked into Phase 3 mappings")
     return errors
@@ -234,6 +243,10 @@ def validate(root: Path) -> list[str]:
             )
         if revalidation:
             errors.extend(validate_v18_in_review(root, gate))
+        else:
+            require_tokens(errors, "Phase 3 approved gate", gate, (
+                "APPROVED", "READY_FOR_SDS_BASELINE_V1.8", "修订007", "111个目标版本切片",
+            ))
     design_dir = root / "docs" / "design"
     documents: dict[str, str] = {}
     expected_document_status = "文档状态：`IN_REVIEW`" if revalidation else "文档状态：`BASELINE`"
@@ -283,6 +296,14 @@ def validate(root: Path) -> list[str]:
         "1920×1080", "1440×900", "1366×768", "1024×768", "Playwright trace",
         "秘密扫描0命中", "≥10000", "≤0.5%", "P95≤2秒", "≥99%", "≤60秒",
     ))
+    for slice_key, tokens in REVISION_007_DELTA_SLICE_TOKENS.items():
+        row = re.search(rf"^\|\s*{re.escape(slice_key)}\s*\|(.+)$", test_design, re.M)
+        if not row:
+            errors.append(f"test design missing revision 007 delta slice: {slice_key}")
+            continue
+        for token in tokens:
+            if token not in row.group(1):
+                errors.append(f"{slice_key} test design missing delta assertion/evidence token: {token}")
 
     contract_path = root / "docs" / "traceability" / "phase2-contract-map.md"
     prd_path = root / "docs" / "baseline" / "prd-v1.8.md"
@@ -307,6 +328,14 @@ def validate(root: Path) -> list[str]:
         errors.append("missing explicit Phase 2/3 contract map")
     else:
         contract_text = contract_path.read_text(encoding="utf-8")
+        expected_slices = prd_version_slice_keys(root)
+        actual_slices = VERSION_SLICE_ROW.findall(contract_text)
+        if (
+            len(actual_slices) != 111
+            or len(set(actual_slices)) != 111
+            or set(actual_slices) != set(expected_slices)
+        ):
+            errors.append("Phase 3 input must contain all 111 PRD-derived version slices exactly once")
         object_table_contract = load_object_table_contract(root, errors)
         all_contract_tables = {
             table
@@ -532,7 +561,10 @@ def main() -> int:
     ):
         print("[PASS] PRD V1.8 revision 007 Phase 3 in-review gate: 100 mappings, 111 version slices; not released as SDS baseline")
         return 0
-    print(f"[PASS] SDS Phase 3 documents, NFR controls and {EXPECTED_REQUIREMENT_COUNT} verification mappings")
+    print(
+        f"[PASS] PRD V1.8 revision 007 Phase 3 ready: {EXPECTED_REQUIREMENT_COUNT} mappings, "
+        "111 version slices; released as SDS baseline"
+    )
     return 0
 
 

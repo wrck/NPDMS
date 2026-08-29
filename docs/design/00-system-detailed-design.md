@@ -1,6 +1,6 @@
 # 项目实施交付管理平台 系统详细设计说明书（SDS 总册）
 
-> 文档状态：`IN_REVIEW`
+> 文档状态：`BASELINE`
 > 适用基线：PRD V1.8修订007（`docs/baseline/prd-v1.8.md`）
 > Requirement ID：PRD V1.8附录A.1的100项正式Requirement及附录A.1.1的111个目标版本切片
 > Owner：SDS 总编
@@ -12,9 +12,9 @@
 |---|---|---|---|
 | SDS Phase 1 | `BASELINE` | `READY_FOR_PHASE_2_V1.8` | `docs/engineering/gates/phase-1/gate-status.md` |
 | SDS Phase 2 | `BASELINE` | `READY_FOR_PHASE_3_V1.8` | `docs/engineering/gates/phase-2/gate-status.md` |
-| SDS Phase 3 | `IN_REVIEW` | `NOT_READY_FOR_SDS_BASELINE_REVISION_007` | `docs/engineering/gates/phase-3/gate-status.md` |
+| SDS Phase 3 | `BASELINE` | `READY_FOR_SDS_BASELINE_V1.8` | `docs/engineering/gates/phase-3/gate-status.md` |
 
-V1.7及修订007前三阶段历史审查证据保留。V1.8修订007的Phase 1/2已完成差量复审并纳入基线，Phase 3正在评审；Phase 3批准前不得把总册作为新Feature Spec输入。
+V1.7及修订007前三阶段历史审查证据保留。V1.8修订007已按100项正式Requirement和111个目标版本切片完成三阶段差量复核并纳入SDS基线，可作为下游Feature Ready评估输入；这不表示任何Feature、环境、性能、集成、迁移、切换、UAT或Release门禁已经通过。
 
 ## 2. 分册索引
 
@@ -39,18 +39,18 @@ V1.7及修订007前三阶段历史审查证据保留。V1.8修订007的Phase 1/2
 | `11-event-design.md` | 事件设计 | `BASELINE` |
 | `12-integration-design.md` | 集成设计 | `BASELINE` |
 | `13-file-design.md` | 文件设计 | `BASELINE` |
-| `14-security-design.md` | 安全设计 | `IN_REVIEW` |
+| `14-security-design.md` | 安全设计 | `BASELINE` |
 | `15-cache-and-concurrency.md` | 缓存与并发 | `BASELINE` |
 | `16-exception-and-idempotency.md` | 异常与幂等 | `BASELINE` |
-| `17-audit-and-observability.md` | 审计与可观测 | `IN_REVIEW` |
-| `18-deployment-design.md` | 部署设计 | `IN_REVIEW` |
-| `19-performance-design.md` | 性能设计 | `IN_REVIEW` |
-| `20-test-design.md` | 测试设计 | `IN_REVIEW` |
+| `17-audit-and-observability.md` | 审计与可观测 | `BASELINE` |
+| `18-deployment-design.md` | 部署设计 | `BASELINE` |
+| `19-performance-design.md` | 性能设计 | `BASELINE` |
+| `20-test-design.md` | 测试设计 | `BASELINE` |
 | `phase-1-domain-ownership.md` | Phase 1 领域 Owner 签署 | `OWNER_SIGNED` |
 
 ## 3. 基线边界
 
-当前Phase 1/2基线只授权继续Phase 3差量评审；Phase 3批准前不授权新Feature Spec或实现，也不授权以下事项：
+本SDS基线只授权下游按正式设计开展Feature Ready评估；Feature仍须在自身规格中独立达到READY，实施仍须具有当前有效Technical Plan和Task。本基线不授权以下事项：
 
 1. 宣称可部署、专项验收通过或生产发布；生产证据按部署/发布门禁登记。
 2. 执行历史数据迁移或数据切换；只有发布包含该范围时，`AI-MIG-000`才是Release前置门禁，且须在真实批次验证通过后的批准窗口内执行；普通功能发布不受此门禁阻断。
