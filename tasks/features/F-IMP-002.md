@@ -1,20 +1,27 @@
 # F-IMP-002 到货签收与里程碑事实
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`TECHNICAL_PLAN_PENDING`
+> 总体工程阶段：`TECHNICAL_PLAN_REVIEW`
 > Feature Ready Gate：`READY / GO`（锁定提交`4b5a2ac9`）
-> Technical Plan Gate：`NOT_STARTED`
+> Technical Plan Gate：`REVIEW_REQUIRED`
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`EXE-01@V1=FULL`
 > Feature Spec：`specs/features/F-IMP-002-arrival-acceptance.md`
 > 复用审计：`specs/features/F-IMP-002-legacy-reuse-audit.md`
 > 物理契约：`specs/features/F-IMP-002-physical-contract.json`
 > 事实契约：`specs/features/F-IMP-002-arrival-fact-contract.json`
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-imp-002-arrival-acceptance.md`
 
 ## 当前最小工作单元
 
-- 生成并评审一个当前有效的F-IMP-002 Technical Plan；计划评审前不实施、不执行功能验收。
+- 评审唯一当前有效的F-IMP-002 Technical Plan；计划评审GO前不实施、不执行功能验收。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
+
+## Technical Plan候选
+
+- 当前候选：`docs/superpowers/plans/2026-08-30-f-imp-002-arrival-acceptance.md`。
+- 候选覆盖五表前向迁移、ArrivalAcceptance聚合与状态机、FactApi、DeliveryEvidence/ACC双向事件、REST/UI、真实MySQL和真实浏览器验收。
+- 受控COM/AST/PLT/ACC替身只允许用于计划GO后的单元/集成测试；生产Provider未形成仍阻断Implementation Done和真实浏览器正向闭环。
 
 ## 已完成的Ready候选输入
 

@@ -8,6 +8,7 @@
 > 消费Feature：`F-IMP-003`、`F-IMP-001`
 > 外部输入依赖：COM `DeliveryScopeApi`、AST `T-FIMP001-AST-01`、PROJ `ProjectScopeApi`、PLT `FileArtifactApi`
 > 事件方向：IMP出向`ImplementationEvidencePublished`；ACC入向`ArtifactAccepted/Archived`
+> Technical Plan：`docs/superpowers/plans/2026-08-30-f-imp-002-arrival-acceptance.md`（`REVIEW_REQUIRED`）
 
 ## 1. 业务目标与范围
 
