@@ -31,6 +31,23 @@
   ],
   "features": [
     {
+      "featureId": "F-ACC-001",
+      "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
+      "taskPath": null,
+      "taskStatus": "NO_TASK",
+      "taskStatusRaw": null,
+      "mappings": [
+        {
+          "sliceKey": "ACC-03@V1",
+          "coverage": "FULL"
+        },
+        {
+          "sliceKey": "ACC-04@V1",
+          "coverage": "PARTIAL"
+        }
+      ]
+    },
+    {
       "featureId": "F-AST-001",
       "featurePath": "specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md",
       "taskPath": null,
@@ -789,7 +806,15 @@
       "businessResult": "验收报告管理的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-ACC-001",
+          "coverage": "FULL",
+          "taskStatus": "NO_TASK",
+          "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
+          "taskPath": null
+        }
+      ]
     },
     {
       "sliceKey": "ACC-04@V1",
@@ -801,7 +826,15 @@
       "businessResult": "交付件归档管理的V1主交付业务结果",
       "versionBoundary": "V1",
       "implementationStatus": "NOT_STARTED",
-      "features": []
+      "features": [
+        {
+          "featureId": "F-ACC-001",
+          "coverage": "PARTIAL",
+          "taskStatus": "NO_TASK",
+          "featurePath": "specs/features/F-ACC-001-acceptance-report-version-and-deliverable-sync.md",
+          "taskPath": null
+        }
+      ]
     },
     {
       "sliceKey": "CLO-01@V1",
