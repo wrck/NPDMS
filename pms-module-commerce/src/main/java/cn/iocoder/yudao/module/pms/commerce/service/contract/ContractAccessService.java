@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.commerce.service.contract;
 
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
@@ -39,6 +40,18 @@ public class ContractAccessService {
                 tenantId, companyCodes, contractNo, status, checkedOffset(offset), checkedLimit(limit)));
     }
 
+    public PageResult<ContractDO> pageContracts(Long tenantId, Long subjectUserId, String correlationId,
+                                                 String contractNo, String status, int offset, int limit) {
+        List<String> companyCodes = currentCompanyCodes(tenantId, subjectUserId, correlationId);
+        if (companyCodes.isEmpty()) {
+            return PageResult.empty();
+        }
+        ContractCompanyScopeQuery query = new ContractCompanyScopeQuery(
+                tenantId, companyCodes, contractNo, status, checkedOffset(offset), checkedLimit(limit));
+        long total = contractMapper.selectCountByCompanyScope(query);
+        return total == 0L ? PageResult.empty() : new PageResult<>(contractMapper.selectByCompanyScope(query), total);
+    }
+
     public ContractDO getContract(Long tenantId, Long subjectUserId, String correlationId, Long contractId) {
         List<String> companyCodes = currentCompanyCodes(tenantId, subjectUserId, correlationId);
         if (companyCodes.isEmpty()) {
@@ -62,6 +75,18 @@ public class ContractAccessService {
                 tenantId, companyCodes, orderNo, status, checkedOffset(offset), checkedLimit(limit)));
     }
 
+    public PageResult<SalesOrderDO> pageSalesOrders(Long tenantId, Long subjectUserId, String correlationId,
+                                                     String orderNo, String status, int offset, int limit) {
+        List<String> companyCodes = currentCompanyCodes(tenantId, subjectUserId, correlationId);
+        if (companyCodes.isEmpty()) {
+            return PageResult.empty();
+        }
+        SalesOrderCompanyScopeQuery query = new SalesOrderCompanyScopeQuery(
+                tenantId, companyCodes, orderNo, status, checkedOffset(offset), checkedLimit(limit));
+        long total = orderMapper.selectCountByCompanyScope(query);
+        return total == 0L ? PageResult.empty() : new PageResult<>(orderMapper.selectByCompanyScope(query), total);
+    }
+
     public List<SalesOrderLineDO> listSalesOrderLines(Long tenantId, Long subjectUserId, String correlationId,
                                                        Long orderId,
                                                        String lineNo, int offset, int limit) {
@@ -71,6 +96,18 @@ public class ContractAccessService {
         }
         return lineMapper.selectByCompanyScope(new SalesOrderLineCompanyScopeQuery(
                 tenantId, companyCodes, orderId, lineNo, checkedOffset(offset), checkedLimit(limit)));
+    }
+
+    public PageResult<SalesOrderLineDO> pageSalesOrderLines(Long tenantId, Long subjectUserId, String correlationId,
+                                                             Long orderId, String lineNo, int offset, int limit) {
+        List<String> companyCodes = currentCompanyCodes(tenantId, subjectUserId, correlationId);
+        if (companyCodes.isEmpty()) {
+            return PageResult.empty();
+        }
+        SalesOrderLineCompanyScopeQuery query = new SalesOrderLineCompanyScopeQuery(
+                tenantId, companyCodes, orderId, lineNo, checkedOffset(offset), checkedLimit(limit));
+        long total = lineMapper.selectCountByCompanyScope(query);
+        return total == 0L ? PageResult.empty() : new PageResult<>(lineMapper.selectByCompanyScope(query), total);
     }
 
     private List<UserCompanyDepartmentScopeRespDTO> currentScopes(

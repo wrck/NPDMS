@@ -7,6 +7,9 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectContractRe
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ContractIdLockQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectContractIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ import java.util.Objects;
 public class ContractRelationCommandService {
 
     private final OrganizationScopeApi organizationScopeApi;
+    private final ProjectScopeApi projectScopeApi;
     private final ContractMapper contractMapper;
     private final ProjectContractRelationMapper relationMapper;
     private final OperationAuditApi operationAuditApi;
@@ -31,6 +35,7 @@ public class ContractRelationCommandService {
     @Transactional(rollbackFor = Exception.class)
     public ContractRelationResult relate(ContractRelationCommand command) {
         validate(command);
+        requireProjectManageScope(command);
         List<UserCompanyDepartmentScopeRespDTO> scopes = readScopes(command.subjectUserId());
         if (scopes.isEmpty()) {
             throw ContractAccessService.inaccessible();
@@ -78,6 +83,20 @@ public class ContractRelationCommandService {
                         "reason", command.reason(), "contractId", command.contractId(),
                         "projectId", command.projectId()));
         return new ContractRelationResult(relation.getId(), false);
+    }
+
+    private void requireProjectManageScope(ContractRelationCommand command) {
+        ProjectScopeResult scope;
+        try {
+            scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
+                    command.tenantId(), command.subjectUserId(), command.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        } catch (RuntimeException exception) {
+            throw ContractAccessService.inaccessible();
+        }
+        if (scope == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(command.projectId())) {
+            throw ContractAccessService.inaccessible();
+        }
     }
 
     private List<UserCompanyDepartmentScopeRespDTO> readScopes(Long subjectUserId) {

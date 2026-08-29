@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ProjectContr
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectContractRelationMapper;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -25,6 +28,7 @@ import static org.mockito.Mockito.*;
 class ContractRelationCommandServiceTest {
 
     @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private ProjectScopeApi projectScopeApi;
     @Mock private ContractMapper contractMapper;
     @Mock private ProjectContractRelationMapper relationMapper;
     @Mock private OperationAuditApi operationAuditApi;
@@ -33,11 +37,13 @@ class ContractRelationCommandServiceTest {
     @BeforeEach
     void setUp() {
         service = new ContractRelationCommandService(
-                organizationScopeApi, contractMapper, relationMapper, operationAuditApi);
+                organizationScopeApi, projectScopeApi, contractMapper, relationMapper, operationAuditApi);
     }
 
     @Test
     void shouldRevalidateAndAuditAllMatchingScopeVersionsInStableOrder() {
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         UserCompanyDepartmentScopeRespDTO second = ContractAccessServiceTest.scope(20L, "C01", 3);
         UserCompanyDepartmentScopeRespDTO first = ContractAccessServiceTest.scope(10L, "C01", 2);
         when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(second, first));
@@ -64,11 +70,24 @@ class ContractRelationCommandServiceTest {
 
     @Test
     void shouldWriteNothingWhenOwnerIsUnavailable() {
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         when(organizationScopeApi.getActiveScopes(7L)).thenThrow(new IllegalStateException("down"));
 
         assertThrows(IllegalStateException.class, () -> service.relate(new ContractRelationCommand(
                 1L, 7L, 99L, 100L, "RELATED", "op-1", "业务依据")));
 
         verifyNoInteractions(contractMapper, relationMapper, operationAuditApi);
+    }
+
+    @Test
+    void shouldWriteNothingWhenProjectIsOutsideManageScope() {
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(200L, 1L, Set.of(200L), Set.of()));
+
+        assertThrows(IllegalStateException.class, () -> service.relate(new ContractRelationCommand(
+                1L, 7L, 99L, 100L, "RELATED", "op-1", "业务依据")));
+
+        verifyNoInteractions(organizationScopeApi, contractMapper, relationMapper, operationAuditApi);
     }
 }

@@ -14,6 +14,7 @@ import java.util.List;
 public interface SalesOrderLineMapper extends BaseMapperX<SalesOrderLineDO> {
     SalesOrderLineDO selectBySourceForUpdate(@Param("query") AuthoritySourceLockQuery query);
     List<SalesOrderLineDO> selectByCompanyScope(@Param("query") SalesOrderLineCompanyScopeQuery query);
+    Long selectCountByCompanyScope(@Param("query") SalesOrderLineCompanyScopeQuery query);
     List<SalesOrderLineDO> selectByIds(@Param("query") SalesOrderLineIdsQuery query);
     List<SalesOrderLineDO> selectByIdsForUpdate(@Param("query") SalesOrderLineIdsQuery query);
 }
