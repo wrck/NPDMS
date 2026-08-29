@@ -31,7 +31,7 @@
 - `CutoverConfigurationRules.java`：保留通用CUT-07规则，只扩展采集项类别与绑定结果契约。
 - `CutoverConfigurationServiceImpl.java`：读取字典上下文并编排三组规则；不承载矩阵细节。
 - `V132__fcut001_matrix_contract.sql`：前向增加`business_category_code`与`required_result`。
-- `V133__fcut001_risk_survey_matrix_seed.sql`：创建完整新修订并以合法停用/发布顺序替代旧示例修订。
+- 初始化边界：沿用V129正式字典与示例组合；未在正式需求中定义名称的检查项不进入生产种子，97项完整能力由隔离验收数据验证。
 - `cutoverMatrix.ts`：前端矩阵投影、基准计数和批量规则纯函数。
 - `CutoverRiskMatrixEditor.vue`：风险与五类双机投影视图。
 - `CutoverSurveyMatrixEditor.vue`：十二类调研与割接背景Schema投影视图。
@@ -329,70 +329,31 @@ git commit -m "feat(cutover): 联合校验风险与调研矩阵发布"
 
 ---
 
-### Task 4: 97项风险与12类调研前向种子
+### Task 4: 初始化边界与隔离验收数据
 
 **Files:**
 
-- Create: `sql/migrations/V133__fcut001_risk_survey_matrix_seed.sql`
-- Create: `scripts/tests/test_fcut001_matrix_seed.py`
+- No production migration.
+- Runtime acceptance data is created through the existing root aggregate API in the isolated Task 6 environment and is not committed as business seed data.
 
 **Interfaces:**
 
-- Consumes: V132两列、现有三表、`需求/售后平台（割接+巡检）/1、割接平台/4、割接平台设计-数据整理（0807).xlsx`的名称/说明/界面格式/排序参考。
-- Produces: `CUTOVER_DEFAULT`新发布修订，包含24个正式普通风险类别、五类共97个双机定义、12类核心调研定义及发布规则；旧修订只转为`DISABLED`，内容和发布证据不覆盖。
+- Consumes: V129已提交的正式字典与最小示例组合、V132数据契约、正式PRD/SDS/Feature Spec的24个普通风险类别、五类97项计数与12类调研类别。
+- Produces: 不新增生产主数据语义；隔离验收数据使用`ACCEPTANCE_*`稳定键和明确测试名称验证24个普通风险类别、五类17/25/23/24/8双机定义、12类调研及发布规则，用后即随隔离数据库销毁。
 
-- [ ] **Step 1: 写SQL静态失败测试**
+- [ ] **Step 1: 复核生产初始化边界**
 
-```python
-def test_seed_declares_exact_matrix_baselines():
-    sql = SEED.read_text(encoding="utf-8")
-    assert count_items(sql, "DUAL_MACHINE_CHECK", "VSM") == 17
-    assert count_items(sql, "DUAL_MACHINE_CHECK", "SILENT_DUAL") == 25
-    assert count_items(sql, "DUAL_MACHINE_CHECK", "DRP_DUAL") == 23
-    assert count_items(sql, "DUAL_MACHINE_CHECK", "NORMAL_DUAL") == 24
-    assert count_items(sql, "DUAL_MACHINE_CHECK", "CLUSTER") == 8
-    assert required_categories(sql, "RISK") >= REQUIRED_RISK_CATEGORIES
-    assert required_categories(sql, "BUSINESS_SURVEY") == CORE_SURVEY_CATEGORIES
-```
+确认V129继续只承载正式字典和示例组合；不得因XLSX/HTML的行数、缺名或差异新增业务名称、生产占位项或第二套完成口径。
 
-- [ ] **Step 2: 运行静态测试确认失败**
+- [ ] **Step 2: 在Task 6隔离环境创建验收数据**
 
-Run: `python -B -m unittest scripts.tests.test_fcut001_matrix_seed`
+通过现有配置根聚合API创建草稿，稳定键使用`ACCEPTANCE_RISK_*`、`ACCEPTANCE_DUAL_<MODE>_<001..NNN>`、`ACCEPTANCE_SURVEY_*`；双机项名称明确标识为“验收数据-<模式>-<序号>”，不得提交到迁移或宣称为正式业务名称。
 
-Expected: FAIL，因为V133尚不存在。
+- [ ] **Step 3: 验证精确基准与代表性组合**
 
-- [ ] **Step 3: 编写V133完整种子**
+验收数据必须覆盖五类17/25/23/24/8、24个普通风险类别、12类调研、八类所有情况必选显式覆盖、精确命中、部分限定、优先级让位、无匹配与停用不参与；服务端预检通过后才允许执行正向发布闭环。
 
-稳定键规则固定为：普通风险`RISK_<CATEGORY>`，双机`DUAL_<MODE>_<001..NNN>`，调研`SURVEY_<CATEGORY>`；不得使用行号作为业务名称。XLSX已有名称直接引用，不重复下载；若97行中存在缺名，停止该迁移编写并把具体模式/序号登记到`docs/decisions/open-questions.md`，不得发布占位名称。
-
-割接背景`interface_schema`必须包含六字段及两组`visibleWhen`；拓扑、连通性测试例和友商翻译使用平台文件引用Schema。绑定种子至少覆盖精确命中、部分限定、优先级让位、无匹配、停用不参与；八个“所有情况必选”风险项显式列出全部启用割接类型、设备类型和A/B/C级。
-
-- [ ] **Step 4: 运行静态种子测试**
-
-Run: `python -B -m unittest scripts.tests.test_fcut001_matrix_seed`
-
-Expected: PASS，五类分别为17/25/23/24/8，总计97，普通风险基准类别无缺口，调研类别恰为12类。
-
-- [ ] **Step 5: 在固定MySQL环境验证前向迁移**
-
-Run: `.\scripts\test-infrastructure.ps1 reset`
-
-Expected: 复用`npdms-50eb-test`容器与镜像，Flyway成功执行到V133；不得创建新Compose项目或重复拉取镜像。
-
-Run: `docker compose -p npdms-50eb-test run --rm migrate info`
-
-Run: `docker compose -p npdms-50eb-test run --rm migrate validate`
-
-Run: `docker compose -p npdms-50eb-test run --rm migrate migrate`
-
-Expected: 三个命令均成功，第二次`migrate`无待执行迁移；SQL查询确认97、24、12分类数量和单一当前`PUBLISHED`修订。
-
-- [ ] **Step 6: 提交前向种子**
-
-```bash
-git add sql/migrations/V133__fcut001_risk_survey_matrix_seed.sql scripts/tests/test_fcut001_matrix_seed.py
-git commit -m "feat(cutover): 增加风险与调研矩阵正式种子"
-```
+Task 4不产生单独代码提交；验收数据与浏览器证据随Task 6记录。
 
 ---
 
@@ -531,11 +492,11 @@ Workdir: `yudao-ui/yudao-ui-admin-vue3`
 
 Expected: 全部PASS；使用现有`node_modules`与pnpm共享store，不重复下载。
 
-- [ ] **Step 3: 使用固定验收端口启动宿主机应用**
+- [ ] **Step 3: 使用当前仓库独立验收环境和端口启动宿主机应用**
 
-先只读确认`59280`和`19081`未被占用；若占用，定位并复用属于本Feature的进程，不能停止开发端口`58080/18081`或其他任务进程。后端连接`npdms_test:23316`与Redis `26379`，前端代理到`59280`。
+使用独立Compose项目`npdms-e-fcut001-test`，数据库`npdms_fcut001_test`，MySQL端口`24316`、Redis端口`27379`；必须显式注入这些环境变量后再执行Compose，禁止复用其他worktree创建的同名容器。先只读确认后端`60280`和前端`20081`未被占用；若占用则重新选择空闲端口，不能停止开发端口`58080/18081`、既有验收端口`59280/19081`或其他任务进程。前端代理到当前验收后端端口。复用本机现有镜像和依赖，不重复下载。
 
-Expected: `http://localhost:59280/actuator/health`为UP，`http://localhost:19081`可加载登录页。
+Expected: `http://localhost:60280/actuator/health`为UP，`http://localhost:20081`可加载登录页；`docker inspect`证明Flyway只读迁移目录绑定到当前`E:\AICoding\Projects\NPDMS\sql\migrations`。
 
 - [ ] **Step 4: 真实浏览器执行正负闭环**
 
