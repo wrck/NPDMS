@@ -1,49 +1,59 @@
 {
   "feature": "F-CUT-001",
-  "requirementIds": ["CUT-07"],
-  "gate": "NPDMS-FCUT001-IMPLEMENTATION-DONE-20260830-01",
+  "requirementIds": ["CUT-07", "CUT-09", "CUT-10"],
+  "gate": "NPDMS-FCUT001-IMPLEMENTATION-DONE-20260830-02",
   "status": "PASS",
-  "verifiedAt": "2026-08-30T00:16:03+08:00",
+  "verifiedAt": "2026-08-30T05:14:23+08:00",
   "scopeBoundary": {
     "authoritativeSources": "repository formal specifications only",
-    "externalReferenceFiles": "reference only; excluded from requirement and inconsistency decisions",
+    "externalReferenceFiles": "reference only; excluded from requirement, inconsistency, blocker and completion decisions",
     "excluded": ["CUT-01..CUT-06 runtime", "CUT-08", "V2 automatic assignment"]
   },
   "database": {
+    "composeProject": "npdms-e-fcut001-test",
     "engine": "MySQL 8.4",
-    "schema": "npdms_fcut001",
-    "flywayVersion": "131",
-    "migrations": [128, 129, 130, 131]
+    "schema": "npdms_fcut001_test",
+    "mysqlPort": 24316,
+    "redisPort": 27379,
+    "flywayVersion": "132",
+    "migrations": [128, 129, 130, 131, 132]
   },
   "backend": {
-    "command": "mvn.cmd -pl pms-module-cutover test",
-    "tests": 17,
+    "command": "mvn -pl pms-module-cutover -am test",
+    "reactorTests": 112,
+    "cutoverModuleTests": 38,
     "failures": 0,
     "errors": 0,
-    "skipped": 0
+    "skipped": 2,
+    "package": "PASS"
   },
   "frontend": {
+    "matrixVitest": {"tests": 6, "status": "PASS"},
     "targetedEslint": "PASS",
-    "targetedPrettier": "PASS",
     "targetedStylelint": "PASS",
     "workspaceTypeCheck": "PASS",
-    "localBuild": "PASS",
-    "baselineNote": "Full-repository ESLint remains blocked by the pre-existing types/env.d.ts reference to removed rule @typescript-eslint/ban-types; no F-CUT-001 file reports an ESLint error."
+    "localBuild": "PASS"
   },
   "browser": {
-    "frontend": "http://127.0.0.1:19181",
-    "backendPort": 59380,
+    "frontend": "http://127.0.0.1:20082",
+    "backendPort": 61280,
+    "runner": "tests/e2e/fcut001_browser_acceptance.py",
     "assertions": {
+      "ordinaryRiskCategories": "24/24",
+      "dualMachineChecks": "17/25/23/24/8 = 97/97",
+      "dualCount16Of17Rejected": true,
+      "oldPublishedRevisionRemainsEffectiveOnFailure": true,
+      "allSituationCoverageGapRejected": true,
+      "surveyRequiredResultNullRejected": true,
+      "surveyBackgroundDependencyRejected": true,
+      "repairedRevisionPublishedThroughUi": true,
       "publishedRevisionReadonly": true,
-      "publishedRevisionCopyIncludesChildren": true,
-      "invalidDraftValidationVisible": true,
-      "invalidDraftPublishRejected": true,
-      "invalidDraftRemainsDraft": true,
+      "permissionDeniedRouteRejected": true,
+      "v2AutomaticAssignmentAbsent": true,
       "consoleErrors": 0,
-      "pageErrors": 0,
-      "failedHttpResponses": 0
+      "requestFailures": 0
     },
-    "viewports": ["1440x900", "1024x768", "768x900", "320x720"],
-    "localEvidence": ".run/fcut001/browser-evidence.json"
+    "viewports": [320, 768, 1024, 1440],
+    "localEvidence": "output/f-cut-001-v18/browser-current/result.json"
   }
 }

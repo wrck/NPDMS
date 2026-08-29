@@ -18,9 +18,9 @@
       "V2": 58
     },
     "slicesByImplementationStatus": {
-      "IMPLEMENTATION_COMPLETE": 5,
+      "IMPLEMENTATION_COMPLETE": 8,
       "IMPLEMENTATION_PARTIAL": 9,
-      "NOT_STARTED": 97
+      "NOT_STARTED": 94
     }
   },
   "derivationRules": [
@@ -60,8 +60,8 @@
       "featureId": "F-CUT-001",
       "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
       "taskPath": "tasks/features/F-CUT-001.md",
-      "taskStatus": "IN_PROGRESS",
-      "taskStatusRaw": "TECHNICAL_PLAN_READY",
+      "taskStatus": "COMPLETE",
+      "taskStatusRaw": "IMPLEMENTATION_COMPLETE",
       "mappings": [
         {
           "sliceKey": "CUT-07@V1",
@@ -1188,12 +1188,12 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接后台配置的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
       "features": [
         {
           "featureId": "F-CUT-001",
           "coverage": "FULL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
           "taskPath": "tasks/features/F-CUT-001.md"
         }
@@ -1220,12 +1220,12 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接风险项关联矩阵的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
       "features": [
         {
           "featureId": "F-CUT-001",
           "coverage": "FULL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
           "taskPath": "tasks/features/F-CUT-001.md"
         }
@@ -1240,12 +1240,12 @@
       "ownerName": "变更切换与稳定治理",
       "businessResult": "割接调研项关联矩阵的V1主交付业务结果",
       "versionBoundary": "V1（首批配置基础）",
-      "implementationStatus": "NOT_STARTED",
+      "implementationStatus": "IMPLEMENTATION_COMPLETE",
       "features": [
         {
           "featureId": "F-CUT-001",
           "coverage": "FULL",
-          "taskStatus": "IN_PROGRESS",
+          "taskStatus": "COMPLETE",
           "featurePath": "specs/features/F-CUT-001-cutover-unified-configuration-foundation.md",
           "taskPath": "tasks/features/F-CUT-001.md"
         }

@@ -1,10 +1,10 @@
 # F-CUT-001 割接统一配置版本与采集项基础
 
-> Feature实施状态：`TECHNICAL_PLAN_READY`
-> 总体工程阶段：`IMPLEMENTATION`
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_DONE`
 > Feature Ready Gate：`PASS / NPDMS-FCUT001-FEATURE-READY-20260830-02`
 > Technical Plan Gate：`PASS / NPDMS-FCUT001-TECHPLAN-20260830-02`
-> Implementation Done Gate：`REOPENED / 原CUT-07证据保留但不再代表扩展Scope完成`
+> Implementation Done Gate：`PASS / NPDMS-FCUT001-IMPLEMENTATION-DONE-20260830-02`
 > Requirement ID：`CUT-07（V1/P0）`、`CUT-09（V1/P0）`、`CUT-10（V1/P1）`
 > Feature Spec：`specs/features/F-CUT-001-cutover-unified-configuration-foundation.md`
 > 复用审计：`specs/features/F-CUT-001-legacy-reuse-audit.md`
@@ -14,7 +14,7 @@
 
 ## 当前最小工作单元
 
-- 按唯一新Technical Plan实施Task 1领域校验；未完成CUT-09/10全部计划任务前不得恢复Implementation Done。
+- F-CUT-001已完成CUT-07/09/10联合实现与验收；后续Feature必须重新通过自己的Feature Ready Gate，不由本Feature状态外推。
 
 ## 已完成
 
@@ -29,14 +29,18 @@
 - 已新增并执行`V128`～`V131`前向迁移，在隔离MySQL 8.4数据库`npdms_fcut001`验证至版本131。
 - 后端模块17项测试全部通过，其中F-CUT-001新增领域/服务测试10项；前端新增文件ESLint、Prettier、Stylelint和全仓TypeScript检查通过，完整本地构建通过。
 - 已在后端`59380`、前端`19181`完成真实浏览器验收：已发布只读、复制保留子项、无效草稿定位错误、发布拒绝且仍为草稿；1440/1024/768/320四档视口通过，控制台错误、页面错误和失败HTTP响应均为0。
-- 验收证据：`docs/engineering/evidence/f-cut-001-runtime-evidence.json`。
+- 已实现24类普通风险、五类双机检查`17/25/23/24/8 = 97`项及12类调研的同聚合编辑、联合预检和原子发布；`businessCategoryCode`与绑定级`requiredResult`通过V132前向契约完整往返。
+- 后端相关Reactor共112项测试通过（0失败、0错误、2跳过），其中`pms-module-cutover` 38项全部通过；前端矩阵Vitest 6项、TypeScript、ESLint、Stylelint及生产构建通过。
+- 已在专用Compose项目`npdms-e-fcut001-test`完成V1～V132迁移；隔离数据库`npdms_fcut001_test`、后端`61280`、前端`20082`均未复用其他工作树端口或数据。
+- 真实浏览器验收覆盖24/24、五类97/97、16/17拒绝且旧发布版继续有效、全场景覆盖缺口、调研必填空值、背景依赖错误、修复后界面发布、发布历史只读、无权限路由拒绝及1440/1024/768/320四档视口；控制台错误和失败请求均为0。
+- 验收证据：`docs/engineering/evidence/f-cut-001-runtime-evidence.json`、`output/f-cut-001-v18/browser-current/result.json`及同目录截图。
 
 ## 阻断
 
-当前无业务语义阻断；`CHG-PRD-2026-08-30-008`已确认双机检查合计97项，扩展Feature Spec已于2026-08-30取得需求方确认，Technical Plan Gate已通过。
+无。
 
 ## 已知边界
 
 - XLSX/HTML仅作为名称、字段和界面参考，不参与需求裁决、不形成不一致结论，也不作为完成门禁。
-- V2自动指派未提前实施；F-CUT-001只完成CUT-07统一配置版本与采集项基础。
+- V2自动指派未提前实施；F-CUT-001只完成CUT-07/09/10的V1统一配置、风险与调研矩阵基础。
 - 浏览器及迁移数据位于隔离验收库，不作为正式业务数据。

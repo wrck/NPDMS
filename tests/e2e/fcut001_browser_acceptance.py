@@ -16,7 +16,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
 
 RISK_CATEGORIES = (
@@ -235,9 +235,11 @@ def open_draft(page: Page, base_url: str, revision_no: int) -> None:
     row = page.locator(".el-table__body tr").filter(has_text=f"F-CUT-001 隔离浏览器验收修订").filter(
         has_text=str(revision_no)
     ).first
-    if row.count() == 0:
+    try:
+        row.wait_for(state="visible", timeout=30_000)
+    except PlaywrightTimeoutError as error:
         body = page.locator("body").inner_text()[:2000]
-        raise AssertionError(f"draft row not found at {page.url}; body={body}")
+        raise AssertionError(f"draft row not found at {page.url}; body={body}") from error
     row.get_by_text("编辑", exact=True).click()
     page.get_by_role("dialog").wait_for(state="visible")
 
@@ -265,6 +267,7 @@ def browser_acceptance(
     base_url: str,
     username: str,
     password: str,
+    denied_username: str,
     chromium_path: str,
     output_dir: Path,
     draft: dict[str, Any],
@@ -287,8 +290,9 @@ def browser_acceptance(
         page.get_by_role("tab", name="风险矩阵").click()
         page.get_by_text("五类双机检查 97/97 项", exact=True).wait_for()
         page.get_by_text("普通风险类别（24/24）", exact=True).wait_for()
+        assert "自动指派" not in page.locator(".el-dialog:visible").inner_text()
         page.screenshot(path=output_dir / "01-complete-risk-matrix-1440.png", full_page=True)
-        checks.append("risk matrix displays 24 categories and five-mode total 97/97")
+        checks.append("risk matrix displays 24 categories and five-mode total 97/97 without V2 auto assignment")
 
         page.get_by_text("VSM双机：17/17 项", exact=True).click()
         vsm_row = page.locator("#pane-risk .el-table__body tr:visible").filter(
@@ -413,6 +417,16 @@ def browser_acceptance(
             page.screenshot(path=output_dir / f"06-published-readonly-{width}.png", full_page=True)
             page.get_by_role("button", name="关闭").click()
         checks.append("published history is readonly at 320/768/1024/1440 widths")
+
+        denied_context = browser.new_context(viewport={"width": 1024, "height": 900})
+        denied_page = denied_context.new_page()
+        ui_login(denied_page, base_url, denied_username, password)
+        denied_page.goto(base_url.rstrip("/") + "/pms/cutover/cutover-config")
+        denied_page.wait_for_load_state("networkidle")
+        denied_page.get_by_text("返回首页", exact=True).wait_for()
+        denied_page.screenshot(path=output_dir / "07-permission-denied.png", full_page=True)
+        checks.append("a user without cutover permissions cannot open the configuration route")
+        denied_context.close()
         browser.close()
 
     assert not console_errors, console_errors
@@ -429,17 +443,19 @@ def browser_acceptance(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default="http://127.0.0.1:20082")
+    parser.add_argument("--api-url", default="http://127.0.0.1:61280")
     parser.add_argument("--username", default="admin")
+    parser.add_argument("--denied-username", default="fast001denied")
     parser.add_argument("--chromium", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     password = os.environ.get("NPDMS_ACCEPTANCE_PASSWORD")
     if not password:
         raise SystemExit("NPDMS_ACCEPTANCE_PASSWORD is required")
-    api = Api(args.base_url.replace(":20082", ":61280"), args.username, password)
+    api = Api(args.api_url, args.username, password)
     draft, source_published_id = complete_revision(api)
     result = browser_acceptance(
-        api, args.base_url, args.username, password, args.chromium,
+        api, args.base_url, args.username, password, args.denied_username, args.chromium,
         args.output, draft, source_published_id,
     )
     result_path = args.output / "result.json"
