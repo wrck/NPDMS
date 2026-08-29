@@ -6,7 +6,7 @@
 > Technical Plan Gate：`PASS / GO`（`c33b0836f71e0875008a084ff360e7027d276ec9`）  
 > Implementation Done Gate：`NOT_REVIEWED`  
 > 当前阻断：`无`  
-> 当前任务：`Task 1 / Step 6：接通项目阶段进入和验收阶段内新版本绑定`
+> 当前任务：`Task 1 / Step 8：复跑聚焦集合至GREEN并完成必要重构`
 > Requirement ID：`COM-01@V1`；协作`PM-03`、`PM-10`、`ACC-03`  
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`  
 > Technical Plan：`docs/superpowers/plans/2026-08-29-f-com-001-contract-order-and-delivery-scope.md`  
@@ -36,7 +36,7 @@
 - [x] Step 4：实现COM权威副本与合同管理员公司范围。
 - [x] Step 5：实现DeliveryScope命令、历史、AST校验和冲突通知。
 - [x] Step 6：接通项目阶段进入和验收阶段内新版本绑定。
-- [ ] Step 7：完成REST、前端和V125正式配置。
+- [x] Step 7：完成REST、前端和V125正式配置。
 - [ ] Step 8：复跑聚焦集合至GREEN并完成必要重构。
 
 ## Task 2：整体验证与Implementation Done送审
@@ -49,4 +49,4 @@
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=21c07181；当前Gate=Implementation/Step7；已通过=项目阶段进入先绑定当前范围、验收阶段内新范围原子绑定，跨模块聚焦50项及机器契约16项PASS；阻塞=无；下一步=完成REST、前端及V125正式配置。
+> 检查点：基线=835a1a57；当前Gate=Implementation/Step8；已通过=REST、合同/订单/范围页面、V125权限菜单验收身份及种子，前端聚焦7项与生产构建PASS；阻塞=无；下一步=复跑聚焦集合并完成必要重构。
