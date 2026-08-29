@@ -132,6 +132,55 @@ FCOM001_ACCEPTANCE_STAGE_REQUIRED_SNIPPETS = {
         "Q-FCOM-002 forbids automatic close or unlock",
     ),
 }
+FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS = {
+    "docs/design/02d-cross-context-contracts.md": (
+        "OrganizationScopeApi.getActiveScopes(userId)",
+        "COM只按`companyCode`与ERP合同所属公司编码精确匹配",
+    ),
+    "docs/design/07-authorization-design.md": (
+        "COM-01合同管理员公司范围",
+        "pms:commerce:contract:sensitive-read",
+        "AuditRecord.authorizationSnapshot",
+        "列表返回空并记录Owner不可用审计",
+    ),
+    "docs/design/09-database-design.md": (
+        "F-COM-001合同管理员授权物理结论",
+        "NO_PHYSICAL_DELTA",
+        "不新增合同授权表",
+    ),
+    "docs/design/10-api-design.md": (
+        "OrganizationScopeApi.getActiveScopes(subjectUserId)",
+        "SQL必须保持精确字符串相等",
+        "pms:commerce:contract:sensitive-read",
+        "重验失败不写关系、成功幂等、Outbox或成功审计",
+    ),
+    "docs/design/14-security-design.md": (
+        "SYSTEM当前有效UserCompanyDepartmentScope",
+        "空范围/Owner不可用时列表空、详情和写拒绝",
+    ),
+    "docs/design/15-cache-and-concurrency.md": (
+        "合同列表、详情和项目—合同关系维护不使用正向公司范围缓存",
+        "OrganizationScopeApi.getActiveScopes",
+    ),
+    "docs/design/16-exception-and-idempotency.md": (
+        "CONTRACT_SCOPE_OWNER_UNAVAILABLE",
+        "同一幂等键后续重试必须重新读取当前scope",
+    ),
+    "docs/decisions/0038-commerce-contract-administrator-company-scope.md": (
+        "PROPOSED_FOR_INDEPENDENT_REVIEW",
+        "不修改Yudao基础平台",
+        "NO_PHYSICAL_DELTA",
+    ),
+}
+FCOM001_CONTRACT_ADMIN_SCOPE_FORBIDDEN_SNIPPETS = {
+    "docs/design/10-api-design.md": (
+        "【BLOCKED_BY_SPEC：Q-FCOM-001】",
+        "Q-FCOM-001关闭前不可实施",
+    ),
+    "docs/design/14-security-design.md": (
+        "Q-FCOM-001关闭前合同管理员查询和关联写入保持`BLOCKED_BY_SPEC`",
+    ),
+}
 FCOM001_ACCEPTANCE_STAGE_FORBIDDEN_SNIPPETS = {
     "docs/design/08-data-model.md": (
         "验收单对DeliveryScope及其分配版本的锁定事实",
@@ -570,6 +619,29 @@ def validate_fcom001_acceptance_stage_binding(root: Path) -> list[str]:
     return errors
 
 
+def validate_fcom001_contract_admin_scope(root: Path) -> list[str]:
+    """Keep the approved SYSTEM company-scope decision complete and fail-closed."""
+    errors: list[str] = []
+    for relative, snippets in FCOM001_CONTRACT_ADMIN_SCOPE_REQUIRED_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"missing F-COM-001 contract-admin scope contract: {relative}")
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet not in content:
+                errors.append(f"F-COM-001 contract-admin scope missing: {relative}: {snippet}")
+    for relative, snippets in FCOM001_CONTRACT_ADMIN_SCOPE_FORBIDDEN_SNIPPETS.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        content = read(path)
+        for snippet in snippets:
+            if snippet in content:
+                errors.append(f"F-COM-001 contract-admin scope retains blocked rule: {relative}: {snippet}")
+    return errors
+
+
 def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
     """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
@@ -678,6 +750,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     errors.extend(validate_v18_migration_gate_evidence(root))
     errors.extend(validate_fcom001_v70_required_mappings(root))
     errors.extend(validate_fcom001_acceptance_stage_binding(root))
+    errors.extend(validate_fcom001_contract_admin_scope(root))
     errors.extend(validate_v18_physical_carriers(root))
     return errors
 
