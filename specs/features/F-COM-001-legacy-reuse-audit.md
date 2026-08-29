@@ -8,6 +8,7 @@
 
 - `pms-module-commerce`全部API、DTO、Service、DO、Mapper和测试；
 - `sql/migrations/V70__commerce_delivery_scope_slice.sql`；
+- `sql/migrations/V72__fproj002_v18_seed_and_menu.sql`及其V74 SYSTEM公司/办事处补充事实；
 - F-PROJ-002对`DeliveryScopeApi`的消费与回归契约；
 - `pms-module-project-api`的`ProjectOrganizationFactApi`、DTO及其现有调用契约；
 - `pms-module-project`的`ProjectOrganizationFactApiImpl`、`ProjectMasterDO/Mapper`、`ProjectStageSnapshotDO/Mapper/Repository`、`ProjectGovernanceApplicationService`及对应测试；
@@ -43,14 +44,15 @@
 | REUSE-18 | `AssetDeviceScopeApi.validateAssignableSerials`、`SerialScopeValidationResult`、真实Provider及`AssetDeviceScopeApiImplTest` | `DIRECT_REUSE` | F-COM直达预览和每个含SN的写命令均传目标承接项目与完整SN集合；仅valid且三类失败列表全空时通过 | 现接口已校验存在性、租户、可分配状态、其他项目归属和重复；无版本令牌，故预览结果不得复用为写授权，写前必须实时重验，异常/不可用失败关闭 |
 | REUSE-19 | COM `com_outbox_event`与SDS通用`NotificationRequested`契约 | `DIRECT_REUSE` | 冲突冻结事务内追加`DELIVERY_SCOPE_CONFLICT_FROZEN`请求；按范围、分配版本和ERP来源版本幂等，投递失败独立重试 | 通知请求/送达均不表示冲突处置完成；无唯一经理时保留逻辑角色收件人并经PROJ事实重试，不伪造用户、不回滚冻结 |
 | REUSE-20 | SYSTEM `OrganizationScopeApi.getActiveScopes`、`OrganizationScopeApiImpl`、`UserCompanyDepartmentScopeRespDTO/DO/Mapper`及`OrganizationScopeApiImplTest` | `DIRECT_REUSE` | COM只调用现有公开API取得当前有效scope，以非空`companyCode`精确去重形成合同管理员公司范围，并在关系写入前重新读取；成功审计记录命中`id/version` | 现Provider已由SYSTEM按可信租户、当前时点、启用状态和有效期查询；不得修改Yudao实现、访问SYSTEM表、复制有效期算法、从部门推导公司或缓存正向授权 |
+| REUSE-21 | V72高段ID、`creator=seed`、`source_system=SEED`及`FPROJ002-V18-`证据闭包 | `COPY_THEN_ENHANCE` | 不修改V72；仅在全部身份谓词和4订单行/2范围/4明细关系闭包精确命中后，从普通V70转换输入中隔离，并在同一Feature前向迁移按机器契约重建稳定目标种子 | V72是F-PROJ-002受管验收夹具而非ERP业务数据；部分命中或被改写时整批失败。种子专用订单、产品主体和场景常量不得用于普通业务行，不得以`item_code`推断或无边界跳过/删除 |
 
 ## 3. 实施约束
 
-1. Technical Plan必须把REUSE-01～20逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
+1. Technical Plan必须把REUSE-01～21逐项绑定到Task、目标文件和验证，不得以“整体重写”绕过旧行为回归。
 2. 增强服务、DO、Mapper和页面先复制到新类/新页面后再改造；旧公开API在切换前后保持兼容，旧Yudao CRM资产零修改。
-3. V70转换必须使用合入时的下一个Flyway编号，验证空库、当前基线升级、重复迁移和转换前后数量/范围/事件对账；不修改V70。
+3. V70转换必须使用合入时的下一个Flyway编号，验证空库、当前基线升级、重复迁移和转换前后数量/范围/事件对账；不修改V70/V72。精确V72夹具只按REUSE-21隔离重建，普通V70行继续执行严格Owner解析与整批失败规则。
 4. 新增查询遵守场景Query对象、`LambdaQueryWrapperX`和Mapper XML规则；不得新增SQL注解、`${}`、`.last(...)`、`Map`或长位置参数。
 5. Implementation Done候选必须证明：F-PROJ-002回归通过、Yudao CRM路径零修改、新PMS Commerce真实浏览器闭环、ERP适配器不存在、无COM双Owner或长期双写。
 6. `AcceptanceScopeBinding`在现有仓库中没有可直接复用的物理事实；后续仅可按ADR-0037独立新建ACC事实、`acc_acceptance_scope_binding`表和`AcceptanceScopeGuardApi/AcceptanceScopeBindingApi`真实Provider。它不得复用`pms_acc_acceptance`主键、表、状态、Controller、Service或Mapper，也不得由`ProjectClosure`消费反向补建。
 
-结论：对应旧实现已全部完成三类判定，无`PENDING/TODO/待确认`项。本审计只锁定Feature Ready输入，不代表Technical Plan或Implementation通过。
+结论：对应旧实现及V72受管验收夹具已全部完成三类判定，无`PENDING/TODO/待确认`项。本审计只锁定Feature实现契约输入，不代表Technical Plan或Implementation通过。

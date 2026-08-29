@@ -40,6 +40,82 @@
       "failureClosedRule": "DO_NOT_WRITE_EFFECTIVE_TO_UNLOCK_OR_REWRITE_BINDING"
     }
   },
+  "technicalPlanPrerequisiteAmendment": "PENDING_INDEPENDENT_REVIEW_MANAGED_V72_SEED_DISPOSITION",
+  "managedV72SeedDisposition": {
+    "exactIdentity": {
+      "sourceMigration": "V72__fproj002_v18_seed_and_menu.sql",
+      "tenantId": 0,
+      "creator": "seed",
+      "updater": "seed",
+      "sourceSystem": "SEED",
+      "sourceKeyPrefix": "FPROJ002-V18-",
+      "sourceEvidencePrefix": "FPROJ002-V18-",
+      "projectId": 992002000000,
+      "orderId": 992002399001,
+      "orderLineIds": [992002300001, 992002300002, 992002300003, 992002300004],
+      "deliveryScopeIds": [992002310001, 992002310004],
+      "detailIds": [992002320001, 992002320002, 992002320003, 992002320004],
+      "relations": {
+        "orderLineToOrder": {
+          "992002300001": 992002399001,
+          "992002300002": 992002399001,
+          "992002300003": 992002399001,
+          "992002300004": 992002399001
+        },
+        "deliveryScopeToOrderLineAndProject": {
+          "992002310001": [992002300001, 992002000000],
+          "992002310004": [992002300004, 992002000000]
+        },
+        "detailToDeliveryScope": {
+          "992002320001": 992002310001,
+          "992002320002": 992002310001,
+          "992002320003": 992002310001,
+          "992002320004": 992002310004
+        }
+      },
+      "matchPolicy": "ALL_PREDICATES_AND_COMPLETE_RELATION_CLOSURE_OR_FAIL"
+    },
+    "businessConversionParticipation": "EXCLUDED_ONLY_AFTER_EXACT_IDENTITY_MATCH",
+    "disposition": "REBUILD_EXPLICIT_TARGET_FIXTURE_IN_SAME_FORWARD_MIGRATION",
+    "ordinaryV70Policy": "UNCHANGED_STRICT_OWNER_MAPPING_FAIL_BATCH",
+    "seedOnlyTargetFixture": {
+      "preserveSourceIds": true,
+      "orderId": 992002399001,
+      "sourceSystem": "SEED",
+      "sourceRecordKey": "FPROJ002-V18-ORDER",
+      "sourceVersion": "1",
+      "companyCode": "DPTECH-DEMO",
+      "orderType": "SEED_FIXTURE",
+      "orderNo": "FPROJ002-V18-ORDER",
+      "status": "ENABLED",
+      "creator": "seed",
+      "updater": "seed",
+      "projectId": 992002000000,
+      "officeDepartmentCode": "OFFICE-HZ-DEMO",
+      "officeDepartmentOwnerResolution": "EXACT_ENABLED_SYSTEM_DEPARTMENT_BY_CODE_AND_PROJECT_VERSION",
+      "detailSubjects": {
+        "992002320001": {"serialNo": "SN-FPROJ002-001", "scenario": "EXACT_MATCH"},
+        "992002320002": {"productCode": "FPROJ002-V18-PARTIAL", "scenario": "PARTIAL_MATCH_PRIORITY_YIELD"},
+        "992002320003": {"productCode": "FPROJ002-V18-NO-MATCH", "scenario": "FALLBACK"},
+        "992002320004": {"productCode": "FPROJ002-V18-INACTIVE", "scenario": "INACTIVE_NOT_PARTICIPATING"}
+      },
+      "preservedScenarios": [
+        "CONFIRMED",
+        "PENDING_AUTHORITY",
+        "EXACT_MATCH",
+        "PARTIAL_MATCH_PRIORITY_YIELD",
+        "FALLBACK",
+        "RELEASED_INACTIVE_NOT_PARTICIPATING"
+      ],
+      "constantSemantics": "MANAGED_ACCEPTANCE_FIXTURE_ONLY_NOT_ERP_PRODUCT_DEVICE_OR_OFFICE_BUSINESS_FACT"
+    },
+    "forbidden": [
+      "ITEM_CODE_AS_PRODUCT_CODE",
+      "PARTIAL_IDENTITY_SEED_BRANCH",
+      "UNBOUNDED_SKIP_OR_DELETE",
+      "SEED_CONSTANTS_IN_ORDINARY_V70_CONVERSION"
+    ]
+  },
   "contractAdministratorScope": {
     "owner": "SYSTEM",
     "authorityFact": "CURRENT_ACTIVE_USER_COMPANY_DEPARTMENT_SCOPE",

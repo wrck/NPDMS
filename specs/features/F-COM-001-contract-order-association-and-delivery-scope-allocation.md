@@ -10,6 +10,7 @@
 > 目标实现载体：COM主体为`pms-module-commerce`与`pms-module-commerce-api`；按批准物理模块映射，PROJ及ACC Owner的窄API/真实Provider增量位于`pms-module-project-api`与`pms-module-project`，语义Owner仍分别为PROJ/ACC；合同公司范围只消费现有`yudao-module-system`公开Provider且不修改Yudao基础平台
 > 适用基线：PRD V1.8修订009；SDS Phase 1/2/3 `BASELINE`；ADR-0036/0037/0038 `ACCEPTED`
 > Technical Plan：仅在本Feature达到`BASELINE / READY`后生成
+> Technical Plan前置补充：V72受管F-PROJ-002验收夹具处置为`PENDING_INDEPENDENT_REVIEW`；补充获GO前不得形成Technical Plan候选
 
 ## 1. 业务目标
 
@@ -41,6 +42,7 @@
 - 幂等、乐观锁、订单行锁、审计、历史和`DeliveryScopeAssigned/Released` Outbox；
 - 对F-PROJ-002既有`DeliveryScopeApi`行为保持兼容；
 - 前向迁移到SDS已批准的COM物理模型及V70存量切片受控转换；
+- 精确识别V72受管F-PROJ-002验收夹具，并在同一Feature前向迁移中以隔离的目标种子重建；非种子V70业务输入继续执行既有严格转换；
 - 合同订单与范围管理页面、权限负向和真实浏览器闭环。
 
 ### 2.2 外部集成拆分
@@ -172,6 +174,13 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 `com_contract_receivable`、发货包、设备物流、CRM执行单合并和历史生产迁移不属于本Feature闭环。机器契约已逐字段冻结修订008/009的Feature-forward差量及V70必填目标映射；未来实施只能使用新的前向Flyway，不修改已执行迁移、核心DDL或P3-E09全局哈希。V70输入在同一只读快照/停写窗口按主键冻结，缺失、冲突、溢出或输入水位变化整批失败，禁止长期双写或建立第二Owner。
 
+### 6.1 V72受管验收夹具处置
+
+- 仅当来源迁移为`V72__fproj002_v18_seed_and_menu.sql`，且`tenant_id=0`、`creator/updater=seed`、`source_system=SEED`、来源键/证据为`FPROJ002-V18-`前缀、项目`992002000000`、订单`992002399001`以及机器契约列出的4条订单行、2条范围、4条明细全部身份谓词及关系闭包同时命中时，才认定为受管夹具；部分命中或关系不完整时整批失败，不得进入种子分支。
+- 精确认定后的夹具不作为真实V70业务转换输入；同一Feature前向迁移以机器契约锁定的稳定ID、SEED订单身份、`DPTECH-DEMO`公司、`OFFICE-HZ-DEMO`项目办事处Owner事实及种子专用明细主体重建目标夹具，保留`CONFIRMED/PENDING_AUTHORITY`、精确/部分/无匹配和`RELEASED`不参与等F-PROJ-002验收场景。
+- 上述常量只描述该精确受管验收夹具，不构成ERP订单、产品/设备类型或办事处业务事实；不得用`item_code`推断产品编码，不得把种子常量泄漏到普通业务转换，也不得无边界跳过或删除旧行。
+- 非种子V70行继续执行既有逐字段Owner解析、历史保留、冻结水位和任一缺失/冲突整批失败规则；本补充不改变PRD业务语义、SDS目标模型、真实业务Owner或P3-E09差量。
+
 ## 7. 旧实现复用边界
 
 详细判定见`specs/features/F-COM-001-legacy-reuse-audit.md`：
@@ -199,7 +208,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - `AC-FCOM001-006`：同幂等键同请求重放不重复范围、历史、审计或事件；同键异请求、旧版本和并发超分配只有合法请求成功。
 - `AC-FCOM001-007`：调整或释放关闭原有效区间并追加新事实；项目阶段进入和验收阶段内新范围分别与精确版本绑定原子提交；已绑定、ACC未知或不可用时减量拒绝，历史不变。
 - `AC-FCOM001-008`：ERP取消/减量/变更造成超分配时范围进入冲突冻结，新分配被阻止；同一事务持久化发给PROJ当前项目经理的`DELIVERY_SCOPE_CONFLICT_FROZEN`通知请求。同一来源修订不重复请求，收件人解析或投递失败可重试且不回滚、解冻或改变冲突业务状态。
-- `AC-FCOM001-009`：F-PROJ-002既有`DeliveryScopeApi`全部回归通过；V70转换到目标模型前后可用数量、项目范围和事件语义一致且无长期双写。
+- `AC-FCOM001-009`：F-PROJ-002既有`DeliveryScopeApi`全部回归通过；精确V72受管夹具以目标种子重建并保留原验收场景，任一身份谓词或关系闭包缺失时整体拒绝；非种子V70转换到目标模型前后可用数量、项目范围和事件语义一致且无长期双写、无种子常量泄漏。
 - `AC-FCOM001-010`：真实MySQL验证身份唯一、当前唯一、明细合计事务守卫、锁竞争和前向升级；查询计划绑定批准候选索引并满足SDS性能基线。
 - `AC-FCOM001-011`：真实浏览器完成完整闭环和四档响应式；刷新后事实保持，控制台和网络无未解释错误。
 - `AC-FCOM001-012`：本Feature完成不宣称ERP/CRM适配器、INT-01运行闭环、AST地点、验收报告流程、历史生产迁移、Deployment、SIT、UAT或Release完成。
@@ -209,6 +218,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - 业务规则单元测试：身份、字段Owner、状态守卫、可分配量、办事处快照、验收绑定和冲突冻结；
 - API契约测试：REST、`CommerceAuthorityWriteApi`、兼容`DeliveryScopeApi`、`AssetDeviceScopeApi`、`ProjectParticipantFactApi`及外部Provider失败；
 - 真实MySQL：空库迁移、从当前基线升级、重复迁移、唯一约束、锁、幂等、审计/Outbox事务和V70转换对账；
+- 迁移隔离负向：普通业务行、仅`creator`、仅高段ID/前缀、关系闭包不完整均不得进入V72种子分支；拒绝`item_code`推断、无边界跳过/删除及种子常量进入普通V70转换；
 - 权限负向：合同查询/关联的SYSTEM当前公司范围、写前重验、空/撤权/到期/Owner不可用、项目范围、跨租户、敏感商务字段和错误泄露；角色—权限组合不固化，实施与验收身份通过正式授权配置取得全部相关权限键；
 - Owner Provider：PROJ项目/办事处FOUND、缺失、停用、版本冲突及项目经理唯一/缺失/不可用；AST序列号有效、缺失、不可分配、重复及Provider不可用；ACC绑定、未锁定、已锁定、未知和不可用；ERP新旧/乱序/取消/减量版本；
 - 回归：F-PROJ-002项目拆分与既有Commerce测试保持通过，Yudao CRM合同页面/API零修改回归；
@@ -226,10 +236,11 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 | 验收、验证与真实浏览器 | 第8～10节 | PASS |
 | 相关Open Question | `Q-FCOM-001`已按SYSTEM当前公司授权事实关闭；`Q-FCOM-002`只阻断本Feature Out of Scope的退出/回退关闭或解锁，不阻断已确认进入与新范围路径 | PASS_WITH_NARROW_OUT_OF_SCOPE_BLOCK |
 | 独立Feature Ready裁决 | 完整全新审核已批准候选`c57ee7b5f5226f5dc902d817c034ff1a8f6618c3` | GO |
+| Technical Plan前置V72受管种子补充 | 第6.1节、机器契约、复用审计与聚焦负向门禁 | PENDING_INDEPENDENT_REVIEW |
 
-结论：`BASELINE / READY`。完整全新Feature Ready审核已批准提交`c57ee7b5f5226f5dc902d817c034ff1a8f6618c3`；修订008/009的办事处、物理差量、V70转换、ACC Owner、验收阶段绑定及合同管理员SYSTEM当前公司范围均已闭合。Q-FCOM-002仅保留Out of Scope的退出/回退关闭或解锁窄阻断；第三方平台仍只冻结接口边界。允许进入本Feature唯一Technical Plan，但不代表计划或实现已获批准。
+结论：Feature继续保持`BASELINE / READY`，已通过的Feature Ready业务语义不撤销。V72受管种子处置是唯一Technical Plan形成前补充；独立复审GO前不得形成Technical Plan候选。Q-FCOM-002仍仅保留Out of Scope的退出/回退关闭或解锁窄阻断；第三方平台仍只冻结接口边界。
 
-检查点：基线=c57ee7b5；当前Gate=Feature Ready GO；已通过=PRD009、ADR0036/37/38、三项SDS差量及完整独立审核；阻塞=无；下一步=形成唯一Technical Plan候选，不开始产品实现。
+检查点：基线=ead6c8bf；当前Gate=Technical Plan前置V72种子契约补充；已通过=Feature Ready GO及状态回写；阻塞=补充待独立复审；下一步=四文件最小候选送审，GO前不形成Technical Plan。
 
 ## 12. 追溯
 
