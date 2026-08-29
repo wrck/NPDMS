@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ArrivalAcceptanceMigrationContractTest {
 
     private static String schemaSql;
+    private static String qualificationUpgradeSql;
 
     @BeforeAll
     static void loadSchema() throws IOException {
@@ -24,6 +25,9 @@ class ArrivalAcceptanceMigrationContractTest {
         schemaSql = Files.readString(repositoryDirectory.resolve(
                         "sql/migrations/V133__fimp002_arrival_acceptance.sql"), StandardCharsets.UTF_8)
                 .replaceAll("\\s+", " ");
+        qualificationUpgradeSql = Files.readString(repositoryDirectory.resolve(
+                        "sql/migrations/V134__fimp002_project_qualification_versions.sql"),
+                StandardCharsets.UTF_8).replaceAll("\\s+", " ");
     }
 
     @Test
@@ -81,6 +85,30 @@ class ArrivalAcceptanceMigrationContractTest {
         assertFalse(schemaSql.toLowerCase().contains("attachment_url"));
         assertFalse(schemaSql.toLowerCase().contains("download_url"));
         assertFalse(schemaSql.toLowerCase().contains("auto_assign"));
+    }
+
+    @Test
+    void upgradesEmptyArrivalRootWithRequiredQualificationVersionsWithoutDefaults() {
+        assertTrue(qualificationUpgradeSql.contains(
+                "ADD COLUMN `project_version` int NOT NULL"));
+        assertTrue(qualificationUpgradeSql.contains(
+                "ADD COLUMN `project_participant_fact_version` bigint NOT NULL"));
+        assertTrue(qualificationUpgradeSql.contains(
+                "ADD COLUMN `project_scope_version` bigint NOT NULL"));
+        assertFalse(qualificationUpgradeSql.contains(" DEFAULT "));
+        assertFalse(schemaSql.contains("`project_participant_fact_version`"));
+    }
+
+    @Test
+    void rejectsNonEmptyArrivalRootBeforeAlteringData() {
+        int guard = qualificationUpgradeSql.indexOf(
+                "IF EXISTS (SELECT 1 FROM `imp_arrival_acceptance` LIMIT 1)");
+        int signal = qualificationUpgradeSql.indexOf("SIGNAL SQLSTATE '45000'");
+        int alter = qualificationUpgradeSql.indexOf("ALTER TABLE `imp_arrival_acceptance`");
+        assertTrue(guard >= 0);
+        assertTrue(signal > guard);
+        assertTrue(alter > signal);
+        assertFalse(qualificationUpgradeSql.contains("UPDATE `imp_arrival_acceptance`"));
     }
 
     private static int occurrences(String source, String token) {

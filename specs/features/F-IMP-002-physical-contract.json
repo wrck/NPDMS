@@ -6,12 +6,17 @@
   "coverage": "FULL",
   "owner": "IMP",
   "aggregate": "ArrivalAcceptance",
-  "hardDependencies": ["COM:DeliveryScopeApi", "T-FIMP001-AST-01", "PROJ:ProjectScopeApi", "PLT:FileArtifactApi"],
+  "hardDependencies": ["COM:DeliveryScopeApi", "T-FIMP001-AST-01", "PROJ:ProjectParticipantFactApi", "PROJ:ProjectScopeApi", "PLT:FileArtifactApi"],
   "tables": [
     {
       "name": "imp_arrival_acceptance",
       "purpose": "到货批次根、应到范围快照、里程碑事实版本和证据revision引用",
-      "requiredFields": ["tenant_id", "project_id", "batch_code", "logistics_no", "arrived_at", "status", "delivery_scope_version", "scope_watermark", "migration_resolution_status", "version"],
+      "requiredFields": ["tenant_id", "project_id", "batch_code", "logistics_no", "arrived_at", "status", "project_version", "project_participant_fact_version", "project_scope_version", "delivery_scope_version", "scope_watermark", "migration_resolution_status", "version"],
+      "qualificationVersionSources": {
+        "project_version": "PROJ:ProjectParticipantFactApi.projectVersion",
+        "project_participant_fact_version": "PROJ:ProjectParticipantFactApi.factVersion",
+        "project_scope_version": "PROJ:ProjectScopeApi.treeVersion"
+      },
       "nullableUntilSubmit": ["evidence_id", "evidence_revision"],
       "submitRequiredReferences": ["evidence_id", "evidence_revision"],
       "nullableUntilConfirm": ["project_fact_version"],

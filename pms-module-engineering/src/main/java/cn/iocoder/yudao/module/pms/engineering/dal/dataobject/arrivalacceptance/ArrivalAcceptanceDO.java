@@ -22,6 +22,9 @@ public class ArrivalAcceptanceDO extends TenantBaseDO {
     private LocalDateTime arrivedAt;
     private String signerSnapshot;
     private String status;
+    private Integer projectVersion;
+    private Long projectParticipantFactVersion;
+    private Long projectScopeVersion;
     private Long deliveryScopeVersion;
     private String expectedScopeSnapshot;
     private String scopeWatermark;
