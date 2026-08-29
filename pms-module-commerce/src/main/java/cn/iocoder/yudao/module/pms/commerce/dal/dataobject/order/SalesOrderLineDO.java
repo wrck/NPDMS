@@ -31,6 +31,7 @@ public class SalesOrderLineDO extends TenantBaseDO {
     private String itemCode;
     private String itemDesc;
     private Long productId;
+    private String productCode;
     private BigDecimal orderQty;
     private BigDecimal openQty;
     private BigDecimal deliveredQty;
