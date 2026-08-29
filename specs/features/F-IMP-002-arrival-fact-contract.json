@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-IMP-002",
+  "requirementSlice": "EXE-01@V1",
+  "owner": "IMP",
+  "contract": "ArrivalAcceptanceFactApi",
+  "operations": {
+    "inspect": {
+      "input": ["tenantId", "projectId", "deviceIds", "quantityScopes"],
+      "sideEffect": "NONE"
+    },
+    "lockAndRevalidate": {
+      "input": ["tenantId", "projectId", "deviceIds", "quantityScopes", "expectedFactVersion", "expectedScopeWatermark"],
+      "lockOrder": "DEVICE_ID_THEN_ORDER_LINE_ID_THEN_ARRIVAL_ACCEPTANCE_ID",
+      "sideEffect": "NONE"
+    }
+  },
+  "response": {
+    "required": ["tenantId", "projectId", "sourceAcceptanceIds", "decision", "factVersion", "scopeWatermark", "reopened"],
+    "decision": ["ACCEPTED", "NOT_ACCEPTED", "STALE"],
+    "scopeWatermark": ["deliveryScopeVersion", "deviceAssignmentVersions"],
+    "sourceAcceptanceIds": "STABLE_ASCENDING_IDS_OF_ALL_BATCHES_CONTRIBUTING_TO_THE_DECISION",
+    "factVersion": "MONOTONIC_PROJECT_ARRIVAL_FACT_VERSION",
+    "rangeResults": ["acceptedDeviceIds", "exemptedDeviceIds", "unmetDeviceIds", "acceptedQuantityScopes", "exemptedQuantityScopes", "unmetQuantityScopes"],
+    "forbidden": ["OWNER_DO", "FILE_BODY", "PERSISTENT_DOWNLOAD_URL", "SIGNER_PRIVATE_FIELDS"]
+  },
+  "validAcceptance": "ALL_CURRENT_EXPECTED_DEVICES_AND_QUANTITIES_ARE_ACCEPTED_OR_COVERED_BY_UNEXPIRED_EXPLICIT_EXEMPTIONS",
+  "staleWhen": ["DELIVERY_SCOPE_VERSION_CHANGED", "DEVICE_ASSIGNMENT_VERSION_CHANGED", "FACT_VERSION_CHANGED", "FACT_REOPENED"],
+  "failurePolicy": "MISSING_UNKNOWN_UNAVAILABLE_UNAUTHORIZED_OR_VERSION_CONFLICT_FAILS_CLOSED",
+  "consumerFeatures": ["F-IMP-003", "F-IMP-001"]
+}

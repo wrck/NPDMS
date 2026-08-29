@@ -200,6 +200,8 @@ IMP对CUT公开`ImplementationReadinessApi.inspect/lockAndRevalidate`：输入�
 
 EXE-01～04 Owner分别公开`ArrivalAcceptanceFactApi`、`InstallationCompletionFactApi`、`ConfigurationCompletionFactApi`、`JointDebuggingCompletionFactApi`；统一返回租户/项目、权威范围、稳定来源对象ID、业务判定、业务版本、范围版本/水位和重开标识，并提供按期望版本的锁定重验。不返回Owner DO、文件或解析正文。
 
+`ArrivalAcceptanceFactApi`的应到范围由COM `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`与AST `DeviceScopeFactApi`共同提供：COM返回当前有效订单行、分配数量、单位、产品/型号维度、明确SN和`scopeVersion`，AST把SN解析为稳定设备及当前项目归属版本。IMP保存二者的结构化版本向量，不得把发货、装箱、设备归属或旧到货状态单独解释为`ACCEPTED`。项目最终ACCEPTED要求全部当前应到设备/数量已确认签收或被仍有效的明确豁免覆盖。
+
 ## 8. ACC：验收与项目闭环 API
 
 适用 Requirement：ACC-01～ACC-06、CLO-01～CLO-02。
@@ -276,6 +278,7 @@ F-PROJ-002另使用以下Owner公开契约：
 
 - `AssetDeviceScopeApi.validateAssignableSerials(tenantId, parentProjectId, serialNumbers)`：AST返回SN存在性、租户和当前可分配结论及失败SN；不返回凭证明文或敏感设备详情；
 - `DeliveryScopeApi.getAvailableSlices(parentProjectId, expectedScopeVersion)`：COM返回当前可分配订单行、数量、维度和权威版本；`PENDING_AUTHORITY`数量不进入结果；
+- `DeliveryScopeApi.getAssignedScope(projectId, expectedScopeVersion)`：COM返回项目当前有效已分配订单行、数量、单位、产品/型号维度、明确SN集合和`scopeVersion`，供IMP/ACC读取交付范围；待权威确认、取消、退货或已释放量不进入结果，版本未知/过期失败关闭；
 - `DeliveryScopeApi.previewSplit(command)`：COM只校验组合、单位精度、重复和超配，不写范围事实；
 - `DeliveryScopeApi.applySplit(command)`：COM按稳定订单行顺序锁定并在调用方事务中分配/释放范围、递增`scopeVersion`、写`DeliveryScopeAssigned/Released` Outbox；同键重放不重复分配。
 

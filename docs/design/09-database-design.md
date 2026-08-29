@@ -324,7 +324,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 
 | 聚合 | 主表 | 明细/历史表 | 关键数据库约束 |
 |---|---|---|---|
-| ArrivalAcceptance | `imp_arrival_acceptance` | `imp_arrival_line`、`imp_arrival_difference` | 批次内来源行唯一；数量非负；差异通过独立记录表达 |
+| ArrivalAcceptance | `imp_arrival_acceptance` | `imp_arrival_line`、`imp_arrival_difference` | 根冻结DeliveryScope版本、结构化范围水位、项目级单调事实版本、独立迁移核对状态和ACC引用状态；批次编码项目内唯一；明细按设备或订单型号数量追加版本且数量非负/不得超签；差异、拒收处置和具体豁免通过`imp_arrival_difference`不可变版本表达，已提交历史不可覆盖 |
 | InstallationRecord | `imp_installation_record` | `imp_installation_item`、`imp_installation_evidence` | 保存可空`site_id/site_location_id`、解析状态、文本降级、位置快照和有效区间；设备/安装批次索引；同一设备同一时点仅一个当前有效安装位置；历史记录不覆盖 |
 | ConfigurationCollectionResult | `imp_configuration_collection_result` | `imp_configuration_collection_parse_attempt` | `uk(tenant_id, collection_task_id, result_type_code, result_version_no)`；根保存项目/设备快照、脚本/解析器版本、原始整机Log文件引用及哈希；解析尝试追加 |
 | ConfigurationCollectionResult解析候选 | `imp_configuration_collection_result` | `imp_configuration_component_candidate` | 保存机框SN、槽位、板卡SN/型号、解析 revision、解析器版本、板卡配置引用和匹配状态；不能覆盖原始Log或直接改写已生效设备关系 |

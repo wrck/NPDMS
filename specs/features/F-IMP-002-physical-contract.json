@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "featureId": "F-IMP-002",
+  "requirementSlices": ["EXE-01@V1"],
+  "coverage": "FULL",
+  "owner": "IMP",
+  "aggregate": "ArrivalAcceptance",
+  "hardDependencies": ["COM:DeliveryScopeApi", "T-FIMP001-AST-01", "PROJ:ProjectScopeApi", "PLT:FileArtifactApi", "ACC:ImplementationEvidencePublished"],
+  "tables": [
+    {
+      "name": "imp_arrival_acceptance",
+      "purpose": "到货批次根、应到范围快照、里程碑事实版本和ACC引用状态",
+      "requiredFields": ["tenant_id", "project_id", "batch_code", "logistics_no", "arrived_at", "status", "delivery_scope_version", "scope_watermark", "project_fact_version", "migration_resolution_status", "archive_status", "version"],
+      "uniqueKeys": [["tenant_id", "project_id", "batch_code"], ["tenant_id", "project_id", "project_fact_version"]],
+      "projectFactVersionPolicy": "ALLOCATE_MONOTONIC_VERSION_FOR_EACH_MILESTONE_AFFECTING_SUBMISSION; NULL_ONLY_WHILE_DRAFT",
+      "migrationResolutionStatuses": ["NOT_APPLICABLE", "PENDING_RECONCILIATION", "RECONCILED"],
+      "immutability": "SUBMITTED_BUSINESS_FIELDS_ARE_IMMUTABLE; ARCHIVE_RETRY_PROJECTION_MAY_ADVANCE_WITH_AUDIT"
+    },
+    {
+      "name": "imp_arrival_line",
+      "purpose": "设备或订单型号数量签收明细及追加版本",
+      "requiredFields": ["tenant_id", "arrival_acceptance_id", "line_no", "line_revision", "scope_type", "status", "expected_quantity", "accepted_quantity", "unit", "current_marker", "version"],
+      "scopeTypes": ["DEVICE", "ORDER_MODEL_QUANTITY"],
+      "uniqueKeys": [["tenant_id", "arrival_acceptance_id", "line_no", "line_revision"], ["tenant_id", "arrival_acceptance_id", "line_no", "current_marker"]],
+      "guards": ["DEVICE_SCOPE_REQUIRES_DEVICE_ID_AND_ASSIGNMENT_VERSION", "QUANTITY_SCOPE_REQUIRES_ORDER_LINE_AND_MODEL", "NON_NEGATIVE_QUANTITY", "ACCEPTED_NOT_GREATER_THAN_CURRENT_UNACCEPTED"]
+    },
+    {
+      "name": "imp_arrival_difference",
+      "purpose": "差异、拒收处置和具体豁免的不可变版本",
+      "requiredFields": ["tenant_id", "arrival_acceptance_id", "arrival_line_id", "difference_no", "revision_no", "difference_type", "resolution_status", "reason", "project_fact_version", "current_marker", "version"],
+      "resolutionStatuses": ["OPEN", "SUPPLEMENTED", "REJECTED", "EXEMPTED", "CLOSED"],
+      "uniqueKeys": [["tenant_id", "arrival_acceptance_id", "difference_no", "revision_no"], ["tenant_id", "arrival_acceptance_id", "difference_no", "current_marker"]],
+      "exemptionGuards": ["EXPLICIT_DEVICE_OR_ORDER_MODEL_QUANTITY_SCOPE", "APPROVER_AND_APPROVED_AT_REQUIRED", "EVIDENCE_REQUIRED", "EXPIRY_REVALIDATED"]
+    }
+  ],
+  "evidence": {
+    "ownerObject": "DeliveryEvidenceRevision",
+    "fileReference": "PLT:FileArtifactApi",
+    "event": "ImplementationEvidencePublished",
+    "archiveStatuses": ["NOT_PUBLISHED", "ARCHIVE_PENDING_RETRY", "ARCHIVED", "ARCHIVE_REJECTED"],
+    "archiveFailurePolicy": "DO_NOT_ROLL_BACK_CONFIRMED_ACCEPTANCE_AND_DO_NOT_REPORT_ARCHIVED"
+  },
+  "expectedScope": {
+    "orderScopeOwner": "COM:DeliveryScopeApi.getAssignedScope",
+    "deviceFactOwner": "AST:DeviceScopeFactApi",
+    "watermark": ["deliveryScopeVersion", "deviceAssignmentVersions"],
+    "pendingAuthorityPolicy": "EXCLUDED_AND_FAILS_CLOSED"
+  },
+  "migration": {
+    "strategy": "CURRENT_FORWARD",
+    "legacySource": "pms_eng_arrival",
+    "mappingAudit": "specs/features/F-IMP-002-legacy-reuse-audit.md",
+    "unmappableDisposition": "PRESERVE_LEGACY; WHEN_ROOT_IDENTITY_IS_VALID_RECORD_PENDING_RECONCILIATION_ON_TARGET, OTHERWISE_RECORD_MIGRATION_REJECTION_EVIDENCE; NEVER_CREATE_ACCEPTED_FACT",
+    "forbiddenInferences": ["LEGACY_TINYINT_TO_ACCEPTED", "SHIPMENT_TO_ACCEPTED", "RAW_ATTACHMENT_URL_TO_EVIDENCE", "TEST_SEED_TO_PRODUCTION_FACT"]
+  },
+  "apiPrefix": "/api/v1/pms/arrival-acceptances",
+  "internalApi": "ArrivalAcceptanceFactApi",
+  "permissions": ["pms:arrival-acceptance:query", "pms:arrival-acceptance:create", "pms:arrival-acceptance:edit-own-draft", "pms:arrival-acceptance:confirm", "pms:arrival-acceptance:resolve-difference"]
+}

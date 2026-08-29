@@ -80,7 +80,7 @@
 
 | 数据对象 | 来源证据/现有实体 | 策略 | 迁移落位与禁止推断 |
 |---|---|---|---|
-| `ArrivalAcceptance` | 当前`pms_eng_arrival`；旧发货/装箱事实作对账 | CURRENT_FORWARD+RELATION | 当前到货记录迁批次/结果；订单行和发货事实只作范围/数量对账，不自动代表签收 |
+| `ArrivalAcceptance` | 当前`pms_eng_arrival`；COM DeliveryScope与旧发货/装箱事实作范围对账 | CURRENT_FORWARD+RELATION | 仅迁可证明的批次身份、项目、时间、操作者引用和说明；旧设备先映射AST稳定ID，URL先转有效FileReference。旧0/1/2状态、数量、说明、发货/装箱或种子均不能单独产生ACCEPTED；缺应到范围、设备/数量、证据或差异完整性的行保留旧记录并待核对 |
 | `InstallationRecord` | 当前`pms_eng_installation`；旧`pm_project_shipment`安装地址 | CURRENT_FORWARD+SNAPSHOT | 当前安装事实迁移；旧安装地址只能形成发生时位置候选，不能补造确认结论 |
 | `ConfigurationCollectionResult` | 当前`pms_eng_configuration`、设备配置Log；外部采集结果 | CURRENT_FORWARD+EXTERNAL_SYNC | 保存任务/设备/结果版本/解析尝试和文件引用；不迁连接秘密 |
 | `JointDebuggingResult` | 当前`pms_eng_joint_test` | CURRENT_FORWARD | 按业务任务和结果版本迁移，问题只保存引用 |

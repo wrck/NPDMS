@@ -7,7 +7,7 @@
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
-> 硬依赖：`F-IMP-001`、`F-AST-002`、`F-PROJ-003`
+> 硬依赖：`F-IMP-001`、`F-PROJ-003`、`T-FIMP001-AST-01`
 
 ## 当前最小工作单元
 

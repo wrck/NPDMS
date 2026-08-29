@@ -4,7 +4,7 @@
   "coverage": "PARTIAL",
   "owner": "IMP",
   "aggregate": "ImplementationReadinessSnapshot",
-  "hardDependencies": ["F-IMP-002", "F-IMP-003", "F-IMP-004", "F-IMP-005", "F-AST-002", "F-PROJ-003"],
+  "hardDependencies": ["F-IMP-002", "F-IMP-003", "F-IMP-004", "F-IMP-005", "F-PROJ-003", "T-FIMP001-AST-01"],
   "sourceFactApis": [
     "ArrivalAcceptanceFactApi",
     "InstallationCompletionFactApi",

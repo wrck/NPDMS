@@ -171,7 +171,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 
 | 聚合根 | 聚合内实体/值对象 | Owner 事实 | 跨域引用 |
 |---|---|---|---|
-| ArrivalAcceptance | ArrivalLine、ArrivalDifference、SignerSnapshot | 到货批次、实收数量、差异、签收结果和证据 | Project、Device、OrderLine、FileReference |
+| ArrivalAcceptance | ArrivalLine、ArrivalDifference、SignerSnapshot、ArrivalExpectedScopeSnapshot | 到货批次、COM DeliveryScope版本化应到范围、AST设备归属版本、实收数量、差异/拒收/具体豁免、签收结果和不可变证据；豁免作为差异处置版本，不另建无Owner聚合 | Project、Device、OrderLine、FileReference |
 | InstallationRecord | InstallationItem、LocationSnapshot、InstallationEvidence | 一次安装、迁移或拆除记录、位置、结果、照片和确认 | Project、Device、Address/Site/SiteLocation、ArrivalAcceptance |
 | ConfigurationCollectionResult | ParseAttempt、ResultReference、ParserVersion、ComponentParseCandidate | 配置 Log 回调、原始整机证据、框/槽/板卡解析候选、解析版本和业务确认 | CollectionTask、Device、DeviceComponentRelation、FileReference |
 | JointDebuggingResult | DebuggingItem、IssueReference、ResultReference | 联调输入、结论、问题引用和确认 | CollectionTask、Device、ProjectTask |

@@ -6,7 +6,8 @@
 > Requirement切片覆盖：`EXE-06@V1=PARTIAL`
 > Owner Context：`IMP（现场实施）`
 > 消费Feature：`F-CUT-002`
-> 前置Feature：`F-IMP-002`、`F-IMP-003`、`F-IMP-004`、`F-IMP-005`、`F-AST-002`、`F-PROJ-003`
+> 前置Feature：`F-IMP-002`、`F-IMP-003`、`F-IMP-004`、`F-IMP-005`、`F-PROJ-003`
+> AST支撑Task：`T-FIMP001-AST-01`（物理Owner AST；不形成独立Feature Done）
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
 
@@ -37,7 +38,7 @@
 
 - IMP唯一拥有`ImplementationReadinessSnapshot`和`imp_implementation_readiness_snapshot`；PROJ只拥有`proj_project_stage_snapshot`，不得承载EXE-06快照。
 - F-IMP-002～005分别通过`ArrivalAcceptanceFactApi`、`InstallationCompletionFactApi`、`ConfigurationCompletionFactApi`、`JointDebuggingCompletionFactApi`返回明确业务结果及版本水位。F-IMP-001不得依赖其`-biz`、Service、Mapper、DO或业务表。
-- PROJ使用`ProjectScopeApi.ACTION_EDIT`合并本人参与、负责或明确授权项目；AST通过F-AST-002 `DeviceScopeFactApi`提供明确设备ID、序列号、当前项目归属及归属版本事实。
+- PROJ使用`ProjectScopeApi.ACTION_EDIT`合并本人参与、负责或明确授权项目；AST通过`T-FIMP001-AST-01`交付的`DeviceScopeFactApi`提供明确设备ID、序列号、当前项目归属及归属版本事实。该支撑Task复用F-AST-001现有Device聚合，不新增表，也不形成独立Feature Done。
 - F-CUT-002只消费IMP公开事实，不直接查询IMP表，也不能以Provider调用成功替代`READY`判定。
 - 硬依赖形成顺序：EXE-01～04权威事实 → F-IMP-001快照Provider → F-CUT-002真实创建/继续验收。
 
@@ -113,4 +114,4 @@
 
 已完成：SDS物理Owner冲突已纠正为`imp_implementation_readiness_snapshot`，生成投影和Phase 3验证通过。
 
-已形成F-IMP-002～005和F-AST-002的DRAFT Owner Feature Spec与公开契约，但尚未通过各自Feature Ready评审；旧`pms_eng_*`字段映射仍为`PENDING_FIELD_MAPPING/REBUILD_AFTER_OWNERS`，F-AST-001生产Device聚合可用性也需核验。上述设计输入通过独立评审后，才可重审F-IMP-001 Feature Ready；相关Feature Ready通过后可使用受控替身实施不依赖生产事实的部分，EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。
+F-IMP-002～005仍须分别通过Feature Ready；旧`pms_eng_*`映射须按各Feature锁定。F-AST-001现有`ast_device`已核验具备稳定设备ID、当前项目和归属版本，`DeviceScopeFactApi`改由`T-FIMP001-AST-01`承接，机器契约仍须通过评审并由AST Owner实现。上述设计输入通过独立评审后，才可重审F-IMP-001 Feature Ready；相关Feature Ready通过后可使用受控替身实施不依赖生产事实的部分，EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。

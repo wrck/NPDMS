@@ -5,7 +5,8 @@
 > Requirement：`EXE-02（V1/P0）`
 > Requirement切片覆盖：`EXE-02@V1=FULL`
 > Owner Context：`IMP（现场实施）`
-> 前置Feature：`F-IMP-002`、`F-AST-001`、`F-AST-002`
+> 前置Feature：`F-IMP-002`、`F-AST-001`
+> AST支撑Task：`T-FIMP001-AST-01`
 
 ## 1. 业务目标与范围
 

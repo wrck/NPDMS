@@ -5,7 +5,8 @@
 > Requirement：`CUT-01（V1/P0）`、`CUT-02（V1/P0）`
 > Requirement切片覆盖：`CUT-01@V1=PARTIAL；CUT-02@V1=PARTIAL`
 > Owner Context：`CUT（变更切换与稳定治理）`
-> 前置Feature：`F-CUT-001`、`F-PROJ-003`、`F-PROJ-007`、`F-IMP-001`、`F-AST-002`
+> 前置Feature：`F-CUT-001`、`F-PROJ-003`、`F-PROJ-007`、`F-IMP-001`
+> AST支撑Task：`T-FIMP001-AST-01`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
 > 旧实现复用审计：`specs/features/F-CUT-002-legacy-reuse-audit.md`
@@ -93,7 +94,7 @@ GRADE_CONFIRMING --submit D--> PLAN_DRAFTING
 
 内部`CutoverTaskIntakeApi`只接受受信租户与来源主体，提供ITR/项目事件创建契约；本Feature不实现任何Producer或第三方客户端。
 
-CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围，通过F-AST-002 `DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`，通过CUS公开API消费客户事实。禁止依赖其他Context的Service、Mapper、DO或业务表。
+CUT通过`ImplementationReadinessApi.inspect/lockAndRevalidate`消费IMP；通过`ProjectScopeApi.ACTION_EDIT`消费“本人参与、负责或明确授权项目”范围，通过AST物理Owner支撑Task `T-FIMP001-AST-01`的`DeviceScopeFactApi`消费`deviceId/currentProjectId/projectAssignmentVersion`，通过CUS公开API消费客户事实。禁止依赖其他Context的Service、Mapper、DO或业务表。
 
 ## 5. 数据与迁移边界
 

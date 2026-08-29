@@ -11,6 +11,12 @@
 |---|---|---|---|---|
 | ImplementationEvidencePublished | EXE-01～EXE-06、IMP-01、ACC-04 | Implementation Execution | Acceptance & Closure | 实施证据、来源版本、哈希和检查快照已发布 |
 | ImplementationReadinessSnapshot | EXE-06、CUT-01 | Implementation Execution | Cutover | 割接前实施门禁快照，仅供 CUT 校验 |
+| `ArrivalAcceptanceFactApi` | EXE-01、EXE-02、EXE-06 | Implementation Execution / F-IMP-002 | F-IMP-003、F-IMP-001 | 按项目、设备/订单数量范围返回`ACCEPTED/NOT_ACCEPTED/STALE`、稳定有序`sourceAcceptanceIds`、项目级单调`factVersion`、由DeliveryScope版本和设备归属版本组成的`scopeWatermark`、已签/豁免/未满足范围与`reopened`；提供无副作用`inspect/lockAndRevalidate`，不返回DO、文件正文或签收人隐私 |
+| `InstallationCompletionFactApi` | EXE-02、EXE-06 | Implementation Execution / F-IMP-003 | F-IMP-001 | 按稳定设备范围返回`COMPLETED/NOT_COMPLETED/STALE`、安装来源对象、业务版本、范围水位及`reopened`，并按期望版本锁定重验；不以位置投影或附件替代安装完成事实 |
+| `ConfigurationCompletionFactApi` | EXE-03、EXE-06 | Implementation Execution / F-IMP-004 | F-IMP-001 | 按稳定设备和批准模板/采集版本返回`COMPLETED/NOT_COMPLETED/STALE`、结果版本、范围水位及`reopened`，并锁定重验；采集任务受理、原始Log存在或解析尝试不等于配置完成 |
+| `JointDebuggingCompletionFactApi` | EXE-04、EXE-06 | Implementation Execution / F-IMP-005 | F-IMP-001 | 按项目/设备/联调项范围返回`COMPLETED/NOT_COMPLETED/STALE`、结果版本、范围水位及`reopened`，并锁定重验；问题未闭环或证据失效时失败关闭 |
+| `DeviceScopeFactApi` | EQP-01、EXE-01～EXE-06、CUT-01 | AST / F-AST-001 Device聚合（`T-FIMP001-AST-01`支撑Task） | IMP、CUT | `resolveBySerials/lockAndRevalidate`返回稳定有序`deviceId/sn/currentProjectId/projectAssignmentVersion`和结构化范围水位；只证明设备身份与当前直接项目归属，不替代ProjectScope主体授权、DeliveryScope应到数量或业务完成事实；复用`ast_device`且不新增独立业务Feature或表 |
+| `DeliveryScopeApi.getAssignedScope` | COM-01、EXE-01 | Commerce | Implementation Execution / F-IMP-002 | 按项目和期望`scopeVersion`返回当前有效订单行、已分配数量、单位、产品/型号维度及明确SN集合；待权威确认、取消、退货或已释放量不进入应到范围，版本未知或过期失败关闭 |
 | CollectionTaskRequested | INT-12、EXE-03、EXE-04、CUT-03、INS-02、INS-04 | Implementation Execution/Cutover/Inspection | Device Access & Collection | 业务 Context 请求受控下发任务；只传业务对象、设备、命令模板和授权引用，不传永久凭证权限或明文密码 |
 | CollectionTaskAccepted | INT-12、EXE-03、EXE-04、CUT-03、INS-02、INS-04 | Device Access & Collection | Implementation Execution/Cutover/Inspection | 采集任务已通过服务端授权校验并被接受，返回统一任务号和当前下发状态；不表示外部执行或业务处理成功 |
 | CollectionResultCallback | INT-12、EXE-03、EXE-04、CUT-03、INS-02、INS-04 | 外部采集平台 | Device Access & Collection | 回调原值、签名、外部任务号和结果引用；重复回调幂等 |
