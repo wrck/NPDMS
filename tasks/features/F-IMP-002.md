@@ -22,6 +22,8 @@
 - Task 3A正向持久化已完成：五表DO、批次详情/分页、明细与差异当前版本、证据及修订查询已落地；锁查询全部位于XML，并为后续应用服务按设备、订单行、批次、证据编排稳定锁序提供独立入口；空项目范围直接返回空结果，Mapper合约3项通过。
 - Task 3B正向事实查询已完成：仅从CONFIRMED批次读取ACCEPTED当前明细和未过期、已批准且有证据的明确豁免，项目事实来源按事实版本和Owner ID稳定排序；Mapper合约累计4项通过。
 - Task 3剩余迁移游标查询随Task 2B继续暂停，不作为正向闭环前置；当前进入Task 4到货领域规则、批次状态机与项目事实计算。
+- Task 4A正向领域闭环已完成：DRAFT提交可进入DIFFERENCE_PENDING/PARTIALLY_ACCEPTED/ACCEPTED，项目经理从候选态确认CONFIRMED；项目事实按多批已确认设备/数量与未过期明确豁免计算ACCEPTED或剩余范围，领域测试4项通过。
+- Task 4剩余successor DRAFT、更正/补签和豁免失效重开随差异命令补充；为尽快形成首个正向闭环，当前进入Task 5A草稿创建、提交与确认应用服务，不让上述后置分支阻碍进度。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
