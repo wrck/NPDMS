@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.platform.api.file;
 
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSetsCommand;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArchiveReferenceSetFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
@@ -22,4 +24,6 @@ public interface FileArtifactApi {
             FileReferenceSetCollectionRevalidationQuery query);
 
     List<FileArtifactVersionFact> attachExistingVersions(AttachExistingFileVersionsCommand command);
+
+    FileArchiveReferenceSetFact archiveReferenceSets(ArchiveFileReferenceSetsCommand command);
 }

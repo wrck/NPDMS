@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSetsCommand;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
@@ -17,11 +18,13 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArchiveRecordMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry;
 import cn.iocoder.yudao.module.pms.platform.service.file.ExistingFileVersionAttachmentService;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +54,8 @@ class FileArtifactApiImplTest {
     @Mock FileVersionMapper versionMapper;
     @Mock FileReferenceMapper referenceMapper;
     @Mock ExistingFileVersionAttachmentService attachmentService;
+    @Mock FileArchiveRecordMapper archiveRecordMapper;
+    @Mock PermissionApi permissionApi;
 
     private FileArtifactApiImpl api;
 
@@ -62,13 +67,76 @@ class FileArtifactApiImplTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(user, null, List.of()));
         api = new FileArtifactApiImpl(policyRegistry, artifactMapper, versionMapper, referenceMapper,
-                attachmentService);
+                attachmentService, archiveRecordMapper, permissionApi);
     }
 
     @AfterEach
     void clear() {
         TenantContextHolder.clear();
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void archivesTheCompleteAcceptanceAttachmentSetForTheFrozenActor() {
+        FileReferenceSetKey attachmentKey = new FileReferenceSetKey(
+                "ACC", "ACCEPTANCE_REPORT_VERSION", "900", "ACCEPTANCE_REPORT_ATTACHMENT");
+        FileReferenceSetKey archiveKey = new FileReferenceSetKey(
+                "ACC", "ACCEPTANCE_REPORT_VERSION", "900", "ACCEPTANCE_REPORT_ARCHIVE");
+        FileReferenceDO attachment = reference();
+        attachment.setOwnerContext("ACC");
+        attachment.setObjectType("ACCEPTANCE_REPORT_VERSION");
+        attachment.setObjectId("900");
+        attachment.setPurposeCode("ACCEPTANCE_REPORT_ATTACHMENT");
+        when(permissionApi.hasAnyPermissions(19L, "pms:file:archive")).thenReturn(true);
+        when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
+        when(referenceMapper.selectSetForUpdate(any())).thenReturn(List.of(attachment), List.of());
+        FileArtifactDO artifact = artifact();
+        artifact.setOwnerContext("ACC");
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact);
+        when(versionMapper.selectForUpdate(any())).thenReturn(version());
+        when(referenceMapper.insert(any())).thenAnswer(invocation -> {
+            FileReferenceDO row = invocation.getArgument(0);
+            row.setId(31L);
+            return 1;
+        });
+        when(archiveRecordMapper.insert(any())).thenReturn(1);
+        FileArtifactVersionFact expected = new FileArtifactVersionFact(11L, 2, "slot-a", "EVIDENCE",
+                "evidence.pdf", 3L, "application/pdf", "a".repeat(64), "AVAILABLE", "ACTIVE",
+                new FileFactVersion(3, 4, 5), 8L);
+
+        var result = api.archiveReferenceSets(new ArchiveFileReferenceSetsCommand(
+                "operation-1", "archive-1", "ACC-REPORT:900", 19L,
+                attachmentKey, archiveKey, 8L, List.of(expected)));
+
+        assertEquals("ARCHIVED", result.archivedFacts().getFirst().referenceStatus());
+        assertEquals("slot-a", result.archivedFacts().getFirst().referenceKey());
+        var referenceCaptor = org.mockito.ArgumentCaptor.forClass(FileReferenceDO.class);
+        verify(referenceMapper).insert(referenceCaptor.capture());
+        assertEquals("ACCEPTANCE_REPORT_ARCHIVE", referenceCaptor.getValue().getPurposeCode());
+        assertEquals("ARCHIVED", referenceCaptor.getValue().getStatusCode());
+        var recordCaptor = org.mockito.ArgumentCaptor.forClass(
+                cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArchiveRecordDO.class);
+        verify(archiveRecordMapper).insert(recordCaptor.capture());
+        assertEquals(19L, recordCaptor.getValue().getArchivedBy());
+        verify(referenceMapper, never()).updateStateIfMatch(any());
+    }
+
+    @Test
+    void archiveRejectsRevokedActorBeforeFileWrites() {
+        FileReferenceSetKey attachmentKey = new FileReferenceSetKey(
+                "ACC", "ACCEPTANCE_REPORT_VERSION", "900", "ACCEPTANCE_REPORT_ATTACHMENT");
+        FileReferenceSetKey archiveKey = new FileReferenceSetKey(
+                "ACC", "ACCEPTANCE_REPORT_VERSION", "900", "ACCEPTANCE_REPORT_ARCHIVE");
+        FileArtifactVersionFact expected = new FileArtifactVersionFact(11L, 2, "slot-a", "EVIDENCE",
+                "evidence.pdf", 3L, "application/pdf", "a".repeat(64), "AVAILABLE", "ACTIVE",
+                new FileFactVersion(3, 4, 5), 8L);
+
+        assertThrows(ServiceException.class, () -> api.archiveReferenceSets(
+                new ArchiveFileReferenceSetsCommand("operation-1", "archive-1", "ACC-REPORT:900",
+                        19L, attachmentKey, archiveKey, 8L, List.of(expected))));
+
+        verify(referenceMapper, never()).insert(any());
+        verify(archiveRecordMapper, never()).insert(any());
     }
 
     @Test
