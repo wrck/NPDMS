@@ -72,6 +72,24 @@ V18_PHYSICAL_CARRIER_OBJECTS = (
     "TaskCompletionEvaluation",
     "CutoverChecklist",
 )
+FCOM001_V70_REQUIRED_TARGET_MAPPINGS = {
+    "OrderLine": {
+        "com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+    },
+    "DeliveryScope": {
+        "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_company_code": "com_sales_order_line.company_code:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_type": "com_sales_order_line.order_type:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.order_no": "com_sales_order_line.order_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.line_no": "com_sales_order_line.line_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.allocation_source": "APPROVED_CONSTANT:LEGACY;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        "com_delivery_scope.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+    },
+    "DeliveryScopeDetail": {
+        "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE",
+    },
+}
 
 
 def read(path: Path) -> str:
@@ -441,6 +459,39 @@ def validate_v18_migration_gate_evidence(root: Path) -> list[str]:
     return errors
 
 
+def validate_fcom001_v70_required_mappings(root: Path) -> list[str]:
+    """Reject F-COM-001 contracts that leave V70 required target fields to a later plan."""
+    path = root / "docs" / "traceability" / "domain-entity-migration-contract.json"
+    if not path.is_file():
+        return ["missing F-COM-001 managed migration contract"]
+    try:
+        contract = json.loads(read(path))
+    except (json.JSONDecodeError, OSError) as exc:
+        return [f"invalid F-COM-001 managed migration contract: {exc}"]
+    records = {
+        record.get("object"): record
+        for record in contract.get("records", [])
+        if isinstance(record, dict)
+    }
+    errors: list[str] = []
+    for object_name, expected in FCOM001_V70_REQUIRED_TARGET_MAPPINGS.items():
+        record = records.get(object_name, {})
+        source = next(
+            (
+                item for item in record.get("sources", [])
+                if isinstance(item, dict)
+                and item.get("sourceType") == "CURRENT_TABLE"
+                and item.get("gate") == "F-COM-001"
+            ),
+            None,
+        )
+        mappings = source.get("requiredTargetMappings", {}) if source else {}
+        for target_field, rule in expected.items():
+            if mappings.get(target_field) != rule:
+                errors.append(f"F-COM-001 V70 required target mapping missing or changed: {target_field}")
+    return errors
+
+
 def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> list[str]:
     """Validate the V1.8 contract in either review-pending or approved state."""
     errors: list[str] = []
@@ -547,6 +598,7 @@ def validate_v18_revalidation(root: Path, gate: str, approved: bool = False) -> 
     if leaked:
         errors.append(f"V1.8 removed/deferred requirements leaked into formal contracts: {sorted(leaked)}")
     errors.extend(validate_v18_migration_gate_evidence(root))
+    errors.extend(validate_fcom001_v70_required_mappings(root))
     errors.extend(validate_v18_physical_carriers(root))
     return errors
 
