@@ -1,12 +1,12 @@
 # F-COM-001 合同订单关联与交付范围分配
 
-> Feature实施状态：`IMPLEMENTATION_IN_PROGRESS`  
-> 总体工程阶段：`IMPLEMENTATION_IN_PROGRESS`  
+> Feature实施状态：`IMPLEMENTATION_COMPLETE`
+> 总体工程阶段：`IMPLEMENTATION_COMPLETE`
 > Feature Ready Gate：`PASS`  
 > Technical Plan Gate：`PASS / GO`（`c33b0836f71e0875008a084ff360e7027d276ec9`）  
-> Implementation Done Gate：`NOT_REVIEWED`  
+> Implementation Done Gate：`PASS / 563daac1 / 独立复审GO`
 > 当前阻断：`无`<br>
-> 当前任务：`Task 2 / Step 5：申请Implementation Done整改复审`
+> 当前任务：`F-COM-001实施完成；后续Gate未授权`
 > Requirement ID：`COM-01@V1`；协作`PM-03`、`PM-10`、`ACC-03`  
 > Feature Spec：`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md`  
 > Technical Plan：`docs/superpowers/plans/2026-08-29-f-com-001-contract-order-and-delivery-scope.md`  
@@ -49,4 +49,4 @@
 
 Task详细步骤、精确文件、命令和验收条件以唯一Technical Plan为准。Task局部完成不得宣称Feature或Requirement完成；全部实现和验证完成后只申请一次Feature Implementation Done裁决。
 
-> 检查点：基线=5e567281；当前Gate=Implementation Done整改复审；已通过=公司范围与零公司范围+项目授权分离身份Chromium/MySQL闭环PASS，ACC LOCKED/UNKNOWN/null/身份不一致分类及零写入定点测试12/12 PASS；阻塞=无；下一步=提交并申请同一Gate复审。
+> 检查点：基线=563daac1；当前Gate=Implementation Done GO；已通过=独立复审确认分离身份公开读取与ACC错误分类闭环，聚焦测试12/12及Chromium/MySQL证据PASS；阻塞=无；下一步=仅在获得授权后进入后续Gate或定位下一Feature。
