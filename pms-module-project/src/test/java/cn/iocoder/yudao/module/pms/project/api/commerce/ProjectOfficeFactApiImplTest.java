@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +49,7 @@ class ProjectOfficeFactApiImplTest {
         var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3));
 
         assertEquals(ProjectFactOutcome.FOUND, fact.outcome());
+        assertEquals("PROJ-10", fact.projectCode());
         assertEquals(20L, fact.officeDepartmentId());
         assertEquals("OFF-20", fact.officeDepartmentCode());
         assertEquals("杭州办事处", fact.officeDepartmentName());
@@ -75,6 +77,18 @@ class ProjectOfficeFactApiImplTest {
     }
 
     @Test
+    void blankProjectCodeFailsClosedBeforeUsingDepartmentFact() {
+        ProjectMasterDO project = project(1L, 3, "ACTIVE", 20L, "OFF-20");
+        project.setProjectCode("  ");
+        when(projectMapper.selectById(10L)).thenReturn(project);
+
+        var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3));
+
+        assertEquals(ProjectFactOutcome.NOT_FOUND, fact.outcome());
+        assertNull(fact.projectCode());
+    }
+
+    @Test
     void rejectsUntrustedTenant() {
         assertThrows(RuntimeException.class,
                 () -> api.resolve(new ProjectOfficeFactQuery(2L, 10L, 3)));
@@ -95,6 +109,7 @@ class ProjectOfficeFactApiImplTest {
         row.setId(10L);
         row.setTenantId(tenantId);
         row.setVersion(version);
+        row.setProjectCode("PROJ-10");
         row.setLifecycleStatus(lifecycleStatus);
         row.setDepartmentId(departmentId);
         row.setDepartmentCode(departmentCode);

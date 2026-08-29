@@ -362,6 +362,7 @@
       "provider": "REAL_PROVIDER_REQUIRED",
       "input": ["tenantId", "projectId", "expectedProjectVersion"],
       "outcomes": ["FOUND", "NOT_FOUND", "INACTIVE", "VERSION_CONFLICT"],
+      "successFacts": ["projectId", "projectVersion", "projectCode", "officeDepartmentId", "officeDepartmentCode", "officeDepartmentName", "officeDepartmentVersion"],
       "unknownPolicy": "FAIL_CLOSED"
     },
     "ProjectAcceptanceStageFactApi": {
@@ -448,6 +449,9 @@
     "rolePermissionMapping": "CONFIGURABLE_NOT_FROZEN_BY_FEATURE",
     "projectManagerDataScope": "APPROVED_PROJECT_SCOPE_ONLY",
     "emptyScope": "RETURN_EMPTY_NEVER_OMIT_FILTER"
+  },
+  "runtimeTargetMappings": {
+    "com_delivery_scope.project_code": "ProjectOfficeFactApi.projectCode:FOUND_ONLY_EXACT_SAME_PROJECT_AND_VERSION;FAIL_COMMAND_ON_BLANK_MISSING_OR_IDENTITY_CONFLICT"
   },
   "v70Conversion": {
     "strategy": "FROZEN_READ_SNAPSHOT_OR_WRITE_STOP_SINGLE_BATCH",

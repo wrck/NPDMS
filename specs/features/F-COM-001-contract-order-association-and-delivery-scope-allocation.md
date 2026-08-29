@@ -84,7 +84,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 ### BR-FCOM001-003 办事处快照与数据范围
 
-- 范围地点的权威来源是拆分或分配发生时目标项目所属的SYSTEM办事处部门。COM通过`ProjectOfficeFactApi`按同租户项目及期望项目版本取得稳定部门ID、编码、名称和版本，并冻结到`DeliveryScope`。
+- 范围地点的权威来源是拆分或分配发生时目标项目所属的SYSTEM办事处部门。COM通过`ProjectOfficeFactApi`按同租户项目及期望项目版本取得同一次读取或锁定的非空项目编码，以及稳定部门ID、编码、名称和版本，并冻结到`DeliveryScope`；项目编码保持PROJ原值，不接受客户端覆盖或由名称、ID、编码规则推导。
 - 项目组织关系或部门名称后续变化不得覆盖历史快照；调整必须关闭原有效区间并追加新版本。禁止从AST、地址、办事处名称或订单内容推断，V70办事处编码仅作来源证据。
 - 合同管理员首次合同可见范围的唯一来源是SYSTEM现有`OrganizationScopeApi.getActiveScopes(subjectUserId)`返回的当前有效`UserCompanyDepartmentScope`。仅取非空`companyCode`原值精确去重集合，与ERP合同所属公司编码精确匹配；部门、主范围标记、scopeRole和项目关系均不得扩大或缩小该公司集合，DeliveryScope也不得反推首次可见性。
 - 合同目录、详情、销售订单、订单行和项目—合同关系维护使用同一当前公司集合。列表的场景化Query必须携带非空公司编码集合；空范围或Owner未知、超时、不可用时列表为空，详情和写操作拒绝。合同公司编码缺失时不得从部门树、项目关系、名称或技术默认值推断。
@@ -156,7 +156,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 - 既有`DeliveryScopeApi`：保持F-PROJ-002的可用切片查询、拆分预览和原子应用语义；实现迁移到目标模型后返回结构与错误兼容，不要求PROJ访问COM表。
 - 既有`AssetDeviceScopeApi.validateAssignableSerials`（COM→AST）：当预览、分配或调整请求含序列号明细时，输入可信`tenantId`、目标承接`projectId`和去空白后的完整序列号集合；仅`valid=true`且缺失、不可分配、重复列表全空时通过。设备不存在、跨租户、状态不可分配、已归属其他项目、重复、Provider异常/超时/不可用均失败关闭并保持COM零写入。该接口不返回设备版本令牌，因此预览结果不得缓存或用于授权写入；每个写命令必须在写入前重新调用，后续调整再次重验，Technical Plan不得自行引入跳过或“沿用上次成功”策略。
 - 既有`ProjectParticipantFactApi.inspect`（COM通知→PROJ）：以目标项目、空`subjectUserId`、`PROJECT_MANAGER`和请求时间读取唯一当前项目经理`userId/projectVersion/factVersion`；用于填充冲突通知收件人。无唯一事实或Provider不可用时使用可重试逻辑角色收件人，不伪造用户、不回滚冲突冻结。
-- `ProjectOfficeFactApi.resolve`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion`，仅`FOUND`返回同版本SYSTEM办事处稳定ID/编码/名称/版本；其他结果失败关闭。
+- `ProjectOfficeFactApi.resolve/lockAndRevalidate`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion`，仅`FOUND`返回同一次读取或锁定且通过期望版本校验的非空`projectCode`与SYSTEM办事处稳定ID/编码/名称/版本；项目编码空白或其他结果均失败关闭。COM以该`projectCode`写`DeliveryScope.projectCode`，不得信任外部命令或访问PROJ表补齐。
 - `ProjectAcceptanceStageFactApi.lockAndRead`（COM→PROJ）：输入`tenantId/projectId/expectedProjectVersion/operationId`，锁项目当前行并返回当前阶段、项目设定验收阶段及适用`projectStageSnapshotId`。
 - `AcceptanceScopeGuardApi.checkReduction`（COM→ACC）：输入项目、范围、当前分配版本、拟调整数量及operationId，返回`UNLOCKED/LOCKED/UNKNOWN`；后两者及不可用均禁止普通减量。
 - `DeliveryScopeAcceptanceLockApi.lockCurrentByProject`（ACC→COM）：在PROJ已锁项目行后按稳定范围ID锁定并返回全部当前有效`deliveryScopeId/allocationVersion`，部分失败整体失败。

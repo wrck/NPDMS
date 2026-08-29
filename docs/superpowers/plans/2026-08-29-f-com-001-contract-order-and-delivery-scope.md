@@ -74,7 +74,9 @@ public interface AcceptanceScopeBindingApi {
 }
 ```
 
-- `ProjectOfficeFactQuery`固定`tenantId/projectId/expectedProjectVersion`，结果枚举仅为`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`；FOUND返回项目版本和SYSTEM部门`id/code/name/version`。预览使用`resolve`，写命令使用`MANDATORY`的`lockAndRevalidate`，两者不得切换Owner来源或结果语义。
+`ProjectOfficeFactApi`的`FOUND`结果从同一次已通过期望版本校验的ProjectMaster读取非空`projectCode`，并与办事处稳定ID/编码/名称/版本共同返回；COM只使用该Owner事实写`DeliveryScope.projectCode`，项目编码空白、身份或版本不一致时零写入，不接受客户端值且不访问PROJ表。
+
+- `ProjectOfficeFactQuery`固定`tenantId/projectId/expectedProjectVersion`，结果枚举仅为`FOUND/NOT_FOUND/INACTIVE/VERSION_CONFLICT`；FOUND返回同一次读取或锁定的项目版本、非空项目编码和SYSTEM部门`id/code/name/version`。预览使用`resolve`，写命令使用`MANDATORY`的`lockAndRevalidate`，两者不得切换Owner来源或结果语义。
 - `ProjectAcceptanceStageFactQuery`固定`tenantId/projectId/expectedProjectVersion/operationId`；PROJ锁项目当前行，从项目冻结阶段实例识别其验收阶段，只有当前阶段与该阶段一致时返回当前只追加`projectStageSnapshotId`。
 - `AcceptanceScopeGuardResult`固定`UNLOCKED/LOCKED/UNKNOWN`、`acceptanceFactVersion`和最小锁定引用；UNKNOWN与Provider不可用对减量失败关闭。
 - `AcceptanceScopeBindingApi`写方法标注`@Transactional(propagation = MANDATORY)`；同身份同请求返回原结果，同身份异请求拒绝。

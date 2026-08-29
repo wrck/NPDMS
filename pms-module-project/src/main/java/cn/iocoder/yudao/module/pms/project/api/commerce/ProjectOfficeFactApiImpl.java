@@ -52,6 +52,9 @@ public class ProjectOfficeFactApiImpl implements ProjectOfficeFactApi {
         if (!ACTIVE.equals(project.getLifecycleStatus())) {
             return outcome(ProjectFactOutcome.INACTIVE, project.getId(), project.getVersion());
         }
+        if (project.getProjectCode() == null || project.getProjectCode().isBlank()) {
+            return outcome(ProjectFactOutcome.NOT_FOUND, project.getId(), project.getVersion());
+        }
         if (project.getDepartmentId() == null || project.getDepartmentId() <= 0
                 || project.getDepartmentCode() == null || project.getDepartmentCode().isBlank()) {
             return outcome(ProjectFactOutcome.NOT_FOUND, project.getId(), project.getVersion());
@@ -73,6 +76,7 @@ public class ProjectOfficeFactApiImpl implements ProjectOfficeFactApi {
             return outcome(ProjectFactOutcome.NOT_FOUND, project.getId(), project.getVersion());
         }
         return new ProjectOfficeFact(ProjectFactOutcome.FOUND, project.getId(), project.getVersion(),
+                project.getProjectCode(),
                 department.getId(), department.getCode().trim(), department.getName().trim(),
                 department.getVersion());
     }
@@ -94,6 +98,6 @@ public class ProjectOfficeFactApiImpl implements ProjectOfficeFactApi {
     }
 
     private ProjectOfficeFact outcome(ProjectFactOutcome outcome, Long projectId, Integer version) {
-        return new ProjectOfficeFact(outcome, projectId, version, null, null, null, null);
+        return new ProjectOfficeFact(outcome, projectId, version, null, null, null, null, null);
     }
 }

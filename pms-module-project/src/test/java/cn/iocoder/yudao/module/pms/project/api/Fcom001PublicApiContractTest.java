@@ -24,7 +24,7 @@ class Fcom001PublicApiContractTest {
         assertEquals(officeFact, officeApi.getDeclaredMethod("lockAndRevalidate", officeQuery).getReturnType());
         assertEquals(stageFact, stageApi.getDeclaredMethod("lockAndRead", stageQuery).getReturnType());
         assertRecordComponents(officeQuery, "tenantId", "projectId", "expectedProjectVersion");
-        assertRecordComponents(officeFact, "outcome", "projectId", "projectVersion",
+        assertRecordComponents(officeFact, "outcome", "projectId", "projectVersion", "projectCode",
                 "officeDepartmentId", "officeDepartmentCode", "officeDepartmentName", "officeDepartmentVersion");
         assertRecordComponents(stageQuery, "tenantId", "projectId", "expectedProjectVersion", "operationId");
         assertRecordComponents(stageFact, "outcome", "projectId", "projectVersion", "currentStageCode",
