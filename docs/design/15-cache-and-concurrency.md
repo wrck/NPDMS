@@ -53,6 +53,7 @@
 | DynamicFormTemplate/Revision | templateVersion + draftVersion；发布revision不可变 | 新建模板初始DISABLED；发布、创建下一草稿和启停锁定模板及当前指针，冲突重新读取，不替换请求中的修订 |
 | DynamicFormInstance | instanceVersion + frozen revision identity | 普通字段部分PATCH只按CAS更新请求字段；后到请求不覆盖，模板发布/停用不改既有实例 |
 | Arrival/Installation/Quality | aggregateVersion | 提交/确认/整改复核按状态守卫重试 |
+| ImplementationReadinessSnapshot | projectId + snapshotNo + EXE-01～04 factVersion/watermark + device assignmentVersion + approvedSolutionVersion | 评估在事务中分配唯一序号并追加快照；任一来源变化返回`STALE/NOT_READY`，不按旧READY继续 |
 | DeviceAssignment | device assignmentVersion + project treeVersion | 一次只有一个当前归属；冲突人工核对 |
 | DeliveryScope | orderLineVersion + allocationVersion | 重新计算可分配量，不允许超分配 |
 | CollectionTask | aggregateVersion + callback sequence/version | 重复幂等；乱序暂存，不回退状态 |

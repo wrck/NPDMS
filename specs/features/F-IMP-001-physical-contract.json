@@ -4,7 +4,15 @@
   "coverage": "PARTIAL",
   "owner": "IMP",
   "aggregate": "ImplementationReadinessSnapshot",
-  "hardDependencies": ["EXE-01@V1", "EXE-02@V1", "EXE-03@V1", "EXE-04@V1"],
+  "hardDependencies": ["F-IMP-002", "F-IMP-003", "F-IMP-004", "F-IMP-005", "F-AST-002", "F-PROJ-003"],
+  "sourceFactApis": [
+    "ArrivalAcceptanceFactApi",
+    "InstallationCompletionFactApi",
+    "ConfigurationCompletionFactApi",
+    "JointDebuggingCompletionFactApi",
+    "DeviceScopeFactApi",
+    "ProjectScopeApi.ACTION_EDIT"
+  ],
   "consumerFeatures": ["F-CUT-002"],
   "table": {
     "name": "imp_implementation_readiness_snapshot",

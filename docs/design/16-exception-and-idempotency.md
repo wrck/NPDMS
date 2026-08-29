@@ -47,6 +47,7 @@
 | API 创建/命令 | `Idempotency-Key` | tenant + endpoint/command + actor/business object | 返回原资源/operation 和响应摘要 |
 | 动态表单模板/实例命令 | `Idempotency-Key` | tenant + command + actor + template/revision/instance intent | 新建模板、下一草稿、发布、启停或手工实例同载荷重放原结果；业务实例由消费Context外层命令持有唯一幂等记录，PLT写/持锁API以`MANDATORY`加入且不得自开事务；完成/克隆同时校验PLT与Owner双版本 |
 | 项目授权创建/撤权 | `Idempotency-Key` | tenant + actor + project/grant + command | 同键同摘要返回原授权或撤权版本；同键不同摘要拒绝 |
+| 实施就绪评估 | `Idempotency-Key` | tenant + `IMP_READINESS_EVALUATE` + project + actor | 同键同规范化项目/设备/方案请求返回原快照；同键异请求冲突；Provider失败不产生READY或成功事件 |
 | 外部入向 | source eventId 或 sourceKey+version | sourceSystem + interfaceCode | 返回已处理结果；旧版本忽略 |
 | 钉钉待办/通知回执 | providerMessageId+状态版本 | tenant + DingTalk notification | 更新同一通知投递状态，不推进业务状态 |
 | 财务出向 | 费用单ID+批准版本 | tenant + finance interface | 查询/返回原财务业务单 |

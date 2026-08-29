@@ -329,6 +329,7 @@ ADR-0029定义工作绑定逻辑边界，ADR-0030进一步确认“模板定义�
 | ConfigurationCollectionResult | `imp_configuration_collection_result` | `imp_configuration_collection_parse_attempt` | `uk(tenant_id, collection_task_id, result_type_code, result_version_no)`；根保存项目/设备快照、脚本/解析器版本、原始整机Log文件引用及哈希；解析尝试追加 |
 | ConfigurationCollectionResult解析候选 | `imp_configuration_collection_result` | `imp_configuration_component_candidate` | 保存机框SN、槽位、板卡SN/型号、解析 revision、解析器版本、板卡配置引用和匹配状态；不能覆盖原始Log或直接改写已生效设备关系 |
 | JointDebuggingResult | `imp_joint_debugging_result` | `imp_joint_debugging_item` | 业务任务 + 结果版本唯一 |
+| ImplementationReadinessSnapshot | `imp_implementation_readiness_snapshot` | 设备范围、EXE-01～04来源事实向量和未满足项使用结构化JSON快照 | `uk(tenant_id, project_id, readiness_type, snapshot_no)`；保存项目/设备归属/批准方案/来源版本及`READY/NOT_READY`；只追加且不从旧`pms_eng_*`或PROJ阶段快照重建READY |
 | ImplementationRisk | `imp_risk` | `imp_risk_treatment` | 状态迁移另记历史；不与 CUT risk 共表 |
 | ImplementationQualityCheck | `imp_quality_check` | `imp_quality_item`、`imp_quality_remediation`、`imp_quality_review` | 整改与复核追加；当前状态由聚合根维护 |
 | DeliveryEvidence | `imp_delivery_evidence` | `imp_delivery_evidence_revision` | `uk(tenant_id, evidence_id, revision_no)`；文件引用+哈希 |

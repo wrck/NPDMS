@@ -13,7 +13,7 @@
 
 ## 当前最小工作单元
 
-- 关闭Feature Ready前置：冻结EXE-01～04 Owner Feature Spec、公开事实契约、字段/状态/完整性映射与AST设备范围稳定事实契约。
+- 将F-IMP-002～005、F-AST-002公开事实契约和复用映射分别通过Feature Ready评审，并核验F-AST-001生产Device聚合可用性。
 - Feature Ready后可生成Technical Plan并用受控替身实施不依赖生产事实的部分；生产Owner事实未形成前不声明Implementation Done。
 
 ## 已完成
@@ -22,10 +22,12 @@
 - 已纠正SDS下游投影：EXE-06物理表统一为`imp_implementation_readiness_snapshot`。
 - 已完成旧arrival/installation/configuration/jointtest后端、前端、迁移、测试和公共API复用审计。
 - 已形成DRAFT Feature Spec、物理契约、公开API边界、权限、幂等和验收分层。
+- 已将副作用评估从旧只读GET拆为`POST actions/evaluate`，并在正式SDS锁定查询/历史/重验、并发、幂等、审计和测试边界。
+- 已新建F-IMP-002～005与F-AST-002 DRAFT Feature Spec，登记稳定Owner契约及合入顺序。
 
 ## 阻断
 
-- EXE-01@V1、EXE-02@V1、EXE-03@V1、EXE-04@V1均为`NOT_STARTED`，对应Owner Feature Spec和公开事实契约尚未锁定。
+- F-IMP-002～005与F-AST-002仍为`DRAFT / NOT_READY / NOT_STARTED`，公开事实契约尚未通过独立评审。
 - `ImplementationReadinessSnapshot`迁移策略为`REBUILD_AFTER_OWNERS`，旧`pms_eng_*`状态不能直接升级。
 - AST现有按SN校验接口不返回冻结设备范围所需的稳定设备ID与归属版本；需AST Owner先锁定公开契约，生产实现是Implementation Done硬依赖。
 

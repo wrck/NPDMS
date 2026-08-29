@@ -6,7 +6,7 @@
 > Requirement切片覆盖：`EXE-06@V1=PARTIAL`
 > Owner Context：`IMP（现场实施）`
 > 消费Feature：`F-CUT-002`
-> 前置Requirement：`EXE-01@V1`、`EXE-02@V1`、`EXE-03@V1`、`EXE-04@V1`
+> 前置Feature：`F-IMP-002`、`F-IMP-003`、`F-IMP-004`、`F-IMP-005`、`F-AST-002`、`F-PROJ-003`
 > 适用基线：PRD V1.8；SDS Phase 1/2/3 `BASELINE`
 > 独立裁决：`NO-GO`（锁定提交`72ccb83f8052758e70fc585b1226403b6a825311`）
 
@@ -36,8 +36,8 @@
 ## 3. Owner与依赖
 
 - IMP唯一拥有`ImplementationReadinessSnapshot`和`imp_implementation_readiness_snapshot`；PROJ只拥有`proj_project_stage_snapshot`，不得承载EXE-06快照。
-- EXE-01～04必须分别通过公开Owner契约返回明确业务结果及版本水位。F-IMP-001不得依赖其`-biz`、Service、Mapper、DO或业务表。
-- PROJ提供项目范围、项目经理与项目版本事实；AST提供明确设备ID、序列号、当前项目归属及归属版本事实。
+- F-IMP-002～005分别通过`ArrivalAcceptanceFactApi`、`InstallationCompletionFactApi`、`ConfigurationCompletionFactApi`、`JointDebuggingCompletionFactApi`返回明确业务结果及版本水位。F-IMP-001不得依赖其`-biz`、Service、Mapper、DO或业务表。
+- PROJ使用`ProjectScopeApi.ACTION_EDIT`合并本人参与、负责或明确授权项目；AST通过F-AST-002 `DeviceScopeFactApi`提供明确设备ID、序列号、当前项目归属及归属版本事实。
 - F-CUT-002只消费IMP公开事实，不直接查询IMP表，也不能以Provider调用成功替代`READY`判定。
 - 硬依赖形成顺序：EXE-01～04权威事实 → F-IMP-001快照Provider → F-CUT-002真实创建/继续验收。
 
@@ -65,7 +65,7 @@
 
 ### BR-FIMP001-004 权限与审计
 
-- 项目经理只能评估本人负责且处于允许实施阶段的项目；获授权项目成员只能查询可见历史。
+- 项目经理只能评估本人负责且处于允许实施阶段的项目；历史查询使用`ACTION_VIEW`，评估命令使用`ACTION_EDIT`并叠加项目经理业务守卫。
 - CUT内部消费使用受信租户和明确业务动作，仍需校验项目/设备范围及快照版本，不能继承项目经理发起权限。
 - 审计记录项目、设备ID、来源对象与版本、前后判定、未满足项、快照ID、操作者和时间；不复制文件正文、设备凭证或配置Log正文。
 
@@ -113,4 +113,4 @@
 
 已完成：SDS物理Owner冲突已纠正为`imp_implementation_readiness_snapshot`，生成投影和Phase 3验证通过。
 
-未满足：EXE-01～04的Owner Feature Spec、公开事实契约和字段/状态/完整性映射尚未锁定；旧`pms_eng_*`字段映射仍为`PENDING_FIELD_MAPPING/REBUILD_AFTER_OWNERS`；AST按序列号返回明确设备ID与归属版本的公共事实契约尚未冻结。上述设计输入关闭并独立评审后，本Feature可进入实施并使用受控替身完成不依赖生产事实的验证；EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。
+已形成F-IMP-002～005和F-AST-002的DRAFT Owner Feature Spec与公开契约，但尚未通过各自Feature Ready评审；旧`pms_eng_*`字段映射仍为`PENDING_FIELD_MAPPING/REBUILD_AFTER_OWNERS`，F-AST-001生产Device聚合可用性也需核验。上述设计输入通过独立评审后，才可重审F-IMP-001 Feature Ready；相关Feature Ready通过后可使用受控替身实施不依赖生产事实的部分，EXE-01～04与AST生产事实未形成前仍不得声明Implementation Done或真实浏览器闭环。

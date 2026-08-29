@@ -192,9 +192,13 @@ SOL不再拥有通用`/form-schemas`或`/form-instances`。PRE-04及其他SOL Fe
 | ImplementationRisk | `/implementation-risks` | `raise`、`treat`、`close`；不调用 CUT 风险状态接口 |
 | ImplementationQualityCheck | `/quality-checks` | `submit`、`review`、`complete-remediation`、`re-review` |
 | DeliveryEvidence | `/implementation-evidence`, `/{id}/versions` | 上传/替换草稿；ACC 审核归档，不由 IMP 调归档命令 |
-| Readiness | `/implementation-readiness/{projectId}` | 只读门禁查询，返回快照版本与未满足项；供 CUT 执行前校验 |
+| Readiness | `GET /implementation-readiness/{projectId}`、`GET /implementation-readiness/{projectId}/history`、`POST /implementation-readiness/{projectId}/actions/evaluate` | GET只读最新/历史快照；`evaluate`由项目经理使用`Idempotency-Key`实时读取EXE-01～04公开事实并追加不可变快照，不改变CUT或项目状态 |
 
 到货、安装、质量和安全接口按聚合独立分页和状态；不得恢复为一个通用“现场执行单” CRUD。
+
+IMP对CUT公开`ImplementationReadinessApi.inspect/lockAndRevalidate`：输入明确快照ID/版本、项目、设备ID及归属版本、批准方案和来源事实版本；返回`READY/NOT_READY/STALE`、快照序号和未满足项。`lockAndRevalidate`在消费方命令事务中重读权威来源水位，不允许CUT直读IMP或EXE-01～04表。
+
+EXE-01～04 Owner分别公开`ArrivalAcceptanceFactApi`、`InstallationCompletionFactApi`、`ConfigurationCompletionFactApi`、`JointDebuggingCompletionFactApi`；统一返回租户/项目、权威范围、稳定来源对象ID、业务判定、业务版本、范围版本/水位和重开标识，并提供按期望版本的锁定重验。不返回Owner DO、文件或解析正文。
 
 ## 8. ACC：验收与项目闭环 API
 
@@ -278,6 +282,8 @@ F-PROJ-002另使用以下Owner公开契约：
 PROJ只能依赖上述API及DTO，COM/AST实现不得回调PROJ Mapper、Repository或业务表。公开契约不可用时可继续保存/修正拆分草稿，但禁止确认应用，不把待核对数量视为可分配量。
 
 AST不得依赖IMP的Service、Mapper、Repository或业务表。IMP保存安装事实和位置快照，AST只消费公开命令参数。
+
+AST公开`DeviceScopeFactApi.resolveBySerials/lockAndRevalidate`：将租户内序列号集合解析为稳定`deviceId/currentProjectId/projectAssignmentVersion`及范围版本，并按稳定设备ID顺序重验。该契约只供设备Owner事实，不替代`ProjectScopeApi.ACTION_EDIT`的主体项目授权，不得以旧`AssetDeviceScopeApi`的缺失/不可用分类结果代替稳定ID和归属版本。
 
 ## 12. ANA 与公共能力 API
 

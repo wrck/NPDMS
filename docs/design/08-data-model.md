@@ -175,6 +175,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 | InstallationRecord | InstallationItem、LocationSnapshot、InstallationEvidence | 一次安装、迁移或拆除记录、位置、结果、照片和确认 | Project、Device、Address/Site/SiteLocation、ArrivalAcceptance |
 | ConfigurationCollectionResult | ParseAttempt、ResultReference、ParserVersion、ComponentParseCandidate | 配置 Log 回调、原始整机证据、框/槽/板卡解析候选、解析版本和业务确认 | CollectionTask、Device、DeviceComponentRelation、FileReference |
 | JointDebuggingResult | DebuggingItem、IssueReference、ResultReference | 联调输入、结论、问题引用和确认 | CollectionTask、Device、ProjectTask |
+| ImplementationReadinessSnapshot | SourceFactVector、DeviceScopeSnapshot、UnmetCode | EXE-01～04权威完成事实、来源版本/水位、项目/设备/批准方案版本和`READY/NOT_READY`判定 | ArrivalAcceptanceFactApi、InstallationCompletionFactApi、ConfigurationCompletionFactApi、JointDebuggingCompletionFactApi、ProjectScopeApi、DeviceScopeFactApi |
 | ImplementationRisk | RiskTag、RiskTreatment | 单机/现场风险、等级、处置和关闭证据 | Project、Device；不复用 CUT 风险状态 |
 | ImplementationQualityCheck | QualityItem、Remediation、ReviewRecord | 阶段质量检查、整改和复核结论 | Project、现场批次、FileReference |
 | DeliveryEvidence | EvidenceRevision、UploadAttempt | IMP 阶段交付件身份、版本、来源和上传结果 | FileArtifact；ACC 只审核/归档引用 |
@@ -185,6 +186,7 @@ Preparation 与 Solution 可以部署在同一物理模块，但各自通过应�
 - 工勘和安装可通过`AssetLocationApi`维护Address/Site/SiteLocation；确认安装、迁移或拆除前不改变设备当前位置，确认后由AST命令幂等生效并保留历史。
 - ConfigurationCollectionResult 与 JointDebuggingResult 消费 DAC 结果，但不持有连接参数和凭证明文。
 - ConfigurationCollectionResult完整保留原始整机Log；框/槽/板卡解析候选由AST确认后形成DeviceComponentRelation。自动匹配与人工绑定均保留来源、解析版本和证据引用。
+- ImplementationReadinessSnapshot每次评估只追加，不覆盖历史；只保存稳定ID、判定、业务版本和水位，不复制EXE-01～04正文、配置Log、设备凭证或附件。
 - IMP 上传交付件，ACC 负责齐套审核和归档；文件二进制只有一个 FileArtifact 身份。
 
 ## 7. Acceptance & Closure 数据模型
