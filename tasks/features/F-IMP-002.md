@@ -19,6 +19,8 @@
 - Task 1C的COM `getAssignedScope`与AST `DeviceScopeFactApi`生产适配保持`BLOCKED_BY_DEPENDENCY`，不注册fallback或Fake Bean；当前转入不依赖这些Provider的Task 2 Schema串行单元。
 - Task 2A Schema已完成：V133仅建立五张IMP Owner表、租户内引用、状态/当前版本/数量约束和ACC重试调度字段；静态契约4项及隔离MySQL 8.4真实DDL执行通过。
 - Task 2B应用级CURRENT_FORWARD核对仍保持初始暂停；COM/AST/PLT生产资格未满足前不扫描旧表、不生成目标事实，下一单元转入Task 3持久化映射与稳定锁序。
+- Task 3A正向持久化已完成：五表DO、批次详情/分页、明细与差异当前版本、证据及修订查询已落地；锁查询全部位于XML，并为后续应用服务按设备、订单行、批次、证据编排稳定锁序提供独立入口；空项目范围直接返回空结果，Mapper合约3项通过。
+- 当前继续Task 3B的项目事实范围汇总与迁移游标查询；旧数据核对执行仍保持暂停，不因附件缺行、缺名或数量差异形成阻断或反向改口径。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选

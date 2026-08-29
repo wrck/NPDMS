@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalAcceptanceMapper">
+
+    <sql id="columns">
+        id, project_id, batch_code, logistics_no, arrived_at, signer_snapshot,
+        status, delivery_scope_version, expected_scope_snapshot, scope_watermark,
+        migration_resolution_status, migration_reason_code, legacy_source_id,
+        project_fact_version, evidence_id, evidence_revision, predecessor_acceptance_id,
+        submitted_by, submitted_at, confirmed_by, confirmed_at, version,
+        creator, create_time, updater, update_time, deleted, tenant_id
+    </sql>
+
+    <select id="selectByBatch" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
+        SELECT <include refid="columns"/>
+        FROM imp_arrival_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND batch_code = #{query.batchCode}
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectRow" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
+        SELECT <include refid="columns"/>
+        FROM imp_arrival_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.arrivalAcceptanceId}
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
+        SELECT <include refid="columns"/>
+        FROM imp_arrival_acceptance
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.arrivalAcceptanceId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <sql id="pageWhere">
+        tenant_id = #{query.tenantId}
+        AND deleted = b'0'
+        AND project_id IN
+        <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        <if test="query.status != null and query.status != ''">
+            AND status = #{query.status}
+        </if>
+    </sql>
+
+    <select id="selectPageRowsInternal" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalAcceptanceDO">
+        SELECT <include refid="columns"/>
+        FROM imp_arrival_acceptance
+        WHERE <include refid="pageWhere"/>
+        ORDER BY arrived_at DESC, id DESC
+        LIMIT #{query.offset}, #{query.limit}
+    </select>
+
+    <select id="selectPageCountInternal" resultType="long">
+        SELECT COUNT(*)
+        FROM imp_arrival_acceptance
+        WHERE <include refid="pageWhere"/>
+    </select>
+</mapper>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalLineMapper">
+    <sql id="columns">
+        id, arrival_acceptance_id, line_no, line_revision, scope_type,
+        device_id, device_assignment_version, order_line_id, product_code, model_code,
+        expected_quantity, accepted_quantity, unit, status, current_marker, version,
+        creator, create_time, updater, update_time, deleted, tenant_id
+    </sql>
+    <sql id="currentWhere">
+        tenant_id = #{query.tenantId}
+        AND arrival_acceptance_id = #{query.arrivalAcceptanceId}
+        AND current_marker = 1
+        AND deleted = b'0'
+    </sql>
+    <select id="selectCurrentList" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO">
+        SELECT <include refid="columns"/> FROM imp_arrival_line
+        WHERE <include refid="currentWhere"/>
+        ORDER BY CASE WHEN scope_type = 'DEVICE' THEN 0 ELSE 1 END,
+                 device_id, order_line_id, arrival_acceptance_id, line_no, id
+    </select>
+    <select id="selectCurrentListForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance.ArrivalLineDO">
+        SELECT <include refid="columns"/> FROM imp_arrival_line
+        WHERE <include refid="currentWhere"/>
+        ORDER BY CASE WHEN scope_type = 'DEVICE' THEN 0 ELSE 1 END,
+                 device_id, order_line_id, arrival_acceptance_id, line_no, id
+        FOR UPDATE
+    </select>
+</mapper>
