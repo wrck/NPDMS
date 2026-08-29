@@ -41,6 +41,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.pms.commerce.enums.ErrorCodeConstants.*;
+
 @Service
 @RequiredArgsConstructor
 public class CommerceDeliveryScopeCommandService {
@@ -256,8 +259,12 @@ public class CommerceDeliveryScopeCommandService {
         if (quantity.compareTo(BigDecimal.valueOf(serials.size())) != 0) {
             throw conflict("SERIAL_QUANTITY_MISMATCH");
         }
-        SerialScopeValidationResult result = assetDeviceScopeApi.validateAssignableSerials(
-                tenantId, projectId, serials);
+        SerialScopeValidationResult result;
+        try {
+            result = assetDeviceScopeApi.validateAssignableSerials(tenantId, projectId, serials);
+        } catch (RuntimeException exception) {
+            throw conflict("AST_PROVIDER_UNAVAILABLE");
+        }
         if (result == null || !result.valid() || result.missingSerialNumbers() == null
                 || !result.missingSerialNumbers().isEmpty() || result.unavailableSerialNumbers() == null
                 || !result.unavailableSerialNumbers().isEmpty() || result.duplicateSerialNumbers() == null
@@ -520,8 +527,22 @@ public class CommerceDeliveryScopeCommandService {
                 .getBytes(StandardCharsets.UTF_8)).toString();
     }
 
-    private IllegalStateException conflict(String code) {
-        return new IllegalStateException(code);
+    private RuntimeException conflict(String reason) {
+        if ("DELIVERY_SCOPE_VERSION_CONFLICT".equals(reason)
+                || "ORDER_LINE_AUTHORITY_INVALID".equals(reason)) {
+            return exception(COMMERCE_SCOPE_VERSION_CONFLICT, reason);
+        }
+        if ("ACCEPTANCE_SCOPE_UNKNOWN".equals(reason)
+                || "AST_PROVIDER_UNAVAILABLE".equals(reason)) {
+            return exception(COMMERCE_SCOPE_DEPENDENCY_UNAVAILABLE, reason);
+        }
+        if ("DELIVERY_SCOPE_CURRENT_CONFLICT".equals(reason)
+                || "DELIVERY_SCOPE_NOT_FOUND".equals(reason)
+                || "DELIVERY_SCOPE_CONFLICT_FROZEN".equals(reason)
+                || "IDEMPOTENCY_PAYLOAD_CONFLICT".equals(reason)) {
+            return exception(COMMERCE_SCOPE_STATE_CONFLICT, reason);
+        }
+        return exception(COMMERCE_SCOPE_BUSINESS_GATE_REJECTED, reason);
     }
 
     private boolean blank(String value) {

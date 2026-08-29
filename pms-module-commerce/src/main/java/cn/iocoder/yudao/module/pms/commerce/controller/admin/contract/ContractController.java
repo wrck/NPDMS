@@ -6,7 +6,9 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
 import cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractRelationReqVO;
+import cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractDetailRespVO;
 import cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractRespVO;
+import cn.iocoder.yudao.module.pms.commerce.controller.admin.order.vo.SalesOrderRespVO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessService;
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractRelationCommand;
@@ -46,7 +48,11 @@ public class ContractController {
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
     public CommonResult<PageResult<ContractRespVO>> page(
+            @RequestParam(required = false) String companyCode,
             @RequestParam(required = false) String contractNo,
+            @RequestParam(required = false) String contractType,
+            @RequestParam(required = false) String customer,
+            @RequestParam(required = false) String sourceSystem,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") @Min(1) int pageNo,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int pageSize) {
@@ -54,18 +60,28 @@ public class ContractController {
             Long userId = currentUserId();
             boolean sensitiveReadable = canReadSensitive(userId);
             return success(toPage(accessService.pageContracts(currentTenantId(), userId,
-                    UUID.randomUUID().toString(), contractNo, status, (pageNo - 1) * pageSize, pageSize),
+                    UUID.randomUUID().toString(), new ContractAccessService.ContractSearch(
+                            companyCode, contractNo, contractType, customer, sourceSystem, status,
+                            (pageNo - 1) * pageSize, pageSize)),
                     sensitiveReadable));
         });
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
-    public CommonResult<ContractRespVO> get(@PathVariable Long id) {
+    public CommonResult<ContractDetailRespVO> get(@PathVariable Long id) {
         return withTenant(() -> {
             Long userId = currentUserId();
-            return success(toResponse(accessService.getContract(currentTenantId(), userId,
-                    UUID.randomUUID().toString(), id), canReadSensitive(userId)));
+            ContractAccessService.ContractDetail detail = accessService.getContractDetail(
+                    currentTenantId(), userId, UUID.randomUUID().toString(), id);
+            boolean sensitiveReadable = canReadSensitive(userId);
+            return success(new ContractDetailRespVO(toResponse(detail.contract(), sensitiveReadable),
+                    detail.relatedOrders().stream().map(value -> toOrder(value, sensitiveReadable)).toList(),
+                    detail.projectRelations().stream().map(value ->
+                            new ContractDetailRespVO.ProjectRelationRespVO(value.getId(), value.getProjectId(),
+                                    value.getRelationRole(), value.getStatus(), value.getVersion())).toList(),
+                    detail.contract().getMasterSourceSystem(), detail.contract().getSourceVersion(),
+                    detail.contract().getSourceSyncTime(), detail.contract().getSourceUpdatedAt()));
         });
     }
 
@@ -92,6 +108,15 @@ public class ContractController {
                 sensitiveReadable ? value.getCustomerName() : null,
                 value.getContractName(), sensitiveReadable ? value.getCurrencyCode() : null, value.getSourceVersion(),
                 value.getSourceUpdatedAt(), value.getStatus(), value.getVersion());
+    }
+
+    private SalesOrderRespVO toOrder(
+            cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO value,
+            boolean sensitiveReadable) {
+        return new SalesOrderRespVO(value.getId(), value.getSourceSystem(), value.getSourceVersion(),
+                value.getCompanyCode(), value.getCompanyName(), value.getOrderType(), value.getOrderNo(),
+                sensitiveReadable ? value.getCustomerCode() : null,
+                sensitiveReadable ? value.getCustomerName() : null, value.getStatus(), value.getVersion());
     }
 
     private boolean canReadSensitive(Long userId) {

@@ -13,36 +13,82 @@
 
     <select id="selectByCompanyScope"
             resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
-        SELECT * FROM com_sales_order
-        WHERE tenant_id = #{query.tenantId}
-          AND deleted = 0
-          AND CAST(company_code AS BINARY) IN
-          <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">
-              CAST(#{companyCode} AS BINARY)
-          </foreach>
+        SELECT o.* FROM com_sales_order o
+        WHERE o.tenant_id = #{query.tenantId}
+          AND o.deleted = 0
+          AND (
+          <if test="query.companyCodes != null and query.companyCodes.size() > 0">
+            CAST(o.company_code AS BINARY) IN
+            <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">
+                CAST(#{companyCode} AS BINARY)
+            </foreach>
+          </if>
+          <if test="query.companyCodes != null and query.companyCodes.size() > 0 and query.projectIds != null and query.projectIds.size() > 0"> OR </if>
+          <if test="query.projectIds != null and query.projectIds.size() > 0">
+            EXISTS (SELECT 1 FROM com_order_contract_relation ocr
+                    JOIN com_project_contract_relation pcr
+                      ON pcr.tenant_id = ocr.tenant_id AND pcr.contract_id = ocr.contract_id
+                     AND pcr.deleted = 0 AND pcr.status = 'ACTIVE' AND pcr.effective_to IS NULL
+                   WHERE ocr.tenant_id = o.tenant_id AND ocr.order_id = o.id AND ocr.deleted = 0
+                     AND pcr.project_id IN
+                     <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
+                         #{projectId}
+                     </foreach>)
+          </if>
+          )
+        <if test="query.companyCode != null and query.companyCode != ''">
+          AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)
+        </if>
         <if test="query.orderNo != null and query.orderNo != ''">
-          AND order_no LIKE CONCAT('%', #{query.orderNo}, '%')
+          AND o.order_no LIKE CONCAT('%', #{query.orderNo}, '%')
+        </if>
+        <if test="query.orderType != null and query.orderType != ''">
+          AND o.order_type = #{query.orderType}
+        </if>
+        <if test="query.customerKeyword != null and query.customerKeyword != ''">
+          AND (o.customer_code LIKE CONCAT('%', #{query.customerKeyword}, '%')
+            OR o.customer_name LIKE CONCAT('%', #{query.customerKeyword}, '%'))
         </if>
         <if test="query.status != null and query.status != ''">
-          AND status = #{query.status}
+          AND o.status = #{query.status}
         </if>
-        ORDER BY order_no, id
+        ORDER BY o.order_no, o.id
         LIMIT #{query.offset}, #{query.limit}
     </select>
 
     <select id="selectCountByCompanyScope" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM com_sales_order
-        WHERE tenant_id = #{query.tenantId}
-          AND deleted = 0
-          AND CAST(company_code AS BINARY) IN
-          <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">
-              CAST(#{companyCode} AS BINARY)
-          </foreach>
+        SELECT COUNT(*) FROM com_sales_order o
+        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0
+          AND (
+          <if test="query.companyCodes != null and query.companyCodes.size() > 0">
+            CAST(o.company_code AS BINARY) IN
+            <foreach collection="query.companyCodes" item="companyCode" open="(" separator="," close=")">CAST(#{companyCode} AS BINARY)</foreach>
+          </if>
+          <if test="query.companyCodes != null and query.companyCodes.size() > 0 and query.projectIds != null and query.projectIds.size() > 0"> OR </if>
+          <if test="query.projectIds != null and query.projectIds.size() > 0">
+            EXISTS (SELECT 1 FROM com_order_contract_relation ocr
+                    JOIN com_project_contract_relation pcr ON pcr.tenant_id = ocr.tenant_id
+                     AND pcr.contract_id = ocr.contract_id AND pcr.deleted = 0
+                     AND pcr.status = 'ACTIVE' AND pcr.effective_to IS NULL
+                   WHERE ocr.tenant_id = o.tenant_id AND ocr.order_id = o.id AND ocr.deleted = 0
+                     AND pcr.project_id IN
+                     <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>)
+          </if>
+          )
+        <if test="query.companyCode != null and query.companyCode != ''">AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)</if>
         <if test="query.orderNo != null and query.orderNo != ''">
-          AND order_no LIKE CONCAT('%', #{query.orderNo}, '%')
+          AND o.order_no LIKE CONCAT('%', #{query.orderNo}, '%')
         </if>
-        <if test="query.status != null and query.status != ''">
-          AND status = #{query.status}
-        </if>
+        <if test="query.orderType != null and query.orderType != ''">AND o.order_type = #{query.orderType}</if>
+        <if test="query.customerKeyword != null and query.customerKeyword != ''">AND (o.customer_code LIKE CONCAT('%', #{query.customerKeyword}, '%') OR o.customer_name LIKE CONCAT('%', #{query.customerKeyword}, '%'))</if>
+        <if test="query.status != null and query.status != ''">AND o.status = #{query.status}</if>
+    </select>
+
+    <select id="selectRelatedByContract"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
+        SELECT o.* FROM com_sales_order o
+        JOIN com_order_contract_relation r ON r.tenant_id = o.tenant_id AND r.order_id = o.id AND r.deleted = 0
+        WHERE o.tenant_id = #{query.tenantId} AND r.contract_id = #{query.contractId} AND o.deleted = 0
+        ORDER BY o.order_no, o.id
     </select>
 </mapper>

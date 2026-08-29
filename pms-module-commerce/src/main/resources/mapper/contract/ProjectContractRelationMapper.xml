@@ -12,4 +12,12 @@
           AND deleted = 0
         FOR UPDATE
     </select>
+
+    <select id="selectCurrentByContract"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ProjectContractRelationDO">
+        SELECT * FROM com_project_contract_relation
+        WHERE tenant_id = #{query.tenantId} AND contract_id = #{query.contractId}
+          AND deleted = 0 AND status = 'ACTIVE' AND effective_to IS NULL
+        ORDER BY project_id, id
+    </select>
 </mapper>

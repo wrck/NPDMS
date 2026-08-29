@@ -38,13 +38,18 @@ public class OrderController {
     @GetMapping("/sales-orders")
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
     public CommonResult<PageResult<SalesOrderRespVO>> pageOrders(
+            @RequestParam(required = false) String companyCode,
             @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String orderType,
+            @RequestParam(required = false) String customer,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") @Min(1) int pageNo,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int pageSize) {
         return withTenant(() -> {
             PageResult<SalesOrderDO> page = accessService.pageSalesOrders(currentTenantId(), currentUserId(),
-                    UUID.randomUUID().toString(), orderNo, status, (pageNo - 1) * pageSize, pageSize);
+                    UUID.randomUUID().toString(), new ContractAccessService.SalesOrderSearch(
+                            companyCode, orderNo, orderType, customer, status,
+                            (pageNo - 1) * pageSize, pageSize));
             return success(new PageResult<>(page.getList().stream().map(this::toOrder).toList(), page.getTotal()));
         });
     }
@@ -53,12 +58,21 @@ public class OrderController {
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
     public CommonResult<PageResult<SalesOrderLineRespVO>> pageLines(
             @RequestParam(required = false) Long orderId,
+            @RequestParam(required = false) String companyCode,
+            @RequestParam(required = false) String orderType,
+            @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) String lineNo,
+            @RequestParam(required = false) String itemCode,
+            @RequestParam(required = false) String productCode,
+            @RequestParam(required = false) String quantityStatus,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") @Min(1) int pageNo,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int pageSize) {
         return withTenant(() -> {
             PageResult<SalesOrderLineDO> page = accessService.pageSalesOrderLines(currentTenantId(), currentUserId(),
-                    UUID.randomUUID().toString(), orderId, lineNo, (pageNo - 1) * pageSize, pageSize);
+                    UUID.randomUUID().toString(), new ContractAccessService.SalesOrderLineSearch(
+                            orderId, companyCode, orderType, orderNo, lineNo, itemCode, productCode,
+                            quantityStatus, status, (pageNo - 1) * pageSize, pageSize));
             return success(new PageResult<>(page.getList().stream().map(this::toLine).toList(), page.getTotal()));
         });
     }
