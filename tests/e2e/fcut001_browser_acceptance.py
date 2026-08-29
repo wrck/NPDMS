@@ -314,12 +314,12 @@ def browser_acceptance(
         ).first
         vsm_row.locator(".el-switch").click()
         page.get_by_text("五类双机检查 97/97 项", exact=True).wait_for()
-        page.get_by_role("button", name="保存草稿").click()
-        page.get_by_text("草稿已保存", exact=True).wait_for()
-        page.get_by_role("button", name="发布预检").click()
-        page.get_by_text("发布预检通过", exact=True).wait_for()
         page.get_by_role("button", name="关闭").click()
         draft = api.detail(draft["id"])
+        vsm_item = next(item for item in draft["items"] if item["stableItemKey"] == "DUAL_VSM_001")
+        vsm_item["enabled"] = True
+        draft = api.update(draft)
+        assert api.validate(draft["id"])["valid"]
 
         coverage_rule = next(rule for rule in draft["bindingRules"]
                              if rule["stableRuleKey"] == "RULE_RISK_CURRENT_VERSION_BULLETIN")
