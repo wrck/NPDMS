@@ -9,6 +9,7 @@ public final class ProjectStageSnapshotRules {
     public static final String EXCEPTION_CLOSE = "EXCEPTION_CLOSE";
     public static final String REOPEN = "REOPEN";
     public static final String STAGE_ADVANCE = "STAGE_ADVANCE";
+    public static final String STAGE_ENTRY = "STAGE_ENTRY";
 
     private ProjectStageSnapshotRules() {
     }
@@ -33,6 +34,10 @@ public final class ProjectStageSnapshotRules {
             }
             case REOPEN -> requireValue(snapshot.getRelatedSnapshotId(), "relatedSnapshotId");
             case STAGE_ADVANCE -> requireGuard(snapshot);
+            case STAGE_ENTRY -> {
+                requireValue(snapshot.getTreeVersion(), "treeVersion");
+                requireText(snapshot.getProviderFactsJson(), "providerFactsJson");
+            }
             default -> throw new IllegalArgumentException("unsupported operationType: " + snapshot.getOperationType());
         }
     }

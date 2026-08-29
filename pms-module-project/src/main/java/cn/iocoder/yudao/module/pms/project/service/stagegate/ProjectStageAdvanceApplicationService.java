@@ -208,10 +208,10 @@ public class ProjectStageAdvanceApplicationService {
             }
         }
         if (stageMapper.updateStatusIfMatch(new ProjectStageStatusUpdate(actor.tenantId(),
-                context.pair().current().getId(), context.pair().current().getVersion(),
+                context.project().getId(), context.pair().current().getId(), context.pair().current().getVersion(),
                 "ACTIVE", "DONE", updater)) != 1
                 || stageMapper.updateStatusIfMatch(new ProjectStageStatusUpdate(actor.tenantId(),
-                context.pair().next().getId(), context.pair().next().getVersion(),
+                context.project().getId(), context.pair().next().getId(), context.pair().next().getVersion(),
                 "PENDING", "ACTIVE", updater)) != 1
                 || projectMapper.advanceStageIfMatch(new ProjectStageAdvanceUpdate(actor.tenantId(),
                 context.project().getId(), context.project().getVersion(), context.project().getCurrentStage(),
