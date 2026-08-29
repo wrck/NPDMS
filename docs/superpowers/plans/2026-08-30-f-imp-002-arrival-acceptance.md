@@ -1,5 +1,6 @@
 # F-IMP-002 到货签收与里程碑事实 Technical Plan
 
+> Technical Plan Gate：`PASS / GO`（独立最小整改复审；锁定提交 `e0184ac4`）
 > **实施代理必读：** 只有本计划通过独立 Technical Plan Gate 后才可执行。执行时使用 `executing-plans`，按 Task 排他认领；共享 API、Flyway、菜单种子、错误码和事件契约串行合入。任何受控替身只存在于测试装配，不得进入生产 Bean、真实 MySQL 正向证据或浏览器验收。
 
 **目标：** 交付 IMP Owner 的 EXE-01 到货签收完整闭环：按 COM 应到范围和 AST 稳定设备事实创建多批签收，处理部分到货、差异、拒收、补签和明确豁免，由项目经理最终确认不可变批次，发布 EXE-01 DeliveryEvidence，并向 EXE-02/EXE-06提供可锁定重验的项目级 `ArrivalAcceptanceFactApi`。

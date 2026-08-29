@@ -1,9 +1,9 @@
 # F-IMP-002 到货签收与里程碑事实
 
 > Feature实施状态：`NOT_STARTED`
-> 总体工程阶段：`TECHNICAL_PLAN_REVIEW`
+> 总体工程阶段：`IMPLEMENTATION_PENDING`
 > Feature Ready Gate：`READY / GO`（锁定提交`4b5a2ac9`）
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO`（锁定提交`e0184ac4`）
 > Implementation Done Gate：`NOT_STARTED`
 > Requirement：`EXE-01@V1=FULL`
 > Feature Spec：`specs/features/F-IMP-002-arrival-acceptance.md`
@@ -14,7 +14,7 @@
 
 ## 当前最小工作单元
 
-- 评审唯一当前有效的F-IMP-002 Technical Plan；计划评审GO前不实施、不执行功能验收。
+- 按唯一当前有效的F-IMP-002 Technical Plan进入Task排他认领；先实施Task 1公共事实契约与生产依赖适配，不提前执行功能验收。
 - 计划输入限于正式PRD/SDS、Feature Spec、旧实现审计和机器契约；XLSX/附件只可参考，不参与决策或形成阻断。
 
 ## Technical Plan候选
@@ -24,6 +24,7 @@
 - 受控COM/AST/PLT/ACC替身只允许用于计划GO后的单元/集成测试；生产Provider未形成仍阻断Implementation Done和真实浏览器正向闭环。
 - `e0b44970`独立复审为NO-GO；当前整改只补齐PROJ项目经理/S4资格、生产Adapter与持久Inbox/调度路径、应用级CURRENT_FORWARD及Flyway合入时定号，不回写PASS。
 - `5805db7f`最小复审已关闭上述PROJ、事件链和迁移项；当前仅整改COM正式`getAssignedScope`生产依赖，禁止以现有可分割余量接口降级替代。
+- `e0184ac4`独立最小整改复审GO；授权回写Technical Plan PASS并进入计划执行，生产COM/AST/ACC依赖仍阻断相应Task、Implementation Done和真实浏览器正向闭环。
 
 ## 已完成的Ready候选输入
 
