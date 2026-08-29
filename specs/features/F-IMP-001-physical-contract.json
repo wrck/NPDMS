@@ -1,0 +1,42 @@
+{
+  "featureId": "F-IMP-001",
+  "requirementSlices": ["EXE-06@V1"],
+  "coverage": "PARTIAL",
+  "owner": "IMP",
+  "aggregate": "ImplementationReadinessSnapshot",
+  "hardDependencies": ["EXE-01@V1", "EXE-02@V1", "EXE-03@V1", "EXE-04@V1"],
+  "consumerFeatures": ["F-CUT-002"],
+  "table": {
+    "name": "imp_implementation_readiness_snapshot",
+    "purpose": "割接发起和继续前的实施就绪不可变快照",
+    "uniqueKeys": [
+      ["tenant_id", "project_id", "readiness_type", "snapshot_no"]
+    ],
+    "jsonColumns": [
+      "device_scope_snapshot",
+      "source_fact_vector",
+      "unmet_codes"
+    ]
+  },
+  "decisions": ["READY", "NOT_READY"],
+  "revalidationResults": ["READY", "NOT_READY", "STALE"],
+  "apiPrefix": "/api/v1/pms/implementation-readiness",
+  "internalApi": "ImplementationReadinessApi",
+  "event": "ImplementationReadinessSnapshotPublished",
+  "permissions": [
+    "pms:implementation-readiness:query",
+    "pms:implementation-readiness:evaluate"
+  ],
+  "migration": {
+    "strategy": "REBUILD_AFTER_OWNERS",
+    "forbiddenSources": [
+      "pms_eng_arrival",
+      "pms_eng_installation",
+      "pms_eng_configuration",
+      "pms_eng_joint_test",
+      "proj_project_stage_snapshot",
+      "reference attachments",
+      "test seeds"
+    ]
+  }
+}

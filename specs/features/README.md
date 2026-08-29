@@ -23,6 +23,8 @@
 | [F-CUS-001](F-CUS-001-customer-master-and-local-lifecycle.md) | 客户主档与本地生命周期 | CUS-03（V1） | BASELINE | READY（`SPEC-FCUS001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `31834bc6`；受控验收种子、真实MySQL、稳定幂等、权限负向、删除恢复、真实浏览器与合并后代码审查通过） |
 | [F-AST-001](F-AST-001-device-serial-archive-and-temporal-assignment.md) | 设备序列号档案与时态归属 | EQP-01（V1） | BASELINE | READY（`SPEC-FAST001-FEATURE-READY-20260825-01`） | IMPLEMENTATION_COMPLETE（NPDMS `a9f8b7c5`；自动化、真实MySQL、查询计划、真实浏览器与合并后复审通过） |
 | [F-CUT-001](F-CUT-001-cutover-unified-configuration-foundation.md) | 割接统一配置版本、风险与调研矩阵基础 | CUT-07/09/10（V1） | BASELINE（Scope重开已确认） | READY（`NPDMS-FCUT001-FEATURE-READY-20260830-02`） | IMPLEMENTATION_COMPLETE（`NPDMS-FCUT001-IMPLEMENTATION-DONE-20260830-02`） |
+| [F-IMP-001](F-IMP-001-implementation-readiness-snapshot.md) | 割接上线实施就绪快照 | EXE-06（V1，PARTIAL） | DRAFT | NOT_READY（EXE-01～04及AST设备范围事实未完成） | NOT_STARTED |
+| [F-CUT-002](F-CUT-002-cutover-intake-and-manual-assessment.md) | 割接任务接入与人工分级 | CUT-01/02（V1，PARTIAL） | DRAFT | NOT_READY（硬依赖F-IMP-001及AST稳定设备范围事实） | NOT_STARTED |
 
 与本批主档直接相关的`INT-02`、`INT-03`、`INT-04`及`EQP-04`同步运行闭环不属于F-CUS-001或F-AST-001，后续必须分别形成独立Feature Spec和追溯链；F-CUS-001、F-AST-001完成均不代表这些同步Feature完成。主档Feature只冻结外部副本的字段Owner、来源版本、稳定写入边界和降级展示契约。
 
