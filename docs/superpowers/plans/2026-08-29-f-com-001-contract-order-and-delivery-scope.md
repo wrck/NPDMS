@@ -95,6 +95,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 ```
 
 - `CommerceAuthorityWriteCommand`承载受控本地来源批次、来源记录键/版本、合同/订单/行字段（含ERP订单行`productCode`）和operationId；`productCode`按原值保存并参与同版本异载荷冲突判断，不由`itemCode/productId`补齐；命令不包含ERP认证、HTTP、调度或游标。
+- `POST /api/v1/pms/commerce-authority/import-batches`是公开受控导入资源，只接收批次标识和至少一条合同/订单/订单行来源记录；`X-Source-System`统一映射到全部记录，`tenantId/actorUserId`只取服务端认证上下文，`Idempotency-Key`映射为operationId。Controller只作校验与VO映射，窄应用服务以固定接口作用域复用`PlatformCommandExecutionApi`完成规范化摘要守卫并调用既有`CommerceAuthorityWriteApi`；同键同载荷重放、同键异载荷冲突、处理中拒绝及成功安全审计均使用平台既有能力。Owner写入、冲突冻结、Outbox、幂等完成点和成功审计同事务提交或回滚；不增加导入页面、菜单或第三方连接器。
 - `DeliveryScopeAcceptanceLockApi`按`deliveryScopeId ASC`锁定项目全部当前范围并返回精确`deliveryScopeId/allocationVersion`；空集合成功返回空列表；写/锁方法必须加入已有外层事务。
 - 既有`DeliveryScopeApi.applySplit`方法与`Allocation` DTO/语义不变；`SplitScopeApplyCommand`仅加性增加`expectedParentProjectVersion`和`projectVersionsByClientItemKey`。PROJ从同一事务已锁父项目及刚创建子项目的`ProjectMasterDO.version`原值形成不可变版本映射；COM在任何写入前校验三个clientItemKey集合完全一致，并按projectId升序以精确版本调用`ProjectOfficeFactApi.lockAndRevalidate`。部分拆分REMAINDER使用父项目同版本事实。`DeliveryScopeApiImpl`改委托新的兼容适配服务；PROJ不依赖COM实现或表。
 - 旧系统`pm_order_data_from_erp`、`pm_order_line_from_erp`和`pm_project_product_line`只作为订单头、订单行及原始子单的历史参照；当前实现不读取旧库、不实现连接器，也不以旧字段名补运行时Owner事实。其正式迁移另受`AI-MIG-000`约束。
@@ -116,6 +117,7 @@ public interface DeliveryScopeAcceptanceLockApi {
 - `pms-module-commerce/.../dal/dataobject/{contract,order,scope,outbox}/`：目标Contract、SalesOrder、SalesOrderLine、ProjectContractRelation、DeliveryScope、DeliveryScopeDetail和Outbox DO。
 - `pms-module-commerce/.../dal/mysql/...`及`src/main/resources/mapper/commerce/*.xml`：场景Query、列表/详情、公司集合、稳定锁、当前唯一和历史查询。
 - `pms-module-commerce/.../service/authority/CommerceAuthorityWriteService.java`：来源版本、同版本冲突、单位精度、ERP减量/取消和冲突冻结。
+- `pms-module-commerce/.../controller/admin/authority/`与`.../service/authority/CommerceAuthorityImportApplicationService.java`：受控导入REST、服务端身份/来源映射、平台幂等与安全审计；不得直接访问Mapper或复制Owner冻结算法。
 - `.../service/contract/ContractAccessService.java`、`ContractRelationCommandService.java`：SYSTEM公司范围、敏感字段和写前重验。
 - `.../service/scope/CommerceDeliveryScopeCommandService.java`、`CommerceDeliveryScopeQueryService.java`、`DeliveryScopeCompatibilityService.java`：完整范围闭环与F-PROJ-002兼容适配。
 - `.../controller/admin/{contract,order,scope}/`：Feature Spec锁定的GET/POST资源、场景VO、`If-Match`和`Idempotency-Key`。
@@ -233,7 +235,7 @@ git diff --check
 
 - [ ] **Step 4：真实Chromium公开UI/REST闭环**
 
-  新建`scripts/tests/run_fcom001_browser_acceptance.cjs`，使用正式授权配置的全权限验收身份完成合同查询→关系维护→订单行→范围预览→分配→调整/释放→历史→ERP减量冲突冻结→项目进入验收阶段→阶段内新版本绑定；另用空公司范围、无敏感字段权限、无项目范围、AST无效SN和ACC锁定身份验证服务端拒绝。四档视口意外console/page/request错误为零。
+  新建`scripts/tests/run_fcom001_browser_acceptance.cjs`，使用正式授权配置的全权限验收身份完成合同查询→关系维护→订单行→范围预览→分配→调整/释放→历史→受控导入REST触发ERP减量冲突冻结→项目进入验收阶段→阶段内新版本绑定；同批次幂等重放不重复调用Owner或通知，同键异载荷拒绝。另用空公司范围、无敏感字段权限、无项目范围、无Authority写权限、AST无效SN和ACC锁定身份验证服务端拒绝。四档视口意外console/page/request错误为零。
 
 - [ ] **Step 5：证据、自审、提交与独立评审**
 

@@ -143,6 +143,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 | `/contracts/{id}/project-relations` | `POST` | 合同管理员建立显式项目—合同关系；要求幂等键和依据，写入前重新回源校验当前公司范围并记录命中scope ID/version授权快照 |
 | `/sales-orders` | `GET` | 按公司、订单号、类型、客户、状态分页查询；合同管理员按SYSTEM当前公司范围，项目经理按批准项目范围 |
 | `/order-lines` | `GET` | 按订单或业务键返回订单行权威数量、已分配/可分配量及来源状态；合同管理员按SYSTEM当前公司范围，项目经理按批准项目范围 |
+| `/commerce-authority/import-batches` | `POST` | 创建受控权威导入批次；要求`pms:commerce:authority:write`、`Idempotency-Key`和受信`X-Source-System`。租户与操作人仅取服务端认证上下文，来源头统一映射到批次内全部来源记录；只调用既有Owner服务，不实现ERP连接器 |
 | `/delivery-scopes` | `GET` | 按有权项目/订单行查询当前或历史范围及明细；空范围返回空，不省略过滤条件 |
 | `/delivery-scopes/actions/preview` | `POST` | 校验但不写入，返回可分配量、占用明细和版本 |
 | `/delivery-scopes/actions/assign` | `POST` | 原子分配，要求幂等键、期望来源/范围版本及地点版本 |
@@ -151,7 +152,7 @@ ERP连接器未完成时，只允许受控种子、受控文件导入端口或�
 
 稳定内部契约：
 
-- `CommerceAuthorityWriteApi`：仅供受信集成ACL或受控导入入口写ERP副本；订单行来源记录提供来源系统、来源键、来源版本、发生时间和ERP `productCode`，COM原值保存并将其纳入同版本异载荷冲突守卫。只预留接口和受控本地Provider，不实现第三方适配器，也不从其他字段推断产品编码。
+- `CommerceAuthorityWriteApi`：仅供受信集成ACL或受控导入入口写ERP副本；订单行来源记录提供来源系统、来源键、来源版本、发生时间和ERP `productCode`，COM原值保存并将其纳入同版本异载荷冲突守卫。`POST /commerce-authority/import-batches`是唯一公开受控导入适配层：请求不得携带或覆盖租户、操作人及记录级来源系统，Controller以服务端认证上下文和`X-Source-System`统一构造命令，并以`Idempotency-Key`作为operationId。应用服务复用`PlatformCommandExecutionApi`，按租户、固定接口作用域、当前用户和幂等键执行规范化载荷摘要守卫；同键同载荷返回原结果且不再次调用Owner，同键异载荷或处理中重复稳定拒绝。Owner写入、冲突冻结、COM Outbox、幂等完成点及当前用户成功审计同事务提交或回滚；审计只保存operationId、来源系统、批次标识和三类记录数量等安全摘要。仍不实现第三方适配器，也不从其他字段推断产品编码。
 - 既有`OrganizationScopeApi.getActiveScopes`（COM→SYSTEM）：输入当前`subjectUserId`，租户和当前时点只取服务端受信上下文；COM只消费返回行的`id/companyCode/version`，按非空公司编码精确去重。空、未知、超时或不可用时列表为空、详情和写操作拒绝；写入前重新回源，不复制SYSTEM有效期算法、不缓存正向授权、不修改Yudao Provider。
 - 既有`DeliveryScopeApi`：保持F-PROJ-002的可用切片查询、拆分预览、原子应用方法及`Allocation`语义不变；`SplitScopeApplyCommand`仅加性增加`expectedParentProjectVersion`与`projectVersionsByClientItemKey`。PROJ从同一事务已锁父项目和刚创建子项目的`ProjectMasterDO.version`原值传入；三个clientItemKey集合必须一致。COM在任何写入前按稳定projectId顺序以精确版本重验父子`ProjectOfficeFact`，部分拆分的REMAINDER使用父项目同版本事实。无SN分配及REMAINDER从同一租户、已锁定、来源版本有效且已确认的订单行取得非空ERP `productCode`，生成一条数量等于范围数量的产品主体明细。缺失、空白、待权威确认或任一项目/订单行版本冲突时在范围、历史和Outbox零写入；不得使用`itemCode`、`productId`、客户端值、历史明细或普通业务种子常量替代。
 - 既有`AssetDeviceScopeApi.validateAssignableSerials`（COM→AST）：当预览、分配或调整请求含序列号明细时，输入可信`tenantId`、目标承接`projectId`和去空白后的完整序列号集合；仅`valid=true`且缺失、不可分配、重复列表全空时通过。设备不存在、跨租户、状态不可分配、已归属其他项目、重复、Provider异常/超时/不可用均失败关闭并保持COM零写入。该接口不返回设备版本令牌，因此预览结果不得缓存或用于授权写入；每个写命令必须在写入前重新调用，后续调整再次重验，Technical Plan不得自行引入跳过或“沿用上次成功”策略。
