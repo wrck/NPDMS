@@ -459,12 +459,41 @@ INT-05/INT-09复用基础平台用户、公司、部门和岗位主数据，已�
 
 `AcceptanceScopeBinding`物理表由COM-01 Feature前向迁移确定；它仍由ACC拥有并由ACC Provider写入，F-COM-001不得把该表或验收状态转为COM所有。
 
-V70转换规则固定如下：
+V70转换只允许在同一只读快照/停写窗口内执行，输入集以V70主键冻结；重试必须复用同一输入水位。以下规则逐字段固定，未列出的目标可空业务快照只能从表中指定的同一已解析Owner记录复制，否则保持`NULL`，不得由名称或内容推断。
 
-1. `com_order_line.source_system/source_key/source_version/line_code/item_code/quantity/unit_code/quantity_status/source_updated_at/synced_at`逐字段迁入`com_sales_order_line`；`line_code -> line_no`、`quantity -> order_qty`。父`com_sales_order`及`unit_scale`必须已由受控权威导入或批准映射提供；缺失时整次转换失败，不以`order_id`、小数位观察或默认单位推断。
-2. `com_delivery_scope`保留ID、订单行、项目、数量、状态、`allocation_version`、证据和生效区间。每条记录必须命中同租户`proj_project.department_id/department_code`及同一SYSTEM部门的名称和版本；所有V70明细的非空`office_department_code`必须与该项目办事处编码一致。缺失、多值、停用或不一致时转换失败，不从AST、地址或名称补齐。
-3. `com_delivery_scope_detail.office_department_code`仅写入`source_snapshot`作为来源证据，办事处真值只落主记录快照；`serial_no`直接保留。若`serial_no`为空，则必须存在经Owner确认的产品或设备类型映射后才能迁入；不得把`item_code`自动冒充产品编码。明细数量和状态逐字段保留。
-4. 转换前后必须按租户对账订单行数、范围主/明细数、各订单行当前有效分配量、历史区间、分配版本和Outbox事件；任一不一致整体回滚。旧表只在同次切换成功后退出写入，不建立长期双写或第二Owner。
+| V70 `com_order_line`来源 | `com_sales_order_line`目标 | 确定性规则与失败条件 |
+|---|---|---|
+| `id/tenant_id/order_id` | `id/tenant_id/order_id` | 原值保留；`order_id`必须在同租户精确命中已转换`com_sales_order`，并且目标行ID不得既存为其他来源键 |
+| `source_system/source_key/source_version` | `source_system/source_record_key/source_version` | 原值逐字段复制且均非空；同时满足来源唯一键和`tenant_id + order_id + line_no`业务唯一键，重复或交叉冲突整体失败 |
+| `line_code/item_code/quantity` | `line_no/item_code/order_qty` | 原值复制；`open_qty/delivered_qty`因V70无权威值保持`NULL`，不得由订单量计算 |
+| 已解析父`com_sales_order.company_code/order_type/order_no` | `company_code/order_type/order_no` | 只从上述同一父订单复制非空值；V70 `source_system`与父订单不一致、父订单缺失或多义时整体失败 |
+| `unit_code` + 经批准ERP单位元数据 | `unit_code/unit_scale` | `unit_code`非空原值复制；`unit_scale`必须按来源系统+单位编码精确命中批准映射且为0～6，缺失/多义失败，不按数量小数位或默认单位生成 |
+| `quantity_status/source_updated_at/synced_at` | `quantity_status/source_updated_at/source_sync_time` | 原值逐字段复制；状态未知或确认数量违反`unit_scale`时失败 |
+| 批准导入常量`ENABLED` | `status` | 所有成功转换的来源行固定写`ENABLED`；数量权威性只由`quantity_status`表达，不把二者互换 |
+| `version/creator/create_time/updater/update_time/deleted` | 同名字段 | 原值逐字段保留；审计字段缺失、空值违反目标约束或`deleted`不在0/1时整体失败 |
+
+| V70 `com_delivery_scope`及Owner来源 | 目标同名/快照字段 | 确定性规则与失败条件 |
+|---|---|---|
+| `id/tenant_id/order_line_id/project_id` | 同名字段 | 原值保留；订单行ID必须命中上表保留ID后的`com_sales_order_line`，项目ID必须同租户唯一命中`proj_project` |
+| `proj_project.project_code/project_name/customer_code/customer_name/company_code/company_name/department_code/department_name/manager_employee_no/manager_name` | 对应`project_*`快照字段 | 只从同一项目版本复制；`project_code`必须非空，项目缺失、多义或读取版本变化时整体失败 |
+| 已解析`com_sales_order_line.source_system/company_code/company_name/order_type/order_no/line_no/item_code/item_desc` | 对应`order_*`及`item_*`快照字段 | 只从同一目标订单行及其父订单复制；六个目标必填订单快照缺失或关系不一致时整体失败 |
+| `allocated_qty/scope_status/allocation_version/source_evidence/effective_from/effective_to` | 同名字段 | 原值逐字段保留；数量、状态、区间和业务版本必须通过目标约束 |
+| 批准枚举常量`LEGACY`、批准导入常量`ENABLED` | `allocation_source/status` | V70前向转换分别固定写`LEGACY`和`ENABLED`；不得由操作者、项目类型或订单内容选择其他值 |
+| 已解析SYSTEM部门`id/code/name/version` | `office_department_id/code/name/version` | 必须与该项目读取版本的`department_id/department_code`精确一致且部门有效；所有V70明细非空`office_department_code`也必须一致；缺失、多值、停用或冲突整体失败，不从AST、地址或名称补齐 |
+| `version/creator/create_time/updater/update_time/deleted` | 同名字段 | 原值逐字段保留；审计字段或软删值违反目标约束时失败 |
+
+同一`tenant_id + order_line_id + project_id + allocation_version`只能得到一条目标记录；同一`tenant_id + project_id + order_line_id`最多一条`deleted=0 and effective_to is null`记录，且非ACTIVE记录不得保持开放区间。任何版本/当前唯一冲突均整体失败。
+
+| V70 `com_delivery_scope_detail`来源 | `com_delivery_scope_detail`目标 | 确定性规则与失败条件 |
+|---|---|---|
+| `id/tenant_id/delivery_scope_id` | 同名字段 | 原值保留；主记录ID必须命中同一转换批次保留ID后的目标范围主记录 |
+| 冻结输入上的`ROW_NUMBER() OVER (PARTITION BY tenant_id, delivery_scope_id ORDER BY id)` | `detail_sequence` | 从1开始生成；V70 `id`主键是唯一稳定排序键，批次重试复用同一输入水位；分组计数超过`INT UNSIGNED`、主键冲突或输入水位变化时整体失败 |
+| `serial_no/allocated_qty/detail_status` | 同名字段 | 原值复制；若`serial_no`为空，必须由经Owner批准的精确映射提供`product_code`或`device_type_code`，否则失败；不得把`item_code`冒充产品编码 |
+| `office_department_code/source_snapshot/id` | `source_snapshot` | 固定封装为`{"v70DetailId": id, "officeDepartmentCode": office_department_code, "sourceSnapshot": source_snapshot}`；办事处编码只作证据，不成为明细第二真值 |
+| V70无权威值 | `delivery_batch_no/source_record_key`及其余可空产品/设备名称快照 | 保持`NULL`；仅在前述Owner批准映射同时提供时复制产品/设备字段 |
+| `version/creator/create_time/updater/update_time/deleted` | 同名字段 | 原值逐字段保留；审计字段或软删值违反目标约束时失败 |
+
+转换前后必须按租户对账订单行数、范围主/明细数、`detail_sequence`分组连续性、各订单行当前有效分配量、历史区间、分配版本和Outbox事件；任一不一致整体回滚。旧表只在同次切换成功后退出写入，不建立长期双写或第二Owner。
 
 ### 8.3 项目—合同—订单行—设备迁移主链
 
@@ -474,7 +503,7 @@ V70转换规则固定如下：
 proj_project
   -> com_delivery_scope(project_id, order_line_id, allocated_qty, scope_status)
        -> com_delivery_scope_detail(product/device type/SN, allocated_qty, delivery_batch_no)
-  -> com_order_line
+  -> com_sales_order_line
   -> com_sales_order
   -> order-contract relation
   -> com_contract(company_code + contract_no)

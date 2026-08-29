@@ -633,6 +633,32 @@ class ValidateSdsPhase2Test(unittest.TestCase):
 
         self.assertEqual([], MODULE.validate_v18_migration_gate_evidence(repository_root))
 
+    def test_current_fcom001_v70_required_target_mappings_are_complete(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+
+        self.assertEqual([], MODULE.validate_fcom001_v70_required_mappings(repository_root))
+
+    def test_fcom001_v70_required_target_mapping_rejects_each_missing_field(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        contract_text = (
+            repository_root / "docs" / "traceability" / "domain-entity-migration-contract.json"
+        ).read_text(encoding="utf-8")
+        for object_name, expected in MODULE.FCOM001_V70_REQUIRED_TARGET_MAPPINGS.items():
+            for target_field in expected:
+                with self.subTest(object_name=object_name, target_field=target_field), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    contract_path = root / "docs" / "traceability" / "domain-entity-migration-contract.json"
+                    contract_path.parent.mkdir(parents=True)
+                    payload = json.loads(contract_text)
+                    record = next(item for item in payload["records"] if item["object"] == object_name)
+                    source = next(item for item in record["sources"] if item.get("gate") == "F-COM-001")
+                    source["requiredTargetMappings"].pop(target_field)
+                    contract_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+                    errors = MODULE.validate_fcom001_v70_required_mappings(root)
+
+                    self.assertTrue(any(target_field in error for error in errors), errors)
+
     def test_v18_migration_gate_evidence_rejects_stale_phase2_summary(self) -> None:
         repository_root = MODULE_PATH.parents[1]
         with tempfile.TemporaryDirectory() as temporary:

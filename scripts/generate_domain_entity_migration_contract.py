@@ -256,11 +256,24 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
         terminalDisposition="MERGE_ONLY_DETERMINISTIC_BUSINESS_KEY_GROUPS;CONFLICTING_GROUPS_REMAIN_MIGRATION_ISSUES")],
     "OrderLine": [
-        source("CURRENT_TABLE", "com_order_line", "CURRENT_FORWARD", "map source key/version, order, line code, item, quantity, unit and authority status to com_sales_order_line only when parent order and explicit unit scale resolve; never infer unit scale", "CURRENT_FORWARD_REQUIRED", "F-COM-001"),
+        source("CURRENT_TABLE", "com_order_line", "CURRENT_FORWARD", "preserve IDs and audit fields; resolve the exact parent order; map source/version, line, quantity, unit and authority status; use only approved unit scale and ENABLED import status; any required-field or uniqueness conflict fails the batch", "CURRENT_FORWARD_REQUIRED", "F-COM-001",
+        requiredTargetMappings={
+            "com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        }),
         source("LEGACY_TABLE", "pm_order_line_from_erp", "STRUCTURED", "map stable order-line key and signed quantities; empty/ambiguous keys become issues", "READY_FOR_FIELD_MAPPING", "AI-MIG-000"),
     ],
     "DeliveryScope": [
-        source("CURRENT_TABLE", "com_delivery_scope", "CURRENT_FORWARD", "preserve IDs, order-line/project relation, quantity, allocation version and effective interval; freeze project office only after PROJ and SYSTEM facts verify", "CURRENT_FORWARD_REQUIRED", "F-COM-001"),
+        source("CURRENT_TABLE", "com_delivery_scope", "CURRENT_FORWARD", "preserve IDs, relation, quantity, version, evidence, interval and audit fields; copy required project/order snapshots only from exact Owner rows; use approved LEGACY/ENABLED constants; any required-field, version or current-unique conflict fails the batch", "CURRENT_FORWARD_REQUIRED", "F-COM-001",
+        requiredTargetMappings={
+            "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_company_code": "com_sales_order_line.company_code:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_type": "com_sales_order_line.order_type:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_no": "com_sales_order_line.order_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.line_no": "com_sales_order_line.line_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.allocation_source": "APPROVED_CONSTANT:LEGACY;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+        }),
         source("LEGACY_TABLE", "pm_project_product_line", "RELATION", "map project/order-line/allocation; missing allocation remains pending and excluded from metrics", "READY_FOR_FIELD_MAPPING", "AI-MIG-000",
         targetFieldBindings=[
             binding("pm_project_product_line.projectId", "com_delivery_scope.project_id", "EXTERNAL_KEY_MAPPING lookup resolves the target project key", "data-elements://schema-records.jsonl#项目管理!A166"),
@@ -272,7 +285,10 @@ OVERRIDES: dict[str, list[dict[str, str]]] = {
         statusMapping={"policy": "AI_MIG_000_EXPLICIT_VALUE_MAP", "unknown": "MIGRATION_ISSUE_AND_PRESERVE_RAW"},
         terminalDisposition="CREATE_SCOPE_ONLY_WHEN_PROJECT_ORDER_LINE_AND_ALLOCATION_RESOLVE;OTHERWISE_PENDING_AND_EXCLUDED_FROM_METRICS"),
     ],
-    "DeliveryScopeDetail": [source("CURRENT_TABLE", "com_delivery_scope_detail", "CURRENT_FORWARD", "preserve quantity, status, serial number and office code evidence; require verified product/device/SN subject and move verified office snapshot to DeliveryScope without AST inference", "CURRENT_FORWARD_REQUIRED", "F-COM-001")],
+    "DeliveryScopeDetail": [source("CURRENT_TABLE", "com_delivery_scope_detail", "CURRENT_FORWARD", "preserve IDs, quantity, status, serial, evidence and audit fields; generate stable detail sequence from frozen V70 IDs; require verified product/device/SN subject and move verified office snapshot to DeliveryScope without AST inference", "CURRENT_FORWARD_REQUIRED", "F-COM-001",
+        requiredTargetMappings={
+            "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE",
+        })],
     "AcceptanceScopeBinding": [source("NONE_NEW", "AcceptanceScopeBinding", "NEW_ONLY", "append only from new ACC enter-scope commands after locking the current DeliveryScope allocation version; never infer historical bindings from project-level acceptance status", "NEW_ONLY", "F-COM-001")],
     "Supplier": [source("LEGACY_TABLE", "pm_subcontract_facilitator", "STRUCTURED", "map supplier identity and qualification evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],
     "SubcontractRequest": [source("LEGACY_TABLE", "pm_subcontract_project_header|pm_subcontract_project_line|pm_subcontract_project_price|pm_subcontract_project_callback", "STRUCTURED", "map request scope, price revision and approval/callback evidence", "PENDING_FIELD_MAPPING", "AI-MIG-000")],

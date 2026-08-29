@@ -16,7 +16,7 @@ F-COM-001首轮Feature Ready复审确认三项阻断：物理差量未锁定且�
 3. 数量统一使用`decimal(18,6)`，订单行显式保存`unit_code + unit_scale(0..6)`；确认分配按该精度校验。来源记录保存稳定来源键和版本，订单行另存数量权威状态。
 4. 当前范围以`tenant + project + orderLine + effective_to is null`唯一；`allocation_version`保存业务版本。调整必须关闭旧区间并追加新版本，历史和办事处快照不可覆盖。
 5. ACC新增Owner事实`AcceptanceScopeBinding`及真实`AcceptanceScopeGuardApi` Provider。COM减量和ACC进入验收统一先锁COM范围、后读写ACC绑定；未知、超时或不可用时减量失败关闭。
-6. V70逐字段转换和失败条件以`09-database-design.md`8.2.3为唯一正式规则：办事处编码只作来源证据，缺订单、单位精度、项目/SYSTEM部门或产品/设备/SN必要证据时整体阻断，不伪造维度，不长期双写。
+6. V70逐字段转换和失败条件以`09-database-design.md`8.2.3为唯一正式规则：办事处编码只作来源证据；订单行`status`固定使用批准导入常量`ENABLED`；范围必填项目/订单快照从精确命中的Project/SalesOrderLine/SalesOrder复制，`allocation_source/status`固定为`LEGACY/ENABLED`；明细`detail_sequence`在冻结输入上按V70主键分组排序生成。任一必填来源、唯一键或输入水位冲突均整体阻断，不伪造业务维度，不长期双写。
 7. 合同管理员首次合同可见性仍由`Q-FCOM-001`阻断。本ADR不选择租户全量、组织范围、项目范围或新授权表，也不放行Feature Ready。
 
 ## P3-E09差量结论

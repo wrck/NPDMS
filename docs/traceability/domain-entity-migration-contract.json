@@ -3123,9 +3123,12 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "com_order_line",
           "disposition": "CURRENT_FORWARD",
-          "transform": "map source key/version, order, line code, item, quantity, unit and authority status to com_sales_order_line only when parent order and explicit unit scale resolve; never infer unit scale",
+          "transform": "preserve IDs and audit fields; resolve the exact parent order; map source/version, line, quantity, unit and authority status; use only approved unit scale and ENABLED import status; any required-field or uniqueness conflict fails the batch",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "F-COM-001",
+          "requiredTargetMappings": {
+            "com_sales_order_line.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT"
+          },
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V70__commerce_delivery_scope_slice.sql#table=com_order_line"
         },
         {
@@ -3154,9 +3157,19 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "com_delivery_scope",
           "disposition": "CURRENT_FORWARD",
-          "transform": "preserve IDs, order-line/project relation, quantity, allocation version and effective interval; freeze project office only after PROJ and SYSTEM facts verify",
+          "transform": "preserve IDs, relation, quantity, version, evidence, interval and audit fields; copy required project/order snapshots only from exact Owner rows; use approved LEGACY/ENABLED constants; any required-field, version or current-unique conflict fails the batch",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "F-COM-001",
+          "requiredTargetMappings": {
+            "com_delivery_scope.project_code": "proj_project.project_code:EXACT_SAME_TENANT_VERSION;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_source_system": "com_sales_order_line.source_system:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_company_code": "com_sales_order_line.company_code:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_type": "com_sales_order_line.order_type:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.order_no": "com_sales_order_line.order_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.line_no": "com_sales_order_line.line_no:EXACT_RESOLVED_PARENT;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.allocation_source": "APPROVED_CONSTANT:LEGACY;FAIL_BATCH_ON_MISSING_OR_CONFLICT",
+            "com_delivery_scope.status": "APPROVED_CONSTANT:ENABLED;FAIL_BATCH_ON_MISSING_OR_CONFLICT"
+          },
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V70__commerce_delivery_scope_slice.sql#table=com_delivery_scope"
         },
         {
@@ -3222,9 +3235,12 @@
           "sourceType": "CURRENT_TABLE",
           "sourceObject": "com_delivery_scope_detail",
           "disposition": "CURRENT_FORWARD",
-          "transform": "preserve quantity, status, serial number and office code evidence; require verified product/device/SN subject and move verified office snapshot to DeliveryScope without AST inference",
+          "transform": "preserve IDs, quantity, status, serial, evidence and audit fields; generate stable detail sequence from frozen V70 IDs; require verified product/device/SN subject and move verified office snapshot to DeliveryScope without AST inference",
           "mappingStatus": "CURRENT_FORWARD_REQUIRED",
           "gate": "F-COM-001",
+          "requiredTargetMappings": {
+            "com_delivery_scope_detail.detail_sequence": "ROW_NUMBER() OVER (PARTITION BY tenant_id,delivery_scope_id ORDER BY id) ON FROZEN_INPUT_WATERMARK;FAIL_BATCH_ON_OVERFLOW_OR_INPUT_CHANGE"
+          },
           "evidenceRef": "implementation://a9f8b7c568546839d3d641531f8036bb75889a82/sql/migrations/V70__commerce_delivery_scope_slice.sql#table=com_delivery_scope_detail"
         }
       ]

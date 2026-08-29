@@ -25,7 +25,7 @@
 | F-PROJ-004聚焦迁移增量 | READY / GO | 当前契约为88对象/99来源绑定/1排除源；`ProjectTemplateMatchHistory`为NONE_NEW/FEATURE_FORWARD_MIGRATION(PM-07)，已进入受管生成链；Feature Ready独立裁决`NPDMS-FPROJ004-FEATURE-READY-20260825-06`为GO |
 | F-PLT-002聚焦动态表单候选 | IN_REVIEW | 候选形成时为90对象/101来源绑定/1排除源，修订007当前总体为93对象/104来源绑定/1排除源；PLT模板、修订、通用实例与Preparation专用实例分离，旧`pms_eng_form_*`仅作复用审计证据且不迁移、不双写；不代表Feature Ready通过 |
 | F-CUS-001规格回写 | READY | 当前契约为93对象/104来源绑定/1排除源；客户主档、地点引用、五维权限切片及V106～V108实现证据已进入受管生成链，Feature前向表不冒充当前核心DDL |
-| F-COM-001修订008聚焦差量 | IN_REVIEW / BLOCKED_BY_SPEC | 当前受管生成契约为94对象/107来源绑定/1排除源；办事处发生时快照、单位精度、来源版本、范围历史、V70转换和ACC Owner守卫已形成`FEATURE_FORWARD_MIGRATION(COM-01)`候选；等待P3-E09差量独立复审，且Q-FCOM-001合同管理员数据范围未决，Feature继续NOT_READY |
+| F-COM-001修订008聚焦差量 | IN_REVIEW / BLOCKED_BY_SPEC | 当前受管生成契约为94对象/107来源绑定/1排除源；办事处发生时快照、单位精度、来源版本、范围历史、ACC Owner守卫及V70的10项必填目标映射（含明细序号唯一键规则）/逐项缺失负向门禁已形成`FEATURE_FORWARD_MIGRATION(COM-01)`整改候选；等待P3-E09差量整改复审，且Q-FCOM-001合同管理员数据范围未决，Feature继续NOT_READY |
 | 追溯 | PASS | `phase2-contract-map.md`保留100个稳定Requirement锚点并显式登记111个切片键；迁移对象和目标表映射精确同步 |
 | 工作绑定、P3采集结果与CUS-02/CUT-07承载 | PASS | ADR-0030六表已由P3-E09纳入当前冻结模型；ADR-0031仅批准两个逻辑对象及Feature前向表名，实际物理表须由对应Feature以前向迁移审批创建 |
 | F-PROJ-003 PM-04角色与项目子树授权精化 | PASS | ADR-0034已接受，角色与范围分离、PLT授权事实、PROJ范围计算、API、物理字段及幂等边界已落位；属于Feature级差量精化，不重新打开Phase 2总体门禁 |
