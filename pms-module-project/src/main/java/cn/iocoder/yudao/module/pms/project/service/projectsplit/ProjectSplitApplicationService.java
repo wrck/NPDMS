@@ -111,14 +111,16 @@ public class ProjectSplitApplicationService {
         ProjectSplitDraftService.DraftResult draft = draftService.getDraft(request.getId(), actor);
         List<CreatedProject> created = new ArrayList<>();
         Map<String, Long> projectIds = new LinkedHashMap<>();
+        Map<String, Integer> projectVersions = new LinkedHashMap<>();
         for (ProjectSplitItemDO item : draft.items()) {
             ProjectMasterDO child = childCreationService.create(parent, item, actor.tenantId(), request.getId());
             created.add(new CreatedProject(item.getClientItemKey(), child.getId(), child.getProjectCode()));
             projectIds.put(item.getClientItemKey(), child.getId());
+            projectVersions.put(item.getClientItemKey(), child.getVersion());
         }
         SplitScopeApplyResult scopeResult = deliveryScopeApi.applySplit(new SplitScopeApplyCommand(
-                actor.tenantId(), parent.getId(), command.expectedScopeVersion(), command.idempotencyKey(),
-                projectIds, allocations(draft)));
+                actor.tenantId(), parent.getId(), parent.getVersion(), command.expectedScopeVersion(),
+                command.idempotencyKey(), Map.copyOf(projectIds), Map.copyOf(projectVersions), allocations(draft)));
         if (!scopeResult.valid()) {
             throw exception(PROJECT_SPLIT_APPLY_INVALID, String.join(",", scopeResult.errors()));
         }

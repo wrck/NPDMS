@@ -17,11 +17,19 @@ public class DeliveryScopeDetailDO extends TenantBaseDO {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private Long deliveryScopeId;
+    private Integer detailSequence;
     private String officeDepartmentCode;
     private String serialNo;
+    private String productCode;
+    private String productName;
+    private String deviceTypeCode;
+    private String deviceTypeName;
+    private String deliveryBatchNo;
+    private String sourceRecordKey;
     private BigDecimal allocatedQty;
     private String detailStatus;
     private String sourceSnapshot;
+    private String remark;
     @Version
     private Integer version;
 }

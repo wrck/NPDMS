@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEvent
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.OrderLineMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,7 +108,7 @@ public class DeliveryScopeService {
             }
         }
         List<DeliveryScopeDO> currentScopes = deliveryScopeMapper.selectActiveByProjectIdForUpdate(
-                command.tenantId(), command.parentProjectId());
+                new DeliveryScopeProjectQuery(command.tenantId(), command.parentProjectId()));
         CommerceOutboxEventDO concurrentReplay = outboxEventMapper.selectByEventId(replayEventId);
         if (concurrentReplay != null) {
             return replayResult(command, concurrentReplay);
