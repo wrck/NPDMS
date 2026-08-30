@@ -217,7 +217,7 @@ ADR-0037候选为COM-01/ACC-03建立第二个限定同步原子例外：PROJ进�
 
 | 场景 | 分类与失败行为 |
 |---|---|
-| 模板配置未知字段/题型/策略/舍入、重复编码、类型参数缺失、非法decimal/weight/threshold或无法确定计分 | BUSINESS_GATE；修订保持DRAFT，根current指针不变，不用默认值修复 |
+| 模板配置未知字段/题型/策略/舍入、重复编码、类型参数缺失或null、MULTIPLE_CHOICE的min/max倒置或超出options数量、TEXT的min/max倒置、非法decimal/weight/threshold、scoreMax不等于合法答案集合实际最大可达分或无法确定计分 | BUSINESS_GATE；修订保持DRAFT，根current指针不变，不用默认值修复 |
 | 模板发布expectedVersion冲突、同幂等键异配置或五维最高优先级并列 | VERSION_CONFLICT / IDEMPOTENCY_CONFLICT / BUSINESS_GATE；不发布、不覆盖旧修订 |
 | ACC模板解析零匹配、并列最高优先级或发布版本漂移 | BUSINESS_GATE / VERSION_CONFLICT；项目创建或任务触发整体失败，不选默认模板 |
 | 业务时点Owner未知、ProjectTask/WorkBinding身份或触发版本不一致 | DEPENDENCY_UNAVAILABLE / VERSION_CONFLICT；Task、Questionnaire和Todo零写入 |

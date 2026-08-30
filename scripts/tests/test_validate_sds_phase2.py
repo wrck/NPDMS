@@ -154,6 +154,54 @@ class ValidateSdsPhase2Test(unittest.TestCase):
             errors = MODULE.validate_facc002_satisfaction_contract(root)
             self.assertTrue(any("FORWARD_MANAGED_SEED_REVISION_REQUIRED" in error for error in errors), errors)
 
+    def test_facc002_rejects_inverted_or_oversized_multiple_choice_bounds(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "1<=minSelections<=maxSelections<=options数量",
+                "minSelections/maxSelections由实现决定",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("minSelections" in error for error in errors), errors)
+
+    def test_facc002_rejects_inverted_text_bounds(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            path.write_text(path.read_text(encoding="utf-8").replace(
+                "0<=minLength<=maxLength",
+                "minLength/maxLength由实现决定",
+                1,
+            ), encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("minLength" in error for error in errors), errors)
+
+    def test_facc002_rejects_unreachable_multiple_choice_score_max(self) -> None:
+        repository_root = MODULE_PATH.parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(repository_root / "docs" / "design", root / "docs" / "design")
+            path = root / "docs" / "design" / "09-database-design.md"
+            text = path.read_text(encoding="utf-8")
+            text = text.replace(
+                "合法去重选择集合的option score算术平均最大值",
+                "最大单个option score",
+                1,
+            ).replace(
+                "最低选2项、option分值100/0的多选题最大可达分为50，threshold=80必须拒绝发布",
+                "最低选2项、option分值100/0时仍允许threshold=80",
+                1,
+            )
+            path.write_text(text, encoding="utf-8")
+            errors = MODULE.validate_facc002_satisfaction_contract(root)
+            self.assertTrue(any("合法去重选择集合" in error or "threshold=80" in error for error in errors), errors)
+
     def test_requirement_table_scope_expands_ranges_and_compact_ids(self) -> None:
         text = """| Owner | Requirement | API |
 |---|---|---|
