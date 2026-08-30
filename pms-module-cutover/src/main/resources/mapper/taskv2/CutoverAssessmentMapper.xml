@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper">
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO">
+        SELECT *
+        FROM cut_assessment
+        WHERE tenant_id = #{query.tenantId}
+          AND cutover_task_id = #{query.taskId}
+          AND id = #{query.assessmentId}
+          AND current_marker = 1
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <update id="updateDraftIfMatch">
+        UPDATE cut_assessment
+        SET answer_snapshot = CAST(#{query.answerSnapshot} AS JSON),
+            context_snapshot = CAST(#{query.contextSnapshot} AS JSON),
+            manual_grade = #{query.manualGrade},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.assessmentId}
+          AND version = #{query.expectedVersion}
+          AND assessment_status = 'DRAFT'
+          AND current_marker = 1
+          AND deleted = b'0'
+    </update>
+
+    <update id="submitIfMatch">
+        UPDATE cut_assessment
+        SET context_snapshot = CAST(#{query.contextSnapshot} AS JSON),
+            manual_grade = #{query.manualGrade},
+            simple_flow = #{query.simpleFlow},
+            assessment_status = 'SUBMITTED',
+            submitted_by = #{query.submittedBy},
+            submitted_at = #{query.submittedAt},
+            version = version + 1,
+            update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.assessmentId}
+          AND version = #{query.expectedVersion}
+          AND assessment_status = 'DRAFT'
+          AND current_marker = 1
+          AND deleted = b'0'
+    </update>
+</mapper>
