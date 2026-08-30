@@ -3,7 +3,7 @@
 > Feature实施状态：`NOT_STARTED`
 > 总体工程阶段：`TECHNICAL_PLAN`
 > Feature Ready Gate：`READY / GO`（锁定基线`cad8088a`）
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO`（锁定提交`14440e45`）
 > Implementation Done Gate：`NOT_STARTED`
 > `pms_cut_task -> cut_task` Migration Contract Gate：`PASS`（`36d1b37f`）
 > API/Physical Machine Contract Gate：`PASS / b7f49166`
@@ -17,7 +17,7 @@
 - `API/Physical Machine Contract Gate`已在`b7f49166`通过；`ImplementationReadinessApi Public Machine Contract Gate`已在`38fc0d9d`独立复审`PASS / GO`，只冻结IMP Owner公开消费接口，不实现Provider。
 - `CustomerServiceLevelFactApi Public Machine Contract Gate`已在`64e3dbbd`独立复审`PASS / GO`：只冻结CUS API/DTO/公共失败和机器合同，不实现Provider，不在CUT重复实现Owner。
 - `F-CUT-002 Feature Ready`已在锁定基线`cad8088a`独立复审`PASS / GO`。
-- 检查点：`NPDMS-FCUT002-TECHPLAN-20260831-01`已在`9cef17e4`收敛为后端正向链、新工作台两个串行Task；当前仅整改验证规则、统一锁序、公共API模块边界和legacy Mapper绑定，Technical Plan仍为`REVIEW_REQUIRED`。下一步：A-D最小复审。
+- `NPDMS-FCUT002-TECHPLAN-20260831-01`已在锁定提交`14440e45`独立最小整改复审`PASS / GO`。当前最近工程单元为Task 1“后端、数据与正向业务链”；Task 1完整正向实现后再执行正向验证，不新增中间独立Gate。
 
 ## 已完成
 

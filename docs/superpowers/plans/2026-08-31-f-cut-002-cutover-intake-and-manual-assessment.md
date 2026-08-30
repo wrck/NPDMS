@@ -1,7 +1,7 @@
 # F-CUT-002 割接任务接入与人工分级 Implementation Plan
 
 > 计划 ID：`NPDMS-FCUT002-TECHPLAN-20260831-01`
-> Technical Plan Gate：`REVIEW_REQUIRED`
+> Technical Plan Gate：`PASS / GO`（独立最小整改复审；锁定提交`14440e45`）
 > Feature Ready：`PASS / cad8088a`
 > Feature Spec：`specs/features/F-CUT-002-cutover-intake-and-manual-assessment.md`
 > Physical Contract：`specs/features/F-CUT-002-physical-contract.json`
@@ -127,4 +127,4 @@ Task 1 结束时仍不申请独立 Gate、不回写 Feature 完成；进入 Task
 
 ## 8. Technical Plan Gate
 
-当前结论：`REVIEW_REQUIRED`。最近未满足 Gate 为本计划的独立 Technical Plan 审核；GO 后才按 Task 1 → Task 2 串行执行。计划 GO 不批准产品代码、Flyway 执行、Task 完成、Implementation Done、SIT、UAT、Deployment 或 Release。
+当前结论：`PASS / GO`（独立最小整改复审；锁定提交`14440e45`）。允许按Task 1→Task 2串行执行；本计划GO不等于产品代码、Flyway、Task、Implementation Done、SIT、UAT、Deployment或Release完成。
